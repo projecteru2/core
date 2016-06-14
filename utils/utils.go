@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/engine-api/client"
+	engineapi "github.com/docker/engine-api/client"
 	"github.com/docker/go-connections/tlsconfig"
 	"gitlab.ricebook.net/platform/core/types"
 )
@@ -41,7 +41,7 @@ func Tail(path string) string {
 	return parts[len(parts)-1]
 }
 
-func MakeDockerClient(endpoint, config *types.Config) (*client.Client, error) {
+func MakeDockerClient(endpoint, config *types.Config) (*engineapi.Client, error) {
 	if !strings.HasPrefix(endpoint, "tcp://") {
 		endpoint = "tcp://" + endpoint
 	}
@@ -74,5 +74,5 @@ func MakeDockerClient(endpoint, config *types.Config) (*client.Client, error) {
 		},
 	}
 
-	return client.NewClient(endpoint, config.DockerConfig.DockerAPIVersion, cli, nil)
+	return engineapi.NewClient(endpoint, config.DockerConfig.DockerAPIVersion, cli, nil)
 }
