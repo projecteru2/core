@@ -13,11 +13,13 @@ type Cluster interface {
 	GetNode(podname, nodename string) (*types.Node, error)
 	ListPodNodes(podname string) ([]*types.Node, error)
 	GetContainer(id string) (*types.Container, error)
+	GetContainers(ids []string) ([]*types.Container, error)
 
 	// cluster methods
-	BuildImage() error
+	BuildImage(repository, version string) (chan *types.BuildImageMessage, error)
 	CreateContainer() error
 	UpdateContainer() error
-	RemoveContainer() error
+	RemoveContainer(ids []string) (chan *types.RemoveContainerMessage, error)
 	MigrateContainer() error
+	RemoveImage(nodename string, images []string) (chan *types.RemoveImageMessage, error)
 }

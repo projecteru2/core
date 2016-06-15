@@ -39,6 +39,22 @@ func (k *Krypton) GetContainer(id string) (*types.Container, error) {
 	return c, nil
 }
 
+// get many containers
+func (k *Krypton) GetContainers(ids []string) ([]*types.Container, error) {
+	var (
+		containers []*types.Container
+		err        error
+	)
+	for _, id := range ids {
+		container, err := k.GetContainer(id)
+		if err != nil {
+			return containers, err
+		}
+		containers = append(containers, container)
+	}
+	return containers, err
+}
+
 // add a container
 // mainly record its relationship on pod and node
 // actually if we already know its node, we will know its pod

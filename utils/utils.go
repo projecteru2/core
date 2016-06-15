@@ -76,3 +76,20 @@ func MakeDockerClient(endpoint, config *types.Config) (*engineapi.Client, error)
 
 	return engineapi.NewClient(endpoint, config.DockerConfig.DockerAPIVersion, cli, nil)
 }
+
+func GetGitRepoName(url string) (string, error) {
+	if !strings.HasPrefix("git@") || !strings.HasSuffix(".git") {
+		return "", fmt.Errorf("Bad git url format %q", url)
+	}
+
+	x := strings.SplitN(url, ":", 2)
+	if len(x) != 2 {
+		return "", fmt.Errorf("Bad git url format %q", url)
+	}
+
+	y := strings.SplitN(x[1], "/", 2)
+	if len(y) != 2 {
+		return "", fmt.Errorf("Bad git url format %q", url)
+	}
+	return y[1][:len(y[1])-4]
+}
