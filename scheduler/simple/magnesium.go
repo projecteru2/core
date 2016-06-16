@@ -49,7 +49,7 @@ func (m *Magnesium) SelectNodes(nodes map[string]types.CPUMap, quota int, num in
 	}
 
 	total := totalQuota(nodes)
-	if total < num {
+	if total < num*quota {
 		return result, fmt.Errorf("Not enough CPUs, total: %d, require: %d", total, num)
 	}
 
