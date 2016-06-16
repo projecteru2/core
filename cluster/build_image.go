@@ -217,7 +217,7 @@ func createDockerfile(buildDir, uid, reponame string, specs types.AppSpecs) erro
 	f.WriteString("ADD launcher /user/local/bin/launcher\n")
 	f.WriteString("ADD launcheroot /user/local/bin/launcheroot\n")
 	f.WriteString(fmt.Sprintf("WORKDIR /%s\n", specs.Appname))
-	f.WriteString(fmt.Sprintf("RUN useradd -u %d -d /nonexistent -s /sbin/nologin -U %s\n", uid, specs.Appname))
+	f.WriteString(fmt.Sprintf("RUN useradd -u %s -d /nonexistent -s /sbin/nologin -U %s\n", uid, specs.Appname))
 	for _, cmd := range specs.Build {
 		f.WriteString(fmt.Sprintf("RUN %s\n", cmd))
 	}
