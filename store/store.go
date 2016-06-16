@@ -6,7 +6,7 @@ type Store interface {
 	// pod
 	AddPod(name, desc string) (*types.Pod, error)
 	GetPod(podname string) (*types.Pod, error)
-	GetAllPod() ([]*types.Pod, error)
+	GetAllPods() ([]*types.Pod, error)
 
 	// node
 	AddNode(name, endpoint, podname string, public bool) (*types.Node, error)
@@ -18,5 +18,6 @@ type Store interface {
 	// container
 	AddContainer(id, podname, nodename string) (*types.Container, error)
 	GetContainer(id string) (*types.Container, error)
+	GetContainers(ids []string) ([]*types.Container, error)
 	RemoveContainer(id string) error
 }

@@ -21,5 +21,5 @@ type Cluster interface {
 	UpdateContainer() error
 	RemoveContainer(ids []string) (chan *types.RemoveContainerMessage, error)
 	MigrateContainer() error
-	RemoveImage(nodename string, images []string) (chan *types.RemoveImageMessage, error)
+	RemoveImage(podname, nodename string, images []string) (chan *types.RemoveImageMessage, error)
 }

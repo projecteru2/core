@@ -30,7 +30,7 @@ func (c *Calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMess
 				success := true
 				message := "success"
 
-				if err := removeOneContainer(container); err != nil {
+				if err := c.removeOneContainer(container); err != nil {
 					success = false
 					message = err.Error()
 				}
@@ -52,23 +52,24 @@ func (c *Calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMess
 
 // remove one container
 // 5 seconds timeout
-func removeOneContainer(c *types.Container) error {
-	info, err := c.Inspect()
+func (c *Calcium) removeOneContainer(container *types.Container) error {
+	info, err := container.Inspect()
 	if err != nil {
 		return err
 	}
 
-	err = c.Engine.ContainerStop(context.Background(), c.ID, 5*time.Second)
+	timeout := 5 * time.Second
+	err = container.Engine.ContainerStop(context.Background(), info.ID, &timeout)
 	if err != nil {
 		return err
 	}
 
-	opts := enginetypes.ContainerRemoveOptions{
+	rmOpts := enginetypes.ContainerRemoveOptions{
 		RemoveVolumes: true,
 		RemoveLinks:   true,
 		Force:         true,
 	}
-	err = c.Engine.ContainerRemove(context.Background(), c.ID, opts)
+	err = container.Engine.ContainerRemove(context.Background(), info.ID, rmOpts)
 	if err != nil {
 		return err
 	}
@@ -77,11 +78,11 @@ func removeOneContainer(c *types.Container) error {
 	// we don't care if some container is still using the image
 	// docker will care that for us
 	// TODO what if we use another worker to clean all the images?
-	opts := enginetypes.ImageRemoveOptions{
+	rmiOpts := enginetypes.ImageRemoveOptions{
 		Force:         false,
 		PruneChildren: true,
 	}
-	go c.Engine.ImageRemove(context.Background(), info.Image, opts)
+	go container.Engine.ImageRemove(context.Background(), info.Image, rmiOpts)
 
-	return c.store.RemoveContainer(id)
+	return c.store.RemoveContainer(info.ID)
 }

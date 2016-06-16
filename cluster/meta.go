@@ -9,10 +9,6 @@ func (c *Calcium) ListPods() ([]*types.Pod, error) {
 	return c.store.GetAllPods()
 }
 
-func (c *Calcium) ListPods() ([]*types.Pod, error) {
-	return c.store.GetAllPods()
-}
-
 func (c *Calcium) AddPod(podname, desc string) (*types.Pod, error) {
 	return c.store.AddPod(podname, desc)
 }
@@ -35,4 +31,8 @@ func (c *Calcium) ListPodNodes(podname string) ([]*types.Node, error) {
 
 func (c *Calcium) GetContainer(id string) (*types.Container, error) {
 	return c.store.GetContainer(id)
+}
+
+func (c *Calcium) GetContainers(ids []string) ([]*types.Container, error) {
+	return c.store.GetContainers(ids)
 }

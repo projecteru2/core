@@ -88,7 +88,7 @@ func (k *Krypton) AddContainer(id, podname, nodename string) (*types.Container, 
 		return nil, err
 	}
 
-	_, err := k.etcd.Set(context.Background(), key, string(bytes), nil)
+	_, err = k.etcd.Set(context.Background(), key, string(bytes), nil)
 	if err != nil {
 		return nil, err
 	}

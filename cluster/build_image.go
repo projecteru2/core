@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -16,6 +17,25 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// Get a random node from pod `podname`
+func getRandomNode(c *Calcium, podname string) (*types.Node, error) {
+	nodes, err := c.ListPodNodes(podname)
+	if err != nil {
+		return nil, err
+	}
+
+	nodemap := make(map[string]types.CPUMap)
+	for _, n := range nodes {
+		nodemap[n.Name] = n.CPU
+	}
+	nodename, err := c.scheduler.RandomNode(nodemap)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.GetNode(podname, nodename)
+}
+
 // build image for repository
 // since we wanna set UID for the user inside container, we have to know the uid parameter
 //
@@ -26,8 +46,13 @@ import (
 //             ├─ launcher
 //             ├─ launcheroot
 func (c *Calcium) BuildImage(repository, version, uid string) (chan *types.BuildImageMessage, error) {
-	var node *types.Node
 	ch := make(chan *types.BuildImageMessage)
+
+	// use pod `dev` to build image
+	node, err := getRandomNode(c, "dev")
+	if err != nil {
+		return ch, err
+	}
 
 	buildDir, err := ioutil.TempDir(os.TempDir(), "corebuild-")
 	if err != nil {
@@ -45,7 +70,7 @@ func (c *Calcium) BuildImage(repository, version, uid string) (chan *types.Build
 	// clone code into cloneDir
 	// which is under buildDir and named as repository name
 	cloneDir := filepath.Join(buildDir, reponame)
-	if err := git.CloneRepository(repository, cloneDir, version, c.config.Git.GitPublicKey, c.config.Git.GitPrivateKey); err != nil {
+	if err := git.CloneRepository(repository, cloneDir, version, c.config.Git.PublicKey, c.config.Git.PrivateKey); err != nil {
 		return ch, err
 	}
 
@@ -68,10 +93,10 @@ func (c *Calcium) BuildImage(repository, version, uid string) (chan *types.Build
 
 	// create launcher scripts and dockerfile
 	if err := createLauncher(buildDir, specs); err != nil {
-		return err
+		return ch, err
 	}
 	if err := createDockerfile(buildDir, uid, reponame, specs); err != nil {
-		return err
+		return ch, err
 	}
 
 	// create tar stream for Build API
@@ -153,7 +178,7 @@ sleep 1
 shift
 
 `
-	f, err := os.Create(path.Join(buildDir, "launcher"))
+	f, err := os.Create(filepath.Join(buildDir, "launcher"))
 	if err != nil {
 		return err
 	}
@@ -164,7 +189,7 @@ shift
 		return err
 	}
 
-	fr, err := os.Create(path.Join(buildDir, "launcheroot"))
+	fr, err := os.Create(filepath.Join(buildDir, "launcheroot"))
 	if err != nil {
 		return err
 	}
@@ -180,7 +205,7 @@ shift
 
 // Dockerfile
 func createDockerfile(buildDir, uid, reponame string, specs types.AppSpecs) error {
-	f, err := os.Create(path.Join(buildDir, "Dockerfile"))
+	f, err := os.Create(filepath.Join(buildDir, "Dockerfile"))
 	if err != nil {
 		return err
 	}

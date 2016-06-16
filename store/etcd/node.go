@@ -25,7 +25,7 @@ func (k *Krypton) GetNode(podname, nodename string) (*types.Node, error) {
 		return nil, fmt.Errorf("Node storage path %q in etcd is a directory", key)
 	}
 
-	node := &Node{}
+	node := &types.Node{}
 	if err := json.Unmarshal([]byte(resp.Node.Value), node); err != nil {
 		return nil, err
 	}
@@ -53,9 +53,9 @@ func (k *Krypton) AddNode(name, endpoint, podname string, public bool) (*types.N
 		return nil, err
 	}
 
-	cores := make(map[string]int)
+	cpumap := types.CPUMap{}
 	for i := 0; i < info.NCPU; i++ {
-		cores[strconv.itoa(i)] = 1
+		cpumap[strconv.Itoa(i)] = 1
 	}
 
 	key := fmt.Sprintf(podNodesKey, podname, name)
@@ -64,7 +64,7 @@ func (k *Krypton) AddNode(name, endpoint, podname string, public bool) (*types.N
 		Endpoint: endpoint,
 		Podname:  podname,
 		Public:   public,
-		Cores:    cores,
+		CPU:      cpumap,
 		Engine:   engine,
 	}
 
@@ -136,7 +136,7 @@ func (k *Krypton) GetNodesByPod(podname string) ([]*types.Node, error) {
 // update a node, save it to etcd
 // storage path in etcd is `/eru-core/pod/:podname/node/:nodename/info`
 func (k *Krypton) UpdateNode(node *types.Node) error {
-	key := fmt.Sprintf(podNodesKey, podname, name)
+	key := fmt.Sprintf(podNodesKey, node.Podname, node.Name)
 	bytes, err := json.Marshal(node)
 	if err != nil {
 		return err

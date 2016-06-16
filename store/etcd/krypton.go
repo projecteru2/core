@@ -17,11 +17,11 @@ var (
 )
 
 type Krypton struct {
-	etcd   *client.KeysAPI
-	config *types.Config
+	etcd   client.KeysAPI
+	config types.Config
 }
 
-func NewKrypton(config *types.Config) (*Krypton, error) {
+func NewKrypton(config types.Config) (*Krypton, error) {
 	if len(config.EtcdMachines) == 0 {
 		return nil, fmt.Errorf("ETCD must be set")
 	}
@@ -31,6 +31,6 @@ func NewKrypton(config *types.Config) (*Krypton, error) {
 		return nil, err
 	}
 
-	etcd := &client.NewKeysAPI(cli)
+	etcd := client.NewKeysAPI(cli)
 	return &Krypton{etcd: etcd, config: config}, nil
 }

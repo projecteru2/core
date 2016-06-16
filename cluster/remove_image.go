@@ -1,9 +1,7 @@
 package cluster
 
 import (
-	"fmt"
 	"sync"
-	"time"
 
 	enginetypes "github.com/docker/engine-api/types"
 	"gitlab.ricebook.net/platform/core/types"
@@ -11,10 +9,10 @@ import (
 )
 
 // remove images
-func (c *Calcium) RemoveImage(nodename string, images []string) (chan *types.RemoveImageMessage, error) {
+func (c *Calcium) RemoveImage(podname, nodename string, images []string) (chan *types.RemoveImageMessage, error) {
 	ch := make(chan *types.RemoveImageMessage)
 
-	node, err := c.GetNode(nodename)
+	node, err := c.GetNode(podname, nodename)
 	if err != nil {
 		return ch, err
 	}
@@ -41,10 +39,10 @@ func (c *Calcium) RemoveImage(nodename string, images []string) (chan *types.Rem
 					messages = append(messages, err.Error())
 				} else {
 					for _, m := range ms {
-						if m.Untagged {
+						if m.Untagged != "" {
 							messages = append(messages, "Untagged: "+m.Untagged)
 						}
-						if m.Deleted {
+						if m.Deleted != "" {
 							messages = append(messages, "Deleted: "+m.Deleted)
 						}
 					}

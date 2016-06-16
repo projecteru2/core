@@ -41,7 +41,7 @@ func Tail(path string) string {
 	return parts[len(parts)-1]
 }
 
-func MakeDockerClient(endpoint, config *types.Config) (*engineapi.Client, error) {
+func MakeDockerClient(endpoint string, config types.Config) (*engineapi.Client, error) {
 	if !strings.HasPrefix(endpoint, "tcp://") {
 		endpoint = "tcp://" + endpoint
 	}
@@ -56,7 +56,7 @@ func MakeDockerClient(endpoint, config *types.Config) (*engineapi.Client, error)
 		return nil, err
 	}
 
-	dockerCertPath := filepath.Join(config.DockerConfig.DockerCertPath, host)
+	dockerCertPath := filepath.Join(config.Docker.CertPath, host)
 	options := tlsconfig.Options{
 		CAFile:             filepath.Join(dockerCertPath, "ca.pem"),
 		CertFile:           filepath.Join(dockerCertPath, "cert.pem"),
@@ -74,11 +74,11 @@ func MakeDockerClient(endpoint, config *types.Config) (*engineapi.Client, error)
 		},
 	}
 
-	return engineapi.NewClient(endpoint, config.DockerConfig.DockerAPIVersion, cli, nil)
+	return engineapi.NewClient(endpoint, config.Docker.APIVersion, cli, nil)
 }
 
 func GetGitRepoName(url string) (string, error) {
-	if !strings.HasPrefix("git@") || !strings.HasSuffix(".git") {
+	if !strings.HasPrefix(url, "git@") || !strings.HasSuffix(url, ".git") {
 		return "", fmt.Errorf("Bad git url format %q", url)
 	}
 
@@ -91,5 +91,5 @@ func GetGitRepoName(url string) (string, error) {
 	if len(y) != 2 {
 		return "", fmt.Errorf("Bad git url format %q", url)
 	}
-	return y[1][:len(y[1])-4]
+	return y[1][:len(y[1])-4], nil
 }

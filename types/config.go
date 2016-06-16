@@ -11,15 +11,15 @@ type Config struct {
 }
 
 type GitConfig struct {
-	GitPublicKey  string `yaml:"public_key"`
-	GitPrivateKey string `yaml:"private_key"`
+	PublicKey  string `yaml:"public_key"`
+	PrivateKey string `yaml:"private_key"`
 }
 
 type DockerConfig struct {
-	DockerAPIVersion      string `yaml:"version"`
-	DockerLogDriver       string `yaml:"log_driver"`
-	DockerNetworkMode     string `yaml:"network_mode"`
-	DockerNetworkDisabled bool   `yaml:"network_disabled"`
-	DockerCertPath        string `yaml:"cert_path"`
-	DockerHub             string `yaml:"hub"`
+	APIVersion      string `yaml:"version"`
+	LogDriver       string `yaml:"log_driver"`
+	NetworkMode     string `yaml:"network_mode"`
+	NetworkDisabled bool   `yaml:"network_disabled"`
+	CertPath        string `yaml:"cert_path"`
+	Hub             string `yaml:"hub"`
 }
