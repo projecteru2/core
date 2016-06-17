@@ -39,6 +39,7 @@ func (m *Magnesium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
 
 // Select nodes for deploying.
 // Use round robin method to select, in order to make scheduler average.
+// TODO Outside this method, caller should update corresponding nodes with `nodes` as their CPU, which is weird
 func (m *Magnesium) SelectNodes(nodes map[string]types.CPUMap, quota int, num int) (map[string][]types.CPUMap, error) {
 	m.Lock()
 	defer m.Unlock()

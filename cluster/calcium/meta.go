@@ -1,4 +1,4 @@
-package cluster
+package calcium
 
 // All functions are just proxy to store, since I don't want store to be exported.
 // All these functions are meta data related.

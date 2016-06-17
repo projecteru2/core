@@ -1,30 +1,25 @@
 package cluster
 
 import (
-	"gitlab.ricebook.net/platform/core/scheduler"
-	"gitlab.ricebook.net/platform/core/scheduler/simple"
-	"gitlab.ricebook.net/platform/core/store"
-	"gitlab.ricebook.net/platform/core/store/etcd"
 	"gitlab.ricebook.net/platform/core/types"
 )
 
-type Calcium struct {
-	store     store.Store
-	config    types.Config
-	scheduler scheduler.Scheduler
-}
+type Cluster interface {
+	// meta data methods
+	ListPods() ([]*types.Pod, error)
+	AddPod(podname, desc string) (*types.Pod, error)
+	GetPod(podname string) (*types.Pod, error)
+	AddNode(nodename, endpoint, podname string, public bool) (*types.Node, error)
+	GetNode(podname, nodename string) (*types.Node, error)
+	ListPodNodes(podname string) ([]*types.Node, error)
+	GetContainer(id string) (*types.Container, error)
+	GetContainers(ids []string) ([]*types.Container, error)
 
-func NewCalcium(config types.Config) (*Calcium, error) {
-	store, err := etcdstore.NewKrypton(config)
-	if err != nil {
-		return nil, err
-	}
-
-	scheduler := &simplescheduler.Magnesium{}
-
-	return &Calcium{store: store, config: config, scheduler: scheduler}, nil
-}
-
-func (c *Calcium) Run() {
-
+	// cluster methods
+	BuildImage(repository, version string) (chan *types.BuildImageMessage, error)
+	CreateContainer() error
+	UpdateContainer() error
+	RemoveContainer(ids []string) (chan *types.RemoveContainerMessage, error)
+	MigrateContainer() error
+	RemoveImage(podname, nodename string, images []string) (chan *types.RemoveImageMessage, error)
 }

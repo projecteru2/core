@@ -1,4 +1,4 @@
-package cluster
+package calcium
 
 import (
 	"encoding/json"

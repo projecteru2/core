@@ -96,4 +96,38 @@ func TestSelectNodes(t *testing.T) {
 	_, err = m.SelectNodes(nodes, 1, 1)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")
+
+	for _, cpus := range nodes {
+		assert.Equal(t, cpus.Total(), 0)
+		assert.Equal(t, len(cpus), 2)
+		assert.Equal(t, cpus["node1"], 0)
+		assert.Equal(t, cpus["node2"], 0)
+	}
+}
+
+func TestResultLength(t *testing.T) {
+	c := map[string][]types.CPUMap{
+		"node1": []types.CPUMap{
+			types.CPUMap{"0": 10},
+			types.CPUMap{"1": 10},
+		},
+		"node2": []types.CPUMap{
+			types.CPUMap{"0": 10},
+		},
+	}
+	assert.Equal(t, resultLength(c), 3)
+}
+
+func TestTotalQuota(t *testing.T) {
+	nodes := map[string]types.CPUMap{
+		"node1": types.CPUMap{
+			"0": 10,
+			"1": 0,
+		},
+		"node2": types.CPUMap{
+			"0": 5,
+			"1": 10,
+		},
+	}
+	assert.Equal(t, totalQuota(nodes), 3)
 }

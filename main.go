@@ -8,7 +8,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
-	"gitlab.ricebook.net/platform/core/cluster"
+	"gitlab.ricebook.net/platform/core/cluster/calcium"
 	"gitlab.ricebook.net/platform/core/types"
 	"gopkg.in/yaml.v2"
 )
@@ -63,7 +63,7 @@ func runCluster() {
 		log.Fatal(err)
 	}
 
-	cluster, err := cluster.NewCalcium(config)
+	cluster, err := calcium.New(config)
 	if err != nil {
 		log.Fatal(err)
 	}
