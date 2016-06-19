@@ -86,7 +86,7 @@ func (c *Calcium) BuildImage(repository, version, uid string) (chan *types.Build
 	if err != nil {
 		return ch, err
 	}
-	specs := types.AppSpecs{}
+	specs := types.Specs{}
 	if err := yaml.Unmarshal(bytes, &specs); err != nil {
 		return ch, err
 	}
@@ -121,6 +121,7 @@ func (c *Calcium) BuildImage(repository, version, uid string) (chan *types.Build
 	}
 
 	go func() {
+		defer resp.Body.Close()
 		decoder := json.NewDecoder(resp.Body)
 		for {
 			message := &types.BuildImageMessage{}
@@ -154,7 +155,7 @@ func createTarStream(path string) (io.ReadCloser, error) {
 
 // launcher scripts
 // TODO use golang template
-func createLauncher(buildDir string, specs types.AppSpecs) error {
+func createLauncher(buildDir string, specs types.Specs) error {
 	entry := fmt.Sprintf("exec sudo -E -u %s $@", specs.Appname)
 	entryRoot := "exec $@"
 
@@ -204,7 +205,7 @@ shift
 }
 
 // Dockerfile
-func createDockerfile(buildDir, uid, reponame string, specs types.AppSpecs) error {
+func createDockerfile(buildDir, uid, reponame string, specs types.Specs) error {
 	f, err := os.Create(filepath.Join(buildDir, "Dockerfile"))
 	if err != nil {
 		return err

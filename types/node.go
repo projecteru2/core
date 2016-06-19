@@ -19,6 +19,16 @@ func (c CPUMap) Total() int {
 	return count
 }
 
+func (c CPUMap) Add(q CPUMap) {
+	for label, value := range q {
+		if _, ok := c[label]; !ok {
+			c[label] = value
+		} else {
+			c[label] += value
+		}
+	}
+}
+
 type Node struct {
 	sync.Mutex
 

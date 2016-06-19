@@ -8,8 +8,9 @@ func addCPUMap(c, b types.CPUMap) {
 	for label, value := range b {
 		if _, ok := c[label]; !ok {
 			c[label] = value
+		} else {
+			c[label] += value
 		}
-		c[label] += value
 	}
 }
 

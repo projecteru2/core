@@ -11,7 +11,7 @@ import (
 // app.yaml读进来之后就变这个了
 // Entrypoints的key是entrypoint的名字
 // Binds的key是HostPath, 宿主机对应的路径
-type AppSpecs struct {
+type Specs struct {
 	Appname     string                `yaml:"appname,omitempty"`
 	Entrypoints map[string]Entrypoint `yaml:"entrypoints,omitempty,flow"`
 	Build       []string              `yaml:"build,omitempty,flow"`
@@ -36,6 +36,7 @@ type Entrypoint struct {
 	ExtraHosts    []string      `yaml:"hosts,omitempty,flow"`
 	PermDir       bool          `yaml:"permdir,omitempty"`
 	Privileged    string        `yaml:"privileged,omitempty"`
+	LogConfig     string        `yaml:"log_config,omitempty"`
 }
 
 // 单个bind
@@ -58,11 +59,11 @@ func (e Expose) HostPort() docker.Port {
 	return docker.Port(ports[1])
 }
 
-// 从content加载一个AppSpecs对象出来
+// 从content加载一个Specs对象出来
 // content, app.yaml的内容
 // check, 是否要检查配置, 如果直接从etcd读不需要检查
-func LoadAppSpecs(content string, check bool) (AppSpecs, error) {
-	specs := AppSpecs{}
+func LoadSpecs(content string, check bool) (Specs, error) {
+	specs := Specs{}
 	err := yaml.Unmarshal([]byte(content), &specs)
 	if err != nil {
 		return specs, err
@@ -79,7 +80,7 @@ func LoadAppSpecs(content string, check bool) (AppSpecs, error) {
 
 // 基本的检查, 检查失败就挂了
 // 一些对ports, exposes啥的检查还没做
-func verify(a AppSpecs) error {
+func verify(a Specs) error {
 	if a.Appname == "" {
 		return fmt.Errorf("No appname specified")
 	}

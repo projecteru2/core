@@ -24,3 +24,16 @@ type RemoveImageMessage struct {
 	Success  bool
 	Messages []string
 }
+
+type CreateContainerMessage struct {
+	Podname       string
+	Nodename      string
+	ContainerID   string
+	ContainerName string
+	Success       bool
+	CPU           CPUMap
+}
+
+type PullImageMessage struct {
+	BuildImageMessage
+}

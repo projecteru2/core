@@ -1,6 +1,8 @@
 package calcium
 
 import (
+	"sync"
+
 	"gitlab.ricebook.net/platform/core/scheduler"
 	"gitlab.ricebook.net/platform/core/scheduler/simple"
 	"gitlab.ricebook.net/platform/core/store"
@@ -9,6 +11,7 @@ import (
 )
 
 type Calcium struct {
+	sync.Mutex
 	store     store.Store
 	config    types.Config
 	scheduler scheduler.Scheduler
