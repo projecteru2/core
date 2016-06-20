@@ -12,6 +12,7 @@ type Container struct {
 	ID       string            `json:"id"`
 	Podname  string            `json:"podname"`
 	Nodename string            `json:"nodename"`
+	Name     string            `json:"name"`
 	Engine   *engineapi.Client `json:"-"`
 }
 

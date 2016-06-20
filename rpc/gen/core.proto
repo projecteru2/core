@@ -1,0 +1,149 @@
+syntax = "proto3";
+
+package pb;
+
+service CoreRPC {
+    rpc ListPods(Empty) returns (Pods) {};
+    rpc AddPod(AddPodOptions) returns (Pod) {};
+    rpc GetPod(GetPodOptions) returns (Pod) {};
+
+    rpc AddNode(AddNodeOptions) returns (Node) {};
+    rpc GetNode(GetNodeOptions) returns (Node) {};
+    rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
+    rpc GetContainer(ContainerID) returns (Container) {};
+    rpc GetContainers(ContainerIDs) returns (Containers) {};
+
+    rpc BuildImage(BuildImageOptions) returns (stream BuildImageMessage) {};
+    rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage);
+    rpc RemoveContainer(ContainerIDs) returns (stream RemoveContainerMessage);
+    rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage);
+}
+
+message Empty {}
+
+// 对的, protobuf 就是这样...
+message Pod {
+    string name = 1;
+    string desc = 2;
+}
+
+message Pods {
+    repeated Pod pods = 1;
+}
+
+message Node {
+    string name = 1;
+    string endpoint = 2;
+    string podname = 3;
+    bool public = 4;
+    map<string, int64> cpu = 5;
+}
+
+message Nodes {
+    repeated Node nodes = 1;
+}
+
+message Container {
+    string id = 1;
+    string podname = 2;
+    string nodename = 3;
+    string name = 4;
+}
+
+message Containers {
+    repeated Container containers = 1;
+}
+
+// protobuf 不允许基本类型做 message
+// 只好把这样的类型也封装起来
+message ContainerID {
+    string id = 1;
+}
+
+message ContainerIDs {
+    repeated ContainerID ids = 1;
+}
+
+message AddPodOptions {
+    string name = 1;
+    string desc = 2;
+}
+
+message GetPodOptions {
+    string name = 1;
+}
+
+message AddNodeOptions {
+    string nodename = 1;
+    string endpoint = 2;
+    string podname = 3;
+    bool public = 4;
+}
+
+message GetNodeOptions {
+    string podname = 1;
+    string nodename = 2;
+}
+
+message ListNodesOptions {
+    string podname = 1;
+}
+
+message BuildImageOptions {
+    string repo = 1;
+    string version = 2;
+}
+
+message DeployOptions {
+    string specs = 1;
+    string appname = 2;
+    string image = 3;
+    string podname = 4;
+    string nodename = 5;
+    string entrypoint = 6;
+    double cpu_quota = 7;
+    int32 count = 8;
+    repeated string env = 9;
+    repeated string networks = 10;
+    bool raw = 11;
+}
+
+message RemoveImageOptions {
+    string podname = 1;
+    string nodename = 2;
+    repeated string images = 3;
+}
+
+message ErrorDetail {
+    int64 code = 1;
+    string message = 2;
+}
+
+message BuildImageMessage {
+    string status = 1;
+    string progress = 2;
+    string error = 3;
+    string stream = 4;
+    ErrorDetail error_detail = 5;
+}
+
+message CreateContainerMessage {
+    string podname = 1;
+    string nodename = 2;
+    string id = 3;
+    string name = 4;
+    bool success = 5;
+    map<string, int64> cpu = 6;
+}
+
+message RemoveImageMessage {
+    string image = 1;
+    bool success = 2;
+    repeated string messages = 3;
+}
+
+message RemoveContainerMessage {
+    string id = 1;
+    bool success = 2;
+    string message = 3;
+}

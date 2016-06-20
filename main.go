@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/ioutil"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -9,7 +10,10 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"gitlab.ricebook.net/platform/core/cluster/calcium"
+	"gitlab.ricebook.net/platform/core/rpc"
+	"gitlab.ricebook.net/platform/core/rpc/gen"
 	"gitlab.ricebook.net/platform/core/types"
+	"google.golang.org/grpc"
 	"gopkg.in/yaml.v2"
 )
 
@@ -46,10 +50,17 @@ func initConfig(configPath string) (types.Config, error) {
 		return config, err
 	}
 
+	if config.Docker.APIVersion == "" {
+		config.Docker.APIVersion = "v1.23"
+	}
+	if config.Docker.LogDriver == "" {
+		config.Docker.LogDriver = "none"
+	}
+
 	return config, nil
 }
 
-func runCluster() {
+func serve() {
 	if err := setupLogLevel(logLevel); err != nil {
 		log.Fatal(err)
 	}
@@ -68,10 +79,18 @@ func runCluster() {
 		log.Fatal(err)
 	}
 
+	virbranium := rpc.NewVirbranium(cluster, config)
+	s, err := net.Listen("tcp", config.Bind)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	opts := []grpc.ServerOption{}
+	grpcServer := grpc.NewServer(opts...)
+	pb.RegisterCoreRPCServer(grpcServer, virbranium)
+	go grpcServer.Serve(s)
+
 	log.Info("Calcium started successfully.")
-	cluster.Run()
-	// TODO
-	// add grpc server here
 	waitSignal()
 }
 
@@ -97,7 +116,7 @@ func main() {
 		},
 	}
 	app.Action = func(c *cli.Context) {
-		runCluster()
+		serve()
 	}
 
 	app.Run(os.Args)

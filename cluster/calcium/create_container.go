@@ -159,7 +159,7 @@ func (c *Calcium) doCreateContainer(nodename string, cpumap []types.CPUMap, spec
 			continue
 		}
 
-		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name)
+		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName)
 		if err != nil {
 			c.releaseQuota(node, quota)
 			continue
@@ -259,7 +259,7 @@ func (c *Calcium) makeContainerOptions(quota map[string]int, specs *types.Specs,
 	}
 
 	// log config
-	logConfig := "none"
+	logConfig := c.config.Docker.LogDriver
 	if entry.LogConfig == "json-file" {
 		logConfig = "json-file"
 	}

@@ -16,7 +16,7 @@ type Store interface {
 	UpdateNode(*types.Node) error
 
 	// container
-	AddContainer(id, podname, nodename string) (*types.Container, error)
+	AddContainer(id, podname, nodename, name string) (*types.Container, error)
 	GetContainer(id string) (*types.Container, error)
 	GetContainers(ids []string) ([]*types.Container, error)
 	RemoveContainer(id string) error

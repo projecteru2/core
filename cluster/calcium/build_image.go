@@ -99,48 +99,72 @@ func (c *Calcium) BuildImage(repository, version, uid string) (chan *types.Build
 		return ch, err
 	}
 
+	// tag of image, later this will be used to push image to hub
+	tag := fmt.Sprintf("%s/%s:%s", c.config.Docker.Hub, specs.Appname, utils.TruncateID(version))
+
 	// create tar stream for Build API
 	buildContext, err := createTarStream(buildDir)
 	if err != nil {
 		return ch, err
 	}
 
-	// create options for Build API
-	// here we use first 7 chars as tag
-	buildOptions := enginetypes.ImageBuildOptions{
-		Tags:           []string{utils.TruncateID(version)},
-		SuppressOutput: false,
-		NoCache:        true,
-		Remove:         true,
-		ForceRemove:    true,
-		PullParent:     true,
-	}
-	resp, err := node.Engine.ImageBuild(context.Background(), buildContext, buildOptions)
-	if err != nil {
-		return ch, err
-	}
-
 	go func() {
+		buildOptions := enginetypes.ImageBuildOptions{
+			Tags:           []string{tag},
+			SuppressOutput: false,
+			NoCache:        true,
+			Remove:         true,
+			ForceRemove:    true,
+			PullParent:     true,
+		}
+		resp, err := node.Engine.ImageBuild(context.Background(), buildContext, buildOptions)
+		if err != nil {
+			ch <- makeErrorBuildImageMessage(err)
+			close(ch)
+			return
+		}
+
 		defer resp.Body.Close()
 		decoder := json.NewDecoder(resp.Body)
 		for {
 			message := &types.BuildImageMessage{}
 			err := decoder.Decode(message)
-			if err == io.EOF {
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					close(ch)
+					return
+				}
+			}
+			ch <- message
+		}
+
+		rc, err := node.Engine.ImagePush(context.Background(), tag, enginetypes.ImagePushOptions{})
+		if err != nil {
+			ch <- makeErrorBuildImageMessage(err)
+			close(ch)
+			return
+		}
+
+		defer rc.Close()
+		decoder2 := json.NewDecoder(rc)
+		for {
+			message := &types.BuildImageMessage{}
+			err := decoder2.Decode(message)
+			if err != nil {
 				close(ch)
 				break
 			}
-			// FIXME 似乎用途上一样?
-			if err != nil {
-				close(ch)
-				return
-			}
 			ch <- message
-
 		}
 	}()
 
 	return ch, nil
+}
+
+func makeErrorBuildImageMessage(err error) *types.BuildImageMessage {
+	return &types.BuildImageMessage{Error: err.Error()}
 }
 
 func createTarStream(path string) (io.ReadCloser, error) {
