@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"text/template"
 
 	"github.com/docker/docker/pkg/archive"
 	enginetypes "github.com/docker/engine-api/types"
@@ -16,6 +17,47 @@ import (
 	"golang.org/x/net/context"
 	"gopkg.in/yaml.v2"
 )
+
+const launcherScript = `#! /bin/sh
+echo 32768 > /writable-proc/sys/net/core/somaxconn
+echo 1 > /writable-proc/sys/vm/overcommit_memory
+chmod 777 /dev/stdout
+chmod 777 /dev/stderr
+
+neednetwork=$1
+if [ $neednetwork = "network" ]; then
+    # wait for macvlan
+    while ( ! ip addr show | grep 'UP' | grep 'vnbe'); do
+        echo -n o
+        sleep .5
+    done
+fi
+
+sleep 1
+
+shift
+
+{{.Command}}
+`
+
+const dockerFile = `FROM {{.Base}}
+ENV ERU 1
+ADD %s /{{.Appname}}
+ADD launcher /usr/local/bin/launcher
+ADD launcheroot /usr/local/bin/launcheroot
+WORKDIR /{{.Appname}}
+RUN useradd -u %s -d /nonexistent -s /sbin/nologin -U {{.Appname}}
+{{with .Build}}
+{{range $index, $value := .}}
+RUN {{$value}}
+{{end}}
+{{end}}
+`
+
+// Entry is used to format templates
+type entry struct {
+	Command string
+}
 
 // Get a random node from pod `podname`
 func getRandomNode(c *Calcium, podname string) (*types.Node, error) {
@@ -36,7 +78,7 @@ func getRandomNode(c *Calcium, podname string) (*types.Node, error) {
 	return c.GetNode(podname, nodename)
 }
 
-// build image for repository
+// BuildImage will build image for repository
 // since we wanna set UID for the user inside container, we have to know the uid parameter
 //
 // build directory is like:
@@ -179,38 +221,18 @@ func createTarStream(path string) (io.ReadCloser, error) {
 }
 
 // launcher scripts
-// TODO use golang template
 func createLauncher(buildDir string, specs types.Specs) error {
-	entry := fmt.Sprintf("exec sudo -E -u %s $@", specs.Appname)
-	entryRoot := "exec $@"
+	launcherScriptTemplate, _ := template.New("launcher script").Parse(launcherScript)
 
-	tmpl := `#! /bin/sh
-echo 32768 > /writable-proc/sys/net/core/somaxconn
-echo 1 > /writable-proc/sys/vm/overcommit_memory
-chmod 777 /dev/stdout
-chmod 777 /dev/stderr
+	entryCommand := fmt.Sprintf("exec sudo -E -u %s $@", specs.Appname)
+	entryRootCommand := "exec $@"
 
-neednetwork=$1
-if [ $neednetwork = "network" ]; then
-    # wait for macvlan
-    while ( ! ip addr show | grep 'UP' | grep 'vnbe'); do
-        echo -n o
-        sleep .5
-    done
-fi
-
-sleep 1
-
-shift
-
-`
 	f, err := os.Create(filepath.Join(buildDir, "launcher"))
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	f.WriteString(tmpl)
-	f.WriteString(entry)
+	launcherScriptTemplate.Execute(f, entry{Command: entryCommand})
 	if err := f.Sync(); err != nil {
 		return err
 	}
@@ -223,8 +245,7 @@ shift
 		return err
 	}
 	defer fr.Close()
-	fr.WriteString(tmpl)
-	fr.WriteString(entryRoot)
+	launcherScriptTemplate.Execute(fr, entry{Command: entryRootCommand})
 	if err := fr.Sync(); err != nil {
 		return err
 	}
@@ -243,16 +264,13 @@ func createDockerfile(buildDir, uid, reponame string, specs types.Specs) error {
 	}
 	defer f.Close()
 
-	f.WriteString(fmt.Sprintf("FROM %s\n", specs.Base))
-	f.WriteString("ENV ERU 1\n")
-	f.WriteString(fmt.Sprintf("ADD %s /%s\n", reponame, specs.Appname))
-	f.WriteString("ADD launcher /usr/local/bin/launcher\n")
-	f.WriteString("ADD launcheroot /usr/local/bin/launcheroot\n")
-	f.WriteString(fmt.Sprintf("WORKDIR /%s\n", specs.Appname))
-	f.WriteString(fmt.Sprintf("RUN useradd -u %s -d /nonexistent -s /sbin/nologin -U %s\n", uid, specs.Appname))
-	for _, cmd := range specs.Build {
-		f.WriteString(fmt.Sprintf("RUN %s\n", cmd))
+	dockerFileFormatted := fmt.Sprintf(dockerFile, reponame, uid)
+	t := template.New("docker file template")
+	parsedTemplate, err := t.Parse(dockerFileFormatted)
+	if err != nil {
+		return err
 	}
+	parsedTemplate.Execute(f, specs)
 
 	if err := f.Sync(); err != nil {
 		return err
