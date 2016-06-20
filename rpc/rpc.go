@@ -120,6 +120,16 @@ func (v *Virbranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (
 
 // streamed returned functions
 func (v *Virbranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_BuildImageServer) error {
+	ch, err := v.cluster.BuildImage(opts.Repo, opts.Version, opts.Uid)
+	if err != nil {
+		return err
+	}
+
+	for m := range ch {
+		if err := stream.Send(toRPCBuildImageMessage(m)); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

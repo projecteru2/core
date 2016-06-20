@@ -27,3 +27,16 @@ func toRPCNode(n *types.Node) *pb.Node {
 func toRPCContainer(c *types.Container) *pb.Container {
 	return &pb.Container{Id: c.ID, Podname: c.Podname, Nodename: c.Nodename, Name: c.Name}
 }
+
+func toRPCBuildImageMessage(b *types.BuildImageMessage) *pb.BuildImageMessage {
+	return &pb.BuildImageMessage{
+		Status:   b.Status,
+		Progress: b.Progress,
+		Error:    b.Error,
+		Stream:   b.Stream,
+		ErrorDetail: &pb.ErrorDetail{
+			Code:    int64(b.ErrorDetail.Code),
+			Message: b.ErrorDetail.Message,
+		},
+	}
+}
