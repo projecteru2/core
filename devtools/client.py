@@ -39,7 +39,7 @@ def list_pods(ctx):
         click.echo(p)
 
 
-@cli.command('pod:create')
+@cli.command('pod:add')
 @click.argument('name')
 @click.argument('desc')
 @click.pass_context
@@ -108,6 +108,54 @@ def get_node(ctx, podname, nodename):
         ctx.exit(-1)
 
     click.echo(node)
+
+
+@cli.command('node:add')
+@click.argument('nodename')
+@click.argument('endpoint')
+@click.argument('podname')
+@click.option('--public', '-p', is_flag=True)
+@click.pass_context
+def add_node(ctx, nodename, endpoint, podname, public):
+    stub = _get_stub(ctx)
+    opts = pb.AddNodeOptions(nodename=nodename,
+                             endpoint=endpoint,
+                             podname=podname,
+                             public=public)
+
+    try:
+        node = stub.AddNode(opts, 5)
+    except AbortionError as e:
+        click.echo(click.style('abortion error: %s' % e.details, fg='red', bold=True))
+        ctx.exit(-1)
+
+    click.echo(node)
+
+
+@cli.command('build')
+@click.argument('repo')
+@click.argument('version')
+@click.argument('uid')
+@click.pass_context
+def build_image(ctx, repo, version, uid):
+    stub = _get_stub(ctx)
+    opts = pb.BuildImageOptions(repo=repo, version=version, uid=uid)
+
+    try:
+        for m in stub.BuildImage(opts, 3600):
+            if m.error:
+                click.echo(click.style(m.error, fg='red'), nl=False)
+            elif m.stream:
+                click.echo(click.style(m.stream), nl=False)
+            elif m.status:
+                click.echo(click.style(m.status))
+                if m.progress:
+                    click.echo(click.style(m.progress))
+    except AbortionError as e:
+        click.echo(click.style('abortion error: %s' % e.details, fg='red', bold=True))
+        ctx.exit(-1)
+
+    click.echo(click.style('done', fg='green'))
 
 
 if __name__ == '__main__':

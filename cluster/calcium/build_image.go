@@ -108,22 +108,21 @@ func (c *Calcium) BuildImage(repository, version, uid string) (chan *types.Build
 		return ch, err
 	}
 
-	go func() {
-		buildOptions := enginetypes.ImageBuildOptions{
-			Tags:           []string{tag},
-			SuppressOutput: false,
-			NoCache:        true,
-			Remove:         true,
-			ForceRemove:    true,
-			PullParent:     true,
-		}
-		resp, err := node.Engine.ImageBuild(context.Background(), buildContext, buildOptions)
-		if err != nil {
-			ch <- makeErrorBuildImageMessage(err)
-			close(ch)
-			return
-		}
+	// must be put here because of that `defer os.RemoveAll(buildDir)`
+	buildOptions := enginetypes.ImageBuildOptions{
+		Tags:           []string{tag},
+		SuppressOutput: false,
+		NoCache:        true,
+		Remove:         true,
+		ForceRemove:    true,
+		PullParent:     true,
+	}
+	resp, err := node.Engine.ImageBuild(context.Background(), buildContext, buildOptions)
+	if err != nil {
+		return ch, err
+	}
 
+	go func() {
 		defer resp.Body.Close()
 		decoder := json.NewDecoder(resp.Body)
 		for {
@@ -140,7 +139,9 @@ func (c *Calcium) BuildImage(repository, version, uid string) (chan *types.Build
 			ch <- message
 		}
 
-		rc, err := node.Engine.ImagePush(context.Background(), tag, enginetypes.ImagePushOptions{})
+		// About this "Khadgar", https://github.com/docker/docker/issues/10983#issuecomment-85892396
+		// Just because Ben Schnetzer's cute Khadgar...
+		rc, err := node.Engine.ImagePush(context.Background(), tag, enginetypes.ImagePushOptions{RegistryAuth: "Khadgar"})
 		if err != nil {
 			ch <- makeErrorBuildImageMessage(err)
 			close(ch)

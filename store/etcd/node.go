@@ -43,6 +43,11 @@ func (k *Krypton) GetNode(podname, nodename string) (*types.Node, error) {
 // save it to etcd
 // storage path in etcd is `/eru-core/pod/:podname/node/:nodename/info`
 func (k *Krypton) AddNode(name, endpoint, podname string, public bool) (*types.Node, error) {
+	_, err := k.GetPod(podname)
+	if err != nil {
+		return nil, err
+	}
+
 	engine, err := utils.MakeDockerClient(endpoint, k.config)
 	if err != nil {
 		return nil, err
@@ -58,7 +63,7 @@ func (k *Krypton) AddNode(name, endpoint, podname string, public bool) (*types.N
 		cpumap[strconv.Itoa(i)] = 1
 	}
 
-	key := fmt.Sprintf(podNodesKey, podname, name)
+	key := fmt.Sprintf(nodeInfoKey, podname, name)
 	node := &types.Node{
 		Name:     name,
 		Endpoint: endpoint,
