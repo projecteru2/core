@@ -74,8 +74,8 @@ func (m *MockStore) GetContainers(ids []string) ([]*types.Container, error) {
 	return args.Get(0).([]*types.Container), args.Error(1)
 }
 
-func (m *MockStore) AddContainer(id, podname, nodename, name string) (*types.Container, error) {
-	args := m.Called(id, podname, nodename, name)
+func (m *MockStore) AddContainer(id, podname, nodename, name string, cpu types.CPUMap) (*types.Container, error) {
+	args := m.Called(id, podname, nodename, name, cpu)
 	if args.Get(0) != nil {
 		return args.Get(0).(*types.Container), args.Error(1)
 	}
