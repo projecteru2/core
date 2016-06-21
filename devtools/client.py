@@ -158,5 +158,64 @@ def build_image(ctx, repo, version, uid):
     click.echo(click.style('done', fg='green'))
 
 
+@cli.command('deploy')
+@click.pass_context
+def create_container(ctx):
+    stub = _get_stub(ctx)
+    specs = """appname: "test-ci"
+entrypoints:
+  web:
+    cmd: "python run.py"
+    ports:
+      - "5000/tcp"
+    network_mode: "none"
+  restart:
+    cmd: "python test_restart.py"
+    restart: "always"
+  log:
+    cmd: "python log.py"
+  fullcpu:
+    cmd: "python fullcpu.py"
+    restart: "always"
+build:
+  - "pip install -r requirements.txt -i https://pypi.doubanio.com/simple/"
+base: "hub.ricebook.net/base/alpine:python-2016.04.24"
+"""
+    opts = pb.DeployOptions(specs=specs,
+                            appname='test-ci',
+                            image='hub.ricebook.net/test-ci:966fd83',
+                            podname='dev',
+                            entrypoint='log',
+                            cpu_quota=1,
+                            count=1,
+                            env=['ENV_A=1', 'ENV_B=2'])
+
+    try:
+        for m in stub.CreateContainer(opts, 3600):
+            click.echo(m)
+    except AbortionError as e:
+        click.echo(click.style('abortion error: %s' % e.details, fg='red', bold=True))
+        ctx.exit(-1)
+
+    click.echo(click.style('done', fg='green'))
+
+
+@cli.command('remove')
+@click.argument('ids', nargs=-1)
+@click.pass_context
+def remove_container(ctx, ids):
+    stub = _get_stub(ctx)
+    ids = pb.ContainerIDs(ids=[pb.ContainerID(id=i) for i in ids])
+
+    try:
+        for m in stub.RemoveContainer(ids, 3600):
+            click.echo('%s: success %s, message: %s' % (m.id, m.success, m.message))
+    except AbortionError as e:
+        click.echo(click.style('abortion error: %s' % e.details, fg='red', bold=True))
+        ctx.exit(-1)
+
+    click.echo(click.style('done', fg='green'))
+
+
 if __name__ == '__main__':
     cli()

@@ -1,6 +1,8 @@
 package rpc
 
 import (
+	"fmt"
+
 	"gitlab.ricebook.net/platform/core/cluster"
 	"gitlab.ricebook.net/platform/core/rpc/gen"
 	"gitlab.ricebook.net/platform/core/types"
@@ -119,6 +121,7 @@ func (v *Virbranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (
 }
 
 // streamed returned functions
+// caller must ensure that timeout will not be too short because these actions take a little time
 func (v *Virbranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_BuildImageServer) error {
 	ch, err := v.cluster.BuildImage(opts.Repo, opts.Version, opts.Uid)
 	if err != nil {
@@ -134,14 +137,58 @@ func (v *Virbranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bu
 }
 
 func (v *Virbranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_CreateContainerServer) error {
+	specs, err := types.LoadSpecs(opts.Specs)
+	if err != nil {
+		return err
+	}
+
+	ch, err := v.cluster.CreateContainer(specs, toCoreDeployOptions(opts))
+	if err != nil {
+		return err
+	}
+
+	for m := range ch {
+		if err := stream.Send(toRPCCreateContainerMessage(m)); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func (v *Virbranium) RemoveContainer(cids *pb.ContainerIDs, stream pb.CoreRPC_RemoveContainerServer) error {
+	ids := []string{}
+	for _, id := range cids.Ids {
+		ids = append(ids, id.Id)
+	}
+
+	if len(ids) == 0 {
+		return fmt.Errorf("No container ids given")
+	}
+
+	ch, err := v.cluster.RemoveContainer(ids)
+	if err != nil {
+		return err
+	}
+
+	for m := range ch {
+		if err := stream.Send(toRPCRemoveContainerMessage(m)); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func (v *Virbranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_RemoveImageServer) error {
+	ch, err := v.cluster.RemoveImage(opts.Podname, opts.Nodename, opts.Images)
+	if err != nil {
+		return err
+	}
+
+	for m := range ch {
+		if err := stream.Send(toRPCRemoveImageMessage(m)); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

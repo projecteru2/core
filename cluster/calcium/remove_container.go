@@ -58,6 +58,12 @@ func (c *Calcium) removeOneContainer(container *types.Container) error {
 		return err
 	}
 
+	// will be used later to update
+	node, err := c.GetNode(container.Podname, container.Nodename)
+	if err != nil {
+		return err
+	}
+
 	timeout := 5 * time.Second
 	err = container.Engine.ContainerStop(context.Background(), info.ID, &timeout)
 	if err != nil {
@@ -66,7 +72,6 @@ func (c *Calcium) removeOneContainer(container *types.Container) error {
 
 	rmOpts := enginetypes.ContainerRemoveOptions{
 		RemoveVolumes: true,
-		RemoveLinks:   true,
 		Force:         true,
 	}
 	err = container.Engine.ContainerRemove(context.Background(), info.ID, rmOpts)
@@ -84,5 +89,9 @@ func (c *Calcium) removeOneContainer(container *types.Container) error {
 	}
 	go container.Engine.ImageRemove(context.Background(), info.Image, rmiOpts)
 
+	node.CPU.Add(container.CPU)
+	if err := c.store.UpdateNode(node); err != nil {
+		return err
+	}
 	return c.store.RemoveContainer(info.ID)
 }

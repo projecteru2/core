@@ -20,7 +20,7 @@ import (
 // Create Container
 // Use specs and options to create
 // TODO need to call agent's API to create network
-func (c *Calcium) CreateContainer(specs *types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+func (c *Calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
 
 	result, err := c.prepareNodes(opts.Podname, opts.CPUQuota, opts.Count)
@@ -118,7 +118,7 @@ func doPullImage(node *types.Node, image string) error {
 	return nil
 }
 
-func (c *Calcium) doCreateContainer(nodename string, cpumap []types.CPUMap, specs *types.Specs, opts *types.DeployOptions) []*types.CreateContainerMessage {
+func (c *Calcium) doCreateContainer(nodename string, cpumap []types.CPUMap, specs types.Specs, opts *types.DeployOptions) []*types.CreateContainerMessage {
 	ms := make([]*types.CreateContainerMessage, len(cpumap))
 	node, err := c.GetNode(opts.Podname, nodename)
 	if err != nil {
@@ -159,7 +159,7 @@ func (c *Calcium) doCreateContainer(nodename string, cpumap []types.CPUMap, spec
 			continue
 		}
 
-		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName)
+		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, quota)
 		if err != nil {
 			c.releaseQuota(node, quota)
 			continue
@@ -183,7 +183,7 @@ func (c *Calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
 	c.store.UpdateNode(node)
 }
 
-func (c *Calcium) makeContainerOptions(quota map[string]int, specs *types.Specs, opts *types.DeployOptions) (
+func (c *Calcium) makeContainerOptions(quota map[string]int, specs types.Specs, opts *types.DeployOptions) (
 	*enginecontainer.Config,
 	*enginecontainer.HostConfig,
 	*enginenetwork.NetworkingConfig,

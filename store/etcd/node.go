@@ -141,7 +141,7 @@ func (k *Krypton) GetNodesByPod(podname string) ([]*types.Node, error) {
 // update a node, save it to etcd
 // storage path in etcd is `/eru-core/pod/:podname/node/:nodename/info`
 func (k *Krypton) UpdateNode(node *types.Node) error {
-	key := fmt.Sprintf(podNodesKey, node.Podname, node.Name)
+	key := fmt.Sprintf(nodeInfoKey, node.Podname, node.Name)
 	bytes, err := json.Marshal(node)
 	if err != nil {
 		return err

@@ -214,6 +214,9 @@ shift
 	if err := f.Sync(); err != nil {
 		return err
 	}
+	if err := f.Chmod(0755); err != nil {
+		return err
+	}
 
 	fr, err := os.Create(filepath.Join(buildDir, "launcheroot"))
 	if err != nil {
@@ -223,6 +226,9 @@ shift
 	fr.WriteString(tmpl)
 	fr.WriteString(entryRoot)
 	if err := fr.Sync(); err != nil {
+		return err
+	}
+	if err := fr.Chmod(0755); err != nil {
 		return err
 	}
 
@@ -240,8 +246,8 @@ func createDockerfile(buildDir, uid, reponame string, specs types.Specs) error {
 	f.WriteString(fmt.Sprintf("FROM %s\n", specs.Base))
 	f.WriteString("ENV ERU 1\n")
 	f.WriteString(fmt.Sprintf("ADD %s /%s\n", reponame, specs.Appname))
-	f.WriteString("ADD launcher /user/local/bin/launcher\n")
-	f.WriteString("ADD launcheroot /user/local/bin/launcheroot\n")
+	f.WriteString("ADD launcher /usr/local/bin/launcher\n")
+	f.WriteString("ADD launcheroot /usr/local/bin/launcheroot\n")
 	f.WriteString(fmt.Sprintf("WORKDIR /%s\n", specs.Appname))
 	f.WriteString(fmt.Sprintf("RUN useradd -u %s -d /nonexistent -s /sbin/nologin -U %s\n", uid, specs.Appname))
 	for _, cmd := range specs.Build {

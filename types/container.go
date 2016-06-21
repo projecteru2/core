@@ -13,6 +13,7 @@ type Container struct {
 	Podname  string            `json:"podname"`
 	Nodename string            `json:"nodename"`
 	Name     string            `json:"name"`
+	CPU      CPUMap            `json:"cpu"`
 	Engine   *engineapi.Client `json:"-"`
 }
 
