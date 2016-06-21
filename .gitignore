@@ -1,2 +1,5 @@
 core
 core.yaml
+core.yml
+.ropeproject
+*.pyc

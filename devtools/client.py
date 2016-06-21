@@ -1,36 +1,31 @@
-# coding: utf-8
-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import click
-import core_pb2 as pb
 from grpc.beta import implementations
 from grpc.framework.interfaces.face.face import AbortionError
 
-
-def _get_stub(ctx):
-    try:
-        channel = implementations.insecure_channel('localhost', 5000)
-    except Exception:
-        click.echo(click.style('error getting channel', fg='red', bold=True))
-        ctx.exit(-1)
-
-    if not channel:
-        click.echo(click.style('error getting stub', fg='red', bold=True))
-        ctx.exit(-1)
-    return pb.beta_create_CoreRPC_stub(channel)
+import core_pb2 as pb
 
 
 @click.group()
+@click.option('--grpc-host', default='localhost', show_default=True)
+@click.option('--grpc-port', default=5000, show_default=True, type=int)
 @click.pass_context
-def cli(ctx):
-    pass
+def cli(ctx, grpc_host, grpc_port):
+    channel = implementations.insecure_channel(grpc_host, grpc_port)
+    if not channel:
+        click.echo(click.style('error getting stub', fg='red', bold=True))
+        ctx.exit(-1)
+
+    stub = pb.beta_create_CoreRPC_stub(channel)
+    ctx.obj['stub'] = stub
 
 
 @cli.command('pod:list')
 @click.pass_context
 def list_pods(ctx):
-    stub = _get_stub(ctx)
     try:
-        r = stub.ListPods(pb.Empty(), 5)
+        r = ctx.obj['stub'].ListPods(pb.Empty(), 5)
     except AbortionError as e:
         click.echo(click.style('abortion error: %s' % e.details, fg='red', bold=True))
         ctx.exit(-1)
@@ -44,11 +39,10 @@ def list_pods(ctx):
 @click.argument('desc')
 @click.pass_context
 def create_pod(ctx, name, desc):
-    stub = _get_stub(ctx)
     opts = pb.AddPodOptions(name=name, desc=desc)
 
     try:
-        pod = stub.AddPod(opts, 5)
+        pod = ctx.obj['stub'].AddPod(opts, 5)
     except AbortionError as e:
         click.echo(click.style('abortion error: %s' % e.details, fg='red', bold=True))
         ctx.exit(-1)
@@ -64,11 +58,10 @@ def create_pod(ctx, name, desc):
 @click.argument('name')
 @click.pass_context
 def get_pod(ctx, name):
-    stub = _get_stub(ctx)
     opts = pb.GetPodOptions(name=name)
 
     try:
-        pod = stub.GetPod(opts, 5)
+        pod = ctx.obj['stub'].GetPod(opts, 5)
     except AbortionError as e:
         click.echo(click.style('abortion error: %s' % e.details, fg='red', bold=True))
         ctx.exit(-1)
@@ -80,11 +73,10 @@ def get_pod(ctx, name):
 @click.argument('name')
 @click.pass_context
 def get_pod_nodes(ctx, name):
-    stub = _get_stub(ctx)
     opts = pb.ListNodesOptions(podname=name)
 
     try:
-        r = stub.ListPodNodes(opts, 5)
+        r = ctx.obj['stub'].ListPodNodes(opts, 5)
     except AbortionError as e:
         click.echo(click.style('abortion error: %s' % e.details, fg='red', bold=True))
         ctx.exit(-1)
@@ -98,11 +90,10 @@ def get_pod_nodes(ctx, name):
 @click.argument('nodename')
 @click.pass_context
 def get_node(ctx, podname, nodename):
-    stub = _get_stub(ctx)
     opts = pb.GetNodeOptions(podname=podname, nodename=nodename)
 
     try:
-        node = stub.GetNode(opts, 5)
+        node = ctx.obj['stub'].GetNode(opts, 5)
     except AbortionError as e:
         click.echo(click.style('abortion error: %s' % e.details, fg='red', bold=True))
         ctx.exit(-1)
@@ -117,14 +108,13 @@ def get_node(ctx, podname, nodename):
 @click.option('--public', '-p', is_flag=True)
 @click.pass_context
 def add_node(ctx, nodename, endpoint, podname, public):
-    stub = _get_stub(ctx)
     opts = pb.AddNodeOptions(nodename=nodename,
                              endpoint=endpoint,
                              podname=podname,
                              public=public)
 
     try:
-        node = stub.AddNode(opts, 5)
+        node = ctx.obj['stub'].AddNode(opts, 5)
     except AbortionError as e:
         click.echo(click.style('abortion error: %s' % e.details, fg='red', bold=True))
         ctx.exit(-1)
@@ -138,11 +128,10 @@ def add_node(ctx, nodename, endpoint, podname, public):
 @click.argument('uid')
 @click.pass_context
 def build_image(ctx, repo, version, uid):
-    stub = _get_stub(ctx)
     opts = pb.BuildImageOptions(repo=repo, version=version, uid=uid)
 
     try:
-        for m in stub.BuildImage(opts, 3600):
+        for m in ctx.obj['stub'].BuildImage(opts, 3600):
             if m.error:
                 click.echo(click.style(m.error, fg='red'), nl=False)
             elif m.stream:
@@ -161,7 +150,6 @@ def build_image(ctx, repo, version, uid):
 @cli.command('deploy')
 @click.pass_context
 def create_container(ctx):
-    stub = _get_stub(ctx)
     specs = """appname: "test-ci"
 entrypoints:
   web:
@@ -191,7 +179,7 @@ base: "hub.ricebook.net/base/alpine:python-2016.04.24"
                             env=['ENV_A=1', 'ENV_B=2'])
 
     try:
-        for m in stub.CreateContainer(opts, 3600):
+        for m in ctx.obj['stub'].CreateContainer(opts, 3600):
             click.echo(m)
     except AbortionError as e:
         click.echo(click.style('abortion error: %s' % e.details, fg='red', bold=True))
@@ -204,11 +192,10 @@ base: "hub.ricebook.net/base/alpine:python-2016.04.24"
 @click.argument('ids', nargs=-1)
 @click.pass_context
 def remove_container(ctx, ids):
-    stub = _get_stub(ctx)
     ids = pb.ContainerIDs(ids=[pb.ContainerID(id=i) for i in ids])
 
     try:
-        for m in stub.RemoveContainer(ids, 3600):
+        for m in ctx.obj['stub'].RemoveContainer(ids, 3600):
             click.echo('%s: success %s, message: %s' % (m.id, m.success, m.message))
     except AbortionError as e:
         click.echo(click.style('abortion error: %s' % e.details, fg='red', bold=True))
@@ -218,4 +205,4 @@ def remove_container(ctx, ids):
 
 
 if __name__ == '__main__':
-    cli()
+    cli(obj={})

@@ -270,7 +270,10 @@ func createDockerfile(buildDir, uid, reponame string, specs types.Specs) error {
 	if err != nil {
 		return err
 	}
-	parsedTemplate.Execute(f, specs)
+	err = parsedTemplate.Execute(f, specs)
+	if err != nil {
+		return err
+	}
 
 	if err := f.Sync(); err != nil {
 		return err
