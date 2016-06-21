@@ -89,9 +89,13 @@ func (c *Calcium) removeOneContainer(container *types.Container) error {
 	}
 	go container.Engine.ImageRemove(context.Background(), info.Image, rmiOpts)
 
-	node.CPU.Add(container.CPU)
-	if err := c.store.UpdateNode(node); err != nil {
-		return err
+	// if total cpu of container > 0, then we need to release these core resource
+	// but if it's 0, just ignore to save 1 time write on etcd.
+	if container.CPU.Total() > 0 {
+		node.CPU.Add(container.CPU)
+		if err := c.store.UpdateNode(node); err != nil {
+			return err
+		}
 	}
 	return c.store.RemoveContainer(info.ID)
 }

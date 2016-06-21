@@ -131,3 +131,36 @@ func TestTotalQuota(t *testing.T) {
 	}
 	assert.Equal(t, totalQuota(nodes), 3)
 }
+
+func TestSelectPublicNodes(t *testing.T) {
+	m := &Magnesium{}
+	_, err := m.SelectNodes(map[string]types.CPUMap{}, 1, 1)
+	assert.Error(t, err)
+	assert.Equal(t, err.Error(), "No nodes provide to choose some")
+
+	nodes := map[string]types.CPUMap{
+		"node1": types.CPUMap{
+			"0": 10,
+			"1": 10,
+		},
+		"node2": types.CPUMap{
+			"0": 10,
+			"1": 10,
+		},
+	}
+
+	r, err := m.SelectNodes(nodes, 0, 10)
+	assert.NoError(t, err)
+	assert.Equal(t, resultLength(r), 10)
+	for nodename, cpus := range r {
+		assert.Contains(t, []string{"node1", "node2"}, nodename)
+		for _, cpu := range cpus {
+			assert.Equal(t, cpu.Total(), 0)
+		}
+	}
+
+	for nodename, cpu := range nodes {
+		assert.Contains(t, []string{"node1", "node2"}, nodename)
+		assert.Equal(t, cpu.Total(), 20)
+	}
+}

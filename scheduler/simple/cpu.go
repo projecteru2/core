@@ -16,8 +16,13 @@ func addCPUMap(c, b types.CPUMap) {
 
 // Get quota from CPUMap c
 // Returns the corresponding CPUMap
+// If quota is 0, just return empty CPUMap
 func getQuota(c types.CPUMap, quota int) (types.CPUMap, error) {
 	r := types.CPUMap{}
+	if quota == 0 {
+		return r, nil
+	}
+
 	if cpuCount(c) < quota {
 		return r, fmt.Errorf("Can't get quota, not enough resources")
 	}

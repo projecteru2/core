@@ -77,6 +77,7 @@ func (c *Calcium) prepareNodes(podname string, quota float64, num int) (map[stri
 	c.Lock()
 	defer c.Unlock()
 
+	q := int(quota)
 	r := make(map[string][]types.CPUMap)
 
 	nodes, err := c.ListPodNodes(podname)
@@ -84,23 +85,43 @@ func (c *Calcium) prepareNodes(podname string, quota float64, num int) (map[stri
 		return r, err
 	}
 
+	// if public, use only public nodes
+	if q == 0 {
+		nodes = filterPublicNodes(nodes)
+	}
+
 	cpumap := makeCPUMap(nodes)
 	// TODO too be simple, just use int type as quota
-	r, err = c.scheduler.SelectNodes(cpumap, int(quota), num)
+	r, err = c.scheduler.SelectNodes(cpumap, q, num)
 	if err != nil {
 		return r, err
 	}
 
-	// cpus remained
-	// update data to etcd
-	// `SelectNodes` reduces count in cpumap
-	for _, node := range nodes {
-		node.CPU = cpumap[node.Name]
-		// ignore error
-		c.store.UpdateNode(node)
+	// if quota is set to 0
+	// then no cpu is required
+	if q > 0 {
+		// cpus remained
+		// update data to etcd
+		// `SelectNodes` reduces count in cpumap
+		for _, node := range nodes {
+			node.CPU = cpumap[node.Name]
+			// ignore error
+			c.store.UpdateNode(node)
+		}
 	}
 
 	return r, err
+}
+
+// filter only public nodes
+func filterPublicNodes(nodes []*types.Node) []*types.Node {
+	rs := []*types.Node{}
+	for _, node := range nodes {
+		if node.Public {
+			rs = append(rs, node)
+		}
+	}
+	return rs
 }
 
 // Pull an image
@@ -120,6 +141,10 @@ func doPullImage(node *types.Node, image string) error {
 
 func (c *Calcium) doCreateContainer(nodename string, cpumap []types.CPUMap, specs types.Specs, opts *types.DeployOptions) []*types.CreateContainerMessage {
 	ms := make([]*types.CreateContainerMessage, len(cpumap))
+	for i := 0; i < len(ms); i++ {
+		ms[i] = &types.CreateContainerMessage{}
+	}
+
 	node, err := c.GetNode(opts.Podname, nodename)
 	if err != nil {
 		return ms
@@ -178,7 +203,13 @@ func (c *Calcium) doCreateContainer(nodename string, cpumap []types.CPUMap, spec
 	return ms
 }
 
+// When deploy on a public host
+// quota is set to 0
+// no need to update this to etcd (save 1 time write on etcd)
 func (c *Calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
+	if quota.Total() == 0 {
+		return
+	}
 	node.CPU.Add(quota)
 	c.store.UpdateNode(node)
 }

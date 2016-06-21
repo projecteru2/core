@@ -115,8 +115,9 @@ func main() {
 			EnvVar:      "ERU_LOG_LEVEL",
 		},
 	}
-	app.Action = func(c *cli.Context) {
+	app.Action = func(c *cli.Context) error {
 		serve()
+		return nil
 	}
 
 	app.Run(os.Args)

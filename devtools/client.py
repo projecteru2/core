@@ -186,7 +186,7 @@ base: "hub.ricebook.net/base/alpine:python-2016.04.24"
                             image='hub.ricebook.net/test-ci:966fd83',
                             podname='dev',
                             entrypoint='log',
-                            cpu_quota=1,
+                            cpu_quota=0,
                             count=1,
                             env=['ENV_A=1', 'ENV_B=2'])
 

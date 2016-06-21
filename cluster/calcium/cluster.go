@@ -27,7 +27,3 @@ func New(config types.Config) (*Calcium, error) {
 
 	return &Calcium{store: store, config: config, scheduler: scheduler}, nil
 }
-
-func (c *Calcium) Run() {
-
-}
