@@ -48,6 +48,7 @@ message Container {
     string podname = 2;
     string nodename = 3;
     string name = 4;
+    string info = 5;
 }
 
 message Containers {

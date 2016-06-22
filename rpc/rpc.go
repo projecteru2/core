@@ -7,6 +7,7 @@ import (
 	"gitlab.ricebook.net/platform/core/rpc/gen"
 	"gitlab.ricebook.net/platform/core/types"
 	"golang.org/x/net/context"
+	"gopkg.in/yaml.v2"
 )
 
 type Virbranium struct {
@@ -97,7 +98,17 @@ func (v *Virbranium) GetContainer(ctx context.Context, id *pb.ContainerID) (*pb.
 		return nil, err
 	}
 
-	return toRPCContainer(container), nil
+	info, err := container.Inspect()
+	if err != nil {
+		return nil, err
+	}
+
+	bytes, err := yaml.Marshal(info)
+	if err != nil {
+		return nil, err
+	}
+
+	return toRPCContainer(container, string(bytes)), nil
 }
 
 // GetContainers
@@ -115,7 +126,17 @@ func (v *Virbranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (
 
 	cs := []*pb.Container{}
 	for _, c := range containers {
-		cs = append(cs, toRPCContainer(c))
+		info, err := c.Inspect()
+		if err != nil {
+			continue
+		}
+
+		bytes, err := yaml.Marshal(info)
+		if err != nil {
+			continue
+		}
+
+		cs = append(cs, toRPCContainer(c, string(bytes)))
 	}
 	return &pb.Containers{Containers: cs}, nil
 }

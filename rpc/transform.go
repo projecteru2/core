@@ -27,8 +27,8 @@ func toRPCNode(n *types.Node) *pb.Node {
 	}
 }
 
-func toRPCContainer(c *types.Container) *pb.Container {
-	return &pb.Container{Id: c.ID, Podname: c.Podname, Nodename: c.Nodename, Name: c.Name}
+func toRPCContainer(c *types.Container, info string) *pb.Container {
+	return &pb.Container{Id: c.ID, Podname: c.Podname, Nodename: c.Nodename, Name: c.Name, Info: info}
 }
 
 func toRPCBuildImageMessage(b *types.BuildImageMessage) *pb.BuildImageMessage {
