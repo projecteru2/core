@@ -1,13 +1,13 @@
 package rpc
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"gitlab.ricebook.net/platform/core/cluster"
 	"gitlab.ricebook.net/platform/core/rpc/gen"
 	"gitlab.ricebook.net/platform/core/types"
 	"golang.org/x/net/context"
-	"gopkg.in/yaml.v2"
 )
 
 type Virbranium struct {
@@ -103,7 +103,7 @@ func (v *Virbranium) GetContainer(ctx context.Context, id *pb.ContainerID) (*pb.
 		return nil, err
 	}
 
-	bytes, err := yaml.Marshal(info)
+	bytes, err := json.Marshal(info)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func (v *Virbranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (
 			continue
 		}
 
-		bytes, err := yaml.Marshal(info)
+		bytes, err := json.Marshal(info)
 		if err != nil {
 			continue
 		}
