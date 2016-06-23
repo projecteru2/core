@@ -3,22 +3,22 @@ Core
 
 ## setup dev environment
 
-```shell
-git config --global url."git@gitlab.ricebook.net:".insteadOf "https://gitlab.ricebook.net/"
-go get gitlab.ricebook.net/platform/core.git
-mv $GOPATH/src/gitlab.ricebook.net/platform/core.git $GOPATH/src/gitlab.ricebook.net/platform/core
-cd $GOPATH/src/gitlab.ricebook.net/platform/core && go install
-ln -s $GOPATH/src/gitlab.ricebook.net/platform/core $MY_WORK_SPACE/eru-core2
+```
+$ git config --global url."git@gitlab.ricebook.net:".insteadOf "https://gitlab.ricebook.net/"
+$ go get gitlab.ricebook.net/platform/core.git
+$ mv $GOPATH/src/gitlab.ricebook.net/platform/core.git $GOPATH/src/gitlab.ricebook.net/platform/core
+$ cd $GOPATH/src/gitlab.ricebook.net/platform/core && go install
+$ ln -s $GOPATH/src/gitlab.ricebook.net/platform/core $MY_WORK_SPACE/eru-core2
+$ make deps
 ```
 
 ### GRPC
 
 Generate golang & python code
 
-```shell
-cd rpc/gen
-protoc --go_out=plugins=grpc:. core.proto
-protoc -I . --python_out=. --grpc_out=. --plugin=protoc-gen-grpc=`which grpc_python_plugin` core.proto
+```
+$ make golang
+$ make python
 ```
 
 ### deploy core on local environment
@@ -46,5 +46,18 @@ docker:
 * start eru core
 
 ```
-core --config core.yaml
+$ core --config /path/to/core.yaml --log-level debug
 ```
+
+or
+
+```
+$ export ERU_CONFIG_PATH=/path/to/core.yaml
+$ export ERU_LOG_LEVEL=DEBUG
+$ core
+```
+
+## TODO
+
+- [ ] more complicated scheduler
+- [ ] networks, either use eru-agent or use docker plugin, the latter one is preferred
