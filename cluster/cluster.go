@@ -17,10 +17,8 @@ type Cluster interface {
 
 	// cluster methods
 	BuildImage(repository, version, uid string) (chan *types.BuildImageMessage, error)
-	CreateContainer(types.Specs, *types.DeployOptions) (chan *types.CreateContainerMessage, error)
-	// TODO add them later
-	// UpdateContainer() error
-	// MigrateContainer() error
+	CreateContainer(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
+	UpgradeContainer(ids []string, image string) (chan *types.UpgradeContainerMessage, error)
 	RemoveContainer(ids []string) (chan *types.RemoveContainerMessage, error)
 	RemoveImage(podname, nodename string, images []string) (chan *types.RemoveImageMessage, error)
 }

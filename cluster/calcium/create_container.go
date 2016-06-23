@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/engine-api/types"
@@ -19,7 +20,7 @@ import (
 
 // Create Container
 // Use specs and options to create
-// TODO need to call agent's API to create network
+// TODO what about networks?
 func (c *Calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
 
@@ -87,11 +88,12 @@ func (c *Calcium) prepareNodes(podname string, quota float64, num int) (map[stri
 
 	// if public, use only public nodes
 	if q == 0 {
-		nodes = filterPublicNodes(nodes)
+		nodes = filterNodes(nodes, true)
+	} else {
+		nodes = filterNodes(nodes, false)
 	}
 
 	cpumap := makeCPUMap(nodes)
-	// TODO too be simple, just use int type as quota
 	r, err = c.scheduler.SelectNodes(cpumap, q, num)
 	if err != nil {
 		return r, err
@@ -113,11 +115,12 @@ func (c *Calcium) prepareNodes(podname string, quota float64, num int) (map[stri
 	return r, err
 }
 
-// filter only public nodes
-func filterPublicNodes(nodes []*types.Node) []*types.Node {
+// filter nodes
+// public is the flag
+func filterNodes(nodes []*types.Node, public bool) []*types.Node {
 	rs := []*types.Node{}
 	for _, node := range nodes {
-		if node.Public {
+		if node.Public == public {
 			rs = append(rs, node)
 		}
 	}
@@ -126,7 +129,7 @@ func filterPublicNodes(nodes []*types.Node) []*types.Node {
 
 // Pull an image
 // Blocks until it finishes.
-func doPullImage(node *types.Node, image string) error {
+func pullImage(node *types.Node, image string) error {
 	if image == "" {
 		return fmt.Errorf("No image found for version")
 	}
@@ -150,7 +153,7 @@ func (c *Calcium) doCreateContainer(nodename string, cpumap []types.CPUMap, spec
 		return ms
 	}
 
-	if err := doPullImage(node, opts.Image); err != nil {
+	if err := pullImage(node, opts.Image); err != nil {
 		return ms
 	}
 
@@ -340,4 +343,166 @@ func (c *Calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	// this is empty because we don't use any plugin for Docker
 	networkConfig := &enginenetwork.NetworkingConfig{}
 	return config, hostConfig, networkConfig, containerName, nil
+}
+
+// Upgrade containers
+// Use image to run these containers, and copy their settings
+// Note, if the image is not correct, container will be started incorrectly
+// TODO what about networks?
+func (c *Calcium) UpgradeContainer(ids []string, image string) (chan *types.UpgradeContainerMessage, error) {
+	ch := make(chan *types.UpgradeContainerMessage)
+
+	if len(ids) == 0 {
+		return ch, fmt.Errorf("No container ids given")
+	}
+
+	containers, err := c.GetContainers(ids)
+	if err != nil {
+		return ch, err
+	}
+
+	containerMap := make(map[string][]*types.Container)
+	for _, container := range containers {
+		containerMap[container.Nodename] = append(containerMap[container.Nodename], container)
+	}
+
+	go func() {
+		wg := sync.WaitGroup{}
+		wg.Add(len(containerMap))
+
+		for _, containers := range containerMap {
+			go func(containers []*types.Container, image string) {
+				defer wg.Done()
+
+				for _, m := range c.doUpgradeContainer(containers, image) {
+					ch <- m
+				}
+			}(containers, image)
+
+		}
+
+		wg.Wait()
+		close(ch)
+	}()
+
+	return ch, nil
+}
+
+// upgrade containers on the same node
+func (c *Calcium) doUpgradeContainer(containers []*types.Container, image string) []*types.UpgradeContainerMessage {
+	ms := make([]*types.UpgradeContainerMessage, len(containers))
+	for i := 0; i < len(ms); i++ {
+		ms[i] = &types.UpgradeContainerMessage{}
+	}
+
+	// TODO ugly
+	// use the first container to get node
+	// since all containers here must locate on the same node and pod
+	t := containers[0]
+	node, err := c.GetNode(t.Podname, t.Nodename)
+	if err != nil {
+		return ms
+	}
+
+	// prepare new image
+	if err := pullImage(node, image); err != nil {
+		return ms
+	}
+
+	imagesToDelete := make(map[string]struct{})
+	engine := node.Engine
+
+	for i, container := range containers {
+		info, err := container.Inspect()
+		if err != nil {
+			ms[i].Error = err.Error()
+			continue
+		}
+
+		// stops the old container
+		timeout := 5 * time.Second
+		err = engine.ContainerStop(context.Background(), info.ID, &timeout)
+		if err != nil {
+			ms[i].Error = err.Error()
+			continue
+		}
+
+		// copy config from old container
+		// and of course with a new name
+		config, hostConfig, networkConfig, containerName, err := makeContainerConfig(info, image)
+		if err != nil {
+			ms[i].Error = err.Error()
+			continue
+		}
+
+		// create a container with old config and a new name
+		newContainer, err := engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
+		if err != nil {
+			ms[i].Error = err.Error()
+			continue
+		}
+
+		// start this new container
+		err = engine.ContainerStart(context.Background(), newContainer.ID, enginetypes.ContainerStartOptions{})
+		if err != nil {
+			go engine.ContainerRemove(context.Background(), newContainer.ID, enginetypes.ContainerRemoveOptions{})
+			ms[i].Error = err.Error()
+			continue
+		}
+
+		// test if container is correctly started
+		// if not, restore the old container
+		newInfo, err := engine.ContainerInspect(context.Background(), newContainer.ID)
+		if err != nil {
+			ms[i].Error = err.Error()
+			// restart the old container
+			engine.ContainerStart(context.Background(), info.ID, enginetypes.ContainerStartOptions{})
+			continue
+		}
+
+		// if so, add a new container in etcd
+		_, err = c.store.AddContainer(newInfo.ID, container.Podname, container.Nodename, containerName, container.CPU)
+		if err != nil {
+			ms[i].Error = err.Error()
+			continue
+		}
+
+		// remove the old container on node
+		rmOpts := enginetypes.ContainerRemoveOptions{
+			RemoveVolumes: true,
+			Force:         true,
+		}
+		err = engine.ContainerRemove(context.Background(), info.ID, rmOpts)
+		if err != nil {
+			ms[i].Error = err.Error()
+			continue
+		}
+
+		imagesToDelete[info.Image] = struct{}{}
+
+		// remove the old container in etcd
+		err = c.store.RemoveContainer(info.ID)
+		if err != nil {
+			ms[i].Error = err.Error()
+			continue
+		}
+
+		// send back the message
+		ms[i].ContainerID = info.ID
+		ms[i].NewContainerID = newContainer.ID
+		ms[i].NewContainerName = containerName
+		ms[i].Success = true
+	}
+
+	// clean all the container images
+	go func() {
+		rmiOpts := enginetypes.ImageRemoveOptions{
+			Force:         false,
+			PruneChildren: true,
+		}
+		for image, _ := range imagesToDelete {
+			engine.ImageRemove(context.Background(), image, rmiOpts)
+		}
+	}()
+	return ms
 }

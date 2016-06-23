@@ -176,6 +176,25 @@ func (v *Virbranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_C
 	return nil
 }
 
+func (v *Virbranium) UpgradeContainer(opts *pb.UpgradeOptions, stream pb.CoreRPC_UpgradeContainerServer) error {
+	ids := []string{}
+	for _, id := range opts.Ids {
+		ids = append(ids, id.Id)
+	}
+
+	ch, err := v.cluster.UpgradeContainer(ids, opts.Image)
+	if err != nil {
+		return err
+	}
+
+	for m := range ch {
+		if err := stream.Send(toRPCUpgradeContainerMessage(m)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (v *Virbranium) RemoveContainer(cids *pb.ContainerIDs, stream pb.CoreRPC_RemoveContainerServer) error {
 	ids := []string{}
 	for _, id := range cids.Ids {

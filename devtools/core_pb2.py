@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='core.proto',
   package='pb',
   syntax='proto3',
-  serialized_pb=_b('\n\ncore.proto\x12\x02pb\"\x07\n\x05\x45mpty\"!\n\x03Pod\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\"\x1d\n\x04Pods\x12\x15\n\x04pods\x18\x01 \x03(\x0b\x32\x07.pb.Pod\"\x93\x01\n\x04Node\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x10\n\x08\x65ndpoint\x18\x02 \x01(\t\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\x0e\n\x06public\x18\x04 \x01(\x08\x12\x1e\n\x03\x63pu\x18\x05 \x03(\x0b\x32\x11.pb.Node.CpuEntry\x1a*\n\x08\x43puEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x03:\x02\x38\x01\" \n\x05Nodes\x12\x17\n\x05nodes\x18\x01 \x03(\x0b\x32\x08.pb.Node\"V\n\tContainer\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\x12\x10\n\x08nodename\x18\x03 \x01(\t\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\x0c\n\x04info\x18\x05 \x01(\t\"/\n\nContainers\x12!\n\ncontainers\x18\x01 \x03(\x0b\x32\r.pb.Container\"\x19\n\x0b\x43ontainerID\x12\n\n\x02id\x18\x01 \x01(\t\",\n\x0c\x43ontainerIDs\x12\x1c\n\x03ids\x18\x01 \x03(\x0b\x32\x0f.pb.ContainerID\"+\n\rAddPodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\"\x1d\n\rGetPodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\"U\n\x0e\x41\x64\x64NodeOptions\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x10\n\x08\x65ndpoint\x18\x02 \x01(\t\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\x0e\n\x06public\x18\x04 \x01(\x08\"3\n\x0eGetNodeOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\"#\n\x10ListNodesOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\"?\n\x11\x42uildImageOptions\x12\x0c\n\x04repo\x18\x01 \x01(\t\x12\x0f\n\x07version\x18\x02 \x01(\t\x12\x0b\n\x03uid\x18\x03 \x01(\t\"\xc3\x01\n\rDeployOptions\x12\r\n\x05specs\x18\x01 \x01(\t\x12\x0f\n\x07\x61ppname\x18\x02 \x01(\t\x12\r\n\x05image\x18\x03 \x01(\t\x12\x0f\n\x07podname\x18\x04 \x01(\t\x12\x10\n\x08nodename\x18\x05 \x01(\t\x12\x12\n\nentrypoint\x18\x06 \x01(\t\x12\x11\n\tcpu_quota\x18\x07 \x01(\x01\x12\r\n\x05\x63ount\x18\x08 \x01(\x05\x12\x0b\n\x03\x65nv\x18\t \x03(\t\x12\x10\n\x08networks\x18\n \x03(\t\x12\x0b\n\x03raw\x18\x0b \x01(\x08\"G\n\x12RemoveImageOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\x12\x0e\n\x06images\x18\x03 \x03(\t\",\n\x0b\x45rrorDetail\x12\x0c\n\x04\x63ode\x18\x01 \x01(\x03\x12\x0f\n\x07message\x18\x02 \x01(\t\"{\n\x11\x42uildImageMessage\x12\x0e\n\x06status\x18\x01 \x01(\t\x12\x10\n\x08progress\x18\x02 \x01(\t\x12\r\n\x05\x65rror\x18\x03 \x01(\t\x12\x0e\n\x06stream\x18\x04 \x01(\t\x12%\n\x0c\x65rror_detail\x18\x05 \x01(\x0b\x32\x0f.pb.ErrorDetail\"\xc4\x01\n\x16\x43reateContainerMessage\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\x12\n\n\x02id\x18\x03 \x01(\t\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\x0f\n\x07success\x18\x05 \x01(\x08\x12\x30\n\x03\x63pu\x18\x06 \x03(\x0b\x32#.pb.CreateContainerMessage.CpuEntry\x1a*\n\x08\x43puEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x03:\x02\x38\x01\"F\n\x12RemoveImageMessage\x12\r\n\x05image\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x10\n\x08messages\x18\x03 \x03(\t\"F\n\x16RemoveContainerMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x0f\n\x07message\x18\x03 \x01(\t2\xf4\x04\n\x07\x43oreRPC\x12!\n\x08ListPods\x12\t.pb.Empty\x1a\x08.pb.Pods\"\x00\x12&\n\x06\x41\x64\x64Pod\x12\x11.pb.AddPodOptions\x1a\x07.pb.Pod\"\x00\x12&\n\x06GetPod\x12\x11.pb.GetPodOptions\x1a\x07.pb.Pod\"\x00\x12)\n\x07\x41\x64\x64Node\x12\x12.pb.AddNodeOptions\x1a\x08.pb.Node\"\x00\x12)\n\x07GetNode\x12\x12.pb.GetNodeOptions\x1a\x08.pb.Node\"\x00\x12\x31\n\x0cListPodNodes\x12\x14.pb.ListNodesOptions\x1a\t.pb.Nodes\"\x00\x12\x30\n\x0cGetContainer\x12\x0f.pb.ContainerID\x1a\r.pb.Container\"\x00\x12\x33\n\rGetContainers\x12\x10.pb.ContainerIDs\x1a\x0e.pb.Containers\"\x00\x12>\n\nBuildImage\x12\x15.pb.BuildImageOptions\x1a\x15.pb.BuildImageMessage\"\x00\x30\x01\x12\x42\n\x0f\x43reateContainer\x12\x11.pb.DeployOptions\x1a\x1a.pb.CreateContainerMessage0\x01\x12\x41\n\x0fRemoveContainer\x12\x10.pb.ContainerIDs\x1a\x1a.pb.RemoveContainerMessage0\x01\x12?\n\x0bRemoveImage\x12\x16.pb.RemoveImageOptions\x1a\x16.pb.RemoveImageMessage0\x01\x62\x06proto3')
+  serialized_pb=_b('\n\ncore.proto\x12\x02pb\"\x07\n\x05\x45mpty\"!\n\x03Pod\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\"\x1d\n\x04Pods\x12\x15\n\x04pods\x18\x01 \x03(\x0b\x32\x07.pb.Pod\"\x93\x01\n\x04Node\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x10\n\x08\x65ndpoint\x18\x02 \x01(\t\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\x0e\n\x06public\x18\x04 \x01(\x08\x12\x1e\n\x03\x63pu\x18\x05 \x03(\x0b\x32\x11.pb.Node.CpuEntry\x1a*\n\x08\x43puEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x03:\x02\x38\x01\" \n\x05Nodes\x12\x17\n\x05nodes\x18\x01 \x03(\x0b\x32\x08.pb.Node\"V\n\tContainer\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\x12\x10\n\x08nodename\x18\x03 \x01(\t\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\x0c\n\x04info\x18\x05 \x01(\t\"/\n\nContainers\x12!\n\ncontainers\x18\x01 \x03(\x0b\x32\r.pb.Container\"\x19\n\x0b\x43ontainerID\x12\n\n\x02id\x18\x01 \x01(\t\",\n\x0c\x43ontainerIDs\x12\x1c\n\x03ids\x18\x01 \x03(\x0b\x32\x0f.pb.ContainerID\"+\n\rAddPodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\"\x1d\n\rGetPodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\"U\n\x0e\x41\x64\x64NodeOptions\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x10\n\x08\x65ndpoint\x18\x02 \x01(\t\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\x0e\n\x06public\x18\x04 \x01(\x08\"3\n\x0eGetNodeOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\"#\n\x10ListNodesOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\"?\n\x11\x42uildImageOptions\x12\x0c\n\x04repo\x18\x01 \x01(\t\x12\x0f\n\x07version\x18\x02 \x01(\t\x12\x0b\n\x03uid\x18\x03 \x01(\t\"\xc3\x01\n\rDeployOptions\x12\r\n\x05specs\x18\x01 \x01(\t\x12\x0f\n\x07\x61ppname\x18\x02 \x01(\t\x12\r\n\x05image\x18\x03 \x01(\t\x12\x0f\n\x07podname\x18\x04 \x01(\t\x12\x10\n\x08nodename\x18\x05 \x01(\t\x12\x12\n\nentrypoint\x18\x06 \x01(\t\x12\x11\n\tcpu_quota\x18\x07 \x01(\x01\x12\r\n\x05\x63ount\x18\x08 \x01(\x05\x12\x0b\n\x03\x65nv\x18\t \x03(\t\x12\x10\n\x08networks\x18\n \x03(\t\x12\x0b\n\x03raw\x18\x0b \x01(\x08\"=\n\x0eUpgradeOptions\x12\x1c\n\x03ids\x18\x01 \x03(\x0b\x32\x0f.pb.ContainerID\x12\r\n\x05image\x18\x02 \x01(\t\"G\n\x12RemoveImageOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\x12\x0e\n\x06images\x18\x03 \x03(\t\",\n\x0b\x45rrorDetail\x12\x0c\n\x04\x63ode\x18\x01 \x01(\x03\x12\x0f\n\x07message\x18\x02 \x01(\t\"{\n\x11\x42uildImageMessage\x12\x0e\n\x06status\x18\x01 \x01(\t\x12\x10\n\x08progress\x18\x02 \x01(\t\x12\r\n\x05\x65rror\x18\x03 \x01(\t\x12\x0e\n\x06stream\x18\x04 \x01(\t\x12%\n\x0c\x65rror_detail\x18\x05 \x01(\x0b\x32\x0f.pb.ErrorDetail\"\xc4\x01\n\x16\x43reateContainerMessage\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\x12\n\n\x02id\x18\x03 \x01(\t\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\x0f\n\x07success\x18\x05 \x01(\x08\x12\x30\n\x03\x63pu\x18\x06 \x03(\x0b\x32#.pb.CreateContainerMessage.CpuEntry\x1a*\n\x08\x43puEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x03:\x02\x38\x01\"F\n\x12RemoveImageMessage\x12\r\n\x05image\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x10\n\x08messages\x18\x03 \x03(\t\"F\n\x16RemoveContainerMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x0f\n\x07message\x18\x03 \x01(\t\"g\n\x17UpgradeContainerMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06new_id\x18\x02 \x01(\t\x12\x10\n\x08new_name\x18\x03 \x01(\t\x12\r\n\x05\x65rror\x18\x04 \x01(\t\x12\x0f\n\x07success\x18\x05 \x01(\x08\x32\xbb\x05\n\x07\x43oreRPC\x12!\n\x08ListPods\x12\t.pb.Empty\x1a\x08.pb.Pods\"\x00\x12&\n\x06\x41\x64\x64Pod\x12\x11.pb.AddPodOptions\x1a\x07.pb.Pod\"\x00\x12&\n\x06GetPod\x12\x11.pb.GetPodOptions\x1a\x07.pb.Pod\"\x00\x12)\n\x07\x41\x64\x64Node\x12\x12.pb.AddNodeOptions\x1a\x08.pb.Node\"\x00\x12)\n\x07GetNode\x12\x12.pb.GetNodeOptions\x1a\x08.pb.Node\"\x00\x12\x31\n\x0cListPodNodes\x12\x14.pb.ListNodesOptions\x1a\t.pb.Nodes\"\x00\x12\x30\n\x0cGetContainer\x12\x0f.pb.ContainerID\x1a\r.pb.Container\"\x00\x12\x33\n\rGetContainers\x12\x10.pb.ContainerIDs\x1a\x0e.pb.Containers\"\x00\x12>\n\nBuildImage\x12\x15.pb.BuildImageOptions\x1a\x15.pb.BuildImageMessage\"\x00\x30\x01\x12\x42\n\x0f\x43reateContainer\x12\x11.pb.DeployOptions\x1a\x1a.pb.CreateContainerMessage0\x01\x12\x45\n\x10UpgradeContainer\x12\x12.pb.UpgradeOptions\x1a\x1b.pb.UpgradeContainerMessage0\x01\x12\x41\n\x0fRemoveContainer\x12\x10.pb.ContainerIDs\x1a\x1a.pb.RemoveContainerMessage0\x01\x12?\n\x0bRemoveImage\x12\x16.pb.RemoveImageOptions\x1a\x16.pb.RemoveImageMessage0\x01\x62\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -734,6 +734,44 @@ _DEPLOYOPTIONS = _descriptor.Descriptor(
 )
 
 
+_UPGRADEOPTIONS = _descriptor.Descriptor(
+  name='UpgradeOptions',
+  full_name='pb.UpgradeOptions',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='ids', full_name='pb.UpgradeOptions.ids', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='image', full_name='pb.UpgradeOptions.image', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1003,
+  serialized_end=1064,
+)
+
+
 _REMOVEIMAGEOPTIONS = _descriptor.Descriptor(
   name='RemoveImageOptions',
   full_name='pb.RemoveImageOptions',
@@ -774,8 +812,8 @@ _REMOVEIMAGEOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1003,
-  serialized_end=1074,
+  serialized_start=1066,
+  serialized_end=1137,
 )
 
 
@@ -812,8 +850,8 @@ _ERRORDETAIL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1076,
-  serialized_end=1120,
+  serialized_start=1139,
+  serialized_end=1183,
 )
 
 
@@ -871,8 +909,8 @@ _BUILDIMAGEMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1122,
-  serialized_end=1245,
+  serialized_start=1185,
+  serialized_end=1308,
 )
 
 
@@ -974,8 +1012,8 @@ _CREATECONTAINERMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1248,
-  serialized_end=1444,
+  serialized_start=1311,
+  serialized_end=1507,
 )
 
 
@@ -1019,8 +1057,8 @@ _REMOVEIMAGEMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1446,
-  serialized_end=1516,
+  serialized_start=1509,
+  serialized_end=1579,
 )
 
 
@@ -1064,8 +1102,67 @@ _REMOVECONTAINERMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1518,
-  serialized_end=1588,
+  serialized_start=1581,
+  serialized_end=1651,
+)
+
+
+_UPGRADECONTAINERMESSAGE = _descriptor.Descriptor(
+  name='UpgradeContainerMessage',
+  full_name='pb.UpgradeContainerMessage',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='id', full_name='pb.UpgradeContainerMessage.id', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='new_id', full_name='pb.UpgradeContainerMessage.new_id', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='new_name', full_name='pb.UpgradeContainerMessage.new_name', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='error', full_name='pb.UpgradeContainerMessage.error', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='success', full_name='pb.UpgradeContainerMessage.success', index=4,
+      number=5, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1653,
+  serialized_end=1756,
 )
 
 _PODS.fields_by_name['pods'].message_type = _POD
@@ -1074,6 +1171,7 @@ _NODE.fields_by_name['cpu'].message_type = _NODE_CPUENTRY
 _NODES.fields_by_name['nodes'].message_type = _NODE
 _CONTAINERS.fields_by_name['containers'].message_type = _CONTAINER
 _CONTAINERIDS.fields_by_name['ids'].message_type = _CONTAINERID
+_UPGRADEOPTIONS.fields_by_name['ids'].message_type = _CONTAINERID
 _BUILDIMAGEMESSAGE.fields_by_name['error_detail'].message_type = _ERRORDETAIL
 _CREATECONTAINERMESSAGE_CPUENTRY.containing_type = _CREATECONTAINERMESSAGE
 _CREATECONTAINERMESSAGE.fields_by_name['cpu'].message_type = _CREATECONTAINERMESSAGE_CPUENTRY
@@ -1093,12 +1191,14 @@ DESCRIPTOR.message_types_by_name['GetNodeOptions'] = _GETNODEOPTIONS
 DESCRIPTOR.message_types_by_name['ListNodesOptions'] = _LISTNODESOPTIONS
 DESCRIPTOR.message_types_by_name['BuildImageOptions'] = _BUILDIMAGEOPTIONS
 DESCRIPTOR.message_types_by_name['DeployOptions'] = _DEPLOYOPTIONS
+DESCRIPTOR.message_types_by_name['UpgradeOptions'] = _UPGRADEOPTIONS
 DESCRIPTOR.message_types_by_name['RemoveImageOptions'] = _REMOVEIMAGEOPTIONS
 DESCRIPTOR.message_types_by_name['ErrorDetail'] = _ERRORDETAIL
 DESCRIPTOR.message_types_by_name['BuildImageMessage'] = _BUILDIMAGEMESSAGE
 DESCRIPTOR.message_types_by_name['CreateContainerMessage'] = _CREATECONTAINERMESSAGE
 DESCRIPTOR.message_types_by_name['RemoveImageMessage'] = _REMOVEIMAGEMESSAGE
 DESCRIPTOR.message_types_by_name['RemoveContainerMessage'] = _REMOVECONTAINERMESSAGE
+DESCRIPTOR.message_types_by_name['UpgradeContainerMessage'] = _UPGRADECONTAINERMESSAGE
 
 Empty = _reflection.GeneratedProtocolMessageType('Empty', (_message.Message,), dict(
   DESCRIPTOR = _EMPTY,
@@ -1220,6 +1320,13 @@ DeployOptions = _reflection.GeneratedProtocolMessageType('DeployOptions', (_mess
   ))
 _sym_db.RegisterMessage(DeployOptions)
 
+UpgradeOptions = _reflection.GeneratedProtocolMessageType('UpgradeOptions', (_message.Message,), dict(
+  DESCRIPTOR = _UPGRADEOPTIONS,
+  __module__ = 'core_pb2'
+  # @@protoc_insertion_point(class_scope:pb.UpgradeOptions)
+  ))
+_sym_db.RegisterMessage(UpgradeOptions)
+
 RemoveImageOptions = _reflection.GeneratedProtocolMessageType('RemoveImageOptions', (_message.Message,), dict(
   DESCRIPTOR = _REMOVEIMAGEOPTIONS,
   __module__ = 'core_pb2'
@@ -1270,6 +1377,13 @@ RemoveContainerMessage = _reflection.GeneratedProtocolMessageType('RemoveContain
   ))
 _sym_db.RegisterMessage(RemoveContainerMessage)
 
+UpgradeContainerMessage = _reflection.GeneratedProtocolMessageType('UpgradeContainerMessage', (_message.Message,), dict(
+  DESCRIPTOR = _UPGRADECONTAINERMESSAGE,
+  __module__ = 'core_pb2'
+  # @@protoc_insertion_point(class_scope:pb.UpgradeContainerMessage)
+  ))
+_sym_db.RegisterMessage(UpgradeContainerMessage)
+
 
 _NODE_CPUENTRY.has_options = True
 _NODE_CPUENTRY._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001'))
@@ -1302,6 +1416,8 @@ class BetaCoreRPCServicer(object):
   def BuildImage(self, request, context):
     context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
   def CreateContainer(self, request, context):
+    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+  def UpgradeContainer(self, request, context):
     context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
   def RemoveContainer(self, request, context):
     context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
@@ -1337,12 +1453,16 @@ class BetaCoreRPCStub(object):
     raise NotImplementedError()
   def CreateContainer(self, request, timeout):
     raise NotImplementedError()
+  def UpgradeContainer(self, request, timeout):
+    raise NotImplementedError()
   def RemoveContainer(self, request, timeout):
     raise NotImplementedError()
   def RemoveImage(self, request, timeout):
     raise NotImplementedError()
 
 def beta_create_CoreRPC_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
+  import core_pb2
+  import core_pb2
   import core_pb2
   import core_pb2
   import core_pb2
@@ -1380,6 +1500,7 @@ def beta_create_CoreRPC_server(servicer, pool=None, pool_size=None, default_time
     ('pb.CoreRPC', 'ListPods'): core_pb2.Empty.FromString,
     ('pb.CoreRPC', 'RemoveContainer'): core_pb2.ContainerIDs.FromString,
     ('pb.CoreRPC', 'RemoveImage'): core_pb2.RemoveImageOptions.FromString,
+    ('pb.CoreRPC', 'UpgradeContainer'): core_pb2.UpgradeOptions.FromString,
   }
   response_serializers = {
     ('pb.CoreRPC', 'AddNode'): core_pb2.Node.SerializeToString,
@@ -1394,6 +1515,7 @@ def beta_create_CoreRPC_server(servicer, pool=None, pool_size=None, default_time
     ('pb.CoreRPC', 'ListPods'): core_pb2.Pods.SerializeToString,
     ('pb.CoreRPC', 'RemoveContainer'): core_pb2.RemoveContainerMessage.SerializeToString,
     ('pb.CoreRPC', 'RemoveImage'): core_pb2.RemoveImageMessage.SerializeToString,
+    ('pb.CoreRPC', 'UpgradeContainer'): core_pb2.UpgradeContainerMessage.SerializeToString,
   }
   method_implementations = {
     ('pb.CoreRPC', 'AddNode'): face_utilities.unary_unary_inline(servicer.AddNode),
@@ -1408,11 +1530,14 @@ def beta_create_CoreRPC_server(servicer, pool=None, pool_size=None, default_time
     ('pb.CoreRPC', 'ListPods'): face_utilities.unary_unary_inline(servicer.ListPods),
     ('pb.CoreRPC', 'RemoveContainer'): face_utilities.unary_stream_inline(servicer.RemoveContainer),
     ('pb.CoreRPC', 'RemoveImage'): face_utilities.unary_stream_inline(servicer.RemoveImage),
+    ('pb.CoreRPC', 'UpgradeContainer'): face_utilities.unary_stream_inline(servicer.UpgradeContainer),
   }
   server_options = beta_implementations.server_options(request_deserializers=request_deserializers, response_serializers=response_serializers, thread_pool=pool, thread_pool_size=pool_size, default_timeout=default_timeout, maximum_timeout=maximum_timeout)
   return beta_implementations.server(method_implementations, options=server_options)
 
 def beta_create_CoreRPC_stub(channel, host=None, metadata_transformer=None, pool=None, pool_size=None):
+  import core_pb2
+  import core_pb2
   import core_pb2
   import core_pb2
   import core_pb2
@@ -1450,6 +1575,7 @@ def beta_create_CoreRPC_stub(channel, host=None, metadata_transformer=None, pool
     ('pb.CoreRPC', 'ListPods'): core_pb2.Empty.SerializeToString,
     ('pb.CoreRPC', 'RemoveContainer'): core_pb2.ContainerIDs.SerializeToString,
     ('pb.CoreRPC', 'RemoveImage'): core_pb2.RemoveImageOptions.SerializeToString,
+    ('pb.CoreRPC', 'UpgradeContainer'): core_pb2.UpgradeOptions.SerializeToString,
   }
   response_deserializers = {
     ('pb.CoreRPC', 'AddNode'): core_pb2.Node.FromString,
@@ -1464,6 +1590,7 @@ def beta_create_CoreRPC_stub(channel, host=None, metadata_transformer=None, pool
     ('pb.CoreRPC', 'ListPods'): core_pb2.Pods.FromString,
     ('pb.CoreRPC', 'RemoveContainer'): core_pb2.RemoveContainerMessage.FromString,
     ('pb.CoreRPC', 'RemoveImage'): core_pb2.RemoveImageMessage.FromString,
+    ('pb.CoreRPC', 'UpgradeContainer'): core_pb2.UpgradeContainerMessage.FromString,
   }
   cardinalities = {
     'AddNode': cardinality.Cardinality.UNARY_UNARY,
@@ -1478,6 +1605,7 @@ def beta_create_CoreRPC_stub(channel, host=None, metadata_transformer=None, pool
     'ListPods': cardinality.Cardinality.UNARY_UNARY,
     'RemoveContainer': cardinality.Cardinality.UNARY_STREAM,
     'RemoveImage': cardinality.Cardinality.UNARY_STREAM,
+    'UpgradeContainer': cardinality.Cardinality.UNARY_STREAM,
   }
   stub_options = beta_implementations.stub_options(host=host, metadata_transformer=metadata_transformer, request_serializers=request_serializers, response_deserializers=response_deserializers, thread_pool=pool, thread_pool_size=pool_size)
   return beta_implementations.dynamic_stub(channel, 'pb.CoreRPC', cardinalities, options=stub_options)

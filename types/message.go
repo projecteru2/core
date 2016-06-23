@@ -37,3 +37,11 @@ type CreateContainerMessage struct {
 type PullImageMessage struct {
 	BuildImageMessage
 }
+
+type UpgradeContainerMessage struct {
+	ContainerID      string
+	NewContainerID   string
+	NewContainerName string
+	Error            string
+	Success          bool
+}

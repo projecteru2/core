@@ -85,3 +85,13 @@ func toRPCRemoveContainerMessage(r *types.RemoveContainerMessage) *pb.RemoveCont
 		Message: r.Message,
 	}
 }
+
+func toRPCUpgradeContainerMessage(u *types.UpgradeContainerMessage) *pb.UpgradeContainerMessage {
+	return &pb.UpgradeContainerMessage{
+		Id:      u.ContainerID,
+		NewId:   u.NewContainerID,
+		NewName: u.NewContainerName,
+		Error:   u.Error,
+		Success: u.Success,
+	}
+}
