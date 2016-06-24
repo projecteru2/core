@@ -91,5 +91,18 @@ func GetGitRepoName(url string) (string, error) {
 	if len(y) != 2 {
 		return "", fmt.Errorf("Bad git url format %q", url)
 	}
-	return y[1][:len(y[1])-4], nil
+	return strings.TrimSuffix(y[1], ".git"), nil
+}
+
+func GetVersion(image string) string {
+	if !strings.Contains(image, ":") {
+		return "unknown"
+	}
+
+	parts := strings.Split(image, ":")
+	if len(parts) != 2 {
+		return "unknown"
+	}
+
+	return parts[1]
 }

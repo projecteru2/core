@@ -310,6 +310,20 @@ func (c *Calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 		capAdd = append(capAdd, "SYS_ADMIN")
 	}
 
+	// labels
+	// basic labels, and set meta in specs to labels
+	containerLabels := map[string]string{
+		"Appname":    opts.Appname,
+		"Version":    utils.GetVersion(opts.Image),
+		"Image":      opts.Image,
+		"Podname":    opts.Podname,
+		"Nodename":   opts.Nodename,
+		"Entrypoint": opts.Entrypoint,
+	}
+	for key, value := range specs.Meta {
+		containerLabels[key] = value
+	}
+
 	// ulimit
 	ulimits := []*units.Ulimit{&units.Ulimit{Name: "nofile", Soft: 65535, Hard: 65535}}
 
@@ -324,7 +338,7 @@ func (c *Calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 		Volumes:         volumes,
 		WorkingDir:      workingDir,
 		NetworkDisabled: false,
-		Labels:          make(map[string]string),
+		Labels:          containerLabels,
 	}
 	hostConfig := &enginecontainer.HostConfig{
 		Binds:         binds,
@@ -419,6 +433,11 @@ func (c *Calcium) doUpgradeContainer(containers []*types.Container, image string
 			continue
 		}
 
+		// have to put it here because later we'll call `makeContainerConfig`
+		// which will override this
+		// TODO in the future I hope `makeContainerConfig` will make a deep copy of config
+		imageToDelete := info.Config.Image
+
 		// stops the old container
 		timeout := 5 * time.Second
 		err = engine.ContainerStop(context.Background(), info.ID, &timeout)
@@ -478,7 +497,7 @@ func (c *Calcium) doUpgradeContainer(containers []*types.Container, image string
 			continue
 		}
 
-		imagesToDelete[info.Image] = struct{}{}
+		imagesToDelete[imageToDelete] = struct{}{}
 
 		// remove the old container in etcd
 		err = c.store.RemoveContainer(info.ID)
@@ -501,6 +520,7 @@ func (c *Calcium) doUpgradeContainer(containers []*types.Container, image string
 			PruneChildren: true,
 		}
 		for image, _ := range imagesToDelete {
+			log.Debugf("Try to remove image %q while upgrade container", image)
 			engine.ImageRemove(context.Background(), image, rmiOpts)
 		}
 	}()
