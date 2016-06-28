@@ -3,6 +3,8 @@ package calcium
 import (
 	"sync"
 
+	"gitlab.ricebook.net/platform/core/network"
+	"gitlab.ricebook.net/platform/core/network/calico"
 	"gitlab.ricebook.net/platform/core/scheduler"
 	"gitlab.ricebook.net/platform/core/scheduler/simple"
 	"gitlab.ricebook.net/platform/core/store"
@@ -15,6 +17,7 @@ type Calcium struct {
 	store     store.Store
 	config    types.Config
 	scheduler scheduler.Scheduler
+	network   network.Network
 }
 
 func New(config types.Config) (*Calcium, error) {
@@ -24,6 +27,7 @@ func New(config types.Config) (*Calcium, error) {
 	}
 
 	scheduler := &simplescheduler.Magnesium{}
+	titanium := &calico.Titanium{}
 
-	return &Calcium{store: store, config: config, scheduler: scheduler}, nil
+	return &Calcium{store: store, config: config, scheduler: scheduler, network: titanium}, nil
 }

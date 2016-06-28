@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.ricebook.net/platform/core/network/calico"
 	"gitlab.ricebook.net/platform/core/scheduler/simple"
 	"gitlab.ricebook.net/platform/core/store/mock"
 	"gitlab.ricebook.net/platform/core/types"
@@ -12,7 +13,7 @@ import (
 
 func TestListPods(t *testing.T) {
 	store := &mockstore.MockStore{}
-	c := &Calcium{store: store, config: types.Config{}, scheduler: &simplescheduler.Magnesium{}}
+	c := &Calcium{store: store, config: types.Config{}, scheduler: &simplescheduler.Magnesium{}, network: &calico.Titanium{}}
 
 	store.On("GetAllPods").Return([]*types.Pod{
 		&types.Pod{Name: "pod1", Desc: "desc1"},
@@ -32,7 +33,7 @@ func TestListPods(t *testing.T) {
 
 func TestAddPod(t *testing.T) {
 	store := &mockstore.MockStore{}
-	c := &Calcium{store: store, config: types.Config{}, scheduler: &simplescheduler.Magnesium{}}
+	c := &Calcium{store: store, config: types.Config{}, scheduler: &simplescheduler.Magnesium{}, network: &calico.Titanium{}}
 
 	store.On("AddPod", "pod1", "desc1").Return(&types.Pod{Name: "pod1", Desc: "desc1"}, nil)
 	store.On("AddPod", "pod2", "desc2").Return(nil, fmt.Errorf("Etcd Error"))
@@ -49,7 +50,7 @@ func TestAddPod(t *testing.T) {
 
 func TestGetPods(t *testing.T) {
 	store := &mockstore.MockStore{}
-	c := &Calcium{store: store, config: types.Config{}, scheduler: &simplescheduler.Magnesium{}}
+	c := &Calcium{store: store, config: types.Config{}, scheduler: &simplescheduler.Magnesium{}, network: &calico.Titanium{}}
 
 	store.On("GetPod", "pod1").Return(&types.Pod{Name: "pod1", Desc: "desc1"}, nil).Once()
 	store.On("GetPod", "pod2").Return(nil, fmt.Errorf("Not found")).Once()

@@ -13,6 +13,7 @@ import (
 	engineapi "github.com/docker/engine-api/client"
 	"github.com/docker/go-connections/tlsconfig"
 	"gitlab.ricebook.net/platform/core/types"
+	"golang.org/x/net/context"
 )
 
 const (
@@ -110,4 +111,15 @@ func GetVersion(image string) string {
 	}
 
 	return parts[1]
+}
+
+// Bind a docker engine client to context
+func ToDockerContext(client *engineapi.Client) context.Context {
+	return context.WithValue(context.Background(), "engine", client)
+}
+
+// Get a docker engine client from a context
+func FromDockerContext(ctx context.Context) (*engineapi.Client, bool) {
+	client, ok := ctx.Value("engine").(*engineapi.Client)
+	return client, ok
 }

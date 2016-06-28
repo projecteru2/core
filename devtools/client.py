@@ -187,8 +187,9 @@ base: "hub.ricebook.net/base/alpine:python-2016.04.24"
                             image='hub.ricebook.net/test-ci:966fd83',
                             podname='dev',
                             entrypoint='log',
-                            cpu_quota=0,
+                            cpu_quota=1,
                             count=2,
+                            networks=['testnetwork'],
                             env=['ENV_A=1', 'ENV_B=2'])
 
     try:
