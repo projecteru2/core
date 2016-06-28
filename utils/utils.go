@@ -56,22 +56,27 @@ func MakeDockerClient(endpoint string, config types.Config) (*engineapi.Client, 
 		return nil, err
 	}
 
-	dockerCertPath := filepath.Join(config.Docker.CertPath, host)
-	options := tlsconfig.Options{
-		CAFile:             filepath.Join(dockerCertPath, "ca.pem"),
-		CertFile:           filepath.Join(dockerCertPath, "cert.pem"),
-		KeyFile:            filepath.Join(dockerCertPath, "key.pem"),
-		InsecureSkipVerify: false,
-	}
-	tlsc, err := tlsconfig.Client(options)
-	if err != nil {
-		return nil, err
-	}
+	var cli *http.Client
+	// if no cert path is set
+	// then just use normal http client without tls
+	if config.Docker.CertPath != "" {
+		dockerCertPath := filepath.Join(config.Docker.CertPath, host)
+		options := tlsconfig.Options{
+			CAFile:             filepath.Join(dockerCertPath, "ca.pem"),
+			CertFile:           filepath.Join(dockerCertPath, "cert.pem"),
+			KeyFile:            filepath.Join(dockerCertPath, "key.pem"),
+			InsecureSkipVerify: false,
+		}
+		tlsc, err := tlsconfig.Client(options)
+		if err != nil {
+			return nil, err
+		}
 
-	cli := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: tlsc,
-		},
+		cli = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: tlsc,
+			},
+		}
 	}
 
 	return engineapi.NewClient(endpoint, config.Docker.APIVersion, cli, nil)
