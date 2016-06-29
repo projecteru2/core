@@ -169,7 +169,6 @@ entrypoints:
     cmd: "python run.py"
     ports:
       - "5000/tcp"
-    network_mode: "none"
   restart:
     cmd: "python test_restart.py"
     restart: "always"
@@ -186,10 +185,10 @@ base: "hub.ricebook.net/base/alpine:python-2016.04.24"
                             appname='test-ci',
                             image='hub.ricebook.net/test-ci:966fd83',
                             podname='dev',
-                            entrypoint='log',
+                            entrypoint='web',
                             cpu_quota=1,
-                            count=1,
-                            networks={'zzz': '10.102.0.3'}, # 如果不需要指定IP就写空字符串, 写其他的错误的格式会报错失败
+                            count=2,
+                            networks={'zzz': ''}, # 如果不需要指定IP就写空字符串, 写其他的错误的格式会报错失败
                             env=['ENV_A=1', 'ENV_B=2'])
 
     try:

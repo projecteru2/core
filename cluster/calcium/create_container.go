@@ -270,10 +270,13 @@ func (c *Calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 		return nil, nil, nil, "", fmt.Errorf("Entrypoint %q not found in image %q", opts.Entrypoint, opts.Image)
 	}
 
-	// command
+	user := specs.Appname
+	// command and user
 	slices := strings.Split(entry.Command, " ")
 	starter, needNetwork := "launcher", "network"
-	if !opts.Raw {
+	// if not use raw to deploy, or use agent as network manager
+	// we need to use our own script to start command
+	if !opts.Raw && c.network.Type() == "agent" {
 		if entry.Privileged != "" {
 			starter = "launcheroot"
 		}
@@ -281,6 +284,8 @@ func (c *Calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 			needNetwork = "nonetwork"
 		}
 		slices = append([]string{fmt.Sprintf("/usr/local/bin/%s", starter), needNetwork}, slices...)
+		// use default empty value, as root
+		user = ""
 	}
 	cmd := engineslice.StrSlice(slices)
 
@@ -354,13 +359,13 @@ func (c *Calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	// labels
 	// basic labels, and set meta in specs to labels
 	containerLabels := map[string]string{
-		"ERU":        "1",
-		"Appname":    opts.Appname,
-		"Version":    utils.GetVersion(opts.Image),
-		"Image":      opts.Image,
-		"Podname":    opts.Podname,
-		"Nodename":   opts.Nodename,
-		"Entrypoint": opts.Entrypoint,
+		"ERU":     "1",
+		"version": utils.GetVersion(opts.Image),
+		// "Appname":    specs.Appname,
+		// "Image":      opts.Image,
+		// "Podname":    opts.Podname,
+		// "Nodename":   opts.Nodename,
+		// "Entrypoint": opts.Entrypoint,
 	}
 	for key, value := range specs.Meta {
 		containerLabels[key] = value
@@ -382,6 +387,7 @@ func (c *Calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	config := &enginecontainer.Config{
 		Env:             env,
 		Cmd:             cmd,
+		User:            user,
 		Image:           opts.Image,
 		Volumes:         volumes,
 		WorkingDir:      workingDir,
