@@ -188,13 +188,16 @@ base: "hub.ricebook.net/base/alpine:python-2016.04.24"
                             podname='dev',
                             entrypoint='log',
                             cpu_quota=1,
-                            count=2,
-                            networks=['testnetwork'],
+                            count=1,
+                            networks={'zzz': '10.102.0.3'}, # 如果不需要指定IP就写空字符串, 写其他的错误的格式会报错失败
                             env=['ENV_A=1', 'ENV_B=2'])
 
     try:
         for m in stub.CreateContainer(opts, 3600):
-            click.echo(m)
+            if m.error:
+                click.echo(click.style(m.error, fg='red', bold=True))
+            else:
+                click.echo(m)
     except AbortionError as e:
         click.echo(click.style('abortion error: %s' % e.details, fg='red', bold=True))
         ctx.exit(-1)

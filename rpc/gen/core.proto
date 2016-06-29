@@ -107,7 +107,7 @@ message DeployOptions {
     double cpu_quota = 7;
     int32 count = 8;
     repeated string env = 9;
-    repeated string networks = 10;
+    map<string, string> networks = 10;
     bool raw = 11;
 }
 
@@ -140,8 +140,9 @@ message CreateContainerMessage {
     string nodename = 2;
     string id = 3;
     string name = 4;
-    bool success = 5;
-    map<string, int64> cpu = 6;
+    string error = 5;
+    bool success = 6;
+    map<string, int64> cpu = 7;
 }
 
 message RemoveImageMessage {

@@ -162,6 +162,7 @@ func (c *Calcium) doCreateContainer(nodename string, cpumap []types.CPUMap, spec
 		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(quota, specs, opts)
 		if err != nil {
 			log.Errorf("error when creating CreateContainerOptions, %v", err)
+			ms[i].Error = err.Error()
 			c.releaseQuota(node, quota)
 			continue
 		}
@@ -170,27 +171,34 @@ func (c *Calcium) doCreateContainer(nodename string, cpumap []types.CPUMap, spec
 		container, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
 		if err != nil {
 			log.Errorf("error when creating container, %v", err)
+			ms[i].Error = err.Error()
 			c.releaseQuota(node, quota)
 			continue
 		}
 
-		ctx := utils.ToDockerContext(node.Engine)
 		// connect container to network
 		// if network manager uses docker plugin, then connect must be called before container starts
 		if c.network.Type() == "plugin" {
+			ctx := utils.ToDockerContext(node.Engine)
 			breaked := false
 
 			// need to ensure all networks are correctly connected
-			for _, networkID := range opts.Networks {
-				if err = c.network.ConnectToNetwork(ctx, container.ID, networkID); err != nil {
+			for networkID, ipv4 := range opts.Networks {
+				if err = c.network.ConnectToNetwork(ctx, container.ID, networkID, ipv4); err != nil {
 					log.Errorf("error when connecting container %q to network %q, %q", container.ID, networkID, err.Error())
 					breaked = true
 					break
 				}
 			}
 
+			// remove bridge network
+			if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
+				log.Errorf("error when disconnecting container %q from network %q, %q", container.ID, "bridge", err.Error())
+			}
+
 			// if any break occurs, then this container needs to be removed
 			if breaked {
+				ms[i].Error = err.Error()
 				c.releaseQuota(node, quota)
 				go node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{})
 				continue
@@ -200,14 +208,12 @@ func (c *Calcium) doCreateContainer(nodename string, cpumap []types.CPUMap, spec
 		err = node.Engine.ContainerStart(context.Background(), container.ID, enginetypes.ContainerStartOptions{})
 		if err != nil {
 			log.Errorf("error when starting container, %v", err)
+			ms[i].Error = err.Error()
 			c.releaseQuota(node, quota)
 			go node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{})
 			continue
 		}
 
-		if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
-			log.Errorf("error when disconnecting container %q from network %q, %q", container.ID, "bridge", err.Error())
-		}
 		// TODO
 		// if network manager uses our own, then connect must be called after container starts
 		// here
@@ -215,12 +221,14 @@ func (c *Calcium) doCreateContainer(nodename string, cpumap []types.CPUMap, spec
 		info, err := node.Engine.ContainerInspect(context.Background(), container.ID)
 		if err != nil {
 			log.Errorf("error when inspecting container, %v", err)
+			ms[i].Error = err.Error()
 			c.releaseQuota(node, quota)
 			continue
 		}
 
 		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, quota)
 		if err != nil {
+			ms[i].Error = err.Error()
 			c.releaseQuota(node, quota)
 			continue
 		}
@@ -230,6 +238,7 @@ func (c *Calcium) doCreateContainer(nodename string, cpumap []types.CPUMap, spec
 			Nodename:      node.Name,
 			ContainerID:   info.ID,
 			ContainerName: containerName,
+			Error:         "",
 			Success:       true,
 			CPU:           quota,
 		}
@@ -394,11 +403,14 @@ func (c *Calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	}
 	// this is empty because we don't use any plugin for Docker
 	// networkConfig := &enginenetwork.NetworkingConfig{
-	// 	EndpointsConfig: map[string]*enginenetwork.EndpointSettings{
-	// 		networkMode: &enginenetwork.EndpointSettings{
-	// 			NetworkID: networkMode,
-	// 		},
-	// 	},
+	// 	EndpointsConfig: map[string]*enginenetwork.EndpointSettings{},
+	// }
+
+	// for networkID, ipv4 := range opts.Networks {
+	// 	networkConfig.EndpointsConfig[networkID] = &enginenetwork.EndpointSettings{
+	// 		NetworkID:  networkID,
+	// 		IPAMConfig: &enginenetwork.EndpointIPAMConfig{IPv4Address: ipv4},
+	// 	}
 	// }
 	networkConfig := &enginenetwork.NetworkingConfig{}
 	return config, hostConfig, networkConfig, containerName, nil
@@ -509,9 +521,11 @@ func (c *Calcium) doUpgradeContainer(containers []*types.Container, image string
 		// need to disconnect first
 		if c.network.Type() == "plugin" {
 			ctx := utils.ToDockerContext(engine)
+			// remove new bridge
+			c.network.DisconnectFromNetwork(ctx, newContainer.ID, "bridge")
 			for _, endpoint := range info.NetworkSettings.Networks {
 				c.network.DisconnectFromNetwork(ctx, info.ID, endpoint.NetworkID)
-				c.network.ConnectToNetwork(ctx, newContainer.ID, endpoint.NetworkID)
+				c.network.ConnectToNetwork(ctx, newContainer.ID, endpoint.NetworkID, endpoint.IPAddress)
 			}
 		}
 

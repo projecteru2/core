@@ -2,6 +2,7 @@ package calico
 
 import (
 	"fmt"
+	"net"
 
 	log "github.com/Sirupsen/logrus"
 	enginenetwork "github.com/docker/engine-api/types/network"
@@ -11,15 +12,21 @@ import (
 
 type Titanium struct{}
 
+// type of the network manager
+// if set to "plugin", then it will act like a plugin
+// if set to "agent", then it will act like an agent
+// main difference is the order of connect/disconnect
 func (t *Titanium) Type() string {
 	return "plugin"
 }
 
+// name of the network manager
 func (t *Titanium) Name() string {
 	return "calico"
 }
 
-func (t *Titanium) ConnectToNetwork(ctx context.Context, containerID, networkID string) error {
+// connect to network with ipv4 address
+func (t *Titanium) ConnectToNetwork(ctx context.Context, containerID, networkID, ipv4 string) error {
 	if len(containerID) != 64 {
 		return fmt.Errorf("ContainerID must be in length of 64")
 	}
@@ -29,15 +36,26 @@ func (t *Titanium) ConnectToNetwork(ctx context.Context, containerID, networkID 
 		return fmt.Errorf("Not actually a `engineapi.Client` for value engine in context", containerID)
 	}
 
-	// TODO specified IPs
 	config := &enginenetwork.EndpointSettings{
 		IPAMConfig: &enginenetwork.EndpointIPAMConfig{},
 	}
 
-	log.Debugf("Connect %q to %q", containerID, networkID)
+	// set specified IP
+	// but if IP is empty, just ignore
+	if ipv4 != "" {
+		ip := net.ParseIP(ipv4)
+		if ip == nil {
+			return fmt.Errorf("IP Address is not valid: %q", ipv4)
+		}
+
+		config.IPAMConfig.IPv4Address = ip.String()
+	}
+
+	log.Debugf("Connect %q to %q with IP %q", containerID, networkID, ipv4)
 	return engine.NetworkConnect(context.Background(), networkID, containerID, config)
 }
 
+// disconnect from network
 func (t *Titanium) DisconnectFromNetwork(ctx context.Context, containerID, networkID string) error {
 	if len(containerID) != 64 {
 		return fmt.Errorf("ContainerID must be in length of 64")

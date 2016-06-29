@@ -51,7 +51,9 @@ func makeContainerConfig(info enginetypes.ContainerJSON, image string) (
 	config.Image = image
 
 	hostConfig := info.HostConfig
-	networkConfig := &enginenetwork.NetworkingConfig{}
+	networkConfig := &enginenetwork.NetworkingConfig{
+		EndpointsConfig: info.NetworkSettings.Networks,
+	}
 	return config, hostConfig, networkConfig, containerName, nil
 }
 

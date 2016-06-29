@@ -30,6 +30,7 @@ type CreateContainerMessage struct {
 	Nodename      string
 	ContainerID   string
 	ContainerName string
+	Error         string
 	Success       bool
 	CPU           CPUMap
 }
