@@ -30,7 +30,7 @@ func (k *Krypton) GetNode(podname, nodename string) (*types.Node, error) {
 		return nil, err
 	}
 
-	engine, err := utils.MakeDockerClient(node.Endpoint, k.config)
+	engine, err := utils.MakeDockerClient(node.Endpoint, k.config, false)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (k *Krypton) AddNode(name, endpoint, podname string, public bool) (*types.N
 		return nil, err
 	}
 
-	engine, err := utils.MakeDockerClient(endpoint, k.config)
+	engine, err := utils.MakeDockerClient(endpoint, k.config, false)
 	if err != nil {
 		return nil, err
 	}

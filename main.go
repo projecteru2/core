@@ -3,6 +3,8 @@ package main
 import (
 	"io/ioutil"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -89,6 +91,7 @@ func serve() {
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterCoreRPCServer(grpcServer, virbranium)
 	go grpcServer.Serve(s)
+	go http.ListenAndServe(":46656", nil)
 
 	log.Info("Calcium started successfully.")
 	waitSignal()
