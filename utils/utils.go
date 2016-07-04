@@ -96,6 +96,15 @@ func MakeDockerClient(endpoint string, config types.Config, force bool) (*engine
 
 		clients[host] = client
 	}
+
+	// timeout in 5 seconds
+	// timeout means node is not available
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	_, err = client.Info(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	return client, nil
 }
 
