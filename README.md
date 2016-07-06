@@ -31,6 +31,9 @@ agent_port: "12345"
 permdir: "/mnt/mfs/permdirs"
 etcd:
     - "http://127.0.0.1:2379"
+etcd_lock_key: "erucore"
+etcd_lock_ttl: 10
+scheduler: "complex"
 
 git:
     public_key: "[path_to_pub_key]"

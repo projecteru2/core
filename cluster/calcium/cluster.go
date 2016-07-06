@@ -3,9 +3,11 @@ package calcium
 import (
 	"sync"
 
+	"github.com/coreos/etcd/client"
 	"gitlab.ricebook.net/platform/core/network"
 	"gitlab.ricebook.net/platform/core/network/calico"
 	"gitlab.ricebook.net/platform/core/scheduler"
+	"gitlab.ricebook.net/platform/core/scheduler/complex"
 	"gitlab.ricebook.net/platform/core/scheduler/simple"
 	"gitlab.ricebook.net/platform/core/source"
 	"gitlab.ricebook.net/platform/core/source/gitlab"
@@ -29,7 +31,12 @@ func New(config types.Config) (*Calcium, error) {
 		return nil, err
 	}
 
-	scheduler := simplescheduler.New()
+	if config.Scheduler == "simple" {
+		scheduler := simplescheduler.New()
+	} else {
+		scheduler := complexscheduler.NewPotassim(store, config.EtcdLockKey, config.EtcdLockTTL)
+	}
+
 	titanium := calico.New()
 	source := gitlab.New(config)
 

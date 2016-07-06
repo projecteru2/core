@@ -78,7 +78,6 @@ func (c *Calcium) prepareNodes(podname string, quota float64, num int) (map[stri
 	c.Lock()
 	defer c.Unlock()
 
-	q := int(quota)
 	r := make(map[string][]types.CPUMap)
 
 	nodes, err := c.ListPodNodes(podname)
@@ -87,21 +86,21 @@ func (c *Calcium) prepareNodes(podname string, quota float64, num int) (map[stri
 	}
 
 	// if public, use only public nodes
-	if q == 0 {
+	if quota == 0.0 { // 因为要考虑quota=0.5这种需求，所以这里有点麻烦
 		nodes = filterNodes(nodes, true)
 	} else {
 		nodes = filterNodes(nodes, false)
 	}
 
 	cpumap := makeCPUMap(nodes)
-	r, err = c.scheduler.SelectNodes(cpumap, q, num)
+	r, err = c.scheduler.SelectNodes(cpumap, quota, num) // 这个接口统一使用float64了
 	if err != nil {
 		return r, err
 	}
 
 	// if quota is set to 0
 	// then no cpu is required
-	if q > 0 {
+	if quota > 0 {
 		// cpus remained
 		// update data to etcd
 		// `SelectNodes` reduces count in cpumap

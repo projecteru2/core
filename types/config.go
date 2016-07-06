@@ -5,6 +5,9 @@ type Config struct {
 	AgentPort    string   `yaml:"agent_port"`
 	PermDir      string   `yaml:"permdir"`
 	EtcdMachines []string `yaml:"etcd"`
+	EtcdLockKey  string   `yaml:"etcd_lock_key"` // key for etcd lock
+	EtcdLockTTL  int      `yaml:"etcd_lock_ttl"` // TTL for etcd lock
+	Scheduler    string   `yaml:"scheduler"`     // choose simple or complex scheduler
 
 	Git    GitConfig    `yaml:"git"`
 	Docker DockerConfig `yaml:"docker"`
