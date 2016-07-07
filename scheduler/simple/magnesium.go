@@ -7,14 +7,14 @@ import (
 	"gitlab.ricebook.net/platform/core/types"
 )
 
-type Magnesium struct {
+type magnesium struct {
 	sync.Mutex
 }
 
 // Get a random node.
 // Actually it's not random, it's the one with biggest cpu quota.
 // Returns the node name.
-func (m *Magnesium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
+func (m *magnesium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -40,7 +40,7 @@ func (m *Magnesium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
 // Select nodes for deploying.
 // Use round robin method to select, in order to make scheduler average.
 // TODO Outside this method, caller should update corresponding nodes with `nodes` as their CPU, which is weird
-func (m *Magnesium) SelectNodes(nodes map[string]types.CPUMap, quota int, num int) (map[string][]types.CPUMap, error) {
+func (m *magnesium) SelectNodes(nodes map[string]types.CPUMap, quota int, num int) (map[string][]types.CPUMap, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -90,4 +90,8 @@ func totalQuota(nodes map[string]types.CPUMap) int {
 		value += cpuCount(cmap)
 	}
 	return value
+}
+
+func New() *magnesium {
+	return &magnesium{}
 }

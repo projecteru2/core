@@ -144,7 +144,7 @@ func (v *Virbranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (
 // streamed returned functions
 // caller must ensure that timeout will not be too short because these actions take a little time
 func (v *Virbranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_BuildImageServer) error {
-	ch, err := v.cluster.BuildImage(opts.Repo, opts.Version, opts.Uid)
+	ch, err := v.cluster.BuildImage(opts.Repo, opts.Version, opts.Uid, opts.Artifact)
 	if err != nil {
 		return err
 	}

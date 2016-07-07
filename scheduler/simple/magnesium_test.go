@@ -8,7 +8,7 @@ import (
 )
 
 func TestRandomNode(t *testing.T) {
-	m := &Magnesium{}
+	m := &magnesium{}
 	_, err := m.RandomNode(map[string]types.CPUMap{})
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "No nodes provide to choose one")
@@ -41,7 +41,7 @@ func TestRandomNode(t *testing.T) {
 }
 
 func TestSelectNodes(t *testing.T) {
-	m := &Magnesium{}
+	m := &magnesium{}
 	_, err := m.SelectNodes(map[string]types.CPUMap{}, 1, 1)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "No nodes provide to choose some")
@@ -133,7 +133,7 @@ func TestTotalQuota(t *testing.T) {
 }
 
 func TestSelectPublicNodes(t *testing.T) {
-	m := &Magnesium{}
+	m := &magnesium{}
 	_, err := m.SelectNodes(map[string]types.CPUMap{}, 1, 1)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "No nodes provide to choose some")

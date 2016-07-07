@@ -10,23 +10,23 @@ import (
 	"golang.org/x/net/context"
 )
 
-type Titanium struct{}
+type titanium struct{}
 
 // type of the network manager
 // if set to "plugin", then it will act like a plugin
 // if set to "agent", then it will act like an agent
 // main difference is the order of connect/disconnect
-func (t *Titanium) Type() string {
+func (t *titanium) Type() string {
 	return "plugin"
 }
 
 // name of the network manager
-func (t *Titanium) Name() string {
+func (t *titanium) Name() string {
 	return "calico"
 }
 
 // connect to network with ipv4 address
-func (t *Titanium) ConnectToNetwork(ctx context.Context, containerID, networkID, ipv4 string) error {
+func (t *titanium) ConnectToNetwork(ctx context.Context, containerID, networkID, ipv4 string) error {
 	if len(containerID) != 64 {
 		return fmt.Errorf("ContainerID must be in length of 64")
 	}
@@ -56,7 +56,7 @@ func (t *Titanium) ConnectToNetwork(ctx context.Context, containerID, networkID,
 }
 
 // disconnect from network
-func (t *Titanium) DisconnectFromNetwork(ctx context.Context, containerID, networkID string) error {
+func (t *titanium) DisconnectFromNetwork(ctx context.Context, containerID, networkID string) error {
 	if len(containerID) != 64 {
 		return fmt.Errorf("ContainerID must be in length of 64")
 	}
@@ -68,4 +68,8 @@ func (t *Titanium) DisconnectFromNetwork(ctx context.Context, containerID, netwo
 
 	log.Debugf("Disconnect %q from %q", containerID, networkID)
 	return engine.NetworkDisconnect(context.Background(), networkID, containerID, false)
+}
+
+func New() *titanium {
+	return &titanium{}
 }

@@ -95,6 +95,7 @@ message BuildImageOptions {
     string repo = 1;
     string version = 2;
     string uid = 3;
+    string artifact = 4;
 }
 
 message DeployOptions {

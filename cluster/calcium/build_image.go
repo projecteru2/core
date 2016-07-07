@@ -11,7 +11,6 @@ import (
 
 	"github.com/docker/docker/pkg/archive"
 	enginetypes "github.com/docker/engine-api/types"
-	"gitlab.ricebook.net/platform/core/git"
 	"gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/utils"
 	"golang.org/x/net/context"
@@ -87,7 +86,7 @@ func getRandomNode(c *Calcium, podname string) (*types.Node, error) {
 //             ├─ Dockerfile
 //             ├─ launcher
 //             ├─ launcheroot
-func (c *Calcium) BuildImage(repository, version, uid string) (chan *types.BuildImageMessage, error) {
+func (c *Calcium) BuildImage(repository, version, uid, artifact string) (chan *types.BuildImageMessage, error) {
 	ch := make(chan *types.BuildImageMessage)
 
 	// use pod `dev` to build image
@@ -112,8 +111,16 @@ func (c *Calcium) BuildImage(repository, version, uid string) (chan *types.Build
 	// clone code into cloneDir
 	// which is under buildDir and named as repository name
 	cloneDir := filepath.Join(buildDir, reponame)
-	if err := git.CloneRepository(repository, cloneDir, version, c.config.Git.PublicKey, c.config.Git.PrivateKey); err != nil {
+	if err := c.source.SourceCode(repository, cloneDir, version); err != nil {
 		return ch, err
+	}
+
+	// get artifact into cloneDir, only when artifact is not empty
+	// TODO need to separate from code or just like this?
+	if artifact != "" {
+		if err := c.source.Artifact(artifact, cloneDir); err != nil {
+			return ch, err
+		}
 	}
 
 	// ensure .git directory is removed

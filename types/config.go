@@ -11,8 +11,9 @@ type Config struct {
 }
 
 type GitConfig struct {
-	PublicKey  string `yaml:"public_key"`
-	PrivateKey string `yaml:"private_key"`
+	PublicKey   string `yaml:"public_key"`
+	PrivateKey  string `yaml:"private_key"`
+	GitlabToken string `yaml:"gitlab_token"`
 }
 
 type DockerConfig struct {

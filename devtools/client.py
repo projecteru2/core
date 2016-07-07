@@ -137,10 +137,12 @@ def add_node(ctx, nodename, endpoint, podname, public):
 @click.argument('repo')
 @click.argument('version')
 @click.argument('uid')
+@click.option('artifact', default='')
 @click.pass_context
-def build_image(ctx, repo, version, uid):
+def build_image(ctx, repo, version, uid, artifact):
+    # artifact = 'http://gitlab.ricebook.net/api/v3/projects/245/builds/1815/artifacts'
     stub = _get_stub(ctx)
-    opts = pb.BuildImageOptions(repo=repo, version=version, uid=uid)
+    opts = pb.BuildImageOptions(repo=repo, version=version, uid=uid, artifact=artifact)
 
     try:
         for m in stub.BuildImage(opts, 3600):

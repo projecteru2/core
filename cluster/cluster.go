@@ -16,7 +16,7 @@ type Cluster interface {
 	GetContainers(ids []string) ([]*types.Container, error)
 
 	// cluster methods
-	BuildImage(repository, version, uid string) (chan *types.BuildImageMessage, error)
+	BuildImage(repository, version, uid, artifact string) (chan *types.BuildImageMessage, error)
 	CreateContainer(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
 	UpgradeContainer(ids []string, image string) (chan *types.UpgradeContainerMessage, error)
 	RemoveContainer(ids []string) (chan *types.RemoveContainerMessage, error)

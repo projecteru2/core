@@ -7,6 +7,8 @@ import (
 	"gitlab.ricebook.net/platform/core/network/calico"
 	"gitlab.ricebook.net/platform/core/scheduler"
 	"gitlab.ricebook.net/platform/core/scheduler/simple"
+	"gitlab.ricebook.net/platform/core/source"
+	"gitlab.ricebook.net/platform/core/source/gitlab"
 	"gitlab.ricebook.net/platform/core/store"
 	"gitlab.ricebook.net/platform/core/store/etcd"
 	"gitlab.ricebook.net/platform/core/types"
@@ -18,6 +20,7 @@ type Calcium struct {
 	config    types.Config
 	scheduler scheduler.Scheduler
 	network   network.Network
+	source    source.Source
 }
 
 func New(config types.Config) (*Calcium, error) {
@@ -26,8 +29,9 @@ func New(config types.Config) (*Calcium, error) {
 		return nil, err
 	}
 
-	scheduler := &simplescheduler.Magnesium{}
-	titanium := &calico.Titanium{}
+	scheduler := simplescheduler.New()
+	titanium := calico.New()
+	source := gitlab.New(config)
 
-	return &Calcium{store: store, config: config, scheduler: scheduler, network: titanium}, nil
+	return &Calcium{store: store, config: config, scheduler: scheduler, network: titanium, source: source}, nil
 }
