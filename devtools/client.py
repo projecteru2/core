@@ -137,7 +137,7 @@ def add_node(ctx, nodename, endpoint, podname, public):
 @click.argument('repo')
 @click.argument('version')
 @click.argument('uid')
-@click.option('artifact', default='')
+@click.option('--artifact', default='')
 @click.pass_context
 def build_image(ctx, repo, version, uid, artifact):
     # artifact = 'http://gitlab.ricebook.net/api/v3/projects/245/builds/1815/artifacts'
