@@ -203,11 +203,18 @@ func (c *Calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 			message := &types.BuildImageMessage{}
 			err := decoder2.Decode(message)
 			if err != nil {
-				close(ch)
-				break
+				if err == io.EOF {
+					break
+				} else {
+					close(ch)
+					return
+				}
 			}
 			ch <- message
 		}
+
+		ch <- &types.BuildImageMessage{Status: "finished", Progress: tag}
+		close(ch)
 	}()
 
 	return ch, nil
