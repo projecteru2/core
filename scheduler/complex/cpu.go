@@ -190,7 +190,7 @@ func abs(a int) int {
 	return a
 }
 
-func AveragePlan(cpu float64, nodes map[string]types.CPUMap, need, maxShareCore, coreShare int) map[string][]types.CPUMap {
+func averagePlan(cpu float64, nodes map[string]types.CPUMap, need, maxShareCore, coreShare int) map[string][]types.CPUMap {
 
 	var nodecontainer = map[string][]types.CPUMap{}
 	var result = map[string][]types.CPUMap{}
@@ -199,6 +199,21 @@ func AveragePlan(cpu float64, nodes map[string]types.CPUMap, need, maxShareCore,
 	var n int
 	var nodeinfo ByNCon
 	var nodename string
+
+	if cpu < 0.01 {
+		resultLength := 0
+	r:
+		for {
+			for nodename, _ := range nodes {
+				result[nodename] = append(result[nodename], nil)
+				resultLength++
+			}
+			if resultLength == need {
+				break r
+			}
+		}
+		return result
+	}
 
 	for node, cpuInfo := range nodes {
 		host = newHost(cpuInfo, coreShare)

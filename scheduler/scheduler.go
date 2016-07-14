@@ -11,5 +11,5 @@ type Scheduler interface {
 	RandomNode(nodes map[string]types.CPUMap) (string, error)
 	// select nodes from nodes, return a list of nodenames and the corresponding cpumap
 	// quota and number must be given, typically used to determine where to deploy
-	SelectNodes(nodes map[string]types.CPUMap, quota float64, num int) (map[string][]types.CPUMap, error)
+	SelectNodes(nodes map[string]types.CPUMap, quota float64, num int) (map[string][]types.CPUMap, map[string]types.CPUMap, error)
 }
