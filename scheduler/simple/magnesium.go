@@ -40,18 +40,19 @@ func (m *magnesium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
 // Select nodes for deploying.
 // Use round robin method to select, in order to make scheduler average.
 // TODO Outside this method, caller should update corresponding nodes with `nodes` as their CPU, which is weird
-func (m *magnesium) SelectNodes(nodes map[string]types.CPUMap, quota int, num int) (map[string][]types.CPUMap, error) {
+func (m *magnesium) SelectNodes(nodes map[string]types.CPUMap, quota float64, num int) (map[string][]types.CPUMap, error) {
 	m.Lock()
 	defer m.Unlock()
 
+	q := int(quota) // 为了和complexscheduler的接口保持一致，quota改为float64
 	result := make(map[string][]types.CPUMap)
 	if len(nodes) == 0 {
 		return result, fmt.Errorf("No nodes provide to choose some")
 	}
 
-	if quota > 0 {
+	if q > 0 {
 		total := totalQuota(nodes)
-		if total < num*quota {
+		if total < num*q {
 			return result, fmt.Errorf("Not enough CPUs, total: %d, require: %d", total, num)
 		}
 	}
@@ -59,7 +60,7 @@ func (m *magnesium) SelectNodes(nodes map[string]types.CPUMap, quota int, num in
 done:
 	for {
 		for nodename, cpumap := range nodes {
-			r, err := getQuota(cpumap, quota)
+			r, err := getQuota(cpumap, q)
 			if err != nil {
 				continue
 			}
