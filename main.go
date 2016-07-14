@@ -93,7 +93,7 @@ func serve() {
 	go grpcServer.Serve(s)
 	go http.ListenAndServe(":46656", nil)
 
-	log.Info("Calcium started successfully.")
+	log.Info("Cluster started successfully.")
 	waitSignal()
 }
 

@@ -16,12 +16,12 @@ var (
 	containerInfoKey = "/eru-core/container/%s"
 )
 
-type Krypton struct {
+type krypton struct {
 	etcd   client.KeysAPI
 	config types.Config
 }
 
-func NewKrypton(config types.Config) (*Krypton, error) {
+func New(config types.Config) (*krypton, error) {
 	if len(config.EtcdMachines) == 0 {
 		return nil, fmt.Errorf("ETCD must be set")
 	}
@@ -32,5 +32,5 @@ func NewKrypton(config types.Config) (*Krypton, error) {
 	}
 
 	etcd := client.NewKeysAPI(cli)
-	return &Krypton{etcd: etcd, config: config}, nil
+	return &krypton{etcd: etcd, config: config}, nil
 }

@@ -9,7 +9,7 @@ import (
 )
 
 // remove images
-func (c *Calcium) RemoveImage(podname, nodename string, images []string) (chan *types.RemoveImageMessage, error) {
+func (c *calcium) RemoveImage(podname, nodename string, images []string) (chan *types.RemoveImageMessage, error) {
 	ch := make(chan *types.RemoveImageMessage)
 
 	node, err := c.GetNode(podname, nodename)

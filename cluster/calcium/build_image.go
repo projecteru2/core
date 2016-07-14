@@ -59,7 +59,7 @@ type entry struct {
 }
 
 // Get a random node from pod `podname`
-func getRandomNode(c *Calcium, podname string) (*types.Node, error) {
+func getRandomNode(c *calcium, podname string) (*types.Node, error) {
 	nodes, err := c.ListPodNodes(podname)
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func getRandomNode(c *Calcium, podname string) (*types.Node, error) {
 //             ├─ Dockerfile
 //             ├─ launcher
 //             ├─ launcheroot
-func (c *Calcium) BuildImage(repository, version, uid, artifact string) (chan *types.BuildImageMessage, error) {
+func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *types.BuildImageMessage, error) {
 	ch := make(chan *types.BuildImageMessage)
 
 	// use pod `dev` to build image

@@ -11,7 +11,7 @@ import (
 
 // get a pod from etcd
 // storage path in etcd is `/eru-core/pod/:podname/info`
-func (k *Krypton) GetPod(name string) (*types.Pod, error) {
+func (k *krypton) GetPod(name string) (*types.Pod, error) {
 	key := fmt.Sprintf(podInfoKey, name)
 	resp, err := k.etcd.Get(context.Background(), key, nil)
 	if err != nil {
@@ -32,7 +32,7 @@ func (k *Krypton) GetPod(name string) (*types.Pod, error) {
 // add a pod
 // save it to etcd
 // storage path in etcd is `/eru-core/pod/:podname/info`
-func (k *Krypton) AddPod(name, desc string) (*types.Pod, error) {
+func (k *krypton) AddPod(name, desc string) (*types.Pod, error) {
 	key := fmt.Sprintf(podInfoKey, name)
 	pod := &types.Pod{Name: name, Desc: desc}
 
@@ -52,7 +52,7 @@ func (k *Krypton) AddPod(name, desc string) (*types.Pod, error) {
 // get all pods in etcd
 // any error will break and return error immediately
 // storage path in etcd is `/eru-core/pod`
-func (k *Krypton) GetAllPods() ([]*types.Pod, error) {
+func (k *krypton) GetAllPods() ([]*types.Pod, error) {
 	var (
 		pods []*types.Pod
 		err  error

@@ -11,7 +11,7 @@ import (
 
 // remove containers
 // returns a channel that contains removing responses
-func (c *Calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMessage, error) {
+func (c *calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMessage, error) {
 	ch := make(chan *types.RemoveContainerMessage)
 
 	containers, err := c.GetContainers(ids)
@@ -52,7 +52,7 @@ func (c *Calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMess
 
 // remove one container
 // 5 seconds timeout
-func (c *Calcium) removeOneContainer(container *types.Container) error {
+func (c *calcium) removeOneContainer(container *types.Container) error {
 	info, err := container.Inspect()
 	if err != nil {
 		return err

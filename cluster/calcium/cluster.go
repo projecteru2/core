@@ -1,9 +1,9 @@
 package calcium
 
 import (
+	"fmt"
 	"sync"
 
-	"github.com/coreos/etcd/client"
 	"gitlab.ricebook.net/platform/core/network"
 	"gitlab.ricebook.net/platform/core/network/calico"
 	"gitlab.ricebook.net/platform/core/scheduler"
@@ -16,7 +16,7 @@ import (
 	"gitlab.ricebook.net/platform/core/types"
 )
 
-type Calcium struct {
+type calcium struct {
 	sync.Mutex
 	store     store.Store
 	config    types.Config
@@ -25,20 +25,26 @@ type Calcium struct {
 	source    source.Source
 }
 
-func New(config types.Config) (*Calcium, error) {
-	store, err := etcdstore.NewKrypton(config)
+func New(config types.Config) (*calcium, error) {
+	store, err := etcdstore.New(config)
 	if err != nil {
 		return nil, err
 	}
 
-	if config.Scheduler == "simple" {
-		scheduler := simplescheduler.New()
+	var scheduler scheduler.Scheduler
+	if config.Scheduler.Type == "simple" {
+		scheduler = simplescheduler.New()
+	} else if config.Scheduler.Type == "complex" {
+		scheduler, err = complexscheduler.NewPotassim(config)
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		scheduler := complexscheduler.NewPotassim(store, config.EtcdLockKey, config.EtcdLockTTL)
+		return nil, fmt.Errorf("Wrong type for scheduler: either simple or complex")
 	}
 
 	titanium := calico.New()
 	source := gitlab.New(config)
 
-	return &Calcium{store: store, config: config, scheduler: scheduler, network: titanium, source: source}, nil
+	return &calcium{store: store, config: config, scheduler: scheduler, network: titanium, source: source}, nil
 }

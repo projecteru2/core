@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/coreos/etcd/client"
 	"github.com/stretchr/testify/assert"
 	"gitlab.ricebook.net/platform/core/types"
 )
@@ -18,13 +17,16 @@ func resultLength(result map[string][]types.CPUMap) int {
 }
 
 func TestSelectNodes(t *testing.T) {
-	cfg := client.Config{
-		Endpoints: []string{"http://127.0.0.1:2379"},
+	coreCfg := types.Config{
+		EtcdMachines: []string{"http://127.0.0.1:2379"},
+		Scheduler: types.SchedConfig{
+			EtcdLockKey: "/coretest",
+			EtcdLockTTL: 1,
+			Type:        "complex",
+		},
 	}
-	cli, _ := client.New(cfg)
-	api := client.NewKeysAPI(cli)
 
-	k, merr := NewPotassim(api, "/coretest", 1)
+	k, merr := NewPotassim(coreCfg)
 	if merr != nil {
 		t.Fatalf("cannot create Potassim instance.", merr)
 	}
@@ -104,11 +106,19 @@ func checkAvgPlan(res map[string][]types.CPUMap, minCon int, maxCon int, name st
 }
 
 func TestComplexNodes(t *testing.T) {
-	cfg := client.Config{
-		Endpoints: []string{"http://127.0.0.1:2379"},
+	coreCfg := types.Config{
+		EtcdMachines: []string{"http://127.0.0.1:2379"},
+		Scheduler: types.SchedConfig{
+			EtcdLockKey: "/coretest",
+			EtcdLockTTL: 1,
+			Type:        "complex",
+		},
 	}
-	cli, _ := client.New(cfg)
-	api := client.NewKeysAPI(cli)
+
+	k, merr := NewPotassim(coreCfg)
+	if merr != nil {
+		t.Fatalf("cannot create Potassim instance.", merr)
+	}
 
 	// nodes can offer 28 containers.
 	nodes := map[string]types.CPUMap{
@@ -139,7 +149,7 @@ func TestComplexNodes(t *testing.T) {
 		},
 	}
 
-	k, _ := NewPotassim(api, "coretest2", 1)
+	k, _ = NewPotassim(coreCfg)
 
 	// test1
 	res1, err := k.SelectNodes(nodes, 1.7, 7)

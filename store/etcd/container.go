@@ -11,7 +11,7 @@ import (
 // get a container
 // container if must be in full length, or we can't find it in etcd
 // storage path in etcd is `/eru-core/container/:containerid`
-func (k *Krypton) GetContainer(id string) (*types.Container, error) {
+func (k *krypton) GetContainer(id string) (*types.Container, error) {
 	if len(id) < 64 {
 		return nil, fmt.Errorf("Container ID must be length of 64")
 	}
@@ -40,7 +40,7 @@ func (k *Krypton) GetContainer(id string) (*types.Container, error) {
 }
 
 // get many containers
-func (k *Krypton) GetContainers(ids []string) ([]*types.Container, error) {
+func (k *krypton) GetContainers(ids []string) ([]*types.Container, error) {
 	var (
 		containers []*types.Container
 		err        error
@@ -60,7 +60,7 @@ func (k *Krypton) GetContainers(ids []string) ([]*types.Container, error) {
 // actually if we already know its node, we will know its pod
 // but we still store it
 // storage path in etcd is `/eru-core/container/:containerid`
-func (k *Krypton) AddContainer(id, podname, nodename, name string, cpu types.CPUMap) (*types.Container, error) {
+func (k *krypton) AddContainer(id, podname, nodename, name string, cpu types.CPUMap) (*types.Container, error) {
 	// first we check if node really exists
 	node, err := k.GetNode(podname, nodename)
 	if err != nil {
@@ -100,7 +100,7 @@ func (k *Krypton) AddContainer(id, podname, nodename, name string, cpu types.CPU
 
 // remove a container
 // container id must be in full length
-func (k *Krypton) RemoveContainer(id string) error {
+func (k *krypton) RemoveContainer(id string) error {
 	if len(id) < 64 {
 		return fmt.Errorf("Container ID must be length of 64")
 	}

@@ -21,7 +21,7 @@ import (
 // Create Container
 // Use specs and options to create
 // TODO what about networks?
-func (c *Calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
 
 	result, err := c.prepareNodes(opts.Podname, opts.CPUQuota, opts.Count)
@@ -73,7 +73,7 @@ func makeCPUMap(nodes []*types.Node) map[string]types.CPUMap {
 
 // Prepare nodes for deployment.
 // Later if any error occurs, these nodes can be restored.
-func (c *Calcium) prepareNodes(podname string, quota float64, num int) (map[string][]types.CPUMap, error) {
+func (c *calcium) prepareNodes(podname string, quota float64, num int) (map[string][]types.CPUMap, error) {
 	// TODO use distributed lock on podname instead
 	c.Lock()
 	defer c.Unlock()
@@ -141,7 +141,7 @@ func pullImage(node *types.Node, image string) error {
 	return nil
 }
 
-func (c *Calcium) doCreateContainer(nodename string, cpumap []types.CPUMap, specs types.Specs, opts *types.DeployOptions) []*types.CreateContainerMessage {
+func (c *calcium) doCreateContainer(nodename string, cpumap []types.CPUMap, specs types.Specs, opts *types.DeployOptions) []*types.CreateContainerMessage {
 	ms := make([]*types.CreateContainerMessage, len(cpumap))
 	for i := 0; i < len(ms); i++ {
 		ms[i] = &types.CreateContainerMessage{}
@@ -249,7 +249,7 @@ func (c *Calcium) doCreateContainer(nodename string, cpumap []types.CPUMap, spec
 // When deploy on a public host
 // quota is set to 0
 // no need to update this to etcd (save 1 time write on etcd)
-func (c *Calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
+func (c *calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
 	if quota.Total() == 0 {
 		return
 	}
@@ -257,7 +257,7 @@ func (c *Calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
 	c.store.UpdateNode(node)
 }
 
-func (c *Calcium) makeContainerOptions(quota map[string]int, specs types.Specs, opts *types.DeployOptions) (
+func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, opts *types.DeployOptions) (
 	*enginecontainer.Config,
 	*enginecontainer.HostConfig,
 	*enginenetwork.NetworkingConfig,
@@ -426,7 +426,7 @@ func (c *Calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 // Use image to run these containers, and copy their settings
 // Note, if the image is not correct, container will be started incorrectly
 // TODO what about networks?
-func (c *Calcium) UpgradeContainer(ids []string, image string) (chan *types.UpgradeContainerMessage, error) {
+func (c *calcium) UpgradeContainer(ids []string, image string) (chan *types.UpgradeContainerMessage, error) {
 	ch := make(chan *types.UpgradeContainerMessage)
 
 	if len(ids) == 0 {
@@ -466,7 +466,7 @@ func (c *Calcium) UpgradeContainer(ids []string, image string) (chan *types.Upgr
 }
 
 // upgrade containers on the same node
-func (c *Calcium) doUpgradeContainer(containers []*types.Container, image string) []*types.UpgradeContainerMessage {
+func (c *calcium) doUpgradeContainer(containers []*types.Container, image string) []*types.UpgradeContainerMessage {
 	ms := make([]*types.UpgradeContainerMessage, len(containers))
 	for i := 0; i < len(ms); i++ {
 		ms[i] = &types.UpgradeContainerMessage{}

@@ -36,7 +36,7 @@ type host struct {
 	share    int
 }
 
-func NewHost(cpuInfo types.CPUMap, share int) *host {
+func newHost(cpuInfo types.CPUMap, share int) *host {
 	result := &host{
 		share:    share,
 		full:     types.CPUMap{},
@@ -190,8 +190,7 @@ func abs(a int) int {
 	return a
 }
 
-func AveragePlan(cpu float64, nodes map[string]types.CPUMap,
-	need, maxShareCore, coreShare int) map[string][]types.CPUMap {
+func AveragePlan(cpu float64, nodes map[string]types.CPUMap, need, maxShareCore, coreShare int) map[string][]types.CPUMap {
 
 	var nodecontainer = map[string][]types.CPUMap{}
 	var result = map[string][]types.CPUMap{}
@@ -202,7 +201,7 @@ func AveragePlan(cpu float64, nodes map[string]types.CPUMap,
 	var nodename string
 
 	for node, cpuInfo := range nodes {
-		host = NewHost(cpuInfo, coreShare)
+		host = newHost(cpuInfo, coreShare)
 		plan = host.GetContainerCores(cpu, maxShareCore)
 		n = len(plan) // 每个node可以放的容器数
 		nodeinfo = append(nodeinfo, NodeInfo{node, n})

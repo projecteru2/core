@@ -8,19 +8,28 @@ import (
 	"gitlab.ricebook.net/platform/core/types"
 )
 
-type Potassium struct {
+type potassium struct {
 	*lock.Mutex
 }
 
-func NewPotassim(api client.KeysAPI, key string, timeout int) (*Potassium, error) {
-	mu := lock.NewMutex(api, key, timeout)
+func NewPotassim(config types.Config) (*potassium, error) {
+	if len(config.EtcdMachines) == 0 {
+		return nil, fmt.Errorf("ETCD must be set")
+	}
+
+	cli, err := client.New(client.Config{Endpoints: config.EtcdMachines})
+	if err != nil {
+		return nil, err
+	}
+
+	mu := lock.NewMutex(client.NewKeysAPI(cli), config.Scheduler.EtcdLockKey, config.Scheduler.EtcdLockTTL)
 	if mu == nil {
 		return nil, fmt.Errorf("cannot init mutex")
 	}
-	return &Potassium{mu}, nil
+	return &potassium{mu}, nil
 }
 
-func (m *Potassium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
+func (m *potassium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -42,7 +51,7 @@ func (m *Potassium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
 	return nodename, nil
 }
 
-func (m *Potassium) SelectNodes(nodes map[string]types.CPUMap, quota float64, num int) (map[string][]types.CPUMap, error) {
+func (m *potassium) SelectNodes(nodes map[string]types.CPUMap, quota float64, num int) (map[string][]types.CPUMap, error) {
 	m.Lock()
 	defer m.Unlock()
 

@@ -15,7 +15,7 @@ import (
 // a node must belong to a pod
 // and since node is not the smallest unit to user, to get a node we must specify the corresponding pod
 // storage path in etcd is `/eru-core/pod/:podname/node/:nodename/info`
-func (k *Krypton) GetNode(podname, nodename string) (*types.Node, error) {
+func (k *krypton) GetNode(podname, nodename string) (*types.Node, error) {
 	key := fmt.Sprintf(nodeInfoKey, podname, nodename)
 	resp, err := k.etcd.Get(context.Background(), key, nil)
 	if err != nil {
@@ -42,7 +42,7 @@ func (k *Krypton) GetNode(podname, nodename string) (*types.Node, error) {
 // add a node
 // save it to etcd
 // storage path in etcd is `/eru-core/pod/:podname/node/:nodename/info`
-func (k *Krypton) AddNode(name, endpoint, podname string, public bool) (*types.Node, error) {
+func (k *krypton) AddNode(name, endpoint, podname string, public bool) (*types.Node, error) {
 	_, err := k.GetPod(podname)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (k *Krypton) AddNode(name, endpoint, podname string, public bool) (*types.N
 
 // get all nodes from etcd
 // any error will break and return immediately
-func (k *Krypton) GetAllNodes() ([]*types.Node, error) {
+func (k *krypton) GetAllNodes() ([]*types.Node, error) {
 	var (
 		nodes []*types.Node
 		err   error
@@ -112,7 +112,7 @@ func (k *Krypton) GetAllNodes() ([]*types.Node, error) {
 // get all nodes bound to pod
 // here we use podname instead of pod instance
 // storage path in etcd is `/eru-core/pod/:podname/node`
-func (k *Krypton) GetNodesByPod(podname string) ([]*types.Node, error) {
+func (k *krypton) GetNodesByPod(podname string) ([]*types.Node, error) {
 	var (
 		nodes []*types.Node
 		err   error
@@ -140,7 +140,7 @@ func (k *Krypton) GetNodesByPod(podname string) ([]*types.Node, error) {
 
 // update a node, save it to etcd
 // storage path in etcd is `/eru-core/pod/:podname/node/:nodename/info`
-func (k *Krypton) UpdateNode(node *types.Node) error {
+func (k *krypton) UpdateNode(node *types.Node) error {
 	key := fmt.Sprintf(nodeInfoKey, node.Podname, node.Name)
 	bytes, err := json.Marshal(node)
 	if err != nil {

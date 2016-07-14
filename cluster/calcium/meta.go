@@ -5,34 +5,34 @@ package calcium
 
 import "gitlab.ricebook.net/platform/core/types"
 
-func (c *Calcium) ListPods() ([]*types.Pod, error) {
+func (c *calcium) ListPods() ([]*types.Pod, error) {
 	return c.store.GetAllPods()
 }
 
-func (c *Calcium) AddPod(podname, desc string) (*types.Pod, error) {
+func (c *calcium) AddPod(podname, desc string) (*types.Pod, error) {
 	return c.store.AddPod(podname, desc)
 }
 
-func (c *Calcium) GetPod(podname string) (*types.Pod, error) {
+func (c *calcium) GetPod(podname string) (*types.Pod, error) {
 	return c.store.GetPod(podname)
 }
 
-func (c *Calcium) AddNode(nodename, endpoint, podname string, public bool) (*types.Node, error) {
+func (c *calcium) AddNode(nodename, endpoint, podname string, public bool) (*types.Node, error) {
 	return c.store.AddNode(nodename, endpoint, podname, public)
 }
 
-func (c *Calcium) GetNode(podname, nodename string) (*types.Node, error) {
+func (c *calcium) GetNode(podname, nodename string) (*types.Node, error) {
 	return c.store.GetNode(podname, nodename)
 }
 
-func (c *Calcium) ListPodNodes(podname string) ([]*types.Node, error) {
+func (c *calcium) ListPodNodes(podname string) ([]*types.Node, error) {
 	return c.store.GetNodesByPod(podname)
 }
 
-func (c *Calcium) GetContainer(id string) (*types.Container, error) {
+func (c *calcium) GetContainer(id string) (*types.Container, error) {
 	return c.store.GetContainer(id)
 }
 
-func (c *Calcium) GetContainers(ids []string) ([]*types.Container, error) {
+func (c *calcium) GetContainers(ids []string) ([]*types.Container, error) {
 	return c.store.GetContainers(ids)
 }

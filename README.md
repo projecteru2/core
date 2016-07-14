@@ -31,10 +31,6 @@ agent_port: "12345"
 permdir: "/mnt/mfs/permdirs"
 etcd:
     - "http://127.0.0.1:2379"
-etcd_lock_key: "erucore"
-etcd_lock_ttl: 10
-scheduler: "complex"
-
 git:
     public_key: "[path_to_pub_key]"
     private_key: "[path_to_pri_key]"
@@ -44,6 +40,10 @@ docker:
     network_mode: "bridge"
     cert_path: "[cert_file_dir]"
     hub: "hub.ricebook.net"
+scheduler:
+    etcd_lock_key: "erucore"
+    etcd_lock_ttl: 10
+    type: "complex"
 ```
 
 * start eru core
