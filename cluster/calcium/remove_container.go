@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -54,6 +55,17 @@ func (c *calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMess
 // remove one container
 // 5 seconds timeout
 func (c *calcium) removeOneContainer(container *types.Container) error {
+	// use etcd lock to prevent a container being removed many times
+	// only the first to remove can be done
+	lock, err := c.store.CreateLock(fmt.Sprintf("rmcontainer_%s", container.ID), 120)
+	if err != nil {
+		return err
+	}
+	if err := lock.Lock(); err != nil {
+		return err
+	}
+	defer lock.Unlock()
+
 	info, err := container.Inspect()
 	if err != nil {
 		return err

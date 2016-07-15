@@ -2,9 +2,11 @@ package etcdstore
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/coreos/etcd/client"
 	"gitlab.ricebook.net/platform/core/lock"
+	"gitlab.ricebook.net/platform/core/lock/etcdlock"
 	"gitlab.ricebook.net/platform/core/types"
 )
 
@@ -36,8 +38,9 @@ func New(config types.Config) (*krypton, error) {
 	return &krypton{etcd: etcd, config: config}, nil
 }
 
-func (k *krypton) createEtcdLock(key string, ttl int) (*lock.Mutex, error) {
-	mutex := lock.NewMutex(k.etcd, key, ttl)
+func (k *krypton) CreateLock(key string, ttl int) (lock.DistributedLock, error) {
+	lockKey := filepath.Join(k.config.EtcdLockPrefix, key)
+	mutex := etcdlock.New(k.etcd, lockKey, ttl)
 	if mutex == nil {
 		return nil, fmt.Errorf("Error creating mutex %q %q", key, ttl)
 	}

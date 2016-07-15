@@ -158,8 +158,7 @@ func (k *krypton) UpdateNode(node *types.Node) error {
 // update cpu on a node, either add or substract
 // need to lock
 func (k *krypton) UpdateNodeCPU(podname, nodename string, cpu types.CPUMap, action string) error {
-	key := fmt.Sprintf("/eru-core/_lock/%s_%s", podname, nodename)
-	lock, err := k.createEtcdLock(key, 30)
+	lock, err := k.CreateLock(fmt.Sprintf("%s_%s", podname, nodename), 30)
 	if err != nil {
 		return err
 	}
@@ -175,7 +174,7 @@ func (k *krypton) UpdateNodeCPU(podname, nodename string, cpu types.CPUMap, acti
 		return err
 	}
 	if resp.Node.Dir {
-		return fmt.Errorf("Node storage path %q in etcd is a directory", key)
+		return fmt.Errorf("Node storage path %q in etcd is a directory", nodeKey)
 	}
 
 	node := &types.Node{}

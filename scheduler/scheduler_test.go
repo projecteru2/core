@@ -11,14 +11,15 @@ import (
 func TestSchedulerInvoke(t *testing.T) {
 	// scheduler := complexscheduler.New()
 	coreCfg := types.Config{
-		EtcdMachines: []string{"http://127.0.0.1:2379"},
+		EtcdMachines:   []string{"http://127.0.0.1:2379"},
+		EtcdLockPrefix: "/eru-core/_lock",
 		Scheduler: types.SchedConfig{
-			EtcdLockKey: "/coretest",
-			EtcdLockTTL: 1,
-			Type:        "complex",
+			LockKey: "/coretest",
+			LockTTL: 1,
+			Type:    "complex",
 		},
 	}
-	scheduler, _ := complexscheduler.NewPotassim(coreCfg)
+	scheduler, _ := complexscheduler.New(coreCfg)
 
 	nodes := map[string]types.CPUMap{
 		"node1": types.CPUMap{

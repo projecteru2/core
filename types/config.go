@@ -1,10 +1,11 @@
 package types
 
 type Config struct {
-	Bind         string   `yaml:"bind"`
-	AgentPort    string   `yaml:"agent_port"`
-	PermDir      string   `yaml:"permdir"`
-	EtcdMachines []string `yaml:"etcd"`
+	Bind           string   `yaml:"bind"`             // HTTP API address
+	AgentPort      string   `yaml:"agent_port"`       // Agent HTTP port, may not be used
+	PermDir        string   `yaml:"permdir"`          // Permanent dir on host
+	EtcdMachines   []string `yaml:"etcd"`             // etcd cluster addresses
+	EtcdLockPrefix string   `yaml:"etcd_lock_prefix"` // etcd lock prefix, all locks will be created under this dir
 
 	Git       GitConfig    `yaml:"git"`
 	Docker    DockerConfig `yaml:"docker"`
@@ -12,21 +13,21 @@ type Config struct {
 }
 
 type GitConfig struct {
-	PublicKey   string `yaml:"public_key"`
-	PrivateKey  string `yaml:"private_key"`
-	GitlabToken string `yaml:"gitlab_token"`
+	PublicKey   string `yaml:"public_key"`   // public key to clone code
+	PrivateKey  string `yaml:"private_key"`  // private key to clone code
+	GitlabToken string `yaml:"gitlab_token"` // GitLab token to call GitLab API
 }
 
 type DockerConfig struct {
-	APIVersion  string `yaml:"version"`
-	LogDriver   string `yaml:"log_driver"`
-	NetworkMode string `yaml:"network_mode"`
-	CertPath    string `yaml:"cert_path"`
-	Hub         string `yaml:"hub"`
+	APIVersion  string `yaml:"version"`      // docker API version
+	LogDriver   string `yaml:"log_driver"`   // docker log driver, can be "json-file", "none"
+	NetworkMode string `yaml:"network_mode"` // docker network mode
+	CertPath    string `yaml:"cert_path"`    // docker cert files path
+	Hub         string `yaml:"hub"`          // docker hub address
 }
 
 type SchedConfig struct {
-	EtcdLockKey string `yaml:"etcd_lock_key"` // key for etcd lock
-	EtcdLockTTL int    `yaml:"etcd_lock_ttl"` // TTL for etcd lock
-	Type        string `yaml:"type"`          // choose simple or complex scheduler
+	LockKey string `yaml:"lock_key"` // key for etcd lock
+	LockTTL int    `yaml:"lock_ttl"` // TTL for etcd lock
+	Type    string `yaml:"type"`     // choose simple or complex scheduler
 }

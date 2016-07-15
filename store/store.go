@@ -1,6 +1,9 @@
 package store
 
-import "gitlab.ricebook.net/platform/core/types"
+import (
+	"gitlab.ricebook.net/platform/core/lock"
+	"gitlab.ricebook.net/platform/core/types"
+)
 
 type Store interface {
 	// pod
@@ -21,4 +24,7 @@ type Store interface {
 	GetContainer(id string) (*types.Container, error)
 	GetContainers(ids []string) ([]*types.Container, error)
 	RemoveContainer(id string) error
+
+	// distributed lock
+	CreateLock(key string, ttl int) (lock.DistributedLock, error)
 }

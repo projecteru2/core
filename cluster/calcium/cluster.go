@@ -2,7 +2,6 @@ package calcium
 
 import (
 	"fmt"
-	"sync"
 
 	"gitlab.ricebook.net/platform/core/network"
 	"gitlab.ricebook.net/platform/core/network/calico"
@@ -17,7 +16,6 @@ import (
 )
 
 type calcium struct {
-	sync.Mutex
 	store     store.Store
 	config    types.Config
 	scheduler scheduler.Scheduler
@@ -35,7 +33,7 @@ func New(config types.Config) (*calcium, error) {
 	if config.Scheduler.Type == "simple" {
 		scheduler = simplescheduler.New()
 	} else if config.Scheduler.Type == "complex" {
-		scheduler, err = complexscheduler.NewPotassim(config)
+		scheduler, err = complexscheduler.New(config)
 		if err != nil {
 			return nil, err
 		}

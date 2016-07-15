@@ -2,17 +2,19 @@ package complexscheduler
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/coreos/etcd/client"
 	"gitlab.ricebook.net/platform/core/lock"
+	"gitlab.ricebook.net/platform/core/lock/etcdlock"
 	"gitlab.ricebook.net/platform/core/types"
 )
 
 type potassium struct {
-	*lock.Mutex
+	lock.DistributedLock
 }
 
-func NewPotassim(config types.Config) (*potassium, error) {
+func New(config types.Config) (*potassium, error) {
 	if len(config.EtcdMachines) == 0 {
 		return nil, fmt.Errorf("ETCD must be set")
 	}
@@ -22,7 +24,8 @@ func NewPotassim(config types.Config) (*potassium, error) {
 		return nil, err
 	}
 
-	mu := lock.NewMutex(client.NewKeysAPI(cli), config.Scheduler.EtcdLockKey, config.Scheduler.EtcdLockTTL)
+	lockKey := filepath.Join(config.EtcdLockPrefix, config.Scheduler.LockKey)
+	mu := etcdlock.New(client.NewKeysAPI(cli), lockKey, config.Scheduler.LockTTL)
 	if mu == nil {
 		return nil, fmt.Errorf("cannot init mutex")
 	}

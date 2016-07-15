@@ -2,8 +2,23 @@ package mockstore
 
 import (
 	"github.com/stretchr/testify/mock"
+	"gitlab.ricebook.net/platform/core/lock"
 	"gitlab.ricebook.net/platform/core/types"
 )
+
+type MockLock struct {
+	mock.Mock
+}
+
+func (m *MockLock) Lock() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func (m *MockLock) Unlock() error {
+	args := m.Called()
+	return args.Error(0)
+}
 
 type MockStore struct {
 	mock.Mock
@@ -90,4 +105,12 @@ func (m *MockStore) AddContainer(id, podname, nodename, name string, cpu types.C
 func (m *MockStore) RemoveContainer(id string) error {
 	args := m.Called(id)
 	return args.Error(0)
+}
+
+func (m *MockStore) CreateLock(key string, ttl int) (lock.DistributedLock, error) {
+	args := m.Called(key, ttl)
+	if args.Get(0) != nil {
+		return args.Get(0).(*MockLock), args.Error(1)
+	}
+	return nil, args.Error(1)
 }

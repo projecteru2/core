@@ -74,12 +74,17 @@ func makeCPUMap(nodes []*types.Node) map[string]types.CPUMap {
 // Prepare nodes for deployment.
 // Later if any error occurs, these nodes can be restored.
 func (c *calcium) prepareNodes(podname string, quota float64, num int) (map[string][]types.CPUMap, error) {
-	// TODO use distributed lock on podname instead
-	c.Lock()
-	defer c.Unlock()
-
 	result := make(map[string][]types.CPUMap)
-	changed := make(map[string]types.CPUMap)
+
+	// use podname as lock key to prevent scheduling on the same node at one time
+	lock, err := c.store.CreateLock(podname, 30)
+	if err != nil {
+		return result, err
+	}
+	if err := lock.Lock(); err != nil {
+		return result, err
+	}
+	defer lock.Unlock()
 
 	nodes, err := c.ListPodNodes(podname)
 	if err != nil {
@@ -87,14 +92,14 @@ func (c *calcium) prepareNodes(podname string, quota float64, num int) (map[stri
 	}
 
 	// if public, use only public nodes
-	if quota == 0.0 { // 因为要考虑quota=0.5这种需求，所以这里有点麻烦
+	if quota == 0 { // 因为要考虑quota=0.5这种需求，所以这里有点麻烦
 		nodes = filterNodes(nodes, true)
 	} else {
 		nodes = filterNodes(nodes, false)
 	}
 
 	cpumap := makeCPUMap(nodes)
-	result, changed, err = c.scheduler.SelectNodes(cpumap, quota, num) // 这个接口统一使用float64了
+	result, changed, err := c.scheduler.SelectNodes(cpumap, quota, num) // 这个接口统一使用float64了
 	if err != nil {
 		return result, err
 	}
