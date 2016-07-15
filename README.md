@@ -26,24 +26,28 @@ $ make python
 * create `core.yaml` like this
 
 ```
-bind: ":5000"
-agent_port: "12345"
-permdir: "/mnt/mfs/permdirs"
-etcd:
+bind: ":5000" # gRPC server 监听地址
+agent_port: "12345" # agent 的 HTTP API 端口, 暂时没有用到
+permdir: "/mnt/mfs/permdirs" # 宿主机的 permdir 的路径
+etcd: # etcd 集群的地址
     - "http://127.0.0.1:2379"
+etcd_lock_prefix: "/eru-core/_lock" # etcd 分布式锁的前缀, 一般会用隐藏文件夹
+
 git:
-    public_key: "[path_to_pub_key]"
-    private_key: "[path_to_pri_key]"
+    public_key: "[path_to_pub_key]" # git clone 使用的公钥
+    private_key: "[path_to_pri_key]" # git clone 使用的私钥
+    gitlab_token: "[token]" # gitlab API token
 
 docker:
-    log_driver: "json-file"
-    network_mode: "bridge"
-    cert_path: "[cert_file_dir]"
-    hub: "hub.ricebook.net"
+    log_driver: "json-file" # 日志驱动, 线上会需要用 none
+    network_mode: "bridge" # 默认网络模式, 用 bridge
+    cert_path: "[cert_file_dir]" # docker tls 证书目录
+    hub: "hub.ricebook.net" # docker hub 地址
+
 scheduler:
-    etcd_lock_key: "erucore"
-    etcd_lock_ttl: 10
-    type: "complex"
+    lock_key: "_scheduler_lock" # scheduler 用的锁的 key, 会在 etcd_lock_prefix 里面
+    lock_ttl: 10 # scheduler 超时时间
+    type: "complex" # scheduler 类型, complex 或者 simple
 ```
 
 * start eru core
