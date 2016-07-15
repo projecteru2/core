@@ -3,7 +3,7 @@ Core
 
 ## setup dev environment
 
-```
+```shell
 $ git config --global url."git@gitlab.ricebook.net:".insteadOf "https://gitlab.ricebook.net/"
 $ go get gitlab.ricebook.net/platform/core.git
 $ mv $GOPATH/src/gitlab.ricebook.net/platform/core.git $GOPATH/src/gitlab.ricebook.net/platform/core
@@ -16,7 +16,7 @@ $ make deps
 
 Generate golang & python code
 
-```
+```shell
 $ make golang
 $ make python
 ```
@@ -25,7 +25,7 @@ $ make python
 
 * create `core.yaml` like this
 
-```
+```yaml
 bind: ":5000" # gRPC server 监听地址
 agent_port: "12345" # agent 的 HTTP API 端口, 暂时没有用到
 permdir: "/mnt/mfs/permdirs" # 宿主机的 permdir 的路径
@@ -52,13 +52,13 @@ scheduler:
 
 * start eru core
 
-```
+```shell
 $ core --config /path/to/core.yaml --log-level debug
 ```
 
 or
 
-```
+```shell
 $ export ERU_CONFIG_PATH=/path/to/core.yaml
 $ export ERU_LOG_LEVEL=DEBUG
 $ core
