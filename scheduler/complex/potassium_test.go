@@ -31,7 +31,7 @@ func TestSelectNodes(t *testing.T) {
 		t.Fatalf("cannot create Potassim instance.", merr)
 	}
 
-	_, err := k.SelectNodes(map[string]types.CPUMap{}, 1, 1)
+	_, _, err := k.SelectNodes(map[string]types.CPUMap{}, 1, 1)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "No nodes provide to choose some")
 
@@ -46,20 +46,21 @@ func TestSelectNodes(t *testing.T) {
 		},
 	}
 
-	_, err = k.SelectNodes(nodes, 2, 3)
+	_, _, err = k.SelectNodes(nodes, 2, 3)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")
 
-	_, err = k.SelectNodes(nodes, 3, 2)
+	_, _, err = k.SelectNodes(nodes, 3, 2)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")
 
-	_, err = k.SelectNodes(nodes, 1, 5)
+	_, _, err = k.SelectNodes(nodes, 1, 5)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")
 
-	r, err := k.SelectNodes(nodes, 1, 2)
+	r, re, err := k.SelectNodes(nodes, 1, 2)
 	assert.NoError(t, err)
+	assert.Equal(t, 1, len(re))
 
 	for nodename, cpus := range r {
 		assert.Contains(t, []string{"node1", "node2"}, nodename)
@@ -69,7 +70,7 @@ func TestSelectNodes(t *testing.T) {
 		assert.Equal(t, cpu.Total(), 10)
 	}
 
-	r, err = k.SelectNodes(nodes, 1.3, 1)
+	r, re, err = k.SelectNodes(nodes, 1.3, 1)
 	assert.NoError(t, err)
 
 	for nodename, cpus := range r {
@@ -152,28 +153,31 @@ func TestComplexNodes(t *testing.T) {
 	k, _ = NewPotassim(coreCfg)
 
 	// test1
-	res1, err := k.SelectNodes(nodes, 1.7, 7)
+	res1, rem1, err := k.SelectNodes(nodes, 1.7, 7)
 	if err != nil {
 		t.Fatalf("sth wrong")
 	}
 	if check := checkAvgPlan(res1, 1, 2, "res1"); check != nil {
 		t.Fatalf("something went wrong")
 	}
+	assert.Equal(t, len(rem1), 1)
 
 	// test2
-	res2, err := k.SelectNodes(nodes, 1.7, 11)
+	res2, rem2, err := k.SelectNodes(nodes, 1.7, 11)
 	if check := checkAvgPlan(res2, 1, 4, "res2"); check != nil {
 		t.Fatalf("something went wrong")
 	}
+	assert.Equal(t, len(rem2), 1)
 
 	// test3
-	res3, err := k.SelectNodes(nodes, 1.7, 23)
+	res3, rem3, err := k.SelectNodes(nodes, 1.7, 23)
 	if check := checkAvgPlan(res3, 2, 6, "res3"); check != nil {
 		t.Fatalf("something went wrong")
 	}
+	assert.Equal(t, len(rem3), 0)
 
 	// test4
-	_, newErr := k.SelectNodes(nodes, 1.6, 29)
+	_, _, newErr := k.SelectNodes(nodes, 1.6, 29)
 	if newErr == nil {
 		t.Fatalf("how to alloc 29 containers when you only have 28?")
 	}

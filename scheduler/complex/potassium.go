@@ -51,21 +51,29 @@ func (m *potassium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
 	return nodename, nil
 }
 
-func (m *potassium) SelectNodes(nodes map[string]types.CPUMap, quota float64, num int) (map[string][]types.CPUMap, error) {
+func (m *potassium) SelectNodes(nodes map[string]types.CPUMap, quota float64, num int) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
 	m.Lock()
 	defer m.Unlock()
 
 	result := make(map[string][]types.CPUMap)
+	remain := make(map[string]types.CPUMap)
+
 	if len(nodes) == 0 {
-		return result, fmt.Errorf("No nodes provide to choose some")
+		return result, nil, fmt.Errorf("No nodes provide to choose some")
 	}
 
 	// all core could be shared
 	// suppose each core has 10 coreShare
 	// TODO: change it to be control by parameters
-	result = AveragePlan(quota, nodes, num, -1, 10)
+	result = averagePlan(quota, nodes, num, -1, 10)
 	if result == nil {
-		return nil, fmt.Errorf("Not enough resource")
+		return nil, nil, fmt.Errorf("Not enough resource")
 	}
-	return result, nil
+
+	for node, cpumap := range nodes {
+		if _, ok := result[node]; !ok {
+			remain[node] = cpumap
+		}
+	}
+	return result, remain, nil
 }

@@ -78,11 +78,12 @@ func (c *calcium) prepareNodes(podname string, quota float64, num int) (map[stri
 	c.Lock()
 	defer c.Unlock()
 
-	r := make(map[string][]types.CPUMap)
+	result := make(map[string][]types.CPUMap)
+	remain := make(map[string]types.CPUMap)
 
 	nodes, err := c.ListPodNodes(podname)
 	if err != nil {
-		return r, err
+		return result, err
 	}
 
 	// if public, use only public nodes
@@ -93,9 +94,9 @@ func (c *calcium) prepareNodes(podname string, quota float64, num int) (map[stri
 	}
 
 	cpumap := makeCPUMap(nodes)
-	r, err = c.scheduler.SelectNodes(cpumap, quota, num) // 这个接口统一使用float64了
+	result, remain, err = c.scheduler.SelectNodes(cpumap, quota, num) // 这个接口统一使用float64了
 	if err != nil {
-		return r, err
+		return result, err
 	}
 
 	// if quota is set to 0
@@ -105,13 +106,13 @@ func (c *calcium) prepareNodes(podname string, quota float64, num int) (map[stri
 		// update data to etcd
 		// `SelectNodes` reduces count in cpumap
 		for _, node := range nodes {
-			node.CPU = cpumap[node.Name]
+			node.CPU = remain[node.Name]
 			// ignore error
 			c.store.UpdateNode(node)
 		}
 	}
 
-	return r, err
+	return result, err
 }
 
 // filter nodes
