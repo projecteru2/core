@@ -14,6 +14,7 @@ type Store interface {
 	GetNodesByPod(podname string) ([]*types.Node, error)
 	GetAllNodes() ([]*types.Node, error)
 	UpdateNode(*types.Node) error
+	UpdateNodeCPU(podname, nodename string, cpu types.CPUMap, action string) error
 
 	// container
 	AddContainer(id, podname, nodename, name string, cpu types.CPUMap) (*types.Container, error)

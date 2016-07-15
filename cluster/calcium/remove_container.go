@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/engine-api/types"
 	"gitlab.ricebook.net/platform/core/types"
 	"golang.org/x/net/context"
@@ -91,9 +92,9 @@ func (c *calcium) removeOneContainer(container *types.Container) error {
 
 	// if total cpu of container > 0, then we need to release these core resource
 	// but if it's 0, just ignore to save 1 time write on etcd.
+	log.WithFields(log.Fields{"nodename": node.Name, "cpumap": container.CPU}).Debugln("Restore node CPU:")
 	if container.CPU.Total() > 0 {
-		node.CPU.Add(container.CPU)
-		if err := c.store.UpdateNode(node); err != nil {
+		if err := c.store.UpdateNodeCPU(node.Podname, node.Name, container.CPU, "+"); err != nil {
 			return err
 		}
 	}

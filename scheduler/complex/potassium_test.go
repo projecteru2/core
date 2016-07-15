@@ -153,28 +153,28 @@ func TestComplexNodes(t *testing.T) {
 	k, _ = NewPotassim(coreCfg)
 
 	// test1
-	res1, rem1, err := k.SelectNodes(nodes, 1.7, 7)
+	res1, changed1, err := k.SelectNodes(nodes, 1.7, 7)
 	if err != nil {
 		t.Fatalf("sth wrong")
 	}
 	if check := checkAvgPlan(res1, 1, 2, "res1"); check != nil {
 		t.Fatalf("something went wrong")
 	}
-	assert.Equal(t, len(rem1), 1)
+	assert.Equal(t, len(changed1), 4)
 
 	// test2
 	res2, rem2, err := k.SelectNodes(nodes, 1.7, 11)
 	if check := checkAvgPlan(res2, 1, 4, "res2"); check != nil {
 		t.Fatalf("something went wrong")
 	}
-	assert.Equal(t, len(rem2), 1)
+	assert.Equal(t, len(rem2), 4)
 
 	// test3
 	res3, rem3, err := k.SelectNodes(nodes, 1.7, 23)
 	if check := checkAvgPlan(res3, 2, 6, "res3"); check != nil {
 		t.Fatalf("something went wrong")
 	}
-	assert.Equal(t, len(rem3), 0)
+	assert.Equal(t, len(rem3), 5)
 
 	// test4
 	_, _, newErr := k.SelectNodes(nodes, 1.6, 29)

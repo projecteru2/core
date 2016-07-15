@@ -56,7 +56,7 @@ func (m *potassium) SelectNodes(nodes map[string]types.CPUMap, quota float64, nu
 	defer m.Unlock()
 
 	result := make(map[string][]types.CPUMap)
-	remain := make(map[string]types.CPUMap)
+	changed := make(map[string]types.CPUMap)
 
 	if len(nodes) == 0 {
 		return result, nil, fmt.Errorf("No nodes provide to choose some")
@@ -70,10 +70,16 @@ func (m *potassium) SelectNodes(nodes map[string]types.CPUMap, quota float64, nu
 		return nil, nil, fmt.Errorf("Not enough resource")
 	}
 
-	for node, cpumap := range nodes {
-		if _, ok := result[node]; !ok {
-			remain[node] = cpumap
+	// 只返回有修改的就可以了, 返回有修改的还剩下多少
+	for nodename, cpuList := range result {
+		node, ok := nodes[nodename]
+		if !ok {
+			continue
 		}
+		for _, cpu := range cpuList {
+			node.Sub(cpu)
+		}
+		changed[nodename] = node
 	}
-	return result, remain, nil
+	return result, changed, nil
 }

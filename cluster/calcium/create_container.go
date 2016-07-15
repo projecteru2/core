@@ -79,7 +79,7 @@ func (c *calcium) prepareNodes(podname string, quota float64, num int) (map[stri
 	defer c.Unlock()
 
 	result := make(map[string][]types.CPUMap)
-	remain := make(map[string]types.CPUMap)
+	changed := make(map[string]types.CPUMap)
 
 	nodes, err := c.ListPodNodes(podname)
 	if err != nil {
@@ -94,7 +94,7 @@ func (c *calcium) prepareNodes(podname string, quota float64, num int) (map[stri
 	}
 
 	cpumap := makeCPUMap(nodes)
-	result, remain, err = c.scheduler.SelectNodes(cpumap, quota, num) // 这个接口统一使用float64了
+	result, changed, err = c.scheduler.SelectNodes(cpumap, quota, num) // 这个接口统一使用float64了
 	if err != nil {
 		return result, err
 	}
@@ -102,13 +102,18 @@ func (c *calcium) prepareNodes(podname string, quota float64, num int) (map[stri
 	// if quota is set to 0
 	// then no cpu is required
 	if quota > 0 {
-		// cpus remained
+		// cpus changeded
 		// update data to etcd
 		// `SelectNodes` reduces count in cpumap
+		log.WithFields(log.Fields{"changed": changed}).Debugln("Changed nodes are:")
 		for _, node := range nodes {
-			node.CPU = remain[node.Name]
-			// ignore error
-			c.store.UpdateNode(node)
+			r, ok := changed[node.Name]
+			// 不在changed里说明没有变化
+			if ok {
+				node.CPU = r
+				// ignore error
+				c.store.UpdateNode(node)
+			}
 		}
 	}
 
@@ -254,8 +259,7 @@ func (c *calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
 	if quota.Total() == 0 {
 		return
 	}
-	node.CPU.Add(quota)
-	c.store.UpdateNode(node)
+	c.store.UpdateNodeCPU(node.Podname, node.Name, quota, "+")
 }
 
 func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, opts *types.DeployOptions) (

@@ -61,6 +61,11 @@ func (m *MockStore) UpdateNode(node *types.Node) error {
 	return args.Error(0)
 }
 
+func (m *MockStore) UpdateNodeCPU(podname, nodename string, cpu types.CPUMap, action string) error {
+	args := m.Called(podname, nodename, cpu, action)
+	return args.Error(0)
+}
+
 func (m *MockStore) GetContainer(id string) (*types.Container, error) {
 	args := m.Called(id)
 	if args.Get(0) != nil {

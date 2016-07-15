@@ -102,7 +102,7 @@ func (self *host) calcuatePiecesCores(full int, fragment int, maxShareCore int) 
 	}
 }
 
-func (self *host) GetContainerCores(num float64, maxShareCore int) []types.CPUMap {
+func (self *host) getContainerCores(num float64, maxShareCore int) []types.CPUMap {
 	num = num * float64(self.share)
 
 	var full, fragment int
@@ -217,7 +217,7 @@ func averagePlan(cpu float64, nodes map[string]types.CPUMap, need, maxShareCore,
 
 	for node, cpuInfo := range nodes {
 		host = newHost(cpuInfo, coreShare)
-		plan = host.GetContainerCores(cpu, maxShareCore)
+		plan = host.getContainerCores(cpu, maxShareCore)
 		n = len(plan) // 每个node可以放的容器数
 		nodeinfo = append(nodeinfo, NodeInfo{node, n})
 		nodecontainer[node] = plan

@@ -39,14 +39,13 @@ func (m *magnesium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
 
 // Select nodes for deploying.
 // Use round robin method to select, in order to make scheduler average.
-// TODO Outside this method, caller should update corresponding nodes with `nodes` as their CPU, which is weird
 func (m *magnesium) SelectNodes(nodes map[string]types.CPUMap, quota float64, num int) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
 	m.Lock()
 	defer m.Unlock()
 
 	q := int(quota) // 为了和complexscheduler的接口保持一致，quota改为float64
 	result := make(map[string][]types.CPUMap)
-	remain := make(map[string]types.CPUMap)
+	changed := make(map[string]types.CPUMap)
 	if len(nodes) == 0 {
 		return result, nil, fmt.Errorf("No nodes provide to choose some")
 	}
@@ -72,12 +71,13 @@ done:
 		}
 	}
 
+	// 只把有修改的返回回去就可以了, 返回还剩下多少
 	for nodename, cpumap := range nodes {
-		if _, ok := result[nodename]; !ok {
-			remain[nodename] = cpumap
+		if _, ok := result[nodename]; ok {
+			changed[nodename] = cpumap
 		}
 	}
-	return result, remain, nil
+	return result, changed, nil
 }
 
 // count result length

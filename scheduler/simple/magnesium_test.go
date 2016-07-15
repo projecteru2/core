@@ -69,9 +69,9 @@ func TestSelectNodes(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")
 
-	r, re, err := m.SelectNodes(nodes, 1, 2)
+	r, changed, err := m.SelectNodes(nodes, 1, 2)
 	assert.NoError(t, err)
-	assert.Equal(t, len(re), 0)
+	assert.Equal(t, len(changed), 2)
 	for nodename, cpus := range r {
 		assert.Contains(t, []string{"node1", "node2"}, nodename)
 		assert.Equal(t, len(cpus), 1)
@@ -150,10 +150,10 @@ func TestSelectPublicNodes(t *testing.T) {
 		},
 	}
 
-	r, re, err := m.SelectNodes(nodes, 0, 10)
+	r, changed, err := m.SelectNodes(nodes, 0, 10)
 	assert.NoError(t, err)
 	assert.Equal(t, resultLength(r), 10)
-	assert.Equal(t, len(re), 0)
+	assert.Equal(t, len(changed), 2)
 	for nodename, cpus := range r {
 		assert.Contains(t, []string{"node1", "node2"}, nodename)
 		for _, cpu := range cpus {

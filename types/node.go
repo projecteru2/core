@@ -29,6 +29,14 @@ func (c CPUMap) Add(q CPUMap) {
 	}
 }
 
+func (c CPUMap) Sub(q CPUMap) {
+	for label, value := range q {
+		if _, ok := c[label]; ok {
+			c[label] -= value
+		}
+	}
+}
+
 type Node struct {
 	sync.Mutex
 

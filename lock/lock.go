@@ -66,7 +66,7 @@ func (m *Mutex) Lock() (err error) {
 		log.Debugf("%s Lock node %v ERROR %v", m.id, m.key, err)
 
 		if try < defaultTry {
-			log.Debugf("%s Try to lock node %v again ERROR, %v", m.id, m.key, err)
+			log.Errorf("%s Try to lock node %v again error, %v", m.id, m.key, err)
 		}
 	}
 	return err
@@ -79,28 +79,23 @@ func (m *Mutex) lock() (err error) {
 		TTL:       m.ttl,
 	}
 	for {
-		resp, err := m.kapi.Set(context.TODO(), m.key, m.id, setOptions)
-		if err == nil {
-			log.Debugf("%s Create node %v OK [%q]", m.id, m.key, resp)
+		if _, err := m.kapi.Set(context.TODO(), m.key, m.id, setOptions); err == nil {
+			// lock done
+			log.Debugf("%q Create node %q OK", m.id, m.key)
 			return nil
 		}
 
-		log.Debugf("%s Create node %v failed [%v]", m.id, m.key, err)
-		e, ok := err.(client.Error)
-		if !ok {
-			return err
-		}
-
-		if e.Code != client.ErrorCodeNodeExist {
+		log.Debugf("%q Create node %q failed [%v]", m.id, m.key, err)
+		if e, ok := err.(client.Error); !ok || e.Code != client.ErrorCodeNodeExist {
 			return err
 		}
 
 		// Get the already node's value.
-		resp, err = m.kapi.Get(context.TODO(), m.key, nil)
+		resp, err := m.kapi.Get(context.TODO(), m.key, nil)
 		if err != nil {
 			return err
 		}
-		log.Debugf("%s, Get node %v OK", m.id, m.key)
+
 		watcherOptions := &client.WatcherOptions{
 			AfterIndex: resp.Index,
 			Recursive:  false,
@@ -108,7 +103,7 @@ func (m *Mutex) lock() (err error) {
 		watcher := m.kapi.Watcher(m.key, watcherOptions)
 		for {
 			log.Debugf("%s Watch %v ...", m.id, m.key)
-			resp, err = watcher.Next(context.TODO())
+			resp, err := watcher.Next(context.TODO())
 			if err != nil {
 				return err
 			}

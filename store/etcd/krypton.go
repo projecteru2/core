@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/coreos/etcd/client"
+	"gitlab.ricebook.net/platform/core/lock"
 	"gitlab.ricebook.net/platform/core/types"
 )
 
@@ -33,4 +34,12 @@ func New(config types.Config) (*krypton, error) {
 
 	etcd := client.NewKeysAPI(cli)
 	return &krypton{etcd: etcd, config: config}, nil
+}
+
+func (k *krypton) createEtcdLock(key string, ttl int) (*lock.Mutex, error) {
+	mutex := lock.NewMutex(k.etcd, key, ttl)
+	if mutex == nil {
+		return nil, fmt.Errorf("Error creating mutex %q %q", key, ttl)
+	}
+	return mutex, nil
 }
