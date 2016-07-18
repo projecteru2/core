@@ -478,6 +478,20 @@ func (c *calcium) UpgradeContainer(ids []string, image string) (chan *types.Upgr
 	return ch, nil
 }
 
+// count user defined networks
+// if the name of the network is not "bridge" or "host"
+// we treat this as a user defined network
+func userDefineNetworks(networks map[string]*enginenetwork.EndpointSettings) map[string]*enginenetwork.EndpointSettings {
+	r := make(map[string]*enginenetwork.EndpointSettings)
+	for name, network := range networks {
+		if name == "bridge" || name == "host" {
+			continue
+		}
+		r[name] = network
+	}
+	return r
+}
+
 // upgrade containers on the same node
 func (c *calcium) doUpgradeContainer(containers []*types.Container, image string) []*types.UpgradeContainerMessage {
 	ms := make([]*types.UpgradeContainerMessage, len(containers))
@@ -540,12 +554,14 @@ func (c *calcium) doUpgradeContainer(containers []*types.Container, image string
 		// need to disconnect first
 		if c.network.Type() == "plugin" {
 			ctx := utils.ToDockerContext(engine)
+			networks := userDefineNetworks(info.NetworkSettings.Networks)
 			// remove new bridge
 			// only when user defined networks is given
-			if len(info.NetworkSettings.Networks) != 0 {
+			if len(networks) != 0 {
 				c.network.DisconnectFromNetwork(ctx, newContainer.ID, "bridge")
 			}
-			for _, endpoint := range info.NetworkSettings.Networks {
+			// connect to only user defined networks
+			for _, endpoint := range networks {
 				c.network.DisconnectFromNetwork(ctx, info.ID, endpoint.NetworkID)
 				c.network.ConnectToNetwork(ctx, newContainer.ID, endpoint.NetworkID, endpoint.IPAddress)
 			}
