@@ -202,8 +202,11 @@ func (c *calcium) doCreateContainer(nodename string, cpumap []types.CPUMap, spec
 			}
 
 			// remove bridge network
-			if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
-				log.Errorf("error when disconnecting container %q from network %q, %q", container.ID, "bridge", err.Error())
+			// only when user defined networks is given
+			if len(opts.Networks) != 0 {
+				if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
+					log.Errorf("error when disconnecting container %q from network %q, %q", container.ID, "bridge", err.Error())
+				}
 			}
 
 			// if any break occurs, then this container needs to be removed
@@ -538,7 +541,10 @@ func (c *calcium) doUpgradeContainer(containers []*types.Container, image string
 		if c.network.Type() == "plugin" {
 			ctx := utils.ToDockerContext(engine)
 			// remove new bridge
-			c.network.DisconnectFromNetwork(ctx, newContainer.ID, "bridge")
+			// only when user defined networks is given
+			if len(info.NetworkSettings.Networks) != 0 {
+				c.network.DisconnectFromNetwork(ctx, newContainer.ID, "bridge")
+			}
 			for _, endpoint := range info.NetworkSettings.Networks {
 				c.network.DisconnectFromNetwork(ctx, info.ID, endpoint.NetworkID)
 				c.network.ConnectToNetwork(ctx, newContainer.ID, endpoint.NetworkID, endpoint.IPAddress)
