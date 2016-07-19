@@ -3,8 +3,19 @@ package etcdstore
 import (
 	"encoding/json"
 	"fmt"
+	"net"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
+	"sync"
+	"time"
 
+	log "github.com/Sirupsen/logrus"
+	engineapi "github.com/docker/engine-api/client"
+	"github.com/docker/go-connections/tlsconfig"
 	"gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/utils"
 	"golang.org/x/net/context"
@@ -30,7 +41,7 @@ func (k *krypton) GetNode(podname, nodename string) (*types.Node, error) {
 		return nil, err
 	}
 
-	engine, err := utils.MakeDockerClient(node.Endpoint, k.config, false)
+	engine, err := k.makeDockerClient(podname, nodename, node.Endpoint, false)
 	if err != nil {
 		return nil, err
 	}
@@ -42,13 +53,34 @@ func (k *krypton) GetNode(podname, nodename string) (*types.Node, error) {
 // add a node
 // save it to etcd
 // storage path in etcd is `/eru-core/pod/:podname/node/:nodename/info`
-func (k *krypton) AddNode(name, endpoint, podname string, public bool) (*types.Node, error) {
+func (k *krypton) AddNode(name, endpoint, podname, cafile, certfile, keyfile string, public bool) (*types.Node, error) {
+	if !strings.HasPrefix(endpoint, "tcp://") {
+		return nil, fmt.Errorf("Endpoint must starts with tcp:// %q", endpoint)
+	}
+
 	_, err := k.GetPod(podname)
 	if err != nil {
 		return nil, err
 	}
 
-	engine, err := utils.MakeDockerClient(endpoint, k.config, false)
+	// 如果有tls的证书需要保存就保存一下
+	if cafile != "" && certfile != "" && keyfile != "" {
+		_, err = k.etcd.Set(context.Background(), fmt.Sprintf(nodeCaKey, podname, name), cafile, nil)
+		if err != nil {
+			return nil, err
+		}
+		_, err = k.etcd.Set(context.Background(), fmt.Sprintf(nodeCertKey, podname, name), certfile, nil)
+		if err != nil {
+			return nil, err
+		}
+		_, err = k.etcd.Set(context.Background(), fmt.Sprintf(nodeKeyKey, podname, name), keyfile, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// 尝试加载docker的客户端
+	engine, err := k.makeDockerClient(podname, name, endpoint, false)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +92,7 @@ func (k *krypton) AddNode(name, endpoint, podname string, public bool) (*types.N
 
 	cpumap := types.CPUMap{}
 	for i := 0; i < info.NCPU; i++ {
-		cpumap[strconv.Itoa(i)] = 1
+		cpumap[strconv.Itoa(i)] = 10
 	}
 
 	key := fmt.Sprintf(nodeInfoKey, podname, name)
@@ -198,5 +230,124 @@ func (k *krypton) UpdateNodeCPU(podname, nodename string, cpu types.CPUMap, acti
 		return err
 	}
 
+	return nil
+}
+
+// cache connections
+// otherwise they'll leak
+type cache struct {
+	sync.Mutex
+	clients map[string]*engineapi.Client
+}
+
+func (c cache) set(host string, client *engineapi.Client) {
+	c.Lock()
+	defer c.Unlock()
+
+	c.clients[host] = client
+}
+
+func (c cache) get(host string) *engineapi.Client {
+	c.Lock()
+	defer c.Unlock()
+	return c.clients[host]
+}
+
+var _cache = cache{clients: make(map[string]*engineapi.Client)}
+
+// use endpoint, cert files path, and api version to create docker client
+// we don't check whether this is connectable
+func makeRawClient(endpoint, certpath, apiversion string) (*engineapi.Client, error) {
+	var cli *http.Client
+	if certpath != "" {
+		options := tlsconfig.Options{
+			CAFile:             filepath.Join(certpath, "ca.pem"),
+			CertFile:           filepath.Join(certpath, "cert.pem"),
+			KeyFile:            filepath.Join(certpath, "key.pem"),
+			InsecureSkipVerify: false,
+		}
+		tlsc, err := tlsconfig.Client(options)
+		if err != nil {
+			return nil, err
+		}
+
+		cli = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: tlsc,
+			},
+		}
+	}
+
+	log.Debugf("Create new http.Client for %q, %q, %q", endpoint, certpath, apiversion)
+	return engineapi.NewClient(endpoint, apiversion, cli, nil)
+}
+
+func (k *krypton) makeDockerClient(podname, nodename, endpoint string, force bool) (*engineapi.Client, error) {
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	host, _, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	// try get client, if nil, create a new one
+	client := _cache.get(host)
+	if client == nil || force {
+		dockerCertPath := ""
+		// 如果设置了cert path说明需要用tls来连接
+		// 那么先检查有没有这些证书, 没有的话要从etcd里dump到本地
+		if k.config.Docker.CertPath != "" {
+			dockerCertPath = filepath.Join(k.config.Docker.CertPath, host)
+			_, err = os.Stat(dockerCertPath)
+			// 没有证书, 从etcd里dump
+			if os.IsNotExist(err) {
+				if err := k.dumpFromEtcd(podname, nodename, dockerCertPath); err != nil {
+					return nil, err
+				}
+			}
+		}
+
+		client, err = makeRawClient(endpoint, dockerCertPath, k.config.Docker.APIVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		_cache.set(host, client)
+	}
+
+	// timeout in 5 seconds
+	// timeout means node is not available
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	_, err = client.Info(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
+// dump certificated files from etcd to local file system
+func (k *krypton) dumpFromEtcd(podname, nodename, certprefix string) error {
+	// create necessary directory
+	if err := os.MkdirAll(certprefix, 0755); err != nil {
+		return err
+	}
+
+	// create files
+	filenames := []string{"ca.pem", "cert.pem", "key.pem"}
+	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
+	for i := 0; i < 3; i++ {
+		resp, err := k.etcd.Get(context.Background(), fmt.Sprintf(keyFormats[i], podname, nodename), nil)
+		if err != nil {
+			return err
+		}
+		if err := utils.SaveFile(resp.Node.Value, filepath.Join(certprefix, filenames[i]), 0444); err != nil {
+			return err
+		}
+	}
+	log.Debugf("Dump ca.pem, cert.pem, key.pem from etcd for %q %q to %q", podname, nodename, certprefix)
 	return nil
 }

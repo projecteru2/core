@@ -15,6 +15,9 @@ var (
 	podInfoKey       = "/eru-core/pod/%s/info"
 	podNodesKey      = "/eru-core/pod/%s/node"
 	nodeInfoKey      = "/eru-core/pod/%s/node/%s/info"
+	nodeCaKey        = "/eru-core/pod/%s/node/%s/ca.pem"
+	nodeCertKey      = "/eru-core/pod/%s/node/%s/cert.pem"
+	nodeKeyKey       = "/eru-core/pod/%s/node/%s/key.pem"
 	nodeContainerKey = "/eru-core/pod/%s/node/%s/containers"
 	containerInfoKey = "/eru-core/container/%s"
 )

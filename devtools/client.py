@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
 import click
 from grpc.beta import implementations
 from grpc.framework.interfaces.face.face import AbortionError
@@ -115,13 +116,32 @@ def get_node(ctx, podname, nodename):
 @click.argument('nodename')
 @click.argument('endpoint')
 @click.argument('podname')
+@click.option('--certs', '-c', default='')
 @click.option('--public', '-p', is_flag=True)
 @click.pass_context
-def add_node(ctx, nodename, endpoint, podname, public):
+def add_node(ctx, nodename, endpoint, podname, certs, public):
     stub = _get_stub(ctx)
+    
+    cafile, certfile, keyfile = '', '', ''
+    if certs:
+        certs = os.path.abspath(certs)
+        if not os.path.exists(certs):
+            click.echo(click.style('certs %s is given and no exists' % certs, fg='red', bold=True))
+            ctx.exit(-1)
+
+        with open(os.path.join(certs, 'ca.pem')) as ca, \
+             open(os.path.join(certs, 'cert.pem')) as cert, \
+             open(os.path.join(certs, 'key.pem')) as key:
+                 cafile = ca.read()
+                 certfile = cert.read()
+                 keyfile = key.read()
+
     opts = pb.AddNodeOptions(nodename=nodename,
                              endpoint=endpoint,
                              podname=podname,
+                             cafile=cafile,
+                             certfile=certfile,
+                             keyfile=keyfile,
                              public=public)
 
     try:

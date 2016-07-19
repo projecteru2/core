@@ -12,7 +12,7 @@ type Store interface {
 	GetAllPods() ([]*types.Pod, error)
 
 	// node
-	AddNode(name, endpoint, podname string, public bool) (*types.Node, error)
+	AddNode(name, endpoint, podname, cafile, certfile, keyfile string, public bool) (*types.Node, error)
 	GetNode(podname, nodename string) (*types.Node, error)
 	GetNodesByPod(podname string) ([]*types.Node, error)
 	GetAllNodes() ([]*types.Node, error)

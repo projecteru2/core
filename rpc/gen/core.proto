@@ -79,7 +79,10 @@ message AddNodeOptions {
     string nodename = 1;
     string endpoint = 2;
     string podname = 3;
-    bool public = 4;
+    string cafile = 4;
+    string certfile = 5;
+    string keyfile = 6;
+    bool public = 7;
 }
 
 message GetNodeOptions {

@@ -17,8 +17,8 @@ func (c *calcium) GetPod(podname string) (*types.Pod, error) {
 	return c.store.GetPod(podname)
 }
 
-func (c *calcium) AddNode(nodename, endpoint, podname string, public bool) (*types.Node, error) {
-	return c.store.AddNode(nodename, endpoint, podname, public)
+func (c *calcium) AddNode(nodename, endpoint, podname, cafile, certfile, keyfile string, public bool) (*types.Node, error) {
+	return c.store.AddNode(nodename, endpoint, podname, cafile, certfile, keyfile, public)
 }
 
 func (c *calcium) GetNode(podname, nodename string) (*types.Node, error) {

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"os"
 
 	"math/rand"
 	"strings"
@@ -76,4 +77,15 @@ func ToDockerContext(client *engineapi.Client) context.Context {
 func FromDockerContext(ctx context.Context) (*engineapi.Client, bool) {
 	client, ok := ctx.Value("engine").(*engineapi.Client)
 	return client, ok
+}
+
+func SaveFile(content, path string, mode os.FileMode) error {
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, mode)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(content)
+	return err
 }
