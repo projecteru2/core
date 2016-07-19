@@ -234,8 +234,10 @@ func averagePlan(cpu float64, nodes map[string]types.CPUMap, need, maxShareCore,
 	allocplan := allocPlan(nodeinfo, need)
 
 	for node, ncon := range allocplan {
-		nodename = nodeinfo[node].Node
-		result[nodename] = nodecontainer[nodename][:ncon]
+		if ncon > 0 {
+			nodename = nodeinfo[node].Node
+			result[nodename] = nodecontainer[nodename][:ncon]
+		}
 	}
 
 	return result
@@ -244,24 +246,35 @@ func averagePlan(cpu float64, nodes map[string]types.CPUMap, need, maxShareCore,
 func allocPlan(info ByNCon, need int) map[int]int {
 	result := make(map[int]int)
 	NNode := info.Len()
-	var vol int
 
-r:
+	var nodeToUse, more int
 	for i := 0; i < NNode; i++ {
-		vol = info[i].NCon * (NNode - i)
-		if vol >= need {
-			for j := i; j < NNode; j++ {
-				if need <= info[i].NCon {
-					result[j] = need
-					break r
-				}
-				result[j] = info[i].NCon
-				need -= info[i].NCon
-			}
-		} else {
-			result[i] = info[i].NCon
-			need -= info[i].NCon
+		nodeToUse = NNode - i
+		ave := need / nodeToUse
+		if ave > info[i].NCon {
+			ave = 1
 		}
+		for ; ave < info[i].NCon && ave*nodeToUse < need; ave++ {
+		}
+		more = ave*nodeToUse - need
+		for j := i; nodeToUse != 0; nodeToUse-- {
+			if _, ok := result[j]; !ok {
+				result[j] = ave
+			} else {
+				result[j] += ave
+			}
+			if more > 0 {
+				more--
+				result[j]--
+			} else if more < 0 {
+				info[j].NCon -= ave
+			}
+			j++
+		}
+		if more == 0 {
+			break
+		}
+		need = -more
 	}
 	return result
 }
