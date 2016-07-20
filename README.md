@@ -28,7 +28,7 @@ Now libgit2 is installed under `/usr/local/lib` as default. We still need to set
 
 ```shell
 On Mac OSX:
-$ $ cd /usr/local/lib/pkgconfig
+$ cd /usr/local/lib/pkgconfig
 $ ln -s /path/to/libgit2/pkgconfig/libgit2.pc  libgit2.pc
 $ cd /usr/local/lib
 $ ln -s /path/to/libgit2/libgit2.23.dylib libgit2.23.dylib
