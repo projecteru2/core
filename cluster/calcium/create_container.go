@@ -24,7 +24,7 @@ import (
 func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
 
-	result, err := c.prepareNodes(opts.Podname, opts.CPUQuota, opts.Count)
+	result, err := c.prepareNodes(opts.Podname, opts.Nodename, opts.CPUQuota, opts.Count)
 	if err != nil {
 		return ch, err
 	}
@@ -73,7 +73,7 @@ func makeCPUMap(nodes []*types.Node) map[string]types.CPUMap {
 
 // Prepare nodes for deployment.
 // Later if any error occurs, these nodes can be restored.
-func (c *calcium) prepareNodes(podname string, quota float64, num int) (map[string][]types.CPUMap, error) {
+func (c *calcium) prepareNodes(podname, nodename string, quota float64, num int) (map[string][]types.CPUMap, error) {
 	result := make(map[string][]types.CPUMap)
 
 	// use podname as lock key to prevent scheduling on the same node at one time
@@ -86,9 +86,20 @@ func (c *calcium) prepareNodes(podname string, quota float64, num int) (map[stri
 	}
 	defer lock.Unlock()
 
-	nodes, err := c.ListPodNodes(podname)
-	if err != nil {
-		return result, err
+	// 没有指定nodename, 就从所有的node里面取
+	// 指定了就给一个指定的列表
+	var nodes []*types.Node
+	if nodename == "" {
+		nodes, err = c.ListPodNodes(podname)
+		if err != nil {
+			return result, err
+		}
+	} else {
+		n, err := c.GetNode(podname, nodename)
+		if err != nil {
+			return result, err
+		}
+		nodes = append(nodes, n)
 	}
 
 	// if public, use only public nodes
@@ -96,6 +107,10 @@ func (c *calcium) prepareNodes(podname string, quota float64, num int) (map[stri
 		nodes = filterNodes(nodes, true)
 	} else {
 		nodes = filterNodes(nodes, false)
+	}
+
+	if len(nodes) == 0 {
+		return result, fmt.Errorf("No available nodes")
 	}
 
 	cpumap := makeCPUMap(nodes)
