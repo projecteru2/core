@@ -298,6 +298,9 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	}
 
 	user := specs.Appname
+	if entry.Privileged != "" {
+		user = ""
+	}
 	// command and user
 	slices := strings.Split(entry.Command, " ")
 	starter, needNetwork := "launcher", "network"
