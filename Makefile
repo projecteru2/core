@@ -1,3 +1,7 @@
+REPO_PATH := gitlab.ricebook.net/platform/core
+REVISION := $(shell git rev-parse HEAD || unknown)
+GO_LDFLAGS ?= -s -X $(REPO_PATH)/version.REVISION=$(REVISION)
+
 golang:
 	cd ./rpc/gen/; protoc --go_out=plugins=grpc:. core.proto
 
@@ -18,3 +22,6 @@ deps:
 	go get gopkg.in/libgit2/git2go.v23
 	go get golang.org/x/net/context
 	go get google.golang.org/grpc
+
+build:
+	go build -ldflags "$(GO_LDFLAGS)" -a -tags netgo -installsuffix netgo -o eru-core
