@@ -2,6 +2,7 @@ package complexscheduler
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -455,4 +456,84 @@ func TestSpecialCase(t *testing.T) {
 	res2, changed2, _ := k.SelectNodes(newpod, 1.7, 4)
 	assert.Equal(t, len(res2), len(changed2))
 	checkAvgPlan(res2, 2, 2, "new test 2")
+}
+
+func generateNodes(nums, maxCores, seed int) *map[string]types.CPUMap {
+	var name string
+	var cores int
+	pod := make(map[string]types.CPUMap)
+
+	s := rand.NewSource(int64(seed))
+	r1 := rand.New(s)
+
+	for i := 0; i < nums; i++ {
+		name = fmt.Sprintf("n%d", i)
+		cores = r1.Intn(maxCores + 1)
+		pod[name] = make(types.CPUMap)
+		for j := 0; j < cores; j++ {
+			coreName := fmt.Sprintf("%d", j)
+			pod[name][coreName] = 10
+		}
+	}
+	return &pod
+}
+
+var hugePod = generateNodes(10000, 24, 10086)
+
+func getPodVol(nodes map[string]types.CPUMap, cpu float64) int {
+	var res int
+	var host *host
+	var plan []types.CPUMap
+
+	for _, cpuInfo := range nodes {
+		host = newHost(cpuInfo, 10)
+		plan = host.getContainerCores(cpu, -1)
+		res += len(plan)
+	}
+	return res
+}
+
+func Benchmark_ExtreamAlloc(b *testing.B) {
+	coreCfg := types.Config{
+		EtcdMachines:   []string{"http://127.0.0.1:2379"},
+		EtcdLockPrefix: "/eru-core/_lock",
+		Scheduler: types.SchedConfig{
+			LockKey: "/coretest",
+			LockTTL: 1,
+			Type:    "complex",
+		},
+	}
+
+	k, _ := New(coreCfg)
+	b.StopTimer()
+	b.StartTimer()
+
+	vol := getPodVol(*hugePod, 1.3)
+	result, changed, err := k.SelectNodes(*hugePod, 1.3, vol)
+	if err != nil {
+		b.Fatalf("something went wrong")
+	}
+	assert.Equal(b, len(result), len(changed))
+}
+
+func Benchmark_AveAlloc(b *testing.B) {
+	b.StopTimer()
+	coreCfg := types.Config{
+		EtcdMachines:   []string{"http://127.0.0.1:2379"},
+		EtcdLockPrefix: "/eru-core/_lock",
+		Scheduler: types.SchedConfig{
+			LockKey: "/coretest",
+			LockTTL: 1,
+			Type:    "complex",
+		},
+	}
+
+	k, _ := New(coreCfg)
+
+	b.StartTimer()
+	result, changed, err := k.SelectNodes(*hugePod, 1.7, 12000)
+	if err != nil {
+		b.Fatalf("something went wrong")
+	}
+	assert.Equal(b, len(result), len(changed))
 }
