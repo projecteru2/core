@@ -1,6 +1,8 @@
 package rpc
 
 import (
+	"encoding/json"
+
 	"gitlab.ricebook.net/platform/core/rpc/gen"
 	"gitlab.ricebook.net/platform/core/types"
 )
@@ -18,12 +20,18 @@ func toRPCPod(p *types.Pod) *pb.Pod {
 }
 
 func toRPCNode(n *types.Node) *pb.Node {
+	bytes := []byte("")
+	if info, err := n.Info(); err == nil {
+		bytes, _ = json.Marshal(info)
+	}
+
 	return &pb.Node{
 		Name:     n.Name,
 		Endpoint: n.Endpoint,
 		Podname:  n.Podname,
 		Public:   n.Public,
 		Cpu:      toRPCCPUMap(n.CPU),
+		Info:     string(bytes),
 	}
 }
 

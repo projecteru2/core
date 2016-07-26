@@ -2,6 +2,7 @@ package types
 
 import (
 	"sync"
+	"time"
 
 	engineapi "github.com/docker/engine-api/client"
 	enginetypes "github.com/docker/engine-api/types"
@@ -48,6 +49,8 @@ type Node struct {
 	Engine   *engineapi.Client `json:"-"`
 }
 
+// 5 seconds timeout
 func (n *Node) Info() (enginetypes.Info, error) {
-	return n.Engine.Info(context.Background())
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	return n.Engine.Info(ctx)
 }
