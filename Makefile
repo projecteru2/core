@@ -1,3 +1,5 @@
+.PHONY: golang python deps build
+
 REPO_PATH := gitlab.ricebook.net/platform/core
 REVISION := $(shell git rev-parse HEAD || unknown)
 GO_LDFLAGS ?= -s -X $(REPO_PATH)/version.REVISION=$(REVISION)
