@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 
 	enginetypes "github.com/docker/engine-api/types"
@@ -61,4 +62,24 @@ func makeContainerConfig(info enginetypes.ContainerJSON, image string) (
 // docker's stupid problem
 func trimLeftSlash(name string) string {
 	return strings.TrimPrefix(name, "/")
+}
+
+// make mount paths
+// app.yaml里可以支持mount_paths的写法, 例如
+// mount_paths:
+//     - "/var/www/html"
+//     - "/data/eggsy"
+// 这样的路径会被直接挂载到permdir下面去, 例如上面的路径就是
+// /mnt/mfs/permdirs/eggsy/data/eggsy
+// /mnt/mfs/permdirs/eggsy/var/www/html
+// 而且这些路径是可以读写的.
+func makeMountPaths(paths []string, permDirHost string) ([]string, map[string]struct{}) {
+	binds := []string{}
+	volumes := make(map[string]struct{})
+	for _, path := range paths {
+		hostPath := filepath.Join(permDirHost, path)
+		binds = append(binds, fmt.Sprintf("%s:%s:rw", hostPath, path))
+		volumes[path] = struct{}{}
+	}
+	return binds, volumes
 }

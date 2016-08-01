@@ -16,6 +16,7 @@ type Specs struct {
 	Binds       map[string]Bind       `yaml:"binds,omitempty,flow"`
 	Meta        map[string]string     `yaml:"meta,omitempty,flow"`
 	Base        string                `yaml:"base"`
+	MountPaths  []string              `yaml:"mount_paths,omitempty,flow"`
 }
 
 // single entrypoint

@@ -337,17 +337,18 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	env := append(opts.Env, fmt.Sprintf("APP_NAME=%s", specs.Appname))
 	env = append(env, fmt.Sprintf("ERU_POD=%s", opts.Podname))
 
-	// volumes and binds
-	volumes := make(map[string]struct{})
-	volumes["/writable-proc/sys"] = struct{}{}
+	// mount paths
+	// 先把mount_paths给挂载了, 没有的话生成俩空的返回去也好啊.
+	permDirHost := filepath.Join(c.config.PermDir, specs.Appname)
+	binds, volumes := makeMountPaths(specs.MountPaths, permDirHost)
 
-	binds := []string{}
+	// volumes and binds
+	volumes["/writable-proc/sys"] = struct{}{}
 	binds = append(binds, "/proc/sys:/writable-proc/sys:ro")
 
 	// add permdir to container
 	if entry.PermDir {
 		permDir := filepath.Join("/", specs.Appname, "permdir")
-		permDirHost := filepath.Join(c.config.PermDir, specs.Appname)
 		volumes[permDir] = struct{}{}
 
 		binds = append(binds, strings.Join([]string{permDirHost, permDir, "rw"}, ":"))
@@ -375,7 +376,7 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	}
 
 	// working dir is /:appname if it's not deployed as raw app
-	workingDir := "/"
+	workingDir := ""
 	if !opts.Raw {
 		workingDir = "/" + specs.Appname
 	}
