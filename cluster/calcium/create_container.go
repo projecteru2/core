@@ -448,7 +448,8 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	}
 
 	user := specs.Appname
-	if entry.Privileged != "" {
+	// 如果是升级或者是raw, 就用root
+	if entry.Privileged != "" || opts.Raw {
 		user = ""
 	}
 	// command and user
