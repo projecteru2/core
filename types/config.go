@@ -6,6 +6,7 @@ type Config struct {
 	PermDir        string   `yaml:"permdir"`          // Permanent dir on host
 	EtcdMachines   []string `yaml:"etcd"`             // etcd cluster addresses
 	EtcdLockPrefix string   `yaml:"etcd_lock_prefix"` // etcd lock prefix, all locks will be created under this dir
+	ResourceAlloc  string   `yaml:"resource_alloc`    // scheduler or cpu-period TODO give it a good name
 
 	Git       GitConfig    `yaml:"git"`
 	Docker    DockerConfig `yaml:"docker"`

@@ -20,7 +20,7 @@ def _get_stub(ctx):
 
 @click.group()
 @click.option('--grpc-host', default='localhost', show_default=True)
-@click.option('--grpc-port', default=5000, show_default=True, type=int)
+@click.option('--grpc-port', default=5001, show_default=True, type=int)
 @click.pass_context
 def cli(ctx, grpc_host, grpc_port):
     ctx.obj['grpc_host'] = grpc_host
@@ -121,7 +121,7 @@ def get_node(ctx, podname, nodename):
 @click.pass_context
 def add_node(ctx, nodename, endpoint, podname, certs, public):
     stub = _get_stub(ctx)
-    
+
     cafile, certfile, keyfile = '', '', ''
     if certs:
         certs = os.path.abspath(certs)

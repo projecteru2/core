@@ -2,19 +2,21 @@ package utils
 
 import (
 	"fmt"
-	"os"
-
 	"math/rand"
+	"os"
+	"sort"
 	"strings"
 	"time"
 
 	engineapi "github.com/docker/engine-api/client"
+	"gitlab.ricebook.net/platform/core/types"
 	"golang.org/x/net/context"
 )
 
 const (
 	letters       = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	shortenLength = 7
+	CpuPeriodBase = 100000
 )
 
 func RandomString(n int) string {
@@ -88,4 +90,62 @@ func SaveFile(content, path string, mode os.FileMode) error {
 
 	_, err = file.WriteString(content)
 	return err
+}
+
+type NodeInfo struct {
+	Name    string
+	CorePer int
+}
+
+type ByCoreNum []NodeInfo
+
+func (a ByCoreNum) Len() int           { return len(a) }
+func (a ByCoreNum) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByCoreNum) Less(i, j int) bool { return a[i].CorePer < a[j].CorePer }
+
+func AllocContainerPlan(nodeInfo ByCoreNum, quota int, count int) (map[string]int, error) {
+	result := make(map[string]int)
+	N := nodeInfo.Len()
+	ave := 0
+	remain := 0
+	flag := -1
+
+	for i := 0; i < N; i++ {
+		if nodeInfo[i].CorePer >= quota {
+			ave = count / (N - i)
+			remain = count % (N - i)
+			flag = i
+			break
+		}
+	}
+
+	if flag == -1 {
+		return result, fmt.Errorf("Cannot alloc a plan, nodeNum: %d, node1 CorePer: %d, quota: %d ", N, nodeInfo[0].CorePer, quota)
+	}
+
+	for i := flag; i < N; i++ {
+		result[nodeInfo[i].Name] = ave
+	}
+	if remain > 0 {
+	r:
+		for {
+			for node, _ := range result {
+				result[node] += 1
+				remain--
+				if remain <= 0 {
+					break r
+				}
+			}
+		}
+	}
+	return result, nil
+}
+
+func GetNodesInfo(cpumap map[string]types.CPUMap) ByCoreNum {
+	result := ByCoreNum{}
+	for node, cpu := range cpumap {
+		result = append(result, NodeInfo{node, len(cpu) * CpuPeriodBase})
+	}
+	sort.Sort(result)
+	return result
 }
