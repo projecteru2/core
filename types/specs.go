@@ -32,6 +32,7 @@ type Entrypoint struct {
 	PermDir       bool     `yaml:"permdir,omitempty"`
 	Privileged    string   `yaml:"privileged,omitempty"`
 	LogConfig     string   `yaml:"log_config,omitempty"`
+	WorkingDir    string   `yaml:"working_dir,omitempty"`
 }
 
 // single bind

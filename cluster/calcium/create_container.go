@@ -530,9 +530,12 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 		logConfig = "json-file"
 	}
 
-	// working dir is /:appname if it's not deployed as raw app
-	workingDir := ""
-	if !opts.Raw {
+	// working dir 默认是空, 也就是根目录
+	// 如果是raw模式, 就以working_dir为主, 默认为空.
+	// 如果没有设置working_dir同时又不是raw模式创建, 就用/:appname
+	// TODO 是不是要有个白名单或者黑名单之类的
+	workingDir := entry.WorkingDir
+	if !opts.Raw && workingDir == "" {
 		workingDir = "/" + specs.Appname
 	}
 
