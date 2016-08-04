@@ -730,6 +730,7 @@ func (c *calcium) doUpgradeContainer(containers []*types.Container, image string
 		config, hostConfig, networkConfig, containerName, err := makeContainerConfig(info, image)
 		if err != nil {
 			ms[i].Error = err.Error()
+			engine.ContainerStart(context.Background(), info.ID, enginetypes.ContainerStartOptions{})
 			continue
 		}
 
@@ -737,6 +738,7 @@ func (c *calcium) doUpgradeContainer(containers []*types.Container, image string
 		newContainer, err := engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
 		if err != nil {
 			ms[i].Error = err.Error()
+			engine.ContainerStart(context.Background(), info.ID, enginetypes.ContainerStartOptions{})
 			continue
 		}
 
@@ -760,16 +762,18 @@ func (c *calcium) doUpgradeContainer(containers []*types.Container, image string
 		err = engine.ContainerStart(context.Background(), newContainer.ID, enginetypes.ContainerStartOptions{})
 		if err != nil {
 			go engine.ContainerRemove(context.Background(), newContainer.ID, enginetypes.ContainerRemoveOptions{})
+			engine.ContainerStart(context.Background(), info.ID, enginetypes.ContainerStartOptions{})
 			ms[i].Error = err.Error()
 			continue
 		}
 
-		// test if container is correctly started
-		// if not, restore the old container
+		// test if container is correctly started and running
+		// if not, restore the old container and remove the new one
 		newInfo, err := engine.ContainerInspect(context.Background(), newContainer.ID)
-		if err != nil {
+		if err != nil || !newInfo.State.Running {
 			ms[i].Error = err.Error()
 			// restart the old container
+			go engine.ContainerRemove(context.Background(), newContainer.ID, enginetypes.ContainerRemoveOptions{})
 			engine.ContainerStart(context.Background(), info.ID, enginetypes.ContainerStartOptions{})
 			continue
 		}
@@ -778,6 +782,8 @@ func (c *calcium) doUpgradeContainer(containers []*types.Container, image string
 		_, err = c.store.AddContainer(newInfo.ID, container.Podname, container.Nodename, containerName, container.CPU)
 		if err != nil {
 			ms[i].Error = err.Error()
+			go engine.ContainerRemove(context.Background(), newContainer.ID, enginetypes.ContainerRemoveOptions{})
+			engine.ContainerStart(context.Background(), info.ID, enginetypes.ContainerStartOptions{})
 			continue
 		}
 
