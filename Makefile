@@ -1,4 +1,4 @@
-.PHONY: golang python deps build
+.PHONY: golang python deps build test
 
 REPO_PATH := gitlab.ricebook.net/platform/core
 REVISION := $(shell git rev-parse HEAD || unknown)
@@ -27,3 +27,6 @@ deps:
 
 build:
 	go build -ldflags "$(GO_LDFLAGS)" -a -tags netgo -installsuffix netgo -o eru-core
+
+test:
+	go test ./...

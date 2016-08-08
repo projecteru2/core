@@ -1,0 +1,26 @@
+bind: ":5001"
+agent_port: "12345"
+permdir: "/mnt/mfs/permdirs"
+etcd:
+    - "http://127.0.0.1:2379"
+etcd_lock_prefix: "/eru-core/_lock"
+
+resource_alloc: "cpu-period"
+
+git:
+    public_key: "***REMOVED***"
+    private_key: "***REMOVED***"
+    gitlab_token: "***REMOVED***"
+
+docker:
+    log_driver: "json-file"
+    network_mode: "bridge"
+    cert_path: ""
+    hub: "hub.ricebook.net"
+
+scheduler:
+    lock_key: "_scheduler_lock"
+    lock_ttl: 10
+    type: "complex"
+
+resource_alloc: "cpu-period"
