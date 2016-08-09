@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"text/template"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/archive"
 	enginetypes "github.com/docker/engine-api/types"
 	"gitlab.ricebook.net/platform/core/types"
@@ -116,10 +117,9 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 	}
 
 	// get artifact into cloneDir, only when artifact is not empty
-	// TODO need to separate from code or just like this?
 	if artifact != "" {
 		if err := c.source.Artifact(artifact, cloneDir); err != nil {
-			return ch, err
+			log.Errorf("Error when downloading artifact: %s", err.Error())
 		}
 	}
 
