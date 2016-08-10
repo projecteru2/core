@@ -111,9 +111,10 @@ message DeployOptions {
     string entrypoint = 6;
     double cpu_quota = 7;
     int32 count = 8;
-    repeated string env = 9;
-    map<string, string> networks = 10;
-    bool raw = 11;
+    int64 memory = 9;
+    repeated string env = 10;
+    map<string, string> networks = 11;
+    bool raw = 12;
 }
 
 message UpgradeOptions {

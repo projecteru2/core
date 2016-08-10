@@ -104,8 +104,8 @@ func (c *calcium) removeOneContainer(container *types.Container) error {
 
 	// if total cpu of container > 0, then we need to release these core resource
 	// but if it's 0, just ignore to save 1 time write on etcd.
-	log.WithFields(log.Fields{"nodename": node.Name, "cpumap": container.CPU}).Debugln("Restore node CPU:")
 	if container.CPU.Total() > 0 {
+		log.WithFields(log.Fields{"nodename": node.Name, "cpumap": container.CPU}).Debugln("Restore node CPU:")
 		if err := c.store.UpdateNodeCPU(node.Podname, node.Name, container.CPU, "+"); err != nil {
 			return err
 		}

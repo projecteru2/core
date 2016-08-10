@@ -210,6 +210,7 @@ base: "hub.ricebook.net/base/alpine:python-2016.04.24"
                             entrypoint='web',
                             cpu_quota=1,
                             count=2,
+                            memory=0,
                             networks={'zzz': ''}, # 如果不需要指定IP就写空字符串, 写其他的错误的格式会报错失败
                             env=['ENV_A=1', 'ENV_B=2'])
 

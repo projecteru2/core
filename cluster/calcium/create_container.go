@@ -593,6 +593,7 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 		}
 	} else {
 		resource = enginecontainer.Resources{
+			Memory:    opts.Memory,
 			CPUPeriod: utils.CpuPeriodBase,
 			CPUQuota:  int64(opts.CPUQuota * float64(utils.CpuPeriodBase)),
 			Ulimits:   ulimits,
