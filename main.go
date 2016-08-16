@@ -83,13 +83,13 @@ func serve() {
 		log.Fatal(err)
 	}
 
-	virbranium := rpc.NewVirbranium(cluster, config)
+	virbranium := rpc.New(cluster, config)
 	s, err := net.Listen("tcp", config.Bind)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	opts := []grpc.ServerOption{}
+	opts := []grpc.ServerOption{grpc.MaxConcurrentStreams(100)}
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterCoreRPCServer(grpcServer, virbranium)
 	go grpcServer.Serve(s)

@@ -10,7 +10,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-type Virbranium struct {
+type virbranium struct {
 	cluster cluster.Cluster
 	config  types.Config
 }
@@ -19,7 +19,7 @@ type Virbranium struct {
 // Many data types should be transformed
 
 // ListPods returns a list of pods
-func (v *Virbranium) ListPods(ctx context.Context, empty *pb.Empty) (*pb.Pods, error) {
+func (v *virbranium) ListPods(ctx context.Context, empty *pb.Empty) (*pb.Pods, error) {
 	ps, err := v.cluster.ListPods()
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func (v *Virbranium) ListPods(ctx context.Context, empty *pb.Empty) (*pb.Pods, e
 }
 
 // AddPod saves a pod, and returns it to client
-func (v *Virbranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Pod, error) {
+func (v *virbranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Pod, error) {
 	p, err := v.cluster.AddPod(opts.Name, opts.Desc)
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (v *Virbranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Po
 }
 
 // GetPod
-func (v *Virbranium) GetPod(ctx context.Context, opts *pb.GetPodOptions) (*pb.Pod, error) {
+func (v *virbranium) GetPod(ctx context.Context, opts *pb.GetPodOptions) (*pb.Pod, error) {
 	p, err := v.cluster.GetPod(opts.Name)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func (v *Virbranium) GetPod(ctx context.Context, opts *pb.GetPodOptions) (*pb.Po
 
 // AddNode saves a node and returns it to client
 // Method must be called syncly, or nothing will be returned
-func (v *Virbranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.Node, error) {
+func (v *virbranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.Node, error) {
 	n, err := v.cluster.AddNode(opts.Nodename, opts.Endpoint, opts.Podname, opts.Cafile, opts.Certfile, opts.Keyfile, opts.Public)
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func (v *Virbranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.
 }
 
 // GetNode
-func (v *Virbranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Node, error) {
+func (v *virbranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Node, error) {
 	n, err := v.cluster.GetNode(opts.Podname, opts.Nodename)
 	if err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func (v *Virbranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.
 }
 
 // ListPodNodes returns a list of node for pod
-func (v *Virbranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions) (*pb.Nodes, error) {
+func (v *virbranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions) (*pb.Nodes, error) {
 	ns, err := v.cluster.ListPodNodes(opts.Podname)
 	if err != nil {
 		return nil, err
@@ -91,8 +91,7 @@ func (v *Virbranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions
 
 // GetContainer
 // More information will be shown
-// TODO information from `inspect` should be returned here, guess it's better to return it as string
-func (v *Virbranium) GetContainer(ctx context.Context, id *pb.ContainerID) (*pb.Container, error) {
+func (v *virbranium) GetContainer(ctx context.Context, id *pb.ContainerID) (*pb.Container, error) {
 	container, err := v.cluster.GetContainer(id.Id)
 	if err != nil {
 		return nil, err
@@ -113,7 +112,7 @@ func (v *Virbranium) GetContainer(ctx context.Context, id *pb.ContainerID) (*pb.
 
 // GetContainers
 // like GetContainer, information should be returned
-func (v *Virbranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (*pb.Containers, error) {
+func (v *virbranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (*pb.Containers, error) {
 	ids := []string{}
 	for _, id := range cids.Ids {
 		ids = append(ids, id.Id)
@@ -143,7 +142,7 @@ func (v *Virbranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (
 
 // streamed returned functions
 // caller must ensure that timeout will not be too short because these actions take a little time
-func (v *Virbranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_BuildImageServer) error {
+func (v *virbranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_BuildImageServer) error {
 	ch, err := v.cluster.BuildImage(opts.Repo, opts.Version, opts.Uid, opts.Artifact)
 	if err != nil {
 		return err
@@ -157,7 +156,7 @@ func (v *Virbranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bu
 	return nil
 }
 
-func (v *Virbranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_CreateContainerServer) error {
+func (v *virbranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_CreateContainerServer) error {
 	specs, err := types.LoadSpecs(opts.Specs)
 	if err != nil {
 		return err
@@ -176,7 +175,7 @@ func (v *Virbranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_C
 	return nil
 }
 
-func (v *Virbranium) UpgradeContainer(opts *pb.UpgradeOptions, stream pb.CoreRPC_UpgradeContainerServer) error {
+func (v *virbranium) UpgradeContainer(opts *pb.UpgradeOptions, stream pb.CoreRPC_UpgradeContainerServer) error {
 	ids := []string{}
 	for _, id := range opts.Ids {
 		ids = append(ids, id.Id)
@@ -195,7 +194,7 @@ func (v *Virbranium) UpgradeContainer(opts *pb.UpgradeOptions, stream pb.CoreRPC
 	return nil
 }
 
-func (v *Virbranium) RemoveContainer(cids *pb.ContainerIDs, stream pb.CoreRPC_RemoveContainerServer) error {
+func (v *virbranium) RemoveContainer(cids *pb.ContainerIDs, stream pb.CoreRPC_RemoveContainerServer) error {
 	ids := []string{}
 	for _, id := range cids.Ids {
 		ids = append(ids, id.Id)
@@ -218,7 +217,7 @@ func (v *Virbranium) RemoveContainer(cids *pb.ContainerIDs, stream pb.CoreRPC_Re
 	return nil
 }
 
-func (v *Virbranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_RemoveImageServer) error {
+func (v *virbranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_RemoveImageServer) error {
 	ch, err := v.cluster.RemoveImage(opts.Podname, opts.Nodename, opts.Images)
 	if err != nil {
 		return err
@@ -232,6 +231,6 @@ func (v *Virbranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_
 	return nil
 }
 
-func NewVirbranium(cluster cluster.Cluster, config types.Config) *Virbranium {
-	return &Virbranium{cluster: cluster, config: config}
+func New(cluster cluster.Cluster, config types.Config) *virbranium {
+	return &virbranium{cluster: cluster, config: config}
 }

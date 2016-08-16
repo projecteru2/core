@@ -1,6 +1,8 @@
 package types
 
 import (
+	"time"
+
 	engineapi "github.com/docker/engine-api/client"
 	enginetypes "github.com/docker/engine-api/types"
 	"golang.org/x/net/context"
@@ -18,5 +20,6 @@ type Container struct {
 }
 
 func (c *Container) Inspect() (enginetypes.ContainerJSON, error) {
-	return c.Engine.ContainerInspect(context.Background(), c.ID)
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	return c.Engine.ContainerInspect(ctx, c.ID)
 }
