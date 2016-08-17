@@ -33,12 +33,18 @@ func waitSignal() {
 	log.Info("Terminating...")
 }
 
-func setupLogLevel(l string) error {
+func setupLog(l string) error {
 	level, err := log.ParseLevel(l)
 	if err != nil {
 		return err
 	}
 	log.SetLevel(level)
+
+	formatter := &log.TextFormatter{
+		TimestampFormat: "2006-01-02 15:04:05",
+		FullTimestamp:   true,
+	}
+	log.SetFormatter(formatter)
 	return nil
 }
 
@@ -65,7 +71,7 @@ func initConfig(configPath string) (types.Config, error) {
 }
 
 func serve() {
-	if err := setupLogLevel(logLevel); err != nil {
+	if err := setupLog(logLevel); err != nil {
 		log.Fatal(err)
 	}
 
