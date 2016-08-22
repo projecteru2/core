@@ -56,9 +56,17 @@ $ make deps
 Generate golang & python code
 
 ```shell
+$ go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
 $ make golang
 $ make python
 ```
+
+Current version of dependencies are:
+
+* google.golang.org/grpc: v1.0.1-GA
+* github.com/golang/protobuf: f592bd283e
+
+do not forget first command...
 
 ### deploy core on local environment
 
