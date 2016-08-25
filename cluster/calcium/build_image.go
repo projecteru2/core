@@ -47,6 +47,7 @@ ADD launcher /usr/local/bin/launcher
 ADD launcheroot /usr/local/bin/launcheroot
 WORKDIR /{{.Appname}}
 RUN useradd -u %s -d /nonexistent -s /sbin/nologin -U {{.Appname}}
+RUN chown -R %s /{{.Appname}}
 {{with .Build}}
 {{range $index, $value := .}}
 RUN {{$value}}
@@ -278,7 +279,7 @@ func createDockerfile(buildDir, uid, reponame string, specs types.Specs) error {
 	}
 	defer f.Close()
 
-	dockerFileFormatted := fmt.Sprintf(dockerFile, reponame, uid)
+	dockerFileFormatted := fmt.Sprintf(dockerFile, reponame, uid, uid)
 	t := template.New("docker file template")
 	parsedTemplate, err := t.Parse(dockerFileFormatted)
 	if err != nil {
