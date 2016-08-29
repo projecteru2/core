@@ -15,17 +15,23 @@ import (
 // returns a channel that contains removing responses
 func (c *calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMessage, error) {
 	ch := make(chan *types.RemoveContainerMessage)
-
-	containers, err := c.GetContainers(ids)
-	if err != nil {
-		return ch, err
-	}
-
 	go func() {
 		wg := sync.WaitGroup{}
-		wg.Add(len(containers))
 
-		for _, container := range containers {
+		for _, id := range ids {
+			// 单个单个取是因为某些情况可能会传了id但是这里没有
+			// 这种情况不希望直接打断操作, 而是希望错误在message里回去.
+			container, err := c.GetContainer(id)
+			if err != nil {
+				ch <- &types.RemoveContainerMessage{
+					ContainerID: id,
+					Success:     false,
+					Message:     err.Error(),
+				}
+				continue
+			}
+
+			wg.Add(1)
 			go func(container *types.Container) {
 				defer wg.Done()
 
