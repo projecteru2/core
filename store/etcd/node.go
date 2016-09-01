@@ -320,11 +320,17 @@ func (k *krypton) makeDockerClient(podname, nodename, endpoint string, force boo
 
 	// timeout in 5 seconds
 	// timeout means node is not available
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	_, err = client.Info(ctx)
-	if err != nil {
-		return nil, err
-	}
+
+	// NOTE: 不检查其实也没事, 调用的时候会出错的.
+	// 这么改主要是因为, docker 在长时间的 remove 操作的时候,
+	// info 这类操作会被阻塞, 会导致客户端长时间等待.
+	// 这么改的坏处是, 这个时候取回的 info 是没有 node 信息的.
+
+	// ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	// _, err = client.Info(ctx)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return client, nil
 }
