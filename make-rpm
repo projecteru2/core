@@ -1,0 +1,25 @@
+#!/bin/bash
+
+ROOT="`pwd`/build"
+BIN="$ROOT/usr/bin"
+CONF="$ROOT/etc/eru-core"
+SERVICE="$ROOT/usr/lib/systemd/system"
+
+
+mkdir -p $BIN
+mkdir -p $CONF
+mkdir -p $SERVICE
+
+mv eru-core $BIN
+mv core.yaml.sample $CONF
+mv eru-core.service $SERVICE
+
+OUTPUT=($($BIN/eru-core -v 2>&1))
+VERSION=${OUTPUT[2]%\"}
+VERSION=${VERSION:0:7}
+echo $VERSION rpm build begin
+
+fpm -f -s dir -t rpm -n eru-core --epoch 0 -v $VERSION --iteration 1.el7 -C $ROOT -p $CI_PROJECT_DIR --verbose --category 'Development/App' --description 'docker eru core' --url 'http://github.com/projecteru/eru-core' --license 'BSD'  --no-rpm-sign usr etc
+
+rm -rf $ROOT
+

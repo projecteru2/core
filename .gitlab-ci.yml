@@ -1,0 +1,31 @@
+image: "hub.ricebook.net/base/centos:eru-core-onbuild-2016.09.01"
+before_script:
+  - "ln -s $CI_PROJECT_DIR $GOPATH/src/gitlab.ricebook.net/platform/core"
+stages:
+  - build
+  - test
+  - rpm
+test:
+  stage: test
+  script:
+    - "make test"
+build:
+  stage: build
+  script:
+    - make build
+  artifacts:
+    paths:
+      - "eru-core"
+    expire_in: 1 week
+rpm:
+  stage: rpm
+  script:
+    - "./make-rpm"
+  dependencies:
+    - "build"
+  artifacts:
+    paths:
+      - "eru-core*.rpm"
+    expire_in: 1 week
+
+

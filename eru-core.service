@@ -1,0 +1,15 @@
+[Unit]
+Description=Eru Core
+After=network.target
+
+[Service]
+Type=simple
+Environment=GOTRACEBACK=crash
+ExecStart=/usr/bin/eru-core --config /etc/eru-core/core.yaml
+LimitNOFILE=10485760
+LimitNPROC=10485760
+LimitCORE=infinity
+MountFlags=slave
+
+[Install]
+WantedBy=multi-user.target
