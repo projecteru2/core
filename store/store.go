@@ -15,6 +15,7 @@ type Store interface {
 	AddNode(name, endpoint, podname, cafile, certfile, keyfile string, public bool) (*types.Node, error)
 	GetNode(podname, nodename string) (*types.Node, error)
 	GetNodesByPod(podname string) ([]*types.Node, error)
+	GetNodeNamesByPod(podname string) ([]string, error)
 	GetAllNodes() ([]*types.Node, error)
 	UpdateNode(*types.Node) error
 	UpdateNodeCPU(podname, nodename string, cpu types.CPUMap, action string) error

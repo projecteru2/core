@@ -12,6 +12,7 @@ type Cluster interface {
 	AddNode(nodename, endpoint, podname, cafile, certfile, keyfile string, public bool) (*types.Node, error)
 	GetNode(podname, nodename string) (*types.Node, error)
 	ListPodNodes(podname string) ([]*types.Node, error)
+	ListPodNodeNames(podname string) ([]string, error)
 	GetContainer(id string) (*types.Container, error)
 	GetContainers(ids []string) ([]*types.Container, error)
 

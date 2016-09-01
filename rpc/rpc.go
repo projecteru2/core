@@ -89,6 +89,16 @@ func (v *virbranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions
 	return &pb.Nodes{Nodes: nodes}, nil
 }
 
+// ListPodNodes returns a list of node names for pod, only name!
+func (v *virbranium) ListPodNodeNames(ctx context.Context, opts *pb.ListNodesOptions) (*pb.NodeNames, error) {
+	names, err := v.cluster.ListPodNodeNames(opts.Podname)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.NodeNames{Names: names}, nil
+}
+
 // GetContainer
 // More information will be shown
 func (v *virbranium) GetContainer(ctx context.Context, id *pb.ContainerID) (*pb.Container, error) {
