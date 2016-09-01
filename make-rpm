@@ -19,7 +19,7 @@ VERSION=${OUTPUT[2]%\"}
 VERSION=${VERSION:0:7}
 echo $VERSION rpm build begin
 
-fpm -f -s dir -t rpm -n eru-core --epoch 0 -v $VERSION --iteration 1.el7 -C $ROOT -p $CI_PROJECT_DIR --verbose --category 'Development/App' --description 'docker eru core' --url 'http://github.com/projecteru/eru-core' --license 'BSD'  --no-rpm-sign usr etc
+fpm -f -s dir -t rpm -n eru-core --epoch 0 -v $VERSION --iteration 1.el7 -C $ROOT -p $PWD --verbose --category 'Development/App' --description 'docker eru core' --url 'http://github.com/projecteru/eru-core' --license 'BSD'  --no-rpm-sign usr etc
 
 rm -rf $ROOT
 
