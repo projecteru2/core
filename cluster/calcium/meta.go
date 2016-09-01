@@ -29,10 +29,6 @@ func (c *calcium) ListPodNodes(podname string) ([]*types.Node, error) {
 	return c.store.GetNodesByPod(podname)
 }
 
-func (c *calcium) ListPodNodeNames(podname string) ([]string, error) {
-	return c.store.GetNodeNamesByPod(podname)
-}
-
 func (c *calcium) GetContainer(id string) (*types.Container, error) {
 	return c.store.GetContainer(id)
 }

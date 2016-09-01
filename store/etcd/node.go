@@ -170,29 +170,6 @@ func (k *krypton) GetNodesByPod(podname string) ([]*types.Node, error) {
 	return nodes, err
 }
 
-// only get names
-// storage path in etcd is `/eru-core/pod/:podname/node`
-func (k *krypton) GetNodeNamesByPod(podname string) ([]string, error) {
-	var (
-		names []string
-		err   error
-	)
-
-	key := fmt.Sprintf(podNodesKey, podname)
-	resp, err := k.etcd.Get(context.Background(), key, nil)
-	if err != nil {
-		return names, err
-	}
-	if !resp.Node.Dir {
-		return nil, fmt.Errorf("Node storage path %q in etcd is not a directory", key)
-	}
-
-	for _, node := range resp.Node.Nodes {
-		names = append(names, utils.Tail(node.Key))
-	}
-	return names, err
-}
-
 // update a node, save it to etcd
 // storage path in etcd is `/eru-core/pod/:podname/node/:nodename/info`
 func (k *krypton) UpdateNode(node *types.Node) error {
