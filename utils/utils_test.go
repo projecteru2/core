@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -10,6 +11,7 @@ import (
 func TestRandomString(t *testing.T) {
 	s1 := RandomString(10)
 	assert.Equal(t, 10, len(s1))
+	time.Sleep(100 * time.Millisecond)
 	s2 := RandomString(10)
 	assert.Equal(t, 10, len(s2))
 	assert.NotEqual(t, s1, s2, fmt.Sprintf("s1: %s, s2: %s", s1, s2))
