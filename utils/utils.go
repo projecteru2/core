@@ -1,12 +1,12 @@
 package utils
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"os"
 	"sort"
 	"strings"
-	"time"
 
 	engineapi "github.com/docker/engine-api/client"
 	"gitlab.ricebook.net/platform/core/types"
@@ -20,10 +20,14 @@ const (
 )
 
 func RandomString(n int) string {
-	rand.Seed(time.Now().UnixNano())
 	r := make([]byte, n)
 	for i := 0; i < n; i++ {
-		r[i] = letters[rand.Intn(len(letters))]
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
+		// 没那么惨吧
+		if err != nil {
+			continue
+		}
+		r[i] = letters[n.Int64()]
 	}
 	return string(r)
 }
