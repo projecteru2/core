@@ -10,6 +10,7 @@ service CoreRPC {
     rpc AddNode(AddNodeOptions) returns (Node) {};
     rpc GetNode(GetNodeOptions) returns (Node) {};
     rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
+    rpc ListPodNodeNames(ListNodesOptions) returns (NodeNames) {};
     rpc GetContainer(ContainerID) returns (Container) {};
     rpc GetContainers(ContainerIDs) returns (Containers) {};
 
@@ -43,6 +44,10 @@ message Node {
 
 message Nodes {
     repeated Node nodes = 1;
+}
+
+message NodeNames {
+    repeated string names = 1;
 }
 
 message Container {
