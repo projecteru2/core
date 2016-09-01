@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
+	//	"time"
 
 	log "github.com/Sirupsen/logrus"
 	engineapi "github.com/docker/engine-api/client"
