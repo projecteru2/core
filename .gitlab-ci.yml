@@ -1,4 +1,4 @@
-image: "hub.ricebook.net/base/centos:eru-core-onbuild-2016.09.01"
+image: "hub.ricebook.net/base/centos:onbuild-eru-core-2016.09.02"
 before_script:
   - "ln -s $CI_PROJECT_DIR $GOPATH/src/gitlab.ricebook.net/platform/core"
 stages:
