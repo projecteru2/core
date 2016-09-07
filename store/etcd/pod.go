@@ -41,7 +41,7 @@ func (k *krypton) AddPod(name, desc string) (*types.Pod, error) {
 		return nil, err
 	}
 
-	_, err = k.etcd.Set(context.Background(), key, string(bytes), nil)
+	_, err = k.etcd.Create(context.Background(), key, string(bytes))
 	if err != nil {
 		return nil, err
 	}

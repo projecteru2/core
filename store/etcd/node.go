@@ -14,6 +14,7 @@ import (
 	//	"time"
 
 	log "github.com/Sirupsen/logrus"
+	etcdclient "github.com/coreos/etcd/client"
 	engineapi "github.com/docker/engine-api/client"
 	"github.com/docker/go-connections/tlsconfig"
 	"gitlab.ricebook.net/platform/core/types"
@@ -63,6 +64,11 @@ func (k *krypton) AddNode(name, endpoint, podname, cafile, certfile, keyfile str
 		return nil, err
 	}
 
+	key := fmt.Sprintf(nodeInfoKey, podname, name)
+	if _, err := k.etcd.Get(context.Background(), key, nil); err == nil {
+		return nil, fmt.Errorf("Node (%s, %s) already exists", podname, name)
+	}
+
 	// 如果有tls的证书需要保存就保存一下
 	if cafile != "" && certfile != "" && keyfile != "" {
 		_, err = k.etcd.Set(context.Background(), fmt.Sprintf(nodeCaKey, podname, name), cafile, nil)
@@ -82,11 +88,13 @@ func (k *krypton) AddNode(name, endpoint, podname, cafile, certfile, keyfile str
 	// 尝试加载docker的客户端
 	engine, err := k.makeDockerClient(podname, name, endpoint, false)
 	if err != nil {
+		k.deleteNode(podname, name, endpoint)
 		return nil, err
 	}
 
 	info, err := engine.Info(context.Background())
 	if err != nil {
+		k.deleteNode(podname, name, endpoint)
 		return nil, err
 	}
 
@@ -95,7 +103,6 @@ func (k *krypton) AddNode(name, endpoint, podname, cafile, certfile, keyfile str
 		cpumap[strconv.Itoa(i)] = 10
 	}
 
-	key := fmt.Sprintf(nodeInfoKey, podname, name)
 	node := &types.Node{
 		Name:     name,
 		Endpoint: endpoint,
@@ -107,15 +114,33 @@ func (k *krypton) AddNode(name, endpoint, podname, cafile, certfile, keyfile str
 
 	bytes, err := json.Marshal(node)
 	if err != nil {
+		k.deleteNode(podname, name, endpoint)
 		return nil, err
 	}
 
-	_, err = k.etcd.Set(context.Background(), key, string(bytes), nil)
+	_, err = k.etcd.Create(context.Background(), key, string(bytes))
 	if err != nil {
+		k.deleteNode(podname, name, endpoint)
 		return nil, err
 	}
 
 	return node, nil
+}
+
+// 因为是先写etcd的证书再拿client
+// 所以可能出现实际上node创建失败但是却写好了证书的情况
+// 所以需要删除这些留存的证书
+// 至于结果是不是成功就无所谓了
+func (k *krypton) deleteNode(podname, nodename, endpoint string) {
+	key := fmt.Sprintf(nodePrefixKey, podname, nodename)
+	k.etcd.Delete(context.Background(), key, &etcdclient.DeleteOptions{Recursive: true})
+	k.deleteCertFiles(podname, nodename, endpoint)
+	log.Debugf("Node (%s, %s, %s) deleted", podname, nodename, endpoint)
+}
+
+// 既然有了上面的东西, 就加个API吧, 不过并不对外提供
+func (k *krypton) DeleteNode(node *types.Node) {
+	k.deleteNode(node.Podname, node.Name, node.Endpoint)
 }
 
 // get all nodes from etcd
@@ -356,4 +381,25 @@ func (k *krypton) dumpFromEtcd(podname, nodename, certprefix string) error {
 	}
 	log.Debugf("Dump ca.pem, cert.pem, key.pem from etcd for %q %q to %q", podname, nodename, certprefix)
 	return nil
+}
+
+// 删掉保存在本地的证书
+func (k *krypton) deleteCertFiles(podname, nodename, endpoint string) {
+	if k.config.Docker.CertPath == "" {
+		return
+	}
+
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return
+	}
+
+	host, _, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		return
+	}
+
+	certPath := filepath.Join(k.config.Docker.CertPath, host)
+	os.RemoveAll(certPath)
+	log.Debugf("Remove cert files in %s, by (%s, %s, %s)", certPath, podname, nodename, endpoint)
 }
