@@ -16,7 +16,7 @@ import (
 	"gitlab.ricebook.net/platform/core/rpc"
 	"gitlab.ricebook.net/platform/core/rpc/gen"
 	"gitlab.ricebook.net/platform/core/types"
-	"gitlab.ricebook.net/platform/core/version"
+	"gitlab.ricebook.net/platform/core/versioninfo"
 	"google.golang.org/grpc"
 	"gopkg.in/yaml.v2"
 )
@@ -107,13 +107,13 @@ func serve() {
 
 func main() {
 	cli.VersionPrinter = func(c *cli.Context) {
-		fmt.Print(version.VersionString())
+		fmt.Print(versioninfo.VersionString())
 	}
 
 	app := cli.NewApp()
-	app.Name = version.NAME
+	app.Name = versioninfo.NAME
 	app.Usage = "Run eru core"
-	app.Version = version.VERSION
+	app.Version = versioninfo.VERSION
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:        "config",

@@ -2,7 +2,11 @@
 
 REPO_PATH := gitlab.ricebook.net/platform/core
 REVISION := $(shell git rev-parse HEAD || unknown)
-GO_LDFLAGS ?= -s -X $(REPO_PATH)/version.REVISION=$(REVISION)
+BUILTAT := $(shell date +%Y-%m-%dT%H:%M:%S)
+VERSION := $(shell cat VERSION)
+GO_LDFLAGS ?= -s -X $(REPO_PATH)/versioninfo.REVISION=$(REVISION) \
+			  -X $(REPO_PATH)/versioninfo.BUILTAT=$(BUILTAT) \
+			  -X $(REPO_PATH)/versioninfo.VERSION=$(VERSION)
 
 golang:
 	cd ./rpc/gen/; protoc --go_out=plugins=grpc:. core.proto
