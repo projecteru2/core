@@ -25,6 +25,7 @@ type DockerConfig struct {
 	NetworkMode string `yaml:"network_mode"` // docker network mode
 	CertPath    string `yaml:"cert_path"`    // docker cert files path
 	Hub         string `yaml:"hub"`          // docker hub address
+	HubPrefix   string `yaml:"hub_prefix"`   // docker hub prefix, will be set to $Hub/$HubPrefix/$appname
 }
 
 type SchedConfig struct {

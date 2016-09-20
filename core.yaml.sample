@@ -17,6 +17,7 @@ docker:
     network_mode: "bridge"
     cert_path: ""
     hub: "hub.ricebook.net"
+    hub_prefix: ""
 
 scheduler:
     lock_key: "_scheduler_lock"

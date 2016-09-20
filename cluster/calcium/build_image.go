@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	log "github.com/Sirupsen/logrus"
@@ -150,7 +151,7 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 	}
 
 	// tag of image, later this will be used to push image to hub
-	tag := fmt.Sprintf("%s/%s:%s", c.config.Docker.Hub, specs.Appname, utils.TruncateID(version))
+	tag := createImageTag(c.config, specs.Appname, utils.TruncateID(version))
 
 	// create tar stream for Build API
 	buildContext, err := createTarStream(buildDir)
@@ -294,4 +295,14 @@ func createDockerfile(buildDir, uid, reponame string, specs types.Specs) error {
 		return err
 	}
 	return nil
+}
+
+// Image tag
+// 格式严格按照 Hub/HubPrefix/appname:version 来
+func createImageTag(config types.Config, appname, version string) string {
+	prefix := strings.Trim(config.Docker.HubPrefix, "/")
+	if prefix == "" {
+		return fmt.Sprintf("%s/%s:%s", config.Docker.Hub, appname, version)
+	}
+	return fmt.Sprintf("%s/%s/%s:%s", config.Docker.Hub, prefix, appname, version)
 }

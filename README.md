@@ -90,6 +90,7 @@ docker:
     network_mode: "bridge" # 默认网络模式, 用 bridge
     cert_path: "[cert_file_dir]" # docker tls 证书目录
     hub: "hub.ricebook.net" # docker hub 地址
+    hub_prefix: "namespace/test" # 存放镜像的命名空间, 两边的/会被去掉, 中间的会保留. 镜像名字会是$hub/$hub_prefix/appname:version
 
 scheduler:
     lock_key: "_scheduler_lock" # scheduler 用的锁的 key, 会在 etcd_lock_prefix 里面
@@ -110,8 +111,3 @@ $ export ERU_CONFIG_PATH=/path/to/core.yaml
 $ export ERU_LOG_LEVEL=DEBUG
 $ core
 ```
-
-## TODO
-
-- [x] more complicated scheduler
-- [x] networks, either use eru-agent or use docker plugin, the latter one is preferred
