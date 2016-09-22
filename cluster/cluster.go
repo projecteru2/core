@@ -14,6 +14,7 @@ type Cluster interface {
 	ListPodNodes(podname string) ([]*types.Node, error)
 	GetContainer(id string) (*types.Container, error)
 	GetContainers(ids []string) ([]*types.Container, error)
+	ListNetworks(podname string) ([]*types.Network, error)
 
 	// cluster methods
 	BuildImage(repository, version, uid, artifact string) (chan *types.BuildImageMessage, error)

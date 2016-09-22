@@ -5,7 +5,9 @@ import (
 	"net"
 
 	log "github.com/Sirupsen/logrus"
+	enginetypes "github.com/docker/engine-api/types"
 	enginenetwork "github.com/docker/engine-api/types/network"
+	"gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/utils"
 	"golang.org/x/net/context"
 )
@@ -33,7 +35,7 @@ func (t *titanium) ConnectToNetwork(ctx context.Context, containerID, networkID,
 
 	engine, ok := utils.FromDockerContext(ctx)
 	if !ok {
-		return fmt.Errorf("Not actually a `engineapi.Client` for value engine in context", containerID)
+		return fmt.Errorf("Not actually a `engineapi.Client` for value engine in context")
 	}
 
 	config := &enginenetwork.EndpointSettings{
@@ -63,11 +65,41 @@ func (t *titanium) DisconnectFromNetwork(ctx context.Context, containerID, netwo
 
 	engine, ok := utils.FromDockerContext(ctx)
 	if !ok {
-		return fmt.Errorf("Not actually a `engineapi.Client` for value engine in context", containerID)
+		return fmt.Errorf("Not actually a `engineapi.Client` for value engine in context")
 	}
 
 	log.Debugf("Disconnect %q from %q", containerID, networkID)
 	return engine.NetworkDisconnect(context.Background(), networkID, containerID, false)
+}
+
+// list networks from context
+func (t *titanium) ListNetworks(ctx context.Context) ([]*types.Network, error) {
+	networks := []*types.Network{}
+	engine, ok := utils.FromDockerContext(ctx)
+	if !ok {
+		return networks, fmt.Errorf("Not actually a `engineapi.Client` for value engine in context")
+	}
+
+	ns, err := engine.NetworkList(context.Background(), enginetypes.NetworkListOptions{})
+	if err != nil {
+		return networks, err
+	}
+
+	driver := t.Name()
+	for _, n := range ns {
+		// TODO 之后可以用filter driver=xxx
+		// 但是现在版本的API还没有给出
+		if n.Driver != driver {
+			continue
+		}
+
+		subnets := []string{}
+		for _, config := range n.IPAM.Config {
+			subnets = append(subnets, config.Subnet)
+		}
+		networks = append(networks, &types.Network{Name: n.Name, Subnets: subnets})
+	}
+	return networks, nil
 }
 
 func New() *titanium {

@@ -95,6 +95,23 @@ def get_pod_nodes(ctx, name):
         click.echo(node)
 
 
+@cli.command('pod:networks')
+@click.argument('name')
+@click.pass_context
+def get_pod_networks(ctx, name):
+    stub = _get_stub(ctx)
+    opts = pb.GetPodOptions(name=name)
+
+    try:
+        r = stub.ListNetworks(opts, 5)
+    except AbortionError as e:
+        click.echo(click.style('abortion error: %s' % e.details, fg='red', bold=True))
+        ctx.exit(-1)
+
+    for n in r.networks:
+        click.echo('%s: %s' % (n.name, ','.join(n.subnets)))
+
+
 @cli.command('node:get')
 @click.argument('podname')
 @click.argument('nodename')

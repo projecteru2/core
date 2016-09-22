@@ -12,6 +12,7 @@ service CoreRPC {
     rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
     rpc GetContainer(ContainerID) returns (Container) {};
     rpc GetContainers(ContainerIDs) returns (Containers) {};
+    rpc ListNetworks(GetPodOptions) returns (Networks) {};
 
     rpc BuildImage(BuildImageOptions) returns (stream BuildImageMessage) {};
     rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage);
@@ -30,6 +31,15 @@ message Pod {
 
 message Pods {
     repeated Pod pods = 1;
+}
+
+message Network {
+    string name = 1;
+    repeated string subnets = 2;
+}
+
+message Networks {
+    repeated Network networks = 1;
 }
 
 message Node {

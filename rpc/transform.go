@@ -19,6 +19,10 @@ func toRPCPod(p *types.Pod) *pb.Pod {
 	return &pb.Pod{Name: p.Name, Desc: p.Desc}
 }
 
+func toRPCNetwork(n *types.Network) *pb.Network {
+	return &pb.Network{Name: n.Name, Subnets: n.Subnets}
+}
+
 func toRPCNode(n *types.Node) *pb.Node {
 	bytes := []byte("")
 	if info, err := n.Info(); err == nil {

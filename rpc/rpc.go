@@ -140,6 +140,20 @@ func (v *virbranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (
 	return &pb.Containers{Containers: cs}, nil
 }
 
+// list networks for pod
+func (v *virbranium) ListNetworks(ctx context.Context, opts *pb.GetPodOptions) (*pb.Networks, error) {
+	networks, err := v.cluster.ListNetworks(opts.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	ns := []*pb.Network{}
+	for _, n := range networks {
+		ns = append(ns, toRPCNetwork(n))
+	}
+	return &pb.Networks{Networks: ns}, nil
+}
+
 // streamed returned functions
 // caller must ensure that timeout will not be too short because these actions take a little time
 func (v *virbranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_BuildImageServer) error {
