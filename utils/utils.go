@@ -130,15 +130,19 @@ func AllocContainerPlan(nodeInfo ByCoreNum, quota int, count int) (map[string]in
 	for i := flag; i < N; i++ {
 		result[nodeInfo[i].Name] = ave
 	}
+	resLen := int64(len(result))
 	if remain > 0 {
 	r:
 		for {
-			for node, _ := range result {
-				result[node] += 1
-				remain--
-				if remain <= 0 {
-					break r
-				}
+			// 考虑一种情况：不断申请一个 quota 相同的容器
+			// 按原来的算法，这个容器会堆积在同一台机上面
+			// 加入随机化的选择可以避免这种情况
+			step, _ := rand.Int(rand.Reader, big.NewInt(resLen))
+			node := nodeInfo[flag+int(step.Int64())].Name
+			result[node] += 1
+			remain--
+			if remain <= 0 {
+				break r
 			}
 		}
 	}
