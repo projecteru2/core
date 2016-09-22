@@ -44,3 +44,19 @@ func TestGetGitRepoName(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, r1, "core")
 }
+
+func TestContinuousAddingContainer(t *testing.T) {
+	testPodInfo := ByCoreNum{}
+	node1 := NodeInfo{"n1", 20000}
+	node2 := NodeInfo{"n2", 30000}
+	//	node3 := NodeInfo{"n3", 10000}
+	testPodInfo = append(testPodInfo, node1)
+	testPodInfo = append(testPodInfo, node2)
+	//	testPodInfo = append(testPodInfo, node3)
+
+	for i := 0; i < 10; i++ {
+		res, err := AllocContainerPlan(testPodInfo, 10000, 1)
+		fmt.Println(res)
+		assert.NoError(t, err)
+	}
+}
