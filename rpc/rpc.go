@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	log "github.com/Sirupsen/logrus"
 	"gitlab.ricebook.net/platform/core/cluster"
 	"gitlab.ricebook.net/platform/core/rpc/gen"
 	"gitlab.ricebook.net/platform/core/types"
@@ -164,6 +165,11 @@ func (v *virbranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bu
 
 	for m := range ch {
 		if err := stream.Send(toRPCBuildImageMessage(m)); err != nil {
+			go func() {
+				for r := range ch {
+					log.Infof("[BuildImage] Unsent streamed message: %v", r)
+				}
+			}()
 			return err
 		}
 	}
@@ -183,6 +189,11 @@ func (v *virbranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_C
 
 	for m := range ch {
 		if err := stream.Send(toRPCCreateContainerMessage(m)); err != nil {
+			go func() {
+				for r := range ch {
+					log.Infof("[CreateContainer] Unsent streamed message: %v", r)
+				}
+			}()
 			return err
 		}
 	}
@@ -202,6 +213,11 @@ func (v *virbranium) UpgradeContainer(opts *pb.UpgradeOptions, stream pb.CoreRPC
 
 	for m := range ch {
 		if err := stream.Send(toRPCUpgradeContainerMessage(m)); err != nil {
+			go func() {
+				for r := range ch {
+					log.Infof("[UpgradeContainer] Unsent streamed message: %v", r)
+				}
+			}()
 			return err
 		}
 	}
@@ -225,6 +241,11 @@ func (v *virbranium) RemoveContainer(cids *pb.ContainerIDs, stream pb.CoreRPC_Re
 
 	for m := range ch {
 		if err := stream.Send(toRPCRemoveContainerMessage(m)); err != nil {
+			go func() {
+				for r := range ch {
+					log.Infof("[RemoveContainer] Unsent streamed message: %v", r)
+				}
+			}()
 			return err
 		}
 	}
@@ -239,6 +260,11 @@ func (v *virbranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_
 
 	for m := range ch {
 		if err := stream.Send(toRPCRemoveImageMessage(m)); err != nil {
+			go func() {
+				for r := range ch {
+					log.Infof("[RemoveImage] Unsent streamed message: %v", r)
+				}
+			}()
 			return err
 		}
 	}
