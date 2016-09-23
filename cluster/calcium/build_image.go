@@ -92,8 +92,12 @@ func getRandomNode(c *calcium, podname string) (*types.Node, error) {
 func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *types.BuildImageMessage, error) {
 	ch := make(chan *types.BuildImageMessage)
 
-	// use pod `dev` to build image
-	node, err := getRandomNode(c, "dev")
+	buildPodname := c.config.Docker.BuildPod
+	if buildPodname == "" {
+		// use pod `dev` to build image as default
+		buildPodname = "dev"
+	}
+	node, err := getRandomNode(c, buildPodname)
 	if err != nil {
 		return ch, err
 	}

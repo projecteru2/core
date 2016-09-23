@@ -18,6 +18,7 @@ docker:
     cert_path: ""
     hub: "hub.ricebook.net"
     hub_prefix: ""
+    build_pod: ""
 
 scheduler:
     lock_key: "_scheduler_lock"
