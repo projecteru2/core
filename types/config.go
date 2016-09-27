@@ -27,6 +27,7 @@ type DockerConfig struct {
 	Hub         string `yaml:"hub"`          // docker hub address
 	HubPrefix   string `yaml:"hub_prefix"`   // docker hub prefix, will be set to $Hub/$HubPrefix/$appname
 	BuildPod    string `yaml:"build_pod"`    // podname used to build
+	UseLocalDNS bool   `yaml:"local_dns"`    // use node IP as dns
 }
 
 type SchedConfig struct {

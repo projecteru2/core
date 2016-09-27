@@ -78,7 +78,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 	}
 
 	for i := 0; i < connum; i++ {
-		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(nil, specs, opts, "cpuperiod")
+		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(nil, specs, opts, "cpuperiod", node.GetIP())
 		if err != nil {
 			log.Errorf("error when creating CreateContainerOptions, %v", err)
 			ms[i].Error = err.Error()
@@ -334,7 +334,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 
 	for i, quota := range cpumap {
 		// create options
-		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(quota, specs, opts, "scheduler")
+		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(quota, specs, opts, "scheduler", node.GetIP())
 		if err != nil {
 			log.Errorf("error when creating CreateContainerOptions, %v", err)
 			ms[i].Error = err.Error()
@@ -435,7 +435,7 @@ func (c *calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
 	c.store.UpdateNodeCPU(node.Podname, node.Name, quota, "+")
 }
 
-func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, opts *types.DeployOptions, optionMode string) (
+func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, opts *types.DeployOptions, optionMode, nodeIP string) (
 	*enginecontainer.Config,
 	*enginecontainer.HostConfig,
 	*enginenetwork.NetworkingConfig,
@@ -573,6 +573,15 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 		networkMode = c.config.Docker.NetworkMode
 	}
 
+	// dns
+	// 如果有给dns就优先用给定的dns.
+	// 没有给出dns的时候, 如果设定是用宿主机IP作为dns, 就会把宿主机IP设置过去.
+	// 其他情况就是默认值.
+	dns := specs.DNS
+	if len(dns) == 0 && c.config.Docker.UseLocalDNS && nodeIP != "" {
+		dns = []string{nodeIP}
+	}
+
 	config := &enginecontainer.Config{
 		Env:             env,
 		Cmd:             cmd,
@@ -602,6 +611,7 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 
 	hostConfig := &enginecontainer.HostConfig{
 		Binds:         binds,
+		DNS:           dns,
 		LogConfig:     enginecontainer.LogConfig{Type: logConfig},
 		NetworkMode:   enginecontainer.NetworkMode(networkMode),
 		RestartPolicy: enginecontainer.RestartPolicy{Name: entry.RestartPolicy, MaximumRetryCount: 3},
