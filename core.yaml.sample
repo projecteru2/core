@@ -19,6 +19,7 @@ docker:
     hub: "hub.ricebook.net"
     hub_prefix: ""
     build_pod: ""
+    local_dns: true
 
 scheduler:
     lock_key: "_scheduler_lock"
