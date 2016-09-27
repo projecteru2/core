@@ -577,8 +577,9 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	// 如果有给dns就优先用给定的dns.
 	// 没有给出dns的时候, 如果设定是用宿主机IP作为dns, 就会把宿主机IP设置过去.
 	// 其他情况就是默认值.
+	// 哦对, networkMode如果是host也不给dns.
 	dns := specs.DNS
-	if len(dns) == 0 && c.config.Docker.UseLocalDNS && nodeIP != "" {
+	if len(dns) == 0 && c.config.Docker.UseLocalDNS && nodeIP != "" && networkMode != "host" {
 		dns = []string{nodeIP}
 	}
 
