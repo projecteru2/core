@@ -172,6 +172,7 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 		ForceRemove:    true,
 		PullParent:     true,
 	}
+	log.Infof("Building image %v at %v:%v", tag, buildPodname, node.Name)
 	resp, err := node.Engine.ImageBuild(context.Background(), buildContext, buildOptions)
 	if err != nil {
 		return ch, err
@@ -218,6 +219,12 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 			}
 			ch <- message
 		}
+
+		rmiOpts := enginetypes.ImageRemoveOptions{
+			Force:         false,
+			PruneChildren: true,
+		}
+		go node.Engine.ImageRemove(context.Background(), tag, rmiOpts)
 
 		ch <- &types.BuildImageMessage{Status: "finished", Progress: tag}
 		close(ch)
