@@ -157,3 +157,44 @@ func GetNodesInfo(cpumap map[string]types.CPUMap) ByCoreNum {
 	sort.Sort(result)
 	return result
 }
+
+// copied from https://gist.github.com/jmervine/d88c75329f98e09f5c87
+func safeSplit(s string) []string {
+	split := strings.Split(s, " ")
+
+	var result []string
+	var inquote string
+	var block string
+	for _, i := range split {
+		if inquote == "" {
+			if strings.HasPrefix(i, "'") || strings.HasPrefix(i, "\"") {
+				inquote = string(i[0])
+				block = strings.TrimPrefix(i, inquote) + " "
+			} else {
+				result = append(result, i)
+			}
+		} else {
+			if !strings.HasSuffix(i, inquote) {
+				block += i + " "
+			} else {
+				block += strings.TrimSuffix(i, inquote)
+				inquote = ""
+				result = append(result, block)
+				block = ""
+			}
+		}
+	}
+
+	return result
+}
+
+func MakeCommandLineArgs(s string) []string {
+	r := []string{}
+	for _, part := range safeSplit(s) {
+		if len(part) == 0 {
+			continue
+		}
+		r = append(r, part)
+	}
+	return r
+}

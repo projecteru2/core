@@ -9,6 +9,7 @@ type DeployOptions struct {
 	Podname    string            // Name of pod to deploy
 	Nodename   string            // Specific nodes to deploy, if given, must belong to pod
 	Entrypoint string            // Entrypoint to deploy
+	ExtraArgs  string            // Extra arguments to append to command
 	CPUQuota   float64           // How many cores needed, e.g. 1.5
 	Count      int               // How many containers needed, e.g. 4
 	Memory     int64             // Memory for container, in bytes

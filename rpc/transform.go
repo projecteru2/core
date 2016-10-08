@@ -63,6 +63,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) *types.DeployOptions {
 		Podname:    d.Podname,
 		Nodename:   d.Nodename,
 		Entrypoint: d.Entrypoint,
+		ExtraArgs:  d.ExtraArgs,
 		CPUQuota:   d.CpuQuota,
 		Count:      int(d.Count),
 		Memory:     d.Memory,

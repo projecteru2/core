@@ -453,11 +453,12 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 		user = ""
 	}
 	// command and user
-	slices := strings.Split(entry.Command, " ")
-	starter, needNetwork := "launcher", "network"
+	slices := utils.MakeCommandLineArgs(entry.Command + " " + opts.ExtraArgs)
+
 	// if not use raw to deploy, or use agent as network manager
 	// we need to use our own script to start command
 	if !opts.Raw && c.network.Type() == "agent" {
+		starter, needNetwork := "launcher", "network"
 		if entry.Privileged != "" {
 			starter = "launcheroot"
 		}

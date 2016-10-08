@@ -60,3 +60,10 @@ func TestContinuousAddingContainer(t *testing.T) {
 		assert.NoError(t, err)
 	}
 }
+
+func TestMakeCommandLine(t *testing.T) {
+	r1 := MakeCommandLineArgs("/bin/bash -l -c 'echo \"foo bar bah bin\"'")
+	assert.Equal(t, r1, []string{"/bin/bash", "-l", "-c", "echo \"foo bar bah bin\""})
+	r2 := MakeCommandLineArgs(" test -a   -b   -d")
+	assert.Equal(t, r2, []string{"test", "-a", "-b", "-d"})
+}

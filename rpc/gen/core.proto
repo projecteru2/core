@@ -119,12 +119,13 @@ message DeployOptions {
     string podname = 4;
     string nodename = 5;
     string entrypoint = 6;
-    double cpu_quota = 7;
-    int32 count = 8;
-    int64 memory = 9;
-    repeated string env = 10;
-    map<string, string> networks = 11;
-    bool raw = 12;
+    string extra_args = 7;
+    double cpu_quota = 8;
+    int32 count = 9;
+    int64 memory = 10;
+    repeated string env = 11;
+    map<string, string> networks = 12;
+    bool raw = 13;
 }
 
 message UpgradeOptions {
