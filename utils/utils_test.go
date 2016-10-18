@@ -45,20 +45,64 @@ func TestGetGitRepoName(t *testing.T) {
 	assert.Equal(t, r1, "core")
 }
 
+func updateByCoreNum(input ByCoreNum, plan map[string]int, memory int64) ByCoreNum {
+	result := ByCoreNum{}
+	for _, node := range input {
+		memoryChange := int64(plan[node.Name]) * memory
+		node.Memory -= memoryChange
+		result = append(result, node)
+	}
+	return result
+}
+
 func TestContinuousAddingContainer(t *testing.T) {
+	// 测试分配算法随机性
 	testPodInfo := ByCoreNum{}
-	node1 := NodeInfo{"n1", 20000}
-	node2 := NodeInfo{"n2", 30000}
+	node1 := NodeInfo{"n1", 20000, 3 * 1024 * 1024 * 1024}
+	node2 := NodeInfo{"n2", 30000, 3 * 1024 * 1024 * 1024}
 	//	node3 := NodeInfo{"n3", 10000}
 	testPodInfo = append(testPodInfo, node1)
 	testPodInfo = append(testPodInfo, node2)
 	//	testPodInfo = append(testPodInfo, node3)
 
-	for i := 0; i < 10; i++ {
-		res, err := AllocContainerPlan(testPodInfo, 10000, 1)
+	for i := 0; i < 7; i++ {
+		res, err := AllocContainerPlan(testPodInfo, 10000, 512*1024*1024, 1)
+		testPodInfo = updateByCoreNum(testPodInfo, res, 512*1024*1024)
+		// fmt.Println(testPodInfo)
 		fmt.Println(res)
 		assert.NoError(t, err)
 	}
+}
+
+func TestAllocContainerPlan(t *testing.T) {
+	testPodInfo := ByCoreNum{}
+	node1 := NodeInfo{"n1", 30000, 512 * 1024 * 1024}
+	node2 := NodeInfo{"n2", 30000, 3 * 512 * 1024 * 1024}
+	node3 := NodeInfo{"n3", 30000, 5 * 512 * 1024 * 1024}
+	testPodInfo = append(testPodInfo, node1)
+	testPodInfo = append(testPodInfo, node2)
+	testPodInfo = append(testPodInfo, node3)
+
+	res1, _ := AllocContainerPlan(testPodInfo, 10000, 512*1024*1024, 3)
+	assert.Equal(t, res1["n1"], 1)
+	assert.Equal(t, res1["n2"], 1)
+	assert.Equal(t, res1["n3"], 1)
+
+	res2, _ := AllocContainerPlan(testPodInfo, 10000, 512*1024*1024, 5)
+	assert.Equal(t, res2["n1"], 1)
+	assert.Equal(t, res2["n2"], 2)
+	assert.Equal(t, res2["n3"], 2)
+
+	res3, _ := AllocContainerPlan(testPodInfo, 10000, 512*1024*1024, 6)
+	assert.Equal(t, res3["n1"], 1)
+	assert.True(t, res3["n2"] >= 2)
+	fmt.Printf("Container in n2: %d.\n", res3["n2"])
+	assert.True(t, res3["n3"] >= 2)
+	fmt.Printf("Container in n3: %d.\n", res3["n3"])
+
+	_, err := AllocContainerPlan(testPodInfo, 10000, 512*1024*1024, 10)
+	assert.Error(t, err, "Cannot alloc a plan, not enough memory.")
+
 }
 
 func TestMakeCommandLine(t *testing.T) {

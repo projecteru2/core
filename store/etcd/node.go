@@ -22,6 +22,8 @@ import (
 	"golang.org/x/net/context"
 )
 
+const GIGABYTE = 1073741824
+
 // get a node from etcd
 // and construct it's docker client
 // a node must belong to a pod
@@ -103,12 +105,15 @@ func (k *krypton) AddNode(name, endpoint, podname, cafile, certfile, keyfile str
 		cpumap[strconv.Itoa(i)] = 10
 	}
 
+	memcap := info.MemTotal - GIGABYTE // 可用内存为总内存减 1G
+
 	node := &types.Node{
 		Name:     name,
 		Endpoint: endpoint,
 		Podname:  podname,
 		Public:   public,
 		CPU:      cpumap,
+		MemCap:   memcap,
 		Engine:   engine,
 	}
 
@@ -205,6 +210,50 @@ func (k *krypton) UpdateNode(node *types.Node) error {
 	}
 
 	_, err = k.etcd.Set(context.Background(), key, string(bytes), nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (k *krypton) UpdateNodeMem(podname, nodename string, mem int64, action string) error {
+	lock, err := k.CreateLock(fmt.Sprintf("%s_%s", podname, nodename), 30)
+	if err != nil {
+		return err
+	}
+
+	if err := lock.Lock(); err != nil {
+		return err
+	}
+	defer lock.Unlock()
+
+	nodeKey := fmt.Sprintf(nodeInfoKey, podname, nodename)
+	resp, err := k.etcd.Get(context.Background(), nodeKey, nil)
+	if err != nil {
+		return err
+	}
+	if resp.Node.Dir {
+		return fmt.Errorf("Node storage path %q in etcd is a directory", nodeKey)
+	}
+	node := &types.Node{}
+	if err := json.Unmarshal([]byte(resp.Node.Value), node); err != nil {
+		return err
+	}
+
+	if action == "add" || action == "+" {
+		node.MemCap += mem
+	} else if action == "sub" || action == "-" {
+		node.MemCap -= mem
+	}
+
+	bytes, err := json.Marshal(node)
+	if err != nil {
+		return err
+	}
+
+	log.Debugf(string(bytes))
+	_, err = k.etcd.Set(context.Background(), nodeKey, string(bytes), nil)
 	if err != nil {
 		return err
 	}

@@ -18,9 +18,10 @@ type Store interface {
 	GetAllNodes() ([]*types.Node, error)
 	UpdateNode(*types.Node) error
 	UpdateNodeCPU(podname, nodename string, cpu types.CPUMap, action string) error
+	UpdateNodeMem(podname, nodename string, mem int64, action string) error
 
 	// container
-	AddContainer(id, podname, nodename, name string, cpu types.CPUMap) (*types.Container, error)
+	AddContainer(id, podname, nodename, name string, cpu types.CPUMap, mem int64) (*types.Container, error)
 	GetContainer(id string) (*types.Container, error)
 	GetContainers(ids []string) ([]*types.Container, error)
 	RemoveContainer(id string) error

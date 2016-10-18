@@ -13,6 +13,11 @@ import (
 
 type CPUMap map[string]int
 
+type CPUAndMem struct {
+	CpuMap CPUMap
+	MemCap int64
+}
+
 // total quotas
 func (c CPUMap) Total() int {
 	count := 0
@@ -48,6 +53,7 @@ type Node struct {
 	Podname  string            `json:"podname"`
 	Public   bool              `json:"public"`
 	CPU      CPUMap            `json:"cpu"`
+	MemCap   int64             `json:"memcap"`
 	Engine   *engineapi.Client `json:"-"`
 }
 
