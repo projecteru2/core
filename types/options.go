@@ -16,4 +16,5 @@ type DeployOptions struct {
 	Env        []string          // Env for container
 	Networks   map[string]string // Network names and specified IPs
 	Raw        bool              // If use raw, launcher won't be used
+	Debug      bool              // debug mode, use syslog as log driver
 }

@@ -526,9 +526,22 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	}
 
 	// log config
-	logConfig := c.config.Docker.LogDriver
+	// 默认是配置里的driver, 如果entrypoint有指定json-file就用json-file.
+	// 如果是debug模式就用syslog, 拿配置里的syslog配置来发送.
+	logDriver := c.config.Docker.LogDriver
 	if entry.LogConfig == "json-file" {
-		logConfig = "json-file"
+		logDriver = "json-file"
+	}
+	logConfig := enginecontainer.LogConfig{Type: logDriver}
+	if opts.Debug {
+		logConfig.Type = "syslog"
+		logConfig.Config = map[string]string{
+			"syslog-address":  c.config.Syslog.Address,
+			"syslog-facility": c.config.Syslog.Facility,
+			"syslog-format":   c.config.Syslog.Format,
+			"tag":             "ERU",
+			"labels":          specs.Appname,
+		}
 	}
 
 	// working dir 默认是空, 也就是根目录
@@ -614,7 +627,7 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	hostConfig := &enginecontainer.HostConfig{
 		Binds:         binds,
 		DNS:           dns,
-		LogConfig:     enginecontainer.LogConfig{Type: logConfig},
+		LogConfig:     logConfig,
 		NetworkMode:   enginecontainer.NetworkMode(networkMode),
 		RestartPolicy: enginecontainer.RestartPolicy{Name: entry.RestartPolicy, MaximumRetryCount: 3},
 		CapAdd:        engineslice.StrSlice(capAdd),

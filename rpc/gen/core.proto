@@ -126,6 +126,7 @@ message DeployOptions {
     repeated string env = 11;
     map<string, string> networks = 12;
     bool raw = 13;
+    bool debug = 14;
 }
 
 message UpgradeOptions {

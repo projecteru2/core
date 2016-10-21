@@ -11,6 +11,7 @@ type Config struct {
 	Git       GitConfig    `yaml:"git"`
 	Docker    DockerConfig `yaml:"docker"`
 	Scheduler SchedConfig  `yaml:"scheduler"`
+	Syslog    SyslogConfig `yaml:"syslog"`
 }
 
 type GitConfig struct {
@@ -34,4 +35,11 @@ type SchedConfig struct {
 	LockKey string `yaml:"lock_key"` // key for etcd lock
 	LockTTL int    `yaml:"lock_ttl"` // TTL for etcd lock
 	Type    string `yaml:"type"`     // choose simple or complex scheduler
+}
+
+// 用于debug模式容器的日志收集
+type SyslogConfig struct {
+	Address  string `yaml:"address"`
+	Facility string `yaml:"facility"`
+	Format   string `yaml:"format"`
 }
