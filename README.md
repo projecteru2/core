@@ -111,3 +111,10 @@ $ export ERU_CONFIG_PATH=/path/to/core.yaml
 $ export ERU_LOG_LEVEL=DEBUG
 $ core
 ```
+
+
+### Use client.py
+
+```
+$ devtools/client.py --grpc-host core-grpc.intra.ricebook.net node:get intra c2-docker-7
+```
