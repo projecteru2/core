@@ -32,14 +32,16 @@ func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) 
 func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
 
-	cpumap, _, err := c.getCPUMap(opts.Podname, opts.Nodename, 1.0)
+	cpuandmem, _, err := c.getCPUAndMem(opts.Podname, opts.Nodename, 1.0)
 	if err != nil {
 		return ch, err
 	}
-	nodesInfo := utils.GetNodesInfo(cpumap)
+	nodesInfo := utils.GetNodesInfo(cpuandmem)
 
 	cpuQuota := int(opts.CPUQuota * float64(utils.CpuPeriodBase))
-	plan, err := utils.AllocContainerPlan(nodesInfo, cpuQuota, opts.Count)
+	// memory := opts.Memory / 1024 / 1024 // 转换成MB
+	plan, err := utils.AllocContainerPlan(nodesInfo, cpuQuota, opts.Memory, opts.Count) // 还是以 Bytes 作单位， 不转换了
+
 	if err != nil {
 		return ch, err
 	}
@@ -68,6 +70,11 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 		ms[i] = &types.CreateContainerMessage{}
 	}
 
+	// 更新 MemCap
+	// memory := opts.Memory / 1024 / 1024
+	memoryTotal := opts.Memory * int64(connum)
+	c.store.UpdateNodeMem(opts.Podname, nodename, memoryTotal, "-")
+
 	node, err := c.GetNode(opts.Podname, nodename)
 	if err != nil {
 		return ms
@@ -81,6 +88,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(nil, specs, opts, "cpuperiod", node.GetIP())
 		if err != nil {
 			log.Errorf("error when creating CreateContainerOptions, %v", err)
+			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+") // 创建容器失败就要把资源还回去对不对？
 			ms[i].Error = err.Error()
 			continue
 		}
@@ -90,6 +98,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 		if err != nil {
 			log.Errorf("error when creating container, %v", err)
 			ms[i].Error = err.Error()
+			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
 			continue
 		}
 
@@ -102,6 +111,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 			// need to ensure all networks are correctly connected
 			for networkID, ipv4 := range opts.Networks {
 				if err = c.network.ConnectToNetwork(ctx, container.ID, networkID, ipv4); err != nil {
+					c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
 					log.Errorf("error when connecting container %q to network %q, %q", container.ID, networkID, err.Error())
 					breaked = true
 					break
@@ -119,6 +129,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 			// if any break occurs, then this container needs to be removed
 			if breaked {
 				ms[i].Error = err.Error()
+				c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
 				go node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{})
 				continue
 			}
@@ -128,6 +139,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 		if err != nil {
 			log.Errorf("error when starting container, %v", err)
 			ms[i].Error = err.Error()
+			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
 			go node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{})
 			continue
 		}
@@ -140,12 +152,14 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 		if err != nil {
 			log.Errorf("error when inspecting container, %v", err)
 			ms[i].Error = err.Error()
+			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
 			continue
 		}
 
-		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, nil)
+		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, nil, opts.Memory)
 		if err != nil {
 			ms[i].Error = err.Error()
+			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
 			continue
 		}
 
@@ -157,6 +171,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 			Error:         "",
 			Success:       true,
 			CPU:           nil,
+			Memory:        opts.Memory,
 		}
 
 	}
@@ -205,16 +220,24 @@ func (c *calcium) createContainerWithScheduler(specs types.Specs, opts *types.De
 	return ch, nil
 }
 
-func makeCPUMap(nodes []*types.Node) map[string]types.CPUMap {
-	r := make(map[string]types.CPUMap)
+func makeCPUAndMem(nodes []*types.Node) map[string]types.CPUAndMem {
+	r := make(map[string]types.CPUAndMem)
 	for _, node := range nodes {
-		r[node.Name] = node.CPU
+		r[node.Name] = types.CPUAndMem{node.CPU, node.MemCap}
 	}
 	return r
 }
 
-func (c *calcium) getCPUMap(podname, nodename string, quota float64) (map[string]types.CPUMap, []*types.Node, error) {
-	result := make(map[string]types.CPUMap)
+func makeCPUMap(nodes map[string]types.CPUAndMem) map[string]types.CPUMap {
+	r := make(map[string]types.CPUMap)
+	for key, node := range nodes {
+		r[key] = node.CpuMap
+	}
+	return r
+}
+
+func (c *calcium) getCPUAndMem(podname, nodename string, quota float64) (map[string]types.CPUAndMem, []*types.Node, error) {
+	result := make(map[string]types.CPUAndMem)
 	lock, err := c.store.CreateLock(podname, 30)
 	if err != nil {
 		return result, nil, err
@@ -250,7 +273,7 @@ func (c *calcium) getCPUMap(podname, nodename string, quota float64) (map[string
 		return result, nil, fmt.Errorf("No available nodes")
 	}
 
-	result = makeCPUMap(nodes)
+	result = makeCPUAndMem(nodes)
 	return result, nodes, nil
 }
 
@@ -259,10 +282,11 @@ func (c *calcium) getCPUMap(podname, nodename string, quota float64) (map[string
 func (c *calcium) prepareNodes(podname, nodename string, quota float64, num int) (map[string][]types.CPUMap, error) {
 	result := make(map[string][]types.CPUMap)
 
-	cpumap, nodes, err := c.getCPUMap(podname, nodename, quota)
+	cpuandmem, nodes, err := c.getCPUAndMem(podname, nodename, quota)
 	if err != nil {
 		return result, err
 	}
+	cpumap := makeCPUMap(cpuandmem) // 做这个转换，免得改太多
 	// use podname as lock key to prevent scheduling on the same node at one time
 	result, changed, err := c.scheduler.SelectNodes(cpumap, quota, num) // 这个接口统一使用float64了
 	if err != nil {
@@ -404,7 +428,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 			continue
 		}
 
-		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, quota)
+		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, quota, opts.Memory)
 		if err != nil {
 			ms[i].Error = err.Error()
 			c.releaseQuota(node, quota)
@@ -792,7 +816,7 @@ func (c *calcium) doUpgradeContainer(containers []*types.Container, image string
 		}
 
 		// if so, add a new container in etcd
-		_, err = c.store.AddContainer(newInfo.ID, container.Podname, container.Nodename, containerName, container.CPU)
+		_, err = c.store.AddContainer(newInfo.ID, container.Podname, container.Nodename, containerName, container.CPU, container.Memory)
 		if err != nil {
 			ms[i].Error = err.Error()
 			go engine.ContainerRemove(context.Background(), newContainer.ID, enginetypes.ContainerRemoveOptions{})

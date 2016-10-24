@@ -60,7 +60,7 @@ func (k *krypton) GetContainers(ids []string) ([]*types.Container, error) {
 // actually if we already know its node, we will know its pod
 // but we still store it
 // storage path in etcd is `/eru-core/container/:containerid`
-func (k *krypton) AddContainer(id, podname, nodename, name string, cpu types.CPUMap) (*types.Container, error) {
+func (k *krypton) AddContainer(id, podname, nodename, name string, cpu types.CPUMap, memory int64) (*types.Container, error) {
 	// first we check if node really exists
 	node, err := k.GetNode(podname, nodename)
 	if err != nil {
@@ -82,6 +82,7 @@ func (k *krypton) AddContainer(id, podname, nodename, name string, cpu types.CPU
 		Nodename: nodename,
 		Name:     name,
 		CPU:      cpu,
+		Memory:   memory,
 		Engine:   node.Engine,
 	}
 

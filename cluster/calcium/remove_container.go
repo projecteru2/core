@@ -116,5 +116,6 @@ func (c *calcium) removeOneContainer(container *types.Container) error {
 			return err
 		}
 	}
+	c.store.UpdateNodeMem(node.Podname, node.Name, container.Memory, "+")
 	return c.store.RemoveContainer(info.ID)
 }

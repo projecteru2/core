@@ -33,6 +33,7 @@ type CreateContainerMessage struct {
 	Error         string
 	Success       bool
 	CPU           CPUMap
+	Memory        int64
 }
 
 type PullImageMessage struct {

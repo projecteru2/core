@@ -81,6 +81,11 @@ func (m *MockStore) UpdateNodeCPU(podname, nodename string, cpu types.CPUMap, ac
 	return args.Error(0)
 }
 
+func (m *MockStore) UpdateNodeMem(podname, nodename string, memory int64, action string) error {
+	args := m.Called(podname, nodename, memory, action)
+	return args.Error(0)
+}
+
 func (m *MockStore) GetContainer(id string) (*types.Container, error) {
 	args := m.Called(id)
 	if args.Get(0) != nil {
@@ -94,8 +99,8 @@ func (m *MockStore) GetContainers(ids []string) ([]*types.Container, error) {
 	return args.Get(0).([]*types.Container), args.Error(1)
 }
 
-func (m *MockStore) AddContainer(id, podname, nodename, name string, cpu types.CPUMap) (*types.Container, error) {
-	args := m.Called(id, podname, nodename, name, cpu)
+func (m *MockStore) AddContainer(id, podname, nodename, name string, cpu types.CPUMap, memory int64) (*types.Container, error) {
+	args := m.Called(id, podname, nodename, name, cpu, memory)
 	if args.Get(0) != nil {
 		return args.Get(0).(*types.Container), args.Error(1)
 	}

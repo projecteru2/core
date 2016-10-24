@@ -4,3 +4,4 @@ core.yaml
 core.yml
 .ropeproject
 *.pyc
+default.etcd/*
