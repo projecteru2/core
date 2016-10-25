@@ -22,6 +22,7 @@ import (
 // Use specs and options to create
 // TODO what about networks?
 func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+	log.Debugf("Deploy container with specs %v, deploy options %v", specs, opts)
 	if c.config.ResourceAlloc == "scheduler" {
 		return c.createContainerWithScheduler(specs, opts)
 	} else {

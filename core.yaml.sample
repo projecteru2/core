@@ -29,4 +29,4 @@ scheduler:
 syslog:
     address: "udp://localhost:5111"
     facility: "daemon"
-    format: "[rfc5424|rfc5424micro|rfc3164]"
+    format: "rfc5424"
