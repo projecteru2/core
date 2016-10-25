@@ -70,6 +70,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) *types.DeployOptions {
 		Env:        d.Env,
 		Networks:   d.Networks,
 		Raw:        d.Raw,
+		Debug:      d.Debug,
 	}
 }
 

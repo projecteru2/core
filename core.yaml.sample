@@ -26,4 +26,7 @@ scheduler:
     lock_ttl: 10
     type: "complex"
 
-resource_alloc: "cpu-period"
+syslog:
+    address: "udp://localhost:5111"
+    facility: "daemon"
+    format: "[rfc5424|rfc5424micro|rfc3164]"
