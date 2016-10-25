@@ -47,7 +47,7 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 		return ch, err
 	}
 
-	go func() {
+	go func(specs types.Specs, plan map[string]int, opts *types.DeployOptions) {
 		wg := sync.WaitGroup{}
 		wg.Add(len(plan))
 		for nodename, num := range plan {
@@ -60,7 +60,7 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 		}
 		wg.Wait()
 		close(ch)
-	}()
+	}(specs, plan, opts)
 
 	return ch, nil
 }
