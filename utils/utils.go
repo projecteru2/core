@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	engineapi "github.com/docker/engine-api/client"
 	"gitlab.ricebook.net/platform/core/types"
 	"golang.org/x/net/context"
@@ -146,6 +147,7 @@ func AllocContainerPlan(nodeInfo ByCoreNum, quota int, memory int64, count int) 
 		key := bucket[i].Name
 		result[key] = num
 	}
+	log.Debugf("AllocContainerPlan: nodeInfo %v, quota %d, memory %d, count %d, made plan %v", nodeInfo, quota, memory, result)
 	return result, nil
 }
 
@@ -190,6 +192,7 @@ func allocAlgorithm(info []int, need int) map[int]int {
 		}
 		need = -more
 	}
+	log.Debugf("allocAlgorithm: info %v, need %d, made plan %v", info, need, result)
 	return result
 }
 
