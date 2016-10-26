@@ -566,7 +566,7 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 			"syslog-address":  c.config.Syslog.Address,
 			"syslog-facility": c.config.Syslog.Facility,
 			"syslog-format":   c.config.Syslog.Format,
-			"tag":             "ERU-DEBUG",
+			"tag":             fmt.Sprintf("%s {{.ID}}", specs.Appname),
 		}
 	}
 
