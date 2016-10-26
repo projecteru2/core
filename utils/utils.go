@@ -175,9 +175,11 @@ func allocAlgorithm(info []int, need int) map[int]int {
 				result[j] += ave
 			}
 			if more > 0 {
-				n, _ := rand.Int(rand.Reader, big.NewInt(int64(nodeToUse)))
+				// TODO : 这里应该要有一个随机策略但是我之前的随机策略是有问题的
+				//        cmgs 提供了一个思路: 如果当前需要分配的容器数量少于最
+				//        小机器的容量的话，我们就直接随机分
 				more--
-				result[j+int(n.Int64())]--
+				result[j]--
 			} else if more < 0 {
 				info[j] -= ave
 			}

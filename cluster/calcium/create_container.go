@@ -50,9 +50,18 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 	go func(specs types.Specs, plan map[string]int, opts *types.DeployOptions) {
 		wg := sync.WaitGroup{}
 		wg.Add(len(plan))
+		log.Debugf("alloc plan: %v", plan)
 		for nodename, num := range plan {
+			log.Debugf("nodename outside doCreate goroutine: %s", nodename)
+			log.Debugf("num outside doCreate goroutine: %d", num)
+			log.Debugf("specs outside: %v", specs)
+			log.Debugf("opts outside: %v", opts)
 			go func(nodename string, num int, opts *types.DeployOptions) {
 				defer wg.Done()
+				log.Debugf("nodename inside doCreate goroutine: %s", nodename)
+				log.Debugf("num insid doCreate goroutine: %d", num)
+				log.Debugf("specs inside: %v", specs)
+				log.Debugf("opts inside: %v", opts)
 				for _, m := range c.doCreateContainerWithCPUPeriod(nodename, num, opts.CPUQuota, specs, opts) {
 					ch <- m
 				}
