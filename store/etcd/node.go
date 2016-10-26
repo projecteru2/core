@@ -252,7 +252,7 @@ func (k *krypton) UpdateNodeMem(podname, nodename string, mem int64, action stri
 		return err
 	}
 
-	log.Debugf(string(bytes))
+	log.Debugf("Node info from UpdateNodeMem: %s", string(bytes))
 	_, err = k.etcd.Set(context.Background(), nodeKey, string(bytes), nil)
 	if err != nil {
 		return err
