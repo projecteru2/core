@@ -74,6 +74,21 @@ func TestContinuousAddingContainer(t *testing.T) {
 	}
 }
 
+func TestAlgorithm(t *testing.T) {
+	testPodInfo := ByCoreNum{}
+	node1 := NodeInfo{"n1", 30000, 5 * 512 * 1024 * 1024}
+	node2 := NodeInfo{"n2", 30000, 5 * 512 * 1024 * 1024}
+	node3 := NodeInfo{"n3", 30000, 5 * 512 * 1024 * 1024}
+	node4 := NodeInfo{"n3", 30000, 5 * 512 * 1024 * 1024}
+	testPodInfo = append(testPodInfo, node1)
+	testPodInfo = append(testPodInfo, node2)
+	testPodInfo = append(testPodInfo, node3)
+	testPodInfo = append(testPodInfo, node4)
+
+	res1, _ := AllocContainerPlan(testPodInfo, 10000, 512*1024*1024, 1)
+	fmt.Println(res1)
+}
+
 func TestAllocContainerPlan(t *testing.T) {
 	testPodInfo := ByCoreNum{}
 	node1 := NodeInfo{"n1", 30000, 512 * 1024 * 1024}
