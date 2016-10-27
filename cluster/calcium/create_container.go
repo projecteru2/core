@@ -33,6 +33,10 @@ func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) 
 func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
 
+	if opts.Memory < 4194304 { // 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
+		return ch, fmt.Errorf("Minimum memory limit allowed is 4MB")
+	}
+
 	cpuandmem, _, err := c.getCPUAndMem(opts.Podname, opts.Nodename, 1.0)
 	if err != nil {
 		return ch, err
@@ -40,7 +44,6 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 	nodesInfo := utils.GetNodesInfo(cpuandmem)
 
 	cpuQuota := int(opts.CPUQuota * float64(utils.CpuPeriodBase))
-	// memory := opts.Memory / 1024 / 1024 // 转换成MB
 	plan, err := utils.AllocContainerPlan(nodesInfo, cpuQuota, opts.Memory, opts.Count) // 还是以 Bytes 作单位， 不转换了
 
 	if err != nil {
