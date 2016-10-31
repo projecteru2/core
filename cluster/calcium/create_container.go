@@ -39,6 +39,7 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 
 	cpuandmem, _, err := c.getCPUAndMem(opts.Podname, opts.Nodename, 1.0)
 	if err != nil {
+		log.Errorf("Got error %v after getCPUAndMem", err)
 		return ch, err
 	}
 	nodesInfo := utils.GetNodesInfo(cpuandmem)
