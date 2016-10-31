@@ -121,6 +121,7 @@ func AllocContainerPlan(nodeInfo ByCoreNum, quota int, memory int64, count int) 
 		}
 	}
 	if flag == -1 {
+		log.Errorf("Cannot alloc a plan, not enough cpu quota, got flat %d", flag)
 		return result, fmt.Errorf("Cannot alloc a plan, not enough cpu quota")
 	}
 
@@ -137,6 +138,7 @@ func AllocContainerPlan(nodeInfo ByCoreNum, quota int, memory int64, count int) 
 		}
 	}
 	if volume < count {
+		log.Errorf("Cannot alloc a plan, volume %d, count %d", volume, count)
 		return result, fmt.Errorf("Cannot alloc a plan, not enough memory.")
 	}
 
