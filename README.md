@@ -14,12 +14,22 @@ cd -
 ## setup dev environment
 
 ```shell
-$ git config --global url."git@gitlab.ricebook.net:".insteadOf "https://gitlab.ricebook.net/"
-$ go get gitlab.ricebook.net/platform/core.git
-$ mv $GOPATH/src/gitlab.ricebook.net/platform/core.git $GOPATH/src/gitlab.ricebook.net/platform/core
-$ cd $GOPATH/src/gitlab.ricebook.net/platform/core && go install
-$ ln -s $GOPATH/src/gitlab.ricebook.net/platform/core $MY_WORK_SPACE/eru-core2
-$ make deps
+git config --global url."git@gitlab.ricebook.net:".insteadOf "https://gitlab.ricebook.net/"
+go get gitlab.ricebook.net/platform/core.git
+mv $GOPATH/src/gitlab.ricebook.net/platform/core.git $GOPATH/src/gitlab.ricebook.net/platform/core
+cd $GOPATH/src/gitlab.ricebook.net/platform/core
+make deps
+make build
+```
+
+## Upgrade core on test/production server
+
+```shell
+make build
+# test server
+devtools/upgrade-eru-core.sh test eru-core
+# prod server
+devtools/upgrade-eru-core.sh
 ```
 
 ### GRPC
