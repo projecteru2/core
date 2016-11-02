@@ -182,10 +182,9 @@ func (v *virbranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_C
 		return err
 	}
 
-	ch, err := v.cluster.CreateContainer(specs, toCoreDeployOptions(opts))
-	if err != nil {
-		return err
-	}
+	// ignore err because the error message will be sent to ch, and citadel
+	// will receive them
+	ch, _ := v.cluster.CreateContainer(specs, toCoreDeployOptions(opts))
 
 	for m := range ch {
 		if err := stream.Send(toRPCCreateContainerMessage(m)); err != nil {
