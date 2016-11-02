@@ -32,7 +32,7 @@ func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) 
 
 // when shits go wrong before doCreateContainerWithCPUPeriod, don't just return
 // the channel and return an error, because citadel don't know what's going on
-func (c *calcium) createErrorMessage(err error) *types.CreateContainerMessage {
+func (c *calcium) sendErrorMessage(err error, ch chan<- *types.CreateContainerMessage) {
 	log.Errorf("Got error %s", err.Error())
 	m := &types.CreateContainerMessage{
 		Podname:       "",
@@ -44,7 +44,8 @@ func (c *calcium) createErrorMessage(err error) *types.CreateContainerMessage {
 		CPU:           nil,
 		Memory:        0,
 	}
-	return m
+	ch <- m
+	close(ch)
 }
 
 func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
@@ -52,13 +53,13 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 
 	if opts.Memory < 4194304 { // 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
 		err := fmt.Errorf("Minimum memory limit allowed is 4MB")
-		ch <- c.createErrorMessage(err)
+		go c.sendErrorMessage(err, ch)
 		return ch, err
 	}
 
 	cpuandmem, _, err := c.getCPUAndMem(opts.Podname, opts.Nodename, 1.0)
 	if err != nil {
-		ch <- c.createErrorMessage(err)
+		go c.sendErrorMessage(err, ch)
 		return ch, err
 	}
 	nodesInfo := utils.GetNodesInfo(cpuandmem)
@@ -67,6 +68,7 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 	plan, err := utils.AllocContainerPlan(nodesInfo, cpuQuota, opts.Memory, opts.Count) // 还是以 Bytes 作单位， 不转换了
 
 	if err != nil {
+		go c.sendErrorMessage(err, ch)
 		return ch, err
 	}
 
