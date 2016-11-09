@@ -5,50 +5,31 @@ Core
 We use v0.23.4 because v0.24 sucks
 
 ```shell
-$ wget https://github.com/libgit2/libgit2/archive/v0.23.4.zip
-$ unzip v0.23.4.zip
-```
-Install dependencies: `libssh2`, `http-parser`, `cmake`, `libcurl`.
-
-```shell
-On Mac OSX:
-$ brew install libssh2 http-parser cmake libcurl
-
-On CentOS:
-$ yum install libssh2-devel http-parser cmake libcurl-devel
-```
-Then install libgit2.
-
-```shell
-$ cmake .  -DCMAKE_VERBOSE_MAKEFILE=ON -Wno-dev -DUSE_SSH=YES
-$ make && make install
-```
-Note on Mac OSX may need to set CFLAGS="-std=c99".
-Now libgit2 is installed under `/usr/local/lib` as default. We still need to set pkg-config and link dynamic libraries.
-
-```shell
-On Mac OSX:
-$ cd /usr/local/lib/pkgconfig
-$ ln -s /path/to/libgit2/pkgconfig/libgit2.pc  libgit2.pc
-$ cd /usr/local/lib
-$ ln -s /path/to/libgit2/libgit2.23.dylib libgit2.23.dylib
-
-On CentOS:
-$ cd /usr/lib64/pkgconfig/
-$ ln -s /usr/local/lib/pkgconfig/libgit2.pc libgit2.pc
-$ cd /usr/lib64
-$ ln -s /usr/local/lib/libgit2.so.23 libgit2.so.23
+cp devtools/libgit2.rb.patch /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula
+cd  /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula
+git apply libgit2.rb.patch && git add libgit2.rb && git commit -m "patch libgit2 version for eru-core" && rm libgit2.rb.patch
+cd -
 ```
 
 ## setup dev environment
 
 ```shell
-$ git config --global url."git@gitlab.ricebook.net:".insteadOf "https://gitlab.ricebook.net/"
-$ go get gitlab.ricebook.net/platform/core.git
-$ mv $GOPATH/src/gitlab.ricebook.net/platform/core.git $GOPATH/src/gitlab.ricebook.net/platform/core
-$ cd $GOPATH/src/gitlab.ricebook.net/platform/core && go install
-$ ln -s $GOPATH/src/gitlab.ricebook.net/platform/core $MY_WORK_SPACE/eru-core2
-$ make deps
+git config --global url."git@gitlab.ricebook.net:".insteadOf "https://gitlab.ricebook.net/"
+go get gitlab.ricebook.net/platform/core.git
+mv $GOPATH/src/gitlab.ricebook.net/platform/core.git $GOPATH/src/gitlab.ricebook.net/platform/core
+cd $GOPATH/src/gitlab.ricebook.net/platform/core
+make deps
+make build
+```
+
+## Upgrade core on test/production server
+
+```shell
+make build
+# test server
+devtools/upgrade-eru-core.sh test eru-core
+# prod server
+devtools/upgrade-eru-core.sh
 ```
 
 ### GRPC

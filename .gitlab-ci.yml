@@ -7,10 +7,14 @@ stages:
   - rpm
 test:
   stage: test
+  only:
+    - master
   script:
     - "make test"
 build:
   stage: build
+  only:
+    - master
   script:
     - make build
   artifacts:
@@ -19,6 +23,8 @@ build:
     expire_in: 1 week
 rpm:
   stage: rpm
+  only:
+    - master
   script:
     - "./make-rpm"
   dependencies:
