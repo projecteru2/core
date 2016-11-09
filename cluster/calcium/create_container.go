@@ -601,9 +601,14 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 
 	// labels
 	// basic labels, and set meta in specs to labels
+	ports := []string{}
+	for _, port := range entry.Ports {
+		ports = append(ports, string(port))
+	}
 	containerLabels := map[string]string{
 		"ERU":     "1",
 		"version": utils.GetVersion(opts.Image),
+		"ports":   strings.Join(ports, ","),
 		// "Appname":    specs.Appname,
 		// "Image":      opts.Image,
 		// "Podname":    opts.Podname,
