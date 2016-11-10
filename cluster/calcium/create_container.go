@@ -610,11 +610,10 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 		"ERU":     "1",
 		"version": utils.GetVersion(opts.Image),
 		"ports":   strings.Join(ports, ","),
-		// "Appname":    specs.Appname,
-		// "Image":      opts.Image,
-		// "Podname":    opts.Podname,
-		// "Nodename":   opts.Nodename,
-		// "Entrypoint": opts.Entrypoint,
+	}
+	// 支持健康检测, 但是只支持tcp和http
+	if entry.HealthCheck == "tcp" || entry.HealthCheck == "http" {
+		containerLabels["healthcheck"] = entry.HealthCheck
 	}
 	for key, value := range specs.Meta {
 		containerLabels[key] = value
