@@ -533,6 +533,7 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	// env
 	env := append(opts.Env, fmt.Sprintf("APP_NAME=%s", specs.Appname))
 	env = append(env, fmt.Sprintf("ERU_POD=%s", opts.Podname))
+	env = append(env, fmt.Sprintf("ERU_NODE_IP=%s", nodeIP))
 
 	// mount paths
 	// 先把mount_paths给挂载了, 没有的话生成俩空的返回去也好啊.
