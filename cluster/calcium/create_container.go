@@ -48,16 +48,6 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 	plan, err := utils.AllocContainerPlan(nodesInfo, cpuQuota, opts.Memory, opts.Count) // 还是以 Bytes 作单位， 不转换了
 
 	if err != nil {
-		ch <- &types.CreateContainerMessage{
-			Podname:       "",
-			Nodename:      "",
-			ContainerID:   "",
-			ContainerName: "",
-			Error:         err.Error(),
-			Success:       false,
-			CPU:           nil,
-			Memory:        0,
-		}
 		return ch, err
 	}
 
