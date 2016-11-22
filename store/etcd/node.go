@@ -143,7 +143,7 @@ func (k *krypton) deleteNode(podname, nodename, endpoint string) {
 	log.Debugf("Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 }
 
-// 既然有了上面的东西, 就加个API吧, 不过并不对外提供
+// 既然有了上面的东西, 就加个API吧
 func (k *krypton) DeleteNode(node *types.Node) {
 	k.deleteNode(node.Podname, node.Name, node.Endpoint)
 }

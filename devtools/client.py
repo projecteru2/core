@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+
 import click
 from grpc.beta import implementations
 from grpc.framework.interfaces.face.face import AbortionError
@@ -146,12 +147,10 @@ def add_node(ctx, nodename, endpoint, podname, certs, public):
             click.echo(click.style('certs %s is given and no exists' % certs, fg='red', bold=True))
             ctx.exit(-1)
 
-        with open(os.path.join(certs, 'ca.pem')) as ca, \
-             open(os.path.join(certs, 'cert.pem')) as cert, \
-             open(os.path.join(certs, 'key.pem')) as key:
-                 cafile = ca.read()
-                 certfile = cert.read()
-                 keyfile = key.read()
+        with open(os.path.join(certs, 'ca.pem')) as ca, open(os.path.join(certs, 'cert.pem')) as cert, open(os.path.join(certs, 'key.pem')) as key:
+            cafile = ca.read()
+            certfile = cert.read()
+            keyfile = key.read()
 
     opts = pb.AddNodeOptions(nodename=nodename,
                              endpoint=endpoint,
@@ -168,6 +167,23 @@ def add_node(ctx, nodename, endpoint, podname, certs, public):
         ctx.exit(-1)
 
     click.echo(node)
+
+
+@cli.command('node:remove')
+@click.argument('nodename')
+@click.argument('podname')
+@click.pass_context
+def remove_node(ctx, nodename, podname):
+    stub = _get_stub(ctx)
+    opts = pb.RemoveNodeOptions(nodename=nodename, podname=podname)
+
+    try:
+        pod = stub.RemoveNode(opts, 5)
+    except AbortionError as e:
+        click.echo(click.style('abortion error: %s' % e.details, fg='red', bold=True))
+        ctx.exit(-1)
+
+    click.echo(pod)
 
 
 @cli.command('build')
@@ -227,8 +243,8 @@ base: "hub.ricebook.net/base/alpine:python-2016.04.24"
                             entrypoint='web',
                             cpu_quota=1,
                             count=1,
-                            memory=50*1024*1024,
-                            networks={'zzz': ''}, # 如果不需要指定IP就写空字符串, 写其他的错误的格式会报错失败
+                            memory=50 * 1024 * 1024,
+                            networks={'zzz': ''},  # 如果不需要指定IP就写空字符串, 写其他的错误的格式会报错失败
                             env=['ENV_A=1', 'ENV_B=2'])
 
     try:

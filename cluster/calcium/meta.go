@@ -25,6 +25,15 @@ func (c *calcium) GetNode(podname, nodename string) (*types.Node, error) {
 	return c.store.GetNode(podname, nodename)
 }
 
+func (c *calcium) RemoveNode(nodename, podname string) (*types.Pod, error) {
+	n, err := c.store.GetNode(podname, nodename)
+	if err != nil {
+		return nil, err
+	}
+	c.store.DeleteNode(n)
+	return c.store.GetPod(podname)
+}
+
 func (c *calcium) ListPodNodes(podname string) ([]*types.Node, error) {
 	return c.store.GetNodesByPod(podname)
 }

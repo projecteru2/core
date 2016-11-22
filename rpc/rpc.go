@@ -56,7 +56,7 @@ func (v *virbranium) GetPod(ctx context.Context, opts *pb.GetPodOptions) (*pb.Po
 }
 
 // AddNode saves a node and returns it to client
-// Method must be called syncly, or nothing will be returned
+// Method must be called synchronously, or nothing will be returned
 func (v *virbranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.Node, error) {
 	n, err := v.cluster.AddNode(opts.Nodename, opts.Endpoint, opts.Podname, opts.Cafile, opts.Certfile, opts.Keyfile, opts.Public)
 	if err != nil {
@@ -64,6 +64,17 @@ func (v *virbranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.
 	}
 
 	return toRPCNode(n), nil
+}
+
+// AddNode saves a node and returns it to client
+// Method must be called synchronously, or nothing will be returned
+func (v *virbranium) RemoveNode(ctx context.Context, opts *pb.RemoveNodeOptions) (*pb.Pod, error) {
+	p, err := v.cluster.RemoveNode(opts.Nodename, opts.Podname)
+	if err != nil {
+		return nil, err
+	}
+
+	return toRPCPod(p), nil
 }
 
 // GetNode

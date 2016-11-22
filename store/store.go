@@ -13,6 +13,7 @@ type Store interface {
 
 	// node
 	AddNode(name, endpoint, podname, cafile, certfile, keyfile string, public bool) (*types.Node, error)
+	DeleteNode(node *types.Node)
 	GetNode(podname, nodename string) (*types.Node, error)
 	GetNodesByPod(podname string) ([]*types.Node, error)
 	GetAllNodes() ([]*types.Node, error)

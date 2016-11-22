@@ -8,6 +8,7 @@ service CoreRPC {
     rpc GetPod(GetPodOptions) returns (Pod) {};
 
     rpc AddNode(AddNodeOptions) returns (Node) {};
+    rpc RemoveNode(RemoveNodeOptions) returns (Pod) {};
     rpc GetNode(GetNodeOptions) returns (Node) {};
     rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
     rpc GetContainer(ContainerID) returns (Container) {};
@@ -94,6 +95,11 @@ message AddNodeOptions {
     string certfile = 5;
     string keyfile = 6;
     bool public = 7;
+}
+
+message RemoveNodeOptions {
+    string nodename = 1;
+    string podname = 2;
 }
 
 message GetNodeOptions {
