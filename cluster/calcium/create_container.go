@@ -526,35 +526,16 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	env = append(env, fmt.Sprintf("ERU_NODE_IP=%s", nodeIP))
 
 	// mount paths
-	// 先把mount_paths给挂载了, 没有的话生成俩空的返回去也好啊.
-	permDirHost := filepath.Join(c.config.PermDir, specs.Appname)
-	binds, volumes := makeMountPaths(specs.MountPaths, permDirHost)
-
-	// volumes and binds
-	volumes["/writable-proc/sys"] = struct{}{}
-	binds = append(binds, "/proc/sys:/writable-proc/sys:ro")
+	binds, volumes := makeMountPaths(specs, c.config)
 
 	// add permdir to container
 	if entry.PermDir {
 		permDir := filepath.Join("/", specs.Appname, "permdir")
 		volumes[permDir] = struct{}{}
 
+		permDirHost := filepath.Join(c.config.PermDir, specs.Appname)
 		binds = append(binds, strings.Join([]string{permDirHost, permDir, "rw"}, ":"))
 		env = append(env, fmt.Sprintf("ERU_PERMDIR=%s", permDir))
-	}
-
-	for _, volume := range specs.Volumes {
-		volumes[volume] = struct{}{}
-	}
-
-	var mode string
-	for hostPath, bind := range specs.Binds {
-		if bind.ReadOnly {
-			mode = "ro"
-		} else {
-			mode = "rw"
-		}
-		binds = append(binds, strings.Join([]string{hostPath, bind.InContainerPath, mode}, ":"))
 	}
 
 	// log config
