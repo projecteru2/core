@@ -61,6 +61,10 @@ func (m *MockStore) AddNode(name, endpoint, podname, cafile, certfile, keyfile s
 	return nil, args.Error(1)
 }
 
+func (m *MockStore) DeleteNode(node *types.Node) {
+	m.Called(node)
+}
+
 func (m *MockStore) GetAllNodes() ([]*types.Node, error) {
 	args := m.Called()
 	return args.Get(0).([]*types.Node), args.Error(1)
