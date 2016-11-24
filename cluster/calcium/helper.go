@@ -7,11 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	engineapi "github.com/docker/engine-api/client"
 	enginetypes "github.com/docker/engine-api/types"
 	enginecontainer "github.com/docker/engine-api/types/container"
 	enginenetwork "github.com/docker/engine-api/types/network"
 	"gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/utils"
+	"golang.org/x/net/context"
 )
 
 // As the name says,
@@ -129,4 +131,21 @@ func makeMountPaths(specs types.Specs, config types.Config) ([]string, map[strin
 	volumes["/writable-proc/sys"] = struct{}{}
 	binds = append(binds, "/proc/sys:/writable-proc/sys:ro")
 	return binds, volumes
+}
+
+// 跑存在labels里的exec
+// 为什么要存labels呢, 因为下线容器的时候根本不知道entrypoint是啥
+func runExec(client *engineapi.Client, container enginetypes.ContainerJSON, label string) error {
+	cmd, ok := container.Config.Labels[label]
+	if !ok {
+		return fmt.Errorf("No %q found in container %q", label, container.ID)
+	}
+
+	cmds := utils.MakeCommandLineArgs(cmd)
+	execConfig := enginetypes.ExecConfig{User: container.Config.User, Cmd: cmds}
+	resp, err := client.ContainerExecCreate(context.Background(), container.ID, execConfig)
+	if err != nil {
+		return err
+	}
+	return client.ContainerExecStart(context.Background(), resp.ID, enginetypes.ExecStartCheck{})
 }

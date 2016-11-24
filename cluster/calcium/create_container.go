@@ -163,6 +163,9 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 			continue
 		}
 
+		// after start
+		runExec(node.Engine, info, AFTER_START)
+
 		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, nil, opts.Memory)
 		if err != nil {
 			ms[i].Error = err.Error()
@@ -435,6 +438,9 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 			continue
 		}
 
+		// after start
+		runExec(node.Engine, info, AFTER_START)
+
 		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, quota, opts.Memory)
 		if err != nil {
 			ms[i].Error = err.Error()
@@ -586,6 +592,10 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	if entry.HealthCheck == "tcp" || entry.HealthCheck == "http" {
 		containerLabels["healthcheck"] = entry.HealthCheck
 	}
+	// 要把after_start和before_stop写进去
+	containerLabels[AFTER_START] = entry.AfterStart
+	containerLabels[BEFORE_STOP] = entry.BeforeStop
+	// 接下来是meta
 	for key, value := range specs.Meta {
 		containerLabels[key] = value
 	}
@@ -759,6 +769,9 @@ func (c *calcium) doUpgradeContainer(containers []*types.Container, image string
 		// TODO in the future I hope `makeContainerConfig` will make a deep copy of config
 		imageToDelete := info.Config.Image
 
+		// before stop old container
+		runExec(engine, info, BEFORE_STOP)
+
 		// stops the old container
 		timeout := 5 * time.Second
 		err = engine.ContainerStop(context.Background(), info.ID, &timeout)
@@ -819,6 +832,9 @@ func (c *calcium) doUpgradeContainer(containers []*types.Container, image string
 			engine.ContainerStart(context.Background(), info.ID, enginetypes.ContainerStartOptions{})
 			continue
 		}
+
+		// after start
+		runExec(engine, newInfo, AFTER_START)
 
 		// if so, add a new container in etcd
 		_, err = c.store.AddContainer(newInfo.ID, container.Podname, container.Nodename, containerName, container.CPU, container.Memory)
