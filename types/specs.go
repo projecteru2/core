@@ -23,6 +23,8 @@ type Specs struct {
 // single entrypoint
 type Entrypoint struct {
 	Command       string   `yaml:"cmd,omitempty"`
+	AfterStart    string   `yaml:"after_start,omitempty"`
+	BeforeStop    string   `yaml:"before_stop,omitempty"`
 	Ports         []Port   `yaml:"ports,omitempty,flow"`
 	Exposes       []Expose `yaml:"exposes,omitempty,flow"`
 	NetworkMode   string   `yaml:"network_mode,omitempty"`

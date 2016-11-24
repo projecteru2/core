@@ -20,6 +20,11 @@ type calcium struct {
 	source    source.Source
 }
 
+const (
+	AFTER_START = "after_start"
+	BEFORE_STOP = "before_stop"
+)
+
 func New(config types.Config) (*calcium, error) {
 	var err error
 	store, err := etcdstore.New(config)
