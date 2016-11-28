@@ -1887,6 +1887,11 @@ def add_CoreRPCServicer_to_server(servicer, server):
 
 
 class BetaCoreRPCServicer(object):
+  """The Beta API is deprecated for 0.15.0 and later.
+
+  It is recommended to use the GA API (classes and functions in this
+  file not marked beta) for all further purposes. This class was generated
+  only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
   def ListPods(self, request, context):
     context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
   def AddPod(self, request, context):
@@ -1920,6 +1925,11 @@ class BetaCoreRPCServicer(object):
 
 
 class BetaCoreRPCStub(object):
+  """The Beta API is deprecated for 0.15.0 and later.
+
+  It is recommended to use the GA API (classes and functions in this
+  file not marked beta) for all further purposes. This class was generated
+  only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
   def ListPods(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
     raise NotImplementedError()
   ListPods.future = None
@@ -1963,6 +1973,11 @@ class BetaCoreRPCStub(object):
 
 
 def beta_create_CoreRPC_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
+  """The Beta API is deprecated for 0.15.0 and later.
+
+  It is recommended to use the GA API (classes and functions in this
+  file not marked beta) for all further purposes. This function was
+  generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
   request_deserializers = {
     ('pb.CoreRPC', 'AddNode'): AddNodeOptions.FromString,
     ('pb.CoreRPC', 'AddPod'): AddPodOptions.FromString,
@@ -2019,6 +2034,11 @@ def beta_create_CoreRPC_server(servicer, pool=None, pool_size=None, default_time
 
 
 def beta_create_CoreRPC_stub(channel, host=None, metadata_transformer=None, pool=None, pool_size=None):
+  """The Beta API is deprecated for 0.15.0 and later.
+
+  It is recommended to use the GA API (classes and functions in this
+  file not marked beta) for all further purposes. This function was
+  generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
   request_serializers = {
     ('pb.CoreRPC', 'AddNode'): AddNodeOptions.SerializeToString,
     ('pb.CoreRPC', 'AddPod'): AddPodOptions.SerializeToString,
