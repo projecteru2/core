@@ -218,33 +218,18 @@ def build_image(ctx, repo, version, uid, artifact):
 @click.pass_context
 def create_container(ctx):
     stub = _get_stub(ctx)
-    specs = """appname: "test-ci"
-entrypoints:
-  web:
-    cmd: "python run.py"
-    ports:
-      - "5000/tcp"
-  restart:
-    cmd: "python test_restart.py"
-    restart: "always"
-  log:
-    cmd: "python log.py"
-  fullcpu:
-    cmd: "python fullcpu.py"
-    restart: "always"
-build:
-  - "pip install -r requirements.txt -i https://pypi.doubanio.com/simple/"
-base: "hub.ricebook.net/base/alpine:python-2016.04.24"
-"""
+    specs = ''
+    with open('./test.yaml', 'r') as f:
+        specs = f.read()
     opts = pb.DeployOptions(specs=specs,
                             appname='test-ci',
-                            image='hub.ricebook.net/test-ci:966fd83',
-                            podname='dev',
-                            entrypoint='web',
+                            image='hub.ricebook.net/eruapp/test-ci:ac5850e',
+                            podname='develop',
+                            entrypoint='test',
                             cpu_quota=1,
                             count=1,
                             memory=50 * 1024 * 1024,
-                            networks={'zzz': ''},  # 如果不需要指定IP就写空字符串, 写其他的错误的格式会报错失败
+                            networks={'c1-test': ''},  # 如果不需要指定IP就写空字符串, 写其他的错误的格式会报错失败
                             env=['ENV_A=1', 'ENV_B=2'])
 
     try:
