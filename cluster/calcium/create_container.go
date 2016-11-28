@@ -164,7 +164,9 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 		}
 
 		// after start
-		runExec(node.Engine, info, AFTER_START)
+		if err := runExec(node.Engine, info, AFTER_START); err != nil {
+			log.Errorf("Run exec at %s error: %s", AFTER_START, err.Error())
+		}
 
 		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, nil, opts.Memory)
 		if err != nil {
@@ -439,7 +441,9 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 		}
 
 		// after start
-		runExec(node.Engine, info, AFTER_START)
+		if err := runExec(node.Engine, info, AFTER_START); err != nil {
+			log.Errorf("Run exec at %s error: %s", AFTER_START, err.Error())
+		}
 
 		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, quota, opts.Memory)
 		if err != nil {
@@ -770,7 +774,9 @@ func (c *calcium) doUpgradeContainer(containers []*types.Container, image string
 		imageToDelete := info.Config.Image
 
 		// before stop old container
-		runExec(engine, info, BEFORE_STOP)
+		if err := runExec(engine, info, BEFORE_STOP); err != nil {
+			log.Errorf("Run exec at %s error: %s", BEFORE_STOP, err.Error())
+		}
 
 		// stops the old container
 		timeout := 5 * time.Second
@@ -834,7 +840,9 @@ func (c *calcium) doUpgradeContainer(containers []*types.Container, image string
 		}
 
 		// after start
-		runExec(engine, newInfo, AFTER_START)
+		if err := runExec(engine, newInfo, AFTER_START); err != nil {
+			log.Errorf("Run exec at %s error: %s", AFTER_START, err.Error())
+		}
 
 		// if so, add a new container in etcd
 		_, err = c.store.AddContainer(newInfo.ID, container.Podname, container.Nodename, containerName, container.CPU, container.Memory)

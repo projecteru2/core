@@ -84,7 +84,9 @@ func (c *calcium) removeOneContainer(container *types.Container) error {
 	}
 
 	// before stop
-	runExec(container.Engine, info, BEFORE_STOP)
+	if err := runExec(container.Engine, info, BEFORE_STOP); err != nil {
+		log.Errorf("Run exec at %s error: %s", BEFORE_STOP, err.Error())
+	}
 
 	timeout := 5 * time.Second
 	err = container.Engine.ContainerStop(context.Background(), info.ID, &timeout)
