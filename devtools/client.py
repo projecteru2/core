@@ -223,7 +223,7 @@ def create_container(ctx):
         specs = f.read()
     opts = pb.DeployOptions(specs=specs,
                             appname='test-ci',
-                            image='hub.ricebook.net/eruapp/test-ci:ac5850e',
+                            image='hub.ricebook.net/eruapp/test-ci:2572dfc',
                             podname='develop',
                             entrypoint='test',
                             cpu_quota=1,

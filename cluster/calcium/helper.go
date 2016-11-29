@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"strings"
-	"time"
 
 	engineapi "github.com/docker/engine-api/client"
 	enginetypes "github.com/docker/engine-api/types"
@@ -149,12 +148,5 @@ func runExec(client *engineapi.Client, container enginetypes.ContainerJSON, labe
 		return err
 	}
 
-	// after start 给一秒时间吧
-	// 有时候进程刚起来这里会失败的
-	// TODO 其实可以考虑 start 的这个变成 goroutine 异步去做, 反正也不关心结果
-	// stop 的倒是必须同步完成
-	if label == AFTER_START {
-		time.Sleep(1 * time.Second)
-	}
 	return client.ContainerExecStart(context.Background(), resp.ID, enginetypes.ExecStartCheck{})
 }

@@ -1,9 +1,9 @@
 appname: "test-ci"
 entrypoints:
   test:
-    after_start: "curl localhost:5000/cache?key=value"
+    after_start: "sh after_start"
     cmd: "gunicorn app:app --bind 0.0.0.0:5000"
-    before_stop: "curl localhost:5000/getcache?key=key"
+    before_stop: "sh before_stop"
     ports:
       - "5000/tcp"
   web:
