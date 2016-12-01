@@ -1,16 +1,19 @@
 #!/bin/bash
 
 if [ $1 == "test" ]; then
-  rsync -a /Users/timfeirg/gocode/src/gitlab.ricebook.net/platform/core sa-ricebook:~
-  ssh sa-ricebook -t 'sudo rm -rf /root/.go/src/gitlab.ricebook.net/platform/core'
-  ssh sa-ricebook -t 'sudo mv ~/core /root/.go/src/gitlab.ricebook.net/platform/core'
-  # ssh zzz1 -t 'sudo mv eru-core /usr/bin/eru-core'
-  # ssh zzz1 -t 'sudo systemctl restart eru-core.service'
+  ssh c1-eru-1.ricebook.link -t 'sudo yum --enablerepo=ricebook clean metadata'
+  ssh c1-eru-1.ricebook.link -t 'sudo yum reinstall -y eru-core'
+  ssh c1-eru-1.ricebook.link -t 'sudo systemctl daemon-reload'
+  ssh c1-eru-1.ricebook.link -t 'sudo systemctl restart eru-core.service'
+  ssh c1-eru-1.ricebook.link -t 'sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git fetch --all --prune'
+  ssh c1-eru-1.ricebook.link -t 'sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git reset --hard origin/feature/celery'
+  ssh c1-eru-1.ricebook.link -t 'sudo systemctl restart citadel'
+  ssh c1-eru-1.ricebook.link -t 'sudo systemctl restart citadel-worker'
 else
-  ssh liuyifu@c2-eru-1.ricebook.link -t 'sudo yum --enablerepo=ricebook clean metadata'
-  ssh liuyifu@c2-eru-1.ricebook.link -t 'sudo yum reinstall -y eru-core'
-  ssh liuyifu@c2-eru-1.ricebook.link -t 'sudo systemctl daemon-reload'
-  ssh liuyifu@c2-eru-1.ricebook.link -t 'sudo systemctl restart eru-core.service'
-  ssh liuyifu@c2-eru-1.ricebook.link -t 'sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git pull'
-  ssh liuyifu@c2-eru-1.ricebook.link -t 'sudo systemctl restart citadel'
+  ssh c2-eru-1.ricebook.link -t 'sudo yum --enablerepo=ricebook clean metadata'
+  ssh c2-eru-1.ricebook.link -t 'sudo yum reinstall -y eru-core'
+  ssh c2-eru-1.ricebook.link -t 'sudo systemctl daemon-reload'
+  ssh c2-eru-1.ricebook.link -t 'sudo systemctl restart eru-core.service'
+  ssh c2-eru-1.ricebook.link -t 'sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git pull'
+  ssh c2-eru-1.ricebook.link -t 'sudo systemctl restart citadel'
 fi
