@@ -94,9 +94,6 @@ func verify(a Specs) error {
 	if len(a.Entrypoints) == 0 {
 		return fmt.Errorf("No entrypoints specified")
 	}
-	if len(a.Build) == 0 {
-		return fmt.Errorf("No build commands specified")
-	}
 
 	for name, _ := range a.Entrypoints {
 		if strings.Contains(name, "_") {

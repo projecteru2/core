@@ -11,6 +11,16 @@ git apply libgit2.rb.patch && git add libgit2.rb && git commit -m "patch libgit2
 cd -
 ```
 
+## DEV
+
+生产服部署在 c2-eru-1，测试服部署在 c1-eru-1，如果需要测试，先更新 core，然后这样子部署：
+
+```shell
+devtools/upgrade-eru-core.sh test
+devtools/upgrade-eru-core.sh prod
+```
+
+
 ## setup dev environment
 
 ```shell
