@@ -24,7 +24,7 @@ echo 32768 > /writable-proc/sys/net/core/somaxconn
 echo 1 > /writable-proc/sys/vm/overcommit_memory
 chmod 777 /dev/stdout
 chmod 777 /dev/stderr
-if [ -d /{{.Appname}}/permdir ]; then chmod {{.UID}} /{{.Appname}}/permdir; fi
+if [ -d /{{.Appname}}/permdir ]; then chown {{.UID}} /{{.Appname}}/permdir; fi
 
 neednetwork=$1
 if [ $neednetwork = "network" ]; then
