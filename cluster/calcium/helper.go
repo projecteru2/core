@@ -137,7 +137,7 @@ func makeMountPaths(specs types.Specs, config types.Config) ([]string, map[strin
 // 为什么要存labels呢, 因为下线容器的时候根本不知道entrypoint是啥
 func runExec(client *engineapi.Client, container enginetypes.ContainerJSON, label string) error {
 	cmd, ok := container.Config.Labels[label]
-	if !ok {
+	if !ok || cmd == "" {
 		return fmt.Errorf("No %q found in container %q", label, container.ID)
 	}
 
