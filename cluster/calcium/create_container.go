@@ -94,7 +94,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 	for i := 0; i < connum; i++ {
 		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(nil, specs, opts, "cpuperiod", node.GetIP())
 		if err != nil {
-			log.Errorf("error when creating CreateContainerOptions, %v", err)
+			log.Errorf("Error when creating CreateContainerOptions, %v", err)
 			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+") // 创建容器失败就要把资源还回去对不对？
 			ms[i].Error = err.Error()
 			continue
@@ -103,7 +103,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 		//create container
 		container, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
 		if err != nil {
-			log.Errorf("error when creating container, %v", err)
+			log.Errorf("Error when creating container, %v", err)
 			ms[i].Error = err.Error()
 			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
 			continue
@@ -119,7 +119,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 			for networkID, ipv4 := range opts.Networks {
 				if err = c.network.ConnectToNetwork(ctx, container.ID, networkID, ipv4); err != nil {
 					c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
-					log.Errorf("error when connecting container %q to network %q, %q", container.ID, networkID, err.Error())
+					log.Errorf("Error when connecting container %q to network %q, %q", container.ID, networkID, err.Error())
 					breaked = true
 					break
 				}
@@ -129,7 +129,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 			// only when user defined networks is given
 			if len(opts.Networks) != 0 {
 				if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
-					log.Errorf("error when disconnecting container %q from network %q, %q", container.ID, "bridge", err.Error())
+					log.Errorf("Error when disconnecting container %q from network %q, %q", container.ID, "bridge", err.Error())
 				}
 			}
 
@@ -144,7 +144,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 
 		err = node.Engine.ContainerStart(context.Background(), container.ID, enginetypes.ContainerStartOptions{})
 		if err != nil {
-			log.Errorf("error when starting container, %v", err)
+			log.Errorf("Error when starting container, %v", err)
 			ms[i].Error = err.Error()
 			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
 			go node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{})
@@ -157,7 +157,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 
 		info, err := node.Engine.ContainerInspect(context.Background(), container.ID)
 		if err != nil {
-			log.Errorf("error when inspecting container, %v", err)
+			log.Errorf("Error when inspecting container, %v", err)
 			ms[i].Error = err.Error()
 			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
 			continue
@@ -361,10 +361,12 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 
 	node, err := c.GetNode(opts.Podname, nodename)
 	if err != nil {
+		log.Errorf("Get node error %v", err)
 		return ms
 	}
 
 	if err := pullImage(node, opts.Image); err != nil {
+		log.Errorf("Pull image error %v", err)
 		return ms
 	}
 
@@ -372,7 +374,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 		// create options
 		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(quota, specs, opts, "scheduler", node.GetIP())
 		if err != nil {
-			log.Errorf("error when creating CreateContainerOptions, %v", err)
+			log.Errorf("Error when creating CreateContainerOptions, %v", err)
 			ms[i].Error = err.Error()
 			c.releaseQuota(node, quota)
 			continue
@@ -381,7 +383,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 		// create container
 		container, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
 		if err != nil {
-			log.Errorf("error when creating container, %v", err)
+			log.Errorf("Error when creating container, %v", err)
 			ms[i].Error = err.Error()
 			c.releaseQuota(node, quota)
 			continue
@@ -396,7 +398,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 			// need to ensure all networks are correctly connected
 			for networkID, ipv4 := range opts.Networks {
 				if err = c.network.ConnectToNetwork(ctx, container.ID, networkID, ipv4); err != nil {
-					log.Errorf("error when connecting container %q to network %q, %q", container.ID, networkID, err.Error())
+					log.Errorf("Error when connecting container %q to network %q, %q", container.ID, networkID, err.Error())
 					breaked = true
 					break
 				}
@@ -406,7 +408,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 			// only when user defined networks is given
 			if len(opts.Networks) != 0 {
 				if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
-					log.Errorf("error when disconnecting container %q from network %q, %q", container.ID, "bridge", err.Error())
+					log.Errorf("Error when disconnecting container %q from network %q, %q", container.ID, "bridge", err.Error())
 				}
 			}
 
@@ -421,7 +423,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 
 		err = node.Engine.ContainerStart(context.Background(), container.ID, enginetypes.ContainerStartOptions{})
 		if err != nil {
-			log.Errorf("error when starting container, %v", err)
+			log.Errorf("Error when starting container, %v", err)
 			ms[i].Error = err.Error()
 			c.releaseQuota(node, quota)
 			go node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{})
@@ -434,7 +436,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 
 		info, err := node.Engine.ContainerInspect(context.Background(), container.ID)
 		if err != nil {
-			log.Errorf("error when inspecting container, %v", err)
+			log.Errorf("Error when inspecting container, %v", err)
 			ms[i].Error = err.Error()
 			c.releaseQuota(node, quota)
 			continue
@@ -750,11 +752,13 @@ func (c *calcium) doUpgradeContainer(containers []*types.Container, image string
 	t := containers[0]
 	node, err := c.GetNode(t.Podname, t.Nodename)
 	if err != nil {
+		log.Errorf("Get node error %v", err)
 		return ms
 	}
 
 	// prepare new image
 	if err := pullImage(node, image); err != nil {
+		log.Errorf("Pull image error %v", err)
 		return ms
 	}
 
