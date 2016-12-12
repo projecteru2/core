@@ -28,7 +28,6 @@ type Entrypoint struct {
 	Ports         []Port   `yaml:"ports,omitempty,flow"`
 	Exposes       []Expose `yaml:"exposes,omitempty,flow"`
 	NetworkMode   string   `yaml:"network_mode,omitempty"`
-	MemoryLimit   int      `yaml:"mem_limit,omitempty"`
 	RestartPolicy string   `yaml:"restart,omitempty"`
 	HealthCheck   string   `yaml:"health_check,omitempty"`
 	ExtraHosts    []string `yaml:"hosts,omitempty,flow"`
