@@ -66,7 +66,7 @@ type entry struct {
 
 // Get a random node from pod `podname`
 func getRandomNode(c *calcium, podname string) (*types.Node, error) {
-	nodes, err := c.ListPodNodes(podname)
+	nodes, err := c.ListPodNodes(podname, false)
 	if err != nil {
 		return nil, err
 	}

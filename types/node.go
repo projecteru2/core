@@ -48,13 +48,14 @@ func (c CPUMap) Sub(q CPUMap) {
 type Node struct {
 	sync.Mutex
 
-	Name     string            `json:"name"`
-	Endpoint string            `json:"endpoint"`
-	Podname  string            `json:"podname"`
-	Public   bool              `json:"public"`
-	CPU      CPUMap            `json:"cpu"`
-	MemCap   int64             `json:"memcap"`
-	Engine   *engineapi.Client `json:"-"`
+	Name      string            `json:"name"`
+	Endpoint  string            `json:"endpoint"`
+	Podname   string            `json:"podname"`
+	Public    bool              `json:"public"`
+	Available bool              `json:"available"`
+	CPU       CPUMap            `json:"cpu"`
+	MemCap    int64             `json:"memcap"`
+	Engine    *engineapi.Client `json:"-"`
 }
 
 // 5 seconds timeout

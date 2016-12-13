@@ -263,7 +263,7 @@ func (c *calcium) getCPUAndMem(podname, nodename string, quota float64) (map[str
 	// 指定了就给一个指定的列表
 	var nodes []*types.Node
 	if nodename == "" {
-		nodes, err = c.ListPodNodes(podname)
+		nodes, err = c.ListPodNodes(podname, false)
 		if err != nil {
 			return result, nil, err
 		}
