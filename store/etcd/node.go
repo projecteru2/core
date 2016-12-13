@@ -108,13 +108,14 @@ func (k *krypton) AddNode(name, endpoint, podname, cafile, certfile, keyfile str
 	memcap := info.MemTotal - GIGABYTE // 可用内存为总内存减 1G
 
 	node := &types.Node{
-		Name:     name,
-		Endpoint: endpoint,
-		Podname:  podname,
-		Public:   public,
-		CPU:      cpumap,
-		MemCap:   memcap,
-		Engine:   engine,
+		Name:      name,
+		Endpoint:  endpoint,
+		Podname:   podname,
+		Public:    public,
+		CPU:       cpumap,
+		MemCap:    memcap,
+		Engine:    engine,
+		Available: true,
 	}
 
 	bytes, err := json.Marshal(node)
