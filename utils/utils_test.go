@@ -120,6 +120,39 @@ func TestAllocContainerPlan(t *testing.T) {
 
 }
 
+func TestDebugPlan(t *testing.T) {
+	testPodInfo := ByCoreNum{}
+	node0 := NodeInfo{"C2-docker-15", 1600000, 31442075648}
+	node1 := NodeInfo{"C2-docker-16", 1600000, 31576293376}
+	node2 := NodeInfo{"C2-docker-17", 1600000, 31173640192}
+	node3 := NodeInfo{"C2-docker-14", 1600000, 27608481792}
+	testPodInfo = append(testPodInfo, node0)
+	testPodInfo = append(testPodInfo, node1)
+	testPodInfo = append(testPodInfo, node2)
+	testPodInfo = append(testPodInfo, node3)
+
+	res, _ := AllocContainerPlan(testPodInfo, 100000, 2357198848, 1)
+	fmt.Printf("result: %v\n", res)
+	assert.True(t, res["C2-docker-14"] == 1)
+}
+
+func TestAllocAlgorithm(t *testing.T) {
+	testPodInfo := ByCoreNum{}
+	node0 := NodeInfo{"C2-docker-15", 1600000, 0}
+	node1 := NodeInfo{"C2-docker-16", 1600000, 2357198848 * 2}
+	node2 := NodeInfo{"C2-docker-17", 1600000, 2357198848 * 2}
+	node3 := NodeInfo{"C2-docker-14", 1600000, 2357198848 * 2}
+	testPodInfo = append(testPodInfo, node0)
+	testPodInfo = append(testPodInfo, node1)
+	testPodInfo = append(testPodInfo, node2)
+	testPodInfo = append(testPodInfo, node3)
+
+	res, _ := AllocContainerPlan(testPodInfo, 100000, 2357198848, 1)
+	fmt.Printf("result: %v\n", res)
+	assert.True(t, res["C2-docker-14"] == 1)
+
+}
+
 func TestMakeCommandLine(t *testing.T) {
 	r1 := MakeCommandLineArgs("/bin/bash -l -c 'echo \"foo bar bah bin\"'")
 	assert.Equal(t, r1, []string{"/bin/bash", "-l", "-c", "echo \"foo bar bah bin\""})

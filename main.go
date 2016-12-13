@@ -13,6 +13,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"gitlab.ricebook.net/platform/core/cluster/calcium"
+	"gitlab.ricebook.net/platform/core/g"
 	"gitlab.ricebook.net/platform/core/rpc"
 	"gitlab.ricebook.net/platform/core/rpc/gen"
 	"gitlab.ricebook.net/platform/core/types"
@@ -83,6 +84,8 @@ func serve() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	g.NewStatsdClient(config.Statsd)
 
 	cluster, err := calcium.New(config)
 	if err != nil {
