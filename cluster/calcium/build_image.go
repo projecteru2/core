@@ -70,6 +70,9 @@ func getRandomNode(c *calcium, podname string) (*types.Node, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(nodes) == 0 {
+		return nil, fmt.Errorf("No nodes available in pod %s", podname)
+	}
 
 	nodemap := make(map[string]types.CPUMap)
 	for _, n := range nodes {
