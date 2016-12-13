@@ -3,6 +3,7 @@ package calcium
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -594,10 +595,15 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 		"version": utils.GetVersion(opts.Image),
 		"ports":   strings.Join(ports, ","),
 	}
-	// 支持健康检测, 但是只支持tcp和http
-	if entry.HealthCheck == "tcp" || entry.HealthCheck == "http" {
-		containerLabels["healthcheck"] = entry.HealthCheck
+	// 只要声明了ports，就免费赠送tcp健康检查，如果需要http健康检查，还要单独声明 healthcheck_url
+	if entry.HealthCheckUrl != "" {
+		containerLabels["healthcheck"] = "http"
+		containerLabels["healthcheck_url"] = entry.HealthCheckUrl
+		containerLabels["healthcheck_expected_code"] = strconv.Itoa(entry.HealthCheckExpectedCode)
+	} else {
+		containerLabels["healthcheck"] = "tcp"
 	}
+
 	// 要把after_start和before_stop写进去
 	containerLabels[AFTER_START] = entry.AfterStart
 	containerLabels[BEFORE_STOP] = entry.BeforeStop

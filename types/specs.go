@@ -22,19 +22,20 @@ type Specs struct {
 
 // single entrypoint
 type Entrypoint struct {
-	Command       string   `yaml:"cmd,omitempty"`
-	AfterStart    string   `yaml:"after_start,omitempty"`
-	BeforeStop    string   `yaml:"before_stop,omitempty"`
-	Ports         []Port   `yaml:"ports,omitempty,flow"`
-	Exposes       []Expose `yaml:"exposes,omitempty,flow"`
-	NetworkMode   string   `yaml:"network_mode,omitempty"`
-	RestartPolicy string   `yaml:"restart,omitempty"`
-	HealthCheck   string   `yaml:"health_check,omitempty"`
-	ExtraHosts    []string `yaml:"hosts,omitempty,flow"`
-	PermDir       bool     `yaml:"permdir,omitempty"`
-	Privileged    string   `yaml:"privileged,omitempty"`
-	LogConfig     string   `yaml:"log_config,omitempty"`
-	WorkingDir    string   `yaml:"working_dir,omitempty"`
+	Command                 string   `yaml:"cmd,omitempty"`
+	AfterStart              string   `yaml:"after_start,omitempty"`
+	BeforeStop              string   `yaml:"before_stop,omitempty"`
+	Ports                   []Port   `yaml:"ports,omitempty,flow"`
+	Exposes                 []Expose `yaml:"exposes,omitempty,flow"`
+	NetworkMode             string   `yaml:"network_mode,omitempty"`
+	RestartPolicy           string   `yaml:"restart,omitempty"`
+	HealthCheckUrl          string   `yaml:"healthcheck_url,omitempty"`
+	HealthCheckExpectedCode int      `yaml:"healthcheck_expected_code,omitempty"`
+	ExtraHosts              []string `yaml:"hosts,omitempty,flow"`
+	PermDir                 bool     `yaml:"permdir,omitempty"`
+	Privileged              string   `yaml:"privileged,omitempty"`
+	LogConfig               string   `yaml:"log_config,omitempty"`
+	WorkingDir              string   `yaml:"working_dir,omitempty"`
 }
 
 // single bind
