@@ -66,9 +66,12 @@ type entry struct {
 
 // Get a random node from pod `podname`
 func getRandomNode(c *calcium, podname string) (*types.Node, error) {
-	nodes, err := c.ListPodNodes(podname)
+	nodes, err := c.ListPodNodes(podname, false)
 	if err != nil {
 		return nil, err
+	}
+	if len(nodes) == 0 {
+		return nil, fmt.Errorf("No nodes available in pod %s", podname)
 	}
 
 	nodemap := make(map[string]types.CPUMap)

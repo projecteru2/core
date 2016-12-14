@@ -89,7 +89,7 @@ func (v *virbranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.
 
 // ListPodNodes returns a list of node for pod
 func (v *virbranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions) (*pb.Nodes, error) {
-	ns, err := v.cluster.ListPodNodes(opts.Podname)
+	ns, err := v.cluster.ListPodNodes(opts.Podname, opts.All)
 	if err != nil {
 		return nil, err
 	}
@@ -164,6 +164,15 @@ func (v *virbranium) ListNetworks(ctx context.Context, opts *pb.GetPodOptions) (
 		ns = append(ns, toRPCNetwork(n))
 	}
 	return &pb.Networks{Networks: ns}, nil
+}
+
+// set node availability
+func (v *virbranium) SetNodeAvailable(ctx context.Context, opts *pb.NodeAvailable) (*pb.Node, error) {
+	n, err := v.cluster.SetNodeAvailable(opts.Podname, opts.Nodename, opts.Available)
+	if err != nil {
+		return nil, err
+	}
+	return toRPCNode(n), nil
 }
 
 // streamed returned functions

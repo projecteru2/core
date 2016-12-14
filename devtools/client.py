@@ -84,7 +84,7 @@ def get_pod(ctx, name):
 @click.pass_context
 def get_pod_nodes(ctx, name):
     stub = _get_stub(ctx)
-    opts = pb.ListNodesOptions(podname=name)
+    opts = pb.ListNodesOptions(podname=name, all=True)
 
     try:
         r = stub.ListPodNodes(opts, 5)

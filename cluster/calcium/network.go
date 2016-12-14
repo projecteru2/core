@@ -13,7 +13,7 @@ import (
 // only get those driven by network driver
 func (c *calcium) ListNetworks(podname string) ([]*types.Network, error) {
 	networks := []*types.Network{}
-	nodes, err := c.ListPodNodes(podname)
+	nodes, err := c.ListPodNodes(podname, false)
 	if err != nil {
 		return networks, err
 	}

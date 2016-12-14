@@ -14,6 +14,7 @@ service CoreRPC {
     rpc GetContainer(ContainerID) returns (Container) {};
     rpc GetContainers(ContainerIDs) returns (Containers) {};
     rpc ListNetworks(GetPodOptions) returns (Networks) {};
+    rpc SetNodeAvailable(NodeAvailable) returns (Node) {};
 
     rpc BuildImage(BuildImageOptions) returns (stream BuildImageMessage) {};
     rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage);
@@ -54,6 +55,12 @@ message Node {
 
 message Nodes {
     repeated Node nodes = 1;
+}
+
+message NodeAvailable {
+    string nodename = 1;
+    string podname = 2;
+    bool available = 3;
 }
 
 message Container {
@@ -109,6 +116,7 @@ message GetNodeOptions {
 
 message ListNodesOptions {
     string podname = 1;
+    bool all = 2;
 }
 
 message BuildImageOptions {
