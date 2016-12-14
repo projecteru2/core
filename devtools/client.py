@@ -169,6 +169,24 @@ def add_node(ctx, nodename, endpoint, podname, certs, public):
     click.echo(node)
 
 
+@cli.command('node:set-available')
+@click.argument('nodename')
+@click.argument('podname')
+@click.option('--not-available', is_flag=True)
+@click.pass_context
+def set_node_available(ctx, nodename, podname, not_available):
+    stub = _get_stub(ctx)
+    opts = pb.NodeAvailable(nodename=nodename, podname=podname, available=not not_available)
+
+    try:
+        node = stub.SetNodeAvailable(opts, 5)
+    except AbortionError as e:
+        click.echo(click.style('abortion error: %s' % e.details, fg='red', bold=True))
+        ctx.exit(-1)
+
+    click.echo(node)
+
+
 @cli.command('node:remove')
 @click.argument('nodename')
 @click.argument('podname')
