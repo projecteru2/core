@@ -25,51 +25,55 @@ func AllocContainerPlan(nodeInfo ByCoreNum, quota int, memory int64, count int) 
 
 	result := make(map[string]int)
 	N := nodeInfo.Len()
-	flag := -1
+	firstNodeWithEnoughCPU := -1
 
 	for i := 0; i < N; i++ {
 		if nodeInfo[i].CorePer >= quota {
-			flag = i
+			firstNodeWithEnoughCPU = i
 			break
 		}
 	}
-	if flag == -1 {
-		log.Errorf("[AllocContainerPlan] Cannot alloc a plan, not enough cpu quota, got flag %d", flag)
+	if firstNodeWithEnoughCPU == -1 {
+		log.Errorf("[AllocContainerPlan] Cannot alloc a plan, not enough cpu quota, got flag %d", firstNodeWithEnoughCPU)
 		return result, fmt.Errorf("[AllocContainerPlan] Cannot alloc a plan, not enough cpu quota")
 	}
-	log.Debugf("[AllocContainerPlan] the %d node has enough cpu quota.", flag)
+	log.Debugf("[AllocContainerPlan] the %d th node has enough cpu quota.", firstNodeWithEnoughCPU)
 
 	// 计算是否有足够的内存满足需求
-	bucket := []NodeInfo{}
-	volume := 0
-	volNum := []int{} //为了排序
-	for i := flag; i < N; i++ {
+	nodeInfoList := []NodeInfo{}
+	volTotal := 0
+	volEachNode := []int{} //为了排序
+	for i := firstNodeWithEnoughCPU; i < N; i++ {
 		temp := int(nodeInfo[i].Memory / memory)
 		if temp > 0 {
-			volume += temp
-			bucket = append(bucket, nodeInfo[i])
-			volNum = append(volNum, temp)
+			volTotal += temp
+			nodeInfoList = append(nodeInfoList, nodeInfo[i])
+			volEachNode = append(volEachNode, temp)
 		}
 	}
-	if volume < count {
-		log.Errorf("[AllocContainerPlan] Cannot alloc a plan, volume %d, count %d", volume, count)
+	if volTotal < count {
+		log.Errorf("[AllocContainerPlan] Cannot alloc a plan, volume %d, count %d", volTotal, count)
 		return result, fmt.Errorf("[AllocContainerPlan] Cannot alloc a plan, not enough memory.")
 	}
-	log.Debugf("[AlloContainerPlan] volumn of each node: %v", volNum)
+	log.Debugf("[AlloContainerPlan] volumn of each node: %v", volEachNode)
 
-	sort.Ints(volNum)
-	log.Debugf("[AllocContainerPlan] sorted volumn: %v", volNum)
-	plan := allocAlgorithm(volNum, count)
+	sort.Ints(volEachNode)
+	log.Debugf("[AllocContainerPlan] sorted volumn: %v", volEachNode)
+	plan, err := allocAlgorithm(volEachNode, count)
+	if err != nil {
+		log.Errorf("[AllocContainerPlan] %v", err)
+		return result, err
+	}
 
 	for i, num := range plan {
-		key := bucket[i].Name
+		key := nodeInfoList[i].Name
 		result[key] = num
 	}
 	log.Debugf("[AllocContainerPlan] allocAlgorithm result: %v", result)
 	return result, nil
 }
 
-func allocAlgorithm(info []int, need int) map[int]int {
+func allocAlgorithm(info []int, need int) (map[int]int, error) {
 	// 实际上，这就是精确分配时候的那个分配算法
 	// 情景是相同的：我们知道每台机能否分配多少容器
 	// 要求我们尽可能平均地分配
@@ -105,15 +109,21 @@ func allocAlgorithm(info []int, need int) map[int]int {
 				info[j] -= ave
 			}
 			j++
-			log.Debugf("[AllocContainerPlan] allocAlgorithm outer loop: %d, ave: %d, result: %v", j, ave, result)
+			log.Debugf("[AllocContainerPlan] allocAlgorithm inner loop: %d, ave: %d, result: %v", j, ave, result)
 		}
 		if more == 0 {
 			break
 		}
 		need = -more
 	}
-	log.Debugf("[AllocContainerPlan] allocAlgorithm: info %v, need %d, made plan: %v", info, need, result)
-	return result
+	log.Debugf("[AllocContainerPlan] allocAlgorithm info %v, need %d, made plan: %v", info, need, result)
+	for _, v := range result {
+		if v < 0 {
+			// result will not be nil at this situation. So I return nil instead of result
+			return nil, fmt.Errorf("allocAlgorithm illegal alloc plan: %v ", result)
+		}
+	}
+	return result, nil
 }
 
 func GetNodesInfo(cpumemmap map[string]types.CPUAndMem) ByCoreNum {
