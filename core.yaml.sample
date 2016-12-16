@@ -6,6 +6,7 @@ etcd:
 etcd_lock_prefix: "/eru-core/_lock"
 
 resource_alloc: "cpu-period"
+statsd: "statsd2.ricebook.net:8125"
 
 git:
     public_key: "***REMOVED***"
