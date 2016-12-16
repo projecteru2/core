@@ -1,4 +1,4 @@
-image: "hub.ricebook.net/base/centos:onbuild-eru-core-2016.11.28"
+image: "hub.ricebook.net/base/centos:onbuild-eru-core-2016.12.16"
 before_script:
   - "ln -s $CI_PROJECT_DIR $GOPATH/src/gitlab.ricebook.net/platform/core"
 stages:
@@ -27,5 +27,3 @@ rpm:
     paths:
       - "eru-core*.rpm"
     expire_in: 1 week
-
-
