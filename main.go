@@ -86,6 +86,7 @@ func serve() {
 	}
 
 	g.NewStatsdClient(config.Statsd)
+	g.Hostname = os.Getenv("HOSTNAME")
 
 	cluster, err := calcium.New(config)
 	if err != nil {
