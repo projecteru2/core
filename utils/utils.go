@@ -144,6 +144,7 @@ func SendMemCap(cpumemmap map[string]types.CPUAndMem, tag string) {
 		data[node] = float64(cpuandmem.MemCap)
 	}
 	host := os.Getenv("HOSTNAME")
+	log.Debugf("hostname: %s", host)
 	clean_host := strings.Replace(host, ".", "-", -1)
 	err := g.Statsd.Send(data, clean_host, tag)
 	if err != nil {
