@@ -43,7 +43,7 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 		log.Errorf("Got error %v after getCPUAndMem", err)
 		return ch, err
 	}
-	go utils.SendMemCap(cpuandmem, "before_alloc")
+	go utils.SendMemCap(cpuandmem, "before-alloc")
 	nodesInfo := utils.GetNodesInfo(cpuandmem)
 
 	cpuQuota := int(opts.CPUQuota * float64(utils.CpuPeriodBase))
@@ -195,7 +195,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 			log.Errorf("Got error %v after getCPUAndMem", err)
 			return
 		}
-		utils.SendMemCap(cpuandmem, "after_alloc")
+		utils.SendMemCap(cpuandmem, "after-alloc")
 	}(opts.Podname, opts.Nodename)
 	return ms
 }
