@@ -31,6 +31,7 @@ func (self *StatsDClient) Send(data map[string]float64, endpoint, tag string) er
 }
 
 var Statsd = StatsDClient{}
+var Hostname string
 
 func NewStatsdClient(addr string) {
 	Statsd = StatsDClient{addr}
