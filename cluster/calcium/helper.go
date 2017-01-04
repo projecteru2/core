@@ -129,7 +129,7 @@ func makeMountPaths(specs types.Specs, config types.Config) ([]string, map[strin
 
 	// /proc/sys
 	volumes["/writable-proc/sys"] = struct{}{}
-	binds = append(binds, "/proc/sys:/writable-proc/sys:ro")
+	binds = append(binds, "/proc/sys:/writable-proc/sys:rw")
 	return binds, volumes
 }
 
