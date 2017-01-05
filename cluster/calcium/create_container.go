@@ -595,15 +595,23 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 
 	// labels
 	// basic labels, and set meta in specs to labels
-	ports := []string{}
-	for _, port := range entry.Ports {
-		ports = append(ports, string(port))
-	}
 	containerLabels := map[string]string{
 		"ERU":     "1",
 		"version": utils.GetVersion(opts.Image),
-		"ports":   strings.Join(ports, ","),
 	}
+	// 如果有声明检查的端口就用这个端口
+	// 否则还是按照publish出去端口来检查
+	if entry.HealthCheckPort != 0 {
+		//XXX 随便给个 tcp 吧
+		containerLabels["ports"] = fmt.Sprintf("%d/tcp", entry.HealthCheckPort)
+	} else {
+		ports := []string{}
+		for _, port := range entry.Ports {
+			ports = append(ports, string(port))
+		}
+		containerLabels["ports"] = strings.Join(ports, ",")
+	}
+
 	// 只要声明了ports，就免费赠送tcp健康检查，如果需要http健康检查，还要单独声明 healthcheck_url
 	if entry.HealthCheckUrl != "" {
 		containerLabels["healthcheck"] = "http"

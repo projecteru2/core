@@ -29,6 +29,7 @@ type Entrypoint struct {
 	Exposes                 []Expose `yaml:"exposes,omitempty,flow"`
 	NetworkMode             string   `yaml:"network_mode,omitempty"`
 	RestartPolicy           string   `yaml:"restart,omitempty"`
+	HealthCheckPort         int      `yaml:"healthcheck_port,omitempty,flow"`
 	HealthCheckUrl          string   `yaml:"healthcheck_url,omitempty"`
 	HealthCheckExpectedCode int      `yaml:"healthcheck_expected_code,omitempty"`
 	ExtraHosts              []string `yaml:"hosts,omitempty,flow"`
