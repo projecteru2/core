@@ -95,6 +95,10 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 
 	for i := 0; i < connum; i++ {
 		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(nil, specs, opts, "cpuperiod", node.GetIP())
+		ms[i].ContainerName = containerName
+		ms[i].Podname = opts.Podname
+		ms[i].Nodename = node.Name
+		ms[i].Memory = opts.Memory
 		if err != nil {
 			log.Errorf("Error when creating CreateContainerOptions, %v", err)
 			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+") // 创建容器失败就要把资源还回去对不对？
@@ -164,6 +168,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
 			continue
 		}
+		ms[i].ContainerID = info.ID
 
 		// after start
 		if err := runExec(node.Engine, info, AFTER_START); err != nil {
@@ -177,16 +182,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 			continue
 		}
 
-		ms[i] = &types.CreateContainerMessage{
-			Podname:       opts.Podname,
-			Nodename:      node.Name,
-			ContainerID:   info.ID,
-			ContainerName: containerName,
-			Error:         "",
-			Success:       true,
-			CPU:           nil,
-			Memory:        opts.Memory,
-		}
+		ms[i].Success = true
 
 	}
 	go func(podname string, nodename string) {
