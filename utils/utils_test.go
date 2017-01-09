@@ -122,18 +122,23 @@ func TestAllocContainerPlan(t *testing.T) {
 
 func TestDebugPlan(t *testing.T) {
 	testPodInfo := ByCoreNum{}
-	node0 := NodeInfo{"C2-docker-15", 1600000, 31442075648}
-	node1 := NodeInfo{"C2-docker-16", 1600000, 31576293376}
-	node2 := NodeInfo{"C2-docker-17", 1600000, 31173640192}
-	node3 := NodeInfo{"C2-docker-14", 1600000, 27608481792}
+	node0 := NodeInfo{"C2-docker-14", 1600000, 13732667392}
+	node1 := NodeInfo{"C2-docker-15", 1600000, 4303872000}
+	node2 := NodeInfo{"C2-docker-16", 1600000, 1317527552}
+	node3 := NodeInfo{"C2-docker-17", 1600000, 8808554496}
+	node4 := NodeInfo{"C2-docker-22", 1600000, 1527242752}
+	node5 := NodeInfo{"C2-docker-23", 1600000, 9227984896}
+
 	testPodInfo = append(testPodInfo, node0)
 	testPodInfo = append(testPodInfo, node1)
 	testPodInfo = append(testPodInfo, node2)
 	testPodInfo = append(testPodInfo, node3)
+	testPodInfo = append(testPodInfo, node4)
+	testPodInfo = append(testPodInfo, node5)
 
-	res, _ := AllocContainerPlan(testPodInfo, 100000, 2357198848, 1)
+	res, _ := AllocContainerPlan(testPodInfo, 100000, 2357198848, 10)
 	fmt.Printf("result: %v\n", res)
-	assert.True(t, res["C2-docker-14"] == 1)
+	assert.True(t, res["C2-docker-15"] == 1)
 }
 
 func TestAllocAlgorithm(t *testing.T) {
