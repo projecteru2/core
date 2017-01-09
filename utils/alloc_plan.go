@@ -20,6 +20,12 @@ func (a ByCoreNum) Len() int           { return len(a) }
 func (a ByCoreNum) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByCoreNum) Less(i, j int) bool { return a[i].CorePer < a[j].CorePer }
 
+type ByMemCap []NodeInfo
+
+func (a ByMemCap) Len() int           { return len(a) }
+func (a ByMemCap) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByMemCap) Less(i, j int) bool { return a[i].Memory < a[j].Memory }
+
 func AllocContainerPlan(nodeInfo ByCoreNum, quota int, memory int64, count int) (map[string]int, error) {
 	log.Debugf("[AllocContainerPlan]: nodeInfo: %v, quota: %d, memory: %d, count: %d", nodeInfo, quota, memory, count)
 
@@ -40,7 +46,7 @@ func AllocContainerPlan(nodeInfo ByCoreNum, quota int, memory int64, count int) 
 	log.Debugf("[AllocContainerPlan] the %d th node has enough cpu quota.", firstNodeWithEnoughCPU)
 
 	// 计算是否有足够的内存满足需求
-	nodeInfoList := []NodeInfo{}
+	nodeInfoList := ByMemCap{}
 	volTotal := 0
 	volEachNode := []int{} //为了排序
 	for i := firstNodeWithEnoughCPU; i < N; i++ {
@@ -65,6 +71,8 @@ func AllocContainerPlan(nodeInfo ByCoreNum, quota int, memory int64, count int) 
 		return result, err
 	}
 
+	sort.Sort(nodeInfoList)
+	log.Debugf("[AllocContainerPlan] sorted nodeInfo: %v, ", nodeInfoList)
 	for i, num := range plan {
 		key := nodeInfoList[i].Name
 		result[key] = num
