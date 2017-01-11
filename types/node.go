@@ -58,9 +58,10 @@ type Node struct {
 	Engine    *engineapi.Client `json:"-"`
 }
 
-// 5 seconds timeout
+// 2 seconds timeout
+// used to be 5, but client won't wait that long
 func (n *Node) Info() (enginetypes.Info, error) {
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
 	return n.Engine.Info(ctx)
 }
 
