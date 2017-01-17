@@ -83,6 +83,21 @@ func (c *calcium) removeOneContainer(container *types.Container) error {
 		return err
 	}
 
+	defer func() {
+		// if total cpu of container > 0, then we need to release these core resource
+		// but if it's 0, just ignore to save 1 time write on etcd.
+		if container.CPU.Total() > 0 {
+			log.WithFields(log.Fields{"nodename": node.Name, "cpumap": container.CPU}).Debugln("Restore node CPU:")
+			if err := c.store.UpdateNodeCPU(node.Podname, node.Name, container.CPU, "+"); err != nil {
+				log.Errorf("Update Node CPU failed %s", err.Error())
+				return
+			}
+		}
+		//TODO 记录操作日志
+		c.store.UpdateNodeMem(node.Podname, node.Name, container.Memory, "+")
+		c.store.RemoveContainer(info.ID)
+	}()
+
 	// before stop
 	if err := runExec(container.Engine, info, BEFORE_STOP); err != nil {
 		log.Errorf("Run exec at %s error: %s", BEFORE_STOP, err.Error())
@@ -112,15 +127,5 @@ func (c *calcium) removeOneContainer(container *types.Container) error {
 		PruneChildren: true,
 	}
 	go container.Engine.ImageRemove(context.Background(), info.Image, rmiOpts)
-
-	// if total cpu of container > 0, then we need to release these core resource
-	// but if it's 0, just ignore to save 1 time write on etcd.
-	if container.CPU.Total() > 0 {
-		log.WithFields(log.Fields{"nodename": node.Name, "cpumap": container.CPU}).Debugln("Restore node CPU:")
-		if err := c.store.UpdateNodeCPU(node.Podname, node.Name, container.CPU, "+"); err != nil {
-			return err
-		}
-	}
-	c.store.UpdateNodeMem(node.Podname, node.Name, container.Memory, "+")
-	return c.store.RemoveContainer(info.ID)
+	return nil
 }
