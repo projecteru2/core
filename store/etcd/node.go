@@ -24,6 +24,34 @@ import (
 
 const GIGABYTE = 1073741824
 
+// cache connections
+// otherwise they'll leak
+type cache struct {
+	sync.Mutex
+	clients map[string]*engineapi.Client
+}
+
+func (c cache) set(host string, client *engineapi.Client) {
+	c.Lock()
+	defer c.Unlock()
+
+	c.clients[host] = client
+}
+
+func (c cache) get(host string) *engineapi.Client {
+	c.Lock()
+	defer c.Unlock()
+	return c.clients[host]
+}
+
+func (c cache) delete(host string) {
+	c.Lock()
+	defer c.Unlock()
+	delete(c.clients, host)
+}
+
+var _cache = cache{clients: make(map[string]*engineapi.Client)}
+
 // get a node from etcd
 // and construct it's docker client
 // a node must belong to a pod
@@ -88,7 +116,7 @@ func (k *krypton) AddNode(name, endpoint, podname, cafile, certfile, keyfile str
 	}
 
 	// 尝试加载docker的客户端
-	engine, err := k.makeDockerClient(podname, name, endpoint, false)
+	engine, err := k.makeDockerClient(podname, name, endpoint, true)
 	if err != nil {
 		k.deleteNode(podname, name, endpoint)
 		return nil, err
@@ -141,6 +169,18 @@ func (k *krypton) deleteNode(podname, nodename, endpoint string) {
 	key := fmt.Sprintf(nodePrefixKey, podname, nodename)
 	k.etcd.Delete(context.Background(), key, &etcdclient.DeleteOptions{Recursive: true})
 	k.deleteCertFiles(podname, nodename, endpoint)
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		log.Errorf("Bad endpoint: %s", endpoint)
+		return
+	}
+
+	host, _, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		log.Errorf("Bad addr: %s", u.Host)
+		return
+	}
+	_cache.delete(host)
 	log.Debugf("Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 }
 
@@ -307,28 +347,6 @@ func (k *krypton) UpdateNodeCPU(podname, nodename string, cpu types.CPUMap, acti
 
 	return nil
 }
-
-// cache connections
-// otherwise they'll leak
-type cache struct {
-	sync.Mutex
-	clients map[string]*engineapi.Client
-}
-
-func (c cache) set(host string, client *engineapi.Client) {
-	c.Lock()
-	defer c.Unlock()
-
-	c.clients[host] = client
-}
-
-func (c cache) get(host string) *engineapi.Client {
-	c.Lock()
-	defer c.Unlock()
-	return c.clients[host]
-}
-
-var _cache = cache{clients: make(map[string]*engineapi.Client)}
 
 // use endpoint, cert files path, and api version to create docker client
 // we don't check whether this is connectable
