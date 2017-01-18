@@ -52,6 +52,7 @@ message Node {
     map<string, int64> cpu = 5;
     string info = 6;
     bool available = 7;
+    string zone = 8;
 }
 
 message Nodes {

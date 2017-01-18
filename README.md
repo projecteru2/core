@@ -69,6 +69,7 @@ permdir: "/mnt/mfs/permdirs" # 宿主机的 permdir 的路径
 etcd: # etcd 集群的地址
     - "http://127.0.0.1:2379"
 etcd_lock_prefix: "/eru-core/_lock" # etcd 分布式锁的前缀, 一般会用隐藏文件夹
+zone: "c1" # 机房区域
 
 git:
     public_key: "[path_to_pub_key]" # git clone 使用的公钥

@@ -9,6 +9,7 @@ type Config struct {
 	EtcdLockPrefix string   `yaml:"etcd_lock_prefix"` // etcd lock prefix, all locks will be created under this dir
 	ResourceAlloc  string   `yaml:"resource_alloc"`   // scheduler or cpu-period TODO give it a good name
 	Statsd         string   `yaml:"statsd"`           // Statsd host and port
+	Zone           string   `yaml:"zone"`             // zone for core, e.g. C1, C2
 
 	Git       GitConfig    `yaml:"git"`
 	Docker    DockerConfig `yaml:"docker"`
