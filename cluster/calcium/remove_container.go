@@ -65,21 +65,25 @@ func (c *calcium) removeOneContainer(container *types.Container) error {
 	// only the first to remove can be done
 	lock, err := c.store.CreateLock(fmt.Sprintf("rmcontainer_%s", container.ID), 120)
 	if err != nil {
+		log.Errorf("Error during CreateLock: %s", err.Error())
 		return err
 	}
 	if err := lock.Lock(); err != nil {
+		log.Errorf("Error during lock.Lock: %s", err.Error())
 		return err
 	}
 	defer lock.Unlock()
 
 	info, err := container.Inspect()
 	if err != nil {
+		log.Errorf("Error during container.Inspect: %s", err.Error())
 		return err
 	}
 
 	// will be used later to update
 	node, err := c.GetNode(container.Podname, container.Nodename)
 	if err != nil {
+		log.Errorf("Error during GetNode: %s", err.Error())
 		return err
 	}
 
@@ -106,6 +110,7 @@ func (c *calcium) removeOneContainer(container *types.Container) error {
 	timeout := 5 * time.Second
 	err = container.Engine.ContainerStop(context.Background(), info.ID, &timeout)
 	if err != nil {
+		log.Errorf("Error during ContainerStop: %s", err.Error())
 		return err
 	}
 
@@ -115,6 +120,7 @@ func (c *calcium) removeOneContainer(container *types.Container) error {
 	}
 	err = container.Engine.ContainerRemove(context.Background(), info.ID, rmOpts)
 	if err != nil {
+		log.Errorf("Error during ContainerRemove: %s", err.Error())
 		return err
 	}
 
