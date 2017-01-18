@@ -24,4 +24,7 @@ type Cluster interface {
 	UpgradeContainer(ids []string, image string) (chan *types.UpgradeContainerMessage, error)
 	RemoveContainer(ids []string) (chan *types.RemoveContainerMessage, error)
 	RemoveImage(podname, nodename string, images []string) (chan *types.RemoveImageMessage, error)
+
+	// cluster attribute methods
+	GetZone() string
 }

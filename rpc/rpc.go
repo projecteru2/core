@@ -63,7 +63,7 @@ func (v *virbranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.
 		return nil, err
 	}
 
-	return toRPCNode(n), nil
+	return toRPCNode(n, v.cluster.GetZone()), nil
 }
 
 // AddNode saves a node and returns it to client
@@ -84,7 +84,7 @@ func (v *virbranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.
 		return nil, err
 	}
 
-	return toRPCNode(n), nil
+	return toRPCNode(n, v.cluster.GetZone()), nil
 }
 
 // ListPodNodes returns a list of node for pod
@@ -96,7 +96,7 @@ func (v *virbranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions
 
 	nodes := []*pb.Node{}
 	for _, n := range ns {
-		nodes = append(nodes, toRPCNode(n))
+		nodes = append(nodes, toRPCNode(n, v.cluster.GetZone()))
 	}
 	return &pb.Nodes{Nodes: nodes}, nil
 }
@@ -172,7 +172,7 @@ func (v *virbranium) SetNodeAvailable(ctx context.Context, opts *pb.NodeAvailabl
 	if err != nil {
 		return nil, err
 	}
-	return toRPCNode(n), nil
+	return toRPCNode(n, v.cluster.GetZone()), nil
 }
 
 // streamed returned functions
