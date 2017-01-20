@@ -5,22 +5,24 @@ set -e
 deploy_mode=${1-test}
 if [ $deploy_mode == "test" ]
 then
-  echo "citadel do not have test envrionment for now"
+  ssh c1-eru-2 << EOF
+  sudo yum --enablerepo=ricebook clean metadata
+  sudo yum makecache
+  sudo yum remove -y eru-core
+  sudo yum install -y eru-core
+  sudo systemctl daemon-reload
+  sudo systemctl restart eru-core.service
+EOF
 elif [ $deploy_mode == "prod" ]
 then
-  ssh c2-eru-1.ricebook.link -t 'sudo yum --enablerepo=ricebook clean metadata'
-  ssh c2-eru-1.ricebook.link -t 'sudo yum makecache'
-  ssh c2-eru-1.ricebook.link -t 'sudo yum remove -y eru-core'
-  ssh c2-eru-1.ricebook.link -t 'sudo yum install -y eru-core'
-  ssh c2-eru-1.ricebook.link -t 'sudo systemctl daemon-reload'
-  ssh c2-eru-1.ricebook.link -t 'sudo systemctl restart eru-core.service'
-
-  ssh c1-eru-1.ricebook.link -t 'sudo yum --enablerepo=ricebook clean metadata'
-  ssh c1-eru-1.ricebook.link -t 'sudo yum makecache'
-  ssh c1-eru-1.ricebook.link -t 'sudo yum remove -y eru-core'
-  ssh c1-eru-1.ricebook.link -t 'sudo yum install -y eru-core'
-  ssh c1-eru-1.ricebook.link -t 'sudo systemctl daemon-reload'
-  ssh c1-eru-1.ricebook.link -t 'sudo systemctl restart eru-core.service'
+  ssh c2-eru-1 << EOF
+  sudo yum --enablerepo=ricebook clean metadata
+  sudo yum makecache
+  sudo yum remove -y eru-core
+  sudo yum install -y eru-core
+  sudo systemctl daemon-reload
+  sudo systemctl restart eru-core.service
+EOF
 else
   exit 127
 fi
