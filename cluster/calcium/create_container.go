@@ -542,6 +542,7 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	env := append(opts.Env, fmt.Sprintf("APP_NAME=%s", specs.Appname))
 	env = append(env, fmt.Sprintf("ERU_POD=%s", opts.Podname))
 	env = append(env, fmt.Sprintf("ERU_NODE_IP=%s", nodeIP))
+	env = append(env, fmt.Sprintf("ERU_ZONE=%s", c.config.Zone))
 
 	// mount paths
 	binds, volumes := makeMountPaths(specs, c.config)
@@ -594,6 +595,7 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	containerLabels := map[string]string{
 		"ERU":     "1",
 		"version": utils.GetVersion(opts.Image),
+		"zone":    c.config.Zone,
 	}
 	// 如果有声明检查的端口就用这个端口
 	// 否则还是按照publish出去端口来检查
