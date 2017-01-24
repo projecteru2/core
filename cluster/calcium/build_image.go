@@ -24,7 +24,7 @@ echo 32768 > /writable-proc/sys/net/core/somaxconn
 echo 1 > /writable-proc/sys/vm/overcommit_memory
 chmod 777 /dev/stdout
 chmod 777 /dev/stderr
-if [ -d /{{.Appname}}/permdir ]; then chown {{.UID}} /{{.Appname}}/permdir; fi
+if [ -d {{.Appdir}}/{{.Appname}}/permdir ]; then chown {{.UID}} {{.Appdir}}/{{.Appname}}/permdir; fi
 
 neednetwork=$1
 if [ $neednetwork = "network" ]; then
@@ -44,12 +44,12 @@ shift
 
 const dockerFile = `FROM {{.Base}}
 ENV ERU 1
-ADD %s /{{.Appname}}
+ADD %s {{.Appdir}}/{{.Appname}}
 ADD launcher /usr/local/bin/launcher
 ADD launcheroot /usr/local/bin/launcheroot
-WORKDIR /{{.Appname}}
+WORKDIR {{.Appdir}}/{{.Appname}}
 RUN useradd -u %s -d /nonexistent -s /sbin/nologin -U {{.Appname}}
-RUN chown -R %s /{{.Appname}}
+RUN chown -R %s {{.Appdir}}/{{.Appname}}
 {{with .Build}}
 {{range $index, $value := .}}
 RUN {{$value}}
@@ -60,6 +60,7 @@ RUN {{$value}}
 // Entry is used to format templates
 type entry struct {
 	Command string
+	Appdir  string
 	Appname string
 	UID     string
 }
@@ -153,7 +154,7 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 	}
 
 	// create launcher scripts and dockerfile
-	if err := createLauncher(buildDir, uid, specs); err != nil {
+	if err := createLauncher(c.config.AppDir, buildDir, uid, specs); err != nil {
 		return ch, err
 	}
 	if err := createDockerfile(buildDir, uid, reponame, specs); err != nil {
@@ -254,7 +255,7 @@ func createTarStream(path string) (io.ReadCloser, error) {
 }
 
 // launcher scripts
-func createLauncher(buildDir string, uid string, specs types.Specs) error {
+func createLauncher(appDir, buildDir, uid string, specs types.Specs) error {
 	launcherScriptTemplate, _ := template.New("launcher script").Parse(launcherScript)
 
 	entryCommand := fmt.Sprintf("exec sudo -E -u %s $@", specs.Appname)
@@ -265,7 +266,8 @@ func createLauncher(buildDir string, uid string, specs types.Specs) error {
 		return err
 	}
 	defer f.Close()
-	launcherScriptTemplate.Execute(f, entry{Command: entryCommand, Appname: specs.Appname, UID: uid})
+	appDir = strings.TrimRight(appDir, "/")
+	launcherScriptTemplate.Execute(f, entry{Command: entryCommand, Appdir: appDir, Appname: specs.Appname, UID: uid})
 	if err := f.Sync(); err != nil {
 		return err
 	}
@@ -278,7 +280,7 @@ func createLauncher(buildDir string, uid string, specs types.Specs) error {
 		return err
 	}
 	defer fr.Close()
-	launcherScriptTemplate.Execute(fr, entry{Command: entryRootCommand, Appname: specs.Appname, UID: uid})
+	launcherScriptTemplate.Execute(fr, entry{Command: entryRootCommand, Appdir: appDir, Appname: specs.Appname, UID: uid})
 	if err := fr.Sync(); err != nil {
 		return err
 	}
