@@ -5,7 +5,7 @@ Core
 We use v0.23.4 because v0.24 sucks
 
 ```shell
-cp  /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula
+cd /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula
 git checkout b0b94c4ee5ddec3a33d1ecb406f73b19642ec519 libgit2.rb
 git commit -m 'override libgit2 version'
 ```
