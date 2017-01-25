@@ -57,11 +57,11 @@ RUN {{$value}}
 {{end}}
 `
 
-// Entry is used to format templates
-type entry struct {
+// richSpecs is used to format templates
+type richSpecs struct {
+	types.Specs
 	Command string
 	Appdir  string
-	Appname string
 	UID     string
 }
 
@@ -154,10 +154,11 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 	}
 
 	// create launcher scripts and dockerfile
-	if err := createLauncher(c.config.AppDir, buildDir, uid, specs); err != nil {
+	rs := richSpecs{specs, "", strings.TrimRight(c.config.AppDir, "/"), uid}
+	if err := createLauncher(buildDir, rs); err != nil {
 		return ch, err
 	}
-	if err := createDockerfile(buildDir, uid, reponame, specs); err != nil {
+	if err := createDockerfile(buildDir, reponame, rs); err != nil {
 		return ch, err
 	}
 
@@ -255,10 +256,10 @@ func createTarStream(path string) (io.ReadCloser, error) {
 }
 
 // launcher scripts
-func createLauncher(appDir, buildDir, uid string, specs types.Specs) error {
+func createLauncher(buildDir string, rs richSpecs) error {
 	launcherScriptTemplate, _ := template.New("launcher script").Parse(launcherScript)
 
-	entryCommand := fmt.Sprintf("exec sudo -E -u %s $@", specs.Appname)
+	entryCommand := fmt.Sprintf("exec sudo -E -u %s $@", rs.Appname)
 	entryRootCommand := "exec $@"
 
 	f, err := os.Create(filepath.Join(buildDir, "launcher"))
@@ -266,8 +267,8 @@ func createLauncher(appDir, buildDir, uid string, specs types.Specs) error {
 		return err
 	}
 	defer f.Close()
-	appDir = strings.TrimRight(appDir, "/")
-	launcherScriptTemplate.Execute(f, entry{Command: entryCommand, Appdir: appDir, Appname: specs.Appname, UID: uid})
+	rs.Command = entryCommand
+	launcherScriptTemplate.Execute(f, rs)
 	if err := f.Sync(); err != nil {
 		return err
 	}
@@ -280,7 +281,8 @@ func createLauncher(appDir, buildDir, uid string, specs types.Specs) error {
 		return err
 	}
 	defer fr.Close()
-	launcherScriptTemplate.Execute(fr, entry{Command: entryRootCommand, Appdir: appDir, Appname: specs.Appname, UID: uid})
+	rs.Command = entryRootCommand
+	launcherScriptTemplate.Execute(fr, rs)
 	if err := fr.Sync(); err != nil {
 		return err
 	}
@@ -292,20 +294,20 @@ func createLauncher(appDir, buildDir, uid string, specs types.Specs) error {
 }
 
 // Dockerfile
-func createDockerfile(buildDir, uid, reponame string, specs types.Specs) error {
+func createDockerfile(buildDir, reponame string, rs richSpecs) error {
 	f, err := os.Create(filepath.Join(buildDir, "Dockerfile"))
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	dockerFileFormatted := fmt.Sprintf(dockerFile, reponame, uid, uid)
+	dockerFileFormatted := fmt.Sprintf(dockerFile, reponame, rs.UID, rs.UID)
 	t := template.New("docker file template")
 	parsedTemplate, err := t.Parse(dockerFileFormatted)
 	if err != nil {
 		return err
 	}
-	err = parsedTemplate.Execute(f, specs)
+	err = parsedTemplate.Execute(f, rs)
 	if err != nil {
 		return err
 	}
