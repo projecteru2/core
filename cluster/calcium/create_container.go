@@ -94,7 +94,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 	}
 
 	for i := 0; i < connum; i++ {
-		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(nil, specs, opts, "cpuperiod", node.GetIP())
+		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(nil, specs, opts, "cpuperiod", node)
 		ms[i].ContainerName = containerName
 		ms[i].Podname = opts.Podname
 		ms[i].Nodename = node.Name
@@ -378,7 +378,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 
 	for i, quota := range cpumap {
 		// create options
-		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(quota, specs, opts, "scheduler", node.GetIP())
+		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(quota, specs, opts, "scheduler", node)
 		if err != nil {
 			log.Errorf("Error when creating CreateContainerOptions, %v", err)
 			ms[i].Error = err.Error()
@@ -484,7 +484,7 @@ func (c *calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
 	c.store.UpdateNodeCPU(node.Podname, node.Name, quota, "+")
 }
 
-func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, opts *types.DeployOptions, optionMode, nodeIP string) (
+func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, opts *types.DeployOptions, optionMode string, node *types.Node) (
 	*enginecontainer.Config,
 	*enginecontainer.HostConfig,
 	*enginenetwork.NetworkingConfig,
@@ -539,10 +539,11 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	}
 
 	// env
+	nodeIP := node.GetIP()
 	env := append(opts.Env, fmt.Sprintf("APP_NAME=%s", specs.Appname))
 	env = append(env, fmt.Sprintf("ERU_POD=%s", opts.Podname))
 	env = append(env, fmt.Sprintf("ERU_NODE_IP=%s", nodeIP))
-	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", opts.Nodename))
+	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", node.Name))
 	env = append(env, fmt.Sprintf("ERU_ZONE=%s", c.config.Zone))
 
 	// mount paths
