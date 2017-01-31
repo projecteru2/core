@@ -583,7 +583,7 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	// TODO 是不是要有个白名单或者黑名单之类的
 	workingDir := entry.WorkingDir
 	if !opts.Raw && workingDir == "" {
-		workingDir = "/" + specs.Appname
+		workingDir = strings.TrimRight(c.config.AppDir, "/") + "/" + specs.Appname
 	}
 
 	// CapAdd and Privileged
