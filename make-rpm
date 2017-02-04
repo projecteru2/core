@@ -5,7 +5,6 @@ BIN="$ROOT/usr/bin"
 CONF="$ROOT/etc/eru-core"
 SERVICE="$ROOT/usr/lib/systemd/system"
 
-
 mkdir -p $BIN
 mkdir -p $CONF
 mkdir -p $SERVICE
@@ -17,6 +16,6 @@ mv eru-core.service $SERVICE
 VERSION=$(cat VERSION)
 echo $VERSION rpm build begin
 
-fpm -f -s dir -t rpm -n eru-core --epoch 0 -v $VERSION --iteration 1.el7 -C $ROOT -p $PWD --verbose --category 'Development/App' --description 'docker eru core' --url 'http://gitlab.ricebook.net/platform/core/' --license 'BSD'  --no-rpm-sign usr etc
+fpm -f -s dir -t rpm -n eru-core --epoch 0 -v $VERSION --iteration 1.el7 -C $ROOT -p $PWD --verbose --rpm-auto-add-directories --category 'Development/App' --description 'docker eru core' --url 'http://gitlab.ricebook.net/platform/core/' --license 'BSD'  --no-rpm-sign usr etc
 
 rm -rf $ROOT
