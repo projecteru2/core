@@ -129,16 +129,10 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 		return ch, err
 	}
 
-	// get artifact into cloneDir, only when artifact is not empty
-	if artifact != "" {
-		if err := c.source.Artifact(artifact, cloneDir); err != nil {
-			log.Errorf("Error when downloading artifact: %s", err.Error())
-		}
-	}
-
 	// ensure .git directory is removed
 	// we don't want any history files to be retrieved
 	if err := os.RemoveAll(filepath.Join(cloneDir, ".git")); err != nil {
+		log.Errorf("Error when removing .git dir")
 		return ch, err
 	}
 
@@ -151,6 +145,16 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 	specs := types.Specs{}
 	if err := yaml.Unmarshal(bytes, &specs); err != nil {
 		return ch, err
+	}
+
+	// if artifact download url is provided, remove all source code to
+	// improve security
+	if artifact != "" {
+		os.RemoveAll(cloneDir)
+		os.MkdirAll(cloneDir, os.ModeDir)
+		if err := c.source.Artifact(artifact, cloneDir); err != nil {
+			log.Errorf("Error when downloading artifact: %s", err.Error())
+		}
 	}
 
 	// create launcher scripts and dockerfile
