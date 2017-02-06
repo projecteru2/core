@@ -1,15 +1,6 @@
 Core
 ====
 
-## Install libgit2
-We use v0.23.4 because v0.24 sucks
-
-```shell
-cd /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula
-git checkout b0b94c4ee5ddec3a33d1ecb406f73b19642ec519 libgit2.rb
-git commit -m 'override libgit2 version'
-```
-
 ## DEV
 
 生产服部署在 c2-eru-1，测试服部署在 c1-eru-1，如果需要测试，先更新 core，然后这样子部署：

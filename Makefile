@@ -24,7 +24,7 @@ deps:
 	go get github.com/golang/protobuf/{proto,protoc-gen-go} || echo "oops"
 	go get github.com/codegangsta/cli || echo "oops"
 	go get gopkg.in/yaml.v2 || echo "oops"
-	go get gopkg.in/libgit2/git2go.v23 || echo "oops"
+	go get gopkg.in/libgit2/git2go.v25 || echo "oops"
 	go get golang.org/x/net/context || echo "oops"
 	go get google.golang.org/grpc || echo "oops"
 	go get github.com/coreos/etcd || echo "oops"

@@ -13,7 +13,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"gitlab.ricebook.net/platform/core/types"
-	"gopkg.in/libgit2/git2go.v23"
+	"gopkg.in/libgit2/git2go.v25"
 )
 
 type cesium struct {
@@ -58,37 +58,24 @@ func (c *cesium) SourceCode(repository, path, revision string) error {
 
 	repo, err := git.Clone(repository, path, cloneOpts)
 	if err != nil {
+		log.Errorf("Error during Clone: %v", err.Error())
 		return err
 	}
 
 	if err := repo.CheckoutHead(nil); err != nil {
+		log.Errorf("Error during CheckoutHead: %v", err.Error())
 		return err
 	}
 
 	object, err := repo.RevparseSingle(revision)
 	if err != nil {
+		log.Errorf("Error during RevparseSingle: %v", err.Error())
 		return err
 	}
 	defer object.Free()
+	commit, err := object.AsCommit()
 
-	// below is code for v24
-	// which is fucking unstable
-	// -------------------------
-	//
-	//	tree, err := object.AsTree()
-	//	if err != nil {
-	//		return err
-	//	}
-	obj, err := object.Peel(git.ObjectTree)
-	if err != nil {
-		return err
-	}
-
-	tree, ok := obj.(*git.Tree)
-	if !ok {
-		return fmt.Errorf("git object is not a tree")
-	}
-	return repo.CheckoutTree(tree, &git.CheckoutOpts{Strategy: git.CheckoutSafe})
+	return repo.ResetToCommit(commit, git.ResetHard, &git.CheckoutOpts{Strategy: git.CheckoutSafe})
 }
 
 // Download artifact to path, and unzip it
