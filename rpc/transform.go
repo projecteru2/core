@@ -113,3 +113,11 @@ func toRPCUpgradeContainerMessage(u *types.UpgradeContainerMessage) *pb.UpgradeC
 		Success: u.Success,
 	}
 }
+
+func toRPCBackupMessage(msg *types.BackupMessage) *pb.BackupMessage {
+	return &pb.BackupMessage{
+		Status: msg.Status,
+		Size: msg.Size,
+		Error: msg.Error,
+	}
+}
