@@ -11,12 +11,10 @@ entrypoints:
     ports:
       - "5000/tcp"
     restart: "always"
-    health_check: "tcp"
   web-bad-health:
     cmd: "python run.py --interval 15"
     ports:
       - "5000/tcp"
-    health_check: "http"
   web-bad-health-no-check:
     cmd: "python run.py --interval 15"
     ports:
@@ -53,7 +51,7 @@ entrypoints:
 build:
   - "curl www.baidu.com"
   - "pip install -r requirements.txt"
-base: "hub.ricebook.net/base/alpine:python-2016.04.24"
+base: "hub.ricebook.net/base/centos:python-latest"
 mount_paths:
   - "/var/www/html"
   - "/data/test-ci"
@@ -67,7 +65,7 @@ combos:
     entrypoint: "web"
     networks:
       - "release"
-    envs: "FOO=bar;"
+    extra_env: "FOO=bar;"
     permitted_users:
       - "tonic"
       - "liuyifu"

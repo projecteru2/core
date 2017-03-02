@@ -26,7 +26,6 @@ type Entrypoint struct {
 	AfterStart              string   `yaml:"after_start,omitempty"`
 	BeforeStop              string   `yaml:"before_stop,omitempty"`
 	Ports                   []Port   `yaml:"ports,omitempty,flow"`
-	Exposes                 []Expose `yaml:"exposes,omitempty,flow"`
 	NetworkMode             string   `yaml:"network_mode,omitempty"`
 	RestartPolicy           string   `yaml:"restart,omitempty"`
 	HealthCheckPort         int      `yaml:"healthcheck_port,omitempty,flow"`
@@ -59,19 +58,6 @@ func (p Port) Proto() string {
 		return "tcp"
 	}
 	return parts[1]
-}
-
-type Expose string
-
-// suppose expose is like 80/tcp:46656/tcp
-func (e Expose) ContainerPort() Port {
-	ports := strings.Split(string(e), ":")
-	return Port(ports[0])
-}
-
-func (e Expose) HostPort() Port {
-	ports := strings.Split(string(e), ":")
-	return Port(ports[1])
 }
 
 // load Specs from content
