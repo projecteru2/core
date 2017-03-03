@@ -11,8 +11,8 @@ import (
 	"text/template"
 
 	log "github.com/Sirupsen/logrus"
+	enginetypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/archive"
-	enginetypes "github.com/docker/engine-api/types"
 	"gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/utils"
 	"golang.org/x/net/context"
