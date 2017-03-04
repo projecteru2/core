@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	engineapi "github.com/docker/engine-api/client"
+	engineapi "github.com/docker/docker/client"
 	"gitlab.ricebook.net/platform/core/g"
 	"gitlab.ricebook.net/platform/core/types"
 	"golang.org/x/net/context"

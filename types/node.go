@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	engineapi "github.com/docker/engine-api/client"
-	enginetypes "github.com/docker/engine-api/types"
+	enginetypes "github.com/docker/docker/api/types"
+	engineapi "github.com/docker/docker/client"
 	"golang.org/x/net/context"
 )
 

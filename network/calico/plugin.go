@@ -5,8 +5,8 @@ import (
 	"net"
 
 	log "github.com/Sirupsen/logrus"
-	enginetypes "github.com/docker/engine-api/types"
-	enginenetwork "github.com/docker/engine-api/types/network"
+	enginetypes "github.com/docker/docker/api/types"
+	enginenetwork "github.com/docker/docker/api/types/network"
 	"gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/utils"
 	"golang.org/x/net/context"
