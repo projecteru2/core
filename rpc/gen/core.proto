@@ -21,6 +21,7 @@ service CoreRPC {
     rpc UpgradeContainer(UpgradeOptions) returns (stream UpgradeContainerMessage);
     rpc RemoveContainer(ContainerIDs) returns (stream RemoveContainerMessage);
     rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage);
+    rpc Backup(BackupOptions) returns (BackupMessage) {};
 }
 
 message Empty {}
@@ -156,6 +157,11 @@ message RemoveImageOptions {
     repeated string images = 3;
 }
 
+message BackupOptions {
+  string id = 1;
+  string src_path = 2;
+}
+
 message ErrorDetail {
     int64 code = 1;
     string message = 2;
@@ -197,4 +203,10 @@ message UpgradeContainerMessage {
     string new_name = 3;
     string error = 4;
     bool success = 5;
+}
+
+message BackupMessage {
+  string status = 1;
+  int64 size = 2;
+  string error = 3;
 }

@@ -19,6 +19,12 @@ type BuildImageMessage struct {
 	ErrorDetail errorDetail `json:"errorDetail,omitempty"`
 }
 
+type BackupMessage struct {
+	Status string `json:"status,omitempty"`
+	Size   int64  `json:"size,omitempty"`
+	Error  string `json:"error,omitempty"`
+}
+
 type RemoveImageMessage struct {
 	Image    string
 	Success  bool

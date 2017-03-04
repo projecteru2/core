@@ -151,3 +151,18 @@ func SendMemCap(cpumemmap map[string]types.CPUAndMem, tag string) {
 	}
 	return
 }
+
+// MakeContainerName joins appname, entrypoint, ident using '_'
+func MakeContainerName(appname, entrypoint, ident string) string {
+	return strings.Join([]string{appname, entrypoint, ident}, "_")
+}
+
+// ParseContainerName does the opposite thing as MakeContainerName
+func ParseContainerName(containerName string) (string, string, string, error) {
+	splits := strings.Split(containerName, "_")
+	length := len(splits)
+	if length >= 3 {
+		return strings.Join(splits[0:length-2], "_"), splits[length-2], splits[length-1], nil
+	}
+	return "", "", "", fmt.Errorf("Bad containerName: %s", containerName)
+}

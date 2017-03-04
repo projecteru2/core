@@ -20,6 +20,7 @@ then
   sudo yum makecache fast
   sudo yum remove -y eru-core
   sudo yum install -y eru-core
+  sudo cp /home/liuyifu/eru-core.service /usr/lib/systemd/system/eru-core.service
   sudo systemctl daemon-reload
   sudo systemctl restart eru-core.service
 EOF

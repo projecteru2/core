@@ -164,3 +164,13 @@ func TestMakeCommandLine(t *testing.T) {
 	r2 := MakeCommandLineArgs(" test -a   -b   -d")
 	assert.Equal(t, r2, []string{"test", "-a", "-b", "-d"})
 }
+
+func TestMakeContainerName(t *testing.T) {
+	r1 := MakeContainerName("test_appname", "web", "whatever")
+	assert.Equal(t, r1, "test_appname_web_whatever")
+	appname, entrypoint, ident, err := ParseContainerName("test_appname_web_whatever")
+	assert.Equal(t, appname, "test_appname")
+	assert.Equal(t, entrypoint, "web")
+	assert.Equal(t, ident, "whatever")
+	assert.Equal(t, err, nil)
+}

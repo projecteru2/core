@@ -291,6 +291,14 @@ func (v *virbranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_
 	return nil
 }
 
+func (v *virbranium) Backup(ctx context.Context, opts *pb.BackupOptions) (*pb.BackupMessage, error) {
+	backupMessage, err := v.cluster.Backup(opts.Id, opts.SrcPath)
+	if err != nil {
+		return nil, err
+	}
+	return toRPCBackupMessage(backupMessage), nil
+}
+
 func New(cluster cluster.Cluster, config types.Config) *virbranium {
 	return &virbranium{cluster: cluster, config: config}
 }

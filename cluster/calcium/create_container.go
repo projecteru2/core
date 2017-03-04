@@ -634,7 +634,7 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 
 	// name
 	suffix := utils.RandomString(6)
-	containerName := strings.Join([]string{specs.Appname, opts.Entrypoint, suffix}, "_")
+	containerName := utils.MakeContainerName(specs.Appname, opts.Entrypoint, suffix)
 
 	// network mode
 	networkMode := entry.NetworkMode

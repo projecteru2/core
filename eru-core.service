@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=simple
 Environment=GOTRACEBACK=crash
-ExecStart=/usr/bin/eru-core --config /etc/eru-core/core.yaml
+ExecStart=/usr/bin/eru-core --config /etc/eru-core/core.yaml --log-level DEBUG
 LimitNOFILE=10485760
 LimitNPROC=10485760
 LimitCORE=infinity
