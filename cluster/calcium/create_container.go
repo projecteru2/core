@@ -24,7 +24,9 @@ import (
 // TODO what about networks?
 func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	log.Debugf("Deploy container with specs %v, deploy options %v", specs, opts)
-	if c.config.ResourceAlloc == "scheduler" {
+	pod, _ := c.store.GetPod(opts.Podname)
+	log.Debugf("Deplay scheduler: %s", pod.Scheduler)
+	if pod.Scheduler == "CPU" {
 		return c.createContainerWithScheduler(specs, opts)
 	} else {
 		return c.createContainerWithCPUPeriod(specs, opts)
@@ -185,6 +187,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 		ms[i].Success = true
 
 	}
+
 	go func(podname string, nodename string) {
 		cpuandmem, _, err := c.getCPUAndMem(podname, nodename, 1.0)
 		if err != nil {
@@ -193,6 +196,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 		}
 		utils.SendMemCap(cpuandmem, "after-alloc")
 	}(opts.Podname, opts.Nodename)
+
 	return ms
 }
 
@@ -216,15 +220,14 @@ func (c *calcium) createContainerWithScheduler(specs types.Specs, opts *types.De
 		return ch, fmt.Errorf("Count mismatch (opt.Count %q, total %q), maybe scheduler error?", opts.Count, totalCount)
 	}
 
-	go func() {
+	go func(plan map[string][]types.CPUMap, opts *types.DeployOptions) {
 		wg := sync.WaitGroup{}
 		wg.Add(len(result))
 
 		// do deployment
-		for nodename, cpumap := range result {
+		for nodename, cpumap := range plan {
 			go func(nodename string, cpumap []types.CPUMap, opts *types.DeployOptions) {
 				defer wg.Done()
-
 				for _, m := range c.doCreateContainerWithScheduler(nodename, cpumap, specs, opts) {
 					ch <- m
 				}
@@ -233,7 +236,7 @@ func (c *calcium) createContainerWithScheduler(specs types.Specs, opts *types.De
 
 		wg.Wait()
 		close(ch)
-	}()
+	}(result, opts)
 
 	return ch, nil
 }
@@ -307,6 +310,7 @@ func (c *calcium) prepareNodes(podname, nodename string, quota float64, num int)
 	cpumap := makeCPUMap(cpuandmem) // 做这个转换，免得改太多
 	// use podname as lock key to prevent scheduling on the same node at one time
 	result, changed, err := c.scheduler.SelectNodes(cpumap, quota, num) // 这个接口统一使用float64了
+	log.Debugf("result: %v, changed: %v", result, changed)
 	if err != nil {
 		return result, err
 	}
@@ -379,6 +383,10 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 	for i, quota := range cpumap {
 		// create options
 		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(quota, specs, opts, "scheduler", node)
+		ms[i].ContainerName = containerName
+		ms[i].Podname = opts.Podname
+		ms[i].Nodename = node.Name
+		ms[i].Memory = opts.Memory
 		if err != nil {
 			log.Errorf("Error when creating CreateContainerOptions, %v", err)
 			ms[i].Error = err.Error()
@@ -447,6 +455,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 			c.releaseQuota(node, quota)
 			continue
 		}
+		ms[i].ContainerID = info.ID
 
 		// after start
 		if err := runExec(node.Engine, info, AFTER_START); err != nil {
@@ -459,16 +468,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 			c.releaseQuota(node, quota)
 			continue
 		}
-
-		ms[i] = &types.CreateContainerMessage{
-			Podname:       opts.Podname,
-			Nodename:      node.Name,
-			ContainerID:   info.ID,
-			ContainerName: containerName,
-			Error:         "",
-			Success:       true,
-			CPU:           quota,
-		}
+		ms[i].Success = true
 	}
 
 	return ms
@@ -479,6 +479,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 // no need to update this to etcd (save 1 time write on etcd)
 func (c *calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
 	if quota.Total() == 0 {
+		log.Debug("cpu quota is zero: %v", quota)
 		return
 	}
 	c.store.UpdateNodeCPU(node.Podname, node.Name, quota, "+")
