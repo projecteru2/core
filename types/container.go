@@ -20,6 +20,14 @@ type Container struct {
 	Engine   *engineapi.Client `json:"-"`
 }
 
+func (c *Container) ShortID() string {
+	containerID:=c.ID
+	if len(containerID)>7 {
+		return containerID[:7]
+	}
+	return containerID
+}
+
 func (c *Container) Inspect() (enginetypes.ContainerJSON, error) {
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	return c.Engine.ContainerInspect(ctx, c.ID)

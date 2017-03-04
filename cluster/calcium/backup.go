@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -33,7 +32,7 @@ func (c *calcium) Backup(id, srcPath string) (*types.BackupMessage, error) {
 		log.Errorf("Error during ParseContainerName: %v", err)
 		return nil, err
 	}
-	now := strings.Replace(time.Now().Format(time.RFC3339), ":", "", -1)
+	now := time.Now().Format("2006.01.02.15.04.05")
 	baseDir := filepath.Join(c.config.BackupDir, appname, entrypoint)
 	err = os.MkdirAll(baseDir, os.FileMode(0400))
 	if err != nil {
@@ -41,7 +40,7 @@ func (c *calcium) Backup(id, srcPath string) (*types.BackupMessage, error) {
 		return nil, err
 	}
 
-	backupFile := filepath.Join(baseDir, stat.Name+"-"+ident+"-"+now+".tar.gz")
+	backupFile := filepath.Join(baseDir, stat.Name+"-"+container.ShortID()+"-"+ident+"-"+now+".tar.gz")
 	log.Debugf("Creating %s", backupFile)
 	file, err := os.Create(backupFile)
 	if err != nil {
