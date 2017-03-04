@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"compress/gzip"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -14,6 +15,10 @@ import (
 
 // Backup uses docker cp to copy specified directory into configured BackupDir
 func (c *calcium) Backup(id, srcPath string) (*types.BackupMessage, error) {
+	if c.config.BackupDir == "" {
+		log.Infof("This core has no BackupDir set in config, skip backup for container %s", id)
+		return nil, errors.New("BackupDir not set")
+	}
 	log.Debugf("Backup %s for container %s", srcPath, id)
 	container, err := c.GetContainer(id)
 	node, err := c.GetNode(container.Podname, container.Nodename)
