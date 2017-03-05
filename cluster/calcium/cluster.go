@@ -4,7 +4,7 @@ import (
 	"gitlab.ricebook.net/platform/core/network"
 	"gitlab.ricebook.net/platform/core/network/calico"
 	"gitlab.ricebook.net/platform/core/scheduler"
-	"gitlab.ricebook.net/platform/core/scheduler/simple"
+	"gitlab.ricebook.net/platform/core/scheduler/complex"
 	"gitlab.ricebook.net/platform/core/source"
 	"gitlab.ricebook.net/platform/core/source/gitlab"
 	"gitlab.ricebook.net/platform/core/store"
@@ -32,9 +32,10 @@ func New(config types.Config) (*calcium, error) {
 		return nil, err
 	}
 
-	// TODO 这里必须要用到scheduler, 要用丫的RandomNode方法
-	// 所以先给个simple吧
-	scheduler := simplescheduler.New()
+	scheduler, err := complexscheduler.New(config)
+	if err != nil {
+		return nil, err
+	}
 	titanium := calico.New()
 	source := gitlab.New(config)
 

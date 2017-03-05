@@ -23,9 +23,7 @@ import (
 // Use specs and options to create
 // TODO what about networks?
 func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
-	log.Debugf("Deploy container with specs %v, deploy options %v", specs, opts)
 	pod, _ := c.store.GetPod(opts.Podname)
-	log.Debugf("Deplay scheduler: %s", pod.Scheduler)
 	if pod.Scheduler == "CPU" {
 		return c.createContainerWithScheduler(specs, opts)
 	} else {
@@ -302,15 +300,16 @@ func (c *calcium) getCPUAndMem(podname, nodename string, quota float64) (map[str
 // Later if any error occurs, these nodes can be restored.
 func (c *calcium) prepareNodes(podname, nodename string, quota float64, num int) (map[string][]types.CPUMap, error) {
 	result := make(map[string][]types.CPUMap)
-
+	log.Debugf("Input parameters podname: %s, nodename: %s, quota: %f, num: %d", podname, nodename, quota, num)
 	cpuandmem, nodes, err := c.getCPUAndMem(podname, nodename, quota)
 	if err != nil {
 		return result, err
 	}
 	cpumap := makeCPUMap(cpuandmem) // 做这个转换，免得改太多
 	// use podname as lock key to prevent scheduling on the same node at one time
+	log.Debugf("Cpumap: %v", cpumap)
 	result, changed, err := c.scheduler.SelectNodes(cpumap, quota, num) // 这个接口统一使用float64了
-	log.Debugf("result: %v, changed: %v", result, changed)
+	log.Debugf("Result: %v, Changed: %v", result, changed)
 	if err != nil {
 		return result, err
 	}
@@ -321,7 +320,6 @@ func (c *calcium) prepareNodes(podname, nodename string, quota float64, num int)
 		// cpus changeded
 		// update data to etcd
 		// `SelectNodes` reduces count in cpumap
-		log.WithFields(log.Fields{"changed": changed}).Debugln("Changed nodes are:")
 		for _, node := range nodes {
 			r, ok := changed[node.Name]
 			// 不在changed里说明没有变化
@@ -479,7 +477,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 // no need to update this to etcd (save 1 time write on etcd)
 func (c *calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
 	if quota.Total() == 0 {
-		log.Debug("cpu quota is zero: %v", quota)
+		log.Debug("cpu quota is zero: %f", quota)
 		return
 	}
 	c.store.UpdateNodeCPU(node.Podname, node.Name, quota, "+")

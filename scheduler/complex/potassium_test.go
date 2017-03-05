@@ -48,6 +48,10 @@ func TestSelectNodes(t *testing.T) {
 		},
 	}
 
+	debug, changed, _ := k.SelectNodes(nodes, 0.5, 1)
+	fmt.Printf("algorithm debug res: %v", debug)
+	fmt.Printf("algorithm debug changed: %v", changed)
+
 	_, _, err = k.SelectNodes(nodes, 2, 3)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")

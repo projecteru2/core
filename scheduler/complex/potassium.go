@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/etcd/client"
 	"gitlab.ricebook.net/platform/core/lock"
 	"gitlab.ricebook.net/platform/core/lock/etcdlock"
@@ -58,9 +57,6 @@ func (m *potassium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
 func (m *potassium) SelectNodes(nodes map[string]types.CPUMap, quota float64, num int) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
 	m.Lock()
 	defer m.Unlock()
-	log.Debugf("[SelectNodes] nodes: %v", nodes)
-	log.Debugf("[SelectNodes] quota: %f", quota)
-
 	result := make(map[string][]types.CPUMap)
 	changed := make(map[string]types.CPUMap)
 
@@ -72,7 +68,6 @@ func (m *potassium) SelectNodes(nodes map[string]types.CPUMap, quota float64, nu
 	// suppose each core has 10 coreShare
 	// TODO: change it to be control by parameters
 	result = averagePlan(quota, nodes, num, -1, 10)
-	log.Debugf("[SelectNodes] averagePlan: %v", result)
 	if result == nil {
 		return nil, nil, fmt.Errorf("Not enough resource")
 	}

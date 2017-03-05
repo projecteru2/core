@@ -232,7 +232,6 @@ func averagePlan(cpu float64, nodes map[string]types.CPUMap, need, maxShareCore,
 
 	// 决定分配方案
 	allocplan := allocPlan(nodeinfo, need)
-
 	for node, ncon := range allocplan {
 		if ncon > 0 {
 			nodename = nodeinfo[node].Node
