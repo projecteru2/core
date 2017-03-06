@@ -40,7 +40,6 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 
 	cpuandmem, _, err := c.getCPUAndMem(opts.Podname, opts.Nodename, 1.0)
 	if err != nil {
-		log.Errorf("Got error %v after getCPUAndMem", err)
 		return ch, err
 	}
 	go utils.SendMemCap(cpuandmem, "before-alloc")
@@ -100,7 +99,6 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 		ms[i].Nodename = node.Name
 		ms[i].Memory = opts.Memory
 		if err != nil {
-			log.Errorf("Error when creating CreateContainerOptions, %v", err)
 			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+") // 创建容器失败就要把资源还回去对不对？
 			ms[i].Error = err.Error()
 			continue
@@ -109,7 +107,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 		//create container
 		container, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
 		if err != nil {
-			log.Errorf("Error when creating container, %v", err)
+			log.Errorf("Error during ContainerCreate, %v", err)
 			ms[i].Error = err.Error()
 			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
 			continue
@@ -125,7 +123,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 			for networkID, ipv4 := range opts.Networks {
 				if err = c.network.ConnectToNetwork(ctx, container.ID, networkID, ipv4); err != nil {
 					c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
-					log.Errorf("Error when connecting container %q to network %q, %q", container.ID, networkID, err.Error())
+					log.Errorf("Error during connecting container %q to network %q, %v", container.ID, networkID, err)
 					breaked = true
 					break
 				}
@@ -135,7 +133,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 			// only when user defined networks is given
 			if len(opts.Networks) != 0 {
 				if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
-					log.Errorf("Error when disconnecting container %q from network %q, %q", container.ID, "bridge", err.Error())
+					log.Errorf("Error during disconnecting container %q from network %q, %v", container.ID, "bridge", err)
 				}
 			}
 
@@ -150,7 +148,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 
 		err = node.Engine.ContainerStart(context.Background(), container.ID, enginetypes.ContainerStartOptions{})
 		if err != nil {
-			log.Errorf("Error when starting container, %v", err)
+			log.Errorf("Error during ContainerStart, %v", err)
 			ms[i].Error = err.Error()
 			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
 			go node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{})
@@ -163,7 +161,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 
 		info, err := node.Engine.ContainerInspect(context.Background(), container.ID)
 		if err != nil {
-			log.Errorf("Error when inspecting container, %v", err)
+			log.Errorf("Error during ContainerInspect, %v", err)
 			ms[i].Error = err.Error()
 			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
 			continue
@@ -172,7 +170,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 
 		// after start
 		if err := runExec(node.Engine, info, AFTER_START); err != nil {
-			log.Errorf("Run exec at %s error: %s", AFTER_START, err.Error())
+			log.Errorf("Run exec at %s error: %v", AFTER_START, err)
 		}
 
 		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, nil, opts.Memory)
@@ -189,7 +187,6 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 	go func(podname string, nodename string) {
 		cpuandmem, _, err := c.getCPUAndMem(podname, nodename, 1.0)
 		if err != nil {
-			log.Errorf("Got error %v after getCPUAndMem", err)
 			return
 		}
 		utils.SendMemCap(cpuandmem, "after-alloc")
@@ -289,7 +286,9 @@ func (c *calcium) getCPUAndMem(podname, nodename string, quota float64) (map[str
 	}
 
 	if len(nodes) == 0 {
-		return result, nil, fmt.Errorf("No available nodes")
+		err := fmt.Errorf("No available nodes")
+		log.Errorf("Error during getCPUAndMem: %v", err)
+		return result, nil, err
 	}
 
 	result = makeCPUAndMem(nodes)
@@ -349,15 +348,18 @@ func filterNodes(nodes []*types.Node, public bool) []*types.Node {
 // Pull an image
 // Blocks until it finishes.
 func pullImage(node *types.Node, image string) error {
+	log.Debugf("Pulling image %s", image)
 	if image == "" {
-		return fmt.Errorf("No image found for version")
+		return fmt.Errorf("Goddamn empty image, WTF?")
 	}
 
 	resp, err := node.Engine.ImagePull(context.Background(), image, enginetypes.ImagePullOptions{})
 	if err != nil {
+		log.Errorf("Error during pulling image %s: %v", image, err)
 		return err
 	}
 	ensureReaderClosed(resp)
+	log.Debugf("Done pulling image %s", image)
 	return nil
 }
 
@@ -374,7 +376,6 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 	}
 
 	if err := pullImage(node, opts.Image); err != nil {
-		log.Errorf("Pull image error %v", err)
 		return ms
 	}
 
@@ -386,7 +387,6 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 		ms[i].Nodename = node.Name
 		ms[i].Memory = opts.Memory
 		if err != nil {
-			log.Errorf("Error when creating CreateContainerOptions, %v", err)
 			ms[i].Error = err.Error()
 			c.releaseQuota(node, quota)
 			continue
@@ -410,7 +410,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 			// need to ensure all networks are correctly connected
 			for networkID, ipv4 := range opts.Networks {
 				if err = c.network.ConnectToNetwork(ctx, container.ID, networkID, ipv4); err != nil {
-					log.Errorf("Error when connecting container %q to network %q, %q", container.ID, networkID, err.Error())
+					log.Errorf("Error when connecting container %q to network %q, %v", container.ID, networkID, err)
 					breaked = true
 					break
 				}
@@ -420,7 +420,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 			// only when user defined networks is given
 			if len(opts.Networks) != 0 {
 				if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
-					log.Errorf("Error when disconnecting container %q from network %q, %q", container.ID, "bridge", err.Error())
+					log.Errorf("Error when disconnecting container %q from network %q, %v", container.ID, "bridge", err)
 				}
 			}
 
@@ -457,7 +457,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 
 		// after start
 		if err := runExec(node.Engine, info, AFTER_START); err != nil {
-			log.Errorf("Run exec at %s error: %s", AFTER_START, err.Error())
+			log.Errorf("Run exec at %s error: %v", AFTER_START, err)
 		}
 
 		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, quota, opts.Memory)
@@ -492,7 +492,9 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 
 	entry, ok := specs.Entrypoints[opts.Entrypoint]
 	if !ok {
-		return nil, nil, nil, "", fmt.Errorf("Entrypoint %q not found in image %q", opts.Entrypoint, opts.Image)
+		err := fmt.Errorf("Entrypoint %q not found in image %q", opts.Entrypoint, opts.Image)
+		log.Errorf("Error during makeContainerOptions: %v", err)
+		return nil, nil, nil, "", err
 	}
 
 	user := specs.Appname
@@ -781,7 +783,6 @@ func (c *calcium) doUpgradeContainer(containers []*types.Container, image string
 
 	// prepare new image
 	if err := pullImage(node, image); err != nil {
-		log.Errorf("Pull image error %v", err)
 		return ms
 	}
 
@@ -868,7 +869,7 @@ func (c *calcium) doUpgradeContainer(containers []*types.Container, image string
 
 		// after start
 		if err := runExec(engine, newInfo, AFTER_START); err != nil {
-			log.Errorf("Run exec at %s error: %s", AFTER_START, err.Error())
+			log.Errorf("Run exec at %s error: %v", AFTER_START, err)
 		}
 
 		// if so, add a new container in etcd
