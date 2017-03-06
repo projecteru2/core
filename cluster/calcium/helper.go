@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
 	enginecontainer "github.com/docker/docker/api/types/container"
 	enginenetwork "github.com/docker/docker/api/types/network"
@@ -139,13 +140,15 @@ func makeMountPaths(specs types.Specs, config types.Config) ([]string, map[strin
 func runExec(client *engineapi.Client, container enginetypes.ContainerJSON, label string) error {
 	cmd, ok := container.Config.Labels[label]
 	if !ok || cmd == "" {
-		return fmt.Errorf("No %q found in container %q", label, container.ID)
+		log.Debug("No %q found in container %q", label, container.ID)
+		return nil
 	}
 
 	cmds := utils.MakeCommandLineArgs(cmd)
 	execConfig := enginetypes.ExecConfig{User: container.Config.User, Cmd: cmds}
 	resp, err := client.ContainerExecCreate(context.Background(), container.ID, execConfig)
 	if err != nil {
+		log.Errorf("Error during runExec: %v", err)
 		return err
 	}
 
