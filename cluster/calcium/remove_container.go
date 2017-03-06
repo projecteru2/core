@@ -123,15 +123,5 @@ func (c *calcium) removeOneContainer(container *types.Container) error {
 		log.Errorf("Error during ContainerRemove: %s", err.Error())
 		return err
 	}
-
-	// try to remove corresponding image
-	// we don't care if some container is still using the image
-	// docker will care that for us
-	// TODO what if we use another worker to clean all the images?
-	rmiOpts := enginetypes.ImageRemoveOptions{
-		Force:         false,
-		PruneChildren: true,
-	}
-	go container.Engine.ImageRemove(context.Background(), info.Image, rmiOpts)
 	return nil
 }
