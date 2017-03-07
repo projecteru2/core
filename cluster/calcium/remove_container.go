@@ -11,12 +11,44 @@ import (
 	"golang.org/x/net/context"
 )
 
+type imageBucket struct {
+	sync.Mutex
+	data map[string]map[string]struct{}
+}
+
+func newImageBucket() imageBucket {
+	return imageBucket{data: make(map[string]map[string]struct{})}
+}
+
+func (ib imageBucket) Add(podname, image string) {
+	ib.Lock()
+	defer ib.Unlock()
+
+	if _, ok := ib.data[podname]; !ok {
+		ib.data[podname] = make(map[string]struct{})
+	}
+	ib.data[podname][image] = struct{}{}
+}
+
+func (ib imageBucket) Dump() map[string][]string {
+	r := make(map[string][]string)
+	for podname, imageMap := range ib.data {
+		images := []string{}
+		for image, _ := range imageMap {
+			images = append(images, image)
+		}
+		r[podname] = images
+	}
+	return r
+}
+
 // remove containers
 // returns a channel that contains removing responses
 func (c *calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMessage, error) {
 	ch := make(chan *types.RemoveContainerMessage)
 	go func() {
 		wg := sync.WaitGroup{}
+		ib := newImageBucket()
 
 		for _, id := range ids {
 			// 单个单个取是因为某些情况可能会传了id但是这里没有
@@ -31,14 +63,25 @@ func (c *calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMess
 				continue
 			}
 
+			info, err := container.Inspect()
+			if err != nil {
+				ch <- &types.RemoveContainerMessage{
+					ContainerID: id,
+					Success:     false,
+					Message:     err.Error(),
+				}
+				continue
+			}
+
 			wg.Add(1)
-			go func(container *types.Container) {
+			ib.Add(container.Podname, info.Image)
+			go func(container *types.Container, info enginetypes.ContainerJSON) {
 				defer wg.Done()
 
 				success := true
 				message := "success"
 
-				if err := c.removeOneContainer(container); err != nil {
+				if err := c.removeOneContainer(container, info); err != nil {
 					success = false
 					message = err.Error()
 				}
@@ -47,10 +90,19 @@ func (c *calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMess
 					Success:     success,
 					Message:     message,
 				}
-			}(container)
+			}(container, info)
 		}
 
 		wg.Wait()
+
+		// 把收集的image清理掉
+		go func(ib imageBucket) {
+			for podname, images := range ib.Dump() {
+				for _, image := range images {
+					c.cleanImage(podname, image)
+				}
+			}
+		}(ib)
 		close(ch)
 	}()
 
@@ -60,7 +112,7 @@ func (c *calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMess
 
 // remove one container
 // 5 seconds timeout
-func (c *calcium) removeOneContainer(container *types.Container) error {
+func (c *calcium) removeOneContainer(container *types.Container, info enginetypes.ContainerJSON) error {
 	// use etcd lock to prevent a container being removed many times
 	// only the first to remove can be done
 	lock, err := c.store.CreateLock(fmt.Sprintf("rmcontainer_%s", container.ID), 120)
@@ -73,12 +125,6 @@ func (c *calcium) removeOneContainer(container *types.Container) error {
 		return err
 	}
 	defer lock.Unlock()
-
-	info, err := container.Inspect()
-	if err != nil {
-		log.Errorf("Error during container.Inspect: %s", err.Error())
-		return err
-	}
 
 	// will be used later to update
 	node, err := c.GetNode(container.Podname, container.Nodename)

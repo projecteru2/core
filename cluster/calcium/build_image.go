@@ -175,6 +175,15 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 		return ch, err
 	}
 
+	labels := make(map[string]string)
+	if specs.Cache != "" {
+		labels["cached"] = "true"
+		labels["cached.pod"] = specs.Cache
+	} else {
+		labels["cached"] = "false"
+		labels["cached.pod"] = ""
+	}
+
 	// must be put here because of that `defer os.RemoveAll(buildDir)`
 	buildOptions := enginetypes.ImageBuildOptions{
 		Tags:           []string{tag},
@@ -183,6 +192,7 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 		Remove:         true,
 		ForceRemove:    true,
 		PullParent:     true,
+		Labels:         labels,
 	}
 	log.Infof("Building image %v with artifact %v at %v:%v", tag, artifact, buildPodname, node.Name)
 	resp, err := node.Engine.ImageBuild(context.Background(), buildContext, buildOptions)
@@ -190,7 +200,7 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 		return ch, err
 	}
 
-	go func() {
+	go func(cachedPod string) {
 		defer resp.Body.Close()
 		decoder := json.NewDecoder(resp.Body)
 		for {
@@ -232,15 +242,22 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 			ch <- message
 		}
 
-		rmiOpts := enginetypes.ImageRemoveOptions{
+		// 如果有需要cache住
+		if cachedPod != "" {
+			go c.cacheImage(cachedPod, tag)
+		}
+
+		// 无论如何都删掉build机器的
+		// 事实上他不会跟cached pod一样
+		// 一样就砍死
+		go node.Engine.ImageRemove(context.Background(), tag, enginetypes.ImageRemoveOptions{
 			Force:         false,
 			PruneChildren: true,
-		}
-		go node.Engine.ImageRemove(context.Background(), tag, rmiOpts)
+		})
 
 		ch <- &types.BuildImageMessage{Status: "finished", Progress: tag}
 		close(ch)
-	}()
+	}(specs.Cache)
 
 	return ch, nil
 }
