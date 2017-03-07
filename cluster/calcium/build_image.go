@@ -72,7 +72,9 @@ func getRandomNode(c *calcium, podname string) (*types.Node, error) {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, fmt.Errorf("No nodes available in pod %s", podname)
+		err = fmt.Errorf("No nodes available in pod %s", podname)
+		log.Debugf("Error during getRandomNode from %s: %v", podname, err)
+		return nil, err
 	}
 
 	nodemap := make(map[string]types.CPUMap)
@@ -81,6 +83,11 @@ func getRandomNode(c *calcium, podname string) (*types.Node, error) {
 	}
 	nodename, err := c.scheduler.RandomNode(nodemap)
 	if err != nil {
+		log.Debugf("Error during getRandomNode from %s: %v", podname, err)
+		return nil, err
+	}
+	if nodename == "" {
+		err = fmt.Errorf("Got empty node during getRandomNode from %s", podname)
 		return nil, err
 	}
 
