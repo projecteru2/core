@@ -66,6 +66,9 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 			}(nodename, num, opts)
 		}
 		wg.Wait()
+
+		// 第一次部署的时候就去cache下镜像吧
+		go c.cacheImage(opts.Podname, opts.Image)
 		close(ch)
 	}(specs, plan, opts)
 

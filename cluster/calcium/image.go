@@ -89,8 +89,8 @@ func cleanImageOnNode(node *types.Node, image string) error {
 	sort.Sort(toDelete)
 
 	for index, img := range toDelete {
-		// 如果是最新的两个(index是0或者1), 并且标记了要cache, 就忽略
-		if index <= 1 && img.Labels["cached"] == "true" {
+		// 如果是最新的两个(index是0或者1), 就忽略
+		if index <= 1 {
 			continue
 		}
 		// 其他都无情删掉

@@ -16,7 +16,6 @@ type Specs struct {
 	Binds       map[string]Bind       `yaml:"binds,omitempty,flow"`
 	Meta        map[string]string     `yaml:"meta,omitempty,flow"`
 	Base        string                `yaml:"base"`
-	Cache       string                `yaml:"cache"`
 	MountPaths  []string              `yaml:"mount_paths,omitempty,flow"`
 	DNS         []string              `yaml:"dns,omitempty,flow"`
 }
