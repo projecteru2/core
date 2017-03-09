@@ -3,11 +3,14 @@ package calcium
 import (
 	"sort"
 	"strings"
+	"sync"
 
 	enginetypes "github.com/docker/docker/api/types"
 	"gitlab.ricebook.net/platform/core/types"
 	"golang.org/x/net/context"
 )
+
+const maxPuller = 10
 
 // 在podname上cache这个image
 // 实际上就是在所有的node上去pull一次
@@ -20,10 +23,19 @@ func (c *calcium) cacheImage(podname, image string) error {
 		return nil
 	}
 
-	for _, node := range nodes {
+	wg := sync.WaitGroup{}
+	defer wg.Wait()
+	for i, node := range nodes {
 		// 这个函数在 create_container.go 里面
 		// 同步地pull image
-		pullImage(node, image)
+		if (i != 0) && (i%maxPuller == 0) {
+			wg.Wait()
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			pullImage(node, image)
+		}()
 	}
 
 	return nil
@@ -40,8 +52,17 @@ func (c *calcium) cleanImage(podname, image string) error {
 		return nil
 	}
 
-	for _, node := range nodes {
-		cleanImageOnNode(node, image)
+	wg := sync.WaitGroup{}
+	defer wg.Wait()
+	for i, node := range nodes {
+		if (i != 0) && (i%maxPuller == 0) {
+			wg.Wait()
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			cleanImageOnNode(node, image)
+		}()
 	}
 
 	return nil
