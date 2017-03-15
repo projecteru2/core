@@ -45,15 +45,32 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 	}
 
 	go func() {
-		scanner := bufio.NewScanner(resp.Reader)
 		defer close(ch)
-		log.Infof("[RunAndWait] Container %s attached, send logs", message.ContainerID)
+		scanner := bufio.NewScanner(resp.Reader)
+		id := message.ContainerID
+
+		container, err := c.GetContainer(id)
+		if err != nil {
+			log.Errorf("[RunAndWait] Container %s not found, break attach", id)
+			return
+		}
+
+		log.Infof("[RunAndWait] Container %s attached, send logs", id)
 		for scanner.Scan() {
-			m := &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: scanner.Text()}
+			m := &types.RunAndWaitMessage{ContainerID: id, Data: scanner.Text()}
 			ch <- m
 		}
-		log.Infof("[RunAndWait] Container %s finished, remove", message.ContainerID)
-		c.RemoveContainer([]string{message.ContainerID})
+
+		log.Infof("[RunAndWait] Container %s finished, find exit code", id)
+		containerJSON, err := container.Inspect()
+		if err == nil {
+			ch <- &types.RunAndWaitMessage{ContainerID: id, Data: fmt.Sprintf("[exitcode]%d", containerJSON.State.ExitCode)}
+		} else {
+			ch <- &types.RunAndWaitMessage{ContainerID: id, Data: "[exitcode]unknown"}
+		}
+
+		log.Infof("[RunAndWait] Container %s finished, remove", id)
+		go c.removeOneContainer(container)
 	}()
 
 	return ch, nil
