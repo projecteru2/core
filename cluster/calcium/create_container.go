@@ -26,9 +26,8 @@ func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) 
 	pod, _ := c.store.GetPod(opts.Podname)
 	if pod.Scheduler == "CPU" {
 		return c.createContainerWithScheduler(specs, opts)
-	} else {
-		return c.createContainerWithCPUPeriod(specs, opts)
 	}
+	return c.createContainerWithCPUPeriod(specs, opts)
 }
 
 func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
