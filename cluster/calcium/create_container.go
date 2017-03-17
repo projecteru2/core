@@ -23,7 +23,10 @@ import (
 // Use specs and options to create
 // TODO what about networks?
 func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
-	pod, _ := c.store.GetPod(opts.Podname)
+	pod, err := c.store.GetPod(opts.Podname)
+	if err != nil {
+		return nil, err
+	}
 	if pod.Scheduler == "CPU" {
 		return c.createContainerWithScheduler(specs, opts)
 	}
