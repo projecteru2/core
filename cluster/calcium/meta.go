@@ -3,7 +3,10 @@ package calcium
 // All functions are just proxy to store, since I don't want store to be exported.
 // All these functions are meta data related.
 
-import "gitlab.ricebook.net/platform/core/types"
+import (
+	log "github.com/Sirupsen/logrus"
+	"gitlab.ricebook.net/platform/core/types"
+)
 
 func (c *calcium) ListPods() ([]*types.Pod, error) {
 	return c.store.GetAllPods()
@@ -50,6 +53,7 @@ func (c *calcium) ListPodNodes(podname string, all bool) ([]*types.Node, error) 
 	var nodes []*types.Node
 	candidates, err := c.store.GetNodesByPod(podname)
 	if err != nil {
+		log.Debugf("Error during ListPodNodes from %s: %v", podname, err)
 		return nodes, err
 	}
 	for _, candidate := range candidates {
@@ -57,7 +61,7 @@ func (c *calcium) ListPodNodes(podname string, all bool) ([]*types.Node, error) 
 			nodes = append(nodes, candidate)
 		}
 	}
-	return nodes, err
+	return nodes, nil
 }
 
 func (c *calcium) GetContainer(id string) (*types.Container, error) {

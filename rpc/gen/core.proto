@@ -18,6 +18,7 @@ service CoreRPC {
 
     rpc BuildImage(BuildImageOptions) returns (stream BuildImageMessage) {};
     rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage);
+    rpc RunAndWait(DeployOptions) returns (stream RunAndWaitMessage);
     rpc UpgradeContainer(UpgradeOptions) returns (stream UpgradeContainerMessage);
     rpc RemoveContainer(ContainerIDs) returns (stream RemoveContainerMessage);
     rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage);
@@ -183,6 +184,11 @@ message CreateContainerMessage {
     string error = 5;
     bool success = 6;
     map<string, int64> cpu = 7;
+}
+
+message RunAndWaitMessage {
+    string container_id = 1;
+    string data = 2;
 }
 
 message RemoveImageMessage {

@@ -117,7 +117,14 @@ func toRPCUpgradeContainerMessage(u *types.UpgradeContainerMessage) *pb.UpgradeC
 func toRPCBackupMessage(msg *types.BackupMessage) *pb.BackupMessage {
 	return &pb.BackupMessage{
 		Status: msg.Status,
-		Size: msg.Size,
-		Error: msg.Error,
+		Size:   msg.Size,
+		Error:  msg.Error,
+	}
+}
+
+func toRPCRunAndWaitMessage(msg *types.RunAndWaitMessage) *pb.RunAndWaitMessage {
+	return &pb.RunAndWaitMessage{
+		ContainerId: msg.ContainerID,
+		Data:        msg.Data,
 	}
 }

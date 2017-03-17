@@ -26,9 +26,8 @@ func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) 
 	pod, _ := c.store.GetPod(opts.Podname)
 	if pod.Scheduler == "CPU" {
 		return c.createContainerWithScheduler(specs, opts)
-	} else {
-		return c.createContainerWithCPUPeriod(specs, opts)
 	}
+	return c.createContainerWithCPUPeriod(specs, opts)
 }
 
 func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
@@ -38,6 +37,8 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 		return ch, fmt.Errorf("Minimum memory limit allowed is 4MB")
 	}
 
+	log.Debugf("Deploy options: %v", opts)
+	log.Debugf("Deploy specs: %v", specs)
 	cpuandmem, _, err := c.getCPUAndMem(opts.Podname, opts.Nodename, 1.0)
 	if err != nil {
 		return ch, err
@@ -45,7 +46,9 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 	go utils.SendMemCap(cpuandmem, "before-alloc")
 	nodesInfo := utils.GetNodesInfo(cpuandmem)
 
+	log.Debugf("Input opts.CPUQuota: %f", opts.CPUQuota)
 	cpuQuota := int(opts.CPUQuota * float64(utils.CpuPeriodBase))
+	log.Debugf("Tranfered cpuQuota: %d", cpuQuota)
 	plan, err := utils.AllocContainerPlan(nodesInfo, cpuQuota, opts.Memory, opts.Count) // 还是以 Bytes 作单位， 不转换了
 
 	if err != nil {
