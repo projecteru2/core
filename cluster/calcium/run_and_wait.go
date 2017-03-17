@@ -77,9 +77,9 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 					ch <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: data}
 					return
 				}
-				defer c.removeOneContainer(container)
 
 				containerJSON, err := container.Inspect()
+				defer c.removeOneContainer(container, containerJSON)
 				if err == nil {
 					ch <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: fmt.Sprintf("[exitcode] %d", containerJSON.State.ExitCode)}
 				} else {
