@@ -239,11 +239,13 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 			ch <- message
 		}
 
-		rmiOpts := enginetypes.ImageRemoveOptions{
+		// 无论如何都删掉build机器的
+		// 事实上他不会跟cached pod一样
+		// 一样就砍死
+		go node.Engine.ImageRemove(context.Background(), tag, enginetypes.ImageRemoveOptions{
 			Force:         false,
 			PruneChildren: true,
-		}
-		go node.Engine.ImageRemove(context.Background(), tag, rmiOpts)
+		})
 
 		ch <- &types.BuildImageMessage{Status: "finished", Progress: tag}
 		close(ch)
