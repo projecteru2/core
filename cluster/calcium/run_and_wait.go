@@ -11,6 +11,9 @@ import (
 	"golang.org/x/net/context"
 )
 
+// FUCK DOCKER
+const PREFIXLEN int = 8
+
 func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan *types.RunAndWaitMessage, error) {
 	ch := make(chan *types.RunAndWaitMessage)
 
@@ -56,9 +59,9 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 
 				scanner := bufio.NewScanner(resp)
 				for scanner.Scan() {
-					data := scanner.Text()
+					data := scanner.Bytes()[PREFIXLEN:]
 					log.Debugf("[RunAndWait] %s %s", message.ContainerID[:12], data)
-					m := &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: data}
+					m := &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: string(data)}
 					ch <- m
 				}
 
