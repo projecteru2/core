@@ -140,7 +140,7 @@ func makeMountPaths(specs types.Specs, config types.Config) ([]string, map[strin
 func runExec(client *engineapi.Client, container enginetypes.ContainerJSON, label string) error {
 	cmd, ok := container.Config.Labels[label]
 	if !ok || cmd == "" {
-		log.Debug("No %s found in container %s", label, container.ID)
+		log.Debugf("No %s found in container %s", label, container.ID)
 		return nil
 	}
 

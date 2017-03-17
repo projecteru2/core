@@ -61,7 +61,7 @@ func AllocContainerPlan(nodeInfo ByCoreNum, quota int, memory int64, count int) 
 		log.Errorf("[AllocContainerPlan] Cannot alloc a plan, volume %d, count %d", volTotal, count)
 		return result, fmt.Errorf("[AllocContainerPlan] Cannot alloc a plan, not enough memory.")
 	}
-	log.Debugf("[AlloContainerPlan] volumn of each node: %v", volEachNode)
+	log.Debugf("[AllocContainerPlan] volumn of each node: %v", volEachNode)
 
 	sort.Ints(volEachNode)
 	log.Debugf("[AllocContainerPlan] sorted volumn: %v", volEachNode)

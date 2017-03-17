@@ -220,6 +220,30 @@ func (v *virbranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_C
 	return nil
 }
 
+func (v *virbranium) RunAndWait(opts *pb.DeployOptions, stream pb.CoreRPC_RunAndWaitServer) error {
+	specs, err := types.LoadSpecs(opts.Specs)
+	if err != nil {
+		return err
+	}
+
+	ch, err := v.cluster.RunAndWait(specs, toCoreDeployOptions(opts))
+	if err != nil {
+		return err
+	}
+
+	for m := range ch {
+		if err := stream.Send(toRPCRunAndWaitMessage(m)); err != nil {
+			go func() {
+				for r := range ch {
+					log.Infof("[RunAndWait] Unsent streamed message: %v", r)
+				}
+			}()
+			return err
+		}
+	}
+	return nil
+}
+
 func (v *virbranium) UpgradeContainer(opts *pb.UpgradeOptions, stream pb.CoreRPC_UpgradeContainerServer) error {
 	ids := []string{}
 	for _, id := range opts.Ids {
