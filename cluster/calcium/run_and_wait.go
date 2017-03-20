@@ -53,37 +53,37 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 				resp, err := node.Engine.ContainerLogs(context.Background(), message.ContainerID, logsOpts)
 				if err != nil {
 					data := fmt.Sprintf("[RunAndWait] Failed to get logs, %s", err.Error())
-					ch <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: data}
+					ch <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: []byte(data)}
 					return
 				}
 
 				scanner := bufio.NewScanner(resp)
 				for scanner.Scan() {
-					data := scanner.Bytes()[PREFIXLEN:]
-					log.Debugf("[RunAndWait] %s %s", message.ContainerID[:12], data)
-					m := &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: string(data)}
+					data := scanner.Bytes()
+					log.Debugf("[RunAndWait] %s %s", message.ContainerID[:12], data[PREFIXLEN:])
+					m := &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: data}
 					ch <- m
 				}
 
 				if err := scanner.Err(); err != nil {
 					data := fmt.Sprintf("[RunAndWait] Parse log failed, %s", err.Error())
-					ch <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: data}
+					ch <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: []byte(data)}
 					return
 				}
 
 				container, err := c.GetContainer(message.ContainerID)
 				if err != nil {
 					data := fmt.Sprintf("[RunAndWait] Container not found, %s", err.Error())
-					ch <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: data}
+					ch <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: []byte(data)}
 					return
 				}
 
 				containerJSON, err := container.Inspect()
 				defer c.removeOneContainer(container, containerJSON)
 				if err == nil {
-					ch <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: fmt.Sprintf("[exitcode] %d", containerJSON.State.ExitCode)}
+					ch <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: []byte(fmt.Sprintf("[exitcode] %d", containerJSON.State.ExitCode))}
 				} else {
-					ch <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: fmt.Sprintf("[exitcode]unknown %s", err.Error())}
+					ch <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: []byte(fmt.Sprintf("[exitcode]unknown %s", err.Error()))}
 				}
 				log.Infof("[RunAndWait] Container %s finished, remove", message.ContainerID)
 			}(node, message)
