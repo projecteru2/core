@@ -44,7 +44,7 @@ type CreateContainerMessage struct {
 
 type RunAndWaitMessage struct {
 	ContainerID string
-	Data        string
+	Data        []byte
 }
 
 type PullImageMessage struct {

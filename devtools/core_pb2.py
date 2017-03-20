@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='core.proto',
   package='pb',
   syntax='proto3',
-  serialized_pb=_b('\n\ncore.proto\x12\x02pb\"\x07\n\x05\x45mpty\"!\n\x03Pod\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\"\x1d\n\x04Pods\x12\x15\n\x04pods\x18\x01 \x03(\x0b\x32\x07.pb.Pod\"(\n\x07Network\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07subnets\x18\x02 \x03(\t\")\n\x08Networks\x12\x1d\n\x08networks\x18\x01 \x03(\x0b\x32\x0b.pb.Network\"\xc2\x01\n\x04Node\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x10\n\x08\x65ndpoint\x18\x02 \x01(\t\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\x0e\n\x06public\x18\x04 \x01(\x08\x12\x1e\n\x03\x63pu\x18\x05 \x03(\x0b\x32\x11.pb.Node.CpuEntry\x12\x0c\n\x04info\x18\x06 \x01(\t\x12\x11\n\tavailable\x18\x07 \x01(\x08\x12\x0c\n\x04zone\x18\x08 \x01(\t\x1a*\n\x08\x43puEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x03:\x02\x38\x01\" \n\x05Nodes\x12\x17\n\x05nodes\x18\x01 \x03(\x0b\x32\x08.pb.Node\"E\n\rNodeAvailable\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\x12\x11\n\tavailable\x18\x03 \x01(\x08\"V\n\tContainer\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\x12\x10\n\x08nodename\x18\x03 \x01(\t\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\x0c\n\x04info\x18\x05 \x01(\t\"/\n\nContainers\x12!\n\ncontainers\x18\x01 \x03(\x0b\x32\r.pb.Container\"\x19\n\x0b\x43ontainerID\x12\n\n\x02id\x18\x01 \x01(\t\",\n\x0c\x43ontainerIDs\x12\x1c\n\x03ids\x18\x01 \x03(\x0b\x32\x0f.pb.ContainerID\"+\n\rAddPodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\"\x1d\n\rGetPodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x88\x01\n\x0e\x41\x64\x64NodeOptions\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x10\n\x08\x65ndpoint\x18\x02 \x01(\t\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\x0e\n\x06\x63\x61\x66ile\x18\x04 \x01(\t\x12\x10\n\x08\x63\x65rtfile\x18\x05 \x01(\t\x12\x0f\n\x07keyfile\x18\x06 \x01(\t\x12\x0e\n\x06public\x18\x07 \x01(\x08\"6\n\x11RemoveNodeOptions\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\"3\n\x0eGetNodeOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\"0\n\x10ListNodesOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x0b\n\x03\x61ll\x18\x02 \x01(\x08\"Q\n\x11\x42uildImageOptions\x12\x0c\n\x04repo\x18\x01 \x01(\t\x12\x0f\n\x07version\x18\x02 \x01(\t\x12\x0b\n\x03uid\x18\x03 \x01(\t\x12\x10\n\x08\x61rtifact\x18\x04 \x01(\t\"\xc8\x02\n\rDeployOptions\x12\r\n\x05specs\x18\x01 \x01(\t\x12\x0f\n\x07\x61ppname\x18\x02 \x01(\t\x12\r\n\x05image\x18\x03 \x01(\t\x12\x0f\n\x07podname\x18\x04 \x01(\t\x12\x10\n\x08nodename\x18\x05 \x01(\t\x12\x12\n\nentrypoint\x18\x06 \x01(\t\x12\x12\n\nextra_args\x18\x07 \x01(\t\x12\x11\n\tcpu_quota\x18\x08 \x01(\x01\x12\r\n\x05\x63ount\x18\t \x01(\x05\x12\x0e\n\x06memory\x18\n \x01(\x03\x12\x0b\n\x03\x65nv\x18\x0b \x03(\t\x12\x31\n\x08networks\x18\x0c \x03(\x0b\x32\x1f.pb.DeployOptions.NetworksEntry\x12\x0b\n\x03raw\x18\r \x01(\x08\x12\r\n\x05\x64\x65\x62ug\x18\x0e \x01(\x08\x1a/\n\rNetworksEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"=\n\x0eUpgradeOptions\x12\x1c\n\x03ids\x18\x01 \x03(\x0b\x32\x0f.pb.ContainerID\x12\r\n\x05image\x18\x02 \x01(\t\"G\n\x12RemoveImageOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\x12\x0e\n\x06images\x18\x03 \x03(\t\"-\n\rBackupOptions\x12\n\n\x02id\x18\x01 \x01(\t\x12\x10\n\x08src_path\x18\x02 \x01(\t\",\n\x0b\x45rrorDetail\x12\x0c\n\x04\x63ode\x18\x01 \x01(\x03\x12\x0f\n\x07message\x18\x02 \x01(\t\"{\n\x11\x42uildImageMessage\x12\x0e\n\x06status\x18\x01 \x01(\t\x12\x10\n\x08progress\x18\x02 \x01(\t\x12\r\n\x05\x65rror\x18\x03 \x01(\t\x12\x0e\n\x06stream\x18\x04 \x01(\t\x12%\n\x0c\x65rror_detail\x18\x05 \x01(\x0b\x32\x0f.pb.ErrorDetail\"\xd3\x01\n\x16\x43reateContainerMessage\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\x12\n\n\x02id\x18\x03 \x01(\t\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\r\n\x05\x65rror\x18\x05 \x01(\t\x12\x0f\n\x07success\x18\x06 \x01(\x08\x12\x30\n\x03\x63pu\x18\x07 \x03(\x0b\x32#.pb.CreateContainerMessage.CpuEntry\x1a*\n\x08\x43puEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x03:\x02\x38\x01\"7\n\x11RunAndWaitMessage\x12\x14\n\x0c\x63ontainer_id\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\t\"F\n\x12RemoveImageMessage\x12\r\n\x05image\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x10\n\x08messages\x18\x03 \x03(\t\"F\n\x16RemoveContainerMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x0f\n\x07message\x18\x03 \x01(\t\"g\n\x17UpgradeContainerMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06new_id\x18\x02 \x01(\t\x12\x10\n\x08new_name\x18\x03 \x01(\t\x12\r\n\x05\x65rror\x18\x04 \x01(\t\x12\x0f\n\x07success\x18\x05 \x01(\x08\"<\n\rBackupMessage\x12\x0e\n\x06status\x18\x01 \x01(\t\x12\x0c\n\x04size\x18\x02 \x01(\x03\x12\r\n\x05\x65rror\x18\x03 \x01(\t2\xbd\x07\n\x07\x43oreRPC\x12!\n\x08ListPods\x12\t.pb.Empty\x1a\x08.pb.Pods\"\x00\x12&\n\x06\x41\x64\x64Pod\x12\x11.pb.AddPodOptions\x1a\x07.pb.Pod\"\x00\x12&\n\x06GetPod\x12\x11.pb.GetPodOptions\x1a\x07.pb.Pod\"\x00\x12)\n\x07\x41\x64\x64Node\x12\x12.pb.AddNodeOptions\x1a\x08.pb.Node\"\x00\x12.\n\nRemoveNode\x12\x15.pb.RemoveNodeOptions\x1a\x07.pb.Pod\"\x00\x12)\n\x07GetNode\x12\x12.pb.GetNodeOptions\x1a\x08.pb.Node\"\x00\x12\x31\n\x0cListPodNodes\x12\x14.pb.ListNodesOptions\x1a\t.pb.Nodes\"\x00\x12\x30\n\x0cGetContainer\x12\x0f.pb.ContainerID\x1a\r.pb.Container\"\x00\x12\x33\n\rGetContainers\x12\x10.pb.ContainerIDs\x1a\x0e.pb.Containers\"\x00\x12\x31\n\x0cListNetworks\x12\x11.pb.GetPodOptions\x1a\x0c.pb.Networks\"\x00\x12\x31\n\x10SetNodeAvailable\x12\x11.pb.NodeAvailable\x1a\x08.pb.Node\"\x00\x12>\n\nBuildImage\x12\x15.pb.BuildImageOptions\x1a\x15.pb.BuildImageMessage\"\x00\x30\x01\x12\x42\n\x0f\x43reateContainer\x12\x11.pb.DeployOptions\x1a\x1a.pb.CreateContainerMessage0\x01\x12\x38\n\nRunAndWait\x12\x11.pb.DeployOptions\x1a\x15.pb.RunAndWaitMessage0\x01\x12\x45\n\x10UpgradeContainer\x12\x12.pb.UpgradeOptions\x1a\x1b.pb.UpgradeContainerMessage0\x01\x12\x41\n\x0fRemoveContainer\x12\x10.pb.ContainerIDs\x1a\x1a.pb.RemoveContainerMessage0\x01\x12?\n\x0bRemoveImage\x12\x16.pb.RemoveImageOptions\x1a\x16.pb.RemoveImageMessage0\x01\x12\x30\n\x06\x42\x61\x63kup\x12\x11.pb.BackupOptions\x1a\x11.pb.BackupMessage\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\ncore.proto\x12\x02pb\"\x07\n\x05\x45mpty\"!\n\x03Pod\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\"\x1d\n\x04Pods\x12\x15\n\x04pods\x18\x01 \x03(\x0b\x32\x07.pb.Pod\"(\n\x07Network\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07subnets\x18\x02 \x03(\t\")\n\x08Networks\x12\x1d\n\x08networks\x18\x01 \x03(\x0b\x32\x0b.pb.Network\"\xc2\x01\n\x04Node\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x10\n\x08\x65ndpoint\x18\x02 \x01(\t\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\x0e\n\x06public\x18\x04 \x01(\x08\x12\x1e\n\x03\x63pu\x18\x05 \x03(\x0b\x32\x11.pb.Node.CpuEntry\x12\x0c\n\x04info\x18\x06 \x01(\t\x12\x11\n\tavailable\x18\x07 \x01(\x08\x12\x0c\n\x04zone\x18\x08 \x01(\t\x1a*\n\x08\x43puEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x03:\x02\x38\x01\" \n\x05Nodes\x12\x17\n\x05nodes\x18\x01 \x03(\x0b\x32\x08.pb.Node\"E\n\rNodeAvailable\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\x12\x11\n\tavailable\x18\x03 \x01(\x08\"V\n\tContainer\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\x12\x10\n\x08nodename\x18\x03 \x01(\t\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\x0c\n\x04info\x18\x05 \x01(\t\"/\n\nContainers\x12!\n\ncontainers\x18\x01 \x03(\x0b\x32\r.pb.Container\"\x19\n\x0b\x43ontainerID\x12\n\n\x02id\x18\x01 \x01(\t\",\n\x0c\x43ontainerIDs\x12\x1c\n\x03ids\x18\x01 \x03(\x0b\x32\x0f.pb.ContainerID\"+\n\rAddPodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\"\x1d\n\rGetPodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x88\x01\n\x0e\x41\x64\x64NodeOptions\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x10\n\x08\x65ndpoint\x18\x02 \x01(\t\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\x0e\n\x06\x63\x61\x66ile\x18\x04 \x01(\t\x12\x10\n\x08\x63\x65rtfile\x18\x05 \x01(\t\x12\x0f\n\x07keyfile\x18\x06 \x01(\t\x12\x0e\n\x06public\x18\x07 \x01(\x08\"6\n\x11RemoveNodeOptions\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\"3\n\x0eGetNodeOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\"0\n\x10ListNodesOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x0b\n\x03\x61ll\x18\x02 \x01(\x08\"Q\n\x11\x42uildImageOptions\x12\x0c\n\x04repo\x18\x01 \x01(\t\x12\x0f\n\x07version\x18\x02 \x01(\t\x12\x0b\n\x03uid\x18\x03 \x01(\t\x12\x10\n\x08\x61rtifact\x18\x04 \x01(\t\"\xc8\x02\n\rDeployOptions\x12\r\n\x05specs\x18\x01 \x01(\t\x12\x0f\n\x07\x61ppname\x18\x02 \x01(\t\x12\r\n\x05image\x18\x03 \x01(\t\x12\x0f\n\x07podname\x18\x04 \x01(\t\x12\x10\n\x08nodename\x18\x05 \x01(\t\x12\x12\n\nentrypoint\x18\x06 \x01(\t\x12\x12\n\nextra_args\x18\x07 \x01(\t\x12\x11\n\tcpu_quota\x18\x08 \x01(\x01\x12\r\n\x05\x63ount\x18\t \x01(\x05\x12\x0e\n\x06memory\x18\n \x01(\x03\x12\x0b\n\x03\x65nv\x18\x0b \x03(\t\x12\x31\n\x08networks\x18\x0c \x03(\x0b\x32\x1f.pb.DeployOptions.NetworksEntry\x12\x0b\n\x03raw\x18\r \x01(\x08\x12\r\n\x05\x64\x65\x62ug\x18\x0e \x01(\x08\x1a/\n\rNetworksEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"=\n\x0eUpgradeOptions\x12\x1c\n\x03ids\x18\x01 \x03(\x0b\x32\x0f.pb.ContainerID\x12\r\n\x05image\x18\x02 \x01(\t\"G\n\x12RemoveImageOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\x12\x0e\n\x06images\x18\x03 \x03(\t\"-\n\rBackupOptions\x12\n\n\x02id\x18\x01 \x01(\t\x12\x10\n\x08src_path\x18\x02 \x01(\t\",\n\x0b\x45rrorDetail\x12\x0c\n\x04\x63ode\x18\x01 \x01(\x03\x12\x0f\n\x07message\x18\x02 \x01(\t\"{\n\x11\x42uildImageMessage\x12\x0e\n\x06status\x18\x01 \x01(\t\x12\x10\n\x08progress\x18\x02 \x01(\t\x12\r\n\x05\x65rror\x18\x03 \x01(\t\x12\x0e\n\x06stream\x18\x04 \x01(\t\x12%\n\x0c\x65rror_detail\x18\x05 \x01(\x0b\x32\x0f.pb.ErrorDetail\"\xd3\x01\n\x16\x43reateContainerMessage\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\x12\n\n\x02id\x18\x03 \x01(\t\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\r\n\x05\x65rror\x18\x05 \x01(\t\x12\x0f\n\x07success\x18\x06 \x01(\x08\x12\x30\n\x03\x63pu\x18\x07 \x03(\x0b\x32#.pb.CreateContainerMessage.CpuEntry\x1a*\n\x08\x43puEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x03:\x02\x38\x01\"7\n\x11RunAndWaitMessage\x12\x14\n\x0c\x63ontainer_id\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"F\n\x12RemoveImageMessage\x12\r\n\x05image\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x10\n\x08messages\x18\x03 \x03(\t\"F\n\x16RemoveContainerMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x0f\n\x07message\x18\x03 \x01(\t\"g\n\x17UpgradeContainerMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06new_id\x18\x02 \x01(\t\x12\x10\n\x08new_name\x18\x03 \x01(\t\x12\r\n\x05\x65rror\x18\x04 \x01(\t\x12\x0f\n\x07success\x18\x05 \x01(\x08\"<\n\rBackupMessage\x12\x0e\n\x06status\x18\x01 \x01(\t\x12\x0c\n\x04size\x18\x02 \x01(\x03\x12\r\n\x05\x65rror\x18\x03 \x01(\t2\xbd\x07\n\x07\x43oreRPC\x12!\n\x08ListPods\x12\t.pb.Empty\x1a\x08.pb.Pods\"\x00\x12&\n\x06\x41\x64\x64Pod\x12\x11.pb.AddPodOptions\x1a\x07.pb.Pod\"\x00\x12&\n\x06GetPod\x12\x11.pb.GetPodOptions\x1a\x07.pb.Pod\"\x00\x12)\n\x07\x41\x64\x64Node\x12\x12.pb.AddNodeOptions\x1a\x08.pb.Node\"\x00\x12.\n\nRemoveNode\x12\x15.pb.RemoveNodeOptions\x1a\x07.pb.Pod\"\x00\x12)\n\x07GetNode\x12\x12.pb.GetNodeOptions\x1a\x08.pb.Node\"\x00\x12\x31\n\x0cListPodNodes\x12\x14.pb.ListNodesOptions\x1a\t.pb.Nodes\"\x00\x12\x30\n\x0cGetContainer\x12\x0f.pb.ContainerID\x1a\r.pb.Container\"\x00\x12\x33\n\rGetContainers\x12\x10.pb.ContainerIDs\x1a\x0e.pb.Containers\"\x00\x12\x31\n\x0cListNetworks\x12\x11.pb.GetPodOptions\x1a\x0c.pb.Networks\"\x00\x12\x31\n\x10SetNodeAvailable\x12\x11.pb.NodeAvailable\x1a\x08.pb.Node\"\x00\x12>\n\nBuildImage\x12\x15.pb.BuildImageOptions\x1a\x15.pb.BuildImageMessage\"\x00\x30\x01\x12\x42\n\x0f\x43reateContainer\x12\x11.pb.DeployOptions\x1a\x1a.pb.CreateContainerMessage0\x01\x12\x38\n\nRunAndWait\x12\x11.pb.DeployOptions\x1a\x15.pb.RunAndWaitMessage0\x01\x12\x45\n\x10UpgradeContainer\x12\x12.pb.UpgradeOptions\x1a\x1b.pb.UpgradeContainerMessage0\x01\x12\x41\n\x0fRemoveContainer\x12\x10.pb.ContainerIDs\x1a\x1a.pb.RemoveContainerMessage0\x01\x12?\n\x0bRemoveImage\x12\x16.pb.RemoveImageOptions\x1a\x16.pb.RemoveImageMessage0\x01\x12\x30\n\x06\x42\x61\x63kup\x12\x11.pb.BackupOptions\x1a\x11.pb.BackupMessage\"\x00\x62\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -1344,8 +1344,8 @@ _RUNANDWAITMESSAGE = _descriptor.Descriptor(
       options=None),
     _descriptor.FieldDescriptor(
       name='data', full_name='pb.RunAndWaitMessage.data', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -1852,540 +1852,545 @@ _DEPLOYOPTIONS_NETWORKSENTRY.has_options = True
 _DEPLOYOPTIONS_NETWORKSENTRY._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001'))
 _CREATECONTAINERMESSAGE_CPUENTRY.has_options = True
 _CREATECONTAINERMESSAGE_CPUENTRY._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001'))
-import grpc
-from grpc.beta import implementations as beta_implementations
-from grpc.beta import interfaces as beta_interfaces
-from grpc.framework.common import cardinality
-from grpc.framework.interfaces.face import utilities as face_utilities
+try:
+  # THESE ELEMENTS WILL BE DEPRECATED.
+  # Please use the generated *_pb2_grpc.py files instead.
+  import grpc
+  from grpc.framework.common import cardinality
+  from grpc.framework.interfaces.face import utilities as face_utilities
+  from grpc.beta import implementations as beta_implementations
+  from grpc.beta import interfaces as beta_interfaces
 
 
-class CoreRPCStub(object):
+  class CoreRPCStub(object):
 
-  def __init__(self, channel):
-    """Constructor.
+    def __init__(self, channel):
+      """Constructor.
 
-    Args:
-      channel: A grpc.Channel.
-    """
-    self.ListPods = channel.unary_unary(
-        '/pb.CoreRPC/ListPods',
-        request_serializer=Empty.SerializeToString,
-        response_deserializer=Pods.FromString,
-        )
-    self.AddPod = channel.unary_unary(
-        '/pb.CoreRPC/AddPod',
-        request_serializer=AddPodOptions.SerializeToString,
-        response_deserializer=Pod.FromString,
-        )
-    self.GetPod = channel.unary_unary(
-        '/pb.CoreRPC/GetPod',
-        request_serializer=GetPodOptions.SerializeToString,
-        response_deserializer=Pod.FromString,
-        )
-    self.AddNode = channel.unary_unary(
-        '/pb.CoreRPC/AddNode',
-        request_serializer=AddNodeOptions.SerializeToString,
-        response_deserializer=Node.FromString,
-        )
-    self.RemoveNode = channel.unary_unary(
-        '/pb.CoreRPC/RemoveNode',
-        request_serializer=RemoveNodeOptions.SerializeToString,
-        response_deserializer=Pod.FromString,
-        )
-    self.GetNode = channel.unary_unary(
-        '/pb.CoreRPC/GetNode',
-        request_serializer=GetNodeOptions.SerializeToString,
-        response_deserializer=Node.FromString,
-        )
-    self.ListPodNodes = channel.unary_unary(
-        '/pb.CoreRPC/ListPodNodes',
-        request_serializer=ListNodesOptions.SerializeToString,
-        response_deserializer=Nodes.FromString,
-        )
-    self.GetContainer = channel.unary_unary(
-        '/pb.CoreRPC/GetContainer',
-        request_serializer=ContainerID.SerializeToString,
-        response_deserializer=Container.FromString,
-        )
-    self.GetContainers = channel.unary_unary(
-        '/pb.CoreRPC/GetContainers',
-        request_serializer=ContainerIDs.SerializeToString,
-        response_deserializer=Containers.FromString,
-        )
-    self.ListNetworks = channel.unary_unary(
-        '/pb.CoreRPC/ListNetworks',
-        request_serializer=GetPodOptions.SerializeToString,
-        response_deserializer=Networks.FromString,
-        )
-    self.SetNodeAvailable = channel.unary_unary(
-        '/pb.CoreRPC/SetNodeAvailable',
-        request_serializer=NodeAvailable.SerializeToString,
-        response_deserializer=Node.FromString,
-        )
-    self.BuildImage = channel.unary_stream(
-        '/pb.CoreRPC/BuildImage',
-        request_serializer=BuildImageOptions.SerializeToString,
-        response_deserializer=BuildImageMessage.FromString,
-        )
-    self.CreateContainer = channel.unary_stream(
-        '/pb.CoreRPC/CreateContainer',
-        request_serializer=DeployOptions.SerializeToString,
-        response_deserializer=CreateContainerMessage.FromString,
-        )
-    self.RunAndWait = channel.unary_stream(
-        '/pb.CoreRPC/RunAndWait',
-        request_serializer=DeployOptions.SerializeToString,
-        response_deserializer=RunAndWaitMessage.FromString,
-        )
-    self.UpgradeContainer = channel.unary_stream(
-        '/pb.CoreRPC/UpgradeContainer',
-        request_serializer=UpgradeOptions.SerializeToString,
-        response_deserializer=UpgradeContainerMessage.FromString,
-        )
-    self.RemoveContainer = channel.unary_stream(
-        '/pb.CoreRPC/RemoveContainer',
-        request_serializer=ContainerIDs.SerializeToString,
-        response_deserializer=RemoveContainerMessage.FromString,
-        )
-    self.RemoveImage = channel.unary_stream(
-        '/pb.CoreRPC/RemoveImage',
-        request_serializer=RemoveImageOptions.SerializeToString,
-        response_deserializer=RemoveImageMessage.FromString,
-        )
-    self.Backup = channel.unary_unary(
-        '/pb.CoreRPC/Backup',
-        request_serializer=BackupOptions.SerializeToString,
-        response_deserializer=BackupMessage.FromString,
-        )
-
-
-class CoreRPCServicer(object):
-
-  def ListPods(self, request, context):
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def AddPod(self, request, context):
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def GetPod(self, request, context):
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def AddNode(self, request, context):
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def RemoveNode(self, request, context):
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def GetNode(self, request, context):
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def ListPodNodes(self, request, context):
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def GetContainer(self, request, context):
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def GetContainers(self, request, context):
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def ListNetworks(self, request, context):
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def SetNodeAvailable(self, request, context):
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def BuildImage(self, request, context):
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def CreateContainer(self, request, context):
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def RunAndWait(self, request, context):
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def UpgradeContainer(self, request, context):
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def RemoveContainer(self, request, context):
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def RemoveImage(self, request, context):
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def Backup(self, request, context):
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
+      Args:
+        channel: A grpc.Channel.
+      """
+      self.ListPods = channel.unary_unary(
+          '/pb.CoreRPC/ListPods',
+          request_serializer=Empty.SerializeToString,
+          response_deserializer=Pods.FromString,
+          )
+      self.AddPod = channel.unary_unary(
+          '/pb.CoreRPC/AddPod',
+          request_serializer=AddPodOptions.SerializeToString,
+          response_deserializer=Pod.FromString,
+          )
+      self.GetPod = channel.unary_unary(
+          '/pb.CoreRPC/GetPod',
+          request_serializer=GetPodOptions.SerializeToString,
+          response_deserializer=Pod.FromString,
+          )
+      self.AddNode = channel.unary_unary(
+          '/pb.CoreRPC/AddNode',
+          request_serializer=AddNodeOptions.SerializeToString,
+          response_deserializer=Node.FromString,
+          )
+      self.RemoveNode = channel.unary_unary(
+          '/pb.CoreRPC/RemoveNode',
+          request_serializer=RemoveNodeOptions.SerializeToString,
+          response_deserializer=Pod.FromString,
+          )
+      self.GetNode = channel.unary_unary(
+          '/pb.CoreRPC/GetNode',
+          request_serializer=GetNodeOptions.SerializeToString,
+          response_deserializer=Node.FromString,
+          )
+      self.ListPodNodes = channel.unary_unary(
+          '/pb.CoreRPC/ListPodNodes',
+          request_serializer=ListNodesOptions.SerializeToString,
+          response_deserializer=Nodes.FromString,
+          )
+      self.GetContainer = channel.unary_unary(
+          '/pb.CoreRPC/GetContainer',
+          request_serializer=ContainerID.SerializeToString,
+          response_deserializer=Container.FromString,
+          )
+      self.GetContainers = channel.unary_unary(
+          '/pb.CoreRPC/GetContainers',
+          request_serializer=ContainerIDs.SerializeToString,
+          response_deserializer=Containers.FromString,
+          )
+      self.ListNetworks = channel.unary_unary(
+          '/pb.CoreRPC/ListNetworks',
+          request_serializer=GetPodOptions.SerializeToString,
+          response_deserializer=Networks.FromString,
+          )
+      self.SetNodeAvailable = channel.unary_unary(
+          '/pb.CoreRPC/SetNodeAvailable',
+          request_serializer=NodeAvailable.SerializeToString,
+          response_deserializer=Node.FromString,
+          )
+      self.BuildImage = channel.unary_stream(
+          '/pb.CoreRPC/BuildImage',
+          request_serializer=BuildImageOptions.SerializeToString,
+          response_deserializer=BuildImageMessage.FromString,
+          )
+      self.CreateContainer = channel.unary_stream(
+          '/pb.CoreRPC/CreateContainer',
+          request_serializer=DeployOptions.SerializeToString,
+          response_deserializer=CreateContainerMessage.FromString,
+          )
+      self.RunAndWait = channel.unary_stream(
+          '/pb.CoreRPC/RunAndWait',
+          request_serializer=DeployOptions.SerializeToString,
+          response_deserializer=RunAndWaitMessage.FromString,
+          )
+      self.UpgradeContainer = channel.unary_stream(
+          '/pb.CoreRPC/UpgradeContainer',
+          request_serializer=UpgradeOptions.SerializeToString,
+          response_deserializer=UpgradeContainerMessage.FromString,
+          )
+      self.RemoveContainer = channel.unary_stream(
+          '/pb.CoreRPC/RemoveContainer',
+          request_serializer=ContainerIDs.SerializeToString,
+          response_deserializer=RemoveContainerMessage.FromString,
+          )
+      self.RemoveImage = channel.unary_stream(
+          '/pb.CoreRPC/RemoveImage',
+          request_serializer=RemoveImageOptions.SerializeToString,
+          response_deserializer=RemoveImageMessage.FromString,
+          )
+      self.Backup = channel.unary_unary(
+          '/pb.CoreRPC/Backup',
+          request_serializer=BackupOptions.SerializeToString,
+          response_deserializer=BackupMessage.FromString,
+          )
 
 
-def add_CoreRPCServicer_to_server(servicer, server):
-  rpc_method_handlers = {
-      'ListPods': grpc.unary_unary_rpc_method_handler(
-          servicer.ListPods,
-          request_deserializer=Empty.FromString,
-          response_serializer=Pods.SerializeToString,
-      ),
-      'AddPod': grpc.unary_unary_rpc_method_handler(
-          servicer.AddPod,
-          request_deserializer=AddPodOptions.FromString,
-          response_serializer=Pod.SerializeToString,
-      ),
-      'GetPod': grpc.unary_unary_rpc_method_handler(
-          servicer.GetPod,
-          request_deserializer=GetPodOptions.FromString,
-          response_serializer=Pod.SerializeToString,
-      ),
-      'AddNode': grpc.unary_unary_rpc_method_handler(
-          servicer.AddNode,
-          request_deserializer=AddNodeOptions.FromString,
-          response_serializer=Node.SerializeToString,
-      ),
-      'RemoveNode': grpc.unary_unary_rpc_method_handler(
-          servicer.RemoveNode,
-          request_deserializer=RemoveNodeOptions.FromString,
-          response_serializer=Pod.SerializeToString,
-      ),
-      'GetNode': grpc.unary_unary_rpc_method_handler(
-          servicer.GetNode,
-          request_deserializer=GetNodeOptions.FromString,
-          response_serializer=Node.SerializeToString,
-      ),
-      'ListPodNodes': grpc.unary_unary_rpc_method_handler(
-          servicer.ListPodNodes,
-          request_deserializer=ListNodesOptions.FromString,
-          response_serializer=Nodes.SerializeToString,
-      ),
-      'GetContainer': grpc.unary_unary_rpc_method_handler(
-          servicer.GetContainer,
-          request_deserializer=ContainerID.FromString,
-          response_serializer=Container.SerializeToString,
-      ),
-      'GetContainers': grpc.unary_unary_rpc_method_handler(
-          servicer.GetContainers,
-          request_deserializer=ContainerIDs.FromString,
-          response_serializer=Containers.SerializeToString,
-      ),
-      'ListNetworks': grpc.unary_unary_rpc_method_handler(
-          servicer.ListNetworks,
-          request_deserializer=GetPodOptions.FromString,
-          response_serializer=Networks.SerializeToString,
-      ),
-      'SetNodeAvailable': grpc.unary_unary_rpc_method_handler(
-          servicer.SetNodeAvailable,
-          request_deserializer=NodeAvailable.FromString,
-          response_serializer=Node.SerializeToString,
-      ),
-      'BuildImage': grpc.unary_stream_rpc_method_handler(
-          servicer.BuildImage,
-          request_deserializer=BuildImageOptions.FromString,
-          response_serializer=BuildImageMessage.SerializeToString,
-      ),
-      'CreateContainer': grpc.unary_stream_rpc_method_handler(
-          servicer.CreateContainer,
-          request_deserializer=DeployOptions.FromString,
-          response_serializer=CreateContainerMessage.SerializeToString,
-      ),
-      'RunAndWait': grpc.unary_stream_rpc_method_handler(
-          servicer.RunAndWait,
-          request_deserializer=DeployOptions.FromString,
-          response_serializer=RunAndWaitMessage.SerializeToString,
-      ),
-      'UpgradeContainer': grpc.unary_stream_rpc_method_handler(
-          servicer.UpgradeContainer,
-          request_deserializer=UpgradeOptions.FromString,
-          response_serializer=UpgradeContainerMessage.SerializeToString,
-      ),
-      'RemoveContainer': grpc.unary_stream_rpc_method_handler(
-          servicer.RemoveContainer,
-          request_deserializer=ContainerIDs.FromString,
-          response_serializer=RemoveContainerMessage.SerializeToString,
-      ),
-      'RemoveImage': grpc.unary_stream_rpc_method_handler(
-          servicer.RemoveImage,
-          request_deserializer=RemoveImageOptions.FromString,
-          response_serializer=RemoveImageMessage.SerializeToString,
-      ),
-      'Backup': grpc.unary_unary_rpc_method_handler(
-          servicer.Backup,
-          request_deserializer=BackupOptions.FromString,
-          response_serializer=BackupMessage.SerializeToString,
-      ),
-  }
-  generic_handler = grpc.method_handlers_generic_handler(
-      'pb.CoreRPC', rpc_method_handlers)
-  server.add_generic_rpc_handlers((generic_handler,))
+  class CoreRPCServicer(object):
+
+    def ListPods(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def AddPod(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def GetPod(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def AddNode(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def RemoveNode(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def GetNode(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def ListPodNodes(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def GetContainer(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def GetContainers(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def ListNetworks(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def SetNodeAvailable(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def BuildImage(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def CreateContainer(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def RunAndWait(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def UpgradeContainer(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def RemoveContainer(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def RemoveImage(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def Backup(self, request, context):
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
 
 
-class BetaCoreRPCServicer(object):
-  """The Beta API is deprecated for 0.15.0 and later.
-
-  It is recommended to use the GA API (classes and functions in this
-  file not marked beta) for all further purposes. This class was generated
-  only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
-  def ListPods(self, request, context):
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-  def AddPod(self, request, context):
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-  def GetPod(self, request, context):
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-  def AddNode(self, request, context):
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-  def RemoveNode(self, request, context):
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-  def GetNode(self, request, context):
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-  def ListPodNodes(self, request, context):
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-  def GetContainer(self, request, context):
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-  def GetContainers(self, request, context):
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-  def ListNetworks(self, request, context):
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-  def SetNodeAvailable(self, request, context):
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-  def BuildImage(self, request, context):
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-  def CreateContainer(self, request, context):
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-  def RunAndWait(self, request, context):
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-  def UpgradeContainer(self, request, context):
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-  def RemoveContainer(self, request, context):
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-  def RemoveImage(self, request, context):
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-  def Backup(self, request, context):
-    context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-
-
-class BetaCoreRPCStub(object):
-  """The Beta API is deprecated for 0.15.0 and later.
-
-  It is recommended to use the GA API (classes and functions in this
-  file not marked beta) for all further purposes. This class was generated
-  only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
-  def ListPods(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    raise NotImplementedError()
-  ListPods.future = None
-  def AddPod(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    raise NotImplementedError()
-  AddPod.future = None
-  def GetPod(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    raise NotImplementedError()
-  GetPod.future = None
-  def AddNode(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    raise NotImplementedError()
-  AddNode.future = None
-  def RemoveNode(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    raise NotImplementedError()
-  RemoveNode.future = None
-  def GetNode(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    raise NotImplementedError()
-  GetNode.future = None
-  def ListPodNodes(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    raise NotImplementedError()
-  ListPodNodes.future = None
-  def GetContainer(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    raise NotImplementedError()
-  GetContainer.future = None
-  def GetContainers(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    raise NotImplementedError()
-  GetContainers.future = None
-  def ListNetworks(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    raise NotImplementedError()
-  ListNetworks.future = None
-  def SetNodeAvailable(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    raise NotImplementedError()
-  SetNodeAvailable.future = None
-  def BuildImage(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    raise NotImplementedError()
-  def CreateContainer(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    raise NotImplementedError()
-  def RunAndWait(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    raise NotImplementedError()
-  def UpgradeContainer(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    raise NotImplementedError()
-  def RemoveContainer(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    raise NotImplementedError()
-  def RemoveImage(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    raise NotImplementedError()
-  def Backup(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-    raise NotImplementedError()
-  Backup.future = None
+  def add_CoreRPCServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+        'ListPods': grpc.unary_unary_rpc_method_handler(
+            servicer.ListPods,
+            request_deserializer=Empty.FromString,
+            response_serializer=Pods.SerializeToString,
+        ),
+        'AddPod': grpc.unary_unary_rpc_method_handler(
+            servicer.AddPod,
+            request_deserializer=AddPodOptions.FromString,
+            response_serializer=Pod.SerializeToString,
+        ),
+        'GetPod': grpc.unary_unary_rpc_method_handler(
+            servicer.GetPod,
+            request_deserializer=GetPodOptions.FromString,
+            response_serializer=Pod.SerializeToString,
+        ),
+        'AddNode': grpc.unary_unary_rpc_method_handler(
+            servicer.AddNode,
+            request_deserializer=AddNodeOptions.FromString,
+            response_serializer=Node.SerializeToString,
+        ),
+        'RemoveNode': grpc.unary_unary_rpc_method_handler(
+            servicer.RemoveNode,
+            request_deserializer=RemoveNodeOptions.FromString,
+            response_serializer=Pod.SerializeToString,
+        ),
+        'GetNode': grpc.unary_unary_rpc_method_handler(
+            servicer.GetNode,
+            request_deserializer=GetNodeOptions.FromString,
+            response_serializer=Node.SerializeToString,
+        ),
+        'ListPodNodes': grpc.unary_unary_rpc_method_handler(
+            servicer.ListPodNodes,
+            request_deserializer=ListNodesOptions.FromString,
+            response_serializer=Nodes.SerializeToString,
+        ),
+        'GetContainer': grpc.unary_unary_rpc_method_handler(
+            servicer.GetContainer,
+            request_deserializer=ContainerID.FromString,
+            response_serializer=Container.SerializeToString,
+        ),
+        'GetContainers': grpc.unary_unary_rpc_method_handler(
+            servicer.GetContainers,
+            request_deserializer=ContainerIDs.FromString,
+            response_serializer=Containers.SerializeToString,
+        ),
+        'ListNetworks': grpc.unary_unary_rpc_method_handler(
+            servicer.ListNetworks,
+            request_deserializer=GetPodOptions.FromString,
+            response_serializer=Networks.SerializeToString,
+        ),
+        'SetNodeAvailable': grpc.unary_unary_rpc_method_handler(
+            servicer.SetNodeAvailable,
+            request_deserializer=NodeAvailable.FromString,
+            response_serializer=Node.SerializeToString,
+        ),
+        'BuildImage': grpc.unary_stream_rpc_method_handler(
+            servicer.BuildImage,
+            request_deserializer=BuildImageOptions.FromString,
+            response_serializer=BuildImageMessage.SerializeToString,
+        ),
+        'CreateContainer': grpc.unary_stream_rpc_method_handler(
+            servicer.CreateContainer,
+            request_deserializer=DeployOptions.FromString,
+            response_serializer=CreateContainerMessage.SerializeToString,
+        ),
+        'RunAndWait': grpc.unary_stream_rpc_method_handler(
+            servicer.RunAndWait,
+            request_deserializer=DeployOptions.FromString,
+            response_serializer=RunAndWaitMessage.SerializeToString,
+        ),
+        'UpgradeContainer': grpc.unary_stream_rpc_method_handler(
+            servicer.UpgradeContainer,
+            request_deserializer=UpgradeOptions.FromString,
+            response_serializer=UpgradeContainerMessage.SerializeToString,
+        ),
+        'RemoveContainer': grpc.unary_stream_rpc_method_handler(
+            servicer.RemoveContainer,
+            request_deserializer=ContainerIDs.FromString,
+            response_serializer=RemoveContainerMessage.SerializeToString,
+        ),
+        'RemoveImage': grpc.unary_stream_rpc_method_handler(
+            servicer.RemoveImage,
+            request_deserializer=RemoveImageOptions.FromString,
+            response_serializer=RemoveImageMessage.SerializeToString,
+        ),
+        'Backup': grpc.unary_unary_rpc_method_handler(
+            servicer.Backup,
+            request_deserializer=BackupOptions.FromString,
+            response_serializer=BackupMessage.SerializeToString,
+        ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+        'pb.CoreRPC', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
 
 
-def beta_create_CoreRPC_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
-  """The Beta API is deprecated for 0.15.0 and later.
+  class BetaCoreRPCServicer(object):
+    """The Beta API is deprecated for 0.15.0 and later.
 
-  It is recommended to use the GA API (classes and functions in this
-  file not marked beta) for all further purposes. This function was
-  generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
-  request_deserializers = {
-    ('pb.CoreRPC', 'AddNode'): AddNodeOptions.FromString,
-    ('pb.CoreRPC', 'AddPod'): AddPodOptions.FromString,
-    ('pb.CoreRPC', 'Backup'): BackupOptions.FromString,
-    ('pb.CoreRPC', 'BuildImage'): BuildImageOptions.FromString,
-    ('pb.CoreRPC', 'CreateContainer'): DeployOptions.FromString,
-    ('pb.CoreRPC', 'GetContainer'): ContainerID.FromString,
-    ('pb.CoreRPC', 'GetContainers'): ContainerIDs.FromString,
-    ('pb.CoreRPC', 'GetNode'): GetNodeOptions.FromString,
-    ('pb.CoreRPC', 'GetPod'): GetPodOptions.FromString,
-    ('pb.CoreRPC', 'ListNetworks'): GetPodOptions.FromString,
-    ('pb.CoreRPC', 'ListPodNodes'): ListNodesOptions.FromString,
-    ('pb.CoreRPC', 'ListPods'): Empty.FromString,
-    ('pb.CoreRPC', 'RemoveContainer'): ContainerIDs.FromString,
-    ('pb.CoreRPC', 'RemoveImage'): RemoveImageOptions.FromString,
-    ('pb.CoreRPC', 'RemoveNode'): RemoveNodeOptions.FromString,
-    ('pb.CoreRPC', 'RunAndWait'): DeployOptions.FromString,
-    ('pb.CoreRPC', 'SetNodeAvailable'): NodeAvailable.FromString,
-    ('pb.CoreRPC', 'UpgradeContainer'): UpgradeOptions.FromString,
-  }
-  response_serializers = {
-    ('pb.CoreRPC', 'AddNode'): Node.SerializeToString,
-    ('pb.CoreRPC', 'AddPod'): Pod.SerializeToString,
-    ('pb.CoreRPC', 'Backup'): BackupMessage.SerializeToString,
-    ('pb.CoreRPC', 'BuildImage'): BuildImageMessage.SerializeToString,
-    ('pb.CoreRPC', 'CreateContainer'): CreateContainerMessage.SerializeToString,
-    ('pb.CoreRPC', 'GetContainer'): Container.SerializeToString,
-    ('pb.CoreRPC', 'GetContainers'): Containers.SerializeToString,
-    ('pb.CoreRPC', 'GetNode'): Node.SerializeToString,
-    ('pb.CoreRPC', 'GetPod'): Pod.SerializeToString,
-    ('pb.CoreRPC', 'ListNetworks'): Networks.SerializeToString,
-    ('pb.CoreRPC', 'ListPodNodes'): Nodes.SerializeToString,
-    ('pb.CoreRPC', 'ListPods'): Pods.SerializeToString,
-    ('pb.CoreRPC', 'RemoveContainer'): RemoveContainerMessage.SerializeToString,
-    ('pb.CoreRPC', 'RemoveImage'): RemoveImageMessage.SerializeToString,
-    ('pb.CoreRPC', 'RemoveNode'): Pod.SerializeToString,
-    ('pb.CoreRPC', 'RunAndWait'): RunAndWaitMessage.SerializeToString,
-    ('pb.CoreRPC', 'SetNodeAvailable'): Node.SerializeToString,
-    ('pb.CoreRPC', 'UpgradeContainer'): UpgradeContainerMessage.SerializeToString,
-  }
-  method_implementations = {
-    ('pb.CoreRPC', 'AddNode'): face_utilities.unary_unary_inline(servicer.AddNode),
-    ('pb.CoreRPC', 'AddPod'): face_utilities.unary_unary_inline(servicer.AddPod),
-    ('pb.CoreRPC', 'Backup'): face_utilities.unary_unary_inline(servicer.Backup),
-    ('pb.CoreRPC', 'BuildImage'): face_utilities.unary_stream_inline(servicer.BuildImage),
-    ('pb.CoreRPC', 'CreateContainer'): face_utilities.unary_stream_inline(servicer.CreateContainer),
-    ('pb.CoreRPC', 'GetContainer'): face_utilities.unary_unary_inline(servicer.GetContainer),
-    ('pb.CoreRPC', 'GetContainers'): face_utilities.unary_unary_inline(servicer.GetContainers),
-    ('pb.CoreRPC', 'GetNode'): face_utilities.unary_unary_inline(servicer.GetNode),
-    ('pb.CoreRPC', 'GetPod'): face_utilities.unary_unary_inline(servicer.GetPod),
-    ('pb.CoreRPC', 'ListNetworks'): face_utilities.unary_unary_inline(servicer.ListNetworks),
-    ('pb.CoreRPC', 'ListPodNodes'): face_utilities.unary_unary_inline(servicer.ListPodNodes),
-    ('pb.CoreRPC', 'ListPods'): face_utilities.unary_unary_inline(servicer.ListPods),
-    ('pb.CoreRPC', 'RemoveContainer'): face_utilities.unary_stream_inline(servicer.RemoveContainer),
-    ('pb.CoreRPC', 'RemoveImage'): face_utilities.unary_stream_inline(servicer.RemoveImage),
-    ('pb.CoreRPC', 'RemoveNode'): face_utilities.unary_unary_inline(servicer.RemoveNode),
-    ('pb.CoreRPC', 'RunAndWait'): face_utilities.unary_stream_inline(servicer.RunAndWait),
-    ('pb.CoreRPC', 'SetNodeAvailable'): face_utilities.unary_unary_inline(servicer.SetNodeAvailable),
-    ('pb.CoreRPC', 'UpgradeContainer'): face_utilities.unary_stream_inline(servicer.UpgradeContainer),
-  }
-  server_options = beta_implementations.server_options(request_deserializers=request_deserializers, response_serializers=response_serializers, thread_pool=pool, thread_pool_size=pool_size, default_timeout=default_timeout, maximum_timeout=maximum_timeout)
-  return beta_implementations.server(method_implementations, options=server_options)
+    It is recommended to use the GA API (classes and functions in this
+    file not marked beta) for all further purposes. This class was generated
+    only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
+    def ListPods(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def AddPod(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def GetPod(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def AddNode(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def RemoveNode(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def GetNode(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def ListPodNodes(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def GetContainer(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def GetContainers(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def ListNetworks(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def SetNodeAvailable(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def BuildImage(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def CreateContainer(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def RunAndWait(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def UpgradeContainer(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def RemoveContainer(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def RemoveImage(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def Backup(self, request, context):
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
 
 
-def beta_create_CoreRPC_stub(channel, host=None, metadata_transformer=None, pool=None, pool_size=None):
-  """The Beta API is deprecated for 0.15.0 and later.
+  class BetaCoreRPCStub(object):
+    """The Beta API is deprecated for 0.15.0 and later.
 
-  It is recommended to use the GA API (classes and functions in this
-  file not marked beta) for all further purposes. This function was
-  generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
-  request_serializers = {
-    ('pb.CoreRPC', 'AddNode'): AddNodeOptions.SerializeToString,
-    ('pb.CoreRPC', 'AddPod'): AddPodOptions.SerializeToString,
-    ('pb.CoreRPC', 'Backup'): BackupOptions.SerializeToString,
-    ('pb.CoreRPC', 'BuildImage'): BuildImageOptions.SerializeToString,
-    ('pb.CoreRPC', 'CreateContainer'): DeployOptions.SerializeToString,
-    ('pb.CoreRPC', 'GetContainer'): ContainerID.SerializeToString,
-    ('pb.CoreRPC', 'GetContainers'): ContainerIDs.SerializeToString,
-    ('pb.CoreRPC', 'GetNode'): GetNodeOptions.SerializeToString,
-    ('pb.CoreRPC', 'GetPod'): GetPodOptions.SerializeToString,
-    ('pb.CoreRPC', 'ListNetworks'): GetPodOptions.SerializeToString,
-    ('pb.CoreRPC', 'ListPodNodes'): ListNodesOptions.SerializeToString,
-    ('pb.CoreRPC', 'ListPods'): Empty.SerializeToString,
-    ('pb.CoreRPC', 'RemoveContainer'): ContainerIDs.SerializeToString,
-    ('pb.CoreRPC', 'RemoveImage'): RemoveImageOptions.SerializeToString,
-    ('pb.CoreRPC', 'RemoveNode'): RemoveNodeOptions.SerializeToString,
-    ('pb.CoreRPC', 'RunAndWait'): DeployOptions.SerializeToString,
-    ('pb.CoreRPC', 'SetNodeAvailable'): NodeAvailable.SerializeToString,
-    ('pb.CoreRPC', 'UpgradeContainer'): UpgradeOptions.SerializeToString,
-  }
-  response_deserializers = {
-    ('pb.CoreRPC', 'AddNode'): Node.FromString,
-    ('pb.CoreRPC', 'AddPod'): Pod.FromString,
-    ('pb.CoreRPC', 'Backup'): BackupMessage.FromString,
-    ('pb.CoreRPC', 'BuildImage'): BuildImageMessage.FromString,
-    ('pb.CoreRPC', 'CreateContainer'): CreateContainerMessage.FromString,
-    ('pb.CoreRPC', 'GetContainer'): Container.FromString,
-    ('pb.CoreRPC', 'GetContainers'): Containers.FromString,
-    ('pb.CoreRPC', 'GetNode'): Node.FromString,
-    ('pb.CoreRPC', 'GetPod'): Pod.FromString,
-    ('pb.CoreRPC', 'ListNetworks'): Networks.FromString,
-    ('pb.CoreRPC', 'ListPodNodes'): Nodes.FromString,
-    ('pb.CoreRPC', 'ListPods'): Pods.FromString,
-    ('pb.CoreRPC', 'RemoveContainer'): RemoveContainerMessage.FromString,
-    ('pb.CoreRPC', 'RemoveImage'): RemoveImageMessage.FromString,
-    ('pb.CoreRPC', 'RemoveNode'): Pod.FromString,
-    ('pb.CoreRPC', 'RunAndWait'): RunAndWaitMessage.FromString,
-    ('pb.CoreRPC', 'SetNodeAvailable'): Node.FromString,
-    ('pb.CoreRPC', 'UpgradeContainer'): UpgradeContainerMessage.FromString,
-  }
-  cardinalities = {
-    'AddNode': cardinality.Cardinality.UNARY_UNARY,
-    'AddPod': cardinality.Cardinality.UNARY_UNARY,
-    'Backup': cardinality.Cardinality.UNARY_UNARY,
-    'BuildImage': cardinality.Cardinality.UNARY_STREAM,
-    'CreateContainer': cardinality.Cardinality.UNARY_STREAM,
-    'GetContainer': cardinality.Cardinality.UNARY_UNARY,
-    'GetContainers': cardinality.Cardinality.UNARY_UNARY,
-    'GetNode': cardinality.Cardinality.UNARY_UNARY,
-    'GetPod': cardinality.Cardinality.UNARY_UNARY,
-    'ListNetworks': cardinality.Cardinality.UNARY_UNARY,
-    'ListPodNodes': cardinality.Cardinality.UNARY_UNARY,
-    'ListPods': cardinality.Cardinality.UNARY_UNARY,
-    'RemoveContainer': cardinality.Cardinality.UNARY_STREAM,
-    'RemoveImage': cardinality.Cardinality.UNARY_STREAM,
-    'RemoveNode': cardinality.Cardinality.UNARY_UNARY,
-    'RunAndWait': cardinality.Cardinality.UNARY_STREAM,
-    'SetNodeAvailable': cardinality.Cardinality.UNARY_UNARY,
-    'UpgradeContainer': cardinality.Cardinality.UNARY_STREAM,
-  }
-  stub_options = beta_implementations.stub_options(host=host, metadata_transformer=metadata_transformer, request_serializers=request_serializers, response_deserializers=response_deserializers, thread_pool=pool, thread_pool_size=pool_size)
-  return beta_implementations.dynamic_stub(channel, 'pb.CoreRPC', cardinalities, options=stub_options)
+    It is recommended to use the GA API (classes and functions in this
+    file not marked beta) for all further purposes. This class was generated
+    only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
+    def ListPods(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    ListPods.future = None
+    def AddPod(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    AddPod.future = None
+    def GetPod(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    GetPod.future = None
+    def AddNode(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    AddNode.future = None
+    def RemoveNode(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    RemoveNode.future = None
+    def GetNode(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    GetNode.future = None
+    def ListPodNodes(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    ListPodNodes.future = None
+    def GetContainer(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    GetContainer.future = None
+    def GetContainers(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    GetContainers.future = None
+    def ListNetworks(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    ListNetworks.future = None
+    def SetNodeAvailable(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    SetNodeAvailable.future = None
+    def BuildImage(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    def CreateContainer(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    def RunAndWait(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    def UpgradeContainer(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    def RemoveContainer(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    def RemoveImage(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    def Backup(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      raise NotImplementedError()
+    Backup.future = None
+
+
+  def beta_create_CoreRPC_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
+    """The Beta API is deprecated for 0.15.0 and later.
+
+    It is recommended to use the GA API (classes and functions in this
+    file not marked beta) for all further purposes. This function was
+    generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
+    request_deserializers = {
+      ('pb.CoreRPC', 'AddNode'): AddNodeOptions.FromString,
+      ('pb.CoreRPC', 'AddPod'): AddPodOptions.FromString,
+      ('pb.CoreRPC', 'Backup'): BackupOptions.FromString,
+      ('pb.CoreRPC', 'BuildImage'): BuildImageOptions.FromString,
+      ('pb.CoreRPC', 'CreateContainer'): DeployOptions.FromString,
+      ('pb.CoreRPC', 'GetContainer'): ContainerID.FromString,
+      ('pb.CoreRPC', 'GetContainers'): ContainerIDs.FromString,
+      ('pb.CoreRPC', 'GetNode'): GetNodeOptions.FromString,
+      ('pb.CoreRPC', 'GetPod'): GetPodOptions.FromString,
+      ('pb.CoreRPC', 'ListNetworks'): GetPodOptions.FromString,
+      ('pb.CoreRPC', 'ListPodNodes'): ListNodesOptions.FromString,
+      ('pb.CoreRPC', 'ListPods'): Empty.FromString,
+      ('pb.CoreRPC', 'RemoveContainer'): ContainerIDs.FromString,
+      ('pb.CoreRPC', 'RemoveImage'): RemoveImageOptions.FromString,
+      ('pb.CoreRPC', 'RemoveNode'): RemoveNodeOptions.FromString,
+      ('pb.CoreRPC', 'RunAndWait'): DeployOptions.FromString,
+      ('pb.CoreRPC', 'SetNodeAvailable'): NodeAvailable.FromString,
+      ('pb.CoreRPC', 'UpgradeContainer'): UpgradeOptions.FromString,
+    }
+    response_serializers = {
+      ('pb.CoreRPC', 'AddNode'): Node.SerializeToString,
+      ('pb.CoreRPC', 'AddPod'): Pod.SerializeToString,
+      ('pb.CoreRPC', 'Backup'): BackupMessage.SerializeToString,
+      ('pb.CoreRPC', 'BuildImage'): BuildImageMessage.SerializeToString,
+      ('pb.CoreRPC', 'CreateContainer'): CreateContainerMessage.SerializeToString,
+      ('pb.CoreRPC', 'GetContainer'): Container.SerializeToString,
+      ('pb.CoreRPC', 'GetContainers'): Containers.SerializeToString,
+      ('pb.CoreRPC', 'GetNode'): Node.SerializeToString,
+      ('pb.CoreRPC', 'GetPod'): Pod.SerializeToString,
+      ('pb.CoreRPC', 'ListNetworks'): Networks.SerializeToString,
+      ('pb.CoreRPC', 'ListPodNodes'): Nodes.SerializeToString,
+      ('pb.CoreRPC', 'ListPods'): Pods.SerializeToString,
+      ('pb.CoreRPC', 'RemoveContainer'): RemoveContainerMessage.SerializeToString,
+      ('pb.CoreRPC', 'RemoveImage'): RemoveImageMessage.SerializeToString,
+      ('pb.CoreRPC', 'RemoveNode'): Pod.SerializeToString,
+      ('pb.CoreRPC', 'RunAndWait'): RunAndWaitMessage.SerializeToString,
+      ('pb.CoreRPC', 'SetNodeAvailable'): Node.SerializeToString,
+      ('pb.CoreRPC', 'UpgradeContainer'): UpgradeContainerMessage.SerializeToString,
+    }
+    method_implementations = {
+      ('pb.CoreRPC', 'AddNode'): face_utilities.unary_unary_inline(servicer.AddNode),
+      ('pb.CoreRPC', 'AddPod'): face_utilities.unary_unary_inline(servicer.AddPod),
+      ('pb.CoreRPC', 'Backup'): face_utilities.unary_unary_inline(servicer.Backup),
+      ('pb.CoreRPC', 'BuildImage'): face_utilities.unary_stream_inline(servicer.BuildImage),
+      ('pb.CoreRPC', 'CreateContainer'): face_utilities.unary_stream_inline(servicer.CreateContainer),
+      ('pb.CoreRPC', 'GetContainer'): face_utilities.unary_unary_inline(servicer.GetContainer),
+      ('pb.CoreRPC', 'GetContainers'): face_utilities.unary_unary_inline(servicer.GetContainers),
+      ('pb.CoreRPC', 'GetNode'): face_utilities.unary_unary_inline(servicer.GetNode),
+      ('pb.CoreRPC', 'GetPod'): face_utilities.unary_unary_inline(servicer.GetPod),
+      ('pb.CoreRPC', 'ListNetworks'): face_utilities.unary_unary_inline(servicer.ListNetworks),
+      ('pb.CoreRPC', 'ListPodNodes'): face_utilities.unary_unary_inline(servicer.ListPodNodes),
+      ('pb.CoreRPC', 'ListPods'): face_utilities.unary_unary_inline(servicer.ListPods),
+      ('pb.CoreRPC', 'RemoveContainer'): face_utilities.unary_stream_inline(servicer.RemoveContainer),
+      ('pb.CoreRPC', 'RemoveImage'): face_utilities.unary_stream_inline(servicer.RemoveImage),
+      ('pb.CoreRPC', 'RemoveNode'): face_utilities.unary_unary_inline(servicer.RemoveNode),
+      ('pb.CoreRPC', 'RunAndWait'): face_utilities.unary_stream_inline(servicer.RunAndWait),
+      ('pb.CoreRPC', 'SetNodeAvailable'): face_utilities.unary_unary_inline(servicer.SetNodeAvailable),
+      ('pb.CoreRPC', 'UpgradeContainer'): face_utilities.unary_stream_inline(servicer.UpgradeContainer),
+    }
+    server_options = beta_implementations.server_options(request_deserializers=request_deserializers, response_serializers=response_serializers, thread_pool=pool, thread_pool_size=pool_size, default_timeout=default_timeout, maximum_timeout=maximum_timeout)
+    return beta_implementations.server(method_implementations, options=server_options)
+
+
+  def beta_create_CoreRPC_stub(channel, host=None, metadata_transformer=None, pool=None, pool_size=None):
+    """The Beta API is deprecated for 0.15.0 and later.
+
+    It is recommended to use the GA API (classes and functions in this
+    file not marked beta) for all further purposes. This function was
+    generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
+    request_serializers = {
+      ('pb.CoreRPC', 'AddNode'): AddNodeOptions.SerializeToString,
+      ('pb.CoreRPC', 'AddPod'): AddPodOptions.SerializeToString,
+      ('pb.CoreRPC', 'Backup'): BackupOptions.SerializeToString,
+      ('pb.CoreRPC', 'BuildImage'): BuildImageOptions.SerializeToString,
+      ('pb.CoreRPC', 'CreateContainer'): DeployOptions.SerializeToString,
+      ('pb.CoreRPC', 'GetContainer'): ContainerID.SerializeToString,
+      ('pb.CoreRPC', 'GetContainers'): ContainerIDs.SerializeToString,
+      ('pb.CoreRPC', 'GetNode'): GetNodeOptions.SerializeToString,
+      ('pb.CoreRPC', 'GetPod'): GetPodOptions.SerializeToString,
+      ('pb.CoreRPC', 'ListNetworks'): GetPodOptions.SerializeToString,
+      ('pb.CoreRPC', 'ListPodNodes'): ListNodesOptions.SerializeToString,
+      ('pb.CoreRPC', 'ListPods'): Empty.SerializeToString,
+      ('pb.CoreRPC', 'RemoveContainer'): ContainerIDs.SerializeToString,
+      ('pb.CoreRPC', 'RemoveImage'): RemoveImageOptions.SerializeToString,
+      ('pb.CoreRPC', 'RemoveNode'): RemoveNodeOptions.SerializeToString,
+      ('pb.CoreRPC', 'RunAndWait'): DeployOptions.SerializeToString,
+      ('pb.CoreRPC', 'SetNodeAvailable'): NodeAvailable.SerializeToString,
+      ('pb.CoreRPC', 'UpgradeContainer'): UpgradeOptions.SerializeToString,
+    }
+    response_deserializers = {
+      ('pb.CoreRPC', 'AddNode'): Node.FromString,
+      ('pb.CoreRPC', 'AddPod'): Pod.FromString,
+      ('pb.CoreRPC', 'Backup'): BackupMessage.FromString,
+      ('pb.CoreRPC', 'BuildImage'): BuildImageMessage.FromString,
+      ('pb.CoreRPC', 'CreateContainer'): CreateContainerMessage.FromString,
+      ('pb.CoreRPC', 'GetContainer'): Container.FromString,
+      ('pb.CoreRPC', 'GetContainers'): Containers.FromString,
+      ('pb.CoreRPC', 'GetNode'): Node.FromString,
+      ('pb.CoreRPC', 'GetPod'): Pod.FromString,
+      ('pb.CoreRPC', 'ListNetworks'): Networks.FromString,
+      ('pb.CoreRPC', 'ListPodNodes'): Nodes.FromString,
+      ('pb.CoreRPC', 'ListPods'): Pods.FromString,
+      ('pb.CoreRPC', 'RemoveContainer'): RemoveContainerMessage.FromString,
+      ('pb.CoreRPC', 'RemoveImage'): RemoveImageMessage.FromString,
+      ('pb.CoreRPC', 'RemoveNode'): Pod.FromString,
+      ('pb.CoreRPC', 'RunAndWait'): RunAndWaitMessage.FromString,
+      ('pb.CoreRPC', 'SetNodeAvailable'): Node.FromString,
+      ('pb.CoreRPC', 'UpgradeContainer'): UpgradeContainerMessage.FromString,
+    }
+    cardinalities = {
+      'AddNode': cardinality.Cardinality.UNARY_UNARY,
+      'AddPod': cardinality.Cardinality.UNARY_UNARY,
+      'Backup': cardinality.Cardinality.UNARY_UNARY,
+      'BuildImage': cardinality.Cardinality.UNARY_STREAM,
+      'CreateContainer': cardinality.Cardinality.UNARY_STREAM,
+      'GetContainer': cardinality.Cardinality.UNARY_UNARY,
+      'GetContainers': cardinality.Cardinality.UNARY_UNARY,
+      'GetNode': cardinality.Cardinality.UNARY_UNARY,
+      'GetPod': cardinality.Cardinality.UNARY_UNARY,
+      'ListNetworks': cardinality.Cardinality.UNARY_UNARY,
+      'ListPodNodes': cardinality.Cardinality.UNARY_UNARY,
+      'ListPods': cardinality.Cardinality.UNARY_UNARY,
+      'RemoveContainer': cardinality.Cardinality.UNARY_STREAM,
+      'RemoveImage': cardinality.Cardinality.UNARY_STREAM,
+      'RemoveNode': cardinality.Cardinality.UNARY_UNARY,
+      'RunAndWait': cardinality.Cardinality.UNARY_STREAM,
+      'SetNodeAvailable': cardinality.Cardinality.UNARY_UNARY,
+      'UpgradeContainer': cardinality.Cardinality.UNARY_STREAM,
+    }
+    stub_options = beta_implementations.stub_options(host=host, metadata_transformer=metadata_transformer, request_serializers=request_serializers, response_deserializers=response_deserializers, thread_pool=pool, thread_pool_size=pool_size)
+    return beta_implementations.dynamic_stub(channel, 'pb.CoreRPC', cardinalities, options=stub_options)
+except ImportError:
+  pass
 # @@protoc_insertion_point(module_scope)
