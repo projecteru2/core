@@ -18,6 +18,7 @@ const (
 	letters       = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	shortenLength = 7
 	CpuPeriodBase = 100000
+	StreamPrefix  = 8
 )
 
 func RandomString(n int) string {

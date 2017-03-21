@@ -8,11 +8,9 @@ import (
 	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
 	"gitlab.ricebook.net/platform/core/types"
+	"gitlab.ricebook.net/platform/core/utils"
 	"golang.org/x/net/context"
 )
-
-// FUCK DOCKER
-const PREFIXLEN int = 8
 
 func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan *types.RunAndWaitMessage, error) {
 	ch := make(chan *types.RunAndWaitMessage)
@@ -60,7 +58,7 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 				scanner := bufio.NewScanner(resp)
 				for scanner.Scan() {
 					data := scanner.Bytes()
-					log.Debugf("[RunAndWait] %s %s", message.ContainerID[:12], data[PREFIXLEN:])
+					log.Debugf("[RunAndWait] %s %s", message.ContainerID[:12], data[utils.StreamPrefix:])
 					m := &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: data}
 					ch <- m
 				}
