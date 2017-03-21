@@ -235,7 +235,8 @@ func (v *virbranium) RunAndWait(opts *pb.DeployOptions, stream pb.CoreRPC_RunAnd
 		if err := stream.Send(toRPCRunAndWaitMessage(m)); err != nil {
 			go func() {
 				for r := range ch {
-					log.Infof("[RunAndWait] Unsent streamed message: %v", r)
+					// TODO fuck docker
+					log.Infof("[RunAndWait] Unsent streamed message: %v", string(r.Data[8:]))
 				}
 			}()
 			return err
