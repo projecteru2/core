@@ -32,10 +32,10 @@ func (c *calcium) cacheImage(podname, image string) error {
 			wg.Wait()
 		}
 		wg.Add(1)
-		go func() {
+		go func(node *types.Node) {
 			defer wg.Done()
 			pullImage(node, image)
-		}()
+		}(node)
 	}
 
 	return nil
@@ -59,10 +59,10 @@ func (c *calcium) cleanImage(podname, image string) error {
 			wg.Wait()
 		}
 		wg.Add(1)
-		go func() {
+		go func(node *types.Node) {
 			defer wg.Done()
 			cleanImageOnNode(node, image)
-		}()
+		}(node)
 	}
 
 	return nil

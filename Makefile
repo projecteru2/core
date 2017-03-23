@@ -38,4 +38,5 @@ build:
 	go build -ldflags "$(GO_LDFLAGS)" -a -tags netgo -installsuffix netgo -o eru-core
 
 test:
+	go tool vet .
 	go test ./...
