@@ -16,16 +16,10 @@ type NodeInfo struct {
 	NCon int
 }
 
-type ByNCon []NodeInfo
-
-func (a ByNCon) Len() int           { return len(a) }
-func (a ByNCon) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByNCon) Less(i, j int) bool { return a[i].NCon < a[j].NCon }
-func (a ByNCon) volumn() int {
+func volumn(nodeInfo []NodeInfo) int {
 	val := 0
-	len := a.Len()
-	for i := 0; i < len; i++ {
-		val += a[i].NCon
+	for _, v := range nodeInfo {
+		val += v.NCon
 	}
 	return val
 }
@@ -197,15 +191,15 @@ func averagePlan(cpu float64, nodes map[string]types.CPUMap, need, maxShareCore,
 	var host *host
 	var plan []types.CPUMap
 	var n int
-	var nodeinfo ByNCon
-	var nodename string
+	var nodeInfo []NodeInfo
+	var nodeName string
 
 	if cpu < 0.01 {
 		resultLength := 0
 	r:
 		for {
-			for nodename, _ := range nodes {
-				result[nodename] = append(result[nodename], nil)
+			for nodeName, _ := range nodes {
+				result[nodeName] = append(result[nodeName], nil)
 				resultLength++
 			}
 			if resultLength == need {
@@ -219,32 +213,34 @@ func averagePlan(cpu float64, nodes map[string]types.CPUMap, need, maxShareCore,
 		host = newHost(cpuInfo, coreShare)
 		plan = host.getContainerCores(cpu, maxShareCore)
 		n = len(plan) // 每个node可以放的容器数
-		nodeinfo = append(nodeinfo, NodeInfo{node, n})
+		nodeInfo = append(nodeInfo, NodeInfo{node, n})
 		nodecontainer[node] = plan
 	}
 
-	if nodeinfo.volumn() < need {
+	if volumn(nodeInfo) < need {
 		return nil
 	}
 
 	// 排序
-	sort.Sort(nodeinfo)
+	sort.Slice(nodeInfo, func(i, j int) bool {
+		return nodeInfo[i].NCon < nodeInfo[j].NCon
+	})
 
 	// 决定分配方案
-	allocplan := allocPlan(nodeinfo, need)
+	allocplan := allocPlan(nodeInfo, need)
 	for node, ncon := range allocplan {
 		if ncon > 0 {
-			nodename = nodeinfo[node].Node
-			result[nodename] = nodecontainer[nodename][:ncon]
+			nodeName = nodeInfo[node].Node
+			result[nodeName] = nodecontainer[nodeName][:ncon]
 		}
 	}
 
 	return result
 }
 
-func allocPlan(info ByNCon, need int) map[int]int {
+func allocPlan(info []NodeInfo, need int) map[int]int {
 	result := make(map[int]int)
-	NNode := info.Len()
+	NNode := len(info)
 
 	var nodeToUse, more int
 	for i := 0; i < NNode; i++ {
