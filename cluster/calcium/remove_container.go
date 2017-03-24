@@ -16,11 +16,11 @@ type imageBucket struct {
 	data map[string]map[string]struct{}
 }
 
-func newImageBucket() imageBucket {
-	return imageBucket{data: make(map[string]map[string]struct{})}
+func newImageBucket() *imageBucket {
+	return &imageBucket{data: make(map[string]map[string]struct{})}
 }
 
-func (ib imageBucket) Add(podname, image string) {
+func (ib *imageBucket) Add(podname, image string) {
 	ib.Lock()
 	defer ib.Unlock()
 
@@ -30,11 +30,11 @@ func (ib imageBucket) Add(podname, image string) {
 	ib.data[podname][image] = struct{}{}
 }
 
-func (ib imageBucket) Dump() map[string][]string {
+func (ib *imageBucket) Dump() map[string][]string {
 	r := make(map[string][]string)
 	for podname, imageMap := range ib.data {
 		images := []string{}
-		for image, _ := range imageMap {
+		for image := range imageMap {
 			images = append(images, image)
 		}
 		r[podname] = images
@@ -96,7 +96,7 @@ func (c *calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMess
 		wg.Wait()
 
 		// 把收集的image清理掉
-		go func(ib imageBucket) {
+		go func(ib *imageBucket) {
 			for podname, images := range ib.Dump() {
 				for _, image := range images {
 					c.cleanImage(podname, image)

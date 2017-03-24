@@ -18,7 +18,7 @@ const (
 )
 
 // A Mutex is a mutual exclusion lock which is distributed across a cluster.
-type mutex struct {
+type Mutex struct {
 	key   string
 	id    string // The identity of the caller
 	kapi  client.KeysAPI
@@ -29,7 +29,7 @@ type mutex struct {
 // New creates a Mutex with the given key which must be the same
 // across the cluster nodes.
 // machines are the ectd cluster addresses
-func New(c client.KeysAPI, key string, ttl int) *mutex {
+func New(c client.KeysAPI, key string, ttl int) *Mutex {
 	if key == "" {
 		return nil
 		// return fmt.Errorf("A key must be given to create etcd lock, you give %q", key)
@@ -48,7 +48,7 @@ func New(c client.KeysAPI, key string, ttl int) *mutex {
 		ttl = defaultTTL
 	}
 
-	return &mutex{
+	return &Mutex{
 		key:   key,
 		id:    fmt.Sprintf("%v-%v-%v", hostname, os.Getpid(), time.Now().Format("20060102-15:04:05.999999999")),
 		kapi:  c,
@@ -60,7 +60,7 @@ func New(c client.KeysAPI, key string, ttl int) *mutex {
 // Lock locks m.
 // If the lock is already in use, the calling goroutine
 // blocks until the mutex is available.
-func (m *mutex) Lock() (err error) {
+func (m *Mutex) Lock() (err error) {
 	m.mutex.Lock()
 	for try := 1; try <= defaultTry; try++ {
 		err = m.lock()
@@ -71,7 +71,7 @@ func (m *mutex) Lock() (err error) {
 	return err
 }
 
-func (m *mutex) lock() (err error) {
+func (m *Mutex) lock() (err error) {
 	setOptions := &client.SetOptions{
 		PrevExist: client.PrevNoExist,
 		TTL:       m.ttl,
@@ -114,7 +114,6 @@ func (m *mutex) lock() (err error) {
 			}
 		}
 	}
-	return err
 }
 
 // Unlock unlocks m.
@@ -123,7 +122,7 @@ func (m *mutex) lock() (err error) {
 // A locked Mutex is not associated with a particular goroutine.
 // It is allowed for one goroutine to lock a Mutex and then
 // arrange for another goroutine to unlock it.
-func (m *mutex) Unlock() (err error) {
+func (m *Mutex) Unlock() (err error) {
 	defer m.mutex.Unlock()
 	for i := 1; i <= defaultTry; i++ {
 		_, err := m.kapi.Delete(context.TODO(), m.key, nil)
