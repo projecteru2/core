@@ -30,7 +30,7 @@ func TestSelectNodes(t *testing.T) {
 
 	k, merr := New(coreCfg)
 	if merr != nil {
-		t.Fatalf("cannot create Potassim instance.", merr)
+		t.Fatalf("Create Potassim error: %v", merr)
 	}
 
 	_, _, err := k.SelectNodes(map[string]types.CPUMap{}, 1, 1)
@@ -140,7 +140,7 @@ func TestComplexNodes(t *testing.T) {
 
 	k, merr := New(coreCfg)
 	if merr != nil {
-		t.Fatalf("cannot create Potassim instance.", merr)
+		t.Fatalf("Create Potassim error: %v", merr)
 	}
 
 	// nodes can offer 28 containers.
@@ -307,7 +307,7 @@ func TestEvenPlan(t *testing.T) {
 
 	k, merr := New(coreCfg)
 	if merr != nil {
-		t.Fatalf("cannot create Potassim instance.", merr)
+		t.Fatalf("Create Potassim error: %v", merr)
 	}
 
 	// nodes -- n1: 2, n2: 2

@@ -31,26 +31,26 @@ type cache struct {
 	clients map[string]*engineapi.Client
 }
 
-func (c cache) set(host string, client *engineapi.Client) {
+func (c *cache) set(host string, client *engineapi.Client) {
 	c.Lock()
 	defer c.Unlock()
 
 	c.clients[host] = client
 }
 
-func (c cache) get(host string) *engineapi.Client {
+func (c *cache) get(host string) *engineapi.Client {
 	c.Lock()
 	defer c.Unlock()
 	return c.clients[host]
 }
 
-func (c cache) delete(host string) {
+func (c *cache) delete(host string) {
 	c.Lock()
 	defer c.Unlock()
 	delete(c.clients, host)
 }
 
-var _cache = cache{clients: make(map[string]*engineapi.Client)}
+var _cache = &cache{clients: make(map[string]*engineapi.Client)}
 
 // get a node from etcd
 // and construct it's docker client
