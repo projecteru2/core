@@ -109,7 +109,8 @@ func (self *host) getContainerCores(num float64, maxShareCore int) []types.CPUMa
 
 	if full == 0 {
 		if maxShareCore == -1 {
-			maxShareCore = len(self.full)
+			// 这个时候就把所有的核都当成碎片核
+			maxShareCore = len(self.full) + len(self.fragment)
 		}
 		for no, pieces := range self.full {
 			if len(self.fragment) >= maxShareCore {
@@ -213,8 +214,10 @@ func averagePlan(cpu float64, nodes map[string]types.CPUMap, need, maxShareCore,
 		host = newHost(cpuInfo, coreShare)
 		plan = host.getContainerCores(cpu, maxShareCore)
 		n = len(plan) // 每个node可以放的容器数
-		nodeInfo = append(nodeInfo, NodeInfo{node, n})
-		nodecontainer[node] = plan
+		if n > 0 {
+			nodeInfo = append(nodeInfo, NodeInfo{node, n})
+			nodecontainer[node] = plan
+		}
 	}
 
 	if volumn(nodeInfo) < need {
