@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"testing"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"gitlab.ricebook.net/platform/core/types"
 )
@@ -127,7 +128,43 @@ func checkAvgPlan(res map[string][]types.CPUMap, minCon int, maxCon int, name st
 	return nil
 }
 
+func TestRecurrence(t *testing.T) {
+	// 利用相同线上数据复现线上出现的问题
+
+	coreCfg := types.Config{
+		EtcdMachines:   []string{"http://127.0.0.1:2379"},
+		EtcdLockPrefix: "/eru-core/_lock",
+		Scheduler: types.SchedConfig{
+			LockKey: "/coretest",
+			LockTTL: 1,
+			Type:    "complex",
+		},
+	}
+
+	k, _ := New(coreCfg)
+
+	nodes := map[string]types.CPUMap{
+		"c2-docker-26": types.CPUMap{
+			"0": 0, "10": 0, "7": 0, "8": 10, "9": 10, "13": 0, "14": 0, "15": 10, "2": 10, "5": 10, "11": 0, "12": 0, "4": 0, "1": 0, "3": 10, "6": 0,
+		},
+		"c2-docker-28": types.CPUMap{
+			"13": 0, "14": 0, "15": 0, "4": 10, "9": 0, "1": 0, "10": 0, "12": 10, "5": 10, "6": 10, "8": 10, "0": 0, "11": 0, "2": 10, "3": 0, "7": 0,
+		},
+		"c2-docker-27": types.CPUMap{
+			"6": 10, "10": 0, "13": 0, "14": 10, "2": 0, "7": 0, "1": 0, "11": 0, "15": 0, "8": 10, "0": 0, "3": 0, "4": 0, "5": 0, "9": 10, "12": 0,
+		},
+		"c2-docker-29": types.CPUMap{
+			"15": 0, "3": 10, "0": 0, "10": 0, "13": 0, "7": 10, "8": 0, "9": 10, "12": 10, "2": 10, "4": 10, "1": 0, "11": 0, "14": 10, "5": 10, "6": 10,
+		},
+	}
+	result, _, err := k.SelectNodes(nodes, 0.5, 3)
+	log.Infof("result: %v", result)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
 func TestComplexNodes(t *testing.T) {
+
 	coreCfg := types.Config{
 		EtcdMachines:   []string{"http://127.0.0.1:2379"},
 		EtcdLockPrefix: "/eru-core/_lock",
@@ -495,6 +532,21 @@ func getPodVol(nodes map[string]types.CPUMap, cpu float64) int {
 		res += len(plan)
 	}
 	return res
+}
+
+func TestGetPodVol(t *testing.T) {
+	nodes := map[string]types.CPUMap{
+		"c2-docker-26": types.CPUMap{
+			"15": 0, "3": 10, "0": 0, "10": 0, "13": 0, "7": 10, "8": 0, "9": 10, "12": 10, "2": 10, "4": 10, "1": 0, "11": 0, "14": 10, "5": 10, "6": 10,
+		},
+	}
+
+	res := getPodVol(nodes, 0.5)
+	assert.Equal(t, res, 18)
+	res = getPodVol(nodes, 0.3)
+	assert.Equal(t, res, 27)
+	res = getPodVol(nodes, 1.1)
+	assert.Equal(t, res, 8)
 }
 
 func Benchmark_ExtreamAlloc(b *testing.B) {
