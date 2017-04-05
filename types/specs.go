@@ -13,7 +13,6 @@ type Specs struct {
 	Entrypoints map[string]Entrypoint `yaml:"entrypoints,omitempty,flow"`
 	Build       []string              `yaml:"build,omitempty,flow"`
 	Volumes     []string              `yaml:"volumes,omitempty,flow"`
-	Binds       map[string]Bind       `yaml:"binds,omitempty,flow"`
 	Meta        map[string]string     `yaml:"meta,omitempty,flow"`
 	Base        string                `yaml:"base"`
 	DNS         []string              `yaml:"dns,omitempty,flow"`
@@ -31,7 +30,6 @@ type Entrypoint struct {
 	HealthCheckUrl          string   `yaml:"healthcheck_url,omitempty"`
 	HealthCheckExpectedCode int      `yaml:"healthcheck_expected_code,omitempty"`
 	ExtraHosts              []string `yaml:"hosts,omitempty,flow"`
-	PermDir                 bool     `yaml:"permdir,omitempty"`
 	Privileged              string   `yaml:"privileged,omitempty"`
 	LogConfig               string   `yaml:"log_config,omitempty"`
 	WorkingDir              string   `yaml:"working_dir,omitempty"`
