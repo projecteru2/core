@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"path/filepath"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -69,17 +68,8 @@ func trimLeftSlash(name string) string {
 }
 
 // make mount paths
-// app.yaml支持三种写法.
-// app.yaml里可以支持mount_paths的写法, 例如
-// mount_paths:
-//     - "/var/www/html"
-//     - "/data/eggsy"
-// 这样的路径会被直接挂载到permdir下面去, 例如上面的路径就是
-// /mnt/mfs/permdirs/eggsy/data/eggsy
-// /mnt/mfs/permdirs/eggsy/var/www/html
-// 而且这些路径是可以读写的.
-//
-// 或者使用volumes, 参数格式跟docker一样, 例如
+// app.yaml支持两种写法.
+// 使用volumes, 参数格式跟docker一样, 例如
 // volumes:
 //     - "/data/test:/test:ro"
 //     - "/data/testx:/testx"
@@ -95,14 +85,6 @@ func trimLeftSlash(name string) string {
 func makeMountPaths(specs types.Specs, config types.Config) ([]string, map[string]struct{}) {
 	binds := []string{}
 	volumes := make(map[string]struct{})
-	permDirHost := filepath.Join(config.PermDir, specs.Appname)
-
-	// mount_paths
-	for _, path := range specs.MountPaths {
-		hostPath := filepath.Join(permDirHost, path)
-		binds = append(binds, fmt.Sprintf("%s:%s:rw", hostPath, path))
-		volumes[path] = struct{}{}
-	}
 
 	// volumes
 	for _, path := range specs.Volumes {

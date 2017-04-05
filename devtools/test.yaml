@@ -52,9 +52,6 @@ build:
   - "curl www.baidu.com"
   - "pip install -r requirements.txt"
 base: "hub.ricebook.net/base/centos:python-latest"
-mount_paths:
-  - "/var/www/html"
-  - "/data/test-ci"
 permitted_users:
   - "cmgs"
 combos:
