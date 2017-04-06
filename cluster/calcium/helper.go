@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -69,44 +70,24 @@ func trimLeftSlash(name string) string {
 }
 
 // make mount paths
-// app.yaml支持三种写法.
-// app.yaml里可以支持mount_paths的写法, 例如
-// mount_paths:
-//     - "/var/www/html"
-//     - "/data/eggsy"
-// 这样的路径会被直接挂载到permdir下面去, 例如上面的路径就是
-// /mnt/mfs/permdirs/eggsy/data/eggsy
-// /mnt/mfs/permdirs/eggsy/var/www/html
-// 而且这些路径是可以读写的.
-//
-// 或者使用volumes, 参数格式跟docker一样, 例如
+// 使用volumes, 参数格式跟docker一样, 支持 $PERMDIR $APPDIR 的展开
 // volumes:
-//     - "/data/test:/test:ro"
-//     - "/data/testx:/testx"
-// 说明把宿主机的/data/test映射到容器里的/test, 只读, 同时
-// 把宿主机的/data/tests映射到容器里的/testx, 读写.
-//
-// 或者使用binds, 例如
-// binds:
-//     "/host/path":
-//         bind: "/container/path"
-//         ro: true
-// 说明把宿主机的/host/path映射到容器里的/container/path, 并且只读
+//     - "$PERMDIR/foo-data:$APPDIR/foodata:rw"
 func makeMountPaths(specs types.Specs, config types.Config) ([]string, map[string]struct{}) {
 	binds := []string{}
 	volumes := make(map[string]struct{})
-	permDirHost := filepath.Join(config.PermDir, specs.Appname)
 
-	// mount_paths
-	for _, path := range specs.MountPaths {
-		hostPath := filepath.Join(permDirHost, path)
-		binds = append(binds, fmt.Sprintf("%s:%s:rw", hostPath, path))
-		volumes[path] = struct{}{}
+	var expandENV = func(env string) string {
+		envMap := make(map[string]string)
+		envMap["PERMDIR"] = filepath.Join(config.PermDir, specs.Appname)
+		envMap["APPDIR"] = filepath.Join(config.AppDir, specs.Appname)
+		return envMap[env]
 	}
 
 	// volumes
 	for _, path := range specs.Volumes {
-		parts := strings.Split(path, ":")
+		expanded := os.Expand(path, expandENV)
+		parts := strings.Split(expanded, ":")
 		if len(parts) == 2 {
 			binds = append(binds, fmt.Sprintf("%s:%s:ro", parts[0], parts[1]))
 			volumes[parts[1]] = struct{}{}
@@ -116,21 +97,10 @@ func makeMountPaths(specs types.Specs, config types.Config) ([]string, map[strin
 		}
 	}
 
-	// binds
-	var mode string
-	for hostPath, bind := range specs.Binds {
-		if bind.ReadOnly {
-			mode = "ro"
-		} else {
-			mode = "rw"
-		}
-		binds = append(binds, fmt.Sprintf("%s:%s:%s", hostPath, bind.InContainerPath, mode))
-		volumes[bind.InContainerPath] = struct{}{}
-	}
-
 	// /proc/sys
 	volumes["/writable-proc/sys"] = struct{}{}
 	binds = append(binds, "/proc/sys:/writable-proc/sys:rw")
+	volumes["/writable-sys/kernel/mm/transparent_hugepage"] = struct{}{}
 	binds = append(binds, "/sys/kernel/mm/transparent_hugepage:/writable-sys/kernel/mm/transparent_hugepage:rw")
 	return binds, volumes
 }

@@ -555,19 +555,12 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	env = append(env, fmt.Sprintf("ERU_NODE_IP=%s", nodeIP))
 	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", node.Name))
 	env = append(env, fmt.Sprintf("ERU_ZONE=%s", c.config.Zone))
+	env = append(env, fmt.Sprintf("PERMDIR=%s", filepath.Join(c.config.PermDir, specs.Appname)))
+	env = append(env, fmt.Sprintf("APPDIR=%s", filepath.Join(c.config.AppDir, specs.Appname)))
 
 	// mount paths
 	binds, volumes := makeMountPaths(specs, c.config)
-
-	// add permdir to container
-	if entry.PermDir {
-		permDir := filepath.Join("/", specs.Appname, "permdir")
-		volumes[permDir] = struct{}{}
-
-		permDirHost := filepath.Join(c.config.PermDir, specs.Appname)
-		binds = append(binds, strings.Join([]string{permDirHost, permDir, "rw"}, ":"))
-		env = append(env, fmt.Sprintf("ERU_PERMDIR=%s", permDir))
-	}
+	log.Debugf("App %s will bind %v", specs.Appname, binds)
 
 	// log config
 	// 默认是配置里的driver, 如果entrypoint有指定json-file就用json-file.
@@ -923,7 +916,7 @@ func (c *calcium) doUpgradeContainer(containers []*types.Container, image string
 			Force:         false,
 			PruneChildren: true,
 		}
-		for image, _ := range imagesToDelete {
+		for image := range imagesToDelete {
 			log.Debugf("Try to remove image %q while upgrade container", image)
 			engine.ImageRemove(context.Background(), image, rmiOpts)
 		}
