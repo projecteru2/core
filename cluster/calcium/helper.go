@@ -79,7 +79,9 @@ func makeMountPaths(specs types.Specs, config types.Config) ([]string, map[strin
 
 	var expandENV = func(env string) string {
 		envMap := make(map[string]string)
-		envMap["PERMDIR"] = filepath.Join(config.PermDir, specs.Appname)
+		if config.PermDir != "" {
+			envMap["PERMDIR"] = filepath.Join(config.PermDir, specs.Appname)
+		}
 		envMap["APPDIR"] = filepath.Join(config.AppDir, specs.Appname)
 		return envMap[env]
 	}
