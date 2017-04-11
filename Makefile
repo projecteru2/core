@@ -33,6 +33,7 @@ deps:
 	go get -u -v -d github.com/coreos/etcd
 	go get -u -v -d github.com/docker/docker/api/types || echo oops
 	go get -u -v -d github.com/docker/docker/api/types/container
+	rm -rf $GOPATH/src/github.com/docker/docker/vendor
 
 build:
 	go build -ldflags "$(GO_LDFLAGS)" -a -tags netgo -installsuffix netgo -o eru-core
