@@ -143,9 +143,7 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 				return
 			}
 		}
-		//TODO 记录操作日志
 		c.store.UpdateNodeMem(node.Podname, node.Name, container.Memory, "+")
-		c.store.RemoveContainer(info.ID)
 	}()
 
 	// before stop
@@ -169,5 +167,6 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 		log.Errorf("Error during ContainerRemove: %s", err.Error())
 		return err
 	}
+	c.store.RemoveContainer(info.ID)
 	return nil
 }
