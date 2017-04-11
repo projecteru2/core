@@ -8,7 +8,6 @@ import (
 	"gitlab.ricebook.net/platform/core/cluster"
 	"gitlab.ricebook.net/platform/core/rpc/gen"
 	"gitlab.ricebook.net/platform/core/types"
-	"gitlab.ricebook.net/platform/core/utils"
 	"golang.org/x/net/context"
 )
 
@@ -236,7 +235,7 @@ func (v *virbranium) RunAndWait(opts *pb.DeployOptions, stream pb.CoreRPC_RunAnd
 		if err := stream.Send(toRPCRunAndWaitMessage(m)); err != nil {
 			go func() {
 				for r := range ch {
-					log.Infof("[RunAndWait] Unsent streamed message: %s", r.Data[utils.StreamPrefix:])
+					log.Infof("[RunAndWait] Unsent streamed message: %v", r.Data)
 				}
 			}()
 			return err
