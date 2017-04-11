@@ -7,6 +7,8 @@ Core
 
 ## setup dev environment
 
+`make deps` 可能非常耗时间, 建议开代理, 或者直接从 hub.ricebook.net/base/centos:onbuild-eru-core-2017.03.04 这个镜像 copy.
+
 ```shell
 git config --global url."git@gitlab.ricebook.net:".insteadOf "https://gitlab.ricebook.net/"
 go get gitlab.ricebook.net/platform/core.git
