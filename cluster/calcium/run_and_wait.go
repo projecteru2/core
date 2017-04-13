@@ -3,13 +3,12 @@ package calcium
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
-	"github.com/docker/docker/pkg/stdcopy"
 	"gitlab.ricebook.net/platform/core/types"
+	"gitlab.ricebook.net/platform/core/utils"
 	"golang.org/x/net/context"
 )
 
@@ -55,16 +54,7 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 					return
 				}
 
-				outr, outw := io.Pipe()
-				errr, errw := io.Pipe()
-				stream := io.MultiReader(outr, errr)
-				go func() {
-					defer resp.Close()
-					defer outw.Close()
-					defer errw.Close()
-					stdcopy.StdCopy(outw, errw, resp)
-				}()
-
+				stream := utils.FuckDockerStream(resp)
 				scanner := bufio.NewScanner(stream)
 				for scanner.Scan() {
 					data := scanner.Bytes()

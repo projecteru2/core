@@ -3,12 +3,14 @@ package utils
 import (
 	"crypto/rand"
 	"fmt"
+	"io"
 	"math/big"
 	"os"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	engineapi "github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/stdcopy"
 	"gitlab.ricebook.net/platform/core/g"
 	"gitlab.ricebook.net/platform/core/types"
 	"golang.org/x/net/context"
@@ -43,6 +45,22 @@ func TruncateID(id string) string {
 func Tail(path string) string {
 	parts := strings.Split(path, "/")
 	return parts[len(parts)-1]
+}
+
+func FuckDockerStream(stream io.ReadCloser) io.Reader {
+	outr, outw := io.Pipe()
+	errr, errw := io.Pipe()
+
+	go func() {
+		defer stream.Close()
+		defer outw.Close()
+		defer errw.Close()
+		if _, err := stdcopy.StdCopy(outw, errw, stream); err != nil {
+			log.Errorf("Split log stream failed %s", err.Error())
+		}
+	}()
+
+	return io.MultiReader(outr, errr)
 }
 
 func GetGitRepoName(url string) (string, error) {
