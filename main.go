@@ -27,13 +27,6 @@ var (
 	logLevel   string
 )
 
-func waitSignal() {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGHUP, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGQUIT)
-	<-c
-	log.Info("Terminating...")
-}
-
 func setupLog(l string) error {
 	level, err := log.ParseLevel(l)
 	if err != nil {
@@ -106,7 +99,13 @@ func serve() {
 	go http.ListenAndServe(":46656", nil)
 
 	log.Info("Cluster started successfully.")
-	waitSignal()
+
+	// wait for unix signals and try to GracefulStop
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGHUP, syscall.SIGTERM)
+	<-sigs
+	grpcServer.GracefulStop()
+	log.Info("Terminating...")
 }
 
 func main() {
