@@ -32,8 +32,8 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 
 		ids := map[string]*types.Node{}
 		for message := range createChan {
-			if message.ContainerID == "" {
-				log.Errorf("[RunAndWait] Can't find container id %s", err.Error())
+			if !message.Success || message.ContainerID == "" {
+				log.Errorf("[RunAndWait] Create container error, %s", message.Error)
 				continue
 			}
 
