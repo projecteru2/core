@@ -43,6 +43,7 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 	// 来个goroutine处理剩下的事情
 	// 基本上就是, attach拿日志写到channel, 以及等待容器结束后清理资源
 	go func() {
+		defer close(ch)
 		logsOpts := enginetypes.ContainerLogsOptions{Follow: true, ShowStdout: true, ShowStderr: true}
 		wg := sync.WaitGroup{}
 
@@ -113,7 +114,6 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 		// 等待全部任务完成才可以关闭channel
 		wg.Wait()
 		log.Info("[RunAndWait] Finish run and wait for containers")
-		close(ch)
 	}()
 
 	return ch, nil
