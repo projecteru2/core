@@ -36,7 +36,7 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 	// 创建容器, 有问题就gg
 	createChan, err := c.CreateContainer(specs, opts)
 	if err != nil {
-		log.Errorf("[RunAndWait] Create container error, %s", err.Error())
+		log.Errorf("[RunAndWait] Create container error, %v", err)
 		return ch, err
 	}
 
@@ -58,7 +58,7 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 			// 理论上不会这样
 			node, err := c.store.GetNode(message.Podname, message.Nodename)
 			if err != nil {
-				log.Errorf("[RunAndWait] Can't find node, %s", err.Error())
+				log.Errorf("[RunAndWait] Can't find node, %v", err)
 				continue
 			}
 
@@ -70,7 +70,7 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 			go func(node *types.Node, containerID string) {
 				resp, err := node.Engine.ContainerLogs(context.Background(), containerID, logsOpts)
 				if err != nil {
-					log.Errorf("[RunAndWait] Failed to get logs, %s", err.Error())
+					log.Errorf("[RunAndWait] Failed to get logs, %v", err)
 					return
 				}
 
@@ -83,7 +83,7 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 				}
 
 				if err := scanner.Err(); err != nil {
-					log.Errorf("[RunAndWait] Parse log failed, %s", err.Error())
+					log.Errorf("[RunAndWait] Parse log failed, %v", err)
 					return
 				}
 			}(node, message.ContainerID)
@@ -102,8 +102,8 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 				code, err := node.Engine.ContainerWait(ctx, containerID)
 				exitData := []byte(fmt.Sprintf("[exitcode] %d", code))
 				if err != nil {
-					log.Errorf("%s run failed, %s", containerID[:12], err.Error())
-					exitData = []byte(fmt.Sprintf("[exitcode]unknown %s", err.Error()))
+					log.Errorf("%s run failed, %v", containerID[:12], err)
+					exitData = []byte(fmt.Sprintf("[exitcode]unknown %v", err))
 				}
 
 				ch <- &types.RunAndWaitMessage{ContainerID: containerID, Data: exitData}
