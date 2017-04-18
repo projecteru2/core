@@ -105,7 +105,11 @@ func serve() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGHUP, syscall.SIGTERM)
 	<-sigs
 	grpcServer.GracefulStop()
-	log.Info("Terminating...")
+	log.Info("gRPC server gracefully stopped.")
+
+	log.Info("Now check if cluster still have running tasks...")
+	virbranium.Wait()
+	log.Info("cluster gracefully stopped.")
 }
 
 func main() {
