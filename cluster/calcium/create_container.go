@@ -556,9 +556,6 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", node.Name))
 	env = append(env, fmt.Sprintf("ERU_ZONE=%s", c.config.Zone))
 	env = append(env, fmt.Sprintf("APPDIR=%s", filepath.Join(c.config.AppDir, specs.Appname)))
-	if c.config.PermDir != "" {
-		env = append(env, fmt.Sprintf("PERMDIR=%s", filepath.Join(c.config.PermDir, specs.Appname)))
-	}
 
 	// mount paths
 	binds, volumes := makeMountPaths(specs, c.config)
