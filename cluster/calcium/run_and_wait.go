@@ -95,7 +95,10 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 				// 并且容器删除了才算是task完成了一个
 				defer wg.Done()
 				defer log.Infof("[RunAndWait] Container %s finished and removed", containerID[:12])
-				defer c.RemoveContainer([]string{containerID})
+				// 并且这里一定要sync
+				// 否则这里还没remove完, 超时的容器又发个日志, 下面wg.Wait退出之后
+				// ch被close, 然后上面往ch里写, gg
+				defer c.removeContainerSync([]string{containerID})
 
 				// 给超时时间, 不能等个没完没了
 				// 超时的时候返回的code会是1, 不过会被err给覆盖掉
