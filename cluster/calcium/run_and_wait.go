@@ -13,11 +13,6 @@ import (
 	"golang.org/x/net/context"
 )
 
-// TODO 这里还是有个问题啊
-// 如果在这个等待的过程中重启了core, 那岂不是又有容器没有回收的?
-// 有啥方法避免这个问题么?
-const defaultWaitTimeout = 1200
-
 func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan *types.RunAndWaitMessage, error) {
 	ch := make(chan *types.RunAndWaitMessage)
 
@@ -30,7 +25,7 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 	// 没别的地方好传了, 不如放这里好了, 不需要用的就默认0或者不传
 	waitTimeout := entry.RunAndWaitTimeout
 	if waitTimeout == 0 {
-		waitTimeout = defaultWaitTimeout
+		waitTimeout = c.config.RunAndWaitTimeout
 	}
 
 	// 创建容器, 有问题就gg

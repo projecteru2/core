@@ -2,16 +2,17 @@ package types
 
 // Config holds eru-core config
 type Config struct {
-	Bind           string   `yaml:"bind"`             // HTTP API address
-	AgentPort      string   `yaml:"agent_port"`       // Agent HTTP port, may not be used
-	AppDir         string   `yaml:"appdir"`           // App directory inside container
-	PermDir        string   `yaml:"permdir"`          // Permanent dir on host
-	BackupDir      string   `yaml:"backupdir"`        // Backup dir on host
-	EtcdMachines   []string `yaml:"etcd"`             // etcd cluster addresses
-	EtcdLockPrefix string   `yaml:"etcd_lock_prefix"` // etcd lock prefix, all locks will be created under this dir
-	ResourceAlloc  string   `yaml:"resource_alloc"`   // scheduler or cpu-period TODO give it a good name
-	Statsd         string   `yaml:"statsd"`           // Statsd host and port
-	Zone           string   `yaml:"zone"`             // zone for core, e.g. C1, C2
+	Bind              string   `yaml:"bind"`                 // HTTP API address
+	AgentPort         string   `yaml:"agent_port"`           // Agent HTTP port, may not be used
+	AppDir            string   `yaml:"appdir"`               // App directory inside container
+	PermDir           string   `yaml:"permdir"`              // Permanent dir on host
+	BackupDir         string   `yaml:"backupdir"`            // Backup dir on host
+	EtcdMachines      []string `yaml:"etcd"`                 // etcd cluster addresses
+	EtcdLockPrefix    string   `yaml:"etcd_lock_prefix"`     // etcd lock prefix, all locks will be created under this dir
+	ResourceAlloc     string   `yaml:"resource_alloc"`       // scheduler or cpu-period TODO give it a good name
+	Statsd            string   `yaml:"statsd"`               // Statsd host and port
+	Zone              string   `yaml:"zone"`                 // zone for core, e.g. C1, C2
+	RunAndWaitTimeout int      `yaml:"run_and_wait_timeout"` // timeout for run and wait
 
 	Git       GitConfig    `yaml:"git"`
 	Docker    DockerConfig `yaml:"docker"`
