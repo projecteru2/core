@@ -54,6 +54,10 @@ func initConfig(configPath string) (types.Config, error) {
 		return config, err
 	}
 
+	if config.RunAndWaitTimeout == 0 {
+		config.RunAndWaitTimeout = 1200
+	}
+
 	if config.Docker.APIVersion == "" {
 		config.Docker.APIVersion = "v1.23"
 	}
