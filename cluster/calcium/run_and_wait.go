@@ -107,7 +107,7 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 				exitData := []byte(fmt.Sprintf("[exitcode] %d", code))
 				if err != nil {
 					log.Errorf("%s run failed, %v", containerID[:12], err)
-					exitData = []byte(fmt.Sprintf("[exitcode]unknown %v", err))
+					exitData = []byte(fmt.Sprintf("[exitcode] unknown %v", err))
 				}
 
 				ch <- &types.RunAndWaitMessage{ContainerID: containerID, Data: exitData}
