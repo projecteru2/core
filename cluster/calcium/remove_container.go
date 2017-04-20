@@ -74,7 +74,7 @@ func (c *calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMess
 			}
 
 			wg.Add(1)
-			ib.Add(container.Podname, info.Image)
+			ib.Add(container.Podname, info.Config.Image)
 			go func(container *types.Container, info enginetypes.ContainerJSON) {
 				defer wg.Done()
 
