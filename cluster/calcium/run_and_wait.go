@@ -64,9 +64,16 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 			// goroutine attach日志然后处理了写回给channel
 			// 日志跟task无关, 不管wg
 			go func(node *types.Node, containerID string) {
-				resp, err := node.Engine.ContainerLogs(context.Background(), containerID, logsOpts)
+				defer wg.Done()
+				defer log.Infof("[RunAndWait] Container %s finished and removed", containerID[:12])
+				defer c.removeContainerSync([]string{containerID})
+
+				ctx, _ := context.WithTimeout(context.Background(), time.Duration(waitTimeout)*time.Second)
+				resp, err := node.Engine.ContainerLogs(ctx, containerID, logsOpts)
 				if err != nil {
 					log.Errorf("[RunAndWait] Failed to get logs, %v", err)
+					ch <- &types.RunAndWaitMessage{ContainerID: containerID,
+						Data: []byte(fmt.Sprintf("[exitcode] unknown %v", err))}
 					return
 				}
 
@@ -80,31 +87,19 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 
 				if err := scanner.Err(); err != nil {
 					log.Errorf("[RunAndWait] Parse log failed, %v", err)
+					ch <- &types.RunAndWaitMessage{ContainerID: containerID,
+						Data: []byte(fmt.Sprintf("[exitcode] unknown %v", err))}
 					return
 				}
-			}(node, message.ContainerID)
 
-			// goroutine 等待容器结束后删除掉
-			go func(node *types.Node, containerID string) {
-				// 无论如何一定要删掉这个容器并且回收资源
-				// 并且容器删除了才算是task完成了一个
-				defer wg.Done()
-				defer log.Infof("[RunAndWait] Container %s finished and removed", containerID[:12])
-				// 并且这里一定要sync
-				// 否则这里还没remove完, 超时的容器又发个日志, 下面wg.Wait退出之后
-				// ch被close, 然后上面往ch里写, gg
-				defer c.removeContainerSync([]string{containerID})
-
-				// 给超时时间, 不能等个没完没了
-				// 超时的时候返回的code会是1, 不过会被err给覆盖掉
-				ctx, _ := context.WithTimeout(context.Background(), time.Duration(waitTimeout)*time.Second)
-				code, err := node.Engine.ContainerWait(ctx, containerID)
+				// 超时的情况下根本不会到这里
+				// 不超时的情况下这里肯定会立即返回
+				code, err := node.Engine.ContainerWait(context.Background(), containerID)
 				exitData := []byte(fmt.Sprintf("[exitcode] %d", code))
 				if err != nil {
 					log.Errorf("%s run failed, %v", containerID[:12], err)
 					exitData = []byte(fmt.Sprintf("[exitcode] unknown %v", err))
 				}
-
 				ch <- &types.RunAndWaitMessage{ContainerID: containerID, Data: exitData}
 			}(node, message.ContainerID)
 		}

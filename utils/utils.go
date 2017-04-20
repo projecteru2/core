@@ -53,11 +53,14 @@ func FuckDockerStream(stream io.ReadCloser) io.Reader {
 
 	go func() {
 		defer stream.Close()
-		defer outw.Close()
-		defer errw.Close()
 		if _, err := stdcopy.StdCopy(outw, errw, stream); err != nil {
-			log.Errorf("Split log stream failed %s", err.Error())
+			log.Errorf("[FuckDockerStream] %v", err)
+			outw.CloseWithError(err)
+			errw.CloseWithError(err)
+			return
 		}
+		outw.Close()
+		errw.Close()
 	}()
 
 	return io.MultiReader(outr, errr)
