@@ -61,15 +61,17 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 	go func(specs types.Specs, plan map[string]int, opts *types.DeployOptions) {
 		wg := sync.WaitGroup{}
 		wg.Add(len(plan))
+		count := 0
 		for nodename, num := range plan {
-			log.Debugf("Outside doCreateContainerWithCPUPeriod: nodename %s, num %d, specs %v, opts %v", nodename, num, specs, opts)
-			go func(nodename string, num int, opts *types.DeployOptions) {
+			//log.Debugf("Outside doCreateContainerWithCPUPeriod: nodename %s, num %d, specs %v, opts %v", nodename, num, specs, opts)
+			go func(nodename string, count, num int, opts *types.DeployOptions) {
 				defer wg.Done()
-				log.Debugf("Inside doCreateContainerWithCPUPeriod: nodename %s, num %d, specs %v, opts %v", nodename, num, specs, opts)
-				for _, m := range c.doCreateContainerWithCPUPeriod(nodename, num, opts.CPUQuota, specs, opts) {
+				//log.Debugf("Inside doCreateContainerWithCPUPeriod: nodename %s, num %d, specs %v, opts %v", nodename, num, specs, opts)
+				for _, m := range c.doCreateContainerWithCPUPeriod(nodename, count, num, opts.CPUQuota, specs, opts) {
 					ch <- m
 				}
-			}(nodename, num, opts)
+			}(nodename, count, num, opts)
+			count = count + num
 		}
 		wg.Wait()
 
@@ -81,7 +83,7 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 	return ch, nil
 }
 
-func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, quota float64, specs types.Specs, opts *types.DeployOptions) []*types.CreateContainerMessage {
+func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, count, connum int, quota float64, specs types.Specs, opts *types.DeployOptions) []*types.CreateContainerMessage {
 	ms := make([]*types.CreateContainerMessage, connum)
 	for i := 0; i < len(ms); i++ {
 		ms[i] = &types.CreateContainerMessage{}
@@ -102,7 +104,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, connum int, qu
 	}
 
 	for i := 0; i < connum; i++ {
-		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(nil, specs, opts, "cpuperiod", node)
+		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i+count, nil, specs, opts, "cpuperiod", node)
 		ms[i].ContainerName = containerName
 		ms[i].Podname = opts.Podname
 		ms[i].Nodename = node.Name
@@ -390,7 +392,8 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 
 	for i, quota := range cpumap {
 		// create options
-		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(quota, specs, opts, "scheduler", node)
+		//TODO ERU_CONTAINER_NO not support CPU pod now !!!
+		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i, quota, specs, opts, "scheduler", node)
 		ms[i].ContainerName = containerName
 		ms[i].Podname = opts.Podname
 		ms[i].Nodename = node.Name
@@ -492,7 +495,7 @@ func (c *calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
 	c.store.UpdateNodeCPU(node.Podname, node.Name, quota, "+")
 }
 
-func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, opts *types.DeployOptions, optionMode string, node *types.Node) (
+func (c *calcium) makeContainerOptions(index int, quota map[string]int, specs types.Specs, opts *types.DeployOptions, optionMode string, node *types.Node) (
 	*enginecontainer.Config,
 	*enginecontainer.HostConfig,
 	*enginenetwork.NetworkingConfig,
@@ -556,6 +559,7 @@ func (c *calcium) makeContainerOptions(quota map[string]int, specs types.Specs, 
 	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", node.Name))
 	env = append(env, fmt.Sprintf("ERU_ZONE=%s", c.config.Zone))
 	env = append(env, fmt.Sprintf("APPDIR=%s", filepath.Join(c.config.AppDir, specs.Appname)))
+	env = append(env, fmt.Sprintf("ERU_CONTAINER_NO=%d", index))
 
 	// mount paths
 	binds, volumes := makeMountPaths(specs, c.config)
