@@ -38,7 +38,6 @@ func (ib *imageBucket) Dump() map[string][]string {
 			images = append(images, image)
 		}
 		r[podname] = images
-		log.Infof("ImageBucket for pod %s: %v", podname, images)
 	}
 	return r
 }
@@ -98,7 +97,6 @@ func (c *calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMess
 
 		// 把收集的image清理掉
 		go func(ib *imageBucket) {
-			log.Infof("Clean images")
 			for podname, images := range ib.Dump() {
 				for _, image := range images {
 					c.cleanImage(podname, image)
