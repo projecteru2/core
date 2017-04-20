@@ -72,6 +72,8 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 				resp, err := node.Engine.ContainerLogs(ctx, containerID, logsOpts)
 				if err != nil {
 					log.Errorf("[RunAndWait] Failed to get logs, %v", err)
+					ch <- &types.RunAndWaitMessage{ContainerID: containerID,
+						Data: []byte(fmt.Sprintf("[exitcode] unknown %v", err))}
 					return
 				}
 
@@ -85,16 +87,19 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 
 				if err := scanner.Err(); err != nil {
 					log.Errorf("[RunAndWait] Parse log failed, %v", err)
+					ch <- &types.RunAndWaitMessage{ContainerID: containerID,
+						Data: []byte(fmt.Sprintf("[exitcode] unknown %v", err))}
 					return
 				}
 
+				// 超时的情况下根本不会到这里
+				// 不超时的情况下这里肯定会立即返回
 				code, err := node.Engine.ContainerWait(context.Background(), containerID)
 				exitData := []byte(fmt.Sprintf("[exitcode] %d", code))
 				if err != nil {
 					log.Errorf("%s run failed, %v", containerID[:12], err)
 					exitData = []byte(fmt.Sprintf("[exitcode] unknown %v", err))
 				}
-
 				ch <- &types.RunAndWaitMessage{ContainerID: containerID, Data: exitData}
 			}(node, message.ContainerID)
 		}
