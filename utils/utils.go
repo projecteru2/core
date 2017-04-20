@@ -49,21 +49,14 @@ func Tail(path string) string {
 
 func FuckDockerStream(stream io.ReadCloser) io.Reader {
 	outr, outw := io.Pipe()
-	errr, errw := io.Pipe()
 
 	go func() {
 		defer stream.Close()
-		if _, err := stdcopy.StdCopy(outw, errw, stream); err != nil {
-			log.Errorf("[FuckDockerStream] %v", err)
-			outw.CloseWithError(err)
-			errw.CloseWithError(err)
-			return
-		}
-		outw.Close()
-		errw.Close()
+		_, err := stdcopy.StdCopy(outw, outw, stream)
+		outw.CloseWithError(err)
 	}()
 
-	return io.MultiReader(outr, errr)
+	return outr
 }
 
 func GetGitRepoName(url string) (string, error) {
