@@ -679,7 +679,7 @@ func (c *calcium) makeContainerOptions(index int, quota map[string]int, specs ty
 	} else {
 		resource = enginecontainer.Resources{
 			Memory:     opts.Memory,
-			MemorySwap: opts.Memory,
+			MemorySwap: opts.Memory + 1, // MemorySwap == Memory means unlimited MemorySwap
 			CPUPeriod:  utils.CpuPeriodBase,
 			CPUQuota:   int64(opts.CPUQuota * float64(utils.CpuPeriodBase)),
 			Ulimits:    ulimits,
