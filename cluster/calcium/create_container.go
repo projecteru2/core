@@ -566,11 +566,11 @@ func (c *calcium) makeContainerOptions(index int, quota map[string]int, specs ty
 	log.Debugf("App %s will bind %v", specs.Appname, binds)
 
 	// log config
-	// 默认是配置里的driver, 如果entrypoint有指定json-file就用json-file.
+	// 默认是配置里的driver, 如果entrypoint有指定就用指定的.
 	// 如果是debug模式就用syslog, 拿配置里的syslog配置来发送.
 	logDriver := c.config.Docker.LogDriver
-	if entry.LogConfig == "json-file" {
-		logDriver = "json-file"
+	if entry.LogConfig != "" {
+		logDriver = entry.LogConfig
 	}
 	logConfig := enginecontainer.LogConfig{Type: logDriver}
 	if opts.Debug {
