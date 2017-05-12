@@ -141,11 +141,8 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, count, connum 
 			}
 
 			// remove bridge network
-			// only when user defined networks is given
-			if len(opts.Networks) != 0 {
-				if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
-					log.Errorf("Error during disconnecting container %q from network %q, %v", container.ID, "bridge", err)
-				}
+			if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
+				log.Errorf("Error during disconnecting container %q from network %q, %v", container.ID, "bridge", err)
 			}
 
 			// if any break occurs, then this container needs to be removed
