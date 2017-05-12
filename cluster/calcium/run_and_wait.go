@@ -18,7 +18,7 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 
 	// 强制为 json-file 输出
 	entry, _ := specs.Entrypoints[opts.Entrypoint]
-	entry.LogConfig = "json-file"
+	entry.LogConfig = "journald"
 	specs.Entrypoints[opts.Entrypoint] = entry
 
 	// 默认给出1200秒的超时时间吧
@@ -68,7 +68,8 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 				defer log.Infof("[RunAndWait] Container %s finished and removed", containerID[:12])
 				defer c.removeContainerSync([]string{containerID})
 
-				ctx, _ := context.WithTimeout(context.Background(), time.Duration(waitTimeout)*time.Second)
+				ctx, cancel := context.WithTimeout(context.Background(), time.Duration(waitTimeout)*time.Second)
+				defer cancel()
 				resp, err := node.Engine.ContainerLogs(ctx, containerID, logsOpts)
 				if err != nil {
 					log.Errorf("[RunAndWait] Failed to get logs, %v", err)
