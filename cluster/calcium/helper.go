@@ -91,7 +91,7 @@ func makeMountPaths(specs types.Specs, config types.Config) ([]string, map[strin
 		expanded := os.Expand(path, expandENV)
 		parts := strings.Split(expanded, ":")
 		if len(parts) == 2 {
-			binds = append(binds, fmt.Sprintf("%s:%s:ro", parts[0], parts[1]))
+			binds = append(binds, fmt.Sprintf("%s:%s:rw", parts[0], parts[1]))
 			volumes[parts[1]] = struct{}{}
 		} else if len(parts) == 3 {
 			binds = append(binds, fmt.Sprintf("%s:%s:%s", parts[0], parts[1], parts[2]))
