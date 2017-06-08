@@ -23,9 +23,6 @@ type virbranium struct {
 
 // ListPods returns a list of pods
 func (v *virbranium) ListPods(ctx context.Context, empty *pb.Empty) (*pb.Pods, error) {
-	v.taskAdd("ListPods", false)
-	defer v.taskDone("ListPods", false)
-
 	ps, err := v.cluster.ListPods()
 	if err != nil {
 		return nil, err
@@ -42,9 +39,6 @@ func (v *virbranium) ListPods(ctx context.Context, empty *pb.Empty) (*pb.Pods, e
 
 // AddPod saves a pod, and returns it to client
 func (v *virbranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Pod, error) {
-	v.taskAdd("AddPod", false)
-	defer v.taskDone("AddPod", false)
-
 	p, err := v.cluster.AddPod(opts.Name, opts.Desc)
 	if err != nil {
 		return nil, err
@@ -55,9 +49,6 @@ func (v *virbranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Po
 
 // GetPod
 func (v *virbranium) GetPod(ctx context.Context, opts *pb.GetPodOptions) (*pb.Pod, error) {
-	v.taskAdd("GetPod", false)
-	defer v.taskDone("GetPod", false)
-
 	p, err := v.cluster.GetPod(opts.Name)
 	if err != nil {
 		return nil, err
@@ -69,9 +60,6 @@ func (v *virbranium) GetPod(ctx context.Context, opts *pb.GetPodOptions) (*pb.Po
 // AddNode saves a node and returns it to client
 // Method must be called synchronously, or nothing will be returned
 func (v *virbranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.Node, error) {
-	v.taskAdd("AddNode", false)
-	defer v.taskDone("AddNode", false)
-
 	n, err := v.cluster.AddNode(opts.Nodename, opts.Endpoint, opts.Podname, opts.Cafile, opts.Certfile, opts.Keyfile, opts.Public)
 	if err != nil {
 		return nil, err
@@ -83,9 +71,6 @@ func (v *virbranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.
 // AddNode saves a node and returns it to client
 // Method must be called synchronously, or nothing will be returned
 func (v *virbranium) RemoveNode(ctx context.Context, opts *pb.RemoveNodeOptions) (*pb.Pod, error) {
-	v.taskAdd("RemoveNode", false)
-	defer v.taskDone("RemoveNode", false)
-
 	p, err := v.cluster.RemoveNode(opts.Nodename, opts.Podname)
 	if err != nil {
 		return nil, err
@@ -96,9 +81,6 @@ func (v *virbranium) RemoveNode(ctx context.Context, opts *pb.RemoveNodeOptions)
 
 // GetNode
 func (v *virbranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Node, error) {
-	v.taskAdd("GetNode", false)
-	defer v.taskDone("GetNode", false)
-
 	n, err := v.cluster.GetNode(opts.Podname, opts.Nodename)
 	if err != nil {
 		return nil, err
@@ -109,9 +91,6 @@ func (v *virbranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.
 
 // ListPodNodes returns a list of node for pod
 func (v *virbranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions) (*pb.Nodes, error) {
-	v.taskAdd("ListPodNodes", false)
-	defer v.taskDone("ListPodNodes", false)
-
 	ns, err := v.cluster.ListPodNodes(opts.Podname, opts.All)
 	if err != nil {
 		return nil, err
@@ -127,9 +106,6 @@ func (v *virbranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions
 // GetContainer
 // More information will be shown
 func (v *virbranium) GetContainer(ctx context.Context, id *pb.ContainerID) (*pb.Container, error) {
-	v.taskAdd("GetContainer", false)
-	defer v.taskDone("GetContainer", false)
-
 	container, err := v.cluster.GetContainer(id.Id)
 	if err != nil {
 		return nil, err
@@ -151,9 +127,6 @@ func (v *virbranium) GetContainer(ctx context.Context, id *pb.ContainerID) (*pb.
 // GetContainers
 // like GetContainer, information should be returned
 func (v *virbranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (*pb.Containers, error) {
-	v.taskAdd("GetContainers", false)
-	defer v.taskDone("GetContainers", false)
-
 	ids := []string{}
 	for _, id := range cids.Ids {
 		ids = append(ids, id.Id)
@@ -183,9 +156,6 @@ func (v *virbranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (
 
 // list networks for pod
 func (v *virbranium) ListNetworks(ctx context.Context, opts *pb.GetPodOptions) (*pb.Networks, error) {
-	v.taskAdd("ListNetworks", false)
-	defer v.taskDone("ListNetworks", false)
-
 	networks, err := v.cluster.ListNetworks(opts.Name)
 	if err != nil {
 		return nil, err
@@ -200,9 +170,6 @@ func (v *virbranium) ListNetworks(ctx context.Context, opts *pb.GetPodOptions) (
 
 // set node availability
 func (v *virbranium) SetNodeAvailable(ctx context.Context, opts *pb.NodeAvailable) (*pb.Node, error) {
-	v.taskAdd("SetNodeAvailable", false)
-	defer v.taskDone("SetNodeAvailable", false)
-
 	n, err := v.cluster.SetNodeAvailable(opts.Podname, opts.Nodename, opts.Available)
 	if err != nil {
 		return nil, err
@@ -213,8 +180,6 @@ func (v *virbranium) SetNodeAvailable(ctx context.Context, opts *pb.NodeAvailabl
 // streamed returned functions
 // caller must ensure that timeout will not be too short because these actions take a little time
 func (v *virbranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_BuildImageServer) error {
-	v.taskAdd("BuildImage", true)
-
 	ch, err := v.cluster.BuildImage(opts.Repo, opts.Version, opts.Uid, opts.Artifact)
 	if err != nil {
 		return err
@@ -223,11 +188,6 @@ func (v *virbranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bu
 	for m := range ch {
 		if err := stream.Send(toRPCBuildImageMessage(m)); err != nil {
 			go func() {
-				// stream的返回这里也需要一个done.
-				// 如果send出错, 需要这里读完channel, 那么其实是走了另外一个函数来结束这个调用.
-				// 于是需要这里补一个done.
-				// 下面都一样
-				defer v.taskDone("BuildImage", true)
 				for r := range ch {
 					log.Infof("[BuildImage] Unsent streamed message: %v", r)
 				}
@@ -235,9 +195,6 @@ func (v *virbranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bu
 			return err
 		}
 	}
-	// 如果send没有出错, 那么说明可以完整读完这个channel
-	// 正常done就可以了, 这里不能defer, 不然会两次done.
-	v.taskDone("BuildImage", true)
 	return nil
 }
 
@@ -362,8 +319,6 @@ func (v *virbranium) RemoveContainer(cids *pb.ContainerIDs, stream pb.CoreRPC_Re
 }
 
 func (v *virbranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_RemoveImageServer) error {
-	v.taskAdd("RemoveImage", true)
-
 	ch, err := v.cluster.RemoveImage(opts.Podname, opts.Nodename, opts.Images)
 	if err != nil {
 		return err
@@ -372,7 +327,6 @@ func (v *virbranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_
 	for m := range ch {
 		if err := stream.Send(toRPCRemoveImageMessage(m)); err != nil {
 			go func() {
-				defer v.taskDone("RemoveImage", true)
 				for r := range ch {
 					log.Infof("[RemoveImage] Unsent streamed message: %v", r)
 				}
@@ -380,8 +334,6 @@ func (v *virbranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_
 			return err
 		}
 	}
-
-	v.taskDone("RemoveImage", true)
 	return nil
 }
 
