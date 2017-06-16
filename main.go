@@ -90,7 +90,7 @@ func serve() {
 		log.Fatal(err)
 	}
 
-	virbranium := rpc.New(cluster, config)
+	vibranium := rpc.New(cluster, config)
 	s, err := net.Listen("tcp", config.Bind)
 	if err != nil {
 		log.Fatal(err)
@@ -98,7 +98,7 @@ func serve() {
 
 	opts := []grpc.ServerOption{grpc.MaxConcurrentStreams(100)}
 	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterCoreRPCServer(grpcServer, virbranium)
+	pb.RegisterCoreRPCServer(grpcServer, vibranium)
 	go grpcServer.Serve(s)
 	go http.ListenAndServe(":46656", nil)
 
@@ -112,7 +112,7 @@ func serve() {
 	log.Info("gRPC server gracefully stopped.")
 
 	log.Info("Now check if cluster still have running tasks...")
-	virbranium.Wait()
+	vibranium.Wait()
 	log.Info("cluster gracefully stopped.")
 }
 

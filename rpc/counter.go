@@ -11,7 +11,7 @@ import (
 
 // 增加一个任务, 在任务调用之前要调用一次.
 // 否则任务不被追踪, 不保证任务能够正常完成.
-func (v *virbranium) taskAdd(name string, verbose bool) {
+func (v *vibranium) taskAdd(name string, verbose bool) {
 	if verbose {
 		log.Infof("task [%s] added", name)
 	}
@@ -20,7 +20,7 @@ func (v *virbranium) taskAdd(name string, verbose bool) {
 
 // 完成一个任务, 在任务执行完之后调用一次.
 // 否则计数器用完不会为0, 你也别想退出这个进程了.
-func (v *virbranium) taskDone(name string, verbose bool) {
+func (v *vibranium) taskDone(name string, verbose bool) {
 	if verbose {
 		log.Infof("task [%s] done", name)
 	}
@@ -29,6 +29,6 @@ func (v *virbranium) taskDone(name string, verbose bool) {
 
 // 会在外面graceful之后调用.
 // 不完成不给退出进程.
-func (v *virbranium) Wait() {
+func (v *vibranium) Wait() {
 	v.counter.Wait()
 }
