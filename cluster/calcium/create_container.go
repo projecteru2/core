@@ -683,12 +683,17 @@ func (c *calcium) makeContainerOptions(index int, quota map[string]int, specs ty
 		}
 	}
 
+	restartPolicy := entry.RestartPolicy
+	maximumRetryCount := 3
+	if restartPolicy == "always" {
+		maximumRetryCount = 0
+	}
 	hostConfig := &enginecontainer.HostConfig{
 		Binds:         binds,
 		DNS:           dns,
 		LogConfig:     logConfig,
 		NetworkMode:   enginecontainer.NetworkMode(networkMode),
-		RestartPolicy: enginecontainer.RestartPolicy{Name: entry.RestartPolicy, MaximumRetryCount: 3},
+		RestartPolicy: enginecontainer.RestartPolicy{Name: restartPolicy, MaximumRetryCount: maximumRetryCount},
 		CapAdd:        engineslice.StrSlice(capAdd),
 		ExtraHosts:    entry.ExtraHosts,
 		Privileged:    entry.Privileged != "",
