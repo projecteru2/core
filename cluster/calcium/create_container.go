@@ -557,6 +557,7 @@ func (c *calcium) makeContainerOptions(index int, quota map[string]int, specs ty
 	env = append(env, fmt.Sprintf("ERU_ZONE=%s", c.config.Zone))
 	env = append(env, fmt.Sprintf("APPDIR=%s", filepath.Join(c.config.AppDir, specs.Appname)))
 	env = append(env, fmt.Sprintf("ERU_CONTAINER_NO=%d", index))
+	env = append(env, fmt.Sprintf("ERU_MEMORY=%d", opts.Memory))
 
 	// mount paths
 	binds, volumes := makeMountPaths(specs, c.config)
