@@ -509,7 +509,7 @@ func (c *calcium) makeContainerOptions(index int, quota map[string]int, specs ty
 	user := specs.Appname
 	// 如果是升级或者是raw, 就用root
 	if entry.Privileged != "" || opts.Raw {
-		user = ""
+		user = "root"
 	}
 	// command and user
 	slices := utils.MakeCommandLineArgs(entry.Command + " " + opts.ExtraArgs)
@@ -526,7 +526,7 @@ func (c *calcium) makeContainerOptions(index int, quota map[string]int, specs ty
 		}
 		slices = append([]string{fmt.Sprintf("/usr/local/bin/%s", starter), needNetwork}, slices...)
 		// use default empty value, as root
-		user = ""
+		user = "root"
 	}
 	cmd := engineslice.StrSlice(slices)
 
