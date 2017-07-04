@@ -41,20 +41,23 @@ shift
 {{.Command}}
 `
 
-const dockerFile = `FROM {{.Base}}
+const dockerFile = `ARG Base
+ARG Appdir
+ARG Appname
+ARG BuildRun
+ARG Reponame
+ARG UID
+FROM ${Base}
 ENV ERU 1
-ADD %s {{.Appdir}}/{{.Appname}}
+ADD ${Reponame} ${Appdir}/${Appname}
 ADD launcher /usr/local/bin/launcher
 ADD launcheroot /usr/local/bin/launcheroot
-WORKDIR {{.Appdir}}/{{.Appname}}
-RUN useradd -u %s -d /nonexistent -s /sbin/nologin -U {{.Appname}}
-RUN chown -R %s {{.Appdir}}/{{.Appname}}
-{{with .Build}}
-{{range $index, $value := .}}
-RUN {{$value}}
-{{end}}
-{{end}}
-`
+WORKDIR ${Appdir}/${Appname}
+RUN useradd -u ${UID} -d /nonexistent -s /sbin/nologin -U ${Appname}
+RUN chown -R ${UID} ${Appdir}/${Appname}
+RUN ${BuildRun}
+USER ${Appname}
+` // USER之后的layer都会以user的身份去RUN command，所以这里一定要把USER放到最下面
 
 // richSpecs is used to format templates
 type richSpecs struct {
@@ -143,7 +146,7 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 	}
 
 	// use app.yaml file to create Specs instance
-	// which we'll need to create Dockerfile later
+	// which we'll need to generate build args later
 	bytes, err := ioutil.ReadFile(filepath.Join(cloneDir, "app.yaml"))
 	if err != nil {
 		return ch, err
@@ -168,7 +171,7 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 	if err := createLauncher(buildDir, rs); err != nil {
 		return ch, err
 	}
-	if err := createDockerfile(buildDir, reponame, rs); err != nil {
+	if err := createDockerfile(buildDir); err != nil {
 		return ch, err
 	}
 
@@ -181,6 +184,9 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 		return ch, err
 	}
 
+	// generate build args
+	buildArgs := generateBuildArgs(reponame, specs, rs)
+
 	// must be put here because of that `defer os.RemoveAll(buildDir)`
 	buildOptions := enginetypes.ImageBuildOptions{
 		Tags:           []string{tag},
@@ -189,6 +195,7 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 		Remove:         true,
 		ForceRemove:    true,
 		PullParent:     true,
+		BuildArgs:      buildArgs,
 	}
 	log.Infof("Building image %v with artifact %v at %v:%v", tag, artifact, buildPodname, node.Name)
 	resp, err := node.Engine.ImageBuild(context.Background(), buildContext, buildOptions)
@@ -306,28 +313,30 @@ func createLauncher(buildDir string, rs richSpecs) error {
 }
 
 // Dockerfile
-func createDockerfile(buildDir, reponame string, rs richSpecs) error {
+func createDockerfile(buildDir string) error {
 	f, err := os.Create(filepath.Join(buildDir, "Dockerfile"))
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-
-	dockerFileFormatted := fmt.Sprintf(dockerFile, reponame, rs.UID, rs.UID)
-	t := template.New("docker file template")
-	parsedTemplate, err := t.Parse(dockerFileFormatted)
-	if err != nil {
-		return err
-	}
-	err = parsedTemplate.Execute(f, rs)
-	if err != nil {
-		return err
-	}
-
-	if err := f.Sync(); err != nil {
+	if _, err := f.WriteString(dockerFile); err != nil {
 		return err
 	}
 	return nil
+}
+
+// generate build args
+func generateBuildArgs(reponame string, specs types.Specs, rs richSpecs) map[string]*string {
+	buildArgs := map[string]*string{}
+	buildArgs["Base"] = &(specs.Base)
+	buildArgs["Appdir"] = &(rs.Appdir)
+	buildArgs["Appname"] = &(rs.Appname)
+	runCommands := strings.Join(specs.Build, " && ")
+	buildArgs["BuildRun"] = &runCommands
+	buildArgs["Reponame"] = &reponame
+	buildArgs["UID"] = &rs.UID
+
+	return buildArgs
 }
 
 // Image tag
