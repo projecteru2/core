@@ -29,4 +29,9 @@ type Store interface {
 
 	// distributed lock
 	CreateLock(key string, ttl int) (lock.DistributedLock, error)
+
+	// deploy status
+	GetDeployStatus(opts *types.DeployOptions) ([]types.DeployStatus, error)
+	UpdateDeployStatus(opts *types.DeployOptions, status []types.DeployStatus) error
+	RemoveDeployStatus(opts *types.DeployOptions) error
 }
