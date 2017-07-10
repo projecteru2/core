@@ -52,34 +52,6 @@ func (k *krypton) StoreNodeStatus(opts *types.DeployOptions, name string, value 
 	return err
 }
 
-//func (k *krypton) UpdateDeployStatus(opts *types.DeployOptions, status []types.DeployStatus) error {
-//	var err error
-//	key, err := makeKey(opts)
-//	if err != nil {
-//		return err
-//	}
-//	v, err := json.Marshal(status)
-//	if err != nil {
-//		return err
-//	}
-//	if _, err = k.etcd.Set(context.Background(), key, fmt.Sprintf("%s", v), nil); err != nil {
-//		return err
-//	}
-//	return nil
-//}
-//
-//func (k *krypton) RemoveDeployStatus(opts *types.DeployOptions) error {
-//	var err error
-//	key, err := makeKey(opts)
-//	if err != nil {
-//		return err
-//	}
-//	if _, err = k.etcd.Delete(context.Background(), key, nil); err != nil {
-//		return err
-//	}
-//	return nil
-//}
-
 func makePrefix(opts *types.DeployOptions) (string, error) {
 	// 可以再考虑多种情况
 	key := fmt.Sprintf("%s|%s|%s", opts.Appname, opts.Podname, opts.Entrypoint)

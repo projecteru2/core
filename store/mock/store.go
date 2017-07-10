@@ -133,8 +133,3 @@ func (m *MockStore) StoreNodeStatus(opts *types.DeployOptions, name string, valu
 	//TODO
 	return nil
 }
-
-//func (m *MockStore) RemoveDeployStatus(opts *types.DeployOptions) error {
-//	//TODO
-//	return nil
-//}

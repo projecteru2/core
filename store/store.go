@@ -33,6 +33,4 @@ type Store interface {
 	// deploy status
 	UpdateDeployStatus(opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error)
 	StoreNodeStatus(opts *types.DeployOptions, name string, value int) error
-	//UpdateDeployStatus(opts *types.DeployOptions, status []types.DeployStatus) error
-	//RemoveDeployStatus(opts *types.DeployOptions) error
 }
