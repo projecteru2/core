@@ -2,63 +2,46 @@ package etcdstore
 
 import (
 	"context"
-	"crypto/sha1"
+	"encoding/json"
 	"fmt"
-	"strconv"
+	"strings"
 
 	etcdclient "github.com/coreos/etcd/client"
 	"gitlab.ricebook.net/platform/core/types"
 )
 
-func (k *krypton) UpdateDeployStatus(opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
-	var err error
-	prefix, err := makePrefix(opts)
+func (k *krypton) MakeDeployStatus(opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
+	resp, err := k.etcd.Get(context.Background(), allContainerKey, &etcdclient.GetOptions{Recursive: true})
 	if err != nil {
+		if etcdclient.IsKeyNotFound(err) {
+			return nodesInfo, nil
+		}
 		return nodesInfo, err
 	}
 
-	for _, nodeInfo := range nodesInfo {
-		key := fmt.Sprintf(deployStatusKey, prefix, nodeInfo.Name)
-		resp, err := k.etcd.Get(context.Background(), key, nil)
-		if err != nil {
-			if etcdclient.IsKeyNotFound(err) {
-				continue
-			} else {
-				return nodesInfo, err
-			}
+	prefix := fmt.Sprintf("%s_%s", opts.Appname, opts.Entrypoint)
+	m := map[string]string{}
+	nodesCount := map[string]int{}
+	for _, node := range resp.Node.Nodes {
+		json.Unmarshal([]byte(node.Value), &m)
+		if m["podname"] != opts.Podname {
+			continue
 		}
-		nodeInfo.Count, _ = strconv.Atoi(resp.Node.Value)
+		if !strings.HasPrefix(m["name"], prefix) {
+			continue
+		}
+		if _, ok := nodesCount[m["nodename"]]; !ok {
+			nodesCount[m["nodename"]] = 1
+			continue
+		}
+		nodesCount[m["nodename"]] += 1
 	}
+
+	for _, nodeInfo := range nodesInfo {
+		if v, ok := nodesCount[nodeInfo.Name]; ok {
+			nodeInfo.Count = v
+		}
+	}
+
 	return nodesInfo, nil
-}
-
-func (k *krypton) StoreNodeStatus(opts *types.DeployOptions, name string, value int) error {
-	var err error
-	prefix, err := makePrefix(opts)
-	if err != nil {
-		return err
-	}
-
-	key := fmt.Sprintf(deployStatusKey, prefix, name)
-	old := 0
-	if resp, err := k.etcd.Get(context.Background(), key, nil); !etcdclient.IsKeyNotFound(err) {
-		return err
-	} else if err == nil {
-		old, _ = strconv.Atoi(resp.Node.Value)
-	}
-	// 更新数据
-	value += old
-	_, err = k.etcd.Set(context.Background(), key, fmt.Sprintf("%d", value), nil)
-	return err
-}
-
-func makePrefix(opts *types.DeployOptions) (string, error) {
-	// 可以再考虑多种情况
-	key := fmt.Sprintf("%s|%s|%s", opts.Appname, opts.Podname, opts.Entrypoint)
-	h := sha1.New()
-	if _, err := h.Write([]byte(key)); err != nil {
-		return "", err
-	}
-	bs := h.Sum(nil)
-	return fmt.Sprintf("%s", bs), nil
 }

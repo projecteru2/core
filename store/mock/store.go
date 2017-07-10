@@ -124,12 +124,7 @@ func (m *MockStore) CreateLock(key string, ttl int) (lock.DistributedLock, error
 	return nil, args.Error(1)
 }
 
-func (m *MockStore) UpdateDeployStatus(opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
+func (m *MockStore) MakeDeployStatus(opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
 	//TODO
 	return nil, nil
-}
-
-func (m *MockStore) StoreNodeStatus(opts *types.DeployOptions, name string, value int) error {
-	//TODO
-	return nil
 }
