@@ -80,3 +80,16 @@ func (n *Node) GetIP() string {
 
 	return host
 }
+
+type NodeInfo struct {
+	Name    string
+	CorePer int
+	Memory  int64
+
+	Capacity int
+	// 上面有几个了
+	Count int
+	// 最终部署几个
+	Deploy int
+	// 其他需要 filter 的字段
+}

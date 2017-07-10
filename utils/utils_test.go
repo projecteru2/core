@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.ricebook.net/platform/core/types"
 )
 
 func TestRandomString(t *testing.T) {
@@ -45,8 +46,8 @@ func TestGetGitRepoName(t *testing.T) {
 	assert.Equal(t, r1, "core")
 }
 
-func updateNodeInfo(input []NodeInfo, plan map[string]int, memory int64) []NodeInfo {
-	result := []NodeInfo{}
+func updateNodeInfo(input []types.NodeInfo, plan map[string]int, memory int64) []types.NodeInfo {
+	result := []types.NodeInfo{}
 	for _, node := range input {
 		memoryChange := int64(plan[node.Name]) * memory
 		node.Memory -= memoryChange
@@ -57,17 +58,17 @@ func updateNodeInfo(input []NodeInfo, plan map[string]int, memory int64) []NodeI
 
 func TestContinuousAddingContainer(t *testing.T) {
 	// 测试分配算法随机性
-	testPodInfo := []NodeInfo{}
-	node1 := NodeInfo{"n1", 20000, 3 * 1024 * 1024 * 1024}
-	node2 := NodeInfo{"n2", 30000, 3 * 1024 * 1024 * 1024}
-	//	node3 := NodeInfo{"n3", 10000}
+	testPodInfo := []types.NodeInfo{}
+	node1 := types.NodeInfo{"n1", 20000, 3 * 1024 * 1024 * 1024}
+	node2 := types.NodeInfo{"n2", 30000, 3 * 1024 * 1024 * 1024}
+	//	node3 := types.NodeInfo{"n3", 10000}
 	testPodInfo = append(testPodInfo, node1)
 	testPodInfo = append(testPodInfo, node2)
 	//	testPodInfo = append(testPodInfo, node3)
 
 	for i := 0; i < 7; i++ {
 		res, err := AllocContainerPlan(testPodInfo, 10000, 512*1024*1024, 1)
-		testPodInfo = updateNodeInfo(testPodInfo, res, 512*1024*1024)
+		testPodInfo = updatetypes.NodeInfo(testPodInfo, res, 512*1024*1024)
 		// fmt.Println(testPodInfo)
 		fmt.Println(res)
 		assert.NoError(t, err)
@@ -75,11 +76,11 @@ func TestContinuousAddingContainer(t *testing.T) {
 }
 
 func TestAlgorithm(t *testing.T) {
-	testPodInfo := []NodeInfo{}
-	node1 := NodeInfo{"n1", 30000, 5 * 512 * 1024 * 1024}
-	node2 := NodeInfo{"n2", 30000, 5 * 512 * 1024 * 1024}
-	node3 := NodeInfo{"n3", 30000, 5 * 512 * 1024 * 1024}
-	node4 := NodeInfo{"n3", 30000, 5 * 512 * 1024 * 1024}
+	testPodInfo := []types.NodeInfo{}
+	node1 := types.NodeInfo{"n1", 30000, 5 * 512 * 1024 * 1024}
+	node2 := types.NodeInfo{"n2", 30000, 5 * 512 * 1024 * 1024}
+	node3 := types.NodeInfo{"n3", 30000, 5 * 512 * 1024 * 1024}
+	node4 := types.NodeInfo{"n3", 30000, 5 * 512 * 1024 * 1024}
 	testPodInfo = append(testPodInfo, node1)
 	testPodInfo = append(testPodInfo, node2)
 	testPodInfo = append(testPodInfo, node3)
@@ -90,10 +91,10 @@ func TestAlgorithm(t *testing.T) {
 }
 
 func TestAllocContainerPlan(t *testing.T) {
-	testPodInfo := []NodeInfo{}
-	node1 := NodeInfo{"n1", 30000, 512 * 1024 * 1024}
-	node2 := NodeInfo{"n2", 30000, 3 * 512 * 1024 * 1024}
-	node3 := NodeInfo{"n3", 30000, 5 * 512 * 1024 * 1024}
+	testPodInfo := []types.NodeInfo{}
+	node1 := types.NodeInfo{"n1", 30000, 512 * 1024 * 1024}
+	node2 := types.NodeInfo{"n2", 30000, 3 * 512 * 1024 * 1024}
+	node3 := types.NodeInfo{"n3", 30000, 5 * 512 * 1024 * 1024}
 	testPodInfo = append(testPodInfo, node1)
 	testPodInfo = append(testPodInfo, node2)
 	testPodInfo = append(testPodInfo, node3)
@@ -121,13 +122,13 @@ func TestAllocContainerPlan(t *testing.T) {
 }
 
 func TestDebugPlan(t *testing.T) {
-	testPodInfo := []NodeInfo{}
-	node0 := NodeInfo{"C2-docker-14", 1600000, 13732667392}
-	node1 := NodeInfo{"C2-docker-15", 1600000, 4303872000}
-	node2 := NodeInfo{"C2-docker-16", 1600000, 1317527552}
-	node3 := NodeInfo{"C2-docker-17", 1600000, 8808554496}
-	node4 := NodeInfo{"C2-docker-22", 1600000, 1527242752}
-	node5 := NodeInfo{"C2-docker-23", 1600000, 9227984896}
+	testPodInfo := []types.NodeInfo{}
+	node0 := types.NodeInfo{"C2-docker-14", 1600000, 13732667392}
+	node1 := types.NodeInfo{"C2-docker-15", 1600000, 4303872000}
+	node2 := types.NodeInfo{"C2-docker-16", 1600000, 1317527552}
+	node3 := types.NodeInfo{"C2-docker-17", 1600000, 8808554496}
+	node4 := types.NodeInfo{"C2-docker-22", 1600000, 1527242752}
+	node5 := types.NodeInfo{"C2-docker-23", 1600000, 9227984896}
 
 	testPodInfo = append(testPodInfo, node0)
 	testPodInfo = append(testPodInfo, node1)
@@ -142,11 +143,11 @@ func TestDebugPlan(t *testing.T) {
 }
 
 func TestAllocAlgorithm(t *testing.T) {
-	testPodInfo := []NodeInfo{}
-	node0 := NodeInfo{"C2-docker-15", 1600000, 0}
-	node1 := NodeInfo{"C2-docker-16", 1600000, 2357198848 * 2}
-	node2 := NodeInfo{"C2-docker-17", 1600000, 2357198848 * 2}
-	node3 := NodeInfo{"C2-docker-14", 1600000, 2357198848 * 2}
+	testPodInfo := []types.NodeInfo{}
+	node0 := types.NodeInfo{"C2-docker-15", 1600000, 0}
+	node1 := types.NodeInfo{"C2-docker-16", 1600000, 2357198848 * 2}
+	node2 := types.NodeInfo{"C2-docker-17", 1600000, 2357198848 * 2}
+	node3 := types.NodeInfo{"C2-docker-14", 1600000, 2357198848 * 2}
 	testPodInfo = append(testPodInfo, node0)
 	testPodInfo = append(testPodInfo, node1)
 	testPodInfo = append(testPodInfo, node2)

@@ -124,15 +124,17 @@ func (m *MockStore) CreateLock(key string, ttl int) (lock.DistributedLock, error
 	return nil, args.Error(1)
 }
 
-func (m *MockStore) GetDeployStatus(opts *types.DeployOptions) ([]types.DeployStatus, error) {
+func (m *MockStore) UpdateDeployStatus(opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
 	//TODO
 	return nil, nil
 }
-func (m *MockStore) UpdateDeployStatus(opts *types.DeployOptions, status []types.DeployStatus) error {
+
+func (m *MockStore) StoreNodeStatus(opts *types.DeployOptions, name string, value int) error {
 	//TODO
 	return nil
 }
-func (m *MockStore) RemoveDeployStatus(opts *types.DeployOptions) error {
-	//TODO
-	return nil
-}
+
+//func (m *MockStore) RemoveDeployStatus(opts *types.DeployOptions) error {
+//	//TODO
+//	return nil
+//}

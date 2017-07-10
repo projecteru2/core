@@ -52,8 +52,12 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 	log.Debugf("Input opts.CPUQuota: %f", opts.CPUQuota)
 	cpuQuota := int(opts.CPUQuota * float64(utils.CpuPeriodBase))
 	log.Debugf("Tranfered cpuQuota: %d", cpuQuota)
-	plan, err := utils.AllocContainerPlan(nodesInfo, cpuQuota, opts.Memory, opts.Count) // 还是以 Bytes 作单位， 不转换了
 
+	nodesInfo, err = c.store.UpdateDeployStatus(opts, nodesInfo)
+	if err != nil {
+		return ch, err
+	}
+	plan, err := utils.AllocContainerPlan(nodesInfo, cpuQuota, opts.Memory, opts.Count) // 还是以 Bytes 作单位， 不转换了
 	if err != nil {
 		return ch, err
 	}
@@ -103,6 +107,7 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, count, connum 
 		return ms
 	}
 
+	var nodeCount int = 0
 	for i := 0; i < connum; i++ {
 		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i+count, nil, specs, opts, "cpuperiod", node)
 		ms[i].ContainerName = containerName
@@ -189,7 +194,11 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, count, connum 
 		}
 
 		ms[i].Success = true
+		nodeCount++
+	}
 
+	if err := c.store.StoreNodeStatus(opts, nodename, nodeCount); err != nil {
+		log.Errorf("[CreateContainer] Store deploy status failed %s", err)
 	}
 
 	go func(podname string, nodename string) {

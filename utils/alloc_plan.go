@@ -8,123 +8,97 @@ import (
 	"sort"
 )
 
-type NodeInfo struct {
-	Name    string
-	CorePer int
-	Memory  int64
-}
+func AllocContainerPlan(nodesInfo []types.NodeInfo, quota int, memory int64, need int) (map[string]int, error) {
+	log.Debugf("[AllocContainerPlan]: nodesInfo: %v, quota: %d, memory: %d, need: %d", nodesInfo, quota, memory, need)
 
-func AllocContainerPlan(nodeInfo []NodeInfo, quota int, memory int64, count int) (map[string]int, error) {
-	log.Debugf("[AllocContainerPlan]: nodeInfo: %v, quota: %d, memory: %d, count: %d", nodeInfo, quota, memory, count)
-
-	result := make(map[string]int)
-	N := len(nodeInfo)
-	firstNodeWithEnoughCPU := -1
-
-	for i := 0; i < N; i++ {
-		if nodeInfo[i].CorePer >= quota {
-			firstNodeWithEnoughCPU = i
+	result := map[string]int{}
+	var p int = -1
+	for i, nodeInfo := range nodesInfo {
+		if nodeInfo.CorePer >= quota {
+			p = i
 			break
 		}
 	}
-	if firstNodeWithEnoughCPU == -1 {
-		log.Errorf("[AllocContainerPlan] Cannot alloc a plan, not enough cpu quota, got flag %d", firstNodeWithEnoughCPU)
+	if p == -1 {
+		log.Errorf("[AllocContainerPlan] Cannot alloc a plan, not enough cpu quota, got flag %d", p)
 		return result, fmt.Errorf("[AllocContainerPlan] Cannot alloc a plan, not enough cpu quota")
 	}
-	log.Debugf("[AllocContainerPlan] the %d th node has enough cpu quota.", firstNodeWithEnoughCPU)
+	log.Debugf("[AllocContainerPlan] the %d th node has enough cpu quota.", p)
 
 	// 计算是否有足够的内存满足需求
-	nodeInfoList := []NodeInfo{}
+	nodesInfo = nodesInfo[p:]
 	volTotal := 0
-	volEachNode := []int{} //为了排序
-	for i := firstNodeWithEnoughCPU; i < N; i++ {
-		temp := int(nodeInfo[i].Memory / memory)
-		if temp > 0 {
-			volTotal += temp
-			nodeInfoList = append(nodeInfoList, nodeInfo[i])
-			volEachNode = append(volEachNode, temp)
+	p = -1
+	for i, nodeInfo := range nodesInfo {
+		capacity := int(nodeInfo.Memory / memory)
+		if capacity <= 0 {
+			continue
 		}
+		if p == -1 {
+			p = i
+		}
+		volTotal += capacity
+		nodeInfo.Capacity = capacity
 	}
-	if volTotal < count {
-		return result, fmt.Errorf("[AllocContainerPlan] Cannot alloc a plan, not enough memory, volume %d, count %d", volTotal, count)
+	if volTotal < need {
+		return result, fmt.Errorf("[AllocContainerPlan] Cannot alloc a plan, not enough memory, volume %d, need %d", volTotal, need)
 	}
-	log.Debugf("[AllocContainerPlan] volumn of each node: %v", volEachNode)
 
-	sort.Ints(volEachNode)
-	log.Debugf("[AllocContainerPlan] sorted volumn: %v", volEachNode)
-	plan, err := allocAlgorithm(volEachNode, count)
+	// 继续裁可用节点池子
+	nodesInfo = nodesInfo[p:]
+	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Count < nodesInfo[j].Count })
+	log.Debugf("[AllocContainerPlan] volumn of each node: %v", nodesInfo)
+	nodesInfo, err := AllocByEqualDivision(nodesInfo, need, volTotal)
 	if err != nil {
 		log.Errorf("[AllocContainerPlan] %v", err)
 		return result, err
 	}
 
-	sort.Slice(nodeInfoList, func(i, j int) bool { return nodeInfoList[i].Memory < nodeInfoList[j].Memory })
-	log.Debugf("[AllocContainerPlan] sorted nodeInfo: %v, ", nodeInfoList)
-	for i, num := range plan {
-		key := nodeInfoList[i].Name
-		result[key] = num
+	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Memory < nodesInfo[j].Memory })
+	for _, nodeInfo := range nodesInfo {
+		result[nodeInfo.Name] = nodeInfo.Deploy
 	}
 	log.Debugf("[AllocContainerPlan] allocAlgorithm result: %v", result)
 	return result, nil
 }
 
-func allocAlgorithm(info []int, need int) (map[int]int, error) {
-	// 实际上，这就是精确分配时候的那个分配算法
-	// 情景是相同的：我们知道每台机能否分配多少容器
-	// 要求我们尽可能平均地分配
-	// 算法的正确性我们之前确认了
-	// 所以我抄了过来
-	result := make(map[int]int)
-	nnode := len(info)
-
-	var nodeToUse, more int
-	for i := 0; i < nnode; i++ {
-		nodeToUse = nnode - i
-		ave := need / nodeToUse
-		if ave > info[i] {
-			ave = 1
+func AllocByEqualDivision(arg []types.NodeInfo, need, volTotal int) ([]types.NodeInfo, error) {
+	length := len(arg)
+	i := 0
+	for need > 0 && volTotal > 0 {
+		p := i
+		deploy := 0
+		differ := 1
+		if i < length-1 {
+			differ = arg[i+1].Count - arg[i].Count
+			i++
 		}
-		for ; ave < info[i] && ave*nodeToUse < need; ave++ {
-		}
-		log.Debugf("[AllocContainerPlan] allocAlgorithm outer loop: %d, ave: %d, result: %v", i, ave, result)
-		more = ave*nodeToUse - need
-		for j := i; nodeToUse != 0; nodeToUse-- {
-			if _, ok := result[j]; !ok {
-				result[j] = ave
-			} else {
-				result[j] += ave
+		for j := 0; j <= p && need > 0 && differ > 0; j++ {
+			// 减枝
+			if arg[j].Capacity == 0 {
+				continue
 			}
-			if more > 0 {
-				// TODO : 这里应该要有一个随机策略但是我之前的随机策略是有问题的
-				//        cmgs 提供了一个思路: 如果当前需要分配的容器数量少于最
-				//        小机器的容量的话，我们就直接随机分
-				more--
-				result[j]--
-			} else if more < 0 {
-				info[j] -= ave
+			deploy = differ
+			if deploy > arg[j].Capacity {
+				deploy = arg[j].Capacity
 			}
-			j++
-			log.Debugf("[AllocContainerPlan] allocAlgorithm inner loop: %d, ave: %d, result: %v", j, ave, result)
-		}
-		if more == 0 {
-			break
-		}
-		need = -more
-	}
-	log.Debugf("[AllocContainerPlan] allocAlgorithm info %v, need %d, made plan: %v", info, need, result)
-	for _, v := range result {
-		if v < 0 {
-			// result will not be nil at this situation. So I return nil instead of result
-			return nil, fmt.Errorf("allocAlgorithm illegal alloc plan: %v ", result)
+			if deploy > need {
+				deploy = need
+			}
+			arg[j].Deploy += deploy
+			arg[j].Capacity -= deploy
+			need -= deploy
+			volTotal -= deploy
 		}
 	}
-	return result, nil
+	// 这里 need 一定会为 0 出来，因为 volTotal 在外层保证了一定大于 need
+	return arg, nil
 }
 
-func GetNodesInfo(cpumemmap map[string]types.CPUAndMem) []NodeInfo {
-	result := []NodeInfo{}
+func GetNodesInfo(cpumemmap map[string]types.CPUAndMem) []types.NodeInfo {
+	result := []types.NodeInfo{}
 	for node, cpuandmem := range cpumemmap {
-		result = append(result, NodeInfo{node, len(cpuandmem.CpuMap) * CpuPeriodBase, cpuandmem.MemCap})
+		result = append(result, types.NodeInfo{node, len(cpuandmem.CpuMap) * CpuPeriodBase, cpuandmem.MemCap, 0, 0, 0})
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].Memory < result[j].Memory })
 	return result

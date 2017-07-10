@@ -21,7 +21,7 @@ var (
 	nodeKeyKey       = "/eru-core/pod/%s/node/%s/key.pem"
 	nodeContainerKey = "/eru-core/pod/%s/node/%s/containers"
 	containerInfoKey = "/eru-core/container/%s"
-	deployStatusKey  = "/eru-core/deploy/%s"
+	deployStatusKey  = "/eru-core/deploy/%s/%s"
 )
 
 type krypton struct {

@@ -31,7 +31,8 @@ type Store interface {
 	CreateLock(key string, ttl int) (lock.DistributedLock, error)
 
 	// deploy status
-	GetDeployStatus(opts *types.DeployOptions) ([]types.DeployStatus, error)
-	UpdateDeployStatus(opts *types.DeployOptions, status []types.DeployStatus) error
-	RemoveDeployStatus(opts *types.DeployOptions) error
+	UpdateDeployStatus(opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error)
+	StoreNodeStatus(opts *types.DeployOptions, name string, value int) error
+	//UpdateDeployStatus(opts *types.DeployOptions, status []types.DeployStatus) error
+	//RemoveDeployStatus(opts *types.DeployOptions) error
 }
