@@ -42,12 +42,15 @@ shift
 `
 
 const dockerFile = `ARG Base
+FROM ${Base}
 ARG Appdir
 ARG Appname
 ARG BuildRun
 ARG Reponame
 ARG UID
-FROM ${Base}
+ENV UID ${UID}
+ENV Appname ${Appname}
+ENV Appdir ${Appdir}
 ENV ERU 1
 ADD ${Reponame} ${Appdir}/${Appname}
 ADD launcher /usr/local/bin/launcher
