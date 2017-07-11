@@ -11,15 +11,10 @@ import (
 	"gitlab.ricebook.net/platform/core/types"
 )
 
-type NodeInfo struct {
-	Node string
-	NCon int
-}
-
-func volumn(nodeInfo []NodeInfo) int {
+func volumn(nodeInfo []types.NodeInfo) int {
 	val := 0
 	for _, v := range nodeInfo {
-		val += v.NCon
+		val += v.Capacity
 	}
 	return val
 }
@@ -192,7 +187,7 @@ func averagePlan(cpu float64, nodes map[string]types.CPUMap, need, maxShareCore,
 	var host *host
 	var plan []types.CPUMap
 	var n int
-	var nodeInfo []NodeInfo
+	var nodeInfo []types.NodeInfo
 	var nodeName string
 
 	if cpu < 0.01 {
@@ -215,7 +210,7 @@ func averagePlan(cpu float64, nodes map[string]types.CPUMap, need, maxShareCore,
 		plan = host.getContainerCores(cpu, maxShareCore)
 		n = len(plan) // 每个node可以放的容器数
 		if n > 0 {
-			nodeInfo = append(nodeInfo, NodeInfo{node, n})
+			nodeInfo = append(nodeInfo, types.NodeInfo{Name: node, Capacity: n})
 			nodecontainer[node] = plan
 		}
 	}
@@ -226,14 +221,14 @@ func averagePlan(cpu float64, nodes map[string]types.CPUMap, need, maxShareCore,
 
 	// 排序
 	sort.Slice(nodeInfo, func(i, j int) bool {
-		return nodeInfo[i].NCon < nodeInfo[j].NCon
+		return nodeInfo[i].Capacity < nodeInfo[j].Capacity
 	})
 
 	// 决定分配方案
 	allocplan := allocPlan(nodeInfo, need)
 	for node, ncon := range allocplan {
 		if ncon > 0 {
-			nodeName = nodeInfo[node].Node
+			nodeName = nodeInfo[node].Name
 			result[nodeName] = nodecontainer[nodeName][:ncon]
 		}
 	}
@@ -241,7 +236,7 @@ func averagePlan(cpu float64, nodes map[string]types.CPUMap, need, maxShareCore,
 	return result
 }
 
-func allocPlan(info []NodeInfo, need int) map[int]int {
+func allocPlan(info []types.NodeInfo, need int) map[int]int {
 	result := make(map[int]int)
 	NNode := len(info)
 
@@ -249,10 +244,10 @@ func allocPlan(info []NodeInfo, need int) map[int]int {
 	for i := 0; i < NNode; i++ {
 		nodeToUse = NNode - i
 		ave := need / nodeToUse
-		if ave > info[i].NCon {
+		if ave > info[i].Capacity {
 			ave = 1
 		}
-		for ; ave < info[i].NCon && ave*nodeToUse < need; ave++ {
+		for ; ave < info[i].Capacity && ave*nodeToUse < need; ave++ {
 		}
 		more = ave*nodeToUse - need
 		for j := i; nodeToUse != 0; nodeToUse-- {
@@ -265,7 +260,7 @@ func allocPlan(info []NodeInfo, need int) map[int]int {
 				more--
 				result[j]--
 			} else if more < 0 {
-				info[j].NCon -= ave
+				info[j].Capacity -= ave
 			}
 			j++
 		}

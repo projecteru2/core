@@ -37,9 +37,14 @@ func (m *magnesium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
 	return nodename, nil
 }
 
+func (m *magnesium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota int, memory int64, need int) (map[string]int, error) {
+	//TODO not impl yet
+	return nil, nil
+}
+
 // Select nodes for deploying.
 // Use round robin method to select, in order to make scheduler average.
-func (m *magnesium) SelectNodes(nodes map[string]types.CPUMap, quota float64, num int) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
+func (m *magnesium) SelectCPUNodes(nodes map[string]types.CPUMap, quota float64, num int) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
 	m.Lock()
 	defer m.Unlock()
 

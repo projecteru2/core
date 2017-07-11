@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"fmt"
+	"sort"
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
@@ -10,7 +11,7 @@ import (
 	"gitlab.ricebook.net/platform/core/utils"
 )
 
-func (c *calcium) AllocMemoryResource(opts *types.DeployOptions) (map[string]int, error) {
+func (c *calcium) AllocMemoryPodResource(opts *types.DeployOptions) (map[string]int, error) {
 	lock, err := c.Lock(opts.Podname, 30)
 	if err != nil {
 		return nil, err
@@ -22,7 +23,7 @@ func (c *calcium) AllocMemoryResource(opts *types.DeployOptions) (map[string]int
 		return nil, err
 	}
 
-	nodesInfo := utils.GetNodesInfo(cpuandmem)
+	nodesInfo := getNodesInfo(cpuandmem)
 	log.Debugf("Input opts.CPUQuota: %f", opts.CPUQuota)
 	cpuQuota := int(opts.CPUQuota * float64(utils.CpuPeriodBase))
 	log.Debugf("Tranfered cpuQuota: %d", cpuQuota)
@@ -31,7 +32,7 @@ func (c *calcium) AllocMemoryResource(opts *types.DeployOptions) (map[string]int
 		return nil, err
 	}
 
-	plan, err := utils.AllocContainerPlan(nodesInfo, cpuQuota, opts.Memory, opts.Count) // 还是以 Bytes 作单位， 不转换了
+	plan, err := c.scheduler.SelectMemoryNodes(nodesInfo, cpuQuota, opts.Memory, opts.Count) // 还是以 Bytes 作单位， 不转换了
 	if err != nil {
 		return nil, err
 	}
@@ -50,10 +51,50 @@ func (c *calcium) AllocMemoryResource(opts *types.DeployOptions) (map[string]int
 	return plan, nil
 }
 
+func (c *calcium) AllocCPUPodResource(opts *types.DeployOptions) (map[string][]types.CPUMap, error) {
+	lock, err := c.Lock(opts.Podname, 30)
+	if err != nil {
+		return nil, err
+	}
+	defer lock.Unlock()
+
+	cpuandmem, nodes, err := c.getCPUAndMem(opts.Podname, opts.Nodename, opts.CPUQuota)
+	if err != nil {
+		return nil, err
+	}
+
+	cpumap := makeCPUMap(cpuandmem) // 做这个转换，免得改太多
+	log.Debugf("Cpumap: %v", cpumap)
+	result, changed, err := c.scheduler.SelectCPUNodes(cpumap, opts.CPUQuota, opts.Count)
+	log.Debugf("Result: %v, Changed: %v", result, changed)
+	if err != nil {
+		return result, err
+	}
+
+	// if quota is set to 0
+	// then no cpu is required
+	if opts.CPUQuota > 0 {
+		// cpus changeded
+		// update data to etcd
+		// `SelectCPUNodes` reduces count in cpumap
+		for _, node := range nodes {
+			r, ok := changed[node.Name]
+			// 不在changed里说明没有变化
+			if ok {
+				node.CPU = r
+				// ignore error
+				c.store.UpdateNode(node)
+			}
+		}
+	}
+
+	return result, err
+}
+
 func (c *calcium) getCPUAndMem(podname, nodename string, quota float64) (map[string]types.CPUAndMem, []*types.Node, error) {
 	result := make(map[string]types.CPUAndMem)
-	var err error
 	var nodes []*types.Node
+	var err error
 	if nodename == "" {
 		nodes, err = c.ListPodNodes(podname, false)
 		if err != nil {
@@ -80,4 +121,13 @@ func (c *calcium) getCPUAndMem(podname, nodename string, quota float64) (map[str
 
 	result = makeCPUAndMem(nodes)
 	return result, nodes, nil
+}
+
+func getNodesInfo(cpumemmap map[string]types.CPUAndMem) []types.NodeInfo {
+	result := []types.NodeInfo{}
+	for node, cpuandmem := range cpumemmap {
+		result = append(result, types.NodeInfo{node, len(cpuandmem.CpuMap) * utils.CpuPeriodBase, cpuandmem.MemCap, 0, 0, 0})
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Memory < result[j].Memory })
+	return result
 }

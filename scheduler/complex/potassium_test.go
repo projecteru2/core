@@ -18,7 +18,7 @@ func resultLength(result map[string][]types.CPUMap) int {
 	return length
 }
 
-func TestSelectNodes(t *testing.T) {
+func TestSelectCPUNodes(t *testing.T) {
 	coreCfg := types.Config{
 		EtcdMachines:   []string{"http://127.0.0.1:2379"},
 		EtcdLockPrefix: "/eru-core/_lock",
@@ -34,7 +34,7 @@ func TestSelectNodes(t *testing.T) {
 		t.Fatalf("Create Potassim error: %v", merr)
 	}
 
-	_, _, err := k.SelectNodes(map[string]types.CPUMap{}, 1, 1)
+	_, _, err := k.SelectCPUNodes(map[string]types.CPUMap{}, 1, 1)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "No nodes provide to choose some")
 
@@ -49,23 +49,23 @@ func TestSelectNodes(t *testing.T) {
 		},
 	}
 
-	debug, changed, _ := k.SelectNodes(nodes, 0.5, 1)
+	debug, changed, _ := k.SelectCPUNodes(nodes, 0.5, 1)
 	fmt.Printf("algorithm debug res: %v", debug)
 	fmt.Printf("algorithm debug changed: %v", changed)
 
-	_, _, err = k.SelectNodes(nodes, 2, 3)
+	_, _, err = k.SelectCPUNodes(nodes, 2, 3)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")
 
-	_, _, err = k.SelectNodes(nodes, 3, 2)
+	_, _, err = k.SelectCPUNodes(nodes, 3, 2)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")
 
-	_, _, err = k.SelectNodes(nodes, 1, 5)
+	_, _, err = k.SelectCPUNodes(nodes, 1, 5)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")
 
-	r, re, err := k.SelectNodes(nodes, 1, 2)
+	r, re, err := k.SelectCPUNodes(nodes, 1, 2)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(r))
 	assert.Equal(t, 2, len(re))
@@ -78,7 +78,7 @@ func TestSelectNodes(t *testing.T) {
 		assert.Equal(t, cpu.Total(), 10)
 	}
 
-	// SelectNodes 里有一些副作用, 粗暴地拿一个新的来测试吧
+	// SelectCPUNodes 里有一些副作用, 粗暴地拿一个新的来测试吧
 	// 下面也是因为这个
 	nodes = map[string]types.CPUMap{
 		"node1": types.CPUMap{
@@ -91,7 +91,7 @@ func TestSelectNodes(t *testing.T) {
 		},
 	}
 
-	r, re, err = k.SelectNodes(nodes, 1.3, 2)
+	r, re, err = k.SelectCPUNodes(nodes, 1.3, 2)
 	assert.NoError(t, err)
 
 	for nodename, cpus := range r {
@@ -157,7 +157,7 @@ func TestRecurrence(t *testing.T) {
 			"15": 0, "3": 10, "0": 0, "10": 0, "13": 0, "7": 10, "8": 0, "9": 10, "12": 10, "2": 10, "4": 10, "1": 0, "11": 0, "14": 10, "5": 10, "6": 10,
 		},
 	}
-	result, _, err := k.SelectNodes(nodes, 0.5, 3)
+	result, _, err := k.SelectCPUNodes(nodes, 0.5, 3)
 	log.Infof("result: %v", result)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -211,7 +211,7 @@ func TestComplexNodes(t *testing.T) {
 
 	k, _ = New(coreCfg)
 	// test1
-	res1, changed1, err := k.SelectNodes(nodes, 1.7, 7)
+	res1, changed1, err := k.SelectCPUNodes(nodes, 1.7, 7)
 	if err != nil {
 		t.Fatalf("sth wrong")
 	}
@@ -221,7 +221,7 @@ func TestComplexNodes(t *testing.T) {
 	assert.Equal(t, len(changed1), len(res1))
 
 	// test2
-	// SelectNodes 里有一些副作用, 粗暴地拿一个新的来测试吧
+	// SelectCPUNodes 里有一些副作用, 粗暴地拿一个新的来测试吧
 	// 下面也是因为这个
 	nodes = map[string]types.CPUMap{
 		"n1": types.CPUMap{ // 2 containers
@@ -250,7 +250,7 @@ func TestComplexNodes(t *testing.T) {
 			"4": 10, "5": 10, "6": 10, "7": 10,
 		},
 	}
-	res2, changed2, err := k.SelectNodes(nodes, 1.7, 11)
+	res2, changed2, err := k.SelectCPUNodes(nodes, 1.7, 11)
 	if err != nil {
 		t.Fatalf("something went wrong")
 	}
@@ -287,7 +287,7 @@ func TestComplexNodes(t *testing.T) {
 			"4": 10, "5": 10, "6": 10, "7": 10,
 		},
 	}
-	res3, changed3, err := k.SelectNodes(nodes, 1.7, 23)
+	res3, changed3, err := k.SelectCPUNodes(nodes, 1.7, 23)
 	if err != nil {
 		fmt.Println("May be we dont have plan")
 		fmt.Println(err)
@@ -325,7 +325,7 @@ func TestComplexNodes(t *testing.T) {
 			"4": 10, "5": 10, "6": 10, "7": 10,
 		},
 	}
-	_, _, newErr := k.SelectNodes(nodes, 1.6, 29)
+	_, _, newErr := k.SelectCPUNodes(nodes, 1.6, 29)
 	if newErr == nil {
 		t.Fatalf("how to alloc 29 containers when you only have 28?")
 	}
@@ -357,7 +357,7 @@ func TestEvenPlan(t *testing.T) {
 		},
 	}
 
-	res1, rem1, err := k.SelectNodes(pod1, 1.3, 2)
+	res1, rem1, err := k.SelectCPUNodes(pod1, 1.3, 2)
 	if err != nil {
 		t.Fatalf("sth wrong")
 	}
@@ -389,7 +389,7 @@ func TestEvenPlan(t *testing.T) {
 		},
 	}
 
-	res2, rem2, err := k.SelectNodes(pod2, 1.7, 3)
+	res2, rem2, err := k.SelectCPUNodes(pod2, 1.7, 3)
 	if check := checkAvgPlan(res2, 1, 1, "res2"); check != nil {
 		t.Fatalf("something went wront")
 	}
@@ -416,7 +416,7 @@ func TestEvenPlan(t *testing.T) {
 			"8": 10, "9": 10,
 		},
 	}
-	res3, rem3, err := k.SelectNodes(pod3, 1.7, 8)
+	res3, rem3, err := k.SelectCPUNodes(pod3, 1.7, 8)
 	if check := checkAvgPlan(res3, 2, 2, "res3"); check != nil {
 		t.Fatalf("something went wront")
 	}
@@ -444,7 +444,7 @@ func TestEvenPlan(t *testing.T) {
 		},
 	}
 
-	res4, rem4, err := k.SelectNodes(pod4, 1.7, 10)
+	res4, rem4, err := k.SelectCPUNodes(pod4, 1.7, 10)
 	if check := checkAvgPlan(res4, 2, 3, "res4"); check != nil {
 		t.Fatalf("something went wrong")
 	}
@@ -477,7 +477,7 @@ func TestSpecialCase(t *testing.T) {
 	}
 
 	k, _ := New(coreCfg)
-	res1, _, err := k.SelectNodes(pod, 1.7, 7)
+	res1, _, err := k.SelectCPUNodes(pod, 1.7, 7)
 	if err != nil {
 		t.Fatalf("something went wrong")
 	}
@@ -494,7 +494,7 @@ func TestSpecialCase(t *testing.T) {
 		},
 	}
 
-	res2, changed2, _ := k.SelectNodes(newpod, 1.7, 4)
+	res2, changed2, _ := k.SelectCPUNodes(newpod, 1.7, 4)
 	assert.Equal(t, len(res2), len(changed2))
 	checkAvgPlan(res2, 2, 2, "new test 2")
 }
@@ -565,7 +565,7 @@ func Benchmark_ExtreamAlloc(b *testing.B) {
 	b.StartTimer()
 
 	vol := getPodVol(*hugePod, 1.3)
-	result, changed, err := k.SelectNodes(*hugePod, 1.3, vol)
+	result, changed, err := k.SelectCPUNodes(*hugePod, 1.3, vol)
 	if err != nil {
 		b.Fatalf("something went wrong")
 	}
@@ -587,7 +587,7 @@ func Benchmark_AveAlloc(b *testing.B) {
 	k, _ := New(coreCfg)
 
 	b.StartTimer()
-	result, changed, err := k.SelectNodes(*hugePod, 1.7, 12000)
+	result, changed, err := k.SelectCPUNodes(*hugePod, 1.7, 12000)
 	if err != nil {
 		b.Fatalf("something went wrong")
 	}
