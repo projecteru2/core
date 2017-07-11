@@ -52,9 +52,10 @@ func (c *calcium) AllocMemoryResource(opts *types.DeployOptions) (map[string]int
 
 func (c *calcium) getCPUAndMem(podname, nodename string, quota float64) (map[string]types.CPUAndMem, []*types.Node, error) {
 	result := make(map[string]types.CPUAndMem)
+	var err error
 	var nodes []*types.Node
 	if nodename == "" {
-		nodes, err := c.ListPodNodes(podname, false)
+		nodes, err = c.ListPodNodes(podname, false)
 		if err != nil {
 			return result, nil, err
 		}

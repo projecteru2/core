@@ -23,10 +23,10 @@ import (
 // Use specs and options to create
 // TODO what about networks?
 func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
-	pod, err := c.store.GetPod(opts.Podname)
-	if err != nil {
-		return nil, err
-	}
+	//pod, err := c.store.GetPod(opts.Podname)
+	//if err != nil {
+	//	return nil, err
+	//}
 	//if pod.Scheduler == "CPU" {
 	//	return c.createContainerWithScheduler(specs, opts)
 	//}
@@ -41,6 +41,10 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 
 	log.Debugf("Deploy options: %v", opts)
 	log.Debugf("Deploy specs: %v", specs)
+	lock, err := c.Lock(fmt.Sprintf("%s_%s", opts.Appname, opts.Entrypoint), 3600)
+	if err != nil {
+		return ch, err
+	}
 	plan, err := c.AllocMemoryResource(opts)
 	if err != nil {
 		return ch, err
@@ -49,11 +53,6 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 	go func(specs types.Specs, plan map[string]int, opts *types.DeployOptions) {
 		defer close(ch)
 		// TODO 这个 LOCK 得有点长了……
-		lock, err := c.Lock(fmt.Sprintf("%s_%s", opts.Appname, opts.Entrypoint), 3600)
-		if err != nil {
-			log.Errorf("Deploy container failed when get lock %s", err)
-			return
-		}
 		defer lock.Unlock()
 
 		wg := sync.WaitGroup{}
