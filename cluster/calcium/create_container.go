@@ -27,42 +27,35 @@ func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) 
 	if err != nil {
 		return nil, err
 	}
-	if pod.Scheduler == "CPU" {
-		return c.createContainerWithScheduler(specs, opts)
-	}
+	//if pod.Scheduler == "CPU" {
+	//	return c.createContainerWithScheduler(specs, opts)
+	//}
 	return c.createContainerWithCPUPeriod(specs, opts)
 }
 
 func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
-
 	if opts.Memory < 4194304 { // 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
 		return ch, fmt.Errorf("Minimum memory limit allowed is 4MB")
 	}
 
 	log.Debugf("Deploy options: %v", opts)
 	log.Debugf("Deploy specs: %v", specs)
-	cpuandmem, _, err := c.getCPUAndMem(opts.Podname, opts.Nodename, 1.0)
-	if err != nil {
-		return ch, err
-	}
-	go utils.SendMemCap(cpuandmem, "before-alloc")
-	nodesInfo := utils.GetNodesInfo(cpuandmem)
-
-	log.Debugf("Input opts.CPUQuota: %f", opts.CPUQuota)
-	cpuQuota := int(opts.CPUQuota * float64(utils.CpuPeriodBase))
-	log.Debugf("Tranfered cpuQuota: %d", cpuQuota)
-
-	nodesInfo, err = c.store.MakeDeployStatus(opts, nodesInfo)
-	if err != nil {
-		return ch, err
-	}
-	plan, err := utils.AllocContainerPlan(nodesInfo, cpuQuota, opts.Memory, opts.Count) // 还是以 Bytes 作单位， 不转换了
+	plan, err := c.AllocMemoryResource(opts)
 	if err != nil {
 		return ch, err
 	}
 
 	go func(specs types.Specs, plan map[string]int, opts *types.DeployOptions) {
+		defer close(ch)
+		// TODO 这个 LOCK 得有点长了……
+		lock, err := c.Lock(fmt.Sprintf("%s_%s", opts.Appname, opts.Entrypoint), 3600)
+		if err != nil {
+			log.Errorf("Deploy container failed when get lock %s", err)
+			return
+		}
+		defer lock.Unlock()
+
 		wg := sync.WaitGroup{}
 		wg.Add(len(plan))
 		count := 0
@@ -81,7 +74,6 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 
 		// 第一次部署的时候就去cache下镜像吧
 		go c.cacheImage(opts.Podname, opts.Image)
-		close(ch)
 	}(specs, plan, opts)
 
 	return ch, nil
@@ -92,11 +84,6 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, count, connum 
 	for i := 0; i < len(ms); i++ {
 		ms[i] = &types.CreateContainerMessage{}
 	}
-
-	// 更新 MemCap
-	// memory := opts.Memory / 1024 / 1024
-	memoryTotal := opts.Memory * int64(connum)
-	c.store.UpdateNodeMem(opts.Podname, nodename, memoryTotal, "-")
 
 	node, err := c.GetNode(opts.Podname, nodename)
 	if err != nil {
@@ -195,166 +182,88 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, count, connum 
 		ms[i].Success = true
 	}
 
-	go func(podname string, nodename string) {
-		cpuandmem, _, err := c.getCPUAndMem(podname, nodename, 1.0)
-		if err != nil {
-			return
-		}
-		utils.SendMemCap(cpuandmem, "after-alloc")
-	}(opts.Podname, opts.Nodename)
-
 	return ms
 }
 
-func (c *calcium) createContainerWithScheduler(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
-	ch := make(chan *types.CreateContainerMessage)
-
-	result, err := c.prepareNodes(opts.Podname, opts.Nodename, opts.CPUQuota, opts.Count)
-	if err != nil {
-		return ch, err
-	}
-	if len(result) == 0 {
-		return ch, fmt.Errorf("Not enough resource to create container")
-	}
-
-	// check total count in case scheduler error
-	totalCount := 0
-	for _, cores := range result {
-		totalCount = totalCount + len(cores)
-	}
-	if totalCount != opts.Count {
-		return ch, fmt.Errorf("Count mismatch (opt.Count %q, total %q), maybe scheduler error?", opts.Count, totalCount)
-	}
-
-	go func(plan map[string][]types.CPUMap, opts *types.DeployOptions) {
-		wg := sync.WaitGroup{}
-		wg.Add(len(result))
-
-		// do deployment
-		for nodename, cpumap := range plan {
-			go func(nodename string, cpumap []types.CPUMap, opts *types.DeployOptions) {
-				defer wg.Done()
-				for _, m := range c.doCreateContainerWithScheduler(nodename, cpumap, specs, opts) {
-					ch <- m
-				}
-			}(nodename, cpumap, opts)
-		}
-
-		wg.Wait()
-		close(ch)
-	}(result, opts)
-
-	return ch, nil
-}
-
-func makeCPUAndMem(nodes []*types.Node) map[string]types.CPUAndMem {
-	r := make(map[string]types.CPUAndMem)
-	for _, node := range nodes {
-		r[node.Name] = types.CPUAndMem{node.CPU, node.MemCap}
-	}
-	return r
-}
-
-func makeCPUMap(nodes map[string]types.CPUAndMem) map[string]types.CPUMap {
-	r := make(map[string]types.CPUMap)
-	for key, node := range nodes {
-		r[key] = node.CpuMap
-	}
-	return r
-}
-
-func (c *calcium) getCPUAndMem(podname, nodename string, quota float64) (map[string]types.CPUAndMem, []*types.Node, error) {
-	result := make(map[string]types.CPUAndMem)
-	lock, err := c.store.CreateLock(podname, 30)
-	if err != nil {
-		return result, nil, err
-	}
-	if err := lock.Lock(); err != nil {
-		return result, nil, err
-	}
-	defer lock.Unlock()
-
-	// 没有指定nodename, 就从所有的node里面取
-	// 指定了就给一个指定的列表
-	var nodes []*types.Node
-	if nodename == "" {
-		nodes, err = c.ListPodNodes(podname, false)
-		if err != nil {
-			return result, nil, err
-		}
-	} else {
-		n, err := c.GetNode(podname, nodename)
-		if err != nil {
-			return result, nil, err
-		}
-		nodes = append(nodes, n)
-	}
-
-	if quota == 0 { // 因为要考虑quota=0.5这种需求，所以这里有点麻烦
-		nodes = filterNodes(nodes, true)
-	} else {
-		nodes = filterNodes(nodes, false)
-	}
-
-	if len(nodes) == 0 {
-		err := fmt.Errorf("No available nodes")
-		log.Errorf("Error during getCPUAndMem: %v", err)
-		return result, nil, err
-	}
-
-	result = makeCPUAndMem(nodes)
-	return result, nodes, nil
-}
-
-// Prepare nodes for deployment.
-// Later if any error occurs, these nodes can be restored.
-func (c *calcium) prepareNodes(podname, nodename string, quota float64, num int) (map[string][]types.CPUMap, error) {
-	result := make(map[string][]types.CPUMap)
-	log.Debugf("Input parameters podname: %s, nodename: %s, quota: %f, num: %d", podname, nodename, quota, num)
-	cpuandmem, nodes, err := c.getCPUAndMem(podname, nodename, quota)
-	if err != nil {
-		return result, err
-	}
-	cpumap := makeCPUMap(cpuandmem) // 做这个转换，免得改太多
-	// use podname as lock key to prevent scheduling on the same node at one time
-	log.Debugf("Cpumap: %v", cpumap)
-	result, changed, err := c.scheduler.SelectNodes(cpumap, quota, num) // 这个接口统一使用float64了
-	log.Debugf("Result: %v, Changed: %v", result, changed)
-	if err != nil {
-		return result, err
-	}
-
-	// if quota is set to 0
-	// then no cpu is required
-	if quota > 0 {
-		// cpus changeded
-		// update data to etcd
-		// `SelectNodes` reduces count in cpumap
-		for _, node := range nodes {
-			r, ok := changed[node.Name]
-			// 不在changed里说明没有变化
-			if ok {
-				node.CPU = r
-				// ignore error
-				c.store.UpdateNode(node)
-			}
-		}
-	}
-
-	return result, err
-}
-
-// filter nodes
-// public is the flag
-func filterNodes(nodes []*types.Node, public bool) []*types.Node {
-	rs := []*types.Node{}
-	for _, node := range nodes {
-		if node.Public == public {
-			rs = append(rs, node)
-		}
-	}
-	return rs
-}
+//func (c *calcium) createContainerWithScheduler(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+//	ch := make(chan *types.CreateContainerMessage)
+//
+//	result, err := c.prepareNodes(opts.Podname, opts.Nodename, opts.CPUQuota, opts.Count)
+//	if err != nil {
+//		return ch, err
+//	}
+//	if len(result) == 0 {
+//		return ch, fmt.Errorf("Not enough resource to create container")
+//	}
+//
+//	// check total count in case scheduler error
+//	totalCount := 0
+//	for _, cores := range result {
+//		totalCount = totalCount + len(cores)
+//	}
+//	if totalCount != opts.Count {
+//		return ch, fmt.Errorf("Count mismatch (opt.Count %q, total %q), maybe scheduler error?", opts.Count, totalCount)
+//	}
+//
+//	go func(plan map[string][]types.CPUMap, opts *types.DeployOptions) {
+//		wg := sync.WaitGroup{}
+//		wg.Add(len(result))
+//
+//		// do deployment
+//		for nodename, cpumap := range plan {
+//			go func(nodename string, cpumap []types.CPUMap, opts *types.DeployOptions) {
+//				defer wg.Done()
+//				for _, m := range c.doCreateContainerWithScheduler(nodename, cpumap, specs, opts) {
+//					ch <- m
+//				}
+//			}(nodename, cpumap, opts)
+//		}
+//
+//		wg.Wait()
+//		close(ch)
+//	}(result, opts)
+//
+//	return ch, nil
+//}
+//
+//// Prepare nodes for deployment.
+//// Later if any error occurs, these nodes can be restored.
+//func (c *calcium) prepareNodes(podname, nodename string, quota float64, num int) (map[string][]types.CPUMap, error) {
+//	result := make(map[string][]types.CPUMap)
+//	log.Debugf("Input parameters podname: %s, nodename: %s, quota: %f, num: %d", podname, nodename, quota, num)
+//	cpuandmem, nodes, err := c.getCPUAndMem(podname, nodename, quota)
+//	if err != nil {
+//		return result, err
+//	}
+//	cpumap := makeCPUMap(cpuandmem) // 做这个转换，免得改太多
+//	// use podname as lock key to prevent scheduling on the same node at one time
+//	log.Debugf("Cpumap: %v", cpumap)
+//	result, changed, err := c.scheduler.SelectNodes(cpumap, quota, num) // 这个接口统一使用float64了
+//	log.Debugf("Result: %v, Changed: %v", result, changed)
+//	if err != nil {
+//		return result, err
+//	}
+//
+//	// if quota is set to 0
+//	// then no cpu is required
+//	if quota > 0 {
+//		// cpus changeded
+//		// update data to etcd
+//		// `SelectNodes` reduces count in cpumap
+//		for _, node := range nodes {
+//			r, ok := changed[node.Name]
+//			// 不在changed里说明没有变化
+//			if ok {
+//				node.CPU = r
+//				// ignore error
+//				c.store.UpdateNode(node)
+//			}
+//		}
+//	}
+//
+//	return result, err
+//}
+//
 
 // Pull an image
 // Blocks until it finishes.
@@ -374,126 +283,126 @@ func pullImage(node *types.Node, image string) error {
 	return nil
 }
 
-func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types.CPUMap, specs types.Specs, opts *types.DeployOptions) []*types.CreateContainerMessage {
-	ms := make([]*types.CreateContainerMessage, len(cpumap))
-	for i := 0; i < len(ms); i++ {
-		ms[i] = &types.CreateContainerMessage{}
-	}
-
-	node, err := c.GetNode(opts.Podname, nodename)
-	if err != nil {
-		log.Errorf("Get node error %v", err)
-		return ms
-	}
-
-	if err := pullImage(node, opts.Image); err != nil {
-		return ms
-	}
-
-	for i, quota := range cpumap {
-		// create options
-		//TODO ERU_CONTAINER_NO not support CPU pod now !!!
-		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i, quota, specs, opts, "scheduler", node)
-		ms[i].ContainerName = containerName
-		ms[i].Podname = opts.Podname
-		ms[i].Nodename = node.Name
-		ms[i].Memory = opts.Memory
-		if err != nil {
-			ms[i].Error = err.Error()
-			c.releaseQuota(node, quota)
-			continue
-		}
-
-		// create container
-		container, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
-		if err != nil {
-			log.Errorf("Error when creating container, %v", err)
-			ms[i].Error = err.Error()
-			c.releaseQuota(node, quota)
-			continue
-		}
-
-		// connect container to network
-		// if network manager uses docker plugin, then connect must be called before container starts
-		if c.network.Type() == "plugin" {
-			ctx := utils.ToDockerContext(node.Engine)
-			breaked := false
-
-			// need to ensure all networks are correctly connected
-			for networkID, ipv4 := range opts.Networks {
-				if err = c.network.ConnectToNetwork(ctx, container.ID, networkID, ipv4); err != nil {
-					log.Errorf("Error when connecting container %q to network %q, %v", container.ID, networkID, err)
-					breaked = true
-					break
-				}
-			}
-
-			// remove bridge network
-			// only when user defined networks is given
-			if len(opts.Networks) != 0 {
-				if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
-					log.Errorf("Error when disconnecting container %q from network %q, %v", container.ID, "bridge", err)
-				}
-			}
-
-			// if any break occurs, then this container needs to be removed
-			if breaked {
-				ms[i].Error = err.Error()
-				c.releaseQuota(node, quota)
-				go node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{})
-				continue
-			}
-		}
-
-		err = node.Engine.ContainerStart(context.Background(), container.ID, enginetypes.ContainerStartOptions{})
-		if err != nil {
-			log.Errorf("Error when starting container, %v", err)
-			ms[i].Error = err.Error()
-			c.releaseQuota(node, quota)
-			go node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{})
-			continue
-		}
-
-		// TODO
-		// if network manager uses our own, then connect must be called after container starts
-		// here
-
-		info, err := node.Engine.ContainerInspect(context.Background(), container.ID)
-		if err != nil {
-			log.Errorf("Error when inspecting container, %v", err)
-			ms[i].Error = err.Error()
-			c.releaseQuota(node, quota)
-			continue
-		}
-		ms[i].ContainerID = info.ID
-
-		// after start
-		if err := runExec(node.Engine, info, AFTER_START); err != nil {
-			log.Errorf("Run exec at %s error: %v", AFTER_START, err)
-		}
-
-		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, quota, opts.Memory)
-		if err != nil {
-			ms[i].Error = err.Error()
-			c.releaseQuota(node, quota)
-			continue
-		}
-		ms[i].Success = true
-	}
-
-	return ms
-}
+//func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types.CPUMap, specs types.Specs, opts *types.DeployOptions) []*types.CreateContainerMessage {
+//	ms := make([]*types.CreateContainerMessage, len(cpumap))
+//	for i := 0; i < len(ms); i++ {
+//		ms[i] = &types.CreateContainerMessage{}
+//	}
+//
+//	node, err := c.GetNode(opts.Podname, nodename)
+//	if err != nil {
+//		log.Errorf("Get node error %v", err)
+//		return ms
+//	}
+//
+//	if err := pullImage(node, opts.Image); err != nil {
+//		return ms
+//	}
+//
+//	for i, quota := range cpumap {
+//		// create options
+//		//TODO ERU_CONTAINER_NO not support CPU pod now !!!
+//		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i, quota, specs, opts, "scheduler", node)
+//		ms[i].ContainerName = containerName
+//		ms[i].Podname = opts.Podname
+//		ms[i].Nodename = node.Name
+//		ms[i].Memory = opts.Memory
+//		if err != nil {
+//			ms[i].Error = err.Error()
+//			c.releaseQuota(node, quota)
+//			continue
+//		}
+//
+//		// create container
+//		container, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
+//		if err != nil {
+//			log.Errorf("Error when creating container, %v", err)
+//			ms[i].Error = err.Error()
+//			c.releaseQuota(node, quota)
+//			continue
+//		}
+//
+//		// connect container to network
+//		// if network manager uses docker plugin, then connect must be called before container starts
+//		if c.network.Type() == "plugin" {
+//			ctx := utils.ToDockerContext(node.Engine)
+//			breaked := false
+//
+//			// need to ensure all networks are correctly connected
+//			for networkID, ipv4 := range opts.Networks {
+//				if err = c.network.ConnectToNetwork(ctx, container.ID, networkID, ipv4); err != nil {
+//					log.Errorf("Error when connecting container %q to network %q, %v", container.ID, networkID, err)
+//					breaked = true
+//					break
+//				}
+//			}
+//
+//			// remove bridge network
+//			// only when user defined networks is given
+//			if len(opts.Networks) != 0 {
+//				if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
+//					log.Errorf("Error when disconnecting container %q from network %q, %v", container.ID, "bridge", err)
+//				}
+//			}
+//
+//			// if any break occurs, then this container needs to be removed
+//			if breaked {
+//				ms[i].Error = err.Error()
+//				c.releaseQuota(node, quota)
+//				go node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{})
+//				continue
+//			}
+//		}
+//
+//		err = node.Engine.ContainerStart(context.Background(), container.ID, enginetypes.ContainerStartOptions{})
+//		if err != nil {
+//			log.Errorf("Error when starting container, %v", err)
+//			ms[i].Error = err.Error()
+//			c.releaseQuota(node, quota)
+//			go node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{})
+//			continue
+//		}
+//
+//		// TODO
+//		// if network manager uses our own, then connect must be called after container starts
+//		// here
+//
+//		info, err := node.Engine.ContainerInspect(context.Background(), container.ID)
+//		if err != nil {
+//			log.Errorf("Error when inspecting container, %v", err)
+//			ms[i].Error = err.Error()
+//			c.releaseQuota(node, quota)
+//			continue
+//		}
+//		ms[i].ContainerID = info.ID
+//
+//		// after start
+//		if err := runExec(node.Engine, info, AFTER_START); err != nil {
+//			log.Errorf("Run exec at %s error: %v", AFTER_START, err)
+//		}
+//
+//		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, quota, opts.Memory)
+//		if err != nil {
+//			ms[i].Error = err.Error()
+//			c.releaseQuota(node, quota)
+//			continue
+//		}
+//		ms[i].Success = true
+//	}
+//
+//	return ms
+//}
 
 // When deploy on a public host
 // quota is set to 0
 // no need to update this to etcd (save 1 time write on etcd)
-func (c *calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
-	if quota.Total() == 0 {
-		log.Debug("cpu quota is zero: %f", quota)
-		return
-	}
-	c.store.UpdateNodeCPU(node.Podname, node.Name, quota, "+")
-}
+//func (c *calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
+//	if quota.Total() == 0 {
+//		log.Debug("cpu quota is zero: %f", quota)
+//		return
+//	}
+//	c.store.UpdateNodeCPU(node.Podname, node.Name, quota, "+")
+//}
 
 func (c *calcium) makeContainerOptions(index int, quota map[string]int, specs types.Specs, opts *types.DeployOptions, optionMode string, node *types.Node) (
 	*enginecontainer.Config,

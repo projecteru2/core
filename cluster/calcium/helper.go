@@ -13,10 +13,50 @@ import (
 	enginecontainer "github.com/docker/docker/api/types/container"
 	enginenetwork "github.com/docker/docker/api/types/network"
 	engineapi "github.com/docker/docker/client"
+	"gitlab.ricebook.net/platform/core/lock"
 	"gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/utils"
 	"golang.org/x/net/context"
 )
+
+func (c *calcium) Lock(name string, timeout int) (lock.DistributedLock, error) {
+	lock, err := c.store.CreateLock(name, timeout)
+	if err != nil {
+		return nil, err
+	}
+	if err = lock.Lock(); err != nil {
+		return nil, err
+	}
+	return lock, nil
+}
+
+func makeCPUAndMem(nodes []*types.Node) map[string]types.CPUAndMem {
+	r := make(map[string]types.CPUAndMem)
+	for _, node := range nodes {
+		r[node.Name] = types.CPUAndMem{node.CPU, node.MemCap}
+	}
+	return r
+}
+
+func makeCPUMap(nodes map[string]types.CPUAndMem) map[string]types.CPUMap {
+	r := make(map[string]types.CPUMap)
+	for key, node := range nodes {
+		r[key] = node.CpuMap
+	}
+	return r
+}
+
+// filter nodes
+// public is the flag
+func filterNodes(nodes []*types.Node, public bool) []*types.Node {
+	rs := []*types.Node{}
+	for _, node := range nodes {
+		if node.Public == public {
+			rs = append(rs, node)
+		}
+	}
+	return rs
+}
 
 // As the name says,
 // blocks until the stream is empty, until we meet EOF
