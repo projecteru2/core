@@ -19,6 +19,11 @@ import (
 	"golang.org/x/net/context"
 )
 
+var (
+	MEMORY_PRIOR = "cpuperiod"
+	CPU_PRIOR    = "scheduler"
+)
+
 // Create Container
 // Use specs and options to create
 // TODO what about networks?
@@ -28,12 +33,12 @@ func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) 
 		return nil, err
 	}
 	if pod.Scheduler == "CPU" {
-		return c.createContainerWithScheduler(specs, opts)
+		return c.createContainerWithCPUPrior(specs, opts)
 	}
-	return c.createContainerWithCPUPeriod(specs, opts)
+	return c.createContainerWithMemoryPrior(specs, opts)
 }
 
-func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+func (c *calcium) createContainerWithMemoryPrior(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
 	if opts.Memory < 4194304 { // 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
 		return ch, fmt.Errorf("Minimum memory limit allowed is 4MB")
@@ -42,52 +47,51 @@ func (c *calcium) createContainerWithCPUPeriod(specs types.Specs, opts *types.De
 	log.Debugf("Deploy options: %v", opts)
 	log.Debugf("Deploy specs: %v", specs)
 
-	// 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
+	// TODO RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
 	// 因此需要在这里加个全局锁，直到部署完毕才释放
-	lock, err := c.Lock(fmt.Sprintf("%s_%s", opts.Appname, opts.Entrypoint), 3600)
-	if err != nil {
-		return ch, err
-	}
-	plan, err := c.AllocMemoryPodResource(opts)
+	nodesInfo, err := c.allocMemoryPodResource(opts)
 	if err != nil {
 		return ch, err
 	}
 
-	go func(specs types.Specs, plan map[string]int, opts *types.DeployOptions) {
+	go func() {
 		defer close(ch)
-		// TODO 这个 LOCK 得有点长了……
-		defer lock.Unlock()
-
 		wg := sync.WaitGroup{}
-		wg.Add(len(plan))
-		count := 0
-		for nodename, num := range plan {
-			//log.Debugf("Outside doCreateContainerWithCPUPeriod: nodename %s, num %d, specs %v, opts %v", nodename, num, specs, opts)
-			go func(nodename string, count, num int, opts *types.DeployOptions) {
+		wg.Add(len(nodesInfo))
+		var count int64 = 0
+		for _, nodeInfo := range nodesInfo {
+			go func(nodeInfo types.NodeInfo, count int64) {
 				defer wg.Done()
-				//log.Debugf("Inside doCreateContainerWithCPUPeriod: nodename %s, num %d, specs %v, opts %v", nodename, num, specs, opts)
-				for _, m := range c.doCreateContainerWithCPUPeriod(nodename, count, num, opts.CPUQuota, specs, opts) {
+				for _, m := range c.doCreateContainerWithMemoryPrior(nodeInfo, specs, opts, count) {
 					ch <- m
 				}
-			}(nodename, count, num, opts)
-			count = count + num
+			}(nodeInfo, count)
+			count += nodeInfo.Deploy
 		}
 		wg.Wait()
 
 		// 第一次部署的时候就去cache下镜像吧
 		go c.cacheImage(opts.Podname, opts.Image)
-	}(specs, plan, opts)
+	}()
 
 	return ch, nil
 }
 
-func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, count, connum int, quota float64, specs types.Specs, opts *types.DeployOptions) []*types.CreateContainerMessage {
-	ms := make([]*types.CreateContainerMessage, connum)
-	for i := 0; i < len(ms); i++ {
+func (c *calcium) removeMemoryPodFailedContainer(id string, node *types.Node, nodeInfo types.NodeInfo, opts *types.DeployOptions) {
+	defer c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+")
+	if err := node.Engine.ContainerRemove(context.Background(), id, enginetypes.ContainerRemoveOptions{}); err != nil {
+		log.Errorf("[RemoveMemoryPodFailedContainer] Error during remove failed container %v", err)
+	}
+}
+
+func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, specs types.Specs, opts *types.DeployOptions, count int64) []*types.CreateContainerMessage {
+	ms := make([]*types.CreateContainerMessage, nodeInfo.Deploy)
+	var i int64
+	for i = 0; i < nodeInfo.Deploy; i++ {
 		ms[i] = &types.CreateContainerMessage{}
 	}
 
-	node, err := c.GetNode(opts.Podname, nodename)
+	node, err := c.GetNode(opts.Podname, nodeInfo.Name)
 	if err != nil {
 		return ms
 	}
@@ -96,24 +100,24 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, count, connum 
 		return ms
 	}
 
-	for i := 0; i < connum; i++ {
-		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i+count, nil, specs, opts, "cpuperiod", node)
+	for i = 0; i < nodeInfo.Deploy; i++ {
+		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i+count, nil, specs, opts, node, MEMORY_PRIOR)
 		ms[i].ContainerName = containerName
 		ms[i].Podname = opts.Podname
 		ms[i].Nodename = node.Name
 		ms[i].Memory = opts.Memory
 		if err != nil {
-			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+") // 创建容器失败就要把资源还回去对不对？
 			ms[i].Error = err.Error()
+			c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+") // 创建容器失败就要把资源还回去对不对？
 			continue
 		}
 
 		//create container
 		container, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
 		if err != nil {
-			log.Errorf("Error during ContainerCreate, %v", err)
+			log.Errorf("[CreateContainerWithMemoryPrior] Error during ContainerCreate, %v", err)
 			ms[i].Error = err.Error()
-			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
+			c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+")
 			continue
 		}
 
@@ -126,33 +130,31 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, count, connum 
 			// need to ensure all networks are correctly connected
 			for networkID, ipv4 := range opts.Networks {
 				if err = c.network.ConnectToNetwork(ctx, container.ID, networkID, ipv4); err != nil {
-					c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
-					log.Errorf("Error during connecting container %q to network %q, %v", container.ID, networkID, err)
+					log.Errorf("[CreateContainerWithMemoryPrior] Error during connecting container %q to network %q, %v", container.ID, networkID, err)
 					breaked = true
+					c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+")
 					break
 				}
 			}
 
 			// remove bridge network
 			if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
-				log.Errorf("Error during disconnecting container %q from network %q, %v", container.ID, "bridge", err)
+				log.Errorf("[CreateContainerWithMemoryPrior] Error during disconnecting container %q from network %q, %v", container.ID, "bridge", err)
 			}
 
 			// if any break occurs, then this container needs to be removed
 			if breaked {
 				ms[i].Error = err.Error()
-				c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
-				go node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{})
+				go c.removeMemoryPodFailedContainer(container.ID, node, nodeInfo, opts)
 				continue
 			}
 		}
 
 		err = node.Engine.ContainerStart(context.Background(), container.ID, enginetypes.ContainerStartOptions{})
 		if err != nil {
-			log.Errorf("Error during ContainerStart, %v", err)
+			log.Errorf("[CreateContainerWithMemoryPrior] Error during ContainerStart, %v", err)
 			ms[i].Error = err.Error()
-			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
-			go node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{})
+			go c.removeMemoryPodFailedContainer(container.ID, node, nodeInfo, opts)
 			continue
 		}
 
@@ -162,22 +164,24 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, count, connum 
 
 		info, err := node.Engine.ContainerInspect(context.Background(), container.ID)
 		if err != nil {
-			log.Errorf("Error during ContainerInspect, %v", err)
+			log.Errorf("[CreateContainerWithMemoryPrior] Error during ContainerInspect, %v", err)
 			ms[i].Error = err.Error()
-			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
+			c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+")
 			continue
 		}
 		ms[i].ContainerID = info.ID
 
 		// after start
 		if err := runExec(node.Engine, info, AFTER_START); err != nil {
-			log.Errorf("Run exec at %s error: %v", AFTER_START, err)
+			log.Errorf("[CreateContainerWithMemoryPrior] Run exec at %s error: %v", AFTER_START, err)
 		}
 
 		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, nil, opts.Memory)
 		if err != nil {
+			log.Errorf("[CreateContainerWithMemoryPrior] Error during store etcd data %v", err)
 			ms[i].Error = err.Error()
-			c.store.UpdateNodeMem(opts.Podname, nodename, opts.Memory, "+")
+			// 既然要回收资源就要干掉容器啊
+			go c.removeMemoryPodFailedContainer(container.ID, node, nodeInfo, opts)
 			continue
 		}
 
@@ -187,55 +191,59 @@ func (c *calcium) doCreateContainerWithCPUPeriod(nodename string, count, connum 
 	return ms
 }
 
-func (c *calcium) createContainerWithScheduler(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+func (c *calcium) createContainerWithCPUPrior(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
-	result, err := c.AllocCPUPodResource(opts)
+	result, err := c.allocCPUPodResource(opts)
 	if err != nil {
 		return ch, err
 	}
+
 	if len(result) == 0 {
-		return ch, fmt.Errorf("Not enough resource to create container")
+		return ch, fmt.Errorf("[CreateContainerWithCPUPrior] Not enough resource to create container")
 	}
 
-	// check total count in case scheduler error
-	totalCount := 0
-	for _, cores := range result {
-		totalCount = totalCount + len(cores)
-	}
-	if totalCount != opts.Count {
-		return ch, fmt.Errorf("Count mismatch (opt.Count %q, total %q), maybe scheduler error?", opts.Count, totalCount)
-	}
+	// FIXME check total count in case scheduler error
+	// FIXME ??? why
 
-	go func(plan map[string][]types.CPUMap, opts *types.DeployOptions) {
+	go func() {
 		wg := sync.WaitGroup{}
 		wg.Add(len(result))
+		var count int64
 
 		// do deployment
-		for nodename, cpumap := range plan {
-			go func(nodename string, cpumap []types.CPUMap, opts *types.DeployOptions) {
+		for nodeName, cpuMap := range result {
+			go func(nodeName string, cpuMap []types.CPUMap, count int64) {
 				defer wg.Done()
-				for _, m := range c.doCreateContainerWithScheduler(nodename, cpumap, specs, opts) {
+				for _, m := range c.doCreateContainerWithCPUPrior(nodeName, cpuMap, specs, opts, count) {
 					ch <- m
 				}
-			}(nodename, cpumap, opts)
+			}(nodeName, cpuMap, count)
+			count += int64(len(cpuMap))
 		}
 
 		wg.Wait()
 		close(ch)
-	}(result, opts)
+	}()
 
 	return ch, nil
 }
 
-func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types.CPUMap, specs types.Specs, opts *types.DeployOptions) []*types.CreateContainerMessage {
-	ms := make([]*types.CreateContainerMessage, len(cpumap))
+func (c *calcium) removeCPUPodFailedContainer(id string, node *types.Node, quota types.CPUMap) {
+	defer c.releaseQuota(node, quota)
+	if err := node.Engine.ContainerRemove(context.Background(), id, enginetypes.ContainerRemoveOptions{}); err != nil {
+		log.Errorf("[RemoveCPUPodFailedContainer] Error during remove failed container %v", err)
+	}
+}
+
+func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.CPUMap, specs types.Specs, opts *types.DeployOptions, count int64) []*types.CreateContainerMessage {
+	ms := make([]*types.CreateContainerMessage, len(cpuMap))
 	for i := 0; i < len(ms); i++ {
 		ms[i] = &types.CreateContainerMessage{}
 	}
 
-	node, err := c.GetNode(opts.Podname, nodename)
+	node, err := c.GetNode(opts.Podname, nodeName)
 	if err != nil {
-		log.Errorf("Get node error %v", err)
+		log.Errorf("[CreateContainerWithCPUPrior] Get node error %v", err)
 		return ms
 	}
 
@@ -243,10 +251,9 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 		return ms
 	}
 
-	for i, quota := range cpumap {
+	for i, quota := range cpuMap {
 		// create options
-		//TODO ERU_CONTAINER_NO not support CPU pod now !!!
-		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i, quota, specs, opts, "scheduler", node)
+		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(int64(i)+count, nil, specs, opts, node, CPU_PRIOR)
 		ms[i].ContainerName = containerName
 		ms[i].Podname = opts.Podname
 		ms[i].Nodename = node.Name
@@ -260,7 +267,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 		// create container
 		container, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
 		if err != nil {
-			log.Errorf("Error when creating container, %v", err)
+			log.Errorf("[CreateContainerWithCPUPrior] Error when creating container, %v", err)
 			ms[i].Error = err.Error()
 			c.releaseQuota(node, quota)
 			continue
@@ -275,7 +282,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 			// need to ensure all networks are correctly connected
 			for networkID, ipv4 := range opts.Networks {
 				if err = c.network.ConnectToNetwork(ctx, container.ID, networkID, ipv4); err != nil {
-					log.Errorf("Error when connecting container %q to network %q, %v", container.ID, networkID, err)
+					log.Errorf("[CreateContainerWithCPUPrior] Error when connecting container %q to network %q, %v", container.ID, networkID, err)
 					breaked = true
 					break
 				}
@@ -285,25 +292,23 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 			// only when user defined networks is given
 			if len(opts.Networks) != 0 {
 				if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
-					log.Errorf("Error when disconnecting container %q from network %q, %v", container.ID, "bridge", err)
+					log.Errorf("[CreateContainerWithCPUPrior] Error when disconnecting container %q from network %q, %v", container.ID, "bridge", err)
 				}
 			}
 
 			// if any break occurs, then this container needs to be removed
 			if breaked {
 				ms[i].Error = err.Error()
-				c.releaseQuota(node, quota)
-				go node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{})
+				go c.removeCPUPodFailedContainer(container.ID, node, quota)
 				continue
 			}
 		}
 
 		err = node.Engine.ContainerStart(context.Background(), container.ID, enginetypes.ContainerStartOptions{})
 		if err != nil {
-			log.Errorf("Error when starting container, %v", err)
+			log.Errorf("[CreateContainerWithCPUPrior] Error when starting container, %v", err)
 			ms[i].Error = err.Error()
-			c.releaseQuota(node, quota)
-			go node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{})
+			go c.removeCPUPodFailedContainer(container.ID, node, quota)
 			continue
 		}
 
@@ -313,7 +318,7 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 
 		info, err := node.Engine.ContainerInspect(context.Background(), container.ID)
 		if err != nil {
-			log.Errorf("Error when inspecting container, %v", err)
+			log.Errorf("[CreateContainerWithCPUPrior] Error when inspecting container, %v", err)
 			ms[i].Error = err.Error()
 			c.releaseQuota(node, quota)
 			continue
@@ -322,14 +327,14 @@ func (c *calcium) doCreateContainerWithScheduler(nodename string, cpumap []types
 
 		// after start
 		if err := runExec(node.Engine, info, AFTER_START); err != nil {
-			log.Errorf("Run exec at %s error: %v", AFTER_START, err)
+			log.Errorf("[CreateContainerWithCPUPrior] Run exec at %s error: %v", AFTER_START, err)
 		}
 
 		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, quota, opts.Memory)
 		if err != nil {
+			log.Errorf("[CreateContainerWithCPUPrior] Error during store etcd data %v", err)
 			ms[i].Error = err.Error()
-			c.releaseQuota(node, quota)
-			continue
+			go c.removeCPUPodFailedContainer(container.ID, node, quota)
 		}
 		ms[i].Success = true
 	}
@@ -348,7 +353,7 @@ func (c *calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
 	c.store.UpdateNodeCPU(node.Podname, node.Name, quota, "+")
 }
 
-func (c *calcium) makeContainerOptions(index int, quota map[string]int, specs types.Specs, opts *types.DeployOptions, optionMode string, node *types.Node) (
+func (c *calcium) makeContainerOptions(index int64, quota map[string]int, specs types.Specs, opts *types.DeployOptions, node *types.Node, optionMode string) (
 	*enginecontainer.Config,
 	*enginecontainer.HostConfig,
 	*enginenetwork.NetworkingConfig,

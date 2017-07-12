@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.ricebook.net/platform/core/types"
 )
 
 func TestRandomString(t *testing.T) {
@@ -44,16 +43,6 @@ func TestGetGitRepoName(t *testing.T) {
 	r1, err := GetGitRepoName("git@gitlab.ricebook.net:platform/core.git")
 	assert.NoError(t, err)
 	assert.Equal(t, r1, "core")
-}
-
-func updateNodeInfo(input []types.NodeInfo, plan map[string]int, memory int64) []types.NodeInfo {
-	result := []types.NodeInfo{}
-	for _, node := range input {
-		memoryChange := int64(plan[node.Name]) * memory
-		node.Memory -= memoryChange
-		result = append(result, node)
-	}
-	return result
 }
 
 //TODO disable deploy test first

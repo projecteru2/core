@@ -42,18 +42,24 @@ func TestRandomNode(t *testing.T) {
 
 func TestSelectCPUNodes(t *testing.T) {
 	m := &magnesium{}
-	_, _, err := m.SelectCPUNodes(map[string]types.CPUMap{}, 1, 1)
+	_, _, err := m.SelectCPUNodes(map[string]types.NodeInfo{}, 1, 1)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "No nodes provide to choose some")
 
-	nodes := map[string]types.CPUMap{
-		"node1": types.CPUMap{
-			"0": 10,
-			"1": 10,
+	nodes := map[string]types.NodeInfo{
+		"node1": types.NodeInfo{
+			Name: "node1",
+			CPU: types.CPUMap{
+				"0": 10,
+				"1": 10,
+			},
 		},
-		"node2": types.CPUMap{
-			"0": 10,
-			"1": 10,
+		"node2": types.NodeInfo{
+			Name: "node2",
+			CPU: types.CPUMap{
+				"0": 10,
+				"1": 10,
+			},
 		},
 	}
 
@@ -98,11 +104,11 @@ func TestSelectCPUNodes(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")
 
-	for _, cpus := range nodes {
-		assert.Equal(t, cpus.Total(), 0)
-		assert.Equal(t, len(cpus), 2)
-		assert.Equal(t, cpus["node1"], 0)
-		assert.Equal(t, cpus["node2"], 0)
+	for _, node := range nodes {
+		assert.Equal(t, node.CPU.Total(), 0)
+		assert.Equal(t, len(node.CPU), 2)
+		assert.Equal(t, node.CPU["node1"], 0)
+		assert.Equal(t, node.CPU["node2"], 0)
 	}
 }
 
@@ -120,14 +126,20 @@ func TestResultLength(t *testing.T) {
 }
 
 func TestTotalQuota(t *testing.T) {
-	nodes := map[string]types.CPUMap{
-		"node1": types.CPUMap{
-			"0": 10,
-			"1": 0,
+	nodes := map[string]types.NodeInfo{
+		"node1": types.NodeInfo{
+			Name: "node1",
+			CPU: types.CPUMap{
+				"0": 10,
+				"1": 0,
+			},
 		},
-		"node2": types.CPUMap{
-			"0": 5,
-			"1": 10,
+		"node2": types.NodeInfo{
+			Name: "node2",
+			CPU: types.CPUMap{
+				"0": 5,
+				"1": 10,
+			},
 		},
 	}
 	assert.Equal(t, totalQuota(nodes), 3)
@@ -135,18 +147,24 @@ func TestTotalQuota(t *testing.T) {
 
 func TestSelectPublicNodes(t *testing.T) {
 	m := &magnesium{}
-	_, _, err := m.SelectCPUNodes(map[string]types.CPUMap{}, 1, 1)
+	_, _, err := m.SelectCPUNodes(map[string]types.NodeInfo{}, 1, 1)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "No nodes provide to choose some")
 
-	nodes := map[string]types.CPUMap{
-		"node1": types.CPUMap{
-			"0": 10,
-			"1": 10,
+	nodes := map[string]types.NodeInfo{
+		"node1": types.NodeInfo{
+			Name: "node1",
+			CPU: types.CPUMap{
+				"0": 10,
+				"1": 10,
+			},
 		},
-		"node2": types.CPUMap{
-			"0": 10,
-			"1": 10,
+		"node2": types.NodeInfo{
+			Name: "node2",
+			CPU: types.CPUMap{
+				"0": 10,
+				"1": 10,
+			},
 		},
 	}
 
@@ -161,8 +179,8 @@ func TestSelectPublicNodes(t *testing.T) {
 		}
 	}
 
-	for nodename, cpu := range nodes {
+	for nodename, node := range nodes {
 		assert.Contains(t, []string{"node1", "node2"}, nodename)
-		assert.Equal(t, cpu.Total(), 20)
+		assert.Equal(t, node.CPU.Total(), 20)
 	}
 }

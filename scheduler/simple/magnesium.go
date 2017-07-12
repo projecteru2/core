@@ -44,7 +44,7 @@ func (m *magnesium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota int, mem
 
 // Select nodes for deploying.
 // Use round robin method to select, in order to make scheduler average.
-func (m *magnesium) SelectCPUNodes(nodes map[string]types.CPUMap, quota float64, num int) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
+func (m *magnesium) SelectCPUNodes(nodes map[string]types.NodeInfo, quota float64, num int) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -65,7 +65,7 @@ func (m *magnesium) SelectCPUNodes(nodes map[string]types.CPUMap, quota float64,
 done:
 	for {
 		for nodename, cpumap := range nodes {
-			r, err := getQuota(cpumap, q)
+			r, err := getQuota(cpumap.CPU, q)
 			if err != nil {
 				continue
 			}
@@ -79,7 +79,7 @@ done:
 	// 只把有修改的返回回去就可以了, 返回还剩下多少
 	for nodename, cpumap := range nodes {
 		if _, ok := result[nodename]; ok {
-			changed[nodename] = cpumap
+			changed[nodename] = cpumap.CPU
 		}
 	}
 	return result, changed, nil
@@ -97,10 +97,10 @@ func resultLength(result map[string][]types.CPUMap) int {
 // count total CPU number
 // in fact is the number of all labels
 // don't care about the value
-func totalQuota(nodes map[string]types.CPUMap) int {
+func totalQuota(nodes map[string]types.NodeInfo) int {
 	value := 0
 	for _, cmap := range nodes {
-		value += cpuCount(cmap)
+		value += cpuCount(cmap.CPU)
 	}
 	return value
 }

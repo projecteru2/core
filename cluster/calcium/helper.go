@@ -38,14 +38,6 @@ func makeCPUAndMem(nodes []*types.Node) map[string]types.CPUAndMem {
 	return r
 }
 
-func makeCPUMap(nodes map[string]types.CPUAndMem) map[string]types.CPUMap {
-	r := make(map[string]types.CPUMap)
-	for key, node := range nodes {
-		r[key] = node.CpuMap
-	}
-	return r
-}
-
 // filter nodes
 // public is the flag
 func filterNodes(nodes []*types.Node, public bool) []*types.Node {

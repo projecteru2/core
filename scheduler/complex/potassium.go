@@ -2,7 +2,6 @@ package complexscheduler
 
 import (
 	"fmt"
-	"sort"
 
 	log "github.com/Sirupsen/logrus"
 	"gitlab.ricebook.net/platform/core/types"
@@ -20,7 +19,7 @@ func (m *potassium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
 	if len(nodes) == 0 {
 		return nodename, fmt.Errorf("No nodes provide to choose one")
 	}
-	max := 0
+	var max int64 = 0
 	for name, cpumap := range nodes {
 		total := cpumap.Total()
 		if total > max {
@@ -34,28 +33,27 @@ func (m *potassium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
 	return nodename, nil
 }
 
-func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota int, memory int64, need int) (map[string]int, error) {
-	log.Debugf("[AllocContainerPlan]: nodesInfo: %v, quota: %d, memory: %d, need: %d", nodesInfo, quota, memory, need)
+func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory, need int64) ([]types.NodeInfo, error) {
+	log.Debugf("[SelectMemoryNodes]: nodesInfo: %v, rate: %d, memory: %d, need: %d", nodesInfo, rate, memory, need)
 
-	result := map[string]int{}
 	var p int = -1
 	for i, nodeInfo := range nodesInfo {
-		if nodeInfo.CorePer >= quota {
+		if nodeInfo.CPURate >= rate {
 			p = i
 			break
 		}
 	}
 	if p == -1 {
-		return result, fmt.Errorf("[AllocContainerPlan] Cannot alloc a plan, not enough cpu quota")
+		return nil, fmt.Errorf("[SelectMemoryNodes] Cannot alloc a plan, not enough cpu rate")
 	}
-	log.Debugf("[AllocContainerPlan] the %d th node has enough cpu quota.", p)
+	log.Debugf("[SelectMemoryNodes] the %d th node has enough cpu rate.", p)
 
 	// 计算是否有足够的内存满足需求
 	nodesInfo = nodesInfo[p:]
-	volTotal := 0
+	var volTotal int64 = 0
 	p = -1
 	for i, nodeInfo := range nodesInfo {
-		capacity := int(nodeInfo.Memory / memory)
+		capacity := int64(nodeInfo.MemCap / memory)
 		if capacity <= 0 {
 			continue
 		}
@@ -63,55 +61,59 @@ func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota int, mem
 			p = i
 		}
 		volTotal += capacity
-		nodeInfo.Capacity = capacity
+		nodesInfo[i].Capacity = capacity
 	}
 	if volTotal < need {
-		return result, fmt.Errorf("[AllocContainerPlan] Cannot alloc a plan, not enough memory, volume %d, need %d", volTotal, need)
+		return nil, fmt.Errorf("[SelectMemoryNodes] Cannot alloc a plan, not enough memory, volume %d, need %d", volTotal, need)
 	}
 
 	// 继续裁可用节点池子
 	nodesInfo = nodesInfo[p:]
-	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Count < nodesInfo[j].Count })
-	log.Debugf("[AllocContainerPlan] volumn of each node: %v", nodesInfo)
-	nodesInfo, err := equalDivisionPlan(nodesInfo, need, volTotal)
+	log.Debugf("[SelectMemoryNodes] volumn of each node: %v", nodesInfo)
+	nodesInfo, err := CommunismDivisionPlan(nodesInfo, need, volTotal)
 	if err != nil {
-		return result, err
+		return nil, err
 	}
 
-	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Memory < nodesInfo[j].Memory })
-	for _, nodeInfo := range nodesInfo {
-		result[nodeInfo.Name] = nodeInfo.Deploy
-	}
-	log.Debugf("[AllocContainerPlan] allocAlgorithm result: %v", result)
-	return result, nil
+	// 这里并不需要再次排序了，理论上的排序是基于 Count 得到的 Deploy 最终方案
+	log.Debugf("[SelectMemoryNodes] CommunismDivisionPlan: %v", nodesInfo)
+	return nodesInfo, nil
 }
 
-func (m *potassium) SelectCPUNodes(nodes map[string]types.CPUMap, quota float64, need int) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
+//TODO 这里要处理下输入
+func (m *potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, need int64) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
 	result := make(map[string][]types.CPUMap)
 	changed := make(map[string]types.CPUMap)
 
-	if len(nodes) == 0 {
-		return result, nil, fmt.Errorf("No nodes provide to choose some")
+	if len(nodesInfo) == 0 {
+		return result, nil, fmt.Errorf("[SelectCPUNodes] No nodes provide to choose some")
 	}
 
 	// all core could be shared
 	// suppose each core has 10 coreShare
 	// TODO: change it to be control by parameters
-	result = averagePlan(quota, nodes, need, -1, 10)
-	if result == nil {
+	volTotal, selectedNodesInfo, selectedNodesPool := cpuPriorPlan(quota, nodesInfo, need, -1, 10)
+	if volTotal == -1 {
 		return nil, nil, fmt.Errorf("Not enough resource")
 	}
 
+	selectedNodesInfo, err := CommunismDivisionPlan(selectedNodesInfo, need, volTotal)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	// 只返回有修改的就可以了, 返回有修改的还剩下多少
-	for nodename, cpuList := range result {
-		node, ok := nodes[nodename]
-		if !ok {
+	for _, selectedNode := range selectedNodesInfo {
+		if selectedNode.Deploy <= 0 {
 			continue
 		}
+		cpuList := selectedNodesPool[selectedNode.Name][:selectedNode.Deploy]
+		result[selectedNode.Name] = cpuList
 		for _, cpu := range cpuList {
-			node.Sub(cpu)
+			selectedNode.CpuMap.Sub(cpu)
 		}
-		changed[nodename] = node
+		changed[selectedNode.Name] = selectedNode.CpuMap
 	}
+
 	return result, changed, nil
 }

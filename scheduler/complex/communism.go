@@ -1,16 +1,22 @@
 package complexscheduler
 
 import (
+	"sort"
+
 	"gitlab.ricebook.net/platform/core/types"
 )
 
-func equalDivisionPlan(arg []types.NodeInfo, need, volTotal int) ([]types.NodeInfo, error) {
+// 吃我一记共产主义大锅饭
+func CommunismDivisionPlan(arg []types.NodeInfo, need, volTotal int64) ([]types.NodeInfo, error) {
+	sort.Slice(arg, func(i, j int) bool { return arg[i].Count < arg[j].Count })
 	length := len(arg)
 	i := 0
+
+	var deploy, differ int64
 	for need > 0 && volTotal > 0 {
 		p := i
-		deploy := 0
-		differ := 1
+		deploy = 0
+		differ = 1
 		if i < length-1 {
 			differ = arg[i+1].Count - arg[i].Count
 			i++

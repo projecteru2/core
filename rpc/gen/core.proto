@@ -139,7 +139,7 @@ message DeployOptions {
     string entrypoint = 6;
     string extra_args = 7;
     double cpu_quota = 8;
-    int32 count = 9;
+    int64 count = 9;
     int64 memory = 10;
     repeated string env = 11;
     map<string, string> networks = 12;

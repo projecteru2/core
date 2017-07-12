@@ -9,7 +9,6 @@ import (
 )
 
 func TestSchedulerInvoke(t *testing.T) {
-	// scheduler := complexscheduler.New()
 	coreCfg := types.Config{
 		EtcdMachines:   []string{"http://127.0.0.1:2379"},
 		EtcdLockPrefix: "/eru-core/_lock",
@@ -21,17 +20,28 @@ func TestSchedulerInvoke(t *testing.T) {
 	}
 	scheduler, _ := complexscheduler.New(coreCfg)
 
-	nodes := map[string]types.CPUMap{
-		"node1": types.CPUMap{
-			"0": 10,
-			"1": 10,
+	nodes := []types.NodeInfo{
+		types.NodeInfo{
+			types.CPUAndMem{
+				types.CPUMap{
+					"0": 10,
+					"1": 10,
+				},
+				12400000,
+			},
+			"node1", 0.0, 0, 0, 0,
 		},
-		"node2": types.CPUMap{
-			"0": 10,
-			"1": 10,
+		types.NodeInfo{
+			types.CPUAndMem{
+				types.CPUMap{
+					"0": 10,
+					"1": 10,
+				},
+				12400000,
+			},
+			"node2", 0.0, 0, 0, 0,
 		},
 	}
-
 	_, _, err := scheduler.SelectCPUNodes(nodes, 1, 2)
 	assert.NoError(t, err)
 }

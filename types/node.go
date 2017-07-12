@@ -11,16 +11,16 @@ import (
 	"golang.org/x/net/context"
 )
 
-type CPUMap map[string]int
-
 type CPUAndMem struct {
 	CpuMap CPUMap
 	MemCap int64
 }
 
+type CPUMap map[string]int64
+
 // total quotas
-func (c CPUMap) Total() int {
-	count := 0
+func (c CPUMap) Total() int64 {
+	var count int64 = 0
 	for _, value := range c {
 		count += value
 	}
@@ -82,14 +82,15 @@ func (n *Node) GetIP() string {
 }
 
 type NodeInfo struct {
+	CPUAndMem
 	Name    string
-	CorePer int
-	Memory  int64
+	CPURate int64
 
-	Capacity int
+	// 可以部署几个
+	Capacity int64
 	// 上面有几个了
-	Count int
+	Count int64
 	// 最终部署几个
-	Deploy int
+	Deploy int64
 	// 其他需要 filter 的字段
 }

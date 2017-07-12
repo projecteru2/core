@@ -11,21 +11,27 @@ import (
 	"gitlab.ricebook.net/platform/core/types"
 )
 
-func volumn(nodeInfo []types.NodeInfo) int {
-	val := 0
-	for _, v := range nodeInfo {
-		val += v.Capacity
+func min(a, b int64) int64 {
+	if a < b {
+		return a
 	}
-	return val
+	return b
+}
+
+func abs(a int64) int64 {
+	if a < 0 {
+		return -a
+	}
+	return a
 }
 
 type host struct {
 	full     types.CPUMap
 	fragment types.CPUMap
-	share    int
+	share    int64
 }
 
-func newHost(cpuInfo types.CPUMap, share int) *host {
+func newHost(cpuInfo types.CPUMap, share int64) *host {
 	result := &host{
 		share:    share,
 		full:     types.CPUMap{},
@@ -42,18 +48,19 @@ func newHost(cpuInfo types.CPUMap, share int) *host {
 	return result
 }
 
-func (self *host) calcuatePiecesCores(full int, fragment int, maxShareCore int) {
-	var fullResultNum, fragmentResultNum, canDeployNum, baseLine int
-	var fragmentBaseResult, count, num, flag, b, baseContainers int
+func (self *host) calcuatePiecesCores(full, fragment, maxShareCore int64) {
+	var fullResultNum, fragmentResultNum, canDeployNum, baseLine int64
+	var fragmentBaseResult, lenFull, count, num, flag, b, baseContainers int64
 
-	count = len(self.fragment)
+	count = int64(len(self.fragment))
+	lenFull = int64(len(self.full))
 	if maxShareCore == -1 {
-		maxShareCore = len(self.full) - count - full // 减枝，M == N 的情况下预留至少一个 full 量的核数
+		maxShareCore = lenFull - count - full // 减枝，M == N 的情况下预留至少一个 full 量的核数
 	} else {
 		maxShareCore -= count
 	}
 
-	fullResultNum = len(self.full) / full
+	fullResultNum = lenFull / full
 	fragmentBaseResult = 0
 	for _, pieces := range self.fragment {
 		fragmentBaseResult += pieces / fragment
@@ -63,8 +70,9 @@ func (self *host) calcuatePiecesCores(full int, fragment int, maxShareCore int) 
 	num = 0
 	flag = math.MaxInt64
 	baseContainers = self.share / fragment
-	for i := 1; i < maxShareCore+1; i++ {
-		fullResultNum = (len(self.full) - i) / full
+	var i int64
+	for i = 1; i < maxShareCore+1; i++ {
+		fullResultNum = (lenFull - i) / full
 		fragmentResultNum = fragmentBaseResult + i*baseContainers
 		// 剪枝，2者结果相近的时候最优
 		b = abs(fullResultNum - fragmentResultNum)
@@ -91,24 +99,24 @@ func (self *host) calcuatePiecesCores(full int, fragment int, maxShareCore int) 
 	}
 }
 
-func (self *host) getContainerCores(num float64, maxShareCore int) []types.CPUMap {
+func (self *host) getContainerCores(num float64, maxShareCore int64) []types.CPUMap {
 	num = num * float64(self.share)
 
-	var full, fragment int
+	var full, fragment, i int64
 	var result = []types.CPUMap{}
 	var fullResult = types.CPUMap{}
 	var fragmentResult = []string{}
 
-	full = int(num) / self.share
-	fragment = int(num) % self.share
+	full = int64(num) / self.share
+	fragment = int64(num) % self.share
 
 	if full == 0 {
 		if maxShareCore == -1 {
 			// 这个时候就把所有的核都当成碎片核
-			maxShareCore = len(self.full) + len(self.fragment)
+			maxShareCore = int64(len(self.full)) + int64(len(self.fragment))
 		}
 		for no, pieces := range self.full {
-			if len(self.fragment) >= maxShareCore {
+			if int64(len(self.fragment)) >= maxShareCore {
 				break
 			}
 			self.fragment[no] = pieces
@@ -122,8 +130,8 @@ func (self *host) getContainerCores(num float64, maxShareCore int) []types.CPUMa
 	}
 
 	if fragment == 0 {
-		n := len(self.full) / full
-		for i := 0; i < n; i++ {
+		n := int64(len(self.full)) / full
+		for i = 0; i < n; i++ {
 			fullResult = self.getFullResult(full)
 			result = append(result, fullResult)
 		}
@@ -135,7 +143,7 @@ func (self *host) getContainerCores(num float64, maxShareCore int) []types.CPUMa
 	fragmentResult = self.getFragmentResult(fragment)
 	for _, no := range fragmentResult {
 		fullResult = self.getFullResult(full)
-		if len(fullResult) != full { // 可能整数核不够用了结果并不一定可靠必须再判断一次
+		if int64(len(fullResult)) != full { // 可能整数核不够用了结果并不一定可靠必须再判断一次
 			return result // 减枝这时候整数核一定不够用了，直接退出，这样碎片核和整数核的计算就完成了
 		}
 		fullResult[no] = fragment
@@ -144,130 +152,63 @@ func (self *host) getContainerCores(num float64, maxShareCore int) []types.CPUMa
 	return result
 }
 
-func (self *host) getFragmentResult(fragment int) []string {
+func (self *host) getFragmentResult(fragment int64) []string {
 	var result = []string{}
+	var i int64
 	for no, pieces := range self.fragment {
-		for i := 0; i < pieces/fragment; i++ {
+		for i = 0; i < pieces/fragment; i++ {
 			result = append(result, no)
 		}
 	}
 	return result
 }
 
-func (self *host) getFullResult(full int) types.CPUMap {
+func (self *host) getFullResult(full int64) types.CPUMap {
 	var result = types.CPUMap{}
 	for no, pieces := range self.full {
 		result[no] = pieces   // 分配一整个核
 		delete(self.full, no) // 干掉这个可用资源
-		if len(result) == full {
+		if int64(len(result)) == full {
 			break
 		}
 	}
 	return result
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
+func cpuPriorPlan(cpu float64, nodesInfo []types.NodeInfo, need, maxShareCore, coreShare int64) (
+	int64, []types.NodeInfo, map[string][]types.CPUMap) {
 
-func abs(a int) int {
-	if a < 0 {
-		return -a
-	}
-	return a
-}
-
-func averagePlan(cpu float64, nodes map[string]types.CPUMap, need, maxShareCore, coreShare int) map[string][]types.CPUMap {
-
-	var nodecontainer = map[string][]types.CPUMap{}
-	var result = map[string][]types.CPUMap{}
+	var nodeContainer = map[string][]types.CPUMap{}
 	var host *host
 	var plan []types.CPUMap
-	var n int
-	var nodeInfo []types.NodeInfo
-	var nodeName string
+	var n int64
 
-	if cpu < 0.01 {
-		resultLength := 0
-	r:
-		for {
-			for nodeName, _ := range nodes {
-				result[nodeName] = append(result[nodeName], nil)
-				resultLength++
-			}
-			if resultLength == need {
-				break r
-			}
-		}
-		return result
-	}
+	// TODO weird check cpu < 0.01
 
-	for node, cpuInfo := range nodes {
-		host = newHost(cpuInfo, coreShare)
+	var volTotal int64 = 0
+	for p, nodeInfo := range nodesInfo {
+		host = newHost(nodeInfo.CpuMap, coreShare)
 		plan = host.getContainerCores(cpu, maxShareCore)
-		n = len(plan) // 每个node可以放的容器数
+		n = int64(len(plan)) // 每个node可以放的容器数
 		if n > 0 {
-			nodeInfo = append(nodeInfo, types.NodeInfo{Name: node, Capacity: n})
-			nodecontainer[node] = plan
+			nodesInfo[p].Capacity = n
+			nodeContainer[nodeInfo.Name] = plan
+			volTotal += n
 		}
 	}
 
-	if volumn(nodeInfo) < need {
-		return nil
+	if volTotal < need {
+		return -1, nil, nil
 	}
 
-	// 排序
-	sort.Slice(nodeInfo, func(i, j int) bool {
-		return nodeInfo[i].Capacity < nodeInfo[j].Capacity
-	})
-
-	// 决定分配方案
-	allocplan := allocPlan(nodeInfo, need)
-	for node, ncon := range allocplan {
-		if ncon > 0 {
-			nodeName = nodeInfo[node].Name
-			result[nodeName] = nodecontainer[nodeName][:ncon]
-		}
-	}
-
-	return result
-}
-
-func allocPlan(info []types.NodeInfo, need int) map[int]int {
-	result := make(map[int]int)
-	NNode := len(info)
-
-	var nodeToUse, more int
-	for i := 0; i < NNode; i++ {
-		nodeToUse = NNode - i
-		ave := need / nodeToUse
-		if ave > info[i].Capacity {
-			ave = 1
-		}
-		for ; ave < info[i].Capacity && ave*nodeToUse < need; ave++ {
-		}
-		more = ave*nodeToUse - need
-		for j := i; nodeToUse != 0; nodeToUse-- {
-			if _, ok := result[j]; !ok {
-				result[j] = ave
-			} else {
-				result[j] += ave
-			}
-			if more > 0 {
-				more--
-				result[j]--
-			} else if more < 0 {
-				info[j].Capacity -= ave
-			}
-			j++
-		}
-		if more == 0 {
+	// 裁剪掉不能部署的
+	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Capacity < nodesInfo[j].Capacity })
+	var p int
+	for p = 0; p < len(nodesInfo); p++ {
+		if nodesInfo[p].Capacity > 0 {
 			break
 		}
-		need = -more
 	}
-	return result
+
+	return volTotal, nodesInfo[p:], nodeContainer
 }

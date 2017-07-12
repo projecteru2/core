@@ -11,7 +11,7 @@ import (
 	"gitlab.ricebook.net/platform/core/utils"
 )
 
-func (c *calcium) AllocMemoryPodResource(opts *types.DeployOptions) (map[string]int, error) {
+func (c *calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.NodeInfo, error) {
 	lock, err := c.Lock(opts.Podname, 30)
 	if err != nil {
 		return nil, err
@@ -22,36 +22,37 @@ func (c *calcium) AllocMemoryPodResource(opts *types.DeployOptions) (map[string]
 	if err != nil {
 		return nil, err
 	}
-
 	nodesInfo := getNodesInfo(cpuandmem)
-	log.Debugf("Input opts.CPUQuota: %f", opts.CPUQuota)
-	cpuQuota := int(opts.CPUQuota * float64(utils.CpuPeriodBase))
-	log.Debugf("Tranfered cpuQuota: %d", cpuQuota)
+
+	// Load deploy status
 	nodesInfo, err = c.store.MakeDeployStatus(opts, nodesInfo)
 	if err != nil {
 		return nil, err
 	}
 
-	plan, err := c.scheduler.SelectMemoryNodes(nodesInfo, cpuQuota, opts.Memory, opts.Count) // 还是以 Bytes 作单位， 不转换了
+	cpuRate := int64(opts.CPUQuota * float64(utils.CpuPeriodBase))
+	log.Debugf("Input opts.CPUQuota: %f, equal CPURate %d", opts.CPUQuota, cpuRate)
+	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].MemCap < nodesInfo[j].MemCap })
+	nodesInfo, err = c.scheduler.SelectMemoryNodes(nodesInfo, cpuRate, opts.Memory, opts.Count) // 还是以 Bytes 作单位， 不转换了
 	if err != nil {
 		return nil, err
 	}
 
 	// 并发扣除所需资源
 	wg := sync.WaitGroup{}
-	wg.Add(len(plan))
-	for nodename, connum := range plan {
-		go func(nodename string, connum int) {
-			wg.Done()
-			memoryTotal := opts.Memory * int64(connum)
-			c.store.UpdateNodeMem(opts.Podname, nodename, memoryTotal, "-")
-		}(nodename, connum)
+	wg.Add(len(nodesInfo))
+	for _, nodeInfo := range nodesInfo {
+		go func(nodeInfo types.NodeInfo) {
+			defer wg.Done()
+			memoryTotal := opts.Memory * nodeInfo.Deploy
+			c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, memoryTotal, "-")
+		}(nodeInfo)
 	}
 	wg.Wait()
-	return plan, nil
+	return nodesInfo, nil
 }
 
-func (c *calcium) AllocCPUPodResource(opts *types.DeployOptions) (map[string][]types.CPUMap, error) {
+func (c *calcium) allocCPUPodResource(opts *types.DeployOptions) (map[string][]types.CPUMap, error) {
 	lock, err := c.Lock(opts.Podname, 30)
 	if err != nil {
 		return nil, err
@@ -62,10 +63,15 @@ func (c *calcium) AllocCPUPodResource(opts *types.DeployOptions) (map[string][]t
 	if err != nil {
 		return nil, err
 	}
+	nodesInfo := getNodesInfo(cpuandmem)
 
-	cpumap := makeCPUMap(cpuandmem) // 做这个转换，免得改太多
-	log.Debugf("Cpumap: %v", cpumap)
-	result, changed, err := c.scheduler.SelectCPUNodes(cpumap, opts.CPUQuota, opts.Count)
+	// Load deploy status
+	nodesInfo, err = c.store.MakeDeployStatus(opts, nodesInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	result, changed, err := c.scheduler.SelectCPUNodes(nodesInfo, opts.CPUQuota, opts.Count)
 	log.Debugf("Result: %v, Changed: %v", result, changed)
 	if err != nil {
 		return result, err
@@ -123,11 +129,11 @@ func (c *calcium) getCPUAndMem(podname, nodename string, quota float64) (map[str
 	return result, nodes, nil
 }
 
-func getNodesInfo(cpumemmap map[string]types.CPUAndMem) []types.NodeInfo {
+func getNodesInfo(cpuAndMemData map[string]types.CPUAndMem) []types.NodeInfo {
 	result := []types.NodeInfo{}
-	for node, cpuandmem := range cpumemmap {
-		result = append(result, types.NodeInfo{node, len(cpuandmem.CpuMap) * utils.CpuPeriodBase, cpuandmem.MemCap, 0, 0, 0})
+	for nodeName, cpuAndMem := range cpuAndMemData {
+		cpuRate := int64(len(cpuAndMem.CpuMap)) * utils.CpuPeriodBase
+		result = append(result, types.NodeInfo{cpuAndMem, nodeName, cpuRate, 0, 0, 0})
 	}
-	sort.Slice(result, func(i, j int) bool { return result[i].Memory < result[j].Memory })
 	return result
 }

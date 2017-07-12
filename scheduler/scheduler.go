@@ -9,8 +9,8 @@ type Scheduler interface {
 	// select one node from nodes, returns nodename
 	// typically used to build image
 	RandomNode(nodes map[string]types.CPUMap) (string, error)
-	SelectMemoryNodes(nodesInfo []types.NodeInfo, quota int, memory int64, need int) (map[string]int, error)
+	SelectMemoryNodes(nodesInfo []types.NodeInfo, quota, memory, need int64) ([]types.NodeInfo, error)
 	// select nodes from nodes, return a list of nodenames and the corresponding cpumap, and also the changed nodes with remaining cpumap
 	// quota and number must be given, typically used to determine where to deploy
-	SelectCPUNodes(nodes map[string]types.CPUMap, quota float64, need int) (map[string][]types.CPUMap, map[string]types.CPUMap, error)
+	SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, need int64) (map[string][]types.CPUMap, map[string]types.CPUMap, error)
 }

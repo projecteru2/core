@@ -595,7 +595,7 @@ type DeployOptions struct {
 	Entrypoint string            `protobuf:"bytes,6,opt,name=entrypoint" json:"entrypoint,omitempty"`
 	ExtraArgs  string            `protobuf:"bytes,7,opt,name=extra_args,json=extraArgs" json:"extra_args,omitempty"`
 	CpuQuota   float64           `protobuf:"fixed64,8,opt,name=cpu_quota,json=cpuQuota" json:"cpu_quota,omitempty"`
-	Count      int32             `protobuf:"varint,9,opt,name=count" json:"count,omitempty"`
+	Count      int64             `protobuf:"varint,9,opt,name=count" json:"count,omitempty"`
 	Memory     int64             `protobuf:"varint,10,opt,name=memory" json:"memory,omitempty"`
 	Env        []string          `protobuf:"bytes,11,rep,name=env" json:"env,omitempty"`
 	Networks   map[string]string `protobuf:"bytes,12,rep,name=networks" json:"networks,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -664,7 +664,7 @@ func (m *DeployOptions) GetCpuQuota() float64 {
 	return 0
 }
 
-func (m *DeployOptions) GetCount() int32 {
+func (m *DeployOptions) GetCount() int64 {
 	if m != nil {
 		return m.Count
 	}
