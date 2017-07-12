@@ -43,6 +43,9 @@ func (c *calcium) createContainerWithMemoryPrior(specs types.Specs, opts *types.
 	if opts.Memory < 4194304 { // 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
 		return ch, fmt.Errorf("Minimum memory limit allowed is 4MB")
 	}
+	if opts.Count <= 0 { // Count 要大于0
+		return ch, fmt.Errorf("Count must be positive")
+	}
 
 	log.Debugf("Deploy options: %v", opts)
 	log.Debugf("Deploy specs: %v", specs)
@@ -526,6 +529,7 @@ func (c *calcium) makeContainerOptions(index int, quota map[string]int, specs ty
 		WorkingDir:      workingDir,
 		NetworkDisabled: false,
 		Labels:          containerLabels,
+		OpenStdin:       opts.OpenStdin,
 	}
 
 	var resource enginecontainer.Resources

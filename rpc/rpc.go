@@ -1,8 +1,10 @@
 package rpc
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
@@ -227,32 +229,65 @@ func (v *vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 	return nil
 }
 
-func (v *vibranium) RunAndWait(opts *pb.DeployOptions, stream pb.CoreRPC_RunAndWaitServer) error {
+func (v *vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	v.taskAdd("RunAndWait", true)
+	defer v.taskDone("RunAndWait", true)
+
+	RunAndWaitOptions, err := stream.Recv()
+	if err != nil {
+		return err
+	}
+
+	opts := RunAndWaitOptions.DeployOptions
 
 	specs, err := types.LoadSpecs(opts.Specs)
 	if err != nil {
 		return err
 	}
 
-	ch, err := v.cluster.RunAndWait(specs, toCoreDeployOptions(opts))
+	stdinReader, stdinWriter := io.Pipe()
+	defer stdinReader.Close()
+	ch, err := v.cluster.RunAndWait(specs, toCoreDeployOptions(opts), stdinReader)
 	if err != nil {
+		log.Errorf("[RunAndWait] Start run and wait failed %s", err)
+		stream.Send(toRPCRunAndWaitMessage(<-ch))
 		return err
+	}
+
+	if opts.OpenStdin {
+		go func() {
+			defer stdinWriter.Write([]byte("exit\n"))
+			stdinWriter.Write([]byte("echo 'Welcom to NERV...\n'\n"))
+			cli := []byte("echo \"`pwd`> \"\n")
+			stdinWriter.Write(cli)
+			for {
+				RunAndWaitOptions, err := stream.Recv()
+				if RunAndWaitOptions == nil || err != nil {
+					log.Errorf("[RunAndWait] Recv command error: %v", err)
+					break
+				}
+				log.Debugf("[RunAndWait] Recv command: %s", bytes.TrimRight(RunAndWaitOptions.Cmd, "\n"))
+				if _, err := stdinWriter.Write(RunAndWaitOptions.Cmd); err != nil {
+					log.Errorf("[RunAndWait] Write command error: %v", err)
+					break
+				}
+				stdinWriter.Write(cli)
+			}
+		}()
 	}
 
 	for m := range ch {
 		if err := stream.Send(toRPCRunAndWaitMessage(m)); err != nil {
+			log.Errorf("[RunAndWait] Send msg error: %s", err)
 			go func() {
-				defer v.taskDone("RunAndWait", true)
 				for r := range ch {
-					log.Infof("[RunAndWait] Unsent streamed message: %v", r.Data)
+					log.Infof("[RunAndWait] Unsent streamed message: %s", r.Data)
 				}
 			}()
 			return err
 		}
 	}
 
-	v.taskDone("RunAndWait", true)
 	return nil
 }
 

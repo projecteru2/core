@@ -67,12 +67,13 @@ func toCoreDeployOptions(d *pb.DeployOptions) *types.DeployOptions {
 		Entrypoint: d.Entrypoint,
 		ExtraArgs:  d.ExtraArgs,
 		CPUQuota:   d.CpuQuota,
-		Count:      d.Count,
+		Count:      int(d.Count),
 		Memory:     d.Memory,
 		Env:        d.Env,
 		Networks:   d.Networks,
 		Raw:        d.Raw,
 		Debug:      d.Debug,
+		OpenStdin:  d.OpenStdin,
 	}
 }
 

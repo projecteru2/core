@@ -3,6 +3,7 @@ package calcium
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"sync"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan *types.RunAndWaitMessage, error) {
+func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error) {
 	ch := make(chan *types.RunAndWaitMessage)
 
 	// 强制为 json-file 输出
@@ -28,10 +29,23 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 		waitTimeout = c.config.RunAndWaitTimeout
 	}
 
+	finalSendError := func(e error) {
+		ch <- &types.RunAndWaitMessage{ContainerID: " error ", Data: []byte(e.Error())}
+		close(ch)
+	}
+
+	// count = 1 && OpenStdin
+	if opts.OpenStdin && opts.Count != 1 {
+		err := fmt.Errorf("[RunAndWait] `Count` must be 1 if `OpenStdin` is true, `Count` is %d now", opts.Count)
+		go finalSendError(err)
+		return ch, err
+	}
+
 	// 创建容器, 有问题就gg
 	createChan, err := c.CreateContainer(specs, opts)
 	if err != nil {
-		log.Errorf("[RunAndWait] Create container error, %v", err)
+		go finalSendError(err)
+		log.Errorf("[RunAndWait] Create container error %s", err)
 		return ch, err
 	}
 
@@ -78,11 +92,29 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 					return
 				}
 
+				if opts.OpenStdin {
+					go func() {
+						r, err := node.Engine.ContainerAttach(
+							context.Background(), containerID,
+							enginetypes.ContainerAttachOptions{Stream: true, Stdin: true})
+						defer r.Close()
+						defer stdin.Close()
+						if err != nil {
+							log.Errorf("[RunAndWait] Failed to attach container, %v", err)
+							return
+						}
+						io.Copy(r.Conn, stdin)
+					}()
+				}
+
 				stream := utils.FuckDockerStream(resp)
 				scanner := bufio.NewScanner(stream)
 				for scanner.Scan() {
 					data := scanner.Bytes()
-					ch <- &types.RunAndWaitMessage{ContainerID: containerID, Data: data}
+					ch <- &types.RunAndWaitMessage{
+						ContainerID: containerID,
+						Data:        data,
+					}
 					log.Debugf("[RunAndWait] %s %s", containerID[:12], data)
 				}
 
@@ -98,7 +130,7 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions) (chan
 				code, err := node.Engine.ContainerWait(context.Background(), containerID)
 				exitData := []byte(fmt.Sprintf("[exitcode] %d", code))
 				if err != nil {
-					log.Errorf("%s run failed, %v", containerID[:12], err)
+					log.Errorf("[RunAndWait] %s run failed, %v", containerID[:12], err)
 					exitData = []byte(fmt.Sprintf("[exitcode] unknown %v", err))
 				}
 				ch <- &types.RunAndWaitMessage{ContainerID: containerID, Data: exitData}
