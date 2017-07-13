@@ -3,9 +3,9 @@ package complexscheduler
 import (
 	"fmt"
 	"math/rand"
+	"strconv"
 	"testing"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"gitlab.ricebook.net/platform/core/types"
 )
@@ -18,7 +18,7 @@ func resultLength(result map[string][]types.CPUMap) int {
 	return length
 }
 
-func TestSelectCPUNodes(t *testing.T) {
+func newPotassium() (*potassium, error) {
 	coreCfg := types.Config{
 		EtcdMachines:   []string{"http://127.0.0.1:2379"},
 		EtcdLockPrefix: "/eru-core/_lock",
@@ -29,41 +29,50 @@ func TestSelectCPUNodes(t *testing.T) {
 		},
 	}
 
-	k, merr := New(coreCfg)
-	if merr != nil {
-		t.Fatalf("Create Potassim error: %v", merr)
+	potassium, err := New(coreCfg)
+	if err != nil {
+		return nil, fmt.Errorf("Create Potassim error: %v", err)
 	}
+	return potassium, nil
+}
+
+func newPod(count int) []types.NodeInfo {
+	n := types.NodeInfo{
+		CPUAndMem: types.CPUAndMem{
+			CpuMap: types.CPUMap{
+				"0": 10,
+				"1": 10,
+			},
+			MemCap: 4 * 1024 * 1024 * 1024,
+		},
+		Name:     "",
+		CPURate:  2e9,
+		Capacity: 0,
+		Count:    0,
+		Deploy:   0,
+	}
+
+	nodes := []types.NodeInfo{}
+	for i := 0; i < count; i++ {
+		n.Name = "node" + strconv.Itoa(i)
+		nodes = append(nodes, n)
+	}
+
+	return nodes
+}
+
+func TestSelectCPUNodes(t *testing.T) {
+	k, _ := newPotassium()
 
 	_, _, err := k.SelectCPUNodes([]types.NodeInfo{}, 1, 1)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "[SelectCPUNodes] No nodes provide to choose some")
 
-	nodes := []types.NodeInfo{
-		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{
-					"0": 10,
-					"1": 10,
-				},
-				12400000,
-			},
-			"node1", 0.0, 0, 0, 0,
-		},
-		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{
-					"0": 10,
-					"1": 10,
-				},
-				12400000,
-			},
-			"node2", 0.0, 0, 0, 0,
-		},
-	}
-
-	debug, changed, _ := k.SelectCPUNodes(nodes, 0.5, 1)
-	fmt.Printf("algorithm debug res: %v", debug)
-	fmt.Printf("algorithm debug changed: %v", changed)
+	nodes := newPod(2)
+	_, _, err = k.SelectCPUNodes(nodes, 0.5, 1)
+	assert.NoError(t, err)
+	//fmt.Printf("algorithm debug res: %v", debug)
+	//fmt.Printf("algorithm debug changed: %v", changed)
 
 	_, _, err = k.SelectCPUNodes(nodes, 2, 3)
 	assert.Error(t, err)
@@ -77,66 +86,28 @@ func TestSelectCPUNodes(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")
 
-	nodes = []types.NodeInfo{
-		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{
-					"0": 10,
-					"1": 10,
-				},
-				12400000,
-			},
-			"node1", 0.0, 0, 0, 0,
-		},
-		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{
-					"0": 10,
-					"1": 10,
-				},
-				12400000,
-			},
-			"node2", 0.0, 0, 0, 0,
-		},
-	}
-
+	// new round test
+	nodes = newPod(2)
 	r, re, err := k.SelectCPUNodes(nodes, 1, 2)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(r))
 	assert.Equal(t, 2, len(re))
 
 	for nodename, cpus := range r {
-		assert.Contains(t, []string{"node1", "node2"}, nodename)
+		assert.Contains(t, []string{"node0", "node1"}, nodename)
 		// assert.Equal(t, len(cpus), 1)
-
 		cpu := cpus[0]
 		assert.Equal(t, cpu.Total(), int64(10))
 	}
 
 	// SelectCPUNodes 里有一些副作用, 粗暴地拿一个新的来测试吧
 	// 下面也是因为这个
-	nodes = []types.NodeInfo{
-		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{"0": 10, "1": 10},
-				12400000,
-			},
-			"node1", 0.0, 0, 0, 0,
-		},
-		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{"0": 10, "1": 10},
-				12400000,
-			},
-			"node2", 0.0, 0, 0, 0,
-		},
-	}
-
-	r, re, err = k.SelectCPUNodes(nodes, 1.3, 2)
+	nodes = newPod(2)
+	r, _, err = k.SelectCPUNodes(nodes, 1.3, 2)
 	assert.NoError(t, err)
 
 	for nodename, cpus := range r {
-		assert.Contains(t, []string{"node1", "node2"}, nodename)
+		assert.Contains(t, []string{"node0", "node1"}, nodename)
 		assert.Equal(t, len(cpus), 1)
 
 		cpu := cpus[0]
@@ -158,12 +129,12 @@ func checkAvgPlan(res map[string][]types.CPUMap, minCon int, maxCon int, name st
 		}
 	}
 	if minC != minCon || maxC != maxCon {
-		fmt.Println(name)
-		fmt.Println("min: ", minC)
-		fmt.Println("max: ", maxC)
-		for k, v := range res {
-			fmt.Println(k, ":", len(v))
-		}
+		//fmt.Println(name)
+		//fmt.Println("min: ", minC)
+		//fmt.Println("max: ", maxC)
+		//for k, v := range res {
+		//	fmt.Println(k, ":", len(v))
+		//}
 		return fmt.Errorf("alloc plan error")
 	}
 	return nil
@@ -172,17 +143,7 @@ func checkAvgPlan(res map[string][]types.CPUMap, minCon int, maxCon int, name st
 func TestRecurrence(t *testing.T) {
 	// 利用相同线上数据复现线上出现的问题
 
-	coreCfg := types.Config{
-		EtcdMachines:   []string{"http://127.0.0.1:2379"},
-		EtcdLockPrefix: "/eru-core/_lock",
-		Scheduler: types.SchedConfig{
-			LockKey: "/coretest",
-			LockTTL: 1,
-			Type:    "complex",
-		},
-	}
-
-	k, _ := New(coreCfg)
+	k, _ := newPotassium()
 
 	nodes := []types.NodeInfo{
 		types.NodeInfo{
@@ -215,8 +176,7 @@ func TestRecurrence(t *testing.T) {
 		},
 	}
 
-	result, _, err := k.SelectCPUNodes(nodes, 0.5, 3)
-	log.Infof("result: %v", result)
+	_, _, err := k.SelectCPUNodes(nodes, 0.5, 3)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -438,10 +398,7 @@ func TestComplexNodes(t *testing.T) {
 	}
 
 	res3, changed3, err := k.SelectCPUNodes(nodes, 1.7, 23)
-	if err != nil {
-		fmt.Println("May be we dont have plan")
-		fmt.Println(err)
-	}
+	assert.NoError(t, err)
 	if check := checkAvgPlan(res3, 2, 6, "res3"); check != nil {
 		t.Fatalf("something went wrong")
 	}
@@ -513,17 +470,7 @@ func TestComplexNodes(t *testing.T) {
 }
 
 func TestEvenPlan(t *testing.T) {
-	coreCfg := types.Config{
-		EtcdMachines:   []string{"http://127.0.0.1:2379"},
-		EtcdLockPrefix: "/eru-core/_lock",
-		Scheduler: types.SchedConfig{
-			LockKey: "/coretest",
-			LockTTL: 1,
-			Type:    "complex",
-		},
-	}
-
-	k, merr := New(coreCfg)
+	k, merr := newPotassium()
 	if merr != nil {
 		t.Fatalf("Create Potassim error: %v", merr)
 	}
@@ -750,17 +697,7 @@ func TestSpecialCase(t *testing.T) {
 		},
 	}
 
-	coreCfg := types.Config{
-		EtcdMachines:   []string{"http://127.0.0.1:2379"},
-		EtcdLockPrefix: "/eru-core/_lock",
-		Scheduler: types.SchedConfig{
-			LockKey: "/coretest",
-			LockTTL: 1,
-			Type:    "complex",
-		},
-	}
-
-	k, _ := New(coreCfg)
+	k, _ := newPotassium()
 	res1, _, err := k.SelectCPUNodes(pod, 1.7, 7)
 	if err != nil {
 		t.Fatalf("something went wrong")
@@ -812,8 +749,14 @@ func generateNodes(nums, maxCores, seed int) []types.NodeInfo {
 			coreName := fmt.Sprintf("%d", j)
 			cpumap[coreName] = 10
 		}
-		cpuandmem := types.CPUAndMem{cpumap, 12040000}
-		nodeInfo := types.NodeInfo{cpuandmem, name, 0, 0, 0, 0}
+		cpuandmem := types.CPUAndMem{
+			CpuMap: cpumap,
+			MemCap: 12040000,
+		}
+		nodeInfo := types.NodeInfo{
+			CPUAndMem: cpuandmem,
+			Name:      name,
+		}
 		pod = append(pod, nodeInfo)
 	}
 	return pod
@@ -821,15 +764,15 @@ func generateNodes(nums, maxCores, seed int) []types.NodeInfo {
 
 var hugePod = generateNodes(10000, 24, 10086)
 
-func getPodVol(nodes []types.NodeInfo, cpu float64) int64 {
-	var res int64
+func getPodVol(nodes []types.NodeInfo, cpu float64) int {
+	var res int
 	var host *host
 	var plan []types.CPUMap
 
 	for _, nodeInfo := range nodes {
 		host = newHost(nodeInfo.CPUAndMem.CpuMap, 10)
 		plan = host.getContainerCores(cpu, -1)
-		res += int64(len(plan))
+		res += len(plan)
 	}
 	return res
 }
@@ -846,25 +789,15 @@ func TestGetPodVol(t *testing.T) {
 	}
 
 	res := getPodVol(nodes, 0.5)
-	assert.Equal(t, res, int64(18))
+	assert.Equal(t, res, 18)
 	res = getPodVol(nodes, 0.3)
-	assert.Equal(t, res, int64(27))
+	assert.Equal(t, res, 27)
 	res = getPodVol(nodes, 1.1)
-	assert.Equal(t, res, int64(8))
+	assert.Equal(t, res, 8)
 }
 
 func Benchmark_ExtreamAlloc(b *testing.B) {
-	coreCfg := types.Config{
-		EtcdMachines:   []string{"http://127.0.0.1:2379"},
-		EtcdLockPrefix: "/eru-core/_lock",
-		Scheduler: types.SchedConfig{
-			LockKey: "/coretest",
-			LockTTL: 1,
-			Type:    "complex",
-		},
-	}
-
-	k, _ := New(coreCfg)
+	k, _ := newPotassium()
 	b.StopTimer()
 	b.StartTimer()
 
@@ -878,17 +811,7 @@ func Benchmark_ExtreamAlloc(b *testing.B) {
 
 func Benchmark_AveAlloc(b *testing.B) {
 	b.StopTimer()
-	coreCfg := types.Config{
-		EtcdMachines:   []string{"http://127.0.0.1:2379"},
-		EtcdLockPrefix: "/eru-core/_lock",
-		Scheduler: types.SchedConfig{
-			LockKey: "/coretest",
-			LockTTL: 1,
-			Type:    "complex",
-		},
-	}
-
-	k, _ := New(coreCfg)
+	k, _ := newPotassium()
 
 	b.StartTimer()
 	result, changed, err := k.SelectCPUNodes(hugePod, 1.7, 12000)
@@ -896,4 +819,162 @@ func Benchmark_AveAlloc(b *testing.B) {
 		b.Fatalf("something went wrong")
 	}
 	assert.Equal(b, len(result), len(changed))
+}
+
+// Test SelectMemoryNodes
+func TestSelectMemoryNodes(t *testing.T) {
+	// 2 nodes [2 containers per node]
+	pod := newPod(2)
+	k, _ := newPotassium()
+	res, err := k.SelectMemoryNodes(pod, 10000, 512*1024*1024, 4)
+	assert.NoError(t, err)
+	for _, node := range res {
+		assert.Equal(t, node.Deploy, 2)
+	}
+
+	// 4 nodes [1 container per node]
+	pod = newPod(4)
+	res, err = k.SelectMemoryNodes(pod, 10000, 512*1024*1024, 1)
+	assert.NoError(t, err)
+	assert.Equal(t, res[0].Deploy, 1)
+
+	// 4 nodes [1 container per node]
+	pod = newPod(4)
+	res, err = k.SelectMemoryNodes(pod, 10000, 512*1024*1024, 4)
+	assert.NoError(t, err)
+	for _, node := range res {
+		assert.Equal(t, node.Deploy, 1)
+	}
+
+	// 4 nodes
+	pod = newPod(4)
+	for i := 0; i < 4; i++ {
+		pod[i].Count += i
+	}
+	res, err = k.SelectMemoryNodes(pod, 10000, 512*1024*1024, 6)
+	assert.NoError(t, err)
+	for i, node := range res {
+		fmt.Printf("[%v] already: [%v], plan: [%v], final: [%v]\n", node.Name, node.Count, node.Deploy, node.Count+node.Deploy)
+		assert.Equal(t, node.Deploy, 3-i)
+	}
+}
+
+func TestTestSelectMemoryNodesNotEnough(t *testing.T) {
+	// 2 nodes [mem not enough]
+	pod := newPod(2)
+	k, _ := newPotassium()
+	_, err := k.SelectMemoryNodes(pod, 10000, 512*1024*1024, 40)
+	assert.Error(t, err)
+	if err != nil {
+		assert.Equal(t, err.Error(), "[SelectMemoryNodes] Cannot alloc a plan, not enough memory, volume 16, need 40")
+	}
+
+	// 2 nodes [mem not enough]
+	pod = newPod(2)
+	_, err = k.SelectMemoryNodes(pod, 1e9, 5*1024*1024*1024, 1)
+	assert.Error(t, err)
+	if err != nil {
+		assert.Equal(t, err.Error(), "[SelectMemoryNodes] Cannot alloc a plan, not enough memory, volume 0, need 1")
+	}
+
+	// 2 nodes [cpu not enough]
+	pod = newPod(2)
+	_, err = k.SelectMemoryNodes(pod, 1e10, 512*1024*1024, 1)
+	assert.Error(t, err)
+	if err != nil {
+		assert.Equal(t, err.Error(), "[SelectMemoryNodes] Cannot alloc a plan, not enough cpu rate")
+	}
+}
+
+func refreshPod(nodes []types.NodeInfo) {
+	for i := range nodes {
+		nodes[i].Count += nodes[i].Deploy
+		nodes[i].MemCap -= int64(nodes[i].Deploy * 512 * 1024 * 1024)
+		nodes[i].Deploy = 0
+	}
+}
+
+func TestSelectMemoryNodesSequence(t *testing.T) {
+	pod := newPod(2)
+	k, _ := newPotassium()
+	res, err := k.SelectMemoryNodes(pod, 10000, 512*1024*1024, 1)
+	assert.NoError(t, err)
+	for _, node := range res {
+		if node.Name == "node0" {
+			assert.Equal(t, node.Deploy, 1)
+		}
+	}
+
+	refreshPod(res)
+	res, err = k.SelectMemoryNodes(res, 10000, 512*1024*1024, 1)
+	assert.NoError(t, err)
+	for _, node := range res {
+		if node.Name == "node1" {
+			assert.Equal(t, node.Deploy, 1)
+		}
+	}
+
+	refreshPod(res)
+	res, err = k.SelectMemoryNodes(res, 10000, 512*1024*1024, 4)
+	assert.NoError(t, err)
+	assert.Equal(t, res[0].Deploy, 2)
+	assert.Equal(t, res[1].Deploy, 2)
+
+	refreshPod(res)
+	res, err = k.SelectMemoryNodes(res, 10000, 512*1024*1024, 3)
+	assert.NoError(t, err)
+	for _, node := range res {
+		fmt.Printf("[%v] already: [%v], plan: [%v], final: [%v]\n", node.Name, node.Count, node.Deploy, node.Count+node.Deploy)
+	}
+	assert.Equal(t, res[0].Deploy+res[1].Deploy, 3)
+	assert.Equal(t, res[0].Deploy-res[1].Deploy, 1)
+
+	refreshPod(res)
+	res, err = k.SelectMemoryNodes(res, 10000, 512*1024*1024, 40)
+	assert.Error(t, err)
+	if err != nil {
+		assert.Equal(t, err.Error(), "[SelectMemoryNodes] Cannot alloc a plan, not enough memory, volume 7, need 40")
+	}
+
+	// new round
+	pod = newPod(2)
+	res, err = k.SelectMemoryNodes(pod, 10000, 512*1024*1024, 1)
+	assert.NoError(t, err)
+	for _, node := range res {
+		if node.Name == "node0" {
+			assert.Equal(t, node.Deploy, 1)
+		}
+	}
+	refreshPod(res)
+	res, err = k.SelectMemoryNodes(res, 10000, 512*1024*1024, 2)
+	assert.NoError(t, err)
+	for _, node := range res {
+		if node.Name == "node1" {
+			assert.Equal(t, node.Deploy, 2)
+		}
+	}
+	refreshPod(res)
+	res, err = k.SelectMemoryNodes(res, 10000, 512*1024*1024, 5)
+	assert.NoError(t, err)
+	assert.Equal(t, res[0].Deploy+res[0].Count, 4)
+	assert.Equal(t, res[1].Deploy+res[1].Count, 4)
+}
+
+func TestSelectMemoryNodesGiven(t *testing.T) {
+	pod := newPod(4)
+	for i := 0; i < 3; i++ {
+		pod[i].Count++
+	}
+
+	k, _ := newPotassium()
+	res, err := k.SelectMemoryNodes(pod, 10000, 512*1024*1024, 2)
+	assert.NoError(t, err)
+	for _, node := range res {
+		if node.Name == "node3" {
+			assert.Equal(t, node.Deploy, 2)
+		} else {
+			assert.Equal(t, node.Deploy, 0)
+		}
+		// fmt.Printf("[%v] already: [%v], plan: [%v], final: [%v]\n", node.Name, node.Count, node.Deploy, node.Count+node.Deploy)
+	}
 }

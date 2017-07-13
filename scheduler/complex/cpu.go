@@ -175,25 +175,24 @@ func (self *host) getFullResult(full int64) types.CPUMap {
 	return result
 }
 
-func cpuPriorPlan(cpu float64, nodesInfo []types.NodeInfo, need, maxShareCore, coreShare int64) (
-	int64, []types.NodeInfo, map[string][]types.CPUMap) {
+func cpuPriorPlan(cpu float64, nodesInfo []types.NodeInfo, need int, maxShareCore, coreShare int64) (
+	int, []types.NodeInfo, map[string][]types.CPUMap) {
 
 	var nodeContainer = map[string][]types.CPUMap{}
 	var host *host
 	var plan []types.CPUMap
-	var n int64
 
 	// TODO weird check cpu < 0.01
 
-	var volTotal int64 = 0
+	volTotal := 0
 	for p, nodeInfo := range nodesInfo {
 		host = newHost(nodeInfo.CpuMap, coreShare)
 		plan = host.getContainerCores(cpu, maxShareCore)
-		n = int64(len(plan)) // 每个node可以放的容器数
-		if n > 0 {
-			nodesInfo[p].Capacity = n
+		cap := len(plan) // 每个node可以放的容器数
+		if cap > 0 {
+			nodesInfo[p].Capacity = cap
 			nodeContainer[nodeInfo.Name] = plan
-			volTotal += n
+			volTotal += cap
 		}
 	}
 

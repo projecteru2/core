@@ -19,7 +19,7 @@ func (m *potassium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
 	if len(nodes) == 0 {
 		return nodename, fmt.Errorf("No nodes provide to choose one")
 	}
-	var max int64 = 0
+	var max int64
 	for name, cpumap := range nodes {
 		total := cpumap.Total()
 		if total > max {
@@ -33,10 +33,10 @@ func (m *potassium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
 	return nodename, nil
 }
 
-func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory, need int64) ([]types.NodeInfo, error) {
+func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory int64, need int) ([]types.NodeInfo, error) {
 	log.Debugf("[SelectMemoryNodes]: nodesInfo: %v, rate: %d, memory: %d, need: %d", nodesInfo, rate, memory, need)
 
-	var p int = -1
+	p := -1
 	for i, nodeInfo := range nodesInfo {
 		if nodeInfo.CPURate >= rate {
 			p = i
@@ -50,10 +50,10 @@ func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory, 
 
 	// 计算是否有足够的内存满足需求
 	nodesInfo = nodesInfo[p:]
-	var volTotal int64 = 0
+	volTotal := 0
 	p = -1
 	for i, nodeInfo := range nodesInfo {
-		capacity := int64(nodeInfo.MemCap / memory)
+		capacity := int(nodeInfo.MemCap / memory)
 		if capacity <= 0 {
 			continue
 		}
@@ -81,7 +81,7 @@ func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory, 
 }
 
 //TODO 这里要处理下输入
-func (m *potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, need int64) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
+func (m *potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, need int) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
 	result := make(map[string][]types.CPUMap)
 	changed := make(map[string]types.CPUMap)
 

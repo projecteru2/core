@@ -16,11 +16,12 @@ type CPUAndMem struct {
 	MemCap int64
 }
 
+// CPUMap {["0"]10000, ["1"]10000}
 type CPUMap map[string]int64
 
-// total quotas
+// Total quotas
 func (c CPUMap) Total() int64 {
-	var count int64 = 0
+	var count int64
 	for _, value := range c {
 		count += value
 	}
@@ -83,14 +84,10 @@ func (n *Node) GetIP() string {
 
 type NodeInfo struct {
 	CPUAndMem
-	Name    string
-	CPURate int64
-
-	// 可以部署几个
-	Capacity int64
-	// 上面有几个了
-	Count int64
-	// 最终部署几个
-	Deploy int64
+	Name     string
+	CPURate  int64
+	Capacity int // 可以部署几个
+	Count    int // 上面有几个了
+	Deploy   int // 最终部署几个
 	// 其他需要 filter 的字段
 }

@@ -7,12 +7,12 @@ import (
 )
 
 // 吃我一记共产主义大锅饭
-func CommunismDivisionPlan(arg []types.NodeInfo, need, volTotal int64) ([]types.NodeInfo, error) {
+func CommunismDivisionPlan(arg []types.NodeInfo, need, volTotal int) ([]types.NodeInfo, error) {
 	sort.Slice(arg, func(i, j int) bool { return arg[i].Count < arg[j].Count })
 	length := len(arg)
 	i := 0
 
-	var deploy, differ int64
+	var deploy, differ int
 	for need > 0 && volTotal > 0 {
 		p := i
 		deploy = 0

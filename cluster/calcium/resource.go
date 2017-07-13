@@ -44,7 +44,7 @@ func (c *calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.Nod
 	for _, nodeInfo := range nodesInfo {
 		go func(nodeInfo types.NodeInfo) {
 			defer wg.Done()
-			memoryTotal := opts.Memory * nodeInfo.Deploy
+			memoryTotal := opts.Memory * int64(nodeInfo.Deploy)
 			c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, memoryTotal, "-")
 		}(nodeInfo)
 	}
@@ -133,7 +133,15 @@ func getNodesInfo(cpuAndMemData map[string]types.CPUAndMem) []types.NodeInfo {
 	result := []types.NodeInfo{}
 	for nodeName, cpuAndMem := range cpuAndMemData {
 		cpuRate := int64(len(cpuAndMem.CpuMap)) * utils.CpuPeriodBase
-		result = append(result, types.NodeInfo{cpuAndMem, nodeName, cpuRate, 0, 0, 0})
+		n := types.NodeInfo{
+			CPUAndMem: cpuAndMem,
+			Name:      nodeName,
+			CPURate:   cpuRate,
+			Capacity:  0,
+			Count:     0,
+			Deploy:    0,
+		}
+		result = append(result, n)
 	}
 	return result
 }

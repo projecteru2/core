@@ -42,24 +42,30 @@ func TestRandomNode(t *testing.T) {
 
 func TestSelectCPUNodes(t *testing.T) {
 	m := &magnesium{}
-	_, _, err := m.SelectCPUNodes(map[string]types.NodeInfo{}, 1, 1)
+	_, _, err := m.SelectCPUNodes([]types.NodeInfo{}, 1, 1)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "No nodes provide to choose some")
 
-	nodes := map[string]types.NodeInfo{
-		"node1": types.NodeInfo{
-			Name: "node1",
-			CPU: types.CPUMap{
-				"0": 10,
-				"1": 10,
+	nodes := []types.NodeInfo{
+		types.NodeInfo{
+			types.CPUAndMem{
+				types.CPUMap{
+					"0": 10,
+					"1": 10,
+				},
+				12400000,
 			},
+			"node1", 0.0, 0, 0, 0,
 		},
-		"node2": types.NodeInfo{
-			Name: "node2",
-			CPU: types.CPUMap{
-				"0": 10,
-				"1": 10,
+		types.NodeInfo{
+			types.CPUAndMem{
+				types.CPUMap{
+					"0": 10,
+					"1": 10,
+				},
+				12400000,
 			},
+			"node2", 0.0, 0, 0, 0,
 		},
 	}
 
@@ -83,7 +89,7 @@ func TestSelectCPUNodes(t *testing.T) {
 		assert.Equal(t, len(cpus), 1)
 
 		cpu := cpus[0]
-		assert.Equal(t, cpu.Total(), 10)
+		assert.Equal(t, int(cpu.Total()), 10)
 	}
 
 	_, _, err = m.SelectCPUNodes(nodes, 1, 4)
@@ -97,7 +103,7 @@ func TestSelectCPUNodes(t *testing.T) {
 		assert.Equal(t, len(cpus), 1)
 
 		cpu := cpus[0]
-		assert.Equal(t, cpu.Total(), 10)
+		assert.Equal(t, int(cpu.Total()), 10)
 	}
 
 	_, _, err = m.SelectCPUNodes(nodes, 1, 1)
@@ -105,10 +111,11 @@ func TestSelectCPUNodes(t *testing.T) {
 	assert.Contains(t, err.Error(), "Not enough")
 
 	for _, node := range nodes {
-		assert.Equal(t, node.CPU.Total(), 0)
-		assert.Equal(t, len(node.CPU), 2)
-		assert.Equal(t, node.CPU["node1"], 0)
-		assert.Equal(t, node.CPU["node2"], 0)
+		cupmap := node.CpuMap
+		assert.Equal(t, int(cupmap.Total()), 0)
+		assert.Equal(t, len(cupmap), 2)
+		assert.Equal(t, int(cupmap["0"]), 0)
+		assert.Equal(t, int(cupmap["1"]), 0)
 	}
 }
 
@@ -126,20 +133,26 @@ func TestResultLength(t *testing.T) {
 }
 
 func TestTotalQuota(t *testing.T) {
-	nodes := map[string]types.NodeInfo{
-		"node1": types.NodeInfo{
-			Name: "node1",
-			CPU: types.CPUMap{
-				"0": 10,
-				"1": 0,
+	nodes := []types.NodeInfo{
+		types.NodeInfo{
+			types.CPUAndMem{
+				types.CPUMap{
+					"0": 10,
+					"1": 0,
+				},
+				12400000,
 			},
+			"node1", 0.0, 0, 0, 0,
 		},
-		"node2": types.NodeInfo{
-			Name: "node2",
-			CPU: types.CPUMap{
-				"0": 5,
-				"1": 10,
+		types.NodeInfo{
+			types.CPUAndMem{
+				types.CPUMap{
+					"0": 5,
+					"1": 10,
+				},
+				12400000,
 			},
+			"node2", 0.0, 0, 0, 0,
 		},
 	}
 	assert.Equal(t, totalQuota(nodes), 3)
@@ -147,24 +160,30 @@ func TestTotalQuota(t *testing.T) {
 
 func TestSelectPublicNodes(t *testing.T) {
 	m := &magnesium{}
-	_, _, err := m.SelectCPUNodes(map[string]types.NodeInfo{}, 1, 1)
+	_, _, err := m.SelectCPUNodes([]types.NodeInfo{}, 1, 1)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "No nodes provide to choose some")
 
-	nodes := map[string]types.NodeInfo{
-		"node1": types.NodeInfo{
-			Name: "node1",
-			CPU: types.CPUMap{
-				"0": 10,
-				"1": 10,
+	nodes := []types.NodeInfo{
+		types.NodeInfo{
+			types.CPUAndMem{
+				types.CPUMap{
+					"0": 10,
+					"1": 10,
+				},
+				12400000,
 			},
+			"node1", 0.0, 0, 0, 0,
 		},
-		"node2": types.NodeInfo{
-			Name: "node2",
-			CPU: types.CPUMap{
-				"0": 10,
-				"1": 10,
+		types.NodeInfo{
+			types.CPUAndMem{
+				types.CPUMap{
+					"0": 10,
+					"1": 10,
+				},
+				12400000,
 			},
+			"node2", 0.0, 0, 0, 0,
 		},
 	}
 
@@ -175,12 +194,13 @@ func TestSelectPublicNodes(t *testing.T) {
 	for nodename, cpus := range r {
 		assert.Contains(t, []string{"node1", "node2"}, nodename)
 		for _, cpu := range cpus {
-			assert.Equal(t, cpu.Total(), 0)
+			assert.Equal(t, int(cpu.Total()), 0)
 		}
 	}
 
-	for nodename, node := range nodes {
+	for _, node := range nodes {
+		nodename := node.Name
 		assert.Contains(t, []string{"node1", "node2"}, nodename)
-		assert.Equal(t, node.CPU.Total(), 20)
+		assert.Equal(t, int(node.CpuMap.Total()), 20)
 	}
 }

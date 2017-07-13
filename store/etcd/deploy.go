@@ -21,7 +21,7 @@ func (k *krypton) MakeDeployStatus(opts *types.DeployOptions, nodesInfo []types.
 
 	prefix := fmt.Sprintf("%s_%s", opts.Appname, opts.Entrypoint)
 	m := map[string]string{}
-	nodesCount := map[string]int64{}
+	nodesCount := map[string]int{}
 	for _, node := range resp.Node.Nodes {
 		json.Unmarshal([]byte(node.Value), &m)
 		if m["podname"] != opts.Podname {
@@ -34,7 +34,7 @@ func (k *krypton) MakeDeployStatus(opts *types.DeployOptions, nodesInfo []types.
 			nodesCount[m["nodename"]] = 1
 			continue
 		}
-		nodesCount[m["nodename"]] += 1
+		nodesCount[m["nodename"]]++
 	}
 
 	for p, nodeInfo := range nodesInfo {

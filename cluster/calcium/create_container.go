@@ -58,15 +58,15 @@ func (c *calcium) createContainerWithMemoryPrior(specs types.Specs, opts *types.
 		defer close(ch)
 		wg := sync.WaitGroup{}
 		wg.Add(len(nodesInfo))
-		var count int64 = 0
+		index := 0
 		for _, nodeInfo := range nodesInfo {
-			go func(nodeInfo types.NodeInfo, count int64) {
+			go func(nodeInfo types.NodeInfo, index int) {
 				defer wg.Done()
-				for _, m := range c.doCreateContainerWithMemoryPrior(nodeInfo, specs, opts, count) {
+				for _, m := range c.doCreateContainerWithMemoryPrior(nodeInfo, specs, opts, index) {
 					ch <- m
 				}
-			}(nodeInfo, count)
-			count += nodeInfo.Deploy
+			}(nodeInfo, index)
+			index += nodeInfo.Deploy
 		}
 		wg.Wait()
 
@@ -84,9 +84,9 @@ func (c *calcium) removeMemoryPodFailedContainer(id string, node *types.Node, no
 	}
 }
 
-func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, specs types.Specs, opts *types.DeployOptions, count int64) []*types.CreateContainerMessage {
+func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, specs types.Specs, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
 	ms := make([]*types.CreateContainerMessage, nodeInfo.Deploy)
-	var i int64
+	var i int
 	for i = 0; i < nodeInfo.Deploy; i++ {
 		ms[i] = &types.CreateContainerMessage{}
 	}
@@ -101,7 +101,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 	}
 
 	for i = 0; i < nodeInfo.Deploy; i++ {
-		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i+count, nil, specs, opts, node, MEMORY_PRIOR)
+		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i+index, nil, specs, opts, node, MEMORY_PRIOR)
 		ms[i].ContainerName = containerName
 		ms[i].Podname = opts.Podname
 		ms[i].Nodename = node.Name
@@ -208,17 +208,17 @@ func (c *calcium) createContainerWithCPUPrior(specs types.Specs, opts *types.Dep
 	go func() {
 		wg := sync.WaitGroup{}
 		wg.Add(len(result))
-		var count int64
+		index := 0
 
 		// do deployment
 		for nodeName, cpuMap := range result {
-			go func(nodeName string, cpuMap []types.CPUMap, count int64) {
+			go func(nodeName string, cpuMap []types.CPUMap, index int) {
 				defer wg.Done()
-				for _, m := range c.doCreateContainerWithCPUPrior(nodeName, cpuMap, specs, opts, count) {
+				for _, m := range c.doCreateContainerWithCPUPrior(nodeName, cpuMap, specs, opts, index) {
 					ch <- m
 				}
-			}(nodeName, cpuMap, count)
-			count += int64(len(cpuMap))
+			}(nodeName, cpuMap, index)
+			index += len(cpuMap)
 		}
 
 		wg.Wait()
@@ -235,7 +235,7 @@ func (c *calcium) removeCPUPodFailedContainer(id string, node *types.Node, quota
 	}
 }
 
-func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.CPUMap, specs types.Specs, opts *types.DeployOptions, count int64) []*types.CreateContainerMessage {
+func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.CPUMap, specs types.Specs, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
 	ms := make([]*types.CreateContainerMessage, len(cpuMap))
 	for i := 0; i < len(ms); i++ {
 		ms[i] = &types.CreateContainerMessage{}
@@ -253,7 +253,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 
 	for i, quota := range cpuMap {
 		// create options
-		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(int64(i)+count, nil, specs, opts, node, CPU_PRIOR)
+		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i+index, nil, specs, opts, node, CPU_PRIOR)
 		ms[i].ContainerName = containerName
 		ms[i].Podname = opts.Podname
 		ms[i].Nodename = node.Name
@@ -353,7 +353,7 @@ func (c *calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
 	c.store.UpdateNodeCPU(node.Podname, node.Name, quota, "+")
 }
 
-func (c *calcium) makeContainerOptions(index int64, quota map[string]int, specs types.Specs, opts *types.DeployOptions, node *types.Node, optionMode string) (
+func (c *calcium) makeContainerOptions(index int, quota map[string]int, specs types.Specs, opts *types.DeployOptions, node *types.Node, optionMode string) (
 	*enginecontainer.Config,
 	*enginecontainer.HostConfig,
 	*enginenetwork.NetworkingConfig,
