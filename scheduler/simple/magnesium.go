@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	log "github.com/Sirupsen/logrus"
 	"gitlab.ricebook.net/platform/core/types"
 )
 
@@ -37,9 +38,59 @@ func (m *magnesium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
 	return nodename, nil
 }
 
-func (m *magnesium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota, memory int64, need int) ([]types.NodeInfo, error) {
-	//TODO not impl yet
-	return nil, nil
+func (m *magnesium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory int64, need int) ([]types.NodeInfo, error) {
+	log.Debugf("[SelectMemoryNodes]: nodesInfo: %v, rate: %d, memory: %d, need: %d", nodesInfo, rate, memory, need)
+
+	p := -1
+	for i, nodeInfo := range nodesInfo {
+		if nodeInfo.CPURate >= rate {
+			p = i
+			break
+		}
+	}
+	if p == -1 {
+		return nil, fmt.Errorf("[SelectMemoryNodes] Cannot alloc a plan, not enough cpu rate")
+	}
+	log.Debugf("[SelectMemoryNodes] the %d th node has enough cpu rate.", p)
+
+	// 计算是否有足够的内存满足需求
+	nodesInfo = nodesInfo[p:]
+	volTotal := 0
+	p = -1
+	for i, nodeInfo := range nodesInfo {
+		capacity := int(nodeInfo.MemCap / memory)
+		if capacity <= 0 {
+			continue
+		}
+		if p == -1 {
+			p = i
+		}
+		volTotal += capacity
+		nodesInfo[i].Capacity = capacity
+	}
+	if volTotal < need {
+		return nil, fmt.Errorf("[SelectMemoryNodes] Cannot alloc a plan, not enough memory, volume %d, need %d", volTotal, need)
+	}
+
+	// 一个一个分
+	nodesInfo = nodesInfo[p:]
+	log.Debugf("[SelectMemoryNodes] volumn of each node: %v", nodesInfo)
+	for need > 0 {
+		for i := range nodesInfo {
+			if need == 0 {
+				break
+			}
+			if nodesInfo[i].Capacity > 0 {
+				nodesInfo[i].Capacity--
+				nodesInfo[i].Deploy++
+				need--
+			}
+		}
+	}
+
+	// 这里并不需要再次排序了，理论上的排序是基于 Count 得到的 Deploy 最终方案
+	log.Debugf("[SelectMemoryNodes] CommunismDivisionPlan: %v", nodesInfo)
+	return nodesInfo, nil
 }
 
 // Select nodes for deploying.

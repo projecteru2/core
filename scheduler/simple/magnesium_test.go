@@ -1,6 +1,7 @@
 package simplescheduler
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -202,5 +203,88 @@ func TestSelectPublicNodes(t *testing.T) {
 		nodename := node.Name
 		assert.Contains(t, []string{"node1", "node2"}, nodename)
 		assert.Equal(t, int(node.CpuMap.Total()), 20)
+	}
+}
+
+func newPod(count int) []types.NodeInfo {
+	n := types.NodeInfo{
+		CPUAndMem: types.CPUAndMem{
+			CpuMap: types.CPUMap{
+				"0": 10,
+				"1": 10,
+			},
+			MemCap: 4 * 1024 * 1024 * 1024,
+		},
+		Name:     "",
+		CPURate:  2e9,
+		Capacity: 0,
+		Count:    0,
+		Deploy:   0,
+	}
+
+	nodes := []types.NodeInfo{}
+	for i := 0; i < count; i++ {
+		n.Name = "node" + strconv.Itoa(i)
+		nodes = append(nodes, n)
+	}
+
+	return nodes
+}
+
+func TestSelectMemoryNodes(t *testing.T) {
+	// 2 nodes [2 containers per node]
+	pod := newPod(2)
+	m := &magnesium{}
+	res, err := m.SelectMemoryNodes(pod, 10000, 512*1024*1024, 4)
+	assert.NoError(t, err)
+	for _, node := range res {
+		assert.Equal(t, node.Deploy, 2)
+	}
+
+	// 4 nodes [1 1 1 1]
+	pod = newPod(4)
+	res, err = m.SelectMemoryNodes(pod, 10000, 512*1024*1024, 4)
+	assert.NoError(t, err)
+	for _, node := range res {
+		assert.Equal(t, node.Deploy, 1)
+	}
+
+	// 4 nodes [2 1 1 1]
+	pod = newPod(4)
+	res, err = m.SelectMemoryNodes(pod, 10000, 512*1024*1024, 5)
+	assert.NoError(t, err)
+	assert.Equal(t, res[0].Deploy, 2)
+
+	// 4 nodes [1 1 1 0]
+	pod = newPod(4)
+	res, err = m.SelectMemoryNodes(pod, 10000, 512*1024*1024, 3)
+	assert.NoError(t, err)
+	assert.Equal(t, res[3].Deploy, 0)
+}
+
+func TestTestSelectMemoryNodesNotEnough(t *testing.T) {
+	// 2 nodes [mem not enough]
+	pod := newPod(2)
+	m := &magnesium{}
+	_, err := m.SelectMemoryNodes(pod, 10000, 512*1024*1024, 40)
+	assert.Error(t, err)
+	if err != nil {
+		assert.Equal(t, err.Error(), "[SelectMemoryNodes] Cannot alloc a plan, not enough memory, volume 16, need 40")
+	}
+
+	// 2 nodes [mem not enough]
+	pod = newPod(2)
+	_, err = m.SelectMemoryNodes(pod, 1e9, 5*1024*1024*1024, 1)
+	assert.Error(t, err)
+	if err != nil {
+		assert.Equal(t, err.Error(), "[SelectMemoryNodes] Cannot alloc a plan, not enough memory, volume 0, need 1")
+	}
+
+	// 2 nodes [cpu not enough]
+	pod = newPod(2)
+	_, err = m.SelectMemoryNodes(pod, 1e10, 512*1024*1024, 1)
+	assert.Error(t, err)
+	if err != nil {
+		assert.Equal(t, err.Error(), "[SelectMemoryNodes] Cannot alloc a plan, not enough cpu rate")
 	}
 }

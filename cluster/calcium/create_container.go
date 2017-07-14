@@ -19,7 +19,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-var (
+const (
 	MEMORY_PRIOR = "cpuperiod"
 	CPU_PRIOR    = "scheduler"
 )
