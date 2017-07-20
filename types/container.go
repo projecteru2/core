@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"time"
 
 	enginetypes "github.com/docker/docker/api/types"
@@ -21,8 +22,8 @@ type Container struct {
 }
 
 func (c *Container) ShortID() string {
-	containerID:=c.ID
-	if len(containerID)>7 {
+	containerID := c.ID
+	if len(containerID) > 7 {
 		return containerID[:7]
 	}
 	return containerID
@@ -30,5 +31,8 @@ func (c *Container) ShortID() string {
 
 func (c *Container) Inspect() (enginetypes.ContainerJSON, error) {
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	if c.Engine == nil {
+		return enginetypes.ContainerJSON{}, fmt.Errorf("Engine is nil")
+	}
 	return c.Engine.ContainerInspect(ctx, c.ID)
 }

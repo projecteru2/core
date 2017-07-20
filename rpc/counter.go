@@ -16,6 +16,7 @@ func (v *vibranium) taskAdd(name string, verbose bool) {
 		log.Infof("task [%s] added", name)
 	}
 	v.counter.Add(1)
+	v.TaskNum++
 }
 
 // 完成一个任务, 在任务执行完之后调用一次.
@@ -25,6 +26,7 @@ func (v *vibranium) taskDone(name string, verbose bool) {
 		log.Infof("task [%s] done", name)
 	}
 	v.counter.Done()
+	v.TaskNum--
 }
 
 // 会在外面graceful之后调用.

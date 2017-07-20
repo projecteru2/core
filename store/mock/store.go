@@ -1,6 +1,8 @@
 package mockstore
 
 import (
+	"fmt"
+
 	"github.com/stretchr/testify/mock"
 	"gitlab.ricebook.net/platform/core/lock"
 	"gitlab.ricebook.net/platform/core/types"
@@ -91,6 +93,9 @@ func (m *MockStore) UpdateNodeMem(podname, nodename string, memory int64, action
 }
 
 func (m *MockStore) GetContainer(id string) (*types.Container, error) {
+	if len(id) != 64 {
+		return nil, fmt.Errorf("Container ID must be length of 64")
+	}
 	args := m.Called(id)
 	if args.Get(0) != nil {
 		return args.Get(0).(*types.Container), args.Error(1)

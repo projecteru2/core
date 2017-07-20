@@ -12,7 +12,7 @@ import (
 // container if must be in full length, or we can't find it in etcd
 // storage path in etcd is `/eru-core/container/:containerid`
 func (k *krypton) GetContainer(id string) (*types.Container, error) {
-	if len(id) < 64 {
+	if len(id) != 64 {
 		return nil, fmt.Errorf("Container ID must be length of 64")
 	}
 

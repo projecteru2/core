@@ -591,6 +591,10 @@ func (c *calcium) UpgradeContainer(ids []string, image string) (chan *types.Upgr
 		return ch, fmt.Errorf("No container ids given")
 	}
 
+	if image == "" {
+		return ch, fmt.Errorf("Image is empty")
+	}
+
 	containers, err := c.GetContainers(ids)
 	if err != nil {
 		return ch, err

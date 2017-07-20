@@ -18,6 +18,7 @@ type vibranium struct {
 	cluster cluster.Cluster
 	config  types.Config
 	counter sync.WaitGroup
+	TaskNum int
 }
 
 // Implementations for grpc server interface
@@ -70,8 +71,7 @@ func (v *vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.N
 	return toRPCNode(n, v.cluster.GetZone()), nil
 }
 
-// AddNode saves a node and returns it to client
-// Method must be called synchronously, or nothing will be returned
+// RemoveNode removes the node from etcd
 func (v *vibranium) RemoveNode(ctx context.Context, opts *pb.RemoveNodeOptions) (*pb.Pod, error) {
 	p, err := v.cluster.RemoveNode(opts.Nodename, opts.Podname)
 	if err != nil {
@@ -143,11 +143,16 @@ func (v *vibranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (*
 	for _, c := range containers {
 		info, err := c.Inspect()
 		if err != nil {
+			// catch这个error（Container因为某种原因inspect失败的话），防止其在etcd中变成脏数据
+			log.Errorf("[GetContainers] Inspect container error: %s", err)
+			errorInfo := fmt.Sprintf("Inspect container error: %s", err)
+			cs = append(cs, toRPCContainer(c, errorInfo))
 			continue
 		}
 
 		bytes, err := json.Marshal(info)
 		if err != nil {
+			log.Errorf("[GetContainers] Marshal info json error: %s", err)
 			continue
 		}
 
@@ -182,6 +187,9 @@ func (v *vibranium) SetNodeAvailable(ctx context.Context, opts *pb.NodeAvailable
 // streamed returned functions
 // caller must ensure that timeout will not be too short because these actions take a little time
 func (v *vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_BuildImageServer) error {
+	v.taskAdd("BuildImage", true)
+	defer v.taskDone("BuildImage", true)
+
 	ch, err := v.cluster.BuildImage(opts.Repo, opts.Version, opts.Uid, opts.Artifact)
 	if err != nil {
 		return err
@@ -202,6 +210,7 @@ func (v *vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 
 func (v *vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_CreateContainerServer) error {
 	v.taskAdd("CreateContainer", true)
+	defer v.taskDone("CreateContainer", true)
 
 	specs, err := types.LoadSpecs(opts.Specs)
 	if err != nil {
@@ -216,7 +225,6 @@ func (v *vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 	for m := range ch {
 		if err := stream.Send(toRPCCreateContainerMessage(m)); err != nil {
 			go func() {
-				defer v.taskDone("CreateContainer", true)
 				for r := range ch {
 					log.Infof("[CreateContainer] Unsent streamed message: %v", r)
 				}
@@ -225,7 +233,6 @@ func (v *vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 		}
 	}
 
-	v.taskDone("CreateContainer", true)
 	return nil
 }
 
@@ -249,8 +256,8 @@ func (v *vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	defer stdinReader.Close()
 	ch, err := v.cluster.RunAndWait(specs, toCoreDeployOptions(opts), stdinReader)
 	if err != nil {
+		// `ch` is nil now
 		log.Errorf("[RunAndWait] Start run and wait failed %s", err)
-		stream.Send(toRPCRunAndWaitMessage(<-ch))
 		return err
 	}
 
@@ -293,6 +300,7 @@ func (v *vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 
 func (v *vibranium) UpgradeContainer(opts *pb.UpgradeOptions, stream pb.CoreRPC_UpgradeContainerServer) error {
 	v.taskAdd("UpgradeContainer", true)
+	defer v.taskDone("UpgradeContainer", true)
 
 	ids := []string{}
 	for _, id := range opts.Ids {
@@ -307,7 +315,6 @@ func (v *vibranium) UpgradeContainer(opts *pb.UpgradeOptions, stream pb.CoreRPC_
 	for m := range ch {
 		if err := stream.Send(toRPCUpgradeContainerMessage(m)); err != nil {
 			go func() {
-				defer v.taskDone("UpgradeContainer", true)
 				for r := range ch {
 					log.Infof("[UpgradeContainer] Unsent streamed message: %v", r)
 				}
@@ -316,12 +323,12 @@ func (v *vibranium) UpgradeContainer(opts *pb.UpgradeOptions, stream pb.CoreRPC_
 		}
 	}
 
-	v.taskDone("UpgradeContainer", true)
 	return nil
 }
 
 func (v *vibranium) RemoveContainer(cids *pb.ContainerIDs, stream pb.CoreRPC_RemoveContainerServer) error {
 	v.taskAdd("RemoveContainer", true)
+	defer v.taskDone("RemoveContainer", true)
 
 	ids := []string{}
 	for _, id := range cids.Ids {
@@ -340,7 +347,6 @@ func (v *vibranium) RemoveContainer(cids *pb.ContainerIDs, stream pb.CoreRPC_Rem
 	for m := range ch {
 		if err := stream.Send(toRPCRemoveContainerMessage(m)); err != nil {
 			go func() {
-				defer v.taskDone("RemoveContainer", true)
 				for r := range ch {
 					log.Infof("[RemoveContainer] Unsent streamed message: %v", r)
 				}
@@ -349,11 +355,13 @@ func (v *vibranium) RemoveContainer(cids *pb.ContainerIDs, stream pb.CoreRPC_Rem
 		}
 	}
 
-	v.taskDone("RemoveContainer", true)
 	return nil
 }
 
 func (v *vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_RemoveImageServer) error {
+	v.taskAdd("RemoveImage", true)
+	defer v.taskDone("RemoveImage", true)
+
 	ch, err := v.cluster.RemoveImage(opts.Podname, opts.Nodename, opts.Images)
 	if err != nil {
 		return err

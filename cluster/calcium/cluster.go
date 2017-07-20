@@ -41,3 +41,7 @@ func New(config types.Config) (*calcium, error) {
 
 	return &calcium{store: store, config: config, scheduler: scheduler, network: titanium, source: source}, nil
 }
+
+func (c *calcium) ResetSotre(s store.Store) {
+	c.store = s
+}
