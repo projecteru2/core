@@ -137,8 +137,6 @@ func TestNodes(t *testing.T) {
 		return
 	}
 	assert.Equal(t, tNode.Endpoint, respAddPod.GetEndpoint())
-	// 因为添加的 node 的 engine 是 nil，所以拿不到 node info，同时 Available 置为 false
-	assert.NotEqual(t, tNode.Available, respAddPod.Available)
 
 	// test get node
 	gnOpts := &pb.GetNodeOptions{
@@ -247,7 +245,8 @@ func startServer(config types.Config, v *vibranium) *grpc.Server {
 // stopServer stops the gRPC server with 30s timeout if there is some unfinished goroutines
 // otherwise the gRPC server will stop gracefully
 func stopServer(grpcServer *grpc.Server, v *vibranium) error {
-	time.Sleep(1 * time.Second)
+	time.Sleep(1 * time.Second)       // to aviod "read: connection reset by peer"
+	defer time.Sleep(1 * time.Second) // to aviod "bind error"
 	grpcServer.GracefulStop()
 	log.Info("gRPC server stopped gracefully.")
 
@@ -309,8 +308,9 @@ func TestContainers(t *testing.T) {
 	store.On("GetContainers", []string{ID}).Return([]*types.Container{&container}, nil)
 	gcResp, err := clnt.GetContainers(ctx, &pb.ContainerIDs{Ids: []*pb.ContainerID{&pb.ContainerID{Id: ID}}})
 	assert.NoError(t, err)
+	// 因为Container的engine是nil，所以获取不到信息，调用返回为空
 	log.Info(gcResp)
-	assert.Equal(t, ID, gcResp.GetContainers()[0].GetId())
+	assert.Nil(t, gcResp.GetContainers())
 }
 
 func TestNetwork(t *testing.T) {

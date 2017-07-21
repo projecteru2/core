@@ -24,7 +24,7 @@ func toRPCNetwork(n *types.Network) *pb.Network {
 }
 
 func toRPCNode(n *types.Node, zone string) *pb.Node {
-	nodeInfo := ""
+	var nodeInfo string
 	if info, err := n.Info(); err == nil {
 		bytes, _ := json.Marshal(info)
 		nodeInfo = string(bytes)

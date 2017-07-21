@@ -128,6 +128,7 @@ func (v *vibranium) GetContainer(ctx context.Context, id *pb.ContainerID) (*pb.C
 
 // GetContainers
 // like GetContainer, information should be returned
+
 func (v *vibranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (*pb.Containers, error) {
 	ids := []string{}
 	for _, id := range cids.Ids {
@@ -143,16 +144,11 @@ func (v *vibranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (*
 	for _, c := range containers {
 		info, err := c.Inspect()
 		if err != nil {
-			// catch这个error（Container因为某种原因inspect失败的话），防止其在etcd中变成脏数据
-			log.Errorf("[GetContainers] Inspect container error: %s", err)
-			errorInfo := fmt.Sprintf("Inspect container error: %s", err)
-			cs = append(cs, toRPCContainer(c, errorInfo))
 			continue
 		}
 
 		bytes, err := json.Marshal(info)
 		if err != nil {
-			log.Errorf("[GetContainers] Marshal info json error: %s", err)
 			continue
 		}
 
@@ -196,16 +192,11 @@ func (v *vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 	}
 
 	for m := range ch {
-		if err := stream.Send(toRPCBuildImageMessage(m)); err != nil {
-			go func() {
-				for r := range ch {
-					log.Infof("[BuildImage] Unsent streamed message: %v", r)
-				}
-			}()
-			return err
+		if err = stream.Send(toRPCBuildImageMessage(m)); err != nil {
+			v.logUnsentMessages("BuildImage", m)
 		}
 	}
-	return nil
+	return err
 }
 
 func (v *vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_CreateContainerServer) error {
@@ -223,17 +214,12 @@ func (v *vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 	}
 
 	for m := range ch {
-		if err := stream.Send(toRPCCreateContainerMessage(m)); err != nil {
-			go func() {
-				for r := range ch {
-					log.Infof("[CreateContainer] Unsent streamed message: %v", r)
-				}
-			}()
-			return err
+		if err = stream.Send(toRPCCreateContainerMessage(m)); err != nil {
+			v.logUnsentMessages("CreateContainer", m)
 		}
 	}
 
-	return nil
+	return err
 }
 
 func (v *vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
@@ -284,18 +270,13 @@ func (v *vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	}
 
 	for m := range ch {
-		if err := stream.Send(toRPCRunAndWaitMessage(m)); err != nil {
+		if err = stream.Send(toRPCRunAndWaitMessage(m)); err != nil {
 			log.Errorf("[RunAndWait] Send msg error: %s", err)
-			go func() {
-				for r := range ch {
-					log.Infof("[RunAndWait] Unsent streamed message: %s", r.Data)
-				}
-			}()
-			return err
+			v.logUnsentMessages("RunAndWait", m)
 		}
 	}
 
-	return nil
+	return err
 }
 
 func (v *vibranium) UpgradeContainer(opts *pb.UpgradeOptions, stream pb.CoreRPC_UpgradeContainerServer) error {
@@ -313,17 +294,12 @@ func (v *vibranium) UpgradeContainer(opts *pb.UpgradeOptions, stream pb.CoreRPC_
 	}
 
 	for m := range ch {
-		if err := stream.Send(toRPCUpgradeContainerMessage(m)); err != nil {
-			go func() {
-				for r := range ch {
-					log.Infof("[UpgradeContainer] Unsent streamed message: %v", r)
-				}
-			}()
-			return err
+		if err = stream.Send(toRPCUpgradeContainerMessage(m)); err != nil {
+			v.logUnsentMessages("UpgradeContainer", m)
 		}
 	}
 
-	return nil
+	return err
 }
 
 func (v *vibranium) RemoveContainer(cids *pb.ContainerIDs, stream pb.CoreRPC_RemoveContainerServer) error {
@@ -345,17 +321,12 @@ func (v *vibranium) RemoveContainer(cids *pb.ContainerIDs, stream pb.CoreRPC_Rem
 	}
 
 	for m := range ch {
-		if err := stream.Send(toRPCRemoveContainerMessage(m)); err != nil {
-			go func() {
-				for r := range ch {
-					log.Infof("[RemoveContainer] Unsent streamed message: %v", r)
-				}
-			}()
-			return err
+		if err = stream.Send(toRPCRemoveContainerMessage(m)); err != nil {
+			v.logUnsentMessages("RemoveContainer", m)
 		}
 	}
 
-	return nil
+	return err
 }
 
 func (v *vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_RemoveImageServer) error {
@@ -368,16 +339,11 @@ func (v *vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_R
 	}
 
 	for m := range ch {
-		if err := stream.Send(toRPCRemoveImageMessage(m)); err != nil {
-			go func() {
-				for r := range ch {
-					log.Infof("[RemoveImage] Unsent streamed message: %v", r)
-				}
-			}()
-			return err
+		if err = stream.Send(toRPCRemoveImageMessage(m)); err != nil {
+			v.logUnsentMessages("RemoveImage", m)
 		}
 	}
-	return nil
+	return err
 }
 
 func (v *vibranium) Backup(ctx context.Context, opts *pb.BackupOptions) (*pb.BackupMessage, error) {
@@ -389,6 +355,10 @@ func (v *vibranium) Backup(ctx context.Context, opts *pb.BackupOptions) (*pb.Bac
 		return nil, err
 	}
 	return toRPCBackupMessage(backupMessage), nil
+}
+
+func (v *vibranium) logUnsentMessages(msgType string, msg interface{}) {
+	log.Infof("Unsent %s streamed message: %v", msgType, msg)
 }
 
 func New(cluster cluster.Cluster, config types.Config) *vibranium {
