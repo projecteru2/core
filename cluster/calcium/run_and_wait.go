@@ -29,22 +29,17 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions, stdin
 		waitTimeout = c.config.RunAndWaitTimeout
 	}
 
-	finalSendError := func(e error) {
-		ch <- &types.RunAndWaitMessage{ContainerID: " error ", Data: []byte(e.Error())}
-		close(ch)
-	}
-
 	// count = 1 && OpenStdin
 	if opts.OpenStdin && opts.Count != 1 {
+		close(ch)
 		err := fmt.Errorf("[RunAndWait] `Count` must be 1 if `OpenStdin` is true, `Count` is %d now", opts.Count)
-		go finalSendError(err)
 		return ch, err
 	}
 
 	// 创建容器, 有问题就gg
 	createChan, err := c.CreateContainer(specs, opts)
 	if err != nil {
-		go finalSendError(err)
+		close(ch)
 		log.Errorf("[RunAndWait] Create container error %s", err)
 		return ch, err
 	}
