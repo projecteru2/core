@@ -9,6 +9,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/utils"
 	"golang.org/x/net/context"
@@ -122,11 +123,17 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions, stdin
 
 				// 超时的情况下根本不会到这里
 				// 不超时的情况下这里肯定会立即返回
-				code, err := node.Engine.ContainerWait(context.Background(), containerID)
-				exitData := []byte(fmt.Sprintf("[exitcode] %d", code))
-				if err != nil {
+				statusBodyChan, errChan := node.Engine.ContainerWait(
+					context.Background(), containerID, container.WaitConditionNotRunning)
+
+				var exitData []byte
+				select {
+				case err := <-errChan:
 					log.Errorf("[RunAndWait] %s run failed, %v", containerID[:12], err)
 					exitData = []byte(fmt.Sprintf("[exitcode] unknown %v", err))
+				case statusBody := <-statusBodyChan:
+					code := statusBody.StatusCode
+					exitData = []byte(fmt.Sprintf("[exitcode] %d", code))
 				}
 				ch <- &types.RunAndWaitMessage{ContainerID: containerID, Data: exitData}
 			}(node, message.ContainerID)
