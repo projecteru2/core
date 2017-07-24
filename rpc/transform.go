@@ -24,9 +24,12 @@ func toRPCNetwork(n *types.Network) *pb.Network {
 }
 
 func toRPCNode(n *types.Node, zone string) *pb.Node {
-	bytes := []byte("")
+	var nodeInfo string
 	if info, err := n.Info(); err == nil {
-		bytes, _ = json.Marshal(info)
+		bytes, _ := json.Marshal(info)
+		nodeInfo = string(bytes)
+	} else {
+		nodeInfo = err.Error()
 	}
 
 	return &pb.Node{
@@ -35,7 +38,7 @@ func toRPCNode(n *types.Node, zone string) *pb.Node {
 		Podname:   n.Podname,
 		Public:    n.Public,
 		Cpu:       toRPCCPUMap(n.CPU),
-		Info:      string(bytes),
+		Info:      nodeInfo,
 		Available: n.Available,
 		Zone:      zone,
 	}
