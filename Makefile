@@ -15,25 +15,9 @@ python:
 	cd ./rpc/gen/; python -m grpc.tools.protoc -I. --python_out=. --grpc_python_out=. core.proto; mv core_pb2.py ../../devtools/
 
 deps:
-	go get -u -v -d github.com/opencontainers/runc/libcontainer/system
-	go get -u -v -d github.com/docker/libtrust
-	go get -u -v -d github.com/docker/distribution
-	go get -u -v -d github.com/docker/docker/pkg/archive
-	go get -u -v -d github.com/CMGS/statsd
-	go get -u -v -d github.com/docker/go-units
-	go get -u -v -d github.com/docker/go-connections
-	go get -u -v -d github.com/Sirupsen/logrus
-	go get -u -v -d github.com/stretchr/testify
-	go get -u -v -d github.com/golang/protobuf/{proto,protoc-gen-go}
-	go get -u -v -d github.com/codegangsta/cli
-	go get -u -v -d gopkg.in/yaml.v2
-	go get -u -v -d gopkg.in/libgit2/git2go.v25
-	go get -u -v -d golang.org/x/net/context
-	go get -u -v -d google.golang.org/grpc
-	go get -u -v -d github.com/coreos/etcd
-	go get -u -v -d github.com/docker/docker/api/types || echo oops
-	go get -u -v -d github.com/docker/docker/api/types/container
-	rm -rf $GOPATH/src/github.com/docker/docker/vendor
+	glide i
+	rm -rf ./vendor/github.com/docker/docker/vendor
+	rm -rf ./vendor/github.com/docker/distribution/vendor
 
 build:
 	go build -ldflags "$(GO_LDFLAGS)" -a -tags netgo -installsuffix netgo -o eru-core

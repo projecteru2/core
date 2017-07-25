@@ -1,0 +1,48 @@
+package: gitlab.ricebook.net/platform/core
+import:
+- package: github.com/CMGS/statsd
+- package: github.com/Sirupsen/logrus
+  version: ^1.0.2
+- package: github.com/codegangsta/cli
+  version: ^1.19.1
+- package: github.com/coreos/etcd
+  version: ^3.2.4
+  subpackages:
+  - client
+- package: github.com/docker/docker
+  version: ^17.5.0-ce-rc3
+  subpackages:
+  - api/types
+  - api/types/container
+  - api/types/network
+  - api/types/strslice
+  - client
+  - pkg/archive
+  - pkg/stdcopy
+- package: github.com/docker/go-connections
+  version: ^0.2.1
+  subpackages:
+  - tlsconfig
+- package: github.com/golang/protobuf
+  subpackages:
+  - proto
+- package: github.com/stretchr/testify
+  version: ^1.1.4
+  subpackages:
+  - mock
+- package: golang.org/x/net
+  subpackages:
+  - context
+- package: google.golang.org/grpc
+  version: ^1.5.0
+- package: gopkg.in/libgit2/git2go.v25
+- package: gopkg.in/yaml.v2
+- package: github.com/coreos/go-semver
+  version: ^0.2.0
+  subpackages:
+  - semver
+- package: github.com/docker/go-units
+  version: ^0.3.1
+- package: github.com/ugorji/go
+  subpackages:
+  - codec

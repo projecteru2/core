@@ -5,3 +5,5 @@ core.yml
 .ropeproject
 *.pyc
 default.etcd/*
+vendor/*
+clean.sh
