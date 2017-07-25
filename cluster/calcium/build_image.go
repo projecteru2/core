@@ -58,7 +58,7 @@ ADD launcheroot /usr/local/bin/launcheroot
 WORKDIR ${Appdir}/${Appname}
 RUN useradd -u ${UID} -d /nonexistent -s /sbin/nologin -U ${Appname}
 RUN chown -R ${UID} ${Appdir}/${Appname}
-RUN ${BuildRun}
+RUN sh -c "${BuildRun}"
 USER ${Appname}
 ` // USER之后的layer都会以user的身份去RUN command，所以这里一定要把USER放到最下面
 
