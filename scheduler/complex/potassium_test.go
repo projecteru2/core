@@ -45,11 +45,8 @@ func newPod(count int) []types.NodeInfo {
 			},
 			MemCap: 4 * 1024 * 1024 * 1024,
 		},
-		Name:     "",
-		CPURate:  2e9,
-		Capacity: 0,
-		Count:    0,
-		Deploy:   0,
+		Name:    "",
+		CPURate: 2e9,
 	}
 
 	nodes := []types.NodeInfo{}
@@ -147,32 +144,32 @@ func TestRecurrence(t *testing.T) {
 
 	nodes := []types.NodeInfo{
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{"0": 0, "10": 0, "7": 0, "8": 10, "9": 10, "13": 0, "14": 0, "15": 10, "2": 10, "5": 10, "11": 0, "12": 0, "4": 0, "1": 0, "3": 10, "6": 0},
-				12400000,
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{"0": 0, "10": 0, "7": 0, "8": 10, "9": 10, "13": 0, "14": 0, "15": 10, "2": 10, "5": 10, "11": 0, "12": 0, "4": 0, "1": 0, "3": 10, "6": 0},
+				MemCap: 12400000,
 			},
-			"c2-docker-26", 0.0, 0, 0, 0,
+			Name: "c2-docker-26",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{"6": 10, "10": 0, "13": 0, "14": 10, "2": 0, "7": 0, "1": 0, "11": 0, "15": 0, "8": 10, "0": 0, "3": 0, "4": 0, "5": 0, "9": 10, "12": 0},
-				12400000,
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{"6": 10, "10": 0, "13": 0, "14": 10, "2": 0, "7": 0, "1": 0, "11": 0, "15": 0, "8": 10, "0": 0, "3": 0, "4": 0, "5": 0, "9": 10, "12": 0},
+				MemCap: 12400000,
 			},
-			"c2-docker-27", 0.0, 0, 0, 0,
+			Name: "c2-docker-27",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{"13": 0, "14": 0, "15": 0, "4": 10, "9": 0, "1": 0, "10": 0, "12": 10, "5": 10, "6": 10, "8": 10, "0": 0, "11": 0, "2": 10, "3": 0, "7": 0},
-				12400000,
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{"13": 0, "14": 0, "15": 0, "4": 10, "9": 0, "1": 0, "10": 0, "12": 10, "5": 10, "6": 10, "8": 10, "0": 0, "11": 0, "2": 10, "3": 0, "7": 0},
+				MemCap: 12400000,
 			},
-			"c2-docker-28", 0.0, 0, 0, 0,
+			Name: "c2-docker-28",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{"15": 0, "3": 10, "0": 0, "10": 0, "13": 0, "7": 10, "8": 0, "9": 10, "12": 10, "2": 10, "4": 10, "1": 0, "11": 0, "14": 10, "5": 10, "6": 10},
-				12400000,
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{"15": 0, "3": 10, "0": 0, "10": 0, "13": 0, "7": 10, "8": 0, "9": 10, "12": 10, "2": 10, "4": 10, "1": 0, "11": 0, "14": 10, "5": 10, "6": 10},
+				MemCap: 12400000,
 			},
-			"c2-docker-29", 0.0, 0, 0, 0,
+			Name: "c2-docker-29",
 		},
 	}
 
@@ -201,59 +198,59 @@ func TestComplexNodes(t *testing.T) {
 
 	nodes := []types.NodeInfo{
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 2 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 2 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n1", 0.0, 0, 0, 0,
+			Name: "n1",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 7 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 7 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
 					"12": 10, "13": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n2", 0.0, 0, 0, 0,
+			Name: "n2",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 6 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 6 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n3", 0.0, 0, 0, 0,
+			Name: "n3",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 9 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 9 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
 					"12": 10, "13": 10, "14": 10, "15": 10,
 					"16": 10, "17": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n4", 0.0, 0, 0, 0,
+			Name: "n4",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 4 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 4 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n5", 0.0, 0, 0, 0,
+			Name: "n5",
 		},
 	}
 
@@ -273,59 +270,59 @@ func TestComplexNodes(t *testing.T) {
 	// 下面也是因为这个
 	nodes = []types.NodeInfo{
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 2 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 2 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n1", 0.0, 0, 0, 0,
+			Name: "n1",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 7 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 7 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
 					"12": 10, "13": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n2", 0.0, 0, 0, 0,
+			Name: "n2",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 6 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 6 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n3", 0.0, 0, 0, 0,
+			Name: "n3",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 9 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 9 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
 					"12": 10, "13": 10, "14": 10, "15": 10,
 					"16": 10, "17": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n4", 0.0, 0, 0, 0,
+			Name: "n4",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 4 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 4 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n5", 0.0, 0, 0, 0,
+			Name: "n5",
 		},
 	}
 
@@ -341,59 +338,59 @@ func TestComplexNodes(t *testing.T) {
 	// test3
 	nodes = []types.NodeInfo{
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 2 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 2 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n1", 0.0, 0, 0, 0,
+			Name: "n1",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 7 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 7 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
 					"12": 10, "13": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n2", 0.0, 0, 0, 0,
+			Name: "n2",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 6 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 6 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n3", 0.0, 0, 0, 0,
+			Name: "n3",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 9 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 9 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
 					"12": 10, "13": 10, "14": 10, "15": 10,
 					"16": 10, "17": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n4", 0.0, 0, 0, 0,
+			Name: "n4",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 4 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 4 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n5", 0.0, 0, 0, 0,
+			Name: "n5",
 		},
 	}
 
@@ -407,62 +404,61 @@ func TestComplexNodes(t *testing.T) {
 	// test4
 	nodes = []types.NodeInfo{
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 2 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 2 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n1", 0.0, 0, 0, 0,
+			Name: "n1",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 7 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 7 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
 					"12": 10, "13": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n2", 0.0, 0, 0, 0,
+			Name: "n2",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 6 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 6 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n3", 0.0, 0, 0, 0,
+			Name: "n3",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 9 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 9 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
 					"12": 10, "13": 10, "14": 10, "15": 10,
 					"16": 10, "17": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n4", 0.0, 0, 0, 0,
+			Name: "n4",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 4 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 4 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n5", 0.0, 0, 0, 0,
+			Name: "n5",
 		},
 	}
-
 	_, _, newErr := k.SelectCPUNodes(nodes, 1.6, 29)
 	if newErr == nil {
 		t.Fatalf("how to alloc 29 containers when you only have 28?")
@@ -478,22 +474,22 @@ func TestEvenPlan(t *testing.T) {
 	// nodes -- n1: 2, n2: 2
 	pod1 := []types.NodeInfo{
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{
 					"0": 10, "1": 10, "2": 10, "3": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"node1", 0.0, 0, 0, 0,
+			Name: "node1",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{
 					"0": 10, "1": 10, "2": 10, "3": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"node2", 0.0, 0, 0, 0,
+			Name: "node2",
 		},
 	}
 
@@ -509,47 +505,47 @@ func TestEvenPlan(t *testing.T) {
 	// nodes -- n1: 4, n2: 5, n3:6, n4: 5
 	pod2 := []types.NodeInfo{
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 4 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 4 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n1", 0.0, 0, 0, 0,
+			Name: "n1",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 5 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 5 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n2", 0.0, 0, 0, 0,
+			Name: "n2",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 6 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 6 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n3", 0.0, 0, 0, 0,
+			Name: "n3",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 5 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 5 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n4", 0.0, 0, 0, 0,
+			Name: "n4",
 		},
 	}
 
@@ -561,47 +557,47 @@ func TestEvenPlan(t *testing.T) {
 
 	pod3 := []types.NodeInfo{
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 4 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 4 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n1", 0.0, 0, 0, 0,
+			Name: "n1",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 5 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 5 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n2", 0.0, 0, 0, 0,
+			Name: "n2",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 6 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 6 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n3", 0.0, 0, 0, 0,
+			Name: "n3",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 5 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 5 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n4", 0.0, 0, 0, 0,
+			Name: "n4",
 		},
 	}
 
@@ -613,47 +609,47 @@ func TestEvenPlan(t *testing.T) {
 
 	pod4 := []types.NodeInfo{
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 4 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 4 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n1", 0.0, 0, 0, 0,
+			Name: "n1",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 5 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 5 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n2", 0.0, 0, 0, 0,
+			Name: "n2",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 6 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 6 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n3", 0.0, 0, 0, 0,
+			Name: "n3",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 5 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 5 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n4", 0.0, 0, 0, 0,
+			Name: "n4",
 		},
 	}
 
@@ -667,33 +663,33 @@ func TestEvenPlan(t *testing.T) {
 func TestSpecialCase(t *testing.T) {
 	pod := []types.NodeInfo{
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 4 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 4 containers
 					"0": 10, "1": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n1", 0.0, 0, 0, 0,
+			Name: "n1",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 5 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 5 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n2", 0.0, 0, 0, 0,
+			Name: "n2",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 6 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 6 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n3", 0.0, 0, 0, 0,
+			Name: "n3",
 		},
 	}
 
@@ -706,24 +702,24 @@ func TestSpecialCase(t *testing.T) {
 
 	newpod := []types.NodeInfo{
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 4 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 4 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n1", 0.0, 0, 0, 0,
+			Name: "n1",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{ // 4 containers
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{ // 4 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"n2", 0.0, 0, 0, 0,
+			Name: "n2",
 		},
 	}
 
@@ -780,11 +776,11 @@ func getPodVol(nodes []types.NodeInfo, cpu float64) int {
 func TestGetPodVol(t *testing.T) {
 	nodes := []types.NodeInfo{
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{"15": 0, "3": 10, "0": 0, "10": 0, "13": 0, "7": 10, "8": 0, "9": 10, "12": 10, "2": 10, "4": 10, "1": 0, "11": 0, "14": 10, "5": 10, "6": 10},
-				12400000,
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{"15": 0, "3": 10, "0": 0, "10": 0, "13": 0, "7": 10, "8": 0, "9": 10, "12": 10, "2": 10, "4": 10, "1": 0, "11": 0, "14": 10, "5": 10, "6": 10},
+				MemCap: 12400000,
 			},
-			"c2-docker-26", 0.0, 0, 0, 0,
+			Name: "c2-docker-26",
 		},
 	}
 

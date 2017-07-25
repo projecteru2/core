@@ -22,24 +22,24 @@ func TestSchedulerInvoke(t *testing.T) {
 
 	nodes := []types.NodeInfo{
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{
 					"0": 10,
 					"1": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"node1", 0.0, 0, 0, 0,
+			Name: "node1",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{
 					"0": 10,
 					"1": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"node2", 0.0, 0, 0, 0,
+			Name: "node2",
 		},
 	}
 	_, _, err := scheduler.SelectCPUNodes(nodes, 1, 2)

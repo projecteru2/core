@@ -1,6 +1,4 @@
-image: "hub.ricebook.net/base/centos:onbuild-eru-core-2017.07.21"
-before_script:
-  - "ln -s $CI_PROJECT_DIR $GOPATH/src/gitlab.ricebook.net/platform/core"
+image: "hub.ricebook.net/base/centos:onbuild-eru-core-2017.07.26"
 stages:
   - test
   - build
@@ -8,11 +6,16 @@ stages:
 test:
   stage: test
   script:
-    - "make test"
+    - "cp -r $CI_PROJECT_DIR $GOPATH/src/gitlab.ricebook.net/platform/"
+    - "cd $GOPATH/src/gitlab.ricebook.net/platform/core"
+    - make test
 build:
   stage: build
   script:
+    - "cp -r $CI_PROJECT_DIR $GOPATH/src/gitlab.ricebook.net/platform/"
+    - "cd $GOPATH/src/gitlab.ricebook.net/platform/core"
     - make build
+    - cp -r eru-core $CI_PROJECT_DIR
   artifacts:
     paths:
       - "eru-core"

@@ -19,9 +19,9 @@ deps:
 	rm -rf ./vendor/github.com/docker/docker/vendor
 	rm -rf ./vendor/github.com/docker/distribution/vendor
 
-build:
+build: deps
 	go build -ldflags "$(GO_LDFLAGS)" -a -tags netgo -installsuffix netgo -o eru-core
 
-test:
-	go tool vet .
-	go test -v ./...
+test: deps
+	go vet `go list ./... | grep -v '/vendor/'`
+	go test -v `glide nv`

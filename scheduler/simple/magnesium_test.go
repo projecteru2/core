@@ -49,24 +49,24 @@ func TestSelectCPUNodes(t *testing.T) {
 
 	nodes := []types.NodeInfo{
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{
 					"0": 10,
 					"1": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"node1", 0.0, 0, 0, 0,
+			Name: "node1",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{
 					"0": 10,
 					"1": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"node2", 0.0, 0, 0, 0,
+			Name: "node2",
 		},
 	}
 
@@ -136,24 +136,24 @@ func TestResultLength(t *testing.T) {
 func TestTotalQuota(t *testing.T) {
 	nodes := []types.NodeInfo{
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{
 					"0": 10,
 					"1": 0,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"node1", 0.0, 0, 0, 0,
+			Name: "node1",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{
 					"0": 5,
 					"1": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"node2", 0.0, 0, 0, 0,
+			Name: "node2",
 		},
 	}
 	assert.Equal(t, totalQuota(nodes), 3)
@@ -167,24 +167,24 @@ func TestSelectPublicNodes(t *testing.T) {
 
 	nodes := []types.NodeInfo{
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{
 					"0": 10,
 					"1": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"node1", 0.0, 0, 0, 0,
+			Name: "node1",
 		},
 		types.NodeInfo{
-			types.CPUAndMem{
-				types.CPUMap{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{
 					"0": 10,
 					"1": 10,
 				},
-				12400000,
+				MemCap: 12400000,
 			},
-			"node2", 0.0, 0, 0, 0,
+			Name: "node2",
 		},
 	}
 

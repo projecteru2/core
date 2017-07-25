@@ -33,7 +33,10 @@ func (c *calcium) Lock(name string, timeout int) (lock.DistributedLock, error) {
 func makeCPUAndMem(nodes []*types.Node) map[string]types.CPUAndMem {
 	r := make(map[string]types.CPUAndMem)
 	for _, node := range nodes {
-		r[node.Name] = types.CPUAndMem{node.CPU, node.MemCap}
+		r[node.Name] = types.CPUAndMem{
+			CpuMap: node.CPU,
+			MemCap: node.MemCap,
+		}
 	}
 	return r
 }
