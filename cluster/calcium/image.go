@@ -1,11 +1,12 @@
 package calcium
 
 import (
-	"sort"
 	"strings"
 	"sync"
 
+	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
 	"gitlab.ricebook.net/platform/core/types"
 	"golang.org/x/net/context"
 )
@@ -61,7 +62,9 @@ func (c *calcium) cleanImage(podname, image string) error {
 		wg.Add(1)
 		go func(node *types.Node) {
 			defer wg.Done()
-			cleanImageOnNode(node, image)
+			if err := cleanImageOnNode(node, image); err != nil {
+				log.Errorf("cleanImageOnNode error: %s", err)
+			}
 		}(node)
 	}
 
@@ -87,39 +90,30 @@ func (x imageList) Less(i, j int) bool { return x[i].Created > x[j].Created }
 // 只清理同名字不同tag的
 // 并且保留最新的两个
 func cleanImageOnNode(node *types.Node, image string) error {
-	images, err := node.Engine.ImageList(context.Background(), enginetypes.ImageListOptions{})
+	log.Debugf("[cleanImageOnNode] node: %s, image: %s", node.Name, strings.Split(image, ":")[0])
+	imgListFilter := filters.NewArgs()
+	image = normalizeImage(image)
+	imgListFilter.Add("reference", image) // 相同repo的image
+	images, err := node.Engine.ImageList(context.Background(), enginetypes.ImageListOptions{Filters: imgListFilter})
 	if err != nil {
 		return err
 	}
 
-	image = normalizeImage(image)
-
-	toDelete := imageList{}
-	for _, img := range images {
-		// 没有名字的不管
-		if len(img.RepoTags) == 0 {
-			continue
-		}
-		tag := img.RepoTags[0]
-		// 别人的镜像不管
-		if !strings.HasPrefix(tag, image) {
-			continue
-		}
-		toDelete = append(toDelete, img)
+	if len(images) < 2 {
+		return nil
 	}
-	sort.Sort(toDelete)
 
-	for index, img := range toDelete {
-		// 如果是最新的两个(index是0或者1), 就忽略
-		if index <= 1 {
-			continue
-		}
-		// 其他都无情删掉
-		// 可能因为有容器的存在而失败, 就放他苟且吧
-		node.Engine.ImageRemove(context.Background(), img.RepoTags[0], enginetypes.ImageRemoveOptions{
+	images = images[2:]
+	log.Debugf("Delete Images: %v", images)
+
+	for _, image := range images {
+		_, err := node.Engine.ImageRemove(context.Background(), image.ID, enginetypes.ImageRemoveOptions{
 			Force:         false,
 			PruneChildren: true,
 		})
+		if err != nil {
+			log.Errorf("[cleanImageOnNode] Node %s ImageRemove error: %s, imageID: %s", node.Name, err, image.ID)
+		}
 	}
 	return nil
 }
