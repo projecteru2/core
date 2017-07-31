@@ -7,3 +7,4 @@ core.yml
 default.etcd/*
 vendor/*
 clean.sh
+.vscode/*

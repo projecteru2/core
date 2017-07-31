@@ -163,7 +163,11 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 		log.Errorf("Error during ContainerRemove: %s", err.Error())
 		return err
 	}
-	c.store.RemoveContainer(info.ID)
+
+	if err = c.store.RemoveContainer(info.ID); err != nil {
+		log.Errorf("Error during remove etcd data: %s", err.Error())
+		return err
+	}
 	return nil
 }
 
