@@ -5,11 +5,21 @@ import (
 	"sort"
 	"sync"
 
+	"gitlab.ricebook.net/platform/core/stats"
+
 	log "github.com/Sirupsen/logrus"
 
 	"gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/utils"
 )
+
+func (c *calcium) logMemoryAllocStats(opts *types.DeployOptions) {
+	cpuandmem, _, err := c.getCPUAndMem(opts.Podname, opts.Nodename, 1.0)
+	if err != nil {
+		log.Errorf("Get cpu and mem stats failed %v", err)
+	}
+	stats.Client.SendMemCap(cpuandmem, false)
+}
 
 func (c *calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.NodeInfo, error) {
 	lock, err := c.Lock(opts.Podname, 30)
@@ -22,6 +32,8 @@ func (c *calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.Nod
 	if err != nil {
 		return nil, err
 	}
+
+	stats.Client.SendMemCap(cpuandmem, true)
 	nodesInfo := getNodesInfo(cpuandmem)
 
 	// Load deploy status

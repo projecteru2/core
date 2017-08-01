@@ -8,11 +8,8 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	engineapi "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
-	"gitlab.ricebook.net/platform/core/g"
-	"gitlab.ricebook.net/platform/core/types"
 	"golang.org/x/net/context"
 )
 
@@ -150,20 +147,6 @@ func MakeCommandLineArgs(s string) []string {
 		r = append(r, part)
 	}
 	return r
-}
-
-func SendMemCap(cpumemmap map[string]types.CPUAndMem, tag string) {
-	data := map[string]float64{}
-	for node, cpuandmem := range cpumemmap {
-		data[node] = float64(cpuandmem.MemCap)
-	}
-	clean_host := strings.Replace(g.Hostname, ".", "-", -1)
-
-	err := g.Statsd.Send(data, clean_host, tag)
-	if err != nil {
-		log.Errorf("Error occured while sending data to statsd: %v", err)
-	}
-	return
 }
 
 // MakeContainerName joins appname, entrypoint, ident using '_'

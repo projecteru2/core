@@ -13,9 +13,9 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"gitlab.ricebook.net/platform/core/cluster/calcium"
-	"gitlab.ricebook.net/platform/core/g"
 	"gitlab.ricebook.net/platform/core/rpc"
 	"gitlab.ricebook.net/platform/core/rpc/gen"
+	"gitlab.ricebook.net/platform/core/stats"
 	"gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/versioninfo"
 	"google.golang.org/grpc"
@@ -82,8 +82,7 @@ func serve() {
 		log.Fatal(err)
 	}
 
-	g.NewStatsdClient(config.Statsd)
-	g.Hostname = os.Getenv("HOSTNAME")
+	stats.NewStatsdClient(config.Statsd)
 
 	cluster, err := calcium.New(config)
 	if err != nil {

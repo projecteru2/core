@@ -191,6 +191,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 		ms[i].Success = true
 	}
 
+	go c.logMemoryAllocStats(opts)
 	return ms
 }
 
