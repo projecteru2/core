@@ -62,7 +62,7 @@ func (c *calcium) cleanImage(podname, image string) error {
 		wg.Add(1)
 		go func(node *types.Node) {
 			defer wg.Done()
-			if err := cleanImageOnNode(node, image); err != nil {
+			if err := cleanImageOnNode(node, image, c.config.ImageCache); err != nil {
 				log.Errorf("cleanImageOnNode error: %s", err)
 			}
 		}(node)
@@ -89,7 +89,7 @@ func (x imageList) Less(i, j int) bool { return x[i].Created > x[j].Created }
 // 清理一个node上的这个image
 // 只清理同名字不同tag的
 // 并且保留最新的两个
-func cleanImageOnNode(node *types.Node, image string) error {
+func cleanImageOnNode(node *types.Node, image string, count int) error {
 	log.Debugf("[cleanImageOnNode] node: %s, image: %s", node.Name, strings.Split(image, ":")[0])
 	imgListFilter := filters.NewArgs()
 	image = normalizeImage(image)
@@ -99,11 +99,11 @@ func cleanImageOnNode(node *types.Node, image string) error {
 		return err
 	}
 
-	if len(images) < 2 {
+	if len(images) < count {
 		return nil
 	}
 
-	images = images[2:]
+	images = images[count:]
 	log.Debugf("Delete Images: %v", images)
 
 	for _, image := range images {

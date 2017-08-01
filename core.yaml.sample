@@ -12,6 +12,9 @@ statsd: "statsd2.ricebook.net:8125"
 
 zone: "c1"
 
+run_and_wait_timeout: 1200
+image_cache: 2
+
 git:
     public_key: "***REMOVED***"
     private_key: "***REMOVED***"

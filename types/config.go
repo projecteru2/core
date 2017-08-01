@@ -13,6 +13,7 @@ type Config struct {
 	Statsd            string   `yaml:"statsd"`               // Statsd host and port
 	Zone              string   `yaml:"zone"`                 // zone for core, e.g. C1, C2
 	RunAndWaitTimeout int      `yaml:"run_and_wait_timeout"` // timeout for run and wait
+	ImageCache        int      `yaml:"image_cache"`          // cache image count
 
 	Git       GitConfig    `yaml:"git"`
 	Docker    DockerConfig `yaml:"docker"`
