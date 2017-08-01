@@ -42,6 +42,22 @@ func (m *MockStore) AddPod(name, desc string) (*types.Pod, error) {
 	return nil, args.Error(1)
 }
 
+func (m *MockStore) DeletePod(podname string, force bool) error {
+	args := m.Called(podname, force)
+	if args.Get(0) != nil {
+		return args.Error(0)
+	}
+	return args.Error(0)
+}
+
+func (m *MockStore) UpdatePod(pod *types.Pod) error {
+	args := m.Called(pod)
+	if args.Get(0) != nil {
+		return args.Error(0)
+	}
+	return args.Error(0)
+}
+
 func (m *MockStore) GetAllPods() ([]*types.Pod, error) {
 	args := m.Called()
 	return args.Get(0).([]*types.Pod), args.Error(1)
@@ -109,11 +125,8 @@ func (m *MockStore) GetContainers(ids []string) ([]*types.Container, error) {
 }
 
 func (m *MockStore) AddContainer(id, podname, nodename, name string, cpu types.CPUMap, memory int64) (*types.Container, error) {
-	args := m.Called(id, podname, nodename, name, cpu, memory)
-	if args.Get(0) != nil {
-		return args.Get(0).(*types.Container), args.Error(1)
-	}
-	return nil, args.Error(1)
+	// since we add the container ourselves, no one cares about the return
+	return nil, nil
 }
 
 func (m *MockStore) RemoveContainer(id string, container *types.Container) error {
@@ -130,6 +143,9 @@ func (m *MockStore) CreateLock(key string, ttl int) (lock.DistributedLock, error
 }
 
 func (m *MockStore) MakeDeployStatus(opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
-	//TODO
-	return nil, nil
+	args := m.Called(opts, nodesInfo)
+	if args.Get(0) != nil {
+		return args.Get(0).([]types.NodeInfo), args.Error(1)
+	}
+	return nil, args.Error(1)
 }

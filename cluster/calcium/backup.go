@@ -22,7 +22,13 @@ func (c *calcium) Backup(id, srcPath string) (*types.BackupMessage, error) {
 	}
 	log.Debugf("Backup %s for container %s", srcPath, id)
 	container, err := c.GetContainer(id)
+	if err != nil {
+		return nil, err
+	}
 	node, err := c.GetNode(container.Podname, container.Nodename)
+	if err != nil {
+		return nil, err
+	}
 	ctx := utils.ToDockerContext(node.Engine)
 
 	resp, stat, err := node.Engine.CopyFromContainer(ctx, container.ID, srcPath)
@@ -40,7 +46,7 @@ func (c *calcium) Backup(id, srcPath string) (*types.BackupMessage, error) {
 	}
 	now := time.Now().Format("2006.01.02.15.04.05")
 	baseDir := filepath.Join(c.config.BackupDir, appname, entrypoint)
-	err = os.MkdirAll(baseDir, os.FileMode(0400))
+	err = os.MkdirAll(baseDir, os.FileMode(0700)) // drwx------
 	if err != nil {
 		log.Errorf("Error during mkdir %s, %v", baseDir, err)
 		return nil, err

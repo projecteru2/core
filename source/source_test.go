@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -123,12 +123,8 @@ func TestGitLabArtifact(t *testing.T) {
 	err = source.Artifact(artifactURL, path)
 	assert.NoError(t, err)
 
-	fileName := strings.TrimPrefix(file.Name(), os.TempDir())
-	if strings.HasPrefix(fileName, "/") {
-		fileName = strings.TrimPrefix(fileName, "/")
-	}
-	downloadFilePath := fmt.Sprintf("%s/%s", path, fileName)
-	fmt.Println(downloadFilePath)
+	fileName := filepath.Base(file.Name())
+	downloadFilePath := filepath.Join(path, fileName)
 
 	downloadFile, err := os.Open(downloadFilePath)
 	assert.NoError(t, err)

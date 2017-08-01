@@ -105,3 +105,25 @@ func TestSingleBuildDockerFile(t *testing.T) {
 	f.Close()
 	os.Remove(f.Name())
 }
+
+func TestBuildImageError(t *testing.T) {
+	initMockConfig()
+	reponame := "git@github.com:docker/jira-test.git"
+	_, err := mockc.BuildImage(reponame, "x-version", "998", "")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "No build pod set in config")
+
+	mockc.config.Docker.BuildPod = "dev_pod"
+	_, err = mockc.BuildImage(reponame, "x-version", "998", "")
+	assert.Contains(t, err.Error(), "Public Key not found")
+}
+
+func TestCreateImageTag(t *testing.T) {
+	initMockConfig()
+	appname := "appname"
+	version := "version"
+	imageTag := createImageTag(mockc.config, appname, version)
+	cfg := mockc.config.Docker
+	expectTag := fmt.Sprintf("%s/%s/%s:%s", cfg.Hub, cfg.HubPrefix, appname, version)
+	assert.Equal(t, expectTag, imageTag)
+}
