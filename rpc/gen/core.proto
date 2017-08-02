@@ -19,7 +19,6 @@ service CoreRPC {
     rpc BuildImage(BuildImageOptions) returns (stream BuildImageMessage) {};
     rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage);
     rpc RunAndWait(stream RunAndWaitOptions) returns (stream RunAndWaitMessage);
-    rpc UpgradeContainer(UpgradeOptions) returns (stream UpgradeContainerMessage);
     rpc RemoveContainer(ContainerIDs) returns (stream RemoveContainerMessage);
     rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage);
     rpc Backup(BackupOptions) returns (BackupMessage) {};
@@ -148,11 +147,6 @@ message DeployOptions {
     bool openStdin = 15;
 }
 
-message UpgradeOptions {
-    repeated ContainerID ids = 1;
-    string image = 2;
-}
-
 message RemoveImageOptions {
     string podname = 1;
     string nodename = 2;
@@ -202,14 +196,6 @@ message RemoveContainerMessage {
     string id = 1;
     bool success = 2;
     string message = 3;
-}
-
-message UpgradeContainerMessage {
-    string id = 1;
-    string new_id = 2;
-    string new_name = 3;
-    string error = 4;
-    bool success = 5;
 }
 
 message BackupMessage {

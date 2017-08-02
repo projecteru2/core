@@ -579,15 +579,6 @@ func TestOthers(t *testing.T) {
 	}
 	store.On("GetNode", podname, nodename).Return(tNode, nil)
 
-	// UpgradeContainer
-	udOpts := pb.UpgradeOptions{
-		Ids:   []*pb.ContainerID{&pb.ContainerID{Id: ID}},
-		Image: "",
-	}
-	resp, _ := clnt.UpgradeContainer(ctx, &udOpts)
-	_, err = resp.Recv()
-	assert.Contains(t, err.Error(), "Image is empty")
-
 	// RemoveContainer
 	rmContainerResp, _ := clnt.RemoveContainer(ctx, &pb.ContainerIDs{Ids: []*pb.ContainerID{&pb.ContainerID{Id: ID}}})
 	r, err := rmContainerResp.Recv() // 同理这个err也是gRPC调用的error，而不是执行动作的error

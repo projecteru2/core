@@ -279,29 +279,6 @@ func (v *vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	return err
 }
 
-func (v *vibranium) UpgradeContainer(opts *pb.UpgradeOptions, stream pb.CoreRPC_UpgradeContainerServer) error {
-	v.taskAdd("UpgradeContainer", true)
-	defer v.taskDone("UpgradeContainer", true)
-
-	ids := []string{}
-	for _, id := range opts.Ids {
-		ids = append(ids, id.Id)
-	}
-
-	ch, err := v.cluster.UpgradeContainer(ids, opts.Image)
-	if err != nil {
-		return err
-	}
-
-	for m := range ch {
-		if err = stream.Send(toRPCUpgradeContainerMessage(m)); err != nil {
-			v.logUnsentMessages("UpgradeContainer", m)
-		}
-	}
-
-	return err
-}
-
 func (v *vibranium) RemoveContainer(cids *pb.ContainerIDs, stream pb.CoreRPC_RemoveContainerServer) error {
 	v.taskAdd("RemoveContainer", true)
 	defer v.taskDone("RemoveContainer", true)

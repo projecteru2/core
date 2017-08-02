@@ -108,16 +108,6 @@ func toRPCRemoveContainerMessage(r *types.RemoveContainerMessage) *pb.RemoveCont
 	}
 }
 
-func toRPCUpgradeContainerMessage(u *types.UpgradeContainerMessage) *pb.UpgradeContainerMessage {
-	return &pb.UpgradeContainerMessage{
-		Id:      u.ContainerID,
-		NewId:   u.NewContainerID,
-		NewName: u.NewContainerName,
-		Error:   u.Error,
-		Success: u.Success,
-	}
-}
-
 func toRPCBackupMessage(msg *types.BackupMessage) *pb.BackupMessage {
 	return &pb.BackupMessage{
 		Status: msg.Status,

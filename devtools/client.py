@@ -280,24 +280,6 @@ def remove_container(ctx, ids):
     click.echo(click.style('done', fg='green'))
 
 
-@cli.command('container:upgrade')
-@click.argument('ids', nargs=-1)
-@click.argument('image')
-@click.pass_context
-def upgrade_container(ctx, ids, image):
-    stub = _get_stub(ctx)
-    opts = pb.UpgradeOptions(ids=[pb.ContainerID(id=i) for i in ids], image=image)
-
-    try:
-        for m in stub.UpgradeContainer(opts, 3600):
-            click.echo('[%s] success:%s, id:%s, name:%s, error:%s' % (m.id, m.success, m.new_id, m.new_name, m.error))
-    except AbortionError as e:
-        click.echo(click.style('abortion error: %s' % e.details, fg='red', bold=True))
-        ctx.exit(-1)
-
-    click.echo(click.style('done', fg='green'))
-
-
 @cli.command('container:get')
 @click.argument('ids', nargs=-1)
 @click.pass_context
