@@ -198,7 +198,9 @@ func initConfig(mStore *mockstore.MockStore) (types.Config, *vibranium) {
 		Zone:              "c1",              // zone for core, e.g. C1, C2
 		RunAndWaitTimeout: 1200,              // timeout for run and wait
 
-		Git: types.GitConfig{},
+		Git: types.GitConfig{
+			SCMType: "gitlab",
+		},
 		Scheduler: types.SchedConfig{
 			LockKey: "_scheduler_lock",
 			LockTTL: 10,

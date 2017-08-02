@@ -22,9 +22,10 @@ type Config struct {
 
 // GitConfig holds eru-core git config
 type GitConfig struct {
-	PublicKey   string `yaml:"public_key"`   // public key to clone code
-	PrivateKey  string `yaml:"private_key"`  // private key to clone code
-	GitlabToken string `yaml:"gitlab_token"` // GitLab token to call GitLab API
+	SCMType    string `yaml:"scm_type"`    // source code manager type [gitlab/github]
+	PublicKey  string `yaml:"public_key"`  // public key to clone code
+	PrivateKey string `yaml:"private_key"` // private key to clone code
+	Token      string `yaml:"token"`       // Token to call SCM API
 }
 
 // DockerConfig holds eru-core docker config

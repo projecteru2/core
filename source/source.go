@@ -1,5 +1,6 @@
 package source
 
+// Source defines SCM funcions
 type Source interface {
 	// Get source code from repository into path by revision
 	SourceCode(repository, path, revision string) error
