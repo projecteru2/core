@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"gitlab.ricebook.net/platform/core/types"
+	"gitlab.ricebook.net/platform/core/utils"
 	"golang.org/x/net/context"
 )
 
@@ -96,17 +97,38 @@ func (k *krypton) AddContainer(id, podname, nodename, name string, cpu types.CPU
 		return nil, err
 	}
 
+	// store deploy status
+	appname, entrypoint, _, err := utils.ParseContainerName(name)
+	if err != nil {
+		return nil, err
+	}
+	key = fmt.Sprintf(containerDeployKey, appname, entrypoint, nodename, c.ID)
+	_, err = k.etcd.Set(context.Background(), key, "", nil)
+	if err != nil {
+		return nil, err
+	}
+
 	return container, nil
 }
 
 // remove a container
 // container id must be in full length
-func (k *krypton) RemoveContainer(id string) error {
+func (k *krypton) RemoveContainer(id string, container *types.Container) error {
 	if len(id) < 64 {
 		return fmt.Errorf("Container ID must be length of 64")
 	}
 
 	key := fmt.Sprintf(containerInfoKey, id)
-	_, err := k.etcd.Delete(context.Background(), key, nil)
+	if _, err := k.etcd.Delete(context.Background(), key, nil); err != nil {
+		return err
+	}
+
+	// remove deploy status
+	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
+	if err != nil {
+		return err
+	}
+	key = fmt.Sprintf(containerDeployKey, appname, entrypoint, container.Nodename, id)
+	_, err = k.etcd.Delete(context.Background(), key, nil)
 	return err
 }

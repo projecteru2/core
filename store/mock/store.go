@@ -116,8 +116,8 @@ func (m *MockStore) AddContainer(id, podname, nodename, name string, cpu types.C
 	return nil, args.Error(1)
 }
 
-func (m *MockStore) RemoveContainer(id string) error {
-	args := m.Called(id)
+func (m *MockStore) RemoveContainer(id string, container *types.Container) error {
+	args := m.Called(id, container)
 	return args.Error(0)
 }
 

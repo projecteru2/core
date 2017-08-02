@@ -25,7 +25,7 @@ type Store interface {
 	AddContainer(id, podname, nodename, name string, cpu types.CPUMap, mem int64) (*types.Container, error)
 	GetContainer(id string) (*types.Container, error)
 	GetContainers(ids []string) ([]*types.Container, error)
-	RemoveContainer(id string) error
+	RemoveContainer(id string, container *types.Container) error
 
 	// distributed lock
 	CreateLock(key string, ttl int) (lock.DistributedLock, error)
