@@ -14,6 +14,7 @@ import (
 	enginenetwork "github.com/docker/docker/api/types/network"
 	engineslice "github.com/docker/docker/api/types/strslice"
 	"github.com/docker/go-units"
+	"gitlab.ricebook.net/platform/core/stats"
 	"gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/utils"
 	"golang.org/x/net/context"
@@ -63,6 +64,7 @@ func (c *calcium) createContainerWithMemoryPrior(specs types.Specs, opts *types.
 		wg.Add(len(nodesInfo))
 		index := 0
 		for _, nodeInfo := range nodesInfo {
+			go stats.Client.SendDeployCount(nodeInfo.Deploy)
 			go func(nodeInfo types.NodeInfo, index int) {
 				defer wg.Done()
 				for _, m := range c.doCreateContainerWithMemoryPrior(nodeInfo, specs, opts, index) {
@@ -191,7 +193,15 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 		ms[i].Success = true
 	}
 
-	go c.logMemoryAllocStats(opts)
+	go func(opts *types.DeployOptions) {
+		cpuandmem, _, err := c.getCPUAndMem(opts.Podname, opts.Nodename, 1.0)
+		if err != nil {
+			log.Errorf("Get cpu and mem stats failed %v", err)
+			return
+		}
+		stats.Client.SendMemCap(cpuandmem, false)
+	}(opts)
+
 	return ms
 }
 
@@ -216,6 +226,7 @@ func (c *calcium) createContainerWithCPUPrior(specs types.Specs, opts *types.Dep
 
 		// do deployment
 		for nodeName, cpuMap := range result {
+			go stats.Client.SendDeployCount(len(cpuMap))
 			go func(nodeName string, cpuMap []types.CPUMap, index int) {
 				defer wg.Done()
 				for _, m := range c.doCreateContainerWithCPUPrior(nodeName, cpuMap, specs, opts, index) {
