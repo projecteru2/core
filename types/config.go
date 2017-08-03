@@ -3,7 +3,6 @@ package types
 // Config holds eru-core config
 type Config struct {
 	Bind              string   `yaml:"bind"`                 // HTTP API address
-	AgentPort         string   `yaml:"agent_port"`           // Agent HTTP port, may not be used
 	AppDir            string   `yaml:"appdir"`               // App directory inside container
 	PermDir           string   `yaml:"permdir"`              // Permanent dir on host
 	BackupDir         string   `yaml:"backupdir"`            // Backup dir on host

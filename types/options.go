@@ -15,7 +15,7 @@ type DeployOptions struct {
 	Memory     int64             // Memory for container, in bytes
 	Env        []string          // Env for container
 	Networks   map[string]string // Network names and specified IPs
-	Raw        bool              // If use raw, launcher won't be used
+	Raw        bool              // Raw mode, use docker image online
 	Debug      bool              // debug mode, use syslog as log driver
 	OpenStdin  bool              // OpenStdin for container
 }

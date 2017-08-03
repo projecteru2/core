@@ -16,7 +16,6 @@ type titanium struct{}
 
 // type of the network manager
 // if set to "plugin", then it will act like a plugin
-// if set to "agent", then it will act like an agent
 // main difference is the order of connect/disconnect
 func (t *titanium) Type() string {
 	return "plugin"

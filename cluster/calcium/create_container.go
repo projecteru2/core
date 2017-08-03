@@ -388,21 +388,6 @@ func (c *calcium) makeContainerOptions(index int, quota map[string]int, specs ty
 	}
 	// command and user
 	slices := utils.MakeCommandLineArgs(entry.Command + " " + opts.ExtraArgs)
-
-	// if not use raw to deploy, or use agent as network manager
-	// we need to use our own script to start command
-	if !opts.Raw && c.network.Type() == "agent" {
-		starter, needNetwork := "launcher", "network"
-		if entry.Privileged != "" {
-			starter = "launcheroot"
-		}
-		if len(opts.Networks) == 0 {
-			needNetwork = "nonetwork"
-		}
-		slices = append([]string{fmt.Sprintf("/usr/local/bin/%s", starter), needNetwork}, slices...)
-		// use default empty value, as root
-		user = "root"
-	}
 	cmd := engineslice.StrSlice(slices)
 
 	// calculate CPUShares and CPUSet

@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 
 	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
@@ -18,28 +17,6 @@ import (
 	"golang.org/x/net/context"
 	"gopkg.in/yaml.v2"
 )
-
-const launcherScript = `#! /bin/sh
-echo 32768 > /writable-proc/sys/net/core/somaxconn
-echo 1 > /writable-proc/sys/vm/overcommit_memory
-chmod 777 /dev/stdout
-chmod 777 /dev/stderr
-
-neednetwork=$1
-if [ $neednetwork = "network" ]; then
-    # wait for macvlan
-    while ( ! ip addr show | grep 'UP' | grep 'vnbe'); do
-        echo -n o
-        sleep .5
-    done
-fi
-
-sleep 1
-
-shift
-
-{{.Command}}
-`
 
 const dockerFile = `ARG Base
 FROM ${Base}
@@ -53,8 +30,6 @@ ENV Appname ${Appname}
 ENV Appdir ${Appdir}
 ENV ERU 1
 ADD ${Reponame} ${Appdir}/${Appname}
-ADD launcher /usr/local/bin/launcher
-ADD launcheroot /usr/local/bin/launcheroot
 WORKDIR ${Appdir}/${Appname}
 RUN useradd -u ${UID} -d /nonexistent -s /sbin/nologin -U ${Appname}
 RUN chown -R ${UID} ${Appdir}/${Appname}
@@ -106,8 +81,6 @@ func getRandomNode(c *calcium, podname string) (*types.Node, error) {
 //
 //    buildDir ├─ :appname ├─ code
 //             ├─ Dockerfile
-//             ├─ launcher
-//             ├─ launcheroot
 func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *types.BuildImageMessage, error) {
 	ch := make(chan *types.BuildImageMessage)
 
@@ -169,11 +142,8 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 		}
 	}
 
-	// create launcher scripts and dockerfile
+	// create dockerfile
 	rs := richSpecs{specs, "", strings.TrimRight(c.config.AppDir, "/"), uid}
-	if err := createLauncher(buildDir, rs); err != nil {
-		return ch, err
-	}
 	if err := createDockerfile(buildDir); err != nil {
 		return ch, err
 	}
@@ -275,44 +245,6 @@ func createTarStream(path string) (io.ReadCloser, error) {
 		NoLchown:        true,
 	}
 	return archive.TarWithOptions(path, tarOpts)
-}
-
-// launcher scripts
-func createLauncher(buildDir string, rs richSpecs) error {
-	launcherScriptTemplate, _ := template.New("launcher script").Parse(launcherScript)
-
-	entryCommand := fmt.Sprintf("exec sudo -E -u %s $@", rs.Appname)
-	entryRootCommand := "exec $@"
-
-	f, err := os.Create(filepath.Join(buildDir, "launcher"))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	rs.Command = entryCommand
-	launcherScriptTemplate.Execute(f, rs)
-	if err := f.Sync(); err != nil {
-		return err
-	}
-	if err := f.Chmod(0755); err != nil {
-		return err
-	}
-
-	fr, err := os.Create(filepath.Join(buildDir, "launcheroot"))
-	if err != nil {
-		return err
-	}
-	defer fr.Close()
-	rs.Command = entryRootCommand
-	launcherScriptTemplate.Execute(fr, rs)
-	if err := fr.Sync(); err != nil {
-		return err
-	}
-	if err := fr.Chmod(0755); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // Dockerfile
