@@ -13,7 +13,7 @@ import (
 // 否则任务不被追踪, 不保证任务能够正常完成.
 func (v *vibranium) taskAdd(name string, verbose bool) {
 	if verbose {
-		log.Infof("task [%s] added", name)
+		log.Debugf("task [%s] added", name)
 	}
 	v.counter.Add(1)
 	v.TaskNum++
@@ -23,7 +23,7 @@ func (v *vibranium) taskAdd(name string, verbose bool) {
 // 否则计数器用完不会为0, 你也别想退出这个进程了.
 func (v *vibranium) taskDone(name string, verbose bool) {
 	if verbose {
-		log.Infof("task [%s] done", name)
+		log.Debugf("task [%s] done", name)
 	}
 	v.counter.Done()
 	v.TaskNum--

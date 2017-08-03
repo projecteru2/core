@@ -35,6 +35,7 @@ func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) 
 	if pod.Scheduler == "CPU" {
 		return c.createContainerWithCPUPrior(specs, opts)
 	}
+	log.Infof("Creating container with options: %v", opts)
 	return c.createContainerWithMemoryPrior(specs, opts)
 }
 
@@ -46,9 +47,6 @@ func (c *calcium) createContainerWithMemoryPrior(specs types.Specs, opts *types.
 	if opts.Count <= 0 { // Count 要大于0
 		return ch, fmt.Errorf("Count must be positive")
 	}
-
-	log.Debugf("Deploy options: %v", opts)
-	log.Debugf("Deploy specs: %v", specs)
 
 	// TODO RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
 	// 因此需要在这里加个全局锁，直到部署完毕才释放
