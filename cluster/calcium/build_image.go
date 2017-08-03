@@ -23,6 +23,7 @@ import (
 const (
 	FROM   = "FROM %s"
 	FROMAS = "FROM %s as %s"
+	// TODO 在alpine中，useradd不会成功
 	COMMON = `ENV UID {{.UID}}
 ENV Appname {{.Appname}}
 ENV Appdir {{.Appdir}}
@@ -31,8 +32,8 @@ ENV ERU 1
 WORKDIR {{.Appdir}}/{{.Appname}}
 RUN useradd -u {{.UID}} -d /nonexistent -s /sbin/nologin -U {{.Appname}}
 RUN chown -R {{.UID}} {{.Appdir}}/{{.Appname}}`
-	RUN  = "RUN sh -c %s"
-	COPY = "COPY --from %s %s %s"
+	RUN  = "RUN sh -c \"%s\""
+	COPY = "COPY --from=%s %s %s"
 	USER = "USER %s"
 )
 
@@ -314,7 +315,6 @@ func makeComplexDockerFile(rs richSpecs, buildDir string) error {
 		preStage = stage
 		preArtifacts = build.Artifacts
 	}
-	//TODO
 	buildTmpl = append(buildTmpl, fmt.Sprintf(USER, rs.Appname))
 	dockerfile := strings.Join(buildTmpl, "\n")
 	return createDockerfile(dockerfile, buildDir)

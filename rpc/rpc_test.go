@@ -212,6 +212,7 @@ func initConfig(mStore *mockstore.MockStore) (types.Config, *vibranium) {
 		Docker: types.DockerConfig{
 			APIVersion: "v1.23",
 			LogDriver:  "none",
+			BuildPod:   "dev",
 		},
 	}
 
