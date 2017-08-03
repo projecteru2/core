@@ -9,13 +9,26 @@ import (
 
 // correspond to app.yaml in repository
 type Specs struct {
-	Appname     string                `yaml:"appname,omitempty"`
-	Entrypoints map[string]Entrypoint `yaml:"entrypoints,omitempty,flow"`
-	Build       []string              `yaml:"build,omitempty,flow"`
-	Volumes     []string              `yaml:"volumes,omitempty,flow"`
-	Meta        map[string]string     `yaml:"meta,omitempty,flow"`
-	Base        string                `yaml:"base"`
-	DNS         []string              `yaml:"dns,omitempty,flow"`
+	Appname      string                `yaml:"appname,omitempty"`
+	Entrypoints  map[string]Entrypoint `yaml:"entrypoints,omitempty,flow"`
+	Build        []string              `yaml:"build,omitempty,flow"`
+	ComplexBuild ComplexBuild          `yaml:"complex_build,omitempty,flow"`
+	Volumes      []string              `yaml:"volumes,omitempty,flow"`
+	Meta         map[string]string     `yaml:"meta,omitempty,flow"`
+	Base         string                `yaml:"base"`
+	DNS          []string              `yaml:"dns,omitempty,flow"`
+}
+
+type ComplexBuild struct {
+	Stages []string         `yaml:"stages,omitempty,flow"`
+	Builds map[string]Build `yaml:"builds,omitempty,flow"`
+}
+
+type Build struct {
+	Base      string            `yaml:"base,omitempty"`
+	Source    bool              `yaml:"source,omitempty"`
+	Commands  []string          `yaml:"commands,omitempty,flow"`
+	Artifacts map[string]string `yaml:"artifacts,omitempty,flow"`
 }
 
 // single entrypoint

@@ -139,6 +139,10 @@ func (c *cesium) Artifact(artifact, path string) error {
 	return nil
 }
 
+func (c *cesium) Security(path string) error {
+	return os.RemoveAll(filepath.Join(path, ".git"))
+}
+
 func New(config types.Config) *cesium {
 	return &cesium{config: config}
 }
