@@ -188,7 +188,6 @@ func initConfig(mStore *mockstore.MockStore) (types.Config, *vibranium) {
 
 	config := types.Config{
 		Bind:              ":5001",           // HTTP API address
-		AgentPort:         ":12345",          // Agent HTTP port, may not be used
 		AppDir:            "/tmp",            // App directory inside container
 		PermDir:           "/tmp",            // Permanent dir on host
 		BackupDir:         "/tmp",            // Backup dir on host
