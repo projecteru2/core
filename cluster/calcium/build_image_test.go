@@ -1,6 +1,9 @@
 package calcium
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -45,5 +48,60 @@ func TestGetRandomNodeFail(t *testing.T) {
 	assert.Nil(t, node)
 }
 
-// 后面的我实在不想写了
-// 让我们相信接口都是正确的吧
+func TestMultipleBuildDockerFile(t *testing.T) {
+	builds := types.ComplexBuild{
+		Stages: []string{"test", "step1", "setp2"},
+		Builds: map[string]types.Build{
+			"step1": types.Build{
+				Base:     "alpine:latest",
+				Commands: []string{"cp /bin/ls /root/artifact", "date > /root/something"},
+				Artifacts: map[string]string{
+					"/root/artifact":  "/root/artifact",
+					"/root/something": "/root/something",
+				},
+			},
+			"setp2": types.Build{
+				Base:     "centos:latest",
+				Commands: []string{"echo yooo", "sleep 1"},
+			},
+			"test": types.Build{
+				Base:     "ubuntu:latest",
+				Commands: []string{"date", "echo done"},
+			},
+		},
+	}
+	appname := "hello-app"
+	specs := types.Specs{
+		Appname:      appname,
+		ComplexBuild: builds,
+	}
+	rs := richSpecs{specs, "1001", "/app", appname, true}
+
+	tempDIR := os.TempDir()
+	err := makeComplexDockerFile(rs, tempDIR)
+	assert.NoError(t, err)
+	f, _ := os.Open(fmt.Sprintf("%s/Dockerfile", tempDIR))
+	bs, _ := ioutil.ReadAll(f)
+	fmt.Printf("%s", bs)
+	f.Close()
+	os.Remove(f.Name())
+}
+
+func TestSingleBuildDockerFile(t *testing.T) {
+	appname := "hello-app"
+	specs := types.Specs{
+		Appname: appname,
+		Build:   []string{"echo yes", "echo no"},
+		Base:    "alpine:latest",
+	}
+	rs := richSpecs{specs, "1001", "/app", appname, true}
+
+	tempDIR := os.TempDir()
+	err := makeSimpleDockerFile(rs, tempDIR)
+	assert.NoError(t, err)
+	f, _ := os.Open(fmt.Sprintf("%s/Dockerfile", tempDIR))
+	bs, _ := ioutil.ReadAll(f)
+	fmt.Printf("%s", bs)
+	f.Close()
+	os.Remove(f.Name())
+}
