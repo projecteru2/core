@@ -27,11 +27,8 @@ type calcium struct {
 const (
 	AFTER_START = "after_start"
 	BEFORE_STOP = "before_stop"
-)
-
-const (
-	GITLAB = "gitlab"
-	GITHUB = "github"
+	GITLAB      = "gitlab"
+	GITHUB      = "github"
 )
 
 // New returns a new cluster config
@@ -63,6 +60,6 @@ func New(config types.Config) (*calcium, error) {
 	return &calcium{store: store, config: config, scheduler: scheduler, network: titanium, source: scm}, nil
 }
 
-func (c *calcium) ResetSotre(s store.Store) {
+func (c *calcium) SetStore(s store.Store) {
 	c.store = s
 }

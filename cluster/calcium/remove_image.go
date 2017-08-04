@@ -1,11 +1,12 @@
 package calcium
 
 import (
+	"context"
+	"fmt"
 	"sync"
 
 	enginetypes "github.com/docker/docker/api/types"
 	"gitlab.ricebook.net/platform/core/types"
-	"golang.org/x/net/context"
 )
 
 // remove images
@@ -23,8 +24,10 @@ func (c *calcium) RemoveImage(podname, nodename string, images []string) (chan *
 	}
 
 	go func() {
+		defer close(ch)
 		wg := sync.WaitGroup{}
 		wg.Add(len(images))
+		defer wg.Wait()
 
 		for _, image := range images {
 			go func(image string) {
@@ -32,7 +35,6 @@ func (c *calcium) RemoveImage(podname, nodename string, images []string) (chan *
 
 				messages := []string{}
 				success := true
-
 				ms, err := node.Engine.ImageRemove(context.Background(), image, opts)
 				if err != nil {
 					success = false
@@ -40,10 +42,10 @@ func (c *calcium) RemoveImage(podname, nodename string, images []string) (chan *
 				} else {
 					for _, m := range ms {
 						if m.Untagged != "" {
-							messages = append(messages, "Untagged: "+m.Untagged)
+							messages = append(messages, fmt.Sprintf("Untagged: %s", m.Untagged))
 						}
 						if m.Deleted != "" {
-							messages = append(messages, "Deleted: "+m.Deleted)
+							messages = append(messages, fmt.Sprintf("Deleted: %s", m.Deleted))
 						}
 					}
 				}
@@ -54,9 +56,6 @@ func (c *calcium) RemoveImage(podname, nodename string, images []string) (chan *
 				}
 			}(image)
 		}
-
-		wg.Wait()
-		close(ch)
 	}()
 
 	return ch, nil

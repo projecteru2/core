@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"context"
 	"strings"
 	"sync"
 
@@ -8,7 +9,6 @@ import (
 	enginetypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"gitlab.ricebook.net/platform/core/types"
-	"golang.org/x/net/context"
 )
 
 const maxPuller = 10

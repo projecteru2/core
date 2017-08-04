@@ -123,8 +123,11 @@ func TestGitLabArtifact(t *testing.T) {
 	err = source.Artifact(artifactURL, path)
 	assert.NoError(t, err)
 
-	fileAbPath := strings.TrimPrefix(file.Name(), os.TempDir())
-	downloadFilePath := fmt.Sprintf("%s%s", path, fileAbPath)
+	fileName := strings.TrimPrefix(file.Name(), os.TempDir())
+	if strings.HasPrefix(fileName, "/") {
+		fileName = strings.TrimPrefix(fileName, "/")
+	}
+	downloadFilePath := fmt.Sprintf("%s/%s", path, fileName)
 	fmt.Println(downloadFilePath)
 
 	downloadFile, err := os.Open(downloadFilePath)

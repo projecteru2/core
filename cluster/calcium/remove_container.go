@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -8,7 +9,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
 	"gitlab.ricebook.net/platform/core/types"
-	"golang.org/x/net/context"
 )
 
 type imageBucket struct {

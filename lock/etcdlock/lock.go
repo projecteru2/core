@@ -1,6 +1,7 @@
 package etcdlock
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -9,7 +10,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/etcd/client"
-	"golang.org/x/net/context"
 )
 
 const (

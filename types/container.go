@@ -1,12 +1,12 @@
 package types
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	enginetypes "github.com/docker/docker/api/types"
 	engineapi "github.com/docker/docker/client"
-	"golang.org/x/net/context"
 )
 
 // only relationship with pod and node is stored
@@ -30,7 +30,8 @@ func (c *Container) ShortID() string {
 }
 
 func (c *Container) Inspect() (enginetypes.ContainerJSON, error) {
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	if c.Engine == nil {
 		return enginetypes.ContainerJSON{}, fmt.Errorf("Engine is nil")
 	}

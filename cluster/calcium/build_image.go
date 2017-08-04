@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -16,14 +17,13 @@ import (
 	"github.com/docker/docker/pkg/archive"
 	"gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/utils"
-	"golang.org/x/net/context"
 	"gopkg.in/yaml.v2"
 )
 
+// FIXME in alpine, useradd rename as adduser
 const (
 	FROM   = "FROM %s"
 	FROMAS = "FROM %s as %s"
-	// TODO 在alpine中，useradd不会成功
 	COMMON = `ENV UID {{.UID}}
 ENV Appname {{.Appname}}
 ENV Appdir {{.Appdir}}
@@ -115,7 +115,7 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 		return ch, err
 	}
 
-	// ensure .git directory is removed
+	// ensure source code is safe
 	// we don't want any history files to be retrieved
 	if err := c.source.Security(cloneDir); err != nil {
 		return ch, err
@@ -181,6 +181,7 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 
 	go func() {
 		defer resp.Body.Close()
+		defer close(ch)
 		decoder := json.NewDecoder(resp.Body)
 		for {
 			message := &types.BuildImageMessage{}
@@ -188,10 +189,9 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 			if err != nil {
 				if err == io.EOF {
 					break
-				} else {
-					close(ch)
-					return
 				}
+				log.Errorf("Decode build image message failed %v", err)
+				return
 			}
 			ch <- message
 		}
@@ -201,7 +201,6 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 		rc, err := node.Engine.ImagePush(context.Background(), tag, enginetypes.ImagePushOptions{RegistryAuth: "Khadgar"})
 		if err != nil {
 			ch <- makeErrorBuildImageMessage(err)
-			close(ch)
 			return
 		}
 
@@ -213,10 +212,9 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 			if err != nil {
 				if err == io.EOF {
 					break
-				} else {
-					close(ch)
-					return
 				}
+				log.Errorf("Decode push image message failed %v", err)
+				return
 			}
 			ch <- message
 		}
@@ -230,7 +228,6 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 		})
 
 		ch <- &types.BuildImageMessage{Status: "finished", Progress: tag}
-		close(ch)
 	}()
 
 	return ch, nil

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
+	"context"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -222,7 +222,7 @@ func initConfig(mStore *mockstore.MockStore) (types.Config, *vibranium) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cluster.ResetSotre(mStore)
+	cluster.SetStore(mStore)
 	vibranium := New(cluster, config)
 
 	return config, vibranium

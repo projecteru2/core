@@ -1,8 +1,9 @@
 package network
 
 import (
+	"context"
+
 	"gitlab.ricebook.net/platform/core/types"
-	"golang.org/x/net/context"
 )
 
 type Network interface {

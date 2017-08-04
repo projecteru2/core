@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -16,7 +17,6 @@ import (
 	"gitlab.ricebook.net/platform/core/stats"
 	"gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/utils"
-	"golang.org/x/net/context"
 )
 
 const (
@@ -475,12 +475,11 @@ func (c *calcium) makeContainerOptions(index int, quota map[string]int, specs ty
 	}
 
 	// 只要声明了ports，就免费赠送tcp健康检查，如果需要http健康检查，还要单独声明 healthcheck_url
+	containerLabels["healthcheck"] = "tcp"
 	if entry.HealthCheckUrl != "" {
 		containerLabels["healthcheck"] = "http"
 		containerLabels["healthcheck_url"] = entry.HealthCheckUrl
 		containerLabels["healthcheck_expected_code"] = strconv.Itoa(entry.HealthCheckExpectedCode)
-	} else {
-		containerLabels["healthcheck"] = "tcp"
 	}
 
 	// 要把after_start和before_stop写进去
@@ -559,17 +558,6 @@ func (c *calcium) makeContainerOptions(index int, quota map[string]int, specs ty
 		Privileged:    entry.Privileged != "",
 		Resources:     resource,
 	}
-	// this is empty because we don't use any plugin for Docker
-	// networkConfig := &enginenetwork.NetworkingConfig{
-	// 	EndpointsConfig: map[string]*enginenetwork.EndpointSettings{},
-	// }
-
-	// for networkID, ipv4 := range opts.Networks {
-	// 	networkConfig.EndpointsConfig[networkID] = &enginenetwork.EndpointSettings{
-	// 		NetworkID:  networkID,
-	// 		IPAMConfig: &enginenetwork.EndpointIPAMConfig{IPv4Address: ipv4},
-	// 	}
-	// }
 	networkConfig := &enginenetwork.NetworkingConfig{}
 	return config, hostConfig, networkConfig, containerName, nil
 }

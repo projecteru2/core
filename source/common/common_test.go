@@ -76,7 +76,7 @@ func TestGitLabArtifact(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "zip: not a valid zip file")
 
-	artifactURL = "http://localhost:0"
+	artifactURL = "http://localhost"
 	err = source.Artifact(artifactURL, "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "connection refused")

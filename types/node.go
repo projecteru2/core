@@ -1,6 +1,7 @@
 package types
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/url"
@@ -9,7 +10,6 @@ import (
 
 	enginetypes "github.com/docker/docker/api/types"
 	engineapi "github.com/docker/docker/client"
-	"golang.org/x/net/context"
 )
 
 type CPUAndMem struct {
@@ -63,7 +63,8 @@ type Node struct {
 // 2 seconds timeout
 // used to be 5, but client won't wait that long
 func (n *Node) Info() (enginetypes.Info, error) {
-	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
 	if n.Engine == nil {
 		return enginetypes.Info{}, fmt.Errorf("Node engine is nil")
 	}

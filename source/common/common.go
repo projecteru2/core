@@ -66,18 +66,15 @@ func (g *GitScm) SourceCode(repository, path, revision string) error {
 
 	repo, err := git.Clone(repository, path, cloneOpts)
 	if err != nil {
-		log.Errorf("Error during Clone: %v", err.Error())
 		return err
 	}
 
 	if err := repo.CheckoutHead(nil); err != nil {
-		log.Errorf("Error during CheckoutHead: %v", err.Error())
 		return err
 	}
 
 	object, err := repo.RevparseSingle(revision)
 	if err != nil {
-		log.Errorf("Error during RevparseSingle: %v", err.Error())
 		return err
 	}
 	defer object.Free()

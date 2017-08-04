@@ -1,6 +1,7 @@
 package etcdstore
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -11,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	//	"time"
 
 	log "github.com/Sirupsen/logrus"
 	etcdclient "github.com/coreos/etcd/client"
@@ -19,7 +19,6 @@ import (
 	"github.com/docker/go-connections/tlsconfig"
 	"gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/utils"
-	"golang.org/x/net/context"
 )
 
 const GIGABYTE = 1073741824

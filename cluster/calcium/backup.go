@@ -3,6 +3,7 @@ package calcium
 import (
 	"compress/gzip"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -45,7 +46,8 @@ func (c *calcium) Backup(id, srcPath string) (*types.BackupMessage, error) {
 		return nil, err
 	}
 
-	backupFile := filepath.Join(baseDir, stat.Name+"-"+container.ShortID()+"-"+ident+"-"+now+".tar.gz")
+	filename := fmt.Sprintf("%s-%s-%s-%s.tar.gz", stat.Name, container.ShortID(), ident, now)
+	backupFile := filepath.Join(baseDir, filename)
 	log.Debugf("Creating %s", backupFile)
 	file, err := os.Create(backupFile)
 	if err != nil {

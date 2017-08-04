@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"sync"
@@ -11,7 +12,6 @@ import (
 	enginetypes "github.com/docker/docker/api/types"
 	"gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/utils"
-	"golang.org/x/net/context"
 )
 
 func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error) {

@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	"io"
@@ -10,7 +11,6 @@ import (
 
 	engineapi "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
-	"golang.org/x/net/context"
 )
 
 const (

@@ -1,15 +1,16 @@
 package calico
 
 import (
+	"context"
 	"fmt"
 	"net"
 
 	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
+	enginefilters "github.com/docker/docker/api/types/filters"
 	enginenetwork "github.com/docker/docker/api/types/network"
 	"gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/utils"
-	"golang.org/x/net/context"
 )
 
 type titanium struct{}
@@ -79,19 +80,16 @@ func (t *titanium) ListNetworks(ctx context.Context) ([]*types.Network, error) {
 		return networks, fmt.Errorf("Not actually a `engineapi.Client` for value engine in context")
 	}
 
-	ns, err := engine.NetworkList(context.Background(), enginetypes.NetworkListOptions{})
+	filters := enginefilters.NewArgs()
+	filters.Add("driver", t.Name())
+	ns, err := engine.NetworkList(
+		context.Background(),
+		enginetypes.NetworkListOptions{Filters: filters})
 	if err != nil {
 		return networks, err
 	}
 
-	driver := t.Name()
 	for _, n := range ns {
-		// TODO 之后可以用filter driver=xxx
-		// 但是现在版本的API还没有给出
-		if n.Driver != driver {
-			continue
-		}
-
 		subnets := []string{}
 		for _, config := range n.IPAM.Config {
 			subnets = append(subnets, config.Subnet)
