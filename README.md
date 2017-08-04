@@ -10,12 +10,11 @@ Core
 `make deps` 可能非常耗时间, 建议开代理, 或者直接从 hub.ricebook.net/base/centos:onbuild-eru-core-2017.03.04 这个镜像 copy.
 
 ```shell
-git config --global url."git@gitlab.ricebook.net:".insteadOf "https://gitlab.ricebook.net/"
-go get gitlab.ricebook.net/platform/core.git
-mv $GOPATH/src/gitlab.ricebook.net/platform/core.git $GOPATH/src/gitlab.ricebook.net/platform/core
-cd $GOPATH/src/gitlab.ricebook.net/platform/core
+# libgit2 锁定在 0.25.1
+cd /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula
+gco 9c527911c8c630355d92df001575cacbb4a8b8b4 libgit2.rb
+HOMEBREW_NO_AUTO_UPDATE=1 brew install libgit2
 make deps
-make build
 ```
 
 ## Upgrade core on test/production server
@@ -23,9 +22,9 @@ make build
 ```shell
 make build
 # test server
-devtools/upgrade-eru-core.sh test
+devtools/deploy.sh test
 # prod server
-devtools/upgrade-eru-core.sh prod
+devtools/deploy.sh prod
 ```
 
 ### GRPC
@@ -33,9 +32,9 @@ devtools/upgrade-eru-core.sh prod
 Generate golang & python code
 
 ```shell
-$ go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
-$ make golang
-$ make python
+go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
+make golang
+make python
 ```
 
 Current version of dependencies are:
