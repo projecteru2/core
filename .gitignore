@@ -8,3 +8,4 @@ default.etcd/*
 vendor/*
 clean.sh
 .vscode/*
+*.test

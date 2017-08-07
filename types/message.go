@@ -23,6 +23,7 @@ type BackupMessage struct {
 	Status string `json:"status,omitempty"`
 	Size   int64  `json:"size,omitempty"`
 	Error  string `json:"error,omitempty"`
+	Path   string `json:"path,omitempty"`
 }
 
 type RemoveImageMessage struct {
