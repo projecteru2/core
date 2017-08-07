@@ -52,11 +52,9 @@ func TestCreateContainerWithMemPrior(t *testing.T) {
 	}
 
 	// Create Container with memory prior
-	testlogF("Create containers with memory prior")
+	t.Log("Create containers with memory prior")
 	createCh, err := mockc.createContainerWithMemoryPrior(specs, opts)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	ids := []string{}
 	for msg := range createCh {
 		assert.True(t, msg.Success)
@@ -78,11 +76,9 @@ func TestCreateContainerWithMemPrior(t *testing.T) {
 	mockStore.On("GetContainers", ids).Return(&cs, nil)
 
 	// Remove Container
-	testlogF("Remove containers")
+	t.Log("Remove containers")
 	removeCh, err := mockc.RemoveContainer(ids)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	for msg := range removeCh {
 		fmt.Printf("ID: %s, Message: %s\n", msg.ContainerID, msg.Message)
 		assert.True(t, msg.Success)
@@ -93,9 +89,14 @@ func TestClean(t *testing.T) {
 	initMockConfig()
 
 	// delete pod
-	if err := mockc.store.DeletePod("dev_pod", true); err != nil {
-		t.Fatal(err)
-	}
+	err := mockc.store.DeletePod(podname, false)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "still has nodes, delete the nodes first")
+
+	// force delete
+	err = mockc.store.DeletePod(podname, true)
+	assert.NoError(t, err)
+
 }
 
 func TestCreateContainerWithCPUPrior(t *testing.T) {
@@ -131,11 +132,9 @@ func TestCreateContainerWithCPUPrior(t *testing.T) {
 	})).Return(nil)
 
 	// Create Container with memory prior
-	testlogF("Create containers with memory prior")
+	t.Log("Create containers with memory prior")
 	createCh, err := mockc.createContainerWithCPUPrior(specs, opts)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
 	ids := []string{}
 	for msg := range createCh {
 		assert.True(t, msg.Success)

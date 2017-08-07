@@ -11,10 +11,8 @@ func TestRemoveImage(t *testing.T) {
 
 	images := []string{image}
 	ch, err := mockc.RemoveImage(podname, nodename, images)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	assert.NoError(t, err)
+
 	for c := range ch {
 		assert.True(t, c.Success)
 	}

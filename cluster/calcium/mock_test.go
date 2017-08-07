@@ -137,7 +137,10 @@ func mockDockerDoer(r *http.Request) (*http.Response, error) {
 	case fmt.Sprintf("/containers/%s/stop", containerID):
 		testlogF("stop container %s", containerID)
 		b = []byte("body")
-	case fmt.Sprintf("/containers/%s/archive", containerID):
+	case fmt.Sprintf("/containers/%s/archive", containerID): // docker cp
+		query := r.URL.Query()
+		path := query.Get("path")
+		testlogF("mock docker cp to %s", path)
 		headercontent, err := json.Marshal(types.ContainerPathStat{
 			Name: "name",
 			Mode: 0700,
@@ -332,10 +335,11 @@ func initMockConfig() {
 
 	// GetContainer
 	rContainer := &coretypes.Container{
+		ID:       mockID,
 		Engine:   clnt,
 		Podname:  podname,
 		Nodename: nodename,
 		Name:     "hello_hi_123",
 	}
-	mockStore.On("GetContainer", mockStringType).Return(rContainer, nil)
+	mockStore.On("GetContainer", mockID).Return(rContainer, nil)
 }

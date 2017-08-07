@@ -43,15 +43,14 @@ func (m *MockStore) AddPod(name, desc string) (*types.Pod, error) {
 }
 
 func (m *MockStore) DeletePod(podname string, force bool) error {
-	args := m.Called(podname, force)
-	if args.Get(0) != nil {
-		return args.Error(0)
+	nodes, err := m.GetNodesByPod(podname)
+	if err != nil {
+		return err
 	}
-	return args.Error(0)
-}
-
-func (m *MockStore) UpdatePod(pod *types.Pod) error {
-	args := m.Called(pod)
+	if len(nodes) != 0 && force != true {
+		return fmt.Errorf("[DeletePod] pod %s still has nodes, delete the nodes first", podname)
+	}
+	args := m.Called(podname, force)
 	if args.Get(0) != nil {
 		return args.Error(0)
 	}

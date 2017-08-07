@@ -115,9 +115,7 @@ func TestGitLabArtifact(t *testing.T) {
 	defer os.Remove(config.PrivateKey)
 
 	path, err := ioutil.TempDir(os.TempDir(), "sourcecode-")
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 
 	err = source.Artifact(artifactURL, path)

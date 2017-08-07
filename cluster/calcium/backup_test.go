@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,6 +9,7 @@ import (
 
 func TestBackup(t *testing.T) {
 	initMockConfig()
+
 	srcPath := "/tmp"
 	_, err = mockc.Backup(mockID, srcPath)
 	assert.Error(t, err)
@@ -15,15 +17,14 @@ func TestBackup(t *testing.T) {
 
 	config.BackupDir = "/tmp"
 	mockc, err = New(config)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	assert.NoError(t, err)
+
 	mockc.SetStore(mockStore)
-	ch, err := mockc.Backup(mockID, srcPath)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	assert.Equal(t, ch.Status, "ok")
+	msg, err := mockc.Backup(mockID, srcPath)
+	assert.NoError(t, err)
+
+	assert.Equal(t, msg.Status, "ok")
+	t.Log("Backup to ", msg.Path)
+
+	os.RemoveAll(msg.Path)
 }

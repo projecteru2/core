@@ -58,6 +58,7 @@ func (c *calcium) Backup(id, srcPath string) (*types.BackupMessage, error) {
 	file, err := os.Create(backupFile)
 	if err != nil {
 		log.Errorf("Error during create backup file %s: %v", backupFile, err)
+		return nil, err
 	}
 	defer file.Close()
 
@@ -73,5 +74,6 @@ func (c *calcium) Backup(id, srcPath string) (*types.BackupMessage, error) {
 	return &types.BackupMessage{
 		Status: "ok",
 		Size:   stat.Size,
+		Path:   backupFile,
 	}, nil
 }
