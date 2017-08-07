@@ -19,7 +19,8 @@ import (
 var (
 	repo        = "git@github.com:noexist/noexist.git"
 	revision    = "6"
-	config      = types.GitConfig{}
+	config      = types.Config{}
+	gitConfig   = types.GitConfig{}
 	artifactURL = "http://127.0.0.1:8088/"
 )
 
@@ -50,19 +51,22 @@ func initTest() {
 	prikeyPath.WriteString(prikeyString)
 	defer prikeyPath.Close()
 
-	config = types.GitConfig{
-		PublicKey:  pubkeyPath.Name(),
-		PrivateKey: prikeyPath.Name(),
-		Token:      "x",
+	config = types.Config{
+		Git: types.GitConfig{
+			PublicKey:  pubkeyPath.Name(),
+			PrivateKey: prikeyPath.Name(),
+			Token:      "x",
+		},
 	}
+	gitConfig = config.Git
 }
 
 func TestGitSourceCode(t *testing.T) {
 	initTest()
-	source := common.GitScm{Config: config}
+	source := common.GitScm{Config: gitConfig}
 
-	defer os.RemoveAll(config.PublicKey)
-	defer os.RemoveAll(config.PrivateKey)
+	defer os.RemoveAll(gitConfig.PublicKey)
+	defer os.RemoveAll(gitConfig.PrivateKey)
 
 	path, err := ioutil.TempDir(os.TempDir(), "sourcecode-")
 	if err != nil {
@@ -111,8 +115,8 @@ func TestGitLabArtifact(t *testing.T) {
 	initTest()
 	source := gitlab.New(config)
 
-	defer os.Remove(config.PublicKey)
-	defer os.Remove(config.PrivateKey)
+	defer os.Remove(gitConfig.PublicKey)
+	defer os.Remove(gitConfig.PrivateKey)
 
 	path, err := ioutil.TempDir(os.TempDir(), "sourcecode-")
 	assert.NoError(t, err)

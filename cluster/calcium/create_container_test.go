@@ -3,31 +3,16 @@ package calcium
 import (
 	"fmt"
 	"testing"
-
-	"github.com/stretchr/testify/mock"
+	"time"
 
 	"github.com/docker/docker/client"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"gitlab.ricebook.net/platform/core/types"
 )
 
-func TestPullImage(t *testing.T) {
-	initMockConfig()
-
-	nodes, err := mockc.store.GetAllNodes()
-	if err != nil || len(nodes) == 0 {
-		t.Fatal(err)
-	}
-
-	if err := pullImage(nodes[0], image); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestCreateContainerWithMemPrior(t *testing.T) {
-	initMockConfig()
-
-	specs := types.Specs{
+var (
+	specs = types.Specs{
 		Appname: "root",
 		Entrypoints: map[string]types.Entrypoint{
 			"test": types.Entrypoint{
@@ -41,7 +26,7 @@ func TestCreateContainerWithMemPrior(t *testing.T) {
 		Build: []string{""},
 		Base:  image,
 	}
-	opts := &types.DeployOptions{
+	opts = &types.DeployOptions{
 		Appname:    "root",
 		Image:      image,
 		Podname:    podname,
@@ -50,9 +35,26 @@ func TestCreateContainerWithMemPrior(t *testing.T) {
 		Memory:     268435456,
 		CPUQuota:   1,
 	}
+)
+
+func TestPullImage(t *testing.T) {
+	initMockConfig()
+
+	nodes, err := mockc.store.GetAllNodes()
+	if err != nil || len(nodes) == 0 {
+		t.Fatal(err)
+	}
+
+	if err := pullImage(nodes[0], image, 5*time.Second); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestCreateContainerWithMemPrior(t *testing.T) {
+	initMockConfig()
 
 	// Create Container with memory prior
-	t.Log("Create containers with memory prior")
+	testlogF("Create containers with memory prior")
 	createCh, err := mockc.createContainerWithMemoryPrior(specs, opts)
 	assert.NoError(t, err)
 	ids := []string{}
@@ -76,7 +78,7 @@ func TestCreateContainerWithMemPrior(t *testing.T) {
 	mockStore.On("GetContainers", ids).Return(&cs, nil)
 
 	// Remove Container
-	t.Log("Remove containers")
+	testlogF("Remove containers")
 	removeCh, err := mockc.RemoveContainer(ids)
 	assert.NoError(t, err)
 	for msg := range removeCh {
@@ -102,37 +104,13 @@ func TestClean(t *testing.T) {
 func TestCreateContainerWithCPUPrior(t *testing.T) {
 	initMockConfig()
 
-	specs := types.Specs{
-		Appname: "root",
-		Entrypoints: map[string]types.Entrypoint{
-			"test": types.Entrypoint{
-				Command:                 "sleep 9999",
-				Ports:                   []types.Port{"6006/tcp"},
-				HealthCheckPort:         6006,
-				HealthCheckUrl:          "",
-				HealthCheckExpectedCode: 200,
-			},
-		},
-		Build: []string{""},
-		Base:  image,
-	}
-	opts := &types.DeployOptions{
-		Appname:    "root",
-		Image:      image,
-		Podname:    podname,
-		Entrypoint: "test",
-		Count:      3,
-		Memory:     268435456,
-		CPUQuota:   1,
-	}
-
 	// update node
 	mockStore.On("UpdateNode", mock.MatchedBy(func(input *types.Node) bool {
 		return true
 	})).Return(nil)
 
 	// Create Container with memory prior
-	t.Log("Create containers with memory prior")
+	testlogF("Create containers with memory prior")
 	createCh, err := mockc.createContainerWithCPUPrior(specs, opts)
 	assert.NoError(t, err)
 	ids := []string{}
@@ -140,5 +118,44 @@ func TestCreateContainerWithCPUPrior(t *testing.T) {
 		assert.True(t, msg.Success)
 		ids = append(ids, msg.ContainerID)
 		fmt.Printf("Get Container ID: %s\n", msg.ContainerID)
+	}
+}
+
+func TestCreateContainerMemTimeoutError(t *testing.T) {
+	initMockConfig()
+	mockTimeoutError = true
+
+	// update node
+	mockStore.On("UpdateNode", mock.MatchedBy(func(input *types.Node) bool {
+		return true
+	})).Return(nil)
+
+	// Create Container with memory prior
+	testlogF("Create containers with memory prior")
+	createCh, err := mockc.createContainerWithMemoryPrior(specs, opts)
+	assert.NoError(t, err)
+	for msg := range createCh {
+		assert.False(t, msg.Success)
+		assert.Contains(t, msg.Error, "context deadline exceeded")
+	}
+
+}
+
+func TestCreateContainerCPUTimeoutError(t *testing.T) {
+	initMockConfig()
+	mockTimeoutError = true
+
+	// update node
+	mockStore.On("UpdateNode", mock.MatchedBy(func(input *types.Node) bool {
+		return true
+	})).Return(nil)
+
+	// Create Container with cpu prior
+	testlogF("Create containers with cpu prior")
+	createCh, err := mockc.createContainerWithCPUPrior(specs, opts)
+	assert.NoError(t, err)
+	for msg := range createCh {
+		assert.False(t, msg.Success)
+		assert.Contains(t, msg.Error, "context deadline exceeded")
 	}
 }

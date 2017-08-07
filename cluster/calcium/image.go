@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
@@ -35,7 +36,7 @@ func (c *calcium) cacheImage(podname, image string) error {
 		wg.Add(1)
 		go func(node *types.Node) {
 			defer wg.Done()
-			pullImage(node, image)
+			pullImage(node, image, c.config.Timeout.CreateContainer)
 		}(node)
 	}
 
@@ -62,7 +63,7 @@ func (c *calcium) cleanImage(podname, image string) error {
 		wg.Add(1)
 		go func(node *types.Node) {
 			defer wg.Done()
-			if err := cleanImageOnNode(node, image, c.config.ImageCache); err != nil {
+			if err := cleanImageOnNode(node, image, c.config.ImageCache, c.config.Timeout.RemoveImage); err != nil {
 				log.Errorf("cleanImageOnNode error: %s", err)
 			}
 		}(node)
@@ -89,12 +90,14 @@ func (x imageList) Less(i, j int) bool { return x[i].Created > x[j].Created }
 // 清理一个node上的这个image
 // 只清理同名字不同tag的
 // 并且保留最新的两个
-func cleanImageOnNode(node *types.Node, image string, count int) error {
+func cleanImageOnNode(node *types.Node, image string, count int, timeout time.Duration) error {
 	log.Debugf("[cleanImageOnNode] node: %s, image: %s", node.Name, strings.Split(image, ":")[0])
 	imgListFilter := filters.NewArgs()
 	image = normalizeImage(image)
 	imgListFilter.Add("reference", image) // 相同repo的image
-	images, err := node.Engine.ImageList(context.Background(), enginetypes.ImageListOptions{Filters: imgListFilter})
+	ctxList, cancelList := context.WithTimeout(context.Background(), timeout)
+	defer cancelList()
+	images, err := node.Engine.ImageList(ctxList, enginetypes.ImageListOptions{Filters: imgListFilter})
 	if err != nil {
 		return err
 	}
@@ -107,13 +110,15 @@ func cleanImageOnNode(node *types.Node, image string, count int) error {
 	log.Debugf("Delete Images: %v", images)
 
 	for _, image := range images {
-		_, err := node.Engine.ImageRemove(context.Background(), image.ID, enginetypes.ImageRemoveOptions{
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		_, err := node.Engine.ImageRemove(ctx, image.ID, enginetypes.ImageRemoveOptions{
 			Force:         false,
 			PruneChildren: true,
 		})
 		if err != nil {
 			log.Errorf("[cleanImageOnNode] Node %s ImageRemove error: %s, imageID: %s", node.Name, err, image.ID)
 		}
+		cancel()
 	}
 	return nil
 }

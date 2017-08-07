@@ -143,12 +143,14 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 	}()
 
 	// before stop
-	if err := runExec(container.Engine, info, BEFORE_STOP); err != nil {
+	if err := runExec(container.Engine, info, BEFORE_STOP, c.config.Timeout.RemoveContainer); err != nil {
 		log.Errorf("Run exec at %s error: %s", BEFORE_STOP, err.Error())
 	}
 
-	timeout := 5 * time.Second
-	err = container.Engine.ContainerStop(context.Background(), info.ID, &timeout)
+	stopTimeout := 5 * time.Second
+	ctxStop, cancelStop := context.WithTimeout(context.Background(), stopTimeout)
+	defer cancelStop()
+	err = container.Engine.ContainerStop(ctxStop, info.ID, &stopTimeout)
 	if err != nil {
 		log.Errorf("Error during ContainerStop: %s", err.Error())
 		return err
@@ -158,7 +160,9 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 		RemoveVolumes: true,
 		Force:         true,
 	}
-	err = container.Engine.ContainerRemove(context.Background(), info.ID, rmOpts)
+	ctxRemove, cancelRemove := context.WithTimeout(context.Background(), c.config.Timeout.RemoveContainer)
+	defer cancelRemove()
+	err = container.Engine.ContainerRemove(ctxRemove, info.ID, rmOpts)
 	if err != nil {
 		log.Errorf("Error during ContainerRemove: %s", err.Error())
 		return err

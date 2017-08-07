@@ -7,9 +7,10 @@ import (
 	"gitlab.ricebook.net/platform/core/types"
 )
 
-func New(config types.GitConfig) *common.GitScm {
-	token := fmt.Sprintf("token %s", config.Token)
+func New(config types.Config) *common.GitScm {
+	gitConfig := config.Git
+	token := fmt.Sprintf("token %s", gitConfig.Token)
 	authheaders := map[string]string{}
 	authheaders["Authorization"] = token
-	return &common.GitScm{Config: config, AuthHeaders: authheaders}
+	return &common.GitScm{Config: gitConfig, AuthHeaders: authheaders}
 }
