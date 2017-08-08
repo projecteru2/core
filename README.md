@@ -1,14 +1,17 @@
 Core
 ====
 
-## DEV
+Eru 体系的核心组件，无状态，采用悲观锁实现来分配资源。
+
+## Develop
 
 开发测试的时候，修改好了版本号，直接推到 gitlab 吧，build 完成了以后会自动发布到 mirrors.ricebook.net ，然后用部署脚本更新即可（见下方示范）。
 
 ## setup dev environment
 
-`make deps` 可能非常耗时间, 建议开代理, 或者直接从 hub.ricebook.net/base/centos:onbuild-eru-core-2017.03.04 这个镜像 copy.
+`make deps` 可能非常耗时间, 建议开代理, 或者直接使用 `hub.ricebook.net/base/centos:onbuild-eru-core-2017.08.04` 这个镜像来操作。
 
+在 OSX 下需要先安装 `libgit2` 假定已经安装了 [Homebrew](https://brew.sh/) 的前提下，执行：
 ```shell
 # libgit2 锁定在 0.25.1
 cd /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula
