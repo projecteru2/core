@@ -54,8 +54,8 @@ func initConfig(configPath string) (types.Config, error) {
 		return config, err
 	}
 
-	if config.RunAndWaitTimeout == 0 {
-		config.RunAndWaitTimeout = 1200
+	if config.Timeout.Common == 0 {
+		log.Fatal("Common timeout not set, exit")
 	}
 
 	if config.Docker.APIVersion == "" {

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
@@ -144,7 +145,7 @@ func makeMountPaths(specs types.Specs, config types.Config) ([]string, map[strin
 
 // 跑存在labels里的exec
 // 为什么要存labels呢, 因为下线容器的时候根本不知道entrypoint是啥
-func runExec(client *engineapi.Client, container enginetypes.ContainerJSON, label string) error {
+func runExec(client *engineapi.Client, container enginetypes.ContainerJSON, label string, timeout time.Duration) error {
 	cmd, ok := container.Config.Labels[label]
 	if !ok || cmd == "" {
 		log.Debugf("No %s found in container %s", label, container.ID)
@@ -153,11 +154,14 @@ func runExec(client *engineapi.Client, container enginetypes.ContainerJSON, labe
 
 	cmds := utils.MakeCommandLineArgs(cmd)
 	execConfig := enginetypes.ExecConfig{User: container.Config.User, Cmd: cmds}
-	resp, err := client.ContainerExecCreate(context.Background(), container.ID, execConfig)
+	ctxExec, cancelCreate := context.WithTimeout(context.Background(), timeout)
+	defer cancelCreate()
+	resp, err := client.ContainerExecCreate(ctxExec, container.ID, execConfig)
 	if err != nil {
 		log.Errorf("Error during runExec: %v", err)
 		return err
 	}
-
-	return client.ContainerExecStart(context.Background(), resp.ID, enginetypes.ExecStartCheck{})
+	ctxStart, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	return client.ContainerExecStart(ctxStart, resp.ID, enginetypes.ExecStartCheck{})
 }

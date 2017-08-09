@@ -174,7 +174,10 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 	}
 
 	log.Infof("Building image %v with artifact %v at %v:%v", tag, artifact, buildPodname, node.Name)
-	resp, err := node.Engine.ImageBuild(context.Background(), buildContext, buildOptions)
+
+	ctx, cancel := context.WithTimeout(context.Background(), c.config.Timeout.BuildImage)
+	defer cancel()
+	resp, err := node.Engine.ImageBuild(ctx, buildContext, buildOptions)
 	if err != nil {
 		return ch, err
 	}
@@ -196,9 +199,11 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 			ch <- message
 		}
 
+		ctx, cancel := context.WithTimeout(context.Background(), c.config.Timeout.BuildImage)
+		defer cancel()
 		// About this "Khadgar", https://github.com/docker/docker/issues/10983#issuecomment-85892396
 		// Just because Ben Schnetzer's cute Khadgar...
-		rc, err := node.Engine.ImagePush(context.Background(), tag, enginetypes.ImagePushOptions{RegistryAuth: "Khadgar"})
+		rc, err := node.Engine.ImagePush(ctx, tag, enginetypes.ImagePushOptions{RegistryAuth: "Khadgar"})
 		if err != nil {
 			ch <- makeErrorBuildImageMessage(err)
 			return
@@ -222,10 +227,17 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 		// 无论如何都删掉build机器的
 		// 事实上他不会跟cached pod一样
 		// 一样就砍死
-		go node.Engine.ImageRemove(context.Background(), tag, enginetypes.ImageRemoveOptions{
-			Force:         false,
-			PruneChildren: true,
-		})
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), c.config.Timeout.BuildImage)
+			defer cancel()
+			_, err := node.Engine.ImageRemove(ctx, tag, enginetypes.ImageRemoveOptions{
+				Force:         false,
+				PruneChildren: true,
+			})
+			if err != nil {
+				log.Errorf("Remove image error: %s", err)
+			}
+		}()
 
 		ch <- &types.BuildImageMessage{Status: "finished", Progress: tag}
 	}()

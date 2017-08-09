@@ -35,7 +35,8 @@ func (c *calcium) RemoveImage(podname, nodename string, images []string) (chan *
 
 				messages := []string{}
 				success := true
-				ms, err := node.Engine.ImageRemove(context.Background(), image, opts)
+				ctx, cancel := context.WithTimeout(context.Background(), c.config.Timeout.RemoveImage)
+				ms, err := node.Engine.ImageRemove(ctx, image, opts)
 				if err != nil {
 					success = false
 					messages = append(messages, err.Error())
@@ -49,6 +50,7 @@ func (c *calcium) RemoveImage(podname, nodename string, images []string) (chan *
 						}
 					}
 				}
+				cancel()
 				ch <- &types.RemoveImageMessage{
 					Image:    image,
 					Success:  success,

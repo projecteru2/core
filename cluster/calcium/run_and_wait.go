@@ -24,9 +24,9 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions, stdin
 
 	// 默认给出1200秒的超时时间吧
 	// 没别的地方好传了, 不如放这里好了, 不需要用的就默认0或者不传
-	waitTimeout := entry.RunAndWaitTimeout
-	if waitTimeout == 0 {
-		waitTimeout = c.config.RunAndWaitTimeout
+	waitTimeout := c.config.Timeout.RunAndWait
+	if entry.RunAndWaitTimeout != 0 {
+		waitTimeout = time.Duration(entry.RunAndWaitTimeout) * time.Second
 	}
 
 	// count = 1 && OpenStdin
@@ -77,7 +77,7 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions, stdin
 				defer log.Infof("[RunAndWait] Container %s finished and removed", containerID[:12])
 				defer c.removeContainerSync([]string{containerID})
 
-				ctx, cancel := context.WithTimeout(context.Background(), time.Duration(waitTimeout)*time.Second)
+				ctx, cancel := context.WithTimeout(context.Background(), waitTimeout)
 				defer cancel()
 				resp, err := node.Engine.ContainerLogs(ctx, containerID, logsOpts)
 				if err != nil {

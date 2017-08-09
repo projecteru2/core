@@ -5,8 +5,9 @@ import (
 	"gitlab.ricebook.net/platform/core/types"
 )
 
-func New(config types.GitConfig) *common.GitScm {
+func New(config types.Config) *common.GitScm {
+	gitConfig := config.Git
 	authheaders := map[string]string{}
-	authheaders["PRIVATE-TOKEN"] = config.Token
-	return &common.GitScm{Config: config, AuthHeaders: authheaders}
+	authheaders["PRIVATE-TOKEN"] = gitConfig.Token
+	return &common.GitScm{Config: gitConfig, AuthHeaders: authheaders}
 }

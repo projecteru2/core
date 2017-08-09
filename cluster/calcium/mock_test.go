@@ -2,19 +2,23 @@ package calcium
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/stretchr/testify/mock"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/ioutils"
 	"gitlab.ricebook.net/platform/core/store/mock"
 	coretypes "gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/utils"
@@ -39,10 +43,14 @@ var (
 			Hub:       "hub.testhub.com",
 			HubPrefix: "apps",
 		},
+		Timeout: coretypes.TimeoutConfig{
+			Common: 3,
+		},
 	}
-	mockc     *calcium
-	mockStore *mockstore.MockStore
-	err       error
+	mockc            *calcium
+	mockStore        *mockstore.MockStore
+	err              error
+	mockTimeoutError bool
 )
 
 func testlogF(format interface{}, a ...interface{}) {
@@ -66,6 +74,35 @@ func testlogF(format interface{}, a ...interface{}) {
 
 func mockContainerID() string {
 	return utils.RandomString(64)
+}
+
+func mockReadCloser(ctx context.Context) io.ReadCloser {
+	pr, pw := io.Pipe()
+	w := ioutils.NewWriteFlusher(pw)
+	msgChan := make(chan string)
+
+	go func() {
+		for {
+			msgChan <- "pulling image...\n"
+			time.Sleep(1000 * time.Millisecond)
+		}
+	}()
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				testlogF("Error!! Context canceld!!!")
+				w.Close()
+				pw.Close()
+				pr.Close()
+				return
+			case msg := <-msgChan:
+				w.Write([]byte(msg))
+			}
+		}
+	}()
+
+	return pr
 }
 
 func mockDockerDoer(r *http.Request) (*http.Response, error) {
@@ -105,6 +142,13 @@ func mockDockerDoer(r *http.Request) (*http.Response, error) {
 		tag := query.Get("tag")
 		testlogF("mock docker create image: %s:%s", fromImage, tag)
 		b = []byte("body")
+		if mockTimeoutError {
+			ctx := r.Context()
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       mockReadCloser(ctx),
+			}, nil
+		}
 	case "/images/json": // docker images
 		testlogF("mock docker list images")
 		b, _ = json.Marshal([]types.ImageSummary{
@@ -114,6 +158,16 @@ func mockDockerDoer(r *http.Request) (*http.Response, error) {
 		})
 	case fmt.Sprintf("/images/%s", image): // docker images
 		testlogF("mock docker remove image")
+		b, _ = json.Marshal([]types.ImageDeleteResponseItem{
+			{
+				Untagged: image,
+			},
+			{
+				Deleted: image,
+			},
+		})
+	case "/images/image_id": // docker images
+		testlogF("mock docker remove image image_id")
 		b, _ = json.Marshal([]types.ImageDeleteResponseItem{
 			{
 				Untagged: "image_id1",
@@ -288,22 +342,6 @@ func initMockConfig() {
 
 	mockStore.On("DeletePod", mockStringType, mock.AnythingOfType("bool")).Return(nil)
 
-	nodeinfo := []coretypes.NodeInfo{
-		coretypes.NodeInfo{
-			CPUAndMem: coretypes.CPUAndMem{CpuMap: coretypes.CPUMap{"0": 10, "1": 10, "2": 10, "3": 10}, MemCap: 8589934592},
-			Name:      "node1",
-			CPURate:   400000,
-			Capacity:  0,
-			Count:     0,
-			Deploy:    0},
-		coretypes.NodeInfo{
-			CPUAndMem: coretypes.CPUAndMem{CpuMap: coretypes.CPUMap{"0": 10, "1": 10, "2": 10, "3": 10}, MemCap: 8589934592},
-			Name:      "node2",
-			CPURate:   400000,
-			Capacity:  0,
-			Count:     0,
-			Deploy:    0},
-	}
 	deployNodeInfo := []coretypes.NodeInfo{
 		coretypes.NodeInfo{
 			Name:      "node1",
@@ -331,7 +369,7 @@ func initMockConfig() {
 	}
 
 	// make plan
-	mockStore.On("MakeDeployStatus", opts, nodeinfo).Return(deployNodeInfo, nil)
+	mockStore.On("MakeDeployStatus", opts, mock.Anything).Return(deployNodeInfo, nil)
 
 	// GetContainer
 	rContainer := &coretypes.Container{
