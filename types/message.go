@@ -52,7 +52,7 @@ type PullImageMessage struct {
 	BuildImageMessage
 }
 
-type ReAllocResourceMessage struct {
+type ReallocResourceMessage struct {
 	ContainerID string
 	Success     bool
 }
