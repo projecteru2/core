@@ -89,9 +89,9 @@ func (m *potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, ne
 		return result, nil, fmt.Errorf("[SelectCPUNodes] No nodes provide to choose some")
 	}
 
-	// all core could be shared
-	// suppose each core has 10 coreShare
-	// TODO: change it to be control by parameters
+	// TODO all core could be shared
+	// TODO suppose each core has 10 coreShare
+	// TODO change it to be control by parameters
 	volTotal, selectedNodesInfo, selectedNodesPool := cpuPriorPlan(quota, nodesInfo, need, -1, 10)
 	if volTotal == -1 {
 		return nil, nil, fmt.Errorf("Not enough resource")

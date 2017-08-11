@@ -23,6 +23,8 @@ import (
 const (
 	MEMORY_PRIOR = "cpuperiod"
 	CPU_PRIOR    = "scheduler"
+
+	CPU_SCHEDULER = "CPU"
 )
 
 // Create Container
@@ -33,7 +35,7 @@ func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) 
 	if err != nil {
 		return nil, err
 	}
-	if pod.Scheduler == "CPU" {
+	if pod.Scheduler == CPU_SCHEDULER {
 		return c.createContainerWithCPUPrior(specs, opts)
 	}
 	log.Infof("Creating container with options: %v", opts)
