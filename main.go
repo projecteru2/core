@@ -64,7 +64,14 @@ func initConfig(configPath string) (types.Config, error) {
 	if config.Docker.LogDriver == "" {
 		config.Docker.LogDriver = "none"
 	}
-
+	if config.Scheduler.Type == "complex" {
+		if config.Scheduler.ShareBase == 0 {
+			config.Scheduler.ShareBase = 10
+		}
+		if config.Scheduler.MaxShare == 0 {
+			config.Scheduler.MaxShare = -1
+		}
+	}
 	return config, nil
 }
 

@@ -95,6 +95,9 @@ func setTimeout(config types.Config) types.Config {
 	if ct.RunAndWait *= time.Second; ct.RunAndWait == 0 {
 		ct.RunAndWait = c
 	}
+	if ct.Realloc *= time.Second; ct.Realloc == 0 {
+		ct.Realloc = c
+	}
 
 	config.Timeout = ct
 	return config

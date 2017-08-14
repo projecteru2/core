@@ -8,10 +8,11 @@ import (
 )
 
 type potassium struct {
+	maxshare, sharebase int64
 }
 
 func New(config types.Config) (*potassium, error) {
-	return &potassium{}, nil
+	return &potassium{config.Scheduler.MaxShare, config.Scheduler.ShareBase}, nil
 }
 
 func (m *potassium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
@@ -80,7 +81,6 @@ func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory i
 	return nodesInfo, nil
 }
 
-//TODO 这里要处理下输入
 func (m *potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, need int) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
 	result := make(map[string][]types.CPUMap)
 	changed := make(map[string]types.CPUMap)
@@ -89,10 +89,7 @@ func (m *potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, ne
 		return result, nil, fmt.Errorf("[SelectCPUNodes] No nodes provide to choose some")
 	}
 
-	// TODO all core could be shared
-	// TODO suppose each core has 10 coreShare
-	// TODO change it to be control by parameters
-	volTotal, selectedNodesInfo, selectedNodesPool := cpuPriorPlan(quota, nodesInfo, need, -1, 10)
+	volTotal, selectedNodesInfo, selectedNodesPool := cpuPriorPlan(quota, nodesInfo, need, m.maxshare, m.sharebase)
 	if volTotal == -1 {
 		return nil, nil, fmt.Errorf("Not enough resource")
 	}

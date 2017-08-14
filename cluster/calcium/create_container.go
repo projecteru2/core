@@ -529,33 +529,11 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 
 	var resource enginecontainer.Resources
 	if optionMode == CPU_PRIOR {
-		// calculate CPUShares and CPUSet
-		// scheduler won't return more than 1 share quota
-		// so the smallest share is the share numerator
-		var shareQuota int64 = 10
-		labels := []string{}
-		for label, share := range quota {
-			labels = append(labels, label)
-			if share < shareQuota {
-				shareQuota = share
-			}
-		}
-		cpuShares := int64(float64(shareQuota) / float64(10) * float64(1024))
-		cpuSetCpus := strings.Join(labels, ",")
-		resource = enginecontainer.Resources{
-			CPUShares:  cpuShares,
-			CpusetCpus: cpuSetCpus,
-			Ulimits:    ulimits,
-		}
+		resource = c.makeCPUPriorSetting(quota)
 	} else {
-		resource = enginecontainer.Resources{
-			Memory:     opts.Memory,
-			MemorySwap: opts.Memory,
-			CPUPeriod:  utils.CpuPeriodBase,
-			CPUQuota:   int64(opts.CPUQuota * float64(utils.CpuPeriodBase)),
-			Ulimits:    ulimits,
-		}
+		resource = c.makeMemoryPriorSetting(opts.Memory, opts.CPUQuota)
 	}
+	resource.Ulimits = ulimits
 
 	restartPolicy := entry.RestartPolicy
 	maximumRetryCount := 3

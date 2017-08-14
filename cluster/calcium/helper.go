@@ -20,6 +20,49 @@ import (
 	"gitlab.ricebook.net/platform/core/utils"
 )
 
+func (c *calcium) makeMemoryPriorSetting(memory int64, cpu float64) enginecontainer.Resources {
+	resource := enginecontainer.Resources{
+		Memory:     memory,
+		MemorySwap: memory,
+		CPUPeriod:  utils.CpuPeriodBase,
+		CPUQuota:   int64(cpu * float64(utils.CpuPeriodBase)),
+	}
+	return resource
+}
+
+func (c *calcium) makeCPUPriorSetting(quota types.CPUMap) enginecontainer.Resources {
+	// calculate CPUShares and CPUSet
+	// scheduler won't return more than 1 share quota
+	// so the smallest share is the share numerator
+	shareQuota := c.config.Scheduler.ShareBase
+	cpuids := []string{}
+	for cpuid, share := range quota {
+		cpuids = append(cpuids, cpuid)
+		if share < shareQuota {
+			shareQuota = share
+		}
+	}
+	cpuShares := int64(float64(shareQuota) / float64(c.config.Scheduler.ShareBase*utils.CpuShareBase))
+	cpuSetCpus := strings.Join(cpuids, ",")
+	resource := enginecontainer.Resources{
+		CPUShares:  cpuShares,
+		CpusetCpus: cpuSetCpus,
+	}
+	return resource
+}
+
+func (c *calcium) calculateCPUUsage(container *types.Container) float64 {
+	var full, fragment int64
+	for _, usage := range container.CPU {
+		if usage == c.config.Scheduler.ShareBase {
+			full++
+			continue
+		}
+		fragment += usage
+	}
+	return float64(full) + float64(fragment)/float64(c.config.Scheduler.ShareBase)
+}
+
 func (c *calcium) Lock(name string, timeout int) (lock.DistributedLock, error) {
 	lock, err := c.store.CreateLock(name, timeout)
 	if err != nil {

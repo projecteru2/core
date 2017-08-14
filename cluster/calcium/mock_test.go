@@ -46,6 +46,10 @@ var (
 		Timeout: coretypes.TimeoutConfig{
 			Common: 3,
 		},
+		Scheduler: coretypes.SchedConfig{
+			ShareBase: 10,
+			MaxShare:  -1,
+		},
 	}
 	mockc            *calcium
 	mockStore        *mockstore.MockStore

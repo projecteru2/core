@@ -23,9 +23,11 @@ func newPotassium() (*potassium, error) {
 		EtcdMachines:   []string{"http://127.0.0.1:2379"},
 		EtcdLockPrefix: "/eru-core/_lock",
 		Scheduler: types.SchedConfig{
-			LockKey: "/coretest",
-			LockTTL: 1,
-			Type:    "complex",
+			LockKey:   "/coretest",
+			LockTTL:   1,
+			Type:      "complex",
+			ShareBase: 10,
+			MaxShare:  -1,
 		},
 	}
 
@@ -185,9 +187,11 @@ func TestComplexNodes(t *testing.T) {
 		EtcdMachines:   []string{"http://127.0.0.1:2379"},
 		EtcdLockPrefix: "/eru-core/_lock",
 		Scheduler: types.SchedConfig{
-			LockKey: "/coretest",
-			LockTTL: 1,
-			Type:    "complex",
+			LockKey:   "/coretest",
+			LockTTL:   1,
+			Type:      "complex",
+			ShareBase: 10,
+			MaxShare:  -1,
 		},
 	}
 
