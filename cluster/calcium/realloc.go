@@ -11,6 +11,11 @@ import (
 	"gitlab.ricebook.net/platform/core/utils"
 )
 
+type NodeContainers map[*types.Node][]*types.Container
+type NodeCPUMap map[*types.Node][]types.CPUMap
+type CPUNodeContainers map[float64]NodeContainers
+type CPUNodeContainersMap map[float64]NodeCPUMap
+
 func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error) {
 	// TODO 大量容器 Get 的时候有性能问题
 	containers, err := c.store.GetContainers(ids)
@@ -19,44 +24,47 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 	}
 
 	// Pod-Node-Containers 三元组
-	meta := map[*types.Pod]map[*types.Node][]*types.Container{}
-	cache := map[string]*types.Node{}
-	// Pod-cpu_require_node_containers 四元组
-	cpuCounts := map[string]map[float64]map[*types.Node][]*types.Container{}
+	containersInfo := map[*types.Pod]NodeContainers{}
+	// Pod-cpu-node-containers 四元组
+	cpuContainersInfo := map[*types.Pod]CPUNodeContainers{}
+	nodeCache := map[string]*types.Node{}
+
 	for _, container := range containers {
-		if _, ok := cache[container.Nodename]; !ok {
+		if _, ok := nodeCache[container.Nodename]; !ok {
 			node, err := c.GetNode(container.Podname, container.Nodename)
 			if err != nil {
 				return nil, err
 			}
-			cache[container.Nodename] = node
+			nodeCache[container.Nodename] = node
 		}
+		node := nodeCache[container.Nodename]
+
 		pod, err := c.store.GetPod(container.Podname)
 		if err != nil {
 			return nil, err
 		}
-		meta[pod][cache[container.Nodename]] = append(meta[pod][cache[container.Nodename]], container)
-
+		containersInfo[pod][node] = append(containersInfo[pod][node], container)
 		if pod.Scheduler == CPU_PRIOR {
-			if _, ok := cpuCounts[pod.Name]; !ok {
-				cpuCounts[pod.Name] = map[float64]map[*types.Node][]*types.Container{}
+			if _, ok := cpuContainersInfo[pod]; !ok {
+				cpuContainersInfo[pod] = CPUNodeContainers{}
 			}
-			podCPUCounts := cpuCounts[pod.Name]
+			podCPUContainersInfo := cpuContainersInfo[pod]
 			newCPURequire := c.calculateCPUUsage(container) + cpu
 			if newCPURequire < 0.0 {
 				return nil, fmt.Errorf("[realloc] cpu can not below zero")
 			}
-			if _, ok := podCPUCounts[newCPURequire]; !ok {
-				podCPUCounts[newCPURequire][cache[container.Name]] = []*types.Container{}
+			if _, ok := podCPUContainersInfo[newCPURequire]; !ok {
+				podCPUContainersInfo[newCPURequire][node] = []*types.Container{}
 			}
-			podCPUCounts[newCPURequire][cache[container.Name]] = append(podCPUCounts[newCPURequire][cache[container.Name]], container)
+			podCPUContainersInfo[newCPURequire][node] = append(podCPUContainersInfo[newCPURequire][node], container)
 		}
 	}
 
 	ch := make(chan *types.ReallocResourceMessage)
-	for pod, nodeContainers := range meta {
+	for pod, nodeContainers := range containersInfo {
 		if pod.Scheduler == CPU_PRIOR {
-			go c.reallocContainersWithCPUPrior(ch, pod, cpuCounts[pod.Name], cpu, mem)
+			nodeCPUContainersInfo := cpuContainersInfo[pod]
+			go c.reallocContainersWithCPUPrior(ch, pod, nodeCPUContainersInfo, cpu, mem)
 			continue
 		}
 		go c.reallocContainerWithMemoryPrior(ch, pod, nodeContainers, cpu, mem)
@@ -64,7 +72,7 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 	return ch, nil
 }
 
-func (c *calcium) reallocNodesMemory(podname string, nodeContainers map[*types.Node][]*types.Container, memory int64) error {
+func (c *calcium) reallocNodesMemory(podname string, nodeContainers NodeContainers, memory int64) error {
 	lock, err := c.Lock(podname, 30)
 	if err != nil {
 		return err
@@ -86,7 +94,7 @@ func (c *calcium) reallocNodesMemory(podname string, nodeContainers map[*types.N
 func (c *calcium) reallocContainerWithMemoryPrior(
 	ch chan *types.ReallocResourceMessage,
 	pod *types.Pod,
-	nodeContainers map[*types.Node][]*types.Container,
+	nodeContainers NodeContainers,
 	cpu float64, memory int64) {
 
 	if err := c.reallocNodesMemory(pod.Name, nodeContainers, memory); err != nil {
@@ -149,8 +157,8 @@ func (c *calcium) doUpdateContainerWithMemoryPrior(
 
 func (c *calcium) reallocNodesCPU(
 	podname string,
-	nodesInfoMap map[float64]map[*types.Node][]*types.Container,
-) (map[float64]map[*types.Node][]types.CPUMap, error) {
+	nodesInfoMap CPUNodeContainers,
+) (CPUNodeContainersMap, error) {
 
 	lock, err := c.Lock(podname, 30)
 	if err != nil {
@@ -159,7 +167,7 @@ func (c *calcium) reallocNodesCPU(
 	defer lock.Unlock()
 
 	// TODO too slow
-	nodesCPUMap := map[float64]map[*types.Node][]types.CPUMap{}
+	nodesCPUMap := CPUNodeContainersMap{}
 	for cpu, nodesInfo := range nodesInfoMap {
 		for node, containers := range nodesInfo {
 			for _, container := range containers {
@@ -205,7 +213,7 @@ func (c *calcium) reallocNodesCPU(
 func (c *calcium) reallocContainersWithCPUPrior(
 	ch chan *types.ReallocResourceMessage,
 	pod *types.Pod,
-	nodesInfoMap map[float64]map[*types.Node][]*types.Container,
+	nodesInfoMap CPUNodeContainers,
 	cpu float64, memory int64) {
 
 	nodesCPUMap, err := c.reallocNodesCPU(pod.Name, nodesInfoMap)
@@ -221,8 +229,8 @@ func (c *calcium) reallocContainersWithCPUPrior(
 func (c *calcium) doReallocContainersWithCPUPrior(
 	ch chan *types.ReallocResourceMessage,
 	podname string,
-	nodesCPUResult map[*types.Node][]types.CPUMap,
-	nodesInfoMap map[*types.Node][]*types.Container,
+	nodesCPUResult NodeCPUMap,
+	nodesInfoMap NodeContainers,
 ) {
 
 	for node, cpuset := range nodesCPUResult {
