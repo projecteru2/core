@@ -11,32 +11,6 @@ import (
 	"gitlab.ricebook.net/platform/core/types"
 )
 
-var (
-	specs = types.Specs{
-		Appname: "root",
-		Entrypoints: map[string]types.Entrypoint{
-			"test": types.Entrypoint{
-				Command:                 "sleep 9999",
-				Ports:                   []types.Port{"6006/tcp"},
-				HealthCheckPort:         6006,
-				HealthCheckUrl:          "",
-				HealthCheckExpectedCode: 200,
-			},
-		},
-		Build: []string{""},
-		Base:  image,
-	}
-	opts = &types.DeployOptions{
-		Appname:    "root",
-		Image:      image,
-		Podname:    podname,
-		Entrypoint: "test",
-		Count:      3,
-		Memory:     268435456,
-		CPUQuota:   1,
-	}
-)
-
 func TestPullImage(t *testing.T) {
 	initMockConfig()
 
@@ -63,6 +37,7 @@ func TestCreateContainerWithMemPrior(t *testing.T) {
 		ids = append(ids, msg.ContainerID)
 		fmt.Printf("Get Container ID: %s\n", msg.ContainerID)
 	}
+	assert.Equal(t, opts.Count, len(ids))
 
 	// get containers
 	clnt, _ := client.NewClient("http://127.0.0.1", "v1.29", mockDockerHTTPClient(), nil)
