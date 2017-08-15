@@ -89,6 +89,11 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.ContainerIDs.SerializeToString,
         response_deserializer=core__pb2.RemoveContainerMessage.FromString,
         )
+    self.ReallocResource = channel.unary_stream(
+        '/pb.CoreRPC/ReallocResource',
+        request_serializer=core__pb2.ReallocOptions.SerializeToString,
+        response_deserializer=core__pb2.ReallocResourceMessage.FromString,
+        )
     self.RemoveImage = channel.unary_stream(
         '/pb.CoreRPC/RemoveImage',
         request_serializer=core__pb2.RemoveImageOptions.SerializeToString,
@@ -210,6 +215,13 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def ReallocResource(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def RemoveImage(self, request, context):
     # missing associated documentation comment in .proto file
     pass
@@ -301,6 +313,11 @@ def add_CoreRPCServicer_to_server(servicer, server):
           servicer.RemoveContainer,
           request_deserializer=core__pb2.ContainerIDs.FromString,
           response_serializer=core__pb2.RemoveContainerMessage.SerializeToString,
+      ),
+      'ReallocResource': grpc.unary_stream_rpc_method_handler(
+          servicer.ReallocResource,
+          request_deserializer=core__pb2.ReallocOptions.FromString,
+          response_serializer=core__pb2.ReallocResourceMessage.SerializeToString,
       ),
       'RemoveImage': grpc.unary_stream_rpc_method_handler(
           servicer.RemoveImage,

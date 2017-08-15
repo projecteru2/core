@@ -20,6 +20,7 @@ service CoreRPC {
     rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage);
     rpc RunAndWait(stream RunAndWaitOptions) returns (stream RunAndWaitMessage);
     rpc RemoveContainer(ContainerIDs) returns (stream RemoveContainerMessage);
+    rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage);
     rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage);
     rpc Backup(BackupOptions) returns (BackupMessage) {};
 }
@@ -86,6 +87,12 @@ message ContainerID {
 
 message ContainerIDs {
     repeated ContainerID ids = 1;
+}
+
+message ReallocOptions {
+    ContainerIDs ids = 1;
+    double cpu = 2;
+    int64 mem = 3;
 }
 
 message AddPodOptions {
@@ -196,6 +203,11 @@ message RemoveContainerMessage {
     string id = 1;
     bool success = 2;
     string message = 3;
+}
+
+message ReallocResourceMessage {
+    string id = 1;
+    bool success = 2;
 }
 
 message BackupMessage {

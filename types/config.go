@@ -65,6 +65,6 @@ type TimeoutConfig struct {
 	RemoveContainer time.Duration `yaml:"remove_container"`
 	RemoveImage     time.Duration `yaml:"remove_image"`
 	Backup          time.Duration `yaml:"backup"`
-	Common          time.Duration `yaml:"common"`
 	Realloc         time.Duration `yaml:"realloc"`
+	Common          time.Duration `yaml:"common"`
 }

@@ -3,7 +3,6 @@ package calcium
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"gitlab.ricebook.net/platform/core/network"
 	"gitlab.ricebook.net/platform/core/network/calico"
@@ -34,9 +33,6 @@ const (
 
 // New returns a new cluster config
 func New(config types.Config) (*calcium, error) {
-	// set timeout config
-	config = setTimeout(config)
-
 	// set store
 	store, err := etcdstore.New(config)
 	if err != nil {
@@ -70,35 +66,4 @@ func New(config types.Config) (*calcium, error) {
 // SetStore 用于在单元测试中更改etcd store为mock store
 func (c *calcium) SetStore(s store.Store) {
 	c.store = s
-}
-
-func setTimeout(config types.Config) types.Config {
-	ct := config.Timeout
-
-	ct.Common *= time.Second
-	c := ct.Common
-	if ct.Backup *= time.Second; ct.Backup == 0 {
-		ct.Backup = c
-	}
-	if ct.BuildImage *= time.Second; ct.BuildImage == 0 {
-		ct.BuildImage = c
-	}
-	if ct.CreateContainer *= time.Second; ct.CreateContainer == 0 {
-		ct.CreateContainer = c
-	}
-	if ct.RemoveContainer *= time.Second; ct.RemoveContainer == 0 {
-		ct.RemoveContainer = c
-	}
-	if ct.RemoveImage *= time.Second; ct.RemoveImage == 0 {
-		ct.RemoveImage = c
-	}
-	if ct.RunAndWait *= time.Second; ct.RunAndWait == 0 {
-		ct.RunAndWait = c
-	}
-	if ct.Realloc *= time.Second; ct.Realloc == 0 {
-		ct.Realloc = c
-	}
-
-	config.Timeout = ct
-	return config
 }

@@ -27,6 +27,7 @@ type Cluster interface {
 	RemoveContainer(ids []string) (chan *types.RemoveContainerMessage, error)
 	RemoveImage(podname, nodename string, images []string) (chan *types.RemoveImageMessage, error)
 	Backup(id, srcPath string) (*types.BackupMessage, error)
+	ReallocResource(ids []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error)
 
 	// cluster attribute methods
 	GetZone() string

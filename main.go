@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -16,10 +15,9 @@ import (
 	"gitlab.ricebook.net/platform/core/rpc"
 	"gitlab.ricebook.net/platform/core/rpc/gen"
 	"gitlab.ricebook.net/platform/core/stats"
-	"gitlab.ricebook.net/platform/core/types"
+	"gitlab.ricebook.net/platform/core/utils"
 	"gitlab.ricebook.net/platform/core/versioninfo"
 	"google.golang.org/grpc"
-	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -42,39 +40,6 @@ func setupLog(l string) error {
 	return nil
 }
 
-func initConfig(configPath string) (types.Config, error) {
-	config := types.Config{}
-
-	bytes, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		return config, err
-	}
-
-	if err := yaml.Unmarshal(bytes, &config); err != nil {
-		return config, err
-	}
-
-	if config.Timeout.Common == 0 {
-		log.Fatal("Common timeout not set, exit")
-	}
-
-	if config.Docker.APIVersion == "" {
-		config.Docker.APIVersion = "v1.23"
-	}
-	if config.Docker.LogDriver == "" {
-		config.Docker.LogDriver = "none"
-	}
-	if config.Scheduler.Type == "complex" {
-		if config.Scheduler.ShareBase == 0 {
-			config.Scheduler.ShareBase = 10
-		}
-		if config.Scheduler.MaxShare == 0 {
-			config.Scheduler.MaxShare = -1
-		}
-	}
-	return config, nil
-}
-
 func serve() {
 	if err := setupLog(logLevel); err != nil {
 		log.Fatal(err)
@@ -84,7 +49,7 @@ func serve() {
 		log.Fatalf("Config path must be set")
 	}
 
-	config, err := initConfig(configPath)
+	config, err := utils.LoadConfig(configPath)
 	if err != nil {
 		log.Fatal(err)
 	}

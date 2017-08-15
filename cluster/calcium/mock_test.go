@@ -292,7 +292,7 @@ func (tf transportFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func initMockConfig() {
-	mockc, err = New(config)
+	mockc, err = New(utils.SetTimeout(config))
 	if err != nil {
 		panic(err)
 	}

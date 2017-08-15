@@ -100,6 +100,13 @@ func toRPCRemoveImageMessage(r *types.RemoveImageMessage) *pb.RemoveImageMessage
 	}
 }
 
+func toRPCReallocResourceMessage(r *types.ReallocResourceMessage) *pb.ReallocResourceMessage {
+	return &pb.ReallocResourceMessage{
+		Id:      r.ContainerID,
+		Success: r.Success,
+	}
+}
+
 func toRPCRemoveContainerMessage(r *types.RemoveContainerMessage) *pb.RemoveContainerMessage {
 	return &pb.RemoveContainerMessage{
 		Id:      r.ContainerID,
