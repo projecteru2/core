@@ -21,8 +21,9 @@ import (
 )
 
 const (
-	MEMORY_PRIOR = "cpuperiod"
-	CPU_PRIOR    = "scheduler"
+	MEMORY_PRIOR   = "MEM"
+	CPU_PRIOR      = "CPU"
+	RESTART_ALWAYS = "always"
 )
 
 // Create Container
@@ -33,7 +34,7 @@ func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) 
 	if err != nil {
 		return nil, err
 	}
-	if pod.Scheduler == "CPU" {
+	if pod.Scheduler == CPU_PRIOR {
 		return c.createContainerWithCPUPrior(specs, opts)
 	}
 	log.Infof("Creating container with options: %v", opts)
@@ -280,7 +281,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 
 	for i, quota := range cpuMap {
 		// create options
-		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i+index, nil, specs, opts, node, CPU_PRIOR)
+		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i+index, quota, specs, opts, node, CPU_PRIOR)
 		ms[i].ContainerName = containerName
 		ms[i].Podname = opts.Podname
 		ms[i].Nodename = node.Name
@@ -384,7 +385,7 @@ func (c *calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
 	c.store.UpdateNodeCPU(node.Podname, node.Name, quota, "+")
 }
 
-func (c *calcium) makeContainerOptions(index int, quota map[string]int, specs types.Specs, opts *types.DeployOptions, node *types.Node, optionMode string) (
+func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs types.Specs, opts *types.DeployOptions, node *types.Node, optionMode string) (
 	*enginecontainer.Config,
 	*enginecontainer.HostConfig,
 	*enginenetwork.NetworkingConfig,
@@ -406,24 +407,6 @@ func (c *calcium) makeContainerOptions(index int, quota map[string]int, specs ty
 	// command and user
 	slices := utils.MakeCommandLineArgs(entry.Command + " " + opts.ExtraArgs)
 	cmd := engineslice.StrSlice(slices)
-
-	// calculate CPUShares and CPUSet
-	// scheduler won't return more than 1 share quota
-	// so the smallest share is the share numerator
-	var cpuShares int64
-	var cpuSetCpus string
-	if optionMode == "scheduler" {
-		shareQuota := 10
-		labels := []string{}
-		for label, share := range quota {
-			labels = append(labels, label)
-			if share < shareQuota {
-				shareQuota = share
-			}
-		}
-		cpuShares = int64(float64(shareQuota) / float64(10) * float64(1024))
-		cpuSetCpus = strings.Join(labels, ",")
-	}
 
 	// env
 	nodeIP := node.GetIP()
@@ -545,25 +528,16 @@ func (c *calcium) makeContainerOptions(index int, quota map[string]int, specs ty
 	}
 
 	var resource enginecontainer.Resources
-	if optionMode == "scheduler" {
-		resource = enginecontainer.Resources{
-			CPUShares:  cpuShares,
-			CpusetCpus: cpuSetCpus,
-			Ulimits:    ulimits,
-		}
+	if optionMode == CPU_PRIOR {
+		resource = c.makeCPUPriorSetting(quota)
 	} else {
-		resource = enginecontainer.Resources{
-			Memory:     opts.Memory,
-			MemorySwap: opts.Memory,
-			CPUPeriod:  utils.CpuPeriodBase,
-			CPUQuota:   int64(opts.CPUQuota * float64(utils.CpuPeriodBase)),
-			Ulimits:    ulimits,
-		}
+		resource = c.makeMemoryPriorSetting(opts.Memory, opts.CPUQuota)
 	}
+	resource.Ulimits = ulimits
 
 	restartPolicy := entry.RestartPolicy
 	maximumRetryCount := 3
-	if restartPolicy == "always" {
+	if restartPolicy == RESTART_ALWAYS {
 		maximumRetryCount = 0
 	}
 	hostConfig := &enginecontainer.HostConfig{

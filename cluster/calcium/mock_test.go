@@ -46,6 +46,10 @@ var (
 		Timeout: coretypes.TimeoutConfig{
 			Common: 3,
 		},
+		Scheduler: coretypes.SchedConfig{
+			ShareBase: 10,
+			MaxShare:  -1,
+		},
 	}
 	mockc            *calcium
 	mockStore        *mockstore.MockStore
@@ -288,7 +292,7 @@ func (tf transportFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func initMockConfig() {
-	mockc, err = New(config)
+	mockc, err = New(utils.SetTimeout(config))
 	if err != nil {
 		panic(err)
 	}

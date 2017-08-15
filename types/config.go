@@ -44,9 +44,11 @@ type DockerConfig struct {
 
 // SchedConfig holds scheduler config
 type SchedConfig struct {
-	LockKey string `yaml:"lock_key"` // key for etcd lock
-	LockTTL int    `yaml:"lock_ttl"` // TTL for etcd lock
-	Type    string `yaml:"type"`     // choose simple or complex scheduler
+	LockKey   string `yaml:"lock_key"`  // key for etcd lock
+	LockTTL   int    `yaml:"lock_ttl"`  // TTL for etcd lock
+	Type      string `yaml:"type"`      // choose simple or complex scheduler
+	MaxShare  int64  `yaml:"maxshare"`  // comlpex scheduler use maxshare
+	ShareBase int64  `yaml:"sharebase"` // how many pieces for one core
 }
 
 // SyslogConfig 用于debug模式容器的日志收集
@@ -63,5 +65,6 @@ type TimeoutConfig struct {
 	RemoveContainer time.Duration `yaml:"remove_container"`
 	RemoveImage     time.Duration `yaml:"remove_image"`
 	Backup          time.Duration `yaml:"backup"`
+	Realloc         time.Duration `yaml:"realloc"`
 	Common          time.Duration `yaml:"common"`
 }

@@ -306,6 +306,32 @@ func (v *vibranium) RemoveContainer(cids *pb.ContainerIDs, stream pb.CoreRPC_Rem
 	return err
 }
 
+func (v *vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_ReallocResourceServer) error {
+	v.taskAdd("ReallocResource", true)
+	defer v.taskDone("ReallocResource", true)
+
+	ids := []string{}
+	for _, id := range opts.Ids.Ids {
+		ids = append(ids, id.Id)
+	}
+
+	if len(ids) == 0 {
+		return fmt.Errorf("No container ids given")
+	}
+
+	ch, err := v.cluster.ReallocResource(ids, opts.Cpu, opts.Mem)
+	if err != nil {
+		return err
+	}
+
+	for m := range ch {
+		if err = stream.Send(toRPCReallocResourceMessage(m)); err != nil {
+			v.logUnsentMessages("ReallocResource", m)
+		}
+	}
+	return err
+}
+
 func (v *vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_RemoveImageServer) error {
 	v.taskAdd("RemoveImage", true)
 	defer v.taskDone("RemoveImage", true)

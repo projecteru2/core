@@ -51,3 +51,8 @@ type RunAndWaitMessage struct {
 type PullImageMessage struct {
 	BuildImageMessage
 }
+
+type ReallocResourceMessage struct {
+	ContainerID string
+	Success     bool
+}
