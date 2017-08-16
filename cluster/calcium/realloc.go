@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -61,14 +62,26 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 	}
 
 	ch := make(chan *types.ReallocResourceMessage)
-	for pod, nodeContainers := range containersInfo {
-		if pod.Scheduler == CPU_PRIOR {
-			nodeCPUContainersInfo := cpuContainersInfo[pod]
-			go c.reallocContainersWithCPUPrior(ch, pod, nodeCPUContainersInfo, cpu, mem)
-			continue
+	go func() {
+		defer close(ch)
+		wg := sync.WaitGroup{}
+		wg.Add(len(containersInfo))
+		for pod, nodeContainers := range containersInfo {
+			if pod.Scheduler == CPU_PRIOR {
+				nodeCPUContainersInfo := cpuContainersInfo[pod]
+				go func(pod *types.Pod, nodeCPUContainersInfo CPUNodeContainers) {
+					defer wg.Done()
+					c.reallocContainersWithCPUPrior(ch, pod, nodeCPUContainersInfo, cpu, mem)
+				}(pod, nodeCPUContainersInfo)
+				continue
+			}
+			go func(pod *types.Pod, nodeContainers NodeContainers) {
+				defer wg.Done()
+				c.reallocContainerWithMemoryPrior(ch, pod, nodeContainers, cpu, mem)
+			}(pod, nodeContainers)
 		}
-		go c.reallocContainerWithMemoryPrior(ch, pod, nodeContainers, cpu, mem)
-	}
+		wg.Wait()
+	}()
 	return ch, nil
 }
 
@@ -102,8 +115,9 @@ func (c *calcium) reallocContainerWithMemoryPrior(
 		return
 	}
 
+	// 不并发操作了
 	for node, containers := range nodeContainers {
-		go c.doUpdateContainerWithMemoryPrior(ch, pod.Name, node, containers, cpu, memory)
+		c.doUpdateContainerWithMemoryPrior(ch, pod.Name, node, containers, cpu, memory)
 	}
 }
 
@@ -221,8 +235,10 @@ func (c *calcium) reallocContainersWithCPUPrior(
 		log.Errorf("[realloc] realloc cpu resource failed %v", err)
 		return
 	}
+
+	// 不并发操作了
 	for cpu, nodesCPUResult := range nodesCPUMap {
-		go c.doReallocContainersWithCPUPrior(ch, pod.Name, nodesCPUResult, nodesInfoMap[cpu])
+		c.doReallocContainersWithCPUPrior(ch, pod.Name, nodesCPUResult, nodesInfoMap[cpu])
 	}
 }
 
