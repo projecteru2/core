@@ -8,11 +8,9 @@ GO_LDFLAGS ?= -s -X $(REPO_PATH)/versioninfo.REVISION=$(REVISION) \
 			  -X $(REPO_PATH)/versioninfo.BUILTAT=$(BUILTAT) \
 			  -X $(REPO_PATH)/versioninfo.VERSION=$(VERSION)
 
-golang:
+grpc:
 	cd ./rpc/gen/; protoc --go_out=plugins=grpc:. core.proto
-
-python:
-	cd ./rpc/gen/; python -m grpc.tools.protoc -I. --python_out=. --grpc_python_out=. core.proto; mv core_pb2.py ../../devtools/
+	cd ./rpc/gen/; python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. core.proto; mv core_pb2.py ../../devtools/
 
 deps:
 	glide i
