@@ -21,8 +21,6 @@ import (
 )
 
 const (
-	MEMORY_PRIOR   = "MEM"
-	CPU_PRIOR      = "CPU"
 	RESTART_ALWAYS = "always"
 )
 
@@ -34,7 +32,7 @@ func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) 
 	if err != nil {
 		return nil, err
 	}
-	if pod.Scheduler == CPU_PRIOR {
+	if pod.Favor == types.CPU_PRIOR {
 		return c.createContainerWithCPUPrior(specs, opts)
 	}
 	log.Infof("Creating container with options: %v", opts)
@@ -110,7 +108,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 	}
 
 	for i = 0; i < nodeInfo.Deploy; i++ {
-		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i+index, nil, specs, opts, node, MEMORY_PRIOR)
+		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i+index, nil, specs, opts, node, types.MEMORY_PRIOR)
 		ms[i].ContainerName = containerName
 		ms[i].Podname = opts.Podname
 		ms[i].Nodename = node.Name
@@ -281,7 +279,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 
 	for i, quota := range cpuMap {
 		// create options
-		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i+index, quota, specs, opts, node, CPU_PRIOR)
+		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i+index, quota, specs, opts, node, types.CPU_PRIOR)
 		ms[i].ContainerName = containerName
 		ms[i].Podname = opts.Podname
 		ms[i].Nodename = node.Name
@@ -385,7 +383,7 @@ func (c *calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
 	c.store.UpdateNodeCPU(node.Podname, node.Name, quota, "+")
 }
 
-func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs types.Specs, opts *types.DeployOptions, node *types.Node, optionMode string) (
+func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs types.Specs, opts *types.DeployOptions, node *types.Node, favor string) (
 	*enginecontainer.Config,
 	*enginecontainer.HostConfig,
 	*enginenetwork.NetworkingConfig,
@@ -528,7 +526,7 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 	}
 
 	var resource enginecontainer.Resources
-	if optionMode == CPU_PRIOR {
+	if favor == types.CPU_PRIOR {
 		resource = c.makeCPUPriorSetting(quota)
 	} else {
 		resource = c.makeMemoryPriorSetting(opts.Memory, opts.CPUQuota)

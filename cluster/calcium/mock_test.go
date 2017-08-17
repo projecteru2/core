@@ -324,7 +324,7 @@ func initMockConfig() {
 		Engine:    clnt,
 	}
 
-	pod := &coretypes.Pod{Name: podname, Desc: desc, Scheduler: "complex"}
+	pod := &coretypes.Pod{Name: podname, Desc: desc, Favor: "MEM"}
 	mockStringType := mock.AnythingOfType("string")
 	mockStore.On("GetPod", mockStringType).Return(pod, nil)
 	mockStore.On("GetNodesByPod", mockStringType).Return([]*coretypes.Node{n1, n2}, nil)

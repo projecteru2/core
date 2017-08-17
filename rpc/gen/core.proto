@@ -97,7 +97,8 @@ message ReallocOptions {
 
 message AddPodOptions {
     string name = 1;
-    string desc = 2;
+    string favor = 2;
+    string desc = 3;
 }
 
 message GetPodOptions {

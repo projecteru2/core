@@ -44,11 +44,12 @@ def list_pods(ctx):
 
 @cli.command('pod:add')
 @click.argument('name')
+@click.argument('favor')
 @click.argument('desc')
 @click.pass_context
-def create_pod(ctx, name, desc):
+def add_pod(ctx, name, favor, desc):
     stub = _get_stub(ctx)
-    opts = pb.AddPodOptions(name=name, desc=desc)
+    opts = pb.AddPodOptions(name=name, favor=favor, desc=desc)
 
     try:
         pod = stub.AddPod(opts, 5)

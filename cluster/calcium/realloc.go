@@ -45,7 +45,7 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 			return nil, err
 		}
 		containersInfo[pod][node] = append(containersInfo[pod][node], container)
-		if pod.Scheduler == CPU_PRIOR {
+		if pod.Favor == types.CPU_PRIOR {
 			if _, ok := cpuContainersInfo[pod]; !ok {
 				cpuContainersInfo[pod] = CPUNodeContainers{}
 			}
@@ -67,7 +67,7 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 		wg := sync.WaitGroup{}
 		wg.Add(len(containersInfo))
 		for pod, nodeContainers := range containersInfo {
-			if pod.Scheduler == CPU_PRIOR {
+			if pod.Favor == types.CPU_PRIOR {
 				nodeCPUContainersInfo := cpuContainersInfo[pod]
 				go func(pod *types.Pod, nodeCPUContainersInfo CPUNodeContainers) {
 					defer wg.Done()

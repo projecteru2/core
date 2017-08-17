@@ -34,8 +34,8 @@ func (m *MockStore) GetPod(name string) (*types.Pod, error) {
 	return nil, args.Error(1)
 }
 
-func (m *MockStore) AddPod(name, desc string) (*types.Pod, error) {
-	args := m.Called(name, desc)
+func (m *MockStore) AddPod(name, favor, desc string) (*types.Pod, error) {
+	args := m.Called(name, favor, desc)
 	if args.Get(0) != nil {
 		return args.Get(0).(*types.Pod), args.Error(1)
 	}

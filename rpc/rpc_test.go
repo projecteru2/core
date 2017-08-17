@@ -36,11 +36,12 @@ func TestPods(t *testing.T) {
 
 	// Add a pod
 	log.Infoln("testing add a pod")
-	pod := &types.Pod{Name: "testpod", Desc: "desc", Scheduler: "complex"}
-	store.On("AddPod", "testpod", "desc").Return(pod, nil)
+	pod := &types.Pod{Name: "testpod", Desc: "desc", Favor: "MEM"}
+	store.On("AddPod", "testpod", "", "desc").Return(pod, nil)
 	addpodoptions := pb.AddPodOptions{
-		Name: "testpod",
-		Desc: "desc",
+		Name:  "testpod",
+		Favor: "",
+		Desc:  "desc",
 	}
 	respAddPod, err := clnt.AddPod(ctx, &addpodoptions)
 	if err != nil {
@@ -51,8 +52,8 @@ func TestPods(t *testing.T) {
 
 	// ListPods
 	log.Infoln("testing list pods")
-	p1 := &types.Pod{Name: "pod1", Desc: "this is pod-1", Scheduler: "complex"}
-	p2 := &types.Pod{Name: "pod2", Desc: "thie is pod-2", Scheduler: "simple"}
+	p1 := &types.Pod{Name: "pod1", Desc: "this is pod-1", Favor: "MEM"}
+	p2 := &types.Pod{Name: "pod2", Desc: "thie is pod-2", Favor: "MEM"}
 	pods := []*types.Pod{p1, p2}
 	store.On("GetAllPods").Return(pods, nil)
 
@@ -157,7 +158,7 @@ func TestNodes(t *testing.T) {
 		Nodename: nodeName,
 		Podname:  podname,
 	}
-	pod := &types.Pod{Name: podname, Desc: "this is pod-1", Scheduler: "complex"}
+	pod := &types.Pod{Name: podname, Desc: "this is pod-1", Favor: "MEM"}
 	store.On("GetPod", podname).Return(pod, nil)
 	// 其实我很不理解为什么删除一个node的返回结果是它的pod
 	rnResp, err := clnt.RemoveNode(ctx, rnOpts)
@@ -418,7 +419,7 @@ func TestCreateContainer(t *testing.T) {
 		MemCap: 1024 * 1024 * 8,
 		Engine: nil,
 	}
-	pod := &types.Pod{Name: podname, Desc: "this is pod-1", Scheduler: "complex"}
+	pod := &types.Pod{Name: podname, Desc: "this is pod-1", Favor: "MEM"}
 	store.On("GetPod", podname).Return(pod, nil)
 	store.On("GetNodesByPod", podname).Return([]*types.Node{tNode}, nil)
 	store.On("GetNode", podname, nodename).Return(tNode, nil)
@@ -486,7 +487,7 @@ func TestRunAndWait(t *testing.T) {
 
 	// configure mock store
 	podname := "dev"
-	pod := &types.Pod{Name: podname, Desc: "this is pod-1", Scheduler: "complex"}
+	pod := &types.Pod{Name: podname, Desc: "this is pod-1", Favor: "MEM"}
 	store.On("GetPod", podname).Return(pod, nil)
 
 	depOpts := pb.DeployOptions{

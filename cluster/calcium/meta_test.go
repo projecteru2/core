@@ -38,15 +38,16 @@ func TestAddPod(t *testing.T) {
 	config := types.Config{}
 	c := &calcium{store: store, config: config, scheduler: simplescheduler.New(), network: calico.New(config), source: gitlab.New(config)}
 
-	store.On("AddPod", "pod1", "desc1").Return(&types.Pod{Name: "pod1", Desc: "desc1"}, nil)
-	store.On("AddPod", "pod2", "desc2").Return(nil, fmt.Errorf("Etcd Error"))
+	store.On("AddPod", "pod1", "", "desc1").Return(&types.Pod{Name: "pod1", Favor: "MEM", Desc: "desc1"}, nil)
+	store.On("AddPod", "pod2", "", "desc2").Return(nil, fmt.Errorf("Etcd Error"))
 
-	p, err := c.AddPod("pod1", "desc1")
+	p, err := c.AddPod("pod1", "", "desc1")
 	assert.Equal(t, p.Name, "pod1")
+	assert.Equal(t, p.Favor, "MEM")
 	assert.Equal(t, p.Desc, "desc1")
 	assert.Nil(t, err)
 
-	p, err = c.AddPod("pod2", "desc2")
+	p, err = c.AddPod("pod2", "", "desc2")
 	assert.Nil(t, p)
 	assert.Equal(t, err.Error(), "Etcd Error")
 }

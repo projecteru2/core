@@ -42,7 +42,7 @@ func (v *vibranium) ListPods(ctx context.Context, empty *pb.Empty) (*pb.Pods, er
 
 // AddPod saves a pod, and returns it to client
 func (v *vibranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Pod, error) {
-	p, err := v.cluster.AddPod(opts.Name, opts.Desc)
+	p, err := v.cluster.AddPod(opts.Name, opts.Favor, opts.Desc)
 	if err != nil {
 		return nil, err
 	}
