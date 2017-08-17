@@ -1,4 +1,5 @@
-click == 6.6
-six == 1.10.0
-protobuf == 3.0.0b3
+click
+six
+protobuf
 grpcio
+grpcio-tools
