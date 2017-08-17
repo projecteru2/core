@@ -16,7 +16,8 @@ image_cache: 2
 git:
     public_key: "***REMOVED***"
     private_key: "***REMOVED***"
-    gitlab_token: "***REMOVED***"
+    token: "***REMOVED***"
+    scm_type: "gitlab"
 
 docker:
     log_driver: "json-file"
