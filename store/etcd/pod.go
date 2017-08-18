@@ -86,15 +86,15 @@ func (k *krypton) GetAllPods() ([]*types.Pod, error) {
 }
 
 // DeletePod if the pod has no nodes left, otherwise return an error
-func (k *krypton) DeletePod(podname string, force bool) error {
+func (k *krypton) DeletePod(podname string) error {
 	key := fmt.Sprintf("%s/%s", allPodsKey, podname)
 
 	ns, err := k.GetNodesByPod(podname)
 	if err != nil && !client.IsKeyNotFound(err) {
 		return err
 	}
-	if len(ns) != 0 && force == false {
-		return fmt.Errorf("[DeletePod] pod %s still has nodes, delete the nodes first", podname)
+	if len(ns) != 0 {
+		return fmt.Errorf("[DeletePod] pod %s still has nodes: %s, delete them first", podname, ns)
 	}
 
 	_, err = k.etcd.Delete(context.Background(), key, &client.DeleteOptions{Dir: true, Recursive: true})

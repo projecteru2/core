@@ -344,7 +344,7 @@ func initMockConfig() {
 		return true
 	})).Return(nil)
 
-	mockStore.On("DeletePod", mockStringType, mock.AnythingOfType("bool")).Return(nil)
+	mockStore.On("DeletePod", mockStringType).Return(nil)
 
 	deployNodeInfo := []coretypes.NodeInfo{
 		coretypes.NodeInfo{

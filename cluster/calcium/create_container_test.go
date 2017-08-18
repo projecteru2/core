@@ -90,15 +90,10 @@ func TestCreateContainerWithMemPrior(t *testing.T) {
 func TestClean(t *testing.T) {
 	initMockConfig()
 
-	// delete pod
-	err := mockc.store.DeletePod(podname, false)
+	// delete pod, which will fail because there are remaining nodes
+	err := mockc.store.DeletePod(podname)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "still has nodes, delete the nodes first")
-
-	// force delete
-	err = mockc.store.DeletePod(podname, true)
-	assert.NoError(t, err)
-
+	assert.Contains(t, err.Error(), "still has nodes")
 }
 
 func TestCreateContainerWithCPUPrior(t *testing.T) {

@@ -9,7 +9,7 @@ type Store interface {
 	// pod
 	AddPod(name, favor, desc string) (*types.Pod, error)
 	GetPod(podname string) (*types.Pod, error)
-	DeletePod(podname string, force bool) error
+	DeletePod(podname string) error
 	GetAllPods() ([]*types.Pod, error)
 
 	// node
