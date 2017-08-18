@@ -44,11 +44,12 @@ def list_pods(ctx):
 
 @cli.command('pod:add')
 @click.argument('name')
+@click.argument('favor')
 @click.argument('desc')
 @click.pass_context
-def create_pod(ctx, name, desc):
+def add_pod(ctx, name, favor, desc):
     stub = _get_stub(ctx)
-    opts = pb.AddPodOptions(name=name, desc=desc)
+    opts = pb.AddPodOptions(name=name, favor=favor, desc=desc)
 
     try:
         pod = stub.AddPod(opts, 5)
@@ -61,6 +62,22 @@ def create_pod(ctx, name, desc):
         ctx.exit(-1)
 
     click.echo(click.style('create pod %s successfully' % pod, fg='green'))
+
+
+@cli.command('pod:remove')
+@click.argument('name')
+@click.pass_context
+def remove_pod(ctx, name):
+    stub = _get_stub(ctx)
+    opts = pb.RemovePodOptions(name=name)
+
+    try:
+        stub.RemovePod(opts, 5)
+    except AbortionError as e:
+        click.echo(click.style('abortion error: %s' % e.details, fg='red', bold=True))
+        ctx.exit(-1)
+
+    click.echo(click.style('pod %s removed' % name, fg='green'))
 
 
 @cli.command('pod:get')

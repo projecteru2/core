@@ -5,6 +5,7 @@ package pb;
 service CoreRPC {
     rpc ListPods(Empty) returns (Pods) {};
     rpc AddPod(AddPodOptions) returns (Pod) {};
+    rpc RemovePod(RemovePodOptions) returns (Empty) {};
     rpc GetPod(GetPodOptions) returns (Pod) {};
 
     rpc AddNode(AddNodeOptions) returns (Node) {};
@@ -97,7 +98,12 @@ message ReallocOptions {
 
 message AddPodOptions {
     string name = 1;
-    string desc = 2;
+    string favor = 2;
+    string desc = 3;
+}
+
+message RemovePodOptions {
+    string name = 1;
 }
 
 message GetPodOptions {

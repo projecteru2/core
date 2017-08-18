@@ -324,7 +324,7 @@ func initMockConfig() {
 		Engine:    clnt,
 	}
 
-	pod := &coretypes.Pod{Name: podname, Desc: desc, Scheduler: "complex"}
+	pod := &coretypes.Pod{Name: podname, Desc: desc, Favor: "MEM"}
 	mockStringType := mock.AnythingOfType("string")
 	mockStore.On("GetPod", mockStringType).Return(pod, nil)
 	mockStore.On("GetNodesByPod", mockStringType).Return([]*coretypes.Node{n1, n2}, nil)
@@ -344,7 +344,7 @@ func initMockConfig() {
 		return true
 	})).Return(nil)
 
-	mockStore.On("DeletePod", mockStringType, mock.AnythingOfType("bool")).Return(nil)
+	mockStore.On("RemovePod", mockStringType).Return(nil)
 
 	deployNodeInfo := []coretypes.NodeInfo{
 		coretypes.NodeInfo{

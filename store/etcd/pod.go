@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/coreos/etcd/client"
 	"gitlab.ricebook.net/platform/core/types"
@@ -33,9 +34,15 @@ func (k *krypton) GetPod(name string) (*types.Pod, error) {
 // add a pod
 // save it to etcd
 // storage path in etcd is `/eru-core/pod/:podname/info`
-func (k *krypton) AddPod(name, desc string) (*types.Pod, error) {
+func (k *krypton) AddPod(name, favor, desc string) (*types.Pod, error) {
 	key := fmt.Sprintf(podInfoKey, name)
-	pod := &types.Pod{Name: name, Desc: desc}
+	favor = strings.ToUpper(favor)
+	if favor == "" {
+		favor = types.MEMORY_PRIOR
+	} else if favor != types.MEMORY_PRIOR && favor != types.CPU_PRIOR {
+		return nil, fmt.Errorf("favor should be either CPU or MEM, got %s", favor)
+	}
+	pod := &types.Pod{Name: name, Desc: desc, Favor: favor}
 
 	bytes, err := json.Marshal(pod)
 	if err != nil {
@@ -78,16 +85,16 @@ func (k *krypton) GetAllPods() ([]*types.Pod, error) {
 	return pods, err
 }
 
-// DeletePod if the pod has no nodes left, otherwise return an error
-func (k *krypton) DeletePod(podname string, force bool) error {
+// RemovePod if the pod has no nodes left, otherwise return an error
+func (k *krypton) RemovePod(podname string) error {
 	key := fmt.Sprintf("%s/%s", allPodsKey, podname)
 
 	ns, err := k.GetNodesByPod(podname)
 	if err != nil && !client.IsKeyNotFound(err) {
 		return err
 	}
-	if len(ns) != 0 && force == false {
-		return fmt.Errorf("[DeletePod] pod %s still has nodes, delete the nodes first", podname)
+	if len(ns) != 0 {
+		return fmt.Errorf("[RemovePod] pod %s still has nodes: %s, delete them first", podname, ns)
 	}
 
 	_, err = k.etcd.Delete(context.Background(), key, &client.DeleteOptions{Dir: true, Recursive: true})
