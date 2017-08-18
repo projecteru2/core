@@ -21,7 +21,8 @@ import (
 )
 
 const (
-	RESTART_ALWAYS = "always"
+	RESTART_ALWAYS   = "always"
+	MEMORY_LOW_LIMIT = 4194304
 )
 
 // Create Container
@@ -41,7 +42,7 @@ func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) 
 
 func (c *calcium) createContainerWithMemoryPrior(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
-	if opts.Memory < 4194304 { // 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
+	if opts.Memory < MEMORY_LOW_LIMIT { // 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
 		return ch, fmt.Errorf("Minimum memory limit allowed is 4MB")
 	}
 	if opts.Count <= 0 { // Count 要大于0

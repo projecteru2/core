@@ -55,6 +55,7 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 				return nil, fmt.Errorf("[realloc] cpu can not below zero")
 			}
 			if _, ok := podCPUContainersInfo[newCPURequire]; !ok {
+				podCPUContainersInfo[newCPURequire] = NodeContainers{} // go map 的傻逼语法, 不这样写会有 assignment to entry in nil map 错误
 				podCPUContainersInfo[newCPURequire][node] = []*types.Container{}
 			}
 			podCPUContainersInfo[newCPURequire][node] = append(podCPUContainersInfo[newCPURequire][node], container)
@@ -139,7 +140,7 @@ func (c *calcium) doUpdateContainerWithMemoryPrior(
 		cpuQuota := int64(cpu * float64(utils.CpuPeriodBase))
 		newCPUQuota := containerJSON.HostConfig.CPUQuota + cpuQuota
 		newMemory := containerJSON.HostConfig.Memory + memory
-		if newCPUQuota <= 0 || newMemory <= 0 {
+		if newCPUQuota <= 0 || newMemory <= MEMORY_LOW_LIMIT {
 			log.Warnf("[relloc] new resource invaild %s, %d, %d", containerJSON.ID, newCPUQuota, newMemory)
 			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
 			continue
