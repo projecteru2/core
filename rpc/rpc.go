@@ -25,7 +25,7 @@ type vibranium struct {
 // Many data types should be transformed
 
 // ListPods returns a list of pods
-func (v *vibranium) ListPods(ctx context.Context, empty *pb.Empty) (*pb.Pods, error) {
+func (v *vibranium) ListPods(ctx context.Context, _ *pb.Empty) (*pb.Pods, error) {
 	ps, err := v.cluster.ListPods()
 	if err != nil {
 		return nil, err
@@ -48,6 +48,15 @@ func (v *vibranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Pod
 	}
 
 	return toRPCPod(p), nil
+}
+
+// RemovePod removes a pod only if it's empty
+func (v *vibranium) RemovePod(ctx context.Context, opts *pb.RemovePodOptions) (*pb.Empty, error) {
+	err := v.cluster.RemovePod(opts.Name)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.Empty{}, nil
 }
 
 // GetPod

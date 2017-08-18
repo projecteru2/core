@@ -91,7 +91,7 @@ func TestClean(t *testing.T) {
 	initMockConfig()
 
 	// delete pod, which will fail because there are remaining nodes
-	err := mockc.store.DeletePod(podname)
+	err := mockc.store.RemovePod(podname)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "still has nodes")
 }

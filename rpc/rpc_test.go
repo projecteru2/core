@@ -35,7 +35,6 @@ func TestPods(t *testing.T) {
 	clnt := pb.NewCoreRPCClient(conn)
 
 	// Add a pod
-	log.Infoln("testing add a pod")
 	pod := &types.Pod{Name: "testpod", Desc: "desc", Favor: "MEM"}
 	store.On("AddPod", "testpod", "", "desc").Return(pod, nil)
 	addpodoptions := pb.AddPodOptions{

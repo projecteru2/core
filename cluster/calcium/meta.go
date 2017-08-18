@@ -16,6 +16,10 @@ func (c *calcium) AddPod(podname, favor, desc string) (*types.Pod, error) {
 	return c.store.AddPod(podname, favor, desc)
 }
 
+func (c *calcium) RemovePod(podname string) error {
+	return c.store.RemovePod(podname)
+}
+
 func (c *calcium) GetPod(podname string) (*types.Pod, error) {
 	return c.store.GetPod(podname)
 }

@@ -10,6 +10,7 @@ type Cluster interface {
 	// meta data methods
 	ListPods() ([]*types.Pod, error)
 	AddPod(podname, favor, desc string) (*types.Pod, error)
+	RemovePod(podname string) error
 	GetPod(podname string) (*types.Pod, error)
 	AddNode(nodename, endpoint, podname, cafile, certfile, keyfile string, public bool) (*types.Node, error)
 	RemoveNode(nodename, podname string) (*types.Pod, error)
