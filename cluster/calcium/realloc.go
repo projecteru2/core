@@ -217,6 +217,9 @@ func (c *calcium) reallocNodesCPU(
 				if err := c.store.UpdateNode(node); err != nil {
 					return nil, err
 				}
+				if _, ok := nodesCPUMap[cpu]; !ok {
+					nodesCPUMap[cpu] = NodeCPUMap{}
+				}
 				nodesCPUMap[cpu][node] = containersCPUMap
 			}
 		}
