@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
@@ -147,10 +146,8 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 		log.Errorf("Run exec at %s error: %s", BEFORE_STOP, err.Error())
 	}
 
-	stopTimeout := 5 * time.Second
-	ctxStop, cancelStop := context.WithTimeout(context.Background(), stopTimeout)
-	defer cancelStop()
-	err = container.Engine.ContainerStop(ctxStop, info.ID, &stopTimeout)
+	// FUXK docker
+	err = container.Engine.ContainerStop(context.Background(), info.ID, &c.config.Timeout.RemoveContainer)
 	if err != nil {
 		log.Errorf("Error during ContainerStop: %s", err.Error())
 		return err
