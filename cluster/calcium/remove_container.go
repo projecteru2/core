@@ -110,7 +110,6 @@ func (c *calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMess
 }
 
 // remove one container
-// 5 seconds timeout
 func (c *calcium) removeOneContainer(container *types.Container, info enginetypes.ContainerJSON) error {
 	// use etcd lock to prevent a container being removed many times
 	// only the first to remove can be done

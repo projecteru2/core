@@ -41,11 +41,11 @@ syslog:
     format: "rfc5424"
 
 timeout:
-    run_and_wait: 1200
-    build_image: 600
-    create_container: 600
-    remove_container: 600
-    remove_image: 600
-    backup: 600
-    common: 600
-    realloc: 600
+    run_and_wait: 12
+    build_image: 6
+    create_container: 6
+    remove_container: 6
+    remove_image: 6
+    backup: 6
+    common: 6
+    realloc: 6
