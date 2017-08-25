@@ -25,13 +25,15 @@ import (
 )
 
 const (
-	podname    = "dev_pod"
-	desc       = "dev pod with one node"
-	nodename   = "node1"
-	image      = "hub.testhub.com/base/alpine:base-2017.03.14"
-	APIVersion = "v1.29"
-	mockMemory = int64(8589934592)
-	mockID     = "f1f9da344e8f8f90f73899ddad02da6cdf2218bbe52413af2bcfef4fba2d22de"
+	podname        = "dev_pod"
+	desc           = "dev pod with one node"
+	nodename       = "node1"
+	updatenodename = "node4"
+	image          = "hub.testhub.com/base/alpine:base-2017.03.14"
+	APIVersion     = "v1.29"
+	mockMemory     = int64(8589934592) // 8G
+	mockID         = "f1f9da344e8f8f90f73899ddad02da6cdf2218bbe52413af2bcfef4fba2d22de"
+	appmemory      = 268435456 // 0.25 G
 )
 
 var (
@@ -55,6 +57,34 @@ var (
 	mockStore        *mockstore.MockStore
 	err              error
 	mockTimeoutError bool
+	specs            = coretypes.Specs{
+		Appname: "root",
+		Entrypoints: map[string]coretypes.Entrypoint{
+			"test": coretypes.Entrypoint{
+				Command:                 "sleep 9999",
+				Ports:                   []coretypes.Port{"6006/tcp"},
+				HealthCheckPort:         6006,
+				HealthCheckUrl:          "",
+				HealthCheckExpectedCode: 200,
+			},
+		},
+		Build: []string{""},
+		Base:  image,
+	}
+	opts = &coretypes.DeployOptions{
+		Appname:    "root",
+		Image:      image,
+		Podname:    podname,
+		Entrypoint: "test",
+		Count:      5,
+		Memory:     appmemory,
+		CPUQuota:   1,
+	}
+	ToUpdateContainerIDs = []string{
+		"f1f9da344e8f8f90f73899ddad02da6cdf2218bbe52413af2bcfef4fba2d22de",
+		"f1f9da344e8f8f90f73899ddad02da6cdf2218bbe52413af2bcfef4fba2d22df",
+		"f1f9da344e8f8f90f73899ddad02da6cdf2218bbe52413af2bcfef4fba2d22dg",
+	}
 )
 
 func testlogF(format interface{}, a ...interface{}) {
@@ -186,6 +216,9 @@ func mockDockerDoer(r *http.Request) (*http.Response, error) {
 		b, err = json.Marshal(container.ContainerCreateCreatedBody{
 			ID: mockContainerID(),
 		})
+	case fmt.Sprintf("/containers/%s/update", containerID):
+		testlogF("update container %s", containerID)
+		b, err = json.Marshal(container.ContainerUpdateOKBody{})
 	case fmt.Sprintf("/containers/%s", containerID):
 		testlogF("remove container %s", containerID)
 		b = []byte("body")
@@ -221,6 +254,12 @@ func mockDockerDoer(r *http.Request) (*http.Response, error) {
 				ID:    containerID,
 				Image: "image:latest",
 				Name:  "name",
+				HostConfig: &container.HostConfig{
+					Resources: container.Resources{
+						CPUQuota: utils.CpuPeriodBase,
+						Memory:   appmemory,
+					},
+				},
 			},
 			Config: &container.Config{
 				Labels: nil,
@@ -323,17 +362,41 @@ func initMockConfig() {
 		Available: true,
 		Engine:    clnt,
 	}
+	n3 := &coretypes.Node{
+		Name:      "node3",
+		Podname:   podname,
+		Endpoint:  "tcp://10.0.0.2:2376",
+		CPU:       mockCPU,
+		MemCap:    mockMemory,
+		Available: true,
+		Engine:    clnt,
+	}
+	n4 := &coretypes.Node{
+		Name:      updatenodename,
+		Podname:   podname,
+		Endpoint:  "tcp://10.0.0.2:2376",
+		CPU:       mockCPU,
+		MemCap:    mockMemory - appmemory*3,
+		Available: true,
+		Engine:    clnt,
+	}
 
 	pod := &coretypes.Pod{Name: podname, Desc: desc, Favor: "MEM"}
 	mockStringType := mock.AnythingOfType("string")
+	mockCPUMapType := mock.AnythingOfType("types.CPUMap")
+	mockNodeType := mock.AnythingOfType("*types.Node")
 	mockStore.On("GetPod", mockStringType).Return(pod, nil)
 	mockStore.On("GetNodesByPod", mockStringType).Return([]*coretypes.Node{n1, n2}, nil)
-	mockStore.On("GetAllNodes").Return([]*coretypes.Node{n1, n2}, nil)
+	mockStore.On("GetAllNodes").Return([]*coretypes.Node{n1, n2, n3}, nil)
 	mockStore.On("GetNode", podname, "node1").Return(n1, nil)
 	mockStore.On("GetNode", podname, "node2").Return(n2, nil)
+	mockStore.On("GetNode", podname, "node3").Return(n3, nil)
+	mockStore.On("GetNode", podname, updatenodename).Return(n4, nil)
 	mockStore.On("GetNode", "", "").Return(n2, nil)
 
 	mockStore.On("UpdateNodeMem", podname, mockStringType, mock.AnythingOfType("int64"), mockStringType).Return(nil)
+	mockStore.On("UpdateNodeCPU", podname, mockStringType, mockCPUMapType, mockStringType).Return(nil)
+	mockStore.On("UpdateNode", mockNodeType).Return(nil)
 
 	lk := mockstore.MockLock{}
 	lk.Mock.On("Lock").Return(nil)
@@ -346,30 +409,29 @@ func initMockConfig() {
 
 	mockStore.On("RemovePod", mockStringType).Return(nil)
 
+	// 模拟集群上有5个旧容器的情况.
 	deployNodeInfo := []coretypes.NodeInfo{
 		coretypes.NodeInfo{
 			Name:      "node1",
 			CPURate:   400000,
-			Count:     0,
-			Deploy:    2,
+			Count:     3,
+			Deploy:    0,
 			CPUAndMem: coretypes.CPUAndMem{CpuMap: coretypes.CPUMap{"0": 10, "1": 10, "2": 10, "3": 10}, MemCap: 8589934592},
 		},
 		coretypes.NodeInfo{
 			Name:      "node2",
 			CPURate:   400000,
-			Count:     0,
-			Deploy:    1,
+			Count:     1,
+			Deploy:    0,
 			CPUAndMem: coretypes.CPUAndMem{CpuMap: coretypes.CPUMap{"0": 10, "1": 10, "2": 10, "3": 10}, MemCap: 8589934592},
 		},
-	}
-	opts := &coretypes.DeployOptions{
-		Appname:    "root",
-		Image:      image,
-		Podname:    podname,
-		Entrypoint: "test",
-		Count:      3,
-		Memory:     268435456,
-		CPUQuota:   1,
+		coretypes.NodeInfo{
+			Name:      "node3",
+			CPURate:   400000,
+			Count:     1,
+			Deploy:    0,
+			CPUAndMem: coretypes.CPUAndMem{CpuMap: coretypes.CPUMap{"0": 10, "1": 10, "2": 10, "3": 10}, MemCap: 8589934592},
+		},
 	}
 
 	// make plan
@@ -383,5 +445,22 @@ func initMockConfig() {
 		Nodename: nodename,
 		Name:     "hello_hi_123",
 	}
+
 	mockStore.On("GetContainer", mockID).Return(rContainer, nil)
+
+	// GetContainers
+	rContainers := []*coretypes.Container{}
+	for _, mID := range ToUpdateContainerIDs {
+		rContainer := &coretypes.Container{
+			ID:       mID,
+			Engine:   clnt,
+			Podname:  podname,
+			Nodename: updatenodename,
+			Name:     "hello_hi_123",
+			CPU:      coretypes.CPUMap{"0": 10},
+			Memory:   appmemory,
+		}
+		rContainers = append(rContainers, rContainer)
+	}
+	mockStore.On("GetContainers", ToUpdateContainerIDs).Return(rContainers, nil)
 }
