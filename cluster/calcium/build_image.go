@@ -50,11 +50,12 @@ type richSpecs struct {
 func getRandomNode(c *calcium, podname string) (*types.Node, error) {
 	nodes, err := c.ListPodNodes(podname, false)
 	if err != nil {
+		log.Errorf("Error during ListPodNodes for %s: %v", podname, err)
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		err = fmt.Errorf("No nodes available in pod %s", podname)
-		log.Debugf("Error during getRandomNode from %s: %v", podname, err)
+		log.Errorf("Error during getRandomNode from %s: %v", podname, err)
 		return nil, err
 	}
 
@@ -64,7 +65,7 @@ func getRandomNode(c *calcium, podname string) (*types.Node, error) {
 	}
 	nodename, err := c.scheduler.RandomNode(nodemap)
 	if err != nil {
-		log.Debugf("Error during getRandomNode from %s: %v", podname, err)
+		log.Errorf("Error during getRandomNode from %s: %v", podname, err)
 		return nil, err
 	}
 	if nodename == "" {
