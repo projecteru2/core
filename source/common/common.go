@@ -101,7 +101,7 @@ func (g *GitScm) Artifact(artifact, path string) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("Download artifact error %q", artifact)
+		return fmt.Errorf("Download artifact error %q, code %d", artifact, resp.StatusCode)
 	}
 	log.Debugf("Download artifacts from %q finished", artifact)
 
