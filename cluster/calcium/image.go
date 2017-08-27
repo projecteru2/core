@@ -36,7 +36,7 @@ func (c *calcium) cacheImage(podname, image string) error {
 		wg.Add(1)
 		go func(node *types.Node) {
 			defer wg.Done()
-			pullImage(node, image, c.config.Timeout.CreateContainer)
+			pullImage(node, image)
 		}(node)
 	}
 

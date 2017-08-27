@@ -3,7 +3,6 @@ package calcium
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/docker/docker/client"
 	"github.com/stretchr/testify/assert"
@@ -19,7 +18,7 @@ func TestPullImage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := pullImage(nodes[0], image, 5*time.Second); err != nil {
+	if err := pullImage(nodes[0], image); err != nil {
 		t.Fatal(err)
 	}
 }
