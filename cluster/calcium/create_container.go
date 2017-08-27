@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
@@ -104,7 +103,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 		return ms
 	}
 
-	if err := pullImage(node, opts.Image, c.config.Timeout.CreateContainer); err != nil {
+	if err := pullImage(node, opts.Image); err != nil {
 		for i := 0; i < nodeInfo.Deploy; i++ {
 			if err != nil {
 				log.Errorf("Error during pullImage %s for %s: %v", opts.Image, nodeInfo.Name, err)
@@ -279,7 +278,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 		return ms
 	}
 
-	if err := pullImage(node, opts.Image, c.config.Timeout.CreateContainer); err != nil {
+	if err := pullImage(node, opts.Image); err != nil {
 		log.Errorf("Error during pullImage: %v", err)
 		for i := 0; i < len(ms); i++ {
 			ms[i].Error = err.Error()
@@ -566,13 +565,12 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 
 // Pull an image
 // Blocks until it finishes.
-func pullImage(node *types.Node, image string, timeout time.Duration) error {
+func pullImage(node *types.Node, image string) error {
 	log.Debugf("Pulling image %s", image)
 	if image == "" {
 		return fmt.Errorf("Goddamn empty image, WTF?")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+	ctx := context.Background()
 	outStream, err := node.Engine.ImagePull(ctx, image, enginetypes.ImagePullOptions{})
 	if err != nil {
 		log.Errorf("Error during pulling image %s: %v", image, err)

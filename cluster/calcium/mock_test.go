@@ -2,23 +2,19 @@ package calcium
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/stretchr/testify/mock"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/ioutils"
 	"gitlab.ricebook.net/platform/core/store/mock"
 	coretypes "gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/utils"
@@ -110,35 +106,6 @@ func mockContainerID() string {
 	return utils.RandomString(64)
 }
 
-func mockReadCloser(ctx context.Context) io.ReadCloser {
-	pr, pw := io.Pipe()
-	w := ioutils.NewWriteFlusher(pw)
-	msgChan := make(chan string)
-
-	go func() {
-		for {
-			msgChan <- "pulling image...\n"
-			time.Sleep(1000 * time.Millisecond)
-		}
-	}()
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				testlogF("Error!! Context canceld!!!")
-				w.Close()
-				pw.Close()
-				pr.Close()
-				return
-			case msg := <-msgChan:
-				w.Write([]byte(msg))
-			}
-		}
-	}()
-
-	return pr
-}
-
 func mockDockerDoer(r *http.Request) (*http.Response, error) {
 	var b []byte
 	prefix := fmt.Sprintf("/%s", APIVersion)
@@ -176,13 +143,6 @@ func mockDockerDoer(r *http.Request) (*http.Response, error) {
 		tag := query.Get("tag")
 		testlogF("mock docker create image: %s:%s", fromImage, tag)
 		b = []byte("body")
-		if mockTimeoutError {
-			ctx := r.Context()
-			return &http.Response{
-				StatusCode: http.StatusOK,
-				Body:       mockReadCloser(ctx),
-			}, nil
-		}
 	case "/images/json": // docker images
 		testlogF("mock docker list images")
 		b, _ = json.Marshal([]types.ImageSummary{
