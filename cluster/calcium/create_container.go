@@ -31,6 +31,7 @@ const (
 func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	pod, err := c.store.GetPod(opts.Podname)
 	if err != nil {
+		log.Errorf("Error during GetPod for %s: %v", opts.Podname, err)
 		return nil, err
 	}
 	if pod.Favor == types.CPU_PRIOR {
@@ -43,16 +44,17 @@ func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) 
 func (c *calcium) createContainerWithMemoryPrior(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
 	if opts.Memory < MEMORY_LOW_LIMIT { // 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
-		return ch, fmt.Errorf("Minimum memory limit allowed is 4MB")
+		return ch, fmt.Errorf("Minimum memory limit allowed is 4MB, got %d", opts.Memory)
 	}
 	if opts.Count <= 0 { // Count 要大于0
-		return ch, fmt.Errorf("Count must be positive")
+		return ch, fmt.Errorf("Count must be positive, got %d", opts.Count)
 	}
 
 	// TODO RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
 	// 因此需要在这里加个全局锁，直到部署完毕才释放
 	nodesInfo, err := c.allocMemoryPodResource(opts)
 	if err != nil {
+		log.Errorf("Error during allocMemoryPodResource with opts %v: %v", opts, err)
 		return ch, err
 	}
 
@@ -98,12 +100,16 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 
 	node, err := c.GetNode(opts.Podname, nodeInfo.Name)
 	if err != nil {
+		log.Errorf("Error during GetNode for %s, %s: %v", opts.Podname, nodeInfo.Name, err)
 		return ms
 	}
 
 	if err := pullImage(node, opts.Image, c.config.Timeout.CreateContainer); err != nil {
 		for i := 0; i < nodeInfo.Deploy; i++ {
-			ms[i].Error = err.Error()
+			if err != nil {
+				log.Errorf("Error during pullImage %s for %s: %v", opts.Image, nodeInfo.Name, err)
+				ms[i].Error = err.Error()
+			}
 		}
 		return ms
 	}
@@ -115,6 +121,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 		ms[i].Nodename = node.Name
 		ms[i].Memory = opts.Memory
 		if err != nil {
+			log.Errorf("Error during makeContainerOptions: %v", err)
 			ms[i].Error = err.Error()
 			c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+") // 创建容器失败就要把资源还回去对不对？
 			continue
@@ -216,6 +223,7 @@ func (c *calcium) createContainerWithCPUPrior(specs types.Specs, opts *types.Dep
 	ch := make(chan *types.CreateContainerMessage)
 	result, err := c.allocCPUPodResource(opts)
 	if err != nil {
+		log.Errorf("Error during allocCPUPodResource with opts %v: %v", opts, err)
 		return ch, err
 	}
 
@@ -272,6 +280,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 	}
 
 	if err := pullImage(node, opts.Image, c.config.Timeout.CreateContainer); err != nil {
+		log.Errorf("Error during pullImage: %v", err)
 		for i := 0; i < len(ms); i++ {
 			ms[i].Error = err.Error()
 		}
@@ -286,6 +295,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 		ms[i].Nodename = node.Name
 		ms[i].Memory = opts.Memory
 		if err != nil {
+			log.Errorf("Error during makeContainerOptions: %v", err)
 			ms[i].Error = err.Error()
 			c.releaseQuota(node, quota)
 			continue
