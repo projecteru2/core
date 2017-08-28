@@ -19,22 +19,23 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions, stdin
 
 	// 强制为 json-file 输出
 	entry, _ := specs.Entrypoints[opts.Entrypoint]
-	entry.LogConfig = "journald"
+	entry.LogConfig = "json-file"
 	specs.Entrypoints[opts.Entrypoint] = entry
 
-	waitTimeout := time.Duration(entry.RunAndWaitTimeout) * time.Second
-	if waitTimeout == 0 {
-		waitTimeout = time.Minute * 2
+	waitTimeout := time.Minute * 2
+	if entry.RunAndWaitTimeout > 0 {
+		waitTimeout = time.Duration(entry.RunAndWaitTimeout) * time.Second
 	}
 
 	// count = 1 && OpenStdin
 	if opts.OpenStdin && opts.Count != 1 {
 		close(ch)
-		err := fmt.Errorf("[RunAndWait] `Count` must be 1 if `OpenStdin` is true, `Count` is %d now", opts.Count)
+		err := fmt.Errorf("[RunAndWait] Count must be 1 if OpenStdin is true, count is %d now", opts.Count)
 		return ch, err
 	}
 
 	// 创建容器, 有问题就gg
+	log.Debugf("[RunAndWait] Args: %v, %v, %v", waitTimeout, specs, opts)
 	createChan, err := c.CreateContainer(specs, opts)
 	if err != nil {
 		close(ch)
@@ -68,14 +69,16 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions, stdin
 			// 加个task
 			wg.Add(1)
 
-			// goroutine attach日志然后处理了写回给channel
+			// goroutine logs日志然后处理了写回给channel
 			// 日志跟task无关, 不管wg
 			go func(node *types.Node, containerID string) {
 				defer wg.Done()
 				defer log.Infof("[RunAndWait] Container %s finished and removed", containerID[:12])
 				defer c.removeContainerSync([]string{containerID})
 
-				resp, err := node.Engine.ContainerLogs(context.Background(), containerID, logsOpts)
+				ctx, cancel := context.WithTimeout(context.Background(), waitTimeout)
+				defer cancel()
+				resp, err := node.Engine.ContainerLogs(ctx, containerID, logsOpts)
 				if err != nil {
 					log.Errorf("[RunAndWait] Failed to get logs, %v", err)
 					ch <- &types.RunAndWaitMessage{ContainerID: containerID,
@@ -106,7 +109,7 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions, stdin
 						ContainerID: containerID,
 						Data:        data,
 					}
-					log.Debugf("[RunAndWait] %s %s", containerID[:12], data)
+					log.Debugf("[RunAndWait] %s output: %s", containerID[:12], data)
 				}
 
 				if err := scanner.Err(); err != nil {

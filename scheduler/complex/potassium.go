@@ -35,7 +35,7 @@ func (m *potassium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
 }
 
 func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory int64, need int) ([]types.NodeInfo, error) {
-	log.Debugf("[SelectMemoryNodes]: nodesInfo: %v, rate: %d, memory: %d, need: %d", nodesInfo, rate, memory, need)
+	log.Debugf("[SelectMemoryNodes] Args nodesInfo: %v, rate: %d, memory: %d, need: %d", nodesInfo, rate, memory, need)
 
 	p := -1
 	for i, nodeInfo := range nodesInfo {
@@ -47,30 +47,30 @@ func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory i
 	if p == -1 {
 		return nil, fmt.Errorf("[SelectMemoryNodes] Cannot alloc a plan, not enough cpu rate")
 	}
-	log.Debugf("[SelectMemoryNodes] the %d th node has enough cpu rate.", p)
+	log.Debugf("[SelectMemoryNodes] The %d th node has enough cpu rate", p)
 
 	// 计算是否有足够的内存满足需求
 	nodesInfo = nodesInfo[p:]
 	volTotal := 0
+	capacity := -1
 	p = -1
 	for i, nodeInfo := range nodesInfo {
-		capacity := int(nodeInfo.MemCap / memory)
-		if capacity <= 0 {
-			continue
+		capacity = int(nodeInfo.MemCap / memory)
+		if capacity > 0 {
+			volTotal += capacity
+			nodesInfo[i].Capacity = capacity
+			if p == -1 {
+				p = i
+			}
 		}
-		if p == -1 {
-			p = i
-		}
-		volTotal += capacity
-		nodesInfo[i].Capacity = capacity
 	}
 	if volTotal < need {
 		return nil, fmt.Errorf("[SelectMemoryNodes] Cannot alloc a plan, not enough memory, volume %d, need %d", volTotal, need)
 	}
-
+	log.Debugf("[SelectMemoryNodes] The %d th node has enough memory", p)
 	// 继续裁可用节点池子
 	nodesInfo = nodesInfo[p:]
-	log.Debugf("[SelectMemoryNodes] volumn of each node: %v", nodesInfo)
+	log.Debugf("[SelectMemoryNodes] Node info: %v", nodesInfo)
 	nodesInfo, err := CommunismDivisionPlan(nodesInfo, need, volTotal)
 	if err != nil {
 		return nil, err

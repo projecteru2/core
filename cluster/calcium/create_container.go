@@ -36,7 +36,7 @@ func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) 
 	if pod.Favor == types.CPU_PRIOR {
 		return c.createContainerWithCPUPrior(specs, opts)
 	}
-	log.Infof("Creating container with options: %v", opts)
+	log.Infof("[CreateContainer] Creating container with options: %v", opts)
 	return c.createContainerWithMemoryPrior(specs, opts)
 }
 
@@ -102,11 +102,9 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 	}
 
 	if err := pullImage(node, opts.Image); err != nil {
+		log.Errorf("Error during pullImage %s for %s: %v", opts.Image, nodeInfo.Name, err)
 		for i := 0; i < nodeInfo.Deploy; i++ {
-			if err != nil {
-				log.Errorf("Error during pullImage %s for %s: %v", opts.Image, nodeInfo.Name, err)
-				ms[i].Error = err.Error()
-			}
+			ms[i].Error = err.Error()
 		}
 		return ms
 	}
@@ -150,8 +148,10 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 			}
 
 			// remove bridge network
-			if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
-				log.Errorf("[CreateContainerWithMemoryPrior] Error during disconnecting container %q from network %q, %v", container.ID, "bridge", err)
+			if len(opts.Networks) != 0 {
+				if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
+					log.Errorf("[CreateContainerWithMemoryPrior] Error during disconnecting container %q from network %q, %v", container.ID, "bridge", err)
+				}
 			}
 
 			// if any break occurs, then this container needs to be removed
@@ -161,8 +161,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 				continue
 			}
 		}
-		err = node.Engine.ContainerStart(context.Background(), container.ID, enginetypes.ContainerStartOptions{})
-		if err != nil {
+		if err = node.Engine.ContainerStart(context.Background(), container.ID, enginetypes.ContainerStartOptions{}); err != nil {
 			log.Errorf("[CreateContainerWithMemoryPrior] Error during ContainerStart, %v", err)
 			ms[i].Error = err.Error()
 			go c.removeMemoryPodFailedContainer(container.ID, node, nodeInfo, opts)
@@ -190,11 +189,10 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 		if err != nil {
 			log.Errorf("[CreateContainerWithMemoryPrior] Error during store etcd data %v", err)
 			ms[i].Error = err.Error()
-			// 既然要回收资源就要干掉容器啊
 			go c.removeMemoryPodFailedContainer(container.ID, node, nodeInfo, opts)
 			continue
 		}
-
+		log.Debugf("[doCreateContainer] create container success %s", info.ID)
 		ms[i].Success = true
 	}
 
@@ -226,6 +224,7 @@ func (c *calcium) createContainerWithCPUPrior(specs types.Specs, opts *types.Dep
 	// FIXME ??? why
 
 	go func() {
+		defer close(ch)
 		wg := sync.WaitGroup{}
 		wg.Add(len(result))
 		index := 0
@@ -243,7 +242,6 @@ func (c *calcium) createContainerWithCPUPrior(specs types.Specs, opts *types.Dep
 		}
 
 		wg.Wait()
-		close(ch)
 	}()
 
 	return ch, nil
@@ -257,8 +255,9 @@ func (c *calcium) removeCPUPodFailedContainer(id string, node *types.Node, quota
 }
 
 func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.CPUMap, specs types.Specs, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
-	ms := make([]*types.CreateContainerMessage, len(cpuMap))
-	for i := 0; i < len(ms); i++ {
+	deployCount := len(cpuMap)
+	ms := make([]*types.CreateContainerMessage, deployCount)
+	for i := 0; i < deployCount; i++ {
 		ms[i] = &types.CreateContainerMessage{}
 	}
 
@@ -270,7 +269,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 
 	if err := pullImage(node, opts.Image); err != nil {
 		log.Errorf("Error during pullImage: %v", err)
-		for i := 0; i < len(ms); i++ {
+		for i := 0; i < deployCount; i++ {
 			ms[i].Error = err.Error()
 		}
 		return ms
@@ -310,6 +309,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 				if err = c.network.ConnectToNetwork(ctx, container.ID, networkID, ipv4); err != nil {
 					log.Errorf("[CreateContainerWithCPUPrior] Error when connecting container %q to network %q, %v", container.ID, networkID, err)
 					breaked = true
+					c.releaseQuota(node, quota)
 					break
 				}
 			}
@@ -329,8 +329,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 				continue
 			}
 		}
-		err = node.Engine.ContainerStart(context.Background(), container.ID, enginetypes.ContainerStartOptions{})
-		if err != nil {
+		if err = node.Engine.ContainerStart(context.Background(), container.ID, enginetypes.ContainerStartOptions{}); err != nil {
 			log.Errorf("[CreateContainerWithCPUPrior] Error when starting container, %v", err)
 			ms[i].Error = err.Error()
 			go c.removeCPUPodFailedContainer(container.ID, node, quota)
@@ -359,7 +358,9 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 			log.Errorf("[CreateContainerWithCPUPrior] Error during store etcd data %v", err)
 			ms[i].Error = err.Error()
 			go c.removeCPUPodFailedContainer(container.ID, node, quota)
+			continue
 		}
+		log.Debugf("[doCreateContainer] create container success %s", info.ID)
 		ms[i].Success = true
 	}
 
@@ -413,7 +414,7 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 
 	// mount paths
 	binds, volumes := makeMountPaths(specs, c.config)
-	log.Debugf("App %s will bind %v", specs.Appname, binds)
+	log.Debugf("[makeContainerOptions] App %s will bind %v", specs.Appname, binds)
 
 	// log config
 	// 默认是配置里的driver, 如果entrypoint有指定就用指定的.
@@ -550,17 +551,17 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 // Pull an image
 // Blocks until it finishes.
 func pullImage(node *types.Node, image string) error {
-	log.Debugf("Pulling image %s", image)
+	log.Debugf("[pullImage] Pulling image %s", image)
 	if image == "" {
 		return fmt.Errorf("Goddamn empty image, WTF?")
 	}
-	ctx := context.Background()
-	outStream, err := node.Engine.ImagePull(ctx, image, enginetypes.ImagePullOptions{})
+
+	outStream, err := node.Engine.ImagePull(context.Background(), image, enginetypes.ImagePullOptions{})
 	if err != nil {
 		log.Errorf("Error during pulling image %s: %v", image, err)
 		return err
 	}
 	ensureReaderClosed(outStream)
-	log.Debugf("Done pulling image %s", image)
-	return ctx.Err()
+	log.Debugf("[pullImage] Done pulling image %s", image)
+	return nil
 }

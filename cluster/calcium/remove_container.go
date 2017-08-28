@@ -132,7 +132,7 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 		// if total cpu of container > 0, then we need to release these core resource
 		// but if it's 0, just ignore to save 1 time write on etcd.
 		if container.CPU.Total() > 0 {
-			log.WithFields(log.Fields{"nodename": node.Name, "cpumap": container.CPU}).Debugln("Restore node CPU:")
+			log.Debugf("[removeOneContainer] Restore node cpu: %v, %v", node, container.CPU)
 			if err := c.store.UpdateNodeCPU(node.Podname, node.Name, container.CPU, "+"); err != nil {
 				log.Errorf("Update Node CPU failed %s", err.Error())
 				return
@@ -179,7 +179,7 @@ func (c *calcium) removeContainerSync(ids []string) error {
 	}
 
 	for m := range ch {
-		log.Debugf("[removeContainerSync] %s", m.ContainerID)
+		log.Debugf("[removeContainerSync] Removed %s", m.ContainerID)
 	}
 	return nil
 }

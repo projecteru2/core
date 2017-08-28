@@ -41,7 +41,7 @@ func (c *calcium) makeCPUPriorSetting(quota types.CPUMap) enginecontainer.Resour
 			shareQuota = share
 		}
 	}
-	cpuShares := int64(float64(shareQuota) / float64(c.config.Scheduler.ShareBase*utils.CpuShareBase))
+	cpuShares := int64(float64(shareQuota) / float64(c.config.Scheduler.ShareBase) * float64(utils.CpuShareBase))
 	cpuSetCpus := strings.Join(cpuids, ",")
 	resource := enginecontainer.Resources{
 		CPUShares:  cpuShares,
@@ -190,7 +190,7 @@ func makeMountPaths(specs types.Specs, config types.Config) ([]string, map[strin
 func runExec(client *engineapi.Client, container enginetypes.ContainerJSON, label string) error {
 	cmd, ok := container.Config.Labels[label]
 	if !ok || cmd == "" {
-		log.Debugf("No %s found in container %s", label, container.ID)
+		log.Debugf("[runExec] No %s found in container %s", label, container.ID)
 		return nil
 	}
 

@@ -35,7 +35,7 @@ func (c *calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.Nod
 	}
 
 	cpuRate := int64(opts.CPUQuota * float64(utils.CpuPeriodBase))
-	log.Debugf("Input opts.CPUQuota: %f, equal CPURate %d", opts.CPUQuota, cpuRate)
+	log.Debugf("[allocMemoryPodResource] Input opts.CPUQuota: %f, equal CPURate %d", opts.CPUQuota, cpuRate)
 	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].MemCap < nodesInfo[j].MemCap })
 	nodesInfo, err = c.scheduler.SelectMemoryNodes(nodesInfo, cpuRate, opts.Memory, opts.Count) // 还是以 Bytes 作单位， 不转换了
 	if err != nil {
@@ -44,8 +44,11 @@ func (c *calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.Nod
 
 	// 并发扣除所需资源
 	wg := sync.WaitGroup{}
-	wg.Add(len(nodesInfo))
 	for _, nodeInfo := range nodesInfo {
+		if nodeInfo.Deploy <= 0 {
+			continue
+		}
+		wg.Add(1)
 		go func(nodeInfo types.NodeInfo) {
 			defer wg.Done()
 			memoryTotal := opts.Memory * int64(nodeInfo.Deploy)
@@ -76,7 +79,7 @@ func (c *calcium) allocCPUPodResource(opts *types.DeployOptions) (map[string][]t
 	}
 
 	result, changed, err := c.scheduler.SelectCPUNodes(nodesInfo, opts.CPUQuota, opts.Count)
-	log.Debugf("Result: %v, Changed: %v", result, changed)
+	log.Debugf("[allocCPUPodResource] Result: %v, Changed: %v", result, changed)
 	if err != nil {
 		return result, err
 	}
