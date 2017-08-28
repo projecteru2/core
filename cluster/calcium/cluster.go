@@ -46,7 +46,7 @@ func New(config types.Config) (*calcium, error) {
 	}
 
 	// set network
-	titanium := calico.New(config)
+	titanium := calico.New()
 
 	// set scm
 	var scm source.Source

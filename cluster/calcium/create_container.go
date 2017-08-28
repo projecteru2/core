@@ -83,9 +83,7 @@ func (c *calcium) createContainerWithMemoryPrior(specs types.Specs, opts *types.
 
 func (c *calcium) removeMemoryPodFailedContainer(id string, node *types.Node, nodeInfo types.NodeInfo, opts *types.DeployOptions) {
 	defer c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+")
-	ctx, cancel := context.WithTimeout(context.Background(), c.config.Timeout.CreateContainer)
-	defer cancel()
-	if err := node.Engine.ContainerRemove(ctx, id, enginetypes.ContainerRemoveOptions{}); err != nil {
+	if err := node.Engine.ContainerRemove(context.Background(), id, enginetypes.ContainerRemoveOptions{}); err != nil {
 		log.Errorf("[RemoveMemoryPodFailedContainer] Error during remove failed container %v", err)
 	}
 }
@@ -127,9 +125,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 		}
 
 		//create container
-		ctx, cancel := context.WithTimeout(context.Background(), c.config.Timeout.CreateContainer)
-		defer cancel()
-		container, err := node.Engine.ContainerCreate(ctx, config, hostConfig, networkConfig, containerName)
+		container, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
 		if err != nil {
 			log.Errorf("[CreateContainerWithMemoryPrior] Error during ContainerCreate, %v", err)
 			ms[i].Error = err.Error()
@@ -165,9 +161,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 				continue
 			}
 		}
-		ctxStart, cancelStart := context.WithTimeout(context.Background(), c.config.Timeout.CreateContainer)
-		defer cancelStart()
-		err = node.Engine.ContainerStart(ctxStart, container.ID, enginetypes.ContainerStartOptions{})
+		err = node.Engine.ContainerStart(context.Background(), container.ID, enginetypes.ContainerStartOptions{})
 		if err != nil {
 			log.Errorf("[CreateContainerWithMemoryPrior] Error during ContainerStart, %v", err)
 			ms[i].Error = err.Error()
@@ -178,9 +172,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 		// TODO
 		// if network manager uses our own, then connect must be called after container starts
 		// here
-		ctxInspect, cancelInspect := context.WithTimeout(context.Background(), c.config.Timeout.CreateContainer)
-		defer cancelInspect()
-		info, err := node.Engine.ContainerInspect(ctxInspect, container.ID)
+		info, err := node.Engine.ContainerInspect(context.Background(), container.ID)
 		if err != nil {
 			log.Errorf("[CreateContainerWithMemoryPrior] Error during ContainerInspect, %v", err)
 			ms[i].Error = err.Error()
@@ -190,7 +182,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 		ms[i].ContainerID = info.ID
 
 		// after start
-		if err := runExec(node.Engine, info, AFTER_START, c.config.Timeout.CreateContainer); err != nil {
+		if err := runExec(node.Engine, info, AFTER_START); err != nil {
 			log.Errorf("[CreateContainerWithMemoryPrior] Run exec at %s error: %v", AFTER_START, err)
 		}
 
@@ -259,9 +251,7 @@ func (c *calcium) createContainerWithCPUPrior(specs types.Specs, opts *types.Dep
 
 func (c *calcium) removeCPUPodFailedContainer(id string, node *types.Node, quota types.CPUMap) {
 	defer c.releaseQuota(node, quota)
-	ctx, cancel := context.WithTimeout(context.Background(), c.config.Timeout.CreateContainer)
-	defer cancel()
-	if err := node.Engine.ContainerRemove(ctx, id, enginetypes.ContainerRemoveOptions{}); err != nil {
+	if err := node.Engine.ContainerRemove(context.Background(), id, enginetypes.ContainerRemoveOptions{}); err != nil {
 		log.Errorf("[RemoveCPUPodFailedContainer] Error during remove failed container %v", err)
 	}
 }
@@ -301,9 +291,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 		}
 
 		// create container
-		ctxCreate, cancelCreate := context.WithTimeout(context.Background(), c.config.Timeout.CreateContainer)
-		defer cancelCreate()
-		container, err := node.Engine.ContainerCreate(ctxCreate, config, hostConfig, networkConfig, containerName)
+		container, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
 		if err != nil {
 			log.Errorf("[CreateContainerWithCPUPrior] Error when creating container, %v", err)
 			ms[i].Error = err.Error()
@@ -341,9 +329,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 				continue
 			}
 		}
-		ctxStart, cancelStart := context.WithTimeout(context.Background(), c.config.Timeout.CreateContainer)
-		defer cancelStart()
-		err = node.Engine.ContainerStart(ctxStart, container.ID, enginetypes.ContainerStartOptions{})
+		err = node.Engine.ContainerStart(context.Background(), container.ID, enginetypes.ContainerStartOptions{})
 		if err != nil {
 			log.Errorf("[CreateContainerWithCPUPrior] Error when starting container, %v", err)
 			ms[i].Error = err.Error()
@@ -354,9 +340,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 		// TODO
 		// if network manager uses our own, then connect must be called after container starts
 		// here
-		ctxInspect, cancelInspect := context.WithTimeout(context.Background(), c.config.Timeout.CreateContainer)
-		defer cancelInspect()
-		info, err := node.Engine.ContainerInspect(ctxInspect, container.ID)
+		info, err := node.Engine.ContainerInspect(context.Background(), container.ID)
 		if err != nil {
 			log.Errorf("[CreateContainerWithCPUPrior] Error when inspecting container, %v", err)
 			ms[i].Error = err.Error()
@@ -366,7 +350,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 		ms[i].ContainerID = info.ID
 
 		// after start
-		if err := runExec(node.Engine, info, AFTER_START, c.config.Timeout.CreateContainer); err != nil {
+		if err := runExec(node.Engine, info, AFTER_START); err != nil {
 			log.Errorf("[CreateContainerWithCPUPrior] Run exec at %s error: %v", AFTER_START, err)
 		}
 

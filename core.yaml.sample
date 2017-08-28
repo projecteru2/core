@@ -39,13 +39,3 @@ syslog:
     address: "udp://localhost:5111"
     facility: "daemon"
     format: "rfc5424"
-
-timeout:
-    run_and_wait: 12
-    build_image: 6
-    create_container: 6
-    remove_container: 6
-    remove_image: 6
-    backup: 6
-    common: 6
-    realloc: 6

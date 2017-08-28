@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	enginecontainer "github.com/docker/docker/api/types/container"
@@ -149,7 +148,7 @@ func (c *calcium) doUpdateContainerWithMemoryPrior(
 		// CPUQuota not cpu
 		newResource := c.makeMemoryPriorSetting(newMemory, float64(newCPUQuota)/float64(utils.CpuPeriodBase))
 		updateConfig := enginecontainer.UpdateConfig{Resources: newResource}
-		if err := reSetContainer(containerJSON.ID, node, updateConfig, c.config.Timeout.Realloc); err != nil {
+		if err := reSetContainer(containerJSON.ID, node, updateConfig); err != nil {
 			log.Errorf("[realloc] update container failed %v, %s", err, containerJSON.ID)
 			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
 			// 如果是增加内存，失败的时候应该把内存还回去
@@ -258,7 +257,7 @@ func (c *calcium) doReallocContainersWithCPUPrior(
 		for index, container := range containers {
 			resource := c.makeCPUPriorSetting(cpuset[index])
 			updateConfig := enginecontainer.UpdateConfig{Resources: resource}
-			if err := reSetContainer(container.ID, node, updateConfig, c.config.Timeout.Realloc); err != nil {
+			if err := reSetContainer(container.ID, node, updateConfig); err != nil {
 				log.Errorf("[realloc] update container failed %v", err)
 				// TODO 这里理论上是可以恢复 CPU 占用表的，一来我们知道新的占用是怎样，二来我们也晓得老的占用是啥样
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
@@ -268,9 +267,7 @@ func (c *calcium) doReallocContainersWithCPUPrior(
 	}
 }
 
-func reSetContainer(ID string, node *types.Node, config enginecontainer.UpdateConfig, timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	_, err := node.Engine.ContainerUpdate(ctx, ID, config)
+func reSetContainer(ID string, node *types.Node, config enginecontainer.UpdateConfig) error {
+	_, err := node.Engine.ContainerUpdate(context.Background(), ID, config)
 	return err
 }

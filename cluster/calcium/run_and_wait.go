@@ -22,11 +22,9 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions, stdin
 	entry.LogConfig = "journald"
 	specs.Entrypoints[opts.Entrypoint] = entry
 
-	// 默认给出1200秒的超时时间吧
-	// 没别的地方好传了, 不如放这里好了, 不需要用的就默认0或者不传
-	waitTimeout := c.config.Timeout.RunAndWait
-	if entry.RunAndWaitTimeout != 0 {
-		waitTimeout = time.Duration(entry.RunAndWaitTimeout) * time.Second
+	waitTimeout := time.Duration(entry.RunAndWaitTimeout) * time.Second
+	if waitTimeout == 0 {
+		waitTimeout = time.Minute * 2
 	}
 
 	// count = 1 && OpenStdin
@@ -77,9 +75,7 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions, stdin
 				defer log.Infof("[RunAndWait] Container %s finished and removed", containerID[:12])
 				defer c.removeContainerSync([]string{containerID})
 
-				ctx, cancel := context.WithTimeout(context.Background(), waitTimeout)
-				defer cancel()
-				resp, err := node.Engine.ContainerLogs(ctx, containerID, logsOpts)
+				resp, err := node.Engine.ContainerLogs(context.Background(), containerID, logsOpts)
 				if err != nil {
 					log.Errorf("[RunAndWait] Failed to get logs, %v", err)
 					ch <- &types.RunAndWaitMessage{ContainerID: containerID,

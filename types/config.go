@@ -1,7 +1,5 @@
 package types
 
-import "time"
-
 // Config holds eru-core config
 type Config struct {
 	Bind           string   `yaml:"bind"`             // HTTP API address
@@ -15,11 +13,10 @@ type Config struct {
 	Zone           string   `yaml:"zone"`             // zone for core, e.g. C1, C2
 	ImageCache     int      `yaml:"image_cache"`      // cache image count
 
-	Git       GitConfig     `yaml:"git"`
-	Docker    DockerConfig  `yaml:"docker"`
-	Scheduler SchedConfig   `yaml:"scheduler"`
-	Syslog    SyslogConfig  `yaml:"syslog"`
-	Timeout   TimeoutConfig `yaml:"timeout"`
+	Git       GitConfig    `yaml:"git"`
+	Docker    DockerConfig `yaml:"docker"`
+	Scheduler SchedConfig  `yaml:"scheduler"`
+	Syslog    SyslogConfig `yaml:"syslog"`
 }
 
 // GitConfig holds eru-core git config
@@ -56,15 +53,4 @@ type SyslogConfig struct {
 	Address  string `yaml:"address"`
 	Facility string `yaml:"facility"`
 	Format   string `yaml:"format"`
-}
-
-type TimeoutConfig struct {
-	RunAndWait      time.Duration `yaml:"run_and_wait"`
-	BuildImage      time.Duration `yaml:"build_image"`
-	CreateContainer time.Duration `yaml:"create_container"`
-	RemoveContainer time.Duration `yaml:"remove_container"`
-	RemoveImage     time.Duration `yaml:"remove_image"`
-	Backup          time.Duration `yaml:"backup"`
-	Realloc         time.Duration `yaml:"realloc"`
-	Common          time.Duration `yaml:"common"`
 }
