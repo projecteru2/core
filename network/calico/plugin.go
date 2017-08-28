@@ -13,9 +13,7 @@ import (
 	"gitlab.ricebook.net/platform/core/utils"
 )
 
-type titanium struct {
-	Timeout types.TimeoutConfig
-}
+type titanium struct{}
 
 // type of the network manager
 // if set to "plugin", then it will act like a plugin
@@ -56,9 +54,7 @@ func (t *titanium) ConnectToNetwork(ctx context.Context, containerID, networkID,
 	}
 
 	log.Debugf("Connect %q to %q with IP %q", containerID, networkID, ipv4)
-	ctx, cancel := context.WithTimeout(context.Background(), t.Timeout.Common)
-	defer cancel()
-	return engine.NetworkConnect(ctx, networkID, containerID, config)
+	return engine.NetworkConnect(context.Background(), networkID, containerID, config)
 }
 
 // disconnect from network
@@ -73,9 +69,7 @@ func (t *titanium) DisconnectFromNetwork(ctx context.Context, containerID, netwo
 	}
 
 	log.Debugf("Disconnect %q from %q", containerID, networkID)
-	ctx, cancel := context.WithTimeout(context.Background(), t.Timeout.Common)
-	defer cancel()
-	return engine.NetworkDisconnect(ctx, networkID, containerID, false)
+	return engine.NetworkDisconnect(context.Background(), networkID, containerID, false)
 }
 
 // list networks from context
@@ -86,12 +80,9 @@ func (t *titanium) ListNetworks(ctx context.Context) ([]*types.Network, error) {
 		return networks, fmt.Errorf("Not actually a `engineapi.Client` for value engine in context")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), t.Timeout.Common)
-	defer cancel()
-
 	filters := enginefilters.NewArgs()
 	filters.Add("driver", t.Name())
-	ns, err := engine.NetworkList(ctx, enginetypes.NetworkListOptions{Filters: filters})
+	ns, err := engine.NetworkList(context.Background(), enginetypes.NetworkListOptions{Filters: filters})
 	if err != nil {
 		return networks, err
 	}
@@ -106,6 +97,6 @@ func (t *titanium) ListNetworks(ctx context.Context) ([]*types.Network, error) {
 	return networks, nil
 }
 
-func New(config types.Config) *titanium {
-	return &titanium{Timeout: config.Timeout}
+func New() *titanium {
+	return &titanium{}
 }

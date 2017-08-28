@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
@@ -141,12 +142,13 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 	}()
 
 	// before stop
-	if err := runExec(container.Engine, info, BEFORE_STOP, c.config.Timeout.RemoveContainer); err != nil {
+	if err := runExec(container.Engine, info, BEFORE_STOP); err != nil {
 		log.Errorf("Run exec at %s error: %s", BEFORE_STOP, err.Error())
 	}
 
-	// FUXK docker
-	err = container.Engine.ContainerStop(context.Background(), info.ID, &c.config.Timeout.RemoveContainer)
+	// 一分钟还停不下来的话, 就好自为之吧
+	timeout := time.Minute * 2
+	err = container.Engine.ContainerStop(context.Background(), info.ID, &timeout)
 	if err != nil {
 		log.Errorf("Error during ContainerStop: %s", err.Error())
 		return err
@@ -156,9 +158,7 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 		RemoveVolumes: true,
 		Force:         true,
 	}
-	ctxRemove, cancelRemove := context.WithTimeout(context.Background(), c.config.Timeout.RemoveContainer)
-	defer cancelRemove()
-	err = container.Engine.ContainerRemove(ctxRemove, info.ID, rmOpts)
+	err = container.Engine.ContainerRemove(context.Background(), info.ID, rmOpts)
 	if err != nil {
 		log.Errorf("Error during ContainerRemove: %s", err.Error())
 		return err

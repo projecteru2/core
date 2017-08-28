@@ -41,19 +41,15 @@ var (
 			Hub:       "hub.testhub.com",
 			HubPrefix: "apps",
 		},
-		Timeout: coretypes.TimeoutConfig{
-			Common: 3,
-		},
 		Scheduler: coretypes.SchedConfig{
 			ShareBase: 10,
 			MaxShare:  -1,
 		},
 	}
-	mockc            *calcium
-	mockStore        *mockstore.MockStore
-	err              error
-	mockTimeoutError bool
-	specs            = coretypes.Specs{
+	mockc     *calcium
+	mockStore *mockstore.MockStore
+	err       error
+	specs     = coretypes.Specs{
 		Appname: "root",
 		Entrypoints: map[string]coretypes.Entrypoint{
 			"test": coretypes.Entrypoint{
@@ -291,7 +287,7 @@ func (tf transportFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func initMockConfig() {
-	mockc, err = New(utils.SetTimeout(config))
+	mockc, err = New(config)
 	if err != nil {
 		panic(err)
 	}
