@@ -22,7 +22,7 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions, stdin
 	entry.LogConfig = "json-file"
 	specs.Entrypoints[opts.Entrypoint] = entry
 
-	waitTimeout := time.Minute * 2
+	waitTimeout := c.config.GlobalTimeout
 	if entry.RunAndWaitTimeout > 0 {
 		waitTimeout = time.Duration(entry.RunAndWaitTimeout) * time.Second
 	}

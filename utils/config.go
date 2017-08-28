@@ -2,6 +2,8 @@ package utils
 
 import (
 	"io/ioutil"
+	"log"
+	"time"
 
 	"gitlab.ricebook.net/platform/core/types"
 
@@ -19,6 +21,11 @@ func LoadConfig(configPath string) (types.Config, error) {
 	if err := yaml.Unmarshal(bytes, &config); err != nil {
 		return config, err
 	}
+
+	if config.GlobalTimeout == 0 {
+		log.Fatal("[Config] Global timeout invaild, exit")
+	}
+	config.GlobalTimeout = config.GlobalTimeout * time.Second
 
 	if config.Docker.APIVersion == "" {
 		config.Docker.APIVersion = "v1.23"

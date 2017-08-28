@@ -175,8 +175,9 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 	}
 
 	log.Infof("Building image %v with artifact %v at %v:%v", tag, artifact, buildPodname, node.Name)
-
-	resp, err := node.Engine.ImageBuild(context.Background(), buildContext, buildOptions)
+	ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
+	defer cancel()
+	resp, err := node.Engine.ImageBuild(ctx, buildContext, buildOptions)
 	if err != nil {
 		return ch, err
 	}
