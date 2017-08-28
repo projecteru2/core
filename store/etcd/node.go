@@ -240,6 +240,16 @@ func (k *krypton) GetNodesByPod(podname string) ([]*types.Node, error) {
 // update a node, save it to etcd
 // storage path in etcd is `/eru-core/pod/:podname/node/:nodename/info`
 func (k *krypton) UpdateNode(node *types.Node) error {
+	lock, err := k.CreateLock(fmt.Sprintf("%s_%s", node.Podname, node.Name), 30)
+	if err != nil {
+		return err
+	}
+
+	if err := lock.Lock(); err != nil {
+		return err
+	}
+	defer lock.Unlock()
+
 	key := fmt.Sprintf(nodeInfoKey, node.Podname, node.Name)
 	bytes, err := json.Marshal(node)
 	if err != nil {
@@ -288,9 +298,10 @@ func (k *krypton) UpdateNodeMem(podname, nodename string, mem int64, action stri
 	if err != nil {
 		return err
 	}
+	nodeInfo := string(bytes)
 
-	log.Debugf("Node info from UpdateNodeMem: %s", string(bytes))
-	_, err = k.etcd.Set(context.Background(), nodeKey, string(bytes), nil)
+	log.Debugf("[UpdateNodeMem] new node info: %s", nodeInfo)
+	_, err = k.etcd.Set(context.Background(), nodeKey, nodeInfo, nil)
 	if err != nil {
 		return err
 	}
@@ -367,7 +378,7 @@ func makeRawClient(endpoint, certpath, apiversion string) (*engineapi.Client, er
 		}
 	}
 
-	log.Debugf("Create new http.Client for %q, %q, %q", endpoint, certpath, apiversion)
+	log.Debugf("[makeRawClient] Create new http.Client for %q, %q, %q", endpoint, certpath, apiversion)
 	return engineapi.NewClient(endpoint, apiversion, cli, nil)
 }
 

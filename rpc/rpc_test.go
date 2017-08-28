@@ -534,7 +534,7 @@ base: ""`, // string
 	assert.NoError(t, err)
 	assert.NoError(t, stream.Send(&runAndWaitOpts))
 	_, err = stream.Recv()
-	assert.Contains(t, err.Error(), "[RunAndWait] `Count` must be 1 if `OpenStdin` is true")
+	assert.Contains(t, err.Error(), "[RunAndWait] Count must be 1 if OpenStdin is true")
 
 }
 

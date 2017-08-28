@@ -53,7 +53,7 @@ func (t *titanium) ConnectToNetwork(ctx context.Context, containerID, networkID,
 		config.IPAMConfig.IPv4Address = ip.String()
 	}
 
-	log.Debugf("Connect %q to %q with IP %q", containerID, networkID, ipv4)
+	log.Debugf("[ConnectToNetwork] Connect %q to %q with IP %q", containerID, networkID, ipv4)
 	return engine.NetworkConnect(context.Background(), networkID, containerID, config)
 }
 
@@ -68,7 +68,7 @@ func (t *titanium) DisconnectFromNetwork(ctx context.Context, containerID, netwo
 		return fmt.Errorf("Not actually a `engineapi.Client` for value engine in context")
 	}
 
-	log.Debugf("Disconnect %q from %q", containerID, networkID)
+	log.Debugf("[DisconnectFromNetwork] Disconnect %q from %q", containerID, networkID)
 	return engine.NetworkDisconnect(context.Background(), networkID, containerID, false)
 }
 

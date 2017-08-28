@@ -63,11 +63,10 @@ func (c *calcium) cleanImage(podname, image string) error {
 		go func(node *types.Node) {
 			defer wg.Done()
 			if err := cleanImageOnNode(node, image, c.config.ImageCache); err != nil {
-				log.Errorf("cleanImageOnNode error: %s", err)
+				log.Errorf("[cleanImage] CleanImageOnNode error: %s", err)
 			}
 		}(node)
 	}
-
 	return nil
 }
 
@@ -104,7 +103,7 @@ func cleanImageOnNode(node *types.Node, image string, count int) error {
 	}
 
 	images = images[count:]
-	log.Debugf("Delete Images: %v", images)
+	log.Debugf("[cleanImageOnNode] Delete Images: %v", images)
 
 	for _, image := range images {
 		_, err := node.Engine.ImageRemove(context.Background(), image.ID, enginetypes.ImageRemoveOptions{

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
@@ -132,7 +131,7 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 		// if total cpu of container > 0, then we need to release these core resource
 		// but if it's 0, just ignore to save 1 time write on etcd.
 		if container.CPU.Total() > 0 {
-			log.WithFields(log.Fields{"nodename": node.Name, "cpumap": container.CPU}).Debugln("Restore node CPU:")
+			log.Debugf("[removeOneContainer] Restore node cpu: %v, %v", node, container.CPU)
 			if err := c.store.UpdateNodeCPU(node.Podname, node.Name, container.CPU, "+"); err != nil {
 				log.Errorf("Update Node CPU failed %s", err.Error())
 				return
@@ -146,10 +145,7 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 		log.Errorf("Run exec at %s error: %s", BEFORE_STOP, err.Error())
 	}
 
-	// 一分钟还停不下来的话, 就好自为之吧
-	timeout := time.Minute * 2
-	err = container.Engine.ContainerStop(context.Background(), info.ID, &timeout)
-	if err != nil {
+	if err = container.Engine.ContainerStop(context.Background(), info.ID, &c.config.GlobalTimeout); err != nil {
 		log.Errorf("Error during ContainerStop: %s", err.Error())
 		return err
 	}
@@ -179,7 +175,7 @@ func (c *calcium) removeContainerSync(ids []string) error {
 	}
 
 	for m := range ch {
-		log.Debugf("[removeContainerSync] %s", m.ContainerID)
+		log.Debugf("[removeContainerSync] Removed %s", m.ContainerID)
 	}
 	return nil
 }
