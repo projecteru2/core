@@ -133,11 +133,13 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 		if container.CPU.Total() > 0 {
 			log.Debugf("[removeOneContainer] Restore node cpu: %v, %v", node, container.CPU)
 			if err := c.store.UpdateNodeCPU(node.Podname, node.Name, container.CPU, "+"); err != nil {
-				log.Errorf("Update Node CPU failed %s", err.Error())
-				return
+				log.Errorf("Update Node CPU failed %v", err)
 			}
+			return
 		}
-		c.store.UpdateNodeMem(node.Podname, node.Name, container.Memory, "+")
+		if err := c.store.UpdateNodeMem(node.Podname, node.Name, container.Memory, "+"); err != nil {
+			log.Errorf("Update Node Memory failed %v", err)
+		}
 	}()
 
 	// before stop
