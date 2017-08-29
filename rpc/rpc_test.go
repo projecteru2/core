@@ -193,7 +193,6 @@ func initConfig(mStore *mockstore.MockStore) (types.Config, *vibranium) {
 		BackupDir:      "/tmp",            // Backup dir on host
 		EtcdMachines:   []string{"MOCK"},  // etcd cluster addresses
 		EtcdLockPrefix: "/eru-core/_lock", // etcd lock prefix, all locks will be created under this dir
-		ResourceAlloc:  "cpu-period",      // scheduler or cpu-period TODO give it a good name
 		Statsd:         "localhost:1080",  // Statsd host and port
 		Zone:           "c1",              // zone for core, e.g. C1, C2
 
@@ -203,7 +202,6 @@ func initConfig(mStore *mockstore.MockStore) (types.Config, *vibranium) {
 		Scheduler: types.SchedConfig{
 			LockKey: "_scheduler_lock",
 			LockTTL: 10,
-			Type:    "complex",
 		},
 		Syslog: types.SyslogConfig{
 			Address:  "udp://localhost:5111",
