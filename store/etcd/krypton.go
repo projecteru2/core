@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/coreos/etcd/client"
+	"github.com/coreos/etcd/clientv3"
 	"gitlab.ricebook.net/platform/core/lock"
 	"gitlab.ricebook.net/platform/core/lock/etcdlock"
 	"gitlab.ricebook.net/platform/core/types"
@@ -29,6 +30,7 @@ var (
 
 type krypton struct {
 	etcd   client.KeysAPI
+	cliv3  *clientv3.Client
 	config types.Config
 }
 
@@ -42,15 +44,17 @@ func New(config types.Config) (*krypton, error) {
 		return nil, err
 	}
 
+	cliv3, err := clientv3.New(clientv3.Config{Endpoints: config.EtcdMachines})
+	if err != nil {
+		return nil, err
+	}
+
 	etcd := client.NewKeysAPI(cli)
-	return &krypton{etcd: etcd, config: config}, nil
+	return &krypton{etcd: etcd, cliv3: cliv3, config: config}, nil
 }
 
 func (k *krypton) CreateLock(key string, ttl int) (lock.DistributedLock, error) {
 	lockKey := filepath.Join(k.config.EtcdLockPrefix, key)
-	mutex := etcdlock.New(k.etcd, lockKey, ttl)
-	if mutex == nil {
-		return nil, fmt.Errorf("Error creating mutex %q %q", key, ttl)
-	}
-	return mutex, nil
+	mutex, err := etcdlock.New(k.cliv3, lockKey, ttl)
+	return mutex, err
 }
