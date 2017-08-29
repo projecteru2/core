@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -17,6 +16,7 @@ import (
 	"gitlab.ricebook.net/platform/core/lock"
 	"gitlab.ricebook.net/platform/core/types"
 	"gitlab.ricebook.net/platform/core/utils"
+	"golang.org/x/net/context"
 )
 
 func (c *calcium) makeMemoryPriorSetting(memory int64, cpu float64) enginecontainer.Resources {
