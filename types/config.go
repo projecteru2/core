@@ -10,7 +10,6 @@ type Config struct {
 	BackupDir      string        `yaml:"backupdir"`        // Backup dir on host
 	EtcdMachines   []string      `yaml:"etcd"`             // etcd cluster addresses
 	EtcdLockPrefix string        `yaml:"etcd_lock_prefix"` // etcd lock prefix, all locks will be created under this dir
-	ResourceAlloc  string        `yaml:"resource_alloc"`   // scheduler or cpu-period TODO give it a good name
 	Statsd         string        `yaml:"statsd"`           // Statsd host and port
 	Zone           string        `yaml:"zone"`             // zone for core, e.g. C1, C2
 	ImageCache     int           `yaml:"image_cache"`      // cache image count
@@ -46,7 +45,6 @@ type DockerConfig struct {
 type SchedConfig struct {
 	LockKey   string `yaml:"lock_key"`  // key for etcd lock
 	LockTTL   int    `yaml:"lock_ttl"`  // TTL for etcd lock
-	Type      string `yaml:"type"`      // choose simple or complex scheduler
 	MaxShare  int64  `yaml:"maxshare"`  // comlpex scheduler use maxshare
 	ShareBase int64  `yaml:"sharebase"` // how many pieces for one core
 }

@@ -15,7 +15,6 @@ func TestSchedulerInvoke(t *testing.T) {
 		Scheduler: types.SchedConfig{
 			LockKey:   "/coretest",
 			LockTTL:   1,
-			Type:      "complex",
 			ShareBase: 10,
 			MaxShare:  -1,
 		},

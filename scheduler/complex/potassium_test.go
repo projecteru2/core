@@ -25,7 +25,6 @@ func newPotassium() (*potassium, error) {
 		Scheduler: types.SchedConfig{
 			LockKey:   "/coretest",
 			LockTTL:   1,
-			Type:      "complex",
 			ShareBase: 10,
 			MaxShare:  -1,
 		},
@@ -189,7 +188,6 @@ func TestComplexNodes(t *testing.T) {
 		Scheduler: types.SchedConfig{
 			LockKey:   "/coretest",
 			LockTTL:   1,
-			Type:      "complex",
 			ShareBase: 10,
 			MaxShare:  -1,
 		},
