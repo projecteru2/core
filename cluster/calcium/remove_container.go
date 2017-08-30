@@ -147,10 +147,16 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 		log.Errorf("Run exec at %s error: %s", BEFORE_STOP, err.Error())
 	}
 
-	if err = container.Engine.ContainerStop(context.Background(), info.ID, &c.config.GlobalTimeout); err != nil {
+	// 这里 block 的问题很严重，按照目前的配置是 5 分钟一级的 block
+	// 一个简单的处理方法是相信 ctx 不相信 docker 自身的处理
+	// 另外我怀疑 docker 自己的 timeout 实现是完全的等 timeout 而非结束了就退出
+	ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
+	defer cancel()
+	if err = container.Engine.ContainerStop(ctx, info.ID, nil); err != nil {
 		log.Errorf("Error during ContainerStop: %s", err.Error())
 		return err
 	}
+	log.Debugf("[removeOneContainer] Container stopped %s", info.ID)
 
 	rmOpts := enginetypes.ContainerRemoveOptions{
 		RemoveVolumes: true,
@@ -161,12 +167,9 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 		log.Errorf("Error during ContainerRemove: %s", err.Error())
 		return err
 	}
+	log.Debugf("[removeOneContainer] Container removed %s", info.ID)
 
-	if err = c.store.RemoveContainer(info.ID, container); err != nil {
-		log.Errorf("Error during remove etcd data: %s", err.Error())
-		return err
-	}
-	return nil
+	return c.store.RemoveContainer(info.ID, container)
 }
 
 // 同步地删除容器, 在某些需要等待的场合异常有用!
