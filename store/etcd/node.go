@@ -94,6 +94,9 @@ func (k *krypton) AddNode(name, endpoint, podname, cafile, certfile, keyfile str
 	}
 
 	key := fmt.Sprintf(nodeInfoKey, podname, name)
+	if _, err := k.etcd.Get(context.Background(), key, nil); err == nil {
+		return nil, fmt.Errorf("Node (%s, %s) already exists", podname, name)
+	}
 
 	// 如果有tls的证书需要保存就保存一下
 	if cafile != "" && certfile != "" && keyfile != "" {
