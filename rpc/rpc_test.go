@@ -200,8 +200,8 @@ func initConfig(mStore *mockstore.MockStore) (types.Config, *vibranium) {
 			SCMType: "gitlab",
 		},
 		Scheduler: types.SchedConfig{
-			LockKey: "_scheduler_lock",
-			LockTTL: 10,
+			MaxShare:  -1,
+			ShareBase: 10,
 		},
 		Syslog: types.SyslogConfig{
 			Address:  "udp://localhost:5111",
