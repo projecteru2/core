@@ -28,8 +28,6 @@ docker:
     local_dns: true
 
 scheduler:
-    lock_key: "_scheduler_lock"
-    lock_ttl: 10
     maxshare: -1
     sharebase: 10
 
