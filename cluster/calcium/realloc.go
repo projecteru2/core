@@ -43,7 +43,15 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 		if err != nil {
 			return nil, err
 		}
+
+		if _, ok := containersInfo[pod]; !ok {
+			containersInfo[pod] = NodeContainers{}
+		}
+		if _, ok := containersInfo[pod][node]; !ok {
+			containersInfo[pod][node] = []*types.Container{}
+		}
 		containersInfo[pod][node] = append(containersInfo[pod][node], container)
+
 		if pod.Favor == types.CPU_PRIOR {
 			if _, ok := cpuContainersInfo[pod]; !ok {
 				cpuContainersInfo[pod] = CPUNodeContainers{}
@@ -85,17 +93,15 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 	return ch, nil
 }
 
-func (c *calcium) reallocNodesMemory(podname string, nodeContainers NodeContainers, memory int64) error {
+func (c *calcium) checkNodesMemory(podname string, nodeContainers NodeContainers, memory int64) error {
 	lock, err := c.Lock(podname, 30)
 	if err != nil {
 		return err
 	}
 	defer lock.Unlock()
 	for node, containers := range nodeContainers {
-		if memory > 0 {
-			if cap := int(node.MemCap / memory); cap < len(containers) {
-				return fmt.Errorf("[realloc] Not enough resource %s", node.Name)
-			}
+		if cap := int(node.MemCap / memory); cap < len(containers) {
+			return fmt.Errorf("[realloc] Not enough resource %s", node.Name)
 		}
 		if err := c.store.UpdateNodeMem(podname, node.Name, int64(len(containers))*memory, "-"); err != nil {
 			return err
@@ -110,9 +116,11 @@ func (c *calcium) reallocContainerWithMemoryPrior(
 	nodeContainers NodeContainers,
 	cpu float64, memory int64) {
 
-	if err := c.reallocNodesMemory(pod.Name, nodeContainers, memory); err != nil {
-		log.Errorf("[realloc] realloc memory failed %v", err)
-		return
+	if memory > 0 {
+		if err := c.checkNodesMemory(pod.Name, nodeContainers, memory); err != nil {
+			log.Errorf("[realloc] realloc memory failed %v", err)
+			return
+		}
 	}
 
 	// 不并发操作了
@@ -144,9 +152,11 @@ func (c *calcium) doUpdateContainerWithMemoryPrior(
 			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
 			continue
 		}
+		newCPU := float64(newCPUQuota) / float64(utils.CpuPeriodBase)
+		log.Debugf("[doUpdateContainerWithMemoryPrior] quota:%d, cpu: %f, mem: %d", newCPUQuota, newCPU, newMemory)
 
 		// CPUQuota not cpu
-		newResource := c.makeMemoryPriorSetting(newMemory, float64(newCPUQuota)/float64(utils.CpuPeriodBase))
+		newResource := c.makeMemoryPriorSetting(newMemory, newCPU)
 		updateConfig := enginecontainer.UpdateConfig{Resources: newResource}
 		if err := reSetContainer(containerJSON.ID, node, updateConfig); err != nil {
 			log.Errorf("[realloc] update container failed %v, %s", err, containerJSON.ID)
@@ -164,6 +174,12 @@ func (c *calcium) doUpdateContainerWithMemoryPrior(
 			if err := c.store.UpdateNodeMem(podname, node.Name, -memory, "+"); err != nil {
 				log.Errorf("[realloc] failed to set mem back %s", containerJSON.ID)
 			}
+		}
+		if _, err := c.store.AddContainer(container.ID, podname, node.Name, container.Name, nil, container.Memory+memory); err != nil {
+			log.Errorf("[realloc] update container meta failed %v", err)
+			// 立即中断
+			ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
+			return
 		}
 		ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: true}
 	}
@@ -191,6 +207,7 @@ func (c *calcium) reallocNodesCPU(
 				if err := c.store.UpdateNodeCPU(podname, node.Name, container.CPU, "+"); err != nil {
 					return nil, err
 				}
+				node.CPU.Add(container.CPU)
 			}
 
 			// 按照 Node one by one 重新计算可以部署多少容器
@@ -204,8 +221,14 @@ func (c *calcium) reallocNodesCPU(
 					Name: node.Name,
 				},
 			}
+
 			result, changed, err := c.scheduler.SelectCPUNodes(nodesInfo, cpu, containersNum)
 			if err != nil {
+				for _, container := range containers {
+					if err := c.store.UpdateNodeCPU(podname, node.Name, container.CPU, "-"); err != nil {
+						return nil, err
+					}
+				}
 				return nil, err
 			}
 
@@ -255,12 +278,19 @@ func (c *calcium) doReallocContainersWithCPUPrior(
 	for node, cpuset := range nodesCPUResult {
 		containers := nodesInfoMap[node]
 		for index, container := range containers {
-			resource := c.makeCPUPriorSetting(cpuset[index])
+			quota := cpuset[index]
+			resource := c.makeCPUPriorSetting(quota)
 			updateConfig := enginecontainer.UpdateConfig{Resources: resource}
 			if err := reSetContainer(container.ID, node, updateConfig); err != nil {
 				log.Errorf("[realloc] update container failed %v", err)
 				// TODO 这里理论上是可以恢复 CPU 占用表的，一来我们知道新的占用是怎样，二来我们也晓得老的占用是啥样
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
+			}
+			if _, err := c.store.AddContainer(container.ID, container.Podname, container.Nodename, container.Name, quota, container.Memory); err != nil {
+				log.Errorf("[realloc] update container meta failed %v", err)
+				// 立即中断
+				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
+				return
 			}
 			ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: true}
 		}

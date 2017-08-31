@@ -353,8 +353,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 			log.Errorf("[CreateContainerWithCPUPrior] Run exec at %s error: %v", AFTER_START, err)
 		}
 
-		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, quota, opts.Memory)
-		if err != nil {
+		if _, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, quota, opts.Memory); err != nil {
 			log.Errorf("[CreateContainerWithCPUPrior] Error during store etcd data %v", err)
 			ms[i].Error = err.Error()
 			go c.removeCPUPodFailedContainer(container.ID, node, quota)

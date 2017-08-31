@@ -76,18 +76,19 @@ func serve() {
 	go grpcServer.Serve(s)
 	go http.ListenAndServe(":46656", nil)
 
-	log.Info("Cluster started successfully.")
+	log.Info("[main] Cluster started successfully.")
 
 	// wait for unix signals and try to GracefulStop
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGHUP, syscall.SIGTERM)
-	<-sigs
+	sig := <-sigs
+	log.Infof("[main] Get signal %v.", sig)
 	grpcServer.GracefulStop()
-	log.Info("gRPC server gracefully stopped.")
+	log.Info("[main] gRPC server gracefully stopped.")
 
-	log.Info("Now check if cluster still have running tasks...")
+	log.Info("[main] Check if cluster still have running tasks.")
 	vibranium.Wait()
-	log.Info("cluster gracefully stopped.")
+	log.Info("[main] cluster gracefully stopped.")
 }
 
 func main() {
