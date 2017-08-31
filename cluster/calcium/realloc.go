@@ -222,6 +222,11 @@ func (c *calcium) reallocNodesCPU(
 
 			result, changed, err := c.scheduler.SelectCPUNodes(nodesInfo, cpu, containersNum)
 			if err != nil {
+				for _, container := range containers {
+					if err := c.store.UpdateNodeCPU(podname, node.Name, container.CPU, "-"); err != nil {
+						return nil, err
+					}
+				}
 				return nil, err
 			}
 
