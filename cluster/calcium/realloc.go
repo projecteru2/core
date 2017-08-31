@@ -69,9 +69,6 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 		}
 	}
 
-	log.Debugf("[ReallocResource] global info %v", containersInfo)
-	log.Debugf("[ReallocResource] cpu info %v", cpuContainersInfo)
-
 	ch := make(chan *types.ReallocResourceMessage)
 	go func() {
 		defer close(ch)
@@ -217,12 +214,10 @@ func (c *calcium) reallocNodesCPU(
 				},
 			}
 
-			log.Debugf("[reallocNodesCPU] Args: %v | %v | %v", nodesInfo, cpu, containersNum)
 			result, changed, err := c.scheduler.SelectCPUNodes(nodesInfo, cpu, containersNum)
 			if err != nil {
 				return nil, err
 			}
-			log.Debugf("[reallocNodesCPU] result: %v changed %v", result, changed)
 
 			nodeCPUMap, isChanged := changed[node.Name]
 			containersCPUMap, hasResult := result[node.Name]
@@ -253,7 +248,6 @@ func (c *calcium) reallocContainersWithCPUPrior(
 		log.Errorf("[realloc] realloc cpu resource failed %v", err)
 		return
 	}
-	log.Debugf("[reallocContainersWithCPUPrior] new nodesCPUMap %v", nodesCPUMap)
 
 	// 不并发操作了
 	for cpu, nodesCPUResult := range nodesCPUMap {

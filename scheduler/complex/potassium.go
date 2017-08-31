@@ -35,7 +35,7 @@ func (m *potassium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
 }
 
 func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory int64, need int) ([]types.NodeInfo, error) {
-	log.Debugf("[SelectMemoryNodes] Args nodesInfo: %v, rate: %d, memory: %d, need: %d", nodesInfo, rate, memory, need)
+	log.Debugf("[SelectMemoryNodes] nodesInfo: %v, rate: %d, memory: %d, need: %d", nodesInfo, rate, memory, need)
 
 	p := -1
 	for i, nodeInfo := range nodesInfo {
@@ -82,6 +82,7 @@ func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory i
 }
 
 func (m *potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, need int) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
+	log.Debugf("[SelectCPUNodes] nodesInfo: %v, cpu: %v, need: %v", nodesInfo, quota, need)
 	result := make(map[string][]types.CPUMap)
 	changed := make(map[string]types.CPUMap)
 
@@ -111,6 +112,6 @@ func (m *potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, ne
 		}
 		changed[selectedNode.Name] = selectedNode.CpuMap
 	}
-
+	log.Debugf("[SelectCPUNodes] result: %v changed %v", result, changed)
 	return result, changed, nil
 }
