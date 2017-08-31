@@ -93,17 +93,15 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 	return ch, nil
 }
 
-func (c *calcium) reallocNodesMemory(podname string, nodeContainers NodeContainers, memory int64) error {
+func (c *calcium) checkNodesMemory(podname string, nodeContainers NodeContainers, memory int64) error {
 	lock, err := c.Lock(podname, 30)
 	if err != nil {
 		return err
 	}
 	defer lock.Unlock()
 	for node, containers := range nodeContainers {
-		if memory > 0 {
-			if cap := int(node.MemCap / memory); cap < len(containers) {
-				return fmt.Errorf("[realloc] Not enough resource %s", node.Name)
-			}
+		if cap := int(node.MemCap / memory); cap < len(containers) {
+			return fmt.Errorf("[realloc] Not enough resource %s", node.Name)
 		}
 		if err := c.store.UpdateNodeMem(podname, node.Name, int64(len(containers))*memory, "-"); err != nil {
 			return err
@@ -118,9 +116,11 @@ func (c *calcium) reallocContainerWithMemoryPrior(
 	nodeContainers NodeContainers,
 	cpu float64, memory int64) {
 
-	if err := c.reallocNodesMemory(pod.Name, nodeContainers, memory); err != nil {
-		log.Errorf("[realloc] realloc memory failed %v", err)
-		return
+	if memory > 0 {
+		if err := c.checkNodesMemory(pod.Name, nodeContainers, memory); err != nil {
+			log.Errorf("[realloc] realloc memory failed %v", err)
+			return
+		}
 	}
 
 	// 不并发操作了
@@ -152,9 +152,11 @@ func (c *calcium) doUpdateContainerWithMemoryPrior(
 			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
 			continue
 		}
+		newCPU := float64(newCPUQuota) / float64(utils.CpuPeriodBase)
+		log.Debugf("[doUpdateContainerWithMemoryPrior] quota:%d, cpu: %f, mem: %d", newCPUQuota, newCPU, newMemory)
 
 		// CPUQuota not cpu
-		newResource := c.makeMemoryPriorSetting(newMemory, float64(newCPUQuota)/float64(utils.CpuPeriodBase))
+		newResource := c.makeMemoryPriorSetting(newMemory, newCPU)
 		updateConfig := enginecontainer.UpdateConfig{Resources: newResource}
 		if err := reSetContainer(containerJSON.ID, node, updateConfig); err != nil {
 			log.Errorf("[realloc] update container failed %v, %s", err, containerJSON.ID)
