@@ -1,3 +1,4 @@
+log_level: "DEBUG"
 bind: ":5002"
 agent_port: "12345"
 appdir: "/home"

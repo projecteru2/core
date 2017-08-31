@@ -22,7 +22,6 @@ import (
 
 var (
 	configPath string
-	logLevel   string
 )
 
 func setupLog(l string) error {
@@ -41,16 +40,20 @@ func setupLog(l string) error {
 }
 
 func serve() {
-	if err := setupLog(logLevel); err != nil {
-		log.Fatal(err)
-	}
-
 	if configPath == "" {
 		log.Fatalf("Config path must be set")
 	}
 
 	config, err := utils.LoadConfig(configPath)
 	if err != nil {
+		log.Fatal(err)
+	}
+
+	logLevel := "INFO"
+	if config.LogLevel != "" {
+		logLevel = config.LogLevel
+	}
+	if err := setupLog(logLevel); err != nil {
 		log.Fatal(err)
 	}
 
@@ -103,13 +106,6 @@ func main() {
 			Usage:       "config file path for core, in yaml",
 			Destination: &configPath,
 			EnvVar:      "ERU_CONFIG_PATH",
-		},
-		cli.StringFlag{
-			Name:        "log-level",
-			Value:       "INFO",
-			Usage:       "set log level",
-			Destination: &logLevel,
-			EnvVar:      "ERU_LOG_LEVEL",
 		},
 	}
 	app.Action = func(c *cli.Context) error {

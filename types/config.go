@@ -4,6 +4,7 @@ import "time"
 
 // Config holds eru-core config
 type Config struct {
+	LogLevel       string        `yaml:"log_level"`
 	Bind           string        `yaml:"bind"`             // HTTP API address
 	AppDir         string        `yaml:"appdir"`           // App directory inside container
 	PermDir        string        `yaml:"permdir"`          // Permanent dir on host
