@@ -173,6 +173,12 @@ func (c *calcium) doUpdateContainerWithMemoryPrior(
 				log.Errorf("[realloc] failed to set mem back %s", containerJSON.ID)
 			}
 		}
+		if _, err := c.store.AddContainer(container.ID, podname, node.Name, container.Name, nil, container.Memory+memory); err != nil {
+			log.Errorf("[realloc] update container meta failed %v", err)
+			// 立即中断
+			ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
+			return
+		}
 		ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: true}
 	}
 }
