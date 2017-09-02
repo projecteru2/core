@@ -115,7 +115,7 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 	// only the first to remove can be done
 	lock, err := c.Lock(fmt.Sprintf("rmcontainer_%s", container.ID), 120)
 	if err != nil {
-		log.Errorf("Error during lock.Lock: %s", err.Error())
+		log.Errorf("[removeOneContainer] Error during lock.Lock: %s", err.Error())
 		return err
 	}
 	defer lock.Unlock()
@@ -123,7 +123,7 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 	// will be used later to update
 	node, err := c.GetNode(container.Podname, container.Nodename)
 	if err != nil {
-		log.Errorf("Error during GetNode: %s", err.Error())
+		log.Errorf("[removeOneContainer] Error during GetNode: %s", err.Error())
 		return err
 	}
 
@@ -133,18 +133,18 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 		if container.CPU.Total() > 0 {
 			log.Debugf("[removeOneContainer] Restore node cpu: %v, %v", node, container.CPU)
 			if err := c.store.UpdateNodeCPU(node.Podname, node.Name, container.CPU, "+"); err != nil {
-				log.Errorf("Update Node CPU failed %v", err)
+				log.Errorf("[removeOneContainer] Update Node CPU failed %v", err)
 			}
 			return
 		}
 		if err := c.store.UpdateNodeMem(node.Podname, node.Name, container.Memory, "+"); err != nil {
-			log.Errorf("Update Node Memory failed %v", err)
+			log.Errorf("[removeOneContainer] Update Node Memory failed %v", err)
 		}
 	}()
 
 	// before stop
 	if err := runExec(container.Engine, info, beforeStop); err != nil {
-		log.Errorf("Run exec at %s error: %s", beforeStop, err.Error())
+		log.Errorf("[removeOneContainer] Run exec at %s error: %s", beforeStop, err.Error())
 	}
 
 	// 这里 block 的问题很严重，按照目前的配置是 5 分钟一级的 block
@@ -153,7 +153,7 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 	ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
 	defer cancel()
 	if err = container.Engine.ContainerStop(ctx, info.ID, nil); err != nil {
-		log.Errorf("Error during ContainerStop: %s", err.Error())
+		log.Errorf("[removeOneContainer] Error during ContainerStop: %s", err.Error())
 		return err
 	}
 	log.Debugf("[removeOneContainer] Container stopped %s", info.ID)
@@ -164,7 +164,7 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 	}
 	err = container.Engine.ContainerRemove(context.Background(), info.ID, rmOpts)
 	if err != nil {
-		log.Errorf("Error during ContainerRemove: %s", err.Error())
+		log.Errorf("[removeOneContainer] Error during ContainerRemove: %s", err.Error())
 		return err
 	}
 	log.Debugf("[removeOneContainer] Container removed %s", info.ID)

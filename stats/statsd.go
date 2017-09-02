@@ -27,7 +27,7 @@ type statsdClient struct {
 func (s *statsdClient) gauge(keyPattern string, data map[string]float64) error {
 	remote, err := statsdlib.New(s.Addr)
 	if err != nil {
-		log.Errorf("Connect statsd failed: %v", err)
+		log.Errorf("[gauge] Connect statsd failed: %v", err)
 		return err
 	}
 	defer remote.Close()
@@ -42,7 +42,7 @@ func (s *statsdClient) gauge(keyPattern string, data map[string]float64) error {
 func (s *statsdClient) count(key string, n int, rate float32) error {
 	remote, err := statsdlib.New(s.Addr)
 	if err != nil {
-		log.Errorf("Connect statsd failed: %v", err)
+		log.Errorf("[count] Connect statsd failed: %v", err)
 		return err
 	}
 	defer remote.Close()
@@ -70,7 +70,7 @@ func (s *statsdClient) SendMemCap(cpumemmap map[string]types.CPUAndMem, before b
 	}
 
 	if err := s.gauge(keyPattern, data); err != nil {
-		log.Errorf("Error occured while sending data to statsd: %v", err)
+		log.Errorf("[SendMemCap] Error occured while sending data to statsd: %v", err)
 	}
 }
 
@@ -79,7 +79,7 @@ func (s *statsdClient) SendDeployCount(n int) {
 		return
 	}
 	if err := s.count(deployCount, n, 1.0); err != nil {
-		log.Errorf("Error occured while counting: %v", err)
+		log.Errorf("[SendDeployCount] Error occured while counting: %v", err)
 	}
 }
 

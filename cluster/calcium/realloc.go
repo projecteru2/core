@@ -118,7 +118,7 @@ func (c *calcium) reallocContainerWithMemoryPrior(
 
 	if memory > 0 {
 		if err := c.checkNodesMemory(pod.Name, nodeContainers, memory); err != nil {
-			log.Errorf("[realloc] realloc memory failed %v", err)
+			log.Errorf("[reallocContainerWithMemoryPrior] realloc memory failed %v", err)
 			return
 		}
 	}
@@ -139,7 +139,7 @@ func (c *calcium) doUpdateContainerWithMemoryPrior(
 	for _, container := range containers {
 		containerJSON, err := container.Inspect()
 		if err != nil {
-			log.Errorf("[realloc] get container failed %v", err)
+			log.Errorf("[doUpdateContainerWithMemoryPrior] get container failed %v", err)
 			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
 			continue
 		}
@@ -148,7 +148,7 @@ func (c *calcium) doUpdateContainerWithMemoryPrior(
 		newCPUQuota := containerJSON.HostConfig.CPUQuota + cpuQuota
 		newMemory := containerJSON.HostConfig.Memory + memory
 		if newCPUQuota <= 0 || newMemory <= minMemory {
-			log.Warnf("[relloc] new resource invaild %s, %d, %d", containerJSON.ID, newCPUQuota, newMemory)
+			log.Warnf("[doUpdateContainerWithMemoryPrior] new resource invaild %s, %d, %d", containerJSON.ID, newCPUQuota, newMemory)
 			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
 			continue
 		}
@@ -159,12 +159,12 @@ func (c *calcium) doUpdateContainerWithMemoryPrior(
 		newResource := c.makeMemoryPriorSetting(newMemory, newCPU)
 		updateConfig := enginecontainer.UpdateConfig{Resources: newResource}
 		if err := reSetContainer(containerJSON.ID, node, updateConfig); err != nil {
-			log.Errorf("[realloc] update container failed %v, %s", err, containerJSON.ID)
+			log.Errorf("[doUpdateContainerWithMemoryPrior] update container failed %v, %s", err, containerJSON.ID)
 			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
 			// 如果是增加内存，失败的时候应该把内存还回去
 			if memory > 0 {
 				if err := c.store.UpdateNodeMem(podname, node.Name, memory, "+"); err != nil {
-					log.Errorf("[realloc] failed to set mem back %s", containerJSON.ID)
+					log.Errorf("[doUpdateContainerWithMemoryPrior] failed to set mem back %s", containerJSON.ID)
 				}
 			}
 			continue
@@ -172,11 +172,11 @@ func (c *calcium) doUpdateContainerWithMemoryPrior(
 		// 如果是要降低内存，当执行成功的时候需要把内存还回去
 		if memory < 0 {
 			if err := c.store.UpdateNodeMem(podname, node.Name, -memory, "+"); err != nil {
-				log.Errorf("[realloc] failed to set mem back %s", containerJSON.ID)
+				log.Errorf("[doUpdateContainerWithMemoryPrior] failed to set mem back %s", containerJSON.ID)
 			}
 		}
 		if _, err := c.store.AddContainer(container.ID, podname, node.Name, container.Name, nil, container.Memory+memory); err != nil {
-			log.Errorf("[realloc] update container meta failed %v", err)
+			log.Errorf("[doUpdateContainerWithMemoryPrior] update container meta failed %v", err)
 			// 立即中断
 			ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 			return
@@ -258,7 +258,7 @@ func (c *calcium) reallocContainersWithCPUPrior(
 
 	nodesCPUMap, err := c.reallocNodesCPU(pod.Name, nodesInfoMap)
 	if err != nil {
-		log.Errorf("[realloc] realloc cpu resource failed %v", err)
+		log.Errorf("[reallocContainersWithCPUPrior] realloc cpu resource failed %v", err)
 		return
 	}
 
@@ -282,12 +282,12 @@ func (c *calcium) doReallocContainersWithCPUPrior(
 			resource := c.makeCPUPriorSetting(quota)
 			updateConfig := enginecontainer.UpdateConfig{Resources: resource}
 			if err := reSetContainer(container.ID, node, updateConfig); err != nil {
-				log.Errorf("[realloc] update container failed %v", err)
+				log.Errorf("[doReallocContainersWithCPUPrior] update container failed %v", err)
 				// TODO 这里理论上是可以恢复 CPU 占用表的，一来我们知道新的占用是怎样，二来我们也晓得老的占用是啥样
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 			}
 			if _, err := c.store.AddContainer(container.ID, container.Podname, container.Nodename, container.Name, quota, container.Memory); err != nil {
-				log.Errorf("[realloc] update container meta failed %v", err)
+				log.Errorf("[doReallocContainersWithCPUPrior] update container meta failed %v", err)
 				// 立即中断
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				return

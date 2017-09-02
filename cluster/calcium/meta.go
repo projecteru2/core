@@ -57,7 +57,7 @@ func (c *calcium) ListPodNodes(podname string, all bool) ([]*types.Node, error) 
 	var nodes []*types.Node
 	candidates, err := c.store.GetNodesByPod(podname)
 	if err != nil {
-		log.Debugf("Error during ListPodNodes from %s: %v", podname, err)
+		log.Debugf("[ListPodNodes] Error during ListPodNodes from %s: %v", podname, err)
 		return nodes, err
 	}
 	for _, candidate := range candidates {

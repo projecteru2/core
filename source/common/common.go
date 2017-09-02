@@ -94,7 +94,7 @@ func (g *GitScm) Artifact(artifact, path string) error {
 		req.Header.Add(k, v)
 	}
 
-	log.Debugf("Downloading artifacts from %q", artifact)
+	log.Debugf("[Artifact] Downloading artifacts from %q", artifact)
 	resp, err := g.Do(req)
 	if err != nil {
 		return err
@@ -103,14 +103,14 @@ func (g *GitScm) Artifact(artifact, path string) error {
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("Download artifact error %q, code %d", artifact, resp.StatusCode)
 	}
-	log.Debugf("Download artifacts from %q finished", artifact)
+	log.Debugf("[Artifact] Download artifacts from %q finished", artifact)
 
 	// extract files from zipfile
-	log.Debugf("Extracting files from %q", artifact)
+	log.Debugf("[Artifact] Extracting files from %q", artifact)
 	if err := UnzipFile(resp.Body, path); err != nil {
 		return err
 	}
-	log.Debugf("Extraction from %q done", artifact)
+	log.Debugf("[Artifact] Extraction from %q done", artifact)
 
 	return nil
 }

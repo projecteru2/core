@@ -30,7 +30,7 @@ const (
 func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	pod, err := c.store.GetPod(opts.Podname)
 	if err != nil {
-		log.Errorf("Error during GetPod for %s: %v", opts.Podname, err)
+		log.Errorf("[CreateContainer] Error during GetPod for %s: %v", opts.Podname, err)
 		return nil, err
 	}
 	if pod.Favor == types.CPU_PRIOR {
@@ -53,7 +53,7 @@ func (c *calcium) createContainerWithMemoryPrior(specs types.Specs, opts *types.
 	// 因此需要在这里加个全局锁，直到部署完毕才释放
 	nodesInfo, err := c.allocMemoryPodResource(opts)
 	if err != nil {
-		log.Errorf("Error during allocMemoryPodResource with opts %v: %v", opts, err)
+		log.Errorf("[createContainerWithMemoryPrior] Error during allocMemoryPodResource with opts %v: %v", opts, err)
 		return ch, err
 	}
 
@@ -84,7 +84,7 @@ func (c *calcium) createContainerWithMemoryPrior(specs types.Specs, opts *types.
 func (c *calcium) removeMemoryPodFailedContainer(id string, node *types.Node, nodeInfo types.NodeInfo, opts *types.DeployOptions) {
 	defer c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+")
 	if err := node.Engine.ContainerRemove(context.Background(), id, enginetypes.ContainerRemoveOptions{}); err != nil {
-		log.Errorf("[RemoveMemoryPodFailedContainer] Error during remove failed container %v", err)
+		log.Errorf("[removeMemoryPodFailedContainer] Error during remove failed container %v", err)
 	}
 }
 
@@ -97,12 +97,12 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 
 	node, err := c.GetNode(opts.Podname, nodeInfo.Name)
 	if err != nil {
-		log.Errorf("Error during GetNode for %s, %s: %v", opts.Podname, nodeInfo.Name, err)
+		log.Errorf("[doCreateContainerWithMemoryPrior] Error during GetNode for %s, %s: %v", opts.Podname, nodeInfo.Name, err)
 		return ms
 	}
 
 	if err := pullImage(node, opts.Image); err != nil {
-		log.Errorf("Error during pullImage %s for %s: %v", opts.Image, nodeInfo.Name, err)
+		log.Errorf("[doCreateContainerWithMemoryPrior] Error during pullImage %s for %s: %v", opts.Image, nodeInfo.Name, err)
 		for i := 0; i < nodeInfo.Deploy; i++ {
 			ms[i].Error = err.Error()
 		}
@@ -116,7 +116,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 		ms[i].Nodename = node.Name
 		ms[i].Memory = opts.Memory
 		if err != nil {
-			log.Errorf("Error during makeContainerOptions: %v", err)
+			log.Errorf("[doCreateContainerWithMemoryPrior] Error during makeContainerOptions: %v", err)
 			ms[i].Error = err.Error()
 			c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+") // 创建容器失败就要把资源还回去对不对？
 			continue
@@ -125,7 +125,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 		//create container
 		container, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
 		if err != nil {
-			log.Errorf("[CreateContainerWithMemoryPrior] Error during ContainerCreate, %v", err)
+			log.Errorf("[doCreateContainerWithMemoryPrior] Error during ContainerCreate, %v", err)
 			ms[i].Error = err.Error()
 			c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+")
 			continue
@@ -140,7 +140,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 			// need to ensure all networks are correctly connected
 			for networkID, ipv4 := range opts.Networks {
 				if err = c.network.ConnectToNetwork(ctx, container.ID, networkID, ipv4); err != nil {
-					log.Errorf("[CreateContainerWithMemoryPrior] Error during connecting container %q to network %q, %v", container.ID, networkID, err)
+					log.Errorf("[doCreateContainerWithMemoryPrior] Error during connecting container %q to network %q, %v", container.ID, networkID, err)
 					breaked = true
 					c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+")
 					break
@@ -150,7 +150,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 			// remove bridge network
 			if len(opts.Networks) != 0 {
 				if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
-					log.Errorf("[CreateContainerWithMemoryPrior] Error during disconnecting container %q from network %q, %v", container.ID, "bridge", err)
+					log.Errorf("[doCreateContainerWithMemoryPrior] Error during disconnecting container %q from network %q, %v", container.ID, "bridge", err)
 				}
 			}
 
@@ -162,7 +162,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 			}
 		}
 		if err = node.Engine.ContainerStart(context.Background(), container.ID, enginetypes.ContainerStartOptions{}); err != nil {
-			log.Errorf("[CreateContainerWithMemoryPrior] Error during ContainerStart, %v", err)
+			log.Errorf("[doCreateContainerWithMemoryPrior] Error during ContainerStart, %v", err)
 			ms[i].Error = err.Error()
 			go c.removeMemoryPodFailedContainer(container.ID, node, nodeInfo, opts)
 			continue
@@ -173,7 +173,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 		// here
 		info, err := node.Engine.ContainerInspect(context.Background(), container.ID)
 		if err != nil {
-			log.Errorf("[CreateContainerWithMemoryPrior] Error during ContainerInspect, %v", err)
+			log.Errorf("[doCreateContainerWithMemoryPrior] Error during ContainerInspect, %v", err)
 			ms[i].Error = err.Error()
 			c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+")
 			continue
@@ -187,19 +187,19 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 
 		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, nil, opts.Memory)
 		if err != nil {
-			log.Errorf("[CreateContainerWithMemoryPrior] Error during store etcd data %v", err)
+			log.Errorf("[doCreateContainerWithMemoryPrior] Error during store etcd data %v", err)
 			ms[i].Error = err.Error()
 			go c.removeMemoryPodFailedContainer(container.ID, node, nodeInfo, opts)
 			continue
 		}
-		log.Debugf("[doCreateContainer] create container success %s", info.ID)
+		log.Debugf("[doCreateContainerWithMemoryPrior] create container success %s", info.ID)
 		ms[i].Success = true
 	}
 
 	go func(opts *types.DeployOptions) {
 		cpuandmem, _, err := c.getCPUAndMem(opts.Podname, opts.Nodename, 1.0)
 		if err != nil {
-			log.Errorf("Get cpu and mem stats failed %v", err)
+			log.Errorf("[doCreateContainerWithMemoryPrior] Get cpu and mem stats failed %v", err)
 			return
 		}
 		stats.Client.SendMemCap(cpuandmem, false)
@@ -212,12 +212,12 @@ func (c *calcium) createContainerWithCPUPrior(specs types.Specs, opts *types.Dep
 	ch := make(chan *types.CreateContainerMessage)
 	result, err := c.allocCPUPodResource(opts)
 	if err != nil {
-		log.Errorf("Error during allocCPUPodResource with opts %v: %v", opts, err)
+		log.Errorf("[createContainerWithCPUPrior] Error during allocCPUPodResource with opts %v: %v", opts, err)
 		return ch, err
 	}
 
 	if len(result) == 0 {
-		return ch, fmt.Errorf("[CreateContainerWithCPUPrior] Not enough resource to create container")
+		return ch, fmt.Errorf("[createContainerWithCPUPrior] Not enough resource to create container")
 	}
 
 	// FIXME check total count in case scheduler error
@@ -250,7 +250,7 @@ func (c *calcium) createContainerWithCPUPrior(specs types.Specs, opts *types.Dep
 func (c *calcium) removeCPUPodFailedContainer(id string, node *types.Node, quota types.CPUMap) {
 	defer c.releaseQuota(node, quota)
 	if err := node.Engine.ContainerRemove(context.Background(), id, enginetypes.ContainerRemoveOptions{}); err != nil {
-		log.Errorf("[RemoveCPUPodFailedContainer] Error during remove failed container %v", err)
+		log.Errorf("[removeCPUPodFailedContainer] Error during remove failed container %v", err)
 	}
 }
 
@@ -263,12 +263,12 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 
 	node, err := c.GetNode(opts.Podname, nodeName)
 	if err != nil {
-		log.Errorf("[CreateContainerWithCPUPrior] Get node error %v", err)
+		log.Errorf("[doCreateContainerWithCPUPrior] Get node error %v", err)
 		return ms
 	}
 
 	if err := pullImage(node, opts.Image); err != nil {
-		log.Errorf("Error during pullImage: %v", err)
+		log.Errorf("[doCreateContainerWithCPUPrior] Error during pullImage: %v", err)
 		for i := 0; i < deployCount; i++ {
 			ms[i].Error = err.Error()
 		}
@@ -283,7 +283,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 		ms[i].Nodename = node.Name
 		ms[i].Memory = opts.Memory
 		if err != nil {
-			log.Errorf("Error during makeContainerOptions: %v", err)
+			log.Errorf("[doCreateContainerWithCPUPrior] Error during makeContainerOptions: %v", err)
 			ms[i].Error = err.Error()
 			c.releaseQuota(node, quota)
 			continue
@@ -292,7 +292,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 		// create container
 		container, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
 		if err != nil {
-			log.Errorf("[CreateContainerWithCPUPrior] Error when creating container, %v", err)
+			log.Errorf("[doCreateContainerWithCPUPrior] Error when creating container, %v", err)
 			ms[i].Error = err.Error()
 			c.releaseQuota(node, quota)
 			continue
@@ -307,7 +307,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 			// need to ensure all networks are correctly connected
 			for networkID, ipv4 := range opts.Networks {
 				if err = c.network.ConnectToNetwork(ctx, container.ID, networkID, ipv4); err != nil {
-					log.Errorf("[CreateContainerWithCPUPrior] Error when connecting container %q to network %q, %v", container.ID, networkID, err)
+					log.Errorf("[doCreateContainerWithCPUPrior] Error when connecting container %q to network %q, %v", container.ID, networkID, err)
 					breaked = true
 					c.releaseQuota(node, quota)
 					break
@@ -318,7 +318,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 			// only when user defined networks is given
 			if len(opts.Networks) != 0 {
 				if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
-					log.Errorf("[CreateContainerWithCPUPrior] Error when disconnecting container %q from network %q, %v", container.ID, "bridge", err)
+					log.Errorf("[doCreateContainerWithCPUPrior] Error when disconnecting container %q from network %q, %v", container.ID, "bridge", err)
 				}
 			}
 
@@ -330,7 +330,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 			}
 		}
 		if err = node.Engine.ContainerStart(context.Background(), container.ID, enginetypes.ContainerStartOptions{}); err != nil {
-			log.Errorf("[CreateContainerWithCPUPrior] Error when starting container, %v", err)
+			log.Errorf("[doCreateContainerWithCPUPrior] Error when starting container, %v", err)
 			ms[i].Error = err.Error()
 			go c.removeCPUPodFailedContainer(container.ID, node, quota)
 			continue
@@ -341,7 +341,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 		// here
 		info, err := node.Engine.ContainerInspect(context.Background(), container.ID)
 		if err != nil {
-			log.Errorf("[CreateContainerWithCPUPrior] Error when inspecting container, %v", err)
+			log.Errorf("[doCreateContainerWithCPUPrior] Error when inspecting container, %v", err)
 			ms[i].Error = err.Error()
 			c.releaseQuota(node, quota)
 			continue
@@ -350,16 +350,16 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 
 		// after start
 		if err := runExec(node.Engine, info, afterStart); err != nil {
-			log.Errorf("[CreateContainerWithCPUPrior] Run exec at %s error: %v", afterStart, err)
+			log.Errorf("[doCreateContainerWithCPUPrior] Run exec at %s error: %v", afterStart, err)
 		}
 
 		if _, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, quota, opts.Memory); err != nil {
-			log.Errorf("[CreateContainerWithCPUPrior] Error during store etcd data %v", err)
+			log.Errorf("[doCreateContainerWithCPUPrior] Error during store etcd data %v", err)
 			ms[i].Error = err.Error()
 			go c.removeCPUPodFailedContainer(container.ID, node, quota)
 			continue
 		}
-		log.Debugf("[doCreateContainer] create container success %s", info.ID)
+		log.Debugf("[doCreateContainerWithCPUPrior] create container success %s", info.ID)
 		ms[i].Success = true
 	}
 
@@ -371,7 +371,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 // no need to update this to etcd (save 1 time write on etcd)
 func (c *calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
 	if quota.Total() == 0 {
-		log.Debug("cpu quota is zero: %f", quota)
+		log.Debug("[releaseQuota] cpu quota is zero: %f", quota)
 		return
 	}
 	c.store.UpdateNodeCPU(node.Podname, node.Name, quota, "+")
@@ -387,7 +387,7 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 	entry, ok := specs.Entrypoints[opts.Entrypoint]
 	if !ok {
 		err := fmt.Errorf("Entrypoint %q not found in image %q", opts.Entrypoint, opts.Image)
-		log.Errorf("Error during makeContainerOptions: %v", err)
+		log.Errorf("[makeContainerOptions] Error during makeContainerOptions: %v", err)
 		return nil, nil, nil, "", err
 	}
 
@@ -557,7 +557,7 @@ func pullImage(node *types.Node, image string) error {
 
 	outStream, err := node.Engine.ImagePull(context.Background(), image, enginetypes.ImagePullOptions{})
 	if err != nil {
-		log.Errorf("Error during pulling image %s: %v", image, err)
+		log.Errorf("[pullImage] Error during pulling image %s: %v", image, err)
 		return err
 	}
 	ensureReaderClosed(outStream)

@@ -170,17 +170,17 @@ func (k *krypton) deleteNode(podname, nodename, endpoint string) {
 	k.deleteCertFiles(podname, nodename, endpoint)
 	u, err := url.Parse(endpoint)
 	if err != nil {
-		log.Errorf("Bad endpoint: %s", endpoint)
+		log.Errorf("[deleteNode] Bad endpoint: %s", endpoint)
 		return
 	}
 
 	host, _, err := net.SplitHostPort(u.Host)
 	if err != nil {
-		log.Errorf("Bad addr: %s", u.Host)
+		log.Errorf("[deleteNode] Bad addr: %s", u.Host)
 		return
 	}
 	_cache.delete(host)
-	log.Debugf("Node (%s, %s, %s) deleted", podname, nodename, endpoint)
+	log.Debugf("[deleteNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 }
 
 // 既然有了上面的东西, 就加个API吧

@@ -50,12 +50,12 @@ type richSpecs struct {
 func getRandomNode(c *calcium, podname string) (*types.Node, error) {
 	nodes, err := c.ListPodNodes(podname, false)
 	if err != nil {
-		log.Errorf("Error during ListPodNodes for %s: %v", podname, err)
+		log.Errorf("[getRandomNode] Error during ListPodNodes for %s: %v", podname, err)
 		return nil, err
 	}
 	if len(nodes) == 0 {
 		err = fmt.Errorf("No nodes available in pod %s", podname)
-		log.Errorf("Error during getRandomNode from %s: %v", podname, err)
+		log.Errorf("[getRandomNode] Error during getRandomNode from %s: %v", podname, err)
 		return nil, err
 	}
 
@@ -65,7 +65,7 @@ func getRandomNode(c *calcium, podname string) (*types.Node, error) {
 	}
 	nodename, err := c.scheduler.RandomNode(nodemap)
 	if err != nil {
-		log.Errorf("Error during getRandomNode from %s: %v", podname, err)
+		log.Errorf("[getRandomNode] Error during getRandomNode from %s: %v", podname, err)
 		return nil, err
 	}
 	if nodename == "" {
@@ -174,7 +174,7 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 		PullParent:     true,
 	}
 
-	log.Infof("Building image %v with artifact %v at %v:%v", tag, artifact, buildPodname, node.Name)
+	log.Infof("[BuildImage] Building image %v with artifact %v at %v:%v", tag, artifact, buildPodname, node.Name)
 	ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
 	defer cancel()
 	resp, err := node.Engine.ImageBuild(ctx, buildContext, buildOptions)
@@ -193,7 +193,7 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 				if err == io.EOF {
 					break
 				}
-				log.Errorf("Decode build image message failed %v", err)
+				log.Errorf("[BuildImage] Decode build image message failed %v", err)
 				return
 			}
 			ch <- message
@@ -216,7 +216,7 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 				if err == io.EOF {
 					break
 				}
-				log.Errorf("Decode push image message failed %v", err)
+				log.Errorf("[BuildImage] Decode push image message failed %v", err)
 				return
 			}
 			ch <- message
@@ -231,7 +231,7 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 				PruneChildren: true,
 			})
 			if err != nil {
-				log.Errorf("Remove image error: %s", err)
+				log.Errorf("[BuildImage] Remove image error: %s", err)
 			}
 		}()
 
@@ -300,7 +300,7 @@ func makeComplexDockerFile(rs richSpecs, buildDir string) error {
 	for _, stage := range rs.ComplexBuild.Stages {
 		build, ok := rs.ComplexBuild.Builds[stage]
 		if !ok {
-			log.Warnf("Complex build stage %s not defined", stage)
+			log.Warnf("[makeComplexDockerFile] Complex build stage %s not defined", stage)
 			continue
 		}
 

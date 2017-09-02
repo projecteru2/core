@@ -370,7 +370,7 @@ func (v *vibranium) Backup(ctx context.Context, opts *pb.BackupOptions) (*pb.Bac
 }
 
 func (v *vibranium) logUnsentMessages(msgType string, msg interface{}) {
-	log.Infof("Unsent %s streamed message: %v", msgType, msg)
+	log.Infof("[logUnsentMessages] Unsent %s streamed message: %v", msgType, msg)
 }
 
 func New(cluster cluster.Cluster, config types.Config) *vibranium {

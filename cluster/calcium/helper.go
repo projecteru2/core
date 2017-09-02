@@ -198,7 +198,7 @@ func runExec(client *engineapi.Client, container enginetypes.ContainerJSON, labe
 	execConfig := enginetypes.ExecConfig{User: container.Config.User, Cmd: cmds}
 	resp, err := client.ContainerExecCreate(context.Background(), container.ID, execConfig)
 	if err != nil {
-		log.Errorf("Error during runExec: %v", err)
+		log.Errorf("[runExec] Error during runExec: %v", err)
 		return err
 	}
 	return client.ContainerExecStart(context.Background(), resp.ID, enginetypes.ExecStartCheck{})

@@ -39,12 +39,12 @@ func setupLog(l string) error {
 
 func serve() {
 	if configPath == "" {
-		log.Fatalf("Config path must be set")
+		log.Fatal("[main] Config path must be set")
 	}
 
 	config, err := utils.LoadConfig(configPath)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("[main] %v", err)
 	}
 
 	logLevel := "INFO"
@@ -52,20 +52,20 @@ func serve() {
 		logLevel = config.LogLevel
 	}
 	if err := setupLog(logLevel); err != nil {
-		log.Fatal(err)
+		log.Fatalf("[main] %v", err)
 	}
 
 	stats.NewStatsdClient(config.Statsd)
 
 	cluster, err := calcium.New(config)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("[main] %v", err)
 	}
 
 	vibranium := rpc.New(cluster, config)
 	s, err := net.Listen("tcp", config.Bind)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("[main] %v", err)
 	}
 
 	opts := []grpc.ServerOption{grpc.MaxConcurrentStreams(100)}
