@@ -190,12 +190,7 @@ func (k *krypton) DeleteNode(node *types.Node) {
 
 // get all nodes from etcd
 // any error will break and return immediately
-func (k *krypton) GetAllNodes() ([]*types.Node, error) {
-	var (
-		nodes []*types.Node
-		err   error
-	)
-
+func (k *krypton) GetAllNodes() (nodes []*types.Node, err error) {
 	pods, err := k.GetAllPods()
 	if err != nil {
 		return nodes, err
@@ -214,12 +209,7 @@ func (k *krypton) GetAllNodes() ([]*types.Node, error) {
 // get all nodes bound to pod
 // here we use podname instead of pod instance
 // storage path in etcd is `/eru-core/pod/:podname/node`
-func (k *krypton) GetNodesByPod(podname string) ([]*types.Node, error) {
-	var (
-		nodes []*types.Node
-		err   error
-	)
-
+func (k *krypton) GetNodesByPod(podname string) (nodes []*types.Node, err error) {
 	key := fmt.Sprintf(podNodesKey, podname)
 	resp, err := k.etcd.Get(context.Background(), key, nil)
 	if err != nil {

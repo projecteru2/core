@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	RESTART_ALWAYS   = "always"
-	MEMORY_LOW_LIMIT = 4194304
+	restartAlways = "always"
+	minMemory     = 4194304
 )
 
 // Create Container
@@ -42,7 +42,7 @@ func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) 
 
 func (c *calcium) createContainerWithMemoryPrior(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
-	if opts.Memory < MEMORY_LOW_LIMIT { // 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
+	if opts.Memory < minMemory { // 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
 		return ch, fmt.Errorf("Minimum memory limit allowed is 4MB, got %d", opts.Memory)
 	}
 	if opts.Count <= 0 { // Count 要大于0
@@ -181,8 +181,8 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 		ms[i].ContainerID = info.ID
 
 		// after start
-		if err := runExec(node.Engine, info, AFTER_START); err != nil {
-			log.Errorf("[CreateContainerWithMemoryPrior] Run exec at %s error: %v", AFTER_START, err)
+		if err := runExec(node.Engine, info, afterStart); err != nil {
+			log.Errorf("[CreateContainerWithMemoryPrior] Run exec at %s error: %v", afterStart, err)
 		}
 
 		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, nil, opts.Memory)
@@ -349,8 +349,8 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 		ms[i].ContainerID = info.ID
 
 		// after start
-		if err := runExec(node.Engine, info, AFTER_START); err != nil {
-			log.Errorf("[CreateContainerWithCPUPrior] Run exec at %s error: %v", AFTER_START, err)
+		if err := runExec(node.Engine, info, afterStart); err != nil {
+			log.Errorf("[CreateContainerWithCPUPrior] Run exec at %s error: %v", afterStart, err)
 		}
 
 		if _, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, quota, opts.Memory); err != nil {
@@ -477,8 +477,8 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 	}
 
 	// 要把after_start和before_stop写进去
-	containerLabels[AFTER_START] = entry.AfterStart
-	containerLabels[BEFORE_STOP] = entry.BeforeStop
+	containerLabels[afterStart] = entry.AfterStart
+	containerLabels[beforeStop] = entry.BeforeStop
 	// 接下来是meta
 	for key, value := range specs.Meta {
 		containerLabels[key] = value
@@ -529,7 +529,7 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 
 	restartPolicy := entry.RestartPolicy
 	maximumRetryCount := 3
-	if restartPolicy == RESTART_ALWAYS {
+	if restartPolicy == restartAlways {
 		maximumRetryCount = 0
 	}
 	hostConfig := &enginecontainer.HostConfig{

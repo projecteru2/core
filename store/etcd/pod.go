@@ -60,12 +60,7 @@ func (k *krypton) AddPod(name, favor, desc string) (*types.Pod, error) {
 // get all pods in etcd
 // any error will break and return error immediately
 // storage path in etcd is `/eru-core/pod`
-func (k *krypton) GetAllPods() ([]*types.Pod, error) {
-	var (
-		pods []*types.Pod
-		err  error
-	)
-
+func (k *krypton) GetAllPods() (pods []*types.Pod, err error) {
 	resp, err := k.etcd.Get(context.Background(), allPodsKey, nil)
 	if err != nil {
 		return pods, err

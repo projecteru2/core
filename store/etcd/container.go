@@ -42,11 +42,7 @@ func (k *krypton) GetContainer(id string) (*types.Container, error) {
 }
 
 // get many containers
-func (k *krypton) GetContainers(ids []string) ([]*types.Container, error) {
-	var (
-		containers []*types.Container
-		err        error
-	)
+func (k *krypton) GetContainers(ids []string) (containers []*types.Container, err error) {
 	for _, id := range ids {
 		container, err := k.GetContainer(id)
 		if err != nil {

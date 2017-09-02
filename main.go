@@ -20,9 +20,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-var (
-	configPath string
-)
+var configPath string
 
 func setupLog(l string) error {
 	level, err := log.ParseLevel(l)

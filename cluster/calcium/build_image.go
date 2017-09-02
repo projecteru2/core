@@ -22,9 +22,9 @@ import (
 
 // FIXME in alpine, useradd rename as adduser
 const (
-	FROM   = "FROM %s"
-	FROMAS = "FROM %s as %s"
-	COMMON = `ENV UID {{.UID}}
+	fromTmpl   = "FROM %s"
+	fromAsTmpl = "FROM %s as %s"
+	commonTmpl = `ENV UID {{.UID}}
 ENV Appname {{.Appname}}
 ENV Appdir {{.Appdir}}
 ENV ERU 1
@@ -32,9 +32,9 @@ ENV ERU 1
 WORKDIR {{.Appdir}}/{{.Appname}}
 RUN useradd -u {{.UID}} -d /nonexistent -s /sbin/nologin -U {{.Appname}}
 RUN chown -R {{.UID}} {{.Appdir}}/{{.Appname}}`
-	RUN  = "RUN sh -c \"%s\""
-	COPY = "COPY --from=%s %s %s"
-	USER = "USER %s"
+	runTmpl  = "RUN sh -c \"%s\""
+	copyTmpl = "COPY --from=%s %s %s"
+	userTmpl = "USER %s"
 )
 
 // richSpecs is used to format templates
@@ -256,7 +256,7 @@ func createTarStream(path string) (io.ReadCloser, error) {
 }
 
 func makeCommonPart(rs richSpecs) (string, error) {
-	tmpl := template.Must(template.New("dockerfile").Parse(COMMON))
+	tmpl := template.Must(template.New("dockerfile").Parse(commonTmpl))
 	out := bytes.Buffer{}
 	if err := tmpl.Execute(&out, rs); err != nil {
 		return "", err
@@ -279,9 +279,9 @@ func makeMainPart(from, commands string, copys []string, rs richSpecs) (string, 
 }
 
 func makeSimpleDockerFile(rs richSpecs, buildDir string) error {
-	from := fmt.Sprintf(FROM, rs.Base)
-	user := fmt.Sprintf(USER, rs.Appname)
-	commands := fmt.Sprintf(RUN, strings.Join(rs.Build, " && "))
+	from := fmt.Sprintf(fromTmpl, rs.Base)
+	user := fmt.Sprintf(userTmpl, rs.Appname)
+	commands := fmt.Sprintf(runTmpl, strings.Join(rs.Build, " && "))
 	// make sure add source code
 	rs.Source = true
 	mainPart, err := makeMainPart(from, commands, []string{}, rs)
@@ -304,12 +304,12 @@ func makeComplexDockerFile(rs richSpecs, buildDir string) error {
 			continue
 		}
 
-		from := fmt.Sprintf(FROMAS, build.Base, stage)
+		from := fmt.Sprintf(fromAsTmpl, build.Base, stage)
 		copys := []string{}
 		for src, dst := range preArtifacts {
-			copys = append(copys, fmt.Sprintf(COPY, preStage, src, dst))
+			copys = append(copys, fmt.Sprintf(copyTmpl, preStage, src, dst))
 		}
-		commands := fmt.Sprintf(RUN, strings.Join(build.Commands, " && "))
+		commands := fmt.Sprintf(runTmpl, strings.Join(build.Commands, " && "))
 		// decide add source or not
 		rs.Source = build.Source
 		mainPart, err := makeMainPart(from, commands, copys, rs)
@@ -320,7 +320,7 @@ func makeComplexDockerFile(rs richSpecs, buildDir string) error {
 		preStage = stage
 		preArtifacts = build.Artifacts
 	}
-	buildTmpl = append(buildTmpl, fmt.Sprintf(USER, rs.Appname))
+	buildTmpl = append(buildTmpl, fmt.Sprintf(userTmpl, rs.Appname))
 	dockerfile := strings.Join(buildTmpl, "\n")
 	return createDockerfile(dockerfile, buildDir)
 }

@@ -147,7 +147,7 @@ func (c *calcium) doUpdateContainerWithMemoryPrior(
 		cpuQuota := int64(cpu * float64(utils.CpuPeriodBase))
 		newCPUQuota := containerJSON.HostConfig.CPUQuota + cpuQuota
 		newMemory := containerJSON.HostConfig.Memory + memory
-		if newCPUQuota <= 0 || newMemory <= MEMORY_LOW_LIMIT {
+		if newCPUQuota <= 0 || newMemory <= minMemory {
 			log.Warnf("[relloc] new resource invaild %s, %d, %d", containerJSON.ID, newCPUQuota, newMemory)
 			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
 			continue

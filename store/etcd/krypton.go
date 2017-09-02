@@ -11,7 +11,7 @@ import (
 	"gitlab.ricebook.net/platform/core/types"
 )
 
-var (
+const (
 	allPodsKey       = "/eru-core/pod"
 	podInfoKey       = "/eru-core/pod/%s/info"
 	podNodesKey      = "/eru-core/pod/%s/node"

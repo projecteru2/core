@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	MEMSTATS    = "eru-core.%s.%s.%%s"
-	DEPLOYCOUNT = "eru-core.deploy.count"
+	memStats    = "eru-core.%s.%s.%%s"
+	deployCount = "eru-core.deploy.count"
 
-	BEFORE = "before"
-	AFTER  = "after"
+	beforeKey = "before"
+	afterKey  = "after"
 )
 
 type statsdClient struct {
@@ -64,9 +64,9 @@ func (s *statsdClient) SendMemCap(cpumemmap map[string]types.CPUAndMem, before b
 		data[node] = float64(cpuandmem.MemCap)
 	}
 
-	keyPattern := fmt.Sprintf(MEMSTATS, s.Hostname, BEFORE)
+	keyPattern := fmt.Sprintf(memStats, s.Hostname, beforeKey)
 	if !before {
-		keyPattern = fmt.Sprintf(MEMSTATS, s.Hostname, AFTER)
+		keyPattern = fmt.Sprintf(memStats, s.Hostname, afterKey)
 	}
 
 	if err := s.gauge(keyPattern, data); err != nil {
@@ -78,7 +78,7 @@ func (s *statsdClient) SendDeployCount(n int) {
 	if s.isNotSet() {
 		return
 	}
-	if err := s.count(DEPLOYCOUNT, n, 1.0); err != nil {
+	if err := s.count(deployCount, n, 1.0); err != nil {
 		log.Errorf("Error occured while counting: %v", err)
 	}
 }
