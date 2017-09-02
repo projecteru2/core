@@ -29,7 +29,7 @@ const (
 	APIVersion     = "v1.29"
 	mockMemory     = int64(8589934592) // 8G
 	mockID         = "f1f9da344e8f8f90f73899ddad02da6cdf2218bbe52413af2bcfef4fba2d22de"
-	appmemory      = 268435456 // 0.25 G
+	appmemory      = int64(268435456) // 0.25 G
 )
 
 var (
@@ -77,6 +77,7 @@ var (
 		"f1f9da344e8f8f90f73899ddad02da6cdf2218bbe52413af2bcfef4fba2d22df",
 		"f1f9da344e8f8f90f73899ddad02da6cdf2218bbe52413af2bcfef4fba2d22dg",
 	}
+	mockInspectedContainerResources = map[string]container.Resources{}
 )
 
 func testlogF(format interface{}, a ...interface{}) {
@@ -174,6 +175,11 @@ func mockDockerDoer(r *http.Request) (*http.Response, error) {
 		})
 	case fmt.Sprintf("/containers/%s/update", containerID):
 		testlogF("update container %s", containerID)
+		// update container's resources
+		updatedConfig := container.UpdateConfig{}
+		data, _ := ioutil.ReadAll(r.Body)
+		json.Unmarshal(data, &updatedConfig)
+		mockInspectedContainerResources[containerID] = updatedConfig.Resources
 		b, err = json.Marshal(container.ContainerUpdateOKBody{})
 	case fmt.Sprintf("/containers/%s", containerID):
 		testlogF("remove container %s", containerID)
@@ -205,23 +211,30 @@ func mockDockerDoer(r *http.Request) (*http.Response, error) {
 		}, nil
 	case fmt.Sprintf("/containers/%s/json", containerID):
 		testlogF("inspect container %s", containerID)
-		b, _ = json.Marshal(types.ContainerJSON{
+		rscs := container.Resources{
+			CPUQuota: utils.CpuPeriodBase,
+			Memory:   appmemory,
+		}
+		nRscs := container.Resources{}
+		if mockInspectedContainerResources[containerID].Memory != nRscs.Memory {
+			rscs = mockInspectedContainerResources[containerID]
+		}
+		containerJSON := types.ContainerJSON{
 			ContainerJSONBase: &types.ContainerJSONBase{
 				ID:    containerID,
 				Image: "image:latest",
 				Name:  "name",
 				HostConfig: &container.HostConfig{
-					Resources: container.Resources{
-						CPUQuota: utils.CpuPeriodBase,
-						Memory:   appmemory,
-					},
+					Resources: rscs,
 				},
 			},
 			Config: &container.Config{
 				Labels: nil,
 				Image:  "image:latest",
 			},
-		})
+		}
+		mockInspectedContainerResources[containerID] = containerJSON.HostConfig.Resources
+		b, _ = json.Marshal(containerJSON)
 	case "/networks/bridge/disconnect":
 		var disconnect types.NetworkDisconnect
 		if err := json.NewDecoder(r.Body).Decode(&disconnect); err != nil {
@@ -256,8 +269,12 @@ func newMockClient(doer func(*http.Request) (*http.Response, error)) *http.Clien
 	return r
 }
 
-func mockDockerHTTPClient() *http.Client {
-	return newMockClient(mockDockerDoer)
+func mockDockerClient() *client.Client {
+	clnt, err := client.NewClient("http://127.0.0.1", "v1.29", newMockClient(mockDockerDoer), nil)
+	if err != nil {
+		panic(err)
+	}
+	return clnt
 }
 
 func errorMock(statusCode int, message string) (*http.Response, error) {
@@ -295,10 +312,7 @@ func initMockConfig() {
 	mockStore = &mockstore.MockStore{}
 	mockc.SetStore(mockStore)
 
-	clnt, err := client.NewClient("http://127.0.0.1", "v1.29", mockDockerHTTPClient(), nil)
-	if err != nil {
-		panic(err)
-	}
+	clnt := mockDockerClient()
 
 	n1 := &coretypes.Node{
 		Name:      nodename,

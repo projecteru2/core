@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/docker/docker/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gitlab.ricebook.net/platform/core/types"
@@ -39,7 +38,7 @@ func TestCreateContainerWithMemPrior(t *testing.T) {
 	assert.Equal(t, opts.Count, len(ids))
 
 	// get containers
-	clnt, _ := client.NewClient("http://127.0.0.1", "v1.29", mockDockerHTTPClient(), nil)
+	clnt := mockDockerClient()
 	cs := []types.Container{}
 	for _, id := range ids {
 		c := types.Container{

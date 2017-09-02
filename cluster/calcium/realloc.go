@@ -62,7 +62,7 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 				return nil, fmt.Errorf("[realloc] cpu can not below zero")
 			}
 			if _, ok := podCPUContainersInfo[newCPURequire]; !ok {
-				podCPUContainersInfo[newCPURequire] = NodeContainers{} // go map 的傻逼语法, 不这样写会有 assignment to entry in nil map 错误
+				podCPUContainersInfo[newCPURequire] = NodeContainers{}
 				podCPUContainersInfo[newCPURequire][node] = []*types.Container{}
 			}
 			podCPUContainersInfo[newCPURequire][node] = append(podCPUContainersInfo[newCPURequire][node], container)

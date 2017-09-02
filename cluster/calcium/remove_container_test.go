@@ -5,7 +5,6 @@ import (
 
 	"gitlab.ricebook.net/platform/core/types"
 
-	"github.com/docker/docker/client"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,7 +12,7 @@ func TestRemoveContainer(t *testing.T) {
 	initMockConfig()
 
 	ids := []string{}
-	clnt, _ := client.NewClient("http://127.0.0.1", "v1.29", mockDockerHTTPClient(), nil)
+	clnt := mockDockerClient()
 	for i := 0; i < 5; i++ {
 		ids = append(ids, mockContainerID())
 	}

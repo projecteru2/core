@@ -1,11 +1,13 @@
 package calcium
 
 import (
+	"context"
 	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.ricebook.net/platform/core/types"
+	"gitlab.ricebook.net/platform/core/utils"
 )
 
 func TestReallocWithCPUPrior(t *testing.T) {
@@ -156,4 +158,33 @@ func TestReallocWithMemoryPrior(t *testing.T) {
 		assert.False(t, msg.Success)
 	}
 
+}
+
+func TestReallocResource(t *testing.T) {
+	initMockConfig()
+
+	ids := ToUpdateContainerIDs
+	cpuadd := float64(0.1)
+	memadd := int64(1)
+
+	ch, err := mockc.ReallocResource(ids, cpuadd, memadd)
+	assert.Nil(t, err)
+
+	for msg := range ch {
+		assert.True(t, msg.Success)
+	}
+
+	clnt := mockDockerClient()
+	for _, id := range ids {
+		CJ, _ := clnt.ContainerInspect(context.Background(), id)
+
+		// diff memory
+		newMem := CJ.HostConfig.Resources.Memory
+		assert.Equal(t, newMem-memadd, appmemory)
+
+		// diff CPU
+		newCPU := CJ.HostConfig.Resources.CPUQuota
+		diff := float64(newCPU) - cpuadd*utils.CpuPeriodBase
+		assert.Equal(t, int(diff), utils.CpuPeriodBase)
+	}
 }
