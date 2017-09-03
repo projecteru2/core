@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/stretchr/testify/mock"
 
@@ -31,6 +32,23 @@ const (
 	mockID         = "f1f9da344e8f8f90f73899ddad02da6cdf2218bbe52413af2bcfef4fba2d22de"
 	appmemory      = int64(268435456) // 0.25 G
 )
+
+type Map struct {
+	sync.Mutex
+	data map[string]container.Resources
+}
+
+func (m *Map) Set(id string, res container.Resources) {
+	m.Lock()
+	defer m.Unlock()
+	m.data[id] = res
+}
+
+func (m *Map) Get(id string) container.Resources {
+	m.Lock()
+	defer m.Unlock()
+	return m.data[id]
+}
 
 var (
 	mockCPU = coretypes.CPUMap{"0": 10, "1": 10, "2": 10, "3": 10}
@@ -77,7 +95,10 @@ var (
 		"f1f9da344e8f8f90f73899ddad02da6cdf2218bbe52413af2bcfef4fba2d22df",
 		"f1f9da344e8f8f90f73899ddad02da6cdf2218bbe52413af2bcfef4fba2d22dg",
 	}
-	mockInspectedContainerResources = map[string]container.Resources{}
+
+	mockInspectedContainerResources = Map{
+		data: map[string]container.Resources{},
+	}
 )
 
 func testlogF(format interface{}, a ...interface{}) {
@@ -179,7 +200,7 @@ func mockDockerDoer(r *http.Request) (*http.Response, error) {
 		updatedConfig := container.UpdateConfig{}
 		data, _ := ioutil.ReadAll(r.Body)
 		json.Unmarshal(data, &updatedConfig)
-		mockInspectedContainerResources[containerID] = updatedConfig.Resources
+		mockInspectedContainerResources.Set(containerID, updatedConfig.Resources)
 		b, err = json.Marshal(container.ContainerUpdateOKBody{})
 	case fmt.Sprintf("/containers/%s", containerID):
 		testlogF("remove container %s", containerID)
@@ -216,8 +237,8 @@ func mockDockerDoer(r *http.Request) (*http.Response, error) {
 			Memory:   appmemory,
 		}
 		nRscs := container.Resources{}
-		if mockInspectedContainerResources[containerID].Memory != nRscs.Memory {
-			rscs = mockInspectedContainerResources[containerID]
+		if mockInspectedContainerResources.Get(containerID).Memory != nRscs.Memory {
+			rscs = mockInspectedContainerResources.Get(containerID)
 		}
 		containerJSON := types.ContainerJSON{
 			ContainerJSONBase: &types.ContainerJSONBase{
@@ -233,7 +254,7 @@ func mockDockerDoer(r *http.Request) (*http.Response, error) {
 				Image:  "image:latest",
 			},
 		}
-		mockInspectedContainerResources[containerID] = containerJSON.HostConfig.Resources
+		mockInspectedContainerResources.Set(containerID, containerJSON.HostConfig.Resources)
 		b, _ = json.Marshal(containerJSON)
 	case "/networks/bridge/disconnect":
 		var disconnect types.NetworkDisconnect
