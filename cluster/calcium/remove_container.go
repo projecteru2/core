@@ -113,7 +113,8 @@ func (c *calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMess
 func (c *calcium) removeOneContainer(container *types.Container, info enginetypes.ContainerJSON) error {
 	// use etcd lock to prevent a container being removed many times
 	// only the first to remove can be done
-	lock, err := c.Lock(fmt.Sprintf("rmcontainer_%s", container.ID), 120)
+	// lock timeout should equal stop timeout
+	lock, err := c.Lock(fmt.Sprintf("rmcontainer_%s", container.ID), int(c.config.GlobalTimeout.Seconds()))
 	if err != nil {
 		log.Errorf("[removeOneContainer] Error during lock.Lock: %s", err.Error())
 		return err

@@ -14,7 +14,7 @@ import (
 )
 
 func (c *calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.NodeInfo, error) {
-	lock, err := c.Lock(opts.Podname, 30)
+	lock, err := c.Lock(opts.Podname, c.config.LockTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (c *calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.Nod
 }
 
 func (c *calcium) allocCPUPodResource(opts *types.DeployOptions) (map[string][]types.CPUMap, error) {
-	lock, err := c.Lock(opts.Podname, 30)
+	lock, err := c.Lock(opts.Podname, c.config.LockTimeout)
 	if err != nil {
 		return nil, err
 	}

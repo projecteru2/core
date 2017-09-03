@@ -233,7 +233,7 @@ func (k *krypton) GetNodesByPod(podname string) (nodes []*types.Node, err error)
 // update a node, save it to etcd
 // storage path in etcd is `/eru-core/pod/:podname/node/:nodename/info`
 func (k *krypton) UpdateNode(node *types.Node) error {
-	lock, err := k.CreateLock(fmt.Sprintf("%s_%s", node.Podname, node.Name), 30)
+	lock, err := k.CreateLock(fmt.Sprintf("%s_%s", node.Podname, node.Name), k.config.LockTimeout)
 	if err != nil {
 		return err
 	}
@@ -258,7 +258,7 @@ func (k *krypton) UpdateNode(node *types.Node) error {
 }
 
 func (k *krypton) UpdateNodeMem(podname, nodename string, mem int64, action string) error {
-	lock, err := k.CreateLock(fmt.Sprintf("%s_%s", podname, nodename), 30)
+	lock, err := k.CreateLock(fmt.Sprintf("%s_%s", podname, nodename), k.config.LockTimeout)
 	if err != nil {
 		return err
 	}
@@ -305,7 +305,7 @@ func (k *krypton) UpdateNodeMem(podname, nodename string, mem int64, action stri
 // update cpu on a node, either add or substract
 // need to lock
 func (k *krypton) UpdateNodeCPU(podname, nodename string, cpu types.CPUMap, action string) error {
-	lock, err := k.CreateLock(fmt.Sprintf("%s_%s", podname, nodename), 30)
+	lock, err := k.CreateLock(fmt.Sprintf("%s_%s", podname, nodename), k.config.LockTimeout)
 	if err != nil {
 		return err
 	}

@@ -10,8 +10,6 @@ import (
 	"golang.org/x/net/context"
 )
 
-const defaultTTL = 30
-
 type Mutex struct {
 	timeout time.Duration
 	mutex   *concurrency.Mutex
@@ -25,10 +23,6 @@ func New(cli *clientv3.Client, key string, ttl int) (*Mutex, error) {
 
 	if !strings.HasPrefix(key, "/") {
 		key = fmt.Sprintf("/%s", key)
-	}
-
-	if ttl <= 0 {
-		ttl = defaultTTL
 	}
 
 	session, err := concurrency.NewSession(cli, concurrency.WithTTL(ttl))

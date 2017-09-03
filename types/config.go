@@ -14,6 +14,7 @@ type Config struct {
 	Statsd         string        `yaml:"statsd"`           // Statsd host and port
 	Zone           string        `yaml:"zone"`             // zone for core, e.g. C1, C2
 	ImageCache     int           `yaml:"image_cache"`      // cache image count
+	LockTimeout    int           `yaml:"lock_timeout"`     // timeout for lock (ttl)
 	GlobalTimeout  time.Duration `yaml:"global_timeout"`   // timeout for remove, run_and_wait and build, in second
 
 	Git       GitConfig    `yaml:"git"`

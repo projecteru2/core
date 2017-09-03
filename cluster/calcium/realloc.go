@@ -94,7 +94,7 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 }
 
 func (c *calcium) checkNodesMemory(podname string, nodeContainers NodeContainers, memory int64) error {
-	lock, err := c.Lock(podname, 30)
+	lock, err := c.Lock(podname, c.config.LockTimeout)
 	if err != nil {
 		return err
 	}
@@ -190,7 +190,7 @@ func (c *calcium) reallocNodesCPU(
 	nodesInfoMap CPUNodeContainers,
 ) (CPUNodeContainersMap, error) {
 
-	lock, err := c.Lock(podname, 30)
+	lock, err := c.Lock(podname, c.config.LockTimeout)
 	if err != nil {
 		return nil, err
 	}
