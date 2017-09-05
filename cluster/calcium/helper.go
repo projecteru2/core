@@ -148,23 +148,19 @@ func trimLeftSlash(name string) string {
 }
 
 // make mount paths
-// 使用volumes, 参数格式跟docker一样, 支持 $PERMDIR $APPDIR 的展开
+// 使用volumes, 参数格式跟docker一样
 // volumes:
-//     - "$PERMDIR/foo-data:$APPDIR/foodata:rw"
+//     - "/foo-data:$APPDIR/foodata:rw"
 func makeMountPaths(specs types.Specs, config types.Config) ([]string, map[string]struct{}) {
 	binds := []string{}
 	volumes := make(map[string]struct{})
 
 	var expandENV = func(env string) string {
 		envMap := make(map[string]string)
-		if config.PermDir != "" {
-			envMap["PERMDIR"] = filepath.Join(config.PermDir, specs.Appname)
-		}
 		envMap["APPDIR"] = filepath.Join(config.AppDir, specs.Appname)
 		return envMap[env]
 	}
 
-	// volumes
 	for _, path := range specs.Volumes {
 		expanded := os.Expand(path, expandENV)
 		parts := strings.Split(expanded, ":")

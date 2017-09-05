@@ -74,7 +74,9 @@ Image: [projecteru2/core](https://hub.docker.com/r/projecteru2/core/)
 ```shell
 docker run -d -e IN_DOCKER=1 \
   --name eru-core --net host \
-  -v <HOST_CONFIG_PATH>:/etc/eru/core.yaml \
+  --restart always \
+  -v <HOST_CONFIG_DIR_PATH>:/etc/eru \
+  -v <HOST_BACKUP_DIR_PATH>:/data/backup \
   projecteru2/core \
   /usr/bin/eru-core
 ```

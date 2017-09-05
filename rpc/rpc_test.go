@@ -189,7 +189,6 @@ func initConfig(mStore *mockstore.MockStore) (types.Config, *vibranium) {
 	config := types.Config{
 		Bind:           ":5001",           // HTTP API address
 		AppDir:         "/tmp",            // App directory inside container
-		PermDir:        "/tmp",            // Permanent dir on host
 		BackupDir:      "/tmp",            // Backup dir on host
 		EtcdMachines:   []string{"MOCK"},  // etcd cluster addresses
 		EtcdLockPrefix: "/eru-core/_lock", // etcd lock prefix, all locks will be created under this dir

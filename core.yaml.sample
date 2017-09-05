@@ -1,15 +1,13 @@
 log_level: "DEBUG"
-bind: ":5002"
-agent_port: "12345"
+bind: ":5001"
 appdir: "/home"
 backupdir: "/data/backup"
-permdir: "/mnt/mfs/permdirs"
 etcd:
     - "http://127.0.0.1:2379"
 etcd_lock_prefix: "/eru-core/_lock"
-statsd: "statsd2.ricebook.net:8125"
+statsd: "127.0.0.1:8125"
 
-zone: "test-zone"
+zone: "eru-test"
 image_cache: 2
 global_timeout: 300
 lock_timeout: 30
@@ -18,15 +16,15 @@ git:
     public_key: "***REMOVED***"
     private_key: "***REMOVED***"
     token: "***REMOVED***"
-    scm_type: "gitlab"
+    scm_type: "github"
 
 docker:
     log_driver: "json-file"
     network_mode: "bridge"
-    cert_path: ""
-    hub: "hub.ricebook.net"
-    hub_prefix: ""
-    build_pod: ""
+    cert_path: "/etc/eru/tls"
+    hub: "hub.docker.com"
+    hub_prefix: "projecteru2"
+    build_pod: "eru-test"
     local_dns: true
 
 scheduler:
