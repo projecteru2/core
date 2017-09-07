@@ -3,8 +3,8 @@ package calcium
 import (
 	"testing"
 
+	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
-	"gitlab.ricebook.net/platform/core/types"
 )
 
 func TestMakeMountPaths(t *testing.T) {

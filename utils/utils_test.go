@@ -37,10 +37,10 @@ func TestGetGitRepoName(t *testing.T) {
 	_, err := GetGitRepoName("xxx")
 	assert.Error(t, err)
 
-	_, err = GetGitRepoName("http://gitlab.ricebook.net/platform/core.git")
+	_, err = GetGitRepoName("https://github.com/projecteru2/core.git")
 	assert.Error(t, err)
 
-	r1, err := GetGitRepoName("git@gitlab.ricebook.net:platform/core.git")
+	r1, err := GetGitRepoName("git@github.com:projecteru2/core.git")
 	assert.NoError(t, err)
 	assert.Equal(t, r1, "core")
 }

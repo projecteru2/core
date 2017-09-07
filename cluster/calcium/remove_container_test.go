@@ -3,7 +3,7 @@ package calcium
 import (
 	"testing"
 
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/types"
 
 	"github.com/stretchr/testify/assert"
 )

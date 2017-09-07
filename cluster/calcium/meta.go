@@ -5,7 +5,7 @@ package calcium
 
 import (
 	log "github.com/Sirupsen/logrus"
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/types"
 )
 
 func (c *calcium) ListPods() ([]*types.Pod, error) {

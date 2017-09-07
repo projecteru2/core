@@ -8,9 +8,9 @@ import (
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
-	"gitlab.ricebook.net/platform/core/cluster"
-	"gitlab.ricebook.net/platform/core/rpc/gen"
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/rpc/gen"
+	"github.com/projecteru2/core/types"
 	"golang.org/x/net/context"
 )
 

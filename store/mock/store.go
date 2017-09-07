@@ -3,9 +3,9 @@ package mockstore
 import (
 	"fmt"
 
+	"github.com/projecteru2/core/lock"
+	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/mock"
-	"gitlab.ricebook.net/platform/core/lock"
-	"gitlab.ricebook.net/platform/core/types"
 )
 
 type MockLock struct {

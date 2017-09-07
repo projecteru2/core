@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
-	"gitlab.ricebook.net/platform/core/types"
 )
 
 func resultLength(result map[string][]types.CPUMap) int {

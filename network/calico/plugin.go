@@ -9,8 +9,8 @@ import (
 	enginetypes "github.com/docker/docker/api/types"
 	enginefilters "github.com/docker/docker/api/types/filters"
 	enginenetwork "github.com/docker/docker/api/types/network"
-	"gitlab.ricebook.net/platform/core/types"
-	"gitlab.ricebook.net/platform/core/utils"
+	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 type titanium struct{}

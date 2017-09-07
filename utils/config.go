@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/types"
 
 	yaml "gopkg.in/yaml.v2"
 )

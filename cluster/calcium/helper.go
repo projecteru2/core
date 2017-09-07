@@ -13,9 +13,9 @@ import (
 	enginecontainer "github.com/docker/docker/api/types/container"
 	enginenetwork "github.com/docker/docker/api/types/network"
 	engineapi "github.com/docker/docker/client"
-	"gitlab.ricebook.net/platform/core/lock"
-	"gitlab.ricebook.net/platform/core/types"
-	"gitlab.ricebook.net/platform/core/utils"
+	"github.com/projecteru2/core/lock"
+	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	"golang.org/x/net/context"
 )
 

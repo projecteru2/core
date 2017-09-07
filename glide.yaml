@@ -1,4 +1,4 @@
-package: gitlab.ricebook.net/platform/core
+package: github.com/projecteru2/core
 import:
 - package: github.com/CMGS/statsd
 - package: github.com/Sirupsen/logrus

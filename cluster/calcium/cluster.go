@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"strings"
 
-	"gitlab.ricebook.net/platform/core/network"
-	"gitlab.ricebook.net/platform/core/network/calico"
-	"gitlab.ricebook.net/platform/core/scheduler"
-	"gitlab.ricebook.net/platform/core/scheduler/complex"
-	"gitlab.ricebook.net/platform/core/source"
-	"gitlab.ricebook.net/platform/core/source/github"
-	"gitlab.ricebook.net/platform/core/source/gitlab"
-	"gitlab.ricebook.net/platform/core/store"
-	"gitlab.ricebook.net/platform/core/store/etcd"
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/network"
+	"github.com/projecteru2/core/network/calico"
+	"github.com/projecteru2/core/scheduler"
+	"github.com/projecteru2/core/scheduler/complex"
+	"github.com/projecteru2/core/source"
+	"github.com/projecteru2/core/source/github"
+	"github.com/projecteru2/core/source/gitlab"
+	"github.com/projecteru2/core/store"
+	"github.com/projecteru2/core/store/etcd"
+	"github.com/projecteru2/core/types"
 )
 
 type calcium struct {
