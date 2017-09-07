@@ -12,7 +12,7 @@ import (
 // Since normal tests were tested in `source_test.go`, only test errors here.
 
 var (
-	repo        = "git@github.com:noexist/noexist.git"
+	repo        = "git@github.com:wrfly/mock-dockerd.git"
 	revision    = "bye"
 	config      = types.GitConfig{}
 	artifactURL = "https://enjoy.ricebook.com/"

@@ -1,0 +1,30 @@
+language: go
+
+go:
+  - 1.9
+
+before_install:
+  # test
+  - cat .git/config
+  # namespace
+  - D=$HOME/gopath/src/github.com/projecteru2
+  - mkdir -p "$D"
+  - mv $HOME/gopath/src/github.com/wrfly/core $D
+  # install glide
+  - mkdir -p "${GOPATH}/bin"
+  - go get github.com/Masterminds/glide
+  - cd $D/core
+  - make deps
+  # install libgit2
+  - wget "https://codeload.github.com/libgit2/libgit2/zip/v0.25.0" -O libgit2.zip
+  - unzip libgit2.zip && cd libgit2-0.25.0
+  - mkdir build && cd build && cmake .. && cmake --build .
+  - sudo make install
+  - sudo cp libgit2.so.0.25.0 /lib/x86_64-linux-gnu/libgit2.so.25
+  - sudo cp libgit2.so.0.25.0 /usr/lib/libgit2.so.25
+  - cd $D/core
+  - cat .git/config
+
+script:
+  - make test
+  - make build
