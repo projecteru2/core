@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	log "github.com/Sirupsen/logrus"
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/types"
 )
 
 type potassium struct {

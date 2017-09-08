@@ -1,8 +1,8 @@
 package gitlab
 
 import (
-	"gitlab.ricebook.net/platform/core/source/common"
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/source/common"
+	"github.com/projecteru2/core/types"
 )
 
 func New(config types.Config) *common.GitScm {

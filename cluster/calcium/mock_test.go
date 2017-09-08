@@ -16,9 +16,9 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
-	"gitlab.ricebook.net/platform/core/store/mock"
-	coretypes "gitlab.ricebook.net/platform/core/types"
-	"gitlab.ricebook.net/platform/core/utils"
+	"github.com/projecteru2/core/store/mock"
+	coretypes "github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 const (

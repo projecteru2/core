@@ -5,9 +5,9 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	"github.com/stretchr/testify/assert"
-	"gitlab.ricebook.net/platform/core/types"
-	"gitlab.ricebook.net/platform/core/utils"
 )
 
 func TestReallocWithCPUPrior(t *testing.T) {

@@ -11,12 +11,12 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
-	"gitlab.ricebook.net/platform/core/cluster/calcium"
-	"gitlab.ricebook.net/platform/core/rpc"
-	"gitlab.ricebook.net/platform/core/rpc/gen"
-	"gitlab.ricebook.net/platform/core/stats"
-	"gitlab.ricebook.net/platform/core/utils"
-	"gitlab.ricebook.net/platform/core/versioninfo"
+	"github.com/projecteru2/core/cluster/calcium"
+	"github.com/projecteru2/core/rpc"
+	"github.com/projecteru2/core/rpc/gen"
+	"github.com/projecteru2/core/stats"
+	"github.com/projecteru2/core/utils"
+	"github.com/projecteru2/core/versioninfo"
 	"google.golang.org/grpc"
 )
 

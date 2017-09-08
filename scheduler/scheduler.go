@@ -1,6 +1,6 @@
 package scheduler
 
-import "gitlab.ricebook.net/platform/core/types"
+import "github.com/projecteru2/core/types"
 
 // A scheduler is used to determine which nodes are we gonna use.
 // `types.CPUMap` represents the CPU label and remaining quota.

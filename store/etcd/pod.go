@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/coreos/etcd/client"
-	"gitlab.ricebook.net/platform/core/types"
-	"gitlab.ricebook.net/platform/core/utils"
+	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 // get a pod from etcd

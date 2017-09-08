@@ -17,8 +17,8 @@ import (
 	etcdclient "github.com/coreos/etcd/client"
 	engineapi "github.com/docker/docker/client"
 	"github.com/docker/go-connections/tlsconfig"
-	"gitlab.ricebook.net/platform/core/types"
-	"gitlab.ricebook.net/platform/core/utils"
+	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 const GIGABYTE = 1073741824

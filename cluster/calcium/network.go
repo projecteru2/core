@@ -3,8 +3,8 @@ package calcium
 import (
 	"fmt"
 
-	"gitlab.ricebook.net/platform/core/types"
-	"gitlab.ricebook.net/platform/core/utils"
+	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 // list networks for podname

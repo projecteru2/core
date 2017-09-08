@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/projecteru2/core/source/common"
+	"github.com/projecteru2/core/source/gitlab"
+	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
-	"gitlab.ricebook.net/platform/core/source/common"
-	"gitlab.ricebook.net/platform/core/source/gitlab"
-	"gitlab.ricebook.net/platform/core/types"
 )
 
 var (

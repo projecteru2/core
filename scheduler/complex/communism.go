@@ -3,7 +3,7 @@ package complexscheduler
 import (
 	"sort"
 
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/types"
 )
 
 // 吃我一记共产主义大锅饭
