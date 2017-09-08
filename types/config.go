@@ -7,6 +7,7 @@ type Config struct {
 	LogLevel       string        `yaml:"log_level"`
 	Bind           string        `yaml:"bind"`             // HTTP API address
 	AppDir         string        `yaml:"appdir"`           // App directory inside container
+	PermDir        string        `yaml:"permdir"`          // Permanent dir on host
 	BackupDir      string        `yaml:"backupdir"`        // Backup dir on host
 	EtcdMachines   []string      `yaml:"etcd"`             // etcd cluster addresses
 	EtcdLockPrefix string        `yaml:"etcd_lock_prefix"` // etcd lock prefix, all locks will be created under this dir

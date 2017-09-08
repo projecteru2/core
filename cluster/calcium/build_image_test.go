@@ -6,12 +6,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/projecteru2/core/network/calico"
+	"github.com/projecteru2/core/scheduler/simple"
+	"github.com/projecteru2/core/source/gitlab"
+	"github.com/projecteru2/core/store/mock"
+	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
-	"gitlab.ricebook.net/platform/core/network/calico"
-	"gitlab.ricebook.net/platform/core/scheduler/simple"
-	"gitlab.ricebook.net/platform/core/source/gitlab"
-	"gitlab.ricebook.net/platform/core/store/mock"
-	"gitlab.ricebook.net/platform/core/types"
 )
 
 func TestGetRandomNode(t *testing.T) {

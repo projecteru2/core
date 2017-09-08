@@ -3,6 +3,7 @@ bind: ":5002"
 agent_port: "12345"
 appdir: "/home"
 backupdir: "/data/backup"
+permdir: "/mnt/mfs/permdirs"
 etcd:
     - "http://127.0.0.1:2379"
 etcd_lock_prefix: "/eru-core/_lock"

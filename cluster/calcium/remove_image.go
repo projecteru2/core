@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	enginetypes "github.com/docker/docker/api/types"
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/types"
 )
 
 // remove images

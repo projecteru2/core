@@ -3,8 +3,8 @@ package rpc
 import (
 	"encoding/json"
 
-	"gitlab.ricebook.net/platform/core/rpc/gen"
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/rpc/gen"
+	"github.com/projecteru2/core/types"
 )
 
 func toRPCCPUMap(m types.CPUMap) map[string]int64 {

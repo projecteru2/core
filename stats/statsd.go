@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/types"
 
 	statsdlib "github.com/CMGS/statsd"
 	log "github.com/Sirupsen/logrus"

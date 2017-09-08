@@ -8,7 +8,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/types"
 )
 
 const maxPuller = 10

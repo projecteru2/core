@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gitlab.ricebook.net/platform/core/types"
 )
 
 func TestPullImage(t *testing.T) {

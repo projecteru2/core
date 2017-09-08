@@ -5,12 +5,12 @@ import (
 	"sort"
 	"sync"
 
-	"gitlab.ricebook.net/platform/core/stats"
+	"github.com/projecteru2/core/stats"
 
 	log "github.com/Sirupsen/logrus"
 
-	"gitlab.ricebook.net/platform/core/types"
-	"gitlab.ricebook.net/platform/core/utils"
+	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func (c *calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.NodeInfo, error) {
