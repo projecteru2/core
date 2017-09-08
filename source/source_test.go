@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	repo        = "git@github.com:noexist/noexist.git"
+	repo        = "git@github.com:wrfly/mock-dockerd.git"
 	revision    = "6"
 	config      = types.Config{}
 	gitConfig   = types.GitConfig{}
