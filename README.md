@@ -26,7 +26,8 @@ HOMEBREW_NO_AUTO_UPDATE=1 brew install libgit2
 make deps
 ```
 
-在 Linux 下可以参考 [Dockerfile](https://github.com/projecteru2/core/blob/master/.circleci/Dockerfile)
+在 Linux 下可以参考这个用于 CI 测试的 [Dockerfile](https://github.com/projecteru2/core/blob/master/.circleci/Dockerfile)
+我们是基于 CentOS 的体系，因此在 Ubuntu 下会略有不同
 
 ### GRPC
 
