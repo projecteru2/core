@@ -6,9 +6,9 @@ import (
 
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
-	"gitlab.ricebook.net/platform/core/lock"
-	"gitlab.ricebook.net/platform/core/lock/etcdlock"
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/lock"
+	"github.com/projecteru2/core/lock/etcdlock"
+	"github.com/projecteru2/core/types"
 )
 
 const (

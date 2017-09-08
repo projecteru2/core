@@ -3,7 +3,7 @@ package network
 import (
 	"context"
 
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/types"
 )
 
 type Network interface {

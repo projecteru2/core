@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/types"
 	git "gopkg.in/libgit2/git2go.v25"
 )
 

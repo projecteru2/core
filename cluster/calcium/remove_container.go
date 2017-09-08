@@ -7,7 +7,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/types"
 )
 
 type imageBucket struct {

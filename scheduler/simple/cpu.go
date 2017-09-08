@@ -1,7 +1,7 @@
 package simplescheduler
 
 import "fmt"
-import "gitlab.ricebook.net/platform/core/types"
+import "github.com/projecteru2/core/types"
 
 // Add CPUMap b back to CPUMap c
 func addCPUMap(c, b types.CPUMap) {

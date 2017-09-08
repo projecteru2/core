@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	etcdclient "github.com/coreos/etcd/client"
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/types"
 )
 
 func (k *krypton) MakeDeployStatus(opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {

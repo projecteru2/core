@@ -8,11 +8,11 @@ import (
 	"context"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/projecteru2/core/cluster/calcium"
+	"github.com/projecteru2/core/rpc/gen"
+	"github.com/projecteru2/core/store/mock"
+	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
-	"gitlab.ricebook.net/platform/core/cluster/calcium"
-	"gitlab.ricebook.net/platform/core/rpc/gen"
-	"gitlab.ricebook.net/platform/core/store/mock"
-	"gitlab.ricebook.net/platform/core/types"
 	"google.golang.org/grpc"
 )
 
@@ -189,6 +189,7 @@ func initConfig(mStore *mockstore.MockStore) (types.Config, *vibranium) {
 	config := types.Config{
 		Bind:           ":5001",           // HTTP API address
 		AppDir:         "/tmp",            // App directory inside container
+		PermDir:        "/tmp",            // Permanent dir on host
 		BackupDir:      "/tmp",            // Backup dir on host
 		EtcdMachines:   []string{"MOCK"},  // etcd cluster addresses
 		EtcdLockPrefix: "/eru-core/_lock", // etcd lock prefix, all locks will be created under this dir

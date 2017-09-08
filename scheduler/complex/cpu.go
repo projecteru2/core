@@ -8,7 +8,7 @@ import (
 	"math"
 	"sort"
 
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/types"
 )
 
 func min(a, b int64) int64 {
