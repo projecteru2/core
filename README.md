@@ -1,17 +1,24 @@
 Core
 ====
+[![CircleCI](https://circleci.com/gh/projecteru2/core/tree/master.svg?style=shield)](https://circleci.com/gh/projecteru2/core/tree/master)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/e26ca3ee697d406caa9e49b0c491ff13)](https://www.codacy.com/app/CMGS/core?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=projecteru2/core&amp;utm_campaign=Badge_Grade)
 
 Eru 体系的核心组件，无状态，采用悲观锁实现来分配资源。
 
-## Develop
 
-开发测试的时候，修改好了版本号，直接推到 gitlab 吧，build 完成了以后会自动发布到 mirrors.ricebook.net ，然后用部署脚本更新即可（见下方示范）。
+## 测试
 
-## setup dev environment
+执行 ``` make test ``` 即可
 
-`make deps` 可能非常耗时间, 建议开代理, 或者直接使用 `hub.ricebook.net/base/centos:onbuild-eru-core-2017.08.04` 这个镜像来操作。
+## 编译
 
-在 OSX 下需要先安装 `libgit2` 假定已经安装了 [Homebrew](https://brew.sh/) 的前提下，执行：
+执行 ``` make build ```，如果需要打包出 RPM 需要预先安装好 [FPM](https://github.com/jordansissel/fpm)，然后执行 ```./make-rpm ```
+
+## 开发
+
+`make deps` 可能非常耗时间, 建议开代理
+
+在 macOS 下需要先安装 `libgit2` 假定已经安装了 [Homebrew](https://brew.sh/) 的前提下，执行：
 ```shell
 # libgit2 锁定在 0.25.1
 cd /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula
@@ -20,15 +27,8 @@ HOMEBREW_NO_AUTO_UPDATE=1 brew install libgit2
 make deps
 ```
 
-## Upgrade core on test/production server
-
-```shell
-make build
-# test server
-devtools/deploy.sh test
-# prod server
-devtools/deploy.sh prod
-```
+在 Linux 下可以参考这个用于 CI 测试的 [Dockerfile](https://github.com/projecteru2/core/blob/master/.circleci/Dockerfile)
+我们是基于 CentOS 的体系，因此在 Ubuntu 下会略有不同
 
 ### GRPC
 
@@ -36,8 +36,7 @@ Generate golang & python code
 
 ```shell
 go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
-make golang
-make python
+make grpc
 ```
 
 Current version of dependencies are:
@@ -47,25 +46,30 @@ Current version of dependencies are:
 
 do not forget first command...
 
-### deploy core on local environment
-
-* start eru core
+### 本地部署
 
 ```shell
-$ core --config core.yaml.sample --log-level debug
+$ eru-core --config core.yaml.sample
 ```
 
-or
+或者
 
 ```shell
 $ export ERU_CONFIG_PATH=/path/to/core.yaml
-$ export ERU_LOG_LEVEL=DEBUG
-$ core
+$ eru-core
 ```
 
-
-### Use client.py
+### 使用 client.py 执行
 
 ```
 $ devtools/client.py --grpc-host core-grpc.intra.ricebook.net node:get intra c2-docker-7
+```
+
+## Dockerized Core
+
+```shell
+docker run -d -e IN_DOCKER=1 \
+  --name eru-core --net host \
+  -v <HOST_CONFIG_PATH>:/etc/eru/core.yaml \
+  /usr/bin/eru-core
 ```

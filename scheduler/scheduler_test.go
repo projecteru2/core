@@ -3,9 +3,9 @@ package scheduler
 import (
 	"testing"
 
+	"github.com/projecteru2/core/scheduler/complex"
+	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
-	"gitlab.ricebook.net/platform/core/scheduler/complex"
-	"gitlab.ricebook.net/platform/core/types"
 )
 
 func TestSchedulerInvoke(t *testing.T) {

@@ -1,6 +1,6 @@
 .PHONY: golang python deps build test
 
-REPO_PATH := gitlab.ricebook.net/platform/core
+REPO_PATH := github.com/projecteru2/core
 REVISION := $(shell git rev-parse HEAD || unknown)
 BUILTAT := $(shell date +%Y-%m-%dT%H:%M:%S)
 VERSION := $(shell cat VERSION)

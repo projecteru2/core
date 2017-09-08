@@ -1,8 +1,8 @@
 package store
 
 import (
-	"gitlab.ricebook.net/platform/core/lock"
-	"gitlab.ricebook.net/platform/core/types"
+	"github.com/projecteru2/core/lock"
+	"github.com/projecteru2/core/types"
 )
 
 type Store interface {

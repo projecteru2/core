@@ -10,8 +10,8 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"gitlab.ricebook.net/platform/core/types"
-	"gitlab.ricebook.net/platform/core/utils"
+	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 // Backup uses docker cp to copy specified directory into configured BackupDir

@@ -1,0 +1,20 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: projecteru2/footstone:latest
+    working_directory: /.go/src/github.com/projecteru2/core
+    steps:
+      - checkout
+      - run: make test
+      - run: make build
+      - run: ./make-rpm
+      - run:
+          name: Create artifacts
+          command: |
+            mkdir -p /tmp/RPM
+            cp -r *.rpm /tmp/RPM
+      - store_artifacts:
+          path: /tmp/RPM
+          destination: RPM
+

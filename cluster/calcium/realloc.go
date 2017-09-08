@@ -7,8 +7,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	enginecontainer "github.com/docker/docker/api/types/container"
-	"gitlab.ricebook.net/platform/core/types"
-	"gitlab.ricebook.net/platform/core/utils"
+	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 type NodeContainers map[*types.Node][]*types.Container

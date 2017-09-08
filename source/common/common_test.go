@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
-	"gitlab.ricebook.net/platform/core/types"
 )
 
 // Since normal tests were tested in `source_test.go`, only test errors here.

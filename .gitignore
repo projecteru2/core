@@ -9,3 +9,4 @@ vendor/*
 clean.sh
 .vscode/*
 *.test
+test*.py
