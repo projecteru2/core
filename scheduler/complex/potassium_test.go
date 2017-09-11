@@ -2,7 +2,6 @@ package complexscheduler
 
 import (
 	"fmt"
-	"math/rand"
 	"strconv"
 	"testing"
 
@@ -728,18 +727,18 @@ func TestSpecialCase(t *testing.T) {
 
 func generateNodes(nums, maxCores, seed int) []types.NodeInfo {
 	var name string
-	var cores int
 	pod := []types.NodeInfo{}
 
-	s := rand.NewSource(int64(seed))
-	r1 := rand.New(s)
+	//s := rand.NewSource(int64(seed))
+	//r1 := rand.New(s)
 
 	for i := 0; i < nums; i++ {
 		name = fmt.Sprintf("n%d", i)
-		cores = r1.Intn(maxCores + 1)
+
+		//cores = r1.Intn(maxCores + 1)
 
 		cpumap := types.CPUMap{}
-		for j := 0; j < cores; j++ {
+		for j := 0; j < maxCores; j++ {
 			coreName := fmt.Sprintf("%d", j)
 			cpumap[coreName] = 10
 		}
@@ -755,8 +754,6 @@ func generateNodes(nums, maxCores, seed int) []types.NodeInfo {
 	}
 	return pod
 }
-
-var hugePod = generateNodes(10000, 24, 10086)
 
 func getPodVol(nodes []types.NodeInfo, cpu float64) int {
 	var res int
@@ -792,25 +789,18 @@ func TestGetPodVol(t *testing.T) {
 
 func Benchmark_ExtreamAlloc(b *testing.B) {
 	k, _ := newPotassium()
-	b.StopTimer()
+	var need = 1.3
+	hugePod := generateNodes(10000, 24, 10086)
+	vol := getPodVol(hugePod, need)
+	defer b.StopTimer()
 	b.StartTimer()
-
-	vol := getPodVol(hugePod, 1.3)
-	result, changed, err := k.SelectCPUNodes(hugePod, 1.3, vol)
-	if err != nil {
-		b.Fatalf("something went wrong")
-	}
-	assert.Equal(b, len(result), len(changed))
+	doBenchmark(hugePod, vol, k, b, need)
 }
 
-func Benchmark_AveAlloc(b *testing.B) {
-	b.StopTimer()
-	k, _ := newPotassium()
-
-	b.StartTimer()
-	result, changed, err := k.SelectCPUNodes(hugePod, 1.7, 12000)
+func doBenchmark(hugePod []types.NodeInfo, vol int, k *potassium, b *testing.B, need float64) {
+	result, changed, err := k.SelectCPUNodes(hugePod, need, vol)
 	if err != nil {
-		b.Fatalf("something went wrong")
+		b.Fatalf("%v", err)
 	}
 	assert.Equal(b, len(result), len(changed))
 }
