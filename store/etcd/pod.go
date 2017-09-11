@@ -89,7 +89,7 @@ func (k *krypton) RemovePod(podname string) error {
 		return err
 	}
 	if len(ns) != 0 {
-		return fmt.Errorf("[RemovePod] pod %s still has %d nodes, delete them first", podname, len(ns))
+		return fmt.Errorf("Pod %s still has %d nodes, delete them first", podname, len(ns))
 	}
 
 	_, err = k.etcd.Delete(context.Background(), key, &client.DeleteOptions{Dir: true, Recursive: true})

@@ -262,14 +262,14 @@ func TestSelectMemoryNodes(t *testing.T) {
 	assert.Equal(t, res[3].Deploy, 0)
 }
 
-func TestTestSelectMemoryNodesNotEnough(t *testing.T) {
+func TestSelectMemoryNodesNotEnough(t *testing.T) {
 	// 2 nodes [mem not enough]
 	pod := newPod(2)
 	m := &magnesium{}
 	_, err := m.SelectMemoryNodes(pod, 10000, 512*1024*1024, 40)
 	assert.Error(t, err)
 	if err != nil {
-		assert.Equal(t, err.Error(), "[SelectMemoryNodes] Cannot alloc a plan, not enough memory, volume 16, need 40")
+		assert.Equal(t, err.Error(), "Cannot alloc a plan, not enough memory, volume 16, need 40")
 	}
 
 	// 2 nodes [mem not enough]
@@ -277,7 +277,7 @@ func TestTestSelectMemoryNodesNotEnough(t *testing.T) {
 	_, err = m.SelectMemoryNodes(pod, 1e9, 5*1024*1024*1024, 1)
 	assert.Error(t, err)
 	if err != nil {
-		assert.Equal(t, err.Error(), "[SelectMemoryNodes] Cannot alloc a plan, not enough memory, volume 0, need 1")
+		assert.Equal(t, err.Error(), "Cannot alloc a plan, not enough memory, volume 0, need 1")
 	}
 
 	// 2 nodes [cpu not enough]
@@ -285,6 +285,6 @@ func TestTestSelectMemoryNodesNotEnough(t *testing.T) {
 	_, err = m.SelectMemoryNodes(pod, 1e10, 512*1024*1024, 1)
 	assert.Error(t, err)
 	if err != nil {
-		assert.Equal(t, err.Error(), "[SelectMemoryNodes] Cannot alloc a plan, not enough cpu rate")
+		assert.Equal(t, err.Error(), "Cannot alloc a plan, not enough cpu rate")
 	}
 }

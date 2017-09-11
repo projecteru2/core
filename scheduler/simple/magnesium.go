@@ -49,7 +49,7 @@ func (m *magnesium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory i
 		}
 	}
 	if p == -1 {
-		return nil, fmt.Errorf("[SelectMemoryNodes] Cannot alloc a plan, not enough cpu rate")
+		return nil, fmt.Errorf("Cannot alloc a plan, not enough cpu rate")
 	}
 	log.Debugf("[SelectMemoryNodes] the %d th node has enough cpu rate.", p)
 
@@ -69,7 +69,7 @@ func (m *magnesium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory i
 		nodesInfo[i].Capacity = capacity
 	}
 	if volTotal < need {
-		return nil, fmt.Errorf("[SelectMemoryNodes] Cannot alloc a plan, not enough memory, volume %d, need %d", volTotal, need)
+		return nil, fmt.Errorf("Cannot alloc a plan, not enough memory, volume %d, need %d", volTotal, need)
 	}
 
 	// 一个一个分

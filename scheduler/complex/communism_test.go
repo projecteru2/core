@@ -1,0 +1,84 @@
+package complexscheduler
+
+import (
+	"math/rand"
+	"testing"
+
+	"github.com/projecteru2/core/types"
+	"github.com/stretchr/testify/assert"
+)
+
+func resetNodes() []types.NodeInfo {
+	return []types.NodeInfo{
+		types.NodeInfo{
+			Name:     "n1",
+			Capacity: 10,
+			Count:    2,
+		},
+		types.NodeInfo{
+			Name:     "n2",
+			Capacity: 10,
+			Count:    3,
+		},
+		types.NodeInfo{
+			Name:     "n3",
+			Capacity: 10,
+			Count:    5,
+		},
+		types.NodeInfo{
+			Name:     "n4",
+			Capacity: 10,
+			Count:    7,
+		},
+	}
+}
+
+func TestCommunismDivisionPlan(t *testing.T) {
+	nodes := resetNodes()
+	r, err := CommunismDivisionPlan(nodes, 1, 40)
+	assert.NoError(t, err)
+	assert.Equal(t, r[0].Deploy, 1)
+	nodes = resetNodes()
+	r, err = CommunismDivisionPlan(nodes, 2, 40)
+	assert.NoError(t, err)
+	assert.Equal(t, r[0].Deploy, 2)
+	nodes = resetNodes()
+	r, err = CommunismDivisionPlan(nodes, 3, 40)
+	assert.NoError(t, err)
+	assert.Equal(t, r[0].Deploy, 3)
+	nodes = resetNodes()
+	r, err = CommunismDivisionPlan(nodes, 4, 40)
+	assert.NoError(t, err)
+	assert.Equal(t, r[0].Deploy, 3)
+	assert.Equal(t, r[1].Deploy, 1)
+}
+
+func randomDeployStatus(nodesInfo []types.NodeInfo, maxDeployed int) []types.NodeInfo {
+	s := rand.NewSource(int64(1024))
+	r := rand.New(s)
+	for i, _ := range nodesInfo {
+		nodesInfo[i].Capacity = maxDeployed
+		nodesInfo[i].Count = r.Intn(maxDeployed)
+
+	}
+	return nodesInfo
+}
+
+func Benchmark_CommunismDivisionPlan(b *testing.B) {
+	b.StopTimer()
+	var count = 10000
+	var maxDeployed = 1024
+	var volTotal = maxDeployed * count
+	var need = volTotal - 1
+	// Simulate `count` nodes with difference deploy status, each one can deploy `maxDeployed` containers
+	// and then we deploy `need` containers
+	for i := 0; i < b.N; i++ {
+		// 24 core, 128G memory, 10 pieces per core
+		hugePod := generateNodes(count, 1, 1, 10)
+		hugePod = randomDeployStatus(hugePod, maxDeployed)
+		b.StartTimer()
+		_, err := CommunismDivisionPlan(hugePod, need, volTotal)
+		b.StopTimer()
+		assert.NoError(b, err)
+	}
+}

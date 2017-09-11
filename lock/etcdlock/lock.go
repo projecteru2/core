@@ -18,7 +18,7 @@ type Mutex struct {
 
 func New(cli *clientv3.Client, key string, ttl int) (*Mutex, error) {
 	if key == "" {
-		return nil, fmt.Errorf("[etcdlock] no lock key")
+		return nil, fmt.Errorf("No lock key")
 	}
 
 	if !strings.HasPrefix(key, "/") {

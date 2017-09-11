@@ -1,6 +1,7 @@
 package complexscheduler
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/projecteru2/core/types"
@@ -8,12 +9,15 @@ import (
 
 // 吃我一记共产主义大锅饭
 func CommunismDivisionPlan(arg []types.NodeInfo, need, volTotal int) ([]types.NodeInfo, error) {
+	if volTotal < need {
+		return arg, fmt.Errorf("Not enough resource need: %d, vol: %d", need, volTotal)
+	}
 	sort.Slice(arg, func(i, j int) bool { return arg[i].Count < arg[j].Count })
 	length := len(arg)
 	i := 0
 
 	var deploy, differ int
-	for need > 0 && volTotal > 0 {
+	for need > 0 {
 		p := i
 		deploy = 0
 		differ = 1
@@ -36,9 +40,8 @@ func CommunismDivisionPlan(arg []types.NodeInfo, need, volTotal int) ([]types.No
 			arg[j].Deploy += deploy
 			arg[j].Capacity -= deploy
 			need -= deploy
-			volTotal -= deploy
 		}
 	}
-	// 这里 need 一定会为 0 出来，因为 volTotal 在外层保证了一定大于 need
+	// 这里 need 一定会为 0 出来，因为 volTotal 保证了一定大于 need
 	return arg, nil
 }

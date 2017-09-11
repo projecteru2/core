@@ -5,10 +5,9 @@ MAINTAINER CMGS <ilskdw@gmail.com>
 # make binary
 RUN apk add --no-cache build-base musl-dev libgit2-dev git curl make \
     && curl https://glide.sh/get | sh \
-    && go get -d github.com/projecteru2/core \
-    && cd src/github.com/projecteru2/core \
-    && make build \
-    && ./eru-core --version
+    && go get -d github.com/projecteru2/core
+WORKDIR /go/src/github.com/projecteru2/core
+RUN make build && ./eru-core --version
 
 FROM alpine:3.6
 

@@ -2,7 +2,6 @@ package complexscheduler
 
 import (
 	"fmt"
-	"math/rand"
 	"strconv"
 	"testing"
 
@@ -62,7 +61,7 @@ func TestSelectCPUNodes(t *testing.T) {
 
 	_, _, err := k.SelectCPUNodes([]types.NodeInfo{}, 1, 1)
 	assert.Error(t, err)
-	assert.Equal(t, err.Error(), "[SelectCPUNodes] No nodes provide to choose some")
+	assert.Equal(t, err.Error(), "No nodes provide to choose some")
 
 	nodes := newPod(2)
 	_, _, err = k.SelectCPUNodes(nodes, 0.5, 1)
@@ -726,46 +725,40 @@ func TestSpecialCase(t *testing.T) {
 	checkAvgPlan(res2, 2, 2, "new test 2")
 }
 
-func generateNodes(nums, maxCores, seed int) []types.NodeInfo {
+func generateNodes(nums, cores int, memory, shares int64) []types.NodeInfo {
 	var name string
-	var cores int
 	pod := []types.NodeInfo{}
-
-	s := rand.NewSource(int64(seed))
-	r1 := rand.New(s)
 
 	for i := 0; i < nums; i++ {
 		name = fmt.Sprintf("n%d", i)
-		cores = r1.Intn(maxCores + 1)
 
 		cpumap := types.CPUMap{}
 		for j := 0; j < cores; j++ {
 			coreName := fmt.Sprintf("%d", j)
-			cpumap[coreName] = 10
+			cpumap[coreName] = shares
 		}
 		cpuandmem := types.CPUAndMem{
 			CpuMap: cpumap,
-			MemCap: 12040000,
+			MemCap: memory,
 		}
 		nodeInfo := types.NodeInfo{
 			CPUAndMem: cpuandmem,
 			Name:      name,
+			CPURate:   10240000,
 		}
 		pod = append(pod, nodeInfo)
 	}
 	return pod
 }
 
-var hugePod = generateNodes(10000, 24, 10086)
-
-func getPodVol(nodes []types.NodeInfo, cpu float64) int {
+func getPodVol(nodes []types.NodeInfo, cpu float64, shares, maxshare int64) int {
 	var res int
 	var host *host
 	var plan []types.CPUMap
 
 	for _, nodeInfo := range nodes {
-		host = newHost(nodeInfo.CPUAndMem.CpuMap, 10)
-		plan = host.getContainerCores(cpu, -1)
+		host = newHost(nodeInfo.CPUAndMem.CpuMap, shares)
+		plan = host.getContainerCores(cpu, maxshare)
 		res += len(plan)
 	}
 	return res
@@ -782,37 +775,51 @@ func TestGetPodVol(t *testing.T) {
 		},
 	}
 
-	res := getPodVol(nodes, 0.5)
+	res := getPodVol(nodes, 0.5, 10, -1)
 	assert.Equal(t, res, 18)
-	res = getPodVol(nodes, 0.3)
+	res = getPodVol(nodes, 0.3, 10, -1)
 	assert.Equal(t, res, 27)
-	res = getPodVol(nodes, 1.1)
+	res = getPodVol(nodes, 1.1, 10, -1)
 	assert.Equal(t, res, 8)
 }
 
-func Benchmark_ExtreamAlloc(b *testing.B) {
-	k, _ := newPotassium()
+// Benchmark CPU Alloc
+func Benchmark_CPUAlloc(b *testing.B) {
 	b.StopTimer()
-	b.StartTimer()
-
-	vol := getPodVol(hugePod, 1.3)
-	result, changed, err := k.SelectCPUNodes(hugePod, 1.3, vol)
-	if err != nil {
-		b.Fatalf("something went wrong")
+	k, _ := newPotassium()
+	var cpu = 1.3
+	var count = 10000
+	for i := 0; i < b.N; i++ {
+		// 24 core, 128G memory, 10 pieces per core
+		hugePod := generateNodes(count, 24, 137438953472, 10)
+		need := getPodVol(hugePod, cpu, 10, -1)
+		b.StartTimer()
+		r, c, err := k.SelectCPUNodes(hugePod, cpu, need)
+		b.StopTimer()
+		assert.NoError(b, err)
+		assert.Equal(b, len(r), len(c))
 	}
-	assert.Equal(b, len(result), len(changed))
 }
 
-func Benchmark_AveAlloc(b *testing.B) {
+// Benchmark Memory Alloc
+func Benchmark_MemAlloc(b *testing.B) {
 	b.StopTimer()
 	k, _ := newPotassium()
-
-	b.StartTimer()
-	result, changed, err := k.SelectCPUNodes(hugePod, 1.7, 12000)
-	if err != nil {
-		b.Fatalf("something went wrong")
+	var count = 10000
+	// 128M per container
+	var memory int64 = 1024 * 1024 * 128
+	// Max vol is 128G/128M * 10000 nodes
+	var need = 10240000
+	var rate int64 = 1024
+	for i := 0; i < b.N; i++ {
+		// 24 core, 128G memory, 10 pieces per core
+		hugePod := generateNodes(count, 24, 137438953472, 10)
+		b.StartTimer()
+		r, err := k.SelectMemoryNodes(hugePod, rate, memory, need)
+		b.StopTimer()
+		assert.NoError(b, err)
+		assert.Equal(b, len(r), count)
 	}
-	assert.Equal(b, len(result), len(changed))
 }
 
 // Test SelectMemoryNodes
@@ -848,7 +855,6 @@ func TestSelectMemoryNodes(t *testing.T) {
 	res, err = k.SelectMemoryNodes(pod, 10000, 512*1024*1024, 6)
 	assert.NoError(t, err)
 	for i, node := range res {
-		fmt.Printf("[%v] already: [%v], plan: [%v], final: [%v]\n", node.Name, node.Count, node.Deploy, node.Count+node.Deploy)
 		assert.Equal(t, node.Deploy, 3-i)
 	}
 }
@@ -860,7 +866,7 @@ func TestTestSelectMemoryNodesNotEnough(t *testing.T) {
 	_, err := k.SelectMemoryNodes(pod, 10000, 512*1024*1024, 40)
 	assert.Error(t, err)
 	if err != nil {
-		assert.Equal(t, err.Error(), "[SelectMemoryNodes] Cannot alloc a plan, not enough memory, volume 16, need 40")
+		assert.Equal(t, err.Error(), "Not enough resource need: 40, vol: 16")
 	}
 
 	// 2 nodes [mem not enough]
@@ -868,7 +874,7 @@ func TestTestSelectMemoryNodesNotEnough(t *testing.T) {
 	_, err = k.SelectMemoryNodes(pod, 1e9, 5*1024*1024*1024, 1)
 	assert.Error(t, err)
 	if err != nil {
-		assert.Equal(t, err.Error(), "[SelectMemoryNodes] Cannot alloc a plan, not enough memory, volume 0, need 1")
+		assert.Equal(t, err.Error(), "No nodes provide enough memory")
 	}
 
 	// 2 nodes [cpu not enough]
@@ -876,7 +882,7 @@ func TestTestSelectMemoryNodesNotEnough(t *testing.T) {
 	_, err = k.SelectMemoryNodes(pod, 1e10, 512*1024*1024, 1)
 	assert.Error(t, err)
 	if err != nil {
-		assert.Equal(t, err.Error(), "[SelectMemoryNodes] Cannot alloc a plan, not enough cpu rate")
+		assert.Equal(t, err.Error(), "Cannot alloc a plan, not enough cpu rate")
 	}
 }
 
@@ -917,9 +923,6 @@ func TestSelectMemoryNodesSequence(t *testing.T) {
 	refreshPod(res)
 	res, err = k.SelectMemoryNodes(res, 10000, 512*1024*1024, 3)
 	assert.NoError(t, err)
-	for _, node := range res {
-		fmt.Printf("[%v] already: [%v], plan: [%v], final: [%v]\n", node.Name, node.Count, node.Deploy, node.Count+node.Deploy)
-	}
 	assert.Equal(t, res[0].Deploy+res[1].Deploy, 3)
 	assert.Equal(t, res[0].Deploy-res[1].Deploy, 1)
 
@@ -927,7 +930,7 @@ func TestSelectMemoryNodesSequence(t *testing.T) {
 	res, err = k.SelectMemoryNodes(res, 10000, 512*1024*1024, 40)
 	assert.Error(t, err)
 	if err != nil {
-		assert.Equal(t, err.Error(), "[SelectMemoryNodes] Cannot alloc a plan, not enough memory, volume 7, need 40")
+		assert.Equal(t, err.Error(), "Not enough resource need: 40, vol: 7")
 	}
 
 	// new round
@@ -966,9 +969,8 @@ func TestSelectMemoryNodesGiven(t *testing.T) {
 	for _, node := range res {
 		if node.Name == "node3" {
 			assert.Equal(t, node.Deploy, 2)
-		} else {
-			assert.Equal(t, node.Deploy, 0)
+			continue
 		}
-		// fmt.Printf("[%v] already: [%v], plan: [%v], final: [%v]\n", node.Name, node.Count, node.Deploy, node.Count+node.Deploy)
+		assert.Equal(t, node.Deploy, 0)
 	}
 }

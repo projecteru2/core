@@ -217,7 +217,7 @@ func (c *calcium) createContainerWithCPUPrior(specs types.Specs, opts *types.Dep
 	}
 
 	if len(result) == 0 {
-		return ch, fmt.Errorf("[createContainerWithCPUPrior] Not enough resource to create container")
+		return ch, fmt.Errorf("Not enough resource to create container")
 	}
 
 	// FIXME check total count in case scheduler error

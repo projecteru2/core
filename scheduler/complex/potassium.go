@@ -45,7 +45,7 @@ func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory i
 		}
 	}
 	if p == -1 {
-		return nil, fmt.Errorf("[SelectMemoryNodes] Cannot alloc a plan, not enough cpu rate")
+		return nil, fmt.Errorf("Cannot alloc a plan, not enough cpu rate")
 	}
 	log.Debugf("[SelectMemoryNodes] The %d th node has enough cpu rate", p)
 
@@ -64,10 +64,11 @@ func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory i
 			}
 		}
 	}
-	if volTotal < need {
-		return nil, fmt.Errorf("[SelectMemoryNodes] Cannot alloc a plan, not enough memory, volume %d, need %d", volTotal, need)
+
+	if p < 0 {
+		return nil, fmt.Errorf("No nodes provide enough memory")
 	}
-	log.Debugf("[SelectMemoryNodes] The %d th node has enough memory", p)
+
 	// 继续裁可用节点池子
 	nodesInfo = nodesInfo[p:]
 	log.Debugf("[SelectMemoryNodes] Node info: %v", nodesInfo)
@@ -87,14 +88,10 @@ func (m *potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, ne
 	changed := make(map[string]types.CPUMap)
 
 	if len(nodesInfo) == 0 {
-		return result, nil, fmt.Errorf("[SelectCPUNodes] No nodes provide to choose some")
+		return result, nil, fmt.Errorf("No nodes provide to choose some")
 	}
 
 	volTotal, selectedNodesInfo, selectedNodesPool := cpuPriorPlan(quota, nodesInfo, need, m.maxshare, m.sharebase)
-	if volTotal == -1 {
-		return nil, nil, fmt.Errorf("Not enough resource")
-	}
-
 	selectedNodesInfo, err := CommunismDivisionPlan(selectedNodesInfo, need, volTotal)
 	if err != nil {
 		return nil, nil, err

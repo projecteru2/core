@@ -30,6 +30,8 @@ make deps
 在 Linux 下可以参考这个用于 CI 测试的 [Dockerfile](https://github.com/projecteru2/core/blob/master/.circleci/Dockerfile)
 我们是基于 CentOS 的体系，因此在 Ubuntu 下会略有不同
 
+同时，你也可以使用 [footstone](https://hub.docker.com/r/projecteru2/footstone/) 来测试编译打包 core.
+
 ### GRPC
 
 Generate golang & python code
@@ -67,9 +69,12 @@ $ devtools/client.py --grpc-host core-grpc.intra.ricebook.net node:get intra c2-
 
 ## Dockerized Core
 
+Image: [projecteru2/core](https://hub.docker.com/r/projecteru2/core/)
+
 ```shell
 docker run -d -e IN_DOCKER=1 \
   --name eru-core --net host \
   -v <HOST_CONFIG_PATH>:/etc/eru/core.yaml \
+  projecteru2/core \
   /usr/bin/eru-core
 ```

@@ -48,7 +48,7 @@ func (m *MockStore) RemovePod(podname string) error {
 		return err
 	}
 	if len(nodes) != 0 {
-		return fmt.Errorf("[RemovePod] pod %s still has nodes, delete the nodes first", podname)
+		return fmt.Errorf("Pod %s still has nodes, delete the nodes first", podname)
 	}
 	args := m.Called(podname)
 	if args.Get(0) != nil {

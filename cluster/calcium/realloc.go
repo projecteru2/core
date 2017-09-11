@@ -59,7 +59,7 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 			podCPUContainersInfo := cpuContainersInfo[pod]
 			newCPURequire := c.calculateCPUUsage(container) + cpu
 			if newCPURequire < 0.0 {
-				return nil, fmt.Errorf("[realloc] cpu can not below zero")
+				return nil, fmt.Errorf("Cpu can not below zero")
 			}
 			if _, ok := podCPUContainersInfo[newCPURequire]; !ok {
 				podCPUContainersInfo[newCPURequire] = NodeContainers{}
@@ -101,7 +101,7 @@ func (c *calcium) checkNodesMemory(podname string, nodeContainers NodeContainers
 	defer lock.Unlock()
 	for node, containers := range nodeContainers {
 		if cap := int(node.MemCap / memory); cap < len(containers) {
-			return fmt.Errorf("[realloc] Not enough resource %s", node.Name)
+			return fmt.Errorf("Not enough resource %s", node.Name)
 		}
 		if err := c.store.UpdateNodeMem(podname, node.Name, int64(len(containers))*memory, "-"); err != nil {
 			return err

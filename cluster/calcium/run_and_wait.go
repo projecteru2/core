@@ -30,8 +30,7 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions, stdin
 	// count = 1 && OpenStdin
 	if opts.OpenStdin && opts.Count != 1 {
 		close(ch)
-		err := fmt.Errorf("[RunAndWait] Count must be 1 if OpenStdin is true, count is %d now", opts.Count)
-		return ch, err
+		return ch, fmt.Errorf("Count must be 1 if OpenStdin is true, count is %d now", opts.Count)
 	}
 
 	// 创建容器, 有问题就gg
