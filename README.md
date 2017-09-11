@@ -1,6 +1,7 @@
 Core
 ====
 [![CircleCI](https://circleci.com/gh/projecteru2/core/tree/master.svg?style=shield)](https://circleci.com/gh/projecteru2/core/tree/master)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/e26ca3ee697d406caa9e49b0c491ff13)](https://www.codacy.com/app/CMGS/core?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=projecteru2/core&amp;utm_campaign=Badge_Grade)
 
 Eru 体系的核心组件，无状态，采用悲观锁实现来分配资源。
 
@@ -62,4 +63,13 @@ $ eru-core
 
 ```
 $ devtools/client.py --grpc-host core-grpc.intra.ricebook.net node:get intra c2-docker-7
+```
+
+## Dockerized Core
+
+```shell
+docker run -d -e IN_DOCKER=1 \
+  --name eru-core --net host \
+  -v <HOST_CONFIG_PATH>:/etc/eru/core.yaml \
+  /usr/bin/eru-core
 ```

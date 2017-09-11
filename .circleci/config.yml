@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: cmgs/erubuild:latest
+      - image: projecteru2/erubuild:latest
     working_directory: /.go/src/github.com/projecteru2/core
     steps:
       - checkout
