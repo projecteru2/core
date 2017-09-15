@@ -51,7 +51,7 @@ do not forget first command...
 ### 本地部署
 
 ```shell
-$ eru-core --config core.yaml.sample
+$ eru-core --config /etc/eru/core.yaml.sample
 ```
 
 或者
