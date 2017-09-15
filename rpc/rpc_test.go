@@ -187,14 +187,16 @@ func TestNodes(t *testing.T) {
 func initConfig(mStore *mockstore.MockStore) (types.Config, *vibranium) {
 
 	config := types.Config{
-		Bind:           ":5001",           // HTTP API address
-		AppDir:         "/tmp",            // App directory inside container
-		BackupDir:      "/tmp",            // Backup dir on host
-		EtcdMachines:   []string{"MOCK"},  // etcd cluster addresses
-		EtcdLockPrefix: "/eru-core/_lock", // etcd lock prefix, all locks will be created under this dir
-		Statsd:         "localhost:1080",  // Statsd host and port
-		Zone:           "c1",              // zone for core, e.g. C1, C2
+		Bind:      ":5001",          // HTTP API address
+		AppDir:    "/tmp",           // App directory inside container
+		BackupDir: "/tmp",           // Backup dir on host
+		Statsd:    "localhost:1080", // Statsd host and port
+		Zone:      "c1",             // zone for core, e.g. C1, C2
 
+		Etcd: types.EtcdConfig{
+			Machines:   []string{"MOCK"}, // etcd cluster addresses
+			LockPrefix: "core/_lock",     // etcd lock prefix, all locks will be created under this dir
+		},
 		Git: types.GitConfig{
 			SCMType: "gitlab",
 		},

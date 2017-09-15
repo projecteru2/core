@@ -12,7 +12,7 @@ import (
 
 // get a container
 // container if must be in full length, or we can't find it in etcd
-// storage path in etcd is `/eru-core/container/:containerid`
+// storage path in etcd is `/container/:containerid`
 func (k *krypton) GetContainer(id string) (*types.Container, error) {
 	if len(id) != 64 {
 		return nil, fmt.Errorf("Container ID must be length of 64")
@@ -57,7 +57,7 @@ func (k *krypton) GetContainers(ids []string) (containers []*types.Container, er
 // mainly record its relationship on pod and node
 // actually if we already know its node, we will know its pod
 // but we still store it
-// storage path in etcd is `/eru-core/container/:containerid`
+// storage path in etcd is `/container/:containerid`
 func (k *krypton) AddContainer(id, podname, nodename, name string, cpu types.CPUMap, memory int64) (*types.Container, error) {
 	// first we check if node really exists
 	node, err := k.GetNode(podname, nodename)

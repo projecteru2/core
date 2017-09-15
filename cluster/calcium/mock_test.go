@@ -53,8 +53,10 @@ func (m *Map) Get(id string) container.Resources {
 var (
 	mockCPU = coretypes.CPUMap{"0": 10, "1": 10, "2": 10, "3": 10}
 	config  = coretypes.Config{
-		EtcdMachines: []string{""},
-		Git:          coretypes.GitConfig{SCMType: "gitlab"},
+		Etcd: coretypes.EtcdConfig{
+			Machines: []string{""},
+		},
+		Git: coretypes.GitConfig{SCMType: "gitlab"},
 		Docker: coretypes.DockerConfig{
 			Hub:       "hub.testhub.com",
 			HubPrefix: "apps",

@@ -2,9 +2,6 @@ log_level: "DEBUG"
 bind: ":5001"
 appdir: "/home"
 backupdir: "/data/backup"
-etcd:
-    - "http://127.0.0.1:2379"
-etcd_lock_prefix: "/eru-core/_lock"
 statsd: "127.0.0.1:8125"
 
 zone: "eru-test"
@@ -12,6 +9,12 @@ image_cache: 2
 global_timeout: 300
 lock_timeout: 30
 
+etcd:
+    machines:
+        - "http://127.0.0.1:2379"
+    prefix: "/core"
+    lock_prefix: "core/_lock"
+    
 git:
     public_key: "***REMOVED***"
     private_key: "***REMOVED***"

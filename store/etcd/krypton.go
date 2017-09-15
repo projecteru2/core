@@ -2,7 +2,6 @@ package etcdstore
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
@@ -12,20 +11,20 @@ import (
 )
 
 const (
-	allPodsKey       = "/eru-core/pod"
-	podInfoKey       = "/eru-core/pod/%s/info"
-	podNodesKey      = "/eru-core/pod/%s/node"
-	nodePrefixKey    = "/eru-core/pod/%s/node/%s"
-	nodeInfoKey      = "/eru-core/pod/%s/node/%s/info"
-	nodeCaKey        = "/eru-core/pod/%s/node/%s/ca.pem"
-	nodeCertKey      = "/eru-core/pod/%s/node/%s/cert.pem"
-	nodeKeyKey       = "/eru-core/pod/%s/node/%s/key.pem"
-	nodeContainerKey = "/eru-core/pod/%s/node/%s/containers"
+	allPodsKey       = "/pod"
+	podInfoKey       = "/pod/%s/info"
+	podNodesKey      = "/pod/%s/node"
+	nodePrefixKey    = "/pod/%s/node/%s"
+	nodeInfoKey      = "/pod/%s/node/%s/info"
+	nodeCaKey        = "/pod/%s/node/%s/ca.pem"
+	nodeCertKey      = "/pod/%s/node/%s/cert.pem"
+	nodeKeyKey       = "/pod/%s/node/%s/key.pem"
+	nodeContainerKey = "/pod/%s/node/%s/containers"
 
-	allContainerKey          = "/eru-core/container"
-	containerInfoKey         = "/eru-core/container/%s"
-	containerDeployStatusKey = "/eru-core/deploy/%s/%s"
-	containerDeployKey       = "/eru-core/deploy/%s/%s/%s/%s"
+	allContainerKey          = "/container"
+	containerInfoKey         = "/container/%s"
+	containerDeployStatusKey = "/deploy/%s/%s"
+	containerDeployKey       = "/deploy/%s/%s/%s/%s"
 )
 
 type krypton struct {
@@ -35,26 +34,26 @@ type krypton struct {
 }
 
 func New(config types.Config) (*krypton, error) {
-	if len(config.EtcdMachines) == 0 {
+	if len(config.Etcd.Machines) == 0 {
 		return nil, fmt.Errorf("ETCD must be set")
 	}
 
-	cli, err := client.New(client.Config{Endpoints: config.EtcdMachines})
+	cli, err := client.New(client.Config{Endpoints: config.Etcd.Machines})
 	if err != nil {
 		return nil, err
 	}
 
-	cliv3, err := clientv3.New(clientv3.Config{Endpoints: config.EtcdMachines})
+	cliv3, err := clientv3.New(clientv3.Config{Endpoints: config.Etcd.Machines})
 	if err != nil {
 		return nil, err
 	}
 
-	etcd := client.NewKeysAPI(cli)
+	etcd := client.NewKeysAPIWithPrefix(cli, config.Etcd.Prefix)
 	return &krypton{etcd: etcd, cliv3: cliv3, config: config}, nil
 }
 
 func (k *krypton) CreateLock(key string, ttl int) (lock.DistributedLock, error) {
-	lockKey := filepath.Join(k.config.EtcdLockPrefix, key)
+	lockKey := fmt.Sprintf("%s/%s", k.config.Etcd.LockPrefix, key)
 	mutex, err := etcdlock.New(k.cliv3, lockKey, ttl)
 	return mutex, err
 }
