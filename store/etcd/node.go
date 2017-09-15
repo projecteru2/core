@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -167,7 +167,6 @@ func (k *krypton) AddNode(name, endpoint, podname, cafile, certfile, keyfile str
 func (k *krypton) deleteNode(podname, nodename, endpoint string) {
 	key := fmt.Sprintf(nodePrefixKey, podname, nodename)
 	k.etcd.Delete(context.Background(), key, &etcdclient.DeleteOptions{Recursive: true})
-	k.deleteCertFiles(podname, nodename, endpoint)
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		log.Errorf("[deleteNode] Bad endpoint: %s", endpoint)
@@ -350,29 +349,33 @@ func (k *krypton) UpdateNodeCPU(podname, nodename string, cpu types.CPUMap, acti
 
 // use endpoint, cert files path, and api version to create docker client
 // we don't check whether this is connectable
-func makeRawClient(endpoint, certpath, apiversion string) (*engineapi.Client, error) {
+func makeRawClientWithTLS(ca, cert, key *os.File, endpoint, apiversion string) (*engineapi.Client, error) {
 	var cli *http.Client
-	if certpath != "" {
-		options := tlsconfig.Options{
-			CAFile:             filepath.Join(certpath, "ca.pem"),
-			CertFile:           filepath.Join(certpath, "cert.pem"),
-			KeyFile:            filepath.Join(certpath, "key.pem"),
-			InsecureSkipVerify: true,
-		}
-		tlsc, err := tlsconfig.Client(options)
-		if err != nil {
-			return nil, err
-		}
-
-		cli = &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: tlsc,
-			},
-		}
+	options := tlsconfig.Options{
+		CAFile:             ca.Name(),
+		CertFile:           cert.Name(),
+		KeyFile:            key.Name(),
+		InsecureSkipVerify: true,
+	}
+	defer os.Remove(ca.Name())
+	defer os.Remove(cert.Name())
+	defer os.Remove(key.Name())
+	tlsc, err := tlsconfig.Client(options)
+	if err != nil {
+		return nil, err
 	}
 
-	log.Debugf("[makeRawClient] Create new http.Client for %q, %q, %q", endpoint, certpath, apiversion)
+	cli = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsc,
+		},
+	}
+	log.Debugf("[makeRawClientWithTLS] Create new http.Client for %s, %s", endpoint, apiversion)
 	return engineapi.NewClient(endpoint, apiversion, cli, nil)
+}
+
+func makeRawClient(endpoint, apiversion string) (*engineapi.Client, error) {
+	return engineapi.NewClient(endpoint, apiversion, nil, nil)
 }
 
 func (k *krypton) makeDockerClient(podname, nodename, endpoint string, force bool) (*engineapi.Client, error) {
@@ -389,85 +392,57 @@ func (k *krypton) makeDockerClient(podname, nodename, endpoint string, force boo
 	// try get client, if nil, create a new one
 	client := _cache.get(host)
 	if client == nil || force {
-		dockerCertPath := ""
 		// 如果设置了cert path说明需要用tls来连接
 		// 那么先检查有没有这些证书, 没有的话要从etcd里dump到本地
 		if k.config.Docker.CertPath != "" {
-			dockerCertPath = filepath.Join(k.config.Docker.CertPath, host)
-			_, err = os.Stat(dockerCertPath)
-			// 没有证书, 从etcd里dump
-			if os.IsNotExist(err) {
-				if err := k.dumpFromEtcd(podname, nodename, dockerCertPath); err != nil {
-					return nil, err
-				}
+			ca, err := ioutil.TempFile(k.config.Docker.CertPath, fmt.Sprintf("ca-%s", host))
+			if err != nil {
+				return nil, err
 			}
+			cert, err := ioutil.TempFile(k.config.Docker.CertPath, fmt.Sprintf("cert-%s", host))
+			if err != nil {
+				return nil, err
+			}
+			key, err := ioutil.TempFile(k.config.Docker.CertPath, fmt.Sprintf("key-%s", host))
+			if err != nil {
+				return nil, err
+			}
+			if err := k.dumpFromEtcd(ca, cert, key, podname, nodename); err != nil {
+				return nil, err
+			}
+			client, err = makeRawClientWithTLS(ca, cert, key, endpoint, k.config.Docker.APIVersion)
+		} else {
+			client, err = makeRawClient(endpoint, k.config.Docker.APIVersion)
 		}
-
-		client, err = makeRawClient(endpoint, dockerCertPath, k.config.Docker.APIVersion)
 		if err != nil {
 			return nil, err
 		}
-
 		_cache.set(host, client)
 	}
-
-	// timeout in 5 seconds
-	// timeout means node is not available
-
-	// NOTE: 不检查其实也没事, 调用的时候会出错的.
-	// 这么改主要是因为, docker 在长时间的 remove 操作的时候,
-	// info 这类操作会被阻塞, 会导致客户端长时间等待.
-	// 这么改的坏处是, 这个时候取回的 info 是没有 node 信息的.
-
-	// ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	// _, err = client.Info(ctx)
-	// if err != nil {
-	// 	return nil, err
-	// }
 
 	return client, nil
 }
 
 // dump certificated files from etcd to local file system
-func (k *krypton) dumpFromEtcd(podname, nodename, certprefix string) error {
-	// create necessary directory
-	if err := os.MkdirAll(certprefix, 0755); err != nil {
-		return err
-	}
-
+func (k *krypton) dumpFromEtcd(ca, cert, key *os.File, podname, nodename string) error {
 	// create files
-	filenames := []string{"ca.pem", "cert.pem", "key.pem"}
+	files := []*os.File{ca, cert, key}
 	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
 	for i := 0; i < 3; i++ {
 		resp, err := k.etcd.Get(context.Background(), fmt.Sprintf(keyFormats[i], podname, nodename), nil)
 		if err != nil {
 			return err
 		}
-		if err := utils.SaveFile(resp.Node.Value, filepath.Join(certprefix, filenames[i]), 0444); err != nil {
+		if _, err := files[i].WriteString(resp.Node.Value); err != nil {
+			return err
+		}
+		if err := files[i].Chmod(0444); err != nil {
+			return err
+		}
+		if err := files[i].Close(); err != nil {
 			return err
 		}
 	}
-	log.Debugf("Dump ca.pem, cert.pem, key.pem from etcd for %q %q to %q", podname, nodename, certprefix)
+	log.Debugf("[dumpFromEtcd] Dump ca.pem, cert.pem, key.pem from etcd for %s %s", podname, nodename)
 	return nil
-}
-
-// 删掉保存在本地的证书
-func (k *krypton) deleteCertFiles(podname, nodename, endpoint string) {
-	if k.config.Docker.CertPath == "" {
-		return
-	}
-
-	u, err := url.Parse(endpoint)
-	if err != nil {
-		return
-	}
-
-	host, _, err := net.SplitHostPort(u.Host)
-	if err != nil {
-		return
-	}
-
-	certPath := filepath.Join(k.config.Docker.CertPath, host)
-	os.RemoveAll(certPath)
-	log.Debugf("Remove cert files in %s, by (%s, %s, %s)", certPath, podname, nodename, endpoint)
 }
