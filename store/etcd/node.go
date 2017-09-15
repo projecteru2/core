@@ -364,7 +364,6 @@ func makeRawClientWithTLS(ca, cert, key *os.File, endpoint, apiversion string) (
 	if err != nil {
 		return nil, err
 	}
-
 	cli = &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: tlsc,
@@ -390,7 +389,8 @@ func (k *krypton) makeDockerClient(podname, nodename, endpoint string, force boo
 	}
 
 	// try get client, if nil, create a new one
-	client := _cache.get(host)
+	var client *engineapi.Client
+	client = _cache.get(host)
 	if client == nil || force {
 		// 如果设置了cert path说明需要用tls来连接
 		// 那么先检查有没有这些证书, 没有的话要从etcd里dump到本地
@@ -411,11 +411,14 @@ func (k *krypton) makeDockerClient(podname, nodename, endpoint string, force boo
 				return nil, err
 			}
 			client, err = makeRawClientWithTLS(ca, cert, key, endpoint, k.config.Docker.APIVersion)
+			if err != nil {
+				return nil, err
+			}
 		} else {
 			client, err = makeRawClient(endpoint, k.config.Docker.APIVersion)
-		}
-		if err != nil {
-			return nil, err
+			if err != nil {
+				return nil, err
+			}
 		}
 		_cache.set(host, client)
 	}

@@ -14,7 +14,7 @@ etcd:
         - "http://127.0.0.1:2379"
     prefix: "/core"
     lock_prefix: "core/_lock"
-    
+
 git:
     public_key: "***REMOVED***"
     private_key: "***REMOVED***"

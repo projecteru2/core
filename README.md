@@ -51,7 +51,7 @@ do not forget first command...
 ### 本地部署
 
 ```shell
-$ eru-core --config core.yaml.sample
+$ eru-core --config /etc/eru/core.yaml.sample
 ```
 
 或者
@@ -72,8 +72,9 @@ $ devtools/client.py --grpc-host core-grpc.intra.ricebook.net node:get intra c2-
 Image: [projecteru2/core](https://hub.docker.com/r/projecteru2/core/)
 
 ```shell
-docker run -d -e IN_DOCKER=1 \
-  --name eru-core --net host \
+docker run -d \
+  --name eru_core_$HOSTNAME \
+  --net host \
   --restart always \
   -v <HOST_CONFIG_DIR_PATH>:/etc/eru \
   -v <HOST_BACKUP_DIR_PATH>:/data/backup \

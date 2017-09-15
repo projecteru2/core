@@ -2,7 +2,7 @@
 
 ROOT="`pwd`/build"
 BIN="$ROOT/usr/bin"
-CONF="$ROOT/etc/eru-core"
+CONF="$ROOT/etc/eru"
 SERVICE="$ROOT/usr/lib/systemd/system"
 
 mkdir -p $BIN
@@ -16,6 +16,6 @@ mv eru-core.service $SERVICE
 VERSION=$(cat VERSION)
 echo $VERSION rpm build begin
 
-fpm -f -s dir -t rpm -n eru-core --epoch 0 -v $VERSION --iteration 1.el7 -C $ROOT -p $PWD --verbose --rpm-auto-add-directories --category 'Development/App' --description 'docker eru core' --url 'http://github.com/projecteru2/core/' --license 'MIT'  --no-rpm-sign usr etc
+fpm -f -s dir -t rpm -n eru-core --epoch 0 -v $VERSION --iteration 1.el7 -C $ROOT -p $PWD --verbose --rpm-auto-add-directories --category 'Development/App' --description 'docker eru core' --url 'https://github.com/projecteru2/core' --license 'MIT'  --no-rpm-sign usr etc
 
 rm -rf $ROOT

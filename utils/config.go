@@ -3,6 +3,7 @@ package utils
 import (
 	"io/ioutil"
 	"log"
+	"path/filepath"
 	"time"
 
 	"github.com/projecteru2/core/types"
@@ -10,7 +11,10 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-const defaultTTL = 30
+const (
+	defaultTTL    = 30
+	defaultPrefix = "/v2/keys"
+)
 
 func LoadConfig(configPath string) (types.Config, error) {
 	config := types.Config{}
@@ -32,6 +36,8 @@ func LoadConfig(configPath string) (types.Config, error) {
 		log.Fatal("[Config] Global timeout invaild, exit")
 	}
 	config.GlobalTimeout = config.GlobalTimeout * time.Second
+	// Fxxk etcd client
+	config.Etcd.Prefix = filepath.Join(defaultPrefix, config.Etcd.Prefix)
 
 	if config.Docker.APIVersion == "" {
 		config.Docker.APIVersion = "v1.23"
