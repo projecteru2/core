@@ -17,16 +17,21 @@ func resultLength(result map[string][]types.CPUMap) int {
 	return length
 }
 
-func newPotassium() (*potassium, error) {
-	coreCfg := types.Config{
-		EtcdMachines:   []string{"http://127.0.0.1:2379"},
-		EtcdLockPrefix: "/eru-core/_lock",
+func newConfig() types.Config {
+	return types.Config{
+		Etcd: types.EtcdConfig{
+			Machines:   []string{"http://127.0.0.1:2379"},
+			LockPrefix: "core/_lock",
+		},
 		Scheduler: types.SchedConfig{
 			ShareBase: 10,
 			MaxShare:  -1,
 		},
 	}
+}
 
+func newPotassium() (*potassium, error) {
+	coreCfg := newConfig()
 	potassium, err := New(coreCfg)
 	if err != nil {
 		return nil, fmt.Errorf("Create Potassim error: %v", err)
@@ -178,15 +183,7 @@ func TestRecurrence(t *testing.T) {
 }
 
 func TestComplexNodes(t *testing.T) {
-
-	coreCfg := types.Config{
-		EtcdMachines:   []string{"http://127.0.0.1:2379"},
-		EtcdLockPrefix: "/eru-core/_lock",
-		Scheduler: types.SchedConfig{
-			ShareBase: 10,
-			MaxShare:  -1,
-		},
-	}
+	coreCfg := newConfig()
 
 	k, merr := New(coreCfg)
 	if merr != nil {

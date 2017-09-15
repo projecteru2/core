@@ -10,8 +10,10 @@ import (
 
 func TestSchedulerInvoke(t *testing.T) {
 	coreCfg := types.Config{
-		EtcdMachines:   []string{"http://127.0.0.1:2379"},
-		EtcdLockPrefix: "/eru-core/_lock",
+		Etcd: types.EtcdConfig{
+			Machines:   []string{"http://127.0.0.1:2379"},
+			LockPrefix: "core/_lock",
+		},
 		Scheduler: types.SchedConfig{
 			ShareBase: 10,
 			MaxShare:  -1,

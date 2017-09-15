@@ -4,22 +4,28 @@ import "time"
 
 // Config holds eru-core config
 type Config struct {
-	LogLevel       string        `yaml:"log_level"`
-	Bind           string        `yaml:"bind"`             // HTTP API address
-	AppDir         string        `yaml:"appdir"`           // App directory inside container
-	BackupDir      string        `yaml:"backupdir"`        // Backup dir on host
-	EtcdMachines   []string      `yaml:"etcd"`             // etcd cluster addresses
-	EtcdLockPrefix string        `yaml:"etcd_lock_prefix"` // etcd lock prefix, all locks will be created under this dir
-	Statsd         string        `yaml:"statsd"`           // Statsd host and port
-	Zone           string        `yaml:"zone"`             // zone for core, e.g. C1, C2
-	ImageCache     int           `yaml:"image_cache"`      // cache image count
-	LockTimeout    int           `yaml:"lock_timeout"`     // timeout for lock (ttl)
-	GlobalTimeout  time.Duration `yaml:"global_timeout"`   // timeout for remove, run_and_wait and build, in second
+	LogLevel      string        `yaml:"log_level"`
+	Bind          string        `yaml:"bind"`           // HTTP API address
+	AppDir        string        `yaml:"appdir"`         // App directory inside container
+	BackupDir     string        `yaml:"backupdir"`      // Backup dir on host
+	Statsd        string        `yaml:"statsd"`         // Statsd host and port
+	Zone          string        `yaml:"zone"`           // zone for core, e.g. C1, C2
+	ImageCache    int           `yaml:"image_cache"`    // cache image count
+	LockTimeout   int           `yaml:"lock_timeout"`   // timeout for lock (ttl)
+	GlobalTimeout time.Duration `yaml:"global_timeout"` // timeout for remove, run_and_wait and build, in second
 
 	Git       GitConfig    `yaml:"git"`
+	Etcd      EtcdConfig   `yaml:"etcd"`
 	Docker    DockerConfig `yaml:"docker"`
 	Scheduler SchedConfig  `yaml:"scheduler"`
 	Syslog    SyslogConfig `yaml:"syslog"`
+}
+
+// EtcdConfig holds eru-core etcd config
+type EtcdConfig struct {
+	Machines   []string `yaml:"machines"`    // etcd cluster addresses
+	Prefix     string   `yaml:"prefix"`      // etcd lock prefix, all locks will be created under this dir
+	LockPrefix string   `yaml:"lock_prefix"` // etcd lock prefix, all locks will be created under this dir
 }
 
 // GitConfig holds eru-core git config

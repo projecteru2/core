@@ -55,7 +55,7 @@ var _cache = &cache{clients: make(map[string]*engineapi.Client)}
 // and construct it's docker client
 // a node must belong to a pod
 // and since node is not the smallest unit to user, to get a node we must specify the corresponding pod
-// storage path in etcd is `/eru-core/pod/:podname/node/:nodename/info`
+// storage path in etcd is `/pod/:podname/node/:nodename/info`
 func (k *krypton) GetNode(podname, nodename string) (*types.Node, error) {
 	key := fmt.Sprintf(nodeInfoKey, podname, nodename)
 	resp, err := k.etcd.Get(context.Background(), key, nil)
@@ -82,7 +82,7 @@ func (k *krypton) GetNode(podname, nodename string) (*types.Node, error) {
 
 // add a node
 // save it to etcd
-// storage path in etcd is `/eru-core/pod/:podname/node/:nodename/info`
+// storage path in etcd is `/pod/:podname/node/:nodename/info`
 func (k *krypton) AddNode(name, endpoint, podname, cafile, certfile, keyfile string, public bool) (*types.Node, error) {
 	if !strings.HasPrefix(endpoint, "tcp://") {
 		return nil, fmt.Errorf("Endpoint must starts with tcp:// %q", endpoint)
@@ -207,7 +207,7 @@ func (k *krypton) GetAllNodes() (nodes []*types.Node, err error) {
 
 // get all nodes bound to pod
 // here we use podname instead of pod instance
-// storage path in etcd is `/eru-core/pod/:podname/node`
+// storage path in etcd is `/pod/:podname/node`
 func (k *krypton) GetNodesByPod(podname string) (nodes []*types.Node, err error) {
 	key := fmt.Sprintf(podNodesKey, podname)
 	resp, err := k.etcd.Get(context.Background(), key, nil)
@@ -230,7 +230,7 @@ func (k *krypton) GetNodesByPod(podname string) (nodes []*types.Node, err error)
 }
 
 // update a node, save it to etcd
-// storage path in etcd is `/eru-core/pod/:podname/node/:nodename/info`
+// storage path in etcd is `/pod/:podname/node/:nodename/info`
 func (k *krypton) UpdateNode(node *types.Node) error {
 	lock, err := k.CreateLock(fmt.Sprintf("%s_%s", node.Podname, node.Name), k.config.LockTimeout)
 	if err != nil {

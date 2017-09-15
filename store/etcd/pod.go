@@ -12,7 +12,7 @@ import (
 )
 
 // get a pod from etcd
-// storage path in etcd is `/eru-core/pod/:podname/info`
+// storage path in etcd is `/pod/:podname/info`
 func (k *krypton) GetPod(name string) (*types.Pod, error) {
 	key := fmt.Sprintf(podInfoKey, name)
 	resp, err := k.etcd.Get(context.Background(), key, nil)
@@ -33,7 +33,7 @@ func (k *krypton) GetPod(name string) (*types.Pod, error) {
 
 // add a pod
 // save it to etcd
-// storage path in etcd is `/eru-core/pod/:podname/info`
+// storage path in etcd is `/pod/:podname/info`
 func (k *krypton) AddPod(name, favor, desc string) (*types.Pod, error) {
 	key := fmt.Sprintf(podInfoKey, name)
 	favor = strings.ToUpper(favor)
@@ -59,7 +59,7 @@ func (k *krypton) AddPod(name, favor, desc string) (*types.Pod, error) {
 
 // get all pods in etcd
 // any error will break and return error immediately
-// storage path in etcd is `/eru-core/pod`
+// storage path in etcd is `/pod`
 func (k *krypton) GetAllPods() (pods []*types.Pod, err error) {
 	resp, err := k.etcd.Get(context.Background(), allPodsKey, nil)
 	if err != nil {
