@@ -14,6 +14,7 @@ FROM alpine:3.6
 MAINTAINER CMGS <ilskdw@gmail.com>
 
 RUN mkdir /etc/eru/
+LABEL ERU=1 version=latest
 RUN apk add --no-cache libgit2 && rm -rf /var/cache/apk/*
 COPY --from=BUILD /go/src/github.com/projecteru2/core/eru-core /usr/bin/eru-core
 COPY --from=BUILD /go/src/github.com/projecteru2/core/core.yaml.sample /etc/eru/core.yaml.sample

@@ -47,13 +47,13 @@ func (t *titanium) ConnectToNetwork(ctx context.Context, containerID, networkID,
 	if ipv4 != "" {
 		ip := net.ParseIP(ipv4)
 		if ip == nil {
-			return fmt.Errorf("IP Address is not valid: %q", ipv4)
+			return fmt.Errorf("IP Address is not valid: %v", ipv4)
 		}
 
 		config.IPAMConfig.IPv4Address = ip.String()
 	}
 
-	log.Debugf("[ConnectToNetwork] Connect %q to %q with IP %q", containerID, networkID, ipv4)
+	log.Debugf("[ConnectToNetwork] Connect %v to %v with IP %v", containerID, networkID, ipv4)
 	return engine.NetworkConnect(context.Background(), networkID, containerID, config)
 }
 
@@ -68,7 +68,7 @@ func (t *titanium) DisconnectFromNetwork(ctx context.Context, containerID, netwo
 		return fmt.Errorf("Not actually a `engineapi.Client` for value engine in context")
 	}
 
-	log.Debugf("[DisconnectFromNetwork] Disconnect %q from %q", containerID, networkID)
+	log.Debugf("[DisconnectFromNetwork] Disconnect %v from %v", containerID, networkID)
 	return engine.NetworkDisconnect(context.Background(), networkID, containerID, false)
 }
 
