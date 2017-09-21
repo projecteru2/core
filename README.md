@@ -3,22 +3,23 @@ Core
 [![CircleCI](https://circleci.com/gh/projecteru2/core/tree/master.svg?style=shield)](https://circleci.com/gh/projecteru2/core/tree/master)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/e26ca3ee697d406caa9e49b0c491ff13)](https://www.codacy.com/app/CMGS/core?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=projecteru2/core&amp;utm_campaign=Badge_Grade)
 
-Eru 体系的核心组件，无状态，采用悲观锁实现来分配资源。
+Eru system core, stateless, resource allocation efficiently.
 
+### Testing
 
-## 测试
+Run ` make test `
 
-执行 ``` make test ``` 即可
+### Compile
 
-## 编译
+* Run ` make build ` if you want binary.
+* Run `./make-rpm ` if you want RPM for el7. However we use [FPM](https://github.com/jordansissel/fpm) for packing, so you have to prepare it first.
 
-执行 ``` make build ```，如果需要打包出 RPM 需要预先安装好 [FPM](https://github.com/jordansissel/fpm)，然后执行 ```./make-rpm ```
+### Developing
 
-## 开发
+Run `make deps` for generating vendor dir.
 
-`make deps` 可能非常耗时间, 建议开代理
+Under macOS we have to install `libgit2` manually, if you using [Homebrew](https://brew.sh/) please install like this:
 
-在 macOS 下需要先安装 `libgit2` 假定已经安装了 [Homebrew](https://brew.sh/) 的前提下，执行：
 ```shell
 # libgit2 锁定在 0.25.1
 cd /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula
@@ -27,12 +28,11 @@ HOMEBREW_NO_AUTO_UPDATE=1 brew install libgit2
 make deps
 ```
 
-在 Linux 下可以参考这个用于 CI 测试的 [Dockerfile](https://github.com/projecteru2/core/blob/master/.circleci/Dockerfile)
-我们是基于 CentOS 的体系，因此在 Ubuntu 下会略有不同
+In linux you can reference our image's [Dockerfile](https://github.com/projecteru2/core/blob/master/.circleci/Dockerfile). Our server were running under CentOS 7, so if your server is different, something will not same.
 
-同时，你也可以使用 [footstone](https://hub.docker.com/r/projecteru2/footstone/) 来测试编译打包 core.
+On other hand, you can use our [footstone](https://hub.docker.com/r/projecteru2/footstone/) image for testing and compiling.
 
-### GRPC
+#### GRPC
 
 Generate golang & python code
 
@@ -48,26 +48,26 @@ Current version of dependencies are:
 
 do not forget first command...
 
-### 本地部署
+#### Run it
 
 ```shell
 $ eru-core --config /etc/eru/core.yaml.sample
 ```
 
-或者
+or
 
 ```shell
 $ export ERU_CONFIG_PATH=/path/to/core.yaml
 $ eru-core
 ```
 
-### 使用 client.py 执行
+#### Use `client.py` for managing
 
 ```
 $ devtools/client.py --grpc-host core-grpc.intra.ricebook.net node:get intra c2-docker-7
 ```
 
-## Dockerized Core
+### Dockerized Core
 
 Image: [projecteru2/core](https://hub.docker.com/r/projecteru2/core/)
 
