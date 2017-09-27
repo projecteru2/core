@@ -22,5 +22,6 @@ type DeployOptions struct {
 
 type RunAndWaitOptions struct {
 	DeployOptions
-	Cmd string
+	Timeout int
+	Cmd     string
 }

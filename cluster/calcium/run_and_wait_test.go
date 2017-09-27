@@ -20,7 +20,7 @@ func TestRunAndWait(t *testing.T) {
 		OpenStdin:  true,
 		Count:      10,
 	}
-	_, err = mockc.RunAndWait(specs, &opts, nil)
+	_, err = mockc.RunAndWait(specs, &opts, 10, nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Count must be 1 if OpenStdin is true")
 }

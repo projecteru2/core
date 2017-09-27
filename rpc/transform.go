@@ -89,6 +89,7 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 		Error:    c.Error,
 		Success:  c.Success,
 		Cpu:      toRPCCPUMap(c.CPU),
+		Memory:   c.Memory,
 	}
 }
 

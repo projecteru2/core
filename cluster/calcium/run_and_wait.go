@@ -14,7 +14,7 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error) {
+func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions, timeout int, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error) {
 	ch := make(chan *types.RunAndWaitMessage)
 
 	// 强制为 json-file 输出
@@ -23,8 +23,8 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions, stdin
 	specs.Entrypoints[opts.Entrypoint] = entry
 
 	waitTimeout := c.config.GlobalTimeout
-	if entry.RunAndWaitTimeout > 0 {
-		waitTimeout = time.Duration(entry.RunAndWaitTimeout) * time.Second
+	if timeout > 0 {
+		waitTimeout = time.Duration(timeout) * time.Second
 	}
 
 	// count = 1 && OpenStdin

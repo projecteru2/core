@@ -46,7 +46,6 @@ type Entrypoint struct {
 	Privileged              string   `yaml:"privileged,omitempty"`
 	LogConfig               string   `yaml:"log_config,omitempty"`
 	WorkingDir              string   `yaml:"working_dir,omitempty"`
-	RunAndWaitTimeout       int      `yaml:"run_and_wait_timeout"`
 }
 
 // single bind
