@@ -155,9 +155,10 @@ message DeployOptions {
     int64 memory = 10;
     repeated string env = 11;
     map<string, string> networks = 12;
-    bool raw = 13;
-    bool debug = 14;
-    bool openStdin = 15;
+    string networkmode = 13;
+    bool raw = 14;
+    bool debug = 15;
+    bool openStdin = 16;
 }
 
 message RemoveImageOptions {

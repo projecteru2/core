@@ -37,7 +37,6 @@ type Entrypoint struct {
 	AfterStart              string   `yaml:"after_start,omitempty"`
 	BeforeStop              string   `yaml:"before_stop,omitempty"`
 	Ports                   []Port   `yaml:"ports,omitempty,flow"`
-	NetworkMode             string   `yaml:"network_mode,omitempty"`
 	RestartPolicy           string   `yaml:"restart,omitempty"`
 	HealthCheckPort         int      `yaml:"healthcheck_port,omitempty,flow"`
 	HealthCheckUrl          string   `yaml:"healthcheck_url,omitempty"`

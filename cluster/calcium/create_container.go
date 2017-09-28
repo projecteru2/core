@@ -81,13 +81,6 @@ func (c *calcium) createContainerWithMemoryPrior(specs types.Specs, opts *types.
 	return ch, nil
 }
 
-func (c *calcium) removeMemoryPodFailedContainer(id string, node *types.Node, nodeInfo types.NodeInfo, opts *types.DeployOptions) {
-	defer c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+")
-	if err := node.Engine.ContainerRemove(context.Background(), id, enginetypes.ContainerRemoveOptions{}); err != nil {
-		log.Errorf("[removeMemoryPodFailedContainer] Error during remove failed container %v", err)
-	}
-}
-
 func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, specs types.Specs, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
 	ms := make([]*types.CreateContainerMessage, nodeInfo.Deploy)
 	var i int
@@ -95,14 +88,9 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 		ms[i] = &types.CreateContainerMessage{}
 	}
 
-	node, err := c.GetNode(opts.Podname, nodeInfo.Name)
+	node, err := c.getAndPrepareNode(opts.Podname, nodeInfo.Name, opts.Image)
 	if err != nil {
-		log.Errorf("[doCreateContainerWithMemoryPrior] Error during GetNode for %s, %s: %v", opts.Podname, nodeInfo.Name, err)
-		return ms
-	}
-
-	if err := pullImage(node, opts.Image); err != nil {
-		log.Errorf("[doCreateContainerWithMemoryPrior] Error during pullImage %s for %s: %v", opts.Image, nodeInfo.Name, err)
+		log.Errorf("[doCreateContainerWithCPUPrior] Get and prepare node error %v", err)
 		for i := 0; i < nodeInfo.Deploy; i++ {
 			ms[i].Error = err.Error()
 		}
@@ -110,90 +98,27 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 	}
 
 	for i = 0; i < nodeInfo.Deploy; i++ {
-		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i+index, nil, specs, opts, node, types.MEMORY_PRIOR)
-		ms[i].ContainerName = containerName
+		container, err := c.createAndStartContainer(i+index, node, opts, specs, nil, types.MEMORY_PRIOR)
 		ms[i].Podname = opts.Podname
 		ms[i].Nodename = node.Name
+		ms[i].ContainerID = container.ID
+		ms[i].ContainerName = container.Name
 		ms[i].Memory = opts.Memory
+		ms[i].Success = true
 		if err != nil {
-			log.Errorf("[doCreateContainerWithMemoryPrior] Error during makeContainerOptions: %v", err)
+			ms[i].Success = false
 			ms[i].Error = err.Error()
 			c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+") // 创建容器失败就要把资源还回去对不对？
-			continue
-		}
-
-		//create container
-		container, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
-		if err != nil {
-			log.Errorf("[doCreateContainerWithMemoryPrior] Error during ContainerCreate, %v", err)
-			ms[i].Error = err.Error()
-			c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+")
-			continue
-		}
-
-		// connect container to network
-		// if network manager uses docker plugin, then connect must be called before container starts
-		if c.network.Type() == "plugin" {
-			ctx := utils.ToDockerContext(node.Engine)
-			breaked := false
-
-			// need to ensure all networks are correctly connected
-			for networkID, ipv4 := range opts.Networks {
-				if err = c.network.ConnectToNetwork(ctx, container.ID, networkID, ipv4); err != nil {
-					log.Errorf("[doCreateContainerWithMemoryPrior] Error during connecting container %q to network %q, %v", container.ID, networkID, err)
-					breaked = true
-					c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+")
-					break
+			// clean up
+			if container.ID != "" {
+				if err := node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{}); err != nil {
+					log.Errorf("[doCreateContainerWithMemoryPrior] Error during remove failed container %v", err)
 				}
 			}
-
-			// remove bridge network
-			if len(opts.Networks) != 0 {
-				if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
-					log.Errorf("[doCreateContainerWithMemoryPrior] Error during disconnecting container %q from network %q, %v", container.ID, "bridge", err)
-				}
-			}
-
-			// if any break occurs, then this container needs to be removed
-			if breaked {
-				ms[i].Error = err.Error()
-				go c.removeMemoryPodFailedContainer(container.ID, node, nodeInfo, opts)
-				continue
-			}
-		}
-		if err = node.Engine.ContainerStart(context.Background(), container.ID, enginetypes.ContainerStartOptions{}); err != nil {
-			log.Errorf("[doCreateContainerWithMemoryPrior] Error during ContainerStart, %v", err)
-			ms[i].Error = err.Error()
-			go c.removeMemoryPodFailedContainer(container.ID, node, nodeInfo, opts)
+			log.Errorf("[doCreateContainerWithMemoryPrior] Error when create and start a container, %v", err)
 			continue
 		}
-
-		// TODO
-		// if network manager uses our own, then connect must be called after container starts
-		// here
-		info, err := node.Engine.ContainerInspect(context.Background(), container.ID)
-		if err != nil {
-			log.Errorf("[doCreateContainerWithMemoryPrior] Error during ContainerInspect, %v", err)
-			ms[i].Error = err.Error()
-			c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+")
-			continue
-		}
-		ms[i].ContainerID = info.ID
-
-		// after start
-		if err := runExec(node.Engine, info, afterStart); err != nil {
-			log.Errorf("[CreateContainerWithMemoryPrior] Run exec at %s error: %v", afterStart, err)
-		}
-
-		_, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, nil, opts.Memory)
-		if err != nil {
-			log.Errorf("[doCreateContainerWithMemoryPrior] Error during store etcd data %v", err)
-			ms[i].Error = err.Error()
-			go c.removeMemoryPodFailedContainer(container.ID, node, nodeInfo, opts)
-			continue
-		}
-		log.Debugf("[doCreateContainerWithMemoryPrior] create container success %s", info.ID)
-		ms[i].Success = true
+		log.Debugf("[doCreateContainerWithMemoryPrior] create container success %s", container.ID)
 	}
 
 	go func(opts *types.DeployOptions) {
@@ -220,9 +145,6 @@ func (c *calcium) createContainerWithCPUPrior(specs types.Specs, opts *types.Dep
 		return ch, fmt.Errorf("Not enough resource to create container")
 	}
 
-	// FIXME check total count in case scheduler error
-	// FIXME ??? why
-
 	go func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
@@ -247,13 +169,6 @@ func (c *calcium) createContainerWithCPUPrior(specs types.Specs, opts *types.Dep
 	return ch, nil
 }
 
-func (c *calcium) removeCPUPodFailedContainer(id string, node *types.Node, quota types.CPUMap) {
-	defer c.releaseQuota(node, quota)
-	if err := node.Engine.ContainerRemove(context.Background(), id, enginetypes.ContainerRemoveOptions{}); err != nil {
-		log.Errorf("[removeCPUPodFailedContainer] Error during remove failed container %v", err)
-	}
-}
-
 func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.CPUMap, specs types.Specs, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
 	deployCount := len(cpuMap)
 	ms := make([]*types.CreateContainerMessage, deployCount)
@@ -261,14 +176,9 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 		ms[i] = &types.CreateContainerMessage{}
 	}
 
-	node, err := c.GetNode(opts.Podname, nodeName)
+	node, err := c.getAndPrepareNode(opts.Podname, nodeName, opts.Image)
 	if err != nil {
-		log.Errorf("[doCreateContainerWithCPUPrior] Get node error %v", err)
-		return ms
-	}
-
-	if err := pullImage(node, opts.Image); err != nil {
-		log.Errorf("[doCreateContainerWithCPUPrior] Error during pullImage: %v", err)
+		log.Errorf("[doCreateContainerWithCPUPrior] Get and prepare node error %v", err)
 		for i := 0; i < deployCount; i++ {
 			ms[i].Error = err.Error()
 		}
@@ -276,105 +186,32 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 	}
 
 	for i, quota := range cpuMap {
-		// create options
-		config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(i+index, quota, specs, opts, node, types.CPU_PRIOR)
-		ms[i].ContainerName = containerName
+		container, err := c.createAndStartContainer(i+index, node, opts, specs, quota, types.CPU_PRIOR)
 		ms[i].Podname = opts.Podname
 		ms[i].Nodename = node.Name
-		ms[i].Memory = opts.Memory
-		if err != nil {
-			log.Errorf("[doCreateContainerWithCPUPrior] Error during makeContainerOptions: %v", err)
-			ms[i].Error = err.Error()
-			c.releaseQuota(node, quota)
-			continue
-		}
-
-		// create container
-		container, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
-		if err != nil {
-			log.Errorf("[doCreateContainerWithCPUPrior] Error when creating container, %v", err)
-			ms[i].Error = err.Error()
-			c.releaseQuota(node, quota)
-			continue
-		}
-
-		// connect container to network
-		// if network manager uses docker plugin, then connect must be called before container starts
-		if c.network.Type() == "plugin" {
-			ctx := utils.ToDockerContext(node.Engine)
-			breaked := false
-
-			// need to ensure all networks are correctly connected
-			for networkID, ipv4 := range opts.Networks {
-				if err = c.network.ConnectToNetwork(ctx, container.ID, networkID, ipv4); err != nil {
-					log.Errorf("[doCreateContainerWithCPUPrior] Error when connecting container %q to network %q, %v", container.ID, networkID, err)
-					breaked = true
-					c.releaseQuota(node, quota)
-					break
-				}
-			}
-
-			// remove bridge network
-			// only when user defined networks is given
-			if len(opts.Networks) != 0 {
-				if err := c.network.DisconnectFromNetwork(ctx, container.ID, "bridge"); err != nil {
-					log.Errorf("[doCreateContainerWithCPUPrior] Error when disconnecting container %q from network %q, %v", container.ID, "bridge", err)
-				}
-			}
-
-			// if any break occurs, then this container needs to be removed
-			if breaked {
-				ms[i].Error = err.Error()
-				go c.removeCPUPodFailedContainer(container.ID, node, quota)
-				continue
-			}
-		}
-		if err = node.Engine.ContainerStart(context.Background(), container.ID, enginetypes.ContainerStartOptions{}); err != nil {
-			log.Errorf("[doCreateContainerWithCPUPrior] Error when starting container, %v", err)
-			ms[i].Error = err.Error()
-			go c.removeCPUPodFailedContainer(container.ID, node, quota)
-			continue
-		}
-
-		// TODO
-		// if network manager uses our own, then connect must be called after container starts
-		// here
-		info, err := node.Engine.ContainerInspect(context.Background(), container.ID)
-		if err != nil {
-			log.Errorf("[doCreateContainerWithCPUPrior] Error when inspecting container, %v", err)
-			ms[i].Error = err.Error()
-			c.releaseQuota(node, quota)
-			continue
-		}
-		ms[i].ContainerID = info.ID
-
-		// after start
-		if err := runExec(node.Engine, info, afterStart); err != nil {
-			log.Errorf("[doCreateContainerWithCPUPrior] Run exec at %s error: %v", afterStart, err)
-		}
-
-		if _, err = c.store.AddContainer(info.ID, opts.Podname, node.Name, containerName, quota, opts.Memory); err != nil {
-			log.Errorf("[doCreateContainerWithCPUPrior] Error during store etcd data %v", err)
-			ms[i].Error = err.Error()
-			go c.removeCPUPodFailedContainer(container.ID, node, quota)
-			continue
-		}
-		log.Debugf("[doCreateContainerWithCPUPrior] create container success %s", info.ID)
+		ms[i].ContainerID = container.ID
+		ms[i].ContainerName = container.Name
+		ms[i].CPU = quota
 		ms[i].Success = true
+		if err != nil {
+			ms[i].Success = false
+			ms[i].Error = err.Error()
+			if quota.Total() != 0 {
+				c.store.UpdateNodeCPU(opts.Podname, node.Name, quota, "+")
+			}
+			// clean up
+			if container.ID != "" {
+				if err := node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{}); err != nil {
+					log.Errorf("[doCreateContainerWithCPUPrior] Error during remove failed container %v", err)
+				}
+			}
+			log.Errorf("[doCreateContainerWithCPUPrior] Error when create and start a container, %v", err)
+			continue
+		}
+		log.Debugf("[doCreateContainerWithCPUPrior] create container success %s", container.ID)
 	}
 
 	return ms
-}
-
-// When deploy on a public host
-// quota is set to 0
-// no need to update this to etcd (save 1 time write on etcd)
-func (c *calcium) releaseQuota(node *types.Node, quota types.CPUMap) {
-	if quota.Total() == 0 {
-		log.Debug("[releaseQuota] cpu quota is zero: %f", quota)
-		return
-	}
-	c.store.UpdateNodeCPU(node.Podname, node.Name, quota, "+")
 }
 
 func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs types.Specs, opts *types.DeployOptions, node *types.Node, favor string) (
@@ -492,10 +329,16 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 	containerName := utils.MakeContainerName(specs.Appname, opts.Entrypoint, suffix)
 
 	// network mode
-	networkMode := entry.NetworkMode
-	if networkMode == "" {
+	// network mode 和 networks 互斥
+	// 没有 networks 的时候用 networkmode 的值
+	// 有 networks 的时候一律用 none 作为默认 mode
+	networkMode := opts.NetworkMode
+	if len(opts.Networks) > 0 {
+		networkMode = "none"
+	} else if networkMode == "" {
 		networkMode = c.config.Docker.NetworkMode
 	}
+	engineNetworkMode := enginecontainer.NetworkMode(networkMode)
 
 	// dns
 	// 如果有给dns就优先用给定的dns.
@@ -503,7 +346,7 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 	// 其他情况就是默认值.
 	// 哦对, networkMode如果是host也不给dns.
 	dns := specs.DNS
-	if len(dns) == 0 && c.config.Docker.UseLocalDNS && nodeIP != "" && networkMode != "host" {
+	if len(dns) == 0 && c.config.Docker.UseLocalDNS && nodeIP != "" && !engineNetworkMode.IsHost() {
 		dns = []string{nodeIP}
 	}
 
@@ -536,7 +379,7 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 		Binds:         binds,
 		DNS:           dns,
 		LogConfig:     logConfig,
-		NetworkMode:   enginecontainer.NetworkMode(networkMode),
+		NetworkMode:   engineNetworkMode,
 		RestartPolicy: enginecontainer.RestartPolicy{Name: restartPolicy, MaximumRetryCount: maximumRetryCount},
 		CapAdd:        engineslice.StrSlice(capAdd),
 		ExtraHosts:    entry.ExtraHosts,
@@ -563,4 +406,64 @@ func pullImage(node *types.Node, image string) error {
 	ensureReaderClosed(outStream)
 	log.Debugf("[pullImage] Done pulling image %s", image)
 	return nil
+}
+
+func (c *calcium) getAndPrepareNode(podname, nodename, image string) (*types.Node, error) {
+	node, err := c.GetNode(podname, nodename)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := pullImage(node, image); err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+func (c *calcium) createAndStartContainer(no int, node *types.Node, opts *types.DeployOptions, specs types.Specs, quota types.CPUMap, typ string) (enginetypes.ContainerJSON, error) {
+	// get config
+	config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(no, quota, specs, opts, node, typ)
+	if err != nil {
+		return enginetypes.ContainerJSON{}, err
+	}
+	// create container
+	container, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
+	if err != nil {
+		return enginetypes.ContainerJSON{}, err
+	}
+
+	containerID := container.ID
+	containerCreated := enginetypes.ContainerJSON{ContainerJSONBase: &enginetypes.ContainerJSONBase{ID: containerID}}
+	// connect container to network
+	// if network manager uses docker plugin, then connect must be called before container starts
+	// 如果有 networks 的配置，这里的 networkMode 就为 none 了
+	if len(opts.Networks) > 0 {
+		ctx := utils.ToDockerContext(node.Engine)
+		// need to ensure all networks are correctly connected
+		for networkID, ipv4 := range opts.Networks {
+			if err = c.network.ConnectToNetwork(ctx, containerID, networkID, ipv4); err != nil {
+				return containerCreated, err
+			}
+		}
+	}
+
+	if err = node.Engine.ContainerStart(context.Background(), containerID, enginetypes.ContainerStartOptions{}); err != nil {
+		return containerCreated, err
+	}
+
+	containerAlived, err := node.Engine.ContainerInspect(context.Background(), containerID)
+	if err != nil {
+		return containerCreated, err
+	}
+
+	// after start
+	if err := runExec(node.Engine, containerAlived, afterStart); err != nil {
+		return containerAlived, err
+	}
+
+	if _, err = c.store.AddContainer(containerAlived.ID, opts.Podname, node.Name, containerName, quota, opts.Memory); err != nil {
+		return containerAlived, err
+	}
+
+	return containerAlived, nil
 }

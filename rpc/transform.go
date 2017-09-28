@@ -63,20 +63,21 @@ func toRPCBuildImageMessage(b *types.BuildImageMessage) *pb.BuildImageMessage {
 
 func toCoreDeployOptions(d *pb.DeployOptions) *types.DeployOptions {
 	return &types.DeployOptions{
-		Appname:    d.Appname,
-		Image:      d.Image,
-		Podname:    d.Podname,
-		Nodename:   d.Nodename,
-		Entrypoint: d.Entrypoint,
-		ExtraArgs:  d.ExtraArgs,
-		CPUQuota:   d.CpuQuota,
-		Count:      int(d.Count),
-		Memory:     d.Memory,
-		Env:        d.Env,
-		Networks:   d.Networks,
-		Raw:        d.Raw,
-		Debug:      d.Debug,
-		OpenStdin:  d.OpenStdin,
+		Appname:     d.Appname,
+		Image:       d.Image,
+		Podname:     d.Podname,
+		Nodename:    d.Nodename,
+		Entrypoint:  d.Entrypoint,
+		ExtraArgs:   d.ExtraArgs,
+		CPUQuota:    d.CpuQuota,
+		Count:       int(d.Count),
+		Memory:      d.Memory,
+		Env:         d.Env,
+		Networks:    d.Networks,
+		NetworkMode: d.Networkmode,
+		Raw:         d.Raw,
+		Debug:       d.Debug,
+		OpenStdin:   d.OpenStdin,
 	}
 }
 

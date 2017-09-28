@@ -10,3 +10,5 @@ clean.sh
 .vscode/*
 *.test
 test*.py
+set*
+test.yaml
