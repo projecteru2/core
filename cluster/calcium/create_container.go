@@ -334,7 +334,10 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 	// 有 networks 的时候一律用 none 作为默认 mode
 	networkMode := opts.NetworkMode
 	if len(opts.Networks) > 0 {
-		networkMode = "none"
+		for name, _ := range opts.Networks {
+			networkMode = name
+			break
+		}
 	} else if networkMode == "" {
 		networkMode = c.config.Docker.NetworkMode
 	}
