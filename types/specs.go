@@ -31,20 +31,29 @@ type Build struct {
 	Artifacts map[string]string `yaml:"artifacts,omitempty,flow"`
 }
 
+type Hook struct {
+	AfterStart string `yaml:"after_start,omitempty"`
+	BeforeStop string `yaml:"before_stop,omitempty"`
+}
+
+type HealthCheck struct {
+	Port int    `yaml:"healthcheck_port,omitempty,flow"`
+	URL  string `yaml:"healthcheck_url,omitempty"`
+	Code int    `yaml:"healthcheck_expected_code,omitempty"`
+}
+
 // single entrypoint
 type Entrypoint struct {
-	Command                 string   `yaml:"cmd,omitempty"`
-	AfterStart              string   `yaml:"after_start,omitempty"`
-	BeforeStop              string   `yaml:"before_stop,omitempty"`
-	Ports                   []Port   `yaml:"ports,omitempty,flow"`
-	RestartPolicy           string   `yaml:"restart,omitempty"`
-	HealthCheckPort         int      `yaml:"healthcheck_port,omitempty,flow"`
-	HealthCheckUrl          string   `yaml:"healthcheck_url,omitempty"`
-	HealthCheckExpectedCode int      `yaml:"healthcheck_expected_code,omitempty"`
-	ExtraHosts              []string `yaml:"hosts,omitempty,flow"`
-	Privileged              string   `yaml:"privileged,omitempty"`
-	LogConfig               string   `yaml:"log_config,omitempty"`
-	WorkingDir              string   `yaml:"working_dir,omitempty"`
+	Name          string      `yaml:"name,omitempty"`
+	Command       string      `yaml:"cmd,omitempty"`
+	Privileged    string      `yaml:"privileged,omitempty"`
+	WorkingDir    string      `yaml:"working_dir,omitempty"`
+	LogConfig     string      `yaml:"log_config,omitempty"`
+	Ports         []Port      `yaml:"ports,omitempty,flow"`
+	HealthCheck   HealthCheck `yaml:"healthcheck,omitempty,flow"`
+	Hook          Hook        `yaml:"hook,omitempty,flow"`
+	RestartPolicy string      `yaml:"restart,omitempty"`
+	ExtraHosts    []string    `yaml:"hosts,omitempty,flow"`
 }
 
 // single bind

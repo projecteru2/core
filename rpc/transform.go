@@ -62,22 +62,50 @@ func toRPCBuildImageMessage(b *types.BuildImageMessage) *pb.BuildImageMessage {
 }
 
 func toCoreDeployOptions(d *pb.DeployOptions) *types.DeployOptions {
+	ports := []types.Port{}
+	for _, port := range d.Entrypoint.Ports {
+		ports = append(ports, types.Port(port))
+	}
+	hook := types.Hook{
+		AfterStart: d.Entrypoint.Hook.AfterStart,
+		BeforeStop: d.Entrypoint.Hook.BeforeStop,
+	}
+	healthcheck := types.HealthCheck{
+		Port: int(d.Entrypoint.Healcheck.Port),
+		URL:  d.Entrypoint.Healcheck.Url,
+		Code: int(d.Entrypoint.Healcheck.Code),
+	}
+	entry := types.Entrypoint{
+		Name:          d.Entrypoint.Name,
+		Command:       d.Entrypoint.Command,
+		Privileged:    d.Entrypoint.Privileged,
+		WorkingDir:    d.Entrypoint.WorkingDir,
+		LogConfig:     d.Entrypoint.LogConfig,
+		Ports:         ports,
+		HealthCheck:   healthcheck,
+		Hook:          hook,
+		RestartPolicy: d.Entrypoint.RestartPolicy,
+		ExtraHosts:    d.Entrypoint.ExtraHosts,
+	}
 	return &types.DeployOptions{
-		Appname:     d.Appname,
-		Image:       d.Image,
+		Name:        d.Name,
+		Entrypoint:  entry,
 		Podname:     d.Podname,
 		Nodename:    d.Nodename,
-		Entrypoint:  d.Entrypoint,
+		Image:       d.Image,
 		ExtraArgs:   d.ExtraArgs,
 		CPUQuota:    d.CpuQuota,
-		Count:       int(d.Count),
 		Memory:      d.Memory,
+		Count:       int(d.Count),
 		Env:         d.Env,
+		DNS:         d.Dns,
+		Volumes:     d.Volumes,
 		Networks:    d.Networks,
 		NetworkMode: d.Networkmode,
-		Raw:         d.Raw,
+		User:        d.User,
 		Debug:       d.Debug,
 		OpenStdin:   d.OpenStdin,
+		Meta:        d.Meta,
 	}
 }
 
