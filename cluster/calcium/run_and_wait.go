@@ -14,13 +14,11 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions, timeout int, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error) {
+func (c *calcium) RunAndWait(opts *types.DeployOptions, timeout int, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error) {
 	ch := make(chan *types.RunAndWaitMessage)
 
 	// 强制为 json-file 输出
-	entry, _ := specs.Entrypoints[opts.Entrypoint]
-	entry.LogConfig = "json-file"
-	specs.Entrypoints[opts.Entrypoint] = entry
+	opts.Entrypoint.LogConfig = "json-file"
 
 	waitTimeout := c.config.GlobalTimeout
 	if timeout > 0 {
@@ -34,8 +32,8 @@ func (c *calcium) RunAndWait(specs types.Specs, opts *types.DeployOptions, timeo
 	}
 
 	// 创建容器, 有问题就gg
-	log.Debugf("[RunAndWait] Args: %v, %v, %v", waitTimeout, specs, opts)
-	createChan, err := c.CreateContainer(specs, opts)
+	log.Debugf("[RunAndWait] Args: %v, %v", waitTimeout, opts)
+	createChan, err := c.CreateContainer(opts)
 	if err != nil {
 		close(ch)
 		log.Errorf("[RunAndWait] Create container error %s", err)

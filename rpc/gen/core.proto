@@ -142,23 +142,49 @@ message BuildImageOptions {
     string artifact = 4;
 }
 
+message HookOptions {
+    string after_start = 1;
+    string before_stop = 2;
+}
+
+message HealthCheckOptions {
+    int32 port = 1;
+    string url = 2;
+    int32 code = 3;
+}
+
+message EntrypointOptions {
+    string name = 1;
+    string command = 2;
+    string privileged = 3;
+    string working_dir = 4;
+    string log_config = 5;
+    repeated string ports = 6;
+    HealthCheckOptions healcheck = 7;
+    HookOptions hook = 8;
+    string restart_policy = 9;
+    repeated string extra_hosts = 10;
+}
+
 message DeployOptions {
-    string specs = 1;
-    string appname = 2;
-    string image = 3;
-    string podname = 4;
-    string nodename = 5;
-    string entrypoint = 6;
-    string extra_args = 7;
-    double cpu_quota = 8;
+    string name = 1;
+    EntrypointOptions entrypoint = 2;
+    string podname = 3;
+    string nodename = 4;
+    string image = 5;
+    string extra_args = 6;
+    double cpu_quota = 7;
+    int64 memory = 8;
     int32 count = 9;
-    int64 memory = 10;
-    repeated string env = 11;
-    map<string, string> networks = 12;
-    string networkmode = 13;
-    bool raw = 14;
-    bool debug = 15;
-    bool openStdin = 16;
+    repeated string env = 10;
+    repeated string dns = 11;
+    repeated string volumes = 12;
+    map<string, string> networks = 13;
+    string networkmode = 14;
+    string user = 15;
+    bool debug = 16;
+    bool openStdin = 17;
+    map<string, string> meta = 18;
 }
 
 message RemoveImageOptions {

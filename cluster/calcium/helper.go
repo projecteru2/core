@@ -151,17 +151,17 @@ func trimLeftSlash(name string) string {
 // 使用volumes, 参数格式跟docker一样
 // volumes:
 //     - "/foo-data:$APPDIR/foodata:rw"
-func makeMountPaths(specs types.Specs, config types.Config) ([]string, map[string]struct{}) {
+func makeMountPaths(opts *types.DeployOptions, config types.Config) ([]string, map[string]struct{}) {
 	binds := []string{}
 	volumes := make(map[string]struct{})
 
 	var expandENV = func(env string) string {
 		envMap := make(map[string]string)
-		envMap["APPDIR"] = filepath.Join(config.AppDir, specs.Appname)
+		envMap["APPDIR"] = filepath.Join(config.AppDir, opts.Name)
 		return envMap[env]
 	}
 
-	for _, path := range specs.Volumes {
+	for _, path := range opts.Volumes {
 		expanded := os.Expand(path, expandENV)
 		parts := strings.Split(expanded, ":")
 		if len(parts) == 2 {

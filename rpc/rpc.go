@@ -212,12 +212,7 @@ func (v *vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 	v.taskAdd("CreateContainer", true)
 	defer v.taskDone("CreateContainer", true)
 
-	specs, err := types.LoadSpecs(opts.Specs)
-	if err != nil {
-		return err
-	}
-
-	ch, err := v.cluster.CreateContainer(specs, toCoreDeployOptions(opts))
+	ch, err := v.cluster.CreateContainer(toCoreDeployOptions(opts))
 	if err != nil {
 		return err
 	}
@@ -243,14 +238,9 @@ func (v *vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	opts := RunAndWaitOptions.DeployOptions
 	timeout := int(RunAndWaitOptions.Timeout)
 
-	specs, err := types.LoadSpecs(opts.Specs)
-	if err != nil {
-		return err
-	}
-
 	stdinReader, stdinWriter := io.Pipe()
 	defer stdinReader.Close()
-	ch, err := v.cluster.RunAndWait(specs, toCoreDeployOptions(opts), timeout, stdinReader)
+	ch, err := v.cluster.RunAndWait(toCoreDeployOptions(opts), timeout, stdinReader)
 	if err != nil {
 		// `ch` is nil now
 		log.Errorf("[RunAndWait] Start run and wait failed %s", err)
