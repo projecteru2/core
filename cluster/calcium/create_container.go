@@ -102,7 +102,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 		ms[i].Podname = opts.Podname
 		ms[i].Nodename = node.Name
 		ms[i].ContainerID = container.ID
-		ms[i].ContainerName = container.Name
+		ms[i].ContainerName = utils.Tail(container.Name)
 		ms[i].Memory = opts.Memory
 		ms[i].Success = true
 		if err != nil {
