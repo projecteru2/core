@@ -145,6 +145,8 @@ func (c *calcium) BuildImage(opts *types.BuildOptions) (chan *types.BuildImageMe
 		defer resp.Body.Close()
 		defer close(ch)
 		decoder := json.NewDecoder(resp.Body)
+		var err error
+		var lastMessage *types.BuildImageMessage
 		for {
 			message := &types.BuildImageMessage{}
 			err := decoder.Decode(message)
@@ -156,8 +158,13 @@ func (c *calcium) BuildImage(opts *types.BuildOptions) (chan *types.BuildImageMe
 				return
 			}
 			ch <- message
+			lastMessage = message
 		}
 
+		if lastMessage.ErrorDetail.Code != 0 {
+			log.Errorf("[BuildImage] Build image failed %v", lastMessage.ErrorDetail.Message)
+			return
+		}
 		// About this "Khadgar", https://github.com/docker/docker/issues/10983#issuecomment-85892396
 		// Just because Ben Schnetzer's cute Khadgar...
 		rc, err := node.Engine.ImagePush(context.Background(), tag, enginetypes.ImagePushOptions{RegistryAuth: "Khadgar"})
