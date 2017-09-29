@@ -6,7 +6,6 @@ type BuildOptions struct {
 	User   string
 	UID    int
 	Tag    string
-	Home   string
 	Builds *Builds
 }
 

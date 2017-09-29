@@ -138,8 +138,8 @@ message ListNodesOptions {
 message Build {
     string base = 1;
     string repo = 2;
-    bool source = 3;
-    string version = 4;
+    string version = 3;
+    string working_dir = 4;
     repeated string commands = 5;
     map<string, string> artifacts = 6;
     map<string, string> cache = 7;
@@ -155,8 +155,7 @@ message BuildImageOptions {
     string user = 2;
     int32 uid = 3;
     string tag = 4;
-    string home = 5;
-    Builds Builds = 6;
+    Builds builds = 5;
 }
 
 message HookOptions {

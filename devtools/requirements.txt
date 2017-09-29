@@ -1,5 +1,0 @@
-click
-six
-protobuf
-grpcio
-grpcio-tools

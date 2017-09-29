@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -150,14 +149,17 @@ func trimLeftSlash(name string) string {
 // make mount paths
 // 使用volumes, 参数格式跟docker一样
 // volumes:
-//     - "/foo-data:$APPDIR/foodata:rw"
-func makeMountPaths(opts *types.DeployOptions, config types.Config) ([]string, map[string]struct{}) {
+//     - "/foo-data:$SOMEENV/foodata:rw"
+func makeMountPaths(opts *types.DeployOptions) ([]string, map[string]struct{}) {
 	binds := []string{}
 	volumes := make(map[string]struct{})
 
 	var expandENV = func(env string) string {
-		envMap := make(map[string]string)
-		envMap["APPDIR"] = filepath.Join(config.AppDir, opts.Name)
+		envMap := map[string]string{}
+		for _, env := range opts.Env {
+			parts := strings.Split(env, "=")
+			envMap[parts[0]] = parts[1]
+		}
 		return envMap[env]
 	}
 

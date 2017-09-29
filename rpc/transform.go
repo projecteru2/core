@@ -68,13 +68,13 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) *types.BuildOptions {
 	builds.Builds = map[string]*types.Build{}
 	for stage, p := range b.Builds.Builds {
 		builds.Builds[stage] = &types.Build{
-			Base:      p.Base,
-			Repo:      p.Repo,
-			Source:    p.Source,
-			Version:   p.Version,
-			Commands:  p.Commands,
-			Artifacts: p.Artifacts,
-			Cache:     p.Cache,
+			Base:       p.Base,
+			Repo:       p.Repo,
+			Version:    p.Version,
+			WorkingDir: p.WorkingDir,
+			Commands:   p.Commands,
+			Artifacts:  p.Artifacts,
+			Cache:      p.Cache,
 		}
 	}
 	return &types.BuildOptions{
@@ -82,7 +82,6 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) *types.BuildOptions {
 		User:   b.User,
 		UID:    int(b.Uid),
 		Tag:    b.Tag,
-		Home:   b.Home,
 		Builds: builds,
 	}
 }

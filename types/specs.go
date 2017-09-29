@@ -11,13 +11,13 @@ type Builds struct {
 }
 
 type Build struct {
-	Base      string            `yaml:"base,omitempty"`
-	Repo      string            `yaml:"repo,omitempty"`
-	Source    bool              `yaml:"source,omitempty"`
-	Version   string            `yaml:"version,omitempty"`
-	Commands  []string          `yaml:"commands,omitempty,flow"`
-	Artifacts map[string]string `yaml:"artifacts,omitempty,flow"`
-	Cache     map[string]string `yaml:"cache,omitempty,flow"`
+	Base       string            `yaml:"base,omitempty"`
+	Repo       string            `yaml:"repo,omitempty"`
+	Version    string            `yaml:"version,omitempty"`
+	WorkingDir string            `yaml:"working_dir,omitempty"`
+	Commands   []string          `yaml:"commands,omitempty,flow"`
+	Artifacts  map[string]string `yaml:"artifacts,omitempty,flow"`
+	Cache      map[string]string `yaml:"cache,omitempty,flow"`
 }
 
 type Hook struct {
