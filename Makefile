@@ -10,7 +10,7 @@ GO_LDFLAGS ?= -s -X $(REPO_PATH)/versioninfo.REVISION=$(REVISION) \
 
 grpc:
 	cd ./rpc/gen/; protoc --go_out=plugins=grpc:. core.proto
-	cd ./rpc/gen/; python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. core.proto; mv core_pb2.py ../../devtools/
+	cd ./rpc/gen/; python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. core.proto;
 
 deps:
 	glide i

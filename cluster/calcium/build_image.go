@@ -24,44 +24,52 @@ import (
 const (
 	fromAsTmpl = "FROM %s as %s"
 	commonTmpl = `ENV ERU 1
-{{ if .Source }}ADD {{.Repo}} {{.Home}}/{{.Name}}{{ else }}RUN mkdir -p {{.Home}}/{{.Name}}{{ end }}
-WORKDIR {{.Home}}/{{.Name}}`
-	runTmpl  = "RUN sh -c \"%s\""
+{{if .WorkingDir}}RUN mkdir -p {{.WorkingDir}}
+WORKDIR {{.WorkingDir}}{{end}}
+{{if .Repo}}ADD {{.Repo}} .{{end}}`
 	copyTmpl = "COPY --from=%s %s %s"
-	userTmpl = `RUN useradd -u {{.UID}} -d /nonexistent -s /sbin/nologin -U {{.User}}
-RUN chown -R {{.UID}} {{.Home}}/{{.Name}}
-USER {{.User}}
-`
+	runTmpl  = "RUN \"%s\""
+	userTmpl = `RUN adduser -u {{.UID}} -d /nonexistent -s /sbin/nologin -U {{.User}}
+USER {{.User}}`
 )
 
 func (c *calcium) preparedSource(build *types.Build, buildDir string) (string, error) {
 	// parse repository name
 	// code locates under /:repositoryname
-	reponame, err := utils.GetGitRepoName(build.Repo)
-	if err != nil {
-		return "", err
-	}
+	var cloneDir string
+	var err error
+	reponame := build.Repo
+	if build.Repo != "" && build.Version != "" {
+		reponame, err = utils.GetGitRepoName(build.Repo)
+		if err != nil {
+			return "", err
+		}
 
-	// clone code into cloneDir
-	// which is under buildDir and named as repository name
-	cloneDir := filepath.Join(buildDir, reponame)
-	if err := c.source.SourceCode(build.Repo, cloneDir, build.Version); err != nil {
-		return "", err
-	}
+		// clone code into cloneDir
+		// which is under buildDir and named as repository name
+		cloneDir = filepath.Join(buildDir, reponame)
+		if err := c.source.SourceCode(build.Repo, cloneDir, build.Version); err != nil {
+			return "", err
+		}
 
-	// ensure source code is safe
-	// we don't want any history files to be retrieved
-	if err := c.source.Security(cloneDir); err != nil {
-		return "", err
+		// ensure source code is safe
+		// we don't want any history files to be retrieved
+		if err := c.source.Security(cloneDir); err != nil {
+			return "", err
+		}
 	}
 
 	// if artifact download url is provided, remove all source code to
 	// improve security
 	if len(build.Artifacts) > 0 {
-		os.RemoveAll(cloneDir)
-		os.MkdirAll(cloneDir, os.ModeDir)
+		artifactsDir := buildDir
+		if cloneDir != "" {
+			os.RemoveAll(cloneDir)
+			os.MkdirAll(cloneDir, os.ModeDir)
+			artifactsDir = cloneDir
+		}
 		for _, artifact := range build.Artifacts {
-			if err := c.source.Artifact(artifact, cloneDir); err != nil {
+			if err := c.source.Artifact(artifact, artifactsDir); err != nil {
 				return "", err
 			}
 		}
@@ -104,12 +112,6 @@ func (c *calcium) BuildImage(opts *types.BuildOptions) (chan *types.BuildImageMe
 	defer os.RemoveAll(buildDir)
 
 	// create dockerfile
-	if opts.Home == "" {
-		opts.Home = c.config.AppDir
-	}
-	if opts.UID == 0 {
-		return ch, errors.New("Need user id")
-	}
 	if err := c.makeDockerFile(opts, buildDir); err != nil {
 		return ch, err
 	}
@@ -221,14 +223,10 @@ func createTarStream(path string) (io.ReadCloser, error) {
 	return archive.TarWithOptions(path, tarOpts)
 }
 
-func makeCommonPart(opts *types.BuildOptions, build *types.Build) (string, error) {
+func makeCommonPart(build *types.Build) (string, error) {
 	tmpl := template.Must(template.New("common").Parse(commonTmpl))
 	out := bytes.Buffer{}
-	if err := tmpl.Execute(&out,
-		struct {
-			*types.BuildOptions
-			*types.Build
-		}{opts, build}); err != nil {
+	if err := tmpl.Execute(&out, build); err != nil {
 		return "", err
 	}
 	return out.String(), nil
@@ -243,9 +241,9 @@ func makeUserPart(opts *types.BuildOptions) (string, error) {
 	return out.String(), nil
 }
 
-func makeMainPart(opts *types.BuildOptions, build *types.Build, from, commands string, copys []string) (string, error) {
+func makeMainPart(opts *types.BuildOptions, build *types.Build, from string, commands, copys []string) (string, error) {
 	var buildTmpl []string
-	common, err := makeCommonPart(opts, build)
+	common, err := makeCommonPart(build)
 	if err != nil {
 		return "", err
 	}
@@ -253,7 +251,9 @@ func makeMainPart(opts *types.BuildOptions, build *types.Build, from, commands s
 	if len(copys) > 0 {
 		buildTmpl = append(buildTmpl, copys...)
 	}
-	buildTmpl = append(buildTmpl, commands, "")
+	if len(commands) > 0 {
+		buildTmpl = append(buildTmpl, commands...)
+	}
 	return strings.Join(buildTmpl, "\n"), nil
 }
 
@@ -286,7 +286,10 @@ func (c *calcium) makeDockerFile(opts *types.BuildOptions, buildDir string) erro
 		}
 
 		// get commands
-		commands := fmt.Sprintf(runTmpl, strings.Join(build.Commands, " && "))
+		commands := []string{}
+		for _, command := range build.Commands {
+			commands = append(commands, fmt.Sprintf(runTmpl, command))
+		}
 
 		// decide add source or not
 		mainPart, err := makeMainPart(opts, build, from, commands, copys)
@@ -298,7 +301,7 @@ func (c *calcium) makeDockerFile(opts *types.BuildOptions, buildDir string) erro
 		preCache = build.Cache
 	}
 
-	if opts.User != "" {
+	if opts.User != "" && opts.UID != 0 {
 		userPart, err := makeUserPart(opts)
 		if err != nil {
 			return err

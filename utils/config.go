@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/projecteru2/core/types"
@@ -29,7 +28,6 @@ func LoadConfig(configPath string) (types.Config, error) {
 		return config, err
 	}
 
-	config.AppDir = strings.TrimRight(config.AppDir, "/")
 	if config.LockTimeout == 0 {
 		config.LockTimeout = defaultTTL
 	}

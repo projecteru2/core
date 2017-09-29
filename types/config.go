@@ -6,7 +6,6 @@ import "time"
 type Config struct {
 	LogLevel      string        `yaml:"log_level"`
 	Bind          string        `yaml:"bind"`           // HTTP API address
-	AppDir        string        `yaml:"appdir"`         // App directory inside container
 	BackupDir     string        `yaml:"backupdir"`      // Backup dir on host
 	Statsd        string        `yaml:"statsd"`         // Statsd host and port
 	Zone          string        `yaml:"zone"`           // zone for core, e.g. C1, C2

@@ -3,7 +3,6 @@ package calcium
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -22,6 +21,7 @@ import (
 const (
 	restartAlways = "always"
 	minMemory     = 4194304
+	root          = "root"
 )
 
 // Create Container
@@ -229,7 +229,7 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 		user = opts.User
 	}
 	if entry.Privileged != "" {
-		user = "root"
+		user = root
 	}
 	// command and user
 	// extra args is dynamically
@@ -243,12 +243,11 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	env = append(env, fmt.Sprintf("ERU_NODE_IP=%s", nodeIP))
 	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", node.Name))
 	env = append(env, fmt.Sprintf("ERU_ZONE=%s", c.config.Zone))
-	env = append(env, fmt.Sprintf("APPDIR=%s", filepath.Join(c.config.AppDir, opts.Name)))
 	env = append(env, fmt.Sprintf("ERU_CONTAINER_NO=%d", index))
 	env = append(env, fmt.Sprintf("ERU_MEMORY=%d", opts.Memory))
 
 	// mount paths
-	binds, volumes := makeMountPaths(opts, c.config)
+	binds, volumes := makeMountPaths(opts)
 	log.Debugf("[makeContainerOptions] App %s will bind %v", opts.Name, binds)
 
 	// log config
@@ -267,13 +266,6 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 			"syslog-format":   c.config.Syslog.Format,
 			"tag":             fmt.Sprintf("%s {{.ID}}", opts.Name),
 		}
-	}
-
-	// working dir 以 image 的为默认
-	// 如果又不是 root 又没指定，强制为 /:appname
-	workingDir := entry.WorkingDir
-	if user != "root" && workingDir == "" {
-		workingDir = fmt.Sprintf("%s/%s", strings.TrimRight(c.config.AppDir, "/"), opts.Name)
 	}
 
 	// CapAdd and Privileged
@@ -356,7 +348,7 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 		User:            user,
 		Image:           opts.Image,
 		Volumes:         volumes,
-		WorkingDir:      workingDir,
+		WorkingDir:      entry.WorkingDir,
 		NetworkDisabled: false,
 		Labels:          containerLabels,
 		OpenStdin:       opts.OpenStdin,
