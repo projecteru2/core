@@ -2,6 +2,7 @@ package simplescheduler
 
 import (
 	"fmt"
+	"sort"
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
@@ -15,27 +16,9 @@ type magnesium struct {
 // Get a random node.
 // Actually it's not random, it's the one with biggest cpu quota.
 // Returns the node name.
-func (m *magnesium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
-	m.Lock()
-	defer m.Unlock()
-
-	var nodename string
-	if len(nodes) == 0 {
-		return nodename, fmt.Errorf("No nodes provide to choose one")
-	}
-
-	var max int64
-	for name, cpumap := range nodes {
-		total := cpumap.Total()
-		if total > max {
-			max = total
-			nodename = name
-		}
-	}
-
-	// doesn't matter if max is still 0
-	// which means no resource available
-	return nodename, nil
+func (m *magnesium) MaxIdleNode(nodes []*types.Node) *types.Node {
+	sort.Slice(nodes, func(i, j int) bool { return nodes[i].CPU.Total() > nodes[j].CPU.Total() })
+	return nodes[0]
 }
 
 func (m *magnesium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory int64, need int) ([]types.NodeInfo, error) {
