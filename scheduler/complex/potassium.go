@@ -20,7 +20,7 @@ func (m *potassium) RandomNode(nodes map[string]types.CPUMap) (string, error) {
 	if len(nodes) == 0 {
 		return nodename, fmt.Errorf("No nodes provide to choose one")
 	}
-	var max int64
+	var max int64 = 0
 	for name, cpumap := range nodes {
 		total := cpumap.Total()
 		if total > max {

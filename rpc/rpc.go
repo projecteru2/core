@@ -195,7 +195,7 @@ func (v *vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 	v.taskAdd("BuildImage", true)
 	defer v.taskDone("BuildImage", true)
 
-	ch, err := v.cluster.BuildImage(opts.Repo, opts.Version, opts.Uid, opts.Artifact)
+	ch, err := v.cluster.BuildImage(toCoreBuildOptions(opts))
 	if err != nil {
 		return err
 	}

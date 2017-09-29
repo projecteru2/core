@@ -43,7 +43,7 @@ type DockerConfig struct {
 	NetworkMode string `yaml:"network_mode"` // docker network mode
 	CertPath    string `yaml:"cert_path"`    // docker cert files path
 	Hub         string `yaml:"hub"`          // docker hub address
-	HubPrefix   string `yaml:"hub_prefix"`   // docker hub prefix, will be set to $Hub/$HubPrefix/$appname
+	Namespace   string `yaml:"namespace"`    // docker hub prefix, will be set to $Hub/$HubPrefix/$appname
 	BuildPod    string `yaml:"build_pod"`    // podname used to build
 	UseLocalDNS bool   `yaml:"local_dns"`    // use node IP as dns
 }
