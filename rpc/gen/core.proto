@@ -142,6 +142,7 @@ message Build {
     string version = 4;
     repeated string commands = 5;
     map<string, string> artifacts = 6;
+    map<string, string> cache = 7;
 }
 
 message Builds {
