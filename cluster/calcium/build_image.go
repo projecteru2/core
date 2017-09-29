@@ -42,27 +42,13 @@ func getRandomNode(c *calcium, podname string) (*types.Node, error) {
 		log.Errorf("[getRandomNode] Error during ListPodNodes for %s: %v", podname, err)
 		return nil, err
 	}
+
 	if len(nodes) == 0 {
 		err = fmt.Errorf("No nodes available in pod %s", podname)
 		log.Errorf("[getRandomNode] Error during getRandomNode from %s: %v", podname, err)
 		return nil, err
 	}
-
-	nodemap := make(map[string]types.CPUMap)
-	for _, n := range nodes {
-		nodemap[n.Name] = n.CPU
-	}
-	nodename, err := c.scheduler.RandomNode(nodemap)
-	if err != nil {
-		log.Errorf("[getRandomNode] Error during getRandomNode from %s: %v", podname, err)
-		return nil, err
-	}
-	if nodename == "" {
-		err = fmt.Errorf("Got empty node during getRandomNode from %s", podname)
-		return nil, err
-	}
-
-	return c.GetNode(podname, nodename)
+	return c.scheduler.MaxIdleNode(nodes), nil
 }
 
 // BuildImage will build image for repository
@@ -129,7 +115,6 @@ func (c *calcium) BuildImage(opts *types.BuildOptions) (chan *types.BuildImageMe
 	}
 
 	// create dockerfile
-	// rs := richSpecs{specs, uid, strings.TrimRight(c.config.AppDir, "/"), reponame, true}
 	if opts.Home == "" {
 		opts.Home = c.config.AppDir
 	}

@@ -8,7 +8,7 @@ import "github.com/projecteru2/core/types"
 type Scheduler interface {
 	// select one node from nodes, returns nodename
 	// typically used to build image
-	RandomNode(nodes map[string]types.CPUMap) (string, error)
+	MaxIdleNode(nodes []*types.Node) *types.Node
 	SelectMemoryNodes(nodesInfo []types.NodeInfo, quota, memory int64, need int) ([]types.NodeInfo, error)
 	// select nodes from nodes, return a list of nodenames and the corresponding cpumap, and also the changed nodes with remaining cpumap
 	// quota and number must be given, typically used to determine where to deploy
