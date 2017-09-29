@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -17,34 +18,22 @@ import (
 	"github.com/docker/docker/pkg/archive"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	"gopkg.in/yaml.v2"
 )
 
 // FIXME in alpine, useradd rename as adduser
 const (
 	fromTmpl   = "FROM %s"
 	fromAsTmpl = "FROM %s as %s"
-	commonTmpl = `ENV UID {{.UID}}
-ENV Appname {{.Appname}}
-ENV Appdir {{.Appdir}}
-ENV ERU 1
-{{ if .Source }}ADD {{.Reponame}} {{.Appdir}}/{{.Appname}}{{ else }}RUN mkdir -p {{.Appdir}}/{{.Appname}}{{ end }}
-WORKDIR {{.Appdir}}/{{.Appname}}
-RUN useradd -u {{.UID}} -d /nonexistent -s /sbin/nologin -U {{.Appname}}
-RUN chown -R {{.UID}} {{.Appdir}}/{{.Appname}}`
+	commonTmpl = `ENV ERU 1
+{{ if .Source }}ADD {{.Repo}} {{.Home}}/{{.Name}}
+{{ else }}RUN mkdir -p {{.Home}}/{{.Name}}{{ end }}
+WORKDIR {{.Home}}/{{.Name}}
+RUN useradd -u {{.UID}} -d /nonexistent -s /sbin/nologin -U {{.User}}
+RUN chown -R {{.UID}} {{.Home}}/{{.Name}}`
 	runTmpl  = "RUN sh -c \"%s\""
 	copyTmpl = "COPY --from=%s %s %s"
 	userTmpl = "USER %s"
 )
-
-// richSpecs is used to format templates
-type richSpecs struct {
-	types.Specs
-	UID      string
-	Appdir   string
-	Reponame string
-	Source   bool
-}
 
 // Get a random node from pod `podname`
 func getRandomNode(c *calcium, podname string) (*types.Node, error) {
@@ -83,28 +72,33 @@ func getRandomNode(c *calcium, podname string) (*types.Node, error) {
 //
 //    buildDir ├─ :appname ├─ code
 //             ├─ Dockerfile
-func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *types.BuildImageMessage, error) {
+func (c *calcium) BuildImage(opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
 	ch := make(chan *types.BuildImageMessage)
 
+	// get pod from config
 	buildPodname := c.config.Docker.BuildPod
 	if buildPodname == "" {
 		return ch, fmt.Errorf("No build pod set in config")
 	}
 
+	// get node by scheduler
 	node, err := getRandomNode(c, buildPodname)
 	if err != nil {
 		return ch, err
 	}
 
+	// make build dir
 	buildDir, err := ioutil.TempDir(os.TempDir(), "corebuild-")
 	if err != nil {
 		return ch, err
 	}
 	defer os.RemoveAll(buildDir)
 
+	initBuild := opts.Builds.Builds[opts.Builds.Stages[0]]
+
 	// parse repository name
 	// code locates under /:repositoryname
-	reponame, err := utils.GetGitRepoName(repository)
+	reponame, err := utils.GetGitRepoName(initBuild.Repo)
 	if err != nil {
 		return ch, err
 	}
@@ -112,7 +106,7 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 	// clone code into cloneDir
 	// which is under buildDir and named as repository name
 	cloneDir := filepath.Join(buildDir, reponame)
-	if err := c.source.SourceCode(repository, cloneDir, version); err != nil {
+	if err := c.source.SourceCode(initBuild.Repo, cloneDir, initBuild.Version); err != nil {
 		return ch, err
 	}
 
@@ -122,41 +116,38 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 		return ch, err
 	}
 
-	// use app.yaml file to create Specs instance
-	// which we'll need to generate build args later
-	bytes, err := ioutil.ReadFile(filepath.Join(cloneDir, "app.yaml"))
-	if err != nil {
-		return ch, err
-	}
-	specs := types.Specs{}
-	if err := yaml.Unmarshal(bytes, &specs); err != nil {
-		return ch, err
-	}
-
 	// if artifact download url is provided, remove all source code to
 	// improve security
-	if artifact != "" {
+	if len(initBuild.Artifacts) > 0 {
 		os.RemoveAll(cloneDir)
 		os.MkdirAll(cloneDir, os.ModeDir)
-		if err := c.source.Artifact(artifact, cloneDir); err != nil {
-			return ch, err
+		for _, artifact := range initBuild.Artifacts {
+			if err := c.source.Artifact(artifact, cloneDir); err != nil {
+				return ch, err
+			}
 		}
 	}
 
 	// create dockerfile
-	rs := richSpecs{specs, uid, strings.TrimRight(c.config.AppDir, "/"), reponame, true}
-	if len(specs.Build) > 0 {
-		if err := makeSimpleDockerFile(rs, buildDir); err != nil {
+	// rs := richSpecs{specs, uid, strings.TrimRight(c.config.AppDir, "/"), reponame, true}
+	if opts.Home == "" {
+		opts.Home = c.config.AppDir
+	}
+	if opts.UID == 0 {
+		return ch, errors.New("Need user id")
+	}
+	if len(opts.Builds.Stages) == 1 {
+		if err := makeSimpleDockerFile(opts, initBuild, buildDir); err != nil {
 			return ch, err
 		}
 	} else {
-		if err := makeComplexDockerFile(rs, buildDir); err != nil {
+		if err := makeComplexDockerFile(opts, buildDir); err != nil {
 			return ch, err
 		}
 	}
 
 	// tag of image, later this will be used to push image to hub
-	tag := createImageTag(c.config, specs.Appname, utils.TruncateID(version))
+	tag := createImageTag(c.config.Docker, opts.Name, opts.Tag)
 
 	// create tar stream for Build API
 	buildContext, err := createTarStream(buildDir)
@@ -174,7 +165,7 @@ func (c *calcium) BuildImage(repository, version, uid, artifact string) (chan *t
 		PullParent:     true,
 	}
 
-	log.Infof("[BuildImage] Building image %v with artifact %v at %v:%v", tag, artifact, buildPodname, node.Name)
+	log.Infof("[BuildImage] Building image %v at %v:%v", tag, buildPodname, node.Name)
 	ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
 	defer cancel()
 	resp, err := node.Engine.ImageBuild(ctx, buildContext, buildOptions)
@@ -255,18 +246,22 @@ func createTarStream(path string) (io.ReadCloser, error) {
 	return archive.TarWithOptions(path, tarOpts)
 }
 
-func makeCommonPart(rs richSpecs) (string, error) {
+func makeCommonPart(opts *types.BuildOptions, build *types.Build) (string, error) {
 	tmpl := template.Must(template.New("dockerfile").Parse(commonTmpl))
 	out := bytes.Buffer{}
-	if err := tmpl.Execute(&out, rs); err != nil {
+	if err := tmpl.Execute(&out,
+		struct {
+			*types.BuildOptions
+			*types.Build
+		}{opts, build}); err != nil {
 		return "", err
 	}
 	return out.String(), nil
 }
 
-func makeMainPart(from, commands string, copys []string, rs richSpecs) (string, error) {
+func makeMainPart(opts *types.BuildOptions, build *types.Build, from, commands string, copys []string) (string, error) {
 	var buildTmpl []string
-	common, err := makeCommonPart(rs)
+	common, err := makeCommonPart(opts, build)
 	if err != nil {
 		return "", err
 	}
@@ -278,13 +273,15 @@ func makeMainPart(from, commands string, copys []string, rs richSpecs) (string, 
 	return strings.Join(buildTmpl, "\n"), nil
 }
 
-func makeSimpleDockerFile(rs richSpecs, buildDir string) error {
-	from := fmt.Sprintf(fromTmpl, rs.Base)
-	user := fmt.Sprintf(userTmpl, rs.Appname)
-	commands := fmt.Sprintf(runTmpl, strings.Join(rs.Build, " && "))
-	// make sure add source code
-	rs.Source = true
-	mainPart, err := makeMainPart(from, commands, []string{}, rs)
+func makeSimpleDockerFile(opts *types.BuildOptions, build *types.Build, buildDir string) error {
+	from := fmt.Sprintf(fromTmpl, build.Base)
+	user := ""
+	if opts.User != "" {
+		user = fmt.Sprintf(userTmpl, opts.User)
+	}
+	commands := fmt.Sprintf(runTmpl, strings.Join(build.Commands, " && "))
+	build.Source = true
+	mainPart, err := makeMainPart(opts, build, from, commands, []string{})
 	if err != nil {
 		return err
 	}
@@ -292,15 +289,15 @@ func makeSimpleDockerFile(rs richSpecs, buildDir string) error {
 	return createDockerfile(dockerfile, buildDir)
 }
 
-func makeComplexDockerFile(rs richSpecs, buildDir string) error {
+func makeComplexDockerFile(opts *types.BuildOptions, buildDir string) error {
 	var preArtifacts map[string]string
 	var preStage string
 	var buildTmpl []string
 
-	for _, stage := range rs.ComplexBuild.Stages {
-		build, ok := rs.ComplexBuild.Builds[stage]
+	for _, stage := range opts.Builds.Stages {
+		build, ok := opts.Builds.Builds[stage]
 		if !ok {
-			log.Warnf("[makeComplexDockerFile] Complex build stage %s not defined", stage)
+			log.Warnf("[makeComplexDockerFile] Builds stage %s not defined", stage)
 			continue
 		}
 
@@ -311,8 +308,7 @@ func makeComplexDockerFile(rs richSpecs, buildDir string) error {
 		}
 		commands := fmt.Sprintf(runTmpl, strings.Join(build.Commands, " && "))
 		// decide add source or not
-		rs.Source = build.Source
-		mainPart, err := makeMainPart(from, commands, copys, rs)
+		mainPart, err := makeMainPart(opts, build, from, commands, copys)
 		if err != nil {
 			return err
 		}
@@ -320,7 +316,7 @@ func makeComplexDockerFile(rs richSpecs, buildDir string) error {
 		preStage = stage
 		preArtifacts = build.Artifacts
 	}
-	buildTmpl = append(buildTmpl, fmt.Sprintf(userTmpl, rs.Appname))
+	buildTmpl = append(buildTmpl, fmt.Sprintf(userTmpl, opts.User))
 	dockerfile := strings.Join(buildTmpl, "\n")
 	return createDockerfile(dockerfile, buildDir)
 }
@@ -338,10 +334,10 @@ func createDockerfile(dockerfile, buildDir string) error {
 
 // Image tag
 // 格式严格按照 Hub/HubPrefix/appname:version 来
-func createImageTag(config types.Config, appname, version string) string {
-	prefix := strings.Trim(config.Docker.HubPrefix, "/")
+func createImageTag(config types.DockerConfig, appname, version string) string {
+	prefix := strings.Trim(config.Namespace, "/")
 	if prefix == "" {
-		return fmt.Sprintf("%s/%s:%s", config.Docker.Hub, appname, version)
+		return fmt.Sprintf("%s/%s:%s", config.Hub, appname, version)
 	}
-	return fmt.Sprintf("%s/%s/%s:%s", config.Docker.Hub, prefix, appname, version)
+	return fmt.Sprintf("%s/%s/%s:%s", config.Hub, prefix, appname, version)
 }

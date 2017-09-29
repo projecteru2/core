@@ -1,9 +1,19 @@
 package types
 
-// Deployment options
+//BuildOptions is options for building image
+type BuildOptions struct {
+	Name   string
+	User   string
+	UID    int
+	Tag    string
+	Home   string
+	Builds *Builds
+}
+
+//DeployOptions is options for deploying
 type DeployOptions struct {
 	Name        string            // Name of application
-	Entrypoint  Entrypoint        // entrypoint
+	Entrypoint  *Entrypoint       // entrypoint
 	Podname     string            // Name of pod to deploy
 	Nodename    string            // Specific nodes to deploy, if given, must belong to pod
 	Image       string            // Name of image to deploy
@@ -22,6 +32,7 @@ type DeployOptions struct {
 	Meta        map[string]string // Meta for containers
 }
 
+//RunAndWaitOptions is options for running and waiting
 type RunAndWaitOptions struct {
 	DeployOptions
 	Timeout int

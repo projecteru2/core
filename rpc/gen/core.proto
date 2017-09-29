@@ -135,11 +135,27 @@ message ListNodesOptions {
     bool all = 2;
 }
 
+message Build {
+    string base = 1;
+    string repo = 2;
+    bool source = 3;
+    string version = 4;
+    repeated string commands = 5;
+    map<string, string> artifacts = 6;
+}
+
+message Builds {
+    repeated string stages = 1;
+    map<string, Build> builds = 2;
+}
+
 message BuildImageOptions {
-    string repo = 1;
-    string version = 2;
-    string uid = 3;
-    string artifact = 4;
+    string name = 1;
+    string user = 2;
+    int32 uid = 3;
+    string tag = 4;
+    string home = 5;
+    Builds Builds = 6;
 }
 
 message HookOptions {

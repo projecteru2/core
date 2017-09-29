@@ -61,21 +61,46 @@ func toRPCBuildImageMessage(b *types.BuildImageMessage) *pb.BuildImageMessage {
 	}
 }
 
+func toCoreBuildOptions(b *pb.BuildImageOptions) *types.BuildOptions {
+	builds := &types.Builds{
+		Stages: b.Builds.Stages,
+	}
+	builds.Builds = map[string]*types.Build{}
+	for stage, p := range b.Builds.Builds {
+		builds.Builds[stage] = &types.Build{
+			Base:      p.Base,
+			Repo:      p.Repo,
+			Source:    p.Source,
+			Version:   p.Version,
+			Commands:  p.Commands,
+			Artifacts: p.Artifacts,
+		}
+	}
+	return &types.BuildOptions{
+		Name:   b.Name,
+		User:   b.User,
+		UID:    int(b.Uid),
+		Tag:    b.Tag,
+		Home:   b.Home,
+		Builds: builds,
+	}
+}
+
 func toCoreDeployOptions(d *pb.DeployOptions) *types.DeployOptions {
 	ports := []types.Port{}
 	for _, port := range d.Entrypoint.Ports {
 		ports = append(ports, types.Port(port))
 	}
-	hook := types.Hook{
+	hook := &types.Hook{
 		AfterStart: d.Entrypoint.Hook.AfterStart,
 		BeforeStop: d.Entrypoint.Hook.BeforeStop,
 	}
-	healthcheck := types.HealthCheck{
+	healthcheck := &types.HealthCheck{
 		Port: int(d.Entrypoint.Healcheck.Port),
 		URL:  d.Entrypoint.Healcheck.Url,
 		Code: int(d.Entrypoint.Healcheck.Code),
 	}
-	entry := types.Entrypoint{
+	entry := &types.Entrypoint{
 		Name:          d.Entrypoint.Name,
 		Command:       d.Entrypoint.Command,
 		Privileged:    d.Entrypoint.Privileged,
