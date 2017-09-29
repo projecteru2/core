@@ -35,22 +35,6 @@ RUN chown -R {{.UID}} {{.Home}}/{{.Name}}`
 	userTmpl = "USER %s"
 )
 
-// Get a random node from pod `podname`
-func getRandomNode(c *calcium, podname string) (*types.Node, error) {
-	nodes, err := c.ListPodNodes(podname, false)
-	if err != nil {
-		log.Errorf("[getRandomNode] Error during ListPodNodes for %s: %v", podname, err)
-		return nil, err
-	}
-
-	if len(nodes) == 0 {
-		err = fmt.Errorf("No nodes available in pod %s", podname)
-		log.Errorf("[getRandomNode] Error during getRandomNode from %s: %v", podname, err)
-		return nil, err
-	}
-	return c.scheduler.MaxIdleNode(nodes), nil
-}
-
 // BuildImage will build image for repository
 // since we wanna set UID for the user inside container, we have to know the uid parameter
 //
@@ -68,10 +52,14 @@ func (c *calcium) BuildImage(opts *types.BuildOptions) (chan *types.BuildImageMe
 	}
 
 	// get node by scheduler
-	node, err := getRandomNode(c, buildPodname)
+	nodes, err := c.ListPodNodes(buildPodname, false)
 	if err != nil {
 		return ch, err
 	}
+	if len(nodes) == 0 {
+		return ch, errors.New("No node to build")
+	}
+	node := c.scheduler.MaxIdleNode(nodes)
 
 	// make build dir
 	buildDir, err := ioutil.TempDir(os.TempDir(), "corebuild-")
