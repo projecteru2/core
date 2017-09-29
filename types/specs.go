@@ -17,6 +17,7 @@ type Build struct {
 	Version   string            `yaml:"version,omitempty"`
 	Commands  []string          `yaml:"commands,omitempty,flow"`
 	Artifacts map[string]string `yaml:"artifacts,omitempty,flow"`
+	Cache     map[string]string `yaml:"cache,omitempty,flow"`
 }
 
 type Hook struct {

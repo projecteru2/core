@@ -74,6 +74,7 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) *types.BuildOptions {
 			Version:   p.Version,
 			Commands:  p.Commands,
 			Artifacts: p.Artifacts,
+			Cache:     p.Cache,
 		}
 	}
 	return &types.BuildOptions{
