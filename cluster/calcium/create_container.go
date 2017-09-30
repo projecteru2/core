@@ -98,11 +98,12 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, opts
 
 	for i = 0; i < nodeInfo.Deploy; i++ {
 		container, err := c.createAndStartContainer(i+index, node, opts, nil, types.MEMORY_PRIOR)
-		ms[i].Podname = opts.Podname
-		ms[i].Nodename = node.Name
+		ms[i].Podname = container.Podname
+		ms[i].Nodename = container.Nodename
+		ms[i].ContainerName = container.Name
 		ms[i].ContainerID = container.ID
-		ms[i].ContainerName = utils.Tail(container.Name)
-		ms[i].Memory = opts.Memory
+		ms[i].Memory = container.Memory
+		ms[i].IPs = container.Networks
 		ms[i].Success = true
 		if err != nil {
 			ms[i].Success = false
@@ -186,11 +187,12 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 
 	for i, quota := range cpuMap {
 		container, err := c.createAndStartContainer(i+index, node, opts, quota, types.CPU_PRIOR)
-		ms[i].Podname = opts.Podname
-		ms[i].Nodename = node.Name
+		ms[i].Podname = container.Podname
+		ms[i].Nodename = container.Nodename
+		ms[i].ContainerName = container.Name
 		ms[i].ContainerID = container.ID
-		ms[i].ContainerName = utils.Tail(container.Name)
-		ms[i].CPU = quota
+		ms[i].CPU = container.CPU
+		ms[i].IPs = container.Networks
 		ms[i].Success = true
 		if err != nil {
 			ms[i].Success = false
@@ -412,20 +414,30 @@ func (c *calcium) getAndPrepareNode(podname, nodename, image string) (*types.Nod
 	return node, nil
 }
 
-func (c *calcium) createAndStartContainer(no int, node *types.Node, opts *types.DeployOptions, quota types.CPUMap, typ string) (enginetypes.ContainerJSON, error) {
+func (c *calcium) createAndStartContainer(no int, node *types.Node, opts *types.DeployOptions, quota types.CPUMap, typ string) (*types.Container, error) {
+	container := &types.Container{
+		Podname:  opts.Podname,
+		Nodename: node.Name,
+		Networks: map[string]string{},
+		Memory:   opts.Memory,
+		CPU:      quota,
+		Engine:   node.Engine,
+	}
+
 	// get config
 	config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(no, quota, opts, node, typ)
 	if err != nil {
-		return enginetypes.ContainerJSON{}, err
+		return container, err
 	}
-	// create container
-	container, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
-	if err != nil {
-		return enginetypes.ContainerJSON{}, err
-	}
+	container.Name = containerName
 
-	containerID := container.ID
-	containerCreated := enginetypes.ContainerJSON{ContainerJSONBase: &enginetypes.ContainerJSONBase{ID: containerID}}
+	// create container
+	containerCreated, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
+	if err != nil {
+		return container, err
+	}
+	container.ID = containerCreated.ID
+
 	// connect container to network
 	// if network manager uses docker plugin, then connect must be called before container starts
 	// 如果有 networks 的配置，这里的 networkMode 就为 none 了
@@ -433,29 +445,43 @@ func (c *calcium) createAndStartContainer(no int, node *types.Node, opts *types.
 		ctx := utils.ToDockerContext(node.Engine)
 		// need to ensure all networks are correctly connected
 		for networkID, ipv4 := range opts.Networks {
-			if err = c.network.ConnectToNetwork(ctx, containerID, networkID, ipv4); err != nil {
-				return containerCreated, err
+			if err = c.network.ConnectToNetwork(ctx, containerCreated.ID, networkID, ipv4); err != nil {
+				return container, err
 			}
 		}
 	}
 
-	if err = node.Engine.ContainerStart(context.Background(), containerID, enginetypes.ContainerStartOptions{}); err != nil {
-		return containerCreated, err
+	if err = node.Engine.ContainerStart(context.Background(), containerCreated.ID, enginetypes.ContainerStartOptions{}); err != nil {
+		return container, err
 	}
 
-	containerAlived, err := node.Engine.ContainerInspect(context.Background(), containerID)
+	containerAlived, err := node.Engine.ContainerInspect(context.Background(), containerCreated.ID)
 	if err != nil {
-		return containerCreated, err
+		return container, err
 	}
 
 	// after start
 	if err := runExec(node.Engine, containerAlived, afterStart); err != nil {
-		return containerAlived, err
+		return container, err
 	}
 
-	if _, err = c.store.AddContainer(containerAlived.ID, opts.Podname, node.Name, containerName, quota, opts.Memory); err != nil {
-		return containerAlived, err
+	// get ips
+	for nn, ns := range containerAlived.NetworkSettings.Networks {
+		ip := ns.IPAddress
+		if enginecontainer.NetworkMode(nn).IsHost() {
+			ip = node.GetIP()
+		}
+
+		data := []string{}
+		for _, port := range opts.Entrypoint.Ports {
+			data = append(data, fmt.Sprintf("%s:%s", ip, port.Port()))
+		}
+		container.Networks[nn] = strings.Join(data, ",")
 	}
 
-	return containerAlived, nil
+	if err = c.store.AddContainer(container); err != nil {
+		return container, err
+	}
+
+	return container, nil
 }
