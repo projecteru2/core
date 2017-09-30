@@ -278,6 +278,7 @@ func (c *calcium) doReallocContainersWithCPUPrior(
 	for node, cpuset := range nodesCPUResult {
 		containers := nodesInfoMap[node]
 		for index, container := range containers {
+			//TODO 如果需要限制内存，需要在这里 inspect 一下
 			quota := cpuset[index]
 			resource := c.makeCPUPriorSetting(quota)
 			updateConfig := enginecontainer.UpdateConfig{Resources: resource}

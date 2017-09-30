@@ -65,17 +65,11 @@ func (k *krypton) AddContainer(id, podname, nodename, name string, cpu types.CPU
 		return nil, err
 	}
 
-	// then we check if container really exists
-	c, err := node.Engine.ContainerInspect(context.Background(), id)
-	if err != nil {
-		return nil, err
-	}
-
 	// now everything is ok
 	// we use full length id instead
 	key := fmt.Sprintf(containerInfoKey, id)
 	container := &types.Container{
-		ID:       c.ID,
+		ID:       id,
 		Podname:  podname,
 		Nodename: nodename,
 		Name:     name,
@@ -99,7 +93,7 @@ func (k *krypton) AddContainer(id, podname, nodename, name string, cpu types.CPU
 	if err != nil {
 		return nil, err
 	}
-	key = fmt.Sprintf(containerDeployKey, appname, entrypoint, nodename, c.ID)
+	key = fmt.Sprintf(containerDeployKey, appname, entrypoint, nodename, id)
 	_, err = k.etcd.Set(context.Background(), key, "", nil)
 	if err != nil {
 		return nil, err
