@@ -58,58 +58,44 @@ func (k *krypton) GetContainers(ids []string) (containers []*types.Container, er
 // actually if we already know its node, we will know its pod
 // but we still store it
 // storage path in etcd is `/container/:containerid`
-func (k *krypton) AddContainer(id, podname, nodename, name string, cpu types.CPUMap, memory int64) (*types.Container, error) {
-	// first we check if node really exists
-	node, err := k.GetNode(podname, nodename)
-	if err != nil {
-		return nil, err
-	}
-
+func (k *krypton) AddContainer(container *types.Container) error {
 	// now everything is ok
 	// we use full length id instead
-	key := fmt.Sprintf(containerInfoKey, id)
-	container := &types.Container{
-		ID:       id,
-		Podname:  podname,
-		Nodename: nodename,
-		Name:     name,
-		CPU:      cpu,
-		Memory:   memory,
-		Engine:   node.Engine,
-	}
-
+	key := fmt.Sprintf(containerInfoKey, container.ID)
 	bytes, err := json.Marshal(container)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	_, err = k.etcd.Set(context.Background(), key, string(bytes), nil)
+	data := string(bytes)
+	_, err = k.etcd.Set(context.Background(), key, data, nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// store deploy status
-	appname, entrypoint, _, err := utils.ParseContainerName(name)
+	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
 	if err != nil {
-		return nil, err
-	}
-	key = fmt.Sprintf(containerDeployKey, appname, entrypoint, nodename, id)
-	_, err = k.etcd.Set(context.Background(), key, "", nil)
-	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return container, nil
+	key = fmt.Sprintf(containerDeployKey, appname, entrypoint, container.Nodename, container.ID)
+	_, err = k.etcd.Set(context.Background(), key, data, nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // remove a container
 // container id must be in full length
-func (k *krypton) RemoveContainer(id string, container *types.Container) error {
-	if len(id) < 64 {
+func (k *krypton) RemoveContainer(container *types.Container) error {
+	if len(container.ID) < 64 {
 		return fmt.Errorf("Container ID must be length of 64")
 	}
 
-	key := fmt.Sprintf(containerInfoKey, id)
+	key := fmt.Sprintf(containerInfoKey, container.ID)
 	if _, err := k.etcd.Delete(context.Background(), key, nil); err != nil {
 		return err
 	}
@@ -119,7 +105,7 @@ func (k *krypton) RemoveContainer(id string, container *types.Container) error {
 	if err != nil {
 		return err
 	}
-	key = fmt.Sprintf(containerDeployKey, appname, entrypoint, container.Nodename, id)
+	key = fmt.Sprintf(containerDeployKey, appname, entrypoint, container.Nodename, container.ID)
 	_, err = k.etcd.Delete(context.Background(), key, nil)
 	return err
 }

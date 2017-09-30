@@ -170,7 +170,7 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 	}
 	log.Debugf("[removeOneContainer] Container removed %s", info.ID)
 
-	return c.store.RemoveContainer(info.ID, container)
+	return c.store.RemoveContainer(container)
 }
 
 // 同步地删除容器, 在某些需要等待的场合异常有用!
