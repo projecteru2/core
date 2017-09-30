@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
@@ -61,7 +62,10 @@ func toRPCBuildImageMessage(b *types.BuildImageMessage) *pb.BuildImageMessage {
 	}
 }
 
-func toCoreBuildOptions(b *pb.BuildImageOptions) *types.BuildOptions {
+func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
+	if b.Builds == nil || len(b.Builds.Stages) == 0 {
+		return nil, errors.New("no builds")
+	}
 	builds := &types.Builds{
 		Stages: b.Builds.Stages,
 	}
@@ -83,34 +87,46 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) *types.BuildOptions {
 		UID:    int(b.Uid),
 		Tag:    b.Tag,
 		Builds: builds,
-	}
+	}, nil
 }
 
-func toCoreDeployOptions(d *pb.DeployOptions) *types.DeployOptions {
+func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
+	if d.Entrypoint == nil {
+		return nil, errors.New("no entry")
+	}
+
+	entrypoint := d.Entrypoint
+
+	// covert ports
 	ports := []types.Port{}
-	for _, port := range d.Entrypoint.Ports {
+	for _, port := range entrypoint.Ports {
 		ports = append(ports, types.Port(port))
 	}
-	hook := &types.Hook{
-		AfterStart: d.Entrypoint.Hook.AfterStart,
-		BeforeStop: d.Entrypoint.Hook.BeforeStop,
+
+	hook := &types.Hook{}
+	if entrypoint.Hook != nil {
+		hook.AfterStart = entrypoint.Hook.AfterStart
+		hook.BeforeStop = entrypoint.Hook.BeforeStop
 	}
-	healthcheck := &types.HealthCheck{
-		Port: int(d.Entrypoint.Healcheck.Port),
-		URL:  d.Entrypoint.Healcheck.Url,
-		Code: int(d.Entrypoint.Healcheck.Code),
+
+	healthcheck := &types.HealthCheck{}
+	if entrypoint.Healcheck != nil {
+		healthcheck.Port = int(entrypoint.Healcheck.Port)
+		healthcheck.URL = entrypoint.Healcheck.Url
+		healthcheck.Code = int(entrypoint.Healcheck.Code)
 	}
+
 	entry := &types.Entrypoint{
-		Name:          d.Entrypoint.Name,
-		Command:       d.Entrypoint.Command,
-		Privileged:    d.Entrypoint.Privileged,
-		WorkingDir:    d.Entrypoint.WorkingDir,
-		LogConfig:     d.Entrypoint.LogConfig,
+		Name:          entrypoint.Name,
+		Command:       entrypoint.Command,
+		Privileged:    entrypoint.Privileged,
+		WorkingDir:    entrypoint.WorkingDir,
+		LogConfig:     entrypoint.LogConfig,
 		Ports:         ports,
 		HealthCheck:   healthcheck,
 		Hook:          hook,
-		RestartPolicy: d.Entrypoint.RestartPolicy,
-		ExtraHosts:    d.Entrypoint.ExtraHosts,
+		RestartPolicy: entrypoint.RestartPolicy,
+		ExtraHosts:    entrypoint.ExtraHosts,
 	}
 	return &types.DeployOptions{
 		Name:        d.Name,
@@ -131,7 +147,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) *types.DeployOptions {
 		Debug:       d.Debug,
 		OpenStdin:   d.OpenStdin,
 		Meta:        d.Meta,
-	}
+	}, nil
 }
 
 func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateContainerMessage {
