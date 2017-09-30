@@ -236,6 +236,7 @@ message CreateContainerMessage {
     bool success = 6;
     map<string, int64> cpu = 7;
     int64 memory = 8;
+    map<string, string> ips = 9;
 }
 
 message RunAndWaitMessage {

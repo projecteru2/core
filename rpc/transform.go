@@ -160,6 +160,7 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 		Success:  c.Success,
 		Cpu:      toRPCCPUMap(c.CPU),
 		Memory:   c.Memory,
+		Ips:      c.IPs,
 	}
 }
 
