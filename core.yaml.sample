@@ -1,9 +1,7 @@
 log_level: "DEBUG"
 bind: ":5001"
-appdir: "/home"
 backupdir: "/data/backup"
 statsd: "127.0.0.1:8125"
-
 zone: "eru-test"
 image_cache: 2
 global_timeout: 300
@@ -26,7 +24,7 @@ docker:
     network_mode: "bridge"
     cert_path: "/etc/eru/tls"
     hub: "hub.docker.com"
-    hub_prefix: "projecteru2"
+    namespace: "projecteru2"
     build_pod: "eru-test"
     local_dns: true
 

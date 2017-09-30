@@ -11,7 +11,7 @@ import (
 )
 
 func (k *krypton) MakeDeployStatus(opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
-	key := fmt.Sprintf(containerDeployStatusKey, opts.Appname, opts.Entrypoint)
+	key := fmt.Sprintf(containerDeployStatusKey, opts.Name, opts.Entrypoint.Name)
 	resp, err := k.etcd.Get(context.Background(), key, &etcdclient.GetOptions{Recursive: true})
 	if err != nil && etcdclient.IsKeyNotFound(err) {
 		return k.doMakeDeployStatus(opts, nodesInfo)
@@ -43,7 +43,7 @@ func (k *krypton) doMakeDeployStatus(opts *types.DeployOptions, nodesInfo []type
 		return nodesInfo, err
 	}
 
-	prefix := fmt.Sprintf("%s_%s", opts.Appname, opts.Entrypoint)
+	prefix := fmt.Sprintf("%s_%s", opts.Name, opts.Entrypoint)
 	m := map[string]string{}
 	nodesCount := map[string]int{}
 	for _, node := range resp.Node.Nodes {

@@ -123,9 +123,9 @@ func (m *MockStore) GetContainers(ids []string) ([]*types.Container, error) {
 	return args.Get(0).([]*types.Container), args.Error(1)
 }
 
-func (m *MockStore) AddContainer(id, podname, nodename, name string, cpu types.CPUMap, memory int64) (*types.Container, error) {
+func (m *MockStore) AddContainer(container *types.Container) error {
 	// since we add the container ourselves, no one cares about the return
-	return nil, nil
+	return nil
 }
 
 func (m *MockStore) RemoveContainer(id string, container *types.Container) error {

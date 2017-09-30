@@ -3,7 +3,6 @@ package calcium
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -22,25 +21,25 @@ import (
 const (
 	restartAlways = "always"
 	minMemory     = 4194304
+	root          = "root"
 )
 
 // Create Container
-// Use specs and options to create
-// TODO what about networks?
-func (c *calcium) CreateContainer(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+// Use options to create
+func (c *calcium) CreateContainer(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	pod, err := c.store.GetPod(opts.Podname)
 	if err != nil {
 		log.Errorf("[CreateContainer] Error during GetPod for %s: %v", opts.Podname, err)
 		return nil, err
 	}
 	if pod.Favor == types.CPU_PRIOR {
-		return c.createContainerWithCPUPrior(specs, opts)
+		return c.createContainerWithCPUPrior(opts)
 	}
 	log.Infof("[CreateContainer] Creating container with options: %v", opts)
-	return c.createContainerWithMemoryPrior(specs, opts)
+	return c.createContainerWithMemoryPrior(opts)
 }
 
-func (c *calcium) createContainerWithMemoryPrior(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+func (c *calcium) createContainerWithMemoryPrior(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
 	if opts.Memory < minMemory { // 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
 		return ch, fmt.Errorf("Minimum memory limit allowed is 4MB, got %d", opts.Memory)
@@ -66,7 +65,7 @@ func (c *calcium) createContainerWithMemoryPrior(specs types.Specs, opts *types.
 			go stats.Client.SendDeployCount(nodeInfo.Deploy)
 			go func(nodeInfo types.NodeInfo, index int) {
 				defer wg.Done()
-				for _, m := range c.doCreateContainerWithMemoryPrior(nodeInfo, specs, opts, index) {
+				for _, m := range c.doCreateContainerWithMemoryPrior(nodeInfo, opts, index) {
 					ch <- m
 				}
 			}(nodeInfo, index)
@@ -81,7 +80,7 @@ func (c *calcium) createContainerWithMemoryPrior(specs types.Specs, opts *types.
 	return ch, nil
 }
 
-func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, specs types.Specs, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
+func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
 	ms := make([]*types.CreateContainerMessage, nodeInfo.Deploy)
 	var i int
 	for i = 0; i < nodeInfo.Deploy; i++ {
@@ -98,12 +97,13 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 	}
 
 	for i = 0; i < nodeInfo.Deploy; i++ {
-		container, err := c.createAndStartContainer(i+index, node, opts, specs, nil, types.MEMORY_PRIOR)
-		ms[i].Podname = opts.Podname
-		ms[i].Nodename = node.Name
+		container, err := c.createAndStartContainer(i+index, node, opts, nil, types.MEMORY_PRIOR)
+		ms[i].Podname = container.Podname
+		ms[i].Nodename = container.Nodename
+		ms[i].ContainerName = container.Name
 		ms[i].ContainerID = container.ID
-		ms[i].ContainerName = utils.Tail(container.Name)
-		ms[i].Memory = opts.Memory
+		ms[i].Memory = container.Memory
+		ms[i].IPs = container.Networks
 		ms[i].Success = true
 		if err != nil {
 			ms[i].Success = false
@@ -133,7 +133,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, spec
 	return ms
 }
 
-func (c *calcium) createContainerWithCPUPrior(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+func (c *calcium) createContainerWithCPUPrior(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
 	result, err := c.allocCPUPodResource(opts)
 	if err != nil {
@@ -156,7 +156,7 @@ func (c *calcium) createContainerWithCPUPrior(specs types.Specs, opts *types.Dep
 			go stats.Client.SendDeployCount(len(cpuMap))
 			go func(nodeName string, cpuMap []types.CPUMap, index int) {
 				defer wg.Done()
-				for _, m := range c.doCreateContainerWithCPUPrior(nodeName, cpuMap, specs, opts, index) {
+				for _, m := range c.doCreateContainerWithCPUPrior(nodeName, cpuMap, opts, index) {
 					ch <- m
 				}
 			}(nodeName, cpuMap, index)
@@ -169,7 +169,7 @@ func (c *calcium) createContainerWithCPUPrior(specs types.Specs, opts *types.Dep
 	return ch, nil
 }
 
-func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.CPUMap, specs types.Specs, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
+func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.CPUMap, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
 	deployCount := len(cpuMap)
 	ms := make([]*types.CreateContainerMessage, deployCount)
 	for i := 0; i < deployCount; i++ {
@@ -186,12 +186,13 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 	}
 
 	for i, quota := range cpuMap {
-		container, err := c.createAndStartContainer(i+index, node, opts, specs, quota, types.CPU_PRIOR)
-		ms[i].Podname = opts.Podname
-		ms[i].Nodename = node.Name
+		container, err := c.createAndStartContainer(i+index, node, opts, quota, types.CPU_PRIOR)
+		ms[i].Podname = container.Podname
+		ms[i].Nodename = container.Nodename
+		ms[i].ContainerName = container.Name
 		ms[i].ContainerID = container.ID
-		ms[i].ContainerName = utils.Tail(container.Name)
-		ms[i].CPU = quota
+		ms[i].CPU = container.CPU
+		ms[i].IPs = container.Networks
 		ms[i].Success = true
 		if err != nil {
 			ms[i].Success = false
@@ -214,43 +215,42 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 	return ms
 }
 
-func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs types.Specs, opts *types.DeployOptions, node *types.Node, favor string) (
+func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *types.DeployOptions, node *types.Node, favor string) (
 	*enginecontainer.Config,
 	*enginecontainer.HostConfig,
 	*enginenetwork.NetworkingConfig,
 	string,
 	error) {
 
-	entry, ok := specs.Entrypoints[opts.Entrypoint]
-	if !ok {
-		err := fmt.Errorf("Entrypoint %q not found in image %q", opts.Entrypoint, opts.Image)
-		log.Errorf("[makeContainerOptions] Error during makeContainerOptions: %v", err)
-		return nil, nil, nil, "", err
+	entry := opts.Entrypoint
+	// 如果有指定用户，用指定用户
+	// 没有指定用户，用 Name
+	// 如果有 privileged，强制 root
+	user := opts.Name
+	if opts.User != "" {
+		user = opts.User
 	}
-
-	user := specs.Appname
-	// 如果是升级或者是raw, 就用root
-	if entry.Privileged != "" || opts.Raw {
-		user = "root"
+	if entry.Privileged != "" {
+		user = root
 	}
 	// command and user
-	slices := utils.MakeCommandLineArgs(entry.Command + " " + opts.ExtraArgs)
+	// extra args is dynamically
+	slices := utils.MakeCommandLineArgs(fmt.Sprintf("%s %s", entry.Command, opts.ExtraArgs))
 	cmd := engineslice.StrSlice(slices)
 
 	// env
 	nodeIP := node.GetIP()
-	env := append(opts.Env, fmt.Sprintf("APP_NAME=%s", specs.Appname))
+	env := append(opts.Env, fmt.Sprintf("APP_NAME=%s", opts.Name))
 	env = append(env, fmt.Sprintf("ERU_POD=%s", opts.Podname))
 	env = append(env, fmt.Sprintf("ERU_NODE_IP=%s", nodeIP))
 	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", node.Name))
 	env = append(env, fmt.Sprintf("ERU_ZONE=%s", c.config.Zone))
-	env = append(env, fmt.Sprintf("APPDIR=%s", filepath.Join(c.config.AppDir, specs.Appname)))
 	env = append(env, fmt.Sprintf("ERU_CONTAINER_NO=%d", index))
 	env = append(env, fmt.Sprintf("ERU_MEMORY=%d", opts.Memory))
 
 	// mount paths
-	binds, volumes := makeMountPaths(specs, c.config)
-	log.Debugf("[makeContainerOptions] App %s will bind %v", specs.Appname, binds)
+	binds, volumes := makeMountPaths(opts)
+	log.Debugf("[makeContainerOptions] App %s will bind %v", opts.Name, binds)
 
 	// log config
 	// 默认是配置里的driver, 如果entrypoint有指定就用指定的.
@@ -266,17 +266,8 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 			"syslog-address":  c.config.Syslog.Address,
 			"syslog-facility": c.config.Syslog.Facility,
 			"syslog-format":   c.config.Syslog.Format,
-			"tag":             fmt.Sprintf("%s {{.ID}}", specs.Appname),
+			"tag":             fmt.Sprintf("%s {{.ID}}", opts.Name),
 		}
-	}
-
-	// working dir 默认是空, 也就是根目录
-	// 如果是raw模式, 就以working_dir为主, 默认为空.
-	// 如果没有设置working_dir同时又不是raw模式创建, 就用/:appname
-	// TODO 是不是要有个白名单或者黑名单之类的
-	workingDir := entry.WorkingDir
-	if !opts.Raw && workingDir == "" {
-		workingDir = strings.TrimRight(c.config.AppDir, "/") + "/" + specs.Appname
 	}
 
 	// CapAdd and Privileged
@@ -286,7 +277,7 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 	}
 
 	// labels
-	// basic labels, and set meta in specs to labels
+	// basic labels, and set meta in opts to labels
 	containerLabels := map[string]string{
 		"ERU":     "1",
 		"version": utils.GetVersion(opts.Image),
@@ -294,9 +285,9 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 	}
 	// 如果有声明检查的端口就用这个端口
 	// 否则还是按照publish出去端口来检查
-	if entry.HealthCheckPort != 0 {
+	if entry.HealthCheck.Port != 0 {
 		//XXX 随便给个 tcp 吧
-		containerLabels["ports"] = fmt.Sprintf("%d/tcp", entry.HealthCheckPort)
+		containerLabels["ports"] = fmt.Sprintf("%d/tcp", entry.HealthCheck.Port)
 	} else {
 		ports := []string{}
 		for _, port := range entry.Ports {
@@ -307,17 +298,17 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 
 	// 只要声明了ports，就免费赠送tcp健康检查，如果需要http健康检查，还要单独声明 healthcheck_url
 	containerLabels["healthcheck"] = "tcp"
-	if entry.HealthCheckUrl != "" {
+	if entry.HealthCheck.URL != "" {
 		containerLabels["healthcheck"] = "http"
-		containerLabels["healthcheck_url"] = entry.HealthCheckUrl
-		containerLabels["healthcheck_expected_code"] = strconv.Itoa(entry.HealthCheckExpectedCode)
+		containerLabels["healthcheck_url"] = entry.HealthCheck.URL
+		containerLabels["healthcheck_expected_code"] = strconv.Itoa(entry.HealthCheck.Code)
 	}
 
 	// 要把after_start和before_stop写进去
-	containerLabels[afterStart] = entry.AfterStart
-	containerLabels[beforeStop] = entry.BeforeStop
+	containerLabels[afterStart] = entry.Hook.AfterStart
+	containerLabels[beforeStop] = entry.Hook.BeforeStop
 	// 接下来是meta
-	for key, value := range specs.Meta {
+	for key, value := range opts.Meta {
 		containerLabels[key] = value
 	}
 
@@ -326,7 +317,7 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 
 	// name
 	suffix := utils.RandomString(6)
-	containerName := utils.MakeContainerName(specs.Appname, opts.Entrypoint, suffix)
+	containerName := utils.MakeContainerName(opts.Name, opts.Entrypoint.Name, suffix)
 
 	// network mode
 	// network mode 和 networks 互斥
@@ -348,7 +339,7 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 	// 没有给出dns的时候, 如果设定是用宿主机IP作为dns, 就会把宿主机IP设置过去.
 	// 其他情况就是默认值.
 	// 哦对, networkMode如果是host也不给dns.
-	dns := specs.DNS
+	dns := opts.DNS
 	if len(dns) == 0 && c.config.Docker.UseLocalDNS && nodeIP != "" && !engineNetworkMode.IsHost() {
 		dns = []string{nodeIP}
 	}
@@ -359,7 +350,7 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, specs type
 		User:            user,
 		Image:           opts.Image,
 		Volumes:         volumes,
-		WorkingDir:      workingDir,
+		WorkingDir:      entry.WorkingDir,
 		NetworkDisabled: false,
 		Labels:          containerLabels,
 		OpenStdin:       opts.OpenStdin,
@@ -423,20 +414,30 @@ func (c *calcium) getAndPrepareNode(podname, nodename, image string) (*types.Nod
 	return node, nil
 }
 
-func (c *calcium) createAndStartContainer(no int, node *types.Node, opts *types.DeployOptions, specs types.Specs, quota types.CPUMap, typ string) (enginetypes.ContainerJSON, error) {
-	// get config
-	config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(no, quota, specs, opts, node, typ)
-	if err != nil {
-		return enginetypes.ContainerJSON{}, err
-	}
-	// create container
-	container, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
-	if err != nil {
-		return enginetypes.ContainerJSON{}, err
+func (c *calcium) createAndStartContainer(no int, node *types.Node, opts *types.DeployOptions, quota types.CPUMap, typ string) (*types.Container, error) {
+	container := &types.Container{
+		Podname:  opts.Podname,
+		Nodename: node.Name,
+		Networks: map[string]string{},
+		Memory:   opts.Memory,
+		CPU:      quota,
+		Engine:   node.Engine,
 	}
 
-	containerID := container.ID
-	containerCreated := enginetypes.ContainerJSON{ContainerJSONBase: &enginetypes.ContainerJSONBase{ID: containerID}}
+	// get config
+	config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(no, quota, opts, node, typ)
+	if err != nil {
+		return container, err
+	}
+	container.Name = containerName
+
+	// create container
+	containerCreated, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
+	if err != nil {
+		return container, err
+	}
+	container.ID = containerCreated.ID
+
 	// connect container to network
 	// if network manager uses docker plugin, then connect must be called before container starts
 	// 如果有 networks 的配置，这里的 networkMode 就为 none 了
@@ -444,29 +445,43 @@ func (c *calcium) createAndStartContainer(no int, node *types.Node, opts *types.
 		ctx := utils.ToDockerContext(node.Engine)
 		// need to ensure all networks are correctly connected
 		for networkID, ipv4 := range opts.Networks {
-			if err = c.network.ConnectToNetwork(ctx, containerID, networkID, ipv4); err != nil {
-				return containerCreated, err
+			if err = c.network.ConnectToNetwork(ctx, containerCreated.ID, networkID, ipv4); err != nil {
+				return container, err
 			}
 		}
 	}
 
-	if err = node.Engine.ContainerStart(context.Background(), containerID, enginetypes.ContainerStartOptions{}); err != nil {
-		return containerCreated, err
+	if err = node.Engine.ContainerStart(context.Background(), containerCreated.ID, enginetypes.ContainerStartOptions{}); err != nil {
+		return container, err
 	}
 
-	containerAlived, err := node.Engine.ContainerInspect(context.Background(), containerID)
+	containerAlived, err := node.Engine.ContainerInspect(context.Background(), containerCreated.ID)
 	if err != nil {
-		return containerCreated, err
+		return container, err
 	}
 
 	// after start
 	if err := runExec(node.Engine, containerAlived, afterStart); err != nil {
-		return containerAlived, err
+		return container, err
 	}
 
-	if _, err = c.store.AddContainer(containerAlived.ID, opts.Podname, node.Name, containerName, quota, opts.Memory); err != nil {
-		return containerAlived, err
+	// get ips
+	for nn, ns := range containerAlived.NetworkSettings.Networks {
+		ip := ns.IPAddress
+		if enginecontainer.NetworkMode(nn).IsHost() {
+			ip = node.GetIP()
+		}
+
+		data := []string{}
+		for _, port := range opts.Entrypoint.Ports {
+			data = append(data, fmt.Sprintf("%s:%s", ip, port.Port()))
+		}
+		container.Networks[nn] = strings.Join(data, ",")
 	}
 
-	return containerAlived, nil
+	if err = c.store.AddContainer(container); err != nil {
+		return container, err
+	}
+
+	return container, nil
 }

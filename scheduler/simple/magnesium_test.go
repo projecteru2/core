@@ -8,37 +8,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRandomNode(t *testing.T) {
+func TestMaxIdleNode(t *testing.T) {
 	m := &magnesium{}
-	_, err := m.RandomNode(map[string]types.CPUMap{})
-	assert.Error(t, err)
-	assert.Equal(t, err.Error(), "No nodes provide to choose one")
-
-	nodes := map[string]types.CPUMap{
-		"node1": types.CPUMap{
-			"0": 10,
-			"1": 10,
+	nodes := []*types.Node{
+		&types.Node{
+			Name: "node1",
+			CPU: types.CPUMap{
+				"0": 10,
+				"1": 10,
+			},
 		},
-		"node2": types.CPUMap{
-			"0": 10,
-			"1": 10,
-		},
-	}
-
-	node, err := m.RandomNode(nodes)
-	assert.NoError(t, err)
-	assert.Contains(t, []string{"node1", "node2"}, node)
-
-	nodes = map[string]types.CPUMap{
-		"node1": types.CPUMap{
-			"0": 10,
-			"1": 10,
+		&types.Node{
+			Name: "node2",
+			CPU: types.CPUMap{
+				"0": 8,
+				"1": 10,
+			},
 		},
 	}
-
-	node, err = m.RandomNode(nodes)
-	assert.NoError(t, err)
-	assert.Equal(t, "node1", node)
+	node := m.MaxIdleNode(nodes)
+	assert.Equal(t, "node1", node.Name)
 }
 
 func TestSelectCPUNodes(t *testing.T) {

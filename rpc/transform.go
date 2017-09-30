@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
@@ -61,24 +62,92 @@ func toRPCBuildImageMessage(b *types.BuildImageMessage) *pb.BuildImageMessage {
 	}
 }
 
-func toCoreDeployOptions(d *pb.DeployOptions) *types.DeployOptions {
+func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
+	if b.Builds == nil || len(b.Builds.Stages) == 0 {
+		return nil, errors.New("no builds")
+	}
+	builds := &types.Builds{
+		Stages: b.Builds.Stages,
+	}
+	builds.Builds = map[string]*types.Build{}
+	for stage, p := range b.Builds.Builds {
+		builds.Builds[stage] = &types.Build{
+			Base:       p.Base,
+			Repo:       p.Repo,
+			Version:    p.Version,
+			WorkingDir: p.WorkingDir,
+			Commands:   p.Commands,
+			Artifacts:  p.Artifacts,
+			Cache:      p.Cache,
+		}
+	}
+	return &types.BuildOptions{
+		Name:   b.Name,
+		User:   b.User,
+		UID:    int(b.Uid),
+		Tag:    b.Tag,
+		Builds: builds,
+	}, nil
+}
+
+func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
+	if d.Entrypoint == nil {
+		return nil, errors.New("no entry")
+	}
+
+	entrypoint := d.Entrypoint
+
+	// covert ports
+	ports := []types.Port{}
+	for _, port := range entrypoint.Ports {
+		ports = append(ports, types.Port(port))
+	}
+
+	hook := &types.Hook{}
+	if entrypoint.Hook != nil {
+		hook.AfterStart = entrypoint.Hook.AfterStart
+		hook.BeforeStop = entrypoint.Hook.BeforeStop
+	}
+
+	healthcheck := &types.HealthCheck{}
+	if entrypoint.Healcheck != nil {
+		healthcheck.Port = int(entrypoint.Healcheck.Port)
+		healthcheck.URL = entrypoint.Healcheck.Url
+		healthcheck.Code = int(entrypoint.Healcheck.Code)
+	}
+
+	entry := &types.Entrypoint{
+		Name:          entrypoint.Name,
+		Command:       entrypoint.Command,
+		Privileged:    entrypoint.Privileged,
+		WorkingDir:    entrypoint.WorkingDir,
+		LogConfig:     entrypoint.LogConfig,
+		Ports:         ports,
+		HealthCheck:   healthcheck,
+		Hook:          hook,
+		RestartPolicy: entrypoint.RestartPolicy,
+		ExtraHosts:    entrypoint.ExtraHosts,
+	}
 	return &types.DeployOptions{
-		Appname:     d.Appname,
-		Image:       d.Image,
+		Name:        d.Name,
+		Entrypoint:  entry,
 		Podname:     d.Podname,
 		Nodename:    d.Nodename,
-		Entrypoint:  d.Entrypoint,
+		Image:       d.Image,
 		ExtraArgs:   d.ExtraArgs,
 		CPUQuota:    d.CpuQuota,
-		Count:       int(d.Count),
 		Memory:      d.Memory,
+		Count:       int(d.Count),
 		Env:         d.Env,
+		DNS:         d.Dns,
+		Volumes:     d.Volumes,
 		Networks:    d.Networks,
 		NetworkMode: d.Networkmode,
-		Raw:         d.Raw,
+		User:        d.User,
 		Debug:       d.Debug,
 		OpenStdin:   d.OpenStdin,
-	}
+		Meta:        d.Meta,
+	}, nil
 }
 
 func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateContainerMessage {
@@ -91,6 +160,7 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 		Success:  c.Success,
 		Cpu:      toRPCCPUMap(c.CPU),
 		Memory:   c.Memory,
+		Ips:      c.IPs,
 	}
 }
 

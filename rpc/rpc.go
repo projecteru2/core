@@ -195,7 +195,12 @@ func (v *vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 	v.taskAdd("BuildImage", true)
 	defer v.taskDone("BuildImage", true)
 
-	ch, err := v.cluster.BuildImage(opts.Repo, opts.Version, opts.Uid, opts.Artifact)
+	buildOpts, err := toCoreBuildOptions(opts)
+	if err != nil {
+		return err
+	}
+
+	ch, err := v.cluster.BuildImage(buildOpts)
 	if err != nil {
 		return err
 	}
@@ -212,12 +217,11 @@ func (v *vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 	v.taskAdd("CreateContainer", true)
 	defer v.taskDone("CreateContainer", true)
 
-	specs, err := types.LoadSpecs(opts.Specs)
+	deployOpts, err := toCoreDeployOptions(opts)
 	if err != nil {
-		return err
+		return nil
 	}
-
-	ch, err := v.cluster.CreateContainer(specs, toCoreDeployOptions(opts))
+	ch, err := v.cluster.CreateContainer(deployOpts)
 	if err != nil {
 		return err
 	}
@@ -242,15 +246,14 @@ func (v *vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 
 	opts := RunAndWaitOptions.DeployOptions
 	timeout := int(RunAndWaitOptions.Timeout)
+	stdinReader, stdinWriter := io.Pipe()
+	defer stdinReader.Close()
 
-	specs, err := types.LoadSpecs(opts.Specs)
+	deployOpts, err := toCoreDeployOptions(opts)
 	if err != nil {
 		return err
 	}
-
-	stdinReader, stdinWriter := io.Pipe()
-	defer stdinReader.Close()
-	ch, err := v.cluster.RunAndWait(specs, toCoreDeployOptions(opts), timeout, stdinReader)
+	ch, err := v.cluster.RunAndWait(deployOpts, timeout, stdinReader)
 	if err != nil {
 		// `ch` is nil now
 		log.Errorf("[RunAndWait] Start run and wait failed %s", err)

@@ -22,9 +22,9 @@ type Cluster interface {
 	ListNetworks(podname string) ([]*types.Network, error)
 
 	// cluster methods
-	BuildImage(repository, version, uid, artifact string) (chan *types.BuildImageMessage, error)
-	CreateContainer(specs types.Specs, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
-	RunAndWait(specs types.Specs, opts *types.DeployOptions, timeout int, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error)
+	BuildImage(opts *types.BuildOptions) (chan *types.BuildImageMessage, error)
+	CreateContainer(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
+	RunAndWait(opts *types.DeployOptions, timeout int, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error)
 	RemoveContainer(ids []string) (chan *types.RemoveContainerMessage, error)
 	RemoveImage(podname, nodename string, images []string) (chan *types.RemoveImageMessage, error)
 	Backup(id, srcPath string) (*types.BackupMessage, error)

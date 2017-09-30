@@ -6,7 +6,6 @@ import "time"
 type Config struct {
 	LogLevel      string        `yaml:"log_level"`
 	Bind          string        `yaml:"bind"`           // HTTP API address
-	AppDir        string        `yaml:"appdir"`         // App directory inside container
 	BackupDir     string        `yaml:"backupdir"`      // Backup dir on host
 	Statsd        string        `yaml:"statsd"`         // Statsd host and port
 	Zone          string        `yaml:"zone"`           // zone for core, e.g. C1, C2
@@ -43,7 +42,7 @@ type DockerConfig struct {
 	NetworkMode string `yaml:"network_mode"` // docker network mode
 	CertPath    string `yaml:"cert_path"`    // docker cert files path
 	Hub         string `yaml:"hub"`          // docker hub address
-	HubPrefix   string `yaml:"hub_prefix"`   // docker hub prefix, will be set to $Hub/$HubPrefix/$appname
+	Namespace   string `yaml:"namespace"`    // docker hub prefix, will be set to $Hub/$HubPrefix/$appname
 	BuildPod    string `yaml:"build_pod"`    // podname used to build
 	UseLocalDNS bool   `yaml:"local_dns"`    // use node IP as dns
 }
