@@ -6,6 +6,7 @@ import (
 
 	"github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func toRPCCPUMap(m types.CPUMap) map[string]int64 {
@@ -98,10 +99,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 	entrypoint := d.Entrypoint
 
 	// covert ports
-	ports := []types.Port{}
-	for _, port := range entrypoint.Ports {
-		ports = append(ports, types.Port(port))
-	}
+	publish := utils.EncodePorts(entrypoint.Publish)
 
 	hook := &types.Hook{}
 	if entrypoint.Hook != nil {
@@ -111,7 +109,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 
 	healthcheck := &types.HealthCheck{}
 	if entrypoint.Healcheck != nil {
-		healthcheck.Port = int(entrypoint.Healcheck.Port)
+		healthcheck.Ports = utils.EncodePorts(entrypoint.Healcheck.Ports)
 		healthcheck.URL = entrypoint.Healcheck.Url
 		healthcheck.Code = int(entrypoint.Healcheck.Code)
 	}
@@ -122,7 +120,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Privileged:    entrypoint.Privileged,
 		WorkingDir:    entrypoint.WorkingDir,
 		LogConfig:     entrypoint.LogConfig,
-		Ports:         ports,
+		Publish:       publish,
 		HealthCheck:   healthcheck,
 		Hook:          hook,
 		RestartPolicy: entrypoint.RestartPolicy,
@@ -160,7 +158,7 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 		Success:  c.Success,
 		Cpu:      toRPCCPUMap(c.CPU),
 		Memory:   c.Memory,
-		Ips:      c.IPs,
+		Publish:  c.Publish,
 	}
 }
 

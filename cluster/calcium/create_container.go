@@ -103,7 +103,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, opts
 		ms[i].ContainerName = container.Name
 		ms[i].ContainerID = container.ID
 		ms[i].Memory = container.Memory
-		ms[i].IPs = container.Networks
+		ms[i].Publish = container.Publish
 		ms[i].Success = true
 		if err != nil {
 			ms[i].Success = false
@@ -192,7 +192,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 		ms[i].ContainerName = container.Name
 		ms[i].ContainerID = container.ID
 		ms[i].CPU = container.CPU
-		ms[i].IPs = container.Networks
+		ms[i].Publish = container.Publish
 		ms[i].Success = true
 		if err != nil {
 			ms[i].Success = false
@@ -283,26 +283,13 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 		"version": utils.GetVersion(opts.Image),
 		"zone":    c.config.Zone,
 	}
-	// 如果有声明检查的端口就用这个端口
-	// 否则还是按照publish出去端口来检查
-	if entry.HealthCheck.Port != 0 {
-		//XXX 随便给个 tcp 吧
-		containerLabels["ports"] = fmt.Sprintf("%d/tcp", entry.HealthCheck.Port)
-	} else {
-		ports := []string{}
-		for _, port := range entry.Ports {
-			ports = append(ports, string(port))
-		}
-		containerLabels["ports"] = strings.Join(ports, ",")
-	}
 
-	// 只要声明了ports，就免费赠送tcp健康检查，如果需要http健康检查，还要单独声明 healthcheck_url
-	containerLabels["healthcheck"] = "tcp"
-	if entry.HealthCheck.URL != "" {
-		containerLabels["healthcheck"] = "http"
-		containerLabels["healthcheck_url"] = entry.HealthCheck.URL
-		containerLabels["healthcheck_expected_code"] = strconv.Itoa(entry.HealthCheck.Code)
-	}
+	// 发布端口
+	containerLabels["publish"] = strings.Join(utils.DecodePorts(opts.Entrypoint.Publish), ",")
+	// 健康检查
+	containerLabels["healthcheck_url"] = entry.HealthCheck.URL
+	containerLabels["healthcheck_expected_code"] = strconv.Itoa(entry.HealthCheck.Code)
+	containerLabels["healthcheck_ports"] = strings.Join(utils.DecodePorts(opts.Entrypoint.HealthCheck.Ports), ",")
 
 	// 要把after_start和before_stop写进去
 	containerLabels[afterStart] = entry.Hook.AfterStart
@@ -418,7 +405,7 @@ func (c *calcium) createAndStartContainer(no int, node *types.Node, opts *types.
 	container := &types.Container{
 		Podname:  opts.Podname,
 		Nodename: node.Name,
-		Networks: map[string]string{},
+		Publish:  map[string]string{},
 		Memory:   opts.Memory,
 		CPU:      quota,
 		Engine:   node.Engine,
@@ -455,7 +442,7 @@ func (c *calcium) createAndStartContainer(no int, node *types.Node, opts *types.
 		return container, err
 	}
 
-	containerAlived, err := node.Engine.ContainerInspect(context.Background(), containerCreated.ID)
+	containerAlived, err := container.Inspect()
 	if err != nil {
 		return container, err
 	}
@@ -473,10 +460,10 @@ func (c *calcium) createAndStartContainer(no int, node *types.Node, opts *types.
 		}
 
 		data := []string{}
-		for _, port := range opts.Entrypoint.Ports {
+		for _, port := range opts.Entrypoint.Publish {
 			data = append(data, fmt.Sprintf("%s:%s", ip, port.Port()))
 		}
-		container.Networks[nn] = strings.Join(data, ",")
+		container.Publish[nn] = strings.Join(data, ",")
 	}
 
 	if err = c.store.AddContainer(container); err != nil {

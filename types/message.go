@@ -41,7 +41,7 @@ type CreateContainerMessage struct {
 	Success       bool
 	CPU           CPUMap
 	Memory        int64
-	IPs           map[string]string
+	Publish       map[string]string
 }
 
 type RunAndWaitMessage struct {
