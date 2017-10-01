@@ -80,7 +80,7 @@ func (k *krypton) AddContainer(container *types.Container) error {
 	}
 
 	key = fmt.Sprintf(containerDeployKey, appname, entrypoint, container.Nodename, container.ID)
-	_, err = k.etcd.Set(context.Background(), key, data, nil)
+	_, err = k.etcd.Set(context.Background(), key, "", nil)
 	if err != nil {
 		return err
 	}

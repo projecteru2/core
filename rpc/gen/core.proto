@@ -164,7 +164,7 @@ message HookOptions {
 }
 
 message HealthCheckOptions {
-    int32 port = 1;
+    repeated string ports = 1;
     string url = 2;
     int32 code = 3;
 }
@@ -175,7 +175,7 @@ message EntrypointOptions {
     string privileged = 3;
     string working_dir = 4;
     string log_config = 5;
-    repeated string ports = 6;
+    repeated string publish = 6;
     HealthCheckOptions healcheck = 7;
     HookOptions hook = 8;
     string restart_policy = 9;
@@ -236,7 +236,7 @@ message CreateContainerMessage {
     bool success = 6;
     map<string, int64> cpu = 7;
     int64 memory = 8;
-    map<string, string> ips = 9;
+    map<string, string> publish = 9;
 }
 
 message RunAndWaitMessage {

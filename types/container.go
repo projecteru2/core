@@ -18,7 +18,7 @@ type Container struct {
 	Name     string            `json:"name"`
 	CPU      CPUMap            `json:"cpu"`
 	Memory   int64             `json:"memory"`
-	Networks map[string]string `json:"-"`
+	Publish  map[string]string `json:"-"`
 	Engine   *engineapi.Client `json:"-"`
 }
 
