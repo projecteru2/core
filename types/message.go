@@ -42,6 +42,7 @@ type CreateContainerMessage struct {
 	CPU           CPUMap
 	Memory        int64
 	Publish       map[string]string
+	HookOutput    []byte
 }
 
 type RunAndWaitMessage struct {

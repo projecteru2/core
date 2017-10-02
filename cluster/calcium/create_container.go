@@ -104,6 +104,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, opts
 		ms[i].ContainerID = container.ID
 		ms[i].Memory = container.Memory
 		ms[i].Publish = container.Publish
+		ms[i].HookOutput = container.HookOutput
 		ms[i].Success = true
 		if err != nil {
 			ms[i].Success = false
@@ -193,6 +194,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 		ms[i].ContainerID = container.ID
 		ms[i].CPU = container.CPU
 		ms[i].Publish = container.Publish
+		ms[i].HookOutput = container.HookOutput
 		ms[i].Success = true
 		if err != nil {
 			ms[i].Success = false
@@ -294,6 +296,11 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	// 要把after_start和before_stop写进去
 	containerLabels[afterStart] = entry.Hook.AfterStart
 	containerLabels[beforeStop] = entry.Hook.BeforeStop
+	//TODO fxxk it
+	containerLabels[hookForce] = "0"
+	if entry.Hook.Force {
+		containerLabels[hookForce] = "1"
+	}
 	// 接下来是meta
 	for key, value := range opts.Meta {
 		containerLabels[key] = value
@@ -448,8 +455,17 @@ func (c *calcium) createAndStartContainer(no int, node *types.Node, opts *types.
 	}
 
 	// after start
-	if err := runExec(node.Engine, containerAlived, afterStart); err != nil {
-		return container, err
+	if opts.Entrypoint.Hook != nil && opts.Entrypoint.Hook.AfterStart != "" {
+		cmd := opts.Entrypoint.Hook.AfterStart
+		privileged := opts.Entrypoint.Privileged != ""
+		output, err := execuateInside(node.Engine, container.ID, cmd, opts.User, opts.Env, privileged)
+		container.HookOutput = output
+		if err != nil {
+			if opts.Entrypoint.Hook.Force {
+				return container, err
+			}
+			container.HookOutput = []byte(err.Error())
+		}
 	}
 
 	// get ips

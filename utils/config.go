@@ -40,7 +40,7 @@ func LoadConfig(configPath string) (types.Config, error) {
 	config.Etcd.Prefix = filepath.Join(defaultPrefix, config.Etcd.Prefix)
 
 	if config.Docker.APIVersion == "" {
-		config.Docker.APIVersion = "v1.23"
+		config.Docker.APIVersion = "1.25"
 	}
 	if config.Docker.LogDriver == "" {
 		config.Docker.LogDriver = "none"

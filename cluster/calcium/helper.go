@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
 	enginecontainer "github.com/docker/docker/api/types/container"
 	enginenetwork "github.com/docker/docker/api/types/network"
@@ -185,19 +184,26 @@ func makeMountPaths(opts *types.DeployOptions) ([]string, map[string]struct{}) {
 
 // 跑存在labels里的exec
 // 为什么要存labels呢, 因为下线容器的时候根本不知道entrypoint是啥
-func runExec(client *engineapi.Client, container enginetypes.ContainerJSON, label string) error {
-	cmd, ok := container.Config.Labels[label]
-	if !ok || cmd == "" {
-		log.Debugf("[runExec] No %s found in container %s", label, container.ID)
-		return nil
-	}
-
+func execuateInside(client *engineapi.Client, ID, cmd, user string, env []string, privileged bool) ([]byte, error) {
 	cmds := utils.MakeCommandLineArgs(cmd)
-	execConfig := enginetypes.ExecConfig{User: container.Config.User, Cmd: cmds}
-	resp, err := client.ContainerExecCreate(context.Background(), container.ID, execConfig)
-	if err != nil {
-		log.Errorf("[runExec] Error during runExec: %v", err)
-		return err
+	execConfig := enginetypes.ExecConfig{
+		User:         user,
+		Cmd:          cmds,
+		Privileged:   privileged,
+		Env:          env,
+		AttachStderr: true,
+		AttachStdout: true,
 	}
-	return client.ContainerExecStart(context.Background(), resp.ID, enginetypes.ExecStartCheck{})
+	//TODO should timeout
+	idResp, err := client.ContainerExecCreate(context.Background(), ID, execConfig)
+	if err != nil {
+		return []byte{}, err
+	}
+	resp, err := client.ContainerExecAttach(context.Background(), idResp.ID, execConfig)
+	if err != nil {
+		return []byte{}, err
+	}
+	defer resp.Close()
+	stream := utils.FuckDockerStream(ioutil.NopCloser(resp.Reader))
+	return ioutil.ReadAll(stream)
 }
