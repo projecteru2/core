@@ -143,9 +143,20 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 		}
 	}()
 
-	// before stop
-	if err := runExec(container.Engine, info, beforeStop); err != nil {
-		log.Errorf("[removeOneContainer] Run exec at %s error: %s", beforeStop, err.Error())
+	cmd, ok := info.Config.Labels[beforeStop]
+	if ok && cmd != "" {
+		// before stop
+		privileged := info.Config.User == root
+		output, err := execuateInside(container.Engine, container.ID, cmd, info.Config.User, info.Config.Env, privileged)
+		if err != nil {
+			if info.Config.Labels[hookForce] == "1" {
+				return err
+			}
+			log.Errorf("[removeOneContainer] hook error %v", err)
+		}
+		if len(output) > 0 {
+			log.Infof("[removeOneContainer] hook output \n%s", output)
+		}
 	}
 
 	// 这里 block 的问题很严重，按照目前的配置是 5 分钟一级的 block

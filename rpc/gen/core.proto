@@ -161,6 +161,7 @@ message BuildImageOptions {
 message HookOptions {
     string after_start = 1;
     string before_stop = 2;
+    bool force = 3;
 }
 
 message HealthCheckOptions {
@@ -237,6 +238,7 @@ message CreateContainerMessage {
     map<string, int64> cpu = 7;
     int64 memory = 8;
     map<string, string> publish = 9;
+    bytes hookoutput = 10;
 }
 
 message RunAndWaitMessage {

@@ -105,6 +105,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 	if entrypoint.Hook != nil {
 		hook.AfterStart = entrypoint.Hook.AfterStart
 		hook.BeforeStop = entrypoint.Hook.BeforeStop
+		hook.Force = entrypoint.Hook.Force
 	}
 
 	healthcheck := &types.HealthCheck{}
@@ -150,15 +151,16 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 
 func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateContainerMessage {
 	return &pb.CreateContainerMessage{
-		Podname:  c.Podname,
-		Nodename: c.Nodename,
-		Id:       c.ContainerID,
-		Name:     c.ContainerName,
-		Error:    c.Error,
-		Success:  c.Success,
-		Cpu:      toRPCCPUMap(c.CPU),
-		Memory:   c.Memory,
-		Publish:  c.Publish,
+		Podname:    c.Podname,
+		Nodename:   c.Nodename,
+		Id:         c.ContainerID,
+		Name:       c.ContainerName,
+		Error:      c.Error,
+		Success:    c.Success,
+		Cpu:        toRPCCPUMap(c.CPU),
+		Memory:     c.Memory,
+		Publish:    c.Publish,
+		Hookoutput: c.HookOutput,
 	}
 }
 
