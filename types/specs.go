@@ -21,9 +21,9 @@ type Build struct {
 }
 
 type Hook struct {
-	AfterStart string `yaml:"after_start,omitempty"`
-	BeforeStop string `yaml:"before_stop,omitempty"`
-	Force      bool   `yaml:"force,omitempty"`
+	AfterStart []string `yaml:"after_start,omitempty"`
+	BeforeStop []string `yaml:"before_stop,omitempty"`
+	Force      bool     `yaml:"force,omitempty"`
 }
 
 type HealthCheck struct {
