@@ -37,12 +37,12 @@ type CreateContainerMessage struct {
 	Nodename      string
 	ContainerID   string
 	ContainerName string
-	Error         string
+	Error         error
 	Success       bool
 	CPU           CPUMap
 	Memory        int64
 	Publish       map[string]string
-	HookOutput    []byte
+	Hook          []byte
 }
 
 type RunAndWaitMessage struct {

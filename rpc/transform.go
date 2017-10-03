@@ -150,18 +150,21 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 }
 
 func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateContainerMessage {
-	return &pb.CreateContainerMessage{
-		Podname:    c.Podname,
-		Nodename:   c.Nodename,
-		Id:         c.ContainerID,
-		Name:       c.ContainerName,
-		Error:      c.Error,
-		Success:    c.Success,
-		Cpu:        toRPCCPUMap(c.CPU),
-		Memory:     c.Memory,
-		Publish:    c.Publish,
-		Hookoutput: c.HookOutput,
+	msg := &pb.CreateContainerMessage{
+		Podname:  c.Podname,
+		Nodename: c.Nodename,
+		Id:       c.ContainerID,
+		Name:     c.ContainerName,
+		Success:  c.Success,
+		Cpu:      toRPCCPUMap(c.CPU),
+		Memory:   c.Memory,
+		Publish:  c.Publish,
+		Hook:     c.Hook,
 	}
+	if c.Error != nil {
+		msg.Error = c.Error.Error()
+	}
+	return msg
 }
 
 func toRPCRemoveImageMessage(r *types.RemoveImageMessage) *pb.RemoveImageMessage {

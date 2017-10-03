@@ -238,7 +238,7 @@ message CreateContainerMessage {
     map<string, int64> cpu = 7;
     int64 memory = 8;
     map<string, string> publish = 9;
-    bytes hookoutput = 10;
+    bytes hook = 10;
 }
 
 message RunAndWaitMessage {

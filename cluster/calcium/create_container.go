@@ -82,44 +82,30 @@ func (c *calcium) createContainerWithMemoryPrior(opts *types.DeployOptions) (cha
 
 func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
 	ms := make([]*types.CreateContainerMessage, nodeInfo.Deploy)
-	var i int
-	for i = 0; i < nodeInfo.Deploy; i++ {
-		ms[i] = &types.CreateContainerMessage{}
-	}
 
 	node, err := c.getAndPrepareNode(opts.Podname, nodeInfo.Name, opts.Image)
 	if err != nil {
 		log.Errorf("[doCreateContainerWithCPUPrior] Get and prepare node error %v", err)
 		for i := 0; i < nodeInfo.Deploy; i++ {
-			ms[i].Error = err.Error()
+			ms[i] = &types.CreateContainerMessage{Error: err}
 		}
 		return ms
 	}
 
-	for i = 0; i < nodeInfo.Deploy; i++ {
-		container, err := c.createAndStartContainer(i+index, node, opts, nil, types.MEMORY_PRIOR)
-		ms[i].Podname = container.Podname
-		ms[i].Nodename = container.Nodename
-		ms[i].ContainerName = container.Name
-		ms[i].ContainerID = container.ID
-		ms[i].Memory = container.Memory
-		ms[i].Publish = container.Publish
-		ms[i].HookOutput = container.HookOutput
-		ms[i].Success = true
-		if err != nil {
-			ms[i].Success = false
-			ms[i].Error = err.Error()
+	for i := 0; i < nodeInfo.Deploy; i++ {
+		ms[i] = c.createAndStartContainer(i+index, node, opts, nil, types.MEMORY_PRIOR)
+		if !ms[i].Success {
 			c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+") // 创建容器失败就要把资源还回去对不对？
 			// clean up
-			if container.ID != "" {
-				if err := node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{}); err != nil {
+			if ms[i].ContainerID != "" {
+				if err := node.Engine.ContainerRemove(context.Background(), ms[i].ContainerID, enginetypes.ContainerRemoveOptions{}); err != nil {
 					log.Errorf("[doCreateContainerWithMemoryPrior] Error during remove failed container %v", err)
 				}
 			}
-			log.Errorf("[doCreateContainerWithMemoryPrior] Error when create and start a container, %v", err)
+			log.Errorf("[doCreateContainerWithMemoryPrior] Error when create and start a container, %v", ms[i].Error)
 			continue
 		}
-		log.Debugf("[doCreateContainerWithMemoryPrior] create container success %s", container.ID)
+		log.Debugf("[doCreateContainerWithMemoryPrior] create container success %s", ms[i].ContainerID)
 	}
 
 	go func(opts *types.DeployOptions) {
@@ -173,45 +159,32 @@ func (c *calcium) createContainerWithCPUPrior(opts *types.DeployOptions) (chan *
 func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.CPUMap, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
 	deployCount := len(cpuMap)
 	ms := make([]*types.CreateContainerMessage, deployCount)
-	for i := 0; i < deployCount; i++ {
-		ms[i] = &types.CreateContainerMessage{}
-	}
 
 	node, err := c.getAndPrepareNode(opts.Podname, nodeName, opts.Image)
 	if err != nil {
 		log.Errorf("[doCreateContainerWithCPUPrior] Get and prepare node error %v", err)
 		for i := 0; i < deployCount; i++ {
-			ms[i].Error = err.Error()
+			ms[i] = &types.CreateContainerMessage{Error: err}
 		}
 		return ms
 	}
 
 	for i, quota := range cpuMap {
-		container, err := c.createAndStartContainer(i+index, node, opts, quota, types.CPU_PRIOR)
-		ms[i].Podname = container.Podname
-		ms[i].Nodename = container.Nodename
-		ms[i].ContainerName = container.Name
-		ms[i].ContainerID = container.ID
-		ms[i].CPU = container.CPU
-		ms[i].Publish = container.Publish
-		ms[i].HookOutput = container.HookOutput
-		ms[i].Success = true
-		if err != nil {
-			ms[i].Success = false
-			ms[i].Error = err.Error()
+		ms[i] = c.createAndStartContainer(i+index, node, opts, quota, types.CPU_PRIOR)
+		if !ms[i].Success {
 			if quota.Total() != 0 {
 				c.store.UpdateNodeCPU(opts.Podname, node.Name, quota, "+")
 			}
 			// clean up
-			if container.ID != "" {
-				if err := node.Engine.ContainerRemove(context.Background(), container.ID, enginetypes.ContainerRemoveOptions{}); err != nil {
+			if ms[i].ContainerID != "" {
+				if err := node.Engine.ContainerRemove(context.Background(), ms[i].ContainerID, enginetypes.ContainerRemoveOptions{}); err != nil {
 					log.Errorf("[doCreateContainerWithCPUPrior] Error during remove failed container %v", err)
 				}
 			}
-			log.Errorf("[doCreateContainerWithCPUPrior] Error when create and start a container, %v", err)
+			log.Errorf("[doCreateContainerWithCPUPrior] Error when create and start a container, %v", ms[i].Error)
 			continue
 		}
-		log.Debugf("[doCreateContainerWithCPUPrior] create container success %s", container.ID)
+		log.Debugf("[doCreateContainerWithCPUPrior] create container success %s", ms[i].ContainerID)
 	}
 
 	return ms
@@ -408,29 +381,44 @@ func (c *calcium) getAndPrepareNode(podname, nodename, image string) (*types.Nod
 	return node, nil
 }
 
-func (c *calcium) createAndStartContainer(no int, node *types.Node, opts *types.DeployOptions, quota types.CPUMap, typ string) (*types.Container, error) {
+func (c *calcium) createAndStartContainer(
+	no int, node *types.Node,
+	opts *types.DeployOptions,
+	quota types.CPUMap, typ string,
+) *types.CreateContainerMessage {
 	container := &types.Container{
 		Podname:  opts.Podname,
 		Nodename: node.Name,
-		Publish:  map[string]string{},
 		Memory:   opts.Memory,
 		CPU:      quota,
 		Engine:   node.Engine,
+	}
+	createContainerMessage := &types.CreateContainerMessage{
+		Podname:  container.Podname,
+		Nodename: container.Nodename,
+		Success:  false,
+		CPU:      quota,
+		Memory:   opts.Memory,
+		Publish:  map[string]string{},
 	}
 
 	// get config
 	config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(no, quota, opts, node, typ)
 	if err != nil {
-		return container, err
+		createContainerMessage.Error = err
+		return createContainerMessage
 	}
 	container.Name = containerName
+	createContainerMessage.ContainerName = container.Name
 
 	// create container
 	containerCreated, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
 	if err != nil {
-		return container, err
+		createContainerMessage.Error = err
+		return createContainerMessage
 	}
 	container.ID = containerCreated.ID
+	createContainerMessage.ContainerID = container.ID
 
 	// connect container to network
 	// if network manager uses docker plugin, then connect must be called before container starts
@@ -440,18 +428,21 @@ func (c *calcium) createAndStartContainer(no int, node *types.Node, opts *types.
 		// need to ensure all networks are correctly connected
 		for networkID, ipv4 := range opts.Networks {
 			if err = c.network.ConnectToNetwork(ctx, containerCreated.ID, networkID, ipv4); err != nil {
-				return container, err
+				createContainerMessage.Error = err
+				return createContainerMessage
 			}
 		}
 	}
 
 	if err = node.Engine.ContainerStart(context.Background(), containerCreated.ID, enginetypes.ContainerStartOptions{}); err != nil {
-		return container, err
+		createContainerMessage.Error = err
+		return createContainerMessage
 	}
 
 	containerAlived, err := container.Inspect()
 	if err != nil {
-		return container, err
+		createContainerMessage.Error = err
+		return createContainerMessage
 	}
 
 	// after start
@@ -459,12 +450,13 @@ func (c *calcium) createAndStartContainer(no int, node *types.Node, opts *types.
 		cmd := opts.Entrypoint.Hook.AfterStart
 		privileged := opts.Entrypoint.Privileged != ""
 		output, err := execuateInside(node.Engine, container.ID, cmd, opts.User, opts.Env, privileged)
-		container.HookOutput = output
+		createContainerMessage.Hook = output
 		if err != nil {
 			if opts.Entrypoint.Hook.Force {
-				return container, err
+				createContainerMessage.Error = err
+				return createContainerMessage
 			}
-			container.HookOutput = []byte(err.Error())
+			createContainerMessage.Hook = []byte(err.Error())
 		}
 	}
 
@@ -479,12 +471,14 @@ func (c *calcium) createAndStartContainer(no int, node *types.Node, opts *types.
 		for _, port := range opts.Entrypoint.Publish {
 			data = append(data, fmt.Sprintf("%s:%s", ip, port.Port()))
 		}
-		container.Publish[nn] = strings.Join(data, ",")
+		createContainerMessage.Publish[nn] = strings.Join(data, ",")
 	}
 
 	if err = c.store.AddContainer(container); err != nil {
-		return container, err
+		createContainerMessage.Error = err
+		return createContainerMessage
 	}
 
-	return container, nil
+	createContainerMessage.Success = true
+	return createContainerMessage
 }
