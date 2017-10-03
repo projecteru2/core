@@ -195,6 +195,7 @@ func execuateInside(client *engineapi.Client, ID, cmd, user string, env []string
 		AttachStdout: true,
 	}
 	//TODO should timeout
+	//Fuck docker, ctx will not use inside funcs!!
 	idResp, err := client.ContainerExecCreate(context.Background(), ID, execConfig)
 	if err != nil {
 		return []byte{}, err
