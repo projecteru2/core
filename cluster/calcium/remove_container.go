@@ -143,19 +143,18 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 		}
 	}()
 
-	cmd, ok := info.Config.Labels[beforeStop]
-	if ok && cmd != "" {
-		// before stop
-		privileged := info.Config.User == root
-		output, err := execuateInside(container.Engine, container.ID, cmd, info.Config.User, info.Config.Env, privileged)
-		if err != nil {
-			if info.Config.Labels[hookForce] == "1" {
-				return err
+	if container.Hook != nil && len(container.Hook.BeforeStop) > 0 {
+		for _, cmd := range container.Hook.BeforeStop {
+			output, err := execuateInside(container.Engine, container.ID, cmd, info.Config.User, info.Config.Env, container.Privileged)
+			if err != nil {
+				if container.Hook.Force {
+					return err
+				}
+				log.Errorf("[removeOneContainer] hook error %v", err)
 			}
-			log.Errorf("[removeOneContainer] hook error %v", err)
-		}
-		if len(output) > 0 {
-			log.Infof("[removeOneContainer] hook output \n%s", output)
+			if len(output) > 0 {
+				log.Infof("[removeOneContainer] hook output %s\n%s", cmd, output)
+			}
 		}
 	}
 

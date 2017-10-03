@@ -199,12 +199,9 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 
 	entry := opts.Entrypoint
 	// 如果有指定用户，用指定用户
-	// 没有指定用户，用 Name
+	// 没有指定用户，用镜像自己的
 	// 如果有 privileged，强制 root
-	user := opts.Name
-	if opts.User != "" {
-		user = opts.User
-	}
+	user := opts.User
 	if entry.Privileged != "" {
 		user = root
 	}
@@ -266,14 +263,6 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	containerLabels["healthcheck_expected_code"] = strconv.Itoa(entry.HealthCheck.Code)
 	containerLabels["healthcheck_ports"] = strings.Join(utils.DecodePorts(opts.Entrypoint.HealthCheck.Ports), ",")
 
-	// 要把after_start和before_stop写进去
-	containerLabels[afterStart] = entry.Hook.AfterStart
-	containerLabels[beforeStop] = entry.Hook.BeforeStop
-	//TODO fxxk it
-	containerLabels[hookForce] = "0"
-	if entry.Hook.Force {
-		containerLabels[hookForce] = "1"
-	}
 	// 接下来是meta
 	for key, value := range opts.Meta {
 		containerLabels[key] = value
@@ -387,11 +376,12 @@ func (c *calcium) createAndStartContainer(
 	quota types.CPUMap, typ string,
 ) *types.CreateContainerMessage {
 	container := &types.Container{
-		Podname:  opts.Podname,
-		Nodename: node.Name,
-		Memory:   opts.Memory,
-		CPU:      quota,
-		Engine:   node.Engine,
+		Podname:    opts.Podname,
+		Nodename:   node.Name,
+		Memory:     opts.Memory,
+		CPU:        quota,
+		Engine:     node.Engine,
+		Privileged: opts.Entrypoint.Privileged != "",
 	}
 	createContainerMessage := &types.CreateContainerMessage{
 		Podname:  container.Podname,
@@ -446,17 +436,19 @@ func (c *calcium) createAndStartContainer(
 	}
 
 	// after start
-	if opts.Entrypoint.Hook != nil && opts.Entrypoint.Hook.AfterStart != "" {
-		cmd := opts.Entrypoint.Hook.AfterStart
-		privileged := opts.Entrypoint.Privileged != ""
-		output, err := execuateInside(node.Engine, container.ID, cmd, opts.User, opts.Env, privileged)
-		createContainerMessage.Hook = output
-		if err != nil {
-			if opts.Entrypoint.Hook.Force {
-				createContainerMessage.Error = err
-				return createContainerMessage
+	if opts.Entrypoint.Hook != nil && len(opts.Entrypoint.Hook.AfterStart) > 0 {
+		container.Hook = opts.Entrypoint.Hook
+		createContainerMessage.Hook = []byte{}
+		for _, cmd := range opts.Entrypoint.Hook.AfterStart {
+			output, err := execuateInside(node.Engine, container.ID, cmd, opts.User, opts.Env, container.Privileged)
+			createContainerMessage.Hook = append(createContainerMessage.Hook, output...)
+			if err != nil {
+				if opts.Entrypoint.Hook.Force {
+					createContainerMessage.Error = err
+					return createContainerMessage
+				}
+				createContainerMessage.Hook = append(createContainerMessage.Hook, []byte(err.Error())...)
 			}
-			createContainerMessage.Hook = []byte(err.Error())
 		}
 	}
 

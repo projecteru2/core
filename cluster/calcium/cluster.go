@@ -25,11 +25,8 @@ type calcium struct {
 }
 
 const (
-	afterStart = "after_start"
-	beforeStop = "before_stop"
-	hookForce  = "hook_force"
-	GITLAB     = "gitlab"
-	GITHUB     = "github"
+	GITLAB = "gitlab"
+	GITHUB = "github"
 )
 
 // New returns a new cluster config

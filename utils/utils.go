@@ -76,7 +76,7 @@ func GetGitRepoName(url string) (string, error) {
 
 func GetVersion(image string) string {
 	if !strings.Contains(image, ":") {
-		return "unknown"
+		return "latest"
 	}
 
 	parts := strings.Split(image, ":")
