@@ -441,14 +441,15 @@ func (c *calcium) createAndStartContainer(
 		createContainerMessage.Hook = []byte{}
 		for _, cmd := range opts.Entrypoint.Hook.AfterStart {
 			output, err := execuateInside(node.Engine, container.ID, cmd, opts.User, opts.Env, container.Privileged)
-			createContainerMessage.Hook = append(createContainerMessage.Hook, output...)
 			if err != nil {
 				if opts.Entrypoint.Hook.Force {
 					createContainerMessage.Error = err
 					return createContainerMessage
 				}
 				createContainerMessage.Hook = append(createContainerMessage.Hook, []byte(err.Error())...)
+				continue
 			}
+			createContainerMessage.Hook = append(createContainerMessage.Hook, output...)
 		}
 	}
 
