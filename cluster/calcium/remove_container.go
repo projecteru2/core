@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
@@ -78,17 +79,39 @@ func (c *calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMess
 				defer wg.Done()
 
 				success := true
-				message := "success"
+				message := ""
+
+				defer func() {
+					ch <- &types.RemoveContainerMessage{
+						ContainerID: container.ID,
+						Success:     success,
+						Message:     message,
+					}
+				}()
+
+				if container.Hook != nil && len(container.Hook.BeforeStop) > 0 {
+					outputs := []string{}
+					for _, cmd := range container.Hook.BeforeStop {
+						output, err := execuateInside(container.Engine, container.ID, cmd, info.Config.User, info.Config.Env, container.Privileged)
+						if err != nil {
+							if container.Hook.Force {
+								success = false
+								message = err.Error()
+								return
+							}
+							outputs = append(outputs, err.Error())
+							continue
+						}
+						outputs = append(outputs, string(output))
+					}
+					message = strings.Join(outputs, "")
+				}
 
 				if err := c.removeOneContainer(container, info); err != nil {
 					success = false
-					message = err.Error()
+					message += err.Error()
 				}
-				ch <- &types.RemoveContainerMessage{
-					ContainerID: container.ID,
-					Success:     success,
-					Message:     message,
-				}
+
 			}(container, info)
 		}
 
@@ -143,28 +166,13 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 		}
 	}()
 
-	if container.Hook != nil && len(container.Hook.BeforeStop) > 0 {
-		for _, cmd := range container.Hook.BeforeStop {
-			output, err := execuateInside(container.Engine, container.ID, cmd, info.Config.User, info.Config.Env, container.Privileged)
-			if err != nil {
-				if container.Hook.Force {
-					return err
-				}
-				log.Errorf("[removeOneContainer] hook error %v", err)
-			}
-			if len(output) > 0 {
-				log.Infof("[removeOneContainer] hook output %s\n%s", cmd, output)
-			}
-		}
-	}
-
 	// 这里 block 的问题很严重，按照目前的配置是 5 分钟一级的 block
 	// 一个简单的处理方法是相信 ctx 不相信 docker 自身的处理
 	// 另外我怀疑 docker 自己的 timeout 实现是完全的等 timeout 而非结束了就退出
 	ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
 	defer cancel()
 	if err = container.Engine.ContainerStop(ctx, info.ID, nil); err != nil {
-		log.Errorf("[removeOneContainer] Error during ContainerStop: %s", err.Error())
+		log.Errorf("[removeOneContainer] Error during ContainerStop: %v", err)
 		return err
 	}
 	log.Debugf("[removeOneContainer] Container stopped %s", info.ID)
@@ -175,7 +183,7 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 	}
 	err = container.Engine.ContainerRemove(context.Background(), info.ID, rmOpts)
 	if err != nil {
-		log.Errorf("[removeOneContainer] Error during ContainerRemove: %s", err.Error())
+		log.Errorf("[removeOneContainer] Error during ContainerRemove: %v", err)
 		return err
 	}
 	log.Debugf("[removeOneContainer] Container removed %s", info.ID)
