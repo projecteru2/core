@@ -206,5 +206,16 @@ func execuateInside(client *engineapi.Client, ID, cmd, user string, env []string
 	}
 	defer resp.Close()
 	stream := utils.FuckDockerStream(ioutil.NopCloser(resp.Reader))
-	return ioutil.ReadAll(stream)
+	b, err := ioutil.ReadAll(stream)
+	if err != nil {
+		return []byte{}, err
+	}
+	info, err := client.ContainerExecInspect(context.Background(), idResp.ID)
+	if err != nil {
+		return []byte{}, err
+	}
+	if info.ExitCode != 0 {
+		return []byte{}, fmt.Errorf("%s", b)
+	}
+	return b, nil
 }
