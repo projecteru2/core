@@ -98,7 +98,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, opts
 			c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+") // 创建容器失败就要把资源还回去对不对？
 			// clean up
 			if ms[i].ContainerID != "" {
-				if err := node.Engine.ContainerRemove(context.Background(), ms[i].ContainerID, enginetypes.ContainerRemoveOptions{}); err != nil {
+				if err := node.Engine.ContainerRemove(context.Background(), ms[i].ContainerID, enginetypes.ContainerRemoveOptions{Force: true}); err != nil {
 					log.Errorf("[doCreateContainerWithMemoryPrior] Error during remove failed container %v", err)
 				}
 			}
@@ -177,7 +177,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 			}
 			// clean up
 			if ms[i].ContainerID != "" {
-				if err := node.Engine.ContainerRemove(context.Background(), ms[i].ContainerID, enginetypes.ContainerRemoveOptions{}); err != nil {
+				if err := node.Engine.ContainerRemove(context.Background(), ms[i].ContainerID, enginetypes.ContainerRemoveOptions{Force: true}); err != nil {
 					log.Errorf("[doCreateContainerWithCPUPrior] Error during remove failed container %v", err)
 				}
 			}
