@@ -91,7 +91,7 @@ class CoreRPCStub(object):
         )
     self.RemoveContainer = channel.unary_stream(
         '/pb.CoreRPC/RemoveContainer',
-        request_serializer=core__pb2.ContainerIDs.SerializeToString,
+        request_serializer=core__pb2.RemoveContainerOptions.SerializeToString,
         response_deserializer=core__pb2.RemoveContainerMessage.FromString,
         )
     self.ReallocResource = channel.unary_stream(
@@ -328,7 +328,7 @@ def add_CoreRPCServicer_to_server(servicer, server):
       ),
       'RemoveContainer': grpc.unary_stream_rpc_method_handler(
           servicer.RemoveContainer,
-          request_deserializer=core__pb2.ContainerIDs.FromString,
+          request_deserializer=core__pb2.RemoveContainerOptions.FromString,
           response_serializer=core__pb2.RemoveContainerMessage.SerializeToString,
       ),
       'ReallocResource': grpc.unary_stream_rpc_method_handler(

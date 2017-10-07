@@ -135,16 +135,10 @@ func (v *vibranium) GetContainer(ctx context.Context, id *pb.ContainerID) (*pb.C
 	return toRPCContainer(container, string(bytes)), nil
 }
 
-// GetContainers
-// like GetContainer, information should be returned
-
+//GetContainers
+//like GetContainer, information should be returned
 func (v *vibranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (*pb.Containers, error) {
-	ids := []string{}
-	for _, id := range cids.Ids {
-		ids = append(ids, id.Id)
-	}
-
-	containers, err := v.cluster.GetContainers(ids)
+	containers, err := v.cluster.GetContainers(cids.GetIds())
 	if err != nil {
 		return nil, err
 	}
@@ -292,20 +286,18 @@ func (v *vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	return err
 }
 
-func (v *vibranium) RemoveContainer(cids *pb.ContainerIDs, stream pb.CoreRPC_RemoveContainerServer) error {
+func (v *vibranium) RemoveContainer(opts *pb.RemoveContainerOptions, stream pb.CoreRPC_RemoveContainerServer) error {
 	v.taskAdd("RemoveContainer", true)
 	defer v.taskDone("RemoveContainer", true)
 
-	ids := []string{}
-	for _, id := range cids.Ids {
-		ids = append(ids, id.Id)
-	}
+	ids := opts.GetIds()
+	force := opts.GetForce()
 
 	if len(ids) == 0 {
 		return fmt.Errorf("No container ids given")
 	}
 
-	ch, err := v.cluster.RemoveContainer(ids)
+	ch, err := v.cluster.RemoveContainer(ids, force)
 	if err != nil {
 		return err
 	}
@@ -322,12 +314,7 @@ func (v *vibranium) RemoveContainer(cids *pb.ContainerIDs, stream pb.CoreRPC_Rem
 func (v *vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_ReallocResourceServer) error {
 	v.taskAdd("ReallocResource", true)
 	defer v.taskDone("ReallocResource", true)
-
-	ids := []string{}
-	for _, id := range opts.Ids.Ids {
-		ids = append(ids, id.Id)
-	}
-
+	ids := opts.GetIds()
 	if len(ids) == 0 {
 		return fmt.Errorf("No container ids given")
 	}

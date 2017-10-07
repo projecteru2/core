@@ -200,11 +200,14 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	entry := opts.Entrypoint
 	// 如果有指定用户，用指定用户
 	// 没有指定用户，用镜像自己的
-	// 如果有 privileged，强制 root
+	// CapAdd and Privileged
 	user := opts.User
-	if entry.Privileged != "" {
+	capAdd := []string{}
+	if entry.Privileged {
 		user = root
+		capAdd = append(capAdd, "SYS_ADMIN")
 	}
+
 	// command and user
 	// extra args is dynamically
 	slices := utils.MakeCommandLineArgs(fmt.Sprintf("%s %s", entry.Command, opts.ExtraArgs))
@@ -240,12 +243,6 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 			"syslog-format":   c.config.Syslog.Format,
 			"tag":             fmt.Sprintf("%s {{.ID}}", opts.Name),
 		}
-	}
-
-	// CapAdd and Privileged
-	capAdd := []string{}
-	if entry.Privileged == "__super__" {
-		capAdd = append(capAdd, "SYS_ADMIN")
 	}
 
 	// labels
@@ -333,7 +330,7 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 		RestartPolicy: enginecontainer.RestartPolicy{Name: restartPolicy, MaximumRetryCount: maximumRetryCount},
 		CapAdd:        engineslice.StrSlice(capAdd),
 		ExtraHosts:    entry.ExtraHosts,
-		Privileged:    entry.Privileged != "",
+		Privileged:    entry.Privileged,
 		Resources:     resource,
 	}
 	networkConfig := &enginenetwork.NetworkingConfig{}
@@ -381,7 +378,7 @@ func (c *calcium) createAndStartContainer(
 		Memory:     opts.Memory,
 		CPU:        quota,
 		Engine:     node.Engine,
-		Privileged: opts.Entrypoint.Privileged != "",
+		Privileged: opts.Entrypoint.Privileged,
 	}
 	createContainerMessage := &types.CreateContainerMessage{
 		Podname:  container.Podname,
