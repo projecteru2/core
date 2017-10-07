@@ -36,7 +36,7 @@ type HealthCheck struct {
 type Entrypoint struct {
 	Name          string       `yaml:"name,omitempty"`
 	Command       string       `yaml:"cmd,omitempty"`
-	Privileged    string       `yaml:"privileged,omitempty"`
+	Privileged    bool         `yaml:"privileged,omitempty"`
 	WorkingDir    string       `yaml:"working_dir,omitempty"`
 	LogConfig     string       `yaml:"log_config,omitempty"`
 	Publish       []Port       `yaml:"publish,omitempty,flow"`

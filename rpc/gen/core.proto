@@ -20,7 +20,7 @@ service CoreRPC {
     rpc BuildImage(BuildImageOptions) returns (stream BuildImageMessage) {};
     rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage);
     rpc RunAndWait(stream RunAndWaitOptions) returns (stream RunAndWaitMessage);
-    rpc RemoveContainer(ContainerIDs) returns (stream RemoveContainerMessage);
+    rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage);
     rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage);
     rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage);
     rpc Backup(BackupOptions) returns (BackupMessage) {};
@@ -80,18 +80,21 @@ message Containers {
     repeated Container containers = 1;
 }
 
-// protobuf 不允许基本类型做 message
-// 只好把这样的类型也封装起来
 message ContainerID {
     string id = 1;
 }
 
 message ContainerIDs {
-    repeated ContainerID ids = 1;
+    repeated string ids = 1;
+}
+
+message RemoveContainerOptions {
+    repeated string ids = 1;
+    bool force = 2;
 }
 
 message ReallocOptions {
-    ContainerIDs ids = 1;
+    repeated string ids = 1;
     double cpu = 2;
     int64 mem = 3;
 }
@@ -173,7 +176,7 @@ message HealthCheckOptions {
 message EntrypointOptions {
     string name = 1;
     string command = 2;
-    string privileged = 3;
+    bool privileged = 3;
     string working_dir = 4;
     string log_config = 5;
     repeated string publish = 6;

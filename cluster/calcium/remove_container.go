@@ -44,7 +44,7 @@ func (ib *imageBucket) Dump() map[string][]string {
 
 // remove containers
 // returns a channel that contains removing responses
-func (c *calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMessage, error) {
+func (c *calcium) RemoveContainer(ids []string, force bool) (chan *types.RemoveContainerMessage, error) {
 	ch := make(chan *types.RemoveContainerMessage)
 	go func() {
 		wg := sync.WaitGroup{}
@@ -94,7 +94,7 @@ func (c *calcium) RemoveContainer(ids []string) (chan *types.RemoveContainerMess
 					for _, cmd := range container.Hook.BeforeStop {
 						output, err := execuateInside(container.Engine, container.ID, cmd, info.Config.User, info.Config.Env, container.Privileged)
 						if err != nil {
-							if container.Hook.Force {
+							if container.Hook.Force && !force {
 								success = false
 								message = err.Error()
 								return
@@ -193,7 +193,7 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 
 // 同步地删除容器, 在某些需要等待的场合异常有用!
 func (c *calcium) removeContainerSync(ids []string) error {
-	ch, err := c.RemoveContainer(ids)
+	ch, err := c.RemoveContainer(ids, true)
 	if err != nil {
 		return err
 	}
