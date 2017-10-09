@@ -28,7 +28,7 @@ const (
 WORKDIR {{.WorkingDir}}{{end}}
 {{if .Repo}}ADD {{.Repo}} .{{end}}`
 	copyTmpl = "COPY --from=%s %s %s"
-	runTmpl  = "RUN \"%s\""
+	runTmpl  = "RUN %s"
 	userTmpl = `RUN adduser -u {{.UID}} -d /nonexistent -s /sbin/nologin -U {{.User}}
 USER {{.User}}`
 )
@@ -136,9 +136,7 @@ func (c *calcium) BuildImage(opts *types.BuildOptions) (chan *types.BuildImageMe
 	}
 
 	log.Infof("[BuildImage] Building image %v at %v:%v", tag, buildPodname, node.Name)
-	ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
-	defer cancel()
-	resp, err := node.Engine.ImageBuild(ctx, buildContext, buildOptions)
+	resp, err := node.Engine.ImageBuild(context.Background(), buildContext, buildOptions)
 	if err != nil {
 		return ch, err
 	}
