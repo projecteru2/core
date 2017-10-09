@@ -119,6 +119,11 @@ func (c *calcium) reallocContainerWithMemoryPrior(
 	if memory > 0 {
 		if err := c.checkNodesMemory(pod.Name, nodeContainers, memory); err != nil {
 			log.Errorf("[reallocContainerWithMemoryPrior] realloc memory failed %v", err)
+			for _, containers := range nodeContainers {
+				for _, container := range containers {
+					ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
+				}
+			}
 			return
 		}
 	}
@@ -261,6 +266,13 @@ func (c *calcium) reallocContainersWithCPUPrior(
 	nodesCPUMap, err := c.reallocNodesCPU(pod.Name, nodesInfoMap)
 	if err != nil {
 		log.Errorf("[reallocContainersWithCPUPrior] realloc cpu resource failed %v", err)
+		for _, nodeInfoMap := range nodesInfoMap {
+			for _, containers := range nodeInfoMap {
+				for _, container := range containers {
+					ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
+				}
+			}
+		}
 		return
 	}
 
