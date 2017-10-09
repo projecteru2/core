@@ -191,7 +191,6 @@ func initConfig(mStore *mockstore.MockStore) (types.Config, *vibranium) {
 		AppDir:    "/tmp",           // App directory inside container
 		BackupDir: "/tmp",           // Backup dir on host
 		Statsd:    "localhost:1080", // Statsd host and port
-		Zone:      "c1",             // zone for core, e.g. C1, C2
 
 		Etcd: types.EtcdConfig{
 			Machines:   []string{"MOCK"}, // etcd cluster addresses

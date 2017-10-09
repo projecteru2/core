@@ -77,7 +77,7 @@ func (v *vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.N
 		return nil, err
 	}
 
-	return toRPCNode(n, v.cluster.GetZone()), nil
+	return toRPCNode(n), nil
 }
 
 // RemoveNode removes the node from etcd
@@ -97,7 +97,7 @@ func (v *vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.N
 		return nil, err
 	}
 
-	return toRPCNode(n, v.cluster.GetZone()), nil
+	return toRPCNode(n), nil
 }
 
 // ListPodNodes returns a list of node for pod
@@ -109,7 +109,7 @@ func (v *vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions)
 
 	nodes := []*pb.Node{}
 	for _, n := range ns {
-		nodes = append(nodes, toRPCNode(n, v.cluster.GetZone()))
+		nodes = append(nodes, toRPCNode(n))
 	}
 	return &pb.Nodes{Nodes: nodes}, nil
 }
@@ -180,7 +180,7 @@ func (v *vibranium) SetNodeAvailable(ctx context.Context, opts *pb.NodeAvailable
 	if err != nil {
 		return nil, err
 	}
-	return toRPCNode(n, v.cluster.GetZone()), nil
+	return toRPCNode(n), nil
 }
 
 // streamed returned functions

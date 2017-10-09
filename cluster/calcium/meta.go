@@ -75,7 +75,3 @@ func (c *calcium) GetContainer(id string) (*types.Container, error) {
 func (c *calcium) GetContainers(ids []string) ([]*types.Container, error) {
 	return c.store.GetContainers(ids)
 }
-
-func (c *calcium) GetZone() string {
-	return c.config.Zone
-}

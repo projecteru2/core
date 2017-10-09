@@ -219,7 +219,6 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	env = append(env, fmt.Sprintf("ERU_POD=%s", opts.Podname))
 	env = append(env, fmt.Sprintf("ERU_NODE_IP=%s", nodeIP))
 	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", node.Name))
-	env = append(env, fmt.Sprintf("ERU_ZONE=%s", c.config.Zone))
 	env = append(env, fmt.Sprintf("ERU_CONTAINER_NO=%d", index))
 	env = append(env, fmt.Sprintf("ERU_MEMORY=%d", opts.Memory))
 
@@ -250,7 +249,6 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	containerLabels := map[string]string{
 		"ERU":     "1",
 		"version": utils.GetVersion(opts.Image),
-		"zone":    c.config.Zone,
 	}
 
 	// 发布端口
