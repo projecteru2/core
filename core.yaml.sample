@@ -2,7 +2,6 @@ log_level: "DEBUG"
 bind: ":5001"
 backupdir: "/data/backup"
 statsd: "127.0.0.1:8125"
-zone: "eru-test"
 image_cache: 2
 global_timeout: 300
 lock_timeout: 30
