@@ -157,6 +157,7 @@ func MakeContainerName(appname, entrypoint, ident string) string {
 
 // ParseContainerName does the opposite thing as MakeContainerName
 func ParseContainerName(containerName string) (string, string, string, error) {
+	containerName = strings.TrimLeft(containerName, "/")
 	splits := strings.Split(containerName, "_")
 	length := len(splits)
 	if length >= 3 {
