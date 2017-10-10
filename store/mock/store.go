@@ -78,6 +78,11 @@ func (m *MockStore) AddNode(name, endpoint, podname, cafile, certfile, keyfile s
 	return nil, args.Error(1)
 }
 
+func (m *MockStore) CleanContainerData(ID, appname, entrypoint, nodename string) error {
+	args := m.Called(ID, appname, entrypoint, nodename)
+	return args.Error(0)
+}
+
 func (m *MockStore) DeleteNode(node *types.Node) {
 	m.Called(node)
 }
@@ -136,8 +141,8 @@ func (m *MockStore) AddContainer(container *types.Container) error {
 	return nil
 }
 
-func (m *MockStore) RemoveContainer(id string, container *types.Container) error {
-	args := m.Called(id, container)
+func (m *MockStore) RemoveContainer(container *types.Container) error {
+	args := m.Called(container)
 	return args.Error(0)
 }
 

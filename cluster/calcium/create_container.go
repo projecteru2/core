@@ -291,7 +291,7 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	// 有 networks 的时候一律用 none 作为默认 mode
 	networkMode := opts.NetworkMode
 	if len(opts.Networks) > 0 {
-		for name, _ := range opts.Networks {
+		for name := range opts.Networks {
 			networkMode = name
 			break
 		}

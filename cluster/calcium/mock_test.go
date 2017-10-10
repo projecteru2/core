@@ -16,6 +16,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
+	sourcemock "github.com/projecteru2/core/source/mocks"
 	"github.com/projecteru2/core/store/mock"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -59,7 +60,7 @@ var (
 		Git: coretypes.GitConfig{SCMType: "gitlab"},
 		Docker: coretypes.DockerConfig{
 			Hub:       "hub.testhub.com",
-			HubPrefix: "apps",
+			Namespace: "apps",
 		},
 		Scheduler: coretypes.SchedConfig{
 			ShareBase: 10,
@@ -69,28 +70,24 @@ var (
 	mockc     *calcium
 	mockStore *mockstore.MockStore
 	err       error
-	specs     = coretypes.Specs{
-		Appname: "root",
-		Entrypoints: map[string]coretypes.Entrypoint{
-			"test": coretypes.Entrypoint{
-				Command:                 "sleep 9999",
-				Ports:                   []coretypes.Port{"6006/tcp"},
-				HealthCheckPort:         6006,
-				HealthCheckUrl:          "",
-				HealthCheckExpectedCode: 200,
-			},
+	etpts     = &coretypes.Entrypoint{
+		HealthCheck: &coretypes.HealthCheck{
+			URL:   "x",
+			Ports: []coretypes.Port{"80"},
+			Code:  200,
 		},
-		Build: []string{""},
-		Base:  image,
 	}
 	opts = &coretypes.DeployOptions{
-		Appname:    "root",
-		Image:      image,
-		Podname:    podname,
-		Entrypoint: "test",
-		Count:      5,
-		Memory:     appmemory,
-		CPUQuota:   1,
+		Name:       "appname", // Name of application
+		Entrypoint: etpts,     // entrypoint
+		Podname:    podname,   // Name of pod to deploy
+		Nodename:   nodename,  // Specific nodes to deploy, if given, must belong to pod
+		Image:      image,     // Name of image to deploy
+		CPUQuota:   1,         // How many cores needed, e.g. 1.5
+		Memory:     appmemory, // Memory for container, in bytes
+		Count:      5,         // How many containers needed, e.g. 4
+		User:       "root",    // User for container
+		// NetworkMode string            // Network mode
 	}
 	ToUpdateContainerIDs = []string{
 		"f1f9da344e8f8f90f73899ddad02da6cdf2218bbe52413af2bcfef4fba2d22de",
@@ -100,6 +97,28 @@ var (
 
 	mockInspectedContainerResources = Map{
 		data: map[string]container.Resources{},
+	}
+
+	mockBuilds = &coretypes.Builds{
+		Stages: []string{"test", "step1", "setp2"},
+		Builds: map[string]*coretypes.Build{
+			"step1": {
+				Base:     "alpine:latest",
+				Commands: []string{"cp /bin/ls /root/artifact", "date > /root/something"},
+				Artifacts: map[string]string{
+					"/root/artifact":  "/root/artifact",
+					"/root/something": "/root/something",
+				},
+			},
+			"setp2": {
+				Base:     "centos:latest",
+				Commands: []string{"echo yooo", "sleep 1"},
+			},
+			"test": {
+				Base:     "ubuntu:latest",
+				Commands: []string{"date", "echo done"},
+			},
+		},
 	}
 )
 
@@ -243,6 +262,7 @@ func mockDockerDoer(r *http.Request) (*http.Response, error) {
 			rscs = mockInspectedContainerResources.Get(containerID)
 		}
 		containerJSON := types.ContainerJSON{
+			NetworkSettings: &types.NetworkSettings{},
 			ContainerJSONBase: &types.ContainerJSONBase{
 				ID:    containerID,
 				Image: "image:latest",
@@ -270,6 +290,13 @@ func mockDockerDoer(r *http.Request) (*http.Response, error) {
 			{
 				Name:   "mock_network",
 				Driver: "bridge",
+			},
+		})
+	case "/build":
+		b, _ = json.Marshal([]types.ImageBuildResponse{
+			{
+				Body:   ioutil.NopCloser(bytes.NewReader([]byte("content"))),
+				OSType: "linux",
 			},
 		})
 	}
@@ -334,6 +361,8 @@ func initMockConfig() {
 
 	mockStore = &mockstore.MockStore{}
 	mockc.SetStore(mockStore)
+	mockSource := &sourcemock.Source{}
+	mockc.source = mockSource
 
 	clnt := mockDockerClient()
 
@@ -396,7 +425,7 @@ func initMockConfig() {
 	lk.Mock.On("Unlock").Return(nil)
 	mockStore.On("CreateLock", mockStringType, mock.AnythingOfType("int")).Return(&lk, nil)
 
-	mockStore.On("RemoveContainer", mockStringType, mock.MatchedBy(func(input *coretypes.Container) bool {
+	mockStore.On("RemoveContainer", mock.MatchedBy(func(input *coretypes.Container) bool {
 		return true
 	})).Return(nil)
 
@@ -456,4 +485,9 @@ func initMockConfig() {
 		rContainers = append(rContainers, rContainer)
 	}
 	mockStore.On("GetContainers", ToUpdateContainerIDs).Return(rContainers, nil)
+
+	// mockSource
+	mockSource.On("SourceCode", mockStringType, mockStringType, mockStringType).Return(nil)
+	mockSource.On("Artifact", mockStringType, mockStringType).Return(nil)
+	mockSource.On("Security", mockStringType).Return(nil)
 }

@@ -27,7 +27,7 @@ func TestCreateContainerWithMemPrior(t *testing.T) {
 
 	// Create Container with memory prior
 	testlogF("Create containers with memory prior")
-	createCh, err := mockc.createContainerWithMemoryPrior(specs, opts)
+	createCh, err := mockc.createContainerWithMemoryPrior(opts)
 	assert.NoError(t, err)
 	ids := []string{}
 	for msg := range createCh {
@@ -52,7 +52,7 @@ func TestCreateContainerWithMemPrior(t *testing.T) {
 
 	// Remove Container
 	testlogF("Remove containers")
-	removeCh, err := mockc.RemoveContainer(ids)
+	removeCh, err := mockc.RemoveContainer(ids, true)
 	assert.NoError(t, err)
 	for msg := range removeCh {
 		fmt.Printf("ID: %s, Message: %s\n", msg.ContainerID, msg.Message)
@@ -79,7 +79,7 @@ func TestCreateContainerWithCPUPrior(t *testing.T) {
 
 	// Create Container with memory prior
 	testlogF("Create containers with memory prior")
-	createCh, err := mockc.createContainerWithCPUPrior(specs, opts)
+	createCh, err := mockc.createContainerWithCPUPrior(opts)
 	assert.NoError(t, err)
 	ids := []string{}
 	for msg := range createCh {

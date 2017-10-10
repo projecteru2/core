@@ -188,7 +188,6 @@ func initConfig(mStore *mockstore.MockStore) (types.Config, *vibranium) {
 
 	config := types.Config{
 		Bind:      ":5001",          // HTTP API address
-		AppDir:    "/tmp",           // App directory inside container
 		BackupDir: "/tmp",           // Backup dir on host
 		Statsd:    "localhost:1080", // Statsd host and port
 
@@ -212,6 +211,8 @@ func initConfig(mStore *mockstore.MockStore) (types.Config, *vibranium) {
 			APIVersion: "v1.23",
 			LogDriver:  "none",
 			BuildPod:   "dev",
+			Hub:        "hub.testhub.com",
+			Namespace:  "apps",
 		},
 	}
 
@@ -305,7 +306,7 @@ func TestContainers(t *testing.T) {
 		ID: ID,
 	}
 	store.On("GetContainers", []string{ID}).Return([]*types.Container{&container}, nil)
-	gcResp, err := clnt.GetContainers(ctx, &pb.ContainerIDs{Ids: []*pb.ContainerID{&pb.ContainerID{Id: ID}}})
+	gcResp, err := clnt.GetContainers(ctx, &pb.ContainerIDs{Ids: []string{ID}})
 	assert.NoError(t, err)
 	// 因为Container的engine是nil，所以获取不到信息，调用返回为空
 	log.Info(gcResp)
@@ -313,7 +314,8 @@ func TestContainers(t *testing.T) {
 }
 
 func TestNetwork(t *testing.T) {
-	// 由于测试的时候没有 dockerEngine，不能 docker network ls，所以并不能得到真是结果，只能进行错误测试
+	// 由于测试的时候没有 dockerEngine，不能 docker network ls
+	// 所以并不能得到真是结果，只能进行错误测试
 	ctx := context.Background()
 	store := &mockstore.MockStore{}
 	config, v := initConfig(store)
@@ -370,17 +372,41 @@ func TestBuildImage(t *testing.T) {
 	store.On("GetNode", "dev", "nodename").Return(tNode, nil)
 
 	biOpts := pb.BuildImageOptions{
-		Repo:     "noexistrepo",
-		Version:  "0",
-		Uid:      "-1",
-		Artifact: "",
+		Name: "buildName",
+		User: "root",
+		Uid:  999,
+		Tag:  "tag1",
+		Builds: &pb.Builds{
+			Stages: []string{"test", "step1", "setp2"},
+			Builds: map[string]*pb.Build{
+				"step1": {
+					Base:     "alpine:latest",
+					Repo:     "git@github.com/a/a.git",
+					Commands: []string{"cp /bin/ls /root/artifact", "date > /root/something"},
+					Artifacts: map[string]string{
+						"/root/artifact":  "/root/artifact",
+						"/root/something": "/root/something",
+					},
+				},
+				"setp2": {
+					Base:     "centos:latest",
+					Repo:     "git@github.com/a/a.git",
+					Commands: []string{"echo yooo", "sleep 1"},
+				},
+				"test": {
+					Base:     "ubuntu:latest",
+					Repo:     "error",
+					Commands: []string{"date", "echo done"},
+				},
+			},
+		},
 	}
 	resp, err := clnt.BuildImage(ctx, &biOpts) // 这个err是RPC调用的error，比如连接断开，连接失败
 	assert.NoError(t, err)
 
 	recv, err := resp.Recv() // 这个err是 BuildImage 产生的error
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Bad git url format")
+	assert.Contains(t, err.Error(), "unsupported protocol")
 	assert.Nil(t, recv)
 }
 
@@ -422,18 +448,20 @@ func TestCreateContainer(t *testing.T) {
 	store.On("GetNode", podname, nodename).Return(tNode, nil)
 
 	depOpts := pb.DeployOptions{
-		Specs: `appname: testapp
-entrypoints: {"0": {run_and_wait_timeout: 0}}
-base: ""`, // string
-		Appname:    "testapp", // string
-		Image:      "",        // string
-		Podname:    "dev",     // string
-		Nodename:   "",        // string
-		Entrypoint: "",        // string
-		ExtraArgs:  "",        // string
-		CpuQuota:   1024,      // float64
-		Count:      -1,        // int
-		Memory:     666,       // int64
+		Image:     "",    // string
+		Podname:   "dev", // string
+		Nodename:  "",    // string
+		ExtraArgs: "",    // string
+		CpuQuota:  1024,  // float64
+		Count:     -1,    // int
+		Memory:    666,   // int64
+		Entrypoint: &pb.EntrypointOptions{
+			Healcheck: &pb.HealthCheckOptions{
+				Url:   "x",
+				Ports: []string{"80"},
+				Code:  200,
+			},
+		},
 	}
 	resp, err := clnt.CreateContainer(ctx, &depOpts)
 	assert.NoError(t, err)
@@ -443,18 +471,20 @@ base: ""`, // string
 	assert.Nil(t, recv)
 
 	depOpts = pb.DeployOptions{
-		Specs: `appname: testapp
-entrypoints: {"0": {run_and_wait_timeout: 0}}
-base: ""`, // string
-		Appname:    "testapp", // string
-		Image:      "",        // string
-		Podname:    "dev",     // string
-		Nodename:   "",        // string
-		Entrypoint: "",        // string
-		ExtraArgs:  "",        // string
-		CpuQuota:   1024,      // float64
-		Count:      -1,        // int
-		Memory:     6666666,   // int64
+		Image:     "",      // string
+		Podname:   "dev",   // string
+		Nodename:  "",      // string
+		ExtraArgs: "",      // string
+		CpuQuota:  1024,    // float64
+		Count:     -1,      // int
+		Memory:    6666666, // int64
+		Entrypoint: &pb.EntrypointOptions{
+			Healcheck: &pb.HealthCheckOptions{
+				Url:   "x",
+				Ports: []string{"80"},
+				Code:  200,
+			},
+		},
 	}
 	resp, err = clnt.CreateContainer(ctx, &depOpts)
 	assert.NoError(t, err)
@@ -488,18 +518,20 @@ func TestRunAndWait(t *testing.T) {
 	store.On("GetPod", podname).Return(pod, nil)
 
 	depOpts := pb.DeployOptions{
-		Specs: `appname: testapp
-entrypoints: {"0": {run_and_wait_timeout: 0}}
-base: ""`, // string
-		Appname:    "testapp", // string
-		Image:      "",        // string
-		Podname:    "dev",     // string
-		Nodename:   "",        // string
-		Entrypoint: "",        // string
-		ExtraArgs:  "",        // string
-		CpuQuota:   1024,      // float64
-		Count:      -1,        // int
-		Memory:     666,       // int64
+		Image:     "",    // string
+		Podname:   "dev", // string
+		Nodename:  "",    // string
+		ExtraArgs: "",    // string
+		CpuQuota:  1024,  // float64
+		Count:     -1,    // int
+		Memory:    666,   // int64
+		Entrypoint: &pb.EntrypointOptions{
+			Healcheck: &pb.HealthCheckOptions{
+				Url:   "x",
+				Ports: []string{"80"},
+				Code:  200,
+			},
+		},
 	}
 	runAndWaitOpts := pb.RunAndWaitOptions{
 		DeployOptions: &depOpts,
@@ -511,19 +543,21 @@ base: ""`, // string
 	assert.Contains(t, err.Error(), "Minimum memory limit allowed is 4MB")
 
 	depOpts = pb.DeployOptions{
-		Specs: `appname: testapp
-entrypoints: {"0": {run_and_wait_timeout: 0}}
-base: ""`, // string
-		Appname:    "testapp", // string
-		Image:      "",        // string
-		Podname:    "dev",     // string
-		Nodename:   "",        // string
-		Entrypoint: "",        // string
-		ExtraArgs:  "",        // string
-		CpuQuota:   1024,      // float64
-		Count:      -1,        // int
-		Memory:     666666,    // int64
-		OpenStdin:  true,
+		Image:     "",     // string
+		Podname:   "dev",  // string
+		Nodename:  "",     // string
+		ExtraArgs: "",     // string
+		CpuQuota:  1024,   // float64
+		Count:     -1,     // int
+		Memory:    666666, // int64
+		OpenStdin: true,
+		Entrypoint: &pb.EntrypointOptions{
+			Healcheck: &pb.HealthCheckOptions{
+				Url:   "x",
+				Ports: []string{"80"},
+				Code:  200,
+			},
+		},
 	}
 	runAndWaitOpts = pb.RunAndWaitOptions{
 		DeployOptions: &depOpts,
@@ -579,11 +613,11 @@ func TestOthers(t *testing.T) {
 	store.On("GetNode", podname, nodename).Return(tNode, nil)
 
 	// RemoveContainer
-	rmContainerResp, _ := clnt.RemoveContainer(ctx, &pb.ContainerIDs{Ids: []*pb.ContainerID{&pb.ContainerID{Id: ID}}})
+	rmContainerResp, _ := clnt.RemoveContainer(ctx, &pb.RemoveContainerOptions{
+		Ids:   []string{ID},
+		Force: true,
+	})
 	r, err := rmContainerResp.Recv() // 同理这个err也是gRPC调用的error，而不是执行动作的error
 	assert.Nil(t, err)
 	assert.Contains(t, r.GetMessage(), "Engine is nil")
-
-	// RemoveImage 和 Backup 无法测试，因为 node Engine is nil
-
 }

@@ -10,17 +10,12 @@ import (
 
 func TestRunAndWait(t *testing.T) {
 	initMockConfig()
-	specs := types.Specs{
-		Entrypoints: map[string]types.Entrypoint{
-			"entry": types.Entrypoint{},
-		},
-	}
 	opts := types.DeployOptions{
-		Entrypoint: "entry",
+		Entrypoint: &types.Entrypoint{},
 		OpenStdin:  true,
 		Count:      10,
 	}
-	_, err = mockc.RunAndWait(specs, &opts, 10, nil)
+	_, err = mockc.RunAndWait(&opts, 10, nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Count must be 1 if OpenStdin is true")
 }

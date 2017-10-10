@@ -43,7 +43,7 @@ func (k *krypton) doMakeDeployStatus(opts *types.DeployOptions, nodesInfo []type
 		return nodesInfo, err
 	}
 
-	prefix := fmt.Sprintf("%s_%s", opts.Name, opts.Entrypoint)
+	prefix := fmt.Sprintf("%s_%s", opts.Name, opts.Entrypoint.Name)
 	m := map[string]string{}
 	nodesCount := map[string]int{}
 	for _, node := range resp.Node.Nodes {
