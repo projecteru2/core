@@ -82,6 +82,14 @@ func (m *MockStore) DeleteNode(node *types.Node) {
 	m.Called(node)
 }
 
+func (m *MockStore) GetNodeByName(node string) (*types.Node, error) {
+	args := m.Called(node)
+	if args.Get(0) != nil {
+		return args.Get(0).(*types.Node), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
 func (m *MockStore) GetAllNodes() ([]*types.Node, error) {
 	args := m.Called()
 	return args.Get(0).([]*types.Node), args.Error(1)

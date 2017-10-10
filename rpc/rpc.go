@@ -100,6 +100,16 @@ func (v *vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.N
 	return toRPCNode(n), nil
 }
 
+// GetNodeByName
+func (v *vibranium) GetNodeByName(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Node, error) {
+	n, err := v.cluster.GetNodeByName(opts.Nodename)
+	if err != nil {
+		return nil, err
+	}
+
+	return toRPCNode(n), nil
+}
+
 // ListPodNodes returns a list of node for pod
 func (v *vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions) (*pb.Nodes, error) {
 	ns, err := v.cluster.ListPodNodes(opts.Podname, opts.All)

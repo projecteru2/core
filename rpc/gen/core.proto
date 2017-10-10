@@ -11,6 +11,7 @@ service CoreRPC {
     rpc AddNode(AddNodeOptions) returns (Node) {};
     rpc RemoveNode(RemoveNodeOptions) returns (Pod) {};
     rpc GetNode(GetNodeOptions) returns (Node) {};
+    rpc GetNodeByName(GetNodeOptions) returns (Node) {};
     rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
     rpc GetContainer(ContainerID) returns (Container) {};
     rpc GetContainers(ContainerIDs) returns (Containers) {};
