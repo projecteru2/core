@@ -32,6 +32,10 @@ func (c *calcium) GetNode(podname, nodename string) (*types.Node, error) {
 	return c.store.GetNode(podname, nodename)
 }
 
+func (c *calcium) GetNodeByName(nodename string) (*types.Node, error) {
+	return c.store.GetNodeByName(nodename)
+}
+
 func (c *calcium) SetNodeAvailable(podname, nodename string, available bool) (*types.Node, error) {
 	n, err := c.store.GetNode(podname, nodename)
 	if err != nil {

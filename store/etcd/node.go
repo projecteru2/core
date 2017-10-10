@@ -157,6 +157,12 @@ func (k *krypton) AddNode(name, endpoint, podname, cafile, certfile, keyfile str
 		return nil, err
 	}
 
+	_, err = k.etcd.Create(context.Background(), fmt.Sprintf(nodePodKey, name), podname)
+	if err != nil {
+		k.deleteNode(podname, name, endpoint)
+		return nil, err
+	}
+
 	return node, nil
 }
 
@@ -167,6 +173,7 @@ func (k *krypton) AddNode(name, endpoint, podname, cafile, certfile, keyfile str
 func (k *krypton) deleteNode(podname, nodename, endpoint string) {
 	key := fmt.Sprintf(nodePrefixKey, podname, nodename)
 	k.etcd.Delete(context.Background(), key, &etcdclient.DeleteOptions{Recursive: true})
+	k.etcd.Delete(context.Background(), fmt.Sprintf(nodePodKey, nodename), &etcdclient.DeleteOptions{})
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		log.Errorf("[deleteNode] Bad endpoint: %s", endpoint)
@@ -185,6 +192,16 @@ func (k *krypton) deleteNode(podname, nodename, endpoint string) {
 // 既然有了上面的东西, 就加个API吧
 func (k *krypton) DeleteNode(node *types.Node) {
 	k.deleteNode(node.Podname, node.Name, node.Endpoint)
+}
+
+func (k *krypton) GetNodeByName(nodename string) (node *types.Node, err error) {
+	key := fmt.Sprintf(nodePodKey, nodename)
+	resp, err := k.etcd.Get(context.Background(), key, nil)
+	if err != nil {
+		return nil, err
+	}
+	podname := resp.Node.Value
+	return k.GetNode(podname, nodename)
 }
 
 // get all nodes from etcd
