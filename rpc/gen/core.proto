@@ -11,19 +11,21 @@ service CoreRPC {
     rpc AddNode(AddNodeOptions) returns (Node) {};
     rpc RemoveNode(RemoveNodeOptions) returns (Pod) {};
     rpc GetNode(GetNodeOptions) returns (Node) {};
-    rpc GetNodeByName(GetNodeOptions) returns (Node) {};
     rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
     rpc GetContainer(ContainerID) returns (Container) {};
     rpc GetContainers(ContainerIDs) returns (Containers) {};
     rpc ListNetworks(GetPodOptions) returns (Networks) {};
     rpc SetNodeAvailable(NodeAvailable) returns (Node) {};
 
+    rpc GetNodeByName(GetNodeOptions) returns (Node) {};
+    rpc ContainerDeployed(ContainerDeployedOptions) returns (Empty) {};
+
     rpc BuildImage(BuildImageOptions) returns (stream BuildImageMessage) {};
-    rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage);
-    rpc RunAndWait(stream RunAndWaitOptions) returns (stream RunAndWaitMessage);
-    rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage);
-    rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage);
-    rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage);
+    rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage) {};
+    rpc RunAndWait(stream RunAndWaitOptions) returns (stream RunAndWaitMessage) {}; 
+    rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage) {};
+    rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage) {};
+    rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage) {};
     rpc Backup(BackupOptions) returns (BackupMessage) {};
 }
 
@@ -74,6 +76,14 @@ message Container {
     string nodename = 3;
     string name = 4;
     string info = 5;
+}
+
+message ContainerDeployedOptions {
+    string id = 1;
+    string appname = 2;
+    string entrypoint = 3;
+    string nodename = 4;
+    bytes data = 5;
 }
 
 message Containers {

@@ -156,3 +156,8 @@ func (m *MockStore) MakeDeployStatus(opts *types.DeployOptions, nodesInfo []type
 	}
 	return nil, args.Error(1)
 }
+
+func (m *MockStore) ContainerDeployed(ID, appname, entrypoint, nodename, data string) error {
+	args := m.Called(ID, appname, entrypoint, nodename, data)
+	return args.Error(0)
+}

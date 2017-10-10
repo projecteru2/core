@@ -79,3 +79,7 @@ func (c *calcium) GetContainer(id string) (*types.Container, error) {
 func (c *calcium) GetContainers(ids []string) ([]*types.Container, error) {
 	return c.store.GetContainers(ids)
 }
+
+func (c *calcium) ContainerDeployed(ID, appname, entrypoint, nodename, data string) error {
+	return c.store.ContainerDeployed(ID, appname, entrypoint, nodename, data)
+}

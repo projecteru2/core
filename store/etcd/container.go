@@ -67,8 +67,8 @@ func (k *krypton) AddContainer(container *types.Container) error {
 		return err
 	}
 
-	data := string(bytes)
-	_, err = k.etcd.Set(context.Background(), key, data, nil)
+	//add deploy status by agent now
+	_, err = k.etcd.Set(context.Background(), key, string(bytes), nil)
 	if err != nil {
 		return err
 	}
@@ -81,11 +81,14 @@ func (k *krypton) AddContainer(container *types.Container) error {
 
 	key = fmt.Sprintf(containerDeployKey, appname, entrypoint, container.Nodename, container.ID)
 	_, err = k.etcd.Set(context.Background(), key, "", nil)
-	if err != nil {
-		return err
-	}
+	return err
+}
 
-	return nil
+func (k *krypton) ContainerDeployed(ID, appname, entrypoint, nodename, data string) error {
+	key := fmt.Sprintf(containerDeployKey, appname, entrypoint, nodename, ID)
+	//Only update when it exist
+	_, err := k.etcd.Update(context.Background(), key, data)
+	return err
 }
 
 // remove a container
@@ -100,7 +103,7 @@ func (k *krypton) RemoveContainer(container *types.Container) error {
 		return err
 	}
 
-	// remove deploy status
+	// remove deploy status by core
 	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
 	if err != nil {
 		return err
