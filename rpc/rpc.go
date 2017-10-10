@@ -370,6 +370,12 @@ func (v *vibranium) Backup(ctx context.Context, opts *pb.BackupOptions) (*pb.Bac
 	return toRPCBackupMessage(backupMessage), nil
 }
 
+func (v *vibranium) ContainerDeployed(ctx context.Context, opts *pb.ContainerDeployedOptions) (*pb.Empty, error) {
+	v.taskAdd("ContainerDeployed", false)
+	defer v.taskDone("ContainerDeployed", false)
+	return &pb.Empty{}, v.cluster.ContainerDeployed(opts.Id, opts.Appname, opts.Entrypoint, opts.Nodename, string(opts.Data))
+}
+
 func (v *vibranium) logUnsentMessages(msgType string, msg interface{}) {
 	log.Infof("[logUnsentMessages] Unsent %s streamed message: %v", msgType, msg)
 }

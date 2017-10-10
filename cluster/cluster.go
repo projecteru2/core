@@ -15,7 +15,6 @@ type Cluster interface {
 	AddNode(nodename, endpoint, podname, cafile, certfile, keyfile string, public bool) (*types.Node, error)
 	RemoveNode(nodename, podname string) (*types.Pod, error)
 	GetNode(podname, nodename string) (*types.Node, error)
-	GetNodeByName(nodename string) (*types.Node, error)
 	SetNodeAvailable(podname, nodename string, available bool) (*types.Node, error)
 	ListPodNodes(podname string, all bool) ([]*types.Node, error)
 	GetContainer(id string) (*types.Container, error)
@@ -30,4 +29,8 @@ type Cluster interface {
 	RemoveImage(podname, nodename string, images []string) (chan *types.RemoveImageMessage, error)
 	Backup(id, srcPath string) (*types.BackupMessage, error)
 	ReallocResource(ids []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error)
+
+	// used by agent
+	GetNodeByName(nodename string) (*types.Node, error)
+	ContainerDeployed(ID, appname, entrypoint, nodename, data string) error
 }

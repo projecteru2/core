@@ -28,6 +28,7 @@ type Store interface {
 	RemoveContainer(container *types.Container) error
 	GetContainer(id string) (*types.Container, error)
 	GetContainers(ids []string) ([]*types.Container, error)
+	ContainerDeployed(ID, appname, entrypoint, nodename, data string) error
 
 	// distributed lock
 	CreateLock(key string, ttl int) (lock.DistributedLock, error)

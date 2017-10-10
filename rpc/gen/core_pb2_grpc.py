@@ -49,11 +49,6 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.GetNodeOptions.SerializeToString,
         response_deserializer=core__pb2.Node.FromString,
         )
-    self.GetNodeByName = channel.unary_unary(
-        '/pb.CoreRPC/GetNodeByName',
-        request_serializer=core__pb2.GetNodeOptions.SerializeToString,
-        response_deserializer=core__pb2.Node.FromString,
-        )
     self.ListPodNodes = channel.unary_unary(
         '/pb.CoreRPC/ListPodNodes',
         request_serializer=core__pb2.ListNodesOptions.SerializeToString,
@@ -78,6 +73,16 @@ class CoreRPCStub(object):
         '/pb.CoreRPC/SetNodeAvailable',
         request_serializer=core__pb2.NodeAvailable.SerializeToString,
         response_deserializer=core__pb2.Node.FromString,
+        )
+    self.GetNodeByName = channel.unary_unary(
+        '/pb.CoreRPC/GetNodeByName',
+        request_serializer=core__pb2.GetNodeOptions.SerializeToString,
+        response_deserializer=core__pb2.Node.FromString,
+        )
+    self.ContainerDeployed = channel.unary_unary(
+        '/pb.CoreRPC/ContainerDeployed',
+        request_serializer=core__pb2.ContainerDeployedOptions.SerializeToString,
+        response_deserializer=core__pb2.Empty.FromString,
         )
     self.BuildImage = channel.unary_stream(
         '/pb.CoreRPC/BuildImage',
@@ -169,13 +174,6 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def GetNodeByName(self, request, context):
-    # missing associated documentation comment in .proto file
-    pass
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
   def ListPodNodes(self, request, context):
     # missing associated documentation comment in .proto file
     pass
@@ -205,6 +203,20 @@ class CoreRPCServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def SetNodeAvailable(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetNodeByName(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def ContainerDeployed(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -298,11 +310,6 @@ def add_CoreRPCServicer_to_server(servicer, server):
           request_deserializer=core__pb2.GetNodeOptions.FromString,
           response_serializer=core__pb2.Node.SerializeToString,
       ),
-      'GetNodeByName': grpc.unary_unary_rpc_method_handler(
-          servicer.GetNodeByName,
-          request_deserializer=core__pb2.GetNodeOptions.FromString,
-          response_serializer=core__pb2.Node.SerializeToString,
-      ),
       'ListPodNodes': grpc.unary_unary_rpc_method_handler(
           servicer.ListPodNodes,
           request_deserializer=core__pb2.ListNodesOptions.FromString,
@@ -327,6 +334,16 @@ def add_CoreRPCServicer_to_server(servicer, server):
           servicer.SetNodeAvailable,
           request_deserializer=core__pb2.NodeAvailable.FromString,
           response_serializer=core__pb2.Node.SerializeToString,
+      ),
+      'GetNodeByName': grpc.unary_unary_rpc_method_handler(
+          servicer.GetNodeByName,
+          request_deserializer=core__pb2.GetNodeOptions.FromString,
+          response_serializer=core__pb2.Node.SerializeToString,
+      ),
+      'ContainerDeployed': grpc.unary_unary_rpc_method_handler(
+          servicer.ContainerDeployed,
+          request_deserializer=core__pb2.ContainerDeployedOptions.FromString,
+          response_serializer=core__pb2.Empty.SerializeToString,
       ),
       'BuildImage': grpc.unary_stream_rpc_method_handler(
           servicer.BuildImage,
