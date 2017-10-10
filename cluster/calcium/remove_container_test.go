@@ -24,7 +24,7 @@ func TestRemoveContainer(t *testing.T) {
 		mockStore.On("GetContainer", id).Return(&c, nil)
 	}
 
-	ch, err := mockc.RemoveContainer(ids)
+	ch, err := mockc.RemoveContainer(ids, true)
 	assert.NoError(t, err)
 
 	for c := range ch {

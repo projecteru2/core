@@ -39,7 +39,7 @@ func TestReallocWithCPUPrior(t *testing.T) {
 		defer close(ch1)
 		wg := sync.WaitGroup{}
 		wg.Add(len(containersInfo))
-		for pod, _ := range containersInfo {
+		for pod := range containersInfo {
 			nodeCPUContainersInfo := cpuContainersInfo[pod]
 			go func(pod *types.Pod, nodeCPUContainersInfo CPUNodeContainers) {
 				defer wg.Done()
@@ -66,7 +66,7 @@ func TestReallocWithCPUPrior(t *testing.T) {
 			defer wg.Done()
 			mockc.reallocContainersWithCPUPrior(ch2, pod, nodeCPUContainersInfo, cpu, 0)
 		}(pod, cpuContainersInfo[pod])
-
+		wg.Wait()
 	}()
 	for msg := range ch2 {
 		assert.True(t, msg.Success)

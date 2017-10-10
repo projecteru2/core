@@ -291,7 +291,7 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	// 有 networks 的时候一律用 none 作为默认 mode
 	networkMode := opts.NetworkMode
 	if len(opts.Networks) > 0 {
-		for name, _ := range opts.Networks {
+		for name := range opts.Networks {
 			networkMode = name
 			break
 		}
@@ -469,17 +469,19 @@ func (c *calcium) createAndStartContainer(
 	}
 
 	// get ips
-	for nn, ns := range containerAlived.NetworkSettings.Networks {
-		ip := ns.IPAddress
-		if enginecontainer.NetworkMode(nn).IsHost() {
-			ip = node.GetIP()
-		}
+	if containerAlived.NetworkSettings != nil {
+		for nn, ns := range containerAlived.NetworkSettings.Networks {
+			ip := ns.IPAddress
+			if enginecontainer.NetworkMode(nn).IsHost() {
+				ip = node.GetIP()
+			}
 
-		data := []string{}
-		for _, port := range opts.Entrypoint.Publish {
-			data = append(data, fmt.Sprintf("%s:%s", ip, port.Port()))
+			data := []string{}
+			for _, port := range opts.Entrypoint.Publish {
+				data = append(data, fmt.Sprintf("%s:%s", ip, port.Port()))
+			}
+			createContainerMessage.Publish[nn] = strings.Join(data, ",")
 		}
-		createContainerMessage.Publish[nn] = strings.Join(data, ",")
 	}
 
 	createContainerMessage.Success = true
