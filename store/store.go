@@ -26,6 +26,7 @@ type Store interface {
 	// container
 	AddContainer(container *types.Container) error
 	RemoveContainer(container *types.Container) error
+	CleanContainerData(ID, appname, entrypoint, nodename string) error
 	GetContainer(id string) (*types.Container, error)
 	GetContainers(ids []string) ([]*types.Container, error)
 	ContainerDeployed(ID, appname, entrypoint, nodename, data string) error

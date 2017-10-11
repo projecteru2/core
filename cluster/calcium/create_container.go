@@ -12,6 +12,7 @@ import (
 	enginecontainer "github.com/docker/docker/api/types/container"
 	enginenetwork "github.com/docker/docker/api/types/network"
 	engineslice "github.com/docker/docker/api/types/strslice"
+	engineapi "github.com/docker/docker/client"
 	"github.com/docker/go-units"
 	"github.com/projecteru2/core/stats"
 	"github.com/projecteru2/core/types"
@@ -96,12 +97,12 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, opts
 		ms[i] = c.createAndStartContainer(i+index, node, opts, nil, types.MEMORY_PRIOR)
 		if !ms[i].Success {
 			c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+") // 创建容器失败就要把资源还回去对不对？
-			// clean up
-			if ms[i].ContainerID != "" {
-				if err := node.Engine.ContainerRemove(context.Background(), ms[i].ContainerID, enginetypes.ContainerRemoveOptions{Force: true}); err != nil {
-					log.Errorf("[doCreateContainerWithMemoryPrior] Error during remove failed container %v", err)
+			// clean
+			go func() {
+				if err := c.cleanFailedContainer(node.Engine, ms[i]); err != nil {
+					log.Errorf("[doCreateContainerWithMemoryPrior] Error when clean failed container %v", err)
 				}
-			}
+			}()
 			log.Errorf("[doCreateContainerWithMemoryPrior] Error when create and start a container, %v", ms[i].Error)
 			continue
 		}
@@ -176,11 +177,11 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 				c.store.UpdateNodeCPU(opts.Podname, node.Name, quota, "+")
 			}
 			// clean up
-			if ms[i].ContainerID != "" {
-				if err := node.Engine.ContainerRemove(context.Background(), ms[i].ContainerID, enginetypes.ContainerRemoveOptions{Force: true}); err != nil {
-					log.Errorf("[doCreateContainerWithCPUPrior] Error during remove failed container %v", err)
+			go func() {
+				if err := c.cleanFailedContainer(node.Engine, ms[i]); err != nil {
+					log.Errorf("[doCreateContainerWithCPUPrior] Error when clean failed container %v", err)
 				}
-			}
+			}()
 			log.Errorf("[doCreateContainerWithCPUPrior] Error when create and start a container, %v", ms[i].Error)
 			continue
 		}
@@ -188,6 +189,20 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 	}
 
 	return ms
+}
+
+func (c *calcium) cleanFailedContainer(engine *engineapi.Client, msg *types.CreateContainerMessage) error {
+	if msg.ContainerID == "" {
+		return nil
+	}
+	if err := engine.ContainerRemove(context.Background(), msg.ContainerID, enginetypes.ContainerRemoveOptions{Force: true}); err != nil {
+		return err
+	}
+	appname, entrypoint, _, err := utils.ParseContainerName(msg.ContainerName)
+	if err != nil {
+		return err
+	}
+	return c.store.CleanContainerData(msg.ContainerID, appname, entrypoint, msg.Nodename)
 }
 
 func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *types.DeployOptions, node *types.Node, favor string) (
@@ -373,10 +388,11 @@ func (c *calcium) createAndStartContainer(
 	container := &types.Container{
 		Podname:    opts.Podname,
 		Nodename:   node.Name,
-		Memory:     opts.Memory,
 		CPU:        quota,
-		Engine:     node.Engine,
+		Memory:     opts.Memory,
+		Hook:       opts.Entrypoint.Hook,
 		Privileged: opts.Entrypoint.Privileged,
+		Engine:     node.Engine,
 	}
 	createContainerMessage := &types.CreateContainerMessage{
 		Podname:  container.Podname,
@@ -405,6 +421,11 @@ func (c *calcium) createAndStartContainer(
 	container.ID = containerCreated.ID
 	createContainerMessage.ContainerID = container.ID
 
+	if err = c.store.AddContainer(container); err != nil {
+		createContainerMessage.Error = err
+		return createContainerMessage
+	}
+
 	// connect container to network
 	// if network manager uses docker plugin, then connect must be called before container starts
 	// 如果有 networks 的配置，这里的 networkMode 就为 none 了
@@ -432,7 +453,6 @@ func (c *calcium) createAndStartContainer(
 
 	// after start
 	if opts.Entrypoint.Hook != nil && len(opts.Entrypoint.Hook.AfterStart) > 0 {
-		container.Hook = opts.Entrypoint.Hook
 		createContainerMessage.Hook = []byte{}
 		for _, cmd := range opts.Entrypoint.Hook.AfterStart {
 			output, err := execuateInside(node.Engine, container.ID, cmd, opts.User, opts.Env, container.Privileged)
@@ -460,11 +480,6 @@ func (c *calcium) createAndStartContainer(
 			data = append(data, fmt.Sprintf("%s:%s", ip, port.Port()))
 		}
 		createContainerMessage.Publish[nn] = strings.Join(data, ",")
-	}
-
-	if err = c.store.AddContainer(container); err != nil {
-		createContainerMessage.Error = err
-		return createContainerMessage
 	}
 
 	createContainerMessage.Success = true
