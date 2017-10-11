@@ -107,7 +107,7 @@ func (c *calcium) RemoveContainer(ids []string, force bool) (chan *types.RemoveC
 					message = strings.Join(outputs, "")
 				}
 
-				if err := c.removeOneContainer(container, info); err != nil {
+				if err := c.removeOneContainer(container); err != nil {
 					success = false
 					message += err.Error()
 				}
@@ -133,7 +133,7 @@ func (c *calcium) RemoveContainer(ids []string, force bool) (chan *types.RemoveC
 }
 
 // remove one container
-func (c *calcium) removeOneContainer(container *types.Container, info enginetypes.ContainerJSON) error {
+func (c *calcium) removeOneContainer(container *types.Container) error {
 	// use etcd lock to prevent a container being removed many times
 	// only the first to remove can be done
 	// lock timeout should equal stop timeout
@@ -171,22 +171,22 @@ func (c *calcium) removeOneContainer(container *types.Container, info enginetype
 	// 另外我怀疑 docker 自己的 timeout 实现是完全的等 timeout 而非结束了就退出
 	ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
 	defer cancel()
-	if err = container.Engine.ContainerStop(ctx, info.ID, nil); err != nil {
+	if err = container.Engine.ContainerStop(ctx, container.ID, nil); err != nil {
 		log.Errorf("[removeOneContainer] Error during ContainerStop: %v", err)
 		return err
 	}
-	log.Debugf("[removeOneContainer] Container stopped %s", info.ID)
+	log.Debugf("[removeOneContainer] Container stopped %s", container.ID)
 
 	rmOpts := enginetypes.ContainerRemoveOptions{
 		RemoveVolumes: true,
 		Force:         true,
 	}
-	err = container.Engine.ContainerRemove(context.Background(), info.ID, rmOpts)
+	err = container.Engine.ContainerRemove(context.Background(), container.ID, rmOpts)
 	if err != nil {
 		log.Errorf("[removeOneContainer] Error during ContainerRemove: %v", err)
 		return err
 	}
-	log.Debugf("[removeOneContainer] Container removed %s", info.ID)
+	log.Debugf("[removeOneContainer] Container removed %s", container.ID)
 
 	return c.store.RemoveContainer(container)
 }

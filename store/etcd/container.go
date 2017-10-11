@@ -97,18 +97,22 @@ func (k *krypton) RemoveContainer(container *types.Container) error {
 	if len(container.ID) < 64 {
 		return fmt.Errorf("Container ID must be length of 64")
 	}
+	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
+	if err != nil {
+		return err
+	}
 
-	key := fmt.Sprintf(containerInfoKey, container.ID)
+	return k.CleanContainerData(container.ID, appname, entrypoint, container.Nodename)
+}
+
+func (k *krypton) CleanContainerData(ID, appname, entrypoint, nodename string) error {
+	key := fmt.Sprintf(containerInfoKey, ID)
 	if _, err := k.etcd.Delete(context.Background(), key, nil); err != nil {
 		return err
 	}
 
 	// remove deploy status by core
-	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
-	if err != nil {
-		return err
-	}
-	key = fmt.Sprintf(containerDeployKey, appname, entrypoint, container.Nodename, container.ID)
-	_, err = k.etcd.Delete(context.Background(), key, nil)
+	key = fmt.Sprintf(containerDeployKey, appname, entrypoint, nodename, ID)
+	_, err := k.etcd.Delete(context.Background(), key, nil)
 	return err
 }
