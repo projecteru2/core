@@ -19,7 +19,7 @@ type Cluster interface {
 	ListPodNodes(podname string, all bool) ([]*types.Node, error)
 	GetContainer(id string) (*types.Container, error)
 	GetContainers(ids []string) ([]*types.Container, error)
-	ListNetworks(podname string) ([]*types.Network, error)
+	ListNetworks(podname string, driver string) ([]*types.Network, error)
 
 	// cluster methods
 	BuildImage(opts *types.BuildOptions) (chan *types.BuildImageMessage, error)

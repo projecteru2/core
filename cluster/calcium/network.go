@@ -11,7 +11,7 @@ import (
 // just get one node from podname
 // and call docker network ls
 // only get those driven by network driver
-func (c *calcium) ListNetworks(podname string) ([]*types.Network, error) {
+func (c *calcium) ListNetworks(podname string, driver string) ([]*types.Network, error) {
 	networks := []*types.Network{}
 	nodes, err := c.ListPodNodes(podname, false)
 	if err != nil {
@@ -24,5 +24,5 @@ func (c *calcium) ListNetworks(podname string) ([]*types.Network, error) {
 
 	node := nodes[0]
 	ctx := utils.ToDockerContext(node.Engine)
-	return c.network.ListNetworks(ctx)
+	return c.network.ListNetworks(ctx, driver)
 }

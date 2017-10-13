@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/projecteru2/core/network"
-	"github.com/projecteru2/core/network/calico"
+	"github.com/projecteru2/core/network/sdn"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/scheduler/complex"
 	"github.com/projecteru2/core/source"
@@ -44,7 +44,7 @@ func New(config types.Config) (*calcium, error) {
 	}
 
 	// set network
-	titanium := calico.New()
+	titanium := sdn.New()
 
 	// set scm
 	var scm source.Source

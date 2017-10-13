@@ -14,7 +14,7 @@ service CoreRPC {
     rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
     rpc GetContainer(ContainerID) returns (Container) {};
     rpc GetContainers(ContainerIDs) returns (Containers) {};
-    rpc ListNetworks(GetPodOptions) returns (Networks) {};
+    rpc ListNetworks(ListNetworkOptions) returns (Networks) {};
     rpc SetNodeAvailable(NodeAvailable) returns (Node) {};
 
     rpc GetNodeByName(GetNodeOptions) returns (Node) {};
@@ -39,6 +39,11 @@ message Pod {
 
 message Pods {
     repeated Pod pods = 1;
+}
+
+message ListNetworkOptions {
+    string podname = 1;
+    string driver = 2;
 }
 
 message Network {

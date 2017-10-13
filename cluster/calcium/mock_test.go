@@ -32,6 +32,7 @@ const (
 	mockMemory     = int64(8589934592) // 8G
 	mockID         = "f1f9da344e8f8f90f73899ddad02da6cdf2218bbe52413af2bcfef4fba2d22de"
 	appmemory      = int64(268435456) // 0.25 G
+	driver         = "calico"
 )
 
 type Map struct {

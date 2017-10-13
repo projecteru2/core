@@ -334,7 +334,7 @@ func TestNetwork(t *testing.T) {
 
 	// test GetContainer error
 	store.On("GetNodesByPod", "podname").Return([]*types.Node{}, nil)
-	_, err = clnt.ListNetworks(ctx, &pb.GetPodOptions{Name: "podname"})
+	_, err = clnt.ListNetworks(ctx, &pb.ListNetworkOptions{Podname: "podname", Driver: "driver"})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "has no nodes")
 }

@@ -171,8 +171,8 @@ func (v *vibranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (*
 }
 
 // list networks for pod
-func (v *vibranium) ListNetworks(ctx context.Context, opts *pb.GetPodOptions) (*pb.Networks, error) {
-	networks, err := v.cluster.ListNetworks(opts.Name)
+func (v *vibranium) ListNetworks(ctx context.Context, opts *pb.ListNetworkOptions) (*pb.Networks, error) {
+	networks, err := v.cluster.ListNetworks(opts.Podname, opts.Driver)
 	if err != nil {
 		return nil, err
 	}

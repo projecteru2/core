@@ -23,8 +23,7 @@ import (
 // FIXME in alpine, useradd rename as adduser
 const (
 	fromAsTmpl = "FROM %s as %s"
-	commonTmpl = `ENV ERU 1
-{{ range $k, $v:= .Args -}}
+	commonTmpl = `{{ range $k, $v:= .Args -}}
 {{ printf "ARG %s=%s" $k $v }}
 {{ end -}}
 {{ range $k, $v:= .Envs -}}

@@ -1,4 +1,4 @@
-package calico
+package sdn
 
 import (
 	"context"
@@ -14,18 +14,6 @@ import (
 )
 
 type titanium struct{}
-
-// type of the network manager
-// if set to "plugin", then it will act like a plugin
-// main difference is the order of connect/disconnect
-func (t *titanium) Type() string {
-	return "plugin"
-}
-
-// name of the network manager
-func (t *titanium) Name() string {
-	return "calico"
-}
 
 // connect to network with ipv4 address
 func (t *titanium) ConnectToNetwork(ctx context.Context, containerID, networkID, ipv4 string) error {
@@ -73,7 +61,7 @@ func (t *titanium) DisconnectFromNetwork(ctx context.Context, containerID, netwo
 }
 
 // list networks from context
-func (t *titanium) ListNetworks(ctx context.Context) ([]*types.Network, error) {
+func (t *titanium) ListNetworks(ctx context.Context, driver string) ([]*types.Network, error) {
 	networks := []*types.Network{}
 	engine, ok := utils.FromDockerContext(ctx)
 	if !ok {
@@ -81,7 +69,7 @@ func (t *titanium) ListNetworks(ctx context.Context) ([]*types.Network, error) {
 	}
 
 	filters := enginefilters.NewArgs()
-	filters.Add("driver", t.Name())
+	filters.Add("driver", driver)
 	ns, err := engine.NetworkList(context.Background(), enginetypes.NetworkListOptions{Filters: filters})
 	if err != nil {
 		return networks, err
@@ -97,6 +85,7 @@ func (t *titanium) ListNetworks(ctx context.Context) ([]*types.Network, error) {
 	return networks, nil
 }
 
+//New a titanium obj
 func New() *titanium {
 	return &titanium{}
 }
