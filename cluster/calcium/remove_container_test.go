@@ -18,8 +18,9 @@ func TestRemoveContainer(t *testing.T) {
 	}
 	for _, id := range ids {
 		c := types.Container{
-			ID:     id,
-			Engine: clnt,
+			ID:      id,
+			Podname: podname,
+			Engine:  clnt,
 		}
 		mockStore.On("GetContainer", id).Return(&c, nil)
 	}

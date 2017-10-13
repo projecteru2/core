@@ -134,37 +134,37 @@ func (c *calcium) RemoveContainer(ids []string, force bool) (chan *types.RemoveC
 
 // remove one container
 func (c *calcium) removeOneContainer(container *types.Container) error {
+	defer func() {
+		// if total cpu of container > 0, then we need to release these core resource
+		// but if it's 0, just ignore to save 1 time write on etcd.
+		if container.CPU.Total() > 0 {
+			log.Debugf("[removeOneContainer] Restore node %s cpu: %v", container.Nodename, container.CPU)
+			if err := c.store.UpdateNodeCPU(container.Podname, container.Nodename, container.CPU, "+"); err != nil {
+				log.Errorf("[removeOneContainer] Update Node CPU failed %v", err)
+			}
+			return
+		}
+		if container.Memory > 0 {
+			log.Debugf("[removeOneContainer] Restore node %s memory: %d", container.Nodename, container.Memory)
+			if err := c.store.UpdateNodeMem(container.Podname, container.Nodename, container.Memory, "+"); err != nil {
+				log.Errorf("[removeOneContainer] Update Node Memory failed %v", err)
+			}
+		}
+	}()
+
+	// 没 ID 就只做回收
+	if container.ID == "" {
+		return nil
+	}
+
 	// use etcd lock to prevent a container being removed many times
 	// only the first to remove can be done
 	// lock timeout should equal stop timeout
 	lock, err := c.Lock(fmt.Sprintf("rmcontainer_%s", container.ID), int(c.config.GlobalTimeout.Seconds()))
 	if err != nil {
-		log.Errorf("[removeOneContainer] Error during lock.Lock: %s", err.Error())
 		return err
 	}
 	defer lock.Unlock()
-
-	// will be used later to update
-	node, err := c.GetNode(container.Podname, container.Nodename)
-	if err != nil {
-		log.Errorf("[removeOneContainer] Error during GetNode: %s", err.Error())
-		return err
-	}
-
-	defer func() {
-		// if total cpu of container > 0, then we need to release these core resource
-		// but if it's 0, just ignore to save 1 time write on etcd.
-		if container.CPU.Total() > 0 {
-			log.Debugf("[removeOneContainer] Restore node cpu: %v, %v", node, container.CPU)
-			if err := c.store.UpdateNodeCPU(node.Podname, node.Name, container.CPU, "+"); err != nil {
-				log.Errorf("[removeOneContainer] Update Node CPU failed %v", err)
-			}
-			return
-		}
-		if err := c.store.UpdateNodeMem(node.Podname, node.Name, container.Memory, "+"); err != nil {
-			log.Errorf("[removeOneContainer] Update Node Memory failed %v", err)
-		}
-	}()
 
 	// 这里 block 的问题很严重，按照目前的配置是 5 分钟一级的 block
 	// 一个简单的处理方法是相信 ctx 不相信 docker 自身的处理
@@ -172,7 +172,6 @@ func (c *calcium) removeOneContainer(container *types.Container) error {
 	ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
 	defer cancel()
 	if err = container.Engine.ContainerStop(ctx, container.ID, nil); err != nil {
-		log.Errorf("[removeOneContainer] Error during ContainerStop: %v", err)
 		return err
 	}
 	log.Debugf("[removeOneContainer] Container stopped %s", container.ID)
@@ -183,7 +182,6 @@ func (c *calcium) removeOneContainer(container *types.Container) error {
 	}
 	err = container.Engine.ContainerRemove(context.Background(), container.ID, rmOpts)
 	if err != nil {
-		log.Errorf("[removeOneContainer] Error during ContainerRemove: %v", err)
 		return err
 	}
 	log.Debugf("[removeOneContainer] Container removed %s", container.ID)
