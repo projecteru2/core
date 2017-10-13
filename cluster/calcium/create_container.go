@@ -12,7 +12,6 @@ import (
 	enginecontainer "github.com/docker/docker/api/types/container"
 	enginenetwork "github.com/docker/docker/api/types/network"
 	engineslice "github.com/docker/docker/api/types/strslice"
-	engineapi "github.com/docker/docker/client"
 	"github.com/docker/go-units"
 	"github.com/projecteru2/core/stats"
 	"github.com/projecteru2/core/types"
@@ -94,15 +93,9 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, opts
 	}
 
 	for i := 0; i < nodeInfo.Deploy; i++ {
+		// createAndStartContainer will auto cleanup
 		ms[i] = c.createAndStartContainer(i+index, node, opts, nil, types.MEMORY_PRIOR)
 		if !ms[i].Success {
-			c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+") // 创建容器失败就要把资源还回去对不对？
-			// clean
-			go func() {
-				if err := c.cleanFailedContainer(node.Engine, ms[i]); err != nil {
-					log.Errorf("[doCreateContainerWithMemoryPrior] Error when clean failed container %v", err)
-				}
-			}()
 			log.Errorf("[doCreateContainerWithMemoryPrior] Error when create and start a container, %v", ms[i].Error)
 			continue
 		}
@@ -171,17 +164,9 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 	}
 
 	for i, quota := range cpuMap {
+		// createAndStartContainer will auto cleanup
 		ms[i] = c.createAndStartContainer(i+index, node, opts, quota, types.CPU_PRIOR)
 		if !ms[i].Success {
-			if quota.Total() != 0 {
-				c.store.UpdateNodeCPU(opts.Podname, node.Name, quota, "+")
-			}
-			// clean up
-			go func() {
-				if err := c.cleanFailedContainer(node.Engine, ms[i]); err != nil {
-					log.Errorf("[doCreateContainerWithCPUPrior] Error when clean failed container %v", err)
-				}
-			}()
 			log.Errorf("[doCreateContainerWithCPUPrior] Error when create and start a container, %v", ms[i].Error)
 			continue
 		}
@@ -189,20 +174,6 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 	}
 
 	return ms
-}
-
-func (c *calcium) cleanFailedContainer(engine *engineapi.Client, msg *types.CreateContainerMessage) error {
-	if msg.ContainerID == "" {
-		return nil
-	}
-	if err := engine.ContainerRemove(context.Background(), msg.ContainerID, enginetypes.ContainerRemoveOptions{Force: true}); err != nil {
-		return err
-	}
-	appname, entrypoint, _, err := utils.ParseContainerName(msg.ContainerName)
-	if err != nil {
-		return err
-	}
-	return c.store.CleanContainerData(msg.ContainerID, appname, entrypoint, msg.Nodename)
 }
 
 func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *types.DeployOptions, node *types.Node, favor string) (
@@ -402,6 +373,14 @@ func (c *calcium) createAndStartContainer(
 		Memory:   opts.Memory,
 		Publish:  map[string]string{},
 	}
+
+	defer func() {
+		if !createContainerMessage.Success {
+			if err := c.removeOneContainer(container); err != nil {
+				log.Errorf("[createAndStartContainer] create and start container failed, and remove it failed also %v", err)
+			}
+		}
+	}()
 
 	// get config
 	config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(no, quota, opts, node, typ)

@@ -42,8 +42,9 @@ func TestCreateContainerWithMemPrior(t *testing.T) {
 	cs := []types.Container{}
 	for _, id := range ids {
 		c := types.Container{
-			ID:     id,
-			Engine: clnt,
+			ID:      id,
+			Podname: podname,
+			Engine:  clnt,
 		}
 		cs = append(cs, c)
 		mockStore.On("GetContainer", id).Return(&c, nil)
