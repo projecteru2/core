@@ -11,13 +11,16 @@ type Builds struct {
 }
 
 type Build struct {
-	Base       string            `yaml:"base,omitempty"`
-	Repo       string            `yaml:"repo,omitempty"`
-	Version    string            `yaml:"version,omitempty"`
-	WorkingDir string            `yaml:"working_dir,omitempty"`
-	Commands   []string          `yaml:"commands,omitempty,flow"`
-	Artifacts  map[string]string `yaml:"artifacts,omitempty,flow"`
-	Cache      map[string]string `yaml:"cache,omitempty,flow"`
+	Base      string            `yaml:"base,omitempty"`
+	Repo      string            `yaml:"repo,omitempty"`
+	Version   string            `yaml:"version,omitempty"`
+	Dir       string            `yaml:"dir,omitempty"`
+	Commands  []string          `yaml:"commands,omitempty,flow"`
+	Envs      map[string]string `yaml:"envs,omitempty,flow"`
+	Args      map[string]string `yaml:"args,omitempty,flow"`
+	Labels    map[string]string `yaml:"labels,omitempty,flow"`
+	Artifacts map[string]string `yaml:"artifacts,omitempty,flow"`
+	Cache     map[string]string `yaml:"cache,omitempty,flow"`
 }
 
 type Hook struct {
@@ -37,7 +40,7 @@ type Entrypoint struct {
 	Name          string       `yaml:"name,omitempty"`
 	Command       string       `yaml:"cmd,omitempty"`
 	Privileged    bool         `yaml:"privileged,omitempty"`
-	WorkingDir    string       `yaml:"working_dir,omitempty"`
+	Dir           string       `yaml:"dir,omitempty"`
 	LogConfig     string       `yaml:"log_config,omitempty"`
 	Publish       []Port       `yaml:"publish,omitempty,flow"`
 	HealthCheck   *HealthCheck `yaml:"healthcheck,omitempty,flow"`

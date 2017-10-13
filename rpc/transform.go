@@ -72,13 +72,16 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
 	builds.Builds = map[string]*types.Build{}
 	for stage, p := range b.Builds.Builds {
 		builds.Builds[stage] = &types.Build{
-			Base:       p.Base,
-			Repo:       p.Repo,
-			Version:    p.Version,
-			WorkingDir: p.WorkingDir,
-			Commands:   p.Commands,
-			Artifacts:  p.Artifacts,
-			Cache:      p.Cache,
+			Base:      p.Base,
+			Repo:      p.Repo,
+			Version:   p.Version,
+			Dir:       p.Dir,
+			Commands:  p.Commands,
+			Envs:      p.Envs,
+			Args:      p.Args,
+			Labels:    p.Labels,
+			Artifacts: p.Artifacts,
+			Cache:     p.Cache,
 		}
 	}
 	return &types.BuildOptions{
@@ -118,7 +121,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Name:          entrypoint.Name,
 		Command:       entrypoint.Command,
 		Privileged:    entrypoint.Privileged,
-		WorkingDir:    entrypoint.WorkingDir,
+		Dir:           entrypoint.Dir,
 		LogConfig:     entrypoint.LogConfig,
 		Publish:       publish,
 		HealthCheck:   healthcheck,

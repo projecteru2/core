@@ -316,7 +316,7 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 		User:            user,
 		Image:           opts.Image,
 		Volumes:         volumes,
-		WorkingDir:      entry.WorkingDir,
+		WorkingDir:      entry.Dir,
 		NetworkDisabled: false,
 		Labels:          containerLabels,
 		OpenStdin:       opts.OpenStdin,
