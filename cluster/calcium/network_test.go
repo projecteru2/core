@@ -9,7 +9,7 @@ import (
 func TestListNetworks(t *testing.T) {
 	initMockConfig()
 
-	networks, err := mockc.ListNetworks(podname)
+	networks, err := mockc.ListNetworks(podname, driver)
 	assert.NoError(t, err)
 	for _, network := range networks {
 		t.Log(network.Name)

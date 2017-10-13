@@ -66,7 +66,7 @@ class CoreRPCStub(object):
         )
     self.ListNetworks = channel.unary_unary(
         '/pb.CoreRPC/ListNetworks',
-        request_serializer=core__pb2.GetPodOptions.SerializeToString,
+        request_serializer=core__pb2.ListNetworkOptions.SerializeToString,
         response_deserializer=core__pb2.Networks.FromString,
         )
     self.SetNodeAvailable = channel.unary_unary(
@@ -327,7 +327,7 @@ def add_CoreRPCServicer_to_server(servicer, server):
       ),
       'ListNetworks': grpc.unary_unary_rpc_method_handler(
           servicer.ListNetworks,
-          request_deserializer=core__pb2.GetPodOptions.FromString,
+          request_deserializer=core__pb2.ListNetworkOptions.FromString,
           response_serializer=core__pb2.Networks.SerializeToString,
       ),
       'SetNodeAvailable': grpc.unary_unary_rpc_method_handler(
