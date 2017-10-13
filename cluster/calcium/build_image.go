@@ -24,12 +24,21 @@ import (
 const (
 	fromAsTmpl = "FROM %s as %s"
 	commonTmpl = `ENV ERU 1
-{{if .WorkingDir}}RUN mkdir -p {{.WorkingDir}}
-WORKDIR {{.WorkingDir}}{{end}}
-{{if .Repo}}ADD {{.Repo}} .{{end}}`
+{{ range $k, $v:= .Args -}}
+{{ printf "ARG %s=%s" $k $v }}
+{{ end -}}
+{{ range $k, $v:= .Envs -}}
+{{ printf "ENV %s %s" $k $v }}
+{{ end -}}
+{{ range $k, $v:= .Labels -}}
+{{ printf "LABEL %s=%s" $k $v }}
+{{ end -}}
+{{- if .Dir}}RUN mkdir -p {{.Dir}}
+WORKDIR {{.Dir}}{{ end }}
+{{ if .Repo }}ADD {{.Repo}} .{{ end }}`
 	copyTmpl = "COPY --from=%s %s %s"
 	runTmpl  = "RUN %s"
-	userTmpl = `RUN adduser -u {{.UID}} -d /nonexistent -s /sbin/nologin -U {{.User}}
+	userTmpl = `RUN adduser -u {{.UID}} -s /sbin/nologin -U {{.User}}
 USER {{.User}}`
 )
 
