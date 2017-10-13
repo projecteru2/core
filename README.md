@@ -59,7 +59,7 @@ $ export ERU_CONFIG_PATH=/path/to/core.yaml
 $ eru-core
 ```
 
-### Dockerized Core
+### Dockerized Core manually
 
 Image: [projecteru2/core](https://hub.docker.com/r/projecteru2/core/)
 
@@ -73,3 +73,23 @@ docker run -d \
   projecteru2/core \
   /usr/bin/eru-core
 ```
+
+### Build and Deploy by Eru itself
+
+After we implemented bootstrap in eru2, now you can build and deploy agent with [cli](https://github.com/projecteru2/cli) tool.
+
+1. Test source code and build image
+
+```shell
+<cli_execute_path> --name <image_name> https://goo.gl/KTGJ9k
+```
+
+Make sure you can clone code by ssh protocol because libgit2 ask for it. So you need configure core with github certs. After the fresh image was named and tagged, it will be auto pushed to the remote registry which was defined in core.
+
+2. Deploy core itself
+
+```shell
+<cli_execute_path> --pod <pod_name> [--node <node_name>] --entry core --network <network_name> --image <projecteru2/core>|<your_own_image> --count <count_num> [--cpu 0.3 | --mem 1024000000] https://goo.gl/KTGJ9k
+```
+
+Now you will find core was started in nodes.

@@ -1,0 +1,44 @@
+appname: "eru"
+entrypoints:
+  core:
+    cmd: "/usr/bin/eru-core"
+    restart: always
+    publish:
+      - "5001"
+    healthcheck:
+      ports:
+        - "5001/tcp"
+    log_config: "journald"
+volumes:
+  - <HOST_CONFIG_DIR_PATH>: /etc/eru
+  - <HOST_BACKUP_DIR_PATH>: /data/backup
+stages:
+  - build
+  - pack
+builds:
+  build:
+    base: "projecteru2/footstone:latest"
+    # only support ssh protocol
+    repo: "git@github.com:projecteru2/core.git"
+    version: "HEAD"
+    dir: /.go/src/github.com/projecteru2/core
+    commands:
+      - make test
+      - make binary
+    cache:
+      /.go/src/github.com/projecteru2/core/eru-core: /usr/bin/eru-core
+      /.go/src/github.com/projecteru2/core/core.yaml.sample: /etc/eru/core.yaml.sample
+    # envs:
+    #   HTTP_PROXY: <HTTP_PROXY>
+    #   HTTPS_PROXY: <HTTPS_PROXY>
+  pack:
+    base: alpine:3.6
+    labels:
+      ERU: 1
+      version: latest
+      core: 1
+    envs:
+      CORE_IN_DOCKER: 1
+    commands:
+      - mkdir -p /etc/eru/
+

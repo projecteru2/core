@@ -1,4 +1,4 @@
-.PHONY: golang python deps build test
+.PHONY: grpc deps build test binary
 
 REPO_PATH := github.com/projecteru2/core
 REVISION := $(shell git rev-parse HEAD || unknown)
@@ -17,8 +17,10 @@ deps:
 	rm -rf ./vendor/github.com/docker/docker/vendor
 	rm -rf ./vendor/github.com/docker/distribution/vendor
 
-build: deps
+binary:
 	go build -ldflags "$(GO_LDFLAGS)" -a -tags netgo -installsuffix netgo -o eru-core
+
+build: deps binary
 
 test: deps
 	# fix mock docker client bug, see https://github.com/moby/moby/pull/34383 [docker 17.05.0-ce]
