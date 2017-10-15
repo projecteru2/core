@@ -12,6 +12,7 @@ type errorDetail struct {
 }
 
 type BuildImageMessage struct {
+	ID          string      `json:"id,omitempty"`
 	Status      string      `json:"status,omitempty"`
 	Progress    string      `json:"progress,omitempty"`
 	Error       string      `json:"error,omitempty"`

@@ -242,11 +242,12 @@ message ErrorDetail {
 }
 
 message BuildImageMessage {
-    string status = 1;
-    string progress = 2;
-    string error = 3;
-    string stream = 4;
-    ErrorDetail error_detail = 5;
+    string id = 1;
+    string status = 2;
+    string progress = 3;
+    string error = 4;
+    string stream = 5;
+    ErrorDetail error_detail = 6;
 }
 
 message CreateContainerMessage {

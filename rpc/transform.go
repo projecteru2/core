@@ -51,6 +51,7 @@ func toRPCContainer(c *types.Container, info string) *pb.Container {
 
 func toRPCBuildImageMessage(b *types.BuildImageMessage) *pb.BuildImageMessage {
 	return &pb.BuildImageMessage{
+		Id:       b.ID,
 		Status:   b.Status,
 		Progress: b.Progress,
 		Error:    b.Error,
