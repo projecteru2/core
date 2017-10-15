@@ -72,7 +72,9 @@ func serve() {
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterCoreRPCServer(grpcServer, vibranium)
 	go grpcServer.Serve(s)
-	go http.ListenAndServe(":46656", nil)
+	if config.Profile != "" {
+		go http.ListenAndServe(config.Profile, nil)
+	}
 
 	log.Info("[main] Cluster started successfully.")
 

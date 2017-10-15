@@ -8,6 +8,7 @@ type Config struct {
 	Bind          string        `yaml:"bind"`           // HTTP API address
 	BackupDir     string        `yaml:"backupdir"`      // Backup dir on host
 	Statsd        string        `yaml:"statsd"`         // Statsd host and port
+	Profile       string        `yaml:"profile"`        // profile ip:port
 	ImageCache    int           `yaml:"image_cache"`    // cache image count
 	LockTimeout   int           `yaml:"lock_timeout"`   // timeout for lock (ttl)
 	GlobalTimeout time.Duration `yaml:"global_timeout"` // timeout for remove, run_and_wait and build, in second

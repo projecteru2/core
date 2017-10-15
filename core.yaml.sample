@@ -3,6 +3,7 @@ bind: ":5001"
 backupdir: "/data/backup"
 statsd: "127.0.0.1:8125"
 image_cache: 2
+profile: ":12346"
 global_timeout: 300
 lock_timeout: 30
 
