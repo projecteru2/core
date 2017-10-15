@@ -204,14 +204,16 @@ func (v *vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 		return err
 	}
 
-	ch, err := v.cluster.BuildImage(buildOpts)
+	ctx, cancel := context.WithTimeout(context.Background(), v.config.GlobalTimeout)
+	defer cancel()
+	ch, err := v.cluster.BuildImage(ctx, buildOpts)
 	if err != nil {
 		return err
 	}
 
 	for m := range ch {
 		if err = stream.Send(toRPCBuildImageMessage(m)); err != nil {
-			v.logUnsentMessages("BuildImage", m)
+			break
 		}
 	}
 	return err

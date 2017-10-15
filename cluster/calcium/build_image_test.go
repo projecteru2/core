@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -35,6 +36,7 @@ func TestBuildDockerFile(t *testing.T) {
 
 func TestBuildImageError(t *testing.T) {
 	initMockConfig()
+	ctx := context.Background()
 	opts := &types.BuildOptions{
 		Name:   "appname",
 		User:   "username",
@@ -42,12 +44,12 @@ func TestBuildImageError(t *testing.T) {
 		Tag:    "tag",
 		Builds: mockBuilds,
 	}
-	_, err := mockc.BuildImage(opts)
+	_, err := mockc.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "No build pod set in config")
 
 	mockc.config.Docker.BuildPod = "dev_pod"
-	_, err = mockc.BuildImage(opts)
+	_, err = mockc.BuildImage(ctx, opts)
 	assert.NoError(t, err)
 }
 

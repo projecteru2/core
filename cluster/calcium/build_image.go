@@ -93,7 +93,7 @@ func (c *calcium) preparedSource(build *types.Build, buildDir string) (string, e
 //
 //    buildDir ├─ :appname ├─ code
 //             ├─ Dockerfile
-func (c *calcium) BuildImage(opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
+func (c *calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
 	ch := make(chan *types.BuildImageMessage)
 
 	// get pod from config
@@ -144,7 +144,7 @@ func (c *calcium) BuildImage(opts *types.BuildOptions) (chan *types.BuildImageMe
 	}
 
 	log.Infof("[BuildImage] Building image %v at %v:%v", tag, buildPodname, node.Name)
-	resp, err := node.Engine.ImageBuild(context.Background(), buildContext, buildOptions)
+	resp, err := node.Engine.ImageBuild(ctx, buildContext, buildOptions)
 	if err != nil {
 		return ch, err
 	}
@@ -162,6 +162,11 @@ func (c *calcium) BuildImage(opts *types.BuildOptions) (chan *types.BuildImageMe
 				if err == io.EOF {
 					break
 				}
+				if err == context.Canceled || err == context.DeadlineExceeded {
+					lastMessage.ErrorDetail.Code = -1
+					lastMessage.Error = err.Error()
+					break
+				}
 				log.Errorf("[BuildImage] Decode build image message failed %v", err)
 				return
 			}
@@ -175,7 +180,7 @@ func (c *calcium) BuildImage(opts *types.BuildOptions) (chan *types.BuildImageMe
 		}
 		// About this "Khadgar", https://github.com/docker/docker/issues/10983#issuecomment-85892396
 		// Just because Ben Schnetzer's cute Khadgar...
-		rc, err := node.Engine.ImagePush(context.Background(), tag, enginetypes.ImagePushOptions{RegistryAuth: "Khadgar"})
+		rc, err := node.Engine.ImagePush(ctx, tag, enginetypes.ImagePushOptions{RegistryAuth: "Khadgar"})
 		if err != nil {
 			ch <- makeErrorBuildImageMessage(err)
 			return

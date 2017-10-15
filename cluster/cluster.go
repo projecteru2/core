@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"context"
 	"io"
 
 	"github.com/projecteru2/core/types"
@@ -22,7 +23,7 @@ type Cluster interface {
 	ListNetworks(podname string, driver string) ([]*types.Network, error)
 
 	// cluster methods
-	BuildImage(opts *types.BuildOptions) (chan *types.BuildImageMessage, error)
+	BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error)
 	CreateContainer(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
 	RunAndWait(opts *types.DeployOptions, timeout int, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error)
 	RemoveContainer(ids []string, force bool) (chan *types.RemoveContainerMessage, error)
