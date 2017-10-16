@@ -74,6 +74,11 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.NodeAvailable.SerializeToString,
         response_deserializer=core__pb2.Node.FromString,
         )
+    self.Backup = channel.unary_unary(
+        '/pb.CoreRPC/Backup',
+        request_serializer=core__pb2.BackupOptions.SerializeToString,
+        response_deserializer=core__pb2.BackupMessage.FromString,
+        )
     self.GetNodeByName = channel.unary_unary(
         '/pb.CoreRPC/GetNodeByName',
         request_serializer=core__pb2.GetNodeOptions.SerializeToString,
@@ -113,11 +118,6 @@ class CoreRPCStub(object):
         '/pb.CoreRPC/RemoveImage',
         request_serializer=core__pb2.RemoveImageOptions.SerializeToString,
         response_deserializer=core__pb2.RemoveImageMessage.FromString,
-        )
-    self.Backup = channel.unary_unary(
-        '/pb.CoreRPC/Backup',
-        request_serializer=core__pb2.BackupOptions.SerializeToString,
-        response_deserializer=core__pb2.BackupMessage.FromString,
         )
 
 
@@ -209,6 +209,13 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def Backup(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def GetNodeByName(self, request, context):
     # missing associated documentation comment in .proto file
     pass
@@ -259,13 +266,6 @@ class CoreRPCServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def RemoveImage(self, request, context):
-    # missing associated documentation comment in .proto file
-    pass
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def Backup(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -335,6 +335,11 @@ def add_CoreRPCServicer_to_server(servicer, server):
           request_deserializer=core__pb2.NodeAvailable.FromString,
           response_serializer=core__pb2.Node.SerializeToString,
       ),
+      'Backup': grpc.unary_unary_rpc_method_handler(
+          servicer.Backup,
+          request_deserializer=core__pb2.BackupOptions.FromString,
+          response_serializer=core__pb2.BackupMessage.SerializeToString,
+      ),
       'GetNodeByName': grpc.unary_unary_rpc_method_handler(
           servicer.GetNodeByName,
           request_deserializer=core__pb2.GetNodeOptions.FromString,
@@ -374,11 +379,6 @@ def add_CoreRPCServicer_to_server(servicer, server):
           servicer.RemoveImage,
           request_deserializer=core__pb2.RemoveImageOptions.FromString,
           response_serializer=core__pb2.RemoveImageMessage.SerializeToString,
-      ),
-      'Backup': grpc.unary_unary_rpc_method_handler(
-          servicer.Backup,
-          request_deserializer=core__pb2.BackupOptions.FromString,
-          response_serializer=core__pb2.BackupMessage.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

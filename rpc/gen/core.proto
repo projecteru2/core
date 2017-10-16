@@ -16,7 +16,7 @@ service CoreRPC {
     rpc GetContainers(ContainerIDs) returns (Containers) {};
     rpc ListNetworks(ListNetworkOptions) returns (Networks) {};
     rpc SetNodeAvailable(NodeAvailable) returns (Node) {};
-
+    rpc Backup(BackupOptions) returns (BackupMessage) {};
     rpc GetNodeByName(GetNodeOptions) returns (Node) {};
     rpc ContainerDeployed(ContainerDeployedOptions) returns (Empty) {};
 
@@ -26,7 +26,6 @@ service CoreRPC {
     rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage) {};
     rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage) {};
     rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage) {};
-    rpc Backup(BackupOptions) returns (BackupMessage) {};
 }
 
 message Empty {}

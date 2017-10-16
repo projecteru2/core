@@ -204,9 +204,7 @@ func (v *vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), v.config.GlobalTimeout)
-	defer cancel()
-	ch, err := v.cluster.BuildImage(ctx, buildOpts)
+	ch, err := v.cluster.BuildImage(stream.Context(), buildOpts)
 	if err != nil {
 		return err
 	}

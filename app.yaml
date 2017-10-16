@@ -17,17 +17,19 @@ stages:
   - pack
 builds:
   build:
-    base: "projecteru2/footstone:latest"
+    base: "golang:1.9.0-alpine3.6"
     # only support ssh protocol
     repo: "git@github.com:projecteru2/core.git"
     version: "HEAD"
-    dir: /.go/src/github.com/projecteru2/core
+    dir: /go/src/github.com/projecteru2/core
     commands:
+      - apk add --no-cache build-base musl-dev libgit2-dev git curl make
+      - curl https://glide.sh/get | sh
       - make test
       - make binary
     cache:
-      /.go/src/github.com/projecteru2/core/eru-core: /usr/bin/eru-core
-      /.go/src/github.com/projecteru2/core/core.yaml.sample: /etc/eru/core.yaml.sample
+      /go/src/github.com/projecteru2/core/eru-core: /usr/bin/eru-core
+      /go/src/github.com/projecteru2/core/core.yaml.sample: /etc/eru/core.yaml.sample
     # envs:
     #   HTTP_PROXY: <HTTP_PROXY>
     #   HTTPS_PROXY: <HTTPS_PROXY>
