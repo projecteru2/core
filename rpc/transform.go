@@ -72,6 +72,9 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
 	}
 	builds.Builds = map[string]*types.Build{}
 	for stage, p := range b.Builds.Builds {
+		if p == nil {
+			return nil, errors.New("no build spec")
+		}
 		builds.Builds[stage] = &types.Build{
 			Base:      p.Base,
 			Repo:      p.Repo,

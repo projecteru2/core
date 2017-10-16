@@ -55,6 +55,7 @@ func TestReallocWithCPUPrior(t *testing.T) {
 	// 缩容
 	cpu = -0.1
 	newCPURequire = CPURate + cpu
+	cpuContainersInfo[pod] = CPUNodeContainers{}
 	cpuContainersInfo[pod][newCPURequire] = NodeContainers{}
 	cpuContainersInfo[pod][newCPURequire][node] = containers
 	ch2 := make(chan *types.ReallocResourceMessage)

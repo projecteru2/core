@@ -214,7 +214,7 @@ func (c *calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 			}
 		}()
 
-		ch <- &types.BuildImageMessage{Stream: fmt.Sprintf("finished %s", tag)}
+		ch <- &types.BuildImageMessage{Stream: fmt.Sprintf("finished %s\n", tag)}
 	}()
 
 	return ch, nil
