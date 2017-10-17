@@ -6,12 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
@@ -24,10 +24,10 @@ import (
 const (
 	fromAsTmpl = "FROM %s as %s"
 	commonTmpl = `{{ range $k, $v:= .Args -}}
-{{ printf "ARG %s=%s" $k $v }}
+{{ printf "ARG %s=%q" $k $v }}
 {{ end -}}
 {{ range $k, $v:= .Envs -}}
-{{ printf "ENV %s %s" $k $v }}
+{{ printf "ENV %s %q" $k $v }}
 {{ end -}}
 {{ range $k, $v:= .Labels -}}
 {{ printf "LABEL %s=%s" $k $v }}

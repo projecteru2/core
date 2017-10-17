@@ -3,6 +3,7 @@ eru-core
 core.yaml
 core.yml
 .ropeproject
+build.yaml
 *.pyc
 default.etcd/*
 vendor/*
