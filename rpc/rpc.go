@@ -211,7 +211,7 @@ func (v *vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 
 	for m := range ch {
 		if err = stream.Send(toRPCBuildImageMessage(m)); err != nil {
-			break
+			v.logUnsentMessages("BuildImage", m)
 		}
 	}
 	return err
@@ -346,7 +346,7 @@ func (v *vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_R
 	v.taskAdd("RemoveImage", true)
 	defer v.taskDone("RemoveImage", true)
 
-	ch, err := v.cluster.RemoveImage(opts.Podname, opts.Nodename, opts.Images)
+	ch, err := v.cluster.RemoveImage(stream.Context(), opts.Podname, opts.Nodename, opts.Images)
 	if err != nil {
 		return err
 	}

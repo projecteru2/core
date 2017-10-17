@@ -10,7 +10,7 @@ import (
 )
 
 // remove images
-func (c *calcium) RemoveImage(podname, nodename string, images []string) (chan *types.RemoveImageMessage, error) {
+func (c *calcium) RemoveImage(ctx context.Context, podname, nodename string, images []string) (chan *types.RemoveImageMessage, error) {
 	ch := make(chan *types.RemoveImageMessage)
 
 	node, err := c.GetNode(podname, nodename)
@@ -35,7 +35,7 @@ func (c *calcium) RemoveImage(podname, nodename string, images []string) (chan *
 
 				messages := []string{}
 				success := true
-				ms, err := node.Engine.ImageRemove(context.Background(), image, opts)
+				ms, err := node.Engine.ImageRemove(ctx, image, opts)
 				if err != nil {
 					success = false
 					messages = append(messages, err.Error())
