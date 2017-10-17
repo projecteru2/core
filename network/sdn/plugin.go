@@ -69,7 +69,9 @@ func (t *titanium) ListNetworks(ctx context.Context, driver string) ([]*types.Ne
 	}
 
 	filters := enginefilters.NewArgs()
-	filters.Add("driver", driver)
+	if driver != "" {
+		filters.Add("driver", driver)
+	}
 	ns, err := engine.NetworkList(context.Background(), enginetypes.NetworkListOptions{Filters: filters})
 	if err != nil {
 		return networks, err
