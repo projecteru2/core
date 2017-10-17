@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"sync"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
@@ -14,16 +13,11 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-func (c *calcium) RunAndWait(opts *types.DeployOptions, timeout int, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error) {
+func (c *calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error) {
 	ch := make(chan *types.RunAndWaitMessage)
 
 	// 强制为 json-file 输出
 	opts.Entrypoint.LogConfig = "json-file"
-
-	waitTimeout := c.config.GlobalTimeout
-	if timeout > 0 {
-		waitTimeout = time.Duration(timeout) * time.Second
-	}
 
 	// count = 1 && OpenStdin
 	if opts.OpenStdin && opts.Count != 1 {
@@ -32,7 +26,7 @@ func (c *calcium) RunAndWait(opts *types.DeployOptions, timeout int, stdin io.Re
 	}
 
 	// 创建容器, 有问题就gg
-	log.Debugf("[RunAndWait] Args: %v, %v", waitTimeout, opts)
+	log.Debugf("[RunAndWait] Args: %v", opts)
 	createChan, err := c.CreateContainer(opts)
 	if err != nil {
 		close(ch)
@@ -73,8 +67,6 @@ func (c *calcium) RunAndWait(opts *types.DeployOptions, timeout int, stdin io.Re
 				defer log.Infof("[RunAndWait] Container %s finished and removed", containerID[:12])
 				defer c.removeContainerSync([]string{containerID})
 
-				ctx, cancel := context.WithTimeout(context.Background(), waitTimeout)
-				defer cancel()
 				resp, err := node.Engine.ContainerLogs(ctx, containerID, logsOpts)
 				if err != nil {
 					log.Errorf("[RunAndWait] Failed to get logs, %v", err)
@@ -85,9 +77,7 @@ func (c *calcium) RunAndWait(opts *types.DeployOptions, timeout int, stdin io.Re
 
 				if opts.OpenStdin {
 					go func() {
-						r, err := node.Engine.ContainerAttach(
-							context.Background(), containerID,
-							enginetypes.ContainerAttachOptions{Stream: true, Stdin: true})
+						r, err := node.Engine.ContainerAttach(ctx, containerID, enginetypes.ContainerAttachOptions{Stream: true, Stdin: true})
 						defer r.Close()
 						defer stdin.Close()
 						if err != nil {
@@ -95,6 +85,7 @@ func (c *calcium) RunAndWait(opts *types.DeployOptions, timeout int, stdin io.Re
 							return
 						}
 						io.Copy(r.Conn, stdin)
+						log.Debugf("[RunAndWait] %s stdin copy end", containerID[:12])
 					}()
 				}
 
@@ -110,6 +101,9 @@ func (c *calcium) RunAndWait(opts *types.DeployOptions, timeout int, stdin io.Re
 				}
 
 				if err := scanner.Err(); err != nil {
+					if err == context.Canceled {
+						return
+					}
 					log.Errorf("[RunAndWait] Parse log failed, %v", err)
 					ch <- &types.RunAndWaitMessage{ContainerID: containerID,
 						Data: []byte(fmt.Sprintf("[exitcode] unknown %v", err))}
@@ -118,7 +112,7 @@ func (c *calcium) RunAndWait(opts *types.DeployOptions, timeout int, stdin io.Re
 
 				// 超时的情况下根本不会到这里
 				// 不超时的情况下这里肯定会立即返回
-				code, err := node.Engine.ContainerWait(context.Background(), containerID)
+				code, err := node.Engine.ContainerWait(ctx, containerID)
 				exitData := []byte(fmt.Sprintf("[exitcode] %d", code))
 				if err != nil {
 					log.Errorf("[RunAndWait] %s run failed, %v", containerID[:12], err)

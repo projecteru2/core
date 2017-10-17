@@ -3,6 +3,7 @@ package rpc
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -194,7 +195,6 @@ func (v *vibranium) SetNodeAvailable(ctx context.Context, opts *pb.NodeAvailable
 }
 
 // streamed returned functions
-// caller must ensure that timeout will not be too short because these actions take a little time
 func (v *vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_BuildImageServer) error {
 	v.taskAdd("BuildImage", true)
 	defer v.taskDone("BuildImage", true)
@@ -248,8 +248,11 @@ func (v *vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		return err
 	}
 
+	if RunAndWaitOptions.DeployOptions == nil {
+		return errors.New("no deploy options")
+	}
+
 	opts := RunAndWaitOptions.DeployOptions
-	timeout := int(RunAndWaitOptions.Timeout)
 	stdinReader, stdinWriter := io.Pipe()
 	defer stdinReader.Close()
 
@@ -257,7 +260,7 @@ func (v *vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	if err != nil {
 		return err
 	}
-	ch, err := v.cluster.RunAndWait(deployOpts, timeout, stdinReader)
+	ch, err := v.cluster.RunAndWait(stream.Context(), deployOpts, stdinReader)
 	if err != nil {
 		// `ch` is nil now
 		log.Errorf("[RunAndWait] Start run and wait failed %s", err)

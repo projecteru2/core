@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +16,7 @@ func TestRunAndWait(t *testing.T) {
 		OpenStdin:  true,
 		Count:      10,
 	}
-	_, err = mockc.RunAndWait(&opts, 10, nil)
+	_, err = mockc.RunAndWait(context.TODO(), &opts, nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Count must be 1 if OpenStdin is true")
 }
