@@ -60,8 +60,9 @@ message Node {
     string podname = 3;
     bool public = 4;
     map<string, int64> cpu = 5;
-    string info = 6;
-    bool available = 7;
+    int64 memory = 6;
+    string info = 7;
+    bool available = 8;
 }
 
 message Nodes {

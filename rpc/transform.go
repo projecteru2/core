@@ -40,6 +40,7 @@ func toRPCNode(n *types.Node) *pb.Node {
 		Podname:   n.Podname,
 		Public:    n.Public,
 		Cpu:       toRPCCPUMap(n.CPU),
+		Memory:    n.MemCap,
 		Info:      nodeInfo,
 		Available: n.Available,
 	}
