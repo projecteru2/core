@@ -17,7 +17,7 @@ stages:
   - pack
 builds:
   build:
-    base: "golang:1.9.0-alpine3.6"
+    base: "golang:1.9.1-alpine3.6"
     # only support ssh protocol
     repo: "git@github.com:projecteru2/core.git"
     version: "HEAD"
@@ -42,5 +42,7 @@ builds:
     envs:
       CORE_IN_DOCKER: 1
     commands:
+      - apk add --no-cache libgit2
+      - rm -rf /var/cache/apk/*
       - mkdir -p /etc/eru/
 
