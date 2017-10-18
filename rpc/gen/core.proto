@@ -21,14 +21,30 @@ service CoreRPC {
     rpc ContainerDeployed(ContainerDeployedOptions) returns (Empty) {};
 
     rpc BuildImage(BuildImageOptions) returns (stream BuildImageMessage) {};
-    rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage) {};
+    rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage) {};
+    rpc DeployStatus(DeployStatusOptions) returns (stream DeployStatusMessage) {};
     rpc RunAndWait(stream RunAndWaitOptions) returns (stream RunAndWaitMessage) {}; 
+    rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage) {};
     rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage) {};
     rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage) {};
-    rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage) {};
 }
 
 message Empty {}
+
+message DeployStatusOptions {
+    string appname = 1;
+    string entrypoint = 2;
+    string nodename = 3;
+}
+
+message DeployStatusMessage {
+    string action = 1;
+    string appname = 2;
+    string entrypoint = 3;
+    string nodename = 4;
+    string id = 5;
+    bytes data = 6;
+}
 
 // 对的, protobuf 就是这样...
 message Pod {

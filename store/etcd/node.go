@@ -21,6 +21,7 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
+//GIGABYTE define gb
 const GIGABYTE = 1073741824
 
 // cache connections

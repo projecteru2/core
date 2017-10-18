@@ -84,7 +84,7 @@ func GetVersion(image string) string {
 		return "unknown"
 	}
 
-	return parts[1]
+	return parts[len(parts)-1]
 }
 
 // Bind a docker engine client to context
@@ -150,12 +150,12 @@ func MakeCommandLineArgs(s string) []string {
 	return r
 }
 
-// MakeContainerName joins appname, entrypoint, ident using '_'
+//MakeContainerName joins appname, entrypoint, ident using '_'
 func MakeContainerName(appname, entrypoint, ident string) string {
 	return strings.Join([]string{appname, entrypoint, ident}, "_")
 }
 
-// ParseContainerName does the opposite thing as MakeContainerName
+//ParseContainerName does the opposite thing as MakeContainerName
 func ParseContainerName(containerName string) (string, string, string, error) {
 	containerName = strings.TrimLeft(containerName, "/")
 	splits := strings.Split(containerName, "_")

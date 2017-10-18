@@ -291,7 +291,6 @@ func (v *vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 
 	for m := range ch {
 		if err = stream.Send(toRPCRunAndWaitMessage(m)); err != nil {
-			log.Errorf("[RunAndWait] Send msg error: %s", err)
 			v.logUnsentMessages("RunAndWait", m)
 		}
 	}
@@ -360,6 +359,29 @@ func (v *vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_R
 		}
 	}
 	return err
+}
+
+func (v *vibranium) DeployStatus(opts *pb.DeployStatusOptions, stream pb.CoreRPC_DeployStatusServer) error {
+	v.taskAdd("DeployStatus", true)
+	defer v.taskDone("DeployStatus", true)
+
+	ch := v.cluster.DeployStatusStream(stream.Context(), opts.Appname, opts.Entrypoint, opts.Nodename)
+	for m := range ch {
+		if m.Err != nil {
+			return m.Err
+		}
+		if err := stream.Send(&pb.DeployStatusMessage{
+			Action:     m.Action,
+			Appname:    m.Appname,
+			Entrypoint: m.Entrypoint,
+			Nodename:   m.Nodename,
+			Id:         m.ID,
+			Data:       []byte(m.Data),
+		}); err != nil {
+			v.logUnsentMessages("DeployStatus", m)
+		}
+	}
+	return nil
 }
 
 func (v *vibranium) Backup(ctx context.Context, opts *pb.BackupOptions) (*pb.BackupMessage, error) {

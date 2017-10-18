@@ -39,3 +39,13 @@ func (c *Container) Inspect() (enginetypes.ContainerJSON, error) {
 	}
 	return c.Engine.ContainerInspect(ctx, c.ID)
 }
+
+type DeployStatus struct {
+	Data       string
+	Err        error
+	Action     string
+	Appname    string
+	Entrypoint string
+	Nodename   string
+	ID         string
+}

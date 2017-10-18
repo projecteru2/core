@@ -25,6 +25,7 @@ type Cluster interface {
 	// cluster methods
 	BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error)
 	RemoveImage(ctx context.Context, podname, nodename string, images []string) (chan *types.RemoveImageMessage, error)
+	DeployStatusStream(ctx context.Context, appname, entrypoint, nodename string) chan *types.DeployStatus
 	RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error)
 	CreateContainer(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
 	RemoveContainer(ids []string, force bool) (chan *types.RemoveContainerMessage, error)

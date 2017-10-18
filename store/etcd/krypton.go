@@ -24,6 +24,7 @@ const (
 
 	allContainerKey          = "/container"
 	containerInfoKey         = "/container/%s"
+	containerDeployPrefix    = "/deploy"
 	containerDeployStatusKey = "/deploy/%s/%s"
 	containerDeployKey       = "/deploy/%s/%s/%s/%s"
 )
@@ -34,6 +35,7 @@ type krypton struct {
 	config types.Config
 }
 
+//New for create a krypton instance
 func New(config types.Config) (*krypton, error) {
 	if len(config.Etcd.Machines) == 0 {
 		return nil, fmt.Errorf("ETCD must be set")
