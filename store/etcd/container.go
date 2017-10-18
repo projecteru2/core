@@ -3,9 +3,11 @@ package etcdstore
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 
 	"context"
 
+	etcdclient "github.com/coreos/etcd/client"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -115,4 +117,15 @@ func (k *krypton) CleanContainerData(ID, appname, entrypoint, nodename string) e
 	key = fmt.Sprintf(containerDeployKey, appname, entrypoint, nodename, ID)
 	_, err := k.etcd.Delete(context.Background(), key, nil)
 	return err
+}
+
+func (k *krypton) WatchDeployStatus(appname, entrypoint, nodename string) etcdclient.Watcher {
+	if appname == "" {
+		entrypoint = ""
+	}
+	if entrypoint == "" {
+		nodename = ""
+	}
+	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename)
+	return k.etcd.Watcher(key, &etcdclient.WatcherOptions{Recursive: true})
 }

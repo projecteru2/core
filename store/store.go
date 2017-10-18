@@ -1,6 +1,7 @@
 package store
 
 import (
+	etcdclient "github.com/coreos/etcd/client"
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/types"
 )
@@ -30,6 +31,7 @@ type Store interface {
 	GetContainer(id string) (*types.Container, error)
 	GetContainers(ids []string) ([]*types.Container, error)
 	ContainerDeployed(ID, appname, entrypoint, nodename, data string) error
+	WatchDeployStatus(appname, entrypoint, nodename string) etcdclient.Watcher
 
 	// distributed lock
 	CreateLock(key string, ttl int) (lock.DistributedLock, error)

@@ -94,15 +94,25 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.BuildImageOptions.SerializeToString,
         response_deserializer=core__pb2.BuildImageMessage.FromString,
         )
-    self.CreateContainer = channel.unary_stream(
-        '/pb.CoreRPC/CreateContainer',
-        request_serializer=core__pb2.DeployOptions.SerializeToString,
-        response_deserializer=core__pb2.CreateContainerMessage.FromString,
+    self.RemoveImage = channel.unary_stream(
+        '/pb.CoreRPC/RemoveImage',
+        request_serializer=core__pb2.RemoveImageOptions.SerializeToString,
+        response_deserializer=core__pb2.RemoveImageMessage.FromString,
+        )
+    self.DeployStatus = channel.unary_stream(
+        '/pb.CoreRPC/DeployStatus',
+        request_serializer=core__pb2.DeployStatusOptions.SerializeToString,
+        response_deserializer=core__pb2.DeployStatusMessage.FromString,
         )
     self.RunAndWait = channel.stream_stream(
         '/pb.CoreRPC/RunAndWait',
         request_serializer=core__pb2.RunAndWaitOptions.SerializeToString,
         response_deserializer=core__pb2.RunAndWaitMessage.FromString,
+        )
+    self.CreateContainer = channel.unary_stream(
+        '/pb.CoreRPC/CreateContainer',
+        request_serializer=core__pb2.DeployOptions.SerializeToString,
+        response_deserializer=core__pb2.CreateContainerMessage.FromString,
         )
     self.RemoveContainer = channel.unary_stream(
         '/pb.CoreRPC/RemoveContainer',
@@ -113,11 +123,6 @@ class CoreRPCStub(object):
         '/pb.CoreRPC/ReallocResource',
         request_serializer=core__pb2.ReallocOptions.SerializeToString,
         response_deserializer=core__pb2.ReallocResourceMessage.FromString,
-        )
-    self.RemoveImage = channel.unary_stream(
-        '/pb.CoreRPC/RemoveImage',
-        request_serializer=core__pb2.RemoveImageOptions.SerializeToString,
-        response_deserializer=core__pb2.RemoveImageMessage.FromString,
         )
 
 
@@ -237,7 +242,14 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def CreateContainer(self, request, context):
+  def RemoveImage(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def DeployStatus(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -245,6 +257,13 @@ class CoreRPCServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def RunAndWait(self, request_iterator, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def CreateContainer(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -259,13 +278,6 @@ class CoreRPCServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def ReallocResource(self, request, context):
-    # missing associated documentation comment in .proto file
-    pass
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def RemoveImage(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -355,15 +367,25 @@ def add_CoreRPCServicer_to_server(servicer, server):
           request_deserializer=core__pb2.BuildImageOptions.FromString,
           response_serializer=core__pb2.BuildImageMessage.SerializeToString,
       ),
-      'CreateContainer': grpc.unary_stream_rpc_method_handler(
-          servicer.CreateContainer,
-          request_deserializer=core__pb2.DeployOptions.FromString,
-          response_serializer=core__pb2.CreateContainerMessage.SerializeToString,
+      'RemoveImage': grpc.unary_stream_rpc_method_handler(
+          servicer.RemoveImage,
+          request_deserializer=core__pb2.RemoveImageOptions.FromString,
+          response_serializer=core__pb2.RemoveImageMessage.SerializeToString,
+      ),
+      'DeployStatus': grpc.unary_stream_rpc_method_handler(
+          servicer.DeployStatus,
+          request_deserializer=core__pb2.DeployStatusOptions.FromString,
+          response_serializer=core__pb2.DeployStatusMessage.SerializeToString,
       ),
       'RunAndWait': grpc.stream_stream_rpc_method_handler(
           servicer.RunAndWait,
           request_deserializer=core__pb2.RunAndWaitOptions.FromString,
           response_serializer=core__pb2.RunAndWaitMessage.SerializeToString,
+      ),
+      'CreateContainer': grpc.unary_stream_rpc_method_handler(
+          servicer.CreateContainer,
+          request_deserializer=core__pb2.DeployOptions.FromString,
+          response_serializer=core__pb2.CreateContainerMessage.SerializeToString,
       ),
       'RemoveContainer': grpc.unary_stream_rpc_method_handler(
           servicer.RemoveContainer,
@@ -374,11 +396,6 @@ def add_CoreRPCServicer_to_server(servicer, server):
           servicer.ReallocResource,
           request_deserializer=core__pb2.ReallocOptions.FromString,
           response_serializer=core__pb2.ReallocResourceMessage.SerializeToString,
-      ),
-      'RemoveImage': grpc.unary_stream_rpc_method_handler(
-          servicer.RemoveImage,
-          request_deserializer=core__pb2.RemoveImageOptions.FromString,
-          response_serializer=core__pb2.RemoveImageMessage.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

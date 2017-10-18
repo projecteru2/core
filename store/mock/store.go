@@ -3,6 +3,7 @@ package mockstore
 import (
 	"fmt"
 
+	etcdclient "github.com/coreos/etcd/client"
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/mock"
@@ -24,6 +25,11 @@ func (m *MockLock) Unlock() error {
 
 type MockStore struct {
 	mock.Mock
+}
+
+func (m *MockStore) WatchDeployStatus(appname, entrypoint, nodename string) etcdclient.Watcher {
+	args := m.Called(appname, entrypoint, nodename)
+	return args.Get(0).(etcdclient.Watcher)
 }
 
 func (m *MockStore) GetPod(name string) (*types.Pod, error) {
