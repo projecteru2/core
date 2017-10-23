@@ -81,10 +81,10 @@ func (k *krypton) GetNode(podname, nodename string) (*types.Node, error) {
 	return node, nil
 }
 
-// add a node
 // save it to etcd
 // storage path in etcd is `/pod/:podname/node/:nodename/info`
-func (k *krypton) AddNode(name, endpoint, podname, cafile, certfile, keyfile string, public bool) (*types.Node, error) {
+//AddNode add a node
+func (k *krypton) AddNode(name, endpoint, podname, ca, cert, key string, public bool, cpu int, share, memory int64) (*types.Node, error) {
 	if !strings.HasPrefix(endpoint, "tcp://") {
 		return nil, fmt.Errorf("Endpoint must starts with tcp:// %q", endpoint)
 	}
@@ -94,22 +94,22 @@ func (k *krypton) AddNode(name, endpoint, podname, cafile, certfile, keyfile str
 		return nil, err
 	}
 
-	key := fmt.Sprintf(nodeInfoKey, podname, name)
-	if _, err := k.etcd.Get(context.Background(), key, nil); err == nil {
+	nodeKey := fmt.Sprintf(nodeInfoKey, podname, name)
+	if _, err := k.etcd.Get(context.Background(), nodeKey, nil); err == nil {
 		return nil, fmt.Errorf("Node (%s, %s) already exists", podname, name)
 	}
 
 	// 如果有tls的证书需要保存就保存一下
-	if cafile != "" && certfile != "" && keyfile != "" {
-		_, err = k.etcd.Set(context.Background(), fmt.Sprintf(nodeCaKey, podname, name), cafile, nil)
+	if ca != "" && cert != "" && key != "" {
+		_, err = k.etcd.Set(context.Background(), fmt.Sprintf(nodeCaKey, podname, name), ca, nil)
 		if err != nil {
 			return nil, err
 		}
-		_, err = k.etcd.Set(context.Background(), fmt.Sprintf(nodeCertKey, podname, name), certfile, nil)
+		_, err = k.etcd.Set(context.Background(), fmt.Sprintf(nodeCertKey, podname, name), cert, nil)
 		if err != nil {
 			return nil, err
 		}
-		_, err = k.etcd.Set(context.Background(), fmt.Sprintf(nodeKeyKey, podname, name), keyfile, nil)
+		_, err = k.etcd.Set(context.Background(), fmt.Sprintf(nodeKeyKey, podname, name), key, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -122,18 +122,27 @@ func (k *krypton) AddNode(name, endpoint, podname, cafile, certfile, keyfile str
 		return nil, err
 	}
 
+	// 判断这货是不是活着的
 	info, err := engine.Info(context.Background())
 	if err != nil {
 		k.deleteNode(podname, name, endpoint)
 		return nil, err
 	}
 
-	cpumap := types.CPUMap{}
-	for i := 0; i < info.NCPU; i++ {
-		cpumap[strconv.Itoa(i)] = 10
+	ncpu := cpu
+	memcap := memory
+	if cpu == 0 && memory == 0 {
+		ncpu = info.NCPU
+		memcap = info.MemTotal - GIGABYTE
+	}
+	if share == 0 {
+		share = k.config.Scheduler.ShareBase
 	}
 
-	memcap := info.MemTotal - GIGABYTE // 可用内存为总内存减 1G
+	cpumap := types.CPUMap{}
+	for i := 0; i < ncpu; i++ {
+		cpumap[strconv.Itoa(i)] = share
+	}
 
 	node := &types.Node{
 		Name:      name,
@@ -142,7 +151,6 @@ func (k *krypton) AddNode(name, endpoint, podname, cafile, certfile, keyfile str
 		Public:    public,
 		CPU:       cpumap,
 		MemCap:    memcap,
-		Engine:    engine,
 		Available: true,
 	}
 
@@ -410,51 +418,48 @@ func (k *krypton) makeDockerClient(podname, nodename, endpoint string, force boo
 	var client *engineapi.Client
 	client = _cache.get(host)
 	if client == nil || force {
-		// 如果设置了cert path说明需要用tls来连接
-		// 那么先检查有没有这些证书, 没有的话要从etcd里dump到本地
-		if k.config.Docker.CertPath != "" {
-			ca, err := ioutil.TempFile(k.config.Docker.CertPath, fmt.Sprintf("ca-%s", host))
-			if err != nil {
-				return nil, err
-			}
-			cert, err := ioutil.TempFile(k.config.Docker.CertPath, fmt.Sprintf("cert-%s", host))
-			if err != nil {
-				return nil, err
-			}
-			key, err := ioutil.TempFile(k.config.Docker.CertPath, fmt.Sprintf("key-%s", host))
-			if err != nil {
-				return nil, err
-			}
-			if err := k.dumpFromEtcd(ca, cert, key, podname, nodename); err != nil {
-				return nil, err
-			}
-			client, err = makeRawClientWithTLS(ca, cert, key, endpoint, k.config.Docker.APIVersion)
-			if err != nil {
-				return nil, err
-			}
-		} else {
+		if k.config.Docker.CertPath == "" {
 			client, err = makeRawClient(endpoint, k.config.Docker.APIVersion)
+		} else {
+			keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
+			data := []string{}
+			for i := 0; i < 3; i++ {
+				resp, err := k.etcd.Get(context.Background(), fmt.Sprintf(keyFormats[i], podname, nodename), nil)
+				if err != nil {
+					return nil, err
+				}
+				data = append(data, resp.Node.Value)
+			}
+			caFile, err := ioutil.TempFile(k.config.Docker.CertPath, fmt.Sprintf("ca-%s", host))
 			if err != nil {
 				return nil, err
 			}
+			certFile, err := ioutil.TempFile(k.config.Docker.CertPath, fmt.Sprintf("cert-%s", host))
+			if err != nil {
+				return nil, err
+			}
+			keyFile, err := ioutil.TempFile(k.config.Docker.CertPath, fmt.Sprintf("key-%s", host))
+			if err != nil {
+				return nil, err
+			}
+			if err := dumpFromString(caFile, certFile, keyFile, data[0], data[1], data[2]); err != nil {
+				return nil, err
+			}
+			client, err = makeRawClientWithTLS(caFile, certFile, keyFile, endpoint, k.config.Docker.APIVersion)
+		}
+		if err != nil {
+			return nil, err
 		}
 		_cache.set(host, client)
 	}
-
 	return client, nil
 }
 
-// dump certificated files from etcd to local file system
-func (k *krypton) dumpFromEtcd(ca, cert, key *os.File, podname, nodename string) error {
-	// create files
+func dumpFromString(ca, cert, key *os.File, caStr, certStr, keyStr string) error {
 	files := []*os.File{ca, cert, key}
-	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
+	data := []string{caStr, certStr, keyStr}
 	for i := 0; i < 3; i++ {
-		resp, err := k.etcd.Get(context.Background(), fmt.Sprintf(keyFormats[i], podname, nodename), nil)
-		if err != nil {
-			return err
-		}
-		if _, err := files[i].WriteString(resp.Node.Value); err != nil {
+		if _, err := files[i].WriteString(data[i]); err != nil {
 			return err
 		}
 		if err := files[i].Chmod(0444); err != nil {
@@ -464,6 +469,6 @@ func (k *krypton) dumpFromEtcd(ca, cert, key *os.File, podname, nodename string)
 			return err
 		}
 	}
-	log.Debugf("[dumpFromEtcd] Dump ca.pem, cert.pem, key.pem from etcd for %s %s", podname, nodename)
+	log.Debug("[dumpFromString] Dump ca.pem, cert.pem, key.pem from string")
 	return nil
 }
