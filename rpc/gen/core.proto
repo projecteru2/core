@@ -148,10 +148,13 @@ message AddNodeOptions {
     string nodename = 1;
     string endpoint = 2;
     string podname = 3;
-    string cafile = 4;
-    string certfile = 5;
-    string keyfile = 6;
+    string ca = 4;
+    string cert = 5;
+    string key = 6;
     bool public = 7;
+    int32 cpu = 8;
+    int64 share = 9;
+    int64 memory = 10;
 }
 
 message RemoveNodeOptions {

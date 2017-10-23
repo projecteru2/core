@@ -121,15 +121,15 @@ func TestNodes(t *testing.T) {
 		MemCap: 1024 * 1024 * 8,
 		Engine: nil,
 	}
-	store.On("AddNode", nodeName, endpoint, podname, cafile, certfile, keyfile, public).Return(tNode, nil)
+	store.On("AddNode", nodeName, endpoint, podname, cafile, certfile, keyfile, public, 0, int64(0), int64(0)).Return(tNode, nil)
 	addnodeoptions := pb.AddNodeOptions{
 		Nodename: nodeName,
 		Endpoint: endpoint,
 		Podname:  podname,
 		Public:   public,
-		Cafile:   cafile,
-		Certfile: certfile,
-		Keyfile:  keyfile,
+		Ca:       cafile,
+		Cert:     certfile,
+		Key:      keyfile,
 	}
 	respAddPod, err := clnt.AddNode(ctx, &addnodeoptions)
 	if err != nil {
