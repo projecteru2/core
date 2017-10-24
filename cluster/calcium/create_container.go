@@ -105,15 +105,6 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, opts
 		log.Debugf("[doCreateContainerWithMemoryPrior] create container success %s", ms[i].ContainerID)
 	}
 
-	go func(opts *types.DeployOptions) {
-		cpuandmem, _, err := c.getCPUAndMem(opts.Podname, opts.Nodename, 1.0)
-		if err != nil {
-			log.Errorf("[doCreateContainerWithMemoryPrior] Get cpu and mem stats failed %v", err)
-			return
-		}
-		stats.Client.SendMemCap(cpuandmem, false)
-	}(opts)
-
 	return ms
 }
 

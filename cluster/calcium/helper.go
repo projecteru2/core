@@ -81,18 +81,6 @@ func makeCPUAndMem(nodes []*types.Node) map[string]types.CPUAndMem {
 	return r
 }
 
-// filter nodes
-// public is the flag
-func filterNodes(nodes []*types.Node, public bool) []*types.Node {
-	rs := []*types.Node{}
-	for _, node := range nodes {
-		if node.Public == public {
-			rs = append(rs, node)
-		}
-	}
-	return rs
-}
-
 // As the name says,
 // blocks until the stream is empty, until we meet EOF
 func ensureReaderClosed(stream io.ReadCloser) {
