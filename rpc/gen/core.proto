@@ -74,11 +74,11 @@ message Node {
     string name = 1;
     string endpoint = 2;
     string podname = 3;
-    bool public = 4;
-    map<string, int64> cpu = 5;
-    int64 memory = 6;
-    string info = 7;
-    bool available = 8;
+    map<string, int64> cpu = 4;
+    int64 memory = 5;
+    string info = 6;
+    bool available = 7;
+    map<string, string> labels = 8;
 }
 
 message Nodes {
@@ -151,10 +151,10 @@ message AddNodeOptions {
     string ca = 4;
     string cert = 5;
     string key = 6;
-    bool public = 7;
-    int32 cpu = 8;
-    int64 share = 9;
-    int64 memory = 10;
+    int32 cpu = 7;
+    int64 share = 8;
+    int64 memory = 9;
+    map<string, string> labels = 10;
 }
 
 message RemoveNodeOptions {

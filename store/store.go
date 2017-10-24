@@ -14,7 +14,7 @@ type Store interface {
 	GetAllPods() ([]*types.Pod, error)
 
 	// node
-	AddNode(name, endpoint, podname, ca, cert, key string, public bool, cpu int, share, memory int64) (*types.Node, error)
+	AddNode(name, endpoint, podname, ca, cert, key string, cpu int, share, memory int64, labels map[string]string) (*types.Node, error)
 	DeleteNode(node *types.Node)
 	GetNode(podname, nodename string) (*types.Node, error)
 	GetNodeByName(nodename string) (*types.Node, error)

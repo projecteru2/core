@@ -80,10 +80,10 @@ func (v *vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.N
 		opts.Ca,
 		opts.Cert,
 		opts.Key,
-		opts.Public,
 		int(opts.Cpu),
 		opts.Share,
 		opts.Memory,
+		opts.Labels,
 	)
 	if err != nil {
 		return nil, err

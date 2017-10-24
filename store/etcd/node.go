@@ -84,7 +84,7 @@ func (k *krypton) GetNode(podname, nodename string) (*types.Node, error) {
 // save it to etcd
 // storage path in etcd is `/pod/:podname/node/:nodename/info`
 //AddNode add a node
-func (k *krypton) AddNode(name, endpoint, podname, ca, cert, key string, public bool, cpu int, share, memory int64) (*types.Node, error) {
+func (k *krypton) AddNode(name, endpoint, podname, ca, cert, key string, cpu int, share, memory int64, labels map[string]string) (*types.Node, error) {
 	if !strings.HasPrefix(endpoint, "tcp://") {
 		return nil, fmt.Errorf("Endpoint must starts with tcp:// %q", endpoint)
 	}
@@ -138,7 +138,6 @@ func (k *krypton) AddNode(name, endpoint, podname, ca, cert, key string, public 
 	if share == 0 {
 		share = k.config.Scheduler.ShareBase
 	}
-
 	cpumap := types.CPUMap{}
 	for i := 0; i < ncpu; i++ {
 		cpumap[strconv.Itoa(i)] = share
@@ -148,10 +147,10 @@ func (k *krypton) AddNode(name, endpoint, podname, ca, cert, key string, public 
 		Name:      name,
 		Endpoint:  endpoint,
 		Podname:   podname,
-		Public:    public,
 		CPU:       cpumap,
 		MemCap:    memcap,
 		Available: true,
+		Labels:    labels,
 	}
 
 	bytes, err := json.Marshal(node)

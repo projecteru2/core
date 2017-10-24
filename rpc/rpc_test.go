@@ -106,27 +106,27 @@ func TestNodes(t *testing.T) {
 		cafile    = ""
 		certfile  = ""
 		keyfile   = ""
-		public    = true
 		available = true
+		labels    = map[string]string{"a": "1", "b": "2"}
 	)
 	tNode := &types.Node{
 		Name:      nodeName,
 		Endpoint:  endpoint,
 		Podname:   podname,
-		Public:    public,
 		Available: available,
 		CPU: types.CPUMap{
 			"0": 1e9,
 		},
 		MemCap: 1024 * 1024 * 8,
 		Engine: nil,
+		Labels: labels,
 	}
-	store.On("AddNode", nodeName, endpoint, podname, cafile, certfile, keyfile, public, 0, int64(0), int64(0)).Return(tNode, nil)
+	store.On("AddNode", nodeName, endpoint, podname, cafile, certfile, keyfile, 0, int64(0), int64(0), labels).Return(tNode, nil)
 	addnodeoptions := pb.AddNodeOptions{
 		Nodename: nodeName,
 		Endpoint: endpoint,
 		Podname:  podname,
-		Public:   public,
+		Labels:   labels,
 		Ca:       cafile,
 		Cert:     certfile,
 		Key:      keyfile,
@@ -360,7 +360,6 @@ func TestBuildImage(t *testing.T) {
 		Name:      "nodename",
 		Endpoint:  "endpoint",
 		Podname:   "dev",
-		Public:    true,
 		Available: true,
 		CPU: types.CPUMap{
 			"0": 1e9,
@@ -434,7 +433,6 @@ func TestCreateContainer(t *testing.T) {
 		Name:      nodename,
 		Endpoint:  "endpoint",
 		Podname:   podname,
-		Public:    true,
 		Available: true,
 		CPU: types.CPUMap{
 			"0": 1e9,
@@ -602,7 +600,6 @@ func TestOthers(t *testing.T) {
 		Name:      nodename,
 		Endpoint:  "endpoint",
 		Podname:   podname,
-		Public:    true,
 		Available: true,
 		CPU: types.CPUMap{
 			"0": 1e9,
