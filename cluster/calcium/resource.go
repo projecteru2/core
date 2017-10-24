@@ -18,7 +18,7 @@ func (c *calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.Nod
 	}
 	defer lock.Unlock()
 
-	cpuandmem, _, err := c.getCPUAndMem(opts.Podname, opts.Nodename, 1.0)
+	cpuandmem, _, err := c.getCPUAndMem(opts.Podname, opts.Nodename, opts.NodeLabels, 1.0)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (c *calcium) allocCPUPodResource(opts *types.DeployOptions) (map[string][]t
 	}
 	defer lock.Unlock()
 
-	cpuandmem, nodes, err := c.getCPUAndMem(opts.Podname, opts.Nodename, opts.CPUQuota)
+	cpuandmem, nodes, err := c.getCPUAndMem(opts.Podname, opts.Nodename, opts.NodeLabels, opts.CPUQuota)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,26 @@ func (c *calcium) allocCPUPodResource(opts *types.DeployOptions) (map[string][]t
 	return result, err
 }
 
-func (c *calcium) getCPUAndMem(podname, nodename string, quota float64) (map[string]types.CPUAndMem, []*types.Node, error) {
+func filterNode(node *types.Node, labels map[string]string) bool {
+	if node.Labels == nil && labels == nil {
+		return true
+	} else if node.Labels == nil && labels != nil {
+		return false
+	} else if node.Labels != nil && labels == nil {
+		return true
+	}
+
+	for k, v := range labels {
+		if d, ok := node.Labels[k]; !ok {
+			return false
+		} else if d != v {
+			return false
+		}
+	}
+	return true
+}
+
+func (c *calcium) getCPUAndMem(podname, nodename string, labels map[string]string, quota float64) (map[string]types.CPUAndMem, []*types.Node, error) {
 	result := make(map[string]types.CPUAndMem)
 	var nodes []*types.Node
 	var err error
@@ -110,6 +129,13 @@ func (c *calcium) getCPUAndMem(podname, nodename string, quota float64) (map[str
 		if err != nil {
 			return result, nil, err
 		}
+		nodeList := []*types.Node{}
+		for _, node := range nodes {
+			if filterNode(node, labels) {
+				nodeList = append(nodeList, node)
+			}
+		}
+		nodes = nodeList
 	} else {
 		n, err := c.GetNode(podname, nodename)
 		if err != nil {
