@@ -182,15 +182,8 @@ func TestRecurrence(t *testing.T) {
 	}
 }
 
-func TestComplexNodes(t *testing.T) {
-	coreCfg := newConfig()
-
-	k, merr := New(coreCfg)
-	if merr != nil {
-		t.Fatalf("Create Potassim error: %v", merr)
-	}
-
-	nodes := []types.NodeInfo{
+func getNodesInfo() []types.NodeInfo {
+	return []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
 				CpuMap: types.CPUMap{ // 2 containers
@@ -247,7 +240,17 @@ func TestComplexNodes(t *testing.T) {
 			Name: "n5",
 		},
 	}
+}
 
+func TestComplexNodes(t *testing.T) {
+	coreCfg := newConfig()
+
+	k, merr := New(coreCfg)
+	if merr != nil {
+		t.Fatalf("Create Potassim error: %v", merr)
+	}
+
+	nodes := getNodesInfo()
 	k, _ = New(coreCfg)
 	// test1
 	res1, changed1, err := k.SelectCPUNodes(nodes, 1.7, 7)
@@ -262,64 +265,7 @@ func TestComplexNodes(t *testing.T) {
 	// test2
 	// SelectCPUNodes 里有一些副作用, 粗暴地拿一个新的来测试吧
 	// 下面也是因为这个
-	nodes = []types.NodeInfo{
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 2 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n1",
-		},
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 7 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-					"8": 10, "9": 10, "10": 10, "11": 10,
-					"12": 10, "13": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n2",
-		},
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 6 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-					"8": 10, "9": 10, "10": 10, "11": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n3",
-		},
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 9 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-					"8": 10, "9": 10, "10": 10, "11": 10,
-					"12": 10, "13": 10, "14": 10, "15": 10,
-					"16": 10, "17": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n4",
-		},
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 4 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n5",
-		},
-	}
-
+	nodes = getNodesInfo()
 	res2, changed2, err := k.SelectCPUNodes(nodes, 1.7, 11)
 	if err != nil {
 		t.Fatalf("something went wrong")
@@ -330,64 +276,7 @@ func TestComplexNodes(t *testing.T) {
 	assert.Equal(t, len(changed2), len(res2))
 
 	// test3
-	nodes = []types.NodeInfo{
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 2 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n1",
-		},
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 7 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-					"8": 10, "9": 10, "10": 10, "11": 10,
-					"12": 10, "13": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n2",
-		},
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 6 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-					"8": 10, "9": 10, "10": 10, "11": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n3",
-		},
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 9 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-					"8": 10, "9": 10, "10": 10, "11": 10,
-					"12": 10, "13": 10, "14": 10, "15": 10,
-					"16": 10, "17": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n4",
-		},
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 4 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n5",
-		},
-	}
-
+	nodes = getNodesInfo()
 	res3, changed3, err := k.SelectCPUNodes(nodes, 1.7, 23)
 	assert.NoError(t, err)
 	if check := checkAvgPlan(res3, 2, 6, "res3"); check != nil {
@@ -396,11 +285,25 @@ func TestComplexNodes(t *testing.T) {
 	assert.Equal(t, len(changed3), len(res3))
 
 	// test4
-	nodes = []types.NodeInfo{
+	nodes = getNodesInfo()
+	_, _, newErr := k.SelectCPUNodes(nodes, 1.6, 29)
+	if newErr == nil {
+		t.Fatalf("how to alloc 29 containers when you only have 28?")
+	}
+
+	//test5
+	nodes = getNodesInfo()
+	_, _, err = k.SelectCPUNodes(nodes, 0, 10)
+	assert.Equal(t, err.Error(), "quota must positive")
+}
+
+func getEvenPlanNodes() []types.NodeInfo {
+	return []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 2 containers
+				CpuMap: types.CPUMap{ // 4 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
+					"4": 10, "5": 10, "6": 10, "7": 10,
 				},
 				MemCap: 12400000,
 			},
@@ -408,11 +311,10 @@ func TestComplexNodes(t *testing.T) {
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 7 containers
+				CpuMap: types.CPUMap{ // 5 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
-					"8": 10, "9": 10, "10": 10, "11": 10,
-					"12": 10, "13": 10,
+					"8": 10, "9": 10,
 				},
 				MemCap: 12400000,
 			},
@@ -431,31 +333,15 @@ func TestComplexNodes(t *testing.T) {
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 9 containers
+				CpuMap: types.CPUMap{ // 5 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
-					"8": 10, "9": 10, "10": 10, "11": 10,
-					"12": 10, "13": 10, "14": 10, "15": 10,
-					"16": 10, "17": 10,
+					"8": 10, "9": 10,
 				},
 				MemCap: 12400000,
 			},
 			Name: "n4",
 		},
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 4 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n5",
-		},
-	}
-	_, _, newErr := k.SelectCPUNodes(nodes, 1.6, 29)
-	if newErr == nil {
-		t.Fatalf("how to alloc 29 containers when you only have 28?")
 	}
 }
 
@@ -497,156 +383,21 @@ func TestEvenPlan(t *testing.T) {
 	assert.Equal(t, len(rem1), 2)
 
 	// nodes -- n1: 4, n2: 5, n3:6, n4: 5
-	pod2 := []types.NodeInfo{
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 4 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n1",
-		},
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 5 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-					"8": 10, "9": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n2",
-		},
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 6 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-					"8": 10, "9": 10, "10": 10, "11": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n3",
-		},
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 5 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-					"8": 10, "9": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n4",
-		},
-	}
-
+	pod2 := getEvenPlanNodes()
 	res2, rem2, err := k.SelectCPUNodes(pod2, 1.7, 3)
 	if check := checkAvgPlan(res2, 1, 1, "res2"); check != nil {
 		t.Fatalf("something went wront")
 	}
 	assert.Equal(t, len(rem2), 3)
 
-	pod3 := []types.NodeInfo{
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 4 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n1",
-		},
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 5 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-					"8": 10, "9": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n2",
-		},
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 6 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-					"8": 10, "9": 10, "10": 10, "11": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n3",
-		},
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 5 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-					"8": 10, "9": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n4",
-		},
-	}
-
+	pod3 := getEvenPlanNodes()
 	res3, rem3, err := k.SelectCPUNodes(pod3, 1.7, 8)
 	if check := checkAvgPlan(res3, 2, 2, "res3"); check != nil {
 		t.Fatalf("something went wront")
 	}
 	assert.Equal(t, len(rem3), 4)
 
-	pod4 := []types.NodeInfo{
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 4 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n1",
-		},
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 5 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-					"8": 10, "9": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n2",
-		},
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 6 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-					"8": 10, "9": 10, "10": 10, "11": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n3",
-		},
-		types.NodeInfo{
-			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 5 containers
-					"0": 10, "1": 10, "2": 10, "3": 10,
-					"4": 10, "5": 10, "6": 10, "7": 10,
-					"8": 10, "9": 10,
-				},
-				MemCap: 12400000,
-			},
-			Name: "n4",
-		},
-	}
-
+	pod4 := getEvenPlanNodes()
 	res4, rem4, err := k.SelectCPUNodes(pod4, 1.7, 10)
 	if check := checkAvgPlan(res4, 2, 3, "res4"); check != nil {
 		t.Fatalf("something went wrong")
@@ -854,6 +605,10 @@ func TestSelectMemoryNodes(t *testing.T) {
 	for i, node := range res {
 		assert.Equal(t, node.Deploy, 3-i)
 	}
+
+	pod = newPod(1)
+	_, err = k.SelectMemoryNodes(pod, 10000, 0, 10)
+	assert.Equal(t, err.Error(), "memory must positive")
 }
 
 func TestTestSelectMemoryNodesNotEnough(t *testing.T) {

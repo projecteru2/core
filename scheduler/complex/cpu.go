@@ -48,12 +48,12 @@ func newHost(cpuInfo types.CPUMap, share int64) *host {
 	return result
 }
 
-func (self *host) calcuatePiecesCores(full, fragment, maxShareCore int64) {
+func (h *host) calcuatePiecesCores(full, fragment, maxShareCore int64) {
 	var fullResultNum, fragmentResultNum, canDeployNum, baseLine int64
 	var fragmentBaseResult, lenFull, count, num, flag, b, baseContainers int64
 
-	count = int64(len(self.fragment))
-	lenFull = int64(len(self.full))
+	count = int64(len(h.fragment))
+	lenFull = int64(len(h.full))
 	if maxShareCore == -1 {
 		maxShareCore = lenFull - count - full // 减枝，M == N 的情况下预留至少一个 full 量的核数
 	} else {
@@ -62,14 +62,14 @@ func (self *host) calcuatePiecesCores(full, fragment, maxShareCore int64) {
 
 	fullResultNum = lenFull / full
 	fragmentBaseResult = 0
-	for _, pieces := range self.fragment {
+	for _, pieces := range h.fragment {
 		fragmentBaseResult += pieces / fragment
 	}
 	baseLine = min(fullResultNum, fragmentBaseResult)
 
 	num = 0
 	flag = math.MaxInt64
-	baseContainers = self.share / fragment
+	baseContainers = h.share / fragment
 	var i int64
 	for i = 1; i < maxShareCore+1; i++ {
 		fullResultNum = (lenFull - i) / full
@@ -89,40 +89,40 @@ func (self *host) calcuatePiecesCores(full, fragment, maxShareCore int64) {
 	}
 
 	num += count
-	for no, pieces := range self.full {
+	for no, pieces := range h.full {
 		if count == num {
 			break
 		}
-		self.fragment[no] = pieces
-		count += 1
-		delete(self.full, no)
+		h.fragment[no] = pieces
+		count++
+		delete(h.full, no)
 	}
 }
 
-func (self *host) getContainerCores(num float64, maxShareCore int64) []types.CPUMap {
-	num = num * float64(self.share)
+func (h *host) getContainerCores(num float64, maxShareCore int64) []types.CPUMap {
+	num = num * float64(h.share)
 
 	var full, fragment, i int64
 	var result = []types.CPUMap{}
 	var fullResult = types.CPUMap{}
 	var fragmentResult = []string{}
 
-	full = int64(num) / self.share
-	fragment = int64(num) % self.share
+	full = int64(num) / h.share
+	fragment = int64(num) % h.share
 
 	if full == 0 {
 		if maxShareCore == -1 {
 			// 这个时候就把所有的核都当成碎片核
-			maxShareCore = int64(len(self.full)) + int64(len(self.fragment))
+			maxShareCore = int64(len(h.full)) + int64(len(h.fragment))
 		}
-		for no, pieces := range self.full {
-			if int64(len(self.fragment)) >= maxShareCore {
+		for no, pieces := range h.full {
+			if int64(len(h.fragment)) >= maxShareCore {
 				break
 			}
-			self.fragment[no] = pieces
-			delete(self.full, no)
+			h.fragment[no] = pieces
+			delete(h.full, no)
 		}
-		fragmentResult = self.getFragmentResult(fragment)
+		fragmentResult = h.getFragmentResult(fragment)
 		for _, no := range fragmentResult {
 			result = append(result, types.CPUMap{no: fragment})
 		}
@@ -130,19 +130,19 @@ func (self *host) getContainerCores(num float64, maxShareCore int64) []types.CPU
 	}
 
 	if fragment == 0 {
-		n := int64(len(self.full)) / full
+		n := int64(len(h.full)) / full
 		for i = 0; i < n; i++ {
-			fullResult = self.getFullResult(full)
+			fullResult = h.getFullResult(full)
 			result = append(result, fullResult)
 		}
 		return result
 	}
 
 	// 算出最优的碎片核和整数核组合
-	self.calcuatePiecesCores(full, fragment, maxShareCore)
-	fragmentResult = self.getFragmentResult(fragment)
+	h.calcuatePiecesCores(full, fragment, maxShareCore)
+	fragmentResult = h.getFragmentResult(fragment)
 	for _, no := range fragmentResult {
-		fullResult = self.getFullResult(full)
+		fullResult = h.getFullResult(full)
 		if int64(len(fullResult)) != full { // 可能整数核不够用了结果并不一定可靠必须再判断一次
 			return result // 减枝这时候整数核一定不够用了，直接退出，这样碎片核和整数核的计算就完成了
 		}
@@ -152,10 +152,10 @@ func (self *host) getContainerCores(num float64, maxShareCore int64) []types.CPU
 	return result
 }
 
-func (self *host) getFragmentResult(fragment int64) []string {
+func (h *host) getFragmentResult(fragment int64) []string {
 	var result = []string{}
 	var i int64
-	for no, pieces := range self.fragment {
+	for no, pieces := range h.fragment {
 		for i = 0; i < pieces/fragment; i++ {
 			result = append(result, no)
 		}
@@ -163,11 +163,11 @@ func (self *host) getFragmentResult(fragment int64) []string {
 	return result
 }
 
-func (self *host) getFullResult(full int64) types.CPUMap {
+func (h *host) getFullResult(full int64) types.CPUMap {
 	var result = types.CPUMap{}
-	for no, pieces := range self.full {
-		result[no] = pieces   // 分配一整个核
-		delete(self.full, no) // 干掉这个可用资源
+	for no, pieces := range h.full {
+		result[no] = pieces // 分配一整个核
+		delete(h.full, no)  // 干掉这个可用资源
 		if int64(len(result)) == full {
 			break
 		}

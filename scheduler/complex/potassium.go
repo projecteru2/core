@@ -23,6 +23,9 @@ func (m *potassium) MaxIdleNode(nodes []*types.Node) *types.Node {
 
 func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory int64, need int) ([]types.NodeInfo, error) {
 	log.Debugf("[SelectMemoryNodes] nodesInfo: %v, rate: %d, memory: %d, need: %d", nodesInfo, rate, memory, need)
+	if memory <= 0 {
+		return nil, fmt.Errorf("memory must positive")
+	}
 
 	p := -1
 	for i, nodeInfo := range nodesInfo {
@@ -71,6 +74,9 @@ func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory i
 
 func (m *potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, need int) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
 	log.Debugf("[SelectCPUNodes] nodesInfo: %v, cpu: %v, need: %v", nodesInfo, quota, need)
+	if quota <= 0 {
+		return nil, nil, fmt.Errorf("quota must positive")
+	}
 	result := make(map[string][]types.CPUMap)
 	changed := make(map[string]types.CPUMap)
 
