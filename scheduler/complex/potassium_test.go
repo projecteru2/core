@@ -250,9 +250,8 @@ func TestComplexNodes(t *testing.T) {
 		t.Fatalf("Create Potassim error: %v", merr)
 	}
 
-	nodes := getNodesInfo()
-	k, _ = New(coreCfg)
 	// test1
+	nodes := getNodesInfo()
 	res1, changed1, err := k.SelectCPUNodes(nodes, 1.7, 7)
 	if err != nil {
 		t.Fatalf("sth wrong")
@@ -295,6 +294,22 @@ func TestComplexNodes(t *testing.T) {
 	nodes = getNodesInfo()
 	_, _, err = k.SelectCPUNodes(nodes, 0, 10)
 	assert.Equal(t, err.Error(), "quota must positive")
+}
+
+func TestCPUOverSell(t *testing.T) {
+	coreCfg := newConfig()
+	coreCfg.Scheduler.ShareBase = 5
+	k, err := New(coreCfg)
+	if err != nil {
+		t.Fatalf("Create Potassim error: %v", err)
+	}
+
+	//test1
+	nodes := getNodesInfo()
+	_, _, err = k.SelectCPUNodes(nodes, 1.7, 3)
+	assert.NoError(t, err)
+
+	//TODO 增加其他测试吧，这里应该是没问题的
 }
 
 func getEvenPlanNodes() []types.NodeInfo {
