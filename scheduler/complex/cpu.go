@@ -38,8 +38,8 @@ func newHost(cpuInfo types.CPUMap, share int64) *host {
 		fragment: types.CPUMap{},
 	}
 	for no, pieces := range cpuInfo {
-		if pieces == share {
-			result.full[no] = pieces
+		if pieces >= share {
+			result.full[no] = share
 		} else {
 			result.fragment[no] = pieces
 		}
@@ -175,9 +175,7 @@ func (h *host) getFullResult(full int64) types.CPUMap {
 	return result
 }
 
-func cpuPriorPlan(cpu float64, nodesInfo []types.NodeInfo, need int, maxShareCore, coreShare int64) (
-	int, []types.NodeInfo, map[string][]types.CPUMap) {
-
+func cpuPriorPlan(cpu float64, nodesInfo []types.NodeInfo, need int, maxShareCore, coreShare int64) (int, []types.NodeInfo, map[string][]types.CPUMap) {
 	var nodeContainer = map[string][]types.CPUMap{}
 	var host *host
 	var plan []types.CPUMap
