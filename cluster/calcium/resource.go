@@ -5,8 +5,6 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/projecteru2/core/stats"
-
 	log "github.com/Sirupsen/logrus"
 
 	"github.com/projecteru2/core/types"
@@ -25,7 +23,6 @@ func (c *calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.Nod
 		return nil, err
 	}
 
-	go stats.Client.SendMemCap(cpuandmem, true)
 	nodesInfo := getNodesInfo(cpuandmem)
 
 	// Load deploy status
@@ -119,12 +116,6 @@ func (c *calcium) getCPUAndMem(podname, nodename string, quota float64) (map[str
 			return result, nil, err
 		}
 		nodes = append(nodes, n)
-	}
-
-	if quota == 0 { // 因为要考虑quota=0.5这种需求，所以这里有点麻烦
-		nodes = filterNodes(nodes, true)
-	} else {
-		nodes = filterNodes(nodes, false)
 	}
 
 	if len(nodes) == 0 {
