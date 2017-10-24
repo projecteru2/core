@@ -13,7 +13,7 @@ type Cluster interface {
 	AddPod(podname, favor, desc string) (*types.Pod, error)
 	RemovePod(podname string) error
 	GetPod(podname string) (*types.Pod, error)
-	AddNode(nodename, endpoint, podname, ca, cert, key string, public bool, cpu int, share, memory int64) (*types.Node, error)
+	AddNode(nodename, endpoint, podname, ca, cert, key string, cpu int, share, memory int64, labels map[string]string) (*types.Node, error)
 	RemoveNode(nodename, podname string) (*types.Pod, error)
 	GetNode(podname, nodename string) (*types.Node, error)
 	SetNodeAvailable(podname, nodename string, available bool) (*types.Node, error)

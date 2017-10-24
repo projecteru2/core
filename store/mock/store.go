@@ -76,8 +76,8 @@ func (m *MockStore) GetNode(pod, node string) (*types.Node, error) {
 	return nil, args.Error(1)
 }
 
-func (m *MockStore) AddNode(name, endpoint, podname, ca, cert, key string, public bool, cpu int, share, memory int64) (*types.Node, error) {
-	args := m.Called(name, endpoint, podname, ca, cert, key, public, cpu, share, memory)
+func (m *MockStore) AddNode(name, endpoint, podname, ca, cert, key string, cpu int, share, memory int64, labels map[string]string) (*types.Node, error) {
+	args := m.Called(name, endpoint, podname, ca, cert, key, cpu, share, memory, labels)
 	if args.Get(0) != nil {
 		return args.Get(0).(*types.Node), args.Error(1)
 	}

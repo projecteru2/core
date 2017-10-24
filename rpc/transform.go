@@ -38,11 +38,11 @@ func toRPCNode(n *types.Node) *pb.Node {
 		Name:      n.Name,
 		Endpoint:  n.Endpoint,
 		Podname:   n.Podname,
-		Public:    n.Public,
+		Available: n.Available,
 		Cpu:       toRPCCPUMap(n.CPU),
 		Memory:    n.MemCap,
+		Labels:    n.Labels,
 		Info:      nodeInfo,
-		Available: n.Available,
 	}
 }
 
