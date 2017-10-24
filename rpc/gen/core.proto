@@ -242,6 +242,7 @@ message DeployOptions {
     bool debug = 16;
     bool openStdin = 17;
     map<string, string> meta = 18;
+    map<string, string> nodelabels = 19;
 }
 
 message RemoveImageOptions {

@@ -29,6 +29,7 @@ type DeployOptions struct {
 	Debug       bool              // debug mode, use syslog as log driver
 	OpenStdin   bool              // OpenStdin for container
 	Meta        map[string]string // Meta for containers
+	NodeLabels  map[string]string // NodeLabels for filter node
 }
 
 //RunAndWaitOptions is options for running and waiting
