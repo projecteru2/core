@@ -31,6 +31,7 @@ type Cluster interface {
 	RemoveContainer(ids []string, force bool) (chan *types.RemoveContainerMessage, error)
 	Backup(id, srcPath string) (*types.BackupMessage, error)
 	ReallocResource(ids []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error)
+	ListContainers(appname, entrypoint, nodename string) ([]*types.Container, error)
 
 	// used by agent
 	GetNodeByName(nodename string) (*types.Node, error)

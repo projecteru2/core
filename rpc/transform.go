@@ -212,3 +212,20 @@ func toRPCRunAndWaitMessage(msg *types.RunAndWaitMessage) *pb.RunAndWaitMessage 
 		Data:        msg.Data,
 	}
 }
+
+func toRPCContainers(containers []*types.Container) []*pb.Container {
+	cs := []*pb.Container{}
+	for _, c := range containers {
+		info, err := c.Inspect()
+		if err != nil {
+			continue
+		}
+
+		bytes, err := json.Marshal(info)
+		if err != nil {
+			continue
+		}
+		cs = append(cs, toRPCContainer(c, string(bytes)))
+	}
+	return cs
+}

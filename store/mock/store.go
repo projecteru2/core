@@ -84,6 +84,14 @@ func (m *MockStore) AddNode(name, endpoint, podname, ca, cert, key string, cpu i
 	return nil, args.Error(1)
 }
 
+func (m *MockStore) ListContainers(appname, entrypoint, nodename string) ([]*types.Container, error) {
+	args := m.Called(appname, entrypoint, nodename)
+	if args.Get(0) != nil {
+		return args.Get(0).([]*types.Container), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
 func (m *MockStore) CleanContainerData(ID, appname, entrypoint, nodename string) error {
 	args := m.Called(ID, appname, entrypoint, nodename)
 	return args.Error(0)

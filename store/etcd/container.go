@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"context"
 
@@ -128,4 +129,33 @@ func (k *krypton) WatchDeployStatus(appname, entrypoint, nodename string) etcdcl
 	}
 	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename)
 	return k.etcd.Watcher(key, &etcdclient.WatcherOptions{Recursive: true})
+}
+
+func (k *krypton) ListContainers(appname, entrypoint, nodename string) ([]*types.Container, error) {
+	if appname == "" {
+		entrypoint = ""
+	}
+	if entrypoint == "" {
+		nodename = ""
+	}
+	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename)
+	resp, err := k.etcd.Get(context.Background(), key, &etcdclient.GetOptions{Recursive: true})
+	if err != nil {
+		return []*types.Container{}, err
+	}
+	containerIDs := getContainerDeployData(resp.Node.Key, resp.Node.Nodes)
+	return k.GetContainers(containerIDs)
+}
+
+func getContainerDeployData(prefix string, nodes etcdclient.Nodes) []string {
+	result := []string{}
+	for _, node := range nodes {
+		if len(node.Nodes) > 0 {
+			result = append(result, getContainerDeployData(node.Key, node.Nodes)...)
+		} else {
+			key := strings.TrimLeft(strings.TrimLeft(node.Key, prefix), "/")
+			result = append(result, key)
+		}
+	}
+	return result
 }

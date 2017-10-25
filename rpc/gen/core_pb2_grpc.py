@@ -89,6 +89,11 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.ContainerDeployedOptions.SerializeToString,
         response_deserializer=core__pb2.Empty.FromString,
         )
+    self.ListContainers = channel.unary_unary(
+        '/pb.CoreRPC/ListContainers',
+        request_serializer=core__pb2.DeployStatusOptions.SerializeToString,
+        response_deserializer=core__pb2.Containers.FromString,
+        )
     self.BuildImage = channel.unary_stream(
         '/pb.CoreRPC/BuildImage',
         request_serializer=core__pb2.BuildImageOptions.SerializeToString,
@@ -235,6 +240,13 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def ListContainers(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def BuildImage(self, request, context):
     # missing associated documentation comment in .proto file
     pass
@@ -361,6 +373,11 @@ def add_CoreRPCServicer_to_server(servicer, server):
           servicer.ContainerDeployed,
           request_deserializer=core__pb2.ContainerDeployedOptions.FromString,
           response_serializer=core__pb2.Empty.SerializeToString,
+      ),
+      'ListContainers': grpc.unary_unary_rpc_method_handler(
+          servicer.ListContainers,
+          request_deserializer=core__pb2.DeployStatusOptions.FromString,
+          response_serializer=core__pb2.Containers.SerializeToString,
       ),
       'BuildImage': grpc.unary_stream_rpc_method_handler(
           servicer.BuildImage,

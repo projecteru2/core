@@ -157,6 +157,16 @@ func (v *vibranium) GetContainer(ctx context.Context, id *pb.ContainerID) (*pb.C
 	return toRPCContainer(container, string(bytes)), nil
 }
 
+//ListContainers by appname with optional entrypoint and nodename
+func (v *vibranium) ListContainers(ctx context.Context, opts *pb.DeployStatusOptions) (*pb.Containers, error) {
+	containers, err := v.cluster.ListContainers(opts.Appname, opts.Entrypoint, opts.Nodename)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.Containers{Containers: toRPCContainers(containers)}, nil
+}
+
 //GetContainers
 //like GetContainer, information should be returned
 func (v *vibranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (*pb.Containers, error) {
@@ -165,21 +175,7 @@ func (v *vibranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (*
 		return nil, err
 	}
 
-	cs := []*pb.Container{}
-	for _, c := range containers {
-		info, err := c.Inspect()
-		if err != nil {
-			continue
-		}
-
-		bytes, err := json.Marshal(info)
-		if err != nil {
-			continue
-		}
-
-		cs = append(cs, toRPCContainer(c, string(bytes)))
-	}
-	return &pb.Containers{Containers: cs}, nil
+	return &pb.Containers{Containers: toRPCContainers(containers)}, nil
 }
 
 // list networks for pod

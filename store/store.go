@@ -32,6 +32,7 @@ type Store interface {
 	GetContainers(ids []string) ([]*types.Container, error)
 	ContainerDeployed(ID, appname, entrypoint, nodename, data string) error
 	WatchDeployStatus(appname, entrypoint, nodename string) etcdclient.Watcher
+	ListContainers(appname, entrypoint, nodename string) ([]*types.Container, error)
 
 	// distributed lock
 	CreateLock(key string, ttl int) (lock.DistributedLock, error)
