@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"context"
 
@@ -152,8 +151,8 @@ func getContainerDeployData(prefix string, nodes etcdclient.Nodes) []string {
 	for _, node := range nodes {
 		if len(node.Nodes) > 0 {
 			result = append(result, getContainerDeployData(node.Key, node.Nodes)...)
-		} else {
-			key := strings.TrimLeft(strings.TrimLeft(node.Key, prefix), "/")
+		} else if !node.Dir {
+			key := node.Key[len(prefix)+1:]
 			result = append(result, key)
 		}
 	}
