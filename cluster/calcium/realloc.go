@@ -7,6 +7,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	enginecontainer "github.com/docker/docker/api/types/container"
+	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -52,7 +53,7 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 		}
 		containersInfo[pod][node] = append(containersInfo[pod][node], container)
 
-		if pod.Favor == types.CPU_PRIOR {
+		if pod.Favor == scheduler.CPU_PRIOR {
 			if _, ok := cpuContainersInfo[pod]; !ok {
 				cpuContainersInfo[pod] = CPUNodeContainers{}
 			}
@@ -75,7 +76,7 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 		wg := sync.WaitGroup{}
 		wg.Add(len(containersInfo))
 		for pod, nodeContainers := range containersInfo {
-			if pod.Favor == types.CPU_PRIOR {
+			if pod.Favor == scheduler.CPU_PRIOR {
 				nodeCPUContainersInfo := cpuContainersInfo[pod]
 				go func(pod *types.Pod, nodeCPUContainersInfo CPUNodeContainers) {
 					defer wg.Done()

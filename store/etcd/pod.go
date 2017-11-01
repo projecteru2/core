@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/coreos/etcd/client"
+	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -38,8 +39,8 @@ func (k *krypton) AddPod(name, favor, desc string) (*types.Pod, error) {
 	key := fmt.Sprintf(podInfoKey, name)
 	favor = strings.ToUpper(favor)
 	if favor == "" {
-		favor = types.MEMORY_PRIOR
-	} else if favor != types.MEMORY_PRIOR && favor != types.CPU_PRIOR {
+		favor = scheduler.MEMORY_PRIOR
+	} else if favor != scheduler.MEMORY_PRIOR && favor != scheduler.CPU_PRIOR {
 		return nil, fmt.Errorf("favor should be either CPU or MEM, got %s", favor)
 	}
 	pod := &types.Pod{Name: name, Desc: desc, Favor: favor}

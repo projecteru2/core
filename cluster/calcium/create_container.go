@@ -13,6 +13,7 @@ import (
 	enginenetwork "github.com/docker/docker/api/types/network"
 	engineslice "github.com/docker/docker/api/types/strslice"
 	"github.com/docker/go-units"
+	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/stats"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -32,7 +33,7 @@ func (c *calcium) CreateContainer(opts *types.DeployOptions) (chan *types.Create
 		log.Errorf("[CreateContainer] Error during GetPod for %s: %v", opts.Podname, err)
 		return nil, err
 	}
-	if pod.Favor == types.CPU_PRIOR {
+	if pod.Favor == scheduler.CPU_PRIOR {
 		return c.createContainerWithCPUPrior(opts)
 	}
 	log.Infof("[CreateContainer] Creating container with options: %v", opts)
@@ -97,7 +98,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, opts
 
 	for i := 0; i < nodeInfo.Deploy; i++ {
 		// createAndStartContainer will auto cleanup
-		ms[i] = c.createAndStartContainer(i+index, node, opts, nil, types.MEMORY_PRIOR)
+		ms[i] = c.createAndStartContainer(i+index, node, opts, nil, scheduler.MEMORY_PRIOR)
 		if !ms[i].Success {
 			log.Errorf("[doCreateContainerWithMemoryPrior] Error when create and start a container, %v", ms[i].Error)
 			continue
@@ -162,7 +163,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 
 	for i, quota := range cpuMap {
 		// createAndStartContainer will auto cleanup
-		ms[i] = c.createAndStartContainer(i+index, node, opts, quota, types.CPU_PRIOR)
+		ms[i] = c.createAndStartContainer(i+index, node, opts, quota, scheduler.CPU_PRIOR)
 		if !ms[i].Success {
 			log.Errorf("[doCreateContainerWithCPUPrior] Error when create and start a container, %v", ms[i].Error)
 			continue
@@ -291,7 +292,7 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	}
 
 	var resource enginecontainer.Resources
-	if favor == types.CPU_PRIOR {
+	if favor == scheduler.CPU_PRIOR {
 		resource = c.makeCPUPriorSetting(quota)
 	} else {
 		resource = c.makeMemoryPriorSetting(opts.Memory, opts.CPUQuota)
