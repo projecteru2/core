@@ -12,11 +12,8 @@ import (
 )
 
 const (
-	memStats    = "eru-core.%s.%s.%%s"
+	memStats    = "eru-core.%s.mem"
 	deployCount = "eru-core.deploy.count"
-
-	beforeKey = "before"
-	afterKey  = "after"
 )
 
 type statsdClient struct {
@@ -55,7 +52,7 @@ func (s *statsdClient) isNotSet() bool {
 	return s.Addr == ""
 }
 
-func (s *statsdClient) SendMemCap(cpumemmap map[string]types.CPUAndMem, before bool) {
+func (s *statsdClient) SendMemCap(cpumemmap map[string]types.CPUAndMem) {
 	if s.isNotSet() {
 		return
 	}
@@ -64,11 +61,7 @@ func (s *statsdClient) SendMemCap(cpumemmap map[string]types.CPUAndMem, before b
 		data[node] = float64(cpuandmem.MemCap)
 	}
 
-	keyPattern := fmt.Sprintf(memStats, s.Hostname, beforeKey)
-	if !before {
-		keyPattern = fmt.Sprintf(memStats, s.Hostname, afterKey)
-	}
-
+	keyPattern := fmt.Sprintf(memStats, s.Hostname)
 	if err := s.gauge(keyPattern, data); err != nil {
 		log.Errorf("[SendMemCap] Error occured while sending data to statsd: %v", err)
 	}
@@ -83,8 +76,10 @@ func (s *statsdClient) SendDeployCount(n int) {
 	}
 }
 
+//Client ref to statsd client
 var Client = statsdClient{}
 
+//NewStatsdClient make a client
 func NewStatsdClient(addr string) {
 	hostname, _ := os.Hostname()
 	cleanHost := strings.Replace(hostname, ".", "-", -1)

@@ -7,6 +7,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
+	"github.com/projecteru2/core/stats"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -150,6 +151,7 @@ func (c *calcium) getCPUAndMem(podname, nodename string, labels map[string]strin
 	}
 
 	result = makeCPUAndMem(nodes)
+	go stats.Client.SendMemCap(result)
 	return result, nodes, nil
 }
 
