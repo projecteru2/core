@@ -34,10 +34,11 @@ On other hand, you can use our [footstone](https://hub.docker.com/r/projecteru2/
 
 #### GRPC
 
-Generate golang & python code
+Generate golang & python 3 code
 
 ```shell
 go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
+pip install -U grpcio-tools
 make grpc
 ```
 
