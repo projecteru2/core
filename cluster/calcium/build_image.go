@@ -37,7 +37,7 @@ WORKDIR {{.Dir}}{{ end }}
 {{ if .Repo }}ADD {{.Repo}} .{{ end }}`
 	copyTmpl = "COPY --from=%s %s %s"
 	runTmpl  = "RUN %s"
-	userTmpl = `RUN useradd -u {{.UID}} -s /sbin/nologin {{.User}}
+	userTmpl = `RUN adduser -u {{.UID}} -s /sbin/nologin -U {{.User}}
 USER {{.User}}`
 )
 
