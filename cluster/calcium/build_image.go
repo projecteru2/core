@@ -37,8 +37,11 @@ WORKDIR {{.Dir}}{{ end }}
 {{ if .Repo }}ADD {{.Repo}} .{{ end }}`
 	copyTmpl = "COPY --from=%s %s %s"
 	runTmpl  = "RUN %s"
-	userTmpl = `RUN adduser -u {{.UID}} -s /sbin/nologin -U {{.User}}
-USER {{.User}}`
+	userTmpl = `RUN echo "{{.User}}::{{.UID}}:{{.UID}}::/home/{{.User}}:/sbin/nologin" >> /etc/passwd && \
+echo "{{.User}}:x:{{.UID}}:" >> /etc/group && \
+echo "{{.User}}:!::0:::::" >> /etc/shadow
+USER {{.User}}
+`
 )
 
 func (c *calcium) preparedSource(build *types.Build, buildDir string) (string, error) {
