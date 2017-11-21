@@ -132,7 +132,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		HealthCheck:   healthcheck,
 		Hook:          hook,
 		RestartPolicy: entrypoint.RestartPolicy,
-		ExtraHosts:    entrypoint.ExtraHosts,
 	}
 	return &types.DeployOptions{
 		Name:        d.Name,
@@ -146,6 +145,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Count:       int(d.Count),
 		Env:         d.Env,
 		DNS:         d.Dns,
+		ExtraHosts:  d.ExtraHosts,
 		Volumes:     d.Volumes,
 		Networks:    d.Networks,
 		NetworkMode: d.Networkmode,
