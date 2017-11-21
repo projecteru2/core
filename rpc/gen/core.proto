@@ -221,7 +221,6 @@ message EntrypointOptions {
     HealthCheckOptions healcheck = 7;
     HookOptions hook = 8;
     string restart_policy = 9;
-    repeated string extra_hosts = 10;
 }
 
 message DeployOptions {
@@ -236,14 +235,15 @@ message DeployOptions {
     int32 count = 9;
     repeated string env = 10;
     repeated string dns = 11;
-    repeated string volumes = 12;
-    map<string, string> networks = 13;
-    string networkmode = 14;
-    string user = 15;
-    bool debug = 16;
-    bool openStdin = 17;
-    map<string, string> meta = 18;
-    map<string, string> nodelabels = 19;
+    repeated string extra_hosts = 12;
+    repeated string volumes = 13;
+    map<string, string> networks = 14;
+    string networkmode = 15;
+    string user = 16;
+    bool debug = 17;
+    bool openStdin = 18;
+    map<string, string> meta = 19;
+    map<string, string> nodelabels = 20;
 }
 
 message RemoveImageOptions {

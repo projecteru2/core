@@ -46,7 +46,6 @@ type Entrypoint struct {
 	HealthCheck   *HealthCheck `yaml:"healthcheck,omitempty,flow"`
 	Hook          *Hook        `yaml:"hook,omitempty,flow"`
 	RestartPolicy string       `yaml:"restart,omitempty"`
-	ExtraHosts    []string     `yaml:"hosts,omitempty,flow"`
 }
 
 // single bind

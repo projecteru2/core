@@ -311,7 +311,7 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 		NetworkMode:   engineNetworkMode,
 		RestartPolicy: enginecontainer.RestartPolicy{Name: restartPolicy, MaximumRetryCount: maximumRetryCount},
 		CapAdd:        engineslice.StrSlice(capAdd),
-		ExtraHosts:    entry.ExtraHosts,
+		ExtraHosts:    opts.ExtraHosts,
 		Privileged:    entry.Privileged,
 		Resources:     resource,
 	}
