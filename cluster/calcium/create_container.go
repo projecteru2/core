@@ -457,7 +457,11 @@ func (c *calcium) createAndStartContainer(
 			for _, port := range opts.Entrypoint.Publish {
 				data = append(data, fmt.Sprintf("%s:%s", ip, port.Port()))
 			}
-			createContainerMessage.Publish[nn] = strings.Join(data, ",")
+			if len(data) == 0 {
+				createContainerMessage.Publish[nn] = ip
+			} else {
+				createContainerMessage.Publish[nn] = strings.Join(data, ",")
+			}
 		}
 	}
 
