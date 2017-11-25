@@ -42,7 +42,7 @@ type CreateContainerMessage struct {
 	Success       bool
 	CPU           CPUMap
 	Memory        int64
-	Publish       map[string]string
+	Networks      map[string]string
 	Hook          []byte
 }
 

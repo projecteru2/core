@@ -369,7 +369,7 @@ func (c *calcium) createAndStartContainer(
 		Success:  false,
 		CPU:      quota,
 		Memory:   opts.Memory,
-		Publish:  map[string]string{},
+		Networks: map[string]string{},
 	}
 
 	defer func() {
@@ -452,12 +452,7 @@ func (c *calcium) createAndStartContainer(
 			if enginecontainer.NetworkMode(nn).IsHost() {
 				ip = node.GetIP()
 			}
-
-			data := []string{}
-			for _, port := range opts.Entrypoint.Publish {
-				data = append(data, fmt.Sprintf("%s:%s", ip, port.Port()))
-			}
-			createContainerMessage.Publish[nn] = strings.Join(data, ",")
+			createContainerMessage.Networks[nn] = ip
 		}
 	}
 

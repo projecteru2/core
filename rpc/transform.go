@@ -166,7 +166,7 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 		Success:  c.Success,
 		Cpu:      toRPCCPUMap(c.CPU),
 		Memory:   c.Memory,
-		Publish:  c.Publish,
+		Networks: c.Networks,
 		Hook:     c.Hook,
 	}
 	if c.Error != nil {

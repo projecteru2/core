@@ -24,7 +24,7 @@ service CoreRPC {
     rpc BuildImage(BuildImageOptions) returns (stream BuildImageMessage) {};
     rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage) {};
     rpc DeployStatus(DeployStatusOptions) returns (stream DeployStatusMessage) {};
-    rpc RunAndWait(stream RunAndWaitOptions) returns (stream RunAndWaitMessage) {}; 
+    rpc RunAndWait(stream RunAndWaitOptions) returns (stream RunAndWaitMessage) {};
     rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage) {};
     rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage) {};
     rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage) {};
@@ -280,7 +280,7 @@ message CreateContainerMessage {
     bool success = 6;
     map<string, int64> cpu = 7;
     int64 memory = 8;
-    map<string, string> publish = 9;
+    map<string, string> networks = 9;
     bytes hook = 10;
 }
 
@@ -316,4 +316,4 @@ message BackupMessage {
 message RunAndWaitOptions{
     DeployOptions DeployOptions = 1;
     bytes Cmd = 2;
-} 
+}
