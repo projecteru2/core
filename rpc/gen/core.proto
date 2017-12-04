@@ -24,7 +24,7 @@ service CoreRPC {
     rpc BuildImage(BuildImageOptions) returns (stream BuildImageMessage) {};
     rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage) {};
     rpc DeployStatus(DeployStatusOptions) returns (stream DeployStatusMessage) {};
-    rpc RunAndWait(stream RunAndWaitOptions) returns (stream RunAndWaitMessage) {}; 
+    rpc RunAndWait(stream RunAndWaitOptions) returns (stream RunAndWaitMessage) {};
     rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage) {};
     rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage) {};
     rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage) {};
@@ -218,7 +218,7 @@ message EntrypointOptions {
     string dir = 4;
     string log_config = 5;
     repeated string publish = 6;
-    HealthCheckOptions healcheck = 7;
+    HealthCheckOptions healthcheck = 7;
     HookOptions hook = 8;
     string restart_policy = 9;
 }
@@ -316,4 +316,4 @@ message BackupMessage {
 message RunAndWaitOptions{
     DeployOptions DeployOptions = 1;
     bytes Cmd = 2;
-} 
+}

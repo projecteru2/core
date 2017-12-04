@@ -116,10 +116,10 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 	}
 
 	healthcheck := &types.HealthCheck{}
-	if entrypoint.Healcheck != nil {
-		healthcheck.Ports = utils.EncodePorts(entrypoint.Healcheck.Ports)
-		healthcheck.URL = entrypoint.Healcheck.Url
-		healthcheck.Code = int(entrypoint.Healcheck.Code)
+	if entrypoint.Healthcheck != nil {
+		healthcheck.Ports = utils.EncodePorts(entrypoint.Healthcheck.Ports)
+		healthcheck.URL = entrypoint.Healthcheck.Url
+		healthcheck.Code = int(entrypoint.Healthcheck.Code)
 	}
 
 	entry := &types.Entrypoint{
