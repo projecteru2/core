@@ -454,7 +454,7 @@ func TestCreateContainer(t *testing.T) {
 		Count:     -1,    // int
 		Memory:    666,   // int64
 		Entrypoint: &pb.EntrypointOptions{
-			Healcheck: &pb.HealthCheckOptions{
+			Healthcheck: &pb.HealthCheckOptions{
 				Url:   "x",
 				Ports: []string{"80"},
 				Code:  200,
@@ -477,7 +477,7 @@ func TestCreateContainer(t *testing.T) {
 		Count:     -1,      // int
 		Memory:    6666666, // int64
 		Entrypoint: &pb.EntrypointOptions{
-			Healcheck: &pb.HealthCheckOptions{
+			Healthcheck: &pb.HealthCheckOptions{
 				Url:   "x",
 				Ports: []string{"80"},
 				Code:  200,
@@ -524,7 +524,7 @@ func TestRunAndWait(t *testing.T) {
 		Count:     -1,    // int
 		Memory:    666,   // int64
 		Entrypoint: &pb.EntrypointOptions{
-			Healcheck: &pb.HealthCheckOptions{
+			Healthcheck: &pb.HealthCheckOptions{
 				Url:   "x",
 				Ports: []string{"80"},
 				Code:  200,
@@ -550,7 +550,7 @@ func TestRunAndWait(t *testing.T) {
 		Memory:    666666, // int64
 		OpenStdin: true,
 		Entrypoint: &pb.EntrypointOptions{
-			Healcheck: &pb.HealthCheckOptions{
+			Healthcheck: &pb.HealthCheckOptions{
 				Url:   "x",
 				Ports: []string{"80"},
 				Code:  200,
