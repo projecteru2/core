@@ -206,9 +206,10 @@ message HookOptions {
 }
 
 message HealthCheckOptions {
-    repeated string ports = 1;
-    string url = 2;
-    int32 code = 3;
+    repeated string tcp_ports = 1;
+    string http_port = 2;
+    string url = 3;
+    int32 code = 4;
 }
 
 message EntrypointOptions {

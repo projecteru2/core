@@ -6,7 +6,6 @@ import (
 
 	"github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
 func toRPCCPUMap(m types.CPUMap) map[string]int64 {
@@ -105,9 +104,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 
 	entrypoint := d.Entrypoint
 
-	// covert ports
-	publish := utils.EncodePorts(entrypoint.Publish)
-
 	hook := &types.Hook{}
 	if entrypoint.Hook != nil {
 		hook.AfterStart = entrypoint.Hook.AfterStart
@@ -117,9 +113,10 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 
 	healthcheck := &types.HealthCheck{}
 	if entrypoint.Healthcheck != nil {
-		healthcheck.Ports = utils.EncodePorts(entrypoint.Healthcheck.Ports)
-		healthcheck.URL = entrypoint.Healthcheck.Url
-		healthcheck.Code = int(entrypoint.Healthcheck.Code)
+		healthcheck.TCPPorts = entrypoint.Healthcheck.TcpPorts
+		healthcheck.HTTPPort = entrypoint.Healthcheck.HttpPort
+		healthcheck.HTTPURL = entrypoint.Healthcheck.Url
+		healthcheck.HTTPCode = int(entrypoint.Healthcheck.Code)
 	}
 
 	entry := &types.Entrypoint{
@@ -128,11 +125,12 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Privileged:    entrypoint.Privileged,
 		Dir:           entrypoint.Dir,
 		LogConfig:     entrypoint.LogConfig,
-		Publish:       publish,
+		Publish:       entrypoint.Publish,
 		HealthCheck:   healthcheck,
 		Hook:          hook,
 		RestartPolicy: entrypoint.RestartPolicy,
 	}
+
 	return &types.DeployOptions{
 		Name:        d.Name,
 		Entrypoint:  entry,

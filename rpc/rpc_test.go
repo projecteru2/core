@@ -455,9 +455,10 @@ func TestCreateContainer(t *testing.T) {
 		Memory:    666,   // int64
 		Entrypoint: &pb.EntrypointOptions{
 			Healthcheck: &pb.HealthCheckOptions{
-				Url:   "x",
-				Ports: []string{"80"},
-				Code:  200,
+				TcpPorts: []string{"80"},
+				HttpPort: "80",
+				Url:      "x",
+				Code:     200,
 			},
 		},
 	}
@@ -478,9 +479,10 @@ func TestCreateContainer(t *testing.T) {
 		Memory:    6666666, // int64
 		Entrypoint: &pb.EntrypointOptions{
 			Healthcheck: &pb.HealthCheckOptions{
-				Url:   "x",
-				Ports: []string{"80"},
-				Code:  200,
+				TcpPorts: []string{"80"},
+				HttpPort: "80",
+				Url:      "x",
+				Code:     200,
 			},
 		},
 	}
@@ -525,9 +527,10 @@ func TestRunAndWait(t *testing.T) {
 		Memory:    666,   // int64
 		Entrypoint: &pb.EntrypointOptions{
 			Healthcheck: &pb.HealthCheckOptions{
-				Url:   "x",
-				Ports: []string{"80"},
-				Code:  200,
+				TcpPorts: []string{"80"},
+				HttpPort: "80",
+				Url:      "x",
+				Code:     200,
 			},
 		},
 	}
@@ -551,9 +554,10 @@ func TestRunAndWait(t *testing.T) {
 		OpenStdin: true,
 		Entrypoint: &pb.EntrypointOptions{
 			Healthcheck: &pb.HealthCheckOptions{
-				Url:   "x",
-				Ports: []string{"80"},
-				Code:  200,
+				TcpPorts: []string{"80"},
+				HttpPort: "80",
+				Url:      "x",
+				Code:     200,
 			},
 		},
 	}
