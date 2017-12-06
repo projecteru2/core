@@ -104,21 +104,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 
 	entrypoint := d.Entrypoint
 
-	hook := &types.Hook{}
-	if entrypoint.Hook != nil {
-		hook.AfterStart = entrypoint.Hook.AfterStart
-		hook.BeforeStop = entrypoint.Hook.BeforeStop
-		hook.Force = entrypoint.Hook.Force
-	}
-
-	healthcheck := &types.HealthCheck{}
-	if entrypoint.Healthcheck != nil {
-		healthcheck.TCPPorts = entrypoint.Healthcheck.TcpPorts
-		healthcheck.HTTPPort = entrypoint.Healthcheck.HttpPort
-		healthcheck.HTTPURL = entrypoint.Healthcheck.Url
-		healthcheck.HTTPCode = int(entrypoint.Healthcheck.Code)
-	}
-
 	entry := &types.Entrypoint{
 		Name:          entrypoint.Name,
 		Command:       entrypoint.Command,
@@ -126,9 +111,22 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Dir:           entrypoint.Dir,
 		LogConfig:     entrypoint.LogConfig,
 		Publish:       entrypoint.Publish,
-		HealthCheck:   healthcheck,
-		Hook:          hook,
 		RestartPolicy: entrypoint.RestartPolicy,
+	}
+
+	if entrypoint.Healthcheck != nil {
+		entry.HealthCheck = &types.HealthCheck{}
+		entry.HealthCheck.TCPPorts = entrypoint.Healthcheck.TcpPorts
+		entry.HealthCheck.HTTPPort = entrypoint.Healthcheck.HttpPort
+		entry.HealthCheck.HTTPURL = entrypoint.Healthcheck.Url
+		entry.HealthCheck.HTTPCode = int(entrypoint.Healthcheck.Code)
+	}
+
+	if entrypoint.Hook != nil {
+		entry.Hook = &types.Hook{}
+		entry.Hook.AfterStart = entrypoint.Hook.AfterStart
+		entry.Hook.BeforeStop = entrypoint.Hook.BeforeStop
+		entry.Hook.Force = entrypoint.Hook.Force
 	}
 
 	return &types.DeployOptions{
