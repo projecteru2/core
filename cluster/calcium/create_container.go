@@ -236,11 +236,12 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	}
 
 	// 发布端口
-	containerLabels["publish"] = strings.Join(utils.DecodePorts(opts.Entrypoint.Publish), ",")
+	containerLabels["publish"] = strings.Join(opts.Entrypoint.Publish, ",")
 	// 健康检查
-	containerLabels["healthcheck_url"] = entry.HealthCheck.URL
-	containerLabels["healthcheck_expected_code"] = strconv.Itoa(entry.HealthCheck.Code)
-	containerLabels["healthcheck_ports"] = strings.Join(utils.DecodePorts(opts.Entrypoint.HealthCheck.Ports), ",")
+	containerLabels["healthcheck_tcp"] = strings.Join(entry.HealthCheck.TCPPorts, ",")
+	containerLabels["healthcheck_http"] = entry.HealthCheck.HTTPPort
+	containerLabels["healthcheck_url"] = entry.HealthCheck.HTTPURL
+	containerLabels["healthcheck_code"] = strconv.Itoa(entry.HealthCheck.HTTPCode)
 
 	// 接下来是meta
 	for key, value := range opts.Meta {
@@ -455,7 +456,7 @@ func (c *calcium) createAndStartContainer(
 
 			data := []string{}
 			for _, port := range opts.Entrypoint.Publish {
-				data = append(data, fmt.Sprintf("%s:%s", ip, port.Port()))
+				data = append(data, fmt.Sprintf("%s:%s", ip, port))
 			}
 			if len(data) == 0 {
 				createContainerMessage.Publish[nn] = ip

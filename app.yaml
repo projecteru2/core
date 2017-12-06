@@ -6,9 +6,9 @@ entrypoints:
     publish:
       - "5001"
     healthcheck:
-      ports:
-        - "5001/tcp"
-    log_config: "journald"
+      tcp_ports:
+        - "5001"
+    log_config:"journald"
 volumes:
   - <HOST_CONFIG_DIR_PATH>: /etc/eru
   - <HOST_BACKUP_DIR_PATH>: /data/backup

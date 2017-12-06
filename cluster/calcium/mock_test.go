@@ -73,9 +73,10 @@ var (
 	err       error
 	etpts     = &coretypes.Entrypoint{
 		HealthCheck: &coretypes.HealthCheck{
-			URL:   "x",
-			Ports: []coretypes.Port{"80"},
-			Code:  200,
+			TCPPorts: []string{"80"},
+			HTTPPort: "80",
+			HTTPURL:  "x",
+			HTTPCode: 200,
 		},
 	}
 	opts = &coretypes.DeployOptions{

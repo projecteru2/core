@@ -1,9 +1,5 @@
 package types
 
-import (
-	"strings"
-)
-
 // correspond to app.yaml in repository
 type Builds struct {
 	Stages []string          `yaml:"stages,omitempty,flow"`
@@ -30,9 +26,10 @@ type Hook struct {
 }
 
 type HealthCheck struct {
-	Ports []Port `yaml:"ports,omitempty,flow"`
-	URL   string `yaml:"url,omitempty"`
-	Code  int    `yaml:"expected_code,omitempty"`
+	TCPPorts []string `yaml:"tcp_ports,omitempty,flow"`
+	HTTPPort string   `yaml:"http_port"`
+	HTTPURL  string   `yaml:"url,omitempty"`
+	HTTPCode int      `yaml:"code,omitempty"`
 }
 
 // single entrypoint
@@ -42,7 +39,7 @@ type Entrypoint struct {
 	Privileged    bool         `yaml:"privileged,omitempty"`
 	Dir           string       `yaml:"dir,omitempty"`
 	LogConfig     string       `yaml:"log_config,omitempty"`
-	Publish       []Port       `yaml:"publish,omitempty,flow"`
+	Publish       []string     `yaml:"publish,omitempty,flow"`
 	HealthCheck   *HealthCheck `yaml:"healthcheck,omitempty,flow"`
 	Hook          *Hook        `yaml:"hook,omitempty,flow"`
 	RestartPolicy string       `yaml:"restart,omitempty"`
@@ -52,20 +49,4 @@ type Entrypoint struct {
 type Bind struct {
 	InContainerPath string `yaml:"bind,omitempty"`
 	ReadOnly        bool   `yaml:"ro,omitempty"`
-}
-
-type Port string
-
-// port is in form of 5000/tcp
-func (p Port) Port() string {
-	return strings.Split(string(p), "/")[0]
-}
-
-// default protocol is tcp
-func (p Port) Proto() string {
-	parts := strings.Split(string(p), "/")
-	if len(parts) == 1 {
-		return "tcp"
-	}
-	return parts[1]
 }
