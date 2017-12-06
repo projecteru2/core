@@ -20,7 +20,6 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// FIXME in alpine, useradd rename as adduser
 const (
 	fromAsTmpl = "FROM %s as %s"
 	commonTmpl = `{{ range $k, $v:= .Args -}}
@@ -37,7 +36,9 @@ WORKDIR {{.Dir}}{{ end }}
 {{ if .Repo }}ADD {{.Repo}} .{{ end }}`
 	copyTmpl = "COPY --from=%s %s %s"
 	runTmpl  = "RUN %s"
-	userTmpl = `RUN echo "{{.User}}::{{.UID}}:{{.UID}}::/home/{{.User}}:/sbin/nologin" >> /etc/passwd && \
+	//TODO consider work dir privilege
+	//Add user manually
+	userTmpl = `RUN echo "{{.User}}::{{.UID}}:{{.UID}}:{{.User}}:/dev/null:/sbin/nologin" >> /etc/passwd && \
 echo "{{.User}}:x:{{.UID}}:" >> /etc/group && \
 echo "{{.User}}:!::0:::::" >> /etc/shadow
 USER {{.User}}
