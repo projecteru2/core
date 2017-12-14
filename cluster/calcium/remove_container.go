@@ -64,22 +64,19 @@ func (c *calcium) RemoveContainer(ids []string, force bool) (chan *types.RemoveC
 			}
 
 			info, err := container.Inspect()
+			message := ""
 			if err != nil {
-				ch <- &types.RemoveContainerMessage{
-					ContainerID: id,
-					Success:     false,
-					Message:     err.Error(),
-				}
-				continue
+				message = err.Error()
+			} else {
+				ib.Add(container.Podname, info.Config.Image)
+
 			}
 
 			wg.Add(1)
-			ib.Add(container.Podname, info.Config.Image)
-			go func(container *types.Container, info enginetypes.ContainerJSON) {
+			go func(container *types.Container, info enginetypes.ContainerJSON, message string) {
 				defer wg.Done()
 
 				success := true
-				message := ""
 
 				defer func() {
 					ch <- &types.RemoveContainerMessage{
@@ -89,7 +86,7 @@ func (c *calcium) RemoveContainer(ids []string, force bool) (chan *types.RemoveC
 					}
 				}()
 
-				if container.Hook != nil && len(container.Hook.BeforeStop) > 0 {
+				if container.Hook != nil && len(container.Hook.BeforeStop) > 0 && info.Config != nil {
 					outputs := []string{}
 					for _, cmd := range container.Hook.BeforeStop {
 						output, err := execuateInside(container.Engine, container.ID, cmd, info.Config.User, info.Config.Env, container.Privileged)
@@ -112,7 +109,7 @@ func (c *calcium) RemoveContainer(ids []string, force bool) (chan *types.RemoveC
 					message += err.Error()
 				}
 
-			}(container, info)
+			}(container, info, message)
 		}
 
 		wg.Wait()
