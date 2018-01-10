@@ -1,6 +1,8 @@
 package types
 
-import "time"
+import (
+	"time"
+)
 
 // Config holds eru-core config
 type Config struct {
@@ -37,14 +39,15 @@ type GitConfig struct {
 
 // DockerConfig holds eru-core docker config
 type DockerConfig struct {
-	APIVersion  string `yaml:"version"`      // docker API version
-	LogDriver   string `yaml:"log_driver"`   // docker log driver, can be "json-file", "none"
-	NetworkMode string `yaml:"network_mode"` // docker network mode
-	CertPath    string `yaml:"cert_path"`    // docker cert files path
-	Hub         string `yaml:"hub"`          // docker hub address
-	Namespace   string `yaml:"namespace"`    // docker hub prefix, will be set to $Hub/$HubPrefix/$appname
-	BuildPod    string `yaml:"build_pod"`    // podname used to build
-	UseLocalDNS bool   `yaml:"local_dns"`    // use node IP as dns
+	APIVersion  string                `yaml:"version"`      // docker API version
+	LogDriver   string                `yaml:"log_driver"`   // docker log driver, can be "json-file", "none"
+	NetworkMode string                `yaml:"network_mode"` // docker network mode
+	CertPath    string                `yaml:"cert_path"`    // docker cert files path
+	Hub         string                `yaml:"hub"`          // docker hub address
+	Namespace   string                `yaml:"namespace"`    // docker hub prefix, will be set to $Hub/$HubPrefix/$appname
+	BuildPod    string                `yaml:"build_pod"`    // podname used to build
+	UseLocalDNS bool                  `yaml:"local_dns"`    // use node IP as dns
+	AuthConfigs map[string]AuthConfig `yaml:"auths"`        // docker registry credentials
 }
 
 // SchedConfig holds scheduler config
@@ -58,4 +61,12 @@ type SyslogConfig struct {
 	Address  string `yaml:"address"`
 	Facility string `yaml:"facility"`
 	Format   string `yaml:"format"`
+}
+
+// AuthConfig contains authorization information for connecting to a Registry
+// Basically copied from https://github.com/moby/moby/blob/16a1736b9b93e44c898f95d670bbaf20a558103d/api/types/auth.go#L4
+// But use yaml instead of json
+type AuthConfig struct {
+	Username string `yaml:"username,omitempty" json:"username,omitempty"`
+	Password string `yaml:"password,omitempty" json:"password,omitempty"`
 }

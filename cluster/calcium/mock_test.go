@@ -60,8 +60,14 @@ var (
 		},
 		Git: coretypes.GitConfig{SCMType: "gitlab"},
 		Docker: coretypes.DockerConfig{
-			Hub:       "hub.testhub.com",
+			Hub:       "docker.io",
 			Namespace: "apps",
+			AuthConfigs: map[string]coretypes.AuthConfig{
+				"docker.io": coretypes.AuthConfig{
+					Username: "timfeirg",
+					Password: "secret",
+				},
+			},
 		},
 		Scheduler: coretypes.SchedConfig{
 			ShareBase: 10,
