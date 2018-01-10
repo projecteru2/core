@@ -1,15 +1,19 @@
 package calcium
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"strings"
 
+	"github.com/docker/distribution/reference"
 	enginetypes "github.com/docker/docker/api/types"
 	enginecontainer "github.com/docker/docker/api/types/container"
 	engineapi "github.com/docker/docker/client"
+	"github.com/docker/docker/registry"
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -164,4 +168,38 @@ func execuateInside(client *engineapi.Client, ID, cmd, user string, env []string
 		return []byte{}, fmt.Errorf("%s", b)
 	}
 	return b, nil
+}
+
+// MakeAuthConfigFromRemote Calculate encoded AuthConfig from registry and eru-core config
+// See https://github.com/docker/cli/blob/16cccc30f95c8163f0749eba5a2e80b807041342/cli/command/registry.go#L67
+func (c *calcium) MakeEncodedAuthConfigFromRemote(remote string) (string, error) {
+	ref, err := reference.ParseNormalizedNamed(remote)
+	if err != nil {
+		return "", err
+	}
+
+	// Resolve the Repository name from fqn to RepositoryInfo
+	repoInfo, err := registry.ParseRepositoryInfo(ref)
+	if err != nil {
+		return "", err
+	}
+
+	serverAddress := repoInfo.Index.Name
+	if authConfig, exists := c.config.Docker.AuthConfigs[serverAddress]; exists {
+		if encodedAuth, err := EncodeAuthToBase64(authConfig); err == nil {
+			return encodedAuth, nil
+		}
+		return "", err
+	}
+	return "dummy", nil
+}
+
+// EncodeAuthToBase64 serializes the auth configuration as JSON base64 payload
+// See https://github.com/docker/cli/blob/master/cli/command/registry.go#L41
+func EncodeAuthToBase64(authConfig types.AuthConfig) (string, error) {
+	buf, err := json.Marshal(authConfig)
+	if err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(buf), nil
 }

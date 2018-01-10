@@ -171,7 +171,9 @@ func (c *calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 					lastMessage.Error = err.Error()
 					break
 				}
-				log.Errorf("[BuildImage] Decode build image message failed %v", err)
+				malformed := []byte{}
+				_, _ = decoder.Buffered().Read(malformed)
+				log.Errorf("[BuildImage] Decode build image message failed %v, buffered: %v", err, malformed)
 				return
 			}
 			ch <- message
@@ -182,9 +184,13 @@ func (c *calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 			log.Errorf("[BuildImage] Build image failed %v", lastMessage.ErrorDetail.Message)
 			return
 		}
-		// About this "Khadgar", https://github.com/docker/docker/issues/10983#issuecomment-85892396
-		// Just because Ben Schnetzer's cute Khadgar...
-		rc, err := node.Engine.ImagePush(ctx, tag, enginetypes.ImagePushOptions{RegistryAuth: "Khadgar"})
+		encodedAuth, err := c.MakeEncodedAuthConfigFromRemote(tag)
+		if err != nil {
+			ch <- makeErrorBuildImageMessage(err)
+			return
+		}
+		pushOptions := enginetypes.ImagePushOptions{RegistryAuth: encodedAuth}
+		rc, err := node.Engine.ImagePush(ctx, tag, pushOptions)
 		if err != nil {
 			ch <- makeErrorBuildImageMessage(err)
 			return
@@ -199,7 +205,9 @@ func (c *calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 				if err == io.EOF {
 					break
 				}
-				log.Errorf("[BuildImage] Decode push image message failed %v", err)
+				malformed := []byte{}
+				_, _ = decoder2.Buffered().Read(malformed)
+				log.Errorf("[BuildImage] Decode push image message failed %v, buffered: %v", err, malformed)
 				return
 			}
 			ch <- message

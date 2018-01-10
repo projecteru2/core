@@ -67,6 +67,12 @@ imports:
   - pkg/stdcopy
   - pkg/system
   - pkg/tlsconfig
+- name: github.com/spf13/pflag
+  version: 2300d0f8576fe575f71aaa5b9bbe4e1b0dc2eb51
+- name: github.com/gorilla/mux
+  version: 5bbbb5b2b5729b132181cc7f4aa3b3c973e9a0ed
+- name: github.com/Nvveen/Gotty
+  version: cd527374f1e5bff4938207604a14f2e38a9cf512
 - name: github.com/docker/go-connections
   version: 3ede32e2033de7505e6500d6c868c2b9ed9f169d
   subpackages:
