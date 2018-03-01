@@ -30,7 +30,7 @@ func (s *statsdClient) gauge(keyPattern string, data map[string]float64) error {
 	defer remote.Close()
 	defer remote.Flush()
 	for k, v := range data {
-		key := fmt.Sprintf(keyPattern, k)
+		key := fmt.Sprintf("%s.%s", keyPattern, k)
 		remote.Gauge(key, v)
 	}
 	return nil
