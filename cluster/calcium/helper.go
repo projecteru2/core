@@ -21,11 +21,14 @@ import (
 )
 
 func (c *calcium) makeMemoryPriorSetting(memory int64, cpu float64) enginecontainer.Resources {
-	resource := enginecontainer.Resources{
-		Memory:     memory,
-		MemorySwap: memory,
-		CPUPeriod:  utils.CpuPeriodBase,
-		CPUQuota:   int64(cpu * float64(utils.CpuPeriodBase)),
+	resource := enginecontainer.Resources{}
+	if cpu > 0 {
+		resource.CPUPeriod = utils.CpuPeriodBase
+		resource.CPUQuota = int64(cpu * float64(utils.CpuPeriodBase))
+	}
+	if memory != -1 {
+		resource.Memory = memory
+		resource.MemorySwap = memory
 	}
 	return resource
 }

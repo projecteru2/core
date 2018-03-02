@@ -245,6 +245,7 @@ message DeployOptions {
     bool openStdin = 18;
     map<string, string> meta = 19;
     map<string, string> nodelabels = 20;
+    bool raw_resource = 21;
 }
 
 message RemoveImageOptions {
@@ -280,9 +281,10 @@ message CreateContainerMessage {
     string error = 5;
     bool success = 6;
     map<string, int64> cpu = 7;
-    int64 memory = 8;
-    map<string, string> publish = 9;
-    bytes hook = 10;
+    double quota = 8;
+    int64 memory = 9;
+    map<string, string> publish = 10;
+    bytes hook = 11;
 }
 
 message RunAndWaitMessage {

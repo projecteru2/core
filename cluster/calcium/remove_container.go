@@ -132,6 +132,10 @@ func (c *calcium) RemoveContainer(ids []string, force bool) (chan *types.RemoveC
 // remove one container
 func (c *calcium) removeOneContainer(container *types.Container) error {
 	defer func() {
+		// not deal with raw res container
+		if container.RawResource {
+			return
+		}
 		// if total cpu of container > 0, then we need to release these core resource
 		// but if it's 0, just ignore to save 1 time write on etcd.
 		if container.CPU.Total() > 0 {

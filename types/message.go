@@ -41,6 +41,7 @@ type CreateContainerMessage struct {
 	Error         error
 	Success       bool
 	CPU           CPUMap
+	Quota         float64
 	Memory        int64
 	Publish       map[string]string
 	Hook          []byte
