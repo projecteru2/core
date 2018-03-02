@@ -33,16 +33,20 @@ func (c *calcium) CreateContainer(opts *types.DeployOptions) (chan *types.Create
 		log.Errorf("[CreateContainer] Error during GetPod for %s: %v", opts.Podname, err)
 		return nil, err
 	}
-	if pod.Favor == scheduler.CPU_PRIOR {
+	log.Infof("[CreateContainer] Creating container with options: %v", opts)
+	if opts.RawResource || pod.Favor == scheduler.MEMORY_PRIOR {
+		return c.createContainerWithMemoryPrior(opts)
+	} else if pod.Favor == scheduler.CPU_PRIOR {
 		return c.createContainerWithCPUPrior(opts)
 	}
-	log.Infof("[CreateContainer] Creating container with options: %v", opts)
-	return c.createContainerWithMemoryPrior(opts)
+	return nil, fmt.Errorf("[CreateContainer] Favor not support: %v", pod.Favor)
 }
 
 func (c *calcium) createContainerWithMemoryPrior(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
-	if opts.Memory < minMemory { // 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
+	// 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
+	// -1 means without limit
+	if opts.Memory < minMemory && !opts.RawResource {
 		return ch, fmt.Errorf("Minimum memory limit allowed is 4MB, got %d", opts.Memory)
 	}
 	if opts.Count <= 0 { // Count 要大于0
@@ -86,11 +90,13 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, opts
 
 	node, err := c.getAndPrepareNode(opts.Podname, nodeInfo.Name, opts.Image)
 	if err != nil {
-		log.Errorf("[doCreateContainerWithCPUPrior] Get and prepare node error %v", err)
+		log.Errorf("[doCreateContainerWithMemoryPrior] Get and prepare node error %v", err)
 		for i := 0; i < nodeInfo.Deploy; i++ {
 			ms[i] = &types.CreateContainerMessage{Error: err}
-			if err := c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+"); err != nil {
-				log.Errorf("[doCreateContainerWithCPUPrior] reset node memory failed %v", err)
+			if !opts.RawResource {
+				if err := c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+"); err != nil {
+					log.Errorf("[doCreateContainerWithMemoryPrior] reset node memory failed %v", err)
+				}
 			}
 		}
 		return ms
@@ -298,8 +304,10 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	var resource enginecontainer.Resources
 	if favor == scheduler.CPU_PRIOR {
 		resource = c.makeCPUPriorSetting(quota)
-	} else {
+	} else if favor == scheduler.MEMORY_PRIOR {
 		resource = c.makeMemoryPriorSetting(opts.Memory, opts.CPUQuota)
+	} else {
+		return nil, nil, nil, "", fmt.Errorf("favor not support %s", favor)
 	}
 	resource.Ulimits = ulimits
 
@@ -356,22 +364,25 @@ func (c *calcium) getAndPrepareNode(podname, nodename, image string) (*types.Nod
 func (c *calcium) createAndStartContainer(
 	no int, node *types.Node,
 	opts *types.DeployOptions,
-	quota types.CPUMap, typ string,
+	cpu types.CPUMap, typ string,
 ) *types.CreateContainerMessage {
 	container := &types.Container{
-		Podname:    opts.Podname,
-		Nodename:   node.Name,
-		CPU:        quota,
-		Memory:     opts.Memory,
-		Hook:       opts.Entrypoint.Hook,
-		Privileged: opts.Entrypoint.Privileged,
-		Engine:     node.Engine,
+		Podname:     opts.Podname,
+		Nodename:    node.Name,
+		CPU:         cpu,
+		Quota:       opts.CPUQuota,
+		Memory:      opts.Memory,
+		Hook:        opts.Entrypoint.Hook,
+		Privileged:  opts.Entrypoint.Privileged,
+		RawResource: opts.RawResource,
+		Engine:      node.Engine,
 	}
 	createContainerMessage := &types.CreateContainerMessage{
 		Podname:  container.Podname,
 		Nodename: container.Nodename,
 		Success:  false,
-		CPU:      quota,
+		CPU:      cpu,
+		Quota:    opts.CPUQuota,
 		Memory:   opts.Memory,
 		Publish:  map[string]string{},
 	}
@@ -385,7 +396,7 @@ func (c *calcium) createAndStartContainer(
 	}()
 
 	// get config
-	config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(no, quota, opts, node, typ)
+	config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(no, cpu, opts, node, typ)
 	if err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage

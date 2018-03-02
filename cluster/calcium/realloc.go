@@ -31,6 +31,11 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 	nodeCache := map[string]*types.Node{}
 
 	for _, container := range containers {
+		if container.RawResource {
+			//TODO not support yet
+			return nil, fmt.Errorf("Realloc raw resource container not support yet")
+		}
+
 		if _, ok := nodeCache[container.Nodename]; !ok {
 			node, err := c.GetNode(container.Podname, container.Nodename)
 			if err != nil {

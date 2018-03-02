@@ -7,6 +7,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
+	"github.com/projecteru2/core/scheduler/complex"
 	"github.com/projecteru2/core/stats"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -19,7 +20,7 @@ func (c *calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.Nod
 	}
 	defer lock.Unlock()
 
-	cpuandmem, _, err := c.getCPUAndMem(opts.Podname, opts.Nodename, opts.NodeLabels, 1.0)
+	cpuandmem, _, err := c.getCPUAndMem(opts.Podname, opts.Nodename, opts.NodeLabels)
 	if err != nil {
 		return nil, err
 	}
@@ -30,6 +31,14 @@ func (c *calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.Nod
 	nodesInfo, err = c.store.MakeDeployStatus(opts, nodesInfo)
 	if err != nil {
 		return nil, err
+	}
+
+	// 每台机器都允许部署所需容量容器
+	if opts.RawResource {
+		for i := range nodesInfo {
+			nodesInfo[i].Capacity = opts.Count
+		}
+		return complexscheduler.CommunismDivisionPlan(nodesInfo, opts.Count, opts.Count*len(nodesInfo))
 	}
 
 	cpuRate := int64(opts.CPUQuota * float64(utils.CpuPeriodBase))
@@ -64,7 +73,7 @@ func (c *calcium) allocCPUPodResource(opts *types.DeployOptions) (map[string][]t
 	}
 	defer lock.Unlock()
 
-	cpuandmem, nodes, err := c.getCPUAndMem(opts.Podname, opts.Nodename, opts.NodeLabels, opts.CPUQuota)
+	cpuandmem, nodes, err := c.getCPUAndMem(opts.Podname, opts.Nodename, opts.NodeLabels)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +130,7 @@ func filterNode(node *types.Node, labels map[string]string) bool {
 	return true
 }
 
-func (c *calcium) getCPUAndMem(podname, nodename string, labels map[string]string, quota float64) (map[string]types.CPUAndMem, []*types.Node, error) {
+func (c *calcium) getCPUAndMem(podname, nodename string, labels map[string]string) (map[string]types.CPUAndMem, []*types.Node, error) {
 	result := make(map[string]types.CPUAndMem)
 	var nodes []*types.Node
 	var err error

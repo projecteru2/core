@@ -150,6 +150,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		OpenStdin:   d.OpenStdin,
 		Meta:        d.Meta,
 		NodeLabels:  d.Nodelabels,
+		RawResource: d.RawResource,
 	}, nil
 }
 
@@ -161,6 +162,7 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 		Name:     c.ContainerName,
 		Success:  c.Success,
 		Cpu:      toRPCCPUMap(c.CPU),
+		Quota:    c.Quota,
 		Memory:   c.Memory,
 		Publish:  c.Publish,
 		Hook:     c.Hook,
