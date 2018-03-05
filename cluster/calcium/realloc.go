@@ -28,14 +28,11 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 	containersInfo := map[*types.Pod]NodeContainers{}
 	// Pod-cpu-node-containers 四元组
 	cpuContainersInfo := map[*types.Pod]CPUNodeContainers{}
+	// Raw resource container Node-Containers
+	rawResourceContainers := NodeContainers{}
 	nodeCache := map[string]*types.Node{}
 
 	for _, container := range containers {
-		if container.RawResource {
-			//TODO not support yet
-			return nil, fmt.Errorf("Realloc raw resource container not support yet")
-		}
-
 		if _, ok := nodeCache[container.Nodename]; !ok {
 			node, err := c.GetNode(container.Podname, container.Nodename)
 			if err != nil {
@@ -44,6 +41,14 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 			nodeCache[container.Nodename] = node
 		}
 		node := nodeCache[container.Nodename]
+
+		if container.RawResource {
+			if _, ok := rawResourceContainers[node]; !ok {
+				rawResourceContainers[node] = []*types.Container{}
+			}
+			rawResourceContainers[node] = append(rawResourceContainers[node], container)
+			continue
+		}
 
 		pod, err := c.store.GetPod(container.Podname)
 		if err != nil {
@@ -79,7 +84,17 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 	go func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
-		wg.Add(len(containersInfo))
+		wg.Add(len(containersInfo) + len(rawResourceContainers))
+
+		// deal with container with raw resource
+		for node, containers := range rawResourceContainers {
+			go func(node *types.Node, containers []*types.Container) {
+				defer wg.Done()
+				c.doUpdateContainerWithMemoryPrior(ch, node.Podname, node, containers, cpu, mem)
+			}(node, containers)
+		}
+
+		// deal with normal container
 		for pod, nodeContainers := range containersInfo {
 			if pod.Favor == scheduler.CPU_PRIOR {
 				nodeCPUContainersInfo := cpuContainersInfo[pod]
@@ -173,7 +188,7 @@ func (c *calcium) doUpdateContainerWithMemoryPrior(
 			log.Errorf("[doUpdateContainerWithMemoryPrior] update container failed %v, %s", err, containerJSON.ID)
 			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
 			// 如果是增加内存，失败的时候应该把内存还回去
-			if memory > 0 {
+			if memory > 0 && !container.RawResource {
 				if err := c.store.UpdateNodeMem(podname, node.Name, memory, "+"); err != nil {
 					log.Errorf("[doUpdateContainerWithMemoryPrior] failed to set mem back %s", containerJSON.ID)
 				}
@@ -181,7 +196,7 @@ func (c *calcium) doUpdateContainerWithMemoryPrior(
 			continue
 		}
 		// 如果是要降低内存，当执行成功的时候需要把内存还回去
-		if memory < 0 {
+		if memory < 0 && !container.RawResource {
 			if err := c.store.UpdateNodeMem(podname, node.Name, -memory, "+"); err != nil {
 				log.Errorf("[doUpdateContainerWithMemoryPrior] failed to set mem back %s", containerJSON.ID)
 			}
