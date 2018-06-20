@@ -1,7 +1,7 @@
 package rpc
 
 import (
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // gRPC上全局的计数器

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
 	"github.com/projecteru2/core/types"
 )

@@ -153,7 +153,7 @@ func execuateInside(client *engineapi.Client, ID, cmd, user string, env []string
 	if err != nil {
 		return []byte{}, err
 	}
-	resp, err := client.ContainerExecAttach(context.Background(), idResp.ID, execConfig)
+	resp, err := client.ContainerExecAttach(context.Background(), idResp.ID, enginetypes.ExecStartCheck{})
 	if err != nil {
 		return []byte{}, err
 	}

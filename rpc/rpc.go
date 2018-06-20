@@ -8,7 +8,7 @@ import (
 	"io"
 	"sync"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"

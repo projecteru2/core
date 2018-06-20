@@ -7,10 +7,11 @@ import (
 	"io"
 	"sync"
 
-	log "github.com/Sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
+	containertypes "github.com/docker/docker/api/types/container"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 func (c *calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error) {
@@ -112,8 +113,10 @@ func (c *calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 
 				// 超时的情况下根本不会到这里
 				// 不超时的情况下这里肯定会立即返回
-				code, err := node.Engine.ContainerWait(ctx, containerID)
-				exitData := []byte(fmt.Sprintf("[exitcode] %d", code))
+				waitbody, errChan := node.Engine.ContainerWait(ctx, containerID, containertypes.WaitConditionNotRunning)
+				b := <-waitbody
+				err = <-errChan
+				exitData := []byte(fmt.Sprintf("[exitcode] %d", b.StatusCode))
 				if err != nil {
 					log.Errorf("[RunAndWait] %s run failed, %v", containerID[:12], err)
 					exitData = []byte(fmt.Sprintf("[exitcode] unknown %v", err))

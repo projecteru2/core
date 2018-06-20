@@ -13,7 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	etcdclient "github.com/coreos/etcd/client"
 	engineapi "github.com/docker/docker/client"
 	"github.com/docker/go-connections/tlsconfig"

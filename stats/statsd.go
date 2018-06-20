@@ -8,7 +8,7 @@ import (
 	"github.com/projecteru2/core/types"
 
 	statsdlib "github.com/CMGS/statsd"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 const (

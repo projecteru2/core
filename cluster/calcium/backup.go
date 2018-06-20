@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )

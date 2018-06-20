@@ -13,7 +13,7 @@ import (
 	"strings"
 	"text/template"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/projecteru2/core/types"
