@@ -7,7 +7,7 @@ import (
 
 	"context"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/projecteru2/core/cluster/calcium"
 	"github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/store/mock"

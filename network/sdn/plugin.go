@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
 	enginefilters "github.com/docker/docker/api/types/filters"
 	enginenetwork "github.com/docker/docker/api/types/network"
