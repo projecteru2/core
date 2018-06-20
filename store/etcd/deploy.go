@@ -22,7 +22,7 @@ func (k *krypton) MakeDeployStatus(opts *types.DeployOptions, nodesInfo []types.
 func (k *krypton) doGetDeployStatus(resp *etcdclient.Response, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
 	nodesCount := map[string]int{}
 	for _, node := range resp.Node.Nodes {
-		nodeName := strings.Trim(node.Key, resp.Node.Key)
+		nodeName := strings.Trim(strings.TrimPrefix(node.Key, resp.Node.Key), "/")
 		nodesCount[nodeName] = len(node.Nodes)
 	}
 

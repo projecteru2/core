@@ -113,13 +113,11 @@ func (c *calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 
 				// 超时的情况下根本不会到这里
 				// 不超时的情况下这里肯定会立即返回
-				waitbody, errChan := node.Engine.ContainerWait(ctx, containerID, containertypes.WaitConditionNotRunning)
+				waitbody, _ := node.Engine.ContainerWait(ctx, containerID, containertypes.WaitConditionNotRunning)
 				b := <-waitbody
-				err = <-errChan
 				exitData := []byte(fmt.Sprintf("[exitcode] %d", b.StatusCode))
-				if err != nil {
-					log.Errorf("[RunAndWait] %s run failed, %v", containerID[:12], err)
-					exitData = []byte(fmt.Sprintf("[exitcode] unknown %v", err))
+				if b.StatusCode != 0 {
+					log.Errorf("[RunAndWait] %s run failed", containerID[:12])
 				}
 				ch <- &types.RunAndWaitMessage{ContainerID: containerID, Data: exitData}
 			}(node, message.ContainerID)
