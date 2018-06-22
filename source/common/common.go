@@ -80,7 +80,24 @@ func (g *GitScm) SourceCode(repository, path, revision string) error {
 	defer object.Free()
 	commit, err := object.AsCommit()
 
-	return repo.ResetToCommit(commit, git.ResetHard, &git.CheckoutOpts{Strategy: git.CheckoutSafe})
+	if err := repo.ResetToCommit(commit, git.ResetHard, &git.CheckoutOpts{Strategy: git.CheckoutSafe}); err != nil {
+		return err
+	}
+
+	repo.Submodules.Foreach(func(sub *git.Submodule, name string) int {
+		sub.Init(true)
+		err := sub.Update(true, &git.SubmoduleUpdateOptions{
+			CheckoutOpts: &git.CheckoutOpts{
+				Strategy: git.CheckoutForce | git.CheckoutUpdateSubmodules,
+			},
+			FetchOptions: &git.FetchOptions{},
+		})
+		if err != nil {
+			log.Errorln(err)
+		}
+		return 0
+	})
+	return nil
 }
 
 // Artifact download the artifact to the path, then unzip it
