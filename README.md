@@ -70,7 +70,6 @@ docker run -d \
   --net host \
   --restart always \
   -v <HOST_CONFIG_DIR_PATH>:/etc/eru \
-  -v <HOST_BACKUP_DIR_PATH>:/data/backup \
   projecteru2/core \
   /usr/bin/eru-core
 ```

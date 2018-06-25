@@ -63,6 +63,15 @@ func toRPCBuildImageMessage(b *types.BuildImageMessage) *pb.BuildImageMessage {
 	}
 }
 
+func toCoreCopyOptions(b *pb.CopyOptions) *types.CopyOptions {
+	r := &types.CopyOptions{Targets: map[string][]string{}}
+	for cid, paths := range b.Targets {
+		r.Targets[cid] = []string{}
+		r.Targets[cid] = append(r.Targets[cid], paths.Paths...)
+	}
+	return r
+}
+
 func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
 	if b.Builds == nil || len(b.Builds.Stages) == 0 {
 		return nil, errors.New("no builds")
@@ -194,14 +203,6 @@ func toRPCRemoveContainerMessage(r *types.RemoveContainerMessage) *pb.RemoveCont
 		Id:      r.ContainerID,
 		Success: r.Success,
 		Message: r.Message,
-	}
-}
-
-func toRPCBackupMessage(msg *types.BackupMessage) *pb.BackupMessage {
-	return &pb.BackupMessage{
-		Status: msg.Status,
-		Size:   msg.Size,
-		Error:  msg.Error,
 	}
 }
 

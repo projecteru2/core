@@ -40,3 +40,8 @@ type RunAndWaitOptions struct {
 	Timeout int
 	Cmd     string
 }
+
+//CopyOptions for multiple container files copy
+type CopyOptions struct {
+	Targets map[string][]string
+}

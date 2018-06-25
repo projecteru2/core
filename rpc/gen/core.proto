@@ -10,17 +10,17 @@ service CoreRPC {
 
     rpc AddNode(AddNodeOptions) returns (Node) {};
     rpc RemoveNode(RemoveNodeOptions) returns (Pod) {};
+    rpc SetNodeAvailable(NodeAvailable) returns (Node) {};
     rpc GetNode(GetNodeOptions) returns (Node) {};
-    rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
     rpc GetContainer(ContainerID) returns (Container) {};
     rpc GetContainers(ContainerIDs) returns (Containers) {};
-    rpc ListNetworks(ListNetworkOptions) returns (Networks) {};
-    rpc SetNodeAvailable(NodeAvailable) returns (Node) {};
-    rpc Backup(BackupOptions) returns (BackupMessage) {};
     rpc GetNodeByName(GetNodeOptions) returns (Node) {};
-    rpc ContainerDeployed(ContainerDeployedOptions) returns (Empty) {};
+    rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
+    rpc ListNetworks(ListNetworkOptions) returns (Networks) {};
     rpc ListContainers(DeployStatusOptions) returns (Containers) {};
+    rpc ContainerDeployed(ContainerDeployedOptions) returns (Empty) {};
 
+    rpc Copy(CopyOptions) returns (stream CopyMessage) {};
     rpc BuildImage(BuildImageOptions) returns (stream BuildImageMessage) {};
     rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage) {};
     rpc DeployStatus(DeployStatusOptions) returns (stream DeployStatusMessage) {};
@@ -255,9 +255,12 @@ message RemoveImageOptions {
     repeated string images = 3;
 }
 
-message BackupOptions {
-  string id = 1;
-  string src_path = 2;
+message CopyPaths {
+    repeated string paths = 1;
+}
+
+message CopyOptions {
+    map<string, CopyPaths> targets = 1;
 }
 
 message ErrorDetail {
@@ -310,11 +313,13 @@ message ReallocResourceMessage {
     bool success = 2;
 }
 
-message BackupMessage {
-  string status = 1;
-  int64 size = 2;
-  string error = 3;
-  string path = 4;
+message CopyMessage {
+    string id =1;
+    string status = 2;
+    string name = 3;
+    string path = 4;
+    string error = 5;
+    bytes data = 6;
 }
 
 message RunAndWaitOptions{

@@ -7,11 +7,11 @@ import (
 
 	"context"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/projecteru2/core/cluster/calcium"
 	"github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/store/mock"
 	"github.com/projecteru2/core/types"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 )
@@ -187,9 +187,8 @@ func TestNodes(t *testing.T) {
 func initConfig(mStore *mockstore.MockStore) (types.Config, *vibranium) {
 
 	config := types.Config{
-		Bind:      ":5001",          // HTTP API address
-		BackupDir: "/tmp",           // Backup dir on host
-		Statsd:    "localhost:1080", // Statsd host and port
+		Bind:   ":5001",          // HTTP API address
+		Statsd: "localhost:1080", // Statsd host and port
 
 		Etcd: types.EtcdConfig{
 			Machines:   []string{"MOCK"}, // etcd cluster addresses

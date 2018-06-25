@@ -1,5 +1,7 @@
 package types
 
+import "io"
+
 type RemoveContainerMessage struct {
 	ContainerID string
 	Success     bool
@@ -20,11 +22,13 @@ type BuildImageMessage struct {
 	ErrorDetail errorDetail `json:"errorDetail,omitempty"`
 }
 
-type BackupMessage struct {
-	Status string `json:"status,omitempty"`
-	Size   int64  `json:"size,omitempty"`
-	Error  string `json:"error,omitempty"`
-	Path   string `json:"path,omitempty"`
+type CopyMessage struct {
+	ID     string        `json:"id,omitempty"`
+	Status string        `json:"status,omitempty"`
+	Name   string        `json:"name,omitempty"`
+	Path   string        `json:"path,omitempty"`
+	Error  error         `json:"error,omitempty"`
+	Data   io.ReadCloser `json:"-"`
 }
 
 type RemoveImageMessage struct {

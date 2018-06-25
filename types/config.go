@@ -8,7 +8,6 @@ import (
 type Config struct {
 	LogLevel      string        `yaml:"log_level"`
 	Bind          string        `yaml:"bind"`           // HTTP API address
-	BackupDir     string        `yaml:"backupdir"`      // Backup dir on host
 	Statsd        string        `yaml:"statsd"`         // Statsd host and port
 	Profile       string        `yaml:"profile"`        // profile ip:port
 	ImageCache    int           `yaml:"image_cache"`    // cache image count

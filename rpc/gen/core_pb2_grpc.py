@@ -44,15 +44,15 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.RemoveNodeOptions.SerializeToString,
         response_deserializer=core__pb2.Pod.FromString,
         )
+    self.SetNodeAvailable = channel.unary_unary(
+        '/pb.CoreRPC/SetNodeAvailable',
+        request_serializer=core__pb2.NodeAvailable.SerializeToString,
+        response_deserializer=core__pb2.Node.FromString,
+        )
     self.GetNode = channel.unary_unary(
         '/pb.CoreRPC/GetNode',
         request_serializer=core__pb2.GetNodeOptions.SerializeToString,
         response_deserializer=core__pb2.Node.FromString,
-        )
-    self.ListPodNodes = channel.unary_unary(
-        '/pb.CoreRPC/ListPodNodes',
-        request_serializer=core__pb2.ListNodesOptions.SerializeToString,
-        response_deserializer=core__pb2.Nodes.FromString,
         )
     self.GetContainer = channel.unary_unary(
         '/pb.CoreRPC/GetContainer',
@@ -64,35 +64,35 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.ContainerIDs.SerializeToString,
         response_deserializer=core__pb2.Containers.FromString,
         )
+    self.GetNodeByName = channel.unary_unary(
+        '/pb.CoreRPC/GetNodeByName',
+        request_serializer=core__pb2.GetNodeOptions.SerializeToString,
+        response_deserializer=core__pb2.Node.FromString,
+        )
+    self.ListPodNodes = channel.unary_unary(
+        '/pb.CoreRPC/ListPodNodes',
+        request_serializer=core__pb2.ListNodesOptions.SerializeToString,
+        response_deserializer=core__pb2.Nodes.FromString,
+        )
     self.ListNetworks = channel.unary_unary(
         '/pb.CoreRPC/ListNetworks',
         request_serializer=core__pb2.ListNetworkOptions.SerializeToString,
         response_deserializer=core__pb2.Networks.FromString,
         )
-    self.SetNodeAvailable = channel.unary_unary(
-        '/pb.CoreRPC/SetNodeAvailable',
-        request_serializer=core__pb2.NodeAvailable.SerializeToString,
-        response_deserializer=core__pb2.Node.FromString,
-        )
-    self.Backup = channel.unary_unary(
-        '/pb.CoreRPC/Backup',
-        request_serializer=core__pb2.BackupOptions.SerializeToString,
-        response_deserializer=core__pb2.BackupMessage.FromString,
-        )
-    self.GetNodeByName = channel.unary_unary(
-        '/pb.CoreRPC/GetNodeByName',
-        request_serializer=core__pb2.GetNodeOptions.SerializeToString,
-        response_deserializer=core__pb2.Node.FromString,
+    self.ListContainers = channel.unary_unary(
+        '/pb.CoreRPC/ListContainers',
+        request_serializer=core__pb2.DeployStatusOptions.SerializeToString,
+        response_deserializer=core__pb2.Containers.FromString,
         )
     self.ContainerDeployed = channel.unary_unary(
         '/pb.CoreRPC/ContainerDeployed',
         request_serializer=core__pb2.ContainerDeployedOptions.SerializeToString,
         response_deserializer=core__pb2.Empty.FromString,
         )
-    self.ListContainers = channel.unary_unary(
-        '/pb.CoreRPC/ListContainers',
-        request_serializer=core__pb2.DeployStatusOptions.SerializeToString,
-        response_deserializer=core__pb2.Containers.FromString,
+    self.Copy = channel.unary_stream(
+        '/pb.CoreRPC/Copy',
+        request_serializer=core__pb2.CopyOptions.SerializeToString,
+        response_deserializer=core__pb2.CopyMessage.FromString,
         )
     self.BuildImage = channel.unary_stream(
         '/pb.CoreRPC/BuildImage',
@@ -177,14 +177,14 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def GetNode(self, request, context):
+  def SetNodeAvailable(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def ListPodNodes(self, request, context):
+  def GetNode(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -205,6 +205,20 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def GetNodeByName(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def ListPodNodes(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def ListNetworks(self, request, context):
     # missing associated documentation comment in .proto file
     pass
@@ -212,21 +226,7 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def SetNodeAvailable(self, request, context):
-    # missing associated documentation comment in .proto file
-    pass
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def Backup(self, request, context):
-    # missing associated documentation comment in .proto file
-    pass
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def GetNodeByName(self, request, context):
+  def ListContainers(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -240,7 +240,7 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def ListContainers(self, request, context):
+  def Copy(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -329,15 +329,15 @@ def add_CoreRPCServicer_to_server(servicer, server):
           request_deserializer=core__pb2.RemoveNodeOptions.FromString,
           response_serializer=core__pb2.Pod.SerializeToString,
       ),
+      'SetNodeAvailable': grpc.unary_unary_rpc_method_handler(
+          servicer.SetNodeAvailable,
+          request_deserializer=core__pb2.NodeAvailable.FromString,
+          response_serializer=core__pb2.Node.SerializeToString,
+      ),
       'GetNode': grpc.unary_unary_rpc_method_handler(
           servicer.GetNode,
           request_deserializer=core__pb2.GetNodeOptions.FromString,
           response_serializer=core__pb2.Node.SerializeToString,
-      ),
-      'ListPodNodes': grpc.unary_unary_rpc_method_handler(
-          servicer.ListPodNodes,
-          request_deserializer=core__pb2.ListNodesOptions.FromString,
-          response_serializer=core__pb2.Nodes.SerializeToString,
       ),
       'GetContainer': grpc.unary_unary_rpc_method_handler(
           servicer.GetContainer,
@@ -349,35 +349,35 @@ def add_CoreRPCServicer_to_server(servicer, server):
           request_deserializer=core__pb2.ContainerIDs.FromString,
           response_serializer=core__pb2.Containers.SerializeToString,
       ),
+      'GetNodeByName': grpc.unary_unary_rpc_method_handler(
+          servicer.GetNodeByName,
+          request_deserializer=core__pb2.GetNodeOptions.FromString,
+          response_serializer=core__pb2.Node.SerializeToString,
+      ),
+      'ListPodNodes': grpc.unary_unary_rpc_method_handler(
+          servicer.ListPodNodes,
+          request_deserializer=core__pb2.ListNodesOptions.FromString,
+          response_serializer=core__pb2.Nodes.SerializeToString,
+      ),
       'ListNetworks': grpc.unary_unary_rpc_method_handler(
           servicer.ListNetworks,
           request_deserializer=core__pb2.ListNetworkOptions.FromString,
           response_serializer=core__pb2.Networks.SerializeToString,
       ),
-      'SetNodeAvailable': grpc.unary_unary_rpc_method_handler(
-          servicer.SetNodeAvailable,
-          request_deserializer=core__pb2.NodeAvailable.FromString,
-          response_serializer=core__pb2.Node.SerializeToString,
-      ),
-      'Backup': grpc.unary_unary_rpc_method_handler(
-          servicer.Backup,
-          request_deserializer=core__pb2.BackupOptions.FromString,
-          response_serializer=core__pb2.BackupMessage.SerializeToString,
-      ),
-      'GetNodeByName': grpc.unary_unary_rpc_method_handler(
-          servicer.GetNodeByName,
-          request_deserializer=core__pb2.GetNodeOptions.FromString,
-          response_serializer=core__pb2.Node.SerializeToString,
+      'ListContainers': grpc.unary_unary_rpc_method_handler(
+          servicer.ListContainers,
+          request_deserializer=core__pb2.DeployStatusOptions.FromString,
+          response_serializer=core__pb2.Containers.SerializeToString,
       ),
       'ContainerDeployed': grpc.unary_unary_rpc_method_handler(
           servicer.ContainerDeployed,
           request_deserializer=core__pb2.ContainerDeployedOptions.FromString,
           response_serializer=core__pb2.Empty.SerializeToString,
       ),
-      'ListContainers': grpc.unary_unary_rpc_method_handler(
-          servicer.ListContainers,
-          request_deserializer=core__pb2.DeployStatusOptions.FromString,
-          response_serializer=core__pb2.Containers.SerializeToString,
+      'Copy': grpc.unary_stream_rpc_method_handler(
+          servicer.Copy,
+          request_deserializer=core__pb2.CopyOptions.FromString,
+          response_serializer=core__pb2.CopyMessage.SerializeToString,
       ),
       'BuildImage': grpc.unary_stream_rpc_method_handler(
           servicer.BuildImage,
