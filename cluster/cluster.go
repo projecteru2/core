@@ -7,6 +7,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+//Cluster define all interface
 type Cluster interface {
 	// meta data methods
 	AddPod(podname, favor, desc string) (*types.Pod, error)
@@ -24,12 +25,11 @@ type Cluster interface {
 	SetNodeAvailable(podname, nodename string, available bool) (*types.Node, error)
 
 	// cluster methods
+	Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error)
 	BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error)
 	RemoveImage(ctx context.Context, podname, nodename string, images []string) (chan *types.RemoveImageMessage, error)
 	DeployStatusStream(ctx context.Context, appname, entrypoint, nodename string) chan *types.DeployStatus
 	RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error)
-	//TODO ctx
-	Backup(id, srcPath string) (*types.BackupMessage, error)
 	// this methods will run synchronously
 	CreateContainer(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
 	RemoveContainer(ids []string, force bool) (chan *types.RemoveContainerMessage, error)

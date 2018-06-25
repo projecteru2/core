@@ -11,7 +11,6 @@ entrypoints:
     log_config:"journald"
 volumes:
   - <HOST_CONFIG_DIR_PATH>: /etc/eru
-  - <HOST_BACKUP_DIR_PATH>: /data/backup
 stages:
   - build
   - pack

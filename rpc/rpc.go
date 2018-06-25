@@ -1,17 +1,19 @@
 package rpc
 
 import (
+	"bufio"
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"sync"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
@@ -305,6 +307,74 @@ func (v *vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	return err
 }
 
+func (v *vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) error {
+	v.taskAdd("Copy", true)
+	defer v.taskDone("Copy", true)
+
+	copyOpts := toCoreCopyOptions(opts)
+	ch, err := v.cluster.Copy(stream.Context(), copyOpts)
+	if err != nil {
+		return err
+	}
+
+	//4K buffer
+	bsize := 4 * 1024
+
+	for m := range ch {
+		var copyError string
+		if m.Error != nil {
+			copyError = fmt.Sprintf("%v", m.Error)
+			if err := stream.Send(&pb.CopyMessage{
+				Id:     m.ID,
+				Status: m.Status,
+				Name:   m.Name,
+				Path:   m.Path,
+				Error:  copyError,
+				Data:   []byte{},
+			}); err != nil {
+				v.logUnsentMessages("Copy", m)
+			}
+			continue
+		}
+
+		r, w := io.Pipe()
+		go func() {
+			defer w.Close()
+			defer m.Data.Close()
+			buffer := bufio.NewWriterSize(w, bsize)
+			defer buffer.Flush()
+			gw := gzip.NewWriter(buffer)
+			defer gw.Close()
+			_, err = io.Copy(gw, m.Data)
+			if err != nil {
+				log.Errorf("[Copy] Error during copy resp: %v", err)
+			}
+		}()
+
+		for {
+			p := make([]byte, bsize)
+			n, err := r.Read(p)
+			if err != nil {
+				if err != io.EOF {
+					log.Errorf("[Copy] Error during buffer resp: %v", err)
+				}
+				break
+			}
+			if err = stream.Send(&pb.CopyMessage{
+				Id:     m.ID,
+				Status: m.Status,
+				Name:   m.Name,
+				Path:   m.Path,
+				Error:  copyError,
+				Data:   p[:n],
+			}); err != nil {
+				v.logUnsentMessages("Copy", m)
+			}
+		}
+	}
+	return nil
+}
+
 func (v *vibranium) RemoveContainer(opts *pb.RemoveContainerOptions, stream pb.CoreRPC_RemoveContainerServer) error {
 	v.taskAdd("RemoveContainer", true)
 	defer v.taskDone("RemoveContainer", true)
@@ -391,17 +461,6 @@ func (v *vibranium) DeployStatus(opts *pb.DeployStatusOptions, stream pb.CoreRPC
 	return nil
 }
 
-func (v *vibranium) Backup(ctx context.Context, opts *pb.BackupOptions) (*pb.BackupMessage, error) {
-	v.taskAdd("Backup", false)
-	defer v.taskDone("Backup", false)
-
-	backupMessage, err := v.cluster.Backup(opts.Id, opts.SrcPath)
-	if err != nil {
-		return nil, err
-	}
-	return toRPCBackupMessage(backupMessage), nil
-}
-
 func (v *vibranium) ContainerDeployed(ctx context.Context, opts *pb.ContainerDeployedOptions) (*pb.Empty, error) {
 	v.taskAdd("ContainerDeployed", false)
 	defer v.taskDone("ContainerDeployed", false)
@@ -412,6 +471,7 @@ func (v *vibranium) logUnsentMessages(msgType string, msg interface{}) {
 	log.Infof("[logUnsentMessages] Unsent %s streamed message: %v", msgType, msg)
 }
 
+//New will new a new cluster instance
 func New(cluster cluster.Cluster, config types.Config) *vibranium {
 	return &vibranium{cluster: cluster, config: config, counter: sync.WaitGroup{}}
 }
