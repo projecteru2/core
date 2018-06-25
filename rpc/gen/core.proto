@@ -178,12 +178,13 @@ message Build {
     string repo = 2;
     string version = 3;
     string dir = 4;
-    repeated string commands = 5;
-    map<string, string> envs = 6;
-    map<string, string> args = 7;
-    map<string, string> labels = 8;
-    map<string, string> artifacts = 9;
-    map<string, string> cache = 10;
+    bool submodule = 5;
+    repeated string commands = 6;
+    map<string, string> envs = 7;
+    map<string, string> args = 8;
+    map<string, string> labels = 9;
+    map<string, string> artifacts = 10;
+    map<string, string> cache = 11;
 }
 
 message Builds {

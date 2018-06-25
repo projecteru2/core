@@ -13,11 +13,11 @@ import (
 	"strings"
 	"text/template"
 
-	log "github.com/sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -60,7 +60,7 @@ func (c *calcium) preparedSource(build *types.Build, buildDir string) (string, e
 		// clone code into cloneDir
 		// which is under buildDir and named as repository name
 		cloneDir = filepath.Join(buildDir, reponame)
-		if err := c.source.SourceCode(build.Repo, cloneDir, build.Version); err != nil {
+		if err := c.source.SourceCode(build.Repo, cloneDir, build.Version, build.Submodule); err != nil {
 			return "", err
 		}
 

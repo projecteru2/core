@@ -37,12 +37,12 @@ func (_m *Source) Security(path string) error {
 }
 
 // SourceCode provides a mock function with given fields: repository, path, revision
-func (_m *Source) SourceCode(repository string, path string, revision string) error {
-	ret := _m.Called(repository, path, revision)
+func (_m *Source) SourceCode(repository, path, revision string, submodule bool) error {
+	ret := _m.Called(repository, path, revision, submodule)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string, string) error); ok {
-		r0 = rf(repository, path, revision)
+	if rf, ok := ret.Get(0).(func(string, string, string, bool) error); ok {
+		r0 = rf(repository, path, revision, false)
 	} else {
 		r0 = ret.Error(0)
 	}

@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='core.proto',
   package='pb',
   syntax='proto3',
-  serialized_pb=_b('\n\ncore.proto\x12\x02pb\"\x07\n\x05\x45mpty\"L\n\x13\x44\x65ployStatusOptions\x12\x0f\n\x07\x61ppname\x18\x01 \x01(\t\x12\x12\n\nentrypoint\x18\x02 \x01(\t\x12\x10\n\x08nodename\x18\x03 \x01(\t\"v\n\x13\x44\x65ployStatusMessage\x12\x0e\n\x06\x61\x63tion\x18\x01 \x01(\t\x12\x0f\n\x07\x61ppname\x18\x02 \x01(\t\x12\x12\n\nentrypoint\x18\x03 \x01(\t\x12\x10\n\x08nodename\x18\x04 \x01(\t\x12\n\n\x02id\x18\x05 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x06 \x01(\x0c\"!\n\x03Pod\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\"\x1d\n\x04Pods\x12\x15\n\x04pods\x18\x01 \x03(\x0b\x32\x07.pb.Pod\"5\n\x12ListNetworkOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x0e\n\x06\x64river\x18\x02 \x01(\t\"(\n\x07Network\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07subnets\x18\x02 \x03(\t\")\n\x08Networks\x12\x1d\n\x08networks\x18\x01 \x03(\x0b\x32\x0b.pb.Network\"\x89\x02\n\x04Node\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x10\n\x08\x65ndpoint\x18\x02 \x01(\t\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\x1e\n\x03\x63pu\x18\x04 \x03(\x0b\x32\x11.pb.Node.CpuEntry\x12\x0e\n\x06memory\x18\x05 \x01(\x03\x12\x0c\n\x04info\x18\x06 \x01(\t\x12\x11\n\tavailable\x18\x07 \x01(\x08\x12$\n\x06labels\x18\x08 \x03(\x0b\x32\x14.pb.Node.LabelsEntry\x1a*\n\x08\x43puEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x03:\x02\x38\x01\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\" \n\x05Nodes\x12\x17\n\x05nodes\x18\x01 \x03(\x0b\x32\x08.pb.Node\"E\n\rNodeAvailable\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\x12\x11\n\tavailable\x18\x03 \x01(\x08\"V\n\tContainer\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\x12\x10\n\x08nodename\x18\x03 \x01(\t\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\x0c\n\x04info\x18\x05 \x01(\t\"k\n\x18\x43ontainerDeployedOptions\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07\x61ppname\x18\x02 \x01(\t\x12\x12\n\nentrypoint\x18\x03 \x01(\t\x12\x10\n\x08nodename\x18\x04 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x05 \x01(\x0c\"/\n\nContainers\x12!\n\ncontainers\x18\x01 \x03(\x0b\x32\r.pb.Container\"\x19\n\x0b\x43ontainerID\x12\n\n\x02id\x18\x01 \x01(\t\"\x1b\n\x0c\x43ontainerIDs\x12\x0b\n\x03ids\x18\x01 \x03(\t\"4\n\x16RemoveContainerOptions\x12\x0b\n\x03ids\x18\x01 \x03(\t\x12\r\n\x05\x66orce\x18\x02 \x01(\x08\"7\n\x0eReallocOptions\x12\x0b\n\x03ids\x18\x01 \x03(\t\x12\x0b\n\x03\x63pu\x18\x02 \x01(\x01\x12\x0b\n\x03mem\x18\x03 \x01(\x03\":\n\rAddPodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\r\n\x05\x66\x61vor\x18\x02 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x03 \x01(\t\" \n\x10RemovePodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1d\n\rGetPodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\"\xf7\x01\n\x0e\x41\x64\x64NodeOptions\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x10\n\x08\x65ndpoint\x18\x02 \x01(\t\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\n\n\x02\x63\x61\x18\x04 \x01(\t\x12\x0c\n\x04\x63\x65rt\x18\x05 \x01(\t\x12\x0b\n\x03key\x18\x06 \x01(\t\x12\x0b\n\x03\x63pu\x18\x07 \x01(\x05\x12\r\n\x05share\x18\x08 \x01(\x03\x12\x0e\n\x06memory\x18\t \x01(\x03\x12.\n\x06labels\x18\n \x03(\x0b\x32\x1e.pb.AddNodeOptions.LabelsEntry\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"6\n\x11RemoveNodeOptions\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\"3\n\x0eGetNodeOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\"0\n\x10ListNodesOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x0b\n\x03\x61ll\x18\x02 \x01(\x08\"\xfb\x03\n\x05\x42uild\x12\x0c\n\x04\x62\x61se\x18\x01 \x01(\t\x12\x0c\n\x04repo\x18\x02 \x01(\t\x12\x0f\n\x07version\x18\x03 \x01(\t\x12\x0b\n\x03\x64ir\x18\x04 \x01(\t\x12\x10\n\x08\x63ommands\x18\x05 \x03(\t\x12!\n\x04\x65nvs\x18\x06 \x03(\x0b\x32\x13.pb.Build.EnvsEntry\x12!\n\x04\x61rgs\x18\x07 \x03(\x0b\x32\x13.pb.Build.ArgsEntry\x12%\n\x06labels\x18\x08 \x03(\x0b\x32\x15.pb.Build.LabelsEntry\x12+\n\tartifacts\x18\t \x03(\x0b\x32\x18.pb.Build.ArtifactsEntry\x12#\n\x05\x63\x61\x63he\x18\n \x03(\x0b\x32\x14.pb.Build.CacheEntry\x1a+\n\tEnvsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a+\n\tArgsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a\x30\n\x0e\x41rtifactsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a,\n\nCacheEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"z\n\x06\x42uilds\x12\x0e\n\x06stages\x18\x01 \x03(\t\x12&\n\x06\x62uilds\x18\x02 \x03(\x0b\x32\x16.pb.Builds.BuildsEntry\x1a\x38\n\x0b\x42uildsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x18\n\x05value\x18\x02 \x01(\x0b\x32\t.pb.Build:\x02\x38\x01\"e\n\x11\x42uildImageOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04user\x18\x02 \x01(\t\x12\x0b\n\x03uid\x18\x03 \x01(\x05\x12\x0b\n\x03tag\x18\x04 \x01(\t\x12\x1a\n\x06\x62uilds\x18\x05 \x01(\x0b\x32\n.pb.Builds\"F\n\x0bHookOptions\x12\x13\n\x0b\x61\x66ter_start\x18\x01 \x03(\t\x12\x13\n\x0b\x62\x65\x66ore_stop\x18\x02 \x03(\t\x12\r\n\x05\x66orce\x18\x03 \x01(\x08\"U\n\x12HealthCheckOptions\x12\x11\n\ttcp_ports\x18\x01 \x03(\t\x12\x11\n\thttp_port\x18\x02 \x01(\t\x12\x0b\n\x03url\x18\x03 \x01(\t\x12\x0c\n\x04\x63ode\x18\x04 \x01(\x05\"\xdc\x01\n\x11\x45ntrypointOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x63ommand\x18\x02 \x01(\t\x12\x12\n\nprivileged\x18\x03 \x01(\x08\x12\x0b\n\x03\x64ir\x18\x04 \x01(\t\x12\x12\n\nlog_config\x18\x05 \x01(\t\x12\x0f\n\x07publish\x18\x06 \x03(\t\x12+\n\x0bhealthcheck\x18\x07 \x01(\x0b\x32\x16.pb.HealthCheckOptions\x12\x1d\n\x04hook\x18\x08 \x01(\x0b\x32\x0f.pb.HookOptions\x12\x16\n\x0erestart_policy\x18\t \x01(\t\"\x81\x05\n\rDeployOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12)\n\nentrypoint\x18\x02 \x01(\x0b\x32\x15.pb.EntrypointOptions\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\x10\n\x08nodename\x18\x04 \x01(\t\x12\r\n\x05image\x18\x05 \x01(\t\x12\x12\n\nextra_args\x18\x06 \x01(\t\x12\x11\n\tcpu_quota\x18\x07 \x01(\x01\x12\x0e\n\x06memory\x18\x08 \x01(\x03\x12\r\n\x05\x63ount\x18\t \x01(\x05\x12\x0b\n\x03\x65nv\x18\n \x03(\t\x12\x0b\n\x03\x64ns\x18\x0b \x03(\t\x12\x13\n\x0b\x65xtra_hosts\x18\x0c \x03(\t\x12\x0f\n\x07volumes\x18\r \x03(\t\x12\x31\n\x08networks\x18\x0e \x03(\x0b\x32\x1f.pb.DeployOptions.NetworksEntry\x12\x13\n\x0bnetworkmode\x18\x0f \x01(\t\x12\x0c\n\x04user\x18\x10 \x01(\t\x12\r\n\x05\x64\x65\x62ug\x18\x11 \x01(\x08\x12\x11\n\topenStdin\x18\x12 \x01(\x08\x12)\n\x04meta\x18\x13 \x03(\x0b\x32\x1b.pb.DeployOptions.MetaEntry\x12\x35\n\nnodelabels\x18\x14 \x03(\x0b\x32!.pb.DeployOptions.NodelabelsEntry\x12\x14\n\x0craw_resource\x18\x15 \x01(\x08\x1a/\n\rNetworksEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a+\n\tMetaEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a\x31\n\x0fNodelabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"G\n\x12RemoveImageOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\x12\x0e\n\x06images\x18\x03 \x03(\t\"-\n\rBackupOptions\x12\n\n\x02id\x18\x01 \x01(\t\x12\x10\n\x08src_path\x18\x02 \x01(\t\",\n\x0b\x45rrorDetail\x12\x0c\n\x04\x63ode\x18\x01 \x01(\x03\x12\x0f\n\x07message\x18\x02 \x01(\t\"\x87\x01\n\x11\x42uildImageMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x10\n\x08progress\x18\x03 \x01(\t\x12\r\n\x05\x65rror\x18\x04 \x01(\t\x12\x0e\n\x06stream\x18\x05 \x01(\t\x12%\n\x0c\x65rror_detail\x18\x06 \x01(\x0b\x32\x0f.pb.ErrorDetail\"\xea\x02\n\x16\x43reateContainerMessage\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\x12\n\n\x02id\x18\x03 \x01(\t\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\r\n\x05\x65rror\x18\x05 \x01(\t\x12\x0f\n\x07success\x18\x06 \x01(\x08\x12\x30\n\x03\x63pu\x18\x07 \x03(\x0b\x32#.pb.CreateContainerMessage.CpuEntry\x12\r\n\x05quota\x18\x08 \x01(\x01\x12\x0e\n\x06memory\x18\t \x01(\x03\x12\x38\n\x07publish\x18\n \x03(\x0b\x32\'.pb.CreateContainerMessage.PublishEntry\x12\x0c\n\x04hook\x18\x0b \x01(\x0c\x1a*\n\x08\x43puEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x03:\x02\x38\x01\x1a.\n\x0cPublishEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"7\n\x11RunAndWaitMessage\x12\x14\n\x0c\x63ontainer_id\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"F\n\x12RemoveImageMessage\x12\r\n\x05image\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x10\n\x08messages\x18\x03 \x03(\t\"F\n\x16RemoveContainerMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x0f\n\x07message\x18\x03 \x01(\t\"5\n\x16ReallocResourceMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\"J\n\rBackupMessage\x12\x0e\n\x06status\x18\x01 \x01(\t\x12\x0c\n\x04size\x18\x02 \x01(\x03\x12\r\n\x05\x65rror\x18\x03 \x01(\t\x12\x0c\n\x04path\x18\x04 \x01(\t\"J\n\x11RunAndWaitOptions\x12(\n\rDeployOptions\x18\x01 \x01(\x0b\x32\x11.pb.DeployOptions\x12\x0b\n\x03\x43md\x18\x02 \x01(\x0c\x32\xfe\t\n\x07\x43oreRPC\x12!\n\x08ListPods\x12\t.pb.Empty\x1a\x08.pb.Pods\"\x00\x12&\n\x06\x41\x64\x64Pod\x12\x11.pb.AddPodOptions\x1a\x07.pb.Pod\"\x00\x12.\n\tRemovePod\x12\x14.pb.RemovePodOptions\x1a\t.pb.Empty\"\x00\x12&\n\x06GetPod\x12\x11.pb.GetPodOptions\x1a\x07.pb.Pod\"\x00\x12)\n\x07\x41\x64\x64Node\x12\x12.pb.AddNodeOptions\x1a\x08.pb.Node\"\x00\x12.\n\nRemoveNode\x12\x15.pb.RemoveNodeOptions\x1a\x07.pb.Pod\"\x00\x12)\n\x07GetNode\x12\x12.pb.GetNodeOptions\x1a\x08.pb.Node\"\x00\x12\x31\n\x0cListPodNodes\x12\x14.pb.ListNodesOptions\x1a\t.pb.Nodes\"\x00\x12\x30\n\x0cGetContainer\x12\x0f.pb.ContainerID\x1a\r.pb.Container\"\x00\x12\x33\n\rGetContainers\x12\x10.pb.ContainerIDs\x1a\x0e.pb.Containers\"\x00\x12\x36\n\x0cListNetworks\x12\x16.pb.ListNetworkOptions\x1a\x0c.pb.Networks\"\x00\x12\x31\n\x10SetNodeAvailable\x12\x11.pb.NodeAvailable\x1a\x08.pb.Node\"\x00\x12\x30\n\x06\x42\x61\x63kup\x12\x11.pb.BackupOptions\x1a\x11.pb.BackupMessage\"\x00\x12/\n\rGetNodeByName\x12\x12.pb.GetNodeOptions\x1a\x08.pb.Node\"\x00\x12>\n\x11\x43ontainerDeployed\x12\x1c.pb.ContainerDeployedOptions\x1a\t.pb.Empty\"\x00\x12;\n\x0eListContainers\x12\x17.pb.DeployStatusOptions\x1a\x0e.pb.Containers\"\x00\x12>\n\nBuildImage\x12\x15.pb.BuildImageOptions\x1a\x15.pb.BuildImageMessage\"\x00\x30\x01\x12\x41\n\x0bRemoveImage\x12\x16.pb.RemoveImageOptions\x1a\x16.pb.RemoveImageMessage\"\x00\x30\x01\x12\x44\n\x0c\x44\x65ployStatus\x12\x17.pb.DeployStatusOptions\x1a\x17.pb.DeployStatusMessage\"\x00\x30\x01\x12@\n\nRunAndWait\x12\x15.pb.RunAndWaitOptions\x1a\x15.pb.RunAndWaitMessage\"\x00(\x01\x30\x01\x12\x44\n\x0f\x43reateContainer\x12\x11.pb.DeployOptions\x1a\x1a.pb.CreateContainerMessage\"\x00\x30\x01\x12M\n\x0fRemoveContainer\x12\x1a.pb.RemoveContainerOptions\x1a\x1a.pb.RemoveContainerMessage\"\x00\x30\x01\x12\x45\n\x0fReallocResource\x12\x12.pb.ReallocOptions\x1a\x1a.pb.ReallocResourceMessage\"\x00\x30\x01\x62\x06proto3')
+  serialized_pb=_b('\n\ncore.proto\x12\x02pb\"\x07\n\x05\x45mpty\"L\n\x13\x44\x65ployStatusOptions\x12\x0f\n\x07\x61ppname\x18\x01 \x01(\t\x12\x12\n\nentrypoint\x18\x02 \x01(\t\x12\x10\n\x08nodename\x18\x03 \x01(\t\"v\n\x13\x44\x65ployStatusMessage\x12\x0e\n\x06\x61\x63tion\x18\x01 \x01(\t\x12\x0f\n\x07\x61ppname\x18\x02 \x01(\t\x12\x12\n\nentrypoint\x18\x03 \x01(\t\x12\x10\n\x08nodename\x18\x04 \x01(\t\x12\n\n\x02id\x18\x05 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x06 \x01(\x0c\"!\n\x03Pod\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\"\x1d\n\x04Pods\x12\x15\n\x04pods\x18\x01 \x03(\x0b\x32\x07.pb.Pod\"5\n\x12ListNetworkOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x0e\n\x06\x64river\x18\x02 \x01(\t\"(\n\x07Network\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07subnets\x18\x02 \x03(\t\")\n\x08Networks\x12\x1d\n\x08networks\x18\x01 \x03(\x0b\x32\x0b.pb.Network\"\x89\x02\n\x04Node\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x10\n\x08\x65ndpoint\x18\x02 \x01(\t\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\x1e\n\x03\x63pu\x18\x04 \x03(\x0b\x32\x11.pb.Node.CpuEntry\x12\x0e\n\x06memory\x18\x05 \x01(\x03\x12\x0c\n\x04info\x18\x06 \x01(\t\x12\x11\n\tavailable\x18\x07 \x01(\x08\x12$\n\x06labels\x18\x08 \x03(\x0b\x32\x14.pb.Node.LabelsEntry\x1a*\n\x08\x43puEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x03:\x02\x38\x01\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\" \n\x05Nodes\x12\x17\n\x05nodes\x18\x01 \x03(\x0b\x32\x08.pb.Node\"E\n\rNodeAvailable\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\x12\x11\n\tavailable\x18\x03 \x01(\x08\"V\n\tContainer\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\x12\x10\n\x08nodename\x18\x03 \x01(\t\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\x0c\n\x04info\x18\x05 \x01(\t\"k\n\x18\x43ontainerDeployedOptions\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07\x61ppname\x18\x02 \x01(\t\x12\x12\n\nentrypoint\x18\x03 \x01(\t\x12\x10\n\x08nodename\x18\x04 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x05 \x01(\x0c\"/\n\nContainers\x12!\n\ncontainers\x18\x01 \x03(\x0b\x32\r.pb.Container\"\x19\n\x0b\x43ontainerID\x12\n\n\x02id\x18\x01 \x01(\t\"\x1b\n\x0c\x43ontainerIDs\x12\x0b\n\x03ids\x18\x01 \x03(\t\"4\n\x16RemoveContainerOptions\x12\x0b\n\x03ids\x18\x01 \x03(\t\x12\r\n\x05\x66orce\x18\x02 \x01(\x08\"7\n\x0eReallocOptions\x12\x0b\n\x03ids\x18\x01 \x03(\t\x12\x0b\n\x03\x63pu\x18\x02 \x01(\x01\x12\x0b\n\x03mem\x18\x03 \x01(\x03\":\n\rAddPodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\r\n\x05\x66\x61vor\x18\x02 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x03 \x01(\t\" \n\x10RemovePodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1d\n\rGetPodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\"\xf7\x01\n\x0e\x41\x64\x64NodeOptions\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x10\n\x08\x65ndpoint\x18\x02 \x01(\t\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\n\n\x02\x63\x61\x18\x04 \x01(\t\x12\x0c\n\x04\x63\x65rt\x18\x05 \x01(\t\x12\x0b\n\x03key\x18\x06 \x01(\t\x12\x0b\n\x03\x63pu\x18\x07 \x01(\x05\x12\r\n\x05share\x18\x08 \x01(\x03\x12\x0e\n\x06memory\x18\t \x01(\x03\x12.\n\x06labels\x18\n \x03(\x0b\x32\x1e.pb.AddNodeOptions.LabelsEntry\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"6\n\x11RemoveNodeOptions\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\"3\n\x0eGetNodeOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\"0\n\x10ListNodesOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x0b\n\x03\x61ll\x18\x02 \x01(\x08\"\x8e\x04\n\x05\x42uild\x12\x0c\n\x04\x62\x61se\x18\x01 \x01(\t\x12\x0c\n\x04repo\x18\x02 \x01(\t\x12\x0f\n\x07version\x18\x03 \x01(\t\x12\x0b\n\x03\x64ir\x18\x04 \x01(\t\x12\x11\n\tsubmodule\x18\x05 \x01(\x08\x12\x10\n\x08\x63ommands\x18\x06 \x03(\t\x12!\n\x04\x65nvs\x18\x07 \x03(\x0b\x32\x13.pb.Build.EnvsEntry\x12!\n\x04\x61rgs\x18\x08 \x03(\x0b\x32\x13.pb.Build.ArgsEntry\x12%\n\x06labels\x18\t \x03(\x0b\x32\x15.pb.Build.LabelsEntry\x12+\n\tartifacts\x18\n \x03(\x0b\x32\x18.pb.Build.ArtifactsEntry\x12#\n\x05\x63\x61\x63he\x18\x0b \x03(\x0b\x32\x14.pb.Build.CacheEntry\x1a+\n\tEnvsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a+\n\tArgsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a\x30\n\x0e\x41rtifactsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a,\n\nCacheEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"z\n\x06\x42uilds\x12\x0e\n\x06stages\x18\x01 \x03(\t\x12&\n\x06\x62uilds\x18\x02 \x03(\x0b\x32\x16.pb.Builds.BuildsEntry\x1a\x38\n\x0b\x42uildsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x18\n\x05value\x18\x02 \x01(\x0b\x32\t.pb.Build:\x02\x38\x01\"e\n\x11\x42uildImageOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04user\x18\x02 \x01(\t\x12\x0b\n\x03uid\x18\x03 \x01(\x05\x12\x0b\n\x03tag\x18\x04 \x01(\t\x12\x1a\n\x06\x62uilds\x18\x05 \x01(\x0b\x32\n.pb.Builds\"F\n\x0bHookOptions\x12\x13\n\x0b\x61\x66ter_start\x18\x01 \x03(\t\x12\x13\n\x0b\x62\x65\x66ore_stop\x18\x02 \x03(\t\x12\r\n\x05\x66orce\x18\x03 \x01(\x08\"U\n\x12HealthCheckOptions\x12\x11\n\ttcp_ports\x18\x01 \x03(\t\x12\x11\n\thttp_port\x18\x02 \x01(\t\x12\x0b\n\x03url\x18\x03 \x01(\t\x12\x0c\n\x04\x63ode\x18\x04 \x01(\x05\"\xdc\x01\n\x11\x45ntrypointOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x63ommand\x18\x02 \x01(\t\x12\x12\n\nprivileged\x18\x03 \x01(\x08\x12\x0b\n\x03\x64ir\x18\x04 \x01(\t\x12\x12\n\nlog_config\x18\x05 \x01(\t\x12\x0f\n\x07publish\x18\x06 \x03(\t\x12+\n\x0bhealthcheck\x18\x07 \x01(\x0b\x32\x16.pb.HealthCheckOptions\x12\x1d\n\x04hook\x18\x08 \x01(\x0b\x32\x0f.pb.HookOptions\x12\x16\n\x0erestart_policy\x18\t \x01(\t\"\x81\x05\n\rDeployOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12)\n\nentrypoint\x18\x02 \x01(\x0b\x32\x15.pb.EntrypointOptions\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\x10\n\x08nodename\x18\x04 \x01(\t\x12\r\n\x05image\x18\x05 \x01(\t\x12\x12\n\nextra_args\x18\x06 \x01(\t\x12\x11\n\tcpu_quota\x18\x07 \x01(\x01\x12\x0e\n\x06memory\x18\x08 \x01(\x03\x12\r\n\x05\x63ount\x18\t \x01(\x05\x12\x0b\n\x03\x65nv\x18\n \x03(\t\x12\x0b\n\x03\x64ns\x18\x0b \x03(\t\x12\x13\n\x0b\x65xtra_hosts\x18\x0c \x03(\t\x12\x0f\n\x07volumes\x18\r \x03(\t\x12\x31\n\x08networks\x18\x0e \x03(\x0b\x32\x1f.pb.DeployOptions.NetworksEntry\x12\x13\n\x0bnetworkmode\x18\x0f \x01(\t\x12\x0c\n\x04user\x18\x10 \x01(\t\x12\r\n\x05\x64\x65\x62ug\x18\x11 \x01(\x08\x12\x11\n\topenStdin\x18\x12 \x01(\x08\x12)\n\x04meta\x18\x13 \x03(\x0b\x32\x1b.pb.DeployOptions.MetaEntry\x12\x35\n\nnodelabels\x18\x14 \x03(\x0b\x32!.pb.DeployOptions.NodelabelsEntry\x12\x14\n\x0craw_resource\x18\x15 \x01(\x08\x1a/\n\rNetworksEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a+\n\tMetaEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a\x31\n\x0fNodelabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"G\n\x12RemoveImageOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\x12\x0e\n\x06images\x18\x03 \x03(\t\"-\n\rBackupOptions\x12\n\n\x02id\x18\x01 \x01(\t\x12\x10\n\x08src_path\x18\x02 \x01(\t\",\n\x0b\x45rrorDetail\x12\x0c\n\x04\x63ode\x18\x01 \x01(\x03\x12\x0f\n\x07message\x18\x02 \x01(\t\"\x87\x01\n\x11\x42uildImageMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x10\n\x08progress\x18\x03 \x01(\t\x12\r\n\x05\x65rror\x18\x04 \x01(\t\x12\x0e\n\x06stream\x18\x05 \x01(\t\x12%\n\x0c\x65rror_detail\x18\x06 \x01(\x0b\x32\x0f.pb.ErrorDetail\"\xea\x02\n\x16\x43reateContainerMessage\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\x12\n\n\x02id\x18\x03 \x01(\t\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\r\n\x05\x65rror\x18\x05 \x01(\t\x12\x0f\n\x07success\x18\x06 \x01(\x08\x12\x30\n\x03\x63pu\x18\x07 \x03(\x0b\x32#.pb.CreateContainerMessage.CpuEntry\x12\r\n\x05quota\x18\x08 \x01(\x01\x12\x0e\n\x06memory\x18\t \x01(\x03\x12\x38\n\x07publish\x18\n \x03(\x0b\x32\'.pb.CreateContainerMessage.PublishEntry\x12\x0c\n\x04hook\x18\x0b \x01(\x0c\x1a*\n\x08\x43puEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x03:\x02\x38\x01\x1a.\n\x0cPublishEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"7\n\x11RunAndWaitMessage\x12\x14\n\x0c\x63ontainer_id\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"F\n\x12RemoveImageMessage\x12\r\n\x05image\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x10\n\x08messages\x18\x03 \x03(\t\"F\n\x16RemoveContainerMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x0f\n\x07message\x18\x03 \x01(\t\"5\n\x16ReallocResourceMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\"J\n\rBackupMessage\x12\x0e\n\x06status\x18\x01 \x01(\t\x12\x0c\n\x04size\x18\x02 \x01(\x03\x12\r\n\x05\x65rror\x18\x03 \x01(\t\x12\x0c\n\x04path\x18\x04 \x01(\t\"J\n\x11RunAndWaitOptions\x12(\n\rDeployOptions\x18\x01 \x01(\x0b\x32\x11.pb.DeployOptions\x12\x0b\n\x03\x43md\x18\x02 \x01(\x0c\x32\xfe\t\n\x07\x43oreRPC\x12!\n\x08ListPods\x12\t.pb.Empty\x1a\x08.pb.Pods\"\x00\x12&\n\x06\x41\x64\x64Pod\x12\x11.pb.AddPodOptions\x1a\x07.pb.Pod\"\x00\x12.\n\tRemovePod\x12\x14.pb.RemovePodOptions\x1a\t.pb.Empty\"\x00\x12&\n\x06GetPod\x12\x11.pb.GetPodOptions\x1a\x07.pb.Pod\"\x00\x12)\n\x07\x41\x64\x64Node\x12\x12.pb.AddNodeOptions\x1a\x08.pb.Node\"\x00\x12.\n\nRemoveNode\x12\x15.pb.RemoveNodeOptions\x1a\x07.pb.Pod\"\x00\x12)\n\x07GetNode\x12\x12.pb.GetNodeOptions\x1a\x08.pb.Node\"\x00\x12\x31\n\x0cListPodNodes\x12\x14.pb.ListNodesOptions\x1a\t.pb.Nodes\"\x00\x12\x30\n\x0cGetContainer\x12\x0f.pb.ContainerID\x1a\r.pb.Container\"\x00\x12\x33\n\rGetContainers\x12\x10.pb.ContainerIDs\x1a\x0e.pb.Containers\"\x00\x12\x36\n\x0cListNetworks\x12\x16.pb.ListNetworkOptions\x1a\x0c.pb.Networks\"\x00\x12\x31\n\x10SetNodeAvailable\x12\x11.pb.NodeAvailable\x1a\x08.pb.Node\"\x00\x12\x30\n\x06\x42\x61\x63kup\x12\x11.pb.BackupOptions\x1a\x11.pb.BackupMessage\"\x00\x12/\n\rGetNodeByName\x12\x12.pb.GetNodeOptions\x1a\x08.pb.Node\"\x00\x12>\n\x11\x43ontainerDeployed\x12\x1c.pb.ContainerDeployedOptions\x1a\t.pb.Empty\"\x00\x12;\n\x0eListContainers\x12\x17.pb.DeployStatusOptions\x1a\x0e.pb.Containers\"\x00\x12>\n\nBuildImage\x12\x15.pb.BuildImageOptions\x1a\x15.pb.BuildImageMessage\"\x00\x30\x01\x12\x41\n\x0bRemoveImage\x12\x16.pb.RemoveImageOptions\x1a\x16.pb.RemoveImageMessage\"\x00\x30\x01\x12\x44\n\x0c\x44\x65ployStatus\x12\x17.pb.DeployStatusOptions\x1a\x17.pb.DeployStatusMessage\"\x00\x30\x01\x12@\n\nRunAndWait\x12\x15.pb.RunAndWaitOptions\x1a\x15.pb.RunAndWaitMessage\"\x00(\x01\x30\x01\x12\x44\n\x0f\x43reateContainer\x12\x11.pb.DeployOptions\x1a\x1a.pb.CreateContainerMessage\"\x00\x30\x01\x12M\n\x0fRemoveContainer\x12\x1a.pb.RemoveContainerOptions\x1a\x1a.pb.RemoveContainerMessage\"\x00\x30\x01\x12\x45\n\x0fReallocResource\x12\x12.pb.ReallocOptions\x1a\x1a.pb.ReallocResourceMessage\"\x00\x30\x01\x62\x06proto3')
 )
 
 
@@ -62,21 +62,21 @@ _DEPLOYSTATUSOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='entrypoint', full_name='pb.DeployStatusOptions.entrypoint', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='nodename', full_name='pb.DeployStatusOptions.nodename', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -107,42 +107,42 @@ _DEPLOYSTATUSMESSAGE = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='appname', full_name='pb.DeployStatusMessage.appname', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='entrypoint', full_name='pb.DeployStatusMessage.entrypoint', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='nodename', full_name='pb.DeployStatusMessage.nodename', index=3,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='id', full_name='pb.DeployStatusMessage.id', index=4,
       number=5, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='data', full_name='pb.DeployStatusMessage.data', index=5,
       number=6, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -173,14 +173,14 @@ _POD = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='desc', full_name='pb.Pod.desc', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -211,7 +211,7 @@ _PODS = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -242,14 +242,14 @@ _LISTNETWORKOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='driver', full_name='pb.ListNetworkOptions.driver', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -280,14 +280,14 @@ _NETWORK = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='subnets', full_name='pb.Network.subnets', index=1,
       number=2, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -318,7 +318,7 @@ _NETWORKS = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -349,14 +349,14 @@ _NODE_CPUENTRY = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='value', full_name='pb.Node.CpuEntry.value', index=1,
       number=2, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -386,14 +386,14 @@ _NODE_LABELSENTRY = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='value', full_name='pb.Node.LabelsEntry.value', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -423,56 +423,56 @@ _NODE = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='endpoint', full_name='pb.Node.endpoint', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='podname', full_name='pb.Node.podname', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='cpu', full_name='pb.Node.cpu', index=3,
       number=4, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='memory', full_name='pb.Node.memory', index=4,
       number=5, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='info', full_name='pb.Node.info', index=5,
       number=6, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='available', full_name='pb.Node.available', index=6,
       number=7, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='labels', full_name='pb.Node.labels', index=7,
       number=8, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -503,7 +503,7 @@ _NODES = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -534,21 +534,21 @@ _NODEAVAILABLE = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='podname', full_name='pb.NodeAvailable.podname', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='available', full_name='pb.NodeAvailable.available', index=2,
       number=3, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -579,35 +579,35 @@ _CONTAINER = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='podname', full_name='pb.Container.podname', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='nodename', full_name='pb.Container.nodename', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='name', full_name='pb.Container.name', index=3,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='info', full_name='pb.Container.info', index=4,
       number=5, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -638,35 +638,35 @@ _CONTAINERDEPLOYEDOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='appname', full_name='pb.ContainerDeployedOptions.appname', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='entrypoint', full_name='pb.ContainerDeployedOptions.entrypoint', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='nodename', full_name='pb.ContainerDeployedOptions.nodename', index=3,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='data', full_name='pb.ContainerDeployedOptions.data', index=4,
       number=5, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -697,7 +697,7 @@ _CONTAINERS = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -728,7 +728,7 @@ _CONTAINERID = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -759,7 +759,7 @@ _CONTAINERIDS = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -790,14 +790,14 @@ _REMOVECONTAINEROPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='force', full_name='pb.RemoveContainerOptions.force', index=1,
       number=2, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -828,21 +828,21 @@ _REALLOCOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='cpu', full_name='pb.ReallocOptions.cpu', index=1,
       number=2, type=1, cpp_type=5, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='mem', full_name='pb.ReallocOptions.mem', index=2,
       number=3, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -873,21 +873,21 @@ _ADDPODOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='favor', full_name='pb.AddPodOptions.favor', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='desc', full_name='pb.AddPodOptions.desc', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -918,7 +918,7 @@ _REMOVEPODOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -949,7 +949,7 @@ _GETPODOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -980,14 +980,14 @@ _ADDNODEOPTIONS_LABELSENTRY = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='value', full_name='pb.AddNodeOptions.LabelsEntry.value', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1017,70 +1017,70 @@ _ADDNODEOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='endpoint', full_name='pb.AddNodeOptions.endpoint', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='podname', full_name='pb.AddNodeOptions.podname', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='ca', full_name='pb.AddNodeOptions.ca', index=3,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='cert', full_name='pb.AddNodeOptions.cert', index=4,
       number=5, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='key', full_name='pb.AddNodeOptions.key', index=5,
       number=6, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='cpu', full_name='pb.AddNodeOptions.cpu', index=6,
       number=7, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='share', full_name='pb.AddNodeOptions.share', index=7,
       number=8, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='memory', full_name='pb.AddNodeOptions.memory', index=8,
       number=9, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='labels', full_name='pb.AddNodeOptions.labels', index=9,
       number=10, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1111,14 +1111,14 @@ _REMOVENODEOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='podname', full_name='pb.RemoveNodeOptions.podname', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1149,14 +1149,14 @@ _GETNODEOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='nodename', full_name='pb.GetNodeOptions.nodename', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1187,14 +1187,14 @@ _LISTNODESOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='all', full_name='pb.ListNodesOptions.all', index=1,
       number=2, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1225,14 +1225,14 @@ _BUILD_ENVSENTRY = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='value', full_name='pb.Build.EnvsEntry.value', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1245,8 +1245,8 @@ _BUILD_ENVSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2028,
-  serialized_end=2071,
+  serialized_start=2047,
+  serialized_end=2090,
 )
 
 _BUILD_ARGSENTRY = _descriptor.Descriptor(
@@ -1262,14 +1262,14 @@ _BUILD_ARGSENTRY = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='value', full_name='pb.Build.ArgsEntry.value', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1282,8 +1282,8 @@ _BUILD_ARGSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2073,
-  serialized_end=2116,
+  serialized_start=2092,
+  serialized_end=2135,
 )
 
 _BUILD_LABELSENTRY = _descriptor.Descriptor(
@@ -1299,14 +1299,14 @@ _BUILD_LABELSENTRY = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='value', full_name='pb.Build.LabelsEntry.value', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1336,14 +1336,14 @@ _BUILD_ARTIFACTSENTRY = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='value', full_name='pb.Build.ArtifactsEntry.value', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1356,8 +1356,8 @@ _BUILD_ARTIFACTSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2165,
-  serialized_end=2213,
+  serialized_start=2184,
+  serialized_end=2232,
 )
 
 _BUILD_CACHEENTRY = _descriptor.Descriptor(
@@ -1373,14 +1373,14 @@ _BUILD_CACHEENTRY = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='value', full_name='pb.Build.CacheEntry.value', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1393,8 +1393,8 @@ _BUILD_CACHEENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2215,
-  serialized_end=2259,
+  serialized_start=2234,
+  serialized_end=2278,
 )
 
 _BUILD = _descriptor.Descriptor(
@@ -1410,70 +1410,77 @@ _BUILD = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='repo', full_name='pb.Build.repo', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='version', full_name='pb.Build.version', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='dir', full_name='pb.Build.dir', index=3,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='commands', full_name='pb.Build.commands', index=4,
-      number=5, type=9, cpp_type=9, label=3,
+      name='submodule', full_name='pb.Build.submodule', index=4,
+      number=5, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='commands', full_name='pb.Build.commands', index=5,
+      number=6, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='envs', full_name='pb.Build.envs', index=5,
-      number=6, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='args', full_name='pb.Build.args', index=6,
+      name='envs', full_name='pb.Build.envs', index=6,
       number=7, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='labels', full_name='pb.Build.labels', index=7,
+      name='args', full_name='pb.Build.args', index=7,
       number=8, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='artifacts', full_name='pb.Build.artifacts', index=8,
+      name='labels', full_name='pb.Build.labels', index=8,
       number=9, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='cache', full_name='pb.Build.cache', index=9,
+      name='artifacts', full_name='pb.Build.artifacts', index=9,
       number=10, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='cache', full_name='pb.Build.cache', index=10,
+      number=11, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1487,7 +1494,7 @@ _BUILD = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=1752,
-  serialized_end=2259,
+  serialized_end=2278,
 )
 
 
@@ -1504,14 +1511,14 @@ _BUILDS_BUILDSENTRY = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='value', full_name='pb.Builds.BuildsEntry.value', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1524,8 +1531,8 @@ _BUILDS_BUILDSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2327,
-  serialized_end=2383,
+  serialized_start=2346,
+  serialized_end=2402,
 )
 
 _BUILDS = _descriptor.Descriptor(
@@ -1541,14 +1548,14 @@ _BUILDS = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='builds', full_name='pb.Builds.builds', index=1,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1561,8 +1568,8 @@ _BUILDS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2261,
-  serialized_end=2383,
+  serialized_start=2280,
+  serialized_end=2402,
 )
 
 
@@ -1579,35 +1586,35 @@ _BUILDIMAGEOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='user', full_name='pb.BuildImageOptions.user', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='uid', full_name='pb.BuildImageOptions.uid', index=2,
       number=3, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='tag', full_name='pb.BuildImageOptions.tag', index=3,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='builds', full_name='pb.BuildImageOptions.builds', index=4,
       number=5, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1620,8 +1627,8 @@ _BUILDIMAGEOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2385,
-  serialized_end=2486,
+  serialized_start=2404,
+  serialized_end=2505,
 )
 
 
@@ -1638,21 +1645,21 @@ _HOOKOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='before_stop', full_name='pb.HookOptions.before_stop', index=1,
       number=2, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='force', full_name='pb.HookOptions.force', index=2,
       number=3, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1665,8 +1672,8 @@ _HOOKOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2488,
-  serialized_end=2558,
+  serialized_start=2507,
+  serialized_end=2577,
 )
 
 
@@ -1683,28 +1690,28 @@ _HEALTHCHECKOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='http_port', full_name='pb.HealthCheckOptions.http_port', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='url', full_name='pb.HealthCheckOptions.url', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='code', full_name='pb.HealthCheckOptions.code', index=3,
       number=4, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1717,8 +1724,8 @@ _HEALTHCHECKOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2560,
-  serialized_end=2645,
+  serialized_start=2579,
+  serialized_end=2664,
 )
 
 
@@ -1735,63 +1742,63 @@ _ENTRYPOINTOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='command', full_name='pb.EntrypointOptions.command', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='privileged', full_name='pb.EntrypointOptions.privileged', index=2,
       number=3, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='dir', full_name='pb.EntrypointOptions.dir', index=3,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='log_config', full_name='pb.EntrypointOptions.log_config', index=4,
       number=5, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='publish', full_name='pb.EntrypointOptions.publish', index=5,
       number=6, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='healthcheck', full_name='pb.EntrypointOptions.healthcheck', index=6,
       number=7, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='hook', full_name='pb.EntrypointOptions.hook', index=7,
       number=8, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='restart_policy', full_name='pb.EntrypointOptions.restart_policy', index=8,
       number=9, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1804,8 +1811,8 @@ _ENTRYPOINTOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2648,
-  serialized_end=2868,
+  serialized_start=2667,
+  serialized_end=2887,
 )
 
 
@@ -1822,14 +1829,14 @@ _DEPLOYOPTIONS_NETWORKSENTRY = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='value', full_name='pb.DeployOptions.NetworksEntry.value', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1842,8 +1849,8 @@ _DEPLOYOPTIONS_NETWORKSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3369,
-  serialized_end=3416,
+  serialized_start=3388,
+  serialized_end=3435,
 )
 
 _DEPLOYOPTIONS_METAENTRY = _descriptor.Descriptor(
@@ -1859,14 +1866,14 @@ _DEPLOYOPTIONS_METAENTRY = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='value', full_name='pb.DeployOptions.MetaEntry.value', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1879,8 +1886,8 @@ _DEPLOYOPTIONS_METAENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3418,
-  serialized_end=3461,
+  serialized_start=3437,
+  serialized_end=3480,
 )
 
 _DEPLOYOPTIONS_NODELABELSENTRY = _descriptor.Descriptor(
@@ -1896,14 +1903,14 @@ _DEPLOYOPTIONS_NODELABELSENTRY = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='value', full_name='pb.DeployOptions.NodelabelsEntry.value', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1916,8 +1923,8 @@ _DEPLOYOPTIONS_NODELABELSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3463,
-  serialized_end=3512,
+  serialized_start=3482,
+  serialized_end=3531,
 )
 
 _DEPLOYOPTIONS = _descriptor.Descriptor(
@@ -1933,147 +1940,147 @@ _DEPLOYOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='entrypoint', full_name='pb.DeployOptions.entrypoint', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='podname', full_name='pb.DeployOptions.podname', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='nodename', full_name='pb.DeployOptions.nodename', index=3,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='image', full_name='pb.DeployOptions.image', index=4,
       number=5, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='extra_args', full_name='pb.DeployOptions.extra_args', index=5,
       number=6, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='cpu_quota', full_name='pb.DeployOptions.cpu_quota', index=6,
       number=7, type=1, cpp_type=5, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='memory', full_name='pb.DeployOptions.memory', index=7,
       number=8, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='count', full_name='pb.DeployOptions.count', index=8,
       number=9, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='env', full_name='pb.DeployOptions.env', index=9,
       number=10, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='dns', full_name='pb.DeployOptions.dns', index=10,
       number=11, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='extra_hosts', full_name='pb.DeployOptions.extra_hosts', index=11,
       number=12, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='volumes', full_name='pb.DeployOptions.volumes', index=12,
       number=13, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='networks', full_name='pb.DeployOptions.networks', index=13,
       number=14, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='networkmode', full_name='pb.DeployOptions.networkmode', index=14,
       number=15, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='user', full_name='pb.DeployOptions.user', index=15,
       number=16, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='debug', full_name='pb.DeployOptions.debug', index=16,
       number=17, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='openStdin', full_name='pb.DeployOptions.openStdin', index=17,
       number=18, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='meta', full_name='pb.DeployOptions.meta', index=18,
       number=19, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='nodelabels', full_name='pb.DeployOptions.nodelabels', index=19,
       number=20, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='raw_resource', full_name='pb.DeployOptions.raw_resource', index=20,
       number=21, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -2086,8 +2093,8 @@ _DEPLOYOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2871,
-  serialized_end=3512,
+  serialized_start=2890,
+  serialized_end=3531,
 )
 
 
@@ -2104,21 +2111,21 @@ _REMOVEIMAGEOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='nodename', full_name='pb.RemoveImageOptions.nodename', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='images', full_name='pb.RemoveImageOptions.images', index=2,
       number=3, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -2131,8 +2138,8 @@ _REMOVEIMAGEOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3514,
-  serialized_end=3585,
+  serialized_start=3533,
+  serialized_end=3604,
 )
 
 
@@ -2149,14 +2156,14 @@ _BACKUPOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='src_path', full_name='pb.BackupOptions.src_path', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -2169,8 +2176,8 @@ _BACKUPOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3587,
-  serialized_end=3632,
+  serialized_start=3606,
+  serialized_end=3651,
 )
 
 
@@ -2187,14 +2194,14 @@ _ERRORDETAIL = _descriptor.Descriptor(
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='message', full_name='pb.ErrorDetail.message', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -2207,8 +2214,8 @@ _ERRORDETAIL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3634,
-  serialized_end=3678,
+  serialized_start=3653,
+  serialized_end=3697,
 )
 
 
@@ -2225,42 +2232,42 @@ _BUILDIMAGEMESSAGE = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='status', full_name='pb.BuildImageMessage.status', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='progress', full_name='pb.BuildImageMessage.progress', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='error', full_name='pb.BuildImageMessage.error', index=3,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='stream', full_name='pb.BuildImageMessage.stream', index=4,
       number=5, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='error_detail', full_name='pb.BuildImageMessage.error_detail', index=5,
       number=6, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -2273,8 +2280,8 @@ _BUILDIMAGEMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3681,
-  serialized_end=3816,
+  serialized_start=3700,
+  serialized_end=3835,
 )
 
 
@@ -2291,14 +2298,14 @@ _CREATECONTAINERMESSAGE_CPUENTRY = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='value', full_name='pb.CreateContainerMessage.CpuEntry.value', index=1,
       number=2, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -2328,14 +2335,14 @@ _CREATECONTAINERMESSAGE_PUBLISHENTRY = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='value', full_name='pb.CreateContainerMessage.PublishEntry.value', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -2348,8 +2355,8 @@ _CREATECONTAINERMESSAGE_PUBLISHENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4135,
-  serialized_end=4181,
+  serialized_start=4154,
+  serialized_end=4200,
 )
 
 _CREATECONTAINERMESSAGE = _descriptor.Descriptor(
@@ -2365,77 +2372,77 @@ _CREATECONTAINERMESSAGE = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='nodename', full_name='pb.CreateContainerMessage.nodename', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='id', full_name='pb.CreateContainerMessage.id', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='name', full_name='pb.CreateContainerMessage.name', index=3,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='error', full_name='pb.CreateContainerMessage.error', index=4,
       number=5, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='success', full_name='pb.CreateContainerMessage.success', index=5,
       number=6, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='cpu', full_name='pb.CreateContainerMessage.cpu', index=6,
       number=7, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='quota', full_name='pb.CreateContainerMessage.quota', index=7,
       number=8, type=1, cpp_type=5, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='memory', full_name='pb.CreateContainerMessage.memory', index=8,
       number=9, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='publish', full_name='pb.CreateContainerMessage.publish', index=9,
       number=10, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='hook', full_name='pb.CreateContainerMessage.hook', index=10,
       number=11, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -2448,8 +2455,8 @@ _CREATECONTAINERMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3819,
-  serialized_end=4181,
+  serialized_start=3838,
+  serialized_end=4200,
 )
 
 
@@ -2466,14 +2473,14 @@ _RUNANDWAITMESSAGE = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='data', full_name='pb.RunAndWaitMessage.data', index=1,
       number=2, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -2486,8 +2493,8 @@ _RUNANDWAITMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4183,
-  serialized_end=4238,
+  serialized_start=4202,
+  serialized_end=4257,
 )
 
 
@@ -2504,21 +2511,21 @@ _REMOVEIMAGEMESSAGE = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='success', full_name='pb.RemoveImageMessage.success', index=1,
       number=2, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='messages', full_name='pb.RemoveImageMessage.messages', index=2,
       number=3, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -2531,8 +2538,8 @@ _REMOVEIMAGEMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4240,
-  serialized_end=4310,
+  serialized_start=4259,
+  serialized_end=4329,
 )
 
 
@@ -2549,21 +2556,21 @@ _REMOVECONTAINERMESSAGE = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='success', full_name='pb.RemoveContainerMessage.success', index=1,
       number=2, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='message', full_name='pb.RemoveContainerMessage.message', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -2576,8 +2583,8 @@ _REMOVECONTAINERMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4312,
-  serialized_end=4382,
+  serialized_start=4331,
+  serialized_end=4401,
 )
 
 
@@ -2594,14 +2601,14 @@ _REALLOCRESOURCEMESSAGE = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='success', full_name='pb.ReallocResourceMessage.success', index=1,
       number=2, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -2614,8 +2621,8 @@ _REALLOCRESOURCEMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4384,
-  serialized_end=4437,
+  serialized_start=4403,
+  serialized_end=4456,
 )
 
 
@@ -2632,28 +2639,28 @@ _BACKUPMESSAGE = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='size', full_name='pb.BackupMessage.size', index=1,
       number=2, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='error', full_name='pb.BackupMessage.error', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='path', full_name='pb.BackupMessage.path', index=3,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -2666,8 +2673,8 @@ _BACKUPMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4439,
-  serialized_end=4513,
+  serialized_start=4458,
+  serialized_end=4532,
 )
 
 
@@ -2684,14 +2691,14 @@ _RUNANDWAITOPTIONS = _descriptor.Descriptor(
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='Cmd', full_name='pb.RunAndWaitOptions.Cmd', index=1,
       number=2, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -2704,8 +2711,8 @@ _RUNANDWAITOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4515,
-  serialized_end=4589,
+  serialized_start=4534,
+  serialized_end=4608,
 )
 
 _PODS.fields_by_name['pods'].message_type = _POD
@@ -3234,820 +3241,226 @@ _CREATECONTAINERMESSAGE_CPUENTRY.has_options = True
 _CREATECONTAINERMESSAGE_CPUENTRY._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001'))
 _CREATECONTAINERMESSAGE_PUBLISHENTRY.has_options = True
 _CREATECONTAINERMESSAGE_PUBLISHENTRY._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001'))
-try:
-  # THESE ELEMENTS WILL BE DEPRECATED.
-  # Please use the generated *_pb2_grpc.py files instead.
-  import grpc
-  from grpc.beta import implementations as beta_implementations
-  from grpc.beta import interfaces as beta_interfaces
-  from grpc.framework.common import cardinality
-  from grpc.framework.interfaces.face import utilities as face_utilities
 
+_CORERPC = _descriptor.ServiceDescriptor(
+  name='CoreRPC',
+  full_name='pb.CoreRPC',
+  file=DESCRIPTOR,
+  index=0,
+  options=None,
+  serialized_start=4611,
+  serialized_end=5889,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='ListPods',
+    full_name='pb.CoreRPC.ListPods',
+    index=0,
+    containing_service=None,
+    input_type=_EMPTY,
+    output_type=_PODS,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='AddPod',
+    full_name='pb.CoreRPC.AddPod',
+    index=1,
+    containing_service=None,
+    input_type=_ADDPODOPTIONS,
+    output_type=_POD,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='RemovePod',
+    full_name='pb.CoreRPC.RemovePod',
+    index=2,
+    containing_service=None,
+    input_type=_REMOVEPODOPTIONS,
+    output_type=_EMPTY,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetPod',
+    full_name='pb.CoreRPC.GetPod',
+    index=3,
+    containing_service=None,
+    input_type=_GETPODOPTIONS,
+    output_type=_POD,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='AddNode',
+    full_name='pb.CoreRPC.AddNode',
+    index=4,
+    containing_service=None,
+    input_type=_ADDNODEOPTIONS,
+    output_type=_NODE,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='RemoveNode',
+    full_name='pb.CoreRPC.RemoveNode',
+    index=5,
+    containing_service=None,
+    input_type=_REMOVENODEOPTIONS,
+    output_type=_POD,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetNode',
+    full_name='pb.CoreRPC.GetNode',
+    index=6,
+    containing_service=None,
+    input_type=_GETNODEOPTIONS,
+    output_type=_NODE,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='ListPodNodes',
+    full_name='pb.CoreRPC.ListPodNodes',
+    index=7,
+    containing_service=None,
+    input_type=_LISTNODESOPTIONS,
+    output_type=_NODES,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetContainer',
+    full_name='pb.CoreRPC.GetContainer',
+    index=8,
+    containing_service=None,
+    input_type=_CONTAINERID,
+    output_type=_CONTAINER,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetContainers',
+    full_name='pb.CoreRPC.GetContainers',
+    index=9,
+    containing_service=None,
+    input_type=_CONTAINERIDS,
+    output_type=_CONTAINERS,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='ListNetworks',
+    full_name='pb.CoreRPC.ListNetworks',
+    index=10,
+    containing_service=None,
+    input_type=_LISTNETWORKOPTIONS,
+    output_type=_NETWORKS,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='SetNodeAvailable',
+    full_name='pb.CoreRPC.SetNodeAvailable',
+    index=11,
+    containing_service=None,
+    input_type=_NODEAVAILABLE,
+    output_type=_NODE,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Backup',
+    full_name='pb.CoreRPC.Backup',
+    index=12,
+    containing_service=None,
+    input_type=_BACKUPOPTIONS,
+    output_type=_BACKUPMESSAGE,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetNodeByName',
+    full_name='pb.CoreRPC.GetNodeByName',
+    index=13,
+    containing_service=None,
+    input_type=_GETNODEOPTIONS,
+    output_type=_NODE,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='ContainerDeployed',
+    full_name='pb.CoreRPC.ContainerDeployed',
+    index=14,
+    containing_service=None,
+    input_type=_CONTAINERDEPLOYEDOPTIONS,
+    output_type=_EMPTY,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='ListContainers',
+    full_name='pb.CoreRPC.ListContainers',
+    index=15,
+    containing_service=None,
+    input_type=_DEPLOYSTATUSOPTIONS,
+    output_type=_CONTAINERS,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='BuildImage',
+    full_name='pb.CoreRPC.BuildImage',
+    index=16,
+    containing_service=None,
+    input_type=_BUILDIMAGEOPTIONS,
+    output_type=_BUILDIMAGEMESSAGE,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='RemoveImage',
+    full_name='pb.CoreRPC.RemoveImage',
+    index=17,
+    containing_service=None,
+    input_type=_REMOVEIMAGEOPTIONS,
+    output_type=_REMOVEIMAGEMESSAGE,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='DeployStatus',
+    full_name='pb.CoreRPC.DeployStatus',
+    index=18,
+    containing_service=None,
+    input_type=_DEPLOYSTATUSOPTIONS,
+    output_type=_DEPLOYSTATUSMESSAGE,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='RunAndWait',
+    full_name='pb.CoreRPC.RunAndWait',
+    index=19,
+    containing_service=None,
+    input_type=_RUNANDWAITOPTIONS,
+    output_type=_RUNANDWAITMESSAGE,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='CreateContainer',
+    full_name='pb.CoreRPC.CreateContainer',
+    index=20,
+    containing_service=None,
+    input_type=_DEPLOYOPTIONS,
+    output_type=_CREATECONTAINERMESSAGE,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='RemoveContainer',
+    full_name='pb.CoreRPC.RemoveContainer',
+    index=21,
+    containing_service=None,
+    input_type=_REMOVECONTAINEROPTIONS,
+    output_type=_REMOVECONTAINERMESSAGE,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='ReallocResource',
+    full_name='pb.CoreRPC.ReallocResource',
+    index=22,
+    containing_service=None,
+    input_type=_REALLOCOPTIONS,
+    output_type=_REALLOCRESOURCEMESSAGE,
+    options=None,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_CORERPC)
 
-  class CoreRPCStub(object):
-    # missing associated documentation comment in .proto file
-    pass
+DESCRIPTOR.services_by_name['CoreRPC'] = _CORERPC
 
-    def __init__(self, channel):
-      """Constructor.
-
-      Args:
-        channel: A grpc.Channel.
-      """
-      self.ListPods = channel.unary_unary(
-          '/pb.CoreRPC/ListPods',
-          request_serializer=Empty.SerializeToString,
-          response_deserializer=Pods.FromString,
-          )
-      self.AddPod = channel.unary_unary(
-          '/pb.CoreRPC/AddPod',
-          request_serializer=AddPodOptions.SerializeToString,
-          response_deserializer=Pod.FromString,
-          )
-      self.RemovePod = channel.unary_unary(
-          '/pb.CoreRPC/RemovePod',
-          request_serializer=RemovePodOptions.SerializeToString,
-          response_deserializer=Empty.FromString,
-          )
-      self.GetPod = channel.unary_unary(
-          '/pb.CoreRPC/GetPod',
-          request_serializer=GetPodOptions.SerializeToString,
-          response_deserializer=Pod.FromString,
-          )
-      self.AddNode = channel.unary_unary(
-          '/pb.CoreRPC/AddNode',
-          request_serializer=AddNodeOptions.SerializeToString,
-          response_deserializer=Node.FromString,
-          )
-      self.RemoveNode = channel.unary_unary(
-          '/pb.CoreRPC/RemoveNode',
-          request_serializer=RemoveNodeOptions.SerializeToString,
-          response_deserializer=Pod.FromString,
-          )
-      self.GetNode = channel.unary_unary(
-          '/pb.CoreRPC/GetNode',
-          request_serializer=GetNodeOptions.SerializeToString,
-          response_deserializer=Node.FromString,
-          )
-      self.ListPodNodes = channel.unary_unary(
-          '/pb.CoreRPC/ListPodNodes',
-          request_serializer=ListNodesOptions.SerializeToString,
-          response_deserializer=Nodes.FromString,
-          )
-      self.GetContainer = channel.unary_unary(
-          '/pb.CoreRPC/GetContainer',
-          request_serializer=ContainerID.SerializeToString,
-          response_deserializer=Container.FromString,
-          )
-      self.GetContainers = channel.unary_unary(
-          '/pb.CoreRPC/GetContainers',
-          request_serializer=ContainerIDs.SerializeToString,
-          response_deserializer=Containers.FromString,
-          )
-      self.ListNetworks = channel.unary_unary(
-          '/pb.CoreRPC/ListNetworks',
-          request_serializer=ListNetworkOptions.SerializeToString,
-          response_deserializer=Networks.FromString,
-          )
-      self.SetNodeAvailable = channel.unary_unary(
-          '/pb.CoreRPC/SetNodeAvailable',
-          request_serializer=NodeAvailable.SerializeToString,
-          response_deserializer=Node.FromString,
-          )
-      self.Backup = channel.unary_unary(
-          '/pb.CoreRPC/Backup',
-          request_serializer=BackupOptions.SerializeToString,
-          response_deserializer=BackupMessage.FromString,
-          )
-      self.GetNodeByName = channel.unary_unary(
-          '/pb.CoreRPC/GetNodeByName',
-          request_serializer=GetNodeOptions.SerializeToString,
-          response_deserializer=Node.FromString,
-          )
-      self.ContainerDeployed = channel.unary_unary(
-          '/pb.CoreRPC/ContainerDeployed',
-          request_serializer=ContainerDeployedOptions.SerializeToString,
-          response_deserializer=Empty.FromString,
-          )
-      self.ListContainers = channel.unary_unary(
-          '/pb.CoreRPC/ListContainers',
-          request_serializer=DeployStatusOptions.SerializeToString,
-          response_deserializer=Containers.FromString,
-          )
-      self.BuildImage = channel.unary_stream(
-          '/pb.CoreRPC/BuildImage',
-          request_serializer=BuildImageOptions.SerializeToString,
-          response_deserializer=BuildImageMessage.FromString,
-          )
-      self.RemoveImage = channel.unary_stream(
-          '/pb.CoreRPC/RemoveImage',
-          request_serializer=RemoveImageOptions.SerializeToString,
-          response_deserializer=RemoveImageMessage.FromString,
-          )
-      self.DeployStatus = channel.unary_stream(
-          '/pb.CoreRPC/DeployStatus',
-          request_serializer=DeployStatusOptions.SerializeToString,
-          response_deserializer=DeployStatusMessage.FromString,
-          )
-      self.RunAndWait = channel.stream_stream(
-          '/pb.CoreRPC/RunAndWait',
-          request_serializer=RunAndWaitOptions.SerializeToString,
-          response_deserializer=RunAndWaitMessage.FromString,
-          )
-      self.CreateContainer = channel.unary_stream(
-          '/pb.CoreRPC/CreateContainer',
-          request_serializer=DeployOptions.SerializeToString,
-          response_deserializer=CreateContainerMessage.FromString,
-          )
-      self.RemoveContainer = channel.unary_stream(
-          '/pb.CoreRPC/RemoveContainer',
-          request_serializer=RemoveContainerOptions.SerializeToString,
-          response_deserializer=RemoveContainerMessage.FromString,
-          )
-      self.ReallocResource = channel.unary_stream(
-          '/pb.CoreRPC/ReallocResource',
-          request_serializer=ReallocOptions.SerializeToString,
-          response_deserializer=ReallocResourceMessage.FromString,
-          )
-
-
-  class CoreRPCServicer(object):
-    # missing associated documentation comment in .proto file
-    pass
-
-    def ListPods(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def AddPod(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def RemovePod(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def GetPod(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def AddNode(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def RemoveNode(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def GetNode(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def ListPodNodes(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def GetContainer(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def GetContainers(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def ListNetworks(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def SetNodeAvailable(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def Backup(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def GetNodeByName(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def ContainerDeployed(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def ListContainers(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def BuildImage(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def RemoveImage(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def DeployStatus(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def RunAndWait(self, request_iterator, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def CreateContainer(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def RemoveContainer(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def ReallocResource(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-
-  def add_CoreRPCServicer_to_server(servicer, server):
-    rpc_method_handlers = {
-        'ListPods': grpc.unary_unary_rpc_method_handler(
-            servicer.ListPods,
-            request_deserializer=Empty.FromString,
-            response_serializer=Pods.SerializeToString,
-        ),
-        'AddPod': grpc.unary_unary_rpc_method_handler(
-            servicer.AddPod,
-            request_deserializer=AddPodOptions.FromString,
-            response_serializer=Pod.SerializeToString,
-        ),
-        'RemovePod': grpc.unary_unary_rpc_method_handler(
-            servicer.RemovePod,
-            request_deserializer=RemovePodOptions.FromString,
-            response_serializer=Empty.SerializeToString,
-        ),
-        'GetPod': grpc.unary_unary_rpc_method_handler(
-            servicer.GetPod,
-            request_deserializer=GetPodOptions.FromString,
-            response_serializer=Pod.SerializeToString,
-        ),
-        'AddNode': grpc.unary_unary_rpc_method_handler(
-            servicer.AddNode,
-            request_deserializer=AddNodeOptions.FromString,
-            response_serializer=Node.SerializeToString,
-        ),
-        'RemoveNode': grpc.unary_unary_rpc_method_handler(
-            servicer.RemoveNode,
-            request_deserializer=RemoveNodeOptions.FromString,
-            response_serializer=Pod.SerializeToString,
-        ),
-        'GetNode': grpc.unary_unary_rpc_method_handler(
-            servicer.GetNode,
-            request_deserializer=GetNodeOptions.FromString,
-            response_serializer=Node.SerializeToString,
-        ),
-        'ListPodNodes': grpc.unary_unary_rpc_method_handler(
-            servicer.ListPodNodes,
-            request_deserializer=ListNodesOptions.FromString,
-            response_serializer=Nodes.SerializeToString,
-        ),
-        'GetContainer': grpc.unary_unary_rpc_method_handler(
-            servicer.GetContainer,
-            request_deserializer=ContainerID.FromString,
-            response_serializer=Container.SerializeToString,
-        ),
-        'GetContainers': grpc.unary_unary_rpc_method_handler(
-            servicer.GetContainers,
-            request_deserializer=ContainerIDs.FromString,
-            response_serializer=Containers.SerializeToString,
-        ),
-        'ListNetworks': grpc.unary_unary_rpc_method_handler(
-            servicer.ListNetworks,
-            request_deserializer=ListNetworkOptions.FromString,
-            response_serializer=Networks.SerializeToString,
-        ),
-        'SetNodeAvailable': grpc.unary_unary_rpc_method_handler(
-            servicer.SetNodeAvailable,
-            request_deserializer=NodeAvailable.FromString,
-            response_serializer=Node.SerializeToString,
-        ),
-        'Backup': grpc.unary_unary_rpc_method_handler(
-            servicer.Backup,
-            request_deserializer=BackupOptions.FromString,
-            response_serializer=BackupMessage.SerializeToString,
-        ),
-        'GetNodeByName': grpc.unary_unary_rpc_method_handler(
-            servicer.GetNodeByName,
-            request_deserializer=GetNodeOptions.FromString,
-            response_serializer=Node.SerializeToString,
-        ),
-        'ContainerDeployed': grpc.unary_unary_rpc_method_handler(
-            servicer.ContainerDeployed,
-            request_deserializer=ContainerDeployedOptions.FromString,
-            response_serializer=Empty.SerializeToString,
-        ),
-        'ListContainers': grpc.unary_unary_rpc_method_handler(
-            servicer.ListContainers,
-            request_deserializer=DeployStatusOptions.FromString,
-            response_serializer=Containers.SerializeToString,
-        ),
-        'BuildImage': grpc.unary_stream_rpc_method_handler(
-            servicer.BuildImage,
-            request_deserializer=BuildImageOptions.FromString,
-            response_serializer=BuildImageMessage.SerializeToString,
-        ),
-        'RemoveImage': grpc.unary_stream_rpc_method_handler(
-            servicer.RemoveImage,
-            request_deserializer=RemoveImageOptions.FromString,
-            response_serializer=RemoveImageMessage.SerializeToString,
-        ),
-        'DeployStatus': grpc.unary_stream_rpc_method_handler(
-            servicer.DeployStatus,
-            request_deserializer=DeployStatusOptions.FromString,
-            response_serializer=DeployStatusMessage.SerializeToString,
-        ),
-        'RunAndWait': grpc.stream_stream_rpc_method_handler(
-            servicer.RunAndWait,
-            request_deserializer=RunAndWaitOptions.FromString,
-            response_serializer=RunAndWaitMessage.SerializeToString,
-        ),
-        'CreateContainer': grpc.unary_stream_rpc_method_handler(
-            servicer.CreateContainer,
-            request_deserializer=DeployOptions.FromString,
-            response_serializer=CreateContainerMessage.SerializeToString,
-        ),
-        'RemoveContainer': grpc.unary_stream_rpc_method_handler(
-            servicer.RemoveContainer,
-            request_deserializer=RemoveContainerOptions.FromString,
-            response_serializer=RemoveContainerMessage.SerializeToString,
-        ),
-        'ReallocResource': grpc.unary_stream_rpc_method_handler(
-            servicer.ReallocResource,
-            request_deserializer=ReallocOptions.FromString,
-            response_serializer=ReallocResourceMessage.SerializeToString,
-        ),
-    }
-    generic_handler = grpc.method_handlers_generic_handler(
-        'pb.CoreRPC', rpc_method_handlers)
-    server.add_generic_rpc_handlers((generic_handler,))
-
-
-  class BetaCoreRPCServicer(object):
-    """The Beta API is deprecated for 0.15.0 and later.
-
-    It is recommended to use the GA API (classes and functions in this
-    file not marked beta) for all further purposes. This class was generated
-    only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
-    # missing associated documentation comment in .proto file
-    pass
-    def ListPods(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def AddPod(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def RemovePod(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def GetPod(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def AddNode(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def RemoveNode(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def GetNode(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def ListPodNodes(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def GetContainer(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def GetContainers(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def ListNetworks(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def SetNodeAvailable(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def Backup(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def GetNodeByName(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def ContainerDeployed(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def ListContainers(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def BuildImage(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def RemoveImage(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def DeployStatus(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def RunAndWait(self, request_iterator, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def CreateContainer(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def RemoveContainer(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def ReallocResource(self, request, context):
-      # missing associated documentation comment in .proto file
-      pass
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-
-
-  class BetaCoreRPCStub(object):
-    """The Beta API is deprecated for 0.15.0 and later.
-
-    It is recommended to use the GA API (classes and functions in this
-    file not marked beta) for all further purposes. This class was generated
-    only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
-    # missing associated documentation comment in .proto file
-    pass
-    def ListPods(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    ListPods.future = None
-    def AddPod(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    AddPod.future = None
-    def RemovePod(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    RemovePod.future = None
-    def GetPod(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    GetPod.future = None
-    def AddNode(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    AddNode.future = None
-    def RemoveNode(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    RemoveNode.future = None
-    def GetNode(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    GetNode.future = None
-    def ListPodNodes(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    ListPodNodes.future = None
-    def GetContainer(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    GetContainer.future = None
-    def GetContainers(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    GetContainers.future = None
-    def ListNetworks(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    ListNetworks.future = None
-    def SetNodeAvailable(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    SetNodeAvailable.future = None
-    def Backup(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    Backup.future = None
-    def GetNodeByName(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    GetNodeByName.future = None
-    def ContainerDeployed(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    ContainerDeployed.future = None
-    def ListContainers(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    ListContainers.future = None
-    def BuildImage(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    def RemoveImage(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    def DeployStatus(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    def RunAndWait(self, request_iterator, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    def CreateContainer(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    def RemoveContainer(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-    def ReallocResource(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      # missing associated documentation comment in .proto file
-      pass
-      raise NotImplementedError()
-
-
-  def beta_create_CoreRPC_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
-    """The Beta API is deprecated for 0.15.0 and later.
-
-    It is recommended to use the GA API (classes and functions in this
-    file not marked beta) for all further purposes. This function was
-    generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
-    request_deserializers = {
-      ('pb.CoreRPC', 'AddNode'): AddNodeOptions.FromString,
-      ('pb.CoreRPC', 'AddPod'): AddPodOptions.FromString,
-      ('pb.CoreRPC', 'Backup'): BackupOptions.FromString,
-      ('pb.CoreRPC', 'BuildImage'): BuildImageOptions.FromString,
-      ('pb.CoreRPC', 'ContainerDeployed'): ContainerDeployedOptions.FromString,
-      ('pb.CoreRPC', 'CreateContainer'): DeployOptions.FromString,
-      ('pb.CoreRPC', 'DeployStatus'): DeployStatusOptions.FromString,
-      ('pb.CoreRPC', 'GetContainer'): ContainerID.FromString,
-      ('pb.CoreRPC', 'GetContainers'): ContainerIDs.FromString,
-      ('pb.CoreRPC', 'GetNode'): GetNodeOptions.FromString,
-      ('pb.CoreRPC', 'GetNodeByName'): GetNodeOptions.FromString,
-      ('pb.CoreRPC', 'GetPod'): GetPodOptions.FromString,
-      ('pb.CoreRPC', 'ListContainers'): DeployStatusOptions.FromString,
-      ('pb.CoreRPC', 'ListNetworks'): ListNetworkOptions.FromString,
-      ('pb.CoreRPC', 'ListPodNodes'): ListNodesOptions.FromString,
-      ('pb.CoreRPC', 'ListPods'): Empty.FromString,
-      ('pb.CoreRPC', 'ReallocResource'): ReallocOptions.FromString,
-      ('pb.CoreRPC', 'RemoveContainer'): RemoveContainerOptions.FromString,
-      ('pb.CoreRPC', 'RemoveImage'): RemoveImageOptions.FromString,
-      ('pb.CoreRPC', 'RemoveNode'): RemoveNodeOptions.FromString,
-      ('pb.CoreRPC', 'RemovePod'): RemovePodOptions.FromString,
-      ('pb.CoreRPC', 'RunAndWait'): RunAndWaitOptions.FromString,
-      ('pb.CoreRPC', 'SetNodeAvailable'): NodeAvailable.FromString,
-    }
-    response_serializers = {
-      ('pb.CoreRPC', 'AddNode'): Node.SerializeToString,
-      ('pb.CoreRPC', 'AddPod'): Pod.SerializeToString,
-      ('pb.CoreRPC', 'Backup'): BackupMessage.SerializeToString,
-      ('pb.CoreRPC', 'BuildImage'): BuildImageMessage.SerializeToString,
-      ('pb.CoreRPC', 'ContainerDeployed'): Empty.SerializeToString,
-      ('pb.CoreRPC', 'CreateContainer'): CreateContainerMessage.SerializeToString,
-      ('pb.CoreRPC', 'DeployStatus'): DeployStatusMessage.SerializeToString,
-      ('pb.CoreRPC', 'GetContainer'): Container.SerializeToString,
-      ('pb.CoreRPC', 'GetContainers'): Containers.SerializeToString,
-      ('pb.CoreRPC', 'GetNode'): Node.SerializeToString,
-      ('pb.CoreRPC', 'GetNodeByName'): Node.SerializeToString,
-      ('pb.CoreRPC', 'GetPod'): Pod.SerializeToString,
-      ('pb.CoreRPC', 'ListContainers'): Containers.SerializeToString,
-      ('pb.CoreRPC', 'ListNetworks'): Networks.SerializeToString,
-      ('pb.CoreRPC', 'ListPodNodes'): Nodes.SerializeToString,
-      ('pb.CoreRPC', 'ListPods'): Pods.SerializeToString,
-      ('pb.CoreRPC', 'ReallocResource'): ReallocResourceMessage.SerializeToString,
-      ('pb.CoreRPC', 'RemoveContainer'): RemoveContainerMessage.SerializeToString,
-      ('pb.CoreRPC', 'RemoveImage'): RemoveImageMessage.SerializeToString,
-      ('pb.CoreRPC', 'RemoveNode'): Pod.SerializeToString,
-      ('pb.CoreRPC', 'RemovePod'): Empty.SerializeToString,
-      ('pb.CoreRPC', 'RunAndWait'): RunAndWaitMessage.SerializeToString,
-      ('pb.CoreRPC', 'SetNodeAvailable'): Node.SerializeToString,
-    }
-    method_implementations = {
-      ('pb.CoreRPC', 'AddNode'): face_utilities.unary_unary_inline(servicer.AddNode),
-      ('pb.CoreRPC', 'AddPod'): face_utilities.unary_unary_inline(servicer.AddPod),
-      ('pb.CoreRPC', 'Backup'): face_utilities.unary_unary_inline(servicer.Backup),
-      ('pb.CoreRPC', 'BuildImage'): face_utilities.unary_stream_inline(servicer.BuildImage),
-      ('pb.CoreRPC', 'ContainerDeployed'): face_utilities.unary_unary_inline(servicer.ContainerDeployed),
-      ('pb.CoreRPC', 'CreateContainer'): face_utilities.unary_stream_inline(servicer.CreateContainer),
-      ('pb.CoreRPC', 'DeployStatus'): face_utilities.unary_stream_inline(servicer.DeployStatus),
-      ('pb.CoreRPC', 'GetContainer'): face_utilities.unary_unary_inline(servicer.GetContainer),
-      ('pb.CoreRPC', 'GetContainers'): face_utilities.unary_unary_inline(servicer.GetContainers),
-      ('pb.CoreRPC', 'GetNode'): face_utilities.unary_unary_inline(servicer.GetNode),
-      ('pb.CoreRPC', 'GetNodeByName'): face_utilities.unary_unary_inline(servicer.GetNodeByName),
-      ('pb.CoreRPC', 'GetPod'): face_utilities.unary_unary_inline(servicer.GetPod),
-      ('pb.CoreRPC', 'ListContainers'): face_utilities.unary_unary_inline(servicer.ListContainers),
-      ('pb.CoreRPC', 'ListNetworks'): face_utilities.unary_unary_inline(servicer.ListNetworks),
-      ('pb.CoreRPC', 'ListPodNodes'): face_utilities.unary_unary_inline(servicer.ListPodNodes),
-      ('pb.CoreRPC', 'ListPods'): face_utilities.unary_unary_inline(servicer.ListPods),
-      ('pb.CoreRPC', 'ReallocResource'): face_utilities.unary_stream_inline(servicer.ReallocResource),
-      ('pb.CoreRPC', 'RemoveContainer'): face_utilities.unary_stream_inline(servicer.RemoveContainer),
-      ('pb.CoreRPC', 'RemoveImage'): face_utilities.unary_stream_inline(servicer.RemoveImage),
-      ('pb.CoreRPC', 'RemoveNode'): face_utilities.unary_unary_inline(servicer.RemoveNode),
-      ('pb.CoreRPC', 'RemovePod'): face_utilities.unary_unary_inline(servicer.RemovePod),
-      ('pb.CoreRPC', 'RunAndWait'): face_utilities.stream_stream_inline(servicer.RunAndWait),
-      ('pb.CoreRPC', 'SetNodeAvailable'): face_utilities.unary_unary_inline(servicer.SetNodeAvailable),
-    }
-    server_options = beta_implementations.server_options(request_deserializers=request_deserializers, response_serializers=response_serializers, thread_pool=pool, thread_pool_size=pool_size, default_timeout=default_timeout, maximum_timeout=maximum_timeout)
-    return beta_implementations.server(method_implementations, options=server_options)
-
-
-  def beta_create_CoreRPC_stub(channel, host=None, metadata_transformer=None, pool=None, pool_size=None):
-    """The Beta API is deprecated for 0.15.0 and later.
-
-    It is recommended to use the GA API (classes and functions in this
-    file not marked beta) for all further purposes. This function was
-    generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
-    request_serializers = {
-      ('pb.CoreRPC', 'AddNode'): AddNodeOptions.SerializeToString,
-      ('pb.CoreRPC', 'AddPod'): AddPodOptions.SerializeToString,
-      ('pb.CoreRPC', 'Backup'): BackupOptions.SerializeToString,
-      ('pb.CoreRPC', 'BuildImage'): BuildImageOptions.SerializeToString,
-      ('pb.CoreRPC', 'ContainerDeployed'): ContainerDeployedOptions.SerializeToString,
-      ('pb.CoreRPC', 'CreateContainer'): DeployOptions.SerializeToString,
-      ('pb.CoreRPC', 'DeployStatus'): DeployStatusOptions.SerializeToString,
-      ('pb.CoreRPC', 'GetContainer'): ContainerID.SerializeToString,
-      ('pb.CoreRPC', 'GetContainers'): ContainerIDs.SerializeToString,
-      ('pb.CoreRPC', 'GetNode'): GetNodeOptions.SerializeToString,
-      ('pb.CoreRPC', 'GetNodeByName'): GetNodeOptions.SerializeToString,
-      ('pb.CoreRPC', 'GetPod'): GetPodOptions.SerializeToString,
-      ('pb.CoreRPC', 'ListContainers'): DeployStatusOptions.SerializeToString,
-      ('pb.CoreRPC', 'ListNetworks'): ListNetworkOptions.SerializeToString,
-      ('pb.CoreRPC', 'ListPodNodes'): ListNodesOptions.SerializeToString,
-      ('pb.CoreRPC', 'ListPods'): Empty.SerializeToString,
-      ('pb.CoreRPC', 'ReallocResource'): ReallocOptions.SerializeToString,
-      ('pb.CoreRPC', 'RemoveContainer'): RemoveContainerOptions.SerializeToString,
-      ('pb.CoreRPC', 'RemoveImage'): RemoveImageOptions.SerializeToString,
-      ('pb.CoreRPC', 'RemoveNode'): RemoveNodeOptions.SerializeToString,
-      ('pb.CoreRPC', 'RemovePod'): RemovePodOptions.SerializeToString,
-      ('pb.CoreRPC', 'RunAndWait'): RunAndWaitOptions.SerializeToString,
-      ('pb.CoreRPC', 'SetNodeAvailable'): NodeAvailable.SerializeToString,
-    }
-    response_deserializers = {
-      ('pb.CoreRPC', 'AddNode'): Node.FromString,
-      ('pb.CoreRPC', 'AddPod'): Pod.FromString,
-      ('pb.CoreRPC', 'Backup'): BackupMessage.FromString,
-      ('pb.CoreRPC', 'BuildImage'): BuildImageMessage.FromString,
-      ('pb.CoreRPC', 'ContainerDeployed'): Empty.FromString,
-      ('pb.CoreRPC', 'CreateContainer'): CreateContainerMessage.FromString,
-      ('pb.CoreRPC', 'DeployStatus'): DeployStatusMessage.FromString,
-      ('pb.CoreRPC', 'GetContainer'): Container.FromString,
-      ('pb.CoreRPC', 'GetContainers'): Containers.FromString,
-      ('pb.CoreRPC', 'GetNode'): Node.FromString,
-      ('pb.CoreRPC', 'GetNodeByName'): Node.FromString,
-      ('pb.CoreRPC', 'GetPod'): Pod.FromString,
-      ('pb.CoreRPC', 'ListContainers'): Containers.FromString,
-      ('pb.CoreRPC', 'ListNetworks'): Networks.FromString,
-      ('pb.CoreRPC', 'ListPodNodes'): Nodes.FromString,
-      ('pb.CoreRPC', 'ListPods'): Pods.FromString,
-      ('pb.CoreRPC', 'ReallocResource'): ReallocResourceMessage.FromString,
-      ('pb.CoreRPC', 'RemoveContainer'): RemoveContainerMessage.FromString,
-      ('pb.CoreRPC', 'RemoveImage'): RemoveImageMessage.FromString,
-      ('pb.CoreRPC', 'RemoveNode'): Pod.FromString,
-      ('pb.CoreRPC', 'RemovePod'): Empty.FromString,
-      ('pb.CoreRPC', 'RunAndWait'): RunAndWaitMessage.FromString,
-      ('pb.CoreRPC', 'SetNodeAvailable'): Node.FromString,
-    }
-    cardinalities = {
-      'AddNode': cardinality.Cardinality.UNARY_UNARY,
-      'AddPod': cardinality.Cardinality.UNARY_UNARY,
-      'Backup': cardinality.Cardinality.UNARY_UNARY,
-      'BuildImage': cardinality.Cardinality.UNARY_STREAM,
-      'ContainerDeployed': cardinality.Cardinality.UNARY_UNARY,
-      'CreateContainer': cardinality.Cardinality.UNARY_STREAM,
-      'DeployStatus': cardinality.Cardinality.UNARY_STREAM,
-      'GetContainer': cardinality.Cardinality.UNARY_UNARY,
-      'GetContainers': cardinality.Cardinality.UNARY_UNARY,
-      'GetNode': cardinality.Cardinality.UNARY_UNARY,
-      'GetNodeByName': cardinality.Cardinality.UNARY_UNARY,
-      'GetPod': cardinality.Cardinality.UNARY_UNARY,
-      'ListContainers': cardinality.Cardinality.UNARY_UNARY,
-      'ListNetworks': cardinality.Cardinality.UNARY_UNARY,
-      'ListPodNodes': cardinality.Cardinality.UNARY_UNARY,
-      'ListPods': cardinality.Cardinality.UNARY_UNARY,
-      'ReallocResource': cardinality.Cardinality.UNARY_STREAM,
-      'RemoveContainer': cardinality.Cardinality.UNARY_STREAM,
-      'RemoveImage': cardinality.Cardinality.UNARY_STREAM,
-      'RemoveNode': cardinality.Cardinality.UNARY_UNARY,
-      'RemovePod': cardinality.Cardinality.UNARY_UNARY,
-      'RunAndWait': cardinality.Cardinality.STREAM_STREAM,
-      'SetNodeAvailable': cardinality.Cardinality.UNARY_UNARY,
-    }
-    stub_options = beta_implementations.stub_options(host=host, metadata_transformer=metadata_transformer, request_serializers=request_serializers, response_deserializers=response_deserializers, thread_pool=pool, thread_pool_size=pool_size)
-    return beta_implementations.dynamic_stub(channel, 'pb.CoreRPC', cardinalities, options=stub_options)
-except ImportError:
-  pass
 # @@protoc_insertion_point(module_scope)
