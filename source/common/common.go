@@ -42,7 +42,7 @@ func gitcheck(repository, pubkey, prikey string) error {
 }
 
 // SourceCode clone code from repository into path, by revision
-func (g *GitScm) SourceCode(repository, path, revision string) error {
+func (g *GitScm) SourceCode(repository, path, revision string, submodule bool) error {
 	pubkey := g.Config.PublicKey
 	prikey := g.Config.PrivateKey
 
@@ -84,19 +84,22 @@ func (g *GitScm) SourceCode(repository, path, revision string) error {
 		return err
 	}
 
-	repo.Submodules.Foreach(func(sub *git.Submodule, name string) int {
-		sub.Init(true)
-		err := sub.Update(true, &git.SubmoduleUpdateOptions{
-			CheckoutOpts: &git.CheckoutOpts{
-				Strategy: git.CheckoutForce | git.CheckoutUpdateSubmodules,
-			},
-			FetchOptions: &git.FetchOptions{},
+	// Prepare submodules
+	if submodule {
+		repo.Submodules.Foreach(func(sub *git.Submodule, name string) int {
+			sub.Init(true)
+			err := sub.Update(true, &git.SubmoduleUpdateOptions{
+				CheckoutOpts: &git.CheckoutOpts{
+					Strategy: git.CheckoutForce | git.CheckoutUpdateSubmodules,
+				},
+				FetchOptions: &git.FetchOptions{},
+			})
+			if err != nil {
+				log.Errorln(err)
+			}
+			return 0
 		})
-		if err != nil {
-			log.Errorln(err)
-		}
-		return 0
-	})
+	}
 	return nil
 }
 

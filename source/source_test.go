@@ -74,7 +74,7 @@ func TestGitSourceCode(t *testing.T) {
 	}
 	defer os.RemoveAll(path)
 
-	err = source.SourceCode(repo, path, revision)
+	err = source.SourceCode(repo, path, revision, false)
 	assert.Error(t, err)
 	//assert.EqualError(t, err, "Failed to authenticate SSH session: Waiting for USERAUTH response")
 }

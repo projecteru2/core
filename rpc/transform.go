@@ -80,6 +80,7 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
 			Repo:      p.Repo,
 			Version:   p.Version,
 			Dir:       p.Dir,
+			Submodule: p.Submodule || false,
 			Commands:  p.Commands,
 			Envs:      p.Envs,
 			Args:      p.Args,

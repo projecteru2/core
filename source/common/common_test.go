@@ -48,19 +48,19 @@ func TestSourceCode(t *testing.T) {
 	defer os.RemoveAll(path)
 
 	// empty key
-	err = source.SourceCode(repo, path, revision)
+	err = source.SourceCode(repo, path, revision, false)
 	assert.Error(t, err)
 	//assert.Contains(t, err.Error(), "Failed to authenticate SSH session")
 
 	// key not found
 	source.Config.PrivateKey = ""
-	err = source.SourceCode(repo, path, revision)
+	err = source.SourceCode(repo, path, revision, false)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Private Key not found")
 
 	// use https protocol
 	repo = "https://github.com/hello/word.git"
-	err = source.SourceCode(repo, path, revision)
+	err = source.SourceCode(repo, path, revision, false)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Only support ssh protocol")
 }
