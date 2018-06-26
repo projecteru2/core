@@ -5,10 +5,10 @@ import (
 	"strings"
 	"sync"
 
-	log "github.com/sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/projecteru2/core/types"
+	log "github.com/sirupsen/logrus"
 )
 
 const maxPuller = 10
@@ -35,7 +35,12 @@ func (c *calcium) cacheImage(podname, image string) error {
 		wg.Add(1)
 		go func(node *types.Node) {
 			defer wg.Done()
-			pullImage(node, image)
+			auth, err := c.MakeEncodedAuthConfigFromRemote(image)
+			if err != nil {
+				log.Errorf("[cacheImage] Cache image failed %v", err)
+				return
+			}
+			pullImage(node, image, auth)
 		}(node)
 	}
 
