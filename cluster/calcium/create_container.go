@@ -7,7 +7,6 @@ import (
 	"strings"
 	"sync"
 
-	log "github.com/sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
 	enginecontainer "github.com/docker/docker/api/types/container"
 	enginenetwork "github.com/docker/docker/api/types/network"
@@ -17,6 +16,7 @@ import (
 	"github.com/projecteru2/core/stats"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -333,13 +333,14 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 
 // Pull an image
 // Blocks until it finishes.
-func pullImage(node *types.Node, image string) error {
+func pullImage(node *types.Node, image, auth string) error {
 	log.Debugf("[pullImage] Pulling image %s", image)
 	if image == "" {
 		return fmt.Errorf("Goddamn empty image, WTF?")
 	}
 
-	outStream, err := node.Engine.ImagePull(context.Background(), image, enginetypes.ImagePullOptions{})
+	pullOptions := enginetypes.ImagePullOptions{RegistryAuth: auth}
+	outStream, err := node.Engine.ImagePull(context.Background(), image, pullOptions)
 	if err != nil {
 		log.Errorf("[pullImage] Error during pulling image %s: %v", image, err)
 		return err
@@ -355,7 +356,11 @@ func (c *calcium) getAndPrepareNode(podname, nodename, image string) (*types.Nod
 		return nil, err
 	}
 
-	if err := pullImage(node, image); err != nil {
+	auth, err := c.MakeEncodedAuthConfigFromRemote(image)
+	if err != nil {
+		return nil, err
+	}
+	if err := pullImage(node, image, auth); err != nil {
 		return nil, err
 	}
 	return node, nil
