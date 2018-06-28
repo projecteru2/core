@@ -1,23 +1,17 @@
 package calcium
 
 import (
-	"context"
 	"fmt"
 	"sync"
 
-	log "github.com/sirupsen/logrus"
 	enginecontainer "github.com/docker/docker/api/types/container"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
+	log "github.com/sirupsen/logrus"
 )
 
-type NodeContainers map[*types.Node][]*types.Container
-type NodeCPUMap map[*types.Node][]types.CPUMap
-type CPUNodeContainers map[float64]NodeContainers
-type CPUNodeContainersMap map[float64]NodeCPUMap
-
-func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error) {
+//ReallocResource allow realloc container resource
+func (c *Calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error) {
 	// TODO 大量容器 Get 的时候有性能问题
 	containers, err := c.store.GetContainers(ids)
 	if err != nil {
@@ -68,7 +62,7 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 				cpuContainersInfo[pod] = CPUNodeContainers{}
 			}
 			podCPUContainersInfo := cpuContainersInfo[pod]
-			newCPURequire := c.calculateCPUUsage(container) + cpu
+			newCPURequire := calculateCPUUsage(c.config.Scheduler.ShareBase, container) + cpu
 			if newCPURequire < 0.0 {
 				return nil, fmt.Errorf("Cpu can not below zero")
 			}
@@ -114,7 +108,7 @@ func (c *calcium) ReallocResource(ids []string, cpu float64, mem int64) (chan *t
 	return ch, nil
 }
 
-func (c *calcium) checkNodesMemory(podname string, nodeContainers NodeContainers, memory int64) error {
+func (c *Calcium) checkNodesMemory(podname string, nodeContainers NodeContainers, memory int64) error {
 	lock, err := c.Lock(podname, c.config.LockTimeout)
 	if err != nil {
 		return err
@@ -131,7 +125,7 @@ func (c *calcium) checkNodesMemory(podname string, nodeContainers NodeContainers
 	return nil
 }
 
-func (c *calcium) reallocContainerWithMemoryPrior(
+func (c *Calcium) reallocContainerWithMemoryPrior(
 	ch chan *types.ReallocResourceMessage,
 	pod *types.Pod,
 	nodeContainers NodeContainers,
@@ -155,7 +149,7 @@ func (c *calcium) reallocContainerWithMemoryPrior(
 	}
 }
 
-func (c *calcium) doUpdateContainerWithMemoryPrior(
+func (c *Calcium) doUpdateContainerWithMemoryPrior(
 	ch chan *types.ReallocResourceMessage,
 	podname string,
 	node *types.Node,
@@ -170,7 +164,7 @@ func (c *calcium) doUpdateContainerWithMemoryPrior(
 			continue
 		}
 
-		cpuQuota := int64(cpu * float64(utils.CpuPeriodBase))
+		cpuQuota := int64(cpu * float64(CpuPeriodBase))
 		newCPUQuota := containerJSON.HostConfig.CPUQuota + cpuQuota
 		newMemory := containerJSON.HostConfig.Memory + memory
 		if newCPUQuota <= 0 || newMemory <= minMemory {
@@ -178,11 +172,11 @@ func (c *calcium) doUpdateContainerWithMemoryPrior(
 			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
 			continue
 		}
-		newCPU := float64(newCPUQuota) / float64(utils.CpuPeriodBase)
+		newCPU := float64(newCPUQuota) / float64(CpuPeriodBase)
 		log.Debugf("[doUpdateContainerWithMemoryPrior] quota:%d, cpu: %f, mem: %d", newCPUQuota, newCPU, newMemory)
 
 		// CPUQuota not cpu
-		newResource := c.makeMemoryPriorSetting(newMemory, newCPU)
+		newResource := makeMemoryPriorSetting(newMemory, newCPU)
 		updateConfig := enginecontainer.UpdateConfig{Resources: newResource}
 		if err := reSetContainer(containerJSON.ID, node, updateConfig); err != nil {
 			log.Errorf("[doUpdateContainerWithMemoryPrior] update container failed %v, %s", err, containerJSON.ID)
@@ -213,7 +207,7 @@ func (c *calcium) doUpdateContainerWithMemoryPrior(
 	}
 }
 
-func (c *calcium) reallocNodesCPU(
+func (c *Calcium) reallocNodesCPU(
 	podname string,
 	nodesInfoMap CPUNodeContainers,
 ) (CPUNodeContainersMap, error) {
@@ -278,7 +272,7 @@ func (c *calcium) reallocNodesCPU(
 }
 
 // mem not used in this prior
-func (c *calcium) reallocContainersWithCPUPrior(
+func (c *Calcium) reallocContainersWithCPUPrior(
 	ch chan *types.ReallocResourceMessage,
 	pod *types.Pod,
 	nodesInfoMap CPUNodeContainers,
@@ -303,7 +297,7 @@ func (c *calcium) reallocContainersWithCPUPrior(
 	}
 }
 
-func (c *calcium) doReallocContainersWithCPUPrior(
+func (c *Calcium) doReallocContainersWithCPUPrior(
 	ch chan *types.ReallocResourceMessage,
 	podname string,
 	nodesCPUResult NodeCPUMap,
@@ -315,7 +309,7 @@ func (c *calcium) doReallocContainersWithCPUPrior(
 		for index, container := range containers {
 			//TODO 如果需要限制内存，需要在这里 inspect 一下
 			quota := cpuset[index]
-			resource := c.makeCPUPriorSetting(quota)
+			resource := makeCPUPriorSetting(c.config.Scheduler.ShareBase, quota)
 			updateConfig := enginecontainer.UpdateConfig{Resources: resource}
 			if err := reSetContainer(container.ID, node, updateConfig); err != nil {
 				log.Errorf("[doReallocContainersWithCPUPrior] update container failed %v", err)
@@ -333,9 +327,4 @@ func (c *calcium) doReallocContainersWithCPUPrior(
 			ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: true}
 		}
 	}
-}
-
-func reSetContainer(ID string, node *types.Node, config enginecontainer.UpdateConfig) error {
-	_, err := node.Engine.ContainerUpdate(context.Background(), ID, config)
-	return err
 }

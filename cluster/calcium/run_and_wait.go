@@ -14,7 +14,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (c *calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error) {
+//RunAndWait implement lambda
+func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error) {
 	ch := make(chan *types.RunAndWaitMessage)
 
 	// 强制为 json-file 输出

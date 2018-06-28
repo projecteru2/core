@@ -4,39 +4,47 @@ package calcium
 // All these functions are meta data related.
 
 import (
-	log "github.com/sirupsen/logrus"
 	"github.com/projecteru2/core/types"
+	log "github.com/sirupsen/logrus"
 )
 
-func (c *calcium) ListPods() ([]*types.Pod, error) {
+//ListPods show pods
+func (c *Calcium) ListPods() ([]*types.Pod, error) {
 	return c.store.GetAllPods()
 }
 
-func (c *calcium) AddPod(podname, favor, desc string) (*types.Pod, error) {
+//AddPod add pod
+func (c *Calcium) AddPod(podname, favor, desc string) (*types.Pod, error) {
 	return c.store.AddPod(podname, favor, desc)
 }
 
-func (c *calcium) RemovePod(podname string) error {
+//RemovePod remove pod
+func (c *Calcium) RemovePod(podname string) error {
 	return c.store.RemovePod(podname)
 }
 
-func (c *calcium) GetPod(podname string) (*types.Pod, error) {
+//GetPod get one pod
+func (c *Calcium) GetPod(podname string) (*types.Pod, error) {
 	return c.store.GetPod(podname)
 }
 
-func (c *calcium) AddNode(nodename, endpoint, podname, ca, cert, key string, cpu int, share, memory int64, labels map[string]string) (*types.Node, error) {
+//AddNode add a node in pod
+func (c *Calcium) AddNode(nodename, endpoint, podname, ca, cert, key string, cpu int, share, memory int64, labels map[string]string) (*types.Node, error) {
 	return c.store.AddNode(nodename, endpoint, podname, ca, cert, key, cpu, share, memory, labels)
 }
 
-func (c *calcium) GetNode(podname, nodename string) (*types.Node, error) {
+//GetNode get node
+func (c *Calcium) GetNode(podname, nodename string) (*types.Node, error) {
 	return c.store.GetNode(podname, nodename)
 }
 
-func (c *calcium) GetNodeByName(nodename string) (*types.Node, error) {
+//GetNodeByName get node by name
+func (c *Calcium) GetNodeByName(nodename string) (*types.Node, error) {
 	return c.store.GetNodeByName(nodename)
 }
 
-func (c *calcium) SetNodeAvailable(podname, nodename string, available bool) (*types.Node, error) {
+//SetNodeAvailable set node available or not
+func (c *Calcium) SetNodeAvailable(podname, nodename string, available bool) (*types.Node, error) {
 	n, err := c.store.GetNode(podname, nodename)
 	if err != nil {
 		return nil, err
@@ -48,7 +56,8 @@ func (c *calcium) SetNodeAvailable(podname, nodename string, available bool) (*t
 	return n, nil
 }
 
-func (c *calcium) RemoveNode(nodename, podname string) (*types.Pod, error) {
+//RemoveNode remove a node
+func (c *Calcium) RemoveNode(nodename, podname string) (*types.Pod, error) {
 	n, err := c.store.GetNode(podname, nodename)
 	if err != nil {
 		return nil, err
@@ -57,7 +66,8 @@ func (c *calcium) RemoveNode(nodename, podname string) (*types.Pod, error) {
 	return c.store.GetPod(podname)
 }
 
-func (c *calcium) ListPodNodes(podname string, all bool) ([]*types.Node, error) {
+//ListPodNodes list nodes belong to pod
+func (c *Calcium) ListPodNodes(podname string, all bool) ([]*types.Node, error) {
 	var nodes []*types.Node
 	candidates, err := c.store.GetNodesByPod(podname)
 	if err != nil {
@@ -72,18 +82,22 @@ func (c *calcium) ListPodNodes(podname string, all bool) ([]*types.Node, error) 
 	return nodes, nil
 }
 
-func (c *calcium) GetContainer(id string) (*types.Container, error) {
+//GetContainer get a container
+func (c *Calcium) GetContainer(id string) (*types.Container, error) {
 	return c.store.GetContainer(id)
 }
 
-func (c *calcium) GetContainers(ids []string) ([]*types.Container, error) {
+//GetContainers get containers
+func (c *Calcium) GetContainers(ids []string) ([]*types.Container, error) {
 	return c.store.GetContainers(ids)
 }
 
-func (c *calcium) ContainerDeployed(ID, appname, entrypoint, nodename, data string) error {
+//ContainerDeployed show container deploy status
+func (c *Calcium) ContainerDeployed(ID, appname, entrypoint, nodename, data string) error {
 	return c.store.ContainerDeployed(ID, appname, entrypoint, nodename, data)
 }
 
-func (c *calcium) ListContainers(appname, entrypoint, nodename string) ([]*types.Container, error) {
+//ListContainers list containers
+func (c *Calcium) ListContainers(appname, entrypoint, nodename string) ([]*types.Container, error) {
 	return c.store.ListContainers(appname, entrypoint, nodename)
 }

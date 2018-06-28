@@ -2,12 +2,12 @@ package calcium
 
 import (
 	"context"
-	"strings"
 
 	"github.com/projecteru2/core/types"
 )
 
-func (c *calcium) DeployStatusStream(ctx context.Context, appname, entrypoint, nodename string) chan *types.DeployStatus {
+//DeployStatusStream watch deploy status
+func (c *Calcium) DeployStatusStream(ctx context.Context, appname, entrypoint, nodename string) chan *types.DeployStatus {
 	ch := make(chan *types.DeployStatus)
 	watcher := c.store.WatchDeployStatus(appname, entrypoint, nodename)
 	go func() {
@@ -33,10 +33,4 @@ func (c *calcium) DeployStatusStream(ctx context.Context, appname, entrypoint, n
 		}
 	}()
 	return ch
-}
-
-func parseStatusKey(key string) (string, string, string, string) {
-	parts := strings.Split(key, "/")
-	l := len(parts)
-	return parts[l-4], parts[l-3], parts[l-2], parts[l-1]
 }

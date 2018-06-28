@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +25,7 @@ func TestReallocWithCPUPrior(t *testing.T) {
 
 	// 扩容
 	cpu := 0.1
-	CPURate := mockc.calculateCPUUsage(containers[0])
+	CPURate := calculateCPUUsage(mockc.config.Scheduler.ShareBase, containers[0])
 	newCPURequire := CPURate + cpu
 	cpuContainersInfo[pod][newCPURequire] = NodeContainers{}
 	cpuContainersInfo[pod][newCPURequire][node] = []*types.Container{}
@@ -185,7 +184,7 @@ func TestReallocResource(t *testing.T) {
 
 		// diff CPU
 		newCPU := CJ.HostConfig.Resources.CPUQuota
-		diff := float64(newCPU) - cpuadd*utils.CpuPeriodBase
-		assert.Equal(t, int(diff), utils.CpuPeriodBase)
+		diff := float64(newCPU) - cpuadd*CpuPeriodBase
+		assert.Equal(t, int(diff), CpuPeriodBase)
 	}
 }

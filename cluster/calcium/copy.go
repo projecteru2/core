@@ -2,20 +2,14 @@ package calcium
 
 import (
 	"context"
-	"io"
 	"sync"
 
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	COPY_FAILED = "failed"
-	COPY_OK     = "ok"
-)
-
 //Copy uses docker cp to copy specified things and send to remote
-func (c *calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error) {
+func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error) {
 	ch := make(chan *types.CopyMessage)
 	go func() {
 		defer close(ch)
@@ -59,15 +53,4 @@ func (c *calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 		wg.Wait()
 	}()
 	return ch, nil
-}
-
-func makeCopyMessage(id, status, name, path string, err error, data io.ReadCloser) *types.CopyMessage {
-	return &types.CopyMessage{
-		ID:     id,
-		Status: status,
-		Name:   name,
-		Path:   path,
-		Error:  err,
-		Data:   data,
-	}
 }

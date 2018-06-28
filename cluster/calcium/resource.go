@@ -10,10 +10,9 @@ import (
 	"github.com/projecteru2/core/scheduler/complex"
 	"github.com/projecteru2/core/stats"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
-func (c *calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.NodeInfo, error) {
+func (c *Calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.NodeInfo, error) {
 	lock, err := c.Lock(opts.Podname, c.config.LockTimeout)
 	if err != nil {
 		return nil, err
@@ -41,7 +40,7 @@ func (c *calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.Nod
 		return complexscheduler.CommunismDivisionPlan(nodesInfo, opts.Count, opts.Count*len(nodesInfo))
 	}
 
-	cpuRate := int64(opts.CPUQuota * float64(utils.CpuPeriodBase))
+	cpuRate := int64(opts.CPUQuota * float64(CpuPeriodBase))
 	log.Debugf("[allocMemoryPodResource] Input opts.CPUQuota: %f, equal CPURate %d", opts.CPUQuota, cpuRate)
 	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].MemCap < nodesInfo[j].MemCap })
 	nodesInfo, err = c.scheduler.SelectMemoryNodes(nodesInfo, cpuRate, opts.Memory, opts.Count) // 还是以 Bytes 作单位， 不转换了
@@ -66,7 +65,7 @@ func (c *calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.Nod
 	return nodesInfo, nil
 }
 
-func (c *calcium) allocCPUPodResource(opts *types.DeployOptions) (map[string][]types.CPUMap, error) {
+func (c *Calcium) allocCPUPodResource(opts *types.DeployOptions) (map[string][]types.CPUMap, error) {
 	lock, err := c.Lock(opts.Podname, c.config.LockTimeout)
 	if err != nil {
 		return nil, err
@@ -111,26 +110,7 @@ func (c *calcium) allocCPUPodResource(opts *types.DeployOptions) (map[string][]t
 	return result, err
 }
 
-func filterNode(node *types.Node, labels map[string]string) bool {
-	if node.Labels == nil && labels == nil {
-		return true
-	} else if node.Labels == nil && labels != nil {
-		return false
-	} else if node.Labels != nil && labels == nil {
-		return true
-	}
-
-	for k, v := range labels {
-		if d, ok := node.Labels[k]; !ok {
-			return false
-		} else if d != v {
-			return false
-		}
-	}
-	return true
-}
-
-func (c *calcium) getCPUAndMem(podname, nodename string, labels map[string]string) (map[string]types.CPUAndMem, []*types.Node, error) {
+func (c *Calcium) getCPUAndMem(podname, nodename string, labels map[string]string) (map[string]types.CPUAndMem, []*types.Node, error) {
 	result := make(map[string]types.CPUAndMem)
 	var nodes []*types.Node
 	var err error
@@ -162,21 +142,4 @@ func (c *calcium) getCPUAndMem(podname, nodename string, labels map[string]strin
 	result = makeCPUAndMem(nodes)
 	go stats.Client.SendMemCap(result)
 	return result, nodes, nil
-}
-
-func getNodesInfo(cpuAndMemData map[string]types.CPUAndMem) []types.NodeInfo {
-	result := []types.NodeInfo{}
-	for nodeName, cpuAndMem := range cpuAndMemData {
-		cpuRate := int64(len(cpuAndMem.CpuMap)) * utils.CpuPeriodBase
-		n := types.NodeInfo{
-			CPUAndMem: cpuAndMem,
-			Name:      nodeName,
-			CPURate:   cpuRate,
-			Capacity:  0,
-			Count:     0,
-			Deploy:    0,
-		}
-		result = append(result, n)
-	}
-	return result
 }

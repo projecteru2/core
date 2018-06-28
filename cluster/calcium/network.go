@@ -7,11 +7,11 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// list networks for podname
+//ListNetworks by podname
 // just get one node from podname
 // and call docker network ls
 // only get those driven by network driver
-func (c *calcium) ListNetworks(podname string, driver string) ([]*types.Network, error) {
+func (c *Calcium) ListNetworks(podname string, driver string) ([]*types.Network, error) {
 	networks := []*types.Network{}
 	nodes, err := c.ListPodNodes(podname, false)
 	if err != nil {

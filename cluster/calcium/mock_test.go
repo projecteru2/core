@@ -74,7 +74,7 @@ var (
 			MaxShare:  -1,
 		},
 	}
-	mockc     *calcium
+	mockc     *Calcium
 	mockStore *mockstore.MockStore
 	err       error
 	etpts     = &coretypes.Entrypoint{
@@ -262,7 +262,7 @@ func mockDockerDoer(r *http.Request) (*http.Response, error) {
 	case fmt.Sprintf("/containers/%s/json", containerID):
 		testlogF("inspect container %s", containerID)
 		rscs := container.Resources{
-			CPUQuota: utils.CpuPeriodBase,
+			CPUQuota: CpuPeriodBase,
 			Memory:   appmemory,
 		}
 		nRscs := container.Resources{}
