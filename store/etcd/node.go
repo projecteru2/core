@@ -6,126 +6,62 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
-	"sync"
 
-	log "github.com/sirupsen/logrus"
 	etcdclient "github.com/coreos/etcd/client"
 	engineapi "github.com/docker/docker/client"
-	"github.com/docker/go-connections/tlsconfig"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+	log "github.com/sirupsen/logrus"
 )
 
-//GIGABYTE define gb
-const GIGABYTE = 1073741824
-
-// cache connections
-// otherwise they'll leak
-type cache struct {
-	sync.Mutex
-	clients map[string]*engineapi.Client
-}
-
-func (c *cache) set(host string, client *engineapi.Client) {
-	c.Lock()
-	defer c.Unlock()
-
-	c.clients[host] = client
-}
-
-func (c *cache) get(host string) *engineapi.Client {
-	c.Lock()
-	defer c.Unlock()
-	return c.clients[host]
-}
-
-func (c *cache) delete(host string) {
-	c.Lock()
-	defer c.Unlock()
-	delete(c.clients, host)
-}
-
-var _cache = &cache{clients: make(map[string]*engineapi.Client)}
-
-// get a node from etcd
-// and construct it's docker client
-// a node must belong to a pod
-// and since node is not the smallest unit to user, to get a node we must specify the corresponding pod
-// storage path in etcd is `/pod/:podname/node/:nodename/info`
-func (k *krypton) GetNode(podname, nodename string) (*types.Node, error) {
-	key := fmt.Sprintf(nodeInfoKey, podname, nodename)
-	resp, err := k.etcd.Get(context.Background(), key, nil)
-	if err != nil {
-		return nil, err
-	}
-	if resp.Node.Dir {
-		return nil, fmt.Errorf("Node storage path %q in etcd is a directory", key)
-	}
-
-	node := &types.Node{}
-	if err := json.Unmarshal([]byte(resp.Node.Value), node); err != nil {
-		return nil, err
-	}
-
-	engine, err := k.makeDockerClient(podname, nodename, node.Endpoint, false)
-	if err != nil {
-		return nil, err
-	}
-
-	node.Engine = engine
-	return node, nil
-}
-
-// save it to etcd
+//AddNode save it to etcd
 // storage path in etcd is `/pod/:podname/node/:nodename/info`
 //AddNode add a node
-func (k *krypton) AddNode(name, endpoint, podname, ca, cert, key string, cpu int, share, memory int64, labels map[string]string) (*types.Node, error) {
+func (k *Krypton) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu int, share, memory int64, labels map[string]string) (*types.Node, error) {
 	if !strings.HasPrefix(endpoint, "tcp://") {
 		return nil, fmt.Errorf("Endpoint must starts with tcp:// %q", endpoint)
 	}
 
-	_, err := k.GetPod(podname)
+	_, err := k.GetPod(ctx, podname)
 	if err != nil {
 		return nil, err
 	}
 
 	nodeKey := fmt.Sprintf(nodeInfoKey, podname, name)
-	if _, err := k.etcd.Get(context.Background(), nodeKey, nil); err == nil {
+	if _, err := k.etcd.Get(ctx, nodeKey, nil); err == nil {
 		return nil, fmt.Errorf("Node (%s, %s) already exists", podname, name)
 	}
 
 	// 如果有tls的证书需要保存就保存一下
 	if ca != "" && cert != "" && key != "" {
-		_, err = k.etcd.Set(context.Background(), fmt.Sprintf(nodeCaKey, podname, name), ca, nil)
+		_, err = k.etcd.Set(ctx, fmt.Sprintf(nodeCaKey, podname, name), ca, nil)
 		if err != nil {
 			return nil, err
 		}
-		_, err = k.etcd.Set(context.Background(), fmt.Sprintf(nodeCertKey, podname, name), cert, nil)
+		_, err = k.etcd.Set(ctx, fmt.Sprintf(nodeCertKey, podname, name), cert, nil)
 		if err != nil {
 			return nil, err
 		}
-		_, err = k.etcd.Set(context.Background(), fmt.Sprintf(nodeKeyKey, podname, name), key, nil)
+		_, err = k.etcd.Set(ctx, fmt.Sprintf(nodeKeyKey, podname, name), key, nil)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	// 尝试加载docker的客户端
-	engine, err := k.makeDockerClient(podname, name, endpoint, true)
+	engine, err := k.makeDockerClient(ctx, podname, name, endpoint, true)
 	if err != nil {
-		k.deleteNode(podname, name, endpoint)
+		k.deleteNode(ctx, podname, name, endpoint)
 		return nil, err
 	}
 
 	// 判断这货是不是活着的
-	info, err := engine.Info(context.Background())
+	info, err := engine.Info(ctx)
 	if err != nil {
-		k.deleteNode(podname, name, endpoint)
+		k.deleteNode(ctx, podname, name, endpoint)
 		return nil, err
 	}
 
@@ -133,7 +69,7 @@ func (k *krypton) AddNode(name, endpoint, podname, ca, cert, key string, cpu int
 	memcap := memory
 	if cpu == 0 && memory == 0 {
 		ncpu = info.NCPU
-		memcap = info.MemTotal - GIGABYTE
+		memcap = info.MemTotal - gigabyte
 	}
 	if share == 0 {
 		share = k.config.Scheduler.ShareBase
@@ -155,19 +91,19 @@ func (k *krypton) AddNode(name, endpoint, podname, ca, cert, key string, cpu int
 
 	bytes, err := json.Marshal(node)
 	if err != nil {
-		k.deleteNode(podname, name, endpoint)
+		k.deleteNode(ctx, podname, name, endpoint)
 		return nil, err
 	}
 
-	_, err = k.etcd.Create(context.Background(), nodeKey, string(bytes))
+	_, err = k.etcd.Create(ctx, nodeKey, string(bytes))
 	if err != nil {
-		k.deleteNode(podname, name, endpoint)
+		k.deleteNode(ctx, podname, name, endpoint)
 		return nil, err
 	}
 
-	_, err = k.etcd.Create(context.Background(), fmt.Sprintf(nodePodKey, name), podname)
+	_, err = k.etcd.Create(ctx, fmt.Sprintf(nodePodKey, name), podname)
 	if err != nil {
-		k.deleteNode(podname, name, endpoint)
+		k.deleteNode(ctx, podname, name, endpoint)
 		return nil, err
 	}
 
@@ -178,10 +114,10 @@ func (k *krypton) AddNode(name, endpoint, podname, ca, cert, key string, cpu int
 // 所以可能出现实际上node创建失败但是却写好了证书的情况
 // 所以需要删除这些留存的证书
 // 至于结果是不是成功就无所谓了
-func (k *krypton) deleteNode(podname, nodename, endpoint string) {
+func (k *Krypton) deleteNode(ctx context.Context, podname, nodename, endpoint string) {
 	key := fmt.Sprintf(nodePrefixKey, podname, nodename)
-	k.etcd.Delete(context.Background(), key, &etcdclient.DeleteOptions{Recursive: true})
-	k.etcd.Delete(context.Background(), fmt.Sprintf(nodePodKey, nodename), &etcdclient.DeleteOptions{})
+	k.etcd.Delete(ctx, key, &etcdclient.DeleteOptions{Recursive: true})
+	k.etcd.Delete(ctx, fmt.Sprintf(nodePodKey, nodename), &etcdclient.DeleteOptions{})
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		log.Errorf("[deleteNode] Bad endpoint: %s", endpoint)
@@ -197,45 +133,57 @@ func (k *krypton) deleteNode(podname, nodename, endpoint string) {
 	log.Debugf("[deleteNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 }
 
-// 既然有了上面的东西, 就加个API吧
-func (k *krypton) DeleteNode(node *types.Node) {
-	k.deleteNode(node.Podname, node.Name, node.Endpoint)
+//DeleteNode delete a node
+func (k *Krypton) DeleteNode(ctx context.Context, node *types.Node) {
+	k.deleteNode(ctx, node.Podname, node.Name, node.Endpoint)
 }
 
-func (k *krypton) GetNodeByName(nodename string) (node *types.Node, err error) {
+//GetNode get a node from etcd
+// and construct it's docker client
+// a node must belong to a pod
+// and since node is not the smallest unit to user, to get a node we must specify the corresponding pod
+// storage path in etcd is `/pod/:podname/node/:nodename/info`
+func (k *Krypton) GetNode(ctx context.Context, podname, nodename string) (*types.Node, error) {
+	key := fmt.Sprintf(nodeInfoKey, podname, nodename)
+	resp, err := k.etcd.Get(ctx, key, nil)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Node.Dir {
+		return nil, fmt.Errorf("Node storage path %q in etcd is a directory", key)
+	}
+
+	node := &types.Node{}
+	if err := json.Unmarshal([]byte(resp.Node.Value), node); err != nil {
+		return nil, err
+	}
+
+	engine, err := k.makeDockerClient(ctx, podname, nodename, node.Endpoint, false)
+	if err != nil {
+		return nil, err
+	}
+
+	node.Engine = engine
+	return node, nil
+}
+
+//GetNodeByName get node by name
+func (k *Krypton) GetNodeByName(ctx context.Context, nodename string) (node *types.Node, err error) {
 	key := fmt.Sprintf(nodePodKey, nodename)
-	resp, err := k.etcd.Get(context.Background(), key, nil)
+	resp, err := k.etcd.Get(ctx, key, nil)
 	if err != nil {
 		return nil, err
 	}
 	podname := resp.Node.Value
-	return k.GetNode(podname, nodename)
+	return k.GetNode(ctx, podname, nodename)
 }
 
-// get all nodes from etcd
-// any error will break and return immediately
-func (k *krypton) GetAllNodes() (nodes []*types.Node, err error) {
-	pods, err := k.GetAllPods()
-	if err != nil {
-		return nodes, err
-	}
-
-	for _, pod := range pods {
-		ns, err := k.GetNodesByPod(pod.Name)
-		if err != nil {
-			return nodes, err
-		}
-		nodes = append(nodes, ns...)
-	}
-	return nodes, err
-}
-
-// get all nodes bound to pod
+//GetNodesByPod get all nodes bound to pod
 // here we use podname instead of pod instance
 // storage path in etcd is `/pod/:podname/node`
-func (k *krypton) GetNodesByPod(podname string) (nodes []*types.Node, err error) {
+func (k *Krypton) GetNodesByPod(ctx context.Context, podname string) (nodes []*types.Node, err error) {
 	key := fmt.Sprintf(podNodesKey, podname)
-	resp, err := k.etcd.Get(context.Background(), key, nil)
+	resp, err := k.etcd.Get(ctx, key, nil)
 	if err != nil {
 		return nodes, err
 	}
@@ -245,7 +193,7 @@ func (k *krypton) GetNodesByPod(podname string) (nodes []*types.Node, err error)
 
 	for _, node := range resp.Node.Nodes {
 		nodename := utils.Tail(node.Key)
-		n, err := k.GetNode(podname, nodename)
+		n, err := k.GetNode(ctx, podname, nodename)
 		if err != nil {
 			return nodes, err
 		}
@@ -254,18 +202,36 @@ func (k *krypton) GetNodesByPod(podname string) (nodes []*types.Node, err error)
 	return nodes, err
 }
 
-// update a node, save it to etcd
+//GetAllNodes get all nodes from etcd
+// any error will break and return immediately
+func (k *Krypton) GetAllNodes(ctx context.Context) (nodes []*types.Node, err error) {
+	pods, err := k.GetAllPods(ctx)
+	if err != nil {
+		return nodes, err
+	}
+
+	for _, pod := range pods {
+		ns, err := k.GetNodesByPod(ctx, pod.Name)
+		if err != nil {
+			return nodes, err
+		}
+		nodes = append(nodes, ns...)
+	}
+	return nodes, err
+}
+
+//UpdateNode update a node, save it to etcd
 // storage path in etcd is `/pod/:podname/node/:nodename/info`
-func (k *krypton) UpdateNode(node *types.Node) error {
+func (k *Krypton) UpdateNode(ctx context.Context, node *types.Node) error {
 	lock, err := k.CreateLock(fmt.Sprintf("%s_%s", node.Podname, node.Name), k.config.LockTimeout)
 	if err != nil {
 		return err
 	}
 
-	if err := lock.Lock(); err != nil {
+	if err := lock.Lock(ctx); err != nil {
 		return err
 	}
-	defer lock.Unlock()
+	defer lock.Unlock(ctx)
 
 	key := fmt.Sprintf(nodeInfoKey, node.Podname, node.Name)
 	bytes, err := json.Marshal(node)
@@ -273,27 +239,66 @@ func (k *krypton) UpdateNode(node *types.Node) error {
 		return err
 	}
 
-	_, err = k.etcd.Set(context.Background(), key, string(bytes), nil)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err = k.etcd.Set(ctx, key, string(bytes), nil)
+	return err
 }
 
-func (k *krypton) UpdateNodeMem(podname, nodename string, mem int64, action string) error {
+//UpdateNodeCPU update cpu on a node, either add or substract
+// need to lock
+func (k *Krypton) UpdateNodeCPU(ctx context.Context, podname, nodename string, cpu types.CPUMap, action string) error {
 	lock, err := k.CreateLock(fmt.Sprintf("%s_%s", podname, nodename), k.config.LockTimeout)
 	if err != nil {
 		return err
 	}
 
-	if err := lock.Lock(); err != nil {
+	if err := lock.Lock(ctx); err != nil {
 		return err
 	}
-	defer lock.Unlock()
+	defer lock.Unlock(ctx)
 
 	nodeKey := fmt.Sprintf(nodeInfoKey, podname, nodename)
-	resp, err := k.etcd.Get(context.Background(), nodeKey, nil)
+	resp, err := k.etcd.Get(ctx, nodeKey, nil)
+	if err != nil {
+		return err
+	}
+	if resp.Node.Dir {
+		return fmt.Errorf("Node storage path %q in etcd is a directory", nodeKey)
+	}
+
+	node := &types.Node{}
+	if err := json.Unmarshal([]byte(resp.Node.Value), node); err != nil {
+		return err
+	}
+
+	if action == "add" || action == "+" {
+		node.CPU.Add(cpu)
+	} else if action == "sub" || action == "-" {
+		node.CPU.Sub(cpu)
+	}
+
+	bytes, err := json.Marshal(node)
+	if err != nil {
+		return err
+	}
+
+	_, err = k.etcd.Set(ctx, nodeKey, string(bytes), nil)
+	return err
+}
+
+//UpdateNodeMem update node mem quota
+func (k *Krypton) UpdateNodeMem(ctx context.Context, podname, nodename string, mem int64, action string) error {
+	lock, err := k.CreateLock(fmt.Sprintf("%s_%s", podname, nodename), k.config.LockTimeout)
+	if err != nil {
+		return err
+	}
+
+	if err := lock.Lock(ctx); err != nil {
+		return err
+	}
+	defer lock.Unlock(ctx)
+
+	nodeKey := fmt.Sprintf(nodeInfoKey, podname, nodename)
+	resp, err := k.etcd.Get(ctx, nodeKey, nil)
 	if err != nil {
 		return err
 	}
@@ -318,91 +323,11 @@ func (k *krypton) UpdateNodeMem(podname, nodename string, mem int64, action stri
 	nodeInfo := string(bytes)
 
 	log.Debugf("[UpdateNodeMem] new node info: %s", nodeInfo)
-	_, err = k.etcd.Set(context.Background(), nodeKey, nodeInfo, nil)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err = k.etcd.Set(ctx, nodeKey, nodeInfo, nil)
+	return err
 }
 
-// update cpu on a node, either add or substract
-// need to lock
-func (k *krypton) UpdateNodeCPU(podname, nodename string, cpu types.CPUMap, action string) error {
-	lock, err := k.CreateLock(fmt.Sprintf("%s_%s", podname, nodename), k.config.LockTimeout)
-	if err != nil {
-		return err
-	}
-
-	if err := lock.Lock(); err != nil {
-		return err
-	}
-	defer lock.Unlock()
-
-	nodeKey := fmt.Sprintf(nodeInfoKey, podname, nodename)
-	resp, err := k.etcd.Get(context.Background(), nodeKey, nil)
-	if err != nil {
-		return err
-	}
-	if resp.Node.Dir {
-		return fmt.Errorf("Node storage path %q in etcd is a directory", nodeKey)
-	}
-
-	node := &types.Node{}
-	if err := json.Unmarshal([]byte(resp.Node.Value), node); err != nil {
-		return err
-	}
-
-	if action == "add" || action == "+" {
-		node.CPU.Add(cpu)
-	} else if action == "sub" || action == "-" {
-		node.CPU.Sub(cpu)
-	}
-
-	bytes, err := json.Marshal(node)
-	if err != nil {
-		return err
-	}
-
-	_, err = k.etcd.Set(context.Background(), nodeKey, string(bytes), nil)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// use endpoint, cert files path, and api version to create docker client
-// we don't check whether this is connectable
-func makeRawClientWithTLS(ca, cert, key *os.File, endpoint, apiversion string) (*engineapi.Client, error) {
-	var cli *http.Client
-	options := tlsconfig.Options{
-		CAFile:             ca.Name(),
-		CertFile:           cert.Name(),
-		KeyFile:            key.Name(),
-		InsecureSkipVerify: true,
-	}
-	defer os.Remove(ca.Name())
-	defer os.Remove(cert.Name())
-	defer os.Remove(key.Name())
-	tlsc, err := tlsconfig.Client(options)
-	if err != nil {
-		return nil, err
-	}
-	cli = &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: tlsc,
-		},
-	}
-	log.Debugf("[makeRawClientWithTLS] Create new http.Client for %s, %s", endpoint, apiversion)
-	return engineapi.NewClient(endpoint, apiversion, cli, nil)
-}
-
-func makeRawClient(endpoint, apiversion string) (*engineapi.Client, error) {
-	return engineapi.NewClient(endpoint, apiversion, nil, nil)
-}
-
-func (k *krypton) makeDockerClient(podname, nodename, endpoint string, force bool) (*engineapi.Client, error) {
+func (k *Krypton) makeDockerClient(ctx context.Context, podname, nodename, endpoint string, force bool) (*engineapi.Client, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		return nil, err
@@ -423,7 +348,7 @@ func (k *krypton) makeDockerClient(podname, nodename, endpoint string, force boo
 			keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
 			data := []string{}
 			for i := 0; i < 3; i++ {
-				resp, err := k.etcd.Get(context.Background(), fmt.Sprintf(keyFormats[i], podname, nodename), nil)
+				resp, err := k.etcd.Get(ctx, fmt.Sprintf(keyFormats[i], podname, nodename), nil)
 				if err != nil {
 					return nil, err
 				}
@@ -452,22 +377,4 @@ func (k *krypton) makeDockerClient(podname, nodename, endpoint string, force boo
 		_cache.set(host, client)
 	}
 	return client, nil
-}
-
-func dumpFromString(ca, cert, key *os.File, caStr, certStr, keyStr string) error {
-	files := []*os.File{ca, cert, key}
-	data := []string{caStr, certStr, keyStr}
-	for i := 0; i < 3; i++ {
-		if _, err := files[i].WriteString(data[i]); err != nil {
-			return err
-		}
-		if err := files[i].Chmod(0444); err != nil {
-			return err
-		}
-		if err := files[i].Close(); err != nil {
-			return err
-		}
-	}
-	log.Debug("[dumpFromString] Dump ca.pem, cert.pem, key.pem from string")
-	return nil
 }

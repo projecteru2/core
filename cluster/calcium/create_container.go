@@ -21,7 +21,7 @@ import (
 
 //CreateContainer use options to create containers
 func (c *Calcium) CreateContainer(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
-	pod, err := c.store.GetPod(opts.Podname)
+	pod, err := c.store.GetPod(context.Background(), opts.Podname)
 	if err != nil {
 		log.Errorf("[CreateContainer] Error during GetPod for %s: %v", opts.Podname, err)
 		return nil, err
@@ -87,7 +87,7 @@ func (c *Calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, opts
 		for i := 0; i < nodeInfo.Deploy; i++ {
 			ms[i] = &types.CreateContainerMessage{Error: err}
 			if !opts.RawResource {
-				if err := c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, opts.Memory, "+"); err != nil {
+				if err := c.store.UpdateNodeMem(context.Background(), opts.Podname, nodeInfo.Name, opts.Memory, "+"); err != nil {
 					log.Errorf("[doCreateContainerWithMemoryPrior] reset node memory failed %v", err)
 				}
 			}
@@ -153,7 +153,7 @@ func (c *Calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 		log.Errorf("[doCreateContainerWithCPUPrior] Get and prepare node error %v", err)
 		for i := 0; i < deployCount; i++ {
 			ms[i] = &types.CreateContainerMessage{Error: err}
-			if err := c.store.UpdateNodeCPU(opts.Podname, nodeName, cpuMap[i], "+"); err != nil {
+			if err := c.store.UpdateNodeCPU(context.Background(), opts.Podname, nodeName, cpuMap[i], "+"); err != nil {
 				log.Errorf("[doCreateContainerWithCPUPrior] update node CPU failed %v", err)
 			}
 		}
@@ -390,7 +390,7 @@ func (c *Calcium) createAndStartContainer(
 	container.ID = containerCreated.ID
 	createContainerMessage.ContainerID = container.ID
 
-	if err = c.store.AddContainer(container); err != nil {
+	if err = c.store.AddContainer(context.Background(), container); err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage
 	}

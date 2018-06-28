@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"sync"
@@ -17,7 +18,7 @@ func (c *Calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.Nod
 	if err != nil {
 		return nil, err
 	}
-	defer lock.Unlock()
+	defer lock.Unlock(context.Background())
 
 	cpuandmem, _, err := c.getCPUAndMem(opts.Podname, opts.Nodename, opts.NodeLabels)
 	if err != nil {
@@ -27,7 +28,7 @@ func (c *Calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.Nod
 	nodesInfo := getNodesInfo(cpuandmem)
 
 	// Load deploy status
-	nodesInfo, err = c.store.MakeDeployStatus(opts, nodesInfo)
+	nodesInfo, err = c.store.MakeDeployStatus(context.Background(), opts, nodesInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +59,7 @@ func (c *Calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.Nod
 		go func(nodeInfo types.NodeInfo) {
 			defer wg.Done()
 			memoryTotal := opts.Memory * int64(nodeInfo.Deploy)
-			c.store.UpdateNodeMem(opts.Podname, nodeInfo.Name, memoryTotal, "-")
+			c.store.UpdateNodeMem(context.Background(), opts.Podname, nodeInfo.Name, memoryTotal, "-")
 		}(nodeInfo)
 	}
 	wg.Wait()
@@ -70,7 +71,7 @@ func (c *Calcium) allocCPUPodResource(opts *types.DeployOptions) (map[string][]t
 	if err != nil {
 		return nil, err
 	}
-	defer lock.Unlock()
+	defer lock.Unlock(context.Background())
 
 	cpuandmem, nodes, err := c.getCPUAndMem(opts.Podname, opts.Nodename, opts.NodeLabels)
 	if err != nil {
@@ -79,7 +80,7 @@ func (c *Calcium) allocCPUPodResource(opts *types.DeployOptions) (map[string][]t
 	nodesInfo := getNodesInfo(cpuandmem)
 
 	// Load deploy status
-	nodesInfo, err = c.store.MakeDeployStatus(opts, nodesInfo)
+	nodesInfo, err = c.store.MakeDeployStatus(context.Background(), opts, nodesInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +103,7 @@ func (c *Calcium) allocCPUPodResource(opts *types.DeployOptions) (map[string][]t
 			if ok {
 				node.CPU = r
 				// ignore error
-				c.store.UpdateNode(node)
+				c.store.UpdateNode(context.Background(), node)
 			}
 		}
 	}

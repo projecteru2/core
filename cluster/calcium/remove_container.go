@@ -109,14 +109,14 @@ func (c *Calcium) removeOneContainer(container *types.Container) error {
 		// but if it's 0, just ignore to save 1 time write on etcd.
 		if container.CPU.Total() > 0 {
 			log.Debugf("[removeOneContainer] Restore node %s cpu: %v", container.Nodename, container.CPU)
-			if err := c.store.UpdateNodeCPU(container.Podname, container.Nodename, container.CPU, "+"); err != nil {
+			if err := c.store.UpdateNodeCPU(context.Background(), container.Podname, container.Nodename, container.CPU, "+"); err != nil {
 				log.Errorf("[removeOneContainer] Update Node CPU failed %v", err)
 			}
 			return
 		}
 		if container.Memory > 0 {
 			log.Debugf("[removeOneContainer] Restore node %s memory: %d", container.Nodename, container.Memory)
-			if err := c.store.UpdateNodeMem(container.Podname, container.Nodename, container.Memory, "+"); err != nil {
+			if err := c.store.UpdateNodeMem(context.Background(), container.Podname, container.Nodename, container.Memory, "+"); err != nil {
 				log.Errorf("[removeOneContainer] Update Node Memory failed %v", err)
 			}
 		}
@@ -134,7 +134,7 @@ func (c *Calcium) removeOneContainer(container *types.Container) error {
 	if err != nil {
 		return err
 	}
-	defer lock.Unlock()
+	defer lock.Unlock(context.Background())
 
 	// 这里 block 的问题很严重，按照目前的配置是 5 分钟一级的 block
 	// 一个简单的处理方法是相信 ctx 不相信 docker 自身的处理
@@ -156,7 +156,7 @@ func (c *Calcium) removeOneContainer(container *types.Container) error {
 	}
 	log.Debugf("[removeOneContainer] Container removed %s", container.ID)
 
-	return c.store.RemoveContainer(container)
+	return c.store.RemoveContainer(context.Background(), container)
 }
 
 // 同步地删除容器, 在某些需要等待的场合异常有用!

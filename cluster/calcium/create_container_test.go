@@ -13,7 +13,7 @@ import (
 func TestPullImage(t *testing.T) {
 	initMockConfig()
 
-	nodes, err := mockc.store.GetAllNodes()
+	nodes, err := mockc.store.GetAllNodes(context.Background())
 	if err != nil || len(nodes) == 0 {
 		t.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func TestClean(t *testing.T) {
 	initMockConfig()
 
 	// delete pod, which will fail because there are remaining nodes
-	err := mockc.store.RemovePod(podname)
+	err := mockc.store.RemovePod(context.Background(), podname)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "still has nodes")
 }
