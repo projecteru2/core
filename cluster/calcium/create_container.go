@@ -19,15 +19,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	restartAlways = "always"
-	minMemory     = 4194304
-	root          = "root"
-)
-
-// Create Container
-// Use options to create
-func (c *calcium) CreateContainer(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+//CreateContainer use options to create containers
+func (c *Calcium) CreateContainer(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	pod, err := c.store.GetPod(opts.Podname)
 	if err != nil {
 		log.Errorf("[CreateContainer] Error during GetPod for %s: %v", opts.Podname, err)
@@ -42,7 +35,7 @@ func (c *calcium) CreateContainer(opts *types.DeployOptions) (chan *types.Create
 	return nil, fmt.Errorf("[CreateContainer] Favor not support: %v", pod.Favor)
 }
 
-func (c *calcium) createContainerWithMemoryPrior(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+func (c *Calcium) createContainerWithMemoryPrior(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
 	// 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
 	// -1 means without limit
@@ -85,7 +78,7 @@ func (c *calcium) createContainerWithMemoryPrior(opts *types.DeployOptions) (cha
 	return ch, nil
 }
 
-func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
+func (c *Calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
 	ms := make([]*types.CreateContainerMessage, nodeInfo.Deploy)
 
 	node, err := c.getAndPrepareNode(opts.Podname, nodeInfo.Name, opts.Image)
@@ -115,7 +108,7 @@ func (c *calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, opts
 	return ms
 }
 
-func (c *calcium) createContainerWithCPUPrior(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+func (c *Calcium) createContainerWithCPUPrior(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
 	result, err := c.allocCPUPodResource(opts)
 	if err != nil {
@@ -151,7 +144,7 @@ func (c *calcium) createContainerWithCPUPrior(opts *types.DeployOptions) (chan *
 	return ch, nil
 }
 
-func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.CPUMap, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
+func (c *Calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.CPUMap, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
 	deployCount := len(cpuMap)
 	ms := make([]*types.CreateContainerMessage, deployCount)
 
@@ -180,7 +173,7 @@ func (c *calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 	return ms
 }
 
-func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *types.DeployOptions, node *types.Node, favor string) (
+func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *types.DeployOptions, node *types.Node, favor string) (
 	*enginecontainer.Config,
 	*enginecontainer.HostConfig,
 	*enginenetwork.NetworkingConfig,
@@ -303,9 +296,9 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 
 	var resource enginecontainer.Resources
 	if favor == scheduler.CPU_PRIOR {
-		resource = c.makeCPUPriorSetting(quota)
+		resource = makeCPUPriorSetting(c.config.Scheduler.ShareBase, quota)
 	} else if favor == scheduler.MEMORY_PRIOR {
-		resource = c.makeMemoryPriorSetting(opts.Memory, opts.CPUQuota)
+		resource = makeMemoryPriorSetting(opts.Memory, opts.CPUQuota)
 	} else {
 		return nil, nil, nil, "", fmt.Errorf("favor not support %s", favor)
 	}
@@ -331,42 +324,21 @@ func (c *calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	return config, hostConfig, networkConfig, containerName, nil
 }
 
-// Pull an image
-// Blocks until it finishes.
-func pullImage(node *types.Node, image, auth string) error {
-	log.Debugf("[pullImage] Pulling image %s", image)
-	if image == "" {
-		return fmt.Errorf("Goddamn empty image, WTF?")
-	}
-
-	pullOptions := enginetypes.ImagePullOptions{RegistryAuth: auth}
-	outStream, err := node.Engine.ImagePull(context.Background(), image, pullOptions)
-	if err != nil {
-		log.Errorf("[pullImage] Error during pulling image %s: %v", image, err)
-		return err
-	}
-	ensureReaderClosed(outStream)
-	log.Debugf("[pullImage] Done pulling image %s", image)
-	return nil
-}
-
-func (c *calcium) getAndPrepareNode(podname, nodename, image string) (*types.Node, error) {
+func (c *Calcium) getAndPrepareNode(podname, nodename, image string) (*types.Node, error) {
 	node, err := c.GetNode(podname, nodename)
 	if err != nil {
 		return nil, err
 	}
 
-	auth, err := c.MakeEncodedAuthConfigFromRemote(image)
+	auth, err := makeEncodedAuthConfigFromRemote(c.config.Docker.AuthConfigs, image)
 	if err != nil {
 		return nil, err
 	}
-	if err := pullImage(node, image, auth); err != nil {
-		return nil, err
-	}
-	return node, nil
+
+	return node, pullImage(context.Background(), node, image, auth)
 }
 
-func (c *calcium) createAndStartContainer(
+func (c *Calcium) createAndStartContainer(
 	no int, node *types.Node,
 	opts *types.DeployOptions,
 	cpu types.CPUMap, typ string,

@@ -9,8 +9,8 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// remove images
-func (c *calcium) RemoveImage(ctx context.Context, podname, nodename string, images []string) (chan *types.RemoveImageMessage, error) {
+//RemoveImage remove images
+func (c *Calcium) RemoveImage(ctx context.Context, podname, nodename string, images []string) (chan *types.RemoveImageMessage, error) {
 	ch := make(chan *types.RemoveImageMessage)
 
 	node, err := c.GetNode(podname, nodename)

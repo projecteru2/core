@@ -2,20 +2,15 @@ package calcium
 
 import (
 	"context"
-	"strings"
 	"sync"
 
-	enginetypes "github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/filters"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
 
-const maxPuller = 10
-
 // 在podname上cache这个image
 // 实际上就是在所有的node上去pull一次
-func (c *calcium) cacheImage(podname, image string) error {
+func (c *Calcium) cacheImage(podname, image string) error {
 	nodes, err := c.ListPodNodes(podname, false)
 	if err != nil {
 		return err
@@ -35,12 +30,12 @@ func (c *calcium) cacheImage(podname, image string) error {
 		wg.Add(1)
 		go func(node *types.Node) {
 			defer wg.Done()
-			auth, err := c.MakeEncodedAuthConfigFromRemote(image)
+			auth, err := makeEncodedAuthConfigFromRemote(c.config.Docker.AuthConfigs, image)
 			if err != nil {
 				log.Errorf("[cacheImage] Cache image failed %v", err)
 				return
 			}
-			pullImage(node, image, auth)
+			pullImage(context.Background(), node, image, auth)
 		}(node)
 	}
 
@@ -49,7 +44,7 @@ func (c *calcium) cacheImage(podname, image string) error {
 
 // 清理一个pod上的全部这个image
 // 对里面所有node去执行
-func (c *calcium) cleanImage(podname, image string) error {
+func (c *Calcium) cleanImage(ctx context.Context, podname, image string) error {
 	nodes, err := c.ListPodNodes(podname, false)
 	if err != nil {
 		return err
@@ -67,57 +62,10 @@ func (c *calcium) cleanImage(podname, image string) error {
 		wg.Add(1)
 		go func(node *types.Node) {
 			defer wg.Done()
-			if err := cleanImageOnNode(node, image, c.config.ImageCache); err != nil {
+			if err := cleanImageOnNode(ctx, node, image, c.config.ImageCache); err != nil {
 				log.Errorf("[cleanImage] CleanImageOnNode error: %s", err)
 			}
 		}(node)
-	}
-	return nil
-}
-
-// 只要一个image的前面, tag不要
-func normalizeImage(image string) string {
-	if strings.Contains(image, ":") {
-		t := strings.Split(image, ":")
-		return t[0]
-	}
-	return image
-}
-
-type imageList []enginetypes.ImageSummary
-
-func (x imageList) Len() int           { return len(x) }
-func (x imageList) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
-func (x imageList) Less(i, j int) bool { return x[i].Created > x[j].Created }
-
-// 清理一个node上的这个image
-// 只清理同名字不同tag的
-// 并且保留最新的两个
-func cleanImageOnNode(node *types.Node, image string, count int) error {
-	log.Debugf("[cleanImageOnNode] node: %s, image: %s", node.Name, strings.Split(image, ":")[0])
-	imgListFilter := filters.NewArgs()
-	image = normalizeImage(image)
-	imgListFilter.Add("reference", image) // 相同repo的image
-	images, err := node.Engine.ImageList(context.Background(), enginetypes.ImageListOptions{Filters: imgListFilter})
-	if err != nil {
-		return err
-	}
-
-	if len(images) < count {
-		return nil
-	}
-
-	images = images[count:]
-	log.Debugf("[cleanImageOnNode] Delete Images: %v", images)
-
-	for _, image := range images {
-		_, err := node.Engine.ImageRemove(context.Background(), image.ID, enginetypes.ImageRemoveOptions{
-			Force:         false,
-			PruneChildren: true,
-		})
-		if err != nil {
-			log.Errorf("[cleanImageOnNode] Node %s ImageRemove error: %s, imageID: %s", node.Name, err, image.ID)
-		}
 	}
 	return nil
 }

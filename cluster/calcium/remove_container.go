@@ -6,45 +6,14 @@ import (
 	"strings"
 	"sync"
 
-	log "github.com/sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
 	"github.com/projecteru2/core/types"
+	log "github.com/sirupsen/logrus"
 )
 
-type imageBucket struct {
-	sync.Mutex
-	data map[string]map[string]struct{}
-}
-
-func newImageBucket() *imageBucket {
-	return &imageBucket{data: make(map[string]map[string]struct{})}
-}
-
-func (ib *imageBucket) Add(podname, image string) {
-	ib.Lock()
-	defer ib.Unlock()
-
-	if _, ok := ib.data[podname]; !ok {
-		ib.data[podname] = make(map[string]struct{})
-	}
-	ib.data[podname][image] = struct{}{}
-}
-
-func (ib *imageBucket) Dump() map[string][]string {
-	r := make(map[string][]string)
-	for podname, imageMap := range ib.data {
-		images := []string{}
-		for image := range imageMap {
-			images = append(images, image)
-		}
-		r[podname] = images
-	}
-	return r
-}
-
-// remove containers
+//RemoveContainer remove containers
 // returns a channel that contains removing responses
-func (c *calcium) RemoveContainer(ids []string, force bool) (chan *types.RemoveContainerMessage, error) {
+func (c *Calcium) RemoveContainer(ids []string, force bool) (chan *types.RemoveContainerMessage, error) {
 	ch := make(chan *types.RemoveContainerMessage)
 	go func() {
 		wg := sync.WaitGroup{}
@@ -118,7 +87,7 @@ func (c *calcium) RemoveContainer(ids []string, force bool) (chan *types.RemoveC
 		go func(ib *imageBucket) {
 			for podname, images := range ib.Dump() {
 				for _, image := range images {
-					c.cleanImage(podname, image)
+					c.cleanImage(context.Background(), podname, image)
 				}
 			}
 		}(ib)
@@ -130,7 +99,7 @@ func (c *calcium) RemoveContainer(ids []string, force bool) (chan *types.RemoveC
 }
 
 // remove one container
-func (c *calcium) removeOneContainer(container *types.Container) error {
+func (c *Calcium) removeOneContainer(container *types.Container) error {
 	defer func() {
 		// not deal with raw res container
 		if container.RawResource {
@@ -191,7 +160,7 @@ func (c *calcium) removeOneContainer(container *types.Container) error {
 }
 
 // 同步地删除容器, 在某些需要等待的场合异常有用!
-func (c *calcium) removeContainerSync(ids []string) error {
+func (c *Calcium) removeContainerSync(ids []string) error {
 	ch, err := c.RemoveContainer(ids, true)
 	if err != nil {
 		return err

@@ -16,7 +16,8 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-type calcium struct {
+//Calcium implement the cluster
+type Calcium struct {
 	store     store.Store
 	config    types.Config
 	scheduler scheduler.Scheduler
@@ -24,13 +25,8 @@ type calcium struct {
 	source    source.Source
 }
 
-const (
-	GITLAB = "gitlab"
-	GITHUB = "github"
-)
-
 // New returns a new cluster config
-func New(config types.Config) (*calcium, error) {
+func New(config types.Config) (*Calcium, error) {
 	// set store
 	store, err := etcdstore.New(config)
 	if err != nil {
@@ -58,10 +54,10 @@ func New(config types.Config) (*calcium, error) {
 		return nil, fmt.Errorf("Unkonwn SCM type: %s", config.Git.SCMType)
 	}
 
-	return &calcium{store: store, config: config, scheduler: scheduler, network: titanium, source: scm}, nil
+	return &Calcium{store: store, config: config, scheduler: scheduler, network: titanium, source: scm}, nil
 }
 
-// SetStore 用于在单元测试中更改etcd store为mock store
-func (c *calcium) SetStore(s store.Store) {
+//SetStore 用于在单元测试中更改etcd store为mock store
+func (c *Calcium) SetStore(s store.Store) {
 	c.store = s
 }

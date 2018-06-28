@@ -22,7 +22,7 @@ func TestMakeMountPaths(t *testing.T) {
 
 func TestRegistryAuth(t *testing.T) {
 	tag := "docker.io/projecteru2/core"
-	encodedAuth, _ := mockc.MakeEncodedAuthConfigFromRemote(tag)
+	encodedAuth, _ := makeEncodedAuthConfigFromRemote(mockc.config.Docker.AuthConfigs, tag)
 	decodedAuth, _ := base64.StdEncoding.DecodeString(encodedAuth)
 	authConfig := types.AuthConfig{}
 	json.Unmarshal(decodedAuth, &authConfig)

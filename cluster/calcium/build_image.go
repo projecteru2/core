@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,10 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 
 	enginetypes "github.com/docker/docker/api/types"
-	"github.com/docker/docker/pkg/archive"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -45,7 +42,7 @@ USER {{.User}}
 `
 )
 
-func (c *calcium) preparedSource(build *types.Build, buildDir string) (string, error) {
+func (c *Calcium) preparedSource(build *types.Build, buildDir string) (string, error) {
 	// parse repository name
 	// code locates under /:repositoryname
 	var cloneDir string
@@ -90,6 +87,61 @@ func (c *calcium) preparedSource(build *types.Build, buildDir string) (string, e
 	return reponame, nil
 }
 
+func (c *Calcium) makeDockerFile(opts *types.BuildOptions, buildDir string) error {
+	var preCache map[string]string
+	var preStage string
+	var buildTmpl []string
+
+	for _, stage := range opts.Builds.Stages {
+		build, ok := opts.Builds.Builds[stage]
+		if !ok {
+			log.Warnf("[makeDockerFile] Builds stage %s not defined", stage)
+			continue
+		}
+
+		// get source or artifacts
+		reponame, err := c.preparedSource(build, buildDir)
+		if err != nil {
+			return err
+		}
+		build.Repo = reponame
+
+		// get header
+		from := fmt.Sprintf(fromAsTmpl, build.Base, stage)
+
+		// get multiple stags
+		copys := []string{}
+		for src, dst := range preCache {
+			copys = append(copys, fmt.Sprintf(copyTmpl, preStage, src, dst))
+		}
+
+		// get commands
+		commands := []string{}
+		for _, command := range build.Commands {
+			commands = append(commands, fmt.Sprintf(runTmpl, command))
+		}
+
+		// decide add source or not
+		mainPart, err := makeMainPart(opts, build, from, commands, copys)
+		if err != nil {
+			return err
+		}
+		buildTmpl = append(buildTmpl, mainPart)
+		preStage = stage
+		preCache = build.Cache
+	}
+
+	if opts.User != "" && opts.UID != 0 {
+		userPart, err := makeUserPart(opts)
+		if err != nil {
+			return err
+		}
+		buildTmpl = append(buildTmpl, userPart)
+	}
+	dockerfile := strings.Join(buildTmpl, "\n")
+	return createDockerfile(dockerfile, buildDir)
+}
+
 // BuildImage will build image for repository
 // since we wanna set UID for the user inside container, we have to know the uid parameter
 //
@@ -97,7 +149,7 @@ func (c *calcium) preparedSource(build *types.Build, buildDir string) (string, e
 //
 //    buildDir ├─ :appname ├─ code
 //             ├─ Dockerfile
-func (c *calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
+func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
 	ch := make(chan *types.BuildImageMessage)
 
 	// get pod from config
@@ -184,7 +236,7 @@ func (c *calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 			log.Errorf("[BuildImage] Build image failed %v", lastMessage.ErrorDetail.Message)
 			return
 		}
-		encodedAuth, err := c.MakeEncodedAuthConfigFromRemote(tag)
+		encodedAuth, err := makeEncodedAuthConfigFromRemote(c.config.Docker.AuthConfigs, tag)
 		if err != nil {
 			ch <- makeErrorBuildImageMessage(err)
 			return
@@ -230,128 +282,4 @@ func (c *calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 	}()
 
 	return ch, nil
-}
-
-func makeErrorBuildImageMessage(err error) *types.BuildImageMessage {
-	return &types.BuildImageMessage{Error: err.Error()}
-}
-
-func createTarStream(path string) (io.ReadCloser, error) {
-	tarOpts := &archive.TarOptions{
-		ExcludePatterns: []string{},
-		IncludeFiles:    []string{"."},
-		Compression:     archive.Uncompressed,
-		NoLchown:        true,
-	}
-	return archive.TarWithOptions(path, tarOpts)
-}
-
-func makeCommonPart(build *types.Build) (string, error) {
-	tmpl := template.Must(template.New("common").Parse(commonTmpl))
-	out := bytes.Buffer{}
-	if err := tmpl.Execute(&out, build); err != nil {
-		return "", err
-	}
-	return out.String(), nil
-}
-
-func makeUserPart(opts *types.BuildOptions) (string, error) {
-	tmpl := template.Must(template.New("user").Parse(userTmpl))
-	out := bytes.Buffer{}
-	if err := tmpl.Execute(&out, opts); err != nil {
-		return "", err
-	}
-	return out.String(), nil
-}
-
-func makeMainPart(opts *types.BuildOptions, build *types.Build, from string, commands, copys []string) (string, error) {
-	var buildTmpl []string
-	common, err := makeCommonPart(build)
-	if err != nil {
-		return "", err
-	}
-	buildTmpl = append(buildTmpl, from, common)
-	if len(copys) > 0 {
-		buildTmpl = append(buildTmpl, copys...)
-	}
-	if len(commands) > 0 {
-		buildTmpl = append(buildTmpl, commands...)
-	}
-	return strings.Join(buildTmpl, "\n"), nil
-}
-
-func (c *calcium) makeDockerFile(opts *types.BuildOptions, buildDir string) error {
-	var preCache map[string]string
-	var preStage string
-	var buildTmpl []string
-
-	for _, stage := range opts.Builds.Stages {
-		build, ok := opts.Builds.Builds[stage]
-		if !ok {
-			log.Warnf("[makeDockerFile] Builds stage %s not defined", stage)
-			continue
-		}
-
-		// get source or artifacts
-		reponame, err := c.preparedSource(build, buildDir)
-		if err != nil {
-			return err
-		}
-		build.Repo = reponame
-
-		// get header
-		from := fmt.Sprintf(fromAsTmpl, build.Base, stage)
-
-		// get multiple stags
-		copys := []string{}
-		for src, dst := range preCache {
-			copys = append(copys, fmt.Sprintf(copyTmpl, preStage, src, dst))
-		}
-
-		// get commands
-		commands := []string{}
-		for _, command := range build.Commands {
-			commands = append(commands, fmt.Sprintf(runTmpl, command))
-		}
-
-		// decide add source or not
-		mainPart, err := makeMainPart(opts, build, from, commands, copys)
-		if err != nil {
-			return err
-		}
-		buildTmpl = append(buildTmpl, mainPart)
-		preStage = stage
-		preCache = build.Cache
-	}
-
-	if opts.User != "" && opts.UID != 0 {
-		userPart, err := makeUserPart(opts)
-		if err != nil {
-			return err
-		}
-		buildTmpl = append(buildTmpl, userPart)
-	}
-	dockerfile := strings.Join(buildTmpl, "\n")
-	return createDockerfile(dockerfile, buildDir)
-}
-
-// Dockerfile
-func createDockerfile(dockerfile, buildDir string) error {
-	f, err := os.Create(filepath.Join(buildDir, "Dockerfile"))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	_, err = f.WriteString(dockerfile)
-	return err
-}
-
-// Image tag
-// 格式严格按照 Hub/HubPrefix/appname:version 来
-func createImageTag(config types.DockerConfig, appname, version string) string {
-	prefix := strings.Trim(config.Namespace, "/")
-	if prefix == "" {
-		return fmt.Sprintf("%s/%s:%s", config.Hub, appname, version)
-	}
-	return fmt.Sprintf("%s/%s/%s:%s", config.Hub, prefix, appname, version)
 }

@@ -16,8 +16,6 @@ import (
 const (
 	letters       = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	shortenLength = 7
-	CpuPeriodBase = 100000
-	CpuShareBase  = 102400
 )
 
 func RandomString(n int) string {
