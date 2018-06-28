@@ -6,16 +6,18 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"os"
 	"strings"
 
 	engineapi "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 )
 
+type ctxKey string
+
 const (
-	letters       = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	shortenLength = 7
+	letters              = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	shortenLength        = 7
+	engineKey     ctxKey = "engine"
 )
 
 func RandomString(n int) string {
@@ -72,6 +74,7 @@ func GetGitRepoName(url string) (string, error) {
 	return strings.TrimSuffix(y[1], ".git"), nil
 }
 
+//GetVersion reture image Version
 func GetVersion(image string) string {
 	if !strings.Contains(image, ":") {
 		return "latest"
@@ -85,26 +88,17 @@ func GetVersion(image string) string {
 	return parts[len(parts)-1]
 }
 
+//ContextWithDockerEngine bind docker engine to context
 // Bind a docker engine client to context
-func ToDockerContext(client *engineapi.Client) context.Context {
-	return context.WithValue(context.Background(), "engine", client)
+func ContextWithDockerEngine(ctx context.Context, client *engineapi.Client) context.Context {
+	return context.WithValue(ctx, engineKey, client)
 }
 
+//GetDockerEngineFromContext get docker engine from context
 // Get a docker engine client from a context
-func FromDockerContext(ctx context.Context) (*engineapi.Client, bool) {
-	client, ok := ctx.Value("engine").(*engineapi.Client)
+func GetDockerEngineFromContext(ctx context.Context) (*engineapi.Client, bool) {
+	client, ok := ctx.Value(engineKey).(*engineapi.Client)
 	return client, ok
-}
-
-func SaveFile(content, path string, mode os.FileMode) error {
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, mode)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	_, err = file.WriteString(content)
-	return err
 }
 
 // copied from https://gist.github.com/jmervine/d88c75329f98e09f5c87

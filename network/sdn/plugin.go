@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"net"
 
-	log "github.com/sirupsen/logrus"
 	enginetypes "github.com/docker/docker/api/types"
 	enginefilters "github.com/docker/docker/api/types/filters"
 	enginenetwork "github.com/docker/docker/api/types/network"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 type titanium struct{}
@@ -21,7 +21,7 @@ func (t *titanium) ConnectToNetwork(ctx context.Context, containerID, networkID,
 		return fmt.Errorf("ContainerID must be in length of 64")
 	}
 
-	engine, ok := utils.FromDockerContext(ctx)
+	engine, ok := utils.GetDockerEngineFromContext(ctx)
 	if !ok {
 		return fmt.Errorf("Not actually a `engineapi.Client` for value engine in context")
 	}
@@ -42,7 +42,7 @@ func (t *titanium) ConnectToNetwork(ctx context.Context, containerID, networkID,
 	}
 
 	log.Debugf("[ConnectToNetwork] Connect %v to %v with IP %v", containerID, networkID, ipv4)
-	return engine.NetworkConnect(context.Background(), networkID, containerID, config)
+	return engine.NetworkConnect(ctx, networkID, containerID, config)
 }
 
 // disconnect from network
@@ -51,19 +51,19 @@ func (t *titanium) DisconnectFromNetwork(ctx context.Context, containerID, netwo
 		return fmt.Errorf("ContainerID must be in length of 64")
 	}
 
-	engine, ok := utils.FromDockerContext(ctx)
+	engine, ok := utils.GetDockerEngineFromContext(ctx)
 	if !ok {
 		return fmt.Errorf("Not actually a `engineapi.Client` for value engine in context")
 	}
 
 	log.Debugf("[DisconnectFromNetwork] Disconnect %v from %v", containerID, networkID)
-	return engine.NetworkDisconnect(context.Background(), networkID, containerID, false)
+	return engine.NetworkDisconnect(ctx, networkID, containerID, false)
 }
 
 // list networks from context
 func (t *titanium) ListNetworks(ctx context.Context, driver string) ([]*types.Network, error) {
 	networks := []*types.Network{}
-	engine, ok := utils.FromDockerContext(ctx)
+	engine, ok := utils.GetDockerEngineFromContext(ctx)
 	if !ok {
 		return networks, fmt.Errorf("Not actually a `engineapi.Client` for value engine in context")
 	}
@@ -72,7 +72,7 @@ func (t *titanium) ListNetworks(ctx context.Context, driver string) ([]*types.Ne
 	if driver != "" {
 		filters.Add("driver", driver)
 	}
-	ns, err := engine.NetworkList(context.Background(), enginetypes.NetworkListOptions{Filters: filters})
+	ns, err := engine.NetworkList(ctx, enginetypes.NetworkListOptions{Filters: filters})
 	if err != nil {
 		return networks, err
 	}

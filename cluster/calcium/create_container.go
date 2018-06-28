@@ -399,7 +399,7 @@ func (c *Calcium) createAndStartContainer(
 	// if network manager uses docker plugin, then connect must be called before container starts
 	// 如果有 networks 的配置，这里的 networkMode 就为 none 了
 	if len(opts.Networks) > 0 {
-		ctx := utils.ToDockerContext(node.Engine)
+		ctx := utils.ContextWithDockerEngine(context.Background(), node.Engine)
 		// need to ensure all networks are correctly connected
 		for networkID, ipv4 := range opts.Networks {
 			if err = c.network.ConnectToNetwork(ctx, containerCreated.ID, networkID, ipv4); err != nil {
