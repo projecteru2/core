@@ -32,7 +32,7 @@ func (c *Calcium) Lock(name string, timeout int) (lock.DistributedLock, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err = lock.Lock(); err != nil {
+	if err = lock.Lock(context.Background()); err != nil {
 		return nil, err
 	}
 	return lock, nil

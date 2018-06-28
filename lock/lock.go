@@ -1,6 +1,8 @@
 package lock
 
+import "context"
+
 type DistributedLock interface {
-	Lock() error
-	Unlock() error
+	Lock(ctx context.Context) error
+	Unlock(ctx context.Context) error
 }

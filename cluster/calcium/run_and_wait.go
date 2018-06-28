@@ -53,7 +53,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 
 			// 找不到对应node也不管
 			// 理论上不会这样
-			node, err := c.store.GetNode(message.Podname, message.Nodename)
+			node, err := c.store.GetNode(context.Background(), message.Podname, message.Nodename)
 			if err != nil {
 				log.Errorf("[RunAndWait] Can't find node, %v", err)
 				continue

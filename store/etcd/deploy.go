@@ -10,16 +10,17 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-func (k *krypton) MakeDeployStatus(opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
+//MakeDeployStatus get deploy status from store
+func (k *Krypton) MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
 	key := fmt.Sprintf(containerDeployStatusKey, opts.Name, opts.Entrypoint.Name)
-	resp, err := k.etcd.Get(context.Background(), key, &etcdclient.GetOptions{Recursive: true})
+	resp, err := k.etcd.Get(ctx, key, &etcdclient.GetOptions{Recursive: true})
 	if err != nil && etcdclient.IsKeyNotFound(err) {
-		return k.doMakeDeployStatus(opts, nodesInfo)
+		return k.doMakeDeployStatus(ctx, opts, nodesInfo)
 	}
-	return k.doGetDeployStatus(resp, nodesInfo)
+	return k.doGetDeployStatus(ctx, resp, nodesInfo)
 }
 
-func (k *krypton) doGetDeployStatus(resp *etcdclient.Response, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
+func (k *Krypton) doGetDeployStatus(ctx context.Context, resp *etcdclient.Response, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
 	nodesCount := map[string]int{}
 	for _, node := range resp.Node.Nodes {
 		nodeName := strings.Trim(strings.TrimPrefix(node.Key, resp.Node.Key), "/")
@@ -34,8 +35,8 @@ func (k *krypton) doGetDeployStatus(resp *etcdclient.Response, nodesInfo []types
 	return nodesInfo, nil
 }
 
-func (k *krypton) doMakeDeployStatus(opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
-	resp, err := k.etcd.Get(context.Background(), allContainerKey, &etcdclient.GetOptions{Recursive: true})
+func (k *Krypton) doMakeDeployStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
+	resp, err := k.etcd.Get(ctx, allContainerKey, &etcdclient.GetOptions{Recursive: true})
 	if err != nil {
 		if etcdclient.IsKeyNotFound(err) {
 			return nodesInfo, nil
@@ -66,6 +67,5 @@ func (k *krypton) doMakeDeployStatus(opts *types.DeployOptions, nodesInfo []type
 			nodesInfo[p].Count = v
 		}
 	}
-
 	return nodesInfo, nil
 }
