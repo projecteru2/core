@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/projecteru2/core/types"
@@ -23,6 +24,6 @@ func (c *Calcium) ListNetworks(podname string, driver string) ([]*types.Network,
 	}
 
 	node := nodes[0]
-	ctx := utils.ToDockerContext(node.Engine)
+	ctx := utils.ContextWithDockerEngine(context.Background(), node.Engine)
 	return c.network.ListNetworks(ctx, driver)
 }
