@@ -20,14 +20,14 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 			wg.Add(1)
 			go func(cid string, paths []string) {
 				defer wg.Done()
-				container, err := c.GetContainer(cid)
+				container, err := c.GetContainer(ctx, cid)
 				if err != nil {
 					log.Errorf("[Copy] Error when get container %s", cid)
 					ch <- makeCopyMessage(cid, COPY_FAILED, "", "", err, nil)
 					return
 				}
 
-				node, err := c.GetNode(container.Podname, container.Nodename)
+				node, err := c.GetNode(ctx, container.Podname, container.Nodename)
 				if err != nil {
 					log.Errorf("[Copy] Error when get node %s", cid)
 					ch <- makeCopyMessage(cid, COPY_FAILED, "", "", err, nil)

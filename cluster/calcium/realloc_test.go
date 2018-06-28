@@ -12,13 +12,14 @@ import (
 func TestReallocWithCPUPrior(t *testing.T) {
 	initMockConfig()
 	containersInfo := map[*types.Pod]NodeContainers{}
-	pod, _ := mockc.GetPod("pod1")
+	ctx := context.Background()
+	pod, _ := mockc.GetPod(ctx, "pod1")
 	containersInfo[pod] = NodeContainers{}
-	node, _ := mockc.GetNode(pod.Name, updatenodename)
+	node, _ := mockc.GetNode(ctx, pod.Name, updatenodename)
 	cpuContainersInfo := map[*types.Pod]CPUNodeContainers{}
 	cpuContainersInfo[pod] = CPUNodeContainers{}
 
-	containers, _ := mockc.GetContainers(ToUpdateContainerIDs)
+	containers, _ := mockc.GetContainers(ctx, ToUpdateContainerIDs)
 	for _, container := range containers {
 		containersInfo[pod][node] = append(containersInfo[pod][node], container)
 	}
@@ -42,7 +43,7 @@ func TestReallocWithCPUPrior(t *testing.T) {
 			nodeCPUContainersInfo := cpuContainersInfo[pod]
 			go func(pod *types.Pod, nodeCPUContainersInfo CPUNodeContainers) {
 				defer wg.Done()
-				mockc.reallocContainersWithCPUPrior(ch1, pod, nodeCPUContainersInfo, cpu, 0)
+				mockc.reallocContainersWithCPUPrior(ctx, ch1, pod, nodeCPUContainersInfo, cpu, 0)
 			}(pod, nodeCPUContainersInfo)
 		}
 		wg.Wait()
@@ -64,7 +65,7 @@ func TestReallocWithCPUPrior(t *testing.T) {
 		wg.Add(len(containersInfo))
 		go func(pod *types.Pod, nodeCPUContainersInfo CPUNodeContainers) {
 			defer wg.Done()
-			mockc.reallocContainersWithCPUPrior(ch2, pod, nodeCPUContainersInfo, cpu, 0)
+			mockc.reallocContainersWithCPUPrior(ctx, ch2, pod, nodeCPUContainersInfo, cpu, 0)
 		}(pod, cpuContainersInfo[pod])
 		wg.Wait()
 	}()
@@ -77,11 +78,12 @@ func TestReallocWithCPUPrior(t *testing.T) {
 func TestReallocWithMemoryPrior(t *testing.T) {
 	initMockConfig()
 	containersInfo := map[*types.Pod]NodeContainers{}
-	pod, _ := mockc.GetPod("pod1")
+	ctx := context.Background()
+	pod, _ := mockc.GetPod(ctx, "pod1")
 	containersInfo[pod] = NodeContainers{}
-	node, _ := mockc.GetNode(pod.Name, updatenodename)
+	node, _ := mockc.GetNode(ctx, pod.Name, updatenodename)
 
-	containers, _ := mockc.GetContainers(ToUpdateContainerIDs)
+	containers, _ := mockc.GetContainers(ctx, ToUpdateContainerIDs)
 	for _, container := range containers {
 		containersInfo[pod][node] = append(containersInfo[pod][node], container)
 	}
@@ -94,7 +96,7 @@ func TestReallocWithMemoryPrior(t *testing.T) {
 		for pod, nodeContainers := range containersInfo {
 			go func(pod *types.Pod, nodeContainers NodeContainers) {
 				defer wg.Done()
-				mockc.reallocContainerWithMemoryPrior(ch1, pod, nodeContainers, 0.2, 100000)
+				mockc.reallocContainerWithMemoryPrior(ctx, ch1, pod, nodeContainers, 0.2, 100000)
 			}(pod, nodeContainers)
 		}
 		wg.Wait()
@@ -112,7 +114,7 @@ func TestReallocWithMemoryPrior(t *testing.T) {
 		for pod, nodeContainers := range containersInfo {
 			go func(pod *types.Pod, nodeContainers NodeContainers) {
 				defer wg.Done()
-				mockc.reallocContainerWithMemoryPrior(ch2, pod, nodeContainers, -0.2, -100000)
+				mockc.reallocContainerWithMemoryPrior(ctx, ch2, pod, nodeContainers, -0.2, -100000)
 			}(pod, nodeContainers)
 		}
 		wg.Wait()
@@ -130,7 +132,7 @@ func TestReallocWithMemoryPrior(t *testing.T) {
 		for pod, nodeContainers := range containersInfo {
 			go func(pod *types.Pod, nodeContainers NodeContainers) {
 				defer wg.Done()
-				mockc.reallocContainerWithMemoryPrior(ch3, pod, nodeContainers, 0, 2600000000)
+				mockc.reallocContainerWithMemoryPrior(ctx, ch3, pod, nodeContainers, 0, 2600000000)
 			}(pod, nodeContainers)
 		}
 		wg.Wait()
@@ -148,7 +150,7 @@ func TestReallocWithMemoryPrior(t *testing.T) {
 		for pod, nodeContainers := range containersInfo {
 			go func(pod *types.Pod, nodeContainers NodeContainers) {
 				defer wg.Done()
-				mockc.reallocContainerWithMemoryPrior(ch4, pod, nodeContainers, 0, -268400000)
+				mockc.reallocContainerWithMemoryPrior(ctx, ch4, pod, nodeContainers, 0, -268400000)
 			}(pod, nodeContainers)
 		}
 		wg.Wait()
@@ -163,11 +165,11 @@ func TestReallocWithMemoryPrior(t *testing.T) {
 func TestReallocResource(t *testing.T) {
 	initMockConfig()
 
-	ids := ToUpdateContainerIDs
+	IDs := ToUpdateContainerIDs
 	cpuadd := float64(0.1)
 	memadd := int64(1)
-
-	ch, err := mockc.ReallocResource(ids, cpuadd, memadd)
+	ctx := context.Background()
+	ch, err := mockc.ReallocResource(ctx, IDs, cpuadd, memadd)
 	assert.Nil(t, err)
 
 	for msg := range ch {
@@ -175,8 +177,8 @@ func TestReallocResource(t *testing.T) {
 	}
 
 	clnt := mockDockerClient()
-	for _, id := range ids {
-		CJ, _ := clnt.ContainerInspect(context.Background(), id)
+	for _, ID := range IDs {
+		CJ, _ := clnt.ContainerInspect(ctx, ID)
 
 		// diff memory
 		newMem := CJ.HostConfig.Resources.Memory

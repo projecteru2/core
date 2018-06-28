@@ -13,26 +13,26 @@ import (
 
 //RemoveContainer remove containers
 // returns a channel that contains removing responses
-func (c *Calcium) RemoveContainer(ids []string, force bool) (chan *types.RemoveContainerMessage, error) {
+func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool) (chan *types.RemoveContainerMessage, error) {
 	ch := make(chan *types.RemoveContainerMessage)
 	go func() {
 		wg := sync.WaitGroup{}
 		ib := newImageBucket()
 
-		for _, id := range ids {
+		for _, ID := range IDs {
 			// 单个单个取是因为某些情况可能会传了id但是这里没有
 			// 这种情况不希望直接打断操作, 而是希望错误在message里回去.
-			container, err := c.GetContainer(id)
+			container, err := c.GetContainer(ctx, ID)
 			if err != nil {
 				ch <- &types.RemoveContainerMessage{
-					ContainerID: id,
+					ContainerID: ID,
 					Success:     false,
 					Message:     err.Error(),
 				}
 				continue
 			}
 
-			info, err := container.Inspect()
+			info, err := container.Inspect(ctx)
 			message := ""
 			if err != nil {
 				message = err.Error()
@@ -58,7 +58,7 @@ func (c *Calcium) RemoveContainer(ids []string, force bool) (chan *types.RemoveC
 				if container.Hook != nil && len(container.Hook.BeforeStop) > 0 && info.Config != nil {
 					outputs := []string{}
 					for _, cmd := range container.Hook.BeforeStop {
-						output, err := execuateInside(container.Engine, container.ID, cmd, info.Config.User, info.Config.Env, container.Privileged)
+						output, err := execuateInside(ctx, container.Engine, container.ID, cmd, info.Config.User, info.Config.Env, container.Privileged)
 						if err != nil {
 							if container.Hook.Force && !force {
 								success = false
@@ -73,7 +73,7 @@ func (c *Calcium) RemoveContainer(ids []string, force bool) (chan *types.RemoveC
 					message = strings.Join(outputs, "")
 				}
 
-				if err := c.removeOneContainer(container); err != nil {
+				if err := c.removeOneContainer(ctx, container); err != nil {
 					success = false
 					message += err.Error()
 				}
@@ -84,10 +84,14 @@ func (c *Calcium) RemoveContainer(ids []string, force bool) (chan *types.RemoveC
 		wg.Wait()
 
 		// 把收集的image清理掉
+		//TODO 如果 remove 是异步的，这里就不能用 ctx 了，gRPC 一断这里就会死
 		go func(ib *imageBucket) {
 			for podname, images := range ib.Dump() {
 				for _, image := range images {
-					c.cleanImage(context.Background(), podname, image)
+					err := c.cleanImage(ctx, podname, image)
+					if err != nil {
+						log.Errorf("[RemoveContainer] clean image failed %v", err)
+					}
 				}
 			}
 		}(ib)
@@ -99,7 +103,7 @@ func (c *Calcium) RemoveContainer(ids []string, force bool) (chan *types.RemoveC
 }
 
 // remove one container
-func (c *Calcium) removeOneContainer(container *types.Container) error {
+func (c *Calcium) removeOneContainer(ctx context.Context, container *types.Container) error {
 	defer func() {
 		// not deal with raw res container
 		if container.RawResource {
@@ -109,14 +113,14 @@ func (c *Calcium) removeOneContainer(container *types.Container) error {
 		// but if it's 0, just ignore to save 1 time write on etcd.
 		if container.CPU.Total() > 0 {
 			log.Debugf("[removeOneContainer] Restore node %s cpu: %v", container.Nodename, container.CPU)
-			if err := c.store.UpdateNodeCPU(context.Background(), container.Podname, container.Nodename, container.CPU, "+"); err != nil {
+			if err := c.store.UpdateNodeCPU(ctx, container.Podname, container.Nodename, container.CPU, "+"); err != nil {
 				log.Errorf("[removeOneContainer] Update Node CPU failed %v", err)
 			}
 			return
 		}
 		if container.Memory > 0 {
 			log.Debugf("[removeOneContainer] Restore node %s memory: %d", container.Nodename, container.Memory)
-			if err := c.store.UpdateNodeMem(context.Background(), container.Podname, container.Nodename, container.Memory, "+"); err != nil {
+			if err := c.store.UpdateNodeMem(ctx, container.Podname, container.Nodename, container.Memory, "+"); err != nil {
 				log.Errorf("[removeOneContainer] Update Node Memory failed %v", err)
 			}
 		}
@@ -130,18 +134,18 @@ func (c *Calcium) removeOneContainer(container *types.Container) error {
 	// use etcd lock to prevent a container being removed many times
 	// only the first to remove can be done
 	// lock timeout should equal stop timeout
-	lock, err := c.Lock(fmt.Sprintf("rmcontainer_%s", container.ID), int(c.config.GlobalTimeout.Seconds()))
+	lock, err := c.Lock(ctx, fmt.Sprintf("rmcontainer_%s", container.ID), int(c.config.GlobalTimeout.Seconds()))
 	if err != nil {
 		return err
 	}
-	defer lock.Unlock(context.Background())
+	defer lock.Unlock(ctx)
 
 	// 这里 block 的问题很严重，按照目前的配置是 5 分钟一级的 block
 	// 一个简单的处理方法是相信 ctx 不相信 docker 自身的处理
 	// 另外我怀疑 docker 自己的 timeout 实现是完全的等 timeout 而非结束了就退出
-	ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
+	removeCtx, cancel := context.WithTimeout(ctx, c.config.GlobalTimeout)
 	defer cancel()
-	if err = container.Engine.ContainerStop(ctx, container.ID, nil); err != nil {
+	if err = container.Engine.ContainerStop(removeCtx, container.ID, nil); err != nil {
 		return err
 	}
 	log.Debugf("[removeOneContainer] Container stopped %s", container.ID)
@@ -150,18 +154,18 @@ func (c *Calcium) removeOneContainer(container *types.Container) error {
 		RemoveVolumes: true,
 		Force:         true,
 	}
-	err = container.Engine.ContainerRemove(context.Background(), container.ID, rmOpts)
+	err = container.Engine.ContainerRemove(ctx, container.ID, rmOpts)
 	if err != nil {
 		return err
 	}
 	log.Debugf("[removeOneContainer] Container removed %s", container.ID)
 
-	return c.store.RemoveContainer(context.Background(), container)
+	return c.store.RemoveContainer(ctx, container)
 }
 
 // 同步地删除容器, 在某些需要等待的场合异常有用!
-func (c *Calcium) removeContainerSync(ids []string) error {
-	ch, err := c.RemoveContainer(ids, true)
+func (c *Calcium) removeContainerSync(ctx context.Context, IDs []string) error {
+	ch, err := c.RemoveContainer(ctx, IDs, true)
 	if err != nil {
 		return err
 	}

@@ -12,14 +12,17 @@ import (
 	engineapi "github.com/docker/docker/client"
 )
 
+//CPUAndMem store cpu and mem
 type CPUAndMem struct {
 	CpuMap CPUMap
 	MemCap int64
 }
 
+//CPUMap is cpu core map
 // CPUMap {["0"]10000, ["1"]10000}
 type CPUMap map[string]int64
 
+//Total show total cpu
 // Total quotas
 func (c CPUMap) Total() int64 {
 	var count int64
@@ -29,6 +32,7 @@ func (c CPUMap) Total() int64 {
 	return count
 }
 
+//Add return cpu
 func (c CPUMap) Add(q CPUMap) {
 	for label, value := range q {
 		if _, ok := c[label]; !ok {
@@ -39,6 +43,7 @@ func (c CPUMap) Add(q CPUMap) {
 	}
 }
 
+//Sub decrease cpus
 func (c CPUMap) Sub(q CPUMap) {
 	for label, value := range q {
 		if _, ok := c[label]; ok {
@@ -47,6 +52,7 @@ func (c CPUMap) Sub(q CPUMap) {
 	}
 }
 
+//Node store node info
 type Node struct {
 	sync.Mutex
 
@@ -60,17 +66,19 @@ type Node struct {
 	Engine    *engineapi.Client `json:"-"`
 }
 
+//Info show node info
 // 2 seconds timeout
 // used to be 5, but client won't wait that long
-func (n *Node) Info() (enginetypes.Info, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+func (n *Node) Info(ctx context.Context) (enginetypes.Info, error) {
+	infoCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	if n.Engine == nil {
 		return enginetypes.Info{}, fmt.Errorf("Node engine is nil")
 	}
-	return n.Engine.Info(ctx)
+	return n.Engine.Info(infoCtx)
 }
 
+//GetIP get node ip
 // get IP for node
 // will not return error
 func (n *Node) GetIP() string {
@@ -87,6 +95,7 @@ func (n *Node) GetIP() string {
 	return host
 }
 
+//NodeInfo for deploy
 type NodeInfo struct {
 	CPUAndMem
 	Name     string

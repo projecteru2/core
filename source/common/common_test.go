@@ -15,7 +15,7 @@ var (
 	repo        = "git@github.com:noexist/noexist.git"
 	revision    = "bye"
 	config      = types.GitConfig{}
-	artifactURL = "https://enjoy.ricebook.com/"
+	artifactURL = "https://www.baidu.com/"
 )
 
 func initTest() {

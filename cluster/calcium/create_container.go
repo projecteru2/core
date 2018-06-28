@@ -20,22 +20,22 @@ import (
 )
 
 //CreateContainer use options to create containers
-func (c *Calcium) CreateContainer(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
-	pod, err := c.store.GetPod(context.Background(), opts.Podname)
+func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+	pod, err := c.store.GetPod(ctx, opts.Podname)
 	if err != nil {
 		log.Errorf("[CreateContainer] Error during GetPod for %s: %v", opts.Podname, err)
 		return nil, err
 	}
 	log.Infof("[CreateContainer] Creating container with options: %v", opts)
 	if opts.RawResource || pod.Favor == scheduler.MEMORY_PRIOR {
-		return c.createContainerWithMemoryPrior(opts)
+		return c.createContainerWithMemoryPrior(ctx, opts)
 	} else if pod.Favor == scheduler.CPU_PRIOR {
-		return c.createContainerWithCPUPrior(opts)
+		return c.createContainerWithCPUPrior(ctx, opts)
 	}
 	return nil, fmt.Errorf("[CreateContainer] Favor not support: %v", pod.Favor)
 }
 
-func (c *Calcium) createContainerWithMemoryPrior(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+func (c *Calcium) createContainerWithMemoryPrior(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
 	// 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
 	// -1 means without limit
@@ -48,7 +48,7 @@ func (c *Calcium) createContainerWithMemoryPrior(opts *types.DeployOptions) (cha
 
 	// TODO RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
 	// 因此需要在这里加个全局锁，直到部署完毕才释放
-	nodesInfo, err := c.allocMemoryPodResource(opts)
+	nodesInfo, err := c.allocMemoryPodResource(ctx, opts)
 	if err != nil {
 		log.Errorf("[createContainerWithMemoryPrior] Error during allocMemoryPodResource with opts %v: %v", opts, err)
 		return ch, err
@@ -63,7 +63,7 @@ func (c *Calcium) createContainerWithMemoryPrior(opts *types.DeployOptions) (cha
 			go stats.Client.SendDeployCount(nodeInfo.Deploy)
 			go func(nodeInfo types.NodeInfo, index int) {
 				defer wg.Done()
-				for _, m := range c.doCreateContainerWithMemoryPrior(nodeInfo, opts, index) {
+				for _, m := range c.doCreateContainerWithMemoryPrior(ctx, nodeInfo, opts, index) {
 					ch <- m
 				}
 			}(nodeInfo, index)
@@ -72,22 +72,22 @@ func (c *Calcium) createContainerWithMemoryPrior(opts *types.DeployOptions) (cha
 		wg.Wait()
 
 		// 第一次部署的时候就去cache下镜像吧
-		go c.cacheImage(opts.Podname, opts.Image)
+		go c.cacheImage(ctx, opts.Podname, opts.Image)
 	}()
 
 	return ch, nil
 }
 
-func (c *Calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
+func (c *Calcium) doCreateContainerWithMemoryPrior(ctx context.Context, nodeInfo types.NodeInfo, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
 	ms := make([]*types.CreateContainerMessage, nodeInfo.Deploy)
 
-	node, err := c.getAndPrepareNode(opts.Podname, nodeInfo.Name, opts.Image)
+	node, err := c.getAndPrepareNode(ctx, opts.Podname, nodeInfo.Name, opts.Image)
 	if err != nil {
 		log.Errorf("[doCreateContainerWithMemoryPrior] Get and prepare node error %v", err)
 		for i := 0; i < nodeInfo.Deploy; i++ {
 			ms[i] = &types.CreateContainerMessage{Error: err}
 			if !opts.RawResource {
-				if err := c.store.UpdateNodeMem(context.Background(), opts.Podname, nodeInfo.Name, opts.Memory, "+"); err != nil {
+				if err := c.store.UpdateNodeMem(ctx, opts.Podname, nodeInfo.Name, opts.Memory, "+"); err != nil {
 					log.Errorf("[doCreateContainerWithMemoryPrior] reset node memory failed %v", err)
 				}
 			}
@@ -97,7 +97,7 @@ func (c *Calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, opts
 
 	for i := 0; i < nodeInfo.Deploy; i++ {
 		// createAndStartContainer will auto cleanup
-		ms[i] = c.createAndStartContainer(i+index, node, opts, nil, scheduler.MEMORY_PRIOR)
+		ms[i] = c.createAndStartContainer(ctx, i+index, node, opts, nil, scheduler.MEMORY_PRIOR)
 		if !ms[i].Success {
 			log.Errorf("[doCreateContainerWithMemoryPrior] Error when create and start a container, %v", ms[i].Error)
 			continue
@@ -108,9 +108,9 @@ func (c *Calcium) doCreateContainerWithMemoryPrior(nodeInfo types.NodeInfo, opts
 	return ms
 }
 
-func (c *Calcium) createContainerWithCPUPrior(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+func (c *Calcium) createContainerWithCPUPrior(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
-	result, err := c.allocCPUPodResource(opts)
+	result, err := c.allocCPUPodResource(ctx, opts)
 	if err != nil {
 		log.Errorf("[createContainerWithCPUPrior] Error during allocCPUPodResource with opts %v: %v", opts, err)
 		return ch, err
@@ -131,7 +131,7 @@ func (c *Calcium) createContainerWithCPUPrior(opts *types.DeployOptions) (chan *
 			go stats.Client.SendDeployCount(len(cpuMap))
 			go func(nodeName string, cpuMap []types.CPUMap, index int) {
 				defer wg.Done()
-				for _, m := range c.doCreateContainerWithCPUPrior(nodeName, cpuMap, opts, index) {
+				for _, m := range c.doCreateContainerWithCPUPrior(ctx, nodeName, cpuMap, opts, index) {
 					ch <- m
 				}
 			}(nodeName, cpuMap, index)
@@ -144,16 +144,16 @@ func (c *Calcium) createContainerWithCPUPrior(opts *types.DeployOptions) (chan *
 	return ch, nil
 }
 
-func (c *Calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.CPUMap, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
+func (c *Calcium) doCreateContainerWithCPUPrior(ctx context.Context, nodeName string, cpuMap []types.CPUMap, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
 	deployCount := len(cpuMap)
 	ms := make([]*types.CreateContainerMessage, deployCount)
 
-	node, err := c.getAndPrepareNode(opts.Podname, nodeName, opts.Image)
+	node, err := c.getAndPrepareNode(ctx, opts.Podname, nodeName, opts.Image)
 	if err != nil {
 		log.Errorf("[doCreateContainerWithCPUPrior] Get and prepare node error %v", err)
 		for i := 0; i < deployCount; i++ {
 			ms[i] = &types.CreateContainerMessage{Error: err}
-			if err := c.store.UpdateNodeCPU(context.Background(), opts.Podname, nodeName, cpuMap[i], "+"); err != nil {
+			if err := c.store.UpdateNodeCPU(ctx, opts.Podname, nodeName, cpuMap[i], "+"); err != nil {
 				log.Errorf("[doCreateContainerWithCPUPrior] update node CPU failed %v", err)
 			}
 		}
@@ -162,7 +162,7 @@ func (c *Calcium) doCreateContainerWithCPUPrior(nodeName string, cpuMap []types.
 
 	for i, quota := range cpuMap {
 		// createAndStartContainer will auto cleanup
-		ms[i] = c.createAndStartContainer(i+index, node, opts, quota, scheduler.CPU_PRIOR)
+		ms[i] = c.createAndStartContainer(ctx, i+index, node, opts, quota, scheduler.CPU_PRIOR)
 		if !ms[i].Success {
 			log.Errorf("[doCreateContainerWithCPUPrior] Error when create and start a container, %v", ms[i].Error)
 			continue
@@ -324,8 +324,8 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	return config, hostConfig, networkConfig, containerName, nil
 }
 
-func (c *Calcium) getAndPrepareNode(podname, nodename, image string) (*types.Node, error) {
-	node, err := c.GetNode(podname, nodename)
+func (c *Calcium) getAndPrepareNode(ctx context.Context, podname, nodename, image string) (*types.Node, error) {
+	node, err := c.GetNode(ctx, podname, nodename)
 	if err != nil {
 		return nil, err
 	}
@@ -335,10 +335,11 @@ func (c *Calcium) getAndPrepareNode(podname, nodename, image string) (*types.Nod
 		return nil, err
 	}
 
-	return node, pullImage(context.Background(), node, image, auth)
+	return node, pullImage(ctx, node, image, auth)
 }
 
 func (c *Calcium) createAndStartContainer(
+	ctx context.Context,
 	no int, node *types.Node,
 	opts *types.DeployOptions,
 	cpu types.CPUMap, typ string,
@@ -366,7 +367,7 @@ func (c *Calcium) createAndStartContainer(
 
 	defer func() {
 		if !createContainerMessage.Success {
-			if err := c.removeOneContainer(container); err != nil {
+			if err := c.removeOneContainer(ctx, container); err != nil {
 				log.Errorf("[createAndStartContainer] create and start container failed, and remove it failed also %v", err)
 			}
 		}
@@ -382,7 +383,7 @@ func (c *Calcium) createAndStartContainer(
 	createContainerMessage.ContainerName = container.Name
 
 	// create container
-	containerCreated, err := node.Engine.ContainerCreate(context.Background(), config, hostConfig, networkConfig, containerName)
+	containerCreated, err := node.Engine.ContainerCreate(ctx, config, hostConfig, networkConfig, containerName)
 	if err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage
@@ -390,7 +391,7 @@ func (c *Calcium) createAndStartContainer(
 	container.ID = containerCreated.ID
 	createContainerMessage.ContainerID = container.ID
 
-	if err = c.store.AddContainer(context.Background(), container); err != nil {
+	if err = c.store.AddContainer(ctx, container); err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage
 	}
@@ -399,7 +400,7 @@ func (c *Calcium) createAndStartContainer(
 	// if network manager uses docker plugin, then connect must be called before container starts
 	// 如果有 networks 的配置，这里的 networkMode 就为 none 了
 	if len(opts.Networks) > 0 {
-		ctx := utils.ContextWithDockerEngine(context.Background(), node.Engine)
+		ctx := utils.ContextWithDockerEngine(ctx, node.Engine)
 		// need to ensure all networks are correctly connected
 		for networkID, ipv4 := range opts.Networks {
 			if err = c.network.ConnectToNetwork(ctx, containerCreated.ID, networkID, ipv4); err != nil {
@@ -409,12 +410,12 @@ func (c *Calcium) createAndStartContainer(
 		}
 	}
 
-	if err = node.Engine.ContainerStart(context.Background(), containerCreated.ID, enginetypes.ContainerStartOptions{}); err != nil {
+	if err = node.Engine.ContainerStart(ctx, containerCreated.ID, enginetypes.ContainerStartOptions{}); err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage
 	}
 
-	containerAlived, err := container.Inspect()
+	containerAlived, err := container.Inspect(ctx)
 	if err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage
@@ -424,7 +425,7 @@ func (c *Calcium) createAndStartContainer(
 	if opts.Entrypoint.Hook != nil && len(opts.Entrypoint.Hook.AfterStart) > 0 {
 		createContainerMessage.Hook = []byte{}
 		for _, cmd := range opts.Entrypoint.Hook.AfterStart {
-			output, err := execuateInside(node.Engine, container.ID, cmd, opts.User, opts.Env, container.Privileged)
+			output, err := execuateInside(ctx, node.Engine, container.ID, cmd, opts.User, opts.Env, container.Privileged)
 			if err != nil {
 				if opts.Entrypoint.Hook.Force {
 					createContainerMessage.Error = err
