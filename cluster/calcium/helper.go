@@ -27,12 +27,12 @@ import (
 )
 
 //Lock is lock for calcium
-func (c *Calcium) Lock(name string, timeout int) (lock.DistributedLock, error) {
+func (c *Calcium) Lock(ctx context.Context, name string, timeout int) (lock.DistributedLock, error) {
 	lock, err := c.store.CreateLock(name, timeout)
 	if err != nil {
 		return nil, err
 	}
-	if err = lock.Lock(context.Background()); err != nil {
+	if err = lock.Lock(ctx); err != nil {
 		return nil, err
 	}
 	return lock, nil
@@ -57,15 +57,15 @@ func makeCPUPriorSetting(shareBase int64, quota types.CPUMap) enginecontainer.Re
 	// scheduler won't return more than 1 share quota
 	// so the smallest share is the share numerator
 	shareQuota := shareBase
-	cpuids := []string{}
+	cpuIDs := []string{}
 	for cpuid, share := range quota {
-		cpuids = append(cpuids, cpuid)
+		cpuIDs = append(cpuIDs, cpuid)
 		if share < shareQuota {
 			shareQuota = share
 		}
 	}
 	cpuShares := int64(float64(shareQuota) / float64(shareQuota) * float64(CpuShareBase))
-	cpuSetCpus := strings.Join(cpuids, ",")
+	cpuSetCpus := strings.Join(cpuIDs, ",")
 	resource := enginecontainer.Resources{
 		CPUShares:  cpuShares,
 		CpusetCpus: cpuSetCpus,
@@ -182,7 +182,7 @@ func makeMountPaths(opts *types.DeployOptions) ([]string, map[string]struct{}) {
 
 // 跑存在labels里的exec
 // 为什么要存labels呢, 因为下线容器的时候根本不知道entrypoint是啥
-func execuateInside(client *engineapi.Client, ID, cmd, user string, env []string, privileged bool) ([]byte, error) {
+func execuateInside(ctx context.Context, client *engineapi.Client, ID, cmd, user string, env []string, privileged bool) ([]byte, error) {
 	cmds := utils.MakeCommandLineArgs(cmd)
 	execConfig := enginetypes.ExecConfig{
 		User:         user,
@@ -194,11 +194,11 @@ func execuateInside(client *engineapi.Client, ID, cmd, user string, env []string
 	}
 	//TODO should timeout
 	//Fuck docker, ctx will not use inside funcs!!
-	idResp, err := client.ContainerExecCreate(context.Background(), ID, execConfig)
+	idResp, err := client.ContainerExecCreate(ctx, ID, execConfig)
 	if err != nil {
 		return []byte{}, err
 	}
-	resp, err := client.ContainerExecAttach(context.Background(), idResp.ID, enginetypes.ExecStartCheck{})
+	resp, err := client.ContainerExecAttach(ctx, idResp.ID, enginetypes.ExecStartCheck{})
 	if err != nil {
 		return []byte{}, err
 	}
@@ -208,7 +208,7 @@ func execuateInside(client *engineapi.Client, ID, cmd, user string, env []string
 	if err != nil {
 		return []byte{}, err
 	}
-	info, err := client.ContainerExecInspect(context.Background(), idResp.ID)
+	info, err := client.ContainerExecInspect(ctx, idResp.ID)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -357,8 +357,8 @@ func makeCopyMessage(id, status, name, path string, err error, data io.ReadClose
 	}
 }
 
-func reSetContainer(ID string, node *types.Node, config enginecontainer.UpdateConfig) error {
-	_, err := node.Engine.ContainerUpdate(context.Background(), ID, config)
+func reSetContainer(ctx context.Context, ID string, node *types.Node, config enginecontainer.UpdateConfig) error {
+	_, err := node.Engine.ContainerUpdate(ctx, ID, config)
 	return err
 }
 

@@ -29,7 +29,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 
 	// 创建容器, 有问题就gg
 	log.Debugf("[RunAndWait] Args: %v", opts)
-	createChan, err := c.CreateContainer(opts)
+	createChan, err := c.CreateContainer(ctx, opts)
 	if err != nil {
 		close(ch)
 		log.Errorf("[RunAndWait] Create container error %s", err)
@@ -53,7 +53,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 
 			// 找不到对应node也不管
 			// 理论上不会这样
-			node, err := c.store.GetNode(context.Background(), message.Podname, message.Nodename)
+			node, err := c.store.GetNode(ctx, message.Podname, message.Nodename)
 			if err != nil {
 				log.Errorf("[RunAndWait] Can't find node, %v", err)
 				continue
@@ -67,7 +67,8 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 			go func(node *types.Node, containerID string) {
 				defer wg.Done()
 				defer log.Infof("[RunAndWait] Container %s finished and removed", containerID[:12])
-				defer c.removeContainerSync([]string{containerID})
+				//CONTEXT 这里的不应该受到 client 的影响
+				defer c.removeContainerSync(context.Background(), []string{containerID})
 
 				resp, err := node.Engine.ContainerLogs(ctx, containerID, logsOpts)
 				if err != nil {

@@ -12,9 +12,9 @@ import (
 )
 
 //ReallocResource allow realloc container resource
-func (c *Calcium) ReallocResource(IDs []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error) {
+func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error) {
 	// TODO 大量容器 Get 的时候有性能问题
-	containers, err := c.store.GetContainers(context.Background(), IDs)
+	containers, err := c.store.GetContainers(ctx, IDs)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func (c *Calcium) ReallocResource(IDs []string, cpu float64, mem int64) (chan *t
 
 	for _, container := range containers {
 		if _, ok := nodeCache[container.Nodename]; !ok {
-			node, err := c.GetNode(container.Podname, container.Nodename)
+			node, err := c.GetNode(ctx, container.Podname, container.Nodename)
 			if err != nil {
 				return nil, err
 			}
@@ -45,7 +45,7 @@ func (c *Calcium) ReallocResource(IDs []string, cpu float64, mem int64) (chan *t
 			continue
 		}
 
-		pod, err := c.store.GetPod(context.Background(), container.Podname)
+		pod, err := c.store.GetPod(ctx, container.Podname)
 		if err != nil {
 			return nil, err
 		}
@@ -85,7 +85,7 @@ func (c *Calcium) ReallocResource(IDs []string, cpu float64, mem int64) (chan *t
 		for node, containers := range rawResourceContainers {
 			go func(node *types.Node, containers []*types.Container) {
 				defer wg.Done()
-				c.doUpdateContainerWithMemoryPrior(ch, node.Podname, node, containers, cpu, mem)
+				c.doUpdateContainerWithMemoryPrior(ctx, ch, node.Podname, node, containers, cpu, mem)
 			}(node, containers)
 		}
 
@@ -95,13 +95,13 @@ func (c *Calcium) ReallocResource(IDs []string, cpu float64, mem int64) (chan *t
 				nodeCPUContainersInfo := cpuContainersInfo[pod]
 				go func(pod *types.Pod, nodeCPUContainersInfo CPUNodeContainers) {
 					defer wg.Done()
-					c.reallocContainersWithCPUPrior(ch, pod, nodeCPUContainersInfo, cpu, mem)
+					c.reallocContainersWithCPUPrior(ctx, ch, pod, nodeCPUContainersInfo, cpu, mem)
 				}(pod, nodeCPUContainersInfo)
 				continue
 			}
 			go func(pod *types.Pod, nodeContainers NodeContainers) {
 				defer wg.Done()
-				c.reallocContainerWithMemoryPrior(ch, pod, nodeContainers, cpu, mem)
+				c.reallocContainerWithMemoryPrior(ctx, ch, pod, nodeContainers, cpu, mem)
 			}(pod, nodeContainers)
 		}
 		wg.Wait()
@@ -109,17 +109,17 @@ func (c *Calcium) ReallocResource(IDs []string, cpu float64, mem int64) (chan *t
 	return ch, nil
 }
 
-func (c *Calcium) checkNodesMemory(podname string, nodeContainers NodeContainers, memory int64) error {
-	lock, err := c.Lock(podname, c.config.LockTimeout)
+func (c *Calcium) checkNodesMemory(ctx context.Context, podname string, nodeContainers NodeContainers, memory int64) error {
+	lock, err := c.Lock(ctx, podname, c.config.LockTimeout)
 	if err != nil {
 		return err
 	}
-	defer lock.Unlock(context.Background())
+	defer lock.Unlock(ctx)
 	for node, containers := range nodeContainers {
 		if cap := int(node.MemCap / memory); cap < len(containers) {
 			return fmt.Errorf("Not enough resource %s", node.Name)
 		}
-		if err := c.store.UpdateNodeMem(context.Background(), podname, node.Name, int64(len(containers))*memory, "-"); err != nil {
+		if err := c.store.UpdateNodeMem(ctx, podname, node.Name, int64(len(containers))*memory, "-"); err != nil {
 			return err
 		}
 	}
@@ -127,13 +127,14 @@ func (c *Calcium) checkNodesMemory(podname string, nodeContainers NodeContainers
 }
 
 func (c *Calcium) reallocContainerWithMemoryPrior(
+	ctx context.Context,
 	ch chan *types.ReallocResourceMessage,
 	pod *types.Pod,
 	nodeContainers NodeContainers,
 	cpu float64, memory int64) {
 
 	if memory > 0 {
-		if err := c.checkNodesMemory(pod.Name, nodeContainers, memory); err != nil {
+		if err := c.checkNodesMemory(ctx, pod.Name, nodeContainers, memory); err != nil {
 			log.Errorf("[reallocContainerWithMemoryPrior] realloc memory failed %v", err)
 			for _, containers := range nodeContainers {
 				for _, container := range containers {
@@ -146,11 +147,12 @@ func (c *Calcium) reallocContainerWithMemoryPrior(
 
 	// 不并发操作了
 	for node, containers := range nodeContainers {
-		c.doUpdateContainerWithMemoryPrior(ch, pod.Name, node, containers, cpu, memory)
+		c.doUpdateContainerWithMemoryPrior(ctx, ch, pod.Name, node, containers, cpu, memory)
 	}
 }
 
 func (c *Calcium) doUpdateContainerWithMemoryPrior(
+	ctx context.Context,
 	ch chan *types.ReallocResourceMessage,
 	podname string,
 	node *types.Node,
@@ -158,7 +160,7 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 	cpu float64, memory int64) {
 
 	for _, container := range containers {
-		containerJSON, err := container.Inspect()
+		containerJSON, err := container.Inspect(ctx)
 		if err != nil {
 			log.Errorf("[doUpdateContainerWithMemoryPrior] get container failed %v", err)
 			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
@@ -179,12 +181,12 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 		// CPUQuota not cpu
 		newResource := makeMemoryPriorSetting(newMemory, newCPU)
 		updateConfig := enginecontainer.UpdateConfig{Resources: newResource}
-		if err := reSetContainer(containerJSON.ID, node, updateConfig); err != nil {
+		if err := reSetContainer(ctx, containerJSON.ID, node, updateConfig); err != nil {
 			log.Errorf("[doUpdateContainerWithMemoryPrior] update container failed %v, %s", err, containerJSON.ID)
 			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
 			// 如果是增加内存，失败的时候应该把内存还回去
 			if memory > 0 && !container.RawResource {
-				if err := c.store.UpdateNodeMem(context.Background(), podname, node.Name, memory, "+"); err != nil {
+				if err := c.store.UpdateNodeMem(ctx, podname, node.Name, memory, "+"); err != nil {
 					log.Errorf("[doUpdateContainerWithMemoryPrior] failed to set mem back %s", containerJSON.ID)
 				}
 			}
@@ -192,13 +194,13 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 		}
 		// 如果是要降低内存，当执行成功的时候需要把内存还回去
 		if memory < 0 && !container.RawResource {
-			if err := c.store.UpdateNodeMem(context.Background(), podname, node.Name, -memory, "+"); err != nil {
+			if err := c.store.UpdateNodeMem(ctx, podname, node.Name, -memory, "+"); err != nil {
 				log.Errorf("[doUpdateContainerWithMemoryPrior] failed to set mem back %s", containerJSON.ID)
 			}
 		}
 
 		container.Memory = newMemory
-		if err := c.store.AddContainer(context.Background(), container); err != nil {
+		if err := c.store.AddContainer(ctx, container); err != nil {
 			log.Errorf("[doUpdateContainerWithMemoryPrior] update container meta failed %v", err)
 			// 立即中断
 			ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
@@ -209,15 +211,16 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 }
 
 func (c *Calcium) reallocNodesCPU(
+	ctx context.Context,
 	podname string,
 	nodesInfoMap CPUNodeContainers,
 ) (CPUNodeContainersMap, error) {
 
-	lock, err := c.Lock(podname, c.config.LockTimeout)
+	lock, err := c.Lock(ctx, podname, c.config.LockTimeout)
 	if err != nil {
 		return nil, err
 	}
-	defer lock.Unlock(context.Background())
+	defer lock.Unlock(ctx)
 
 	// TODO too slow
 	nodesCPUMap := CPUNodeContainersMap{}
@@ -227,7 +230,7 @@ func (c *Calcium) reallocNodesCPU(
 				// 把 CPU 还回去，变成新的可用资源
 				// 即便有并发操作，不影响 Create 操作
 				// 最坏情况就是 CPU 重叠了，可以外部纠正
-				if err := c.store.UpdateNodeCPU(context.Background(), podname, node.Name, container.CPU, "+"); err != nil {
+				if err := c.store.UpdateNodeCPU(ctx, podname, node.Name, container.CPU, "+"); err != nil {
 					return nil, err
 				}
 				node.CPU.Add(container.CPU)
@@ -248,7 +251,7 @@ func (c *Calcium) reallocNodesCPU(
 			result, changed, err := c.scheduler.SelectCPUNodes(nodesInfo, cpu, containersNum)
 			if err != nil {
 				for _, container := range containers {
-					if err := c.store.UpdateNodeCPU(context.Background(), podname, node.Name, container.CPU, "-"); err != nil {
+					if err := c.store.UpdateNodeCPU(ctx, podname, node.Name, container.CPU, "-"); err != nil {
 						return nil, err
 					}
 				}
@@ -259,7 +262,7 @@ func (c *Calcium) reallocNodesCPU(
 			containersCPUMap, hasResult := result[node.Name]
 			if isChanged && hasResult {
 				node.CPU = nodeCPUMap
-				if err := c.store.UpdateNode(context.Background(), node); err != nil {
+				if err := c.store.UpdateNode(ctx, node); err != nil {
 					return nil, err
 				}
 				if _, ok := nodesCPUMap[cpu]; !ok {
@@ -274,12 +277,13 @@ func (c *Calcium) reallocNodesCPU(
 
 // mem not used in this prior
 func (c *Calcium) reallocContainersWithCPUPrior(
+	ctx context.Context,
 	ch chan *types.ReallocResourceMessage,
 	pod *types.Pod,
 	nodesInfoMap CPUNodeContainers,
 	cpu float64, memory int64) {
 
-	nodesCPUMap, err := c.reallocNodesCPU(pod.Name, nodesInfoMap)
+	nodesCPUMap, err := c.reallocNodesCPU(ctx, pod.Name, nodesInfoMap)
 	if err != nil {
 		log.Errorf("[reallocContainersWithCPUPrior] realloc cpu resource failed %v", err)
 		for _, nodeInfoMap := range nodesInfoMap {
@@ -294,11 +298,12 @@ func (c *Calcium) reallocContainersWithCPUPrior(
 
 	// 不并发操作了
 	for cpu, nodesCPUResult := range nodesCPUMap {
-		c.doReallocContainersWithCPUPrior(ch, pod.Name, nodesCPUResult, nodesInfoMap[cpu])
+		c.doReallocContainersWithCPUPrior(ctx, ch, pod.Name, nodesCPUResult, nodesInfoMap[cpu])
 	}
 }
 
 func (c *Calcium) doReallocContainersWithCPUPrior(
+	ctx context.Context,
 	ch chan *types.ReallocResourceMessage,
 	podname string,
 	nodesCPUResult NodeCPUMap,
@@ -312,14 +317,14 @@ func (c *Calcium) doReallocContainersWithCPUPrior(
 			quota := cpuset[index]
 			resource := makeCPUPriorSetting(c.config.Scheduler.ShareBase, quota)
 			updateConfig := enginecontainer.UpdateConfig{Resources: resource}
-			if err := reSetContainer(container.ID, node, updateConfig); err != nil {
+			if err := reSetContainer(ctx, container.ID, node, updateConfig); err != nil {
 				log.Errorf("[doReallocContainersWithCPUPrior] update container failed %v", err)
 				// TODO 这里理论上是可以恢复 CPU 占用表的，一来我们知道新的占用是怎样，二来我们也晓得老的占用是啥样
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 			}
 
 			container.CPU = quota
-			if err := c.store.AddContainer(context.Background(), container); err != nil {
+			if err := c.store.AddContainer(ctx, container); err != nil {
 				log.Errorf("[doReallocContainersWithCPUPrior] update container meta failed %v", err)
 				// 立即中断
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}

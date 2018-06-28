@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -22,13 +23,14 @@ func TestListPods(t *testing.T) {
 		&types.Pod{Name: "pod2", Desc: "desc2"},
 	}, nil).Once()
 
-	ps, err := c.ListPods()
+	ctx := context.Background()
+	ps, err := c.ListPods(ctx)
 	assert.Equal(t, len(ps), 2)
 	assert.Nil(t, err)
 
 	store.On("GetAllPods").Return([]*types.Pod{}, nil).Once()
 
-	ps, err = c.ListPods()
+	ps, err = c.ListPods(ctx)
 	assert.Empty(t, ps)
 	assert.Nil(t, err)
 }
@@ -41,13 +43,14 @@ func TestAddPod(t *testing.T) {
 	store.On("AddPod", "pod1", "", "desc1").Return(&types.Pod{Name: "pod1", Favor: "MEM", Desc: "desc1"}, nil)
 	store.On("AddPod", "pod2", "", "desc2").Return(nil, fmt.Errorf("Etcd Error"))
 
-	p, err := c.AddPod("pod1", "", "desc1")
+	ctx := context.Background()
+	p, err := c.AddPod(ctx, "pod1", "", "desc1")
 	assert.Equal(t, p.Name, "pod1")
 	assert.Equal(t, p.Favor, "MEM")
 	assert.Equal(t, p.Desc, "desc1")
 	assert.Nil(t, err)
 
-	p, err = c.AddPod("pod2", "", "desc2")
+	p, err = c.AddPod(ctx, "pod2", "", "desc2")
 	assert.Nil(t, p)
 	assert.Equal(t, err.Error(), "Etcd Error")
 }
@@ -59,13 +62,13 @@ func TestGetPods(t *testing.T) {
 
 	store.On("GetPod", "pod1").Return(&types.Pod{Name: "pod1", Desc: "desc1"}, nil).Once()
 	store.On("GetPod", "pod2").Return(nil, fmt.Errorf("Not found")).Once()
-
-	p, err := c.GetPod("pod1")
+	ctx := context.Background()
+	p, err := c.GetPod(ctx, "pod1")
 	assert.Equal(t, p.Name, "pod1")
 	assert.Equal(t, p.Desc, "desc1")
 	assert.Nil(t, err)
 
-	p, err = c.GetPod("pod2")
+	p, err = c.GetPod(ctx, "pod2")
 	assert.Nil(t, p)
 	assert.Equal(t, err.Error(), "Not found")
 }

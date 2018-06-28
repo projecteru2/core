@@ -6,6 +6,7 @@ import (
 
 	"github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
+	"golang.org/x/net/context"
 )
 
 func toRPCCPUMap(m types.CPUMap) map[string]int64 {
@@ -24,9 +25,9 @@ func toRPCNetwork(n *types.Network) *pb.Network {
 	return &pb.Network{Name: n.Name, Subnets: n.Subnets}
 }
 
-func toRPCNode(n *types.Node) *pb.Node {
+func toRPCNode(ctx context.Context, n *types.Node) *pb.Node {
 	var nodeInfo string
-	if info, err := n.Info(); err == nil {
+	if info, err := n.Info(ctx); err == nil {
 		bytes, _ := json.Marshal(info)
 		nodeInfo = string(bytes)
 	} else {
@@ -213,10 +214,10 @@ func toRPCRunAndWaitMessage(msg *types.RunAndWaitMessage) *pb.RunAndWaitMessage 
 	}
 }
 
-func toRPCContainers(containers []*types.Container) []*pb.Container {
+func toRPCContainers(ctx context.Context, containers []*types.Container) []*pb.Container {
 	cs := []*pb.Container{}
 	for _, c := range containers {
-		info, err := c.Inspect()
+		info, err := c.Inspect(ctx)
 		if err != nil {
 			continue
 		}

@@ -13,48 +13,49 @@ import (
 func TestPullImage(t *testing.T) {
 	initMockConfig()
 
-	nodes, err := mockc.store.GetAllNodes(context.Background())
+	ctx := context.Background()
+	nodes, err := mockc.store.GetAllNodes(ctx)
 	if err != nil || len(nodes) == 0 {
 		t.Fatal(err)
 	}
 
-	if err := pullImage(context.Background(), nodes[0], image, ""); err != nil {
+	if err := pullImage(ctx, nodes[0], image, ""); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestCreateContainerWithMemPrior(t *testing.T) {
 	initMockConfig()
-
+	ctx := context.Background()
 	// Create Container with memory prior
 	testlogF("Create containers with memory prior")
-	createCh, err := mockc.createContainerWithMemoryPrior(opts)
+	createCh, err := mockc.createContainerWithMemoryPrior(ctx, opts)
 	assert.NoError(t, err)
-	ids := []string{}
+	IDs := []string{}
 	for msg := range createCh {
 		assert.True(t, msg.Success)
-		ids = append(ids, msg.ContainerID)
+		IDs = append(IDs, msg.ContainerID)
 		fmt.Printf("Get Container ID: %s\n", msg.ContainerID)
 	}
-	assert.Equal(t, opts.Count, len(ids))
+	assert.Equal(t, opts.Count, len(IDs))
 
 	// get containers
 	clnt := mockDockerClient()
 	cs := []types.Container{}
-	for _, id := range ids {
+	for _, ID := range IDs {
 		c := types.Container{
-			ID:      id,
+			ID:      ID,
 			Podname: podname,
 			Engine:  clnt,
 		}
 		cs = append(cs, c)
-		mockStore.On("GetContainer", id).Return(&c, nil)
+		mockStore.On("GetContainer", ID).Return(&c, nil)
 	}
-	mockStore.On("GetContainers", ids).Return(&cs, nil)
+	mockStore.On("GetContainers", IDs).Return(&cs, nil)
 
 	// Remove Container
 	testlogF("Remove containers")
-	removeCh, err := mockc.RemoveContainer(ids, true)
+	removeCh, err := mockc.RemoveContainer(ctx, IDs, true)
 	assert.NoError(t, err)
 	for msg := range removeCh {
 		fmt.Printf("ID: %s, Message: %s\n", msg.ContainerID, msg.Message)
@@ -81,12 +82,12 @@ func TestCreateContainerWithCPUPrior(t *testing.T) {
 
 	// Create Container with memory prior
 	testlogF("Create containers with memory prior")
-	createCh, err := mockc.createContainerWithCPUPrior(opts)
+	createCh, err := mockc.createContainerWithCPUPrior(context.Background(), opts)
 	assert.NoError(t, err)
-	ids := []string{}
+	IDs := []string{}
 	for msg := range createCh {
 		assert.True(t, msg.Success)
-		ids = append(ids, msg.ContainerID)
+		IDs = append(IDs, msg.ContainerID)
 		fmt.Printf("Get Container ID: %s\n", msg.ContainerID)
 	}
 }

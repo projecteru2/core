@@ -159,7 +159,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 	}
 
 	// get node by scheduler
-	nodes, err := c.ListPodNodes(buildPodname, false)
+	nodes, err := c.ListPodNodes(ctx, buildPodname, false)
 	if err != nil {
 		return ch, err
 	}
@@ -269,6 +269,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 		// 事实上他不会跟cached pod一样
 		// 一样就砍死
 		go func() {
+			//CONTEXT 这里的不应该受到 client 的影响
 			_, err := node.Engine.ImageRemove(context.Background(), tag, enginetypes.ImageRemoveOptions{
 				Force:         false,
 				PruneChildren: true,

@@ -10,8 +10,8 @@ import (
 
 // 在podname上cache这个image
 // 实际上就是在所有的node上去pull一次
-func (c *Calcium) cacheImage(podname, image string) error {
-	nodes, err := c.ListPodNodes(podname, false)
+func (c *Calcium) cacheImage(ctx context.Context, podname, image string) error {
+	nodes, err := c.ListPodNodes(ctx, podname, false)
 	if err != nil {
 		return err
 	}
@@ -35,7 +35,7 @@ func (c *Calcium) cacheImage(podname, image string) error {
 				log.Errorf("[cacheImage] Cache image failed %v", err)
 				return
 			}
-			pullImage(context.Background(), node, image, auth)
+			pullImage(ctx, node, image, auth)
 		}(node)
 	}
 
@@ -45,7 +45,7 @@ func (c *Calcium) cacheImage(podname, image string) error {
 // 清理一个pod上的全部这个image
 // 对里面所有node去执行
 func (c *Calcium) cleanImage(ctx context.Context, podname, image string) error {
-	nodes, err := c.ListPodNodes(podname, false)
+	nodes, err := c.ListPodNodes(ctx, podname, false)
 	if err != nil {
 		return err
 	}

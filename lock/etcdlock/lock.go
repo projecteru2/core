@@ -39,9 +39,9 @@ func New(cli *clientv3.Client, key string, ttl int) (*Mutex, error) {
 
 //Lock get locked
 func (m *Mutex) Lock(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, m.timeout)
+	lockCtx, cancel := context.WithTimeout(ctx, m.timeout)
 	defer cancel()
-	return m.mutex.Lock(ctx)
+	return m.mutex.Lock(lockCtx)
 }
 
 //Unlock unlock

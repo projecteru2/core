@@ -13,7 +13,7 @@ import (
 func (c *Calcium) RemoveImage(ctx context.Context, podname, nodename string, images []string) (chan *types.RemoveImageMessage, error) {
 	ch := make(chan *types.RemoveImageMessage)
 
-	node, err := c.GetNode(podname, nodename)
+	node, err := c.GetNode(ctx, podname, nodename)
 	if err != nil {
 		return ch, err
 	}

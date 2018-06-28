@@ -10,19 +10,19 @@ import (
 //Cluster define all interface
 type Cluster interface {
 	// meta data methods
-	AddPod(podname, favor, desc string) (*types.Pod, error)
-	AddNode(nodename, endpoint, podname, ca, cert, key string, cpu int, share, memory int64, labels map[string]string) (*types.Node, error)
-	RemovePod(podname string) error
-	RemoveNode(nodename, podname string) (*types.Pod, error)
-	ListPods() ([]*types.Pod, error)
-	ListPodNodes(podname string, all bool) ([]*types.Node, error)
-	ListNetworks(podname string, driver string) ([]*types.Network, error)
-	ListContainers(appname, entrypoint, nodename string) ([]*types.Container, error)
-	GetPod(podname string) (*types.Pod, error)
-	GetNode(podname, nodename string) (*types.Node, error)
-	GetContainer(id string) (*types.Container, error)
-	GetContainers(ids []string) ([]*types.Container, error)
-	SetNodeAvailable(podname, nodename string, available bool) (*types.Node, error)
+	AddPod(ctx context.Context, podname, favor, desc string) (*types.Pod, error)
+	AddNode(ctx context.Context, nodename, endpoint, podname, ca, cert, key string, cpu int, share, memory int64, labels map[string]string) (*types.Node, error)
+	RemovePod(ctx context.Context, podname string) error
+	RemoveNode(ctx context.Context, nodename, podname string) (*types.Pod, error)
+	ListPods(ctx context.Context) ([]*types.Pod, error)
+	ListPodNodes(ctx context.Context, podname string, all bool) ([]*types.Node, error)
+	ListContainers(ctx context.Context, appname, entrypoint, nodename string) ([]*types.Container, error)
+	ListNetworks(ctx context.Context, podname string, driver string) ([]*types.Network, error)
+	GetPod(ctx context.Context, podname string) (*types.Pod, error)
+	GetNode(ctx context.Context, podname, nodename string) (*types.Node, error)
+	GetContainer(ctx context.Context, ID string) (*types.Container, error)
+	GetContainers(ctx context.Context, IDs []string) ([]*types.Container, error)
+	SetNodeAvailable(ctx context.Context, podname, nodename string, available bool) (*types.Node, error)
 
 	// cluster methods
 	Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error)
@@ -30,12 +30,12 @@ type Cluster interface {
 	RemoveImage(ctx context.Context, podname, nodename string, images []string) (chan *types.RemoveImageMessage, error)
 	DeployStatusStream(ctx context.Context, appname, entrypoint, nodename string) chan *types.DeployStatus
 	RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error)
-	// this methods will run synchronously
-	CreateContainer(opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
-	RemoveContainer(ids []string, force bool) (chan *types.RemoveContainerMessage, error)
-	ReallocResource(ids []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error)
+	// this methods will not interrupt by client
+	CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
+	RemoveContainer(ctx context.Context, IDs []string, force bool) (chan *types.RemoveContainerMessage, error)
+	ReallocResource(ctx context.Context, IDs []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error)
 
 	// used by agent
-	GetNodeByName(nodename string) (*types.Node, error)
-	ContainerDeployed(ID, appname, entrypoint, nodename, data string) error
+	GetNodeByName(ctx context.Context, nodename string) (*types.Node, error)
+	ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename, data string) error
 }

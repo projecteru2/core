@@ -184,7 +184,7 @@ func TestNodes(t *testing.T) {
 }
 
 // initConfig returns config and vibranium(about gRPC)
-func initConfig(mStore *mockstore.MockStore) (types.Config, *vibranium) {
+func initConfig(mStore *mockstore.MockStore) (types.Config, *Vibranium) {
 
 	config := types.Config{
 		Bind:   ":5001",          // HTTP API address
@@ -227,7 +227,7 @@ func initConfig(mStore *mockstore.MockStore) (types.Config, *vibranium) {
 }
 
 // startServer start a gRPC server and return it
-func startServer(config types.Config, v *vibranium) *grpc.Server {
+func startServer(config types.Config, v *Vibranium) *grpc.Server {
 	s, err := net.Listen("tcp", config.Bind)
 	if err != nil {
 		log.Fatal(err)
@@ -243,7 +243,7 @@ func startServer(config types.Config, v *vibranium) *grpc.Server {
 
 // stopServer stops the gRPC server with 30s timeout if there is some unfinished goroutines
 // otherwise the gRPC server will stop gracefully
-func stopServer(grpcServer *grpc.Server, v *vibranium) error {
+func stopServer(grpcServer *grpc.Server, v *Vibranium) error {
 	time.Sleep(1 * time.Second)       // to aviod "read: connection reset by peer"
 	defer time.Sleep(1 * time.Second) // to aviod "bind error"
 	grpcServer.GracefulStop()

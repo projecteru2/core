@@ -9,6 +9,7 @@ import (
 	engineapi "github.com/docker/docker/client"
 )
 
+//Container store container info
 // only relationship with pod and node is stored
 // if you wanna get realtime information, use Inspect method
 type Container struct {
@@ -25,6 +26,7 @@ type Container struct {
 	Engine      *engineapi.Client `json:"-"`
 }
 
+//ShortID short container ID
 func (c *Container) ShortID() string {
 	containerID := c.ID
 	if len(containerID) > 7 {
@@ -33,15 +35,17 @@ func (c *Container) ShortID() string {
 	return containerID
 }
 
-func (c *Container) Inspect() (enginetypes.ContainerJSON, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+//Inspect a container
+func (c *Container) Inspect(ctx context.Context) (enginetypes.ContainerJSON, error) {
+	inspectCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	if c.Engine == nil {
 		return enginetypes.ContainerJSON{}, fmt.Errorf("Engine is nil")
 	}
-	return c.Engine.ContainerInspect(ctx, c.ID)
+	return c.Engine.ContainerInspect(inspectCtx, c.ID)
 }
 
+//DeployStatus store deploy status
 type DeployStatus struct {
 	Data       string
 	Err        error

@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"context"
 	"testing"
 
 	"github.com/projecteru2/core/types"
@@ -11,21 +12,21 @@ import (
 func TestRemoveContainer(t *testing.T) {
 	initMockConfig()
 
-	ids := []string{}
+	IDs := []string{}
 	clnt := mockDockerClient()
 	for i := 0; i < 5; i++ {
-		ids = append(ids, mockContainerID())
+		IDs = append(IDs, mockContainerID())
 	}
-	for _, id := range ids {
+	for _, ID := range IDs {
 		c := types.Container{
-			ID:      id,
+			ID:      ID,
 			Podname: podname,
 			Engine:  clnt,
 		}
-		mockStore.On("GetContainer", id).Return(&c, nil)
+		mockStore.On("GetContainer", ID).Return(&c, nil)
 	}
 
-	ch, err := mockc.RemoveContainer(ids, true)
+	ch, err := mockc.RemoveContainer(context.Background(), IDs, true)
 	assert.NoError(t, err)
 
 	for c := range ch {

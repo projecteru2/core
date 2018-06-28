@@ -13,14 +13,14 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-func (c *Calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.NodeInfo, error) {
-	lock, err := c.Lock(opts.Podname, c.config.LockTimeout)
+func (c *Calcium) allocMemoryPodResource(ctx context.Context, opts *types.DeployOptions) ([]types.NodeInfo, error) {
+	lock, err := c.Lock(ctx, opts.Podname, c.config.LockTimeout)
 	if err != nil {
 		return nil, err
 	}
-	defer lock.Unlock(context.Background())
+	defer lock.Unlock(ctx)
 
-	cpuandmem, _, err := c.getCPUAndMem(opts.Podname, opts.Nodename, opts.NodeLabels)
+	cpuandmem, _, err := c.getCPUAndMem(ctx, opts.Podname, opts.Nodename, opts.NodeLabels)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func (c *Calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.Nod
 	nodesInfo := getNodesInfo(cpuandmem)
 
 	// Load deploy status
-	nodesInfo, err = c.store.MakeDeployStatus(context.Background(), opts, nodesInfo)
+	nodesInfo, err = c.store.MakeDeployStatus(ctx, opts, nodesInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -59,28 +59,28 @@ func (c *Calcium) allocMemoryPodResource(opts *types.DeployOptions) ([]types.Nod
 		go func(nodeInfo types.NodeInfo) {
 			defer wg.Done()
 			memoryTotal := opts.Memory * int64(nodeInfo.Deploy)
-			c.store.UpdateNodeMem(context.Background(), opts.Podname, nodeInfo.Name, memoryTotal, "-")
+			c.store.UpdateNodeMem(ctx, opts.Podname, nodeInfo.Name, memoryTotal, "-")
 		}(nodeInfo)
 	}
 	wg.Wait()
 	return nodesInfo, nil
 }
 
-func (c *Calcium) allocCPUPodResource(opts *types.DeployOptions) (map[string][]types.CPUMap, error) {
-	lock, err := c.Lock(opts.Podname, c.config.LockTimeout)
+func (c *Calcium) allocCPUPodResource(ctx context.Context, opts *types.DeployOptions) (map[string][]types.CPUMap, error) {
+	lock, err := c.Lock(ctx, opts.Podname, c.config.LockTimeout)
 	if err != nil {
 		return nil, err
 	}
-	defer lock.Unlock(context.Background())
+	defer lock.Unlock(ctx)
 
-	cpuandmem, nodes, err := c.getCPUAndMem(opts.Podname, opts.Nodename, opts.NodeLabels)
+	cpuandmem, nodes, err := c.getCPUAndMem(ctx, opts.Podname, opts.Nodename, opts.NodeLabels)
 	if err != nil {
 		return nil, err
 	}
 	nodesInfo := getNodesInfo(cpuandmem)
 
 	// Load deploy status
-	nodesInfo, err = c.store.MakeDeployStatus(context.Background(), opts, nodesInfo)
+	nodesInfo, err = c.store.MakeDeployStatus(ctx, opts, nodesInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (c *Calcium) allocCPUPodResource(opts *types.DeployOptions) (map[string][]t
 			if ok {
 				node.CPU = r
 				// ignore error
-				c.store.UpdateNode(context.Background(), node)
+				c.store.UpdateNode(ctx, node)
 			}
 		}
 	}
@@ -111,12 +111,12 @@ func (c *Calcium) allocCPUPodResource(opts *types.DeployOptions) (map[string][]t
 	return result, err
 }
 
-func (c *Calcium) getCPUAndMem(podname, nodename string, labels map[string]string) (map[string]types.CPUAndMem, []*types.Node, error) {
+func (c *Calcium) getCPUAndMem(ctx context.Context, podname, nodename string, labels map[string]string) (map[string]types.CPUAndMem, []*types.Node, error) {
 	result := make(map[string]types.CPUAndMem)
 	var nodes []*types.Node
 	var err error
 	if nodename == "" {
-		nodes, err = c.ListPodNodes(podname, false)
+		nodes, err = c.ListPodNodes(ctx, podname, false)
 		if err != nil {
 			return result, nil, err
 		}
@@ -128,7 +128,7 @@ func (c *Calcium) getCPUAndMem(podname, nodename string, labels map[string]strin
 		}
 		nodes = nodeList
 	} else {
-		n, err := c.GetNode(podname, nodename)
+		n, err := c.GetNode(ctx, podname, nodename)
 		if err != nil {
 			return result, nil, err
 		}
