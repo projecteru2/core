@@ -17,9 +17,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//AddNode save it to etcd
+// AddNode save it to etcd
 // storage path in etcd is `/pod/:podname/node/:nodename/info`
-//AddNode add a node
 func (k *Krypton) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu int, share, memory int64, labels map[string]string) (*types.Node, error) {
 	if !strings.HasPrefix(endpoint, "tcp://") {
 		return nil, fmt.Errorf("Endpoint must starts with tcp:// %q", endpoint)
@@ -133,12 +132,12 @@ func (k *Krypton) deleteNode(ctx context.Context, podname, nodename, endpoint st
 	log.Debugf("[deleteNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 }
 
-//DeleteNode delete a node
+// DeleteNode delete a node
 func (k *Krypton) DeleteNode(ctx context.Context, node *types.Node) {
 	k.deleteNode(ctx, node.Podname, node.Name, node.Endpoint)
 }
 
-//GetNode get a node from etcd
+// GetNode get a node from etcd
 // and construct it's docker client
 // a node must belong to a pod
 // and since node is not the smallest unit to user, to get a node we must specify the corresponding pod
@@ -167,7 +166,7 @@ func (k *Krypton) GetNode(ctx context.Context, podname, nodename string) (*types
 	return node, nil
 }
 
-//GetNodeByName get node by name
+// GetNodeByName get node by name
 func (k *Krypton) GetNodeByName(ctx context.Context, nodename string) (node *types.Node, err error) {
 	key := fmt.Sprintf(nodePodKey, nodename)
 	resp, err := k.etcd.Get(ctx, key, nil)
@@ -178,7 +177,7 @@ func (k *Krypton) GetNodeByName(ctx context.Context, nodename string) (node *typ
 	return k.GetNode(ctx, podname, nodename)
 }
 
-//GetNodesByPod get all nodes bound to pod
+// GetNodesByPod get all nodes bound to pod
 // here we use podname instead of pod instance
 // storage path in etcd is `/pod/:podname/node`
 func (k *Krypton) GetNodesByPod(ctx context.Context, podname string) (nodes []*types.Node, err error) {
@@ -202,7 +201,7 @@ func (k *Krypton) GetNodesByPod(ctx context.Context, podname string) (nodes []*t
 	return nodes, err
 }
 
-//GetAllNodes get all nodes from etcd
+// GetAllNodes get all nodes from etcd
 // any error will break and return immediately
 func (k *Krypton) GetAllNodes(ctx context.Context) (nodes []*types.Node, err error) {
 	pods, err := k.GetAllPods(ctx)
@@ -220,7 +219,7 @@ func (k *Krypton) GetAllNodes(ctx context.Context) (nodes []*types.Node, err err
 	return nodes, err
 }
 
-//UpdateNode update a node, save it to etcd
+// UpdateNode update a node, save it to etcd
 // storage path in etcd is `/pod/:podname/node/:nodename/info`
 func (k *Krypton) UpdateNode(ctx context.Context, node *types.Node) error {
 	lock, err := k.CreateLock(fmt.Sprintf("%s_%s", node.Podname, node.Name), k.config.LockTimeout)
@@ -243,9 +242,9 @@ func (k *Krypton) UpdateNode(ctx context.Context, node *types.Node) error {
 	return err
 }
 
-//UpdateNodeCPU update cpu on a node, either add or substract
+// UpdateNodeResource update cpu and mem on a node, either add or substract
 // need to lock
-func (k *Krypton) UpdateNodeCPU(ctx context.Context, podname, nodename string, cpu types.CPUMap, action string) error {
+func (k *Krypton) UpdateNodeResource(ctx context.Context, podname, nodename string, cpu types.CPUMap, mem int64, action string) error {
 	lock, err := k.CreateLock(fmt.Sprintf("%s_%s", podname, nodename), k.config.LockTimeout)
 	if err != nil {
 		return err
@@ -272,47 +271,9 @@ func (k *Krypton) UpdateNodeCPU(ctx context.Context, podname, nodename string, c
 
 	if action == "add" || action == "+" {
 		node.CPU.Add(cpu)
-	} else if action == "sub" || action == "-" {
-		node.CPU.Sub(cpu)
-	}
-
-	bytes, err := json.Marshal(node)
-	if err != nil {
-		return err
-	}
-
-	_, err = k.etcd.Set(ctx, nodeKey, string(bytes), nil)
-	return err
-}
-
-//UpdateNodeMem update node mem quota
-func (k *Krypton) UpdateNodeMem(ctx context.Context, podname, nodename string, mem int64, action string) error {
-	lock, err := k.CreateLock(fmt.Sprintf("%s_%s", podname, nodename), k.config.LockTimeout)
-	if err != nil {
-		return err
-	}
-
-	if err := lock.Lock(ctx); err != nil {
-		return err
-	}
-	defer lock.Unlock(ctx)
-
-	nodeKey := fmt.Sprintf(nodeInfoKey, podname, nodename)
-	resp, err := k.etcd.Get(ctx, nodeKey, nil)
-	if err != nil {
-		return err
-	}
-	if resp.Node.Dir {
-		return fmt.Errorf("Node storage path %q in etcd is a directory", nodeKey)
-	}
-	node := &types.Node{}
-	if err := json.Unmarshal([]byte(resp.Node.Value), node); err != nil {
-		return err
-	}
-
-	if action == "add" || action == "+" {
 		node.MemCap += mem
 	} else if action == "sub" || action == "-" {
+		node.CPU.Sub(cpu)
 		node.MemCap -= mem
 	}
 
@@ -320,10 +281,9 @@ func (k *Krypton) UpdateNodeMem(ctx context.Context, podname, nodename string, m
 	if err != nil {
 		return err
 	}
-	nodeInfo := string(bytes)
 
-	log.Debugf("[UpdateNodeMem] new node info: %s", nodeInfo)
-	_, err = k.etcd.Set(ctx, nodeKey, nodeInfo, nil)
+	log.Debugf("[UpdateNodeResource] new node info: %s", string(bytes))
+	_, err = k.etcd.Set(ctx, nodeKey, string(bytes), nil)
 	return err
 }
 

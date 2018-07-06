@@ -16,8 +16,8 @@ func TestReallocWithCPUPrior(t *testing.T) {
 	pod, _ := mockc.GetPod(ctx, "pod1")
 	containersInfo[pod] = NodeContainers{}
 	node, _ := mockc.GetNode(ctx, pod.Name, updatenodename)
-	cpuContainersInfo := map[*types.Pod]CPUNodeContainers{}
-	cpuContainersInfo[pod] = CPUNodeContainers{}
+	cpuContainersInfo := map[*types.Pod]CPUMemNodeContainers{}
+	cpuContainersInfo[pod] = CPUMemNodeContainers{}
 
 	containers, _ := mockc.GetContainers(ctx, ToUpdateContainerIDs)
 	for _, container := range containers {
@@ -26,12 +26,15 @@ func TestReallocWithCPUPrior(t *testing.T) {
 
 	// 扩容
 	cpu := 0.1
+	mem := int64(1)
 	CPURate := calculateCPUUsage(mockc.config.Scheduler.ShareBase, containers[0])
 	newCPURequire := CPURate + cpu
-	cpuContainersInfo[pod][newCPURequire] = NodeContainers{}
-	cpuContainersInfo[pod][newCPURequire][node] = []*types.Container{}
+	newMEMRequire := containers[0].Memory + mem
+	cpuContainersInfo[pod][newCPURequire] = map[int64]NodeContainers{}
+	cpuContainersInfo[pod][newCPURequire][newMEMRequire] = NodeContainers{}
+	cpuContainersInfo[pod][newCPURequire][newMEMRequire][node] = []*types.Container{}
 	for _, container := range containers {
-		cpuContainersInfo[pod][newCPURequire][node] = append(cpuContainersInfo[pod][newCPURequire][node], container)
+		cpuContainersInfo[pod][newCPURequire][newMEMRequire][node] = append(cpuContainersInfo[pod][newCPURequire][mem][node], container)
 	}
 
 	ch1 := make(chan *types.ReallocResourceMessage)
@@ -39,12 +42,12 @@ func TestReallocWithCPUPrior(t *testing.T) {
 		defer close(ch1)
 		wg := sync.WaitGroup{}
 		wg.Add(len(containersInfo))
-		for pod := range containersInfo {
-			nodeCPUContainersInfo := cpuContainersInfo[pod]
-			go func(pod *types.Pod, nodeCPUContainersInfo CPUNodeContainers) {
+		for pod, _ := range containersInfo {
+			cpuMemNodeContainersInfo := cpuContainersInfo[pod]
+			go func(pod *types.Pod, cpuMemNodeContainersInfo CPUMemNodeContainers) {
 				defer wg.Done()
-				mockc.reallocContainersWithCPUPrior(ctx, ch1, pod, nodeCPUContainersInfo, cpu, 0)
-			}(pod, nodeCPUContainersInfo)
+				mockc.reallocContainersWithCPUPrior(ctx, ch1, pod, cpuMemNodeContainersInfo)
+			}(pod, cpuMemNodeContainersInfo)
 		}
 		wg.Wait()
 	}()
@@ -54,19 +57,24 @@ func TestReallocWithCPUPrior(t *testing.T) {
 
 	// 缩容
 	cpu = -0.1
+	mem = int64(-1)
 	newCPURequire = CPURate + cpu
-	cpuContainersInfo[pod] = CPUNodeContainers{}
-	cpuContainersInfo[pod][newCPURequire] = NodeContainers{}
-	cpuContainersInfo[pod][newCPURequire][node] = containers
+	newMEMRequire = containers[0].Memory + mem
+	cpuContainersInfo[pod][newCPURequire] = map[int64]NodeContainers{}
+	cpuContainersInfo[pod][newCPURequire][newMEMRequire] = NodeContainers{}
+	cpuContainersInfo[pod][newCPURequire][newMEMRequire][node] = []*types.Container{}
 	ch2 := make(chan *types.ReallocResourceMessage)
 	go func() {
 		defer close(ch2)
 		wg := sync.WaitGroup{}
 		wg.Add(len(containersInfo))
-		go func(pod *types.Pod, nodeCPUContainersInfo CPUNodeContainers) {
-			defer wg.Done()
-			mockc.reallocContainersWithCPUPrior(ctx, ch2, pod, nodeCPUContainersInfo, cpu, 0)
-		}(pod, cpuContainersInfo[pod])
+		for pod, _ := range containersInfo {
+			cpuMemNodeContainersInfo := cpuContainersInfo[pod]
+			go func(pod *types.Pod, cpuMemNodeContainersInfo CPUMemNodeContainers) {
+				defer wg.Done()
+				mockc.reallocContainersWithCPUPrior(ctx, ch2, pod, cpuMemNodeContainersInfo)
+			}(pod, cpuMemNodeContainersInfo)
+		}
 		wg.Wait()
 	}()
 	for msg := range ch2 {

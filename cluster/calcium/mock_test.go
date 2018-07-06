@@ -423,9 +423,7 @@ func initMockConfig() {
 	mockStore.On("GetNode", podname, "node3").Return(n3, nil)
 	mockStore.On("GetNode", podname, updatenodename).Return(n4, nil)
 	mockStore.On("GetNode", "", "").Return(n2, nil)
-
-	mockStore.On("UpdateNodeMem", podname, mockStringType, mock.AnythingOfType("int64"), mockStringType).Return(nil)
-	mockStore.On("UpdateNodeCPU", podname, mockStringType, mockCPUMapType, mockStringType).Return(nil)
+	mockStore.On("UpdateNodeResource", podname, mockStringType, mockCPUMapType, mock.AnythingOfType("int64"), mockStringType).Return(nil)
 	mockStore.On("UpdateNode", mockNodeType).Return(nil)
 
 	lk := mockstore.MockLock{}

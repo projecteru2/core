@@ -59,7 +59,7 @@ func (c *Calcium) allocMemoryPodResource(ctx context.Context, opts *types.Deploy
 		go func(nodeInfo types.NodeInfo) {
 			defer wg.Done()
 			memoryTotal := opts.Memory * int64(nodeInfo.Deploy)
-			c.store.UpdateNodeMem(ctx, opts.Podname, nodeInfo.Name, memoryTotal, "-")
+			c.store.UpdateNodeResource(ctx, opts.Podname, nodeInfo.Name, types.CPUMap{}, memoryTotal, "-")
 		}(nodeInfo)
 	}
 	wg.Wait()
@@ -85,7 +85,7 @@ func (c *Calcium) allocCPUPodResource(ctx context.Context, opts *types.DeployOpt
 		return nil, err
 	}
 
-	result, changed, err := c.scheduler.SelectCPUNodes(nodesInfo, opts.CPUQuota, opts.Count)
+	result, changed, err := c.scheduler.SelectCPUNodes(nodesInfo, opts.CPUQuota, opts.Memory, opts.Count)
 	log.Debugf("[allocCPUPodResource] Result: %v, Changed: %v", result, changed)
 	if err != nil {
 		return result, err
@@ -102,8 +102,10 @@ func (c *Calcium) allocCPUPodResource(ctx context.Context, opts *types.DeployOpt
 			// 不在changed里说明没有变化
 			if ok {
 				node.CPU = r
-				// ignore error
-				c.store.UpdateNode(ctx, node)
+				node.MemCap = node.MemCap - opts.Memory*int64(len(result[node.Name]))
+				if err := c.store.UpdateNode(ctx, node); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}

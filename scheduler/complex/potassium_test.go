@@ -64,31 +64,31 @@ func newPod(count int) []types.NodeInfo {
 func TestSelectCPUNodes(t *testing.T) {
 	k, _ := newPotassium()
 
-	_, _, err := k.SelectCPUNodes([]types.NodeInfo{}, 1, 1)
+	_, _, err := k.SelectCPUNodes([]types.NodeInfo{}, 1, 1, 1)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "No nodes provide to choose some")
 
 	nodes := newPod(2)
-	_, _, err = k.SelectCPUNodes(nodes, 0.5, 1)
+	_, _, err = k.SelectCPUNodes(nodes, 0.5, 1, 1)
 	assert.NoError(t, err)
 	//fmt.Printf("algorithm debug res: %v", debug)
 	//fmt.Printf("algorithm debug changed: %v", changed)
 
-	_, _, err = k.SelectCPUNodes(nodes, 2, 3)
+	_, _, err = k.SelectCPUNodes(nodes, 2, 1, 3)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")
 
-	_, _, err = k.SelectCPUNodes(nodes, 3, 2)
+	_, _, err = k.SelectCPUNodes(nodes, 3, 1, 2)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")
 
-	_, _, err = k.SelectCPUNodes(nodes, 1, 5)
+	_, _, err = k.SelectCPUNodes(nodes, 1, 1, 5)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")
 
 	// new round test
 	nodes = newPod(2)
-	r, re, err := k.SelectCPUNodes(nodes, 1, 2)
+	r, re, err := k.SelectCPUNodes(nodes, 1, 1, 2)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(r))
 	assert.Equal(t, 2, len(re))
@@ -103,7 +103,7 @@ func TestSelectCPUNodes(t *testing.T) {
 	// SelectCPUNodes 里有一些副作用, 粗暴地拿一个新的来测试吧
 	// 下面也是因为这个
 	nodes = newPod(2)
-	r, _, err = k.SelectCPUNodes(nodes, 1.3, 2)
+	r, _, err = k.SelectCPUNodes(nodes, 1.3, 1, 2)
 	assert.NoError(t, err)
 
 	for nodename, cpus := range r {
@@ -176,7 +176,7 @@ func TestRecurrence(t *testing.T) {
 		},
 	}
 
-	_, _, err := k.SelectCPUNodes(nodes, 0.5, 3)
+	_, _, err := k.SelectCPUNodes(nodes, 0.5, 1, 3)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -252,7 +252,7 @@ func TestComplexNodes(t *testing.T) {
 
 	// test1
 	nodes := getNodesInfo()
-	res1, changed1, err := k.SelectCPUNodes(nodes, 1.7, 7)
+	res1, changed1, err := k.SelectCPUNodes(nodes, 1.7, 1, 7)
 	if err != nil {
 		t.Fatalf("sth wrong")
 	}
@@ -265,7 +265,7 @@ func TestComplexNodes(t *testing.T) {
 	// SelectCPUNodes 里有一些副作用, 粗暴地拿一个新的来测试吧
 	// 下面也是因为这个
 	nodes = getNodesInfo()
-	res2, changed2, err := k.SelectCPUNodes(nodes, 1.7, 11)
+	res2, changed2, err := k.SelectCPUNodes(nodes, 1.7, 1, 11)
 	if err != nil {
 		t.Fatalf("something went wrong")
 	}
@@ -276,7 +276,7 @@ func TestComplexNodes(t *testing.T) {
 
 	// test3
 	nodes = getNodesInfo()
-	res3, changed3, err := k.SelectCPUNodes(nodes, 1.7, 23)
+	res3, changed3, err := k.SelectCPUNodes(nodes, 1.7, 1, 23)
 	assert.NoError(t, err)
 	if check := checkAvgPlan(res3, 2, 6, "res3"); check != nil {
 		t.Fatalf("something went wrong")
@@ -285,14 +285,14 @@ func TestComplexNodes(t *testing.T) {
 
 	// test4
 	nodes = getNodesInfo()
-	_, _, newErr := k.SelectCPUNodes(nodes, 1.6, 29)
+	_, _, newErr := k.SelectCPUNodes(nodes, 1.6, 1, 29)
 	if newErr == nil {
 		t.Fatalf("how to alloc 29 containers when you only have 28?")
 	}
 
 	//test5
 	nodes = getNodesInfo()
-	_, _, err = k.SelectCPUNodes(nodes, 0, 10)
+	_, _, err = k.SelectCPUNodes(nodes, 0, 1, 10)
 	assert.Equal(t, err.Error(), "quota must positive")
 }
 
@@ -306,7 +306,7 @@ func TestCPUOverSell(t *testing.T) {
 
 	//test1
 	nodes := getNodesInfo()
-	_, _, err = k.SelectCPUNodes(nodes, 1.7, 3)
+	_, _, err = k.SelectCPUNodes(nodes, 1.7, 1, 3)
 	assert.NoError(t, err)
 
 	//TODO 增加其他测试吧，这里应该是没问题的
@@ -388,7 +388,7 @@ func TestEvenPlan(t *testing.T) {
 		},
 	}
 
-	res1, rem1, err := k.SelectCPUNodes(pod1, 1.3, 2)
+	res1, rem1, err := k.SelectCPUNodes(pod1, 1.3, 1, 2)
 	if err != nil {
 		t.Fatalf("sth wrong")
 	}
@@ -399,21 +399,21 @@ func TestEvenPlan(t *testing.T) {
 
 	// nodes -- n1: 4, n2: 5, n3:6, n4: 5
 	pod2 := getEvenPlanNodes()
-	res2, rem2, err := k.SelectCPUNodes(pod2, 1.7, 3)
+	res2, rem2, err := k.SelectCPUNodes(pod2, 1.7, 1, 3)
 	if check := checkAvgPlan(res2, 1, 1, "res2"); check != nil {
 		t.Fatalf("something went wront")
 	}
 	assert.Equal(t, len(rem2), 3)
 
 	pod3 := getEvenPlanNodes()
-	res3, rem3, err := k.SelectCPUNodes(pod3, 1.7, 8)
+	res3, rem3, err := k.SelectCPUNodes(pod3, 1.7, 1, 8)
 	if check := checkAvgPlan(res3, 2, 2, "res3"); check != nil {
 		t.Fatalf("something went wront")
 	}
 	assert.Equal(t, len(rem3), 4)
 
 	pod4 := getEvenPlanNodes()
-	res4, rem4, err := k.SelectCPUNodes(pod4, 1.7, 10)
+	res4, rem4, err := k.SelectCPUNodes(pod4, 1.7, 1, 10)
 	if check := checkAvgPlan(res4, 2, 3, "res4"); check != nil {
 		t.Fatalf("something went wrong")
 	}
@@ -454,7 +454,7 @@ func TestSpecialCase(t *testing.T) {
 	}
 
 	k, _ := newPotassium()
-	res1, _, err := k.SelectCPUNodes(pod, 1.7, 7)
+	res1, _, err := k.SelectCPUNodes(pod, 1.7, 1, 7)
 	if err != nil {
 		t.Fatalf("something went wrong")
 	}
@@ -483,7 +483,7 @@ func TestSpecialCase(t *testing.T) {
 		},
 	}
 
-	res2, changed2, _ := k.SelectCPUNodes(newpod, 1.7, 4)
+	res2, changed2, _ := k.SelectCPUNodes(newpod, 1.7, 1, 4)
 	assert.Equal(t, len(res2), len(changed2))
 	checkAvgPlan(res2, 2, 2, "new test 2")
 }
@@ -557,7 +557,7 @@ func Benchmark_CPUAlloc(b *testing.B) {
 		hugePod := generateNodes(count, 24, 137438953472, 10)
 		need := getPodVol(hugePod, cpu, 10, -1)
 		b.StartTimer()
-		r, c, err := k.SelectCPUNodes(hugePod, cpu, need)
+		r, c, err := k.SelectCPUNodes(hugePod, cpu, 1, need)
 		b.StopTimer()
 		assert.NoError(b, err)
 		assert.Equal(b, len(r), len(c))

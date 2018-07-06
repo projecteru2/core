@@ -5,8 +5,8 @@ import (
 	"sort"
 	"sync"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/projecteru2/core/types"
+	log "github.com/sirupsen/logrus"
 )
 
 type magnesium struct {
@@ -78,7 +78,7 @@ func (m *magnesium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory i
 
 // Select nodes for deploying.
 // Use round robin method to select, in order to make scheduler average.
-func (m *magnesium) SelectCPUNodes(nodes []types.NodeInfo, quota float64, need int) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
+func (m *magnesium) SelectCPUNodes(nodes []types.NodeInfo, quota float64, mem int64, need int) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
 	m.Lock()
 	defer m.Unlock()
 

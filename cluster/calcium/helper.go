@@ -52,23 +52,25 @@ func makeMemoryPriorSetting(memory int64, cpu float64) enginecontainer.Resources
 	return resource
 }
 
-func makeCPUPriorSetting(shareBase int64, quota types.CPUMap) enginecontainer.Resources {
+func makeCPUPriorSetting(shareBase int64, quota types.CPUMap, memory int64) enginecontainer.Resources {
 	// calculate CPUShares and CPUSet
 	// scheduler won't return more than 1 share quota
 	// so the smallest share is the share numerator
 	shareQuota := shareBase
 	cpuIDs := []string{}
-	for cpuid, share := range quota {
-		cpuIDs = append(cpuIDs, cpuid)
+	for cpuID, share := range quota {
+		cpuIDs = append(cpuIDs, cpuID)
 		if share < shareQuota {
 			shareQuota = share
 		}
 	}
-	cpuShares := int64(float64(shareQuota) / float64(shareQuota) * float64(CpuShareBase))
+	cpuShares := int64(float64(shareQuota) / float64(shareBase) * float64(CpuShareBase))
 	cpuSetCpus := strings.Join(cpuIDs, ",")
+	log.Debugf("[makeCPUPriorSetting] CPU core %v CPU share %v Memory soft limit %v", cpuSetCpus, cpuShares, memory)
 	resource := enginecontainer.Resources{
-		CPUShares:  cpuShares,
-		CpusetCpus: cpuSetCpus,
+		CPUShares:         cpuShares,
+		CpusetCpus:        cpuSetCpus,
+		MemoryReservation: memory,
 	}
 	return resource
 }
