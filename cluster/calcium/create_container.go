@@ -27,6 +27,16 @@ func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions
 		return nil, err
 	}
 	log.Infof("[CreateContainer] Creating container with options: %v", opts)
+
+	// 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
+	// -1 means without limit
+	if opts.Memory < minMemory && !opts.RawResource {
+		return nil, fmt.Errorf("Minimum memory limit allowed is 4MB, got %d", opts.Memory)
+	}
+	if opts.Count <= 0 { // Count 要大于0
+		return nil, fmt.Errorf("Count must be positive, got %d", opts.Count)
+	}
+
 	if opts.RawResource || pod.Favor == scheduler.MEMORY_PRIOR {
 		return c.createContainerWithMemoryPrior(ctx, opts)
 	} else if pod.Favor == scheduler.CPU_PRIOR {
@@ -37,14 +47,6 @@ func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions
 
 func (c *Calcium) createContainerWithMemoryPrior(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
-	// 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
-	// -1 means without limit
-	if opts.Memory < minMemory && !opts.RawResource {
-		return ch, fmt.Errorf("Minimum memory limit allowed is 4MB, got %d", opts.Memory)
-	}
-	if opts.Count <= 0 { // Count 要大于0
-		return ch, fmt.Errorf("Count must be positive, got %d", opts.Count)
-	}
 
 	// TODO RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
 	// 因此需要在这里加个全局锁，直到部署完毕才释放
@@ -87,7 +89,7 @@ func (c *Calcium) doCreateContainerWithMemoryPrior(ctx context.Context, nodeInfo
 		for i := 0; i < nodeInfo.Deploy; i++ {
 			ms[i] = &types.CreateContainerMessage{Error: err}
 			if !opts.RawResource {
-				if err := c.store.UpdateNodeMem(ctx, opts.Podname, nodeInfo.Name, opts.Memory, "+"); err != nil {
+				if err := c.store.UpdateNodeResource(ctx, opts.Podname, nodeInfo.Name, types.CPUMap{}, opts.Memory, "+"); err != nil {
 					log.Errorf("[doCreateContainerWithMemoryPrior] reset node memory failed %v", err)
 				}
 			}
@@ -153,7 +155,7 @@ func (c *Calcium) doCreateContainerWithCPUPrior(ctx context.Context, nodeName st
 		log.Errorf("[doCreateContainerWithCPUPrior] Get and prepare node error %v", err)
 		for i := 0; i < deployCount; i++ {
 			ms[i] = &types.CreateContainerMessage{Error: err}
-			if err := c.store.UpdateNodeCPU(ctx, opts.Podname, nodeName, cpuMap[i], "+"); err != nil {
+			if err := c.store.UpdateNodeResource(ctx, opts.Podname, nodeName, cpuMap[i], opts.Memory, "+"); err != nil {
 				log.Errorf("[doCreateContainerWithCPUPrior] update node CPU failed %v", err)
 			}
 		}
@@ -296,7 +298,7 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 
 	var resource enginecontainer.Resources
 	if favor == scheduler.CPU_PRIOR {
-		resource = makeCPUPriorSetting(c.config.Scheduler.ShareBase, quota)
+		resource = makeCPUPriorSetting(c.config.Scheduler.ShareBase, quota, opts.Memory)
 	} else if favor == scheduler.MEMORY_PRIOR {
 		resource = makeMemoryPriorSetting(opts.Memory, opts.CPUQuota)
 	} else {

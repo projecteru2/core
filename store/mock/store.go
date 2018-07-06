@@ -125,13 +125,8 @@ func (m *MockStore) UpdateNode(ctx context.Context, node *types.Node) error {
 	return args.Error(0)
 }
 
-func (m *MockStore) UpdateNodeCPU(ctx context.Context, podname, nodename string, cpu types.CPUMap, action string) error {
-	args := m.Called(podname, nodename, cpu, action)
-	return args.Error(0)
-}
-
-func (m *MockStore) UpdateNodeMem(ctx context.Context, podname, nodename string, memory int64, action string) error {
-	args := m.Called(podname, nodename, memory, action)
+func (m *MockStore) UpdateNodeResource(ctx context.Context, podname, nodename string, cpu types.CPUMap, mem int64, action string) error {
+	args := m.Called(podname, nodename, cpu, mem, action)
 	return args.Error(0)
 }
 

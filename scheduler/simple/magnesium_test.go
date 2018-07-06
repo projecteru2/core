@@ -32,7 +32,7 @@ func TestMaxIdleNode(t *testing.T) {
 
 func TestSelectCPUNodes(t *testing.T) {
 	m := &magnesium{}
-	_, _, err := m.SelectCPUNodes([]types.NodeInfo{}, 1, 1)
+	_, _, err := m.SelectCPUNodes([]types.NodeInfo{}, 1, 1, 1)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "No nodes provide to choose some")
 
@@ -59,19 +59,19 @@ func TestSelectCPUNodes(t *testing.T) {
 		},
 	}
 
-	_, _, err = m.SelectCPUNodes(nodes, 2, 3)
+	_, _, err = m.SelectCPUNodes(nodes, 2, 1, 3)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")
 
-	_, _, err = m.SelectCPUNodes(nodes, 3, 2)
+	_, _, err = m.SelectCPUNodes(nodes, 3, 1, 2)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")
 
-	_, _, err = m.SelectCPUNodes(nodes, 1, 5)
+	_, _, err = m.SelectCPUNodes(nodes, 1, 1, 5)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")
 
-	r, changed, err := m.SelectCPUNodes(nodes, 1, 2)
+	r, changed, err := m.SelectCPUNodes(nodes, 1, 1, 2)
 	assert.NoError(t, err)
 	assert.Equal(t, len(changed), 2)
 	for nodename, cpus := range r {
@@ -82,11 +82,11 @@ func TestSelectCPUNodes(t *testing.T) {
 		assert.Equal(t, int(cpu.Total()), 10)
 	}
 
-	_, _, err = m.SelectCPUNodes(nodes, 1, 4)
+	_, _, err = m.SelectCPUNodes(nodes, 1, 1, 4)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")
 
-	r, _, err = m.SelectCPUNodes(nodes, 1, 2)
+	r, _, err = m.SelectCPUNodes(nodes, 1, 1, 2)
 	assert.NoError(t, err)
 	for nodename, cpus := range r {
 		assert.Contains(t, []string{"node1", "node2"}, nodename)
@@ -96,7 +96,7 @@ func TestSelectCPUNodes(t *testing.T) {
 		assert.Equal(t, int(cpu.Total()), 10)
 	}
 
-	_, _, err = m.SelectCPUNodes(nodes, 1, 1)
+	_, _, err = m.SelectCPUNodes(nodes, 1, 1, 1)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Not enough")
 
@@ -150,7 +150,7 @@ func TestTotalQuota(t *testing.T) {
 
 func TestSelectPublicNodes(t *testing.T) {
 	m := &magnesium{}
-	_, _, err := m.SelectCPUNodes([]types.NodeInfo{}, 1, 1)
+	_, _, err := m.SelectCPUNodes([]types.NodeInfo{}, 1, 1, 1)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "No nodes provide to choose some")
 
@@ -177,7 +177,7 @@ func TestSelectPublicNodes(t *testing.T) {
 		},
 	}
 
-	r, changed, err := m.SelectCPUNodes(nodes, 0, 10)
+	r, changed, err := m.SelectCPUNodes(nodes, 0, 1, 10)
 	assert.NoError(t, err)
 	assert.Equal(t, resultLength(r), 10)
 	assert.Equal(t, len(changed), 2)

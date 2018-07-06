@@ -109,20 +109,10 @@ func (c *Calcium) removeOneContainer(ctx context.Context, container *types.Conta
 		if container.RawResource {
 			return
 		}
-		// if total cpu of container > 0, then we need to release these core resource
-		// but if it's 0, just ignore to save 1 time write on etcd.
-		if container.CPU.Total() > 0 {
-			log.Debugf("[removeOneContainer] Restore node %s cpu: %v", container.Nodename, container.CPU)
-			if err := c.store.UpdateNodeCPU(ctx, container.Podname, container.Nodename, container.CPU, "+"); err != nil {
-				log.Errorf("[removeOneContainer] Update Node CPU failed %v", err)
-			}
-			return
-		}
-		if container.Memory > 0 {
-			log.Debugf("[removeOneContainer] Restore node %s memory: %d", container.Nodename, container.Memory)
-			if err := c.store.UpdateNodeMem(ctx, container.Podname, container.Nodename, container.Memory, "+"); err != nil {
-				log.Errorf("[removeOneContainer] Update Node Memory failed %v", err)
-			}
+
+		log.Debugf("[removeOneContainer] Restore node %s resource cpu: %v mem: %v", container.Nodename, container.CPU, container.Memory)
+		if err := c.store.UpdateNodeResource(ctx, container.Podname, container.Nodename, container.CPU, container.Memory, "+"); err != nil {
+			log.Errorf("[removeOneContainer] Update Node resource failed %v", err)
 		}
 	}()
 

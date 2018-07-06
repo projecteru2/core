@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"sort"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/projecteru2/core/types"
+	log "github.com/sirupsen/logrus"
 )
 
 type potassium struct {
 	maxshare, sharebase int64
 }
 
+// New a potassium
 func New(config types.Config) (*potassium, error) {
 	return &potassium{config.Scheduler.MaxShare, config.Scheduler.ShareBase}, nil
 }
@@ -72,7 +73,7 @@ func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory i
 	return nodesInfo, nil
 }
 
-func (m *potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, need int) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
+func (m *potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, memory int64, need int) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
 	log.Debugf("[SelectCPUNodes] nodesInfo: %v, cpu: %v, need: %v", nodesInfo, quota, need)
 	if quota <= 0 {
 		return nil, nil, fmt.Errorf("quota must positive")
@@ -84,7 +85,7 @@ func (m *potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, ne
 		return result, nil, fmt.Errorf("No nodes provide to choose some")
 	}
 
-	volTotal, selectedNodesInfo, selectedNodesPool := cpuPriorPlan(quota, nodesInfo, need, m.maxshare, m.sharebase)
+	volTotal, selectedNodesInfo, selectedNodesPool := cpuPriorPlan(quota, memory, nodesInfo, need, m.maxshare, m.sharebase)
 	selectedNodesInfo, err := CommunismDivisionPlan(selectedNodesInfo, need, volTotal)
 	if err != nil {
 		return nil, nil, err

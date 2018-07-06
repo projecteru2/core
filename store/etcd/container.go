@@ -12,7 +12,7 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-//AddContainer add a container
+// AddContainer add a container
 // mainly record its relationship on pod and node
 // actually if we already know its node, we will know its pod
 // but we still store it
@@ -43,7 +43,7 @@ func (k *Krypton) AddContainer(ctx context.Context, container *types.Container) 
 	return err
 }
 
-//RemoveContainer remove a container
+// RemoveContainer remove a container
 // container id must be in full length
 func (k *Krypton) RemoveContainer(ctx context.Context, container *types.Container) error {
 	if len(container.ID) < 64 {
@@ -57,7 +57,7 @@ func (k *Krypton) RemoveContainer(ctx context.Context, container *types.Containe
 	return k.CleanContainerData(ctx, container.ID, appname, entrypoint, container.Nodename)
 }
 
-//CleanContainerData clean container data
+// CleanContainerData clean container data
 func (k *Krypton) CleanContainerData(ctx context.Context, ID, appname, entrypoint, nodename string) error {
 	key := fmt.Sprintf(containerInfoKey, ID)
 	if _, err := k.etcd.Delete(ctx, key, nil); err != nil {
@@ -70,7 +70,7 @@ func (k *Krypton) CleanContainerData(ctx context.Context, ID, appname, entrypoin
 	return err
 }
 
-//GetContainer get a container
+// GetContainer get a container
 // container if must be in full length, or we can't find it in etcd
 // storage path in etcd is `/container/:containerid`
 func (k *Krypton) GetContainer(ctx context.Context, ID string) (*types.Container, error) {
@@ -101,7 +101,7 @@ func (k *Krypton) GetContainer(ctx context.Context, ID string) (*types.Container
 	return c, nil
 }
 
-//GetContainers get many containers
+// GetContainers get many containers
 func (k *Krypton) GetContainers(ctx context.Context, IDs []string) (containers []*types.Container, err error) {
 	for _, ID := range IDs {
 		container, err := k.GetContainer(ctx, ID)
@@ -113,7 +113,7 @@ func (k *Krypton) GetContainers(ctx context.Context, IDs []string) (containers [
 	return containers, err
 }
 
-//ContainerDeployed store deployed container info
+// ContainerDeployed store deployed container info
 func (k *Krypton) ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename, data string) error {
 	key := fmt.Sprintf(containerDeployKey, appname, entrypoint, nodename, ID)
 	//Only update when it exist
@@ -121,7 +121,7 @@ func (k *Krypton) ContainerDeployed(ctx context.Context, ID, appname, entrypoint
 	return err
 }
 
-//ListContainers list containers
+// ListContainers list containers
 func (k *Krypton) ListContainers(ctx context.Context, appname, entrypoint, nodename string) ([]*types.Container, error) {
 	if appname == "" {
 		entrypoint = ""
@@ -138,7 +138,7 @@ func (k *Krypton) ListContainers(ctx context.Context, appname, entrypoint, noden
 	return k.GetContainers(ctx, containerIDs)
 }
 
-//WatchDeployStatus watch deployed status
+// WatchDeployStatus watch deployed status
 func (k *Krypton) WatchDeployStatus(appname, entrypoint, nodename string) etcdclient.Watcher {
 	if appname == "" {
 		entrypoint = ""

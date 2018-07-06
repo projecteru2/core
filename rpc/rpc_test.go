@@ -13,6 +13,7 @@ import (
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
 )
 
@@ -611,6 +612,7 @@ func TestOthers(t *testing.T) {
 		Engine: nil,
 	}
 	store.On("GetNode", podname, nodename).Return(tNode, nil)
+	store.On("UpdateNodeResource", "", "", mock.AnythingOfType("types.CPUMap"), int64(0), "+").Return(nil)
 
 	// RemoveContainer
 	rmContainerResp, _ := clnt.RemoveContainer(ctx, &pb.RemoveContainerOptions{

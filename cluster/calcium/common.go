@@ -26,11 +26,11 @@ type NodeContainers map[*types.Node][]*types.Container
 //NodeCPUMap store cpu and node info
 type NodeCPUMap map[*types.Node][]types.CPUMap
 
-//CPUNodeContainers store cpu and nodecontainers
-type CPUNodeContainers map[float64]NodeContainers
+//CPUMemNodeContainers store cpu, mem and nodecontainers
+type CPUMemNodeContainers map[float64]map[int64]NodeContainers
 
-//CPUNodeContainersMap store cpu and nodecpumap
-type CPUNodeContainersMap map[float64]NodeCPUMap
+//CPUMemNodeContainersMap store cpu, mem and nodecpumap
+type CPUMemNodeContainersMap map[float64]map[int64]NodeCPUMap
 
 type imageBucket struct {
 	sync.Mutex
