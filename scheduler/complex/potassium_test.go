@@ -641,7 +641,7 @@ func TestTestSelectMemoryNodesNotEnough(t *testing.T) {
 	_, err = k.SelectMemoryNodes(pod, 1e9, 5*1024*1024*1024, 1)
 	assert.Error(t, err)
 	if err != nil {
-		assert.Equal(t, err.Error(), "No nodes provide enough memory")
+		assert.Equal(t, err.Error(), "Cannot alloc a plan, not enough memory")
 	}
 
 	// 2 nodes [cpu not enough]

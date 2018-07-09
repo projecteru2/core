@@ -3,7 +3,6 @@ package calcium
 import (
 	"context"
 	"fmt"
-	"sort"
 	"sync"
 
 	log "github.com/sirupsen/logrus"
@@ -43,7 +42,6 @@ func (c *Calcium) allocMemoryPodResource(ctx context.Context, opts *types.Deploy
 
 	cpuRate := int64(opts.CPUQuota * float64(CpuPeriodBase))
 	log.Debugf("[allocMemoryPodResource] Input opts.CPUQuota: %f, equal CPURate %d", opts.CPUQuota, cpuRate)
-	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].MemCap < nodesInfo[j].MemCap })
 	nodesInfo, err = c.scheduler.SelectMemoryNodes(nodesInfo, cpuRate, opts.Memory, opts.Count) // 还是以 Bytes 作单位， 不转换了
 	if err != nil {
 		return nil, err

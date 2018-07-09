@@ -28,40 +28,40 @@ func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory i
 		return nil, fmt.Errorf("memory must positive")
 	}
 
-	p := -1
-	for i, nodeInfo := range nodesInfo {
-		if nodeInfo.CPURate >= rate {
-			p = i
-			break
-		}
-	}
-	if p == -1 {
+	nodesInfoLength := len(nodesInfo)
+
+	// 筛选出能满足 CPU 需求的
+	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].CPURate < nodesInfo[j].CPURate })
+	p := sort.Search(nodesInfoLength, func(i int) bool { return nodesInfo[i].CPURate >= rate })
+	// p 最大也就是 nodesInfoLength - 1
+	if p == nodesInfoLength {
 		return nil, fmt.Errorf("Cannot alloc a plan, not enough cpu rate")
 	}
-	log.Debugf("[SelectMemoryNodes] The %d th node has enough cpu rate", p)
+	nodesInfoLength -= p
+	nodesInfo = nodesInfo[p:]
+	log.Debugf("[SelectMemoryNodes] %d nodes has enough cpu rate", nodesInfoLength)
 
 	// 计算是否有足够的内存满足需求
+	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].MemCap < nodesInfo[j].MemCap })
+	p = sort.Search(nodesInfoLength, func(i int) bool { return nodesInfo[i].MemCap >= memory })
+	if p == nodesInfoLength {
+		return nil, fmt.Errorf("Cannot alloc a plan, not enough memory")
+	}
+	nodesInfoLength -= p
 	nodesInfo = nodesInfo[p:]
+	log.Debugf("[SelectMemoryNodes] %d nodes has enough memory", nodesInfoLength)
+
 	volTotal := 0
 	capacity := -1
-	p = -1
 	for i, nodeInfo := range nodesInfo {
 		capacity = int(nodeInfo.MemCap / memory)
 		if capacity > 0 {
 			volTotal += capacity
 			nodesInfo[i].Capacity = capacity
-			if p == -1 {
-				p = i
-			}
 		}
 	}
 
-	if p < 0 {
-		return nil, fmt.Errorf("No nodes provide enough memory")
-	}
-
 	// 继续裁可用节点池子
-	nodesInfo = nodesInfo[p:]
 	log.Debugf("[SelectMemoryNodes] Node info: %v", nodesInfo)
 	nodesInfo, err := CommunismDivisionPlan(nodesInfo, need, volTotal)
 	if err != nil {
