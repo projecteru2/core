@@ -35,19 +35,19 @@ func resetNodes() []types.NodeInfo {
 
 func TestCommunismDivisionPlan(t *testing.T) {
 	nodes := resetNodes()
-	r, err := CommunismDivisionPlan(nodes, 1, 40)
+	r, err := CommunismDivisionPlan(nodes, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 1)
 	nodes = resetNodes()
-	r, err = CommunismDivisionPlan(nodes, 2, 40)
+	r, err = CommunismDivisionPlan(nodes, 2)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 2)
 	nodes = resetNodes()
-	r, err = CommunismDivisionPlan(nodes, 3, 40)
+	r, err = CommunismDivisionPlan(nodes, 3)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 3)
 	nodes = resetNodes()
-	r, err = CommunismDivisionPlan(nodes, 4, 40)
+	r, err = CommunismDivisionPlan(nodes, 4)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 3)
 	assert.Equal(t, r[1].Deploy, 1)
@@ -56,7 +56,7 @@ func TestCommunismDivisionPlan(t *testing.T) {
 func randomDeployStatus(nodesInfo []types.NodeInfo, maxDeployed int) []types.NodeInfo {
 	s := rand.NewSource(int64(1024))
 	r := rand.New(s)
-	for i, _ := range nodesInfo {
+	for i := range nodesInfo {
 		nodesInfo[i].Capacity = maxDeployed
 		nodesInfo[i].Count = r.Intn(maxDeployed)
 
@@ -77,7 +77,7 @@ func Benchmark_CommunismDivisionPlan(b *testing.B) {
 		hugePod := generateNodes(count, 1, 1, 10)
 		hugePod = randomDeployStatus(hugePod, maxDeployed)
 		b.StartTimer()
-		_, err := CommunismDivisionPlan(hugePod, need, volTotal)
+		_, err := CommunismDivisionPlan(hugePod, need)
 		b.StopTimer()
 		assert.NoError(b, err)
 	}

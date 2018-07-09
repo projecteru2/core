@@ -166,7 +166,8 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 	if len(nodes) == 0 {
 		return ch, errors.New("No node to build")
 	}
-	node := c.scheduler.MaxIdleNode(nodes)
+	//TODO 这里需要考虑用 mem，CPU 不限制 mem
+	node := c.scheduler.MaxCPUIdleNode(nodes)
 
 	// make build dir
 	buildDir, err := ioutil.TempDir(os.TempDir(), "corebuild-")

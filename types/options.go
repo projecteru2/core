@@ -32,6 +32,7 @@ type DeployOptions struct {
 	Meta        map[string]string // Meta for containers
 	NodeLabels  map[string]string // NodeLabels for filter node
 	RawResource bool              // Ignore pod res setting
+	Each        bool              // Deploy on each nodes
 }
 
 //RunAndWaitOptions is options for running and waiting
