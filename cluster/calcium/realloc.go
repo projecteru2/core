@@ -192,7 +192,7 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 		// CPUQuota not cpu
 		newResource := makeMemoryPriorSetting(newMemory, newCPU)
 		updateConfig := enginecontainer.UpdateConfig{Resources: newResource}
-		if err := reSetContainer(ctx, containerJSON.ID, node, updateConfig); err != nil {
+		if err := updateContainer(ctx, containerJSON.ID, node, updateConfig); err != nil {
 			log.Errorf("[doUpdateContainerWithMemoryPrior] update container failed %v, %s", err, containerJSON.ID)
 			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
 			// 如果是增加内存，失败的时候应该把内存还回去
@@ -265,16 +265,19 @@ func (c *Calcium) reallocNodesCPUMem(
 				}
 
 				// 重新计算需求
-				result, changed, err := c.scheduler.SelectCPUNodes(nodesInfo, requireCPU, requireMemory, need)
+				nodesInfo, nodePlans, total, err := c.scheduler.SelectCPUNodes(nodesInfo, requireCPU, requireMemory)
 				if err != nil {
 					// 满足不了，恢复之前的资源
-					for _, container := range containers {
-						if err := c.store.UpdateNodeResource(ctx, podname, node.Name, container.CPU, container.Memory, "-"); err != nil {
-							return nil, err
-						}
-					}
+					c.resetContainerResource(ctx, podname, node.Name, containers)
 					return nil, err
 				}
+				nodesInfo, err = c.scheduler.EachDivision(nodesInfo, need, total)
+				if err != nil {
+					// 满足不了，恢复之前的资源
+					c.resetContainerResource(ctx, podname, node.Name, containers)
+					return nil, err
+				}
+				result, changed := c.scheduler.MakeCPUPlan(nodesInfo, nodePlans)
 
 				// 这里 need 一定等于 len(containersCPUMaps)
 				nodeCPUMap, isChanged := changed[node.Name]
@@ -342,7 +345,7 @@ func (c *Calcium) doReallocContainersWithCPUPrior(
 				quota := cpuset[index]
 				resource := makeCPUPriorSetting(c.config.Scheduler.ShareBase, quota, requireMemory)
 				updateConfig := enginecontainer.UpdateConfig{Resources: resource}
-				if err := reSetContainer(ctx, container.ID, node, updateConfig); err != nil {
+				if err := updateContainer(ctx, container.ID, node, updateConfig); err != nil {
 					log.Errorf("[doReallocContainersWithCPUPrior] update container failed %v", err)
 					// TODO 这里理论上是可以恢复 CPU 占用表的，一来我们知道新的占用是怎样，二来我们也晓得老的占用是啥样
 					ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
@@ -361,4 +364,13 @@ func (c *Calcium) doReallocContainersWithCPUPrior(
 			}
 		}
 	}
+}
+
+func (c *Calcium) resetContainerResource(ctx context.Context, podname, nodename string, containers []*types.Container) error {
+	for _, container := range containers {
+		if err := c.store.UpdateNodeResource(ctx, podname, nodename, container.CPU, container.Memory, "-"); err != nil {
+			return err
+		}
+	}
+	return nil
 }

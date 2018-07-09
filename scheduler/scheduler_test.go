@@ -43,6 +43,8 @@ func TestSchedulerInvoke(t *testing.T) {
 			Name: "node2",
 		},
 	}
-	_, _, err := scheduler.SelectCPUNodes(nodes, 1, 1024, 2)
+	nodesInfo, _, total, err := scheduler.SelectCPUNodes(nodes, 1, 1024)
 	assert.NoError(t, err)
+	assert.Equal(t, nodesInfo[0].Capacity, 2)
+	assert.Equal(t, total, 4)
 }

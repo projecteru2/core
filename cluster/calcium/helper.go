@@ -359,7 +359,7 @@ func makeCopyMessage(id, status, name, path string, err error, data io.ReadClose
 	}
 }
 
-func reSetContainer(ctx context.Context, ID string, node *types.Node, config enginecontainer.UpdateConfig) error {
+func updateContainer(ctx context.Context, ID string, node *types.Node, config enginecontainer.UpdateConfig) error {
 	_, err := node.Engine.ContainerUpdate(ctx, ID, config)
 	return err
 }

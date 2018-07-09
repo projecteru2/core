@@ -8,24 +8,27 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type potassium struct {
+// Potassium is a scheduler
+type Potassium struct {
 	maxshare, sharebase int64
 }
 
 // New a potassium
-func New(config types.Config) (*potassium, error) {
-	return &potassium{config.Scheduler.MaxShare, config.Scheduler.ShareBase}, nil
+func New(config types.Config) (*Potassium, error) {
+	return &Potassium{config.Scheduler.MaxShare, config.Scheduler.ShareBase}, nil
 }
 
-func (m *potassium) MaxIdleNode(nodes []*types.Node) *types.Node {
+// MaxCPUIdleNode use for build
+func (m *Potassium) MaxCPUIdleNode(nodes []*types.Node) *types.Node {
 	sort.Slice(nodes, func(i, j int) bool { return nodes[i].CPU.Total() > nodes[j].CPU.Total() })
 	return nodes[0]
 }
 
-func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory int64, need int) ([]types.NodeInfo, error) {
-	log.Debugf("[SelectMemoryNodes] nodesInfo: %v, rate: %d, memory: %d, need: %d", nodesInfo, rate, memory, need)
+// SelectMemoryNodes filter nodes with enough memory
+func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory int64) ([]types.NodeInfo, int, error) {
+	log.Debugf("[SelectMemoryNodes] nodesInfo: %v, rate: %d, memory: %d", nodesInfo, rate, memory)
 	if memory <= 0 {
-		return nil, fmt.Errorf("memory must positive")
+		return nil, 0, fmt.Errorf("memory must positive")
 	}
 
 	nodesInfoLength := len(nodesInfo)
@@ -35,7 +38,7 @@ func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory i
 	p := sort.Search(nodesInfoLength, func(i int) bool { return nodesInfo[i].CPURate >= rate })
 	// p 最大也就是 nodesInfoLength - 1
 	if p == nodesInfoLength {
-		return nil, fmt.Errorf("Cannot alloc a plan, not enough cpu rate")
+		return nil, 0, fmt.Errorf("Cannot alloc a plan, not enough cpu rate")
 	}
 	nodesInfoLength -= p
 	nodesInfo = nodesInfo[p:]
@@ -45,64 +48,69 @@ func (m *potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory i
 	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].MemCap < nodesInfo[j].MemCap })
 	p = sort.Search(nodesInfoLength, func(i int) bool { return nodesInfo[i].MemCap >= memory })
 	if p == nodesInfoLength {
-		return nil, fmt.Errorf("Cannot alloc a plan, not enough memory")
+		return nil, 0, fmt.Errorf("Cannot alloc a plan, not enough memory")
 	}
 	nodesInfoLength -= p
 	nodesInfo = nodesInfo[p:]
 	log.Debugf("[SelectMemoryNodes] %d nodes has enough memory", nodesInfoLength)
 
+	// 这里 memCap 一定是大于 memory 的所以不用判断 cap 内容
 	volTotal := 0
-	capacity := -1
 	for i, nodeInfo := range nodesInfo {
-		capacity = int(nodeInfo.MemCap / memory)
-		if capacity > 0 {
-			volTotal += capacity
-			nodesInfo[i].Capacity = capacity
-		}
+		capacity := int(nodeInfo.MemCap / memory)
+		volTotal += capacity
+		nodesInfo[i].Capacity = capacity
 	}
-
-	// 继续裁可用节点池子
 	log.Debugf("[SelectMemoryNodes] Node info: %v", nodesInfo)
-	nodesInfo, err := CommunismDivisionPlan(nodesInfo, need, volTotal)
-	if err != nil {
-		return nil, err
-	}
-
-	// 这里并不需要再次排序了，理论上的排序是基于 Count 得到的 Deploy 最终方案
-	log.Debugf("[SelectMemoryNodes] CommunismDivisionPlan: %v", nodesInfo)
-	return nodesInfo, nil
+	return nodesInfo, volTotal, nil
 }
 
-func (m *potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, memory int64, need int) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
-	log.Debugf("[SelectCPUNodes] nodesInfo: %v, cpu: %v, need: %v", nodesInfo, quota, need)
+// SelectCPUNodes select nodes with enough cpus
+func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, memory int64) ([]types.NodeInfo, map[string][]types.CPUMap, int, error) {
+	log.Debugf("[SelectCPUNodes] nodesInfo: %v, cpu: %v", nodesInfo, quota)
 	if quota <= 0 {
-		return nil, nil, fmt.Errorf("quota must positive")
+		return nil, nil, 0, fmt.Errorf("quota must positive")
 	}
+	if len(nodesInfo) == 0 {
+		return nil, nil, 0, fmt.Errorf("No nodes provide to choose some")
+	}
+	return cpuPriorPlan(quota, memory, nodesInfo, m.maxshare, m.sharebase)
+}
+
+// MakeCPUPlan make cpu plan
+func (m *Potassium) MakeCPUPlan(nodesInfo []types.NodeInfo, nodePlans map[string][]types.CPUMap) (map[string][]types.CPUMap, map[string]types.CPUMap) {
+	log.Debugf("[MakeCPUPlan] nodesInfo: %v, plans: %v", nodesInfo, nodePlans)
 	result := make(map[string][]types.CPUMap)
 	changed := make(map[string]types.CPUMap)
 
-	if len(nodesInfo) == 0 {
-		return result, nil, fmt.Errorf("No nodes provide to choose some")
-	}
-
-	volTotal, selectedNodesInfo, selectedNodesPool := cpuPriorPlan(quota, memory, nodesInfo, need, m.maxshare, m.sharebase)
-	selectedNodesInfo, err := CommunismDivisionPlan(selectedNodesInfo, need, volTotal)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	// 只返回有修改的就可以了, 返回有修改的还剩下多少
-	for _, selectedNode := range selectedNodesInfo {
-		if selectedNode.Deploy <= 0 {
+	for _, nodeInfo := range nodesInfo {
+		if nodeInfo.Deploy <= 0 {
 			continue
 		}
-		cpuList := selectedNodesPool[selectedNode.Name][:selectedNode.Deploy]
-		result[selectedNode.Name] = cpuList
+		cpuList := nodePlans[nodeInfo.Name][:nodeInfo.Deploy]
+		result[nodeInfo.Name] = cpuList
 		for _, cpu := range cpuList {
-			selectedNode.CpuMap.Sub(cpu)
+			nodeInfo.CpuMap.Sub(cpu)
 		}
-		changed[selectedNode.Name] = selectedNode.CpuMap
+		changed[nodeInfo.Name] = nodeInfo.CpuMap
 	}
-	log.Debugf("[SelectCPUNodes] result: %v changed %v", result, changed)
-	return result, changed, nil
+	log.Debugf("[MakeCPUPlan] result: %v changed %v", result, changed)
+	return result, changed
+}
+
+// CommonDivision deploy containers by their deploy status
+func (m *Potassium) CommonDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error) {
+	if total < need {
+		return nil, fmt.Errorf("Not enough resource need: %d, vol: %d", need, total)
+	}
+	return CommunismDivisionPlan(nodesInfo, need)
+}
+
+// EachDivision deploy containers by each node
+func (m *Potassium) EachDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error) {
+	if total < need {
+		return nil, fmt.Errorf("Not enough resource need: %d, vol: %d", need, total)
+	}
+	return AveragePlan(nodesInfo, need)
 }

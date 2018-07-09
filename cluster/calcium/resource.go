@@ -37,12 +37,22 @@ func (c *Calcium) allocMemoryPodResource(ctx context.Context, opts *types.Deploy
 		for i := range nodesInfo {
 			nodesInfo[i].Capacity = opts.Count
 		}
-		return complexscheduler.CommunismDivisionPlan(nodesInfo, opts.Count, opts.Count*len(nodesInfo))
+		return complexscheduler.CommunismDivisionPlan(nodesInfo, opts.Count)
 	}
 
 	cpuRate := int64(opts.CPUQuota * float64(CpuPeriodBase))
 	log.Debugf("[allocMemoryPodResource] Input opts.CPUQuota: %f, equal CPURate %d", opts.CPUQuota, cpuRate)
-	nodesInfo, err = c.scheduler.SelectMemoryNodes(nodesInfo, cpuRate, opts.Memory, opts.Count) // 还是以 Bytes 作单位， 不转换了
+	nodesInfo, total, err := c.scheduler.SelectMemoryNodes(nodesInfo, cpuRate, opts.Memory) // 还是以 Bytes 作单位， 不转换了
+	if err != nil {
+		return nil, err
+	}
+
+	// Make deploy plan
+	if opts.Each {
+		nodesInfo, err = c.scheduler.EachDivision(nodesInfo, opts.Count, total)
+	} else {
+		nodesInfo, err = c.scheduler.CommonDivision(nodesInfo, opts.Count, total)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -83,11 +93,23 @@ func (c *Calcium) allocCPUPodResource(ctx context.Context, opts *types.DeployOpt
 		return nil, err
 	}
 
-	result, changed, err := c.scheduler.SelectCPUNodes(nodesInfo, opts.CPUQuota, opts.Memory, opts.Count)
-	log.Debugf("[allocCPUPodResource] Result: %v, Changed: %v", result, changed)
+	nodesInfo, nodePlans, total, err := c.scheduler.SelectCPUNodes(nodesInfo, opts.CPUQuota, opts.Memory)
 	if err != nil {
-		return result, err
+		return nil, err
 	}
+
+	// Make deploy plan
+	if opts.Each {
+		nodesInfo, err = c.scheduler.EachDivision(nodesInfo, opts.Count, total)
+	} else {
+		nodesInfo, err = c.scheduler.CommonDivision(nodesInfo, opts.Count, total)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	result, changed := c.scheduler.MakeCPUPlan(nodesInfo, nodePlans)
+	log.Debugf("[allocCPUPodResource] Result: %v, Changed: %v", result, changed)
 
 	// if quota is set to 0
 	// then no cpu is required

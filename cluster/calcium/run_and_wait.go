@@ -22,7 +22,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 	opts.Entrypoint.LogConfig = "json-file"
 
 	// count = 1 && OpenStdin
-	if opts.OpenStdin && opts.Count != 1 {
+	if opts.OpenStdin && (opts.Count != 1 || opts.Each) {
 		close(ch)
 		return ch, fmt.Errorf("Count must be 1 if OpenStdin is true, count is %d now", opts.Count)
 	}

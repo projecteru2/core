@@ -5,10 +5,12 @@ CPU 分配的核心算法
 package complexscheduler
 
 import (
+	"fmt"
 	"math"
 	"sort"
 
 	"github.com/projecteru2/core/types"
+	log "github.com/sirupsen/logrus"
 )
 
 func min(a, b int64) int64 {
@@ -175,7 +177,7 @@ func (h *host) getFullResult(full int64) types.CPUMap {
 	return result
 }
 
-func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, need int, maxShareCore, coreShare int64) (int, []types.NodeInfo, map[string][]types.CPUMap) {
+func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShareCore, coreShare int64) ([]types.NodeInfo, map[string][]types.CPUMap, int, error) {
 	var nodeContainer = map[string][]types.CPUMap{}
 	var host *host
 	var plan []types.CPUMap
@@ -200,18 +202,13 @@ func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, need in
 		}
 	}
 
-	if volTotal < need {
-		return -1, nil, nil
-	}
-
 	// 裁剪掉不能部署的
 	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Capacity < nodesInfo[j].Capacity })
-	var p int
-	for p = 0; p < len(nodesInfo); p++ {
-		if nodesInfo[p].Capacity > 0 {
-			break
-		}
+	p := sort.Search(len(nodesInfo), func(i int) bool { return nodesInfo[i].Capacity > 0 })
+	if p == len(nodesInfo) {
+		return nil, nil, 0, fmt.Errorf("Not enough resource")
 	}
 
-	return volTotal, nodesInfo[p:], nodeContainer
+	log.Debugf("[cpuPriorPlan] nodesInfo: %v", nodesInfo)
+	return nodesInfo[p:], nodeContainer, volTotal, nil
 }
