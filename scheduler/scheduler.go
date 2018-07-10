@@ -26,4 +26,6 @@ type Scheduler interface {
 	CommonDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error)
 	// average division
 	EachDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error)
+	// fill division
+	FillDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error)
 }

@@ -58,7 +58,6 @@ func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, 
 	if err != nil {
 		return nil, nil, err
 	}
-	log.Debugf("[allocResource] Get capacity %v", nodesInfo)
 
 	switch opts.DeployMethod {
 	case cluster.DeployAuto:
@@ -66,13 +65,13 @@ func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, 
 	case cluster.DeployEach:
 		nodesInfo, err = c.scheduler.EachDivision(nodesInfo, opts.Count, total)
 	case cluster.DeployFill:
+		nodesInfo, err = c.scheduler.FillDivision(nodesInfo, opts.Count, total)
 	default:
 		return nil, nil, fmt.Errorf("Deploy method not support yet")
 	}
 	if err != nil {
 		return nil, nil, err
 	}
-	log.Debugf("[allocResource] Get deploy plan %v", nodesInfo)
 
 	// 资源处理
 	switch podType {
