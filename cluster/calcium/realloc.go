@@ -211,6 +211,7 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 			}
 		}
 
+		container.Quota = newCPU
 		container.Memory = newMemory
 		if err := c.store.AddContainer(ctx, container); err != nil {
 			log.Errorf("[doUpdateContainerWithMemoryPrior] update container meta failed %v", err)
@@ -326,13 +327,14 @@ func (c *Calcium) reallocContainersWithCPUPrior(
 
 	// 不并发操作了
 	for cpu, memNodeResult := range cpuMemNodesMap {
-		c.doReallocContainersWithCPUPrior(ctx, ch, pod.Name, memNodeResult, cpuMemNodeContainersInfo[cpu])
+		c.doReallocContainersWithCPUPrior(ctx, ch, cpu, pod.Name, memNodeResult, cpuMemNodeContainersInfo[cpu])
 	}
 }
 
 func (c *Calcium) doReallocContainersWithCPUPrior(
 	ctx context.Context,
 	ch chan *types.ReallocResourceMessage,
+	quota float64,
 	podname string,
 	memNodeResult map[int64]NodeCPUMap,
 	memNodeContainers map[int64]NodeContainers,
@@ -343,8 +345,8 @@ func (c *Calcium) doReallocContainersWithCPUPrior(
 		for node, cpuset := range nodesCPUResult {
 			containers := nodeContainers[node]
 			for index, container := range containers {
-				quota := cpuset[index]
-				resource := makeCPUPriorSetting(c.config.Scheduler.ShareBase, quota, requireMemory)
+				cpuPlan := cpuset[index]
+				resource := makeCPUPriorSetting(c.config.Scheduler.ShareBase, cpuPlan, requireMemory)
 				updateConfig := enginecontainer.UpdateConfig{Resources: resource}
 				if err := updateContainer(ctx, container.ID, node, updateConfig); err != nil {
 					log.Errorf("[doReallocContainersWithCPUPrior] update container failed %v", err)
@@ -352,7 +354,8 @@ func (c *Calcium) doReallocContainersWithCPUPrior(
 					ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				}
 
-				container.CPU = quota
+				container.CPU = cpuPlan
+				container.Quota = quota
 				container.Memory = requireMemory
 				if err := c.store.AddContainer(ctx, container); err != nil {
 					log.Errorf("[doReallocContainersWithCPUPrior] update container meta failed %v", err)

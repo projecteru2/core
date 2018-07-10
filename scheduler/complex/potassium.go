@@ -79,7 +79,6 @@ func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, me
 
 // MakeCPUPlan make cpu plan
 func (m *Potassium) MakeCPUPlan(nodesInfo []types.NodeInfo, nodePlans map[string][]types.CPUMap) (map[string][]types.CPUMap, map[string]types.CPUMap) {
-	log.Debugf("[MakeCPUPlan] nodesInfo: %v, plans: %v", nodesInfo, nodePlans)
 	result := make(map[string][]types.CPUMap)
 	changed := make(map[string]types.CPUMap)
 
@@ -100,6 +99,7 @@ func (m *Potassium) MakeCPUPlan(nodesInfo []types.NodeInfo, nodePlans map[string
 }
 
 // CommonDivision deploy containers by their deploy status
+// 部署完 N 个后全局尽可能平均
 func (m *Potassium) CommonDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error) {
 	if total < need {
 		return nil, fmt.Errorf("Not enough resource need: %d, vol: %d", need, total)
@@ -108,9 +108,19 @@ func (m *Potassium) CommonDivision(nodesInfo []types.NodeInfo, need, total int) 
 }
 
 // EachDivision deploy containers by each node
+// 容量够的机器每一台部署 N 个
 func (m *Potassium) EachDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error) {
 	if total < need {
 		return nil, fmt.Errorf("Not enough resource need: %d, vol: %d", need, total)
 	}
 	return AveragePlan(nodesInfo, need)
+}
+
+// FillDivision deploy containers fill nodes by count
+// 根据之前部署的策略每一台补充到 N 个，超过 N 个忽略
+func (m *Potassium) FillDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error) {
+	if total < need {
+		return nil, fmt.Errorf("Not enough resource need: %d, vol: %d", need, total)
+	}
+	return FillPlan(nodesInfo, need)
 }
