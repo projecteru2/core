@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func resetNodes() []types.NodeInfo {
+func deployedNodes() []types.NodeInfo {
 	return []types.NodeInfo{
 		types.NodeInfo{
 			Name:     "n1",
@@ -34,19 +34,19 @@ func resetNodes() []types.NodeInfo {
 }
 
 func TestCommunismDivisionPlan(t *testing.T) {
-	nodes := resetNodes()
+	nodes := deployedNodes()
 	r, err := CommunismDivisionPlan(nodes, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 1)
-	nodes = resetNodes()
+	nodes = deployedNodes()
 	r, err = CommunismDivisionPlan(nodes, 2)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 2)
-	nodes = resetNodes()
+	nodes = deployedNodes()
 	r, err = CommunismDivisionPlan(nodes, 3)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 3)
-	nodes = resetNodes()
+	nodes = deployedNodes()
 	r, err = CommunismDivisionPlan(nodes, 4)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 3)

@@ -7,7 +7,28 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-//Cluster define all interface
+const (
+	// GITLAB for gitlab
+	GITLAB = "gitlab"
+	// GITHUB for github
+	GITHUB = "github"
+	// CopyFailed for copy failed
+	CopyFailed = "failed"
+	// CopyOK for copy ok
+	CopyOK = "ok"
+	// CPUPeriodBase for cpu period base
+	CPUPeriodBase = 100000
+	// CPUShareBase for cpu share base
+	CPUShareBase = 102400
+	// DeployAuto for auto deploy plan
+	DeployAuto = "auto"
+	// DeployEach for each node plan
+	DeployEach = "each"
+	// DeployFill for fill node plan
+	DeployFill = "fill"
+)
+
+// Cluster define all interface
 type Cluster interface {
 	// meta data methods
 	AddPod(ctx context.Context, podname, favor, desc string) (*types.Pod, error)

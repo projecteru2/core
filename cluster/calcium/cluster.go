@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/network"
 	"github.com/projecteru2/core/network/sdn"
 	"github.com/projecteru2/core/scheduler"
@@ -46,9 +47,9 @@ func New(config types.Config) (*Calcium, error) {
 	var scm source.Source
 	scmtype := strings.ToLower(config.Git.SCMType)
 	switch scmtype {
-	case GITLAB:
+	case cluster.GITLAB:
 		scm = gitlab.New(config)
-	case GITHUB:
+	case cluster.GITHUB:
 		scm = github.New(config)
 	default:
 		return nil, fmt.Errorf("Unkonwn SCM type: %s", config.Git.SCMType)

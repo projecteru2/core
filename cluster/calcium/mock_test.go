@@ -16,6 +16,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
+	"github.com/projecteru2/core/cluster"
 	sourcemock "github.com/projecteru2/core/source/mocks"
 	"github.com/projecteru2/core/store/mock"
 	coretypes "github.com/projecteru2/core/types"
@@ -86,15 +87,16 @@ var (
 		},
 	}
 	opts = &coretypes.DeployOptions{
-		Name:       "appname", // Name of application
-		Entrypoint: etpts,     // entrypoint
-		Podname:    podname,   // Name of pod to deploy
-		Nodename:   nodename,  // Specific nodes to deploy, if given, must belong to pod
-		Image:      image,     // Name of image to deploy
-		CPUQuota:   1,         // How many cores needed, e.g. 1.5
-		Memory:     appmemory, // Memory for container, in bytes
-		Count:      5,         // How many containers needed, e.g. 4
-		User:       "root",    // User for container
+		Name:         "appname", // Name of application
+		Entrypoint:   etpts,     // entrypoint
+		Podname:      podname,   // Name of pod to deploy
+		Nodename:     nodename,  // Specific nodes to deploy, if given, must belong to pod
+		Image:        image,     // Name of image to deploy
+		CPUQuota:     1,         // How many cores needed, e.g. 1.5
+		Memory:       appmemory, // Memory for container, in bytes
+		Count:        5,         // How many containers needed, e.g. 4
+		User:         "root",    // User for container
+		DeployMethod: cluster.DeployAuto,
 		// NetworkMode string            // Network mode
 	}
 	ToUpdateContainerIDs = []string{
@@ -262,7 +264,7 @@ func mockDockerDoer(r *http.Request) (*http.Response, error) {
 	case fmt.Sprintf("/containers/%s/json", containerID):
 		testlogF("inspect container %s", containerID)
 		rscs := container.Resources{
-			CPUQuota: CpuPeriodBase,
+			CPUQuota: cluster.CPUPeriodBase,
 			Memory:   appmemory,
 		}
 		nRscs := container.Resources{}

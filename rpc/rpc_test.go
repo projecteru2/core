@@ -7,6 +7,7 @@ import (
 
 	"context"
 
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/cluster/calcium"
 	"github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/store/mock"
@@ -101,7 +102,7 @@ func TestNodes(t *testing.T) {
 	// test add node
 	log.Infoln("testing add a node")
 	var (
-		nodeName  = "node"
+		nodename  = "node"
 		endpoint  = "xxx"
 		podname   = "pod"
 		cafile    = ""
@@ -111,7 +112,7 @@ func TestNodes(t *testing.T) {
 		labels    = map[string]string{"a": "1", "b": "2"}
 	)
 	tNode := &types.Node{
-		Name:      nodeName,
+		Name:      nodename,
 		Endpoint:  endpoint,
 		Podname:   podname,
 		Available: available,
@@ -122,9 +123,9 @@ func TestNodes(t *testing.T) {
 		Engine: nil,
 		Labels: labels,
 	}
-	store.On("AddNode", nodeName, endpoint, podname, cafile, certfile, keyfile, 0, int64(0), int64(0), labels).Return(tNode, nil)
+	store.On("AddNode", nodename, endpoint, podname, cafile, certfile, keyfile, 0, int64(0), int64(0), labels).Return(tNode, nil)
 	addnodeoptions := pb.AddNodeOptions{
-		Nodename: nodeName,
+		Nodename: nodename,
 		Endpoint: endpoint,
 		Podname:  podname,
 		Labels:   labels,
@@ -142,9 +143,9 @@ func TestNodes(t *testing.T) {
 	// test get node
 	gnOpts := &pb.GetNodeOptions{
 		Podname:  podname,
-		Nodename: nodeName,
+		Nodename: nodename,
 	}
-	store.On("GetNode", podname, nodeName).Return(tNode, nil)
+	store.On("GetNode", podname, nodename).Return(tNode, nil)
 	store.On("DeleteNode", tNode).Return()
 	gnResp, err := clnt.GetNode(ctx, gnOpts)
 	if err != nil {
@@ -155,7 +156,7 @@ func TestNodes(t *testing.T) {
 
 	// test remove node
 	rnOpts := &pb.RemoveNodeOptions{
-		Nodename: nodeName,
+		Nodename: nodename,
 		Podname:  podname,
 	}
 	pod := &types.Pod{Name: podname, Desc: "this is pod-1", Favor: "MEM"}
@@ -461,6 +462,7 @@ func TestCreateContainer(t *testing.T) {
 				Code:     200,
 			},
 		},
+		DeployMethod: cluster.DeployAuto,
 	}
 	resp, err := clnt.CreateContainer(ctx, &depOpts)
 	assert.NoError(t, err)
@@ -485,6 +487,7 @@ func TestCreateContainer(t *testing.T) {
 				Code:     200,
 			},
 		},
+		DeployMethod: cluster.DeployAuto,
 	}
 	resp, err = clnt.CreateContainer(ctx, &depOpts)
 	assert.NoError(t, err)
@@ -533,6 +536,7 @@ func TestRunAndWait(t *testing.T) {
 				Code:     200,
 			},
 		},
+		DeployMethod: cluster.DeployAuto,
 	}
 	runAndWaitOpts := pb.RunAndWaitOptions{
 		DeployOptions: &depOpts,
@@ -560,6 +564,7 @@ func TestRunAndWait(t *testing.T) {
 				Code:     200,
 			},
 		},
+		DeployMethod: cluster.DeployAuto,
 	}
 	runAndWaitOpts = pb.RunAndWaitOptions{
 		DeployOptions: &depOpts,

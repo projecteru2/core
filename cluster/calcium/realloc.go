@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	enginecontainer "github.com/docker/docker/api/types/container"
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
@@ -178,7 +179,7 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 			continue
 		}
 
-		cpuQuota := int64(cpu * float64(CpuPeriodBase))
+		cpuQuota := int64(cpu * float64(cluster.CPUPeriodBase))
 		newCPUQuota := containerJSON.HostConfig.CPUQuota + cpuQuota
 		newMemory := containerJSON.HostConfig.Memory + memory
 		if newCPUQuota <= 0 || newMemory <= minMemory {
@@ -186,7 +187,7 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
 			continue
 		}
-		newCPU := float64(newCPUQuota) / float64(CpuPeriodBase)
+		newCPU := float64(newCPUQuota) / float64(cluster.CPUPeriodBase)
 		log.Debugf("[doUpdateContainerWithMemoryPrior] quota:%d, cpu: %f, mem: %d", newCPUQuota, newCPU, newMemory)
 
 		// CPUQuota not cpu

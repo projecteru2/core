@@ -50,7 +50,7 @@ func (c *Calcium) createContainerWithMemoryPrior(ctx context.Context, opts *type
 
 	// TODO RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
 	// 因此需要在这里加个全局锁，直到部署完毕才释放
-	nodesInfo, err := c.allocMemoryPodResource(ctx, opts)
+	_, nodesInfo, err := c.allocResource(ctx, opts, scheduler.MEMORY_PRIOR)
 	if err != nil {
 		log.Errorf("[createContainerWithMemoryPrior] Error during allocMemoryPodResource with opts %v: %v", opts, err)
 		return ch, err
@@ -112,7 +112,7 @@ func (c *Calcium) doCreateContainerWithMemoryPrior(ctx context.Context, nodeInfo
 
 func (c *Calcium) createContainerWithCPUPrior(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
-	result, err := c.allocCPUPodResource(ctx, opts)
+	result, _, err := c.allocResource(ctx, opts, scheduler.CPU_PRIOR)
 	if err != nil {
 		log.Errorf("[createContainerWithCPUPrior] Error during allocCPUPodResource with opts %v: %v", opts, err)
 		return ch, err
@@ -129,14 +129,14 @@ func (c *Calcium) createContainerWithCPUPrior(ctx context.Context, opts *types.D
 		index := 0
 
 		// do deployment
-		for nodeName, cpuMap := range result {
+		for nodename, cpuMap := range result {
 			go stats.Client.SendDeployCount(len(cpuMap))
-			go func(nodeName string, cpuMap []types.CPUMap, index int) {
+			go func(nodename string, cpuMap []types.CPUMap, index int) {
 				defer wg.Done()
-				for _, m := range c.doCreateContainerWithCPUPrior(ctx, nodeName, cpuMap, opts, index) {
+				for _, m := range c.doCreateContainerWithCPUPrior(ctx, nodename, cpuMap, opts, index) {
 					ch <- m
 				}
-			}(nodeName, cpuMap, index)
+			}(nodename, cpuMap, index)
 			index += len(cpuMap)
 		}
 
@@ -146,16 +146,16 @@ func (c *Calcium) createContainerWithCPUPrior(ctx context.Context, opts *types.D
 	return ch, nil
 }
 
-func (c *Calcium) doCreateContainerWithCPUPrior(ctx context.Context, nodeName string, cpuMap []types.CPUMap, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
+func (c *Calcium) doCreateContainerWithCPUPrior(ctx context.Context, nodename string, cpuMap []types.CPUMap, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
 	deployCount := len(cpuMap)
 	ms := make([]*types.CreateContainerMessage, deployCount)
 
-	node, err := c.getAndPrepareNode(ctx, opts.Podname, nodeName, opts.Image)
+	node, err := c.getAndPrepareNode(ctx, opts.Podname, nodename, opts.Image)
 	if err != nil {
 		log.Errorf("[doCreateContainerWithCPUPrior] Get and prepare node error %v", err)
 		for i := 0; i < deployCount; i++ {
 			ms[i] = &types.CreateContainerMessage{Error: err}
-			if err := c.store.UpdateNodeResource(ctx, opts.Podname, nodeName, cpuMap[i], opts.Memory, "+"); err != nil {
+			if err := c.store.UpdateNodeResource(ctx, opts.Podname, nodename, cpuMap[i], opts.Memory, "+"); err != nil {
 				log.Errorf("[doCreateContainerWithCPUPrior] update node CPU failed %v", err)
 			}
 		}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -23,14 +24,14 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 				container, err := c.GetContainer(ctx, cid)
 				if err != nil {
 					log.Errorf("[Copy] Error when get container %s", cid)
-					ch <- makeCopyMessage(cid, COPY_FAILED, "", "", err, nil)
+					ch <- makeCopyMessage(cid, cluster.CopyFailed, "", "", err, nil)
 					return
 				}
 
 				node, err := c.GetNode(ctx, container.Podname, container.Nodename)
 				if err != nil {
 					log.Errorf("[Copy] Error when get node %s", cid)
-					ch <- makeCopyMessage(cid, COPY_FAILED, "", "", err, nil)
+					ch <- makeCopyMessage(cid, cluster.CopyFailed, "", "", err, nil)
 					return
 				}
 
@@ -42,10 +43,10 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 						log.Debugf("[Copy] Docker cp stat: %v", stat)
 						if err != nil {
 							log.Errorf("[Copy] Error during CopyFromContainer: %v", err)
-							ch <- makeCopyMessage(cid, COPY_FAILED, "", path, err, nil)
+							ch <- makeCopyMessage(cid, cluster.CopyFailed, "", path, err, nil)
 							return
 						}
-						ch <- makeCopyMessage(cid, COPY_OK, stat.Name, path, nil, resp)
+						ch <- makeCopyMessage(cid, cluster.CopyOK, stat.Name, path, nil, resp)
 					}(path)
 				}
 			}(cid, paths)
