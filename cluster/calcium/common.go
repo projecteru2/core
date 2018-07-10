@@ -7,13 +7,6 @@ import (
 )
 
 const (
-	GITLAB        = "gitlab"
-	GITHUB        = "github"
-	COPY_FAILED   = "failed"
-	COPY_OK       = "ok"
-	CpuPeriodBase = 100000
-	CpuShareBase  = 102400
-
 	restartAlways = "always"
 	minMemory     = 4194304
 	root          = "root"

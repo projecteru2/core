@@ -5,6 +5,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -42,7 +43,7 @@ func TestReallocWithCPUPrior(t *testing.T) {
 		defer close(ch1)
 		wg := sync.WaitGroup{}
 		wg.Add(len(containersInfo))
-		for pod, _ := range containersInfo {
+		for pod := range containersInfo {
 			cpuMemNodeContainersInfo := cpuContainersInfo[pod]
 			go func(pod *types.Pod, cpuMemNodeContainersInfo CPUMemNodeContainers) {
 				defer wg.Done()
@@ -68,7 +69,7 @@ func TestReallocWithCPUPrior(t *testing.T) {
 		defer close(ch2)
 		wg := sync.WaitGroup{}
 		wg.Add(len(containersInfo))
-		for pod, _ := range containersInfo {
+		for pod := range containersInfo {
 			cpuMemNodeContainersInfo := cpuContainersInfo[pod]
 			go func(pod *types.Pod, cpuMemNodeContainersInfo CPUMemNodeContainers) {
 				defer wg.Done()
@@ -194,7 +195,7 @@ func TestReallocResource(t *testing.T) {
 
 		// diff CPU
 		newCPU := CJ.HostConfig.Resources.CPUQuota
-		diff := float64(newCPU) - cpuadd*CpuPeriodBase
-		assert.Equal(t, int(diff), CpuPeriodBase)
+		diff := float64(newCPU) - cpuadd*cluster.CPUPeriodBase
+		assert.Equal(t, int(diff), cluster.CPUPeriodBase)
 	}
 }

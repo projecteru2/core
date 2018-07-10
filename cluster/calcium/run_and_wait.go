@@ -9,6 +9,7 @@ import (
 
 	enginetypes "github.com/docker/docker/api/types"
 	containertypes "github.com/docker/docker/api/types/container"
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -22,9 +23,9 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 	opts.Entrypoint.LogConfig = "json-file"
 
 	// count = 1 && OpenStdin
-	if opts.OpenStdin && (opts.Count != 1 || opts.Each) {
+	if opts.OpenStdin && (opts.Count != 1 || opts.DeployMethod != cluster.DeployAuto) {
 		close(ch)
-		return ch, fmt.Errorf("Count must be 1 if OpenStdin is true, count is %d now", opts.Count)
+		return ch, fmt.Errorf("Count must be 1 if OpenStdin is true, count is %d, method is %s", opts.Count, opts.DeployMethod)
 	}
 
 	// 创建容器, 有问题就gg

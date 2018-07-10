@@ -6,15 +6,17 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
 )
 
 func TestRunAndWait(t *testing.T) {
 	initMockConfig()
 	opts := types.DeployOptions{
-		Entrypoint: &types.Entrypoint{},
-		OpenStdin:  true,
-		Count:      10,
+		Entrypoint:   &types.Entrypoint{},
+		OpenStdin:    true,
+		Count:        10,
+		DeployMethod: cluster.DeployAuto,
 	}
 	_, err = mockc.RunAndWait(context.TODO(), &opts, nil)
 	assert.Error(t, err)

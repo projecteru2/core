@@ -19,6 +19,7 @@ import (
 	engineapi "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/registry"
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -42,8 +43,8 @@ func (c *Calcium) Lock(ctx context.Context, name string, timeout int) (lock.Dist
 func makeMemoryPriorSetting(memory int64, cpu float64) enginecontainer.Resources {
 	resource := enginecontainer.Resources{}
 	if cpu > 0 {
-		resource.CPUPeriod = CpuPeriodBase
-		resource.CPUQuota = int64(cpu * float64(CpuPeriodBase))
+		resource.CPUPeriod = cluster.CPUPeriodBase
+		resource.CPUQuota = int64(cpu * float64(cluster.CPUPeriodBase))
 	}
 	if memory != -1 {
 		resource.Memory = memory
@@ -64,7 +65,7 @@ func makeCPUPriorSetting(shareBase int64, quota types.CPUMap, memory int64) engi
 			shareQuota = share
 		}
 	}
-	cpuShares := int64(float64(shareQuota) / float64(shareBase) * float64(CpuShareBase))
+	cpuShares := int64(float64(shareQuota) / float64(shareBase) * float64(cluster.CPUShareBase))
 	cpuSetCpus := strings.Join(cpuIDs, ",")
 	log.Debugf("[makeCPUPriorSetting] CPU core %v CPU share %v Memory soft limit %v", cpuSetCpus, cpuShares, memory)
 	resource := enginecontainer.Resources{
@@ -385,11 +386,11 @@ func filterNode(node *types.Node, labels map[string]string) bool {
 
 func getNodesInfo(cpuAndMemData map[string]types.CPUAndMem) []types.NodeInfo {
 	result := []types.NodeInfo{}
-	for nodeName, cpuAndMem := range cpuAndMemData {
-		cpuRate := int64(len(cpuAndMem.CpuMap)) * CpuPeriodBase
+	for nodename, cpuAndMem := range cpuAndMemData {
+		cpuRate := int64(len(cpuAndMem.CpuMap)) * cluster.CPUPeriodBase
 		n := types.NodeInfo{
 			CPUAndMem: cpuAndMem,
-			Name:      nodeName,
+			Name:      nodename,
 			CPURate:   cpuRate,
 			Capacity:  0,
 			Count:     0,

@@ -5,15 +5,17 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMakeMountPaths(t *testing.T) {
 	opts := &types.DeployOptions{
-		Name:    "foo",
-		Env:     []string{"A=1"},
-		Volumes: []string{"/foo-data:/foo-data"},
+		Name:         "foo",
+		Env:          []string{"A=1"},
+		Volumes:      []string{"/foo-data:/foo-data"},
+		DeployMethod: cluster.DeployAuto,
 	}
 	binds, volumes := makeMountPaths(opts)
 	assert.Equal(t, binds, []string{"/foo-data:/foo-data:rw", "/proc/sys:/writable-proc/sys:rw", "/sys/kernel/mm/transparent_hugepage:/writable-sys/kernel/mm/transparent_hugepage:rw"})
