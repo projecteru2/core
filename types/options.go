@@ -31,7 +31,6 @@ type DeployOptions struct {
 	OpenStdin    bool              // OpenStdin for container
 	Meta         map[string]string // Meta for containers
 	NodeLabels   map[string]string // NodeLabels for filter node
-	RawResource  bool              // Ignore pod res setting
 	DeployMethod string            // Deploy method
 }
 

@@ -39,14 +39,6 @@ func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, 
 
 	switch podType {
 	case scheduler.MEMORY_PRIOR:
-		// Raw
-		if opts.RawResource {
-			for i := range nodesInfo {
-				nodesInfo[i].Capacity = opts.Count
-			}
-			nodesInfo, err = c.scheduler.CommonDivision(nodesInfo, opts.Count, len(nodesInfo)*opts.Count)
-			return nil, nodesInfo, err
-		}
 		cpuRate := int64(opts.CPUQuota * float64(cluster.CPUPeriodBase))
 		log.Debugf("[allocResource] Input opts.CPUQuota: %f, equal CPURate %d", opts.CPUQuota, cpuRate)
 		nodesInfo, total, err = c.scheduler.SelectMemoryNodes(nodesInfo, cpuRate, opts.Memory) // 还是以 Bytes 作单位， 不转换了

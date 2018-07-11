@@ -161,7 +161,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		OpenStdin:    d.OpenStdin,
 		Meta:         d.Meta,
 		NodeLabels:   d.Nodelabels,
-		RawResource:  d.RawResource,
 		DeployMethod: d.DeployMethod,
 	}, nil
 }

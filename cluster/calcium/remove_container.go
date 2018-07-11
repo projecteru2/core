@@ -106,11 +106,6 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 func (c *Calcium) removeOneContainer(ctx context.Context, container *types.Container) error {
 	var err error
 	defer func() {
-		// not deal with raw res container
-		if container.RawResource {
-			return
-		}
-
 		if err != nil {
 			log.Errorf("[removeOneContainer] Remove container failed, we have to check it manually %v", err)
 			return

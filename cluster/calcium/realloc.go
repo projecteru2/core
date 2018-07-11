@@ -24,8 +24,6 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 	containersInfo := map[*types.Pod]NodeContainers{}
 	// Pod-cpu-mem-node-containers 四元组
 	cpuMemContainersInfo := map[*types.Pod]CPUMemNodeContainers{}
-	// Raw resource container Node-Containers
-	rawResourceContainers := NodeContainers{}
 	nodeCache := map[string]*types.Node{}
 
 	for _, container := range containers {
@@ -37,14 +35,6 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 			nodeCache[container.Nodename] = node
 		}
 		node := nodeCache[container.Nodename]
-
-		if container.RawResource {
-			if _, ok := rawResourceContainers[node]; !ok {
-				rawResourceContainers[node] = []*types.Container{}
-			}
-			rawResourceContainers[node] = append(rawResourceContainers[node], container)
-			continue
-		}
 
 		pod, err := c.store.GetPod(ctx, container.Podname)
 		if err != nil {
@@ -91,15 +81,7 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 	go func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
-		wg.Add(len(containersInfo) + len(rawResourceContainers))
-
-		// deal with container with raw resource
-		for node, containers := range rawResourceContainers {
-			go func(node *types.Node, containers []*types.Container) {
-				defer wg.Done()
-				c.doUpdateContainerWithMemoryPrior(ctx, ch, node.Podname, node, containers, cpu, mem)
-			}(node, containers)
-		}
+		wg.Add(len(containersInfo))
 
 		// deal with normal container
 		for pod, nodeContainers := range containersInfo {
@@ -197,7 +179,7 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 			log.Errorf("[doUpdateContainerWithMemoryPrior] update container failed %v, %s", err, containerJSON.ID)
 			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
 			// 如果是增加内存，失败的时候应该把内存还回去
-			if memory > 0 && !container.RawResource {
+			if memory > 0 {
 				if err := c.store.UpdateNodeResource(ctx, podname, node.Name, types.CPUMap{}, memory, "+"); err != nil {
 					log.Errorf("[doUpdateContainerWithMemoryPrior] failed to set mem back %s", containerJSON.ID)
 				}
@@ -205,7 +187,7 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 			continue
 		}
 		// 如果是要降低内存，当执行成功的时候需要把内存还回去
-		if memory < 0 && !container.RawResource {
+		if memory < 0 {
 			if err := c.store.UpdateNodeResource(ctx, podname, node.Name, types.CPUMap{}, -memory, "+"); err != nil {
 				log.Errorf("[doUpdateContainerWithMemoryPrior] failed to set mem back %s", containerJSON.ID)
 			}

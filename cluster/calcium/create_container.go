@@ -30,14 +30,14 @@ func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions
 
 	// 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
 	// -1 means without limit
-	if opts.Memory < minMemory && !opts.RawResource {
+	if opts.Memory < minMemory {
 		return nil, fmt.Errorf("Minimum memory limit allowed is 4MB, got %d", opts.Memory)
 	}
 	if opts.Count <= 0 { // Count 要大于0
 		return nil, fmt.Errorf("Count must be positive, got %d", opts.Count)
 	}
 
-	if opts.RawResource || pod.Favor == scheduler.MEMORY_PRIOR {
+	if pod.Favor == scheduler.MEMORY_PRIOR {
 		return c.createContainerWithMemoryPrior(ctx, opts)
 	} else if pod.Favor == scheduler.CPU_PRIOR {
 		return c.createContainerWithCPUPrior(ctx, opts)
@@ -88,10 +88,8 @@ func (c *Calcium) doCreateContainerWithMemoryPrior(ctx context.Context, nodeInfo
 		log.Errorf("[doCreateContainerWithMemoryPrior] Get and prepare node error %v", err)
 		for i := 0; i < nodeInfo.Deploy; i++ {
 			ms[i] = &types.CreateContainerMessage{Error: err}
-			if !opts.RawResource {
-				if err := c.store.UpdateNodeResource(ctx, opts.Podname, nodeInfo.Name, types.CPUMap{}, opts.Memory, "+"); err != nil {
-					log.Errorf("[doCreateContainerWithMemoryPrior] reset node memory failed %v", err)
-				}
+			if err := c.store.UpdateNodeResource(ctx, opts.Podname, nodeInfo.Name, types.CPUMap{}, opts.Memory, "+"); err != nil {
+				log.Errorf("[doCreateContainerWithMemoryPrior] reset node memory failed %v", err)
 			}
 		}
 		return ms
@@ -347,15 +345,14 @@ func (c *Calcium) createAndStartContainer(
 	cpu types.CPUMap, typ string,
 ) *types.CreateContainerMessage {
 	container := &types.Container{
-		Podname:     opts.Podname,
-		Nodename:    node.Name,
-		CPU:         cpu,
-		Quota:       opts.CPUQuota,
-		Memory:      opts.Memory,
-		Hook:        opts.Entrypoint.Hook,
-		Privileged:  opts.Entrypoint.Privileged,
-		RawResource: opts.RawResource,
-		Engine:      node.Engine,
+		Podname:    opts.Podname,
+		Nodename:   node.Name,
+		CPU:        cpu,
+		Quota:      opts.CPUQuota,
+		Memory:     opts.Memory,
+		Hook:       opts.Entrypoint.Hook,
+		Privileged: opts.Entrypoint.Privileged,
+		Engine:     node.Engine,
 	}
 	createContainerMessage := &types.CreateContainerMessage{
 		Podname:  container.Podname,
