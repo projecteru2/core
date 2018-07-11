@@ -27,7 +27,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-//Lock is lock for calcium
+// Lock is lock for calcium
 func (c *Calcium) Lock(ctx context.Context, name string, timeout int) (lock.DistributedLock, error) {
 	lock, err := c.store.CreateLock(name, timeout)
 	if err != nil {
@@ -39,17 +39,15 @@ func (c *Calcium) Lock(ctx context.Context, name string, timeout int) (lock.Dist
 	return lock, nil
 }
 
-//create container begin
+// create container begin
 func makeMemoryPriorSetting(memory int64, cpu float64) enginecontainer.Resources {
 	resource := enginecontainer.Resources{}
 	if cpu > 0 {
 		resource.CPUPeriod = cluster.CPUPeriodBase
 		resource.CPUQuota = int64(cpu * float64(cluster.CPUPeriodBase))
 	}
-	if memory != -1 {
-		resource.Memory = memory
-		resource.MemorySwap = memory
-	}
+	resource.Memory = memory
+	resource.MemorySwap = memory
 	return resource
 }
 
@@ -76,20 +74,7 @@ func makeCPUPriorSetting(shareBase int64, quota types.CPUMap, memory int64) engi
 	return resource
 }
 
-//relloc container begin
-func calculateCPUUsage(shareBase int64, container *types.Container) float64 {
-	var full, fragment int64
-	for _, usage := range container.CPU {
-		if usage == shareBase {
-			full++
-			continue
-		}
-		fragment += usage
-	}
-	return float64(full) + float64(fragment)/float64(shareBase)
-}
-
-//image begin
+// image begin
 // MakeAuthConfigFromRemote Calculate encoded AuthConfig from registry and eru-core config
 // See https://github.com/docker/cli/blob/16cccc30f95c8163f0749eba5a2e80b807041342/cli/command/registry.go#L67
 func makeEncodedAuthConfigFromRemote(authConfigs map[string]types.AuthConfig, remote string) (string, error) {

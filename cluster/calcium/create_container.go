@@ -29,12 +29,16 @@ func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions
 	log.Infof("[CreateContainer] Creating container with options: %v", opts)
 
 	// 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
-	// -1 means without limit
 	if opts.Memory < minMemory {
 		return nil, fmt.Errorf("Minimum memory limit allowed is 4MB, got %d", opts.Memory)
 	}
-	if opts.Count <= 0 { // Count 要大于0
+	// Count 要大于0
+	if opts.Count <= 0 {
 		return nil, fmt.Errorf("Count must be positive, got %d", opts.Count)
+	}
+	// CPUQuota 也需要大于 0
+	if opts.CPUQuota <= 0 {
+		return nil, fmt.Errorf("CPUQuota must be positive, got %d", opts.Count)
 	}
 
 	if pod.Favor == scheduler.MEMORY_PRIOR {
@@ -50,7 +54,7 @@ func (c *Calcium) createContainerWithMemoryPrior(ctx context.Context, opts *type
 
 	// TODO RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
 	// 因此需要在这里加个全局锁，直到部署完毕才释放
-	_, nodesInfo, err := c.allocResource(ctx, opts, scheduler.MEMORY_PRIOR)
+	nodesInfo, err := c.allocResource(ctx, opts, scheduler.MEMORY_PRIOR)
 	if err != nil {
 		log.Errorf("[createContainerWithMemoryPrior] Error during allocMemoryPodResource with opts %v: %v", opts, err)
 		return ch, err
@@ -110,32 +114,33 @@ func (c *Calcium) doCreateContainerWithMemoryPrior(ctx context.Context, nodeInfo
 
 func (c *Calcium) createContainerWithCPUPrior(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
-	result, _, err := c.allocResource(ctx, opts, scheduler.CPU_PRIOR)
+	nodesInfo, err := c.allocResource(ctx, opts, scheduler.CPU_PRIOR)
 	if err != nil {
 		log.Errorf("[createContainerWithCPUPrior] Error during allocCPUPodResource with opts %v: %v", opts, err)
 		return ch, err
 	}
 
-	if len(result) == 0 {
+	if len(nodesInfo) == 0 {
 		return ch, fmt.Errorf("Not enough resource to create container")
 	}
 
 	go func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
-		wg.Add(len(result))
+		wg.Add(len(nodesInfo))
 		index := 0
 
 		// do deployment
-		for nodename, cpuMap := range result {
-			go stats.Client.SendDeployCount(len(cpuMap))
+		for _, nodeInfo := range nodesInfo {
+			planCount := len(nodeInfo.CPUPlan)
+			go stats.Client.SendDeployCount(planCount)
 			go func(nodename string, cpuMap []types.CPUMap, index int) {
 				defer wg.Done()
 				for _, m := range c.doCreateContainerWithCPUPrior(ctx, nodename, cpuMap, opts, index) {
 					ch <- m
 				}
-			}(nodename, cpuMap, index)
-			index += len(cpuMap)
+			}(nodeInfo.Name, nodeInfo.CPUPlan, index)
+			index += planCount
 		}
 
 		wg.Wait()

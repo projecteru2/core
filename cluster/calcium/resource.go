@@ -3,7 +3,7 @@ package calcium
 import (
 	"context"
 	"fmt"
-	"sync"
+	"sort"
 
 	log "github.com/sirupsen/logrus"
 
@@ -13,7 +13,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, podType string) (map[string][]types.CPUMap, []types.NodeInfo, error) {
+func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, podType string) ([]types.NodeInfo, error) {
 	var err error
 	var total int
 	var nodesInfo []types.NodeInfo
@@ -21,20 +21,20 @@ func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, 
 
 	lock, err := c.Lock(ctx, opts.Podname, c.config.LockTimeout)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer lock.Unlock(ctx)
 
-	cpuandmem, nodes, err := c.getCPUAndMem(ctx, opts.Podname, opts.Nodename, opts.NodeLabels)
+	cpuandmem, err := c.getCPUAndMem(ctx, opts.Podname, opts.Nodename, opts.NodeLabels)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	nodesInfo = getNodesInfo(cpuandmem)
 
 	// 载入之前部署的情况
 	nodesInfo, err = c.store.MakeDeployStatus(ctx, opts, nodesInfo)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	switch podType {
@@ -45,10 +45,10 @@ func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, 
 	case scheduler.CPU_PRIOR:
 		nodesInfo, nodeCPUPlans, total, err = c.scheduler.SelectCPUNodes(nodesInfo, opts.CPUQuota, opts.Memory)
 	default:
-		return nil, nil, fmt.Errorf("Pod type not support yet")
+		return nil, fmt.Errorf("Pod type not support yet")
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	switch opts.DeployMethod {
@@ -59,62 +59,47 @@ func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, 
 	case cluster.DeployFill:
 		nodesInfo, err = c.scheduler.FillDivision(nodesInfo, opts.Count, total)
 	default:
-		return nil, nil, fmt.Errorf("Deploy method not support yet")
+		return nil, fmt.Errorf("Deploy method not support yet")
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// 资源处理
-	switch podType {
-	case scheduler.MEMORY_PRIOR:
-		// 并发扣除所需资源
-		wg := sync.WaitGroup{}
-		for _, nodeInfo := range nodesInfo {
-			if nodeInfo.Deploy > 0 {
-				wg.Add(1)
-				go func(nodeInfo types.NodeInfo) {
-					defer wg.Done()
-					memoryTotal := opts.Memory * int64(nodeInfo.Deploy)
-					c.store.UpdateNodeResource(ctx, opts.Podname, nodeInfo.Name, types.CPUMap{}, memoryTotal, "-")
-				}(nodeInfo)
-			}
-		}
-		wg.Wait()
-		return nil, nodesInfo, nil
-	case scheduler.CPU_PRIOR:
-		result, changed := c.scheduler.MakeCPUPlan(nodesInfo, nodeCPUPlans)
-		// if quota is set to 0
-		// then no cpu is required
-		if opts.CPUQuota > 0 {
-			// cpus changeded
-			// update data to etcd
-			// `SelectCPUNodes` reduces count in cpumap
-			for _, node := range nodes {
-				r, ok := changed[node.Name]
-				// 不在changed里说明没有变化
-				if ok {
-					node.CPU = r
-					node.MemCap = node.MemCap - opts.Memory*int64(len(result[node.Name]))
-					if err := c.store.UpdateNode(ctx, node); err != nil {
-						return nil, nil, err
-					}
-				}
-			}
-		}
-		return result, nil, nil
+	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Deploy < nodesInfo[j].Deploy })
+	p := sort.Search(len(nodesInfo), func(i int) bool { return nodesInfo[i].Deploy > 0 })
+	// p 最大也就是 len(nodesInfo) - 1
+	if p == len(nodesInfo) {
+		return nil, fmt.Errorf("Cannot alloc a plan, not enough resource")
 	}
-	return nil, nil, fmt.Errorf("Resource alloc failed")
+	nodesInfo = nodesInfo[p:]
+	for i, nodeInfo := range nodesInfo {
+		cpuCost := types.CPUMap{}
+		memoryCost := opts.Memory * int64(nodeInfo.Deploy)
+
+		if _, ok := nodeCPUPlans[nodeInfo.Name]; ok {
+			cpuList := nodeCPUPlans[nodeInfo.Name][:nodeInfo.Deploy]
+			nodesInfo[i].CPUPlan = cpuList
+			for _, cpu := range cpuList {
+				cpuCost.Add(cpu)
+			}
+		}
+		if err := c.store.UpdateNodeResource(ctx, opts.Podname, nodeInfo.Name, cpuCost, memoryCost, "-"); err != nil {
+			return nil, err
+		}
+	}
+	log.Debugf("[allocResource] result %v", nodesInfo)
+	return nodesInfo, nil
 }
 
-func (c *Calcium) getCPUAndMem(ctx context.Context, podname, nodename string, labels map[string]string) (map[string]types.CPUAndMem, []*types.Node, error) {
+func (c *Calcium) getCPUAndMem(ctx context.Context, podname, nodename string, labels map[string]string) (map[string]types.CPUAndMem, error) {
 	result := make(map[string]types.CPUAndMem)
 	var nodes []*types.Node
 	var err error
 	if nodename == "" {
 		nodes, err = c.ListPodNodes(ctx, podname, false)
 		if err != nil {
-			return result, nil, err
+			return result, err
 		}
 		nodeList := []*types.Node{}
 		for _, node := range nodes {
@@ -126,17 +111,17 @@ func (c *Calcium) getCPUAndMem(ctx context.Context, podname, nodename string, la
 	} else {
 		n, err := c.GetNode(ctx, podname, nodename)
 		if err != nil {
-			return result, nil, err
+			return result, err
 		}
 		nodes = append(nodes, n)
 	}
 
 	if len(nodes) == 0 {
 		err := fmt.Errorf("No available nodes")
-		return result, nil, err
+		return result, err
 	}
 
 	result = makeCPUAndMem(nodes)
 	go stats.Client.SendMemCap(result)
-	return result, nodes, nil
+	return result, nil
 }

@@ -100,6 +100,7 @@ type NodeInfo struct {
 	CPUAndMem
 	Name     string
 	CPURate  int64
+	CPUPlan  []CPUMap
 	Capacity int // 可以部署几个
 	Count    int // 上面有几个了
 	Deploy   int // 最终部署几个

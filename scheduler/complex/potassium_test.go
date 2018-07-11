@@ -226,7 +226,21 @@ func SelectCPUNodes(k *Potassium, nodesInfo []types.NodeInfo, quota float64, mem
 		return nil, nil, err
 	}
 
-	result, changed := k.MakeCPUPlan(nodesInfo, nodePlans)
+	result := make(map[string][]types.CPUMap)
+	changed := make(map[string]types.CPUMap)
+
+	// 只返回有修改的就可以了, 返回有修改的还剩下多少
+	for _, nodeInfo := range nodesInfo {
+		if nodeInfo.Deploy <= 0 {
+			continue
+		}
+		cpuList := nodePlans[nodeInfo.Name][:nodeInfo.Deploy]
+		result[nodeInfo.Name] = cpuList
+		for _, cpu := range cpuList {
+			nodeInfo.CpuMap.Sub(cpu)
+		}
+		changed[nodeInfo.Name] = nodeInfo.CpuMap
+	}
 	return result, changed, nil
 }
 

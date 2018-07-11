@@ -199,3 +199,15 @@ func TestReallocResource(t *testing.T) {
 		assert.Equal(t, int(diff), cluster.CPUPeriodBase)
 	}
 }
+
+func calculateCPUUsage(shareBase int64, container *types.Container) float64 {
+	var full, fragment int64
+	for _, usage := range container.CPU {
+		if usage == shareBase {
+			full++
+			continue
+		}
+		fragment += usage
+	}
+	return float64(full) + float64(fragment/shareBase)
+}

@@ -54,13 +54,14 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 				cpuMemContainersInfo[pod] = CPUMemNodeContainers{}
 			}
 			podCPUMemContainersInfo := cpuMemContainersInfo[pod]
-			newCPURequire := calculateCPUUsage(c.config.Scheduler.ShareBase, container) + cpu
+			//TODO Float 的精度问题
+			newCPURequire := container.Quota + cpu
 			newMemRequire := container.Memory + mem
-			if newCPURequire < 0.0 {
-				return nil, fmt.Errorf("CPU can not below zero")
+			if newCPURequire < 0 {
+				return nil, fmt.Errorf("CPU can not below zero %v", newCPURequire)
 			}
-			if newMemRequire < 0 {
-				return nil, fmt.Errorf("Memory can not below zero")
+			if newMemRequire < minMemory {
+				return nil, fmt.Errorf("Memory can not below zero %v", newMemRequire)
 			}
 
 			// init data
@@ -85,25 +86,29 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 
 		// deal with normal container
 		for pod, nodeContainers := range containersInfo {
-			if pod.Favor == scheduler.CPU_PRIOR {
+			switch pod.Favor {
+			case scheduler.CPU_PRIOR:
 				cpuMemNodeContainersInfo := cpuMemContainersInfo[pod]
 				go func(pod *types.Pod, cpuMemNodeContainersInfo CPUMemNodeContainers) {
 					defer wg.Done()
 					c.reallocContainersWithCPUPrior(ctx, ch, pod, cpuMemNodeContainersInfo)
 				}(pod, cpuMemNodeContainersInfo)
-				continue
+			case scheduler.MEMORY_PRIOR:
+				go func(pod *types.Pod, nodeContainers NodeContainers) {
+					defer wg.Done()
+					c.reallocContainerWithMemoryPrior(ctx, ch, pod, nodeContainers, cpu, mem)
+				}(pod, nodeContainers)
+			default:
+				log.Errorf("[ReallocResource] %v not support yet", pod.Favor)
 			}
-			go func(pod *types.Pod, nodeContainers NodeContainers) {
-				defer wg.Done()
-				c.reallocContainerWithMemoryPrior(ctx, ch, pod, nodeContainers, cpu, mem)
-			}(pod, nodeContainers)
 		}
 		wg.Wait()
 	}()
 	return ch, nil
 }
 
-func (c *Calcium) checkNodesMemory(ctx context.Context, podname string, nodeContainers NodeContainers, memory int64) error {
+// 只考虑增量 memory 的消耗
+func (c *Calcium) reallocNodesMemory(ctx context.Context, podname string, nodeContainers NodeContainers, memory int64) error {
 	lock, err := c.Lock(ctx, podname, c.config.LockTimeout)
 	if err != nil {
 		return err
@@ -127,8 +132,9 @@ func (c *Calcium) reallocContainerWithMemoryPrior(
 	nodeContainers NodeContainers,
 	cpu float64, memory int64) {
 
+	// 不考虑 memory < 0 对于系统而言，这时候 realloc 只不过使得 node 记录的内存 > 容器拥有内存总和，并不会 OOM
 	if memory > 0 {
-		if err := c.checkNodesMemory(ctx, pod.Name, nodeContainers, memory); err != nil {
+		if err := c.reallocNodesMemory(ctx, pod.Name, nodeContainers, memory); err != nil {
 			log.Errorf("[reallocContainerWithMemoryPrior] realloc memory failed %v", err)
 			for _, containers := range nodeContainers {
 				for _, container := range containers {
@@ -164,6 +170,7 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 		cpuQuota := int64(cpu * float64(cluster.CPUPeriodBase))
 		newCPUQuota := containerJSON.HostConfig.CPUQuota + cpuQuota
 		newMemory := containerJSON.HostConfig.Memory + memory
+		// 内存不能低于 4MB
 		if newCPUQuota <= 0 || newMemory <= minMemory {
 			log.Warnf("[doUpdateContainerWithMemoryPrior] new resource invaild %s, %d, %d", containerJSON.ID, newCPUQuota, newMemory)
 			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
@@ -219,9 +226,9 @@ func (c *Calcium) reallocNodesCPUMem(
 
 	// TODO too slow
 	cpuMemNodesMap := CPUMemNodeContainersMap{}
-	for requireCPU, memNodesInfo := range cpuMemNodeContainersInfo {
-		for requireMemory, nodesInfo := range memNodesInfo {
-			for node, containers := range nodesInfo {
+	for requireCPU, memNodesContainers := range cpuMemNodeContainersInfo {
+		for requireMemory, nodesContainers := range memNodesContainers {
+			for node, containers := range nodesContainers {
 				// 把记录的 CPU 还回去，变成新的可用资源
 				// 把记录的 Mem 还回去，变成新的可用资源
 				// 即便有并发操作，不影响 Create container 操作
@@ -249,37 +256,39 @@ func (c *Calcium) reallocNodesCPUMem(
 				}
 
 				// 重新计算需求
-				nodesInfo, nodePlans, total, err := c.scheduler.SelectCPUNodes(nodesInfo, requireCPU, requireMemory)
+				nodesInfo, nodeCPUPlans, total, err := c.scheduler.SelectCPUNodes(nodesInfo, requireCPU, requireMemory)
 				if err != nil {
-					// 满足不了，恢复之前的资源
 					c.resetContainerResource(ctx, podname, node.Name, containers)
 					return nil, err
 				}
 				nodesInfo, err = c.scheduler.EachDivision(nodesInfo, need, total)
 				if err != nil {
-					// 满足不了，恢复之前的资源
 					c.resetContainerResource(ctx, podname, node.Name, containers)
 					return nil, err
 				}
-				result, changed := c.scheduler.MakeCPUPlan(nodesInfo, nodePlans)
-
-				// 这里 need 一定等于 len(containersCPUMaps)
-				nodeCPUMap, isChanged := changed[node.Name]
-				containersCPUMap, hasResult := result[node.Name]
-				if isChanged && hasResult {
-					node.CPU = nodeCPUMap
-					node.MemCap = node.MemCap - requireMemory*int64(need)
-					if err := c.store.UpdateNode(ctx, node); err != nil {
-						return nil, err
-					}
-					if _, ok := cpuMemNodesMap[requireCPU]; !ok {
-						cpuMemNodesMap[requireCPU] = map[int64]NodeCPUMap{}
-					}
-					if _, ok := cpuMemNodesMap[requireCPU][requireMemory]; !ok {
-						cpuMemNodesMap[requireCPU][requireMemory] = NodeCPUMap{}
-					}
-					cpuMemNodesMap[requireCPU][requireMemory][node] = containersCPUMap
+				// 这里只有1个节点，肯定会出现1个节点的解决方案
+				if total < need || len(nodeCPUPlans) != 1 {
+					return nil, fmt.Errorf("Not enough resource")
 				}
+
+				cpuCost := types.CPUMap{}
+				memoryCost := requireMemory * int64(need)
+				cpuList := nodeCPUPlans[node.Name][:need]
+				for _, cpu := range cpuList {
+					cpuCost.Add(cpu)
+				}
+
+				// 扣掉资源
+				if err := c.store.UpdateNodeResource(ctx, podname, node.Name, cpuCost, memoryCost, "-"); err != nil {
+					return nil, err
+				}
+				if _, ok := cpuMemNodesMap[requireCPU]; !ok {
+					cpuMemNodesMap[requireCPU] = map[int64]NodeCPUMap{}
+				}
+				if _, ok := cpuMemNodesMap[requireCPU][requireMemory]; !ok {
+					cpuMemNodesMap[requireCPU][requireMemory] = NodeCPUMap{}
+				}
+				cpuMemNodesMap[requireCPU][requireMemory][node] = cpuList
 			}
 		}
 	}

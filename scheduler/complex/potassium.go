@@ -77,27 +77,6 @@ func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, me
 	return cpuPriorPlan(quota, memory, nodesInfo, m.maxshare, m.sharebase)
 }
 
-// MakeCPUPlan make cpu plan
-func (m *Potassium) MakeCPUPlan(nodesInfo []types.NodeInfo, nodePlans map[string][]types.CPUMap) (map[string][]types.CPUMap, map[string]types.CPUMap) {
-	result := make(map[string][]types.CPUMap)
-	changed := make(map[string]types.CPUMap)
-
-	// 只返回有修改的就可以了, 返回有修改的还剩下多少
-	for _, nodeInfo := range nodesInfo {
-		if nodeInfo.Deploy <= 0 {
-			continue
-		}
-		cpuList := nodePlans[nodeInfo.Name][:nodeInfo.Deploy]
-		result[nodeInfo.Name] = cpuList
-		for _, cpu := range cpuList {
-			nodeInfo.CpuMap.Sub(cpu)
-		}
-		changed[nodeInfo.Name] = nodeInfo.CpuMap
-	}
-	log.Debugf("[MakeCPUPlan] result: %v changed %v", result, changed)
-	return result, changed
-}
-
 // CommonDivision deploy containers by their deploy status
 // 部署完 N 个后全局尽可能平均
 func (m *Potassium) CommonDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error) {

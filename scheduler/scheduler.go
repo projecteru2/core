@@ -20,8 +20,6 @@ type Scheduler interface {
 	// select nodes from nodes, return a list of nodenames and the corresponding cpumap, and also the changed nodes with remaining cpumap
 	// quota and number must be given, typically used to determine where to deploy
 	SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, memory int64) ([]types.NodeInfo, map[string][]types.CPUMap, int, error)
-	// make CPU Plan
-	MakeCPUPlan(nodesInfo []types.NodeInfo, nodePlans map[string][]types.CPUMap) (map[string][]types.CPUMap, map[string]types.CPUMap)
 	// common division
 	CommonDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error)
 	// average division
