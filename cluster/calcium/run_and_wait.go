@@ -28,9 +28,10 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 		return ch, fmt.Errorf("Count must be 1 if OpenStdin is true, count is %d, method is %s", opts.Count, opts.DeployMethod)
 	}
 
-	// 创建容器, 有问题就gg
+	// 创建容器, 有问题就
+	// 不能让 CTX 作祟
 	log.Debugf("[RunAndWait] Args: %v", opts)
-	createChan, err := c.CreateContainer(ctx, opts)
+	createChan, err := c.CreateContainer(context.Background(), opts)
 	if err != nil {
 		close(ch)
 		log.Errorf("[RunAndWait] Create container error %s", err)
