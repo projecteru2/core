@@ -247,6 +247,7 @@ message DeployOptions {
     map<string, string> meta = 19;
     map<string, string> nodelabels = 20;
     string deploy_method = 21;
+    map<string, bytes> data = 22;
 }
 
 message RemoveImageOptions {

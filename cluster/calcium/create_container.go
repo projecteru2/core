@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -409,6 +410,24 @@ func (c *Calcium) createAndStartContainer(
 		// need to ensure all networks are correctly connected
 		for networkID, ipv4 := range opts.Networks {
 			if err = c.network.ConnectToNetwork(ctx, containerCreated.ID, networkID, ipv4); err != nil {
+				createContainerMessage.Error = err
+				return createContainerMessage
+			}
+		}
+	}
+
+	// Copy data to container
+	if len(opts.Data) > 0 {
+		for dst, byteData := range opts.Data {
+			path := filepath.Dir(dst)
+			filename := filepath.Base(dst)
+			log.Debugf("[createAndStartContainer] Copy file %s to dir %s", filename, path)
+			r, err := createTarFileBuffer(filename, byteData)
+			if err != nil {
+				createContainerMessage.Error = err
+				return createContainerMessage
+			}
+			if err = node.Engine.CopyToContainer(ctx, containerCreated.ID, path, r, enginetypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: true}); err != nil {
 				createContainerMessage.Error = err
 				return createContainerMessage
 			}

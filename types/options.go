@@ -32,6 +32,7 @@ type DeployOptions struct {
 	Meta         map[string]string // Meta for containers
 	NodeLabels   map[string]string // NodeLabels for filter node
 	DeployMethod string            // Deploy method
+	Data         map[string][]byte // For additional file data
 }
 
 //RunAndWaitOptions is options for running and waiting

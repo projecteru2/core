@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"archive/tar"
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
@@ -236,6 +237,24 @@ func createTarStream(path string) (io.ReadCloser, error) {
 		NoLchown:        true,
 	}
 	return archive.TarWithOptions(path, tarOpts)
+}
+
+func createTarFileBuffer(filename string, data []byte) (io.Reader, error) {
+	buf := &bytes.Buffer{}
+	tw := tar.NewWriter(buf)
+	defer tw.Close()
+	hdr := &tar.Header{
+		Name: filename,
+		Mode: 0755,
+		Size: int64(len(data)),
+	}
+	if err := tw.WriteHeader(hdr); err != nil {
+		return buf, err
+	}
+	if _, err := tw.Write(data); err != nil {
+		return buf, err
+	}
+	return buf, nil
 }
 
 func makeCommonPart(build *types.Build) (string, error) {
