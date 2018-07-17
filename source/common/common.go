@@ -28,7 +28,7 @@ func certificateCheckCallback(cert *git.Certificate, valid bool, hostname string
 }
 
 func gitcheck(repository, pubkey, prikey string) error {
-	if !strings.HasPrefix(repository, "git@") {
+	if !(strings.Contains(repository, "git@") || strings.Contains(repository, "gitlab@")) {
 		return fmt.Errorf("Only support ssh protocol(%q), use git@... ", repository)
 	}
 	if _, err := os.Stat(pubkey); os.IsNotExist(err) {
@@ -51,7 +51,7 @@ func (g *GitScm) SourceCode(repository, path, revision string, submodule bool) e
 	}
 
 	credentialsCallback := func(url, username string, allowedTypes git.CredType) (git.ErrorCode, *git.Cred) {
-		ret, cred := git.NewCredSshKey("git", pubkey, prikey, "")
+		ret, cred := git.NewCredSshKey(username, pubkey, prikey, "")
 		return git.ErrorCode(ret), &cred
 	}
 

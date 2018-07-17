@@ -20,6 +20,7 @@ const (
 	engineKey     ctxKey = "engine"
 )
 
+// RandomString random a string
 func RandomString(n int) string {
 	r := make([]byte, n)
 	for i := 0; i < n; i++ {
@@ -33,6 +34,7 @@ func RandomString(n int) string {
 	return string(r)
 }
 
+// TruncateID truncate container ID
 func TruncateID(id string) string {
 	if len(id) > shortenLength {
 		return id[:shortenLength]
@@ -40,11 +42,13 @@ func TruncateID(id string) string {
 	return id
 }
 
+// Tail return tail thing
 func Tail(path string) string {
 	parts := strings.Split(path, "/")
 	return parts[len(parts)-1]
 }
 
+// FuckDockerStream will copy docker stream to stdout and err
 func FuckDockerStream(stream io.ReadCloser) io.Reader {
 	outr, outw := io.Pipe()
 
@@ -57,21 +61,13 @@ func FuckDockerStream(stream io.ReadCloser) io.Reader {
 	return outr
 }
 
+// GetGitRepoName return git repo name
 func GetGitRepoName(url string) (string, error) {
-	if !strings.HasPrefix(url, "git@") || !strings.HasSuffix(url, ".git") {
-		return "", fmt.Errorf("Bad git url format %q", url)
+	if !(strings.Contains(url, "git@") || strings.Contains(url, "gitlab@")) || !strings.HasSuffix(url, ".git") {
+		return "", fmt.Errorf("Bad git url format %q, only ssh protocol support", url)
 	}
 
-	x := strings.SplitN(url, ":", 2)
-	if len(x) != 2 {
-		return "", fmt.Errorf("Bad git url format %q", url)
-	}
-
-	y := strings.SplitN(x[1], "/", 2)
-	if len(y) != 2 {
-		return "", fmt.Errorf("Bad git url format %q", url)
-	}
-	return strings.TrimSuffix(y[1], ".git"), nil
+	return strings.TrimSuffix(Tail(url), ".git"), nil
 }
 
 //GetVersion reture image Version
@@ -131,6 +127,7 @@ func safeSplit(s string) []string {
 	return result
 }
 
+// MakeCommandLineArgs make command line args
 func MakeCommandLineArgs(s string) []string {
 	r := []string{}
 	for _, part := range safeSplit(s) {
