@@ -271,13 +271,19 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 		// 一样就砍死
 		go func() {
 			//CONTEXT 这里的不应该受到 client 的影响
-			_, err := node.Engine.ImageRemove(context.Background(), tag, enginetypes.ImageRemoveOptions{
+			ctx := context.Background()
+			_, err := node.Engine.ImageRemove(ctx, tag, enginetypes.ImageRemoveOptions{
 				Force:         false,
 				PruneChildren: true,
 			})
 			if err != nil {
 				log.Errorf("[BuildImage] Remove image error: %s", err)
 			}
+			r, err := node.Engine.BuildCachePrune(ctx)
+			if err != nil {
+				log.Errorf("[BuildImage] Remove build image cache error: %s", err)
+			}
+			log.Debugf("[BuildImage] Clean cached image and release space %d", r.SpaceReclaimed)
 		}()
 
 		ch <- &types.BuildImageMessage{Stream: fmt.Sprintf("finished %s\n", tag), Status: "finished", Progress: tag}
