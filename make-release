@@ -1,0 +1,48 @@
+#!/bin/sh
+
+ROOT="`pwd`/build"
+mkdir -p $ROOT
+
+after_install_script="$ROOT/after_install.sh"
+RPMROOT="$ROOT/rpmbuild"
+DEBROOT="$ROOT/debbuild"
+
+cat > $after_install_script << EOF
+systemctl daemon-reload
+EOF
+
+VERSION=$(cat VERSION)
+
+BIN="$RPMROOT/usr/bin"
+CONF="$RPMROOT/etc/eru"
+SERVICE="$RPMROOT/usr/lib/systemd/system"
+
+mkdir -p $BIN
+mkdir -p $CONF
+mkdir -p $SERVICE
+
+cp eru-core $BIN
+cp core.yaml.sample $CONF
+cp eru-core.service $SERVICE
+
+echo $VERSION rpm build begin
+
+fpm -f -s dir -t rpm -n eru-core --epoch 0 -v $VERSION --iteration 1.el7 -C $RPMROOT -p $PWD --verbose --rpm-auto-add-directories --category 'Development/App' --description 'docker eru core' --after-install $after_install_script --url 'https://github.com/projecteru2/core' --license 'MIT'  --no-rpm-sign usr etc
+
+BIN="$DEBROOT/usr/bin"
+CONF="$DEBROOT/etc/eru"
+SERVICE="$DEBROOT/lib/systemd/system"
+
+mkdir -p $BIN
+mkdir -p $CONF
+mkdir -p $SERVICE
+
+cp eru-core $BIN
+cp core.yaml.sample $CONF
+cp eru-core.service $SERVICE
+
+echo $VERSION deb build begin
+
+fpm -f -s dir -t deb -n eru-core -v $VERSION --iteration 1.noarch -C $DEBROOT -p $PWD --verbose --category 'Development/App' --description 'docker eru core' --url 'https://github.com/projecteru2/core' --license 'MIT' --after-install $after_install_script --deb-no-default-config-files usr etc lib
+
+rm -rf $ROOT
