@@ -36,7 +36,7 @@ import:
   - context
 - package: google.golang.org/grpc
   version: master
-- package: gopkg.in/libgit2/git2go.v26
+- package: gopkg.in/libgit2/git2go.v27
 - package: gopkg.in/yaml.v2
 - package: github.com/coreos/go-semver
   version: ^0.2.0

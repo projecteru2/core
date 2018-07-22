@@ -1,5 +1,5 @@
-hash: 521e7204f49ed6faa31599ac176da17dfe21bf19edabb43b289a7ffc96866ff1
-updated: 2018-06-20T11:20:17.279786+08:00
+hash: b2d5dbb92f685f99a1c869a41a5148badd8af12c4ad51d7076c94333af6e2b62
+updated: 2018-07-22T10:16:27.471704+08:00
 imports:
 - name: github.com/Azure/go-ansiterm
   version: d6e3b3328b783f23731bc4d058875b0371ff8109
@@ -49,7 +49,7 @@ imports:
   - registry/storage/cache
   - registry/storage/cache/memory
 - name: github.com/docker/docker
-  version: 3dfb26ab3cbf961298f8ce3f94659b5fe4146ceb
+  version: dc74e31bb211faa189ef83469d7f58dfde0b052a
   subpackages:
   - api
   - api/types
@@ -68,7 +68,6 @@ imports:
   - api/types/versions
   - api/types/volume
   - client
-  - errdefs
   - pkg/archive
   - pkg/fileutils
   - pkg/idtools
@@ -103,10 +102,7 @@ imports:
   version: b4deda0973fb4c70b50d226b1af49f3da59f5265
   subpackages:
   - proto
-  - ptypes
   - ptypes/any
-  - ptypes/duration
-  - ptypes/timestamp
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
@@ -134,7 +130,7 @@ imports:
   subpackages:
   - difflib
 - name: github.com/sirupsen/logrus
-  version: c155da19408a8799da419ed3eeb0cb5db0ad5dbc
+  version: 3e01752db0189b9157070a0e1668a620f9a85da2
 - name: github.com/stretchr/objx
   version: 0ab728f62c7f6fcd754334f7931c2dd659dce1d1
 - name: github.com/stretchr/testify
@@ -179,35 +175,24 @@ imports:
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: 2ab07fd5cb02cfc44fd49af17dd2356ed1647ed4
+  version: 6495e8dfeb47dc61ff4c392ba6369fa3f15cdc1b
   subpackages:
-  - balancer
-  - balancer/base
-  - balancer/roundrobin
   - codes
-  - connectivity
   - credentials
-  - encoding
-  - encoding/proto
+  - grpclb/grpc_lb_v1
   - grpclog
   - health/grpc_health_v1
   - internal
-  - internal/backoff
-  - internal/channelz
-  - internal/grpcrand
   - keepalive
   - metadata
   - naming
   - peer
-  - resolver
-  - resolver/dns
-  - resolver/passthrough
   - stats
   - status
   - tap
   - transport
-- name: gopkg.in/libgit2/git2go.v26
-  version: 1f712c6f9608f55e9756073539dec0c9a9a81bf3
+- name: gopkg.in/libgit2/git2go.v27
+  version: 9abc0506daca78c054d153321cdb0518c7487a17
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 testImports: []

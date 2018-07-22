@@ -16,7 +16,7 @@ stages:
   - pack
 builds:
   build:
-    base: "golang:1.9.1-alpine3.6"
+    base: "golang:1.10.3-alpine3.8"
     # only support ssh protocol
     repo: "git@github.com:projecteru2/core.git"
     version: "HEAD"
@@ -33,7 +33,7 @@ builds:
     #   HTTP_PROXY: <HTTP_PROXY>
     #   HTTPS_PROXY: <HTTPS_PROXY>
   pack:
-    base: alpine:3.6
+    base: alpine:3.8
     labels:
       ERU: 1
       version: latest

@@ -21,9 +21,7 @@ Run `make deps` for generating vendor dir.
 Under macOS we have to install `libgit2` manually, if you using [Homebrew](https://brew.sh/) please install like this:
 
 ```shell
-# libgit2 version 0.25.1
-cd /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula
-gco 9c527911c8c630355d92df001575cacbb4a8b8b4 libgit2.rb
+# libgit2 version 0.27.x
 HOMEBREW_NO_AUTO_UPDATE=1 brew install libgit2
 make deps
 ```
