@@ -66,8 +66,10 @@ func (k *Krypton) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 
 	ncpu := cpu
 	memcap := memory
-	if cpu == 0 && memory == 0 {
+	if cpu == 0 {
 		ncpu = info.NCPU
+	}
+	if memory == 0 {
 		memcap = info.MemTotal - gigabyte
 	}
 	if share == 0 {
