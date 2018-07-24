@@ -6,6 +6,7 @@ import (
 
 	"github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
@@ -44,10 +45,6 @@ func toRPCNode(ctx context.Context, n *types.Node) *pb.Node {
 		Labels:    n.Labels,
 		Info:      nodeInfo,
 	}
-}
-
-func toRPCContainer(c *types.Container, info string) *pb.Container {
-	return &pb.Container{Id: c.ID, Podname: c.Podname, Nodename: c.Nodename, Name: c.Name, Info: info}
 }
 
 func toRPCBuildImageMessage(b *types.BuildImageMessage) *pb.BuildImageMessage {
@@ -218,16 +215,36 @@ func toRPCRunAndWaitMessage(msg *types.RunAndWaitMessage) *pb.RunAndWaitMessage 
 func toRPCContainers(ctx context.Context, containers []*types.Container) []*pb.Container {
 	cs := []*pb.Container{}
 	for _, c := range containers {
-		info, err := c.Inspect(ctx)
+		pContainer, err := toRPCContainer(ctx, c)
 		if err != nil {
+			log.Errorf("[toRPCContainers] trans to pb container failed %v", err)
 			continue
 		}
 
-		bytes, err := json.Marshal(info)
-		if err != nil {
-			continue
-		}
-		cs = append(cs, toRPCContainer(c, string(bytes)))
+		cs = append(cs, pContainer)
 	}
 	return cs
+}
+
+func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, error) {
+	info, err := c.Inspect(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	bytes, err := json.Marshal(info)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.Container{
+		Id:         c.ID,
+		Podname:    c.Podname,
+		Nodename:   c.Nodename,
+		Name:       c.Name,
+		Cpu:        c.CPU,
+		Quota:      c.Quota,
+		Memory:     c.Memory,
+		Privileged: c.Privileged,
+		Inspect:    bytes}, nil
 }

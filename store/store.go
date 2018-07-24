@@ -34,6 +34,7 @@ type Store interface {
 	GetContainers(ctx context.Context, IDs []string) ([]*types.Container, error)
 	ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename, data string) error
 	ListContainers(ctx context.Context, appname, entrypoint, nodename string) ([]*types.Container, error)
+	ListNodeContainers(ctx context.Context, nodename string) ([]*types.Container, error)
 
 	// deploy status
 	MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error)

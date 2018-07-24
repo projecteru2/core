@@ -38,9 +38,10 @@ func (k *Krypton) AddContainer(ctx context.Context, container *types.Container) 
 	if err != nil {
 		return err
 	}
+	data := string(bytes)
 
 	//add deploy status by agent now
-	_, err = k.etcd.Set(ctx, key, string(bytes), nil)
+	_, err = k.etcd.Set(ctx, key, data, nil)
 	if err != nil {
 		return err
 	}
@@ -54,7 +55,7 @@ func (k *Krypton) AddContainer(ctx context.Context, container *types.Container) 
 
 	// store node-container data
 	key = fmt.Sprintf(nodeContainersKey, container.Nodename, container.ID)
-	_, err = k.etcd.Set(ctx, key, "", nil)
+	_, err = k.etcd.Set(ctx, key, data, nil)
 
 	return err
 }
@@ -115,12 +116,10 @@ func (k *Krypton) GetContainer(ctx context.Context, ID string) (*types.Container
 		return nil, err
 	}
 
-	node, err := k.GetNode(ctx, c.Podname, c.Nodename)
-	if err != nil {
+	if c, err = k.bindNodeEngine(ctx, c); err != nil {
 		return nil, err
 	}
 
-	c.Engine = node.Engine
 	return c, nil
 }
 
@@ -161,6 +160,29 @@ func (k *Krypton) ListContainers(ctx context.Context, appname, entrypoint, noden
 	return k.GetContainers(ctx, containerIDs)
 }
 
+// ListNodeContainers list containers belong to one node
+func (k *Krypton) ListNodeContainers(ctx context.Context, nodename string) ([]*types.Container, error) {
+	key := fmt.Sprintf(nodeContainers, nodename)
+	resp, err := k.etcd.Get(ctx, key, &etcdclient.GetOptions{Recursive: true})
+	if err != nil {
+		return []*types.Container{}, err
+	}
+	containers := []*types.Container{}
+	for _, n := range resp.Node.Nodes {
+		c := &types.Container{}
+		if err := json.Unmarshal([]byte(n.Value), c); err != nil {
+			return []*types.Container{}, err
+		}
+
+		if c, err = k.bindNodeEngine(ctx, c); err != nil {
+			return []*types.Container{}, err
+		}
+
+		containers = append(containers, c)
+	}
+	return containers, nil
+}
+
 // WatchDeployStatus watch deployed status
 func (k *Krypton) WatchDeployStatus(appname, entrypoint, nodename string) etcdclient.Watcher {
 	if appname == "" {
@@ -171,4 +193,14 @@ func (k *Krypton) WatchDeployStatus(appname, entrypoint, nodename string) etcdcl
 	}
 	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename)
 	return k.etcd.Watcher(key, &etcdclient.WatcherOptions{Recursive: true})
+}
+
+func (k *Krypton) bindNodeEngine(ctx context.Context, container *types.Container) (*types.Container, error) {
+	node, err := k.GetNode(ctx, container.Podname, container.Nodename)
+	if err != nil {
+		return nil, err
+	}
+
+	container.Engine = node.Engine
+	return container, nil
 }

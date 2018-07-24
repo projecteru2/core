@@ -38,6 +38,7 @@ type Cluster interface {
 	ListPods(ctx context.Context) ([]*types.Pod, error)
 	ListPodNodes(ctx context.Context, podname string, all bool) ([]*types.Node, error)
 	ListContainers(ctx context.Context, appname, entrypoint, nodename string) ([]*types.Container, error)
+	ListNodeContainers(ctx context.Context, nodename string) ([]*types.Container, error)
 	ListNetworks(ctx context.Context, podname string, driver string) ([]*types.Network, error)
 	GetPod(ctx context.Context, podname string) (*types.Pod, error)
 	GetNode(ctx context.Context, podname, nodename string) (*types.Node, error)

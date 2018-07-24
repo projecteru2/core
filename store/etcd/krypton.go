@@ -23,6 +23,7 @@ const (
 	nodeKeyKey    = "/pod/%s/node/%s/key.pem"
 
 	nodePodKey        = "/node/%s/pod"
+	nodeContainers    = "/node/%s/containers"
 	nodeContainersKey = "/node/%s/containers/%s"
 
 	allContainersKey         = "/containers"

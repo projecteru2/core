@@ -18,6 +18,7 @@ service CoreRPC {
     rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
     rpc ListNetworks(ListNetworkOptions) returns (Networks) {};
     rpc ListContainers(DeployStatusOptions) returns (Containers) {};
+    rpc ListNodeContainers(GetNodeOptions) returns (Containers) {};
     rpc ContainerDeployed(ContainerDeployedOptions) returns (Empty) {};
 
     rpc Copy(CopyOptions) returns (stream CopyMessage) {};
@@ -97,7 +98,11 @@ message Container {
     string podname = 2;
     string nodename = 3;
     string name = 4;
-    string info = 5;
+    map<string, int64> cpu = 5;
+    double quota = 6;
+    int64 memory = 7;
+    bool privileged = 8;
+    bytes inspect = 9;
 }
 
 message ContainerDeployedOptions {

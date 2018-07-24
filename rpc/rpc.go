@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -17,7 +16,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-//Vibranium is implementations for grpc server interface
+// Vibranium is implementations for grpc server interface
 // Many data types should be transformed
 type Vibranium struct {
 	cluster cluster.Cluster
@@ -26,7 +25,7 @@ type Vibranium struct {
 	TaskNum int
 }
 
-//AddPod saves a pod, and returns it to client
+// AddPod saves a pod, and returns it to client
 func (v *Vibranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Pod, error) {
 	p, err := v.cluster.AddPod(ctx, opts.Name, opts.Favor, opts.Desc)
 	if err != nil {
@@ -36,7 +35,7 @@ func (v *Vibranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Pod
 	return toRPCPod(p), nil
 }
 
-//AddNode saves a node and returns it to client
+// AddNode saves a node and returns it to client
 // Method must be called synchronously, or nothing will be returned
 func (v *Vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.Node, error) {
 	n, err := v.cluster.AddNode(
@@ -68,7 +67,7 @@ func (v *Vibranium) RemovePod(ctx context.Context, opts *pb.RemovePodOptions) (*
 	return &pb.Empty{}, nil
 }
 
-//RemoveNode removes the node from etcd
+// RemoveNode removes the node from etcd
 func (v *Vibranium) RemoveNode(ctx context.Context, opts *pb.RemoveNodeOptions) (*pb.Pod, error) {
 	p, err := v.cluster.RemoveNode(ctx, opts.Nodename, opts.Podname)
 	if err != nil {
@@ -78,7 +77,7 @@ func (v *Vibranium) RemoveNode(ctx context.Context, opts *pb.RemoveNodeOptions) 
 	return toRPCPod(p), nil
 }
 
-//ListPods returns a list of pods
+// ListPods returns a list of pods
 func (v *Vibranium) ListPods(ctx context.Context, _ *pb.Empty) (*pb.Pods, error) {
 	ps, err := v.cluster.ListPods(ctx)
 	if err != nil {
@@ -94,7 +93,7 @@ func (v *Vibranium) ListPods(ctx context.Context, _ *pb.Empty) (*pb.Pods, error)
 
 }
 
-//ListPodNodes returns a list of node for pod
+// ListPodNodes returns a list of node for pod
 func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions) (*pb.Nodes, error) {
 	ns, err := v.cluster.ListPodNodes(ctx, opts.Podname, opts.All)
 	if err != nil {
@@ -108,7 +107,7 @@ func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions)
 	return &pb.Nodes{Nodes: nodes}, nil
 }
 
-//ListContainers by appname with optional entrypoint and nodename
+// ListContainers by appname with optional entrypoint and nodename
 func (v *Vibranium) ListContainers(ctx context.Context, opts *pb.DeployStatusOptions) (*pb.Containers, error) {
 	containers, err := v.cluster.ListContainers(ctx, opts.Appname, opts.Entrypoint, opts.Nodename)
 	if err != nil {
@@ -118,7 +117,16 @@ func (v *Vibranium) ListContainers(ctx context.Context, opts *pb.DeployStatusOpt
 	return &pb.Containers{Containers: toRPCContainers(ctx, containers)}, nil
 }
 
-//ListNetworks list networks for pod
+// ListNodeContainers list node containers
+func (v *Vibranium) ListNodeContainers(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Containers, error) {
+	containers, err := v.cluster.ListNodeContainers(ctx, opts.Nodename)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.Containers{Containers: toRPCContainers(ctx, containers)}, nil
+}
+
+// ListNetworks list networks for pod
 func (v *Vibranium) ListNetworks(ctx context.Context, opts *pb.ListNetworkOptions) (*pb.Networks, error) {
 	networks, err := v.cluster.ListNetworks(ctx, opts.Podname, opts.Driver)
 	if err != nil {
@@ -132,7 +140,7 @@ func (v *Vibranium) ListNetworks(ctx context.Context, opts *pb.ListNetworkOption
 	return &pb.Networks{Networks: ns}, nil
 }
 
-//GetPod show a pod
+// GetPod show a pod
 func (v *Vibranium) GetPod(ctx context.Context, opts *pb.GetPodOptions) (*pb.Pod, error) {
 	p, err := v.cluster.GetPod(ctx, opts.Name)
 	if err != nil {
@@ -142,7 +150,7 @@ func (v *Vibranium) GetPod(ctx context.Context, opts *pb.GetPodOptions) (*pb.Pod
 	return toRPCPod(p), nil
 }
 
-//GetNode get a node
+// GetNode get a node
 func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Node, error) {
 	n, err := v.cluster.GetNode(ctx, opts.Podname, opts.Nodename)
 	if err != nil {
@@ -152,7 +160,7 @@ func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.N
 	return toRPCNode(ctx, n), nil
 }
 
-//GetContainer get a container
+// GetContainer get a container
 // More information will be shown
 func (v *Vibranium) GetContainer(ctx context.Context, id *pb.ContainerID) (*pb.Container, error) {
 	container, err := v.cluster.GetContainer(ctx, id.Id)
@@ -160,21 +168,11 @@ func (v *Vibranium) GetContainer(ctx context.Context, id *pb.ContainerID) (*pb.C
 		return nil, err
 	}
 
-	info, err := container.Inspect(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	bytes, err := json.Marshal(info)
-	if err != nil {
-		return nil, err
-	}
-
-	return toRPCContainer(container, string(bytes)), nil
+	return toRPCContainer(ctx, container)
 }
 
-//GetContainers get lots containers
-//like GetContainer, information should be returned
+// GetContainers get lots containers
+// like GetContainer, information should be returned
 func (v *Vibranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (*pb.Containers, error) {
 	containers, err := v.cluster.GetContainers(ctx, cids.GetIds())
 	if err != nil {
@@ -184,7 +182,7 @@ func (v *Vibranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (*
 	return &pb.Containers{Containers: toRPCContainers(ctx, containers)}, nil
 }
 
-//SetNodeAvailable set node availability
+// SetNodeAvailable set node availability
 func (v *Vibranium) SetNodeAvailable(ctx context.Context, opts *pb.NodeAvailable) (*pb.Node, error) {
 	n, err := v.cluster.SetNodeAvailable(ctx, opts.Podname, opts.Nodename, opts.Available)
 	if err != nil {
@@ -193,7 +191,7 @@ func (v *Vibranium) SetNodeAvailable(ctx context.Context, opts *pb.NodeAvailable
 	return toRPCNode(ctx, n), nil
 }
 
-//Copy copy files from multiple containers
+// Copy copy files from multiple containers
 func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) error {
 	v.taskAdd("Copy", true)
 	defer v.taskDone("Copy", true)
@@ -262,7 +260,7 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 	return nil
 }
 
-//BuildImage streamed returned functions
+// BuildImage streamed returned functions
 func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_BuildImageServer) error {
 	v.taskAdd("BuildImage", true)
 	defer v.taskDone("BuildImage", true)
@@ -285,7 +283,7 @@ func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 	return err
 }
 
-//RemoveImage remove image
+// RemoveImage remove image
 func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_RemoveImageServer) error {
 	v.taskAdd("RemoveImage", true)
 	defer v.taskDone("RemoveImage", true)
@@ -303,7 +301,7 @@ func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_R
 	return err
 }
 
-//DeployStatus watch and show deployed status
+// DeployStatus watch and show deployed status
 func (v *Vibranium) DeployStatus(opts *pb.DeployStatusOptions, stream pb.CoreRPC_DeployStatusServer) error {
 	v.taskAdd("DeployStatus", true)
 	defer v.taskDone("DeployStatus", true)
@@ -327,7 +325,7 @@ func (v *Vibranium) DeployStatus(opts *pb.DeployStatusOptions, stream pb.CoreRPC
 	return nil
 }
 
-//RunAndWait is lambda
+// RunAndWait is lambda
 func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	v.taskAdd("RunAndWait", true)
 	defer v.taskDone("RunAndWait", true)
@@ -387,7 +385,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	return err
 }
 
-//CreateContainer create containers
+// CreateContainer create containers
 func (v *Vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_CreateContainerServer) error {
 	v.taskAdd("CreateContainer", true)
 	defer v.taskDone("CreateContainer", true)
@@ -411,7 +409,7 @@ func (v *Vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 	return err
 }
 
-//RemoveContainer remove containers
+// RemoveContainer remove containers
 func (v *Vibranium) RemoveContainer(opts *pb.RemoveContainerOptions, stream pb.CoreRPC_RemoveContainerServer) error {
 	v.taskAdd("RemoveContainer", true)
 	defer v.taskDone("RemoveContainer", true)
@@ -438,7 +436,7 @@ func (v *Vibranium) RemoveContainer(opts *pb.RemoveContainerOptions, stream pb.C
 	return err
 }
 
-//ReallocResource realloc res for containers
+// ReallocResource realloc res for containers
 func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_ReallocResourceServer) error {
 	v.taskAdd("ReallocResource", true)
 	defer v.taskDone("ReallocResource", true)
@@ -461,7 +459,7 @@ func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_R
 	return err
 }
 
-//GetNodeByName get node by name
+// GetNodeByName get node by name
 func (v *Vibranium) GetNodeByName(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Node, error) {
 	n, err := v.cluster.GetNodeByName(ctx, opts.Nodename)
 	if err != nil {
@@ -471,7 +469,7 @@ func (v *Vibranium) GetNodeByName(ctx context.Context, opts *pb.GetNodeOptions) 
 	return toRPCNode(ctx, n), nil
 }
 
-//ContainerDeployed store deploy status
+// ContainerDeployed store deploy status
 func (v *Vibranium) ContainerDeployed(ctx context.Context, opts *pb.ContainerDeployedOptions) (*pb.Empty, error) {
 	v.taskAdd("ContainerDeployed", false)
 	defer v.taskDone("ContainerDeployed", false)
@@ -482,7 +480,7 @@ func (v *Vibranium) logUnsentMessages(msgType string, msg interface{}) {
 	log.Infof("[logUnsentMessages] Unsent %s streamed message: %v", msgType, msg)
 }
 
-//New will new a new cluster instance
+// New will new a new cluster instance
 func New(cluster cluster.Cluster, config types.Config) *Vibranium {
 	return &Vibranium{cluster: cluster, config: config, counter: sync.WaitGroup{}}
 }

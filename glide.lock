@@ -1,5 +1,5 @@
 hash: b2d5dbb92f685f99a1c869a41a5148badd8af12c4ad51d7076c94333af6e2b62
-updated: 2018-07-22T10:16:27.471704+08:00
+updated: 2018-07-24T11:57:25.252438+08:00
 imports:
 - name: github.com/Azure/go-ansiterm
   version: d6e3b3328b783f23731bc4d058875b0371ff8109
@@ -49,7 +49,7 @@ imports:
   - registry/storage/cache
   - registry/storage/cache/memory
 - name: github.com/docker/docker
-  version: dc74e31bb211faa189ef83469d7f58dfde0b052a
+  version: e2593239d949eee454935daea7a5fe025477322f
   subpackages:
   - api
   - api/types
@@ -68,6 +68,7 @@ imports:
   - api/types/versions
   - api/types/volume
   - client
+  - errdefs
   - pkg/archive
   - pkg/fileutils
   - pkg/idtools
@@ -102,7 +103,10 @@ imports:
   version: b4deda0973fb4c70b50d226b1af49f3da59f5265
   subpackages:
   - proto
+  - ptypes
   - ptypes/any
+  - ptypes/duration
+  - ptypes/timestamp
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
@@ -175,18 +179,29 @@ imports:
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: 6495e8dfeb47dc61ff4c392ba6369fa3f15cdc1b
+  version: 2ab07fd5cb02cfc44fd49af17dd2356ed1647ed4
   subpackages:
+  - balancer
+  - balancer/base
+  - balancer/roundrobin
   - codes
+  - connectivity
   - credentials
-  - grpclb/grpc_lb_v1
+  - encoding
+  - encoding/proto
   - grpclog
   - health/grpc_health_v1
   - internal
+  - internal/backoff
+  - internal/channelz
+  - internal/grpcrand
   - keepalive
   - metadata
   - naming
   - peer
+  - resolver
+  - resolver/dns
+  - resolver/passthrough
   - stats
   - status
   - tap
