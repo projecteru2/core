@@ -36,7 +36,7 @@ func (k *Krypton) doGetDeployStatus(ctx context.Context, resp *etcdclient.Respon
 }
 
 func (k *Krypton) doMakeDeployStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
-	resp, err := k.etcd.Get(ctx, allContainerKey, &etcdclient.GetOptions{Recursive: true})
+	resp, err := k.etcd.Get(ctx, allContainersKey, &etcdclient.GetOptions{Recursive: true})
 	if err != nil {
 		if etcdclient.IsKeyNotFound(err) {
 			return nodesInfo, nil

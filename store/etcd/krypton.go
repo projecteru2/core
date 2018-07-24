@@ -13,19 +13,20 @@ import (
 )
 
 const (
-	allPodsKey       = "/pod"
-	podInfoKey       = "/pod/%s/info"
-	podNodesKey      = "/pod/%s/node"
-	nodePrefixKey    = "/pod/%s/node/%s"
-	nodeInfoKey      = "/pod/%s/node/%s/info"
-	nodeCaKey        = "/pod/%s/node/%s/ca.pem"
-	nodeCertKey      = "/pod/%s/node/%s/cert.pem"
-	nodeKeyKey       = "/pod/%s/node/%s/key.pem"
-	nodeContainerKey = "/pod/%s/node/%s/containers"
-	nodePodKey       = "/node/%s"
+	allPodsKey    = "/pod"
+	podInfoKey    = "/pod/%s/info"
+	podNodesKey   = "/pod/%s/node"
+	nodePrefixKey = "/pod/%s/node/%s"
+	nodeInfoKey   = "/pod/%s/node/%s/info"
+	nodeCaKey     = "/pod/%s/node/%s/ca.pem"
+	nodeCertKey   = "/pod/%s/node/%s/cert.pem"
+	nodeKeyKey    = "/pod/%s/node/%s/key.pem"
 
-	allContainerKey          = "/container"
-	containerInfoKey         = "/container/%s"
+	nodePodKey        = "/node/%s/pod"
+	nodeContainersKey = "/node/%s/containers/%s"
+
+	allContainersKey         = "/containers"
+	containerInfoKey         = "/containers/%s"
 	containerDeployPrefix    = "/deploy"
 	containerDeployStatusKey = "/deploy/%s/%s"
 	containerDeployKey       = "/deploy/%s/%s/%s/%s"

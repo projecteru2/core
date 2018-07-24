@@ -18,6 +18,19 @@ import (
 // but we still store it
 // storage path in etcd is `/container/:containerid`
 func (k *Krypton) AddContainer(ctx context.Context, container *types.Container) error {
+	var err error
+
+	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			k.CleanContainerData(context.Background(), container.ID, appname, entrypoint, container.Nodename)
+		}
+	}()
+
 	// now everything is ok
 	// we use full length id instead
 	key := fmt.Sprintf(containerInfoKey, container.ID)
@@ -33,13 +46,16 @@ func (k *Krypton) AddContainer(ctx context.Context, container *types.Container) 
 	}
 
 	// store deploy status
-	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
+	key = fmt.Sprintf(containerDeployKey, appname, entrypoint, container.Nodename, container.ID)
+	_, err = k.etcd.Set(ctx, key, "", nil)
 	if err != nil {
 		return err
 	}
 
-	key = fmt.Sprintf(containerDeployKey, appname, entrypoint, container.Nodename, container.ID)
+	// store node-container data
+	key = fmt.Sprintf(nodeContainersKey, container.Nodename, container.ID)
 	_, err = k.etcd.Set(ctx, key, "", nil)
+
 	return err
 }
 
@@ -66,8 +82,15 @@ func (k *Krypton) CleanContainerData(ctx context.Context, ID, appname, entrypoin
 
 	// remove deploy status by core
 	key = fmt.Sprintf(containerDeployKey, appname, entrypoint, nodename, ID)
+	if _, err := k.etcd.Delete(ctx, key, nil); err != nil {
+		return err
+	}
+
+	// remove node-containers data
+	key = fmt.Sprintf(nodeContainersKey, nodename, ID)
 	_, err := k.etcd.Delete(ctx, key, nil)
 	return err
+
 }
 
 // GetContainer get a container
