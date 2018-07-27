@@ -2,7 +2,6 @@ package calcium
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -20,7 +19,7 @@ func (c *Calcium) ListNetworks(ctx context.Context, podname string, driver strin
 	}
 
 	if len(nodes) == 0 {
-		return networks, fmt.Errorf("Pod %s has no nodes", podname)
+		return networks, types.NewDetailedErr(types.ErrPodNoNodes, podname)
 	}
 
 	node := nodes[0]

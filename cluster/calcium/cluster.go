@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/projecteru2/core/cluster"
@@ -52,7 +51,7 @@ func New(config types.Config) (*Calcium, error) {
 	case cluster.GITHUB:
 		scm = github.New(config)
 	default:
-		return nil, fmt.Errorf("Unkonwn SCM type: %s", config.Git.SCMType)
+		return nil, types.NewDetailedErr(types.ErrBadSCMType, scmtype)
 	}
 
 	return &Calcium{store: store, config: config, scheduler: scheduler, network: titanium, source: scm}, nil

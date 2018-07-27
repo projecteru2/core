@@ -1,7 +1,6 @@
 package complexscheduler
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/projecteru2/core/types"
@@ -14,7 +13,7 @@ func AveragePlan(nodesInfo []types.NodeInfo, need int) ([]types.NodeInfo, error)
 	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Capacity < nodesInfo[j].Capacity })
 	p := sort.Search(nodesInfoLength, func(i int) bool { return nodesInfo[i].Capacity >= need })
 	if p == nodesInfoLength {
-		return nil, fmt.Errorf("Cannot alloc a each node plan, not enough capacity")
+		return nil, types.ErrInsufficientCap
 	}
 	nodesInfo = nodesInfo[p:]
 	for i := range nodesInfo {

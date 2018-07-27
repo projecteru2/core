@@ -68,8 +68,7 @@ func TestClean(t *testing.T) {
 
 	// delete pod, which will fail because there are remaining nodes
 	err := mockc.store.RemovePod(context.Background(), podname)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "still has nodes")
+	assert.EqualError(t, types.IsDetailedErr(err), types.ErrPodHasNodes.Error())
 }
 
 func TestCreateContainerWithCPUPrior(t *testing.T) {

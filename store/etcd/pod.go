@@ -21,7 +21,8 @@ func (k *Krypton) AddPod(ctx context.Context, name, favor, desc string) (*types.
 	if favor == "" {
 		favor = scheduler.MEMORY_PRIOR
 	} else if favor != scheduler.MEMORY_PRIOR && favor != scheduler.CPU_PRIOR {
-		return nil, fmt.Errorf("favor should be either CPU or MEM, got %s", favor)
+		return nil, types.NewDetailedErr(types.ErrBadFaver,
+			fmt.Sprintf("got bad faver: %s", favor))
 	}
 	pod := &types.Pod{Name: name, Desc: desc, Favor: favor}
 
@@ -43,7 +44,8 @@ func (k *Krypton) GetPod(ctx context.Context, name string) (*types.Pod, error) {
 		return nil, err
 	}
 	if resp.Node.Dir {
-		return nil, fmt.Errorf("Pod storage path %q in etcd is a directory", key)
+		return nil, types.NewDetailedErr(types.ErrKeyIsNotDir,
+			fmt.Sprintf("pod storage path %q in etcd is a directory", key))
 	}
 
 	pod := &types.Pod{}
@@ -59,8 +61,9 @@ func (k *Krypton) RemovePod(ctx context.Context, podname string) error {
 	if err != nil && !client.IsKeyNotFound(err) {
 		return err
 	}
-	if len(ns) != 0 {
-		return fmt.Errorf("Pod %s still has %d nodes, delete them first", podname, len(ns))
+	if l := len(ns); l != 0 {
+		return types.NewDetailedErr(types.ErrPodHasNodes,
+			fmt.Sprintf("pod %s still has %d nodes, delete them first", podname, l))
 	}
 
 	_, err = k.etcd.Delete(ctx, key, &client.DeleteOptions{Dir: true, Recursive: true})
@@ -76,7 +79,8 @@ func (k *Krypton) GetAllPods(ctx context.Context) (pods []*types.Pod, err error)
 		return pods, err
 	}
 	if !resp.Node.Dir {
-		return nil, fmt.Errorf("Pod storage path %q in etcd is not a directory", allPodsKey)
+		return nil, types.NewDetailedErr(types.ErrKeyIsNotDir,
+			fmt.Sprintf("pod storage path %q in etcd is not a directory", allPodsKey))
 	}
 
 	for _, node := range resp.Node.Nodes {

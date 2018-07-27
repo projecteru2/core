@@ -4,6 +4,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,8 +50,7 @@ func TestFillPlan(t *testing.T) {
 	n = 15
 	nodes = deployedNodes()
 	_, err = FillPlan(nodes, n)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "node n2 has not enough resource")
+	assert.EqualError(t, types.IsDetailedErr(err), types.ErrInsufficientRes.Error())
 
 	// 全局补充不能
 	n = 1

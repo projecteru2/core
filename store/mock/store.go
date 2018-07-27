@@ -62,8 +62,9 @@ func (m *MockStore) RemovePod(ctx context.Context, podname string) error {
 	if err != nil {
 		return err
 	}
-	if len(nodes) != 0 {
-		return fmt.Errorf("Pod %s still has nodes, delete the nodes first", podname)
+	if l := len(nodes); l != 0 {
+		return types.NewDetailedErr(types.ErrPodHasNodes,
+			fmt.Sprintf("pod %s still has %d nodes, delete them first", podname, l))
 	}
 	args := m.Called(ctx, podname)
 	if args.Get(0) != nil {
@@ -161,7 +162,7 @@ func (m *MockStore) UpdateNodeResource(ctx context.Context, podname, nodename st
 // GetContainer fake get container
 func (m *MockStore) GetContainer(ctx context.Context, ID string) (*types.Container, error) {
 	if len(ID) != 64 {
-		return nil, fmt.Errorf("Container ID must be length of 64")
+		return nil, types.ErrBadContainerID
 	}
 	args := m.Called(ID)
 	if args.Get(0) != nil {

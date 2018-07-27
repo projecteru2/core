@@ -290,12 +290,12 @@ func TestContainers(t *testing.T) {
 	// test GetContainer error
 	store.On("GetContainer", "012").Return(&types.Container{}, nil)
 	_, err = clnt.GetContainer(ctx, &pb.ContainerID{Id: "012"})
-	assert.Contains(t, err.Error(), "Container ID must be length of 64")
+	assert.Contains(t, err.Error(), types.ErrBadContainerID.Error())
 
 	ID := "586f906185de3ed755d0db1c0f37149c1eae1ba557a26adccbe1f51c500d07d1"
 	store.On("GetContainer", ID).Return(&types.Container{}, nil)
 	_, err = clnt.GetContainer(ctx, &pb.ContainerID{Id: ID})
-	assert.Contains(t, err.Error(), "Engine is nil")
+	assert.Contains(t, err.Error(), types.ErrNilEngine.Error())
 
 	// test GetContainers
 	container := types.Container{
@@ -462,8 +462,7 @@ func TestCreateContainer(t *testing.T) {
 	resp, err := clnt.CreateContainer(ctx, &depOpts)
 	assert.NoError(t, err)
 	recv, err := resp.Recv()
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Minimum memory limit allowed is 4MB")
+	assert.Contains(t, err.Error(), types.ErrBadMemory.Error())
 	assert.Nil(t, recv)
 
 	depOpts = pb.DeployOptions{
@@ -487,8 +486,7 @@ func TestCreateContainer(t *testing.T) {
 	resp, err = clnt.CreateContainer(ctx, &depOpts)
 	assert.NoError(t, err)
 	recv, err = resp.Recv()
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Count must be positive")
+	assert.Contains(t, err.Error(), types.ErrBadCount.Error())
 	assert.Nil(t, recv)
 
 }
@@ -540,7 +538,7 @@ func TestRunAndWait(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, stream.Send(&runAndWaitOpts))
 	_, err = stream.Recv()
-	assert.Contains(t, err.Error(), "Minimum memory limit allowed is 4MB")
+	assert.Contains(t, err.Error(), types.ErrBadMemory.Error())
 
 	depOpts = pb.DeployOptions{
 		Image:     "",     // string
@@ -621,5 +619,5 @@ func TestOthers(t *testing.T) {
 	})
 	r, err := rmContainerResp.Recv() // 同理这个err也是gRPC调用的error，而不是执行动作的error
 	assert.Nil(t, err)
-	assert.Contains(t, r.GetMessage(), "Engine is nil")
+	assert.Contains(t, r.GetMessage(), types.ErrNilEngine.Error())
 }

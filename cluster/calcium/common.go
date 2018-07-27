@@ -8,7 +8,7 @@ import (
 
 const (
 	restartAlways = "always"
-	minMemory     = 4194304
+	minMemory     = types.MByte * 4
 	root          = "root"
 	maxPuller     = 10
 )
