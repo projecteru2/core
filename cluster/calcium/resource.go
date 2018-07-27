@@ -2,7 +2,6 @@ package calcium
 
 import (
 	"context"
-	"fmt"
 	"sort"
 
 	log "github.com/sirupsen/logrus"
@@ -45,7 +44,7 @@ func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, 
 	case scheduler.CPU_PRIOR:
 		nodesInfo, nodeCPUPlans, total, err = c.scheduler.SelectCPUNodes(nodesInfo, opts.CPUQuota, opts.Memory)
 	default:
-		return nil, fmt.Errorf("Pod type not support yet")
+		return nil, types.ErrBadPodType
 	}
 	if err != nil {
 		return nil, err
@@ -59,7 +58,7 @@ func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, 
 	case cluster.DeployFill:
 		nodesInfo, err = c.scheduler.FillDivision(nodesInfo, opts.Count, total)
 	default:
-		return nil, fmt.Errorf("Deploy method not support yet")
+		return nil, types.ErrBadDeployMethod
 	}
 	if err != nil {
 		return nil, err
@@ -70,7 +69,7 @@ func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, 
 	p := sort.Search(len(nodesInfo), func(i int) bool { return nodesInfo[i].Deploy > 0 })
 	// p 最大也就是 len(nodesInfo) - 1
 	if p == len(nodesInfo) {
-		return nil, fmt.Errorf("Cannot alloc a plan, not enough resource")
+		return nil, types.ErrInsufficientRes
 	}
 	nodesInfo = nodesInfo[p:]
 	for i, nodeInfo := range nodesInfo {
@@ -117,8 +116,7 @@ func (c *Calcium) getCPUAndMem(ctx context.Context, podname, nodename string, la
 	}
 
 	if len(nodes) == 0 {
-		err := fmt.Errorf("No available nodes")
-		return result, err
+		return result, types.ErrInsufficientNodes
 	}
 
 	result = makeCPUAndMem(nodes)

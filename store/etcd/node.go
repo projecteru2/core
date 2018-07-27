@@ -20,8 +20,10 @@ import (
 // AddNode save it to etcd
 // storage path in etcd is `/pod/:podname/node/:nodename/info`
 func (k *Krypton) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string) (*types.Node, error) {
-	if !strings.HasPrefix(endpoint, "tcp://") {
-		return nil, fmt.Errorf("Endpoint must starts with tcp:// %q", endpoint)
+	if !strings.HasPrefix(endpoint, nodeConnPrefixKey) {
+		return nil, types.NewDetailedErr(types.ErrNodeFormat,
+			fmt.Sprintf("endpoint must starts with %s %q",
+				nodeConnPrefixKey, endpoint))
 	}
 
 	_, err := k.GetPod(ctx, podname)
@@ -31,7 +33,9 @@ func (k *Krypton) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 
 	nodeKey := fmt.Sprintf(nodeInfoKey, podname, name)
 	if _, err := k.etcd.Get(ctx, nodeKey, nil); err == nil {
-		return nil, fmt.Errorf("Node (%s, %s) already exists", podname, name)
+		return nil, types.NewDetailedErr(types.ErrNodeExist,
+			fmt.Sprintf("node %s:%s already exists",
+				podname, name))
 	}
 
 	// 如果有tls的证书需要保存就保存一下
@@ -70,7 +74,7 @@ func (k *Krypton) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 		ncpu = info.NCPU
 	}
 	if memory == 0 {
-		memcap = info.MemTotal - gigabyte
+		memcap = info.MemTotal - types.GByte
 	}
 	if share == 0 {
 		share = k.config.Scheduler.ShareBase
@@ -151,7 +155,8 @@ func (k *Krypton) GetNode(ctx context.Context, podname, nodename string) (*types
 		return nil, err
 	}
 	if resp.Node.Dir {
-		return nil, fmt.Errorf("Node storage path %q in etcd is a directory", key)
+		return nil, types.NewDetailedErr(types.ErrKeyIsDir,
+			fmt.Sprintf("node storage path %q in etcd is a directory", key))
 	}
 
 	node := &types.Node{}
@@ -189,7 +194,8 @@ func (k *Krypton) GetNodesByPod(ctx context.Context, podname string) (nodes []*t
 		return nodes, err
 	}
 	if !resp.Node.Dir {
-		return nil, fmt.Errorf("Node storage path %q in etcd is not a directory", key)
+		return nil, types.NewDetailedErr(types.ErrKeyIsNotDir,
+			fmt.Sprintf("node storage path %q in etcd is not a directory", key))
 	}
 
 	for _, node := range resp.Node.Nodes {
@@ -263,7 +269,8 @@ func (k *Krypton) UpdateNodeResource(ctx context.Context, podname, nodename stri
 		return err
 	}
 	if resp.Node.Dir {
-		return fmt.Errorf("Node storage path %q in etcd is a directory", nodeKey)
+		return types.NewDetailedErr(types.ErrKeyIsDir,
+			fmt.Sprintf("node storage path %q in etcd is a directory", nodeKey))
 	}
 
 	node := &types.Node{}

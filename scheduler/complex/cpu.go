@@ -5,7 +5,6 @@ CPU 分配的核心算法
 package complexscheduler
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/projecteru2/core/types"
@@ -196,7 +195,7 @@ func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShar
 	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Capacity < nodesInfo[j].Capacity })
 	p := sort.Search(len(nodesInfo), func(i int) bool { return nodesInfo[i].Capacity > 0 })
 	if p == len(nodesInfo) {
-		return nil, nil, 0, fmt.Errorf("Not enough resource")
+		return nil, nil, 0, types.ErrInsufficientRes
 	}
 
 	log.Debugf("[cpuPriorPlan] nodesInfo: %v", nodesInfo)

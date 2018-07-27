@@ -103,7 +103,7 @@ func getComplexNodes() []types.NodeInfo {
 				CpuMap: types.CPUMap{ // 2 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 				},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "n1",
 		},
@@ -115,7 +115,7 @@ func getComplexNodes() []types.NodeInfo {
 					"8": 10, "9": 10, "10": 10, "11": 10,
 					"12": 10, "13": 10,
 				},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "n2",
 		},
@@ -126,7 +126,7 @@ func getComplexNodes() []types.NodeInfo {
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
 				},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "n3",
 		},
@@ -139,7 +139,7 @@ func getComplexNodes() []types.NodeInfo {
 					"12": 10, "13": 10, "14": 10, "15": 10,
 					"16": 10, "17": 10,
 				},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "n4",
 		},
@@ -149,7 +149,7 @@ func getComplexNodes() []types.NodeInfo {
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 				},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "n5",
 		},
@@ -164,7 +164,7 @@ func getEvenPlanNodes() []types.NodeInfo {
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 				},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "n1",
 		},
@@ -175,7 +175,7 @@ func getEvenPlanNodes() []types.NodeInfo {
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10,
 				},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "n2",
 		},
@@ -186,7 +186,7 @@ func getEvenPlanNodes() []types.NodeInfo {
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
 				},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "n3",
 		},
@@ -197,7 +197,7 @@ func getEvenPlanNodes() []types.NodeInfo {
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10,
 				},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "n4",
 		},
@@ -254,27 +254,24 @@ func SelectMemoryNodes(k *Potassium, nodesInfo []types.NodeInfo, rate, memory in
 
 func TestSelectCPUNodes(t *testing.T) {
 	k, _ := newPotassium()
-	mem := int64(4 * 1024 * 1024 * 1024)
+	mem := 4 * types.GByte
 
 	_, _, err := SelectCPUNodes(k, []types.NodeInfo{}, 1, 1, 1, false)
-	assert.Error(t, err)
-	assert.Equal(t, err.Error(), "No nodes provide to choose some")
+	assert.Equal(t, types.IsDetailedErr(err), types.ErrZeroNodes)
 
 	nodes := generateNodes(2, 2, mem, 10)
 	_, _, err = SelectCPUNodes(k, nodes, 0.5, 1, 1, false)
 	assert.NoError(t, err)
 
 	_, _, err = SelectCPUNodes(k, nodes, 2, 1, 3, false)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Not enough")
+	assert.Equal(t, types.IsDetailedErr(err), types.ErrInsufficientRes)
+	assert.Contains(t, err.Error(), "need: 3, vol: 1")
 
 	_, _, err = SelectCPUNodes(k, nodes, 3, 1, 2, false)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Not enough")
+	assert.Equal(t, types.IsDetailedErr(err), types.ErrInsufficientRes)
 
 	_, _, err = SelectCPUNodes(k, nodes, 1, 1, 5, false)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Not enough")
+	assert.Equal(t, types.IsDetailedErr(err), types.ErrInsufficientRes)
 
 	// new round test
 	nodes = generateNodes(2, 2, mem, 10)
@@ -320,13 +317,12 @@ func TestSelectCPUNodesWithMemoryLimit(t *testing.T) {
 	// 测试 2 个 Node，内存不足
 	nodes = generateNodes(2, 2, 1024, 10)
 	_, _, err = SelectCPUNodes(k, nodes, 0.1, 1025, 1, true)
-	assert.Contains(t, err.Error(), "enough")
+	assert.EqualError(t, err, types.ErrInsufficientRes.Error())
 
 	// 测试 need 超过 each node 的 capacity
 	nodes = generateNodes(2, 2, 1024, 10)
 	_, _, err = SelectCPUNodes(k, nodes, 0.1, 1024, 2, true)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not enough capacity")
+	assert.EqualError(t, err, types.ErrInsufficientCap.Error())
 }
 
 func TestRecurrence(t *testing.T) {
@@ -338,28 +334,28 @@ func TestRecurrence(t *testing.T) {
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
 				CpuMap: types.CPUMap{"0": 0, "10": 0, "7": 0, "8": 10, "9": 10, "13": 0, "14": 0, "15": 10, "2": 10, "5": 10, "11": 0, "12": 0, "4": 0, "1": 0, "3": 10, "6": 0},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "c2-docker-26",
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
 				CpuMap: types.CPUMap{"6": 10, "10": 0, "13": 0, "14": 10, "2": 0, "7": 0, "1": 0, "11": 0, "15": 0, "8": 10, "0": 0, "3": 0, "4": 0, "5": 0, "9": 10, "12": 0},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "c2-docker-27",
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
 				CpuMap: types.CPUMap{"13": 0, "14": 0, "15": 0, "4": 10, "9": 0, "1": 0, "10": 0, "12": 10, "5": 10, "6": 10, "8": 10, "0": 0, "11": 0, "2": 10, "3": 0, "7": 0},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "c2-docker-28",
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
 				CpuMap: types.CPUMap{"15": 0, "3": 10, "0": 0, "10": 0, "13": 0, "7": 10, "8": 0, "9": 10, "12": 10, "2": 10, "4": 10, "1": 0, "11": 0, "14": 10, "5": 10, "6": 10},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "c2-docker-29",
 		},
@@ -426,7 +422,7 @@ func TestComplexNodes(t *testing.T) {
 	//test5
 	nodes = getComplexNodes()
 	_, _, err = SelectCPUNodes(k, nodes, 0, 1, 10, false)
-	assert.Equal(t, err.Error(), "quota must positive")
+	assert.EqualError(t, err, types.ErrNegativeQuota.Error())
 
 	//test6
 	nodes = getComplexNodes()
@@ -449,14 +445,14 @@ func TestCPUWithMaxShareLimit(t *testing.T) {
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
 				CpuMap: types.CPUMap{"0": 100, "1": 100, "2": 100, "3": 100, "4": 100, "5": 100},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
 		},
 	}
 
 	_, _, err = SelectCPUNodes(k, nodes, 1.7, 1, 3, false)
-	assert.Error(t, err)
+	assert.Equal(t, types.IsDetailedErr(err), types.ErrInsufficientRes)
 	assert.Contains(t, err.Error(), "vol: 2")
 }
 
@@ -473,7 +469,7 @@ func TestCpuOverSell(t *testing.T) {
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
 				CpuMap: types.CPUMap{"0": 300, "1": 300},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
 		},
@@ -491,7 +487,7 @@ func TestCpuOverSell(t *testing.T) {
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
 				CpuMap: types.CPUMap{"0": 300},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
 		},
@@ -505,7 +501,7 @@ func TestCpuOverSell(t *testing.T) {
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
 				CpuMap: types.CPUMap{"0": 300},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
 		},
@@ -519,7 +515,7 @@ func TestCpuOverSell(t *testing.T) {
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
 				CpuMap: types.CPUMap{"0": 100, "1": 200, "2": 300},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
 		},
@@ -534,7 +530,7 @@ func TestCpuOverSell(t *testing.T) {
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
 				CpuMap: types.CPUMap{"0": 50, "1": 100, "2": 300, "3": 70, "4": 200, "5": 30, "6": 230},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
 		},
@@ -546,7 +542,7 @@ func TestCpuOverSell(t *testing.T) {
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
 				CpuMap: types.CPUMap{"0": 70, "1": 100, "2": 400},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
 		},
@@ -571,7 +567,7 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
 				CpuMap: types.CPUMap{"0": 300, "1": 300},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
 		},
@@ -585,7 +581,7 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
 				CpuMap: types.CPUMap{"0": 230, "1": 200},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
 		},
@@ -607,7 +603,7 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
 				CpuMap: types.CPUMap{"0": 230, "1": 80, "2": 300, "3": 200},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
 		},
@@ -622,7 +618,7 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
 				CpuMap: types.CPUMap{"0": 70, "1": 50, "2": 100, "3": 100, "4": 100},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
 		},
@@ -637,7 +633,7 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
 				CpuMap: types.CPUMap{"0": 70, "1": 50, "2": 90},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
 		},
@@ -662,7 +658,7 @@ func TestEvenPlan(t *testing.T) {
 				CpuMap: types.CPUMap{
 					"0": 10, "1": 10, "2": 10, "3": 10,
 				},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "node1",
 		},
@@ -671,7 +667,7 @@ func TestEvenPlan(t *testing.T) {
 				CpuMap: types.CPUMap{
 					"0": 10, "1": 10, "2": 10, "3": 10,
 				},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "node2",
 		},
@@ -716,7 +712,7 @@ func TestSpecialCase(t *testing.T) {
 				CpuMap: types.CPUMap{ // 4 containers
 					"0": 10, "1": 10,
 				},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "n1",
 		},
@@ -726,7 +722,7 @@ func TestSpecialCase(t *testing.T) {
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10,
 				},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "n2",
 		},
@@ -736,7 +732,7 @@ func TestSpecialCase(t *testing.T) {
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 				},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "n3",
 		},
@@ -754,7 +750,7 @@ func TestSpecialCase(t *testing.T) {
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10,
 				},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "n1",
 		},
@@ -764,7 +760,7 @@ func TestSpecialCase(t *testing.T) {
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 				},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "n2",
 		},
@@ -781,7 +777,7 @@ func TestGetPodVol(t *testing.T) {
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
 				CpuMap: types.CPUMap{"15": 0, "3": 10, "0": 0, "10": 0, "13": 0, "7": 10, "8": 0, "9": 10, "12": 10, "2": 10, "4": 10, "1": 0, "11": 0, "14": 10, "5": 10, "6": 10},
-				MemCap: 12400000,
+				MemCap: 12 * types.GByte,
 			},
 			Name: "c2-docker-26",
 		},
@@ -803,7 +799,7 @@ func Benchmark_CPUAlloc(b *testing.B) {
 	var count = 10000
 	for i := 0; i < b.N; i++ {
 		// 24 core, 128G memory, 10 pieces per core
-		hugePod := generateNodes(count, 24, 137438953472, 10)
+		hugePod := generateNodes(count, 24, 128*types.GByte, 10)
 		need := getNodesCapacity(hugePod, cpu, 10, -1)
 		b.StartTimer()
 		r, c, err := SelectCPUNodes(k, hugePod, cpu, 1, need, false)
@@ -825,7 +821,7 @@ func Benchmark_MemAlloc(b *testing.B) {
 	var rate int64 = 1024
 	for i := 0; i < b.N; i++ {
 		// 24 core, 128G memory, 10 pieces per core
-		hugePod := generateNodes(count, 24, 137438953472, 10)
+		hugePod := generateNodes(count, 24, 128*types.GByte, 10)
 		b.StartTimer()
 		r, err := SelectMemoryNodes(k, hugePod, rate, memory, need, false)
 		b.StopTimer()
@@ -837,10 +833,10 @@ func Benchmark_MemAlloc(b *testing.B) {
 // Test SelectMemoryNodes
 func TestSelectMemoryNodes(t *testing.T) {
 	// 2 nodes [2 containers per node]
-	mem := int64(4 * 1024 * 1024 * 1024)
+	mem := 4 * types.GByte
 	pod := generateNodes(2, 2, mem, 10)
 	k, _ := newPotassium()
-	res, err := SelectMemoryNodes(k, pod, 10000, 512*1024*1024, 4, false)
+	res, err := SelectMemoryNodes(k, pod, 10000, 512*types.MByte, 4, false)
 	assert.NoError(t, err)
 	for _, node := range res {
 		assert.Equal(t, node.Deploy, 2)
@@ -848,13 +844,13 @@ func TestSelectMemoryNodes(t *testing.T) {
 
 	// 4 nodes [1 container per node]
 	pod = generateNodes(4, 2, mem, 10)
-	res, err = SelectMemoryNodes(k, pod, 10000, 512*1024*1024, 1, false)
+	res, err = SelectMemoryNodes(k, pod, 10000, 512*types.MByte, 1, false)
 	assert.NoError(t, err)
 	assert.Equal(t, res[0].Deploy, 1)
 
 	// 4 nodes [1 container per node]
 	pod = generateNodes(4, 2, mem, 10)
-	res, err = SelectMemoryNodes(k, pod, 10000, 512*1024*1024, 4, false)
+	res, err = SelectMemoryNodes(k, pod, 10000, 512*types.MByte, 4, false)
 	assert.NoError(t, err)
 	for _, node := range res {
 		assert.Equal(t, node.Deploy, 1)
@@ -865,7 +861,7 @@ func TestSelectMemoryNodes(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		pod[i].Count += i
 	}
-	res, err = SelectMemoryNodes(k, pod, 10000, 512*1024*1024, 6, false)
+	res, err = SelectMemoryNodes(k, pod, 10000, 512*types.MByte, 6, false)
 	assert.NoError(t, err)
 	for i, node := range res {
 		assert.Equal(t, node.Deploy, 3-i)
@@ -873,7 +869,7 @@ func TestSelectMemoryNodes(t *testing.T) {
 
 	pod = generateNodes(1, 2, mem, 10)
 	_, err = SelectMemoryNodes(k, pod, 10000, 0, 10, false)
-	assert.Equal(t, err.Error(), "memory must positive")
+	assert.EqualError(t, err, types.ErrNegativeMemory.Error())
 
 	// test each
 	pod = generateNodes(4, 2, mem, 10)
@@ -885,37 +881,29 @@ func TestSelectMemoryNodes(t *testing.T) {
 }
 
 func TestSelectMemoryNodesNotEnough(t *testing.T) {
-	mem := int64(4 * 1024 * 1024)
+	mem := 4 * types.MByte
 	// 2 nodes [mem not enough]
-	pod := generateNodes(2, 2, mem*1024, 10)
+	pod := generateNodes(2, 2, 4*types.GByte, 10)
 	k, _ := newPotassium()
-	_, err := SelectMemoryNodes(k, pod, 10000, 512*1024*1024, 40, false)
-	assert.Error(t, err)
-	if err != nil {
-		assert.Equal(t, err.Error(), "Not enough resource need: 40, vol: 16")
-	}
+	_, err := SelectMemoryNodes(k, pod, 10000, 512*types.MByte, 40, false)
+	assert.Equal(t, types.IsDetailedErr(err), types.ErrInsufficientRes)
+	assert.Contains(t, err.Error(), "need: 40, vol: 16")
 
 	// 2 nodes [mem not enough]
 	pod = generateNodes(2, 2, mem, 10)
-	_, err = SelectMemoryNodes(k, pod, 1e9, 5*1024*1024*1024, 1, false)
-	assert.Error(t, err)
-	if err != nil {
-		assert.Equal(t, err.Error(), "Cannot alloc a plan, not enough memory")
-	}
+	_, err = SelectMemoryNodes(k, pod, 1e9, 5*types.GByte, 1, false)
+	assert.Equal(t, err, types.ErrInsufficientMEM)
 
 	// 2 nodes [cpu not enough]
 	pod = generateNodes(2, 2, mem, 10)
-	_, err = SelectMemoryNodes(k, pod, 1e10, 512*1024*1024, 1, false)
-	assert.Error(t, err)
-	if err != nil {
-		assert.Equal(t, err.Error(), "Cannot alloc a plan, not enough cpu rate")
-	}
+	_, err = SelectMemoryNodes(k, pod, 1e10, 512*types.MByte, 1, false)
+	assert.Equal(t, err, types.ErrInsufficientCPU)
 }
 
 func TestSelectMemoryNodesSequence(t *testing.T) {
-	pod := generateNodes(2, 2, 4*1024*1024*1024, 10)
+	pod := generateNodes(2, 2, 4*types.GByte, 10)
 	k, _ := newPotassium()
-	res, err := SelectMemoryNodes(k, pod, 10000, 512*1024*1024, 1, false)
+	res, err := SelectMemoryNodes(k, pod, 10000, 512*types.MByte, 1, false)
 	assert.NoError(t, err)
 	for _, node := range res {
 		if node.Name == "node0" {
@@ -924,7 +912,7 @@ func TestSelectMemoryNodesSequence(t *testing.T) {
 	}
 
 	refreshPod(res)
-	res, err = SelectMemoryNodes(k, res, 10000, 512*1024*1024, 1, false)
+	res, err = SelectMemoryNodes(k, res, 10000, 512*types.MByte, 1, false)
 	assert.NoError(t, err)
 	for _, node := range res {
 		if node.Name == "node1" {
@@ -933,27 +921,25 @@ func TestSelectMemoryNodesSequence(t *testing.T) {
 	}
 
 	refreshPod(res)
-	res, err = SelectMemoryNodes(k, res, 10000, 512*1024*1024, 4, false)
+	res, err = SelectMemoryNodes(k, res, 10000, 512*types.MByte, 4, false)
 	assert.NoError(t, err)
 	assert.Equal(t, res[0].Deploy, 2)
 	assert.Equal(t, res[1].Deploy, 2)
 
 	refreshPod(res)
-	res, err = SelectMemoryNodes(k, res, 10000, 512*1024*1024, 3, false)
+	res, err = SelectMemoryNodes(k, res, 10000, 512*types.MByte, 3, false)
 	assert.NoError(t, err)
 	assert.Equal(t, res[0].Deploy+res[1].Deploy, 3)
 	assert.Equal(t, res[0].Deploy-res[1].Deploy, 1)
 
 	refreshPod(res)
-	res, err = SelectMemoryNodes(k, res, 10000, 512*1024*1024, 40, false)
-	assert.Error(t, err)
-	if err != nil {
-		assert.Equal(t, err.Error(), "Not enough resource need: 40, vol: 7")
-	}
+	res, err = SelectMemoryNodes(k, res, 10000, 512*types.MByte, 40, false)
+	assert.Equal(t, types.IsDetailedErr(err), types.ErrInsufficientRes)
+	assert.Contains(t, err.Error(), "need: 40, vol: 7")
 
 	// new round
-	pod = generateNodes(2, 2, 4*1024*1024*1024, 10)
-	res, err = SelectMemoryNodes(k, pod, 10000, 512*1024*1024, 1, false)
+	pod = generateNodes(2, 2, 4*types.GByte, 10)
+	res, err = SelectMemoryNodes(k, pod, 10000, 512*types.MByte, 1, false)
 	assert.NoError(t, err)
 	for _, node := range res {
 		if node.Name == "node0" {
@@ -961,7 +947,7 @@ func TestSelectMemoryNodesSequence(t *testing.T) {
 		}
 	}
 	refreshPod(res)
-	res, err = SelectMemoryNodes(k, res, 10000, 512*1024*1024, 2, false)
+	res, err = SelectMemoryNodes(k, res, 10000, 512*types.MByte, 2, false)
 	assert.NoError(t, err)
 	for _, node := range res {
 		if node.Name == "node1" {
@@ -969,20 +955,20 @@ func TestSelectMemoryNodesSequence(t *testing.T) {
 		}
 	}
 	refreshPod(res)
-	res, err = SelectMemoryNodes(k, res, 10000, 512*1024*1024, 5, false)
+	res, err = SelectMemoryNodes(k, res, 10000, 512*types.MByte, 5, false)
 	assert.NoError(t, err)
 	assert.Equal(t, res[0].Deploy+res[0].Count, 4)
 	assert.Equal(t, res[1].Deploy+res[1].Count, 4)
 }
 
 func TestSelectMemoryNodesGiven(t *testing.T) {
-	pod := generateNodes(4, 2, 4*1024*1024*1024, 10)
+	pod := generateNodes(4, 2, 4*types.GByte, 10)
 	for i := 0; i < 3; i++ {
 		pod[i].Count++
 	}
 
 	k, _ := newPotassium()
-	res, err := SelectMemoryNodes(k, pod, 10000, 512*1024*1024, 2, false)
+	res, err := SelectMemoryNodes(k, pod, 10000, 512*types.MByte, 2, false)
 	assert.NoError(t, err)
 	for _, node := range res {
 		if node.Name == "n3" {

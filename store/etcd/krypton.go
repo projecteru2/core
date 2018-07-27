@@ -32,7 +32,7 @@ const (
 	containerDeployStatusKey = "/deploy/%s/%s"
 	containerDeployKey       = "/deploy/%s/%s/%s/%s"
 
-	gigabyte = 1073741824
+	nodeConnPrefixKey = "tcp://"
 )
 
 //Krypton means store with etcd

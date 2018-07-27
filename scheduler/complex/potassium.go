@@ -28,7 +28,7 @@ func (m *Potassium) MaxCPUIdleNode(nodes []*types.Node) *types.Node {
 func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory int64) ([]types.NodeInfo, int, error) {
 	log.Debugf("[SelectMemoryNodes] nodesInfo: %v, rate: %d, memory: %d", nodesInfo, rate, memory)
 	if memory <= 0 {
-		return nil, 0, fmt.Errorf("memory must positive")
+		return nil, 0, types.ErrNegativeMemory
 	}
 
 	nodesInfoLength := len(nodesInfo)
@@ -38,7 +38,7 @@ func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory i
 	p := sort.Search(nodesInfoLength, func(i int) bool { return nodesInfo[i].CPURate >= rate })
 	// p 最大也就是 nodesInfoLength - 1
 	if p == nodesInfoLength {
-		return nil, 0, fmt.Errorf("Cannot alloc a plan, not enough cpu rate")
+		return nil, 0, types.ErrInsufficientCPU
 	}
 	nodesInfoLength -= p
 	nodesInfo = nodesInfo[p:]
@@ -48,7 +48,7 @@ func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory i
 	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].MemCap < nodesInfo[j].MemCap })
 	p = sort.Search(nodesInfoLength, func(i int) bool { return nodesInfo[i].MemCap >= memory })
 	if p == nodesInfoLength {
-		return nil, 0, fmt.Errorf("Cannot alloc a plan, not enough memory")
+		return nil, 0, types.ErrInsufficientMEM
 	}
 	nodesInfoLength -= p
 	nodesInfo = nodesInfo[p:]
@@ -69,10 +69,10 @@ func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory i
 func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, memory int64) ([]types.NodeInfo, map[string][]types.CPUMap, int, error) {
 	log.Debugf("[SelectCPUNodes] nodesInfo: %v, cpu: %v", nodesInfo, quota)
 	if quota <= 0 {
-		return nil, nil, 0, fmt.Errorf("quota must positive")
+		return nil, nil, 0, types.ErrNegativeQuota
 	}
 	if len(nodesInfo) == 0 {
-		return nil, nil, 0, fmt.Errorf("No nodes provide to choose some")
+		return nil, nil, 0, types.ErrZeroNodes
 	}
 	return cpuPriorPlan(quota, memory, nodesInfo, m.maxshare, m.sharebase)
 }
@@ -81,7 +81,8 @@ func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, me
 // 部署完 N 个后全局尽可能平均
 func (m *Potassium) CommonDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error) {
 	if total < need {
-		return nil, fmt.Errorf("Not enough resource need: %d, vol: %d", need, total)
+		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
+			fmt.Sprintf("need: %d, vol: %d", need, total))
 	}
 	return CommunismDivisionPlan(nodesInfo, need)
 }
@@ -90,7 +91,8 @@ func (m *Potassium) CommonDivision(nodesInfo []types.NodeInfo, need, total int) 
 // 容量够的机器每一台部署 N 个
 func (m *Potassium) EachDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error) {
 	if total < need {
-		return nil, fmt.Errorf("Not enough resource need: %d, vol: %d", need, total)
+		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
+			fmt.Sprintf("need: %d, vol: %d", need, total))
 	}
 	return AveragePlan(nodesInfo, need)
 }
@@ -99,7 +101,8 @@ func (m *Potassium) EachDivision(nodesInfo []types.NodeInfo, need, total int) ([
 // 根据之前部署的策略每一台补充到 N 个，超过 N 个忽略
 func (m *Potassium) FillDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error) {
 	if total < need {
-		return nil, fmt.Errorf("Not enough resource need: %d, vol: %d", need, total)
+		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
+			fmt.Sprintf("need: %d, vol: %d", need, total))
 	}
 	return FillPlan(nodesInfo, need)
 }

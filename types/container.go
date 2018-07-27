@@ -2,7 +2,6 @@ package types
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	enginetypes "github.com/docker/docker/api/types"
@@ -40,7 +39,7 @@ func (c *Container) Inspect(ctx context.Context) (enginetypes.ContainerJSON, err
 	inspectCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	if c.Engine == nil {
-		return enginetypes.ContainerJSON{}, fmt.Errorf("Engine is nil")
+		return enginetypes.ContainerJSON{}, ErrNilEngine
 	}
 	return c.Engine.ContainerInspect(inspectCtx, c.ID)
 }

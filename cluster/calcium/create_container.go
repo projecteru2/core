@@ -31,15 +31,16 @@ func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions
 
 	// 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
 	if opts.Memory < minMemory {
-		return nil, fmt.Errorf("Minimum memory limit allowed is 4MB, got %d", opts.Memory)
+		return nil, types.NewDetailedErr(types.ErrBadMemory,
+			fmt.Sprintf("Minimum memory limit allowed is 4MB, got %d", opts.Memory))
 	}
 	// Count 要大于0
 	if opts.Count <= 0 {
-		return nil, fmt.Errorf("Count must be positive, got %d", opts.Count)
+		return nil, types.NewDetailedErr(types.ErrBadCount, opts.Count)
 	}
 	// CPUQuota 也需要大于 0
 	if opts.CPUQuota <= 0 {
-		return nil, fmt.Errorf("CPUQuota must be positive, got %d", opts.Count)
+		return nil, types.NewDetailedErr(types.ErrBadCPU, opts.CPUQuota)
 	}
 
 	if pod.Favor == scheduler.MEMORY_PRIOR {
@@ -47,7 +48,7 @@ func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions
 	} else if pod.Favor == scheduler.CPU_PRIOR {
 		return c.createContainerWithCPUPrior(ctx, opts)
 	}
-	return nil, fmt.Errorf("[CreateContainer] Favor not support: %v", pod.Favor)
+	return nil, types.NewDetailedErr(types.ErrBadFaver, pod.Favor)
 }
 
 func (c *Calcium) createContainerWithMemoryPrior(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
@@ -121,7 +122,7 @@ func (c *Calcium) createContainerWithCPUPrior(ctx context.Context, opts *types.D
 	}
 
 	if len(nodesInfo) == 0 {
-		return ch, fmt.Errorf("Not enough resource to create container")
+		return ch, types.ErrInsufficientRes
 	}
 
 	go func() {
@@ -304,7 +305,7 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	} else if favor == scheduler.MEMORY_PRIOR {
 		resource = makeMemoryPriorSetting(opts.Memory, opts.CPUQuota, opts.SoftLimit)
 	} else {
-		return nil, nil, nil, "", fmt.Errorf("favor not support %s", favor)
+		return nil, nil, nil, "", types.NewDetailedErr(types.ErrBadFaver, favor)
 	}
 	resource.Ulimits = ulimits
 

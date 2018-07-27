@@ -7,6 +7,7 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/concurrency"
+	"github.com/projecteru2/core/types"
 	"golang.org/x/net/context"
 )
 
@@ -20,7 +21,7 @@ type Mutex struct {
 //New new a lock
 func New(cli *clientv3.Client, key string, ttl int) (*Mutex, error) {
 	if key == "" {
-		return nil, fmt.Errorf("No lock key")
+		return nil, types.ErrKeyIsEmpty
 	}
 
 	if !strings.HasPrefix(key, "/") {
