@@ -20,7 +20,8 @@ func FillPlan(nodesInfo []types.NodeInfo, need int) ([]types.NodeInfo, error) {
 	for i := range nodesInfo {
 		diff := need - nodesInfo[i].Count
 		if nodesInfo[i].Capacity < diff {
-			return nil, fmt.Errorf("Cannot alloc a fill node plan, node %s has not enough resource", nodesInfo[i].Name)
+			return nil, types.NewDetailedErr(types.ErrInsufficientRes,
+				fmt.Sprintf("node %s cannot alloc a fill node plan", nodesInfo[i].Name))
 		}
 		nodesInfo[i].Deploy = diff
 		nodesInfo[i].Capacity -= diff

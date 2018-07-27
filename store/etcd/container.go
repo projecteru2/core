@@ -63,8 +63,10 @@ func (k *Krypton) AddContainer(ctx context.Context, container *types.Container) 
 // RemoveContainer remove a container
 // container id must be in full length
 func (k *Krypton) RemoveContainer(ctx context.Context, container *types.Container) error {
-	if len(container.ID) < 64 {
-		return fmt.Errorf("Container ID must be length of 64")
+	if l := len(container.ID); l != 64 {
+		return types.NewDetailedErr(types.ErrBadContainerID,
+			fmt.Sprintf("containerID: %s, length: %d",
+				container.ID, len(container.ID)))
 	}
 	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
 	if err != nil {
@@ -98,8 +100,9 @@ func (k *Krypton) CleanContainerData(ctx context.Context, ID, appname, entrypoin
 // container if must be in full length, or we can't find it in etcd
 // storage path in etcd is `/container/:containerid`
 func (k *Krypton) GetContainer(ctx context.Context, ID string) (*types.Container, error) {
-	if len(ID) != 64 {
-		return nil, fmt.Errorf("Container ID must be length of 64")
+	if l := len(ID); l != 64 {
+		return nil, types.NewDetailedErr(types.ErrBadContainerID,
+			fmt.Sprintf("containerID: %s, length: %d", ID, l))
 	}
 
 	key := fmt.Sprintf(containerInfoKey, ID)
@@ -108,7 +111,8 @@ func (k *Krypton) GetContainer(ctx context.Context, ID string) (*types.Container
 		return nil, err
 	}
 	if resp.Node.Dir {
-		return nil, fmt.Errorf("Container storage path %q in etcd is a directory", key)
+		return nil, types.NewDetailedErr(types.ErrKeyIsDir,
+			fmt.Sprintf("container storage path %q in etcd is a directory", key))
 	}
 
 	c := &types.Container{}

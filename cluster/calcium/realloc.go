@@ -2,7 +2,6 @@ package calcium
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	enginecontainer "github.com/docker/docker/api/types/container"
@@ -58,10 +57,10 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 			newCPURequire := container.Quota + cpu
 			newMemRequire := container.Memory + mem
 			if newCPURequire < 0 {
-				return nil, fmt.Errorf("CPU can not below zero %v", newCPURequire)
+				return nil, types.NewDetailedErr(types.ErrBadCPU, newCPURequire)
 			}
 			if newMemRequire < minMemory {
-				return nil, fmt.Errorf("Memory can not below zero %v", newMemRequire)
+				return nil, types.NewDetailedErr(types.ErrBadMemory, newMemRequire)
 			}
 
 			// init data
@@ -116,7 +115,7 @@ func (c *Calcium) reallocNodesMemory(ctx context.Context, podname string, nodeCo
 	defer lock.Unlock(ctx)
 	for node, containers := range nodeContainers {
 		if cap := int(node.MemCap / memory); cap < len(containers) {
-			return fmt.Errorf("Not enough resource %s", node.Name)
+			return types.NewDetailedErr(types.ErrInsufficientRes, node.Name)
 		}
 		if err := c.store.UpdateNodeResource(ctx, podname, node.Name, types.CPUMap{}, int64(len(containers))*memory, "-"); err != nil {
 			return err
@@ -268,7 +267,7 @@ func (c *Calcium) reallocNodesCPUMem(
 				}
 				// 这里只有1个节点，肯定会出现1个节点的解决方案
 				if total < need || len(nodeCPUPlans) != 1 {
-					return nil, fmt.Errorf("Not enough resource")
+					return nil, types.ErrInsufficientRes
 				}
 
 				cpuCost := types.CPUMap{}

@@ -18,12 +18,13 @@ type titanium struct{}
 // connect to network with ipv4 address
 func (t *titanium) ConnectToNetwork(ctx context.Context, containerID, networkID, ipv4 string) error {
 	if len(containerID) != 64 {
-		return fmt.Errorf("ContainerID must be in length of 64")
+		return types.ErrBadContainerID
 	}
 
 	engine, ok := utils.GetDockerEngineFromContext(ctx)
 	if !ok {
-		return fmt.Errorf("Not actually a `engineapi.Client` for value engine in context")
+		return types.NewDetailedErr(types.ErrCannotGetEngine,
+			fmt.Sprintf("Not actually a `engineapi.Client` for value engine in context"))
 	}
 
 	config := &enginenetwork.EndpointSettings{
@@ -35,7 +36,7 @@ func (t *titanium) ConnectToNetwork(ctx context.Context, containerID, networkID,
 	if ipv4 != "" {
 		ip := net.ParseIP(ipv4)
 		if ip == nil {
-			return fmt.Errorf("IP Address is not valid: %v", ipv4)
+			return types.NewDetailedErr(types.ErrBadIPAddress, ipv4)
 		}
 
 		config.IPAMConfig.IPv4Address = ip.String()
@@ -48,12 +49,13 @@ func (t *titanium) ConnectToNetwork(ctx context.Context, containerID, networkID,
 // disconnect from network
 func (t *titanium) DisconnectFromNetwork(ctx context.Context, containerID, networkID string) error {
 	if len(containerID) != 64 {
-		return fmt.Errorf("ContainerID must be in length of 64")
+		return types.ErrBadContainerID
 	}
 
 	engine, ok := utils.GetDockerEngineFromContext(ctx)
 	if !ok {
-		return fmt.Errorf("Not actually a `engineapi.Client` for value engine in context")
+		return types.NewDetailedErr(types.ErrCannotGetEngine,
+			fmt.Sprintf("Not actually a `engineapi.Client` for value engine in context"))
 	}
 
 	log.Debugf("[DisconnectFromNetwork] Disconnect %v from %v", containerID, networkID)
@@ -65,7 +67,8 @@ func (t *titanium) ListNetworks(ctx context.Context, driver string) ([]*types.Ne
 	networks := []*types.Network{}
 	engine, ok := utils.GetDockerEngineFromContext(ctx)
 	if !ok {
-		return networks, fmt.Errorf("Not actually a `engineapi.Client` for value engine in context")
+		return networks, types.NewDetailedErr(types.ErrCannotGetEngine,
+			fmt.Sprintf("Not actually a `engineapi.Client` for value engine in context"))
 	}
 
 	filters := enginefilters.NewArgs()

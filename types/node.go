@@ -2,7 +2,6 @@ package types
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/url"
 	"sync"
@@ -73,7 +72,7 @@ func (n *Node) Info(ctx context.Context) (enginetypes.Info, error) {
 	infoCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	if n.Engine == nil {
-		return enginetypes.Info{}, fmt.Errorf("Node engine is nil")
+		return enginetypes.Info{}, ErrNilEngine
 	}
 	return n.Engine.Info(infoCtx)
 }
