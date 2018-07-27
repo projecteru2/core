@@ -30,7 +30,7 @@ func newPotassium() (*Potassium, error) {
 	return potassium, nil
 }
 
-func generateNodes(nums, cores int, memory, shares int64) []types.NodeInfo {
+func generateNodes(nums, cores int, memory int64, shares int) []types.NodeInfo {
 	var name string
 	nodes := []types.NodeInfo{}
 
@@ -56,7 +56,7 @@ func generateNodes(nums, cores int, memory, shares int64) []types.NodeInfo {
 	return nodes
 }
 
-func getNodesCapacity(nodes []types.NodeInfo, cpu float64, shares, maxshare int64) int {
+func getNodesCapacity(nodes []types.NodeInfo, cpu float64, shares, maxshare int) int {
 	var res int
 	var host *host
 	var plan []types.CPUMap
@@ -83,12 +83,6 @@ func checkAvgPlan(res map[string][]types.CPUMap, minCon int, maxCon int, name st
 		}
 	}
 	if minC != minCon || maxC != maxCon {
-		//fmt.Println(name)
-		//fmt.Println("min: ", minC)
-		//fmt.Println("max: ", maxC)
-		//for k, v := range res {
-		//	fmt.Println(k, ":", len(v))
-		//}
 		return fmt.Errorf("alloc plan error")
 	}
 	return nil
@@ -260,11 +254,11 @@ func SelectMemoryNodes(k *Potassium, nodesInfo []types.NodeInfo, rate, memory in
 
 func TestSelectCPUNodes(t *testing.T) {
 	k, _ := newPotassium()
+	mem := int64(4 * 1024 * 1024 * 1024)
 
 	_, _, err := SelectCPUNodes(k, []types.NodeInfo{}, 1, 1, 1, false)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "No nodes provide to choose some")
-	mem := int64(4 * 1024 * 1024 * 1024)
 
 	nodes := generateNodes(2, 2, mem, 10)
 	_, _, err = SelectCPUNodes(k, nodes, 0.5, 1, 1, false)
@@ -293,7 +287,7 @@ func TestSelectCPUNodes(t *testing.T) {
 		assert.Contains(t, []string{"n0", "n1"}, nodename)
 		// assert.Equal(t, len(cpus), 1)
 		cpu := cpus[0]
-		assert.Equal(t, cpu.Total(), int64(10))
+		assert.Equal(t, cpu.Total(), 10)
 	}
 
 	// SelectCPUNodes 里有一些副作用, 粗暴地拿一个新的来测试吧
@@ -307,7 +301,7 @@ func TestSelectCPUNodes(t *testing.T) {
 		assert.Equal(t, len(cpus), 1)
 
 		cpu := cpus[0]
-		assert.Equal(t, cpu.Total(), int64(13))
+		assert.Equal(t, cpu.Total(), 13)
 	}
 }
 
@@ -441,20 +435,218 @@ func TestComplexNodes(t *testing.T) {
 	assert.Equal(t, len(res6), 5)
 }
 
-func TestCPUOverSell(t *testing.T) {
+func TestCPUWithMaxShareLimit(t *testing.T) {
 	coreCfg := newConfig()
-	coreCfg.Scheduler.ShareBase = 5
+	coreCfg.Scheduler.ShareBase = 100
+	coreCfg.Scheduler.MaxShare = 2
 	k, err := New(coreCfg)
 	if err != nil {
 		t.Fatalf("Create Potassim error: %v", err)
 	}
 
-	//test1
-	nodes := getComplexNodes()
+	// oversell
+	nodes := []types.NodeInfo{
+		types.NodeInfo{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{"0": 100, "1": 100, "2": 100, "3": 100, "4": 100, "5": 100},
+				MemCap: 12400000,
+			},
+			Name: "nodes1",
+		},
+	}
+
 	_, _, err = SelectCPUNodes(k, nodes, 1.7, 1, 3, false)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "vol: 2")
+}
+
+func TestCpuOverSell(t *testing.T) {
+	coreCfg := newConfig()
+	coreCfg.Scheduler.ShareBase = 100
+	k, err := New(coreCfg)
+	if err != nil {
+		t.Fatalf("Create Potassim error: %v", err)
+	}
+
+	// oversell
+	nodes := []types.NodeInfo{
+		types.NodeInfo{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{"0": 300, "1": 300},
+				MemCap: 12400000,
+			},
+			Name: "nodes1",
+		},
+	}
+
+	r, c, err := SelectCPUNodes(k, nodes, 2, 1, 3, false)
+	assert.NoError(t, err)
+	assert.Equal(t, r["nodes1"][0]["0"], 100)
+	assert.Equal(t, r["nodes1"][0]["1"], 100)
+	assert.Equal(t, c["nodes1"]["0"], 0)
+	assert.Equal(t, c["nodes1"]["1"], 0)
+
+	// oversell fragment
+	nodes = []types.NodeInfo{
+		types.NodeInfo{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{"0": 300},
+				MemCap: 12400000,
+			},
+			Name: "nodes1",
+		},
+	}
+
+	_, _, err = SelectCPUNodes(k, nodes, 0.5, 1, 6, false)
 	assert.NoError(t, err)
 
-	//TODO 增加其他测试吧，这里应该是没问题的
+	// one core oversell
+	nodes = []types.NodeInfo{
+		types.NodeInfo{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{"0": 300},
+				MemCap: 12400000,
+			},
+			Name: "nodes1",
+		},
+	}
+
+	_, _, err = SelectCPUNodes(k, nodes, 1, 1, 2, false)
+	assert.NoError(t, err)
+
+	// balance
+	nodes = []types.NodeInfo{
+		types.NodeInfo{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{"0": 100, "1": 200, "2": 300},
+				MemCap: 12400000,
+			},
+			Name: "nodes1",
+		},
+	}
+	_, c, err = SelectCPUNodes(k, nodes, 1, 1, 2, false)
+	assert.NoError(t, err)
+	assert.Equal(t, c["nodes1"]["0"], 0)
+	assert.Equal(t, c["nodes1"]["1"], 100)
+
+	// complex
+	nodes = []types.NodeInfo{
+		types.NodeInfo{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{"0": 50, "1": 100, "2": 300, "3": 70, "4": 200, "5": 30, "6": 230},
+				MemCap: 12400000,
+			},
+			Name: "nodes1",
+		},
+	}
+	_, _, err = SelectCPUNodes(k, nodes, 1.7, 1, 2, false)
+	assert.NoError(t, err)
+
+	nodes = []types.NodeInfo{
+		types.NodeInfo{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{"0": 70, "1": 100, "2": 400},
+				MemCap: 12400000,
+			},
+			Name: "nodes1",
+		},
+	}
+	_, c, err = SelectCPUNodes(k, nodes, 1.3, 1, 4, false)
+	assert.NoError(t, err)
+	assert.Equal(t, c["nodes1"]["0"], 10)
+	assert.Equal(t, c["nodes1"]["1"], 40)
+	assert.Equal(t, c["nodes1"]["2"], 0)
+}
+
+func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
+	coreCfg := newConfig()
+	coreCfg.Scheduler.ShareBase = 100
+	k, err := New(coreCfg)
+	if err != nil {
+		t.Fatalf("Create Potassim error: %v", err)
+	}
+
+	// oversell
+	nodes := []types.NodeInfo{
+		types.NodeInfo{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{"0": 300, "1": 300},
+				MemCap: 12400000,
+			},
+			Name: "nodes1",
+		},
+	}
+
+	_, _, err = SelectCPUNodes(k, nodes, 1.7, 1, 1, false)
+	assert.NoError(t, err)
+
+	// stable fragment core
+	nodes = []types.NodeInfo{
+		types.NodeInfo{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{"0": 230, "1": 200},
+				MemCap: 12400000,
+			},
+			Name: "nodes1",
+		},
+	}
+	_, changed, err := SelectCPUNodes(k, nodes, 1.7, 1, 1, false)
+	assert.NoError(t, err)
+	assert.Equal(t, changed["nodes1"]["0"], 160)
+	nodes[0].CPUAndMem.CpuMap = changed["nodes1"]
+	nodes[0].Deploy = 0
+	nodes[0].Count = 0
+	nodes[0].Capacity = 0
+	_, changed, err = SelectCPUNodes(k, nodes, 0.3, 1, 1, false)
+	assert.NoError(t, err)
+	assert.Equal(t, changed["nodes1"]["0"], 130)
+	assert.Equal(t, changed["nodes1"]["1"], 100)
+
+	// complex node
+	nodes = []types.NodeInfo{
+		types.NodeInfo{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{"0": 230, "1": 80, "2": 300, "3": 200},
+				MemCap: 12400000,
+			},
+			Name: "nodes1",
+		},
+	}
+	_, changed, err = SelectCPUNodes(k, nodes, 1.7, 1, 2, false)
+	assert.NoError(t, err)
+	assert.Equal(t, changed["nodes1"]["0"], 160)
+	assert.Equal(t, changed["nodes1"]["1"], 10)
+
+	// consume full core
+	nodes = []types.NodeInfo{
+		types.NodeInfo{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{"0": 70, "1": 50, "2": 100, "3": 100, "4": 100},
+				MemCap: 12400000,
+			},
+			Name: "nodes1",
+		},
+	}
+	_, changed, err = SelectCPUNodes(k, nodes, 1.7, 1, 2, false)
+	assert.NoError(t, err)
+	assert.Equal(t, changed["nodes1"]["0"], 0)
+	assert.Equal(t, changed["nodes1"]["1"], 50)
+
+	// consume less fragment core
+	nodes = []types.NodeInfo{
+		types.NodeInfo{
+			CPUAndMem: types.CPUAndMem{
+				CpuMap: types.CPUMap{"0": 70, "1": 50, "2": 90},
+				MemCap: 12400000,
+			},
+			Name: "nodes1",
+		},
+	}
+	_, changed, err = SelectCPUNodes(k, nodes, 0.5, 1, 2, false)
+	assert.NoError(t, err)
+	assert.Equal(t, changed["nodes1"]["0"], 20)
+	assert.Equal(t, changed["nodes1"]["1"], 0)
+	assert.Equal(t, changed["nodes1"]["2"], 90)
 }
 
 func TestEvenPlan(t *testing.T) {

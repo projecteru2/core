@@ -88,7 +88,7 @@ func (m *MockStore) GetNode(ctx context.Context, pod, node string) (*types.Node,
 }
 
 // AddNode fake add node
-func (m *MockStore) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu int, share, memory int64, labels map[string]string) (*types.Node, error) {
+func (m *MockStore) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string) (*types.Node, error) {
 	args := m.Called(name, endpoint, podname, ca, cert, key, cpu, share, memory, labels)
 	if args.Get(0) != nil {
 		return args.Get(0).(*types.Node), args.Error(1)

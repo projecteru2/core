@@ -19,7 +19,7 @@ import (
 
 // AddNode save it to etcd
 // storage path in etcd is `/pod/:podname/node/:nodename/info`
-func (k *Krypton) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu int, share, memory int64, labels map[string]string) (*types.Node, error) {
+func (k *Krypton) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string) (*types.Node, error) {
 	if !strings.HasPrefix(endpoint, "tcp://") {
 		return nil, fmt.Errorf("Endpoint must starts with tcp:// %q", endpoint)
 	}

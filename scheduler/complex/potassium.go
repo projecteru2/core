@@ -10,7 +10,7 @@ import (
 
 // Potassium is a scheduler
 type Potassium struct {
-	maxshare, sharebase int64
+	maxshare, sharebase int
 }
 
 // New a potassium

@@ -200,8 +200,8 @@ func TestReallocResource(t *testing.T) {
 	}
 }
 
-func calculateCPUUsage(shareBase int64, container *types.Container) float64 {
-	var full, fragment int64
+func calculateCPUUsage(shareBase int, container *types.Container) float64 {
+	var full, fragment int
 	for _, usage := range container.CPU {
 		if usage == shareBase {
 			full++

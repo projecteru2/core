@@ -123,7 +123,7 @@ func TestNodes(t *testing.T) {
 		Engine: nil,
 		Labels: labels,
 	}
-	store.On("AddNode", nodename, endpoint, podname, cafile, certfile, keyfile, 0, int64(0), int64(0), labels).Return(tNode, nil)
+	store.On("AddNode", nodename, endpoint, podname, cafile, certfile, keyfile, 0, 0, int64(0), labels).Return(tNode, nil)
 	addnodeoptions := pb.AddNodeOptions{
 		Nodename: nodename,
 		Endpoint: endpoint,

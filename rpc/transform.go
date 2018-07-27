@@ -236,13 +236,17 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 	if err != nil {
 		return nil, err
 	}
+	cpu := map[string]int64{}
+	for no, pieces := range c.CPU {
+		cpu[no] = int64(pieces)
+	}
 
 	return &pb.Container{
 		Id:         c.ID,
 		Podname:    c.Podname,
 		Nodename:   c.Nodename,
 		Name:       c.Name,
-		Cpu:        c.CPU,
+		Cpu:        cpu,
 		Quota:      c.Quota,
 		Memory:     c.Memory,
 		Privileged: c.Privileged,

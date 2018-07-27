@@ -16,7 +16,7 @@ func (c *Calcium) AddPod(ctx context.Context, podname, favor, desc string) (*typ
 }
 
 // AddNode add a node in pod
-func (c *Calcium) AddNode(ctx context.Context, nodename, endpoint, podname, ca, cert, key string, cpu int, share, memory int64, labels map[string]string) (*types.Node, error) {
+func (c *Calcium) AddNode(ctx context.Context, nodename, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string) (*types.Node, error) {
 	return c.store.AddNode(ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, labels)
 }
 

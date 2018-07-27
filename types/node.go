@@ -20,12 +20,12 @@ type CPUAndMem struct {
 
 // CPUMap is cpu core map
 // CPUMap {["0"]10000, ["1"]10000}
-type CPUMap map[string]int64
+type CPUMap map[string]int
 
 // Total show total cpu
 // Total quotas
-func (c CPUMap) Total() int64 {
-	var count int64
+func (c CPUMap) Total() int {
+	var count int
 	for _, value := range c {
 		count += value
 	}

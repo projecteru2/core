@@ -47,7 +47,7 @@ func (v *Vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.N
 		opts.Cert,
 		opts.Key,
 		int(opts.Cpu),
-		opts.Share,
+		int(opts.Share),
 		opts.Memory,
 		opts.Labels,
 	)
