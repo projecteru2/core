@@ -51,8 +51,8 @@ type DockerConfig struct {
 
 // SchedConfig holds scheduler config
 type SchedConfig struct {
-	MaxShare  int64 `yaml:"maxshare"`  // comlpex scheduler use maxshare
-	ShareBase int64 `yaml:"sharebase"` // how many pieces for one core
+	MaxShare  int `yaml:"maxshare"`  // comlpex scheduler use maxshare
+	ShareBase int `yaml:"sharebase"` // how many pieces for one core
 }
 
 // SyslogConfig 用于debug模式容器的日志收集

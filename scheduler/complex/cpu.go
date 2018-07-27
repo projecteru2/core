@@ -6,178 +6,168 @@ package complexscheduler
 
 import (
 	"fmt"
-	"math"
 	"sort"
 
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
 
-func min(a, b int64) int64 {
+func min(a, b int) int {
 	if a < b {
 		return a
 	}
 	return b
 }
 
-func abs(a int64) int64 {
+func abs(a int) int {
 	if a < 0 {
 		return -a
 	}
 	return a
 }
 
-type host struct {
-	full     types.CPUMap
-	fragment types.CPUMap
-	share    int64
+type cpuInfo struct {
+	no     string
+	pieces int
 }
 
-func newHost(cpuInfo types.CPUMap, share int64) *host {
+type host struct {
+	full     []cpuInfo
+	fragment []cpuInfo
+	share    int
+}
+
+func newHost(cpusMap types.CPUMap, share int) *host {
 	result := &host{
 		share:    share,
-		full:     types.CPUMap{},
-		fragment: types.CPUMap{},
+		full:     []cpuInfo{},
+		fragment: []cpuInfo{},
 	}
-	for no, pieces := range cpuInfo {
-		if pieces >= share {
-			result.full[no] = share
+	for no, pieces := range cpusMap {
+		// 整数核不应该切分
+		if pieces >= share && pieces%share == 0 {
+			// 只给 share 份
+			result.full = append(result.full, cpuInfo{no: no, pieces: pieces})
 		} else {
-			result.fragment[no] = pieces
+			result.fragment = append(result.fragment, cpuInfo{no: no, pieces: pieces})
 		}
+	}
+	// 确保优先分配更碎片的核
+	sort.Slice(result.fragment, func(i, j int) bool { return result.fragment[i].pieces < result.fragment[j].pieces })
+	// 确保优先分配负重更大的整数核
+	sort.Slice(result.full, func(i, j int) bool { return result.full[i].pieces < result.full[j].pieces })
+
+	return result
+}
+
+func (h *host) getComplexResult(full, fragment, maxShareCore int) []types.CPUMap {
+	if maxShareCore == -1 {
+		maxShareCore = len(h.full) - full // 减枝，M == N 的情况下预留至少一个 full 量的核数
+	} else {
+		maxShareCore -= len(h.fragment)
+	}
+
+	// 计算默认情况下能部署多少个
+	fragmentResultBase := h.getFragmentResult(fragment, h.fragment)
+	fullResultBase := h.getFullResult(full, h.full)
+	fragmentResultCount := len(fragmentResultBase)
+	fullResultCount := len(fullResultBase)
+
+	baseLine := min(fragmentResultCount, fullResultCount)
+	fragmentResult := fragmentResultBase
+	fullResult := fullResultBase
+	for i := 1; i < maxShareCore+1; i++ {
+		fragmentResultBase = h.getFragmentResult(fragment, append(h.fragment, h.full[:i]...))
+		fullResultBase = h.getFullResult(full, h.full[i:])
+		fragmentResultCount = len(fragmentResultBase)
+		fullResultCount = len(fullResultBase)
+
+		canDeployNum := min(fragmentResultCount, fullResultCount)
+		if canDeployNum > baseLine {
+			baseLine = canDeployNum
+			fragmentResult = fragmentResultBase
+			fullResult = fullResultBase
+		}
+	}
+
+	result := []types.CPUMap{}
+	for i := 0; i < baseLine; i++ {
+		r := types.CPUMap{}
+		for no, pieces := range fullResult[i] {
+			if _, ok := r[no]; ok {
+				r[no] += pieces
+			} else {
+				r[no] = pieces
+			}
+		}
+		for no, pieces := range fragmentResult[i] {
+			r[no] = pieces
+		}
+		result = append(result, r)
 	}
 
 	return result
 }
 
-func (h *host) calcuatePiecesCores(full, fragment, maxShareCore int64) {
-	var fullResultNum, fragmentResultNum, canDeployNum, baseLine int64
-	var fragmentBaseResult, lenFull, count, num, flag, b, baseContainers int64
+func (h *host) getContainerCores(cpu float64, maxShareCore int) []types.CPUMap {
+	cpu = cpu * float64(h.share)
+	fullRequire := int(cpu) / h.share
+	fragmentRequire := int(cpu) % h.share
 
-	count = int64(len(h.fragment))
-	lenFull = int64(len(h.full))
-	if maxShareCore == -1 {
-		maxShareCore = lenFull - count - full // 减枝，M == N 的情况下预留至少一个 full 量的核数
-	} else {
-		maxShareCore -= count
-	}
-
-	fullResultNum = lenFull / full
-	fragmentBaseResult = 0
-	for _, pieces := range h.fragment {
-		fragmentBaseResult += pieces / fragment
-	}
-	baseLine = min(fullResultNum, fragmentBaseResult)
-
-	num = 0
-	flag = math.MaxInt64
-	baseContainers = h.share / fragment
-	var i int64
-	for i = 1; i < maxShareCore+1; i++ {
-		fullResultNum = (lenFull - i) / full
-		fragmentResultNum = fragmentBaseResult + i*baseContainers
-		// 剪枝，2者结果相近的时候最优
-		b = abs(fullResultNum - fragmentResultNum)
-		if b > flag {
-			break
-		}
-		flag = b
-		// 计算可以部署的量
-		canDeployNum = min(fullResultNum, fragmentResultNum)
-		if canDeployNum > baseLine {
-			num = i
-			baseLine = canDeployNum
-		}
-	}
-
-	num += count
-	for no, pieces := range h.full {
-		if count == num {
-			break
-		}
-		h.fragment[no] = pieces
-		count++
-		delete(h.full, no)
-	}
-}
-
-func (h *host) getContainerCores(num float64, maxShareCore int64) []types.CPUMap {
-	num = num * float64(h.share)
-
-	var full, fragment, i int64
-	var result = []types.CPUMap{}
-	var fullResult = types.CPUMap{}
-	var fragmentResult = []string{}
-
-	full = int64(num) / h.share
-	fragment = int64(num) % h.share
-
-	if full == 0 {
+	if fullRequire == 0 {
 		if maxShareCore == -1 {
 			// 这个时候就把所有的核都当成碎片核
-			maxShareCore = int64(len(h.full)) + int64(len(h.fragment))
+			maxShareCore = len(h.full) + len(h.fragment)
 		}
-		for no, pieces := range h.full {
-			if int64(len(h.fragment)) >= maxShareCore {
-				break
+		diff := maxShareCore - len(h.fragment)
+		h.fragment = append(h.fragment, h.full[:diff]...)
+
+		return h.getFragmentResult(fragmentRequire, h.fragment)
+	}
+
+	if fragmentRequire == 0 {
+		return h.getFullResult(fullRequire, h.full)
+	}
+
+	return h.getComplexResult(fullRequire, fragmentRequire, maxShareCore)
+}
+
+func (h *host) getFragmentResult(fragment int, cpus []cpuInfo) []types.CPUMap {
+	result := []types.CPUMap{}
+
+	for i := range cpus {
+		count := cpus[i].pieces / fragment
+		for j := 0; j < count; j++ {
+			result = append(result, types.CPUMap{cpus[i].no: fragment})
+		}
+	}
+	return result
+}
+
+func (h *host) getFullResult(full int, cpus []cpuInfo) []types.CPUMap {
+	result := []types.CPUMap{}
+	count := len(cpus) / full
+	newCpus := []cpuInfo{}
+	for i := 0; i < count; i++ {
+		plan := types.CPUMap{}
+		for j := i * full; j < i*full+full; j++ {
+			// 洗掉没配额的 CPU
+			last := cpus[j].pieces - h.share
+			if last > 0 {
+				newCpus = append(newCpus, cpuInfo{cpus[j].no, last})
 			}
-			h.fragment[no] = pieces
-			delete(h.full, no)
+			plan[cpus[j].no] = h.share
 		}
-		fragmentResult = h.getFragmentResult(fragment)
-		for _, no := range fragmentResult {
-			result = append(result, types.CPUMap{no: fragment})
-		}
-		return result
+		result = append(result, plan)
 	}
 
-	if fragment == 0 {
-		n := int64(len(h.full)) / full
-		for i = 0; i < n; i++ {
-			fullResult = h.getFullResult(full)
-			result = append(result, fullResult)
-		}
-		return result
-	}
-
-	// 算出最优的碎片核和整数核组合
-	h.calcuatePiecesCores(full, fragment, maxShareCore)
-	fragmentResult = h.getFragmentResult(fragment)
-	for _, no := range fragmentResult {
-		fullResult = h.getFullResult(full)
-		if int64(len(fullResult)) != full { // 可能整数核不够用了结果并不一定可靠必须再判断一次
-			return result // 减枝这时候整数核一定不够用了，直接退出，这样碎片核和整数核的计算就完成了
-		}
-		fullResult[no] = fragment
-		result = append(result, fullResult)
+	if len(newCpus)/full > 0 {
+		return append(result, h.getFullResult(full, newCpus)...)
 	}
 	return result
 }
 
-func (h *host) getFragmentResult(fragment int64) []string {
-	var result = []string{}
-	var i int64
-	for no, pieces := range h.fragment {
-		for i = 0; i < pieces/fragment; i++ {
-			result = append(result, no)
-		}
-	}
-	return result
-}
-
-func (h *host) getFullResult(full int64) types.CPUMap {
-	var result = types.CPUMap{}
-	for no, pieces := range h.full {
-		result[no] = pieces // 分配一整个核
-		delete(h.full, no)  // 干掉这个可用资源
-		if int64(len(result)) == full {
-			break
-		}
-	}
-	return result
-}
-
-func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShareCore, coreShare int64) ([]types.NodeInfo, map[string][]types.CPUMap, int, error) {
+func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShareCore, coreShare int) ([]types.NodeInfo, map[string][]types.CPUMap, int, error) {
 	var nodeContainer = map[string][]types.CPUMap{}
 	var host *host
 	var plan []types.CPUMap

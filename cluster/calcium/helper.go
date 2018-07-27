@@ -52,7 +52,7 @@ func makeMemoryPriorSetting(memory int64, cpu float64) enginecontainer.Resources
 	return resource
 }
 
-func makeCPUPriorSetting(shareBase int64, quota types.CPUMap, memory int64) enginecontainer.Resources {
+func makeCPUPriorSetting(shareBase int, quota types.CPUMap, memory int64) enginecontainer.Resources {
 	// calculate CPUShares and CPUSet
 	// scheduler won't return more than 1 share quota
 	// so the smallest share is the share numerator
