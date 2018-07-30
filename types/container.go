@@ -22,6 +22,7 @@ type Container struct {
 	Memory     int64             `json:"memory"`
 	Hook       *Hook             `json:"hook"`
 	Privileged bool              `json:"privileged"`
+	SoftLimit  bool              `json:"softlimit"`
 	Engine     *engineapi.Client `json:"-"`
 }
 

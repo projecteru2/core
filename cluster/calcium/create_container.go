@@ -300,9 +300,9 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 
 	var resource enginecontainer.Resources
 	if favor == scheduler.CPU_PRIOR {
-		resource = makeCPUPriorSetting(c.config.Scheduler.ShareBase, quota, opts.Memory)
+		resource = makeCPUPriorSetting(c.config.Scheduler.ShareBase, quota, opts.Memory, opts.SoftLimit)
 	} else if favor == scheduler.MEMORY_PRIOR {
-		resource = makeMemoryPriorSetting(opts.Memory, opts.CPUQuota)
+		resource = makeMemoryPriorSetting(opts.Memory, opts.CPUQuota, opts.SoftLimit)
 	} else {
 		return nil, nil, nil, "", fmt.Errorf("favor not support %s", favor)
 	}
@@ -357,6 +357,7 @@ func (c *Calcium) createAndStartContainer(
 		Hook:       opts.Entrypoint.Hook,
 		Privileged: opts.Entrypoint.Privileged,
 		Engine:     node.Engine,
+		SoftLimit:  opts.SoftLimit,
 	}
 	createContainerMessage := &types.CreateContainerMessage{
 		Podname:  container.Podname,

@@ -41,18 +41,22 @@ func (c *Calcium) Lock(ctx context.Context, name string, timeout int) (lock.Dist
 }
 
 // create container begin
-func makeMemoryPriorSetting(memory int64, cpu float64) enginecontainer.Resources {
+func makeMemoryPriorSetting(memory int64, cpu float64, softlimit bool) enginecontainer.Resources {
 	resource := enginecontainer.Resources{}
 	if cpu > 0 {
 		resource.CPUPeriod = cluster.CPUPeriodBase
 		resource.CPUQuota = int64(cpu * float64(cluster.CPUPeriodBase))
 	}
-	resource.Memory = memory
-	resource.MemorySwap = memory
+	if softlimit {
+		resource.MemoryReservation = memory
+	} else {
+		resource.Memory = memory
+		resource.MemorySwap = memory
+	}
 	return resource
 }
 
-func makeCPUPriorSetting(shareBase int, quota types.CPUMap, memory int64) enginecontainer.Resources {
+func makeCPUPriorSetting(shareBase int, quota types.CPUMap, memory int64, softlimit bool) enginecontainer.Resources {
 	// calculate CPUShares and CPUSet
 	// scheduler won't return more than 1 share quota
 	// so the smallest share is the share numerator
@@ -66,11 +70,16 @@ func makeCPUPriorSetting(shareBase int, quota types.CPUMap, memory int64) engine
 	}
 	cpuShares := int64(float64(shareQuota) / float64(shareBase) * float64(cluster.CPUShareBase))
 	cpuSetCpus := strings.Join(cpuIDs, ",")
-	log.Debugf("[makeCPUPriorSetting] CPU core %v CPU share %v Memory soft limit %v", cpuSetCpus, cpuShares, memory)
+	log.Debugf("[makeCPUPriorSetting] CPU core %v CPU share %v Memory limit %v", cpuSetCpus, cpuShares, memory)
 	resource := enginecontainer.Resources{
-		CPUShares:         cpuShares,
-		CpusetCpus:        cpuSetCpus,
-		MemoryReservation: memory,
+		CPUShares:  cpuShares,
+		CpusetCpus: cpuSetCpus,
+	}
+	if softlimit {
+		resource.MemoryReservation = memory
+	} else {
+		resource.Memory = memory
+		resource.MemorySwap = memory
 	}
 	return resource
 }

@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	enginecontainer "github.com/docker/docker/api/types/container"
-	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
@@ -160,35 +159,27 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 	cpu float64, memory int64) {
 
 	for _, container := range containers {
-		containerJSON, err := container.Inspect(ctx)
-		if err != nil {
-			log.Errorf("[doUpdateContainerWithMemoryPrior] get container failed %v", err)
-			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
-			continue
-		}
+		newCPU := container.Quota + cpu
+		newMemory := container.Memory + memory
 
-		cpuQuota := int64(cpu * float64(cluster.CPUPeriodBase))
-		newCPUQuota := containerJSON.HostConfig.CPUQuota + cpuQuota
-		newMemory := containerJSON.HostConfig.Memory + memory
 		// 内存不能低于 4MB
-		if newCPUQuota <= 0 || newMemory <= minMemory {
-			log.Warnf("[doUpdateContainerWithMemoryPrior] new resource invaild %s, %d, %d", containerJSON.ID, newCPUQuota, newMemory)
-			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
+		if newCPU <= 0 || newMemory <= minMemory {
+			log.Errorf("[doUpdateContainerWithMemoryPrior] new resource invaild %s, %f, %d", container.ID, newCPU, newMemory)
+			ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 			continue
 		}
-		newCPU := float64(newCPUQuota) / float64(cluster.CPUPeriodBase)
-		log.Debugf("[doUpdateContainerWithMemoryPrior] quota:%d, cpu: %f, mem: %d", newCPUQuota, newCPU, newMemory)
+		log.Debugf("[doUpdateContainerWithMemoryPrior] cpu: %f, mem: %d", newCPU, newMemory)
 
 		// CPUQuota not cpu
-		newResource := makeMemoryPriorSetting(newMemory, newCPU)
+		newResource := makeMemoryPriorSetting(newMemory, newCPU, container.SoftLimit)
 		updateConfig := enginecontainer.UpdateConfig{Resources: newResource}
-		if err := updateContainer(ctx, containerJSON.ID, node, updateConfig); err != nil {
-			log.Errorf("[doUpdateContainerWithMemoryPrior] update container failed %v, %s", err, containerJSON.ID)
-			ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: false}
+		if err := updateContainer(ctx, container.ID, node, updateConfig); err != nil {
+			log.Errorf("[doUpdateContainerWithMemoryPrior] update container failed %v, %s", err, container.ID)
+			ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 			// 如果是增加内存，失败的时候应该把内存还回去
 			if memory > 0 {
 				if err := c.store.UpdateNodeResource(ctx, podname, node.Name, types.CPUMap{}, memory, "+"); err != nil {
-					log.Errorf("[doUpdateContainerWithMemoryPrior] failed to set mem back %s", containerJSON.ID)
+					log.Errorf("[doUpdateContainerWithMemoryPrior] failed to set mem back %s", container.ID)
 				}
 			}
 			continue
@@ -196,7 +187,7 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 		// 如果是要降低内存，当执行成功的时候需要把内存还回去
 		if memory < 0 {
 			if err := c.store.UpdateNodeResource(ctx, podname, node.Name, types.CPUMap{}, -memory, "+"); err != nil {
-				log.Errorf("[doUpdateContainerWithMemoryPrior] failed to set mem back %s", containerJSON.ID)
+				log.Errorf("[doUpdateContainerWithMemoryPrior] failed to set mem back %s", container.ID)
 			}
 		}
 
@@ -208,7 +199,7 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 			ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 			return
 		}
-		ch <- &types.ReallocResourceMessage{ContainerID: containerJSON.ID, Success: true}
+		ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: true}
 	}
 }
 
@@ -337,7 +328,7 @@ func (c *Calcium) doReallocContainersWithCPUPrior(
 			containers := nodeContainers[node]
 			for index, container := range containers {
 				cpuPlan := cpuset[index]
-				resource := makeCPUPriorSetting(c.config.Scheduler.ShareBase, cpuPlan, requireMemory)
+				resource := makeCPUPriorSetting(c.config.Scheduler.ShareBase, cpuPlan, requireMemory, container.SoftLimit)
 				updateConfig := enginecontainer.UpdateConfig{Resources: resource}
 				if err := updateContainer(ctx, container.ID, node, updateConfig); err != nil {
 					log.Errorf("[doReallocContainersWithCPUPrior] update container failed %v", err)

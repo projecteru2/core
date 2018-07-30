@@ -33,6 +33,7 @@ type DeployOptions struct {
 	NodeLabels   map[string]string // NodeLabels for filter node
 	DeployMethod string            // Deploy method
 	Data         map[string][]byte // For additional file data
+	SoftLimit    bool              // softlimit memory
 }
 
 //RunAndWaitOptions is options for running and waiting
