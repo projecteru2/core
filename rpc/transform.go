@@ -117,9 +117,14 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Command:       entrypoint.Command,
 		Privileged:    entrypoint.Privileged,
 		Dir:           entrypoint.Dir,
-		LogConfig:     entrypoint.LogConfig,
 		Publish:       entrypoint.Publish,
 		RestartPolicy: entrypoint.RestartPolicy,
+	}
+
+	if entrypoint.Log != nil && entrypoint.Log.Type != "" {
+		entry.Log = &types.LogConfig{}
+		entry.Log.Type = entrypoint.Log.Type
+		entry.Log.Config = entrypoint.Log.Config
 	}
 
 	if entrypoint.Healthcheck != nil {

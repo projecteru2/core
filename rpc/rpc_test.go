@@ -203,14 +203,9 @@ func initConfig(mStore *mockstore.MockStore) (types.Config, *Vibranium) {
 			MaxShare:  -1,
 			ShareBase: 10,
 		},
-		Syslog: types.SyslogConfig{
-			Address:  "udp://localhost:5111",
-			Facility: "daemon",
-			Format:   "rfc5424",
-		},
 		Docker: types.DockerConfig{
 			APIVersion: "v1.23",
-			LogDriver:  "none",
+			Log:        types.LogConfig{Type: "none", Config: map[string]string{}},
 			BuildPod:   "dev",
 			Hub:        "hub.testhub.com",
 			Namespace:  "apps",

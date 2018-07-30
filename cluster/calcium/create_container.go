@@ -218,21 +218,18 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 
 	// log config
 	// 默认是配置里的driver, 如果entrypoint有指定就用指定的.
-	// 如果是debug模式就用syslog, 拿配置里的syslog配置来发送.
-	logDriver := c.config.Docker.LogDriver
-	if entry.LogConfig != "" {
-		logDriver = entry.LogConfig
+	// 如果用 debug 模式就用默认配置的
+	logConfig := c.config.Docker.Log
+	if logConfig.Config == nil {
+		logConfig.Config = map[string]string{}
 	}
-	logConfig := enginecontainer.LogConfig{Type: logDriver}
-	if opts.Debug {
-		logConfig.Type = "syslog"
-		logConfig.Config = map[string]string{
-			"syslog-address":  c.config.Syslog.Address,
-			"syslog-facility": c.config.Syslog.Facility,
-			"syslog-format":   c.config.Syslog.Format,
-			"tag":             fmt.Sprintf("%s {{.ID}}", opts.Name),
-		}
+	logConfig.Config["tag"] = fmt.Sprintf("%s {{.ID}}", opts.Name)
+	if entry.Log != nil && !opts.Debug {
+		logConfig.Type = entry.Log.Type
+		logConfig.Config = entry.Log.Config
 	}
+
+	containerLogConfig := enginecontainer.LogConfig{Type: logConfig.Type, Config: logConfig.Config}
 
 	// labels
 	// basic labels, and set meta in opts to labels
@@ -319,7 +316,7 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	hostConfig := &enginecontainer.HostConfig{
 		Binds:         binds,
 		DNS:           dns,
-		LogConfig:     logConfig,
+		LogConfig:     containerLogConfig,
 		NetworkMode:   engineNetworkMode,
 		RestartPolicy: enginecontainer.RestartPolicy{Name: restartPolicy, MaximumRetryCount: maximumRetryCount},
 		CapAdd:        engineslice.StrSlice(capAdd),

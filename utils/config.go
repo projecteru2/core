@@ -2,12 +2,12 @@ package utils
 
 import (
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"time"
 
 	"github.com/projecteru2/core/types"
 
+	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -16,6 +16,7 @@ const (
 	defaultPrefix = "/v2/keys"
 )
 
+// LoadConfig load config from yaml
 func LoadConfig(configPath string) (types.Config, error) {
 	config := types.Config{}
 
@@ -42,11 +43,12 @@ func LoadConfig(configPath string) (types.Config, error) {
 	if config.Docker.APIVersion == "" {
 		config.Docker.APIVersion = "1.32"
 	}
-	if config.Docker.LogDriver == "" {
-		config.Docker.LogDriver = "none"
+	// 默认是 journald
+	if config.Docker.Log.Type == "" {
+		config.Docker.Log.Type = "journald"
 	}
 	if config.Scheduler.ShareBase == 0 {
-		config.Scheduler.ShareBase = 10
+		config.Scheduler.ShareBase = 100
 	}
 	if config.Scheduler.MaxShare == 0 {
 		config.Scheduler.MaxShare = -1

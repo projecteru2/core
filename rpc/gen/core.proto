@@ -218,12 +218,17 @@ message HealthCheckOptions {
     int32 code = 4;
 }
 
+message LogOptions {
+    string type = 1;
+    map<string, string> config = 2;
+}
+
 message EntrypointOptions {
     string name = 1;
     string command = 2;
     bool privileged = 3;
     string dir = 4;
-    string log_config = 5;
+    LogOptions log = 5;
     repeated string publish = 6;
     HealthCheckOptions healthcheck = 7;
     HookOptions hook = 8;
