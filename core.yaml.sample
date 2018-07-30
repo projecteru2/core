@@ -19,7 +19,10 @@ git:
     scm_type: "github"
 
 docker:
-    log_driver: "json-file"
+    log:
+      type: "json-file"
+      config:
+        "max-size": "10m"
     network_mode: "bridge"
     cert_path: "/etc/eru/tls"
     hub: "hub.docker.com"
@@ -29,9 +32,4 @@ docker:
 
 scheduler:
     maxshare: -1
-    sharebase: 10
-
-syslog:
-    address: "udp://localhost:5111"
-    facility: "daemon"
-    format: "rfc5424"
+    sharebase: 100

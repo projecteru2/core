@@ -8,7 +8,6 @@ entrypoints:
     healthcheck:
       tcp_ports:
         - "5001"
-    log_config:"journald"
 volumes:
   - <HOST_CONFIG_DIR_PATH>: /etc/eru
 stages:

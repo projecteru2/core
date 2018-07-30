@@ -18,7 +18,6 @@ type Config struct {
 	Etcd      EtcdConfig   `yaml:"etcd"`
 	Docker    DockerConfig `yaml:"docker"`
 	Scheduler SchedConfig  `yaml:"scheduler"`
-	Syslog    SyslogConfig `yaml:"syslog"`
 }
 
 // EtcdConfig holds eru-core etcd config
@@ -39,27 +38,26 @@ type GitConfig struct {
 // DockerConfig holds eru-core docker config
 type DockerConfig struct {
 	APIVersion  string                `yaml:"version"`      // docker API version
-	LogDriver   string                `yaml:"log_driver"`   // docker log driver, can be "json-file", "none"
 	NetworkMode string                `yaml:"network_mode"` // docker network mode
 	CertPath    string                `yaml:"cert_path"`    // docker cert files path
 	Hub         string                `yaml:"hub"`          // docker hub address
 	Namespace   string                `yaml:"namespace"`    // docker hub prefix, will be set to $Hub/$HubPrefix/$appname
 	BuildPod    string                `yaml:"build_pod"`    // podname used to build
 	UseLocalDNS bool                  `yaml:"local_dns"`    // use node IP as dns
+	Log         LogConfig             `yaml:"log"`          // docker log driver
 	AuthConfigs map[string]AuthConfig `yaml:"auths"`        // docker registry credentials
+}
+
+// LogConfig define log type
+type LogConfig struct {
+	Type   string            `yaml:"type"`   // Log type, can be "journald", "json-file", "none"
+	Config map[string]string `yaml:"config"` // Log configs
 }
 
 // SchedConfig holds scheduler config
 type SchedConfig struct {
 	MaxShare  int `yaml:"maxshare"`  // comlpex scheduler use maxshare
 	ShareBase int `yaml:"sharebase"` // how many pieces for one core
-}
-
-// SyslogConfig 用于debug模式容器的日志收集
-type SyslogConfig struct {
-	Address  string `yaml:"address"`
-	Facility string `yaml:"facility"`
-	Format   string `yaml:"format"`
 }
 
 // AuthConfig contains authorization information for connecting to a Registry

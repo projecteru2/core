@@ -20,7 +20,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 	ch := make(chan *types.RunAndWaitMessage)
 
 	// 强制为 json-file 输出
-	opts.Entrypoint.LogConfig = "json-file"
+	opts.Entrypoint.Log = &types.LogConfig{Type: "json-file"}
 
 	// count = 1 && OpenStdin
 	if opts.OpenStdin && (opts.Count != 1 || opts.DeployMethod != cluster.DeployAuto) {
