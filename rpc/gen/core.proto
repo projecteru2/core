@@ -258,6 +258,7 @@ message DeployOptions {
     map<string, string> nodelabels = 20;
     string deploy_method = 21;
     map<string, bytes> data = 22;
+    bool softlimit = 23;
 }
 
 message RemoveImageOptions {
