@@ -87,7 +87,7 @@ Make sure you can clone code by ssh protocol because libgit2 ask for it. So you 
 2. Deploy core itself
 
 ```shell
-<cli_execute_path> container deploy --pod <pod_name> [--node <node_name>] --entry core --network <network_name> --image <projecteru2/core>|<your_own_image> --count <count_num> [--cpu 0.3 | --mem 1024000000] https://goo.gl/KTGJ9k
+<cli_execute_path> container deploy --pod <pod_name> [--node <node_name>] --entry core --network <network_name> --image <projecteru2/core>|<your_own_image> --file <core_config_yaml>:/core.yaml [--count <count_num>] [--cpu 0.3 | --mem 1024000000] https://goo.gl/KTGJ9k
 ```
 
 Now you will find core was started in nodes.

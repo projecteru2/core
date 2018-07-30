@@ -1,15 +1,13 @@
 appname: "eru"
 entrypoints:
   core:
-    cmd: "/usr/bin/eru-core"
+    cmd: "/usr/bin/eru-core --config /core.yaml"
     restart: always
     publish:
       - "5001"
     healthcheck:
       tcp_ports:
         - "5001"
-volumes:
-  - <HOST_CONFIG_DIR_PATH>: /etc/eru
 stages:
   - build
   - pack
@@ -27,10 +25,6 @@ builds:
       - make binary
     cache:
       /go/src/github.com/projecteru2/core/eru-core: /usr/bin/eru-core
-      /go/src/github.com/projecteru2/core/core.yaml.sample: /etc/eru/core.yaml.sample
-    # envs:
-    #   HTTP_PROXY: <HTTP_PROXY>
-    #   HTTPS_PROXY: <HTTPS_PROXY>
   pack:
     base: alpine:3.8
     labels:
@@ -42,5 +36,4 @@ builds:
     commands:
       - apk add --no-cache libgit2
       - rm -rf /var/cache/apk/*
-      - mkdir -p /etc/eru/
 
