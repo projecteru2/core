@@ -8,11 +8,12 @@ import (
 type Config struct {
 	LogLevel      string        `yaml:"log_level"`
 	Bind          string        `yaml:"bind"`           // HTTP API address
-	Statsd        string        `yaml:"statsd"`         // Statsd host and port
+	Statsd        string        `yaml:"statsd"`         // statsd host and port
 	Profile       string        `yaml:"profile"`        // profile ip:port
 	ImageCache    int           `yaml:"image_cache"`    // cache image count
 	LockTimeout   int           `yaml:"lock_timeout"`   // timeout for lock (ttl)
 	GlobalTimeout time.Duration `yaml:"global_timeout"` // timeout for remove, run_and_wait and build, in second
+	Auth          AuthConfig    `yaml:"auth"`           // grpc auth
 
 	Git       GitConfig    `yaml:"git"`
 	Etcd      EtcdConfig   `yaml:"etcd"`
@@ -63,6 +64,7 @@ type SchedConfig struct {
 // AuthConfig contains authorization information for connecting to a Registry
 // Basically copied from https://github.com/moby/moby/blob/16a1736b9b93e44c898f95d670bbaf20a558103d/api/types/auth.go#L4
 // But use yaml instead of json
+// And we use it as grpc simple auth
 type AuthConfig struct {
 	Username string `yaml:"username,omitempty" json:"username,omitempty"`
 	Password string `yaml:"password,omitempty" json:"password,omitempty"`

@@ -9,14 +9,15 @@ import (
 	"os/signal"
 	"syscall"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/codegangsta/cli"
+	"github.com/projecteru2/core/auth"
 	"github.com/projecteru2/core/cluster/calcium"
 	"github.com/projecteru2/core/rpc"
 	"github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/stats"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/versioninfo"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
@@ -69,6 +70,15 @@ func serve() {
 	}
 
 	opts := []grpc.ServerOption{grpc.MaxConcurrentStreams(100)}
+
+	if config.Auth.Username != "" {
+		log.Info("[main] Cluster auth enable.")
+		auth := auth.NewAuth(config)
+		opts = append(opts, grpc.StreamInterceptor(auth.StreamInterceptor))
+		opts = append(opts, grpc.UnaryInterceptor(auth.UnaryInterceptor))
+		log.Infof("[main] Username %s Password %s", config.Auth.Username, config.Auth.Password)
+	}
+
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterCoreRPCServer(grpcServer, vibranium)
 	go grpcServer.Serve(s)

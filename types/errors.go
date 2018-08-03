@@ -40,6 +40,10 @@ var (
 
 	ErrCannotGetEngine = errors.New("cannot get engine")
 	ErrNilEngine       = errors.New("engine is nil")
+
+	ErrBadMeta         = errors.New("bad meta")
+	ErrInvaildPassword = errors.New("invaild password")
+	ErrInvaildUsername = errors.New("invaild username")
 )
 
 // NewDetailedErr returns an error with details
