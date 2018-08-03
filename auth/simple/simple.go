@@ -40,7 +40,7 @@ func (b *BasicAuth) StreamInterceptor(srv interface{}, stream grpc.ServerStream,
 	if err := b.auth(ctx); err != nil {
 		return err
 	}
-	return handler(ctx, stream)
+	return handler(srv, stream)
 }
 
 // UnaryInterceptor define unary interceptor
