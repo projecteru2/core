@@ -10,10 +10,10 @@ import (
 	"golang.org/x/net/context"
 )
 
-func toRPCCPUMap(m types.CPUMap) map[string]int64 {
-	cpu := make(map[string]int64)
+func toRPCCPUMap(m types.CPUMap) map[string]int32 {
+	cpu := make(map[string]int32)
 	for label, value := range m {
-		cpu[label] = int64(value)
+		cpu[label] = int32(value)
 	}
 	return cpu
 }
@@ -242,10 +242,8 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 	if err != nil {
 		return nil, err
 	}
-	cpu := map[string]int64{}
-	for no, pieces := range c.CPU {
-		cpu[no] = int64(pieces)
-	}
+
+	cpu := toRPCCPUMap(c.CPU)
 
 	return &pb.Container{
 		Id:         c.ID,
