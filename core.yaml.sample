@@ -6,6 +6,10 @@ profile: ":12346"
 global_timeout: 300
 lock_timeout: 30
 
+auth:
+    username: admin
+    password: password
+
 etcd:
     machines:
         - "http://127.0.0.1:2379"

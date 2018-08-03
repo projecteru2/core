@@ -1,5 +1,5 @@
-hash: b2d5dbb92f685f99a1c869a41a5148badd8af12c4ad51d7076c94333af6e2b62
-updated: 2018-07-24T11:57:25.252438+08:00
+hash: bc5ad346e2f60e20b5246af0f1d0fbf00d1f0da1b719cf0c6b0c552fa7f35ea1
+updated: 2018-08-03T10:45:59.75994+08:00
 imports:
 - name: github.com/Azure/go-ansiterm
   version: d6e3b3328b783f23731bc4d058875b0371ff8109
@@ -14,7 +14,7 @@ imports:
   subpackages:
   - pathdriver
 - name: github.com/coreos/etcd
-  version: 33245c6b5b49130ca99280408fadfab01aac0e48
+  version: fca8add78a9d926166eb739b8e4a124434025ba3
   subpackages:
   - auth/authpb
   - client
@@ -86,7 +86,7 @@ imports:
   - registry
   - registry/resumable
 - name: github.com/docker/go-connections
-  version: 3ede32e2033de7505e6500d6c868c2b9ed9f169d
+  version: 7395e3f8aa162843a74ed6d48e79627d9792ac55
   subpackages:
   - nat
   - sockets
