@@ -76,7 +76,7 @@ message Node {
     string name = 1;
     string endpoint = 2;
     string podname = 3;
-    map<string, int64> cpu = 4;
+    map<string, int32> cpu = 4;
     int64 memory = 5;
     string info = 6;
     bool available = 7;
@@ -98,7 +98,7 @@ message Container {
     string podname = 2;
     string nodename = 3;
     string name = 4;
-    map<string, int64> cpu = 5;
+    map<string, int32> cpu = 5;
     double quota = 6;
     int64 memory = 7;
     bool privileged = 8;
@@ -158,7 +158,7 @@ message AddNodeOptions {
     string cert = 5;
     string key = 6;
     int32 cpu = 7;
-    int64 share = 8;
+    int32 share = 8;
     int64 memory = 9;
     map<string, string> labels = 10;
 }
@@ -296,7 +296,7 @@ message CreateContainerMessage {
     string name = 4;
     string error = 5;
     bool success = 6;
-    map<string, int64> cpu = 7;
+    map<string, int32> cpu = 7;
     double quota = 8;
     int64 memory = 9;
     map<string, string> publish = 10;
