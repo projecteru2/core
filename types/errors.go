@@ -7,7 +7,7 @@ import (
 
 // errors
 var (
-	ErrInsufficientCPU   = errors.New("cannot alloc a plan, not enough cpu rate")
+	ErrInsufficientCPU   = errors.New("cannot alloc a plan, not enough cpu")
 	ErrInsufficientMEM   = errors.New("cannot alloc a plan, not enough memory")
 	ErrInsufficientCap   = errors.New("cannot alloc a each node plan, not enough capacity")
 	ErrInsufficientRes   = errors.New("not enough resource")

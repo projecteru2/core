@@ -170,7 +170,7 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 		log.Debugf("[doUpdateContainerWithMemoryPrior] cpu: %f, mem: %d", newCPU, newMemory)
 
 		// CPUQuota not cpu
-		newResource := makeMemoryPriorSetting(newMemory, newCPU, container.SoftLimit)
+		newResource := makeResourceSetting(newCPU, newMemory, nil, container.SoftLimit)
 		updateConfig := enginecontainer.UpdateConfig{Resources: newResource}
 		if err := updateContainer(ctx, container.ID, node, updateConfig); err != nil {
 			log.Errorf("[doUpdateContainerWithMemoryPrior] update container failed %v, %s", err, container.ID)
@@ -327,7 +327,7 @@ func (c *Calcium) doReallocContainersWithCPUPrior(
 			containers := nodeContainers[node]
 			for index, container := range containers {
 				cpuPlan := cpuset[index]
-				resource := makeCPUPriorSetting(c.config.Scheduler.ShareBase, cpuPlan, requireMemory, container.SoftLimit)
+				resource := makeResourceSetting(quota, requireMemory, cpuPlan, container.SoftLimit)
 				updateConfig := enginecontainer.UpdateConfig{Resources: resource}
 				if err := updateContainer(ctx, container.ID, node, updateConfig); err != nil {
 					log.Errorf("[doReallocContainersWithCPUPrior] update container failed %v", err)

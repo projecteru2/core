@@ -40,40 +40,18 @@ func (c *Calcium) Lock(ctx context.Context, name string, timeout int) (lock.Dist
 	return lock, nil
 }
 
-// create container begin
-func makeMemoryPriorSetting(memory int64, cpu float64, softlimit bool) enginecontainer.Resources {
+func makeResourceSetting(cpu float64, memory int64, cpuMap types.CPUMap, softlimit bool) enginecontainer.Resources {
 	resource := enginecontainer.Resources{}
 	if cpu > 0 {
 		resource.CPUPeriod = cluster.CPUPeriodBase
 		resource.CPUQuota = int64(cpu * float64(cluster.CPUPeriodBase))
 	}
-	if softlimit {
-		resource.MemoryReservation = memory
-	} else {
-		resource.Memory = memory
-		resource.MemorySwap = memory
-	}
-	return resource
-}
-
-func makeCPUPriorSetting(shareBase int, quota types.CPUMap, memory int64, softlimit bool) enginecontainer.Resources {
-	// calculate CPUShares and CPUSet
-	// scheduler won't return more than 1 share quota
-	// so the smallest share is the share numerator
-	shareQuota := shareBase
-	cpuIDs := []string{}
-	for cpuID, share := range quota {
-		cpuIDs = append(cpuIDs, cpuID)
-		if share < shareQuota {
-			shareQuota = share
+	if cpuMap != nil && len(cpuMap) > 0 {
+		cpuIDs := []string{}
+		for cpuID := range cpuMap {
+			cpuIDs = append(cpuIDs, cpuID)
 		}
-	}
-	cpuShares := int64(float64(shareQuota) / float64(shareBase) * float64(cluster.CPUShareBase))
-	cpuSetCpus := strings.Join(cpuIDs, ",")
-	log.Debugf("[makeCPUPriorSetting] CPU core %v CPU share %v Memory limit %v", cpuSetCpus, cpuShares, memory)
-	resource := enginecontainer.Resources{
-		CPUShares:  cpuShares,
-		CpusetCpus: cpuSetCpus,
+		resource.CpusetCpus = strings.Join(cpuIDs, ",")
 	}
 	if softlimit {
 		resource.MemoryReservation = memory
@@ -400,11 +378,10 @@ func filterNode(node *types.Node, labels map[string]string) bool {
 func getNodesInfo(cpuAndMemData map[string]types.CPUAndMem) []types.NodeInfo {
 	result := []types.NodeInfo{}
 	for nodename, cpuAndMem := range cpuAndMemData {
-		cpuRate := int64(len(cpuAndMem.CpuMap)) * cluster.CPUPeriodBase
 		n := types.NodeInfo{
 			CPUAndMem: cpuAndMem,
 			Name:      nodename,
-			CPURate:   cpuRate,
+			CPUs:      len(cpuAndMem.CpuMap),
 			Capacity:  0,
 			Count:     0,
 			Deploy:    0,

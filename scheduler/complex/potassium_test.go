@@ -49,7 +49,7 @@ func generateNodes(nums, cores int, memory int64, shares int) []types.NodeInfo {
 		nodeInfo := types.NodeInfo{
 			CPUAndMem: cpuandmem,
 			Name:      name,
-			CPURate:   2e9,
+			CPUs:      20,
 		}
 		nodes = append(nodes, nodeInfo)
 	}
@@ -238,7 +238,7 @@ func SelectCPUNodes(k *Potassium, nodesInfo []types.NodeInfo, quota float64, mem
 	return result, changed, nil
 }
 
-func SelectMemoryNodes(k *Potassium, nodesInfo []types.NodeInfo, rate, memory int64, need int, each bool) ([]types.NodeInfo, error) {
+func SelectMemoryNodes(k *Potassium, nodesInfo []types.NodeInfo, rate float64, memory int64, need int, each bool) ([]types.NodeInfo, error) {
 	nodesInfo, total, err := k.SelectMemoryNodes(nodesInfo, rate, memory)
 	if err != nil {
 		return nodesInfo, err
@@ -818,12 +818,11 @@ func Benchmark_MemAlloc(b *testing.B) {
 	var memory int64 = 1024 * 1024 * 128
 	// Max vol is 128G/128M * 10000 nodes
 	var need = 10240000
-	var rate int64 = 1024
 	for i := 0; i < b.N; i++ {
 		// 24 core, 128G memory, 10 pieces per core
 		hugePod := generateNodes(count, 24, 128*types.GByte, 10)
 		b.StartTimer()
-		r, err := SelectMemoryNodes(k, hugePod, rate, memory, need, false)
+		r, err := SelectMemoryNodes(k, hugePod, 1, memory, need, false)
 		b.StopTimer()
 		assert.NoError(b, err)
 		assert.Equal(b, len(r), count)
@@ -836,7 +835,8 @@ func TestSelectMemoryNodes(t *testing.T) {
 	mem := 4 * types.GByte
 	pod := generateNodes(2, 2, mem, 10)
 	k, _ := newPotassium()
-	res, err := SelectMemoryNodes(k, pod, 10000, 512*types.MByte, 4, false)
+	cpus := 1.0
+	res, err := SelectMemoryNodes(k, pod, cpus, 512*types.MByte, 4, false)
 	assert.NoError(t, err)
 	for _, node := range res {
 		assert.Equal(t, node.Deploy, 2)
@@ -844,13 +844,13 @@ func TestSelectMemoryNodes(t *testing.T) {
 
 	// 4 nodes [1 container per node]
 	pod = generateNodes(4, 2, mem, 10)
-	res, err = SelectMemoryNodes(k, pod, 10000, 512*types.MByte, 1, false)
+	res, err = SelectMemoryNodes(k, pod, cpus, 512*types.MByte, 1, false)
 	assert.NoError(t, err)
 	assert.Equal(t, res[0].Deploy, 1)
 
 	// 4 nodes [1 container per node]
 	pod = generateNodes(4, 2, mem, 10)
-	res, err = SelectMemoryNodes(k, pod, 10000, 512*types.MByte, 4, false)
+	res, err = SelectMemoryNodes(k, pod, cpus, 512*types.MByte, 4, false)
 	assert.NoError(t, err)
 	for _, node := range res {
 		assert.Equal(t, node.Deploy, 1)
@@ -861,14 +861,14 @@ func TestSelectMemoryNodes(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		pod[i].Count += i
 	}
-	res, err = SelectMemoryNodes(k, pod, 10000, 512*types.MByte, 6, false)
+	res, err = SelectMemoryNodes(k, pod, cpus, 512*types.MByte, 6, false)
 	assert.NoError(t, err)
 	for i, node := range res {
 		assert.Equal(t, node.Deploy, 3-i)
 	}
 
 	pod = generateNodes(1, 2, mem, 10)
-	_, err = SelectMemoryNodes(k, pod, 10000, 0, 10, false)
+	_, err = SelectMemoryNodes(k, pod, cpus, 0, 10, false)
 	assert.EqualError(t, err, types.ErrNegativeMemory.Error())
 
 	// test each
@@ -885,13 +885,13 @@ func TestSelectMemoryNodesNotEnough(t *testing.T) {
 	// 2 nodes [mem not enough]
 	pod := generateNodes(2, 2, 4*types.GByte, 10)
 	k, _ := newPotassium()
-	_, err := SelectMemoryNodes(k, pod, 10000, 512*types.MByte, 40, false)
+	_, err := SelectMemoryNodes(k, pod, 1, 512*types.MByte, 40, false)
 	assert.Equal(t, types.IsDetailedErr(err), types.ErrInsufficientRes)
 	assert.Contains(t, err.Error(), "need: 40, vol: 16")
 
 	// 2 nodes [mem not enough]
 	pod = generateNodes(2, 2, mem, 10)
-	_, err = SelectMemoryNodes(k, pod, 1e9, 5*types.GByte, 1, false)
+	_, err = SelectMemoryNodes(k, pod, 1, 5*types.GByte, 1, false)
 	assert.Equal(t, err, types.ErrInsufficientMEM)
 
 	// 2 nodes [cpu not enough]
@@ -903,7 +903,8 @@ func TestSelectMemoryNodesNotEnough(t *testing.T) {
 func TestSelectMemoryNodesSequence(t *testing.T) {
 	pod := generateNodes(2, 2, 4*types.GByte, 10)
 	k, _ := newPotassium()
-	res, err := SelectMemoryNodes(k, pod, 10000, 512*types.MByte, 1, false)
+	cpu := 1.0
+	res, err := SelectMemoryNodes(k, pod, cpu, 512*types.MByte, 1, false)
 	assert.NoError(t, err)
 	for _, node := range res {
 		if node.Name == "node0" {
@@ -912,7 +913,7 @@ func TestSelectMemoryNodesSequence(t *testing.T) {
 	}
 
 	refreshPod(res)
-	res, err = SelectMemoryNodes(k, res, 10000, 512*types.MByte, 1, false)
+	res, err = SelectMemoryNodes(k, res, cpu, 512*types.MByte, 1, false)
 	assert.NoError(t, err)
 	for _, node := range res {
 		if node.Name == "node1" {
@@ -921,25 +922,25 @@ func TestSelectMemoryNodesSequence(t *testing.T) {
 	}
 
 	refreshPod(res)
-	res, err = SelectMemoryNodes(k, res, 10000, 512*types.MByte, 4, false)
+	res, err = SelectMemoryNodes(k, res, cpu, 512*types.MByte, 4, false)
 	assert.NoError(t, err)
 	assert.Equal(t, res[0].Deploy, 2)
 	assert.Equal(t, res[1].Deploy, 2)
 
 	refreshPod(res)
-	res, err = SelectMemoryNodes(k, res, 10000, 512*types.MByte, 3, false)
+	res, err = SelectMemoryNodes(k, res, cpu, 512*types.MByte, 3, false)
 	assert.NoError(t, err)
 	assert.Equal(t, res[0].Deploy+res[1].Deploy, 3)
 	assert.Equal(t, res[0].Deploy-res[1].Deploy, 1)
 
 	refreshPod(res)
-	res, err = SelectMemoryNodes(k, res, 10000, 512*types.MByte, 40, false)
+	res, err = SelectMemoryNodes(k, res, cpu, 512*types.MByte, 40, false)
 	assert.Equal(t, types.IsDetailedErr(err), types.ErrInsufficientRes)
 	assert.Contains(t, err.Error(), "need: 40, vol: 7")
 
 	// new round
 	pod = generateNodes(2, 2, 4*types.GByte, 10)
-	res, err = SelectMemoryNodes(k, pod, 10000, 512*types.MByte, 1, false)
+	res, err = SelectMemoryNodes(k, pod, cpu, 512*types.MByte, 1, false)
 	assert.NoError(t, err)
 	for _, node := range res {
 		if node.Name == "node0" {
@@ -947,7 +948,7 @@ func TestSelectMemoryNodesSequence(t *testing.T) {
 		}
 	}
 	refreshPod(res)
-	res, err = SelectMemoryNodes(k, res, 10000, 512*types.MByte, 2, false)
+	res, err = SelectMemoryNodes(k, res, cpu, 512*types.MByte, 2, false)
 	assert.NoError(t, err)
 	for _, node := range res {
 		if node.Name == "node1" {
@@ -955,7 +956,7 @@ func TestSelectMemoryNodesSequence(t *testing.T) {
 		}
 	}
 	refreshPod(res)
-	res, err = SelectMemoryNodes(k, res, 10000, 512*types.MByte, 5, false)
+	res, err = SelectMemoryNodes(k, res, cpu, 512*types.MByte, 5, false)
 	assert.NoError(t, err)
 	assert.Equal(t, res[0].Deploy+res[0].Count, 4)
 	assert.Equal(t, res[1].Deploy+res[1].Count, 4)
@@ -968,7 +969,7 @@ func TestSelectMemoryNodesGiven(t *testing.T) {
 	}
 
 	k, _ := newPotassium()
-	res, err := SelectMemoryNodes(k, pod, 10000, 512*types.MByte, 2, false)
+	res, err := SelectMemoryNodes(k, pod, 1.0, 512*types.MByte, 2, false)
 	assert.NoError(t, err)
 	for _, node := range res {
 		if node.Name == "n3" {

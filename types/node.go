@@ -98,7 +98,7 @@ func (n *Node) GetIP() string {
 type NodeInfo struct {
 	CPUAndMem
 	Name     string
-	CPURate  int64
+	CPUs     int
 	CPUPlan  []CPUMap
 	Capacity int // 可以部署几个
 	Count    int // 上面有几个了

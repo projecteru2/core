@@ -25,8 +25,8 @@ func (m *Potassium) MaxCPUIdleNode(nodes []*types.Node) *types.Node {
 }
 
 // SelectMemoryNodes filter nodes with enough memory
-func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory int64) ([]types.NodeInfo, int, error) {
-	log.Debugf("[SelectMemoryNodes] nodesInfo: %v, rate: %d, memory: %d", nodesInfo, rate, memory)
+func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64, memory int64) ([]types.NodeInfo, int, error) {
+	log.Debugf("[SelectMemoryNodes] nodesInfo: %v, cpu: %f, memory: %d", nodesInfo, quota, memory)
 	if memory <= 0 {
 		return nil, 0, types.ErrNegativeMemory
 	}
@@ -34,15 +34,15 @@ func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory i
 	nodesInfoLength := len(nodesInfo)
 
 	// 筛选出能满足 CPU 需求的
-	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].CPURate < nodesInfo[j].CPURate })
-	p := sort.Search(nodesInfoLength, func(i int) bool { return nodesInfo[i].CPURate >= rate })
+	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].CPUs < nodesInfo[j].CPUs })
+	p := sort.Search(nodesInfoLength, func(i int) bool { return float64(nodesInfo[i].CPUs) >= quota })
 	// p 最大也就是 nodesInfoLength - 1
 	if p == nodesInfoLength {
 		return nil, 0, types.ErrInsufficientCPU
 	}
 	nodesInfoLength -= p
 	nodesInfo = nodesInfo[p:]
-	log.Debugf("[SelectMemoryNodes] %d nodes has enough cpu rate", nodesInfoLength)
+	log.Debugf("[SelectMemoryNodes] %d nodes has enough cpus", nodesInfoLength)
 
 	// 计算是否有足够的内存满足需求
 	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].MemCap < nodesInfo[j].MemCap })
@@ -67,7 +67,7 @@ func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, rate, memory i
 
 // SelectCPUNodes select nodes with enough cpus
 func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, memory int64) ([]types.NodeInfo, map[string][]types.CPUMap, int, error) {
-	log.Debugf("[SelectCPUNodes] nodesInfo: %v, cpu: %v", nodesInfo, quota)
+	log.Debugf("[SelectCPUNodes] nodesInfo: %v, cpu: %f memory: %d", nodesInfo, quota, memory)
 	if quota <= 0 {
 		return nil, nil, 0, types.ErrNegativeQuota
 	}
