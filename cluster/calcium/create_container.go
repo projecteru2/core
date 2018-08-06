@@ -300,10 +300,8 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	}
 
 	var resource enginecontainer.Resources
-	if favor == scheduler.CPU_PRIOR {
-		resource = makeCPUPriorSetting(c.config.Scheduler.ShareBase, quota, opts.Memory, opts.SoftLimit)
-	} else if favor == scheduler.MEMORY_PRIOR {
-		resource = makeMemoryPriorSetting(opts.Memory, opts.CPUQuota, opts.SoftLimit)
+	if favor == scheduler.CPU_PRIOR || favor == scheduler.MEMORY_PRIOR {
+		resource = makeResourceSetting(opts.CPUQuota, opts.Memory, quota, opts.SoftLimit)
 	} else {
 		return nil, nil, nil, "", types.NewDetailedErr(types.ErrBadFaver, favor)
 	}

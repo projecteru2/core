@@ -38,9 +38,8 @@ func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, 
 
 	switch podType {
 	case scheduler.MEMORY_PRIOR:
-		cpuRate := int64(opts.CPUQuota * float64(cluster.CPUPeriodBase))
-		log.Debugf("[allocResource] Input opts.CPUQuota: %f, equal CPURate %d", opts.CPUQuota, cpuRate)
-		nodesInfo, total, err = c.scheduler.SelectMemoryNodes(nodesInfo, cpuRate, opts.Memory) // 还是以 Bytes 作单位， 不转换了
+		log.Debugf("[allocResource] Input opts.CPUQuota: %f", opts.CPUQuota)
+		nodesInfo, total, err = c.scheduler.SelectMemoryNodes(nodesInfo, opts.CPUQuota, opts.Memory) // 还是以 Bytes 作单位， 不转换了
 	case scheduler.CPU_PRIOR:
 		nodesInfo, nodeCPUPlans, total, err = c.scheduler.SelectCPUNodes(nodesInfo, opts.CPUQuota, opts.Memory)
 	default:

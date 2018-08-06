@@ -18,8 +18,6 @@ const (
 	CopyOK = "ok"
 	// CPUPeriodBase for cpu period base
 	CPUPeriodBase = 100000
-	// CPUShareBase for cpu share base
-	CPUShareBase = 102400
 	// DeployAuto for auto deploy plan
 	DeployAuto = "auto"
 	// DeployEach for each node plan
