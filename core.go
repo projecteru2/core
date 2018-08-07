@@ -73,7 +73,7 @@ func serve() {
 
 	if config.Auth.Username != "" {
 		log.Info("[main] Cluster auth enable.")
-		auth := auth.NewAuth(config)
+		auth := auth.NewAuth(config.Auth)
 		opts = append(opts, grpc.StreamInterceptor(auth.StreamInterceptor))
 		opts = append(opts, grpc.UnaryInterceptor(auth.UnaryInterceptor))
 		log.Infof("[main] Username %s Password %s", config.Auth.Username, config.Auth.Password)

@@ -15,8 +15,19 @@ type Auth interface {
 }
 
 // NewAuth return auth obj
-func NewAuth(config types.Config) Auth {
-	authConfig := config.Auth
-	basicAuth := simple.NewBasicAuth(authConfig.Username, authConfig.Password)
-	return basicAuth
+func NewAuth(auth types.AuthConfig) Auth {
+	// TODO 这里可以组装其他的方法
+	return simple.NewBasicAuth(auth.Username, auth.Password)
+}
+
+// Credential for client
+type Credential interface {
+	GetRequestMetadata(ctx context.Context, uri ...string) (map[string]string, error)
+	RequireTransportSecurity() bool
+}
+
+// NewCredential return credential obj
+func NewCredential(auth types.AuthConfig) Credential {
+	// TODO 这里可以组装其他的方法
+	return simple.NewBasicCredential(auth.Username, auth.Password)
 }
