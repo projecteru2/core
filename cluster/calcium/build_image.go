@@ -182,7 +182,11 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 	}
 
 	// tag of image, later this will be used to push image to hub
-	tag := createImageTag(c.config.Docker, opts.Name, opts.Tag)
+	tags := []string{}
+	for i := range opts.Tags {
+		tag := createImageTag(c.config.Docker, opts.Name, opts.Tags[i])
+		tags = append(tags, tag)
+	}
 
 	// create tar stream for Build API
 	buildContext, err := createTarStream(buildDir)
@@ -192,7 +196,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 
 	// must be put here because of that `defer os.RemoveAll(buildDir)`
 	buildOptions := enginetypes.ImageBuildOptions{
-		Tags:           []string{tag},
+		Tags:           tags,
 		SuppressOutput: false,
 		NoCache:        true,
 		Remove:         true,
@@ -200,7 +204,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 		PullParent:     true,
 	}
 
-	log.Infof("[BuildImage] Building image %v at %v:%v", tag, buildPodname, node.Name)
+	log.Infof("[BuildImage] Building image %v:%v", buildPodname, node.Name)
 	resp, err := node.Engine.ImageBuild(ctx, buildContext, buildOptions)
 	if err != nil {
 		return ch, err
@@ -210,7 +214,6 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 		defer resp.Body.Close()
 		defer close(ch)
 		decoder := json.NewDecoder(resp.Body)
-		var err error
 		var lastMessage *types.BuildImageMessage
 		for {
 			message := &types.BuildImageMessage{}
@@ -237,56 +240,63 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 			log.Errorf("[BuildImage] Build image failed %v", lastMessage.ErrorDetail.Message)
 			return
 		}
-		encodedAuth, err := makeEncodedAuthConfigFromRemote(c.config.Docker.AuthConfigs, tag)
-		if err != nil {
-			ch <- makeErrorBuildImageMessage(err)
-			return
-		}
-		pushOptions := enginetypes.ImagePushOptions{RegistryAuth: encodedAuth}
-		rc, err := node.Engine.ImagePush(ctx, tag, pushOptions)
-		if err != nil {
-			ch <- makeErrorBuildImageMessage(err)
-			return
-		}
 
-		defer rc.Close()
-		decoder2 := json.NewDecoder(rc)
-		for {
-			message := &types.BuildImageMessage{}
-			err := decoder2.Decode(message)
+		// push and clean
+		for i := range tags {
+			tag := tags[i]
+			log.Infof("[BuildImage] Push image %s", tag)
+			encodedAuth, err := makeEncodedAuthConfigFromRemote(c.config.Docker.AuthConfigs, tag)
 			if err != nil {
-				if err == io.EOF {
+				ch <- makeErrorBuildImageMessage(err)
+				continue
+			}
+			pushOptions := enginetypes.ImagePushOptions{RegistryAuth: encodedAuth}
+
+			rc, err := node.Engine.ImagePush(ctx, tag, pushOptions)
+			if err != nil {
+				ch <- makeErrorBuildImageMessage(err)
+				continue
+			}
+
+			defer rc.Close()
+			decoder2 := json.NewDecoder(rc)
+			for {
+				message := &types.BuildImageMessage{}
+				err := decoder2.Decode(message)
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					malformed := []byte{}
+					_, _ = decoder2.Buffered().Read(malformed)
+					log.Errorf("[BuildImage] Decode push image message failed %v, buffered: %v", err, malformed)
 					break
 				}
-				malformed := []byte{}
-				_, _ = decoder2.Buffered().Read(malformed)
-				log.Errorf("[BuildImage] Decode push image message failed %v, buffered: %v", err, malformed)
-				return
+				ch <- message
 			}
-			ch <- message
+
+			// 无论如何都删掉build机器的
+			// 事实上他不会跟cached pod一样
+			// 一样就砍死
+			go func(tag string) {
+				//CONTEXT 这里的不应该受到 client 的影响
+				ctx := context.Background()
+				_, err := node.Engine.ImageRemove(ctx, tag, enginetypes.ImageRemoveOptions{
+					Force:         false,
+					PruneChildren: true,
+				})
+				if err != nil {
+					log.Errorf("[BuildImage] Remove image error: %s", err)
+				}
+				r, err := node.Engine.BuildCachePrune(ctx)
+				if err != nil {
+					log.Errorf("[BuildImage] Remove build image cache error: %s", err)
+				}
+				log.Debugf("[BuildImage] Clean cached image and release space %d", r.SpaceReclaimed)
+			}(tag)
+
+			ch <- &types.BuildImageMessage{Stream: fmt.Sprintf("finished %s\n", tag), Status: "finished", Progress: tag}
 		}
-
-		// 无论如何都删掉build机器的
-		// 事实上他不会跟cached pod一样
-		// 一样就砍死
-		go func() {
-			//CONTEXT 这里的不应该受到 client 的影响
-			ctx := context.Background()
-			_, err := node.Engine.ImageRemove(ctx, tag, enginetypes.ImageRemoveOptions{
-				Force:         false,
-				PruneChildren: true,
-			})
-			if err != nil {
-				log.Errorf("[BuildImage] Remove image error: %s", err)
-			}
-			r, err := node.Engine.BuildCachePrune(ctx)
-			if err != nil {
-				log.Errorf("[BuildImage] Remove build image cache error: %s", err)
-			}
-			log.Debugf("[BuildImage] Clean cached image and release space %d", r.SpaceReclaimed)
-		}()
-
-		ch <- &types.BuildImageMessage{Stream: fmt.Sprintf("finished %s\n", tag), Status: "finished", Progress: tag}
 	}()
 
 	return ch, nil

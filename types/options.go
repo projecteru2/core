@@ -1,15 +1,15 @@
 package types
 
-//BuildOptions is options for building image
+// BuildOptions is options for building image
 type BuildOptions struct {
 	Name   string
 	User   string
 	UID    int
-	Tag    string
+	Tags   []string
 	Builds *Builds
 }
 
-//DeployOptions is options for deploying
+// DeployOptions is options for deploying
 type DeployOptions struct {
 	Name         string            // Name of application
 	Entrypoint   *Entrypoint       // entrypoint
@@ -36,14 +36,14 @@ type DeployOptions struct {
 	SoftLimit    bool              // softlimit memory
 }
 
-//RunAndWaitOptions is options for running and waiting
+// RunAndWaitOptions is options for running and waiting
 type RunAndWaitOptions struct {
 	DeployOptions
 	Timeout int
 	Cmd     string
 }
 
-//CopyOptions for multiple container files copy
+// CopyOptions for multiple container files copy
 type CopyOptions struct {
 	Targets map[string][]string
 }

@@ -370,7 +370,7 @@ func TestBuildImage(t *testing.T) {
 		Name: "buildName",
 		User: "root",
 		Uid:  999,
-		Tag:  "tag1",
+		Tags: []string{"tag1"},
 		Builds: &pb.Builds{
 			Stages: []string{"test", "step1", "setp2"},
 			Builds: map[string]*pb.Build{
