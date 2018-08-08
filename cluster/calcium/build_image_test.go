@@ -20,7 +20,7 @@ func TestBuildDockerFile(t *testing.T) {
 		Name:   appname,
 		User:   "username",
 		UID:    999,
-		Tag:    "tag",
+		Tags:   []string{"tag"},
 		Builds: mockBuilds,
 	}
 
@@ -41,7 +41,7 @@ func TestBuildImageError(t *testing.T) {
 		Name:   "appname",
 		User:   "username",
 		UID:    998,
-		Tag:    "tag",
+		Tags:   []string{"tag"},
 		Builds: mockBuilds,
 	}
 	_, err := mockc.BuildImage(ctx, opts)

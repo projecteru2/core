@@ -100,7 +100,7 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
 		Name:   b.Name,
 		User:   b.User,
 		UID:    int(b.Uid),
-		Tag:    b.Tag,
+		Tags:   b.Tags,
 		Builds: builds,
 	}, nil
 }

@@ -201,7 +201,7 @@ message BuildImageOptions {
     string name = 1;
     string user = 2;
     int32 uid = 3;
-    string tag = 4;
+    repeated string tags = 4;
     Builds builds = 5;
 }
 
