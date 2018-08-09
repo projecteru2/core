@@ -82,6 +82,12 @@ func (c *Calcium) replaceAndRemove(
 		return nil, err
 	}
 
+	// 预先扣除资源，若成功，老资源会回收，若失败，新资源也会被回收
+	err = c.store.UpdateNodeResource(ctx, oldContainer.Podname, oldContainer.Nodename, oldContainer.CPU, oldContainer.Memory, "-")
+	if err != nil {
+		return nil, err
+	}
+
 	// 停掉老的
 	if err = c.stopOneContainer(ctx, oldContainer); err != nil {
 		return nil, err
