@@ -27,19 +27,11 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 					ch <- makeCopyMessage(cid, cluster.CopyFailed, "", "", err, nil)
 					return
 				}
-
-				node, err := c.GetNode(ctx, container.Podname, container.Nodename)
-				if err != nil {
-					log.Errorf("[Copy] Error when get node %s", cid)
-					ch <- makeCopyMessage(cid, cluster.CopyFailed, "", "", err, nil)
-					return
-				}
-
 				for _, path := range paths {
 					wg.Add(1)
 					go func(path string) {
 						defer wg.Done()
-						resp, stat, err := node.Engine.CopyFromContainer(ctx, container.ID, path)
+						resp, stat, err := container.Engine.CopyFromContainer(ctx, container.ID, path)
 						log.Debugf("[Copy] Docker cp stat: %v", stat)
 						if err != nil {
 							log.Errorf("[Copy] Error during CopyFromContainer: %v", err)

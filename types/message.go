@@ -58,7 +58,7 @@ type CreateContainerMessage struct {
 
 // ReplaceContainerMessage for replace method
 type ReplaceContainerMessage struct {
-	CreateContainerMessage
+	*CreateContainerMessage
 	OldContainerID string
 	Error          error
 }

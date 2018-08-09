@@ -22,17 +22,9 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 	containersInfo := map[*types.Pod]NodeContainers{}
 	// Pod-cpu-mem-node-containers 四元组
 	cpuMemContainersInfo := map[*types.Pod]CPUMemNodeContainers{}
-	nodeCache := map[string]*types.Node{}
 
 	for _, container := range containers {
-		if _, ok := nodeCache[container.Nodename]; !ok {
-			node, err := c.GetNode(ctx, container.Podname, container.Nodename)
-			if err != nil {
-				return nil, err
-			}
-			nodeCache[container.Nodename] = node
-		}
-		node := nodeCache[container.Nodename]
+		node := container.Node
 
 		pod, err := c.store.GetPod(ctx, container.Podname)
 		if err != nil {

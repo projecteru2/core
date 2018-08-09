@@ -490,6 +490,7 @@ func initMockConfig() {
 			CPU:      coretypes.CPUMap{"0": 10},
 			Quota:    1.0,
 			Memory:   appmemory,
+			Node:     n4,
 		}
 		rContainers = append(rContainers, rContainer)
 	}

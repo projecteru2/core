@@ -27,7 +27,7 @@ func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
 
 // RemoveNode remove a node
 func (c *Calcium) RemoveNode(ctx context.Context, nodename, podname string) (*types.Pod, error) {
-	n, err := c.store.GetNode(ctx, podname, nodename)
+	n, err := c.GetNode(ctx, podname, nodename)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (c *Calcium) GetContainers(ctx context.Context, IDs []string) ([]*types.Con
 
 // SetNodeAvailable set node available or not
 func (c *Calcium) SetNodeAvailable(ctx context.Context, podname, nodename string, available bool) (*types.Node, error) {
-	n, err := c.store.GetNode(ctx, podname, nodename)
+	n, err := c.GetNode(ctx, podname, nodename)
 	if err != nil {
 		return nil, err
 	}

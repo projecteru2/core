@@ -206,5 +206,6 @@ func (k *Krypton) bindNodeEngine(ctx context.Context, container *types.Container
 	}
 
 	container.Engine = node.Engine
+	container.Node = node
 	return container, nil
 }
