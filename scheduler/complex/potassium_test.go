@@ -43,7 +43,7 @@ func generateNodes(nums, cores int, memory int64, shares int) []types.NodeInfo {
 			cpumap[coreName] = shares
 		}
 		cpuandmem := types.CPUAndMem{
-			CpuMap: cpumap,
+			CPUMap: cpumap,
 			MemCap: memory,
 		}
 		nodeInfo := types.NodeInfo{
@@ -62,7 +62,7 @@ func getNodesCapacity(nodes []types.NodeInfo, cpu float64, shares, maxshare int)
 	var plan []types.CPUMap
 
 	for _, nodeInfo := range nodes {
-		host = newHost(nodeInfo.CPUAndMem.CpuMap, shares)
+		host = newHost(nodeInfo.CPUAndMem.CPUMap, shares)
 		plan = host.getContainerCores(cpu, maxshare)
 		res += len(plan)
 	}
@@ -100,7 +100,7 @@ func getComplexNodes() []types.NodeInfo {
 	return []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 2 containers
+				CPUMap: types.CPUMap{ // 2 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 				},
 				MemCap: 12 * types.GByte,
@@ -109,7 +109,7 @@ func getComplexNodes() []types.NodeInfo {
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 7 containers
+				CPUMap: types.CPUMap{ // 7 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
@@ -121,7 +121,7 @@ func getComplexNodes() []types.NodeInfo {
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 6 containers
+				CPUMap: types.CPUMap{ // 6 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
@@ -132,7 +132,7 @@ func getComplexNodes() []types.NodeInfo {
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 9 containers
+				CPUMap: types.CPUMap{ // 9 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
@@ -145,7 +145,7 @@ func getComplexNodes() []types.NodeInfo {
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 4 containers
+				CPUMap: types.CPUMap{ // 4 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 				},
@@ -160,7 +160,7 @@ func getEvenPlanNodes() []types.NodeInfo {
 	return []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 4 containers
+				CPUMap: types.CPUMap{ // 4 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 				},
@@ -170,7 +170,7 @@ func getEvenPlanNodes() []types.NodeInfo {
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 5 containers
+				CPUMap: types.CPUMap{ // 5 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10,
@@ -181,7 +181,7 @@ func getEvenPlanNodes() []types.NodeInfo {
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 6 containers
+				CPUMap: types.CPUMap{ // 6 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10, "10": 10, "11": 10,
@@ -192,7 +192,7 @@ func getEvenPlanNodes() []types.NodeInfo {
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 5 containers
+				CPUMap: types.CPUMap{ // 5 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 					"8": 10, "9": 10,
@@ -231,9 +231,9 @@ func SelectCPUNodes(k *Potassium, nodesInfo []types.NodeInfo, quota float64, mem
 		cpuList := nodePlans[nodeInfo.Name][:nodeInfo.Deploy]
 		result[nodeInfo.Name] = cpuList
 		for _, cpu := range cpuList {
-			nodeInfo.CpuMap.Sub(cpu)
+			nodeInfo.CPUMap.Sub(cpu)
 		}
-		changed[nodeInfo.Name] = nodeInfo.CpuMap
+		changed[nodeInfo.Name] = nodeInfo.CPUMap
 	}
 	return result, changed, nil
 }
@@ -333,28 +333,28 @@ func TestRecurrence(t *testing.T) {
 	nodes := []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{"0": 0, "10": 0, "7": 0, "8": 10, "9": 10, "13": 0, "14": 0, "15": 10, "2": 10, "5": 10, "11": 0, "12": 0, "4": 0, "1": 0, "3": 10, "6": 0},
+				CPUMap: types.CPUMap{"0": 0, "10": 0, "7": 0, "8": 10, "9": 10, "13": 0, "14": 0, "15": 10, "2": 10, "5": 10, "11": 0, "12": 0, "4": 0, "1": 0, "3": 10, "6": 0},
 				MemCap: 12 * types.GByte,
 			},
 			Name: "c2-docker-26",
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{"6": 10, "10": 0, "13": 0, "14": 10, "2": 0, "7": 0, "1": 0, "11": 0, "15": 0, "8": 10, "0": 0, "3": 0, "4": 0, "5": 0, "9": 10, "12": 0},
+				CPUMap: types.CPUMap{"6": 10, "10": 0, "13": 0, "14": 10, "2": 0, "7": 0, "1": 0, "11": 0, "15": 0, "8": 10, "0": 0, "3": 0, "4": 0, "5": 0, "9": 10, "12": 0},
 				MemCap: 12 * types.GByte,
 			},
 			Name: "c2-docker-27",
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{"13": 0, "14": 0, "15": 0, "4": 10, "9": 0, "1": 0, "10": 0, "12": 10, "5": 10, "6": 10, "8": 10, "0": 0, "11": 0, "2": 10, "3": 0, "7": 0},
+				CPUMap: types.CPUMap{"13": 0, "14": 0, "15": 0, "4": 10, "9": 0, "1": 0, "10": 0, "12": 10, "5": 10, "6": 10, "8": 10, "0": 0, "11": 0, "2": 10, "3": 0, "7": 0},
 				MemCap: 12 * types.GByte,
 			},
 			Name: "c2-docker-28",
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{"15": 0, "3": 10, "0": 0, "10": 0, "13": 0, "7": 10, "8": 0, "9": 10, "12": 10, "2": 10, "4": 10, "1": 0, "11": 0, "14": 10, "5": 10, "6": 10},
+				CPUMap: types.CPUMap{"15": 0, "3": 10, "0": 0, "10": 0, "13": 0, "7": 10, "8": 0, "9": 10, "12": 10, "2": 10, "4": 10, "1": 0, "11": 0, "14": 10, "5": 10, "6": 10},
 				MemCap: 12 * types.GByte,
 			},
 			Name: "c2-docker-29",
@@ -444,7 +444,7 @@ func TestCPUWithMaxShareLimit(t *testing.T) {
 	nodes := []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{"0": 100, "1": 100, "2": 100, "3": 100, "4": 100, "5": 100},
+				CPUMap: types.CPUMap{"0": 100, "1": 100, "2": 100, "3": 100, "4": 100, "5": 100},
 				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
@@ -468,7 +468,7 @@ func TestCpuOverSell(t *testing.T) {
 	nodes := []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{"0": 300, "1": 300},
+				CPUMap: types.CPUMap{"0": 300, "1": 300},
 				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
@@ -486,7 +486,7 @@ func TestCpuOverSell(t *testing.T) {
 	nodes = []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{"0": 300},
+				CPUMap: types.CPUMap{"0": 300},
 				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
@@ -500,7 +500,7 @@ func TestCpuOverSell(t *testing.T) {
 	nodes = []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{"0": 300},
+				CPUMap: types.CPUMap{"0": 300},
 				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
@@ -514,7 +514,7 @@ func TestCpuOverSell(t *testing.T) {
 	nodes = []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{"0": 100, "1": 200, "2": 300},
+				CPUMap: types.CPUMap{"0": 100, "1": 200, "2": 300},
 				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
@@ -529,7 +529,7 @@ func TestCpuOverSell(t *testing.T) {
 	nodes = []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{"0": 50, "1": 100, "2": 300, "3": 70, "4": 200, "5": 30, "6": 230},
+				CPUMap: types.CPUMap{"0": 50, "1": 100, "2": 300, "3": 70, "4": 200, "5": 30, "6": 230},
 				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
@@ -541,7 +541,7 @@ func TestCpuOverSell(t *testing.T) {
 	nodes = []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{"0": 70, "1": 100, "2": 400},
+				CPUMap: types.CPUMap{"0": 70, "1": 100, "2": 400},
 				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
@@ -566,7 +566,7 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 	nodes := []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{"0": 300, "1": 300},
+				CPUMap: types.CPUMap{"0": 300, "1": 300},
 				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
@@ -580,7 +580,7 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 	nodes = []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{"0": 230, "1": 200},
+				CPUMap: types.CPUMap{"0": 230, "1": 200},
 				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
@@ -589,7 +589,7 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 	_, changed, err := SelectCPUNodes(k, nodes, 1.7, 1, 1, false)
 	assert.NoError(t, err)
 	assert.Equal(t, changed["nodes1"]["0"], 160)
-	nodes[0].CPUAndMem.CpuMap = changed["nodes1"]
+	nodes[0].CPUAndMem.CPUMap = changed["nodes1"]
 	nodes[0].Deploy = 0
 	nodes[0].Count = 0
 	nodes[0].Capacity = 0
@@ -602,7 +602,7 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 	nodes = []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{"0": 230, "1": 80, "2": 300, "3": 200},
+				CPUMap: types.CPUMap{"0": 230, "1": 80, "2": 300, "3": 200},
 				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
@@ -617,7 +617,7 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 	nodes = []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{"0": 70, "1": 50, "2": 100, "3": 100, "4": 100},
+				CPUMap: types.CPUMap{"0": 70, "1": 50, "2": 100, "3": 100, "4": 100},
 				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
@@ -632,7 +632,7 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 	nodes = []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{"0": 70, "1": 50, "2": 90},
+				CPUMap: types.CPUMap{"0": 70, "1": 50, "2": 90},
 				MemCap: 12 * types.GByte,
 			},
 			Name: "nodes1",
@@ -655,7 +655,7 @@ func TestEvenPlan(t *testing.T) {
 	pod1 := []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{
+				CPUMap: types.CPUMap{
 					"0": 10, "1": 10, "2": 10, "3": 10,
 				},
 				MemCap: 12 * types.GByte,
@@ -664,7 +664,7 @@ func TestEvenPlan(t *testing.T) {
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{
+				CPUMap: types.CPUMap{
 					"0": 10, "1": 10, "2": 10, "3": 10,
 				},
 				MemCap: 12 * types.GByte,
@@ -709,7 +709,7 @@ func TestSpecialCase(t *testing.T) {
 	pod := []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 4 containers
+				CPUMap: types.CPUMap{ // 4 containers
 					"0": 10, "1": 10,
 				},
 				MemCap: 12 * types.GByte,
@@ -718,7 +718,7 @@ func TestSpecialCase(t *testing.T) {
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 5 containers
+				CPUMap: types.CPUMap{ // 5 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10,
 				},
@@ -728,7 +728,7 @@ func TestSpecialCase(t *testing.T) {
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 6 containers
+				CPUMap: types.CPUMap{ // 6 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 				},
@@ -746,7 +746,7 @@ func TestSpecialCase(t *testing.T) {
 	newpod := []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 4 containers
+				CPUMap: types.CPUMap{ // 4 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10,
 				},
@@ -756,7 +756,7 @@ func TestSpecialCase(t *testing.T) {
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{ // 4 containers
+				CPUMap: types.CPUMap{ // 4 containers
 					"0": 10, "1": 10, "2": 10, "3": 10,
 					"4": 10, "5": 10, "6": 10, "7": 10,
 				},
@@ -776,7 +776,7 @@ func TestGetPodVol(t *testing.T) {
 	nodes := []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{"15": 0, "3": 10, "0": 0, "10": 0, "13": 0, "7": 10, "8": 0, "9": 10, "12": 10, "2": 10, "4": 10, "1": 0, "11": 0, "14": 10, "5": 10, "6": 10},
+				CPUMap: types.CPUMap{"15": 0, "3": 10, "0": 0, "10": 0, "13": 0, "7": 10, "8": 0, "9": 10, "12": 10, "2": 10, "4": 10, "1": 0, "11": 0, "14": 10, "5": 10, "6": 10},
 				MemCap: 12 * types.GByte,
 			},
 			Name: "c2-docker-26",

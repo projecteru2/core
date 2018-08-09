@@ -176,7 +176,7 @@ func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShar
 	volTotal := 0
 	memLimit := 0
 	for p, nodeInfo := range nodesInfo {
-		host = newHost(nodeInfo.CpuMap, coreShare)
+		host = newHost(nodeInfo.CPUMap, coreShare)
 		plan = host.getContainerCores(cpu, maxShareCore)
 		memLimit = int(nodeInfo.MemCap / memory)
 		cap := len(plan) // 每个node可以放的容器数

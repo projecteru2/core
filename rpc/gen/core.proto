@@ -136,6 +136,12 @@ message ReallocOptions {
     int64 mem = 3;
 }
 
+message ReplaceOptions {
+    repeated string ids = 1;
+    string pod = 2;
+    string image = 3;
+}
+
 message AddPodOptions {
     string name = 1;
     string favor = 2;

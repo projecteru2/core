@@ -101,7 +101,7 @@ func makeCPUAndMem(nodes []*types.Node) map[string]types.CPUAndMem {
 	r := make(map[string]types.CPUAndMem)
 	for _, node := range nodes {
 		r[node.Name] = types.CPUAndMem{
-			CpuMap: node.CPU,
+			CPUMap: node.CPU,
 			MemCap: node.MemCap,
 		}
 	}
@@ -381,7 +381,7 @@ func getNodesInfo(cpuAndMemData map[string]types.CPUAndMem) []types.NodeInfo {
 		n := types.NodeInfo{
 			CPUAndMem: cpuAndMem,
 			Name:      nodename,
-			CPUs:      len(cpuAndMem.CpuMap),
+			CPUs:      len(cpuAndMem.CPUMap),
 			Capacity:  0,
 			Count:     0,
 			Deploy:    0,

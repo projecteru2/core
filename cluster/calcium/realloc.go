@@ -238,7 +238,7 @@ func (c *Calcium) reallocNodesCPUMem(
 				nodesInfo := []types.NodeInfo{
 					types.NodeInfo{
 						CPUAndMem: types.CPUAndMem{
-							CpuMap: node.CPU,
+							CPUMap: node.CPU,
 							MemCap: node.MemCap,
 						},
 						Name: node.Name,

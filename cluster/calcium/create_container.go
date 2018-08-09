@@ -102,7 +102,7 @@ func (c *Calcium) doCreateContainerWithMemoryPrior(ctx context.Context, nodeInfo
 
 	for i := 0; i < nodeInfo.Deploy; i++ {
 		// createAndStartContainer will auto cleanup
-		ms[i] = c.createAndStartContainer(ctx, i+index, node, opts, nil, scheduler.MEMORY_PRIOR)
+		ms[i] = c.createAndStartContainer(ctx, i+index, node, opts, nil)
 		if !ms[i].Success {
 			log.Errorf("[doCreateContainerWithMemoryPrior] Error when create and start a container, %v", ms[i].Error)
 			continue
@@ -170,7 +170,7 @@ func (c *Calcium) doCreateContainerWithCPUPrior(ctx context.Context, nodename st
 
 	for i, quota := range cpuMap {
 		// createAndStartContainer will auto cleanup
-		ms[i] = c.createAndStartContainer(ctx, i+index, node, opts, quota, scheduler.CPU_PRIOR)
+		ms[i] = c.createAndStartContainer(ctx, i+index, node, opts, quota)
 		if !ms[i].Success {
 			log.Errorf("[doCreateContainerWithCPUPrior] Error when create and start a container, %v", ms[i].Error)
 			continue
@@ -181,7 +181,7 @@ func (c *Calcium) doCreateContainerWithCPUPrior(ctx context.Context, nodename st
 	return ms
 }
 
-func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *types.DeployOptions, node *types.Node, favor string) (
+func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *types.DeployOptions, node *types.Node) (
 	*enginecontainer.Config,
 	*enginecontainer.HostConfig,
 	*enginenetwork.NetworkingConfig,
@@ -299,12 +299,7 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 		OpenStdin:       opts.OpenStdin,
 	}
 
-	var resource enginecontainer.Resources
-	if favor == scheduler.CPU_PRIOR || favor == scheduler.MEMORY_PRIOR {
-		resource = makeResourceSetting(opts.CPUQuota, opts.Memory, quota, opts.SoftLimit)
-	} else {
-		return nil, nil, nil, "", types.NewDetailedErr(types.ErrBadFaver, favor)
-	}
+	resource := makeResourceSetting(opts.CPUQuota, opts.Memory, quota, opts.SoftLimit)
 	resource.Ulimits = ulimits
 
 	restartPolicy := entry.RestartPolicy
@@ -345,7 +340,7 @@ func (c *Calcium) createAndStartContainer(
 	ctx context.Context,
 	no int, node *types.Node,
 	opts *types.DeployOptions,
-	cpu types.CPUMap, typ string,
+	cpu types.CPUMap,
 ) *types.CreateContainerMessage {
 	container := &types.Container{
 		Podname:    opts.Podname,
@@ -377,7 +372,7 @@ func (c *Calcium) createAndStartContainer(
 	}()
 
 	// get config
-	config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(no, cpu, opts, node, typ)
+	config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(no, cpu, opts, node)
 	if err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage

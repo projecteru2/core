@@ -2,6 +2,7 @@ package types
 
 import "io"
 
+// RemoveContainerMessage for remove message
 type RemoveContainerMessage struct {
 	ContainerID string
 	Success     bool
@@ -13,6 +14,7 @@ type errorDetail struct {
 	Message string `json:"message,omitempty"`
 }
 
+// BuildImageMessage for build image message
 type BuildImageMessage struct {
 	ID          string      `json:"id,omitempty"`
 	Status      string      `json:"status,omitempty"`
@@ -22,6 +24,7 @@ type BuildImageMessage struct {
 	ErrorDetail errorDetail `json:"errorDetail,omitempty"`
 }
 
+// CopyMessage for copy message
 type CopyMessage struct {
 	ID     string        `json:"id,omitempty"`
 	Status string        `json:"status,omitempty"`
@@ -31,12 +34,14 @@ type CopyMessage struct {
 	Data   io.ReadCloser `json:"-"`
 }
 
+// RemoveImageMessage for remove image message
 type RemoveImageMessage struct {
 	Image    string
 	Success  bool
 	Messages []string
 }
 
+// CreateContainerMessage for create message
 type CreateContainerMessage struct {
 	Podname       string
 	Nodename      string
@@ -51,15 +56,25 @@ type CreateContainerMessage struct {
 	Hook          []byte
 }
 
+// ReplaceContainerMessage for replace method
+type ReplaceContainerMessage struct {
+	CreateContainerMessage
+	OldContainerID string
+	Error          error
+}
+
+// RunAndWaitMessage for run and wait
 type RunAndWaitMessage struct {
 	ContainerID string
 	Data        []byte
 }
 
+// PullImageMessage for cache image
 type PullImageMessage struct {
 	BuildImageMessage
 }
 
+// ReallocResourceMessage for realloc resource
 type ReallocResourceMessage struct {
 	ContainerID string
 	Success     bool
