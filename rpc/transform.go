@@ -170,6 +170,9 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 }
 
 func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateContainerMessage {
+	if c == nil {
+		return nil
+	}
 	msg := &pb.CreateContainerMessage{
 		Podname:  c.Podname,
 		Nodename: c.Nodename,
@@ -189,12 +192,8 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 }
 
 func toRPCReplaceContainerMessage(r *types.ReplaceContainerMessage) *pb.ReplaceContainerMessage {
-	var createMsg *pb.CreateContainerMessage
-	if r.CreateContainerMessage != nil {
-		createMsg = toRPCCreateContainerMessage(r.CreateContainerMessage)
-	}
 	msg := &pb.ReplaceContainerMessage{
-		Create: createMsg,
+		Create: toRPCCreateContainerMessage(r.CreateContainerMessage),
 		Id:     r.OldContainerID,
 	}
 	if r.Error != nil {

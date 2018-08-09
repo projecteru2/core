@@ -416,7 +416,7 @@ func (v *Vibranium) ReplaceContainer(opts *pb.DeployOptions, stream pb.CoreRPC_R
 
 	deployOpts, err := toCoreDeployOptions(opts)
 	if err != nil {
-		return nil
+		return err
 	}
 	//这里考虑用全局 Background
 	ch, err := v.cluster.ReplaceContainer(context.Background(), deployOpts)
