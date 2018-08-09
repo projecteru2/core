@@ -13,7 +13,7 @@ import (
 
 // CPUAndMem store cpu and mem
 type CPUAndMem struct {
-	CpuMap CPUMap
+	CPUMap CPUMap
 	MemCap int64
 }
 

@@ -446,21 +446,21 @@ func initMockConfig() {
 			CPUs:      4,
 			Count:     3,
 			Deploy:    0,
-			CPUAndMem: coretypes.CPUAndMem{CpuMap: coretypes.CPUMap{"0": 10, "1": 10, "2": 10, "3": 10}, MemCap: 8589934592},
+			CPUAndMem: coretypes.CPUAndMem{CPUMap: coretypes.CPUMap{"0": 10, "1": 10, "2": 10, "3": 10}, MemCap: 8589934592},
 		},
 		coretypes.NodeInfo{
 			Name:      "node2",
 			CPUs:      4,
 			Count:     1,
 			Deploy:    0,
-			CPUAndMem: coretypes.CPUAndMem{CpuMap: coretypes.CPUMap{"0": 10, "1": 10, "2": 10, "3": 10}, MemCap: 8589934592},
+			CPUAndMem: coretypes.CPUAndMem{CPUMap: coretypes.CPUMap{"0": 10, "1": 10, "2": 10, "3": 10}, MemCap: 8589934592},
 		},
 		coretypes.NodeInfo{
 			Name:      "node3",
 			CPUs:      4,
 			Count:     1,
 			Deploy:    0,
-			CPUAndMem: coretypes.CPUAndMem{CpuMap: coretypes.CPUMap{"0": 10, "1": 10, "2": 10, "3": 10}, MemCap: 8589934592},
+			CPUAndMem: coretypes.CPUAndMem{CPUMap: coretypes.CPUMap{"0": 10, "1": 10, "2": 10, "3": 10}, MemCap: 8589934592},
 		},
 	}
 

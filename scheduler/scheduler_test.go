@@ -24,7 +24,7 @@ func TestSchedulerInvoke(t *testing.T) {
 	nodes := []types.NodeInfo{
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{
+				CPUMap: types.CPUMap{
 					"0": 10,
 					"1": 10,
 				},
@@ -34,7 +34,7 @@ func TestSchedulerInvoke(t *testing.T) {
 		},
 		types.NodeInfo{
 			CPUAndMem: types.CPUAndMem{
-				CpuMap: types.CPUMap{
+				CPUMap: types.CPUMap{
 					"0": 10,
 					"1": 10,
 				},
