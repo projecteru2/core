@@ -409,6 +409,30 @@ func (v *Vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 	return err
 }
 
+// ReplaceContainer replace containers
+func (v *Vibranium) ReplaceContainer(opts *pb.DeployOptions, stream pb.CoreRPC_ReplaceContainerServer) error {
+	v.taskAdd("ReplaceContainer", true)
+	defer v.taskDone("ReplaceContainer", true)
+
+	deployOpts, err := toCoreDeployOptions(opts)
+	if err != nil {
+		return nil
+	}
+	//这里考虑用全局 Background
+	ch, err := v.cluster.ReplaceContainer(context.Background(), deployOpts)
+	if err != nil {
+		return err
+	}
+
+	for m := range ch {
+		if err = stream.Send(toRPCReplaceContainerMessage(m)); err != nil {
+			v.logUnsentMessages("ReplaceContainer", m)
+		}
+	}
+
+	return err
+}
+
 // RemoveContainer remove containers
 func (v *Vibranium) RemoveContainer(opts *pb.RemoveContainerOptions, stream pb.CoreRPC_RemoveContainerServer) error {
 	v.taskAdd("RemoveContainer", true)

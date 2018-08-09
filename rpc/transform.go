@@ -188,6 +188,21 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 	return msg
 }
 
+func toRPCReplaceContainerMessage(r *types.ReplaceContainerMessage) *pb.ReplaceContainerMessage {
+	var createMsg *pb.CreateContainerMessage
+	if r.CreateContainerMessage != nil {
+		createMsg = toRPCCreateContainerMessage(r.CreateContainerMessage)
+	}
+	msg := &pb.ReplaceContainerMessage{
+		Create: createMsg,
+		Id:     r.OldContainerID,
+	}
+	if r.Error != nil {
+		msg.Error = r.Error.Error()
+	}
+	return msg
+}
+
 func toRPCRemoveImageMessage(r *types.RemoveImageMessage) *pb.RemoveImageMessage {
 	return &pb.RemoveImageMessage{
 		Image:    r.Image,

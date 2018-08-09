@@ -76,6 +76,7 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 				if err := c.removeOneContainer(ctx, container); err != nil {
 					success = false
 					message += err.Error()
+					log.Errorf("[RemoveContainer] Remove container failed %v", err)
 				}
 
 			}(container, info, message)
@@ -105,17 +106,6 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 // remove one container
 func (c *Calcium) removeOneContainer(ctx context.Context, container *types.Container) error {
 	var err error
-	defer func() {
-		if err != nil {
-			log.Errorf("[removeOneContainer] Remove container failed, we have to check it manually %v", err)
-			return
-		}
-
-		log.Debugf("[removeOneContainer] Restore node %s resource cpu: %v mem: %v", container.Nodename, container.CPU, container.Memory)
-		if err := c.store.UpdateNodeResource(ctx, container.Podname, container.Nodename, container.CPU, container.Memory, "+"); err != nil {
-			log.Errorf("[removeOneContainer] Update Node resource failed %v", err)
-		}
-	}()
 
 	// 没 ID 就只做回收
 	if container.ID == "" {
@@ -131,26 +121,45 @@ func (c *Calcium) removeOneContainer(ctx context.Context, container *types.Conta
 	}
 	defer lock.Unlock(ctx)
 
+	if err := c.stopOneContainer(ctx, container); err != nil {
+		return err
+	}
+
+	return c.removeAndCleanOneContainer(ctx, container)
+}
+
+func (c *Calcium) stopOneContainer(ctx context.Context, container *types.Container) error {
 	// 这里 block 的问题很严重，按照目前的配置是 5 分钟一级的 block
 	// 一个简单的处理方法是相信 ctx 不相信 docker 自身的处理
 	// 另外我怀疑 docker 自己的 timeout 实现是完全的等 timeout 而非结束了就退出
 	removeCtx, cancel := context.WithTimeout(ctx, c.config.GlobalTimeout)
 	defer cancel()
-	if err = container.Engine.ContainerStop(removeCtx, container.ID, nil); err != nil {
+	if err := container.Engine.ContainerStop(removeCtx, container.ID, nil); err != nil {
 		return err
 	}
-	log.Debugf("[removeOneContainer] Container stopped %s", container.ID)
+	return nil
+}
 
+func (c *Calcium) removeAndCleanOneContainer(ctx context.Context, container *types.Container) (err error) {
+	defer func() {
+		if err != nil {
+			log.Errorf("[removeAndCleanOneContainer] Remove container failed, we have to check it manually %v", err)
+			return
+		}
+
+		log.Debugf("[removeAndCleanOneContainer] Restore node %s resource cpu: %v mem: %v", container.Nodename, container.CPU, container.Memory)
+		if err := c.store.UpdateNodeResource(ctx, container.Podname, container.Nodename, container.CPU, container.Memory, "+"); err != nil {
+			log.Errorf("[removeAndCleanOneContainer] Update Node resource failed %v", err)
+		}
+	}()
 	rmOpts := enginetypes.ContainerRemoveOptions{
 		RemoveVolumes: true,
 		Force:         true,
 	}
-	err = container.Engine.ContainerRemove(ctx, container.ID, rmOpts)
-	if err != nil {
+	if err = container.Engine.ContainerRemove(ctx, container.ID, rmOpts); err != nil {
 		return err
-	}
-	log.Debugf("[removeOneContainer] Container removed %s", container.ID)
 
+	}
 	return c.store.RemoveContainer(ctx, container)
 }
 

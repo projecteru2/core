@@ -23,6 +23,7 @@ type Container struct {
 	Privileged bool              `json:"privileged"`
 	SoftLimit  bool              `json:"softlimit"`
 	Engine     *engineapi.Client `json:"-"`
+	Node       *Node             `json:"-"`
 }
 
 //ShortID short container ID

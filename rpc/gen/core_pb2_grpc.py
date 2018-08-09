@@ -124,6 +124,11 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.DeployOptions.SerializeToString,
         response_deserializer=core__pb2.CreateContainerMessage.FromString,
         )
+    self.ReplaceContainer = channel.unary_stream(
+        '/pb.CoreRPC/ReplaceContainer',
+        request_serializer=core__pb2.DeployOptions.SerializeToString,
+        response_deserializer=core__pb2.ReplaceContainerMessage.FromString,
+        )
     self.RemoveContainer = channel.unary_stream(
         '/pb.CoreRPC/RemoveContainer',
         request_serializer=core__pb2.RemoveContainerOptions.SerializeToString,
@@ -294,6 +299,13 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def ReplaceContainer(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def RemoveContainer(self, request, context):
     # missing associated documentation comment in .proto file
     pass
@@ -420,6 +432,11 @@ def add_CoreRPCServicer_to_server(servicer, server):
           servicer.CreateContainer,
           request_deserializer=core__pb2.DeployOptions.FromString,
           response_serializer=core__pb2.CreateContainerMessage.SerializeToString,
+      ),
+      'ReplaceContainer': grpc.unary_stream_rpc_method_handler(
+          servicer.ReplaceContainer,
+          request_deserializer=core__pb2.DeployOptions.FromString,
+          response_serializer=core__pb2.ReplaceContainerMessage.SerializeToString,
       ),
       'RemoveContainer': grpc.unary_stream_rpc_method_handler(
           servicer.RemoveContainer,
