@@ -85,6 +85,16 @@ func (c *Calcium) replaceAndRemove(
 		return nil, err
 	}
 
+	// 拉镜像
+	auth, err := makeEncodedAuthConfigFromRemote(c.config.Docker.AuthConfigs, opts.Image)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = pullImage(ctx, oldContainer.Node, opts.Image, auth); err != nil {
+		return nil, err
+	}
+
 	// 预先扣除资源，若成功，老资源会回收，若失败，新资源也会被回收
 	err = c.store.UpdateNodeResource(ctx, oldContainer.Podname, oldContainer.Nodename, oldContainer.CPU, oldContainer.Memory, "-")
 	if err != nil {
