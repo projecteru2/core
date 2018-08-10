@@ -611,6 +611,10 @@ func TestOthers(t *testing.T) {
 	}
 	store.On("GetNode", podname, nodename).Return(tNode, nil)
 	store.On("UpdateNodeResource", "", "", mock.AnythingOfType("types.CPUMap"), int64(0), "+").Return(nil)
+	lk := &mockstore.MockLock{}
+	store.On("CreateLock", "rmcontainer_", 0).Return(lk, nil)
+	lk.Mock.On("Lock").Return(nil)
+	lk.Mock.On("Unlock").Return(nil)
 
 	// RemoveContainer
 	rmContainerResp, _ := clnt.RemoveContainer(ctx, &pb.RemoveContainerOptions{

@@ -8,7 +8,7 @@ import (
 	engineapi "github.com/docker/docker/client"
 )
 
-//Container store container info
+// Container store container info
 // only relationship with pod and node is stored
 // if you wanna get realtime information, use Inspect method
 type Container struct {
@@ -26,7 +26,7 @@ type Container struct {
 	Node       *Node             `json:"-"`
 }
 
-//ShortID short container ID
+// ShortID short container ID
 func (c *Container) ShortID() string {
 	containerID := c.ID
 	if len(containerID) > 7 {
@@ -35,7 +35,7 @@ func (c *Container) ShortID() string {
 	return containerID
 }
 
-//Inspect a container
+// Inspect a container
 func (c *Container) Inspect(ctx context.Context) (enginetypes.ContainerJSON, error) {
 	inspectCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -45,7 +45,32 @@ func (c *Container) Inspect(ctx context.Context) (enginetypes.ContainerJSON, err
 	return c.Engine.ContainerInspect(inspectCtx, c.ID)
 }
 
-//DeployStatus store deploy status
+// Stop a container
+func (c *Container) Stop(ctx context.Context, timeout time.Duration) error {
+	if c.Engine == nil {
+		return ErrNilEngine
+	}
+	// 这里 block 的问题很严重，按照目前的配置是 5 分钟一级的 block
+	// 一个简单的处理方法是相信 ctx 不相信 docker 自身的处理
+	// 另外我怀疑 docker 自己的 timeout 实现是完全的等 timeout 而非结束了就退出
+	removeCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	return c.Engine.ContainerStop(removeCtx, c.ID, nil)
+}
+
+// Remove a container
+func (c *Container) Remove(ctx context.Context) error {
+	if c.Engine == nil {
+		return ErrNilEngine
+	}
+	rmOpts := enginetypes.ContainerRemoveOptions{
+		RemoveVolumes: true,
+		Force:         true,
+	}
+	return c.Engine.ContainerRemove(ctx, c.ID, rmOpts)
+}
+
+// DeployStatus store deploy status
 type DeployStatus struct {
 	Data       string
 	Err        error

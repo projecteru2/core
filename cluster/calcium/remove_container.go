@@ -3,19 +3,18 @@ package calcium
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 
-	enginetypes "github.com/docker/docker/api/types"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
 
-//RemoveContainer remove containers
+// RemoveContainer remove containers
 // returns a channel that contains removing responses
 func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool) (chan *types.RemoveContainerMessage, error) {
 	ch := make(chan *types.RemoveContainerMessage)
 	go func() {
+		defer close(ch)
 		wg := sync.WaitGroup{}
 		ib := newImageBucket()
 
@@ -32,20 +31,12 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 				continue
 			}
 
-			info, err := container.Inspect(ctx)
-			message := ""
-			if err != nil {
-				message = err.Error()
-			} else {
-				ib.Add(container.Podname, info.Config.Image)
-
-			}
-
 			wg.Add(1)
-			go func(container *types.Container, info enginetypes.ContainerJSON, message string) {
+			go func(container *types.Container) {
 				defer wg.Done()
 
-				success := true
+				message, err := c.doStopAndRemoveContainer(ctx, container, ib, force)
+				success := false
 
 				defer func() {
 					ch <- &types.RemoveContainerMessage{
@@ -55,112 +46,88 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 					}
 				}()
 
-				if container.Hook != nil && len(container.Hook.BeforeStop) > 0 && info.Config != nil {
-					outputs := []string{}
-					for _, cmd := range container.Hook.BeforeStop {
-						output, err := execuateInside(ctx, container.Engine, container.ID, cmd, info.Config.User, info.Config.Env, container.Privileged)
-						if err != nil {
-							if container.Hook.Force && !force {
-								success = false
-								message = err.Error()
-								return
-							}
-							outputs = append(outputs, err.Error())
-							continue
-						}
-						outputs = append(outputs, string(output))
-					}
-					message = strings.Join(outputs, "")
+				if err != nil {
+					return
 				}
 
-				if err := c.removeOneContainer(ctx, container); err != nil {
-					success = false
-					message += err.Error()
-					log.Errorf("[RemoveContainer] Remove container failed %v", err)
+				log.Debugf("[RemoveContainer] Restore node %s resource cpu: %v mem: %v", container.Nodename, container.CPU, container.Memory)
+				if err = c.store.UpdateNodeResource(ctx, container.Podname, container.Nodename, container.CPU, container.Memory, "+"); err != nil {
+					log.Errorf("[RemoveContainer] Update Node resource failed %v", err)
+					return
 				}
 
-			}(container, info, message)
+				success = true
+				return
+			}(container)
 		}
-
 		wg.Wait()
 
 		// 把收集的image清理掉
 		//TODO 如果 remove 是异步的，这里就不能用 ctx 了，gRPC 一断这里就会死
-		go func(ib *imageBucket) {
-			for podname, images := range ib.Dump() {
-				for _, image := range images {
-					err := c.cleanImage(ctx, podname, image)
-					if err != nil {
-						log.Errorf("[RemoveContainer] clean image failed %v", err)
-					}
-				}
-			}
-		}(ib)
-		close(ch)
+		go c.cleanCachedImage(ctx, ib)
 	}()
-
 	return ch, nil
-
 }
 
-// remove one container
-func (c *Calcium) removeOneContainer(ctx context.Context, container *types.Container) error {
-	var err error
-
-	// 没 ID 就只做回收
-	if container.ID == "" {
-		return nil
-	}
-
-	// use etcd lock to prevent a container being removed many times
-	// only the first to remove can be done
-	// lock timeout should equal stop timeout
+func (c *Calcium) doStopAndRemoveContainer(ctx context.Context, container *types.Container, ib *imageBucket, force bool) (string, error) {
 	lock, err := c.Lock(ctx, fmt.Sprintf("rmcontainer_%s", container.ID), int(c.config.GlobalTimeout.Seconds()))
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer lock.Unlock(ctx)
 
-	if err := c.stopOneContainer(ctx, container); err != nil {
-		return err
+	// 确保是有这个容器的
+	containerJSON, err := container.Inspect(ctx)
+	if err != nil {
+		return err.Error(), err
 	}
 
-	return c.removeAndCleanOneContainer(ctx, container)
-}
-
-func (c *Calcium) stopOneContainer(ctx context.Context, container *types.Container) error {
-	// 这里 block 的问题很严重，按照目前的配置是 5 分钟一级的 block
-	// 一个简单的处理方法是相信 ctx 不相信 docker 自身的处理
-	// 另外我怀疑 docker 自己的 timeout 实现是完全的等 timeout 而非结束了就退出
-	removeCtx, cancel := context.WithTimeout(ctx, c.config.GlobalTimeout)
-	defer cancel()
-	if err := container.Engine.ContainerStop(removeCtx, container.ID, nil); err != nil {
-		return err
+	// 记录镜像
+	if ib != nil {
+		ib.Add(container.Podname, containerJSON.Config.Image)
 	}
-	return nil
-}
 
-func (c *Calcium) removeAndCleanOneContainer(ctx context.Context, container *types.Container) (err error) {
-	defer func() {
+	var message string
+	if container.Hook != nil && len(container.Hook.BeforeStop) > 0 && containerJSON.Config != nil {
+		output, err := c.doContainerBeforeStopHook(
+			ctx, container,
+			containerJSON.Config.User,
+			containerJSON.Config.Env,
+			container.Privileged, force,
+		)
+		message = string(output)
 		if err != nil {
-			log.Errorf("[removeAndCleanOneContainer] Remove container failed, we have to check it manually %v", err)
-			return
+			return message, err
 		}
+	}
 
-		log.Debugf("[removeAndCleanOneContainer] Restore node %s resource cpu: %v mem: %v", container.Nodename, container.CPU, container.Memory)
-		if err := c.store.UpdateNodeResource(ctx, container.Podname, container.Nodename, container.CPU, container.Memory, "+"); err != nil {
-			log.Errorf("[removeAndCleanOneContainer] Update Node resource failed %v", err)
+	if err = container.Stop(ctx, c.config.GlobalTimeout); err != nil {
+		message += err.Error()
+		return message, err
+	}
+
+	if err = container.Remove(ctx); err != nil {
+		message += err.Error()
+		return message, err
+	}
+
+	if err = c.store.RemoveContainer(ctx, container); err != nil {
+		message += err.Error()
+		return message, err
+	}
+
+	return message, err
+}
+
+func (c *Calcium) cleanCachedImage(ctx context.Context, ib *imageBucket) {
+	for podname, images := range ib.Dump() {
+		for _, image := range images {
+			err := c.cleanImage(ctx, podname, image)
+			if err != nil {
+				log.Errorf("[doCleanImage] clean image failed %v", err)
+			}
 		}
-	}()
-	rmOpts := enginetypes.ContainerRemoveOptions{
-		RemoveVolumes: true,
-		Force:         true,
 	}
-	if err = container.Engine.ContainerRemove(ctx, container.ID, rmOpts); err != nil {
-		return err
-
-	}
-	return c.store.RemoveContainer(ctx, container)
 }
 
 // 同步地删除容器, 在某些需要等待的场合异常有用!

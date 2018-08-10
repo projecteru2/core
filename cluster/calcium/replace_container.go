@@ -20,16 +20,10 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.DeployOption
 
 	go func() {
 		defer close(ch)
-		lock, err := c.Lock(ctx, opts.Podname, c.config.LockTimeout)
-		if err != nil {
-			log.Errorf("[ReplaceContainer] Lock pod failed %v", err)
-			return
-		}
-		defer lock.Unlock(ctx)
-
 		// 并发控制
 		step := opts.Count
 		wg := sync.WaitGroup{}
+		ib := newImageBucket()
 
 		for index, oldContainer := range oldContainers {
 			log.Debugf("[ReplaceContainer] Replace old container %s", oldContainer.ID)
@@ -42,7 +36,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.DeployOption
 				deployOpts.CPUQuota = oldContainer.Quota
 				deployOpts.SoftLimit = oldContainer.SoftLimit
 
-				createMessage, err := c.replaceAndRemove(ctx, &deployOpts, oldContainer, index)
+				createMessage, err := c.doReplaceContainer(ctx, oldContainer, &deployOpts, ib, index)
 				ch <- &types.ReplaceContainerMessage{
 					CreateContainerMessage: createMessage,
 					OldContainerID:         oldContainer.ID,
@@ -60,28 +54,56 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.DeployOption
 			}
 		}
 		wg.Wait()
+
+		// 把收集的image清理掉
+		//TODO 如果 remove 是异步的，这里就不能用 ctx 了，gRPC 一断这里就会死
+		go c.cleanCachedImage(ctx, ib)
 	}()
 
 	return ch, nil
 }
 
-func (c *Calcium) replaceAndRemove(
+func (c *Calcium) doReplaceContainer(
 	ctx context.Context,
+	container *types.Container,
 	opts *types.DeployOptions,
-	oldContainer *types.Container,
-	index int) (*types.CreateContainerMessage, error) {
-	var err error
-
+	ib *imageBucket,
+	index int,
+) (*types.CreateContainerMessage, error) {
 	// 锁住，防止删除
-	lock, err := c.Lock(ctx, fmt.Sprintf("rmcontainer_%s", oldContainer.ID), int(c.config.GlobalTimeout.Seconds()))
+	lock, err := c.Lock(ctx, fmt.Sprintf("rmcontainer_%s", container.ID), int(c.config.GlobalTimeout.Seconds()))
 	if err != nil {
 		return nil, err
 	}
 	defer lock.Unlock(ctx)
 
 	// 确保得到锁的时候容器没被干掉
-	_, err = oldContainer.Inspect(ctx)
+	containerJSON, err := container.Inspect(ctx)
 	if err != nil {
+		return nil, err
+	}
+
+	// 记录镜像
+	if ib != nil {
+		ib.Add(container.Podname, containerJSON.Config.Image)
+	}
+
+	// 开始停到老容器
+	if container.Hook != nil && len(container.Hook.BeforeStop) > 0 && containerJSON.Config != nil {
+		output, err := c.doContainerBeforeStopHook(
+			ctx, container,
+			containerJSON.Config.User,
+			containerJSON.Config.Env,
+			container.Privileged, true,
+		)
+		log.Infof("[doReplaceContainer] Do before stop hook %s", output)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// 只 Stop
+	if err = container.Stop(ctx, c.config.GlobalTimeout); err != nil {
 		return nil, err
 	}
 
@@ -91,36 +113,42 @@ func (c *Calcium) replaceAndRemove(
 		return nil, err
 	}
 
-	if err = pullImage(ctx, oldContainer.Node, opts.Image, auth); err != nil {
+	if err = pullImage(ctx, container.Node, opts.Image, auth); err != nil {
 		return nil, err
 	}
 
-	// 预先扣除资源，若成功，老资源会回收，若失败，新资源也会被回收
-	err = c.store.UpdateNodeResource(ctx, oldContainer.Podname, oldContainer.Nodename, oldContainer.CPU, oldContainer.Memory, "-")
-	if err != nil {
-		return nil, err
-	}
-
-	// 停掉老的
-	if err = c.stopOneContainer(ctx, oldContainer); err != nil {
-		return nil, err
-	}
-
-	// 创建新容器，复用资源，如果失败会被自动回收，但是这里要重启老容器
-	// 实际上会从 node 的抽象中减掉这部分的资源，因此资源计数器可能不准确，如果成功了，remove 老容器即可恢复
-	createMessage := c.createAndStartContainer(ctx, index, oldContainer.Node, opts, oldContainer.CPU)
+	// 不涉及资源消耗，创建容器失败会被回收容器而不回收资源
+	// 创建成功容器会干掉之前的老容器也不会动资源，实际上实现了动态捆绑
+	createMessage := c.createAndStartContainer(ctx, index, container.Node, opts, container.CPU)
 	if createMessage.Error != nil {
-		// 重启容器, 并不关心是否启动成功
-		if err = oldContainer.Engine.ContainerStart(ctx, oldContainer.ID, enginetypes.ContainerStartOptions{}); err != nil {
-			log.Errorf("[replaceAndRemove] Old container %s restart failed %v", oldContainer.ID, err)
+		// 重启老容器, 并不关心是否启动成功
+		// 注意要再次激发 hook
+		if err = container.Engine.ContainerStart(ctx, container.ID, enginetypes.ContainerStartOptions{}); err != nil {
+			log.Errorf("[replaceAndRemove] Old container %s restart failed %v", container.ID, err)
+		}
+
+		if container.Hook != nil && len(container.Hook.AfterStart) > 0 {
+			output, err := c.doContainerAfterStartHook(
+				ctx, container,
+				containerJSON.Config.User,
+				containerJSON.Config.Env,
+				container.Privileged,
+			)
+			log.Infof("[replaceAndRemove] Do after start hook %s", output)
+			if err != nil {
+				log.Errorf("[replaceAndRemove] Old container %s after hook failed %v", container.ID, err)
+			}
 		}
 		return nil, createMessage.Error
 	}
 
-	// 这里横竖会保证资源回收, 因此即便 remove 失败我们只需要考虑新容器占据了准确的资源配额即可
-	if err = c.removeAndCleanOneContainer(ctx, oldContainer); err != nil {
+	// 干掉老的
+	if err = container.Remove(ctx); err != nil {
 		return nil, err
 	}
 
+	if err = c.store.RemoveContainer(ctx, container); err != nil {
+		return nil, err
+	}
 	return createMessage, nil
 }
