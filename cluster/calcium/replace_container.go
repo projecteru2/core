@@ -32,7 +32,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.DeployOption
 		wg := sync.WaitGroup{}
 
 		for index, oldContainer := range oldContainers {
-			log.Debug("[ReplaceContainer] Replace old container : %s", oldContainer.ID)
+			log.Debugf("[ReplaceContainer] Replace old container %s", oldContainer.ID)
 			wg.Add(1)
 			go func(deployOpts types.DeployOptions, oldContainer *types.Container, index int) {
 				defer wg.Done()
@@ -40,6 +40,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.DeployOption
 				// 停老的，起新的
 				deployOpts.Memory = oldContainer.Memory
 				deployOpts.CPUQuota = oldContainer.Quota
+				deployOpts.SoftLimit = oldContainer.SoftLimit
 
 				createMessage, err := c.replaceAndRemove(ctx, &deployOpts, oldContainer, index)
 				ch <- &types.ReplaceContainerMessage{
@@ -49,10 +50,12 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.DeployOption
 				}
 				if err != nil {
 					log.Errorf("[ReplaceContainer] Replace and remove failed %v, old container restarted", err)
+					return
 				}
+				log.Infof("[ReplaceContainer] Replace and remove success %s", oldContainer.ID)
 				// 传 opts 的值，产生一次复制
 			}(*opts, oldContainer, index)
-			if index != 0 && step%index == 0 {
+			if (index+1)%step == 0 {
 				wg.Wait()
 			}
 		}
