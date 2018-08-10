@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	enginecontainer "github.com/docker/docker/api/types/container"
 	"github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
@@ -252,6 +253,14 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		return nil, err
 	}
 
+	if info.NetworkSettings != nil {
+		for nname := range info.NetworkSettings.Networks {
+			if enginecontainer.NetworkMode(nname).IsHost() {
+				info.NetworkSettings.Networks[nname].IPAddress = c.Node.GetIP()
+			}
+		}
+	}
+
 	bytes, err := json.Marshal(info)
 	if err != nil {
 		return nil, err
@@ -268,5 +277,6 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		Quota:      c.Quota,
 		Memory:     c.Memory,
 		Privileged: c.Privileged,
-		Inspect:    bytes}, nil
+		Inspect:    bytes,
+	}, nil
 }
