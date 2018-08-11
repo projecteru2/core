@@ -58,9 +58,9 @@ type CreateContainerMessage struct {
 
 // ReplaceContainerMessage for replace method
 type ReplaceContainerMessage struct {
-	*CreateContainerMessage
-	OldContainerID string
-	Error          error
+	Create *CreateContainerMessage
+	Remove *RemoveContainerMessage
+	Error  error
 }
 
 // RunAndWaitMessage for run and wait

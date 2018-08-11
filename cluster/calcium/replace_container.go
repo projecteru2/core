@@ -11,7 +11,7 @@ import (
 )
 
 // ReplaceContainer replace containers with same resource
-func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.ReplaceContainerMessage, error) {
+func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.DeployOptions, force bool) (chan *types.ReplaceContainerMessage, error) {
 	oldContainers, err := c.ListContainers(ctx, opts.Name, opts.Entrypoint.Name, opts.Nodename)
 	if err != nil {
 		return nil, err
@@ -24,7 +24,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.DeployOption
 		step := opts.Count
 		wg := sync.WaitGroup{}
 		ib := newImageBucket()
-
+		defer wg.Wait()
 		for index, oldContainer := range oldContainers {
 			log.Debugf("[ReplaceContainer] Replace old container %s", oldContainer.ID)
 			wg.Add(1)
@@ -36,11 +36,11 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.DeployOption
 				deployOpts.CPUQuota = oldContainer.Quota
 				deployOpts.SoftLimit = oldContainer.SoftLimit
 
-				createMessage, err := c.doReplaceContainer(ctx, oldContainer, &deployOpts, ib, index)
+				createMessage, removeMessage, err := c.doReplaceContainer(ctx, oldContainer, &deployOpts, ib, index, force)
 				ch <- &types.ReplaceContainerMessage{
-					CreateContainerMessage: createMessage,
-					OldContainerID:         oldContainer.ID,
-					Error:                  err,
+					Create: createMessage,
+					Remove: removeMessage,
+					Error:  err,
 				}
 				if err != nil {
 					log.Errorf("[ReplaceContainer] Replace and remove failed %v, old container restarted", err)
@@ -53,7 +53,6 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.DeployOption
 				wg.Wait()
 			}
 		}
-		wg.Wait()
 
 		// 把收集的image清理掉
 		//TODO 如果 remove 是异步的，这里就不能用 ctx 了，gRPC 一断这里就会死
@@ -69,18 +68,25 @@ func (c *Calcium) doReplaceContainer(
 	opts *types.DeployOptions,
 	ib *imageBucket,
 	index int,
-) (*types.CreateContainerMessage, error) {
+	force bool,
+) (*types.CreateContainerMessage, *types.RemoveContainerMessage, error) {
+	removeMessage := &types.RemoveContainerMessage{
+		ContainerID: container.ID,
+		Success:     false,
+		Message:     "",
+	}
+
 	// 锁住，防止删除
 	lock, err := c.Lock(ctx, fmt.Sprintf("rmcontainer_%s", container.ID), int(c.config.GlobalTimeout.Seconds()))
 	if err != nil {
-		return nil, err
+		return nil, removeMessage, err
 	}
 	defer lock.Unlock(ctx)
 
-	// 确保得到锁的时候容器没被干掉
+	// 确保是有这个容器的
 	containerJSON, err := container.Inspect(ctx)
 	if err != nil {
-		return nil, err
+		return nil, removeMessage, err
 	}
 
 	// 记录镜像
@@ -88,33 +94,19 @@ func (c *Calcium) doReplaceContainer(
 		ib.Add(container.Podname, containerJSON.Config.Image)
 	}
 
-	// 开始停到老容器
-	if container.Hook != nil && len(container.Hook.BeforeStop) > 0 && containerJSON.Config != nil {
-		output, err := c.doContainerBeforeStopHook(
-			ctx, container,
-			containerJSON.Config.User,
-			containerJSON.Config.Env,
-			container.Privileged, true,
-		)
-		log.Infof("[doReplaceContainer] Do before stop hook %s", output)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// 只 Stop
-	if err = container.Stop(ctx, c.config.GlobalTimeout); err != nil {
-		return nil, err
+	removeMessage.Message, err = c.doStopContainer(ctx, container, containerJSON, ib, force)
+	if err != nil {
+		return nil, removeMessage, err
 	}
 
 	// 拉镜像
 	auth, err := makeEncodedAuthConfigFromRemote(c.config.Docker.AuthConfigs, opts.Image)
 	if err != nil {
-		return nil, err
+		return nil, removeMessage, err
 	}
 
 	if err = pullImage(ctx, container.Node, opts.Image, auth); err != nil {
-		return nil, err
+		return nil, removeMessage, err
 	}
 
 	// 不涉及资源消耗，创建容器失败会被回收容器而不回收资源
@@ -135,20 +127,22 @@ func (c *Calcium) doReplaceContainer(
 				container.Privileged,
 			)
 			log.Infof("[replaceAndRemove] Do after start hook %s", output)
+			removeMessage.Message += string(output)
 			if err != nil {
 				log.Errorf("[replaceAndRemove] Old container %s after hook failed %v", container.ID, err)
 			}
 		}
-		return nil, createMessage.Error
+		return nil, removeMessage, createMessage.Error
 	}
+
+	//TODO healthcheck
 
 	// 干掉老的
-	if err = container.Remove(ctx); err != nil {
-		return nil, err
+	if err = c.doRemoveContainer(ctx, container); err != nil {
+		log.Errorf("[replaceAndRemove] Old container %s remove failed %v", container.ID, err)
+		return createMessage, removeMessage, err
 	}
 
-	if err = c.store.RemoveContainer(ctx, container); err != nil {
-		return nil, err
-	}
-	return createMessage, nil
+	removeMessage.Success = true
+	return createMessage, removeMessage, nil
 }

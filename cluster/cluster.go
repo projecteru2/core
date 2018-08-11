@@ -52,7 +52,7 @@ type Cluster interface {
 	RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error)
 	// this methods will not interrupt by client
 	CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
-	ReplaceContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.ReplaceContainerMessage, error)
+	ReplaceContainer(ctx context.Context, opts *types.DeployOptions, force bool) (chan *types.ReplaceContainerMessage, error)
 	RemoveContainer(ctx context.Context, IDs []string, force bool) (chan *types.RemoveContainerMessage, error)
 	ReallocResource(ctx context.Context, IDs []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error)
 

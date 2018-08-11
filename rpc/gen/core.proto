@@ -27,7 +27,7 @@ service CoreRPC {
     rpc DeployStatus(DeployStatusOptions) returns (stream DeployStatusMessage) {};
     rpc RunAndWait(stream RunAndWaitOptions) returns (stream RunAndWaitMessage) {};
     rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage) {};
-    rpc ReplaceContainer(DeployOptions) returns (stream ReplaceContainerMessage) {};
+    rpc ReplaceContainer(ReplaceOptions) returns (stream ReplaceContainerMessage) {};
     rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage) {};
     rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage) {};
 }
@@ -262,6 +262,11 @@ message DeployOptions {
     bool softlimit = 23;
 }
 
+message ReplaceOptions {
+    DeployOptions deployOpt = 1;
+    bool force = 2; 
+}
+
 message RemoveImageOptions {
     string podname = 1;
     string nodename = 2;
@@ -306,7 +311,7 @@ message CreateContainerMessage {
 
 message ReplaceContainerMessage {
     CreateContainerMessage create = 1;
-    string id = 2;
+    RemoveContainerMessage remove = 2;
     string error = 3;
 }
 

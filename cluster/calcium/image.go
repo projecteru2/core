@@ -56,9 +56,6 @@ func (c *Calcium) cleanImage(ctx context.Context, podname, image string) error {
 	wg := sync.WaitGroup{}
 	defer wg.Wait()
 	for i, node := range nodes {
-		if (i != 0) && (i%maxPuller == 0) {
-			wg.Wait()
-		}
 		wg.Add(1)
 		go func(node *types.Node) {
 			defer wg.Done()
@@ -66,6 +63,9 @@ func (c *Calcium) cleanImage(ctx context.Context, podname, image string) error {
 				log.Errorf("[cleanImage] CleanImageOnNode error: %s", err)
 			}
 		}(node)
+		if (i+1)%maxPuller == 0 {
+			wg.Wait()
+		}
 	}
 	return nil
 }

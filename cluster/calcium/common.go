@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/projecteru2/core/types"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -53,5 +54,6 @@ func (ib *imageBucket) Dump() map[string][]string {
 		}
 		r[podname] = images
 	}
+	log.Debugf("[ImageBucket] Dump %v", r)
 	return r
 }
