@@ -19,10 +19,10 @@ func (c *Calcium) doContainerBeforeStopHook(
 		output, err := execuateInside(ctx, container.Engine, container.ID, cmd, user, env, privileged)
 		if err != nil {
 			// force 指是否强制删除，所以这里即便 hook 是强制执行，但是失败了，也不应该影响删除过程
+			outputs = append(outputs, []byte(err.Error())...)
 			if container.Hook.Force && !force {
 				return outputs, err
 			}
-			outputs = append(outputs, []byte(err.Error())...)
 			continue
 		}
 		outputs = append(outputs, output...)

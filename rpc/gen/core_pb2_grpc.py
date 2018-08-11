@@ -126,7 +126,7 @@ class CoreRPCStub(object):
         )
     self.ReplaceContainer = channel.unary_stream(
         '/pb.CoreRPC/ReplaceContainer',
-        request_serializer=core__pb2.DeployOptions.SerializeToString,
+        request_serializer=core__pb2.ReplaceOptions.SerializeToString,
         response_deserializer=core__pb2.ReplaceContainerMessage.FromString,
         )
     self.RemoveContainer = channel.unary_stream(
@@ -435,7 +435,7 @@ def add_CoreRPCServicer_to_server(servicer, server):
       ),
       'ReplaceContainer': grpc.unary_stream_rpc_method_handler(
           servicer.ReplaceContainer,
-          request_deserializer=core__pb2.DeployOptions.FromString,
+          request_deserializer=core__pb2.ReplaceOptions.FromString,
           response_serializer=core__pb2.ReplaceContainerMessage.SerializeToString,
       ),
       'RemoveContainer': grpc.unary_stream_rpc_method_handler(

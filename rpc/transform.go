@@ -194,8 +194,8 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 
 func toRPCReplaceContainerMessage(r *types.ReplaceContainerMessage) *pb.ReplaceContainerMessage {
 	msg := &pb.ReplaceContainerMessage{
-		Create: toRPCCreateContainerMessage(r.CreateContainerMessage),
-		Id:     r.OldContainerID,
+		Create: toRPCCreateContainerMessage(r.Create),
+		Remove: toRPCRemoveContainerMessage(r.Remove),
 	}
 	if r.Error != nil {
 		msg.Error = r.Error.Error()
