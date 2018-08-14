@@ -73,7 +73,7 @@ func (c *Calcium) createContainerWithMemoryPrior(ctx context.Context, opts *type
 				defer wg.Done()
 				for _, m := range c.doCreateContainerWithMemoryPrior(ctx, nodeInfo, opts, index) {
 					ch <- m
-					if m.Error != nil {
+					if m.Error != nil && m.ContainerID == "" {
 						if err := c.store.UpdateNodeResource(ctx, opts.Podname, nodeInfo.Name, types.CPUMap{}, opts.Memory, "+"); err != nil {
 							log.Errorf("[createContainerWithMemoryPrior] reset node memory failed %v", err)
 						}
@@ -141,7 +141,7 @@ func (c *Calcium) createContainerWithCPUPrior(ctx context.Context, opts *types.D
 				defer wg.Done()
 				for i, m := range c.doCreateContainerWithCPUPrior(ctx, nodename, cpuMap, opts, index) {
 					ch <- m
-					if m.Error != nil {
+					if m.Error != nil && m.ContainerID == "" {
 						if err := c.store.UpdateNodeResource(ctx, opts.Podname, nodename, cpuMap[i], opts.Memory, "+"); err != nil {
 							log.Errorf("[createContainerWithCPUPrior] update node CPU failed %v", err)
 						}
