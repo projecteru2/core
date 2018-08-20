@@ -155,7 +155,11 @@ func mockContainerID() string {
 	return utils.RandomString(64)
 }
 
+var l sync.Mutex
+
 func mockDockerDoer(r *http.Request) (*http.Response, error) {
+	l.Lock()
+	defer l.Unlock()
 	var b []byte
 	prefix := fmt.Sprintf("/%s", APIVersion)
 	path := strings.TrimPrefix(r.URL.Path, prefix)
