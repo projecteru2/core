@@ -195,7 +195,26 @@ func pullImage(ctx context.Context, node *types.Node, image, auth string) error 
 		return fmt.Errorf("Goddamn empty image, WTF?")
 	}
 
-	pullOptions := enginetypes.ImagePullOptions{RegistryAuth: auth}
+	image = utils.NormalizeImageName(image)
+	f := filters.NewArgs()
+	f.Add("reference", image)
+	listOptions := enginetypes.ImageListOptions{
+		All:     false,
+		Filters: f,
+	}
+	listResp, err := node.Engine.ImageList(ctx, listOptions)
+	if err != nil {
+		log.Errorf("[pullImage] Error during check image %s: %v", image, err)
+		return err
+	}
+	//TODO check remote to update same image
+
+	if len(listResp) > 0 {
+		log.Debugf("[pullImage] Image %s exists", image)
+		return nil
+	}
+
+	pullOptions := enginetypes.ImagePullOptions{All: false, RegistryAuth: auth}
 	outStream, err := node.Engine.ImagePull(ctx, image, pullOptions)
 	if err != nil {
 		log.Errorf("[pullImage] Error during pulling image %s: %v", image, err)

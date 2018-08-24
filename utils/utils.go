@@ -70,7 +70,7 @@ func GetGitRepoName(url string) (string, error) {
 	return strings.TrimSuffix(Tail(url), ".git"), nil
 }
 
-//GetVersion reture image Version
+// GetVersion reture image Version
 func GetVersion(image string) string {
 	if !strings.Contains(image, ":") {
 		return "latest"
@@ -84,13 +84,21 @@ func GetVersion(image string) string {
 	return parts[len(parts)-1]
 }
 
-//ContextWithDockerEngine bind docker engine to context
+// NormalizeImageName will normalize image name
+func NormalizeImageName(image string) string {
+	if !strings.Contains(image, ":") {
+		return fmt.Sprintf("%s:latest", image)
+	}
+	return image
+}
+
+// ContextWithDockerEngine bind docker engine to context
 // Bind a docker engine client to context
 func ContextWithDockerEngine(ctx context.Context, client *engineapi.Client) context.Context {
 	return context.WithValue(ctx, engineKey, client)
 }
 
-//GetDockerEngineFromContext get docker engine from context
+// GetDockerEngineFromContext get docker engine from context
 // Get a docker engine client from a context
 func GetDockerEngineFromContext(ctx context.Context) (*engineapi.Client, bool) {
 	client, ok := ctx.Value(engineKey).(*engineapi.Client)
@@ -139,12 +147,12 @@ func MakeCommandLineArgs(s string) []string {
 	return r
 }
 
-//MakeContainerName joins appname, entrypoint, ident using '_'
+// MakeContainerName joins appname, entrypoint, ident using '_'
 func MakeContainerName(appname, entrypoint, ident string) string {
 	return strings.Join([]string{appname, entrypoint, ident}, "_")
 }
 
-//ParseContainerName does the opposite thing as MakeContainerName
+// ParseContainerName does the opposite thing as MakeContainerName
 func ParseContainerName(containerName string) (string, string, string, error) {
 	containerName = strings.TrimLeft(containerName, "/")
 	splits := strings.Split(containerName, "_")
