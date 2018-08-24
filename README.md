@@ -26,7 +26,7 @@ HOMEBREW_NO_AUTO_UPDATE=1 brew install libgit2
 make deps
 ```
 
-In linux you can reference our image's [Dockerfile](https://github.com/projecteru2/core/blob/master/.circleci/Dockerfile). Our server were running under CentOS 7, so if your server was different, something will not same.
+In linux you can reference our image's [Dockerfile](https://github.com/projecteru2/core/blob/master/Dockerfile). Our server were running under CentOS 7, so if your server was different, something will not same.
 
 On other hand, you can use our [footstone](https://hub.docker.com/r/projecteru2/footstone/) image for testing and compiling.
 
@@ -39,11 +39,6 @@ go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
 pip install -U grpcio-tools
 make grpc
 ```
-
-Current version of dependencies are:
-
-* google.golang.org/grpc: v1.0.1-GA
-* github.com/golang/protobuf: f592bd283e
 
 #### Run it
 
