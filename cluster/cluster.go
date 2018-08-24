@@ -32,7 +32,6 @@ type Cluster interface {
 	AddPod(ctx context.Context, podname, favor, desc string) (*types.Pod, error)
 	AddNode(ctx context.Context, nodename, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string) (*types.Node, error)
 	RemovePod(ctx context.Context, podname string) error
-	CleanPod(ctx context.Context, podname string, prune bool, images []string) error
 	RemoveNode(ctx context.Context, nodename, podname string) (*types.Pod, error)
 	ListPods(ctx context.Context) ([]*types.Pod, error)
 	ListPodNodes(ctx context.Context, podname string, all bool) ([]*types.Node, error)
@@ -48,7 +47,7 @@ type Cluster interface {
 	// cluster methods
 	Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error)
 	BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error)
-	RemoveImage(ctx context.Context, podname, nodename string, images []string) (chan *types.RemoveImageMessage, error)
+	RemoveImage(ctx context.Context, podname, nodename string, images []string, prune bool) (chan *types.RemoveImageMessage, error)
 	DeployStatusStream(ctx context.Context, appname, entrypoint, nodename string) chan *types.DeployStatus
 	RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error)
 	// this methods will not interrupt by client

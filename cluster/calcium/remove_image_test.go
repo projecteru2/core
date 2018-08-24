@@ -11,7 +11,7 @@ func TestRemoveImage(t *testing.T) {
 	initMockConfig()
 
 	images := []string{image}
-	ch, err := mockc.RemoveImage(context.Background(), podname, nodename, images)
+	ch, err := mockc.RemoveImage(context.Background(), podname, nodename, images, false)
 	assert.NoError(t, err)
 
 	for c := range ch {
