@@ -241,6 +241,7 @@ message EntrypointOptions {
     HealthCheckOptions healthcheck = 7;
     HookOptions hook = 8;
     string restart_policy = 9;
+    map<string, string> sysctls = 10;
 }
 
 message DeployOptions {
@@ -267,7 +268,6 @@ message DeployOptions {
     string deploy_method = 21;
     map<string, bytes> data = 22;
     bool softlimit = 23;
-    map<string, string> sysctls = 24;
 }
 
 message ReplaceOptions {

@@ -120,6 +120,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Dir:           entrypoint.Dir,
 		Publish:       entrypoint.Publish,
 		RestartPolicy: entrypoint.RestartPolicy,
+		Sysctls:       entrypoint.Sysctls,
 	}
 
 	if entrypoint.Log != nil && entrypoint.Log.Type != "" {
@@ -167,7 +168,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		DeployMethod: d.DeployMethod,
 		Data:         d.Data,
 		SoftLimit:    d.Softlimit,
-		Sysctls:      d.Sysctls,
 	}, nil
 }
 

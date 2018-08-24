@@ -73,9 +73,13 @@ func (c *Calcium) createContainerWithMemoryPrior(ctx context.Context, opts *type
 				defer wg.Done()
 				for _, m := range c.doCreateContainerWithMemoryPrior(ctx, nodeInfo, opts, index) {
 					ch <- m
-					if m.Error != nil && m.ContainerID == "" {
-						if err := c.store.UpdateNodeResource(ctx, opts.Podname, nodeInfo.Name, types.CPUMap{}, opts.Memory, "+"); err != nil {
-							log.Errorf("[createContainerWithMemoryPrior] reset node memory failed %v", err)
+					if m.Error != nil {
+						if m.ContainerID == "" {
+							if err := c.store.UpdateNodeResource(ctx, opts.Podname, nodeInfo.Name, types.CPUMap{}, opts.Memory, "+"); err != nil {
+								log.Errorf("[createContainerWithMemoryPrior] reset node memory failed %v", err)
+							}
+						} else {
+							log.Warnf("[createContainerWithMemoryPrior] container %s not removed", m.ContainerID)
 						}
 					}
 				}
@@ -141,9 +145,13 @@ func (c *Calcium) createContainerWithCPUPrior(ctx context.Context, opts *types.D
 				defer wg.Done()
 				for i, m := range c.doCreateContainerWithCPUPrior(ctx, nodename, cpuMap, opts, index) {
 					ch <- m
-					if m.Error != nil && m.ContainerID == "" {
-						if err := c.store.UpdateNodeResource(ctx, opts.Podname, nodename, cpuMap[i], opts.Memory, "+"); err != nil {
-							log.Errorf("[createContainerWithCPUPrior] update node CPU failed %v", err)
+					if m.Error != nil {
+						if m.ContainerID == "" {
+							if err := c.store.UpdateNodeResource(ctx, opts.Podname, nodename, cpuMap[i], opts.Memory, "+"); err != nil {
+								log.Errorf("[createContainerWithCPUPrior] update node CPU failed %v", err)
+							}
+						} else {
+							log.Warnf("[createContainerWithCPUPrior] container %s not removed", m.ContainerID)
 						}
 					}
 				}
@@ -291,6 +299,13 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 		dns = []string{nodeIP}
 	}
 
+	// sysctls
+	// 只有在非 host 网络下有意义
+	sysctls := map[string]string{}
+	if !engineNetworkMode.IsHost() {
+		sysctls = entry.Sysctls
+	}
+
 	config := &enginecontainer.Config{
 		Env:             env,
 		Cmd:             cmd,
@@ -321,7 +336,7 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 		ExtraHosts:    opts.ExtraHosts,
 		Privileged:    entry.Privileged,
 		Resources:     resource,
-		Sysctls:       opts.Sysctls,
+		Sysctls:       sysctls,
 	}
 	networkConfig := &enginenetwork.NetworkingConfig{}
 	return config, hostConfig, networkConfig, containerName, nil
@@ -372,6 +387,8 @@ func (c *Calcium) createAndStartContainer(
 		if !createContainerMessage.Success {
 			if err := c.doRemoveContainer(ctx, container); err != nil {
 				log.Errorf("[createAndStartContainer] create and start container failed, and remove it failed also %v", err)
+			} else {
+				createContainerMessage.ContainerID = ""
 			}
 		}
 	}()

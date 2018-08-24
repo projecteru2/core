@@ -38,15 +38,16 @@ type HealthCheck struct {
 
 // Entrypoint is a single entrypoint
 type Entrypoint struct {
-	Name          string       `yaml:"name,omitempty"`
-	Command       string       `yaml:"cmd,omitempty"`
-	Privileged    bool         `yaml:"privileged,omitempty"`
-	Dir           string       `yaml:"dir,omitempty"`
-	Log           *LogConfig   `yaml:"log,omitempty"`
-	Publish       []string     `yaml:"publish,omitempty,flow"`
-	HealthCheck   *HealthCheck `yaml:"healthcheck,omitempty,flow"`
-	Hook          *Hook        `yaml:"hook,omitempty,flow"`
-	RestartPolicy string       `yaml:"restart,omitempty"`
+	Name          string            `yaml:"name,omitempty"`
+	Command       string            `yaml:"cmd,omitempty"`
+	Privileged    bool              `yaml:"privileged,omitempty"`
+	Dir           string            `yaml:"dir,omitempty"`
+	Log           *LogConfig        `yaml:"log,omitempty"`
+	Publish       []string          `yaml:"publish,omitempty,flow"`
+	HealthCheck   *HealthCheck      `yaml:"healthcheck,omitempty,flow"`
+	Hook          *Hook             `yaml:"hook,omitempty,flow"`
+	RestartPolicy string            `yaml:"restart,omitempty"`
+	Sysctls       map[string]string `yaml:"sysctls,omitempty,flow"`
 }
 
 // Bind define a single bind
