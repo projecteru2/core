@@ -321,6 +321,7 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 		ExtraHosts:    opts.ExtraHosts,
 		Privileged:    entry.Privileged,
 		Resources:     resource,
+		Sysctls:       opts.Sysctls,
 	}
 	networkConfig := &enginenetwork.NetworkingConfig{}
 	return config, hostConfig, networkConfig, containerName, nil

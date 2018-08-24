@@ -147,12 +147,6 @@ func makeMountPaths(opts *types.DeployOptions) ([]string, map[string]struct{}) {
 		}
 	}
 
-	// /proc/sys
-	//TODO 外部传入
-	volumes["/writable-proc/sys"] = struct{}{}
-	binds = append(binds, "/proc/sys:/writable-proc/sys:rw")
-	volumes["/writable-sys/kernel/mm/transparent_hugepage"] = struct{}{}
-	binds = append(binds, "/sys/kernel/mm/transparent_hugepage:/writable-sys/kernel/mm/transparent_hugepage:rw")
 	return binds, volumes
 }
 

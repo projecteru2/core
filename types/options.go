@@ -34,6 +34,7 @@ type DeployOptions struct {
 	DeployMethod string            // Deploy method
 	Data         map[string][]byte // For additional file data
 	SoftLimit    bool              // softlimit memory
+	Sysctls      map[string]string // Sysctl params
 }
 
 // RunAndWaitOptions is options for running and waiting

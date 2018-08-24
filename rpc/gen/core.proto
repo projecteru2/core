@@ -260,6 +260,7 @@ message DeployOptions {
     string deploy_method = 21;
     map<string, bytes> data = 22;
     bool softlimit = 23;
+    map<string, string> sysctls = 24;
 }
 
 message ReplaceOptions {

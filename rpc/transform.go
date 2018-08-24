@@ -167,6 +167,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		DeployMethod: d.DeployMethod,
 		Data:         d.Data,
 		SoftLimit:    d.Softlimit,
+		Sysctls:      d.Sysctls,
 	}, nil
 }
 

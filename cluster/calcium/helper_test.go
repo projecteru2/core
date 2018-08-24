@@ -18,8 +18,8 @@ func TestMakeMountPaths(t *testing.T) {
 		DeployMethod: cluster.DeployAuto,
 	}
 	binds, volumes := makeMountPaths(opts)
-	assert.Equal(t, binds, []string{"/foo-data:/foo-data:rw", "/proc/sys:/writable-proc/sys:rw", "/sys/kernel/mm/transparent_hugepage:/writable-sys/kernel/mm/transparent_hugepage:rw"})
-	assert.Equal(t, volumes, map[string]struct{}{"/foo-data": struct{}{}, "/writable-proc/sys": struct{}{}, "/writable-sys/kernel/mm/transparent_hugepage": struct{}{}})
+	assert.Equal(t, binds, []string{"/foo-data:/foo-data:rw"})
+	assert.Equal(t, volumes, map[string]struct{}{"/foo-data": struct{}{}})
 }
 
 func TestRegistryAuth(t *testing.T) {
