@@ -150,6 +150,15 @@ func (v *Vibranium) GetPod(ctx context.Context, opts *pb.GetPodOptions) (*pb.Pod
 	return toRPCPod(p), nil
 }
 
+// CleanPod clean pod images
+func (v *Vibranium) CleanPod(ctx context.Context, opts *pb.CleanPodOptions) (*pb.Empty, error) {
+	err := v.cluster.CleanPod(ctx, opts.Podname, opts.Prune, opts.Images)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.Empty{}, nil
+}
+
 // GetNode get a node
 func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Node, error) {
 	n, err := v.cluster.GetNode(ctx, opts.Podname, opts.Nodename)

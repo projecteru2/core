@@ -7,6 +7,7 @@ service CoreRPC {
     rpc AddPod(AddPodOptions) returns (Pod) {};
     rpc RemovePod(RemovePodOptions) returns (Empty) {};
     rpc GetPod(GetPodOptions) returns (Pod) {};
+    rpc CleanPod(CleanPodOptions) returns (Empty) {};
 
     rpc AddNode(AddNodeOptions) returns (Node) {};
     rpc RemoveNode(RemoveNodeOptions) returns (Pod) {};
@@ -33,6 +34,12 @@ service CoreRPC {
 }
 
 message Empty {}
+
+message CleanPodOptions {
+    string podname = 1;
+    bool prune = 2;
+    repeated string images = 3;
+}
 
 message DeployStatusOptions {
     string appname = 1;

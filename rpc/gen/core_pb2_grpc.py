@@ -34,6 +34,11 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.GetPodOptions.SerializeToString,
         response_deserializer=core__pb2.Pod.FromString,
         )
+    self.CleanPod = channel.unary_unary(
+        '/pb.CoreRPC/CleanPod',
+        request_serializer=core__pb2.CleanPodOptions.SerializeToString,
+        response_deserializer=core__pb2.Empty.FromString,
+        )
     self.AddNode = channel.unary_unary(
         '/pb.CoreRPC/AddNode',
         request_serializer=core__pb2.AddNodeOptions.SerializeToString,
@@ -167,6 +172,13 @@ class CoreRPCServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def GetPod(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def CleanPod(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -342,6 +354,11 @@ def add_CoreRPCServicer_to_server(servicer, server):
           servicer.GetPod,
           request_deserializer=core__pb2.GetPodOptions.FromString,
           response_serializer=core__pb2.Pod.SerializeToString,
+      ),
+      'CleanPod': grpc.unary_unary_rpc_method_handler(
+          servicer.CleanPod,
+          request_deserializer=core__pb2.CleanPodOptions.FromString,
+          response_serializer=core__pb2.Empty.SerializeToString,
       ),
       'AddNode': grpc.unary_unary_rpc_method_handler(
           servicer.AddNode,

@@ -32,6 +32,7 @@ type Cluster interface {
 	AddPod(ctx context.Context, podname, favor, desc string) (*types.Pod, error)
 	AddNode(ctx context.Context, nodename, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string) (*types.Node, error)
 	RemovePod(ctx context.Context, podname string) error
+	CleanPod(ctx context.Context, podname string, prune bool, images []string) error
 	RemoveNode(ctx context.Context, nodename, podname string) (*types.Pod, error)
 	ListPods(ctx context.Context) ([]*types.Pod, error)
 	ListPodNodes(ctx context.Context, podname string, all bool) ([]*types.Node, error)

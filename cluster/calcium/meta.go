@@ -5,7 +5,10 @@ package calcium
 
 import (
 	"context"
+	"sync"
 
+	enginetypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -23,6 +26,37 @@ func (c *Calcium) AddNode(ctx context.Context, nodename, endpoint, podname, ca, 
 // RemovePod remove pod
 func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
 	return c.store.RemovePod(ctx, podname)
+}
+
+// CleanPod clean pod images
+func (c *Calcium) CleanPod(ctx context.Context, podname string, prune bool, images []string) error {
+	nodes, err := c.store.GetNodesByPod(ctx, podname)
+	if err != nil {
+		log.Debugf("[CleanPod] Error during GetNodesByPod %s %v", podname, err)
+		return err
+	}
+	wg := sync.WaitGroup{}
+	for _, node := range nodes {
+		wg.Add(1)
+		go func(node *types.Node) {
+			defer wg.Done()
+			for _, image := range images {
+				if _, err := node.Engine.ImageRemove(ctx, image, enginetypes.ImageRemoveOptions{PruneChildren: true}); err != nil {
+					log.Infof("[CleanPod] Clean %s pod %s node %s image", podname, node.Name, image)
+				} else {
+					log.Errorf("[CleanPod] Clean %s pod %s node %s image failed: %v", podname, node.Name, image, err)
+				}
+			}
+			if prune {
+				_, err := node.Engine.ImagesPrune(ctx, filters.NewArgs())
+				if err != nil {
+					log.Errorf("[CleanPod] Prune %s pod %s node failed: %v", podname, node.Name, err)
+				}
+			}
+		}(node)
+	}
+	wg.Wait()
+	return nil
 }
 
 // RemoveNode remove a node
