@@ -188,6 +188,23 @@ func execuateInside(ctx context.Context, client *engineapi.Client, ID, cmd, user
 	return b, nil
 }
 
+func distributionInspect(ctx context.Context, node *types.Node, image, auth string, digests []string) bool {
+	inspect, err := node.Engine.DistributionInspect(ctx, image, auth)
+	if err != nil {
+		log.Errorf("[distributionInspect] get manifest failed %v", err)
+		return false
+	}
+	remoteDigest := fmt.Sprintf("%s@%s", normalizeImage(image), inspect.Descriptor.Digest.String())
+
+	for _, digest := range digests {
+		if digest == remoteDigest {
+			log.Debugf("[distributionInspect]\ndigest %s \nremote %s", digest, remoteDigest)
+			return true
+		}
+	}
+	return false
+}
+
 // Pull an image
 func pullImage(ctx context.Context, node *types.Node, image, auth string) error {
 	log.Debugf("[pullImage] Pulling image %s", image)
@@ -197,24 +214,14 @@ func pullImage(ctx context.Context, node *types.Node, image, auth string) error 
 
 	// check local
 	exists := false
-	image = utils.NormalizeImageName(image)
-	f := filters.NewArgs()
-	f.Add("reference", image)
-	listOptions := enginetypes.ImageListOptions{
-		All:     false,
-		Filters: f,
-	}
-	listResp, err := node.Engine.ImageList(ctx, listOptions)
+	inspect, _, err := node.Engine.ImageInspectWithRaw(ctx, image)
 	if err != nil {
-		log.Errorf("[pullImage] Error during check image %s: %v", image, err)
-	}
-
-	if len(listResp) > 0 {
-		log.Debugf("[pullImage] Image %s exists", image)
+		log.Errorf("[pullImage] Check image failed %v", err)
+	} else {
 		exists = true
 	}
 
-	if exists {
+	if exists && distributionInspect(ctx, node, image, auth, inspect.RepoDigests) {
 		log.Infof("[pullImage] Image cached, skip pulling")
 		return nil
 	}
