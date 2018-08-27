@@ -195,6 +195,8 @@ func pullImage(ctx context.Context, node *types.Node, image, auth string) error 
 		return fmt.Errorf("Goddamn empty image, WTF?")
 	}
 
+	// check local
+	exists := false
 	image = utils.NormalizeImageName(image)
 	f := filters.NewArgs()
 	f.Add("reference", image)
@@ -205,12 +207,15 @@ func pullImage(ctx context.Context, node *types.Node, image, auth string) error 
 	listResp, err := node.Engine.ImageList(ctx, listOptions)
 	if err != nil {
 		log.Errorf("[pullImage] Error during check image %s: %v", image, err)
-		return err
 	}
-	//TODO check remote to update same image
 
 	if len(listResp) > 0 {
 		log.Debugf("[pullImage] Image %s exists", image)
+		exists = true
+	}
+
+	if exists {
+		log.Infof("[pullImage] Image cached, skip pulling")
 		return nil
 	}
 
