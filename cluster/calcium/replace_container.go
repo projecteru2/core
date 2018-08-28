@@ -26,6 +26,10 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.DeployOption
 		ib := newImageBucket()
 		defer wg.Wait()
 		for index, oldContainer := range oldContainers {
+			if opts.Podname != "" && oldContainer.Podname != opts.Podname {
+				log.Debugf("[ReplaceContainer] Skip not in pod container %s", oldContainer.ID)
+				continue
+			}
 			log.Debugf("[ReplaceContainer] Replace old container %s", oldContainer.ID)
 			wg.Add(1)
 			go func(deployOpts types.DeployOptions, oldContainer *types.Container, index int) {
@@ -88,6 +92,9 @@ func (c *Calcium) doReplaceContainer(
 	if err != nil {
 		return nil, removeMessage, err
 	}
+
+	// 覆盖 podname 如果做全量更新的话
+	opts.Podname = container.Podname
 
 	// 记录镜像
 	if ib != nil {
