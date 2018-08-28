@@ -198,7 +198,8 @@ func distributionInspect(ctx context.Context, node *types.Node, image, auth stri
 
 	for _, digest := range digests {
 		if digest == remoteDigest {
-			log.Debugf("[distributionInspect]\ndigest %s \nremote %s", digest, remoteDigest)
+			log.Debugf("[distributionInspect] Local digest %s", digest)
+			log.Debugf("[distributionInspect] Remote digest %s", remoteDigest)
 			return true
 		}
 	}
@@ -218,6 +219,7 @@ func pullImage(ctx context.Context, node *types.Node, image, auth string) error 
 	if err != nil {
 		log.Errorf("[pullImage] Check image failed %v", err)
 	} else {
+		log.Debugf("[pullImage] Local Image exists")
 		exists = true
 	}
 
