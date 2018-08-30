@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='core.proto',
   package='pb',
   syntax='proto3',
-  serialized_pb=_b('\n\ncore.proto\x12\x02pb\"\x07\n\x05\x45mpty\"L\n\x13\x44\x65ployStatusOptions\x12\x0f\n\x07\x61ppname\x18\x01 \x01(\t\x12\x12\n\nentrypoint\x18\x02 \x01(\t\x12\x10\n\x08nodename\x18\x03 \x01(\t\"v\n\x13\x44\x65ployStatusMessage\x12\x0e\n\x06\x61\x63tion\x18\x01 \x01(\t\x12\x0f\n\x07\x61ppname\x18\x02 \x01(\t\x12\x12\n\nentrypoint\x18\x03 \x01(\t\x12\x10\n\x08nodename\x18\x04 \x01(\t\x12\n\n\x02id\x18\x05 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x06 \x01(\x0c\"!\n\x03Pod\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\"\x1d\n\x04Pods\x12\x15\n\x04pods\x18\x01 \x03(\x0b\x32\x07.pb.Pod\"5\n\x12ListNetworkOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x0e\n\x06\x64river\x18\x02 \x01(\t\"(\n\x07Network\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07subnets\x18\x02 \x03(\t\")\n\x08Networks\x12\x1d\n\x08networks\x18\x01 \x03(\x0b\x32\x0b.pb.Network\"\x89\x02\n\x04Node\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x10\n\x08\x65ndpoint\x18\x02 \x01(\t\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\x1e\n\x03\x63pu\x18\x04 \x03(\x0b\x32\x11.pb.Node.CpuEntry\x12\x0e\n\x06memory\x18\x05 \x01(\x03\x12\x0c\n\x04info\x18\x06 \x01(\t\x12\x11\n\tavailable\x18\x07 \x01(\x08\x12$\n\x06labels\x18\x08 \x03(\x0b\x32\x14.pb.Node.LabelsEntry\x1a*\n\x08\x43puEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x05:\x02\x38\x01\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\" \n\x05Nodes\x12\x17\n\x05nodes\x18\x01 \x03(\x0b\x32\x08.pb.Node\"E\n\rNodeAvailable\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\x12\x11\n\tavailable\x18\x03 \x01(\x08\"\xa5\x03\n\tContainer\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\x12\x10\n\x08nodename\x18\x03 \x01(\t\x12\x0c\n\x04name\x18\x04 \x01(\t\x12#\n\x03\x63pu\x18\x05 \x03(\x0b\x32\x16.pb.Container.CpuEntry\x12\r\n\x05quota\x18\x06 \x01(\x01\x12\x0e\n\x06memory\x18\x07 \x01(\x03\x12\x12\n\nprivileged\x18\x08 \x01(\x08\x12)\n\x06labels\x18\t \x03(\x0b\x32\x19.pb.Container.LabelsEntry\x12+\n\x07publish\x18\n \x03(\x0b\x32\x1a.pb.Container.PublishEntry\x12\x0f\n\x07version\x18\x0b \x01(\t\x12\x0f\n\x07inspect\x18\x0c \x01(\x0c\x1a*\n\x08\x43puEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x05:\x02\x38\x01\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a.\n\x0cPublishEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"k\n\x18\x43ontainerDeployedOptions\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07\x61ppname\x18\x02 \x01(\t\x12\x12\n\nentrypoint\x18\x03 \x01(\t\x12\x10\n\x08nodename\x18\x04 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x05 \x01(\x0c\"/\n\nContainers\x12!\n\ncontainers\x18\x01 \x03(\x0b\x32\r.pb.Container\"\x19\n\x0b\x43ontainerID\x12\n\n\x02id\x18\x01 \x01(\t\"\x1b\n\x0c\x43ontainerIDs\x12\x0b\n\x03ids\x18\x01 \x03(\t\"4\n\x16RemoveContainerOptions\x12\x0b\n\x03ids\x18\x01 \x03(\t\x12\r\n\x05\x66orce\x18\x02 \x01(\x08\"7\n\x0eReallocOptions\x12\x0b\n\x03ids\x18\x01 \x03(\t\x12\x0b\n\x03\x63pu\x18\x02 \x01(\x01\x12\x0b\n\x03mem\x18\x03 \x01(\x03\":\n\rAddPodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\r\n\x05\x66\x61vor\x18\x02 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x03 \x01(\t\" \n\x10RemovePodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1d\n\rGetPodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\"\xf7\x01\n\x0e\x41\x64\x64NodeOptions\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x10\n\x08\x65ndpoint\x18\x02 \x01(\t\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\n\n\x02\x63\x61\x18\x04 \x01(\t\x12\x0c\n\x04\x63\x65rt\x18\x05 \x01(\t\x12\x0b\n\x03key\x18\x06 \x01(\t\x12\x0b\n\x03\x63pu\x18\x07 \x01(\x05\x12\r\n\x05share\x18\x08 \x01(\x05\x12\x0e\n\x06memory\x18\t \x01(\x03\x12.\n\x06labels\x18\n \x03(\x0b\x32\x1e.pb.AddNodeOptions.LabelsEntry\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"6\n\x11RemoveNodeOptions\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\"3\n\x0eGetNodeOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\"0\n\x10ListNodesOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x0b\n\x03\x61ll\x18\x02 \x01(\x08\"\x8e\x04\n\x05\x42uild\x12\x0c\n\x04\x62\x61se\x18\x01 \x01(\t\x12\x0c\n\x04repo\x18\x02 \x01(\t\x12\x0f\n\x07version\x18\x03 \x01(\t\x12\x0b\n\x03\x64ir\x18\x04 \x01(\t\x12\x11\n\tsubmodule\x18\x05 \x01(\x08\x12\x10\n\x08\x63ommands\x18\x06 \x03(\t\x12!\n\x04\x65nvs\x18\x07 \x03(\x0b\x32\x13.pb.Build.EnvsEntry\x12!\n\x04\x61rgs\x18\x08 \x03(\x0b\x32\x13.pb.Build.ArgsEntry\x12%\n\x06labels\x18\t \x03(\x0b\x32\x15.pb.Build.LabelsEntry\x12+\n\tartifacts\x18\n \x03(\x0b\x32\x18.pb.Build.ArtifactsEntry\x12#\n\x05\x63\x61\x63he\x18\x0b \x03(\x0b\x32\x14.pb.Build.CacheEntry\x1a+\n\tEnvsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a+\n\tArgsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a\x30\n\x0e\x41rtifactsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a,\n\nCacheEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"z\n\x06\x42uilds\x12\x0e\n\x06stages\x18\x01 \x03(\t\x12&\n\x06\x62uilds\x18\x02 \x03(\x0b\x32\x16.pb.Builds.BuildsEntry\x1a\x38\n\x0b\x42uildsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x18\n\x05value\x18\x02 \x01(\x0b\x32\t.pb.Build:\x02\x38\x01\"f\n\x11\x42uildImageOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04user\x18\x02 \x01(\t\x12\x0b\n\x03uid\x18\x03 \x01(\x05\x12\x0c\n\x04tags\x18\x04 \x03(\t\x12\x1a\n\x06\x62uilds\x18\x05 \x01(\x0b\x32\n.pb.Builds\"F\n\x0bHookOptions\x12\x13\n\x0b\x61\x66ter_start\x18\x01 \x03(\t\x12\x13\n\x0b\x62\x65\x66ore_stop\x18\x02 \x03(\t\x12\r\n\x05\x66orce\x18\x03 \x01(\x08\"U\n\x12HealthCheckOptions\x12\x11\n\ttcp_ports\x18\x01 \x03(\t\x12\x11\n\thttp_port\x18\x02 \x01(\t\x12\x0b\n\x03url\x18\x03 \x01(\t\x12\x0c\n\x04\x63ode\x18\x04 \x01(\x05\"u\n\nLogOptions\x12\x0c\n\x04type\x18\x01 \x01(\t\x12*\n\x06\x63onfig\x18\x02 \x03(\x0b\x32\x1a.pb.LogOptions.ConfigEntry\x1a-\n\x0b\x43onfigEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xca\x02\n\x11\x45ntrypointOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x63ommand\x18\x02 \x01(\t\x12\x12\n\nprivileged\x18\x03 \x01(\x08\x12\x0b\n\x03\x64ir\x18\x04 \x01(\t\x12\x1b\n\x03log\x18\x05 \x01(\x0b\x32\x0e.pb.LogOptions\x12\x0f\n\x07publish\x18\x06 \x03(\t\x12+\n\x0bhealthcheck\x18\x07 \x01(\x0b\x32\x16.pb.HealthCheckOptions\x12\x1d\n\x04hook\x18\x08 \x01(\x0b\x32\x0f.pb.HookOptions\x12\x16\n\x0erestart_policy\x18\t \x01(\t\x12\x33\n\x07sysctls\x18\n \x03(\x0b\x32\".pb.EntrypointOptions.SysctlsEntry\x1a.\n\x0cSysctlsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xed\x05\n\rDeployOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12)\n\nentrypoint\x18\x02 \x01(\x0b\x32\x15.pb.EntrypointOptions\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\x10\n\x08nodename\x18\x04 \x01(\t\x12\r\n\x05image\x18\x05 \x01(\t\x12\x12\n\nextra_args\x18\x06 \x01(\t\x12\x11\n\tcpu_quota\x18\x07 \x01(\x01\x12\x0e\n\x06memory\x18\x08 \x01(\x03\x12\r\n\x05\x63ount\x18\t \x01(\x05\x12\x0b\n\x03\x65nv\x18\n \x03(\t\x12\x0b\n\x03\x64ns\x18\x0b \x03(\t\x12\x13\n\x0b\x65xtra_hosts\x18\x0c \x03(\t\x12\x0f\n\x07volumes\x18\r \x03(\t\x12\x31\n\x08networks\x18\x0e \x03(\x0b\x32\x1f.pb.DeployOptions.NetworksEntry\x12\x13\n\x0bnetworkmode\x18\x0f \x01(\t\x12\x0c\n\x04user\x18\x10 \x01(\t\x12\r\n\x05\x64\x65\x62ug\x18\x11 \x01(\x08\x12\x11\n\topenStdin\x18\x12 \x01(\x08\x12)\n\x04meta\x18\x13 \x03(\x0b\x32\x1b.pb.DeployOptions.MetaEntry\x12\x35\n\nnodelabels\x18\x14 \x03(\x0b\x32!.pb.DeployOptions.NodelabelsEntry\x12\x15\n\rdeploy_method\x18\x15 \x01(\t\x12)\n\x04\x64\x61ta\x18\x16 \x03(\x0b\x32\x1b.pb.DeployOptions.DataEntry\x12\x11\n\tsoftlimit\x18\x17 \x01(\x08\x1a/\n\rNetworksEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a+\n\tMetaEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a\x31\n\x0fNodelabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a+\n\tDataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x0c:\x02\x38\x01\"E\n\x0eReplaceOptions\x12$\n\tdeployOpt\x18\x01 \x01(\x0b\x32\x11.pb.DeployOptions\x12\r\n\x05\x66orce\x18\x02 \x01(\x08\"V\n\x12RemoveImageOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\x12\x0e\n\x06images\x18\x03 \x03(\t\x12\r\n\x05prune\x18\x04 \x01(\x08\"\x1a\n\tCopyPaths\x12\r\n\x05paths\x18\x01 \x03(\t\"{\n\x0b\x43opyOptions\x12-\n\x07targets\x18\x01 \x03(\x0b\x32\x1c.pb.CopyOptions.TargetsEntry\x1a=\n\x0cTargetsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x1c\n\x05value\x18\x02 \x01(\x0b\x32\r.pb.CopyPaths:\x02\x38\x01\",\n\x0b\x45rrorDetail\x12\x0c\n\x04\x63ode\x18\x01 \x01(\x03\x12\x0f\n\x07message\x18\x02 \x01(\t\"\x87\x01\n\x11\x42uildImageMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x10\n\x08progress\x18\x03 \x01(\t\x12\r\n\x05\x65rror\x18\x04 \x01(\t\x12\x0e\n\x06stream\x18\x05 \x01(\t\x12%\n\x0c\x65rror_detail\x18\x06 \x01(\x0b\x32\x0f.pb.ErrorDetail\"\xea\x02\n\x16\x43reateContainerMessage\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\x12\n\n\x02id\x18\x03 \x01(\t\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\r\n\x05\x65rror\x18\x05 \x01(\t\x12\x0f\n\x07success\x18\x06 \x01(\x08\x12\x30\n\x03\x63pu\x18\x07 \x03(\x0b\x32#.pb.CreateContainerMessage.CpuEntry\x12\r\n\x05quota\x18\x08 \x01(\x01\x12\x0e\n\x06memory\x18\t \x01(\x03\x12\x38\n\x07publish\x18\n \x03(\x0b\x32\'.pb.CreateContainerMessage.PublishEntry\x12\x0c\n\x04hook\x18\x0b \x01(\x0c\x1a*\n\x08\x43puEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x05:\x02\x38\x01\x1a.\n\x0cPublishEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x80\x01\n\x17ReplaceContainerMessage\x12*\n\x06\x63reate\x18\x01 \x01(\x0b\x32\x1a.pb.CreateContainerMessage\x12*\n\x06remove\x18\x02 \x01(\x0b\x32\x1a.pb.RemoveContainerMessage\x12\r\n\x05\x65rror\x18\x03 \x01(\t\"7\n\x11RunAndWaitMessage\x12\x14\n\x0c\x63ontainer_id\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"F\n\x12RemoveImageMessage\x12\r\n\x05image\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x10\n\x08messages\x18\x03 \x03(\t\"F\n\x16RemoveContainerMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x0f\n\x07message\x18\x03 \x01(\t\"5\n\x16ReallocResourceMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\"b\n\x0b\x43opyMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x0c\n\x04path\x18\x04 \x01(\t\x12\r\n\x05\x65rror\x18\x05 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x06 \x01(\x0c\"J\n\x11RunAndWaitOptions\x12(\n\rDeployOptions\x18\x01 \x01(\x0b\x32\x11.pb.DeployOptions\x12\x0b\n\x03\x43md\x18\x02 \x01(\x0c\x32\xff\n\n\x07\x43oreRPC\x12!\n\x08ListPods\x12\t.pb.Empty\x1a\x08.pb.Pods\"\x00\x12&\n\x06\x41\x64\x64Pod\x12\x11.pb.AddPodOptions\x1a\x07.pb.Pod\"\x00\x12.\n\tRemovePod\x12\x14.pb.RemovePodOptions\x1a\t.pb.Empty\"\x00\x12&\n\x06GetPod\x12\x11.pb.GetPodOptions\x1a\x07.pb.Pod\"\x00\x12)\n\x07\x41\x64\x64Node\x12\x12.pb.AddNodeOptions\x1a\x08.pb.Node\"\x00\x12.\n\nRemoveNode\x12\x15.pb.RemoveNodeOptions\x1a\x07.pb.Pod\"\x00\x12\x31\n\x10SetNodeAvailable\x12\x11.pb.NodeAvailable\x1a\x08.pb.Node\"\x00\x12)\n\x07GetNode\x12\x12.pb.GetNodeOptions\x1a\x08.pb.Node\"\x00\x12\x30\n\x0cGetContainer\x12\x0f.pb.ContainerID\x1a\r.pb.Container\"\x00\x12\x33\n\rGetContainers\x12\x10.pb.ContainerIDs\x1a\x0e.pb.Containers\"\x00\x12/\n\rGetNodeByName\x12\x12.pb.GetNodeOptions\x1a\x08.pb.Node\"\x00\x12\x31\n\x0cListPodNodes\x12\x14.pb.ListNodesOptions\x1a\t.pb.Nodes\"\x00\x12\x36\n\x0cListNetworks\x12\x16.pb.ListNetworkOptions\x1a\x0c.pb.Networks\"\x00\x12;\n\x0eListContainers\x12\x17.pb.DeployStatusOptions\x1a\x0e.pb.Containers\"\x00\x12:\n\x12ListNodeContainers\x12\x12.pb.GetNodeOptions\x1a\x0e.pb.Containers\"\x00\x12>\n\x11\x43ontainerDeployed\x12\x1c.pb.ContainerDeployedOptions\x1a\t.pb.Empty\"\x00\x12,\n\x04\x43opy\x12\x0f.pb.CopyOptions\x1a\x0f.pb.CopyMessage\"\x00\x30\x01\x12>\n\nBuildImage\x12\x15.pb.BuildImageOptions\x1a\x15.pb.BuildImageMessage\"\x00\x30\x01\x12\x41\n\x0bRemoveImage\x12\x16.pb.RemoveImageOptions\x1a\x16.pb.RemoveImageMessage\"\x00\x30\x01\x12\x44\n\x0c\x44\x65ployStatus\x12\x17.pb.DeployStatusOptions\x1a\x17.pb.DeployStatusMessage\"\x00\x30\x01\x12@\n\nRunAndWait\x12\x15.pb.RunAndWaitOptions\x1a\x15.pb.RunAndWaitMessage\"\x00(\x01\x30\x01\x12\x44\n\x0f\x43reateContainer\x12\x11.pb.DeployOptions\x1a\x1a.pb.CreateContainerMessage\"\x00\x30\x01\x12G\n\x10ReplaceContainer\x12\x12.pb.ReplaceOptions\x1a\x1b.pb.ReplaceContainerMessage\"\x00\x30\x01\x12M\n\x0fRemoveContainer\x12\x1a.pb.RemoveContainerOptions\x1a\x1a.pb.RemoveContainerMessage\"\x00\x30\x01\x12\x45\n\x0fReallocResource\x12\x12.pb.ReallocOptions\x1a\x1a.pb.ReallocResourceMessage\"\x00\x30\x01\x62\x06proto3')
+  serialized_pb=_b('\n\ncore.proto\x12\x02pb\"\x07\n\x05\x45mpty\"L\n\x13\x44\x65ployStatusOptions\x12\x0f\n\x07\x61ppname\x18\x01 \x01(\t\x12\x12\n\nentrypoint\x18\x02 \x01(\t\x12\x10\n\x08nodename\x18\x03 \x01(\t\"v\n\x13\x44\x65ployStatusMessage\x12\x0e\n\x06\x61\x63tion\x18\x01 \x01(\t\x12\x0f\n\x07\x61ppname\x18\x02 \x01(\t\x12\x12\n\nentrypoint\x18\x03 \x01(\t\x12\x10\n\x08nodename\x18\x04 \x01(\t\x12\n\n\x02id\x18\x05 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x06 \x01(\x0c\"!\n\x03Pod\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x02 \x01(\t\"\x1d\n\x04Pods\x12\x15\n\x04pods\x18\x01 \x03(\x0b\x32\x07.pb.Pod\"5\n\x12ListNetworkOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x0e\n\x06\x64river\x18\x02 \x01(\t\"(\n\x07Network\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07subnets\x18\x02 \x03(\t\")\n\x08Networks\x12\x1d\n\x08networks\x18\x01 \x03(\x0b\x32\x0b.pb.Network\"\x89\x02\n\x04Node\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x10\n\x08\x65ndpoint\x18\x02 \x01(\t\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\x1e\n\x03\x63pu\x18\x04 \x03(\x0b\x32\x11.pb.Node.CpuEntry\x12\x0e\n\x06memory\x18\x05 \x01(\x03\x12\x0c\n\x04info\x18\x06 \x01(\t\x12\x11\n\tavailable\x18\x07 \x01(\x08\x12$\n\x06labels\x18\x08 \x03(\x0b\x32\x14.pb.Node.LabelsEntry\x1a*\n\x08\x43puEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x05:\x02\x38\x01\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\" \n\x05Nodes\x12\x17\n\x05nodes\x18\x01 \x03(\x0b\x32\x08.pb.Node\"E\n\rNodeAvailable\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\x12\x11\n\tavailable\x18\x03 \x01(\x08\"\xa3\x03\n\tContainer\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\x12\x10\n\x08nodename\x18\x03 \x01(\t\x12\x0c\n\x04name\x18\x04 \x01(\t\x12#\n\x03\x63pu\x18\x05 \x03(\x0b\x32\x16.pb.Container.CpuEntry\x12\r\n\x05quota\x18\x06 \x01(\x01\x12\x0e\n\x06memory\x18\x07 \x01(\x03\x12\x12\n\nprivileged\x18\x08 \x01(\x08\x12)\n\x06labels\x18\t \x03(\x0b\x32\x19.pb.Container.LabelsEntry\x12+\n\x07publish\x18\n \x03(\x0b\x32\x1a.pb.Container.PublishEntry\x12\r\n\x05image\x18\x0b \x01(\t\x12\x0f\n\x07inspect\x18\x0c \x01(\x0c\x1a*\n\x08\x43puEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x05:\x02\x38\x01\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a.\n\x0cPublishEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"k\n\x18\x43ontainerDeployedOptions\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07\x61ppname\x18\x02 \x01(\t\x12\x12\n\nentrypoint\x18\x03 \x01(\t\x12\x10\n\x08nodename\x18\x04 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x05 \x01(\x0c\"/\n\nContainers\x12!\n\ncontainers\x18\x01 \x03(\x0b\x32\r.pb.Container\"\x19\n\x0b\x43ontainerID\x12\n\n\x02id\x18\x01 \x01(\t\"\x1b\n\x0c\x43ontainerIDs\x12\x0b\n\x03ids\x18\x01 \x03(\t\"4\n\x16RemoveContainerOptions\x12\x0b\n\x03ids\x18\x01 \x03(\t\x12\r\n\x05\x66orce\x18\x02 \x01(\x08\"7\n\x0eReallocOptions\x12\x0b\n\x03ids\x18\x01 \x03(\t\x12\x0b\n\x03\x63pu\x18\x02 \x01(\x01\x12\x0b\n\x03mem\x18\x03 \x01(\x03\":\n\rAddPodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\r\n\x05\x66\x61vor\x18\x02 \x01(\t\x12\x0c\n\x04\x64\x65sc\x18\x03 \x01(\t\" \n\x10RemovePodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1d\n\rGetPodOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\"\xf7\x01\n\x0e\x41\x64\x64NodeOptions\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x10\n\x08\x65ndpoint\x18\x02 \x01(\t\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\n\n\x02\x63\x61\x18\x04 \x01(\t\x12\x0c\n\x04\x63\x65rt\x18\x05 \x01(\t\x12\x0b\n\x03key\x18\x06 \x01(\t\x12\x0b\n\x03\x63pu\x18\x07 \x01(\x05\x12\r\n\x05share\x18\x08 \x01(\x05\x12\x0e\n\x06memory\x18\t \x01(\x03\x12.\n\x06labels\x18\n \x03(\x0b\x32\x1e.pb.AddNodeOptions.LabelsEntry\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"6\n\x11RemoveNodeOptions\x12\x10\n\x08nodename\x18\x01 \x01(\t\x12\x0f\n\x07podname\x18\x02 \x01(\t\"3\n\x0eGetNodeOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\"0\n\x10ListNodesOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x0b\n\x03\x61ll\x18\x02 \x01(\x08\"\x8e\x04\n\x05\x42uild\x12\x0c\n\x04\x62\x61se\x18\x01 \x01(\t\x12\x0c\n\x04repo\x18\x02 \x01(\t\x12\x0f\n\x07version\x18\x03 \x01(\t\x12\x0b\n\x03\x64ir\x18\x04 \x01(\t\x12\x11\n\tsubmodule\x18\x05 \x01(\x08\x12\x10\n\x08\x63ommands\x18\x06 \x03(\t\x12!\n\x04\x65nvs\x18\x07 \x03(\x0b\x32\x13.pb.Build.EnvsEntry\x12!\n\x04\x61rgs\x18\x08 \x03(\x0b\x32\x13.pb.Build.ArgsEntry\x12%\n\x06labels\x18\t \x03(\x0b\x32\x15.pb.Build.LabelsEntry\x12+\n\tartifacts\x18\n \x03(\x0b\x32\x18.pb.Build.ArtifactsEntry\x12#\n\x05\x63\x61\x63he\x18\x0b \x03(\x0b\x32\x14.pb.Build.CacheEntry\x1a+\n\tEnvsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a+\n\tArgsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a-\n\x0bLabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a\x30\n\x0e\x41rtifactsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a,\n\nCacheEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"z\n\x06\x42uilds\x12\x0e\n\x06stages\x18\x01 \x03(\t\x12&\n\x06\x62uilds\x18\x02 \x03(\x0b\x32\x16.pb.Builds.BuildsEntry\x1a\x38\n\x0b\x42uildsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x18\n\x05value\x18\x02 \x01(\x0b\x32\t.pb.Build:\x02\x38\x01\"f\n\x11\x42uildImageOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04user\x18\x02 \x01(\t\x12\x0b\n\x03uid\x18\x03 \x01(\x05\x12\x0c\n\x04tags\x18\x04 \x03(\t\x12\x1a\n\x06\x62uilds\x18\x05 \x01(\x0b\x32\n.pb.Builds\"F\n\x0bHookOptions\x12\x13\n\x0b\x61\x66ter_start\x18\x01 \x03(\t\x12\x13\n\x0b\x62\x65\x66ore_stop\x18\x02 \x03(\t\x12\r\n\x05\x66orce\x18\x03 \x01(\x08\"U\n\x12HealthCheckOptions\x12\x11\n\ttcp_ports\x18\x01 \x03(\t\x12\x11\n\thttp_port\x18\x02 \x01(\t\x12\x0b\n\x03url\x18\x03 \x01(\t\x12\x0c\n\x04\x63ode\x18\x04 \x01(\x05\"u\n\nLogOptions\x12\x0c\n\x04type\x18\x01 \x01(\t\x12*\n\x06\x63onfig\x18\x02 \x03(\x0b\x32\x1a.pb.LogOptions.ConfigEntry\x1a-\n\x0b\x43onfigEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xca\x02\n\x11\x45ntrypointOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x63ommand\x18\x02 \x01(\t\x12\x12\n\nprivileged\x18\x03 \x01(\x08\x12\x0b\n\x03\x64ir\x18\x04 \x01(\t\x12\x1b\n\x03log\x18\x05 \x01(\x0b\x32\x0e.pb.LogOptions\x12\x0f\n\x07publish\x18\x06 \x03(\t\x12+\n\x0bhealthcheck\x18\x07 \x01(\x0b\x32\x16.pb.HealthCheckOptions\x12\x1d\n\x04hook\x18\x08 \x01(\x0b\x32\x0f.pb.HookOptions\x12\x16\n\x0erestart_policy\x18\t \x01(\t\x12\x33\n\x07sysctls\x18\n \x03(\x0b\x32\".pb.EntrypointOptions.SysctlsEntry\x1a.\n\x0cSysctlsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xed\x05\n\rDeployOptions\x12\x0c\n\x04name\x18\x01 \x01(\t\x12)\n\nentrypoint\x18\x02 \x01(\x0b\x32\x15.pb.EntrypointOptions\x12\x0f\n\x07podname\x18\x03 \x01(\t\x12\x10\n\x08nodename\x18\x04 \x01(\t\x12\r\n\x05image\x18\x05 \x01(\t\x12\x12\n\nextra_args\x18\x06 \x01(\t\x12\x11\n\tcpu_quota\x18\x07 \x01(\x01\x12\x0e\n\x06memory\x18\x08 \x01(\x03\x12\r\n\x05\x63ount\x18\t \x01(\x05\x12\x0b\n\x03\x65nv\x18\n \x03(\t\x12\x0b\n\x03\x64ns\x18\x0b \x03(\t\x12\x13\n\x0b\x65xtra_hosts\x18\x0c \x03(\t\x12\x0f\n\x07volumes\x18\r \x03(\t\x12\x31\n\x08networks\x18\x0e \x03(\x0b\x32\x1f.pb.DeployOptions.NetworksEntry\x12\x13\n\x0bnetworkmode\x18\x0f \x01(\t\x12\x0c\n\x04user\x18\x10 \x01(\t\x12\r\n\x05\x64\x65\x62ug\x18\x11 \x01(\x08\x12\x11\n\topenStdin\x18\x12 \x01(\x08\x12)\n\x04meta\x18\x13 \x03(\x0b\x32\x1b.pb.DeployOptions.MetaEntry\x12\x35\n\nnodelabels\x18\x14 \x03(\x0b\x32!.pb.DeployOptions.NodelabelsEntry\x12\x15\n\rdeploy_method\x18\x15 \x01(\t\x12)\n\x04\x64\x61ta\x18\x16 \x03(\x0b\x32\x1b.pb.DeployOptions.DataEntry\x12\x11\n\tsoftlimit\x18\x17 \x01(\x08\x1a/\n\rNetworksEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a+\n\tMetaEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a\x31\n\x0fNodelabelsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a+\n\tDataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x0c:\x02\x38\x01\"E\n\x0eReplaceOptions\x12$\n\tdeployOpt\x18\x01 \x01(\x0b\x32\x11.pb.DeployOptions\x12\r\n\x05\x66orce\x18\x02 \x01(\x08\"V\n\x12RemoveImageOptions\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\x12\x0e\n\x06images\x18\x03 \x03(\t\x12\r\n\x05prune\x18\x04 \x01(\x08\"\x1a\n\tCopyPaths\x12\r\n\x05paths\x18\x01 \x03(\t\"{\n\x0b\x43opyOptions\x12-\n\x07targets\x18\x01 \x03(\x0b\x32\x1c.pb.CopyOptions.TargetsEntry\x1a=\n\x0cTargetsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x1c\n\x05value\x18\x02 \x01(\x0b\x32\r.pb.CopyPaths:\x02\x38\x01\",\n\x0b\x45rrorDetail\x12\x0c\n\x04\x63ode\x18\x01 \x01(\x03\x12\x0f\n\x07message\x18\x02 \x01(\t\"\x87\x01\n\x11\x42uildImageMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x10\n\x08progress\x18\x03 \x01(\t\x12\r\n\x05\x65rror\x18\x04 \x01(\t\x12\x0e\n\x06stream\x18\x05 \x01(\t\x12%\n\x0c\x65rror_detail\x18\x06 \x01(\x0b\x32\x0f.pb.ErrorDetail\"\xea\x02\n\x16\x43reateContainerMessage\x12\x0f\n\x07podname\x18\x01 \x01(\t\x12\x10\n\x08nodename\x18\x02 \x01(\t\x12\n\n\x02id\x18\x03 \x01(\t\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\r\n\x05\x65rror\x18\x05 \x01(\t\x12\x0f\n\x07success\x18\x06 \x01(\x08\x12\x30\n\x03\x63pu\x18\x07 \x03(\x0b\x32#.pb.CreateContainerMessage.CpuEntry\x12\r\n\x05quota\x18\x08 \x01(\x01\x12\x0e\n\x06memory\x18\t \x01(\x03\x12\x38\n\x07publish\x18\n \x03(\x0b\x32\'.pb.CreateContainerMessage.PublishEntry\x12\x0c\n\x04hook\x18\x0b \x01(\x0c\x1a*\n\x08\x43puEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x05:\x02\x38\x01\x1a.\n\x0cPublishEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x80\x01\n\x17ReplaceContainerMessage\x12*\n\x06\x63reate\x18\x01 \x01(\x0b\x32\x1a.pb.CreateContainerMessage\x12*\n\x06remove\x18\x02 \x01(\x0b\x32\x1a.pb.RemoveContainerMessage\x12\r\n\x05\x65rror\x18\x03 \x01(\t\"7\n\x11RunAndWaitMessage\x12\x14\n\x0c\x63ontainer_id\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"F\n\x12RemoveImageMessage\x12\r\n\x05image\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x10\n\x08messages\x18\x03 \x03(\t\"F\n\x16RemoveContainerMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x0f\n\x07message\x18\x03 \x01(\t\"5\n\x16ReallocResourceMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\"b\n\x0b\x43opyMessage\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x0c\n\x04path\x18\x04 \x01(\t\x12\r\n\x05\x65rror\x18\x05 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x06 \x01(\x0c\"J\n\x11RunAndWaitOptions\x12(\n\rDeployOptions\x18\x01 \x01(\x0b\x32\x11.pb.DeployOptions\x12\x0b\n\x03\x43md\x18\x02 \x01(\x0c\x32\xff\n\n\x07\x43oreRPC\x12!\n\x08ListPods\x12\t.pb.Empty\x1a\x08.pb.Pods\"\x00\x12&\n\x06\x41\x64\x64Pod\x12\x11.pb.AddPodOptions\x1a\x07.pb.Pod\"\x00\x12.\n\tRemovePod\x12\x14.pb.RemovePodOptions\x1a\t.pb.Empty\"\x00\x12&\n\x06GetPod\x12\x11.pb.GetPodOptions\x1a\x07.pb.Pod\"\x00\x12)\n\x07\x41\x64\x64Node\x12\x12.pb.AddNodeOptions\x1a\x08.pb.Node\"\x00\x12.\n\nRemoveNode\x12\x15.pb.RemoveNodeOptions\x1a\x07.pb.Pod\"\x00\x12\x31\n\x10SetNodeAvailable\x12\x11.pb.NodeAvailable\x1a\x08.pb.Node\"\x00\x12)\n\x07GetNode\x12\x12.pb.GetNodeOptions\x1a\x08.pb.Node\"\x00\x12\x30\n\x0cGetContainer\x12\x0f.pb.ContainerID\x1a\r.pb.Container\"\x00\x12\x33\n\rGetContainers\x12\x10.pb.ContainerIDs\x1a\x0e.pb.Containers\"\x00\x12/\n\rGetNodeByName\x12\x12.pb.GetNodeOptions\x1a\x08.pb.Node\"\x00\x12\x31\n\x0cListPodNodes\x12\x14.pb.ListNodesOptions\x1a\t.pb.Nodes\"\x00\x12\x36\n\x0cListNetworks\x12\x16.pb.ListNetworkOptions\x1a\x0c.pb.Networks\"\x00\x12;\n\x0eListContainers\x12\x17.pb.DeployStatusOptions\x1a\x0e.pb.Containers\"\x00\x12:\n\x12ListNodeContainers\x12\x12.pb.GetNodeOptions\x1a\x0e.pb.Containers\"\x00\x12>\n\x11\x43ontainerDeployed\x12\x1c.pb.ContainerDeployedOptions\x1a\t.pb.Empty\"\x00\x12,\n\x04\x43opy\x12\x0f.pb.CopyOptions\x1a\x0f.pb.CopyMessage\"\x00\x30\x01\x12>\n\nBuildImage\x12\x15.pb.BuildImageOptions\x1a\x15.pb.BuildImageMessage\"\x00\x30\x01\x12\x41\n\x0bRemoveImage\x12\x16.pb.RemoveImageOptions\x1a\x16.pb.RemoveImageMessage\"\x00\x30\x01\x12\x44\n\x0c\x44\x65ployStatus\x12\x17.pb.DeployStatusOptions\x1a\x17.pb.DeployStatusMessage\"\x00\x30\x01\x12@\n\nRunAndWait\x12\x15.pb.RunAndWaitOptions\x1a\x15.pb.RunAndWaitMessage\"\x00(\x01\x30\x01\x12\x44\n\x0f\x43reateContainer\x12\x11.pb.DeployOptions\x1a\x1a.pb.CreateContainerMessage\"\x00\x30\x01\x12G\n\x10ReplaceContainer\x12\x12.pb.ReplaceOptions\x1a\x1b.pb.ReplaceContainerMessage\"\x00\x30\x01\x12M\n\x0fRemoveContainer\x12\x1a.pb.RemoveContainerOptions\x1a\x1a.pb.RemoveContainerMessage\"\x00\x30\x01\x12\x45\n\x0fReallocResource\x12\x12.pb.ReallocOptions\x1a\x1a.pb.ReallocResourceMessage\"\x00\x30\x01\x62\x06proto3')
 )
 
 
@@ -673,8 +673,8 @@ _CONTAINER_PUBLISHENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1180,
-  serialized_end=1226,
+  serialized_start=1178,
+  serialized_end=1224,
 )
 
 _CONTAINER = _descriptor.Descriptor(
@@ -755,7 +755,7 @@ _CONTAINER = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='version', full_name='pb.Container.version', index=10,
+      name='image', full_name='pb.Container.image', index=10,
       number=11, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -781,7 +781,7 @@ _CONTAINER = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=805,
-  serialized_end=1226,
+  serialized_end=1224,
 )
 
 
@@ -839,8 +839,8 @@ _CONTAINERDEPLOYEDOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1228,
-  serialized_end=1335,
+  serialized_start=1226,
+  serialized_end=1333,
 )
 
 
@@ -870,8 +870,8 @@ _CONTAINERS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1337,
-  serialized_end=1384,
+  serialized_start=1335,
+  serialized_end=1382,
 )
 
 
@@ -901,8 +901,8 @@ _CONTAINERID = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1386,
-  serialized_end=1411,
+  serialized_start=1384,
+  serialized_end=1409,
 )
 
 
@@ -932,8 +932,8 @@ _CONTAINERIDS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1413,
-  serialized_end=1440,
+  serialized_start=1411,
+  serialized_end=1438,
 )
 
 
@@ -970,8 +970,8 @@ _REMOVECONTAINEROPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1442,
-  serialized_end=1494,
+  serialized_start=1440,
+  serialized_end=1492,
 )
 
 
@@ -1015,8 +1015,8 @@ _REALLOCOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1496,
-  serialized_end=1551,
+  serialized_start=1494,
+  serialized_end=1549,
 )
 
 
@@ -1060,8 +1060,8 @@ _ADDPODOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1553,
-  serialized_end=1611,
+  serialized_start=1551,
+  serialized_end=1609,
 )
 
 
@@ -1091,8 +1091,8 @@ _REMOVEPODOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1613,
-  serialized_end=1645,
+  serialized_start=1611,
+  serialized_end=1643,
 )
 
 
@@ -1122,8 +1122,8 @@ _GETPODOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1647,
-  serialized_end=1676,
+  serialized_start=1645,
+  serialized_end=1674,
 )
 
 
@@ -1253,8 +1253,8 @@ _ADDNODEOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1679,
-  serialized_end=1926,
+  serialized_start=1677,
+  serialized_end=1924,
 )
 
 
@@ -1291,8 +1291,8 @@ _REMOVENODEOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1928,
-  serialized_end=1982,
+  serialized_start=1926,
+  serialized_end=1980,
 )
 
 
@@ -1329,8 +1329,8 @@ _GETNODEOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1984,
-  serialized_end=2035,
+  serialized_start=1982,
+  serialized_end=2033,
 )
 
 
@@ -1367,8 +1367,8 @@ _LISTNODESOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2037,
-  serialized_end=2085,
+  serialized_start=2035,
+  serialized_end=2083,
 )
 
 
@@ -1405,8 +1405,8 @@ _BUILD_ENVSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2383,
-  serialized_end=2426,
+  serialized_start=2381,
+  serialized_end=2424,
 )
 
 _BUILD_ARGSENTRY = _descriptor.Descriptor(
@@ -1442,8 +1442,8 @@ _BUILD_ARGSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2428,
-  serialized_end=2471,
+  serialized_start=2426,
+  serialized_end=2469,
 )
 
 _BUILD_LABELSENTRY = _descriptor.Descriptor(
@@ -1516,8 +1516,8 @@ _BUILD_ARTIFACTSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2520,
-  serialized_end=2568,
+  serialized_start=2518,
+  serialized_end=2566,
 )
 
 _BUILD_CACHEENTRY = _descriptor.Descriptor(
@@ -1553,8 +1553,8 @@ _BUILD_CACHEENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2570,
-  serialized_end=2614,
+  serialized_start=2568,
+  serialized_end=2612,
 )
 
 _BUILD = _descriptor.Descriptor(
@@ -1653,8 +1653,8 @@ _BUILD = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2088,
-  serialized_end=2614,
+  serialized_start=2086,
+  serialized_end=2612,
 )
 
 
@@ -1691,8 +1691,8 @@ _BUILDS_BUILDSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2682,
-  serialized_end=2738,
+  serialized_start=2680,
+  serialized_end=2736,
 )
 
 _BUILDS = _descriptor.Descriptor(
@@ -1728,8 +1728,8 @@ _BUILDS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2616,
-  serialized_end=2738,
+  serialized_start=2614,
+  serialized_end=2736,
 )
 
 
@@ -1787,8 +1787,8 @@ _BUILDIMAGEOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2740,
-  serialized_end=2842,
+  serialized_start=2738,
+  serialized_end=2840,
 )
 
 
@@ -1832,8 +1832,8 @@ _HOOKOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2844,
-  serialized_end=2914,
+  serialized_start=2842,
+  serialized_end=2912,
 )
 
 
@@ -1884,8 +1884,8 @@ _HEALTHCHECKOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2916,
-  serialized_end=3001,
+  serialized_start=2914,
+  serialized_end=2999,
 )
 
 
@@ -1922,8 +1922,8 @@ _LOGOPTIONS_CONFIGENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3075,
-  serialized_end=3120,
+  serialized_start=3073,
+  serialized_end=3118,
 )
 
 _LOGOPTIONS = _descriptor.Descriptor(
@@ -1959,8 +1959,8 @@ _LOGOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3003,
-  serialized_end=3120,
+  serialized_start=3001,
+  serialized_end=3118,
 )
 
 
@@ -1997,8 +1997,8 @@ _ENTRYPOINTOPTIONS_SYSCTLSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3407,
-  serialized_end=3453,
+  serialized_start=3405,
+  serialized_end=3451,
 )
 
 _ENTRYPOINTOPTIONS = _descriptor.Descriptor(
@@ -2090,8 +2090,8 @@ _ENTRYPOINTOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3123,
-  serialized_end=3453,
+  serialized_start=3121,
+  serialized_end=3451,
 )
 
 
@@ -2128,8 +2128,8 @@ _DEPLOYOPTIONS_NETWORKSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4017,
-  serialized_end=4064,
+  serialized_start=4015,
+  serialized_end=4062,
 )
 
 _DEPLOYOPTIONS_METAENTRY = _descriptor.Descriptor(
@@ -2165,8 +2165,8 @@ _DEPLOYOPTIONS_METAENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4066,
-  serialized_end=4109,
+  serialized_start=4064,
+  serialized_end=4107,
 )
 
 _DEPLOYOPTIONS_NODELABELSENTRY = _descriptor.Descriptor(
@@ -2202,8 +2202,8 @@ _DEPLOYOPTIONS_NODELABELSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4111,
-  serialized_end=4160,
+  serialized_start=4109,
+  serialized_end=4158,
 )
 
 _DEPLOYOPTIONS_DATAENTRY = _descriptor.Descriptor(
@@ -2239,8 +2239,8 @@ _DEPLOYOPTIONS_DATAENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4162,
-  serialized_end=4205,
+  serialized_start=4160,
+  serialized_end=4203,
 )
 
 _DEPLOYOPTIONS = _descriptor.Descriptor(
@@ -2423,8 +2423,8 @@ _DEPLOYOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3456,
-  serialized_end=4205,
+  serialized_start=3454,
+  serialized_end=4203,
 )
 
 
@@ -2461,8 +2461,8 @@ _REPLACEOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4207,
-  serialized_end=4276,
+  serialized_start=4205,
+  serialized_end=4274,
 )
 
 
@@ -2513,8 +2513,8 @@ _REMOVEIMAGEOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4278,
-  serialized_end=4364,
+  serialized_start=4276,
+  serialized_end=4362,
 )
 
 
@@ -2544,8 +2544,8 @@ _COPYPATHS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4366,
-  serialized_end=4392,
+  serialized_start=4364,
+  serialized_end=4390,
 )
 
 
@@ -2582,8 +2582,8 @@ _COPYOPTIONS_TARGETSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4456,
-  serialized_end=4517,
+  serialized_start=4454,
+  serialized_end=4515,
 )
 
 _COPYOPTIONS = _descriptor.Descriptor(
@@ -2612,8 +2612,8 @@ _COPYOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4394,
-  serialized_end=4517,
+  serialized_start=4392,
+  serialized_end=4515,
 )
 
 
@@ -2650,8 +2650,8 @@ _ERRORDETAIL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4519,
-  serialized_end=4563,
+  serialized_start=4517,
+  serialized_end=4561,
 )
 
 
@@ -2716,8 +2716,8 @@ _BUILDIMAGEMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4566,
-  serialized_end=4701,
+  serialized_start=4564,
+  serialized_end=4699,
 )
 
 
@@ -2791,8 +2791,8 @@ _CREATECONTAINERMESSAGE_PUBLISHENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1180,
-  serialized_end=1226,
+  serialized_start=1178,
+  serialized_end=1224,
 )
 
 _CREATECONTAINERMESSAGE = _descriptor.Descriptor(
@@ -2891,8 +2891,8 @@ _CREATECONTAINERMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4704,
-  serialized_end=5066,
+  serialized_start=4702,
+  serialized_end=5064,
 )
 
 
@@ -2936,8 +2936,8 @@ _REPLACECONTAINERMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5069,
-  serialized_end=5197,
+  serialized_start=5067,
+  serialized_end=5195,
 )
 
 
@@ -2974,8 +2974,8 @@ _RUNANDWAITMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5199,
-  serialized_end=5254,
+  serialized_start=5197,
+  serialized_end=5252,
 )
 
 
@@ -3019,8 +3019,8 @@ _REMOVEIMAGEMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5256,
-  serialized_end=5326,
+  serialized_start=5254,
+  serialized_end=5324,
 )
 
 
@@ -3064,8 +3064,8 @@ _REMOVECONTAINERMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5328,
-  serialized_end=5398,
+  serialized_start=5326,
+  serialized_end=5396,
 )
 
 
@@ -3102,8 +3102,8 @@ _REALLOCRESOURCEMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5400,
-  serialized_end=5453,
+  serialized_start=5398,
+  serialized_end=5451,
 )
 
 
@@ -3168,8 +3168,8 @@ _COPYMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5455,
-  serialized_end=5553,
+  serialized_start=5453,
+  serialized_end=5551,
 )
 
 
@@ -3206,8 +3206,8 @@ _RUNANDWAITOPTIONS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5555,
-  serialized_end=5629,
+  serialized_start=5553,
+  serialized_end=5627,
 )
 
 _PODS.fields_by_name['pods'].message_type = _POD
@@ -3864,8 +3864,8 @@ _CORERPC = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=5632,
-  serialized_end=7039,
+  serialized_start=5630,
+  serialized_end=7037,
   methods=[
   _descriptor.MethodDescriptor(
     name='ListPods',

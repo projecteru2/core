@@ -254,7 +254,7 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		return nil, err
 	}
 
-	version, ports := utils.ParseLabels(info.Config.Labels)
+	_, ports := utils.ParseLabels(info.Config.Labels)
 	publish := map[string]string{}
 	if info.NetworkSettings != nil {
 		publish = utils.EncodePublishInfo(
@@ -279,7 +279,7 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		Memory:     c.Memory,
 		Privileged: c.Privileged,
 		Publish:    publish,
-		Version:    version,
+		Image:      info.Config.Image,
 		Labels:     info.Config.Labels,
 		Inspect:    bytes,
 	}, nil

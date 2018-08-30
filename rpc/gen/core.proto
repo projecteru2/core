@@ -105,7 +105,7 @@ message Container {
     bool privileged = 8;
     map<string, string> labels = 9;
     map<string, string> publish = 10;
-    string version = 11;
+    string image = 11;
     bytes inspect = 12;
 }
 
