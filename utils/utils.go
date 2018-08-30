@@ -12,8 +12,8 @@ import (
 	"github.com/docker/docker/api/types/network"
 	engineapi "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
-	"github.com/labstack/gommon/log"
 	"github.com/projecteru2/core/types"
+	log "github.com/sirupsen/logrus"
 )
 
 type ctxKey string
@@ -193,7 +193,9 @@ func MakePublishInfo(networks map[string]*network.EndpointSettings, node *types.
 func EncodePublishInfo(info map[string][]string) map[string]string {
 	result := map[string]string{}
 	for nm, publishs := range info {
-		result[nm] = strings.Join(publishs, ",")
+		if len(publishs) > 0 {
+			result[nm] = strings.Join(publishs, ",")
+		}
 	}
 	return result
 }
@@ -202,7 +204,9 @@ func EncodePublishInfo(info map[string][]string) map[string]string {
 func DecodePublishInfo(info map[string]string) map[string][]string {
 	result := map[string][]string{}
 	for nm, publishs := range info {
-		result[nm] = strings.Split(publishs, ",")
+		if publishs != "" {
+			result[nm] = strings.Split(publishs, ",")
+		}
 	}
 	return result
 }
@@ -221,7 +225,7 @@ func ParseLabels(labels map[string]string) (string, []string) {
 	}
 
 	portstr, ok := labels["publish"]
-	if ok {
+	if ok && portstr != "" {
 		ports = strings.Split(portstr, ",")
 	}
 
