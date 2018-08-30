@@ -103,7 +103,10 @@ message Container {
     double quota = 6;
     int64 memory = 7;
     bool privileged = 8;
-    bytes inspect = 9;
+    map<string, string> labels = 9;
+    map<string, string> publish = 10;
+    string version = 11;
+    bytes inspect = 12;
 }
 
 message ContainerDeployedOptions {

@@ -380,7 +380,7 @@ func (c *Calcium) createAndStartContainer(
 		CPU:      cpu,
 		Quota:    opts.CPUQuota,
 		Memory:   opts.Memory,
-		Publish:  map[string]string{},
+		Publish:  map[string][]string{},
 	}
 
 	defer func() {
@@ -474,22 +474,7 @@ func (c *Calcium) createAndStartContainer(
 
 	// get ips
 	if containerAlived.NetworkSettings != nil {
-		for nn, ns := range containerAlived.NetworkSettings.Networks {
-			ip := ns.IPAddress
-			if enginecontainer.NetworkMode(nn).IsHost() {
-				ip = node.GetIP()
-			}
-
-			data := []string{}
-			for _, port := range opts.Entrypoint.Publish {
-				data = append(data, fmt.Sprintf("%s:%s", ip, port))
-			}
-			if len(data) == 0 {
-				createContainerMessage.Publish[nn] = ip
-			} else {
-				createContainerMessage.Publish[nn] = strings.Join(data, ",")
-			}
-		}
+		createContainerMessage.Publish = utils.MakePublishInfo(containerAlived.NetworkSettings.Networks, node, opts.Entrypoint.Publish)
 	}
 
 	createContainerMessage.Success = true

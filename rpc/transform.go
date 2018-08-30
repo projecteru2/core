@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 
-	enginecontainer "github.com/docker/docker/api/types/container"
 	"github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
@@ -184,7 +184,7 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 		Cpu:      toRPCCPUMap(c.CPU),
 		Quota:    c.Quota,
 		Memory:   c.Memory,
-		Publish:  c.Publish,
+		Publish:  utils.EncodePublishInfo(c.Publish),
 		Hook:     c.Hook,
 	}
 	if c.Error != nil {
@@ -254,12 +254,12 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		return nil, err
 	}
 
+	version, ports := utils.ParseLabels(info.Config.Labels)
+	publish := map[string]string{}
 	if info.NetworkSettings != nil {
-		for nname := range info.NetworkSettings.Networks {
-			if enginecontainer.NetworkMode(nname).IsHost() {
-				info.NetworkSettings.Networks[nname].IPAddress = c.Node.GetIP()
-			}
-		}
+		publish = utils.EncodePublishInfo(
+			utils.MakePublishInfo(info.NetworkSettings.Networks, c.Node, ports),
+		)
 	}
 
 	bytes, err := json.Marshal(info)
@@ -278,6 +278,9 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		Quota:      c.Quota,
 		Memory:     c.Memory,
 		Privileged: c.Privileged,
+		Publish:    publish,
+		Version:    version,
+		Labels:     info.Config.Labels,
 		Inspect:    bytes,
 	}, nil
 }

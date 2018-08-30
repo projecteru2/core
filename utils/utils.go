@@ -8,8 +8,12 @@ import (
 	"math/big"
 	"strings"
 
+	enginecontainer "github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
 	engineapi "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/labstack/gommon/log"
+	"github.com/projecteru2/core/types"
 )
 
 type ctxKey string
@@ -18,6 +22,8 @@ const (
 	letters              = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	shortenLength        = 7
 	engineKey     ctxKey = "engine"
+	// DefaultVersion for default version
+	DefaultVersion = "UNKNOWN"
 )
 
 // RandomString random a string
@@ -161,4 +167,63 @@ func ParseContainerName(containerName string) (string, string, string, error) {
 		return strings.Join(splits[0:length-2], "_"), splits[length-2], splits[length-1], nil
 	}
 	return "", "", "", fmt.Errorf("Bad containerName: %s", containerName)
+}
+
+// MakePublishInfo generate publish info
+func MakePublishInfo(networks map[string]*network.EndpointSettings, node *types.Node, ports []string) map[string][]string {
+	result := map[string][]string{}
+	for networkName, networkSetting := range networks {
+		ip := networkSetting.IPAddress
+		if enginecontainer.NetworkMode(networkName).IsHost() {
+			ip = node.GetIP()
+		}
+
+		data := []string{}
+		for _, port := range ports {
+			data = append(data, fmt.Sprintf("%s:%s", ip, port))
+		}
+		if len(data) > 0 {
+			result[networkName] = data
+		}
+	}
+	return result
+}
+
+// EncodePublishInfo encode publish info
+func EncodePublishInfo(info map[string][]string) map[string]string {
+	result := map[string]string{}
+	for nm, publishs := range info {
+		result[nm] = strings.Join(publishs, ",")
+	}
+	return result
+}
+
+// DecodePublishInfo decode publish info
+func DecodePublishInfo(info map[string]string) map[string][]string {
+	result := map[string][]string{}
+	for nm, publishs := range info {
+		result[nm] = strings.Split(publishs, ",")
+	}
+	return result
+}
+
+// ParseLabels get version and ports info
+func ParseLabels(labels map[string]string) (string, []string) {
+	ports := []string{}
+	version := DefaultVersion
+	if labels == nil {
+		return version, ports
+	}
+
+	version, ok := labels["version"]
+	if !ok {
+		log.Errorf("[ParseLables] Can not get version label")
+	}
+
+	portstr, ok := labels["publish"]
+	if ok {
+		ports = strings.Split(portstr, ",")
+	}
+
+	return version, ports
 }
