@@ -259,7 +259,9 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 		containerLabels["healthcheck_tcp"] = strings.Join(entry.HealthCheck.TCPPorts, ",")
 		containerLabels["healthcheck_http"] = entry.HealthCheck.HTTPPort
 		containerLabels["healthcheck_url"] = entry.HealthCheck.HTTPURL
-		containerLabels["healthcheck_code"] = strconv.Itoa(entry.HealthCheck.HTTPCode)
+		if entry.HealthCheck.HTTPCode > 0 {
+			containerLabels["healthcheck_code"] = strconv.Itoa(entry.HealthCheck.HTTPCode)
+		}
 	}
 
 	// 接下来是meta
