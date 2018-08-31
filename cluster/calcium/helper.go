@@ -150,8 +150,6 @@ func makeMountPaths(opts *types.DeployOptions) ([]string, map[string]struct{}) {
 	return binds, volumes
 }
 
-// 跑存在labels里的exec
-// 为什么要存labels呢, 因为下线容器的时候根本不知道entrypoint是啥
 func execuateInside(ctx context.Context, client *engineapi.Client, ID, cmd, user string, env []string, privileged bool) ([]byte, error) {
 	cmds := utils.MakeCommandLineArgs(cmd)
 	execConfig := enginetypes.ExecConfig{
@@ -317,13 +315,13 @@ func createDockerfile(dockerfile, buildDir string) error {
 }
 
 // Image tag
-// 格式严格按照 Hub/HubPrefix/appname:version 来
-func createImageTag(config types.DockerConfig, appname, version string) string {
+// 格式严格按照 Hub/HubPrefix/appname:tag 来
+func createImageTag(config types.DockerConfig, appname, tag string) string {
 	prefix := strings.Trim(config.Namespace, "/")
 	if prefix == "" {
-		return fmt.Sprintf("%s/%s:%s", config.Hub, appname, version)
+		return fmt.Sprintf("%s/%s:%s", config.Hub, appname, tag)
 	}
-	return fmt.Sprintf("%s/%s/%s:%s", config.Hub, prefix, appname, version)
+	return fmt.Sprintf("%s/%s/%s:%s", config.Hub, prefix, appname, tag)
 }
 
 // 只要一个image的前面, tag不要

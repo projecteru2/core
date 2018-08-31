@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/big"
@@ -12,6 +13,7 @@ import (
 	"github.com/docker/docker/api/types/network"
 	engineapi "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -23,7 +25,9 @@ const (
 	shortenLength        = 7
 	engineKey     ctxKey = "engine"
 	// DefaultVersion for default version
-	DefaultVersion = "UNKNOWN"
+	DefaultVersion = "latest"
+	// WrongVersion for wrong version
+	WrongVersion = "unknown"
 )
 
 // RandomString random a string
@@ -76,15 +80,15 @@ func GetGitRepoName(url string) (string, error) {
 	return strings.TrimSuffix(Tail(url), ".git"), nil
 }
 
-// GetVersion reture image Version
-func GetVersion(image string) string {
+// GetTag reture image tag
+func GetTag(image string) string {
 	if !strings.Contains(image, ":") {
-		return "latest"
+		return DefaultVersion
 	}
 
 	parts := strings.Split(image, ":")
 	if len(parts) != 2 {
-		return "unknown"
+		return WrongVersion
 	}
 
 	return parts[len(parts)-1]
@@ -211,23 +215,24 @@ func DecodePublishInfo(info map[string]string) map[string][]string {
 	return result
 }
 
-// ParseLabels get version and ports info
-func ParseLabels(labels map[string]string) (string, []string) {
-	ports := []string{}
-	version := DefaultVersion
-	if labels == nil {
-		return version, ports
+// EncodeMetaInLabel encode meta to json
+func EncodeMetaInLabel(meta *types.EruContainerMeta) string {
+	data, err := json.Marshal(meta)
+	if err != nil {
+		log.Errorf("[EncodeMetaInLabel] Encode meta failed %v", err)
+		return ""
 	}
+	return string(data)
+}
 
-	version, ok := labels["version"]
-	if !ok {
-		log.Errorf("[ParseLables] Can not get version label")
+// DecodeMetaInLabel get meta from label and decode it
+func DecodeMetaInLabel(labels map[string]string) *types.EruContainerMeta {
+	meta := &types.EruContainerMeta{}
+	metastr, ok := labels[cluster.ERUMeta]
+	if ok {
+		if err := json.Unmarshal([]byte(metastr), meta); err != nil {
+			log.Errorf("[DecodeMetaInLabel] Decode failed %v", err)
+		}
 	}
-
-	portstr, ok := labels["publish"]
-	if ok && portstr != "" {
-		ports = strings.Split(portstr, ",")
-	}
-
-	return version, ports
+	return meta
 }

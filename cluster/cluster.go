@@ -24,6 +24,10 @@ const (
 	DeployEach = "each"
 	// DeployFill for fill node plan
 	DeployFill = "fill"
+	// ERUMark mark container controlled by eru
+	ERUMark = "ERU"
+	// ERUMeta store publish and health things
+	ERUMeta = "ERU_META"
 )
 
 // Cluster define all interface

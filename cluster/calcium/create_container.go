@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"sync"
 
 	enginetypes "github.com/docker/docker/api/types"
@@ -13,6 +11,7 @@ import (
 	enginenetwork "github.com/docker/docker/api/types/network"
 	engineslice "github.com/docker/docker/api/types/strslice"
 	"github.com/docker/go-units"
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/stats"
 	"github.com/projecteru2/core/types"
@@ -247,21 +246,11 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	// labels
 	// basic labels, and set meta in opts to labels
 	containerLabels := map[string]string{
-		"ERU":     "1",
-		"version": utils.GetVersion(opts.Image),
-	}
-
-	// 发布端口
-	containerLabels["publish"] = strings.Join(opts.Entrypoint.Publish, ",")
-	// 健康检查
-	if entry.HealthCheck != nil {
-		containerLabels["healthcheck"] = "1"
-		containerLabels["healthcheck_tcp"] = strings.Join(entry.HealthCheck.TCPPorts, ",")
-		containerLabels["healthcheck_http"] = entry.HealthCheck.HTTPPort
-		containerLabels["healthcheck_url"] = entry.HealthCheck.HTTPURL
-		if entry.HealthCheck.HTTPCode > 0 {
-			containerLabels["healthcheck_code"] = strconv.Itoa(entry.HealthCheck.HTTPCode)
-		}
+		cluster.ERUMark: "1",
+		cluster.ERUMeta: utils.EncodeMetaInLabel(&types.EruContainerMeta{
+			Publish:     opts.Entrypoint.Publish,
+			HealthCheck: entry.HealthCheck,
+		}),
 	}
 
 	// 接下来是meta

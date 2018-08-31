@@ -80,3 +80,9 @@ type DeployStatus struct {
 	Nodename   string
 	ID         string
 }
+
+// EruContainerMeta bind meta info store in labels
+type EruContainerMeta struct {
+	Publish     []string
+	HealthCheck *HealthCheck
+}

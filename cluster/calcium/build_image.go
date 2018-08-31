@@ -155,7 +155,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 	// get pod from config
 	buildPodname := c.config.Docker.BuildPod
 	if buildPodname == "" {
-		return ch, fmt.Errorf("No build pod set in config")
+		return ch, errors.New("No build pod set in config")
 	}
 
 	// get node by scheduler
@@ -184,8 +184,14 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 	// tag of image, later this will be used to push image to hub
 	tags := []string{}
 	for i := range opts.Tags {
-		tag := createImageTag(c.config.Docker, opts.Name, opts.Tags[i])
-		tags = append(tags, tag)
+		if opts.Tags[i] != "" {
+			tag := createImageTag(c.config.Docker, opts.Name, opts.Tags[i])
+			tags = append(tags, tag)
+		}
+	}
+	// use latest
+	if len(tags) == 0 {
+		tags = append(tags, createImageTag(c.config.Docker, opts.Name, utils.DefaultVersion))
 	}
 
 	// create tar stream for Build API
