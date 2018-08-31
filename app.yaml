@@ -29,7 +29,6 @@ builds:
     base: alpine:3.8
     labels:
       ERU: 1
-      version: latest
       core: 1
     envs:
       CORE_IN_DOCKER: 1

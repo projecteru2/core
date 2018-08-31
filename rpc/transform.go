@@ -254,11 +254,11 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		return nil, err
 	}
 
-	_, ports := utils.ParseLabels(info.Config.Labels)
+	meta := utils.DecodeMetaInLabel(info.Config.Labels)
 	publish := map[string]string{}
 	if info.NetworkSettings != nil {
 		publish = utils.EncodePublishInfo(
-			utils.MakePublishInfo(info.NetworkSettings.Networks, c.Node, ports),
+			utils.MakePublishInfo(info.NetworkSettings.Networks, c.Node, meta.Publish),
 		)
 	}
 
