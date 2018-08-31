@@ -26,15 +26,6 @@ type Container struct {
 	Node       *Node             `json:"-"`
 }
 
-// ShortID short container ID
-func (c *Container) ShortID() string {
-	containerID := c.ID
-	if len(containerID) > 7 {
-		return containerID[:7]
-	}
-	return containerID
-}
-
 // Inspect a container
 func (c *Container) Inspect(ctx context.Context) (enginetypes.ContainerJSON, error) {
 	inspectCtx, cancel := context.WithTimeout(ctx, 5*time.Second)

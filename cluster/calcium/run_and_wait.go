@@ -68,7 +68,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 			// 日志跟task无关, 不管wg
 			go func(node *types.Node, containerID string) {
 				defer wg.Done()
-				defer log.Infof("[RunAndWait] Container %s finished and removed", containerID[:12])
+				defer log.Infof("[RunAndWait] Container %s finished and removed", utils.ShortID(containerID))
 				//CONTEXT 这里的不应该受到 client 的影响
 				defer c.removeContainerSync(context.Background(), []string{containerID})
 
@@ -90,7 +90,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 							return
 						}
 						io.Copy(r.Conn, stdin)
-						log.Debugf("[RunAndWait] %s stdin copy end", containerID[:12])
+						log.Debugf("[RunAndWait] %s stdin copy end", utils.ShortID(containerID))
 					}()
 				}
 
@@ -102,7 +102,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 						ContainerID: containerID,
 						Data:        data,
 					}
-					log.Debugf("[RunAndWait] %s output: %s", containerID[:12], data)
+					log.Debugf("[RunAndWait] %s output: %s", utils.ShortID(containerID), data)
 				}
 
 				if err := scanner.Err(); err != nil {
@@ -121,7 +121,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 				b := <-waitbody
 				exitData := []byte(fmt.Sprintf("[exitcode] %d", b.StatusCode))
 				if b.StatusCode != 0 {
-					log.Errorf("[RunAndWait] %s run failed", containerID[:12])
+					log.Errorf("[RunAndWait] %s run failed", utils.ShortID(containerID))
 				}
 				ch <- &types.RunAndWaitMessage{ContainerID: containerID, Data: exitData}
 			}(node, message.ContainerID)

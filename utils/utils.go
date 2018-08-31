@@ -236,3 +236,11 @@ func DecodeMetaInLabel(labels map[string]string) *types.EruContainerMeta {
 	}
 	return meta
 }
+
+// ShortID short container ID
+func ShortID(containerID string) string {
+	if len(containerID) > 7 {
+		return containerID[:7]
+	}
+	return containerID
+}
