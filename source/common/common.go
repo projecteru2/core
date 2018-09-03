@@ -68,6 +68,7 @@ func (g *GitScm) SourceCode(repository, path, revision string, submodule bool) e
 	if err != nil {
 		return err
 	}
+	defer repo.Free()
 
 	if err := repo.CheckoutHead(nil); err != nil {
 		return err
@@ -78,7 +79,17 @@ func (g *GitScm) SourceCode(repository, path, revision string, submodule bool) e
 		return err
 	}
 	defer object.Free()
+
+	object, err = object.Peel(git.ObjectCommit)
+	if err != nil {
+		return err
+	}
+
 	commit, err := object.AsCommit()
+	if err != nil {
+		return err
+	}
+	defer commit.Free()
 
 	tree, err := commit.Tree()
 	if err != nil {
