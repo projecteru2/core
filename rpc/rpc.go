@@ -113,14 +113,13 @@ func (v *Vibranium) ListContainers(ctx context.Context, opts *pb.ListContainersO
 		Appname:    opts.Appname,
 		Entrypoint: opts.Entrypoint,
 		Nodename:   opts.Nodename,
-		Labels:     opts.Labels,
 	}
 	containers, err := v.cluster.ListContainers(ctx, lsopts)
 	if err != nil {
 		return nil, err
 	}
 
-	return &pb.Containers{Containers: toRPCContainers(ctx, containers)}, nil
+	return &pb.Containers{Containers: toRPCContainers(ctx, containers, opts.Labels)}, nil
 }
 
 // ListNodeContainers list node containers
@@ -129,7 +128,7 @@ func (v *Vibranium) ListNodeContainers(ctx context.Context, opts *pb.GetNodeOpti
 	if err != nil {
 		return nil, err
 	}
-	return &pb.Containers{Containers: toRPCContainers(ctx, containers)}, nil
+	return &pb.Containers{Containers: toRPCContainers(ctx, containers, nil)}, nil
 }
 
 // ListNetworks list networks for pod
@@ -185,7 +184,7 @@ func (v *Vibranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (*
 		return nil, err
 	}
 
-	return &pb.Containers{Containers: toRPCContainers(ctx, containers)}, nil
+	return &pb.Containers{Containers: toRPCContainers(ctx, containers, nil)}, nil
 }
 
 // SetNodeAvailable set node availability
@@ -425,9 +424,8 @@ func (v *Vibranium) ReplaceContainer(opts *pb.ReplaceOptions, stream pb.CoreRPC_
 		return err
 	}
 	//这里考虑用全局 Background
-	ch, err := v.cluster.ReplaceContainer(context.Background(), deployOpts,
-		&types.ReplaceOptions{Force: opts.Force, FilterLabels: opts.FilterLabels},
-	)
+	replaceOpts := &types.ReplaceOptions{DeployOptions: *deployOpts, Force: opts.Force, Labels: opts.Labels}
+	ch, err := v.cluster.ReplaceContainer(context.Background(), replaceOpts)
 	if err != nil {
 		return err
 	}

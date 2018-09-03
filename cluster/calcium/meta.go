@@ -7,7 +7,6 @@ import (
 	"context"
 
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -59,24 +58,7 @@ func (c *Calcium) ListPodNodes(ctx context.Context, podname string, all bool) ([
 
 // ListContainers list containers
 func (c *Calcium) ListContainers(ctx context.Context, opts *types.ListContainersOptions) ([]*types.Container, error) {
-	cs, err := c.store.ListContainers(ctx, opts.Appname, opts.Entrypoint, opts.Nodename)
-	if err != nil {
-		log.Debugf("[ListContainers] Error during get containers %v", err)
-		return cs, err
-	}
-	result := []*types.Container{}
-	for i, c := range cs {
-		cs[i].RawInspect, err = c.Inspect(ctx)
-		if err != nil {
-			log.Errorf("[ListContainers] Error during inspect container %s %v", c.ID, err)
-			continue
-		}
-		if !utils.FilterContainer(cs[i].RawInspect.Config.Labels, opts.Labels) {
-			continue
-		}
-		result = append(result, cs[i])
-	}
-	return result, nil
+	return c.store.ListContainers(ctx, opts.Appname, opts.Entrypoint, opts.Nodename)
 }
 
 // ListNodeContainers list containers belong to one node
@@ -96,16 +78,7 @@ func (c *Calcium) GetNode(ctx context.Context, podname, nodename string) (*types
 
 // GetContainer get a container
 func (c *Calcium) GetContainer(ctx context.Context, ID string) (*types.Container, error) {
-	container, err := c.store.GetContainer(ctx, ID)
-	if err != nil {
-		return nil, err
-	}
-	rawInspect, err := container.Inspect(ctx)
-	if err != nil {
-		return nil, err
-	}
-	container.RawInspect = rawInspect
-	return container, nil
+	return c.store.GetContainer(ctx, ID)
 }
 
 // GetContainers get containers
