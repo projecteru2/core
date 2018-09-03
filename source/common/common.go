@@ -80,9 +80,16 @@ func (g *GitScm) SourceCode(repository, path, revision string, submodule bool) e
 	defer object.Free()
 	commit, err := object.AsCommit()
 
-	if err := repo.ResetToCommit(commit, git.ResetHard, &git.CheckoutOpts{Strategy: git.CheckoutSafe}); err != nil {
+	tree, err := commit.Tree()
+	if err != nil {
 		return err
 	}
+	defer tree.Free()
+
+	if err := repo.CheckoutTree(tree, &git.CheckoutOpts{Strategy: git.CheckoutSafe}); err != nil {
+		return err
+	}
+	log.Debugf("[SourceCode] Checkout to commit %v", commit.Id())
 
 	// Prepare submodules
 	if submodule {
