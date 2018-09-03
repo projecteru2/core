@@ -251,22 +251,20 @@ func createTarStream(path string) (io.ReadCloser, error) {
 	return archive.TarWithOptions(path, tarOpts)
 }
 
-func createTarFileBuffer(filename string, data []byte) (io.Reader, error) {
-	buf := &bytes.Buffer{}
-	tw := tar.NewWriter(buf)
+func createTarFileBuffer(filename string, data *bytes.Buffer) (io.Reader, error) {
+	tw := tar.NewWriter(data)
 	defer tw.Close()
+	size := int64(data.Len())
 	hdr := &tar.Header{
 		Name: filename,
 		Mode: 0755,
-		Size: int64(len(data)),
+		Size: size,
 	}
 	if err := tw.WriteHeader(hdr); err != nil {
-		return buf, err
+		return nil, err
 	}
-	if _, err := tw.Write(data); err != nil {
-		return buf, err
-	}
-	return buf, nil
+	_, err := io.CopyN(tw, data, size)
+	return data, err
 }
 
 func makeCommonPart(build *types.Build) (string, error) {

@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 
@@ -144,6 +145,11 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		entry.Hook.Force = entrypoint.Hook.Force
 	}
 
+	data := map[string]*bytes.Buffer{}
+	for path := range d.Data {
+		data[path] = bytes.NewBuffer(d.Data[path])
+	}
+
 	return &types.DeployOptions{
 		Name:         d.Name,
 		Entrypoint:   entry,
@@ -166,7 +172,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Meta:         d.Meta,
 		NodeLabels:   d.Nodelabels,
 		DeployMethod: d.DeployMethod,
-		Data:         d.Data,
+		Data:         data,
 		SoftLimit:    d.Softlimit,
 	}, nil
 }
