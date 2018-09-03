@@ -425,7 +425,9 @@ func (v *Vibranium) ReplaceContainer(opts *pb.ReplaceOptions, stream pb.CoreRPC_
 		return err
 	}
 	//这里考虑用全局 Background
-	ch, err := v.cluster.ReplaceContainer(context.Background(), deployOpts, &types.ReplaceOptions{opts.Force, opts.FilterLabels})
+	ch, err := v.cluster.ReplaceContainer(context.Background(), deployOpts,
+		&types.ReplaceOptions{Force: opts.Force, FilterLabels: opts.FilterLabels},
+	)
 	if err != nil {
 		return err
 	}
