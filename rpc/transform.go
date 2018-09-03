@@ -255,20 +255,22 @@ func toRPCContainers(ctx context.Context, containers []*types.Container) []*pb.C
 }
 
 func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, error) {
-	info, err := c.Inspect(ctx)
-	if err != nil {
-		return nil, err
+	if c.RawInspect.Config == nil {
+		info, err := c.Inspect(ctx)
+		if err != nil {
+			return nil, err
+		}
+		c.RawInspect = info
 	}
-
-	meta := utils.DecodeMetaInLabel(info.Config.Labels)
+	meta := utils.DecodeMetaInLabel(c.RawInspect.Config.Labels)
 	publish := map[string]string{}
-	if info.NetworkSettings != nil {
+	if c.RawInspect.NetworkSettings != nil {
 		publish = utils.EncodePublishInfo(
-			utils.MakePublishInfo(info.NetworkSettings.Networks, c.Node, meta.Publish),
+			utils.MakePublishInfo(c.RawInspect.NetworkSettings.Networks, c.Node, meta.Publish),
 		)
 	}
 
-	bytes, err := json.Marshal(info)
+	bytes, err := json.Marshal(c.RawInspect)
 	if err != nil {
 		return nil, err
 	}
@@ -285,8 +287,8 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		Memory:     c.Memory,
 		Privileged: c.Privileged,
 		Publish:    publish,
-		Image:      info.Config.Image,
-		Labels:     info.Config.Labels,
+		Image:      c.RawInspect.Config.Image,
+		Labels:     c.RawInspect.Config.Labels,
 		Inspect:    bytes,
 	}, nil
 }

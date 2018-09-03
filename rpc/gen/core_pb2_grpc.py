@@ -81,7 +81,7 @@ class CoreRPCStub(object):
         )
     self.ListContainers = channel.unary_unary(
         '/pb.CoreRPC/ListContainers',
-        request_serializer=core__pb2.DeployStatusOptions.SerializeToString,
+        request_serializer=core__pb2.ListContainersOptions.SerializeToString,
         response_deserializer=core__pb2.Containers.FromString,
         )
     self.ListNodeContainers = channel.unary_unary(
@@ -390,7 +390,7 @@ def add_CoreRPCServicer_to_server(servicer, server):
       ),
       'ListContainers': grpc.unary_unary_rpc_method_handler(
           servicer.ListContainers,
-          request_deserializer=core__pb2.DeployStatusOptions.FromString,
+          request_deserializer=core__pb2.ListContainersOptions.FromString,
           response_serializer=core__pb2.Containers.SerializeToString,
       ),
       'ListNodeContainers': grpc.unary_unary_rpc_method_handler(

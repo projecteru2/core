@@ -247,7 +247,7 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	// basic labels, and set meta in opts to labels
 	containerLabels := map[string]string{
 		cluster.ERUMark: "1",
-		cluster.ERUMeta: utils.EncodeMetaInLabel(&types.EruContainerMeta{
+		cluster.ERUMeta: utils.EncodeMetaInLabel(&types.ContainerMeta{
 			Publish:     opts.Entrypoint.Publish,
 			HealthCheck: entry.HealthCheck,
 		}),

@@ -17,7 +17,7 @@ service CoreRPC {
     rpc GetNodeByName(GetNodeOptions) returns (Node) {};
     rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
     rpc ListNetworks(ListNetworkOptions) returns (Networks) {};
-    rpc ListContainers(DeployStatusOptions) returns (Containers) {};
+    rpc ListContainers(ListContainersOptions) returns (Containers) {};
     rpc ListNodeContainers(GetNodeOptions) returns (Containers) {};
     rpc ContainerDeployed(ContainerDeployedOptions) returns (Empty) {};
 
@@ -33,6 +33,13 @@ service CoreRPC {
 }
 
 message Empty {}
+
+message ListContainersOptions {
+    string appname = 1;
+    string entrypoint = 2;
+    string nodename = 3;
+    map<string, string> labels = 4;
+}
 
 message DeployStatusOptions {
     string appname = 1;
@@ -269,6 +276,7 @@ message DeployOptions {
 message ReplaceOptions {
     DeployOptions deployOpt = 1;
     bool force = 2; 
+    map<string, string> filter_labels = 3;
 }
 
 message RemoveImageOptions {

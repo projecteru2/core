@@ -39,7 +39,7 @@ type Cluster interface {
 	RemoveNode(ctx context.Context, nodename, podname string) (*types.Pod, error)
 	ListPods(ctx context.Context) ([]*types.Pod, error)
 	ListPodNodes(ctx context.Context, podname string, all bool) ([]*types.Node, error)
-	ListContainers(ctx context.Context, appname, entrypoint, nodename string) ([]*types.Container, error)
+	ListContainers(ctx context.Context, opts *types.ListContainersOptions) ([]*types.Container, error)
 	ListNodeContainers(ctx context.Context, nodename string) ([]*types.Container, error)
 	ListNetworks(ctx context.Context, podname string, driver string) ([]*types.Network, error)
 	GetPod(ctx context.Context, podname string) (*types.Pod, error)
@@ -56,7 +56,7 @@ type Cluster interface {
 	RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error)
 	// this methods will not interrupt by client
 	CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
-	ReplaceContainer(ctx context.Context, opts *types.DeployOptions, force bool) (chan *types.ReplaceContainerMessage, error)
+	ReplaceContainer(ctx context.Context, opts *types.DeployOptions, replaceOpts *types.ReplaceOptions) (chan *types.ReplaceContainerMessage, error)
 	RemoveContainer(ctx context.Context, IDs []string, force bool) (chan *types.RemoveContainerMessage, error)
 	ReallocResource(ctx context.Context, IDs []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error)
 
