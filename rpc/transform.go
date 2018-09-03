@@ -240,7 +240,7 @@ func toRPCRunAndWaitMessage(msg *types.RunAndWaitMessage) *pb.RunAndWaitMessage 
 	}
 }
 
-func toRPCContainers(ctx context.Context, containers []*types.Container) []*pb.Container {
+func toRPCContainers(ctx context.Context, containers []*types.Container, labels map[string]string) []*pb.Container {
 	cs := []*pb.Container{}
 	for _, c := range containers {
 		pContainer, err := toRPCContainer(ctx, c)
@@ -248,29 +248,28 @@ func toRPCContainers(ctx context.Context, containers []*types.Container) []*pb.C
 			log.Errorf("[toRPCContainers] trans to pb container failed %v", err)
 			continue
 		}
-
-		cs = append(cs, pContainer)
+		if utils.FilterContainer(pContainer.Labels, labels) {
+			cs = append(cs, pContainer)
+		}
 	}
 	return cs
 }
 
 func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, error) {
-	if c.RawInspect.Config == nil {
-		info, err := c.Inspect(ctx)
-		if err != nil {
-			return nil, err
-		}
-		c.RawInspect = info
+	info, err := c.Inspect(ctx)
+	if err != nil {
+		return nil, err
 	}
-	meta := utils.DecodeMetaInLabel(c.RawInspect.Config.Labels)
+
+	meta := utils.DecodeMetaInLabel(info.Config.Labels)
 	publish := map[string]string{}
-	if c.RawInspect.NetworkSettings != nil {
+	if info.NetworkSettings != nil {
 		publish = utils.EncodePublishInfo(
-			utils.MakePublishInfo(c.RawInspect.NetworkSettings.Networks, c.Node, meta.Publish),
+			utils.MakePublishInfo(info.NetworkSettings.Networks, c.Node, meta.Publish),
 		)
 	}
 
-	bytes, err := json.Marshal(c.RawInspect)
+	bytes, err := json.Marshal(info)
 	if err != nil {
 		return nil, err
 	}
@@ -287,8 +286,8 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		Memory:     c.Memory,
 		Privileged: c.Privileged,
 		Publish:    publish,
-		Image:      c.RawInspect.Config.Image,
-		Labels:     c.RawInspect.Config.Labels,
+		Image:      info.Config.Image,
+		Labels:     info.Config.Labels,
 		Inspect:    bytes,
 	}, nil
 }

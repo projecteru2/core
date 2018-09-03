@@ -7,13 +7,14 @@ import (
 
 	enginetypes "github.com/docker/docker/api/types"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
 // ReplaceContainer replace containers with same resource
-func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.DeployOptions, replaceOpts *types.ReplaceOptions) (chan *types.ReplaceContainerMessage, error) {
+func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceContainerMessage, error) {
 	oldContainers, err := c.ListContainers(ctx, &types.ListContainersOptions{
-		Appname: opts.Name, Entrypoint: opts.Entrypoint.Name, Nodename: opts.Nodename, Labels: replaceOpts.FilterLabels,
+		Appname: opts.Name, Entrypoint: opts.Entrypoint.Name, Nodename: opts.Nodename,
 	})
 	if err != nil {
 		return nil, err
@@ -32,17 +33,21 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.DeployOption
 				log.Debugf("[ReplaceContainer] Skip not in pod container %s", oldContainer.ID)
 				continue
 			}
+			// 覆盖 podname 如果做全量更新的话
+			opts.Podname = oldContainer.Podname
 			log.Debugf("[ReplaceContainer] Replace old container %s", oldContainer.ID)
 			wg.Add(1)
-			go func(deployOpts types.DeployOptions, oldContainer *types.Container, index int) {
+			go func(replaceOpts types.ReplaceOptions, oldContainer *types.Container, index int) {
 				defer wg.Done()
 				// 使用复制之后的配置
 				// 停老的，起新的
-				deployOpts.Memory = oldContainer.Memory
-				deployOpts.CPUQuota = oldContainer.Quota
-				deployOpts.SoftLimit = oldContainer.SoftLimit
+				replaceOpts.Memory = oldContainer.Memory
+				replaceOpts.CPUQuota = oldContainer.Quota
+				replaceOpts.SoftLimit = oldContainer.SoftLimit
 
-				createMessage, removeMessage, err := c.doReplaceContainer(ctx, oldContainer, &deployOpts, ib, index, replaceOpts.Force)
+				createMessage, removeMessage, err := c.doReplaceContainer(
+					ctx, oldContainer, &replaceOpts, ib, index,
+				)
 				ch <- &types.ReplaceContainerMessage{
 					Create: createMessage,
 					Remove: removeMessage,
@@ -71,10 +76,9 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.DeployOption
 func (c *Calcium) doReplaceContainer(
 	ctx context.Context,
 	container *types.Container,
-	opts *types.DeployOptions,
+	opts *types.ReplaceOptions,
 	ib *imageBucket,
 	index int,
-	force bool,
 ) (*types.CreateContainerMessage, *types.RemoveContainerMessage, error) {
 	removeMessage := &types.RemoveContainerMessage{
 		ContainerID: container.ID,
@@ -95,15 +99,16 @@ func (c *Calcium) doReplaceContainer(
 		return nil, removeMessage, err
 	}
 
-	// 覆盖 podname 如果做全量更新的话
-	opts.Podname = container.Podname
+	if !utils.FilterContainer(containerJSON.Config.Labels, opts.Labels) {
+		return nil, removeMessage, types.ErrNotFitLabels
+	}
 
 	// 记录镜像
 	if ib != nil {
 		ib.Add(container.Podname, containerJSON.Config.Image)
 	}
 
-	removeMessage.Message, err = c.doStopContainer(ctx, container, containerJSON, ib, force)
+	removeMessage.Message, err = c.doStopContainer(ctx, container, containerJSON, ib, opts.Force)
 	if err != nil {
 		return nil, removeMessage, err
 	}
@@ -120,7 +125,7 @@ func (c *Calcium) doReplaceContainer(
 
 	// 不涉及资源消耗，创建容器失败会被回收容器而不回收资源
 	// 创建成功容器会干掉之前的老容器也不会动资源，实际上实现了动态捆绑
-	createMessage := c.createAndStartContainer(ctx, index, container.Node, opts, container.CPU)
+	createMessage := c.createAndStartContainer(ctx, index, container.Node, &opts.DeployOptions, container.CPU)
 	if createMessage.Error != nil {
 		// 重启老容器, 并不关心是否启动成功
 		// 注意要再次激发 hook

@@ -55,11 +55,11 @@ type ListContainersOptions struct {
 	Appname    string
 	Entrypoint string
 	Nodename   string
-	Labels     map[string]string
 }
 
 // ReplaceOptions for replace container
 type ReplaceOptions struct {
-	Force        bool
-	FilterLabels map[string]string
+	DeployOptions
+	Force  bool
+	Labels map[string]string
 }

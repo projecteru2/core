@@ -44,6 +44,7 @@ var (
 	ErrBadMeta         = errors.New("bad meta")
 	ErrInvaildPassword = errors.New("invaild password")
 	ErrInvaildUsername = errors.New("invaild username")
+	ErrNotFitLabels    = errors.New("not fit labels")
 )
 
 // NewDetailedErr returns an error with details
