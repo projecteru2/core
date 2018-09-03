@@ -423,11 +423,11 @@ func (c *Calcium) createAndStartContainer(
 
 	// Copy data to container
 	if len(opts.Data) > 0 {
-		for dst, byteData := range opts.Data {
+		for dst, dataBuffer := range opts.Data {
 			path := filepath.Dir(dst)
 			filename := filepath.Base(dst)
 			log.Debugf("[createAndStartContainer] Copy file %s to dir %s", filename, path)
-			r, err := createTarFileBuffer(filename, byteData)
+			r, err := createTarFileBuffer(filename, dataBuffer)
 			if err != nil {
 				createContainerMessage.Error = err
 				return createContainerMessage
