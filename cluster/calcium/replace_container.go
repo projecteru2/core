@@ -11,8 +11,10 @@ import (
 )
 
 // ReplaceContainer replace containers with same resource
-func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.DeployOptions, force bool) (chan *types.ReplaceContainerMessage, error) {
-	oldContainers, err := c.ListContainers(ctx, opts.Name, opts.Entrypoint.Name, opts.Nodename)
+func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.DeployOptions, replaceOpts *types.ReplaceOptions) (chan *types.ReplaceContainerMessage, error) {
+	oldContainers, err := c.ListContainers(ctx, &types.ListContainersOptions{
+		Appname: opts.Name, Entrypoint: opts.Entrypoint.Name, Nodename: opts.Nodename, Labels: replaceOpts.FilterLabels,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +42,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.DeployOption
 				deployOpts.CPUQuota = oldContainer.Quota
 				deployOpts.SoftLimit = oldContainer.SoftLimit
 
-				createMessage, removeMessage, err := c.doReplaceContainer(ctx, oldContainer, &deployOpts, ib, index, force)
+				createMessage, removeMessage, err := c.doReplaceContainer(ctx, oldContainer, &deployOpts, ib, index, replaceOpts.Force)
 				ch <- &types.ReplaceContainerMessage{
 					Create: createMessage,
 					Remove: removeMessage,

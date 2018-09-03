@@ -108,8 +108,14 @@ func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions)
 }
 
 // ListContainers by appname with optional entrypoint and nodename
-func (v *Vibranium) ListContainers(ctx context.Context, opts *pb.DeployStatusOptions) (*pb.Containers, error) {
-	containers, err := v.cluster.ListContainers(ctx, opts.Appname, opts.Entrypoint, opts.Nodename)
+func (v *Vibranium) ListContainers(ctx context.Context, opts *pb.ListContainersOptions) (*pb.Containers, error) {
+	lsopts := &types.ListContainersOptions{
+		Appname:    opts.Appname,
+		Entrypoint: opts.Entrypoint,
+		Nodename:   opts.Nodename,
+		Labels:     opts.Labels,
+	}
+	containers, err := v.cluster.ListContainers(ctx, lsopts)
 	if err != nil {
 		return nil, err
 	}
@@ -419,7 +425,7 @@ func (v *Vibranium) ReplaceContainer(opts *pb.ReplaceOptions, stream pb.CoreRPC_
 		return err
 	}
 	//这里考虑用全局 Background
-	ch, err := v.cluster.ReplaceContainer(context.Background(), deployOpts, opts.Force)
+	ch, err := v.cluster.ReplaceContainer(context.Background(), deployOpts, &types.ReplaceOptions{opts.Force, opts.FilterLabels})
 	if err != nil {
 		return err
 	}

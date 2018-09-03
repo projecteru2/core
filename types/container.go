@@ -12,18 +12,19 @@ import (
 // only relationship with pod and node is stored
 // if you wanna get realtime information, use Inspect method
 type Container struct {
-	ID         string            `json:"id"`
-	Podname    string            `json:"podname"`
-	Nodename   string            `json:"nodename"`
-	Name       string            `json:"name"`
-	CPU        CPUMap            `json:"cpu"`
-	Quota      float64           `json:"quota"`
-	Memory     int64             `json:"memory"`
-	Hook       *Hook             `json:"hook"`
-	Privileged bool              `json:"privileged"`
-	SoftLimit  bool              `json:"softlimit"`
-	Engine     *engineapi.Client `json:"-"`
-	Node       *Node             `json:"-"`
+	ID         string                    `json:"id"`
+	Podname    string                    `json:"podname"`
+	Nodename   string                    `json:"nodename"`
+	Name       string                    `json:"name"`
+	CPU        CPUMap                    `json:"cpu"`
+	Quota      float64                   `json:"quota"`
+	Memory     int64                     `json:"memory"`
+	Hook       *Hook                     `json:"hook"`
+	Privileged bool                      `json:"privileged"`
+	SoftLimit  bool                      `json:"softlimit"`
+	Engine     *engineapi.Client         `json:"-"`
+	Node       *Node                     `json:"-"`
+	RawInspect enginetypes.ContainerJSON `json:"-"`
 }
 
 // Inspect a container
@@ -72,8 +73,8 @@ type DeployStatus struct {
 	ID         string
 }
 
-// EruContainerMeta bind meta info store in labels
-type EruContainerMeta struct {
+// ContainerMeta bind meta info store in labels
+type ContainerMeta struct {
 	Publish     []string
 	HealthCheck *HealthCheck
 }

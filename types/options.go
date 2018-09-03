@@ -49,3 +49,17 @@ type RunAndWaitOptions struct {
 type CopyOptions struct {
 	Targets map[string][]string
 }
+
+// ListContainersOptions for list containers
+type ListContainersOptions struct {
+	Appname    string
+	Entrypoint string
+	Nodename   string
+	Labels     map[string]string
+}
+
+// ReplaceOptions for replace container
+type ReplaceOptions struct {
+	Force        bool
+	FilterLabels map[string]string
+}

@@ -216,7 +216,7 @@ func DecodePublishInfo(info map[string]string) map[string][]string {
 }
 
 // EncodeMetaInLabel encode meta to json
-func EncodeMetaInLabel(meta *types.EruContainerMeta) string {
+func EncodeMetaInLabel(meta *types.ContainerMeta) string {
 	data, err := json.Marshal(meta)
 	if err != nil {
 		log.Errorf("[EncodeMetaInLabel] Encode meta failed %v", err)
@@ -226,8 +226,8 @@ func EncodeMetaInLabel(meta *types.EruContainerMeta) string {
 }
 
 // DecodeMetaInLabel get meta from label and decode it
-func DecodeMetaInLabel(labels map[string]string) *types.EruContainerMeta {
-	meta := &types.EruContainerMeta{}
+func DecodeMetaInLabel(labels map[string]string) *types.ContainerMeta {
+	meta := &types.ContainerMeta{}
 	metastr, ok := labels[cluster.ERUMeta]
 	if ok {
 		if err := json.Unmarshal([]byte(metastr), meta); err != nil {
@@ -243,4 +243,14 @@ func ShortID(containerID string) string {
 		return containerID[:7]
 	}
 	return containerID
+}
+
+// FilterContainer filter container by labels
+func FilterContainer(extend map[string]string, labels map[string]string) bool {
+	for k, v := range labels {
+		if n, ok := extend[k]; !ok || n != v {
+			return false
+		}
+	}
+	return true
 }
