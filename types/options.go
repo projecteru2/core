@@ -31,7 +31,7 @@ type DeployOptions struct {
 	User         string                   // User for container
 	Debug        bool                     // debug mode, use syslog as log driver
 	OpenStdin    bool                     // OpenStdin for container
-	Meta         map[string]string        // Meta for containers
+	Labels       map[string]string        // Labels for containers
 	NodeLabels   map[string]string        // NodeLabels for filter node
 	DeployMethod string                   // Deploy method
 	Data         map[string]*bytes.Buffer // For additional file data
@@ -60,6 +60,6 @@ type ListContainersOptions struct {
 // ReplaceOptions for replace container
 type ReplaceOptions struct {
 	DeployOptions
-	Force  bool
-	Labels map[string]string
+	Force        bool
+	FilterLabels map[string]string
 }

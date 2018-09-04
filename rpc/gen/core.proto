@@ -266,7 +266,7 @@ message DeployOptions {
     string user = 16;
     bool debug = 17;
     bool openStdin = 18;
-    map<string, string> meta = 19;
+    map<string, string> labels = 19;
     map<string, string> nodelabels = 20;
     string deploy_method = 21;
     map<string, bytes> data = 22;
@@ -276,7 +276,7 @@ message DeployOptions {
 message ReplaceOptions {
     DeployOptions deployOpt = 1;
     bool force = 2; 
-    map<string, string> labels = 3;
+    map<string, string> filter_labels = 3;
 }
 
 message RemoveImageOptions {
