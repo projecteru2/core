@@ -72,8 +72,8 @@ type DeployStatus struct {
 	ID         string
 }
 
-// ContainerMeta bind meta info store in labels
-type ContainerMeta struct {
+// EruMeta bind meta info store in labels
+type EruMeta struct {
 	Publish     []string
 	HealthCheck *HealthCheck
 }

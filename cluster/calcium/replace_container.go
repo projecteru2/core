@@ -99,7 +99,7 @@ func (c *Calcium) doReplaceContainer(
 		return nil, removeMessage, err
 	}
 
-	if !utils.FilterContainer(containerJSON.Config.Labels, opts.Labels) {
+	if !utils.FilterContainer(containerJSON.Config.Labels, opts.FilterLabels) {
 		return nil, removeMessage, types.ErrNotFitLabels
 	}
 

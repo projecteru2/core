@@ -243,18 +243,17 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 
 	containerLogConfig := enginecontainer.LogConfig{Type: logConfig.Type, Config: logConfig.Config}
 
-	// labels
-	// basic labels, and set meta in opts to labels
+	// basic labels, bind to EruMeta
 	containerLabels := map[string]string{
 		cluster.ERUMark: "1",
-		cluster.ERUMeta: utils.EncodeMetaInLabel(&types.ContainerMeta{
+		cluster.ERUMeta: utils.EncodeMetaInLabel(&types.EruMeta{
 			Publish:     opts.Entrypoint.Publish,
 			HealthCheck: entry.HealthCheck,
 		}),
 	}
 
 	// 接下来是meta
-	for key, value := range opts.Meta {
+	for key, value := range opts.Labels {
 		containerLabels[key] = value
 	}
 

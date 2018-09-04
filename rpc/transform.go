@@ -169,7 +169,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		User:         d.User,
 		Debug:        d.Debug,
 		OpenStdin:    d.OpenStdin,
-		Meta:         d.Meta,
+		Labels:       d.Labels,
 		NodeLabels:   d.Nodelabels,
 		DeployMethod: d.DeployMethod,
 		Data:         data,

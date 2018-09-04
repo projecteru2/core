@@ -216,7 +216,7 @@ func DecodePublishInfo(info map[string]string) map[string][]string {
 }
 
 // EncodeMetaInLabel encode meta to json
-func EncodeMetaInLabel(meta *types.ContainerMeta) string {
+func EncodeMetaInLabel(meta *types.EruMeta) string {
 	data, err := json.Marshal(meta)
 	if err != nil {
 		log.Errorf("[EncodeMetaInLabel] Encode meta failed %v", err)
@@ -226,8 +226,8 @@ func EncodeMetaInLabel(meta *types.ContainerMeta) string {
 }
 
 // DecodeMetaInLabel get meta from label and decode it
-func DecodeMetaInLabel(labels map[string]string) *types.ContainerMeta {
-	meta := &types.ContainerMeta{}
+func DecodeMetaInLabel(labels map[string]string) *types.EruMeta {
+	meta := &types.EruMeta{}
 	metastr, ok := labels[cluster.ERUMeta]
 	if ok {
 		if err := json.Unmarshal([]byte(metastr), meta); err != nil {
