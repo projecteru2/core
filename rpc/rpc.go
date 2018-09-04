@@ -307,6 +307,7 @@ func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_R
 }
 
 // DeployStatus watch and show deployed status
+// TODO should close channels when ctrl+c send
 func (v *Vibranium) DeployStatus(opts *pb.DeployStatusOptions, stream pb.CoreRPC_DeployStatusServer) error {
 	v.taskAdd("DeployStatus", true)
 	defer v.taskDone("DeployStatus", true)
