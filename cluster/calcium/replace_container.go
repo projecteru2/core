@@ -33,8 +33,6 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 				log.Debugf("[ReplaceContainer] Skip not in pod container %s", oldContainer.ID)
 				continue
 			}
-			// 覆盖 podname 如果做全量更新的话
-			opts.Podname = oldContainer.Podname
 			log.Debugf("[ReplaceContainer] Replace old container %s", oldContainer.ID)
 			wg.Add(1)
 			go func(replaceOpts types.ReplaceOptions, oldContainer *types.Container, index int) {
@@ -44,6 +42,8 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 				replaceOpts.Memory = oldContainer.Memory
 				replaceOpts.CPUQuota = oldContainer.Quota
 				replaceOpts.SoftLimit = oldContainer.SoftLimit
+				// 覆盖 podname 如果做全量更新的话
+				replaceOpts.Podname = oldContainer.Podname
 
 				createMessage, removeMessage, err := c.doReplaceContainer(
 					ctx, oldContainer, &replaceOpts, ib, index,
