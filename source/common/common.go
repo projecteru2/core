@@ -100,6 +100,7 @@ func (g *GitScm) SourceCode(repository, path, revision string, submodule bool) e
 	if err := repo.CheckoutTree(tree, &git.CheckoutOpts{Strategy: git.CheckoutSafe}); err != nil {
 		return err
 	}
+	log.Debugf("[SourceCode] Fetch repo %s", repository)
 	log.Debugf("[SourceCode] Checkout to commit %v", commit.Id())
 
 	// Prepare submodules

@@ -12,6 +12,7 @@ var (
 	ErrInsufficientCap   = errors.New("cannot alloc a each node plan, not enough capacity")
 	ErrInsufficientRes   = errors.New("not enough resource")
 	ErrInsufficientNodes = errors.New("not enough nodes")
+	ErrAlreadyFilled     = errors.New("Cannot alloc a fill node plan, each node has enough containers")
 
 	ErrNegativeMemory = errors.New("memory must be positive")
 	ErrNegativeQuota  = errors.New("quota must be positive")
@@ -45,6 +46,16 @@ var (
 	ErrInvaildPassword = errors.New("invaild password")
 	ErrInvaildUsername = errors.New("invaild username")
 	ErrNotFitLabels    = errors.New("not fit labels")
+
+	ErrNoETCD                      = errors.New("ETCD must be set")
+	ErrNoImage                     = errors.New("no image")
+	ErrNoBuildPod                  = errors.New("No build pod set in config")
+	ErrNoBuildsInSpec              = errors.New("No builds in spec")
+	ErrNoBuildSpec                 = errors.New("No build spec")
+	ErrNoEntryInSpec               = errors.New("No entry in spec")
+	ErrNoDeployOpts                = errors.New("No deploy options")
+	ErrNoContainerIDs              = errors.New("No container ids given")
+	ErrRunAndWaitCountOneWithStdin = errors.New("Count must be 1 if OpenStdin is true")
 )
 
 // NewDetailedErr returns an error with details

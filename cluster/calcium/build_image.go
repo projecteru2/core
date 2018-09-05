@@ -3,7 +3,6 @@ package calcium
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -155,7 +154,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 	// get pod from config
 	buildPodname := c.config.Docker.BuildPod
 	if buildPodname == "" {
-		return ch, errors.New("No build pod set in config")
+		return ch, types.ErrNoBuildPod
 	}
 
 	// get node by scheduler
@@ -164,7 +163,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 		return ch, err
 	}
 	if len(nodes) == 0 {
-		return ch, errors.New("No node to build")
+		return ch, types.ErrInsufficientNodes
 	}
 	//TODO 这里需要考虑用 mem，CPU 不限制 mem
 	node := c.scheduler.MaxCPUIdleNode(nodes)

@@ -45,7 +45,7 @@ type Krypton struct {
 //New for create a krypton instance
 func New(config types.Config) (*Krypton, error) {
 	if len(config.Etcd.Machines) == 0 {
-		return nil, fmt.Errorf("ETCD must be set")
+		return nil, types.ErrNoETCD
 	}
 
 	cli, err := client.New(client.Config{Endpoints: config.Etcd.Machines})

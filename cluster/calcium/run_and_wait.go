@@ -25,7 +25,8 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 	// count = 1 && OpenStdin
 	if opts.OpenStdin && (opts.Count != 1 || opts.DeployMethod != cluster.DeployAuto) {
 		close(ch)
-		return ch, fmt.Errorf("Count must be 1 if OpenStdin is true, count is %d, method is %s", opts.Count, opts.DeployMethod)
+		log.Errorf("Count %d method %s", opts.Count, opts.DeployMethod)
+		return ch, types.ErrRunAndWaitCountOneWithStdin
 	}
 
 	// 创建容器, 有问题就
