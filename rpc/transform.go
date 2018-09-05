@@ -3,7 +3,6 @@ package rpc
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 
 	"github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
@@ -74,7 +73,7 @@ func toCoreCopyOptions(b *pb.CopyOptions) *types.CopyOptions {
 
 func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
 	if b.Builds == nil || len(b.Builds.Stages) == 0 {
-		return nil, errors.New("no builds")
+		return nil, types.ErrNoBuildsInSpec
 	}
 	builds := &types.Builds{
 		Stages: b.Builds.Stages,
@@ -82,7 +81,7 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
 	builds.Builds = map[string]*types.Build{}
 	for stage, p := range b.Builds.Builds {
 		if p == nil {
-			return nil, errors.New("no build spec")
+			return nil, types.ErrNoBuildSpec
 		}
 		builds.Builds[stage] = &types.Build{
 			Base:      p.Base,
@@ -109,7 +108,7 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
 
 func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 	if d.Entrypoint == nil {
-		return nil, errors.New("no entry")
+		return nil, types.ErrNoEntryInSpec
 	}
 
 	entrypoint := d.Entrypoint

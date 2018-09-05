@@ -208,7 +208,7 @@ func distributionInspect(ctx context.Context, node *types.Node, image, auth stri
 func pullImage(ctx context.Context, node *types.Node, image, auth string) error {
 	log.Debugf("[pullImage] Pulling image %s", image)
 	if image == "" {
-		return fmt.Errorf("Goddamn empty image, WTF?")
+		return types.ErrNoImage
 	}
 
 	// check local

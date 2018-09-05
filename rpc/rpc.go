@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
-	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -342,7 +341,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	}
 
 	if RunAndWaitOptions.DeployOptions == nil {
-		return errors.New("no deploy options")
+		return types.ErrNoDeployOpts
 	}
 
 	opts := RunAndWaitOptions.DeployOptions
@@ -449,7 +448,7 @@ func (v *Vibranium) RemoveContainer(opts *pb.RemoveContainerOptions, stream pb.C
 	force := opts.GetForce()
 
 	if len(ids) == 0 {
-		return fmt.Errorf("No container ids given")
+		return types.ErrNoContainerIDs
 	}
 
 	//这里不能让 client 打断 remove
@@ -473,7 +472,7 @@ func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_R
 	defer v.taskDone("ReallocResource", true)
 	ids := opts.GetIds()
 	if len(ids) == 0 {
-		return fmt.Errorf("No container ids given")
+		return types.ErrNoContainerIDs
 	}
 
 	//这里不能让 client 打断 remove

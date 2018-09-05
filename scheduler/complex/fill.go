@@ -14,7 +14,7 @@ func FillPlan(nodesInfo []types.NodeInfo, need int) ([]types.NodeInfo, error) {
 	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Count > nodesInfo[j].Count })
 	p := sort.Search(nodesInfoLength, func(i int) bool { return nodesInfo[i].Count < need })
 	if p == nodesInfoLength {
-		return nil, fmt.Errorf("Cannot alloc a fill node plan, each node has enough containers")
+		return nil, types.ErrAlreadyFilled
 	}
 	nodesInfo = nodesInfo[p:]
 	for i := range nodesInfo {
