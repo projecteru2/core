@@ -12,11 +12,12 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/projecteru2/core/auth"
 	"github.com/projecteru2/core/cluster/calcium"
+	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/rpc"
 	"github.com/projecteru2/core/rpc/gen"
-	"github.com/projecteru2/core/stats"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/versioninfo"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -56,7 +57,9 @@ func serve() {
 		log.Fatalf("[main] %v", err)
 	}
 
-	stats.NewStatsdClient(config.Statsd)
+	if err := metrics.InitMetrics(config.Statsd); err != nil {
+		log.Fatal("[main] %v", err)
+	}
 
 	cluster, err := calcium.New(config)
 	if err != nil {
@@ -84,6 +87,7 @@ func serve() {
 	pb.RegisterCoreRPCServer(grpcServer, vibranium)
 	go grpcServer.Serve(s)
 	if config.Profile != "" {
+		http.Handle("/metrics", promhttp.Handler())
 		go http.ListenAndServe(config.Profile, nil)
 	}
 

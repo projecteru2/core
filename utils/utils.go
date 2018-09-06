@@ -254,3 +254,8 @@ func FilterContainer(extend map[string]string, labels map[string]string) bool {
 	}
 	return true
 }
+
+// CleanStatsdMetrics trans dot to _
+func CleanStatsdMetrics(k string) string {
+	return strings.Replace(k, ".", "-", -1)
+}
