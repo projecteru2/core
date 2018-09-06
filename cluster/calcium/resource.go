@@ -7,7 +7,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/projecteru2/core/cluster"
-	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
 )
@@ -90,14 +89,13 @@ func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, 
 	return nodesInfo, nil
 }
 
-func (c *Calcium) getCPUAndMem(ctx context.Context, podname, nodename string, labels map[string]string) (map[string]types.CPUAndMem, error) {
-	result := make(map[string]types.CPUAndMem)
+func (c *Calcium) getCPUAndMem(ctx context.Context, podname, nodename string, labels map[string]string) (map[*types.Node]types.CPUAndMem, error) {
 	var nodes []*types.Node
 	var err error
 	if nodename == "" {
 		nodes, err = c.ListPodNodes(ctx, podname, false)
 		if err != nil {
-			return result, err
+			return nil, err
 		}
 		nodeList := []*types.Node{}
 		for _, node := range nodes {
@@ -109,16 +107,14 @@ func (c *Calcium) getCPUAndMem(ctx context.Context, podname, nodename string, la
 	} else {
 		n, err := c.GetNode(ctx, podname, nodename)
 		if err != nil {
-			return result, err
+			return nil, err
 		}
 		nodes = append(nodes, n)
 	}
 
 	if len(nodes) == 0 {
-		return result, types.ErrInsufficientNodes
+		return nil, types.ErrInsufficientNodes
 	}
 
-	result = makeCPUAndMem(nodes)
-	go metrics.Client.SendMemCap(result)
-	return result, nil
+	return makeCPUAndMem(nodes), nil
 }

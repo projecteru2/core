@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	memStats    = "eru.node.mem"
-	deployCount = "eru.core.%s.deploy.count"
+	cpuMap      = "core.node.%s.cpu.%s"
+	memStats    = "core.node.%s.mem"
+	deployCount = "core.%s.deploy.count"
 )
 
 // Metrics define metrics
@@ -22,28 +23,24 @@ type Metrics struct {
 	Hostname   string
 
 	MemoryCapacity *prometheus.GaugeVec
+	CPUMap         *prometheus.GaugeVec
 	DeployCount    *prometheus.CounterVec
 }
 
-func (m *Metrics) gauge(keyPattern string, data map[string]float64) error {
+func (m *Metrics) gauge(key string, value float64) error {
 	remote, err := statsdlib.New(m.StatsdAddr)
 	if err != nil {
-		log.Errorf("[gauge] Connect statsd failed: %v", err)
 		return err
 	}
 	defer remote.Close()
 	defer remote.Flush()
-	for k, v := range data {
-		key := fmt.Sprintf("%s.%s", keyPattern, k)
-		remote.Gauge(key, v)
-	}
+	remote.Gauge(key, value)
 	return nil
 }
 
 func (m *Metrics) count(key string, n int, rate float32) error {
 	remote, err := statsdlib.New(m.StatsdAddr)
 	if err != nil {
-		log.Errorf("[count] Connect statsd failed: %v", err)
 		return err
 	}
 	defer remote.Close()
@@ -52,25 +49,36 @@ func (m *Metrics) count(key string, n int, rate float32) error {
 	return nil
 }
 
-// SendMemCap update memory capacity
-func (m *Metrics) SendMemCap(cpumemmap map[string]types.CPUAndMem) {
-	log.Info("[Metrics] Update memory capacity gauge")
-	data := map[string]float64{}
-	for node, cpuandmem := range cpumemmap {
-		nodename := utils.CleanStatsdMetrics(node)
-		capacity := float64(cpuandmem.MemCap)
-		data[nodename] = capacity
-		if m.MemoryCapacity != nil {
-			m.MemoryCapacity.WithLabelValues(nodename).Set(capacity)
+// SendNodeInfo update node resource capacity
+func (m *Metrics) SendNodeInfo(node *types.Node) {
+	log.Debugf("[Metrics] Update %s memory capacity gauge", node.Name)
+	nodename := utils.CleanStatsdMetrics(node.Name)
+	memory := float64(node.MemCap)
+
+	if m.MemoryCapacity != nil {
+		m.MemoryCapacity.WithLabelValues(nodename).Set(memory)
+	}
+
+	for cpuid, value := range node.CPU {
+		val := float64(value)
+		key := fmt.Sprintf(cpuMap, nodename, cpuid)
+		if m.CPUMap != nil {
+			m.CPUMap.WithLabelValues(nodename, cpuid).Set(val)
+		}
+		if m.StatsdAddr == "" {
+			continue
+		}
+		if err := m.gauge(key, val); err != nil {
+			log.Errorf("[SendNodeInfo] Error occured while sending data to statsd: %v", err)
 		}
 	}
 
 	if m.StatsdAddr == "" {
 		return
 	}
-
-	if err := m.gauge(memStats, data); err != nil {
-		log.Errorf("[SendMemCap] Error occured while sending data to statsd: %v", err)
+	key := fmt.Sprintf(memStats, nodename)
+	if err := m.gauge(key, memory); err != nil {
+		log.Errorf("[SendNodeInfo] Error occured while sending data to statsd: %v", err)
 	}
 }
 
@@ -111,6 +119,11 @@ func InitMetrics(statsd string) error {
 		Help: "core deploy counter",
 	}, []string{"hostname"})
 
-	prometheus.MustRegister(Client.DeployCount, Client.MemoryCapacity)
+	Client.CPUMap = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "cpu_map",
+		Help: "node avaliable cpu.",
+	}, []string{"nodename", "cpuid"})
+
+	prometheus.MustRegister(Client.DeployCount, Client.MemoryCapacity, Client.CPUMap)
 	return nil
 }

@@ -97,10 +97,10 @@ func encodeAuthToBase64(authConfig types.AuthConfig) (string, error) {
 	return base64.URLEncoding.EncodeToString(buf), nil
 }
 
-func makeCPUAndMem(nodes []*types.Node) map[string]types.CPUAndMem {
-	r := make(map[string]types.CPUAndMem)
+func makeCPUAndMem(nodes []*types.Node) map[*types.Node]types.CPUAndMem {
+	r := make(map[*types.Node]types.CPUAndMem)
 	for _, node := range nodes {
-		r[node.Name] = types.CPUAndMem{
+		r[node] = types.CPUAndMem{
 			CPUMap: node.CPU,
 			MemCap: node.MemCap,
 		}
@@ -398,12 +398,12 @@ func filterNode(node *types.Node, labels map[string]string) bool {
 	return true
 }
 
-func getNodesInfo(cpuAndMemData map[string]types.CPUAndMem) []types.NodeInfo {
+func getNodesInfo(cpuAndMemData map[*types.Node]types.CPUAndMem) []types.NodeInfo {
 	result := []types.NodeInfo{}
-	for nodename, cpuAndMem := range cpuAndMemData {
+	for node, cpuAndMem := range cpuAndMemData {
 		n := types.NodeInfo{
 			CPUAndMem: cpuAndMem,
-			Name:      nodename,
+			Name:      node.Name,
 			CPUs:      len(cpuAndMem.CPUMap),
 			Capacity:  0,
 			Count:     0,
