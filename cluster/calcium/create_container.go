@@ -12,8 +12,8 @@ import (
 	engineslice "github.com/docker/docker/api/types/strslice"
 	"github.com/docker/go-units"
 	"github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/scheduler"
-	"github.com/projecteru2/core/stats"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -67,7 +67,7 @@ func (c *Calcium) createContainerWithMemoryPrior(ctx context.Context, opts *type
 		wg.Add(len(nodesInfo))
 		index := 0
 		for _, nodeInfo := range nodesInfo {
-			go stats.Client.SendDeployCount(nodeInfo.Deploy)
+			go metrics.Client.SendDeployCount(nodeInfo.Deploy)
 			go func(nodeInfo types.NodeInfo, index int) {
 				defer wg.Done()
 				for _, m := range c.doCreateContainerWithMemoryPrior(ctx, nodeInfo, opts, index) {
@@ -139,7 +139,7 @@ func (c *Calcium) createContainerWithCPUPrior(ctx context.Context, opts *types.D
 		// do deployment
 		for _, nodeInfo := range nodesInfo {
 			planCount := len(nodeInfo.CPUPlan)
-			go stats.Client.SendDeployCount(planCount)
+			go metrics.Client.SendDeployCount(planCount)
 			go func(nodename string, cpuMap []types.CPUMap, index int) {
 				defer wg.Done()
 				for i, m := range c.doCreateContainerWithCPUPrior(ctx, nodename, cpuMap, opts, index) {

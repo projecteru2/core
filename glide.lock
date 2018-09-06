@@ -1,10 +1,18 @@
-hash: bc5ad346e2f60e20b5246af0f1d0fbf00d1f0da1b719cf0c6b0c552fa7f35ea1
-updated: 2018-08-13T11:21:17.920668+08:00
+hash: 44a405ea33bb9e89bd4d3445a04b86b42464555742634273e1e25eace9a09c3e
+updated: 2018-09-06T13:41:25.138862+08:00
 imports:
 - name: github.com/Azure/go-ansiterm
   version: d6e3b3328b783f23731bc4d058875b0371ff8109
   subpackages:
   - winterm
+- name: github.com/beorn7/perks
+  version: 3a771d992973f24aa725d07868b467d1ddfceafb
+  subpackages:
+  - quantile
+- name: github.com/client9/misspell
+  version: c0b55c8239520f6b5aa15a0207ca8b28027ba49e
+  subpackages:
+  - cmd/misspell
 - name: github.com/CMGS/statsd
   version: 48c421b3c1abfbb4e290c7f26cd93f014d686180
 - name: github.com/codegangsta/cli
@@ -49,7 +57,7 @@ imports:
   - registry/storage/cache
   - registry/storage/cache/memory
 - name: github.com/docker/docker
-  version: e2593239d949eee454935daea7a5fe025477322f
+  version: 53e55db9d3f0f0910ea95515222c8a35e106f10e
   subpackages:
   - api
   - api/types
@@ -99,10 +107,20 @@ imports:
   - gogoproto
   - proto
   - protoc-gen-gogo/descriptor
+- name: github.com/golang/lint
+  version: 06c8688daad7faa9da5a0c2f163a3d14aac986ca
+  subpackages:
+  - golint
 - name: github.com/golang/protobuf
-  version: b4deda0973fb4c70b50d226b1af49f3da59f5265
+  version: aa810b61a9c79d51363740d207bb46cf8e620ed5
   subpackages:
   - proto
+  - protoc-gen-go
+  - protoc-gen-go/descriptor
+  - protoc-gen-go/generator
+  - protoc-gen-go/generator/internal/remap
+  - protoc-gen-go/grpc
+  - protoc-gen-go/plugin
   - ptypes
   - ptypes/any
   - ptypes/duration
@@ -111,6 +129,14 @@ imports:
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
   version: cb4698366aa625048f3b815af6a0dea8aef9280a
+- name: github.com/kisielk/gotool
+  version: 80517062f582ea3340cd4baf70e86d539ae7d84d
+  subpackages:
+  - internal/load
+- name: github.com/matttproud/golang_protobuf_extensions
+  version: c12348ce28de40eed0136aa2b644d0ee0650e56c
+  subpackages:
+  - pbutil
 - name: github.com/Microsoft/go-winio
   version: 78439966b38d69bf38227fbf57ac8a6fee70f69a
 - name: github.com/Nvveen/Gotty
@@ -133,6 +159,24 @@ imports:
   version: 792786c7400a136282c1664665ae0a8db921c6c2
   subpackages:
   - difflib
+- name: github.com/prometheus/client_golang
+  version: 967789050ba94deca04a5e84cce8ad472ce313c1
+  subpackages:
+  - prometheus
+- name: github.com/prometheus/client_model
+  version: 6f3806018612930941127f2a7c6c453ba2c527d2
+  subpackages:
+  - go
+- name: github.com/prometheus/common
+  version: e3fb1a1acd7605367a2b378bc2e2f893c05174b7
+  subpackages:
+  - expfmt
+  - internal/bitbucket.org/ww/goautoneg
+  - model
+- name: github.com/prometheus/procfs
+  version: a6e9df898b1336106c743392c48ee0b71f5c4efa
+  subpackages:
+  - xfs
 - name: github.com/sirupsen/logrus
   version: 3e01752db0189b9157070a0e1668a620f9a85da2
 - name: github.com/stretchr/objx
@@ -150,6 +194,8 @@ imports:
   version: 1351f936d976c60a0a48d728281922cf63eafb8d
   subpackages:
   - ssh/terminal
+- name: golang.org/x/lint
+  version: 06c8688daad7faa9da5a0c2f163a3d14aac986ca
 - name: golang.org/x/net
   version: 66aacef3dd8a676686c7ae3716979581e8b03c47
   subpackages:
@@ -163,7 +209,7 @@ imports:
   - proxy
   - trace
 - name: golang.org/x/sys
-  version: ebfc5b4631820b793c9010c87fd8fef0f39eb082
+  version: ebe1bf3edb3325c393447059974de898d5133eb8
   subpackages:
   - unix
   - windows
@@ -174,12 +220,25 @@ imports:
   - transform
   - unicode/bidi
   - unicode/norm
+- name: golang.org/x/tools
+  version: 0aa4b8830f481fed77b73cf7cea2bc3129e05148
+  subpackages:
+  - cmd/goimports
+  - go/ast/astutil
+  - go/buildutil
+  - go/gcexportdata
+  - go/internal/cgo
+  - go/internal/gcimporter
+  - go/loader
+  - go/types/typeutil
+  - imports
+  - internal/fastwalk
 - name: google.golang.org/genproto
   version: 09f6ed296fc66555a25fe4ce95173148778dfa85
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: 2ab07fd5cb02cfc44fd49af17dd2356ed1647ed4
+  version: 0150fc5d50ccecbd22a48545c27ecdd429b8214f
   subpackages:
   - balancer
   - balancer/base
@@ -194,7 +253,9 @@ imports:
   - internal
   - internal/backoff
   - internal/channelz
+  - internal/envconfig
   - internal/grpcrand
+  - internal/transport
   - keepalive
   - metadata
   - naming
@@ -205,9 +266,25 @@ imports:
   - stats
   - status
   - tap
-  - transport
 - name: gopkg.in/libgit2/git2go.v27
   version: 9abc0506daca78c054d153321cdb0518c7487a17
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
+- name: honnef.co/go/tools
+  version: 88497007e8588ea5b6baee991f74a1607e809487
+  subpackages:
+  - callgraph
+  - callgraph/static
+  - cmd/staticcheck
+  - deprecated
+  - functions
+  - internal/sharedcheck
+  - lint
+  - lint/lintdsl
+  - lint/lintutil
+  - ssa
+  - ssa/ssautil
+  - staticcheck
+  - staticcheck/vrp
+  - version
 testImports: []

@@ -7,8 +7,8 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/scheduler"
-	"github.com/projecteru2/core/stats"
 	"github.com/projecteru2/core/types"
 )
 
@@ -119,6 +119,6 @@ func (c *Calcium) getCPUAndMem(ctx context.Context, podname, nodename string, la
 	}
 
 	result = makeCPUAndMem(nodes)
-	go stats.Client.SendMemCap(result)
+	go metrics.Client.SendMemCap(result)
 	return result, nil
 }

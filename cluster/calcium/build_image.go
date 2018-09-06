@@ -293,7 +293,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 				if err != nil {
 					log.Errorf("[BuildImage] Remove image error: %s", err)
 				}
-				r, err := node.Engine.BuildCachePrune(ctx)
+				r, err := node.Engine.BuildCachePrune(ctx, enginetypes.BuildCachePruneOptions{All: true})
 				if err != nil {
 					log.Errorf("[BuildImage] Remove build image cache error: %s", err)
 				}
