@@ -1,7 +1,6 @@
 package rpc
 
 import (
-	"bytes"
 	"encoding/json"
 
 	"github.com/projecteru2/core/rpc/gen"
@@ -144,11 +143,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		entry.Hook.Force = entrypoint.Hook.Force
 	}
 
-	data := map[string]*bytes.Buffer{}
-	for path := range d.Data {
-		data[path] = bytes.NewBuffer(d.Data[path])
-	}
-
 	return &types.DeployOptions{
 		Name:         d.Name,
 		Entrypoint:   entry,
@@ -171,7 +165,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Labels:       d.Labels,
 		NodeLabels:   d.Nodelabels,
 		DeployMethod: d.DeployMethod,
-		Data:         data,
+		Data:         d.Data,
 		SoftLimit:    d.Softlimit,
 	}, nil
 }
