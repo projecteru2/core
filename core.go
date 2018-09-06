@@ -63,7 +63,8 @@ func serve() {
 		log.Fatalf("[main] %v", err)
 	}
 
-	vibranium := rpc.New(cluster, config)
+	rpcch := make(chan struct{}, 1)
+	vibranium := rpc.New(cluster, config, rpcch)
 	s, err := net.Listen("tcp", config.Bind)
 	if err != nil {
 		log.Fatalf("[main] %v", err)
@@ -93,6 +94,7 @@ func serve() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGHUP, syscall.SIGTERM)
 	sig := <-sigs
 	log.Infof("[main] Get signal %v.", sig)
+	close(rpcch)
 	grpcServer.GracefulStop()
 	log.Info("[main] gRPC server gracefully stopped.")
 
