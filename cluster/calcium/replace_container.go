@@ -108,11 +108,6 @@ func (c *Calcium) doReplaceContainer(
 		ib.Add(container.Podname, containerJSON.Config.Image)
 	}
 
-	removeMessage.Message, err = c.doStopContainer(ctx, container, containerJSON, ib, opts.Force)
-	if err != nil {
-		return nil, removeMessage, err
-	}
-
 	// 拉镜像
 	auth, err := makeEncodedAuthConfigFromRemote(c.config.Docker.AuthConfigs, opts.Image)
 	if err != nil {
@@ -123,12 +118,19 @@ func (c *Calcium) doReplaceContainer(
 		return nil, removeMessage, err
 	}
 
+	// 停止容器
+	removeMessage.Message, err = c.doStopContainer(ctx, container, containerJSON, ib, opts.Force)
+	if err != nil {
+		return nil, removeMessage, err
+	}
+
 	// 不涉及资源消耗，创建容器失败会被回收容器而不回收资源
 	// 创建成功容器会干掉之前的老容器也不会动资源，实际上实现了动态捆绑
 	createMessage := c.createAndStartContainer(ctx, index, container.Node, &opts.DeployOptions, container.CPU)
 	if createMessage.Error != nil {
 		// 重启老容器, 并不关心是否启动成功
 		// 注意要再次激发 hook
+		// TODO healthcheck
 		if err = container.Engine.ContainerStart(ctx, container.ID, enginetypes.ContainerStartOptions{}); err != nil {
 			log.Errorf("[replaceAndRemove] Old container %s restart failed %v", container.ID, err)
 		}
@@ -148,8 +150,6 @@ func (c *Calcium) doReplaceContainer(
 		}
 		return nil, removeMessage, createMessage.Error
 	}
-
-	//TODO healthcheck
 
 	// 干掉老的
 	if err = c.doRemoveContainer(ctx, container); err != nil {
