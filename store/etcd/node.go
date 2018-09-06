@@ -12,6 +12,7 @@ import (
 
 	etcdclient "github.com/coreos/etcd/client"
 	engineapi "github.com/docker/docker/client"
+	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -112,6 +113,7 @@ func (k *Krypton) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 		return nil, err
 	}
 
+	go metrics.Client.SendNodeInfo(node)
 	return node, nil
 }
 
@@ -293,6 +295,7 @@ func (k *Krypton) UpdateNodeResource(ctx context.Context, podname, nodename stri
 
 	log.Debugf("[UpdateNodeResource] new node info: %s", string(bytes))
 	_, err = k.etcd.Set(ctx, nodeKey, string(bytes), nil)
+	go metrics.Client.SendNodeInfo(node)
 	return err
 }
 
