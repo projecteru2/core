@@ -21,6 +21,7 @@ type Vibranium struct {
 	cluster cluster.Cluster
 	config  types.Config
 	counter sync.WaitGroup
+	rpcch   chan struct{}
 	TaskNum int
 }
 
@@ -306,28 +307,34 @@ func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_R
 }
 
 // DeployStatus watch and show deployed status
-// TODO should close channels when ctrl+c send
 func (v *Vibranium) DeployStatus(opts *pb.DeployStatusOptions, stream pb.CoreRPC_DeployStatusServer) error {
-	v.taskAdd("DeployStatus", true)
-	defer v.taskDone("DeployStatus", true)
+	log.Infof("[rpc] DeployStatus start %s", opts.Appname)
+	defer log.Infof("[rpc] DeployStatus stop %s", opts.Appname)
 
 	ch := v.cluster.DeployStatusStream(stream.Context(), opts.Appname, opts.Entrypoint, opts.Nodename)
-	for m := range ch {
-		if m.Err != nil {
-			return m.Err
-		}
-		if err := stream.Send(&pb.DeployStatusMessage{
-			Action:     m.Action,
-			Appname:    m.Appname,
-			Entrypoint: m.Entrypoint,
-			Nodename:   m.Nodename,
-			Id:         m.ID,
-			Data:       []byte(m.Data),
-		}); err != nil {
-			v.logUnsentMessages("DeployStatus", m)
+	for {
+		select {
+		case m, ok := <-ch:
+			if !ok {
+				return nil
+			}
+			if m.Err != nil {
+				return m.Err
+			}
+			if err := stream.Send(&pb.DeployStatusMessage{
+				Action:     m.Action,
+				Appname:    m.Appname,
+				Entrypoint: m.Entrypoint,
+				Nodename:   m.Nodename,
+				Id:         m.ID,
+				Data:       []byte(m.Data),
+			}); err != nil {
+				v.logUnsentMessages("DeployStatus", m)
+			}
+		case <-v.rpcch:
+			return nil
 		}
 	}
-	return nil
 }
 
 // RunAndWait is lambda
@@ -511,6 +518,6 @@ func (v *Vibranium) logUnsentMessages(msgType string, msg interface{}) {
 }
 
 // New will new a new cluster instance
-func New(cluster cluster.Cluster, config types.Config) *Vibranium {
-	return &Vibranium{cluster: cluster, config: config, counter: sync.WaitGroup{}}
+func New(cluster cluster.Cluster, config types.Config, rpcch chan struct{}) *Vibranium {
+	return &Vibranium{cluster: cluster, config: config, counter: sync.WaitGroup{}, rpcch: rpcch}
 }

@@ -217,7 +217,7 @@ func initConfig(mStore *mockstore.MockStore) (types.Config, *Vibranium) {
 		log.Fatal(err)
 	}
 	cluster.SetStore(mStore)
-	vibranium := New(cluster, config)
+	vibranium := New(cluster, config, make(chan struct{}))
 
 	return config, vibranium
 
