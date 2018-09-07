@@ -394,7 +394,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		}
 	}
 
-	return err
+	return cleanDeployOptionsDataFile(deployOpts)
 }
 
 // CreateContainer create containers
@@ -418,7 +418,7 @@ func (v *Vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 		}
 	}
 
-	return err
+	return cleanDeployOptionsDataFile(deployOpts)
 }
 
 // ReplaceContainer replace containers
@@ -443,7 +443,7 @@ func (v *Vibranium) ReplaceContainer(opts *pb.ReplaceOptions, stream pb.CoreRPC_
 		}
 	}
 
-	return err
+	return cleanDeployOptionsDataFile(deployOpts)
 }
 
 // RemoveContainer remove containers

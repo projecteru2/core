@@ -32,7 +32,7 @@ type DeployOptions struct {
 	Labels       map[string]string // Labels for containers
 	NodeLabels   map[string]string // NodeLabels for filter node
 	DeployMethod string            // Deploy method
-	Data         map[string][]byte // For additional file data
+	Data         map[string]string // For additional file data
 	SoftLimit    bool              // softlimit memory
 }
 

@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"encoding/json"
+	"os"
 
 	"github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
@@ -143,6 +144,18 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		entry.Hook.Force = entrypoint.Hook.Force
 	}
 
+	tarFiles := map[string]string{}
+	for path, data := range d.Data {
+		fname, err := utils.TempTarFile(path, data)
+		if err != nil {
+			if fname != "" {
+				os.RemoveAll(fname)
+			}
+			return nil, err
+		}
+		tarFiles[path] = fname
+	}
+
 	return &types.DeployOptions{
 		Name:         d.Name,
 		Entrypoint:   entry,
@@ -165,9 +178,20 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Labels:       d.Labels,
 		NodeLabels:   d.Nodelabels,
 		DeployMethod: d.DeployMethod,
-		Data:         d.Data,
+		Data:         tarFiles,
 		SoftLimit:    d.Softlimit,
 	}, nil
+}
+
+func cleanDeployOptionsDataFile(opts *types.DeployOptions) error {
+	var err error
+	for _, src := range opts.Data {
+		err = os.RemoveAll(src)
+		if err != nil {
+			log.Errorf("[cleanDeployOptionsDataFile] clean temp files failed %v", err)
+		}
+	}
+	return err
 }
 
 func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateContainerMessage {

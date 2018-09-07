@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -422,19 +423,21 @@ func (c *Calcium) createAndStartContainer(
 
 	// Copy data to container
 	if len(opts.Data) > 0 {
-		for dst, dataBytes := range opts.Data {
+		for dst, src := range opts.Data {
 			path := filepath.Dir(dst)
 			filename := filepath.Base(dst)
-			log.Debugf("[createAndStartContainer] Copy file %s to dir %s", filename, path)
-			r, err := createTarFileBuffer(filename, dataBytes)
+			log.Infof("[createAndStartContainer] Copy file %s to dir %s", filename, path)
+			log.Debugf("[createAndStartContainer] Local file %s, remote path %s", src, dst)
+			f, err := os.Open(src)
 			if err != nil {
 				createContainerMessage.Error = err
 				return createContainerMessage
 			}
-			if err = node.Engine.CopyToContainer(ctx, containerCreated.ID, path, r, enginetypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: true}); err != nil {
+			if err = node.Engine.CopyToContainer(ctx, containerCreated.ID, path, f, enginetypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: true}); err != nil {
 				createContainerMessage.Error = err
 				return createContainerMessage
 			}
+			f.Close()
 		}
 	}
 

@@ -1,12 +1,16 @@
 package utils
 
 import (
+	"archive/tar"
 	"context"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/big"
+	"os"
+	"path/filepath"
 	"strings"
 
 	enginecontainer "github.com/docker/docker/api/types/container"
@@ -258,4 +262,28 @@ func FilterContainer(extend map[string]string, labels map[string]string) bool {
 // CleanStatsdMetrics trans dot to _
 func CleanStatsdMetrics(k string) string {
 	return strings.Replace(k, ".", "-", -1)
+}
+
+// TempTarFile store bytes to a file
+func TempTarFile(path string, data []byte) (string, error) {
+	filename := filepath.Base(path)
+	f, err := ioutil.TempFile(os.TempDir(), filename)
+	if err != nil {
+		return "", err
+	}
+	name := f.Name()
+	defer f.Close()
+
+	tw := tar.NewWriter(f)
+	defer tw.Close()
+	hdr := &tar.Header{
+		Name: filename,
+		Mode: 0755,
+		Size: int64(len(data)),
+	}
+	if err := tw.WriteHeader(hdr); err != nil {
+		return name, err
+	}
+	_, err = tw.Write(data)
+	return name, err
 }
