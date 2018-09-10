@@ -441,7 +441,7 @@ func (c *Calcium) createAndStartContainer(
 		}
 	}
 
-	if err = node.Engine.ContainerStart(ctx, containerCreated.ID, enginetypes.ContainerStartOptions{}); err != nil {
+	if err = container.Start(ctx); err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage
 	}
