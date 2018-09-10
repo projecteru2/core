@@ -36,6 +36,15 @@ func (c *Container) Inspect(ctx context.Context) (enginetypes.ContainerJSON, err
 	return c.Engine.ContainerInspect(inspectCtx, c.ID)
 }
 
+// Start a container
+func (c *Container) Start(ctx context.Context) error {
+	if c.Engine == nil {
+		return ErrNilEngine
+	}
+
+	return c.Engine.ContainerStart(ctx, c.ID, enginetypes.ContainerStartOptions{})
+}
+
 // Stop a container
 func (c *Container) Stop(ctx context.Context, timeout time.Duration) error {
 	if c.Engine == nil {

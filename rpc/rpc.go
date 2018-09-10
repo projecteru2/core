@@ -473,6 +473,32 @@ func (v *Vibranium) RemoveContainer(opts *pb.RemoveContainerOptions, stream pb.C
 	return err
 }
 
+// ControlContainer control containers
+func (v *Vibranium) ControlContainer(opts *pb.ControlContainerOptions, stream pb.CoreRPC_ControlContainerServer) error {
+	v.taskAdd("ControlContainer", true)
+	defer v.taskDone("ControlContainer", true)
+
+	ids := opts.GetIds()
+	t := opts.GetType()
+
+	if len(ids) == 0 {
+		return types.ErrNoContainerIDs
+	}
+
+	ch, err := v.cluster.ControlContainer(stream.Context(), ids, t)
+	if err != nil {
+		return err
+	}
+
+	for m := range ch {
+		if err = stream.Send(toRPCControlContainerMessage(m)); err != nil {
+			v.logUnsentMessages("ControlContainer", m)
+		}
+	}
+
+	return err
+}
+
 // ReallocResource realloc res for containers
 func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_ReallocResourceServer) error {
 	v.taskAdd("ReallocResource", true)

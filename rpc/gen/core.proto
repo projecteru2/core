@@ -29,6 +29,7 @@ service CoreRPC {
     rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage) {};
     rpc ReplaceContainer(ReplaceOptions) returns (stream ReplaceContainerMessage) {};
     rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage) {};
+    rpc ControlContainer(ControlContainerOptions) returns (stream ControlContainerMessage) {};
     rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage) {};
 }
 
@@ -362,4 +363,14 @@ message CopyMessage {
 message RunAndWaitOptions{
     DeployOptions DeployOptions = 1;
     bytes Cmd = 2;
+}
+
+message ControlContainerOptions {
+    repeated string ids = 1;
+    string type = 2;
+}
+
+message ControlContainerMessage {
+    string id = 1;
+    string error = 2;
 }

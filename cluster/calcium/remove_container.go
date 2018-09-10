@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	enginetypes "github.com/docker/docker/api/types"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -58,7 +57,6 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 				}
 
 				success = true
-				return
 			}(container)
 		}
 		wg.Wait()
@@ -93,41 +91,6 @@ func (c *Calcium) doStopAndRemoveContainer(ctx context.Context, container *types
 		message += err.Error()
 	}
 	return message, err
-}
-
-func (c *Calcium) doStopContainer(ctx context.Context, container *types.Container, containerJSON enginetypes.ContainerJSON, ib *imageBucket, force bool) (string, error) {
-	// 记录镜像
-	if ib != nil {
-		ib.Add(container.Podname, containerJSON.Config.Image)
-	}
-
-	var message string
-	var err error
-	if container.Hook != nil && len(container.Hook.BeforeStop) > 0 && containerJSON.Config != nil {
-		output, err := c.doContainerBeforeStopHook(
-			ctx, container,
-			containerJSON.Config.User,
-			containerJSON.Config.Env,
-			container.Privileged, force,
-		)
-		message = string(output)
-		if err != nil {
-			return message, err
-		}
-	}
-
-	if err = container.Stop(ctx, c.config.GlobalTimeout); err != nil {
-		message += err.Error()
-	}
-	return message, err
-}
-
-func (c *Calcium) doRemoveContainer(ctx context.Context, container *types.Container) error {
-	if err := container.Remove(ctx); err != nil {
-		return err
-	}
-
-	return c.store.RemoveContainer(ctx, container)
 }
 
 func (c *Calcium) cleanCachedImage(ctx context.Context, ib *imageBucket) {

@@ -56,6 +56,7 @@ var (
 	ErrNoDeployOpts                = errors.New("No deploy options")
 	ErrNoContainerIDs              = errors.New("No container ids given")
 	ErrRunAndWaitCountOneWithStdin = errors.New("Count must be 1 if OpenStdin is true")
+	ErrUnknownControlType          = errors.New("Unknown control type")
 )
 
 // NewDetailedErr returns an error with details

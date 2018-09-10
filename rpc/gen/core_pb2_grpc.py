@@ -134,6 +134,11 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.RemoveContainerOptions.SerializeToString,
         response_deserializer=core__pb2.RemoveContainerMessage.FromString,
         )
+    self.ControlContainer = channel.unary_stream(
+        '/pb.CoreRPC/ControlContainer',
+        request_serializer=core__pb2.ControlContainerOptions.SerializeToString,
+        response_deserializer=core__pb2.ControlContainerMessage.FromString,
+        )
     self.ReallocResource = channel.unary_stream(
         '/pb.CoreRPC/ReallocResource',
         request_serializer=core__pb2.ReallocOptions.SerializeToString,
@@ -313,6 +318,13 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def ControlContainer(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def ReallocResource(self, request, context):
     # missing associated documentation comment in .proto file
     pass
@@ -442,6 +454,11 @@ def add_CoreRPCServicer_to_server(servicer, server):
           servicer.RemoveContainer,
           request_deserializer=core__pb2.RemoveContainerOptions.FromString,
           response_serializer=core__pb2.RemoveContainerMessage.SerializeToString,
+      ),
+      'ControlContainer': grpc.unary_stream_rpc_method_handler(
+          servicer.ControlContainer,
+          request_deserializer=core__pb2.ControlContainerOptions.FromString,
+          response_serializer=core__pb2.ControlContainerMessage.SerializeToString,
       ),
       'ReallocResource': grpc.unary_stream_rpc_method_handler(
           servicer.ReallocResource,
