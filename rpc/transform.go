@@ -235,6 +235,16 @@ func toRPCRemoveImageMessage(r *types.RemoveImageMessage) *pb.RemoveImageMessage
 	}
 }
 
+func toRPCControlContainerMessage(c *types.ControlContainerMessage) *pb.ControlContainerMessage {
+	r := &pb.ControlContainerMessage{
+		Id: c.ContainerID,
+	}
+	if c.Error != nil {
+		r.Error = c.Error.Error()
+	}
+	return r
+}
+
 func toRPCReallocResourceMessage(r *types.ReallocResourceMessage) *pb.ReallocResourceMessage {
 	return &pb.ReallocResourceMessage{
 		Id:      r.ContainerID,

@@ -28,6 +28,12 @@ const (
 	ERUMark = "ERU"
 	// ERUMeta store publish and health things
 	ERUMeta = "ERU_META"
+	// ContainerStop for stop container
+	ContainerStop = "stop"
+	// ContainerStart for start container
+	ContainerStart = "start"
+	// ContainerRestart for restart container
+	ContainerRestart = "restart"
 )
 
 // Cluster define all interface
@@ -54,6 +60,7 @@ type Cluster interface {
 	RemoveImage(ctx context.Context, podname, nodename string, images []string, prune bool) (chan *types.RemoveImageMessage, error)
 	DeployStatusStream(ctx context.Context, appname, entrypoint, nodename string) chan *types.DeployStatus
 	RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error)
+	ControlContainer(ctx context.Context, IDs []string, t string) (chan *types.ControlContainerMessage, error)
 	// this methods will not interrupt by client
 	CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
 	ReplaceContainer(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceContainerMessage, error)

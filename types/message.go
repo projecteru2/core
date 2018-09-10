@@ -41,6 +41,12 @@ type RemoveImageMessage struct {
 	Messages []string
 }
 
+// ControlContainerMessage for container control message
+type ControlContainerMessage struct {
+	ContainerID string
+	Error       error
+}
+
 // CreateContainerMessage for create message
 type CreateContainerMessage struct {
 	Podname       string

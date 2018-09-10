@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	enginetypes "github.com/docker/docker/api/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -128,25 +127,12 @@ func (c *Calcium) doReplaceContainer(
 	// 创建成功容器会干掉之前的老容器也不会动资源，实际上实现了动态捆绑
 	createMessage := c.createAndStartContainer(ctx, index, container.Node, &opts.DeployOptions, container.CPU)
 	if createMessage.Error != nil {
-		// 重启老容器, 并不关心是否启动成功
-		// 注意要再次激发 hook
-		// TODO healthcheck
-		if err = container.Engine.ContainerStart(ctx, container.ID, enginetypes.ContainerStartOptions{}); err != nil {
+		// 重启老容器
+		message, err := c.doStartContainer(ctx, container, containerJSON)
+		removeMessage.Message += message
+		if err != nil {
 			log.Errorf("[replaceAndRemove] Old container %s restart failed %v", container.ID, err)
-		}
-
-		if container.Hook != nil && len(container.Hook.AfterStart) > 0 {
-			output, err := c.doContainerAfterStartHook(
-				ctx, container,
-				containerJSON.Config.User,
-				containerJSON.Config.Env,
-				container.Privileged,
-			)
-			log.Infof("[replaceAndRemove] Do after start hook %s", output)
-			removeMessage.Message += string(output)
-			if err != nil {
-				log.Errorf("[replaceAndRemove] Old container %s after hook failed %v", container.ID, err)
-			}
+			removeMessage.Message += err.Error()
 		}
 		return nil, removeMessage, createMessage.Error
 	}
