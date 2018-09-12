@@ -1,4 +1,4 @@
-FROM golang:1.10.3-alpine3.8 AS BUILD
+FROM golang:1.11.0-alpine3.8 AS BUILD
 
 MAINTAINER CMGS <ilskdw@gmail.com>
 
