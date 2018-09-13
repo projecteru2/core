@@ -21,10 +21,10 @@ import (
 // AddNode save it to etcd
 // storage path in etcd is `/pod/:podname/node/:nodename/info`
 func (k *Krypton) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string) (*types.Node, error) {
-	if !strings.HasPrefix(endpoint, nodeConnPrefixKey) {
+	if !strings.HasPrefix(endpoint, nodeTCPPrefixKey) && !strings.HasPrefix(endpoint, nodeSockPrefixKey) {
 		return nil, types.NewDetailedErr(types.ErrNodeFormat,
-			fmt.Sprintf("endpoint must starts with %s %q",
-				nodeConnPrefixKey, endpoint))
+			fmt.Sprintf("endpoint must starts with %s or %s %q",
+				nodeTCPPrefixKey, nodeSockPrefixKey, endpoint))
 	}
 
 	_, err := k.GetPod(ctx, podname)
