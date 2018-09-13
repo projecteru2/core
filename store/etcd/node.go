@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -125,18 +123,15 @@ func (k *Krypton) deleteNode(ctx context.Context, podname, nodename, endpoint st
 	key := fmt.Sprintf(nodePrefixKey, podname, nodename)
 	k.etcd.Delete(ctx, key, &etcdclient.DeleteOptions{Recursive: true})
 	k.etcd.Delete(ctx, fmt.Sprintf(nodePodKey, nodename), &etcdclient.DeleteOptions{})
-	u, err := url.Parse(endpoint)
-	if err != nil {
-		log.Errorf("[deleteNode] Bad endpoint: %s", endpoint)
-		return
-	}
 
-	host, _, err := net.SplitHostPort(u.Host)
-	if err != nil {
-		log.Errorf("[deleteNode] Bad addr: %s", u.Host)
-		return
+	if strings.HasPrefix(endpoint, nodeTCPPrefixKey) {
+		host, err := types.GetEndpointHost(endpoint)
+		if err != nil {
+			log.Errorf("[deleteNode] Bad endpoint: %s", endpoint)
+			return
+		}
+		_cache.delete(host)
 	}
-	_cache.delete(host)
 	log.Debugf("[deleteNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 }
 
@@ -300,12 +295,12 @@ func (k *Krypton) UpdateNodeResource(ctx context.Context, podname, nodename stri
 }
 
 func (k *Krypton) makeDockerClient(ctx context.Context, podname, nodename, endpoint string, force bool) (*engineapi.Client, error) {
-	u, err := url.Parse(endpoint)
-	if err != nil {
-		return nil, err
+	// if unix just connect it
+	if strings.HasPrefix(endpoint, nodeSockPrefixKey) {
+		return makeRawClient(endpoint, k.config.Docker.APIVersion)
 	}
 
-	host, _, err := net.SplitHostPort(u.Host)
+	host, err := types.GetEndpointHost(endpoint)
 	if err != nil {
 		return nil, err
 	}

@@ -81,16 +81,7 @@ func (n *Node) Info(ctx context.Context) (enginetypes.Info, error) {
 // get IP for node
 // will not return error
 func (n *Node) GetIP() string {
-	u, err := url.Parse(n.Endpoint)
-	if err != nil {
-		return ""
-	}
-
-	host, _, err := net.SplitHostPort(u.Host)
-	if err != nil {
-		return ""
-	}
-
+	host, _ := GetEndpointHost(n.Endpoint)
 	return host
 }
 
@@ -104,4 +95,18 @@ type NodeInfo struct {
 	Count    int // 上面有几个了
 	Deploy   int // 最终部署几个
 	// 其他需要 filter 的字段
+}
+
+// GetEndpointHost get host from endpoint
+func GetEndpointHost(endpoint string) (string, error) {
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return "", err
+	}
+
+	host, _, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		return "", err
+	}
+	return host, nil
 }
