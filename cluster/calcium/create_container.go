@@ -11,6 +11,7 @@ import (
 	enginecontainer "github.com/docker/docker/api/types/container"
 	enginenetwork "github.com/docker/docker/api/types/network"
 	engineslice "github.com/docker/docker/api/types/strslice"
+	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/metrics"
@@ -330,6 +331,21 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 		Sysctls:       sysctls,
 	}
 	networkConfig := &enginenetwork.NetworkingConfig{}
+
+	// Bridge 下 publish 出 Port
+	if engineNetworkMode.IsBridge() {
+		portMapping := nat.PortMap{}
+		for _, p := range opts.Entrypoint.Publish {
+			port, err := nat.NewPort("tcp", p)
+			if err != nil {
+				return nil, nil, nil, "", err
+			}
+			portMapping[port] = []nat.PortBinding{}
+			portMapping[port] = append(portMapping[port], nat.PortBinding{HostPort: p})
+		}
+		hostConfig.PortBindings = portMapping
+	}
+
 	return config, hostConfig, networkConfig, containerName, nil
 }
 
