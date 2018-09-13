@@ -335,15 +335,18 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	// Bridge 下 publish 出 Port
 	if engineNetworkMode.IsBridge() {
 		portMapping := nat.PortMap{}
+		exposePorts := nat.PortSet{}
 		for _, p := range opts.Entrypoint.Publish {
 			port, err := nat.NewPort("tcp", p)
 			if err != nil {
 				return nil, nil, nil, "", err
 			}
+			exposePorts[port] = struct{}{}
 			portMapping[port] = []nat.PortBinding{}
 			portMapping[port] = append(portMapping[port], nat.PortBinding{HostPort: p})
 		}
 		hostConfig.PortBindings = portMapping
+		config.ExposedPorts = exposePorts
 	}
 
 	return config, hostConfig, networkConfig, containerName, nil
