@@ -60,4 +60,5 @@ type ReplaceOptions struct {
 	DeployOptions
 	Force        bool
 	FilterLabels map[string]string
+	Copy         map[string]string
 }

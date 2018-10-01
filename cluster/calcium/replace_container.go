@@ -102,11 +102,6 @@ func (c *Calcium) doReplaceContainer(
 		return nil, removeMessage, types.ErrNotFitLabels
 	}
 
-	// 记录镜像
-	if ib != nil {
-		ib.Add(container.Podname, containerJSON.Config.Image)
-	}
-
 	// 拉镜像
 	auth, err := makeEncodedAuthConfigFromRemote(c.config.Docker.AuthConfigs, opts.Image)
 	if err != nil {
@@ -121,6 +116,19 @@ func (c *Calcium) doReplaceContainer(
 	removeMessage.Message, err = c.doStopContainer(ctx, container, containerJSON, ib, opts.Force)
 	if err != nil {
 		return nil, removeMessage, err
+	}
+
+	// 获得文件 io
+	for src, dst := range opts.Copy {
+		stream, _, err := container.Engine.CopyFromContainer(ctx, container.ID, src)
+		if err != nil {
+			return nil, removeMessage, err
+		}
+		fname, err := utils.TempFile(stream)
+		if err != nil {
+			return nil, removeMessage, err
+		}
+		opts.DeployOptions.Data[dst] = fname
 	}
 
 	// 不涉及资源消耗，创建容器失败会被回收容器而不回收资源
