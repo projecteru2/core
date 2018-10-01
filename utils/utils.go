@@ -264,6 +264,20 @@ func CleanStatsdMetrics(k string) string {
 	return strings.Replace(k, ".", "-", -1)
 }
 
+// TempFile store a temp file
+func TempFile(stream io.ReadCloser) (string, error) {
+	f, err := ioutil.TempFile(os.TempDir(), "")
+	if err != nil {
+		return "", err
+	}
+	name := f.Name()
+	defer f.Close()
+	defer stream.Close()
+
+	_, err = io.Copy(f, stream)
+	return name, err
+}
+
 // TempTarFile store bytes to a file
 func TempTarFile(path string, data []byte) (string, error) {
 	filename := filepath.Base(path)
