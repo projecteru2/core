@@ -426,17 +426,12 @@ func (v *Vibranium) ReplaceContainer(opts *pb.ReplaceOptions, stream pb.CoreRPC_
 	v.taskAdd("ReplaceContainer", true)
 	defer v.taskDone("ReplaceContainer", true)
 
-	deployOpts, err := toCoreDeployOptions(opts.DeployOpt)
+	replaceOpts, err := toCoreReplaceOptions(opts)
 	if err != nil {
 		return err
 	}
+
 	//这里考虑用全局 Background
-	replaceOpts := &types.ReplaceOptions{
-		DeployOptions: *deployOpts,
-		Force:         opts.Force,
-		FilterLabels:  opts.FilterLabels,
-		Copy:          opts.Copy,
-	}
 	ch, err := v.cluster.ReplaceContainer(context.Background(), replaceOpts)
 	if err != nil {
 		return err
@@ -448,7 +443,7 @@ func (v *Vibranium) ReplaceContainer(opts *pb.ReplaceOptions, stream pb.CoreRPC_
 		}
 	}
 
-	return cleanDeployOptionsDataFile(deployOpts)
+	return cleanDeployOptionsDataFile(&replaceOpts.DeployOptions)
 }
 
 // RemoveContainer remove containers

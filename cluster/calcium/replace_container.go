@@ -12,12 +12,19 @@ import (
 
 // ReplaceContainer replace containers with same resource
 func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceContainerMessage, error) {
-	oldContainers, err := c.ListContainers(ctx, &types.ListContainersOptions{
-		Appname: opts.Name, Entrypoint: opts.Entrypoint.Name, Nodename: opts.Nodename,
-	})
+	var oldContainers []*types.Container
+	var err error
+	if len(opts.IDs) == 0 {
+		oldContainers, err = c.ListContainers(ctx, &types.ListContainersOptions{
+			Appname: opts.Name, Entrypoint: opts.Entrypoint.Name, Nodename: opts.Nodename,
+		})
+	} else {
+		oldContainers, err = c.GetContainers(ctx, opts.IDs)
+	}
 	if err != nil {
 		return nil, err
 	}
+
 	ch := make(chan *types.ReplaceContainerMessage)
 
 	go func() {

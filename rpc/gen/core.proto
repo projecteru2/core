@@ -279,6 +279,7 @@ message ReplaceOptions {
     bool force = 2;
     map<string, string> filter_labels = 3;
     map<string, string> copy = 4;
+    repeated string ids = 5;
 }
 
 message RemoveImageOptions {

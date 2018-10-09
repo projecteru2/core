@@ -106,6 +106,20 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
 	}, nil
 }
 
+func toCoreReplaceOptions(r *pb.ReplaceOptions) (*types.ReplaceOptions, error) {
+	deployOpts, err := toCoreDeployOptions(r.DeployOpt)
+
+	replaceOpts := &types.ReplaceOptions{
+		DeployOptions: *deployOpts,
+		Force:         r.Force,
+		FilterLabels:  r.FilterLabels,
+		Copy:          r.Copy,
+		IDs:           r.Ids,
+	}
+
+	return replaceOpts, err
+}
+
 func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 	if d.Entrypoint == nil {
 		return nil, types.ErrNoEntryInSpec
