@@ -194,6 +194,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		DeployMethod: d.DeployMethod,
 		Data:         tarFiles,
 		SoftLimit:    d.Softlimit,
+		NodesLimit:   int(d.NodesLimit),
 	}, nil
 }
 

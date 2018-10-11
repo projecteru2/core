@@ -9,7 +9,7 @@ import (
 )
 
 // FillPlan deploy container each node
-func FillPlan(nodesInfo []types.NodeInfo, need int) ([]types.NodeInfo, error) {
+func FillPlan(nodesInfo []types.NodeInfo, need, limit int) ([]types.NodeInfo, error) {
 	nodesInfoLength := len(nodesInfo)
 	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Count > nodesInfo[j].Count })
 	p := sort.Search(nodesInfoLength, func(i int) bool { return nodesInfo[i].Count < need })
@@ -17,6 +17,9 @@ func FillPlan(nodesInfo []types.NodeInfo, need int) ([]types.NodeInfo, error) {
 		return nil, types.ErrAlreadyFilled
 	}
 	nodesInfo = nodesInfo[p:]
+	if limit > 0 {
+		nodesInfo = nodesInfo[:limit]
+	}
 	for i := range nodesInfo {
 		diff := need - nodesInfo[i].Count
 		if nodesInfo[i].Capacity < diff {

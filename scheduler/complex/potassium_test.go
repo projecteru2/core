@@ -211,7 +211,7 @@ func SelectCPUNodes(k *Potassium, nodesInfo []types.NodeInfo, quota float64, mem
 	}
 
 	if each {
-		nodesInfo, err = k.EachDivision(nodesInfo, need, total)
+		nodesInfo, err = k.EachDivision(nodesInfo, need, 0)
 	} else {
 		nodesInfo, err = k.CommonDivision(nodesInfo, need, total)
 	}
@@ -245,7 +245,7 @@ func SelectMemoryNodes(k *Potassium, nodesInfo []types.NodeInfo, rate float64, m
 	}
 	// Make deploy plan
 	if each {
-		nodesInfo, err = k.EachDivision(nodesInfo, need, total)
+		nodesInfo, err = k.EachDivision(nodesInfo, need, 0)
 	} else {
 		nodesInfo, err = k.CommonDivision(nodesInfo, need, total)
 	}

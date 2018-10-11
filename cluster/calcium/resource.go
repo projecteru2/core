@@ -52,9 +52,9 @@ func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, 
 	case cluster.DeployAuto:
 		nodesInfo, err = c.scheduler.CommonDivision(nodesInfo, opts.Count, total)
 	case cluster.DeployEach:
-		nodesInfo, err = c.scheduler.EachDivision(nodesInfo, opts.Count, total)
+		nodesInfo, err = c.scheduler.EachDivision(nodesInfo, opts.Count, opts.NodesLimit)
 	case cluster.DeployFill:
-		nodesInfo, err = c.scheduler.FillDivision(nodesInfo, opts.Count, total)
+		nodesInfo, err = c.scheduler.FillDivision(nodesInfo, opts.Count, opts.NodesLimit)
 	default:
 		return nil, types.ErrBadDeployMethod
 	}
