@@ -243,7 +243,7 @@ func (c *Calcium) reallocNodesCPUMem(
 					c.resetContainerResource(ctx, podname, node.Name, containers)
 					return nil, err
 				}
-				nodesInfo, err = c.scheduler.EachDivision(nodesInfo, need, total)
+				nodesInfo, err = c.scheduler.EachDivision(nodesInfo, need, 0)
 				if err != nil {
 					c.resetContainerResource(ctx, podname, node.Name, containers)
 					return nil, err

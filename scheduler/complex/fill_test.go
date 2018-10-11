@@ -18,7 +18,7 @@ func TestFillPlan(t *testing.T) {
 		resultCap = append(resultCap, nodes[i].Capacity-n+nodes[i].Count)
 		resultDeploy = append(resultDeploy, n-nodes[i].Count)
 	}
-	r, err := FillPlan(nodes, n)
+	r, err := FillPlan(nodes, n, 0)
 	assert.NoError(t, err)
 	sort.Slice(r, func(i, j int) bool { return r[i].Count < r[j].Count })
 	for i := range r {
@@ -38,7 +38,7 @@ func TestFillPlan(t *testing.T) {
 		resultCap = append(resultCap, nodes[i].Capacity-n+nodes[i].Count)
 		resultDeploy = append(resultDeploy, n-nodes[i].Count)
 	}
-	r, err = FillPlan(nodes, n)
+	r, err = FillPlan(nodes, n, 0)
 	assert.NoError(t, err)
 	sort.Slice(r, func(i, j int) bool { return r[i].Count < r[j].Count })
 	for i := range r {
@@ -49,13 +49,13 @@ func TestFillPlan(t *testing.T) {
 	// 局部补充不能
 	n = 15
 	nodes = deployedNodes()
-	_, err = FillPlan(nodes, n)
+	_, err = FillPlan(nodes, n, 0)
 	assert.EqualError(t, types.IsDetailedErr(err), types.ErrInsufficientRes.Error())
 
 	// 全局补充不能
 	n = 1
 	nodes = deployedNodes()
-	_, err = FillPlan(nodes, n)
+	_, err = FillPlan(nodes, n, 0)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "each node has enough containers")
 }

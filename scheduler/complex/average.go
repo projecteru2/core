@@ -8,7 +8,7 @@ import (
 )
 
 // AveragePlan deploy container each node
-func AveragePlan(nodesInfo []types.NodeInfo, need int) ([]types.NodeInfo, error) {
+func AveragePlan(nodesInfo []types.NodeInfo, need, limit int) ([]types.NodeInfo, error) {
 	nodesInfoLength := len(nodesInfo)
 	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Capacity < nodesInfo[j].Capacity })
 	p := sort.Search(nodesInfoLength, func(i int) bool { return nodesInfo[i].Capacity >= need })
@@ -16,6 +16,9 @@ func AveragePlan(nodesInfo []types.NodeInfo, need int) ([]types.NodeInfo, error)
 		return nil, types.ErrInsufficientCap
 	}
 	nodesInfo = nodesInfo[p:]
+	if limit > 0 {
+		nodesInfo = nodesInfo[:limit]
+	}
 	for i := range nodesInfo {
 		nodesInfo[i].Deploy = need
 		nodesInfo[i].Capacity -= need

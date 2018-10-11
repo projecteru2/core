@@ -272,6 +272,7 @@ message DeployOptions {
     string deploy_method = 21;
     map<string, bytes> data = 22;
     bool softlimit = 23;
+    int32 nodes_limit = 24;
 }
 
 message ReplaceOptions {

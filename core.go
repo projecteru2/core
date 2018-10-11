@@ -58,7 +58,7 @@ func serve() {
 	}
 
 	if err := metrics.InitMetrics(config.Statsd); err != nil {
-		log.Fatal("[main] %v", err)
+		log.Fatalf("[main] %v", err)
 	}
 
 	cluster, err := calcium.New(config)
