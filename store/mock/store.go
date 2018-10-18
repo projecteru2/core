@@ -212,3 +212,21 @@ func (m *MockStore) ContainerDeployed(ctx context.Context, ID, appname, entrypoi
 	args := m.Called(ID, appname, entrypoint, nodename, data)
 	return args.Error(0)
 }
+
+// SaveProcessing save processing status in etcd
+func (m *MockStore) SaveProcessing(ctx context.Context, opts *types.DeployOptions, nodeInfo types.NodeInfo) error {
+	args := m.Called(ctx, opts, nodeInfo)
+	return args.Error(0)
+}
+
+// UpdateProcessing update processing status in etcd
+func (m *MockStore) UpdateProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error {
+	args := m.Called(ctx, opts, nodename, count)
+	return args.Error(0)
+}
+
+// DeleteProcessing delete processing status in etcd
+func (m *MockStore) DeleteProcessing(ctx context.Context, opts *types.DeployOptions, nodeInfo types.NodeInfo) error {
+	args := m.Called(ctx, opts, nodeInfo)
+	return args.Error(0)
+}

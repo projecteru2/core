@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -26,10 +27,16 @@ func TestPullImage(t *testing.T) {
 
 func TestCreateContainerWithMemPrior(t *testing.T) {
 	initMockConfig()
+
 	ctx := context.Background()
+	mockStore.On("SaveProcessing", ctx, opts, mock.AnythingOfType("types.NodeInfo")).Return(nil)
+	mockStore.On("UpdateProcessing", ctx, opts, mock.AnythingOfType("string"), mock.AnythingOfType("int")).Return(nil)
+	mockStore.On("DeleteProcessing", ctx, opts, mock.AnythingOfType("types.NodeInfo")).Return(nil)
+
 	// Create Container with memory prior
 	testlogF("Create containers with memory prior")
-	createCh, err := mockc.createContainerWithMemoryPrior(ctx, opts)
+	pod := &types.Pod{Favor: scheduler.MEMORY_PRIOR}
+	createCh, err := mockc.createContainer(ctx, opts, pod)
 	assert.NoError(t, err)
 	IDs := []string{}
 	for msg := range createCh {
@@ -74,14 +81,20 @@ func TestClean(t *testing.T) {
 func TestCreateContainerWithCPUPrior(t *testing.T) {
 	initMockConfig()
 
+	ctx := context.Background()
 	// update node
 	mockStore.On("UpdateNode", mock.MatchedBy(func(input *types.Node) bool {
 		return true
 	})).Return(nil)
 
-	// Create Container with memory prior
-	testlogF("Create containers with memory prior")
-	createCh, err := mockc.createContainerWithCPUPrior(context.Background(), opts)
+	mockStore.On("SaveProcessing", ctx, opts, mock.AnythingOfType("types.NodeInfo")).Return(nil)
+	mockStore.On("UpdateProcessing", ctx, opts, mock.AnythingOfType("string"), mock.AnythingOfType("int")).Return(nil)
+	mockStore.On("DeleteProcessing", ctx, opts, mock.AnythingOfType("types.NodeInfo")).Return(nil)
+
+	// Create Container with cpu prior
+	testlogF("Create containers with cpu prior")
+	pod := &types.Pod{Favor: scheduler.CPU_PRIOR}
+	createCh, err := mockc.createContainer(ctx, opts, pod)
 	assert.NoError(t, err)
 	IDs := []string{}
 	for msg := range createCh {
