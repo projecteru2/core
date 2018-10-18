@@ -86,7 +86,16 @@ func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, 
 		}
 	}
 	log.Debugf("[allocResource] result %v", nodesInfo)
-	return nodesInfo, nil
+	return nodesInfo, c.bindProcessStatus(ctx, opts, nodesInfo)
+}
+
+func (c *Calcium) bindProcessStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) error {
+	for _, nodeInfo := range nodesInfo {
+		if err := c.store.SaveProcessing(ctx, opts, nodeInfo); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *Calcium) getCPUAndMem(ctx context.Context, podname, nodename string, labels map[string]string) (map[*types.Node]types.CPUAndMem, error) {

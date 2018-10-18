@@ -226,6 +226,7 @@ func pullImage(ctx context.Context, node *types.Node, image, auth string) error 
 		return nil
 	}
 
+	log.Infof("[pullImage] Image not cached, pulling")
 	pullOptions := enginetypes.ImagePullOptions{All: false, RegistryAuth: auth}
 	outStream, err := node.Engine.ImagePull(ctx, image, pullOptions)
 	if err != nil {

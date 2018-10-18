@@ -39,6 +39,11 @@ type Store interface {
 	// deploy status
 	MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error)
 
+	// processing status
+	SaveProcessing(ctx context.Context, opts *types.DeployOptions, nodeInfo types.NodeInfo) error
+	UpdateProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error
+	DeleteProcessing(ctx context.Context, opts *types.DeployOptions, nodeInfo types.NodeInfo) error
+
 	// distributed lock
 	CreateLock(key string, ttl int) (lock.DistributedLock, error)
 	// watch deploy status

@@ -15,7 +15,6 @@ import (
 	"github.com/docker/go-units"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/metrics"
-	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -23,9 +22,10 @@ import (
 
 // CreateContainer use options to create containers
 func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+	opts.ProcessIdent = utils.RandomString(16)
 	pod, err := c.store.GetPod(ctx, opts.Podname)
 	if err != nil {
-		log.Errorf("[CreateContainer] Error during GetPod for %s: %v", opts.Podname, err)
+		log.Errorf("[CreateContainer %s] Error during GetPod for %s: %v", opts.ProcessIdent, opts.Podname, err)
 		return nil, err
 	}
 	log.Infof("[CreateContainer] Creating container with options: %v", opts)
@@ -44,87 +44,17 @@ func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions
 		return nil, types.NewDetailedErr(types.ErrBadCPU, opts.CPUQuota)
 	}
 
-	if pod.Favor == scheduler.MEMORY_PRIOR {
-		return c.createContainerWithMemoryPrior(ctx, opts)
-	} else if pod.Favor == scheduler.CPU_PRIOR {
-		return c.createContainerWithCPUPrior(ctx, opts)
-	}
-	return nil, types.NewDetailedErr(types.ErrBadFaver, pod.Favor)
+	return c.createContainer(ctx, opts, pod)
 }
 
-func (c *Calcium) createContainerWithMemoryPrior(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+func (c *Calcium) createContainer(ctx context.Context, opts *types.DeployOptions, pod *types.Pod) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
-
-	// TODO RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
+	// RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
 	// 因此需要在这里加个全局锁，直到部署完毕才释放
-	nodesInfo, err := c.allocResource(ctx, opts, scheduler.MEMORY_PRIOR)
+	// 通过 Processing 状态跟踪达成这个 RFC 了 18 Oct, 2018
+	nodesInfo, err := c.allocResource(ctx, opts, pod.Favor)
 	if err != nil {
-		log.Errorf("[createContainerWithMemoryPrior] Error during allocMemoryPodResource with opts %v: %v", opts, err)
-		return ch, err
-	}
-
-	go func() {
-		defer close(ch)
-		wg := sync.WaitGroup{}
-		wg.Add(len(nodesInfo))
-		index := 0
-		for _, nodeInfo := range nodesInfo {
-			go metrics.Client.SendDeployCount(nodeInfo.Deploy)
-			go func(nodeInfo types.NodeInfo, index int) {
-				defer wg.Done()
-				for _, m := range c.doCreateContainerWithMemoryPrior(ctx, nodeInfo, opts, index) {
-					ch <- m
-					if m.Error != nil {
-						if m.ContainerID == "" {
-							if err := c.store.UpdateNodeResource(ctx, opts.Podname, nodeInfo.Name, types.CPUMap{}, opts.Memory, "+"); err != nil {
-								log.Errorf("[createContainerWithMemoryPrior] reset node memory failed %v", err)
-							}
-						} else {
-							log.Warnf("[createContainerWithMemoryPrior] container %s not removed", m.ContainerID)
-						}
-					}
-				}
-			}(nodeInfo, index)
-			index += nodeInfo.Deploy
-		}
-		wg.Wait()
-		// 第一次部署的时候就去cache下镜像吧
-		go c.cacheImage(ctx, opts.Podname, opts.Image)
-	}()
-
-	return ch, nil
-}
-
-func (c *Calcium) doCreateContainerWithMemoryPrior(ctx context.Context, nodeInfo types.NodeInfo, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
-	ms := make([]*types.CreateContainerMessage, nodeInfo.Deploy)
-
-	node, err := c.getAndPrepareNode(ctx, opts.Podname, nodeInfo.Name, opts.Image)
-	if err != nil {
-		log.Errorf("[doCreateContainerWithMemoryPrior] Get and prepare node error %v", err)
-		for i := 0; i < nodeInfo.Deploy; i++ {
-			ms[i] = &types.CreateContainerMessage{Error: err}
-		}
-		return ms
-	}
-
-	for i := 0; i < nodeInfo.Deploy; i++ {
-		// createAndStartContainer will auto cleanup
-		ms[i] = c.createAndStartContainer(ctx, i+index, node, opts, nil)
-		if !ms[i].Success {
-			log.Errorf("[doCreateContainerWithMemoryPrior] Error when create and start a container, %v", ms[i].Error)
-			continue
-		}
-		log.Debugf("[doCreateContainerWithMemoryPrior] create container success %s", ms[i].ContainerID)
-	}
-
-	return ms
-}
-
-func (c *Calcium) createContainerWithCPUPrior(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
-	ch := make(chan *types.CreateContainerMessage)
-	nodesInfo, err := c.allocResource(ctx, opts, scheduler.CPU_PRIOR)
-	if err != nil {
-		log.Errorf("[createContainerWithCPUPrior] Error during allocCPUPodResource with opts %v: %v", opts, err)
+		log.Errorf("[createContainer] Error during alloc resource with opts %v: %v", opts, err)
 		return ch, err
 	}
 
@@ -138,28 +68,29 @@ func (c *Calcium) createContainerWithCPUPrior(ctx context.Context, opts *types.D
 		wg.Add(len(nodesInfo))
 		index := 0
 
-		// do deployment
+		// do deployment by each node
 		for _, nodeInfo := range nodesInfo {
-			planCount := len(nodeInfo.CPUPlan)
-			go metrics.Client.SendDeployCount(planCount)
-			go func(nodename string, cpuMap []types.CPUMap, index int) {
+			go metrics.Client.SendDeployCount(nodeInfo.Deploy)
+			go func(nodeInfo types.NodeInfo, index int) {
 				defer wg.Done()
-				for i, m := range c.doCreateContainerWithCPUPrior(ctx, nodename, cpuMap, opts, index) {
+				defer c.store.DeleteProcessing(ctx, opts, nodeInfo)
+				messages := c.doCreateContainer(ctx, nodeInfo, opts, index)
+				for i, m := range messages {
 					ch <- m
 					if m.Error != nil {
 						if m.ContainerID == "" {
-							if err := c.store.UpdateNodeResource(ctx, opts.Podname, nodename, cpuMap[i], opts.Memory, "+"); err != nil {
-								log.Errorf("[createContainerWithCPUPrior] update node CPU failed %v", err)
+							if err := c.store.UpdateNodeResource(ctx, opts.Podname, nodeInfo.Name, m.CPU, opts.Memory, "+"); err != nil {
+								log.Errorf("[createContainer] reset node memory failed %v", err)
 							}
 						} else {
-							log.Warnf("[createContainerWithCPUPrior] container %s not removed", m.ContainerID)
+							log.Warnf("[createContainer] container %s not removed", m.ContainerID)
 						}
 					}
+					c.store.UpdateProcessing(ctx, opts, nodeInfo.Name, nodeInfo.Deploy-i-1)
 				}
-			}(nodeInfo.Name, nodeInfo.CPUPlan, index)
-			index += planCount
+			}(nodeInfo, index)
+			index += nodeInfo.Deploy
 		}
-
 		wg.Wait()
 		// 第一次部署的时候就去cache下镜像吧
 		go c.cacheImage(ctx, opts.Podname, opts.Image)
@@ -168,27 +99,34 @@ func (c *Calcium) createContainerWithCPUPrior(ctx context.Context, opts *types.D
 	return ch, nil
 }
 
-func (c *Calcium) doCreateContainerWithCPUPrior(ctx context.Context, nodename string, cpuMap []types.CPUMap, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
-	deployCount := len(cpuMap)
-	ms := make([]*types.CreateContainerMessage, deployCount)
+func (c *Calcium) doCreateContainer(ctx context.Context, nodeInfo types.NodeInfo, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
+	ms := make([]*types.CreateContainerMessage, nodeInfo.Deploy)
 
-	node, err := c.getAndPrepareNode(ctx, opts.Podname, nodename, opts.Image)
+	node, err := c.getAndPrepareNode(ctx, opts.Podname, nodeInfo.Name, opts.Image)
 	if err != nil {
-		log.Errorf("[doCreateContainerWithCPUPrior] Get and prepare node error %v", err)
-		for i := 0; i < deployCount; i++ {
-			ms[i] = &types.CreateContainerMessage{Error: err}
+		log.Errorf("[doCreateContainer] Get and prepare node error %v", err)
+		for i := 0; i < nodeInfo.Deploy; i++ {
+			cpu := types.CPUMap{}
+			if len(nodeInfo.CPUPlan) > 0 {
+				cpu = nodeInfo.CPUPlan[i]
+			}
+			ms[i] = &types.CreateContainerMessage{Error: err, CPU: cpu}
 		}
 		return ms
 	}
 
-	for i, quota := range cpuMap {
+	for i := 0; i < nodeInfo.Deploy; i++ {
 		// createAndStartContainer will auto cleanup
-		ms[i] = c.createAndStartContainer(ctx, i+index, node, opts, quota)
+		cpu := types.CPUMap{}
+		if len(nodeInfo.CPUPlan) > 0 {
+			cpu = nodeInfo.CPUPlan[i]
+		}
+		ms[i] = c.createAndStartContainer(ctx, i+index, node, opts, cpu)
 		if !ms[i].Success {
-			log.Errorf("[doCreateContainerWithCPUPrior] Error when create and start a container, %v", ms[i].Error)
+			log.Errorf("[doCreateContainer] Error when create and start a container, %v", ms[i].Error)
 			continue
 		}
-		log.Debugf("[doCreateContainerWithCPUPrior] create container success %s", ms[i].ContainerID)
+		log.Debugf("[doCreateContainer] create container success %s", ms[i].ContainerID)
 	}
 
 	return ms

@@ -35,6 +35,7 @@ type DeployOptions struct {
 	Data         map[string]string // For additional file data
 	SoftLimit    bool              // Softlimit memory
 	NodesLimit   int               // Limit nodes count
+	ProcessIdent string            // ProcessIdent ident this deploy
 }
 
 // RunAndWaitOptions is options for running and waiting

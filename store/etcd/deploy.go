@@ -4,20 +4,30 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	etcdclient "github.com/coreos/etcd/client"
 	"github.com/projecteru2/core/types"
 )
 
-//MakeDeployStatus get deploy status from store
+// MakeDeployStatus get deploy status from store
 func (k *Krypton) MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
-	key := fmt.Sprintf(containerDeployStatusKey, opts.Name, opts.Entrypoint.Name)
+	key := filepath.Join(containerDeployPrefix, opts.Name, opts.Entrypoint.Name)
 	resp, err := k.etcd.Get(ctx, key, &etcdclient.GetOptions{Recursive: true})
-	if err != nil && etcdclient.IsKeyNotFound(err) {
-		return k.doMakeDeployStatus(ctx, opts, nodesInfo)
+	if err != nil {
+		if etcdclient.IsKeyNotFound(err) {
+			nodesInfo, err = k.doMakeDeployStatus(ctx, opts, nodesInfo)
+		} else {
+			return nodesInfo, err
+		}
+	} else {
+		nodesInfo, err = k.doGetDeployStatus(ctx, resp, nodesInfo)
 	}
-	return k.doGetDeployStatus(ctx, resp, nodesInfo)
+	if err != nil {
+		return nodesInfo, err
+	}
+	return k.loadProcessing(ctx, opts, nodesInfo)
 }
 
 func (k *Krypton) doGetDeployStatus(ctx context.Context, resp *etcdclient.Response, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {

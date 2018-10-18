@@ -47,7 +47,7 @@ func (k *Krypton) AddContainer(ctx context.Context, container *types.Container) 
 	}
 
 	// store deploy status
-	key = fmt.Sprintf(containerDeployKey, appname, entrypoint, container.Nodename, container.ID)
+	key = filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)
 	_, err = k.etcd.Set(ctx, key, "", nil)
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func (k *Krypton) CleanContainerData(ctx context.Context, ID, appname, entrypoin
 	}
 
 	// remove deploy status by core
-	key = fmt.Sprintf(containerDeployKey, appname, entrypoint, nodename, ID)
+	key = filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID)
 	if _, err := k.etcd.Delete(ctx, key, nil); err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func (k *Krypton) GetContainers(ctx context.Context, IDs []string) (containers [
 
 // ContainerDeployed store deployed container info
 func (k *Krypton) ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename, data string) error {
-	key := fmt.Sprintf(containerDeployKey, appname, entrypoint, nodename, ID)
+	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID)
 	//Only update when it exist
 	_, err := k.etcd.Update(ctx, key, data)
 	return err

@@ -26,11 +26,11 @@ const (
 	nodeContainers    = "/node/%s/containers"
 	nodeContainersKey = "/node/%s/containers/%s"
 
-	allContainersKey         = "/containers"
-	containerInfoKey         = "/containers/%s"
-	containerDeployPrefix    = "/deploy"
-	containerDeployStatusKey = "/deploy/%s/%s"
-	containerDeployKey       = "/deploy/%s/%s/%s/%s"
+	allContainersKey = "/containers"
+	containerInfoKey = "/containers/%s"
+
+	containerDeployPrefix     = "/deploy"
+	containerProcessingPrefix = "/processing" ///Appname/Entrypoint/Nodename
 
 	nodeTCPPrefixKey  = "tcp://"
 	nodeSockPrefixKey = "unix://"
