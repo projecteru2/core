@@ -17,6 +17,7 @@ import (
 	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+	"github.com/sanity-io/litter"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,7 +29,8 @@ func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions
 		log.Errorf("[CreateContainer %s] Error during GetPod for %s: %v", opts.ProcessIdent, opts.Podname, err)
 		return nil, err
 	}
-	log.Infof("[CreateContainer] Creating container with options: %v", opts)
+	log.Infof("[CreateContainer %s] Creating container with options:", opts.ProcessIdent)
+	litter.Dump(opts)
 
 	// 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
 	if opts.Memory < minMemory {
@@ -54,7 +56,7 @@ func (c *Calcium) createContainer(ctx context.Context, opts *types.DeployOptions
 	// 通过 Processing 状态跟踪达成这个 RFC 了 18 Oct, 2018
 	nodesInfo, err := c.allocResource(ctx, opts, pod.Favor)
 	if err != nil {
-		log.Errorf("[createContainer] Error during alloc resource with opts %v: %v", opts, err)
+		log.Errorf("[createContainer] Error during alloc resource: %v", err)
 		return ch, err
 	}
 

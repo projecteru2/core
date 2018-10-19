@@ -64,3 +64,5 @@ import:
   - expfmt
   - model
 - package: github.com/prometheus/procfs
+- package: github.com/sanity-io/litter
+  version: v1.1.0

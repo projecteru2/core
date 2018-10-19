@@ -1,5 +1,5 @@
-hash: 44a405ea33bb9e89bd4d3445a04b86b42464555742634273e1e25eace9a09c3e
-updated: 2018-09-12T14:10:03.779929+08:00
+hash: 3fbc0d6fa78d5474ddd859aa337161259ab8b9618b9a01aba1440b648a0cb4d6
+updated: 2018-10-19T10:40:06.16545+08:00
 imports:
 - name: github.com/Azure/go-ansiterm
   version: d6e3b3328b783f23731bc4d058875b0371ff8109
@@ -18,7 +18,7 @@ imports:
   subpackages:
   - pathdriver
 - name: github.com/coreos/etcd
-  version: fca8add78a9d926166eb739b8e4a124434025ba3
+  version: 27fc7e2296f506182f58ce846e48f36b34fe6842
   subpackages:
   - auth/authpb
   - client
@@ -53,7 +53,7 @@ imports:
   - registry/storage/cache
   - registry/storage/cache/memory
 - name: github.com/docker/docker
-  version: 738994f77d0c0332455ebfeec0858c3feb6d6994
+  version: f7e5154f37a45dc2e576abbef404f3032e9823bf
   subpackages:
   - api
   - api/types
@@ -160,8 +160,10 @@ imports:
   version: a6e9df898b1336106c743392c48ee0b71f5c4efa
   subpackages:
   - xfs
+- name: github.com/sanity-io/litter
+  version: ae543b7ba8fd6af63e4976198f146e1348ae53c1
 - name: github.com/sirupsen/logrus
-  version: 3e01752db0189b9157070a0e1668a620f9a85da2
+  version: ad15b42461921f1fb3529b058c6786c6a45d5162
 - name: github.com/stretchr/objx
   version: 0ab728f62c7f6fcd754334f7931c2dd659dce1d1
 - name: github.com/stretchr/testify
@@ -181,7 +183,6 @@ imports:
   version: 66aacef3dd8a676686c7ae3716979581e8b03c47
   subpackages:
   - context
-  - context/ctxhttp
   - http2
   - http2/hpack
   - idna
@@ -190,7 +191,7 @@ imports:
   - proxy
   - trace
 - name: golang.org/x/sys
-  version: d0be0721c37eeb5299f245a996a483160fc36940
+  version: ebfc5b4631820b793c9010c87fd8fef0f39eb082
   subpackages:
   - unix
   - windows
@@ -206,7 +207,7 @@ imports:
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: 9cc4fdbde2304827ffdbc7896f49db40c5536600
+  version: 39444b99c097c9f53536ad8f16cd9f0288c7f695
   subpackages:
   - balancer
   - balancer/base
