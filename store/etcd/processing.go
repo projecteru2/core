@@ -43,7 +43,7 @@ func (k *Krypton) loadProcessing(ctx context.Context, opts *types.DeployOptions,
 		if etcdclient.IsKeyNotFound(err) {
 			err = nil
 		}
-		return nodesInfo, nil
+		return nodesInfo, err
 	}
 	nodesCount := map[string]int{}
 	for _, node := range resp.Node.Nodes {

@@ -15,16 +15,11 @@ import (
 func (k *Krypton) MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
 	key := filepath.Join(containerDeployPrefix, opts.Name, opts.Entrypoint.Name)
 	resp, err := k.etcd.Get(ctx, key, &etcdclient.GetOptions{Recursive: true})
-	if err != nil {
-		if etcdclient.IsKeyNotFound(err) {
-			nodesInfo, err = k.doMakeDeployStatus(ctx, opts, nodesInfo)
-		} else {
-			return nodesInfo, err
-		}
-	} else {
+	if err == nil {
 		nodesInfo, err = k.doGetDeployStatus(ctx, resp, nodesInfo)
-	}
-	if err != nil {
+	} else if err != nil && etcdclient.IsKeyNotFound(err) {
+		nodesInfo, err = k.doMakeDeployStatus(ctx, opts, nodesInfo)
+	} else {
 		return nodesInfo, err
 	}
 	return k.loadProcessing(ctx, opts, nodesInfo)

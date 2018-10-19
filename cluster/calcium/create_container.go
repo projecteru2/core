@@ -60,10 +60,6 @@ func (c *Calcium) createContainer(ctx context.Context, opts *types.DeployOptions
 		return ch, err
 	}
 
-	if len(nodesInfo) == 0 {
-		return ch, types.ErrInsufficientRes
-	}
-
 	go func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
