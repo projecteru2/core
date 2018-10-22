@@ -217,16 +217,16 @@ func pullImage(ctx context.Context, node *types.Node, image, auth string) error 
 	if err != nil {
 		log.Errorf("[pullImage] Check image failed %v", err)
 	} else {
-		log.Debugf("[pullImage] Local Image exists")
+		log.Debug("[pullImage] Local Image exists")
 		exists = true
 	}
 
 	if exists && distributionInspect(ctx, node, image, auth, inspect.RepoDigests) {
-		log.Infof("[pullImage] Image cached, skip pulling")
+		log.Debug("[pullImage] Image cached, skip pulling")
 		return nil
 	}
 
-	log.Infof("[pullImage] Image not cached, pulling")
+	log.Debug("[pullImage] Image not cached, pulling")
 	pullOptions := enginetypes.ImagePullOptions{All: false, RegistryAuth: auth}
 	outStream, err := node.Engine.ImagePull(ctx, image, pullOptions)
 	if err != nil {
