@@ -305,7 +305,7 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 
 	meta := utils.DecodeMetaInLabel(info.Config.Labels)
 	publish := map[string]string{}
-	if info.NetworkSettings != nil {
+	if info.NetworkSettings != nil && info.State.Running {
 		publish = utils.EncodePublishInfo(
 			utils.MakePublishInfo(info.NetworkSettings.Networks, c.Node, meta.Publish),
 		)

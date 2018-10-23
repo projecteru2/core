@@ -181,11 +181,13 @@ func ParseContainerName(containerName string) (string, string, string, error) {
 func MakePublishInfo(networks map[string]*network.EndpointSettings, node *types.Node, ports []string) map[string][]string {
 	result := map[string][]string{}
 	for networkName, networkSetting := range networks {
-		ip := networkSetting.IPAddress
-		if enginecontainer.NetworkMode(networkName).IsHost() {
-			ip = node.GetIP()
+		ip := node.GetIP()
+		if !enginecontainer.NetworkMode(networkName).IsHost() {
+			ip = networkSetting.IPAddress
 		}
-
+		if ip == "" {
+			continue
+		}
 		data := []string{}
 		for _, port := range ports {
 			data = append(data, fmt.Sprintf("%s:%s", ip, port))
