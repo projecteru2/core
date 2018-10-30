@@ -6,6 +6,8 @@ core.yml
 .ropeproject
 build.yaml
 *.pyc
+*.rpm
+*.deb
 default.etcd/*
 vendor/*
 clean.sh
