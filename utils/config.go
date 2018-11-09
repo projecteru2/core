@@ -2,7 +2,6 @@ package utils
 
 import (
 	"io/ioutil"
-	"path/filepath"
 	"time"
 
 	"github.com/projecteru2/core/types"
@@ -38,7 +37,8 @@ func LoadConfig(configPath string) (types.Config, error) {
 	}
 	config.GlobalTimeout = config.GlobalTimeout * time.Second
 	// Fxxk etcd client
-	config.Etcd.Prefix = filepath.Join(defaultPrefix, config.Etcd.Prefix)
+	// TODO v3 useless
+	// config.Etcd.Prefix = filepath.Join(defaultPrefix, config.Etcd.Prefix)
 
 	if config.Docker.APIVersion == "" {
 		config.Docker.APIVersion = "1.32"
