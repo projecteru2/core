@@ -1,0 +1,353 @@
+package etcdv3
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"strconv"
+	"strings"
+
+	"github.com/coreos/etcd/clientv3"
+	engineapi "github.com/docker/docker/client"
+	"github.com/projecteru2/core/metrics"
+	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
+	log "github.com/sirupsen/logrus"
+)
+
+// AddNode save it to etcd
+// storage path in etcd is `/pod/nodes/:podname/:nodename`
+// node->pod path in etcd is `/node/pod/:nodename`
+func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string) (*types.Node, error) {
+	if !strings.HasPrefix(endpoint, nodeTCPPrefixKey) && !strings.HasPrefix(endpoint, nodeSockPrefixKey) {
+		return nil, types.NewDetailedErr(types.ErrNodeFormat,
+			fmt.Sprintf("endpoint must starts with %s or %s %q",
+				nodeTCPPrefixKey, nodeSockPrefixKey, endpoint))
+	}
+
+	_, err := m.GetPod(ctx, podname)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := m.getNode(ctx, podname, name); err == nil {
+		return nil, types.NewDetailedErr(types.ErrNodeExist,
+			fmt.Sprintf("node %s:%s already exists",
+				podname, name))
+	}
+
+	// 如果有tls的证书需要保存就保存一下
+	if ca != "" && cert != "" && key != "" {
+		if _, err = m.Put(ctx, fmt.Sprintf(nodeCaKey, name), ca); err != nil {
+			return nil, err
+		}
+
+		if _, err = m.Put(ctx, fmt.Sprintf(nodeCertKey, name), cert); err != nil {
+			return nil, err
+		}
+
+		if _, err = m.Put(ctx, fmt.Sprintf(nodeKeyKey, name), key); err != nil {
+			return nil, err
+		}
+	}
+
+	// 尝试加载docker的客户端
+	engine, err := m.makeDockerClient(ctx, podname, name, endpoint, true)
+	if err != nil {
+		m.deleteNode(ctx, podname, name, endpoint)
+		return nil, err
+	}
+
+	// 判断这货是不是活着的
+	info, err := engine.Info(ctx)
+	if err != nil {
+		m.deleteNode(ctx, podname, name, endpoint)
+		return nil, err
+	}
+
+	ncpu := cpu
+	memcap := memory
+	if cpu == 0 {
+		ncpu = info.NCPU
+	}
+	if memory == 0 {
+		memcap = info.MemTotal - types.GByte
+	}
+	if share == 0 {
+		share = m.config.Scheduler.ShareBase
+	}
+	cpumap := types.CPUMap{}
+	for i := 0; i < ncpu; i++ {
+		cpumap[strconv.Itoa(i)] = share
+	}
+
+	node := &types.Node{
+		Name:      name,
+		Endpoint:  endpoint,
+		Podname:   podname,
+		CPU:       cpumap,
+		MemCap:    memcap,
+		Available: true,
+		Labels:    labels,
+	}
+
+	bytes, err := json.Marshal(node)
+	if err != nil {
+		m.deleteNode(ctx, podname, name, endpoint)
+		return nil, err
+	}
+
+	nodeKey := fmt.Sprintf(nodeInfoKey, podname, name)
+	podKey := fmt.Sprintf(nodePodKey, name)
+	_, err = m.Create(ctx, nodeKey, string(bytes))
+	if err != nil {
+		m.deleteNode(ctx, podname, name, endpoint)
+		return nil, err
+	}
+
+	_, err = m.Create(ctx, podKey, podname)
+	if err != nil {
+		m.deleteNode(ctx, podname, name, endpoint)
+		return nil, err
+	}
+
+	go metrics.Client.SendNodeInfo(node)
+	return node, nil
+}
+
+// DeleteNode delete a node
+func (m *Mercury) DeleteNode(ctx context.Context, node *types.Node) {
+	if node == nil {
+		return
+	}
+	m.deleteNode(ctx, node.Podname, node.Name, node.Endpoint)
+}
+
+// 因为是先写etcd的证书再拿client
+// 所以可能出现实际上node创建失败但是却写好了证书的情况
+// 所以需要删除这些留存的证书
+// 至于结果是不是成功就无所谓了
+func (m *Mercury) deleteNode(ctx context.Context, podname, nodename, endpoint string) {
+	nodeInfo := fmt.Sprintf(nodeInfoKey, podname, nodename)
+	nodePod := fmt.Sprintf(nodePodKey, nodename)
+	ca := fmt.Sprintf(nodeCaKey, nodename)
+	cert := fmt.Sprintf(nodeCertKey, nodename)
+	key := fmt.Sprintf(nodeKeyKey, nodename)
+
+	m.Delete(ctx, nodeInfo)
+	m.Delete(ctx, nodePod)
+	m.Delete(ctx, ca)
+	m.Delete(ctx, cert)
+	m.Delete(ctx, key)
+
+	if strings.HasPrefix(endpoint, nodeTCPPrefixKey) {
+		host, err := types.GetEndpointHost(endpoint)
+		if err != nil {
+			log.Errorf("[deleteNode] Bad endpoint: %s", endpoint)
+			return
+		}
+		_cache.Delete(host)
+	}
+	log.Debugf("[deleteNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
+}
+
+// GetNode get a node from etcd
+// and construct it's docker client
+// a node must belong to a pod
+// and since node is not the smallest unit to user, to get a node we must specify the corresponding pod
+// storage path in etcd is `/pod/nodes/:podname/:nodename`
+func (m *Mercury) GetNode(ctx context.Context, podname, nodename string) (*types.Node, error) {
+	node, err := m.getNode(ctx, podname, nodename)
+	if err != nil {
+		return nil, err
+	}
+
+	engine, err := m.makeDockerClient(ctx, podname, nodename, node.Endpoint, false)
+	if err != nil {
+		return nil, err
+	}
+
+	node.Engine = engine
+	return node, nil
+}
+
+func (m *Mercury) getNode(ctx context.Context, podname, nodename string) (*types.Node, error) {
+	key := fmt.Sprintf(nodeInfoKey, podname, nodename)
+	ev, err := m.GetOne(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+
+	node := &types.Node{}
+	err = json.Unmarshal(ev.Value, node)
+	return node, err
+}
+
+// GetNodeByName get node by name
+// first get podname from `/node/pod/:nodename`
+// then call GetNode
+func (m *Mercury) GetNodeByName(ctx context.Context, nodename string) (*types.Node, error) {
+	key := fmt.Sprintf(nodePodKey, nodename)
+	ev, err := m.GetOne(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+
+	podname := string(ev.Value)
+	return m.GetNode(ctx, podname, nodename)
+}
+
+// GetNodesByPod get all nodes bound to pod
+// here we use podname instead of pod instance
+// storage path in etcd is `/pod/nodes/:podname`
+func (m *Mercury) GetNodesByPod(ctx context.Context, podname string) ([]*types.Node, error) {
+	key := fmt.Sprintf(podNodesKey, podname)
+	resp, err := m.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithKeysOnly())
+	if err != nil {
+		return []*types.Node{}, err
+	}
+
+	nodes := []*types.Node{}
+	for _, ev := range resp.Kvs {
+		nodename := utils.Tail(string(ev.Key))
+		n, err := m.GetNode(ctx, podname, nodename)
+		if err != nil {
+			return nodes, err
+		}
+		nodes = append(nodes, n)
+	}
+	return nodes, err
+}
+
+// GetAllNodes get all nodes from etcd
+// any error will break and return immediately
+func (m *Mercury) GetAllNodes(ctx context.Context) ([]*types.Node, error) {
+	pods, err := m.GetAllPods(ctx)
+	if err != nil {
+		return []*types.Node{}, err
+	}
+
+	nodes := []*types.Node{}
+	for _, pod := range pods {
+		ns, err := m.GetNodesByPod(ctx, pod.Name)
+		if err != nil {
+			return nodes, err
+		}
+		nodes = append(nodes, ns...)
+	}
+	return nodes, err
+}
+
+// UpdateNode update a node, save it to etcd
+// storage path in etcd is `/pod/nodes/:podname/:nodename`
+func (m *Mercury) UpdateNode(ctx context.Context, node *types.Node) error {
+	lock, err := m.CreateLock(fmt.Sprintf("%s_%s", node.Podname, node.Name), m.config.LockTimeout)
+	if err != nil {
+		return err
+	}
+
+	if err := lock.Lock(ctx); err != nil {
+		return err
+	}
+	defer lock.Unlock(ctx)
+
+	return m.updateNode(ctx, node)
+}
+
+func (m *Mercury) updateNode(ctx context.Context, node *types.Node) error {
+	key := fmt.Sprintf(nodeInfoKey, node.Podname, node.Name)
+	bytes, err := json.Marshal(node)
+	if err != nil {
+		return err
+	}
+
+	value := string(bytes)
+	log.Debugf("[UpdateNode] new node info: %s", value)
+	_, err = m.Put(ctx, key, value)
+	return err
+}
+
+// UpdateNodeResource update cpu and mem on a node, either add or substract
+// need to lock
+func (m *Mercury) UpdateNodeResource(ctx context.Context, podname, nodename string, cpu types.CPUMap, mem int64, action string) error {
+	lock, err := m.CreateLock(fmt.Sprintf("%s_%s", podname, nodename), m.config.LockTimeout)
+	if err != nil {
+		return err
+	}
+
+	if err := lock.Lock(ctx); err != nil {
+		return err
+	}
+	defer lock.Unlock(ctx)
+
+	node, err := m.GetNode(ctx, podname, nodename)
+	if err != nil {
+		return err
+	}
+
+	if action == "add" || action == "+" {
+		node.CPU.Add(cpu)
+		node.MemCap += mem
+	} else if action == "sub" || action == "-" {
+		node.CPU.Sub(cpu)
+		node.MemCap -= mem
+	}
+
+	err = m.updateNode(ctx, node)
+	go metrics.Client.SendNodeInfo(node)
+	return err
+}
+
+func (m *Mercury) makeDockerClient(ctx context.Context, podname, nodename, endpoint string, force bool) (*engineapi.Client, error) {
+	// if unix just connect it
+	if strings.HasPrefix(endpoint, nodeSockPrefixKey) {
+		return makeRawClient(endpoint, m.config.Docker.APIVersion)
+	}
+
+	host, err := types.GetEndpointHost(endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	// try get client, if nil, create a new one
+	var client *engineapi.Client
+	var cliErr error
+	client = _cache.Get(host)
+	if client == nil || force {
+		if m.config.Docker.CertPath == "" {
+			client, cliErr = makeRawClient(endpoint, m.config.Docker.APIVersion)
+		} else {
+			keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
+			data := []string{}
+			for i := 0; i < 3; i++ {
+				ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], nodename))
+				if err != nil {
+					return nil, err
+				}
+				data = append(data, string(ev.Value))
+			}
+			caFile, err := ioutil.TempFile(m.config.Docker.CertPath, fmt.Sprintf("ca-%s", host))
+			if err != nil {
+				return nil, err
+			}
+			certFile, err := ioutil.TempFile(m.config.Docker.CertPath, fmt.Sprintf("cert-%s", host))
+			if err != nil {
+				return nil, err
+			}
+			keyFile, err := ioutil.TempFile(m.config.Docker.CertPath, fmt.Sprintf("key-%s", host))
+			if err != nil {
+				return nil, err
+			}
+			if err = dumpFromString(caFile, certFile, keyFile, data[0], data[1], data[2]); err != nil {
+				return nil, err
+			}
+			client, cliErr = makeRawClientWithTLS(caFile, certFile, keyFile, endpoint, m.config.Docker.APIVersion)
+		}
+		if cliErr != nil {
+			return nil, cliErr
+		}
+		_cache.Set(host, client)
+	}
+	return client, nil
+}

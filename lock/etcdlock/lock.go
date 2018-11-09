@@ -11,14 +11,14 @@ import (
 	"golang.org/x/net/context"
 )
 
-//Mutex is etcdv3 lock
+// Mutex is etcdv3 lock
 type Mutex struct {
 	timeout time.Duration
 	mutex   *concurrency.Mutex
 	session *concurrency.Session
 }
 
-//New new a lock
+// New new a lock
 func New(cli *clientv3.Client, key string, ttl int) (*Mutex, error) {
 	if key == "" {
 		return nil, types.ErrKeyIsEmpty
@@ -38,14 +38,14 @@ func New(cli *clientv3.Client, key string, ttl int) (*Mutex, error) {
 	return mutex, nil
 }
 
-//Lock get locked
+// Lock get locked
 func (m *Mutex) Lock(ctx context.Context) error {
 	lockCtx, cancel := context.WithTimeout(ctx, m.timeout)
 	defer cancel()
 	return m.mutex.Lock(lockCtx)
 }
 
-//Unlock unlock
+// Unlock unlock
 func (m *Mutex) Unlock(ctx context.Context) error {
 	defer m.session.Close()
 	// 一定要释放

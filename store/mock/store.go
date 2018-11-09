@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	etcdclient "github.com/coreos/etcd/client"
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/mock"
@@ -33,9 +32,9 @@ type MockStore struct {
 }
 
 // WatchDeployStatus fake watch deploy status
-func (m *MockStore) WatchDeployStatus(appname, entrypoint, nodename string) etcdclient.Watcher {
-	args := m.Called(appname, entrypoint, nodename)
-	return args.Get(0).(etcdclient.Watcher)
+func (m *MockStore) WatchDeployStatus(ctx context.Context, appname, entrypoint, nodename string) chan *types.DeployStatus {
+	args := m.Called(ctx, appname, entrypoint, nodename)
+	return args.Get(0).(chan *types.DeployStatus)
 }
 
 // GetPod fake get pod
