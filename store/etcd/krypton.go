@@ -2,7 +2,6 @@ package etcdstore
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
@@ -10,6 +9,7 @@ import (
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/lock/etcdlock"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 const (
@@ -70,30 +70,4 @@ func (k *Krypton) CreateLock(key string, ttl int) (lock.DistributedLock, error) 
 	return mutex, err
 }
 
-// cache connections
-// otherwise they'll leak
-type cache struct {
-	sync.Mutex
-	clients map[string]*engineapi.Client
-}
-
-func (c *cache) set(host string, client *engineapi.Client) {
-	c.Lock()
-	defer c.Unlock()
-
-	c.clients[host] = client
-}
-
-func (c *cache) get(host string) *engineapi.Client {
-	c.Lock()
-	defer c.Unlock()
-	return c.clients[host]
-}
-
-func (c *cache) delete(host string) {
-	c.Lock()
-	defer c.Unlock()
-	delete(c.clients, host)
-}
-
-var _cache = &cache{clients: make(map[string]*engineapi.Client)}
+var _cache = &utils.Cache{Clients: make(map[string]*engineapi.Client)}

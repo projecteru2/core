@@ -130,7 +130,7 @@ func (k *Krypton) deleteNode(ctx context.Context, podname, nodename, endpoint st
 			log.Errorf("[deleteNode] Bad endpoint: %s", endpoint)
 			return
 		}
-		_cache.delete(host)
+		_cache.Delete(host)
 	}
 	log.Debugf("[deleteNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 }
@@ -307,10 +307,11 @@ func (k *Krypton) makeDockerClient(ctx context.Context, podname, nodename, endpo
 
 	// try get client, if nil, create a new one
 	var client *engineapi.Client
-	client = _cache.get(host)
+	var cliErr error
+	client = _cache.Get(host)
 	if client == nil || force {
 		if k.config.Docker.CertPath == "" {
-			client, err = makeRawClient(endpoint, k.config.Docker.APIVersion)
+			client, cliErr = makeRawClient(endpoint, k.config.Docker.APIVersion)
 		} else {
 			keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
 			data := []string{}
@@ -336,12 +337,12 @@ func (k *Krypton) makeDockerClient(ctx context.Context, podname, nodename, endpo
 			if err := dumpFromString(caFile, certFile, keyFile, data[0], data[1], data[2]); err != nil {
 				return nil, err
 			}
-			client, err = makeRawClientWithTLS(caFile, certFile, keyFile, endpoint, k.config.Docker.APIVersion)
+			client, cliErr = makeRawClientWithTLS(caFile, certFile, keyFile, endpoint, k.config.Docker.APIVersion)
 		}
-		if err != nil {
-			return nil, err
+		if cliErr != nil {
+			return nil, cliErr
 		}
-		_cache.set(host, client)
+		_cache.Set(host, client)
 	}
 	return client, nil
 }

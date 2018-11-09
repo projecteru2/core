@@ -4,7 +4,6 @@ import (
 	"context"
 	"net"
 	"net/url"
-	"sync"
 	"time"
 
 	enginetypes "github.com/docker/docker/api/types"
@@ -53,8 +52,6 @@ func (c CPUMap) Sub(q CPUMap) {
 
 // Node store node info
 type Node struct {
-	sync.Mutex
-
 	Name      string            `json:"name"`
 	Endpoint  string            `json:"endpoint"`
 	Podname   string            `json:"podname"`

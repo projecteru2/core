@@ -1,13 +1,13 @@
-package etcdstore
+package etcdv3
 
 import (
 	"net/http"
 	"os"
 	"strings"
 
-	etcdclient "github.com/coreos/etcd/client"
 	engineapi "github.com/docker/docker/client"
 	"github.com/docker/go-connections/tlsconfig"
+	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -59,21 +59,17 @@ func makeRawClientWithTLS(ca, cert, key *os.File, endpoint, apiversion string) (
 	return engineapi.NewClient(endpoint, apiversion, cli, nil)
 }
 
-func getContainerDeployData(prefix string, nodes etcdclient.Nodes) []string {
-	result := []string{}
-	for _, node := range nodes {
-		if len(node.Nodes) > 0 {
-			result = append(result, getContainerDeployData(node.Key, node.Nodes)...)
-		} else if !node.Dir {
-			key := node.Key[len(prefix)+1:]
-			result = append(result, key)
-		}
-	}
-	return result
-}
-
 func parseStatusKey(key string) (string, string, string, string) {
 	parts := strings.Split(key, "/")
 	l := len(parts)
 	return parts[l-4], parts[l-3], parts[l-2], parts[l-1]
+}
+
+func setCount(nodesCount map[string]int, nodesInfo []types.NodeInfo) []types.NodeInfo {
+	for p, nodeInfo := range nodesInfo {
+		if v, ok := nodesCount[nodeInfo.Name]; ok {
+			nodesInfo[p].Count += v
+		}
+	}
+	return nodesInfo
 }
