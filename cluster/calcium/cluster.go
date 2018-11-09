@@ -12,7 +12,7 @@ import (
 	"github.com/projecteru2/core/source/github"
 	"github.com/projecteru2/core/source/gitlab"
 	"github.com/projecteru2/core/store"
-	"github.com/projecteru2/core/store/etcd"
+	"github.com/projecteru2/core/store/etcdv3"
 	"github.com/projecteru2/core/types"
 )
 
@@ -28,7 +28,7 @@ type Calcium struct {
 // New returns a new cluster config
 func New(config types.Config) (*Calcium, error) {
 	// set store
-	store, err := etcdstore.New(config)
+	store, err := etcdv3.New(config)
 	if err != nil {
 		return nil, err
 	}
