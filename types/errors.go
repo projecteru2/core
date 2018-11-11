@@ -47,7 +47,6 @@ var (
 	ErrInvaildUsername = errors.New("invaild username")
 	ErrNotFitLabels    = errors.New("not fit labels")
 
-	ErrNoETCD                      = errors.New("ETCD must be set")
 	ErrNoImage                     = errors.New("no image")
 	ErrNoBuildPod                  = errors.New("No build pod set in config")
 	ErrNoBuildsInSpec              = errors.New("No builds in spec")
@@ -57,6 +56,10 @@ var (
 	ErrNoContainerIDs              = errors.New("No container ids given")
 	ErrRunAndWaitCountOneWithStdin = errors.New("Count must be 1 if OpenStdin is true")
 	ErrUnknownControlType          = errors.New("Unknown control type")
+
+	ErrNoETCD       = errors.New("ETCD must be set")
+	ErrKeyNotExists = errors.New("Key not exists")
+	ErrKeyExists    = errors.New("Key exists")
 )
 
 // NewDetailedErr returns an error with details

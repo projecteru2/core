@@ -2,7 +2,6 @@ package etcdv3
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path/filepath"
 
@@ -97,7 +96,7 @@ func (m *Mercury) Create(ctx context.Context, key, val string, opts ...clientv3.
 		return nil, err
 	}
 	if !resp.Succeeded {
-		return nil, types.NewDetailedErr(errors.New("Key exists"), key) // TODO define in types.error
+		return nil, types.ErrKeyExists
 	}
 	return resp, nil
 }
@@ -112,7 +111,7 @@ func (m *Mercury) Update(ctx context.Context, key, val string, opts ...clientv3.
 		return nil, err
 	}
 	if !resp.Succeeded {
-		return nil, types.NewDetailedErr(errors.New("Key not exists"), key) // TODO define in types.error
+		return nil, types.ErrKeyNotExists
 	}
 	return resp, nil
 }

@@ -207,7 +207,7 @@ imports:
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: 39444b99c097c9f53536ad8f16cd9f0288c7f695
+  version: eb55fa50e6c987e6b847fc13381d10f8bf9ab5db
   subpackages:
   - balancer
   - balancer/base

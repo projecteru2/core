@@ -12,7 +12,7 @@ import (
 
 const (
 	defaultTTL    = 30
-	defaultPrefix = "/v2/keys"
+	defaultPrefix = "/eru"
 )
 
 // LoadConfig load config from yaml
@@ -36,9 +36,10 @@ func LoadConfig(configPath string) (types.Config, error) {
 		log.Fatal("[Config] Global timeout invaild, exit")
 	}
 	config.GlobalTimeout = config.GlobalTimeout * time.Second
-	// Fxxk etcd client
-	// TODO v3 useless
-	// config.Etcd.Prefix = filepath.Join(defaultPrefix, config.Etcd.Prefix)
+
+	if config.Etcd.Prefix == "" {
+		config.Etcd.Prefix = defaultPrefix
+	}
 
 	if config.Docker.APIVersion == "" {
 		config.Docker.APIVersion = "1.32"
