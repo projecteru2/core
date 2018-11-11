@@ -3,7 +3,6 @@ package etcdv3
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -18,8 +17,7 @@ func (m *Mercury) MakeDeployStatus(ctx context.Context, opts *types.DeployOption
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithKeysOnly())
 	if err != nil || resp.Count == 0 {
 		if resp.Count == 0 {
-			// TODO define in types.error
-			err = errors.New("no key")
+			err = types.ErrKeyNotExists
 		}
 		return nil, err
 	}

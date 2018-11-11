@@ -10,6 +10,7 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 // AddContainer add a container
@@ -205,13 +206,12 @@ func (m *Mercury) WatchDeployStatus(ctx context.Context, appname, entrypoint, no
 	go func() {
 		defer close(ch)
 		for resp := range m.Watch(ctx, key, clientv3.WithPrefix()) {
+			log.Debugf("[WatchDeployStatus] recv %d events", len(resp.Events))
 			msg := &types.DeployStatus{}
 			if resp.Err() != nil {
 				if resp.Err() != context.Canceled {
 					msg.Err = resp.Err()
 					ch <- msg
-				} else {
-					fmt.Println("cancel")
 				}
 				return
 			}

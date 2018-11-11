@@ -7,6 +7,13 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+const (
+	// PUTEVENT for put event
+	PUTEVENT = "PUT"
+	// DELETEEVENT for delete event
+	DELETEEVENT = "DELETE"
+)
+
 //Store store eru data
 type Store interface {
 	// pod
