@@ -88,10 +88,7 @@ func (m *Mercury) Put(ctx context.Context, key, val string, opts ...clientv3.OpO
 
 // Create create a key if not exists
 func (m *Mercury) Create(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	key = m.parseKey(key)
-	req := clientv3.OpPut(key, val, opts...)
-	cond := clientv3.Compare(clientv3.Version(key), "=", 0)
-	resp, err := m.cliv3.Txn(ctx).If(cond).Then(req).Commit()
+	resp, err := m.revPut(ctx, key, val, "=", 0, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -103,10 +100,7 @@ func (m *Mercury) Create(ctx context.Context, key, val string, opts ...clientv3.
 
 // Update update a key if exists
 func (m *Mercury) Update(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	key = m.parseKey(key)
-	req := clientv3.OpPut(key, val, opts...)
-	cond := clientv3.Compare(clientv3.Version(key), "!=", 0)
-	resp, err := m.cliv3.Txn(ctx).If(cond).Then(req).Commit()
+	resp, err := m.revPut(ctx, key, val, "!=", 0, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -120,6 +114,13 @@ func (m *Mercury) Update(ctx context.Context, key, val string, opts ...clientv3.
 func (m *Mercury) Watch(ctx context.Context, key string, opts ...clientv3.OpOption) clientv3.WatchChan {
 	key = m.parseKey(key)
 	return m.cliv3.Watch(ctx, key, opts...)
+}
+
+func (m *Mercury) revPut(ctx context.Context, key, val, condition string, rev int, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+	key = m.parseKey(key)
+	req := clientv3.OpPut(key, val, opts...)
+	cond := clientv3.Compare(clientv3.Version(key), condition, rev)
+	return m.cliv3.Txn(ctx).If(cond).Then(req).Commit()
 }
 
 func (m *Mercury) parseKey(key string) string {

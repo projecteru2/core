@@ -16,7 +16,7 @@ func (m *Mercury) MakeDeployStatus(ctx context.Context, opts *types.DeployOption
 	key := filepath.Join(containerDeployPrefix, opts.Name, opts.Entrypoint.Name)
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithKeysOnly())
 	if err != nil || resp.Count == 0 {
-		if resp.Count == 0 {
+		if resp != nil && resp.Count == 0 {
 			err = types.ErrKeyNotExists
 		}
 		return nil, err
