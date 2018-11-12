@@ -36,13 +36,13 @@ func (m *Mercury) DeleteProcessing(ctx context.Context, opts *types.DeployOption
 func (m *Mercury) loadProcessing(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
 	processingKey := filepath.Join(containerProcessingPrefix, opts.Name, opts.Entrypoint.Name)
 	resp, err := m.Get(ctx, processingKey, clientv3.WithPrefix())
-	if err != nil || resp.Count == 0 {
-		if resp.Count == 0 {
-			return nodesInfo, nil
-		}
+	if err != nil {
 		return nil, err
 	}
 
+	if resp.Count == 0 {
+		return nodesInfo, nil
+	}
 	nodesCount := map[string]int{}
 	for _, ev := range resp.Kvs {
 		key := string(ev.Key)
