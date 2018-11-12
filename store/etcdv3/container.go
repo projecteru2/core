@@ -206,15 +206,15 @@ func (m *Mercury) WatchDeployStatus(ctx context.Context, appname, entrypoint, no
 	go func() {
 		defer close(ch)
 		for resp := range m.Watch(ctx, key, clientv3.WithPrefix()) {
-			log.Debugf("[WatchDeployStatus] recv %d events", len(resp.Events))
 			msg := &types.DeployStatus{}
 			if resp.Err() != nil {
-				if resp.Err() != context.Canceled {
+				if !resp.Canceled {
 					msg.Err = resp.Err()
 					ch <- msg
 				}
 				return
 			}
+			log.Debugf("[WatchDeployStatus] recv %d events", len(resp.Events))
 			for _, ev := range resp.Events {
 				appname, entrypoint, nodename, id := parseStatusKey(string(ev.Kv.Key))
 				msg.Data = string(ev.Kv.Value)
