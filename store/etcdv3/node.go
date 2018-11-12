@@ -83,13 +83,15 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 	}
 
 	node := &types.Node{
-		Name:      name,
-		Endpoint:  endpoint,
-		Podname:   podname,
-		CPU:       cpumap,
-		MemCap:    memcap,
-		Available: true,
-		Labels:    labels,
+		Name:       name,
+		Endpoint:   endpoint,
+		Podname:    podname,
+		CPU:        cpumap,
+		MemCap:     memcap,
+		InitCPU:    cpumap,
+		InitMemCap: memcap,
+		Available:  true,
+		Labels:     labels,
 	}
 
 	bytes, err := json.Marshal(node)
