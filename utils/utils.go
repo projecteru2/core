@@ -48,14 +48,6 @@ func RandomString(n int) string {
 	return string(r)
 }
 
-// TruncateID truncate container ID
-func TruncateID(id string) string {
-	if len(id) > shortenLength {
-		return id[:shortenLength]
-	}
-	return id
-}
-
 // Tail return tail thing
 func Tail(path string) string {
 	parts := strings.Split(path, "/")
@@ -117,36 +109,6 @@ func ContextWithDockerEngine(ctx context.Context, client *engineapi.Client) cont
 func GetDockerEngineFromContext(ctx context.Context) (*engineapi.Client, bool) {
 	client, ok := ctx.Value(engineKey).(*engineapi.Client)
 	return client, ok
-}
-
-// copied from https://gist.github.com/jmervine/d88c75329f98e09f5c87
-func safeSplit(s string) []string {
-	split := strings.Split(s, " ")
-
-	var result []string
-	var inquote string
-	var block string
-	for _, i := range split {
-		if inquote == "" {
-			if strings.HasPrefix(i, "'") || strings.HasPrefix(i, "\"") {
-				inquote = string(i[0])
-				block = strings.TrimPrefix(i, inquote) + " "
-			} else {
-				result = append(result, i)
-			}
-		} else {
-			if !strings.HasSuffix(i, inquote) {
-				block += i + " "
-			} else {
-				block += strings.TrimSuffix(i, inquote)
-				inquote = ""
-				result = append(result, block)
-				block = ""
-			}
-		}
-	}
-
-	return result
 }
 
 // MakeCommandLineArgs make command line args
@@ -245,8 +207,8 @@ func DecodeMetaInLabel(labels map[string]string) *types.EruMeta {
 
 // ShortID short container ID
 func ShortID(containerID string) string {
-	if len(containerID) > 7 {
-		return containerID[:7]
+	if len(containerID) > shortenLength {
+		return containerID[:shortenLength]
 	}
 	return containerID
 }
@@ -272,15 +234,14 @@ func TempFile(stream io.ReadCloser) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	name := f.Name()
 	defer f.Close()
 	defer stream.Close()
 
 	_, err = io.Copy(f, stream)
-	return name, err
+	return f.Name(), err
 }
 
-// TempTarFile store bytes to a file
+// TempTarFile store and tar bytes to a file
 func TempTarFile(path string, data []byte) (string, error) {
 	filename := filepath.Base(path)
 	f, err := ioutil.TempFile(os.TempDir(), filename)
@@ -302,4 +263,34 @@ func TempTarFile(path string, data []byte) (string, error) {
 	}
 	_, err = tw.Write(data)
 	return name, err
+}
+
+// copied from https://gist.github.com/jmervine/d88c75329f98e09f5c87
+func safeSplit(s string) []string {
+	split := strings.Split(s, " ")
+
+	var result []string
+	var inquote string
+	var block string
+	for _, i := range split {
+		if inquote == "" {
+			if strings.HasPrefix(i, "'") || strings.HasPrefix(i, "\"") {
+				inquote = string(i[0])
+				block = strings.TrimPrefix(i, inquote) + " "
+			} else {
+				result = append(result, i)
+			}
+		} else {
+			if !strings.HasSuffix(i, inquote) {
+				block += i + " "
+			} else {
+				block += strings.TrimSuffix(i, inquote)
+				inquote = ""
+				result = append(result, block)
+				block = ""
+			}
+		}
+	}
+
+	return result
 }
