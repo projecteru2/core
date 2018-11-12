@@ -52,16 +52,16 @@ func (c CPUMap) Sub(q CPUMap) {
 
 // Node store node info
 type Node struct {
-	Name       string            `json:"name"`
-	Endpoint   string            `json:"endpoint"`
-	Podname    string            `json:"podname"`
-	Available  bool              `json:"available"`
-	CPU        CPUMap            `json:"cpu"`
-	MemCap     int64             `json:"memcap"`
-	Labels     map[string]string `json:"labels"`
-	InitCPU    CPUMap            `json:"init_cpu"`
-	InitMemCap int64             `json:"init_memcap"`
-	Engine     *engineapi.Client `json:"-"`
+	Name       string              `json:"name"`
+	Endpoint   string              `json:"endpoint"`
+	Podname    string              `json:"podname"`
+	Available  bool                `json:"available"`
+	CPU        CPUMap              `json:"cpu"`
+	MemCap     int64               `json:"memcap"`
+	Labels     map[string]string   `json:"labels"`
+	InitCPU    CPUMap              `json:"init_cpu"`
+	InitMemCap int64               `json:"init_memcap"`
+	Engine     engineapi.APIClient `json:"-"`
 }
 
 // Info show node info

@@ -100,7 +100,7 @@ func NormalizeImageName(image string) string {
 
 // ContextWithDockerEngine bind docker engine to context
 // Bind a docker engine client to context
-func ContextWithDockerEngine(ctx context.Context, client *engineapi.Client) context.Context {
+func ContextWithDockerEngine(ctx context.Context, client engineapi.APIClient) context.Context {
 	return context.WithValue(ctx, engineKey, client)
 }
 
