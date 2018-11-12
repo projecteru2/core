@@ -32,32 +32,14 @@ func (m *Mercury) AddContainer(ctx context.Context, container *types.Container) 
 	if err != nil {
 		return err
 	}
-	data := string(bytes)
+	containerData := string(bytes)
 
-	// store container info
-	key := fmt.Sprintf(containerInfoKey, container.ID)
-	_, err = m.Create(ctx, key, data)
-	if err != nil {
-		return err
+	data := map[string]string{
+		fmt.Sprintf(containerInfoKey, container.ID):                                                 containerData,
+		fmt.Sprintf(nodeContainersKey, container.Nodename, container.ID):                            containerData,
+		filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID): "",
 	}
-
-	// store container finished so clean if err is not nil
-	defer func() {
-		if err != nil {
-			m.CleanContainerData(context.Background(), container.ID, appname, entrypoint, container.Nodename)
-		}
-	}()
-
-	// store deploy status
-	key = filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)
-	_, err = m.Create(ctx, key, "")
-	if err != nil {
-		return err
-	}
-
-	// store node-container data
-	key = fmt.Sprintf(nodeContainersKey, container.Nodename, container.ID)
-	_, err = m.Create(ctx, key, data)
+	_, err = m.BatchCreate(ctx, data)
 	return err
 }
 
@@ -79,23 +61,13 @@ func (m *Mercury) RemoveContainer(ctx context.Context, container *types.Containe
 
 // CleanContainerData clean container data
 func (m *Mercury) CleanContainerData(ctx context.Context, ID, appname, entrypoint, nodename string) error {
-	key := fmt.Sprintf(containerInfoKey, ID)
-	if _, err := m.Delete(ctx, key); err != nil {
-		return err
+	keys := []string{
+		fmt.Sprintf(containerInfoKey, ID),
+		filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID),
+		fmt.Sprintf(nodeContainersKey, nodename, ID),
 	}
-
-	// remove deploy status by core
-	key = filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID)
-	if _, err := m.Delete(ctx, key); err != nil {
-		return err
-	}
-
-	// remove node-containers data
-	key = fmt.Sprintf(nodeContainersKey, nodename, ID)
-	if _, err := m.Delete(ctx, key); err != nil {
-		return err
-	}
-	return nil
+	_, err := m.BatchDelete(ctx, keys)
+	return err
 }
 
 // GetContainer get a container
