@@ -2,8 +2,6 @@ package etcdv3
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -43,34 +41,5 @@ func (m *Mercury) doGetDeployStatus(ctx context.Context, resp *clientv3.GetRespo
 		nodesCount[nodename]++
 	}
 
-	return setCount(nodesCount, nodesInfo), nil
-}
-
-// Obsolete, for old eru, container info not store by container meta, so we have to generate it
-func (m *Mercury) doMakeDeployStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
-	resp, err := m.Get(ctx, fmt.Sprintf(containerInfoKey, ""), clientv3.WithPrefix())
-	if err != nil {
-		return nodesInfo, err
-	}
-
-	prefix := fmt.Sprintf("%s_%s", opts.Name, opts.Entrypoint.Name)
-	container := &types.Container{}
-	nodesCount := map[string]int{}
-	for _, ev := range resp.Kvs {
-		if err := json.Unmarshal(ev.Value, &container); err != nil {
-			return nodesInfo, err
-		}
-		if container.Podname != opts.Podname {
-			continue
-		}
-		if !strings.HasPrefix(container.Name, prefix) {
-			continue
-		}
-		if _, ok := nodesCount[container.Nodename]; !ok {
-			nodesCount[container.Nodename] = 1
-			continue
-		}
-		nodesCount[container.Nodename]++
-	}
 	return setCount(nodesCount, nodesInfo), nil
 }

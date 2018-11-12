@@ -37,33 +37,24 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 				podname, name))
 	}
 
-	// 如果有tls的证书需要保存就保存一下
-	if ca != "" && cert != "" && key != "" {
-		if _, err = m.Put(ctx, fmt.Sprintf(nodeCaKey, name), ca); err != nil {
-			return nil, err
-		}
-
-		if _, err = m.Put(ctx, fmt.Sprintf(nodeCertKey, name), cert); err != nil {
-			return nil, err
-		}
-
-		if _, err = m.Put(ctx, fmt.Sprintf(nodeKeyKey, name), key); err != nil {
-			return nil, err
-		}
-	}
-
 	// 尝试加载docker的客户端
 	engine, err := m.makeDockerClient(ctx, podname, name, endpoint, true)
 	if err != nil {
-		m.deleteNode(ctx, podname, name, endpoint)
 		return nil, err
 	}
 
 	// 判断这货是不是活着的
 	info, err := engine.Info(ctx)
 	if err != nil {
-		m.deleteNode(ctx, podname, name, endpoint)
 		return nil, err
+	}
+
+	data := map[string]string{}
+	// 如果有tls的证书需要保存就保存一下
+	if ca != "" && cert != "" && key != "" {
+		data[fmt.Sprintf(nodeCaKey, name)] = ca
+		data[fmt.Sprintf(nodeCertKey, name)] = cert
+		data[fmt.Sprintf(nodeKeyKey, name)] = key
 	}
 
 	ncpu := cpu
@@ -96,21 +87,14 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 
 	bytes, err := json.Marshal(node)
 	if err != nil {
-		m.deleteNode(ctx, podname, name, endpoint)
 		return nil, err
 	}
 
-	nodeKey := fmt.Sprintf(nodeInfoKey, podname, name)
-	podKey := fmt.Sprintf(nodePodKey, name)
-	_, err = m.Create(ctx, nodeKey, string(bytes))
-	if err != nil {
-		m.deleteNode(ctx, podname, name, endpoint)
-		return nil, err
-	}
+	data[fmt.Sprintf(nodeInfoKey, podname, name)] = string(bytes)
+	data[fmt.Sprintf(nodePodKey, name)] = podname
 
-	_, err = m.Create(ctx, podKey, podname)
+	_, err = m.BatchCreate(ctx, data)
 	if err != nil {
-		m.deleteNode(ctx, podname, name, endpoint)
 		return nil, err
 	}
 
@@ -131,17 +115,15 @@ func (m *Mercury) DeleteNode(ctx context.Context, node *types.Node) {
 // 所以需要删除这些留存的证书
 // 至于结果是不是成功就无所谓了
 func (m *Mercury) deleteNode(ctx context.Context, podname, nodename, endpoint string) {
-	nodeInfo := fmt.Sprintf(nodeInfoKey, podname, nodename)
-	nodePod := fmt.Sprintf(nodePodKey, nodename)
-	ca := fmt.Sprintf(nodeCaKey, nodename)
-	cert := fmt.Sprintf(nodeCertKey, nodename)
-	key := fmt.Sprintf(nodeKeyKey, nodename)
+	keys := []string{
+		fmt.Sprintf(nodeInfoKey, podname, nodename),
+		fmt.Sprintf(nodePodKey, nodename),
+		fmt.Sprintf(nodeCaKey, nodename),
+		fmt.Sprintf(nodeCertKey, nodename),
+		fmt.Sprintf(nodeKeyKey, nodename),
+	}
 
-	m.Delete(ctx, nodeInfo)
-	m.Delete(ctx, nodePod)
-	m.Delete(ctx, ca)
-	m.Delete(ctx, cert)
-	m.Delete(ctx, key)
+	m.BatchDelete(ctx, keys)
 
 	if strings.HasPrefix(endpoint, nodeTCPPrefixKey) {
 		host, err := types.GetEndpointHost(endpoint)

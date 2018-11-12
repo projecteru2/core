@@ -81,14 +81,52 @@ func (m *Mercury) Delete(ctx context.Context, key string, opts ...clientv3.OpOpt
 	return m.cliv3.Delete(ctx, m.parseKey(key), opts...)
 }
 
+// BatchDelete batch delete keys
+func (m *Mercury) BatchDelete(ctx context.Context, keys []string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+	txn := m.cliv3.Txn(ctx)
+	ops := []clientv3.Op{}
+	for _, key := range keys {
+		op := clientv3.OpDelete(m.parseKey(key), opts...)
+		ops = append(ops, op)
+	}
+	return txn.Then(ops...).Commit()
+}
+
 // Put save a key value
 func (m *Mercury) Put(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
 	return m.cliv3.Put(ctx, m.parseKey(key), val, opts...)
 }
 
+func (m *Mercury) batchPut(ctx context.Context, data map[string]string, limit map[string]map[int]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+	txn := m.cliv3.Txn(ctx)
+	ops := []clientv3.Op{}
+	conds := []clientv3.Cmp{}
+	for key, val := range data {
+		key = m.parseKey(key)
+		op := clientv3.OpPut(key, val, opts...)
+		ops = append(ops, op)
+		if v, ok := limit[key]; ok {
+			for rev, condition := range v {
+				cond := clientv3.Compare(clientv3.Version(key), condition, rev)
+				conds = append(conds, cond)
+			}
+		}
+	}
+	return txn.If(conds...).Then(ops...).Commit()
+}
+
 // Create create a key if not exists
 func (m *Mercury) Create(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	resp, err := m.revPut(ctx, key, val, "=", 0, opts...)
+	return m.BatchCreate(ctx, map[string]string{key: val}, opts...)
+}
+
+// BatchCreate create key values if not exists
+func (m *Mercury) BatchCreate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+	limit := map[string]map[int]string{}
+	for key := range data {
+		limit[key] = map[int]string{0: "="}
+	}
+	resp, err := m.batchPut(ctx, data, limit, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -100,12 +138,21 @@ func (m *Mercury) Create(ctx context.Context, key, val string, opts ...clientv3.
 
 // Update update a key if exists
 func (m *Mercury) Update(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	resp, err := m.revPut(ctx, key, val, "!=", 0, opts...)
+	return m.BatchUpdate(ctx, map[string]string{key: val}, opts...)
+}
+
+// BatchUpdate update keys if not exists
+func (m *Mercury) BatchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+	limit := map[string]map[int]string{}
+	for key := range data {
+		limit[key] = map[int]string{0: "!="}
+	}
+	resp, err := m.batchPut(ctx, data, limit, opts...)
 	if err != nil {
 		return nil, err
 	}
 	if !resp.Succeeded {
-		return nil, types.ErrKeyNotExists
+		return nil, types.ErrKeyExists
 	}
 	return resp, nil
 }
@@ -114,13 +161,6 @@ func (m *Mercury) Update(ctx context.Context, key, val string, opts ...clientv3.
 func (m *Mercury) Watch(ctx context.Context, key string, opts ...clientv3.OpOption) clientv3.WatchChan {
 	key = m.parseKey(key)
 	return m.cliv3.Watch(ctx, key, opts...)
-}
-
-func (m *Mercury) revPut(ctx context.Context, key, val, condition string, rev int, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	key = m.parseKey(key)
-	req := clientv3.OpPut(key, val, opts...)
-	cond := clientv3.Compare(clientv3.Version(key), condition, rev)
-	return m.cliv3.Txn(ctx).If(cond).Then(req).Commit()
 }
 
 func (m *Mercury) parseKey(key string) string {
