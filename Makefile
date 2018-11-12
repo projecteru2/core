@@ -30,3 +30,9 @@ test: deps
 
 race: test
 	go test --race -cover -v `glide nv`
+
+mock: deps
+	mockery -dir vendor/github.com/docker/docker/client -name APIClient
+
+cloc:
+	cloc --exclude-dir=vendor,3rdmocks --not-match-f=test .

@@ -150,7 +150,7 @@ func makeMountPaths(opts *types.DeployOptions) ([]string, map[string]struct{}) {
 	return binds, volumes
 }
 
-func execuateInside(ctx context.Context, client *engineapi.Client, ID, cmd, user string, env []string, privileged bool) ([]byte, error) {
+func execuateInside(ctx context.Context, client engineapi.APIClient, ID, cmd, user string, env []string, privileged bool) ([]byte, error) {
 	cmds := utils.MakeCommandLineArgs(cmd)
 	execConfig := enginetypes.ExecConfig{
 		User:         user,
