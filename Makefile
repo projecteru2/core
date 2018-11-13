@@ -35,4 +35,7 @@ mock: deps
 	mockery -dir vendor/github.com/docker/docker/client -name APIClient
 
 cloc:
-	cloc --exclude-dir=vendor,3rdmocks --not-match-f=test .
+	cloc --exclude-dir=vendor,3rdmocks,mocks --not-match-f=test .
+
+unit-test:
+	go test --race -cover ./utils/... ./types/... ./store/etcdv3/... ./scheduler/complex/...

@@ -27,10 +27,11 @@ func NewMercury(t *testing.T, cliv3 *clientv3.Client) *Mercury {
 		Prefix:     "/eru-test",
 		LockPrefix: "/eru-test-lock",
 	}
-	config.Docker.CertPath = "/tmp"
+	//	config.Docker.CertPath = "/tmp"
 
 	return &Mercury{cliv3, config}
 }
+
 func TestMercury(t *testing.T) {
 	etcd := InitCluster(t)
 	defer AfterTest(t, etcd)

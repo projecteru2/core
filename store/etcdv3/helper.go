@@ -29,13 +29,13 @@ func dumpFromString(ca, cert, key *os.File, caStr, certStr, keyStr string) error
 	return nil
 }
 
-func makeRawClient(endpoint, apiversion string) (*engineapi.Client, error) {
+func makeRawClient(endpoint, apiversion string) (engineapi.APIClient, error) {
 	return engineapi.NewClient(endpoint, apiversion, nil, nil)
 }
 
 // use endpoint, cert files path, and api version to create docker client
 // we don't check whether this is connectable
-func makeRawClientWithTLS(ca, cert, key *os.File, endpoint, apiversion string) (*engineapi.Client, error) {
+func makeRawClientWithTLS(ca, cert, key *os.File, endpoint, apiversion string) (engineapi.APIClient, error) {
 	var cli *http.Client
 	options := tlsconfig.Options{
 		CAFile:             ca.Name(),

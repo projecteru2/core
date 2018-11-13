@@ -106,8 +106,8 @@ func ContextWithDockerEngine(ctx context.Context, client engineapi.APIClient) co
 
 // GetDockerEngineFromContext get docker engine from context
 // Get a docker engine client from a context
-func GetDockerEngineFromContext(ctx context.Context) (*engineapi.Client, bool) {
-	client, ok := ctx.Value(engineKey).(*engineapi.Client)
+func GetDockerEngineFromContext(ctx context.Context) (engineapi.APIClient, bool) {
+	client, ok := ctx.Value(engineKey).(engineapi.APIClient)
 	return client, ok
 }
 
