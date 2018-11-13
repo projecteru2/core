@@ -9,6 +9,7 @@ import:
   version: ^3.3.8
   subpackages:
   - client
+  - integration
 - package: github.com/docker/docker
   version: master
   subpackages:
