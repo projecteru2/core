@@ -169,4 +169,4 @@ func (m *Mercury) parseKey(key string) string {
 	return key
 }
 
-var _cache = &utils.Cache{Clients: make(map[string]*engineapi.Client)}
+var _cache = &utils.Cache{Clients: make(map[string]engineapi.APIClient)}

@@ -10,18 +10,18 @@ import (
 // otherwise they'll leak
 type Cache struct {
 	sync.Mutex
-	Clients map[string]*engineapi.Client
+	Clients map[string]engineapi.APIClient
 }
 
 // Set connection with host
-func (c *Cache) Set(host string, client *engineapi.Client) {
+func (c *Cache) Set(host string, client engineapi.APIClient) {
 	c.Lock()
 	defer c.Unlock()
 	c.Clients[host] = client
 }
 
 // Get connection by host
-func (c *Cache) Get(host string) *engineapi.Client {
+func (c *Cache) Get(host string) engineapi.APIClient {
 	c.Lock()
 	defer c.Unlock()
 	return c.Clients[host]

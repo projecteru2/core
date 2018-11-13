@@ -9,7 +9,7 @@ import (
 
 func TestCache(t *testing.T) {
 	c := Cache{
-		Clients: map[string]*engineapi.Client{},
+		Clients: map[string]engineapi.APIClient{},
 	}
 
 	host := "1.1.1.1"

@@ -38,7 +38,7 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 	}
 
 	// 尝试加载docker的客户端
-	engine, err := m.makeDockerClient(ctx, podname, name, endpoint, true)
+	engine, err := m.doMakeDockerClient(ctx, name, endpoint, ca, cert, key)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,21 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 	if err != nil {
 		return nil, err
 	}
+	// 更新默认值
+	if cpu == 0 {
+		cpu = info.NCPU
+	}
+	if memory == 0 {
+		memory = info.MemTotal - types.GByte
+	}
+	if share == 0 {
+		share = m.config.Scheduler.ShareBase
+	}
 
+	return m.doAddNode(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, labels)
+}
+
+func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string) (*types.Node, error) {
 	data := map[string]string{}
 	// 如果有tls的证书需要保存就保存一下
 	if ca != "" && cert != "" && key != "" {
@@ -57,19 +71,8 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 		data[fmt.Sprintf(nodeKeyKey, name)] = key
 	}
 
-	ncpu := cpu
-	memcap := memory
-	if cpu == 0 {
-		ncpu = info.NCPU
-	}
-	if memory == 0 {
-		memcap = info.MemTotal - types.GByte
-	}
-	if share == 0 {
-		share = m.config.Scheduler.ShareBase
-	}
 	cpumap := types.CPUMap{}
-	for i := 0; i < ncpu; i++ {
+	for i := 0; i < cpu; i++ {
 		cpumap[strconv.Itoa(i)] = share
 	}
 
@@ -78,9 +81,9 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 		Endpoint:   endpoint,
 		Podname:    podname,
 		CPU:        cpumap,
-		MemCap:     memcap,
+		MemCap:     memory,
 		InitCPU:    cpumap,
-		InitMemCap: memcap,
+		InitMemCap: memory,
 		Available:  true,
 		Labels:     labels,
 	}
@@ -124,15 +127,7 @@ func (m *Mercury) deleteNode(ctx context.Context, podname, nodename, endpoint st
 	}
 
 	m.BatchDelete(ctx, keys)
-
-	if strings.HasPrefix(endpoint, nodeTCPPrefixKey) {
-		host, err := types.GetEndpointHost(endpoint)
-		if err != nil {
-			log.Errorf("[deleteNode] Bad endpoint: %s", endpoint)
-			return
-		}
-		_cache.Delete(host)
-	}
+	_cache.Delete(nodename)
 	log.Debugf("[deleteNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 }
 
@@ -236,10 +231,10 @@ func (m *Mercury) UpdateNode(ctx context.Context, node *types.Node) error {
 	}
 	defer lock.Unlock(ctx)
 
-	return m.updateNode(ctx, node)
+	return m.doUpdateNode(ctx, node)
 }
 
-func (m *Mercury) updateNode(ctx context.Context, node *types.Node) error {
+func (m *Mercury) doUpdateNode(ctx context.Context, node *types.Node) error {
 	key := fmt.Sprintf(nodeInfoKey, node.Podname, node.Name)
 	bytes, err := json.Marshal(node)
 	if err != nil {
@@ -276,32 +271,27 @@ func (m *Mercury) UpdateNodeResource(ctx context.Context, podname, nodename stri
 	} else if action == "sub" || action == "-" {
 		node.CPU.Sub(cpu)
 		node.MemCap -= mem
+	} else {
+		return types.ErrUnknownControlType
 	}
 
-	err = m.updateNode(ctx, node)
+	err = m.doUpdateNode(ctx, node)
 	go metrics.Client.SendNodeInfo(node)
 	return err
 }
 
-func (m *Mercury) makeDockerClient(ctx context.Context, podname, nodename, endpoint string, force bool) (*engineapi.Client, error) {
+func (m *Mercury) makeDockerClient(ctx context.Context, podname, nodename, endpoint string, force bool) (engineapi.APIClient, error) {
 	// if unix just connect it
 	if strings.HasPrefix(endpoint, nodeSockPrefixKey) {
 		return makeRawClient(endpoint, m.config.Docker.APIVersion)
 	}
 
-	host, err := types.GetEndpointHost(endpoint)
-	if err != nil {
-		return nil, err
-	}
-
 	// try get client, if nil, create a new one
-	var client *engineapi.Client
-	var cliErr error
-	client = _cache.Get(host)
+	var client engineapi.APIClient
+	client = _cache.Get(nodename)
 	if client == nil || force {
-		if m.config.Docker.CertPath == "" {
-			client, cliErr = makeRawClient(endpoint, m.config.Docker.APIVersion)
-		} else {
+		var ca, cert, key string
+		if m.config.Docker.CertPath != "" {
 			keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
 			data := []string{}
 			for i := 0; i < 3; i++ {
@@ -311,27 +301,37 @@ func (m *Mercury) makeDockerClient(ctx context.Context, podname, nodename, endpo
 				}
 				data = append(data, string(ev.Value))
 			}
-			caFile, err := ioutil.TempFile(m.config.Docker.CertPath, fmt.Sprintf("ca-%s", host))
-			if err != nil {
-				return nil, err
-			}
-			certFile, err := ioutil.TempFile(m.config.Docker.CertPath, fmt.Sprintf("cert-%s", host))
-			if err != nil {
-				return nil, err
-			}
-			keyFile, err := ioutil.TempFile(m.config.Docker.CertPath, fmt.Sprintf("key-%s", host))
-			if err != nil {
-				return nil, err
-			}
-			if err = dumpFromString(caFile, certFile, keyFile, data[0], data[1], data[2]); err != nil {
-				return nil, err
-			}
-			client, cliErr = makeRawClientWithTLS(caFile, certFile, keyFile, endpoint, m.config.Docker.APIVersion)
+			ca = data[0]
+			cert = data[1]
+			key = data[2]
 		}
-		if cliErr != nil {
-			return nil, cliErr
+		client, err := m.doMakeDockerClient(ctx, nodename, endpoint, ca, cert, key)
+		if err != nil {
+			return nil, err
 		}
-		_cache.Set(host, client)
+		_cache.Set(nodename, client)
 	}
 	return client, nil
+}
+
+func (m *Mercury) doMakeDockerClient(ctx context.Context, nodename, endpoint, ca, cert, key string) (engineapi.APIClient, error) {
+	if m.config.Docker.CertPath == "" || (ca == "" || cert == "" || key == "") {
+		return makeRawClient(endpoint, m.config.Docker.APIVersion)
+	}
+	caFile, err := ioutil.TempFile(m.config.Docker.CertPath, fmt.Sprintf("ca-%s", nodename))
+	if err != nil {
+		return nil, err
+	}
+	certFile, err := ioutil.TempFile(m.config.Docker.CertPath, fmt.Sprintf("cert-%s", nodename))
+	if err != nil {
+		return nil, err
+	}
+	keyFile, err := ioutil.TempFile(m.config.Docker.CertPath, fmt.Sprintf("key-%s", nodename))
+	if err != nil {
+		return nil, err
+	}
+	if err = dumpFromString(caFile, certFile, keyFile, ca, cert, key); err != nil {
+		return nil, err
+	}
+	return makeRawClientWithTLS(caFile, certFile, keyFile, endpoint, m.config.Docker.APIVersion)
 }
