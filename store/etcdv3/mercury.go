@@ -63,8 +63,8 @@ func (m *Mercury) Get(ctx context.Context, key string, opts ...clientv3.OpOption
 }
 
 // GetOne get one result or noting
-func (m *Mercury) GetOne(ctx context.Context, key string) (*mvccpb.KeyValue, error) {
-	resp, err := m.cliv3.Get(ctx, m.parseKey(key))
+func (m *Mercury) GetOne(ctx context.Context, key string, opts ...clientv3.OpOption) (*mvccpb.KeyValue, error) {
+	resp, err := m.Get(ctx, key, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -102,12 +102,12 @@ func (m *Mercury) batchPut(ctx context.Context, data map[string]string, limit ma
 	ops := []clientv3.Op{}
 	conds := []clientv3.Cmp{}
 	for key, val := range data {
-		key = m.parseKey(key)
-		op := clientv3.OpPut(key, val, opts...)
+		prefixKey := m.parseKey(key)
+		op := clientv3.OpPut(prefixKey, val, opts...)
 		ops = append(ops, op)
 		if v, ok := limit[key]; ok {
 			for rev, condition := range v {
-				cond := clientv3.Compare(clientv3.Version(key), condition, rev)
+				cond := clientv3.Compare(clientv3.Version(prefixKey), condition, rev)
 				conds = append(conds, cond)
 			}
 		}
@@ -128,10 +128,10 @@ func (m *Mercury) BatchCreate(ctx context.Context, data map[string]string, opts 
 	}
 	resp, err := m.batchPut(ctx, data, limit, opts...)
 	if err != nil {
-		return nil, err
+		return resp, err
 	}
 	if !resp.Succeeded {
-		return nil, types.ErrKeyExists
+		return resp, types.ErrKeyExists
 	}
 	return resp, nil
 }
@@ -149,10 +149,10 @@ func (m *Mercury) BatchUpdate(ctx context.Context, data map[string]string, opts 
 	}
 	resp, err := m.batchPut(ctx, data, limit, opts...)
 	if err != nil {
-		return nil, err
+		return resp, err
 	}
 	if !resp.Succeeded {
-		return nil, types.ErrKeyExists
+		return resp, types.ErrKeyExists
 	}
 	return resp, nil
 }

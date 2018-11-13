@@ -188,6 +188,19 @@ func TestCleanStatsdMetrics(t *testing.T) {
 	assert.Equal(t, CleanStatsdMetrics(k), "a-b-c")
 }
 
+func TestTempFile(t *testing.T) {
+	buff := bytes.NewBufferString("test")
+	rc := ioutil.NopCloser(buff)
+	fname, err := TempFile(rc)
+	assert.NoError(t, err)
+	f, err := os.Open(fname)
+	assert.NoError(t, err)
+	b, err := ioutil.ReadAll(f)
+	assert.NoError(t, err)
+	assert.Equal(t, string(b), "test")
+	os.Remove(fname)
+}
+
 func TestTempTarFile(t *testing.T) {
 	data := []byte("test")
 	path := "/tmp/test"
