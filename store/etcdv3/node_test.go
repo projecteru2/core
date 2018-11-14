@@ -15,6 +15,7 @@ func TestNode(t *testing.T) {
 	m := NewMercury(t, etcd.RandClient())
 	ctx := context.Background()
 	nodename := "testnode"
+	nodename2 := "testnode2"
 	endpoint := "tcp://127.0.0.1:2376"
 	podname := "testpod"
 	_, err := m.AddPod(ctx, podname, "CPU", "")
@@ -22,24 +23,35 @@ func TestNode(t *testing.T) {
 	cpu := 1
 	share := 100
 	memory := int64(100)
+	m.config.Scheduler.ShareBase = 100
 	labels := map[string]string{"test": "1"}
 
+	// wrong endpoint
 	_, err = m.AddNode(ctx, nodename, "abc", podname, "", "", "", cpu, share, memory, labels)
 	assert.Error(t, err)
+	// wrong because engine not mocked
 	_, err = m.AddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, labels)
-	// wrong endpoint
 	assert.Error(t, err)
-	// TODO there is no way to mock docker client, may be run a docker to do it.
-	// So we test doAddNode
-	node, err := m.doAddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, labels)
+
+	endpoint = "mock://mockdocker"
+	// AddNode
+	node, err := m.AddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, labels)
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, nodename)
 	assert.Equal(t, node.CPU["0"], 100)
-	_, err = m.doAddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, labels)
+	// Addnode again will failed
+	_, err = m.AddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, labels)
 	assert.Error(t, err)
+	// Check etcd has node data
 	key := fmt.Sprintf(nodeInfoKey, podname, nodename)
 	ev, err := m.GetOne(ctx, key)
 	assert.NoError(t, err)
+	// AddNode with mocked engine and default value
+	node3, err := m.AddNode(ctx, nodename2, endpoint, podname, "", "", "", 0, 0, 0, labels)
+	assert.NoError(t, err)
+	assert.Equal(t, node3.CPU["0"], 100)
+	assert.Equal(t, len(node3.CPU), 1)
+	assert.Equal(t, node3.MemCap, int64(100))
 	// GetNode
 	_, err = m.GetNode(ctx, "nil", nodename)
 	assert.Error(t, err)
@@ -65,14 +77,14 @@ func TestNode(t *testing.T) {
 	assert.Equal(t, len(nodes), 0)
 	nodes, err = m.GetNodesByPod(ctx, podname)
 	assert.NoError(t, err)
-	assert.Equal(t, len(nodes), 1)
+	assert.Equal(t, len(nodes), 2)
 	savedNode = nodes[0]
 	assert.Equal(t, savedNode.Name, node.Name)
 	assert.Equal(t, savedNode.Endpoint, node.Endpoint)
 	// GetAllNodes
 	nodes, err = m.GetAllNodes(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, len(nodes), 1)
+	assert.Equal(t, len(nodes), 2)
 	savedNode = nodes[0]
 	assert.Equal(t, savedNode.Name, node.Name)
 	assert.Equal(t, savedNode.Endpoint, node.Endpoint)
@@ -165,11 +177,11 @@ Dl0aR0+ZbHq5hv5feDdpeKxMxKkKnCu1cl47gKAyFet5nvK7htBUk9aIph8zDBZj
 cmag5uyTcIogsd5GyOg06jDD1aCqz3FbTX1KQLeSFQUCTT+m100rohrc2rW5m4Al
 RdCPRPt513WozkJZZAjUSP2U
 -----END PRIVATE KEY-----`
-	nodename2 := "n2"
-	node2, err := m.doAddNode(ctx, nodename2, endpoint, podname, ca, cert, certkey, cpu, share, memory, labels)
+	nodename3 := "nodename3"
+	node2, err := m.AddNode(ctx, nodename3, endpoint, podname, ca, cert, certkey, cpu, share, memory, labels)
 	assert.NoError(t, err)
 	m.config.Docker.CertPath = "/tmp"
-	_, err = m.makeDockerClient(ctx, podname, nodename2, endpoint, true)
+	_, err = m.makeDockerClient(ctx, podname, nodename3, endpoint, true)
 	assert.NoError(t, err)
 	// DeleteNode
 	m.DeleteNode(ctx, node2)
