@@ -44,3 +44,32 @@ func TestNode(t *testing.T) {
 	_, err = GetEndpointHost(node.Endpoint)
 	assert.Error(t, err)
 }
+
+func TestCPUMap(t *testing.T) {
+	cpuMap := CPUMap{"0": 50, "1": 70}
+	total := cpuMap.Total()
+	assert.Equal(t, total, 120)
+
+	cpuMap.Add(CPUMap{"0": 20})
+	assert.Equal(t, cpuMap["0"], 70)
+
+	cpuMap.Sub(CPUMap{"1": 20})
+	assert.Equal(t, cpuMap["1"], 50)
+}
+
+func TestGetEndpointHost(t *testing.T) {
+	endpoint := "xxxxx"
+	s, err := GetEndpointHost(endpoint)
+	assert.Error(t, err)
+	assert.Empty(t, s)
+
+	endpoint = "tcp://ip"
+	s, err = GetEndpointHost(endpoint)
+	assert.Error(t, err)
+	assert.Empty(t, s)
+
+	endpoint = "tcp://ip:port"
+	s, err = GetEndpointHost(endpoint)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, s)
+}
