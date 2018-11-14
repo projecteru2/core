@@ -20,7 +20,9 @@ import (
 // storage path in etcd is `/pod/nodes/:podname/:nodename`
 // node->pod path in etcd is `/node/pod/:nodename`
 func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string) (*types.Node, error) {
-	if !strings.HasPrefix(endpoint, nodeTCPPrefixKey) && !strings.HasPrefix(endpoint, nodeSockPrefixKey) {
+	if !strings.HasPrefix(endpoint, nodeTCPPrefixKey) &&
+		!strings.HasPrefix(endpoint, nodeSockPrefixKey) &&
+		!strings.HasPrefix(endpoint, nodeMockPrefixKey) {
 		return nil, types.NewDetailedErr(types.ErrNodeFormat,
 			fmt.Sprintf("endpoint must starts with %s or %s %q",
 				nodeTCPPrefixKey, nodeSockPrefixKey, endpoint))
@@ -315,6 +317,9 @@ func (m *Mercury) makeDockerClient(ctx context.Context, podname, nodename, endpo
 }
 
 func (m *Mercury) doMakeDockerClient(ctx context.Context, nodename, endpoint, ca, cert, key string) (engineapi.APIClient, error) {
+	if strings.HasPrefix(endpoint, nodeMockPrefixKey) {
+		return makeMockClient()
+	}
 	if m.config.Docker.CertPath == "" || (ca == "" || cert == "" || key == "") {
 		return makeRawClient(endpoint, m.config.Docker.APIVersion)
 	}

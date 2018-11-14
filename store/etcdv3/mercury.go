@@ -18,6 +18,7 @@ import (
 const (
 	nodeTCPPrefixKey  = "tcp://"
 	nodeSockPrefixKey = "unix://"
+	nodeMockPrefixKey = "mock://"
 
 	podInfoKey  = "/pod/info/%s"
 	podNodesKey = "/pod/nodes/%s"    // /pod/nodes/pod1/node1 /pod/nodes/pod1/node2
