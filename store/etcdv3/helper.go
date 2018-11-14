@@ -8,7 +8,7 @@ import (
 	enginetypes "github.com/docker/docker/api/types"
 	engineapi "github.com/docker/docker/client"
 	"github.com/docker/go-connections/tlsconfig"
-	enginemock "github.com/projecteru2/core/3rdmocks"
+	enginemocks "github.com/projecteru2/core/3rdmocks"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/mock"
@@ -33,7 +33,7 @@ func dumpFromString(ca, cert, key *os.File, caStr, certStr, keyStr string) error
 }
 
 func makeMockClient() (engineapi.APIClient, error) {
-	engine := &enginemock.APIClient{}
+	engine := &enginemocks.APIClient{}
 	engine.On("Info", mock.AnythingOfType("*context.emptyCtx")).Return(
 		enginetypes.Info{NCPU: 1, MemTotal: types.GByte + 100}, nil)
 	return engine, nil

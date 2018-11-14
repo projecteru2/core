@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	enginetypes "github.com/docker/docker/api/types"
-	"github.com/projecteru2/core/3rdmocks"
+	enginemocks "github.com/projecteru2/core/3rdmocks"
 )
 
 func TestNode(t *testing.T) {
-	mockEngine := &mocks.APIClient{}
+	mockEngine := &enginemocks.APIClient{}
 	r := enginetypes.Info{ID: "test"}
 	mockEngine.On("Info", mock.AnythingOfType("*context.timerCtx")).Return(r, nil)
 

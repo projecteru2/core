@@ -13,10 +13,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type titanium struct{}
+// Titanium for calico sdn
+type Titanium struct{}
 
-// connect to network with ipv4 address
-func (t *titanium) ConnectToNetwork(ctx context.Context, containerID, networkID, ipv4 string) error {
+// ConnectToNetwork to network with ipv4 address
+func (t *Titanium) ConnectToNetwork(ctx context.Context, containerID, networkID, ipv4 string) error {
 	if len(containerID) != 64 {
 		return types.ErrBadContainerID
 	}
@@ -46,8 +47,8 @@ func (t *titanium) ConnectToNetwork(ctx context.Context, containerID, networkID,
 	return engine.NetworkConnect(ctx, networkID, containerID, config)
 }
 
-// disconnect from network
-func (t *titanium) DisconnectFromNetwork(ctx context.Context, containerID, networkID string) error {
+// DisconnectFromNetwork from network
+func (t *Titanium) DisconnectFromNetwork(ctx context.Context, containerID, networkID string) error {
 	if len(containerID) != 64 {
 		return types.ErrBadContainerID
 	}
@@ -62,8 +63,8 @@ func (t *titanium) DisconnectFromNetwork(ctx context.Context, containerID, netwo
 	return engine.NetworkDisconnect(ctx, networkID, containerID, false)
 }
 
-// list networks from context
-func (t *titanium) ListNetworks(ctx context.Context, driver string) ([]*types.Network, error) {
+// ListNetworks networks from context
+func (t *Titanium) ListNetworks(ctx context.Context, driver string) ([]*types.Network, error) {
 	networks := []*types.Network{}
 	engine, ok := utils.GetDockerEngineFromContext(ctx)
 	if !ok {
@@ -90,7 +91,7 @@ func (t *titanium) ListNetworks(ctx context.Context, driver string) ([]*types.Ne
 	return networks, nil
 }
 
-//New a titanium obj
-func New() *titanium {
-	return &titanium{}
+// New a titanium obj
+func New() *Titanium {
+	return &Titanium{}
 }
