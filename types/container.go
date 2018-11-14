@@ -28,11 +28,11 @@ type Container struct {
 
 // Inspect a container
 func (c *Container) Inspect(ctx context.Context) (enginetypes.ContainerJSON, error) {
-	inspectCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
 	if c.Engine == nil {
 		return enginetypes.ContainerJSON{}, ErrNilEngine
 	}
+	inspectCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 	return c.Engine.ContainerInspect(inspectCtx, c.ID)
 }
 
@@ -41,8 +41,9 @@ func (c *Container) Start(ctx context.Context) error {
 	if c.Engine == nil {
 		return ErrNilEngine
 	}
-
-	return c.Engine.ContainerStart(ctx, c.ID, enginetypes.ContainerStartOptions{})
+	startCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	return c.Engine.ContainerStart(startCtx, c.ID, enginetypes.ContainerStartOptions{})
 }
 
 // Stop a container
