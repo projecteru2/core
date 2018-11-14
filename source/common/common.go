@@ -28,43 +28,46 @@ func certificateCheckCallback(cert *git.Certificate, valid bool, hostname string
 }
 
 func gitcheck(repository, pubkey, prikey string) error {
-	if !(strings.Contains(repository, "git@") || strings.Contains(repository, "gitlab@")) {
-		return fmt.Errorf("Only support ssh protocol(%q), use git@... ", repository)
+	if strings.Contains(repository, "https://") {
+		return nil
 	}
-	if _, err := os.Stat(pubkey); os.IsNotExist(err) {
-		return fmt.Errorf("Public Key not found(%q)", pubkey)
+	if strings.Contains(repository, "git@") || strings.Contains(repository, "gitlab@") {
+		if _, err := os.Stat(pubkey); os.IsNotExist(err) {
+			return fmt.Errorf("Public Key not found(%q)", pubkey)
+		}
+		if _, err := os.Stat(prikey); os.IsNotExist(err) {
+			return fmt.Errorf("Private Key not found(%q)", prikey)
+		}
+		return nil
 	}
-	if _, err := os.Stat(prikey); os.IsNotExist(err) {
-		return fmt.Errorf("Private Key not found(%q)", prikey)
-	}
-
-	return nil
+	return fmt.Errorf("No Support")
 }
 
 // SourceCode clone code from repository into path, by revision
 func (g *GitScm) SourceCode(repository, path, revision string, submodule bool) error {
-	pubkey := g.Config.PublicKey
-	prikey := g.Config.PrivateKey
-
-	if err := gitcheck(repository, pubkey, prikey); err != nil {
+	if err := gitcheck(repository, g.Config.PublicKey, g.Config.PrivateKey); err != nil {
 		return err
 	}
 
-	credentialsCallback := func(url, username string, allowedTypes git.CredType) (git.ErrorCode, *git.Cred) {
-		ret, cred := git.NewCredSshKey(username, pubkey, prikey, "")
-		return git.ErrorCode(ret), &cred
-	}
-
-	cloneOpts := &git.CloneOptions{
-		FetchOptions: &git.FetchOptions{
-			RemoteCallbacks: git.RemoteCallbacks{
-				CredentialsCallback:      credentialsCallback,
-				CertificateCheckCallback: certificateCheckCallback,
+	var repo *git.Repository
+	var err error
+	if strings.Contains(repository, "https://") {
+		repo, err = git.Clone(repository, path, &git.CloneOptions{})
+	} else {
+		credentialsCallback := func(url, username string, allowedTypes git.CredType) (git.ErrorCode, *git.Cred) {
+			ret, cred := git.NewCredSshKey(username, g.Config.PublicKey, g.Config.PrivateKey, "")
+			return git.ErrorCode(ret), &cred
+		}
+		cloneOpts := &git.CloneOptions{
+			FetchOptions: &git.FetchOptions{
+				RemoteCallbacks: git.RemoteCallbacks{
+					CredentialsCallback:      credentialsCallback,
+					CertificateCheckCallback: certificateCheckCallback,
+				},
 			},
-		},
+		}
+		repo, err = git.Clone(repository, path, cloneOpts)
 	}
-
-	repo, err := git.Clone(repository, path, cloneOpts)
 	if err != nil {
 		return err
 	}
@@ -124,7 +127,7 @@ func (g *GitScm) SourceCode(repository, path, revision string, submodule bool) e
 
 // Artifact download the artifact to the path, then unzip it
 func (g *GitScm) Artifact(artifact, path string) error {
-	req, err := http.NewRequest("GET", artifact, nil)
+	req, err := http.NewRequest(http.MethodGet, artifact, nil)
 	if err != nil {
 		return err
 	}
@@ -146,7 +149,7 @@ func (g *GitScm) Artifact(artifact, path string) error {
 
 	// extract files from zipfile
 	log.Debugf("[Artifact] Extracting files from %q", artifact)
-	if err := UnzipFile(resp.Body, path); err != nil {
+	if err := unzipFile(resp.Body, path); err != nil {
 		return err
 	}
 	log.Debugf("[Artifact] Extraction from %q done", artifact)
@@ -154,8 +157,13 @@ func (g *GitScm) Artifact(artifact, path string) error {
 	return nil
 }
 
-// UnzipFile unzip a file(from resp.Body) to the spec path
-func UnzipFile(body io.ReadCloser, path string) error {
+// Security remove the .git folder
+func (g *GitScm) Security(path string) error {
+	return os.RemoveAll(filepath.Join(path, ".git"))
+}
+
+// unzipFile unzip a file(from resp.Body) to the spec path
+func unzipFile(body io.ReadCloser, path string) error {
 	content, err := ioutil.ReadAll(body)
 	if err != nil {
 		return err
@@ -193,57 +201,4 @@ func UnzipFile(body io.ReadCloser, path string) error {
 		}
 	}
 	return nil
-}
-
-// ZipFiles compresses one or many files into a single zip archive file
-func ZipFiles(filename string, files []string) error {
-
-	newfile, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer newfile.Close()
-
-	zipWriter := zip.NewWriter(newfile)
-	defer zipWriter.Close()
-
-	// Add files to zip
-	for _, file := range files {
-
-		zipfile, err := os.Open(file)
-		if err != nil {
-			return err
-		}
-		defer zipfile.Close()
-
-		// Get the file information
-		info, err := zipfile.Stat()
-		if err != nil {
-			return err
-		}
-
-		header, err := zip.FileInfoHeader(info)
-		if err != nil {
-			return err
-		}
-
-		// Change to deflate to gain better compression
-		// see http://golang.org/pkg/archive/zip/#pkg-constants
-		header.Method = zip.Deflate
-
-		writer, err := zipWriter.CreateHeader(header)
-		if err != nil {
-			return err
-		}
-		_, err = io.Copy(writer, zipfile)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// Security remove the .git folder
-func (g *GitScm) Security(path string) error {
-	return os.RemoveAll(filepath.Join(path, ".git"))
 }
