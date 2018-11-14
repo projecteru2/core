@@ -283,31 +283,29 @@ func (m *Mercury) UpdateNodeResource(ctx context.Context, podname, nodename stri
 }
 
 func (m *Mercury) makeDockerClient(ctx context.Context, podname, nodename, endpoint string, force bool) (engineapi.APIClient, error) {
-	// if unix just connect it
-	if strings.HasPrefix(endpoint, nodeSockPrefixKey) {
-		return makeRawClient(endpoint, m.config.Docker.APIVersion)
-	}
-
 	// try get client, if nil, create a new one
 	var client engineapi.APIClient
+	var err error
 	client = _cache.Get(nodename)
 	if client == nil || force {
 		var ca, cert, key string
 		if m.config.Docker.CertPath != "" {
 			keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
-			data := []string{}
+			data := []string{"", "", ""}
 			for i := 0; i < 3; i++ {
 				ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], nodename))
 				if err != nil {
-					return nil, err
+					log.Warnf("[makeDockerClient] Get key failed %v", err)
+					data[i] = ""
+				} else {
+					data[i] = string(ev.Value)
 				}
-				data = append(data, string(ev.Value))
 			}
 			ca = data[0]
 			cert = data[1]
 			key = data[2]
 		}
-		client, err := m.doMakeDockerClient(ctx, nodename, endpoint, ca, cert, key)
+		client, err = m.doMakeDockerClient(ctx, nodename, endpoint, ca, cert, key)
 		if err != nil {
 			return nil, err
 		}
@@ -320,7 +318,9 @@ func (m *Mercury) doMakeDockerClient(ctx context.Context, nodename, endpoint, ca
 	if strings.HasPrefix(endpoint, nodeMockPrefixKey) {
 		return makeMockClient()
 	}
-	if m.config.Docker.CertPath == "" || (ca == "" || cert == "" || key == "") {
+	if strings.HasPrefix(endpoint, nodeSockPrefixKey) ||
+		m.config.Docker.CertPath == "" ||
+		(ca == "" || cert == "" || key == "") {
 		return makeRawClient(endpoint, m.config.Docker.APIVersion)
 	}
 	caFile, err := ioutil.TempFile(m.config.Docker.CertPath, fmt.Sprintf("ca-%s", nodename))
