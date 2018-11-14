@@ -47,11 +47,11 @@ func TestNode(t *testing.T) {
 	ev, err := m.GetOne(ctx, key)
 	assert.NoError(t, err)
 	// AddNode with mocked engine and default value
-	node3, err := m.AddNode(ctx, nodename2, endpoint, podname, "", "", "", 0, 0, 0, labels)
+	node2, err := m.AddNode(ctx, nodename2, endpoint, podname, "", "", "", 0, 0, 0, labels)
 	assert.NoError(t, err)
-	assert.Equal(t, node3.CPU["0"], 100)
-	assert.Equal(t, len(node3.CPU), 1)
-	assert.Equal(t, node3.MemCap, int64(100))
+	assert.Equal(t, node2.CPU["0"], 100)
+	assert.Equal(t, len(node2.CPU), 1)
+	assert.Equal(t, node2.MemCap, int64(100))
 	// GetNode
 	_, err = m.GetNode(ctx, "nil", nodename)
 	assert.Error(t, err)
@@ -178,13 +178,16 @@ cmag5uyTcIogsd5GyOg06jDD1aCqz3FbTX1KQLeSFQUCTT+m100rohrc2rW5m4Al
 RdCPRPt513WozkJZZAjUSP2U
 -----END PRIVATE KEY-----`
 	nodename3 := "nodename3"
-	node2, err := m.AddNode(ctx, nodename3, endpoint, podname, ca, cert, certkey, cpu, share, memory, labels)
-	assert.NoError(t, err)
+	endpoint3 := "tcp://path"
 	m.config.Docker.CertPath = "/tmp"
-	_, err = m.makeDockerClient(ctx, podname, nodename3, endpoint, true)
+	node3, err := m.doAddNode(ctx, nodename3, endpoint3, podname, ca, cert, certkey, cpu, share, memory, labels)
 	assert.NoError(t, err)
+	engine3, err := m.makeDockerClient(ctx, podname, nodename3, endpoint3, true)
+	assert.NoError(t, err)
+	_, err = engine3.Info(ctx)
+	assert.Error(t, err)
 	// DeleteNode
-	m.DeleteNode(ctx, node2)
+	m.DeleteNode(ctx, node3)
 	m.DeleteNode(ctx, node)
 	resp, err := m.Get(ctx, fmt.Sprintf(nodeInfoKey, podname, nodename))
 	assert.NoError(t, err)
