@@ -57,7 +57,7 @@ func TestDisconnectFromNetwork(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestListNetworksFail(t *testing.T) {
+func TestListNetworks(t *testing.T) {
 	s := New()
 	mockEngine := &enginemocks.APIClient{}
 	// no engine
@@ -66,16 +66,10 @@ func TestListNetworksFail(t *testing.T) {
 	ctx := utils.ContextWithDockerEngine(context.Background(), mockEngine)
 	mockEngine.On("NetworkList",
 		mock.AnythingOfType("*context.valueCtx"), mock.Anything,
-	).Return(nil, errors.New("test"))
+	).Return(nil, errors.New("test")).Once()
 	// List failed
 	_, err = s.ListNetworks(ctx, "")
 	assert.Error(t, err)
-}
-
-func TestListNetworks(t *testing.T) {
-	s := New()
-	mockEngine := &enginemocks.APIClient{}
-	ctx := utils.ContextWithDockerEngine(context.Background(), mockEngine)
 	// List
 	networkName := "test"
 	subnet := "10.2.0.0/16"

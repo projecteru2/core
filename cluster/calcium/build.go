@@ -46,8 +46,12 @@ func (c *Calcium) preparedSource(build *types.Build, buildDir string) (string, e
 	// code locates under /:repositoryname
 	var cloneDir string
 	var err error
-	reponame := build.Repo
-	if build.Repo != "" && build.Version != "" {
+	reponame := ""
+	if build.Repo != "" {
+		version := build.Version
+		if version == "" {
+			version = "HEAD"
+		}
 		reponame, err = utils.GetGitRepoName(build.Repo)
 		if err != nil {
 			return "", err
@@ -56,7 +60,7 @@ func (c *Calcium) preparedSource(build *types.Build, buildDir string) (string, e
 		// clone code into cloneDir
 		// which is under buildDir and named as repository name
 		cloneDir = filepath.Join(buildDir, reponame)
-		if err := c.source.SourceCode(build.Repo, cloneDir, build.Version, build.Submodule); err != nil {
+		if err := c.source.SourceCode(build.Repo, cloneDir, version, build.Submodule); err != nil {
 			return "", err
 		}
 
@@ -167,7 +171,6 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 	}
 	//TODO 这里需要考虑用 mem，CPU 不限制 mem
 	node := c.scheduler.MaxCPUIdleNode(nodes)
-
 	// make build dir
 	buildDir, err := ioutil.TempDir(os.TempDir(), "corebuild-")
 	if err != nil {
@@ -262,8 +265,8 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 				ch <- makeErrorBuildImageMessage(err)
 				continue
 			}
-
 			defer rc.Close()
+
 			decoder2 := json.NewDecoder(rc)
 			for {
 				message := &types.BuildImageMessage{}

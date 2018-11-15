@@ -56,8 +56,11 @@ func TestGetGitRepoName(t *testing.T) {
 	_, err := GetGitRepoName("xxx")
 	assert.Error(t, err)
 
-	_, err = GetGitRepoName("https://github.com/projecteru2/core.git")
+	_, err = GetGitRepoName("file://github.com/projecteru2/core.git")
 	assert.Error(t, err)
+
+	_, err = GetGitRepoName("https://github.com/projecteru2/core.git")
+	assert.NoError(t, err)
 
 	r1, err := GetGitRepoName("git@github.com:projecteru2/core.git")
 	assert.NoError(t, err)
