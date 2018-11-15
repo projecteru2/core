@@ -2,79 +2,247 @@ package calcium
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
-	"github.com/projecteru2/core/network/sdn"
-	"github.com/projecteru2/core/scheduler/complex"
-	"github.com/projecteru2/core/source/gitlab"
-	"github.com/projecteru2/core/store/mock"
-	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
+	storemocks "github.com/projecteru2/core/store/mocks"
+	"github.com/projecteru2/core/types"
 )
 
-func TestListPods(t *testing.T) {
-	store := &mockstore.MockStore{}
-	config := types.Config{}
-	s, _ := complexscheduler.New(config)
-	c := &Calcium{store: store, config: config, scheduler: s, network: sdn.New(), source: gitlab.New(config)}
-
-	store.On("GetAllPods").Return([]*types.Pod{
-		&types.Pod{Name: "pod1", Desc: "desc1"},
-		&types.Pod{Name: "pod2", Desc: "desc2"},
-	}, nil).Once()
-
-	ctx := context.Background()
-	ps, err := c.ListPods(ctx)
-	assert.Equal(t, len(ps), 2)
-	assert.Nil(t, err)
-
-	store.On("GetAllPods").Return([]*types.Pod{}, nil).Once()
-
-	ps, err = c.ListPods(ctx)
-	assert.Empty(t, ps)
-	assert.Nil(t, err)
-}
-
 func TestAddPod(t *testing.T) {
-	store := &mockstore.MockStore{}
-	config := types.Config{}
-	s, _ := complexscheduler.New(config)
-	c := &Calcium{store: store, config: config, scheduler: s, network: sdn.New(), source: gitlab.New(config)}
-
-	store.On("AddPod", "pod1", "", "desc1").Return(&types.Pod{Name: "pod1", Favor: "MEM", Desc: "desc1"}, nil)
-	store.On("AddPod", "pod2", "", "desc2").Return(nil, fmt.Errorf("Etcd Error"))
-
+	c := NewTestCluster()
 	ctx := context.Background()
-	p, err := c.AddPod(ctx, "pod1", "", "desc1")
-	assert.Equal(t, p.Name, "pod1")
-	assert.Equal(t, p.Favor, "MEM")
-	assert.Equal(t, p.Desc, "desc1")
-	assert.Nil(t, err)
+	name := "test"
+	pod := &types.Pod{
+		Name: name,
+	}
 
-	p, err = c.AddPod(ctx, "pod2", "", "desc2")
-	assert.Nil(t, p)
-	assert.Equal(t, err.Error(), "Etcd Error")
+	store := &storemocks.Store{}
+	store.On("AddPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(pod, nil)
+	c.store = store
+
+	p, err := c.AddPod(ctx, "", "", "")
+	assert.NoError(t, err)
+	assert.Equal(t, p.Name, name)
 }
 
-func TestGetPods(t *testing.T) {
-	store := &mockstore.MockStore{}
-	config := types.Config{}
-	s, _ := complexscheduler.New(config)
-	c := &Calcium{store: store, config: config, scheduler: s, network: sdn.New(), source: gitlab.New(config)}
-
-	store.On("GetPod", "pod1").Return(&types.Pod{Name: "pod1", Desc: "desc1"}, nil).Once()
-	store.On("GetPod", "pod2").Return(nil, fmt.Errorf("Not found")).Once()
+func TestAddNode(t *testing.T) {
+	c := NewTestCluster()
 	ctx := context.Background()
-	p, err := c.GetPod(ctx, "pod1")
-	assert.Equal(t, p.Name, "pod1")
-	assert.Equal(t, p.Desc, "desc1")
-	assert.Nil(t, err)
+	name := "test"
+	node := &types.Node{
+		Name: name,
+	}
 
-	p, err = c.GetPod(ctx, "pod2")
-	assert.Nil(t, p)
-	assert.Equal(t, err.Error(), "Not found")
+	store := &storemocks.Store{}
+	store.On("AddNode",
+		mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything).Return(node, nil)
+	c.store = store
+
+	n, err := c.AddNode(ctx, "", "", "", "", "", "", 0, 0, int64(0), nil)
+	assert.NoError(t, err)
+	assert.Equal(t, n.Name, name)
 }
 
-// 后面的我实在不想写了
-// 让我们相信接口都是正确的吧
+func TestRemovePod(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+
+	store := &storemocks.Store{}
+	store.On("RemovePod", mock.Anything, mock.Anything).Return(nil)
+	c.store = store
+	assert.NoError(t, c.RemovePod(ctx, ""))
+}
+
+func TestRemoveNode(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+
+	name := "test"
+	node := &types.Node{Name: name}
+	store := &storemocks.Store{}
+	store.On("GetNode",
+		mock.Anything,
+		mock.Anything,
+		mock.Anything).Return(node, nil)
+	store.On("DeleteNode", mock.Anything, mock.Anything).Return(nil)
+	pod := &types.Pod{Name: name}
+	store.On("GetPod", mock.Anything, mock.Anything).Return(pod, nil)
+	c.store = store
+
+	p, err := c.RemoveNode(ctx, "", "")
+	assert.NoError(t, err)
+	assert.Equal(t, p.Name, name)
+}
+
+func TestListPods(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	name := "test"
+	pods := []*types.Pod{
+		&types.Pod{Name: name},
+	}
+
+	store := &storemocks.Store{}
+	store.On("GetAllPods", mock.Anything).Return(pods, nil)
+	c.store = store
+
+	ps, err := c.ListPods(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, len(ps), 1)
+	assert.Equal(t, ps[0].Name, name)
+}
+
+func TestListPodNodes(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	name1 := "test1"
+	name2 := "test2"
+	nodes := []*types.Node{
+		&types.Node{Name: name1, Available: true},
+		&types.Node{Name: name2, Available: false},
+	}
+
+	store := &storemocks.Store{}
+	c.store = store
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrBadPodType).Once()
+	_, err := c.ListPodNodes(ctx, "", false)
+	assert.Error(t, err)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
+	ns, err := c.ListPodNodes(ctx, "", false)
+	assert.NoError(t, err)
+	assert.Equal(t, len(ns), 1)
+	assert.Equal(t, ns[0].Name, name1)
+	ns, err = c.ListPodNodes(ctx, "", true)
+	assert.NoError(t, err)
+	assert.Equal(t, len(ns), 2)
+}
+
+func TestListContainers(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	ID := "testID"
+	containers := []*types.Container{
+		&types.Container{ID: ID},
+	}
+
+	store := &storemocks.Store{}
+	c.store = store
+	store.On("ListContainers", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
+	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(containers, nil)
+
+	cs, err := c.ListContainers(ctx, &types.ListContainersOptions{Appname: "", Entrypoint: "", Nodename: ""})
+	assert.NoError(t, err)
+	assert.Equal(t, len(cs), 1)
+	assert.Equal(t, cs[0].ID, ID)
+	cs, err = c.ListNodeContainers(ctx, "")
+	assert.NoError(t, err)
+	assert.Equal(t, len(cs), 1)
+	assert.Equal(t, cs[0].ID, ID)
+}
+
+func TestGetPod(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+
+	name := "test"
+	pod := &types.Pod{Name: name}
+	store := &storemocks.Store{}
+	store.On("GetPod", mock.Anything, mock.Anything).Return(pod, nil)
+	c.store = store
+
+	p, err := c.GetPod(ctx, "")
+	assert.NoError(t, err)
+	assert.Equal(t, p.Name, name)
+}
+
+func TestGetNode(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	name := "test"
+	node := &types.Node{
+		Name: name,
+	}
+
+	store := &storemocks.Store{}
+	store.On("GetNode",
+		mock.Anything,
+		mock.Anything,
+		mock.Anything).Return(node, nil)
+	store.On("GetNodeByName",
+		mock.Anything,
+		mock.Anything).Return(node, nil)
+	c.store = store
+
+	n, err := c.GetNode(ctx, "", "")
+	assert.NoError(t, err)
+	assert.Equal(t, n.Name, name)
+	n, err = c.GetNodeByName(ctx, "")
+	assert.NoError(t, err)
+	assert.Equal(t, n.Name, name)
+}
+
+func TestGetContainers(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	ID := "testID"
+	container := &types.Container{ID: ID}
+	containers := []*types.Container{container}
+
+	store := &storemocks.Store{}
+	c.store = store
+	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
+	store.On("GetContainers", mock.Anything, mock.Anything).Return(containers, nil)
+
+	savedContainer, err := c.GetContainer(ctx, "")
+	assert.NoError(t, err)
+	assert.Equal(t, savedContainer.ID, ID)
+	cs, err := c.GetContainers(ctx, []string{})
+	assert.NoError(t, err)
+	assert.Equal(t, len(cs), 1)
+	assert.Equal(t, cs[0].ID, ID)
+}
+
+func TestSetNodeAvailable(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	name := "test"
+	node := &types.Node{Name: name}
+
+	store := &storemocks.Store{}
+	c.store = store
+	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrCannotGetEngine).Once()
+	_, err := c.SetNodeAvailable(ctx, "", "", true)
+	assert.Error(t, err)
+	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(node, nil)
+	store.On("UpdateNode", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
+	_, err = c.SetNodeAvailable(ctx, "", "", true)
+	assert.Error(t, err)
+	store.On("UpdateNode", mock.Anything, mock.Anything).Return(nil)
+	n, err := c.SetNodeAvailable(ctx, "", "", true)
+	assert.NoError(t, err)
+	assert.Equal(t, n.Name, name)
+}
+
+func TestContainerDeployed(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+
+	store := &storemocks.Store{}
+	store.On("ContainerDeployed",
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+		mock.Anything).Return(nil)
+	c.store = store
+
+	assert.NoError(t, c.ContainerDeployed(ctx, "", "", "", "", ""))
+}

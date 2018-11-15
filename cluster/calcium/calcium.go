@@ -18,8 +18,8 @@ import (
 
 //Calcium implement the cluster
 type Calcium struct {
-	store     store.Store
 	config    types.Config
+	store     store.Store
 	scheduler scheduler.Scheduler
 	network   network.Network
 	source    source.Source
@@ -55,9 +55,4 @@ func New(config types.Config) (*Calcium, error) {
 	}
 
 	return &Calcium{store: store, config: config, scheduler: scheduler, network: titanium, source: scm}, nil
-}
-
-//SetStore 用于在单元测试中更改etcd store为mock store
-func (c *Calcium) SetStore(s store.Store) {
-	c.store = s
 }

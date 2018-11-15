@@ -69,8 +69,9 @@ func FuckDockerStream(stream io.ReadCloser) io.Reader {
 
 // GetGitRepoName return git repo name
 func GetGitRepoName(url string) (string, error) {
-	if !(strings.Contains(url, "git@") || strings.Contains(url, "gitlab@")) || !strings.HasSuffix(url, ".git") {
-		return "", fmt.Errorf("Bad git url format %q, only ssh protocol support", url)
+	if !(strings.Contains(url, "git@") || strings.Contains(url, "gitlab@") || strings.Contains(url, "https://")) ||
+		!strings.HasSuffix(url, ".git") {
+		return "", fmt.Errorf("Bad git url format %q", url)
 	}
 
 	return strings.TrimSuffix(Tail(url), ".git"), nil

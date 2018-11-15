@@ -104,7 +104,7 @@ func (c *Calcium) GetNodeByName(ctx context.Context, nodename string) (*types.No
 	return c.store.GetNodeByName(ctx, nodename)
 }
 
-// ContainerDeployed show container deploy status
+// ContainerDeployed set container deploy status
 func (c *Calcium) ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename, data string) error {
 	return c.store.ContainerDeployed(ctx, ID, appname, entrypoint, nodename, data)
 }
