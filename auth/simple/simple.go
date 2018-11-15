@@ -28,7 +28,7 @@ func (b *BasicAuth) auth(ctx context.Context) error {
 	if !ok {
 		return types.ErrInvaildUsername
 	}
-	if passwords[0] != b.password {
+	if len(passwords) < 1 || passwords[0] != b.password {
 		return types.ErrInvaildPassword
 	}
 	return nil

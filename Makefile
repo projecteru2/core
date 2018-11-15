@@ -32,10 +32,11 @@ race: test
 	go test --race -cover -v `glide nv`
 
 mock: deps
-	mockery -dir vendor/github.com/docker/docker/client -name APIClient
+	mockery -dir vendor/github.com/docker/docker/client -name APIClient -output 3rdmocks
+	mockery -dir ./vendor/google.golang.org/grpc -name ServerStream -output 3rdmocks
 
 cloc:
 	cloc --exclude-dir=vendor,3rdmocks,mocks --not-match-f=test .
 
 unit-test:
-	go test --race -cover ./utils/... ./types/... ./store/etcdv3/... ./scheduler/complex/...  ./source/common/... ./network/sdn/... ./lock/etcdlock/...
+	go test --race -cover ./utils/... ./types/... ./store/etcdv3/... ./scheduler/complex/...  ./source/common/... ./network/sdn/... ./lock/etcdlock/... ./auth/simple/...
