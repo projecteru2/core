@@ -20,7 +20,7 @@ func toRPCCPUMap(m types.CPUMap) map[string]int32 {
 }
 
 func toRPCPod(p *types.Pod) *pb.Pod {
-	return &pb.Pod{Name: p.Name, Desc: p.Desc}
+	return &pb.Pod{Name: p.Name, Desc: p.Desc, Favor: p.Favor}
 }
 
 func toRPCNetwork(n *types.Network) *pb.Network {

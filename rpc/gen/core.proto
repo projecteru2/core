@@ -61,6 +61,7 @@ message DeployStatusMessage {
 message Pod {
     string name = 1;
     string desc = 2;
+    string favor = 3;
 }
 
 message Pods {
