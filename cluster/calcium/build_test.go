@@ -93,7 +93,7 @@ func TestBuild(t *testing.T) {
 		Engine:    engine,
 	}
 	scheduler := &schedulermocks.Scheduler{}
-	scheduler.On("MaxCPUIdleNode", mock.AnythingOfType("[]*types.Node")).Return(node)
+	scheduler.On("MaxIdleNode", mock.AnythingOfType("[]*types.Node")).Return(node, nil)
 	store = &storemocks.Store{}
 	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return([]*types.Node{node}, nil)
 	source := &sourcemocks.Source{}

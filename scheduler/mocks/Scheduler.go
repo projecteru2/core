@@ -80,8 +80,8 @@ func (_m *Scheduler) FillDivision(nodesInfo []types.NodeInfo, need int, limit in
 	return r0, r1
 }
 
-// MaxCPUIdleNode provides a mock function with given fields: nodes
-func (_m *Scheduler) MaxCPUIdleNode(nodes []*types.Node) *types.Node {
+// MaxIdleNode provides a mock function with given fields: nodes
+func (_m *Scheduler) MaxIdleNode(nodes []*types.Node) (*types.Node, error) {
 	ret := _m.Called(nodes)
 
 	var r0 *types.Node
@@ -93,7 +93,14 @@ func (_m *Scheduler) MaxCPUIdleNode(nodes []*types.Node) *types.Node {
 		}
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func([]*types.Node) error); ok {
+		r1 = rf(nodes)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // SelectCPUNodes provides a mock function with given fields: nodesInfo, quota, memory

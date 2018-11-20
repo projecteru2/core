@@ -18,10 +18,22 @@ func New(config types.Config) (*Potassium, error) {
 	return &Potassium{config.Scheduler.MaxShare, config.Scheduler.ShareBase}, nil
 }
 
-// MaxCPUIdleNode use for build
-func (m *Potassium) MaxCPUIdleNode(nodes []*types.Node) *types.Node {
-	sort.Slice(nodes, func(i, j int) bool { return nodes[i].CPU.Total() > nodes[j].CPU.Total() })
-	return nodes[0]
+// MaxIdleNode use for build
+func (m *Potassium) MaxIdleNode(nodes []*types.Node) (*types.Node, error) {
+	if len(nodes) < 1 {
+		return nil, types.ErrInsufficientNodes
+	}
+	pos := 0
+	node := nodes[pos]
+	min := float64(node.CPU.Total())/float64(node.InitCPU.Total()) + float64(node.MemCap)/float64(node.InitMemCap)
+	for i, node := range nodes {
+		idle := float64(node.CPU.Total())/float64(node.InitCPU.Total()) + float64(node.MemCap)/float64(node.InitMemCap)
+		if idle < min {
+			pos = i
+			min = idle
+		}
+	}
+	return nodes[pos], nil
 }
 
 // SelectMemoryNodes filter nodes with enough memory

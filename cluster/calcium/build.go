@@ -63,8 +63,11 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 	if len(nodes) == 0 {
 		return nil, types.ErrInsufficientNodes
 	}
-	// TODO 这里需要考虑用 mem，CPU 不限制 mem
-	node := c.scheduler.MaxCPUIdleNode(nodes)
+	// get idle max node
+	node, err := c.scheduler.MaxIdleNode(nodes)
+	if err != nil {
+		return nil, err
+	}
 	// tag of image, later this will be used to push image to hub
 	tags := []string{}
 	for i := range opts.Tags {
