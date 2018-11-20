@@ -216,6 +216,7 @@ message BuildImageOptions {
     int32 uid = 3;
     repeated string tags = 4;
     Builds builds = 5;
+    bytes tar = 6;
 }
 
 message HookOptions {
