@@ -55,6 +55,9 @@ func TestContainer(t *testing.T) {
 	r, err = m.GetOne(ctx, filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID))
 	assert.NoError(t, err)
 	assert.Equal(t, string(r.Value), "")
+	// Update
+	container.Memory = int64(100)
+	assert.NoError(t, m.UpdateContainer(ctx, container))
 	// RemoveFail
 	container.ID = "a"
 	assert.Error(t, m.RemoveContainer(ctx, container))

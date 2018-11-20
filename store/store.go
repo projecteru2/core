@@ -34,6 +34,7 @@ type Store interface {
 
 	// container
 	AddContainer(ctx context.Context, container *types.Container) error
+	UpdateContainer(ctx context.Context, container *types.Container) error
 	RemoveContainer(ctx context.Context, container *types.Container) error
 	CleanContainerData(ctx context.Context, ID, appname, entrypoint, nodename string) error
 	GetContainer(ctx context.Context, ID string) (*types.Container, error)

@@ -184,7 +184,7 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 
 		container.Quota = newCPU
 		container.Memory = newMemory
-		if err := c.store.AddContainer(ctx, container); err != nil {
+		if err := c.store.UpdateContainer(ctx, container); err != nil {
 			log.Errorf("[doUpdateContainerWithMemoryPrior] update container meta failed %v", err)
 			// 立即中断
 			ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
@@ -330,7 +330,7 @@ func (c *Calcium) doReallocContainersWithCPUPrior(
 				container.CPU = cpuPlan
 				container.Quota = quota
 				container.Memory = requireMemory
-				if err := c.store.AddContainer(ctx, container); err != nil {
+				if err := c.store.UpdateContainer(ctx, container); err != nil {
 					log.Errorf("[doReallocContainersWithCPUPrior] update container meta failed %v", err)
 					// 立即中断
 					ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}

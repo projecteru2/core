@@ -438,6 +438,20 @@ func (_m *Store) SaveProcessing(ctx context.Context, opts *types.DeployOptions, 
 	return r0
 }
 
+// UpdateContainer provides a mock function with given fields: ctx, container
+func (_m *Store) UpdateContainer(ctx context.Context, container *types.Container) error {
+	ret := _m.Called(ctx, container)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Container) error); ok {
+		r0 = rf(ctx, container)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdateNode provides a mock function with given fields: ctx, node
 func (_m *Store) UpdateNode(ctx context.Context, node *types.Node) error {
 	ret := _m.Called(ctx, node)

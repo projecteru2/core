@@ -19,6 +19,15 @@ import (
 // but we still store it
 // storage path in etcd is `/container/:containerid`
 func (m *Mercury) AddContainer(ctx context.Context, container *types.Container) error {
+	return m.doOpsContainer(ctx, container, true)
+}
+
+// UpdateContainer update a container
+func (m *Mercury) UpdateContainer(ctx context.Context, container *types.Container) error {
+	return m.doOpsContainer(ctx, container, false)
+}
+
+func (m *Mercury) doOpsContainer(ctx context.Context, container *types.Container, create bool) error {
 	var err error
 
 	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
@@ -39,7 +48,12 @@ func (m *Mercury) AddContainer(ctx context.Context, container *types.Container) 
 		fmt.Sprintf(nodeContainersKey, container.Nodename, container.ID):                            containerData,
 		filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID): "",
 	}
-	_, err = m.BatchCreate(ctx, data)
+
+	if create {
+		_, err = m.BatchCreate(ctx, data)
+	} else {
+		_, err = m.BatchUpdate(ctx, data)
+	}
 	return err
 }
 
