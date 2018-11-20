@@ -17,7 +17,6 @@ import (
 	enginecontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	engineapi "github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/registry"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/lock"
@@ -240,16 +239,6 @@ func pullImage(ctx context.Context, node *types.Node, image, auth string) error 
 
 func makeErrorBuildImageMessage(err error) *types.BuildImageMessage {
 	return &types.BuildImageMessage{Error: err.Error()}
-}
-
-func createTarStream(path string) (io.ReadCloser, error) {
-	tarOpts := &archive.TarOptions{
-		ExcludePatterns: []string{},
-		IncludeFiles:    []string{"."},
-		Compression:     archive.Uncompressed,
-		NoLchown:        true,
-	}
-	return archive.TarWithOptions(path, tarOpts)
 }
 
 func makeCommonPart(build *types.Build) (string, error) {

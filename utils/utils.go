@@ -16,6 +16,7 @@ import (
 	enginecontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	engineapi "github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
@@ -264,6 +265,17 @@ func TempTarFile(path string, data []byte) (string, error) {
 	}
 	_, err = tw.Write(data)
 	return name, err
+}
+
+// CreateTarStream create docker build tar stream
+func CreateTarStream(path string) (io.ReadCloser, error) {
+	tarOpts := &archive.TarOptions{
+		ExcludePatterns: []string{},
+		IncludeFiles:    []string{"."},
+		Compression:     archive.Uncompressed,
+		NoLchown:        true,
+	}
+	return archive.TarWithOptions(path, tarOpts)
 }
 
 // copied from https://gist.github.com/jmervine/d88c75329f98e09f5c87

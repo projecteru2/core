@@ -1,7 +1,9 @@
 package rpc
 
 import (
+	"bytes"
 	"encoding/json"
+	"io/ioutil"
 	"os"
 
 	"github.com/projecteru2/core/rpc/gen"
@@ -72,29 +74,32 @@ func toCoreCopyOptions(b *pb.CopyOptions) *types.CopyOptions {
 }
 
 func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
-	if b.Builds == nil || len(b.Builds.Stages) == 0 {
-		return nil, types.ErrNoBuildsInSpec
-	}
-	builds := &types.Builds{
-		Stages: b.Builds.Stages,
-	}
-	builds.Builds = map[string]*types.Build{}
-	for stage, p := range b.Builds.Builds {
-		if p == nil {
-			return nil, types.ErrNoBuildSpec
+	var builds *types.Builds
+	if b.Builds != nil {
+		if len(b.Builds.Stages) == 0 {
+			return nil, types.ErrNoBuildsInSpec
 		}
-		builds.Builds[stage] = &types.Build{
-			Base:      p.Base,
-			Repo:      p.Repo,
-			Version:   p.Version,
-			Dir:       p.Dir,
-			Submodule: p.Submodule || false,
-			Commands:  p.Commands,
-			Envs:      p.Envs,
-			Args:      p.Args,
-			Labels:    p.Labels,
-			Artifacts: p.Artifacts,
-			Cache:     p.Cache,
+		builds = &types.Builds{
+			Stages: b.Builds.Stages,
+		}
+		builds.Builds = map[string]*types.Build{}
+		for stage, p := range b.Builds.Builds {
+			if p == nil {
+				return nil, types.ErrNoBuildSpec
+			}
+			builds.Builds[stage] = &types.Build{
+				Base:      p.Base,
+				Repo:      p.Repo,
+				Version:   p.Version,
+				Dir:       p.Dir,
+				Submodule: p.Submodule || false,
+				Commands:  p.Commands,
+				Envs:      p.Envs,
+				Args:      p.Args,
+				Labels:    p.Labels,
+				Artifacts: p.Artifacts,
+				Cache:     p.Cache,
+			}
 		}
 	}
 	return &types.BuildOptions{
@@ -103,6 +108,7 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
 		UID:    int(b.Uid),
 		Tags:   b.Tags,
 		Builds: builds,
+		Tar:    ioutil.NopCloser(bytes.NewReader(b.Tar)),
 	}, nil
 }
 

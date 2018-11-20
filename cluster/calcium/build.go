@@ -169,18 +169,6 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 	}
 	// TODO 这里需要考虑用 mem，CPU 不限制 mem
 	node := c.scheduler.MaxCPUIdleNode(nodes)
-	// make build dir
-	buildDir, err := ioutil.TempDir(os.TempDir(), "corebuild-")
-	if err != nil {
-		return nil, err
-	}
-	defer os.RemoveAll(buildDir)
-
-	// create dockerfile
-	if err := c.makeDockerFile(opts, buildDir); err != nil {
-		return nil, err
-	}
-
 	// tag of image, later this will be used to push image to hub
 	tags := []string{}
 	for i := range opts.Tags {
@@ -193,11 +181,24 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 	if len(tags) == 0 {
 		tags = append(tags, createImageTag(c.config.Docker, opts.Name, utils.DefaultVersion))
 	}
-
-	// create tar stream for Build API
-	buildContext, err := createTarStream(buildDir)
-	if err != nil {
-		return nil, err
+	// support raw build
+	buildContext := opts.Tar
+	if opts.Builds != nil {
+		// make build dir
+		buildDir, err := ioutil.TempDir(os.TempDir(), "corebuild-")
+		if err != nil {
+			return nil, err
+		}
+		defer os.RemoveAll(buildDir)
+		// create dockerfile
+		if err := c.makeDockerFile(opts, buildDir); err != nil {
+			return nil, err
+		}
+		// create tar stream for Build API
+		buildContext, err = utils.CreateTarStream(buildDir)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	log.Infof("[BuildImage] Building image %v:%v", node.Podname, node.Name)
@@ -247,7 +248,7 @@ func (c *Calcium) doBuildImage(ctx context.Context, buildContext io.ReadCloser, 
 			lastMessage = message
 		}
 
-		if lastMessage.ErrorDetail.Code != 0 {
+		if lastMessage.Error != "" {
 			log.Errorf("[BuildImage] Build image failed %v", lastMessage.ErrorDetail.Message)
 			return
 		}
