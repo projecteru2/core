@@ -218,3 +218,12 @@ func TestTempTarFile(t *testing.T) {
 	f.Close()
 	os.Remove(fname)
 }
+
+func TestCreateTarStream(t *testing.T) {
+	buff := bytes.NewBufferString("test")
+	rc := ioutil.NopCloser(buff)
+	fname, err := TempFile(rc)
+	assert.NoError(t, err)
+	_, err = CreateTarStream(fname)
+	assert.NoError(t, err)
+}
