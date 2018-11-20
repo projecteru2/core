@@ -153,34 +153,32 @@ func (c *Calcium) makeDockerFile(opts *types.BuildOptions, buildDir string) erro
 //    buildDir ├─ :appname ├─ code
 //             ├─ Dockerfile
 func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
-	ch := make(chan *types.BuildImageMessage)
-
 	// get pod from config
 	buildPodname := c.config.Docker.BuildPod
 	if buildPodname == "" {
-		return ch, types.ErrNoBuildPod
+		return nil, types.ErrNoBuildPod
 	}
 
 	// get node by scheduler
 	nodes, err := c.ListPodNodes(ctx, buildPodname, false)
 	if err != nil {
-		return ch, err
+		return nil, err
 	}
 	if len(nodes) == 0 {
-		return ch, types.ErrInsufficientNodes
+		return nil, types.ErrInsufficientNodes
 	}
-	//TODO 这里需要考虑用 mem，CPU 不限制 mem
+	// TODO 这里需要考虑用 mem，CPU 不限制 mem
 	node := c.scheduler.MaxCPUIdleNode(nodes)
 	// make build dir
 	buildDir, err := ioutil.TempDir(os.TempDir(), "corebuild-")
 	if err != nil {
-		return ch, err
+		return nil, err
 	}
 	defer os.RemoveAll(buildDir)
 
 	// create dockerfile
 	if err := c.makeDockerFile(opts, buildDir); err != nil {
-		return ch, err
+		return nil, err
 	}
 
 	// tag of image, later this will be used to push image to hub
@@ -199,9 +197,15 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 	// create tar stream for Build API
 	buildContext, err := createTarStream(buildDir)
 	if err != nil {
-		return ch, err
+		return nil, err
 	}
 
+	log.Infof("[BuildImage] Building image %v:%v", node.Podname, node.Name)
+	return c.doBuildImage(ctx, buildContext, node, tags)
+}
+
+func (c *Calcium) doBuildImage(ctx context.Context, buildContext io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) {
+	ch := make(chan *types.BuildImageMessage)
 	// must be put here because of that `defer os.RemoveAll(buildDir)`
 	buildOptions := enginetypes.ImageBuildOptions{
 		Tags:           tags,
@@ -212,7 +216,6 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 		PullParent:     true,
 	}
 
-	log.Infof("[BuildImage] Building image %v:%v", buildPodname, node.Name)
 	resp, err := node.Engine.ImageBuild(ctx, buildContext, buildOptions)
 	if err != nil {
 		return ch, err

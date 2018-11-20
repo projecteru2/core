@@ -57,7 +57,6 @@ func TestBuild(t *testing.T) {
 	}
 	// failed by buildpod not set
 	ch, err := c.BuildImage(ctx, opts)
-	close(ch)
 	assert.Error(t, err)
 	c.config.Docker.BuildPod = "test"
 	// failed by ListPodNodes failed
@@ -65,7 +64,6 @@ func TestBuild(t *testing.T) {
 	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return(nil, types.ErrNoBuildPod)
 	c.store = store
 	ch, err = c.BuildImage(ctx, opts)
-	close(ch)
 	assert.Error(t, err)
 	// create image
 	c.config.Docker.Hub = "test.com"
