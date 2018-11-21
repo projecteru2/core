@@ -138,19 +138,21 @@ func (c *Calcium) doRemoveContainer(ctx context.Context, container *types.Contai
 func (c *Calcium) doLockContainer(ctx context.Context, container *types.Container) (*types.Container, enginetypes.ContainerJSON, lock.DistributedLock, error) {
 	lock, err := c.Lock(ctx, fmt.Sprintf(cluster.ContainerLock, container.ID), int(c.config.GlobalTimeout.Seconds()))
 	if err != nil {
-		return nil, enginetypes.ContainerJSON{}, nil, err
+		return container, enginetypes.ContainerJSON{}, nil, err
 	}
 	log.Debugf("[doLockContainer] Container %s locked", container.ID)
 	// 确保是有这个容器的
 	containerJSON, err := container.Inspect(ctx)
 	if err != nil {
-		return nil, enginetypes.ContainerJSON{}, nil, err
+		lock.Unlock(ctx)
+		return container, enginetypes.ContainerJSON{}, nil, err
 	}
 	// 更新容器元信息
 	// 可能在等锁的过程中被 realloc 了
-	container, err = c.store.GetContainer(ctx, container.ID)
+	rContainer, err := c.store.GetContainer(ctx, container.ID)
 	if err != nil {
-		return nil, enginetypes.ContainerJSON{}, nil, err
+		lock.Unlock(ctx)
+		return container, enginetypes.ContainerJSON{}, nil, err
 	}
-	return container, containerJSON, lock, err
+	return rContainer, containerJSON, lock, nil
 }

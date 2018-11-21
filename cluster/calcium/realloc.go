@@ -72,6 +72,14 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 				}(pod, nodeContainers)
 			default:
 				log.Errorf("[ReallocResource] %v not support yet", pod.Favor)
+				go func(nodeContainers NodeContainers) {
+					defer wg.Done()
+					for _, containers := range nodeContainers {
+						for _, container := range containers {
+							ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
+						}
+					}
+				}(nodeContainers)
 			}
 		}
 		wg.Wait()
@@ -144,7 +152,7 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 		// CPUQuota not cpu
 		newResource := makeResourceSetting(newCPU, newMemory, nil, container.SoftLimit)
 		updateConfig := enginecontainer.UpdateConfig{Resources: newResource}
-		if err := updateContainer(ctx, container.ID, node, updateConfig); err != nil {
+		if _, err := node.Engine.ContainerUpdate(ctx, container.ID, updateConfig); err != nil {
 			log.Errorf("[doUpdateContainerWithMemoryPrior] update container failed %v, %s", err, container.ID)
 			ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 			// 如果是增加内存，失败的时候应该把内存还回去
@@ -325,7 +333,7 @@ func (c *Calcium) doReallocContainersWithCPUPrior(
 				cpuPlan := cpuset[index]
 				resource := makeResourceSetting(quota, requireMemory, cpuPlan, container.SoftLimit)
 				updateConfig := enginecontainer.UpdateConfig{Resources: resource}
-				if err := updateContainer(ctx, container.ID, node, updateConfig); err != nil {
+				if _, err := node.Engine.ContainerUpdate(ctx, container.ID, updateConfig); err != nil {
 					log.Errorf("[doReallocContainersWithCPUPrior] update container failed %v", err)
 					// TODO 这里理论上是可以恢复 CPU 占用表的，一来我们知道新的占用是怎样，二来我们也晓得老的占用是啥样
 					ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
