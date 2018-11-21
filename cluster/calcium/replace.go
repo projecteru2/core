@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -93,7 +94,7 @@ func (c *Calcium) doReplaceContainer(
 	}
 
 	// 锁住，防止删除
-	lock, err := c.Lock(ctx, fmt.Sprintf("rmcontainer_%s", container.ID), int(c.config.GlobalTimeout.Seconds()))
+	lock, err := c.Lock(ctx, fmt.Sprintf(cluster.ContainerLock, container.ID), int(c.config.GlobalTimeout.Seconds()))
 	if err != nil {
 		return nil, removeMessage, err
 	}

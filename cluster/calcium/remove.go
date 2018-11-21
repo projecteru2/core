@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -69,7 +70,7 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 }
 
 func (c *Calcium) doStopAndRemoveContainer(ctx context.Context, container *types.Container, ib *imageBucket, force bool) (string, error) {
-	lock, err := c.Lock(ctx, fmt.Sprintf("rmcontainer_%s", container.ID), int(c.config.GlobalTimeout.Seconds()))
+	lock, err := c.Lock(ctx, fmt.Sprintf(cluster.ContainerLock, container.ID), int(c.config.GlobalTimeout.Seconds()))
 	if err != nil {
 		return err.Error(), err
 	}
