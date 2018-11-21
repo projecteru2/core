@@ -44,12 +44,12 @@ func (m *Mercury) doOpsContainer(ctx context.Context, container *types.Container
 	containerData := string(bytes)
 
 	data := map[string]string{
-		fmt.Sprintf(containerInfoKey, container.ID):                                                 containerData,
-		fmt.Sprintf(nodeContainersKey, container.Nodename, container.ID):                            containerData,
-		filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID): "",
+		fmt.Sprintf(containerInfoKey, container.ID):                      containerData,
+		fmt.Sprintf(nodeContainersKey, container.Nodename, container.ID): containerData,
 	}
 
 	if create {
+		data[filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)] = ""
 		_, err = m.BatchCreate(ctx, data)
 	} else {
 		_, err = m.BatchUpdate(ctx, data)
