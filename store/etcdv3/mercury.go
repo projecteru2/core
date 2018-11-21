@@ -12,7 +12,6 @@ import (
 	"github.com/projecteru2/core/lock/etcdlock"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -166,7 +165,7 @@ func (m *Mercury) Watch(ctx context.Context, key string, opts ...clientv3.OpOpti
 
 func (m *Mercury) parseKey(key string) string {
 	key = filepath.Join(m.config.Etcd.Prefix, key)
-	log.Debugf("[parseKey] ops on %s", key)
+	//log.Debugf("[parseKey] ops on %s", key)
 	return key
 }
 

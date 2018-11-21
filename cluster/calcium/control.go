@@ -140,6 +140,7 @@ func (c *Calcium) doLockContainer(ctx context.Context, container *types.Containe
 	if err != nil {
 		return nil, enginetypes.ContainerJSON{}, nil, err
 	}
+	log.Debugf("[doLockContainer] Container %s locked", container.ID)
 	// 确保是有这个容器的
 	containerJSON, err := container.Inspect(ctx)
 	if err != nil {
