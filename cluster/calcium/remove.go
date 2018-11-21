@@ -2,10 +2,8 @@ package calcium
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
-	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -36,7 +34,7 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 			go func(container *types.Container) {
 				defer wg.Done()
 
-				message, err := c.doStopAndRemoveContainer(ctx, container, ib, force)
+				container, message, err := c.doStopAndRemoveContainer(ctx, container, ib, force)
 				success := false
 
 				defer func() {
@@ -63,35 +61,29 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 		wg.Wait()
 
 		// 把收集的image清理掉
-		//TODO 如果 remove 是异步的，这里就不能用 ctx 了，gRPC 一断这里就会死
+		// TODO 如果 remove 是异步的，这里就不能用 ctx 了，gRPC 一断这里就会死
 		go c.cleanCachedImage(ctx, ib)
 	}()
 	return ch, nil
 }
 
-func (c *Calcium) doStopAndRemoveContainer(ctx context.Context, container *types.Container, ib *imageBucket, force bool) (string, error) {
-	lock, err := c.Lock(ctx, fmt.Sprintf(cluster.ContainerLock, container.ID), int(c.config.GlobalTimeout.Seconds()))
+func (c *Calcium) doStopAndRemoveContainer(ctx context.Context, container *types.Container, ib *imageBucket, force bool) (*types.Container, string, error) {
+	container, containerJSON, lock, err := c.doLockContainer(ctx, container)
 	if err != nil {
-		return err.Error(), err
+		return nil, err.Error(), err
 	}
 	defer lock.Unlock(ctx)
-
-	// 确保是有这个容器的
-	containerJSON, err := container.Inspect(ctx)
-	if err != nil {
-		return err.Error(), err
-	}
 
 	var message string
 	message, err = c.doStopContainer(ctx, container, containerJSON, ib, force)
 	if err != nil {
-		return message, err
+		return nil, message, err
 	}
 
 	if err = c.doRemoveContainer(ctx, container); err != nil {
 		message += err.Error()
 	}
-	return message, err
+	return container, message, err
 }
 
 func (c *Calcium) cleanCachedImage(ctx context.Context, ib *imageBucket) {

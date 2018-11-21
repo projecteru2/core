@@ -2,10 +2,8 @@ package calcium
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
-	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -92,24 +90,15 @@ func (c *Calcium) doReplaceContainer(
 		Success:     false,
 		Message:     "",
 	}
-
-	// 锁住，防止删除
-	lock, err := c.Lock(ctx, fmt.Sprintf(cluster.ContainerLock, container.ID), int(c.config.GlobalTimeout.Seconds()))
+	container, containerJSON, lock, err := c.doLockContainer(ctx, container)
 	if err != nil {
 		return nil, removeMessage, err
 	}
 	defer lock.Unlock(ctx)
 
-	// 确保是有这个容器的
-	containerJSON, err := container.Inspect(ctx)
-	if err != nil {
-		return nil, removeMessage, err
-	}
-
 	if !utils.FilterContainer(containerJSON.Config.Labels, opts.FilterLabels) {
 		return nil, removeMessage, types.ErrNotFitLabels
 	}
-
 	// 拉镜像
 	auth, err := makeEncodedAuthConfigFromRemote(c.config.Docker.AuthConfigs, opts.Image)
 	if err != nil {
@@ -119,13 +108,11 @@ func (c *Calcium) doReplaceContainer(
 	if err = pullImage(ctx, container.Node, opts.Image, auth); err != nil {
 		return nil, removeMessage, err
 	}
-
 	// 停止容器
 	removeMessage.Message, err = c.doStopContainer(ctx, container, containerJSON, ib, opts.Force)
 	if err != nil {
 		return nil, removeMessage, err
 	}
-
 	// 获得文件 io
 	for src, dst := range opts.Copy {
 		stream, _, err := container.Engine.CopyFromContainer(ctx, container.ID, src)
@@ -138,7 +125,6 @@ func (c *Calcium) doReplaceContainer(
 		}
 		opts.DeployOptions.Data[dst] = fname
 	}
-
 	// 不涉及资源消耗，创建容器失败会被回收容器而不回收资源
 	// 创建成功容器会干掉之前的老容器也不会动资源，实际上实现了动态捆绑
 	createMessage := c.createAndStartContainer(ctx, index, container.Node, &opts.DeployOptions, container.CPU)
@@ -152,13 +138,11 @@ func (c *Calcium) doReplaceContainer(
 		}
 		return nil, removeMessage, createMessage.Error
 	}
-
 	// 干掉老的
 	if err = c.doRemoveContainer(ctx, container); err != nil {
 		log.Errorf("[replaceAndRemove] Old container %s remove failed %v", container.ID, err)
 		return createMessage, removeMessage, err
 	}
-
 	removeMessage.Success = true
 	return createMessage, removeMessage, nil
 }
