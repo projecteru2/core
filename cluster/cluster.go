@@ -34,6 +34,8 @@ const (
 	ContainerStart = "start"
 	// ContainerRestart for restart container
 	ContainerRestart = "restart"
+	// ContainerLock for lock container
+	ContainerLock = "clock_%s"
 )
 
 // Cluster define all interface

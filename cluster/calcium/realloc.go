@@ -25,7 +25,6 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 
 	for _, container := range containers {
 		node := container.Node
-
 		pod, err := c.store.GetPod(ctx, container.Podname)
 		if err != nil {
 			return nil, err
@@ -194,6 +193,33 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 	}
 }
 
+func (c *Calcium) reallocContainersWithCPUPrior(
+	ctx context.Context,
+	ch chan *types.ReallocResourceMessage,
+	pod *types.Pod,
+	cpuMemNodeContainersInfo CPUMemNodeContainers) {
+
+	cpuMemNodesMap, err := c.reallocNodesCPUMem(ctx, pod.Name, cpuMemNodeContainersInfo)
+	if err != nil {
+		log.Errorf("[reallocContainersWithCPUPrior] realloc cpu resource failed %v", err)
+		for _, memNodeMap := range cpuMemNodeContainersInfo {
+			for _, nodeInfoMap := range memNodeMap {
+				for _, containers := range nodeInfoMap {
+					for _, container := range containers {
+						ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
+					}
+				}
+			}
+		}
+		return
+	}
+
+	// 不并发操作了
+	for cpu, memNodeResult := range cpuMemNodesMap {
+		c.doReallocContainersWithCPUPrior(ctx, ch, cpu, pod.Name, memNodeResult, cpuMemNodeContainersInfo[cpu])
+	}
+}
+
 func (c *Calcium) reallocNodesCPUMem(
 	ctx context.Context,
 	podname string,
@@ -275,33 +301,6 @@ func (c *Calcium) reallocNodesCPUMem(
 		}
 	}
 	return cpuMemNodesMap, nil
-}
-
-func (c *Calcium) reallocContainersWithCPUPrior(
-	ctx context.Context,
-	ch chan *types.ReallocResourceMessage,
-	pod *types.Pod,
-	cpuMemNodeContainersInfo CPUMemNodeContainers) {
-
-	cpuMemNodesMap, err := c.reallocNodesCPUMem(ctx, pod.Name, cpuMemNodeContainersInfo)
-	if err != nil {
-		log.Errorf("[reallocContainersWithCPUPrior] realloc cpu resource failed %v", err)
-		for _, memNodeMap := range cpuMemNodeContainersInfo {
-			for _, nodeInfoMap := range memNodeMap {
-				for _, containers := range nodeInfoMap {
-					for _, container := range containers {
-						ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
-					}
-				}
-			}
-		}
-		return
-	}
-
-	// 不并发操作了
-	for cpu, memNodeResult := range cpuMemNodesMap {
-		c.doReallocContainersWithCPUPrior(ctx, ch, cpu, pod.Name, memNodeResult, cpuMemNodeContainersInfo[cpu])
-	}
 }
 
 func (c *Calcium) doReallocContainersWithCPUPrior(
