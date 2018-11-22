@@ -9,9 +9,13 @@ import (
 
 const (
 	// PUTEVENT for put event
-	PUTEVENT = "PUT"
+	PutEvent = "PUT"
 	// DELETEEVENT for delete event
-	DELETEEVENT = "DELETE"
+	DeleteEvent = "DELETE"
+	// ActionIncr
+	ActionIncr = "+"
+	// ActionDecres
+	ActionDecr = "-"
 )
 
 //Store store eru data
@@ -30,7 +34,7 @@ type Store interface {
 	GetNodesByPod(ctx context.Context, podname string) ([]*types.Node, error)
 	GetAllNodes(ctx context.Context) ([]*types.Node, error)
 	UpdateNode(ctx context.Context, node *types.Node) error
-	UpdateNodeResource(ctx context.Context, podname, nodename string, cpu types.CPUMap, mem int64, action string) error
+	UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, mem int64, action string) error
 
 	// container
 	AddContainer(ctx context.Context, container *types.Container) error

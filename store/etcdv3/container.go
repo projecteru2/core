@@ -104,7 +104,7 @@ func (m *Mercury) GetContainer(ctx context.Context, ID string) (*types.Container
 		return nil, err
 	}
 
-	if c, err = m.bindNodeEngine(ctx, c); err != nil {
+	if c, err = m.bindEngine(ctx, c); err != nil {
 		return nil, err
 	}
 
@@ -170,7 +170,7 @@ func (m *Mercury) ListNodeContainers(ctx context.Context, nodename string) ([]*t
 			return []*types.Container{}, err
 		}
 
-		if c, err = m.bindNodeEngine(ctx, c); err != nil {
+		if c, err = m.bindEngine(ctx, c); err != nil {
 			return []*types.Container{}, err
 		}
 
@@ -216,13 +216,12 @@ func (m *Mercury) WatchDeployStatus(ctx context.Context, appname, entrypoint, no
 	return ch
 }
 
-func (m *Mercury) bindNodeEngine(ctx context.Context, container *types.Container) (*types.Container, error) {
+func (m *Mercury) bindEngine(ctx context.Context, container *types.Container) (*types.Container, error) {
 	node, err := m.GetNode(ctx, container.Podname, container.Nodename)
 	if err != nil {
 		return nil, err
 	}
 
 	container.Engine = node.Engine
-	container.Node = node
 	return container, nil
 }

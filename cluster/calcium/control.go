@@ -2,12 +2,10 @@ package calcium
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	enginetypes "github.com/docker/docker/api/types"
 	"github.com/projecteru2/core/cluster"
-	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -133,26 +131,4 @@ func (c *Calcium) doRemoveContainer(ctx context.Context, container *types.Contai
 	}
 
 	return c.store.RemoveContainer(ctx, container)
-}
-
-func (c *Calcium) doLockContainer(ctx context.Context, container *types.Container) (*types.Container, enginetypes.ContainerJSON, lock.DistributedLock, error) {
-	lock, err := c.Lock(ctx, fmt.Sprintf(cluster.ContainerLock, container.ID), int(c.config.GlobalTimeout.Seconds()))
-	if err != nil {
-		return container, enginetypes.ContainerJSON{}, nil, err
-	}
-	log.Debugf("[doLockContainer] Container %s locked", container.ID)
-	// 确保是有这个容器的
-	containerJSON, err := container.Inspect(ctx)
-	if err != nil {
-		lock.Unlock(ctx)
-		return container, enginetypes.ContainerJSON{}, nil, err
-	}
-	// 更新容器元信息
-	// 可能在等锁的过程中被 realloc 了
-	rContainer, err := c.store.GetContainer(ctx, container.ID)
-	if err != nil {
-		lock.Unlock(ctx)
-		return container, enginetypes.ContainerJSON{}, nil, err
-	}
-	return rContainer, containerJSON, lock, nil
 }
