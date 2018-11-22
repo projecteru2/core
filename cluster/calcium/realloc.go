@@ -137,7 +137,7 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 	cpu float64, memory int64) {
 	for node, containers := range nodeContainers {
 		for _, container := range containers {
-			newCPU := utils.Round(container.Quota+cpu, 1)
+			newCPU := utils.Round(container.Quota+cpu, 2)
 			newMemory := container.Memory + memory
 			// 内存不能低于 4MB
 			if newCPU <= 0 || newMemory <= minMemory {
