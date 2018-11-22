@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -125,7 +126,6 @@ func TestParseContainerName(t *testing.T) {
 }
 
 func TestPublishInfo(t *testing.T) {
-	node := &types.Node{Endpoint: "tcp://127.0.0.1:12345"}
 	ports := []string{"123", "233"}
 	n1 := map[string]*network.EndpointSettings{
 		"n1": &network.EndpointSettings{
@@ -133,7 +133,7 @@ func TestPublishInfo(t *testing.T) {
 		},
 		"host": &network.EndpointSettings{},
 	}
-	r := MakePublishInfo(n1, node, ports)
+	r := MakePublishInfo(n1, "127.0.0.1", ports)
 	assert.Equal(t, len(r), 2)
 	assert.Equal(t, len(r["n1"]), 2)
 	assert.Equal(t, r["n1"][0], "233.233.233.233:123")
@@ -226,4 +226,18 @@ func TestCreateTarStream(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = CreateTarStream(fname)
 	assert.NoError(t, err)
+}
+
+func TestRound(t *testing.T) {
+	f := func(f float64) string {
+		return strconv.FormatFloat(f, 'f', -1, 64)
+	}
+	a := 0.0199999998
+	assert.Equal(t, f(Round(a, 2)), "0.02")
+	a = 0.1999998
+	assert.Equal(t, f(Round(a, 2)), "0.2")
+	a = 1.999998
+	assert.Equal(t, f(Round(a, 2)), "2")
+	a = 19.99998
+	assert.Equal(t, f(Round(a, 2)), "20")
 }
