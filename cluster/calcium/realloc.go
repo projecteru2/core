@@ -7,6 +7,7 @@ import (
 	"github.com/sanity-io/litter"
 
 	"github.com/projecteru2/core/lock"
+	"github.com/projecteru2/core/utils"
 
 	enginecontainer "github.com/docker/docker/api/types/container"
 	"github.com/projecteru2/core/scheduler"
@@ -39,7 +40,7 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 		for _, container := range containers {
 			pod, ok := podCache[container.Podname]
 			if !ok {
-				pod, err := c.store.GetPod(ctx, container.Podname)
+				pod, err = c.store.GetPod(ctx, container.Podname)
 				if err != nil {
 					ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 					continue
@@ -55,8 +56,8 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 					continue
 				}
 				nodeLocks[container.Nodename] = nodeLock
-				containersInfo[pod][node] = []*types.Container{container}
 				nodeCache[container.Nodename] = node
+				containersInfo[pod][node] = []*types.Container{container}
 				continue
 			}
 			// 锁过
@@ -136,7 +137,7 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 	cpu float64, memory int64) {
 	for node, containers := range nodeContainers {
 		for _, container := range containers {
-			newCPU := container.Quota + cpu
+			newCPU := utils.Round(container.Quota+cpu, 1)
 			newMemory := container.Memory + memory
 			// 内存不能低于 4MB
 			if newCPU <= 0 || newMemory <= minMemory {
@@ -186,7 +187,7 @@ func (c *Calcium) reallocContainersWithCPUPrior(
 	cpuMemNodeContainers := CPUMemNodeContainers{}
 	for node, containers := range nodeContainers {
 		for _, container := range containers {
-			newCPU := container.Quota + cpu
+			newCPU := utils.Round(container.Quota+cpu, 2)
 			newMem := container.Memory + memory
 			if newCPU < 0 || newMem < minMemory {
 				log.Errorf("[reallocContainersWithCPUPrior] new resource invaild %s, %f, %d", container.ID, newCPU, newMem)

@@ -25,10 +25,13 @@ func (c *Calcium) Lock(ctx context.Context, name string, timeout int) (lock.Dist
 
 // UnlockAll unlock all locks
 func (c *Calcium) UnlockAll(ctx context.Context, locks map[string]lock.DistributedLock) {
-	for _, lock := range locks {
-		if err := lock.Unlock(ctx); err != nil {
+	for n, lock := range locks {
+		// force unlock
+		if err := lock.Unlock(context.Background()); err != nil {
 			log.Errorf("[UnlockAll] Unlock failed %v", err)
+			continue
 		}
+		log.Debugf("[UnlockAll] %s Unlocked", n)
 	}
 }
 
@@ -70,6 +73,48 @@ func (c *Calcium) LockAndGetContainer(ctx context.Context, ID string) (*types.Co
 		return nil, enginetypes.ContainerJSON{}, nil, err
 	}
 	return container, containerJSON, lock, nil
+}
+
+// LockAndGetNodes lock and get nodes
+func (c *Calcium) LockAndGetNodes(ctx context.Context, podname, nodename string, labels map[string]string) (map[string]*types.Node, map[string]lock.DistributedLock, error) {
+	nodes := map[string]*types.Node{}
+	locks := map[string]lock.DistributedLock{}
+
+	var ns []*types.Node
+	var err error
+	if nodename == "" {
+		ns, err = c.ListPodNodes(ctx, podname, false)
+		if err != nil {
+			return nil, nil, err
+		}
+		nodeList := []*types.Node{}
+		for _, node := range ns {
+			if filterNode(node, labels) {
+				nodeList = append(nodeList, node)
+			}
+		}
+		ns = nodeList
+	} else {
+		n, err := c.GetNode(ctx, podname, nodename)
+		if err != nil {
+			return nil, nil, err
+		}
+		ns = append(ns, n)
+	}
+	if len(ns) == 0 {
+		return nil, nil, types.ErrInsufficientNodes
+	}
+
+	for _, n := range ns {
+		node, lock, err := c.LockAndGetNode(ctx, podname, n.Name)
+		if err != nil {
+			c.UnlockAll(ctx, locks)
+			return nil, nil, err
+		}
+		nodes[node.Name] = node
+		locks[node.Name] = lock
+	}
+	return nodes, locks, nil
 }
 
 // LockAndGetNode lock and get node

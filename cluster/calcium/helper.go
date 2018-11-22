@@ -83,7 +83,7 @@ func encodeAuthToBase64(authConfig types.AuthConfig) (string, error) {
 	return base64.URLEncoding.EncodeToString(buf), nil
 }
 
-func makeCPUAndMem(nodes []*types.Node) map[*types.Node]types.CPUAndMem {
+func makeCPUAndMem(nodes map[string]*types.Node) map[*types.Node]types.CPUAndMem {
 	r := make(map[*types.Node]types.CPUAndMem)
 	for _, node := range nodes {
 		r[node] = types.CPUAndMem{

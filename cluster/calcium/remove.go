@@ -4,6 +4,10 @@ import (
 	"context"
 	"sync"
 
+	"github.com/projecteru2/core/lock"
+	"github.com/projecteru2/core/store"
+
+	enginetypes "github.com/docker/docker/api/types"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -16,11 +20,8 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 		defer close(ch)
 		wg := sync.WaitGroup{}
 		ib := newImageBucket()
-
 		for _, ID := range IDs {
-			// 单个单个取是因为某些情况可能会传了id但是这里没有
-			// 这种情况不希望直接打断操作, 而是希望错误在message里回去.
-			container, err := c.GetContainer(ctx, ID)
+			container, containerJSON, containerLock, err := c.LockAndGetContainer(ctx, ID)
 			if err != nil {
 				ch <- &types.RemoveContainerMessage{
 					ContainerID: ID,
@@ -29,12 +30,12 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 				}
 				continue
 			}
-
 			wg.Add(1)
-			go func(container *types.Container) {
+			go func(container *types.Container, containerJSON enginetypes.ContainerJSON, containerLock lock.DistributedLock) {
 				defer wg.Done()
-
-				container, message, err := c.doStopAndRemoveContainer(ctx, container, ib, force)
+				// force to unlock
+				defer containerLock.Unlock(context.Background())
+				message := ""
 				success := false
 
 				defer func() {
@@ -45,45 +46,45 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 					}
 				}()
 
+				node, nodeLock, err := c.LockAndGetNode(ctx, container.Podname, container.Nodename)
+				if err != nil {
+					return
+				}
+				defer nodeLock.Unlock(context.Background())
+
+				message, err = c.stopAndRemoveContainer(ctx, container, containerJSON, ib, force)
 				if err != nil {
 					return
 				}
 
-				log.Debugf("[RemoveContainer] Restore node %s resource cpu: %v mem: %v", container.Nodename, container.CPU, container.Memory)
-				if err = c.store.UpdateNodeResource(ctx, container.Podname, container.Nodename, container.CPU, container.Memory, "+"); err != nil {
-					log.Errorf("[RemoveContainer] Update Node resource failed %v", err)
+				log.Infof("[RemoveContainer] Container %s removed", container.ID)
+				if err = c.store.UpdateNodeResource(ctx, node, container.CPU, container.Memory, store.ActionIncr); err != nil {
+					log.Errorf("[RemoveContainer] Container %s removed, but update Node resource failed %v", container.ID, err)
 					return
 				}
 
 				success = true
-			}(container)
+			}(container, containerJSON, containerLock)
 		}
 		wg.Wait()
 
 		// 把收集的image清理掉
-		// TODO 如果 remove 是异步的，这里就不能用 ctx 了，gRPC 一断这里就会死
-		go c.cleanCachedImage(ctx, ib)
+		// 如果 remove 是异步的，这里就不能用 ctx 了，gRPC 一断这里就会死
+		go c.cleanCachedImage(context.Background(), ib)
 	}()
 	return ch, nil
 }
 
-func (c *Calcium) doStopAndRemoveContainer(ctx context.Context, container *types.Container, ib *imageBucket, force bool) (*types.Container, string, error) {
-	container, containerJSON, lock, err := c.doLockContainer(ctx, container)
+func (c *Calcium) stopAndRemoveContainer(ctx context.Context, container *types.Container, containerJSON enginetypes.ContainerJSON, ib *imageBucket, force bool) (string, error) {
+	message, err := c.doStopContainer(ctx, container, containerJSON, ib, force)
 	if err != nil {
-		return nil, err.Error(), err
-	}
-	defer lock.Unlock(ctx)
-
-	var message string
-	message, err = c.doStopContainer(ctx, container, containerJSON, ib, force)
-	if err != nil {
-		return nil, message, err
+		return message, err
 	}
 
 	if err = c.doRemoveContainer(ctx, container); err != nil {
 		message += err.Error()
 	}
-	return container, message, err
+	return message, err
 }
 
 func (c *Calcium) cleanCachedImage(ctx context.Context, ib *imageBucket) {

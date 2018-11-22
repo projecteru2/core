@@ -15,6 +15,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/metrics"
+	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/sanity-io/litter"
@@ -53,7 +54,7 @@ func (c *Calcium) createContainer(ctx context.Context, opts *types.DeployOptions
 	ch := make(chan *types.CreateContainerMessage)
 	// RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
 	// 因此需要在这里加个全局锁，直到部署完毕才释放
-	// 通过 Processing 状态跟踪达成这个 RFC 了 18 Oct, 2018
+	// 通过 Processing 状态跟踪达成 18 Oct, 2018
 	nodesInfo, err := c.allocResource(ctx, opts, pod.Favor)
 	if err != nil {
 		log.Errorf("[createContainer] Error during alloc resource: %v", err)
@@ -77,9 +78,14 @@ func (c *Calcium) createContainer(ctx context.Context, opts *types.DeployOptions
 					ch <- m
 					if m.Error != nil {
 						if m.ContainerID == "" {
-							if err := c.store.UpdateNodeResource(ctx, opts.Podname, nodeInfo.Name, m.CPU, opts.Memory, "+"); err != nil {
-								log.Errorf("[createContainer] reset node memory failed %v", err)
+							node, nodeLock, err := c.LockAndGetNode(ctx, opts.Podname, nodeInfo.Name)
+							if err != nil {
+								log.Errorf("[createContainer] Get and lock node %s failed %v", nodeInfo.Name, err)
 							}
+							if err := c.store.UpdateNodeResource(ctx, node, m.CPU, opts.Memory, store.ActionIncr); err != nil {
+								log.Errorf("[createContainer] Reset node %s failed %v", nodeInfo.Name, err)
+							}
+							nodeLock.Unlock(context.Background())
 						} else {
 							log.Warnf("[createContainer] container %s not removed", m.ContainerID)
 						}
@@ -422,7 +428,7 @@ func (c *Calcium) createAndStartContainer(
 
 	// get ips
 	if containerAlived.NetworkSettings != nil {
-		createContainerMessage.Publish = utils.MakePublishInfo(containerAlived.NetworkSettings.Networks, node, opts.Entrypoint.Publish)
+		createContainerMessage.Publish = utils.MakePublishInfo(containerAlived.NetworkSettings.Networks, node.GetIP(), opts.Entrypoint.Publish)
 	}
 
 	createContainerMessage.Success = true

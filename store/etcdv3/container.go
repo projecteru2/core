@@ -223,5 +223,6 @@ func (m *Mercury) bindEngine(ctx context.Context, container *types.Container) (*
 	}
 
 	container.Engine = node.Engine
+	container.HostIP = node.GetIP()
 	return container, nil
 }

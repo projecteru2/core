@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -142,10 +143,10 @@ func ParseContainerName(containerName string) (string, string, string, error) {
 }
 
 // MakePublishInfo generate publish info
-func MakePublishInfo(networks map[string]*network.EndpointSettings, node *types.Node, ports []string) map[string][]string {
+func MakePublishInfo(networks map[string]*network.EndpointSettings, hostIP string, ports []string) map[string][]string {
 	result := map[string][]string{}
 	for networkName, networkSetting := range networks {
-		ip := node.GetIP()
+		ip := hostIP
 		if !enginecontainer.NetworkMode(networkName).IsHost() {
 			ip = networkSetting.IPAddress
 		}
@@ -276,6 +277,12 @@ func CreateTarStream(path string) (io.ReadCloser, error) {
 		NoLchown:        true,
 	}
 	return archive.TarWithOptions(path, tarOpts)
+}
+
+// Round for float64 to int
+func Round(f float64, n int) float64 {
+	n10 := math.Pow10(n)
+	return math.Trunc((f+0.5/n10)*n10) / n10
 }
 
 // copied from https://gist.github.com/jmervine/d88c75329f98e09f5c87
