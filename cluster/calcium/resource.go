@@ -10,6 +10,7 @@ import (
 
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/scheduler"
+	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 )
 
@@ -19,16 +20,13 @@ func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, 
 	var nodesInfo []types.NodeInfo
 	var nodeCPUPlans map[string][]types.CPUMap
 
-	lock, err := c.Lock(ctx, opts.Podname, c.config.LockTimeout)
+	nodes, nodeLocks, err := c.LockAndGetNodes(ctx, opts.Podname, opts.Nodename, opts.NodeLabels)
 	if err != nil {
 		return nil, err
 	}
-	defer lock.Unlock(ctx)
+	defer c.UnlockAll(ctx, nodeLocks)
 
-	cpuandmem, err := c.getCPUAndMem(ctx, opts.Podname, opts.Nodename, opts.NodeLabels)
-	if err != nil {
-		return nil, err
-	}
+	cpuandmem := makeCPUAndMem(nodes)
 	nodesInfo = getNodesInfo(cpuandmem)
 
 	// 载入之前部署的情况
@@ -83,7 +81,7 @@ func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, 
 				cpuCost.Add(cpu)
 			}
 		}
-		if err := c.store.UpdateNodeResource(ctx, opts.Podname, nodeInfo.Name, cpuCost, memoryCost, "-"); err != nil {
+		if err := c.store.UpdateNodeResource(ctx, nodes[nodeInfo.Name], cpuCost, memoryCost, store.ActionDecr); err != nil {
 			return nil, err
 		}
 	}
@@ -104,34 +102,4 @@ func (c *Calcium) bindProcessStatus(ctx context.Context, opts *types.DeployOptio
 		}
 	}
 	return nil
-}
-
-func (c *Calcium) getCPUAndMem(ctx context.Context, podname, nodename string, labels map[string]string) (map[*types.Node]types.CPUAndMem, error) {
-	var nodes []*types.Node
-	var err error
-	if nodename == "" {
-		nodes, err = c.ListPodNodes(ctx, podname, false)
-		if err != nil {
-			return nil, err
-		}
-		nodeList := []*types.Node{}
-		for _, node := range nodes {
-			if filterNode(node, labels) {
-				nodeList = append(nodeList, node)
-			}
-		}
-		nodes = nodeList
-	} else {
-		n, err := c.GetNode(ctx, podname, nodename)
-		if err != nil {
-			return nil, err
-		}
-		nodes = append(nodes, n)
-	}
-
-	if len(nodes) == 0 {
-		return nil, types.ErrInsufficientNodes
-	}
-
-	return makeCPUAndMem(nodes), nil
 }
