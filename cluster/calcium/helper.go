@@ -19,24 +19,11 @@ import (
 	engineapi "github.com/docker/docker/client"
 	"github.com/docker/docker/registry"
 	"github.com/projecteru2/core/cluster"
-	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
-
-// Lock is lock for calcium
-func (c *Calcium) Lock(ctx context.Context, name string, timeout int) (lock.DistributedLock, error) {
-	lock, err := c.store.CreateLock(name, timeout)
-	if err != nil {
-		return nil, err
-	}
-	if err = lock.Lock(ctx); err != nil {
-		return nil, err
-	}
-	return lock, nil
-}
 
 func makeResourceSetting(cpu float64, memory int64, cpuMap types.CPUMap, softlimit bool) enginecontainer.Resources {
 	resource := enginecontainer.Resources{}

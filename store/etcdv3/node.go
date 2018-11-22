@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/projecteru2/core/store"
+
 	"github.com/coreos/etcd/clientv3"
 	engineapi "github.com/docker/docker/client"
 	"github.com/projecteru2/core/metrics"
@@ -223,20 +225,6 @@ func (m *Mercury) GetAllNodes(ctx context.Context) ([]*types.Node, error) {
 // UpdateNode update a node, save it to etcd
 // storage path in etcd is `/pod/nodes/:podname/:nodename`
 func (m *Mercury) UpdateNode(ctx context.Context, node *types.Node) error {
-	lock, err := m.CreateLock(fmt.Sprintf("%s_%s", node.Podname, node.Name), m.config.LockTimeout)
-	if err != nil {
-		return err
-	}
-
-	if err := lock.Lock(ctx); err != nil {
-		return err
-	}
-	defer lock.Unlock(ctx)
-
-	return m.doUpdateNode(ctx, node)
-}
-
-func (m *Mercury) doUpdateNode(ctx context.Context, node *types.Node) error {
 	key := fmt.Sprintf(nodeInfoKey, node.Podname, node.Name)
 	bytes, err := json.Marshal(node)
 	if err != nil {
@@ -250,36 +238,20 @@ func (m *Mercury) doUpdateNode(ctx context.Context, node *types.Node) error {
 }
 
 // UpdateNodeResource update cpu and mem on a node, either add or substract
-// need to lock
-func (m *Mercury) UpdateNodeResource(ctx context.Context, podname, nodename string, cpu types.CPUMap, mem int64, action string) error {
-	lock, err := m.CreateLock(fmt.Sprintf("%s_%s", podname, nodename), m.config.LockTimeout)
-	if err != nil {
-		return err
-	}
-
-	if err := lock.Lock(ctx); err != nil {
-		return err
-	}
-	defer lock.Unlock(ctx)
-
-	node, err := m.GetNode(ctx, podname, nodename)
-	if err != nil {
-		return err
-	}
-
-	if action == "add" || action == "+" {
+func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, mem int64, action string) error {
+	switch action {
+	case store.ActionIncr:
 		node.CPU.Add(cpu)
 		node.MemCap += mem
-	} else if action == "sub" || action == "-" {
+	case store.ActionDecr:
 		node.CPU.Sub(cpu)
 		node.MemCap -= mem
-	} else {
+	default:
 		return types.ErrUnknownControlType
 	}
 
-	err = m.doUpdateNode(ctx, node)
 	go metrics.Client.SendNodeInfo(node)
-	return err
+	return m.UpdateNode(ctx, node)
 }
 
 func (m *Mercury) makeDockerClient(ctx context.Context, podname, nodename, endpoint string, force bool) (engineapi.APIClient, error) {

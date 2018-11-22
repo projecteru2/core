@@ -23,7 +23,6 @@ type Container struct {
 	Privileged bool                `json:"privileged"`
 	SoftLimit  bool                `json:"softlimit"`
 	Engine     engineapi.APIClient `json:"-"`
-	Node       *Node               `json:"-"`
 }
 
 // Inspect a container
