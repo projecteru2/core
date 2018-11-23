@@ -23,26 +23,6 @@ type GitScm struct {
 	AuthHeaders map[string]string
 }
 
-func certificateCheckCallback(cert *git.Certificate, valid bool, hostname string) git.ErrorCode {
-	return git.ErrorCode(0)
-}
-
-func gitcheck(repository, pubkey, prikey string) error {
-	if strings.Contains(repository, "https://") {
-		return nil
-	}
-	if strings.Contains(repository, "git@") || strings.Contains(repository, "gitlab@") {
-		if _, err := os.Stat(pubkey); os.IsNotExist(err) {
-			return fmt.Errorf("Public Key not found(%q)", pubkey)
-		}
-		if _, err := os.Stat(prikey); os.IsNotExist(err) {
-			return fmt.Errorf("Private Key not found(%q)", prikey)
-		}
-		return nil
-	}
-	return fmt.Errorf("No Support")
-}
-
 // SourceCode clone code from repository into path, by revision
 func (g *GitScm) SourceCode(repository, path, revision string, submodule bool) error {
 	if err := gitcheck(repository, g.Config.PublicKey, g.Config.PrivateKey); err != nil {
@@ -201,4 +181,24 @@ func unzipFile(body io.ReadCloser, path string) error {
 		}
 	}
 	return nil
+}
+
+func certificateCheckCallback(cert *git.Certificate, valid bool, hostname string) git.ErrorCode {
+	return git.ErrorCode(0)
+}
+
+func gitcheck(repository, pubkey, prikey string) error {
+	if strings.Contains(repository, "https://") {
+		return nil
+	}
+	if strings.Contains(repository, "git@") || strings.Contains(repository, "gitlab@") {
+		if _, err := os.Stat(pubkey); os.IsNotExist(err) {
+			return fmt.Errorf("Public Key not found(%q)", pubkey)
+		}
+		if _, err := os.Stat(prikey); os.IsNotExist(err) {
+			return fmt.Errorf("Private Key not found(%q)", prikey)
+		}
+		return nil
+	}
+	return fmt.Errorf("No Support")
 }

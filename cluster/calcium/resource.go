@@ -14,17 +14,17 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, podType string) ([]types.NodeInfo, error) {
+func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions, podType string) ([]types.NodeInfo, error) {
 	var err error
 	var total int
 	var nodesInfo []types.NodeInfo
 	var nodeCPUPlans map[string][]types.CPUMap
 
-	nodes, nodeLocks, err := c.LockAndGetNodes(ctx, opts.Podname, opts.Nodename, opts.NodeLabels)
+	nodes, nodeLocks, err := c.doLockAndGetNodes(ctx, opts.Podname, opts.Nodename, opts.NodeLabels)
 	if err != nil {
 		return nil, err
 	}
-	defer c.UnlockAll(ctx, nodeLocks)
+	defer c.doUnlockAllNodes(nodeLocks)
 
 	cpuandmem := makeCPUAndMem(nodes)
 	nodesInfo = getNodesInfo(cpuandmem)
@@ -92,10 +92,10 @@ func (c *Calcium) allocResource(ctx context.Context, opts *types.DeployOptions, 
 			log.Infof("[allocResource] deploy %d to %s \n%s", nodeInfo.Deploy, nodeInfo.Name, s)
 		}
 	}()
-	return nodesInfo, c.bindProcessStatus(ctx, opts, nodesInfo)
+	return nodesInfo, c.doBindProcessStatus(ctx, opts, nodesInfo)
 }
 
-func (c *Calcium) bindProcessStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) error {
+func (c *Calcium) doBindProcessStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) error {
 	for _, nodeInfo := range nodesInfo {
 		if err := c.store.SaveProcessing(ctx, opts, nodeInfo); err != nil {
 			return err

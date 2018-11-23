@@ -1,4 +1,4 @@
-package sdn
+package calico
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Titanium for calico sdn
+// Titanium for calico
 type Titanium struct{}
 
 // ConnectToNetwork to network with ipv4 address

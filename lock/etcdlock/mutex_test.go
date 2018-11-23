@@ -9,7 +9,7 @@ import (
 	"github.com/coreos/etcd/integration"
 )
 
-func TestLock(t *testing.T) {
+func TestMutex(t *testing.T) {
 	cluster := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
 	defer cluster.Terminate(t)
 	cli := cluster.RandClient()

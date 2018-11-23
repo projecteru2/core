@@ -19,7 +19,24 @@ func NewBasicAuth(username, password string) *BasicAuth {
 	return &BasicAuth{username, password}
 }
 
-func (b *BasicAuth) auth(ctx context.Context) error {
+// StreamInterceptor define stream interceptor
+func (b *BasicAuth) StreamInterceptor(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	ctx := stream.Context()
+	if err := b.doAuth(ctx); err != nil {
+		return err
+	}
+	return handler(srv, stream)
+}
+
+// UnaryInterceptor define unary interceptor
+func (b *BasicAuth) UnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	if err := b.doAuth(ctx); err != nil {
+		return nil, err
+	}
+	return handler(ctx, req)
+}
+
+func (b *BasicAuth) doAuth(ctx context.Context) error {
 	meta, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return types.ErrBadMeta
@@ -32,21 +49,4 @@ func (b *BasicAuth) auth(ctx context.Context) error {
 		return types.ErrInvaildPassword
 	}
 	return nil
-}
-
-// StreamInterceptor define stream interceptor
-func (b *BasicAuth) StreamInterceptor(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-	ctx := stream.Context()
-	if err := b.auth(ctx); err != nil {
-		return err
-	}
-	return handler(srv, stream)
-}
-
-// UnaryInterceptor define unary interceptor
-func (b *BasicAuth) UnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	if err := b.auth(ctx); err != nil {
-		return nil, err
-	}
-	return handler(ctx, req)
 }

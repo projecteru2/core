@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	// GITLAB for gitlab
-	GITLAB = "gitlab"
-	// GITHUB for github
-	GITHUB = "github"
+	// Gitlab for gitlab
+	Gitlab = "gitlab"
+	// Github for github
+	Github = "github"
 	// CopyFailed for copy failed
 	CopyFailed = "failed"
 	// CopyOK for copy ok
@@ -57,21 +57,20 @@ type Cluster interface {
 	GetContainer(ctx context.Context, ID string) (*types.Container, error)
 	GetContainers(ctx context.Context, IDs []string) ([]*types.Container, error)
 	SetNodeAvailable(ctx context.Context, podname, nodename string, available bool) (*types.Node, error)
-
-	// cluster methods
-	Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error)
-	BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error)
-	RemoveImage(ctx context.Context, podname, nodename string, images []string, prune bool) (chan *types.RemoveImageMessage, error)
-	DeployStatusStream(ctx context.Context, appname, entrypoint, nodename string) chan *types.DeployStatus
-	RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error)
-	ControlContainer(ctx context.Context, IDs []string, t string) (chan *types.ControlContainerMessage, error)
-	// this methods will not interrupt by client
-	CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
-	ReplaceContainer(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceContainerMessage, error)
-	RemoveContainer(ctx context.Context, IDs []string, force bool) (chan *types.RemoveContainerMessage, error)
-	ReallocResource(ctx context.Context, IDs []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error)
-
 	// used by agent
 	GetNodeByName(ctx context.Context, nodename string) (*types.Node, error)
 	ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename, data string) error
+
+	// cluster methods
+	BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error)
+	ControlContainer(ctx context.Context, IDs []string, t string) (chan *types.ControlContainerMessage, error)
+	Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error)
+	RemoveImage(ctx context.Context, podname, nodename string, images []string, prune bool) (chan *types.RemoveImageMessage, error)
+	RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error)
+	DeployStatusStream(ctx context.Context, appname, entrypoint, nodename string) chan *types.DeployStatus
+	// this methods will not interrupt by client
+	CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
+	ReallocResource(ctx context.Context, IDs []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error)
+	RemoveContainer(ctx context.Context, IDs []string, force bool) (chan *types.RemoveContainerMessage, error)
+	ReplaceContainer(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceContainerMessage, error)
 }

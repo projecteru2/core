@@ -71,7 +71,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 				defer wg.Done()
 				defer log.Infof("[RunAndWait] Container %s finished and removed", utils.ShortID(containerID))
 				//CONTEXT 这里的不应该受到 client 的影响
-				defer c.removeContainerSync(context.Background(), []string{containerID})
+				defer c.doRemoveContainerSync(context.Background(), []string{containerID})
 
 				resp, err := node.Engine.ContainerLogs(ctx, containerID, logsOpts)
 				if err != nil {
