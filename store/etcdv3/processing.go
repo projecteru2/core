@@ -33,7 +33,7 @@ func (m *Mercury) DeleteProcessing(ctx context.Context, opts *types.DeployOption
 	return err
 }
 
-func (m *Mercury) loadProcessing(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
+func (m *Mercury) doLoadProcessing(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
 	processingKey := filepath.Join(containerProcessingPrefix, opts.Name, opts.Entrypoint.Name)
 	resp, err := m.Get(ctx, processingKey, clientv3.WithPrefix())
 	if err != nil {
@@ -50,7 +50,7 @@ func (m *Mercury) loadProcessing(ctx context.Context, opts *types.DeployOptions,
 		nodename := parts[len(parts)-2]
 		count, err := strconv.Atoi(string(ev.Value))
 		if err != nil {
-			log.Errorf("[loadProcessing] load processing status failed %v", err)
+			log.Errorf("[doLoadProcessing] load processing status failed %v", err)
 			continue
 		}
 		if _, ok := nodesCount[nodename]; !ok {
