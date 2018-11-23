@@ -18,7 +18,7 @@ func FillPlan(nodesInfo []types.NodeInfo, need, limit int) ([]types.NodeInfo, er
 		return nil, types.ErrAlreadyFilled
 	}
 	nodesInfo = nodesInfo[p:]
-	if limit > 0 {
+	if limit > 0 && len(nodesInfo) > limit {
 		nodesInfo = nodesInfo[:limit]
 	}
 	for i := range nodesInfo {
