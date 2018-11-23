@@ -35,7 +35,7 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 		return nil, err
 	}
 
-	if _, err := m.getNode(ctx, podname, name); err == nil {
+	if _, err := m.doGetNode(ctx, podname, name); err == nil {
 		return nil, types.NewDetailedErr(types.ErrNodeExist,
 			fmt.Sprintf("node %s:%s already exists",
 				podname, name))
@@ -66,73 +66,12 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 	return m.doAddNode(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, labels)
 }
 
-func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string) (*types.Node, error) {
-	data := map[string]string{}
-	// 如果有tls的证书需要保存就保存一下
-	if ca != "" && cert != "" && key != "" {
-		data[fmt.Sprintf(nodeCaKey, name)] = ca
-		data[fmt.Sprintf(nodeCertKey, name)] = cert
-		data[fmt.Sprintf(nodeKeyKey, name)] = key
-	}
-
-	cpumap := types.CPUMap{}
-	for i := 0; i < cpu; i++ {
-		cpumap[strconv.Itoa(i)] = share
-	}
-
-	node := &types.Node{
-		Name:       name,
-		Endpoint:   endpoint,
-		Podname:    podname,
-		CPU:        cpumap,
-		MemCap:     memory,
-		InitCPU:    cpumap,
-		InitMemCap: memory,
-		Available:  true,
-		Labels:     labels,
-	}
-
-	bytes, err := json.Marshal(node)
-	if err != nil {
-		return nil, err
-	}
-
-	data[fmt.Sprintf(nodeInfoKey, podname, name)] = string(bytes)
-	data[fmt.Sprintf(nodePodKey, name)] = podname
-
-	_, err = m.BatchCreate(ctx, data)
-	if err != nil {
-		return nil, err
-	}
-
-	go metrics.Client.SendNodeInfo(node)
-	return node, nil
-}
-
 // DeleteNode delete a node
 func (m *Mercury) DeleteNode(ctx context.Context, node *types.Node) {
 	if node == nil {
 		return
 	}
-	m.deleteNode(ctx, node.Podname, node.Name, node.Endpoint)
-}
-
-// 因为是先写etcd的证书再拿client
-// 所以可能出现实际上node创建失败但是却写好了证书的情况
-// 所以需要删除这些留存的证书
-// 至于结果是不是成功就无所谓了
-func (m *Mercury) deleteNode(ctx context.Context, podname, nodename, endpoint string) {
-	keys := []string{
-		fmt.Sprintf(nodeInfoKey, podname, nodename),
-		fmt.Sprintf(nodePodKey, nodename),
-		fmt.Sprintf(nodeCaKey, nodename),
-		fmt.Sprintf(nodeCertKey, nodename),
-		fmt.Sprintf(nodeKeyKey, nodename),
-	}
-
-	m.BatchDelete(ctx, keys)
-	_cache.Delete(nodename)
-	log.Debugf("[deleteNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
+	m.doDeleteNode(ctx, node.Podname, node.Name, node.Endpoint)
 }
 
 // GetNode get a node from etcd
@@ -141,7 +80,7 @@ func (m *Mercury) deleteNode(ctx context.Context, podname, nodename, endpoint st
 // and since node is not the smallest unit to user, to get a node we must specify the corresponding pod
 // storage path in etcd is `/pod/nodes/:podname/:nodename`
 func (m *Mercury) GetNode(ctx context.Context, podname, nodename string) (*types.Node, error) {
-	node, err := m.getNode(ctx, podname, nodename)
+	node, err := m.doGetNode(ctx, podname, nodename)
 	if err != nil {
 		return nil, err
 	}
@@ -153,18 +92,6 @@ func (m *Mercury) GetNode(ctx context.Context, podname, nodename string) (*types
 
 	node.Engine = engine
 	return node, nil
-}
-
-func (m *Mercury) getNode(ctx context.Context, podname, nodename string) (*types.Node, error) {
-	key := fmt.Sprintf(nodeInfoKey, podname, nodename)
-	ev, err := m.GetOne(ctx, key)
-	if err != nil {
-		return nil, err
-	}
-
-	node := &types.Node{}
-	err = json.Unmarshal(ev.Value, node)
-	return node, err
 }
 
 // GetNodeByName get node by name
@@ -311,4 +238,77 @@ func (m *Mercury) doMakeDockerClient(ctx context.Context, nodename, endpoint, ca
 		return nil, err
 	}
 	return makeRawClientWithTLS(caFile, certFile, keyFile, endpoint, m.config.Docker.APIVersion)
+}
+
+func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string) (*types.Node, error) {
+	data := map[string]string{}
+	// 如果有tls的证书需要保存就保存一下
+	if ca != "" && cert != "" && key != "" {
+		data[fmt.Sprintf(nodeCaKey, name)] = ca
+		data[fmt.Sprintf(nodeCertKey, name)] = cert
+		data[fmt.Sprintf(nodeKeyKey, name)] = key
+	}
+
+	cpumap := types.CPUMap{}
+	for i := 0; i < cpu; i++ {
+		cpumap[strconv.Itoa(i)] = share
+	}
+
+	node := &types.Node{
+		Name:       name,
+		Endpoint:   endpoint,
+		Podname:    podname,
+		CPU:        cpumap,
+		MemCap:     memory,
+		InitCPU:    cpumap,
+		InitMemCap: memory,
+		Available:  true,
+		Labels:     labels,
+	}
+
+	bytes, err := json.Marshal(node)
+	if err != nil {
+		return nil, err
+	}
+
+	data[fmt.Sprintf(nodeInfoKey, podname, name)] = string(bytes)
+	data[fmt.Sprintf(nodePodKey, name)] = podname
+
+	_, err = m.BatchCreate(ctx, data)
+	if err != nil {
+		return nil, err
+	}
+
+	go metrics.Client.SendNodeInfo(node)
+	return node, nil
+}
+
+// 因为是先写etcd的证书再拿client
+// 所以可能出现实际上node创建失败但是却写好了证书的情况
+// 所以需要删除这些留存的证书
+// 至于结果是不是成功就无所谓了
+func (m *Mercury) doDeleteNode(ctx context.Context, podname, nodename, endpoint string) {
+	keys := []string{
+		fmt.Sprintf(nodeInfoKey, podname, nodename),
+		fmt.Sprintf(nodePodKey, nodename),
+		fmt.Sprintf(nodeCaKey, nodename),
+		fmt.Sprintf(nodeCertKey, nodename),
+		fmt.Sprintf(nodeKeyKey, nodename),
+	}
+
+	m.BatchDelete(ctx, keys)
+	_cache.Delete(nodename)
+	log.Debugf("[doDeleteNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
+}
+
+func (m *Mercury) doGetNode(ctx context.Context, podname, nodename string) (*types.Node, error) {
+	key := fmt.Sprintf(nodeInfoKey, podname, nodename)
+	ev, err := m.GetOne(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+
+	node := &types.Node{}
+	err = json.Unmarshal(ev.Value, node)
+	return node, err
 }

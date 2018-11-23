@@ -8,13 +8,13 @@ import (
 )
 
 const (
-	// PUTEVENT for put event
+	// PutEvent for put event
 	PutEvent = "PUT"
-	// DELETEEVENT for delete event
+	// DeleteEvent for delete event
 	DeleteEvent = "DELETE"
-	// ActionIncr
+	// ActionIncr for incr resource
 	ActionIncr = "+"
-	// ActionDecres
+	// ActionDecr for decr resource
 	ActionDecr = "-"
 )
 
@@ -46,6 +46,7 @@ type Store interface {
 	ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename, data string) error
 	ListContainers(ctx context.Context, appname, entrypoint, nodename string) ([]*types.Container, error)
 	ListNodeContainers(ctx context.Context, nodename string) ([]*types.Container, error)
+	WatchDeployStatus(ctx context.Context, appname, entrypoint, nodename string) chan *types.DeployStatus
 
 	// deploy status
 	MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error)
@@ -57,6 +58,4 @@ type Store interface {
 
 	// distributed lock
 	CreateLock(key string, ttl int) (lock.DistributedLock, error)
-	// watch deploy status
-	WatchDeployStatus(ctx context.Context, appname, entrypoint, nodename string) chan *types.DeployStatus
 }

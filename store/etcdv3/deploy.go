@@ -25,7 +25,7 @@ func (m *Mercury) MakeDeployStatus(ctx context.Context, opts *types.DeployOption
 	} else {
 		log.Warnf("[MakeDeployStatus] Deploy status not found %s", opts.Name)
 	}
-	return m.loadProcessing(ctx, opts, nodesInfo)
+	return m.doLoadProcessing(ctx, opts, nodesInfo)
 }
 
 func (m *Mercury) doGetDeployStatus(ctx context.Context, resp *clientv3.GetResponse, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {

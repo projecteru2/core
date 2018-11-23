@@ -120,7 +120,7 @@ func TestMercury(t *testing.T) {
 		for r := range ch {
 			assert.NotEmpty(t, r.Events)
 			assert.Equal(t, len(r.Events), 1)
-			assert.Equal(t, r.Events[0].Type.String(), store.PUTEVENT)
+			assert.Equal(t, r.Events[0].Type.String(), store.PutEvent)
 			assert.Equal(t, string(r.Events[0].Kv.Value), "b")
 		}
 	}()

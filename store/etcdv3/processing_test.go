@@ -29,7 +29,7 @@ func TestProcessing(t *testing.T) {
 	// update
 	assert.NoError(t, m.UpdateProcessing(ctx, opts, nodeInfo.Name, 8))
 
-	nodesInfo, err := m.loadProcessing(ctx, opts, []types.NodeInfo{nodeInfo})
+	nodesInfo, err := m.doLoadProcessing(ctx, opts, []types.NodeInfo{nodeInfo})
 	assert.NoError(t, err)
 	assert.Equal(t, len(nodesInfo), 1)
 	assert.Equal(t, nodesInfo[0].Count, 8)

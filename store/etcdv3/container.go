@@ -27,36 +27,6 @@ func (m *Mercury) UpdateContainer(ctx context.Context, container *types.Containe
 	return m.doOpsContainer(ctx, container, false)
 }
 
-func (m *Mercury) doOpsContainer(ctx context.Context, container *types.Container, create bool) error {
-	var err error
-
-	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
-	if err != nil {
-		return err
-	}
-
-	// now everything is ok
-	// we use full length id instead
-	bytes, err := json.Marshal(container)
-	if err != nil {
-		return err
-	}
-	containerData := string(bytes)
-
-	data := map[string]string{
-		fmt.Sprintf(containerInfoKey, container.ID):                      containerData,
-		fmt.Sprintf(nodeContainersKey, container.Nodename, container.ID): containerData,
-	}
-
-	if create {
-		data[filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)] = ""
-		_, err = m.BatchCreate(ctx, data)
-	} else {
-		_, err = m.BatchUpdate(ctx, data)
-	}
-	return err
-}
-
 // RemoveContainer remove a container
 // container id must be in full length
 func (m *Mercury) RemoveContainer(ctx context.Context, container *types.Container) error {
@@ -104,7 +74,7 @@ func (m *Mercury) GetContainer(ctx context.Context, ID string) (*types.Container
 		return nil, err
 	}
 
-	if c, err = m.bindEngine(ctx, c); err != nil {
+	if c, err = m.bindNodeMeta(ctx, c); err != nil {
 		return nil, err
 	}
 
@@ -170,7 +140,7 @@ func (m *Mercury) ListNodeContainers(ctx context.Context, nodename string) ([]*t
 			return []*types.Container{}, err
 		}
 
-		if c, err = m.bindEngine(ctx, c); err != nil {
+		if c, err = m.bindNodeMeta(ctx, c); err != nil {
 			return []*types.Container{}, err
 		}
 
@@ -216,7 +186,7 @@ func (m *Mercury) WatchDeployStatus(ctx context.Context, appname, entrypoint, no
 	return ch
 }
 
-func (m *Mercury) bindEngine(ctx context.Context, container *types.Container) (*types.Container, error) {
+func (m *Mercury) bindNodeMeta(ctx context.Context, container *types.Container) (*types.Container, error) {
 	node, err := m.GetNode(ctx, container.Podname, container.Nodename)
 	if err != nil {
 		return nil, err
@@ -225,4 +195,34 @@ func (m *Mercury) bindEngine(ctx context.Context, container *types.Container) (*
 	container.Engine = node.Engine
 	container.HostIP = node.GetIP()
 	return container, nil
+}
+
+func (m *Mercury) doOpsContainer(ctx context.Context, container *types.Container, create bool) error {
+	var err error
+
+	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
+	if err != nil {
+		return err
+	}
+
+	// now everything is ok
+	// we use full length id instead
+	bytes, err := json.Marshal(container)
+	if err != nil {
+		return err
+	}
+	containerData := string(bytes)
+
+	data := map[string]string{
+		fmt.Sprintf(containerInfoKey, container.ID):                      containerData,
+		fmt.Sprintf(nodeContainersKey, container.Nodename, container.ID): containerData,
+	}
+
+	if create {
+		data[filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)] = ""
+		_, err = m.BatchCreate(ctx, data)
+	} else {
+		_, err = m.BatchUpdate(ctx, data)
+	}
+	return err
 }
