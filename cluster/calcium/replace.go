@@ -42,7 +42,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 			}
 			if opts.Podname != "" && container.Podname != opts.Podname {
 				log.Debugf("[ReplaceContainer] Skip not in pod container %s", container.ID)
-				containerLock.Unlock(context.Background())
+				c.doUnlock(containerLock, container.ID)
 				continue
 			}
 
@@ -51,7 +51,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 
 			go func(replaceOpts types.ReplaceOptions, container *types.Container, containerJSON enginetypes.ContainerJSON, containerLock lock.DistributedLock, index int) {
 				defer wg.Done()
-				defer containerLock.Unlock(context.Background())
+				defer c.doUnlock(containerLock, container.ID)
 				// 使用复制之后的配置
 				// 停老的，起新的
 				replaceOpts.Memory = container.Memory

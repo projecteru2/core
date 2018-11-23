@@ -22,28 +22,19 @@ func (c *Calcium) doLock(ctx context.Context, name string, timeout int) (lock.Di
 	return lock, nil
 }
 
-func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.DistributedLock) {
-	for _, lock := range locks {
+func (c *Calcium) doUnlock(lock lock.DistributedLock, msg string) error {
+	log.Debugf("[doUnlockNode] Unlock %s", msg)
+	return lock.Unlock(context.Background())
+}
+
+func (c *Calcium) doUnlockAll(locks map[string]lock.DistributedLock) {
+	for n, lock := range locks {
 		// force unlock
-		if err := lock.Unlock(context.Background()); err != nil {
+		if err := c.doUnlock(lock, n); err != nil {
 			log.Errorf("[doUnlockAll] Unlock failed %v", err)
 			continue
 		}
 	}
-}
-
-func (c *Calcium) doUnlockAllContainers(locks map[string]lock.DistributedLock) {
-	for ID := range locks {
-		log.Debugf("[doUnlockAllContainers] Unlock container %s", ID)
-	}
-	c.doUnlockAll(context.Background(), locks)
-}
-
-func (c *Calcium) doUnlockAllNodes(locks map[string]lock.DistributedLock) {
-	for nodename := range locks {
-		log.Debugf("[doUnlockAllNodes] Unlock node %s", nodename)
-	}
-	c.doUnlockAll(context.Background(), locks)
 }
 
 func (c *Calcium) doLockAndGetContainer(ctx context.Context, ID string) (*types.Container, enginetypes.ContainerJSON, lock.DistributedLock, error) {
@@ -74,7 +65,7 @@ func (c *Calcium) doLockAndGetContainers(ctx context.Context, IDs []string) (map
 	for _, ID := range IDs {
 		container, containerJSON, lock, err := c.doLockAndGetContainer(ctx, ID)
 		if err != nil {
-			c.doUnlockAllContainers(locks)
+			c.doUnlockAll(locks)
 			return nil, nil, nil, err
 		}
 		containers[ID] = container
@@ -131,7 +122,7 @@ func (c *Calcium) doLockAndGetNodes(ctx context.Context, podname, nodename strin
 	for _, n := range ns {
 		node, lock, err := c.doLockAndGetNode(ctx, podname, n.Name)
 		if err != nil {
-			c.doUnlockAllNodes(locks)
+			c.doUnlockAll(locks)
 			return nil, nil, err
 		}
 		nodes[node.Name] = node

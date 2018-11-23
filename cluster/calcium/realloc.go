@@ -26,14 +26,14 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 			log.Errorf("[ReallocResource] Lock and get containers failed %v", err)
 			return
 		}
-		defer c.doUnlockAllContainers(containerLocks)
+		defer c.doUnlockAll(containerLocks)
 		// Pod-Node-Containers
 		containersInfo := map[*types.Pod]nodeContainers{}
 		// Pod cache
 		podCache := map[string]*types.Pod{}
 		// Node locks
 		nodeLocks := map[string]lock.DistributedLock{}
-		defer c.doUnlockAllNodes(nodeLocks)
+		defer c.doUnlockAll(nodeLocks)
 		// Node cache
 		nodeCache := map[string]*types.Node{}
 
