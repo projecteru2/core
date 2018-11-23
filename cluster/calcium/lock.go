@@ -23,7 +23,7 @@ func (c *Calcium) doLock(ctx context.Context, name string, timeout int) (lock.Di
 }
 
 func (c *Calcium) doUnlock(lock lock.DistributedLock, msg string) error {
-	log.Debugf("[doUnlockNode] Unlock %s", msg)
+	log.Debugf("[doUnlock] Unlock %s", msg)
 	return lock.Unlock(context.Background())
 }
 
