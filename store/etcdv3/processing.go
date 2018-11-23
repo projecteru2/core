@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sanity-io/litter"
+
 	"github.com/coreos/etcd/clientv3"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
@@ -50,7 +52,7 @@ func (m *Mercury) doLoadProcessing(ctx context.Context, opts *types.DeployOption
 		nodename := parts[len(parts)-2]
 		count, err := strconv.Atoi(string(ev.Value))
 		if err != nil {
-			log.Errorf("[doLoadProcessing] load processing status failed %v", err)
+			log.Errorf("[doLoadProcessing] Load processing status failed %v", err)
 			continue
 		}
 		if _, ok := nodesCount[nodename]; !ok {
@@ -60,5 +62,7 @@ func (m *Mercury) doLoadProcessing(ctx context.Context, opts *types.DeployOption
 		nodesCount[nodename] += count
 	}
 
+	log.Debug("[doLoadProcessing] Processing result:")
+	litter.Dump(nodesCount)
 	return setCount(nodesCount, nodesInfo), nil
 }
