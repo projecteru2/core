@@ -24,6 +24,9 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 		containers, _, containerLocks, err := c.doLockAndGetContainers(ctx, IDs)
 		if err != nil {
 			log.Errorf("[ReallocResource] Lock and get containers failed %v", err)
+			for _, ID := range IDs {
+				ch <- &types.ReallocResourceMessage{ContainerID: ID, Success: false}
+			}
 			return
 		}
 		defer c.doUnlockAll(containerLocks)
@@ -158,7 +161,7 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 			if memory > 0 {
 				node.MemCap -= memory
 			} else {
-				node.MemCap += memory
+				node.MemCap += -memory
 			}
 			// 更新容器元信息
 			container.Quota = newCPU

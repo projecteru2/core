@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
+	mocks "github.com/projecteru2/core/3rdmocks"
 	"github.com/projecteru2/core/cluster"
-	lockmocks "github.com/projecteru2/core/lock/mocks"
 	"github.com/projecteru2/core/scheduler"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
@@ -31,13 +31,12 @@ func TestAllocResource(t *testing.T) {
 	c.store = store
 
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrBadPodType).Once()
 	_, err := c.doAllocResource(ctx, opts, "")
 	assert.Error(t, err)
 
-	lock := &lockmocks.DistributedLock{}
+	lock := &mocks.DummyLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	lock.On("Lock", mock.Anything).Return(nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
 	// test get by pod and labels and failed because node not avaliable
 	n1 := "n2"
 	n2 := "n2"
@@ -139,14 +138,14 @@ func TestAllocResource(t *testing.T) {
 	sched.On("FillDivision", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, nil)
 	store.On("UpdateNodeResource",
 		mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything,
 	).Return(types.ErrNoETCD).Once()
 	_, err = c.doAllocResource(ctx, opts, scheduler.CPU_PRIOR)
 	assert.Error(t, err)
 	// fill division sucessed
 	store.On("UpdateNodeResource",
 		mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything,
 	).Return(nil)
 	// bind process failed
 	store.On("SaveProcessing",
@@ -162,4 +161,5 @@ func TestAllocResource(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, nsi, 1)
 	assert.Equal(t, nsi[0].Name, n2)
+	// stupid race condition
 }
