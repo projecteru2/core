@@ -26,7 +26,7 @@ test: deps
 	# fix mock docker client bug, see https://github.com/moby/moby/pull/34383 [docker 17.05.0-ce]
 	sed -i.bak "143s/\*http.Transport/http.RoundTripper/" ./vendor/github.com/docker/docker/client/client.go
 	go vet `go list ./... | grep -v '/vendor/'`
-	go test -cover ./utils/... ./types/... ./store/etcdv3/... ./scheduler/complex/...  ./source/common/... ./network/sdn/... ./lock/etcdlock/... ./auth/simple/... ./cluster/calcium/...
+	go test -cover ./utils/... ./types/... ./store/etcdv3/... ./scheduler/complex/...  ./source/common/... ./network/calico/... ./lock/etcdlock/... ./auth/simple/... ./cluster/calcium/...
 
 race: test
 	go test --race -cover -v `glide nv`
@@ -40,4 +40,4 @@ cloc:
 
 unit-test:
 	go vet `go list ./... | grep -v '/vendor/'`
-	go test --race -cover ./utils/... ./types/... ./store/etcdv3/... ./scheduler/complex/...  ./source/common/... ./network/sdn/... ./lock/etcdlock/... ./auth/simple/... ./cluster/calcium/...
+	go test --race -cover ./utils/... ./types/... ./store/etcdv3/... ./scheduler/complex/...  ./source/common/... ./network/calico/... ./lock/etcdlock/... ./auth/simple/... ./cluster/calcium/...

@@ -14,17 +14,13 @@ const (
 	maxPuller     = 10
 )
 
-//NodeContainers store containers and node info
-type NodeContainers map[*types.Node][]*types.Container
+type nodeContainers map[*types.Node][]*types.Container
 
-//NodeCPUMap store cpu and node info
-type NodeCPUMap map[*types.Node][]types.CPUMap
+type nodeCPUMap map[*types.Node][]types.CPUMap
 
-//CPUMemNodeContainers store cpu, mem and nodecontainers
-type CPUMemNodeContainers map[float64]map[int64]NodeContainers
+type cpuMemNodeContainers map[float64]map[int64]nodeContainers
 
-//CPUMemNodeContainersMap store cpu, mem and nodecpumap
-type CPUMemNodeContainersMap map[float64]map[int64]NodeCPUMap
+type cpuMemNodeContainersMap map[float64]map[int64]nodeCPUMap
 
 type imageBucket struct {
 	sync.Mutex

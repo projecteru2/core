@@ -66,9 +66,9 @@ func (c *Calcium) RemoveImage(ctx context.Context, podname, nodename string, ima
 				if prune {
 					_, err := node.Engine.ImagesPrune(ctx, filters.NewArgs())
 					if err != nil {
-						log.Errorf("[CleanPod] Prune %s pod %s node failed: %v", podname, node.Name, err)
+						log.Errorf("[RemoveImage] Prune %s pod %s node failed: %v", podname, node.Name, err)
 					} else {
-						log.Infof("[CleanPod] Prune %s pod %s node", podname, node.Name)
+						log.Infof("[RemoveImage] Prune %s pod %s node", podname, node.Name)
 					}
 				}
 			}(node)
@@ -81,7 +81,7 @@ func (c *Calcium) RemoveImage(ctx context.Context, podname, nodename string, ima
 
 // 在podname上cache这个image
 // 实际上就是在所有的node上去pull一次
-func (c *Calcium) cacheImage(ctx context.Context, podname, image string) error {
+func (c *Calcium) doCacheImage(ctx context.Context, podname, image string) error {
 	nodes, err := c.ListPodNodes(ctx, podname, false)
 	if err != nil {
 		return err
@@ -103,7 +103,7 @@ func (c *Calcium) cacheImage(ctx context.Context, podname, image string) error {
 			defer wg.Done()
 			auth, err := makeEncodedAuthConfigFromRemote(c.config.Docker.AuthConfigs, image)
 			if err != nil {
-				log.Errorf("[cacheImage] Cache image failed %v", err)
+				log.Errorf("[doCacheImage] Cache image failed %v", err)
 				return
 			}
 			pullImage(ctx, node, image, auth)
@@ -115,7 +115,7 @@ func (c *Calcium) cacheImage(ctx context.Context, podname, image string) error {
 
 // 清理一个pod上的全部这个image
 // 对里面所有node去执行
-func (c *Calcium) cleanImage(ctx context.Context, podname, image string) error {
+func (c *Calcium) doCleanImage(ctx context.Context, podname, image string) error {
 	nodes, err := c.ListPodNodes(ctx, podname, false)
 	if err != nil {
 		return err
@@ -131,7 +131,7 @@ func (c *Calcium) cleanImage(ctx context.Context, podname, image string) error {
 		go func(node *types.Node) {
 			defer wg.Done()
 			if err := cleanImageOnNode(ctx, node, image, c.config.ImageCache); err != nil {
-				log.Errorf("[cleanImage] CleanImageOnNode error: %s", err)
+				log.Errorf("[doCleanImage] CleanImageOnNode error: %s", err)
 			}
 		}(node)
 		if (i+1)%maxPuller == 0 {

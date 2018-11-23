@@ -10,6 +10,7 @@ import (
 
 // FillPlan deploy container each node
 func FillPlan(nodesInfo []types.NodeInfo, need, limit int) ([]types.NodeInfo, error) {
+	log.Debugf("[FillPlan] need %d limit %d", need, limit)
 	nodesInfoLength := len(nodesInfo)
 	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Count > nodesInfo[j].Count })
 	p := sort.Search(nodesInfoLength, func(i int) bool { return nodesInfo[i].Count < need })

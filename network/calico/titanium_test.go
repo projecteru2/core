@@ -1,4 +1,4 @@
-package sdn
+package calico
 
 import (
 	"context"

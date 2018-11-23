@@ -34,7 +34,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 		ib := newImageBucket()
 		defer wg.Wait()
 		for index, ID := range opts.IDs {
-			container, containerJSON, containerLock, err := c.LockAndGetContainer(ctx, ID)
+			container, containerJSON, containerLock, err := c.doLockAndGetContainer(ctx, ID)
 			if err != nil {
 				log.Errorf("[ReplaceContainer] Get container %s failed %v", ID, err)
 				continue
@@ -81,7 +81,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 		}
 		// 把收集的image清理掉
 		// 如果 replace 是异步的，这里就不能用 ctx 了，gRPC 一断这里就会死
-		go c.cleanCachedImage(context.Background(), ib)
+		go c.doCleanCachedImage(context.Background(), ib)
 	}()
 
 	return ch, nil
@@ -137,7 +137,7 @@ func (c *Calcium) doReplaceContainer(
 	}
 	// 不涉及资源消耗，创建容器失败会被回收容器而不回收资源
 	// 创建成功容器会干掉之前的老容器也不会动资源，实际上实现了动态捆绑
-	createMessage := c.createAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU)
+	createMessage := c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU)
 	if createMessage.Error != nil {
 		// 重启老容器
 		message, err := c.doStartContainer(ctx, container, containerJSON)

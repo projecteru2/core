@@ -47,17 +47,17 @@ func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions
 		return nil, types.NewDetailedErr(types.ErrBadCPU, opts.CPUQuota)
 	}
 
-	return c.createContainer(ctx, opts, pod)
+	return c.doCreateContainer(ctx, opts, pod)
 }
 
-func (c *Calcium) createContainer(ctx context.Context, opts *types.DeployOptions, pod *types.Pod) (chan *types.CreateContainerMessage, error) {
+func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptions, pod *types.Pod) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
 	// RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
 	// 因此需要在这里加个全局锁，直到部署完毕才释放
 	// 通过 Processing 状态跟踪达成 18 Oct, 2018
-	nodesInfo, err := c.allocResource(ctx, opts, pod.Favor)
+	nodesInfo, err := c.doAllocResource(ctx, opts, pod.Favor)
 	if err != nil {
-		log.Errorf("[createContainer] Error during alloc resource: %v", err)
+		log.Errorf("[doCreateContainer] Error during alloc resource: %v", err)
 		return ch, err
 	}
 
@@ -73,21 +73,22 @@ func (c *Calcium) createContainer(ctx context.Context, opts *types.DeployOptions
 			go func(nodeInfo types.NodeInfo, index int) {
 				defer wg.Done()
 				defer c.store.DeleteProcessing(ctx, opts, nodeInfo)
-				messages := c.doCreateContainer(ctx, nodeInfo, opts, index)
+				messages := c.doCreateContainerOnNode(ctx, nodeInfo, opts, index)
 				for i, m := range messages {
 					ch <- m
 					if m.Error != nil {
 						if m.ContainerID == "" {
-							node, nodeLock, err := c.LockAndGetNode(ctx, opts.Podname, nodeInfo.Name)
+							node, nodeLock, err := c.doLockAndGetNode(ctx, opts.Podname, nodeInfo.Name)
 							if err != nil {
-								log.Errorf("[createContainer] Get and lock node %s failed %v", nodeInfo.Name, err)
+								log.Errorf("[doCreateContainer] Get and lock node %s failed %v", nodeInfo.Name, err)
+								continue
 							}
 							if err := c.store.UpdateNodeResource(ctx, node, m.CPU, opts.Memory, store.ActionIncr); err != nil {
-								log.Errorf("[createContainer] Reset node %s failed %v", nodeInfo.Name, err)
+								log.Errorf("[doCreateContainer] Reset node %s failed %v", nodeInfo.Name, err)
 							}
 							nodeLock.Unlock(context.Background())
 						} else {
-							log.Warnf("[createContainer] container %s not removed", m.ContainerID)
+							log.Warnf("[doCreateContainer] Container %s not removed", m.ContainerID)
 						}
 					}
 					c.store.UpdateProcessing(ctx, opts, nodeInfo.Name, nodeInfo.Deploy-i-1)
@@ -97,18 +98,18 @@ func (c *Calcium) createContainer(ctx context.Context, opts *types.DeployOptions
 		}
 		wg.Wait()
 		// 第一次部署的时候就去cache下镜像吧
-		go c.cacheImage(ctx, opts.Podname, opts.Image)
+		go c.doCacheImage(ctx, opts.Podname, opts.Image)
 	}()
 
 	return ch, nil
 }
 
-func (c *Calcium) doCreateContainer(ctx context.Context, nodeInfo types.NodeInfo, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
+func (c *Calcium) doCreateContainerOnNode(ctx context.Context, nodeInfo types.NodeInfo, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
 	ms := make([]*types.CreateContainerMessage, nodeInfo.Deploy)
 
-	node, err := c.getAndPrepareNode(ctx, opts.Podname, nodeInfo.Name, opts.Image)
+	node, err := c.doGetAndPrepareNode(ctx, opts.Podname, nodeInfo.Name, opts.Image)
 	if err != nil {
-		log.Errorf("[doCreateContainer] Get and prepare node error %v", err)
+		log.Errorf("[doCreateContainerOnNode] Get and prepare node error %v", err)
 		for i := 0; i < nodeInfo.Deploy; i++ {
 			cpu := types.CPUMap{}
 			if len(nodeInfo.CPUPlan) > 0 {
@@ -125,18 +126,159 @@ func (c *Calcium) doCreateContainer(ctx context.Context, nodeInfo types.NodeInfo
 		if len(nodeInfo.CPUPlan) > 0 {
 			cpu = nodeInfo.CPUPlan[i]
 		}
-		ms[i] = c.createAndStartContainer(ctx, i+index, node, opts, cpu)
+		ms[i] = c.doCreateAndStartContainer(ctx, i+index, node, opts, cpu)
 		if !ms[i].Success {
-			log.Errorf("[doCreateContainer] Error when create and start a container, %v", ms[i].Error)
+			log.Errorf("[doCreateContainerOnNode] Error when create and start a container, %v", ms[i].Error)
 			continue
 		}
-		log.Debugf("[doCreateContainer] create container success %s", ms[i].ContainerID)
+		log.Debugf("[doCreateContainerOnNode] create container success %s", ms[i].ContainerID)
 	}
 
 	return ms
 }
 
-func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *types.DeployOptions, node *types.Node) (
+func (c *Calcium) doGetAndPrepareNode(ctx context.Context, podname, nodename, image string) (*types.Node, error) {
+	node, err := c.GetNode(ctx, podname, nodename)
+	if err != nil {
+		return nil, err
+	}
+
+	auth, err := makeEncodedAuthConfigFromRemote(c.config.Docker.AuthConfigs, image)
+	if err != nil {
+		return nil, err
+	}
+
+	return node, pullImage(ctx, node, image, auth)
+}
+
+func (c *Calcium) doCreateAndStartContainer(
+	ctx context.Context,
+	no int, node *types.Node,
+	opts *types.DeployOptions,
+	cpu types.CPUMap,
+) *types.CreateContainerMessage {
+	container := &types.Container{
+		Podname:    opts.Podname,
+		Nodename:   node.Name,
+		CPU:        cpu,
+		Quota:      opts.CPUQuota,
+		Memory:     opts.Memory,
+		Hook:       opts.Entrypoint.Hook,
+		Privileged: opts.Entrypoint.Privileged,
+		Engine:     node.Engine,
+		SoftLimit:  opts.SoftLimit,
+	}
+	createContainerMessage := &types.CreateContainerMessage{
+		Podname:  container.Podname,
+		Nodename: container.Nodename,
+		Success:  false,
+		CPU:      cpu,
+		Quota:    opts.CPUQuota,
+		Memory:   opts.Memory,
+		Publish:  map[string][]string{},
+	}
+
+	defer func() {
+		if !createContainerMessage.Success && container.ID != "" {
+			if err := c.doRemoveContainer(ctx, container); err != nil {
+				log.Errorf("[doCreateAndStartContainer] create and start container failed, and remove it failed also %v", err)
+				return
+			}
+			createContainerMessage.ContainerID = ""
+		}
+	}()
+
+	// get config
+	config, hostConfig, networkConfig, containerName, err := c.doMakeContainerOptions(no, cpu, opts, node)
+	if err != nil {
+		createContainerMessage.Error = err
+		return createContainerMessage
+	}
+	container.Name = containerName
+	createContainerMessage.ContainerName = container.Name
+
+	// create container
+	containerCreated, err := node.Engine.ContainerCreate(ctx, config, hostConfig, networkConfig, containerName)
+	if err != nil {
+		createContainerMessage.Error = err
+		return createContainerMessage
+	}
+	container.ID = containerCreated.ID
+	createContainerMessage.ContainerID = container.ID
+
+	if err = c.store.AddContainer(ctx, container); err != nil {
+		createContainerMessage.Error = err
+		return createContainerMessage
+	}
+
+	// connect container to network
+	// if network manager uses docker plugin, then connect must be called before container starts
+	// 如果有 networks 的配置，这里的 networkMode 就为 none 了
+	if len(opts.Networks) > 0 {
+		ctx := utils.ContextWithDockerEngine(ctx, node.Engine)
+		// need to ensure all networks are correctly connected
+		for networkID, ipv4 := range opts.Networks {
+			if err = c.network.ConnectToNetwork(ctx, containerCreated.ID, networkID, ipv4); err != nil {
+				createContainerMessage.Error = err
+				return createContainerMessage
+			}
+		}
+	}
+
+	// Copy data to container
+	if len(opts.Data) > 0 {
+		for dst, src := range opts.Data {
+			path := filepath.Dir(dst)
+			filename := filepath.Base(dst)
+			log.Infof("[doCreateAndStartContainer] Copy file %s to dir %s", filename, path)
+			log.Debugf("[doCreateAndStartContainer] Local file %s, remote path %s", src, dst)
+			f, err := os.Open(src)
+			if err != nil {
+				createContainerMessage.Error = err
+				return createContainerMessage
+			}
+			if err = node.Engine.CopyToContainer(ctx, containerCreated.ID, path, f, enginetypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: true}); err != nil {
+				createContainerMessage.Error = err
+				return createContainerMessage
+			}
+			f.Close()
+		}
+	}
+
+	if err = container.Start(ctx); err != nil {
+		createContainerMessage.Error = err
+		return createContainerMessage
+	}
+
+	containerAlived, err := container.Inspect(ctx)
+	if err != nil {
+		createContainerMessage.Error = err
+		return createContainerMessage
+	}
+
+	// after start
+	if opts.Entrypoint.Hook != nil && len(opts.Entrypoint.Hook.AfterStart) > 0 {
+		createContainerMessage.Hook, err = c.doContainerAfterStartHook(
+			ctx, container,
+			opts.User, opts.Env,
+			opts.Entrypoint.Privileged,
+		)
+		if err != nil {
+			createContainerMessage.Error = err
+			return createContainerMessage
+		}
+	}
+
+	// get ips
+	if containerAlived.NetworkSettings != nil {
+		createContainerMessage.Publish = utils.MakePublishInfo(containerAlived.NetworkSettings.Networks, node.GetIP(), opts.Entrypoint.Publish)
+	}
+
+	createContainerMessage.Success = true
+	return createContainerMessage
+}
+
+func (c *Calcium) doMakeContainerOptions(index int, quota types.CPUMap, opts *types.DeployOptions, node *types.Node) (
 	*enginecontainer.Config,
 	*enginecontainer.HostConfig,
 	*enginenetwork.NetworkingConfig,
@@ -170,7 +312,7 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 
 	// mount paths
 	binds, volumes := makeMountPaths(opts)
-	log.Debugf("[makeContainerOptions] App %s will bind %v", opts.Name, binds)
+	log.Debugf("[doMakeContainerOptions] App %s will bind %v", opts.Name, binds)
 
 	// log config
 	// 默认是配置里的driver, 如果entrypoint有指定就用指定的.
@@ -292,145 +434,4 @@ func (c *Calcium) makeContainerOptions(index int, quota types.CPUMap, opts *type
 	}
 
 	return config, hostConfig, networkConfig, containerName, nil
-}
-
-func (c *Calcium) getAndPrepareNode(ctx context.Context, podname, nodename, image string) (*types.Node, error) {
-	node, err := c.GetNode(ctx, podname, nodename)
-	if err != nil {
-		return nil, err
-	}
-
-	auth, err := makeEncodedAuthConfigFromRemote(c.config.Docker.AuthConfigs, image)
-	if err != nil {
-		return nil, err
-	}
-
-	return node, pullImage(ctx, node, image, auth)
-}
-
-func (c *Calcium) createAndStartContainer(
-	ctx context.Context,
-	no int, node *types.Node,
-	opts *types.DeployOptions,
-	cpu types.CPUMap,
-) *types.CreateContainerMessage {
-	container := &types.Container{
-		Podname:    opts.Podname,
-		Nodename:   node.Name,
-		CPU:        cpu,
-		Quota:      opts.CPUQuota,
-		Memory:     opts.Memory,
-		Hook:       opts.Entrypoint.Hook,
-		Privileged: opts.Entrypoint.Privileged,
-		Engine:     node.Engine,
-		SoftLimit:  opts.SoftLimit,
-	}
-	createContainerMessage := &types.CreateContainerMessage{
-		Podname:  container.Podname,
-		Nodename: container.Nodename,
-		Success:  false,
-		CPU:      cpu,
-		Quota:    opts.CPUQuota,
-		Memory:   opts.Memory,
-		Publish:  map[string][]string{},
-	}
-
-	defer func() {
-		if !createContainerMessage.Success && container.ID != "" {
-			if err := c.doRemoveContainer(ctx, container); err != nil {
-				log.Errorf("[createAndStartContainer] create and start container failed, and remove it failed also %v", err)
-				return
-			}
-			createContainerMessage.ContainerID = ""
-		}
-	}()
-
-	// get config
-	config, hostConfig, networkConfig, containerName, err := c.makeContainerOptions(no, cpu, opts, node)
-	if err != nil {
-		createContainerMessage.Error = err
-		return createContainerMessage
-	}
-	container.Name = containerName
-	createContainerMessage.ContainerName = container.Name
-
-	// create container
-	containerCreated, err := node.Engine.ContainerCreate(ctx, config, hostConfig, networkConfig, containerName)
-	if err != nil {
-		createContainerMessage.Error = err
-		return createContainerMessage
-	}
-	container.ID = containerCreated.ID
-	createContainerMessage.ContainerID = container.ID
-
-	if err = c.store.AddContainer(ctx, container); err != nil {
-		createContainerMessage.Error = err
-		return createContainerMessage
-	}
-
-	// connect container to network
-	// if network manager uses docker plugin, then connect must be called before container starts
-	// 如果有 networks 的配置，这里的 networkMode 就为 none 了
-	if len(opts.Networks) > 0 {
-		ctx := utils.ContextWithDockerEngine(ctx, node.Engine)
-		// need to ensure all networks are correctly connected
-		for networkID, ipv4 := range opts.Networks {
-			if err = c.network.ConnectToNetwork(ctx, containerCreated.ID, networkID, ipv4); err != nil {
-				createContainerMessage.Error = err
-				return createContainerMessage
-			}
-		}
-	}
-
-	// Copy data to container
-	if len(opts.Data) > 0 {
-		for dst, src := range opts.Data {
-			path := filepath.Dir(dst)
-			filename := filepath.Base(dst)
-			log.Infof("[createAndStartContainer] Copy file %s to dir %s", filename, path)
-			log.Debugf("[createAndStartContainer] Local file %s, remote path %s", src, dst)
-			f, err := os.Open(src)
-			if err != nil {
-				createContainerMessage.Error = err
-				return createContainerMessage
-			}
-			if err = node.Engine.CopyToContainer(ctx, containerCreated.ID, path, f, enginetypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: true}); err != nil {
-				createContainerMessage.Error = err
-				return createContainerMessage
-			}
-			f.Close()
-		}
-	}
-
-	if err = container.Start(ctx); err != nil {
-		createContainerMessage.Error = err
-		return createContainerMessage
-	}
-
-	containerAlived, err := container.Inspect(ctx)
-	if err != nil {
-		createContainerMessage.Error = err
-		return createContainerMessage
-	}
-
-	// after start
-	if opts.Entrypoint.Hook != nil && len(opts.Entrypoint.Hook.AfterStart) > 0 {
-		createContainerMessage.Hook, err = c.doContainerAfterStartHook(
-			ctx, container,
-			opts.User, opts.Env,
-			opts.Entrypoint.Privileged,
-		)
-		if err != nil {
-			createContainerMessage.Error = err
-			return createContainerMessage
-		}
-	}
-
-	// get ips
-	if containerAlived.NetworkSettings != nil {
-		createContainerMessage.Publish = utils.MakePublishInfo(containerAlived.NetworkSettings.Networks, node.GetIP(), opts.Entrypoint.Publish)
-	}
-
-	createContainerMessage.Success = true
-	return createContainerMessage
 }

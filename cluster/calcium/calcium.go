@@ -5,7 +5,7 @@ import (
 
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/network"
-	"github.com/projecteru2/core/network/sdn"
+	"github.com/projecteru2/core/network/calico"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/scheduler/complex"
 	"github.com/projecteru2/core/source"
@@ -40,15 +40,15 @@ func New(config types.Config) (*Calcium, error) {
 	}
 
 	// set network
-	titanium := sdn.New()
+	titanium := calico.New()
 
 	// set scm
 	var scm source.Source
 	scmtype := strings.ToLower(config.Git.SCMType)
 	switch scmtype {
-	case cluster.GITLAB:
+	case cluster.Gitlab:
 		scm = gitlab.New(config)
-	case cluster.GITHUB:
+	case cluster.Github:
 		scm = github.New(config)
 	default:
 		return nil, types.NewDetailedErr(types.ErrBadSCMType, scmtype)

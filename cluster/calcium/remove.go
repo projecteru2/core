@@ -21,7 +21,7 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 		wg := sync.WaitGroup{}
 		ib := newImageBucket()
 		for _, ID := range IDs {
-			container, containerJSON, containerLock, err := c.LockAndGetContainer(ctx, ID)
+			container, containerJSON, containerLock, err := c.doLockAndGetContainer(ctx, ID)
 			if err != nil {
 				ch <- &types.RemoveContainerMessage{
 					ContainerID: ID,
@@ -46,13 +46,13 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 					}
 				}()
 
-				node, nodeLock, err := c.LockAndGetNode(ctx, container.Podname, container.Nodename)
+				node, nodeLock, err := c.doLockAndGetNode(ctx, container.Podname, container.Nodename)
 				if err != nil {
 					return
 				}
 				defer nodeLock.Unlock(context.Background())
 
-				message, err = c.stopAndRemoveContainer(ctx, container, containerJSON, ib, force)
+				message, err = c.doStopAndRemoveContainer(ctx, container, containerJSON, ib, force)
 				if err != nil {
 					return
 				}
@@ -70,12 +70,12 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 
 		// 把收集的image清理掉
 		// 如果 remove 是异步的，这里就不能用 ctx 了，gRPC 一断这里就会死
-		go c.cleanCachedImage(context.Background(), ib)
+		go c.doCleanCachedImage(context.Background(), ib)
 	}()
 	return ch, nil
 }
 
-func (c *Calcium) stopAndRemoveContainer(ctx context.Context, container *types.Container, containerJSON enginetypes.ContainerJSON, ib *imageBucket, force bool) (string, error) {
+func (c *Calcium) doStopAndRemoveContainer(ctx context.Context, container *types.Container, containerJSON enginetypes.ContainerJSON, ib *imageBucket, force bool) (string, error) {
 	message, err := c.doStopContainer(ctx, container, containerJSON, ib, force)
 	if err != nil {
 		return message, err
@@ -87,27 +87,27 @@ func (c *Calcium) stopAndRemoveContainer(ctx context.Context, container *types.C
 	return message, err
 }
 
-func (c *Calcium) cleanCachedImage(ctx context.Context, ib *imageBucket) {
+func (c *Calcium) doCleanCachedImage(ctx context.Context, ib *imageBucket) {
 	for podname, images := range ib.Dump() {
-		log.Debugf("[cleanCachedImage] clean %s images %v", podname, images)
+		log.Debugf("[doCleanCachedImage] Clean %s images %v", podname, images)
 		for _, image := range images {
-			err := c.cleanImage(ctx, podname, image)
+			err := c.doCleanImage(ctx, podname, image)
 			if err != nil {
-				log.Errorf("[doCleanImage] clean image failed %v", err)
+				log.Errorf("[doCleanCachedImage] Clean image failed %v", err)
 			}
 		}
 	}
 }
 
 // 同步地删除容器, 在某些需要等待的场合异常有用!
-func (c *Calcium) removeContainerSync(ctx context.Context, IDs []string) error {
+func (c *Calcium) doRemoveContainerSync(ctx context.Context, IDs []string) error {
 	ch, err := c.RemoveContainer(ctx, IDs, true)
 	if err != nil {
 		return err
 	}
 
 	for m := range ch {
-		log.Debugf("[removeContainerSync] Removed %s", m.ContainerID)
+		log.Debugf("[doRemoveContainerSync] Removed %s", m.ContainerID)
 	}
 	return nil
 }
