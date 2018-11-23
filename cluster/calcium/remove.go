@@ -34,7 +34,7 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 			go func(container *types.Container, containerJSON enginetypes.ContainerJSON, containerLock lock.DistributedLock) {
 				defer wg.Done()
 				// force to unlock
-				defer containerLock.Unlock(context.Background())
+				defer c.doUnlock(containerLock, container.ID)
 				message := ""
 				success := false
 
@@ -50,7 +50,7 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 				if err != nil {
 					return
 				}
-				defer nodeLock.Unlock(context.Background())
+				defer c.doUnlock(nodeLock, node.Name)
 
 				message, err = c.doStopAndRemoveContainer(ctx, container, containerJSON, ib, force)
 				if err != nil {

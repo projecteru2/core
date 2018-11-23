@@ -24,7 +24,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 	if err != nil {
 		return nil, err
 	}
-	defer c.doUnlockAllNodes(nodeLocks)
+	defer c.doUnlockAll(nodeLocks)
 
 	cpuandmem := makeCPUAndMem(nodes)
 	nodesInfo = getNodesInfo(cpuandmem)

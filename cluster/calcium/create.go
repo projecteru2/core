@@ -86,7 +86,7 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 							if err := c.store.UpdateNodeResource(ctx, node, m.CPU, opts.Memory, store.ActionIncr); err != nil {
 								log.Errorf("[doCreateContainer] Reset node %s failed %v", nodeInfo.Name, err)
 							}
-							nodeLock.Unlock(context.Background())
+							c.doUnlock(nodeLock, node.Name)
 						} else {
 							log.Warnf("[doCreateContainer] Container %s not removed", m.ContainerID)
 						}
