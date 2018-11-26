@@ -280,9 +280,8 @@ func CreateTarStream(path string) (io.ReadCloser, error) {
 }
 
 // Round for float64 to int
-func Round(f float64, n int) float64 {
-	n10 := math.Pow10(n)
-	return math.Trunc((f+0.5/n10)*n10) / n10
+func Round(f float64) float64 {
+	return math.Round(f*100) / 100
 }
 
 // copied from https://gist.github.com/jmervine/d88c75329f98e09f5c87
