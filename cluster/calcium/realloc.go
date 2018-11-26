@@ -109,7 +109,7 @@ func (c *Calcium) doReallocContainerWithMemoryPrior(
 	// 不考虑 memory < 0 对于系统而言，这时候 realloc 只不过使得 node 记录的内存 > 容器拥有内存总和，并不会 OOM
 	if memory > 0 {
 		if err := c.doReallocNodesMemory(ctx, nodeContainersInfo, memory); err != nil {
-			log.Errorf("[doReallocContainerWithMemoryPrior] realloc memory failed %v", err)
+			log.Errorf("[doReallocContainerWithMemoryPrior] Realloc memory failed %v", err)
 			for _, containers := range nodeContainersInfo {
 				for _, container := range containers {
 					ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
@@ -140,20 +140,20 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 	cpu float64, memory int64) {
 	for node, containers := range nodeContainersInfo {
 		for _, container := range containers {
-			newCPU := utils.Round(container.Quota+cpu, 2)
+			newCPU := utils.Round(container.Quota + cpu)
 			newMemory := container.Memory + memory
 			// 内存不能低于 4MB
 			if newCPU <= 0 || newMemory <= minMemory {
-				log.Errorf("[doUpdateContainerWithMemoryPrior] new resource invaild %s, %f, %d", container.ID, newCPU, newMemory)
+				log.Errorf("[doUpdateContainerWithMemoryPrior] New resource invaild %s, %f, %d", container.ID, newCPU, newMemory)
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				continue
 			}
-			log.Debugf("[doUpdateContainerWithMemoryPrior] container %s: cpu: %f, mem: %d", container.ID, newCPU, newMemory)
+			log.Debugf("[doUpdateContainerWithMemoryPrior] Container %s: cpu: %f, mem: %d", container.ID, newCPU, newMemory)
 			// CPUQuota not cpu
 			newResource := makeResourceSetting(newCPU, newMemory, nil, container.SoftLimit)
 			updateConfig := enginecontainer.UpdateConfig{Resources: newResource}
 			if _, err := node.Engine.ContainerUpdate(ctx, container.ID, updateConfig); err != nil {
-				log.Errorf("[doUpdateContainerWithMemoryPrior] update container failed %v, %s", err, container.ID)
+				log.Errorf("[doUpdateContainerWithMemoryPrior] Update container failed %v, %s", err, container.ID)
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				continue
 			}
@@ -167,14 +167,14 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 			container.Quota = newCPU
 			container.Memory = newMemory
 			if err := c.store.UpdateContainer(ctx, container); err != nil {
-				log.Warnf("[doUpdateContainerWithMemoryPrior] update container %s failed %v", container.ID, err)
+				log.Warnf("[doUpdateContainerWithMemoryPrior] Update container %s failed %v", container.ID, err)
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				continue
 			}
 			ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: true}
 		}
 		if err := c.store.UpdateNode(ctx, node); err != nil {
-			log.Errorf("[doUpdateContainerWithMemoryPrior] update node %s failed %s", node.Name, err)
+			log.Errorf("[doUpdateContainerWithMemoryPrior] Update node %s failed %s", node.Name, err)
 			litter.Dump(node)
 			return
 		}
@@ -190,10 +190,10 @@ func (c *Calcium) doReallocContainersWithCPUPrior(
 	cpuMemNodeContainersInfo := cpuMemNodeContainers{}
 	for node, containers := range nodeContainersInfo {
 		for _, container := range containers {
-			newCPU := utils.Round(container.Quota+cpu, 2)
+			newCPU := utils.Round(container.Quota + cpu)
 			newMem := container.Memory + memory
 			if newCPU < 0 || newMem < minMemory {
-				log.Errorf("[reallocContainersWithCPUPrior] new resource invaild %s, %f, %d", container.ID, newCPU, newMem)
+				log.Errorf("[reallocContainersWithCPUPrior] New resource invaild %s, %f, %d", container.ID, newCPU, newMem)
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				continue
 			}
@@ -212,7 +212,7 @@ func (c *Calcium) doReallocContainersWithCPUPrior(
 
 	cpuMemNodesMapInfo, err := c.doReallocNodesCPUMem(ctx, cpuMemNodeContainersInfo)
 	if err != nil {
-		log.Errorf("[doReallocContainersWithCPUPrior] realloc cpu resource failed %v", err)
+		log.Errorf("[doReallocContainersWithCPUPrior] Realloc cpu resource failed %v", err)
 		for _, memNodeMap := range cpuMemNodeContainersInfo {
 			for _, nodeInfoMap := range memNodeMap {
 				for _, containers := range nodeInfoMap {
@@ -258,7 +258,7 @@ func (c *Calcium) doReallocNodesCPUMem(
 				}
 
 				// 重新计算需求
-				nodesInfo, nodeCPUPlans, total, err := c.scheduler.SelectCPUNodes(nodesInfo, requireCPU, requireMemory)
+				_, nodeCPUPlans, total, err := c.scheduler.SelectCPUNodes(nodesInfo, requireCPU, requireMemory)
 				if err != nil {
 					return nil, err
 				}
@@ -296,7 +296,7 @@ func (c *Calcium) doUpdateContainersWithCPUPrior(
 					resource := makeResourceSetting(newCPU, newMem, cpuPlan, container.SoftLimit)
 					updateConfig := enginecontainer.UpdateConfig{Resources: resource}
 					if _, err := node.Engine.ContainerUpdate(ctx, container.ID, updateConfig); err != nil {
-						log.Errorf("[doReallocContainersWithCPUPrior] update container failed %v", err)
+						log.Errorf("[doReallocContainersWithCPUPrior] Update container failed %v", err)
 						ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 						continue
 					}
@@ -307,14 +307,14 @@ func (c *Calcium) doUpdateContainersWithCPUPrior(
 					container.Quota = newCPU
 					container.Memory = newMem
 					if err := c.store.UpdateContainer(ctx, container); err != nil {
-						log.Warnf("[doReallocContainersWithCPUPrior] update container %s failed %v", container.ID, err)
+						log.Warnf("[doReallocContainersWithCPUPrior] Update container %s failed %v", container.ID, err)
 						ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 						continue
 					}
 					ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: true}
 				}
 				if err := c.store.UpdateNode(ctx, node); err != nil {
-					log.Errorf("[doReallocContainersWithCPUPrior] update node %s failed %s", node.Name, err)
+					log.Errorf("[doReallocContainersWithCPUPrior] Update node %s failed %s", node.Name, err)
 					litter.Dump(node)
 					return
 				}

@@ -233,11 +233,11 @@ func TestRound(t *testing.T) {
 		return strconv.FormatFloat(f, 'f', -1, 64)
 	}
 	a := 0.0199999998
-	assert.Equal(t, f(Round(a, 2)), "0.02")
+	assert.Equal(t, f(Round(a)), "0.02")
 	a = 0.1999998
-	assert.Equal(t, f(Round(a, 2)), "0.2")
+	assert.Equal(t, f(Round(a)), "0.2")
 	a = 1.999998
-	assert.Equal(t, f(Round(a, 2)), "2")
+	assert.Equal(t, f(Round(a)), "2")
 	a = 19.99998
-	assert.Equal(t, f(Round(a, 2)), "20")
+	assert.Equal(t, f(Round(a)), "20")
 }
