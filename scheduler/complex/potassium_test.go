@@ -979,3 +979,26 @@ func TestSelectMemoryNodesGiven(t *testing.T) {
 		assert.Equal(t, node.Deploy, 0)
 	}
 }
+
+func TestMaxIdleNode(t *testing.T) {
+	n1 := &types.Node{
+		Name:       "n1",
+		CPU:        types.CPUMap{"0": 20},
+		InitCPU:    types.CPUMap{"0": 100},
+		MemCap:     30,
+		InitMemCap: 100,
+	}
+	n2 := &types.Node{
+		Name:       "n1",
+		CPU:        types.CPUMap{"0": 30},
+		InitCPU:    types.CPUMap{"0": 100},
+		MemCap:     10,
+		InitMemCap: 100,
+	}
+	k, _ := newPotassium()
+	_, err := k.MaxIdleNode([]*types.Node{})
+	assert.Error(t, err)
+	node, err := k.MaxIdleNode([]*types.Node{n1, n2})
+	assert.NoError(t, err)
+	assert.Equal(t, node.Name, n2.Name)
+}
