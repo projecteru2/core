@@ -63,6 +63,9 @@ func (c *Calcium) doLockAndGetContainers(ctx context.Context, IDs []string) (map
 	containerJSONs := map[string]enginetypes.ContainerJSON{}
 	locks := map[string]lock.DistributedLock{}
 	for _, ID := range IDs {
+		if _, ok := containers[ID]; ok {
+			continue
+		}
 		container, containerJSON, lock, err := c.doLockAndGetContainer(ctx, ID)
 		if err != nil {
 			c.doUnlockAll(locks)

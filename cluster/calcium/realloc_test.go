@@ -22,10 +22,10 @@ func TestReallocMem(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := &storemocks.Store{}
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-
 	c.store = store
+
 	// get lock failed
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	ch, err := c.ReallocResource(ctx, []string{"a"}, 0, 0)
 	assert.NoError(t, err)
 	for c := range ch {
