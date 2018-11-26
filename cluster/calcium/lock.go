@@ -46,13 +46,13 @@ func (c *Calcium) doLockAndGetContainer(ctx context.Context, ID string) (*types.
 	// Get container
 	container, err := c.store.GetContainer(ctx, ID)
 	if err != nil {
-		lock.Unlock(ctx)
+		c.doUnlock(lock, ID)
 		return nil, enginetypes.ContainerJSON{}, nil, err
 	}
 	// 确保是有这个容器的
 	containerJSON, err := container.Inspect(ctx)
 	if err != nil {
-		lock.Unlock(ctx)
+		c.doUnlock(lock, ID)
 		return nil, enginetypes.ContainerJSON{}, nil, err
 	}
 	return container, containerJSON, lock, nil
@@ -84,7 +84,7 @@ func (c *Calcium) doLockAndGetNode(ctx context.Context, podname, nodename string
 	// Get node
 	node, err := c.GetNode(ctx, podname, nodename)
 	if err != nil {
-		lock.Unlock(ctx)
+		c.doUnlock(lock, nodename)
 		return nil, nil, err
 	}
 	return node, lock, nil
