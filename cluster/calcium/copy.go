@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//Copy uses docker cp to copy specified things and send to remote
+// Copy uses docker cp to copy specified things and send to remote
 func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error) {
 	ch := make(chan *types.CopyMessage)
 	go func() {
@@ -23,7 +23,7 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 				defer wg.Done()
 				container, err := c.GetContainer(ctx, cid)
 				if err != nil {
-					log.Errorf("[Copy] Error when get container %s", cid)
+					log.Errorf("[Copy] Error when get container %s, err %v", cid, err)
 					ch <- makeCopyMessage(cid, cluster.CopyFailed, "", "", err, nil)
 					return
 				}
@@ -32,12 +32,12 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 					go func(path string) {
 						defer wg.Done()
 						resp, stat, err := container.Engine.CopyFromContainer(ctx, container.ID, path)
-						log.Debugf("[Copy] Docker cp stat: %v", stat)
 						if err != nil {
 							log.Errorf("[Copy] Error during CopyFromContainer: %v", err)
 							ch <- makeCopyMessage(cid, cluster.CopyFailed, "", path, err, nil)
 							return
 						}
+						log.Debugf("[Copy] Docker cp stat: %v", stat)
 						ch <- makeCopyMessage(cid, cluster.CopyOK, stat.Name, path, nil, resp)
 					}(path)
 				}
