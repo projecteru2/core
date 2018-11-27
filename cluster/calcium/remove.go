@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/store"
 
 	enginetypes "github.com/docker/docker/api/types"
@@ -21,8 +20,41 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 		wg := sync.WaitGroup{}
 		ib := newImageBucket()
 		for _, ID := range IDs {
-			container, containerJSON, containerLock, err := c.doLockAndGetContainer(ctx, ID)
-			if err != nil {
+			if err := c.withContainerLocked(ctx, ID,
+				func(container *types.Container, containerJSON enginetypes.ContainerJSON) error {
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						var err error
+						message := ""
+						success := false
+						defer func() {
+							ch <- &types.RemoveContainerMessage{
+								ContainerID: container.ID,
+								Success:     success,
+								Message:     message,
+							}
+						}()
+						if err = c.withNodeLocked(ctx, container.Podname, container.Nodename,
+							func(node *types.Node) error {
+								message, err = c.doStopAndRemoveContainer(ctx, container, containerJSON, ib, force)
+								if err != nil {
+									return err
+								}
+								log.Infof("[RemoveContainer] Container %s removed", container.ID)
+								if err = c.store.UpdateNodeResource(ctx, node, container.CPU, container.Memory, store.ActionIncr); err != nil {
+									log.Errorf("[RemoveContainer] Container %s removed, but update Node resource failed %v", container.ID, err)
+									return err
+								}
+								return nil
+							}); err != nil {
+							message += err.Error()
+						} else {
+							success = true
+						}
+					}()
+					return nil
+				}); err != nil {
 				ch <- &types.RemoveContainerMessage{
 					ContainerID: ID,
 					Success:     false,
@@ -30,44 +62,8 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 				}
 				continue
 			}
-			wg.Add(1)
-			go func(container *types.Container, containerJSON enginetypes.ContainerJSON, containerLock lock.DistributedLock) {
-				defer wg.Done()
-				// force to unlock
-				defer c.doUnlock(containerLock, container.ID)
-				message := ""
-				success := false
-
-				defer func() {
-					ch <- &types.RemoveContainerMessage{
-						ContainerID: container.ID,
-						Success:     success,
-						Message:     message,
-					}
-				}()
-
-				node, nodeLock, err := c.doLockAndGetNode(ctx, container.Podname, container.Nodename)
-				if err != nil {
-					return
-				}
-				defer c.doUnlock(nodeLock, node.Name)
-
-				message, err = c.doStopAndRemoveContainer(ctx, container, containerJSON, ib, force)
-				if err != nil {
-					return
-				}
-
-				log.Infof("[RemoveContainer] Container %s removed", container.ID)
-				if err = c.store.UpdateNodeResource(ctx, node, container.CPU, container.Memory, store.ActionIncr); err != nil {
-					log.Errorf("[RemoveContainer] Container %s removed, but update Node resource failed %v", container.ID, err)
-					return
-				}
-
-				success = true
-			}(container, containerJSON, containerLock)
 		}
 		wg.Wait()
-
 		// 把收集的image清理掉
 		// 如果 remove 是异步的，这里就不能用 ctx 了，gRPC 一断这里就会死
 		go c.doCleanCachedImage(context.Background(), ib)

@@ -78,15 +78,12 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 					ch <- m
 					if m.Error != nil {
 						if m.ContainerID == "" {
-							node, nodeLock, err := c.doLockAndGetNode(ctx, opts.Podname, nodeInfo.Name)
-							if err != nil {
-								log.Errorf("[doCreateContainer] Get and lock node %s failed %v", nodeInfo.Name, err)
+							if err := c.withNodeLocked(ctx, opts.Podname, nodeInfo.Name, func(node *types.Node) error {
+								return c.store.UpdateNodeResource(ctx, node, m.CPU, opts.Memory, store.ActionIncr)
+							}); err != nil {
+								log.Errorf("[doCreateContainer] Reset node %s failed %v", nodeInfo.Name, err)
 								continue
 							}
-							if err := c.store.UpdateNodeResource(ctx, node, m.CPU, opts.Memory, store.ActionIncr); err != nil {
-								log.Errorf("[doCreateContainer] Reset node %s failed %v", nodeInfo.Name, err)
-							}
-							c.doUnlock(nodeLock, node.Name)
 						} else {
 							log.Warnf("[doCreateContainer] Container %s not removed", m.ContainerID)
 						}

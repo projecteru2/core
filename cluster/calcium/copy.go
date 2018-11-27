@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//Copy uses docker cp to copy specified things and send to remote
+// Copy uses docker cp to copy specified things and send to remote
 func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error) {
 	ch := make(chan *types.CopyMessage)
 	go func() {

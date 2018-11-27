@@ -133,3 +133,45 @@ func (c *Calcium) doLockAndGetNodes(ctx context.Context, podname, nodename strin
 	}
 	return nodes, locks, nil
 }
+
+func (c *Calcium) withNodeLocked(ctx context.Context, podname, nodename string, f func(node *types.Node) error) error {
+	node, lock, err := c.doLockAndGetNode(ctx, podname, nodename)
+	if err != nil {
+		return err
+	}
+	defer c.doUnlock(lock, fmt.Sprintf("node %s", node.Name))
+	return f(node)
+}
+
+func (c *Calcium) withNodesLocked(
+	ctx context.Context, podname, nodename string, labels map[string]string,
+	f func(nodes map[string]*types.Node) error) error {
+	nodes, locks, err := c.doLockAndGetNodes(ctx, podname, nodename, labels)
+	if err != nil {
+		return err
+	}
+	defer c.doUnlockAll(locks)
+	return f(nodes)
+}
+
+func (c *Calcium) withContainerLocked(
+	ctx context.Context, ID string,
+	f func(container *types.Container, containerJSON enginetypes.ContainerJSON) error) error {
+	container, containerJSON, containerLock, err := c.doLockAndGetContainer(ctx, ID)
+	if err != nil {
+		return err
+	}
+	defer c.doUnlock(containerLock, fmt.Sprintf("container %s", ID))
+	return f(container, containerJSON)
+}
+
+func (c *Calcium) withContainersLocked(
+	ctx context.Context, IDs []string,
+	f func(containers map[string]*types.Container, containerJSONs map[string]enginetypes.ContainerJSON) error) error {
+	containers, containerJSONs, containerLocks, err := c.doLockAndGetContainers(ctx, IDs)
+	if err != nil {
+		return err
+	}
+	defer c.doUnlockAll(containerLocks)
+	return f(containers, containerJSONs)
+}

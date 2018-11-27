@@ -9,6 +9,7 @@ import (
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/utils"
 
+	enginetypes "github.com/docker/docker/api/types"
 	enginecontainer "github.com/docker/docker/api/types/container"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
@@ -20,82 +21,70 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 	ch := make(chan *types.ReallocResourceMessage)
 	go func() {
 		defer close(ch)
-		// Container objs and their locks
-		containers, _, containerLocks, err := c.doLockAndGetContainers(ctx, IDs)
-		if err != nil {
-			log.Errorf("[ReallocResource] Lock and get containers failed %v", err)
-			for _, ID := range IDs {
-				ch <- &types.ReallocResourceMessage{ContainerID: ID, Success: false}
-			}
-			return
-		}
-		defer c.doUnlockAll(containerLocks)
-		// Pod-Node-Containers
-		containersInfo := map[*types.Pod]nodeContainers{}
-		// Pod cache
-		podCache := map[string]*types.Pod{}
-		// Node locks
-		nodeLocks := map[string]lock.DistributedLock{}
-		defer c.doUnlockAll(nodeLocks)
-		// Node cache
-		nodeCache := map[string]*types.Node{}
+		var err error
+		c.withContainersLocked(ctx, IDs,
+			func(containers map[string]*types.Container, containerJSONs map[string]enginetypes.ContainerJSON) error {
+				// Pod-Node-Containers
+				containersInfo := map[*types.Pod]nodeContainers{}
+				// Pod cache
+				podCache := map[string]*types.Pod{}
+				// Node locks
+				nodeLocks := map[string]lock.DistributedLock{}
+				defer c.doUnlockAll(nodeLocks)
+				// Node cache
+				nodeCache := map[string]*types.Node{}
 
-		for _, container := range containers {
-			pod, ok := podCache[container.Podname]
-			if !ok {
-				pod, err = c.store.GetPod(ctx, container.Podname)
-				if err != nil {
-					ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
-					continue
-				}
-				podCache[container.Podname] = pod
-				containersInfo[pod] = nodeContainers{}
-			}
-			// 没锁过
-			if _, ok := nodeLocks[container.Nodename]; !ok {
-				node, nodeLock, err := c.doLockAndGetNode(ctx, container.Podname, container.Nodename)
-				if err != nil {
-					ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
-					continue
-				}
-				nodeLocks[container.Nodename] = nodeLock
-				nodeCache[container.Nodename] = node
-				containersInfo[pod][node] = []*types.Container{container}
-				continue
-			}
-			// 锁过
-			node := nodeCache[container.Nodename]
-			containersInfo[pod][node] = append(containersInfo[pod][node], container)
-		}
-
-		wg := sync.WaitGroup{}
-		wg.Add(len(containersInfo))
-		// deal with normal container
-		for pod, nodeContainersInfo := range containersInfo {
-			switch pod.Favor {
-			case scheduler.MEMORY_PRIOR:
-				go func(nodeContainersInfo nodeContainers) {
-					defer wg.Done()
-					c.doReallocContainerWithMemoryPrior(ctx, ch, nodeContainersInfo, cpu, mem)
-				}(nodeContainersInfo)
-			case scheduler.CPU_PRIOR:
-				go func(nodeContainersInfo nodeContainers) {
-					defer wg.Done()
-					c.doReallocContainersWithCPUPrior(ctx, ch, nodeContainersInfo, cpu, mem)
-				}(nodeContainersInfo)
-			default:
-				log.Errorf("[ReallocResource] %v not support yet", pod.Favor)
-				go func(nodeContainersInfo nodeContainers) {
-					defer wg.Done()
-					for _, containers := range nodeContainersInfo {
-						for _, container := range containers {
+				for _, container := range containers {
+					pod, ok := podCache[container.Podname]
+					if !ok {
+						pod, err = c.store.GetPod(ctx, container.Podname)
+						if err != nil {
 							ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
+							continue
 						}
+						podCache[container.Podname] = pod
+						containersInfo[pod] = nodeContainers{}
 					}
-				}(nodeContainersInfo)
-			}
-		}
-		wg.Wait()
+					// 没锁过
+					if _, ok := nodeLocks[container.Nodename]; !ok {
+						node, nodeLock, err := c.doLockAndGetNode(ctx, container.Podname, container.Nodename)
+						if err != nil {
+							ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
+							continue
+						}
+						nodeLocks[container.Nodename] = nodeLock
+						nodeCache[container.Nodename] = node
+						containersInfo[pod][node] = []*types.Container{container}
+						continue
+					}
+					// 锁过
+					node := nodeCache[container.Nodename]
+					containersInfo[pod][node] = append(containersInfo[pod][node], container)
+				}
+				wg := sync.WaitGroup{}
+				wg.Add(len(containersInfo))
+				// deal with normal container
+				for pod, nodeContainersInfo := range containersInfo {
+					go func(pod *types.Pod, nodeContainersInfo nodeContainers) {
+						defer wg.Done()
+						switch pod.Favor {
+						case scheduler.MEMORY_PRIOR:
+							c.doReallocContainerWithMemoryPrior(ctx, ch, nodeContainersInfo, cpu, mem)
+						case scheduler.CPU_PRIOR:
+							c.doReallocContainersWithCPUPrior(ctx, ch, nodeContainersInfo, cpu, mem)
+						default:
+							log.Errorf("[ReallocResource] %v not support yet", pod.Favor)
+							for _, containers := range nodeContainersInfo {
+								for _, container := range containers {
+									ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
+								}
+							}
+						}
+					}(pod, nodeContainersInfo)
+				}
+				wg.Wait()
+				return nil
+			})
 	}()
 	return ch, nil
 }

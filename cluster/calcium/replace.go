@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	enginetypes "github.com/docker/docker/api/types"
-	"github.com/projecteru2/core/lock"
 
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -34,54 +33,51 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 		ib := newImageBucket()
 		defer wg.Wait()
 		for index, ID := range opts.IDs {
-			container, containerJSON, containerLock, err := c.doLockAndGetContainer(ctx, ID)
-			if err != nil {
-				log.Errorf("[ReplaceContainer] Get container %s failed %v", ID, err)
+			if err := c.withContainerLocked(ctx, ID,
+				func(container *types.Container, containerJSON enginetypes.ContainerJSON) error {
+					if opts.Podname != "" && container.Podname != opts.Podname {
+						log.Debugf("[ReplaceContainer] Skip not in pod container %s", container.ID)
+						return nil
+					}
+					log.Debugf("[ReplaceContainer] Replace old container %s", container.ID)
+					wg.Add(1)
+					go func(replaceOpts types.ReplaceOptions, index int) {
+						defer wg.Done()
+						// 使用复制之后的配置
+						// 停老的，起新的
+						replaceOpts.Memory = container.Memory
+						replaceOpts.CPUQuota = container.Quota
+						replaceOpts.SoftLimit = container.SoftLimit
+						// 覆盖 podname 如果做全量更新的话
+						replaceOpts.Podname = container.Podname
+
+						createMessage, removeMessage, err := c.doReplaceContainer(
+							ctx, container, containerJSON, &replaceOpts, ib, index,
+						)
+						ch <- &types.ReplaceContainerMessage{
+							Create: createMessage,
+							Remove: removeMessage,
+							Error:  err,
+						}
+						if err != nil {
+							log.Errorf("[ReplaceContainer] Replace and remove failed %v, old container restarted", err)
+							return
+						}
+						log.Infof("[ReplaceContainer] Replace and remove success %s", container.ID)
+						// 传 opts 的值，产生一次复制
+					}(*opts, index)
+					// 把收集的image清理掉
+					// 如果 replace 是异步的，这里就不能用 ctx 了，gRPC 一断这里就会死
+					go c.doCleanCachedImage(context.Background(), ib)
+					return nil
+				}); err != nil {
+				log.Errorf("[ReplaceContainer] Failed to replace container %s, err %v", ID, err)
 				continue
-
 			}
-			if opts.Podname != "" && container.Podname != opts.Podname {
-				log.Debugf("[ReplaceContainer] Skip not in pod container %s", container.ID)
-				c.doUnlock(containerLock, container.ID)
-				continue
-			}
-
-			log.Debugf("[ReplaceContainer] Replace old container %s", container.ID)
-			wg.Add(1)
-
-			go func(replaceOpts types.ReplaceOptions, container *types.Container, containerJSON enginetypes.ContainerJSON, containerLock lock.DistributedLock, index int) {
-				defer wg.Done()
-				defer c.doUnlock(containerLock, container.ID)
-				// 使用复制之后的配置
-				// 停老的，起新的
-				replaceOpts.Memory = container.Memory
-				replaceOpts.CPUQuota = container.Quota
-				replaceOpts.SoftLimit = container.SoftLimit
-				// 覆盖 podname 如果做全量更新的话
-				replaceOpts.Podname = container.Podname
-
-				createMessage, removeMessage, err := c.doReplaceContainer(
-					ctx, container, containerJSON, &replaceOpts, ib, index,
-				)
-				ch <- &types.ReplaceContainerMessage{
-					Create: createMessage,
-					Remove: removeMessage,
-					Error:  err,
-				}
-				if err != nil {
-					log.Errorf("[ReplaceContainer] Replace and remove failed %v, old container restarted", err)
-					return
-				}
-				log.Infof("[ReplaceContainer] Replace and remove success %s", container.ID)
-				// 传 opts 的值，产生一次复制
-			}(*opts, container, containerJSON, containerLock, index)
 			if (index+1)%step == 0 {
 				wg.Wait()
 			}
 		}
-		// 把收集的image清理掉
-		// 如果 replace 是异步的，这里就不能用 ctx 了，gRPC 一断这里就会死
-		go c.doCleanCachedImage(context.Background(), ib)
 	}()
 
 	return ch, nil
