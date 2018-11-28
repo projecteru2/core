@@ -49,12 +49,12 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 		for i, v := range cpumap {
 			if node.InitCPU[i] != v {
 				r.Diff[node.Name] = false
-				r.Detail[node.Name] += fmt.Sprintf("cpu %s now %d", i, v)
+				r.Detail[node.Name] += fmt.Sprintf("cpu %s now %d ", i, v)
 			}
 		}
 		if memory+node.MemCap != node.InitMemCap {
 			r.Diff[node.Name] = false
-			r.Detail[node.Name] += fmt.Sprintf("mem now %d", node.InitMemCap-(memory+node.MemCap))
+			r.Detail[node.Name] += fmt.Sprintf("mem now %d ", node.InitMemCap-(memory+node.MemCap))
 		}
 
 	}

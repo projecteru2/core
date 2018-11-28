@@ -16,6 +16,50 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+func TestPodResource(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	podname := "testpod"
+	nodename := "testnode"
+	store := &storemocks.Store{}
+	c.store = store
+	// failed by GetNodesByPod
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrBadPodType).Once()
+	_, err := c.PodResource(ctx, podname)
+	assert.Error(t, err)
+	node := &types.Node{
+		Name:       nodename,
+		CPU:        types.CPUMap{"0": 0, "1": 10},
+		MemCap:     2,
+		InitCPU:    types.CPUMap{"0": 100, "1": 100},
+		InitMemCap: 6,
+	}
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
+	// failed by ListNodeContainers
+	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(nil, types.ErrBadPodType).Once()
+	_, err = c.PodResource(ctx, podname)
+	assert.Error(t, err)
+	containers := []*types.Container{
+		&types.Container{
+			Memory: 1,
+			CPU:    types.CPUMap{"0": 100, "1": 30},
+			Quota:  1.3,
+		},
+		&types.Container{
+			Memory: 2,
+			CPU:    types.CPUMap{"1": 50},
+			Quota:  0.5,
+		},
+	}
+	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(containers, nil)
+	// success
+	r, err := c.PodResource(ctx, podname)
+	assert.NoError(t, err)
+	assert.Len(t, r.CPUPercent, 1)
+	assert.Len(t, r.MEMPercent, 1)
+	assert.False(t, r.Diff[nodename])
+}
+
 func TestAllocResource(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
