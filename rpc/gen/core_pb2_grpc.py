@@ -94,6 +94,11 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.ContainerDeployedOptions.SerializeToString,
         response_deserializer=core__pb2.Empty.FromString,
         )
+    self.GetPodResource = channel.unary_unary(
+        '/pb.CoreRPC/GetPodResource',
+        request_serializer=core__pb2.GetPodOptions.SerializeToString,
+        response_deserializer=core__pb2.PodResource.FromString,
+        )
     self.Copy = channel.unary_stream(
         '/pb.CoreRPC/Copy',
         request_serializer=core__pb2.CopyOptions.SerializeToString,
@@ -262,6 +267,13 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def GetPodResource(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def Copy(self, request, context):
     # missing associated documentation comment in .proto file
     pass
@@ -414,6 +426,11 @@ def add_CoreRPCServicer_to_server(servicer, server):
           servicer.ContainerDeployed,
           request_deserializer=core__pb2.ContainerDeployedOptions.FromString,
           response_serializer=core__pb2.Empty.SerializeToString,
+      ),
+      'GetPodResource': grpc.unary_unary_rpc_method_handler(
+          servicer.GetPodResource,
+          request_deserializer=core__pb2.GetPodOptions.FromString,
+          response_serializer=core__pb2.PodResource.SerializeToString,
       ),
       'Copy': grpc.unary_stream_rpc_method_handler(
           servicer.Copy,

@@ -7,6 +7,7 @@ service CoreRPC {
     rpc AddPod(AddPodOptions) returns (Pod) {};
     rpc RemovePod(RemovePodOptions) returns (Empty) {};
     rpc GetPod(GetPodOptions) returns (Pod) {};
+	rpc GetPodResource(GetPodOptions) returns (PodResource) {};
 
     rpc AddNode(AddNodeOptions) returns (Node) {};
     rpc RemoveNode(RemoveNodeOptions) returns (Pod) {};
@@ -66,6 +67,14 @@ message Pod {
 
 message Pods {
     repeated Pod pods = 1;
+}
+
+message PodResource {
+    string name = 1;
+    map<string,double> cpu = 2;
+    map<string,double> memory = 3;
+    map<string, bool> diff = 4;
+    map<string, string> detail = 5;
 }
 
 message ListNetworkOptions {

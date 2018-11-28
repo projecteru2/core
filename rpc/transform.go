@@ -25,6 +25,17 @@ func toRPCPod(p *types.Pod) *pb.Pod {
 	return &pb.Pod{Name: p.Name, Desc: p.Desc, Favor: p.Favor}
 }
 
+func toRPCPodResource(p *types.PodResource) *pb.PodResource {
+	r := &pb.PodResource{
+		Name:   p.Name,
+		Cpu:    p.CPUPercent,
+		Memory: p.MEMPercent,
+		Diff:   p.Diff,
+		Detail: p.Detail,
+	}
+	return r
+}
+
 func toRPCNetwork(n *types.Network) *pb.Network {
 	return &pb.Network{Name: n.Name, Subnets: n.Subnets}
 }

@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"context"
+	"fmt"
 	"sort"
 
 	"github.com/sanity-io/litter"
@@ -13,6 +14,52 @@ import (
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 )
+
+// PodResource show pod resource usage
+func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodResource, error) {
+	nodes, err := c.ListPodNodes(ctx, podname, true)
+	if err != nil {
+		return nil, err
+	}
+	r := &types.PodResource{
+		Name:       podname,
+		CPUPercent: map[string]float64{},
+		MEMPercent: map[string]float64{},
+		Diff:       map[string]bool{},
+		Detail:     map[string]string{},
+	}
+	for _, node := range nodes {
+		containers, err := c.ListNodeContainers(ctx, node.Name)
+		if err != nil {
+			return nil, err
+		}
+		cpus := 0.0
+		memory := int64(0)
+		cpumap := types.CPUMap{}
+		for _, container := range containers {
+			cpus += container.Quota
+			memory += container.Memory
+			cpumap.Add(container.CPU)
+		}
+		r.CPUPercent[node.Name] = cpus / float64(len(node.InitCPU))
+		r.MEMPercent[node.Name] = float64(memory) / float64(node.InitMemCap)
+		r.Diff[node.Name] = true
+		r.Detail[node.Name] = ""
+		cpumap.Add(node.CPU)
+		for i, v := range cpumap {
+			if node.InitCPU[i] != v {
+				r.Diff[node.Name] = false
+				r.Detail[node.Name] += fmt.Sprintf("cpu %s now %d", i, v)
+			}
+		}
+		if memory+node.MemCap != node.InitMemCap {
+			r.Diff[node.Name] = false
+			r.Detail[node.Name] += fmt.Sprintf("mem now %d", node.InitMemCap-(memory+node.MemCap))
+		}
+
+	}
+	return r, nil
+}
 
 func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions, podType string) ([]types.NodeInfo, error) {
 	var err error

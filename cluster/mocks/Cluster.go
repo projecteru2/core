@@ -410,6 +410,29 @@ func (_m *Cluster) ListPods(ctx context.Context) ([]*types.Pod, error) {
 	return r0, r1
 }
 
+// PodResource provides a mock function with given fields: ctx, podname
+func (_m *Cluster) PodResource(ctx context.Context, podname string) (*types.PodResource, error) {
+	ret := _m.Called(ctx, podname)
+
+	var r0 *types.PodResource
+	if rf, ok := ret.Get(0).(func(context.Context, string) *types.PodResource); ok {
+		r0 = rf(ctx, podname)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.PodResource)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, podname)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ReallocResource provides a mock function with given fields: ctx, IDs, cpu, mem
 func (_m *Cluster) ReallocResource(ctx context.Context, IDs []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error) {
 	ret := _m.Called(ctx, IDs, cpu, mem)
