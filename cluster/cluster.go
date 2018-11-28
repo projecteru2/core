@@ -62,6 +62,7 @@ type Cluster interface {
 	ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename, data string) error
 
 	// cluster methods
+	PodResource(ctx context.Context, podname string) (*types.PodResource, error)
 	BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error)
 	ControlContainer(ctx context.Context, IDs []string, t string) (chan *types.ControlContainerMessage, error)
 	Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error)

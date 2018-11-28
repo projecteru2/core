@@ -155,6 +155,15 @@ func (v *Vibranium) GetPod(ctx context.Context, opts *pb.GetPodOptions) (*pb.Pod
 	return toRPCPod(p), nil
 }
 
+// GetPodResource get pod nodes resource usage
+func (v *Vibranium) GetPodResource(ctx context.Context, opts *pb.GetPodOptions) (*pb.PodResource, error) {
+	r, err := v.cluster.PodResource(ctx, opts.Name)
+	if err != nil {
+		return nil, err
+	}
+	return toRPCPodResource(r), nil
+}
+
 // GetNode get a node
 func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Node, error) {
 	n, err := v.cluster.GetNode(ctx, opts.Podname, opts.Nodename)
