@@ -1,9 +1,9 @@
-Core
+Eru
 ====
 [![CircleCI](https://circleci.com/gh/projecteru2/core/tree/master.svg?style=shield)](https://circleci.com/gh/projecteru2/core/tree/master)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/e26ca3ee697d406caa9e49b0c491ff13)](https://www.codacy.com/app/CMGS/core?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=projecteru2/core&amp;utm_campaign=Badge_Grade)
 
-Eru system core, stateless, resource allocation efficiently.
+Eru is a stateless, flexible, enterprise-grade cluster scheduler designed to easily integrate into existing workflows. Eru can run any containerized things in long or short time. This project is Eru Core project. The Core use for resource allocation and manage container lifetime.
 
 ### Testing
 
@@ -69,7 +69,7 @@ docker run -d \
 
 ### Build and Deploy by Eru itself
 
-After we implemented bootstrap in eru2, now you can build and deploy agent with [cli](https://github.com/projecteru2/cli) tool.
+After we implemented bootstrap in eru2, now you can build and deploy eru with [cli](https://github.com/projecteru2/cli) tool.
 
 1. Test source code and build image
 
@@ -77,7 +77,7 @@ After we implemented bootstrap in eru2, now you can build and deploy agent with 
 <cli_execute_path> --name <image_name> https://goo.gl/KTGJ9k
 ```
 
-Make sure you can clone code by ssh protocol because libgit2 ask for it. So you need configure core with github certs. After the fresh image was named and tagged, it will be auto pushed to the remote registry which was defined in core.
+Make sure you can clone code. After the fresh image was named and tagged, it will be auto pushed to the remote registry which was defined in config file.
 
 2. Deploy core itself
 
