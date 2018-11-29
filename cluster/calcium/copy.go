@@ -15,7 +15,7 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 	go func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
-		log.Debugf("[Copy] Copy %d containers files", len(opts.Targets))
+		log.Infof("[Copy] Copy %d containers files", len(opts.Targets))
 		// container one by one
 		for cid, paths := range opts.Targets {
 			wg.Add(1)
@@ -37,7 +37,6 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 							ch <- makeCopyMessage(cid, cluster.CopyFailed, "", path, err, nil)
 							return
 						}
-						log.Debugf("[Copy] Docker cp stat: %v", stat)
 						ch <- makeCopyMessage(cid, cluster.CopyOK, stat.Name, path, nil, resp)
 					}(path)
 				}

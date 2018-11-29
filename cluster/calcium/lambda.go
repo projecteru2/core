@@ -12,6 +12,7 @@ import (
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+	"github.com/sanity-io/litter"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,7 +32,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 
 	// 创建容器, 有问题就
 	// 不能让 CTX 作祟
-	log.Debugf("[RunAndWait] Args: %v", opts)
+	log.Debugf("[RunAndWait] Args: %s", litter.Sdump(opts))
 	createChan, err := c.CreateContainer(context.Background(), opts)
 	if err != nil {
 		close(ch)

@@ -60,6 +60,8 @@ var (
 	ErrNoETCD       = errors.New("ETCD must be set")
 	ErrKeyNotExists = errors.New("Key not exists")
 	ErrKeyExists    = errors.New("Key exists")
+
+	ErrNotSupport = errors.New("Not Support")
 )
 
 // NewDetailedErr returns an error with details

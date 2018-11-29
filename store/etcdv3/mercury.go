@@ -165,7 +165,6 @@ func (m *Mercury) Watch(ctx context.Context, key string, opts ...clientv3.OpOpti
 
 func (m *Mercury) parseKey(key string) string {
 	key = filepath.Join(m.config.Etcd.Prefix, key)
-	//log.Debugf("[parseKey] ops on %s", key)
 	return key
 }
 
