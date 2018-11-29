@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	mocks "github.com/projecteru2/core/3rdmocks"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/scheduler"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
@@ -79,7 +78,7 @@ func TestAllocResource(t *testing.T) {
 	_, err := c.doAllocResource(ctx, opts, "")
 	assert.Error(t, err)
 
-	lock := &mocks.DummyLock{}
+	lock := &dummyLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	// test get by pod and labels and failed because node not avaliable
 	n1 := "n2"
