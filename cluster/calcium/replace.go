@@ -41,12 +41,12 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 
 			}
 			if opts.Podname != "" && container.Podname != opts.Podname {
-				log.Debugf("[ReplaceContainer] Skip not in pod container %s", container.ID)
+				log.Warnf("[ReplaceContainer] Skip not in pod container %s", container.ID)
 				c.doUnlock(containerLock, container.ID)
 				continue
 			}
 
-			log.Debugf("[ReplaceContainer] Replace old container %s", container.ID)
+			log.Infof("[ReplaceContainer] Replace old container %s", container.ID)
 			wg.Add(1)
 
 			go func(replaceOpts types.ReplaceOptions, container *types.Container, containerJSON enginetypes.ContainerJSON, containerLock lock.DistributedLock, index int) {

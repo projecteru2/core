@@ -83,8 +83,8 @@ func (g *GitScm) SourceCode(repository, path, revision string, submodule bool) e
 	if err := repo.CheckoutTree(tree, &git.CheckoutOpts{Strategy: git.CheckoutSafe}); err != nil {
 		return err
 	}
-	log.Debugf("[SourceCode] Fetch repo %s", repository)
-	log.Debugf("[SourceCode] Checkout to commit %v", commit.Id())
+	log.Infof("[SourceCode] Fetch repo %s", repository)
+	log.Infof("[SourceCode] Checkout to commit %v", commit.Id())
 
 	// Prepare submodules
 	if submodule {
@@ -116,7 +116,7 @@ func (g *GitScm) Artifact(artifact, path string) error {
 		req.Header.Add(k, v)
 	}
 
-	log.Debugf("[Artifact] Downloading artifacts from %q", artifact)
+	log.Infof("[Artifact] Downloading artifacts from %q", artifact)
 	resp, err := g.Do(req)
 	if err != nil {
 		return err
@@ -125,15 +125,11 @@ func (g *GitScm) Artifact(artifact, path string) error {
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("Download artifact error %q, code %d", artifact, resp.StatusCode)
 	}
-	log.Debugf("[Artifact] Download artifacts from %q finished", artifact)
 
 	// extract files from zipfile
-	log.Debugf("[Artifact] Extracting files from %q", artifact)
 	if err := unzipFile(resp.Body, path); err != nil {
 		return err
 	}
-	log.Debugf("[Artifact] Extraction from %q done", artifact)
-
 	return nil
 }
 
@@ -200,5 +196,5 @@ func gitcheck(repository, pubkey, prikey string) error {
 		}
 		return nil
 	}
-	return fmt.Errorf("No Support")
+	return types.ErrNotSupport
 }

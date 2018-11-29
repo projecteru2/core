@@ -194,7 +194,7 @@ func distributionInspect(ctx context.Context, node *types.Node, image, auth stri
 
 // Pull an image
 func pullImage(ctx context.Context, node *types.Node, image, auth string) error {
-	log.Debugf("[pullImage] Pulling image %s", image)
+	log.Infof("[pullImage] Pulling image %s", image)
 	if image == "" {
 		return types.ErrNoImage
 	}
@@ -214,7 +214,7 @@ func pullImage(ctx context.Context, node *types.Node, image, auth string) error 
 		return nil
 	}
 
-	log.Debug("[pullImage] Image not cached, pulling")
+	log.Info("[pullImage] Image not cached, pulling")
 	pullOptions := enginetypes.ImagePullOptions{All: false, RegistryAuth: auth}
 	outStream, err := node.Engine.ImagePull(ctx, image, pullOptions)
 	if err != nil {
@@ -222,7 +222,7 @@ func pullImage(ctx context.Context, node *types.Node, image, auth string) error 
 		return err
 	}
 	ensureReaderClosed(outStream)
-	log.Debugf("[pullImage] Done pulling image %s", image)
+	log.Infof("[pullImage] Done pulling image %s", image)
 	return nil
 }
 
@@ -312,15 +312,14 @@ func cleanImageOnNode(ctx context.Context, node *types.Node, image string, count
 	}
 
 	images = images[count:]
-	log.Debugf("[cleanImageOnNode] Delete Images: %v", images)
-
 	for _, image := range images {
+		log.Debugf("[cleanImageOnNode] Delete Images: %s", image.RepoTags)
 		_, err := node.Engine.ImageRemove(ctx, image.ID, enginetypes.ImageRemoveOptions{
 			Force:         false,
 			PruneChildren: true,
 		})
 		if err != nil {
-			log.Errorf("[cleanImageOnNode] Node %s ImageRemove error: %s, imageID: %s", node.Name, err, image.ID)
+			log.Errorf("[cleanImageOnNode] Node %s ImageRemove error: %s, imageID: %s", node.Name, err, image.RepoTags)
 		}
 	}
 	return nil

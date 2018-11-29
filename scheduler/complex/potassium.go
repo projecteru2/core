@@ -54,7 +54,6 @@ func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64,
 	}
 	nodesInfoLength -= p
 	nodesInfo = nodesInfo[p:]
-	log.Debugf("[SelectMemoryNodes] %d nodes has enough cpus", nodesInfoLength)
 
 	// 计算是否有足够的内存满足需求
 	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].MemCap < nodesInfo[j].MemCap })
@@ -64,7 +63,6 @@ func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64,
 	}
 	nodesInfoLength -= p
 	nodesInfo = nodesInfo[p:]
-	log.Debugf("[SelectMemoryNodes] %d nodes has enough memory", nodesInfoLength)
 
 	// 这里 memCap 一定是大于 memory 的所以不用判断 cap 内容
 	volTotal := 0
@@ -73,7 +71,6 @@ func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64,
 		volTotal += capacity
 		nodesInfo[i].Capacity = capacity
 	}
-	log.Debugf("[SelectMemoryNodes] Node info: %v", nodesInfo)
 	return nodesInfo, volTotal, nil
 }
 

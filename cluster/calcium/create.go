@@ -131,7 +131,7 @@ func (c *Calcium) doCreateContainerOnNode(ctx context.Context, nodeInfo types.No
 			log.Errorf("[doCreateContainerOnNode] Error when create and start a container, %v", ms[i].Error)
 			continue
 		}
-		log.Debugf("[doCreateContainerOnNode] create container success %s", ms[i].ContainerID)
+		log.Infof("[doCreateContainerOnNode] create container success %s", ms[i].ContainerID)
 	}
 
 	return ms

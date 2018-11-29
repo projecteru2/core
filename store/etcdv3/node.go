@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sanity-io/litter"
+
 	"github.com/projecteru2/core/store"
 
 	"github.com/coreos/etcd/clientv3"
@@ -159,7 +161,7 @@ func (m *Mercury) UpdateNode(ctx context.Context, node *types.Node) error {
 	}
 
 	value := string(bytes)
-	log.Debugf("[UpdateNode] new node info: %s", value)
+	log.Debugf("[UpdateNode] New node info: %s", litter.Sdump(node))
 	_, err = m.Put(ctx, key, value)
 	return err
 }
@@ -298,7 +300,7 @@ func (m *Mercury) doDeleteNode(ctx context.Context, podname, nodename, endpoint 
 
 	m.BatchDelete(ctx, keys)
 	_cache.Delete(nodename)
-	log.Debugf("[doDeleteNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
+	log.Infof("[doDeleteNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 }
 
 func (m *Mercury) doGetNode(ctx context.Context, podname, nodename string) (*types.Node, error) {

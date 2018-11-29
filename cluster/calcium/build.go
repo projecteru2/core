@@ -203,7 +203,7 @@ func (c *Calcium) doBuildImage(ctx context.Context, buildContext io.ReadCloser, 
 				if err != nil {
 					log.Errorf("[BuildImage] Remove build image cache error: %s", err)
 				}
-				log.Debugf("[BuildImage] Clean cached image and release space %d", r.SpaceReclaimed)
+				log.Infof("[BuildImage] Clean cached image and release space %d", r.SpaceReclaimed)
 			}(tag)
 
 			ch <- &types.BuildImageMessage{Stream: fmt.Sprintf("finished %s\n", tag), Status: "finished", Progress: tag}
