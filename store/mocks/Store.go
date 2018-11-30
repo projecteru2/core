@@ -466,13 +466,13 @@ func (_m *Store) UpdateNode(ctx context.Context, node *types.Node) error {
 	return r0
 }
 
-// UpdateNodeResource provides a mock function with given fields: ctx, node, cpu, mem, action
-func (_m *Store) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, mem int64, action string) error {
-	ret := _m.Called(ctx, node, cpu, mem, action)
+// UpdateNodeResource provides a mock function with given fields: ctx, node, cpu, quota, mem, action
+func (_m *Store) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, mem int64, action string) error {
+	ret := _m.Called(ctx, node, cpu, quota, mem, action)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.Node, types.CPUMap, int64, string) error); ok {
-		r0 = rf(ctx, node, cpu, mem, action)
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Node, types.CPUMap, float64, int64, string) error); ok {
+		r0 = rf(ctx, node, cpu, quota, mem, action)
 	} else {
 		r0 = ret.Error(0)
 	}
