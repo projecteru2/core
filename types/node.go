@@ -102,6 +102,8 @@ type NodeInfo struct {
 	MemCap   int64
 	CPUUsage float64 // CPU目前占用率
 	MemUsage float64 // MEM目前占用率
+	CPURate  float64 // 需要增加的 CPU 占用率
+	MemRate  float64 // 需要增加的内存占有率
 
 	CPUPlan  []CPUMap
 	Capacity int // 可以部署几个

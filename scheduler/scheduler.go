@@ -3,10 +3,10 @@ package scheduler
 import "github.com/projecteru2/core/types"
 
 const (
-	// CPU_PRIOR define cpu select
-	CPU_PRIOR = "CPU"
-	// MEMORY_PRIOR define mem select
-	MEMORY_PRIOR = "MEM"
+	// CPUPrior define cpu select
+	CPUPrior = "CPU"
+	// MemoryPrior define mem select
+	MemoryPrior = "MEM"
 )
 
 // Scheduler is a scheduler is used to determine which nodes are we gonna use.
@@ -26,4 +26,6 @@ type Scheduler interface {
 	EachDivision(nodesInfo []types.NodeInfo, need, limit int) ([]types.NodeInfo, error)
 	// fill division
 	FillDivision(nodesInfo []types.NodeInfo, need, limit int) ([]types.NodeInfo, error)
+	// global division
+	GlobalDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error)
 }

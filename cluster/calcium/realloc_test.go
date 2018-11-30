@@ -80,7 +80,7 @@ func TestReallocMem(t *testing.T) {
 	}
 	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(node1, nil)
 	// node cap not enough
-	pod1.Favor = scheduler.MEMORY_PRIOR
+	pod1.Favor = scheduler.MemoryPrior
 	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0, 2*types.GByte)
 	assert.NoError(t, err)
 	for c := range ch {
@@ -163,7 +163,7 @@ func TestReallocCPU(t *testing.T) {
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(c1, nil)
 	store.On("GetPod", mock.Anything, mock.Anything).Return(pod1, nil)
 	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(node1, nil)
-	pod1.Favor = scheduler.CPU_PRIOR
+	pod1.Favor = scheduler.CPUPrior
 	// wrong cpu
 	ch, err := c.ReallocResource(ctx, []string{"c1"}, -1, 2*types.GByte)
 	assert.NoError(t, err)

@@ -77,7 +77,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 		return nil, err
 	}
 	defer c.doUnlockAll(nodeLocks)
-	nodesInfo = getNodesInfo(nodes)
+	nodesInfo = getNodesInfo(nodes, opts.CPUQuota, opts.Memory)
 
 	// 载入之前部署的情况
 	nodesInfo, err = c.store.MakeDeployStatus(ctx, opts, nodesInfo)
@@ -86,9 +86,9 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 	}
 
 	switch podType {
-	case scheduler.MEMORY_PRIOR:
+	case scheduler.MemoryPrior:
 		nodesInfo, total, err = c.scheduler.SelectMemoryNodes(nodesInfo, opts.CPUQuota, opts.Memory) // 还是以 Bytes 作单位， 不转换了
-	case scheduler.CPU_PRIOR:
+	case scheduler.CPUPrior:
 		nodesInfo, nodeCPUPlans, total, err = c.scheduler.SelectCPUNodes(nodesInfo, opts.CPUQuota, opts.Memory)
 	default:
 		return nil, types.ErrBadPodType
@@ -104,6 +104,8 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 		nodesInfo, err = c.scheduler.EachDivision(nodesInfo, opts.Count, opts.NodesLimit)
 	case cluster.DeployFill:
 		nodesInfo, err = c.scheduler.FillDivision(nodesInfo, opts.Count, opts.NodesLimit)
+	case cluster.DeployGlobal:
+		nodesInfo, err = c.scheduler.GlobalDivision(nodesInfo, opts.Count, total)
 	default:
 		return nil, types.ErrBadDeployMethod
 	}

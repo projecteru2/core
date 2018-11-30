@@ -73,12 +73,12 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 		// deal with normal container
 		for pod, nodeContainersInfo := range containersInfo {
 			switch pod.Favor {
-			case scheduler.MEMORY_PRIOR:
+			case scheduler.MemoryPrior:
 				go func(nodeContainersInfo nodeContainers) {
 					defer wg.Done()
 					c.doReallocContainerWithMemoryPrior(ctx, ch, nodeContainersInfo, cpu, mem)
 				}(nodeContainersInfo)
-			case scheduler.CPU_PRIOR:
+			case scheduler.CPUPrior:
 				go func(nodeContainersInfo nodeContainers) {
 					defer wg.Done()
 					c.doReallocContainersWithCPUPrior(ctx, ch, nodeContainersInfo, cpu, mem)

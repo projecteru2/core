@@ -24,6 +24,8 @@ const (
 	DeployEach = "each"
 	// DeployFill for fill node plan
 	DeployFill = "fill"
+	// DeployGlobal for global node resource plan
+	DeployGlobal = "global"
 	// ERUMark mark container controlled by eru
 	ERUMark = "ERU"
 	// ERUMeta store publish and health things

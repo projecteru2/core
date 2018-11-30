@@ -344,13 +344,15 @@ func filterNode(node *types.Node, labels map[string]string) bool {
 	return true
 }
 
-func getNodesInfo(nodes map[string]*types.Node) []types.NodeInfo {
+func getNodesInfo(nodes map[string]*types.Node, cpu float64, memory int64) []types.NodeInfo {
 	result := []types.NodeInfo{}
 	for _, node := range nodes {
 		nodeInfo := types.NodeInfo{
 			Name:     node.Name,
 			CPUMap:   node.CPU,
 			MemCap:   node.MemCap,
+			CPURate:  cpu / float64(len(node.InitCPU)),
+			MemRate:  float64(memory) / float64(node.InitMemCap),
 			CPUUsage: node.CPUUsage / float64(len(node.InitCPU)),
 			MemUsage: 1.0 - float64(node.MemCap)/float64(node.InitMemCap),
 			Capacity: 0,

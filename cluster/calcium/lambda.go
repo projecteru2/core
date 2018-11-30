@@ -24,7 +24,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 	opts.Entrypoint.Log = &types.LogConfig{Type: "json-file"}
 
 	// count = 1 && OpenStdin
-	if opts.OpenStdin && (opts.Count != 1 || opts.DeployMethod != cluster.DeployAuto) {
+	if opts.OpenStdin && (opts.Count != 1 || opts.DeployMethod != cluster.DeployGlobal) {
 		close(ch)
 		log.Errorf("Count %d method %s", opts.Count, opts.DeployMethod)
 		return ch, types.ErrRunAndWaitCountOneWithStdin

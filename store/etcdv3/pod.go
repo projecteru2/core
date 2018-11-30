@@ -18,8 +18,8 @@ func (m *Mercury) AddPod(ctx context.Context, name, favor, desc string) (*types.
 	key := fmt.Sprintf(podInfoKey, name)
 	favor = strings.ToUpper(favor)
 	if favor == "" {
-		favor = scheduler.MEMORY_PRIOR
-	} else if favor != scheduler.MEMORY_PRIOR && favor != scheduler.CPU_PRIOR {
+		favor = scheduler.MemoryPrior
+	} else if favor != scheduler.MemoryPrior && favor != scheduler.CPUPrior {
 		return nil, types.NewDetailedErr(types.ErrBadFaver,
 			fmt.Sprintf("got bad faver: %s", favor))
 	}
