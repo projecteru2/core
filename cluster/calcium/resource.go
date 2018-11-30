@@ -77,9 +77,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 		return nil, err
 	}
 	defer c.doUnlockAll(nodeLocks)
-
-	cpuandmem := makeCPUAndMem(nodes)
-	nodesInfo = getNodesInfo(cpuandmem)
+	nodesInfo = getNodesInfo(nodes)
 
 	// 载入之前部署的情况
 	nodesInfo, err = c.store.MakeDeployStatus(ctx, opts, nodesInfo)
