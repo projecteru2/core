@@ -256,11 +256,9 @@ func (c *Calcium) doReallocNodesCPUMem(
 				need := len(containers)
 				nodesInfo := []types.NodeInfo{
 					types.NodeInfo{
-						CPUAndMem: types.CPUAndMem{
-							CPUMap: node.CPU,
-							MemCap: node.MemCap,
-						},
-						Name: node.Name,
+						Name:   node.Name,
+						CPUMap: node.CPU,
+						MemCap: node.MemCap,
 					},
 				}
 

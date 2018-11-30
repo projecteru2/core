@@ -15,12 +15,6 @@ const (
 	DecrUsage = "-"
 )
 
-// CPUAndMem store cpu and mem
-type CPUAndMem struct {
-	CPUMap CPUMap
-	MemCap int64
-}
-
 // CPUMap is cpu core map
 // CPUMap {["0"]10000, ["1"]10000}
 type CPUMap map[string]int
@@ -103,14 +97,15 @@ func (n *Node) SetCPUUsage(quota float64, action string) {
 
 // NodeInfo for deploy
 type NodeInfo struct {
-	CPUAndMem
 	Name     string
-	CPUs     int
-	CPUPlan  []CPUMap
-	Capacity int     // 可以部署几个
-	Count    int     // 上面有几个了
-	Deploy   int     // 最终部署几个
+	CPUMap   CPUMap
+	MemCap   int64
 	CPUUsage float64 // CPU目前占用率
 	MemUsage float64 // MEM目前占用率
+
+	CPUPlan  []CPUMap
+	Capacity int // 可以部署几个
+	Count    int // 上面有几个了
+	Deploy   int // 最终部署几个
 	// 其他需要 filter 的字段
 }

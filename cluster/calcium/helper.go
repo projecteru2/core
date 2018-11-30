@@ -85,17 +85,6 @@ func encodeAuthToBase64(authConfig types.AuthConfig) (string, error) {
 	return base64.URLEncoding.EncodeToString(buf), nil
 }
 
-func makeCPUAndMem(nodes map[string]*types.Node) map[*types.Node]types.CPUAndMem {
-	r := make(map[*types.Node]types.CPUAndMem)
-	for _, node := range nodes {
-		r[node] = types.CPUAndMem{
-			CPUMap: node.CPU,
-			MemCap: node.MemCap,
-		}
-	}
-	return r
-}
-
 // As the name says,
 // blocks until the stream is empty, until we meet EOF
 func ensureReaderClosed(stream io.ReadCloser) {
@@ -355,18 +344,20 @@ func filterNode(node *types.Node, labels map[string]string) bool {
 	return true
 }
 
-func getNodesInfo(cpuAndMemData map[*types.Node]types.CPUAndMem) []types.NodeInfo {
+func getNodesInfo(nodes map[string]*types.Node) []types.NodeInfo {
 	result := []types.NodeInfo{}
-	for node, cpuAndMem := range cpuAndMemData {
-		n := types.NodeInfo{
-			CPUAndMem: cpuAndMem,
-			Name:      node.Name,
-			CPUs:      len(cpuAndMem.CPUMap),
-			Capacity:  0,
-			Count:     0,
-			Deploy:    0,
+	for _, node := range nodes {
+		nodeInfo := types.NodeInfo{
+			Name:     node.Name,
+			CPUMap:   node.CPU,
+			MemCap:   node.MemCap,
+			CPUUsage: node.CPUUsage / float64(len(node.InitCPU)),
+			MemUsage: 1.0 - float64(node.MemCap)/float64(node.InitMemCap),
+			Capacity: 0,
+			Count:    0,
+			Deploy:   0,
 		}
-		result = append(result, n)
+		result = append(result, nodeInfo)
 	}
 	return result
 }
