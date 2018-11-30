@@ -2,12 +2,17 @@ package types
 
 import (
 	"context"
-	"net"
-	"net/url"
 	"time"
 
 	enginetypes "github.com/docker/docker/api/types"
 	engineapi "github.com/docker/docker/client"
+)
+
+const (
+	// IncrUsage add cpuusage
+	IncrUsage = "+"
+	// DecrUsage cpuusage
+	DecrUsage = "-"
 )
 
 // CPUAndMem store cpu and mem
@@ -57,6 +62,7 @@ type Node struct {
 	Podname    string              `json:"podname"`
 	Available  bool                `json:"available"`
 	CPU        CPUMap              `json:"cpu"`
+	CPUUsage   float64             `json:"cpuusage"`
 	MemCap     int64               `json:"memcap"`
 	Labels     map[string]string   `json:"labels"`
 	InitCPU    CPUMap              `json:"init_cpu"`
@@ -80,8 +86,19 @@ func (n *Node) Info(ctx context.Context) (enginetypes.Info, error) {
 // get IP for node
 // will not return error
 func (n *Node) GetIP() string {
-	host, _ := GetEndpointHost(n.Endpoint)
+	host, _ := getEndpointHost(n.Endpoint)
 	return host
+}
+
+// SetCPUUsage set cpuusage
+func (n *Node) SetCPUUsage(quota float64, action string) {
+	switch action {
+	case IncrUsage:
+		n.CPUUsage = Round(n.CPUUsage + quota)
+	case DecrUsage:
+		n.CPUUsage = Round(n.CPUUsage - quota)
+	default:
+	}
 }
 
 // NodeInfo for deploy
@@ -90,22 +107,10 @@ type NodeInfo struct {
 	Name     string
 	CPUs     int
 	CPUPlan  []CPUMap
-	Capacity int // 可以部署几个
-	Count    int // 上面有几个了
-	Deploy   int // 最终部署几个
+	Capacity int     // 可以部署几个
+	Count    int     // 上面有几个了
+	Deploy   int     // 最终部署几个
+	CPUUsage float64 // CPU目前占用率
+	MemUsage float64 // MEM目前占用率
 	// 其他需要 filter 的字段
-}
-
-// GetEndpointHost get host from endpoint
-func GetEndpointHost(endpoint string) (string, error) {
-	u, err := url.Parse(endpoint)
-	if err != nil {
-		return "", err
-	}
-
-	host, _, err := net.SplitHostPort(u.Host)
-	if err != nil {
-		return "", err
-	}
-	return host, nil
 }

@@ -57,6 +57,7 @@ func TestPodResource(t *testing.T) {
 	assert.Len(t, r.CPUPercent, 1)
 	assert.Len(t, r.MEMPercent, 1)
 	assert.False(t, r.Diff[nodename])
+	assert.NotEmpty(t, r.Detail[nodename])
 }
 
 func TestAllocResource(t *testing.T) {
@@ -181,14 +182,14 @@ func TestAllocResource(t *testing.T) {
 	sched.On("FillDivision", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, nil)
 	store.On("UpdateNodeResource",
 		mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything,
 	).Return(types.ErrNoETCD).Once()
 	_, err = c.doAllocResource(ctx, opts, scheduler.CPU_PRIOR)
 	assert.Error(t, err)
 	// fill division sucessed
 	store.On("UpdateNodeResource",
 		mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything,
 	).Return(nil)
 	// bind process failed
 	store.On("SaveProcessing",

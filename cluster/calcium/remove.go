@@ -58,7 +58,7 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 				}
 
 				log.Infof("[RemoveContainer] Container %s removed", container.ID)
-				if err = c.store.UpdateNodeResource(ctx, node, container.CPU, container.Memory, store.ActionIncr); err != nil {
+				if err = c.store.UpdateNodeResource(ctx, node, container.CPU, container.Quota, container.Memory, store.ActionIncr); err != nil {
 					log.Errorf("[RemoveContainer] Container %s removed, but update Node resource failed %v", container.ID, err)
 					return
 				}

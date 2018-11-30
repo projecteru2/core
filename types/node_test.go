@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -29,20 +30,26 @@ func TestNode(t *testing.T) {
 
 	ip := node.GetIP()
 	assert.Empty(t, ip)
-	_, err = GetEndpointHost(node.Endpoint)
+	_, err = getEndpointHost(node.Endpoint)
 	assert.Error(t, err)
 
 	node.Endpoint = "tcp://1.1.1.1:1"
 	ip = node.GetIP()
 	assert.Equal(t, ip, "1.1.1.1")
-	_, err = GetEndpointHost(node.Endpoint)
+	_, err = getEndpointHost(node.Endpoint)
 	assert.NoError(t, err)
 
 	node.Endpoint = "tcp://1.1.1.1"
 	ip = node.GetIP()
 	assert.Empty(t, ip)
-	_, err = GetEndpointHost(node.Endpoint)
+	_, err = getEndpointHost(node.Endpoint)
 	assert.Error(t, err)
+
+	node.CPUUsage = 0.0
+	node.SetCPUUsage(1.0, IncrUsage)
+	assert.Equal(t, node.CPUUsage, 1.0)
+	node.SetCPUUsage(1.0, DecrUsage)
+	assert.Equal(t, node.CPUUsage, 0.0)
 }
 
 func TestCPUMap(t *testing.T) {
@@ -57,19 +64,16 @@ func TestCPUMap(t *testing.T) {
 	assert.Equal(t, cpuMap["1"], 50)
 }
 
-func TestGetEndpointHost(t *testing.T) {
-	endpoint := "xxxxx"
-	s, err := GetEndpointHost(endpoint)
-	assert.Error(t, err)
-	assert.Empty(t, s)
-
-	endpoint = "tcp://ip"
-	s, err = GetEndpointHost(endpoint)
-	assert.Error(t, err)
-	assert.Empty(t, s)
-
-	endpoint = "tcp://ip:port"
-	s, err = GetEndpointHost(endpoint)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, s)
+func TestRound(t *testing.T) {
+	f := func(f float64) string {
+		return strconv.FormatFloat(f, 'f', -1, 64)
+	}
+	a := 0.0199999998
+	assert.Equal(t, f(Round(a)), "0.02")
+	a = 0.1999998
+	assert.Equal(t, f(Round(a)), "0.2")
+	a = 1.999998
+	assert.Equal(t, f(Round(a)), "2")
+	a = 19.99998
+	assert.Equal(t, f(Round(a)), "20")
 }

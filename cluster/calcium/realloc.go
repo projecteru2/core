@@ -157,11 +157,17 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				continue
 			}
-			// 成功的时候应该记录内存变动
+			// 记录内存变动
 			if memory > 0 {
 				node.MemCap -= memory
 			} else {
 				node.MemCap += -memory
+			}
+			// 记录CPU变动
+			if cpu > 0 {
+				node.SetCPUUsage(cpu, types.IncrUsage)
+			} else {
+				node.SetCPUUsage(cpu, types.DecrUsage)
 			}
 			// 更新容器元信息
 			container.Quota = newCPU
@@ -242,6 +248,7 @@ func (c *Calcium) doReallocNodesCPUMem(
 				for _, container := range containers {
 					// 不更新 etcd，内存计算
 					node.CPU.Add(container.CPU)
+					node.SetCPUUsage(container.Quota, types.DecrUsage)
 					node.MemCap += container.Memory
 				}
 
@@ -302,6 +309,7 @@ func (c *Calcium) doUpdateContainersWithCPUPrior(
 					}
 					// 成功的时候应该记录变动
 					node.CPU.Sub(cpuPlan)
+					node.SetCPUUsage(newCPU, types.IncrUsage)
 					node.MemCap -= newMem
 					container.CPU = cpuPlan
 					container.Quota = newCPU

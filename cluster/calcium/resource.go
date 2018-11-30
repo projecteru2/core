@@ -13,6 +13,7 @@ import (
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 // PodResource show pod resource usage
@@ -37,7 +38,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 		memory := int64(0)
 		cpumap := types.CPUMap{}
 		for _, container := range containers {
-			cpus += container.Quota
+			cpus = utils.Round(cpus + container.Quota)
 			memory += container.Memory
 			cpumap.Add(container.CPU)
 		}
@@ -46,6 +47,10 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 		r.Diff[node.Name] = true
 		r.Detail[node.Name] = ""
 		cpumap.Add(node.CPU)
+		if cpus != node.CPUUsage {
+			r.Diff[node.Name] = false
+			r.Detail[node.Name] += fmt.Sprintf("cpus %f now %f ", node.CPUUsage, cpus)
+		}
 		for i, v := range cpumap {
 			if node.InitCPU[i] != v {
 				r.Diff[node.Name] = false
@@ -119,6 +124,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 	for i, nodeInfo := range nodesInfo {
 		cpuCost := types.CPUMap{}
 		memoryCost := opts.Memory * int64(nodeInfo.Deploy)
+		quotaCost := opts.CPUQuota * float64(nodeInfo.Deploy)
 
 		if _, ok := nodeCPUPlans[nodeInfo.Name]; ok {
 			cpuList := nodeCPUPlans[nodeInfo.Name][:nodeInfo.Deploy]
@@ -127,7 +133,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 				cpuCost.Add(cpu)
 			}
 		}
-		if err := c.store.UpdateNodeResource(ctx, nodes[nodeInfo.Name], cpuCost, memoryCost, store.ActionDecr); err != nil {
+		if err := c.store.UpdateNodeResource(ctx, nodes[nodeInfo.Name], cpuCost, quotaCost, memoryCost, store.ActionDecr); err != nil {
 			return nil, err
 		}
 	}

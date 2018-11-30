@@ -83,7 +83,7 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 								log.Errorf("[doCreateContainer] Get and lock node %s failed %v", nodeInfo.Name, err)
 								continue
 							}
-							if err := c.store.UpdateNodeResource(ctx, node, m.CPU, opts.Memory, store.ActionIncr); err != nil {
+							if err := c.store.UpdateNodeResource(ctx, node, m.CPU, opts.CPUQuota, opts.Memory, store.ActionIncr); err != nil {
 								log.Errorf("[doCreateContainer] Reset node %s failed %v", nodeInfo.Name, err)
 							}
 							c.doUnlock(nodeLock, node.Name)

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -281,7 +280,7 @@ func CreateTarStream(path string) (io.ReadCloser, error) {
 
 // Round for float64 to int
 func Round(f float64) float64 {
-	return math.Round(f*100) / 100
+	return types.Round(f*100) / 100
 }
 
 // copied from https://gist.github.com/jmervine/d88c75329f98e09f5c87

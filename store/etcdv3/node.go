@@ -159,19 +159,21 @@ func (m *Mercury) UpdateNode(ctx context.Context, node *types.Node) error {
 	}
 
 	value := string(bytes)
-	log.Debugf("[UpdateNode] New node info: %v", node)
+	log.Debugf("[UpdateNode] New node info: %s", value)
 	_, err = m.Put(ctx, key, value)
 	return err
 }
 
 // UpdateNodeResource update cpu and mem on a node, either add or substract
-func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, mem int64, action string) error {
+func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, mem int64, action string) error {
 	switch action {
 	case store.ActionIncr:
 		node.CPU.Add(cpu)
+		node.SetCPUUsage(quota, types.DecrUsage)
 		node.MemCap += mem
 	case store.ActionDecr:
 		node.CPU.Sub(cpu)
+		node.SetCPUUsage(quota, types.IncrUsage)
 		node.MemCap -= mem
 	default:
 		return types.ErrUnknownControlType
