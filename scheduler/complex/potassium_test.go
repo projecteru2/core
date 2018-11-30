@@ -932,3 +932,23 @@ func TestMaxIdleNode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, n2.Name)
 }
+
+func TestGlobalDivision(t *testing.T) {
+	k, _ := newPotassium()
+	_, err := k.GlobalDivision([]types.NodeInfo{}, 10, 1)
+	assert.Error(t, err)
+	nodeInfo := types.NodeInfo{
+		Name:     "n1",
+		CPUUsage: 0.7,
+		MemUsage: 0.3,
+		CPURate:  0.1,
+		MemRate:  0.2,
+		Capacity: 100,
+		Count:    21,
+		Deploy:   0,
+	}
+	r, err := k.GlobalDivision([]types.NodeInfo{nodeInfo}, 10, 100)
+	assert.NoError(t, err)
+	assert.Equal(t, r[0].Deploy, 10)
+	fmt.Println(r)
+}

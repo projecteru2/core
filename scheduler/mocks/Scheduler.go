@@ -80,6 +80,29 @@ func (_m *Scheduler) FillDivision(nodesInfo []types.NodeInfo, need int, limit in
 	return r0, r1
 }
 
+// GlobalDivision provides a mock function with given fields: nodesInfo, need, total
+func (_m *Scheduler) GlobalDivision(nodesInfo []types.NodeInfo, need int, total int) ([]types.NodeInfo, error) {
+	ret := _m.Called(nodesInfo, need, total)
+
+	var r0 []types.NodeInfo
+	if rf, ok := ret.Get(0).(func([]types.NodeInfo, int, int) []types.NodeInfo); ok {
+		r0 = rf(nodesInfo, need, total)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]types.NodeInfo)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func([]types.NodeInfo, int, int) error); ok {
+		r1 = rf(nodesInfo, need, total)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // MaxIdleNode provides a mock function with given fields: nodes
 func (_m *Scheduler) MaxIdleNode(nodes []*types.Node) (*types.Node, error) {
 	ret := _m.Called(nodes)
