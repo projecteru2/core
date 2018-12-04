@@ -43,7 +43,11 @@ func (t *Titanium) ConnectToNetwork(ctx context.Context, containerID, networkID,
 		config.IPAMConfig.IPv4Address = ip.String()
 	}
 
-	log.Infof("[ConnectToNetwork] Connect %v to %v with IP %v", containerID, networkID, ipv4)
+	ipForShow := ipv4
+	if ipForShow == "" {
+		ipForShow = "[AutoAlloc]"
+	}
+	log.Infof("[ConnectToNetwork] Connect %v to %v with IP %v", containerID, networkID, ipForShow)
 	return engine.NetworkConnect(ctx, networkID, containerID, config)
 }
 

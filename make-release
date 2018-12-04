@@ -21,13 +21,26 @@ mkdir -p $BIN
 mkdir -p $CONF
 mkdir -p $SERVICE
 
+# calc iteration number
+ITRATION_FILE=.${VERSION}.itr
+if [ ! -f $ITRATION_FILE ]; then
+	echo 0 > $ITRATION_FILE
+fi
+ITRATION_NUMBER=$(cat $ITRATION_FILE)
+if [ $ITRATION_NUMBER -lt 0 ]; then
+	ITRATION_NUMBER=0
+fi
+# increase every calling
+ITRATION_NUMBER=$(expr $ITRATION_NUMBER + 1)
+echo $ITRATION_NUMBER > $ITRATION_FILE
+
 cp eru-core $BIN
 cp core.yaml.sample $CONF
 cp eru-core.service $SERVICE
 
 echo $VERSION rpm build begin
 
-fpm -f -s dir -t rpm -n eru-core --epoch 0 -v $VERSION --iteration 1.el7 -C $RPMROOT -p $PWD --verbose --no-rpm-auto-add-directories --category 'Development/App' --description 'docker eru core' --after-install $after_install_script --url 'https://github.com/projecteru2/core' --license 'MIT'  --no-rpm-sign usr etc
+fpm -f -s dir -t rpm -n eru-core --epoch 0 -v $VERSION --iteration ${ITRATION_NUMBER}.el7 -C $RPMROOT -p $PWD --verbose --no-rpm-auto-add-directories --category 'Development/App' --description 'docker eru core' --after-install $after_install_script --url 'https://github.com/projecteru2/core' --license 'MIT'  --no-rpm-sign usr etc
 
 BIN="$DEBROOT/usr/bin"
 CONF="$DEBROOT/etc/eru"
@@ -43,6 +56,6 @@ cp eru-core.service $SERVICE
 
 echo $VERSION deb build begin
 
-fpm -f -s dir -t deb -n eru-core -v $VERSION --iteration 1.noarch -C $DEBROOT -p $PWD --verbose --category 'Development/App' --description 'docker eru core' --url 'https://github.com/projecteru2/core' --license 'MIT' --after-install $after_install_script --deb-no-default-config-files usr etc lib
+fpm -f -s dir -t deb -n eru-core -v $VERSION --iteration ${ITRATION_NUMBER}.noarch -C $DEBROOT -p $PWD --verbose --category 'Development/App' --description 'docker eru core' --url 'https://github.com/projecteru2/core' --license 'MIT' --after-install $after_install_script --deb-no-default-config-files usr etc lib
 
 rm -rf $ROOT
