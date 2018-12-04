@@ -22,6 +22,7 @@ type Container struct {
 	Hook       *Hook               `json:"hook"`
 	Privileged bool                `json:"privileged"`
 	SoftLimit  bool                `json:"softlimit"`
+	StatusData []byte              `json:"-"`
 	Engine     engineapi.APIClient `json:"-"`
 	HostIP     string              `json:"-"`
 }

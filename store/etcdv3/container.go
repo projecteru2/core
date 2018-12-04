@@ -192,6 +192,18 @@ func (m *Mercury) bindNodeMeta(ctx context.Context, container *types.Container) 
 		return nil, err
 	}
 
+	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	key := filepath.Join(containerDeployPrefix, appname, entrypoint, node.Name, container.ID)
+	ev, err := m.GetOne(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+
+	container.StatusData = ev.Value
 	container.Engine = node.Engine
 	container.HostIP = node.GetIP()
 	return container, nil
