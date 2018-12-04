@@ -50,14 +50,17 @@ func toRPCNode(ctx context.Context, n *types.Node) *pb.Node {
 	}
 
 	return &pb.Node{
-		Name:      n.Name,
-		Endpoint:  n.Endpoint,
-		Podname:   n.Podname,
-		Available: n.Available,
-		Cpu:       toRPCCPUMap(n.CPU),
-		Memory:    n.MemCap,
-		Labels:    n.Labels,
-		Info:      nodeInfo,
+		Name:       n.Name,
+		Endpoint:   n.Endpoint,
+		Podname:    n.Podname,
+		Cpu:        toRPCCPUMap(n.CPU),
+		CpuUsed:    n.CPUUsage,
+		Memory:     n.MemCap,
+		Available:  n.Available,
+		Labels:     n.Labels,
+		InitCpu:    toRPCCPUMap(n.InitCPU),
+		InitMemory: n.InitMemCap,
+		Info:       nodeInfo,
 	}
 }
 
@@ -348,5 +351,6 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		Image:      info.Config.Image,
 		Labels:     info.Config.Labels,
 		Inspect:    bytes,
+		StatusData: c.StatusData,
 	}, nil
 }

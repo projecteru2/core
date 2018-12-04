@@ -93,4 +93,28 @@ func TestContainer(t *testing.T) {
 		}
 	}()
 	assert.NoError(t, m.RemoveContainer(ctx, container))
+	// bindNodeMeta
+	testC := &types.Container{
+		Podname:  "t",
+		Nodename: "x",
+	}
+	// failed by GetNode
+	_, err = m.bindNodeMeta(ctx, testC)
+	assert.Error(t, err)
+	testC.Nodename = nodename
+	testC.Podname = podname
+	// failed by ParseContainerName
+	_, err = m.bindNodeMeta(ctx, testC)
+	assert.Error(t, err)
+	// failed by GetOne
+	testC.Name = name
+	_, err = m.bindNodeMeta(ctx, testC)
+	assert.Error(t, err)
+	// correct
+	testC.ID = ID
+	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID)
+	_, err = m.Put(ctx, key, "")
+	assert.NoError(t, err)
+	_, err = m.bindNodeMeta(ctx, testC)
+	assert.NoError(t, err)
 }

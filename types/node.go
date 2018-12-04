@@ -54,10 +54,10 @@ type Node struct {
 	Name       string              `json:"name"`
 	Endpoint   string              `json:"endpoint"`
 	Podname    string              `json:"podname"`
-	Available  bool                `json:"available"`
 	CPU        CPUMap              `json:"cpu"`
 	CPUUsage   float64             `json:"cpuusage"`
 	MemCap     int64               `json:"memcap"`
+	Available  bool                `json:"available"`
 	Labels     map[string]string   `json:"labels"`
 	InitCPU    CPUMap              `json:"init_cpu"`
 	InitMemCap int64               `json:"init_memcap"`
