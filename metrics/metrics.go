@@ -21,31 +21,46 @@ const (
 type Metrics struct {
 	StatsdAddr string
 	Hostname   string
+	statsdClient *statsdlib.Client
 
 	MemoryCapacity *prometheus.GaugeVec
 	CPUMap         *prometheus.GaugeVec
 	DeployCount    *prometheus.CounterVec
 }
 
+// Lazy connect
+func (m *Metrics) checkConn() error {
+	if m.statsdClient != nil {
+		return nil
+	}
+	// We needn't try to renew/reconnect because of only supporting UDP protocol now
+	// We should add an `errorCount` to reconnect when implementing TCP protocol
+	client, err := statsdlib.New(m.StatsdAddr, statsdlib.WithErrorHandler(func (err error) {
+		log.Errorf("[statsd] Sending statsd failed: %v", err)
+	}))
+	if err != nil {
+		log.Errorf("[statsd] Connect statsd failed: %v", err)
+		return err
+	}
+	m.statsdClient = client
+	return nil
+}
+
 func (m *Metrics) gauge(key string, value float64) error {
-	remote, err := statsdlib.New(m.StatsdAddr)
+	err := m.checkConn()
 	if err != nil {
 		return err
 	}
-	defer remote.Close()
-	defer remote.Flush()
-	remote.Gauge(key, value)
+	m.statsdClient.Gauge(key, value)
 	return nil
 }
 
 func (m *Metrics) count(key string, n int, rate float32) error {
-	remote, err := statsdlib.New(m.StatsdAddr)
+	err := m.checkConn()
 	if err != nil {
 		return err
 	}
-	defer remote.Close()
-	defer remote.Flush()
-	remote.Count(key, n, rate)
+	m.statsdClient.Count(key, n, rate)
 	return nil
 }
 

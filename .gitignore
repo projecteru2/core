@@ -8,6 +8,7 @@ build.yaml
 *.pyc
 *.rpm
 *.deb
+*.itr
 default.etcd/*
 vendor/*
 clean.sh
