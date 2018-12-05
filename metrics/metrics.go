@@ -19,8 +19,8 @@ const (
 
 // Metrics define metrics
 type Metrics struct {
-	StatsdAddr string
-	Hostname   string
+	StatsdAddr   string
+	Hostname     string
 	statsdClient *statsdlib.Client
 
 	MemoryCapacity *prometheus.GaugeVec
@@ -33,22 +33,20 @@ func (m *Metrics) checkConn() error {
 	if m.statsdClient != nil {
 		return nil
 	}
+	var err error
 	// We needn't try to renew/reconnect because of only supporting UDP protocol now
 	// We should add an `errorCount` to reconnect when implementing TCP protocol
-	client, err := statsdlib.New(m.StatsdAddr, statsdlib.WithErrorHandler(func (err error) {
+	if m.statsdClient, err = statsdlib.New(m.StatsdAddr, statsdlib.WithErrorHandler(func(err error) {
 		log.Errorf("[statsd] Sending statsd failed: %v", err)
-	}))
-	if err != nil {
+	})); err != nil {
 		log.Errorf("[statsd] Connect statsd failed: %v", err)
 		return err
 	}
-	m.statsdClient = client
 	return nil
 }
 
 func (m *Metrics) gauge(key string, value float64) error {
-	err := m.checkConn()
-	if err != nil {
+	if err := m.checkConn(); err != nil {
 		return err
 	}
 	m.statsdClient.Gauge(key, value)
@@ -56,8 +54,7 @@ func (m *Metrics) gauge(key string, value float64) error {
 }
 
 func (m *Metrics) count(key string, n int, rate float32) error {
-	err := m.checkConn()
-	if err != nil {
+	if err := m.checkConn(); err != nil {
 		return err
 	}
 	m.statsdClient.Count(key, n, rate)
