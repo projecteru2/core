@@ -353,7 +353,7 @@ func getNodesInfo(nodes map[string]*types.Node, cpu float64, memory int64) []typ
 			MemCap:   node.MemCap,
 			CPURate:  cpu / float64(len(node.InitCPU)),
 			MemRate:  float64(memory) / float64(node.InitMemCap),
-			CPUUsage: node.CPUUsage / float64(len(node.InitCPU)),
+			CPUUsed:  node.CPUUsed / float64(len(node.InitCPU)),
 			MemUsage: 1.0 - float64(node.MemCap)/float64(node.InitMemCap),
 			Capacity: 0,
 			Count:    0,

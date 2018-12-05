@@ -47,9 +47,9 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 		r.Diff[node.Name] = true
 		r.Detail[node.Name] = ""
 		cpumap.Add(node.CPU)
-		if cpus != node.CPUUsage {
+		if cpus != node.CPUUsed {
 			r.Diff[node.Name] = false
-			r.Detail[node.Name] += fmt.Sprintf("cpus %f now %f ", node.CPUUsage, cpus)
+			r.Detail[node.Name] += fmt.Sprintf("cpus %f now %f ", node.CPUUsed, cpus)
 		}
 		for i, v := range cpumap {
 			if node.InitCPU[i] != v {

@@ -36,7 +36,7 @@ mock: deps
 	mockery -dir ./vendor/google.golang.org/grpc -name ServerStream -output 3rdmocks
 
 cloc:
-	cloc --exclude-dir=vendor,3rdmocks,mocks --not-match-f=test .
+	cloc --exclude-dir=vendor,3rdmocks,mocks,tools --not-match-f=test .
 
 unit-test:
 	go vet `go list ./... | grep -v '/vendor/'`

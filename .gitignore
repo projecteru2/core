@@ -18,4 +18,4 @@ test*.py
 set*
 test.yaml
 local.yaml
-tools/*
+tools/update

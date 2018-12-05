@@ -11,7 +11,7 @@ import (
 func TestGlobalDivisionPlan1(t *testing.T) {
 	n1 := types.NodeInfo{
 		Name:     "n1",
-		CPUUsage: 0.1,
+		CPUUsed:  0.1,
 		MemUsage: 0.7,
 		CPURate:  0.03,
 		MemRate:  0.02,
@@ -19,7 +19,7 @@ func TestGlobalDivisionPlan1(t *testing.T) {
 	}
 	n2 := types.NodeInfo{
 		Name:     "n2",
-		CPUUsage: 0.2,
+		CPUUsed:  0.2,
 		MemUsage: 0.3,
 		CPURate:  0.04,
 		MemRate:  0.07,
@@ -27,7 +27,7 @@ func TestGlobalDivisionPlan1(t *testing.T) {
 	}
 	n3 := types.NodeInfo{
 		Name:     "n3",
-		CPUUsage: 1.3,
+		CPUUsed:  1.3,
 		MemUsage: 0.9,
 		CPURate:  0.01,
 		MemRate:  0.04,
@@ -42,7 +42,7 @@ func TestGlobalDivisionPlan1(t *testing.T) {
 func TestGlobalDivisionPlan2(t *testing.T) {
 	n1 := types.NodeInfo{
 		Name:     "n1",
-		CPUUsage: 0.9,
+		CPUUsed:  0.9,
 		MemUsage: 0.7,
 		CPURate:  0.03,
 		MemRate:  0.02,
@@ -50,7 +50,7 @@ func TestGlobalDivisionPlan2(t *testing.T) {
 	}
 	n2 := types.NodeInfo{
 		Name:     "n2",
-		CPUUsage: 0.2,
+		CPUUsed:  0.2,
 		MemUsage: 0.3,
 		CPURate:  0.04,
 		MemRate:  0.07,

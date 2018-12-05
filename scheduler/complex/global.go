@@ -10,7 +10,7 @@ import (
 
 // GlobalDivisionPlan 基于全局资源配额
 func GlobalDivisionPlan(arg []types.NodeInfo, need int) ([]types.NodeInfo, error) {
-	sort.Slice(arg, func(i, j int) bool { return arg[i].CPUUsage+arg[i].MemUsage < arg[j].CPUUsage+arg[j].MemUsage })
+	sort.Slice(arg, func(i, j int) bool { return arg[i].CPUUsed+arg[i].MemUsage < arg[j].CPUUsed+arg[j].MemUsage })
 	length := len(arg)
 	i := 0
 
@@ -21,7 +21,7 @@ func GlobalDivisionPlan(arg []types.NodeInfo, need int) ([]types.NodeInfo, error
 		deploy = 0
 		delta = 0.0
 		if i < length-1 {
-			delta = utils.Round(arg[i+1].CPUUsage + arg[i+1].MemUsage - arg[i].CPUUsage - arg[i].MemUsage)
+			delta = utils.Round(arg[i+1].CPUUsed + arg[i+1].MemUsage - arg[i].CPUUsed - arg[i].MemUsage)
 			i++
 		}
 		for j := 0; j <= p && need > 0 && delta >= 0; j++ {

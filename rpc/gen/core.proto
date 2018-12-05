@@ -98,11 +98,12 @@ message Node {
     map<string, int32> cpu = 4;
     double cpu_used= 5;
     int64 memory = 6;
-    bool available = 7;
-    map<string, string> labels = 8;
-    int64 init_memory = 9;
-    map<string, int32> init_cpu = 10;
-    string info = 11;
+    int64 memory_used = 7;
+    bool available = 8;
+    map<string, string> labels = 9;
+    int64 init_memory = 10;
+    map<string, int32> init_cpu = 11;
+    string info = 12;
 }
 
 message Nodes {
