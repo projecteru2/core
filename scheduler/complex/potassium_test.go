@@ -939,7 +939,7 @@ func TestGlobalDivision(t *testing.T) {
 	assert.Error(t, err)
 	nodeInfo := types.NodeInfo{
 		Name:     "n1",
-		CPUUsed: 0.7,
+		CPUUsed:  0.7,
 		MemUsage: 0.3,
 		CPURate:  0.1,
 		MemRate:  0.2,
