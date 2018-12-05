@@ -55,7 +55,7 @@ type Node struct {
 	Endpoint   string              `json:"endpoint"`
 	Podname    string              `json:"podname"`
 	CPU        CPUMap              `json:"cpu"`
-	CPUUsage   float64             `json:"cpuusage"`
+	CPUUsed    float64             `json:"cpuused"`
 	MemCap     int64               `json:"memcap"`
 	Available  bool                `json:"available"`
 	Labels     map[string]string   `json:"labels"`
@@ -84,13 +84,13 @@ func (n *Node) GetIP() string {
 	return host
 }
 
-// SetCPUUsage set cpuusage
-func (n *Node) SetCPUUsage(quota float64, action string) {
+// SetCPUUsed set cpuusage
+func (n *Node) SetCPUUsed(quota float64, action string) {
 	switch action {
 	case IncrUsage:
-		n.CPUUsage = Round(n.CPUUsage + quota)
+		n.CPUUsed = Round(n.CPUUsed + quota)
 	case DecrUsage:
-		n.CPUUsage = Round(n.CPUUsage - quota)
+		n.CPUUsed = Round(n.CPUUsed - quota)
 	default:
 	}
 }
@@ -100,7 +100,7 @@ type NodeInfo struct {
 	Name     string
 	CPUMap   CPUMap
 	MemCap   int64
-	CPUUsage float64 // CPU目前占用率
+	CPUUsed  float64 // CPU目前占用率
 	MemUsage float64 // MEM目前占用率
 	CPURate  float64 // 需要增加的 CPU 占用率
 	MemRate  float64 // 需要增加的内存占有率

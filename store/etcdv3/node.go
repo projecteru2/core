@@ -169,11 +169,11 @@ func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu 
 	switch action {
 	case store.ActionIncr:
 		node.CPU.Add(cpu)
-		node.SetCPUUsage(quota, types.DecrUsage)
+		node.SetCPUUsed(quota, types.DecrUsage)
 		node.MemCap += mem
 	case store.ActionDecr:
 		node.CPU.Sub(cpu)
-		node.SetCPUUsage(quota, types.IncrUsage)
+		node.SetCPUUsed(quota, types.IncrUsage)
 		node.MemCap -= mem
 	default:
 		return types.ErrUnknownControlType

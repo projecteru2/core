@@ -44,11 +44,11 @@ func TestNode(t *testing.T) {
 	_, err = getEndpointHost(node.Endpoint)
 	assert.Error(t, err)
 
-	node.CPUUsage = 0.0
-	node.SetCPUUsage(1.0, IncrUsage)
-	assert.Equal(t, node.CPUUsage, 1.0)
-	node.SetCPUUsage(1.0, DecrUsage)
-	assert.Equal(t, node.CPUUsage, 0.0)
+	node.CPUUsed = 0.0
+	node.SetCPUUsed(1.0, IncrUsage)
+	assert.Equal(t, node.CPUUsed, 1.0)
+	node.SetCPUUsed(1.0, DecrUsage)
+	assert.Equal(t, node.CPUUsed, 0.0)
 }
 
 func TestCPUMap(t *testing.T) {
