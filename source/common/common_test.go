@@ -38,6 +38,7 @@ func TestSourceCode(t *testing.T) {
 	assert.NoError(t, err)
 	privFile.Close()
 	pubFile, err := ioutil.TempFile("", "pub")
+	assert.NoError(t, err)
 	_, err = pubFile.WriteString("pubkey")
 	assert.NoError(t, err)
 	pubFile.Close()

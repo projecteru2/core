@@ -13,11 +13,10 @@ func CommunismDivisionPlan(arg []types.NodeInfo, need int) ([]types.NodeInfo, er
 	length := len(arg)
 	i := 0
 
-	var deploy, differ int
 	for need > 0 {
 		p := i
-		deploy = 0
-		differ = 1
+		deploy := 0
+		differ := 1
 		if i < length-1 {
 			differ = arg[i+1].Count - arg[i].Count
 			i++

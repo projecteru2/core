@@ -31,7 +31,7 @@ var (
 	ErrBadFaver        = errors.New("favor should be either CPU or MEM")
 	ErrBadIPAddress    = errors.New("bad IP address")
 	ErrBadPodType      = errors.New("pod type not support yet")
-	ErrBadSCMType      = errors.New("unkonwn SCM type")
+	ErrBadSCMType      = errors.New("unknown SCM type")
 	ErrBadMemory       = errors.New("bad `Memory` value")
 	ErrBadCPU          = errors.New("bad `CPU` value")
 	ErrBadCount        = errors.New("bad `Count` value")

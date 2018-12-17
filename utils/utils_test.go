@@ -128,10 +128,10 @@ func TestParseContainerName(t *testing.T) {
 func TestPublishInfo(t *testing.T) {
 	ports := []string{"123", "233"}
 	n1 := map[string]*network.EndpointSettings{
-		"n1": &network.EndpointSettings{
+		"n1": {
 			IPAddress: "233.233.233.233",
 		},
-		"host": &network.EndpointSettings{},
+		"host": {},
 	}
 	r := MakePublishInfo(n1, "127.0.0.1", ports)
 	assert.Equal(t, len(r), 2)

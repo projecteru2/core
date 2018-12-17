@@ -10,22 +10,22 @@ import (
 
 func deployedNodes() []types.NodeInfo {
 	return []types.NodeInfo{
-		types.NodeInfo{
+		{
 			Name:     "n1",
 			Capacity: 10,
 			Count:    2,
 		},
-		types.NodeInfo{
+		{
 			Name:     "n2",
 			Capacity: 10,
 			Count:    3,
 		},
-		types.NodeInfo{
+		{
 			Name:     "n3",
 			Capacity: 10,
 			Count:    5,
 		},
-		types.NodeInfo{
+		{
 			Name:     "n4",
 			Capacity: 10,
 			Count:    7,

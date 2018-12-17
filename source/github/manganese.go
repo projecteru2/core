@@ -7,6 +7,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+// New new a github obj
 func New(config types.Config) *common.GitScm {
 	gitConfig := config.Git
 	token := fmt.Sprintf("token %s", gitConfig.Token)

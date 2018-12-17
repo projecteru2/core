@@ -344,7 +344,7 @@ func (c *Calcium) doMakeContainerOptions(index int, quota types.CPUMap, opts *ty
 	}
 
 	// ulimit
-	ulimits := []*units.Ulimit{&units.Ulimit{Name: "nofile", Soft: 65535, Hard: 65535}}
+	ulimits := []*units.Ulimit{{Name: "nofile", Soft: 65535, Hard: 65535}}
 
 	// name
 	suffix := utils.RandomString(6)

@@ -74,11 +74,11 @@ func TestListNetworks(t *testing.T) {
 	networkName := "test"
 	subnet := "10.2.0.0/16"
 	result := []enginetypes.NetworkResource{
-		enginetypes.NetworkResource{
+		{
 			Name: networkName,
 			IPAM: enginenetwork.IPAM{
 				Config: []enginenetwork.IPAMConfig{
-					enginenetwork.IPAMConfig{Subnet: subnet},
+					{Subnet: subnet},
 				}}},
 	}
 	mockEngine.On("NetworkList",

@@ -255,7 +255,7 @@ func (c *Calcium) doReallocNodesCPUMem(
 				// 按照 Node one by one 重新计算可以部署多少容器
 				need := len(containers)
 				nodesInfo := []types.NodeInfo{
-					types.NodeInfo{
+					{
 						Name:   node.Name,
 						CPUMap: node.CPU,
 						MemCap: node.MemCap,

@@ -61,8 +61,8 @@ func TestSetCount(t *testing.T) {
 		"n2": 2,
 	}
 	nodesInfo := []types.NodeInfo{
-		types.NodeInfo{Name: "n1"},
-		types.NodeInfo{Name: "n2"},
+		{Name: "n1"},
+		{Name: "n2"},
 	}
 	nodesInfo = setCount(nodesCount, nodesInfo)
 	assert.Equal(t, nodesInfo[0].Count, 1)

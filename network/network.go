@@ -6,6 +6,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+// Network define network methods
 type Network interface {
 	// connect and disconnect
 	ConnectToNetwork(ctx context.Context, containerID, networkID, ipv4 string) error

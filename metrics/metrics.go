@@ -81,7 +81,7 @@ func (m *Metrics) SendNodeInfo(node *types.Node) {
 			continue
 		}
 		if err := m.gauge(key, val); err != nil {
-			log.Errorf("[SendNodeInfo] Error occured while sending data to statsd: %v", err)
+			log.Errorf("[SendNodeInfo] Error occurred while sending data to statsd: %v", err)
 		}
 	}
 
@@ -90,7 +90,7 @@ func (m *Metrics) SendNodeInfo(node *types.Node) {
 	}
 	key := fmt.Sprintf(memStats, nodename)
 	if err := m.gauge(key, memory); err != nil {
-		log.Errorf("[SendNodeInfo] Error occured while sending data to statsd: %v", err)
+		log.Errorf("[SendNodeInfo] Error occurred while sending data to statsd: %v", err)
 	}
 }
 
@@ -106,7 +106,7 @@ func (m *Metrics) SendDeployCount(n int) {
 	}
 	key := fmt.Sprintf(deployCount, m.Hostname)
 	if err := m.count(key, n, 1.0); err != nil {
-		log.Errorf("[SendDeployCount] Error occured while counting: %v", err)
+		log.Errorf("[SendDeployCount] Error occurred while counting: %v", err)
 	}
 }
 
@@ -123,7 +123,7 @@ func InitMetrics(statsd string) error {
 
 	Client.MemoryCapacity = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "memory_capacity",
-		Help: "node avaliable memory.",
+		Help: "node available memory.",
 	}, []string{"nodename"})
 
 	Client.DeployCount = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -133,7 +133,7 @@ func InitMetrics(statsd string) error {
 
 	Client.CPUMap = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "cpu_map",
-		Help: "node avaliable cpu.",
+		Help: "node available cpu.",
 	}, []string{"nodename", "cpuid"})
 
 	prometheus.MustRegister(Client.DeployCount, Client.MemoryCapacity, Client.CPUMap)

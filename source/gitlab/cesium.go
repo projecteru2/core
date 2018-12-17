@@ -5,6 +5,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+// New new a gitlab obj
 func New(config types.Config) *common.GitScm {
 	gitConfig := config.Git
 	authheaders := map[string]string{}

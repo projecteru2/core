@@ -86,7 +86,7 @@ func TestListPods(t *testing.T) {
 	ctx := context.Background()
 	name := "test"
 	pods := []*types.Pod{
-		&types.Pod{Name: name},
+		{Name: name},
 	}
 
 	store := &storemocks.Store{}
@@ -105,8 +105,8 @@ func TestListPodNodes(t *testing.T) {
 	name1 := "test1"
 	name2 := "test2"
 	nodes := []*types.Node{
-		&types.Node{Name: name1, Available: true},
-		&types.Node{Name: name2, Available: false},
+		{Name: name1, Available: true},
+		{Name: name2, Available: false},
 	}
 
 	store := &storemocks.Store{}
@@ -129,7 +129,7 @@ func TestListContainers(t *testing.T) {
 	ctx := context.Background()
 	ID := "testID"
 	containers := []*types.Container{
-		&types.Container{ID: ID},
+		{ID: ID},
 	}
 
 	store := &storemocks.Store{}

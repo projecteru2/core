@@ -33,7 +33,7 @@ func TestBuild(t *testing.T) {
 		Builds: &types.Builds{
 			Stages: []string{"compile", "build"},
 			Builds: map[string]*types.Build{
-				"compile": &types.Build{
+				"compile": {
 					Base:      base,
 					Repo:      repo,
 					Version:   "version",
@@ -41,7 +41,7 @@ func TestBuild(t *testing.T) {
 					Cache:     map[string]string{"/src1": "/dst1", "/src2": "/dst2"},
 					Commands:  []string{"cmd1", "cmd2"},
 				},
-				"build": &types.Build{
+				"build": {
 					Base:     base,
 					Commands: []string{"cmd1", "cmd2"},
 					Args:     map[string]string{"args1": "a", "args2": "b"},
@@ -56,14 +56,14 @@ func TestBuild(t *testing.T) {
 		Tags: []string{"tag1", "tag2"},
 	}
 	// failed by buildpod not set
-	ch, err := c.BuildImage(ctx, opts)
+	_, err := c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	c.config.Docker.BuildPod = "test"
 	// failed by ListPodNodes failed
 	store := &storemocks.Store{}
 	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return(nil, types.ErrNoBuildPod)
 	c.store = store
-	ch, err = c.BuildImage(ctx, opts)
+	ch, err := c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	// create image
 	c.config.Docker.Hub = "test.com"

@@ -112,7 +112,7 @@ func TestReallocMem(t *testing.T) {
 		assert.False(t, c.Success)
 	}
 	assert.Equal(t, origin-node1.MemCap, int64(1))
-	// sucess
+	// success
 	store.On("UpdateContainer", mock.Anything, mock.Anything).Return(nil)
 	origin = node1.MemCap
 	ch, err = c.ReallocResource(ctx, []string{"c1"}, 1, -1)
@@ -188,11 +188,11 @@ func TestReallocCPU(t *testing.T) {
 	}
 	// good to go
 	nodeCPUPlans := map[string][]types.CPUMap{
-		node1.Name: []types.CPUMap{
-			types.CPUMap{
+		node1.Name: {
+			{
 				"3": 100,
 			},
-			types.CPUMap{
+			{
 				"2": 100,
 			},
 		},

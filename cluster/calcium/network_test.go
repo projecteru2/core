@@ -30,7 +30,7 @@ func TestNetwork(t *testing.T) {
 	}
 	name := "test"
 	network := &networkmocks.Network{}
-	network.On("ListNetworks", mock.Anything, mock.Anything).Return([]*types.Network{&types.Network{Name: name}}, nil)
+	network.On("ListNetworks", mock.Anything, mock.Anything).Return([]*types.Network{{Name: name}}, nil)
 	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return([]*types.Node{node}, nil)
 	c.network = network
 	ns, err := c.ListNetworks(ctx, "", "")

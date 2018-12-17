@@ -6,12 +6,17 @@ import (
 )
 
 var (
-	NAME     = "Eru-Core"
-	VERSION  = "unknown"
+	// NAME is app name
+	NAME = "Eru-Core"
+	// VERSION is app version
+	VERSION = "unknown"
+	// REVISION is app revision
 	REVISION = "HEAD"
-	BUILTAT  = "now"
+	// BUILTAT is app built info
+	BUILTAT = "now"
 )
 
+// VersionString show version thing
 func VersionString() string {
 	version := ""
 	version += fmt.Sprintf("Version:        %s\n", VERSION)

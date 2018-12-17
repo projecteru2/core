@@ -127,10 +127,7 @@ func (g *GitScm) Artifact(artifact, path string) error {
 	}
 
 	// extract files from zipfile
-	if err := unzipFile(resp.Body, path); err != nil {
-		return err
-	}
-	return nil
+	return unzipFile(resp.Body, path)
 }
 
 // Security remove the .git folder

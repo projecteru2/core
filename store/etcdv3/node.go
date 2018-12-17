@@ -164,7 +164,7 @@ func (m *Mercury) UpdateNode(ctx context.Context, node *types.Node) error {
 	return err
 }
 
-// UpdateNodeResource update cpu and mem on a node, either add or substract
+// UpdateNodeResource update cpu and mem on a node, either add or subtract
 func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, mem int64, action string) error {
 	switch action {
 	case store.ActionIncr:

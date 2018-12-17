@@ -23,7 +23,7 @@ func TestContainerInspect(t *testing.T) {
 	_, err := c.Inspect(ctx)
 	assert.Error(t, err)
 	c.Engine = mockEngine
-	r2, err := c.Inspect(ctx)
+	r2, _ := c.Inspect(ctx)
 	assert.Equal(t, r.ID, r2.ID)
 }
 

@@ -14,12 +14,10 @@ func GlobalDivisionPlan(arg []types.NodeInfo, need int) ([]types.NodeInfo, error
 	length := len(arg)
 	i := 0
 
-	var deploy int
-	var delta float64
 	for need > 0 {
 		p := i
-		deploy = 0
-		delta = 0.0
+		deploy := 0
+		delta := 0.0
 		if i < length-1 {
 			delta = utils.Round(arg[i+1].CPUUsed + arg[i+1].MemUsage - arg[i].CPUUsed - arg[i].MemUsage)
 			i++

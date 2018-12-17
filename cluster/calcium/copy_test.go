@@ -18,7 +18,7 @@ func TestCopy(t *testing.T) {
 	ctx := context.Background()
 	opts := &types.CopyOptions{
 		Targets: map[string][]string{
-			"cid": []string{
+			"cid": {
 				"path1",
 				"path2",
 			},

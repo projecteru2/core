@@ -39,12 +39,12 @@ func TestPodResource(t *testing.T) {
 	_, err = c.PodResource(ctx, podname)
 	assert.Error(t, err)
 	containers := []*types.Container{
-		&types.Container{
+		{
 			Memory: 1,
 			CPU:    types.CPUMap{"0": 100, "1": 30},
 			Quota:  1.3,
 		},
-		&types.Container{
+		{
 			Memory: 2,
 			CPU:    types.CPUMap{"1": 50},
 			Quota:  0.5,
@@ -81,18 +81,18 @@ func TestAllocResource(t *testing.T) {
 
 	lock := &dummyLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	// test get by pod and labels and failed because node not avaliable
+	// test get by pod and labels and failed because node not available
 	n1 := "n2"
 	n2 := "n2"
 	nodes := []*types.Node{
-		&types.Node{
+		{
 			Name:      n1,
 			Available: false,
 			Labels:    map[string]string{"test": "1"},
 			CPU:       types.CPUMap{"0": 100},
 			MemCap:    100,
 		},
-		&types.Node{
+		{
 			Name:      n2,
 			Available: true,
 			CPU:       types.CPUMap{"0": 100},
@@ -122,7 +122,7 @@ func TestAllocResource(t *testing.T) {
 		mock.Anything).Return(nodes[1], nil)
 	// define nodesInfo
 	nodesInfo := []types.NodeInfo{
-		types.NodeInfo{
+		{
 			Name:     n2,
 			CPUMap:   types.CPUMap{"0": 100},
 			MemCap:   100,
@@ -132,12 +132,12 @@ func TestAllocResource(t *testing.T) {
 		},
 	}
 	nodeCPUPlans := map[string][]types.CPUMap{
-		n2: []types.CPUMap{
-			types.CPUMap{"0": 10},
-			types.CPUMap{"0": 10},
-			types.CPUMap{"0": 10},
-			types.CPUMap{"0": 10},
-			types.CPUMap{"0": 10},
+		n2: {
+			{"0": 10},
+			{"0": 10},
+			{"0": 10},
+			{"0": 10},
+			{"0": 10},
 		},
 	}
 	// mock MakeDeployStatus
