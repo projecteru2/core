@@ -3,25 +3,25 @@ package utils
 import (
 	"sync"
 
-	engineapi "github.com/docker/docker/client"
+	"github.com/projecteru2/core/engine"
 )
 
 // Cache connections
 // otherwise they'll leak
 type Cache struct {
 	sync.Mutex
-	Clients map[string]engineapi.APIClient
+	Clients map[string]engine.API
 }
 
 // Set connection with host
-func (c *Cache) Set(host string, client engineapi.APIClient) {
+func (c *Cache) Set(host string, client engine.API) {
 	c.Lock()
 	defer c.Unlock()
 	c.Clients[host] = client
 }
 
 // Get connection by host
-func (c *Cache) Get(host string) engineapi.APIClient {
+func (c *Cache) Get(host string) engine.API {
 	c.Lock()
 	defer c.Unlock()
 	return c.Clients[host]

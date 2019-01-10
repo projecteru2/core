@@ -3,6 +3,7 @@
 package mocks
 
 import context "context"
+import enginetypes "github.com/projecteru2/core/engine/types"
 import io "io"
 import mock "github.com/stretchr/testify/mock"
 import types "github.com/projecteru2/core/types"
@@ -58,8 +59,8 @@ func (_m *Cluster) AddPod(ctx context.Context, podname string, favor string, des
 	return r0, r1
 }
 
-// BuildImage provides a mock function with given fields: ctx, opts
-func (_m *Cluster) BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
+// BuildDockerImage provides a mock function with given fields: ctx, opts
+func (_m *Cluster) BuildDockerImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
 	ret := _m.Called(ctx, opts)
 
 	var r0 chan *types.BuildImageMessage
@@ -319,15 +320,15 @@ func (_m *Cluster) ListContainers(ctx context.Context, opts *types.ListContainer
 }
 
 // ListNetworks provides a mock function with given fields: ctx, podname, driver
-func (_m *Cluster) ListNetworks(ctx context.Context, podname string, driver string) ([]*types.Network, error) {
+func (_m *Cluster) ListNetworks(ctx context.Context, podname string, driver string) ([]*enginetypes.Network, error) {
 	ret := _m.Called(ctx, podname, driver)
 
-	var r0 []*types.Network
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) []*types.Network); ok {
+	var r0 []*enginetypes.Network
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []*enginetypes.Network); ok {
 		r0 = rf(ctx, podname, driver)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*types.Network)
+			r0 = ret.Get(0).([]*enginetypes.Network)
 		}
 	}
 

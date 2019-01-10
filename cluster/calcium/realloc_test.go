@@ -6,11 +6,10 @@ import (
 
 	"github.com/projecteru2/core/scheduler"
 
-	enginetypes "github.com/docker/docker/api/types"
-	containertypes "github.com/docker/docker/api/types/container"
 	"github.com/stretchr/testify/assert"
 
-	enginemocks "github.com/projecteru2/core/3rdmocks"
+	enginemocks "github.com/projecteru2/core/engine/mocks"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
@@ -36,8 +35,8 @@ func TestReallocMem(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 
-	engine := &enginemocks.APIClient{}
-	engine.On("ContainerInspect", mock.Anything, mock.Anything).Return(enginetypes.ContainerJSON{}, nil)
+	engine := &enginemocks.API{}
+	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
 
 	pod1 := &types.Pod{
 		Name:  "p1",
@@ -57,7 +56,6 @@ func TestReallocMem(t *testing.T) {
 		Podname: "p1",
 		Engine:  engine,
 		Memory:  5 * types.MByte,
-		HostIP:  node1.GetIP(),
 	}
 
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
@@ -96,13 +94,13 @@ func TestReallocMem(t *testing.T) {
 	}
 	store.On("UpdateNode", mock.Anything, mock.Anything).Return(nil)
 	// apply resource failed
-	engine.On("ContainerUpdate", mock.Anything, mock.Anything, mock.Anything).Return(containertypes.ContainerUpdateOKBody{}, types.ErrBadContainerID).Once()
+	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrBadContainerID).Once()
 	ch, err = c.ReallocResource(ctx, []string{"c1"}, 1, 1)
 	assert.NoError(t, err)
 	for c := range ch {
 		assert.False(t, c.Success)
 	}
-	engine.On("ContainerUpdate", mock.Anything, mock.Anything, mock.Anything).Return(containertypes.ContainerUpdateOKBody{}, nil)
+	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	// update container failed
 	store.On("UpdateContainer", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
 	origin := node1.MemCap
@@ -133,8 +131,8 @@ func TestReallocCPU(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 
-	engine := &enginemocks.APIClient{}
-	engine.On("ContainerInspect", mock.Anything, mock.Anything).Return(enginetypes.ContainerJSON{}, nil)
+	engine := &enginemocks.API{}
+	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
 
 	pod1 := &types.Pod{
 		Name:  "p1",
@@ -154,7 +152,6 @@ func TestReallocCPU(t *testing.T) {
 		Podname: "p1",
 		Engine:  engine,
 		Memory:  5 * types.MByte,
-		HostIP:  node1.GetIP(),
 		Quota:   0.9,
 		CPU:     types.CPUMap{"2": 90},
 	}
@@ -200,14 +197,14 @@ func TestReallocCPU(t *testing.T) {
 	simpleMockScheduler.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nodeCPUPlans, 2, nil)
 	// apply resource failed
 	// update node failed
-	engine.On("ContainerUpdate", mock.Anything, mock.Anything, mock.Anything).Return(containertypes.ContainerUpdateOKBody{}, types.ErrBadContainerID).Once()
+	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrBadContainerID).Once()
 	store.On("UpdateNode", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
 	ch, err = c.ReallocResource(ctx, []string{"c1"}, 1, 1)
 	assert.NoError(t, err)
 	for c := range ch {
 		assert.False(t, c.Success)
 	}
-	engine.On("ContainerUpdate", mock.Anything, mock.Anything, mock.Anything).Return(containertypes.ContainerUpdateOKBody{}, nil)
+	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("UpdateNode", mock.Anything, mock.Anything).Return(nil)
 	// update container failed
 	store.On("UpdateContainer", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()

@@ -7,13 +7,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	enginetypes "github.com/docker/docker/api/types"
-	enginecontainer "github.com/docker/docker/api/types/container"
-	enginenetwork "github.com/docker/docker/api/types/network"
-	engineslice "github.com/docker/docker/api/types/strslice"
-	"github.com/docker/go-connections/nat"
-	"github.com/docker/go-units"
 	"github.com/projecteru2/core/cluster"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
@@ -33,7 +28,7 @@ func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions
 	log.Infof("[CreateContainer %s] Creating container with options:", opts.ProcessIdent)
 	litter.Dump(opts)
 
-	// 4194304 Byte = 4 MB, docker 创建容器的内存最低标准
+	// 4194304 Byte = 4 MB, 创建容器的内存最低标准
 	if opts.Memory < minMemory {
 		return nil, types.NewDetailedErr(types.ErrBadMemory,
 			fmt.Sprintf("Minimum memory limit allowed is 4MB, got %d", opts.Memory))
@@ -143,12 +138,7 @@ func (c *Calcium) doGetAndPrepareNode(ctx context.Context, podname, nodename, im
 		return nil, err
 	}
 
-	auth, err := makeEncodedAuthConfigFromRemote(c.config.Docker.AuthConfigs, image)
-	if err != nil {
-		return nil, err
-	}
-
-	return node, pullImage(ctx, node, image, auth)
+	return node, pullImage(ctx, node, image)
 }
 
 func (c *Calcium) doCreateAndStartContainer(
@@ -189,30 +179,26 @@ func (c *Calcium) doCreateAndStartContainer(
 	}()
 
 	// get config
-	config, hostConfig, networkConfig, containerName, err := c.doMakeContainerOptions(no, cpu, opts, node)
-	if err != nil {
-		createContainerMessage.Error = err
-		return createContainerMessage
-	}
-	container.Name = containerName
+	config := c.doMakeContainerOptions(no, cpu, opts, node)
+	container.Name = config.Name
 	createContainerMessage.ContainerName = container.Name
 
 	// create container
-	containerCreated, err := node.Engine.ContainerCreate(ctx, config, hostConfig, networkConfig, containerName)
+	containerCreated, err := node.Engine.VirtualizationCreate(ctx, config)
 	if err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage
 	}
 	container.ID = containerCreated.ID
-	createContainerMessage.ContainerID = container.ID
+	createContainerMessage.ContainerID = containerCreated.ID
 
 	if err = c.store.AddContainer(ctx, container); err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage
 	}
 
-	// connect container to network
-	// if network manager uses docker plugin, then connect must be called before container starts
+	// connect virtualizaion to network
+	// if network manager uses plugin, then connect must be called before container starts
 	// 如果有 networks 的配置，这里的 networkMode 就为 none 了
 	if len(opts.Networks) > 0 {
 		ctx := utils.ContextWithDockerEngine(ctx, node.Engine)
@@ -237,7 +223,7 @@ func (c *Calcium) doCreateAndStartContainer(
 				createContainerMessage.Error = err
 				return createContainerMessage
 			}
-			if err = node.Engine.CopyToContainer(ctx, containerCreated.ID, path, f, enginetypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: true}); err != nil {
+			if err = node.Engine.VirtualizationCopyTo(ctx, containerCreated.ID, path, f, true, true); err != nil {
 				createContainerMessage.Error = err
 				return createContainerMessage
 			}
@@ -270,42 +256,41 @@ func (c *Calcium) doCreateAndStartContainer(
 	}
 
 	// get ips
-	if containerAlived.NetworkSettings != nil {
-		createContainerMessage.Publish = utils.MakePublishInfo(containerAlived.NetworkSettings.Networks, node.GetIP(), opts.Entrypoint.Publish)
+	if containerAlived.Networks != nil {
+		createContainerMessage.Publish = utils.MakePublishInfo(containerAlived.Networks, opts.Entrypoint.Publish)
 	}
 
 	createContainerMessage.Success = true
 	return createContainerMessage
 }
 
-func (c *Calcium) doMakeContainerOptions(index int, quota types.CPUMap, opts *types.DeployOptions, node *types.Node) (
-	*enginecontainer.Config,
-	*enginecontainer.HostConfig,
-	*enginenetwork.NetworkingConfig,
-	string,
-	error) {
-
+func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, opts *types.DeployOptions, node *types.Node) *enginetypes.VirtualizationCreateOptions {
+	config := &enginetypes.VirtualizationCreateOptions{}
+	config.Seq = index
+	config.CPU = cpumap.Map()
+	config.Quota = opts.CPUQuota
+	config.Memory = opts.Memory
+	config.SoftLimit = opts.SoftLimit
 	entry := opts.Entrypoint
+
 	// 如果有指定用户，用指定用户
 	// 没有指定用户，用镜像自己的
 	// CapAdd and Privileged
 	user := opts.User
-	capAdd := []string{}
+	config.CapAdd = []string{}
 	if entry.Privileged {
 		user = root
-		capAdd = append(capAdd, "SYS_ADMIN")
+		config.CapAdd = append(config.CapAdd, "SYS_ADMIN")
 	}
 
 	// command and user
 	// extra args is dynamically
 	slices := utils.MakeCommandLineArgs(fmt.Sprintf("%s %s", entry.Command, opts.ExtraArgs))
-	cmd := engineslice.StrSlice(slices)
+	config.Cmd = slices
 
 	// env
-	nodeIP := node.GetIP()
 	env := append(opts.Env, fmt.Sprintf("APP_NAME=%s", opts.Name))
 	env = append(env, fmt.Sprintf("ERU_POD=%s", opts.Podname))
-	env = append(env, fmt.Sprintf("ERU_NODE_IP=%s", nodeIP))
 	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", node.Name))
 	env = append(env, fmt.Sprintf("ERU_CONTAINER_NO=%d", index))
 	env = append(env, fmt.Sprintf("ERU_MEMORY=%d", opts.Memory))
@@ -317,20 +302,21 @@ func (c *Calcium) doMakeContainerOptions(index int, quota types.CPUMap, opts *ty
 	// log config
 	// 默认是配置里的driver, 如果entrypoint有指定就用指定的.
 	// 如果用 debug 模式就用默认配置的
-	logConfig := c.config.Docker.Log
-	if logConfig.Config == nil {
-		logConfig.Config = map[string]string{}
+	logType := c.config.Docker.Log.Type
+	logConfig := c.config.Docker.Log.Config
+	if logConfig == nil {
+		logConfig = map[string]string{}
 	}
-	logConfig.Config["tag"] = fmt.Sprintf("%s {{.ID}}", opts.Name)
+	logConfig["tag"] = fmt.Sprintf("%s {{.ID}}", opts.Name)
 	if entry.Log != nil && !opts.Debug {
-		logConfig.Type = entry.Log.Type
-		logConfig.Config = entry.Log.Config
+		logType = entry.Log.Type
+		logConfig = entry.Log.Config
 	}
-
-	containerLogConfig := enginecontainer.LogConfig{Type: logConfig.Type, Config: logConfig.Config}
+	config.LogType = logType
+	config.LogConfig = logConfig
 
 	// basic labels, bind to EruMeta
-	containerLabels := map[string]string{
+	config.Labels = map[string]string{
 		cluster.ERUMark: "1",
 		cluster.ERUMeta: utils.EncodeMetaInLabel(&types.EruMeta{
 			Publish:     opts.Entrypoint.Publish,
@@ -340,98 +326,56 @@ func (c *Calcium) doMakeContainerOptions(index int, quota types.CPUMap, opts *ty
 
 	// 接下来是meta
 	for key, value := range opts.Labels {
-		containerLabels[key] = value
+		config.Labels[key] = value
 	}
 
 	// ulimit
-	ulimits := []*units.Ulimit{{Name: "nofile", Soft: 65535, Hard: 65535}}
+	config.Ulimits = map[string]*enginetypes.VirtualizationUlimits{
+		"nofile": &enginetypes.VirtualizationUlimits{Soft: 65535, Hard: 65535},
+	}
 
 	// name
 	suffix := utils.RandomString(6)
-	containerName := utils.MakeContainerName(opts.Name, opts.Entrypoint.Name, suffix)
+	config.Name = utils.MakeContainerName(opts.Name, opts.Entrypoint.Name, suffix)
 
 	// network mode
 	// network mode 和 networks 互斥
 	// 没有 networks 的时候用 networkmode 的值
 	// 有 networks 的时候一律用 none 作为默认 mode
-	networkMode := opts.NetworkMode
+	config.Network = opts.NetworkMode
 	if len(opts.Networks) > 0 {
 		for name := range opts.Networks {
-			networkMode = name
+			config.Network = name
 			break
 		}
-	} else if networkMode == "" {
-		networkMode = c.config.Docker.NetworkMode
+	} else if config.Network == "" {
+		config.Network = c.config.Docker.NetworkMode
 	}
-	engineNetworkMode := enginecontainer.NetworkMode(networkMode)
 
 	// dns
-	// 如果有给dns就优先用给定的dns.
-	// 没有给出dns的时候, 如果设定是用宿主机IP作为dns, 就会把宿主机IP设置过去.
-	// 其他情况就是默认值.
-	// 哦对, networkMode如果是host也不给dns.
-	dns := opts.DNS
-	if len(dns) == 0 && c.config.Docker.UseLocalDNS && nodeIP != "" && !engineNetworkMode.IsHost() {
-		dns = []string{nodeIP}
-	}
-
+	config.DNS = opts.DNS
 	// sysctls
-	// 只有在非 host 网络下有意义
-	sysctls := map[string]string{}
-	if !engineNetworkMode.IsHost() {
-		sysctls = entry.Sysctls
+	config.Sysctl = entry.Sysctls
+
+	// restart
+	config.RestartPolicy = entry.RestartPolicy
+	config.RestartRetryCount = 3
+	if config.RestartPolicy == restartAlways {
+		config.RestartRetryCount = 0
 	}
 
-	config := &enginecontainer.Config{
-		Env:             env,
-		Cmd:             cmd,
-		User:            user,
-		Image:           opts.Image,
-		Volumes:         volumes,
-		WorkingDir:      entry.Dir,
-		NetworkDisabled: false,
-		Labels:          containerLabels,
-		OpenStdin:       opts.OpenStdin,
-	}
+	// general
+	config.User = user
+	config.Image = opts.Image
+	config.WorkingDir = entry.Dir
+	config.Stdin = opts.OpenStdin
+	config.Privileged = entry.Privileged
+	config.Env = env
+	config.Hosts = opts.ExtraHosts
+	config.Publish = entry.Publish
+	config.NetworkDisabled = false
+	config.Binds = binds
+	config.Volumes = volumes
 
-	resource := makeResourceSetting(opts.CPUQuota, opts.Memory, quota, opts.SoftLimit)
-	resource.Ulimits = ulimits
-
-	restartPolicy := entry.RestartPolicy
-	maximumRetryCount := 3
-	if restartPolicy == restartAlways {
-		maximumRetryCount = 0
-	}
-	hostConfig := &enginecontainer.HostConfig{
-		Binds:         binds,
-		DNS:           dns,
-		LogConfig:     containerLogConfig,
-		NetworkMode:   engineNetworkMode,
-		RestartPolicy: enginecontainer.RestartPolicy{Name: restartPolicy, MaximumRetryCount: maximumRetryCount},
-		CapAdd:        engineslice.StrSlice(capAdd),
-		ExtraHosts:    opts.ExtraHosts,
-		Privileged:    entry.Privileged,
-		Resources:     resource,
-		Sysctls:       sysctls,
-	}
-	networkConfig := &enginenetwork.NetworkingConfig{}
-
-	// Bridge 下 publish 出 Port
-	if engineNetworkMode.IsBridge() {
-		portMapping := nat.PortMap{}
-		exposePorts := nat.PortSet{}
-		for _, p := range opts.Entrypoint.Publish {
-			port, err := nat.NewPort("tcp", p)
-			if err != nil {
-				return nil, nil, nil, "", err
-			}
-			exposePorts[port] = struct{}{}
-			portMapping[port] = []nat.PortBinding{}
-			portMapping[port] = append(portMapping[port], nat.PortBinding{HostPort: p})
-		}
-		hostConfig.PortBindings = portMapping
-		config.ExposedPorts = exposePorts
-	}
-
-	return config, hostConfig, networkConfig, containerName, nil
+	return config
 }

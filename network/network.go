@@ -3,7 +3,7 @@ package network
 import (
 	"context"
 
-	"github.com/projecteru2/core/types"
+	enginetypes "github.com/projecteru2/core/engine/types"
 )
 
 // Network define network methods
@@ -12,5 +12,5 @@ type Network interface {
 	ConnectToNetwork(ctx context.Context, containerID, networkID, ipv4 string) error
 	DisconnectFromNetwork(ctx context.Context, containerID, networkID string) error
 	// list networks
-	ListNetworks(ctx context.Context, driver string) ([]*types.Network, error)
+	ListNetworks(ctx context.Context, driver string) ([]*enginetypes.Network, error)
 }

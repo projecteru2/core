@@ -4,9 +4,8 @@ import (
 	"context"
 	"sync"
 
-	enginetypes "github.com/docker/docker/api/types"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/lock"
-
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -49,7 +48,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 			log.Infof("[ReplaceContainer] Replace old container %s", container.ID)
 			wg.Add(1)
 
-			go func(replaceOpts types.ReplaceOptions, container *types.Container, containerJSON enginetypes.ContainerJSON, containerLock lock.DistributedLock, index int) {
+			go func(replaceOpts types.ReplaceOptions, container *types.Container, containerJSON *enginetypes.VirtualizationInfo, containerLock lock.DistributedLock, index int) {
 				defer wg.Done()
 				defer c.doUnlock(containerLock, container.ID)
 				// 使用复制之后的配置
@@ -90,7 +89,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 func (c *Calcium) doReplaceContainer(
 	ctx context.Context,
 	container *types.Container,
-	containerJSON enginetypes.ContainerJSON,
+	containerJSON *enginetypes.VirtualizationInfo,
 	opts *types.ReplaceOptions,
 	ib *imageBucket,
 	index int,
@@ -101,7 +100,7 @@ func (c *Calcium) doReplaceContainer(
 		Message:     "",
 	}
 	// label filter
-	if !utils.FilterContainer(containerJSON.Config.Labels, opts.FilterLabels) {
+	if !utils.FilterContainer(containerJSON.Labels, opts.FilterLabels) {
 		return nil, removeMessage, types.ErrNotFitLabels
 	}
 	// get node
@@ -109,13 +108,8 @@ func (c *Calcium) doReplaceContainer(
 	if err != nil {
 		return nil, removeMessage, err
 	}
-	// 拉镜像
-	auth, err := makeEncodedAuthConfigFromRemote(c.config.Docker.AuthConfigs, opts.Image)
-	if err != nil {
-		return nil, removeMessage, err
-	}
 	// pull image
-	if err = pullImage(ctx, node, opts.Image, auth); err != nil {
+	if err = pullImage(ctx, node, opts.Image); err != nil {
 		return nil, removeMessage, err
 	}
 	// 停止容器
@@ -125,7 +119,7 @@ func (c *Calcium) doReplaceContainer(
 	}
 	// 获得文件 io
 	for src, dst := range opts.Copy {
-		stream, _, err := container.Engine.CopyFromContainer(ctx, container.ID, src)
+		stream, _, err := container.Engine.VirtualizationCopyFrom(ctx, container.ID, src)
 		if err != nil {
 			return nil, removeMessage, err
 		}

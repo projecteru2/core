@@ -13,12 +13,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	enginecontainer "github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
-	engineapi "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
-	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -55,19 +52,6 @@ func Tail(path string) string {
 	return parts[len(parts)-1]
 }
 
-// FuckDockerStream will copy docker stream to stdout and err
-func FuckDockerStream(stream io.ReadCloser) io.Reader {
-	outr, outw := io.Pipe()
-
-	go func() {
-		defer stream.Close()
-		_, err := stdcopy.StdCopy(outw, outw, stream)
-		outw.CloseWithError(err)
-	}()
-
-	return outr
-}
-
 // GetGitRepoName return git repo name
 func GetGitRepoName(url string) (string, error) {
 	if !(strings.Contains(url, "git@") || strings.Contains(url, "gitlab@") || strings.Contains(url, "https://")) ||
@@ -100,16 +84,16 @@ func NormalizeImageName(image string) string {
 	return image
 }
 
-// ContextWithDockerEngine bind docker engine to context
-// Bind a docker engine client to context
-func ContextWithDockerEngine(ctx context.Context, client engineapi.APIClient) context.Context {
+// ContextWithDockerEngine bind engine to context
+// Bind a engine client to context
+func ContextWithDockerEngine(ctx context.Context, client engine.API) context.Context {
 	return context.WithValue(ctx, engineKey, client)
 }
 
-// GetDockerEngineFromContext get docker engine from context
-// Get a docker engine client from a context
-func GetDockerEngineFromContext(ctx context.Context) (engineapi.APIClient, bool) {
-	client, ok := ctx.Value(engineKey).(engineapi.APIClient)
+// GetDockerEngineFromContext get engine from context
+// Get a engine client from a context
+func GetDockerEngineFromContext(ctx context.Context) (engine.API, bool) {
+	client, ok := ctx.Value(engineKey).(engine.API)
 	return client, ok
 }
 
@@ -142,16 +126,9 @@ func ParseContainerName(containerName string) (string, string, string, error) {
 }
 
 // MakePublishInfo generate publish info
-func MakePublishInfo(networks map[string]*network.EndpointSettings, hostIP string, ports []string) map[string][]string {
+func MakePublishInfo(networks map[string]string, ports []string) map[string][]string {
 	result := map[string][]string{}
-	for networkName, networkSetting := range networks {
-		ip := hostIP
-		if !enginecontainer.NetworkMode(networkName).IsHost() {
-			ip = networkSetting.IPAddress
-		}
-		if ip == "" {
-			continue
-		}
+	for networkName, ip := range networks {
 		data := []string{}
 		for _, port := range ports {
 			data = append(data, fmt.Sprintf("%s:%s", ip, port))
@@ -267,7 +244,7 @@ func TempTarFile(path string, data []byte) (string, error) {
 	return name, err
 }
 
-// CreateTarStream create docker build tar stream
+// CreateTarStream create tar stream
 func CreateTarStream(path string) (io.ReadCloser, error) {
 	tarOpts := &archive.TarOptions{
 		ExcludePatterns: []string{},

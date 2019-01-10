@@ -7,7 +7,7 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/mvcc/mvccpb"
-	engineapi "github.com/docker/docker/client"
+	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/lock/etcdlock"
 	"github.com/projecteru2/core/types"
@@ -168,4 +168,4 @@ func (m *Mercury) parseKey(key string) string {
 	return key
 }
 
-var _cache = &utils.Cache{Clients: make(map[string]engineapi.APIClient)}
+var _cache = &utils.Cache{Clients: make(map[string]engine.API)}

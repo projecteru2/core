@@ -3,11 +3,8 @@ package calico
 import (
 	"context"
 	"fmt"
-	"net"
 
-	enginetypes "github.com/docker/docker/api/types"
-	enginefilters "github.com/docker/docker/api/types/filters"
-	enginenetwork "github.com/docker/docker/api/types/network"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -25,30 +22,10 @@ func (t *Titanium) ConnectToNetwork(ctx context.Context, containerID, networkID,
 	engine, ok := utils.GetDockerEngineFromContext(ctx)
 	if !ok {
 		return types.NewDetailedErr(types.ErrCannotGetEngine,
-			fmt.Sprintf("Not actually a `engineapi.Client` for value engine in context"))
+			fmt.Sprintf("Not actually a `engine.API` for value engine in context"))
 	}
 
-	config := &enginenetwork.EndpointSettings{
-		IPAMConfig: &enginenetwork.EndpointIPAMConfig{},
-	}
-
-	// set specified IP
-	// but if IP is empty, just ignore
-	if ipv4 != "" {
-		ip := net.ParseIP(ipv4)
-		if ip == nil {
-			return types.NewDetailedErr(types.ErrBadIPAddress, ipv4)
-		}
-
-		config.IPAMConfig.IPv4Address = ip.String()
-	}
-
-	ipForShow := ipv4
-	if ipForShow == "" {
-		ipForShow = "[AutoAlloc]"
-	}
-	log.Infof("[ConnectToNetwork] Connect %v to %v with IP %v", containerID, networkID, ipForShow)
-	return engine.NetworkConnect(ctx, networkID, containerID, config)
+	return engine.NetworkConnect(ctx, networkID, containerID, ipv4, "")
 }
 
 // DisconnectFromNetwork from network
@@ -60,7 +37,7 @@ func (t *Titanium) DisconnectFromNetwork(ctx context.Context, containerID, netwo
 	engine, ok := utils.GetDockerEngineFromContext(ctx)
 	if !ok {
 		return types.NewDetailedErr(types.ErrCannotGetEngine,
-			fmt.Sprintf("Not actually a `engineapi.Client` for value engine in context"))
+			fmt.Sprintf("Not actually a `engine.API` for value engine in context"))
 	}
 
 	log.Infof("[DisconnectFromNetwork] Disconnect %v from %v", containerID, networkID)
@@ -68,31 +45,14 @@ func (t *Titanium) DisconnectFromNetwork(ctx context.Context, containerID, netwo
 }
 
 // ListNetworks networks from context
-func (t *Titanium) ListNetworks(ctx context.Context, driver string) ([]*types.Network, error) {
-	networks := []*types.Network{}
+func (t *Titanium) ListNetworks(ctx context.Context, driver string) ([]*enginetypes.Network, error) {
 	engine, ok := utils.GetDockerEngineFromContext(ctx)
 	if !ok {
-		return networks, types.NewDetailedErr(types.ErrCannotGetEngine,
-			fmt.Sprintf("Not actually a `engineapi.Client` for value engine in context"))
+		return nil, types.NewDetailedErr(types.ErrCannotGetEngine,
+			fmt.Sprintf("Not actually a `engine.API` for value engine in context"))
 	}
 
-	filters := enginefilters.NewArgs()
-	if driver != "" {
-		filters.Add("driver", driver)
-	}
-	ns, err := engine.NetworkList(ctx, enginetypes.NetworkListOptions{Filters: filters})
-	if err != nil {
-		return networks, err
-	}
-
-	for _, n := range ns {
-		subnets := []string{}
-		for _, config := range n.IPAM.Config {
-			subnets = append(subnets, config.Subnet)
-		}
-		networks = append(networks, &types.Network{Name: n.Name, Subnets: subnets})
-	}
-	return networks, nil
+	return engine.NetworkList(ctx, []string{driver})
 }
 
 // New a titanium obj

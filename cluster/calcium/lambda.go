@@ -7,12 +7,9 @@ import (
 	"io"
 	"sync"
 
-	enginetypes "github.com/docker/docker/api/types"
-	containertypes "github.com/docker/docker/api/types/container"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	"github.com/sanity-io/litter"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -24,7 +21,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 	opts.Entrypoint.Log = &types.LogConfig{Type: "json-file"}
 
 	// count = 1 && OpenStdin
-	if opts.OpenStdin && (opts.Count != 1 || opts.DeployMethod != cluster.DeployGlobal) {
+	if opts.OpenStdin && (opts.Count != 1 || opts.DeployMethod != cluster.DeployAuto) {
 		close(ch)
 		log.Errorf("Count %d method %s", opts.Count, opts.DeployMethod)
 		return ch, types.ErrRunAndWaitCountOneWithStdin
@@ -32,7 +29,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 
 	// 创建容器, 有问题就
 	// 不能让 CTX 作祟
-	log.Debugf("[RunAndWait] Args: %s", litter.Sdump(opts))
 	createChan, err := c.CreateContainer(context.Background(), opts)
 	if err != nil {
 		close(ch)
@@ -44,7 +40,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 	// 基本上就是, attach拿日志写到channel, 以及等待容器结束后清理资源
 	go func() {
 		defer close(ch)
-		logsOpts := enginetypes.ContainerLogsOptions{Follow: true, ShowStdout: true, ShowStderr: true}
 		wg := sync.WaitGroup{}
 
 		for message := range createChan {
@@ -74,7 +69,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 				//CONTEXT 这里的不应该受到 client 的影响
 				defer c.doRemoveContainerSync(context.Background(), []string{containerID})
 
-				resp, err := node.Engine.ContainerLogs(ctx, containerID, logsOpts)
+				resp, err := node.Engine.VirtualizationLogs(ctx, containerID, true, true, true)
 				if err != nil {
 					log.Errorf("[RunAndWait] Failed to get logs, %v", err)
 					ch <- &types.RunAndWaitMessage{ContainerID: containerID,
@@ -84,20 +79,19 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 
 				if opts.OpenStdin {
 					go func() {
-						r, err := node.Engine.ContainerAttach(ctx, containerID, enginetypes.ContainerAttachOptions{Stream: true, Stdin: true})
-						defer r.Close()
+						_, conn, err := node.Engine.VirtualizationAttach(ctx, containerID, true, true)
+						defer conn.Close()
 						defer stdin.Close()
 						if err != nil {
 							log.Errorf("[RunAndWait] Failed to attach container, %v", err)
 							return
 						}
-						io.Copy(r.Conn, stdin)
+						io.Copy(conn, stdin)
 						log.Debugf("[RunAndWait] %s stdin copy end", utils.ShortID(containerID))
 					}()
 				}
 
-				stream := utils.FuckDockerStream(resp)
-				scanner := bufio.NewScanner(stream)
+				scanner := bufio.NewScanner(resp)
 				for scanner.Scan() {
 					data := scanner.Bytes()
 					ch <- &types.RunAndWaitMessage{
@@ -119,11 +113,10 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 
 				// 超时的情况下根本不会到这里
 				// 不超时的情况下这里肯定会立即返回
-				waitbody, _ := node.Engine.ContainerWait(ctx, containerID, containertypes.WaitConditionNotRunning)
-				b := <-waitbody
-				exitData := []byte(fmt.Sprintf("[exitcode] %d", b.StatusCode))
-				if b.StatusCode != 0 {
-					log.Errorf("[RunAndWait] %s run failed", utils.ShortID(containerID))
+				r, _ := node.Engine.VirtualizationWait(ctx, containerID, "")
+				exitData := []byte(fmt.Sprintf("[exitcode] %d", r.Code))
+				if r.Code != 0 {
+					log.Errorf("[RunAndWait] %s run failed %s", utils.ShortID(containerID), r.Message)
 				}
 				ch <- &types.RunAndWaitMessage{ContainerID: containerID, Data: exitData}
 			}(node, message.ContainerID)

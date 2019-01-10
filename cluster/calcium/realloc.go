@@ -9,7 +9,7 @@ import (
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/utils"
 
-	enginecontainer "github.com/docker/docker/api/types/container"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
@@ -150,9 +150,9 @@ func (c *Calcium) doUpdateContainerWithMemoryPrior(
 			}
 			log.Debugf("[doUpdateContainerWithMemoryPrior] Container %s: cpu: %f, mem: %d", container.ID, newCPU, newMemory)
 			// CPUQuota not cpu
-			newResource := makeResourceSetting(newCPU, newMemory, nil, container.SoftLimit)
-			updateConfig := enginecontainer.UpdateConfig{Resources: newResource}
-			if _, err := node.Engine.ContainerUpdate(ctx, container.ID, updateConfig); err != nil {
+			newResource := &enginetypes.VirtualizationResource{
+				CPU: nil, Quota: newCPU, Memory: newMemory, SoftLimit: container.SoftLimit}
+			if err := node.Engine.VirtualizationUpdateResource(ctx, container.ID, newResource); err != nil {
 				log.Errorf("[doUpdateContainerWithMemoryPrior] Update container failed %v, %s", err, container.ID)
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				continue
@@ -298,9 +298,9 @@ func (c *Calcium) doUpdateContainersWithCPUPrior(
 				containers := nodeContainers[node]
 				for index, container := range containers {
 					cpuPlan := cpuset[index]
-					resource := makeResourceSetting(newCPU, newMem, cpuPlan, container.SoftLimit)
-					updateConfig := enginecontainer.UpdateConfig{Resources: resource}
-					if _, err := node.Engine.ContainerUpdate(ctx, container.ID, updateConfig); err != nil {
+					newResource := &enginetypes.VirtualizationResource{
+						CPU: cpuPlan.Map(), Quota: newCPU, Memory: newMem, SoftLimit: container.SoftLimit}
+					if err := node.Engine.VirtualizationUpdateResource(ctx, container.ID, newResource); err != nil {
 						log.Errorf("[doReallocContainersWithCPUPrior] Update container failed %v", err)
 						ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 						continue

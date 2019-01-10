@@ -32,8 +32,8 @@ race: test
 	go test --race -cover -v `glide nv`
 
 mock: deps
-	mockery -dir vendor/github.com/docker/docker/client -name APIClient -output 3rdmocks
 	mockery -dir ./vendor/google.golang.org/grpc -name ServerStream -output 3rdmocks
+	mockery -dir vendor/github.com/docker/docker/client -name APIClient -output engine/docker/mocks
 
 cloc:
 	cloc --exclude-dir=vendor,3rdmocks,mocks,tools --not-match-f=test .

@@ -8,13 +8,10 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
-	"strings"
 	"testing"
 
-	"github.com/docker/docker/api/types/network"
-	engineapi "github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/projecteru2/core/cluster"
+	enginemocks "github.com/projecteru2/core/engine/mocks"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -36,21 +33,6 @@ func TestTail(t *testing.T) {
 	assert.Equal(t, r3, "b")
 	r4 := Tail("a/b/c")
 	assert.Equal(t, r4, "c")
-}
-
-func TestFuckDockerStream(t *testing.T) {
-	startingBufLen := 3
-	stdOutBytes := []byte(strings.Repeat("o", startingBufLen))
-	stdErrBytes := []byte(strings.Repeat("e", startingBufLen))
-	buffer := new(bytes.Buffer)
-	dstOut := stdcopy.NewStdWriter(buffer, stdcopy.Stdout)
-	dstOut.Write(stdOutBytes)
-	dstErr := stdcopy.NewStdWriter(buffer, stdcopy.Stderr)
-	dstErr.Write(stdErrBytes)
-
-	outr := FuckDockerStream(ioutil.NopCloser(buffer))
-	b, _ := ioutil.ReadAll(outr)
-	assert.Equal(t, string(b), "oooeee")
 }
 
 func TestGetGitRepoName(t *testing.T) {
@@ -86,7 +68,7 @@ func TestNormalizeImageName(t *testing.T) {
 
 func TestGetDockerEngineFromContext(t *testing.T) {
 	ctx := context.Background()
-	engine := &engineapi.Client{}
+	engine := &enginemocks.API{}
 	ctx = ContextWithDockerEngine(ctx, engine)
 	client, ok := GetDockerEngineFromContext(ctx)
 	assert.Equal(t, ok, true)
@@ -127,13 +109,11 @@ func TestParseContainerName(t *testing.T) {
 
 func TestPublishInfo(t *testing.T) {
 	ports := []string{"123", "233"}
-	n1 := map[string]*network.EndpointSettings{
-		"n1": {
-			IPAddress: "233.233.233.233",
-		},
-		"host": {},
+	n1 := map[string]string{
+		"n1":   "233.233.233.233",
+		"host": "127.0.0.1",
 	}
-	r := MakePublishInfo(n1, "127.0.0.1", ports)
+	r := MakePublishInfo(n1, ports)
 	assert.Equal(t, len(r), 2)
 	assert.Equal(t, len(r["n1"]), 2)
 	assert.Equal(t, r["n1"][0], "233.233.233.233:123")

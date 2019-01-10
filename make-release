@@ -40,7 +40,7 @@ cp eru-core.service $SERVICE
 
 echo $VERSION rpm build begin
 
-fpm -f -s dir -t rpm -n eru-core --epoch 0 -v $VERSION --iteration ${ITRATION_NUMBER}.el7 -C $RPMROOT -p $PWD --verbose --no-rpm-auto-add-directories --category 'Development/App' --description 'docker eru core' --after-install $after_install_script --url 'https://github.com/projecteru2/core' --license 'MIT'  --no-rpm-sign usr etc
+fpm -f -s dir -t rpm -n eru-core --epoch 0 -v $VERSION --iteration ${ITRATION_NUMBER}.el7 -C $RPMROOT -p $PWD --verbose --no-rpm-auto-add-directories --category 'Development/App' --description 'eru core' --after-install $after_install_script --url 'https://github.com/projecteru2/core' --license 'MIT'  --no-rpm-sign usr etc
 
 BIN="$DEBROOT/usr/bin"
 CONF="$DEBROOT/etc/eru"
@@ -56,6 +56,6 @@ cp eru-core.service $SERVICE
 
 echo $VERSION deb build begin
 
-fpm -f -s dir -t deb -n eru-core -v $VERSION --iteration ${ITRATION_NUMBER}.noarch -C $DEBROOT -p $PWD --verbose --category 'Development/App' --description 'docker eru core' --url 'https://github.com/projecteru2/core' --license 'MIT' --after-install $after_install_script --deb-no-default-config-files usr etc lib
+fpm -f -s dir -t deb -n eru-core -v $VERSION --iteration ${ITRATION_NUMBER}.noarch -C $DEBROOT -p $PWD --verbose --category 'Development/App' --description 'eru core' --url 'https://github.com/projecteru2/core' --license 'MIT' --after-install $after_install_script --deb-no-default-config-files usr etc lib
 
 rm -rf $ROOT

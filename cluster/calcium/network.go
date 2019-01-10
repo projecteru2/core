@@ -3,16 +3,17 @@ package calcium
 import (
 	"context"
 
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
 
-//ListNetworks by podname
-// just get one node from podname
-// and call docker network ls
+// ListNetworks by podname
+// get one node from a pod
+// and list networks
 // only get those driven by network driver
-func (c *Calcium) ListNetworks(ctx context.Context, podname string, driver string) ([]*types.Network, error) {
-	networks := []*types.Network{}
+func (c *Calcium) ListNetworks(ctx context.Context, podname string, driver string) ([]*enginetypes.Network, error) {
+	networks := []*enginetypes.Network{}
 	nodes, err := c.ListPodNodes(ctx, podname, false)
 	if err != nil {
 		return networks, err

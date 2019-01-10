@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	enginetypes "github.com/docker/docker/api/types"
 	"github.com/projecteru2/core/cluster"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -38,7 +38,7 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string) 
 					}
 				}()
 
-				containerJSON, err := container.Inspect(ctx)
+				containerInfo, err := container.Inspect(ctx)
 				if err != nil {
 					return
 				}
@@ -46,19 +46,19 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string) 
 				var message string
 				switch t {
 				case cluster.ContainerStop:
-					message, err = c.doStopContainer(ctx, container, containerJSON, nil, false)
+					message, err = c.doStopContainer(ctx, container, containerInfo, nil, false)
 					log.Infof("[ControlContainer] Stop container %s output %s", container.ID, message)
 					return
 				case cluster.ContainerStart:
-					message, err = c.doStartContainer(ctx, container, containerJSON)
+					message, err = c.doStartContainer(ctx, container, containerInfo)
 					log.Infof("[ControlContainer] Start container %s output %s", container.ID, message)
 					return
 				case cluster.ContainerRestart:
-					message, err = c.doStopContainer(ctx, container, containerJSON, nil, false)
+					message, err = c.doStopContainer(ctx, container, containerInfo, nil, false)
 					if err != nil {
 						return
 					}
-					m2, e2 := c.doStartContainer(ctx, container, containerJSON)
+					m2, e2 := c.doStartContainer(ctx, container, containerInfo)
 					message += m2
 					if e2 != nil {
 						err = e2
@@ -76,7 +76,7 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string) 
 	return ch, nil
 }
 
-func (c *Calcium) doStartContainer(ctx context.Context, container *types.Container, containerJSON enginetypes.ContainerJSON) (string, error) {
+func (c *Calcium) doStartContainer(ctx context.Context, container *types.Container, containerInfo *enginetypes.VirtualizationInfo) (string, error) {
 	var message string
 	var err error
 
@@ -89,8 +89,8 @@ func (c *Calcium) doStartContainer(ctx context.Context, container *types.Contain
 		var output []byte
 		output, err = c.doContainerAfterStartHook(
 			ctx, container,
-			containerJSON.Config.User,
-			containerJSON.Config.Env,
+			containerInfo.User,
+			containerInfo.Env,
 			container.Privileged,
 		)
 		message = string(output)
@@ -98,19 +98,19 @@ func (c *Calcium) doStartContainer(ctx context.Context, container *types.Contain
 	return message, err
 }
 
-func (c *Calcium) doStopContainer(ctx context.Context, container *types.Container, containerJSON enginetypes.ContainerJSON, ib *imageBucket, force bool) (string, error) {
+func (c *Calcium) doStopContainer(ctx context.Context, container *types.Container, containerInfo *enginetypes.VirtualizationInfo, ib *imageBucket, force bool) (string, error) {
 	// 记录镜像
 	if ib != nil {
-		ib.Add(container.Podname, containerJSON.Config.Image)
+		ib.Add(container.Podname, containerInfo.Image)
 	}
 
 	var message string
 	var err error
-	if container.Hook != nil && len(container.Hook.BeforeStop) > 0 && containerJSON.Config != nil {
+	if container.Hook != nil && len(container.Hook.BeforeStop) > 0 {
 		output, err := c.doContainerBeforeStopHook(
 			ctx, container,
-			containerJSON.Config.User,
-			containerJSON.Config.Env,
+			containerInfo.User,
+			containerInfo.Env,
 			container.Privileged, force,
 		)
 		message = string(output)

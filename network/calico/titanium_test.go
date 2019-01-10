@@ -5,9 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	enginetypes "github.com/docker/docker/api/types"
-	enginenetwork "github.com/docker/docker/api/types/network"
-	enginemocks "github.com/projecteru2/core/3rdmocks"
+	enginemocks "github.com/projecteru2/core/engine/mocks"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -16,7 +15,7 @@ import (
 func TestConnectToNetwork(t *testing.T) {
 	s := New()
 	containerID := "1234567812345678123456781234567812345678123456781234567812345678"
-	mockEngine := &enginemocks.APIClient{}
+	mockEngine := &enginemocks.API{}
 	// container id not 64
 	err := s.ConnectToNetwork(context.Background(), "", "", "")
 	assert.Error(t, err)
@@ -26,15 +25,21 @@ func TestConnectToNetwork(t *testing.T) {
 
 	ctx := utils.ContextWithDockerEngine(context.Background(), mockEngine)
 	mockEngine.On("NetworkConnect",
-		mock.AnythingOfType("*context.valueCtx"), mock.Anything, mock.Anything, mock.Anything,
-	).Return(nil)
+		mock.AnythingOfType("*context.valueCtx"), mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+	).Return(nil).Once()
 	// no ipv4
 	err = s.ConnectToNetwork(ctx, containerID, "", "")
 	assert.NoError(t, err)
+	mockEngine.On("NetworkConnect",
+		mock.AnythingOfType("*context.valueCtx"), mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+	).Return(errors.New("wrong IP")).Once()
 	// invaild ipv4
 	err = s.ConnectToNetwork(ctx, containerID, "", "x.0.1.8")
 	assert.Error(t, err)
 	// vaild ipv4
+	mockEngine.On("NetworkConnect",
+		mock.AnythingOfType("*context.valueCtx"), mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+	).Return(nil)
 	err = s.ConnectToNetwork(ctx, containerID, "", "127.0.0.1")
 	assert.NoError(t, err)
 }
@@ -42,7 +47,7 @@ func TestConnectToNetwork(t *testing.T) {
 func TestDisconnectFromNetwork(t *testing.T) {
 	s := New()
 	containerID := "1234567812345678123456781234567812345678123456781234567812345678"
-	mockEngine := &enginemocks.APIClient{}
+	mockEngine := &enginemocks.API{}
 	// container id not 64
 	err := s.ConnectToNetwork(context.Background(), "", "", "")
 	assert.Error(t, err)
@@ -59,7 +64,7 @@ func TestDisconnectFromNetwork(t *testing.T) {
 
 func TestListNetworks(t *testing.T) {
 	s := New()
-	mockEngine := &enginemocks.APIClient{}
+	mockEngine := &enginemocks.API{}
 	// no engine
 	_, err := s.ListNetworks(context.Background(), "")
 	assert.Error(t, err)
@@ -73,13 +78,11 @@ func TestListNetworks(t *testing.T) {
 	// List
 	networkName := "test"
 	subnet := "10.2.0.0/16"
-	result := []enginetypes.NetworkResource{
-		{
-			Name: networkName,
-			IPAM: enginenetwork.IPAM{
-				Config: []enginenetwork.IPAMConfig{
-					{Subnet: subnet},
-				}}},
+	result := []*enginetypes.Network{
+		&enginetypes.Network{
+			Name:    networkName,
+			Subnets: []string{subnet},
+		},
 	}
 	mockEngine.On("NetworkList",
 		mock.AnythingOfType("*context.valueCtx"), mock.Anything,

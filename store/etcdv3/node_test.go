@@ -33,7 +33,7 @@ func TestNode(t *testing.T) {
 	_, err = m.AddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, labels)
 	assert.Error(t, err)
 
-	endpoint = "mock://mockdocker"
+	endpoint = "mock://fakeengine"
 	// AddNode
 	node, err := m.AddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, labels)
 	assert.NoError(t, err)
@@ -115,8 +115,8 @@ func TestNode(t *testing.T) {
 	err = m.UpdateNodeResource(ctx, node, nil, 0, int64(0), "abc")
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), types.ErrUnknownControlType.Error())
-	// makeDockerClient
-	_, err = m.makeDockerClient(ctx, podname, nodename, endpoint, true)
+	// makeClient
+	_, err = m.makeClient(ctx, podname, nodename, endpoint, true)
 	assert.NoError(t, err)
 	// node with tls
 	ca := `-----BEGIN CERTIFICATE-----
@@ -186,7 +186,7 @@ RdCPRPt513WozkJZZAjUSP2U
 	m.config.Docker.CertPath = "/tmp"
 	node3, err := m.doAddNode(ctx, nodename3, endpoint3, podname, ca, cert, certkey, cpu, share, memory, labels)
 	assert.NoError(t, err)
-	engine3, err := m.makeDockerClient(ctx, podname, nodename3, endpoint3, true)
+	engine3, err := m.makeClient(ctx, podname, nodename3, endpoint3, true)
 	assert.NoError(t, err)
 	_, err = engine3.Info(ctx)
 	assert.Error(t, err)

@@ -1,14 +1,13 @@
 package etcdv3
 
 import (
-	"net/http"
 	"os"
 	"strings"
 
-	enginetypes "github.com/docker/docker/api/types"
-	engineapi "github.com/docker/docker/client"
-	"github.com/docker/go-connections/tlsconfig"
-	enginemocks "github.com/projecteru2/core/3rdmocks"
+	"github.com/projecteru2/core/engine"
+	"github.com/projecteru2/core/engine/docker"
+	enginemocks "github.com/projecteru2/core/engine/mocks"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/mock"
@@ -32,41 +31,21 @@ func dumpFromString(ca, cert, key *os.File, caStr, certStr, keyStr string) error
 	return nil
 }
 
-func makeMockClient() (engineapi.APIClient, error) {
-	engine := &enginemocks.APIClient{}
-	engine.On("Info", mock.AnythingOfType("*context.emptyCtx")).Return(
-		enginetypes.Info{NCPU: 1, MemTotal: types.GByte + 100}, nil)
-	return engine, nil
+func makeMockClient() (engine.API, error) {
+	e := &enginemocks.API{}
+	e.On("Info", mock.AnythingOfType("*context.emptyCtx")).Return(
+		&enginetypes.Info{NCPU: 1, MemTotal: types.GByte + 100}, nil)
+	return e, nil
 }
 
-func makeRawClient(endpoint, apiversion string) (engineapi.APIClient, error) {
-	return engineapi.NewClient(endpoint, apiversion, nil, nil)
+func makeDockerClient(config types.Config, endpoint, apiversion string) (engine.API, error) {
+	return docker.MakeRawClient(config, nil, endpoint, apiversion)
 }
 
 // use endpoint, cert files path, and api version to create docker client
 // we don't check whether this is connectable
-func makeRawClientWithTLS(ca, cert, key *os.File, endpoint, apiversion string) (engineapi.APIClient, error) {
-	var cli *http.Client
-	options := tlsconfig.Options{
-		CAFile:             ca.Name(),
-		CertFile:           cert.Name(),
-		KeyFile:            key.Name(),
-		InsecureSkipVerify: true,
-	}
-	defer os.Remove(ca.Name())
-	defer os.Remove(cert.Name())
-	defer os.Remove(key.Name())
-	tlsc, err := tlsconfig.Client(options)
-	if err != nil {
-		return nil, err
-	}
-	cli = &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: tlsc,
-		},
-	}
-	log.Debugf("[makeRawClientWithTLS] Create new http.Client for %s, %s", endpoint, apiversion)
-	return engineapi.NewClient(endpoint, apiversion, cli, nil)
+func makeDockerClientWithTLS(config types.Config, ca, cert, key *os.File, endpoint, apiversion string) (engine.API, error) {
+	return docker.MakeRawClientWithTLS(config, ca, cert, key, endpoint, apiversion)
 }
 
 func parseStatusKey(key string) (string, string, string, string) {

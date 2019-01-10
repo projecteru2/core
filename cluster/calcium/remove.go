@@ -7,7 +7,7 @@ import (
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/store"
 
-	enginetypes "github.com/docker/docker/api/types"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -31,7 +31,7 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 				continue
 			}
 			wg.Add(1)
-			go func(container *types.Container, containerJSON enginetypes.ContainerJSON, containerLock lock.DistributedLock) {
+			go func(container *types.Container, containerJSON *enginetypes.VirtualizationInfo, containerLock lock.DistributedLock) {
 				defer wg.Done()
 				// force to unlock
 				defer c.doUnlock(containerLock, container.ID)
@@ -75,7 +75,7 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 	return ch, nil
 }
 
-func (c *Calcium) doStopAndRemoveContainer(ctx context.Context, container *types.Container, containerJSON enginetypes.ContainerJSON, ib *imageBucket, force bool) (string, error) {
+func (c *Calcium) doStopAndRemoveContainer(ctx context.Context, container *types.Container, containerJSON *enginetypes.VirtualizationInfo, ib *imageBucket, force bool) (string, error) {
 	message, err := c.doStopContainer(ctx, container, containerJSON, ib, force)
 	if err != nil {
 		return message, err

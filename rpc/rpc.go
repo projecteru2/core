@@ -283,8 +283,8 @@ func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 	if err != nil {
 		return err
 	}
-
-	ch, err := v.cluster.BuildImage(stream.Context(), buildOpts)
+	// TODO VM BRANCH
+	ch, err := v.cluster.BuildDockerImage(stream.Context(), buildOpts)
 	if err != nil {
 		return err
 	}
