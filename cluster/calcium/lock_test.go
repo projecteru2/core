@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	enginetypes "github.com/docker/docker/api/types"
 	"github.com/stretchr/testify/assert"
 
-	enginemocks "github.com/projecteru2/core/3rdmocks"
+	enginemocks "github.com/projecteru2/core/engine/mocks"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/lock"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
@@ -66,17 +66,17 @@ func TestDoLockAndGetContainers(t *testing.T) {
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, _, _, err = c.doLockAndGetContainers(ctx, []string{"c1", "c2"})
 	assert.Error(t, err)
-	engine := &enginemocks.APIClient{}
+	engine := &enginemocks.API{}
 	container := &types.Container{
 		ID:     "c1",
 		Engine: engine,
 	}
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
 	// failed by inspect
-	engine.On("ContainerInspect", mock.Anything, mock.Anything).Return(enginetypes.ContainerJSON{}, types.ErrNilEngine).Once()
+	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, types.ErrNilEngine).Once()
 	_, _, _, err = c.doLockAndGetContainers(ctx, []string{"c1", "c2"})
 	assert.Error(t, err)
-	engine.On("ContainerInspect", mock.Anything, mock.Anything).Return(enginetypes.ContainerJSON{}, nil)
+	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
 	// success
 	containers, containerJSONs, _, err := c.doLockAndGetContainers(ctx, []string{"c1", "c1"})
 	assert.NoError(t, err)

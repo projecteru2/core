@@ -4,18 +4,16 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/mock"
-
+	enginemocks "github.com/projecteru2/core/engine/mocks"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/stretchr/testify/assert"
-
-	enginetypes "github.com/docker/docker/api/types"
-	enginemocks "github.com/projecteru2/core/3rdmocks"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestNode(t *testing.T) {
-	mockEngine := &enginemocks.APIClient{}
-	r := enginetypes.Info{ID: "test"}
-	mockEngine.On("Info", mock.AnythingOfType("*context.timerCtx")).Return(r, nil)
+	mockEngine := &enginemocks.API{}
+	r := &enginetypes.Info{ID: "test"}
+	mockEngine.On("Info", mock.Anything).Return(r, nil)
 
 	node := &Node{}
 	ctx := context.Background()
@@ -26,23 +24,6 @@ func TestNode(t *testing.T) {
 	info, err := node.Info(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, info.ID, "test")
-
-	ip := node.GetIP()
-	assert.Empty(t, ip)
-	_, err = getEndpointHost(node.Endpoint)
-	assert.Error(t, err)
-
-	node.Endpoint = "tcp://1.1.1.1:1"
-	ip = node.GetIP()
-	assert.Equal(t, ip, "1.1.1.1")
-	_, err = getEndpointHost(node.Endpoint)
-	assert.NoError(t, err)
-
-	node.Endpoint = "tcp://1.1.1.1"
-	ip = node.GetIP()
-	assert.Empty(t, ip)
-	_, err = getEndpointHost(node.Endpoint)
-	assert.Error(t, err)
 
 	node.CPUUsed = 0.0
 	node.SetCPUUsed(1.0, IncrUsage)

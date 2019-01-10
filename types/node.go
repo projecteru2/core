@@ -2,10 +2,9 @@ package types
 
 import (
 	"context"
-	"time"
 
-	enginetypes "github.com/docker/docker/api/types"
-	engineapi "github.com/docker/docker/client"
+	engine "github.com/projecteru2/core/engine"
+	enginetypes "github.com/projecteru2/core/engine/types"
 )
 
 const (
@@ -49,39 +48,32 @@ func (c CPUMap) Sub(q CPUMap) {
 	}
 }
 
+// Map return cpu map
+func (c CPUMap) Map() map[string]int {
+	return map[string]int(c)
+}
+
 // Node store node info
 type Node struct {
-	Name       string              `json:"name"`
-	Endpoint   string              `json:"endpoint"`
-	Podname    string              `json:"podname"`
-	CPU        CPUMap              `json:"cpu"`
-	CPUUsed    float64             `json:"cpuused"`
-	MemCap     int64               `json:"memcap"`
-	Available  bool                `json:"available"`
-	Labels     map[string]string   `json:"labels"`
-	InitCPU    CPUMap              `json:"init_cpu"`
-	InitMemCap int64               `json:"init_memcap"`
-	Engine     engineapi.APIClient `json:"-"`
+	Name       string            `json:"name"`
+	Endpoint   string            `json:"endpoint"`
+	Podname    string            `json:"podname"`
+	CPU        CPUMap            `json:"cpu"`
+	CPUUsed    float64           `json:"cpuused"`
+	MemCap     int64             `json:"memcap"`
+	Available  bool              `json:"available"`
+	Labels     map[string]string `json:"labels"`
+	InitCPU    CPUMap            `json:"init_cpu"`
+	InitMemCap int64             `json:"init_memcap"`
+	Engine     engine.API        `json:"-"`
 }
 
 // Info show node info
-// 2 seconds timeout
-// used to be 5, but client won't wait that long
-func (n *Node) Info(ctx context.Context) (enginetypes.Info, error) {
-	infoCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
+func (n *Node) Info(ctx context.Context) (*enginetypes.Info, error) {
 	if n.Engine == nil {
-		return enginetypes.Info{}, ErrNilEngine
+		return nil, ErrNilEngine
 	}
-	return n.Engine.Info(infoCtx)
-}
-
-// GetIP get node ip
-// get IP for node
-// will not return error
-func (n *Node) GetIP() string {
-	host, _ := getEndpointHost(n.Endpoint)
-	return host
+	return n.Engine.Info(ctx)
 }
 
 // SetCPUUsed set cpuusage

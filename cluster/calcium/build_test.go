@@ -7,11 +7,10 @@ import (
 	"io/ioutil"
 	"testing"
 
-	enginetypes "github.com/docker/docker/api/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	enginemocks "github.com/projecteru2/core/3rdmocks"
+	enginemocks "github.com/projecteru2/core/engine/mocks"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
 	sourcemocks "github.com/projecteru2/core/source/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
@@ -56,14 +55,14 @@ func TestBuild(t *testing.T) {
 		Tags: []string{"tag1", "tag2"},
 	}
 	// failed by buildpod not set
-	_, err := c.BuildImage(ctx, opts)
+	_, err := c.BuildDockerImage(ctx, opts)
 	assert.Error(t, err)
 	c.config.Docker.BuildPod = "test"
 	// failed by ListPodNodes failed
 	store := &storemocks.Store{}
 	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return(nil, types.ErrNoBuildPod)
 	c.store = store
-	ch, err := c.BuildImage(ctx, opts)
+	ch, err := c.BuildDockerImage(ctx, opts)
 	assert.Error(t, err)
 	// create image
 	c.config.Docker.Hub = "test.com"
@@ -78,15 +77,15 @@ func TestBuild(t *testing.T) {
 	buildImageMessage.ErrorDetail.Code = 0
 	buildImageResp, err := json.Marshal(buildImageMessage)
 	assert.NoError(t, err)
-	buildImageRespReader := enginetypes.ImageBuildResponse{Body: ioutil.NopCloser(bytes.NewReader(buildImageResp))}
+	buildImageRespReader := ioutil.NopCloser(bytes.NewReader(buildImageResp))
 	buildImageRespReader2 := ioutil.NopCloser(bytes.NewReader(buildImageResp))
 
-	engine := &enginemocks.APIClient{}
+	engine := &enginemocks.API{}
 	engine.On("ImageBuild", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything).Return(buildImageRespReader, nil)
-	engine.On("ImagePush", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything).Return(buildImageRespReader2, nil)
-	engine.On("ImageRemove", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything).Return([]enginetypes.ImageDeleteResponseItem{}, nil)
-	r := &enginetypes.BuildCachePruneReport{SpaceReclaimed: 1024}
-	engine.On("BuildCachePrune", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return(r, nil)
+	engine.On("ImagePush", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return(buildImageRespReader2, nil)
+	engine.On("ImageRemove", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return([]string{}, nil)
+	r := 1024
+	engine.On("ImageBuildCachePrune", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return(r, nil)
 	node := &types.Node{
 		Name:      "test",
 		Available: true,
@@ -105,7 +104,7 @@ func TestBuild(t *testing.T) {
 	c.store = store
 	c.source = source
 
-	ch, err = c.BuildImage(ctx, opts)
+	ch, err = c.BuildDockerImage(ctx, opts)
 	for range ch {
 		assert.NoError(t, err)
 	}

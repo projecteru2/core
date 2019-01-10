@@ -2,8 +2,6 @@ package calcium
 
 import (
 	"bytes"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,78 +10,13 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/docker/distribution/reference"
-	enginetypes "github.com/docker/docker/api/types"
-	enginecontainer "github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
-	engineapi "github.com/docker/docker/client"
-	"github.com/docker/docker/registry"
-	"github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/engine"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
-
-func makeResourceSetting(cpu float64, memory int64, cpuMap types.CPUMap, softlimit bool) enginecontainer.Resources {
-	resource := enginecontainer.Resources{}
-	if cpu > 0 {
-		resource.CPUPeriod = cluster.CPUPeriodBase
-		resource.CPUQuota = int64(cpu * float64(cluster.CPUPeriodBase))
-	}
-	if cpuMap != nil && len(cpuMap) > 0 {
-		cpuIDs := []string{}
-		for cpuID := range cpuMap {
-			cpuIDs = append(cpuIDs, cpuID)
-		}
-		resource.CpusetCpus = strings.Join(cpuIDs, ",")
-	}
-	if softlimit {
-		resource.MemoryReservation = memory
-	} else {
-		resource.Memory = memory
-		resource.MemorySwap = memory
-		if memory/2 > minMemory {
-			resource.MemoryReservation = memory / 2
-		}
-	}
-	return resource
-}
-
-// image begin
-// MakeAuthConfigFromRemote Calculate encoded AuthConfig from registry and eru-core config
-// See https://github.com/docker/cli/blob/16cccc30f95c8163f0749eba5a2e80b807041342/cli/command/registry.go#L67
-func makeEncodedAuthConfigFromRemote(authConfigs map[string]types.AuthConfig, remote string) (string, error) {
-	ref, err := reference.ParseNormalizedNamed(remote)
-	if err != nil {
-		return "", err
-	}
-
-	// Resolve the Repository name from fqn to RepositoryInfo
-	repoInfo, err := registry.ParseRepositoryInfo(ref)
-	if err != nil {
-		return "", err
-	}
-
-	serverAddress := repoInfo.Index.Name
-	if authConfig, exists := authConfigs[serverAddress]; exists {
-		if encodedAuth, err := encodeAuthToBase64(authConfig); err == nil {
-			return encodedAuth, nil
-		}
-		return "", err
-	}
-	return "dummy", nil
-}
-
-// EncodeAuthToBase64 serializes the auth configuration as JSON base64 payload
-// See https://github.com/docker/cli/blob/master/cli/command/registry.go#L41
-func encodeAuthToBase64(authConfig types.AuthConfig) (string, error) {
-	buf, err := json.Marshal(authConfig)
-	if err != nil {
-		return "", err
-	}
-	return base64.URLEncoding.EncodeToString(buf), nil
-}
 
 // As the name says,
 // blocks until the stream is empty, until we meet EOF
@@ -96,7 +29,6 @@ func ensureReaderClosed(stream io.ReadCloser) {
 }
 
 // make mount paths
-// 使用volumes, 参数格式跟docker一样
 // volumes:
 //     - "/foo-data:$SOMEENV/foodata:rw"
 func makeMountPaths(opts *types.DeployOptions) ([]string, map[string]struct{}) {
@@ -127,9 +59,9 @@ func makeMountPaths(opts *types.DeployOptions) ([]string, map[string]struct{}) {
 	return binds, volumes
 }
 
-func execuateInside(ctx context.Context, client engineapi.APIClient, ID, cmd, user string, env []string, privileged bool) ([]byte, error) {
+func execuateInside(ctx context.Context, client engine.API, ID, cmd, user string, env []string, privileged bool) ([]byte, error) {
 	cmds := utils.MakeCommandLineArgs(cmd)
-	execConfig := enginetypes.ExecConfig{
+	execConfig := &enginetypes.ExecConfig{
 		User:         user,
 		Cmd:          cmds,
 		Privileged:   privileged,
@@ -137,39 +69,38 @@ func execuateInside(ctx context.Context, client engineapi.APIClient, ID, cmd, us
 		AttachStderr: true,
 		AttachStdout: true,
 	}
-	//TODO should timeout
-	//Fuck docker, ctx will not use inside funcs!!
-	idResp, err := client.ContainerExecCreate(ctx, ID, execConfig)
+	execID, err := client.ExecCreate(ctx, ID, execConfig)
 	if err != nil {
 		return []byte{}, err
 	}
-	resp, err := client.ContainerExecAttach(ctx, idResp.ID, enginetypes.ExecStartCheck{})
+
+	resp, err := client.ExecAttach(ctx, execID, false, false)
 	if err != nil {
 		return []byte{}, err
 	}
 	defer resp.Close()
-	stream := utils.FuckDockerStream(ioutil.NopCloser(resp.Reader))
-	b, err := ioutil.ReadAll(stream)
+
+	b, err := ioutil.ReadAll(resp)
 	if err != nil {
 		return []byte{}, err
 	}
-	info, err := client.ContainerExecInspect(ctx, idResp.ID)
+
+	exitCode, err := client.ExecExitCode(ctx, execID)
 	if err != nil {
 		return []byte{}, err
 	}
-	if info.ExitCode != 0 {
+	if exitCode != 0 {
 		return []byte{}, fmt.Errorf("%s", b)
 	}
 	return b, nil
 }
 
-func distributionInspect(ctx context.Context, node *types.Node, image, auth string, digests []string) bool {
-	inspect, err := node.Engine.DistributionInspect(ctx, image, auth)
+func distributionInspect(ctx context.Context, node *types.Node, image string, digests []string) bool {
+	remoteDigest, err := node.Engine.ImageRemoteDigest(ctx, image)
 	if err != nil {
 		log.Errorf("[distributionInspect] get manifest failed %v", err)
 		return false
 	}
-	remoteDigest := fmt.Sprintf("%s@%s", normalizeImage(image), inspect.Descriptor.Digest.String())
 
 	for _, digest := range digests {
 		if digest == remoteDigest {
@@ -182,7 +113,7 @@ func distributionInspect(ctx context.Context, node *types.Node, image, auth stri
 }
 
 // Pull an image
-func pullImage(ctx context.Context, node *types.Node, image, auth string) error {
+func pullImage(ctx context.Context, node *types.Node, image string) error {
 	log.Infof("[pullImage] Pulling image %s", image)
 	if image == "" {
 		return types.ErrNoImage
@@ -190,7 +121,7 @@ func pullImage(ctx context.Context, node *types.Node, image, auth string) error 
 
 	// check local
 	exists := false
-	inspect, _, err := node.Engine.ImageInspectWithRaw(ctx, image)
+	digests, err := node.Engine.ImageLocalDigests(ctx, image)
 	if err != nil {
 		log.Errorf("[pullImage] Check image failed %v", err)
 	} else {
@@ -198,14 +129,13 @@ func pullImage(ctx context.Context, node *types.Node, image, auth string) error 
 		exists = true
 	}
 
-	if exists && distributionInspect(ctx, node, image, auth, inspect.RepoDigests) {
+	if exists && distributionInspect(ctx, node, image, digests) {
 		log.Debug("[pullImage] Image cached, skip pulling")
 		return nil
 	}
 
 	log.Info("[pullImage] Image not cached, pulling")
-	pullOptions := enginetypes.ImagePullOptions{All: false, RegistryAuth: auth}
-	outStream, err := node.Engine.ImagePull(ctx, image, pullOptions)
+	outStream, err := node.Engine.ImagePull(ctx, image, false)
 	if err != nil {
 		log.Errorf("[pullImage] Error during pulling image %s: %v", image, err)
 		return err
@@ -274,24 +204,12 @@ func createImageTag(config types.DockerConfig, appname, tag string) string {
 	return fmt.Sprintf("%s/%s/%s:%s", config.Hub, prefix, appname, tag)
 }
 
-// 只要一个image的前面, tag不要
-func normalizeImage(image string) string {
-	if strings.Contains(image, ":") {
-		t := strings.Split(image, ":")
-		return t[0]
-	}
-	return image
-}
-
 // 清理一个node上的这个image
 // 只清理同名字不同tag的
 // 并且保留最新的 count 个
 func cleanImageOnNode(ctx context.Context, node *types.Node, image string, count int) error {
-	log.Debugf("[cleanImageOnNode] node: %s, image: %s", node.Name, strings.Split(image, ":")[0])
-	imgListFilter := filters.NewArgs()
-	image = normalizeImage(image)
-	imgListFilter.Add("reference", image) // 相同repo的image
-	images, err := node.Engine.ImageList(ctx, enginetypes.ImageListOptions{Filters: imgListFilter})
+	log.Debugf("[cleanImageOnNode] node: %s, image: %s", node.Name, image)
+	images, err := node.Engine.ImageList(ctx, image)
 	if err != nil {
 		return err
 	}
@@ -302,13 +220,9 @@ func cleanImageOnNode(ctx context.Context, node *types.Node, image string, count
 
 	images = images[count:]
 	for _, image := range images {
-		log.Debugf("[cleanImageOnNode] Delete Images: %s", image.RepoTags)
-		_, err := node.Engine.ImageRemove(ctx, image.ID, enginetypes.ImageRemoveOptions{
-			Force:         false,
-			PruneChildren: true,
-		})
-		if err != nil {
-			log.Errorf("[cleanImageOnNode] Node %s ImageRemove error: %s, imageID: %s", node.Name, err, image.RepoTags)
+		log.Debugf("[cleanImageOnNode] Delete Images: %s", image.Tags)
+		if _, err := node.Engine.ImageRemove(ctx, image.ID, false, true); err != nil {
+			log.Errorf("[cleanImageOnNode] Node %s ImageRemove error: %s, imageID: %s", node.Name, err, image.Tags)
 		}
 	}
 	return nil

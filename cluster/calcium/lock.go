@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	enginetypes "github.com/docker/docker/api/types"
 	"github.com/projecteru2/core/cluster"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
@@ -37,30 +37,30 @@ func (c *Calcium) doUnlockAll(locks map[string]lock.DistributedLock) {
 	}
 }
 
-func (c *Calcium) doLockAndGetContainer(ctx context.Context, ID string) (*types.Container, enginetypes.ContainerJSON, lock.DistributedLock, error) {
+func (c *Calcium) doLockAndGetContainer(ctx context.Context, ID string) (*types.Container, *enginetypes.VirtualizationInfo, lock.DistributedLock, error) {
 	lock, err := c.doLock(ctx, fmt.Sprintf(cluster.ContainerLock, ID), c.config.LockTimeout)
 	if err != nil {
-		return nil, enginetypes.ContainerJSON{}, nil, err
+		return nil, nil, nil, err
 	}
 	log.Debugf("[doLockAndGetContainer] Container %s locked", ID)
 	// Get container
 	container, err := c.store.GetContainer(ctx, ID)
 	if err != nil {
 		c.doUnlock(lock, ID)
-		return nil, enginetypes.ContainerJSON{}, nil, err
+		return nil, nil, nil, err
 	}
 	// 确保是有这个容器的
 	containerJSON, err := container.Inspect(ctx)
 	if err != nil {
 		c.doUnlock(lock, ID)
-		return nil, enginetypes.ContainerJSON{}, nil, err
+		return nil, nil, nil, err
 	}
 	return container, containerJSON, lock, nil
 }
 
-func (c *Calcium) doLockAndGetContainers(ctx context.Context, IDs []string) (map[string]*types.Container, map[string]enginetypes.ContainerJSON, map[string]lock.DistributedLock, error) {
+func (c *Calcium) doLockAndGetContainers(ctx context.Context, IDs []string) (map[string]*types.Container, map[string]*enginetypes.VirtualizationInfo, map[string]lock.DistributedLock, error) {
 	containers := map[string]*types.Container{}
-	containerJSONs := map[string]enginetypes.ContainerJSON{}
+	containerJSONs := map[string]*enginetypes.VirtualizationInfo{}
 	locks := map[string]lock.DistributedLock{}
 	for _, ID := range IDs {
 		if _, ok := containers[ID]; ok {

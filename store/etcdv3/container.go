@@ -205,7 +205,6 @@ func (m *Mercury) bindContainerAdditions(ctx context.Context, container *types.C
 
 	container.StatusData = ev.Value
 	container.Engine = node.Engine
-	container.HostIP = node.GetIP()
 	return container, nil
 }
 

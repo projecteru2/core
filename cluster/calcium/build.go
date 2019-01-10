@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	enginetypes "github.com/docker/docker/api/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -41,14 +40,14 @@ USER {{.User}}
 `
 )
 
-// BuildImage will build image for repository
+// BuildDockerImage will build image for repository
 // since we wanna set UID for the user inside container, we have to know the uid parameter
 //
 // build directory is like:
 //
 //    buildDir ├─ :appname ├─ code
 //             ├─ Dockerfile
-func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
+func (c *Calcium) BuildDockerImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
 	// get pod from config
 	buildPodname := c.config.Docker.BuildPod
 	if buildPodname == "" {
@@ -107,24 +106,16 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 func (c *Calcium) doBuildImage(ctx context.Context, buildContext io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) {
 	ch := make(chan *types.BuildImageMessage)
 	// must be put here because of that `defer os.RemoveAll(buildDir)`
-	buildOptions := enginetypes.ImageBuildOptions{
-		Tags:           tags,
-		SuppressOutput: false,
-		NoCache:        true,
-		Remove:         true,
-		ForceRemove:    true,
-		PullParent:     true,
-	}
 
-	resp, err := node.Engine.ImageBuild(ctx, buildContext, buildOptions)
+	resp, err := node.Engine.ImageBuild(ctx, buildContext, tags)
 	if err != nil {
 		return ch, err
 	}
 
 	go func() {
-		defer resp.Body.Close()
+		defer resp.Close()
 		defer close(ch)
-		decoder := json.NewDecoder(resp.Body)
+		decoder := json.NewDecoder(resp)
 		var lastMessage *types.BuildImageMessage
 		for {
 			message := &types.BuildImageMessage{}
@@ -156,14 +147,7 @@ func (c *Calcium) doBuildImage(ctx context.Context, buildContext io.ReadCloser, 
 		for i := range tags {
 			tag := tags[i]
 			log.Infof("[BuildImage] Push image %s", tag)
-			encodedAuth, err := makeEncodedAuthConfigFromRemote(c.config.Docker.AuthConfigs, tag)
-			if err != nil {
-				ch <- makeErrorBuildImageMessage(err)
-				continue
-			}
-			pushOptions := enginetypes.ImagePushOptions{RegistryAuth: encodedAuth}
-
-			rc, err := node.Engine.ImagePush(ctx, tag, pushOptions)
+			rc, err := node.Engine.ImagePush(ctx, tag)
 			if err != nil {
 				ch <- makeErrorBuildImageMessage(err)
 				continue
@@ -192,18 +176,15 @@ func (c *Calcium) doBuildImage(ctx context.Context, buildContext io.ReadCloser, 
 			go func(tag string) {
 				//CONTEXT 这里的不应该受到 client 的影响
 				ctx := context.Background()
-				_, err := node.Engine.ImageRemove(ctx, tag, enginetypes.ImageRemoveOptions{
-					Force:         false,
-					PruneChildren: true,
-				})
+				_, err := node.Engine.ImageRemove(ctx, tag, false, true)
 				if err != nil {
 					log.Errorf("[BuildImage] Remove image error: %s", err)
 				}
-				r, err := node.Engine.BuildCachePrune(ctx, enginetypes.BuildCachePruneOptions{All: true})
+				spaceReclaimed, err := node.Engine.ImageBuildCachePrune(ctx, true)
 				if err != nil {
 					log.Errorf("[BuildImage] Remove build image cache error: %s", err)
 				}
-				log.Infof("[BuildImage] Clean cached image and release space %d", r.SpaceReclaimed)
+				log.Infof("[BuildImage] Clean cached image and release space %d", spaceReclaimed)
 			}(tag)
 
 			ch <- &types.BuildImageMessage{Stream: fmt.Sprintf("finished %s\n", tag), Status: "finished", Progress: tag}

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	enginetypes "github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/filters"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -30,11 +28,6 @@ func (c *Calcium) RemoveImage(ctx context.Context, podname, nodename string, ima
 		}
 	}
 
-	opts := enginetypes.ImageRemoveOptions{
-		Force:         false,
-		PruneChildren: true,
-	}
-
 	go func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
@@ -48,24 +41,18 @@ func (c *Calcium) RemoveImage(ctx context.Context, podname, nodename string, ima
 						Image:    image,
 						Messages: []string{},
 					}
-					if removeItems, err := node.Engine.ImageRemove(ctx, image, opts); err != nil {
+					if removeItems, err := node.Engine.ImageRemove(ctx, image, false, true); err != nil {
 						m.Messages = append(m.Messages, err.Error())
 					} else {
 						m.Success = true
 						for _, item := range removeItems {
-							if item.Untagged != "" {
-								m.Messages = append(m.Messages, fmt.Sprintf("Untagged: %s", item.Untagged))
-							}
-							if item.Deleted != "" {
-								m.Messages = append(m.Messages, fmt.Sprintf("Deleted: %s", item.Deleted))
-							}
+							m.Messages = append(m.Messages, fmt.Sprintf("Clean: %s", item))
 						}
 					}
 					ch <- m
 				}
 				if prune {
-					_, err := node.Engine.ImagesPrune(ctx, filters.NewArgs())
-					if err != nil {
+					if err := node.Engine.ImagesPrune(ctx); err != nil {
 						log.Errorf("[RemoveImage] Prune %s pod %s node failed: %v", podname, node.Name, err)
 					} else {
 						log.Infof("[RemoveImage] Prune %s pod %s node", podname, node.Name)
@@ -101,12 +88,7 @@ func (c *Calcium) doCacheImage(ctx context.Context, podname, image string) error
 		wg.Add(1)
 		go func(node *types.Node) {
 			defer wg.Done()
-			auth, err := makeEncodedAuthConfigFromRemote(c.config.Docker.AuthConfigs, image)
-			if err != nil {
-				log.Errorf("[doCacheImage] Cache image failed %v", err)
-				return
-			}
-			pullImage(ctx, node, image, auth)
+			pullImage(ctx, node, image)
 		}(node)
 	}
 

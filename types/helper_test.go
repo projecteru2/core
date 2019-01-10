@@ -20,20 +20,3 @@ func TestRound(t *testing.T) {
 	a = 19.99998
 	assert.Equal(t, f(Round(a)), "20")
 }
-
-func TestGetEndpointHost(t *testing.T) {
-	endpoint := "xxxxx"
-	s, err := getEndpointHost(endpoint)
-	assert.Error(t, err)
-	assert.Empty(t, s)
-
-	endpoint = "tcp://ip"
-	s, err = getEndpointHost(endpoint)
-	assert.Error(t, err)
-	assert.Empty(t, s)
-
-	endpoint = "tcp://ip:port"
-	s, err = getEndpointHost(endpoint)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, s)
-}

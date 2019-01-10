@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -36,7 +37,7 @@ func toRPCPodResource(p *types.PodResource) *pb.PodResource {
 	return r
 }
 
-func toRPCNetwork(n *types.Network) *pb.Network {
+func toRPCNetwork(n *enginetypes.Network) *pb.Network {
 	return &pb.Network{Name: n.Name, Subnets: n.Subnets}
 }
 
@@ -324,11 +325,11 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		return nil, err
 	}
 
-	meta := utils.DecodeMetaInLabel(info.Config.Labels)
+	meta := utils.DecodeMetaInLabel(info.Labels)
 	publish := map[string]string{}
-	if info.NetworkSettings != nil && info.State.Running {
+	if info.Networks != nil && info.Running {
 		publish = utils.EncodePublishInfo(
-			utils.MakePublishInfo(info.NetworkSettings.Networks, c.HostIP, meta.Publish),
+			utils.MakePublishInfo(info.Networks, meta.Publish),
 		)
 	}
 
@@ -349,8 +350,8 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		Memory:     c.Memory,
 		Privileged: c.Privileged,
 		Publish:    publish,
-		Image:      info.Config.Image,
-		Labels:     info.Config.Labels,
+		Image:      info.Image,
+		Labels:     info.Labels,
 		Inspect:    bytes,
 		StatusData: c.StatusData,
 	}, nil

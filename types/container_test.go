@@ -7,16 +7,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	enginetypes "github.com/docker/docker/api/types"
-	"github.com/projecteru2/core/3rdmocks"
+	"github.com/projecteru2/core/engine/mocks"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/stretchr/testify/mock"
 )
 
 func TestContainerInspect(t *testing.T) {
-	mockEngine := &mocks.APIClient{}
-	r := enginetypes.ContainerJSON{}
-	r.ContainerJSONBase = &enginetypes.ContainerJSONBase{ID: "12345"}
-	mockEngine.On("ContainerInspect", mock.AnythingOfType("*context.timerCtx"), mock.Anything).Return(r, nil)
+	mockEngine := &mocks.API{}
+	r := &enginetypes.VirtualizationInfo{ID: "12345"}
+	mockEngine.On("VirtualizationInspect", mock.AnythingOfType("*context.timerCtx"), mock.Anything).Return(r, nil)
 
 	ctx := context.Background()
 	c := Container{}
@@ -28,10 +27,10 @@ func TestContainerInspect(t *testing.T) {
 }
 
 func TestContainerControl(t *testing.T) {
-	mockEngine := &mocks.APIClient{}
-	mockEngine.On("ContainerStart", mock.AnythingOfType("*context.timerCtx"), mock.Anything, mock.Anything).Return(nil)
-	mockEngine.On("ContainerStop", mock.AnythingOfType("*context.timerCtx"), mock.Anything, mock.Anything).Return(nil)
-	mockEngine.On("ContainerRemove", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything).Return(nil)
+	mockEngine := &mocks.API{}
+	mockEngine.On("VirtualizationStart", mock.AnythingOfType("*context.timerCtx"), mock.Anything).Return(nil)
+	mockEngine.On("VirtualizationStop", mock.AnythingOfType("*context.timerCtx"), mock.Anything).Return(nil)
+	mockEngine.On("VirtualizationRemove", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	ctx := context.Background()
 	c := Container{}

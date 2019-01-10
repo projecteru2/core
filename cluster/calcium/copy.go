@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Copy uses docker cp to copy specified things and send to remote
+// Copy uses VirtualizationCopyFrom cp to copy specified things and send to remote
 func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error) {
 	ch := make(chan *types.CopyMessage)
 	go func() {
@@ -31,13 +31,13 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 					wg.Add(1)
 					go func(path string) {
 						defer wg.Done()
-						resp, stat, err := container.Engine.CopyFromContainer(ctx, container.ID, path)
+						resp, name, err := container.Engine.VirtualizationCopyFrom(ctx, container.ID, path)
 						if err != nil {
 							log.Errorf("[Copy] Error during CopyFromContainer: %v", err)
 							ch <- makeCopyMessage(cid, cluster.CopyFailed, "", path, err, nil)
 							return
 						}
-						ch <- makeCopyMessage(cid, cluster.CopyOK, stat.Name, path, nil, resp)
+						ch <- makeCopyMessage(cid, cluster.CopyOK, name, path, nil, resp)
 					}(path)
 				}
 			}(cid, paths)

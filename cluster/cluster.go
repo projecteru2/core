@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
 )
 
@@ -53,7 +54,7 @@ type Cluster interface {
 	ListPodNodes(ctx context.Context, podname string, all bool) ([]*types.Node, error)
 	ListContainers(ctx context.Context, opts *types.ListContainersOptions) ([]*types.Container, error)
 	ListNodeContainers(ctx context.Context, nodename string) ([]*types.Container, error)
-	ListNetworks(ctx context.Context, podname string, driver string) ([]*types.Network, error)
+	ListNetworks(ctx context.Context, podname string, driver string) ([]*enginetypes.Network, error)
 	GetPod(ctx context.Context, podname string) (*types.Pod, error)
 	GetNode(ctx context.Context, podname, nodename string) (*types.Node, error)
 	GetContainer(ctx context.Context, ID string) (*types.Container, error)
@@ -65,12 +66,13 @@ type Cluster interface {
 
 	// cluster methods
 	PodResource(ctx context.Context, podname string) (*types.PodResource, error)
-	BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error)
 	ControlContainer(ctx context.Context, IDs []string, t string) (chan *types.ControlContainerMessage, error)
 	Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error)
 	RemoveImage(ctx context.Context, podname, nodename string, images []string, prune bool) (chan *types.RemoveImageMessage, error)
 	RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error)
 	DeployStatusStream(ctx context.Context, appname, entrypoint, nodename string) chan *types.DeployStatus
+	// build methods
+	BuildDockerImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error)
 	// this methods will not interrupt by client
 	CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
 	ReallocResource(ctx context.Context, IDs []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error)

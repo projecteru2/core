@@ -3,17 +3,18 @@ package utils
 import (
 	"testing"
 
-	engineapi "github.com/docker/docker/client"
+	"github.com/projecteru2/core/engine"
+	enginemocks "github.com/projecteru2/core/engine/mocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCache(t *testing.T) {
 	c := Cache{
-		Clients: map[string]engineapi.APIClient{},
+		Clients: map[string]engine.API{},
 	}
 
 	host := "1.1.1.1"
-	cli := &engineapi.Client{}
+	cli := &enginemocks.API{}
 	c.Set(host, cli)
 	assert.Equal(t, c.Get(host), cli)
 	c.Delete(host)
