@@ -86,6 +86,20 @@ func (e *Engine) ImagePush(ctx context.Context, ref string) (io.ReadCloser, erro
 
 // ImageBuild build image
 func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string) (io.ReadCloser, error) {
+	authConfigs := map[string]dockertypes.AuthConfig{}
+	for domain, conf := range e.config.Docker.AuthConfigs {
+		b64auth, err := encodeAuthToBase64(conf)
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := authConfigs[domain]; !ok {
+			authConfigs[domain] = dockertypes.AuthConfig{
+				Username: conf.Username,
+				Password: conf.Password,
+				Auth:     b64auth,
+			}
+		}
+	}
 	buildOptions := dockertypes.ImageBuildOptions{
 		Tags:           refs,
 		SuppressOutput: false,
@@ -93,6 +107,7 @@ func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string)
 		Remove:         true,
 		ForceRemove:    true,
 		PullParent:     true,
+		AuthConfigs:    authConfigs,
 	}
 	resp, err := e.client.ImageBuild(ctx, input, buildOptions)
 	if err != nil {
