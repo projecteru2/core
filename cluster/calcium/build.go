@@ -67,18 +67,6 @@ func (c *Calcium) BuildDockerImage(ctx context.Context, opts *types.BuildOptions
 	if err != nil {
 		return nil, err
 	}
-	// tag of image, later this will be used to push image to hub
-	tags := []string{}
-	for i := range opts.Tags {
-		if opts.Tags[i] != "" {
-			tag := createImageTag(c.config.Docker, opts.Name, opts.Tags[i])
-			tags = append(tags, tag)
-		}
-	}
-	// use latest
-	if len(tags) == 0 {
-		tags = append(tags, createImageTag(c.config.Docker, opts.Name, utils.DefaultVersion))
-	}
 	// support raw build
 	buildContext := opts.Tar
 	if opts.Builds != nil {
@@ -98,8 +86,19 @@ func (c *Calcium) BuildDockerImage(ctx context.Context, opts *types.BuildOptions
 			return nil, err
 		}
 	}
-
-	log.Infof("[BuildImage] Building image %v:%v", node.Podname, node.Name)
+	// tag of image, later this will be used to push image to hub
+	tags := []string{}
+	for i := range opts.Tags {
+		if opts.Tags[i] != "" {
+			tag := createImageTag(c.config.Docker, opts.Name, opts.Tags[i])
+			tags = append(tags, tag)
+		}
+	}
+	// use latest
+	if len(tags) == 0 {
+		tags = append(tags, createImageTag(c.config.Docker, opts.Name, utils.DefaultVersion))
+	}
+	log.Infof("[BuildImage] Building image at pod %s node %s", node.Podname, node.Name)
 	return c.doBuildImage(ctx, buildContext, node, tags)
 }
 
