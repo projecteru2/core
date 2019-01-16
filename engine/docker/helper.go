@@ -28,14 +28,14 @@ type fuckDockerStream struct {
 }
 
 func (f fuckDockerStream) Read(p []byte) (n int, err error) {
-	return f.Read(p)
+	return f.buf.Read(p)
 }
 
 func (f fuckDockerStream) Close() error {
 	return f.conn.Close()
 }
 
-func doFuckDockerStream(stream io.ReadCloser) io.Reader {
+func mergeStream(stream io.ReadCloser) io.Reader {
 	outr, outw := io.Pipe()
 
 	go func() {
@@ -49,7 +49,7 @@ func doFuckDockerStream(stream io.ReadCloser) io.Reader {
 
 // FuckDockerStream will copy docker stream to stdout and err
 func FuckDockerStream(stream dockertypes.HijackedResponse) io.ReadCloser {
-	outr := doFuckDockerStream(ioutil.NopCloser(stream.Reader))
+	outr := mergeStream(ioutil.NopCloser(stream.Reader))
 	return fuckDockerStream{stream.Conn, outr}
 }
 

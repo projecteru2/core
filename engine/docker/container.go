@@ -155,7 +155,7 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, ID string, follow, stdo
 	if err != nil {
 		return nil, err
 	}
-	return doFuckDockerStream(ioutil.NopCloser(resp)), nil
+	return mergeStream(ioutil.NopCloser(resp)), nil
 }
 
 // VirtualizationAttach attach to a virtualization
