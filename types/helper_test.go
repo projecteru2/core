@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"strconv"
 	"testing"
 
@@ -19,4 +20,11 @@ func TestRound(t *testing.T) {
 	assert.Equal(t, f(Round(a)), "2")
 	a = 19.99998
 	assert.Equal(t, f(Round(a)), "20")
+}
+
+func TestHookOutput(t *testing.T) {
+	test := []*bytes.Buffer{bytes.NewBufferString("a"), bytes.NewBufferString("b")}
+	r := HookOutput(test)
+	assert.NotEmpty(t, r)
+	assert.Equal(t, string(r), "ab")
 }

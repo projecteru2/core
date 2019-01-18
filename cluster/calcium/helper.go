@@ -87,10 +87,10 @@ func execuateInside(ctx context.Context, client engine.API, ID, cmd, user string
 
 	exitCode, err := client.ExecExitCode(ctx, execID)
 	if err != nil {
-		return []byte{}, err
+		return b, err
 	}
 	if exitCode != 0 {
-		return []byte{}, fmt.Errorf("%s", b)
+		return b, fmt.Errorf("%s", b)
 	}
 	return b, nil
 }
