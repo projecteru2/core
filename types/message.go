@@ -1,12 +1,15 @@
 package types
 
-import "io"
+import (
+	"bytes"
+	"io"
+)
 
 // RemoveContainerMessage for remove message
 type RemoveContainerMessage struct {
 	ContainerID string
 	Success     bool
-	Message     string
+	Hook        []*bytes.Buffer
 }
 
 type errorDetail struct {
@@ -45,6 +48,7 @@ type RemoveImageMessage struct {
 type ControlContainerMessage struct {
 	ContainerID string
 	Error       error
+	Hook        []*bytes.Buffer
 }
 
 // CreateContainerMessage for create message
@@ -59,7 +63,7 @@ type CreateContainerMessage struct {
 	Quota         float64
 	Memory        int64
 	Publish       map[string][]string
-	Hook          []byte
+	Hook          []*bytes.Buffer
 }
 
 // ReplaceContainerMessage for replace method

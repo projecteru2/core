@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"bytes"
 	"context"
 	"sync"
 
@@ -31,10 +32,16 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string) 
 			go func(container *types.Container) {
 				defer wg.Done()
 				var err error
+				var message []*bytes.Buffer
 				defer func() {
+					if err == nil {
+						log.Infof("[ControlContainer] Control container %s %s", container.ID, t)
+						log.Infof("[ControlContainer] Output:\n %s", string(types.HookOutput(message)))
+					}
 					ch <- &types.ControlContainerMessage{
 						ContainerID: container.ID,
 						Error:       err,
+						Hook:        message,
 					}
 				}()
 
@@ -43,15 +50,12 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string) 
 					return
 				}
 
-				var message string
 				switch t {
 				case cluster.ContainerStop:
 					message, err = c.doStopContainer(ctx, container, containerInfo, nil, false)
-					log.Infof("[ControlContainer] Stop container %s output %s", container.ID, message)
 					return
 				case cluster.ContainerStart:
 					message, err = c.doStartContainer(ctx, container, containerInfo)
-					log.Infof("[ControlContainer] Start container %s output %s", container.ID, message)
 					return
 				case cluster.ContainerRestart:
 					message, err = c.doStopContainer(ctx, container, containerInfo, nil, false)
@@ -59,11 +63,10 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string) 
 						return
 					}
 					m2, e2 := c.doStartContainer(ctx, container, containerInfo)
-					message += m2
+					message = append(message, m2...)
 					if e2 != nil {
 						err = e2
 					}
-					log.Infof("[ControlContainer] Restart container %s output %s", container.ID, message)
 					return
 				default:
 					err = types.ErrUnknownControlType
@@ -76,59 +79,51 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string) 
 	return ch, nil
 }
 
-func (c *Calcium) doStartContainer(ctx context.Context, container *types.Container, containerInfo *enginetypes.VirtualizationInfo) (string, error) {
-	var message string
+func (c *Calcium) doStartContainer(ctx context.Context, container *types.Container, containerInfo *enginetypes.VirtualizationInfo) ([]*bytes.Buffer, error) {
+	var message []*bytes.Buffer
 	var err error
 
 	if err = container.Start(ctx); err != nil {
 		return message, err
 	}
-
 	// TODO healthcheck
 	if container.Hook != nil && len(container.Hook.AfterStart) > 0 {
-		var output []byte
-		output, err = c.doContainerAfterStartHook(
-			ctx, container,
-			containerInfo.User,
-			containerInfo.Env,
+		message, err = c.doHook(
+			ctx,
+			container.ID, containerInfo.User,
+			container.Hook.AfterStart, containerInfo.Env,
+			container.Hook.Force, false,
 			container.Privileged,
+			container.Engine,
 		)
-		message = string(output)
 	}
 	return message, err
 }
 
-func (c *Calcium) doStopContainer(ctx context.Context, container *types.Container, containerInfo *enginetypes.VirtualizationInfo, ib *imageBucket, force bool) (string, error) {
+func (c *Calcium) doStopContainer(ctx context.Context, container *types.Container, containerInfo *enginetypes.VirtualizationInfo, ib *imageBucket, force bool) ([]*bytes.Buffer, error) {
+	var message []*bytes.Buffer
+	var err error
 	// 记录镜像
 	if ib != nil {
 		ib.Add(container.Podname, containerInfo.Image)
 	}
 
-	var message string
-	var err error
 	if container.Hook != nil && len(container.Hook.BeforeStop) > 0 {
-		output, err := c.doContainerBeforeStopHook(
-			ctx, container,
-			containerInfo.User,
-			containerInfo.Env,
-			container.Privileged, force,
+		message, err = c.doHook(
+			ctx,
+			container.ID, containerInfo.User,
+			container.Hook.BeforeStop, containerInfo.Env,
+			container.Hook.Force, force,
+			container.Privileged,
+			container.Engine,
 		)
-		message = string(output)
 		if err != nil {
 			return message, err
 		}
 	}
 
 	if err = container.Stop(ctx, c.config.GlobalTimeout); err != nil {
-		message += err.Error()
+		message = append(message, bytes.NewBufferString(err.Error()))
 	}
 	return message, err
-}
-
-func (c *Calcium) doRemoveContainer(ctx context.Context, container *types.Container) error {
-	if err := container.Remove(ctx); err != nil {
-		return err
-	}
-
-	return c.store.RemoveContainer(ctx, container)
 }

@@ -7,7 +7,7 @@ import (
 	"os"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/rpc/gen"
+	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -245,7 +245,7 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 		Quota:    c.Quota,
 		Memory:   c.Memory,
 		Publish:  utils.EncodePublishInfo(c.Publish),
-		Hook:     c.Hook,
+		Hook:     types.HookOutput(c.Hook),
 	}
 	if c.Error != nil {
 		msg.Error = c.Error.Error()
@@ -274,7 +274,8 @@ func toRPCRemoveImageMessage(r *types.RemoveImageMessage) *pb.RemoveImageMessage
 
 func toRPCControlContainerMessage(c *types.ControlContainerMessage) *pb.ControlContainerMessage {
 	r := &pb.ControlContainerMessage{
-		Id: c.ContainerID,
+		Id:   c.ContainerID,
+		Hook: types.HookOutput(c.Hook),
 	}
 	if c.Error != nil {
 		r.Error = c.Error.Error()
@@ -293,7 +294,7 @@ func toRPCRemoveContainerMessage(r *types.RemoveContainerMessage) *pb.RemoveCont
 	return &pb.RemoveContainerMessage{
 		Id:      r.ContainerID,
 		Success: r.Success,
-		Message: r.Message,
+		Hook:    string(types.HookOutput(r.Hook)),
 	}
 }
 

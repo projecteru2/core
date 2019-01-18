@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"bytes"
 	"context"
 	"sync"
 
@@ -26,7 +27,7 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 				ch <- &types.RemoveContainerMessage{
 					ContainerID: ID,
 					Success:     false,
-					Message:     err.Error(),
+					Hook:        []*bytes.Buffer{bytes.NewBufferString(err.Error())},
 				}
 				continue
 			}
@@ -35,14 +36,14 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 				defer wg.Done()
 				// force to unlock
 				defer c.doUnlock(containerLock, container.ID)
-				message := ""
+				output := []*bytes.Buffer{}
 				success := false
 
 				defer func() {
 					ch <- &types.RemoveContainerMessage{
 						ContainerID: container.ID,
 						Success:     success,
-						Message:     message,
+						Hook:        output,
 					}
 				}()
 
@@ -52,7 +53,7 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 				}
 				defer c.doUnlock(nodeLock, node.Name)
 
-				message, err = c.doStopAndRemoveContainer(ctx, container, containerJSON, ib, force)
+				output, err = c.doStopAndRemoveContainer(ctx, container, containerJSON, ib, force)
 				if err != nil {
 					return
 				}
@@ -75,14 +76,14 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 	return ch, nil
 }
 
-func (c *Calcium) doStopAndRemoveContainer(ctx context.Context, container *types.Container, containerJSON *enginetypes.VirtualizationInfo, ib *imageBucket, force bool) (string, error) {
+func (c *Calcium) doStopAndRemoveContainer(ctx context.Context, container *types.Container, containerJSON *enginetypes.VirtualizationInfo, ib *imageBucket, force bool) ([]*bytes.Buffer, error) {
 	message, err := c.doStopContainer(ctx, container, containerJSON, ib, force)
 	if err != nil {
 		return message, err
 	}
 
 	if err = c.doRemoveContainer(ctx, container); err != nil {
-		message += err.Error()
+		message = append(message, bytes.NewBufferString(err.Error()))
 	}
 	return message, err
 }
@@ -110,4 +111,12 @@ func (c *Calcium) doRemoveContainerSync(ctx context.Context, IDs []string) error
 		log.Debugf("[doRemoveContainerSync] Removed %s", m.ContainerID)
 	}
 	return nil
+}
+
+func (c *Calcium) doRemoveContainer(ctx context.Context, container *types.Container) error {
+	if err := container.Remove(ctx); err != nil {
+		return err
+	}
+
+	return c.store.RemoveContainer(ctx, container)
 }

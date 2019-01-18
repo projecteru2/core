@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"bytes"
 	"context"
 	"sync"
 
@@ -97,7 +98,7 @@ func (c *Calcium) doReplaceContainer(
 	removeMessage := &types.RemoveContainerMessage{
 		ContainerID: container.ID,
 		Success:     false,
-		Message:     "",
+		Hook:        []*bytes.Buffer{},
 	}
 	// label filter
 	if !utils.FilterContainer(containerJSON.Labels, opts.FilterLabels) {
@@ -113,7 +114,7 @@ func (c *Calcium) doReplaceContainer(
 		return nil, removeMessage, err
 	}
 	// 停止容器
-	removeMessage.Message, err = c.doStopContainer(ctx, container, containerJSON, ib, opts.Force)
+	removeMessage.Hook, err = c.doStopContainer(ctx, container, containerJSON, ib, opts.Force)
 	if err != nil {
 		return nil, removeMessage, err
 	}
@@ -135,10 +136,10 @@ func (c *Calcium) doReplaceContainer(
 	if createMessage.Error != nil {
 		// 重启老容器
 		message, err := c.doStartContainer(ctx, container, containerJSON)
-		removeMessage.Message += message
+		removeMessage.Hook = append(removeMessage.Hook, message...)
 		if err != nil {
 			log.Errorf("[replaceAndRemove] Old container %s restart failed %v", container.ID, err)
-			removeMessage.Message += err.Error()
+			removeMessage.Hook = append(removeMessage.Hook, bytes.NewBufferString(err.Error()))
 		}
 		return nil, removeMessage, createMessage.Error
 	}

@@ -244,10 +244,16 @@ func (c *Calcium) doCreateAndStartContainer(
 
 	// after start
 	if opts.Entrypoint.Hook != nil && len(opts.Entrypoint.Hook.AfterStart) > 0 {
-		createContainerMessage.Hook, err = c.doContainerAfterStartHook(
-			ctx, container,
-			opts.User, opts.Env,
+		createContainerMessage.Hook, err = c.doHook(
+			ctx,
+			container.ID,
+			opts.User,
+			opts.Entrypoint.Hook.AfterStart,
+			opts.Env,
+			opts.Entrypoint.Hook.Force,
+			false,
 			opts.Entrypoint.Privileged,
+			node.Engine,
 		)
 		if err != nil {
 			createContainerMessage.Error = err
