@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -9,15 +10,20 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
+	"text/template"
 
 	corecluster "github.com/projecteru2/core/cluster"
+	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/docker/distribution/reference"
 	dockertypes "github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/registry"
 )
@@ -161,4 +167,70 @@ func getIP(daemonHost string) string {
 		return ""
 	}
 	return u.Hostname()
+}
+
+// Image tag
+// 格式严格按照 Hub/HubPrefix/appname:tag 来
+func createImageTag(config types.DockerConfig, appname, tag string) string {
+	prefix := strings.Trim(config.Namespace, "/")
+	if prefix == "" {
+		return fmt.Sprintf("%s/%s:%s", config.Hub, appname, tag)
+	}
+	return fmt.Sprintf("%s/%s/%s:%s", config.Hub, prefix, appname, tag)
+}
+
+func makeCommonPart(build *enginetypes.Build) (string, error) {
+	tmpl := template.Must(template.New("common").Parse(commonTmpl))
+	out := bytes.Buffer{}
+	if err := tmpl.Execute(&out, build); err != nil {
+		return "", err
+	}
+	return out.String(), nil
+}
+
+func makeUserPart(opts *enginetypes.BuildOptions) (string, error) {
+	tmpl := template.Must(template.New("user").Parse(userTmpl))
+	out := bytes.Buffer{}
+	if err := tmpl.Execute(&out, opts); err != nil {
+		return "", err
+	}
+	return out.String(), nil
+}
+
+func makeMainPart(opts *enginetypes.BuildOptions, build *enginetypes.Build, from string, commands, copys []string) (string, error) {
+	var buildTmpl []string
+	common, err := makeCommonPart(build)
+	if err != nil {
+		return "", err
+	}
+	buildTmpl = append(buildTmpl, from, common)
+	if len(copys) > 0 {
+		buildTmpl = append(buildTmpl, copys...)
+	}
+	if len(commands) > 0 {
+		buildTmpl = append(buildTmpl, commands...)
+	}
+	return strings.Join(buildTmpl, "\n"), nil
+}
+
+// Dockerfile
+func createDockerfile(dockerfile, buildDir string) error {
+	f, err := os.Create(filepath.Join(buildDir, "Dockerfile"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.WriteString(dockerfile)
+	return err
+}
+
+// create tar stream
+func createTarStream(path string) (io.ReadCloser, error) {
+	tarOpts := &archive.TarOptions{
+		ExcludePatterns: []string{},
+		IncludeFiles:    []string{"."},
+		Compression:     archive.Uncompressed,
+		NoLchown:        true,
+	}
+	return archive.TarWithOptions(path, tarOpts)
 }

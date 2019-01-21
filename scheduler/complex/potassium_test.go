@@ -950,5 +950,4 @@ func TestGlobalDivision(t *testing.T) {
 	r, err := k.GlobalDivision([]types.NodeInfo{nodeInfo}, 10, 100)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 10)
-	fmt.Println(r)
 }

@@ -1,19 +1,5 @@
 package types
 
-import (
-	"io"
-)
-
-// BuildOptions is options for building image
-type BuildOptions struct {
-	Name   string
-	User   string
-	UID    int
-	Tags   []string
-	Builds *Builds
-	Tar    io.ReadCloser
-}
-
 // DeployOptions is options for deploying
 type DeployOptions struct {
 	Name         string            // Name of application

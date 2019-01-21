@@ -1,14 +1,11 @@
 package calcium
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strings"
-	"text/template"
 
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -147,61 +144,6 @@ func pullImage(ctx context.Context, node *types.Node, image string) error {
 
 func makeErrorBuildImageMessage(err error) *types.BuildImageMessage {
 	return &types.BuildImageMessage{Error: err.Error()}
-}
-
-func makeCommonPart(build *types.Build) (string, error) {
-	tmpl := template.Must(template.New("common").Parse(commonTmpl))
-	out := bytes.Buffer{}
-	if err := tmpl.Execute(&out, build); err != nil {
-		return "", err
-	}
-	return out.String(), nil
-}
-
-func makeUserPart(opts *types.BuildOptions) (string, error) {
-	tmpl := template.Must(template.New("user").Parse(userTmpl))
-	out := bytes.Buffer{}
-	if err := tmpl.Execute(&out, opts); err != nil {
-		return "", err
-	}
-	return out.String(), nil
-}
-
-func makeMainPart(opts *types.BuildOptions, build *types.Build, from string, commands, copys []string) (string, error) {
-	var buildTmpl []string
-	common, err := makeCommonPart(build)
-	if err != nil {
-		return "", err
-	}
-	buildTmpl = append(buildTmpl, from, common)
-	if len(copys) > 0 {
-		buildTmpl = append(buildTmpl, copys...)
-	}
-	if len(commands) > 0 {
-		buildTmpl = append(buildTmpl, commands...)
-	}
-	return strings.Join(buildTmpl, "\n"), nil
-}
-
-// Dockerfile
-func createDockerfile(dockerfile, buildDir string) error {
-	f, err := os.Create(filepath.Join(buildDir, "Dockerfile"))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	_, err = f.WriteString(dockerfile)
-	return err
-}
-
-// Image tag
-// 格式严格按照 Hub/HubPrefix/appname:tag 来
-func createImageTag(config types.DockerConfig, appname, tag string) string {
-	prefix := strings.Trim(config.Namespace, "/")
-	if prefix == "" {
-		return fmt.Sprintf("%s/%s:%s", config.Hub, appname, tag)
-	}
-	return fmt.Sprintf("%s/%s/%s:%s", config.Hub, prefix, appname, tag)
 }
 
 // 清理一个node上的这个image

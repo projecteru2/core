@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
-	sourcemocks "github.com/projecteru2/core/source/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 )
@@ -27,11 +27,11 @@ const (
 func TestBuild(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	opts := &types.BuildOptions{
+	opts := &enginetypes.BuildOptions{
 		Name: "xx",
-		Builds: &types.Builds{
+		Builds: &enginetypes.Builds{
 			Stages: []string{"compile", "build"},
-			Builds: map[string]*types.Build{
+			Builds: map[string]*enginetypes.Build{
 				"compile": {
 					Base:      base,
 					Repo:      repo,
@@ -55,56 +55,69 @@ func TestBuild(t *testing.T) {
 		Tags: []string{"tag1", "tag2"},
 	}
 	// failed by buildpod not set
-	_, err := c.BuildDockerImage(ctx, opts)
+	_, err := c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	c.config.Docker.BuildPod = "test"
 	// failed by ListPodNodes failed
 	store := &storemocks.Store{}
-	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return(nil, types.ErrNoBuildPod)
+	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return(nil, types.ErrBadMeta).Once()
 	c.store = store
-	ch, err := c.BuildDockerImage(ctx, opts)
+	ch, err := c.BuildImage(ctx, opts)
 	assert.Error(t, err)
+	// failed by no nodes
+	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return([]*types.Node{}, nil).Once()
+	ch, err = c.BuildImage(ctx, opts)
+	assert.Error(t, err)
+	engine := &enginemocks.API{}
+	node := &types.Node{
+		Name:      "test",
+		Podname:   "testpod",
+		Available: true,
+		Engine:    engine,
+	}
+	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return([]*types.Node{node}, nil)
+	scheduler := &schedulermocks.Scheduler{}
+	c.scheduler = scheduler
+	// failed by MaxIdleNode
+	scheduler.On("MaxIdleNode", mock.AnythingOfType("[]*types.Node")).Return(nil, types.ErrBadMeta).Once()
+	ch, err = c.BuildImage(ctx, opts)
+	assert.Error(t, err)
+	scheduler.On("MaxIdleNode", mock.AnythingOfType("[]*types.Node")).Return(node, nil)
 	// create image
 	c.config.Docker.Hub = "test.com"
 	c.config.Docker.Namespace = "test"
 
 	buildImageMessage := &types.BuildImageMessage{}
 	buildImageMessage.Progress = "process"
-	buildImageMessage.Error = "none"
-	buildImageMessage.ID = "ID"
+	buildImageMessage.Error = ""
+	buildImageMessage.ID = "ID1234"
 	buildImageMessage.Status = "status"
 	buildImageMessage.Stream = "stream"
 	buildImageMessage.ErrorDetail.Code = 0
 	buildImageResp, err := json.Marshal(buildImageMessage)
 	assert.NoError(t, err)
+	buildImageResp2, err := json.Marshal(buildImageMessage)
+	assert.NoError(t, err)
 	buildImageRespReader := ioutil.NopCloser(bytes.NewReader(buildImageResp))
-	buildImageRespReader2 := ioutil.NopCloser(bytes.NewReader(buildImageResp))
-
-	engine := &enginemocks.API{}
-	engine.On("ImageBuild", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything).Return(buildImageRespReader, nil)
-	engine.On("ImagePush", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return(buildImageRespReader2, nil)
-	engine.On("ImageRemove", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return([]string{}, nil)
-	r := 1024
-	engine.On("ImageBuildCachePrune", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return(r, nil)
-	node := &types.Node{
-		Name:      "test",
-		Available: true,
-		Engine:    engine,
-	}
-	scheduler := &schedulermocks.Scheduler{}
-	scheduler.On("MaxIdleNode", mock.AnythingOfType("[]*types.Node")).Return(node, nil)
-	store = &storemocks.Store{}
-	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return([]*types.Node{node}, nil)
-	source := &sourcemocks.Source{}
-	source.On("SourceCode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	source.On("Security", mock.Anything).Return(nil)
-	source.On("Artifact", mock.Anything, mock.Anything).Return(nil)
-
-	c.scheduler = scheduler
-	c.store = store
-	c.source = source
-
-	ch, err = c.BuildDockerImage(ctx, opts)
+	buildImageRespReader2 := ioutil.NopCloser(bytes.NewReader(buildImageResp2))
+	engine.On("BuildRefs", mock.Anything, mock.Anything, mock.Anything).Return([]string{"t1", "t2"})
+	// failed by build context
+	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
+	ch, err = c.BuildImage(ctx, opts)
+	assert.Error(t, err)
+	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil).Once()
+	// failed by ImageBuild
+	engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNilEngine).Once()
+	ch, err = c.BuildImage(ctx, opts)
+	assert.Error(t, err)
+	engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything).Return(buildImageRespReader, nil)
+	// correct
+	engine.On("ImagePush", mock.Anything, mock.Anything).Return(buildImageRespReader2, nil)
+	engine.On("ImageRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]string{}, nil)
+	engine.On("ImageBuildCachePrune", mock.Anything, mock.Anything).Return(uint64(1024), nil)
+	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	ch, err = c.BuildImage(ctx, opts)
+	assert.NoError(t, err)
 	for range ch {
 		assert.NoError(t, err)
 	}

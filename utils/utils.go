@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/docker/docker/pkg/archive"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/types"
@@ -242,17 +241,6 @@ func TempTarFile(path string, data []byte) (string, error) {
 	}
 	_, err = tw.Write(data)
 	return name, err
-}
-
-// CreateTarStream create tar stream
-func CreateTarStream(path string) (io.ReadCloser, error) {
-	tarOpts := &archive.TarOptions{
-		ExcludePatterns: []string{},
-		IncludeFiles:    []string{"."},
-		Compression:     archive.Uncompressed,
-		NoLchown:        true,
-	}
-	return archive.TarWithOptions(path, tarOpts)
 }
 
 // Round for float64 to int
