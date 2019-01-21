@@ -89,21 +89,21 @@ func toCoreCopyOptions(b *pb.CopyOptions) *types.CopyOptions {
 	return r
 }
 
-func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
-	var builds *types.Builds
+func toCoreBuildOptions(b *pb.BuildImageOptions) (*enginetypes.BuildOptions, error) {
+	var builds *enginetypes.Builds
 	if b.Builds != nil {
 		if len(b.Builds.Stages) == 0 {
 			return nil, types.ErrNoBuildsInSpec
 		}
-		builds = &types.Builds{
+		builds = &enginetypes.Builds{
 			Stages: b.Builds.Stages,
 		}
-		builds.Builds = map[string]*types.Build{}
+		builds.Builds = map[string]*enginetypes.Build{}
 		for stage, p := range b.Builds.Builds {
 			if p == nil {
 				return nil, types.ErrNoBuildSpec
 			}
-			builds.Builds[stage] = &types.Build{
+			builds.Builds[stage] = &enginetypes.Build{
 				Base:      p.Base,
 				Repo:      p.Repo,
 				Version:   p.Version,
@@ -118,7 +118,7 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
 			}
 		}
 	}
-	return &types.BuildOptions{
+	return &enginetypes.BuildOptions{
 		Name:   b.Name,
 		User:   b.User,
 		UID:    int(b.Uid),

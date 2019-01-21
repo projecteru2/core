@@ -5,6 +5,7 @@ import (
 	"io"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
+	coresource "github.com/projecteru2/core/source"
 )
 
 // API define a remote engine
@@ -28,6 +29,9 @@ type API interface {
 	ImageBuildCachePrune(ctx context.Context, all bool) (uint64, error)
 	ImageLocalDigests(ctx context.Context, image string) ([]string, error)
 	ImageRemoteDigest(ctx context.Context, image string) (string, error)
+
+	BuildRefs(ctx context.Context, name string, tags []string) []string
+	BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildOptions) (io.ReadCloser, error)
 
 	VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error)
 	VirtualizationCopyTo(ctx context.Context, ID, path string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) error

@@ -199,15 +199,6 @@ func TestTempTarFile(t *testing.T) {
 	os.Remove(fname)
 }
 
-func TestCreateTarStream(t *testing.T) {
-	buff := bytes.NewBufferString("test")
-	rc := ioutil.NopCloser(buff)
-	fname, err := TempFile(rc)
-	assert.NoError(t, err)
-	_, err = CreateTarStream(fname)
-	assert.NoError(t, err)
-}
-
 func TestRound(t *testing.T) {
 	f := func(f float64) string {
 		return strconv.FormatFloat(f, 'f', -1, 64)

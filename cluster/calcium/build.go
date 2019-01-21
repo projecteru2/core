@@ -5,57 +5,43 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"strings"
 
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	fromAsTmpl = "FROM %s as %s"
-	commonTmpl = `{{ range $k, $v:= .Args -}}
-{{ printf "ARG %s=%q" $k $v }}
-{{ end -}}
-{{ range $k, $v:= .Envs -}}
-{{ printf "ENV %s %q" $k $v }}
-{{ end -}}
-{{ range $k, $v:= .Labels -}}
-{{ printf "LABEL %s=%s" $k $v }}
-{{ end -}}
-{{- if .Dir}}RUN mkdir -p {{.Dir}}
-WORKDIR {{.Dir}}{{ end }}
-{{ if .Repo }}ADD {{.Repo}} .{{ end }}`
-	copyTmpl = "COPY --from=%s %s %s"
-	runTmpl  = "RUN %s"
-	//TODO consider work dir privilege
-	//Add user manually
-	userTmpl = `RUN echo "{{.User}}::{{.UID}}:{{.UID}}:{{.User}}:/dev/null:/sbin/nologin" >> /etc/passwd && \
-echo "{{.User}}:x:{{.UID}}:" >> /etc/group && \
-echo "{{.User}}:!::0:::::" >> /etc/shadow
-USER {{.User}}
-`
-)
+// BuildImage will build image
+func (c *Calcium) BuildImage(ctx context.Context, opts *enginetypes.BuildOptions) (chan *types.BuildImageMessage, error) {
+	// select nodes
+	node, err := c.selectBuildNode(ctx)
+	if err != nil {
+		return nil, err
+	}
+	log.Infof("[BuildImage] Building image at pod %s node %s", node.Podname, node.Name)
+	// get refs
+	refs := node.Engine.BuildRefs(ctx, opts.Name, opts.Tags)
+	// support raw build
+	buildContent := opts.Tar
+	if opts.Builds != nil {
+		buildContent, err = node.Engine.BuildContent(ctx, c.source, opts)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-// BuildDockerImage will build image for repository
-// since we wanna set UID for the user inside container, we have to know the uid parameter
-//
-// build directory is like:
-//
-//    buildDir ├─ :appname ├─ code
-//             ├─ Dockerfile
-func (c *Calcium) BuildDockerImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
+	return c.doBuildImage(ctx, buildContent, node, refs)
+}
+
+func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
 	// get pod from config
-	buildPodname := c.config.Docker.BuildPod
-	if buildPodname == "" {
+	// TODO VM BRANCH conside vm build machines.
+	if c.config.Docker.BuildPod == "" {
 		return nil, types.ErrNoBuildPod
 	}
 
 	// get node by scheduler
-	nodes, err := c.ListPodNodes(ctx, buildPodname, false)
+	nodes, err := c.ListPodNodes(ctx, c.config.Docker.BuildPod, false)
 	if err != nil {
 		return nil, err
 	}
@@ -63,43 +49,7 @@ func (c *Calcium) BuildDockerImage(ctx context.Context, opts *types.BuildOptions
 		return nil, types.ErrInsufficientNodes
 	}
 	// get idle max node
-	node, err := c.scheduler.MaxIdleNode(nodes)
-	if err != nil {
-		return nil, err
-	}
-	// support raw build
-	buildContext := opts.Tar
-	if opts.Builds != nil {
-		// make build dir
-		buildDir, err := ioutil.TempDir(os.TempDir(), "corebuild-")
-		if err != nil {
-			return nil, err
-		}
-		defer os.RemoveAll(buildDir)
-		// create dockerfile
-		if err := c.makeDockerFile(opts, buildDir); err != nil {
-			return nil, err
-		}
-		// create tar stream for Build API
-		buildContext, err = utils.CreateTarStream(buildDir)
-		if err != nil {
-			return nil, err
-		}
-	}
-	// tag of image, later this will be used to push image to hub
-	tags := []string{}
-	for i := range opts.Tags {
-		if opts.Tags[i] != "" {
-			tag := createImageTag(c.config.Docker, opts.Name, opts.Tags[i])
-			tags = append(tags, tag)
-		}
-	}
-	// use latest
-	if len(tags) == 0 {
-		tags = append(tags, createImageTag(c.config.Docker, opts.Name, utils.DefaultVersion))
-	}
-	log.Infof("[BuildImage] Building image at pod %s node %s", node.Podname, node.Name)
-	return c.doBuildImage(ctx, buildContext, node, tags)
+	return c.scheduler.MaxIdleNode(nodes)
 }
 
 func (c *Calcium) doBuildImage(ctx context.Context, buildContext io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) {
@@ -108,6 +58,7 @@ func (c *Calcium) doBuildImage(ctx context.Context, buildContext io.ReadCloser, 
 
 	resp, err := node.Engine.ImageBuild(ctx, buildContext, tags)
 	if err != nil {
+		close(ch)
 		return ch, err
 	}
 
@@ -191,108 +142,4 @@ func (c *Calcium) doBuildImage(ctx context.Context, buildContext io.ReadCloser, 
 	}()
 
 	return ch, nil
-}
-
-func (c *Calcium) makeDockerFile(opts *types.BuildOptions, buildDir string) error {
-	var preCache map[string]string
-	var preStage string
-	var buildTmpl []string
-
-	for _, stage := range opts.Builds.Stages {
-		build, ok := opts.Builds.Builds[stage]
-		if !ok {
-			log.Warnf("[makeDockerFile] Builds stage %s not defined", stage)
-			continue
-		}
-
-		// get source or artifacts
-		reponame, err := c.preparedSource(build, buildDir)
-		if err != nil {
-			return err
-		}
-		build.Repo = reponame
-
-		// get header
-		from := fmt.Sprintf(fromAsTmpl, build.Base, stage)
-
-		// get multiple stags
-		copys := []string{}
-		for src, dst := range preCache {
-			copys = append(copys, fmt.Sprintf(copyTmpl, preStage, src, dst))
-		}
-
-		// get commands
-		commands := []string{}
-		for _, command := range build.Commands {
-			commands = append(commands, fmt.Sprintf(runTmpl, command))
-		}
-
-		// decide add source or not
-		mainPart, err := makeMainPart(opts, build, from, commands, copys)
-		if err != nil {
-			return err
-		}
-		buildTmpl = append(buildTmpl, mainPart)
-		preStage = stage
-		preCache = build.Cache
-	}
-
-	if opts.User != "" && opts.UID != 0 {
-		userPart, err := makeUserPart(opts)
-		if err != nil {
-			return err
-		}
-		buildTmpl = append(buildTmpl, userPart)
-	}
-	dockerfile := strings.Join(buildTmpl, "\n")
-	return createDockerfile(dockerfile, buildDir)
-}
-
-func (c *Calcium) preparedSource(build *types.Build, buildDir string) (string, error) {
-	// parse repository name
-	// code locates under /:repositoryname
-	var cloneDir string
-	var err error
-	reponame := ""
-	if build.Repo != "" {
-		version := build.Version
-		if version == "" {
-			version = "HEAD"
-		}
-		reponame, err = utils.GetGitRepoName(build.Repo)
-		if err != nil {
-			return "", err
-		}
-
-		// clone code into cloneDir
-		// which is under buildDir and named as repository name
-		cloneDir = filepath.Join(buildDir, reponame)
-		if err := c.source.SourceCode(build.Repo, cloneDir, version, build.Submodule); err != nil {
-			return "", err
-		}
-
-		// ensure source code is safe
-		// we don't want any history files to be retrieved
-		if err := c.source.Security(cloneDir); err != nil {
-			return "", err
-		}
-	}
-
-	// if artifact download url is provided, remove all source code to
-	// improve security
-	if len(build.Artifacts) > 0 {
-		artifactsDir := buildDir
-		if cloneDir != "" {
-			os.RemoveAll(cloneDir)
-			os.MkdirAll(cloneDir, os.ModeDir)
-			artifactsDir = cloneDir
-		}
-		for _, artifact := range build.Artifacts {
-			if err := c.source.Artifact(artifact, artifactsDir); err != nil {
-				return "", err
-			}
-		}
-	}
-
-	return reponame, nil
 }

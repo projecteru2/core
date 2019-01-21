@@ -59,12 +59,12 @@ func (_m *Cluster) AddPod(ctx context.Context, podname string, favor string, des
 	return r0, r1
 }
 
-// BuildDockerImage provides a mock function with given fields: ctx, opts
-func (_m *Cluster) BuildDockerImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
+// BuildDocker provides a mock function with given fields: ctx, opts
+func (_m *Cluster) BuildDocker(ctx context.Context, opts *enginetypes.BuildOptions) (chan *types.BuildImageMessage, error) {
 	ret := _m.Called(ctx, opts)
 
 	var r0 chan *types.BuildImageMessage
-	if rf, ok := ret.Get(0).(func(context.Context, *types.BuildOptions) chan *types.BuildImageMessage); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *enginetypes.BuildOptions) chan *types.BuildImageMessage); ok {
 		r0 = rf(ctx, opts)
 	} else {
 		if ret.Get(0) != nil {
@@ -73,7 +73,7 @@ func (_m *Cluster) BuildDockerImage(ctx context.Context, opts *types.BuildOption
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.BuildOptions) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *enginetypes.BuildOptions) error); ok {
 		r1 = rf(ctx, opts)
 	} else {
 		r1 = ret.Error(1)

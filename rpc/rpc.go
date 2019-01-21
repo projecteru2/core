@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/projecteru2/core/cluster"
-	"github.com/projecteru2/core/rpc/gen"
+	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -284,7 +284,7 @@ func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 		return err
 	}
 	// TODO VM BRANCH
-	ch, err := v.cluster.BuildDockerImage(stream.Context(), buildOpts)
+	ch, err := v.cluster.BuildImage(stream.Context(), buildOpts)
 	if err != nil {
 		return err
 	}
