@@ -72,12 +72,12 @@ func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *
 	if err != nil {
 		return nil, err
 	}
-	defer os.RemoveAll(buildDir)
+	log.Debugf("[BuildContent] Build dir %s", buildDir)
 	// create dockerfile
 	if err := e.makeDockerFile(opts, scm, buildDir); err != nil {
 		return nil, err
 	}
-	// create tar stream for Build API
+	// create stream for Build API
 	return createTarStream(buildDir)
 }
 

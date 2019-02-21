@@ -54,15 +54,15 @@ func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
 
 func (c *Calcium) doBuildImage(ctx context.Context, buildContext io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) {
 	ch := make(chan *types.BuildImageMessage)
-	// must be put here because of that `defer os.RemoveAll(buildDir)`
-
 	resp, err := node.Engine.ImageBuild(ctx, buildContext, tags)
 	if err != nil {
 		close(ch)
+		buildContext.Close()
 		return ch, err
 	}
 
 	go func() {
+		defer buildContext.Close()
 		defer resp.Close()
 		defer close(ch)
 		decoder := json.NewDecoder(resp)

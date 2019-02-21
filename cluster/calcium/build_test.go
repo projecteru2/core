@@ -105,7 +105,8 @@ func TestBuild(t *testing.T) {
 	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
-	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil).Once()
+	b := ioutil.NopCloser(bytes.NewReader([]byte{}))
+	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return(b, nil)
 	// failed by ImageBuild
 	engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNilEngine).Once()
 	ch, err = c.BuildImage(ctx, opts)
