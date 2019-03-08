@@ -11,31 +11,32 @@ import (
 func CommunismDivisionPlan(arg []types.NodeInfo, need int) ([]types.NodeInfo, error) {
 	sort.Slice(arg, func(i, j int) bool { return arg[i].Count < arg[j].Count })
 	length := len(arg)
-	i := 0
 
-	for need > 0 {
-		p := i
-		deploy := 0
-		differ := 1
-		if i < length-1 {
-			differ = arg[i+1].Count - arg[i].Count
-			i++
+	for i := 0; i < length; i++ {
+		if need <= 0 {
+			break
 		}
-		for j := 0; j <= p && need > 0 && differ > 0; j++ {
-			// 减枝
-			if arg[j].Capacity == 0 {
-				continue
+		req := need
+		if i < length-1 {
+			req = (arg[i+1].Count - arg[i].Count) * (i + 1)
+		}
+		if req > need {
+			req = need
+		}
+		for j := 0; j < i+1; j++ {
+			deploy := req / (i + 1 - j)
+			tail := req % (i + 1 - j)
+			d := deploy
+			if tail > 0 {
+				d++
 			}
-			deploy = differ
-			if deploy > arg[j].Capacity {
-				deploy = arg[j].Capacity
+			if d > arg[j].Capacity {
+				d = arg[j].Capacity
 			}
-			if deploy > need {
-				deploy = need
-			}
-			arg[j].Deploy += deploy
-			arg[j].Capacity -= deploy
-			need -= deploy
+			arg[j].Deploy += d
+			arg[j].Capacity -= d
+			need -= d
+			req -= d
 		}
 	}
 	// 这里 need 一定会为 0 出来，因为 volTotal 保证了一定大于 need
