@@ -109,6 +109,11 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.BuildImageOptions.SerializeToString,
         response_deserializer=core__pb2.BuildImageMessage.FromString,
         )
+    self.CacheImage = channel.unary_stream(
+        '/pb.CoreRPC/CacheImage',
+        request_serializer=core__pb2.CacheImageOptions.SerializeToString,
+        response_deserializer=core__pb2.CacheImageMessage.FromString,
+        )
     self.RemoveImage = channel.unary_stream(
         '/pb.CoreRPC/RemoveImage',
         request_serializer=core__pb2.RemoveImageOptions.SerializeToString,
@@ -288,6 +293,13 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def CacheImage(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def RemoveImage(self, request, context):
     # missing associated documentation comment in .proto file
     pass
@@ -441,6 +453,11 @@ def add_CoreRPCServicer_to_server(servicer, server):
           servicer.BuildImage,
           request_deserializer=core__pb2.BuildImageOptions.FromString,
           response_serializer=core__pb2.BuildImageMessage.SerializeToString,
+      ),
+      'CacheImage': grpc.unary_stream_rpc_method_handler(
+          servicer.CacheImage,
+          request_deserializer=core__pb2.CacheImageOptions.FromString,
+          response_serializer=core__pb2.CacheImageMessage.SerializeToString,
       ),
       'RemoveImage': grpc.unary_stream_rpc_method_handler(
           servicer.RemoveImage,

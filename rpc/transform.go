@@ -264,6 +264,15 @@ func toRPCReplaceContainerMessage(r *types.ReplaceContainerMessage) *pb.ReplaceC
 	return msg
 }
 
+func toRPCCacheImageMessage(r *types.CacheImageMessage) *pb.CacheImageMessage {
+	return &pb.CacheImageMessage{
+		Image:    r.Image,
+		Success:  r.Success,
+		Nodename: r.Nodename,
+		Message:  r.Message,
+	}
+}
+
 func toRPCRemoveImageMessage(r *types.RemoveImageMessage) *pb.RemoveImageMessage {
 	return &pb.RemoveImageMessage{
 		Image:    r.Image,

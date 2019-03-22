@@ -31,7 +31,6 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 		// 并发控制
 		step := opts.Count
 		wg := sync.WaitGroup{}
-		ib := newImageBucket()
 		defer wg.Wait()
 		for index, ID := range opts.IDs {
 			container, containerJSON, containerLock, err := c.doLockAndGetContainer(ctx, ID)
@@ -61,7 +60,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 				replaceOpts.Podname = container.Podname
 
 				createMessage, removeMessage, err := c.doReplaceContainer(
-					ctx, container, containerJSON, &replaceOpts, ib, index,
+					ctx, container, containerJSON, &replaceOpts, index,
 				)
 				ch <- &types.ReplaceContainerMessage{
 					Create: createMessage,
@@ -79,9 +78,6 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 				wg.Wait()
 			}
 		}
-		// 把收集的image清理掉
-		// 如果 replace 是异步的，这里就不能用 ctx 了，gRPC 一断这里就会死
-		go c.doCleanCachedImage(context.Background(), ib)
 	}()
 
 	return ch, nil
@@ -92,7 +88,6 @@ func (c *Calcium) doReplaceContainer(
 	container *types.Container,
 	containerJSON *enginetypes.VirtualizationInfo,
 	opts *types.ReplaceOptions,
-	ib *imageBucket,
 	index int,
 ) (*types.CreateContainerMessage, *types.RemoveContainerMessage, error) {
 	removeMessage := &types.RemoveContainerMessage{
@@ -114,7 +109,7 @@ func (c *Calcium) doReplaceContainer(
 		return nil, removeMessage, err
 	}
 	// 停止容器
-	removeMessage.Hook, err = c.doStopContainer(ctx, container, containerJSON, ib, opts.Force)
+	removeMessage.Hook, err = c.doStopContainer(ctx, container, containerJSON, opts.Force)
 	if err != nil {
 		return nil, removeMessage, err
 	}

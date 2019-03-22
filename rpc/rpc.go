@@ -297,12 +297,30 @@ func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 	return err
 }
 
+// CacheImage cache image
+func (v *Vibranium) CacheImage(opts *pb.CacheImageOptions, stream pb.CoreRPC_CacheImageServer) error {
+	v.taskAdd("CacheImage", true)
+	defer v.taskDone("CacheImage", true)
+
+	ch, err := v.cluster.CacheImage(stream.Context(), opts.Podname, opts.Nodename, opts.Images, int(opts.Step))
+	if err != nil {
+		return err
+	}
+
+	for m := range ch {
+		if err = stream.Send(toRPCCacheImageMessage(m)); err != nil {
+			v.logUnsentMessages("CacheImage", m)
+		}
+	}
+	return err
+}
+
 // RemoveImage remove image
 func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_RemoveImageServer) error {
 	v.taskAdd("RemoveImage", true)
 	defer v.taskDone("RemoveImage", true)
 
-	ch, err := v.cluster.RemoveImage(stream.Context(), opts.Podname, opts.Nodename, opts.Images, opts.Prune)
+	ch, err := v.cluster.RemoveImage(stream.Context(), opts.Podname, opts.Nodename, opts.Images, int(opts.Step), opts.Prune)
 	if err != nil {
 		return err
 	}

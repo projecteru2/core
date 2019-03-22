@@ -20,7 +20,6 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 	go func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
-		ib := newImageBucket()
 		for _, ID := range IDs {
 			container, containerJSON, containerLock, err := c.doLockAndGetContainer(ctx, ID)
 			if err != nil {
@@ -53,7 +52,7 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 				}
 				defer c.doUnlock(nodeLock, node.Name)
 
-				output, err = c.doStopAndRemoveContainer(ctx, container, containerJSON, ib, force)
+				output, err = c.doStopAndRemoveContainer(ctx, container, containerJSON, force)
 				if err != nil {
 					return
 				}
@@ -68,16 +67,12 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool)
 			}(container, containerJSON, containerLock)
 		}
 		wg.Wait()
-
-		// 把收集的image清理掉
-		// 如果 remove 是异步的，这里就不能用 ctx 了，gRPC 一断这里就会死
-		go c.doCleanCachedImage(context.Background(), ib)
 	}()
 	return ch, nil
 }
 
-func (c *Calcium) doStopAndRemoveContainer(ctx context.Context, container *types.Container, containerJSON *enginetypes.VirtualizationInfo, ib *imageBucket, force bool) ([]*bytes.Buffer, error) {
-	message, err := c.doStopContainer(ctx, container, containerJSON, ib, force)
+func (c *Calcium) doStopAndRemoveContainer(ctx context.Context, container *types.Container, containerJSON *enginetypes.VirtualizationInfo, force bool) ([]*bytes.Buffer, error) {
+	message, err := c.doStopContainer(ctx, container, containerJSON, force)
 	if err != nil {
 		return message, err
 	}
@@ -86,18 +81,6 @@ func (c *Calcium) doStopAndRemoveContainer(ctx context.Context, container *types
 		message = append(message, bytes.NewBufferString(err.Error()))
 	}
 	return message, err
-}
-
-func (c *Calcium) doCleanCachedImage(ctx context.Context, ib *imageBucket) {
-	for podname, images := range ib.Dump() {
-		log.Debugf("[doCleanCachedImage] Clean %s images %v", podname, images)
-		for _, image := range images {
-			err := c.doCleanImage(ctx, podname, image)
-			if err != nil {
-				log.Errorf("[doCleanCachedImage] Clean image failed %v", err)
-			}
-		}
-	}
 }
 
 // 同步地删除容器, 在某些需要等待的场合异常有用!

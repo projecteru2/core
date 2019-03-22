@@ -163,7 +163,8 @@ func (m *Mercury) UpdateNode(ctx context.Context, node *types.Node) error {
 	}
 
 	value := string(bytes)
-	log.Debugf("[UpdateNode] New node info: %s", litter.Sdump(node))
+	log.Debug("[UpdateNode] New node info:")
+	litter.Dump(node)
 	_, err = m.Put(ctx, key, value)
 	return err
 }

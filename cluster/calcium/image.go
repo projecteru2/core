@@ -10,7 +10,7 @@ import (
 )
 
 // RemoveImage remove images
-func (c *Calcium) RemoveImage(ctx context.Context, podname, nodename string, images []string, prune bool) (chan *types.RemoveImageMessage, error) {
+func (c *Calcium) RemoveImage(ctx context.Context, podname, nodename string, images []string, step int, prune bool) (chan *types.RemoveImageMessage, error) {
 	ch := make(chan *types.RemoveImageMessage)
 
 	var err error
@@ -28,10 +28,15 @@ func (c *Calcium) RemoveImage(ctx context.Context, podname, nodename string, ima
 		}
 	}
 
+	if len(nodes) == 0 {
+		return nil, types.ErrPodNoNodes
+	}
+
 	go func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
-		for _, node := range nodes {
+		defer wg.Wait()
+		for i, node := range nodes {
 			wg.Add(1)
 			go func(node *types.Node) {
 				defer wg.Done()
@@ -59,66 +64,69 @@ func (c *Calcium) RemoveImage(ctx context.Context, podname, nodename string, ima
 					}
 				}
 			}(node)
+			if (i+1)%step == 0 {
+				log.Info("[RemoveImage] Wait for previous cleaner done")
+				wg.Wait()
+			}
 		}
-		wg.Wait()
 	}()
 
 	return ch, nil
 }
 
+// CacheImage cache Image
 // 在podname上cache这个image
 // 实际上就是在所有的node上去pull一次
-func (c *Calcium) doCacheImage(ctx context.Context, podname, image string) error {
-	nodes, err := c.ListPodNodes(ctx, podname, false)
-	if err != nil {
-		return err
-	}
-	if len(nodes) == 0 {
-		return nil
-	}
+func (c *Calcium) CacheImage(ctx context.Context, podname, nodename string, images []string, step int) (chan *types.CacheImageMessage, error) {
+	ch := make(chan *types.CacheImageMessage)
 
-	wg := sync.WaitGroup{}
-	defer wg.Wait()
-	for i, node := range nodes {
-		// 这个函数在 create_container.go 里面
-		// 同步地pull image
-		if (i != 0) && (i%maxPuller == 0) {
-			wg.Wait()
+	var err error
+	nodes := []*types.Node{}
+	if nodename != "" {
+		n, err := c.GetNode(ctx, podname, nodename)
+		if err != nil {
+			return ch, err
 		}
-		wg.Add(1)
-		go func(node *types.Node) {
-			defer wg.Done()
-			pullImage(ctx, node, image)
-		}(node)
+		nodes = append(nodes, n)
+	} else {
+		nodes, err = c.store.GetNodesByPod(ctx, podname)
+		if err != nil {
+			return ch, err
+		}
 	}
 
-	return nil
-}
-
-// 清理一个pod上的全部这个image
-// 对里面所有node去执行
-func (c *Calcium) doCleanImage(ctx context.Context, podname, image string) error {
-	nodes, err := c.ListPodNodes(ctx, podname, false)
-	if err != nil {
-		return err
-	}
 	if len(nodes) == 0 {
-		return nil
+		return nil, types.ErrPodNoNodes
 	}
 
-	wg := sync.WaitGroup{}
-	defer wg.Wait()
-	for i, node := range nodes {
-		wg.Add(1)
-		go func(node *types.Node) {
-			defer wg.Done()
-			if err := cleanImageOnNode(ctx, node, image, c.config.ImageCache); err != nil {
-				log.Errorf("[doCleanImage] CleanImageOnNode error: %s", err)
+	go func() {
+		defer close(ch)
+		wg := sync.WaitGroup{}
+		defer wg.Wait()
+		for i, node := range nodes {
+			wg.Add(1)
+			go func(node *types.Node) {
+				defer wg.Done()
+				for _, image := range images {
+					m := &types.CacheImageMessage{
+						Image:    image,
+						Success:  true,
+						Nodename: node.Name,
+						Message:  "",
+					}
+					if err := pullImage(ctx, node, image); err != nil {
+						m.Success = false
+						m.Message = err.Error()
+					}
+					ch <- m
+				}
+			}(node)
+			if (i+1)%step == 0 {
+				log.Info("[CacheImage] Wait for puller cleaner done")
+				wg.Wait()
 			}
-		}(node)
-		if (i+1)%maxPuller == 0 {
-			wg.Wait()
 		}
-	}
-	return nil
+	}()
+
+	return ch, nil
 }

@@ -92,8 +92,6 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 			index += nodeInfo.Deploy
 		}
 		wg.Wait()
-		// 第一次部署的时候就去cache下镜像吧
-		go c.doCacheImage(ctx, opts.Podname, opts.Image)
 	}()
 
 	return ch, nil

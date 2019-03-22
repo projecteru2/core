@@ -52,13 +52,13 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string) 
 
 				switch t {
 				case cluster.ContainerStop:
-					message, err = c.doStopContainer(ctx, container, containerInfo, nil, false)
+					message, err = c.doStopContainer(ctx, container, containerInfo, false)
 					return
 				case cluster.ContainerStart:
 					message, err = c.doStartContainer(ctx, container, containerInfo)
 					return
 				case cluster.ContainerRestart:
-					message, err = c.doStopContainer(ctx, container, containerInfo, nil, false)
+					message, err = c.doStopContainer(ctx, container, containerInfo, false)
 					if err != nil {
 						return
 					}
@@ -100,13 +100,9 @@ func (c *Calcium) doStartContainer(ctx context.Context, container *types.Contain
 	return message, err
 }
 
-func (c *Calcium) doStopContainer(ctx context.Context, container *types.Container, containerInfo *enginetypes.VirtualizationInfo, ib *imageBucket, force bool) ([]*bytes.Buffer, error) {
+func (c *Calcium) doStopContainer(ctx context.Context, container *types.Container, containerInfo *enginetypes.VirtualizationInfo, force bool) ([]*bytes.Buffer, error) {
 	var message []*bytes.Buffer
 	var err error
-	// 记录镜像
-	if ib != nil {
-		ib.Add(container.Podname, containerInfo.Image)
-	}
 
 	if container.Hook != nil && len(container.Hook.BeforeStop) > 0 {
 		message, err = c.doHook(

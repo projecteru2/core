@@ -37,6 +37,14 @@ type CopyMessage struct {
 	Data   io.ReadCloser `json:"-"`
 }
 
+// CacheImageMessage for cache image on pod
+type CacheImageMessage struct {
+	Image    string
+	Success  bool
+	Nodename string
+	Message  string
+}
+
 // RemoveImageMessage for remove image message
 type RemoveImageMessage struct {
 	Image    string

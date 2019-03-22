@@ -24,6 +24,7 @@ service CoreRPC {
 
     rpc Copy(CopyOptions) returns (stream CopyMessage) {};
     rpc BuildImage(BuildImageOptions) returns (stream BuildImageMessage) {};
+    rpc CacheImage(CacheImageOptions) returns (stream CacheImageMessage) {};
     rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage) {};
     rpc DeployStatus(DeployStatusOptions) returns (stream DeployStatusMessage) {};
     rpc RunAndWait(stream RunAndWaitOptions) returns (stream RunAndWaitMessage) {};
@@ -299,11 +300,19 @@ message ReplaceOptions {
     repeated string ids = 5;
 }
 
+message CacheImageOptions {
+    string podname = 1;
+    string nodename = 2;
+    repeated string images = 3;
+    int32 step = 4;
+}
+
 message RemoveImageOptions {
     string podname = 1;
     string nodename = 2;
     repeated string images = 3;
-    bool prune = 4;
+    int32 step = 4;
+    bool prune = 5;
 }
 
 message CopyPaths {
@@ -351,6 +360,13 @@ message ReplaceContainerMessage {
 message RunAndWaitMessage {
     string container_id = 1;
     bytes data = 2;
+}
+
+message CacheImageMessage {
+    string image = 1;
+    bool success = 2;
+    string nodename = 3;
+    string message = 4;
 }
 
 message RemoveImageMessage {
