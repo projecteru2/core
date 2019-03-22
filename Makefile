@@ -1,4 +1,4 @@
-.PHONY: grpc deps build test binary
+.PHONY: grpc deps binary build test mock cloc unit-test
 
 REPO_PATH := github.com/projecteru2/core
 REVISION := $(shell git rev-parse HEAD || unknown)
@@ -13,9 +13,8 @@ grpc:
 	cd ./rpc/gen/; python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. core.proto;
 
 deps:
-	glide i
-	rm -rf ./vendor/github.com/docker/docker/vendor
-	rm -rf ./vendor/github.com/docker/distribution/vendor
+	env GO111MODULE=on go mod download
+	env GO111MODULE=on go mod vendor
 
 binary:
 	go build -ldflags "$(GO_LDFLAGS)" -a -tags "netgo osusergo" -installsuffix netgo -o eru-core
@@ -27,9 +26,6 @@ test: deps
 	sed -i.bak "143s/\*http.Transport/http.RoundTripper/" ./vendor/github.com/docker/docker/client/client.go
 	go vet `go list ./... | grep -v '/vendor/'`
 	go test -cover ./utils/... ./types/... ./store/etcdv3/... ./scheduler/complex/...  ./source/common/... ./network/calico/... ./lock/etcdlock/... ./auth/simple/... ./cluster/calcium/...
-
-race: test
-	go test --race -cover -v `glide nv`
 
 mock: deps
 	mockery -dir ./vendor/google.golang.org/grpc -name ServerStream -output 3rdmocks

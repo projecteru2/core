@@ -13,20 +13,19 @@ stages:
   - pack
 builds:
   build:
-    base: "golang:1.11.0-alpine3.8"
+    base: "golang:alpine"
     # only support ssh protocol
     repo: "git@github.com:projecteru2/core.git"
     version: "HEAD"
     dir: /go/src/github.com/projecteru2/core
     commands:
       - apk add --no-cache build-base musl-dev libgit2-dev git curl make
-      - curl https://glide.sh/get | sh
       - make test
       - make binary
     cache:
       /go/src/github.com/projecteru2/core/eru-core: /usr/bin/eru-core
   pack:
-    base: alpine:3.8
+    base: alpine
     labels:
       ERU: 1
       core: 1
