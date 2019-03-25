@@ -14,6 +14,6 @@ func TestCreateTarStream(t *testing.T) {
 	rc := ioutil.NopCloser(buff)
 	fname, err := coreutils.TempFile(rc)
 	assert.NoError(t, err)
-	_, err = createTarStream(fname)
+	_, err = CreateTarStream(fname)
 	assert.NoError(t, err)
 }

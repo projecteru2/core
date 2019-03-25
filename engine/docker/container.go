@@ -23,7 +23,7 @@ import (
 func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) {
 	r := &enginetypes.VirtualizationCreated{}
 	// add node IP
-	hostIP := getIP(e.client.DaemonHost())
+	hostIP := GetIP(e.client.DaemonHost())
 	opts.Env = append(opts.Env, fmt.Sprintf("ERU_NODE_IP=%s", hostIP))
 	// 如果有给dns就优先用给定的dns.
 	// 没有给出dns的时候, 如果设定是用宿主机IP作为dns, 就会把宿主机IP设置过去.
@@ -140,7 +140,7 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 		for networkName, networkSetting := range containerJSON.NetworkSettings.Networks {
 			ip := networkSetting.IPAddress
 			if dockercontainer.NetworkMode(networkName).IsHost() {
-				ip = getIP(e.client.DaemonHost())
+				ip = GetIP(e.client.DaemonHost())
 			}
 			r.Networks[networkName] = ip
 		}

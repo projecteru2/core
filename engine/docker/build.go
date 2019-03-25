@@ -78,7 +78,7 @@ func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *
 		return nil, err
 	}
 	// create stream for Build API
-	return createTarStream(buildDir)
+	return CreateTarStream(buildDir)
 }
 
 func (e *Engine) makeDockerFile(opts *types.BuildOptions, scm coresource.Source, buildDir string) error {

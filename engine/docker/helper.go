@@ -174,15 +174,6 @@ func encodeAuthToBase64(authConfig coretypes.AuthConfig) (string, error) {
 	return base64.URLEncoding.EncodeToString(buf), nil
 }
 
-func getIP(daemonHost string) string {
-	u, err := url.Parse(daemonHost)
-	if err != nil {
-		log.Errorf("[getIP] GetIP %s failed %v", daemonHost, err)
-		return ""
-	}
-	return u.Hostname()
-}
-
 // Image tag
 // 格式严格按照 Hub/HubPrefix/appname:tag 来
 func createImageTag(config types.DockerConfig, appname, tag string) string {
@@ -238,8 +229,8 @@ func createDockerfile(dockerfile, buildDir string) error {
 	return err
 }
 
-// create tar stream
-func createTarStream(path string) (io.ReadCloser, error) {
+// CreateTarStream create a tar stream
+func CreateTarStream(path string) (io.ReadCloser, error) {
 	tarOpts := &archive.TarOptions{
 		ExcludePatterns: []string{},
 		IncludeFiles:    []string{"."},
@@ -251,4 +242,14 @@ func createTarStream(path string) (io.ReadCloser, error) {
 		return nil, err
 	}
 	return buildContext{path, tar}, nil
+}
+
+// GetIP Get hostIP
+func GetIP(daemonHost string) string {
+	u, err := url.Parse(daemonHost)
+	if err != nil {
+		log.Errorf("[GetIP] GetIP %s failed %v", daemonHost, err)
+		return ""
+	}
+	return u.Hostname()
 }
