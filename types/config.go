@@ -10,7 +10,6 @@ type Config struct {
 	Bind          string        `yaml:"bind"`           // HTTP API address
 	Statsd        string        `yaml:"statsd"`         // statsd host and port
 	Profile       string        `yaml:"profile"`        // profile ip:port
-	ImageCache    int           `yaml:"image_cache"`    // cache image count
 	LockTimeout   int           `yaml:"lock_timeout"`   // timeout for lock (ttl)
 	GlobalTimeout time.Duration `yaml:"global_timeout"` // timeout for remove, run_and_wait and build, in second
 	Auth          AuthConfig    `yaml:"auth"`           // grpc auth

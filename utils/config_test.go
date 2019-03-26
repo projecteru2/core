@@ -22,7 +22,6 @@ func TestLoadConfig(t *testing.T) {
 	f1 = `log_level: "DEBUG"
 bind: ":5001"
 statsd: "127.0.0.1:8125"
-image_cache: 2
 profile: ":12346"
 global_timeout: 300
 
