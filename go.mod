@@ -61,7 +61,7 @@ require (
 	go.uber.org/zap v1.7.1 // indirect
 	golang.org/x/net v0.0.0-20180826012351-8a410e7b638d
 	golang.org/x/sys v0.0.0-20181107165924-66b7b1311ac8 // indirect
-	golang.org/x/time v0.0.0-20170420181420-c06e80d9300e // indirect
+	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	google.golang.org/grpc v0.0.0-20181112213041-04ea82009cdb
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect

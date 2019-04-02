@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
+	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
-	networkmocks "github.com/projecteru2/core/network/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 )
@@ -25,15 +25,15 @@ func TestNetwork(t *testing.T) {
 	_, err := c.ListNetworks(ctx, "", "")
 	assert.Error(t, err)
 	// vaild
+	engine := &enginemocks.API{}
 	node := &types.Node{
 		Name:      "test",
 		Available: true,
+		Engine:    engine,
 	}
 	name := "test"
-	network := &networkmocks.Network{}
-	network.On("ListNetworks", mock.Anything, mock.Anything).Return([]*enginetypes.Network{{Name: name}}, nil)
+	engine.On("NetworkList", mock.Anything, mock.Anything).Return([]*enginetypes.Network{{Name: name}}, nil)
 	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return([]*types.Node{node}, nil)
-	c.network = network
 	ns, err := c.ListNetworks(ctx, "", "")
 	assert.NoError(t, err)
 	assert.Equal(t, len(ns), 1)

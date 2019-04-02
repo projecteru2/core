@@ -51,8 +51,9 @@ type ListContainersOptions struct {
 // ReplaceOptions for replace container
 type ReplaceOptions struct {
 	DeployOptions
-	Force        bool
-	FilterLabels map[string]string
-	Copy         map[string]string
-	IDs          []string
+	Force          bool
+	FilterLabels   map[string]string
+	Copy           map[string]string
+	IDs            []string
+	NetworkInherit bool
 }

@@ -4,8 +4,6 @@ import (
 	"strings"
 
 	"github.com/projecteru2/core/cluster"
-	"github.com/projecteru2/core/network"
-	"github.com/projecteru2/core/network/calico"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/scheduler/complex"
 	"github.com/projecteru2/core/source"
@@ -21,7 +19,6 @@ type Calcium struct {
 	config    types.Config
 	store     store.Store
 	scheduler scheduler.Scheduler
-	network   network.Network
 	source    source.Source
 }
 
@@ -39,9 +36,6 @@ func New(config types.Config) (*Calcium, error) {
 		return nil, err
 	}
 
-	// set network
-	titanium := calico.New()
-
 	// set scm
 	var scm source.Source
 	scmtype := strings.ToLower(config.Git.SCMType)
@@ -54,5 +48,5 @@ func New(config types.Config) (*Calcium, error) {
 		return nil, types.NewDetailedErr(types.ErrBadSCMType, scmtype)
 	}
 
-	return &Calcium{store: store, config: config, scheduler: scheduler, network: titanium, source: scm}, nil
+	return &Calcium{store: store, config: config, scheduler: scheduler, source: scm}, nil
 }

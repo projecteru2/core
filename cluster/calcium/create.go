@@ -195,20 +195,6 @@ func (c *Calcium) doCreateAndStartContainer(
 		return createContainerMessage
 	}
 
-	// connect virtualizaion to network
-	// if network manager uses plugin, then connect must be called before container starts
-	// 如果有 networks 的配置，这里的 networkMode 就为 none 了
-//	if len(opts.Networks) > 0 {
-//		ctx := utils.ContextWithDockerEngine(ctx, node.Engine)
-//		// need to ensure all networks are correctly connected
-//		for networkID, ipv4 := range opts.Networks {
-//			if err = c.network.ConnectToNetwork(ctx, containerCreated.ID, networkID, ipv4); err != nil {
-//				createContainerMessage.Error = err
-//				return createContainerMessage
-//			}
-//		}
-//	}
-
 	// Copy data to container
 	if len(opts.Data) > 0 {
 		for dst, src := range opts.Data {

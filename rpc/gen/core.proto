@@ -298,6 +298,7 @@ message ReplaceOptions {
     map<string, string> filter_labels = 3;
     map<string, string> copy = 4;
     repeated string ids = 5;
+    bool networkinherit = 6;
 }
 
 message CacheImageOptions {

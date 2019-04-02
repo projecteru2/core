@@ -132,11 +132,12 @@ func toCoreReplaceOptions(r *pb.ReplaceOptions) (*types.ReplaceOptions, error) {
 	deployOpts, err := toCoreDeployOptions(r.DeployOpt)
 
 	replaceOpts := &types.ReplaceOptions{
-		DeployOptions: *deployOpts,
-		Force:         r.Force,
-		FilterLabels:  r.FilterLabels,
-		Copy:          r.Copy,
-		IDs:           r.Ids,
+		DeployOptions:  *deployOpts,
+		Force:          r.Force,
+		FilterLabels:   r.FilterLabels,
+		Copy:           r.Copy,
+		IDs:            r.Ids,
+		NetworkInherit: r.Networkinherit,
 	}
 
 	return replaceOpts, err

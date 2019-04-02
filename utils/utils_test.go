@@ -3,7 +3,6 @@ package utils
 import (
 	"archive/tar"
 	"bytes"
-	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/projecteru2/core/cluster"
-	enginemocks "github.com/projecteru2/core/engine/mocks"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -64,15 +62,6 @@ func TestNormalizeImageName(t *testing.T) {
 	assert.Equal(t, i, "image:latest")
 	i = NormalizeImageName("image:1")
 	assert.Equal(t, i, "image:1")
-}
-
-func TestGetDockerEngineFromContext(t *testing.T) {
-	ctx := context.Background()
-	engine := &enginemocks.API{}
-	ctx = ContextWithDockerEngine(ctx, engine)
-	client, ok := GetDockerEngineFromContext(ctx)
-	assert.Equal(t, ok, true)
-	assert.Equal(t, client, engine)
 }
 
 func TestMakeCommandLine(t *testing.T) {

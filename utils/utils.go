@@ -2,7 +2,6 @@ package utils
 
 import (
 	"archive/tar"
-	"context"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
@@ -14,7 +13,6 @@ import (
 	"strings"
 
 	"github.com/projecteru2/core/cluster"
-	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -81,19 +79,6 @@ func NormalizeImageName(image string) string {
 		return fmt.Sprintf("%s:latest", image)
 	}
 	return image
-}
-
-// ContextWithDockerEngine bind engine to context
-// Bind a engine client to context
-func ContextWithDockerEngine(ctx context.Context, client engine.API) context.Context {
-	return context.WithValue(ctx, engineKey, client)
-}
-
-// GetDockerEngineFromContext get engine from context
-// Get a engine client from a context
-func GetDockerEngineFromContext(ctx context.Context) (engine.API, bool) {
-	client, ok := ctx.Value(engineKey).(engine.API)
-	return client, ok
 }
 
 // MakeCommandLineArgs make command line args

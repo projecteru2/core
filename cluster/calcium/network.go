@@ -5,7 +5,6 @@ import (
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
 // ListNetworks by podname
@@ -24,5 +23,5 @@ func (c *Calcium) ListNetworks(ctx context.Context, podname string, driver strin
 	}
 
 	node := nodes[0]
-	return c.network.ListNetworks(utils.ContextWithDockerEngine(ctx, node.Engine), driver)
+	return node.Engine.NetworkList(ctx, []string{driver})
 }

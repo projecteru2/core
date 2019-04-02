@@ -91,17 +91,16 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		hostConfig.PortBindings = portMapping
 		config.ExposedPorts = exposePorts
 	}
-	
-	networkConfig := &dockernetwork.NetworkingConfig{}
-	if len(opts.Networks) > 0 {
-		networkConfig.EndpointsConfig = map[string]*dockernetwork.EndpointSettings{}
-		for networkID, ipv4 := range opts.Networks {
-			networkConfig.EndpointsConfig[networkID] = &dockernetwork.EndpointSettings {
-				IPAMConfig: &dockernetwork.EndpointIPAMConfig {
-					IPv4Address: ipv4,
-				},
-			}
+
+	networkConfig := &dockernetwork.NetworkingConfig{
+		EndpointsConfig: map[string]*dockernetwork.EndpointSettings{},
+	}
+	for networkID, ipv4 := range opts.Networks {
+		endpointSetting, err := e.makeIPV4EndpointSetting(ipv4)
+		if err != nil {
+			return r, err
 		}
+		networkConfig.EndpointsConfig[networkID] = endpointSetting
 	}
 
 	containerCreated, err := e.client.ContainerCreate(ctx, config, hostConfig, networkConfig, opts.Name)
@@ -147,15 +146,13 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 	r.Env = containerJSON.Config.Env
 	r.Labels = containerJSON.Config.Labels
 	r.Running = containerJSON.State.Running
-	if containerJSON.NetworkSettings != nil {
-		r.Networks = map[string]string{}
-		for networkName, networkSetting := range containerJSON.NetworkSettings.Networks {
-			ip := networkSetting.IPAddress
-			if dockercontainer.NetworkMode(networkName).IsHost() {
-				ip = GetIP(e.client.DaemonHost())
-			}
-			r.Networks[networkName] = ip
+	r.Networks = map[string]string{}
+	for networkName, networkSetting := range containerJSON.NetworkSettings.Networks {
+		ip := networkSetting.IPAddress
+		if dockercontainer.NetworkMode(networkName).IsHost() {
+			ip = GetIP(e.client.DaemonHost())
 		}
+		r.Networks[networkName] = ip
 	}
 	return r, nil
 }

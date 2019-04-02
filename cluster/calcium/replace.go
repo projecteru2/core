@@ -37,7 +37,6 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 			if err != nil {
 				log.Errorf("[ReplaceContainer] Get container %s failed %v", ID, err)
 				continue
-
 			}
 			if opts.Podname != "" && container.Podname != opts.Podname {
 				log.Warnf("[ReplaceContainer] Skip not in pod container %s", container.ID)
@@ -58,6 +57,11 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 				replaceOpts.SoftLimit = container.SoftLimit
 				// 覆盖 podname 如果做全量更新的话
 				replaceOpts.Podname = container.Podname
+				// 继承网络配置
+				if replaceOpts.NetworkInherit {
+					replaceOpts.NetworkMode = ""
+					replaceOpts.Networks = containerJSON.Networks
+				}
 
 				createMessage, removeMessage, err := c.doReplaceContainer(
 					ctx, container, containerJSON, &replaceOpts, index,
