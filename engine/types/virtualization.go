@@ -39,6 +39,7 @@ type VirtualizationCreateOptions struct {
 	RestartRetryCount int
 
 	Network         string
+	Networks        map[string]string
 	NetworkDisabled bool
 
 	Binds   []string
