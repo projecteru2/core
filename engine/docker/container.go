@@ -91,8 +91,20 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		hostConfig.PortBindings = portMapping
 		config.ExposedPorts = exposePorts
 	}
+	
+	networkConfig := &dockernetwork.NetworkingConfig{}
+	if len(opts.Networks) > 0 {
+		networkConfig.EndpointsConfig = map[string]*dockernetwork.EndpointSettings{}
+		for networkID, ipv4 := range opts.Networks {
+			networkConfig.EndpointsConfig[networkID] = &dockernetwork.EndpointSettings {
+				IPAMConfig: &dockernetwork.EndpointIPAMConfig {
+					IPv4Address: ipv4,
+				},
+			}
+		}
+	}
 
-	containerCreated, err := e.client.ContainerCreate(ctx, config, hostConfig, &dockernetwork.NetworkingConfig{}, opts.Name)
+	containerCreated, err := e.client.ContainerCreate(ctx, config, hostConfig, networkConfig, opts.Name)
 	r.Name = opts.Name
 	r.ID = containerCreated.ID
 	return r, err
