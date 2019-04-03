@@ -170,7 +170,6 @@ func (m *Mercury) WatchDeployStatus(ctx context.Context, appname, entrypoint, no
 				}
 				return
 			}
-			log.Debugf("[WatchDeployStatus] recv %d events", len(resp.Events))
 			for _, ev := range resp.Events {
 				appname, entrypoint, nodename, id := parseStatusKey(string(ev.Kv.Key))
 				msg.Data = string(ev.Kv.Value)
@@ -179,6 +178,10 @@ func (m *Mercury) WatchDeployStatus(ctx context.Context, appname, entrypoint, no
 				msg.Entrypoint = entrypoint
 				msg.Nodename = nodename
 				msg.ID = id
+				log.Debugf("[WatchDeployStatus] app %s_%s event, id %s, action %s", appname, entrypoint, utils.ShortID(msg.ID), msg.Action)
+				if msg.Data != "" {
+					log.Debugf("[WatchDeployStatus] data %s", msg.Data)
+				}
 				ch <- msg
 			}
 		}
