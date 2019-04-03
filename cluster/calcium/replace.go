@@ -59,6 +59,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 				replaceOpts.Podname = container.Podname
 				// 继承网络配置
 				if replaceOpts.NetworkInherit {
+					log.Infof("[ReplaceContainer] Inherit old container network configuration mode %v", containerJSON.Networks)
 					replaceOpts.NetworkMode = ""
 					replaceOpts.Networks = containerJSON.Networks
 				}

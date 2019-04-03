@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sanity-io/litter"
-
 	"github.com/projecteru2/core/store"
 
 	"github.com/coreos/etcd/clientv3"
@@ -163,8 +161,7 @@ func (m *Mercury) UpdateNode(ctx context.Context, node *types.Node) error {
 	}
 
 	value := string(bytes)
-	log.Debug("[UpdateNode] New node info:")
-	litter.Dump(node)
+	log.Debugf("[UpdateNode] pod %s node %s cpu slots %v mem %v", node.Podname, node.Name, node.CPU, node.MemCap)
 	_, err = m.Put(ctx, key, value)
 	return err
 }

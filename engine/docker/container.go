@@ -6,9 +6,10 @@ import (
 	"io"
 	"io/ioutil"
 
+	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
 
-	"github.com/docker/go-connections/nat"
+	log "github.com/sirupsen/logrus"
 
 	dockertypes "github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
@@ -100,7 +101,12 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		if err != nil {
 			return r, err
 		}
+		ipForShow := ipv4
+		if ipForShow == "" {
+			ipForShow = "[AutoAlloc]"
+		}
 		networkConfig.EndpointsConfig[networkID] = endpointSetting
+		log.Infof("[ConnectToNetwork] Connect to %v with IP %v", networkID, ipForShow)
 	}
 
 	containerCreated, err := e.client.ContainerCreate(ctx, config, hostConfig, networkConfig, opts.Name)

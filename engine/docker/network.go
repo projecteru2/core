@@ -10,7 +10,6 @@ import (
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coretypes "github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
 )
 
 func (e *Engine) makeIPV4EndpointSetting(ipv4 string) (*dockernetwork.EndpointSettings, error) {
@@ -35,11 +34,6 @@ func (e *Engine) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6
 	if err != nil {
 		return err
 	}
-	ipForShow := ipv4
-	if ipForShow == "" {
-		ipForShow = "[AutoAlloc]"
-	}
-	log.Infof("[ConnectToNetwork] Connect %v to %v with IP %v", target, network, ipForShow)
 	return e.client.NetworkConnect(ctx, network, target, config)
 }
 
