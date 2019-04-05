@@ -22,6 +22,11 @@ func (c *Calcium) ListNetworks(ctx context.Context, podname string, driver strin
 		return networks, types.NewDetailedErr(types.ErrPodNoNodes, podname)
 	}
 
+	drivers := []string{}
+	if driver != "" {
+		drivers = append(drivers, driver)
+	}
+
 	node := nodes[0]
-	return node.Engine.NetworkList(ctx, []string{driver})
+	return node.Engine.NetworkList(ctx, drivers)
 }
