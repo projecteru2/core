@@ -12,6 +12,9 @@ import (
 // RemoveImage remove images
 func (c *Calcium) RemoveImage(ctx context.Context, podname, nodename string, images []string, step int, prune bool) (chan *types.RemoveImageMessage, error) {
 	ch := make(chan *types.RemoveImageMessage)
+	if step < 1 {
+		step = 1
+	}
 
 	var err error
 	nodes := []*types.Node{}
