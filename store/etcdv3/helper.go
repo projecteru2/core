@@ -6,6 +6,7 @@ import (
 
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/docker"
+	"github.com/projecteru2/core/engine/virt"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
@@ -46,6 +47,11 @@ func makeDockerClient(config types.Config, endpoint, apiversion string) (engine.
 // we don't check whether this is connectable
 func makeDockerClientWithTLS(config types.Config, ca, cert, key *os.File, endpoint, apiversion string) (engine.API, error) {
 	return docker.MakeRawClientWithTLS(config, ca, cert, key, endpoint, apiversion)
+}
+
+func makeVirtClient(config types.Config, endpoint, apiversion string) (engine.API, error) {
+	host := endpoint[len(nodeVirtPrefixKey):]
+	return virt.MakeClient(config, host, apiversion)
 }
 
 func parseStatusKey(key string) (string, string, string, string) {

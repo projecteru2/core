@@ -18,6 +18,7 @@ type Config struct {
 	Etcd      EtcdConfig   `yaml:"etcd"`
 	Docker    DockerConfig `yaml:"docker"`
 	Scheduler SchedConfig  `yaml:"scheduler"`
+	Virt      VirtConfig   `yaml:"virt"`
 }
 
 // EtcdConfig holds eru-core etcd config
@@ -46,6 +47,11 @@ type DockerConfig struct {
 	UseLocalDNS bool                  `yaml:"local_dns"`    // use node IP as dns
 	Log         LogConfig             `yaml:"log"`          // docker log driver
 	AuthConfigs map[string]AuthConfig `yaml:"auths"`        // docker registry credentials
+}
+
+// VirtConfig holds yavirtd config
+type VirtConfig struct {
+	APIVersion string `yaml:"version"` // Yavirtd API version
 }
 
 // LogConfig define log type
