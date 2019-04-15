@@ -22,13 +22,13 @@ import (
 // storage path in etcd is `/pod/nodes/:podname/:nodename`
 // node->pod path in etcd is `/node/pod/:nodename`
 func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string) (*types.Node, error) {
-	// TODO VM branch
 	if !strings.HasPrefix(endpoint, nodeTCPPrefixKey) &&
 		!strings.HasPrefix(endpoint, nodeSockPrefixKey) &&
-		!strings.HasPrefix(endpoint, nodeMockPrefixKey) {
+		!strings.HasPrefix(endpoint, nodeMockPrefixKey) &&
+		!strings.HasPrefix(endpoint, nodeVirtPrefixKey) {
 		return nil, types.NewDetailedErr(types.ErrNodeFormat,
-			fmt.Sprintf("endpoint must starts with %s or %s %q",
-				nodeTCPPrefixKey, nodeSockPrefixKey, endpoint))
+			fmt.Sprintf("endpoint must starts with %s, %s or %s %q",
+				nodeTCPPrefixKey, nodeSockPrefixKey, nodeVirtPrefixKey, endpoint))
 	}
 
 	_, err := m.GetPod(ctx, podname)
@@ -218,11 +218,11 @@ func (m *Mercury) makeClient(ctx context.Context, podname, nodename, endpoint st
 }
 
 func (m *Mercury) doMakeClient(ctx context.Context, nodename, endpoint, ca, cert, key string) (engine.API, error) {
-	// TODO VM branch
-	// like HasPrefix(endpoint,  nodeVMPrefix)
-	// do connect to VM agent
 	if strings.HasPrefix(endpoint, nodeMockPrefixKey) {
 		return makeMockClient()
+	}
+	if strings.HasPrefix(endpoint, nodeVirtPrefixKey) {
+		return makeVirtClient(m.config, endpoint, m.config.Virt.APIVersion)
 	}
 	if strings.HasPrefix(endpoint, nodeSockPrefixKey) ||
 		m.config.Docker.CertPath == "" ||

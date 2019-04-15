@@ -22,6 +22,7 @@ const (
 	nodeTCPPrefixKey  = "tcp://"
 	nodeSockPrefixKey = "unix://"
 	nodeMockPrefixKey = "mock://"
+	nodeVirtPrefixKey = "virt://"
 
 	podInfoKey  = "/pod/info/%s"     // /pod/info/{podname}
 	podNodesKey = "/pod/%s:nodes"    // /pod/{podname}:nodes -> for list pod nodes

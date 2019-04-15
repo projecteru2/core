@@ -36,3 +36,6 @@ docker:
 scheduler:
     maxshare: -1
     sharebase: 100
+
+virt:
+    version: "v1"
