@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/mvcc/mvccpb"
@@ -19,19 +20,19 @@ const (
 	nodeSockPrefixKey = "unix://"
 	nodeMockPrefixKey = "mock://"
 
-	podInfoKey  = "/pod/info/%s"
-	podNodesKey = "/pod/nodes/%s"    // /pod/nodes/pod1/node1 /pod/nodes/pod1/node2
-	nodeInfoKey = "/pod/nodes/%s/%s" // /pod/nodes/pod1/node1 -> info
+	podInfoKey  = "/pod/info/%s"     // /pod/info/{podname}
+	podNodesKey = "/pod/%s:nodes"    // /pod/{podname}:nodes -> for list pod nodes
+	nodeInfoKey = "/pod/%s:nodes/%s" // /pod/{podname}:nodes/{nodenmae} -> for node info
 
-	nodeCaKey         = "/node/ca/%s"
-	nodeCertKey       = "/node/cert/%s"
-	nodeKeyKey        = "/node/key/%s"
-	nodePodKey        = "/node/pod/%s"           // /node/pod/node1 value -> podname
-	nodeContainersKey = "/node/containers/%s/%s" // /node/containers/n1/[64]
+	nodeCaKey         = "/node/%s:ca"            // /node/{nodename}:ca
+	nodeCertKey       = "/node/%s:cert"          // /node/{nodename}:cert
+	nodeKeyKey        = "/node/%s:key"           // /node/{nodename}:key
+	nodePodKey        = "/node/%s:pod"           // /node/{nodename}:pod value -> podname
+	nodeContainersKey = "/node/%s:containers/%s" // /node/{nodename}:containers/{containerID}
 
-	containerInfoKey          = "/containers/%s" // /containers/[64]
-	containerDeployPrefix     = "/deploy"        // /deploy/app1/entry1/node1/[64] value -> something by agent
-	containerProcessingPrefix = "/processing"    // /processing/app1/entry1/node1/optsident value -> count
+	containerInfoKey          = "/containers/%s" // /containers/{containerID}
+	containerDeployPrefix     = "/deploy"        // /deploy/{appname}/{entrypoint}/{nodename}/{containerID} value -> something by agent
+	containerProcessingPrefix = "/processing"    // /processing/{appname}/{entrypoint}/{nodename}/{opsIdent} value -> count
 )
 
 // Mercury means store with etcdv3
@@ -164,8 +165,11 @@ func (m *Mercury) Watch(ctx context.Context, key string, opts ...clientv3.OpOpti
 }
 
 func (m *Mercury) parseKey(key string) string {
-	key = filepath.Join(m.config.Etcd.Prefix, key)
-	return key
+	after := filepath.Join(m.config.Etcd.Prefix, key)
+	if strings.HasSuffix(key, "/") {
+		after = after + "/"
+	}
+	return after
 }
 
 var _cache = &utils.Cache{Clients: make(map[string]engine.API)}

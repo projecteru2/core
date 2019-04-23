@@ -19,3 +19,4 @@ set*
 test.yaml
 local.yaml
 tools/update
+tools/fix.go
