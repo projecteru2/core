@@ -5,13 +5,14 @@ import (
 
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/scheduler"
-	"github.com/projecteru2/core/scheduler/complex"
+	complexscheduler "github.com/projecteru2/core/scheduler/complex"
 	"github.com/projecteru2/core/source"
 	"github.com/projecteru2/core/source/github"
 	"github.com/projecteru2/core/source/gitlab"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/store/etcdv3"
 	"github.com/projecteru2/core/types"
+	log "github.com/sirupsen/logrus"
 )
 
 //Calcium implement the cluster
@@ -45,7 +46,8 @@ func New(config types.Config) (*Calcium, error) {
 	case cluster.Github:
 		scm = github.New(config)
 	default:
-		return nil, types.NewDetailedErr(types.ErrBadSCMType, scmtype)
+		log.Warn("[Calcium] SCM not set, build API disable")
+		// return nil, types.NewDetailedErr(types.ErrBadSCMType, scmtype)
 	}
 
 	return &Calcium{store: store, config: config, scheduler: scheduler, source: scm}, nil
