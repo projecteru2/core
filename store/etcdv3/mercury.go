@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"testing"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/integration"
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/lock"
@@ -44,14 +42,10 @@ type Mercury struct {
 }
 
 // New for create a Mercury instance
-func New(config types.Config, embeddedStorage bool) (*Mercury, error) {
+func New(config types.Config) (*Mercury, error) {
 	var cliv3 *clientv3.Client
 	var err error
-	if embeddedStorage {
-		t := &testing.T{}
-		embeddedCluster := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
-		cliv3 = embeddedCluster.RandClient()
-	} else if cliv3, err = clientv3.New(clientv3.Config{Endpoints: config.Etcd.Machines}); err != nil {
+	if cliv3, err = clientv3.New(clientv3.Config{Endpoints: config.Etcd.Machines}); err != nil {
 		return nil, err
 	}
 	return &Mercury{cliv3: cliv3, config: config}, nil

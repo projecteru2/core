@@ -36,7 +36,8 @@ func (m *Mercury) DeleteProcessing(ctx context.Context, opts *types.DeployOption
 }
 
 func (m *Mercury) doLoadProcessing(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
-	processingKey := filepath.Join(containerProcessingPrefix, opts.Name, opts.Entrypoint.Name)
+	// 显式的加 / 保证 prefix 一致性
+	processingKey := filepath.Join(containerProcessingPrefix, opts.Name, opts.Entrypoint.Name) + "/"
 	resp, err := m.Get(ctx, processingKey, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
