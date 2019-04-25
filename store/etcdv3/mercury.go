@@ -45,16 +45,15 @@ type Mercury struct {
 
 // New for create a Mercury instance
 func New(config types.Config, embeddedStorage bool) (*Mercury, error) {
-	if !embeddedStorage {
-		cliv3, err := clientv3.New(clientv3.Config{Endpoints: config.Etcd.Machines})
-		if err != nil {
-			return nil, err
-		}
-		return &Mercury{cliv3: cliv3, config: config}, nil
+	var cliv3 *clientv3.Client
+	var err error
+	if embeddedStorage {
+		t := &testing.T{}
+		embeddedCluster := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
+		cliv3 = embeddedCluster.RandClient()
+	} else if cliv3, err = clientv3.New(clientv3.Config{Endpoints: config.Etcd.Machines}); err != nil {
+		return nil, err
 	}
-	t := &testing.T{}
-	embeddedCluster := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
-	cliv3 := embeddedCluster.RandClient()
 	return &Mercury{cliv3: cliv3, config: config}, nil
 }
 
