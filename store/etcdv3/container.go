@@ -110,7 +110,8 @@ func (m *Mercury) ListContainers(ctx context.Context, appname, entrypoint, noden
 	if entrypoint == "" {
 		nodename = ""
 	}
-	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename)
+	// 这里显式加个 / 来保证 prefix 是唯一的
+	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename) + "/"
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix())
 	if err != nil {
 		return []*types.Container{}, err
@@ -157,7 +158,8 @@ func (m *Mercury) WatchDeployStatus(ctx context.Context, appname, entrypoint, no
 	if entrypoint == "" {
 		nodename = ""
 	}
-	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename)
+	// 显式加个 / 保证 prefix 唯一
+	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename) + "/"
 	ch := make(chan *types.DeployStatus)
 	go func() {
 		defer close(ch)
