@@ -40,8 +40,6 @@ func NewTestCluster() *Calcium {
 }
 
 func TestNewCluster(t *testing.T) {
-	_, err := New(types.Config{}, false)
+	_, err := New(types.Config{})
 	assert.Error(t, err)
-	_, err = New(types.Config{}, true)
-	assert.NoError(t, err)
 }
