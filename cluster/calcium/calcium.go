@@ -24,9 +24,9 @@ type Calcium struct {
 }
 
 // New returns a new cluster config
-func New(config types.Config) (*Calcium, error) {
+func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 	// set store
-	store, err := etcdv3.New(config)
+	store, err := etcdv3.New(config, embeddedStorage)
 	if err != nil {
 		return nil, err
 	}

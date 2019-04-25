@@ -14,7 +14,7 @@ import (
 	"github.com/projecteru2/core/cluster/calcium"
 	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/rpc"
-	"github.com/projecteru2/core/rpc/gen"
+	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/versioninfo"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -22,7 +22,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-var configPath string
+var (
+	configPath      string
+	embeddedStorage bool
+)
 
 func setupLog(l string) error {
 	level, err := log.ParseLevel(l)
@@ -61,7 +64,7 @@ func serve() {
 		log.Fatalf("[main] %v", err)
 	}
 
-	cluster, err := calcium.New(config)
+	cluster, err := calcium.New(config, embeddedStorage)
 	if err != nil {
 		log.Fatalf("[main] %v", err)
 	}
@@ -123,6 +126,11 @@ func main() {
 			Usage:       "config file path for core, in yaml",
 			Destination: &configPath,
 			EnvVar:      "ERU_CONFIG_PATH",
+		},
+		cli.BoolFlag{
+			Name:        "embedded-storage",
+			Usage:       "active embedded storage",
+			Destination: &embeddedStorage,
 		},
 	}
 	app.Action = func(c *cli.Context) error {
