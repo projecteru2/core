@@ -24,9 +24,9 @@ type Calcium struct {
 }
 
 // New returns a new cluster config
-func New(config types.Config) (*Calcium, error) {
+func New(config types.Config, embededStorage bool) (*Calcium, error) {
 	// set store
-	store, err := etcdv3.New(config)
+	store, err := etcdv3.New(config, embededStorage)
 	if err != nil {
 		return nil, err
 	}
@@ -47,8 +47,12 @@ func New(config types.Config) (*Calcium, error) {
 		scm = github.New(config)
 	default:
 		log.Warn("[Calcium] SCM not set, build API disable")
-		// return nil, types.NewDetailedErr(types.ErrBadSCMType, scmtype)
 	}
 
 	return &Calcium{store: store, config: config, scheduler: scheduler, source: scm}, nil
+}
+
+// Finalizer use for defer
+func (c *Calcium) Finalizer() {
+	c.store.TerminateEmbededStorage()
 }

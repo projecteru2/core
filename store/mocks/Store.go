@@ -438,6 +438,11 @@ func (_m *Store) SaveProcessing(ctx context.Context, opts *types.DeployOptions, 
 	return r0
 }
 
+// TerminateEmbededStorage provides a mock function with given fields:
+func (_m *Store) TerminateEmbededStorage() {
+	_m.Called()
+}
+
 // UpdateContainer provides a mock function with given fields: ctx, container
 func (_m *Store) UpdateContainer(ctx context.Context, container *types.Container) error {
 	ret := _m.Called(ctx, container)

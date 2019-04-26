@@ -13,6 +13,10 @@ import (
 
 // BuildImage will build image
 func (c *Calcium) BuildImage(ctx context.Context, opts *enginetypes.BuildOptions) (chan *types.BuildImageMessage, error) {
+	// Disable build API if scm not set
+	if c.source == nil {
+		return nil, types.ErrSCMNotSet
+	}
 	// select nodes
 	node, err := c.selectBuildNode(ctx)
 	if err != nil {

@@ -6,11 +6,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/lock/etcdlock"
+	"github.com/projecteru2/core/store/etcdv3/embeded"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -42,13 +45,21 @@ type Mercury struct {
 }
 
 // New for create a Mercury instance
-func New(config types.Config) (*Mercury, error) {
+func New(config types.Config, embededStorage bool) (*Mercury, error) {
 	var cliv3 *clientv3.Client
 	var err error
-	if cliv3, err = clientv3.New(clientv3.Config{Endpoints: config.Etcd.Machines}); err != nil {
+	if embededStorage {
+		cliv3 = embeded.NewCluster()
+		log.Info("[Mercury] use embeded cluster")
+	} else if cliv3, err = clientv3.New(clientv3.Config{Endpoints: config.Etcd.Machines}); err != nil {
 		return nil, err
 	}
 	return &Mercury{cliv3: cliv3, config: config}, nil
+}
+
+// TerminateEmbededStorage terminate embeded storage
+func (m *Mercury) TerminateEmbededStorage() {
+	embeded.TerminateCluster()
 }
 
 // CreateLock create a lock instance

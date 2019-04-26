@@ -63,7 +63,6 @@ type Cluster interface {
 	// used by agent
 	GetNodeByName(ctx context.Context, nodename string) (*types.Node, error)
 	ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename, data string) error
-
 	// cluster methods
 	PodResource(ctx context.Context, podname string) (*types.PodResource, error)
 	ControlContainer(ctx context.Context, IDs []string, t string) (chan *types.ControlContainerMessage, error)
@@ -79,4 +78,6 @@ type Cluster interface {
 	ReallocResource(ctx context.Context, IDs []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error)
 	RemoveContainer(ctx context.Context, IDs []string, force bool) (chan *types.RemoveContainerMessage, error)
 	ReplaceContainer(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceContainerMessage, error)
+	// finalizer
+	Finalizer()
 }

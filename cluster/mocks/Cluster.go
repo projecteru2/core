@@ -59,8 +59,8 @@ func (_m *Cluster) AddPod(ctx context.Context, podname string, favor string, des
 	return r0, r1
 }
 
-// BuildDocker provides a mock function with given fields: ctx, opts
-func (_m *Cluster) BuildDocker(ctx context.Context, opts *enginetypes.BuildOptions) (chan *types.BuildImageMessage, error) {
+// BuildImage provides a mock function with given fields: ctx, opts
+func (_m *Cluster) BuildImage(ctx context.Context, opts *enginetypes.BuildOptions) (chan *types.BuildImageMessage, error) {
 	ret := _m.Called(ctx, opts)
 
 	var r0 chan *types.BuildImageMessage
@@ -75,6 +75,29 @@ func (_m *Cluster) BuildDocker(ctx context.Context, opts *enginetypes.BuildOptio
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *enginetypes.BuildOptions) error); ok {
 		r1 = rf(ctx, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// CacheImage provides a mock function with given fields: ctx, podname, nodenmae, images, step
+func (_m *Cluster) CacheImage(ctx context.Context, podname string, nodenmae string, images []string, step int) (chan *types.CacheImageMessage, error) {
+	ret := _m.Called(ctx, podname, nodenmae, images, step)
+
+	var r0 chan *types.CacheImageMessage
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, []string, int) chan *types.CacheImageMessage); ok {
+		r0 = rf(ctx, podname, nodenmae, images, step)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(chan *types.CacheImageMessage)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, []string, int) error); ok {
+		r1 = rf(ctx, podname, nodenmae, images, step)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -179,6 +202,11 @@ func (_m *Cluster) DeployStatusStream(ctx context.Context, appname string, entry
 	}
 
 	return r0
+}
+
+// Finalizer provides a mock function with given fields:
+func (_m *Cluster) Finalizer() {
+	_m.Called()
 }
 
 // GetContainer provides a mock function with given fields: ctx, ID
@@ -480,13 +508,13 @@ func (_m *Cluster) RemoveContainer(ctx context.Context, IDs []string, force bool
 	return r0, r1
 }
 
-// RemoveImage provides a mock function with given fields: ctx, podname, nodename, images, prune
-func (_m *Cluster) RemoveImage(ctx context.Context, podname string, nodename string, images []string, prune bool) (chan *types.RemoveImageMessage, error) {
-	ret := _m.Called(ctx, podname, nodename, images, prune)
+// RemoveImage provides a mock function with given fields: ctx, podname, nodename, images, step, prune
+func (_m *Cluster) RemoveImage(ctx context.Context, podname string, nodename string, images []string, step int, prune bool) (chan *types.RemoveImageMessage, error) {
+	ret := _m.Called(ctx, podname, nodename, images, step, prune)
 
 	var r0 chan *types.RemoveImageMessage
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, []string, bool) chan *types.RemoveImageMessage); ok {
-		r0 = rf(ctx, podname, nodename, images, prune)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, []string, int, bool) chan *types.RemoveImageMessage); ok {
+		r0 = rf(ctx, podname, nodename, images, step, prune)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(chan *types.RemoveImageMessage)
@@ -494,8 +522,8 @@ func (_m *Cluster) RemoveImage(ctx context.Context, podname string, nodename str
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, []string, bool) error); ok {
-		r1 = rf(ctx, podname, nodename, images, prune)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, []string, int, bool) error); ok {
+		r1 = rf(ctx, podname, nodename, images, step, prune)
 	} else {
 		r1 = ret.Error(1)
 	}

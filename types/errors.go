@@ -62,6 +62,7 @@ var (
 	ErrKeyExists    = errors.New("Key exists")
 
 	ErrNotSupport = errors.New("Not Support")
+	ErrSCMNotSet  = errors.New("SCM not set")
 )
 
 // NewDetailedErr returns an error with details

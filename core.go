@@ -15,7 +15,6 @@ import (
 	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/rpc"
 	pb "github.com/projecteru2/core/rpc/gen"
-	"github.com/projecteru2/core/store/embeded"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/versioninfo"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -61,19 +60,15 @@ func serve() {
 		log.Fatalf("[main] %v", err)
 	}
 
-	if embeddedStorage {
-		config.Etcd.Machines = embeded.NewCluster()
-		log.Infof("[main] active embeded etcd cluster %v", config.Etcd.Machines)
-	}
-
 	if err := metrics.InitMetrics(config.Statsd); err != nil {
 		log.Fatalf("[main] %v", err)
 	}
 
-	cluster, err := calcium.New(config)
+	cluster, err := calcium.New(config, embeddedStorage)
 	if err != nil {
 		log.Fatalf("[main] %v", err)
 	}
+	defer cluster.Finalizer()
 
 	rpcch := make(chan struct{}, 1)
 	vibranium := rpc.New(cluster, config, rpcch)
@@ -114,10 +109,6 @@ func serve() {
 	log.Info("[main] Check if cluster still have running tasks.")
 	vibranium.Wait()
 	log.Info("[main] cluster gracefully stopped.")
-	if embeddedStorage {
-		embeded.TerminateCluster()
-		log.Info("[main] terminate embeded etcd cluster")
-	}
 }
 
 func main() {
