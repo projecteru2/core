@@ -328,18 +328,17 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, opts *t
 	suffix := utils.RandomString(6)
 	config.Name = utils.MakeContainerName(opts.Name, opts.Entrypoint.Name, suffix)
 
-	// network mode
 	// network mode 和 networks 互斥
 	// 没有 networks 的时候用 networkmode 的值
-	// 有 networks 的时候一律用 none 作为默认 mode
+	// 有 networks 的时候一律用用 networks 的值作为 mode
 	config.Network = opts.NetworkMode
 	config.Networks = opts.Networks
-	if len(opts.Networks) > 0 {
-		for name := range opts.Networks {
-			config.Network = name
-			break
-		}
-	} else if config.Network == "" {
+	for name := range opts.Networks {
+		config.Network = name
+		break
+	}
+	// 如果没有 network 用默认值替换
+	if config.Network == "" {
 		config.Network = c.config.Docker.NetworkMode
 	}
 

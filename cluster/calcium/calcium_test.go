@@ -44,4 +44,16 @@ func TestNewCluster(t *testing.T) {
 	assert.Error(t, err)
 	_, err = New(types.Config{}, true)
 	assert.NoError(t, err)
+	_, err = New(types.Config{Git: types.GitConfig{SCMType: "gitlab"}}, true)
+	assert.NoError(t, err)
+	_, err = New(types.Config{Git: types.GitConfig{SCMType: "github"}}, true)
+	assert.NoError(t, err)
+}
+
+func TestFinalizer(t *testing.T) {
+	c := NewTestCluster()
+	store := &storemocks.Store{}
+	c.store = store
+	store.On("TerminateEmbededStorage").Return(nil)
+	c.Finalizer()
 }

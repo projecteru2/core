@@ -54,8 +54,13 @@ func TestBuild(t *testing.T) {
 		User: "test",
 		Tags: []string{"tag1", "tag2"},
 	}
-	// failed by buildpod not set
+	// failed by no source
+	c.source = nil
 	_, err := c.BuildImage(ctx, opts)
+	assert.Error(t, err)
+	// failed by buildpod not set
+	c = NewTestCluster()
+	_, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	c.config.Docker.BuildPod = "test"
 	// failed by ListPodNodes failed
