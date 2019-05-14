@@ -3,8 +3,6 @@ package calcium
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"sync"
 
 	"github.com/projecteru2/core/cluster"
@@ -198,20 +196,10 @@ func (c *Calcium) doCreateAndStartContainer(
 	// Copy data to container
 	if len(opts.Data) > 0 {
 		for dst, src := range opts.Data {
-			path := filepath.Dir(dst)
-			filename := filepath.Base(dst)
-			log.Infof("[doCreateAndStartContainer] Copy file %s to dir %s", filename, path)
-			log.Debugf("[doCreateAndStartContainer] Local file %s, remote path %s", src, dst)
-			f, err := os.Open(src)
-			if err != nil {
+			if err := c.doSendFileToContainer(ctx, node.Engine, containerCreated.ID, dst, src, true, true); err != nil {
 				createContainerMessage.Error = err
 				return createContainerMessage
 			}
-			if err = node.Engine.VirtualizationCopyTo(ctx, containerCreated.ID, path, f, true, true); err != nil {
-				createContainerMessage.Error = err
-				return createContainerMessage
-			}
-			f.Close()
 		}
 	}
 

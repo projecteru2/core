@@ -274,6 +274,39 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 	return nil
 }
 
+// Send send files to some contaienrs
+func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) error {
+	v.taskAdd("Send", true)
+	defer v.taskDone("Send", true)
+
+	sendOpts, err := toCoreSendOptions(opts)
+	if err != nil {
+		return err
+	}
+	defer cleanTmpDataFile(sendOpts.Data)
+
+	ch, err := v.cluster.Send(stream.Context(), sendOpts)
+	if err != nil {
+		return err
+	}
+
+	for m := range ch {
+		msg := &pb.SendMessage{
+			Id:   m.ID,
+			Path: m.Path,
+		}
+
+		if m.Error != nil {
+			msg.Err = m.Error.Error()
+		}
+
+		if err := stream.Send(msg); err != nil {
+			v.logUnsentMessages("Send", m)
+		}
+	}
+	return nil
+}
+
 // BuildImage streamed returned functions
 func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_BuildImageServer) error {
 	v.taskAdd("BuildImage", true)
@@ -386,6 +419,8 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	if err != nil {
 		return err
 	}
+	defer cleanTmpDataFile(deployOpts.Data)
+
 	ch, err := v.cluster.RunAndWait(stream.Context(), deployOpts, stdinReader)
 	if err != nil {
 		// `ch` is nil now
@@ -421,7 +456,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		}
 	}
 
-	return cleanDeployOptionsDataFile(deployOpts)
+	return nil
 }
 
 // CreateContainer create containers
@@ -433,7 +468,9 @@ func (v *Vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 	if err != nil {
 		return nil
 	}
-	//这里考虑用全局 Background
+	defer cleanTmpDataFile(deployOpts.Data)
+
+	// 这里考虑用全局 Background
 	ch, err := v.cluster.CreateContainer(context.Background(), deployOpts)
 	if err != nil {
 		return err
@@ -445,7 +482,7 @@ func (v *Vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 		}
 	}
 
-	return cleanDeployOptionsDataFile(deployOpts)
+	return nil
 }
 
 // ReplaceContainer replace containers
@@ -457,8 +494,9 @@ func (v *Vibranium) ReplaceContainer(opts *pb.ReplaceOptions, stream pb.CoreRPC_
 	if err != nil {
 		return err
 	}
+	defer cleanTmpDataFile(replaceOpts.DeployOptions.Data)
 
-	//这里考虑用全局 Background
+	// 这里考虑用全局 Background
 	ch, err := v.cluster.ReplaceContainer(context.Background(), replaceOpts)
 	if err != nil {
 		return err
@@ -470,7 +508,7 @@ func (v *Vibranium) ReplaceContainer(opts *pb.ReplaceOptions, stream pb.CoreRPC_
 		}
 	}
 
-	return cleanDeployOptionsDataFile(&replaceOpts.DeployOptions)
+	return nil
 }
 
 // RemoveContainer remove containers

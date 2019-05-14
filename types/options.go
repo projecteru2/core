@@ -41,6 +41,12 @@ type CopyOptions struct {
 	Targets map[string][]string
 }
 
+// SendOptions for send files to multiple container
+type SendOptions struct {
+	IDs  []string
+	Data map[string]string
+}
+
 // ListContainersOptions for list containers
 type ListContainersOptions struct {
 	Appname    string

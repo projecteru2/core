@@ -37,6 +37,13 @@ type CopyMessage struct {
 	Data   io.ReadCloser `json:"-"`
 }
 
+// SendMessage for send message
+type SendMessage struct {
+	ID    string `json:"id,omitempty"`
+	Path  string `json:"path,omitempty"`
+	Error error  `json:"error,omitempty"`
+}
+
 // CacheImageMessage for cache image on pod
 type CacheImageMessage struct {
 	Image    string
