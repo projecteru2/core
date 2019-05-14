@@ -23,6 +23,7 @@ service CoreRPC {
     rpc ContainerDeployed(ContainerDeployedOptions) returns (Empty) {};
 
     rpc Copy(CopyOptions) returns (stream CopyMessage) {};
+    rpc Send(SendOptions) returns (stream SendMessage) {};
     rpc BuildImage(BuildImageOptions) returns (stream BuildImageMessage) {};
     rpc CacheImage(CacheImageOptions) returns (stream CacheImageMessage) {};
     rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage) {};
@@ -324,6 +325,11 @@ message CopyOptions {
     map<string, CopyPaths> targets = 1;
 }
 
+message SendOptions {
+    repeated string ids = 1;
+    map<string, bytes> data = 2;
+}
+
 message ErrorDetail {
     int64 code = 1;
     string message = 2;
@@ -388,12 +394,18 @@ message ReallocResourceMessage {
 }
 
 message CopyMessage {
-    string id =1;
+    string id = 1;
     string status = 2;
     string name = 3;
     string path = 4;
     string error = 5;
     bytes data = 6;
+}
+
+message SendMessage {
+    string id = 1;
+    string path = 2;
+    string err = 3;
 }
 
 message RunAndWaitOptions{

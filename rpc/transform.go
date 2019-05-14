@@ -89,6 +89,17 @@ func toCoreCopyOptions(b *pb.CopyOptions) *types.CopyOptions {
 	return r
 }
 
+func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) {
+	tarFiles, err := makeTempTarFiles(b.Data)
+	if err != nil {
+		return nil, err
+	}
+	return &types.SendOptions{
+		IDs:  b.Ids,
+		Data: tarFiles,
+	}, nil
+}
+
 func toCoreBuildOptions(b *pb.BuildImageOptions) (*enginetypes.BuildOptions, error) {
 	var builds *enginetypes.Builds
 	if b.Builds != nil {
@@ -181,16 +192,9 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		entry.Hook.Force = entrypoint.Hook.Force
 	}
 
-	tarFiles := map[string]string{}
-	for path, data := range d.Data {
-		fname, err := utils.TempTarFile(path, data)
-		if err != nil {
-			if fname != "" {
-				os.RemoveAll(fname)
-			}
-			return nil, err
-		}
-		tarFiles[path] = fname
+	tarFiles, err := makeTempTarFiles(d.Data)
+	if err != nil {
+		return nil, err
 	}
 
 	return &types.DeployOptions{
@@ -221,12 +225,12 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 	}, nil
 }
 
-func cleanDeployOptionsDataFile(opts *types.DeployOptions) error {
+func cleanTmpDataFile(data map[string]string) error {
 	var err error
-	for _, src := range opts.Data {
+	for _, src := range data {
 		err = os.RemoveAll(src)
 		if err != nil {
-			log.Errorf("[cleanDeployOptionsDataFile] clean temp files failed %v", err)
+			log.Errorf("[cleanTmpDataFile] clean temp files failed %v", err)
 		}
 	}
 	return err
@@ -366,4 +370,19 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		Inspect:    bytes,
 		StatusData: c.StatusData,
 	}, nil
+}
+
+func makeTempTarFiles(data map[string][]byte) (map[string]string, error) {
+	tarFiles := map[string]string{}
+	for path, data := range data {
+		fname, err := utils.TempTarFile(path, data)
+		if err != nil {
+			if fname != "" {
+				os.RemoveAll(fname)
+			}
+			return nil, err
+		}
+		tarFiles[path] = fname
+	}
+	return tarFiles, nil
 }

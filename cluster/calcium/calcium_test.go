@@ -42,11 +42,14 @@ func NewTestCluster() *Calcium {
 func TestNewCluster(t *testing.T) {
 	_, err := New(types.Config{}, false)
 	assert.Error(t, err)
-	_, err = New(types.Config{}, true)
+	c, err := New(types.Config{}, true)
 	assert.NoError(t, err)
-	_, err = New(types.Config{Git: types.GitConfig{SCMType: "gitlab"}}, true)
+	c.Finalizer()
+	c, err = New(types.Config{Git: types.GitConfig{SCMType: "gitlab"}}, true)
 	assert.NoError(t, err)
-	_, err = New(types.Config{Git: types.GitConfig{SCMType: "github"}}, true)
+	c.Finalizer()
+	c, err = New(types.Config{Git: types.GitConfig{SCMType: "github"}}, true)
+	c.Finalizer()
 	assert.NoError(t, err)
 }
 
