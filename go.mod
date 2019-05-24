@@ -45,7 +45,7 @@ require (
 	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/pkg/errors v0.0.0-20171210022416-8842a6e0cc59 // indirect
 	github.com/pquerna/ffjson v0.0.0-20181028064349-e517b90714f7 // indirect
-	github.com/projecteru2/yavirt v0.0.0-20190515024247-099e22b2da2b
+	github.com/projecteru2/yavirt v0.0.0-20190515024247-e6554cc44242
 	github.com/prometheus/client_golang v0.9.0-pre1
 	github.com/prometheus/client_model v0.0.0-20170216185247-6f3806018612 // indirect
 	github.com/prometheus/common v0.0.0-20171104095907-e3fb1a1acd76 // indirect

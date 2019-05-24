@@ -2,6 +2,7 @@ package virt
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -10,6 +11,7 @@ import (
 	virtapi "github.com/projecteru2/yavirt/api/client"
 	virtypes "github.com/projecteru2/yavirt/api/types"
 
+	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coresource "github.com/projecteru2/core/source"
 	coretypes "github.com/projecteru2/core/types"
@@ -38,8 +40,8 @@ func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {
 	}
 
 	return &enginetypes.Info{
-		ID: resp.ID,
-		NCPU: resp.Cpu,
+		ID:       resp.ID,
+		NCPU:     resp.Cpu,
 		MemTotal: resp.Mem,
 	}, nil
 }
@@ -93,8 +95,8 @@ func (v *Virt) BuildContent(ctx context.Context, scm coresource.Source, opts *en
 // VirtualizationCreate creates a guest.
 func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (guest *enginetypes.VirtualizationCreated, err error) {
 	req := virtypes.CreateGuestReq{
-		Cpu: int(opts.Quota),
-		Mem: opts.Memory,
+		Cpu:       int(opts.Quota),
+		Mem:       opts.Memory,
 		ImageName: opts.Image,
 	}
 
@@ -137,10 +139,17 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 		return nil, err
 	}
 
+	bytes, err := json.Marshal(coretypes.EruMeta{Publish: []string{"PORT"}})
+	if err != nil {
+		return nil, err
+	}
+
 	return &enginetypes.VirtualizationInfo{
-		ID: guest.ID,
-		Image: guest.ImageName,
-		Running: guest.Status == "running",
+		ID:       guest.ID,
+		Image:    guest.ImageName,
+		Running:  guest.Status == "running",
+		Networks: guest.Networks,
+		Labels:   map[string]string{cluster.ERUMeta: string(bytes)},
 	}, nil
 }
 
