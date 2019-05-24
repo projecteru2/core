@@ -23,6 +23,7 @@ require (
 	github.com/docker/go-units v0.3.3
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
+	github.com/go-check/check v0.0.0-20180628173108-788fd7840127 // indirect
 	github.com/gogo/protobuf v0.0.0-20171007142547-342cbe0a0415 // indirect
 	github.com/golang/groupcache v0.0.0-20160516000752-02826c3e7903 // indirect
 	github.com/golang/protobuf v1.2.0

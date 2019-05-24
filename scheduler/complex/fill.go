@@ -12,6 +12,10 @@ import (
 func FillPlan(nodesInfo []types.NodeInfo, need, limit int) ([]types.NodeInfo, error) {
 	log.Debugf("[FillPlan] need %d limit %d", need, limit)
 	nodesInfoLength := len(nodesInfo)
+	if nodesInfoLength < limit {
+		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
+			fmt.Sprintf("node len %d cannot alloc a fill node plan", nodesInfoLength))
+	}
 	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Count > nodesInfo[j].Count })
 	p := sort.Search(nodesInfoLength, func(i int) bool { return nodesInfo[i].Count < need })
 	if p == nodesInfoLength {

@@ -58,4 +58,29 @@ func TestFillPlan(t *testing.T) {
 	_, err = FillPlan(nodes, n, 0)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "each node has enough containers")
+
+	// LimitNode
+	n = 15
+	nodes = deployedNodes()
+	_, err = FillPlan(nodes, n, 2)
+	assert.NoError(t, err)
+
+	// 局部补充
+	n = 1
+	nodes = []types.NodeInfo{
+		{
+			Name:     "65",
+			Capacity: 0,
+			Count:    0,
+		},
+		{
+			Name:     "67",
+			Capacity: 10,
+			Count:    0,
+		},
+	}
+
+	_, err = FillPlan(nodes, n, 3)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "cannot alloc a fill node plan")
 }
