@@ -42,8 +42,7 @@ type VirtualizationCreateOptions struct {
 	Networks        map[string]string
 	NetworkDisabled bool
 
-	Binds   []string
-	Volumes map[string]struct{}
+	Volumes []string
 
 	LogType   string
 	LogConfig map[string]string

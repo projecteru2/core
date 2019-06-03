@@ -34,12 +34,16 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		opts.DNS = []string{hostIP}
 	}
 
+	// mount paths
+	binds, volumes := makeMountPaths(opts)
+	log.Debugf("[doMakeContainerOptions] App %s will bind %v", opts.Name, binds)
+
 	config := &dockercontainer.Config{
 		Env:             opts.Env,
 		Cmd:             dockerslice.StrSlice(opts.Cmd),
 		User:            opts.User,
 		Image:           opts.Image,
-		Volumes:         opts.Volumes,
+		Volumes:         volumes,
 		WorkingDir:      opts.WorkingDir,
 		NetworkDisabled: opts.NetworkDisabled,
 		Labels:          opts.Labels,
@@ -59,7 +63,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	}
 
 	hostConfig := &dockercontainer.HostConfig{
-		Binds: opts.Binds,
+		Binds: binds,
 		DNS:   opts.DNS,
 		LogConfig: dockercontainer.LogConfig{
 			Type:   opts.LogType,
