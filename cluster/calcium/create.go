@@ -273,10 +273,6 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, opts *t
 	env = append(env, fmt.Sprintf("ERU_CONTAINER_NO=%d", index))
 	env = append(env, fmt.Sprintf("ERU_MEMORY=%d", opts.Memory))
 
-	// mount paths
-	binds, volumes := makeMountPaths(opts)
-	log.Debugf("[doMakeContainerOptions] App %s will bind %v", opts.Name, binds)
-
 	// log config
 	// 默认是配置里的driver, 如果entrypoint有指定就用指定的.
 	// 如果用 debug 模式就用默认配置的
@@ -352,8 +348,6 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, opts *t
 	config.Hosts = opts.ExtraHosts
 	config.Publish = entry.Publish
 	config.NetworkDisabled = false
-	config.Binds = binds
-	config.Volumes = volumes
-
+	config.Volumes = opts.Volumes
 	return config
 }

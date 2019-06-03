@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
-	"strings"
 
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -23,37 +21,6 @@ func ensureReaderClosed(stream io.ReadCloser) {
 	}
 	io.Copy(ioutil.Discard, stream)
 	stream.Close()
-}
-
-// make mount paths
-// volumes:
-//     - "/foo-data:$SOMEENV/foodata:rw"
-func makeMountPaths(opts *types.DeployOptions) ([]string, map[string]struct{}) {
-	binds := []string{}
-	volumes := make(map[string]struct{})
-
-	var expandENV = func(env string) string {
-		envMap := map[string]string{}
-		for _, env := range opts.Env {
-			parts := strings.Split(env, "=")
-			envMap[parts[0]] = parts[1]
-		}
-		return envMap[env]
-	}
-
-	for _, path := range opts.Volumes {
-		expanded := os.Expand(path, expandENV)
-		parts := strings.Split(expanded, ":")
-		if len(parts) == 2 {
-			binds = append(binds, fmt.Sprintf("%s:%s:rw", parts[0], parts[1]))
-			volumes[parts[1]] = struct{}{}
-		} else if len(parts) == 3 {
-			binds = append(binds, fmt.Sprintf("%s:%s:%s", parts[0], parts[1], parts[2]))
-			volumes[parts[1]] = struct{}{}
-		}
-	}
-
-	return binds, volumes
 }
 
 func execuateInside(ctx context.Context, client engine.API, ID, cmd, user string, env []string, privileged bool) ([]byte, error) {
