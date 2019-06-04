@@ -24,6 +24,8 @@ build: deps binary
 test: deps
 	# fix mock docker client bug, see https://github.com/moby/moby/pull/34383 [docker 17.05.0-ce]
 	sed -i.bak "143s/\*http.Transport/http.RoundTripper/" ./vendor/github.com/docker/docker/client/client.go
+	# fix fucking etcd bug
+	rm -rf vendor/github.com/coreos/etcd/client/keys.generated.go
 	go vet `go list ./... | grep -v '/vendor/' | grep -v '/tools'`
 	go test -cover ./utils/... ./types/... ./store/etcdv3/... ./scheduler/complex/...  ./source/common/... ./lock/etcdlock/... ./auth/simple/... ./cluster/calcium/...
 
