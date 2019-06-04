@@ -63,6 +63,8 @@ var (
 
 	ErrNotSupport = errors.New("Not Support")
 	ErrSCMNotSet  = errors.New("SCM not set")
+
+	ErrInvalidBind = errors.New("invalid bind value")
 )
 
 // NewDetailedErr returns an error with details

@@ -48,56 +48,62 @@ func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {
 
 // ExecCreate creates an execution.
 func (v *Virt) ExecCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (id string, err error) {
-	log.Warnf("does not implement")
+	log.Warnf("ExecCreate does not implement")
 	return
 }
 
 // ExecAttach executes an attachment.
 func (v *Virt) ExecAttach(ctx context.Context, execID string, detach, tty bool) (io.ReadCloser, error) {
-	return nil, fmt.Errorf("does not implement")
+	return nil, fmt.Errorf("ExecAttach does not implement")
 }
 
 // ExecExitCode gets return code of a specific execution.
 func (v *Virt) ExecExitCode(ctx context.Context, execID string) (code int, err error) {
-	log.Warnf("does not implement")
+	log.Warnf("ExecExitCode does not implement")
 	return
 }
 
 // NetworkConnect connects to a network.
 func (v *Virt) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) (err error) {
-	log.Warnf("does not implement")
+	log.Warnf("NetworkConnect does not implement")
 	return
 }
 
 // NetworkDisconnect disconnects from one network.
 func (v *Virt) NetworkDisconnect(ctx context.Context, network, target string, force bool) (err error) {
-	log.Warnf("does not implement")
+	log.Warnf("NetworkDisconnect does not implement")
 	return
 }
 
 // NetworkList lists all of networks.
 func (v *Virt) NetworkList(ctx context.Context, drivers []string) (nets []*enginetypes.Network, err error) {
-	log.Warnf("does not implement")
+	log.Warnf("NetworkList does not implement")
 	return
 }
 
 // BuildRefs builds references, it's not necessary for virt. presently.
 func (v *Virt) BuildRefs(ctx context.Context, name string, tags []string) (refs []string) {
-	log.Warnf("does not implement")
+	log.Warnf("BuildRefs does not implement")
 	return
 }
 
 // BuildContent builds content, the use of it is similar to BuildRefs.
 func (v *Virt) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildOptions) (io.ReadCloser, error) {
-	return nil, fmt.Errorf("does not implement")
+	return nil, fmt.Errorf("BuildContent does not implement")
 }
 
 // VirtualizationCreate creates a guest.
 func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (guest *enginetypes.VirtualizationCreated, err error) {
+	vols, err := v.parseVolumes(opts)
+	if err != nil {
+		return nil, err
+	}
+
 	req := virtypes.CreateGuestReq{
 		Cpu:       int(opts.Quota),
 		Mem:       opts.Memory,
 		ImageName: opts.Image,
+		Volumes:   vols,
 	}
 
 	var resp virtypes.Guest
@@ -110,7 +116,7 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 
 // VirtualizationCopyTo copies one.
 func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, path string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) (err error) {
-	log.Warnf("does not implement")
+	log.Warnf("VirtualizationCopyTo does not implement")
 	return
 }
 
@@ -155,26 +161,26 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 
 // VirtualizationLogs streams a specific guest's log.
 func (v *Virt) VirtualizationLogs(ctx context.Context, ID string, follow, stdout, stderr bool) (io.Reader, error) {
-	return nil, fmt.Errorf("does not implement")
+	return nil, fmt.Errorf("VirtualizationLogs does not implement")
 }
 
 // VirtualizationAttach attaches something to a guest.
 func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (io.ReadCloser, io.WriteCloser, error) {
-	return nil, nil, fmt.Errorf("does not implement")
+	return nil, nil, fmt.Errorf("VirtualizationAttach does not implement")
 }
 
 // VirtualizationWait is waiting for a shut-off
 func (v *Virt) VirtualizationWait(ctx context.Context, ID, state string) (*enginetypes.VirtualizationWaitResult, error) {
-	return nil, fmt.Errorf("does not implement")
+	return nil, fmt.Errorf("VirtualizationWait does not implement")
 }
 
 // VirtualizationUpdateResource updates resource.
 func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) (err error) {
-	log.Warnf("does not implement")
+	log.Warnf("VirtualizationUpdateResource does not implement")
 	return
 }
 
 // VirtualizationCopyFrom copies from another.
 func (v *Virt) VirtualizationCopyFrom(ctx context.Context, ID, path string) (io.ReadCloser, string, error) {
-	return nil, "", fmt.Errorf("does not implement")
+	return nil, "", fmt.Errorf("VirtualizationCopyFrom does not implement")
 }
