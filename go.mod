@@ -11,7 +11,7 @@ require (
 	github.com/codegangsta/cli v1.20.0
 	github.com/containerd/continuity v0.0.0-20180612233548-246e49050efd // indirect
 	github.com/coreos/bbolt v1.3.1-coreos.6 // indirect
-	github.com/coreos/etcd v3.3.10+incompatible
+	github.com/coreos/etcd v3.3.13+incompatible
 	github.com/coreos/go-semver v0.2.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20170731111925-d21964639418 // indirect
 	github.com/coreos/pkg v0.0.0-20160727233714-3ac0863d7acf // indirect

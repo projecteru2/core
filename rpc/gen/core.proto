@@ -132,6 +132,7 @@ message Container {
     string image = 11;
     bytes inspect = 12;
     bytes status_data = 13;
+    bool verification = 14;
 }
 
 message ContainerDeployedOptions {

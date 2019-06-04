@@ -165,7 +165,7 @@ func (m *Mercury) BatchUpdate(ctx context.Context, data map[string]string, opts 
 		return resp, err
 	}
 	if !resp.Succeeded {
-		return resp, types.ErrKeyExists
+		return resp, types.ErrKeyNotExists
 	}
 	return resp, nil
 }

@@ -335,40 +335,50 @@ func toRPCContainers(ctx context.Context, containers []*types.Container, labels 
 }
 
 func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, error) {
+	verification := true
 	info, err := c.Inspect(ctx)
 	if err != nil {
-		return nil, err
+		// return nil, err
+		verification = false
 	}
 
-	meta := utils.DecodeMetaInLabel(info.Labels)
 	publish := map[string]string{}
-	if info.Networks != nil && info.Running {
-		publish = utils.EncodePublishInfo(
-			utils.MakePublishInfo(info.Networks, meta.Publish),
-		)
-	}
+	inspectData := []byte{}
+	image := ""
+	labels := map[string]string{}
+	if verification {
+		meta := utils.DecodeMetaInLabel(info.Labels)
+		if info.Networks != nil && info.Running {
+			publish = utils.EncodePublishInfo(
+				utils.MakePublishInfo(info.Networks, meta.Publish),
+			)
+		}
 
-	bytes, err := json.Marshal(info)
-	if err != nil {
-		return nil, err
+		if inspectData, err = json.Marshal(info); err != nil {
+			return nil, err
+		}
+
+		image = info.Image
+		labels = info.Labels
 	}
 
 	cpu := toRPCCPUMap(c.CPU)
 
 	return &pb.Container{
-		Id:         c.ID,
-		Podname:    c.Podname,
-		Nodename:   c.Nodename,
-		Name:       c.Name,
-		Cpu:        cpu,
-		Quota:      c.Quota,
-		Memory:     c.Memory,
-		Privileged: c.Privileged,
-		Publish:    publish,
-		Image:      info.Image,
-		Labels:     info.Labels,
-		Inspect:    bytes,
-		StatusData: c.StatusData,
+		Id:           c.ID,
+		Podname:      c.Podname,
+		Nodename:     c.Nodename,
+		Name:         c.Name,
+		Cpu:          cpu,
+		Quota:        c.Quota,
+		Memory:       c.Memory,
+		Privileged:   c.Privileged,
+		Publish:      publish,
+		Image:        image,
+		Labels:       labels,
+		Inspect:      inspectData,
+		StatusData:   c.StatusData,
+		Verification: verification,
 	}, nil
 }
 

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/sanity-io/litter"
-
 	log "github.com/sirupsen/logrus"
 
 	"github.com/projecteru2/core/cluster"
@@ -140,8 +138,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 	go func() {
 		log.Info("[allocResource] result")
 		for _, nodeInfo := range nodesInfo {
-			s := litter.Sdump(nodeInfo.CPUPlan)
-			log.Infof("[allocResource] deploy %d to %s \n%s", nodeInfo.Deploy, nodeInfo.Name, s)
+			log.Infof("[allocResource] deploy %d to %s", nodeInfo.Deploy, nodeInfo.Name)
 		}
 	}()
 	return nodesInfo, c.doBindProcessStatus(ctx, opts, nodesInfo)
