@@ -8,8 +8,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	virtapi "github.com/projecteru2/yavirt/api/client"
-	virtypes "github.com/projecteru2/yavirt/api/types"
+	virtapi "github.com/projecteru2/libyavirt/client"
+	virtypes "github.com/projecteru2/libyavirt/types"
 
 	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
