@@ -70,77 +70,78 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 	var nodesInfo []types.NodeInfo
 	var nodeCPUPlans map[string][]types.CPUMap
 
-	nodes, nodeLocks, err := c.doLockAndGetNodes(ctx, opts.Podname, opts.Nodename, opts.NodeLabels)
-	if err != nil {
-		return nil, err
-	}
-	defer c.doUnlockAll(nodeLocks)
-	nodesInfo = getNodesInfo(nodes, opts.CPUQuota, opts.Memory)
+	if err = c.withNodesLocked(ctx, opts.Podname, opts.Nodename, opts.NodeLabels, func(nodes map[string]*types.Node) error {
+		nodesInfo = getNodesInfo(nodes, opts.CPUQuota, opts.Memory)
+		// 载入之前部署的情况
+		nodesInfo, err = c.store.MakeDeployStatus(ctx, opts, nodesInfo)
+		if err != nil {
+			return err
+		}
 
-	// 载入之前部署的情况
-	nodesInfo, err = c.store.MakeDeployStatus(ctx, opts, nodesInfo)
-	if err != nil {
-		return nil, err
-	}
+		switch podType {
+		case scheduler.MemoryPrior:
+			nodesInfo, total, err = c.scheduler.SelectMemoryNodes(nodesInfo, opts.CPUQuota, opts.Memory) // 还是以 Bytes 作单位， 不转换了
+		case scheduler.CPUPrior:
+			nodesInfo, nodeCPUPlans, total, err = c.scheduler.SelectCPUNodes(nodesInfo, opts.CPUQuota, opts.Memory)
+		default:
+			return types.ErrBadPodType
+		}
 
-	switch podType {
-	case scheduler.MemoryPrior:
-		nodesInfo, total, err = c.scheduler.SelectMemoryNodes(nodesInfo, opts.CPUQuota, opts.Memory) // 还是以 Bytes 作单位， 不转换了
-	case scheduler.CPUPrior:
-		nodesInfo, nodeCPUPlans, total, err = c.scheduler.SelectCPUNodes(nodesInfo, opts.CPUQuota, opts.Memory)
-	default:
-		return nil, types.ErrBadPodType
-	}
-	if err != nil {
-		return nil, err
-	}
+		if err != nil {
+			return err
+		}
 
-	switch opts.DeployMethod {
-	case cluster.DeployAuto:
-		nodesInfo, err = c.scheduler.CommonDivision(nodesInfo, opts.Count, total)
-	case cluster.DeployEach:
-		nodesInfo, err = c.scheduler.EachDivision(nodesInfo, opts.Count, opts.NodesLimit)
-	case cluster.DeployFill:
-		nodesInfo, err = c.scheduler.FillDivision(nodesInfo, opts.Count, opts.NodesLimit)
-	case cluster.DeployGlobal:
-		nodesInfo, err = c.scheduler.GlobalDivision(nodesInfo, opts.Count, total)
-	default:
-		return nil, types.ErrBadDeployMethod
-	}
-	if err != nil {
-		return nil, err
-	}
+		switch opts.DeployMethod {
+		case cluster.DeployAuto:
+			nodesInfo, err = c.scheduler.CommonDivision(nodesInfo, opts.Count, total)
+		case cluster.DeployEach:
+			nodesInfo, err = c.scheduler.EachDivision(nodesInfo, opts.Count, opts.NodesLimit)
+		case cluster.DeployFill:
+			nodesInfo, err = c.scheduler.FillDivision(nodesInfo, opts.Count, opts.NodesLimit)
+		case cluster.DeployGlobal:
+			nodesInfo, err = c.scheduler.GlobalDivision(nodesInfo, opts.Count, total)
+		default:
+			return types.ErrBadDeployMethod
+		}
+		if err != nil {
+			return err
+		}
 
-	// 资源处理
-	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Deploy < nodesInfo[j].Deploy })
-	p := sort.Search(len(nodesInfo), func(i int) bool { return nodesInfo[i].Deploy > 0 })
-	// p 最大也就是 len(nodesInfo) - 1
-	if p == len(nodesInfo) {
-		return nil, types.ErrInsufficientRes
-	}
-	nodesInfo = nodesInfo[p:]
-	for i, nodeInfo := range nodesInfo {
-		cpuCost := types.CPUMap{}
-		memoryCost := opts.Memory * int64(nodeInfo.Deploy)
-		quotaCost := opts.CPUQuota * float64(nodeInfo.Deploy)
+		// 资源处理
+		sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Deploy < nodesInfo[j].Deploy })
+		p := sort.Search(len(nodesInfo), func(i int) bool { return nodesInfo[i].Deploy > 0 })
+		// p 最大也就是 len(nodesInfo) - 1
+		if p == len(nodesInfo) {
+			return types.ErrInsufficientRes
+		}
+		nodesInfo = nodesInfo[p:]
+		for i, nodeInfo := range nodesInfo {
+			cpuCost := types.CPUMap{}
+			memoryCost := opts.Memory * int64(nodeInfo.Deploy)
+			quotaCost := opts.CPUQuota * float64(nodeInfo.Deploy)
 
-		if _, ok := nodeCPUPlans[nodeInfo.Name]; ok {
-			cpuList := nodeCPUPlans[nodeInfo.Name][:nodeInfo.Deploy]
-			nodesInfo[i].CPUPlan = cpuList
-			for _, cpu := range cpuList {
-				cpuCost.Add(cpu)
+			if _, ok := nodeCPUPlans[nodeInfo.Name]; ok {
+				cpuList := nodeCPUPlans[nodeInfo.Name][:nodeInfo.Deploy]
+				nodesInfo[i].CPUPlan = cpuList
+				for _, cpu := range cpuList {
+					cpuCost.Add(cpu)
+				}
+			}
+			if err = c.store.UpdateNodeResource(ctx, nodes[nodeInfo.Name], cpuCost, quotaCost, memoryCost, store.ActionDecr); err != nil {
+				return err
 			}
 		}
-		if err := c.store.UpdateNodeResource(ctx, nodes[nodeInfo.Name], cpuCost, quotaCost, memoryCost, store.ActionDecr); err != nil {
-			return nil, err
-		}
+		go func() {
+			log.Info("[allocResource] result:")
+			for _, nodeInfo := range nodesInfo {
+				log.Infof("[allocResource] deploy %d to %s", nodeInfo.Deploy, nodeInfo.Name)
+			}
+		}()
+		return nil
+	}); err != nil {
+		return nil, err
 	}
-	go func() {
-		log.Info("[allocResource] result")
-		for _, nodeInfo := range nodesInfo {
-			log.Infof("[allocResource] deploy %d to %s", nodeInfo.Deploy, nodeInfo.Name)
-		}
-	}()
+
 	return nodesInfo, c.doBindProcessStatus(ctx, opts, nodesInfo)
 }
 

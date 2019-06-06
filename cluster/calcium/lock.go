@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/projecteru2/core/cluster"
-	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
@@ -37,72 +36,70 @@ func (c *Calcium) doUnlockAll(locks map[string]lock.DistributedLock) {
 	}
 }
 
-func (c *Calcium) doLockAndGetContainer(ctx context.Context, ID string) (*types.Container, *enginetypes.VirtualizationInfo, lock.DistributedLock, error) {
+func (c *Calcium) withContainerLocked(ctx context.Context, ID string, f func(container *types.Container) error) error {
 	lock, err := c.doLock(ctx, fmt.Sprintf(cluster.ContainerLock, ID), c.config.LockTimeout)
 	if err != nil {
-		return nil, nil, nil, err
+		return err
 	}
-	log.Debugf("[doLockAndGetContainer] Container %s locked", ID)
-	// Get container
+	defer c.doUnlock(lock, ID)
+	log.Debugf("[withContainerLocked] Container %s locked", ID)
+	// Get container meta
 	container, err := c.store.GetContainer(ctx, ID)
 	if err != nil {
-		c.doUnlock(lock, ID)
-		return nil, nil, nil, err
+		return err
 	}
-	// 确保是有这个容器的
-	containerJSON, err := container.Inspect(ctx)
-	if err != nil {
-		c.doUnlock(lock, ID)
-		return nil, nil, nil, err
-	}
-	return container, containerJSON, lock, nil
+	return f(container)
 }
 
-func (c *Calcium) doLockAndGetContainers(ctx context.Context, IDs []string) (map[string]*types.Container, map[string]*enginetypes.VirtualizationInfo, map[string]lock.DistributedLock, error) {
+func (c *Calcium) withNodeLocked(ctx context.Context, podname, nodename string, f func(node *types.Node) error) error {
+	lock, err := c.doLock(ctx, fmt.Sprintf(cluster.NodeLock, podname, nodename), c.config.LockTimeout)
+	if err != nil {
+		return err
+	}
+	defer c.doUnlock(lock, nodename)
+	log.Debugf("[withNodeLocked] Node %s locked", nodename)
+	// Get node
+	node, err := c.GetNode(ctx, podname, nodename)
+	if err != nil {
+		return err
+	}
+	return f(node)
+}
+
+func (c *Calcium) withContainersLocked(ctx context.Context, IDs []string, f func(containers map[string]*types.Container) error) error {
 	containers := map[string]*types.Container{}
-	containerJSONs := map[string]*enginetypes.VirtualizationInfo{}
 	locks := map[string]lock.DistributedLock{}
+	defer func() { c.doUnlockAll(locks) }()
 	for _, ID := range IDs {
 		if _, ok := containers[ID]; ok {
 			continue
 		}
-		container, containerJSON, lock, err := c.doLockAndGetContainer(ctx, ID)
+		lock, err := c.doLock(ctx, fmt.Sprintf(cluster.ContainerLock, ID), c.config.LockTimeout)
 		if err != nil {
-			c.doUnlockAll(locks)
-			return nil, nil, nil, err
+			return err
+		}
+		log.Debugf("[withContainersLocked] Container %s locked", ID)
+		locks[ID] = lock
+		container, err := c.store.GetContainer(ctx, ID)
+		if err != nil {
+			return err
 		}
 		containers[ID] = container
-		containerJSONs[ID] = containerJSON
-		locks[ID] = lock
 	}
-	return containers, containerJSONs, locks, nil
+	return f(containers)
 }
 
-func (c *Calcium) doLockAndGetNode(ctx context.Context, podname, nodename string) (*types.Node, lock.DistributedLock, error) {
-	lock, err := c.doLock(ctx, fmt.Sprintf(cluster.NodeLock, podname, nodename), c.config.LockTimeout)
-	if err != nil {
-		return nil, nil, err
-	}
-	log.Debugf("[doLockAndGetNode] Node %s locked", nodename)
-	// Get node
-	node, err := c.GetNode(ctx, podname, nodename)
-	if err != nil {
-		c.doUnlock(lock, nodename)
-		return nil, nil, err
-	}
-	return node, lock, nil
-}
-
-func (c *Calcium) doLockAndGetNodes(ctx context.Context, podname, nodename string, labels map[string]string) (map[string]*types.Node, map[string]lock.DistributedLock, error) {
+func (c *Calcium) withNodesLocked(ctx context.Context, podname, nodename string, labels map[string]string, f func(nodes map[string]*types.Node) error) error {
 	nodes := map[string]*types.Node{}
 	locks := map[string]lock.DistributedLock{}
+	defer func() { c.doUnlockAll(locks) }()
 
 	var ns []*types.Node
 	var err error
 	if nodename == "" {
 		ns, err = c.ListPodNodes(ctx, podname, false)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 		nodeList := []*types.Node{}
 		for _, node := range ns {
@@ -114,22 +111,27 @@ func (c *Calcium) doLockAndGetNodes(ctx context.Context, podname, nodename strin
 	} else {
 		n, err := c.GetNode(ctx, podname, nodename)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 		ns = append(ns, n)
 	}
 	if len(ns) == 0 {
-		return nil, nil, types.ErrInsufficientNodes
+		return types.ErrInsufficientNodes
 	}
 
 	for _, n := range ns {
-		node, lock, err := c.doLockAndGetNode(ctx, podname, n.Name)
+		lock, err := c.doLock(ctx, fmt.Sprintf(cluster.NodeLock, podname, n.Name), c.config.LockTimeout)
 		if err != nil {
-			c.doUnlockAll(locks)
-			return nil, nil, err
+			return err
 		}
-		nodes[node.Name] = node
-		locks[node.Name] = lock
+		log.Debugf("[withNodesLocked] Node %s locked", n.Name)
+		locks[n.Name] = lock
+		// refresh node
+		node, err := c.GetNode(ctx, podname, n.Name)
+		if err != nil {
+			return err
+		}
+		nodes[n.Name] = node
 	}
-	return nodes, locks, nil
+	return f(nodes)
 }

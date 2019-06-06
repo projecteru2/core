@@ -69,22 +69,19 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 				messages := c.doCreateContainerOnNode(ctx, nodeInfo, opts, index)
 				for i, m := range messages {
 					ch <- m
-					if m.Error != nil {
-						if m.ContainerID == "" {
-							node, nodeLock, err := c.doLockAndGetNode(ctx, opts.Podname, nodeInfo.Name)
-							if err != nil {
-								log.Errorf("[doCreateContainer] Get and lock node %s failed %v", nodeInfo.Name, err)
-								continue
-							}
-							if err := c.store.UpdateNodeResource(ctx, node, m.CPU, opts.CPUQuota, opts.Memory, store.ActionIncr); err != nil {
-								log.Errorf("[doCreateContainer] Reset node %s failed %v", nodeInfo.Name, err)
-							}
-							c.doUnlock(nodeLock, node.Name)
-						} else {
-							log.Warnf("[doCreateContainer] Container %s not removed", m.ContainerID)
+					if m.Error != nil && m.ContainerID == "" {
+						if err := c.withNodeLocked(ctx, opts.Podname, nodeInfo.Name, func(node *types.Node) error {
+							return c.store.UpdateNodeResource(ctx, node, m.CPU, opts.CPUQuota, opts.Memory, store.ActionIncr)
+						}); err != nil {
+							log.Errorf("[doCreateContainer] Reset node %s failed %v", nodeInfo.Name, err)
 						}
+					} else if m.Error != nil && m.ContainerID != "" {
+						log.Warnf("[doCreateContainer] Create container failed %v, and container %s not removed", m.Error, m.ContainerID)
 					}
-					c.store.UpdateProcessing(ctx, opts, nodeInfo.Name, nodeInfo.Deploy-i-1)
+					// decr processing count
+					if err := c.store.UpdateProcessing(ctx, opts, nodeInfo.Name, nodeInfo.Deploy-i-1); err != nil {
+						log.Warnf("[doCreateContainer] Update processing count failed %v", err)
+					}
 				}
 			}(nodeInfo, index)
 			index += nodeInfo.Deploy

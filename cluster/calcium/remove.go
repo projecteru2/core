@@ -5,7 +5,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/store"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -15,58 +14,46 @@ import (
 
 // RemoveContainer remove containers
 // returns a channel that contains removing responses
-func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool) (chan *types.RemoveContainerMessage, error) {
+func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool, step int) (chan *types.RemoveContainerMessage, error) {
 	ch := make(chan *types.RemoveContainerMessage)
 	go func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
-		for _, ID := range IDs {
-			container, containerJSON, containerLock, err := c.doLockAndGetContainer(ctx, ID)
-			if err != nil {
-				ch <- &types.RemoveContainerMessage{
-					ContainerID: ID,
-					Success:     false,
-					Hook:        []*bytes.Buffer{bytes.NewBufferString(err.Error())},
-				}
-				continue
-			}
+		defer wg.Wait()
+		for i, ID := range IDs {
 			wg.Add(1)
-			go func(container *types.Container, containerJSON *enginetypes.VirtualizationInfo, containerLock lock.DistributedLock) {
+			go func(ID string) {
 				defer wg.Done()
-				// force to unlock
-				defer c.doUnlock(containerLock, container.ID)
 				output := []*bytes.Buffer{}
 				success := false
-
-				defer func() {
-					ch <- &types.RemoveContainerMessage{
-						ContainerID: container.ID,
-						Success:     success,
-						Hook:        output,
+				if err := c.withContainerLocked(ctx, ID, func(container *types.Container) error {
+					// make sure container exists
+					containerJSON, err := container.Inspect(ctx)
+					if err != nil {
+						return err
 					}
-				}()
-
-				node, nodeLock, err := c.doLockAndGetNode(ctx, container.Podname, container.Nodename)
-				if err != nil {
-					return
+					return c.withNodeLocked(ctx, container.Podname, container.Nodename, func(node *types.Node) (err error) {
+						output, err = c.doStopAndRemoveContainer(ctx, container, containerJSON, force)
+						if err != nil {
+							return err
+						}
+						log.Infof("[RemoveContainer] Container %s removed", container.ID)
+						if err = c.store.UpdateNodeResource(ctx, node, container.CPU, container.Quota, container.Memory, store.ActionIncr); err == nil {
+							success = true
+						}
+						return err
+					})
+				}); err != nil {
+					log.Errorf("[RemoveContainer] Remove container %s failed, err: %v", ID, err)
+					output = append(output, bytes.NewBufferString(err.Error()))
 				}
-				defer c.doUnlock(nodeLock, node.Name)
-
-				output, err = c.doStopAndRemoveContainer(ctx, container, containerJSON, force)
-				if err != nil {
-					return
-				}
-
-				log.Infof("[RemoveContainer] Container %s removed", container.ID)
-				if err = c.store.UpdateNodeResource(ctx, node, container.CPU, container.Quota, container.Memory, store.ActionIncr); err != nil {
-					log.Errorf("[RemoveContainer] Container %s removed, but update Node resource failed %v", container.ID, err)
-					return
-				}
-
-				success = true
-			}(container, containerJSON, containerLock)
+				ch <- &types.RemoveContainerMessage{ContainerID: ID, Success: success, Hook: output}
+			}(ID)
+			if (i+1)%step == 0 {
+				log.Info("[RemoveContainer] Wait for previous tasks done")
+				wg.Wait()
+			}
 		}
-		wg.Wait()
 	}()
 	return ch, nil
 }
@@ -85,7 +72,7 @@ func (c *Calcium) doStopAndRemoveContainer(ctx context.Context, container *types
 
 // 同步地删除容器, 在某些需要等待的场合异常有用!
 func (c *Calcium) doRemoveContainerSync(ctx context.Context, IDs []string) error {
-	ch, err := c.RemoveContainer(ctx, IDs, true)
+	ch, err := c.RemoveContainer(ctx, IDs, true, 1)
 	if err != nil {
 		return err
 	}

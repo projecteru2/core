@@ -60,6 +60,10 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	if dockercontainer.NetworkMode(opts.Network).IsHost() {
 		opts.DNS = []string{}
 		opts.Sysctl = map[string]string{}
+		// fix issue #78
+		if _, ok := opts.Networks[opts.Network]; ok {
+			opts.Networks[opts.Network] = ""
+		}
 	}
 
 	hostConfig := &dockercontainer.HostConfig{
