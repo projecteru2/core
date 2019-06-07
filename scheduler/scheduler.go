@@ -2,13 +2,6 @@ package scheduler
 
 import "github.com/projecteru2/core/types"
 
-const (
-	// CPUPrior define cpu select
-	CPUPrior = "CPU"
-	// MemoryPrior define mem select
-	MemoryPrior = "MEM"
-)
-
 // Scheduler is a scheduler is used to determine which nodes are we gonna use.
 // `types.CPUMap` represents the CPU label and remaining quota.
 // `nodes` represents node name and the corresponding CPUMap.

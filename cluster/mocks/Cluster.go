@@ -36,13 +36,13 @@ func (_m *Cluster) AddNode(ctx context.Context, nodename string, endpoint string
 	return r0, r1
 }
 
-// AddPod provides a mock function with given fields: ctx, podname, favor, desc
-func (_m *Cluster) AddPod(ctx context.Context, podname string, favor string, desc string) (*types.Pod, error) {
-	ret := _m.Called(ctx, podname, favor, desc)
+// AddPod provides a mock function with given fields: ctx, podname, desc
+func (_m *Cluster) AddPod(ctx context.Context, podname string, desc string) (*types.Pod, error) {
+	ret := _m.Called(ctx, podname, desc)
 
 	var r0 *types.Pod
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) *types.Pod); ok {
-		r0 = rf(ctx, podname, favor, desc)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *types.Pod); ok {
+		r0 = rf(ctx, podname, desc)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.Pod)
@@ -50,8 +50,8 @@ func (_m *Cluster) AddPod(ctx context.Context, podname string, favor string, des
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
-		r1 = rf(ctx, podname, favor, desc)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, podname, desc)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -485,13 +485,13 @@ func (_m *Cluster) ReallocResource(ctx context.Context, IDs []string, cpu float6
 	return r0, r1
 }
 
-// RemoveContainer provides a mock function with given fields: ctx, IDs, force
-func (_m *Cluster) RemoveContainer(ctx context.Context, IDs []string, force bool) (chan *types.RemoveContainerMessage, error) {
-	ret := _m.Called(ctx, IDs, force)
+// RemoveContainer provides a mock function with given fields: ctx, IDs, force, step
+func (_m *Cluster) RemoveContainer(ctx context.Context, IDs []string, force bool, step int) (chan *types.RemoveContainerMessage, error) {
+	ret := _m.Called(ctx, IDs, force, step)
 
 	var r0 chan *types.RemoveContainerMessage
-	if rf, ok := ret.Get(0).(func(context.Context, []string, bool) chan *types.RemoveContainerMessage); ok {
-		r0 = rf(ctx, IDs, force)
+	if rf, ok := ret.Get(0).(func(context.Context, []string, bool, int) chan *types.RemoveContainerMessage); ok {
+		r0 = rf(ctx, IDs, force, step)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(chan *types.RemoveContainerMessage)
@@ -499,8 +499,8 @@ func (_m *Cluster) RemoveContainer(ctx context.Context, IDs []string, force bool
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, []string, bool) error); ok {
-		r1 = rf(ctx, IDs, force)
+	if rf, ok := ret.Get(1).(func(context.Context, []string, bool, int) error); ok {
+		r1 = rf(ctx, IDs, force, step)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -607,6 +607,29 @@ func (_m *Cluster) RunAndWait(ctx context.Context, opts *types.DeployOptions, st
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *types.DeployOptions, io.ReadCloser) error); ok {
 		r1 = rf(ctx, opts, stdin)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Send provides a mock function with given fields: ctx, opts
+func (_m *Cluster) Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error) {
+	ret := _m.Called(ctx, opts)
+
+	var r0 chan *types.SendMessage
+	if rf, ok := ret.Get(0).(func(context.Context, *types.SendOptions) chan *types.SendMessage); ok {
+		r0 = rf(ctx, opts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(chan *types.SendMessage)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.SendOptions) error); ok {
+		r1 = rf(ctx, opts)
 	} else {
 		r1 = ret.Error(1)
 	}
