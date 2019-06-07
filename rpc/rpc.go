@@ -27,7 +27,7 @@ type Vibranium struct {
 
 // AddPod saves a pod, and returns it to client
 func (v *Vibranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Pod, error) {
-	p, err := v.cluster.AddPod(ctx, opts.Name, opts.Favor, opts.Desc)
+	p, err := v.cluster.AddPod(ctx, opts.Name, opts.Desc)
 	if err != nil {
 		return nil, err
 	}

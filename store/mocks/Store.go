@@ -50,13 +50,13 @@ func (_m *Store) AddNode(ctx context.Context, name string, endpoint string, podn
 	return r0, r1
 }
 
-// AddPod provides a mock function with given fields: ctx, name, favor, desc
-func (_m *Store) AddPod(ctx context.Context, name string, favor string, desc string) (*types.Pod, error) {
-	ret := _m.Called(ctx, name, favor, desc)
+// AddPod provides a mock function with given fields: ctx, name, desc
+func (_m *Store) AddPod(ctx context.Context, name string, desc string) (*types.Pod, error) {
+	ret := _m.Called(ctx, name, desc)
 
 	var r0 *types.Pod
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) *types.Pod); ok {
-		r0 = rf(ctx, name, favor, desc)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *types.Pod); ok {
+		r0 = rf(ctx, name, desc)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.Pod)
@@ -64,8 +64,8 @@ func (_m *Store) AddPod(ctx context.Context, name string, favor string, desc str
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
-		r1 = rf(ctx, name, favor, desc)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, name, desc)
 	} else {
 		r1 = ret.Error(1)
 	}

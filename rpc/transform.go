@@ -23,7 +23,7 @@ func toRPCCPUMap(m types.CPUMap) map[string]int32 {
 }
 
 func toRPCPod(p *types.Pod) *pb.Pod {
-	return &pb.Pod{Name: p.Name, Desc: p.Desc, Favor: p.Favor}
+	return &pb.Pod{Name: p.Name, Desc: p.Desc}
 }
 
 func toRPCPodResource(p *types.PodResource) *pb.PodResource {
@@ -205,6 +205,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Image:        d.Image,
 		ExtraArgs:    d.ExtraArgs,
 		CPUQuota:     d.CpuQuota,
+		CPUBind:      d.CpuBind,
 		Memory:       d.Memory,
 		Count:        int(d.Count),
 		Env:          d.Env,
@@ -220,7 +221,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		NodeLabels:   d.Nodelabels,
 		DeployMethod: d.DeployMethod,
 		Data:         tarFiles,
-		SoftLimit:    d.Softlimit,
+		SoftLimit:    d.SoftLimit,
 		NodesLimit:   int(d.NodesLimit),
 	}, nil
 }

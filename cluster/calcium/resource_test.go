@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/projecteru2/core/cluster"
-	"github.com/projecteru2/core/scheduler"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -76,7 +75,7 @@ func TestAllocResource(t *testing.T) {
 
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrBadPodType).Once()
-	_, err := c.doAllocResource(ctx, opts, "")
+	_, err := c.doAllocResource(ctx, opts)
 	assert.Error(t, err)
 
 	lock := &dummyLock{}
@@ -100,11 +99,11 @@ func TestAllocResource(t *testing.T) {
 		},
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrBadPodType).Once()
-	_, err = c.doAllocResource(ctx, opts, "")
+	_, err = c.doAllocResource(ctx, opts)
 	assert.Error(t, err)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
 	opts.NodeLabels = map[string]string{"test": "1"}
-	_, err = c.doAllocResource(ctx, opts, "")
+	_, err = c.doAllocResource(ctx, opts)
 	assert.Error(t, err)
 	// get nodes by name failed
 	opts.NodeLabels = nil
@@ -113,7 +112,7 @@ func TestAllocResource(t *testing.T) {
 		mock.Anything,
 		mock.Anything,
 		mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err = c.doAllocResource(ctx, opts, "")
+	_, err = c.doAllocResource(ctx, opts)
 	assert.Error(t, err)
 	// get nodes by name success
 	store.On("GetNode",
@@ -142,42 +141,43 @@ func TestAllocResource(t *testing.T) {
 	}
 	// mock MakeDeployStatus
 	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err = c.doAllocResource(ctx, opts, "")
+	_, err = c.doAllocResource(ctx, opts)
 	assert.Error(t, err)
 	// wrong podType
 	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, nil)
-	_, err = c.doAllocResource(ctx, opts, "")
+	_, err = c.doAllocResource(ctx, opts)
 	assert.Error(t, err)
 	// mock Schedulers
 	sched := &schedulermocks.Scheduler{}
 	c.scheduler = sched
 	// wrong select
 	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, types.ErrInsufficientMEM).Once()
-	_, err = c.doAllocResource(ctx, opts, scheduler.MemoryPrior)
+	_, err = c.doAllocResource(ctx, opts)
 	assert.Error(t, err)
 	//cpu select
 	total := 3
 	sched.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, nodeCPUPlans, total, nil)
 	// wrong DeployMethod
-	_, err = c.doAllocResource(ctx, opts, scheduler.CPUPrior)
+	opts.CPUBind = true
+	_, err = c.doAllocResource(ctx, opts)
 	assert.Error(t, err)
 	// other methods
 	sched.On("CommonDivision", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInsufficientRes)
 	opts.DeployMethod = cluster.DeployAuto
-	_, err = c.doAllocResource(ctx, opts, scheduler.CPUPrior)
+	_, err = c.doAllocResource(ctx, opts)
 	assert.Error(t, err)
 	sched.On("GlobalDivision", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInsufficientRes)
 	opts.DeployMethod = cluster.DeployGlobal
-	_, err = c.doAllocResource(ctx, opts, scheduler.CPUPrior)
+	_, err = c.doAllocResource(ctx, opts)
 	assert.Error(t, err)
 	sched.On("EachDivision", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInsufficientRes)
 	opts.DeployMethod = cluster.DeployEach
-	_, err = c.doAllocResource(ctx, opts, scheduler.CPUPrior)
+	_, err = c.doAllocResource(ctx, opts)
 	assert.Error(t, err)
 	// fill division but no nodes failed
 	sched.On("FillDivision", mock.Anything, mock.Anything, mock.Anything).Return([]types.NodeInfo{}, nil).Once()
 	opts.DeployMethod = cluster.DeployFill
-	_, err = c.doAllocResource(ctx, opts, scheduler.CPUPrior)
+	_, err = c.doAllocResource(ctx, opts)
 	assert.Error(t, err)
 	// fill division but UpdateNodeResource failed
 	sched.On("FillDivision", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, nil)
@@ -185,7 +185,7 @@ func TestAllocResource(t *testing.T) {
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,
 	).Return(types.ErrNoETCD).Once()
-	_, err = c.doAllocResource(ctx, opts, scheduler.CPUPrior)
+	_, err = c.doAllocResource(ctx, opts)
 	assert.Error(t, err)
 	// fill division sucessed
 	store.On("UpdateNodeResource",
@@ -196,13 +196,13 @@ func TestAllocResource(t *testing.T) {
 	store.On("SaveProcessing",
 		mock.Anything, mock.Anything, mock.Anything,
 	).Return(types.ErrNoETCD).Once()
-	_, err = c.doAllocResource(ctx, opts, scheduler.CPUPrior)
+	_, err = c.doAllocResource(ctx, opts)
 	assert.Error(t, err)
 	// bind process
 	store.On("SaveProcessing",
 		mock.Anything, mock.Anything, mock.Anything,
 	).Return(nil)
-	nsi, err := c.doAllocResource(ctx, opts, scheduler.CPUPrior)
+	nsi, err := c.doAllocResource(ctx, opts)
 	assert.NoError(t, err)
 	assert.Len(t, nsi, 1)
 	assert.Equal(t, nsi[0].Name, n2)

@@ -21,7 +21,7 @@ const (
 //Store store eru data
 type Store interface {
 	// pod
-	AddPod(ctx context.Context, name, favor, desc string) (*types.Pod, error)
+	AddPod(ctx context.Context, name, desc string) (*types.Pod, error)
 	GetPod(ctx context.Context, podname string) (*types.Pod, error)
 	RemovePod(ctx context.Context, podname string) error
 	GetAllPods(ctx context.Context) ([]*types.Pod, error)

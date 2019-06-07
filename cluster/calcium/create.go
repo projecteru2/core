@@ -48,7 +48,7 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 	// RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
 	// 因此需要在这里加个全局锁，直到部署完毕才释放
 	// 通过 Processing 状态跟踪达成 18 Oct, 2018
-	nodesInfo, err := c.doAllocResource(ctx, opts, pod.Favor)
+	nodesInfo, err := c.doAllocResource(ctx, opts)
 	if err != nil {
 		log.Errorf("[doCreateContainer] Error during alloc resource: %v", err)
 		return ch, err

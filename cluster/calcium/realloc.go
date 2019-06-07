@@ -9,16 +9,12 @@ import (
 	"github.com/projecteru2/core/utils"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
 
 // nodename -> container list
 type nodeContainers map[string][]*types.Container
-
-// nodename -> cpu list
-type nodeCPUMap map[string][]types.CPUMap
 
 // cpu:mem
 type cpuMemNodeContainers map[float64]map[int64]nodeContainers
@@ -55,107 +51,24 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 			wg.Add(len(containersInfo))
 			// deal with normal container
 			for pod, nodeContainersInfo := range containersInfo {
-				switch pod.Favor {
-				case scheduler.MemoryPrior:
-					go func(nodeContainersInfo nodeContainers) {
-						defer wg.Done()
-						c.doReallocContainerWithMemoryPrior(ctx, ch, pod, nodeContainersInfo, cpu, mem)
-					}(nodeContainersInfo)
-				case scheduler.CPUPrior:
-					go func(nodeContainersInfo nodeContainers) {
-						defer wg.Done()
-						c.doReallocContainersWithCPUPrior(ctx, ch, pod, nodeContainersInfo, cpu, mem)
-					}(nodeContainersInfo)
-				default:
-					log.Errorf("[ReallocResource] %v not support yet", pod.Favor)
-					go func(nodeContainersInfo nodeContainers) {
-						defer wg.Done()
-						for _, containers := range nodeContainersInfo {
-							for _, container := range containers {
-								ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
-							}
-						}
-					}(nodeContainersInfo)
-				}
+				go func(pod *types.Pod, nodeContainersInfo nodeContainers) {
+					defer wg.Done()
+					c.doReallocContainer(ctx, ch, pod, nodeContainersInfo, cpu, mem)
+				}(pod, nodeContainersInfo)
 			}
 			wg.Wait()
 			return nil
 		}); err != nil {
 			log.Errorf("[ReallocResource] Realloc failed %v", err)
+			for _, ID := range IDs {
+				ch <- &types.ReallocResourceMessage{ContainerID: ID, Success: false}
+			}
 		}
 	}()
 	return ch, nil
 }
 
-func (c *Calcium) doReallocContainerWithMemoryPrior(
-	ctx context.Context,
-	ch chan *types.ReallocResourceMessage,
-	pod *types.Pod,
-	nodeContainersInfo nodeContainers,
-	cpu float64, memory int64) {
-	for nodename, containers := range nodeContainersInfo {
-		if err := c.withNodeLocked(ctx, pod.Name, nodename, func(node *types.Node) error {
-			// 不考虑 memory < 0 对于系统而言，这时候 realloc 只不过使得 node 记录的内存 > 容器拥有内存总和，并不会 OOM
-			if memory > 0 {
-				if cap := int(node.MemCap / memory); cap < len(containers) {
-					return types.NewDetailedErr(types.ErrInsufficientRes, node.Name)
-				}
-			}
-			for _, container := range containers {
-				newCPU := utils.Round(container.Quota + cpu)
-				newMemory := container.Memory + memory
-				// 内存不能低于 4MB
-				if newCPU <= 0 || newMemory <= minMemory {
-					log.Errorf("[doReallocContainerWithMemoryPrior] New resource invaild %s, %f, %d", container.ID, newCPU, newMemory)
-					ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
-					continue
-				}
-				log.Debugf("[doReallocContainerWithMemoryPrior] Container %s: cpu: %f, mem: %d", container.ID, newCPU, newMemory)
-				// CPUQuota not cpu
-				newResource := &enginetypes.VirtualizationResource{
-					CPU: nil, Quota: newCPU, Memory: newMemory, SoftLimit: container.SoftLimit}
-				if err := node.Engine.VirtualizationUpdateResource(ctx, container.ID, newResource); err != nil {
-					log.Errorf("[doReallocContainerWithMemoryPrior] Update container failed %v, %s", err, container.ID)
-					ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
-					continue
-				}
-				// 记录内存变动
-				if memory > 0 {
-					node.MemCap -= memory
-				} else {
-					node.MemCap += -memory
-				}
-				// 记录CPU变动
-				if cpu > 0 {
-					node.SetCPUUsed(cpu, types.IncrUsage)
-				} else {
-					node.SetCPUUsed(cpu, types.DecrUsage)
-				}
-				// 更新容器元信息
-				container.Quota = newCPU
-				container.Memory = newMemory
-				if err := c.store.UpdateContainer(ctx, container); err != nil {
-					log.Warnf("[doUpdateContainerWithMemoryPrior] Realloc finish but update container %s failed %v", container.ID, err)
-					ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
-					continue
-				}
-				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: true}
-			}
-			// update resource to storage
-			if err := c.store.UpdateNode(ctx, node); err != nil {
-				log.Errorf("[doUpdateContainerWithMemoryPrior] Realloc finish but update node %s failed %s", node.Name, err)
-				litter.Dump(node)
-			}
-			return nil
-		}); err != nil {
-			for _, container := range containers {
-				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
-			}
-		}
-	}
-}
-
-func (c *Calcium) doReallocContainersWithCPUPrior(
+func (c *Calcium) doReallocContainer(
 	ctx context.Context,
 	ch chan *types.ReallocResourceMessage,
 	pod *types.Pod,
@@ -163,12 +76,12 @@ func (c *Calcium) doReallocContainersWithCPUPrior(
 	cpu float64, memory int64) {
 
 	cpuMemNodeContainersInfo := cpuMemNodeContainers{}
-	for node, containers := range nodeContainersInfo {
+	for nodename, containers := range nodeContainersInfo {
 		for _, container := range containers {
 			newCPU := utils.Round(container.Quota + cpu)
 			newMem := container.Memory + memory
 			if newCPU < 0 || newMem < minMemory {
-				log.Errorf("[reallocContainersWithCPUPrior] New resource invaild %s, %f, %d", container.ID, newCPU, newMem)
+				log.Errorf("[doReallocContainer] New resource invaild %s, %f, %d", container.ID, newCPU, newMem)
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				continue
 			}
@@ -178,70 +91,82 @@ func (c *Calcium) doReallocContainersWithCPUPrior(
 			if _, ok := cpuMemNodeContainersInfo[newCPU][newMem]; !ok {
 				cpuMemNodeContainersInfo[newCPU][newMem] = nodeContainers{}
 			}
-			if _, ok := cpuMemNodeContainersInfo[newCPU][newMem][node]; !ok {
-				cpuMemNodeContainersInfo[newCPU][newMem][node] = []*types.Container{}
+			if _, ok := cpuMemNodeContainersInfo[newCPU][newMem][nodename]; !ok {
+				cpuMemNodeContainersInfo[newCPU][newMem][nodename] = []*types.Container{}
 			}
-			cpuMemNodeContainersInfo[newCPU][newMem][node] = append(cpuMemNodeContainersInfo[newCPU][newMem][node], container)
+			cpuMemNodeContainersInfo[newCPU][newMem][nodename] = append(cpuMemNodeContainersInfo[newCPU][newMem][nodename], container)
 		}
 	}
 
-	for requireCPU, memNodesContainers := range cpuMemNodeContainersInfo {
-		for requireMemory, nodesContainers := range memNodesContainers {
+	for newCPU, memNodesContainers := range cpuMemNodeContainersInfo {
+		for newMemory, nodesContainers := range memNodesContainers {
 			for nodename, containers := range nodesContainers {
 				if err := c.withNodeLocked(ctx, pod.Name, nodename, func(node *types.Node) error {
 					// 把记录的 CPU 还回去，变成新的可用资源
 					// 把记录的 Mem 还回去，变成新的可用资源
+					containerWithCPUBind := 0
 					for _, container := range containers {
 						// 不更新 etcd，内存计算
 						node.CPU.Add(container.CPU)
 						node.SetCPUUsed(container.Quota, types.DecrUsage)
 						node.MemCap += container.Memory
+						if len(container.CPU) > 0 {
+							containerWithCPUBind++
+						}
 					}
+					// 检查内存
+					if cap := int(node.MemCap / newMemory); cap < len(containers) {
+						return types.NewDetailedErr(types.ErrInsufficientRes, node.Name)
+					}
+					var cpusets []types.CPUMap
 					// 按照 Node one by one 重新计算可以部署多少容器
-					need := len(containers)
-					nodesInfo := []types.NodeInfo{
-						{
-							Name:   node.Name,
-							CPUMap: node.CPU,
-							MemCap: node.MemCap,
-						},
-					}
-					// 重新计算需求
-					_, nodeCPUPlans, total, err := c.scheduler.SelectCPUNodes(nodesInfo, requireCPU, requireMemory)
-					if err != nil {
-						return err
-					}
-					// 这里只有1个节点，肯定会出现1个节点的解决方案
-					if total < need || len(nodeCPUPlans) != 1 {
-						return types.ErrInsufficientRes
-					}
-					// 得到最终方案
-					cpuset := nodeCPUPlans[node.Name][:need]
-					for index, container := range containers {
-						cpuPlan := cpuset[index]
-						newResource := &enginetypes.VirtualizationResource{
-							CPU: cpuPlan.Map(), Quota: requireCPU, Memory: requireMemory, SoftLimit: container.SoftLimit}
-						if err := node.Engine.VirtualizationUpdateResource(ctx, container.ID, newResource); err != nil {
-							log.Errorf("[doReallocContainersWithCPUPrior] Update container failed %v", err)
-							ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
-							continue
+					if containerWithCPUBind > 0 {
+						nodesInfo := []types.NodeInfo{{Name: node.Name, CPUMap: node.CPU, MemCap: node.MemCap}}
+						// 重新计算需求
+						_, nodeCPUPlans, total, err := c.scheduler.SelectCPUNodes(nodesInfo, newCPU, newMemory)
+						if err != nil {
+							return err
 						}
-						// 成功的时候应该记录变动
-						node.CPU.Sub(cpuPlan)
-						node.SetCPUUsed(requireCPU, types.IncrUsage)
-						node.MemCap -= requireMemory
-						container.CPU = cpuPlan
-						container.Quota = requireCPU
-						container.Memory = requireMemory
-						if err := c.store.UpdateContainer(ctx, container); err != nil {
-							log.Warnf("[doReallocContainersWithCPUPrior] Realloc finish but update container %s failed %v", container.ID, err)
-							ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
-							continue
+						// 这里只有1个节点，肯定会出现1个节点的解决方案
+						if total < containerWithCPUBind || len(nodeCPUPlans) != 1 {
+							return types.ErrInsufficientRes
 						}
-						ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: true}
+						// 得到最终方案
+						cpusets = nodeCPUPlans[node.Name][:containerWithCPUBind]
+					}
+
+					for _, container := range containers {
+						newResource := &enginetypes.VirtualizationResource{Quota: newCPU, Memory: newMemory, SoftLimit: container.SoftLimit}
+						if len(container.CPU) > 0 {
+							newResource.CPU = cpusets[0]
+							cpusets = cpusets[1:]
+						}
+						updateSuccess := false
+						setSuccess := false
+						if err := node.Engine.VirtualizationUpdateResource(ctx, container.ID, newResource); err == nil {
+							container.CPU = newResource.CPU
+							container.Quota = newResource.Quota
+							container.Memory = newResource.Memory
+							updateSuccess = true
+						} else {
+							log.Errorf("[doReallocContainer] Realloc container %s failed %v", container.ID, err)
+						}
+						// 成功失败都需要修改 node 的占用
+						// 成功的话，node 占用为新资源
+						// 失败的话，node 占用为老资源
+						node.CPU.Sub(container.CPU)
+						node.SetCPUUsed(container.Quota, types.IncrUsage)
+						node.MemCap -= container.Memory
+						// 更新 container 元数据
+						if err := c.store.UpdateContainer(ctx, container); err == nil {
+							setSuccess = true
+						} else {
+							log.Errorf("[doReallocContainer] Realloc finish but update container %s failed %v", container.ID, err)
+						}
+						ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: updateSuccess && setSuccess}
 					}
 					if err := c.store.UpdateNode(ctx, node); err != nil {
-						log.Errorf("[doReallocContainersWithCPUPrior] Realloc finish but update node %s failed %s", node.Name, err)
+						log.Errorf("[doReallocContainer] Realloc finish but update node %s failed %s", node.Name, err)
 						litter.Dump(node)
 					}
 					return nil

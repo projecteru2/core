@@ -14,7 +14,7 @@ func TestPod(t *testing.T) {
 	ctx := context.Background()
 	podname := "testv3"
 
-	pod, err := m.AddPod(ctx, podname, "CPU", "")
+	pod, err := m.AddPod(ctx, podname, "CPU")
 	assert.NoError(t, err)
 	assert.Equal(t, pod.Name, podname)
 

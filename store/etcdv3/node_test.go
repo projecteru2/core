@@ -18,7 +18,7 @@ func TestNode(t *testing.T) {
 	nodename2 := "testnode2"
 	endpoint := "tcp://127.0.0.1:2376"
 	podname := "testpod"
-	_, err := m.AddPod(ctx, podname, "CPU", "")
+	_, err := m.AddPod(ctx, podname, "CPU")
 	assert.NoError(t, err)
 	cpu := 1
 	share := 100

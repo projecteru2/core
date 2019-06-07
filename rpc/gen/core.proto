@@ -64,7 +64,6 @@ message DeployStatusMessage {
 message Pod {
     string name = 1;
     string desc = 2;
-    string favor = 3;
 }
 
 message Pods {
@@ -169,8 +168,7 @@ message ReallocOptions {
 
 message AddPodOptions {
     string name = 1;
-    string favor = 2;
-    string desc = 3;
+    string desc = 2;
 }
 
 message RemovePodOptions {
@@ -291,8 +289,9 @@ message DeployOptions {
     map<string, string> nodelabels = 20;
     string deploy_method = 21;
     map<string, bytes> data = 22;
-    bool softlimit = 23;
+    bool soft_limit = 23;
     int32 nodes_limit = 24;
+    bool cpu_bind = 25;
 }
 
 message ReplaceOptions {
