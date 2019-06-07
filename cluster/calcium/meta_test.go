@@ -23,7 +23,7 @@ func TestAddPod(t *testing.T) {
 	store.On("AddPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(pod, nil)
 	c.store = store
 
-	p, err := c.AddPod(ctx, "", "", "")
+	p, err := c.AddPod(ctx, "", "")
 	assert.NoError(t, err)
 	assert.Equal(t, p.Name, name)
 }

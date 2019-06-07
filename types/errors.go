@@ -28,7 +28,6 @@ var (
 
 	ErrBadContainerID  = errors.New("container ID must be length of 64")
 	ErrBadDeployMethod = errors.New("deploy method not support yet")
-	ErrBadFaver        = errors.New("favor should be either CPU or MEM")
 	ErrBadIPAddress    = errors.New("bad IP address")
 	ErrBadPodType      = errors.New("pod type not support yet")
 	ErrBadSCMType      = errors.New("unknown SCM type")

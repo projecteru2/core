@@ -11,8 +11,8 @@ import (
 )
 
 // AddPod add pod
-func (c *Calcium) AddPod(ctx context.Context, podname, favor, desc string) (*types.Pod, error) {
-	return c.store.AddPod(ctx, podname, favor, desc)
+func (c *Calcium) AddPod(ctx context.Context, podname, desc string) (*types.Pod, error) {
+	return c.store.AddPod(ctx, podname, desc)
 }
 
 // AddNode add a node in pod

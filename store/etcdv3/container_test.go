@@ -38,7 +38,7 @@ func TestContainer(t *testing.T) {
 	assert.NoError(t, err)
 	nodeBytes, err := json.Marshal(node)
 	assert.NoError(t, err)
-	_, err = m.AddPod(ctx, podname, "CPU", "")
+	_, err = m.AddPod(ctx, podname, "CPU")
 	assert.NoError(t, err)
 	_, err = m.Create(ctx, fmt.Sprintf(nodeInfoKey, podname, nodename), string(nodeBytes))
 	assert.NoError(t, err)

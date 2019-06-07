@@ -46,7 +46,7 @@ const (
 // Cluster define all interface
 type Cluster interface {
 	// meta data methods
-	AddPod(ctx context.Context, podname, favor, desc string) (*types.Pod, error)
+	AddPod(ctx context.Context, podname, desc string) (*types.Pod, error)
 	AddNode(ctx context.Context, nodename, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string) (*types.Node, error)
 	RemovePod(ctx context.Context, podname string) error
 	RemoveNode(ctx context.Context, nodename, podname string) (*types.Pod, error)

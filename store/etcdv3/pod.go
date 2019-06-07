@@ -4,26 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
 )
 
 // AddPod add a pod
 // save it to etcd
 // storage path in etcd is `/pod/info/:podname`
-func (m *Mercury) AddPod(ctx context.Context, name, favor, desc string) (*types.Pod, error) {
+func (m *Mercury) AddPod(ctx context.Context, name, desc string) (*types.Pod, error) {
 	key := fmt.Sprintf(podInfoKey, name)
-	favor = strings.ToUpper(favor)
-	if favor == "" {
-		favor = scheduler.MemoryPrior
-	} else if favor != scheduler.MemoryPrior && favor != scheduler.CPUPrior {
-		return nil, types.NewDetailedErr(types.ErrBadFaver,
-			fmt.Sprintf("got bad faver: %s", favor))
-	}
-	pod := &types.Pod{Name: name, Desc: desc, Favor: favor}
+	pod := &types.Pod{Name: name, Desc: desc}
 
 	bytes, err := json.Marshal(pod)
 	if err != nil {

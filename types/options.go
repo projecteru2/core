@@ -9,6 +9,7 @@ type DeployOptions struct {
 	Image        string            // Name of image to deploy
 	ExtraArgs    string            // Extra arguments to append to command
 	CPUQuota     float64           // How many cores needed, e.g. 1.5
+	CPUBind      bool              // Bind CPU or not ( old CPU piror )
 	Memory       int64             // Memory for container, in bytes
 	Count        int               // How many containers needed, e.g. 4
 	Env          []string          // Env for container
@@ -24,7 +25,7 @@ type DeployOptions struct {
 	NodeLabels   map[string]string // NodeLabels for filter node
 	DeployMethod string            // Deploy method
 	Data         map[string]string // For additional file data
-	SoftLimit    bool              // Softlimit memory
+	SoftLimit    bool              // Soft limit memory
 	NodesLimit   int               // Limit nodes count
 	ProcessIdent string            // ProcessIdent ident this deploy
 }

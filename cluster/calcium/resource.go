@@ -8,7 +8,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/projecteru2/core/cluster"
-	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -64,7 +63,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 	return r, nil
 }
 
-func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions, podType string) ([]types.NodeInfo, error) {
+func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions) ([]types.NodeInfo, error) {
 	var err error
 	var total int
 	var nodesInfo []types.NodeInfo
@@ -78,15 +77,12 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 			return err
 		}
 
-		switch podType {
-		case scheduler.MemoryPrior:
+		if !opts.CPUBind {
 			nodesInfo, total, err = c.scheduler.SelectMemoryNodes(nodesInfo, opts.CPUQuota, opts.Memory) // 还是以 Bytes 作单位， 不转换了
-		case scheduler.CPUPrior:
+		} else {
+			log.Info("[doAllocResource] CPU Bind, selecting CPU plan")
 			nodesInfo, nodeCPUPlans, total, err = c.scheduler.SelectCPUNodes(nodesInfo, opts.CPUQuota, opts.Memory)
-		default:
-			return types.ErrBadPodType
 		}
-
 		if err != nil {
 			return err
 		}
@@ -132,7 +128,6 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 			}
 		}
 		go func() {
-			log.Info("[allocResource] result:")
 			for _, nodeInfo := range nodesInfo {
 				log.Infof("[allocResource] deploy %d to %s", nodeInfo.Deploy, nodeInfo.Name)
 			}
