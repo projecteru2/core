@@ -262,3 +262,18 @@ func safeSplit(s string) []string {
 
 	return result
 }
+
+// GetNUMAMemoryNode get numa memory node
+func GetNUMAMemoryNode(node *types.Node, cpu types.CPUMap) string {
+	nodeID := ""
+	for cpuID := range cpu {
+		if memoryNode, ok := node.NUMA[cpuID]; ok {
+			if nodeID == "" {
+				nodeID = memoryNode
+			} else if nodeID != memoryNode { // 如果跨 NODE 了，让系统决定 nodeID
+				nodeID = ""
+			}
+		}
+	}
+	return nodeID
+}

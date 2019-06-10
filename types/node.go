@@ -53,12 +53,20 @@ func (c CPUMap) Map() map[string]int {
 	return map[string]int(c)
 }
 
+// NUMA define NUMA cpuID->nodeID
+type NUMA map[string]string
+
+// NUMAMem fine NUMA mem NODE
+type NUMAMem map[string]int64
+
 // Node store node info
 type Node struct {
 	Name       string            `json:"name"`
 	Endpoint   string            `json:"endpoint"`
 	Podname    string            `json:"podname"`
 	CPU        CPUMap            `json:"cpu"`
+	NUMA       NUMA              `json:"numa"`
+	NUMAMem    NUMAMem           `json:"numa_mem"`
 	CPUUsed    float64           `json:"cpuused"`
 	MemCap     int64             `json:"memcap"`
 	Available  bool              `json:"available"`
@@ -91,6 +99,8 @@ func (n *Node) SetCPUUsed(quota float64, action string) {
 type NodeInfo struct {
 	Name     string
 	CPUMap   CPUMap
+	NUMA     NUMA
+	NUMAMem  NUMAMem
 	MemCap   int64
 	CPUUsed  float64 // CPU目前占用率
 	MemUsage float64 // MEM目前占用率

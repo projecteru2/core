@@ -161,26 +161,55 @@ func (h *host) getFullResult(full int, cpus []cpuInfo) []types.CPUMap {
 
 func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShareCore, coreShare int) ([]types.NodeInfo, map[string][]types.CPUMap, int, error) {
 	var nodeContainer = map[string][]types.CPUMap{}
-	var host *host
-	var plan []types.CPUMap
-
-	// TODO weird check cpu < 0.01
-
 	volTotal := 0
-	memLimit := 0
+
 	for p, nodeInfo := range nodesInfo {
-		host = newHost(nodeInfo.CPUMap, coreShare)
-		plan = host.getContainerCores(cpu, maxShareCore)
-		memLimit = int(nodeInfo.MemCap / memory)
-		cap := len(plan) // 每个node可以放的容器数
-		if cap > memLimit {
-			plan = plan[:memLimit]
-			cap = memLimit
+		// 统计全局 CPU，为非 numa 或者跨 numa 计算
+		globalCPUMap := nodeInfo.CPUMap
+		// 统计全局 MEM
+		globalMemCap := nodeInfo.MemCap
+		// 计算每个 numa node 的分配策略
+		// 得到 numa CPU 分组
+		numaCPUMap := map[string]types.CPUMap{}
+		for cpuID, nodeID := range nodeInfo.NUMA {
+			if _, ok := numaCPUMap[nodeID]; !ok {
+				numaCPUMap[nodeID] = types.CPUMap{}
+			}
+			cpuCount, ok := nodeInfo.CPUMap[cpuID]
+			if !ok {
+				continue
+			}
+			numaCPUMap[nodeID][cpuID] = cpuCount
 		}
+		for nodeID, nodeCPUMap := range numaCPUMap {
+			nodeMemCap, ok := nodeInfo.NUMAMem[nodeID]
+			if !ok {
+				continue
+			}
+			cap, plan := calcuateCPUPlan(nodeCPUMap, nodeMemCap, cpu, memory, maxShareCore, coreShare)
+			if cap > 0 {
+				if _, ok := nodeContainer[nodeInfo.Name]; !ok {
+					nodeContainer[nodeInfo.Name] = []types.CPUMap{}
+				}
+				nodesInfo[p].Capacity += cap
+				volTotal += cap
+				globalMemCap -= int64(cap) * memory
+				for _, cpuPlan := range plan {
+					globalCPUMap.Sub(cpuPlan)
+					nodeContainer[nodeInfo.Name] = append(nodeContainer[nodeInfo.Name], cpuPlan)
+				}
+			}
+		}
+		// 非 numa
+		// 或者是扣掉 numa 分配后剩下的资源里面
+		cap, plan := calcuateCPUPlan(globalCPUMap, globalMemCap, cpu, memory, maxShareCore, coreShare)
 		if cap > 0 {
-			nodesInfo[p].Capacity = cap
-			nodeContainer[nodeInfo.Name] = plan
+			if _, ok := nodeContainer[nodeInfo.Name]; !ok {
+				nodeContainer[nodeInfo.Name] = []types.CPUMap{}
+			}
+			nodesInfo[p].Capacity += cap
 			volTotal += cap
+			nodeContainer[nodeInfo.Name] = append(nodeContainer[nodeInfo.Name], plan...)
 		}
 	}
 
@@ -193,4 +222,19 @@ func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShar
 
 	log.Debugf("[cpuPriorPlan] nodesInfo: %v", nodesInfo)
 	return nodesInfo[p:], nodeContainer, volTotal, nil
+}
+
+func calcuateCPUPlan(CPUMap types.CPUMap, MemCap int64, cpu float64, memory int64, maxShareCore, coreShare int) (int, []types.CPUMap) {
+	host := newHost(CPUMap, coreShare)
+	plan := host.getContainerCores(cpu, maxShareCore)
+	memLimit := int(MemCap / memory)
+	cap := len(plan) // 每个node可以放的容器数
+	if cap > memLimit {
+		plan = plan[:memLimit]
+		cap = memLimit
+	}
+	if cap <= 0 {
+		plan = nil
+	}
+	return cap, plan
 }

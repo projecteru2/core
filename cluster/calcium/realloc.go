@@ -6,10 +6,9 @@ import (
 
 	"github.com/sanity-io/litter"
 
-	"github.com/projecteru2/core/utils"
-
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -110,6 +109,11 @@ func (c *Calcium) doReallocContainer(
 						node.CPU.Add(container.CPU)
 						node.SetCPUUsed(container.Quota, types.DecrUsage)
 						node.MemCap += container.Memory
+						if nodeID := utils.GetNUMAMemoryNode(node, container.CPU); nodeID != "" {
+							if _, ok := node.NUMAMem[nodeID]; ok {
+								node.NUMAMem[nodeID] += container.Memory
+							}
+						}
 						if len(container.CPU) > 0 {
 							containerWithCPUBind++
 						}
@@ -139,6 +143,7 @@ func (c *Calcium) doReallocContainer(
 						newResource := &enginetypes.VirtualizationResource{Quota: newCPU, Memory: newMemory, SoftLimit: container.SoftLimit}
 						if len(container.CPU) > 0 {
 							newResource.CPU = cpusets[0]
+							newResource.NUMANode = utils.GetNUMAMemoryNode(node, newResource.CPU)
 							cpusets = cpusets[1:]
 						}
 						updateSuccess := false
@@ -157,6 +162,11 @@ func (c *Calcium) doReallocContainer(
 						node.CPU.Sub(container.CPU)
 						node.SetCPUUsed(container.Quota, types.IncrUsage)
 						node.MemCap -= container.Memory
+						if nodeID := utils.GetNUMAMemoryNode(node, container.CPU); nodeID != "" {
+							if _, ok := node.NUMAMem[nodeID]; ok {
+								node.NUMAMem[nodeID] -= container.Memory
+							}
+						}
 						// 更新 container 元数据
 						if err := c.store.UpdateContainer(ctx, container); err == nil {
 							setSuccess = true
