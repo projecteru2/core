@@ -102,16 +102,21 @@ func TestNode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, newNode.MemCap, int64(100))
 	assert.Equal(t, newNode.CPUUsed, 0.0)
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, types.CPUMap{"0": 10}, 0.01, int64(0), "-"))
+	// numa mem record
+	node.NUMA = types.NUMA{"0": "n1"}
+	node.NUMAMem = map[string]int64{"n1": 100}
+	assert.NoError(t, m.UpdateNodeResource(ctx, node, types.CPUMap{"0": 10}, 0.01, int64(1), "-"))
 	newNode, err = m.GetNodeByName(ctx, nodename)
 	assert.NoError(t, err)
 	assert.Equal(t, newNode.CPU["0"], 90)
 	assert.Equal(t, newNode.CPUUsed, 0.01)
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, types.CPUMap{"0": 10}, 0.01, int64(0), "+"))
+	assert.Equal(t, newNode.NUMAMem["n1"], int64(99))
+	assert.NoError(t, m.UpdateNodeResource(ctx, node, types.CPUMap{"0": 10}, 0.01, int64(1), "+"))
 	newNode, err = m.GetNodeByName(ctx, nodename)
 	assert.NoError(t, err)
 	assert.Equal(t, newNode.CPU["0"], 100)
 	assert.Equal(t, newNode.CPUUsed, 0.0)
+	assert.Equal(t, newNode.NUMAMem["n1"], int64(100))
 	err = m.UpdateNodeResource(ctx, node, nil, 0, int64(0), "abc")
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), types.ErrUnknownControlType.Error())

@@ -245,6 +245,7 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, opts *t
 	config.CPU = cpumap.Map()
 	config.Quota = opts.CPUQuota
 	config.Memory = opts.Memory
+	config.NUMANode = utils.GetNUMAMemoryNode(node, cpumap)
 	config.SoftLimit = opts.SoftLimit
 	entry := opts.Entrypoint
 

@@ -173,10 +173,20 @@ func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu 
 		node.CPU.Add(cpu)
 		node.SetCPUUsed(quota, types.DecrUsage)
 		node.MemCap += mem
+		if nodeID := utils.GetNUMAMemoryNode(node, cpu); nodeID != "" {
+			if _, ok := node.NUMAMem[nodeID]; ok {
+				node.NUMAMem[nodeID] += mem
+			}
+		}
 	case store.ActionDecr:
 		node.CPU.Sub(cpu)
 		node.SetCPUUsed(quota, types.IncrUsage)
 		node.MemCap -= mem
+		if nodeID := utils.GetNUMAMemoryNode(node, cpu); nodeID != "" {
+			if _, ok := node.NUMAMem[nodeID]; ok {
+				node.NUMAMem[nodeID] -= mem
+			}
+		}
 	default:
 		return types.ErrUnknownControlType
 	}

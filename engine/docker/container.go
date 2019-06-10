@@ -50,7 +50,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		OpenStdin:       opts.Stdin,
 	}
 
-	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.SoftLimit)
+	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode, opts.SoftLimit)
 
 	resource.Ulimits = []*units.Ulimit{}
 	for name, u := range opts.Ulimits {
@@ -210,7 +210,7 @@ func (e *Engine) VirtualizationWait(ctx context.Context, ID, state string) (*eng
 
 // VirtualizationUpdateResource update virtualization resource
 func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error {
-	newResource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.SoftLimit)
+	newResource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode, opts.SoftLimit)
 	updateConfig := dockercontainer.UpdateConfig{Resources: newResource}
 	_, err := e.client.ContainerUpdate(ctx, ID, updateConfig)
 	return err
