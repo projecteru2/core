@@ -6,9 +6,9 @@ import (
 
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/docker"
-	"github.com/projecteru2/core/engine/virt"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/engine/virt"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/mock"
@@ -34,7 +34,7 @@ func dumpFromString(ca, cert, key *os.File, caStr, certStr, keyStr string) error
 
 func makeMockClient() (engine.API, error) {
 	e := &enginemocks.API{}
-	e.On("Info", mock.AnythingOfType("*context.emptyCtx")).Return(
+	e.On("Info", mock.Anything).Return(
 		&enginetypes.Info{NCPU: 1, MemTotal: types.GByte + 100}, nil)
 	return e, nil
 }
