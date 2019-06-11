@@ -38,7 +38,7 @@ func (m *Potassium) MaxIdleNode(nodes []*types.Node) (*types.Node, error) {
 
 // SelectMemoryNodes filter nodes with enough memory
 func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64, memory int64) ([]types.NodeInfo, int, error) {
-	log.Debugf("[SelectMemoryNodes] nodesInfo: %v, cpu: %f, memory: %d", nodesInfo, quota, memory)
+	log.Infof("[SelectMemoryNodes] nodesInfo: %v, need cpu: %f, memory: %d", nodesInfo, quota, memory)
 	if memory <= 0 {
 		return nil, 0, types.ErrNegativeMemory
 	}
@@ -76,7 +76,7 @@ func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64,
 
 // SelectCPUNodes select nodes with enough cpus
 func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, memory int64) ([]types.NodeInfo, map[string][]types.CPUMap, int, error) {
-	log.Debugf("[SelectCPUNodes] nodesInfo: %v, cpu: %f memory: %d", nodesInfo, quota, memory)
+	log.Infof("[SelectCPUNodes] nodes %d, need cpu: %f memory: %d", len(nodesInfo), quota, memory)
 	if quota <= 0 {
 		return nil, nil, 0, types.ErrNegativeQuota
 	}

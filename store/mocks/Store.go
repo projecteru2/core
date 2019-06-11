@@ -27,13 +27,13 @@ func (_m *Store) AddContainer(ctx context.Context, container *types.Container) e
 	return r0
 }
 
-// AddNode provides a mock function with given fields: ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, labels
-func (_m *Store) AddNode(ctx context.Context, name string, endpoint string, podname string, ca string, cert string, key string, cpu int, share int, memory int64, labels map[string]string) (*types.Node, error) {
-	ret := _m.Called(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, labels)
+// AddNode provides a mock function with given fields: ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory
+func (_m *Store) AddNode(ctx context.Context, name string, endpoint string, podname string, ca string, cert string, key string, cpu int, share int, memory int64, labels map[string]string, numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
+	ret := _m.Called(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory)
 
 	var r0 *types.Node
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, string, string, int, int, int64, map[string]string) *types.Node); ok {
-		r0 = rf(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, labels)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, string, string, int, int, int64, map[string]string, types.NUMA, types.NUMAMemory) *types.Node); ok {
+		r0 = rf(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.Node)
@@ -41,8 +41,8 @@ func (_m *Store) AddNode(ctx context.Context, name string, endpoint string, podn
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, string, string, string, int, int, int64, map[string]string) error); ok {
-		r1 = rf(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, labels)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, string, string, string, int, int, int64, map[string]string, types.NUMA, types.NUMAMemory) error); ok {
+		r1 = rf(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory)
 	} else {
 		r1 = ret.Error(1)
 	}

@@ -47,7 +47,9 @@ const (
 type Cluster interface {
 	// meta data methods
 	AddPod(ctx context.Context, podname, desc string) (*types.Pod, error)
-	AddNode(ctx context.Context, nodename, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string) (*types.Node, error)
+	AddNode(ctx context.Context, nodename, endpoint, podname, ca, cert, key string,
+		cpu, share int, memory int64, labels map[string]string,
+		numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error)
 	RemovePod(ctx context.Context, podname string) error
 	RemoveNode(ctx context.Context, nodename, podname string) (*types.Pod, error)
 	ListPods(ctx context.Context) ([]*types.Pod, error)

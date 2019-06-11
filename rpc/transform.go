@@ -63,6 +63,8 @@ func toRPCNode(ctx context.Context, n *types.Node) *pb.Node {
 		InitCpu:    toRPCCPUMap(n.InitCPU),
 		InitMemory: n.InitMemCap,
 		Info:       nodeInfo,
+		Numa:       n.NUMA,
+		NumaMemory: n.NUMAMemory,
 	}
 }
 

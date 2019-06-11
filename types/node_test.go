@@ -55,12 +55,26 @@ func TestGetNUMANode(t *testing.T) {
 		NUMA: NUMA{"1": "node1", "2": "node2", "3": "node1", "4": "node2"},
 	}
 	cpu := CPUMap{"1": 100, "2": 100}
-	nodeID := cpu.GetNUMANode(node)
+	nodeID := node.GetNUMANode(cpu)
 	assert.Equal(t, nodeID, "")
 	cpu = CPUMap{"1": 100, "3": 100}
-	nodeID = cpu.GetNUMANode(node)
+	nodeID = node.GetNUMANode(cpu)
 	assert.Equal(t, nodeID, "node1")
 	cpu = nil
-	nodeID = cpu.GetNUMANode(node)
+	nodeID = node.GetNUMANode(cpu)
 	assert.Equal(t, nodeID, "")
+}
+
+func TestSetNUMANodeMemory(t *testing.T) {
+	node := &Node{
+		NUMAMemory: NUMAMemory{"n1": 100},
+	}
+	// incr
+	node.IncrNUMANodeMemory("n1", 1)
+	assert.Len(t, node.NUMAMemory, 1)
+	assert.Equal(t, node.NUMAMemory["n1"], int64(101))
+	// decr
+	node.DecrNUMANodeMemory("n1", 1)
+	assert.Len(t, node.NUMAMemory, 1)
+	assert.Equal(t, node.NUMAMemory["n1"], int64(100))
 }
