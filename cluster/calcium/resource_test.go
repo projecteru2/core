@@ -69,18 +69,7 @@ func TestAllocResource(t *testing.T) {
 	config := types.Config{
 		LockTimeout: 3,
 	}
-	store := &storemocks.Store{}
 	c.config = config
-	c.store = store
-
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrBadPodType).Once()
-	_, err := c.doAllocResource(ctx, opts)
-	assert.Error(t, err)
-
-	lock := &dummyLock{}
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	// test get by pod and labels and failed because node not available
 	n1 := "n2"
 	n2 := "n2"
 	nodes := []*types.Node{
@@ -98,23 +87,23 @@ func TestAllocResource(t *testing.T) {
 			MemCap:    100,
 		},
 	}
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrBadPodType).Once()
-	_, err = c.doAllocResource(ctx, opts)
-	assert.Error(t, err)
+
+	store := c.store.(*storemocks.Store)
+	defer store.AssertExpectations(t)
+
+	testAllocFailedAsGetNodesByPodError(t, c, opts)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
-	opts.NodeLabels = map[string]string{"test": "1"}
-	_, err = c.doAllocResource(ctx, opts)
-	assert.Error(t, err)
-	// get nodes by name failed
-	opts.NodeLabels = nil
+
+	testAllocFailedAsCreateLockError(t, c, opts)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(&dummyLock{}, nil)
+
+	testAllocFailedAsNoLabels(t, c, opts)
+
+	// Defines for below.
 	opts.Nodename = n2
-	store.On("GetNode",
-		mock.Anything,
-		mock.Anything,
-		mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err = c.doAllocResource(ctx, opts)
-	assert.Error(t, err)
-	// get nodes by name success
+	testAllocFailedAsGetNodeError(t, c, opts)
+
+	// Mocks for all of rest.
 	store.On("GetNode",
 		mock.Anything,
 		mock.Anything,
@@ -139,72 +128,186 @@ func TestAllocResource(t *testing.T) {
 			{"0": 10},
 		},
 	}
-	// mock MakeDeployStatus
-	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err = c.doAllocResource(ctx, opts)
-	assert.Error(t, err)
-	// wrong podType
+
+	testAllocFailedAsMakeDeployStatusError(t, c, opts)
 	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, nil)
-	_, err = c.doAllocResource(ctx, opts)
-	assert.Error(t, err)
-	// mock Schedulers
-	sched := &schedulermocks.Scheduler{}
-	c.scheduler = sched
-	// wrong select
-	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, types.ErrInsufficientMEM).Once()
-	_, err = c.doAllocResource(ctx, opts)
-	assert.Error(t, err)
-	//cpu select
+
+	testAllocFailedAsInsufficientMemory(t, c, opts)
+
+	sched := c.scheduler.(*schedulermocks.Scheduler)
+	defer sched.AssertExpectations(t)
+
 	total := 3
+	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, total, nil)
+
+	testAllocFailedAsInsufficientCPU(t, c, opts)
 	sched.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, nodeCPUPlans, total, nil)
-	// wrong DeployMethod
-	opts.CPUBind = true
-	_, err = c.doAllocResource(ctx, opts)
-	assert.Error(t, err)
-	// other methods
-	sched.On("CommonDivision", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInsufficientRes)
-	opts.DeployMethod = cluster.DeployAuto
-	_, err = c.doAllocResource(ctx, opts)
-	assert.Error(t, err)
-	sched.On("GlobalDivision", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInsufficientRes)
-	opts.DeployMethod = cluster.DeployGlobal
-	_, err = c.doAllocResource(ctx, opts)
-	assert.Error(t, err)
-	sched.On("EachDivision", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInsufficientRes)
-	opts.DeployMethod = cluster.DeployEach
-	_, err = c.doAllocResource(ctx, opts)
-	assert.Error(t, err)
-	// fill division but no nodes failed
-	sched.On("FillDivision", mock.Anything, mock.Anything, mock.Anything).Return([]types.NodeInfo{}, nil).Once()
+
+	testAllocFailedAsWrongDeployMethod(t, c, opts)
+
+	testAllocFailedAsCommonDivisionError(t, c, opts)
+	testAllocFailedAsGlobalDivisionError(t, c, opts)
+	testAllocFailedAsEachDivisionError(t, c, opts)
+	testAllocFailedAsFillDivisionError(t, c, opts)
+
+	// Mocks for all.
 	opts.DeployMethod = cluster.DeployFill
-	_, err = c.doAllocResource(ctx, opts)
-	assert.Error(t, err)
-	// fill division but UpdateNodeResource failed
 	sched.On("FillDivision", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, nil)
-	store.On("UpdateNodeResource",
-		mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything,
-	).Return(types.ErrNoETCD).Once()
-	_, err = c.doAllocResource(ctx, opts)
-	assert.Error(t, err)
-	// fill division sucessed
+
+	testAllocFailedAsUpdateNodeResourceError(t, c, opts)
 	store.On("UpdateNodeResource",
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,
 	).Return(nil)
-	// bind process failed
-	store.On("SaveProcessing",
-		mock.Anything, mock.Anything, mock.Anything,
-	).Return(types.ErrNoETCD).Once()
-	_, err = c.doAllocResource(ctx, opts)
-	assert.Error(t, err)
-	// bind process
+
+	testAllocFailedAsSaveProcessingError(t, c, opts)
 	store.On("SaveProcessing",
 		mock.Anything, mock.Anything, mock.Anything,
 	).Return(nil)
+
+	// success
 	nsi, err := c.doAllocResource(ctx, opts)
 	assert.NoError(t, err)
 	assert.Len(t, nsi, 1)
 	assert.Equal(t, nsi[0].Name, n2)
 	// stupid race condition
+}
+
+func testAllocFailedAsGetNodesByPodError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
+	store := c.store.(*storemocks.Store)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrBadPodType).Once()
+	_, err := c.doAllocResource(context.Background(), opts)
+	assert.Error(t, err)
+}
+
+func testAllocFailedAsCreateLockError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
+	store := c.store.(*storemocks.Store)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	_, err := c.doAllocResource(context.Background(), opts)
+	assert.Error(t, err)
+}
+
+func testAllocFailedAsNoLabels(t *testing.T, c *Calcium, opts *types.DeployOptions) {
+	ori := opts.NodeLabels
+	defer func() {
+		opts.NodeLabels = ori
+	}()
+
+	opts.NodeLabels = map[string]string{"test": "1"}
+	_, err := c.doAllocResource(context.Background(), opts)
+	assert.Error(t, err)
+}
+
+func testAllocFailedAsGetNodeError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
+	store := c.store.(*storemocks.Store)
+	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	_, err := c.doAllocResource(context.Background(), opts)
+	assert.Error(t, err)
+}
+
+func testAllocFailedAsMakeDeployStatusError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
+	store := c.store.(*storemocks.Store)
+	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrBadPodType).Once()
+	_, err := c.doAllocResource(context.Background(), opts)
+	assert.Error(t, err)
+}
+
+func testAllocFailedAsInsufficientMemory(t *testing.T, c *Calcium, opts *types.DeployOptions) {
+	sched := c.scheduler.(*schedulermocks.Scheduler)
+	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, types.ErrInsufficientMEM).Once()
+	_, err := c.doAllocResource(context.Background(), opts)
+	assert.Error(t, err)
+}
+
+func testAllocFailedAsInsufficientCPU(t *testing.T, c *Calcium, opts *types.DeployOptions) {
+	ori := opts.CPUBind
+	defer func() {
+		opts.CPUBind = ori
+	}()
+
+	opts.CPUBind = true
+	sched := c.scheduler.(*schedulermocks.Scheduler)
+	sched.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, 0, types.ErrInsufficientCPU).Once()
+	_, err := c.doAllocResource(context.Background(), opts)
+	assert.Error(t, err)
+}
+
+func testAllocFailedAsWrongDeployMethod(t *testing.T, c *Calcium, opts *types.DeployOptions) {
+	ori := opts.DeployMethod
+	defer func() {
+		opts.DeployMethod = ori
+	}()
+
+	opts.DeployMethod = "invalid"
+	_, err := c.doAllocResource(context.Background(), opts)
+	assert.Error(t, err)
+}
+
+func testAllocFailedAsCommonDivisionError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
+	ori := opts.DeployMethod
+	defer func() {
+		opts.DeployMethod = ori
+	}()
+
+	opts.DeployMethod = cluster.DeployAuto
+	sched := c.scheduler.(*schedulermocks.Scheduler)
+	sched.On("CommonDivision", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInsufficientRes).Once()
+	_, err := c.doAllocResource(context.Background(), opts)
+	assert.Error(t, err)
+}
+
+func testAllocFailedAsGlobalDivisionError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
+	ori := opts.DeployMethod
+	defer func() {
+		opts.DeployMethod = ori
+	}()
+
+	opts.DeployMethod = cluster.DeployGlobal
+	sched := c.scheduler.(*schedulermocks.Scheduler)
+	sched.On("GlobalDivision", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInsufficientRes)
+	_, err := c.doAllocResource(context.Background(), opts)
+	assert.Error(t, err)
+}
+
+func testAllocFailedAsEachDivisionError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
+	ori := opts.DeployMethod
+	defer func() {
+		opts.DeployMethod = ori
+	}()
+
+	opts.DeployMethod = cluster.DeployEach
+	sched := c.scheduler.(*schedulermocks.Scheduler)
+	sched.On("EachDivision", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInsufficientRes)
+	_, err := c.doAllocResource(context.Background(), opts)
+	assert.Error(t, err)
+}
+
+func testAllocFailedAsFillDivisionError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
+	ori := opts.DeployMethod
+	defer func() {
+		opts.DeployMethod = ori
+	}()
+
+	opts.DeployMethod = cluster.DeployFill
+	sched := c.scheduler.(*schedulermocks.Scheduler)
+	sched.On("FillDivision", mock.Anything, mock.Anything, mock.Anything).Return([]types.NodeInfo{}, nil).Once()
+	_, err := c.doAllocResource(context.Background(), opts)
+	assert.Error(t, err)
+}
+
+func testAllocFailedAsUpdateNodeResourceError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
+	store := c.store.(*storemocks.Store)	
+	store.On("UpdateNodeResource",
+		mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything,
+	).Return(types.ErrNoETCD).Once()
+	_, err := c.doAllocResource(context.Background(), opts)
+	assert.Error(t, err)
+}
+
+func testAllocFailedAsSaveProcessingError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
+	store := c.store.(*storemocks.Store)	
+	store.On("SaveProcessing", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
+	_, err := c.doAllocResource(context.Background(), opts)
+	assert.Error(t, err)
 }
