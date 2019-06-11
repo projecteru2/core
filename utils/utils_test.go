@@ -201,13 +201,3 @@ func TestRound(t *testing.T) {
 	a = 19.99998
 	assert.Equal(t, f(Round(a)), "20")
 }
-
-func TestGetNUMAMemoryNode(t *testing.T) {
-	node := &types.Node{
-		NUMA: types.NUMA{"1": "node1", "2": "node2", "3": "node1", "4": "node2"},
-	}
-	nodeID := GetNUMAMemoryNode(node, types.CPUMap{"1": 100, "2": 100})
-	assert.Equal(t, nodeID, "")
-	nodeID = GetNUMAMemoryNode(node, types.CPUMap{"1": 100, "3": 100})
-	assert.Equal(t, nodeID, "node1")
-}

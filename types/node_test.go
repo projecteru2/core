@@ -40,6 +40,27 @@ func TestCPUMap(t *testing.T) {
 	cpuMap.Add(CPUMap{"0": 20})
 	assert.Equal(t, cpuMap["0"], 70)
 
+	cpuMap.Add(CPUMap{"3": 100})
+	assert.Equal(t, cpuMap["3"], 100)
+
 	cpuMap.Sub(CPUMap{"1": 20})
 	assert.Equal(t, cpuMap["1"], 50)
+
+	m := cpuMap.Map()
+	assert.Equal(t, m["1"], 50)
+}
+
+func TestGetNUMANode(t *testing.T) {
+	node := &Node{
+		NUMA: NUMA{"1": "node1", "2": "node2", "3": "node1", "4": "node2"},
+	}
+	cpu := CPUMap{"1": 100, "2": 100}
+	nodeID := cpu.GetNUMANode(node)
+	assert.Equal(t, nodeID, "")
+	cpu = CPUMap{"1": 100, "3": 100}
+	nodeID = cpu.GetNUMANode(node)
+	assert.Equal(t, nodeID, "node1")
+	cpu = nil
+	nodeID = cpu.GetNUMANode(node)
+	assert.Equal(t, nodeID, "")
 }
