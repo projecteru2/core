@@ -21,7 +21,9 @@ import (
 // AddNode save it to etcd
 // storage path in etcd is `/pod/nodes/:podname/:nodename`
 // node->pod path in etcd is `/node/pod/:nodename`
-func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string) (*types.Node, error) {
+func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string,
+	cpu, share int, memory int64, labels map[string]string,
+	numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
 	if !strings.HasPrefix(endpoint, nodeTCPPrefixKey) &&
 		!strings.HasPrefix(endpoint, nodeSockPrefixKey) &&
 		!strings.HasPrefix(endpoint, nodeMockPrefixKey) &&
@@ -59,13 +61,29 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 		cpu = info.NCPU
 	}
 	if memory == 0 {
-		memory = info.MemTotal - types.GByte
+		memory = info.MemTotal * 10 / 8 // use 80% real memory, not sub types.GByte now
 	}
 	if share == 0 {
 		share = m.config.Scheduler.ShareBase
 	}
+	// 设置 numa 的内存默认值，如果没有的话，按照 numa node 个数均分
+	if len(numa) > 0 {
+		nodeIDs := map[string]struct{}{}
+		for _, nodeID := range numa {
+			nodeIDs[nodeID] = struct{}{}
+		}
+		perNodeMemory := memory / int64(len(nodeIDs))
+		if numaMemory == nil {
+			numaMemory = types.NUMAMemory{}
+		}
+		for nodeID := range nodeIDs {
+			if _, ok := numaMemory[nodeID]; !ok {
+				numaMemory[nodeID] = perNodeMemory
+			}
+		}
+	}
 
-	return m.doAddNode(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, labels)
+	return m.doAddNode(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory)
 }
 
 // DeleteNode delete a node
@@ -161,7 +179,7 @@ func (m *Mercury) UpdateNode(ctx context.Context, node *types.Node) error {
 	}
 
 	value := string(bytes)
-	log.Debugf("[UpdateNode] pod %s node %s cpu slots %v mem %v", node.Podname, node.Name, node.CPU, node.MemCap)
+	log.Debugf("[UpdateNode] pod %s node %s cpu slots %v memory %v", node.Podname, node.Name, node.CPU, node.MemCap)
 	_, err = m.Put(ctx, key, value)
 	return err
 }
@@ -173,19 +191,15 @@ func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu 
 		node.CPU.Add(cpu)
 		node.SetCPUUsed(quota, types.DecrUsage)
 		node.MemCap += mem
-		if nodeID := cpu.GetNUMANode(node); nodeID != "" {
-			if _, ok := node.NUMAMem[nodeID]; ok {
-				node.NUMAMem[nodeID] += mem
-			}
+		if nodeID := node.GetNUMANode(cpu); nodeID != "" {
+			node.IncrNUMANodeMemory(nodeID, mem)
 		}
 	case store.ActionDecr:
 		node.CPU.Sub(cpu)
 		node.SetCPUUsed(quota, types.IncrUsage)
 		node.MemCap -= mem
-		if nodeID := cpu.GetNUMANode(node); nodeID != "" {
-			if _, ok := node.NUMAMem[nodeID]; ok {
-				node.NUMAMem[nodeID] -= mem
-			}
+		if nodeID := node.GetNUMANode(cpu); nodeID != "" {
+			node.DecrNUMANodeMemory(nodeID, mem)
 		}
 	default:
 		return types.ErrUnknownControlType
@@ -263,7 +277,7 @@ func (m *Mercury) doMakeClient(ctx context.Context, nodename, endpoint, ca, cert
 	return nil, types.ErrNotSupport
 }
 
-func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string) (*types.Node, error) {
+func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string, numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
 	data := map[string]string{}
 	// 如果有tls的证书需要保存就保存一下
 	if ca != "" && cert != "" && key != "" {
@@ -287,6 +301,8 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 		InitMemCap: memory,
 		Available:  true,
 		Labels:     labels,
+		NUMA:       numa,
+		NUMAMemory: numaMemory,
 	}
 
 	bytes, err := json.Marshal(node)

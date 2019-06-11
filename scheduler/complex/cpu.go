@@ -182,11 +182,11 @@ func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShar
 			numaCPUMap[nodeID][cpuID] = cpuCount
 		}
 		for nodeID, nodeCPUMap := range numaCPUMap {
-			nodeMemCap, ok := nodeInfo.NUMAMem[nodeID]
+			nodeMemCap, ok := nodeInfo.NUMAMemory[nodeID]
 			if !ok {
 				continue
 			}
-			cap, plan := calcuateCPUPlan(nodeCPUMap, nodeMemCap, cpu, memory, maxShareCore, coreShare)
+			cap, plan := calculateCPUPlan(nodeCPUMap, nodeMemCap, cpu, memory, maxShareCore, coreShare)
 			if cap > 0 {
 				if _, ok := nodeContainer[nodeInfo.Name]; !ok {
 					nodeContainer[nodeInfo.Name] = []types.CPUMap{}
@@ -199,10 +199,11 @@ func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShar
 					nodeContainer[nodeInfo.Name] = append(nodeContainer[nodeInfo.Name], cpuPlan)
 				}
 			}
+			log.Infof("[cpuPriorPlan] node %s numa node %s deploy capacity %d", nodeInfo.Name, nodeID, cap)
 		}
 		// 非 numa
 		// 或者是扣掉 numa 分配后剩下的资源里面
-		cap, plan := calcuateCPUPlan(globalCPUMap, globalMemCap, cpu, memory, maxShareCore, coreShare)
+		cap, plan := calculateCPUPlan(globalCPUMap, globalMemCap, cpu, memory, maxShareCore, coreShare)
 		if cap > 0 {
 			if _, ok := nodeContainer[nodeInfo.Name]; !ok {
 				nodeContainer[nodeInfo.Name] = []types.CPUMap{}
@@ -211,6 +212,7 @@ func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShar
 			volTotal += cap
 			nodeContainer[nodeInfo.Name] = append(nodeContainer[nodeInfo.Name], plan...)
 		}
+		log.Infof("[cpuPriorPlan] node %s total deploy capacity %d", nodeInfo.Name, nodesInfo[p].Capacity)
 	}
 
 	// 裁剪掉不能部署的
@@ -220,11 +222,10 @@ func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShar
 		return nil, nil, 0, types.ErrInsufficientRes
 	}
 
-	log.Debugf("[cpuPriorPlan] nodesInfo: %v", nodesInfo)
 	return nodesInfo[p:], nodeContainer, volTotal, nil
 }
 
-func calcuateCPUPlan(CPUMap types.CPUMap, MemCap int64, cpu float64, memory int64, maxShareCore, coreShare int) (int, []types.CPUMap) {
+func calculateCPUPlan(CPUMap types.CPUMap, MemCap int64, cpu float64, memory int64, maxShareCore, coreShare int) (int, []types.CPUMap) {
 	host := newHost(CPUMap, coreShare)
 	plan := host.getContainerCores(cpu, maxShareCore)
 	memLimit := int(MemCap / memory)

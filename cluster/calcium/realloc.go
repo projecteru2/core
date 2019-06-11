@@ -109,10 +109,8 @@ func (c *Calcium) doReallocContainer(
 						node.CPU.Add(container.CPU)
 						node.SetCPUUsed(container.Quota, types.DecrUsage)
 						node.MemCap += container.Memory
-						if nodeID := container.CPU.GetNUMANode(node); nodeID != "" {
-							if _, ok := node.NUMAMem[nodeID]; ok {
-								node.NUMAMem[nodeID] += container.Memory
-							}
+						if nodeID := node.GetNUMANode(container.CPU); nodeID != "" {
+							node.IncrNUMANodeMemory(nodeID, container.Memory)
 						}
 						if len(container.CPU) > 0 {
 							containerWithCPUBind++
@@ -143,7 +141,7 @@ func (c *Calcium) doReallocContainer(
 						newResource := &enginetypes.VirtualizationResource{Quota: newCPU, Memory: newMemory, SoftLimit: container.SoftLimit}
 						if len(container.CPU) > 0 {
 							newResource.CPU = cpusets[0]
-							newResource.NUMANode = cpusets[0].GetNUMANode(node)
+							newResource.NUMANode = node.GetNUMANode(cpusets[0])
 							cpusets = cpusets[1:]
 						}
 						updateSuccess := false
@@ -162,10 +160,8 @@ func (c *Calcium) doReallocContainer(
 						node.CPU.Sub(container.CPU)
 						node.SetCPUUsed(container.Quota, types.IncrUsage)
 						node.MemCap -= container.Memory
-						if nodeID := container.CPU.GetNUMANode(node); nodeID != "" {
-							if _, ok := node.NUMAMem[nodeID]; ok {
-								node.NUMAMem[nodeID] -= container.Memory
-							}
+						if nodeID := node.GetNUMANode(container.CPU); nodeID != "" {
+							node.DecrNUMANodeMemory(nodeID, container.Memory)
 						}
 						// 更新 container 元数据
 						if err := c.store.UpdateContainer(ctx, container); err == nil {

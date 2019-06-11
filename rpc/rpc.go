@@ -50,6 +50,8 @@ func (v *Vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.N
 		int(opts.Share),
 		opts.Memory,
 		opts.Labels,
+		opts.Numa,
+		opts.NumaMemory,
 	)
 	if err != nil {
 		return nil, err

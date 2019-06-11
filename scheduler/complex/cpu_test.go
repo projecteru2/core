@@ -49,7 +49,7 @@ func resetNodesInfo() []types.NodeInfo {
 				"3": "node0",
 				"4": "node1",
 			},
-			NUMAMem: types.NUMAMem{
+			NUMAMemory: types.NUMAMemory{
 				"node0": types.GByte,
 				"node1": types.GByte,
 			},

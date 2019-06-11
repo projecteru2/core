@@ -13,13 +13,13 @@ type Cluster struct {
 	mock.Mock
 }
 
-// AddNode provides a mock function with given fields: ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, labels
-func (_m *Cluster) AddNode(ctx context.Context, nodename string, endpoint string, podname string, ca string, cert string, key string, cpu int, share int, memory int64, labels map[string]string) (*types.Node, error) {
-	ret := _m.Called(ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, labels)
+// AddNode provides a mock function with given fields: ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory
+func (_m *Cluster) AddNode(ctx context.Context, nodename string, endpoint string, podname string, ca string, cert string, key string, cpu int, share int, memory int64, labels map[string]string, numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
+	ret := _m.Called(ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory)
 
 	var r0 *types.Node
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, string, string, int, int, int64, map[string]string) *types.Node); ok {
-		r0 = rf(ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, labels)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, string, string, int, int, int64, map[string]string, types.NUMA, types.NUMAMemory) *types.Node); ok {
+		r0 = rf(ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.Node)
@@ -27,8 +27,8 @@ func (_m *Cluster) AddNode(ctx context.Context, nodename string, endpoint string
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, string, string, string, int, int, int64, map[string]string) error); ok {
-		r1 = rf(ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, labels)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, string, string, string, int, int, int64, map[string]string, types.NUMA, types.NUMAMemory) error); ok {
+		r1 = rf(ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory)
 	} else {
 		r1 = ret.Error(1)
 	}

@@ -53,26 +53,11 @@ func (c CPUMap) Map() map[string]int {
 	return map[string]int(c)
 }
 
-// GetNUMANode get numa node
-func (c CPUMap) GetNUMANode(node *Node) string {
-	nodeID := ""
-	for cpuID := range c {
-		if memoryNode, ok := node.NUMA[cpuID]; ok {
-			if nodeID == "" {
-				nodeID = memoryNode
-			} else if nodeID != memoryNode { // 如果跨 NODE 了，让系统决定 nodeID
-				nodeID = ""
-			}
-		}
-	}
-	return nodeID
-}
-
 // NUMA define NUMA cpuID->nodeID
 type NUMA map[string]string
 
-// NUMAMem fine NUMA mem NODE
-type NUMAMem map[string]int64
+// NUMAMemory fine NUMA mem NODE
+type NUMAMemory map[string]int64
 
 // Node store node info
 type Node struct {
@@ -81,7 +66,7 @@ type Node struct {
 	Podname    string            `json:"podname"`
 	CPU        CPUMap            `json:"cpu"`
 	NUMA       NUMA              `json:"numa"`
-	NUMAMem    NUMAMem           `json:"numa_mem"`
+	NUMAMemory NUMAMemory        `json:"numa_memory"`
 	CPUUsed    float64           `json:"cpuused"`
 	MemCap     int64             `json:"memcap"`
 	Available  bool              `json:"available"`
@@ -110,17 +95,46 @@ func (n *Node) SetCPUUsed(quota float64, action string) {
 	}
 }
 
+// GetNUMANode get numa node
+func (n *Node) GetNUMANode(cpu CPUMap) string {
+	nodeID := ""
+	for cpuID := range cpu {
+		if memoryNode, ok := n.NUMA[cpuID]; ok {
+			if nodeID == "" {
+				nodeID = memoryNode
+			} else if nodeID != memoryNode { // 如果跨 NODE 了，让系统决定 nodeID
+				nodeID = ""
+			}
+		}
+	}
+	return nodeID
+}
+
+// IncrNUMANodeMemory set numa node memory
+func (n *Node) IncrNUMANodeMemory(nodeID string, memory int64) {
+	if _, ok := n.NUMAMemory[nodeID]; ok {
+		n.NUMAMemory[nodeID] += memory
+	}
+}
+
+// DecrNUMANodeMemory set numa node memory
+func (n *Node) DecrNUMANodeMemory(nodeID string, memory int64) {
+	if _, ok := n.NUMAMemory[nodeID]; ok {
+		n.NUMAMemory[nodeID] -= memory
+	}
+}
+
 // NodeInfo for deploy
 type NodeInfo struct {
-	Name     string
-	CPUMap   CPUMap
-	NUMA     NUMA
-	NUMAMem  NUMAMem
-	MemCap   int64
-	CPUUsed  float64 // CPU目前占用率
-	MemUsage float64 // MEM目前占用率
-	CPURate  float64 // 需要增加的 CPU 占用率
-	MemRate  float64 // 需要增加的内存占有率
+	Name       string
+	CPUMap     CPUMap
+	NUMA       NUMA
+	NUMAMemory NUMAMemory
+	MemCap     int64
+	CPUUsed    float64 // CPU目前占用率
+	MemUsage   float64 // MEM目前占用率
+	CPURate    float64 // 需要增加的 CPU 占用率
+	MemRate    float64 // 需要增加的内存占有率
 
 	CPUPlan  []CPUMap
 	Capacity int // 可以部署几个

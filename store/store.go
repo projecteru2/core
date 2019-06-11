@@ -27,7 +27,9 @@ type Store interface {
 	GetAllPods(ctx context.Context) ([]*types.Pod, error)
 
 	// node
-	AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string) (*types.Node, error)
+	AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string,
+		cpu, share int, memory int64, labels map[string]string,
+		numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error)
 	DeleteNode(ctx context.Context, node *types.Node)
 	GetNode(ctx context.Context, podname, nodename string) (*types.Node, error)
 	GetNodeByName(ctx context.Context, nodename string) (*types.Node, error)
