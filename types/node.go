@@ -53,6 +53,21 @@ func (c CPUMap) Map() map[string]int {
 	return map[string]int(c)
 }
 
+// GetNUMANode get numa node
+func (c CPUMap) GetNUMANode(node *Node) string {
+	nodeID := ""
+	for cpuID := range c {
+		if memoryNode, ok := node.NUMA[cpuID]; ok {
+			if nodeID == "" {
+				nodeID = memoryNode
+			} else if nodeID != memoryNode { // 如果跨 NODE 了，让系统决定 nodeID
+				nodeID = ""
+			}
+		}
+	}
+	return nodeID
+}
+
 // NUMA define NUMA cpuID->nodeID
 type NUMA map[string]string
 
