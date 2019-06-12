@@ -33,6 +33,7 @@ service CoreRPC {
     rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage) {};
     rpc ReplaceContainer(ReplaceOptions) returns (stream ReplaceContainerMessage) {};
     rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage) {};
+    rpc DissociateContainer(DissociateContainerOptions) returns (stream DissociateContainerMessage) {};
     rpc ControlContainer(ControlContainerOptions) returns (stream ControlContainerMessage) {};
     rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage) {};
 }
@@ -169,6 +170,10 @@ message RemoveContainerOptions {
     repeated string ids = 1;
     bool force = 2;
     int32 step = 3;
+}
+
+message DissociateContainerOptions {
+    repeated string ids = 1;
 }
 
 message ReallocOptions {
@@ -400,6 +405,11 @@ message RemoveContainerMessage {
     string id = 1;
     bool success = 2;
     string hook = 3;
+}
+
+message DissociateContainerMessage {
+    string id = 1;
+    bool success = 2;
 }
 
 message ReallocResourceMessage {
