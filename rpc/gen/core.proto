@@ -7,12 +7,13 @@ service CoreRPC {
     rpc AddPod(AddPodOptions) returns (Pod) {};
     rpc RemovePod(RemovePodOptions) returns (Empty) {};
     rpc GetPod(GetPodOptions) returns (Pod) {};
-	rpc GetPodResource(GetPodOptions) returns (PodResource) {};
+    rpc GetPodResource(GetPodOptions) returns (PodResource) {};
 
     rpc AddNode(AddNodeOptions) returns (Node) {};
     rpc RemoveNode(RemoveNodeOptions) returns (Pod) {};
     rpc SetNodeAvailable(NodeAvailable) returns (Node) {};
     rpc GetNode(GetNodeOptions) returns (Node) {};
+    rpc GetNodeResource(GetNodeOptions) returns (NodeResource) {};
     rpc GetContainer(ContainerID) returns (Container) {};
     rpc GetContainers(ContainerIDs) returns (Containers) {};
     rpc GetNodeByName(GetNodeOptions) returns (Node) {};
@@ -72,10 +73,18 @@ message Pods {
 
 message PodResource {
     string name = 1;
-    map<string,double> cpu = 2;
-    map<string,double> memory = 3;
-    map<string, bool> diff = 4;
-    map<string, string> detail = 5;
+    map<string,double> cpu_percents = 2;
+    map<string,double> memory_percents = 3;
+    map<string, bool> verifications = 4;
+    map<string, string> details = 5;
+}
+
+message NodeResource {
+    string name = 1;
+    double cpu_percent = 2;
+    double memory_percent = 3;
+    bool verification = 4;
+    repeated string details = 5;
 }
 
 message ListNetworkOptions {
@@ -165,7 +174,7 @@ message RemoveContainerOptions {
 message ReallocOptions {
     repeated string ids = 1;
     double cpu = 2;
-    int64 mem = 3;
+    int64 memory = 3;
 }
 
 message AddPodOptions {

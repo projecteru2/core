@@ -111,7 +111,7 @@ func TestListPodNodes(t *testing.T) {
 
 	store := &storemocks.Store{}
 	c.store = store
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrBadPodType).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err := c.ListPodNodes(ctx, "", false)
 	assert.Error(t, err)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)

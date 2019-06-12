@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,7 +23,7 @@ func TestPodResource(t *testing.T) {
 	store := &storemocks.Store{}
 	c.store = store
 	// failed by GetNodesByPod
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrBadPodType).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err := c.PodResource(ctx, podname)
 	assert.Error(t, err)
 	node := &types.Node{
@@ -34,7 +35,7 @@ func TestPodResource(t *testing.T) {
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	// failed by ListNodeContainers
-	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(nil, types.ErrBadPodType).Once()
+	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err = c.PodResource(ctx, podname)
 	assert.Error(t, err)
 	containers := []*types.Container{
@@ -53,10 +54,58 @@ func TestPodResource(t *testing.T) {
 	// success
 	r, err := c.PodResource(ctx, podname)
 	assert.NoError(t, err)
-	assert.Len(t, r.CPUPercent, 1)
-	assert.Len(t, r.MEMPercent, 1)
-	assert.False(t, r.Diff[nodename])
-	assert.NotEmpty(t, r.Detail[nodename])
+	assert.Len(t, r.CPUPercents, 1)
+	assert.Len(t, r.MemoryPercents, 1)
+	assert.False(t, r.Verifications[nodename])
+	assert.NotEmpty(t, r.Details[nodename])
+}
+
+func TestNodeResource(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	podname := "testpod"
+	nodename := "testnode"
+	store := &storemocks.Store{}
+	c.store = store
+	node := &types.Node{
+		Name:           nodename,
+		CPU:            types.CPUMap{"0": 0, "1": 10},
+		MemCap:         2,
+		InitCPU:        types.CPUMap{"0": 100, "1": 100},
+		InitMemCap:     6,
+		NUMAMemory:     types.NUMAMemory{"0": 1, "1": 1},
+		InitNUMAMemory: types.NUMAMemory{"0": 3, "1": 3},
+	}
+	// failed by GetNode
+	store.On("GetNode", ctx, podname, nodename).Return(nil, types.ErrNoETCD).Once()
+	_, err := c.NodeResource(ctx, podname, nodename)
+	assert.Error(t, err)
+	store.On("GetNode", ctx, podname, nodename).Return(node, nil)
+	// failed by list node containers
+	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	_, err = c.NodeResource(ctx, podname, nodename)
+	assert.Error(t, err)
+	containers := []*types.Container{
+		{
+			Memory: 1,
+			CPU:    types.CPUMap{"0": 100, "1": 30},
+			Quota:  1.3,
+		},
+		{
+			Memory: 2,
+			CPU:    types.CPUMap{"1": 50},
+			Quota:  0.5,
+		},
+	}
+	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(containers, nil)
+	// success but container inspect failed
+	nr, err := c.NodeResource(ctx, podname, nodename)
+	assert.NoError(t, err)
+	assert.Equal(t, nr.Name, nodename)
+	assert.NotEmpty(t, nr.Details)
+	assert.False(t, nr.Verification)
+	details := strings.Join(nr.Details, ",")
+	assert.Contains(t, details, "inspect failed")
 }
 
 func TestAllocResource(t *testing.T) {
@@ -166,6 +215,7 @@ func TestAllocResource(t *testing.T) {
 	).Return(nil)
 
 	// success
+	opts.CPUBind = true
 	nsi, err := c.doAllocResource(ctx, opts)
 	assert.NoError(t, err)
 	assert.Len(t, nsi, 1)
@@ -175,7 +225,7 @@ func TestAllocResource(t *testing.T) {
 
 func testAllocFailedAsGetNodesByPodError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
 	store := c.store.(*storemocks.Store)
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrBadPodType).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)
 }
@@ -207,7 +257,7 @@ func testAllocFailedAsGetNodeError(t *testing.T, c *Calcium, opts *types.DeployO
 
 func testAllocFailedAsMakeDeployStatusError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
 	store := c.store.(*storemocks.Store)
-	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrBadPodType).Once()
+	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)
 }
@@ -296,7 +346,7 @@ func testAllocFailedAsFillDivisionError(t *testing.T, c *Calcium, opts *types.De
 }
 
 func testAllocFailedAsUpdateNodeResourceError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
-	store := c.store.(*storemocks.Store)	
+	store := c.store.(*storemocks.Store)
 	store.On("UpdateNodeResource",
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,
@@ -306,7 +356,7 @@ func testAllocFailedAsUpdateNodeResourceError(t *testing.T, c *Calcium, opts *ty
 }
 
 func testAllocFailedAsSaveProcessingError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
-	store := c.store.(*storemocks.Store)	
+	store := c.store.(*storemocks.Store)
 	store.On("SaveProcessing", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)

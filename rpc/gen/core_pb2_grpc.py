@@ -59,6 +59,11 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.GetNodeOptions.SerializeToString,
         response_deserializer=core__pb2.Node.FromString,
         )
+    self.GetNodeResource = channel.unary_unary(
+        '/pb.CoreRPC/GetNodeResource',
+        request_serializer=core__pb2.GetNodeOptions.SerializeToString,
+        response_deserializer=core__pb2.NodeResource.FromString,
+        )
     self.GetContainer = channel.unary_unary(
         '/pb.CoreRPC/GetContainer',
         request_serializer=core__pb2.ContainerID.SerializeToString,
@@ -222,6 +227,13 @@ class CoreRPCServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def GetNode(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetNodeResource(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -415,6 +427,11 @@ def add_CoreRPCServicer_to_server(servicer, server):
           servicer.GetNode,
           request_deserializer=core__pb2.GetNodeOptions.FromString,
           response_serializer=core__pb2.Node.SerializeToString,
+      ),
+      'GetNodeResource': grpc.unary_unary_rpc_method_handler(
+          servicer.GetNodeResource,
+          request_deserializer=core__pb2.GetNodeOptions.FromString,
+          response_serializer=core__pb2.NodeResource.SerializeToString,
       ),
       'GetContainer': grpc.unary_unary_rpc_method_handler(
           servicer.GetContainer,

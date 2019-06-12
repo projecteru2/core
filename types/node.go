@@ -56,24 +56,25 @@ func (c CPUMap) Map() map[string]int {
 // NUMA define NUMA cpuID->nodeID
 type NUMA map[string]string
 
-// NUMAMemory fine NUMA mem NODE
+// NUMAMemory fine NUMA memory NODE
 type NUMAMemory map[string]int64
 
 // Node store node info
 type Node struct {
-	Name       string            `json:"name"`
-	Endpoint   string            `json:"endpoint"`
-	Podname    string            `json:"podname"`
-	CPU        CPUMap            `json:"cpu"`
-	NUMA       NUMA              `json:"numa"`
-	NUMAMemory NUMAMemory        `json:"numa_memory"`
-	CPUUsed    float64           `json:"cpuused"`
-	MemCap     int64             `json:"memcap"`
-	Available  bool              `json:"available"`
-	Labels     map[string]string `json:"labels"`
-	InitCPU    CPUMap            `json:"init_cpu"`
-	InitMemCap int64             `json:"init_memcap"`
-	Engine     engine.API        `json:"-"`
+	Name           string            `json:"name"`
+	Endpoint       string            `json:"endpoint"`
+	Podname        string            `json:"podname"`
+	CPU            CPUMap            `json:"cpu"`
+	NUMA           NUMA              `json:"numa"`
+	NUMAMemory     NUMAMemory        `json:"numa_memory"`
+	CPUUsed        float64           `json:"cpuused"`
+	MemCap         int64             `json:"memcap"`
+	Available      bool              `json:"available"`
+	Labels         map[string]string `json:"labels"`
+	InitCPU        CPUMap            `json:"init_cpu"`
+	InitMemCap     int64             `json:"init_memcap"`
+	InitNUMAMemory NUMAMemory        `json:"init_numa_memory"`
+	Engine         engine.API        `json:"-"`
 }
 
 // Info show node info
@@ -141,4 +142,17 @@ type NodeInfo struct {
 	Count    int // 上面有几个了
 	Deploy   int // 最终部署几个
 	// 其他需要 filter 的字段
+}
+
+// NodeResource for node check
+type NodeResource struct {
+	Name              string
+	CPU               CPUMap
+	MemCap            int64
+	CPUPercent        float64
+	MemoryPercent     float64
+	NUMAMemoryPercent map[string]float64
+	Verification      bool
+	Details           []string
+	Containers        []*Container
 }

@@ -8,9 +8,9 @@ type Pod struct {
 
 // PodResource define pod resource
 type PodResource struct {
-	Name       string
-	CPUPercent map[string]float64
-	MEMPercent map[string]float64
-	Diff       map[string]bool
-	Detail     map[string]string
+	Name          string
+	CPUPercents    map[string]float64
+	MemoryPercents    map[string]float64
+	Verifications map[string]bool
+	Details       map[string]string
 }

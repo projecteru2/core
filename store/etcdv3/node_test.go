@@ -111,7 +111,7 @@ func TestNode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, newNode.MemCap, int64(100))
 	assert.Equal(t, newNode.CPUUsed, 0.0)
-	// numa mem record
+	// numa memory record
 	node.NUMA = types.NUMA{"0": "n1"}
 	node.NUMAMemory = map[string]int64{"n1": 100}
 	assert.NoError(t, m.UpdateNodeResource(ctx, node, types.CPUMap{"0": 10}, 0.01, int64(1), "-"))

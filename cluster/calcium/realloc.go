@@ -15,11 +15,11 @@ import (
 // nodename -> container list
 type nodeContainers map[string][]*types.Container
 
-// cpu:mem
+// cpu:memory
 type cpuMemNodeContainers map[float64]map[int64]nodeContainers
 
 // ReallocResource allow realloc container resource
-func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error) {
+func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64) (chan *types.ReallocResourceMessage, error) {
 	ch := make(chan *types.ReallocResourceMessage)
 	go func() {
 		defer close(ch)
@@ -52,7 +52,7 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 			for pod, nodeContainersInfo := range containersInfo {
 				go func(pod *types.Pod, nodeContainersInfo nodeContainers) {
 					defer wg.Done()
-					c.doReallocContainer(ctx, ch, pod, nodeContainersInfo, cpu, mem)
+					c.doReallocContainer(ctx, ch, pod, nodeContainersInfo, cpu, memory)
 				}(pod, nodeContainersInfo)
 			}
 			wg.Wait()
@@ -102,7 +102,7 @@ func (c *Calcium) doReallocContainer(
 			for nodename, containers := range nodesContainers {
 				if err := c.withNodeLocked(ctx, pod.Name, nodename, func(node *types.Node) error {
 					// 把记录的 CPU 还回去，变成新的可用资源
-					// 把记录的 Mem 还回去，变成新的可用资源
+					// 把记录的 Memory 还回去，变成新的可用资源
 					containerWithCPUBind := 0
 					for _, container := range containers {
 						// 不更新 etcd，内存计算
