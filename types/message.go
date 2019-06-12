@@ -12,6 +12,12 @@ type RemoveContainerMessage struct {
 	Hook        []*bytes.Buffer
 }
 
+// DissociateContainerMessage for dissociate container message
+type DissociateContainerMessage struct {
+	ContainerID string
+	Success     bool
+}
+
 type errorDetail struct {
 	Code    int    `json:"code,omitempty"`
 	Message string `json:"message,omitempty"`

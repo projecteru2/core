@@ -555,6 +555,31 @@ func (v *Vibranium) RemoveContainer(opts *pb.RemoveContainerOptions, stream pb.C
 	return err
 }
 
+// DissociateContainer dissociate container
+func (v *Vibranium) DissociateContainer(opts *pb.DissociateContainerOptions, stream pb.CoreRPC_DissociateContainerServer) error {
+	v.taskAdd("DissociateContainer", true)
+	defer v.taskDone("DissociateContainer", true)
+
+	ids := opts.GetIds()
+	if len(ids) == 0 {
+		return types.ErrNoContainerIDs
+	}
+
+	//这里不能让 client 打断 remove
+	ch, err := v.cluster.DissociateContainer(context.Background(), ids)
+	if err != nil {
+		return err
+	}
+
+	for m := range ch {
+		if err = stream.Send(toRPCDissociateContainerMessage(m)); err != nil {
+			v.logUnsentMessages("DissociateContainer", m)
+		}
+	}
+
+	return err
+}
+
 // ControlContainer control containers
 func (v *Vibranium) ControlContainer(opts *pb.ControlContainerOptions, stream pb.CoreRPC_ControlContainerServer) error {
 	v.taskAdd("ControlContainer", true)
