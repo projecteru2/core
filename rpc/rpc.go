@@ -176,6 +176,16 @@ func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.N
 	return toRPCNode(ctx, n), nil
 }
 
+// GetNodeResource check node resource
+func (v *Vibranium) GetNodeResource(ctx context.Context, opts *pb.GetNodeOptions) (*pb.NodeResource, error) {
+	nr, err := v.cluster.NodeResource(ctx, opts.Podname, opts.Nodename)
+	if err != nil {
+		return nil, err
+	}
+
+	return toRPCNodeResource(nr), nil
+}
+
 // GetContainer get a container
 // More information will be shown
 func (v *Vibranium) GetContainer(ctx context.Context, id *pb.ContainerID) (*pb.Container, error) {
@@ -581,7 +591,7 @@ func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_R
 	}
 
 	//这里不能让 client 打断 remove
-	ch, err := v.cluster.ReallocResource(context.Background(), ids, opts.Cpu, opts.Mem)
+	ch, err := v.cluster.ReallocResource(context.Background(), ids, opts.Cpu, opts.Memory)
 	if err != nil {
 		return err
 	}

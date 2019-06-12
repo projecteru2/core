@@ -13,7 +13,7 @@ import (
 
 const (
 	cpuMap      = "core.node.%s.cpu.%s"
-	memStats    = "core.node.%s.mem"
+	memStats    = "core.node.%s.memory"
 	deployCount = "core.%s.deploy.count"
 )
 

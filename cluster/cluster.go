@@ -67,6 +67,7 @@ type Cluster interface {
 	ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename, data string) error
 	// cluster methods
 	PodResource(ctx context.Context, podname string) (*types.PodResource, error)
+	NodeResource(ctx context.Context, podname, nodename string) (*types.NodeResource, error)
 	ControlContainer(ctx context.Context, IDs []string, t string) (chan *types.ControlContainerMessage, error)
 	Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error)
 	Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error)
@@ -78,7 +79,7 @@ type Cluster interface {
 	BuildImage(ctx context.Context, opts *enginetypes.BuildOptions) (chan *types.BuildImageMessage, error)
 	// this methods will not interrupt by client
 	CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
-	ReallocResource(ctx context.Context, IDs []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error)
+	ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64) (chan *types.ReallocResourceMessage, error)
 	RemoveContainer(ctx context.Context, IDs []string, force bool, step int) (chan *types.RemoveContainerMessage, error)
 	ReplaceContainer(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceContainerMessage, error)
 	// finalizer

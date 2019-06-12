@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -20,47 +21,87 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 		return nil, err
 	}
 	r := &types.PodResource{
-		Name:       podname,
-		CPUPercent: map[string]float64{},
-		MEMPercent: map[string]float64{},
-		Diff:       map[string]bool{},
-		Detail:     map[string]string{},
+		Name:          podname,
+		CPUPercent:    map[string]float64{},
+		MEMPercent:    map[string]float64{},
+		Verifications: map[string]bool{},
+		Details:       map[string]string{},
 	}
 	for _, node := range nodes {
-		containers, err := c.ListNodeContainers(ctx, node.Name)
+		nodeDetail, err := c.doGetNodeResource(ctx, node)
 		if err != nil {
 			return nil, err
 		}
-		cpus := 0.0
-		memory := int64(0)
-		cpumap := types.CPUMap{}
-		for _, container := range containers {
-			cpus = utils.Round(cpus + container.Quota)
-			memory += container.Memory
-			cpumap.Add(container.CPU)
-		}
-		r.CPUPercent[node.Name] = cpus / float64(len(node.InitCPU))
-		r.MEMPercent[node.Name] = float64(memory) / float64(node.InitMemCap)
-		r.Diff[node.Name] = true
-		r.Detail[node.Name] = ""
-		cpumap.Add(node.CPU)
-		if cpus != node.CPUUsed {
-			r.Diff[node.Name] = false
-			r.Detail[node.Name] += fmt.Sprintf("cpus %f now %f ", node.CPUUsed, cpus)
-		}
-		for i, v := range cpumap {
-			if node.InitCPU[i] != v {
-				r.Diff[node.Name] = false
-				r.Detail[node.Name] += fmt.Sprintf("cpu %s now %d ", i, v)
-			}
-		}
-		if memory+node.MemCap != node.InitMemCap {
-			r.Diff[node.Name] = false
-			r.Detail[node.Name] += fmt.Sprintf("mem now %d ", node.InitMemCap-(memory+node.MemCap))
-		}
-
+		r.CPUPercent[node.Name] = nodeDetail.CPUPercent
+		r.MEMPercent[node.Name] = nodeDetail.MEMPercent
+		r.Verifications[node.Name] = nodeDetail.Verification
+		r.Details[node.Name] = strings.Join(nodeDetail.Details, "\n")
 	}
 	return r, nil
+}
+
+// NodeResource check node's container and resource
+func (c *Calcium) NodeResource(ctx context.Context, podname, nodename string) (*types.NodeResource, error) {
+	node, err := c.GetNode(ctx, podname, nodename)
+	if err != nil {
+		return nil, err
+	}
+	nr, err := c.doGetNodeResource(ctx, node)
+	if err != nil {
+		return nil, err
+	}
+	for _, container := range nr.Containers {
+		_, err := container.Inspect(ctx)
+		if err != nil {
+			nr.Verification = false
+			nr.Details = append(nr.Details, fmt.Sprintf("container %s inspect failed %v \n", container.ID, err))
+			continue
+		}
+	}
+	return nr, err
+}
+
+func (c *Calcium) doGetNodeResource(ctx context.Context, node *types.Node) (*types.NodeResource, error) {
+	containers, err := c.ListNodeContainers(ctx, node.Name)
+	if err != nil {
+		return nil, err
+	}
+	nr := &types.NodeResource{
+		Name: node.Name, CPU: node.CPU, MemCap: node.MemCap,
+		Containers: containers, Verification: true, Details: []string{},
+	}
+	cpus := 0.0
+	memory := int64(0)
+	cpumap := types.CPUMap{}
+	for _, container := range containers {
+		cpus = utils.Round(cpus + container.Quota)
+		memory += container.Memory
+		cpumap.Add(container.CPU)
+	}
+	nr.CPUPercent = cpus / float64(len(node.InitCPU))
+	nr.MEMPercent = float64(memory) / float64(node.InitMemCap)
+	nr.NUMAMemoryPercent = map[string]float64{}
+	for nodeID, memory := range node.NUMAMemory {
+		if initMemory, ok := node.InitNUMAMemory[nodeID]; ok {
+			nr.NUMAMemoryPercent[nodeID] = float64(memory) / float64(initMemory)
+		}
+	}
+	cpumap.Add(node.CPU)
+	if cpus != node.CPUUsed {
+		nr.Verification = false
+		nr.Details = append(nr.Details, fmt.Sprintf("cpus used record: %f but now: %f", node.CPUUsed, cpus))
+	}
+	for i, v := range cpumap {
+		if node.InitCPU[i] != v {
+			nr.Verification = false
+			nr.Details = append(nr.Details, fmt.Sprintf("cpu %s now %d", i, v))
+		}
+	}
+	if memory+node.MemCap != node.InitMemCap {
+		nr.Verification = false
+		nr.Details = append(nr.Details, fmt.Sprintf("memory now %d", node.InitMemCap-(memory+node.MemCap)))
+	}
+	return nr, nil
 }
 
 func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions) ([]types.NodeInfo, error) {

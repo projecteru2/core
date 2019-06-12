@@ -28,11 +28,11 @@ func toRPCPod(p *types.Pod) *pb.Pod {
 
 func toRPCPodResource(p *types.PodResource) *pb.PodResource {
 	r := &pb.PodResource{
-		Name:   p.Name,
-		Cpu:    p.CPUPercent,
-		Memory: p.MEMPercent,
-		Diff:   p.Diff,
-		Detail: p.Detail,
+		Name:          p.Name,
+		Cpu:           p.CPUPercent,
+		Memory:        p.MEMPercent,
+		Verifications: p.Verifications,
+		Details:       p.Details,
 	}
 	return r
 }
@@ -65,6 +65,16 @@ func toRPCNode(ctx context.Context, n *types.Node) *pb.Node {
 		Info:       nodeInfo,
 		Numa:       n.NUMA,
 		NumaMemory: n.NUMAMemory,
+	}
+}
+
+func toRPCNodeResource(nr *types.NodeResource) *pb.NodeResource {
+	return &pb.NodeResource{
+		Name:         nr.Name,
+		Cpu:          nr.CPUPercent,
+		Memory:       nr.MEMPercent,
+		Verification: nr.Verification,
+		Details:      nr.Details,
 	}
 }
 

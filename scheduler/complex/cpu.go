@@ -166,7 +166,7 @@ func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShar
 	for p, nodeInfo := range nodesInfo {
 		// 统计全局 CPU，为非 numa 或者跨 numa 计算
 		globalCPUMap := nodeInfo.CPUMap
-		// 统计全局 MEM
+		// 统计全局 Memory
 		globalMemCap := nodeInfo.MemCap
 		// 计算每个 numa node 的分配策略
 		// 得到 numa CPU 分组

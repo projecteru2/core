@@ -184,22 +184,22 @@ func (m *Mercury) UpdateNode(ctx context.Context, node *types.Node) error {
 	return err
 }
 
-// UpdateNodeResource update cpu and mem on a node, either add or subtract
-func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, mem int64, action string) error {
+// UpdateNodeResource update cpu and memory on a node, either add or subtract
+func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, memory int64, action string) error {
 	switch action {
 	case store.ActionIncr:
 		node.CPU.Add(cpu)
 		node.SetCPUUsed(quota, types.DecrUsage)
-		node.MemCap += mem
+		node.MemCap += memory
 		if nodeID := node.GetNUMANode(cpu); nodeID != "" {
-			node.IncrNUMANodeMemory(nodeID, mem)
+			node.IncrNUMANodeMemory(nodeID, memory)
 		}
 	case store.ActionDecr:
 		node.CPU.Sub(cpu)
 		node.SetCPUUsed(quota, types.IncrUsage)
-		node.MemCap -= mem
+		node.MemCap -= memory
 		if nodeID := node.GetNUMANode(cpu); nodeID != "" {
-			node.DecrNUMANodeMemory(nodeID, mem)
+			node.DecrNUMANodeMemory(nodeID, memory)
 		}
 	default:
 		return types.ErrUnknownControlType
@@ -292,17 +292,18 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 	}
 
 	node := &types.Node{
-		Name:       name,
-		Endpoint:   endpoint,
-		Podname:    podname,
-		CPU:        cpumap,
-		MemCap:     memory,
-		InitCPU:    cpumap,
-		InitMemCap: memory,
-		Available:  true,
-		Labels:     labels,
-		NUMA:       numa,
-		NUMAMemory: numaMemory,
+		Name:           name,
+		Endpoint:       endpoint,
+		Podname:        podname,
+		CPU:            cpumap,
+		MemCap:         memory,
+		InitCPU:        cpumap,
+		InitMemCap:     memory,
+		InitNUMAMemory: numaMemory,
+		Available:      true,
+		Labels:         labels,
+		NUMA:           numa,
+		NUMAMemory:     numaMemory,
 	}
 
 	bytes, err := json.Marshal(node)
