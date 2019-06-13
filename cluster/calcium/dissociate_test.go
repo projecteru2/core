@@ -42,7 +42,7 @@ func TestDissociateContainer(t *testing.T) {
 	ch, err := c.DissociateContainer(ctx, []string{"c1"})
 	assert.NoError(t, err)
 	for r := range ch {
-		assert.False(t, r.Success)
+		assert.Error(t, r.Error)
 	}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetContainer", mock.Anything, "c1").Return(c1, nil)
@@ -52,7 +52,7 @@ func TestDissociateContainer(t *testing.T) {
 	ch, err = c.DissociateContainer(ctx, []string{"c1"})
 	assert.NoError(t, err)
 	for r := range ch {
-		assert.False(t, r.Success)
+		assert.Error(t, r.Error)
 	}
 	store.On("RemoveContainer", mock.Anything, mock.Anything).Return(nil)
 	// success
@@ -60,6 +60,6 @@ func TestDissociateContainer(t *testing.T) {
 	ch, err = c.DissociateContainer(ctx, []string{"c1"})
 	assert.NoError(t, err)
 	for r := range ch {
-		assert.True(t, r.Success)
+		assert.NoError(t, r.Error)
 	}
 }

@@ -327,8 +327,8 @@ func toRPCRemoveContainerMessage(r *types.RemoveContainerMessage) *pb.RemoveCont
 
 func toRPCDissociateContainerMessage(r *types.DissociateContainerMessage) *pb.DissociateContainerMessage {
 	return &pb.DissociateContainerMessage{
-		Id:      r.ContainerID,
-		Success: r.Success,
+		Id:    r.ContainerID,
+		Error: r.Error.Error(),
 	}
 }
 

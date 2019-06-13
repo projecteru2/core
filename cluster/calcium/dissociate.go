@@ -14,8 +14,7 @@ func (c *Calcium) DissociateContainer(ctx context.Context, IDs []string) (chan *
 	go func() {
 		defer close(ch)
 		for _, ID := range IDs {
-			success := false
-			if err := c.withContainerLocked(ctx, ID, func(container *types.Container) error {
+			err := c.withContainerLocked(ctx, ID, func(container *types.Container) error {
 				return c.withNodeLocked(ctx, container.Podname, container.Nodename, func(node *types.Node) (err error) {
 					if err := c.store.RemoveContainer(ctx, container); err != nil {
 						return err
@@ -23,12 +22,11 @@ func (c *Calcium) DissociateContainer(ctx context.Context, IDs []string) (chan *
 					log.Infof("[DissociateContainer] Container %s dissociated", container.ID)
 					return c.store.UpdateNodeResource(ctx, node, container.CPU, container.Quota, container.Memory, store.ActionIncr)
 				})
-			}); err != nil {
+			})
+			if err != nil {
 				log.Errorf("[DissociateContainer] Dissociate container %s failed, err: %v", ID, err)
-			} else {
-				success = true
 			}
-			ch <- &types.DissociateContainerMessage{ContainerID: ID, Success: success}
+			ch <- &types.DissociateContainerMessage{ContainerID: ID, Error: err}
 		}
 	}()
 	return ch, nil

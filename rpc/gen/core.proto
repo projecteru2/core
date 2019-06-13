@@ -409,7 +409,7 @@ message RemoveContainerMessage {
 
 message DissociateContainerMessage {
     string id = 1;
-    bool success = 2;
+    string error = 2;
 }
 
 message ReallocResourceMessage {

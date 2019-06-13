@@ -15,7 +15,7 @@ type RemoveContainerMessage struct {
 // DissociateContainerMessage for dissociate container message
 type DissociateContainerMessage struct {
 	ContainerID string
-	Success     bool
+	Error       error
 }
 
 type errorDetail struct {
