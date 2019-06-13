@@ -22,3 +22,4 @@ tools/update
 tools/fix.go
 cscope.*
 *~
+.DS_Store

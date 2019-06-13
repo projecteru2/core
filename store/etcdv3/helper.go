@@ -6,12 +6,10 @@ import (
 
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/docker"
-	enginemocks "github.com/projecteru2/core/engine/mocks"
-	enginetypes "github.com/projecteru2/core/engine/types"
+	fakeengine "github.com/projecteru2/core/engine/mocks/fakeengine"
 	"github.com/projecteru2/core/engine/virt"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/mock"
 )
 
 func dumpFromString(ca, cert, key *os.File, caStr, certStr, keyStr string) error {
@@ -33,10 +31,7 @@ func dumpFromString(ca, cert, key *os.File, caStr, certStr, keyStr string) error
 }
 
 func makeMockClient() (engine.API, error) {
-	e := &enginemocks.API{}
-	e.On("Info", mock.Anything).Return(
-		&enginetypes.Info{NCPU: 1, MemTotal: types.GByte + 100}, nil)
-	return e, nil
+	return fakeengine.MakeMockClient(), nil
 }
 
 func makeDockerClient(config types.Config, endpoint, apiversion string) (engine.API, error) {
