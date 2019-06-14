@@ -7,15 +7,17 @@ import (
 
 // errors
 var (
-	ErrInsufficientCPU   = errors.New("cannot alloc a plan, not enough cpu")
-	ErrInsufficientMEM   = errors.New("cannot alloc a plan, not enough memory")
-	ErrInsufficientCap   = errors.New("cannot alloc a each node plan, not enough capacity")
-	ErrInsufficientRes   = errors.New("not enough resource")
-	ErrInsufficientNodes = errors.New("not enough nodes")
-	ErrAlreadyFilled     = errors.New("Cannot alloc a fill node plan, each node has enough containers")
+	ErrInsufficientCPU     = errors.New("cannot alloc a plan, not enough cpu")
+	ErrInsufficientMEM     = errors.New("cannot alloc a plan, not enough memory")
+	ErrInsufficientStorage = errors.New("cannot alloc a plan, not enough storage")
+	ErrInsufficientCap     = errors.New("cannot alloc a each node plan, not enough capacity")
+	ErrInsufficientRes     = errors.New("not enough resource")
+	ErrInsufficientNodes   = errors.New("not enough nodes")
+	ErrAlreadyFilled       = errors.New("Cannot alloc a fill node plan, each node has enough containers")
 
-	ErrNegativeMemory = errors.New("memory must be positive")
-	ErrNegativeQuota  = errors.New("quota must be positive")
+	ErrNegativeMemory  = errors.New("memory must be positive")
+	ErrNegativeStorage = errors.New("storage must be positive")
+	ErrNegativeQuota   = errors.New("quota must be positive")
 
 	ErrZeroNodes = errors.New("no nodes provide to choose some")
 

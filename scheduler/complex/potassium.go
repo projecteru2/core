@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -34,6 +35,33 @@ func (m *Potassium) MaxIdleNode(nodes []*types.Node) (*types.Node, error) {
 		}
 	}
 	return nodes[pos], nil
+}
+
+// SelectStorageNodes filters nodes with enough storage
+func (m *Potassium) SelectStorageNodes(nodesInfo []types.NodeInfo, storage int64) ([]types.NodeInfo, int, error) {
+	log.Infof("[SelectStorageNodes] nodesInfo: %v, need: %d", nodesInfo, storage)
+	if storage <= 0 {
+		return nil, 0, types.ErrNegativeStorage
+	}
+
+	leng := len(nodesInfo)
+
+	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].StorageCap < nodesInfo[j].StorageCap })
+	p := sort.Search(leng, func(i int) bool { return nodesInfo[i].StorageCap >= storage })
+	if p == leng {
+		return nil, 0, types.ErrInsufficientStorage
+	}
+
+	nodesInfo = nodesInfo[p:]
+
+	total := 0
+	for i := range nodesInfo {
+		storCap := int(nodesInfo[i].StorageCap / storage)
+		nodesInfo[i].Capacity = utils.Min(storCap, nodesInfo[i].Capacity)
+		total += nodesInfo[i].Capacity
+	}
+
+	return nodesInfo, total, nil
 }
 
 // SelectMemoryNodes filter nodes with enough memory

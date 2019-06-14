@@ -9,6 +9,7 @@ type Scheduler interface {
 	// select one node from nodes, returns nodename
 	// typically used to build image
 	MaxIdleNode(nodes []*types.Node) (*types.Node, error)
+	SelectStorageNodes(nodesInfo []types.NodeInfo, storage int64) ([]types.NodeInfo, int, error)
 	SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64, memory int64) ([]types.NodeInfo, int, error)
 	// select nodes from nodes, return a list of nodenames and the corresponding cpumap, and also the changed nodes with remaining cpumap
 	// quota and number must be given, typically used to determine where to deploy

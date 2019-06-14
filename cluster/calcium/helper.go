@@ -167,20 +167,23 @@ func filterNode(node *types.Node, labels map[string]string) bool {
 	return true
 }
 
-func getNodesInfo(nodes map[string]*types.Node, cpu float64, memory int64) []types.NodeInfo {
+func getNodesInfo(nodes map[string]*types.Node, cpu float64, memory, storage int64) []types.NodeInfo {
 	result := []types.NodeInfo{}
 	for _, node := range nodes {
 		nodeInfo := types.NodeInfo{
-			Name:     node.Name,
-			CPUMap:   node.CPU,
-			MemCap:   node.MemCap,
-			CPURate:  cpu / float64(len(node.InitCPU)),
-			MemRate:  float64(memory) / float64(node.InitMemCap),
-			CPUUsed:  node.CPUUsed / float64(len(node.InitCPU)),
-			MemUsage: 1.0 - float64(node.MemCap)/float64(node.InitMemCap),
-			Capacity: 0,
-			Count:    0,
-			Deploy:   0,
+			Name:         node.Name,
+			CPUMap:       node.CPU,
+			MemCap:       node.MemCap,
+			StorageCap:   node.StorageCap,
+			CPURate:      cpu / float64(len(node.InitCPU)),
+			MemRate:      float64(memory) / float64(node.InitMemCap),
+			StorageRate:  float64(storage) / float64(node.InitStorageCap),
+			CPUUsed:      node.CPUUsed / float64(len(node.InitCPU)),
+			MemUsage:     1.0 - float64(node.MemCap)/float64(node.InitMemCap),
+			StorageUsage: node.StorageUsage(),
+			Capacity:     0,
+			Count:        0,
+			Deploy:       0,
 		}
 		result = append(result, nodeInfo)
 	}

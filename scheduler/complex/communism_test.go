@@ -88,7 +88,7 @@ func Benchmark_CommunismDivisionPlan(b *testing.B) {
 	// and then we deploy `need` containers
 	for i := 0; i < b.N; i++ {
 		// 24 core, 128G memory, 10 pieces per core
-		hugePod := generateNodes(count, 1, 1, 10)
+		hugePod := generateNodes(count, 1, 1, 0, 10)
 		hugePod = randomDeployStatus(hugePod, maxDeployed)
 		b.StartTimer()
 		_, err := CommunismDivisionPlan(hugePod, need)
