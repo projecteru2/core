@@ -189,6 +189,9 @@ func TestAllocResource(t *testing.T) {
 	total := 3
 	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, total, nil)
 
+	testAllocFailedAsInsufficientStorage(t, c, opts)
+	sched.On("SelectStorageNodes", mock.Anything, mock.Anything).Return(nodesInfo, total, nil)
+
 	testAllocFailedAsInsufficientCPU(t, c, opts)
 	sched.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, nodeCPUPlans, total, nil)
 
@@ -265,6 +268,13 @@ func testAllocFailedAsMakeDeployStatusError(t *testing.T, c *Calcium, opts *type
 func testAllocFailedAsInsufficientMemory(t *testing.T, c *Calcium, opts *types.DeployOptions) {
 	sched := c.scheduler.(*schedulermocks.Scheduler)
 	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, types.ErrInsufficientMEM).Once()
+	_, err := c.doAllocResource(context.Background(), opts)
+	assert.Error(t, err)
+}
+
+func testAllocFailedAsInsufficientStorage(t *testing.T, c *Calcium, opts *types.DeployOptions) {
+	sched := c.scheduler.(*schedulermocks.Scheduler)
+	sched.On("SelectStorageNodes", mock.Anything, mock.Anything).Return(nil, 0, types.ErrInsufficientStorage).Once()
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)
 }

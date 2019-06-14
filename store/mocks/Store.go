@@ -27,13 +27,13 @@ func (_m *Store) AddContainer(ctx context.Context, container *types.Container) e
 	return r0
 }
 
-// AddNode provides a mock function with given fields: ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory
-func (_m *Store) AddNode(ctx context.Context, name string, endpoint string, podname string, ca string, cert string, key string, cpu int, share int, memory int64, labels map[string]string, numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
-	ret := _m.Called(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory)
+// AddNode provides a mock function with given fields: ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, storage, labels, numa, numaMemory
+func (_m *Store) AddNode(ctx context.Context, name string, endpoint string, podname string, ca string, cert string, key string, cpu int, share int, memory int64, storage int64, labels map[string]string, numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
+	ret := _m.Called(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, storage, labels, numa, numaMemory)
 
 	var r0 *types.Node
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, string, string, int, int, int64, map[string]string, types.NUMA, types.NUMAMemory) *types.Node); ok {
-		r0 = rf(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, string, string, int, int, int64, int64, map[string]string, types.NUMA, types.NUMAMemory) *types.Node); ok {
+		r0 = rf(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, storage, labels, numa, numaMemory)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.Node)
@@ -41,8 +41,8 @@ func (_m *Store) AddNode(ctx context.Context, name string, endpoint string, podn
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, string, string, string, int, int, int64, map[string]string, types.NUMA, types.NUMAMemory) error); ok {
-		r1 = rf(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, string, string, string, int, int, int64, int64, map[string]string, types.NUMA, types.NUMAMemory) error); ok {
+		r1 = rf(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, storage, labels, numa, numaMemory)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -480,13 +480,13 @@ func (_m *Store) UpdateNode(ctx context.Context, node *types.Node) error {
 	return r0
 }
 
-// UpdateNodeResource provides a mock function with given fields: ctx, node, cpu, quota, memory, action
-func (_m *Store) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, memory int64, action string) error {
-	ret := _m.Called(ctx, node, cpu, quota, memory, action)
+// UpdateNodeResource provides a mock function with given fields: ctx, node, cpu, quota, memory, storage, action
+func (_m *Store) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, memory int64, storage int64, action string) error {
+	ret := _m.Called(ctx, node, cpu, quota, memory, storage, action)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.Node, types.CPUMap, float64, int64, string) error); ok {
-		r0 = rf(ctx, node, cpu, quota, memory, action)
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Node, types.CPUMap, float64, int64, int64, string) error); ok {
+		r0 = rf(ctx, node, cpu, quota, memory, storage, action)
 	} else {
 		r0 = ret.Error(0)
 	}
