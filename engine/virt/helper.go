@@ -19,7 +19,7 @@ func (v *Virt) parseVolumes(opts *enginetypes.VirtualizationCreateOptions) (map[
 		}
 
 		mnt := filepath.Join("/", parts[1])
-		
+
 		cap, err := strconv.ParseInt(parts[3], 10, 64)
 		if err != nil {
 			return nil, err

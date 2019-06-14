@@ -69,10 +69,12 @@ type Node struct {
 	NUMAMemory     NUMAMemory        `json:"numa_memory"`
 	CPUUsed        float64           `json:"cpuused"`
 	MemCap         int64             `json:"memcap"`
+	StorageCap     int64             `json:"storage_cap"`
 	Available      bool              `json:"available"`
 	Labels         map[string]string `json:"labels"`
 	InitCPU        CPUMap            `json:"init_cpu"`
 	InitMemCap     int64             `json:"init_memcap"`
+	InitStorageCap int64             `json:"init_storage_cap"`
 	InitNUMAMemory NUMAMemory        `json:"init_numa_memory"`
 	Engine         engine.API        `json:"-"`
 }
@@ -125,17 +127,30 @@ func (n *Node) DecrNUMANodeMemory(nodeID string, memory int64) {
 	}
 }
 
+// StorageUsage calculates node's storage usage.
+func (n *Node) StorageUsage() float64 {
+	switch {
+	case n.InitStorageCap <= 0:
+		return 1.0
+	default:
+		return 1.0 - float64(n.StorageCap)/float64(n.InitStorageCap)
+	}
+}
+
 // NodeInfo for deploy
 type NodeInfo struct {
-	Name       string
-	CPUMap     CPUMap
-	NUMA       NUMA
-	NUMAMemory NUMAMemory
-	MemCap     int64
-	CPUUsed    float64 // CPU目前占用率
-	MemUsage   float64 // MEM目前占用率
-	CPURate    float64 // 需要增加的 CPU 占用率
-	MemRate    float64 // 需要增加的内存占有率
+	Name         string
+	CPUMap       CPUMap
+	NUMA         NUMA
+	NUMAMemory   NUMAMemory
+	MemCap       int64
+	StorageCap   int64
+	CPUUsed      float64 // CPU目前占用率
+	MemUsage     float64 // MEM目前占用率
+	StorageUsage float64 // Current storage usage ratio
+	CPURate      float64 // 需要增加的 CPU 占用率
+	MemRate      float64 // 需要增加的内存占有率
+	StorageRate  float64 // Storage ratio which would be allocated
 
 	CPUPlan  []CPUMap
 	Capacity int // 可以部署几个

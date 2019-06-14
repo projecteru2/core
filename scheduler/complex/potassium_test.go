@@ -30,7 +30,7 @@ func newPotassium() (*Potassium, error) {
 	return potassium, nil
 }
 
-func generateNodes(nums, cores int, memory int64, shares int) []types.NodeInfo {
+func generateNodes(nums, cores int, memory, storage int64, shares int) []types.NodeInfo {
 	var name string
 	nodes := []types.NodeInfo{}
 
@@ -43,9 +43,10 @@ func generateNodes(nums, cores int, memory int64, shares int) []types.NodeInfo {
 			cpumap[coreName] = shares
 		}
 		nodeInfo := types.NodeInfo{
-			CPUMap: cpumap,
-			MemCap: memory,
-			Name:   name,
+			CPUMap:     cpumap,
+			MemCap:     memory,
+			StorageCap: storage,
+			Name:       name,
 		}
 		nodes = append(nodes, nodeInfo)
 	}
@@ -84,10 +85,11 @@ func checkAvgPlan(res map[string][]types.CPUMap, minCon int, maxCon int, name st
 	return nil
 }
 
-func refreshPod(nodes []types.NodeInfo) {
+func refreshPod(nodes []types.NodeInfo, memory, storage int64) {
 	for i := range nodes {
 		nodes[i].Count += nodes[i].Deploy
-		nodes[i].MemCap -= int64(nodes[i].Deploy * 512 * 1024 * 1024)
+		nodes[i].MemCap -= int64(nodes[i].Deploy) * memory
+		nodes[i].StorageCap -= int64(nodes[i].Deploy) * storage
 		nodes[i].Deploy = 0
 	}
 }
@@ -237,7 +239,7 @@ func TestSelectCPUNodes(t *testing.T) {
 	_, _, err := SelectCPUNodes(k, []types.NodeInfo{}, 1, 1, 1, false)
 	assert.Equal(t, types.IsDetailedErr(err), types.ErrZeroNodes)
 
-	nodes := generateNodes(2, 2, memory, 10)
+	nodes := generateNodes(2, 2, memory, 0, 10)
 	_, _, err = SelectCPUNodes(k, nodes, 0.5, 1, 1, false)
 	assert.NoError(t, err)
 
@@ -252,7 +254,7 @@ func TestSelectCPUNodes(t *testing.T) {
 	assert.Equal(t, types.IsDetailedErr(err), types.ErrInsufficientRes)
 
 	// new round test
-	nodes = generateNodes(2, 2, memory, 10)
+	nodes = generateNodes(2, 2, memory, 0, 10)
 	r, re, err := SelectCPUNodes(k, nodes, 1, 1, 2, false)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(r))
@@ -267,7 +269,7 @@ func TestSelectCPUNodes(t *testing.T) {
 
 	// SelectCPUNodes 里有一些副作用, 粗暴地拿一个新的来测试吧
 	// 下面也是因为这个
-	nodes = generateNodes(2, 2, memory, 10)
+	nodes = generateNodes(2, 2, memory, 0, 10)
 	r, _, err = SelectCPUNodes(k, nodes, 1.3, 1, 2, false)
 	assert.NoError(t, err)
 
@@ -284,7 +286,7 @@ func TestSelectCPUNodesWithMemoryLimit(t *testing.T) {
 	k, _ := newPotassium()
 
 	// 测试 2 个 Node，每个 CPU 10%，但是内存吃满
-	nodes := generateNodes(2, 2, 1024, 10)
+	nodes := generateNodes(2, 2, 1024, 0, 10)
 	result, _, err := SelectCPUNodes(k, nodes, 0.1, 1024, 1, true)
 	assert.NoError(t, err)
 	assert.Equal(t, len(result), 2)
@@ -293,12 +295,12 @@ func TestSelectCPUNodesWithMemoryLimit(t *testing.T) {
 	}
 
 	// 测试 2 个 Node，内存不足
-	nodes = generateNodes(2, 2, 1024, 10)
+	nodes = generateNodes(2, 2, 1024, 0, 10)
 	_, _, err = SelectCPUNodes(k, nodes, 0.1, 1025, 1, true)
 	assert.EqualError(t, err, types.ErrInsufficientRes.Error())
 
 	// 测试 need 超过 each node 的 capacity
-	nodes = generateNodes(2, 2, 1024, 10)
+	nodes = generateNodes(2, 2, 1024, 0, 10)
 	_, _, err = SelectCPUNodes(k, nodes, 0.1, 1024, 2, true)
 	assert.EqualError(t, err, types.ErrInsufficientCap.Error())
 }
@@ -729,7 +731,7 @@ func Benchmark_CPUAlloc(b *testing.B) {
 	var count = 10000
 	for i := 0; i < b.N; i++ {
 		// 24 core, 128G memory, 10 pieces per core
-		hugePod := generateNodes(count, 24, 128*types.GByte, 10)
+		hugePod := generateNodes(count, 24, 128*types.GByte, 0, 10)
 		need := getNodesCapacity(hugePod, cpu, 10, -1)
 		b.StartTimer()
 		r, c, err := SelectCPUNodes(k, hugePod, cpu, 1, need, false)
@@ -750,7 +752,7 @@ func Benchmark_MemAlloc(b *testing.B) {
 	var need = 10240000
 	for i := 0; i < b.N; i++ {
 		// 24 core, 128G memory, 10 pieces per core
-		hugePod := generateNodes(count, 24, 128*types.GByte, 10)
+		hugePod := generateNodes(count, 24, 128*types.GByte, 0, 10)
 		b.StartTimer()
 		r, err := SelectMemoryNodes(k, hugePod, 1, memory, need, false)
 		b.StopTimer()
@@ -763,7 +765,7 @@ func Benchmark_MemAlloc(b *testing.B) {
 func TestSelectMemoryNodes(t *testing.T) {
 	// 2 nodes [2 containers per node]
 	memory := 4 * types.GByte
-	pod := generateNodes(2, 2, memory, 10)
+	pod := generateNodes(2, 2, memory, 0, 10)
 	k, _ := newPotassium()
 	cpus := 1.0
 	res, err := SelectMemoryNodes(k, pod, cpus, 512*types.MByte, 4, false)
@@ -772,14 +774,14 @@ func TestSelectMemoryNodes(t *testing.T) {
 		assert.Equal(t, node.Deploy, 2)
 	}
 
-	// 4 nodes [1 container per node]
-	pod = generateNodes(4, 2, memory, 10)
+	// 4 nodes [1 container on the first node]
+	pod = generateNodes(4, 2, memory, 0, 10)
 	res, err = SelectMemoryNodes(k, pod, cpus, 512*types.MByte, 1, false)
 	assert.NoError(t, err)
 	assert.Equal(t, res[0].Deploy, 1)
 
 	// 4 nodes [1 container per node]
-	pod = generateNodes(4, 2, memory, 10)
+	pod = generateNodes(4, 2, memory, 0, 10)
 	res, err = SelectMemoryNodes(k, pod, cpus, 512*types.MByte, 4, false)
 	assert.NoError(t, err)
 	for _, node := range res {
@@ -787,7 +789,7 @@ func TestSelectMemoryNodes(t *testing.T) {
 	}
 
 	// 4 nodes
-	pod = generateNodes(4, 2, memory, 10)
+	pod = generateNodes(4, 2, memory, 0, 10)
 	for i := 0; i < 4; i++ {
 		pod[i].Count += i
 	}
@@ -797,12 +799,12 @@ func TestSelectMemoryNodes(t *testing.T) {
 		assert.Equal(t, node.Deploy, 3-i)
 	}
 
-	pod = generateNodes(1, 2, memory, 10)
+	pod = generateNodes(1, 2, memory, 0, 10)
 	_, err = SelectMemoryNodes(k, pod, cpus, 0, 10, false)
 	assert.EqualError(t, err, types.ErrNegativeMemory.Error())
 
 	// test each
-	pod = generateNodes(4, 2, memory, 10)
+	pod = generateNodes(4, 2, memory, 0, 10)
 	each := 2
 	res, _ = SelectMemoryNodes(k, pod, 1000, 1024, each, true)
 	for i := range res {
@@ -813,28 +815,29 @@ func TestSelectMemoryNodes(t *testing.T) {
 func TestSelectMemoryNodesNotEnough(t *testing.T) {
 	memory := 4 * types.MByte
 	// 2 nodes [memory not enough]
-	pod := generateNodes(2, 2, 4*types.GByte, 10)
+	pod := generateNodes(2, 2, 4*types.GByte, 0, 10)
 	k, _ := newPotassium()
 	_, err := SelectMemoryNodes(k, pod, 1, 512*types.MByte, 40, false)
 	assert.Equal(t, types.IsDetailedErr(err), types.ErrInsufficientRes)
 	assert.Contains(t, err.Error(), "need: 40, vol: 16")
 
 	// 2 nodes [memory not enough]
-	pod = generateNodes(2, 2, memory, 10)
+	pod = generateNodes(2, 2, memory, 0, 10)
 	_, err = SelectMemoryNodes(k, pod, 1, 5*types.GByte, 1, false)
 	assert.Equal(t, err, types.ErrInsufficientMEM)
 
 	// 2 nodes [cpu not enough]
-	pod = generateNodes(2, 2, memory, 10)
+	pod = generateNodes(2, 2, memory, 0, 10)
 	_, err = SelectMemoryNodes(k, pod, 1e10, 512*types.MByte, 1, false)
 	assert.Equal(t, err, types.ErrInsufficientCPU)
 }
 
 func TestSelectMemoryNodesSequence(t *testing.T) {
-	pod := generateNodes(2, 2, 4*types.GByte, 10)
+	pod := generateNodes(2, 2, 4*types.GByte, 0, 10)
 	k, _ := newPotassium()
 	cpu := 1.0
-	res, err := SelectMemoryNodes(k, pod, cpu, 512*types.MByte, 1, false)
+	mem := 512 * types.MByte
+	res, err := SelectMemoryNodes(k, pod, cpu, mem, 1, false)
 	assert.NoError(t, err)
 	for _, node := range res {
 		if node.Name == "node0" {
@@ -842,8 +845,8 @@ func TestSelectMemoryNodesSequence(t *testing.T) {
 		}
 	}
 
-	refreshPod(res)
-	res, err = SelectMemoryNodes(k, res, cpu, 512*types.MByte, 1, false)
+	refreshPod(res, mem, 0)
+	res, err = SelectMemoryNodes(k, res, cpu, mem, 1, false)
 	assert.NoError(t, err)
 	for _, node := range res {
 		if node.Name == "node1" {
@@ -851,49 +854,49 @@ func TestSelectMemoryNodesSequence(t *testing.T) {
 		}
 	}
 
-	refreshPod(res)
-	res, err = SelectMemoryNodes(k, res, cpu, 512*types.MByte, 4, false)
+	refreshPod(res, mem, 0)
+	res, err = SelectMemoryNodes(k, res, cpu, mem, 4, false)
 	assert.NoError(t, err)
 	assert.Equal(t, res[0].Deploy, 2)
 	assert.Equal(t, res[1].Deploy, 2)
 
-	refreshPod(res)
-	res, err = SelectMemoryNodes(k, res, cpu, 512*types.MByte, 3, false)
+	refreshPod(res, mem, 0)
+	res, err = SelectMemoryNodes(k, res, cpu, mem, 3, false)
 	assert.NoError(t, err)
 	assert.Equal(t, res[0].Deploy+res[1].Deploy, 3)
 	assert.Equal(t, res[0].Deploy-res[1].Deploy, 1)
 
-	refreshPod(res)
-	_, err = SelectMemoryNodes(k, res, cpu, 512*types.MByte, 40, false)
+	refreshPod(res, mem, 0)
+	_, err = SelectMemoryNodes(k, res, cpu, mem, 40, false)
 	assert.Equal(t, types.IsDetailedErr(err), types.ErrInsufficientRes)
 	assert.Contains(t, err.Error(), "need: 40, vol: 7")
 
 	// new round
-	pod = generateNodes(2, 2, 4*types.GByte, 10)
-	res, err = SelectMemoryNodes(k, pod, cpu, 512*types.MByte, 1, false)
+	pod = generateNodes(2, 2, 4*types.GByte, 0, 10)
+	res, err = SelectMemoryNodes(k, pod, cpu, mem, 1, false)
 	assert.NoError(t, err)
 	for _, node := range res {
 		if node.Name == "node0" {
 			assert.Equal(t, node.Deploy, 1)
 		}
 	}
-	refreshPod(res)
-	res, err = SelectMemoryNodes(k, res, cpu, 512*types.MByte, 2, false)
+	refreshPod(res, mem, 0)
+	res, err = SelectMemoryNodes(k, res, cpu, mem, 2, false)
 	assert.NoError(t, err)
 	for _, node := range res {
 		if node.Name == "node1" {
 			assert.Equal(t, node.Deploy, 2)
 		}
 	}
-	refreshPod(res)
-	res, err = SelectMemoryNodes(k, res, cpu, 512*types.MByte, 5, false)
+	refreshPod(res, mem, 0)
+	res, err = SelectMemoryNodes(k, res, cpu, mem, 5, false)
 	assert.NoError(t, err)
 	assert.Equal(t, res[0].Deploy+res[0].Count, 4)
 	assert.Equal(t, res[1].Deploy+res[1].Count, 4)
 }
 
 func TestSelectMemoryNodesGiven(t *testing.T) {
-	pod := generateNodes(4, 2, 4*types.GByte, 10)
+	pod := generateNodes(4, 2, 4*types.GByte, 0, 10)
 	for i := 0; i < 3; i++ {
 		pod[i].Count++
 	}
@@ -950,4 +953,224 @@ func TestGlobalDivision(t *testing.T) {
 	r, err := k.GlobalDivision([]types.NodeInfo{nodeInfo}, 10, 100)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 10)
+}
+
+func TestSelectStorageNodesMultipleDeployedPerNode(t *testing.T) {
+	k, _ := newPotassium()
+	nodesInfo := generateNodes(2, 2, 4*types.GByte, 8*types.GByte, 10)
+	nodesInfo, total, err := k.SelectMemoryNodes(nodesInfo, 1.0, types.GByte)
+	assert.NoError(t, err)
+	assert.Equal(t, 8, total)
+	assert.Equal(t, 2, len(nodesInfo))
+	assert.Equal(t, 4, nodesInfo[0].Capacity)
+	assert.Equal(t, 4, nodesInfo[1].Capacity)
+
+	res, err := SelectStorageNodes(k, nodesInfo, types.GByte, 4, false)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(res))
+	assert.Equal(t, 2, res[0].Deploy)
+	assert.Equal(t, 2, res[1].Deploy)
+	assert.Equal(t, 2, res[0].Capacity)
+	assert.Equal(t, 2, res[1].Capacity)
+}
+
+func TestSelectStorageNodesDeployedOnFirstNode(t *testing.T) {
+	k, _ := newPotassium()
+	nodesInfo := generateNodes(2, 2, 4*types.GByte, types.GByte, 10)
+	nodesInfo, total, err := k.SelectMemoryNodes(nodesInfo, 1.0, types.GByte)
+	assert.NoError(t, err)
+	assert.Equal(t, 8, total)
+	assert.Equal(t, 2, len(nodesInfo))
+	assert.Equal(t, 4, nodesInfo[0].Capacity)
+	assert.Equal(t, 4, nodesInfo[1].Capacity)
+
+	res, err := SelectStorageNodes(k, nodesInfo, types.MByte, 1, false)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(res))
+	assert.Equal(t, 1, res[0].Deploy)
+	assert.Equal(t, 0, res[1].Deploy)
+	assert.Equal(t, 3, res[0].Capacity)
+	assert.Equal(t, 4, res[1].Capacity)
+}
+
+func TestSelectStorageNodesOneDeployedPerNode(t *testing.T) {
+	k, _ := newPotassium()
+	nodesInfo := generateNodes(4, 2, 4*types.GByte, types.GByte, 10)
+	nodesInfo, total, err := k.SelectMemoryNodes(nodesInfo, 1.0, types.GByte)
+	assert.NoError(t, err)
+	assert.Equal(t, 16, total)
+	assert.Equal(t, 4, len(nodesInfo))
+	assert.Equal(t, 4, nodesInfo[0].Capacity)
+	assert.Equal(t, 4, nodesInfo[1].Capacity)
+
+	res, err := SelectStorageNodes(k, nodesInfo, types.MByte, 4, false)
+	assert.NoError(t, err)
+	assert.Equal(t, 4, len(res))
+	for _, node := range res {
+		assert.Equal(t, 1, node.Deploy)
+		assert.Equal(t, 3, node.Capacity)
+	}
+}
+
+func TestSelectStorageNodesWithPreOccupied(t *testing.T) {
+	k, _ := newPotassium()
+	nodesInfo := generateNodes(4, 2, 4*types.GByte, types.GByte, 10)
+	// Set occupied count
+	for i := 0; i < 4; i++ {
+		nodesInfo[i].Count += i
+	}
+	nodesInfo, total, err := k.SelectMemoryNodes(nodesInfo, 1.0, 512*types.MByte)
+	assert.NoError(t, err)
+	assert.Equal(t, 32, total)
+	assert.Equal(t, 4, len(nodesInfo))
+	for _, node := range nodesInfo {
+		assert.Equal(t, 8, node.Capacity)
+	}
+
+	res, err := SelectStorageNodes(k, nodesInfo, types.MByte, 6, false)
+	assert.NoError(t, err)
+	assert.Equal(t, 4, len(res))
+	for i, node := range res {
+		assert.Equal(t, 5+i, node.Capacity)
+		assert.Equal(t, 3-i, node.Deploy)
+	}
+}
+
+func TestSelectStorageNodesAllocEachDivition(t *testing.T) {
+	k, _ := newPotassium()
+	nodesInfo := generateNodes(4, 2, 4*types.GByte, types.GByte, 10)
+	nodesInfo, total, err := k.SelectMemoryNodes(nodesInfo, 1.0, types.GByte)
+	assert.NoError(t, err)
+	assert.Equal(t, 16, total)
+	assert.Equal(t, 4, len(nodesInfo))
+	for _, node := range nodesInfo {
+		assert.Equal(t, 4, node.Capacity)
+	}
+
+	res, err := SelectStorageNodes(k, nodesInfo, types.MByte, 2, true)
+	assert.NoError(t, err)
+	assert.Equal(t, 4, len(res))
+	for _, node := range res {
+		assert.Equal(t, 2, node.Deploy)
+		assert.Equal(t, 2, node.Capacity)
+	}
+}
+
+func TestSelectStorageNodesCapacityLessThanMemory(t *testing.T) {
+	k, _ := newPotassium()
+	nodesInfo := generateNodes(2, 2, 4*types.GByte, types.GByte, 10)
+	nodesInfo, total, err := k.SelectMemoryNodes(nodesInfo, 1.0, types.GByte)
+	assert.NoError(t, err)
+	assert.Equal(t, 8, total)
+	assert.Equal(t, 2, len(nodesInfo))
+	assert.Equal(t, 4, nodesInfo[0].Capacity)
+	assert.Equal(t, 4, nodesInfo[1].Capacity)
+
+	res, err := SelectStorageNodes(k, nodesInfo, types.GByte, 2, false)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(res))
+	assert.Equal(t, 1, res[0].Deploy)
+	assert.Equal(t, 1, res[1].Deploy)
+	assert.Equal(t, 0, res[0].Capacity)
+	assert.Equal(t, 0, res[1].Capacity)
+}
+
+func TestSelectStorageNodesNotEnough(t *testing.T) {
+	k, _ := newPotassium()
+	nodesInfo := generateNodes(1, 2, 4*types.GByte, types.MByte, 10)
+	nodesInfo, total, err := k.SelectMemoryNodes(nodesInfo, 1.0, types.GByte)
+	assert.NoError(t, err)
+	assert.Equal(t, 4, total)
+	assert.Equal(t, 1, len(nodesInfo))
+	assert.Equal(t, 4, nodesInfo[0].Capacity)
+
+	res, err := SelectStorageNodes(k, nodesInfo, types.GByte, 1, false)
+	assert.Equal(t, types.ErrInsufficientStorage, err)
+	assert.Nil(t, res)
+}
+
+func TestSelectStorageNodesSequence(t *testing.T) {
+	k, _ := newPotassium()
+	nodesInfo := generateNodes(2, 4, 8*types.GByte, 2*types.GByte, 10)
+	mem := 512 * types.MByte
+	nodesInfo, total, err := k.SelectMemoryNodes(nodesInfo, 1.0, mem)
+	assert.NoError(t, err)
+	assert.Equal(t, 32, total)
+	assert.Equal(t, 2, len(nodesInfo))
+	assert.Equal(t, 16, nodesInfo[0].Capacity)
+	assert.Equal(t, 16, nodesInfo[1].Capacity)
+
+	stor := types.GByte
+	res, err := SelectStorageNodes(k, nodesInfo, stor, 1, false)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(res))
+	assert.Equal(t, 1, res[0].Deploy)
+	assert.Equal(t, 1, res[0].Capacity)
+	assert.Equal(t, 0, res[0].Count)
+	assert.Equal(t, 0, res[1].Deploy)
+	assert.Equal(t, 2, res[1].Capacity)
+	assert.Equal(t, 0, res[1].Count)
+
+	refreshPod(res, mem, stor)
+	assert.Equal(t, 1, res[0].Count)
+	assert.Equal(t, 0, res[1].Count)
+
+	res, total, err = k.SelectMemoryNodes(res, 1.0, mem)
+	assert.NoError(t, err)
+	assert.Equal(t, 31, total)
+	assert.Equal(t, 2, len(res))
+	assert.Equal(t, 15, res[0].Capacity)
+	assert.Equal(t, 16, res[1].Capacity)
+	lesserResourceNodeName := res[0].Name
+
+	res, err = SelectStorageNodes(k, res, types.GByte, 2, false)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(res))
+
+	getLess := func(nodes []types.NodeInfo) (lesser int, greater int) {
+		if res[0].Name == lesserResourceNodeName {
+			greater = 1
+		} else {
+			lesser = 1
+		}
+		return
+	}
+	i, j := getLess(res)
+	assert.Equal(t, 1, res[i].Count)
+	assert.Equal(t, 0, res[j].Count)
+	assert.Equal(t, 0, res[i].Deploy)
+	assert.Equal(t, 2, res[j].Deploy)
+	assert.Equal(t, 1, res[i].Capacity)
+	assert.Equal(t, 0, res[j].Capacity)
+
+	refreshPod(res, mem, stor)
+	assert.Equal(t, 2, res[0].Count)
+	assert.Equal(t, 1, res[1].Count)
+
+	res, total, err = k.SelectMemoryNodes(res, 1.0, mem)
+	assert.NoError(t, err)
+	assert.Equal(t, 29, total)
+	assert.Equal(t, 2, len(res))
+	assert.Equal(t, 14, res[0].Capacity)
+	assert.Equal(t, 15, res[1].Capacity)
+	assert.Equal(t, 2, res[0].Count)
+	assert.Equal(t, 1, res[1].Count)
+
+	res, err = SelectStorageNodes(k, res, types.GByte, 1, false)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(res))
+	assert.Equal(t, 1, res[0].Count)
+	assert.Equal(t, 1, res[0].Deploy)
+	assert.Equal(t, 0, res[0].Capacity)
+}
+
+func SelectStorageNodes(k *Potassium, nodesInfo []types.NodeInfo, storage int64, need int, each bool) ([]types.NodeInfo, error) {
+	switch nodesInfo, total, err := k.SelectStorageNodes(nodesInfo, storage); {
+	case err != nil:
+		return nil, err
+	case each:
+		return k.EachDivision(nodesInfo, need, 0)
+	default:
+		return k.CommonDivision(nodesInfo, need, total)
+	}
 }

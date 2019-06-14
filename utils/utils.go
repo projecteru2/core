@@ -262,3 +262,11 @@ func safeSplit(s string) []string {
 
 	return result
 }
+
+// Min returns the lesser one.
+func Min(x, y int) int {
+	if x < y {
+		return x
+	}
+	return y
+}

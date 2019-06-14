@@ -194,3 +194,33 @@ func (_m *Scheduler) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64
 
 	return r0, r1, r2
 }
+
+// SelectStorageNodes provides a mock function with given fields: nodesInfo, storage
+func (_m *Scheduler) SelectStorageNodes(nodesInfo []types.NodeInfo, storage int64) ([]types.NodeInfo, int, error) {
+	ret := _m.Called(nodesInfo, storage)
+
+	var r0 []types.NodeInfo
+	if rf, ok := ret.Get(0).(func([]types.NodeInfo, int64) []types.NodeInfo); ok {
+		r0 = rf(nodesInfo, storage)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]types.NodeInfo)
+		}
+	}
+
+	var r1 int
+	if rf, ok := ret.Get(1).(func([]types.NodeInfo, int64) int); ok {
+		r1 = rf(nodesInfo, storage)
+	} else {
+		r1 = ret.Get(1).(int)
+	}
+
+	var r2 error
+	if rf, ok := ret.Get(2).(func([]types.NodeInfo, int64) error); ok {
+		r2 = rf(nodesInfo, storage)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}

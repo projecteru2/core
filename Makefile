@@ -23,9 +23,7 @@ binary:
 
 build: deps binary
 
-test: deps
-	go vet `go list ./... | grep -v '/vendor/' | grep -v '/tools'`
-	go test -cover ./utils/... ./types/... ./store/etcdv3/... ./scheduler/complex/...  ./source/common/... ./lock/etcdlock/... ./auth/simple/... ./cluster/calcium/...
+test: deps unit-test
 
 mock: deps
 	mockery -dir ./vendor/google.golang.org/grpc -name ServerStream -output 3rdmocks
@@ -36,4 +34,4 @@ cloc:
 
 unit-test:
 	go vet `go list ./... | grep -v '/vendor/' | grep -v '/tools'`
-	go test -cover ./utils/... ./types/... ./store/etcdv3/... ./scheduler/complex/...  ./source/common/... ./lock/etcdlock/... ./auth/simple/... ./cluster/calcium/...
+	go test -count=1 -cover ./utils/... ./types/... ./store/etcdv3/... ./scheduler/complex/...  ./source/common/... ./lock/etcdlock/... ./auth/simple/... ./cluster/calcium/...
