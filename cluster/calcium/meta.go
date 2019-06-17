@@ -24,17 +24,18 @@ func (c *Calcium) AddNode(ctx context.Context, nodename, endpoint, podname, ca, 
 
 // RemovePod remove pod
 func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
-	return c.store.RemovePod(ctx, podname)
+	return c.withNodesLocked(ctx, podname, "", nil, func(nodes map[string]*types.Node) error {
+		// TODO dissociate container to node
+		// remove node first
+		return c.store.RemovePod(ctx, podname)
+	})
 }
 
 // RemoveNode remove a node
-func (c *Calcium) RemoveNode(ctx context.Context, nodename, podname string) (*types.Pod, error) {
-	n, err := c.GetNode(ctx, podname, nodename)
-	if err != nil {
-		return nil, err
-	}
-	c.store.DeleteNode(ctx, n)
-	return c.store.GetPod(ctx, podname)
+func (c *Calcium) RemoveNode(ctx context.Context, podname, nodename string) error {
+	return c.withNodeLocked(ctx, podname, nodename, func(node *types.Node) error {
+		return c.store.DeleteNode(ctx, node)
+	})
 }
 
 // ListPods show pods

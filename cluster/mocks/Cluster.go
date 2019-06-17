@@ -204,6 +204,29 @@ func (_m *Cluster) DeployStatusStream(ctx context.Context, appname string, entry
 	return r0
 }
 
+// DissociateContainer provides a mock function with given fields: ctx, IDs
+func (_m *Cluster) DissociateContainer(ctx context.Context, IDs []string) (chan *types.DissociateContainerMessage, error) {
+	ret := _m.Called(ctx, IDs)
+
+	var r0 chan *types.DissociateContainerMessage
+	if rf, ok := ret.Get(0).(func(context.Context, []string) chan *types.DissociateContainerMessage); ok {
+		r0 = rf(ctx, IDs)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(chan *types.DissociateContainerMessage)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, []string) error); ok {
+		r1 = rf(ctx, IDs)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Finalizer provides a mock function with given fields:
 func (_m *Cluster) Finalizer() {
 	_m.Called()
@@ -439,6 +462,29 @@ func (_m *Cluster) ListPods(ctx context.Context) ([]*types.Pod, error) {
 	return r0, r1
 }
 
+// NodeResource provides a mock function with given fields: ctx, podname, nodename
+func (_m *Cluster) NodeResource(ctx context.Context, podname string, nodename string) (*types.NodeResource, error) {
+	ret := _m.Called(ctx, podname, nodename)
+
+	var r0 *types.NodeResource
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *types.NodeResource); ok {
+		r0 = rf(ctx, podname, nodename)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.NodeResource)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, podname, nodename)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // PodResource provides a mock function with given fields: ctx, podname
 func (_m *Cluster) PodResource(ctx context.Context, podname string) (*types.PodResource, error) {
 	ret := _m.Called(ctx, podname)
@@ -462,13 +508,13 @@ func (_m *Cluster) PodResource(ctx context.Context, podname string) (*types.PodR
 	return r0, r1
 }
 
-// ReallocResource provides a mock function with given fields: ctx, IDs, cpu, mem
-func (_m *Cluster) ReallocResource(ctx context.Context, IDs []string, cpu float64, mem int64) (chan *types.ReallocResourceMessage, error) {
-	ret := _m.Called(ctx, IDs, cpu, mem)
+// ReallocResource provides a mock function with given fields: ctx, IDs, cpu, memory
+func (_m *Cluster) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64) (chan *types.ReallocResourceMessage, error) {
+	ret := _m.Called(ctx, IDs, cpu, memory)
 
 	var r0 chan *types.ReallocResourceMessage
 	if rf, ok := ret.Get(0).(func(context.Context, []string, float64, int64) chan *types.ReallocResourceMessage); ok {
-		r0 = rf(ctx, IDs, cpu, mem)
+		r0 = rf(ctx, IDs, cpu, memory)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(chan *types.ReallocResourceMessage)
@@ -477,7 +523,7 @@ func (_m *Cluster) ReallocResource(ctx context.Context, IDs []string, cpu float6
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, []string, float64, int64) error); ok {
-		r1 = rf(ctx, IDs, cpu, mem)
+		r1 = rf(ctx, IDs, cpu, memory)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -532,15 +578,15 @@ func (_m *Cluster) RemoveImage(ctx context.Context, podname string, nodename str
 }
 
 // RemoveNode provides a mock function with given fields: ctx, nodename, podname
-func (_m *Cluster) RemoveNode(ctx context.Context, nodename string, podname string) (*types.Pod, error) {
+func (_m *Cluster) RemoveNode(ctx context.Context, nodename string, podname string) (*types.Node, error) {
 	ret := _m.Called(ctx, nodename, podname)
 
-	var r0 *types.Pod
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *types.Pod); ok {
+	var r0 *types.Node
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *types.Node); ok {
 		r0 = rf(ctx, nodename, podname)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Pod)
+			r0 = ret.Get(0).(*types.Node)
 		}
 	}
 

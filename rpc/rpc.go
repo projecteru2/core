@@ -62,21 +62,12 @@ func (v *Vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.N
 
 // RemovePod removes a pod only if it's empty
 func (v *Vibranium) RemovePod(ctx context.Context, opts *pb.RemovePodOptions) (*pb.Empty, error) {
-	err := v.cluster.RemovePod(ctx, opts.Name)
-	if err != nil {
-		return nil, err
-	}
-	return &pb.Empty{}, nil
+	return &pb.Empty{}, v.cluster.RemovePod(ctx, opts.Name)
 }
 
 // RemoveNode removes the node from etcd
-func (v *Vibranium) RemoveNode(ctx context.Context, opts *pb.RemoveNodeOptions) (*pb.Pod, error) {
-	p, err := v.cluster.RemoveNode(ctx, opts.Nodename, opts.Podname)
-	if err != nil {
-		return nil, err
-	}
-
-	return toRPCPod(p), nil
+func (v *Vibranium) RemoveNode(ctx context.Context, opts *pb.RemoveNodeOptions) (*pb.Empty, error) {
+	return &pb.Empty{}, v.cluster.RemoveNode(ctx, opts.Nodename, opts.Podname)
 }
 
 // ListPods returns a list of pods

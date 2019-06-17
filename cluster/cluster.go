@@ -51,7 +51,7 @@ type Cluster interface {
 		cpu, share int, memory int64, labels map[string]string,
 		numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error)
 	RemovePod(ctx context.Context, podname string) error
-	RemoveNode(ctx context.Context, nodename, podname string) (*types.Pod, error)
+	RemoveNode(ctx context.Context, podname, nodename string) error
 	ListPods(ctx context.Context) ([]*types.Pod, error)
 	ListPodNodes(ctx context.Context, podname string, all bool) ([]*types.Node, error)
 	ListContainers(ctx context.Context, opts *types.ListContainersOptions) ([]*types.Container, error)

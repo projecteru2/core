@@ -87,11 +87,11 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 }
 
 // DeleteNode delete a node
-func (m *Mercury) DeleteNode(ctx context.Context, node *types.Node) {
+func (m *Mercury) DeleteNode(ctx context.Context, node *types.Node) error {
 	if node == nil {
-		return
+		return nil
 	}
-	m.doDeleteNode(ctx, node.Podname, node.Name, node.Endpoint)
+	return m.doDeleteNode(ctx, node.Podname, node.Name, node.Endpoint)
 }
 
 // GetNode get a node from etcd
@@ -327,7 +327,7 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 // 所以可能出现实际上node创建失败但是却写好了证书的情况
 // 所以需要删除这些留存的证书
 // 至于结果是不是成功就无所谓了
-func (m *Mercury) doDeleteNode(ctx context.Context, podname, nodename, endpoint string) {
+func (m *Mercury) doDeleteNode(ctx context.Context, podname, nodename, endpoint string) error {
 	keys := []string{
 		fmt.Sprintf(nodeInfoKey, podname, nodename),
 		fmt.Sprintf(nodePodKey, nodename),
@@ -336,9 +336,10 @@ func (m *Mercury) doDeleteNode(ctx context.Context, podname, nodename, endpoint 
 		fmt.Sprintf(nodeKeyKey, nodename),
 	}
 
-	m.BatchDelete(ctx, keys)
 	_cache.Delete(nodename)
+	_, err := m.BatchDelete(ctx, keys)
 	log.Infof("[doDeleteNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
+	return err
 }
 
 func (m *Mercury) doGetNode(ctx context.Context, podname, nodename string) (*types.Node, error) {
