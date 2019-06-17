@@ -97,6 +97,7 @@ func (c *Calcium) withNodesLocked(ctx context.Context, podname, nodename string,
 	var ns []*types.Node
 	var err error
 	if nodename == "" {
+		// TODO should consider all nodes
 		ns, err = c.ListPodNodes(ctx, podname, false)
 		if err != nil {
 			return err

@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	lockmocks "github.com/projecteru2/core/lock/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 )
@@ -56,6 +57,16 @@ func TestRemovePod(t *testing.T) {
 
 	store := &storemocks.Store{}
 	store.On("RemovePod", mock.Anything, mock.Anything).Return(nil)
+	node := &types.Node{Name: "n1", Available: true}
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
+	store.On("GetNode",
+		mock.Anything,
+		mock.Anything,
+		mock.Anything).Return(node, nil)
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	c.store = store
 	assert.NoError(t, c.RemovePod(ctx, ""))
 }
@@ -67,6 +78,11 @@ func TestRemoveNode(t *testing.T) {
 	name := "test"
 	node := &types.Node{Name: name}
 	store := &storemocks.Store{}
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+
 	store.On("GetNode",
 		mock.Anything,
 		mock.Anything,
@@ -76,9 +92,8 @@ func TestRemoveNode(t *testing.T) {
 	store.On("GetPod", mock.Anything, mock.Anything).Return(pod, nil)
 	c.store = store
 
-	p, err := c.RemoveNode(ctx, "", "")
+	err := c.RemoveNode(ctx, "", "")
 	assert.NoError(t, err)
-	assert.Equal(t, p.Name, name)
 }
 
 func TestListPods(t *testing.T) {

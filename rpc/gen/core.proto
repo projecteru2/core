@@ -10,7 +10,7 @@ service CoreRPC {
     rpc GetPodResource(GetPodOptions) returns (PodResource) {};
 
     rpc AddNode(AddNodeOptions) returns (Node) {};
-    rpc RemoveNode(RemoveNodeOptions) returns (Pod) {};
+    rpc RemoveNode(RemoveNodeOptions) returns (Empty) {};
     rpc SetNodeAvailable(NodeAvailable) returns (Node) {};
     rpc GetNode(GetNodeOptions) returns (Node) {};
     rpc GetNodeResource(GetNodeOptions) returns (NodeResource) {};

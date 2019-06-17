@@ -125,8 +125,17 @@ func (_m *Store) CreateLock(key string, ttl int) (lock.DistributedLock, error) {
 }
 
 // DeleteNode provides a mock function with given fields: ctx, node
-func (_m *Store) DeleteNode(ctx context.Context, node *types.Node) {
-	_m.Called(ctx, node)
+func (_m *Store) DeleteNode(ctx context.Context, node *types.Node) error {
+	ret := _m.Called(ctx, node)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Node) error); ok {
+		r0 = rf(ctx, node)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // DeleteProcessing provides a mock function with given fields: ctx, opts, nodeInfo
@@ -471,13 +480,13 @@ func (_m *Store) UpdateNode(ctx context.Context, node *types.Node) error {
 	return r0
 }
 
-// UpdateNodeResource provides a mock function with given fields: ctx, node, cpu, quota, mem, action
-func (_m *Store) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, mem int64, action string) error {
-	ret := _m.Called(ctx, node, cpu, quota, mem, action)
+// UpdateNodeResource provides a mock function with given fields: ctx, node, cpu, quota, memory, action
+func (_m *Store) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, memory int64, action string) error {
+	ret := _m.Called(ctx, node, cpu, quota, memory, action)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *types.Node, types.CPUMap, float64, int64, string) error); ok {
-		r0 = rf(ctx, node, cpu, quota, mem, action)
+		r0 = rf(ctx, node, cpu, quota, memory, action)
 	} else {
 		r0 = ret.Error(0)
 	}

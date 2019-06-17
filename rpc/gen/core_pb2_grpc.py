@@ -47,7 +47,7 @@ class CoreRPCStub(object):
     self.RemoveNode = channel.unary_unary(
         '/pb.CoreRPC/RemoveNode',
         request_serializer=core__pb2.RemoveNodeOptions.SerializeToString,
-        response_deserializer=core__pb2.Pod.FromString,
+        response_deserializer=core__pb2.Empty.FromString,
         )
     self.SetNodeAvailable = channel.unary_unary(
         '/pb.CoreRPC/SetNodeAvailable',
@@ -428,7 +428,7 @@ def add_CoreRPCServicer_to_server(servicer, server):
       'RemoveNode': grpc.unary_unary_rpc_method_handler(
           servicer.RemoveNode,
           request_deserializer=core__pb2.RemoveNodeOptions.FromString,
-          response_serializer=core__pb2.Pod.SerializeToString,
+          response_serializer=core__pb2.Empty.SerializeToString,
       ),
       'SetNodeAvailable': grpc.unary_unary_rpc_method_handler(
           servicer.SetNodeAvailable,
