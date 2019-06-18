@@ -237,6 +237,7 @@ message Build {
     map<string, string> labels = 9;
     map<string, string> artifacts = 10;
     map<string, string> cache = 11;
+    string stop_signal = 12;
 }
 
 message Builds {

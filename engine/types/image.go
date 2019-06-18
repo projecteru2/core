@@ -26,15 +26,16 @@ type Builds struct {
 
 // Build define build
 type Build struct {
-	Base      string            `yaml:"base,omitempty"`
-	Repo      string            `yaml:"repo,omitempty"`
-	Version   string            `yaml:"version,omitempty"`
-	Dir       string            `yaml:"dir,omitempty"`
-	Submodule bool              `yaml:"submodule,omitempty"`
-	Commands  []string          `yaml:"commands,omitempty,flow"`
-	Envs      map[string]string `yaml:"envs,omitempty,flow"`
-	Args      map[string]string `yaml:"args,omitempty,flow"`
-	Labels    map[string]string `yaml:"labels,omitempty,flow"`
-	Artifacts map[string]string `yaml:"artifacts,omitempty,flow"`
-	Cache     map[string]string `yaml:"cache,omitempty,flow"`
+	Base       string            `yaml:"base,omitempty"`
+	Repo       string            `yaml:"repo,omitempty"`
+	Version    string            `yaml:"version,omitempty"`
+	Dir        string            `yaml:"dir,omitempty"`
+	Submodule  bool              `yaml:"submodule,omitempty"`
+	Commands   []string          `yaml:"commands,omitempty,flow"`
+	Envs       map[string]string `yaml:"envs,omitempty,flow"`
+	Args       map[string]string `yaml:"args,omitempty,flow"`
+	Labels     map[string]string `yaml:"labels,omitempty,flow"`
+	Artifacts  map[string]string `yaml:"artifacts,omitempty,flow"`
+	Cache      map[string]string `yaml:"cache,omitempty,flow"`
+	StopSignal string            `yaml:"stop_signal,omitempty,flow"`
 }

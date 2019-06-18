@@ -30,7 +30,8 @@ const (
 {{ end -}}
 {{- if .Dir}}RUN mkdir -p {{.Dir}}
 WORKDIR {{.Dir}}{{ end }}
-{{ if .Repo }}ADD {{.Repo}} .{{ end }}`
+{{ if .Repo }}ADD {{.Repo}} .{{ end }}
+{{ if .StopSignal }}STOPSIGNAL {{.StopSignal}} {{ end }}`
 	copyTmpl = "COPY --from=%s %s %s"
 	runTmpl  = "RUN %s"
 	//TODO consider work dir privilege
