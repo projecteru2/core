@@ -17,9 +17,9 @@ func (c *Calcium) AddPod(ctx context.Context, podname, desc string) (*types.Pod,
 
 // AddNode add a node in pod
 func (c *Calcium) AddNode(ctx context.Context, nodename, endpoint, podname, ca, cert, key string,
-	cpu, share int, memory int64, labels map[string]string,
+	cpu, share int, memory, storage int64, labels map[string]string,
 	numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
-	return c.store.AddNode(ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory)
+	return c.store.AddNode(ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, storage, labels, numa, numaMemory)
 }
 
 // RemovePod remove pod

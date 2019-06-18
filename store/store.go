@@ -28,7 +28,7 @@ type Store interface {
 
 	// node
 	AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string,
-		cpu, share int, memory int64, labels map[string]string,
+		cpu, share int, memory, storage int64, labels map[string]string,
 		numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error)
 	DeleteNode(ctx context.Context, node *types.Node) error
 	GetNode(ctx context.Context, podname, nodename string) (*types.Node, error)
@@ -36,7 +36,7 @@ type Store interface {
 	GetNodesByPod(ctx context.Context, podname string) ([]*types.Node, error)
 	GetAllNodes(ctx context.Context) ([]*types.Node, error)
 	UpdateNode(ctx context.Context, node *types.Node) error
-	UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, memory int64, action string) error
+	UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, memory, storage int64, action string) error
 
 	// container
 	AddContainer(ctx context.Context, container *types.Container) error

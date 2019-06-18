@@ -57,6 +57,7 @@ func TestContainer(t *testing.T) {
 	assert.Equal(t, string(r.Value), "")
 	// Update
 	container.Memory = int64(100)
+	container.Storage = int64(100)
 	assert.NoError(t, m.UpdateContainer(ctx, container))
 	// RemoveFail
 	container.ID = "a"

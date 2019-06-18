@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	cpuMap      = "core.node.%s.cpu.%s"
-	memStats    = "core.node.%s.memory"
-	deployCount = "core.%s.deploy.count"
+	cpuMap       = "core.node.%s.cpu.%s"
+	memStats     = "core.node.%s.memory"
+	storageStats = "core.node.%s.storage"
+	deployCount  = "core.%s.deploy.count"
 )
 
 // Metrics define metrics
@@ -23,9 +24,10 @@ type Metrics struct {
 	Hostname     string
 	statsdClient *statsdlib.Client
 
-	MemoryCapacity *prometheus.GaugeVec
-	CPUMap         *prometheus.GaugeVec
-	DeployCount    *prometheus.CounterVec
+	MemoryCapacity  *prometheus.GaugeVec
+	StorageCapacity *prometheus.GaugeVec
+	CPUMap          *prometheus.GaugeVec
+	DeployCount     *prometheus.CounterVec
 }
 
 // Lazy connect
@@ -91,6 +93,23 @@ func (m *Metrics) SendNodeInfo(node *types.Node) {
 	key := fmt.Sprintf(memStats, nodename)
 	if err := m.gauge(key, memory); err != nil {
 		log.Errorf("[SendNodeInfo] Error occurred while sending data to statsd: %v", err)
+	}
+
+	m.sendStorageInfo(nodename, float64(node.StorageCap))
+}
+
+func (m *Metrics) sendStorageInfo(nodename string, storage float64) {
+	if m.StorageCapacity != nil {
+		m.StorageCapacity.WithLabelValues(nodename).Set(storage)
+	}
+
+	if m.StatsdAddr == "" {
+		return
+	}
+
+	key := fmt.Sprintf(storageStats, nodename)
+	if err := m.gauge(key, storage); err != nil {
+		log.Errorf("[sendStorageInfo] Error occurred while sending data to statsd: %v", err)
 	}
 }
 

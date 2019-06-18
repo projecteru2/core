@@ -71,7 +71,7 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 					ch <- m
 					if m.Error != nil && m.ContainerID == "" {
 						if err := c.withNodeLocked(ctx, opts.Podname, nodeInfo.Name, func(node *types.Node) error {
-							return c.store.UpdateNodeResource(ctx, node, m.CPU, opts.CPUQuota, opts.Memory, store.ActionIncr)
+							return c.store.UpdateNodeResource(ctx, node, m.CPU, opts.CPUQuota, opts.Memory, opts.Storage, store.ActionIncr)
 						}); err != nil {
 							log.Errorf("[doCreateContainer] Reset node %s failed %v", nodeInfo.Name, err)
 						}
@@ -146,6 +146,7 @@ func (c *Calcium) doCreateAndStartContainer(
 		CPU:        cpu,
 		Quota:      opts.CPUQuota,
 		Memory:     opts.Memory,
+		Storage:    opts.Storage,
 		Hook:       opts.Entrypoint.Hook,
 		Privileged: opts.Entrypoint.Privileged,
 		Engine:     node.Engine,
@@ -158,6 +159,7 @@ func (c *Calcium) doCreateAndStartContainer(
 		CPU:      cpu,
 		Quota:    opts.CPUQuota,
 		Memory:   opts.Memory,
+		Storage:  opts.Storage,
 		Publish:  map[string][]string{},
 	}
 
@@ -245,6 +247,7 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, opts *t
 	config.CPU = cpumap.Map()
 	config.Quota = opts.CPUQuota
 	config.Memory = opts.Memory
+	config.Storage = opts.Storage
 	config.NUMANode = node.GetNUMANode(cpumap)
 	config.SoftLimit = opts.SoftLimit
 	entry := opts.Entrypoint
@@ -270,6 +273,7 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, opts *t
 	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", node.Name))
 	env = append(env, fmt.Sprintf("ERU_CONTAINER_NO=%d", index))
 	env = append(env, fmt.Sprintf("ERU_MEMORY=%d", opts.Memory))
+	env = append(env, fmt.Sprintf("ERU_STORAGE=%d", opts.Storage))
 
 	// log config
 	// 默认是配置里的driver, 如果entrypoint有指定就用指定的.

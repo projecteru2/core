@@ -79,6 +79,7 @@ message PodResource {
     map<string,double> memory_percents = 3;
     map<string, bool> verifications = 4;
     map<string, string> details = 5;
+    map<string, double> storage_percents = 6;
 }
 
 message NodeResource {
@@ -87,6 +88,7 @@ message NodeResource {
     double memory_percent = 3;
     bool verification = 4;
     repeated string details = 5;
+    double storage_percent = 6;
 }
 
 message ListNetworkOptions {
@@ -118,6 +120,9 @@ message Node {
     string info = 12;
     map<string, string> numa = 13;
     map<string, int64> numa_memory = 14;
+    int64 storage = 15;
+    int64 storage_used = 16;
+    int64 init_storage = 17;
 }
 
 message Nodes {
@@ -145,6 +150,7 @@ message Container {
     bytes inspect = 12;
     bytes status_data = 13;
     bool verification = 14;
+    int64 storage = 15;
 }
 
 message ContainerDeployedOptions {
@@ -209,6 +215,7 @@ message AddNodeOptions {
     map<string, string> labels = 10;
     map<string, string> numa = 11;
     map<string, int64> numa_memory = 12;
+    int64 storage = 13;
 }
 
 message RemoveNodeOptions {
@@ -312,6 +319,7 @@ message DeployOptions {
     bool soft_limit = 23;
     int32 nodes_limit = 24;
     bool cpu_bind = 25;
+    int64 storage = 26;
 }
 
 message ReplaceOptions {
@@ -377,6 +385,7 @@ message CreateContainerMessage {
     int64 memory = 9;
     map<string, string> publish = 10;
     bytes hook = 11;
+    int64 storage = 12;
 }
 
 message ReplaceContainerMessage {
