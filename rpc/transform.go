@@ -127,17 +127,18 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) (*enginetypes.BuildOptions, err
 				return nil, types.ErrNoBuildSpec
 			}
 			builds.Builds[stage] = &enginetypes.Build{
-				Base:      p.Base,
-				Repo:      p.Repo,
-				Version:   p.Version,
-				Dir:       p.Dir,
-				Submodule: p.Submodule || false,
-				Commands:  p.Commands,
-				Envs:      p.Envs,
-				Args:      p.Args,
-				Labels:    p.Labels,
-				Artifacts: p.Artifacts,
-				Cache:     p.Cache,
+				Base:       p.Base,
+				Repo:       p.Repo,
+				Version:    p.Version,
+				Dir:        p.Dir,
+				Submodule:  p.Submodule || false,
+				Commands:   p.Commands,
+				Envs:       p.Envs,
+				Args:       p.Args,
+				Labels:     p.Labels,
+				Artifacts:  p.Artifacts,
+				Cache:      p.Cache,
+				StopSignal: p.StopSignal,
 			}
 		}
 	}
