@@ -54,6 +54,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 					// 使用复制之后的配置
 					// 停老的，起新的
 					replaceOpts.Memory = container.Memory
+					replaceOpts.Storage = container.Storage
 					replaceOpts.CPUQuota = container.Quota
 					replaceOpts.SoftLimit = container.SoftLimit
 					// 覆盖 podname 如果做全量更新的话

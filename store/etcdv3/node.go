@@ -22,7 +22,7 @@ import (
 // storage path in etcd is `/pod/nodes/:podname/:nodename`
 // node->pod path in etcd is `/node/pod/:nodename`
 func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string,
-	cpu, share int, memory int64, labels map[string]string,
+	cpu, share int, memory, storage int64, labels map[string]string,
 	numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
 	if !strings.HasPrefix(endpoint, nodeTCPPrefixKey) &&
 		!strings.HasPrefix(endpoint, nodeSockPrefixKey) &&
@@ -83,7 +83,7 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 		}
 	}
 
-	return m.doAddNode(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory)
+	return m.doAddNode(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, storage, labels, numa, numaMemory)
 }
 
 // DeleteNode delete a node
@@ -179,18 +179,19 @@ func (m *Mercury) UpdateNode(ctx context.Context, node *types.Node) error {
 	}
 
 	value := string(bytes)
-	log.Debugf("[UpdateNode] pod %s node %s cpu slots %v memory %v", node.Podname, node.Name, node.CPU, node.MemCap)
+	log.Debugf("[UpdateNode] pod %s node %s cpu slots %v memory %v storage %v", node.Podname, node.Name, node.CPU, node.MemCap, node.StorageCap)
 	_, err = m.Put(ctx, key, value)
 	return err
 }
 
 // UpdateNodeResource update cpu and memory on a node, either add or subtract
-func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, memory int64, action string) error {
+func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, memory, storage int64, action string) error {
 	switch action {
 	case store.ActionIncr:
 		node.CPU.Add(cpu)
 		node.SetCPUUsed(quota, types.DecrUsage)
 		node.MemCap += memory
+		node.StorageCap += storage
 		if nodeID := node.GetNUMANode(cpu); nodeID != "" {
 			node.IncrNUMANodeMemory(nodeID, memory)
 		}
@@ -198,6 +199,7 @@ func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu 
 		node.CPU.Sub(cpu)
 		node.SetCPUUsed(quota, types.IncrUsage)
 		node.MemCap -= memory
+		node.StorageCap -= storage
 		if nodeID := node.GetNUMANode(cpu); nodeID != "" {
 			node.DecrNUMANodeMemory(nodeID, memory)
 		}
@@ -277,7 +279,7 @@ func (m *Mercury) doMakeClient(ctx context.Context, nodename, endpoint, ca, cert
 	return nil, types.ErrNotSupport
 }
 
-func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory int64, labels map[string]string, numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
+func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory, storage int64, labels map[string]string, numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
 	data := map[string]string{}
 	// 如果有tls的证书需要保存就保存一下
 	if ca != "" && cert != "" && key != "" {
@@ -297,8 +299,10 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 		Podname:        podname,
 		CPU:            cpumap,
 		MemCap:         memory,
+		StorageCap:     storage,
 		InitCPU:        cpumap,
 		InitMemCap:     memory,
+		InitStorageCap: storage,
 		InitNUMAMemory: numaMemory,
 		Available:      true,
 		Labels:         labels,

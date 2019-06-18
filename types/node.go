@@ -127,13 +127,33 @@ func (n *Node) DecrNUMANodeMemory(nodeID string, memory int64) {
 	}
 }
 
-// StorageUsage calculates node's storage usage.
+// StorageUsage calculates node's storage usage ratio.
 func (n *Node) StorageUsage() float64 {
 	switch {
 	case n.InitStorageCap <= 0:
 		return 1.0
 	default:
 		return 1.0 - float64(n.StorageCap)/float64(n.InitStorageCap)
+	}
+}
+
+// StorageUsed calculates node's storage usage value.
+func (n *Node) StorageUsed() int64 {
+	switch {
+	case n.InitStorageCap <= 0:
+		return 0
+	default:
+		return n.InitStorageCap - n.StorageCap
+	}
+}
+
+// AvailableStorage calculates available value.
+func (n *Node) AvailableStorage() int64 {
+	switch {
+	case n.InitStorageCap <= 0:
+		return MaxInt64
+	default:
+		return n.StorageCap
 	}
 }
 
@@ -164,8 +184,10 @@ type NodeResource struct {
 	Name              string
 	CPU               CPUMap
 	MemCap            int64
+	StorageCap        int64
 	CPUPercent        float64
 	MemoryPercent     float64
+	StoragePercent    float64
 	NUMAMemoryPercent map[string]float64
 	Verification      bool
 	Details           []string

@@ -42,11 +42,11 @@ func TestAddNode(t *testing.T) {
 		mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything).Return(node, nil)
 	c.store = store
 
-	n, err := c.AddNode(ctx, "", "", "", "", "", "", 0, 0, int64(0), nil, nil, nil)
+	n, err := c.AddNode(ctx, "", "", "", "", "", "", 0, 0, int64(0), int64(0), nil, nil, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, n.Name, name)
 }
