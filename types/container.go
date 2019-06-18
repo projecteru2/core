@@ -19,6 +19,7 @@ type Container struct {
 	CPU        CPUMap     `json:"cpu"`
 	Quota      float64    `json:"quota"`
 	Memory     int64      `json:"memory"`
+	Storage    int64      `json:"storage"`
 	Hook       *Hook      `json:"hook"`
 	Privileged bool       `json:"privileged"`
 	SoftLimit  bool       `json:"softlimit"`

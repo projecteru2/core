@@ -7,5 +7,6 @@ import (
 const (
 	restartAlways = "always"
 	minMemory     = types.MByte * 4
+	minStorage    = types.GByte * 50
 	root          = "root"
 )

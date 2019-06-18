@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	"strconv"
+	"strings"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	pb "github.com/projecteru2/core/rpc/gen"
@@ -28,11 +30,12 @@ func toRPCPod(p *types.Pod) *pb.Pod {
 
 func toRPCPodResource(p *types.PodResource) *pb.PodResource {
 	r := &pb.PodResource{
-		Name:           p.Name,
-		CpuPercents:    p.CPUPercents,
-		MemoryPercents: p.MemoryPercents,
-		Verifications:  p.Verifications,
-		Details:        p.Details,
+		Name:            p.Name,
+		CpuPercents:     p.CPUPercents,
+		MemoryPercents:  p.MemoryPercents,
+		StoragePercents: p.StoragePercents,
+		Verifications:   p.Verifications,
+		Details:         p.Details,
 	}
 	return r
 }
@@ -51,30 +54,34 @@ func toRPCNode(ctx context.Context, n *types.Node) *pb.Node {
 	}
 
 	return &pb.Node{
-		Name:       n.Name,
-		Endpoint:   n.Endpoint,
-		Podname:    n.Podname,
-		Cpu:        toRPCCPUMap(n.CPU),
-		CpuUsed:    n.CPUUsed,
-		Memory:     n.MemCap,
-		MemoryUsed: n.InitMemCap - n.MemCap,
-		Available:  n.Available,
-		Labels:     n.Labels,
-		InitCpu:    toRPCCPUMap(n.InitCPU),
-		InitMemory: n.InitMemCap,
-		Info:       nodeInfo,
-		Numa:       n.NUMA,
-		NumaMemory: n.NUMAMemory,
+		Name:        n.Name,
+		Endpoint:    n.Endpoint,
+		Podname:     n.Podname,
+		Cpu:         toRPCCPUMap(n.CPU),
+		CpuUsed:     n.CPUUsed,
+		Memory:      n.MemCap,
+		MemoryUsed:  n.InitMemCap - n.MemCap,
+		Storage:     n.StorageCap,
+		StorageUsed: n.StorageUsed(),
+		Available:   n.Available,
+		Labels:      n.Labels,
+		InitCpu:     toRPCCPUMap(n.InitCPU),
+		InitMemory:  n.InitMemCap,
+		InitStorage: n.InitStorageCap,
+		Info:        nodeInfo,
+		Numa:        n.NUMA,
+		NumaMemory:  n.NUMAMemory,
 	}
 }
 
 func toRPCNodeResource(nr *types.NodeResource) *pb.NodeResource {
 	return &pb.NodeResource{
-		Name:          nr.Name,
-		CpuPercent:    nr.CPUPercent,
-		MemoryPercent: nr.MemoryPercent,
-		Verification:  nr.Verification,
-		Details:       nr.Details,
+		Name:           nr.Name,
+		CpuPercent:     nr.CPUPercent,
+		MemoryPercent:  nr.MemoryPercent,
+		StoragePercent: nr.StoragePercent,
+		Verification:   nr.Verification,
+		Details:        nr.Details,
 	}
 }
 
@@ -210,6 +217,11 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		return nil, err
 	}
 
+	storage, err := toCoreDeployStorage(d.Volumes)
+	if err != nil {
+		return nil, err
+	}
+
 	return &types.DeployOptions{
 		Name:         d.Name,
 		Entrypoint:   entry,
@@ -220,6 +232,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		CPUQuota:     d.CpuQuota,
 		CPUBind:      d.CpuBind,
 		Memory:       d.Memory,
+		Storage:      storage,
 		Count:        int(d.Count),
 		Env:          d.Env,
 		DNS:          d.Dns,
@@ -239,6 +252,26 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 	}, nil
 }
 
+func toCoreDeployStorage(vols []string) (int64, error) {
+	stor := types.MinDeployStorage
+
+	for _, bind := range vols {
+		parts := strings.Split(bind, ":")
+		if len(parts) != 4 {
+			return stor, nil
+		}
+
+		size, err := strconv.ParseInt(parts[3], 10, 64)
+		if err != nil {
+			return 0, err
+		}
+
+		stor += size
+	}
+
+	return stor, nil
+}
+
 func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateContainerMessage {
 	if c == nil {
 		return nil
@@ -252,6 +285,7 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 		Cpu:      toRPCCPUMap(c.CPU),
 		Quota:    c.Quota,
 		Memory:   c.Memory,
+		Storage:  c.Storage,
 		Publish:  utils.EncodePublishInfo(c.Publish),
 		Hook:     types.HookOutput(c.Hook),
 	}
@@ -388,6 +422,7 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		Cpu:          cpu,
 		Quota:        c.Quota,
 		Memory:       c.Memory,
+		Storage:      c.Storage,
 		Privileged:   c.Privileged,
 		Publish:      publish,
 		Image:        image,

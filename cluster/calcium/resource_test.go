@@ -56,6 +56,7 @@ func TestPodResource(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, r.CPUPercents, 1)
 	assert.Len(t, r.MemoryPercents, 1)
+	assert.Len(t, r.StoragePercents, 1)
 	assert.False(t, r.Verifications[nodename])
 	assert.NotEmpty(t, r.Details[nodename])
 }
@@ -209,7 +210,7 @@ func TestAllocResource(t *testing.T) {
 	testAllocFailedAsUpdateNodeResourceError(t, c, opts)
 	store.On("UpdateNodeResource",
 		mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 	).Return(nil)
 
 	testAllocFailedAsSaveProcessingError(t, c, opts)
@@ -359,7 +360,7 @@ func testAllocFailedAsUpdateNodeResourceError(t *testing.T, c *Calcium, opts *ty
 	store := c.store.(*storemocks.Store)
 	store.On("UpdateNodeResource",
 		mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 	).Return(types.ErrNoETCD).Once()
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)

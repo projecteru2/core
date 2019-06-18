@@ -25,38 +25,39 @@ func TestNode(t *testing.T) {
 	cpu := 1
 	share := 100
 	memory := int64(100)
+	storage := int64(100)
 	m.config.Scheduler.ShareBase = 100
 	labels := map[string]string{"test": "1"}
 
 	// wrong endpoint
-	_, err = m.AddNode(ctx, nodename, "abc", podname, "", "", "", cpu, share, memory, labels, nil, nil)
+	_, err = m.AddNode(ctx, nodename, "abc", podname, "", "", "", cpu, share, memory, storage, labels, nil, nil)
 	assert.Error(t, err)
 	// wrong because engine not mocked
-	_, err = m.AddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, labels, nil, nil)
+	_, err = m.AddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, storage, labels, nil, nil)
 	assert.Error(t, err)
 
 	endpoint = "mock://fakeengine"
 	// AddNode
-	node, err := m.AddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, labels, nil, nil)
+	node, err := m.AddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, storage, labels, nil, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, nodename)
 	assert.Equal(t, node.CPU["0"], 100)
 	// AddNode with numa
-	nodeWithNuma, err := m.AddNode(ctx, "nodewithnuma", endpoint, "numapod", "", "", "", cpu, share, memory, labels,
+	nodeWithNuma, err := m.AddNode(ctx, "nodewithnuma", endpoint, "numapod", "", "", "", cpu, share, memory, storage, labels,
 		types.NUMA{"1": "n1", "2": "n2"}, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, nodeWithNuma.Name, "nodewithnuma")
 	assert.Equal(t, len(nodeWithNuma.NUMAMemory), 2)
 	assert.Equal(t, nodeWithNuma.NUMAMemory["n1"], int64(50))
 	// Addnode again will failed
-	_, err = m.AddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, labels, nil, nil)
+	_, err = m.AddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, storage, labels, nil, nil)
 	assert.Error(t, err)
 	// Check etcd has node data
 	key := fmt.Sprintf(nodeInfoKey, podname, nodename)
 	ev, err := m.GetOne(ctx, key)
 	assert.NoError(t, err)
 	// AddNode with mocked engine and default value
-	node2, err := m.AddNode(ctx, nodename2, endpoint, podname, "", "", "", 0, 0, 0, labels, nil, nil)
+	node2, err := m.AddNode(ctx, nodename2, endpoint, podname, "", "", "", 0, 0, 0, 0, labels, nil, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, node2.CPU["0"], 100)
 	assert.Equal(t, len(node2.CPU), 1)
@@ -101,12 +102,12 @@ func TestNode(t *testing.T) {
 	node.Available = false
 	assert.NoError(t, m.UpdateNode(ctx, node))
 	// UpdateNodeResource
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, nil, 1.0, int64(100), "-"))
+	assert.NoError(t, m.UpdateNodeResource(ctx, node, nil, 1.0, int64(100), storage, "-"))
 	newNode, err := m.GetNodeByName(ctx, nodename)
 	assert.NoError(t, err)
 	assert.Equal(t, newNode.MemCap, int64(0))
 	assert.Equal(t, newNode.CPUUsed, 1.0)
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, nil, 1.0, int64(100), "+"))
+	assert.NoError(t, m.UpdateNodeResource(ctx, node, nil, 1.0, int64(100), storage, "+"))
 	newNode, err = m.GetNodeByName(ctx, nodename)
 	assert.NoError(t, err)
 	assert.Equal(t, newNode.MemCap, int64(100))
@@ -114,19 +115,19 @@ func TestNode(t *testing.T) {
 	// numa memory record
 	node.NUMA = types.NUMA{"0": "n1"}
 	node.NUMAMemory = map[string]int64{"n1": 100}
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, types.CPUMap{"0": 10}, 0.01, int64(1), "-"))
+	assert.NoError(t, m.UpdateNodeResource(ctx, node, types.CPUMap{"0": 10}, 0.01, int64(1), int64(1), "-"))
 	newNode, err = m.GetNodeByName(ctx, nodename)
 	assert.NoError(t, err)
 	assert.Equal(t, newNode.CPU["0"], 90)
 	assert.Equal(t, newNode.CPUUsed, 0.01)
 	assert.Equal(t, newNode.NUMAMemory["n1"], int64(99))
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, types.CPUMap{"0": 10}, 0.01, int64(1), "+"))
+	assert.NoError(t, m.UpdateNodeResource(ctx, node, types.CPUMap{"0": 10}, 0.01, int64(1), int64(1), "+"))
 	newNode, err = m.GetNodeByName(ctx, nodename)
 	assert.NoError(t, err)
 	assert.Equal(t, newNode.CPU["0"], 100)
 	assert.Equal(t, newNode.CPUUsed, 0.0)
 	assert.Equal(t, newNode.NUMAMemory["n1"], int64(100))
-	err = m.UpdateNodeResource(ctx, node, nil, 0, int64(0), "abc")
+	err = m.UpdateNodeResource(ctx, node, nil, 0, int64(0), int64(0), "abc")
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), types.ErrUnknownControlType.Error())
 	// makeClient
@@ -198,7 +199,7 @@ RdCPRPt513WozkJZZAjUSP2U
 	nodename3 := "nodename3"
 	endpoint3 := "tcp://path"
 	m.config.Docker.CertPath = "/tmp"
-	node3, err := m.doAddNode(ctx, nodename3, endpoint3, podname, ca, cert, certkey, cpu, share, memory, labels, nil, nil)
+	node3, err := m.doAddNode(ctx, nodename3, endpoint3, podname, ca, cert, certkey, cpu, share, memory, storage, labels, nil, nil)
 	assert.NoError(t, err)
 	engine3, err := m.makeClient(ctx, podname, nodename3, endpoint3, true)
 	assert.NoError(t, err)

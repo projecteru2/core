@@ -5,8 +5,9 @@ type VirtualizationResource struct {
 	CPU       map[string]int // for cpu binding
 	Quota     float64        // for cpu quota
 	Memory    int64          // for memory binding
-	SoftLimit bool           // soft limit or not
-	NUMANode  string         // numa node
+	Storage   int64
+	SoftLimit bool   // soft limit or not
+	NUMANode  string // numa node
 }
 
 // VirtualizationUlimits define hard and soft limit

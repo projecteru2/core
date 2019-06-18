@@ -21,11 +21,12 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 		return nil, err
 	}
 	r := &types.PodResource{
-		Name:           podname,
-		CPUPercents:    map[string]float64{},
-		MemoryPercents: map[string]float64{},
-		Verifications:  map[string]bool{},
-		Details:        map[string]string{},
+		Name:            podname,
+		CPUPercents:     map[string]float64{},
+		MemoryPercents:  map[string]float64{},
+		StoragePercents: map[string]float64{},
+		Verifications:   map[string]bool{},
+		Details:         map[string]string{},
 	}
 	for _, node := range nodes {
 		nodeDetail, err := c.doGetNodeResource(ctx, node)
@@ -34,6 +35,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 		}
 		r.CPUPercents[node.Name] = nodeDetail.CPUPercent
 		r.MemoryPercents[node.Name] = nodeDetail.MemoryPercent
+		r.StoragePercents[node.Name] = nodeDetail.StoragePercent
 		r.Verifications[node.Name] = nodeDetail.Verification
 		r.Details[node.Name] = strings.Join(nodeDetail.Details, "\n")
 	}
@@ -67,15 +69,17 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, node *types.Node) (*typ
 		return nil, err
 	}
 	nr := &types.NodeResource{
-		Name: node.Name, CPU: node.CPU, MemCap: node.MemCap,
+		Name: node.Name, CPU: node.CPU, MemCap: node.MemCap, StorageCap: node.StorageCap,
 		Containers: containers, Verification: true, Details: []string{},
 	}
 	cpus := 0.0
 	memory := int64(0)
+	storage := int64(0)
 	cpumap := types.CPUMap{}
 	for _, container := range containers {
 		cpus = utils.Round(cpus + container.Quota)
 		memory += container.Memory
+		storage += container.Storage
 		cpumap.Add(container.CPU)
 	}
 	nr.CPUPercent = cpus / float64(len(node.InitCPU))
@@ -101,6 +105,17 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, node *types.Node) (*typ
 		nr.Verification = false
 		nr.Details = append(nr.Details, fmt.Sprintf("memory now %d", node.InitMemCap-(memory+node.MemCap)))
 	}
+
+	if all := float64(node.InitStorageCap); all == 0 {
+		nr.StoragePercent = 0
+	} else {
+		nr.StoragePercent = float64(storage) / all
+		if storage+node.StorageCap != node.InitStorageCap {
+			nr.Verification = false
+			nr.Details = append(nr.Details, fmt.Sprintf("storage now %d", node.InitStorageCap-(storage+node.StorageCap)))
+		}
+	}
+
 	return nr, nil
 }
 
@@ -129,12 +144,10 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 		}
 
 		var storTotal int
-		switch nodesInfo, storTotal, err = c.scheduler.SelectStorageNodes(nodesInfo, 0); {
-		case err != nil:
+		if nodesInfo, storTotal, err = c.scheduler.SelectStorageNodes(nodesInfo, opts.Storage); err != nil {
 			return err
-		case storTotal < total:
-			total = storTotal
 		}
+		total = utils.Min(storTotal, total)
 
 		switch opts.DeployMethod {
 		case cluster.DeployAuto:
@@ -163,6 +176,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 		for i, nodeInfo := range nodesInfo {
 			cpuCost := types.CPUMap{}
 			memoryCost := opts.Memory * int64(nodeInfo.Deploy)
+			storageCost := opts.Storage * int64(nodeInfo.Deploy)
 			quotaCost := opts.CPUQuota * float64(nodeInfo.Deploy)
 
 			if _, ok := nodeCPUPlans[nodeInfo.Name]; ok {
@@ -172,7 +186,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 					cpuCost.Add(cpu)
 				}
 			}
-			if err = c.store.UpdateNodeResource(ctx, nodes[nodeInfo.Name], cpuCost, quotaCost, memoryCost, store.ActionDecr); err != nil {
+			if err = c.store.UpdateNodeResource(ctx, nodes[nodeInfo.Name], cpuCost, quotaCost, memoryCost, storageCost, store.ActionDecr); err != nil {
 				return err
 			}
 		}

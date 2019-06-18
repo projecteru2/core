@@ -39,9 +39,13 @@ func (m *Potassium) MaxIdleNode(nodes []*types.Node) (*types.Node, error) {
 
 // SelectStorageNodes filters nodes with enough storage
 func (m *Potassium) SelectStorageNodes(nodesInfo []types.NodeInfo, storage int64) ([]types.NodeInfo, int, error) {
-	log.Infof("[SelectStorageNodes] nodesInfo: %v, need: %d", nodesInfo, storage)
-	if storage <= 0 {
+	switch {
+	case storage < 0:
 		return nil, 0, types.ErrNegativeStorage
+	case storage == 0:
+		return nodesInfo, types.MaxInt32, nil
+	default:
+		log.Infof("[SelectStorageNodes] nodesInfo: %v, need: %d", nodesInfo, storage)
 	}
 
 	leng := len(nodesInfo)
