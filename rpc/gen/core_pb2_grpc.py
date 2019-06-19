@@ -169,6 +169,11 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.ReallocOptions.SerializeToString,
         response_deserializer=core__pb2.ReallocResourceMessage.FromString,
         )
+    self.LogStream = channel.unary_stream(
+        '/pb.CoreRPC/LogStream',
+        request_serializer=core__pb2.ContainerID.SerializeToString,
+        response_deserializer=core__pb2.LogStreamMessage.FromString,
+        )
 
 
 class CoreRPCServicer(object):
@@ -392,6 +397,13 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def LogStream(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_CoreRPCServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -549,6 +561,11 @@ def add_CoreRPCServicer_to_server(servicer, server):
           servicer.ReallocResource,
           request_deserializer=core__pb2.ReallocOptions.FromString,
           response_serializer=core__pb2.ReallocResourceMessage.SerializeToString,
+      ),
+      'LogStream': grpc.unary_stream_rpc_method_handler(
+          servicer.LogStream,
+          request_deserializer=core__pb2.ContainerID.FromString,
+          response_serializer=core__pb2.LogStreamMessage.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

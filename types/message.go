@@ -110,3 +110,10 @@ type ReallocResourceMessage struct {
 	ContainerID string
 	Success     bool
 }
+
+// LogStreamMessage for log stream
+type LogStreamMessage struct {
+	ID    string
+	Error error
+	Data  []byte
+}

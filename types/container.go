@@ -70,7 +70,7 @@ func (c *Container) Remove(ctx context.Context) error {
 // DeployStatus store deploy status
 type DeployStatus struct {
 	Data       string
-	Err        error
+	Error      error
 	Action     string
 	Appname    string
 	Entrypoint string
