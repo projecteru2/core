@@ -83,6 +83,7 @@ type Cluster interface {
 	RemoveContainer(ctx context.Context, IDs []string, force bool, step int) (chan *types.RemoveContainerMessage, error)
 	DissociateContainer(ctx context.Context, IDs []string) (chan *types.DissociateContainerMessage, error)
 	ReplaceContainer(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceContainerMessage, error)
+	LogStream(ctx context.Context, ID string) (chan *types.LogStreamMessage, error)
 	// finalizer
 	Finalizer()
 }
