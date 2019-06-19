@@ -239,17 +239,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 	}, nil
 }
 
-func cleanTmpDataFile(data map[string]string) error {
-	var err error
-	for _, src := range data {
-		err = os.RemoveAll(src)
-		if err != nil {
-			log.Errorf("[cleanTmpDataFile] clean temp files failed %v", err)
-		}
-	}
-	return err
-}
-
 func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateContainerMessage {
 	if c == nil {
 		return nil
@@ -409,6 +398,17 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 	}, nil
 }
 
+func toRPCLogStreamMessage(msg *types.LogStreamMessage) *pb.LogStreamMessage {
+	r := &pb.LogStreamMessage{
+		Id:   msg.ID,
+		Data: msg.Data,
+	}
+	if msg.Error != nil {
+		r.Error = msg.Error.Error()
+	}
+	return r
+}
+
 func makeTempTarFiles(data map[string][]byte) (map[string]string, error) {
 	tarFiles := map[string]string{}
 	for path, data := range data {
@@ -422,4 +422,14 @@ func makeTempTarFiles(data map[string][]byte) (map[string]string, error) {
 		tarFiles[path] = fname
 	}
 	return tarFiles, nil
+}
+
+func cleanTmpDataFile(data map[string]string) error {
+	var err error
+	for _, src := range data {
+		if err = os.RemoveAll(src); err != nil {
+			log.Errorf("[cleanTmpDataFile] clean temp files failed %v", err)
+		}
+	}
+	return err
 }

@@ -36,6 +36,7 @@ service CoreRPC {
     rpc DissociateContainer(DissociateContainerOptions) returns (stream DissociateContainerMessage) {};
     rpc ControlContainer(ControlContainerOptions) returns (stream ControlContainerMessage) {};
     rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage) {};
+    rpc LogStream(ContainerID) returns (stream LogStreamMessage) {};
 }
 
 message Empty {}
@@ -430,7 +431,7 @@ message CopyMessage {
 message SendMessage {
     string id = 1;
     string path = 2;
-    string err = 3;
+    string error = 3;
 }
 
 message RunAndWaitOptions{
@@ -447,4 +448,10 @@ message ControlContainerMessage {
     string id = 1;
     string error = 2;
     bytes hook = 3;
+}
+
+message LogStreamMessage {
+    string id = 1;
+    string error = 2;
+    bytes data = 3;
 }

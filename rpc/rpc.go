@@ -300,7 +300,7 @@ func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) err
 		}
 
 		if m.Error != nil {
-			msg.Err = m.Error.Error()
+			msg.Error = m.Error.Error()
 		}
 
 		if err := stream.Send(msg); err != nil {
@@ -381,8 +381,8 @@ func (v *Vibranium) DeployStatus(opts *pb.DeployStatusOptions, stream pb.CoreRPC
 			if !ok {
 				return nil
 			}
-			if m.Err != nil {
-				return m.Err
+			if m.Error != nil {
+				return m.Error
 			}
 			if err := stream.Send(&pb.DeployStatusMessage{
 				Action:     m.Action,
@@ -618,6 +618,31 @@ func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_R
 		}
 	}
 	return err
+}
+
+// LogStream get container logs
+func (v *Vibranium) LogStream(opts *pb.ContainerID, stream pb.CoreRPC_LogStreamServer) error {
+	ID := opts.GetId()
+	log.Infof("[LogStream] Get %s log start", ID)
+	defer log.Infof("[LogStream] Get %s log done", ID)
+	ch, err := v.cluster.LogStream(stream.Context(), ID)
+	if err != nil {
+		return err
+	}
+
+	for {
+		select {
+		case m, ok := <-ch:
+			if !ok {
+				return nil
+			}
+			if err = stream.Send(toRPCLogStreamMessage(m)); err != nil {
+				v.logUnsentMessages("LogStream", m)
+			}
+		case <-v.rpcch:
+			return nil
+		}
+	}
 }
 
 // GetNodeByName get node by name

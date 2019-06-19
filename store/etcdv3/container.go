@@ -167,7 +167,7 @@ func (m *Mercury) WatchDeployStatus(ctx context.Context, appname, entrypoint, no
 			msg := &types.DeployStatus{}
 			if resp.Err() != nil {
 				if !resp.Canceled {
-					msg.Err = resp.Err()
+					msg.Error = resp.Err()
 					ch <- msg
 				}
 				return
