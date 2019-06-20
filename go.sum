@@ -124,6 +124,8 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/pquerna/ffjson v0.0.0-20181028064349-e517b90714f7/go.mod h1:YARuvh7BUWHNhzDq2OM5tzR2RiCcN2D7sapiKyCel/M=
 github.com/projecteru2/libyavirt v0.0.0-20190606070738-7a302a39d047 h1:45S/qgTCJLYw4lRK8pGr+cB/GBOPN6FZnOyxh3tiFsU=
 github.com/projecteru2/libyavirt v0.0.0-20190606070738-7a302a39d047/go.mod h1:ikArnOEYWVkX78qez3OUFyZOrIxELbE98kF8OkSTbUc=
+github.com/projecteru2/libyavirt v0.0.0-20190620071541-06d1b5154ae0 h1:QCU7CNY8YQZ8jfSnPgowjbWm0ecgCLfJrNzy3Y3fUHc=
+github.com/projecteru2/libyavirt v0.0.0-20190620071541-06d1b5154ae0/go.mod h1:ikArnOEYWVkX78qez3OUFyZOrIxELbE98kF8OkSTbUc=
 github.com/projecteru2/yavirt v0.0.0-20190515024247-67a3238c7684fc9b3a1280ee8a5a272c429b519a h1:wxdK/I54JhxL9Zu3JeFGCMRDwJOULCl+Y3N/vVcVpfQ=
 github.com/projecteru2/yavirt v0.0.0-20190515024247-67a3238c7684fc9b3a1280ee8a5a272c429b519a/go.mod h1:gJqCkZM5/990eBHgG741oAS5RoL7f6yMJDtw8ZLO8x4=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
