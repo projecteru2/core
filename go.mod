@@ -44,7 +44,7 @@ require (
 	github.com/opencontainers/runc v0.0.0-20180615140650-ad0f5255060d // indirect
 	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/pquerna/ffjson v0.0.0-20181028064349-e517b90714f7 // indirect
-	github.com/projecteru2/libyavirt v0.0.0-20190606070738-7a302a39d047
+	github.com/projecteru2/libyavirt v0.0.0-20190620071541-06d1b5154ae0
 	github.com/prometheus/client_golang v0.9.3
 	github.com/sanity-io/litter v1.1.0
 	github.com/sirupsen/logrus v1.4.2

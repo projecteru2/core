@@ -63,6 +63,9 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 	if memory == 0 {
 		memory = info.MemTotal * 10 / 8 // use 80% real memory, not sub types.GByte now
 	}
+	if storage == 0 {
+		storage = info.StorageTotal * 10 / 8
+	}
 	if share == 0 {
 		share = m.config.Scheduler.ShareBase
 	}
