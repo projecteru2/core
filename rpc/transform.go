@@ -319,6 +319,9 @@ func toRPCReallocResourceMessage(r *types.ReallocResourceMessage) *pb.ReallocRes
 }
 
 func toRPCRemoveContainerMessage(r *types.RemoveContainerMessage) *pb.RemoveContainerMessage {
+	if r == nil {
+		return nil
+	}
 	return &pb.RemoveContainerMessage{
 		Id:      r.ContainerID,
 		Success: r.Success,

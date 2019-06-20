@@ -37,7 +37,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 			go func(replaceOpts types.ReplaceOptions, index int) {
 				defer wg.Done()
 				var createMessage *types.CreateContainerMessage
-				var removeMessage *types.RemoveContainerMessage
+				removeMessage := &types.RemoveContainerMessage{ContainerID: ID}
 				var err error
 				if err = c.withContainerLocked(ctx, ID, func(container *types.Container) error {
 					if opts.Podname != "" && container.Podname != opts.Podname {
