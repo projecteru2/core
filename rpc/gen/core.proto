@@ -319,7 +319,6 @@ message DeployOptions {
     bool soft_limit = 23;
     int32 nodes_limit = 24;
     bool cpu_bind = 25;
-    int64 storage = 26;
 }
 
 message ReplaceOptions {
