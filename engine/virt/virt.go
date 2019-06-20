@@ -40,9 +40,10 @@ func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {
 	}
 
 	return &enginetypes.Info{
-		ID:       resp.ID,
-		NCPU:     resp.Cpu,
-		MemTotal: resp.Mem,
+		ID:           resp.ID,
+		NCPU:         resp.Cpu,
+		MemTotal:     resp.Mem,
+		StorageTotal: resp.Storage,
 	}, nil
 }
 
