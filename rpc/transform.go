@@ -330,10 +330,13 @@ func toRPCRemoveContainerMessage(r *types.RemoveContainerMessage) *pb.RemoveCont
 }
 
 func toRPCDissociateContainerMessage(r *types.DissociateContainerMessage) *pb.DissociateContainerMessage {
-	return &pb.DissociateContainerMessage{
-		Id:    r.ContainerID,
-		Error: r.Error.Error(),
+	resp := &pb.DissociateContainerMessage{
+		Id: r.ContainerID,
 	}
+	if r.Error != nil {
+		resp.Error = r.Error.Error()
+	}
+	return resp
 }
 
 func toRPCRunAndWaitMessage(msg *types.RunAndWaitMessage) *pb.RunAndWaitMessage {
