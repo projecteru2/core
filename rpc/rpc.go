@@ -579,12 +579,13 @@ func (v *Vibranium) ControlContainer(opts *pb.ControlContainerOptions, stream pb
 
 	ids := opts.GetIds()
 	t := opts.GetType()
+	force := opts.GetForce()
 
 	if len(ids) == 0 {
 		return types.ErrNoContainerIDs
 	}
 
-	ch, err := v.cluster.ControlContainer(stream.Context(), ids, t)
+	ch, err := v.cluster.ControlContainer(stream.Context(), ids, t, force)
 	if err != nil {
 		return err
 	}

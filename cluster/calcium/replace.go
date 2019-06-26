@@ -137,7 +137,8 @@ func (c *Calcium) doReplaceContainer(
 	createMessage := c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU)
 	if createMessage.Error != nil {
 		// 重启老容器
-		message, err := c.doStartContainer(ctx, container, containerJSON)
+		// TODO consider this force?
+		message, err := c.doStartContainer(ctx, container, containerJSON, opts.Force)
 		removeMessage.Hook = append(removeMessage.Hook, message...)
 		if err != nil {
 			log.Errorf("[replaceAndRemove] Old container %s restart failed %v", container.ID, err)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"os"
-	"time"
 
 	dockerapi "github.com/docker/docker/client"
 	"github.com/docker/go-connections/tlsconfig"
@@ -64,9 +63,7 @@ func MakeRawClientWithTLS(config coretypes.Config, ca, cert, key *os.File, endpo
 // 2 seconds timeout
 // used to be 5, but client won't wait that long
 func (e *Engine) Info(ctx context.Context) (*enginetypes.Info, error) {
-	infoCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-	r, err := e.client.Info(infoCtx)
+	r, err := e.client.Info(ctx)
 	if err != nil {
 		return nil, err
 	}

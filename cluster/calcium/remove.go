@@ -51,6 +51,14 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool,
 	return ch, nil
 }
 
+func (c *Calcium) doRemoveContainer(ctx context.Context, container *types.Container, force bool) error {
+	if err := container.Remove(ctx, force); err != nil {
+		return err
+	}
+
+	return c.store.RemoveContainer(ctx, container)
+}
+
 // 同步地删除容器, 在某些需要等待的场合异常有用!
 func (c *Calcium) doRemoveContainerSync(ctx context.Context, IDs []string) error {
 	ch, err := c.RemoveContainer(ctx, IDs, true, 1)
@@ -62,12 +70,4 @@ func (c *Calcium) doRemoveContainerSync(ctx context.Context, IDs []string) error
 		log.Debugf("[doRemoveContainerSync] Removed %s", m.ContainerID)
 	}
 	return nil
-}
-
-func (c *Calcium) doRemoveContainer(ctx context.Context, container *types.Container, force bool) error {
-	if err := container.Remove(ctx, force); err != nil {
-		return err
-	}
-
-	return c.store.RemoveContainer(ctx, container)
 }

@@ -12,7 +12,7 @@ import (
 )
 
 // ControlContainer control containers status
-func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string) (chan *types.ControlContainerMessage, error) {
+func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, force bool) (chan *types.ControlContainerMessage, error) {
 	ch := make(chan *types.ControlContainerMessage)
 
 	go func() {
@@ -52,17 +52,17 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string) 
 
 				switch t {
 				case cluster.ContainerStop:
-					message, err = c.doStopContainer(ctx, container, containerInfo, false)
+					message, err = c.doStopContainer(ctx, container, containerInfo, force)
 					return
 				case cluster.ContainerStart:
-					message, err = c.doStartContainer(ctx, container, containerInfo)
+					message, err = c.doStartContainer(ctx, container, containerInfo, force)
 					return
 				case cluster.ContainerRestart:
-					message, err = c.doStopContainer(ctx, container, containerInfo, false)
+					message, err = c.doStopContainer(ctx, container, containerInfo, force)
 					if err != nil {
 						return
 					}
-					m2, e2 := c.doStartContainer(ctx, container, containerInfo)
+					m2, e2 := c.doStartContainer(ctx, container, containerInfo, force)
 					message = append(message, m2...)
 					if e2 != nil {
 						err = e2
@@ -79,7 +79,7 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string) 
 	return ch, nil
 }
 
-func (c *Calcium) doStartContainer(ctx context.Context, container *types.Container, containerInfo *enginetypes.VirtualizationInfo) ([]*bytes.Buffer, error) {
+func (c *Calcium) doStartContainer(ctx context.Context, container *types.Container, containerInfo *enginetypes.VirtualizationInfo, force bool) ([]*bytes.Buffer, error) {
 	var message []*bytes.Buffer
 	var err error
 
@@ -94,9 +94,8 @@ func (c *Calcium) doStartContainer(ctx context.Context, container *types.Contain
 			ctx,
 			container.ID, containerInfo.User,
 			container.Hook.AfterStart, containerInfo.Env,
-			container.Hook.Force, false,
-			container.Privileged,
-			container.Engine,
+			container.Hook.Force, container.Privileged,
+			force, container.Engine,
 		)
 	}
 	return message, err
@@ -111,9 +110,8 @@ func (c *Calcium) doStopContainer(ctx context.Context, container *types.Containe
 			ctx,
 			container.ID, containerInfo.User,
 			container.Hook.BeforeStop, containerInfo.Env,
-			container.Hook.Force, force,
-			container.Privileged,
-			container.Engine,
+			container.Hook.Force, container.Privileged,
+			force, container.Engine,
 		)
 		if err != nil {
 			return message, err
