@@ -210,6 +210,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		entry.Hook.AfterStart = entrypoint.Hook.AfterStart
 		entry.Hook.BeforeStop = entrypoint.Hook.BeforeStop
 		entry.Hook.Force = entrypoint.Hook.Force
+		entry.Hook.Once = entrypoint.Hook.Once
 	}
 
 	tarFiles, err := makeTempTarFiles(d.Data)

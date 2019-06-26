@@ -202,9 +202,8 @@ func (c *Calcium) doCreateAndStartContainer(
 		}
 	}
 
-	startCtx, cancel := context.WithTimeout(ctx, c.config.GlobalTimeout)
-	defer cancel()
-	if err = container.Start(startCtx); err != nil {
+	createContainerMessage.Hook, err = c.doStartContainer(ctx, container, &enginetypes.VirtualizationInfo{User: opts.User, Env: opts.Env}, opts.IgnoreHook)
+	if err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage
 	}
@@ -213,25 +212,6 @@ func (c *Calcium) doCreateAndStartContainer(
 	if err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage
-	}
-
-	// after start
-	if opts.Entrypoint.Hook != nil && len(opts.Entrypoint.Hook.AfterStart) > 0 {
-		createContainerMessage.Hook, err = c.doHook(
-			ctx,
-			container.ID,
-			opts.User,
-			opts.Entrypoint.Hook.AfterStart,
-			opts.Env,
-			opts.Entrypoint.Hook.Force,
-			opts.Entrypoint.Privileged,
-			opts.IgnoreHook,
-			node.Engine,
-		)
-		if err != nil {
-			createContainerMessage.Error = err
-			return createContainerMessage
-		}
 	}
 
 	// get ips

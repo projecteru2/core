@@ -266,6 +266,7 @@ message HookOptions {
     repeated string after_start = 1;
     repeated string before_stop = 2;
     bool force = 3;
+    bool once = 4;
 }
 
 message HealthCheckOptions {
