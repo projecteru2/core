@@ -13,13 +13,13 @@ type Cluster struct {
 	mock.Mock
 }
 
-// AddNode provides a mock function with given fields: ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory
-func (_m *Cluster) AddNode(ctx context.Context, nodename string, endpoint string, podname string, ca string, cert string, key string, cpu int, share int, memory int64, labels map[string]string, numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
-	ret := _m.Called(ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory)
+// AddNode provides a mock function with given fields: ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, storage, labels, numa, numaMemory
+func (_m *Cluster) AddNode(ctx context.Context, nodename string, endpoint string, podname string, ca string, cert string, key string, cpu int, share int, memory int64, storage int64, labels map[string]string, numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
+	ret := _m.Called(ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, storage, labels, numa, numaMemory)
 
 	var r0 *types.Node
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, string, string, int, int, int64, map[string]string, types.NUMA, types.NUMAMemory) *types.Node); ok {
-		r0 = rf(ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, string, string, int, int, int64, int64, map[string]string, types.NUMA, types.NUMAMemory) *types.Node); ok {
+		r0 = rf(ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, storage, labels, numa, numaMemory)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.Node)
@@ -27,8 +27,8 @@ func (_m *Cluster) AddNode(ctx context.Context, nodename string, endpoint string
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, string, string, string, int, int, int64, map[string]string, types.NUMA, types.NUMAMemory) error); ok {
-		r1 = rf(ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, labels, numa, numaMemory)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, string, string, string, int, int, int64, int64, map[string]string, types.NUMA, types.NUMAMemory) error); ok {
+		r1 = rf(ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, storage, labels, numa, numaMemory)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -119,13 +119,13 @@ func (_m *Cluster) ContainerDeployed(ctx context.Context, ID string, appname str
 	return r0
 }
 
-// ControlContainer provides a mock function with given fields: ctx, IDs, t
-func (_m *Cluster) ControlContainer(ctx context.Context, IDs []string, t string) (chan *types.ControlContainerMessage, error) {
-	ret := _m.Called(ctx, IDs, t)
+// ControlContainer provides a mock function with given fields: ctx, IDs, t, force
+func (_m *Cluster) ControlContainer(ctx context.Context, IDs []string, t string, force bool) (chan *types.ControlContainerMessage, error) {
+	ret := _m.Called(ctx, IDs, t, force)
 
 	var r0 chan *types.ControlContainerMessage
-	if rf, ok := ret.Get(0).(func(context.Context, []string, string) chan *types.ControlContainerMessage); ok {
-		r0 = rf(ctx, IDs, t)
+	if rf, ok := ret.Get(0).(func(context.Context, []string, string, bool) chan *types.ControlContainerMessage); ok {
+		r0 = rf(ctx, IDs, t, force)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(chan *types.ControlContainerMessage)
@@ -133,8 +133,8 @@ func (_m *Cluster) ControlContainer(ctx context.Context, IDs []string, t string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, []string, string) error); ok {
-		r1 = rf(ctx, IDs, t)
+	if rf, ok := ret.Get(1).(func(context.Context, []string, string, bool) error); ok {
+		r1 = rf(ctx, IDs, t, force)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -462,6 +462,29 @@ func (_m *Cluster) ListPods(ctx context.Context) ([]*types.Pod, error) {
 	return r0, r1
 }
 
+// LogStream provides a mock function with given fields: ctx, ID
+func (_m *Cluster) LogStream(ctx context.Context, ID string) (chan *types.LogStreamMessage, error) {
+	ret := _m.Called(ctx, ID)
+
+	var r0 chan *types.LogStreamMessage
+	if rf, ok := ret.Get(0).(func(context.Context, string) chan *types.LogStreamMessage); ok {
+		r0 = rf(ctx, ID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(chan *types.LogStreamMessage)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, ID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // NodeResource provides a mock function with given fields: ctx, podname, nodename
 func (_m *Cluster) NodeResource(ctx context.Context, podname string, nodename string) (*types.NodeResource, error) {
 	ret := _m.Called(ctx, podname, nodename)
@@ -577,27 +600,18 @@ func (_m *Cluster) RemoveImage(ctx context.Context, podname string, nodename str
 	return r0, r1
 }
 
-// RemoveNode provides a mock function with given fields: ctx, nodename, podname
-func (_m *Cluster) RemoveNode(ctx context.Context, nodename string, podname string) (*types.Node, error) {
-	ret := _m.Called(ctx, nodename, podname)
+// RemoveNode provides a mock function with given fields: ctx, podname, nodename
+func (_m *Cluster) RemoveNode(ctx context.Context, podname string, nodename string) error {
+	ret := _m.Called(ctx, podname, nodename)
 
-	var r0 *types.Node
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *types.Node); ok {
-		r0 = rf(ctx, nodename, podname)
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, podname, nodename)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Node)
-		}
+		r0 = ret.Error(0)
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, nodename, podname)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+	return r0
 }
 
 // RemovePod provides a mock function with given fields: ctx, podname

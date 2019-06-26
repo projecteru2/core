@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"time"
 
 	engine "github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -84,7 +85,10 @@ func (n *Node) Info(ctx context.Context) (*enginetypes.Info, error) {
 	if n.Engine == nil {
 		return nil, ErrNilEngine
 	}
-	return n.Engine.Info(ctx)
+	// TODO remove it later
+	infoCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	defer cancel()
+	return n.Engine.Info(infoCtx)
 }
 
 // SetCPUUsed set cpuusage

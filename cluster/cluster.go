@@ -68,7 +68,7 @@ type Cluster interface {
 	// cluster methods
 	PodResource(ctx context.Context, podname string) (*types.PodResource, error)
 	NodeResource(ctx context.Context, podname, nodename string) (*types.NodeResource, error)
-	ControlContainer(ctx context.Context, IDs []string, t string) (chan *types.ControlContainerMessage, error)
+	ControlContainer(ctx context.Context, IDs []string, t string, force bool) (chan *types.ControlContainerMessage, error)
 	Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error)
 	Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error)
 	CacheImage(ctx context.Context, podname, nodenmae string, images []string, step int) (chan *types.CacheImageMessage, error)

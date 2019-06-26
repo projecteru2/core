@@ -11,15 +11,14 @@ func (c *Calcium) doHook(
 	ctx context.Context,
 	ID, user string,
 	cmds, env []string,
-	cmdForce, force, privileged bool,
+	cmdForce, privileged, force bool,
 	engine engine.API,
 ) ([]*bytes.Buffer, error) {
 	outputs := []*bytes.Buffer{}
 	for _, cmd := range cmds {
 		output, err := execuateInside(ctx, engine, ID, cmd, user, env, privileged)
 		if err != nil {
-			// force 指是否强制删除，所以这里即便 hook 是强制执行，但是失败了，也不应该影响删除过程
-			// start 的过程中，force 永远都是 false，保证由 hook 的 force 来定义逻辑
+			// 执行 hook 的过程中,如果 cmdForce 为真并且不忽略 hook 就输出错误
 			outputs = append(outputs, bytes.NewBufferString(err.Error()))
 			if cmdForce && !force {
 				return outputs, err

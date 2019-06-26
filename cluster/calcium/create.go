@@ -224,8 +224,8 @@ func (c *Calcium) doCreateAndStartContainer(
 			opts.Entrypoint.Hook.AfterStart,
 			opts.Env,
 			opts.Entrypoint.Hook.Force,
-			false,
 			opts.Entrypoint.Privileged,
+			opts.IgnoreHook,
 			node.Engine,
 		)
 		if err != nil {

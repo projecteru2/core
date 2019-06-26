@@ -249,6 +249,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Data:         tarFiles,
 		SoftLimit:    d.SoftLimit,
 		NodesLimit:   int(d.NodesLimit),
+		IgnoreHook:   d.IgnoreHook,
 	}, nil
 }
 

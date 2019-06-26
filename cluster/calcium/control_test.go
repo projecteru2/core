@@ -22,7 +22,7 @@ func TestControlStart(t *testing.T) {
 	c.store = store
 	// failed by GetContainer
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Twice()
-	ch, err := c.ControlContainer(ctx, []string{"id1", "id2"}, "")
+	ch, err := c.ControlContainer(ctx, []string{"id1", "id2"}, "", true)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
@@ -36,7 +36,7 @@ func TestControlStart(t *testing.T) {
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
 	// failed by inspect
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(nil, types.ErrNilEngine).Once()
-	ch, err = c.ControlContainer(ctx, []string{"id1"}, "")
+	ch, err = c.ControlContainer(ctx, []string{"id1"}, "", true)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
@@ -48,14 +48,14 @@ func TestControlStart(t *testing.T) {
 			Image: "testimage",
 		}, nil)
 	// failed by type
-	ch, err = c.ControlContainer(ctx, []string{"id1"}, "")
+	ch, err = c.ControlContainer(ctx, []string{"id1"}, "", true)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
 	// failed by start
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(types.ErrNilEngine).Once()
-	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart)
+	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart, false)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
@@ -69,7 +69,7 @@ func TestControlStart(t *testing.T) {
 	container.Hook = hook
 	container.Hook.Force = false
 	engine.On("ExecCreate", mock.Anything, mock.Anything, mock.Anything).Return("", types.ErrNilEngine).Times(3)
-	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart)
+	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart, false)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.NoError(t, r.Error)
@@ -77,7 +77,7 @@ func TestControlStart(t *testing.T) {
 	container.ID = "cid"
 	// force false, get no error
 	container.Hook.Force = true
-	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart)
+	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart, false)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
@@ -86,7 +86,7 @@ func TestControlStart(t *testing.T) {
 	engine.On("ExecCreate", mock.Anything, mock.Anything, mock.Anything).Return("eid", nil)
 	// failed by ExecAttach
 	engine.On("ExecAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNilEngine).Once()
-	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart)
+	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart, false)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
@@ -95,14 +95,14 @@ func TestControlStart(t *testing.T) {
 	engine.On("ExecAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(data, nil).Twice()
 	// failed by ExecExitCode
 	engine.On("ExecExitCode", mock.Anything, mock.Anything).Return(-1, types.ErrNilEngine).Once()
-	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart)
+	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart, false)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
 	// exitCode not 0
 	engine.On("ExecExitCode", mock.Anything, mock.Anything).Return(-1, nil).Once()
-	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart)
+	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart, false)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
@@ -111,7 +111,7 @@ func TestControlStart(t *testing.T) {
 	engine.On("ExecExitCode", mock.Anything, mock.Anything).Return(0, nil)
 	engine.On("ExecAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(ioutil.NopCloser(bytes.NewBufferString("succ")), nil)
 	container.ID = "succ"
-	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart)
+	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart, false)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.NoError(t, r.Error)
@@ -137,7 +137,7 @@ func TestControlStop(t *testing.T) {
 			Image: "testimage",
 		}, nil)
 	// failed, hook true, remove always false
-	ch, err := c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStop)
+	ch, err := c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStop, false)
 	hook := &types.Hook{
 		BeforeStop: []string{"cmd1"},
 	}
@@ -151,7 +151,7 @@ func TestControlStop(t *testing.T) {
 	}
 	// stop failed
 	container.Hook.Force = false
-	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStop)
+	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStop, false)
 	engine.On("VirtualizationStop", mock.Anything, mock.Anything).Return(types.ErrNilEngine).Once()
 	assert.NoError(t, err)
 	for r := range ch {
@@ -159,7 +159,7 @@ func TestControlStop(t *testing.T) {
 	}
 	engine.On("VirtualizationStop", mock.Anything, mock.Anything).Return(nil)
 	// stop success
-	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStop)
+	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStop, false)
 	container.ID = "succed"
 	assert.NoError(t, err)
 	for r := range ch {

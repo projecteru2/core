@@ -29,6 +29,7 @@ type DeployOptions struct {
 	SoftLimit    bool              // Soft limit memory
 	NodesLimit   int               // Limit nodes count
 	ProcessIdent string            // ProcessIdent ident this deploy
+	IgnoreHook   bool              // IgnoreHook ignore hook process
 }
 
 // RunAndWaitOptions is options for running and waiting

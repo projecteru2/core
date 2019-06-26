@@ -319,6 +319,7 @@ message DeployOptions {
     bool soft_limit = 23;
     int32 nodes_limit = 24;
     bool cpu_bind = 25;
+    bool ignore_hook = 26;
 }
 
 message ReplaceOptions {
@@ -450,6 +451,7 @@ message RunAndWaitOptions{
 message ControlContainerOptions {
     repeated string ids = 1;
     string type = 2;
+    bool force = 3;
 }
 
 message ControlContainerMessage {
