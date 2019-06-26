@@ -100,7 +100,7 @@ func TestControlStart(t *testing.T) {
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
-	// exitCode not 0
+	// exitCode is not 0
 	engine.On("ExecExitCode", mock.Anything, mock.Anything).Return(-1, nil).Once()
 	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart, false)
 	assert.NoError(t, err)
@@ -111,6 +111,14 @@ func TestControlStart(t *testing.T) {
 	engine.On("ExecExitCode", mock.Anything, mock.Anything).Return(0, nil)
 	engine.On("ExecAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(ioutil.NopCloser(bytes.NewBufferString("succ")), nil)
 	container.ID = "succ"
+	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart, false)
+	assert.NoError(t, err)
+	for r := range ch {
+		assert.NoError(t, r.Error)
+	}
+	// no hook
+	container.ID = "succnohook"
+	hook.Once = true
 	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart, false)
 	assert.NoError(t, err)
 	for r := range ch {

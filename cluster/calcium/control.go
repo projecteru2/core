@@ -55,6 +55,9 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 					message, err = c.doStopContainer(ctx, container, containerInfo, force)
 					return
 				case cluster.ContainerStart:
+					if container.Hook != nil && len(container.Hook.AfterStart) > 0 && container.Hook.Once {
+						container.Hook = nil
+					}
 					message, err = c.doStartContainer(ctx, container, containerInfo, force)
 					return
 				case cluster.ContainerRestart:
