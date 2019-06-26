@@ -146,7 +146,7 @@ func (c *Calcium) doReplaceContainer(
 		return nil, removeMessage, createMessage.Error
 	}
 	// 干掉老的
-	if err = c.doRemoveContainer(ctx, container); err != nil {
+	if err = c.doRemoveContainer(ctx, container, true); err != nil {
 		log.Errorf("[replaceAndRemove] Old container %s remove failed %v", container.ID, err)
 		return createMessage, removeMessage, err
 	}

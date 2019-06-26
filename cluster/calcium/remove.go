@@ -7,7 +7,6 @@ import (
 
 	"github.com/projecteru2/core/store"
 
-	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -27,14 +26,8 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool,
 				output := []*bytes.Buffer{}
 				success := false
 				if err := c.withContainerLocked(ctx, ID, func(container *types.Container) error {
-					// make sure container exists
-					containerJSON, err := container.Inspect(ctx)
-					if err != nil {
-						return err
-					}
 					return c.withNodeLocked(ctx, container.Podname, container.Nodename, func(node *types.Node) (err error) {
-						output, err = c.doStopAndRemoveContainer(ctx, container, containerJSON, force)
-						if err != nil {
+						if err = c.doRemoveContainer(ctx, container, force); err != nil {
 							return err
 						}
 						log.Infof("[RemoveContainer] Container %s removed", container.ID)
@@ -58,18 +51,6 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool,
 	return ch, nil
 }
 
-func (c *Calcium) doStopAndRemoveContainer(ctx context.Context, container *types.Container, containerJSON *enginetypes.VirtualizationInfo, force bool) ([]*bytes.Buffer, error) {
-	message, err := c.doStopContainer(ctx, container, containerJSON, force)
-	if err != nil {
-		return message, err
-	}
-
-	if err = c.doRemoveContainer(ctx, container); err != nil {
-		message = append(message, bytes.NewBufferString(err.Error()))
-	}
-	return message, err
-}
-
 // 同步地删除容器, 在某些需要等待的场合异常有用!
 func (c *Calcium) doRemoveContainerSync(ctx context.Context, IDs []string) error {
 	ch, err := c.RemoveContainer(ctx, IDs, true, 1)
@@ -83,8 +64,8 @@ func (c *Calcium) doRemoveContainerSync(ctx context.Context, IDs []string) error
 	return nil
 }
 
-func (c *Calcium) doRemoveContainer(ctx context.Context, container *types.Container) error {
-	if err := container.Remove(ctx); err != nil {
+func (c *Calcium) doRemoveContainer(ctx context.Context, container *types.Container, force bool) error {
+	if err := container.Remove(ctx, force); err != nil {
 		return err
 	}
 

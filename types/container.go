@@ -32,7 +32,8 @@ func (c *Container) Inspect(ctx context.Context) (*enginetypes.VirtualizationInf
 	if c.Engine == nil {
 		return nil, ErrNilEngine
 	}
-	inspectCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	// TODO remove it later like start stop and remove
+	inspectCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
 	defer cancel()
 	return c.Engine.VirtualizationInspect(inspectCtx, c.ID)
 }
@@ -42,30 +43,23 @@ func (c *Container) Start(ctx context.Context) error {
 	if c.Engine == nil {
 		return ErrNilEngine
 	}
-	startCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	return c.Engine.VirtualizationStart(startCtx, c.ID)
+	return c.Engine.VirtualizationStart(ctx, c.ID)
 }
 
 // Stop a container
-func (c *Container) Stop(ctx context.Context, timeout time.Duration) error {
+func (c *Container) Stop(ctx context.Context) error {
 	if c.Engine == nil {
 		return ErrNilEngine
 	}
-	// 这里 block 的问题很严重，按照目前的配置是 5 分钟一级的 block
-	// 一个简单的处理方法是相信 ctx 不相信 engine 自身的处理
-	// 另外我怀疑 engine 自己的 timeout 实现是完全的等 timeout 而非结束了就退出
-	removeCtx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-	return c.Engine.VirtualizationStop(removeCtx, c.ID)
+	return c.Engine.VirtualizationStop(ctx, c.ID)
 }
 
 // Remove a container
-func (c *Container) Remove(ctx context.Context) error {
+func (c *Container) Remove(ctx context.Context, force bool) error {
 	if c.Engine == nil {
 		return ErrNilEngine
 	}
-	return c.Engine.VirtualizationRemove(ctx, c.ID, true, true)
+	return c.Engine.VirtualizationRemove(ctx, c.ID, true, force)
 }
 
 // DeployStatus store deploy status
