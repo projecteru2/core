@@ -34,7 +34,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 		defer wg.Wait()
 		for index, ID := range opts.IDs {
 			wg.Add(1)
-			go func(replaceOpts types.ReplaceOptions, index int) {
+			go func(replaceOpts types.ReplaceOptions, index int, ID string) {
 				defer wg.Done()
 				var createMessage *types.CreateContainerMessage
 				removeMessage := &types.RemoveContainerMessage{ContainerID: ID}
@@ -80,7 +80,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 					log.Infof("[ReplaceContainer] New container %s", createMessage.ContainerID)
 				}
 				ch <- &types.ReplaceContainerMessage{Create: createMessage, Remove: removeMessage, Error: err}
-			}(*opts, index) // 传 opts 的值，产生一次复制
+			}(*opts, index, ID) // 传 opts 的值，产生一次复制
 			if (index+1)%step == 0 {
 				wg.Wait()
 			}
