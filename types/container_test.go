@@ -3,7 +3,6 @@ package types
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -15,7 +14,7 @@ import (
 func TestContainerInspect(t *testing.T) {
 	mockEngine := &mocks.API{}
 	r := &enginetypes.VirtualizationInfo{ID: "12345"}
-	mockEngine.On("VirtualizationInspect", mock.AnythingOfType("*context.timerCtx"), mock.Anything).Return(r, nil)
+	mockEngine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(r, nil)
 
 	ctx := context.Background()
 	c := Container{}
@@ -28,24 +27,24 @@ func TestContainerInspect(t *testing.T) {
 
 func TestContainerControl(t *testing.T) {
 	mockEngine := &mocks.API{}
-	mockEngine.On("VirtualizationStart", mock.AnythingOfType("*context.timerCtx"), mock.Anything).Return(nil)
-	mockEngine.On("VirtualizationStop", mock.AnythingOfType("*context.timerCtx"), mock.Anything).Return(nil)
-	mockEngine.On("VirtualizationRemove", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	mockEngine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
+	mockEngine.On("VirtualizationStop", mock.Anything, mock.Anything).Return(nil)
+	mockEngine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	ctx := context.Background()
 	c := Container{}
 	err := c.Start(ctx)
 	assert.Error(t, err)
-	err = c.Stop(ctx, 5*time.Second)
+	err = c.Stop(ctx)
 	assert.Error(t, err)
-	err = c.Remove(ctx)
+	err = c.Remove(ctx, true)
 	assert.Error(t, err)
 
 	c.Engine = mockEngine
 	err = c.Start(ctx)
 	assert.NoError(t, err)
-	err = c.Stop(ctx, 5*time.Second)
+	err = c.Stop(ctx)
 	assert.NoError(t, err)
-	err = c.Remove(ctx)
+	err = c.Remove(ctx, true)
 	assert.NoError(t, err)
 }

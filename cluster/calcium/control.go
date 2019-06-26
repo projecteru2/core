@@ -83,7 +83,9 @@ func (c *Calcium) doStartContainer(ctx context.Context, container *types.Contain
 	var message []*bytes.Buffer
 	var err error
 
-	if err = container.Start(ctx); err != nil {
+	startCtx, cancel := context.WithTimeout(ctx, c.config.GlobalTimeout)
+	defer cancel()
+	if err = container.Start(startCtx); err != nil {
 		return message, err
 	}
 	// TODO healthcheck
@@ -118,7 +120,12 @@ func (c *Calcium) doStopContainer(ctx context.Context, container *types.Containe
 		}
 	}
 
-	if err = container.Stop(ctx, c.config.GlobalTimeout); err != nil {
+	// 这里 block 的问题很严重，按照目前的配置是 5 分钟一级的 block
+	// 一个简单的处理方法是相信 ctx 不相信 engine 自身的处理
+	// 另外我怀疑 engine 自己的 timeout 实现是完全的等 timeout 而非结束了就退出
+	stopCtx, cancel := context.WithTimeout(ctx, c.config.GlobalTimeout)
+	defer cancel()
+	if err = container.Stop(stopCtx); err != nil {
 		message = append(message, bytes.NewBufferString(err.Error()))
 	}
 	return message, err

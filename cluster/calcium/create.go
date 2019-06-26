@@ -165,7 +165,7 @@ func (c *Calcium) doCreateAndStartContainer(
 
 	defer func() {
 		if !createContainerMessage.Success && container.ID != "" {
-			if err := c.doRemoveContainer(ctx, container); err != nil {
+			if err := c.doRemoveContainer(ctx, container, true); err != nil {
 				log.Errorf("[doCreateAndStartContainer] create and start container failed, and remove it failed also %v", err)
 				return
 			}
@@ -202,7 +202,9 @@ func (c *Calcium) doCreateAndStartContainer(
 		}
 	}
 
-	if err = container.Start(ctx); err != nil {
+	startCtx, cancel := context.WithTimeout(ctx, c.config.GlobalTimeout)
+	defer cancel()
+	if err = container.Start(startCtx); err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage
 	}
