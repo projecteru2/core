@@ -164,11 +164,10 @@ func toCoreReplaceOptions(r *pb.ReplaceOptions) (*types.ReplaceOptions, error) {
 
 	replaceOpts := &types.ReplaceOptions{
 		DeployOptions:  *deployOpts,
-		Force:          r.Force,
+		NetworkInherit: r.Networkinherit,
 		FilterLabels:   r.FilterLabels,
 		Copy:           r.Copy,
 		IDs:            r.Ids,
-		NetworkInherit: r.Networkinherit,
 	}
 
 	return replaceOpts, err
@@ -210,7 +209,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		entry.Hook.AfterStart = entrypoint.Hook.AfterStart
 		entry.Hook.BeforeStop = entrypoint.Hook.BeforeStop
 		entry.Hook.Force = entrypoint.Hook.Force
-		entry.Hook.Once = entrypoint.Hook.Once
 	}
 
 	tarFiles, err := makeTempTarFiles(d.Data)
@@ -251,6 +249,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		SoftLimit:    d.SoftLimit,
 		NodesLimit:   int(d.NodesLimit),
 		IgnoreHook:   d.IgnoreHook,
+		AfterCreate:  d.AfterCreate,
 	}, nil
 }
 
@@ -390,7 +389,6 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 	verification := true
 	info, err := c.Inspect(ctx)
 	if err != nil {
-		// return nil, err
 		verification = false
 	}
 

@@ -266,7 +266,6 @@ message HookOptions {
     repeated string after_start = 1;
     repeated string before_stop = 2;
     bool force = 3;
-    bool once = 4;
 }
 
 message HealthCheckOptions {
@@ -321,15 +320,15 @@ message DeployOptions {
     int32 nodes_limit = 24;
     bool cpu_bind = 25;
     bool ignore_hook = 26;
+    repeated string after_create = 27;
 }
 
 message ReplaceOptions {
     DeployOptions deployOpt = 1;
-    bool force = 2;
+    bool networkinherit = 2;
     map<string, string> filter_labels = 3;
     map<string, string> copy = 4;
     repeated string ids = 5;
-    bool networkinherit = 6;
 }
 
 message CacheImageOptions {

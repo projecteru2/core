@@ -116,14 +116,6 @@ func TestControlStart(t *testing.T) {
 	for r := range ch {
 		assert.NoError(t, r.Error)
 	}
-	// no hook
-	container.ID = "succnohook"
-	hook.Once = true
-	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart, false)
-	assert.NoError(t, err)
-	for r := range ch {
-		assert.NoError(t, r.Error)
-	}
 }
 
 func TestControlStop(t *testing.T) {

@@ -33,7 +33,7 @@ func (c *Container) Inspect(ctx context.Context) (*enginetypes.VirtualizationInf
 		return nil, ErrNilEngine
 	}
 	// TODO remove it later like start stop and remove
-	inspectCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	inspectCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	return c.Engine.VirtualizationInspect(inspectCtx, c.ID)
 }

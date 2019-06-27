@@ -202,11 +202,24 @@ func (c *Calcium) doCreateAndStartContainer(
 		}
 	}
 
+	hook := container.Hook
+	if len(opts.AfterCreate) > 0 {
+		cmds := opts.AfterCreate
+		if hook != nil {
+			cmds = append(cmds, hook.AfterStart...)
+		}
+		container.Hook = &types.Hook{
+			AfterStart: cmds,
+			Force:      hook.Force,
+		}
+	}
+
 	createContainerMessage.Hook, err = c.doStartContainer(ctx, container, &enginetypes.VirtualizationInfo{User: opts.User, Env: opts.Env}, opts.IgnoreHook)
 	if err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage
 	}
+	container.Hook = hook
 
 	containerAlived, err := container.Inspect(ctx)
 	if err != nil {
