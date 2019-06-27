@@ -30,6 +30,7 @@ type DeployOptions struct {
 	NodesLimit   int               // Limit nodes count
 	ProcessIdent string            // ProcessIdent ident this deploy
 	IgnoreHook   bool              // IgnoreHook ignore hook process
+	AfterCreate  []string          // AfterCreate support run cmds after create
 }
 
 // RunAndWaitOptions is options for running and waiting
@@ -60,9 +61,8 @@ type ListContainersOptions struct {
 // ReplaceOptions for replace container
 type ReplaceOptions struct {
 	DeployOptions
-	Force          bool
+	NetworkInherit bool
 	FilterLabels   map[string]string
 	Copy           map[string]string
 	IDs            []string
-	NetworkInherit bool
 }
