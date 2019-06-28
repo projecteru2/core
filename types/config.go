@@ -33,9 +33,13 @@ type Config struct {
 
 // EtcdConfig holds eru-core etcd config
 type EtcdConfig struct {
-	Machines   []string `yaml:"machines"`    // etcd cluster addresses
-	Prefix     string   `yaml:"prefix"`      // etcd lock prefix, all locks will be created under this dir
-	LockPrefix string   `yaml:"lock_prefix"` // etcd lock prefix, all locks will be created under this dir
+	Machines   []string   `yaml:"machines"`    // etcd cluster addresses
+	Prefix     string     `yaml:"prefix"`      // etcd lock prefix, all locks will be created under this dir
+	LockPrefix string     `yaml:"lock_prefix"` // etcd lock prefix, all locks will be created under this dir
+	Ca         string     `yaml:"ca"`          // etcd ca
+	Key        string     `yaml:"key"`         // etcd key
+	Cert       string     `yaml:"cert"`        // etcd trusted_ca
+	Auth       AuthConfig `yaml:"auth"`        // etcd auth
 }
 
 // GitConfig holds eru-core git config

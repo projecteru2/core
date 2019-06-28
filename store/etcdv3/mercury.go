@@ -2,9 +2,12 @@ package etcdv3
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	"github.com/coreos/etcd/pkg/transport"
 
 	log "github.com/sirupsen/logrus"
 
@@ -49,10 +52,29 @@ type Mercury struct {
 func New(config types.Config, embededStorage bool) (*Mercury, error) {
 	var cliv3 *clientv3.Client
 	var err error
+	var tlsConfig *tls.Config
+
+	if config.Etcd.Ca != "" && config.Etcd.Key != "" && config.Etcd.Cert != "" {
+		tlsInfo := transport.TLSInfo{
+			TrustedCAFile: config.Etcd.Ca,
+			KeyFile:       config.Etcd.Key,
+			CertFile:      config.Etcd.Cert,
+		}
+		tlsConfig, err = tlsInfo.ClientConfig()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if embededStorage {
 		cliv3 = embeded.NewCluster()
 		log.Info("[Mercury] use embeded cluster")
-	} else if cliv3, err = clientv3.New(clientv3.Config{Endpoints: config.Etcd.Machines}); err != nil {
+	} else if cliv3, err = clientv3.New(clientv3.Config{
+		Endpoints: config.Etcd.Machines,
+		Username:  config.Etcd.Auth.Username,
+		Password:  config.Etcd.Auth.Password,
+		TLS:       tlsConfig,
+	}); err != nil {
 		return nil, err
 	}
 	return &Mercury{cliv3: cliv3, config: config}, nil
