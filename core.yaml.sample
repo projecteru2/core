@@ -14,6 +14,12 @@ etcd:
         - "http://127.0.0.1:2379"
     prefix: "/core"
     lock_prefix: "core/_lock"
+    ca: PATH_TO_CA
+    key: PATH_TO_KEY
+    cert: PATH_TO_CERT
+    auth:
+        username: root
+        password: root
 
 git:
     public_key: "***REMOVED***"
