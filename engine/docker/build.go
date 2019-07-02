@@ -64,22 +64,23 @@ func (e *Engine) BuildRefs(ctx context.Context, name string, tags []string) []st
 //
 //    buildDir ├─ :appname ├─ code
 //             ├─ Dockerfile
-func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildOptions) (io.ReadCloser, error) {
+func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildOptions) (string, io.Reader, error) {
 	if opts.Builds == nil {
-		return nil, coretypes.ErrNoBuildsInSpec
+		return "", nil, coretypes.ErrNoBuildsInSpec
 	}
 	// make build dir
 	buildDir, err := ioutil.TempDir(os.TempDir(), "corebuild-")
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	log.Debugf("[BuildContent] Build dir %s", buildDir)
 	// create dockerfile
 	if err := e.makeDockerFile(opts, scm, buildDir); err != nil {
-		return nil, err
+		return buildDir, nil, err
 	}
 	// create stream for Build API
-	return CreateTarStream(buildDir)
+	tar, err := CreateTarStream(buildDir)
+	return buildDir, tar, err
 }
 
 func (e *Engine) makeDockerFile(opts *types.BuildOptions, scm coresource.Source, buildDir string) error {

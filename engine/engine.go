@@ -31,7 +31,7 @@ type API interface {
 	ImageRemoteDigest(ctx context.Context, image string) (string, error)
 
 	BuildRefs(ctx context.Context, name string, tags []string) []string
-	BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildOptions) (io.ReadCloser, error)
+	BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildOptions) (string, io.Reader, error)
 
 	VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error)
 	VirtualizationCopyTo(ctx context.Context, ID, path string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) error

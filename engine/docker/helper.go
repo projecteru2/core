@@ -28,20 +28,6 @@ import (
 	"github.com/docker/docker/registry"
 )
 
-type buildContext struct {
-	path string
-	tar  io.ReadCloser
-}
-
-func (b buildContext) Read(p []byte) (n int, err error) {
-	return b.tar.Read(p)
-}
-
-func (b buildContext) Close() error {
-	defer os.RemoveAll(b.path)
-	return b.tar.Close()
-}
-
 type fuckDockerStream struct {
 	conn net.Conn
 	buf  io.Reader
@@ -239,11 +225,7 @@ func CreateTarStream(path string) (io.ReadCloser, error) {
 		Compression:     archive.Uncompressed,
 		NoLchown:        true,
 	}
-	tar, err := archive.TarWithOptions(path, tarOpts)
-	if err != nil {
-		return nil, err
-	}
-	return buildContext{path, tar}, nil
+	return archive.TarWithOptions(path, tarOpts)
 }
 
 // GetIP Get hostIP

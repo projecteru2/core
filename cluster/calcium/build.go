@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
+
+	"github.com/projecteru2/core/source"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
@@ -25,16 +28,10 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *enginetypes.BuildOptions
 	log.Infof("[BuildImage] Building image at pod %s node %s", node.Podname, node.Name)
 	// get refs
 	refs := node.Engine.BuildRefs(ctx, opts.Name, opts.Tags)
-	// support raw build
-	buildContent := opts.Tar
-	if opts.Builds != nil {
-		buildContent, err = node.Engine.BuildContent(ctx, c.source, opts)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return c.doBuildImage(ctx, buildContent, node, refs)
+	return c.buildWithContent(ctx, c.source, node, opts, refs,
+		func(resp io.ReadCloser) (chan *types.BuildImageMessage, error) {
+			return c.doBuildImage(ctx, resp, node, refs)
+		})
 }
 
 func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
@@ -56,17 +53,33 @@ func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
 	return c.scheduler.MaxIdleNode(nodes)
 }
 
-func (c *Calcium) doBuildImage(ctx context.Context, buildContext io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) {
-	ch := make(chan *types.BuildImageMessage)
-	resp, err := node.Engine.ImageBuild(ctx, buildContext, tags)
-	if err != nil {
-		close(ch)
-		buildContext.Close()
-		return ch, err
+func (c *Calcium) buildWithContent(
+	ctx context.Context, source source.Source,
+	node *types.Node, opts *enginetypes.BuildOptions, refs []string,
+	f func(resp io.ReadCloser) (chan *types.BuildImageMessage, error),
+) (chan *types.BuildImageMessage, error) {
+	var err error
+	var path string
+	// support raw build
+	content := opts.Tar
+	if opts.Builds != nil {
+		path, content, err = node.Engine.BuildContent(ctx, source, opts)
+		defer os.RemoveAll(path)
+		if err != nil {
+			return nil, err
+		}
 	}
+	resp, err := node.Engine.ImageBuild(ctx, content, refs)
+	if err != nil {
+		return nil, err
+	}
+	return f(resp)
+}
+
+func (c *Calcium) doBuildImage(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) {
+	ch := make(chan *types.BuildImageMessage)
 
 	go func() {
-		defer buildContext.Close()
 		defer resp.Close()
 		defer close(ch)
 		decoder := json.NewDecoder(resp)
@@ -128,7 +141,7 @@ func (c *Calcium) doBuildImage(ctx context.Context, buildContext io.ReadCloser, 
 			// 事实上他不会跟cached pod一样
 			// 一样就砍死
 			go func(tag string) {
-				//CONTEXT 这里的不应该受到 client 的影响
+				// context 这里的不应该受到 client 的影响
 				ctx := context.Background()
 				_, err := node.Engine.ImageRemove(ctx, tag, false, true)
 				if err != nil {

@@ -15,7 +15,7 @@ type BuildOptions struct {
 	UID    int
 	Tags   []string
 	Builds *Builds
-	Tar    io.ReadCloser
+	Tar    io.Reader
 }
 
 // Builds define builds
