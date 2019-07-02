@@ -58,9 +58,16 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 					message, err = c.doStartContainer(ctx, container, containerInfo, force)
 					return
 				case cluster.ContainerRestart:
-					message, err = c.doStopContainer(ctx, container, containerInfo, force)
-					if err != nil {
-						return
+					if containerInfo, err := container.Inspect(ctx); err == nil && containerInfo.Running {
+						message, err = c.doStopContainer(ctx, container, containerInfo, force)
+						if err != nil {
+							return
+						}
+
+					} else if err != nil {
+						log.Errorf("[ControlContainer] Inspect container %s failed %v", container.ID, err)
+					} else if !containerInfo.Running {
+						message = append(message, bytes.NewBufferString("container stopped, can't run hook\n"))
 					}
 					m2, e2 := c.doStartContainer(ctx, container, containerInfo, force)
 					message = append(message, m2...)
