@@ -107,11 +107,11 @@ func TestBuild(t *testing.T) {
 	buildImageRespReader2 := ioutil.NopCloser(bytes.NewReader(buildImageResp2))
 	engine.On("BuildRefs", mock.Anything, mock.Anything, mock.Anything).Return([]string{"t1", "t2"})
 	// failed by build context
-	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
+	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", nil, types.ErrBadCount).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	b := ioutil.NopCloser(bytes.NewReader([]byte{}))
-	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return(b, nil)
+	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", b, nil)
 	// failed by ImageBuild
 	engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNilEngine).Once()
 	ch, err = c.BuildImage(ctx, opts)
@@ -121,7 +121,7 @@ func TestBuild(t *testing.T) {
 	engine.On("ImagePush", mock.Anything, mock.Anything).Return(buildImageRespReader2, nil)
 	engine.On("ImageRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]string{}, nil)
 	engine.On("ImageBuildCachePrune", mock.Anything, mock.Anything).Return(uint64(1024), nil)
-	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", nil, nil)
 	ch, err = c.BuildImage(ctx, opts)
 	assert.NoError(t, err)
 	for range ch {

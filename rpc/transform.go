@@ -3,7 +3,6 @@ package rpc
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -155,7 +154,7 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) (*enginetypes.BuildOptions, err
 		UID:    int(b.Uid),
 		Tags:   b.Tags,
 		Builds: builds,
-		Tar:    ioutil.NopCloser(bytes.NewReader(b.Tar)),
+		Tar:    bytes.NewReader(b.Tar),
 	}, nil
 }
 

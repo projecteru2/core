@@ -89,8 +89,8 @@ func (v *Virt) BuildRefs(ctx context.Context, name string, tags []string) (refs 
 }
 
 // BuildContent builds content, the use of it is similar to BuildRefs.
-func (v *Virt) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildOptions) (io.ReadCloser, error) {
-	return nil, fmt.Errorf("BuildContent does not implement")
+func (v *Virt) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildOptions) (string, io.Reader, error) {
+	return "", nil, fmt.Errorf("BuildContent does not implement")
 }
 
 // VirtualizationCreate creates a guest.
