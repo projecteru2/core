@@ -115,11 +115,6 @@ func (c *Calcium) doReplaceContainer(
 	if err = pullImage(ctx, node, opts.Image); err != nil {
 		return nil, removeMessage, err
 	}
-	// 停止容器
-	removeMessage.Hook, err = c.doStopContainer(ctx, container, containerJSON, opts.IgnoreHook)
-	if err != nil {
-		return nil, removeMessage, err
-	}
 	// 获得文件 io
 	for src, dst := range opts.Copy {
 		stream, _, err := container.Engine.VirtualizationCopyFrom(ctx, container.ID, src)
@@ -131,6 +126,11 @@ func (c *Calcium) doReplaceContainer(
 			return nil, removeMessage, err
 		}
 		opts.DeployOptions.Data[dst] = fname
+	}
+	// 停止容器
+	removeMessage.Hook, err = c.doStopContainer(ctx, container, containerJSON, opts.IgnoreHook)
+	if err != nil {
+		return nil, removeMessage, err
 	}
 	// 不涉及资源消耗，创建容器失败会被回收容器而不回收资源
 	// 创建成功容器会干掉之前的老容器也不会动资源，实际上实现了动态捆绑

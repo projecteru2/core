@@ -3,7 +3,6 @@ package rpc
 import (
 	"bytes"
 	"encoding/json"
-	"os"
 	"strconv"
 	"strings"
 
@@ -108,14 +107,7 @@ func toCoreCopyOptions(b *pb.CopyOptions) *types.CopyOptions {
 }
 
 func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) {
-	tarFiles, err := makeTempTarFiles(b.Data)
-	if err != nil {
-		return nil, err
-	}
-	return &types.SendOptions{
-		IDs:  b.Ids,
-		Data: tarFiles,
-	}, nil
+	return &types.SendOptions{IDs: b.Ids}, nil
 }
 
 func toCoreBuildOptions(b *pb.BuildImageOptions) (*enginetypes.BuildOptions, error) {
@@ -210,11 +202,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		entry.Hook.Force = entrypoint.Hook.Force
 	}
 
-	tarFiles, err := makeTempTarFiles(d.Data)
-	if err != nil {
-		return nil, err
-	}
-
 	storage, err := toCoreDeployStorage(d.Volumes)
 	if err != nil {
 		return nil, err
@@ -244,7 +231,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Labels:       d.Labels,
 		NodeLabels:   d.Nodelabels,
 		DeployMethod: d.DeployMethod,
-		Data:         tarFiles,
 		SoftLimit:    d.SoftLimit,
 		NodesLimit:   int(d.NodesLimit),
 		IgnoreHook:   d.IgnoreHook,
@@ -441,29 +427,4 @@ func toRPCLogStreamMessage(msg *types.LogStreamMessage) *pb.LogStreamMessage {
 		r.Error = msg.Error.Error()
 	}
 	return r
-}
-
-func makeTempTarFiles(data map[string][]byte) (map[string]string, error) {
-	tarFiles := map[string]string{}
-	for path, data := range data {
-		fname, err := utils.TempTarFile(path, data)
-		if err != nil {
-			if fname != "" {
-				os.RemoveAll(fname)
-			}
-			return nil, err
-		}
-		tarFiles[path] = fname
-	}
-	return tarFiles, nil
-}
-
-func cleanTmpDataFile(data map[string]string) error {
-	var err error
-	for _, src := range data {
-		if err = os.RemoveAll(src); err != nil {
-			log.Errorf("[cleanTmpDataFile] clean temp files failed %v", err)
-		}
-	}
-	return err
 }
