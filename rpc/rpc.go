@@ -287,28 +287,30 @@ func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) err
 	if err != nil {
 		return err
 	}
-	defer cleanTmpDataFile(sendOpts.Data)
 
-	ch, err := v.cluster.Send(stream.Context(), sendOpts)
-	if err != nil {
-		return err
-	}
-
-	for m := range ch {
-		msg := &pb.SendMessage{
-			Id:   m.ID,
-			Path: m.Path,
+	return withDumpFiles(opts.Data, func(files map[string]string) error {
+		sendOpts.Data = files
+		ch, err := v.cluster.Send(stream.Context(), sendOpts)
+		if err != nil {
+			return err
 		}
 
-		if m.Error != nil {
-			msg.Error = m.Error.Error()
-		}
+		for m := range ch {
+			msg := &pb.SendMessage{
+				Id:   m.ID,
+				Path: m.Path,
+			}
 
-		if err := stream.Send(msg); err != nil {
-			v.logUnsentMessages("Send", m)
+			if m.Error != nil {
+				msg.Error = m.Error.Error()
+			}
+
+			if err := stream.Send(msg); err != nil {
+				v.logUnsentMessages("Send", m)
+			}
 		}
-	}
-	return nil
+		return nil
+	})
 }
 
 // BuildImage streamed returned functions
@@ -423,44 +425,47 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	if err != nil {
 		return err
 	}
-	defer cleanTmpDataFile(deployOpts.Data)
 
-	ch, err := v.cluster.RunAndWait(stream.Context(), deployOpts, stdinReader)
-	if err != nil {
-		// `ch` is nil now
-		log.Errorf("[RunAndWait] Start run and wait failed %s", err)
-		return err
-	}
+	return withDumpFiles(opts.Data, func(files map[string]string) error {
+		deployOpts.Data = files
 
-	if opts.OpenStdin {
-		go func() {
-			defer stdinWriter.Write([]byte("exit\n"))
-			stdinWriter.Write([]byte("echo 'Welcom to NERV...\n'\n"))
-			cli := []byte("echo \"`pwd`> \"\n")
-			stdinWriter.Write(cli)
-			for {
-				RunAndWaitOptions, err := stream.Recv()
-				if RunAndWaitOptions == nil || err != nil {
-					log.Errorf("[RunAndWait] Recv command error: %v", err)
-					break
-				}
-				log.Debugf("[RunAndWait] Recv command: %s", bytes.TrimRight(RunAndWaitOptions.Cmd, "\n"))
-				if _, err := stdinWriter.Write(RunAndWaitOptions.Cmd); err != nil {
-					log.Errorf("[RunAndWait] Write command error: %v", err)
-					break
-				}
-				stdinWriter.Write(cli)
-			}
-		}()
-	}
-
-	for m := range ch {
-		if err = stream.Send(toRPCRunAndWaitMessage(m)); err != nil {
-			v.logUnsentMessages("RunAndWait", m)
+		ch, err := v.cluster.RunAndWait(stream.Context(), deployOpts, stdinReader)
+		if err != nil {
+			// `ch` is nil now
+			log.Errorf("[RunAndWait] Start run and wait failed %s", err)
+			return err
 		}
-	}
 
-	return nil
+		if opts.OpenStdin {
+			go func() {
+				defer stdinWriter.Write([]byte("exit\n"))
+				stdinWriter.Write([]byte("echo 'Welcom to NERV...\n'\n"))
+				cli := []byte("echo \"`pwd`> \"\n")
+				stdinWriter.Write(cli)
+				for {
+					RunAndWaitOptions, err := stream.Recv()
+					if RunAndWaitOptions == nil || err != nil {
+						log.Errorf("[RunAndWait] Recv command error: %v", err)
+						break
+					}
+					log.Debugf("[RunAndWait] Recv command: %s", bytes.TrimRight(RunAndWaitOptions.Cmd, "\n"))
+					if _, err := stdinWriter.Write(RunAndWaitOptions.Cmd); err != nil {
+						log.Errorf("[RunAndWait] Write command error: %v", err)
+						break
+					}
+					stdinWriter.Write(cli)
+				}
+			}()
+		}
+
+		for m := range ch {
+			if err = stream.Send(toRPCRunAndWaitMessage(m)); err != nil {
+				v.logUnsentMessages("RunAndWait", m)
+			}
+		}
+
+		return nil
+	})
 }
 
 // CreateContainer create containers
@@ -472,21 +477,23 @@ func (v *Vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 	if err != nil {
 		return nil
 	}
-	defer cleanTmpDataFile(deployOpts.Data)
 
-	// 这里考虑用全局 Background
-	ch, err := v.cluster.CreateContainer(context.Background(), deployOpts)
-	if err != nil {
-		return err
-	}
-
-	for m := range ch {
-		if err = stream.Send(toRPCCreateContainerMessage(m)); err != nil {
-			v.logUnsentMessages("CreateContainer", m)
+	return withDumpFiles(opts.Data, func(files map[string]string) error {
+		deployOpts.Data = files
+		// 这里考虑用全局 Background
+		ch, err := v.cluster.CreateContainer(context.Background(), deployOpts)
+		if err != nil {
+			return err
 		}
-	}
 
-	return nil
+		for m := range ch {
+			if err = stream.Send(toRPCCreateContainerMessage(m)); err != nil {
+				v.logUnsentMessages("CreateContainer", m)
+			}
+		}
+
+		return nil
+	})
 }
 
 // ReplaceContainer replace containers
@@ -498,21 +505,23 @@ func (v *Vibranium) ReplaceContainer(opts *pb.ReplaceOptions, stream pb.CoreRPC_
 	if err != nil {
 		return err
 	}
-	defer cleanTmpDataFile(replaceOpts.DeployOptions.Data)
 
-	// 这里考虑用全局 Background
-	ch, err := v.cluster.ReplaceContainer(context.Background(), replaceOpts)
-	if err != nil {
-		return err
-	}
-
-	for m := range ch {
-		if err = stream.Send(toRPCReplaceContainerMessage(m)); err != nil {
-			v.logUnsentMessages("ReplaceContainer", m)
+	return withDumpFiles(opts.DeployOpt.Data, func(files map[string]string) error {
+		replaceOpts.Data = files
+		// 这里考虑用全局 Background
+		ch, err := v.cluster.ReplaceContainer(context.Background(), replaceOpts)
+		if err != nil {
+			return err
 		}
-	}
 
-	return nil
+		for m := range ch {
+			if err = stream.Send(toRPCReplaceContainerMessage(m)); err != nil {
+				v.logUnsentMessages("ReplaceContainer", m)
+			}
+		}
+
+		return nil
+	})
 }
 
 // RemoveContainer remove containers
