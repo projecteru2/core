@@ -6,6 +6,8 @@ package calcium
 import (
 	"context"
 
+	"github.com/projecteru2/core/utils"
+
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -91,15 +93,28 @@ func (c *Calcium) GetContainers(ctx context.Context, IDs []string) ([]*types.Con
 
 // SetNodeAvailable set node available or not
 func (c *Calcium) SetNodeAvailable(ctx context.Context, podname, nodename string, available bool) (*types.Node, error) {
-	n, err := c.GetNode(ctx, podname, nodename)
-	if err != nil {
-		return nil, err
-	}
-	n.Available = available
-	if err := c.store.UpdateNode(ctx, n); err != nil {
-		return nil, err
-	}
-	return n, nil
+	var n *types.Node
+	return n, c.withNodeLocked(ctx, podname, nodename, func(node *types.Node) error {
+		n = node
+		n.Available = available
+		if !available {
+			containers, err := c.store.ListNodeContainers(ctx, nodename)
+			if err != nil {
+				return err
+			}
+			for _, container := range containers {
+				appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
+				if err != nil {
+					log.Errorf("[SetNodeAvailable] Get container %s on node %s failed %v", container.ID, nodename, err)
+					continue
+				}
+				if err := c.store.ContainerDeployed(ctx, container.ID, appname, entrypoint, container.Nodename, ""); err != nil {
+					log.Errorf("[SetNodeAvailable] Set container %s on node %s inactive failed %v", container.ID, nodename, err)
+				}
+			}
+		}
+		return c.store.UpdateNode(ctx, n)
+	})
 }
 
 // GetNodeByName get node by name
