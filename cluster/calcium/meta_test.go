@@ -232,17 +232,37 @@ func TestSetNodeAvailable(t *testing.T) {
 
 	store := &storemocks.Store{}
 	c.store = store
+	lock := &lockmocks.DistributedLock{}
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	// failed by get node
 	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrCannotGetEngine).Once()
 	_, err := c.SetNodeAvailable(ctx, "", "", true)
 	assert.Error(t, err)
 	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(node, nil)
+	// failed by updatenode
 	store.On("UpdateNode", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
 	_, err = c.SetNodeAvailable(ctx, "", "", true)
 	assert.Error(t, err)
 	store.On("UpdateNode", mock.Anything, mock.Anything).Return(nil)
+	// succ when node available
 	n, err := c.SetNodeAvailable(ctx, "", "", true)
 	assert.NoError(t, err)
 	assert.Equal(t, n.Name, name)
+	// not available
+	// failed by list node containers
+	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	_, err = c.SetNodeAvailable(ctx, "", "", false)
+	assert.Error(t, err)
+	containers := []*types.Container{&types.Container{Name: "wrong_name"}, &types.Container{Name: "a_b_c"}}
+	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(containers, nil)
+	store.On("ContainerDeployed",
+		mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+	).Return(types.ErrNoETCD)
+	n, err = c.SetNodeAvailable(ctx, "", "", false)
+	assert.NoError(t, err)
 }
 
 func TestContainerDeployed(t *testing.T) {
@@ -256,8 +276,9 @@ func TestContainerDeployed(t *testing.T) {
 		mock.Anything,
 		mock.Anything,
 		mock.Anything,
+		mock.Anything,
 		mock.Anything).Return(nil)
 	c.store = store
 
-	assert.NoError(t, c.ContainerDeployed(ctx, "", "", "", "", ""))
+	assert.NoError(t, c.ContainerDeployed(ctx, "", "", "", "", []byte{}, 0))
 }

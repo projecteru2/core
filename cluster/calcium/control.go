@@ -36,7 +36,8 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 				defer func() {
 					if err == nil {
 						log.Infof("[ControlContainer] Control container %s %s", container.ID, t)
-						log.Infof("[ControlContainer] Output:\n %s", string(types.HookOutput(message)))
+						log.Info("[ControlContainer] Output:")
+						log.Info(string(types.HookOutput(message)))
 					}
 					ch <- &types.ControlContainerMessage{
 						ContainerID: container.ID,

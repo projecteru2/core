@@ -95,10 +95,19 @@ func (m *Mercury) GetContainers(ctx context.Context, IDs []string) (containers [
 }
 
 // ContainerDeployed store deployed container info
-func (m *Mercury) ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename, data string) error {
+func (m *Mercury) ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename string, data []byte, ttl int64) error {
 	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID)
+	opts := []clientv3.OpOption{}
+	if ttl > 0 {
+		lease := clientv3.NewLease(m.cliv3)
+		ttlLease, err := lease.Grant(ctx, ttl)
+		if err != nil {
+			return err
+		}
+		opts = append(opts, clientv3.WithLease(ttlLease.ID))
+	}
 	//Only update when it exist
-	_, err := m.Update(ctx, key, data)
+	_, err := m.Update(ctx, key, string(data), opts...)
 	return err
 }
 

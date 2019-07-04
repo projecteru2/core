@@ -108,7 +108,8 @@ func (c *Calcium) SetNodeAvailable(ctx context.Context, podname, nodename string
 					log.Errorf("[SetNodeAvailable] Get container %s on node %s failed %v", container.ID, nodename, err)
 					continue
 				}
-				if err := c.store.ContainerDeployed(ctx, container.ID, appname, entrypoint, container.Nodename, ""); err != nil {
+				// mark container which belongs to this node as unhealthy
+				if err := c.ContainerDeployed(ctx, container.ID, appname, entrypoint, container.Nodename, []byte{}, 0); err != nil {
 					log.Errorf("[SetNodeAvailable] Set container %s on node %s inactive failed %v", container.ID, nodename, err)
 				}
 			}
@@ -123,6 +124,6 @@ func (c *Calcium) GetNodeByName(ctx context.Context, nodename string) (*types.No
 }
 
 // ContainerDeployed set container deploy status
-func (c *Calcium) ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename, data string) error {
-	return c.store.ContainerDeployed(ctx, ID, appname, entrypoint, nodename, data)
+func (c *Calcium) ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename string, data []byte, ttl int64) error {
+	return c.store.ContainerDeployed(ctx, ID, appname, entrypoint, nodename, data, ttl)
 }
