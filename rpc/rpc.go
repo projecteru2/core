@@ -670,7 +670,12 @@ func (v *Vibranium) GetNodeByName(ctx context.Context, opts *pb.GetNodeOptions) 
 func (v *Vibranium) ContainerDeployed(ctx context.Context, opts *pb.ContainerDeployedOptions) (*pb.Empty, error) {
 	v.taskAdd("ContainerDeployed", false)
 	defer v.taskDone("ContainerDeployed", false)
-	return &pb.Empty{}, v.cluster.ContainerDeployed(ctx, opts.Id, opts.Appname, opts.Entrypoint, opts.Nodename, string(opts.Data))
+	return &pb.Empty{}, v.cluster.ContainerDeployed(
+		ctx,
+		opts.Id,
+		opts.Appname, opts.Entrypoint, opts.Nodename,
+		opts.Data, opts.Ttl,
+	)
 }
 
 func (v *Vibranium) logUnsentMessages(msgType string, msg interface{}) {

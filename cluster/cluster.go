@@ -64,7 +64,7 @@ type Cluster interface {
 	SetNodeAvailable(ctx context.Context, podname, nodename string, available bool) (*types.Node, error)
 	// used by agent
 	GetNodeByName(ctx context.Context, nodename string) (*types.Node, error)
-	ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename, data string) error
+	ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename string, data []byte, ttl int64) error
 	// cluster methods
 	PodResource(ctx context.Context, podname string) (*types.PodResource, error)
 	NodeResource(ctx context.Context, podname, nodename string) (*types.NodeResource, error)
