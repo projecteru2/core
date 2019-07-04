@@ -126,6 +126,9 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 	var nodeCPUPlans map[string][]types.CPUMap
 
 	if err = c.withNodesLocked(ctx, opts.Podname, opts.Nodename, opts.NodeLabels, func(nodes map[string]*types.Node) error {
+		if len(nodes) == 0 {
+			return types.ErrInsufficientNodes
+		}
 		nodesInfo = getNodesInfo(nodes, opts.CPUQuota, opts.Memory, opts.Storage)
 		// 载入之前部署的情况
 		nodesInfo, err = c.store.MakeDeployStatus(ctx, opts, nodesInfo)

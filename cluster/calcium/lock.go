@@ -116,9 +116,6 @@ func (c *Calcium) withNodesLocked(ctx context.Context, podname, nodename string,
 		}
 		ns = append(ns, n)
 	}
-	if len(ns) == 0 {
-		return types.ErrInsufficientNodes
-	}
 
 	for _, n := range ns {
 		lock, err := c.doLock(ctx, fmt.Sprintf(cluster.NodeLock, podname, n.Name), c.config.LockTimeout)
