@@ -132,8 +132,13 @@ func TestWithNodesLocked(t *testing.T) {
 	assert.Error(t, err)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{node1}, nil)
 	// failed by filter
-	err = c.withNodesLocked(ctx, "test", "", map[string]string{"eru": "2"}, func(nodes map[string]*types.Node) error { return nil })
-	assert.Error(t, err)
+	var ns map[string]*types.Node
+	err = c.withNodesLocked(ctx, "test", "", map[string]string{"eru": "2"}, func(nodes map[string]*types.Node) error {
+		ns = nodes
+		return nil
+	})
+	assert.NoError(t, err)
+	assert.Empty(t, ns)
 	// failed by getnode
 	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	err = c.withNodesLocked(ctx, "test", "test", nil, func(nodes map[string]*types.Node) error { return nil })

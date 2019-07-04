@@ -54,9 +54,9 @@ func TestAddNode(t *testing.T) {
 func TestRemovePod(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-
 	store := &storemocks.Store{}
 	store.On("RemovePod", mock.Anything, mock.Anything).Return(nil)
+	c.store = store
 	node := &types.Node{Name: "n1", Available: true}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	store.On("GetNode",

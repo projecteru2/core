@@ -27,11 +27,12 @@ func TestPodResource(t *testing.T) {
 	_, err := c.PodResource(ctx, podname)
 	assert.Error(t, err)
 	node := &types.Node{
-		Name:       nodename,
-		CPU:        types.CPUMap{"0": 0, "1": 10},
-		MemCap:     2,
-		InitCPU:    types.CPUMap{"0": 100, "1": 100},
-		InitMemCap: 6,
+		Name:           nodename,
+		CPU:            types.CPUMap{"0": 0, "1": 10},
+		MemCap:         2,
+		InitCPU:        types.CPUMap{"0": 100, "1": 100},
+		InitMemCap:     6,
+		InitStorageCap: 10,
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	// failed by ListNodeContainers
@@ -45,9 +46,10 @@ func TestPodResource(t *testing.T) {
 			Quota:  1.3,
 		},
 		{
-			Memory: 2,
-			CPU:    types.CPUMap{"1": 50},
-			Quota:  0.5,
+			Memory:  2,
+			CPU:     types.CPUMap{"1": 50},
+			Quota:   0.5,
+			Storage: 1,
 		},
 	}
 	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(containers, nil)

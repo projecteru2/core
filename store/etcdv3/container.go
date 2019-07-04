@@ -99,12 +99,11 @@ func (m *Mercury) ContainerDeployed(ctx context.Context, ID, appname, entrypoint
 	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID)
 	opts := []clientv3.OpOption{}
 	if ttl > 0 {
-		lease := clientv3.NewLease(m.cliv3)
-		ttlLease, err := lease.Grant(ctx, ttl)
+		lease, err := m.cliv3.Grant(ctx, ttl)
 		if err != nil {
 			return err
 		}
-		opts = append(opts, clientv3.WithLease(ttlLease.ID))
+		opts = append(opts, clientv3.WithLease(lease.ID))
 	}
 	//Only update when it exist
 	_, err := m.Update(ctx, key, string(data), opts...)
