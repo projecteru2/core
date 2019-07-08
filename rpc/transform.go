@@ -110,6 +110,24 @@ func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) {
 	return &types.SendOptions{IDs: b.Ids}, nil
 }
 
+func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) {
+	r := &types.SetNodeOptions{
+		Nodename:        b.Nodename,
+		Podname:         b.Podname,
+		Available:       b.Available,
+		DeltaCPU:        types.CPUMap{},
+		DeltaMemory:     b.DeltaMemory,
+		DeltaStorage:    b.DeltaStorage,
+		DeltaNUMAMemory: b.DeltaNumaMemory,
+		NUMA:            b.Numa,
+		Labels:          b.Labels,
+	}
+	for cpuID, cpuShare := range b.DeltaCpu {
+		r.DeltaCPU[cpuID] = int(cpuShare)
+	}
+	return r, nil
+}
+
 func toCoreBuildOptions(b *pb.BuildImageOptions) (*enginetypes.BuildOptions, error) {
 	var builds *enginetypes.Builds
 	if b.Builds != nil {

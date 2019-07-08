@@ -224,7 +224,7 @@ func TestGetContainers(t *testing.T) {
 	assert.Equal(t, cs[0].ID, ID)
 }
 
-func TestSetNodeAvailable(t *testing.T) {
+func TestSetNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	name := "test"
@@ -238,22 +238,22 @@ func TestSetNodeAvailable(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	// failed by get node
 	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrCannotGetEngine).Once()
-	_, err := c.SetNodeAvailable(ctx, "", "", true)
+	_, err := c.SetNode(ctx, &types.SetNodeOptions{})
 	assert.Error(t, err)
 	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(node, nil)
 	// failed by updatenode
 	store.On("UpdateNode", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
-	_, err = c.SetNodeAvailable(ctx, "", "", true)
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Available: true})
 	assert.Error(t, err)
 	store.On("UpdateNode", mock.Anything, mock.Anything).Return(nil)
 	// succ when node available
-	n, err := c.SetNodeAvailable(ctx, "", "", true)
+	n, err := c.SetNode(ctx, &types.SetNodeOptions{Available: true})
 	assert.NoError(t, err)
 	assert.Equal(t, n.Name, name)
 	// not available
 	// failed by list node containers
 	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err = c.SetNodeAvailable(ctx, "", "", false)
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Available: false})
 	assert.Error(t, err)
 	containers := []*types.Container{&types.Container{Name: "wrong_name"}, &types.Container{Name: "a_b_c"}}
 	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(containers, nil)
@@ -261,8 +261,84 @@ func TestSetNodeAvailable(t *testing.T) {
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 	).Return(types.ErrNoETCD)
-	n, err = c.SetNodeAvailable(ctx, "", "", false)
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Available: false})
 	assert.NoError(t, err)
+	// test modify
+	setOpts := &types.SetNodeOptions{
+		Available: true,
+		Labels:    map[string]string{"some": "1"},
+	}
+	// set label
+	n, err = c.SetNode(ctx, setOpts)
+	assert.NoError(t, err)
+	assert.Equal(t, n.Labels["some"], "1")
+	// set numa
+	setOpts.NUMA = types.NUMA{"100": "node1"}
+	n, err = c.SetNode(ctx, setOpts)
+	assert.NoError(t, err)
+	assert.Equal(t, n.NUMA["100"], "node1")
+	// failed by numa node memory < 0
+	n.NUMAMemory = types.NUMAMemory{"node1": 1}
+	n.InitNUMAMemory = types.NUMAMemory{"node1": 2}
+	setOpts.DeltaNUMAMemory = types.NUMAMemory{"node1": -10}
+	n, err = c.SetNode(ctx, setOpts)
+	assert.Error(t, err)
+	// succ set numa node memory
+	n.NUMAMemory = types.NUMAMemory{"node1": 1}
+	n.InitNUMAMemory = types.NUMAMemory{"node1": 2}
+	setOpts.DeltaNUMAMemory = types.NUMAMemory{"node1": -1}
+	n, err = c.SetNode(ctx, setOpts)
+	assert.NoError(t, err)
+	assert.Equal(t, n.NUMAMemory["node1"], int64(0))
+	setOpts.DeltaNUMAMemory = types.NUMAMemory{}
+	// failed set storage
+	n.StorageCap = 1
+	n.InitStorageCap = 2
+	setOpts.DeltaStorage = -10
+	n, err = c.SetNode(ctx, setOpts)
+	assert.Error(t, err)
+	// succ set storage
+	n.StorageCap = 1
+	n.InitStorageCap = 2
+	setOpts.DeltaStorage = -1
+	n, err = c.SetNode(ctx, setOpts)
+	assert.NoError(t, err)
+	assert.Equal(t, n.StorageCap, int64(0))
+	setOpts.DeltaStorage = 0
+	// failed set memory
+	n.MemCap = 1
+	n.InitMemCap = 2
+	setOpts.DeltaMemory = -10
+	n, err = c.SetNode(ctx, setOpts)
+	assert.Error(t, err)
+	// succ set storage
+	n.MemCap = 1
+	n.InitMemCap = 2
+	setOpts.DeltaMemory = -1
+	n, err = c.SetNode(ctx, setOpts)
+	assert.NoError(t, err)
+	assert.Equal(t, n.MemCap, int64(0))
+	setOpts.DeltaMemory = 0
+	// failed by set cpu
+	n.CPU = types.CPUMap{"1": 1}
+	n.InitCPU = types.CPUMap{"1": 2}
+	setOpts.DeltaCPU = types.CPUMap{"1": -10}
+	n, err = c.SetNode(ctx, setOpts)
+	assert.Error(t, err)
+	// succ set cpu, add and del
+	n.CPU = types.CPUMap{"1": 1, "2": 2}
+	n.InitCPU = types.CPUMap{"1": 10, "2": 10}
+	setOpts.DeltaCPU = types.CPUMap{"1": 0, "2": -1, "3": 10}
+	n, err = c.SetNode(ctx, setOpts)
+	assert.NoError(t, err)
+	_, ok := n.CPU["1"]
+	assert.False(t, ok)
+	assert.Equal(t, n.CPU["2"], 1)
+	assert.Equal(t, n.InitCPU["2"], 9)
+	assert.Equal(t, n.CPU["3"], 10)
+	assert.Equal(t, n.InitCPU["3"], 10)
+	assert.Equal(t, len(n.CPU), 2)
+	assert.Equal(t, len(n.InitCPU), 2)
 }
 
 func TestContainerDeployed(t *testing.T) {

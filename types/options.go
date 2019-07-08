@@ -66,3 +66,16 @@ type ReplaceOptions struct {
 	Copy           map[string]string
 	IDs            []string
 }
+
+// SetNodeOptions for node set
+type SetNodeOptions struct {
+	Nodename        string
+	Podname         string
+	Available       bool
+	DeltaCPU        CPUMap
+	DeltaMemory     int64
+	DeltaStorage    int64
+	DeltaNUMAMemory map[string]int64
+	NUMA            map[string]string
+	Labels          map[string]string
+}

@@ -58,10 +58,10 @@ type Cluster interface {
 	ListNodeContainers(ctx context.Context, nodename string) ([]*types.Container, error)
 	ListNetworks(ctx context.Context, podname string, driver string) ([]*enginetypes.Network, error)
 	GetPod(ctx context.Context, podname string) (*types.Pod, error)
+	SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error)
 	GetNode(ctx context.Context, podname, nodename string) (*types.Node, error)
 	GetContainer(ctx context.Context, ID string) (*types.Container, error)
 	GetContainers(ctx context.Context, IDs []string) ([]*types.Container, error)
-	SetNodeAvailable(ctx context.Context, podname, nodename string, available bool) (*types.Node, error)
 	// used by agent
 	GetNodeByName(ctx context.Context, nodename string) (*types.Node, error)
 	ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename string, data []byte, ttl int64) error

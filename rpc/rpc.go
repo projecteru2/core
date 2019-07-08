@@ -200,9 +200,13 @@ func (v *Vibranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (*
 	return &pb.Containers{Containers: toRPCContainers(ctx, containers, nil)}, nil
 }
 
-// SetNodeAvailable set node availability
-func (v *Vibranium) SetNodeAvailable(ctx context.Context, opts *pb.NodeAvailable) (*pb.Node, error) {
-	n, err := v.cluster.SetNodeAvailable(ctx, opts.Podname, opts.Nodename, opts.Available)
+// SetNode set node meta
+func (v *Vibranium) SetNode(ctx context.Context, opts *pb.SetNodeOptions) (*pb.Node, error) {
+	setNodeOpts, err := toCoreSetNodeOptions(opts)
+	if err != nil {
+		return nil, err
+	}
+	n, err := v.cluster.SetNode(ctx, setNodeOpts)
 	if err != nil {
 		return nil, err
 	}
