@@ -11,7 +11,7 @@ service CoreRPC {
 
     rpc AddNode(AddNodeOptions) returns (Node) {};
     rpc RemoveNode(RemoveNodeOptions) returns (Empty) {};
-    rpc SetNodeAvailable(NodeAvailable) returns (Node) {};
+    rpc SetNode(SetNodeOptions) returns (Node) {};
     rpc GetNode(GetNodeOptions) returns (Node) {};
     rpc GetNodeResource(GetNodeOptions) returns (NodeResource) {};
     rpc GetContainer(ContainerID) returns (Container) {};
@@ -132,7 +132,18 @@ message Nodes {
 message NodeAvailable {
     string nodename = 1;
     string podname = 2;
+}
+
+message SetNodeOptions {
+    string nodename = 1;
+    string podname = 2;
     bool available = 3;
+    map<string, int32> delta_cpu = 4;
+    int64 delta_memory = 5;
+    int64 delta_storage = 6;
+    map<string, int64> delta_numa_memory = 7;
+    map<string, string> numa = 8;
+    map<string, string> labels = 9;
 }
 
 message Container {

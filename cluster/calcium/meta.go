@@ -91,26 +91,72 @@ func (c *Calcium) GetContainers(ctx context.Context, IDs []string) ([]*types.Con
 	return c.store.GetContainers(ctx, IDs)
 }
 
-// SetNodeAvailable set node available or not
-func (c *Calcium) SetNodeAvailable(ctx context.Context, podname, nodename string, available bool) (*types.Node, error) {
+// SetNode set node available or not
+func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) {
 	var n *types.Node
-	return n, c.withNodeLocked(ctx, podname, nodename, func(node *types.Node) error {
+	return n, c.withNodeLocked(ctx, opts.Podname, opts.Nodename, func(node *types.Node) error {
 		n = node
-		n.Available = available
-		if !available {
-			containers, err := c.store.ListNodeContainers(ctx, nodename)
+		n.Available = n.Available || opts.Available
+		if !n.Available {
+			containers, err := c.store.ListNodeContainers(ctx, opts.Nodename)
 			if err != nil {
 				return err
 			}
 			for _, container := range containers {
 				appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
 				if err != nil {
-					log.Errorf("[SetNodeAvailable] Get container %s on node %s failed %v", container.ID, nodename, err)
+					log.Errorf("[SetNodeAvailable] Get container %s on node %s failed %v", container.ID, opts.Nodename, err)
 					continue
 				}
 				// mark container which belongs to this node as unhealthy
 				if err := c.ContainerDeployed(ctx, container.ID, appname, entrypoint, container.Nodename, []byte{}, 0); err != nil {
-					log.Errorf("[SetNodeAvailable] Set container %s on node %s inactive failed %v", container.ID, nodename, err)
+					log.Errorf("[SetNodeAvailable] Set container %s on node %s inactive failed %v", container.ID, opts.Nodename, err)
+				}
+			}
+		}
+		// update key value
+		if len(opts.Labels) != 0 {
+			n.Labels = opts.Labels
+		}
+		// update numa
+		if len(opts.NUMA) != 0 {
+			n.NUMA = types.NUMA(opts.NUMA)
+		}
+		// update numa memory
+		for numaNode, memoryDelta := range opts.DeltaNUMAMemory {
+			if _, ok := n.NUMAMemory[numaNode]; ok {
+				n.NUMAMemory[numaNode] += memoryDelta
+				n.InitNUMAMemory[numaNode] += memoryDelta
+				if n.NUMAMemory[numaNode] < 0 {
+					return types.ErrBadMemory
+				}
+			}
+		}
+		// update storage
+		n.StorageCap += opts.DeltaStorage
+		n.InitStorageCap += opts.DeltaStorage
+		if n.StorageCap < 0 {
+			return types.ErrBadStorage
+		}
+		// update memory
+		n.MemCap += opts.DeltaMemory
+		n.InitMemCap += opts.DeltaMemory
+		if n.MemCap < 0 {
+			return types.ErrBadStorage
+		}
+		// update cpu
+		for cpuID, cpuShare := range opts.DeltaCPU {
+			if _, ok := n.CPU[cpuID]; !ok && cpuShare > 0 { // 增加了 CPU
+				n.CPU[cpuID] = cpuShare
+				n.InitCPU[cpuID] = cpuShare
+			} else if ok && cpuShare == 0 { // 删掉 CPU
+				delete(n.CPU, cpuID)
+				delete(n.InitCPU, cpuID)
+			} else if ok { // 减少份数
+				n.CPU[cpuID] += cpuShare
+				n.InitCPU[cpuID] += cpuShare
+				if n.CPU[cpuID] < 0 {
+					return types.ErrBadCPU
 				}
 			}
 		}

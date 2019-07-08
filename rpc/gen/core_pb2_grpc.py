@@ -49,9 +49,9 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.RemoveNodeOptions.SerializeToString,
         response_deserializer=core__pb2.Empty.FromString,
         )
-    self.SetNodeAvailable = channel.unary_unary(
-        '/pb.CoreRPC/SetNodeAvailable',
-        request_serializer=core__pb2.NodeAvailable.SerializeToString,
+    self.SetNode = channel.unary_unary(
+        '/pb.CoreRPC/SetNode',
+        request_serializer=core__pb2.SetNodeOptions.SerializeToString,
         response_deserializer=core__pb2.Node.FromString,
         )
     self.GetNode = channel.unary_unary(
@@ -229,7 +229,7 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def SetNodeAvailable(self, request, context):
+  def SetNode(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -442,9 +442,9 @@ def add_CoreRPCServicer_to_server(servicer, server):
           request_deserializer=core__pb2.RemoveNodeOptions.FromString,
           response_serializer=core__pb2.Empty.SerializeToString,
       ),
-      'SetNodeAvailable': grpc.unary_unary_rpc_method_handler(
-          servicer.SetNodeAvailable,
-          request_deserializer=core__pb2.NodeAvailable.FromString,
+      'SetNode': grpc.unary_unary_rpc_method_handler(
+          servicer.SetNode,
+          request_deserializer=core__pb2.SetNodeOptions.FromString,
           response_serializer=core__pb2.Node.SerializeToString,
       ),
       'GetNode': grpc.unary_unary_rpc_method_handler(

@@ -697,13 +697,13 @@ func (_m *Cluster) Send(ctx context.Context, opts *types.SendOptions) (chan *typ
 	return r0, r1
 }
 
-// SetNodeAvailable provides a mock function with given fields: ctx, podname, nodename, available
-func (_m *Cluster) SetNodeAvailable(ctx context.Context, podname string, nodename string, available bool) (*types.Node, error) {
-	ret := _m.Called(ctx, podname, nodename, available)
+// SetNode provides a mock function with given fields: ctx, opts
+func (_m *Cluster) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) {
+	ret := _m.Called(ctx, opts)
 
 	var r0 *types.Node
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, bool) *types.Node); ok {
-		r0 = rf(ctx, podname, nodename, available)
+	if rf, ok := ret.Get(0).(func(context.Context, *types.SetNodeOptions) *types.Node); ok {
+		r0 = rf(ctx, opts)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.Node)
@@ -711,8 +711,8 @@ func (_m *Cluster) SetNodeAvailable(ctx context.Context, podname string, nodenam
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, bool) error); ok {
-		r1 = rf(ctx, podname, nodename, available)
+	if rf, ok := ret.Get(1).(func(context.Context, *types.SetNodeOptions) error); ok {
+		r1 = rf(ctx, opts)
 	} else {
 		r1 = ret.Error(1)
 	}
