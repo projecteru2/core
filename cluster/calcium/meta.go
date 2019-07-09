@@ -6,8 +6,11 @@ package calcium
 import (
 	"context"
 
+	"github.com/sanity-io/litter"
+
 	"github.com/projecteru2/core/utils"
 
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -96,8 +99,13 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 	var n *types.Node
 	return n, c.withNodeLocked(ctx, opts.Podname, opts.Nodename, func(node *types.Node) error {
 		n = node
-		n.Available = n.Available || opts.Available
-		if !n.Available {
+		litter.Dump(opts)
+		// status
+		switch opts.Status {
+		case cluster.NodeUp:
+			n.Available = true
+		case cluster.NodeDown:
+			n.Available = false
 			containers, err := c.store.ListNodeContainers(ctx, opts.Nodename)
 			if err != nil {
 				return err
@@ -132,17 +140,21 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				}
 			}
 		}
-		// update storage
-		n.StorageCap += opts.DeltaStorage
-		n.InitStorageCap += opts.DeltaStorage
-		if n.StorageCap < 0 {
-			return types.ErrBadStorage
+		if opts.DeltaStorage != 0 {
+			// update storage
+			n.StorageCap += opts.DeltaStorage
+			n.InitStorageCap += opts.DeltaStorage
+			if n.StorageCap < 0 {
+				return types.ErrBadStorage
+			}
 		}
-		// update memory
-		n.MemCap += opts.DeltaMemory
-		n.InitMemCap += opts.DeltaMemory
-		if n.MemCap < 0 {
-			return types.ErrBadStorage
+		if opts.DeltaMemory != 0 {
+			// update memory
+			n.MemCap += opts.DeltaMemory
+			n.InitMemCap += opts.DeltaMemory
+			if n.MemCap < 0 {
+				return types.ErrBadStorage
+			}
 		}
 		// update cpu
 		for cpuID, cpuShare := range opts.DeltaCPU {
