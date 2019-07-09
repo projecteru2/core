@@ -41,6 +41,12 @@ const (
 	ContainerLock = "clock_%s"
 	// NodeLock for lock node
 	NodeLock = "cnode_%s_%s"
+	// NodeUP for node up
+	NodeUP = 1
+	// NodeDown for node down
+	NodeDown = 0
+	// NodeNothing for no change node status
+	NodeNothing = 2
 )
 
 // Cluster define all interface

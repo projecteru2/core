@@ -243,17 +243,17 @@ func TestSetNode(t *testing.T) {
 	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(node, nil)
 	// failed by updatenode
 	store.On("UpdateNode", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Available: true})
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Status: 2})
 	assert.Error(t, err)
 	store.On("UpdateNode", mock.Anything, mock.Anything).Return(nil)
 	// succ when node available
-	n, err := c.SetNode(ctx, &types.SetNodeOptions{Available: true})
+	n, err := c.SetNode(ctx, &types.SetNodeOptions{Status: 2})
 	assert.NoError(t, err)
 	assert.Equal(t, n.Name, name)
 	// not available
 	// failed by list node containers
 	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Available: false})
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Status: 0})
 	assert.Error(t, err)
 	containers := []*types.Container{&types.Container{Name: "wrong_name"}, &types.Container{Name: "a_b_c"}}
 	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(containers, nil)
@@ -261,12 +261,12 @@ func TestSetNode(t *testing.T) {
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 	).Return(types.ErrNoETCD)
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Available: false})
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Status: 0})
 	assert.NoError(t, err)
 	// test modify
 	setOpts := &types.SetNodeOptions{
-		Available: true,
-		Labels:    map[string]string{"some": "1"},
+		Status: 1,
+		Labels: map[string]string{"some": "1"},
 	}
 	// set label
 	n, err = c.SetNode(ctx, setOpts)

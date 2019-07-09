@@ -8,6 +8,7 @@ import (
 
 	"github.com/projecteru2/core/utils"
 
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -96,8 +97,12 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 	var n *types.Node
 	return n, c.withNodeLocked(ctx, opts.Podname, opts.Nodename, func(node *types.Node) error {
 		n = node
-		n.Available = n.Available || opts.Available
-		if !n.Available {
+		// status
+		switch opts.Status {
+		case cluster.NodeUP:
+			n.Available = true
+		case cluster.NodeDown:
+			n.Available = false
 			containers, err := c.store.ListNodeContainers(ctx, opts.Nodename)
 			if err != nil {
 				return err
