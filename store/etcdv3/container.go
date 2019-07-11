@@ -82,16 +82,24 @@ func (m *Mercury) GetContainer(ctx context.Context, ID string) (*types.Container
 }
 
 // GetContainers get many containers
-// TODO merge etcd ops
 func (m *Mercury) GetContainers(ctx context.Context, IDs []string) (containers []*types.Container, err error) {
+	keys := []string{}
 	for _, ID := range IDs {
-		container, err := m.GetContainer(ctx, ID)
-		if err != nil {
-			return containers, err
+		keys = append(keys, fmt.Sprintf(containerInfoKey, ID))
+	}
+	tnxResponse, err := m.BatchGet(ctx, IDs)
+	for _, responseOp := range tnxResponse.Responses {
+		val := []byte{}
+		if val, err = responseOp.Marshal(); err != nil {
+			return
+		}
+		container := &types.Container{}
+		if err = json.Unmarshal(val, container); err != nil {
+			return
 		}
 		containers = append(containers, container)
 	}
-	return containers, err
+	return
 }
 
 // ContainerDeployed store deployed container info
