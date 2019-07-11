@@ -111,6 +111,17 @@ func (m *Mercury) GetOne(ctx context.Context, key string, opts ...clientv3.OpOpt
 	return resp.Kvs[0], nil
 }
 
+// BatchGet gets keys
+func (m *Mercury) BatchGet(ctx context.Context, keys []string, opt ...clientv3.OpOption) (txnResponse *clientv3.TxnResponse, err error) {
+	txn := m.cliv3.Txn(ctx)
+	ops := []clientv3.Op{}
+	for _, key := range keys {
+		op := clientv3.OpGet(m.parseKey(key), opt...)
+		ops = append(ops, op)
+	}
+	return txn.Then(ops...).Commit()
+}
+
 // Delete delete key
 func (m *Mercury) Delete(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.DeleteResponse, error) {
 	return m.cliv3.Delete(ctx, m.parseKey(key), opts...)
