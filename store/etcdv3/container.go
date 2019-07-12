@@ -58,27 +58,11 @@ func (m *Mercury) CleanContainerData(ctx context.Context, ID, appname, entrypoin
 // container if must be in full length, or we can't find it in etcd
 // storage path in etcd is `/container/:containerid`
 func (m *Mercury) GetContainer(ctx context.Context, ID string) (*types.Container, error) {
-	if l := len(ID); l != 64 {
-		return nil, types.NewDetailedErr(types.ErrBadContainerID,
-			fmt.Sprintf("containerID: %s, length: %d", ID, l))
-	}
-
-	key := fmt.Sprintf(containerInfoKey, ID)
-	ev, err := m.GetOne(ctx, key)
+	containers, err := m.GetContainers(ctx, []string{ID})
 	if err != nil {
 		return nil, err
 	}
-
-	c := &types.Container{}
-	if err := json.Unmarshal(ev.Value, c); err != nil {
-		return nil, err
-	}
-
-	if c, err = m.bindContainerAdditions(ctx, c); err != nil {
-		return nil, err
-	}
-
-	return c, nil
+	return containers[0], nil
 }
 
 // GetContainers get many containers
