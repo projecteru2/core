@@ -87,14 +87,20 @@ func (m *Mercury) GetContainers(ctx context.Context, IDs []string) (containers [
 	for _, ID := range IDs {
 		keys = append(keys, fmt.Sprintf(containerInfoKey, ID))
 	}
-	tnxResponse, err := m.BatchGet(ctx, IDs)
-	for _, responseOp := range tnxResponse.Responses {
-		val := []byte{}
-		if val, err = responseOp.Marshal(); err != nil {
-			return
+	txnResponse := &clientv3.TxnResponse{}
+	if txnResponse, err = m.BatchGet(ctx, keys); err != nil {
+		return
+	}
+
+	for idx, responseOp := range txnResponse.Responses {
+		kvs := responseOp.GetResponseRange().Kvs
+		if len(kvs) == 0 {
+			return containers, types.ErrKeyNotExists
 		}
+
 		container := &types.Container{}
-		if err = json.Unmarshal(val, container); err != nil {
+		if err = json.Unmarshal(kvs[0].Value, container); err != nil {
+			log.Errorf("[Mercury] failed to unmarshal json to container: %s", IDs[idx])
 			return
 		}
 		containers = append(containers, container)
