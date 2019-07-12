@@ -35,6 +35,7 @@ service CoreRPC {
     rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage) {};
     rpc DissociateContainer(DissociateContainerOptions) returns (stream DissociateContainerMessage) {};
     rpc ControlContainer(ControlContainerOptions) returns (stream ControlContainerMessage) {};
+    rpc ExecuteContainer(ExecuteContainerOptions) returns (stream ExecuteContainerMessage) {};
     rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage) {};
     rpc LogStream(ContainerID) returns (stream LogStreamMessage) {};
 }
@@ -455,6 +456,11 @@ message SendMessage {
     string error = 3;
 }
 
+message ExecuteContainerMessage {
+    string container_id = 1;
+    bytes data = 2;
+}
+
 message RunAndWaitOptions{
     DeployOptions DeployOptions = 1;
     bytes Cmd = 2;
@@ -476,4 +482,13 @@ message LogStreamMessage {
     string id = 1;
     string error = 2;
     bytes data = 3;
+}
+
+message ExecuteContainerOptions {
+    string container_id = 1;
+    repeated string commands = 2;
+    repeated string env = 3;
+    string workdir = 4;
+    bool open_stdin = 5;
+    bytes repl_cmd = 6;
 }
