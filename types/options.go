@@ -79,3 +79,13 @@ type SetNodeOptions struct {
 	NUMA            map[string]string
 	Labels          map[string]string
 }
+
+// ExecuteContainerOptions for executing commands in running container
+type ExecuteContainerOptions struct {
+	ContainerID string
+	Commands    []string
+	Env         []string
+	Workdir     string
+	OpenStdin   bool
+	ReplCmd     []byte
+}

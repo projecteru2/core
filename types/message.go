@@ -118,3 +118,9 @@ type LogStreamMessage struct {
 	Error error
 	Data  []byte
 }
+
+// ExecuteContainerMessage for executing command in running container
+type ExecuteContainerMessage struct {
+	ContainerID string
+	Data        []byte
+}

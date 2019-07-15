@@ -446,3 +446,20 @@ func toRPCLogStreamMessage(msg *types.LogStreamMessage) *pb.LogStreamMessage {
 	}
 	return r
 }
+
+func toCoreExecuteContainerOptions(b *pb.ExecuteContainerOptions) (opts *types.ExecuteContainerOptions, err error) {
+	return &types.ExecuteContainerOptions{
+		ContainerID: b.ContainerId,
+		Commands:    b.Commands,
+		Env:         b.Env,
+		OpenStdin:   b.OpenStdin,
+		ReplCmd:     b.ReplCmd,
+	}, nil
+}
+
+func toRPCExecuteContainerMessage(m *types.ExecuteContainerMessage) (b *pb.ExecuteContainerMessage) {
+	return &pb.ExecuteContainerMessage{
+		ContainerId: m.ContainerID,
+		Data:        m.Data,
+	}
+}

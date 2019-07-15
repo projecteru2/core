@@ -81,6 +81,7 @@ type Cluster interface {
 	RemoveImage(ctx context.Context, podname, nodename string, images []string, step int, prune bool) (chan *types.RemoveImageMessage, error)
 	RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error)
 	DeployStatusStream(ctx context.Context, appname, entrypoint, nodename string) chan *types.DeployStatus
+	ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions) (<-chan *types.ExecuteContainerMessage, error)
 	// build methods
 	BuildImage(ctx context.Context, opts *enginetypes.BuildOptions) (chan *types.BuildImageMessage, error)
 	// this methods will not interrupt by client
