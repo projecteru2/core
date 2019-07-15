@@ -71,6 +71,20 @@ func TestContainer(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, len(containers), 1)
 	assert.Equal(t, containers[0].Name, name)
+	// GetContainers for multiple containers
+	newContainer := &types.Container{
+		Name:     "test_app_2",
+		ID:       "1234567812345678123456781234567812345678123456781234567812340000",
+		Nodename: nodename,
+		Podname:  podname,
+	}
+	assert.NoError(t, m.AddContainer(ctx, newContainer))
+	containers, err = m.GetContainers(ctx, []string{container.ID, newContainer.ID})
+	assert.NoError(t, err)
+	assert.Equal(t, len(containers), 2)
+	assert.Equal(t, containers[0].Name, container.Name)
+	assert.Equal(t, containers[1].Name, newContainer.Name)
+	assert.NoError(t, m.RemoveContainer(ctx, newContainer))
 	// Deployed
 	assert.NoError(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, nodename, []byte{}, 0))
 	assert.NoError(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, nodename, []byte{}, 10))
