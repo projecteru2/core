@@ -141,7 +141,6 @@ func (m *Mercury) GetMulti(ctx context.Context, keys []string, opts ...clientv3.
 
 	if len(kvs) != len(keys) {
 		err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("keys: %v", keys))
-		return
 	}
 
 	return
