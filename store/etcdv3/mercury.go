@@ -122,6 +122,31 @@ func (m *Mercury) BatchGet(ctx context.Context, keys []string, opt ...clientv3.O
 	return txn.Then(ops...).Commit()
 }
 
+// GetMulti gets several results
+func (m *Mercury) GetMulti(ctx context.Context, keys []string, opts ...clientv3.OpOption) (kvs []*mvccpb.KeyValue, err error) {
+	var txnResponse *clientv3.TxnResponse
+	if txnResponse, err = m.BatchGet(ctx, keys); err != nil {
+		return
+	}
+
+	for idx, responseOp := range txnResponse.Responses {
+		resp := responseOp.GetResponseRange()
+		if resp.Count != 1 {
+			err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("key: %s", keys[idx]))
+			return
+		}
+
+		kvs = append(kvs, resp.Kvs[0])
+	}
+
+	if len(kvs) != len(keys) {
+		err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("keys: %v", keys))
+		return
+	}
+
+	return
+}
+
 // Delete delete key
 func (m *Mercury) Delete(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.DeleteResponse, error) {
 	return m.cliv3.Delete(ctx, m.parseKey(key), opts...)

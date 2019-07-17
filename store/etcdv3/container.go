@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"github.com/coreos/etcd/clientv3"
+	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -71,19 +72,15 @@ func (m *Mercury) GetContainers(ctx context.Context, IDs []string) (containers [
 	for _, ID := range IDs {
 		keys = append(keys, fmt.Sprintf(containerInfoKey, ID))
 	}
-	txnResponse := &clientv3.TxnResponse{}
-	if txnResponse, err = m.BatchGet(ctx, keys); err != nil {
+
+	kvs := []*mvccpb.KeyValue{}
+	if kvs, err = m.GetMulti(ctx, keys); err != nil {
 		return
 	}
 
-	for idx, responseOp := range txnResponse.Responses {
-		kvs := responseOp.GetResponseRange().Kvs
-		if len(kvs) == 0 {
-			return containers, types.ErrKeyNotExists
-		}
-
+	for idx, kv := range kvs {
 		container := &types.Container{}
-		if err = json.Unmarshal(kvs[0].Value, container); err != nil {
+		if err = json.Unmarshal(kv.Value, container); err != nil {
 			log.Errorf("[Mercury] failed to unmarshal json to container: %s", IDs[idx])
 			return
 		}
