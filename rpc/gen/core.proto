@@ -487,7 +487,7 @@ message LogStreamMessage {
 message ExecuteContainerOptions {
     string container_id = 1;
     repeated string commands = 2;
-    repeated string env = 3;
+    repeated string envs = 3;
     string workdir = 4;
     bool open_stdin = 5;
     bytes repl_cmd = 6;
