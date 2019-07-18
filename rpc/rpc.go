@@ -692,7 +692,7 @@ func (v *Vibranium) ExecuteContainer(opts *pb.ExecuteContainerOptions, stream pb
 		return
 	}
 
-	ch := make(<-chan *types.ExecuteContainerMessage)
+	var ch *types.ExecuteContainerMessage
 	if ch, err = v.cluster.ExecuteContainer(stream.Context(), executeContainerOpts); err != nil {
 		return
 	}

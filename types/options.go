@@ -84,7 +84,7 @@ type SetNodeOptions struct {
 type ExecuteContainerOptions struct {
 	ContainerID string
 	Commands    []string
-	Env         []string
+	Envs        []string
 	Workdir     string
 	OpenStdin   bool
 	ReplCmd     []byte
