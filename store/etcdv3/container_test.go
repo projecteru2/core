@@ -13,9 +13,8 @@ import (
 )
 
 func TestContainer(t *testing.T) {
-	etcd := InitCluster(t)
-	defer AfterTest(t, etcd)
-	m := NewMercury(t, etcd.RandClient())
+	m := NewMercury(t)
+	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	ID := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
@@ -100,13 +99,15 @@ func TestContainer(t *testing.T) {
 	containers, _ = m.ListNodeContainers(ctx, "n2")
 	assert.Equal(t, len(containers), 0)
 	// WatchDeployStatus
-	ctx2, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx2 := context.Background()
 	ch := m.WatchDeployStatus(ctx2, appname, entrypoint, "")
+	assert.NoError(t, m.ContainerDeployed(ctx2, ID, appname, entrypoint, nodename, []byte("something"), 0))
+	done := make(chan int)
 	go func() {
-		for s := range ch {
-			assert.Equal(t, s.Appname, appname)
-		}
+		s := <-ch
+		assert.Equal(t, s.Appname, appname)
+		done <- 1
 	}()
 	assert.NoError(t, m.RemoveContainer(ctx, container))
+	<-done
 }

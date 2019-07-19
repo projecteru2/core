@@ -73,20 +73,6 @@ func (_m *Store) AddPod(ctx context.Context, name string, desc string) (*types.P
 	return r0, r1
 }
 
-// CleanContainerData provides a mock function with given fields: ctx, ID, appname, entrypoint, nodename
-func (_m *Store) CleanContainerData(ctx context.Context, ID string, appname string, entrypoint string, nodename string) error {
-	ret := _m.Called(ctx, ID, appname, entrypoint, nodename)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) error); ok {
-		r0 = rf(ctx, ID, appname, entrypoint, nodename)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
 // ContainerDeployed provides a mock function with given fields: ctx, ID, appname, entrypoint, nodename, data, ttl
 func (_m *Store) ContainerDeployed(ctx context.Context, ID string, appname string, entrypoint string, nodename string, data []byte, ttl int64) error {
 	ret := _m.Called(ctx, ID, appname, entrypoint, nodename, data, ttl)
@@ -150,29 +136,6 @@ func (_m *Store) DeleteProcessing(ctx context.Context, opts *types.DeployOptions
 	}
 
 	return r0
-}
-
-// GetAllNodes provides a mock function with given fields: ctx
-func (_m *Store) GetAllNodes(ctx context.Context) ([]*types.Node, error) {
-	ret := _m.Called(ctx)
-
-	var r0 []*types.Node
-	if rf, ok := ret.Get(0).(func(context.Context) []*types.Node); ok {
-		r0 = rf(ctx)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*types.Node)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = rf(ctx)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
 }
 
 // GetAllPods provides a mock function with given fields: ctx

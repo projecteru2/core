@@ -10,9 +10,8 @@ import (
 )
 
 func TestNode(t *testing.T) {
-	etcd := InitCluster(t)
-	defer AfterTest(t, etcd)
-	m := NewMercury(t, etcd.RandClient())
+	m := NewMercury(t)
+	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	nodename := "testnode"
 	nodename2 := "testnode2"
@@ -89,13 +88,6 @@ func TestNode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, len(nodes), 2)
 	savedNode = nodes[0]
-	assert.Equal(t, savedNode.Name, node.Name)
-	assert.Equal(t, savedNode.Endpoint, node.Endpoint)
-	// GetAllNodes
-	nodes, err = m.GetAllNodes(ctx)
-	assert.NoError(t, err)
-	assert.Equal(t, len(nodes), 3)
-	savedNode = nodes[1]
 	assert.Equal(t, savedNode.Name, node.Name)
 	assert.Equal(t, savedNode.Endpoint, node.Endpoint)
 	// UpdateNode
