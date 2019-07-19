@@ -61,6 +61,7 @@ var (
 	ErrNoETCD       = errors.New("ETCD must be set")
 	ErrKeyNotExists = errors.New("Key not exists")
 	ErrKeyExists    = errors.New("Key exists")
+	ErrNoOps        = errors.New("No txn ops")
 
 	ErrNotSupport = errors.New("Not Support")
 	ErrSCMNotSet  = errors.New("SCM not set")
