@@ -41,18 +41,7 @@ func (m *Mercury) RemoveContainer(ctx context.Context, container *types.Containe
 		return err
 	}
 
-	return m.CleanContainerData(ctx, container.ID, appname, entrypoint, container.Nodename)
-}
-
-// CleanContainerData clean container data
-func (m *Mercury) CleanContainerData(ctx context.Context, ID, appname, entrypoint, nodename string) error {
-	keys := []string{
-		fmt.Sprintf(containerInfoKey, ID),
-		filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID),
-		fmt.Sprintf(nodeContainersKey, nodename, ID),
-	}
-	_, err := m.batchDelete(ctx, keys)
-	return err
+	return m.cleanContainerData(ctx, container.ID, appname, entrypoint, container.Nodename)
 }
 
 // GetContainer get a container
@@ -74,24 +63,6 @@ func (m *Mercury) GetContainers(ctx context.Context, IDs []string) (containers [
 	}
 
 	return m.doGetContainers(ctx, keys)
-}
-
-func (m *Mercury) doGetContainers(ctx context.Context, keys []string) (containers []*types.Container, err error) {
-	kvs := []*mvccpb.KeyValue{}
-	if kvs, err = m.GetMulti(ctx, keys); err != nil {
-		return
-	}
-
-	for _, kv := range kvs {
-		container := &types.Container{}
-		if err = json.Unmarshal(kv.Value, container); err != nil {
-			log.Errorf("[doGetContainers] failed to unmarshal %v, err: %v", kv.Key, err)
-			return
-		}
-		containers = append(containers, container)
-	}
-
-	return m.bindContainersAdditions(ctx, containers)
 }
 
 // ContainerDeployed store deployed container info
@@ -120,7 +91,7 @@ func (m *Mercury) ListContainers(ctx context.Context, appname, entrypoint, noden
 	}
 	// 这里显式加个 / 来保证 prefix 是唯一的
 	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename) + "/"
-	resp, err := m.Get(ctx, key, clientv3.WithPrefix())
+	resp, err := m.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithKeysOnly())
 	if err != nil {
 		return []*types.Container{}, err
 	}
@@ -137,7 +108,6 @@ func (m *Mercury) ListContainers(ctx context.Context, appname, entrypoint, noden
 // ListNodeContainers list containers belong to one node
 func (m *Mercury) ListNodeContainers(ctx context.Context, nodename string) ([]*types.Container, error) {
 	key := fmt.Sprintf(nodeContainersKey, nodename, "")
-
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix())
 	if err != nil {
 		return []*types.Container{}, err
@@ -145,11 +115,11 @@ func (m *Mercury) ListNodeContainers(ctx context.Context, nodename string) ([]*t
 
 	containers := []*types.Container{}
 	for _, ev := range resp.Kvs {
-		c := &types.Container{}
-		if err := json.Unmarshal(ev.Value, c); err != nil {
+		container := &types.Container{}
+		if err := json.Unmarshal(ev.Value, container); err != nil {
 			return []*types.Container{}, err
 		}
-		containers = append(containers, c)
+		containers = append(containers, container)
 	}
 
 	return m.bindContainersAdditions(ctx, containers)
@@ -178,13 +148,13 @@ func (m *Mercury) WatchDeployStatus(ctx context.Context, appname, entrypoint, no
 				return
 			}
 			for _, ev := range resp.Events {
-				appname, entrypoint, nodename, id := parseStatusKey(string(ev.Kv.Key))
-				msg.Data = string(ev.Kv.Value)
-				msg.Action = ev.Type.String()
+				appname, entrypoint, nodename, ID := parseStatusKey(string(ev.Kv.Key))
+				msg.ID = ID
 				msg.Appname = appname
 				msg.Entrypoint = entrypoint
 				msg.Nodename = nodename
-				msg.ID = id
+				msg.Data = string(ev.Kv.Value)
+				msg.Action = ev.Type.String()
 				log.Debugf("[WatchDeployStatus] app %s_%s event, id %s, action %s", appname, entrypoint, utils.ShortID(msg.ID), msg.Action)
 				if msg.Data != "" {
 					log.Debugf("[WatchDeployStatus] data %s", msg.Data)
@@ -194,6 +164,34 @@ func (m *Mercury) WatchDeployStatus(ctx context.Context, appname, entrypoint, no
 		}
 	}()
 	return ch
+}
+
+func (m *Mercury) cleanContainerData(ctx context.Context, ID, appname, entrypoint, nodename string) error {
+	keys := []string{
+		fmt.Sprintf(containerInfoKey, ID),                                       // container info
+		filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID), // container deploy status
+		fmt.Sprintf(nodeContainersKey, nodename, ID),                            // node containers
+	}
+	_, err := m.batchDelete(ctx, keys)
+	return err
+}
+
+func (m *Mercury) doGetContainers(ctx context.Context, keys []string) (containers []*types.Container, err error) {
+	var kvs []*mvccpb.KeyValue
+	if kvs, err = m.GetMulti(ctx, keys); err != nil {
+		return
+	}
+
+	for _, kv := range kvs {
+		container := &types.Container{}
+		if err = json.Unmarshal(kv.Value, container); err != nil {
+			log.Errorf("[doGetContainers] failed to unmarshal %v, err: %v", kv.Key, err)
+			return
+		}
+		containers = append(containers, container)
+	}
+
+	return m.bindContainersAdditions(ctx, containers)
 }
 
 func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*types.Container) ([]*types.Container, error) {
@@ -213,8 +211,9 @@ func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*typ
 		if err != nil {
 			return nil, err
 		}
-		key := filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)
-		deployKeys = append(deployKeys, key)
+		deployKeys = append(deployKeys,
+			filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID),
+		)
 	}
 
 	// deal with container status
@@ -247,7 +246,6 @@ func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*typ
 
 func (m *Mercury) doOpsContainer(ctx context.Context, container *types.Container, create bool) error {
 	var err error
-
 	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
 	if err != nil {
 		return err

@@ -34,7 +34,6 @@ type Store interface {
 	GetNode(ctx context.Context, podname, nodename string) (*types.Node, error)
 	GetNodeByName(ctx context.Context, nodename string) (*types.Node, error)
 	GetNodesByPod(ctx context.Context, podname string) ([]*types.Node, error)
-	GetAllNodes(ctx context.Context) ([]*types.Node, error)
 	UpdateNode(ctx context.Context, node *types.Node) error
 	UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, memory, storage int64, action string) error
 
@@ -42,7 +41,6 @@ type Store interface {
 	AddContainer(ctx context.Context, container *types.Container) error
 	UpdateContainer(ctx context.Context, container *types.Container) error
 	RemoveContainer(ctx context.Context, container *types.Container) error
-	CleanContainerData(ctx context.Context, ID, appname, entrypoint, nodename string) error
 	GetContainer(ctx context.Context, ID string) (*types.Container, error)
 	GetContainers(ctx context.Context, IDs []string) ([]*types.Container, error)
 	ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename string, data []byte, ttl int64) error

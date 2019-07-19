@@ -5,21 +5,12 @@ import (
 	"testing"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/integration"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 )
 
-func InitCluster(t *testing.T) *integration.ClusterV3 {
-	return integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
-}
-
-func AfterTest(t *testing.T, cluster *integration.ClusterV3) {
-	cluster.Terminate(t)
-}
-
-func NewMercury(t *testing.T, cliv3 *clientv3.Client) *Mercury {
+func NewMercury(t *testing.T) *Mercury {
 	config := types.Config{}
 	config.LockTimeout = 10
 	config.Etcd = types.EtcdConfig{
@@ -29,13 +20,14 @@ func NewMercury(t *testing.T, cliv3 *clientv3.Client) *Mercury {
 	}
 	//	config.Docker.CertPath = "/tmp"
 
-	return &Mercury{cliv3, config}
+	m, err := New(config, true)
+	assert.NoError(t, err)
+	return m
 }
 
 func TestMercury(t *testing.T) {
-	etcd := InitCluster(t)
-	defer AfterTest(t, etcd)
-	m := NewMercury(t, etcd.RandClient())
+	m := NewMercury(t)
+	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 
 	// CreateLock
