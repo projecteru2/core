@@ -51,7 +51,7 @@ func (m *Mercury) CleanContainerData(ctx context.Context, ID, appname, entrypoin
 		filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID),
 		fmt.Sprintf(nodeContainersKey, nodename, ID),
 	}
-	_, err := m.BatchDelete(ctx, keys)
+	_, err := m.batchDelete(ctx, keys)
 	return err
 }
 
@@ -73,20 +73,25 @@ func (m *Mercury) GetContainers(ctx context.Context, IDs []string) (containers [
 		keys = append(keys, fmt.Sprintf(containerInfoKey, ID))
 	}
 
+	return m.doGetContainers(ctx, keys)
+}
+
+func (m *Mercury) doGetContainers(ctx context.Context, keys []string) (containers []*types.Container, err error) {
 	kvs := []*mvccpb.KeyValue{}
 	if kvs, err = m.GetMulti(ctx, keys); err != nil {
 		return
 	}
 
-	for idx, kv := range kvs {
+	for _, kv := range kvs {
 		container := &types.Container{}
 		if err = json.Unmarshal(kv.Value, container); err != nil {
-			log.Errorf("[Mercury] failed to unmarshal json to container: %s", IDs[idx])
+			log.Errorf("[doGetContainers] failed to unmarshal %v, err: %v", kv.Key, err)
 			return
 		}
 		containers = append(containers, container)
 	}
-	return
+
+	return m.bindContainersAdditions(ctx, containers)
 }
 
 // ContainerDeployed store deployed container info
@@ -120,12 +125,13 @@ func (m *Mercury) ListContainers(ctx context.Context, appname, entrypoint, noden
 		return []*types.Container{}, err
 	}
 
-	IDs := []string{}
+	keys := []string{}
 	for _, ev := range resp.Kvs {
 		containerID := utils.Tail(string(ev.Key))
-		IDs = append(IDs, containerID)
+		keys = append(keys, fmt.Sprintf(containerInfoKey, containerID))
 	}
-	return m.GetContainers(ctx, IDs)
+
+	return m.doGetContainers(ctx, keys)
 }
 
 // ListNodeContainers list containers belong to one node
@@ -143,14 +149,10 @@ func (m *Mercury) ListNodeContainers(ctx context.Context, nodename string) ([]*t
 		if err := json.Unmarshal(ev.Value, c); err != nil {
 			return []*types.Container{}, err
 		}
-
-		if c, err = m.bindContainerAdditions(ctx, c); err != nil {
-			return []*types.Container{}, err
-		}
-
 		containers = append(containers, c)
 	}
-	return containers, nil
+
+	return m.bindContainersAdditions(ctx, containers)
 }
 
 // WatchDeployStatus watch deployed status
@@ -194,26 +196,53 @@ func (m *Mercury) WatchDeployStatus(ctx context.Context, appname, entrypoint, no
 	return ch
 }
 
-func (m *Mercury) bindContainerAdditions(ctx context.Context, container *types.Container) (*types.Container, error) {
-	node, err := m.GetNode(ctx, container.Podname, container.Nodename)
+func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*types.Container) ([]*types.Container, error) {
+	podNodes := map[string][]string{}
+	isCached := map[string]struct{}{}
+	deployKeys := []string{}
+	deployStatus := map[string][]byte{}
+	for _, container := range containers {
+		if _, ok := podNodes[container.Podname]; !ok {
+			podNodes[container.Podname] = []string{}
+		}
+		if _, ok := isCached[container.Nodename]; !ok {
+			podNodes[container.Podname] = append(podNodes[container.Podname], container.Nodename)
+			isCached[container.Nodename] = struct{}{}
+		}
+		appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
+		if err != nil {
+			return nil, err
+		}
+		key := filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)
+		deployKeys = append(deployKeys, key)
+	}
+
+	// deal with container status
+	kvs, err := m.GetMulti(ctx, deployKeys)
+	if err != nil {
+		return nil, err
+	}
+	for _, kv := range kvs {
+		containerID := utils.Tail(string(kv.Key))
+		deployStatus[containerID] = kv.Value
+	}
+
+	nodes, err := m.GetNodes(ctx, podNodes)
 	if err != nil {
 		return nil, err
 	}
 
-	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
-	if err != nil {
-		return nil, err
+	for index, container := range containers {
+		if _, ok := nodes[container.Nodename]; !ok {
+			return nil, types.ErrBadMeta
+		}
+		containers[index].Engine = nodes[container.Nodename].Engine
+		if _, ok := deployStatus[container.ID]; !ok {
+			return nil, types.ErrBadMeta
+		}
+		containers[index].StatusData = deployStatus[container.ID]
 	}
-
-	key := filepath.Join(containerDeployPrefix, appname, entrypoint, node.Name, container.ID)
-	ev, err := m.GetOne(ctx, key)
-	if err != nil {
-		return nil, err
-	}
-
-	container.StatusData = ev.Value
-	container.Engine = node.Engine
-	return container, nil
+	return containers, nil
 }
 
 func (m *Mercury) doOpsContainer(ctx context.Context, container *types.Container, create bool) error {

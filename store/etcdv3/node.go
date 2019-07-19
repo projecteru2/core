@@ -103,18 +103,43 @@ func (m *Mercury) DeleteNode(ctx context.Context, node *types.Node) error {
 // and since node is not the smallest unit to user, to get a node we must specify the corresponding pod
 // storage path in etcd is `/pod/nodes/:podname/:nodename`
 func (m *Mercury) GetNode(ctx context.Context, podname, nodename string) (*types.Node, error) {
-	node, err := m.doGetNode(ctx, podname, nodename)
+	podNodes := map[string][]string{podname: []string{nodename}}
+	nodes, err := m.GetNodes(ctx, podNodes)
+	if _, ok := nodes[nodename]; !ok {
+		return nil, types.ErrBadMeta
+	}
+	return nodes[nodename], err
+}
+
+// GetNodes get nodes
+func (m *Mercury) GetNodes(ctx context.Context, podNodes map[string][]string) (map[string]*types.Node, error) {
+	nodesKeys := []string{}
+	for podname, nodenames := range podNodes {
+		for _, nodename := range nodenames {
+			key := fmt.Sprintf(nodeInfoKey, podname, nodename)
+			nodesKeys = append(nodesKeys, key)
+		}
+	}
+
+	kvs, err := m.GetMulti(ctx, nodesKeys)
 	if err != nil {
 		return nil, err
 	}
 
-	engine, err := m.makeClient(ctx, podname, nodename, node.Endpoint, false)
-	if err != nil {
-		return nil, err
+	nodes := map[string]*types.Node{}
+	for _, kv := range kvs {
+		node := &types.Node{}
+		if err := json.Unmarshal(kv.Value, node); err != nil {
+			return nil, err
+		}
+		engine, err := m.makeClient(ctx, node.Podname, node.Name, node.Endpoint, false)
+		if err != nil {
+			return nil, err
+		}
+		node.Engine = engine
+		nodes[node.Name] = node
 	}
-
-	node.Engine = engine
-	return node, nil
+	return nodes, nil
 }
 
 // GetNodeByName get node by name
@@ -344,7 +369,7 @@ func (m *Mercury) doDeleteNode(ctx context.Context, podname, nodename, endpoint 
 	}
 
 	_cache.Delete(nodename)
-	_, err := m.BatchDelete(ctx, keys)
+	_, err := m.batchDelete(ctx, keys)
 	log.Infof("[doDeleteNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 	return err
 }

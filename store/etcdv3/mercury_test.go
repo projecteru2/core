@@ -66,7 +66,7 @@ func TestMercury(t *testing.T) {
 	m.Put(ctx, "d2", "a")
 	m.Put(ctx, "d3", "a")
 	// BatchDelete
-	r, err := m.BatchDelete(ctx, []string{"d1", "d2", "d3"})
+	r, err := m.batchDelete(ctx, []string{"d1", "d2", "d3"})
 	assert.NoError(t, err)
 	assert.True(t, r.Succeeded)
 	// Create
