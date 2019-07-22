@@ -89,15 +89,15 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.ListNetworkOptions.SerializeToString,
         response_deserializer=core__pb2.Networks.FromString,
         )
-    self.ListContainers = channel.unary_unary(
-        '/pb.CoreRPC/ListContainers',
-        request_serializer=core__pb2.ListContainersOptions.SerializeToString,
-        response_deserializer=core__pb2.Containers.FromString,
-        )
     self.ListNodeContainers = channel.unary_unary(
         '/pb.CoreRPC/ListNodeContainers',
         request_serializer=core__pb2.GetNodeOptions.SerializeToString,
         response_deserializer=core__pb2.Containers.FromString,
+        )
+    self.ListContainers = channel.unary_stream(
+        '/pb.CoreRPC/ListContainers',
+        request_serializer=core__pb2.ListContainersOptions.SerializeToString,
+        response_deserializer=core__pb2.Container.FromString,
         )
     self.ContainerDeployed = channel.unary_unary(
         '/pb.CoreRPC/ContainerDeployed',
@@ -285,14 +285,14 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def ListContainers(self, request, context):
+  def ListNodeContainers(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def ListNodeContainers(self, request, context):
+  def ListContainers(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -482,15 +482,15 @@ def add_CoreRPCServicer_to_server(servicer, server):
           request_deserializer=core__pb2.ListNetworkOptions.FromString,
           response_serializer=core__pb2.Networks.SerializeToString,
       ),
-      'ListContainers': grpc.unary_unary_rpc_method_handler(
-          servicer.ListContainers,
-          request_deserializer=core__pb2.ListContainersOptions.FromString,
-          response_serializer=core__pb2.Containers.SerializeToString,
-      ),
       'ListNodeContainers': grpc.unary_unary_rpc_method_handler(
           servicer.ListNodeContainers,
           request_deserializer=core__pb2.GetNodeOptions.FromString,
           response_serializer=core__pb2.Containers.SerializeToString,
+      ),
+      'ListContainers': grpc.unary_stream_rpc_method_handler(
+          servicer.ListContainers,
+          request_deserializer=core__pb2.ListContainersOptions.FromString,
+          response_serializer=core__pb2.Container.SerializeToString,
       ),
       'ContainerDeployed': grpc.unary_unary_rpc_method_handler(
           servicer.ContainerDeployed,
