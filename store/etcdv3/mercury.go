@@ -124,6 +124,10 @@ func (m *Mercury) GetOne(ctx context.Context, key string, opts ...clientv3.OpOpt
 // GetMulti gets several results
 func (m *Mercury) GetMulti(ctx context.Context, keys []string, opts ...clientv3.OpOption) (kvs []*mvccpb.KeyValue, err error) {
 	var txnResponse *clientv3.TxnResponse
+	if len(keys) == 0 {
+		return
+	}
+
 	if txnResponse, err = m.batchGet(ctx, keys); err != nil {
 		return
 	}
