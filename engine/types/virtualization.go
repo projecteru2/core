@@ -73,10 +73,3 @@ type VirtualizationWaitResult struct {
 	Message string
 	Code    int64
 }
-
-// VirtualizationExecuteResult store execution result
-type VirtualizationExecuteResult struct {
-	Stdout   string
-	Stderr   string
-	ExitCode int64
-}

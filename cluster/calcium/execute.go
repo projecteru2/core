@@ -1,19 +1,24 @@
 package calcium
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
+	log "github.com/sirupsen/logrus"
 )
 
 // ExecuteContainer executes commands in running containers
-func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions) (ch chan *types.ExecuteContainerMessage, err error) {
+func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions) (ch chan *types.ExecuteContainerMessage) {
 	ch = make(chan *types.ExecuteContainerMessage)
+
 	go func() {
 		defer close(ch)
 
+		var err error
 		errMsg := ""
 		defer func() {
 			if err != nil && errMsg != "" {
@@ -45,14 +50,30 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 			return
 		}
 
-		resp := &enginetypes.VirtualizationExecuteResult{}
-		if resp, err = node.Engine.VirtualizationExecute(ctx, opts.ContainerID, opts.Commands, opts.Envs, opts.Workdir); err != nil {
+		var output io.ReadCloser
+		if _, output, err = node.Engine.VirtualizationExecute(ctx, opts.ContainerID, opts.Commands, opts.Envs, opts.Workdir); err != nil {
 			errMsg = fmt.Sprintf("[Calcium.ExecuteContainer] failed to execute container %s: %v", container.ID, err)
 			return
 		}
 
-		ch <- &types.ExecuteContainerMessage{ContainerID: opts.ContainerID, Data: []byte(resp.Stdout)}
+		scanner := bufio.NewScanner(output)
+		for scanner.Scan() {
+			data := scanner.Bytes()
+			ch <- &types.ExecuteContainerMessage{ContainerID: opts.ContainerID, Data: data}
+		}
 
+		if err = scanner.Err(); err != nil {
+			if err == context.Canceled {
+				return
+			}
+
+			log.Errorf("[Calcium.ExecuteContainer] failed to parse log for %s: %v", opts.ContainerID, err)
+			errMsg = fmt.Sprintf("[exitcde] unknown error: %v", err)
+			return
+		}
+
+		log.Infof("[Calcium.ExecuteContainer] container exec complete: %s", opts.ContainerID)
 	}()
+
 	return
 }

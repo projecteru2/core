@@ -692,12 +692,7 @@ func (v *Vibranium) ExecuteContainer(opts *pb.ExecuteContainerOptions, stream pb
 		return
 	}
 
-	var ch *types.ExecuteContainerMessage
-	if ch, err = v.cluster.ExecuteContainer(stream.Context(), executeContainerOpts); err != nil {
-		return
-	}
-
-	for m := range ch {
+	for m := range v.cluster.ExecuteContainer(stream.Context(), executeContainerOpts) {
 		if err = stream.Send(toRPCExecuteContainerMessage(m)); err != nil {
 			v.logUnsentMessages("ExecuteContainer", m)
 		}

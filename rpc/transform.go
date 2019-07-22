@@ -451,7 +451,8 @@ func toCoreExecuteContainerOptions(b *pb.ExecuteContainerOptions) (opts *types.E
 	return &types.ExecuteContainerOptions{
 		ContainerID: b.ContainerId,
 		Commands:    b.Commands,
-		Env:         b.Env,
+		Envs:        b.Envs,
+		Workdir:     b.Workdir,
 		OpenStdin:   b.OpenStdin,
 		ReplCmd:     b.ReplCmd,
 	}, nil
