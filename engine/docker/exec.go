@@ -13,6 +13,7 @@ func (e *Engine) ExecCreate(ctx context.Context, target string, config *enginety
 	execConfig := dockertypes.ExecConfig{
 		User:         config.User,
 		Cmd:          config.Cmd,
+		WorkingDir:   config.WorkingDir,
 		Privileged:   config.Privileged,
 		Env:          config.Env,
 		AttachStderr: config.AttachStderr,

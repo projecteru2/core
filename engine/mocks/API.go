@@ -492,38 +492,6 @@ func (_m *API) VirtualizationCreate(ctx context.Context, opts *types.Virtualizat
 	return r0, r1
 }
 
-// VirtualizationExecute provides a mock function with given fields: ctx, ID, commands, envs, workdir
-func (_m *API) VirtualizationExecute(ctx context.Context, ID string, commands []string, envs []string, workdir string) (io.WriteCloser, io.ReadCloser, error) {
-	ret := _m.Called(ctx, ID, commands, envs, workdir)
-
-	var r0 io.WriteCloser
-	if rf, ok := ret.Get(0).(func(context.Context, string, []string, []string, string) io.WriteCloser); ok {
-		r0 = rf(ctx, ID, commands, envs, workdir)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.WriteCloser)
-		}
-	}
-
-	var r1 io.ReadCloser
-	if rf, ok := ret.Get(1).(func(context.Context, string, []string, []string, string) io.ReadCloser); ok {
-		r1 = rf(ctx, ID, commands, envs, workdir)
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(io.ReadCloser)
-		}
-	}
-
-	var r2 error
-	if rf, ok := ret.Get(2).(func(context.Context, string, []string, []string, string) error); ok {
-		r2 = rf(ctx, ID, commands, envs, workdir)
-	} else {
-		r2 = ret.Error(2)
-	}
-
-	return r0, r1, r2
-}
-
 // VirtualizationInspect provides a mock function with given fields: ctx, ID
 func (_m *API) VirtualizationInspect(ctx context.Context, ID string) (*types.VirtualizationInfo, error) {
 	ret := _m.Called(ctx, ID)

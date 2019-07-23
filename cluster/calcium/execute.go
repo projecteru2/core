@@ -29,30 +29,39 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 
 		container, err := c.GetContainer(ctx, opts.ContainerID)
 		if err != nil {
-			errMsg = fmt.Sprintf("[Calcium.ExecuteContainer] failed to get container %s: %v", opts.ContainerID, err)
+			errMsg = fmt.Sprintf("failed to get container %s: %v", opts.ContainerID, err)
 			return
 		}
 
 		info := &enginetypes.VirtualizationInfo{}
 		if info, err = container.Inspect(ctx); err != nil {
-			errMsg = fmt.Sprintf("[Calcium.ExecuteContainer] failed to get info of contaienr %s: %v", opts.ContainerID, err)
+			errMsg = fmt.Sprintf("failed to get info of contaienr %s: %v", opts.ContainerID, err)
 			return
 		}
 
 		if !info.Running {
-			errMsg = fmt.Sprintf("[Calcium.ExecuteContainer] container %s not running, abort", opts.ContainerID)
+			errMsg = fmt.Sprintf("container %s not running, abort", opts.ContainerID)
 			return
 		}
 
-		node := &types.Node{}
-		if node, err = c.GetNode(ctx, container.Podname, container.Nodename); err != nil {
-			errMsg = fmt.Sprintf("[Calcium.ExecuteContainer] failed to get node for container %s: %v", container.ID, err)
+		execID := ""
+		execConfig := &enginetypes.ExecConfig{
+			Env:          opts.Envs,
+			WorkingDir:   opts.Workdir,
+			Cmd:          opts.Commands,
+			AttachStderr: true,
+			AttachStdout: true,
+			AttachStdin:  false, // TODO
+			Tty:          false, // TODO
+			Detach:       false,
+		}
+		if execID, err = container.Engine.ExecCreate(ctx, opts.ContainerID, execConfig); err != nil {
 			return
 		}
 
+		tty := false
 		var output io.ReadCloser
-		if _, output, err = node.Engine.VirtualizationExecute(ctx, opts.ContainerID, opts.Commands, opts.Envs, opts.Workdir); err != nil {
-			errMsg = fmt.Sprintf("[Calcium.ExecuteContainer] failed to execute container %s: %v", container.ID, err)
+		if output, err = container.Engine.ExecAttach(ctx, execID, false, tty); err != nil {
 			return
 		}
 
@@ -64,11 +73,12 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 
 		if err = scanner.Err(); err != nil {
 			if err == context.Canceled {
+				err = nil
 				return
 			}
 
 			log.Errorf("[Calcium.ExecuteContainer] failed to parse log for %s: %v", opts.ContainerID, err)
-			errMsg = fmt.Sprintf("[exitcde] unknown error: %v", err)
+			errMsg = fmt.Sprintf("unknown error: %v", err)
 			return
 		}
 

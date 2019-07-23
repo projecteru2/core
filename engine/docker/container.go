@@ -2,7 +2,6 @@ package docker
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -224,41 +223,4 @@ func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (i
 		return nil, "", err
 	}
 	return resp, stat.Name, err
-}
-
-// VirtualizationExecute executes commands in a running container
-func (e *Engine) VirtualizationExecute(ctx context.Context, containerID string, commands []string, envs []string, workdir string) (input io.WriteCloser, output io.ReadCloser, err error) {
-	execConfig := dockertypes.ExecConfig{
-		Env:          envs,
-		WorkingDir:   workdir,
-		Cmd:          commands,
-		AttachStderr: true,
-		AttachStdout: true,
-		AttachStdin:  false, // TODO
-		Tty:          false, // TODO
-		Detach:       false,
-	}
-
-	resp := dockertypes.IDResponse{}
-	if resp, err = e.client.ContainerExecCreate(ctx, containerID, execConfig); err != nil {
-		return
-	}
-
-	execID := resp.ID
-	if execID == "" {
-		err = errors.New("exec ID empty")
-		return
-	}
-
-	attachResp := dockertypes.HijackedResponse{}
-	execStartCheck := dockertypes.ExecStartCheck{
-		Tty: false,
-	}
-	if attachResp, err = e.client.ContainerExecAttach(ctx, execID, execStartCheck); err != nil {
-		return
-	}
-
-	input = attachResp.Conn
-	output = ioutil.NopCloser(attachResp.Reader)
-	return
 }
