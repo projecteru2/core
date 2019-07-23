@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
@@ -19,32 +18,33 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 		defer close(ch)
 
 		var err error
-		errMsg := ""
+		responses := []string{}
 		defer func() {
-			if err != nil && errMsg != "" {
-				msg := &types.ExecuteContainerMessage{ContainerID: opts.ContainerID, Data: []byte(errMsg)}
-				ch <- msg
+			if len(responses) != 0 {
+				for _, resp := range responses {
+					msg := &types.ExecuteContainerMessage{ContainerID: opts.ContainerID, Data: []byte(resp)}
+					ch <- msg
+				}
 			}
 		}()
 
 		container, err := c.GetContainer(ctx, opts.ContainerID)
 		if err != nil {
-			errMsg = fmt.Sprintf("failed to get container %s: %v", opts.ContainerID, err)
+			responses = append(responses, err.Error())
 			return
 		}
 
-		info := &enginetypes.VirtualizationInfo{}
-		if info, err = container.Inspect(ctx); err != nil {
-			errMsg = fmt.Sprintf("failed to get info of contaienr %s: %v", opts.ContainerID, err)
+		info, err := container.Inspect(ctx)
+		if err != nil {
+			responses = append(responses, err.Error())
 			return
 		}
 
 		if !info.Running {
-			errMsg = fmt.Sprintf("container %s not running, abort", opts.ContainerID)
+			responses = append(responses, fmt.Sprintf("container %s not running, abort", opts.ContainerID))
 			return
 		}
 
-		execID := ""
 		execConfig := &enginetypes.ExecConfig{
 			Env:          opts.Envs,
 			WorkingDir:   opts.Workdir,
@@ -55,17 +55,18 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 			Tty:          false, // TODO
 			Detach:       false,
 		}
-		if execID, err = container.Engine.ExecCreate(ctx, opts.ContainerID, execConfig); err != nil {
+		execID, err := container.Engine.ExecCreate(ctx, opts.ContainerID, execConfig)
+		if err != nil {
 			return
 		}
 
 		tty := false
-		var output io.ReadCloser
-		if output, err = container.Engine.ExecAttach(ctx, execID, false, tty); err != nil {
+		stdout, err := container.Engine.ExecAttach(ctx, execID, false, tty)
+		if err != nil {
 			return
 		}
 
-		scanner := bufio.NewScanner(output)
+		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			data := scanner.Bytes()
 			ch <- &types.ExecuteContainerMessage{ContainerID: opts.ContainerID, Data: data}
@@ -78,7 +79,7 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 			}
 
 			log.Errorf("[Calcium.ExecuteContainer] failed to parse log for %s: %v", opts.ContainerID, err)
-			errMsg = fmt.Sprintf("unknown error: %v", err)
+			responses = append(responses, err.Error())
 			return
 		}
 
