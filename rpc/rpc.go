@@ -108,6 +108,7 @@ func (v *Vibranium) ListContainers(opts *pb.ListContainersOptions, stream pb.Cor
 		Appname:    opts.Appname,
 		Entrypoint: opts.Entrypoint,
 		Nodename:   opts.Nodename,
+		Limit:      opts.Limit,
 	}
 	containers, err := v.cluster.ListContainers(stream.Context(), lsopts)
 	if err != nil {

@@ -56,6 +56,7 @@ type ListContainersOptions struct {
 	Appname    string
 	Entrypoint string
 	Nodename   string
+	Limit      int64
 }
 
 // ReplaceOptions for replace container

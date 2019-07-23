@@ -20,11 +20,9 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 		var err error
 		responses := []string{}
 		defer func() {
-			if len(responses) != 0 {
-				for _, resp := range responses {
-					msg := &types.ExecuteContainerMessage{ContainerID: opts.ContainerID, Data: []byte(resp)}
-					ch <- msg
-				}
+			for _, resp := range responses {
+				msg := &types.ExecuteContainerMessage{ContainerID: opts.ContainerID, Data: []byte(resp)}
+				ch <- msg
 			}
 		}()
 

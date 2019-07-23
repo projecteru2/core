@@ -66,7 +66,7 @@ func (c *Calcium) ListPodNodes(ctx context.Context, podname string, all bool) ([
 
 // ListContainers list containers
 func (c *Calcium) ListContainers(ctx context.Context, opts *types.ListContainersOptions) ([]*types.Container, error) {
-	return c.store.ListContainers(ctx, opts.Appname, opts.Entrypoint, opts.Nodename)
+	return c.store.ListContainers(ctx, opts.Appname, opts.Entrypoint, opts.Nodename, opts.Limit)
 }
 
 // ListNodeContainers list containers belong to one node

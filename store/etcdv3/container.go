@@ -82,7 +82,7 @@ func (m *Mercury) ContainerDeployed(ctx context.Context, ID, appname, entrypoint
 }
 
 // ListContainers list containers
-func (m *Mercury) ListContainers(ctx context.Context, appname, entrypoint, nodename string) ([]*types.Container, error) {
+func (m *Mercury) ListContainers(ctx context.Context, appname, entrypoint, nodename string, limit int64) ([]*types.Container, error) {
 	if appname == "" {
 		entrypoint = ""
 	}
@@ -91,7 +91,7 @@ func (m *Mercury) ListContainers(ctx context.Context, appname, entrypoint, noden
 	}
 	// 这里显式加个 / 来保证 prefix 是唯一的
 	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename) + "/"
-	resp, err := m.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithKeysOnly())
+	resp, err := m.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithKeysOnly(), clientv3.WithLimit(limit))
 	if err != nil {
 		return []*types.Container{}, err
 	}
