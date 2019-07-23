@@ -299,13 +299,13 @@ func (_m *Store) GetPod(ctx context.Context, podname string) (*types.Pod, error)
 	return r0, r1
 }
 
-// ListContainers provides a mock function with given fields: ctx, appname, entrypoint, nodename
-func (_m *Store) ListContainers(ctx context.Context, appname string, entrypoint string, nodename string) ([]*types.Container, error) {
-	ret := _m.Called(ctx, appname, entrypoint, nodename)
+// ListContainers provides a mock function with given fields: ctx, appname, entrypoint, nodename, limit
+func (_m *Store) ListContainers(ctx context.Context, appname string, entrypoint string, nodename string, limit int64) ([]*types.Container, error) {
+	ret := _m.Called(ctx, appname, entrypoint, nodename, limit)
 
 	var r0 []*types.Container
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) []*types.Container); ok {
-		r0 = rf(ctx, appname, entrypoint, nodename)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, int64) []*types.Container); ok {
+		r0 = rf(ctx, appname, entrypoint, nodename, limit)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*types.Container)
@@ -313,8 +313,8 @@ func (_m *Store) ListContainers(ctx context.Context, appname string, entrypoint 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
-		r1 = rf(ctx, appname, entrypoint, nodename)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, int64) error); ok {
+		r1 = rf(ctx, appname, entrypoint, nodename, limit)
 	} else {
 		r1 = ret.Error(1)
 	}

@@ -149,7 +149,7 @@ func TestListContainers(t *testing.T) {
 
 	store := &storemocks.Store{}
 	c.store = store
-	store.On("ListContainers", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
+	store.On("ListContainers", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
 	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(containers, nil)
 
 	cs, err := c.ListContainers(ctx, &types.ListContainersOptions{Appname: "", Entrypoint: "", Nodename: ""})
