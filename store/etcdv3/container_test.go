@@ -13,9 +13,8 @@ import (
 )
 
 func TestContainer(t *testing.T) {
-	etcd := InitCluster(t)
-	defer AfterTest(t, etcd)
-	m := NewMercury(t, etcd.RandClient())
+	m := NewMercury(t)
+	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	ID := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
@@ -71,6 +70,20 @@ func TestContainer(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, len(containers), 1)
 	assert.Equal(t, containers[0].Name, name)
+	// GetContainers for multiple containers
+	newContainer := &types.Container{
+		Name:     "test_app_2",
+		ID:       "1234567812345678123456781234567812345678123456781234567812340000",
+		Nodename: nodename,
+		Podname:  podname,
+	}
+	assert.NoError(t, m.AddContainer(ctx, newContainer))
+	containers, err = m.GetContainers(ctx, []string{container.ID, newContainer.ID})
+	assert.NoError(t, err)
+	assert.Equal(t, len(containers), 2)
+	assert.Equal(t, containers[0].Name, container.Name)
+	assert.Equal(t, containers[1].Name, newContainer.Name)
+	assert.NoError(t, m.RemoveContainer(ctx, newContainer))
 	// Deployed
 	assert.NoError(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, nodename, []byte{}, 0))
 	assert.NoError(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, nodename, []byte{}, 10))
@@ -86,37 +99,15 @@ func TestContainer(t *testing.T) {
 	containers, _ = m.ListNodeContainers(ctx, "n2")
 	assert.Equal(t, len(containers), 0)
 	// WatchDeployStatus
-	ctx2, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx2 := context.Background()
 	ch := m.WatchDeployStatus(ctx2, appname, entrypoint, "")
+	assert.NoError(t, m.ContainerDeployed(ctx2, ID, appname, entrypoint, nodename, []byte("something"), 0))
+	done := make(chan int)
 	go func() {
-		for s := range ch {
-			assert.Equal(t, s.Appname, appname)
-		}
+		s := <-ch
+		assert.Equal(t, s.Appname, appname)
+		done <- 1
 	}()
 	assert.NoError(t, m.RemoveContainer(ctx, container))
-	// bindContainerAdditions
-	testC := &types.Container{
-		Podname:  "t",
-		Nodename: "x",
-	}
-	// failed by GetNode
-	_, err = m.bindContainerAdditions(ctx, testC)
-	assert.Error(t, err)
-	testC.Nodename = nodename
-	testC.Podname = podname
-	// failed by ParseContainerName
-	_, err = m.bindContainerAdditions(ctx, testC)
-	assert.Error(t, err)
-	// failed by GetOne
-	testC.Name = name
-	_, err = m.bindContainerAdditions(ctx, testC)
-	assert.Error(t, err)
-	// correct
-	testC.ID = ID
-	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID)
-	_, err = m.Put(ctx, key, "")
-	assert.NoError(t, err)
-	_, err = m.bindContainerAdditions(ctx, testC)
-	assert.NoError(t, err)
+	<-done
 }

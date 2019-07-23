@@ -38,7 +38,7 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 		return nil, err
 	}
 
-	if _, err := m.doGetNode(ctx, podname, name); err == nil {
+	if _, err := m.GetNode(ctx, podname, name); err == nil {
 		return nil, types.NewDetailedErr(types.ErrNodeExist,
 			fmt.Sprintf("node %s:%s already exists",
 				podname, name))
@@ -103,18 +103,43 @@ func (m *Mercury) DeleteNode(ctx context.Context, node *types.Node) error {
 // and since node is not the smallest unit to user, to get a node we must specify the corresponding pod
 // storage path in etcd is `/pod/nodes/:podname/:nodename`
 func (m *Mercury) GetNode(ctx context.Context, podname, nodename string) (*types.Node, error) {
-	node, err := m.doGetNode(ctx, podname, nodename)
+	podNodes := map[string][]string{podname: []string{nodename}}
+	nodes, err := m.GetNodes(ctx, podNodes)
+	if _, ok := nodes[nodename]; !ok {
+		return nil, types.ErrBadMeta
+	}
+	return nodes[nodename], err
+}
+
+// GetNodes get nodes
+func (m *Mercury) GetNodes(ctx context.Context, podNodes map[string][]string) (map[string]*types.Node, error) {
+	nodesKeys := []string{}
+	for podname, nodenames := range podNodes {
+		for _, nodename := range nodenames {
+			key := fmt.Sprintf(nodeInfoKey, podname, nodename)
+			nodesKeys = append(nodesKeys, key)
+		}
+	}
+
+	kvs, err := m.GetMulti(ctx, nodesKeys)
 	if err != nil {
 		return nil, err
 	}
 
-	engine, err := m.makeClient(ctx, podname, nodename, node.Endpoint, false)
-	if err != nil {
-		return nil, err
+	nodes := map[string]*types.Node{}
+	for _, kv := range kvs {
+		node := &types.Node{}
+		if err := json.Unmarshal(kv.Value, node); err != nil {
+			return nil, err
+		}
+		engine, err := m.makeClient(ctx, node.Podname, node.Name, node.Endpoint, false)
+		if err != nil {
+			return nil, err
+		}
+		node.Engine = engine
+		nodes[node.Name] = node
 	}
-
-	node.Engine = engine
-	return node, nil
+	return nodes, nil
 }
 
 // GetNodeByName get node by name
@@ -149,25 +174,6 @@ func (m *Mercury) GetNodesByPod(ctx context.Context, podname string) ([]*types.N
 			return nodes, err
 		}
 		nodes = append(nodes, n)
-	}
-	return nodes, err
-}
-
-// GetAllNodes get all nodes from etcd
-// any error will break and return immediately
-func (m *Mercury) GetAllNodes(ctx context.Context) ([]*types.Node, error) {
-	pods, err := m.GetAllPods(ctx)
-	if err != nil {
-		return []*types.Node{}, err
-	}
-
-	nodes := []*types.Node{}
-	for _, pod := range pods {
-		ns, err := m.GetNodesByPod(ctx, pod.Name)
-		if err != nil {
-			return nodes, err
-		}
-		nodes = append(nodes, ns...)
 	}
 	return nodes, err
 }
@@ -344,19 +350,7 @@ func (m *Mercury) doDeleteNode(ctx context.Context, podname, nodename, endpoint 
 	}
 
 	_cache.Delete(nodename)
-	_, err := m.BatchDelete(ctx, keys)
+	_, err := m.batchDelete(ctx, keys)
 	log.Infof("[doDeleteNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 	return err
-}
-
-func (m *Mercury) doGetNode(ctx context.Context, podname, nodename string) (*types.Node, error) {
-	key := fmt.Sprintf(nodeInfoKey, podname, nodename)
-	ev, err := m.GetOne(ctx, key)
-	if err != nil {
-		return nil, err
-	}
-
-	node := &types.Node{}
-	err = json.Unmarshal(ev.Value, node)
-	return node, err
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/coreos/etcd/pkg/transport"
 
@@ -97,6 +98,15 @@ func (m *Mercury) Get(ctx context.Context, key string, opts ...clientv3.OpOption
 	return m.cliv3.Get(ctx, m.parseKey(key), opts...)
 }
 
+func (m *Mercury) batchGet(ctx context.Context, keys []string, opt ...clientv3.OpOption) (txnResponse *clientv3.TxnResponse, err error) {
+	ops := []clientv3.Op{}
+	for _, key := range keys {
+		op := clientv3.OpGet(m.parseKey(key), opt...)
+		ops = append(ops, op)
+	}
+	return m.doBatchOp(ctx, nil, ops)
+}
+
 // GetOne get one result or noting
 func (m *Mercury) GetOne(ctx context.Context, key string, opts ...clientv3.OpOption) (*mvccpb.KeyValue, error) {
 	resp, err := m.Get(ctx, key, opts...)
@@ -111,20 +121,48 @@ func (m *Mercury) GetOne(ctx context.Context, key string, opts ...clientv3.OpOpt
 	return resp.Kvs[0], nil
 }
 
+// GetMulti gets several results
+func (m *Mercury) GetMulti(ctx context.Context, keys []string, opts ...clientv3.OpOption) (kvs []*mvccpb.KeyValue, err error) {
+	var txnResponse *clientv3.TxnResponse
+	if len(keys) == 0 {
+		return
+	}
+
+	if txnResponse, err = m.batchGet(ctx, keys); err != nil {
+		return
+	}
+
+	for idx, responseOp := range txnResponse.Responses {
+		resp := responseOp.GetResponseRange()
+		if resp.Count != 1 {
+			err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("key: %s", keys[idx]))
+			return
+		}
+
+		kvs = append(kvs, resp.Kvs[0])
+	}
+
+	if len(kvs) != len(keys) {
+		err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("keys: %v", keys))
+	}
+
+	return
+}
+
 // Delete delete key
 func (m *Mercury) Delete(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.DeleteResponse, error) {
 	return m.cliv3.Delete(ctx, m.parseKey(key), opts...)
 }
 
 // BatchDelete batch delete keys
-func (m *Mercury) BatchDelete(ctx context.Context, keys []string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	txn := m.cliv3.Txn(ctx)
+func (m *Mercury) batchDelete(ctx context.Context, keys []string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
 	ops := []clientv3.Op{}
 	for _, key := range keys {
 		op := clientv3.OpDelete(m.parseKey(key), opts...)
 		ops = append(ops, op)
 	}
-	return txn.Then(ops...).Commit()
+
+	return m.doBatchOp(ctx, nil, ops)
 }
 
 // Put save a key value
@@ -133,7 +171,6 @@ func (m *Mercury) Put(ctx context.Context, key, val string, opts ...clientv3.OpO
 }
 
 func (m *Mercury) batchPut(ctx context.Context, data map[string]string, limit map[string]map[int]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	txn := m.cliv3.Txn(ctx)
 	ops := []clientv3.Op{}
 	conds := []clientv3.Cmp{}
 	for key, val := range data {
@@ -147,7 +184,7 @@ func (m *Mercury) batchPut(ctx context.Context, data map[string]string, limit ma
 			}
 		}
 	}
-	return txn.If(conds...).Then(ops...).Commit()
+	return m.doBatchOp(ctx, conds, ops)
 }
 
 // Create create a key if not exists
@@ -204,6 +241,63 @@ func (m *Mercury) parseKey(key string) string {
 		after = after + "/"
 	}
 	return after
+}
+
+func (m *Mercury) doBatchOp(ctx context.Context, conds []clientv3.Cmp, ops []clientv3.Op) (*clientv3.TxnResponse, error) {
+	if len(ops) == 0 {
+		return nil, types.ErrNoOps
+	}
+
+	const txnLimit = 125
+	count := len(ops) / txnLimit // stupid etcd txn, default limit is 128
+	tail := len(ops) % txnLimit
+	length := count
+	if tail != 0 {
+		length++
+	}
+
+	resps := make([]*clientv3.TxnResponse, length)
+	errs := make([]error, length)
+
+	wg := sync.WaitGroup{}
+	doOp := func(index int, ops []clientv3.Op) {
+		defer wg.Done()
+		txn := m.cliv3.Txn(ctx)
+		if len(conds) != 0 {
+			txn = txn.If(conds...)
+		}
+		resp, err := txn.Then(ops...).Commit()
+		resps[index] = resp
+		errs[index] = err
+	}
+
+	if tail != 0 {
+		wg.Add(1)
+		go doOp(length-1, ops[count*txnLimit:])
+	}
+
+	for i := 0; i < count; i++ {
+		wg.Add(1)
+		go doOp(i, ops[i*txnLimit:(i+1)*txnLimit])
+	}
+	wg.Wait()
+
+	for _, err := range errs {
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if len(resps) == 0 {
+		return &clientv3.TxnResponse{}, nil
+	}
+
+	resp := resps[0]
+	for i := 1; i < len(resps); i++ {
+		resp.Succeeded = resp.Succeeded && resps[i].Succeeded
+		resp.Responses = append(resp.Responses, resps[i].Responses...)
+	}
+	return resp, nil
 }
 
 var _cache = &utils.Cache{Clients: make(map[string]engine.API)}

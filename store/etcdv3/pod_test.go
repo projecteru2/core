@@ -8,9 +8,8 @@ import (
 )
 
 func TestPod(t *testing.T) {
-	etcd := InitCluster(t)
-	defer AfterTest(t, etcd)
-	m := NewMercury(t, etcd.RandClient())
+	m := NewMercury(t)
+	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	podname := "testv3"
 

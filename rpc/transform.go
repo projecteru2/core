@@ -393,6 +393,7 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 	info, err := c.Inspect(ctx)
 	if err != nil {
 		verification = false
+		log.Errorf("[toRPCContainer] Inspect container %s failed %v", c.ID, err)
 	}
 
 	publish := map[string]string{}

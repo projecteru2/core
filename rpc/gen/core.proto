@@ -19,8 +19,9 @@ service CoreRPC {
     rpc GetNodeByName(GetNodeOptions) returns (Node) {};
     rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
     rpc ListNetworks(ListNetworkOptions) returns (Networks) {};
-    rpc ListContainers(ListContainersOptions) returns (Containers) {};
     rpc ListNodeContainers(GetNodeOptions) returns (Containers) {};
+    rpc ListContainers(ListContainersOptions) returns (stream Container) {};
+
     rpc ContainerDeployed(ContainerDeployedOptions) returns (Empty) {};
 
     rpc Copy(CopyOptions) returns (stream CopyMessage) {};

@@ -11,6 +11,7 @@ import (
 	"github.com/projecteru2/core/cluster"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
@@ -102,18 +103,32 @@ func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions)
 }
 
 // ListContainers by appname with optional entrypoint and nodename
-func (v *Vibranium) ListContainers(ctx context.Context, opts *pb.ListContainersOptions) (*pb.Containers, error) {
+func (v *Vibranium) ListContainers(opts *pb.ListContainersOptions, stream pb.CoreRPC_ListContainersServer) error {
 	lsopts := &types.ListContainersOptions{
 		Appname:    opts.Appname,
 		Entrypoint: opts.Entrypoint,
 		Nodename:   opts.Nodename,
 	}
-	containers, err := v.cluster.ListContainers(ctx, lsopts)
+	containers, err := v.cluster.ListContainers(stream.Context(), lsopts)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &pb.Containers{Containers: toRPCContainers(ctx, containers, opts.Labels)}, nil
+	for _, container := range containers {
+		c, err := toRPCContainer(stream.Context(), container)
+		if err != nil {
+			log.Errorf("[ListContainers] %s to rpc container failed %v", container.ID, err)
+			continue
+		}
+		if !utils.FilterContainer(c.Labels, opts.Labels) {
+			continue
+		}
+		if err = stream.Send(c); err != nil {
+			v.logUnsentMessages("ListContainers", c)
+			return err
+		}
+	}
+	return nil
 }
 
 // ListNodeContainers list node containers
