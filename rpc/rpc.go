@@ -698,6 +698,25 @@ func (v *Vibranium) ContainerDeployed(ctx context.Context, opts *pb.ContainerDep
 	)
 }
 
+// ExecuteContainer runs a command in a running container
+func (v *Vibranium) ExecuteContainer(opts *pb.ExecuteContainerOptions, stream pb.CoreRPC_ExecuteContainerServer) (err error) {
+	v.taskAdd("ExecuteContainer", true)
+	defer v.taskDone("ExecuteContainer", true)
+
+	executeContainerOpts := &types.ExecuteContainerOptions{}
+	if executeContainerOpts, err = toCoreExecuteContainerOptions(opts); err != nil {
+		return
+	}
+
+	for m := range v.cluster.ExecuteContainer(stream.Context(), executeContainerOpts) {
+		if err = stream.Send(toRPCExecuteContainerMessage(m)); err != nil {
+			v.logUnsentMessages("ExecuteContainer", m)
+		}
+	}
+
+	return
+}
+
 func (v *Vibranium) logUnsentMessages(msgType string, msg interface{}) {
 	log.Infof("[logUnsentMessages] Unsent %s streamed message: %v", msgType, msg)
 }

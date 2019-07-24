@@ -185,3 +185,8 @@ func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, opts
 func (v *Virt) VirtualizationCopyFrom(ctx context.Context, ID, path string) (io.ReadCloser, string, error) {
 	return nil, "", fmt.Errorf("VirtualizationCopyFrom does not implement")
 }
+
+// VirtualizationExecute executes commands in running virtual unit
+func (v *Virt) VirtualizationExecute(ctx context.Context, ID string, commands, env []string, workdir string) (io.WriteCloser, io.ReadCloser, error) {
+	return nil, nil, fmt.Errorf("VirtualizationExecute not implemented")
+}
