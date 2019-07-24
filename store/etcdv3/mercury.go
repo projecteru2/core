@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/coreos/etcd/pkg/transport"
 
@@ -14,7 +15,6 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/mvcc/mvccpb"
-	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/lock/etcdlock"
 	"github.com/projecteru2/core/store/etcdv3/embeded"
@@ -300,4 +300,4 @@ func (m *Mercury) doBatchOp(ctx context.Context, conds []clientv3.Cmp, ops []cli
 	return resp, nil
 }
 
-var _cache = &utils.Cache{Clients: make(map[string]engine.API)}
+var _cache = utils.NewEngineCache(12*time.Hour, 10*time.Minute)
