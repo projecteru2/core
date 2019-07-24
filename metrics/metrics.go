@@ -65,51 +65,46 @@ func (m *Metrics) count(key string, n int, rate float32) error {
 
 // SendNodeInfo update node resource capacity
 func (m *Metrics) SendNodeInfo(node *types.Node) {
-	log.Debugf("[Metrics] Update %s memory capacity gauge", node.Name)
+	log.Debugf("[Metrics] Update %s metrics", node.Name)
 	nodename := utils.CleanStatsdMetrics(node.Name)
+	podname := utils.CleanStatsdMetrics(node.Podname)
 	memory := float64(node.MemCap)
+	storage := float64(node.StorageCap)
 
 	if m.MemoryCapacity != nil {
-		m.MemoryCapacity.WithLabelValues(nodename).Set(memory)
+		m.MemoryCapacity.WithLabelValues(podname, nodename).Set(memory)
+	}
+
+	if m.StorageCapacity != nil {
+		m.StorageCapacity.WithLabelValues(podname, nodename).Set(storage)
 	}
 
 	for cpuid, value := range node.CPU {
 		val := float64(value)
-		key := fmt.Sprintf(cpuMap, nodename, cpuid)
+
 		if m.CPUMap != nil {
-			m.CPUMap.WithLabelValues(nodename, cpuid).Set(val)
+			m.CPUMap.WithLabelValues(podname, nodename, cpuid).Set(val)
 		}
+
 		if m.StatsdAddr == "" {
 			continue
 		}
-		if err := m.gauge(key, val); err != nil {
-			log.Errorf("[SendNodeInfo] Error occurred while sending data to statsd: %v", err)
+
+		if err := m.gauge(fmt.Sprintf(cpuMap, nodename, cpuid), val); err != nil {
+			log.Errorf("[SendNodeInfo] Error occurred while sending cpu data to statsd: %v", err)
 		}
 	}
 
 	if m.StatsdAddr == "" {
 		return
 	}
-	key := fmt.Sprintf(memStats, nodename)
-	if err := m.gauge(key, memory); err != nil {
-		log.Errorf("[SendNodeInfo] Error occurred while sending data to statsd: %v", err)
+
+	if err := m.gauge(fmt.Sprintf(memStats, nodename), memory); err != nil {
+		log.Errorf("[SendNodeInfo] Error occurred while sending memory data to statsd: %v", err)
 	}
 
-	m.sendStorageInfo(nodename, float64(node.StorageCap))
-}
-
-func (m *Metrics) sendStorageInfo(nodename string, storage float64) {
-	if m.StorageCapacity != nil {
-		m.StorageCapacity.WithLabelValues(nodename).Set(storage)
-	}
-
-	if m.StatsdAddr == "" {
-		return
-	}
-
-	key := fmt.Sprintf(storageStats, nodename)
-	if err := m.gauge(key, storage); err != nil {
-		log.Errorf("[sendStorageInfo] Error occurred while sending data to statsd: %v", err)
+	if err := m.gauge(fmt.Sprintf(storageStats, nodename), storage); err != nil {
+		log.Errorf("[SendNodeInfo] Error occurred while sending storage data to statsd: %v", err)
 	}
 }
 
@@ -143,18 +138,26 @@ func InitMetrics(statsd string) error {
 	Client.MemoryCapacity = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "memory_capacity",
 		Help: "node available memory.",
-	}, []string{"nodename"})
+	}, []string{"podname", "nodename"})
+
+	Client.StorageCapacity = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "storage_capacity",
+		Help: "node available storage.",
+	}, []string{"podname", "nodename"})
+
+	Client.CPUMap = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "cpu_map",
+		Help: "node available cpu.",
+	}, []string{"podname", "nodename", "cpuid"})
 
 	Client.DeployCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "core_deploy",
 		Help: "core deploy counter",
 	}, []string{"hostname"})
 
-	Client.CPUMap = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "cpu_map",
-		Help: "node available cpu.",
-	}, []string{"nodename", "cpuid"})
-
-	prometheus.MustRegister(Client.DeployCount, Client.MemoryCapacity, Client.CPUMap)
+	prometheus.MustRegister(
+		Client.DeployCount, Client.MemoryCapacity,
+		Client.StorageCapacity, Client.CPUMap,
+	)
 	return nil
 }
