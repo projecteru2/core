@@ -13,7 +13,7 @@ type EngineCache struct {
 	cache *cache.Cache
 }
 
-// NewCache creates Cache instance
+// NewCacheCache creates Cache instance
 func NewEngineCache(expire time.Duration, cleanupInterval time.Duration) *EngineCache {
 	return &EngineCache{
 		cache: cache.New(expire, cleanupInterval),
