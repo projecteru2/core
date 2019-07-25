@@ -1,35 +1,40 @@
 package utils
 
 import (
-	"sync"
+	"time"
 
+	"github.com/patrickmn/go-cache"
 	"github.com/projecteru2/core/engine"
 )
 
 // Cache connections
 // otherwise they'll leak
-type Cache struct {
-	sync.Mutex
-	Clients map[string]engine.API
+type EngineCache struct {
+	cache *cache.Cache
+}
+
+// NewCacheCache creates Cache instance
+func NewEngineCache(expire time.Duration, cleanupInterval time.Duration) *EngineCache {
+	return &EngineCache{
+		cache: cache.New(expire, cleanupInterval),
+	}
 }
 
 // Set connection with host
-func (c *Cache) Set(host string, client engine.API) {
-	c.Lock()
-	defer c.Unlock()
-	c.Clients[host] = client
+func (c *EngineCache) Set(host string, client engine.API) {
+	c.cache.Set(host, client, cache.DefaultExpiration)
 }
 
 // Get connection by host
-func (c *Cache) Get(host string) engine.API {
-	c.Lock()
-	defer c.Unlock()
-	return c.Clients[host]
+func (c *EngineCache) Get(host string) engine.API {
+	e, found := c.cache.Get(host)
+	if found {
+		return e.(engine.API)
+	}
+	return nil
 }
 
 // Delete connection by host
-func (c *Cache) Delete(host string) {
-	c.Lock()
-	defer c.Unlock()
-	delete(c.Clients, host)
+func (c *EngineCache) Delete(host string) {
+	c.cache.Delete(host)
 }

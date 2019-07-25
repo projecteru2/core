@@ -33,15 +33,14 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 				nodeTCPPrefixKey, nodeSockPrefixKey, nodeVirtPrefixKey, endpoint))
 	}
 
+	if n, err := m.GetNodeByName(ctx, name); err == nil {
+		return nil, types.NewDetailedErr(types.ErrNodeExist,
+			fmt.Sprintf("node %s already exists in %s", name, n.Podname))
+	}
+
 	_, err := m.GetPod(ctx, podname)
 	if err != nil {
 		return nil, err
-	}
-
-	if _, err := m.GetNode(ctx, podname, name); err == nil {
-		return nil, types.NewDetailedErr(types.ErrNodeExist,
-			fmt.Sprintf("node %s:%s already exists",
-				podname, name))
 	}
 
 	// 尝试加载的客户端
@@ -106,7 +105,10 @@ func (m *Mercury) GetNode(ctx context.Context, podname, nodename string) (*types
 	podNodes := map[string][]string{podname: []string{nodename}}
 	nodes, err := m.GetNodes(ctx, podNodes)
 	if _, ok := nodes[nodename]; !ok {
-		return nil, types.ErrBadMeta
+		return nil, types.NewDetailedErr(
+			types.ErrBadMeta,
+			fmt.Sprintf("nodename: %s, nodes: %v", nodename, nodes),
+		)
 	}
 	return nodes[nodename], err
 }
