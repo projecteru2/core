@@ -1,20 +1,19 @@
 package calcium
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"io"
 	"sync"
 
 	"github.com/projecteru2/core/cluster"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
 //RunAndWait implement lambda
-func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error) {
+func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, stdinCh <-chan []byte) (chan *types.RunAndWaitMessage, error) {
 	ch := make(chan *types.RunAndWaitMessage)
 
 	// 强制为 json-file 输出
@@ -69,31 +68,20 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 				// CONTEXT 这里的不应该受到 client 的影响
 				defer c.doRemoveContainerSync(context.Background(), []string{containerID})
 
-				resp, err := node.Engine.VirtualizationLogs(ctx, containerID, true, true, true)
+				stdoutCh := make(chan []byte)
+				errCh := make(chan error)
+				hijackOpt := &enginetypes.VirtualizationHijackOption{
+					AttachStdin:  stdinCh,
+					AttachStdout: stdoutCh,
+					Errors:       errCh,
+				}
+				err := node.Engine.VirtualizationAttach(ctx, containerID, true, true, hijackOpt)
 				if err != nil {
-					log.Errorf("[RunAndWait] Failed to get logs, %v", err)
-					ch <- &types.RunAndWaitMessage{ContainerID: containerID,
-						Data: []byte(fmt.Sprintf("[exitcode] unknown %v", err))}
+					log.Errorf("[RunAndWait] Failed to attach container, %v", err)
 					return
 				}
 
-				if opts.OpenStdin {
-					go func() {
-						_, conn, err := node.Engine.VirtualizationAttach(ctx, containerID, true, true)
-						defer conn.Close()
-						defer stdin.Close()
-						if err != nil {
-							log.Errorf("[RunAndWait] Failed to attach container, %v", err)
-							return
-						}
-						io.Copy(conn, stdin)
-						log.Debugf("[RunAndWait] %s stdin copy end", utils.ShortID(containerID))
-					}()
-				}
-
-				scanner := bufio.NewScanner(resp)
-				for scanner.Scan() {
-					data := scanner.Bytes()
+				for data := range stdoutCh {
 					ch <- &types.RunAndWaitMessage{
 						ContainerID: containerID,
 						Data:        data,
@@ -101,14 +89,12 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 					log.Debugf("[RunAndWait] %s output: %s", utils.ShortID(containerID), data)
 				}
 
-				if err := scanner.Err(); err != nil {
-					if err == context.Canceled {
+				for err = range errCh {
+					if err != nil {
+						log.Errorf("[RunAndWait] failed to parse log: %v", err)
+						ch <- &types.RunAndWaitMessage{ContainerID: containerID, Data: []byte(fmt.Sprintf("[exitcode] unknown %v", err))}
 						return
 					}
-					log.Errorf("[RunAndWait] Parse log failed, %v", err)
-					ch <- &types.RunAndWaitMessage{ContainerID: containerID,
-						Data: []byte(fmt.Sprintf("[exitcode] unknown %v", err))}
-					return
 				}
 
 				// 超时的情况下根本不会到这里

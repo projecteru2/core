@@ -16,6 +16,7 @@ func (c *Calcium) doHook(
 ) ([]*bytes.Buffer, error) {
 	outputs := []*bytes.Buffer{}
 	for _, cmd := range cmds {
+		//resp := executeContainer(ctx, engine, ID, cmd, user, env, privileged, attachOpt)
 		output, err := execuateInside(ctx, engine, ID, cmd, user, env, privileged)
 		if err != nil {
 			// 执行 hook 的过程中,如果 cmdForce 为真并且不忽略 hook 就输出错误

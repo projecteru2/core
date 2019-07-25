@@ -73,3 +73,10 @@ type VirtualizationWaitResult struct {
 	Message string
 	Code    int64
 }
+
+// VirtualizationHijackOption indicates IO hijack channels
+type VirtualizationHijackOption struct {
+	AttachStdin  <-chan []byte
+	AttachStdout chan<- []byte
+	Errors       chan error
+}

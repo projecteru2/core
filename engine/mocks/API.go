@@ -393,36 +393,18 @@ func (_m *API) NetworkList(ctx context.Context, drivers []string) ([]*types.Netw
 	return r0, r1
 }
 
-// VirtualizationAttach provides a mock function with given fields: ctx, ID, stream, stdin
-func (_m *API) VirtualizationAttach(ctx context.Context, ID string, stream bool, stdin bool) (io.ReadCloser, io.WriteCloser, error) {
-	ret := _m.Called(ctx, ID, stream, stdin)
+// VirtualizationAttach provides a mock function with given fields: ctx, ID, stream, stdin, attachOpt
+func (_m *API) VirtualizationAttach(ctx context.Context, ID string, stream bool, stdin bool, attachOpt *types.VirtualizationHijackOption) error {
+	ret := _m.Called(ctx, ID, stream, stdin, attachOpt)
 
-	var r0 io.ReadCloser
-	if rf, ok := ret.Get(0).(func(context.Context, string, bool, bool) io.ReadCloser); ok {
-		r0 = rf(ctx, ID, stream, stdin)
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, bool, bool, *types.VirtualizationHijackOption) error); ok {
+		r0 = rf(ctx, ID, stream, stdin, attachOpt)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
-		}
+		r0 = ret.Error(0)
 	}
 
-	var r1 io.WriteCloser
-	if rf, ok := ret.Get(1).(func(context.Context, string, bool, bool) io.WriteCloser); ok {
-		r1 = rf(ctx, ID, stream, stdin)
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(io.WriteCloser)
-		}
-	}
-
-	var r2 error
-	if rf, ok := ret.Get(2).(func(context.Context, string, bool, bool) error); ok {
-		r2 = rf(ctx, ID, stream, stdin)
-	} else {
-		r2 = ret.Error(2)
-	}
-
-	return r0, r1, r2
+	return r0
 }
 
 // VirtualizationCopyFrom provides a mock function with given fields: ctx, ID, path

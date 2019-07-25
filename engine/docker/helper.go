@@ -1,7 +1,9 @@
 package docker
 
 import (
+	"bufio"
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -12,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"text/template"
 
 	corecluster "github.com/projecteru2/core/cluster"
@@ -236,4 +239,44 @@ func GetIP(daemonHost string) string {
 		return ""
 	}
 	return u.Hostname()
+}
+
+func hijackContainerIO(ctx context.Context, hijackResp *dockertypes.HijackedResponse, hijackOpt *enginetypes.VirtualizationHijackOption) {
+	errWg := sync.WaitGroup{}
+
+	if hijackOpt.AttachStdin != nil {
+		errWg.Add(1)
+		go func() {
+			defer errWg.Done()
+			reader, writer := io.Pipe()
+			defer writer.Close()
+
+			for inputData := range hijackOpt.AttachStdin {
+				if _, err := writer.Write(inputData); err != nil {
+					hijackOpt.Errors <- err
+				}
+			}
+			io.Copy(hijackResp.Conn, reader)
+		}()
+
+	}
+
+	errWg.Add(1)
+	go func() {
+		defer errWg.Done()
+		defer close(hijackOpt.AttachStdout)
+		scanner := bufio.NewScanner(hijackResp.Reader)
+		for scanner.Scan() {
+			hijackOpt.AttachStdout <- scanner.Bytes()
+		}
+
+		if err := scanner.Err(); err != nil {
+			if err != context.Canceled {
+				hijackOpt.Errors <- err
+			}
+		}
+	}()
+
+	errWg.Wait()
+	close(hijackOpt.Errors)
 }

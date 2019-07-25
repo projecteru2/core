@@ -40,7 +40,7 @@ type API interface {
 	VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) error
 	VirtualizationInspect(ctx context.Context, ID string) (*enginetypes.VirtualizationInfo, error)
 	VirtualizationLogs(ctx context.Context, ID string, follow, stdout, stderr bool) (io.Reader, error)
-	VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (io.ReadCloser, io.WriteCloser, error)
+	VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool, attachOpt *enginetypes.VirtualizationHijackOption) error
 	VirtualizationWait(ctx context.Context, ID, state string) (*enginetypes.VirtualizationWaitResult, error)
 	VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error
 	VirtualizationCopyFrom(ctx context.Context, ID, path string) (io.ReadCloser, string, error)

@@ -182,12 +182,13 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, ID string, follow, stdo
 }
 
 // VirtualizationAttach attach to a virtualization
-func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (io.ReadCloser, io.WriteCloser, error) {
+func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool, hijackOpt *enginetypes.VirtualizationHijackOption) error {
 	resp, err := e.client.ContainerAttach(ctx, ID, dockertypes.ContainerAttachOptions{Stream: stream, Stdin: stdin})
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	return ioutil.NopCloser(resp.Reader), resp.Conn, nil
+	go hijackContainerIO(ctx, &resp, hijackOpt)
+	return nil
 }
 
 // VirtualizationWait wait virtualization exit
