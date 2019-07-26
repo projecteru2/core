@@ -3,7 +3,6 @@ package calcium
 import (
 	"bufio"
 	"context"
-	"fmt"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
@@ -29,17 +28,6 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 		container, err := c.GetContainer(ctx, opts.ContainerID)
 		if err != nil {
 			responses = append(responses, err.Error())
-			return
-		}
-
-		info, err := container.Inspect(ctx)
-		if err != nil {
-			responses = append(responses, err.Error())
-			return
-		}
-
-		if !info.Running {
-			responses = append(responses, fmt.Sprintf("container %s not running, abort", opts.ContainerID))
 			return
 		}
 
