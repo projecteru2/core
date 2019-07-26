@@ -151,6 +151,7 @@ func (c *Calcium) doCreateAndStartContainer(
 		Privileged: opts.Entrypoint.Privileged,
 		Engine:     node.Engine,
 		SoftLimit:  opts.SoftLimit,
+		Image:      opts.Image,
 	}
 	createContainerMessage := &types.CreateContainerMessage{
 		Podname:  container.Podname,
@@ -187,11 +188,6 @@ func (c *Calcium) doCreateAndStartContainer(
 	container.ID = containerCreated.ID
 	createContainerMessage.ContainerID = containerCreated.ID
 
-	if err = c.store.AddContainer(ctx, container); err != nil {
-		createContainerMessage.Error = err
-		return createContainerMessage
-	}
-
 	// Copy data to container
 	if len(opts.Data) > 0 {
 		for dst, src := range opts.Data {
@@ -214,22 +210,30 @@ func (c *Calcium) doCreateAndStartContainer(
 		}
 	}
 
-	createContainerMessage.Hook, err = c.doStartContainer(ctx, container, &enginetypes.VirtualizationInfo{User: opts.User, Env: opts.Env}, opts.IgnoreHook)
+	containerInfo, err := container.Inspect(ctx)
+	if err != nil {
+		createContainerMessage.Error = err
+		return createContainerMessage
+	}
+	container.User = containerInfo.User
+	container.Labels = containerInfo.Labels
+	container.Env = containerInfo.Env
+
+	createContainerMessage.Hook, err = c.doStartContainer(ctx, container, containerInfo, opts.IgnoreHook)
 	if err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage
 	}
 	container.Hook = hook
 
-	containerAlived, err := container.Inspect(ctx)
-	if err != nil {
-		createContainerMessage.Error = err
-		return createContainerMessage
+	// get ips
+	if containerInfo.Networks != nil {
+		createContainerMessage.Publish = utils.MakePublishInfo(containerInfo.Networks, opts.Entrypoint.Publish)
 	}
 
-	// get ips
-	if containerAlived.Networks != nil {
-		createContainerMessage.Publish = utils.MakePublishInfo(containerAlived.Networks, opts.Entrypoint.Publish)
+	if err = c.store.AddContainer(ctx, container); err != nil {
+		createContainerMessage.Error = err
+		return createContainerMessage
 	}
 
 	createContainerMessage.Success = true
