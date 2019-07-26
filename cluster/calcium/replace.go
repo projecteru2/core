@@ -47,7 +47,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 						)
 					}
 					// make sure container exists
-					containerJSON, err := container.Inspect(ctx)
+					containerInfo, err := container.Inspect(ctx)
 					if err != nil {
 						return err
 					}
@@ -61,17 +61,17 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 					replaceOpts.Podname = container.Podname
 					// 继承网络配置
 					if replaceOpts.NetworkInherit {
-						if !containerJSON.Running {
+						if !containerInfo.Running {
 							return types.NewDetailedErr(types.ErrNotSupport,
 								fmt.Sprintf("container %s not running, can not inherit", container.ID),
 							)
 						}
-						log.Infof("[ReplaceContainer] Inherit old container network configuration mode %v", containerJSON.Networks)
+						log.Infof("[ReplaceContainer] Inherit old container network configuration mode %v", containerInfo.Networks)
 						replaceOpts.NetworkMode = ""
-						replaceOpts.Networks = containerJSON.Networks
+						replaceOpts.Networks = containerInfo.Networks
 					}
 
-					createMessage, removeMessage, err = c.doReplaceContainer(ctx, container, containerJSON, &replaceOpts, index)
+					createMessage, removeMessage, err = c.doReplaceContainer(ctx, container, containerInfo, &replaceOpts, index)
 					return err
 				}); err != nil {
 					log.Errorf("[ReplaceContainer] Replace and remove failed %v, old container restarted", err)
@@ -93,7 +93,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 func (c *Calcium) doReplaceContainer(
 	ctx context.Context,
 	container *types.Container,
-	containerJSON *enginetypes.VirtualizationInfo,
+	containerInfo *enginetypes.VirtualizationInfo,
 	opts *types.ReplaceOptions,
 	index int,
 ) (*types.CreateContainerMessage, *types.RemoveContainerMessage, error) {
@@ -103,7 +103,7 @@ func (c *Calcium) doReplaceContainer(
 		Hook:        []*bytes.Buffer{},
 	}
 	// label filter
-	if !utils.FilterContainer(containerJSON.Labels, opts.FilterLabels) {
+	if !utils.FilterContainer(containerInfo.Labels, opts.FilterLabels) {
 		return nil, removeMessage, types.ErrNotFitLabels
 	}
 	// get node
@@ -128,7 +128,7 @@ func (c *Calcium) doReplaceContainer(
 		opts.DeployOptions.Data[dst] = fname
 	}
 	// 停止容器
-	removeMessage.Hook, err = c.doStopContainer(ctx, container, containerJSON, opts.IgnoreHook)
+	removeMessage.Hook, err = c.doStopContainer(ctx, container, containerInfo, opts.IgnoreHook)
 	if err != nil {
 		return nil, removeMessage, err
 	}
@@ -137,8 +137,7 @@ func (c *Calcium) doReplaceContainer(
 	createMessage := c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU)
 	if createMessage.Error != nil {
 		// 重启老容器
-		// TODO consider this force?
-		message, err := c.doStartContainer(ctx, container, containerJSON, opts.IgnoreHook)
+		message, err := c.doStartContainer(ctx, container, containerInfo, opts.IgnoreHook)
 		removeMessage.Hook = append(removeMessage.Hook, message...)
 		if err != nil {
 			log.Errorf("[replaceAndRemove] Old container %s restart failed %v", container.ID, err)

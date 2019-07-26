@@ -396,12 +396,11 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		log.Errorf("[toRPCContainer] Inspect container %s failed %v", c.ID, err)
 	}
 
+	// 如果不需要网络信息这里可以干掉
 	publish := map[string]string{}
 	inspectData := []byte{}
-	image := ""
-	labels := map[string]string{}
 	if verification {
-		meta := utils.DecodeMetaInLabel(info.Labels)
+		meta := utils.DecodeMetaInLabel(c.Labels)
 		if info.Networks != nil && info.Running {
 			publish = utils.EncodePublishInfo(
 				utils.MakePublishInfo(info.Networks, meta.Publish),
@@ -411,9 +410,6 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		if inspectData, err = json.Marshal(info); err != nil {
 			return nil, err
 		}
-
-		image = info.Image
-		labels = info.Labels
 	}
 
 	cpu := toRPCCPUMap(c.CPU)
@@ -429,8 +425,8 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		Storage:      c.Storage,
 		Privileged:   c.Privileged,
 		Publish:      publish,
-		Image:        image,
-		Labels:       labels,
+		Image:        c.Image,
+		Labels:       c.Labels,
 		Inspect:      inspectData,
 		StatusData:   c.StatusData,
 		Verification: verification,

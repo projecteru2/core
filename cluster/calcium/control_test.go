@@ -132,9 +132,10 @@ func TestControlStop(t *testing.T) {
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(
 		&enginetypes.VirtualizationInfo{
-			User:  "someuser",
-			Env:   []string{"a=b"},
-			Image: "testimage",
+			User:    "someuser",
+			Env:     []string{"a=b"},
+			Image:   "testimage",
+			Running: true,
 		}, nil)
 	// failed, hook true, remove always false
 	ch, err := c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStop, false)
