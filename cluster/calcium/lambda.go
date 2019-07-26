@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -70,15 +71,23 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 
 				stdoutCh := make(chan []byte)
 				errCh := make(chan error)
-				hijackOpt := &enginetypes.VirtualizationHijackOption{
-					AttachStdin:  stdinCh,
-					AttachStdout: stdoutCh,
-					Errors:       errCh,
-				}
-				err := node.Engine.VirtualizationAttach(ctx, containerID, true, true, hijackOpt)
-				if err != nil {
-					log.Errorf("[RunAndWait] Failed to attach container, %v", err)
-					return
+
+				if opts.OpenStdin {
+					attachOpt := &enginetypes.VirtualizationAttachOption{
+						AttachStdin:  stdinCh,
+						AttachStdout: stdoutCh,
+						Errors:       errCh,
+					}
+					if err = node.Engine.VirtualizationAttach(ctx, containerID, true, true, true, true, attachOpt); err != nil {
+						log.Errorf("[RunAndWait] Failed to attach container %s, %v", containerID, err)
+						return
+					}
+
+				} else {
+					if err = engine.VirtualizationLogToChan(ctx, node.Engine, containerID, true, true, true, stdoutCh, errCh); err != nil {
+						log.Errorf("[RunAndWait] failed to get logs for %s: %v", containerID, err)
+						return
+					}
 				}
 
 				for data := range stdoutCh {
@@ -97,14 +106,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 					}
 				}
 
-				// 超时的情况下根本不会到这里
-				// 不超时的情况下这里肯定会立即返回
-				r, _ := node.Engine.VirtualizationWait(ctx, containerID, "")
-				exitData := []byte(fmt.Sprintf("[exitcode] %d", r.Code))
-				if r.Code != 0 {
-					log.Errorf("[RunAndWait] %s run failed %s", utils.ShortID(containerID), r.Message)
-				}
-				ch <- &types.RunAndWaitMessage{ContainerID: containerID, Data: exitData}
 			}(node, message.ContainerID)
 		}
 

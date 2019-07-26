@@ -166,7 +166,7 @@ func (v *Virt) VirtualizationLogs(ctx context.Context, ID string, follow, stdout
 }
 
 // VirtualizationAttach attaches something to a guest.
-func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool, hijackOpt *enginetypes.VirtualizationHijackOption) error {
+func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, stdin, stdout, stderr bool, hijackOpt *enginetypes.VirtualizationAttachOption) error {
 	return fmt.Errorf("VirtualizationAttach does not implement")
 }
 

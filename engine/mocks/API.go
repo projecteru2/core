@@ -393,13 +393,13 @@ func (_m *API) NetworkList(ctx context.Context, drivers []string) ([]*types.Netw
 	return r0, r1
 }
 
-// VirtualizationAttach provides a mock function with given fields: ctx, ID, stream, stdin, attachOpt
-func (_m *API) VirtualizationAttach(ctx context.Context, ID string, stream bool, stdin bool, attachOpt *types.VirtualizationHijackOption) error {
-	ret := _m.Called(ctx, ID, stream, stdin, attachOpt)
+// VirtualizationAttach provides a mock function with given fields: ctx, ID, stream, stdin, stdout, stderr, attachOpt
+func (_m *API) VirtualizationAttach(ctx context.Context, ID string, stream bool, stdin bool, stdout bool, stderr bool, attachOpt *types.VirtualizationAttachOption) error {
+	ret := _m.Called(ctx, ID, stream, stdin, stdout, stderr, attachOpt)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, bool, bool, *types.VirtualizationHijackOption) error); ok {
-		r0 = rf(ctx, ID, stream, stdin, attachOpt)
+	if rf, ok := ret.Get(0).(func(context.Context, string, bool, bool, bool, bool, *types.VirtualizationAttachOption) error); ok {
+		r0 = rf(ctx, ID, stream, stdin, stdout, stderr, attachOpt)
 	} else {
 		r0 = ret.Error(0)
 	}

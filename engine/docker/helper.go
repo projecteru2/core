@@ -241,22 +241,27 @@ func GetIP(daemonHost string) string {
 	return u.Hostname()
 }
 
-func hijackContainerIO(ctx context.Context, hijackResp *dockertypes.HijackedResponse, hijackOpt *enginetypes.VirtualizationHijackOption) {
+func hijackContainerIO(ctx context.Context, hijackResp *enginetypes.VirtualizationHijackedResponse, attachOpt *enginetypes.VirtualizationAttachOption) {
 	errWg := sync.WaitGroup{}
 
-	if hijackOpt.AttachStdin != nil {
+	if attachOpt.AttachStdin != nil {
 		errWg.Add(1)
 		go func() {
 			defer errWg.Done()
 			reader, writer := io.Pipe()
 			defer writer.Close()
 
-			for inputData := range hijackOpt.AttachStdin {
+			go func() {
+				defer hijackResp.Input.Close()
+				defer reader.Close()
+				io.Copy(hijackResp.Input, reader)
+			}()
+
+			for inputData := range attachOpt.AttachStdin {
 				if _, err := writer.Write(inputData); err != nil {
-					hijackOpt.Errors <- err
+					attachOpt.Errors <- err
 				}
 			}
-			io.Copy(hijackResp.Conn, reader)
 		}()
 
 	}
@@ -264,19 +269,21 @@ func hijackContainerIO(ctx context.Context, hijackResp *dockertypes.HijackedResp
 	errWg.Add(1)
 	go func() {
 		defer errWg.Done()
-		defer close(hijackOpt.AttachStdout)
-		scanner := bufio.NewScanner(hijackResp.Reader)
+
+		scanner := bufio.NewScanner(hijackResp.Output)
 		for scanner.Scan() {
-			hijackOpt.AttachStdout <- scanner.Bytes()
+			outputData := scanner.Bytes()
+			attachOpt.AttachStdout <- outputData
 		}
+		close(attachOpt.AttachStdout)
 
 		if err := scanner.Err(); err != nil {
 			if err != context.Canceled {
-				hijackOpt.Errors <- err
+				attachOpt.Errors <- err
 			}
 		}
 	}()
 
 	errWg.Wait()
-	close(hijackOpt.Errors)
+	close(attachOpt.Errors)
 }

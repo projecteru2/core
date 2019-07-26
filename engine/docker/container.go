@@ -18,6 +18,7 @@ import (
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coretypes "github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 // VirtualizationCreate create a container
@@ -182,12 +183,30 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, ID string, follow, stdo
 }
 
 // VirtualizationAttach attach to a virtualization
-func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool, hijackOpt *enginetypes.VirtualizationHijackOption) error {
-	resp, err := e.client.ContainerAttach(ctx, ID, dockertypes.ContainerAttachOptions{Stream: stream, Stdin: stdin})
+func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, stream, stdin, stdout, stderr bool, attachOpt *enginetypes.VirtualizationAttachOption) error {
+	resp, err := e.client.ContainerAttach(ctx, ID, dockertypes.ContainerAttachOptions{
+		Stream: stream,
+		Stdin:  stdin,
+		Stdout: stdout,
+		Stderr: stderr,
+	})
 	if err != nil {
 		return err
 	}
-	go hijackContainerIO(ctx, &resp, hijackOpt)
+	hijackedResponse := &enginetypes.VirtualizationHijackedResponse{
+		Output: ioutil.NopCloser(resp.Reader),
+		Input:  resp.Conn,
+	}
+	go hijackContainerIO(ctx, hijackedResponse, attachOpt)
+	go func() {
+		r, _ := e.VirtualizationWait(ctx, ID, "")
+		log.Debugf("[RunAndWait] %s exit", utils.ShortID(ID))
+		if r.Code != 0 {
+			log.Errorf("[RunAndWait] %s run failed %s", utils.ShortID(ID), r.Message)
+		}
+		hijackedResponse.Output.Close()
+	}()
+
 	return nil
 }
 

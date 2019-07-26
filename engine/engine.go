@@ -1,11 +1,13 @@
 package engine
 
 import (
+	"bufio"
 	"context"
 	"io"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coresource "github.com/projecteru2/core/source"
+	log "github.com/sirupsen/logrus"
 )
 
 // API define a remote engine
@@ -40,8 +42,35 @@ type API interface {
 	VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) error
 	VirtualizationInspect(ctx context.Context, ID string) (*enginetypes.VirtualizationInfo, error)
 	VirtualizationLogs(ctx context.Context, ID string, follow, stdout, stderr bool) (io.Reader, error)
-	VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool, attachOpt *enginetypes.VirtualizationHijackOption) error
+	VirtualizationAttach(ctx context.Context, ID string, stream, stdin, stdout, stderr bool, attachOpt *enginetypes.VirtualizationAttachOption) error
 	VirtualizationWait(ctx context.Context, ID, state string) (*enginetypes.VirtualizationWaitResult, error)
 	VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error
 	VirtualizationCopyFrom(ctx context.Context, ID, path string) (io.ReadCloser, string, error)
+}
+
+// VirtualizationLogToChan send log bytes to channel
+func VirtualizationLogToChan(ctx context.Context, engine API, containerID string, follow, stdout, stderr bool, outputCh chan<- []byte, errCh chan<- error) (err error) {
+
+	resp, err := engine.VirtualizationLogs(ctx, containerID, follow, stdout, stderr)
+	if err != nil {
+		log.Errorf("failed to get log for %s: %v", containerID, err)
+		return
+	}
+
+	go func() {
+		defer close(errCh)
+
+		scanner := bufio.NewScanner(resp)
+		for scanner.Scan() {
+			outputCh <- scanner.Bytes()
+		}
+		close(outputCh)
+
+		if err = scanner.Err(); err != nil && err != context.Canceled {
+			log.Errorf("failed to parse log for %s: %v", containerID, err)
+			errCh <- err
+		}
+	}()
+
+	return
 }

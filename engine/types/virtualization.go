@@ -1,5 +1,7 @@
 package types
 
+import "io"
+
 // VirtualizationResource define resources
 type VirtualizationResource struct {
 	CPU       map[string]int // for cpu binding
@@ -74,9 +76,15 @@ type VirtualizationWaitResult struct {
 	Code    int64
 }
 
-// VirtualizationHijackOption indicates IO hijack channels
-type VirtualizationHijackOption struct {
+// VirtualizationAttachOption indicates IO hijack channels
+type VirtualizationAttachOption struct {
 	AttachStdin  <-chan []byte
 	AttachStdout chan<- []byte
 	Errors       chan error
+}
+
+// VirtualizationHijackedResponse convert dockertypes.HijackedResponse slightly
+type VirtualizationHijackedResponse struct {
+	Output io.ReadCloser
+	Input  io.WriteCloser
 }

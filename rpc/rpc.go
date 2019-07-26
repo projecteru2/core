@@ -446,18 +446,13 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	return withDumpFiles(opts.Data, func(files map[string]string) error {
 		deployOpts.Data = files
 
-		stdinCh := make(chan []byte)
-		ch, err := v.cluster.RunAndWait(stream.Context(), deployOpts, stdinCh)
-		if err != nil {
-			// `ch` is nil now
-			log.Errorf("[RunAndWait] Start run and wait failed %s", err)
-			return err
-		}
-
+		var stdinCh chan []byte
 		if opts.OpenStdin {
+			stdinCh = make(chan []byte)
 			go func() {
 				defer func() {
 					stdinCh <- []byte("exit\n")
+					close(stdinCh)
 				}()
 
 				stdinCh <- []byte("echo 'Welcom to NERV...\n'\n")
@@ -474,6 +469,13 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 					stdinCh <- cli
 				}
 			}()
+		}
+
+		ch, err := v.cluster.RunAndWait(stream.Context(), deployOpts, stdinCh)
+		if err != nil {
+			// `ch` is nil now
+			log.Errorf("[RunAndWait] Start run and wait failed %s", err)
+			return err
 		}
 
 		for m := range ch {
