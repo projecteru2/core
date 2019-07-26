@@ -269,13 +269,13 @@ func hijackContainerIO(ctx context.Context, hijackResp *enginetypes.Virtualizati
 	errWg.Add(1)
 	go func() {
 		defer errWg.Done()
+		defer close(attachOpt.AttachStdout)
 
 		scanner := bufio.NewScanner(hijackResp.Output)
 		for scanner.Scan() {
 			outputData := scanner.Bytes()
 			attachOpt.AttachStdout <- outputData
 		}
-		close(attachOpt.AttachStdout)
 
 		if err := scanner.Err(); err != nil {
 			if err != context.Canceled {

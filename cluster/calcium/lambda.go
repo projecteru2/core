@@ -90,19 +90,23 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 					}
 				}
 
-				for data := range stdoutCh {
-					ch <- &types.RunAndWaitMessage{
-						ContainerID: containerID,
-						Data:        data,
-					}
-					log.Debugf("[RunAndWait] %s output: %s", utils.ShortID(containerID), data)
-				}
-
-				for err = range errCh {
-					if err != nil {
-						log.Errorf("[RunAndWait] failed to parse log: %v", err)
-						ch <- &types.RunAndWaitMessage{ContainerID: containerID, Data: []byte(fmt.Sprintf("[exitcode] unknown %v", err))}
-						return
+				for {
+					select {
+					case err := <-errCh:
+						if err != nil {
+							log.Errorf("[RunAndWait] failed to parse log: %v", err)
+							ch <- &types.RunAndWaitMessage{ContainerID: containerID, Data: []byte(fmt.Sprintf("[exitcode] unknown %v", err))}
+							return
+						}
+					case data, ok := <-stdoutCh:
+						ch <- &types.RunAndWaitMessage{
+							ContainerID: containerID,
+							Data:        data,
+						}
+						log.Debugf("[RunAndWait] %s output: %s", utils.ShortID(containerID), data)
+						if !ok {
+							return
+						}
 					}
 				}
 

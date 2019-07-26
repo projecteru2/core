@@ -59,12 +59,12 @@ func VirtualizationLogToChan(ctx context.Context, engine API, containerID string
 
 	go func() {
 		defer close(errCh)
+		defer close(outputCh)
 
 		scanner := bufio.NewScanner(resp)
 		for scanner.Scan() {
 			outputCh <- scanner.Bytes()
 		}
-		close(outputCh)
 
 		if err = scanner.Err(); err != nil && err != context.Canceled {
 			log.Errorf("failed to parse log for %s: %v", containerID, err)
