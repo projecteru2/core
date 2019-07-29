@@ -148,6 +148,11 @@ func (m *Mercury) WatchDeployStatus(ctx context.Context, appname, entrypoint, no
 				return
 			}
 			for _, ev := range resp.Events {
+				// TODO 增加逻辑
+				// 如果 deploy 被删除，可能是 TTL 到期了
+				// 检查 containerInfo 的元数据
+				// 再组合成 msg 发出去
+				// msg 可以使用 containerStatus
 				appname, entrypoint, nodename, ID := parseStatusKey(string(ev.Kv.Key))
 				msg.ID = ID
 				msg.Appname = appname
@@ -238,6 +243,11 @@ func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*typ
 		containers[index].Engine = nodes[container.Nodename].Engine
 		if _, ok := deployStatus[container.ID]; !ok {
 			return nil, types.ErrBadMeta
+		}
+		containers[index].Status = &types.ContainerStatus{}
+		if err := json.Unmarshal(deployStatus[container.ID], containers[index].Status); err != nil {
+			log.Warnf("[bindContainersAdditions] unmarshal %s status data failed %v", container.ID, err)
+			log.Errorf("%s", deployStatus[container.ID])
 		}
 		containers[index].StatusData = deployStatus[container.ID]
 	}

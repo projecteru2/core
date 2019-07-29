@@ -27,6 +27,7 @@ type Container struct {
 	Labels     map[string]string `json:"labels"`
 	Env        []string          `json:"env"`
 	Image      string            `json:"image"`
+	Status     *ContainerStatus  `json:"-"`
 	StatusData []byte            `json:"-"`
 	Engine     engine.API        `json:"-"`
 }
@@ -81,4 +82,11 @@ type DeployStatus struct {
 type EruMeta struct {
 	Publish     []string
 	HealthCheck *HealthCheck
+}
+
+// ContainerStatus indicate contaienr status
+type ContainerStatus struct {
+	Running  bool
+	Healthy  bool
+	Networks map[string]string
 }

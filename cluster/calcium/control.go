@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/projecteru2/core/cluster"
-	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -46,24 +45,19 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 					}
 				}()
 
-				containerInfo, err := container.Inspect(ctx)
-				if err != nil {
-					return
-				}
-
 				switch t {
 				case cluster.ContainerStop:
-					message, err = c.doStopContainer(ctx, container, containerInfo, force)
+					message, err = c.doStopContainer(ctx, container, force)
 					return
 				case cluster.ContainerStart:
-					message, err = c.doStartContainer(ctx, container, containerInfo, force)
+					message, err = c.doStartContainer(ctx, container, force)
 					return
 				case cluster.ContainerRestart:
-					message, err = c.doStopContainer(ctx, container, containerInfo, force)
+					message, err = c.doStopContainer(ctx, container, force)
 					if err != nil {
 						return
 					}
-					m2, e2 := c.doStartContainer(ctx, container, containerInfo, force)
+					m2, e2 := c.doStartContainer(ctx, container, force)
 					message = append(message, m2...)
 					if e2 != nil {
 						err = e2
@@ -80,9 +74,9 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 	return ch, nil
 }
 
-func (c *Calcium) doStartContainer(ctx context.Context, container *types.Container, containerInfo *enginetypes.VirtualizationInfo, force bool) ([]*bytes.Buffer, error) {
+func (c *Calcium) doStartContainer(ctx context.Context, container *types.Container, force bool) ([]*bytes.Buffer, error) {
 	var message []*bytes.Buffer
-	if containerInfo.Running {
+	if container.Status != nil && container.Status.Running {
 		message = append(message, bytes.NewBufferString("container already running, can't run hook\n"))
 		return message, nil
 	}
@@ -106,9 +100,9 @@ func (c *Calcium) doStartContainer(ctx context.Context, container *types.Contain
 	return message, err
 }
 
-func (c *Calcium) doStopContainer(ctx context.Context, container *types.Container, containerInfo *enginetypes.VirtualizationInfo, force bool) ([]*bytes.Buffer, error) {
+func (c *Calcium) doStopContainer(ctx context.Context, container *types.Container, force bool) ([]*bytes.Buffer, error) {
 	var message []*bytes.Buffer
-	if !containerInfo.Running {
+	if container.Status != nil && !container.Status.Running {
 		message = append(message, bytes.NewBufferString("container stopped, can't run hook\n"))
 		return message, nil
 	}
