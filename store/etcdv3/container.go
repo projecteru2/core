@@ -244,10 +244,14 @@ func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*typ
 		if _, ok := deployStatus[container.ID]; !ok {
 			return nil, types.ErrBadMeta
 		}
-		containers[index].Status = &types.ContainerStatus{}
-		if err := json.Unmarshal(deployStatus[container.ID], containers[index].Status); err != nil {
-			log.Warnf("[bindContainersAdditions] unmarshal %s status data failed %v", container.ID, err)
-			log.Errorf("%s", deployStatus[container.ID])
+		if len(deployStatus[container.ID]) > 0 {
+			containers[index].Status = &types.ContainerStatus{}
+			if err := json.Unmarshal(deployStatus[container.ID], containers[index].Status); err != nil {
+				log.Warnf("[bindContainersAdditions] unmarshal %s status data failed %v", container.ID, err)
+				log.Errorf("%s", deployStatus[container.ID])
+			}
+		} else {
+			log.Warnf("[bindContainersAdditions] %s no deploy status", container.ID)
 		}
 		containers[index].StatusData = deployStatus[container.ID]
 	}
