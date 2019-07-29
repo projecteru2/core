@@ -53,7 +53,7 @@ func (c *Calcium) NodeResource(ctx context.Context, podname, nodename string) (*
 		return nil, err
 	}
 	for _, container := range nr.Containers {
-		_, err := container.Inspect(ctx)
+		_, err := container.Inspect(ctx) // 用于探测节点上容器是否存在
 		if err != nil {
 			nr.Verification = false
 			nr.Details = append(nr.Details, fmt.Sprintf("container %s inspect failed %v \n", container.ID, err))

@@ -157,14 +157,12 @@ message Container {
     map<string, int32> cpu = 5;
     double quota = 6;
     int64 memory = 7;
-    bool privileged = 8;
-    map<string, string> labels = 9;
-    map<string, string> publish = 10;
-    string image = 11;
-    bytes inspect = 12;
+    int64 storage = 8;
+    bool privileged = 9;
+    map<string, string> labels = 10;
+    map<string, string> publish = 11;
+    string image = 12;
     bytes status_data = 13;
-    bool verification = 14;
-    int64 storage = 15;
 }
 
 message ContainerDeployedOptions {

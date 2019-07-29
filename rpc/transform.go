@@ -389,47 +389,31 @@ func toRPCContainers(ctx context.Context, containers []*types.Container, labels 
 }
 
 func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, error) {
-	verification := true
-	info, err := c.Inspect(ctx)
-	if err != nil {
-		verification = false
-		log.Errorf("[toRPCContainer] Inspect container %s failed %v", c.ID, err)
-	}
-
-	// 如果不需要网络信息这里可以干掉
 	publish := map[string]string{}
-	inspectData := []byte{}
-	if verification {
+	if c.Status != nil {
 		meta := utils.DecodeMetaInLabel(c.Labels)
-		if info.Networks != nil && info.Running {
+		if c.Status.Networks != nil && c.Status.Running {
 			publish = utils.EncodePublishInfo(
-				utils.MakePublishInfo(info.Networks, meta.Publish),
+				utils.MakePublishInfo(c.Status.Networks, meta.Publish),
 			)
 		}
-
-		if inspectData, err = json.Marshal(info); err != nil {
-			return nil, err
-		}
 	}
-
 	cpu := toRPCCPUMap(c.CPU)
 
 	return &pb.Container{
-		Id:           c.ID,
-		Podname:      c.Podname,
-		Nodename:     c.Nodename,
-		Name:         c.Name,
-		Cpu:          cpu,
-		Quota:        c.Quota,
-		Memory:       c.Memory,
-		Storage:      c.Storage,
-		Privileged:   c.Privileged,
-		Publish:      publish,
-		Image:        c.Image,
-		Labels:       c.Labels,
-		Inspect:      inspectData,
-		StatusData:   c.StatusData,
-		Verification: verification,
+		Id:         c.ID,
+		Podname:    c.Podname,
+		Nodename:   c.Nodename,
+		Name:       c.Name,
+		Cpu:        cpu,
+		Quota:      c.Quota,
+		Memory:     c.Memory,
+		Storage:    c.Storage,
+		Privileged: c.Privileged,
+		Publish:    publish,
+		Image:      c.Image,
+		Labels:     c.Labels,
+		StatusData: c.StatusData,
 	}, nil
 }
 

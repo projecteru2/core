@@ -152,6 +152,7 @@ func (c *Calcium) doCreateAndStartContainer(
 		Engine:     node.Engine,
 		SoftLimit:  opts.SoftLimit,
 		Image:      opts.Image,
+		Status:     &types.ContainerStatus{},
 	}
 	createContainerMessage := &types.CreateContainerMessage{
 		Podname:  container.Podname,
@@ -210,26 +211,25 @@ func (c *Calcium) doCreateAndStartContainer(
 		}
 	}
 
-	containerInfo, err := container.Inspect(ctx)
+	containerInfo, err := container.Inspect(ctx) // 补充静态元数据
 	if err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage
+	}
+	// get ips
+	if containerInfo.Networks != nil {
+		createContainerMessage.Publish = utils.MakePublishInfo(containerInfo.Networks, opts.Entrypoint.Publish)
 	}
 	container.User = containerInfo.User
 	container.Labels = containerInfo.Labels
 	container.Env = containerInfo.Env
 
-	createContainerMessage.Hook, err = c.doStartContainer(ctx, container, containerInfo, opts.IgnoreHook)
+	createContainerMessage.Hook, err = c.doStartContainer(ctx, container, opts.IgnoreHook)
 	if err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage
 	}
 	container.Hook = hook
-
-	// get ips
-	if containerInfo.Networks != nil {
-		createContainerMessage.Publish = utils.MakePublishInfo(containerInfo.Networks, opts.Entrypoint.Publish)
-	}
 
 	if err = c.store.AddContainer(ctx, container); err != nil {
 		createContainerMessage.Error = err
