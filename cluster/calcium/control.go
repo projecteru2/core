@@ -57,6 +57,9 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 					if err != nil {
 						return
 					}
+					if container.Status != nil {
+						container.Status.Running = false
+					}
 					m2, e2 := c.doStartContainer(ctx, container, force)
 					message = append(message, m2...)
 					if e2 != nil {
