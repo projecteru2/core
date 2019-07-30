@@ -157,11 +157,11 @@ message Container {
     map<string, int32> cpu = 5;
     double quota = 6;
     int64 memory = 7;
-    int64 storage = 8;
-    bool privileged = 9;
-    map<string, string> labels = 10;
-    map<string, string> publish = 11;
-    string image = 12;
+    bool privileged = 8;
+    map<string, string> labels = 9;
+    map<string, string> publish = 10;
+    string image = 11;
+    int64 storage = 12;
     bytes status_data = 13;
 }
 
