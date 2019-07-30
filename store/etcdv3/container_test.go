@@ -85,9 +85,9 @@ func TestContainer(t *testing.T) {
 	assert.Equal(t, containers[1].Name, newContainer.Name)
 	assert.NoError(t, m.RemoveContainer(ctx, newContainer))
 	// Deployed
-	assert.NoError(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, nodename, []byte{}, 0))
-	assert.NoError(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, nodename, []byte{}, 10))
-	assert.Error(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, "n2", []byte(""), 0))
+	assert.NoError(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, nodename, []byte{}))
+	assert.NoError(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, nodename, []byte{}))
+	assert.Error(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, "n2", []byte("")))
 	// ListContainers
 	containers, _ = m.ListContainers(ctx, appname, entrypoint, "", 1)
 	assert.Equal(t, len(containers), 1)
@@ -101,7 +101,7 @@ func TestContainer(t *testing.T) {
 	// WatchDeployStatus
 	ctx2 := context.Background()
 	ch := m.WatchDeployStatus(ctx2, appname, entrypoint, "")
-	assert.NoError(t, m.ContainerDeployed(ctx2, ID, appname, entrypoint, nodename, []byte("something"), 0))
+	assert.NoError(t, m.ContainerDeployed(ctx2, ID, appname, entrypoint, nodename, []byte("something")))
 	done := make(chan int)
 	go func() {
 		s := <-ch
