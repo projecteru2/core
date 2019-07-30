@@ -211,6 +211,12 @@ func (c *Calcium) doCreateAndStartContainer(
 		}
 	}
 
+	// store eru container
+	if err = c.store.AddContainer(ctx, container); err != nil {
+		createContainerMessage.Error = err
+		return createContainerMessage
+	}
+
 	// start first
 	createContainerMessage.Hook, err = c.doStartContainer(ctx, container, opts.IgnoreHook)
 	if err != nil {
@@ -234,8 +240,8 @@ func (c *Calcium) doCreateAndStartContainer(
 	container.Env = containerInfo.Env
 	container.Hook = hook
 
-	// store eru container
-	if err = c.store.AddContainer(ctx, container); err != nil {
+	// update store meta
+	if err = c.store.UpdateContainer(ctx, container); err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage
 	}
