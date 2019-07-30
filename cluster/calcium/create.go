@@ -152,7 +152,7 @@ func (c *Calcium) doCreateAndStartContainer(
 		Engine:     node.Engine,
 		SoftLimit:  opts.SoftLimit,
 		Image:      opts.Image,
-		Status:     &types.ContainerStatus{},
+		Status:     &types.ContainerStatus{Running: false}, // 显式的指定 running 为 false
 	}
 	createContainerMessage := &types.CreateContainerMessage{
 		Podname:  container.Podname,

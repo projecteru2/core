@@ -77,7 +77,10 @@ func serve() {
 		log.Fatalf("[main] %v", err)
 	}
 
-	opts := []grpc.ServerOption{grpc.MaxConcurrentStreams(100)}
+	opts := []grpc.ServerOption{
+		grpc.MaxConcurrentStreams(100),
+		grpc.MaxRecvMsgSize(20 * 1024 * 1024), // TODO set in config
+	}
 
 	if config.Auth.Username != "" {
 		log.Info("[main] Cluster auth enable.")
