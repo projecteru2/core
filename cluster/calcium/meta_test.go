@@ -356,5 +356,5 @@ func TestContainerDeployed(t *testing.T) {
 		mock.Anything).Return(nil)
 	c.store = store
 
-	assert.NoError(t, c.ContainerDeployed(ctx, "", "", "", "", []byte{}, 0))
+	assert.NoError(t, c.ContainerDeployed(ctx, "", "", "", "", []byte{}))
 }

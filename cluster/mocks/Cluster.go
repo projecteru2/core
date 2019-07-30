@@ -105,13 +105,13 @@ func (_m *Cluster) CacheImage(ctx context.Context, podname string, nodenmae stri
 	return r0, r1
 }
 
-// ContainerDeployed provides a mock function with given fields: ctx, ID, appname, entrypoint, nodename, data, ttl
-func (_m *Cluster) ContainerDeployed(ctx context.Context, ID string, appname string, entrypoint string, nodename string, data []byte, ttl int64) error {
-	ret := _m.Called(ctx, ID, appname, entrypoint, nodename, data, ttl)
+// ContainerDeployed provides a mock function with given fields: ctx, ID, appname, entrypoint, nodename, data
+func (_m *Cluster) ContainerDeployed(ctx context.Context, ID string, appname string, entrypoint string, nodename string, data []byte) error {
+	ret := _m.Called(ctx, ID, appname, entrypoint, nodename, data)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, []byte, int64) error); ok {
-		r0 = rf(ctx, ID, appname, entrypoint, nodename, data, ttl)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, []byte) error); ok {
+		r0 = rf(ctx, ID, appname, entrypoint, nodename, data)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -225,6 +225,22 @@ func (_m *Cluster) DissociateContainer(ctx context.Context, IDs []string) (chan 
 	}
 
 	return r0, r1
+}
+
+// ExecuteContainer provides a mock function with given fields: ctx, opts
+func (_m *Cluster) ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions) chan *types.ExecuteContainerMessage {
+	ret := _m.Called(ctx, opts)
+
+	var r0 chan *types.ExecuteContainerMessage
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ExecuteContainerOptions) chan *types.ExecuteContainerMessage); ok {
+		r0 = rf(ctx, opts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(chan *types.ExecuteContainerMessage)
+		}
+	}
+
+	return r0
 }
 
 // Finalizer provides a mock function with given fields:

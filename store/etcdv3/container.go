@@ -66,18 +66,10 @@ func (m *Mercury) GetContainers(ctx context.Context, IDs []string) (containers [
 }
 
 // ContainerDeployed store deployed container info
-func (m *Mercury) ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename string, data []byte, ttl int64) error {
+func (m *Mercury) ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename string, data []byte) error {
 	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID)
-	opts := []clientv3.OpOption{}
-	if ttl > 0 {
-		lease, err := m.cliv3.Grant(ctx, ttl)
-		if err != nil {
-			return err
-		}
-		opts = append(opts, clientv3.WithLease(lease.ID))
-	}
 	//Only update when it exist
-	_, err := m.Update(ctx, key, string(data), opts...)
+	_, err := m.Update(ctx, key, string(data))
 	return err
 }
 
@@ -148,11 +140,6 @@ func (m *Mercury) WatchDeployStatus(ctx context.Context, appname, entrypoint, no
 				return
 			}
 			for _, ev := range resp.Events {
-				// TODO 增加逻辑
-				// 如果 deploy 被删除，可能是 TTL 到期了
-				// 检查 containerInfo 的元数据
-				// 再组合成 msg 发出去
-				// msg 可以使用 containerStatus
 				appname, entrypoint, nodename, ID := parseStatusKey(string(ev.Kv.Key))
 				msg.ID = ID
 				msg.Appname = appname
