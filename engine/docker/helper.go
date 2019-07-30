@@ -111,8 +111,9 @@ func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int, numaN
 	} else {
 		resource.Memory = memory
 		resource.MemorySwap = memory
-		if memory/2 > minMemory {
-			resource.MemoryReservation = memory / 2
+		resource.MemoryReservation = memory / 2
+		if memory/2 < coretypes.MByte*4 {
+			resource.MemoryReservation = coretypes.MByte * 4
 		}
 	}
 	return resource

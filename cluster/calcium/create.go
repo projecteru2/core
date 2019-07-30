@@ -199,6 +199,7 @@ func (c *Calcium) doCreateAndStartContainer(
 		}
 	}
 
+	// deal with hook
 	hook := container.Hook
 	if len(opts.AfterCreate) > 0 {
 		cmds := opts.AfterCreate
@@ -211,31 +212,36 @@ func (c *Calcium) doCreateAndStartContainer(
 		}
 	}
 
+	// start first
+	createContainerMessage.Hook, err = c.doStartContainer(ctx, container, opts.IgnoreHook)
+	if err != nil {
+		createContainerMessage.Error = err
+		return createContainerMessage
+	}
+
+	// inspect real meta
 	containerInfo, err := container.Inspect(ctx) // 补充静态元数据
 	if err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage
 	}
-	// get ips
+
+	// update meta
 	if containerInfo.Networks != nil {
 		createContainerMessage.Publish = utils.MakePublishInfo(containerInfo.Networks, opts.Entrypoint.Publish)
 	}
 	container.User = containerInfo.User
 	container.Labels = containerInfo.Labels
 	container.Env = containerInfo.Env
-
-	createContainerMessage.Hook, err = c.doStartContainer(ctx, container, opts.IgnoreHook)
-	if err != nil {
-		createContainerMessage.Error = err
-		return createContainerMessage
-	}
 	container.Hook = hook
 
+	// store eru container
 	if err = c.store.AddContainer(ctx, container); err != nil {
 		createContainerMessage.Error = err
 		return createContainerMessage
 	}
 
+	// mark success
 	createContainerMessage.Success = true
 	return createContainerMessage
 }

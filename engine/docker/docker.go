@@ -12,13 +12,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	restartAlways = "always"
-	minMemory     = coretypes.MByte * 4
-	root          = "root"
-	maxPuller     = 10
-)
-
 // Engine is engine for docker
 type Engine struct {
 	client dockerapi.APIClient
