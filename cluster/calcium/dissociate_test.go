@@ -22,7 +22,9 @@ func TestDissociateContainer(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 
 	c1 := &types.Container{
-		ID:       "c1",
+		Meta: types.Meta{
+			ID: "c1",
+		},
 		Podname:  "p1",
 		Memory:   5 * types.MByte,
 		Quota:    0.9,

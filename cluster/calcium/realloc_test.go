@@ -41,7 +41,7 @@ func TestRealloc(t *testing.T) {
 	}
 
 	c1 := &types.Container{
-		ID:       "c1",
+		Meta:     types.Meta{ID: "c1"},
 		Podname:  "p1",
 		Engine:   engine,
 		Memory:   5 * types.MByte,
@@ -51,7 +51,7 @@ func TestRealloc(t *testing.T) {
 	}
 
 	c2 := &types.Container{
-		ID:       "c2",
+		Meta:     types.Meta{ID: "c2"},
 		Podname:  "p1",
 		Engine:   engine,
 		Memory:   5 * types.MByte,
@@ -163,7 +163,7 @@ func TestRealloc(t *testing.T) {
 		Endpoint: "http://1.1.1.1:1",
 	}
 	c3 := &types.Container{
-		ID:       "c3",
+		Meta:     types.Meta{ID: "c3"},
 		Podname:  "p1",
 		Engine:   engine,
 		Memory:   5 * types.MByte,
@@ -172,7 +172,7 @@ func TestRealloc(t *testing.T) {
 		Nodename: "node2",
 	}
 	c4 := &types.Container{
-		ID:       "c4",
+		Meta:     types.Meta{ID: "c4"},
 		Podname:  "p1",
 		Engine:   engine,
 		Memory:   5 * types.MByte,

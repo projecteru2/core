@@ -144,7 +144,7 @@ func TestListContainers(t *testing.T) {
 	ctx := context.Background()
 	ID := "testID"
 	containers := []*types.Container{
-		{ID: ID},
+		&types.Container{Meta: types.Meta{ID: ID}},
 	}
 
 	store := &storemocks.Store{}
@@ -207,7 +207,7 @@ func TestGetContainers(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	ID := "testID"
-	container := &types.Container{ID: ID}
+	container := &types.Container{Meta: types.Meta{ID: ID}}
 	containers := []*types.Container{container}
 
 	store := &storemocks.Store{}

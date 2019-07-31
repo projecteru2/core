@@ -8,7 +8,6 @@ import (
 
 	"github.com/projecteru2/core/cluster"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
-	enginetypes "github.com/projecteru2/core/engine/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
@@ -28,25 +27,12 @@ func TestControlStart(t *testing.T) {
 		assert.Error(t, r.Error)
 	}
 	container := &types.Container{
-		ID:         "cid",
+		Meta:       types.Meta{ID: "cid"},
 		Privileged: true,
 	}
 	engine := &enginemocks.API{}
 	container.Engine = engine
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
-	// failed by inspect
-	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(nil, types.ErrNilEngine).Once()
-	ch, err = c.ControlContainer(ctx, []string{"id1"}, "", true)
-	assert.NoError(t, err)
-	for r := range ch {
-		assert.Error(t, r.Error)
-	}
-	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(
-		&enginetypes.VirtualizationInfo{
-			User:  "someuser",
-			Env:   []string{"a=b"},
-			Image: "testimage",
-		}, nil)
 	// failed by type
 	ch, err = c.ControlContainer(ctx, []string{"id1"}, "", true)
 	assert.NoError(t, err)
@@ -124,21 +110,13 @@ func TestControlStop(t *testing.T) {
 	store := &storemocks.Store{}
 	c.store = store
 	container := &types.Container{
-		ID:         "cid",
+		Meta:       types.Meta{ID: "cid", Running: true},
 		Privileged: true,
 	}
 	engine := &enginemocks.API{}
 	container.Engine = engine
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
-	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(
-		&enginetypes.VirtualizationInfo{
-			User:    "someuser",
-			Env:     []string{"a=b"},
-			Image:   "testimage",
-			Running: true,
-		}, nil)
 	// failed, hook true, remove always false
-	ch, err := c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStop, false)
 	hook := &types.Hook{
 		BeforeStop: []string{"cmd1"},
 	}
@@ -146,6 +124,7 @@ func TestControlStop(t *testing.T) {
 	container.Hook = hook
 	container.Hook.Force = true
 	engine.On("ExecCreate", mock.Anything, mock.Anything, mock.Anything).Return("", types.ErrNilEngine)
+	ch, err := c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStop, false)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
