@@ -390,10 +390,10 @@ func toRPCContainers(ctx context.Context, containers []*types.Container, labels 
 
 func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, error) {
 	publish := map[string]string{}
-	if c.Status != nil && c.Status.Running && len(c.Status.Networks) != 0 {
+	if c.Running && len(c.Networks) != 0 {
 		meta := utils.DecodeMetaInLabel(c.Labels)
 		publish = utils.EncodePublishInfo(
-			utils.MakePublishInfo(c.Status.Networks, meta.Publish),
+			utils.MakePublishInfo(c.Networks, meta.Publish),
 		)
 	}
 	cpu := toRPCCPUMap(c.CPU)

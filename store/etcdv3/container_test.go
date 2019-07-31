@@ -23,8 +23,8 @@ func TestContainer(t *testing.T) {
 	nodename := "n1"
 	podname := "test"
 	container := &types.Container{
+		Meta:     types.Meta{ID: ID},
 		Name:     name,
-		ID:       ID,
 		Nodename: nodename,
 		Podname:  podname,
 	}
@@ -72,8 +72,8 @@ func TestContainer(t *testing.T) {
 	assert.Equal(t, containers[0].Name, name)
 	// GetContainers for multiple containers
 	newContainer := &types.Container{
+		Meta:     types.Meta{ID: "1234567812345678123456781234567812345678123456781234567812340000"},
 		Name:     "test_app_2",
-		ID:       "1234567812345678123456781234567812345678123456781234567812340000",
 		Nodename: nodename,
 		Podname:  podname,
 	}

@@ -57,9 +57,7 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 					if err != nil {
 						return
 					}
-					if container.Status != nil {
-						container.Status.Running = false
-					}
+					container.Running = false
 					m2, e2 := c.doStartContainer(ctx, container, force)
 					message = append(message, m2...)
 					if e2 != nil {
@@ -79,7 +77,7 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 
 func (c *Calcium) doStartContainer(ctx context.Context, container *types.Container, force bool) ([]*bytes.Buffer, error) {
 	var message []*bytes.Buffer
-	if container.Status != nil && container.Status.Running {
+	if container.Running {
 		message = append(message, bytes.NewBufferString("container already running, can't run hook\n"))
 		return message, nil
 	}
@@ -105,7 +103,7 @@ func (c *Calcium) doStartContainer(ctx context.Context, container *types.Contain
 
 func (c *Calcium) doStopContainer(ctx context.Context, container *types.Container, force bool) ([]*bytes.Buffer, error) {
 	var message []*bytes.Buffer
-	if container.Status != nil && !container.Status.Running {
+	if !container.Running {
 		message = append(message, bytes.NewBufferString("container stopped, can't run hook\n"))
 		return message, nil
 	}

@@ -54,15 +54,15 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 					// 覆盖 podname 如果做全量更新的话
 					replaceOpts.Podname = container.Podname
 					// 继承网络配置
-					if replaceOpts.NetworkInherit && container.Status != nil {
-						if !container.Status.Running {
+					if replaceOpts.NetworkInherit {
+						if !container.Running {
 							return types.NewDetailedErr(types.ErrNotSupport,
 								fmt.Sprintf("container %s not running, can not inherit", container.ID),
 							)
 						}
-						log.Infof("[ReplaceContainer] Inherit old container network configuration mode %v", container.Status.Networks)
+						log.Infof("[ReplaceContainer] Inherit old container network configuration mode %v", container.Networks)
 						replaceOpts.NetworkMode = ""
-						replaceOpts.Networks = container.Status.Networks
+						replaceOpts.Networks = container.Networks
 					}
 
 					createMessage, removeMessage, err = c.doReplaceContainer(ctx, container, &replaceOpts, index)
