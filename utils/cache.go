@@ -7,13 +7,13 @@ import (
 	"github.com/projecteru2/core/engine"
 )
 
-// Cache connections
+// EngineCache connections
 // otherwise they'll leak
 type EngineCache struct {
 	cache *cache.Cache
 }
 
-// NewCacheCache creates Cache instance
+// NewEngineCache creates Cache instance
 func NewEngineCache(expire time.Duration, cleanupInterval time.Duration) *EngineCache {
 	return &EngineCache{
 		cache: cache.New(expire, cleanupInterval),

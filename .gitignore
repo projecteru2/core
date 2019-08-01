@@ -18,6 +18,7 @@ test*.py
 set*
 test.yaml
 local.yaml
+tools/test*.go
 tools/update
 tools/fix.go
 cscope.*

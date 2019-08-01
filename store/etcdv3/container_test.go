@@ -87,7 +87,6 @@ func TestContainer(t *testing.T) {
 	// Deployed
 	assert.NoError(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, nodename, []byte{}))
 	assert.NoError(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, nodename, []byte{}))
-	assert.Error(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, "n2", []byte("")))
 	// ListContainers
 	containers, _ = m.ListContainers(ctx, appname, entrypoint, "", 1)
 	assert.Equal(t, len(containers), 1)
