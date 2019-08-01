@@ -67,9 +67,12 @@ func (m *Mercury) GetContainers(ctx context.Context, IDs []string) (containers [
 
 // ContainerDeployed store deployed container info
 func (m *Mercury) ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename string, data []byte) error {
-	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID)
-	//Only update when it exist
-	_, err := m.Update(ctx, key, string(data))
+	key := m.parseKey(filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID))
+	value := string(data)
+	cond1 := clientv3.Compare(clientv3.Version(key), "!=", 0)
+	cond2 := clientv3.Compare(clientv3.Value(key), "!=", value)
+	_, err := m.cliv3.Txn(ctx).If(cond1, cond2).Then(clientv3.OpPut(key, value)).Commit()
+	// ignore update failed
 	return err
 }
 
