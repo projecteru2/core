@@ -41,6 +41,9 @@ const (
 	containerInfoKey          = "/containers/%s" // /containers/{containerID}
 	containerDeployPrefix     = "/deploy"        // /deploy/{appname}/{entrypoint}/{nodename}/{containerID} value -> something by agent
 	containerProcessingPrefix = "/processing"    // /processing/{appname}/{entrypoint}/{nodename}/{opsIdent} value -> count
+
+	cmpVersion = "version"
+	cmpValue   = "value"
 )
 
 // Mercury means store with etcdv3
@@ -104,7 +107,7 @@ func (m *Mercury) batchGet(ctx context.Context, keys []string, opt ...clientv3.O
 		op := clientv3.OpGet(m.parseKey(key), opt...)
 		ops = append(ops, op)
 	}
-	return m.doBatchOp(ctx, nil, ops)
+	return m.doBatchOp(ctx, nil, ops, nil)
 }
 
 // GetOne get one result or noting
@@ -162,7 +165,7 @@ func (m *Mercury) batchDelete(ctx context.Context, keys []string, opts ...client
 		ops = append(ops, op)
 	}
 
-	return m.doBatchOp(ctx, nil, ops)
+	return m.doBatchOp(ctx, nil, ops, nil)
 }
 
 // Put save a key value
@@ -170,21 +173,30 @@ func (m *Mercury) Put(ctx context.Context, key, val string, opts ...clientv3.OpO
 	return m.cliv3.Put(ctx, m.parseKey(key), val, opts...)
 }
 
-func (m *Mercury) batchPut(ctx context.Context, data map[string]string, limit map[string]map[int]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+func (m *Mercury) batchPut(ctx context.Context, data map[string]string, limit map[string]map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
 	ops := []clientv3.Op{}
+	failOps := []clientv3.Op{}
 	conds := []clientv3.Cmp{}
 	for key, val := range data {
 		prefixKey := m.parseKey(key)
 		op := clientv3.OpPut(prefixKey, val, opts...)
 		ops = append(ops, op)
 		if v, ok := limit[key]; ok {
-			for rev, condition := range v {
-				cond := clientv3.Compare(clientv3.Version(prefixKey), condition, rev)
-				conds = append(conds, cond)
+			for method, condition := range v {
+				switch method {
+				case cmpVersion:
+					cond := clientv3.Compare(clientv3.Version(prefixKey), condition, 0)
+					conds = append(conds, cond)
+				case cmpValue:
+					cond := clientv3.Compare(clientv3.Value(prefixKey), condition, val)
+					failOp := clientv3.OpGet(prefixKey)
+					failOps = append(failOps, failOp)
+					conds = append(conds, cond)
+				}
 			}
 		}
 	}
-	return m.doBatchOp(ctx, conds, ops)
+	return m.doBatchOp(ctx, conds, ops, failOps)
 }
 
 // Create create a key if not exists
@@ -194,9 +206,9 @@ func (m *Mercury) Create(ctx context.Context, key, val string, opts ...clientv3.
 
 // BatchCreate create key values if not exists
 func (m *Mercury) BatchCreate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	limit := map[string]map[int]string{}
+	limit := map[string]map[string]string{}
 	for key := range data {
-		limit[key] = map[int]string{0: "="}
+		limit[key] = map[string]string{cmpVersion: "="}
 	}
 	resp, err := m.batchPut(ctx, data, limit, opts...)
 	if err != nil {
@@ -215,16 +227,20 @@ func (m *Mercury) Update(ctx context.Context, key, val string, opts ...clientv3.
 
 // BatchUpdate update keys if not exists
 func (m *Mercury) BatchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	limit := map[string]map[int]string{}
+	limit := map[string]map[string]string{}
 	for key := range data {
-		limit[key] = map[int]string{0: "!="}
+		limit[key] = map[string]string{cmpVersion: "!=", cmpValue: "!="} // ignore same data
 	}
 	resp, err := m.batchPut(ctx, data, limit, opts...)
 	if err != nil {
 		return resp, err
 	}
 	if !resp.Succeeded {
-		return resp, types.ErrKeyNotExists
+		for _, failResp := range resp.Responses {
+			if len(failResp.GetResponseRange().Kvs) == 0 {
+				return resp, types.ErrKeyNotExists
+			}
+		}
 	}
 	return resp, nil
 }
@@ -243,7 +259,7 @@ func (m *Mercury) parseKey(key string) string {
 	return after
 }
 
-func (m *Mercury) doBatchOp(ctx context.Context, conds []clientv3.Cmp, ops []clientv3.Op) (*clientv3.TxnResponse, error) {
+func (m *Mercury) doBatchOp(ctx context.Context, conds []clientv3.Cmp, ops, failOps []clientv3.Op) (*clientv3.TxnResponse, error) {
 	if len(ops) == 0 {
 		return nil, types.ErrNoOps
 	}
@@ -266,7 +282,7 @@ func (m *Mercury) doBatchOp(ctx context.Context, conds []clientv3.Cmp, ops []cli
 		if len(conds) != 0 {
 			txn = txn.If(conds...)
 		}
-		resp, err := txn.Then(ops...).Commit()
+		resp, err := txn.Then(ops...).Else(failOps...).Commit()
 		resps[index] = resp
 		errs[index] = err
 	}
