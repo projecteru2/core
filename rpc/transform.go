@@ -373,10 +373,10 @@ func toRPCRunAndWaitMessage(msg *types.RunAndWaitMessage) *pb.RunAndWaitMessage 
 	}
 }
 
-func toRPCContainers(ctx context.Context, containers []*types.Container, labels map[string]string) []*pb.Container {
+func toRPCContainers(ctx context.Context, containers []*types.Container, labels map[string]string, inspect bool) []*pb.Container {
 	cs := []*pb.Container{}
 	for _, c := range containers {
-		pContainer, err := toRPCContainer(ctx, c)
+		pContainer, err := toRPCContainer(ctx, c, inspect)
 		if err != nil {
 			log.Errorf("[toRPCContainers] trans to pb container failed %v", err)
 			continue
@@ -388,7 +388,16 @@ func toRPCContainers(ctx context.Context, containers []*types.Container, labels 
 	return cs
 }
 
-func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, error) {
+func toRPCContainer(ctx context.Context, c *types.Container, inspect bool) (*pb.Container, error) {
+	if inspect {
+		ci, err := c.Inspect(ctx)
+		if err != nil {
+			return nil, err
+		}
+		c.Running = ci.Running
+		c.Networks = ci.Networks
+	}
+
 	publish := map[string]string{}
 	if c.Running && len(c.Networks) != 0 {
 		meta := utils.DecodeMetaInLabel(c.Labels)

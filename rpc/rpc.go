@@ -11,7 +11,6 @@ import (
 	"github.com/projecteru2/core/cluster"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
@@ -110,20 +109,14 @@ func (v *Vibranium) ListContainers(opts *pb.ListContainersOptions, stream pb.Cor
 		Nodename:   opts.Nodename,
 		Limit:      opts.Limit,
 	}
+
 	containers, err := v.cluster.ListContainers(stream.Context(), lsopts)
 	if err != nil {
 		return err
 	}
 
-	for _, container := range containers {
-		c, err := toRPCContainer(stream.Context(), container)
-		if err != nil {
-			log.Errorf("[ListContainers] %s to rpc container failed %v", container.ID, err)
-			continue
-		}
-		if !utils.FilterContainer(c.Labels, opts.Labels) {
-			continue
-		}
+	cs := toRPCContainers(stream.Context(), containers, opts.Labels, opts.Inspect)
+	for _, c := range cs {
 		if err = stream.Send(c); err != nil {
 			v.logUnsentMessages("ListContainers", c)
 			return err
@@ -138,7 +131,7 @@ func (v *Vibranium) ListNodeContainers(ctx context.Context, opts *pb.GetNodeOpti
 	if err != nil {
 		return nil, err
 	}
-	return &pb.Containers{Containers: toRPCContainers(ctx, containers, nil)}, nil
+	return &pb.Containers{Containers: toRPCContainers(ctx, containers, nil, true)}, nil
 }
 
 // ListNetworks list networks for pod
@@ -202,7 +195,7 @@ func (v *Vibranium) GetContainer(ctx context.Context, id *pb.ContainerID) (*pb.C
 		return nil, err
 	}
 
-	return toRPCContainer(ctx, container)
+	return toRPCContainer(ctx, container, true)
 }
 
 // GetContainers get lots containers
@@ -213,7 +206,7 @@ func (v *Vibranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (*
 		return nil, err
 	}
 
-	return &pb.Containers{Containers: toRPCContainers(ctx, containers, nil)}, nil
+	return &pb.Containers{Containers: toRPCContainers(ctx, containers, nil, true)}, nil
 }
 
 // SetNode set node meta
