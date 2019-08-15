@@ -239,6 +239,8 @@ func (c *Calcium) doCreateAndStartContainer(
 	container.Labels = containerInfo.Labels
 	container.Env = containerInfo.Env
 	container.Hook = hook
+	container.Running = containerInfo.Running
+	container.Networks = containerInfo.Networks
 
 	// update store meta
 	if err = c.store.UpdateContainer(ctx, container); err != nil {

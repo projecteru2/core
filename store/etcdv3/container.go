@@ -67,9 +67,44 @@ func (m *Mercury) GetContainers(ctx context.Context, IDs []string) (containers [
 
 // ContainerDeployed store deployed container info
 func (m *Mercury) ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename string, data []byte) error {
-	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID)
-	//Only update when it exist
-	_, err := m.Update(ctx, key, string(data))
+	deployKey := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID)
+	containerKey := fmt.Sprintf(containerInfoKey, ID)                // container info
+	nodeContainerKey := fmt.Sprintf(nodeContainersKey, nodename, ID) // node containers
+	kvs, err := m.GetOne(ctx, containerKey)
+	if err != nil {
+		return err
+	}
+	meta := &types.Meta{}
+	if err = json.Unmarshal(data, meta); err != nil {
+		return err
+	}
+	container := &types.Container{}
+	if err = json.Unmarshal(kvs.Value, container); err != nil {
+		return err
+	}
+	container.Running = meta.Running
+	container.Networks = meta.Networks
+	b, err := json.Marshal(container)
+	if err != nil {
+		return err
+	}
+	containerData := string(b)
+	deployData := string(data)
+	// Only update when it exist
+	r, err := m.Update(ctx, deployKey, deployData)
+	if err != nil {
+		return err
+	}
+	if r.Succeeded {
+		// Update meta
+		_, err = m.BatchUpdate(
+			ctx,
+			map[string]string{
+				containerKey:     containerData,
+				nodeContainerKey: containerData,
+			},
+		)
+	}
 	return err
 }
 
@@ -160,8 +195,8 @@ func (m *Mercury) WatchDeployStatus(ctx context.Context, appname, entrypoint, no
 
 func (m *Mercury) cleanContainerData(ctx context.Context, ID, appname, entrypoint, nodename string) error {
 	keys := []string{
-		fmt.Sprintf(containerInfoKey, ID),                                       // container info
 		filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID), // container deploy status
+		fmt.Sprintf(containerInfoKey, ID),                                       // container info
 		fmt.Sprintf(nodeContainersKey, nodename, ID),                            // node containers
 	}
 	_, err := m.batchDelete(ctx, keys)

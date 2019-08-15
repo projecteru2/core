@@ -11,7 +11,6 @@ import (
 	"github.com/projecteru2/core/cluster"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
@@ -110,20 +109,14 @@ func (v *Vibranium) ListContainers(opts *pb.ListContainersOptions, stream pb.Cor
 		Nodename:   opts.Nodename,
 		Limit:      opts.Limit,
 	}
-	containers, err := v.cluster.ListContainers(stream.Context(), lsopts)
+	ctx := stream.Context()
+
+	containers, err := v.cluster.ListContainers(ctx, lsopts)
 	if err != nil {
 		return err
 	}
 
-	for _, container := range containers {
-		c, err := toRPCContainer(stream.Context(), container)
-		if err != nil {
-			log.Errorf("[ListContainers] %s to rpc container failed %v", container.ID, err)
-			continue
-		}
-		if !utils.FilterContainer(c.Labels, opts.Labels) {
-			continue
-		}
+	for _, c := range toRPCContainers(ctx, containers, opts.Labels) {
 		if err = stream.Send(c); err != nil {
 			v.logUnsentMessages("ListContainers", c)
 			return err
