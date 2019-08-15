@@ -10,12 +10,12 @@ import (
 
 // Meta indicate contaienr runtime
 type Meta struct {
-	ID     string            `json:"id"`
-	Labels map[string]string `json:"labels"`
-
+	ID       string            `json:"id"`
 	Running  bool              `json:"running,omitempty"`
-	Healthy  bool              `json:"healthy,omitempty"`
+	Labels   map[string]string `json:"labels"`
 	Networks map[string]string `json:"networks,omitempty"`
+
+	Healthy bool `json:"healthy,omitempty"`
 }
 
 // Container store container info

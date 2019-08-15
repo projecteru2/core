@@ -156,7 +156,7 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 		Image:    guest.ImageName,
 		Running:  guest.Status == "running",
 		Networks: guest.Networks,
-		Labels:   map[string]string{cluster.ERUMeta: string(bytes)},
+		Labels:   map[string]string{cluster.ERUMeta: string(bytes), cluster.ERUMark: "1"},
 	}, nil
 }
 

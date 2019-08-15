@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/projecteru2/core/store/etcdv3"
+	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
 
@@ -24,10 +26,16 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		c.Labels = ci.Labels
+		c.Meta = types.Meta{
+			ID:       c.ID,
+			Labels:   ci.Labels,
+			Networks: ci.Networks,
+			Running:  ci.Running,
+		}
 		c.User = ci.User
 		c.Image = ci.Image
 		c.Env = ci.Env
+		fmt.Println(c.ID, c.Networks)
 		if err := store.UpdateContainer(ctx, c); err != nil {
 			panic(err)
 		}
