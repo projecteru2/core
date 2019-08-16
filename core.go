@@ -78,8 +78,8 @@ func serve() {
 	}
 
 	opts := []grpc.ServerOption{
-		grpc.MaxConcurrentStreams(100),
-		grpc.MaxRecvMsgSize(20 * 1024 * 1024), // TODO set in config
+		grpc.MaxConcurrentStreams(uint32(config.GRPCConfig.MaxConcurrentStreams)),
+		grpc.MaxRecvMsgSize(config.GRPCConfig.MaxRecvMsgSize),
 	}
 
 	if config.Auth.Username != "" {

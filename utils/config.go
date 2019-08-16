@@ -54,6 +54,12 @@ func LoadConfig(configPath string) (types.Config, error) {
 	if config.Scheduler.MaxShare == 0 {
 		config.Scheduler.MaxShare = -1
 	}
+	if config.GRPCConfig.MaxConcurrentStreams == 0 {
+		config.GRPCConfig.MaxConcurrentStreams = 100
+	}
+	if config.GRPCConfig.MaxRecvMsgSize == 0 {
+		config.GRPCConfig.MaxRecvMsgSize = 20 * int(types.MByte)
+	}
 
 	return config, nil
 }

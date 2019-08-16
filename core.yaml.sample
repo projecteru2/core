@@ -9,6 +9,10 @@ auth:
     username: admin
     password: password
 
+grpc:
+    max_concurrent_streams: 100
+    max_recv_msg_size: 30 # will covert to MBytes
+
 etcd:
     machines:
         - "http://127.0.0.1:2379"

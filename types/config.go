@@ -23,6 +23,7 @@ type Config struct {
 	LockTimeout   int           `yaml:"lock_timeout"`   // timeout for lock (ttl)
 	GlobalTimeout time.Duration `yaml:"global_timeout"` // timeout for remove, run_and_wait and build, in second
 	Auth          AuthConfig    `yaml:"auth"`           // grpc auth
+	GRPCConfig    GRPCConfig    `yaml:"grpc"`           // grpc config
 
 	Git       GitConfig    `yaml:"git"`
 	Etcd      EtcdConfig   `yaml:"etcd"`
@@ -87,4 +88,10 @@ type SchedConfig struct {
 type AuthConfig struct {
 	Username string `yaml:"username,omitempty" json:"username,omitempty"`
 	Password string `yaml:"password,omitempty" json:"password,omitempty"`
+}
+
+// GRPCConfig indicate grpc config
+type GRPCConfig struct {
+	MaxConcurrentStreams int `yaml:"max_concurrent_streams,omitempty" json:"max_concurrent_streams,omitempty"`
+	MaxRecvMsgSize       int `yaml:"max_recv_msg_size,omitempty" json:"max_recv_msg_size,omitempty"`
 }
