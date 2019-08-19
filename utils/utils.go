@@ -230,7 +230,7 @@ func TempTarFile(path string, data []byte) (string, error) {
 
 // Round for float64 to int
 func Round(f float64) float64 {
-	return types.Round(f*100) / 100
+	return types.Round(f)
 }
 
 // copied from https://gist.github.com/jmervine/d88c75329f98e09f5c87

@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/docker/go-units"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -26,7 +27,7 @@ func TestDissociateContainer(t *testing.T) {
 			ID: "c1",
 		},
 		Podname:  "p1",
-		Memory:   5 * types.MByte,
+		Memory:   5 * int64(units.MiB),
 		Quota:    0.9,
 		CPU:      types.CPUMap{"2": 90},
 		Nodename: "node1",
@@ -34,7 +35,7 @@ func TestDissociateContainer(t *testing.T) {
 
 	node1 := &types.Node{
 		Name:     "node1",
-		MemCap:   types.GByte,
+		MemCap:   units.GiB,
 		CPU:      types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
 		Endpoint: "http://1.1.1.1:1",
 	}

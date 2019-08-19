@@ -68,3 +68,9 @@ func TestSetCount(t *testing.T) {
 	assert.Equal(t, nodesInfo[0].Count, 1)
 	assert.Equal(t, nodesInfo[1].Count, 2)
 }
+
+func TestMakeVirtClient(t *testing.T) {
+	endpoint := "virt://abc"
+	_, err := makeVirtClient(types.Config{}, endpoint, "")
+	assert.Error(t, err)
+}

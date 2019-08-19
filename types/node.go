@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"math"
+
 	engine "github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 )
@@ -155,7 +157,7 @@ func (n *Node) StorageUsed() int64 {
 func (n *Node) AvailableStorage() int64 {
 	switch {
 	case n.InitStorageCap <= 0:
-		return MaxInt64
+		return math.MaxInt64
 	default:
 		return n.StorageCap
 	}

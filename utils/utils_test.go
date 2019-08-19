@@ -201,3 +201,11 @@ func TestRound(t *testing.T) {
 	a = 19.99998
 	assert.Equal(t, f(Round(a)), "20")
 }
+
+func TestMin(t *testing.T) {
+	var a int
+	var b int
+	a = 1
+	b = 2
+	assert.Equal(t, 1, Min(a, b))
+}

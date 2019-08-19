@@ -5,9 +5,9 @@ import (
 	"bytes"
 	"io/ioutil"
 
+	"github.com/docker/go-units"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -16,7 +16,7 @@ import (
 func MakeMockClient() *enginemocks.API {
 	e := &enginemocks.API{}
 	// info
-	e.On("Info", mock.Anything).Return(&enginetypes.Info{NCPU: 1, MemTotal: types.GByte + 100}, nil)
+	e.On("Info", mock.Anything).Return(&enginetypes.Info{NCPU: 1, MemTotal: units.GiB + 100}, nil)
 	// exec
 	execID := utils.RandomString(64)
 	e.On("ExecCreate", mock.Anything, mock.Anything, mock.Anything).Return(execID, nil)

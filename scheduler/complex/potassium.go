@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 
+	"math"
+
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -43,7 +45,7 @@ func (m *Potassium) SelectStorageNodes(nodesInfo []types.NodeInfo, storage int64
 	case storage < 0:
 		return nil, 0, types.ErrNegativeStorage
 	case storage == 0:
-		return nodesInfo, types.MaxInt32, nil
+		return nodesInfo, math.MaxInt32, nil
 	default:
 		log.Infof("[SelectStorageNodes] nodesInfo: %v, need: %d", nodesInfo, storage)
 	}

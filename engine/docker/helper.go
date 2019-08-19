@@ -26,6 +26,7 @@ import (
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/registry"
+	"github.com/docker/go-units"
 )
 
 type fuckDockerStream struct {
@@ -112,8 +113,8 @@ func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int, numaN
 		resource.Memory = memory
 		resource.MemorySwap = memory
 		resource.MemoryReservation = memory / 2
-		if memory/2 < coretypes.MByte*4 {
-			resource.MemoryReservation = coretypes.MByte * 4
+		if memory/2 < int64(units.MiB*4) {
+			resource.MemoryReservation = int64(units.MiB * 4)
 		}
 	}
 	return resource

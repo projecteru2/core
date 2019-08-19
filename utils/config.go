@@ -6,6 +6,7 @@ import (
 
 	"github.com/projecteru2/core/types"
 
+	"github.com/docker/go-units"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -58,7 +59,7 @@ func LoadConfig(configPath string) (types.Config, error) {
 		config.GRPCConfig.MaxConcurrentStreams = 100
 	}
 	if config.GRPCConfig.MaxRecvMsgSize == 0 {
-		config.GRPCConfig.MaxRecvMsgSize = 20 * int(types.MByte)
+		config.GRPCConfig.MaxRecvMsgSize = 20 * units.MiB
 	}
 
 	return config, nil
