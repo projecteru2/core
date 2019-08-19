@@ -4,16 +4,6 @@ import (
 	"time"
 )
 
-const (
-	// MaxInt32 indicates the max int32 value.
-	MaxInt32 = 1<<31 - 1
-	// MaxInt64 means the max int64 value.
-	MaxInt64 = 1<<63 - 1
-
-	// MinDeployStorage indicates the minimal storage size of deployment.
-	MinDeployStorage = GByte * 50
-)
-
 // Config holds eru-core config
 type Config struct {
 	LogLevel      string        `yaml:"log_level"`

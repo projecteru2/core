@@ -8,6 +8,7 @@ import (
 )
 
 func TestEmbededCluster(t *testing.T) {
+	TerminateCluster()
 	cliv3 := NewCluster()
 	_, err := cliv3.MemberList(context.Background())
 	assert.NoError(t, err)

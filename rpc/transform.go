@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/docker/go-units"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
@@ -257,7 +258,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 }
 
 func toCoreDeployStorage(vols []string) (int64, error) {
-	stor := types.MinDeployStorage
+	stor := int64(units.GiB * 50)
 
 	for _, bind := range vols {
 		parts := strings.Split(bind, ":")

@@ -1,12 +1,12 @@
 package calcium
 
 import (
-	"github.com/projecteru2/core/types"
+	"github.com/docker/go-units"
 )
 
 const (
 	restartAlways = "always"
-	minMemory     = types.MByte * 4
-	minStorage    = types.GByte * 50
+	minMemory     = units.MiB * 4
+	minStorage    = units.GiB * 50
 	root          = "root"
 )

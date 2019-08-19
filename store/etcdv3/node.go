@@ -60,7 +60,7 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 		cpu = info.NCPU
 	}
 	if memory == 0 {
-		memory = info.MemTotal * 10 / 8 // use 80% real memory, not sub types.GByte now
+		memory = info.MemTotal * 10 / 8 // use 80% real memory
 	}
 	if storage == 0 {
 		storage = info.StorageTotal * 10 / 8

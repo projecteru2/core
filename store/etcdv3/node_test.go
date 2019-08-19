@@ -204,4 +204,8 @@ RdCPRPt513WozkJZZAjUSP2U
 	resp, err := m.Get(ctx, fmt.Sprintf(nodeInfoKey, podname, nodename))
 	assert.NoError(t, err)
 	assert.Equal(t, resp.Count, int64(0))
+	nodeWithStorage := &types.Node{
+		InitStorageCap: -1,
+	}
+	assert.Equal(t, nodeWithStorage.StorageUsage(), 1.0)
 }

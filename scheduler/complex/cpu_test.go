@@ -3,6 +3,7 @@ package complexscheduler
 import (
 	"testing"
 
+	"github.com/docker/go-units"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/projecteru2/core/types"
@@ -11,13 +12,13 @@ import (
 func TestCPUPriorPlan(t *testing.T) {
 	// normal 分配
 	nodesInfo := resetNodesInfo()
-	_, resultCPUPlan, total, err := cpuPriorPlan(3.0, types.MByte, nodesInfo, -1, 100)
+	_, resultCPUPlan, total, err := cpuPriorPlan(3.0, int64(units.MiB), nodesInfo, -1, 100)
 	assert.NoError(t, err)
 	assert.Equal(t, len(resultCPUPlan), 1)
 	assert.Equal(t, total, 1)
 	// numa 分配
 	nodesInfo = resetNodesInfo()
-	_, resultCPUPlan, total, err = cpuPriorPlan(1.5, types.MByte, nodesInfo, -1, 100)
+	_, resultCPUPlan, total, err = cpuPriorPlan(1.5, int64(units.MiB), nodesInfo, -1, 100)
 	assert.NoError(t, err)
 	assert.Equal(t, len(resultCPUPlan), 1)
 	assert.Equal(t, total, 2)
@@ -31,7 +32,7 @@ func TestCPUPriorPlan(t *testing.T) {
 	}
 	// numa and normal 分配
 	nodesInfo = resetNodesInfo()
-	_, resultCPUPlan, total, err = cpuPriorPlan(1, types.GByte, nodesInfo, -1, 100)
+	_, resultCPUPlan, total, err = cpuPriorPlan(1, int64(units.GiB), nodesInfo, -1, 100)
 	assert.NoError(t, err)
 	assert.Equal(t, len(resultCPUPlan), 1)
 	assert.Equal(t, total, 3)
@@ -42,7 +43,7 @@ func resetNodesInfo() []types.NodeInfo {
 		types.NodeInfo{
 			Name:   "n1",
 			CPUMap: types.CPUMap{"1": 100, "2": 100, "3": 100, "4": 100},
-			MemCap: 3 * types.GByte,
+			MemCap: 3 * int64(units.GiB),
 			NUMA: types.NUMA{
 				"1": "node0",
 				"2": "node1",
@@ -50,8 +51,8 @@ func resetNodesInfo() []types.NodeInfo {
 				"4": "node1",
 			},
 			NUMAMemory: types.NUMAMemory{
-				"node0": types.GByte,
-				"node1": types.GByte,
+				"node0": int64(units.GiB),
+				"node1": int64(units.GiB),
 			},
 		},
 	}
