@@ -17,6 +17,11 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
+const (
+	// PrefixKey indicate virt prefix
+	PrefixKey = "virt://"
+)
+
 // Virt implements the core engine.API interface.
 type Virt struct {
 	client *virtapi.Client
@@ -25,7 +30,8 @@ type Virt struct {
 
 // MakeClient makes a virt. client which wraps yavirt API client.
 func MakeClient(config coretypes.Config, endpoint, apiversion string) (*Virt, error) {
-	cli, err := virtapi.New(endpoint, apiversion)
+	host := endpoint[len(PrefixKey):]
+	cli, err := virtapi.New(host, apiversion)
 	if err != nil {
 		return nil, err
 	}

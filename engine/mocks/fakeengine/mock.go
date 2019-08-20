@@ -12,6 +12,11 @@ import (
 	mock "github.com/stretchr/testify/mock"
 )
 
+const (
+	// PrefixKey indicate key prefix
+	PrefixKey = "mock://"
+)
+
 // MakeMockClient make a mock client
 func MakeMockClient() *enginemocks.API {
 	e := &enginemocks.API{}

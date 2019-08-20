@@ -8,10 +8,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/projecteru2/core/engine/virt"
 	"github.com/projecteru2/core/store"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/projecteru2/core/engine"
+	"github.com/projecteru2/core/engine/docker"
+	"github.com/projecteru2/core/engine/mocks/fakeengine"
 	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -24,13 +27,13 @@ import (
 func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string,
 	cpu, share int, memory, storage int64, labels map[string]string,
 	numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
-	if !strings.HasPrefix(endpoint, nodeTCPPrefixKey) &&
-		!strings.HasPrefix(endpoint, nodeSockPrefixKey) &&
-		!strings.HasPrefix(endpoint, nodeMockPrefixKey) &&
-		!strings.HasPrefix(endpoint, nodeVirtPrefixKey) {
+	if !strings.HasPrefix(endpoint, docker.TCPPrefixKey) &&
+		!strings.HasPrefix(endpoint, docker.SockPrefixKey) &&
+		!strings.HasPrefix(endpoint, fakeengine.PrefixKey) &&
+		!strings.HasPrefix(endpoint, virt.PrefixKey) {
 		return nil, types.NewDetailedErr(types.ErrNodeFormat,
-			fmt.Sprintf("endpoint must starts with %s, %s or %s %q",
-				nodeTCPPrefixKey, nodeSockPrefixKey, nodeVirtPrefixKey, endpoint))
+			fmt.Sprintf("endpoint must starts with %s, %s, %s, %s %q",
+				docker.TCPPrefixKey, docker.SockPrefixKey, fakeengine.PrefixKey, virt.PrefixKey, endpoint))
 	}
 
 	if n, err := m.GetNodeByName(ctx, name); err == nil {
@@ -255,19 +258,19 @@ func (m *Mercury) makeClient(ctx context.Context, podname, nodename, endpoint st
 }
 
 func (m *Mercury) doMakeClient(ctx context.Context, nodename, endpoint, ca, cert, key string) (engine.API, error) {
-	if strings.HasPrefix(endpoint, nodeMockPrefixKey) {
+	if strings.HasPrefix(endpoint, fakeengine.PrefixKey) {
 		return makeMockClient()
 	}
-	if strings.HasPrefix(endpoint, nodeVirtPrefixKey) {
+	if strings.HasPrefix(endpoint, virt.PrefixKey) {
 		return makeVirtClient(m.config, endpoint, m.config.Virt.APIVersion)
 	}
-	if strings.HasPrefix(endpoint, nodeSockPrefixKey) ||
+	if strings.HasPrefix(endpoint, docker.SockPrefixKey) ||
 		m.config.Docker.CertPath == "" ||
 		(ca == "" || cert == "" || key == "") {
 		return makeDockerClient(m.config, endpoint, m.config.Docker.APIVersion)
 	}
-	if (strings.HasPrefix(endpoint, nodeSockPrefixKey) ||
-		strings.HasPrefix(endpoint, nodeTCPPrefixKey)) &&
+	if (strings.HasPrefix(endpoint, docker.SockPrefixKey) ||
+		strings.HasPrefix(endpoint, docker.TCPPrefixKey)) &&
 		m.config.Docker.CertPath != "" &&
 		ca != "" && cert != "" && key != "" {
 		caFile, err := ioutil.TempFile(m.config.Docker.CertPath, fmt.Sprintf("ca-%s", nodename))

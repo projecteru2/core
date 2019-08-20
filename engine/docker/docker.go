@@ -12,6 +12,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	// TCPPrefixKey indicate tcp prefix
+	TCPPrefixKey = "tcp://"
+	// SockPrefixKey indicate sock prefix
+	SockPrefixKey = "unix://"
+)
+
 // Engine is engine for docker
 type Engine struct {
 	client dockerapi.APIClient

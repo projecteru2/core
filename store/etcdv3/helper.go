@@ -45,8 +45,7 @@ func makeDockerClientWithTLS(config types.Config, ca, cert, key *os.File, endpoi
 }
 
 func makeVirtClient(config types.Config, endpoint, apiversion string) (engine.API, error) {
-	host := endpoint[len(nodeVirtPrefixKey):]
-	return virt.MakeClient(config, host, apiversion)
+	return virt.MakeClient(config, endpoint, apiversion)
 }
 
 func parseStatusKey(key string) (string, string, string, string) {
