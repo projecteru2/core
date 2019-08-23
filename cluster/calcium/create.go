@@ -262,6 +262,7 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, opts *t
 	config.Storage = opts.Storage
 	config.NUMANode = node.GetNUMANode(cpumap)
 	config.SoftLimit = opts.SoftLimit
+	config.RawArgs = opts.RawArgs
 	entry := opts.Entrypoint
 
 	// 如果有指定用户，用指定用户
