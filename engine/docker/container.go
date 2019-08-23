@@ -16,9 +16,15 @@ import (
 	dockernetwork "github.com/docker/docker/api/types/network"
 	dockerslice "github.com/docker/docker/api/types/strslice"
 
+	"encoding/json"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coretypes "github.com/projecteru2/core/types"
 )
+
+type rawArgs struct {
+	PidMode dockercontainer.PidMode `json:"pid_mod"`
+}
 
 // VirtualizationCreate create a container
 func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) {
@@ -84,6 +90,12 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		Resources:  resource,
 		Sysctls:    opts.Sysctl,
 	}
+
+	rArgs := &rawArgs{}
+	if err := json.Unmarshal(opts.RawArgs, rArgs); err != nil {
+		return r, err
+	}
+	hostConfig.PidMode = rArgs.PidMode
 
 	if hostConfig.NetworkMode.IsBridge() {
 		portMapping := nat.PortMap{}

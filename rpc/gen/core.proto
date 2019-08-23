@@ -333,6 +333,7 @@ message DeployOptions {
     bool cpu_bind = 25;
     bool ignore_hook = 26;
     repeated string after_create = 27;
+    bytes raw_args = 28;
 }
 
 message ReplaceOptions {

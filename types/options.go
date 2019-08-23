@@ -31,6 +31,7 @@ type DeployOptions struct {
 	ProcessIdent string            // ProcessIdent ident this deploy
 	IgnoreHook   bool              // IgnoreHook ignore hook process
 	AfterCreate  []string          // AfterCreate support run cmds after create
+	RawArgs      []byte            // RawArgs for raw args processing
 }
 
 // RunAndWaitOptions is options for running and waiting
