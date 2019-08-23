@@ -254,6 +254,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		NodesLimit:   int(d.NodesLimit),
 		IgnoreHook:   d.IgnoreHook,
 		AfterCreate:  d.AfterCreate,
+		RawArgs:      d.RawArgs,
 	}, nil
 }
 

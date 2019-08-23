@@ -48,6 +48,8 @@ type VirtualizationCreateOptions struct {
 
 	LogType   string
 	LogConfig map[string]string
+
+	RawArgs []byte
 }
 
 // VirtualizationCreated use for store name and ID
