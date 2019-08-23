@@ -92,10 +92,12 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	}
 
 	rArgs := &rawArgs{}
-	if err := json.Unmarshal(opts.RawArgs, rArgs); err != nil {
-		return r, err
+	if len(opts.RawArgs) > 0 {
+		if err := json.Unmarshal(opts.RawArgs, rArgs); err != nil {
+			return r, err
+		}
+		hostConfig.PidMode = rArgs.PidMode
 	}
-	hostConfig.PidMode = rArgs.PidMode
 
 	if hostConfig.NetworkMode.IsBridge() {
 		portMapping := nat.PortMap{}
