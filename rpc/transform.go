@@ -262,12 +262,12 @@ func toCoreDeployStorage(storage int64, vols []string) (int64, error) {
 	for _, bind := range vols {
 		parts := strings.Split(bind, ":")
 		if len(parts) != 4 {
-			return stor, nil
+			continue
 		}
 
 		size, err := strconv.ParseInt(parts[3], 10, 64)
 		if err != nil {
-			return 0, err
+			log.Errorf("[toCoreDeployStorage] last digit %v is not a number %v", parts[3], err)
 		}
 
 		stor += size

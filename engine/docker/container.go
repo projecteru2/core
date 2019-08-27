@@ -92,15 +92,14 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		Sysctls:    opts.Sysctl,
 	}
 
-	rArgs := &rawArgs{
-		StorageOpt: map[string]string{
-			"size": fmt.Sprintf("%v", opts.Storage),
-		},
-	}
+	rArgs := &rawArgs{StorageOpt: map[string]string{}}
 	if len(opts.RawArgs) > 0 {
 		if err := json.Unmarshal(opts.RawArgs, rArgs); err != nil {
 			return r, err
 		}
+	}
+	if opts.Storage > 0 {
+		rArgs.StorageOpt["size"] = fmt.Sprintf("%v", opts.Storage)
 	}
 	hostConfig.PidMode = rArgs.PidMode
 	hostConfig.StorageOpt = rArgs.StorageOpt
