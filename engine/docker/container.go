@@ -23,7 +23,8 @@ import (
 )
 
 type rawArgs struct {
-	PidMode dockercontainer.PidMode `json:"pid_mod"`
+	PidMode    dockercontainer.PidMode `json:"pid_mod"`
+	StorageOpt map[string]string       `json:"storage_opt"`
 }
 
 // VirtualizationCreate create a container
@@ -91,13 +92,18 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		Sysctls:    opts.Sysctl,
 	}
 
-	rArgs := &rawArgs{}
+	rArgs := &rawArgs{
+		StorageOpt: map[string]string{
+			"size": fmt.Sprintf("%v", opts.Storage),
+		},
+	}
 	if len(opts.RawArgs) > 0 {
 		if err := json.Unmarshal(opts.RawArgs, rArgs); err != nil {
 			return r, err
 		}
-		hostConfig.PidMode = rArgs.PidMode
 	}
+	hostConfig.PidMode = rArgs.PidMode
+	hostConfig.StorageOpt = rArgs.StorageOpt
 
 	if hostConfig.NetworkMode.IsBridge() {
 		portMapping := nat.PortMap{}
