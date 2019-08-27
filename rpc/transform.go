@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/docker/go-units"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
@@ -221,7 +220,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		entry.Hook.Force = entrypoint.Hook.Force
 	}
 
-	storage, err := toCoreDeployStorage(d.Volumes)
+	storage, err := toCoreDeployStorage(d.Storage, d.Volumes)
 	if err != nil {
 		return nil, err
 	}
@@ -258,9 +257,8 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 	}, nil
 }
 
-func toCoreDeployStorage(vols []string) (int64, error) {
-	stor := int64(units.GiB * 50)
-
+func toCoreDeployStorage(storage int64, vols []string) (int64, error) {
+	var stor int64
 	for _, bind := range vols {
 		parts := strings.Split(bind, ":")
 		if len(parts) != 4 {
@@ -274,8 +272,7 @@ func toCoreDeployStorage(vols []string) (int64, error) {
 
 		stor += size
 	}
-
-	return stor, nil
+	return stor + storage, nil
 }
 
 func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateContainerMessage {
