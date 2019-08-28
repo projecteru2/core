@@ -36,6 +36,7 @@ type Container struct {
 	User       string     `json:"user"`
 	Env        []string   `json:"env"`
 	Image      string     `json:"image"`
+	Volumes    []string   `json:"volumes"`
 	StatusData []byte     `json:"-"`
 	Engine     engine.API `json:"-"`
 }

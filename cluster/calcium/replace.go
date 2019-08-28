@@ -53,6 +53,8 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 					replaceOpts.SoftLimit = container.SoftLimit
 					// 覆盖 podname 如果做全量更新的话
 					replaceOpts.Podname = container.Podname
+					// 覆盖 Volumes
+					replaceOpts.Volumes = container.Volumes
 					// 继承网络配置
 					if replaceOpts.NetworkInherit {
 						if !container.Running {

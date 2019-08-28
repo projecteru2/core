@@ -149,6 +149,7 @@ func (c *Calcium) doCreateAndStartContainer(
 		Engine:     node.Engine,
 		SoftLimit:  opts.SoftLimit,
 		Image:      opts.Image,
+		Volumes:    opts.Volumes,
 	}
 	createContainerMessage := &types.CreateContainerMessage{
 		Podname:  container.Podname,
