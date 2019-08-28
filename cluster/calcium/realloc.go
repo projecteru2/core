@@ -79,7 +79,7 @@ func (c *Calcium) doReallocContainer(
 		for _, container := range containers {
 			newCPU := utils.Round(container.Quota + cpu)
 			newMem := container.Memory + memory
-			if newCPU < 0 || newMem < minMemory {
+			if newCPU <= 0 || newMem <= 0 {
 				log.Errorf("[doReallocContainer] New resource invaild %s, %f, %d", container.ID, newCPU, newMem)
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				continue
