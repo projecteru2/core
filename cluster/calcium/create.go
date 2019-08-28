@@ -25,21 +25,18 @@ func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions
 	}
 	log.Infof("[CreateContainer %s] Creating container with options:", opts.ProcessIdent)
 	litter.Dump(opts)
-
-	// 4194304 Byte = 4 MB, 创建容器的内存最低标准
-	if opts.Memory < minMemory {
-		return nil, types.NewDetailedErr(types.ErrBadMemory,
-			fmt.Sprintf("Minimum memory limit allowed is 4MB, got %d", opts.Memory))
-	}
 	// Count 要大于0
 	if opts.Count <= 0 {
 		return nil, types.NewDetailedErr(types.ErrBadCount, opts.Count)
+	}
+	// 创建时内存不为 0
+	if opts.Memory <= 0 {
+		return nil, types.NewDetailedErr(types.ErrBadMemory, opts.Memory)
 	}
 	// CPUQuota 也需要大于 0
 	if opts.CPUQuota <= 0 {
 		return nil, types.NewDetailedErr(types.ErrBadCPU, opts.CPUQuota)
 	}
-
 	return c.doCreateContainer(ctx, opts, pod)
 }
 
