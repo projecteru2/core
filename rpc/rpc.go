@@ -431,8 +431,6 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	}
 
 	opts := RunAndWaitOptions.DeployOptions
-	stdinReader, stdinWriter := io.Pipe()
-	defer stdinReader.Close()
 
 	deployOpts, err := toCoreDeployOptions(opts)
 	if err != nil {
@@ -442,19 +440,10 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	return withDumpFiles(opts.Data, func(files map[string]string) error {
 		deployOpts.Data = files
 
-		ch, err := v.cluster.RunAndWait(stream.Context(), deployOpts, stdinReader)
-		if err != nil {
-			// `ch` is nil now
-			log.Errorf("[RunAndWait] Start run and wait failed %s", err)
-			return err
-		}
-
-		if opts.OpenStdin {
-			go func() {
-				defer stdinWriter.Write([]byte("exit\n"))
-				stdinWriter.Write([]byte("echo 'Welcom to NERV...\n'\n"))
-				cli := []byte("echo \"`pwd`> \"\n")
-				stdinWriter.Write(cli)
+		stdinCh := make(chan []byte)
+		go func() {
+			defer close(stdinCh)
+			if opts.OpenStdin {
 				for {
 					RunAndWaitOptions, err := stream.Recv()
 					if RunAndWaitOptions == nil || err != nil {
@@ -462,16 +451,20 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 						break
 					}
 					log.Debugf("[RunAndWait] Recv command: %s", bytes.TrimRight(RunAndWaitOptions.Cmd, "\n"))
-					if _, err := stdinWriter.Write(RunAndWaitOptions.Cmd); err != nil {
-						log.Errorf("[RunAndWait] Write command error: %v", err)
-						break
-					}
-					stdinWriter.Write(cli)
+
+					stdinCh <- RunAndWaitOptions.Cmd
 				}
-			}()
+			}
+		}()
+
+		ch, err := v.cluster.RunAndWait(stream.Context(), deployOpts, stdinCh)
+		if err != nil {
+			log.Errorf("[RunAndWait] Start run and wait failed %s", err)
+			return err
 		}
 
 		for m := range ch {
+			log.Debugf("[RunAndWait] to send response: %s", m.Data)
 			if err = stream.Send(toRPCRunAndWaitMessage(m)); err != nil {
 				v.logUnsentMessages("RunAndWait", m)
 			}

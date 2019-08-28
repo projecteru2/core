@@ -41,6 +41,7 @@ type API interface {
 	VirtualizationInspect(ctx context.Context, ID string) (*enginetypes.VirtualizationInfo, error)
 	VirtualizationLogs(ctx context.Context, ID string, follow, stdout, stderr bool) (io.Reader, error)
 	VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (io.ReadCloser, io.WriteCloser, error)
+	VirtualizationResize(ctx context.Context, ID string, height, width uint) error
 	VirtualizationWait(ctx context.Context, ID, state string) (*enginetypes.VirtualizationWaitResult, error)
 	VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error
 	VirtualizationCopyFrom(ctx context.Context, ID, path string) (io.ReadCloser, string, error)

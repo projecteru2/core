@@ -176,6 +176,11 @@ func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, stdi
 	return nil, nil, fmt.Errorf("VirtualizationAttach does not implement")
 }
 
+// VirtualizationResize resized window size
+func (v *Virt) VirtualizationResize(ctx context.Context, ID string, height, width uint) error {
+	return fmt.Errorf("VirtualizationResize not implemented")
+}
+
 // VirtualizationWait is waiting for a shut-off
 func (v *Virt) VirtualizationWait(ctx context.Context, ID, state string) (*enginetypes.VirtualizationWaitResult, error) {
 	return nil, fmt.Errorf("VirtualizationWait does not implement")

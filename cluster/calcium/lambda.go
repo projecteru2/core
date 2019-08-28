@@ -1,8 +1,9 @@
 package calcium
 
 import (
-	"bufio"
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"sync"
@@ -13,119 +14,134 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var winchCommand = []byte{0xf, 0xa}
+
+type window struct {
+	Height uint `json:"Row"`
+	Width  uint `json:"Col"`
+}
+
 //RunAndWait implement lambda
-func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error) {
-	ch := make(chan *types.RunAndWaitMessage)
+func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, stdinCh <-chan []byte) (<-chan *types.RunAndWaitMessage, error) {
 
 	// 强制为 json-file 输出
 	opts.Entrypoint.Log = &types.LogConfig{Type: "json-file"}
 
 	// count = 1 && OpenStdin
 	if opts.OpenStdin && (opts.Count != 1 || opts.DeployMethod != cluster.DeployAuto) {
-		close(ch)
 		log.Errorf("Count %d method %s", opts.Count, opts.DeployMethod)
-		return ch, types.ErrRunAndWaitCountOneWithStdin
+		err := types.ErrRunAndWaitCountOneWithStdin
+		return nil, err
 	}
 
-	// 创建容器, 有问题就
-	// 不能让 CTX 作祟
+	// 不能让 context 作祟
 	createChan, err := c.CreateContainer(context.Background(), opts)
 	if err != nil {
-		close(ch)
 		log.Errorf("[RunAndWait] Create container error %s", err)
-		return ch, err
+		return nil, err
 	}
 
-	// 来个goroutine处理剩下的事情
-	// 基本上就是, attach拿日志写到channel, 以及等待容器结束后清理资源
-	go func() {
-		defer close(ch)
-		wg := sync.WaitGroup{}
-
-		for message := range createChan {
-			// 可能不成功, 可能没有容器id, 但是其实第一项足够判断了
-			// 不成功就无视掉
-			if !message.Success || message.ContainerID == "" {
-				log.Errorf("[RunAndWait] Create container error, %s", message.Error)
-				continue
-			}
-
-			// 找不到对应node也不管
-			// 理论上不会这样
-			node, err := c.GetNode(ctx, message.Podname, message.Nodename)
-			if err != nil {
-				log.Errorf("[RunAndWait] Can't find node, %v", err)
-				continue
-			}
-
-			// 加个task
-			wg.Add(1)
-
-			// goroutine logs日志然后处理了写回给channel
-			// 日志跟task无关, 不管wg
-			go func(node *types.Node, containerID string) {
-				defer wg.Done()
-				defer log.Infof("[RunAndWait] Container %s finished and removed", utils.ShortID(containerID))
-				// CONTEXT 这里的不应该受到 client 的影响
-				defer c.doRemoveContainerSync(context.Background(), []string{containerID})
-
-				resp, err := node.Engine.VirtualizationLogs(ctx, containerID, true, true, true)
-				if err != nil {
-					log.Errorf("[RunAndWait] Failed to get logs, %v", err)
-					ch <- &types.RunAndWaitMessage{ContainerID: containerID,
-						Data: []byte(fmt.Sprintf("[exitcode] unknown %v", err))}
-					return
-				}
-
-				if opts.OpenStdin {
-					go func() {
-						_, conn, err := node.Engine.VirtualizationAttach(ctx, containerID, true, true)
-						defer conn.Close()
-						defer stdin.Close()
-						if err != nil {
-							log.Errorf("[RunAndWait] Failed to attach container, %v", err)
-							return
-						}
-						io.Copy(conn, stdin)
-						log.Debugf("[RunAndWait] %s stdin copy end", utils.ShortID(containerID))
-					}()
-				}
-
-				scanner := bufio.NewScanner(resp)
-				for scanner.Scan() {
-					data := scanner.Bytes()
-					ch <- &types.RunAndWaitMessage{
-						ContainerID: containerID,
-						Data:        data,
-					}
-					log.Debugf("[RunAndWait] %s output: %s", utils.ShortID(containerID), data)
-				}
-
-				if err := scanner.Err(); err != nil {
-					if err == context.Canceled {
-						return
-					}
-					log.Errorf("[RunAndWait] Parse log failed, %v", err)
-					ch <- &types.RunAndWaitMessage{ContainerID: containerID,
-						Data: []byte(fmt.Sprintf("[exitcode] unknown %v", err))}
-					return
-				}
-
-				// 超时的情况下根本不会到这里
-				// 不超时的情况下这里肯定会立即返回
-				r, _ := node.Engine.VirtualizationWait(ctx, containerID, "")
-				exitData := []byte(fmt.Sprintf("[exitcode] %d", r.Code))
-				if r.Code != 0 {
-					log.Errorf("[RunAndWait] %s run failed %s", utils.ShortID(containerID), r.Message)
-				}
-				ch <- &types.RunAndWaitMessage{ContainerID: containerID, Data: exitData}
-			}(node, message.ContainerID)
+	runMsgCh := make(chan *types.RunAndWaitMessage)
+	wg := &sync.WaitGroup{}
+	for message := range createChan {
+		if !message.Success || message.ContainerID == "" {
+			log.Errorf("[RunAndWait] Create container error, %s", message.Error)
+			continue
 		}
 
-		// 等待全部任务完成才可以关闭channel
+		wg.Add(1)
+		go c.runAndWait(ctx, wg, message, stdinCh, runMsgCh)
+	}
+
+	go func() {
 		wg.Wait()
 		log.Info("[RunAndWait] Finish run and wait for containers")
+		close(runMsgCh)
 	}()
 
-	return ch, nil
+	return runMsgCh, nil
+}
+
+func (c *Calcium) runAndWait(
+	ctx context.Context,
+	wg *sync.WaitGroup,
+	message *types.CreateContainerMessage,
+	stdinCh <-chan []byte,
+	runMsgCh chan<- *types.RunAndWaitMessage,
+) {
+	defer wg.Done()
+	defer log.Infof("[runAndWait] Container %s finished and removed", utils.ShortID(message.ContainerID))
+	defer c.doRemoveContainerSync(context.Background(), []string{message.ContainerID})
+
+	node, err := c.GetNode(ctx, message.Podname, message.Nodename)
+	if err != nil {
+		log.Errorf("[runAndWait] Can't find node, %v", err)
+		return
+	}
+
+	output, input, err := node.Engine.VirtualizationAttach(ctx, message.ContainerID, true, true)
+
+	// copy stdin IO
+	go func() {
+		defer input.Close()
+
+		w := &window{}
+		for cmd := range stdinCh {
+			if bytes.HasPrefix(cmd, winchCommand) {
+				log.Debugf("[runAndWait] SIGWINCH: %q", cmd)
+				if err := json.Unmarshal(cmd[len(winchCommand):], w); err != nil {
+					log.Errorf("[RunAndWait] Recv winch error: %v", err)
+				} else {
+					if err := node.Engine.VirtualizationResize(ctx, message.ContainerID, w.Height, w.Width); err != nil {
+						log.Errorf("[RunAndWait] Resize window error: %v", err)
+					}
+				}
+				continue
+			}
+
+			for _, b := range cmd {
+				_, err := input.Write([]byte{b})
+				if err != nil {
+					log.Errorf("[runAndWait] failed to write input to virtual unit: %v", err)
+					return
+				}
+			}
+		}
+	}()
+
+	// copy stdout IO
+	go func() {
+		defer output.Close()
+
+		buf := make([]byte, 1024)
+		for {
+			n, err := output.Read(buf)
+			if n > 0 {
+				runMsgCh <- &types.RunAndWaitMessage{
+					ContainerID: message.ContainerID,
+					Data:        buf[:n],
+				}
+			}
+			if err != nil {
+				if err == io.EOF {
+					return
+				}
+				log.Errorf("[runAndWait] failed to read output from virtual unit: %v", err)
+				return
+			}
+		}
+	}()
+
+	r, err := node.Engine.VirtualizationWait(ctx, message.ContainerID, "")
+	if err != nil {
+		log.Errorf("[runAndWait] %s runs failed: %v", utils.ShortID(message.ContainerID), err)
+		return
+	}
+
+	if r.Code != 0 {
+		log.Errorf("[RunAndWait] %s run failed %s", utils.ShortID(message.ContainerID), r.Message)
+	}
+	// TODO
+	exitData := []byte(fmt.Sprintf("[exitcode]: %d", r.Code))
+	runMsgCh <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: exitData}
 }
