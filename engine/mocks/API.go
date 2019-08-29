@@ -516,15 +516,15 @@ func (_m *API) VirtualizationInspect(ctx context.Context, ID string) (*types.Vir
 }
 
 // VirtualizationLogs provides a mock function with given fields: ctx, ID, follow, stdout, stderr
-func (_m *API) VirtualizationLogs(ctx context.Context, ID string, follow bool, stdout bool, stderr bool) (io.Reader, error) {
+func (_m *API) VirtualizationLogs(ctx context.Context, ID string, follow bool, stdout bool, stderr bool) (io.ReadCloser, error) {
 	ret := _m.Called(ctx, ID, follow, stdout, stderr)
 
-	var r0 io.Reader
-	if rf, ok := ret.Get(0).(func(context.Context, string, bool, bool, bool) io.Reader); ok {
+	var r0 io.ReadCloser
+	if rf, ok := ret.Get(0).(func(context.Context, string, bool, bool, bool) io.ReadCloser); ok {
 		r0 = rf(ctx, ID, follow, stdout, stderr)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.Reader)
+			r0 = ret.Get(0).(io.ReadCloser)
 		}
 	}
 

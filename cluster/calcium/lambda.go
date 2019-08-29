@@ -1,15 +1,13 @@
 package calcium
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"sync"
 
 	"github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/engine/docker"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -23,7 +21,7 @@ type window struct {
 }
 
 //RunAndWait implement lambda
-func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, stdinCh <-chan []byte) (<-chan *types.RunAndWaitMessage, error) {
+func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) (<-chan *types.RunAndWaitMessage, error) {
 
 	// 强制为 json-file 输出
 	opts.Entrypoint.Log = &types.LogConfig{Type: "json-file"}
@@ -42,11 +40,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 		return nil, err
 	}
 
-	runAndWait := c.fetchLog
-	if opts.OpenStdin {
-		runAndWait = c.attach
-	}
-
 	runMsgCh := make(chan *types.RunAndWaitMessage)
 	wg := &sync.WaitGroup{}
 	for message := range createChan {
@@ -55,12 +48,11 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 			continue
 		}
 
-		wg.Add(1)
-		go func(message *types.CreateContainerMessage) {
+		runAndWait := func(message *types.CreateContainerMessage) {
 			defer func() {
 				wg.Done()
-				log.Infof("[runAndWait] Container %s finished and removed", utils.ShortID(message.ContainerID))
 				c.doRemoveContainerSync(context.Background(), []string{message.ContainerID})
+				log.Infof("[runAndWait] Container %s finished and removed", utils.ShortID(message.ContainerID))
 			}()
 
 			node, err := c.GetNode(ctx, message.Podname, message.Nodename)
@@ -69,10 +61,36 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 				return
 			}
 
-			// attach if stdin opened, or just fetch log
-			outputCh := runAndWait(ctx, node, message.ContainerID, stdinCh)
-			for output := range outputCh {
-				runMsgCh <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: output}
+			outStream, inStream, err := node.Engine.VirtualizationAttach(ctx, message.ContainerID, true, true)
+			if err != nil {
+				log.Errorf("[runAndWait] Can't attach container %s: %v", message.ContainerID, err)
+				return
+			}
+			if !opts.OpenStdin {
+				outStream, err = node.Engine.VirtualizationLogs(ctx, message.ContainerID, true, true, true)
+				if err != nil {
+					log.Errorf("[runAndWait] Can't fetch log of container %s: %v", message.ContainerID, err)
+					return
+				}
+			}
+
+			specialPrefixCallback := map[string]func([]byte){
+				string(winchCommand): func(body []byte) {
+					w := &window{}
+					if err := json.Unmarshal(body, w); err != nil {
+						log.Errorf("[runAndWait] invalid winch command: %q", body)
+						return
+					}
+					if err := node.Engine.VirtualizationResize(ctx, message.ContainerID, w.Height, w.Width); err != nil {
+						log.Errorf("[runAndWait] resize window error: %v", err)
+						return
+					}
+					return
+				},
+			}
+			docker.ProcessVirtualizationInStream(ctx, inStream, inCh, specialPrefixCallback)
+			for data := range docker.ProcessVirtualizationOutStream(ctx, outStream) {
+				runMsgCh <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: data}
 			}
 
 			// wait and forward exitcode
@@ -87,7 +105,11 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 			}
 			exitData := []byte(fmt.Sprintf("[exitcode] %d", r.Code))
 			runMsgCh <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: exitData}
-		}(message)
+			return
+		}
+
+		wg.Add(1)
+		go runAndWait(message)
 	}
 
 	go func() {
@@ -97,99 +119,4 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, std
 	}()
 
 	return runMsgCh, nil
-}
-
-func (c *Calcium) attach(
-	ctx context.Context,
-	node *types.Node,
-	containerID string,
-	stdinCh <-chan []byte,
-) (outputCh chan []byte) {
-
-	output, input, err := node.Engine.VirtualizationAttach(ctx, containerID, true, true)
-	if err != nil {
-		log.Errorf("Can't attach container %s: %v", containerID, err)
-		return
-	}
-
-	// copy stdin IO
-	go func() {
-		defer input.Close()
-
-		w := &window{}
-		for cmd := range stdinCh {
-			if bytes.HasPrefix(cmd, winchCommand) {
-				log.Debugf("SIGWINCH: %q", cmd)
-				if err := json.Unmarshal(cmd[len(winchCommand):], w); err != nil {
-					log.Errorf("Recv winch error: %v", err)
-				} else {
-					if err := node.Engine.VirtualizationResize(ctx, containerID, w.Height, w.Width); err != nil {
-						log.Errorf("Resize window error: %v", err)
-					}
-				}
-				continue
-			}
-
-			for _, b := range cmd {
-				_, err := input.Write([]byte{b})
-				if err != nil {
-					log.Errorf("failed to write input to virtual unit: %v", err)
-					return
-				}
-			}
-		}
-	}()
-
-	// copy stdout IO
-	outputCh = make(chan []byte)
-	go func() {
-		defer output.Close()
-		defer close(outputCh)
-		buf := make([]byte, 1024)
-		for {
-			n, err := output.Read(buf)
-			if n > 0 {
-				outputCh <- buf[:n]
-			}
-			if err != nil {
-				if err == io.EOF {
-					return
-				}
-				log.Errorf("failed to read output from virtual unit: %v", err)
-				return
-			}
-		}
-	}()
-
-	return
-}
-
-func (c *Calcium) fetchLog(
-	ctx context.Context,
-	node *types.Node,
-	containerID string,
-	stdinCh <-chan []byte,
-) (outputCh chan []byte) {
-	output, err := node.Engine.VirtualizationLogs(ctx, containerID, true, true, true)
-	if err != nil {
-		log.Errorf("Can't fetch log of container %s: %v", containerID, err)
-		return
-	}
-
-	outputCh = make(chan []byte)
-	go func() {
-		defer close(outputCh)
-		scanner := bufio.NewScanner(output)
-		log.Debug("start parsing output")
-		for scanner.Scan() {
-			data := scanner.Bytes()
-			log.Debugf("container log: %q", data)
-			outputCh <- data
-		}
-
-		if err := scanner.Err(); err != nil {
-			log.Errorf("parse stdout failed: %v", err)
-		}
-	}()
-	return
 }

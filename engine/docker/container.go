@@ -187,13 +187,13 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 }
 
 // VirtualizationLogs show virtualization logs
-func (e *Engine) VirtualizationLogs(ctx context.Context, ID string, follow, stdout, stderr bool) (io.Reader, error) {
+func (e *Engine) VirtualizationLogs(ctx context.Context, ID string, follow, stdout, stderr bool) (io.ReadCloser, error) {
 	logsOpts := dockertypes.ContainerLogsOptions{Follow: follow, ShowStdout: stdout, ShowStderr: stderr}
 	resp, err := e.client.ContainerLogs(ctx, ID, logsOpts)
 	if err != nil {
 		return nil, err
 	}
-	return mergeStream(resp), nil
+	return ioutil.NopCloser(mergeStream(resp)), nil
 }
 
 // VirtualizationAttach attach to a virtualization
@@ -201,7 +201,7 @@ func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, stream, st
 	opts := dockertypes.ContainerAttachOptions{
 		Stream: stream,
 		Stdin:  stdin,
-		Logs:   false,
+		Logs:   true,
 		Stdout: true,
 		Stderr: true,
 	}

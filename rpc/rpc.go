@@ -440,9 +440,9 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	return withDumpFiles(opts.Data, func(files map[string]string) error {
 		deployOpts.Data = files
 
-		stdinCh := make(chan []byte)
+		inCh := make(chan []byte)
 		go func() {
-			defer close(stdinCh)
+			defer close(inCh)
 			if opts.OpenStdin {
 				for {
 					RunAndWaitOptions, err := stream.Recv()
@@ -452,12 +452,12 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 					}
 					log.Debugf("[RunAndWait] Recv command: %s", bytes.TrimRight(RunAndWaitOptions.Cmd, "\n"))
 
-					stdinCh <- RunAndWaitOptions.Cmd
+					inCh <- RunAndWaitOptions.Cmd
 				}
 			}
 		}()
 
-		ch, err := v.cluster.RunAndWait(stream.Context(), deployOpts, stdinCh)
+		ch, err := v.cluster.RunAndWait(stream.Context(), deployOpts, inCh)
 		if err != nil {
 			log.Errorf("[RunAndWait] Start run and wait failed %s", err)
 			return err
