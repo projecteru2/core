@@ -54,7 +54,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		NetworkDisabled: opts.NetworkDisabled,
 		Labels:          opts.Labels,
 		OpenStdin:       opts.Stdin,
-		Tty:             true,
+		Tty:             opts.Tty,
 	}
 
 	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode, opts.SoftLimit)
@@ -193,7 +193,7 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, ID string, follow, stdo
 	if err != nil {
 		return nil, err
 	}
-	return mergeStream(ioutil.NopCloser(resp)), nil
+	return mergeStream(resp), nil
 }
 
 // VirtualizationAttach attach to a virtualization

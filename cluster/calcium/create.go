@@ -358,6 +358,7 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, opts *t
 	config.Image = opts.Image
 	config.WorkingDir = entry.Dir
 	config.Stdin = opts.OpenStdin
+	config.Tty = opts.OpenStdin
 	config.Privileged = entry.Privileged
 	config.Env = env
 	config.Hosts = opts.ExtraHosts

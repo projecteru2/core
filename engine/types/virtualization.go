@@ -49,6 +49,7 @@ type VirtualizationCreateOptions struct {
 	LogType   string
 	LogConfig map[string]string
 
+	Tty     bool
 	RawArgs []byte
 }
 
