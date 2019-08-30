@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"io"
+	"io/ioutil"
 
 	dockertypes "github.com/docker/docker/api/types"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -30,12 +31,12 @@ func (e *Engine) ExecCreate(ctx context.Context, target string, config *enginety
 }
 
 // ExecAttach attach a exec
-func (e *Engine) ExecAttach(ctx context.Context, execID string, detach, tty bool) (io.ReadCloser, error) {
+func (e *Engine) ExecAttach(ctx context.Context, execID string) (io.ReadCloser, io.WriteCloser, error) {
 	resp, err := e.client.ContainerExecAttach(ctx, execID, dockertypes.ExecStartCheck{})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return FuckDockerStream(resp), nil
+	return ioutil.NopCloser(resp.Reader), resp.Conn, nil
 }
 
 // ExecExitCode get exec return code

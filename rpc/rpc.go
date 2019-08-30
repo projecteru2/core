@@ -685,16 +685,36 @@ func (v *Vibranium) ContainerDeployed(ctx context.Context, opts *pb.ContainerDep
 }
 
 // ExecuteContainer runs a command in a running container
-func (v *Vibranium) ExecuteContainer(opts *pb.ExecuteContainerOptions, stream pb.CoreRPC_ExecuteContainerServer) (err error) {
+func (v *Vibranium) ExecuteContainer(stream pb.CoreRPC_ExecuteContainerServer) (err error) {
 	v.taskAdd("ExecuteContainer", true)
 	defer v.taskDone("ExecuteContainer", true)
 
+	opts, err := stream.Recv()
+	if err != nil {
+		return
+	}
 	executeContainerOpts := &types.ExecuteContainerOptions{}
 	if executeContainerOpts, err = toCoreExecuteContainerOptions(opts); err != nil {
 		return
 	}
 
-	for m := range v.cluster.ExecuteContainer(stream.Context(), executeContainerOpts) {
+	inCh := make(chan []byte)
+	go func() {
+		defer close(inCh)
+		if opts.OpenStdin {
+			for {
+				execContainerOpt, err := stream.Recv()
+				if execContainerOpt == nil || err != nil {
+					log.Errorf("[ExecuteContainer] Recv command error: %v", err)
+					return
+				}
+				log.Debug("[ExecuteContainer] Recv command: %s", bytes.TrimRight(execContainerOpt.ReplCmd, "\n"))
+				inCh <- execContainerOpt.ReplCmd
+			}
+		}
+	}()
+
+	for m := range v.cluster.ExecuteContainer(stream.Context(), executeContainerOpts, inCh) {
 		if err = stream.Send(toRPCExecuteContainerMessage(m)); err != nil {
 			v.logUnsentMessages("ExecuteContainer", m)
 		}

@@ -2,7 +2,6 @@ package docker
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -239,69 +238,4 @@ func GetIP(daemonHost string) string {
 		return ""
 	}
 	return u.Hostname()
-}
-
-// ProcessVirtualizationInStream fetch bytes and write into writer
-func ProcessVirtualizationInStream(
-	ctx context.Context,
-	inStream io.WriteCloser,
-	inCh <-chan []byte,
-	specialPrefixCallback map[string]func([]byte),
-) <-chan interface{} {
-
-	done := make(chan interface{})
-	go func() {
-		defer close(done)
-		defer inStream.Close()
-
-	cmdLoop:
-		for cmd := range inCh {
-			for specialPrefix, callback := range specialPrefixCallback {
-				if bytes.HasPrefix(cmd, []byte(specialPrefix)) {
-					log.Debugf("special prefix matched: %q", cmd)
-					callback(cmd[len(specialPrefix):])
-					continue cmdLoop
-				}
-			}
-
-			for _, b := range cmd {
-				_, err := inStream.Write([]byte{b})
-				if err != nil {
-					log.Errorf("failed to write virtual input stream: %v", err)
-					return
-				}
-			}
-		}
-	}()
-
-	return done
-}
-
-// ProcessVirtualizationOutStream transforms reader into read only channel
-func ProcessVirtualizationOutStream(
-	ctx context.Context,
-	outStream io.ReadCloser,
-) <-chan []byte {
-
-	outCh := make(chan []byte)
-	go func() {
-		defer outStream.Close()
-		defer close(outCh)
-		buf := make([]byte, 1024)
-		for {
-			n, err := outStream.Read(buf)
-			if n > 0 {
-				outCh <- buf[:n]
-			}
-			if err != nil {
-				if err == io.EOF {
-					return
-				}
-				log.Errorf("failed to read output from virtual unit: %v", err)
-				return
-			}
-		}
-	}()
-
-	return outCh
 }

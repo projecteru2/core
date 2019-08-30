@@ -164,7 +164,7 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.ControlContainerOptions.SerializeToString,
         response_deserializer=core__pb2.ControlContainerMessage.FromString,
         )
-    self.ExecuteContainer = channel.unary_stream(
+    self.ExecuteContainer = channel.stream_stream(
         '/pb.CoreRPC/ExecuteContainer',
         request_serializer=core__pb2.ExecuteContainerOptions.SerializeToString,
         response_deserializer=core__pb2.ExecuteContainerMessage.FromString,
@@ -395,7 +395,7 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def ExecuteContainer(self, request, context):
+  def ExecuteContainer(self, request_iterator, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -569,7 +569,7 @@ def add_CoreRPCServicer_to_server(servicer, server):
           request_deserializer=core__pb2.ControlContainerOptions.FromString,
           response_serializer=core__pb2.ControlContainerMessage.SerializeToString,
       ),
-      'ExecuteContainer': grpc.unary_stream_rpc_method_handler(
+      'ExecuteContainer': grpc.stream_stream_rpc_method_handler(
           servicer.ExecuteContainer,
           request_deserializer=core__pb2.ExecuteContainerOptions.FromString,
           response_serializer=core__pb2.ExecuteContainerMessage.SerializeToString,

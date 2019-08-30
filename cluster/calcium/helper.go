@@ -1,6 +1,8 @@
 package calcium
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -38,7 +40,7 @@ func execuateInside(ctx context.Context, client engine.API, ID, cmd, user string
 		return []byte{}, err
 	}
 
-	resp, err := client.ExecAttach(ctx, execID, false, false)
+	resp, _, err := client.ExecAttach(ctx, execID)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -188,4 +190,93 @@ func getNodesInfo(nodes map[string]*types.Node, cpu float64, memory, storage int
 		result = append(result, nodeInfo)
 	}
 	return result
+}
+
+// ProcessVirtualizationInStream fetch bytes and write into writer
+func ProcessVirtualizationInStream(
+	ctx context.Context,
+	inStream io.WriteCloser,
+	inCh <-chan []byte,
+	resizeFunc func(height, width uint) error,
+) <-chan interface{} {
+	specialPrefixCallback := map[string]func([]byte){
+		string(winchCommand): func(body []byte) {
+			w := &window{}
+			if err := json.Unmarshal(body, w); err != nil {
+				log.Errorf("[runAndWait] invalid winch command: %q", body)
+				return
+			}
+			if err := resizeFunc(w.Height, w.Width); err != nil {
+				log.Errorf("[runAndWait] resize window error: %v", err)
+				return
+			}
+			return
+		},
+	}
+	return processVirtualizationInStream(ctx, inStream, inCh, specialPrefixCallback)
+}
+
+func processVirtualizationInStream(
+	ctx context.Context,
+	inStream io.WriteCloser,
+	inCh <-chan []byte,
+	specialPrefixCallback map[string]func([]byte),
+) <-chan interface{} {
+
+	done := make(chan interface{})
+	go func() {
+		defer close(done)
+		defer inStream.Close()
+
+	cmdLoop:
+		for cmd := range inCh {
+			for specialPrefix, callback := range specialPrefixCallback {
+				if bytes.HasPrefix(cmd, []byte(specialPrefix)) {
+					log.Debugf("special prefix matched: %q", cmd)
+					callback(cmd[len(specialPrefix):])
+					continue cmdLoop
+				}
+			}
+
+			log.Debugf("send cmd: %q", cmd)
+			for _, b := range cmd {
+				_, err := inStream.Write([]byte{b})
+				if err != nil {
+					log.Errorf("failed to write virtual input stream: %v", err)
+					return
+				}
+			}
+		}
+	}()
+
+	return done
+}
+
+// ProcessVirtualizationOutStream transforms reader into read only channel
+func ProcessVirtualizationOutStream(
+	ctx context.Context,
+	outStream io.ReadCloser,
+) <-chan []byte {
+
+	outCh := make(chan []byte)
+	go func() {
+		defer outStream.Close()
+		defer close(outCh)
+		buf := make([]byte, 1024)
+		for {
+			n, err := outStream.Read(buf)
+			if n > 0 {
+				outCh <- buf[:n]
+			}
+			if err != nil {
+				if err == io.EOF {
+					return
+				}
+				log.Errorf("failed to read output from output stream: %v", err)
+				return
+			}
+		}
+	}()
+
+	return outCh
 }

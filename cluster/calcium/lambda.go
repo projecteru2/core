@@ -2,12 +2,10 @@ package calcium
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 
 	"github.com/projecteru2/core/cluster"
-	"github.com/projecteru2/core/engine/docker"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -74,22 +72,10 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 				}
 			}
 
-			specialPrefixCallback := map[string]func([]byte){
-				string(winchCommand): func(body []byte) {
-					w := &window{}
-					if err := json.Unmarshal(body, w); err != nil {
-						log.Errorf("[runAndWait] invalid winch command: %q", body)
-						return
-					}
-					if err := node.Engine.VirtualizationResize(ctx, message.ContainerID, w.Height, w.Width); err != nil {
-						log.Errorf("[runAndWait] resize window error: %v", err)
-						return
-					}
-					return
-				},
-			}
-			docker.ProcessVirtualizationInStream(ctx, inStream, inCh, specialPrefixCallback)
-			for data := range docker.ProcessVirtualizationOutStream(ctx, outStream) {
+			ProcessVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
+				return node.Engine.VirtualizationResize(ctx, message.ContainerID, height, width)
+			})
+			for data := range ProcessVirtualizationOutStream(ctx, outStream) {
 				runMsgCh <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: data}
 			}
 

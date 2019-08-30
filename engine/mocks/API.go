@@ -60,27 +60,36 @@ func (_m *API) BuildRefs(ctx context.Context, name string, tags []string) []stri
 	return r0
 }
 
-// ExecAttach provides a mock function with given fields: ctx, execID, detach, tty
-func (_m *API) ExecAttach(ctx context.Context, execID string, detach bool, tty bool) (io.ReadCloser, error) {
-	ret := _m.Called(ctx, execID, detach, tty)
+// ExecAttach provides a mock function with given fields: ctx, execID
+func (_m *API) ExecAttach(ctx context.Context, execID string) (io.ReadCloser, io.WriteCloser, error) {
+	ret := _m.Called(ctx, execID)
 
 	var r0 io.ReadCloser
-	if rf, ok := ret.Get(0).(func(context.Context, string, bool, bool) io.ReadCloser); ok {
-		r0 = rf(ctx, execID, detach, tty)
+	if rf, ok := ret.Get(0).(func(context.Context, string) io.ReadCloser); ok {
+		r0 = rf(ctx, execID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(io.ReadCloser)
 		}
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, bool, bool) error); ok {
-		r1 = rf(ctx, execID, detach, tty)
+	var r1 io.WriteCloser
+	if rf, ok := ret.Get(1).(func(context.Context, string) io.WriteCloser); ok {
+		r1 = rf(ctx, execID)
 	} else {
-		r1 = ret.Error(1)
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(io.WriteCloser)
+		}
 	}
 
-	return r0, r1
+	var r2 error
+	if rf, ok := ret.Get(2).(func(context.Context, string) error); ok {
+		r2 = rf(ctx, execID)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // ExecCreate provides a mock function with given fields: ctx, target, config

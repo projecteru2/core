@@ -36,7 +36,7 @@ service CoreRPC {
     rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage) {};
     rpc DissociateContainer(DissociateContainerOptions) returns (stream DissociateContainerMessage) {};
     rpc ControlContainer(ControlContainerOptions) returns (stream ControlContainerMessage) {};
-    rpc ExecuteContainer(ExecuteContainerOptions) returns (stream ExecuteContainerMessage) {};
+    rpc ExecuteContainer(stream ExecuteContainerOptions) returns (stream ExecuteContainerMessage) {};
     rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage) {};
     rpc LogStream(ContainerID) returns (stream LogStreamMessage) {};
 }
