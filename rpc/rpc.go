@@ -715,6 +715,7 @@ func (v *Vibranium) ExecuteContainer(stream pb.CoreRPC_ExecuteContainerServer) (
 	}()
 
 	for m := range v.cluster.ExecuteContainer(stream.Context(), executeContainerOpts, inCh) {
+		log.Debugf("[ExecuteContainer] Send reply: %q", m.Data)
 		if err = stream.Send(toRPCExecuteContainerMessage(m)); err != nil {
 			v.logUnsentMessages("ExecuteContainer", m)
 		}

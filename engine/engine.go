@@ -13,7 +13,7 @@ type API interface {
 	Info(ctx context.Context) (*enginetypes.Info, error)
 
 	ExecCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, error)
-	ExecAttach(ctx context.Context, execID string) (io.ReadCloser, io.WriteCloser, error)
+	ExecAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error)
 	ExecExitCode(ctx context.Context, execID string) (int, error)
 
 	NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) error

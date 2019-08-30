@@ -15,6 +15,8 @@ import (
 	"golang.org/x/net/context"
 )
 
+var winchCommand = []byte{0xf, 0xa}
+
 // As the name says,
 // blocks until the stream is empty, until we meet EOF
 func ensureReaderClosed(stream io.ReadCloser) {
@@ -40,7 +42,7 @@ func execuateInside(ctx context.Context, client engine.API, ID, cmd, user string
 		return []byte{}, err
 	}
 
-	resp, _, err := client.ExecAttach(ctx, execID)
+	resp, _, err := client.ExecAttach(ctx, execID, false)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -238,7 +240,6 @@ func processVirtualizationInStream(
 				}
 			}
 
-			log.Debugf("send cmd: %q", cmd)
 			for _, b := range cmd {
 				_, err := inStream.Write([]byte{b})
 				if err != nil {

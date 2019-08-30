@@ -60,13 +60,13 @@ func (_m *API) BuildRefs(ctx context.Context, name string, tags []string) []stri
 	return r0
 }
 
-// ExecAttach provides a mock function with given fields: ctx, execID
-func (_m *API) ExecAttach(ctx context.Context, execID string) (io.ReadCloser, io.WriteCloser, error) {
-	ret := _m.Called(ctx, execID)
+// ExecAttach provides a mock function with given fields: ctx, execID, tty
+func (_m *API) ExecAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error) {
+	ret := _m.Called(ctx, execID, tty)
 
 	var r0 io.ReadCloser
-	if rf, ok := ret.Get(0).(func(context.Context, string) io.ReadCloser); ok {
-		r0 = rf(ctx, execID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, bool) io.ReadCloser); ok {
+		r0 = rf(ctx, execID, tty)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(io.ReadCloser)
@@ -74,8 +74,8 @@ func (_m *API) ExecAttach(ctx context.Context, execID string) (io.ReadCloser, io
 	}
 
 	var r1 io.WriteCloser
-	if rf, ok := ret.Get(1).(func(context.Context, string) io.WriteCloser); ok {
-		r1 = rf(ctx, execID)
+	if rf, ok := ret.Get(1).(func(context.Context, string, bool) io.WriteCloser); ok {
+		r1 = rf(ctx, execID, tty)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(io.WriteCloser)
@@ -83,8 +83,8 @@ func (_m *API) ExecAttach(ctx context.Context, execID string) (io.ReadCloser, io
 	}
 
 	var r2 error
-	if rf, ok := ret.Get(2).(func(context.Context, string) error); ok {
-		r2 = rf(ctx, execID)
+	if rf, ok := ret.Get(2).(func(context.Context, string, bool) error); ok {
+		r2 = rf(ctx, execID, tty)
 	} else {
 		r2 = ret.Error(2)
 	}

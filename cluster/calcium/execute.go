@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"context"
+	"strconv"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
@@ -46,7 +47,7 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 			return
 		}
 
-		outStream, inStream, err := container.Engine.ExecAttach(ctx, execID)
+		outStream, inStream, err := container.Engine.ExecAttach(ctx, execID, execConfig.Tty)
 		if err != nil {
 			log.Errorf("[Calcium.ExecContainer] failed to attach execID: %v", err)
 			return
@@ -61,6 +62,15 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 		for data := range ProcessVirtualizationOutStream(ctx, outStream) {
 			ch <- &types.ExecuteContainerMessage{ContainerID: opts.ContainerID, Data: data}
 		}
+
+		execCode, err := container.Engine.ExecExitCode(ctx, execID)
+		if err != nil {
+			log.Errorf("[Calcium.ExecuteContainer] failed to get exec exitcode: %v", err)
+			return
+		}
+
+		exitData := []byte(exitDataPrefix + strconv.Itoa(execCode))
+		ch <- &types.ExecuteContainerMessage{ContainerID: opts.ContainerID, Data: exitData}
 
 		log.Infof("[Calcium.ExecuteContainer] container exec complete: %s", opts.ContainerID)
 	}()

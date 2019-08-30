@@ -60,7 +60,7 @@ func (v *Virt) ExecCreate(ctx context.Context, target string, config *enginetype
 }
 
 // ExecAttach executes an attachment.
-func (v *Virt) ExecAttach(ctx context.Context, execID string) (io.ReadCloser, io.WriteCloser, error) {
+func (v *Virt) ExecAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error) {
 	return nil, nil, fmt.Errorf("ExecAttach does not implement")
 }
 

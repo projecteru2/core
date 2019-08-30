@@ -2,7 +2,7 @@ package calcium
 
 import (
 	"context"
-	"fmt"
+	"strconv"
 	"sync"
 
 	"github.com/projecteru2/core/cluster"
@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var winchCommand = []byte{0xf, 0xa}
+var exitDataPrefix = "[exitcode] "
 
 type window struct {
 	Height uint `json:"Row"`
@@ -89,7 +89,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			if r.Code != 0 {
 				log.Errorf("[RunAndWait] %s run failed %s", utils.ShortID(message.ContainerID), r.Message)
 			}
-			exitData := []byte(fmt.Sprintf("[exitcode] %d", r.Code))
+			exitData := []byte(exitDataPrefix + strconv.Itoa(int(r.Code)))
 			runMsgCh <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: exitData}
 			return
 		}

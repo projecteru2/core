@@ -13,12 +13,14 @@ import (
 func (e *Engine) ExecCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, error) {
 	execConfig := dockertypes.ExecConfig{
 		User:         config.User,
+		Privileged:   config.Privileged,
 		Cmd:          config.Cmd,
 		WorkingDir:   config.WorkingDir,
-		Privileged:   config.Privileged,
 		Env:          config.Env,
 		AttachStderr: config.AttachStderr,
 		AttachStdout: config.AttachStdout,
+		AttachStdin:  config.AttachStdin,
+		Tty:          config.Tty,
 	}
 
 	// TODO should timeout
@@ -31,8 +33,11 @@ func (e *Engine) ExecCreate(ctx context.Context, target string, config *enginety
 }
 
 // ExecAttach attach a exec
-func (e *Engine) ExecAttach(ctx context.Context, execID string) (io.ReadCloser, io.WriteCloser, error) {
-	resp, err := e.client.ContainerExecAttach(ctx, execID, dockertypes.ExecStartCheck{})
+func (e *Engine) ExecAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error) {
+	execStartCheck := dockertypes.ExecStartCheck{
+		Tty: tty,
+	}
+	resp, err := e.client.ContainerExecAttach(ctx, execID, execStartCheck)
 	if err != nil {
 		return nil, nil, err
 	}
