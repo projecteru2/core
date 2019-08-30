@@ -22,13 +22,20 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
+const minMemory = units.MiB * 4
+
 type rawArgs struct {
-	PidMode dockercontainer.PidMode `json:"pid_mod"`
+	PidMode    dockercontainer.PidMode `json:"pid_mod"`
+	StorageOpt map[string]string       `json:"storage_opt"`
 }
 
 // VirtualizationCreate create a container
 func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) {
 	r := &enginetypes.VirtualizationCreated{}
+	// memory should more than 4MiB
+	if opts.Memory < minMemory {
+		return r, coretypes.ErrBadMemory
+	}
 	// add node IP
 	hostIP := GetIP(e.client.DaemonHost())
 	opts.Env = append(opts.Env, fmt.Sprintf("ERU_NODE_IP=%s", hostIP))
@@ -42,7 +49,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 
 	// mount paths
 	binds, volumes := makeMountPaths(opts)
-	log.Debugf("[doMakeContainerOptions] App %s will bind %v", opts.Name, binds)
+	log.Debugf("[VirtualizationCreate] App %s will bind %v", opts.Name, binds)
 
 	config := &dockercontainer.Config{
 		Env:             opts.Env,
@@ -92,13 +99,17 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		Sysctls:    opts.Sysctl,
 	}
 
-	rArgs := &rawArgs{}
+	rArgs := &rawArgs{StorageOpt: map[string]string{}}
 	if len(opts.RawArgs) > 0 {
 		if err := json.Unmarshal(opts.RawArgs, rArgs); err != nil {
 			return r, err
 		}
-		hostConfig.PidMode = rArgs.PidMode
 	}
+	if opts.Storage > 0 {
+		rArgs.StorageOpt["size"] = fmt.Sprintf("%v", opts.Storage)
+	}
+	hostConfig.PidMode = rArgs.PidMode
+	hostConfig.StorageOpt = rArgs.StorageOpt
 
 	if hostConfig.NetworkMode.IsBridge() {
 		portMapping := nat.PortMap{}
@@ -242,6 +253,9 @@ func (e *Engine) VirtualizationWait(ctx context.Context, ID, state string) (*eng
 
 // VirtualizationUpdateResource update virtualization resource
 func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error {
+	if opts.Memory < minMemory {
+		return coretypes.ErrBadMemory
+	}
 	newResource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode, opts.SoftLimit)
 	updateConfig := dockercontainer.UpdateConfig{Resources: newResource}
 	_, err := e.client.ContainerUpdate(ctx, ID, updateConfig)

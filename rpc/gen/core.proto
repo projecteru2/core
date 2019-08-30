@@ -334,6 +334,7 @@ message DeployOptions {
     bool ignore_hook = 26;
     repeated string after_create = 27;
     bytes raw_args = 28;
+    int64 storage = 29;
 }
 
 message ReplaceOptions {

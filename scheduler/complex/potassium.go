@@ -76,7 +76,6 @@ func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64,
 	if memory <= 0 {
 		return nil, 0, types.ErrNegativeMemory
 	}
-
 	nodesInfoLength := len(nodesInfo)
 
 	// 筛选出能满足 CPU 需求的
@@ -113,6 +112,9 @@ func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, me
 	log.Infof("[SelectCPUNodes] nodes %d, need cpu: %f memory: %d", len(nodesInfo), quota, memory)
 	if quota <= 0 {
 		return nil, nil, 0, types.ErrNegativeQuota
+	}
+	if memory <= 0 {
+		return nil, nil, 0, types.ErrNegativeMemory
 	}
 	if len(nodesInfo) == 0 {
 		return nil, nil, 0, types.ErrZeroNodes

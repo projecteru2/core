@@ -53,6 +53,8 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 					replaceOpts.SoftLimit = container.SoftLimit
 					// 覆盖 podname 如果做全量更新的话
 					replaceOpts.Podname = container.Podname
+					// 覆盖 Volumes
+					replaceOpts.Volumes = container.Volumes
 					// 继承网络配置
 					if replaceOpts.NetworkInherit {
 						if !container.Running {
@@ -64,7 +66,6 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 						replaceOpts.NetworkMode = ""
 						replaceOpts.Networks = container.Networks
 					}
-
 					createMessage, removeMessage, err = c.doReplaceContainer(ctx, container, &replaceOpts, index)
 					return err
 				}); err != nil {
@@ -125,6 +126,7 @@ func (c *Calcium) doReplaceContainer(
 	if err != nil {
 		return nil, removeMessage, err
 	}
+	container.Running = false
 	// 不涉及资源消耗，创建容器失败会被回收容器而不回收资源
 	// 创建成功容器会干掉之前的老容器也不会动资源，实际上实现了动态捆绑
 	createMessage := c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU)
