@@ -61,7 +61,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		NetworkDisabled: opts.NetworkDisabled,
 		Labels:          opts.Labels,
 		OpenStdin:       opts.Stdin,
-		Tty:             opts.Tty,
+		Tty:             opts.Stdin,
 	}
 
 	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode, opts.SoftLimit)

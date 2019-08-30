@@ -54,12 +54,12 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 		}
 
 		if opts.OpenStdin {
-			ProcessVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
+			processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
 				return container.Engine.VirtualizationResize(ctx, container.ID, height, width)
 			})
 		}
 
-		for data := range ProcessVirtualizationOutStream(ctx, outStream) {
+		for data := range processVirtualizationOutStream(ctx, outStream) {
 			ch <- &types.ExecuteContainerMessage{ContainerID: opts.ContainerID, Data: data}
 		}
 

@@ -27,8 +27,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	// count = 1 && OpenStdin
 	if opts.OpenStdin && (opts.Count != 1 || opts.DeployMethod != cluster.DeployAuto) {
 		log.Errorf("Count %d method %s", opts.Count, opts.DeployMethod)
-		err := types.ErrRunAndWaitCountOneWithStdin
-		return nil, err
+		return nil, types.ErrRunAndWaitCountOneWithStdin
 	}
 
 	// 不能让 context 作祟
@@ -65,17 +64,16 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 				return
 			}
 			if !opts.OpenStdin {
-				outStream, err = node.Engine.VirtualizationLogs(ctx, message.ContainerID, true, true, true)
-				if err != nil {
+				if outStream, err = node.Engine.VirtualizationLogs(ctx, message.ContainerID, true, true, true); err != nil {
 					log.Errorf("[runAndWait] Can't fetch log of container %s: %v", message.ContainerID, err)
 					return
 				}
 			}
 
-			ProcessVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
+			processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
 				return node.Engine.VirtualizationResize(ctx, message.ContainerID, height, width)
 			})
-			for data := range ProcessVirtualizationOutStream(ctx, outStream) {
+			for data := range processVirtualizationOutStream(ctx, outStream) {
 				runMsgCh <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: data}
 			}
 

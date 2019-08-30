@@ -42,15 +42,14 @@ func execuateInside(ctx context.Context, client engine.API, ID, cmd, user string
 		return []byte{}, err
 	}
 
-	resp, _, err := client.ExecAttach(ctx, execID, false)
+	outStream, _, err := client.ExecAttach(ctx, execID, false)
 	if err != nil {
 		return []byte{}, err
 	}
-	defer resp.Close()
 
-	b, err := ioutil.ReadAll(resp)
-	if err != nil {
-		return []byte{}, err
+	b := []byte{}
+	for data := range processVirtualizationOutStream(ctx, outStream) {
+		b = append(b, data...)
 	}
 
 	exitCode, err := client.ExecExitCode(ctx, execID)
@@ -194,8 +193,7 @@ func getNodesInfo(nodes map[string]*types.Node, cpu float64, memory, storage int
 	return result
 }
 
-// ProcessVirtualizationInStream fetch bytes and write into writer
-func ProcessVirtualizationInStream(
+func processVirtualizationInStream(
 	ctx context.Context,
 	inStream io.WriteCloser,
 	inCh <-chan []byte,
@@ -215,10 +213,10 @@ func ProcessVirtualizationInStream(
 			return
 		},
 	}
-	return processVirtualizationInStream(ctx, inStream, inCh, specialPrefixCallback)
+	return rawProcessVirtualizationInStream(ctx, inStream, inCh, specialPrefixCallback)
 }
 
-func processVirtualizationInStream(
+func rawProcessVirtualizationInStream(
 	ctx context.Context,
 	inStream io.WriteCloser,
 	inCh <-chan []byte,
@@ -253,8 +251,7 @@ func processVirtualizationInStream(
 	return done
 }
 
-// ProcessVirtualizationOutStream transforms reader into read only channel
-func ProcessVirtualizationOutStream(
+func processVirtualizationOutStream(
 	ctx context.Context,
 	outStream io.ReadCloser,
 ) <-chan []byte {
