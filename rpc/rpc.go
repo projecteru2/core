@@ -708,7 +708,7 @@ func (v *Vibranium) ExecuteContainer(stream pb.CoreRPC_ExecuteContainerServer) (
 					log.Errorf("[ExecuteContainer] Recv command error: %v", err)
 					return
 				}
-				log.Debug("[ExecuteContainer] Recv command: %s", bytes.TrimRight(execContainerOpt.ReplCmd, "\n"))
+				log.Debugf("[ExecuteContainer] Recv command: %s", bytes.TrimRight(execContainerOpt.ReplCmd, "\n"))
 				inCh <- execContainerOpt.ReplCmd
 			}
 		}

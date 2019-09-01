@@ -3,6 +3,7 @@ package calcium
 import (
 	"bytes"
 	"context"
+	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,7 +43,7 @@ func TestLogStream(t *testing.T) {
 		assert.Empty(t, c.Data)
 	}
 	reader := bytes.NewBufferString("aaaa\nbbbb\n")
-	engine.On("VirtualizationLogs", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(reader, nil)
+	engine.On("VirtualizationLogs", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(ioutil.NopCloser(reader), nil)
 	// success
 	ch, err = c.LogStream(ctx, ID)
 	assert.NoError(t, err)
