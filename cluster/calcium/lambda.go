@@ -19,7 +19,7 @@ type window struct {
 }
 
 //RunAndWait implement lambda
-func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) (<-chan *types.RunAndWaitMessage, error) {
+func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) (<-chan *types.AttachContainerMessage, error) {
 
 	// 强制为 json-file 输出
 	opts.Entrypoint.Log = &types.LogConfig{Type: "json-file"}
@@ -37,7 +37,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		return nil, err
 	}
 
-	runMsgCh := make(chan *types.RunAndWaitMessage)
+	runMsgCh := make(chan *types.AttachContainerMessage)
 	wg := &sync.WaitGroup{}
 	for message := range createChan {
 		if !message.Success || message.ContainerID == "" {
@@ -74,7 +74,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 				return node.Engine.VirtualizationResize(ctx, message.ContainerID, height, width)
 			})
 			for data := range processVirtualizationOutStream(ctx, outStream) {
-				runMsgCh <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: data}
+				runMsgCh <- &types.AttachContainerMessage{ContainerID: message.ContainerID, Data: data}
 			}
 
 			// wait and forward exitcode
@@ -88,7 +88,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 				log.Errorf("[RunAndWait] %s run failed %s", utils.ShortID(message.ContainerID), r.Message)
 			}
 			exitData := []byte(exitDataPrefix + strconv.Itoa(int(r.Code)))
-			runMsgCh <- &types.RunAndWaitMessage{ContainerID: message.ContainerID, Data: exitData}
+			runMsgCh <- &types.AttachContainerMessage{ContainerID: message.ContainerID, Data: exitData}
 			return
 		}
 

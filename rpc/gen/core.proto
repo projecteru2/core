@@ -30,13 +30,13 @@ service CoreRPC {
     rpc CacheImage(CacheImageOptions) returns (stream CacheImageMessage) {};
     rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage) {};
     rpc DeployStatus(DeployStatusOptions) returns (stream DeployStatusMessage) {};
-    rpc RunAndWait(stream RunAndWaitOptions) returns (stream RunAndWaitMessage) {};
+    rpc RunAndWait(stream RunAndWaitOptions) returns (stream AttachContainerMessage) {};
     rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage) {};
     rpc ReplaceContainer(ReplaceOptions) returns (stream ReplaceContainerMessage) {};
     rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage) {};
     rpc DissociateContainer(DissociateContainerOptions) returns (stream DissociateContainerMessage) {};
     rpc ControlContainer(ControlContainerOptions) returns (stream ControlContainerMessage) {};
-    rpc ExecuteContainer(stream ExecuteContainerOptions) returns (stream ExecuteContainerMessage) {};
+    rpc ExecuteContainer(stream ExecuteContainerOptions) returns (stream AttachContainerMessage) {};
     rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage) {};
     rpc LogStream(ContainerID) returns (stream LogStreamMessage) {};
 }
@@ -408,11 +408,6 @@ message ReplaceContainerMessage {
     string error = 3;
 }
 
-message RunAndWaitMessage {
-    string container_id = 1;
-    bytes data = 2;
-}
-
 message CacheImageMessage {
     string image = 1;
     bool success = 2;
@@ -457,7 +452,7 @@ message SendMessage {
     string error = 3;
 }
 
-message ExecuteContainerMessage {
+message AttachContainerMessage {
     string container_id = 1;
     bytes data = 2;
 }

@@ -10,8 +10,8 @@ import (
 )
 
 // ExecuteContainer executes commands in running containers
-func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions, inCh <-chan []byte) (ch chan *types.ExecuteContainerMessage) {
-	ch = make(chan *types.ExecuteContainerMessage)
+func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions, inCh <-chan []byte) (ch chan *types.AttachContainerMessage) {
+	ch = make(chan *types.AttachContainerMessage)
 
 	go func() {
 		defer close(ch)
@@ -20,7 +20,7 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 		responses := []string{}
 		defer func() {
 			for _, resp := range responses {
-				msg := &types.ExecuteContainerMessage{ContainerID: opts.ContainerID, Data: []byte(resp)}
+				msg := &types.AttachContainerMessage{ContainerID: opts.ContainerID, Data: []byte(resp)}
 				ch <- msg
 			}
 		}()
@@ -60,7 +60,7 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 		}
 
 		for data := range processVirtualizationOutStream(ctx, outStream) {
-			ch <- &types.ExecuteContainerMessage{ContainerID: opts.ContainerID, Data: data}
+			ch <- &types.AttachContainerMessage{ContainerID: opts.ContainerID, Data: data}
 		}
 
 		execCode, err := container.Engine.ExecExitCode(ctx, execID)
@@ -70,7 +70,7 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 		}
 
 		exitData := []byte(exitDataPrefix + strconv.Itoa(execCode))
-		ch <- &types.ExecuteContainerMessage{ContainerID: opts.ContainerID, Data: exitData}
+		ch <- &types.AttachContainerMessage{ContainerID: opts.ContainerID, Data: exitData}
 
 		log.Infof("[Calcium.ExecuteContainer] container exec complete: %s", opts.ContainerID)
 	}()

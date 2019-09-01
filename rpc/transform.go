@@ -365,8 +365,8 @@ func toRPCDissociateContainerMessage(r *types.DissociateContainerMessage) *pb.Di
 	return resp
 }
 
-func toRPCRunAndWaitMessage(msg *types.RunAndWaitMessage) *pb.RunAndWaitMessage {
-	return &pb.RunAndWaitMessage{
+func toRPCAttachContainerMessage(msg *types.AttachContainerMessage) *pb.AttachContainerMessage {
+	return &pb.AttachContainerMessage{
 		ContainerId: msg.ContainerID,
 		Data:        msg.Data,
 	}
@@ -434,11 +434,4 @@ func toCoreExecuteContainerOptions(b *pb.ExecuteContainerOptions) (opts *types.E
 		OpenStdin:   b.OpenStdin,
 		ReplCmd:     b.ReplCmd,
 	}, nil
-}
-
-func toRPCExecuteContainerMessage(m *types.ExecuteContainerMessage) (b *pb.ExecuteContainerMessage) {
-	return &pb.ExecuteContainerMessage{
-		ContainerId: m.ContainerID,
-		Data:        m.Data,
-	}
 }

@@ -465,7 +465,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 
 		for m := range ch {
 			log.Debugf("[RunAndWait] to send response: %s", m.Data)
-			if err = stream.Send(toRPCRunAndWaitMessage(m)); err != nil {
+			if err = stream.Send(toRPCAttachContainerMessage(m)); err != nil {
 				v.logUnsentMessages("RunAndWait", m)
 			}
 		}
@@ -716,7 +716,7 @@ func (v *Vibranium) ExecuteContainer(stream pb.CoreRPC_ExecuteContainerServer) (
 
 	for m := range v.cluster.ExecuteContainer(stream.Context(), executeContainerOpts, inCh) {
 		log.Debugf("[ExecuteContainer] Send reply: %q", m.Data)
-		if err = stream.Send(toRPCExecuteContainerMessage(m)); err != nil {
+		if err = stream.Send(toRPCAttachContainerMessage(m)); err != nil {
 			v.logUnsentMessages("ExecuteContainer", m)
 		}
 	}

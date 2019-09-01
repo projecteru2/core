@@ -228,15 +228,15 @@ func (_m *Cluster) DissociateContainer(ctx context.Context, IDs []string) (chan 
 }
 
 // ExecuteContainer provides a mock function with given fields: ctx, opts
-func (_m *Cluster) ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions) chan *types.ExecuteContainerMessage {
+func (_m *Cluster) ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions) chan *types.AttachContainerMessage {
 	ret := _m.Called(ctx, opts)
 
-	var r0 chan *types.ExecuteContainerMessage
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ExecuteContainerOptions) chan *types.ExecuteContainerMessage); ok {
+	var r0 chan *types.AttachContainerMessage
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ExecuteContainerOptions) chan *types.AttachContainerMessage); ok {
 		r0 = rf(ctx, opts)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(chan *types.ExecuteContainerMessage)
+			r0 = ret.Get(0).(chan *types.AttachContainerMessage)
 		}
 	}
 
@@ -668,15 +668,15 @@ func (_m *Cluster) ReplaceContainer(ctx context.Context, opts *types.ReplaceOpti
 }
 
 // RunAndWait provides a mock function with given fields: ctx, opts, stdin
-func (_m *Cluster) RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error) {
+func (_m *Cluster) RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.AttachContainerMessage, error) {
 	ret := _m.Called(ctx, opts, stdin)
 
-	var r0 chan *types.RunAndWaitMessage
-	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, io.ReadCloser) chan *types.RunAndWaitMessage); ok {
+	var r0 chan *types.AttachContainerMessage
+	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, io.ReadCloser) chan *types.AttachContainerMessage); ok {
 		r0 = rf(ctx, opts, stdin)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(chan *types.RunAndWaitMessage)
+			r0 = ret.Get(0).(chan *types.AttachContainerMessage)
 		}
 	}
 
