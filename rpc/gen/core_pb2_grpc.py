@@ -137,7 +137,7 @@ class CoreRPCStub(object):
     self.RunAndWait = channel.stream_stream(
         '/pb.CoreRPC/RunAndWait',
         request_serializer=core__pb2.RunAndWaitOptions.SerializeToString,
-        response_deserializer=core__pb2.RunAndWaitMessage.FromString,
+        response_deserializer=core__pb2.AttachContainerMessage.FromString,
         )
     self.CreateContainer = channel.unary_stream(
         '/pb.CoreRPC/CreateContainer',
@@ -164,10 +164,10 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.ControlContainerOptions.SerializeToString,
         response_deserializer=core__pb2.ControlContainerMessage.FromString,
         )
-    self.ExecuteContainer = channel.unary_stream(
+    self.ExecuteContainer = channel.stream_stream(
         '/pb.CoreRPC/ExecuteContainer',
         request_serializer=core__pb2.ExecuteContainerOptions.SerializeToString,
-        response_deserializer=core__pb2.ExecuteContainerMessage.FromString,
+        response_deserializer=core__pb2.AttachContainerMessage.FromString,
         )
     self.ReallocResource = channel.unary_stream(
         '/pb.CoreRPC/ReallocResource',
@@ -395,7 +395,7 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def ExecuteContainer(self, request, context):
+  def ExecuteContainer(self, request_iterator, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -542,7 +542,7 @@ def add_CoreRPCServicer_to_server(servicer, server):
       'RunAndWait': grpc.stream_stream_rpc_method_handler(
           servicer.RunAndWait,
           request_deserializer=core__pb2.RunAndWaitOptions.FromString,
-          response_serializer=core__pb2.RunAndWaitMessage.SerializeToString,
+          response_serializer=core__pb2.AttachContainerMessage.SerializeToString,
       ),
       'CreateContainer': grpc.unary_stream_rpc_method_handler(
           servicer.CreateContainer,
@@ -569,10 +569,10 @@ def add_CoreRPCServicer_to_server(servicer, server):
           request_deserializer=core__pb2.ControlContainerOptions.FromString,
           response_serializer=core__pb2.ControlContainerMessage.SerializeToString,
       ),
-      'ExecuteContainer': grpc.unary_stream_rpc_method_handler(
+      'ExecuteContainer': grpc.stream_stream_rpc_method_handler(
           servicer.ExecuteContainer,
           request_deserializer=core__pb2.ExecuteContainerOptions.FromString,
-          response_serializer=core__pb2.ExecuteContainerMessage.SerializeToString,
+          response_serializer=core__pb2.AttachContainerMessage.SerializeToString,
       ),
       'ReallocResource': grpc.unary_stream_rpc_method_handler(
           servicer.ReallocResource,

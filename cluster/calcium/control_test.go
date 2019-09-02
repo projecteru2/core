@@ -71,14 +71,14 @@ func TestControlStart(t *testing.T) {
 	}
 	engine.On("ExecCreate", mock.Anything, mock.Anything, mock.Anything).Return("eid", nil)
 	// failed by ExecAttach
-	engine.On("ExecAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNilEngine).Once()
+	engine.On("ExecAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, types.ErrNilEngine).Once()
 	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart, false)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
 	data := ioutil.NopCloser(bytes.NewBufferString("output"))
-	engine.On("ExecAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(data, nil).Twice()
+	engine.On("ExecAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(data, nil, nil).Twice()
 	// failed by ExecExitCode
 	engine.On("ExecExitCode", mock.Anything, mock.Anything).Return(-1, types.ErrNilEngine).Once()
 	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart, false)
@@ -95,7 +95,7 @@ func TestControlStart(t *testing.T) {
 	}
 	// exitCode is 0
 	engine.On("ExecExitCode", mock.Anything, mock.Anything).Return(0, nil)
-	engine.On("ExecAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(ioutil.NopCloser(bytes.NewBufferString("succ")), nil)
+	engine.On("ExecAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(ioutil.NopCloser(bytes.NewBufferString("succ")), nil, nil)
 	container.ID = "succ"
 	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart, false)
 	assert.NoError(t, err)

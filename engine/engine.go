@@ -13,7 +13,7 @@ type API interface {
 	Info(ctx context.Context) (*enginetypes.Info, error)
 
 	ExecCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, error)
-	ExecAttach(ctx context.Context, execID string, detach, tty bool) (io.ReadCloser, error)
+	ExecAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error)
 	ExecExitCode(ctx context.Context, execID string) (int, error)
 
 	NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) error
@@ -39,8 +39,9 @@ type API interface {
 	VirtualizationStop(ctx context.Context, ID string) error
 	VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) error
 	VirtualizationInspect(ctx context.Context, ID string) (*enginetypes.VirtualizationInfo, error)
-	VirtualizationLogs(ctx context.Context, ID string, follow, stdout, stderr bool) (io.Reader, error)
+	VirtualizationLogs(ctx context.Context, ID string, follow, stdout, stderr bool) (io.ReadCloser, error)
 	VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (io.ReadCloser, io.WriteCloser, error)
+	VirtualizationResize(ctx context.Context, ID string, height, width uint) error
 	VirtualizationWait(ctx context.Context, ID, state string) (*enginetypes.VirtualizationWaitResult, error)
 	VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error
 	VirtualizationCopyFrom(ctx context.Context, ID, path string) (io.ReadCloser, string, error)

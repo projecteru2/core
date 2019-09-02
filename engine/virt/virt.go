@@ -60,8 +60,8 @@ func (v *Virt) ExecCreate(ctx context.Context, target string, config *enginetype
 }
 
 // ExecAttach executes an attachment.
-func (v *Virt) ExecAttach(ctx context.Context, execID string, detach, tty bool) (io.ReadCloser, error) {
-	return nil, fmt.Errorf("ExecAttach does not implement")
+func (v *Virt) ExecAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error) {
+	return nil, nil, fmt.Errorf("ExecAttach does not implement")
 }
 
 // ExecExitCode gets return code of a specific execution.
@@ -167,13 +167,18 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 }
 
 // VirtualizationLogs streams a specific guest's log.
-func (v *Virt) VirtualizationLogs(ctx context.Context, ID string, follow, stdout, stderr bool) (io.Reader, error) {
+func (v *Virt) VirtualizationLogs(ctx context.Context, ID string, follow, stdout, stderr bool) (io.ReadCloser, error) {
 	return nil, fmt.Errorf("VirtualizationLogs does not implement")
 }
 
 // VirtualizationAttach attaches something to a guest.
 func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (io.ReadCloser, io.WriteCloser, error) {
 	return nil, nil, fmt.Errorf("VirtualizationAttach does not implement")
+}
+
+// VirtualizationResize resized window size
+func (v *Virt) VirtualizationResize(ctx context.Context, ID string, height, width uint) error {
+	return fmt.Errorf("VirtualizationResize not implemented")
 }
 
 // VirtualizationWait is waiting for a shut-off

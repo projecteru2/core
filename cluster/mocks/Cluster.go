@@ -4,7 +4,6 @@ package mocks
 
 import context "context"
 import enginetypes "github.com/projecteru2/core/engine/types"
-import io "io"
 import mock "github.com/stretchr/testify/mock"
 import types "github.com/projecteru2/core/types"
 
@@ -227,16 +226,16 @@ func (_m *Cluster) DissociateContainer(ctx context.Context, IDs []string) (chan 
 	return r0, r1
 }
 
-// ExecuteContainer provides a mock function with given fields: ctx, opts
-func (_m *Cluster) ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions) chan *types.ExecuteContainerMessage {
-	ret := _m.Called(ctx, opts)
+// ExecuteContainer provides a mock function with given fields: ctx, opts, inCh
+func (_m *Cluster) ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions, inCh <-chan []byte) chan *types.AttachContainerMessage {
+	ret := _m.Called(ctx, opts, inCh)
 
-	var r0 chan *types.ExecuteContainerMessage
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ExecuteContainerOptions) chan *types.ExecuteContainerMessage); ok {
-		r0 = rf(ctx, opts)
+	var r0 chan *types.AttachContainerMessage
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ExecuteContainerOptions, <-chan []byte) chan *types.AttachContainerMessage); ok {
+		r0 = rf(ctx, opts, inCh)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(chan *types.ExecuteContainerMessage)
+			r0 = ret.Get(0).(chan *types.AttachContainerMessage)
 		}
 	}
 
@@ -667,22 +666,22 @@ func (_m *Cluster) ReplaceContainer(ctx context.Context, opts *types.ReplaceOpti
 	return r0, r1
 }
 
-// RunAndWait provides a mock function with given fields: ctx, opts, stdin
-func (_m *Cluster) RunAndWait(ctx context.Context, opts *types.DeployOptions, stdin io.ReadCloser) (chan *types.RunAndWaitMessage, error) {
-	ret := _m.Called(ctx, opts, stdin)
+// RunAndWait provides a mock function with given fields: ctx, opts, inCh
+func (_m *Cluster) RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) (<-chan *types.AttachContainerMessage, error) {
+	ret := _m.Called(ctx, opts, inCh)
 
-	var r0 chan *types.RunAndWaitMessage
-	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, io.ReadCloser) chan *types.RunAndWaitMessage); ok {
-		r0 = rf(ctx, opts, stdin)
+	var r0 <-chan *types.AttachContainerMessage
+	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, <-chan []byte) <-chan *types.AttachContainerMessage); ok {
+		r0 = rf(ctx, opts, inCh)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(chan *types.RunAndWaitMessage)
+			r0 = ret.Get(0).(<-chan *types.AttachContainerMessage)
 		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.DeployOptions, io.ReadCloser) error); ok {
-		r1 = rf(ctx, opts, stdin)
+	if rf, ok := ret.Get(1).(func(context.Context, *types.DeployOptions, <-chan []byte) error); ok {
+		r1 = rf(ctx, opts, inCh)
 	} else {
 		r1 = ret.Error(1)
 	}

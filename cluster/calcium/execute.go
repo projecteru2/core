@@ -1,8 +1,8 @@
 package calcium
 
 import (
-	"bufio"
 	"context"
+	"strconv"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
@@ -10,8 +10,8 @@ import (
 )
 
 // ExecuteContainer executes commands in running containers
-func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions) (ch chan *types.ExecuteContainerMessage) {
-	ch = make(chan *types.ExecuteContainerMessage)
+func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions, inCh <-chan []byte) (ch chan *types.AttachContainerMessage) {
+	ch = make(chan *types.AttachContainerMessage)
 
 	go func() {
 		defer close(ch)
@@ -20,7 +20,7 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 		responses := []string{}
 		defer func() {
 			for _, resp := range responses {
-				msg := &types.ExecuteContainerMessage{ContainerID: opts.ContainerID, Data: []byte(resp)}
+				msg := &types.AttachContainerMessage{ContainerID: opts.ContainerID, Data: []byte(resp)}
 				ch <- msg
 			}
 		}()
@@ -37,37 +37,40 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 			Cmd:          opts.Commands,
 			AttachStderr: true,
 			AttachStdout: true,
-			AttachStdin:  false, // TODO
-			Tty:          false, // TODO
+			AttachStdin:  opts.OpenStdin,
+			Tty:          opts.OpenStdin,
 			Detach:       false,
 		}
 		execID, err := container.Engine.ExecCreate(ctx, opts.ContainerID, execConfig)
 		if err != nil {
+			log.Errorf("[Calcium.ExecuteContainer] failed to create execID: %v", err)
 			return
 		}
 
-		tty := false
-		stdout, err := container.Engine.ExecAttach(ctx, execID, false, tty)
+		outStream, inStream, err := container.Engine.ExecAttach(ctx, execID, execConfig.Tty)
 		if err != nil {
+			log.Errorf("[Calcium.ExecContainer] failed to attach execID: %v", err)
 			return
 		}
 
-		scanner := bufio.NewScanner(stdout)
-		for scanner.Scan() {
-			data := scanner.Bytes()
-			ch <- &types.ExecuteContainerMessage{ContainerID: opts.ContainerID, Data: data}
+		if opts.OpenStdin {
+			processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
+				return container.Engine.VirtualizationResize(ctx, container.ID, height, width)
+			})
 		}
 
-		if err = scanner.Err(); err != nil {
-			if err == context.Canceled {
-				err = nil
-				return
-			}
+		for data := range processVirtualizationOutStream(ctx, outStream) {
+			ch <- &types.AttachContainerMessage{ContainerID: opts.ContainerID, Data: data}
+		}
 
-			log.Errorf("[Calcium.ExecuteContainer] failed to parse log for %s: %v", opts.ContainerID, err)
-			responses = append(responses, err.Error())
+		execCode, err := container.Engine.ExecExitCode(ctx, execID)
+		if err != nil {
+			log.Errorf("[Calcium.ExecuteContainer] failed to get exec exitcode: %v", err)
 			return
 		}
+
+		exitData := []byte(exitDataPrefix + strconv.Itoa(execCode))
+		ch <- &types.AttachContainerMessage{ContainerID: opts.ContainerID, Data: exitData}
 
 		log.Infof("[Calcium.ExecuteContainer] container exec complete: %s", opts.ContainerID)
 	}()

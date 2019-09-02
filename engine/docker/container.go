@@ -61,6 +61,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		NetworkDisabled: opts.NetworkDisabled,
 		Labels:          opts.Labels,
 		OpenStdin:       opts.Stdin,
+		Tty:             opts.Stdin,
 	}
 
 	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode, opts.SoftLimit)
@@ -197,22 +198,39 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 }
 
 // VirtualizationLogs show virtualization logs
-func (e *Engine) VirtualizationLogs(ctx context.Context, ID string, follow, stdout, stderr bool) (io.Reader, error) {
+func (e *Engine) VirtualizationLogs(ctx context.Context, ID string, follow, stdout, stderr bool) (io.ReadCloser, error) {
 	logsOpts := dockertypes.ContainerLogsOptions{Follow: follow, ShowStdout: stdout, ShowStderr: stderr}
 	resp, err := e.client.ContainerLogs(ctx, ID, logsOpts)
 	if err != nil {
 		return nil, err
 	}
-	return mergeStream(ioutil.NopCloser(resp)), nil
+	return ioutil.NopCloser(mergeStream(resp)), nil
 }
 
 // VirtualizationAttach attach to a virtualization
 func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (io.ReadCloser, io.WriteCloser, error) {
-	resp, err := e.client.ContainerAttach(ctx, ID, dockertypes.ContainerAttachOptions{Stream: stream, Stdin: stdin})
+	opts := dockertypes.ContainerAttachOptions{
+		Stream: stream,
+		Stdin:  stdin,
+		Logs:   true,
+		Stdout: true,
+		Stderr: true,
+	}
+	resp, err := e.client.ContainerAttach(ctx, ID, opts)
 	if err != nil {
 		return nil, nil, err
 	}
 	return ioutil.NopCloser(resp.Reader), resp.Conn, nil
+}
+
+// VirtualizationResize resizes remote terminal
+func (e *Engine) VirtualizationResize(ctx context.Context, containerID string, height, width uint) (err error) {
+	opts := dockertypes.ResizeOptions{
+		Height: height,
+		Width:  width,
+	}
+
+	return e.client.ContainerResize(ctx, containerID, opts)
 }
 
 // VirtualizationWait wait virtualization exit

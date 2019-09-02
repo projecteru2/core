@@ -431,8 +431,6 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	}
 
 	opts := RunAndWaitOptions.DeployOptions
-	stdinReader, stdinWriter := io.Pipe()
-	defer stdinReader.Close()
 
 	deployOpts, err := toCoreDeployOptions(opts)
 	if err != nil {
@@ -442,19 +440,10 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	return withDumpFiles(opts.Data, func(files map[string]string) error {
 		deployOpts.Data = files
 
-		ch, err := v.cluster.RunAndWait(stream.Context(), deployOpts, stdinReader)
-		if err != nil {
-			// `ch` is nil now
-			log.Errorf("[RunAndWait] Start run and wait failed %s", err)
-			return err
-		}
-
-		if opts.OpenStdin {
-			go func() {
-				defer stdinWriter.Write([]byte("exit\n"))
-				stdinWriter.Write([]byte("echo 'Welcom to NERV...\n'\n"))
-				cli := []byte("echo \"`pwd`> \"\n")
-				stdinWriter.Write(cli)
+		inCh := make(chan []byte)
+		go func() {
+			defer close(inCh)
+			if opts.OpenStdin {
 				for {
 					RunAndWaitOptions, err := stream.Recv()
 					if RunAndWaitOptions == nil || err != nil {
@@ -462,17 +451,21 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 						break
 					}
 					log.Debugf("[RunAndWait] Recv command: %s", bytes.TrimRight(RunAndWaitOptions.Cmd, "\n"))
-					if _, err := stdinWriter.Write(RunAndWaitOptions.Cmd); err != nil {
-						log.Errorf("[RunAndWait] Write command error: %v", err)
-						break
-					}
-					stdinWriter.Write(cli)
+
+					inCh <- RunAndWaitOptions.Cmd
 				}
-			}()
+			}
+		}()
+
+		ch, err := v.cluster.RunAndWait(stream.Context(), deployOpts, inCh)
+		if err != nil {
+			log.Errorf("[RunAndWait] Start run and wait failed %s", err)
+			return err
 		}
 
 		for m := range ch {
-			if err = stream.Send(toRPCRunAndWaitMessage(m)); err != nil {
+			log.Debugf("[RunAndWait] to send response: %s", m.Data)
+			if err = stream.Send(toRPCAttachContainerMessage(m)); err != nil {
 				v.logUnsentMessages("RunAndWait", m)
 			}
 		}
@@ -692,17 +685,38 @@ func (v *Vibranium) ContainerDeployed(ctx context.Context, opts *pb.ContainerDep
 }
 
 // ExecuteContainer runs a command in a running container
-func (v *Vibranium) ExecuteContainer(opts *pb.ExecuteContainerOptions, stream pb.CoreRPC_ExecuteContainerServer) (err error) {
+func (v *Vibranium) ExecuteContainer(stream pb.CoreRPC_ExecuteContainerServer) (err error) {
 	v.taskAdd("ExecuteContainer", true)
 	defer v.taskDone("ExecuteContainer", true)
 
+	opts, err := stream.Recv()
+	if err != nil {
+		return
+	}
 	executeContainerOpts := &types.ExecuteContainerOptions{}
 	if executeContainerOpts, err = toCoreExecuteContainerOptions(opts); err != nil {
 		return
 	}
 
-	for m := range v.cluster.ExecuteContainer(stream.Context(), executeContainerOpts) {
-		if err = stream.Send(toRPCExecuteContainerMessage(m)); err != nil {
+	inCh := make(chan []byte)
+	go func() {
+		defer close(inCh)
+		if opts.OpenStdin {
+			for {
+				execContainerOpt, err := stream.Recv()
+				if execContainerOpt == nil || err != nil {
+					log.Errorf("[ExecuteContainer] Recv command error: %v", err)
+					return
+				}
+				log.Debugf("[ExecuteContainer] Recv command: %s", bytes.TrimRight(execContainerOpt.ReplCmd, "\n"))
+				inCh <- execContainerOpt.ReplCmd
+			}
+		}
+	}()
+
+	for m := range v.cluster.ExecuteContainer(stream.Context(), executeContainerOpts, inCh) {
+		log.Debugf("[ExecuteContainer] Send reply: %q", m.Data)
+		if err = stream.Send(toRPCAttachContainerMessage(m)); err != nil {
 			v.logUnsentMessages("ExecuteContainer", m)
 		}
 	}

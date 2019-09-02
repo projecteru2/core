@@ -1,6 +1,8 @@
 package calcium
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,6 +14,13 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
+
+var winchCommand = []byte{0xf, 0xa}
+
+type window struct {
+	Height uint `json:"Row"`
+	Width  uint `json:"Col"`
+}
 
 // As the name says,
 // blocks until the stream is empty, until we meet EOF
@@ -38,15 +47,14 @@ func execuateInside(ctx context.Context, client engine.API, ID, cmd, user string
 		return []byte{}, err
 	}
 
-	resp, err := client.ExecAttach(ctx, execID, false, false)
+	outStream, _, err := client.ExecAttach(ctx, execID, false)
 	if err != nil {
 		return []byte{}, err
 	}
-	defer resp.Close()
 
-	b, err := ioutil.ReadAll(resp)
-	if err != nil {
-		return []byte{}, err
+	b := []byte{}
+	for data := range processVirtualizationOutStream(ctx, outStream) {
+		b = append(b, data...)
 	}
 
 	exitCode, err := client.ExecExitCode(ctx, execID)
@@ -188,4 +196,89 @@ func getNodesInfo(nodes map[string]*types.Node, cpu float64, memory, storage int
 		result = append(result, nodeInfo)
 	}
 	return result
+}
+
+func processVirtualizationInStream(
+	ctx context.Context,
+	inStream io.WriteCloser,
+	inCh <-chan []byte,
+	resizeFunc func(height, width uint) error,
+) <-chan struct{} {
+	specialPrefixCallback := map[string]func([]byte){
+		string(winchCommand): func(body []byte) {
+			w := &window{}
+			if err := json.Unmarshal(body, w); err != nil {
+				log.Errorf("[processVirtualizationInStream] invalid winch command: %q", body)
+				return
+			}
+			if err := resizeFunc(w.Height, w.Width); err != nil {
+				log.Errorf("[processVirtualizationInStream] resize window error: %v", err)
+				return
+			}
+			return
+		},
+	}
+	return rawProcessVirtualizationInStream(ctx, inStream, inCh, specialPrefixCallback)
+}
+
+func rawProcessVirtualizationInStream(
+	ctx context.Context,
+	inStream io.WriteCloser,
+	inCh <-chan []byte,
+	specialPrefixCallback map[string]func([]byte),
+) <-chan struct{} {
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		defer inStream.Close()
+
+	cmdLoop:
+		for cmd := range inCh {
+			for specialPrefix, callback := range specialPrefixCallback {
+				if bytes.HasPrefix(cmd, []byte(specialPrefix)) {
+					log.Debugf("[rawProcessVirtualizationInStream] special prefix matched: %q", cmd)
+					callback(cmd[len(specialPrefix):])
+					continue cmdLoop
+				}
+			}
+
+			for _, b := range cmd {
+				if _, err := inStream.Write([]byte{b}); err != nil {
+					log.Errorf("[rawProcessVirtualizationInStream] failed to write virtual input stream: %v", err)
+					return
+				}
+			}
+		}
+	}()
+
+	return done
+}
+
+func processVirtualizationOutStream(
+	ctx context.Context,
+	outStream io.ReadCloser,
+) <-chan []byte {
+
+	outCh := make(chan []byte)
+	go func() {
+		defer outStream.Close()
+		defer close(outCh)
+		buf := make([]byte, 1024)
+		for {
+			n, err := outStream.Read(buf)
+			if n > 0 {
+				outCh <- buf[:n]
+			}
+			if err != nil {
+				if err == io.EOF {
+					return
+				}
+				log.Errorf("[processVirtualizationOutStream] failed to read output from output stream: %v", err)
+				return
+			}
+		}
+	}()
+
+	return outCh
 }

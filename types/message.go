@@ -95,8 +95,8 @@ type ReplaceContainerMessage struct {
 	Error  error
 }
 
-// RunAndWaitMessage for run and wait
-type RunAndWaitMessage struct {
+// AttachContainerMessage for run and wait
+type AttachContainerMessage struct {
 	ContainerID string
 	Data        []byte
 }
@@ -117,10 +117,4 @@ type LogStreamMessage struct {
 	ID    string
 	Error error
 	Data  []byte
-}
-
-// ExecuteContainerMessage for executing command in running container
-type ExecuteContainerMessage struct {
-	ContainerID string
-	Data        []byte
 }

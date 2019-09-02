@@ -60,27 +60,36 @@ func (_m *API) BuildRefs(ctx context.Context, name string, tags []string) []stri
 	return r0
 }
 
-// ExecAttach provides a mock function with given fields: ctx, execID, detach, tty
-func (_m *API) ExecAttach(ctx context.Context, execID string, detach bool, tty bool) (io.ReadCloser, error) {
-	ret := _m.Called(ctx, execID, detach, tty)
+// ExecAttach provides a mock function with given fields: ctx, execID, tty
+func (_m *API) ExecAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error) {
+	ret := _m.Called(ctx, execID, tty)
 
 	var r0 io.ReadCloser
-	if rf, ok := ret.Get(0).(func(context.Context, string, bool, bool) io.ReadCloser); ok {
-		r0 = rf(ctx, execID, detach, tty)
+	if rf, ok := ret.Get(0).(func(context.Context, string, bool) io.ReadCloser); ok {
+		r0 = rf(ctx, execID, tty)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(io.ReadCloser)
 		}
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, bool, bool) error); ok {
-		r1 = rf(ctx, execID, detach, tty)
+	var r1 io.WriteCloser
+	if rf, ok := ret.Get(1).(func(context.Context, string, bool) io.WriteCloser); ok {
+		r1 = rf(ctx, execID, tty)
 	} else {
-		r1 = ret.Error(1)
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(io.WriteCloser)
+		}
 	}
 
-	return r0, r1
+	var r2 error
+	if rf, ok := ret.Get(2).(func(context.Context, string, bool) error); ok {
+		r2 = rf(ctx, execID, tty)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // ExecCreate provides a mock function with given fields: ctx, target, config
@@ -516,15 +525,15 @@ func (_m *API) VirtualizationInspect(ctx context.Context, ID string) (*types.Vir
 }
 
 // VirtualizationLogs provides a mock function with given fields: ctx, ID, follow, stdout, stderr
-func (_m *API) VirtualizationLogs(ctx context.Context, ID string, follow bool, stdout bool, stderr bool) (io.Reader, error) {
+func (_m *API) VirtualizationLogs(ctx context.Context, ID string, follow bool, stdout bool, stderr bool) (io.ReadCloser, error) {
 	ret := _m.Called(ctx, ID, follow, stdout, stderr)
 
-	var r0 io.Reader
-	if rf, ok := ret.Get(0).(func(context.Context, string, bool, bool, bool) io.Reader); ok {
+	var r0 io.ReadCloser
+	if rf, ok := ret.Get(0).(func(context.Context, string, bool, bool, bool) io.ReadCloser); ok {
 		r0 = rf(ctx, ID, follow, stdout, stderr)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.Reader)
+			r0 = ret.Get(0).(io.ReadCloser)
 		}
 	}
 
@@ -545,6 +554,20 @@ func (_m *API) VirtualizationRemove(ctx context.Context, ID string, volumes bool
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, bool, bool) error); ok {
 		r0 = rf(ctx, ID, volumes, force)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// VirtualizationResize provides a mock function with given fields: ctx, ID, height, width
+func (_m *API) VirtualizationResize(ctx context.Context, ID string, height uint, width uint) error {
+	ret := _m.Called(ctx, ID, height, width)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, uint, uint) error); ok {
+		r0 = rf(ctx, ID, height, width)
 	} else {
 		r0 = ret.Error(0)
 	}
