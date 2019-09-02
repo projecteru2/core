@@ -17,6 +17,11 @@ import (
 
 var winchCommand = []byte{0xf, 0xa}
 
+type window struct {
+	Height uint `json:"Row"`
+	Width  uint `json:"Col"`
+}
+
 // As the name says,
 // blocks until the stream is empty, until we meet EOF
 func ensureReaderClosed(stream io.ReadCloser) {
@@ -198,16 +203,16 @@ func processVirtualizationInStream(
 	inStream io.WriteCloser,
 	inCh <-chan []byte,
 	resizeFunc func(height, width uint) error,
-) <-chan interface{} {
+) <-chan struct{} {
 	specialPrefixCallback := map[string]func([]byte){
 		string(winchCommand): func(body []byte) {
 			w := &window{}
 			if err := json.Unmarshal(body, w); err != nil {
-				log.Errorf("[runAndWait] invalid winch command: %q", body)
+				log.Errorf("[processVirtualizationInStream] invalid winch command: %q", body)
 				return
 			}
 			if err := resizeFunc(w.Height, w.Width); err != nil {
-				log.Errorf("[runAndWait] resize window error: %v", err)
+				log.Errorf("[processVirtualizationInStream] resize window error: %v", err)
 				return
 			}
 			return
@@ -221,9 +226,9 @@ func rawProcessVirtualizationInStream(
 	inStream io.WriteCloser,
 	inCh <-chan []byte,
 	specialPrefixCallback map[string]func([]byte),
-) <-chan interface{} {
+) <-chan struct{} {
 
-	done := make(chan interface{})
+	done := make(chan struct{})
 	go func() {
 		defer close(done)
 		defer inStream.Close()
@@ -232,16 +237,15 @@ func rawProcessVirtualizationInStream(
 		for cmd := range inCh {
 			for specialPrefix, callback := range specialPrefixCallback {
 				if bytes.HasPrefix(cmd, []byte(specialPrefix)) {
-					log.Debugf("special prefix matched: %q", cmd)
+					log.Debugf("[rawProcessVirtualizationInStream] special prefix matched: %q", cmd)
 					callback(cmd[len(specialPrefix):])
 					continue cmdLoop
 				}
 			}
 
 			for _, b := range cmd {
-				_, err := inStream.Write([]byte{b})
-				if err != nil {
-					log.Errorf("failed to write virtual input stream: %v", err)
+				if _, err := inStream.Write([]byte{b}); err != nil {
+					log.Errorf("[rawProcessVirtualizationInStream] failed to write virtual input stream: %v", err)
 					return
 				}
 			}
@@ -270,7 +274,7 @@ func processVirtualizationOutStream(
 				if err == io.EOF {
 					return
 				}
-				log.Errorf("failed to read output from output stream: %v", err)
+				log.Errorf("[processVirtualizationOutStream] failed to read output from output stream: %v", err)
 				return
 			}
 		}

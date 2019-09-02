@@ -13,11 +13,6 @@ import (
 
 var exitDataPrefix = "[exitcode] "
 
-type window struct {
-	Height uint `json:"Row"`
-	Width  uint `json:"Col"`
-}
-
 //RunAndWait implement lambda
 func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) (<-chan *types.AttachContainerMessage, error) {
 
