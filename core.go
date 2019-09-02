@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/codegangsta/cli"
 	"github.com/projecteru2/core/auth"
 	"github.com/projecteru2/core/cluster/calcium"
 	"github.com/projecteru2/core/metrics"
@@ -19,6 +18,7 @@ import (
 	"github.com/projecteru2/core/versioninfo"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
 	"google.golang.org/grpc"
 )
 
