@@ -6,6 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 
+	"bufio"
+
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
@@ -257,20 +259,16 @@ func processVirtualizationOutStream(
 	go func() {
 		defer outStream.Close()
 		defer close(outCh)
-		for {
-			buf := make([]byte, 1024)
-			n, err := outStream.Read(buf)
-			if n > 0 {
-				outCh <- buf[:n]
-			}
-			if err != nil {
-				if err == io.EOF {
-					return
-				}
-				log.Errorf("[processVirtualizationOutStream] failed to read output from output stream: %v", err)
-				return
-			}
+		scanner := bufio.NewScanner(outStream)
+		scanner.Split(bufio.ScanRunes)
+		for scanner.Scan() {
+			b := scanner.Bytes()
+			outCh <- b
 		}
+		if err := scanner.Err(); err != nil {
+			log.Errorf("[processVirtualizationOutStream] failed to read output from output stream: %v", err)
+		}
+		return
 	}()
 	return outCh
 }

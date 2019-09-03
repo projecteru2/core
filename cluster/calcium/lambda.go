@@ -34,7 +34,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	wg := &sync.WaitGroup{}
 	for message := range createChan {
 		if !message.Success || message.ContainerID == "" {
-			log.Errorf("[RunAndWait] Create container error, %s", message.Error)
+			log.Errorf("[RunAndWait] Create container failed %s", message.Error)
 			continue
 		}
 
@@ -45,20 +45,20 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 
 			container, err := c.GetContainer(ctx, message.ContainerID)
 			if err != nil {
-				log.Errorf("[RunAndWait] No container %v", err)
+				log.Errorf("[RunAndWait] Get container failed %v", err)
 				return
 			}
 
 			outStream, inStream, err := container.Engine.VirtualizationAttach(ctx, message.ContainerID, true, true)
 			if err != nil {
-				log.Errorf("[RunAndWait] Can't attach container %s: %v", message.ContainerID, err)
+				log.Errorf("[RunAndWait] Can't attach container %s error %v", message.ContainerID, err)
 				return
 			}
 
 			// use logs to replace outStream for previous output
 			if !opts.OpenStdin {
 				if outStream, err = container.Engine.VirtualizationLogs(ctx, message.ContainerID, true, true, true); err != nil {
-					log.Errorf("[RunAndWait] Can't fetch log of container %s: %v", message.ContainerID, err)
+					log.Errorf("[RunAndWait] Can't fetch log of container %s error %v", message.ContainerID, err)
 					return
 				}
 			}
@@ -74,7 +74,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			// wait and forward exitcode
 			r, err := container.Engine.VirtualizationWait(ctx, message.ContainerID, "")
 			if err != nil {
-				log.Errorf("[RunAndWait] %s runs failed: %v", utils.ShortID(message.ContainerID), err)
+				log.Errorf("[RunAndWait] %s wait failed %v", utils.ShortID(message.ContainerID), err)
 				return
 			}
 
