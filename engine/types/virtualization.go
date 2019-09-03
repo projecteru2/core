@@ -50,6 +50,7 @@ type VirtualizationCreateOptions struct {
 	LogConfig map[string]string
 
 	RawArgs []byte
+	Lambda  bool
 }
 
 // VirtualizationCreated use for store name and ID

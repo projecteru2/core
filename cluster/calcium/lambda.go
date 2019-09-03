@@ -11,14 +11,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var exitDataPrefix = "[exitcode] "
+const exitDataPrefix = "[exitcode] "
 
-//RunAndWait implement lambda
+// RunAndWait implement lambda
 func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) (<-chan *types.AttachContainerMessage, error) {
-
-	// 强制为 json-file 输出
-	opts.Entrypoint.Log = &types.LogConfig{Type: "json-file"}
-
+	opts.Lambda = true
 	// count = 1 && OpenStdin
 	if opts.OpenStdin && (opts.Count != 1 || opts.DeployMethod != cluster.DeployAuto) {
 		log.Errorf("Count %d method %s", opts.Count, opts.DeployMethod)
@@ -26,7 +23,8 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	}
 
 	// 不能让 context 作祟
-	createChan, err := c.CreateContainer(context.Background(), opts)
+	backgroundCtx := context.Background()
+	createChan, err := c.CreateContainer(backgroundCtx, opts)
 	if err != nil {
 		log.Errorf("[RunAndWait] Create container error %s", err)
 		return nil, err
@@ -40,61 +38,63 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			continue
 		}
 
-		runAndWait := func(message *types.CreateContainerMessage) {
-			defer func() {
-				wg.Done()
-				c.doRemoveContainerSync(context.Background(), []string{message.ContainerID})
-				log.Infof("[runAndWait] Container %s finished and removed", utils.ShortID(message.ContainerID))
-			}()
+		lambda := func(message *types.CreateContainerMessage) {
+			defer wg.Done()
+			defer log.Infof("[RunAndWait] Container %s finished and removed", utils.ShortID(message.ContainerID))
+			defer c.doRemoveContainerSync(backgroundCtx, []string{message.ContainerID})
 
-			node, err := c.GetNode(ctx, message.Podname, message.Nodename)
+			container, err := c.GetContainer(ctx, message.ContainerID)
 			if err != nil {
-				log.Errorf("[runAndWait] Can't find node, %v", err)
+				log.Errorf("[RunAndWait] No container %v", err)
 				return
 			}
 
-			outStream, inStream, err := node.Engine.VirtualizationAttach(ctx, message.ContainerID, true, true)
+			outStream, inStream, err := container.Engine.VirtualizationAttach(ctx, message.ContainerID, true, true)
 			if err != nil {
-				log.Errorf("[runAndWait] Can't attach container %s: %v", message.ContainerID, err)
+				log.Errorf("[RunAndWait] Can't attach container %s: %v", message.ContainerID, err)
 				return
 			}
+
+			// use logs to replace outStream for previous output
 			if !opts.OpenStdin {
-				if outStream, err = node.Engine.VirtualizationLogs(ctx, message.ContainerID, true, true, true); err != nil {
-					log.Errorf("[runAndWait] Can't fetch log of container %s: %v", message.ContainerID, err)
+				if outStream, err = container.Engine.VirtualizationLogs(ctx, message.ContainerID, true, true, true); err != nil {
+					log.Errorf("[RunAndWait] Can't fetch log of container %s: %v", message.ContainerID, err)
 					return
 				}
 			}
 
 			processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
-				return node.Engine.VirtualizationResize(ctx, message.ContainerID, height, width)
+				return container.Engine.VirtualizationResize(ctx, message.ContainerID, height, width)
 			})
+
 			for data := range processVirtualizationOutStream(ctx, outStream) {
 				runMsgCh <- &types.AttachContainerMessage{ContainerID: message.ContainerID, Data: data}
 			}
 
 			// wait and forward exitcode
-			r, err := node.Engine.VirtualizationWait(ctx, message.ContainerID, "")
+			r, err := container.Engine.VirtualizationWait(ctx, message.ContainerID, "")
 			if err != nil {
-				log.Errorf("[runAndWait] %s runs failed: %v", utils.ShortID(message.ContainerID), err)
+				log.Errorf("[RunAndWait] %s runs failed: %v", utils.ShortID(message.ContainerID), err)
 				return
 			}
 
 			if r.Code != 0 {
 				log.Errorf("[RunAndWait] %s run failed %s", utils.ShortID(message.ContainerID), r.Message)
 			}
+
 			exitData := []byte(exitDataPrefix + strconv.Itoa(int(r.Code)))
 			runMsgCh <- &types.AttachContainerMessage{ContainerID: message.ContainerID, Data: exitData}
 			return
 		}
 
 		wg.Add(1)
-		go runAndWait(message)
+		go lambda(message)
 	}
 
 	go func() {
+		defer close(runMsgCh)
 		wg.Wait()
 		log.Info("[RunAndWait] Finish run and wait for containers")
-		close(runMsgCh)
 	}()
 
 	return runMsgCh, nil
