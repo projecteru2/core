@@ -268,7 +268,9 @@ func processVirtualizationOutStream(
 		for {
 			n, err := outStream.Read(buf)
 			if n > 0 {
-				outCh <- buf[:n]
+				dst := make([]byte, n, n)
+				copy(dst, buf[:n])
+				outCh <- dst
 			}
 			if err != nil {
 				if err == io.EOF {

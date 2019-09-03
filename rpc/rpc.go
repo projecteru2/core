@@ -450,7 +450,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 						log.Errorf("[RunAndWait] Recv command error: %v", err)
 						break
 					}
-					log.Debugf("[RunAndWait] Recv command: %s", bytes.TrimRight(RunAndWaitOptions.Cmd, "\n"))
+					log.Debugf("[RunAndWait] Recv command: %q", RunAndWaitOptions.Cmd)
 
 					inCh <- RunAndWaitOptions.Cmd
 				}
