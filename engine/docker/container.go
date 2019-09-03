@@ -36,6 +36,10 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	if opts.Memory < minMemory {
 		return r, coretypes.ErrBadMemory
 	}
+	// set default log driver if lambda
+	if opts.Lambda {
+		opts.LogType = "json-file"
+	}
 	// add node IP
 	hostIP := GetIP(e.client.DaemonHost())
 	opts.Env = append(opts.Env, fmt.Sprintf("ERU_NODE_IP=%s", hostIP))

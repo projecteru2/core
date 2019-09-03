@@ -17,6 +17,16 @@ const (
 	PrefixKey = "mock://"
 )
 
+type writeCloser struct {
+	*bufio.Writer
+}
+
+// Close close
+func (wc *writeCloser) Close() error {
+	// Noop
+	return nil
+}
+
 // MakeMockClient make a mock client
 func MakeMockClient() *enginemocks.API {
 	e := &enginemocks.API{}
@@ -24,9 +34,11 @@ func MakeMockClient() *enginemocks.API {
 	e.On("Info", mock.Anything).Return(&enginetypes.Info{NCPU: 1, MemTotal: units.GiB + 100}, nil)
 	// exec
 	execID := utils.RandomString(64)
+	bw1 := bufio.NewWriter(bytes.NewBuffer([]byte{}))
+	writeBuffer1 := &writeCloser{bw1}
 	e.On("ExecCreate", mock.Anything, mock.Anything, mock.Anything).Return(execID, nil)
 	execData := ioutil.NopCloser(bytes.NewBufferString(execID))
-	e.On("ExecAttach", mock.Anything, execID, mock.Anything, mock.Anything).Return(execData, nil)
+	e.On("ExecAttach", mock.Anything, execID, mock.Anything).Return(execData, writeBuffer1, nil)
 	e.On("ExecExitCode", mock.Anything, execID).Return(0, nil)
 	// network
 	e.On("NetworkConnect", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -64,25 +76,16 @@ func MakeMockClient() *enginemocks.API {
 	e.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	vcJSON := &enginetypes.VirtualizationInfo{ID: ID, Image: "mock-image", Running: true, Networks: map[string]string{"mock-network": "1.1.1.1"}}
 	e.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(vcJSON, nil)
-	logs := bytes.NewBufferString("logs1...\nlogs2...\n")
+	logs := ioutil.NopCloser(bytes.NewBufferString("logs1...\nlogs2...\n"))
 	e.On("VirtualizationLogs", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(logs, nil)
 	attachData := ioutil.NopCloser(bytes.NewBufferString("logs1...\nlogs2...\n"))
 	bw := bufio.NewWriter(bytes.NewBuffer([]byte{}))
 	writeBuffer := &writeCloser{bw}
 	e.On("VirtualizationAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(attachData, writeBuffer, nil)
+	e.On("VirtualizationResize", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationWait", mock.Anything, mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationWaitResult{Message: "", Code: 0}, nil)
 	e.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	copyData := ioutil.NopCloser(bytes.NewBufferString("d1...\nd2...\n"))
 	e.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(copyData, "", nil)
 	return e
-}
-
-type writeCloser struct {
-	*bufio.Writer
-}
-
-// Close close
-func (wc *writeCloser) Close() error {
-	// Noop
-	return nil
 }

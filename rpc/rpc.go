@@ -431,7 +431,6 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	}
 
 	opts := RunAndWaitOptions.DeployOptions
-
 	deployOpts, err := toCoreDeployOptions(opts)
 	if err != nil {
 		return err
@@ -450,8 +449,6 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 						log.Errorf("[RunAndWait] Recv command error: %v", err)
 						break
 					}
-					log.Debugf("[RunAndWait] Recv command: %s", bytes.TrimRight(RunAndWaitOptions.Cmd, "\n"))
-
 					inCh <- RunAndWaitOptions.Cmd
 				}
 			}
@@ -464,12 +461,10 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		}
 
 		for m := range ch {
-			log.Debugf("[RunAndWait] to send response: %s", m.Data)
 			if err = stream.Send(toRPCAttachContainerMessage(m)); err != nil {
 				v.logUnsentMessages("RunAndWait", m)
 			}
 		}
-
 		return nil
 	})
 }

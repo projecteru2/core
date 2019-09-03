@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -227,27 +226,22 @@ func rawProcessVirtualizationInStream(
 	inCh <-chan []byte,
 	specialPrefixCallback map[string]func([]byte),
 ) <-chan struct{} {
-
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
 		defer inStream.Close()
 
-	cmdLoop:
 		for cmd := range inCh {
-			for specialPrefix, callback := range specialPrefixCallback {
-				if bytes.HasPrefix(cmd, []byte(specialPrefix)) {
-					log.Debugf("[rawProcessVirtualizationInStream] special prefix matched: %q", cmd)
-					callback(cmd[len(specialPrefix):])
-					continue cmdLoop
+			if len(cmd) > 2 {
+				cmdKey := string(cmd[:2])
+				if f, ok := specialPrefixCallback[cmdKey]; ok {
+					f(cmd[2:])
+					continue
 				}
 			}
-
-			for _, b := range cmd {
-				if _, err := inStream.Write([]byte{b}); err != nil {
-					log.Errorf("[rawProcessVirtualizationInStream] failed to write virtual input stream: %v", err)
-					return
-				}
+			if _, err := inStream.Write(cmd); err != nil {
+				log.Errorf("[rawProcessVirtualizationInStream] failed to write virtual input stream: %v", err)
+				return
 			}
 		}
 	}()
@@ -259,13 +253,12 @@ func processVirtualizationOutStream(
 	ctx context.Context,
 	outStream io.ReadCloser,
 ) <-chan []byte {
-
 	outCh := make(chan []byte)
 	go func() {
 		defer outStream.Close()
 		defer close(outCh)
-		buf := make([]byte, 1024)
 		for {
+			buf := make([]byte, 1024)
 			n, err := outStream.Read(buf)
 			if n > 0 {
 				outCh <- buf[:n]
@@ -279,6 +272,5 @@ func processVirtualizationOutStream(
 			}
 		}
 	}()
-
 	return outCh
 }

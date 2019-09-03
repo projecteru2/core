@@ -47,7 +47,7 @@ func LoadConfig(configPath string) (types.Config, error) {
 	}
 	// 默认是 journald
 	if config.Docker.Log.Type == "" {
-		config.Docker.Log.Type = "journald"
+		config.Docker.Log.Type = Journald
 	}
 	if config.Scheduler.ShareBase == 0 {
 		config.Scheduler.ShareBase = 100
