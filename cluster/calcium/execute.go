@@ -6,6 +6,7 @@ import (
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -15,7 +16,6 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 
 	go func() {
 		defer close(ch)
-
 		var err error
 		responses := []string{}
 		defer func() {
@@ -43,19 +43,19 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 		}
 		execID, err := container.Engine.ExecCreate(ctx, opts.ContainerID, execConfig)
 		if err != nil {
-			log.Errorf("[Calcium.ExecuteContainer] failed to create execID: %v", err)
+			log.Errorf("[ExecuteContainer] Failed to create execID: %v", err)
 			return
 		}
 
 		outStream, inStream, err := container.Engine.ExecAttach(ctx, execID, execConfig.Tty)
 		if err != nil {
-			log.Errorf("[Calcium.ExecContainer] failed to attach execID: %v", err)
+			log.Errorf("[ExecuteContainer] Failed to attach execID: %v", err)
 			return
 		}
 
 		if opts.OpenStdin {
 			processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
-				return container.Engine.VirtualizationResize(ctx, container.ID, height, width)
+				return container.Engine.ExecResize(ctx, execID, height, width)
 			})
 		}
 
@@ -65,14 +65,13 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 
 		execCode, err := container.Engine.ExecExitCode(ctx, execID)
 		if err != nil {
-			log.Errorf("[Calcium.ExecuteContainer] failed to get exec exitcode: %v", err)
+			log.Errorf("[ExecuteContainer] Failed to get exitcode: %v", err)
 			return
 		}
 
 		exitData := []byte(exitDataPrefix + strconv.Itoa(execCode))
 		ch <- &types.AttachContainerMessage{ContainerID: opts.ContainerID, Data: exitData}
-
-		log.Infof("[Calcium.ExecuteContainer] container exec complete: %s", opts.ContainerID)
+		log.Infof("[ExecuteContainer] Execuate in container %s complete", utils.ShortID(opts.ContainerID))
 	}()
 
 	return
