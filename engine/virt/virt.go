@@ -55,8 +55,7 @@ func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {
 
 // ExecCreate creates an execution.
 func (v *Virt) ExecCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (id string, err error) {
-	log.Warnf("ExecCreate does not implement")
-	return
+	return "", fmt.Errorf("ExecCreate does not implement")
 }
 
 // ExecAttach executes an attachment.
@@ -66,8 +65,12 @@ func (v *Virt) ExecAttach(ctx context.Context, execID string, tty bool) (io.Read
 
 // ExecExitCode gets return code of a specific execution.
 func (v *Virt) ExecExitCode(ctx context.Context, execID string) (code int, err error) {
-	log.Warnf("ExecExitCode does not implement")
-	return
+	return -1, fmt.Errorf("ExecExitCode does not implement")
+}
+
+// ExecResize resize exec tty
+func (v *Virt) ExecResize(ctx context.Context, execID string, height, width uint) (err error) {
+	return fmt.Errorf("ExecResize does not implement")
 }
 
 // NetworkConnect connects to a network.

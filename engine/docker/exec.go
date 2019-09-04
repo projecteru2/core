@@ -52,3 +52,13 @@ func (e *Engine) ExecExitCode(ctx context.Context, execID string) (int, error) {
 	}
 	return r.ExitCode, nil
 }
+
+// ExecResize resize exec tty
+func (e *Engine) ExecResize(ctx context.Context, execID string, height, width uint) (err error) {
+	opts := dockertypes.ResizeOptions{
+		Height: height,
+		Width:  width,
+	}
+
+	return e.client.ContainerExecResize(ctx, execID, opts)
+}

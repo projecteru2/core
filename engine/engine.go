@@ -14,6 +14,7 @@ type API interface {
 
 	ExecCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, error)
 	ExecAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error)
+	ExecResize(ctx context.Context, execID string, height, width uint) (err error)
 	ExecExitCode(ctx context.Context, execID string) (int, error)
 
 	NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) error

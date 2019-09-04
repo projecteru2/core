@@ -134,6 +134,20 @@ func (_m *API) ExecExitCode(ctx context.Context, execID string) (int, error) {
 	return r0, r1
 }
 
+// ExecResize provides a mock function with given fields: ctx, execID, height, width
+func (_m *API) ExecResize(ctx context.Context, execID string, height uint, width uint) error {
+	ret := _m.Called(ctx, execID, height, width)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, uint, uint) error); ok {
+		r0 = rf(ctx, execID, height, width)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // ImageBuild provides a mock function with given fields: ctx, input, refs
 func (_m *API) ImageBuild(ctx context.Context, input io.Reader, refs []string) (io.ReadCloser, error) {
 	ret := _m.Called(ctx, input, refs)

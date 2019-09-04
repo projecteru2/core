@@ -39,6 +39,7 @@ func MakeMockClient() *enginemocks.API {
 	e.On("ExecCreate", mock.Anything, mock.Anything, mock.Anything).Return(execID, nil)
 	execData := ioutil.NopCloser(bytes.NewBufferString(execID))
 	e.On("ExecAttach", mock.Anything, execID, mock.Anything).Return(execData, writeBuffer1, nil)
+	e.On("ExecResize", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("ExecExitCode", mock.Anything, execID).Return(0, nil)
 	// network
 	e.On("NetworkConnect", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
