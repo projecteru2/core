@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"bufio"
-	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -703,14 +702,12 @@ func (v *Vibranium) ExecuteContainer(stream pb.CoreRPC_ExecuteContainerServer) (
 					log.Errorf("[ExecuteContainer] Recv command error: %v", err)
 					return
 				}
-				log.Debugf("[ExecuteContainer] Recv command: %s", bytes.TrimRight(execContainerOpt.ReplCmd, "\n"))
 				inCh <- execContainerOpt.ReplCmd
 			}
 		}
 	}()
 
 	for m := range v.cluster.ExecuteContainer(stream.Context(), executeContainerOpts, inCh) {
-		log.Debugf("[ExecuteContainer] Send reply: %q", m.Data)
 		if err = stream.Send(toRPCAttachContainerMessage(m)); err != nil {
 			v.logUnsentMessages("ExecuteContainer", m)
 		}
