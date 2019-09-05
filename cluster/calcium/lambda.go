@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"context"
+	"io"
 	"strconv"
 	"sync"
 
@@ -49,23 +50,25 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 				return
 			}
 
-			outStream, inStream, err := container.Engine.VirtualizationAttach(ctx, message.ContainerID, true, true)
-			if err != nil {
-				log.Errorf("[RunAndWait] Can't attach container %s error %v", message.ContainerID, err)
+			var outStream io.ReadCloser
+			if outStream, err = container.Engine.VirtualizationLogs(ctx, message.ContainerID, true, true, true); err != nil {
+				log.Errorf("[RunAndWait] Can't fetch log of container %s error %v", message.ContainerID, err)
 				return
 			}
 
-			// use logs to replace outStream for previous output
-			if !opts.OpenStdin {
-				if outStream, err = container.Engine.VirtualizationLogs(ctx, message.ContainerID, true, true, true); err != nil {
-					log.Errorf("[RunAndWait] Can't fetch log of container %s error %v", message.ContainerID, err)
+			// use attach if use stdin
+			if opts.OpenStdin {
+				var inStream io.WriteCloser
+				outStream, inStream, err = container.Engine.VirtualizationAttach(ctx, message.ContainerID, true, true)
+				if err != nil {
+					log.Errorf("[RunAndWait] Can't attach container %s error %v", message.ContainerID, err)
 					return
 				}
-			}
 
-			processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
-				return container.Engine.VirtualizationResize(ctx, message.ContainerID, height, width)
-			})
+				processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
+					return container.Engine.VirtualizationResize(ctx, message.ContainerID, height, width)
+				})
+			}
 
 			for data := range processVirtualizationOutStream(ctx, outStream) {
 				runMsgCh <- &types.AttachContainerMessage{ContainerID: message.ContainerID, Data: data}
