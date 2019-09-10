@@ -10,12 +10,6 @@ type VirtualizationResource struct {
 	NUMANode  string // numa node
 }
 
-// VirtualizationUlimits define hard and soft limit
-type VirtualizationUlimits struct {
-	Soft int64
-	Hard int64
-}
-
 // VirtualizationCreateOptions use for create virtualization target
 type VirtualizationCreateOptions struct {
 	VirtualizationResource
@@ -34,15 +28,12 @@ type VirtualizationCreateOptions struct {
 	Sysctl     map[string]string
 	Labels     map[string]string
 
-	CapAdd  []string
-	Ulimits map[string]*VirtualizationUlimits
+	Debug bool
 
-	RestartPolicy     string
-	RestartRetryCount int
+	RestartPolicy string
 
-	Network         string
-	Networks        map[string]string
-	NetworkDisabled bool
+	Network  string
+	Networks map[string]string
 
 	Volumes []string
 

@@ -253,6 +253,7 @@ func (c *Calcium) doCreateAndStartContainer(
 
 func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, opts *types.DeployOptions, node *types.Node) *enginetypes.VirtualizationCreateOptions {
 	config := &enginetypes.VirtualizationCreateOptions{}
+	// general
 	config.Seq = index
 	config.CPU = cpumap.Map()
 	config.Quota = opts.CPUQuota
@@ -262,23 +263,33 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, opts *t
 	config.SoftLimit = opts.SoftLimit
 	config.RawArgs = opts.RawArgs
 	config.Lambda = opts.Lambda
+	config.User = opts.User
+	config.DNS = opts.DNS
+	config.Image = opts.Image
+	config.Stdin = opts.OpenStdin
+	config.Hosts = opts.ExtraHosts
+	config.Volumes = opts.Volumes
+	config.Debug = opts.Debug
+	config.Network = opts.NetworkMode
+	config.Networks = opts.Networks
+	// entry
 	entry := opts.Entrypoint
-
-	// 如果有指定用户，用指定用户
-	// 没有指定用户，用镜像自己的
-	// CapAdd and Privileged
-	user := opts.User
-	config.CapAdd = []string{}
-	if entry.Privileged {
-		user = root
-		config.CapAdd = append(config.CapAdd, "SYS_ADMIN")
+	config.WorkingDir = entry.Dir
+	config.Privileged = entry.Privileged
+	config.RestartPolicy = entry.RestartPolicy
+	config.Sysctl = entry.Sysctls
+	config.Publish = entry.Publish
+	if entry.Log != nil {
+		config.LogType = entry.Log.Type
+		config.LogConfig = entry.Log.Config
 	}
-
+	// name
+	suffix := utils.RandomString(6)
+	config.Name = utils.MakeContainerName(opts.Name, opts.Entrypoint.Name, suffix)
 	// command and user
 	// extra args is dynamically
 	slices := utils.MakeCommandLineArgs(fmt.Sprintf("%s %s", entry.Command, opts.ExtraArgs))
 	config.Cmd = slices
-
 	// env
 	env := append(opts.Env, fmt.Sprintf("APP_NAME=%s", opts.Name))
 	env = append(env, fmt.Sprintf("ERU_POD=%s", opts.Podname))
@@ -286,23 +297,7 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, opts *t
 	env = append(env, fmt.Sprintf("ERU_CONTAINER_NO=%d", index))
 	env = append(env, fmt.Sprintf("ERU_MEMORY=%d", opts.Memory))
 	env = append(env, fmt.Sprintf("ERU_STORAGE=%d", opts.Storage))
-
-	// log config
-	// 默认是配置里的driver, 如果entrypoint有指定就用指定的.
-	// 如果用 debug 模式就用默认配置的
-	logType := c.config.Docker.Log.Type
-	logConfig := c.config.Docker.Log.Config
-	if logConfig == nil {
-		logConfig = map[string]string{}
-	}
-	logConfig["tag"] = fmt.Sprintf("%s {{.ID}}", opts.Name)
-	if entry.Log != nil && !opts.Debug {
-		logType = entry.Log.Type
-		logConfig = entry.Log.Config
-	}
-	config.LogType = logType
-	config.LogConfig = logConfig
-
+	config.Env = env
 	// basic labels, bind to EruMeta
 	config.Labels = map[string]string{
 		cluster.ERUMark: "1",
@@ -311,57 +306,9 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, opts *t
 			HealthCheck: entry.HealthCheck,
 		}),
 	}
-
-	// 接下来是meta
 	for key, value := range opts.Labels {
 		config.Labels[key] = value
 	}
 
-	// ulimit
-	config.Ulimits = map[string]*enginetypes.VirtualizationUlimits{
-		"nofile": &enginetypes.VirtualizationUlimits{Soft: 65535, Hard: 65535},
-	}
-
-	// name
-	suffix := utils.RandomString(6)
-	config.Name = utils.MakeContainerName(opts.Name, opts.Entrypoint.Name, suffix)
-
-	// network mode 和 networks 互斥
-	// 没有 networks 的时候用 networkmode 的值
-	// 有 networks 的时候一律用用 networks 的值作为 mode
-	config.Network = opts.NetworkMode
-	config.Networks = opts.Networks
-	for name := range opts.Networks {
-		config.Network = name
-		break
-	}
-	// 如果没有 network 用默认值替换
-	if config.Network == "" {
-		config.Network = c.config.Docker.NetworkMode
-	}
-
-	// dns
-	config.DNS = opts.DNS
-	// sysctls
-	config.Sysctl = entry.Sysctls
-
-	// restart
-	config.RestartPolicy = entry.RestartPolicy
-	config.RestartRetryCount = 3
-	if config.RestartPolicy == restartAlways {
-		config.RestartRetryCount = 0
-	}
-
-	// general
-	config.User = user
-	config.Image = opts.Image
-	config.WorkingDir = entry.Dir
-	config.Stdin = opts.OpenStdin
-	config.Privileged = entry.Privileged
-	config.Env = env
-	config.Hosts = opts.ExtraHosts
-	config.Publish = entry.Publish
-	config.NetworkDisabled = false
-	config.Volumes = opts.Volumes
 	return config
 }

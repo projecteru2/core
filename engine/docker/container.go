@@ -22,11 +22,17 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
-const minMemory = units.MiB * 4
+const (
+	minMemory     = units.MiB * 4
+	restartAlways = "always"
+	root          = "root"
+)
 
 type rawArgs struct {
 	PidMode    dockercontainer.PidMode `json:"pid_mod"`
 	StorageOpt map[string]string       `json:"storage_opt"`
+	CapAdd     []string                `json:"cap_add"`
+	CapDrop    []string                `json:"cap_drop"`
 }
 
 // VirtualizationCreate create a container
@@ -40,6 +46,34 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	if opts.Lambda {
 		opts.LogType = "json-file"
 	}
+	// set restart always
+	restartRetryCount := 3
+	if opts.RestartPolicy == restartAlways {
+		restartRetryCount = 0
+	}
+	// network mode 和 networks 互斥
+	// 没有 networks 的时候用 networkmode 的值
+	// 有 networks 的时候一律用用 networks 的值作为 mode
+	networkMode := dockercontainer.NetworkMode(opts.Network)
+	for name := range opts.Networks {
+		networkMode = dockercontainer.NetworkMode(opts.Network)
+		opts.Networks[name] = ""
+		break
+	}
+	// 如果没有 network 用默认值替换
+	if networkMode == "" {
+		networkMode = dockercontainer.NetworkMode(e.config.Docker.NetworkMode)
+	}
+	// log config
+	if opts.Debug {
+		opts.LogType = e.config.Docker.Log.Type
+		opts.LogConfig = e.config.Docker.Log.Config
+		if opts.LogConfig == nil {
+			opts.LogConfig = map[string]string{
+				"tag": fmt.Sprintf("%s {{.ID}}", opts.Name),
+			}
+		}
+	}
 	// add node IP
 	hostIP := GetIP(e.client.DaemonHost())
 	opts.Env = append(opts.Env, fmt.Sprintf("ERU_NODE_IP=%s", hostIP))
@@ -50,7 +84,6 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	if len(opts.DNS) == 0 && e.config.Docker.UseLocalDNS && hostIP != "" {
 		opts.DNS = []string{hostIP}
 	}
-
 	// mount paths
 	binds, volumes := makeMountPaths(opts)
 	log.Debugf("[VirtualizationCreate] App %s will bind %v", opts.Name, binds)
@@ -62,47 +95,21 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		Image:           opts.Image,
 		Volumes:         volumes,
 		WorkingDir:      opts.WorkingDir,
-		NetworkDisabled: opts.NetworkDisabled,
+		NetworkDisabled: networkMode == "",
 		Labels:          opts.Labels,
 		OpenStdin:       opts.Stdin,
 		Tty:             opts.Stdin,
 	}
 
 	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode, opts.SoftLimit)
-
-	resource.Ulimits = []*units.Ulimit{}
-	for name, u := range opts.Ulimits {
-		ulimits := &units.Ulimit{Name: name, Soft: u.Soft, Hard: u.Hard}
-		resource.Ulimits = append(resource.Ulimits, ulimits)
+	// set ulimits
+	resource.Ulimits = []*units.Ulimit{
+		&units.Ulimit{Name: "nofile", Soft: 65535, Hard: 65535},
 	}
-	if dockercontainer.NetworkMode(opts.Network).IsHost() {
+	if networkMode.IsHost() {
 		opts.DNS = []string{}
 		opts.Sysctl = map[string]string{}
-		// fix issue #78
-		if _, ok := opts.Networks[opts.Network]; ok {
-			opts.Networks[opts.Network] = ""
-		}
 	}
-
-	hostConfig := &dockercontainer.HostConfig{
-		Binds: binds,
-		DNS:   opts.DNS,
-		LogConfig: dockercontainer.LogConfig{
-			Type:   opts.LogType,
-			Config: opts.LogConfig,
-		},
-		NetworkMode: dockercontainer.NetworkMode(opts.Network),
-		RestartPolicy: dockercontainer.RestartPolicy{
-			Name:              opts.RestartPolicy,
-			MaximumRetryCount: opts.RestartRetryCount,
-		},
-		CapAdd:     dockerslice.StrSlice(opts.CapAdd),
-		ExtraHosts: opts.Hosts,
-		Privileged: opts.Privileged,
-		Resources:  resource,
-		Sysctls:    opts.Sysctl,
-	}
-
 	rArgs := &rawArgs{StorageOpt: map[string]string{}}
 	if len(opts.RawArgs) > 0 {
 		if err := json.Unmarshal(opts.RawArgs, rArgs); err != nil {
@@ -112,8 +119,34 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	if opts.Storage > 0 {
 		rArgs.StorageOpt["size"] = fmt.Sprintf("%v", opts.Storage)
 	}
-	hostConfig.PidMode = rArgs.PidMode
-	hostConfig.StorageOpt = rArgs.StorageOpt
+	// 如果有指定用户，用指定用户
+	// 没有指定用户，用镜像自己的
+	// CapAdd and Privileged
+	capAdds := dockerslice.StrSlice(rArgs.CapAdd)
+	if opts.Privileged {
+		opts.User = root
+		capAdds = append(capAdds, "SYS_ADMIN")
+	}
+	hostConfig := &dockercontainer.HostConfig{
+		Binds: binds,
+		DNS:   opts.DNS,
+		LogConfig: dockercontainer.LogConfig{
+			Type:   opts.LogType,
+			Config: opts.LogConfig,
+		},
+		NetworkMode: networkMode,
+		RestartPolicy: dockercontainer.RestartPolicy{
+			Name:              opts.RestartPolicy,
+			MaximumRetryCount: restartRetryCount,
+		},
+		CapAdd:     capAdds,
+		ExtraHosts: opts.Hosts,
+		Privileged: opts.Privileged,
+		Resources:  resource,
+		Sysctls:    opts.Sysctl,
+		PidMode:    rArgs.PidMode,
+		StorageOpt: rArgs.StorageOpt,
+	}
 
 	if hostConfig.NetworkMode.IsBridge() {
 		portMapping := nat.PortMap{}

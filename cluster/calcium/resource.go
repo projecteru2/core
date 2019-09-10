@@ -85,9 +85,9 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, node *types.Node) (*typ
 	nr.CPUPercent = cpus / float64(len(node.InitCPU))
 	nr.MemoryPercent = float64(memory) / float64(node.InitMemCap)
 	nr.NUMAMemoryPercent = map[string]float64{}
-	for nodeID, memory := range node.NUMAMemory {
+	for nodeID, nmemory := range node.NUMAMemory {
 		if initMemory, ok := node.InitNUMAMemory[nodeID]; ok {
-			nr.NUMAMemoryPercent[nodeID] = float64(memory) / float64(initMemory)
+			nr.NUMAMemoryPercent[nodeID] = float64(nmemory) / float64(initMemory)
 		}
 	}
 	cpumap.Add(node.CPU)
