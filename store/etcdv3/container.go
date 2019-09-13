@@ -212,7 +212,7 @@ func (m *Mercury) doGetContainers(ctx context.Context, keys []string) (container
 	for _, kv := range kvs {
 		container := &types.Container{}
 		if err = json.Unmarshal(kv.Value, container); err != nil {
-			log.Errorf("[doGetContainers] failed to unmarshal %v, err: %v", kv.Key, err)
+			log.Errorf("[doGetContainers] failed to unmarshal %v, err: %v", string(kv.Key), err)
 			return
 		}
 		containers = append(containers, container)
