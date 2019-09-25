@@ -31,7 +31,14 @@ type Virt struct {
 // MakeClient makes a virt. client which wraps yavirt API client.
 func MakeClient(config coretypes.Config, endpoint, apiversion string) (*Virt, error) {
 	host := endpoint[len(PrefixKey):]
-	cli, err := virtapi.New(host, apiversion)
+
+	switch config.Virt.APIProtocol {
+	case "http":
+		uri := fmt.Sprintf("http://%s/%s", host, config.Virt.APIVersion)
+	case "grpc":
+		uri := "grpc://" + host
+	}
+	cli, err := virtapi.New(uri)
 	if err != nil {
 		return nil, err
 	}
