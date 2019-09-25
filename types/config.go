@@ -56,7 +56,8 @@ type DockerConfig struct {
 
 // VirtConfig holds yavirtd config
 type VirtConfig struct {
-	APIVersion string `yaml:"version"` // Yavirtd API version
+	APIVersion  string `yaml:"version"`  // Yavirtd API version
+	APIProtocol string `yaml:"protocol"` // Yavirtd API Protocol
 }
 
 // LogConfig define log type
