@@ -42,7 +42,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/pquerna/ffjson v0.0.0-20181028064349-e517b90714f7 // indirect
-	github.com/projecteru2/libyavirt v0.0.0-20190926031954-067bea154b72
+	github.com/projecteru2/libyavirt v0.0.0-20190926081634-197d1cebf52a
 	github.com/prometheus/client_golang v0.9.3
 	github.com/sanity-io/litter v1.1.0
 	github.com/sirupsen/logrus v1.4.2
