@@ -30,10 +30,11 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 	if !strings.HasPrefix(endpoint, docker.TCPPrefixKey) &&
 		!strings.HasPrefix(endpoint, docker.SockPrefixKey) &&
 		!strings.HasPrefix(endpoint, fakeengine.PrefixKey) &&
-		!strings.HasPrefix(endpoint, virt.PrefixKey) {
+		!strings.HasPrefix(endpoint, virt.HTTPPrefixKey) &&
+		!strings.HasPrefix(endpoint, virt.GRPCPrefixKey) {
 		return nil, types.NewDetailedErr(types.ErrNodeFormat,
 			fmt.Sprintf("endpoint must starts with %s, %s, %s, %s %q",
-				docker.TCPPrefixKey, docker.SockPrefixKey, fakeengine.PrefixKey, virt.PrefixKey, endpoint))
+				docker.TCPPrefixKey, docker.SockPrefixKey, fakeengine.PrefixKey, virt.HTTPPrefixKey, endpoint))
 	}
 
 	if n, err := m.GetNodeByName(ctx, name); err == nil {
@@ -261,7 +262,8 @@ func (m *Mercury) doMakeClient(ctx context.Context, nodename, endpoint, ca, cert
 	if strings.HasPrefix(endpoint, fakeengine.PrefixKey) {
 		return makeMockClient()
 	}
-	if strings.HasPrefix(endpoint, virt.PrefixKey) {
+	if strings.HasPrefix(endpoint, virt.HTTPPrefixKey) ||
+		strings.HasPrefix(endpoint, virt.GRPCPrefixKey) {
 		return makeVirtClient(m.config, endpoint, m.config.Virt.APIVersion)
 	}
 	if strings.HasPrefix(endpoint, docker.SockPrefixKey) ||
