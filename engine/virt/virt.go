@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 
 	log "github.com/sirupsen/logrus"
 
@@ -18,8 +19,10 @@ import (
 )
 
 const (
-	// PrefixKey indicate virt prefix
-	PrefixKey = "virt://"
+	// HTTPPrefixKey indicate http yavirtd
+	HTTPPrefixKey = "virt"
+	// GRPCPrefixKey indicates grpc yavirtd
+	GRPCPrefixKey = "virt-grpc"
 )
 
 // Virt implements the core engine.API interface.
@@ -30,14 +33,19 @@ type Virt struct {
 
 // MakeClient makes a virt. client which wraps yavirt API client.
 func MakeClient(config coretypes.Config, endpoint, apiversion string) (*Virt, error) {
-	host := endpoint[len(PrefixKey):]
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return nil, err
+	}
 
 	var uri string
-	switch config.Virt.APIProtocol {
-	case "http":
-		uri = fmt.Sprintf("http://%s/%s", host, config.Virt.APIVersion)
-	case "grpc":
-		uri = "grpc://" + host
+	switch u.Scheme {
+	case HTTPPrefixKey:
+		uri = fmt.Sprintf("http://%s/%s", u.Host, config.Virt.APIVersion)
+	case GRPCPrefixKey:
+		uri = "grpc://" + u.Host
+	default:
+		return nil, fmt.Errorf("invalid endpoint: %s", endpoint)
 	}
 	cli, err := virtapi.New(uri)
 	if err != nil {

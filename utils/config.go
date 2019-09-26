@@ -61,9 +61,6 @@ func LoadConfig(configPath string) (types.Config, error) {
 	if config.GRPCConfig.MaxRecvMsgSize == 0 {
 		config.GRPCConfig.MaxRecvMsgSize = 20 * units.MiB
 	}
-	if config.Virt.APIProtocol == "" {
-		config.Virt.APIProtocol = "http"
-	}
 
 	return config, nil
 }
