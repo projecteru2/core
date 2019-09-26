@@ -24,7 +24,7 @@ const (
 
 // Virt implements the core engine.API interface.
 type Virt struct {
-	client *virtapi.Client
+	client virtapi.Client
 	config coretypes.Config
 }
 
@@ -32,11 +32,12 @@ type Virt struct {
 func MakeClient(config coretypes.Config, endpoint, apiversion string) (*Virt, error) {
 	host := endpoint[len(PrefixKey):]
 
+	var uri string
 	switch config.Virt.APIProtocol {
 	case "http":
-		uri := fmt.Sprintf("http://%s/%s", host, config.Virt.APIVersion)
+		uri = fmt.Sprintf("http://%s/%s", host, config.Virt.APIVersion)
 	case "grpc":
-		uri := "grpc://" + host
+		uri = "grpc://" + host
 	}
 	cli, err := virtapi.New(uri)
 	if err != nil {

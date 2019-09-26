@@ -14,6 +14,7 @@ require (
 	github.com/coreos/go-semver v0.2.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20170731111925-d21964639418 // indirect
 	github.com/coreos/pkg v0.0.0-20160727233714-3ac0863d7acf // indirect
+	github.com/creack/pty v1.1.9 // indirect
 	github.com/dgrijalva/jwt-go v3.0.0+incompatible // indirect
 	github.com/docker/distribution v0.0.0-20171207180435-f4118485915a
 	github.com/docker/docker v0.0.0-20181112142024-a5e2dd2bb141
@@ -22,10 +23,8 @@ require (
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-check/check v0.0.0-20180628173108-788fd7840127 // indirect
-	github.com/golang/groupcache v0.0.0-20160516000752-02826c3e7903 // indirect
-	github.com/golang/protobuf v1.3.1
-	github.com/google/btree v0.0.0-20161005200959-925471ac9e21 // indirect
-	github.com/google/go-cmp v0.2.0 // indirect
+	github.com/golang/protobuf v1.3.2
+	github.com/google/btree v1.0.0 // indirect
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/mux v0.0.0-20180605211556-cb4698366aa6 // indirect
 	github.com/gorilla/websocket v0.0.0-20170926233335-4201258b820c // indirect
@@ -34,7 +33,6 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.3.0 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/json-iterator/go v1.1.6 // indirect
-	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mailru/easyjson v0.0.0-20190312143242-1de009706dbe // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
@@ -44,7 +42,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/pquerna/ffjson v0.0.0-20181028064349-e517b90714f7 // indirect
-	github.com/projecteru2/libyavirt v0.0.0-20190620071541-06d1b5154ae0
+	github.com/projecteru2/libyavirt v0.0.0-20190926031954-067bea154b72
 	github.com/prometheus/client_golang v0.9.3
 	github.com/sanity-io/litter v1.1.0
 	github.com/sirupsen/logrus v1.4.2
@@ -57,11 +55,12 @@ require (
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.7.1 // indirect
-	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
-	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
-	google.golang.org/grpc v0.0.0-20181112213041-04ea82009cdb
+	golang.org/x/exp v0.0.0-20190925190815-26a69ce95baf // indirect
+	golang.org/x/net v0.0.0-20190926025831-c00fd9afed17
+	golang.org/x/tools v0.0.0-20190925230517-ea99b82c7b93 // indirect
+	google.golang.org/genproto v0.0.0-20190925194540-b8fbc687dcfb // indirect
+	google.golang.org/grpc v1.24.0
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
-	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/libgit2/git2go.v27 v27.0.0-20180529185754-9abc0506daca
 	gopkg.in/yaml.v2 v2.2.2
 	gotest.tools v2.2.0+incompatible // indirect
