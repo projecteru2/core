@@ -42,7 +42,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/pquerna/ffjson v0.0.0-20181028064349-e517b90714f7 // indirect
-	github.com/projecteru2/libyavirt v0.0.0-20190926081634-197d1cebf52a
+	github.com/projecteru2/libyavirt v0.0.0-20190927033610-01b2baa9a637
 	github.com/prometheus/client_golang v0.9.3
 	github.com/sanity-io/litter v1.1.0
 	github.com/sirupsen/logrus v1.4.2
@@ -55,10 +55,13 @@ require (
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.7.1 // indirect
+	golang.org/x/crypto v0.0.0-20190926180335-cea2066c6411 // indirect
 	golang.org/x/exp v0.0.0-20190925190815-26a69ce95baf // indirect
 	golang.org/x/net v0.0.0-20190926025831-c00fd9afed17
-	golang.org/x/tools v0.0.0-20190925230517-ea99b82c7b93 // indirect
-	google.golang.org/genproto v0.0.0-20190925194540-b8fbc687dcfb // indirect
+	golang.org/x/sys v0.0.0-20190926180325-855e68c8590b // indirect
+	golang.org/x/tools v0.0.0-20190926165942-a8d5d34286bd // indirect
+	google.golang.org/appengine v1.6.4 // indirect
+	google.golang.org/genproto v0.0.0-20190926190326-7ee9db18f195 // indirect
 	google.golang.org/grpc v1.24.0
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
 	gopkg.in/libgit2/git2go.v27 v27.0.0-20180529185754-9abc0506daca
