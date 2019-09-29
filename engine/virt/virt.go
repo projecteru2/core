@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/url"
 
 	log "github.com/sirupsen/logrus"
@@ -16,6 +17,7 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coresource "github.com/projecteru2/core/source"
 	coretypes "github.com/projecteru2/core/types"
+	virttypes "github.com/projecteru2/libyavirt/types"
 )
 
 const (
@@ -79,6 +81,16 @@ func (v *Virt) ExecAttach(ctx context.Context, execID string, tty bool) (io.Read
 	return nil, nil, fmt.Errorf("ExecAttach does not implement")
 }
 
+// ExecuteAttach executes a command in vm
+func (v *Virt) ExecuteAttach(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, io.ReadCloser, io.WriteCloser, error) {
+	flags := virttypes.ExecuteGuestFlags{Safe: true, Force: true}
+	stream, err := v.client.ExecuteGuest(ctx, target, config.Cmd, flags)
+	if err != nil {
+		return "", nil, nil, err
+	}
+	return "", ioutil.NopCloser(stream), stream, nil
+}
+
 // ExecExitCode gets return code of a specific execution.
 func (v *Virt) ExecExitCode(ctx context.Context, execID string) (code int, err error) {
 	return -1, fmt.Errorf("ExecExitCode does not implement")
@@ -86,7 +98,7 @@ func (v *Virt) ExecExitCode(ctx context.Context, execID string) (code int, err e
 
 // ExecResize resize exec tty
 func (v *Virt) ExecResize(ctx context.Context, execID string, height, width uint) (err error) {
-	return fmt.Errorf("ExecResize does not implement")
+	return nil
 }
 
 // NetworkConnect connects to a network.

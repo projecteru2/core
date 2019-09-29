@@ -148,6 +148,45 @@ func (_m *API) ExecResize(ctx context.Context, execID string, height uint, width
 	return r0
 }
 
+// ExecuteAttach provides a mock function with given fields: ctx, target, config
+func (_m *API) ExecuteAttach(ctx context.Context, target string, config *types.ExecConfig) (string, io.ReadCloser, io.WriteCloser, error) {
+	ret := _m.Called(ctx, target, config)
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(context.Context, string, *types.ExecConfig) string); ok {
+		r0 = rf(ctx, target, config)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	var r1 io.ReadCloser
+	if rf, ok := ret.Get(1).(func(context.Context, string, *types.ExecConfig) io.ReadCloser); ok {
+		r1 = rf(ctx, target, config)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(io.ReadCloser)
+		}
+	}
+
+	var r2 io.WriteCloser
+	if rf, ok := ret.Get(2).(func(context.Context, string, *types.ExecConfig) io.WriteCloser); ok {
+		r2 = rf(ctx, target, config)
+	} else {
+		if ret.Get(2) != nil {
+			r2 = ret.Get(2).(io.WriteCloser)
+		}
+	}
+
+	var r3 error
+	if rf, ok := ret.Get(3).(func(context.Context, string, *types.ExecConfig) error); ok {
+		r3 = rf(ctx, target, config)
+	} else {
+		r3 = ret.Error(3)
+	}
+
+	return r0, r1, r2, r3
+}
+
 // ImageBuild provides a mock function with given fields: ctx, input, refs
 func (_m *API) ImageBuild(ctx context.Context, input io.Reader, refs []string) (io.ReadCloser, error) {
 	ret := _m.Called(ctx, input, refs)

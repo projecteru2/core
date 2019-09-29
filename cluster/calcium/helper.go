@@ -260,7 +260,7 @@ func processVirtualizationOutStream(
 		defer outStream.Close()
 		defer close(outCh)
 		scanner := bufio.NewScanner(outStream)
-		scanner.Split(bufio.ScanRunes)
+		scanner.Split(bufio.ScanBytes)
 		for scanner.Scan() {
 			b := scanner.Bytes()
 			outCh <- b
