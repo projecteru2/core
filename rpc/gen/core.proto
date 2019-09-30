@@ -458,8 +458,10 @@ message AttachContainerMessage {
 }
 
 message RunAndWaitOptions{
-    DeployOptions DeployOptions = 1;
-    bytes Cmd = 2;
+    DeployOptions deploy_options = 1;
+    bytes cmd = 2;
+    bool async = 3;
+    int32 async_timeout = 4;
 }
 
 message ControlContainerOptions {
