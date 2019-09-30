@@ -24,7 +24,6 @@ require (
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-check/check v0.0.0-20180628173108-788fd7840127 // indirect
 	github.com/golang/protobuf v1.3.2
-	github.com/google/btree v1.0.0 // indirect
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/mux v0.0.0-20180605211556-cb4698366aa6 // indirect
 	github.com/gorilla/websocket v0.0.0-20170926233335-4201258b820c // indirect

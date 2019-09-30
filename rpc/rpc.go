@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/projecteru2/core/cluster"
 	pb "github.com/projecteru2/core/rpc/gen"
@@ -417,9 +418,6 @@ func (v *Vibranium) DeployStatus(opts *pb.DeployStatusOptions, stream pb.CoreRPC
 
 // RunAndWait is lambda
 func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
-	v.taskAdd("RunAndWait", true)
-	defer v.taskDone("RunAndWait", true)
-
 	RunAndWaitOptions, err := stream.Recv()
 	if err != nil {
 		return err
@@ -435,6 +433,19 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		return err
 	}
 
+	ctx := stream.Context()
+	cancel := context.CancelFunc(func() {})
+	if RunAndWaitOptions.Async {
+		timeout := v.config.GlobalTimeout
+		if RunAndWaitOptions.AsyncTimeout != 0 {
+			timeout = time.Second * time.Duration(RunAndWaitOptions.AsyncTimeout)
+		}
+		ctx, cancel = context.WithTimeout(context.Background(), timeout)
+		// force mark stdin to false
+		opts.OpenStdin = false
+	}
+
+	v.taskAdd("RunAndWait", true)
 	return withDumpFiles(opts.Data, func(files map[string]string) error {
 		deployOpts.Data = files
 
@@ -453,16 +464,28 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 			}
 		}()
 
-		ch, err := v.cluster.RunAndWait(stream.Context(), deployOpts, inCh)
+		ch, err := v.cluster.RunAndWait(ctx, deployOpts, inCh)
 		if err != nil {
 			log.Errorf("[RunAndWait] Start run and wait failed %s", err)
+			v.taskDone("RunAndWait", true)
 			return err
 		}
 
-		for m := range ch {
-			if err = stream.Send(toRPCAttachContainerMessage(m)); err != nil {
-				v.logUnsentMessages("RunAndWait", m)
+		sync := make(chan struct{})
+		go func() {
+			defer v.taskDone("RunAndWait", true)
+			defer cancel()
+			defer close(sync)
+			for m := range ch {
+				if RunAndWaitOptions.Async {
+					log.Infof("[Async RunAndWait] %v", string(m.Data))
+				} else if err = stream.Send(toRPCAttachContainerMessage(m)); err != nil {
+					v.logUnsentMessages("RunAndWait", m)
+				}
 			}
+		}()
+		if !RunAndWaitOptions.Async {
+			<-sync
 		}
 		return nil
 	})
