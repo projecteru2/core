@@ -3,6 +3,7 @@ package complexscheduler
 import (
 	"sort"
 	"testing"
+	"errors"
 
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
@@ -50,7 +51,7 @@ func TestFillPlan(t *testing.T) {
 	n = 15
 	nodes = deployedNodes()
 	_, err = FillPlan(nodes, n, 0)
-	assert.EqualError(t, types.IsDetailedErr(err), types.ErrInsufficientRes.Error())
+	assert.True(t, errors.Is(err, types.ErrInsufficientRes))
 
 	// 全局补充不能
 	n = 1

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -18,7 +17,7 @@ import (
 	"github.com/projecteru2/core/versioninfo"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 )
 
@@ -115,32 +114,19 @@ func serve() {
 }
 
 func main() {
-	cli.VersionPrinter = func(c *cli.Context) {
-		fmt.Print(versioninfo.VersionString())
+	cli := &cobra.Command{
+		Use:     versioninfo.NAME,
+		Short:   versioninfo.NAME,
+		Long:    versioninfo.NAME,
+		Version: versioninfo.VersionString(),
 	}
 
-	app := cli.NewApp()
-	app.Name = versioninfo.NAME
-	app.Usage = "Run eru core"
-	app.Version = versioninfo.VERSION
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:        "config",
-			Value:       "/etc/eru/core.yaml",
-			Usage:       "config file path for core, in yaml",
-			Destination: &configPath,
-			EnvVar:      "ERU_CONFIG_PATH",
-		},
-		cli.BoolFlag{
-			Name:        "embedded-storage",
-			Usage:       "active embedded storage",
-			Destination: &embeddedStorage,
-		},
-	}
-	app.Action = func(c *cli.Context) error {
+	cli.Flags().StringVarP(&configPath, "config", "c", "/etc/eru/core.yaml", "config file path for core")
+	cli.Flags().BoolVarP(&embeddedStorage, "embeded-storage", "e", false, "active embedded storage")
+
+	cli.Run = func(cmd *cobra.Command, args []string) {
 		serve()
-		return nil
 	}
 
-	app.Run(os.Args)
+	cli.Execute()
 }

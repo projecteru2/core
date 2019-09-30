@@ -1,21 +1,15 @@
-FROM debian:sid-slim AS BUILD
+FROM golang:alpine AS BUILD
 
-MAINTAINER CMGS <ilskdw@gmail.com>
+# make binary
+RUN apk add --no-cache build-base musl-dev libgit2-dev git curl make cmake python\
+    && go get -d github.com/projecteru2/core
+WORKDIR /go/src/github.com/projecteru2/core
+RUN make build && ./eru-core --version
 
-RUN apt update \
-    && apt install -y golang-1.12 git libgit2-dev make \
-    && git clone https://github.com/projecteru2/core.git
-WORKDIR /core
-RUN export PATH=/usr/lib/go-1.12/bin:$PATH \
-    && make build \
-    && ./eru-core --version
-
-FROM debian:sid-slim
+FROM alpine:latest
 
 RUN mkdir /etc/eru/
 LABEL ERU=1
-RUN apt update \
-    && apt install -y libgit2-27 libssh2-1 \
-    && rm -rf /var/lib/apt/lists/*
-COPY --from=BUILD /core/eru-core /usr/bin/eru-core
-COPY --from=BUILD /core/core.yaml.sample /etc/eru/core.yaml.sample
+RUN apk --no-cache add libcurl libssh2 libgit2 && rm -rf /var/cache/apk/*
+COPY --from=BUILD /go/src/github.com/projecteru2/core/eru-core /usr/bin/eru-core
+COPY --from=BUILD /go/src/github.com/projecteru2/core/core.yaml.sample /etc/eru/core.yaml.sample

@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	git "github.com/libgit2/git2go"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
-	git "gopkg.in/libgit2/git2go.v27"
 )
 
 // GitScm is gitlab or github source code manager
