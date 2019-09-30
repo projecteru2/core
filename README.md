@@ -21,8 +21,7 @@ Run `make deps` for generating vendor dir.
 Under macOS we have to install `libgit2` manually, if you using [Homebrew](https://brew.sh/) please install like this:
 
 ```shell
-# need to specify libgit2 version 0.27.x because git2go not supported lastest 0.28: https://github.com/libgit2/git2go/issues/502
-HOMEBREW_NO_AUTO_UPDATE=1 brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/19dee2bd48ec0443e1f4a90bbdae0b9b8ef7da98/Formula/libgit2.rb
+brew install libgit2
 make deps
 ```
 

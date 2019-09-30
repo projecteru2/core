@@ -14,8 +14,6 @@ func TestDetailedErr(t *testing.T) {
 	err := errors.New(errString)
 	dt := NewDetailedErr(err, detail)
 
-	e := IsDetailedErr(dt)
-	assert.Equal(t, e.Error(), errString)
-
+	assert.True(t, errors.Is(dt, err))
 	assert.True(t, strings.Contains(dt.Error(), detail))
 }

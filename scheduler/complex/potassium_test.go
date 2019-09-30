@@ -1,6 +1,7 @@
 package complexscheduler
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -240,21 +241,21 @@ func TestSelectCPUNodes(t *testing.T) {
 	memory := 4 * int64(units.GiB)
 
 	_, _, err := SelectCPUNodes(k, []types.NodeInfo{}, 1, 1, 1, false)
-	assert.Equal(t, types.IsDetailedErr(err), types.ErrZeroNodes)
+	assert.True(t, errors.Is(err, types.ErrZeroNodes))
 
 	nodes := generateNodes(2, 2, memory, 0, 10)
 	_, _, err = SelectCPUNodes(k, nodes, 0.5, 1, 1, false)
 	assert.NoError(t, err)
 
 	_, _, err = SelectCPUNodes(k, nodes, 2, 1, 3, false)
-	assert.Equal(t, types.IsDetailedErr(err), types.ErrInsufficientRes)
+	assert.True(t, errors.Is(err, types.ErrInsufficientRes))
 	assert.Contains(t, err.Error(), "need: 3, vol: 1")
 
 	_, _, err = SelectCPUNodes(k, nodes, 3, 1, 2, false)
-	assert.Equal(t, types.IsDetailedErr(err), types.ErrInsufficientRes)
+	assert.True(t, errors.Is(err, types.ErrInsufficientRes))
 
 	_, _, err = SelectCPUNodes(k, nodes, 1, 1, 5, false)
-	assert.Equal(t, types.IsDetailedErr(err), types.ErrInsufficientRes)
+	assert.True(t, errors.Is(err, types.ErrInsufficientRes))
 
 	// new round test
 	nodes = generateNodes(2, 2, memory, 0, 10)
@@ -425,7 +426,7 @@ func TestCPUWithMaxShareLimit(t *testing.T) {
 	}
 
 	_, _, err = SelectCPUNodes(k, nodes, 1.7, 1, 3, false)
-	assert.Equal(t, types.IsDetailedErr(err), types.ErrInsufficientRes)
+	assert.True(t, errors.Is(err, types.ErrInsufficientRes))
 	assert.Contains(t, err.Error(), "vol: 2")
 }
 
@@ -821,7 +822,7 @@ func TestSelectMemoryNodesNotEnough(t *testing.T) {
 	pod := generateNodes(2, 2, 4*int64(units.GiB), 0, 10)
 	k, _ := newPotassium()
 	_, err := SelectMemoryNodes(k, pod, 1, 512*int64(units.MiB), 40, false)
-	assert.Equal(t, types.IsDetailedErr(err), types.ErrInsufficientRes)
+	assert.True(t, errors.Is(err, types.ErrInsufficientRes))
 	assert.Contains(t, err.Error(), "need: 40, vol: 16")
 
 	// 2 nodes [memory not enough]
@@ -871,7 +872,7 @@ func TestSelectMemoryNodesSequence(t *testing.T) {
 
 	refreshPod(res, mem, 0)
 	_, err = SelectMemoryNodes(k, res, cpu, mem, 40, false)
-	assert.Equal(t, types.IsDetailedErr(err), types.ErrInsufficientRes)
+	assert.True(t, errors.Is(err, types.ErrInsufficientRes))
 	assert.Contains(t, err.Error(), "need: 40, vol: 7")
 
 	// new round

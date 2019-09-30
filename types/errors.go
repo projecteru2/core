@@ -71,30 +71,5 @@ var (
 
 // NewDetailedErr returns an error with details
 func NewDetailedErr(err error, details interface{}) error {
-	return &detailedErr{
-		details: fmt.Sprintf("%v", details),
-		err:     err,
-	}
-}
-
-// IsDetailedErr returns the error's type if the error
-// is a detailedErr, otherwise return it back
-func IsDetailedErr(err error) error {
-	if e, ok := err.(*detailedErr); ok {
-		return e.err
-	}
-	return err
-}
-
-// detailedErr conains details
-type detailedErr struct {
-	details string
-	err     error
-}
-
-func (de *detailedErr) Error() string {
-	if de.details != "" {
-		return fmt.Sprintf("%s: %s", de.err.Error(), de.details)
-	}
-	return de.err.Error()
+	return fmt.Errorf("%v%w", details, err)
 }
