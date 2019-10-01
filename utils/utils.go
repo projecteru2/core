@@ -27,8 +27,6 @@ const (
 	DefaultVersion = "latest"
 	// WrongVersion for wrong version
 	WrongVersion = "unknown"
-	// Journald log
-	Journald = "journald"
 )
 
 // RandomString random a string

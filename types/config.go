@@ -6,14 +6,14 @@ import (
 
 // Config holds eru-core config
 type Config struct {
-	LogLevel      string        `yaml:"log_level"`
-	Bind          string        `yaml:"bind"`           // HTTP API address
-	Statsd        string        `yaml:"statsd"`         // statsd host and port
-	Profile       string        `yaml:"profile"`        // profile ip:port
-	LockTimeout   int           `yaml:"lock_timeout"`   // timeout for lock (ttl)
-	GlobalTimeout time.Duration `yaml:"global_timeout"` // timeout for remove, run_and_wait and build, in second
-	Auth          AuthConfig    `yaml:"auth"`           // grpc auth
-	GRPCConfig    GRPCConfig    `yaml:"grpc"`           // grpc config
+	LogLevel      string        `yaml:"log_level" required:"true" default:"INFO"`
+	Bind          string        `yaml:"bind" required:"true" default:"5001"`           // HTTP API address
+	LockTimeout   int           `yaml:"lock_timeout" required:"true" default:"30"`     // timeout for lock (ttl)
+	GlobalTimeout time.Duration `yaml:"global_timeout" required:"true" default:"300s"` // timeout for remove, run_and_wait and build, in second
+	Statsd        string        `yaml:"statsd"`                                        // statsd host and port
+	Profile       string        `yaml:"profile"`                                       // profile ip:port
+	Auth          AuthConfig    `yaml:"auth"`                                          // grpc auth
+	GRPCConfig    GRPCConfig    `yaml:"grpc"`                                          // grpc config
 
 	Git       GitConfig    `yaml:"git"`
 	Etcd      EtcdConfig   `yaml:"etcd"`
@@ -24,13 +24,13 @@ type Config struct {
 
 // EtcdConfig holds eru-core etcd config
 type EtcdConfig struct {
-	Machines   []string   `yaml:"machines"`    // etcd cluster addresses
-	Prefix     string     `yaml:"prefix"`      // etcd lock prefix, all locks will be created under this dir
-	LockPrefix string     `yaml:"lock_prefix"` // etcd lock prefix, all locks will be created under this dir
-	Ca         string     `yaml:"ca"`          // etcd ca
-	Key        string     `yaml:"key"`         // etcd key
-	Cert       string     `yaml:"cert"`        // etcd trusted_ca
-	Auth       AuthConfig `yaml:"auth"`        // etcd auth
+	Machines   []string   `yaml:"machines" required:"true"`                           // etcd cluster addresses
+	Prefix     string     `yaml:"prefix" required:"true" default:"/eru"`              // etcd lock prefix, all locks will be created under this dir
+	LockPrefix string     `yaml:"lock_prefix" required:"true" default:"__lock__/eru"` // etcd lock prefix, all locks will be created under this dir
+	Ca         string     `yaml:"ca"`                                                 // etcd ca
+	Key        string     `yaml:"key"`                                                // etcd key
+	Cert       string     `yaml:"cert"`                                               // etcd trusted_ca
+	Auth       AuthConfig `yaml:"auth"`                                               // etcd auth
 }
 
 // GitConfig holds eru-core git config
@@ -43,15 +43,15 @@ type GitConfig struct {
 
 // DockerConfig holds eru-core docker config
 type DockerConfig struct {
-	APIVersion  string                `yaml:"version"`      // docker API version
-	NetworkMode string                `yaml:"network_mode"` // docker network mode
-	CertPath    string                `yaml:"cert_path"`    // docker cert files path
-	Hub         string                `yaml:"hub"`          // docker hub address
-	Namespace   string                `yaml:"namespace"`    // docker hub prefix, will be set to $Hub/$HubPrefix/$appname
-	BuildPod    string                `yaml:"build_pod"`    // podname used to build
-	UseLocalDNS bool                  `yaml:"local_dns"`    // use node IP as dns
-	Log         LogConfig             `yaml:"log"`          // docker log driver
-	AuthConfigs map[string]AuthConfig `yaml:"auths"`        // docker registry credentials
+	APIVersion  string                `yaml:"version" required:"true" default:"1.32"`      // docker API version
+	NetworkMode string                `yaml:"network_mode" required:"true" default:"host"` // docker network mode
+	CertPath    string                `yaml:"cert_path" required:"true" default:"/tmp"`    // docker cert files path
+	Hub         string                `yaml:"hub"`                                         // docker hub address
+	Namespace   string                `yaml:"namespace"`                                   // docker hub prefix, will be set to $Hub/$HubPrefix/$appname
+	BuildPod    string                `yaml:"build_pod"`                                   // podname used to build
+	UseLocalDNS bool                  `yaml:"local_dns"`                                   // use node IP as dns
+	Log         LogConfig             `yaml:"log"`                                         // docker log driver
+	AuthConfigs map[string]AuthConfig `yaml:"auths"`                                       // docker registry credentials
 }
 
 // VirtConfig holds yavirtd config
@@ -61,14 +61,14 @@ type VirtConfig struct {
 
 // LogConfig define log type
 type LogConfig struct {
-	Type   string            `yaml:"type"`   // Log type, can be "journald", "json-file", "none"
-	Config map[string]string `yaml:"config"` // Log configs
+	Type   string            `yaml:"type" required:"true" default:"journald"` // Log type, can be "journald", "json-file", "none"
+	Config map[string]string `yaml:"config"`                                  // Log configs
 }
 
 // SchedConfig holds scheduler config
 type SchedConfig struct {
-	MaxShare  int `yaml:"maxshare"`  // comlpex scheduler use maxshare
-	ShareBase int `yaml:"sharebase"` // how many pieces for one core
+	MaxShare  int `yaml:"maxshare" required:"true" default:"-1"`   // comlpex scheduler use maxshare
+	ShareBase int `yaml:"sharebase" required:"true" default:"100"` // how many pieces for one core
 }
 
 // AuthConfig contains authorization information for connecting to a Registry
@@ -82,6 +82,6 @@ type AuthConfig struct {
 
 // GRPCConfig indicate grpc config
 type GRPCConfig struct {
-	MaxConcurrentStreams int `yaml:"max_concurrent_streams,omitempty" json:"max_concurrent_streams,omitempty"`
-	MaxRecvMsgSize       int `yaml:"max_recv_msg_size,omitempty" json:"max_recv_msg_size,omitempty"`
+	MaxConcurrentStreams int `yaml:"max_concurrent_streams,omitempty" json:"max_concurrent_streams,omitempty" required:"true" default:"100"`
+	MaxRecvMsgSize       int `yaml:"max_recv_msg_size,omitempty" json:"max_recv_msg_size,omitempty" required:"true" default:"20971520"`
 }
