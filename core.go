@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -17,7 +18,7 @@ import (
 	"github.com/projecteru2/core/versioninfo"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli"
 	"google.golang.org/grpc"
 )
 
@@ -42,20 +43,12 @@ func setupLog(l string) error {
 }
 
 func serve() {
-	if configPath == "" {
-		log.Fatal("[main] Config path must be set")
-	}
-
 	config, err := utils.LoadConfig(configPath)
 	if err != nil {
 		log.Fatalf("[main] %v", err)
 	}
 
-	logLevel := "INFO"
-	if config.LogLevel != "" {
-		logLevel = config.LogLevel
-	}
-	if err := setupLog(logLevel); err != nil {
+	if err := setupLog(config.LogLevel); err != nil {
 		log.Fatalf("[main] %v", err)
 	}
 
@@ -114,19 +107,32 @@ func serve() {
 }
 
 func main() {
-	cli := &cobra.Command{
-		Use:     versioninfo.NAME,
-		Short:   versioninfo.NAME,
-		Long:    versioninfo.NAME,
-		Version: versioninfo.VersionString(),
+	cli.VersionPrinter = func(c *cli.Context) {
+		fmt.Print(versioninfo.VersionString())
 	}
 
-	cli.Flags().StringVarP(&configPath, "config", "c", "/etc/eru/core.yaml", "config file path for core")
-	cli.Flags().BoolVarP(&embeddedStorage, "embeded-storage", "e", false, "active embedded storage")
-
-	cli.Run = func(cmd *cobra.Command, args []string) {
+	app := cli.NewApp()
+	app.Name = versioninfo.NAME
+	app.Usage = "Run eru core"
+	app.Version = versioninfo.VERSION
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:        "config",
+			Value:       "/etc/eru/core.yaml",
+			Usage:       "config file path for core, in yaml",
+			Destination: &configPath,
+			EnvVar:      "ERU_CONFIG_PATH",
+		},
+		cli.BoolFlag{
+			Name:        "embedded-storage",
+			Usage:       "active embedded storage",
+			Destination: &embeddedStorage,
+		},
+	}
+	app.Action = func(c *cli.Context) error {
 		serve()
+		return nil
 	}
 
-	cli.Execute()
+	app.Run(os.Args)
 }

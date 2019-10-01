@@ -46,7 +46,7 @@ func New(config types.Config, embededStorage bool) (*Calcium, error) {
 	case cluster.Github:
 		scm = github.New(config)
 	default:
-		log.Warn("[Calcium] SCM not set, build API disable")
+		log.Warn("[Calcium] SCM not set, build API disabled")
 	}
 
 	return &Calcium{store: store, config: config, scheduler: scheduler, source: scm}, nil

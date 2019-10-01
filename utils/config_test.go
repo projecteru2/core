@@ -23,7 +23,7 @@ func TestLoadConfig(t *testing.T) {
 bind: ":5001"
 statsd: "127.0.0.1:8125"
 profile: ":12346"
-global_timeout: 300
+global_timeout: 300s
 
 auth:
     username: admin
@@ -51,9 +51,9 @@ docker:
 	assert.NoError(t, err)
 	config, err := LoadConfig(fname)
 	assert.NoError(t, err)
-	assert.Equal(t, config.LockTimeout, defaultTTL)
+	assert.Equal(t, config.LockTimeout, 30)
 	assert.Equal(t, config.GlobalTimeout, time.Duration(time.Second*300))
-	assert.Equal(t, config.Etcd.Prefix, defaultPrefix)
+	assert.Equal(t, config.Etcd.Prefix, "/eru")
 	assert.Equal(t, config.Docker.Log.Type, "journald")
 	assert.Equal(t, config.Docker.APIVersion, "1.32")
 	assert.Equal(t, config.Scheduler.MaxShare, -1)
