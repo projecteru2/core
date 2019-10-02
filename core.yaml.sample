@@ -2,7 +2,7 @@ log_level: "DEBUG"
 bind: ":5001"
 statsd: "127.0.0.1:8125"
 profile: ":12346"
-global_timeout: 300
+global_timeout: 300s
 lock_timeout: 30
 
 auth:

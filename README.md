@@ -73,7 +73,7 @@ After we implemented bootstrap in eru2, now you can build and deploy eru with [c
 1. Test source code and build image
 
 ```shell
-<cli_execute_path> --name <image_name> https://goo.gl/KTGJ9k
+<cli_execute_path> --name <image_name> http://bit.ly/EruCore
 ```
 
 Make sure you can clone code. After the fresh image was named and tagged, it will be auto pushed to the remote registry which was defined in config file.
@@ -81,7 +81,7 @@ Make sure you can clone code. After the fresh image was named and tagged, it wil
 2. Deploy core itself
 
 ```shell
-<cli_execute_path> container deploy --pod <pod_name> [--node <node_name>] --entry core --network <network_name> --image <projecteru2/core>|<your_own_image> --file <core_config_yaml>:/core.yaml [--count <count_num>] [--cpu 0.3 | --mem 1024000000] https://goo.gl/KTGJ9k
+<cli_execute_path> container deploy --pod <pod_name> [--node <node_name>] --entry core --network <network_name> --image <projecteru2/core>|<your_own_image> --file <core_config_yaml>:/core.yaml [--count <count_num>] [--cpu 0.3 | --mem 1024000000] http://bit.ly/EruCore
 ```
 
 Now you will find core was started in nodes.

@@ -3,6 +3,7 @@ package calcium
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -41,7 +42,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 				if err = c.withContainerLocked(ctx, ID, func(container *types.Container) error {
 					if opts.Podname != "" && container.Podname != opts.Podname {
 						log.Warnf("[ReplaceContainer] Skip not in pod container %s", container.ID)
-						return types.NewDetailedErr(types.ErrNotSupport,
+						return types.NewDetailedErr(types.ErrIgnoreContainer,
 							fmt.Sprintf("container %s not in pod %s", container.ID, opts.Podname),
 						)
 					}
@@ -59,7 +60,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 					if replaceOpts.NetworkInherit {
 						if !container.Running {
 							return types.NewDetailedErr(types.ErrNotSupport,
-								fmt.Sprintf("container %s not running, can not inherit", container.ID),
+								fmt.Sprintf("container %s is not running, can not inherit", container.ID),
 							)
 						}
 						log.Infof("[ReplaceContainer] Inherit old container network configuration mode %v", container.Networks)
@@ -69,6 +70,9 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 					createMessage, removeMessage, err = c.doReplaceContainer(ctx, container, &replaceOpts, index)
 					return err
 				}); err != nil {
+					if errors.Is(err, types.ErrIgnoreContainer) {
+						return
+					}
 					log.Errorf("[ReplaceContainer] Replace and remove failed %v, old container restarted", err)
 				} else {
 					log.Infof("[ReplaceContainer] Replace and remove success %s", ID)

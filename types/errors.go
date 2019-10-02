@@ -66,10 +66,11 @@ var (
 	ErrNotSupport = errors.New("Not Support")
 	ErrSCMNotSet  = errors.New("SCM not set")
 
-	ErrInvalidBind = errors.New("invalid bind value")
+	ErrInvalidBind     = errors.New("invalid bind value")
+	ErrIgnoreContainer = errors.New("ignore this container")
 )
 
 // NewDetailedErr returns an error with details
 func NewDetailedErr(err error, details interface{}) error {
-	return fmt.Errorf("%v%w", details, err)
+	return fmt.Errorf("%w: %v", err, details)
 }
