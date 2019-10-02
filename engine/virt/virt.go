@@ -84,7 +84,7 @@ func (v *Virt) ExecAttach(ctx context.Context, execID string, tty bool) (io.Read
 // ExecuteAttach executes a command in vm
 func (v *Virt) ExecuteAttach(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, io.ReadCloser, io.WriteCloser, error) {
 	flags := virttypes.ExecuteGuestFlags{Safe: true, Force: true}
-	stream, err := v.client.ExecuteGuest(ctx, target, config.Cmd, flags)
+	stream, err := v.client.ExecuteGuest(ctx, target, config.Cmd, config.Tty, flags)
 	if err != nil {
 		return "", nil, nil, err
 	}
