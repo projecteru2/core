@@ -16,7 +16,8 @@ import (
 	"golang.org/x/net/context"
 )
 
-var winchCommand = []byte{0xf, 0xa}
+var winchCommand = []byte{0x80}  // 128, non-ASCII
+var escapeCommand = []byte{0x1d} // 29, ^]
 
 type window struct {
 	Height uint `json:"Row"`
@@ -218,6 +219,10 @@ func processVirtualizationInStream(
 			}
 			return
 		},
+
+		string(escapeCommand): func(body []byte) {
+			inStream.Close()
+		},
 	}
 	return rawProcessVirtualizationInStream(ctx, inStream, inCh, specialPrefixCallback)
 }
@@ -234,12 +239,10 @@ func rawProcessVirtualizationInStream(
 		defer inStream.Close()
 
 		for cmd := range inCh {
-			if len(cmd) > 2 {
-				cmdKey := string(cmd[:2])
-				if f, ok := specialPrefixCallback[cmdKey]; ok {
-					f(cmd[2:])
-					continue
-				}
+			cmdKey := string(cmd[:1])
+			if f, ok := specialPrefixCallback[cmdKey]; ok {
+				f(cmd[1:])
+				continue
 			}
 			if _, err := inStream.Write(cmd); err != nil {
 				log.Errorf("[rawProcessVirtualizationInStream] failed to write virtual input stream: %v", err)
