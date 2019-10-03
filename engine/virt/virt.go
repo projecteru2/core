@@ -1,6 +1,7 @@
 package virt
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -82,13 +83,21 @@ func (v *Virt) ExecAttach(ctx context.Context, execID string, tty bool) (io.Read
 }
 
 // ExecuteAttach executes a command in vm
-func (v *Virt) ExecuteAttach(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, io.ReadCloser, io.WriteCloser, error) {
-	flags := virttypes.ExecuteGuestFlags{Safe: true, Force: true}
-	stream, err := v.client.ExecuteGuest(ctx, target, config.Cmd, config.Tty, flags)
-	if err != nil {
-		return "", nil, nil, err
+func (v *Virt) ExecuteAttach(ctx context.Context, target string, config *enginetypes.ExecConfig) (_ string, outputStream io.ReadCloser, inputStream io.WriteCloser, err error) {
+	if config.Tty {
+		flags := virttypes.AttachGuestFlags{Safe: true, Force: true}
+		stream, err := v.client.AttachGuest(ctx, target, flags)
+		if err != nil {
+			return "", nil, nil, err
+		}
+		return "", ioutil.NopCloser(stream), stream, nil
+
+	} else {
+		msg, err := v.client.ExecuteGuest(ctx, target, config.Cmd)
+		return "", ioutil.NopCloser(bytes.NewReader(msg.Data)), nil, err
 	}
-	return "", ioutil.NopCloser(stream), stream, nil
+
+	return
 }
 
 // ExecExitCode gets return code of a specific execution.
