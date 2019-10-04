@@ -102,7 +102,7 @@ func (v *Virt) ExecuteAttach(ctx context.Context, target string, config *enginet
 
 // ExecExitCode gets return code of a specific execution.
 func (v *Virt) ExecExitCode(ctx context.Context, execID string) (code int, err error) {
-	return -1, fmt.Errorf("ExecExitCode does not implement")
+	return 0, nil
 }
 
 // ExecResize resize exec tty
