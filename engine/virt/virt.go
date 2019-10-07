@@ -82,8 +82,8 @@ func (v *Virt) ExecAttach(ctx context.Context, execID string, tty bool) (io.Read
 	return nil, nil, fmt.Errorf("ExecAttach does not implement")
 }
 
-// ExecuteAttach executes a command in vm
-func (v *Virt) ExecuteAttach(ctx context.Context, target string, config *enginetypes.ExecConfig) (_ string, outputStream io.ReadCloser, inputStream io.WriteCloser, err error) {
+// Execute executes a command in vm
+func (v *Virt) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (_ string, outputStream io.ReadCloser, inputStream io.WriteCloser, err error) {
 	if config.Tty {
 		flags := virttypes.AttachGuestFlags{Safe: true, Force: true}
 		stream, err := v.client.AttachGuest(ctx, target, flags)
@@ -92,12 +92,11 @@ func (v *Virt) ExecuteAttach(ctx context.Context, target string, config *enginet
 		}
 		return "", ioutil.NopCloser(stream), stream, nil
 
-	} else {
-		msg, err := v.client.ExecuteGuest(ctx, target, config.Cmd)
-		return "", ioutil.NopCloser(bytes.NewReader(msg.Data)), nil, err
 	}
 
-	return
+	msg, err := v.client.ExecuteGuest(ctx, target, config.Cmd)
+	return "", ioutil.NopCloser(bytes.NewReader(msg.Data)), nil, err
+
 }
 
 // ExecExitCode gets return code of a specific execution.

@@ -148,8 +148,8 @@ func (_m *API) ExecResize(ctx context.Context, execID string, height uint, width
 	return r0
 }
 
-// ExecuteAttach provides a mock function with given fields: ctx, target, config
-func (_m *API) ExecuteAttach(ctx context.Context, target string, config *types.ExecConfig) (string, io.ReadCloser, io.WriteCloser, error) {
+// Execute provides a mock function with given fields: ctx, target, config
+func (_m *API) Execute(ctx context.Context, target string, config *types.ExecConfig) (string, io.ReadCloser, io.WriteCloser, error) {
 	ret := _m.Called(ctx, target, config)
 
 	var r0 string

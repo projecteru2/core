@@ -42,7 +42,7 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 			Detach:       false,
 		}
 
-		execID, outStream, inStream, err := container.Engine.ExecuteAttach(ctx, opts.ContainerID, execConfig)
+		execID, outStream, inStream, err := container.Engine.Execute(ctx, opts.ContainerID, execConfig)
 		if err != nil {
 			log.Errorf("[ExecuteContainer] Failed to attach execID: %v", err)
 			return
