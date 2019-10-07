@@ -41,13 +41,8 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 			Tty:          opts.OpenStdin,
 			Detach:       false,
 		}
-		execID, err := container.Engine.ExecCreate(ctx, opts.ContainerID, execConfig)
-		if err != nil {
-			log.Errorf("[ExecuteContainer] Failed to create execID: %v", err)
-			return
-		}
 
-		outStream, inStream, err := container.Engine.ExecAttach(ctx, execID, execConfig.Tty)
+		execID, outStream, inStream, err := container.Engine.Execute(ctx, opts.ContainerID, execConfig)
 		if err != nil {
 			log.Errorf("[ExecuteContainer] Failed to attach execID: %v", err)
 			return

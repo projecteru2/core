@@ -44,6 +44,17 @@ func (e *Engine) ExecAttach(ctx context.Context, execID string, tty bool) (io.Re
 	return ioutil.NopCloser(resp.Reader), resp.Conn, nil
 }
 
+// Execute executes a container
+func (e *Engine) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, io.ReadCloser, io.WriteCloser, error) {
+	execID, err := e.ExecCreate(ctx, target, config)
+	if err != nil {
+		return "", nil, nil, err
+	}
+
+	reader, writer, err := e.ExecAttach(ctx, execID, config.Tty)
+	return execID, reader, writer, err
+}
+
 // ExecExitCode get exec return code
 func (e *Engine) ExecExitCode(ctx context.Context, execID string) (int, error) {
 	r, err := e.client.ContainerExecInspect(ctx, execID)
