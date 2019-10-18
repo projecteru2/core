@@ -57,7 +57,6 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	networkMode := dockercontainer.NetworkMode(opts.Network)
 	for name := range opts.Networks {
 		networkMode = dockercontainer.NetworkMode(name)
-		opts.Networks[name] = ""
 		break
 	}
 	// 如果没有 network 用默认值替换
