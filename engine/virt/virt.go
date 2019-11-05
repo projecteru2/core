@@ -26,6 +26,8 @@ const (
 	HTTPPrefixKey = "virt"
 	// GRPCPrefixKey indicates grpc yavirtd
 	GRPCPrefixKey = "virt-grpc"
+	// DmiUUIDKey indicates the key within deploy info.
+	DmiUUIDKey = "DMIUUID"
 )
 
 // Virt implements the core engine.API interface.
@@ -150,6 +152,10 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 		Mem:       opts.Memory,
 		ImageName: opts.Image,
 		Volumes:   vols,
+	}
+
+	if dmiUUID, exists := opts.Labels[DmiUUIDKey]; exists {
+		req.DmiUuid = dmiUUID
 	}
 
 	var resp virtypes.Guest
