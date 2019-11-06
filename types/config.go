@@ -8,7 +8,7 @@ import (
 type Config struct {
 	LogLevel      string        `yaml:"log_level" required:"true" default:"INFO"`
 	Bind          string        `yaml:"bind" required:"true" default:"5001"`           // HTTP API address
-	LockTimeout   int           `yaml:"lock_timeout" required:"true" default:"30"`     // timeout for lock (ttl)
+	LockTimeout   time.Duration `yaml:"lock_timeout" required:"true" default:"30s"`    // timeout for lock (ttl)
 	GlobalTimeout time.Duration `yaml:"global_timeout" required:"true" default:"300s"` // timeout for remove, run_and_wait and build, in second
 	Statsd        string        `yaml:"statsd"`                                        // statsd host and port
 	Profile       string        `yaml:"profile"`                                       // profile ip:port

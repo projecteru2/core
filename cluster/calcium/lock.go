@@ -1,8 +1,9 @@
 package calcium
 
 import (
-	"context"
 	"fmt"
+	"time"
+	"context"
 
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/lock"
@@ -10,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (c *Calcium) doLock(ctx context.Context, name string, timeout int) (lock.DistributedLock, error) {
+func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration) (lock.DistributedLock, error) {
 	lock, err := c.store.CreateLock(name, timeout)
 	if err != nil {
 		return nil, err

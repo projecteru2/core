@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"time"
 
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/types"
@@ -57,7 +58,7 @@ type Store interface {
 	DeleteProcessing(ctx context.Context, opts *types.DeployOptions, nodeInfo types.NodeInfo) error
 
 	// distributed lock
-	CreateLock(key string, ttl int) (lock.DistributedLock, error)
+	CreateLock(key string, ttl time.Duration) (lock.DistributedLock, error)
 
 	// embeded storage
 	TerminateEmbededStorage()
