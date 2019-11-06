@@ -51,7 +51,7 @@ docker:
 	assert.NoError(t, err)
 	config, err := LoadConfig(fname)
 	assert.NoError(t, err)
-	assert.Equal(t, config.LockTimeout, 30)
+	assert.Equal(t, config.LockTimeout, time.Duration(time.Second*30))
 	assert.Equal(t, config.GlobalTimeout, time.Duration(time.Second*300))
 	assert.Equal(t, config.Etcd.Prefix, "/eru")
 	assert.Equal(t, config.Docker.Log.Type, "journald")

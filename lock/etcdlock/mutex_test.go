@@ -3,6 +3,7 @@ package etcdlock
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -14,9 +15,9 @@ func TestMutex(t *testing.T) {
 	defer cluster.Terminate(t)
 	cli := cluster.RandClient()
 
-	_, err := New(cli, "", 1)
+	_, err := New(cli, "", time.Second*1)
 	assert.Error(t, err)
-	mutex, err := New(cli, "test", 1)
+	mutex, err := New(cli, "test", time.Second*1)
 	assert.NoError(t, err)
 
 	ctx := context.Background()

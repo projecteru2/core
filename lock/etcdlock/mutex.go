@@ -19,7 +19,7 @@ type Mutex struct {
 }
 
 // New new a lock
-func New(cli *clientv3.Client, key string, ttl int) (*Mutex, error) {
+func New(cli *clientv3.Client, key string, ttl time.Duration) (*Mutex, error) {
 	if key == "" {
 		return nil, types.ErrKeyIsEmpty
 	}
@@ -28,13 +28,13 @@ func New(cli *clientv3.Client, key string, ttl int) (*Mutex, error) {
 		key = fmt.Sprintf("/%s", key)
 	}
 
-	session, err := concurrency.NewSession(cli, concurrency.WithTTL(ttl))
+	session, err := concurrency.NewSession(cli, concurrency.WithTTL(int(ttl.Seconds())))
 	if err != nil {
 		return nil, err
 	}
 
 	mutex := &Mutex{mutex: concurrency.NewMutex(session, key), session: session}
-	mutex.timeout = time.Duration(ttl) * time.Second
+	mutex.timeout = ttl
 	return mutex, nil
 }
 

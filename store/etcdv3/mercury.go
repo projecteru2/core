@@ -85,7 +85,7 @@ func (m *Mercury) TerminateEmbededStorage() {
 }
 
 // CreateLock create a lock instance
-func (m *Mercury) CreateLock(key string, ttl int) (lock.DistributedLock, error) {
+func (m *Mercury) CreateLock(key string, ttl time.Duration) (lock.DistributedLock, error) {
 	lockKey := fmt.Sprintf("%s/%s", m.config.Etcd.LockPrefix, key)
 	mutex, err := etcdlock.New(m.cliv3, lockKey, ttl)
 	return mutex, err

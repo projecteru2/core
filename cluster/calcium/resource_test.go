@@ -9,6 +9,8 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
+	"time"
+
 	"github.com/projecteru2/core/cluster"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
@@ -119,7 +121,7 @@ func TestAllocResource(t *testing.T) {
 		Podname: podname,
 	}
 	config := types.Config{
-		LockTimeout: 3,
+		LockTimeout: time.Duration(time.Second * 3),
 	}
 	c.config = config
 	n1 := "n2"
