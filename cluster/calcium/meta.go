@@ -119,9 +119,11 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				}
 
 				meta := &types.Meta{
-					ID:      container.ID,
-					Healthy: false,
-					Running: false,
+					ID:       container.ID,
+					Healthy:  false,
+					Running:  false,
+					Labels:   container.Labels,
+					Networks: container.Networks,
 				}
 
 				var b []byte
