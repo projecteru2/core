@@ -433,8 +433,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		return err
 	}
 
-	ctx := stream.Context()
-	cancel := context.CancelFunc(func() {})
+	ctx, cancel := context.WithCancel(stream.Context())
 	if RunAndWaitOptions.Async {
 		timeout := v.config.GlobalTimeout
 		if RunAndWaitOptions.AsyncTimeout != 0 {
@@ -464,29 +463,32 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 			}
 		}()
 
-		ch, err := v.cluster.RunAndWait(ctx, deployOpts, inCh)
-		if err != nil {
-			log.Errorf("[RunAndWait] Start run and wait failed %s", err)
-			v.taskDone("RunAndWait", true)
-			return err
-		}
-
-		sync := make(chan struct{})
-		go func() {
+		runAndWait := func(f func(<-chan *types.AttachContainerMessage)) error {
 			defer v.taskDone("RunAndWait", true)
 			defer cancel()
-			defer close(sync)
-			for m := range ch {
-				if RunAndWaitOptions.Async {
-					log.Infof("[Async RunAndWait] %v", string(m.Data))
-				} else if err = stream.Send(toRPCAttachContainerMessage(m)); err != nil {
-					v.logUnsentMessages("RunAndWait", m)
-				}
+			ch, err := v.cluster.RunAndWait(ctx, deployOpts, inCh)
+			if err != nil {
+				log.Errorf("[RunAndWait] Start run and wait failed %s", err)
+				return err
 			}
-		}()
-		if !RunAndWaitOptions.Async {
-			<-sync
+			f(ch)
+			return nil
 		}
+
+		if !RunAndWaitOptions.Async {
+			return runAndWait(func(ch <-chan *types.AttachContainerMessage) {
+				for m := range ch {
+					if err = stream.Send(toRPCAttachContainerMessage(m)); err != nil {
+						v.logUnsentMessages("RunAndWait", m)
+					}
+				}
+			})
+		}
+		go runAndWait(func(ch <-chan *types.AttachContainerMessage) {
+			for m := range ch {
+				log.Infof("[Async RunAndWait] %v", string(m.Data))
+			}
+		})
 		return nil
 	})
 }
