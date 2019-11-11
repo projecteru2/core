@@ -15,7 +15,8 @@ type Meta struct {
 	Labels   map[string]string `json:"labels"`
 	Networks map[string]string `json:"networks,omitempty"`
 
-	Healthy bool `json:"healthy,omitempty"`
+	Healthy    bool  `json:"healthy,omitempty"`
+	UpdateTime int64 `json:"update_time,omitempty"`
 }
 
 // Container store container info

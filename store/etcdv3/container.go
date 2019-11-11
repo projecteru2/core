@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"context"
 
@@ -78,12 +79,14 @@ func (m *Mercury) ContainerDeployed(ctx context.Context, ID, appname, entrypoint
 	if err = json.Unmarshal(data, meta); err != nil {
 		return err
 	}
+	meta.UpdateTime = time.Now().Unix()
 	container := &types.Container{}
 	if err = json.Unmarshal(kvs.Value, container); err != nil {
 		return err
 	}
 	container.Running = meta.Running
 	container.Networks = meta.Networks
+	container.UpdateTime = meta.UpdateTime
 	b, err := json.Marshal(container)
 	if err != nil {
 		return err
@@ -285,6 +288,7 @@ func (m *Mercury) doOpsContainer(ctx context.Context, container *types.Container
 	if err != nil {
 		return err
 	}
+	container.UpdateTime = time.Now().Unix()
 
 	// now everything is ok
 	// we use full length id instead

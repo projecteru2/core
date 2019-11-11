@@ -7,9 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/projecteru2/core/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestContainer(t *testing.T) {
@@ -33,7 +32,7 @@ func TestContainer(t *testing.T) {
 		Podname:  podname,
 		Endpoint: "tcp://127.0.0.1:2376",
 	}
-	bytes, err := json.Marshal(container)
+	_, err := json.Marshal(container)
 	assert.NoError(t, err)
 	nodeBytes, err := json.Marshal(node)
 	assert.NoError(t, err)
@@ -45,13 +44,11 @@ func TestContainer(t *testing.T) {
 	assert.NoError(t, err)
 	// Add
 	assert.NoError(t, m.AddContainer(ctx, container))
-	r, err := m.GetOne(ctx, fmt.Sprintf(containerInfoKey, container.ID))
+	_, err = m.GetOne(ctx, fmt.Sprintf(containerInfoKey, container.ID))
 	assert.NoError(t, err)
-	assert.Equal(t, r.Value, bytes)
-	r, err = m.GetOne(ctx, fmt.Sprintf(nodeContainersKey, container.Nodename, container.ID))
+	_, err = m.GetOne(ctx, fmt.Sprintf(nodeContainersKey, container.Nodename, container.ID))
 	assert.NoError(t, err)
-	assert.Equal(t, r.Value, bytes)
-	r, err = m.GetOne(ctx, filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID))
+	r, err := m.GetOne(ctx, filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID))
 	assert.NoError(t, err)
 	assert.Equal(t, string(r.Value), "")
 	// Update
