@@ -22,7 +22,7 @@ func TestContainer(t *testing.T) {
 	nodename := "n1"
 	podname := "test"
 	container := &types.Container{
-		Meta:     types.Meta{ID: ID},
+		ID:       ID,
 		Name:     name,
 		Nodename: nodename,
 		Podname:  podname,
@@ -69,7 +69,7 @@ func TestContainer(t *testing.T) {
 	assert.Equal(t, containers[0].Name, name)
 	// GetContainers for multiple containers
 	newContainer := &types.Container{
-		Meta:     types.Meta{ID: "1234567812345678123456781234567812345678123456781234567812340000"},
+		ID:       "1234567812345678123456781234567812345678123456781234567812340000",
 		Name:     "test_app_2",
 		Nodename: nodename,
 		Podname:  podname,
@@ -82,9 +82,8 @@ func TestContainer(t *testing.T) {
 	assert.Equal(t, containers[1].Name, newContainer.Name)
 	assert.NoError(t, m.RemoveContainer(ctx, newContainer))
 	// Deployed
-	assert.Error(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, nodename, []byte{}))
-	assert.Error(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, nodename, []byte{}))
-	assert.Error(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, "n2", []byte("")))
+	assert.NoError(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, nodename, []byte{}, 0))
+	assert.Error(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, "n2", []byte(""), 0))
 	// ListContainers
 	containers, _ = m.ListContainers(ctx, appname, entrypoint, "", 1)
 	assert.Equal(t, len(containers), 1)
@@ -98,7 +97,7 @@ func TestContainer(t *testing.T) {
 	// WatchDeployStatus
 	ctx2 := context.Background()
 	ch := m.WatchDeployStatus(ctx2, appname, entrypoint, "")
-	assert.NoError(t, m.ContainerDeployed(ctx2, ID, appname, entrypoint, nodename, []byte("{\"Running\":true}")))
+	assert.NoError(t, m.ContainerDeployed(ctx2, ID, appname, entrypoint, nodename, []byte("{\"Running\":true}"), 0))
 	done := make(chan int)
 	go func() {
 		s := <-ch

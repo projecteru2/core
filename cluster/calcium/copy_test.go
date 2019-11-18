@@ -32,7 +32,7 @@ func TestCopy(t *testing.T) {
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
-	container := &types.Container{Meta: types.Meta{ID: "cid"}}
+	container := &types.Container{ID: "cid"}
 	engine := &enginemocks.API{}
 	container.Engine = engine
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)

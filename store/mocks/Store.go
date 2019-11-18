@@ -78,13 +78,13 @@ func (_m *Store) AddPod(ctx context.Context, name string, desc string) (*types.P
 	return r0, r1
 }
 
-// ContainerDeployed provides a mock function with given fields: ctx, ID, appname, entrypoint, nodename, data
-func (_m *Store) ContainerDeployed(ctx context.Context, ID string, appname string, entrypoint string, nodename string, data []byte) error {
-	ret := _m.Called(ctx, ID, appname, entrypoint, nodename, data)
+// ContainerDeployed provides a mock function with given fields: ctx, ID, appname, entrypoint, nodename, data, ttl
+func (_m *Store) ContainerDeployed(ctx context.Context, ID string, appname string, entrypoint string, nodename string, data []byte, ttl int64) error {
+	ret := _m.Called(ctx, ID, appname, entrypoint, nodename, data, ttl)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, []byte) error); ok {
-		r0 = rf(ctx, ID, appname, entrypoint, nodename, data)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, []byte, int64) error); ok {
+		r0 = rf(ctx, ID, appname, entrypoint, nodename, data, ttl)
 	} else {
 		r0 = ret.Error(0)
 	}

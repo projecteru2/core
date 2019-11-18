@@ -700,6 +700,7 @@ func (v *Vibranium) ContainerDeployed(ctx context.Context, opts *pb.ContainerDep
 		opts.Id,
 		opts.Appname, opts.Entrypoint, opts.Nodename,
 		opts.Data,
+		opts.Ttl,
 	)
 }
 

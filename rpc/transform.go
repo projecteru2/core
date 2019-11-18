@@ -389,11 +389,17 @@ func toRPCContainers(ctx context.Context, containers []*types.Container, labels 
 
 func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, error) {
 	publish := map[string]string{}
-	if c.Running && len(c.Networks) != 0 {
-		meta := utils.DecodeMetaInLabel(c.Labels)
-		publish = utils.EncodePublishInfo(
-			utils.MakePublishInfo(c.Networks, meta.Publish),
-		)
+	if len(c.StatusData) > 0 {
+		runtimeMeta := &types.RuntimeMeta{}
+		if err := json.Unmarshal(c.StatusData, runtimeMeta); err != nil {
+			log.Warnf("[toRPCContainer] get container status failed %v", err)
+		}
+		if runtimeMeta.Running && len(runtimeMeta.Networks) != 0 {
+			meta := utils.DecodeMetaInLabel(c.Labels)
+			publish = utils.EncodePublishInfo(
+				utils.MakePublishInfo(runtimeMeta.Networks, meta.Publish),
+			)
+		}
 	}
 	cpu := toRPCCPUMap(c.CPU)
 

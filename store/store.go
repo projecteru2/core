@@ -44,7 +44,7 @@ type Store interface {
 	RemoveContainer(ctx context.Context, container *types.Container) error
 	GetContainer(ctx context.Context, ID string) (*types.Container, error)
 	GetContainers(ctx context.Context, IDs []string) ([]*types.Container, error)
-	ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename string, data []byte) error
+	ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename string, data []byte, ttl int64) error
 	ListContainers(ctx context.Context, appname, entrypoint, nodename string, limit int64) ([]*types.Container, error)
 	ListNodeContainers(ctx context.Context, nodename string) ([]*types.Container, error)
 	WatchDeployStatus(ctx context.Context, appname, entrypoint, nodename string) chan *types.DeployStatus

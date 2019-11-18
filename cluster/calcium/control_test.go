@@ -3,11 +3,13 @@ package calcium
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io/ioutil"
 	"testing"
 
 	"github.com/projecteru2/core/cluster"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
+	lockmocks "github.com/projecteru2/core/lock/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +20,12 @@ func TestControlStart(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := &storemocks.Store{}
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
 	c.store = store
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+
 	// failed by GetContainer
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Twice()
 	ch, err := c.ControlContainer(ctx, []string{"id1", "id2"}, "", true)
@@ -26,9 +33,16 @@ func TestControlStart(t *testing.T) {
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
+	runtimeMeta := &types.RuntimeMeta{
+		ID:      "cid",
+		Running: false,
+	}
+	b, err := json.Marshal(runtimeMeta)
+	assert.NoError(t, err)
 	container := &types.Container{
-		Meta:       types.Meta{ID: "cid"},
+		ID:         "cid",
 		Privileged: true,
+		StatusData: b,
 	}
 	engine := &enginemocks.API{}
 	container.Engine = engine
@@ -63,7 +77,7 @@ func TestControlStart(t *testing.T) {
 	container.ID = "cid"
 	// force false, get no error
 	container.Hook.Force = true
-	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart, false)
+	ch, err = c.ControlContainer(ctx, []string{"cid"}, cluster.ContainerStart, false)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
@@ -108,10 +122,21 @@ func TestControlStop(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := &storemocks.Store{}
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
 	c.store = store
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	runtimeMeta := &types.RuntimeMeta{
+		ID:      "cid",
+		Running: true,
+	}
+	b, err := json.Marshal(runtimeMeta)
+	assert.NoError(t, err)
 	container := &types.Container{
-		Meta:       types.Meta{ID: "cid", Running: true},
+		ID:         "cid",
 		Privileged: true,
+		StatusData: b,
 	}
 	engine := &enginemocks.API{}
 	container.Engine = engine
