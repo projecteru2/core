@@ -149,7 +149,10 @@ func (c *Calcium) doCreateAndStartContainer(
 		Engine:     node.Engine,
 		SoftLimit:  opts.SoftLimit,
 		Image:      opts.Image,
+		Env:        opts.Env,
+		User:       opts.User,
 		Volumes:    opts.Volumes,
+		Labels:     opts.Labels,
 	}
 	createContainerMessage := &types.CreateContainerMessage{
 		Podname:  container.Podname,
@@ -161,8 +164,10 @@ func (c *Calcium) doCreateAndStartContainer(
 		Storage:  opts.Storage,
 		Publish:  map[string][]string{},
 	}
+	var err error
 
 	defer func() {
+		createContainerMessage.Error = err
 		if !createContainerMessage.Success && container.ID != "" {
 			if err := c.doRemoveContainer(ctx, container, true); err != nil {
 				log.Errorf("[doCreateAndStartContainer] create and start container failed, and remove it failed also %v", err)
@@ -178,9 +183,9 @@ func (c *Calcium) doCreateAndStartContainer(
 	createContainerMessage.ContainerName = container.Name
 
 	// create container
-	containerCreated, err := node.Engine.VirtualizationCreate(ctx, config)
+	var containerCreated *enginetypes.VirtualizationCreated
+	containerCreated, err = node.Engine.VirtualizationCreate(ctx, config)
 	if err != nil {
-		createContainerMessage.Error = err
 		return createContainerMessage
 	}
 	container.ID = containerCreated.ID
@@ -189,60 +194,49 @@ func (c *Calcium) doCreateAndStartContainer(
 	// Copy data to container
 	if len(opts.Data) > 0 {
 		for dst, src := range opts.Data {
-			if err := c.doSendFileToContainer(ctx, node.Engine, containerCreated.ID, dst, src, true, true); err != nil {
-				createContainerMessage.Error = err
+			if err = c.doSendFileToContainer(ctx, node.Engine, containerCreated.ID, dst, src, true, true); err != nil {
 				return createContainerMessage
 			}
 		}
 	}
 
 	// deal with hook
-	hook := container.Hook
-	if len(opts.AfterCreate) > 0 {
-		cmds := opts.AfterCreate
-		if hook != nil {
-			cmds = append(cmds, hook.AfterStart...)
-		}
+	if len(opts.AfterCreate) > 0 && container.Hook != nil {
 		container.Hook = &types.Hook{
-			AfterStart: cmds,
-			Force:      hook.Force,
+			AfterStart: append(opts.AfterCreate, container.Hook.AfterStart...),
+			Force:      container.Hook.Force,
 		}
 	}
 
 	// store eru container
 	if err = c.store.AddContainer(ctx, container); err != nil {
-		createContainerMessage.Error = err
 		return createContainerMessage
 	}
 
 	// start first
-	createContainerMessage.Hook, err = c.doStartContainer(ctx, container, opts.IgnoreHook)
+	createContainerMessage.Hook, err = c.doStartContainer(ctx, container, &types.RuntimeMeta{}, opts.IgnoreHook)
 	if err != nil {
-		createContainerMessage.Error = err
 		return createContainerMessage
 	}
 
 	// inspect real meta
-	containerInfo, err := container.Inspect(ctx) // 补充静态元数据
+	var containerInfo *enginetypes.VirtualizationInfo
+	containerInfo, err = container.Inspect(ctx) // 补充静态元数据
 	if err != nil {
-		createContainerMessage.Error = err
 		return createContainerMessage
 	}
-
 	// update meta
 	if containerInfo.Networks != nil {
 		createContainerMessage.Publish = utils.MakePublishInfo(containerInfo.Networks, opts.Entrypoint.Publish)
 	}
-	container.User = containerInfo.User
-	container.Labels = containerInfo.Labels
-	container.Env = containerInfo.Env
-	container.Hook = hook
-	container.Running = containerInfo.Running
-	container.Networks = containerInfo.Networks
+	if containerInfo.User != container.User {
+		container.User = containerInfo.User
+	}
+	// reset container.hook
+	container.Hook = opts.Entrypoint.Hook
 
 	// update store meta
 	if err = c.store.UpdateContainer(ctx, container); err != nil {
-		createContainerMessage.Error = err
 		return createContainerMessage
 	}
 

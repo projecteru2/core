@@ -171,6 +171,7 @@ message ContainerDeployedOptions {
     string entrypoint = 3;
     string nodename = 4;
     bytes data = 5;
+    int64 ttl = 6;
 }
 
 message Containers {

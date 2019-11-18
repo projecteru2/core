@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/docker/go-units"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
@@ -13,7 +14,6 @@ import (
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/mock"
-	"github.com/docker/go-units"
 )
 
 func TestRealloc(t *testing.T) {
@@ -42,7 +42,7 @@ func TestRealloc(t *testing.T) {
 	}
 
 	c1 := &types.Container{
-		Meta:     types.Meta{ID: "c1"},
+		ID:       "c1",
 		Podname:  "p1",
 		Engine:   engine,
 		Memory:   5 * int64(units.MiB),
@@ -52,7 +52,7 @@ func TestRealloc(t *testing.T) {
 	}
 
 	c2 := &types.Container{
-		Meta:     types.Meta{ID: "c2"},
+		ID:       "c2",
 		Podname:  "p1",
 		Engine:   engine,
 		Memory:   5 * int64(units.MiB),
@@ -164,7 +164,7 @@ func TestRealloc(t *testing.T) {
 		Endpoint: "http://1.1.1.1:1",
 	}
 	c3 := &types.Container{
-		Meta:     types.Meta{ID: "c3"},
+		ID:       "c3",
 		Podname:  "p1",
 		Engine:   engine,
 		Memory:   5 * int64(units.MiB),
@@ -173,7 +173,7 @@ func TestRealloc(t *testing.T) {
 		Nodename: "node2",
 	}
 	c4 := &types.Container{
-		Meta:     types.Meta{ID: "c4"},
+		ID:       "c4",
 		Podname:  "p1",
 		Engine:   engine,
 		Memory:   5 * int64(units.MiB),

@@ -21,7 +21,7 @@ func TestLogStream(t *testing.T) {
 	engine := &enginemocks.API{}
 	ID := "test"
 	container := &types.Container{
-		Meta:   types.Meta{ID: ID},
+		ID:     ID,
 		Engine: engine,
 	}
 	ctx := context.Background()

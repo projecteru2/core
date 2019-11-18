@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"context"
 
@@ -67,47 +66,18 @@ func (m *Mercury) GetContainers(ctx context.Context, IDs []string) (containers [
 }
 
 // ContainerDeployed store deployed container info
-func (m *Mercury) ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename string, data []byte) error {
+func (m *Mercury) ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename string, data []byte, ttl int64) error {
 	deployKey := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID)
-	containerKey := fmt.Sprintf(containerInfoKey, ID)                // container info
-	nodeContainerKey := fmt.Sprintf(nodeContainersKey, nodename, ID) // node containers
-	kvs, err := m.GetOne(ctx, containerKey)
-	if err != nil {
-		return err
+	opts := []clientv3.OpOption{}
+	if ttl > 0 {
+		lease, err := m.cliv3.Grant(ctx, ttl)
+		if err != nil {
+			return err
+		}
+		opts = append(opts, clientv3.WithLease(lease.ID))
 	}
-	meta := &types.Meta{}
-	if err = json.Unmarshal(data, meta); err != nil {
-		return err
-	}
-	meta.UpdateTime = time.Now().Unix()
-	container := &types.Container{}
-	if err = json.Unmarshal(kvs.Value, container); err != nil {
-		return err
-	}
-	container.Running = meta.Running
-	container.Networks = meta.Networks
-	container.UpdateTime = meta.UpdateTime
-	b, err := json.Marshal(container)
-	if err != nil {
-		return err
-	}
-	containerData := string(b)
-	deployData := string(data)
 	// Only update when it exist
-	r, err := m.Update(ctx, deployKey, deployData)
-	if err != nil {
-		return err
-	}
-	if r.Succeeded {
-		// Update meta
-		_, err = m.BatchUpdate(
-			ctx,
-			map[string]string{
-				containerKey:     containerData,
-				nodeContainerKey: containerData,
-			},
-		)
-	}
+	_, err := m.Update(ctx, deployKey, string(data), opts...)
 	return err
 }
 
@@ -269,14 +239,6 @@ func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*typ
 		if _, ok := deployStatus[container.ID]; !ok {
 			return nil, types.ErrBadMeta
 		}
-		if len(deployStatus[container.ID]) > 0 {
-			if err := json.Unmarshal(deployStatus[container.ID], &containers[index].Meta); err != nil {
-				log.Warnf("[bindContainersAdditions] unmarshal %s status data failed %v", container.ID, err)
-				log.Errorf("%s", deployStatus[container.ID])
-			}
-		} else {
-			log.Warnf("[bindContainersAdditions] %s no deploy status", container.ID)
-		}
 		containers[index].StatusData = deployStatus[container.ID]
 	}
 	return containers, nil
@@ -288,7 +250,6 @@ func (m *Mercury) doOpsContainer(ctx context.Context, container *types.Container
 	if err != nil {
 		return err
 	}
-	container.UpdateTime = time.Now().Unix()
 
 	// now everything is ok
 	// we use full length id instead

@@ -144,7 +144,7 @@ func TestListContainers(t *testing.T) {
 	ctx := context.Background()
 	ID := "testID"
 	containers := []*types.Container{
-		&types.Container{Meta: types.Meta{ID: ID}},
+		&types.Container{ID: ID},
 	}
 
 	store := &storemocks.Store{}
@@ -207,7 +207,7 @@ func TestGetContainers(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	ID := "testID"
-	container := &types.Container{Meta: types.Meta{ID: ID}}
+	container := &types.Container{ID: ID}
 	containers := []*types.Container{container}
 
 	store := &storemocks.Store{}
@@ -356,5 +356,5 @@ func TestContainerDeployed(t *testing.T) {
 		mock.Anything).Return(nil)
 	c.store = store
 
-	assert.NoError(t, c.ContainerDeployed(ctx, "", "", "", "", []byte{}))
+	assert.NoError(t, c.ContainerDeployed(ctx, "", "", "", "", []byte{}, 0))
 }

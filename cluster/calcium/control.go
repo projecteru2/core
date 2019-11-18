@@ -3,6 +3,7 @@ package calcium
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/projecteru2/core/cluster"
@@ -18,56 +19,48 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 		defer close(ch)
 		wg := sync.WaitGroup{}
 		for _, ID := range IDs {
-			container, err := c.GetContainer(ctx, ID)
-			if err != nil {
+			wg.Add(1)
+			go func(ID string) {
+				defer wg.Done()
+				var message []*bytes.Buffer
+				err := c.withContainerLocked(ctx, ID, func(container *types.Container, runtimeMeta *types.RuntimeMeta) error {
+					if runtimeMeta == nil {
+						return types.ErrRunningStatusUnknown
+					}
+					var err error
+					switch t {
+					case cluster.ContainerStop:
+						message, err = c.doStopContainer(ctx, container, runtimeMeta, force)
+						return err
+					case cluster.ContainerStart:
+						message, err = c.doStartContainer(ctx, container, runtimeMeta, force)
+						return err
+					case cluster.ContainerRestart:
+						message, err = c.doStopContainer(ctx, container, runtimeMeta, force)
+						if err != nil {
+							return err
+						}
+						runtimeMeta.Running = false
+						m2, e2 := c.doStartContainer(ctx, container, runtimeMeta, force)
+						message = append(message, m2...)
+						if e2 != nil {
+							return fmt.Errorf("%w", e2)
+						}
+						return nil
+					}
+					return types.ErrUnknownControlType
+				})
+				if err == nil {
+					log.Infof("[ControlContainer] Container %s %s", ID, t)
+					log.Info("[ControlContainer] Hook Output:")
+					log.Info(string(types.HookOutput(message)))
+				}
 				ch <- &types.ControlContainerMessage{
 					ContainerID: ID,
 					Error:       err,
+					Hook:        message,
 				}
-				continue
-			}
-
-			wg.Add(1)
-			go func(container *types.Container) {
-				defer wg.Done()
-				var err error
-				var message []*bytes.Buffer
-				defer func() {
-					if err == nil {
-						log.Infof("[ControlContainer] Container %s %s", container.ID, t)
-						log.Info("[ControlContainer] Hook Output:")
-						log.Info(string(types.HookOutput(message)))
-					}
-					ch <- &types.ControlContainerMessage{
-						ContainerID: container.ID,
-						Error:       err,
-						Hook:        message,
-					}
-				}()
-
-				switch t {
-				case cluster.ContainerStop:
-					message, err = c.doStopContainer(ctx, container, force)
-					return
-				case cluster.ContainerStart:
-					message, err = c.doStartContainer(ctx, container, force)
-					return
-				case cluster.ContainerRestart:
-					message, err = c.doStopContainer(ctx, container, force)
-					if err != nil {
-						return
-					}
-					container.Running = false
-					m2, e2 := c.doStartContainer(ctx, container, force)
-					message = append(message, m2...)
-					if e2 != nil {
-						err = e2
-					}
-					return
-				default:
-					err = types.ErrUnknownControlType
-				}
-			}(container)
+			}(ID)
 		}
 		wg.Wait()
 	}()
@@ -75,9 +68,9 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 	return ch, nil
 }
 
-func (c *Calcium) doStartContainer(ctx context.Context, container *types.Container, force bool) ([]*bytes.Buffer, error) {
+func (c *Calcium) doStartContainer(ctx context.Context, container *types.Container, runtimeMeta *types.RuntimeMeta, force bool) ([]*bytes.Buffer, error) {
 	var message []*bytes.Buffer
-	if container.Running {
+	if runtimeMeta.Running {
 		message = append(message, bytes.NewBufferString("container already running, can't run hook\n"))
 		return message, nil
 	}
@@ -101,9 +94,9 @@ func (c *Calcium) doStartContainer(ctx context.Context, container *types.Contain
 	return message, err
 }
 
-func (c *Calcium) doStopContainer(ctx context.Context, container *types.Container, force bool) ([]*bytes.Buffer, error) {
+func (c *Calcium) doStopContainer(ctx context.Context, container *types.Container, runtimeMeta *types.RuntimeMeta, force bool) ([]*bytes.Buffer, error) {
 	var message []*bytes.Buffer
-	if !container.Running {
+	if !runtimeMeta.Running {
 		message = append(message, bytes.NewBufferString("container stopped, can't run hook\n"))
 		return message, nil
 	}
