@@ -265,7 +265,7 @@ func (m *Mercury) doOpsContainer(ctx context.Context, container *types.Container
 	}
 
 	if create {
-		data[filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)] = ""
+		data[filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)] = string(container.StatusData)
 		_, err = m.BatchCreate(ctx, data)
 	} else {
 		_, err = m.BatchUpdate(ctx, data)

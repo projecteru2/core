@@ -189,6 +189,7 @@ func (c *Calcium) doCreateAndStartContainer(
 		return createContainerMessage
 	}
 	container.ID = containerCreated.ID
+	container.StatusData = []byte(fmt.Sprintf(`{"id":"%s"}`, container.ID))
 	createContainerMessage.ContainerID = containerCreated.ID
 
 	// Copy data to container
