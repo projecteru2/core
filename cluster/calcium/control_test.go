@@ -127,16 +127,17 @@ func TestControlStop(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	c.store = store
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	runtimeMeta := &types.RuntimeMeta{
+	runtimeMeta := types.RuntimeMeta{
 		ID:      "cid",
 		Running: true,
 	}
 	b, err := json.Marshal(runtimeMeta)
 	assert.NoError(t, err)
 	container := &types.Container{
-		ID:         "cid",
-		Privileged: true,
-		StatusData: b,
+		ID:          "cid",
+		Privileged:  true,
+		StatusData:  b,
+		RuntimeMeta: runtimeMeta,
 	}
 	engine := &enginemocks.API{}
 	container.Engine = engine

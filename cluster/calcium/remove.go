@@ -25,7 +25,7 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool,
 				defer wg.Done()
 				output := []*bytes.Buffer{}
 				success := false
-				if err := c.withContainerLocked(ctx, ID, func(container *types.Container, runtimeMeta *types.RuntimeMeta) error {
+				if err := c.withContainerLocked(ctx, ID, func(container *types.Container) error {
 					return c.withNodeLocked(ctx, container.Podname, container.Nodename, func(node *types.Node) (err error) {
 						if err = c.doRemoveContainer(ctx, container, force); err != nil {
 							return err

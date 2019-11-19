@@ -39,10 +39,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 				var createMessage *types.CreateContainerMessage
 				removeMessage := &types.RemoveContainerMessage{ContainerID: ID}
 				var err error
-				if err = c.withContainerLocked(ctx, ID, func(container *types.Container, runtimeMeta *types.RuntimeMeta) error {
-					if runtimeMeta == nil {
-						return types.ErrRunningStatusUnknown
-					}
+				if err = c.withContainerLocked(ctx, ID, func(container *types.Container) error {
 					if opts.Podname != "" && container.Podname != opts.Podname {
 						log.Warnf("[ReplaceContainer] Skip not in pod container %s", container.ID)
 						return types.NewDetailedErr(types.ErrIgnoreContainer,
@@ -61,16 +58,16 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 					replaceOpts.Volumes = container.Volumes
 					// 继承网络配置
 					if replaceOpts.NetworkInherit {
-						if !runtimeMeta.Running {
+						if !container.RuntimeMeta.Running {
 							return types.NewDetailedErr(types.ErrNotSupport,
 								fmt.Sprintf("container %s is not running, can not inherit", container.ID),
 							)
 						}
-						log.Infof("[ReplaceContainer] Inherit old container network configuration mode %v", runtimeMeta.Networks)
+						log.Infof("[ReplaceContainer] Inherit old container network configuration mode %v", container.RuntimeMeta.Networks)
 						replaceOpts.NetworkMode = ""
-						replaceOpts.Networks = runtimeMeta.Networks
+						replaceOpts.Networks = container.RuntimeMeta.Networks
 					}
-					createMessage, removeMessage, err = c.doReplaceContainer(ctx, container, runtimeMeta, &replaceOpts, index)
+					createMessage, removeMessage, err = c.doReplaceContainer(ctx, container, &replaceOpts, index)
 					return err
 				}); err != nil {
 					if errors.Is(err, types.ErrIgnoreContainer) {
@@ -95,7 +92,6 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 func (c *Calcium) doReplaceContainer(
 	ctx context.Context,
 	container *types.Container,
-	runtimeMeta *types.RuntimeMeta,
 	opts *types.ReplaceOptions,
 	index int,
 ) (*types.CreateContainerMessage, *types.RemoveContainerMessage, error) {
@@ -130,17 +126,17 @@ func (c *Calcium) doReplaceContainer(
 		opts.DeployOptions.Data[dst] = fname
 	}
 	// 停止容器
-	removeMessage.Hook, err = c.doStopContainer(ctx, container, runtimeMeta, opts.IgnoreHook)
+	removeMessage.Hook, err = c.doStopContainer(ctx, container, opts.IgnoreHook)
 	if err != nil {
 		return nil, removeMessage, err
 	}
-	runtimeMeta.Running = false
+	container.RuntimeMeta.Running = false
 	// 不涉及资源消耗，创建容器失败会被回收容器而不回收资源
 	// 创建成功容器会干掉之前的老容器也不会动资源，实际上实现了动态捆绑
 	createMessage := c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU)
 	if createMessage.Error != nil {
 		// 重启老容器
-		message, err := c.doStartContainer(ctx, container, runtimeMeta, opts.IgnoreHook)
+		message, err := c.doStartContainer(ctx, container, opts.IgnoreHook)
 		removeMessage.Hook = append(removeMessage.Hook, message...)
 		if err != nil {
 			log.Errorf("[replaceAndRemove] Old container %s restart failed %v", container.ID, err)

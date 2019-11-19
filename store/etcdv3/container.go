@@ -237,9 +237,13 @@ func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*typ
 		}
 		containers[index].Engine = nodes[container.Nodename].Engine
 		if _, ok := deployStatus[container.ID]; !ok {
-			return nil, types.ErrBadMeta
+			return nil, types.ErrRunningStatusUnknown
 		}
 		containers[index].StatusData = deployStatus[container.ID]
+		if err := json.Unmarshal(containers[index].StatusData, &containers[index].RuntimeMeta); err != nil {
+			log.Warnf("[bindContainersAdditions] unmarshal %s status data failed %v", container.ID, err)
+			log.Errorf("%s", deployStatus[container.ID])
+		}
 	}
 	return containers, nil
 }
@@ -265,7 +269,7 @@ func (m *Mercury) doOpsContainer(ctx context.Context, container *types.Container
 	}
 
 	if create {
-		data[filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)] = string(container.StatusData)
+		data[filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)] = fmt.Sprintf(`{"id":"%s"}`, container.ID)
 		_, err = m.BatchCreate(ctx, data)
 	} else {
 		_, err = m.BatchUpdate(ctx, data)
