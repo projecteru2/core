@@ -2,7 +2,6 @@ package calcium
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -38,7 +37,7 @@ func (c *Calcium) doUnlockAll(locks map[string]lock.DistributedLock) {
 	}
 }
 
-func (c *Calcium) withContainerLocked(ctx context.Context, ID string, f func(container *types.Container, runtimeMeta *types.RuntimeMeta) error) error {
+func (c *Calcium) withContainerLocked(ctx context.Context, ID string, f func(container *types.Container) error) error {
 	lock, err := c.doLock(ctx, fmt.Sprintf(cluster.ContainerLock, ID), c.config.LockTimeout)
 	if err != nil {
 		return err
@@ -50,12 +49,7 @@ func (c *Calcium) withContainerLocked(ctx context.Context, ID string, f func(con
 	if err != nil {
 		return err
 	}
-	runtimeMeta := &types.RuntimeMeta{}
-	if err := json.Unmarshal(container.StatusData, runtimeMeta); err != nil {
-		log.Warnf("[withContainerLocked] Get status failed %v", err)
-		runtimeMeta = nil
-	}
-	return f(container, runtimeMeta)
+	return f(container)
 }
 
 func (c *Calcium) withNodeLocked(ctx context.Context, podname, nodename string, f func(node *types.Node) error) error {

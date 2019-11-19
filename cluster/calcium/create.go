@@ -138,21 +138,22 @@ func (c *Calcium) doCreateAndStartContainer(
 	cpu types.CPUMap,
 ) *types.CreateContainerMessage {
 	container := &types.Container{
-		Podname:    opts.Podname,
-		Nodename:   node.Name,
-		CPU:        cpu,
-		Quota:      opts.CPUQuota,
-		Memory:     opts.Memory,
-		Storage:    opts.Storage,
-		Hook:       opts.Entrypoint.Hook,
-		Privileged: opts.Entrypoint.Privileged,
-		Engine:     node.Engine,
-		SoftLimit:  opts.SoftLimit,
-		Image:      opts.Image,
-		Env:        opts.Env,
-		User:       opts.User,
-		Volumes:    opts.Volumes,
-		Labels:     opts.Labels,
+		Podname:     opts.Podname,
+		Nodename:    node.Name,
+		CPU:         cpu,
+		Quota:       opts.CPUQuota,
+		Memory:      opts.Memory,
+		Storage:     opts.Storage,
+		Hook:        opts.Entrypoint.Hook,
+		Privileged:  opts.Entrypoint.Privileged,
+		Engine:      node.Engine,
+		SoftLimit:   opts.SoftLimit,
+		Image:       opts.Image,
+		Env:         opts.Env,
+		User:        opts.User,
+		Volumes:     opts.Volumes,
+		Labels:      opts.Labels,
+		RuntimeMeta: types.RuntimeMeta{},
 	}
 	createContainerMessage := &types.CreateContainerMessage{
 		Podname:  container.Podname,
@@ -189,7 +190,6 @@ func (c *Calcium) doCreateAndStartContainer(
 		return createContainerMessage
 	}
 	container.ID = containerCreated.ID
-	container.StatusData = []byte(fmt.Sprintf(`{"id":"%s"}`, container.ID))
 	createContainerMessage.ContainerID = containerCreated.ID
 
 	// Copy data to container
@@ -215,7 +215,7 @@ func (c *Calcium) doCreateAndStartContainer(
 	}
 
 	// start first
-	createContainerMessage.Hook, err = c.doStartContainer(ctx, container, &types.RuntimeMeta{}, opts.IgnoreHook)
+	createContainerMessage.Hook, err = c.doStartContainer(ctx, container, opts.IgnoreHook)
 	if err != nil {
 		return createContainerMessage
 	}

@@ -50,7 +50,7 @@ func TestContainer(t *testing.T) {
 	assert.NoError(t, err)
 	r, err := m.GetOne(ctx, filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID))
 	assert.NoError(t, err)
-	assert.Equal(t, string(r.Value), "")
+	assert.Equal(t, string(r.Value), fmt.Sprintf(`{"id":"%s"}`, ID))
 	// Update
 	container.Memory = int64(100)
 	container.Storage = int64(100)
@@ -82,7 +82,7 @@ func TestContainer(t *testing.T) {
 	assert.Equal(t, containers[1].Name, newContainer.Name)
 	assert.NoError(t, m.RemoveContainer(ctx, newContainer))
 	// Deployed
-	assert.NoError(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, nodename, []byte{}, 0))
+	assert.NoError(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, nodename, []byte(fmt.Sprintf(`{"id":"%s"}`, ID)), 0))
 	assert.Error(t, m.ContainerDeployed(ctx, ID, appname, entrypoint, "n2", []byte(""), 0))
 	// ListContainers
 	containers, _ = m.ListContainers(ctx, appname, entrypoint, "", 1)

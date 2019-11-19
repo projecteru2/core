@@ -23,25 +23,22 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 			go func(ID string) {
 				defer wg.Done()
 				var message []*bytes.Buffer
-				err := c.withContainerLocked(ctx, ID, func(container *types.Container, runtimeMeta *types.RuntimeMeta) error {
-					if runtimeMeta == nil {
-						return types.ErrRunningStatusUnknown
-					}
+				err := c.withContainerLocked(ctx, ID, func(container *types.Container) error {
 					var err error
 					switch t {
 					case cluster.ContainerStop:
-						message, err = c.doStopContainer(ctx, container, runtimeMeta, force)
+						message, err = c.doStopContainer(ctx, container, force)
 						return err
 					case cluster.ContainerStart:
-						message, err = c.doStartContainer(ctx, container, runtimeMeta, force)
+						message, err = c.doStartContainer(ctx, container, force)
 						return err
 					case cluster.ContainerRestart:
-						message, err = c.doStopContainer(ctx, container, runtimeMeta, force)
+						message, err = c.doStopContainer(ctx, container, force)
 						if err != nil {
 							return err
 						}
-						runtimeMeta.Running = false
-						m2, e2 := c.doStartContainer(ctx, container, runtimeMeta, force)
+						container.RuntimeMeta.Running = false
+						m2, e2 := c.doStartContainer(ctx, container, force)
 						message = append(message, m2...)
 						if e2 != nil {
 							return fmt.Errorf("%w", e2)
@@ -68,9 +65,9 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 	return ch, nil
 }
 
-func (c *Calcium) doStartContainer(ctx context.Context, container *types.Container, runtimeMeta *types.RuntimeMeta, force bool) ([]*bytes.Buffer, error) {
+func (c *Calcium) doStartContainer(ctx context.Context, container *types.Container, force bool) ([]*bytes.Buffer, error) {
 	var message []*bytes.Buffer
-	if runtimeMeta.Running {
+	if container.RuntimeMeta.Running {
 		message = append(message, bytes.NewBufferString("container already running, can't run hook\n"))
 		return message, nil
 	}
@@ -94,9 +91,9 @@ func (c *Calcium) doStartContainer(ctx context.Context, container *types.Contain
 	return message, err
 }
 
-func (c *Calcium) doStopContainer(ctx context.Context, container *types.Container, runtimeMeta *types.RuntimeMeta, force bool) ([]*bytes.Buffer, error) {
+func (c *Calcium) doStopContainer(ctx context.Context, container *types.Container, force bool) ([]*bytes.Buffer, error) {
 	var message []*bytes.Buffer
-	if !runtimeMeta.Running {
+	if !container.RuntimeMeta.Running {
 		message = append(message, bytes.NewBufferString("container stopped, can't run hook\n"))
 		return message, nil
 	}
