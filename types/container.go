@@ -12,10 +12,9 @@ import (
 type RuntimeMeta struct {
 	ID string `json:"id"`
 
-	Networks   map[string]string `json:"networks,omitempty"`
-	Running    bool              `json:"running,omitempty"`
-	Healthy    bool              `json:"healthy,omitempty"`
-	UpdateTime int64             `json:"update_time,omitempty"`
+	Networks map[string]string `json:"networks,omitempty"`
+	Running  bool              `json:"running,omitempty"`
+	Healthy  bool              `json:"healthy,omitempty"`
 }
 
 // Container store container info
