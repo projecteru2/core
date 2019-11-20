@@ -65,9 +65,31 @@ func (m *Mercury) GetContainers(ctx context.Context, IDs []string) (containers [
 	return m.doGetContainers(ctx, keys)
 }
 
-// ContainerDeployed store deployed container info
-func (m *Mercury) ContainerDeployed(ctx context.Context, ID, appname, entrypoint, nodename string, data []byte, ttl int64) error {
-	deployKey := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename, ID)
+// GetContainerStatus get container status
+func (m *Mercury) GetContainerStatus(ctx context.Context, ID string) ([]byte, error) {
+	container, err := m.GetContainer(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
+	if err != nil {
+		return nil, err
+	}
+	deployKey := filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, ID)
+	kv, err := m.GetOne(ctx, deployKey)
+	if err != nil {
+		return nil, err
+	}
+	return kv.Value, nil
+}
+
+// SetContainerStatus set container status
+func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Container, data []byte, ttl int64) error {
+	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
+	if err != nil {
+		return err
+	}
+	deployKey := filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)
 	opts := []clientv3.OpOption{}
 	if ttl > 0 {
 		lease, err := m.cliv3.Grant(ctx, ttl)
@@ -77,7 +99,7 @@ func (m *Mercury) ContainerDeployed(ctx context.Context, ID, appname, entrypoint
 		opts = append(opts, clientv3.WithLease(lease.ID))
 	}
 	// Only update when it exist
-	_, err := m.Update(ctx, deployKey, string(data), opts...)
+	_, err = m.Update(ctx, deployKey, string(data), opts...)
 	return err
 }
 
@@ -239,8 +261,7 @@ func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*typ
 		if _, ok := deployStatus[container.ID]; !ok {
 			return nil, types.ErrRunningStatusUnknown
 		}
-		containers[index].StatusData = deployStatus[container.ID]
-		if err := json.Unmarshal(containers[index].StatusData, &containers[index].RuntimeMeta); err != nil {
+		if err := json.Unmarshal(deployStatus[container.ID], &containers[index].RuntimeMeta); err != nil {
 			log.Warnf("[bindContainersAdditions] unmarshal %s status data failed %v", container.ID, err)
 			log.Errorf("%s", deployStatus[container.ID])
 		}

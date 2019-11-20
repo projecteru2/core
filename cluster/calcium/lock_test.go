@@ -101,9 +101,8 @@ func TestWithContainerLocked(t *testing.T) {
 	assert.Error(t, err)
 	engine := &enginemocks.API{}
 	container := &types.Container{
-		ID:         "c1",
-		Engine:     engine,
-		StatusData: []byte("{}"),
+		ID:     "c1",
+		Engine: engine,
 	}
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
 	// success

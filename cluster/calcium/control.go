@@ -3,7 +3,6 @@ package calcium
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/projecteru2/core/cluster"
@@ -38,12 +37,9 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 							return err
 						}
 						container.RuntimeMeta.Running = false
-						m2, e2 := c.doStartContainer(ctx, container, force)
+						m2, err := c.doStartContainer(ctx, container, force)
 						message = append(message, m2...)
-						if e2 != nil {
-							return fmt.Errorf("%w", e2)
-						}
-						return nil
+						return err
 					}
 					return types.ErrUnknownControlType
 				})

@@ -78,20 +78,6 @@ func (_m *Store) AddPod(ctx context.Context, name string, desc string) (*types.P
 	return r0, r1
 }
 
-// ContainerDeployed provides a mock function with given fields: ctx, ID, appname, entrypoint, nodename, data, ttl
-func (_m *Store) ContainerDeployed(ctx context.Context, ID string, appname string, entrypoint string, nodename string, data []byte, ttl int64) error {
-	ret := _m.Called(ctx, ID, appname, entrypoint, nodename, data, ttl)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, []byte, int64) error); ok {
-		r0 = rf(ctx, ID, appname, entrypoint, nodename, data, ttl)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
 // CreateLock provides a mock function with given fields: key, ttl
 func (_m *Store) CreateLock(key string, ttl time.Duration) (lock.DistributedLock, error) {
 	ret := _m.Called(key, ttl)
@@ -176,6 +162,29 @@ func (_m *Store) GetContainer(ctx context.Context, ID string) (*types.Container,
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.Container)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, ID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetContainerStatus provides a mock function with given fields: ctx, ID
+func (_m *Store) GetContainerStatus(ctx context.Context, ID string) ([]byte, error) {
+	ret := _m.Called(ctx, ID)
+
+	var r0 []byte
+	if rf, ok := ret.Get(0).(func(context.Context, string) []byte); ok {
+		r0 = rf(ctx, ID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]byte)
 		}
 	}
 
@@ -408,6 +417,20 @@ func (_m *Store) SaveProcessing(ctx context.Context, opts *types.DeployOptions, 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, types.NodeInfo) error); ok {
 		r0 = rf(ctx, opts, nodeInfo)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SetContainerStatus provides a mock function with given fields: ctx, container, data, ttl
+func (_m *Store) SetContainerStatus(ctx context.Context, container *types.Container, data []byte, ttl int64) error {
+	ret := _m.Called(ctx, container, data, ttl)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Container, []byte, int64) error); ok {
+		r0 = rf(ctx, container, data, ttl)
 	} else {
 		r0 = ret.Error(0)
 	}

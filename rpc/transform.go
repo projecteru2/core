@@ -410,7 +410,6 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		Publish:    publish,
 		Image:      c.Image,
 		Labels:     c.Labels,
-		StatusData: c.StatusData,
 	}, nil
 }
 

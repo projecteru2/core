@@ -10,16 +10,65 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func TestGetContainersStatus(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	store := c.store.(*storemocks.Store)
+
+	// failed
+	store.On("GetContainerStatus", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return(nil, types.ErrBadCount).Once()
+	_, err := c.GetContainersStatus(ctx, []string{"123"})
+	assert.Error(t, err)
+	status := []byte("abc")
+	store.On("GetContainerStatus", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return(status, nil)
+	// success
+	r, err := c.GetContainersStatus(ctx, []string{"123"})
+	assert.NoError(t, err)
+	assert.Len(t, r, 1)
+}
+
+func TestSetContainersStatus(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	store := c.store.(*storemocks.Store)
+
+	// failed
+	store.On("GetContainer", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return(nil, types.ErrBadCount).Once()
+	_, err := c.SetContainersStatus(ctx, map[string][]byte{"123": []byte{}}, nil)
+	assert.Error(t, err)
+	container := &types.Container{
+		ID:   "123",
+		Name: "a_b_c",
+	}
+	store.On("GetContainer", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return(container, nil)
+	// failed by SetContainerStatus
+	store.On("SetContainerStatus",
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+	).Return(types.ErrBadCount).Once()
+	_, err = c.SetContainersStatus(ctx, map[string][]byte{"123": []byte{}}, nil)
+	assert.Error(t, err)
+	// success
+	store.On("SetContainerStatus",
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+	).Return(nil)
+	r, err := c.SetContainersStatus(ctx, map[string][]byte{"123": []byte{}}, nil)
+	assert.NoError(t, err)
+	assert.Len(t, r, 1)
+}
+
 func TestDeployStatusStream(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-
 	dataCh := make(chan *types.DeployStatus)
+	store := c.store.(*storemocks.Store)
 
-	store := &storemocks.Store{}
 	store.On("WatchDeployStatus", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return(dataCh)
-	c.store = store
-
 	ID := "wtf"
 	go func() {
 		msg := &types.DeployStatus{
