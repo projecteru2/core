@@ -3,6 +3,7 @@ package rpc
 import (
 	"bufio"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io"
 	"sync"
@@ -691,17 +692,38 @@ func (v *Vibranium) GetNodeByName(ctx context.Context, opts *pb.GetNodeOptions) 
 	return toRPCNode(ctx, n), nil
 }
 
-// ContainerDeployed store deploy status
-func (v *Vibranium) ContainerDeployed(ctx context.Context, opts *pb.ContainerDeployedOptions) (*pb.Empty, error) {
-	v.taskAdd("ContainerDeployed", false)
-	defer v.taskDone("ContainerDeployed", false)
-	return &pb.Empty{}, v.cluster.ContainerDeployed(
-		ctx,
-		opts.Id,
-		opts.Appname, opts.Entrypoint, opts.Nodename,
-		opts.Data,
-		opts.Ttl,
-	)
+// GetContainersStatus get containers status
+func (v *Vibranium) GetContainersStatus(ctx context.Context, opts *pb.ContainerIDs) (*pb.ContainersStatus, error) {
+	v.taskAdd("GetContainersStatus", false)
+	defer v.taskDone("GetContainersStatus", false)
+
+	data, err := v.cluster.GetContainersStatus(ctx, opts.Ids)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.ContainersStatus{Status: data}, nil
+}
+
+// SetContainersStatus set containers status
+func (v *Vibranium) SetContainersStatus(ctx context.Context, opts *pb.SetContainersStatusOptions) (*pb.ContainersStatus, error) {
+	v.taskAdd("SetContainersStatus", false)
+	defer v.taskDone("SetContainersStatus", false)
+
+	var err error
+	statusData := map[string][]byte{}
+	ttls := map[string]int64{}
+	for ID, status := range opts.Status {
+		if statusData[ID], err = json.Marshal(status); err != nil {
+			return nil, err
+		}
+		ttls[ID] = status.Ttl
+	}
+
+	data, err := v.cluster.SetContainersStatus(ctx, statusData, ttls)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.ContainersStatus{Status: data}, nil
 }
 
 // ExecuteContainer runs a command in a running container

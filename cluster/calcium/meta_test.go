@@ -257,8 +257,7 @@ func TestSetNode(t *testing.T) {
 	assert.Error(t, err)
 	containers := []*types.Container{&types.Container{Name: "wrong_name"}, &types.Container{Name: "a_b_c"}}
 	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(containers, nil)
-	store.On("ContainerDeployed",
-		mock.Anything, mock.Anything, mock.Anything,
+	store.On("SetContainerStatus",
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 	).Return(types.ErrNoETCD)
 	_, err = c.SetNode(ctx, &types.SetNodeOptions{Status: 0})
@@ -339,22 +338,4 @@ func TestSetNode(t *testing.T) {
 	assert.Equal(t, n.InitCPU["3"], 10)
 	assert.Equal(t, len(n.CPU), 2)
 	assert.Equal(t, len(n.InitCPU), 2)
-}
-
-func TestContainerDeployed(t *testing.T) {
-	c := NewTestCluster()
-	ctx := context.Background()
-
-	store := &storemocks.Store{}
-	store.On("ContainerDeployed",
-		mock.Anything,
-		mock.Anything,
-		mock.Anything,
-		mock.Anything,
-		mock.Anything,
-		mock.Anything,
-		mock.Anything).Return(nil)
-	c.store = store
-
-	assert.NoError(t, c.ContainerDeployed(ctx, "", "", "", "", []byte{}, 0))
 }

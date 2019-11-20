@@ -3,42 +3,47 @@ syntax = "proto3";
 package pb;
 
 service CoreRPC {
+    rpc ListNetworks(ListNetworkOptions) returns (Networks) {};
+
     rpc ListPods(Empty) returns (Pods) {};
     rpc AddPod(AddPodOptions) returns (Pod) {};
     rpc RemovePod(RemovePodOptions) returns (Empty) {};
     rpc GetPod(GetPodOptions) returns (Pod) {};
     rpc GetPodResource(GetPodOptions) returns (PodResource) {};
+    rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
 
     rpc AddNode(AddNodeOptions) returns (Node) {};
     rpc RemoveNode(RemoveNodeOptions) returns (Empty) {};
     rpc SetNode(SetNodeOptions) returns (Node) {};
     rpc GetNode(GetNodeOptions) returns (Node) {};
     rpc GetNodeResource(GetNodeOptions) returns (NodeResource) {};
+    rpc GetNodeByName(GetNodeOptions) returns (Node) {};
+
+    rpc GetContainersStatus(ContainerIDs) returns (ContainersStatus) {};
+    rpc SetContainersStatus(SetContainersStatusOptions) returns (ContainersStatus) {};
     rpc GetContainer(ContainerID) returns (Container) {};
     rpc GetContainers(ContainerIDs) returns (Containers) {};
-    rpc GetNodeByName(GetNodeOptions) returns (Node) {};
-    rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
-    rpc ListNetworks(ListNetworkOptions) returns (Networks) {};
-    rpc ListNodeContainers(GetNodeOptions) returns (Containers) {};
     rpc ListContainers(ListContainersOptions) returns (stream Container) {};
-
-    rpc ContainerDeployed(ContainerDeployedOptions) returns (Empty) {};
+    rpc ListNodeContainers(GetNodeOptions) returns (Containers) {};
 
     rpc Copy(CopyOptions) returns (stream CopyMessage) {};
     rpc Send(SendOptions) returns (stream SendMessage) {};
+
     rpc BuildImage(BuildImageOptions) returns (stream BuildImageMessage) {};
     rpc CacheImage(CacheImageOptions) returns (stream CacheImageMessage) {};
     rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage) {};
+
     rpc DeployStatus(DeployStatusOptions) returns (stream DeployStatusMessage) {};
-    rpc RunAndWait(stream RunAndWaitOptions) returns (stream AttachContainerMessage) {};
+    
     rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage) {};
     rpc ReplaceContainer(ReplaceOptions) returns (stream ReplaceContainerMessage) {};
     rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage) {};
     rpc DissociateContainer(DissociateContainerOptions) returns (stream DissociateContainerMessage) {};
     rpc ControlContainer(ControlContainerOptions) returns (stream ControlContainerMessage) {};
-    rpc ExecuteContainer(stream ExecuteContainerOptions) returns (stream AttachContainerMessage) {};
     rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage) {};
     rpc LogStream(ContainerID) returns (stream LogStreamMessage) {};
+    rpc RunAndWait(stream RunAndWaitOptions) returns (stream AttachContainerMessage) {};
+    rpc ExecuteContainer(stream ExecuteContainerOptions) returns (stream AttachContainerMessage) {};
 }
 
 message Empty {}
@@ -162,16 +167,22 @@ message Container {
     map<string, string> publish = 10;
     string image = 11;
     int64 storage = 12;
-    bytes status_data = 13;
 }
 
-message ContainerDeployedOptions {
-    string id = 1;
-    string appname = 2;
-    string entrypoint = 3;
-    string nodename = 4;
-    bytes data = 5;
-    int64 ttl = 6;
+message ContainerStatus {
+    bool running = 1;
+    bool healthy = 2;
+    map<string, string> networks = 3;
+    bytes extension = 4;
+    int64 ttl = 5;
+}
+
+message ContainersStatus {
+    map<string, bytes> status = 1;
+}
+
+message SetContainersStatusOptions {
+    map<string, ContainerStatus> status = 1;
 }
 
 message Containers {

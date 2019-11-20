@@ -37,7 +37,6 @@ type Container struct {
 	Image       string            `json:"image"`
 	Volumes     []string          `json:"volumes"`
 	Labels      map[string]string `json:"labels"`
-	StatusData  []byte            `json:"-"`
 	RuntimeMeta RuntimeMeta       `json:"-"`
 	Engine      engine.API        `json:"-"`
 }

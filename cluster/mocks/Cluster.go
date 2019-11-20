@@ -108,20 +108,6 @@ func (_m *Cluster) CacheImage(ctx context.Context, podname string, nodenmae stri
 	return r0, r1
 }
 
-// ContainerDeployed provides a mock function with given fields: ctx, ID, appname, entrypoint, nodename, data, ttl
-func (_m *Cluster) ContainerDeployed(ctx context.Context, ID string, appname string, entrypoint string, nodename string, data []byte, ttl int64) error {
-	ret := _m.Called(ctx, ID, appname, entrypoint, nodename, data, ttl)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, []byte, int64) error); ok {
-		r0 = rf(ctx, ID, appname, entrypoint, nodename, data, ttl)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
 // ControlContainer provides a mock function with given fields: ctx, IDs, t, force
 func (_m *Cluster) ControlContainer(ctx context.Context, IDs []string, t string, force bool) (chan *types.ControlContainerMessage, error) {
 	ret := _m.Called(ctx, IDs, t, force)
@@ -284,6 +270,29 @@ func (_m *Cluster) GetContainers(ctx context.Context, IDs []string) ([]*types.Co
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*types.Container)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, []string) error); ok {
+		r1 = rf(ctx, IDs)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetContainersStatus provides a mock function with given fields: ctx, IDs
+func (_m *Cluster) GetContainersStatus(ctx context.Context, IDs []string) (map[string][]byte, error) {
+	ret := _m.Called(ctx, IDs)
+
+	var r0 map[string][]byte
+	if rf, ok := ret.Get(0).(func(context.Context, []string) map[string][]byte); ok {
+		r0 = rf(ctx, IDs)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string][]byte)
 		}
 	}
 
@@ -709,6 +718,29 @@ func (_m *Cluster) Send(ctx context.Context, opts *types.SendOptions) (chan *typ
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *types.SendOptions) error); ok {
 		r1 = rf(ctx, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SetContainersStatus provides a mock function with given fields: ctx, status, ttls
+func (_m *Cluster) SetContainersStatus(ctx context.Context, status map[string][]byte, ttls map[string]int64) (map[string][]byte, error) {
+	ret := _m.Called(ctx, status, ttls)
+
+	var r0 map[string][]byte
+	if rf, ok := ret.Get(0).(func(context.Context, map[string][]byte, map[string]int64) map[string][]byte); ok {
+		r0 = rf(ctx, status, ttls)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string][]byte)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, map[string][]byte, map[string]int64) error); ok {
+		r1 = rf(ctx, status, ttls)
 	} else {
 		r1 = ret.Error(1)
 	}

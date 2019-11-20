@@ -37,12 +37,11 @@ func TestControlStart(t *testing.T) {
 		ID:      "cid",
 		Running: false,
 	}
-	b, err := json.Marshal(runtimeMeta)
+	_, err = json.Marshal(runtimeMeta)
 	assert.NoError(t, err)
 	container := &types.Container{
 		ID:         "cid",
 		Privileged: true,
-		StatusData: b,
 	}
 	engine := &enginemocks.API{}
 	container.Engine = engine
@@ -131,12 +130,11 @@ func TestControlStop(t *testing.T) {
 		ID:      "cid",
 		Running: true,
 	}
-	b, err := json.Marshal(runtimeMeta)
+	_, err := json.Marshal(runtimeMeta)
 	assert.NoError(t, err)
 	container := &types.Container{
 		ID:          "cid",
 		Privileged:  true,
-		StatusData:  b,
 		RuntimeMeta: runtimeMeta,
 	}
 	engine := &enginemocks.API{}
