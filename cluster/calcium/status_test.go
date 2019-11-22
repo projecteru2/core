@@ -16,14 +16,14 @@ func TestSetContainersStatus(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 
 	// failed
-	store.On("GetContainer", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return(nil, types.ErrBadCount).Once()
+	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
 	err := c.SetContainersStatus(ctx, map[string][]byte{"123": []byte{}}, nil)
 	assert.Error(t, err)
 	container := &types.Container{
 		ID:   "123",
 		Name: "a_b_c",
 	}
-	store.On("GetContainer", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return(container, nil)
+	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
 	// failed by SetContainerStatus
 	store.On("SetContainerStatus",
 		mock.Anything,
@@ -44,24 +44,23 @@ func TestSetContainersStatus(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestDeployStatusStream(t *testing.T) {
+func TestContainerStatusStream(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	dataCh := make(chan *types.DeployStatus)
+	dataCh := make(chan *types.ContainerStatus)
 	store := c.store.(*storemocks.Store)
 
-	store.On("WatchDeployStatus", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return(dataCh)
-	ID := "wtf"
+	store.On("ContainerStatusStream", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(dataCh)
 	go func() {
-		msg := &types.DeployStatus{
-			ID: ID,
+		msg := &types.ContainerStatus{
+			Delete: true,
 		}
 		dataCh <- msg
 		close(dataCh)
 	}()
 
-	ch := c.DeployStatusStream(ctx, "", "", "")
+	ch := c.ContainerStatusStream(ctx, "", "", "", nil)
 	for c := range ch {
-		assert.Equal(t, c.ID, ID)
+		assert.Equal(t, c.Delete, true)
 	}
 }

@@ -170,6 +170,11 @@ func (m *Mercury) ContainerStatusStream(ctx context.Context, appname, entrypoint
 				return
 			}
 			for _, ev := range resp.Events {
+				if ev.Type == clientv3.EventTypeDelete {
+					msg.Delete = true
+					ch <- msg
+					continue
+				}
 				_, _, _, ID := parseStatusKey(string(ev.Kv.Key))
 				container, err := m.GetContainer(ctx, ID)
 				if err != nil {
@@ -181,11 +186,8 @@ func (m *Mercury) ContainerStatusStream(ctx context.Context, appname, entrypoint
 					log.Warnf("[ContainerStatusStream] ignore container %s by labels", container.ID)
 					continue
 				}
-				if ev.Type == clientv3.EventTypeDelete {
-					msg.Delete = true
-				}
-				msg.Container = container
 				log.Debugf("[ContainerStatusStream] container %s status changed", container.ID)
+				msg.Container = container
 				ch <- msg
 			}
 		}

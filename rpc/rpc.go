@@ -706,20 +706,18 @@ func (v *Vibranium) ContainerStatusStream(opts *pb.ContainerStatusStreamOptions,
 			if !ok {
 				return nil
 			}
+			r := &pb.ContainerStatusStreamMessage{Delete: m.Delete}
 			if m.Error != nil {
-				return m.Error
+				r.Error = m.Error.Error()
+			} else if m.Container != nil {
+				container, err := toRPCContainer(stream.Context(), m.Container)
+				if err != nil {
+					return err
+				}
+				r.Container = container
+				r.Status = toRPCContainerStatus(m.Container)
 			}
-			container, err := toRPCContainer(stream.Context(), m.Container)
-			if err != nil {
-				return err
-			}
-			containerStatus := toRPCContainerStatus(m.Container)
-			if err := stream.Send(&pb.ContainerStatusStreamMessage{
-				Container: container,
-				Status:    containerStatus,
-				Error:     m.Error.Error(),
-				Delete:    m.Delete,
-			}); err != nil {
+			if err := stream.Send(r); err != nil {
 				v.logUnsentMessages("ContainerStatusStream", m)
 			}
 		case <-v.rpcch:
