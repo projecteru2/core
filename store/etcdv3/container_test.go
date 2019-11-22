@@ -98,16 +98,50 @@ func TestContainer(t *testing.T) {
 	assert.Equal(t, containers[0].Name, name)
 	containers, _ = m.ListNodeContainers(ctx, "n2")
 	assert.Equal(t, len(containers), 0)
-	// WatchDeployStatus
-	ctx2 := context.Background()
-	ch := m.WatchDeployStatus(ctx2, appname, entrypoint, "")
-	assert.NoError(t, m.SetContainerStatus(ctx2, container, []byte("{\"Running\":true}"), 0))
+}
+
+func TestContainerStatusStream(t *testing.T) {
+	m := NewMercury(t)
+	defer m.TerminateEmbededStorage()
+	ctx := context.Background()
+	ID := "1234567812345678123456781234567812345678123456781234567812345678"
+	name := "test_app_1"
+	appname := "test"
+	entrypoint := "app"
+	nodename := "n1"
+	podname := "test"
+	container := &types.Container{
+		ID:       ID,
+		Name:     name,
+		Nodename: nodename,
+		Podname:  podname,
+	}
+	node := &types.Node{
+		Name:     nodename,
+		Podname:  podname,
+		Endpoint: "tcp://127.0.0.1:2376",
+	}
+	_, err := json.Marshal(container)
+	assert.NoError(t, err)
+	nodeBytes, err := json.Marshal(node)
+	assert.NoError(t, err)
+	_, err = m.AddPod(ctx, podname, "CPU")
+	assert.NoError(t, err)
+	_, err = m.Create(ctx, fmt.Sprintf(nodeInfoKey, podname, nodename), string(nodeBytes))
+	assert.NoError(t, err)
+	_, err = m.Create(ctx, fmt.Sprintf(nodePodKey, nodename), podname)
+	assert.NoError(t, err)
+	assert.NoError(t, m.AddContainer(ctx, container))
+	// ContainerStatusStream
+	ch := m.ContainerStatusStream(ctx, appname, entrypoint, "", nil)
+	assert.NoError(t, m.SetContainerStatus(ctx, container, []byte("{\"Running\":true}"), 0))
 	done := make(chan int)
 	go func() {
 		s := <-ch
-		assert.Equal(t, s.Appname, appname)
+		assert.False(t, s.Delete)
+		assert.NotNil(t, s.Container)
 		done <- 1
 	}()
-	assert.NoError(t, m.RemoveContainer(ctx, container))
 	<-done
+	assert.NoError(t, m.RemoveContainer(ctx, container))
 }

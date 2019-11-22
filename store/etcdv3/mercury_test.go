@@ -4,16 +4,16 @@ import (
 	"context"
 	"testing"
 
+	"time"
+
 	"github.com/coreos/etcd/clientv3"
-	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
-	"time"
 )
 
 func NewMercury(t *testing.T) *Mercury {
 	config := types.Config{}
-	config.LockTimeout = 10 *time.Second
+	config.LockTimeout = 10 * time.Second
 	config.Etcd = types.EtcdConfig{
 		Machines:   []string{"127.0.0.1:2379"},
 		Prefix:     "/eru-test",
@@ -113,7 +113,7 @@ func TestMercury(t *testing.T) {
 		for r := range ch {
 			assert.NotEmpty(t, r.Events)
 			assert.Equal(t, len(r.Events), 1)
-			assert.Equal(t, r.Events[0].Type.String(), store.PutEvent)
+			assert.Equal(t, r.Events[0].Type, clientv3.EventTypePut)
 			assert.Equal(t, string(r.Events[0].Kv.Value), "b")
 		}
 	}()
