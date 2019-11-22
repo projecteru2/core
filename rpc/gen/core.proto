@@ -19,12 +19,12 @@ service CoreRPC {
     rpc GetNodeResource(GetNodeOptions) returns (NodeResource) {};
     rpc GetNodeByName(GetNodeOptions) returns (Node) {};
 
-    rpc GetContainersStatus(ContainerIDs) returns (ContainersStatus) {};
-    rpc SetContainersStatus(SetContainersStatusOptions) returns (ContainersStatus) {};
     rpc GetContainer(ContainerID) returns (Container) {};
     rpc GetContainers(ContainerIDs) returns (Containers) {};
     rpc ListContainers(ListContainersOptions) returns (stream Container) {};
     rpc ListNodeContainers(GetNodeOptions) returns (Containers) {};
+    rpc GetContainersStatus(ContainerIDs) returns (ContainersStatus) {};
+    rpc SetContainersStatus(SetContainersStatusOptions) returns (Empty) {};
 
     rpc Copy(CopyOptions) returns (stream CopyMessage) {};
     rpc Send(SendOptions) returns (stream SendMessage) {};
@@ -178,7 +178,7 @@ message ContainerStatus {
 }
 
 message ContainersStatus {
-    map<string, bytes> status = 1;
+    map<string, ContainerStatus> status = 1;
 }
 
 message SetContainersStatusOptions {

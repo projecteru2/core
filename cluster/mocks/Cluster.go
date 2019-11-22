@@ -283,29 +283,6 @@ func (_m *Cluster) GetContainers(ctx context.Context, IDs []string) ([]*types.Co
 	return r0, r1
 }
 
-// GetContainersStatus provides a mock function with given fields: ctx, IDs
-func (_m *Cluster) GetContainersStatus(ctx context.Context, IDs []string) (map[string][]byte, error) {
-	ret := _m.Called(ctx, IDs)
-
-	var r0 map[string][]byte
-	if rf, ok := ret.Get(0).(func(context.Context, []string) map[string][]byte); ok {
-		r0 = rf(ctx, IDs)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[string][]byte)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, []string) error); ok {
-		r1 = rf(ctx, IDs)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetNode provides a mock function with given fields: ctx, podname, nodename
 func (_m *Cluster) GetNode(ctx context.Context, podname string, nodename string) (*types.Node, error) {
 	ret := _m.Called(ctx, podname, nodename)
@@ -726,26 +703,17 @@ func (_m *Cluster) Send(ctx context.Context, opts *types.SendOptions) (chan *typ
 }
 
 // SetContainersStatus provides a mock function with given fields: ctx, status, ttls
-func (_m *Cluster) SetContainersStatus(ctx context.Context, status map[string][]byte, ttls map[string]int64) (map[string][]byte, error) {
+func (_m *Cluster) SetContainersStatus(ctx context.Context, status map[string][]byte, ttls map[string]int64) error {
 	ret := _m.Called(ctx, status, ttls)
 
-	var r0 map[string][]byte
-	if rf, ok := ret.Get(0).(func(context.Context, map[string][]byte, map[string]int64) map[string][]byte); ok {
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, map[string][]byte, map[string]int64) error); ok {
 		r0 = rf(ctx, status, ttls)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[string][]byte)
-		}
+		r0 = ret.Error(0)
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, map[string][]byte, map[string]int64) error); ok {
-		r1 = rf(ctx, status, ttls)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+	return r0
 }
 
 // SetNode provides a mock function with given fields: ctx, opts

@@ -697,15 +697,15 @@ func (v *Vibranium) GetContainersStatus(ctx context.Context, opts *pb.ContainerI
 	v.taskAdd("GetContainersStatus", false)
 	defer v.taskDone("GetContainersStatus", false)
 
-	data, err := v.cluster.GetContainersStatus(ctx, opts.Ids)
+	containers, err := v.cluster.GetContainers(ctx, opts.Ids)
 	if err != nil {
 		return nil, err
 	}
-	return &pb.ContainersStatus{Status: data}, nil
+	return &pb.ContainersStatus{Status: toRPCContainersStatus(containers)}, nil
 }
 
 // SetContainersStatus set containers status
-func (v *Vibranium) SetContainersStatus(ctx context.Context, opts *pb.SetContainersStatusOptions) (*pb.ContainersStatus, error) {
+func (v *Vibranium) SetContainersStatus(ctx context.Context, opts *pb.SetContainersStatusOptions) (*pb.Empty, error) {
 	v.taskAdd("SetContainersStatus", false)
 	defer v.taskDone("SetContainersStatus", false)
 
@@ -719,11 +719,7 @@ func (v *Vibranium) SetContainersStatus(ctx context.Context, opts *pb.SetContain
 		ttls[ID] = status.Ttl
 	}
 
-	data, err := v.cluster.SetContainersStatus(ctx, statusData, ttls)
-	if err != nil {
-		return nil, err
-	}
-	return &pb.ContainersStatus{Status: data}, nil
+	return &pb.Empty{}, v.cluster.SetContainersStatus(ctx, statusData, ttls)
 }
 
 // ExecuteContainer runs a command in a running container

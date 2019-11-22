@@ -28,8 +28,8 @@ const (
 	DeployGlobal = "global"
 	// ERUMark mark container controlled by eru
 	ERUMark = "ERU"
-	// ERUMeta store publish and health things
-	ERUMeta = "ERU_META"
+	// LabelMeta store publish and health things
+	LabelMeta = "ERU_META"
 	// ContainerStop for stop container
 	ContainerStop = "stop"
 	// ContainerStart for start container
@@ -69,12 +69,11 @@ type Cluster interface {
 	NodeResource(ctx context.Context, podname, nodename string) (*types.NodeResource, error)
 	GetNodeByName(ctx context.Context, nodename string) (*types.Node, error)
 	// meta containers
-	GetContainersStatus(ctx context.Context, IDs []string) (map[string][]byte, error)
-	SetContainersStatus(ctx context.Context, status map[string][]byte, ttls map[string]int64) (map[string][]byte, error)
 	GetContainer(ctx context.Context, ID string) (*types.Container, error)
 	GetContainers(ctx context.Context, IDs []string) ([]*types.Container, error)
 	ListContainers(ctx context.Context, opts *types.ListContainersOptions) ([]*types.Container, error)
 	ListNodeContainers(ctx context.Context, nodename string) ([]*types.Container, error)
+	SetContainersStatus(ctx context.Context, status map[string][]byte, ttls map[string]int64) error
 	// cluster methods
 	Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error)
 	Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error)

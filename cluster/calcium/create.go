@@ -138,22 +138,22 @@ func (c *Calcium) doCreateAndStartContainer(
 	cpu types.CPUMap,
 ) *types.CreateContainerMessage {
 	container := &types.Container{
-		Podname:     opts.Podname,
-		Nodename:    node.Name,
-		CPU:         cpu,
-		Quota:       opts.CPUQuota,
-		Memory:      opts.Memory,
-		Storage:     opts.Storage,
-		Hook:        opts.Entrypoint.Hook,
-		Privileged:  opts.Entrypoint.Privileged,
-		Engine:      node.Engine,
-		SoftLimit:   opts.SoftLimit,
-		Image:       opts.Image,
-		Env:         opts.Env,
-		User:        opts.User,
-		Volumes:     opts.Volumes,
-		Labels:      opts.Labels,
-		RuntimeMeta: types.RuntimeMeta{},
+		Podname:    opts.Podname,
+		Nodename:   node.Name,
+		CPU:        cpu,
+		Quota:      opts.CPUQuota,
+		Memory:     opts.Memory,
+		Storage:    opts.Storage,
+		Hook:       opts.Entrypoint.Hook,
+		Privileged: opts.Entrypoint.Privileged,
+		Engine:     node.Engine,
+		SoftLimit:  opts.SoftLimit,
+		Image:      opts.Image,
+		Env:        opts.Env,
+		User:       opts.User,
+		Volumes:    opts.Volumes,
+		Labels:     opts.Labels,
+		StatusMeta: types.StatusMeta{},
 	}
 	createContainerMessage := &types.CreateContainerMessage{
 		Podname:  container.Podname,
@@ -293,10 +293,10 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, opts *t
 	env = append(env, fmt.Sprintf("ERU_MEMORY=%d", opts.Memory))
 	env = append(env, fmt.Sprintf("ERU_STORAGE=%d", opts.Storage))
 	config.Env = env
-	// basic labels, bind to EruMeta
+	// basic labels, bind to LabelMeta
 	config.Labels = map[string]string{
 		cluster.ERUMark: "1",
-		cluster.ERUMeta: utils.EncodeMetaInLabel(&types.EruMeta{
+		cluster.LabelMeta: utils.EncodeMetaInLabel(&types.LabelMeta{
 			Publish:     opts.Entrypoint.Publish,
 			HealthCheck: entry.HealthCheck,
 		}),

@@ -261,7 +261,7 @@ func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*typ
 		if _, ok := deployStatus[container.ID]; !ok {
 			return nil, types.ErrRunningStatusUnknown
 		}
-		if err := json.Unmarshal(deployStatus[container.ID], &containers[index].RuntimeMeta); err != nil {
+		if err := json.Unmarshal(deployStatus[container.ID], &containers[index].StatusMeta); err != nil {
 			log.Warnf("[bindContainersAdditions] unmarshal %s status data failed %v", container.ID, err)
 			log.Errorf("%s", deployStatus[container.ID])
 		}

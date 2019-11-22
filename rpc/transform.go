@@ -372,6 +372,23 @@ func toRPCAttachContainerMessage(msg *types.AttachContainerMessage) *pb.AttachCo
 	}
 }
 
+func toRPCContainerStatus(container *types.Container) *pb.ContainerStatus {
+	return &pb.ContainerStatus{
+		Running:   container.StatusMeta.Running,
+		Healthy:   container.StatusMeta.Healthy,
+		Networks:  container.StatusMeta.Networks,
+		Extension: container.StatusMeta.Extension,
+	}
+}
+
+func toRPCContainersStatus(containers []*types.Container) map[string]*pb.ContainerStatus {
+	r := map[string]*pb.ContainerStatus{}
+	for _, c := range containers {
+		r[c.ID] = toRPCContainerStatus(c)
+	}
+	return r
+}
+
 func toRPCContainers(ctx context.Context, containers []*types.Container, labels map[string]string) []*pb.Container {
 	cs := []*pb.Container{}
 	for _, c := range containers {
@@ -389,10 +406,10 @@ func toRPCContainers(ctx context.Context, containers []*types.Container, labels 
 
 func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, error) {
 	publish := map[string]string{}
-	if c.RuntimeMeta.Running && len(c.RuntimeMeta.Networks) != 0 {
+	if c.StatusMeta.Running && len(c.StatusMeta.Networks) != 0 {
 		meta := utils.DecodeMetaInLabel(c.Labels)
 		publish = utils.EncodePublishInfo(
-			utils.MakePublishInfo(c.RuntimeMeta.Networks, meta.Publish),
+			utils.MakePublishInfo(c.StatusMeta.Networks, meta.Publish),
 		)
 	}
 	cpu := toRPCCPUMap(c.CPU)
