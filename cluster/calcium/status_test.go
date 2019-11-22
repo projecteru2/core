@@ -10,6 +10,23 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func TestGetContainersStatus(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	store := c.store.(*storemocks.Store)
+	cs := types.StatusMeta{}
+
+	// failed
+	store.On("GetContainerStatus", mock.Anything, mock.Anything).Return(types.StatusMeta{}, types.ErrBadCount).Once()
+	_, err := c.GetContainersStatus(ctx, []string{"a"})
+	assert.Error(t, err)
+	store.On("GetContainerStatus", mock.Anything, mock.Anything).Return(cs, nil)
+	// succ
+	r, err := c.GetContainersStatus(ctx, []string{"a"})
+	assert.NoError(t, err)
+	assert.Len(t, r, 1)
+}
+
 func TestSetContainersStatus(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
@@ -17,7 +34,7 @@ func TestSetContainersStatus(t *testing.T) {
 
 	// failed
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
-	err := c.SetContainersStatus(ctx, map[string][]byte{"123": []byte{}}, nil)
+	_, err := c.SetContainersStatus(ctx, map[string][]byte{"123": []byte{}}, nil)
 	assert.Error(t, err)
 	container := &types.Container{
 		ID:   "123",
@@ -30,8 +47,8 @@ func TestSetContainersStatus(t *testing.T) {
 		mock.Anything,
 		mock.Anything,
 		mock.Anything,
-	).Return(types.ErrBadCount).Once()
-	err = c.SetContainersStatus(ctx, map[string][]byte{"123": []byte{}}, nil)
+	).Return(types.StatusMeta{}, types.ErrBadCount).Once()
+	_, err = c.SetContainersStatus(ctx, map[string][]byte{"123": []byte{}}, nil)
 	assert.Error(t, err)
 	// success
 	store.On("SetContainerStatus",
@@ -39,9 +56,10 @@ func TestSetContainersStatus(t *testing.T) {
 		mock.Anything,
 		mock.Anything,
 		mock.Anything,
-	).Return(nil)
-	err = c.SetContainersStatus(ctx, map[string][]byte{"123": []byte{}}, nil)
+	).Return(types.StatusMeta{}, nil)
+	r, err := c.SetContainersStatus(ctx, map[string][]byte{"123": []byte{}}, nil)
 	assert.NoError(t, err)
+	assert.Len(t, r, 1)
 }
 
 func TestContainerStatusStream(t *testing.T) {

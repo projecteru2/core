@@ -15,7 +15,7 @@ type StatusMeta struct {
 	Networks  map[string]string `json:"networks,omitempty"`
 	Running   bool              `json:"running,omitempty"`
 	Healthy   bool              `json:"healthy,omitempty"`
-	Extension []byte            `json:"extension,omitempty"`
+	Extension interface{}       `json:"extension,omitempty"`
 }
 
 // LabelMeta bind meta info store in labels
@@ -85,6 +85,7 @@ func (c *Container) Remove(ctx context.Context, force bool) error {
 
 // ContainerStatus store deploy status
 type ContainerStatus struct {
+	ID        string
 	Container *Container
 	Error     error
 	Delete    bool

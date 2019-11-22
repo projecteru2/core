@@ -40,10 +40,10 @@ type Store interface {
 	RemoveContainer(ctx context.Context, container *types.Container) error
 	GetContainer(ctx context.Context, ID string) (*types.Container, error)
 	GetContainers(ctx context.Context, IDs []string) ([]*types.Container, error)
-	GetContainerStatus(ctx context.Context, ID string) ([]byte, error)
-	SetContainerStatus(ctx context.Context, container *types.Container, data []byte, ttl int64) error
 	ListContainers(ctx context.Context, appname, entrypoint, nodename string, limit int64) ([]*types.Container, error)
 	ListNodeContainers(ctx context.Context, nodename string) ([]*types.Container, error)
+	GetContainerStatus(ctx context.Context, ID string) (types.StatusMeta, error)
+	SetContainerStatus(ctx context.Context, container *types.Container, data []byte, ttl int64) (types.StatusMeta, error)
 	ContainerStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.ContainerStatus
 
 	// deploy status

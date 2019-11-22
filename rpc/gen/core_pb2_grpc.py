@@ -107,7 +107,7 @@ class CoreRPCStub(object):
     self.SetContainersStatus = channel.unary_unary(
         '/pb.CoreRPC/SetContainersStatus',
         request_serializer=core__pb2.SetContainersStatusOptions.SerializeToString,
-        response_deserializer=core__pb2.Empty.FromString,
+        response_deserializer=core__pb2.ContainersStatus.FromString,
         )
     self.ContainerStatusStream = channel.unary_stream(
         '/pb.CoreRPC/ContainerStatusStream',
@@ -524,7 +524,7 @@ def add_CoreRPCServicer_to_server(servicer, server):
       'SetContainersStatus': grpc.unary_unary_rpc_method_handler(
           servicer.SetContainersStatus,
           request_deserializer=core__pb2.SetContainersStatusOptions.FromString,
-          response_serializer=core__pb2.Empty.SerializeToString,
+          response_serializer=core__pb2.ContainersStatus.SerializeToString,
       ),
       'ContainerStatusStream': grpc.unary_stream_rpc_method_handler(
           servicer.ContainerStatusStream,

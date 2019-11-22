@@ -24,7 +24,7 @@ service CoreRPC {
     rpc ListContainers(ListContainersOptions) returns (stream Container) {};
     rpc ListNodeContainers(GetNodeOptions) returns (Containers) {};
     rpc GetContainersStatus(ContainerIDs) returns (ContainersStatus) {};
-    rpc SetContainersStatus(SetContainersStatusOptions) returns (Empty) {};
+    rpc SetContainersStatus(SetContainersStatusOptions) returns (ContainersStatus) {};
     rpc ContainerStatusStream(ContainerStatusStreamOptions) returns (stream ContainerStatusStreamMessage) {};
 
     rpc Copy(CopyOptions) returns (stream CopyMessage) {};
@@ -154,26 +154,28 @@ message Container {
 }
 
 message ContainerStatus {
-    bool running = 1;
-    bool healthy = 2;
-    map<string, string> networks = 3;
-    bytes extension = 4;
-    int64 ttl = 5;
+    string id = 1;
+    bool running = 2;
+    bool healthy = 3;
+    map<string, string> networks = 4;
+    bytes extension = 5;
+    int64 ttl = 6;
 }
 
 message ContainersStatus {
-    map<string, ContainerStatus> status = 1;
+    repeated ContainerStatus status = 1;
 }
 
 message ContainerStatusStreamMessage {
-    Container container = 1;
-    ContainerStatus status = 2;
-    string error = 3;
-    bool delete = 4;
+    string id = 1;
+    Container container = 2;
+    ContainerStatus status = 3;
+    string error = 4;
+    bool delete = 5;
 }
 
 message SetContainersStatusOptions {
-    map<string, ContainerStatus> status = 1;
+    repeated ContainerStatus status = 1;
 }
 
 message ContainerStatusStreamOptions {
