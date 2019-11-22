@@ -127,14 +127,14 @@ func TestPublishInfo(t *testing.T) {
 }
 
 func TestMetaInLabel(t *testing.T) {
-	meta := &types.EruMeta{
+	meta := &types.LabelMeta{
 		Publish: []string{"1", "2"},
 	}
 	r := EncodeMetaInLabel(meta)
 	assert.NotEmpty(t, r)
 
 	labels := map[string]string{
-		cluster.ERUMeta: "{\"Publish\":[\"5001\"],\"HealthCheck\":{\"TCPPorts\":[\"5001\"],\"HTTPPort\":\"\",\"HTTPURL\":\"\",\"HTTPCode\":0}}",
+		cluster.LabelMeta: "{\"Publish\":[\"5001\"],\"HealthCheck\":{\"TCPPorts\":[\"5001\"],\"HTTPPort\":\"\",\"HTTPURL\":\"\",\"HTTPCode\":0}}",
 	}
 	meta2 := DecodeMetaInLabel(labels)
 	assert.Equal(t, meta2.Publish[0], "5001")

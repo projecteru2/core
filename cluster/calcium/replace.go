@@ -58,14 +58,14 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 					replaceOpts.Volumes = container.Volumes
 					// 继承网络配置
 					if replaceOpts.NetworkInherit {
-						if !container.RuntimeMeta.Running {
+						if !container.StatusMeta.Running {
 							return types.NewDetailedErr(types.ErrNotSupport,
 								fmt.Sprintf("container %s is not running, can not inherit", container.ID),
 							)
 						}
-						log.Infof("[ReplaceContainer] Inherit old container network configuration mode %v", container.RuntimeMeta.Networks)
+						log.Infof("[ReplaceContainer] Inherit old container network configuration mode %v", container.StatusMeta.Networks)
 						replaceOpts.NetworkMode = ""
-						replaceOpts.Networks = container.RuntimeMeta.Networks
+						replaceOpts.Networks = container.StatusMeta.Networks
 					}
 					createMessage, removeMessage, err = c.doReplaceContainer(ctx, container, &replaceOpts, index)
 					return err
@@ -130,7 +130,7 @@ func (c *Calcium) doReplaceContainer(
 	if err != nil {
 		return nil, removeMessage, err
 	}
-	container.RuntimeMeta.Running = false
+	container.StatusMeta.Running = false
 	// 不涉及资源消耗，创建容器失败会被回收容器而不回收资源
 	// 创建成功容器会干掉之前的老容器也不会动资源，实际上实现了动态捆绑
 	createMessage := c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU)

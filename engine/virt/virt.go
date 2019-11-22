@@ -197,7 +197,7 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 		return nil, err
 	}
 
-	bytes, err := json.Marshal(coretypes.EruMeta{Publish: []string{"PORT"}})
+	bytes, err := json.Marshal(coretypes.LabelMeta{Publish: []string{"PORT"}})
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +207,7 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 		Image:    guest.ImageName,
 		Running:  guest.Status == "running",
 		Networks: guest.Networks,
-		Labels:   map[string]string{cluster.ERUMeta: string(bytes), cluster.ERUMark: "1"},
+		Labels:   map[string]string{cluster.LabelMeta: string(bytes), cluster.ERUMark: "1"},
 	}, nil
 }
 

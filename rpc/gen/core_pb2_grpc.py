@@ -79,16 +79,6 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.GetNodeOptions.SerializeToString,
         response_deserializer=core__pb2.Node.FromString,
         )
-    self.GetContainersStatus = channel.unary_unary(
-        '/pb.CoreRPC/GetContainersStatus',
-        request_serializer=core__pb2.ContainerIDs.SerializeToString,
-        response_deserializer=core__pb2.ContainersStatus.FromString,
-        )
-    self.SetContainersStatus = channel.unary_unary(
-        '/pb.CoreRPC/SetContainersStatus',
-        request_serializer=core__pb2.SetContainersStatusOptions.SerializeToString,
-        response_deserializer=core__pb2.ContainersStatus.FromString,
-        )
     self.GetContainer = channel.unary_unary(
         '/pb.CoreRPC/GetContainer',
         request_serializer=core__pb2.ContainerID.SerializeToString,
@@ -108,6 +98,16 @@ class CoreRPCStub(object):
         '/pb.CoreRPC/ListNodeContainers',
         request_serializer=core__pb2.GetNodeOptions.SerializeToString,
         response_deserializer=core__pb2.Containers.FromString,
+        )
+    self.GetContainersStatus = channel.unary_unary(
+        '/pb.CoreRPC/GetContainersStatus',
+        request_serializer=core__pb2.ContainerIDs.SerializeToString,
+        response_deserializer=core__pb2.ContainersStatus.FromString,
+        )
+    self.SetContainersStatus = channel.unary_unary(
+        '/pb.CoreRPC/SetContainersStatus',
+        request_serializer=core__pb2.SetContainersStatusOptions.SerializeToString,
+        response_deserializer=core__pb2.Empty.FromString,
         )
     self.Copy = channel.unary_stream(
         '/pb.CoreRPC/Copy',
@@ -281,20 +281,6 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def GetContainersStatus(self, request, context):
-    # missing associated documentation comment in .proto file
-    pass
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def SetContainersStatus(self, request, context):
-    # missing associated documentation comment in .proto file
-    pass
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
   def GetContainer(self, request, context):
     # missing associated documentation comment in .proto file
     pass
@@ -317,6 +303,20 @@ class CoreRPCServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def ListNodeContainers(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetContainersStatus(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def SetContainersStatus(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -496,16 +496,6 @@ def add_CoreRPCServicer_to_server(servicer, server):
           request_deserializer=core__pb2.GetNodeOptions.FromString,
           response_serializer=core__pb2.Node.SerializeToString,
       ),
-      'GetContainersStatus': grpc.unary_unary_rpc_method_handler(
-          servicer.GetContainersStatus,
-          request_deserializer=core__pb2.ContainerIDs.FromString,
-          response_serializer=core__pb2.ContainersStatus.SerializeToString,
-      ),
-      'SetContainersStatus': grpc.unary_unary_rpc_method_handler(
-          servicer.SetContainersStatus,
-          request_deserializer=core__pb2.SetContainersStatusOptions.FromString,
-          response_serializer=core__pb2.ContainersStatus.SerializeToString,
-      ),
       'GetContainer': grpc.unary_unary_rpc_method_handler(
           servicer.GetContainer,
           request_deserializer=core__pb2.ContainerID.FromString,
@@ -525,6 +515,16 @@ def add_CoreRPCServicer_to_server(servicer, server):
           servicer.ListNodeContainers,
           request_deserializer=core__pb2.GetNodeOptions.FromString,
           response_serializer=core__pb2.Containers.SerializeToString,
+      ),
+      'GetContainersStatus': grpc.unary_unary_rpc_method_handler(
+          servicer.GetContainersStatus,
+          request_deserializer=core__pb2.ContainerIDs.FromString,
+          response_serializer=core__pb2.ContainersStatus.SerializeToString,
+      ),
+      'SetContainersStatus': grpc.unary_unary_rpc_method_handler(
+          servicer.SetContainersStatus,
+          request_deserializer=core__pb2.SetContainersStatusOptions.FromString,
+          response_serializer=core__pb2.Empty.SerializeToString,
       ),
       'Copy': grpc.unary_stream_rpc_method_handler(
           servicer.Copy,
