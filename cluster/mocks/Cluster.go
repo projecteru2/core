@@ -108,6 +108,22 @@ func (_m *Cluster) CacheImage(ctx context.Context, podname string, nodenmae stri
 	return r0, r1
 }
 
+// ContainerStatusStream provides a mock function with given fields: ctx, appname, entrypoint, nodename, labels
+func (_m *Cluster) ContainerStatusStream(ctx context.Context, appname string, entrypoint string, nodename string, labels map[string]string) chan *types.ContainerStatus {
+	ret := _m.Called(ctx, appname, entrypoint, nodename, labels)
+
+	var r0 chan *types.ContainerStatus
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, map[string]string) chan *types.ContainerStatus); ok {
+		r0 = rf(ctx, appname, entrypoint, nodename, labels)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(chan *types.ContainerStatus)
+		}
+	}
+
+	return r0
+}
+
 // ControlContainer provides a mock function with given fields: ctx, IDs, t, force
 func (_m *Cluster) ControlContainer(ctx context.Context, IDs []string, t string, force bool) (chan *types.ControlContainerMessage, error) {
 	ret := _m.Called(ctx, IDs, t, force)
@@ -175,22 +191,6 @@ func (_m *Cluster) CreateContainer(ctx context.Context, opts *types.DeployOption
 	}
 
 	return r0, r1
-}
-
-// DeployStatusStream provides a mock function with given fields: ctx, appname, entrypoint, nodename
-func (_m *Cluster) DeployStatusStream(ctx context.Context, appname string, entrypoint string, nodename string) chan *types.DeployStatus {
-	ret := _m.Called(ctx, appname, entrypoint, nodename)
-
-	var r0 chan *types.DeployStatus
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) chan *types.DeployStatus); ok {
-		r0 = rf(ctx, appname, entrypoint, nodename)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(chan *types.DeployStatus)
-		}
-	}
-
-	return r0
 }
 
 // DissociateContainer provides a mock function with given fields: ctx, IDs

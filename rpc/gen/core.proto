@@ -25,6 +25,7 @@ service CoreRPC {
     rpc ListNodeContainers(GetNodeOptions) returns (Containers) {};
     rpc GetContainersStatus(ContainerIDs) returns (ContainersStatus) {};
     rpc SetContainersStatus(SetContainersStatusOptions) returns (Empty) {};
+    rpc ContainerStatusStream(ContainerStatusStreamOptions) returns (stream ContainerStatusStreamMessage) {};
 
     rpc Copy(CopyOptions) returns (stream CopyMessage) {};
     rpc Send(SendOptions) returns (stream SendMessage) {};
@@ -32,8 +33,6 @@ service CoreRPC {
     rpc BuildImage(BuildImageOptions) returns (stream BuildImageMessage) {};
     rpc CacheImage(CacheImageOptions) returns (stream CacheImageMessage) {};
     rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage) {};
-
-    rpc DeployStatus(DeployStatusOptions) returns (stream DeployStatusMessage) {};
     
     rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage) {};
     rpc ReplaceContainer(ReplaceOptions) returns (stream ReplaceContainerMessage) {};
@@ -54,21 +53,6 @@ message ListContainersOptions {
     string nodename = 3;
     map<string, string> labels = 4;
     int64 limit = 5;
-}
-
-message DeployStatusOptions {
-    string appname = 1;
-    string entrypoint = 2;
-    string nodename = 3;
-}
-
-message DeployStatusMessage {
-    string action = 1;
-    string appname = 2;
-    string entrypoint = 3;
-    string nodename = 4;
-    string id = 5;
-    bytes data = 6;
 }
 
 // 对的, protobuf 就是这样...
@@ -181,8 +165,22 @@ message ContainersStatus {
     map<string, ContainerStatus> status = 1;
 }
 
+message ContainerStatusStreamMessage {
+    Container container = 1;
+    ContainerStatus status = 2;
+    string error = 3;
+    bool delete = 4;
+}
+
 message SetContainersStatusOptions {
     map<string, ContainerStatus> status = 1;
+}
+
+message ContainerStatusStreamOptions {
+    string appname = 1;
+    string entrypoint = 2;
+    string nodename = 3;
+    map<string, string> labels = 4;
 }
 
 message Containers {

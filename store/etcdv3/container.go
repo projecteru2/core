@@ -147,8 +147,8 @@ func (m *Mercury) ListNodeContainers(ctx context.Context, nodename string) ([]*t
 	return m.bindContainersAdditions(ctx, containers)
 }
 
-// WatchDeployStatus watch deployed status
-func (m *Mercury) WatchDeployStatus(ctx context.Context, appname, entrypoint, nodename string) chan *types.DeployStatus {
+// ContainerStatusStream watch deployed status
+func (m *Mercury) ContainerStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.ContainerStatus {
 	if appname == "" {
 		entrypoint = ""
 	}
@@ -157,11 +157,11 @@ func (m *Mercury) WatchDeployStatus(ctx context.Context, appname, entrypoint, no
 	}
 	// 显式加个 / 保证 prefix 唯一
 	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename) + "/"
-	ch := make(chan *types.DeployStatus)
+	ch := make(chan *types.ContainerStatus)
 	go func() {
 		defer close(ch)
 		for resp := range m.Watch(ctx, key, clientv3.WithPrefix()) {
-			msg := &types.DeployStatus{}
+			msg := &types.ContainerStatus{}
 			if resp.Err() != nil {
 				if !resp.Canceled {
 					msg.Error = resp.Err()
@@ -170,17 +170,22 @@ func (m *Mercury) WatchDeployStatus(ctx context.Context, appname, entrypoint, no
 				return
 			}
 			for _, ev := range resp.Events {
-				appname, entrypoint, nodename, ID := parseStatusKey(string(ev.Kv.Key))
-				msg.ID = ID
-				msg.Appname = appname
-				msg.Entrypoint = entrypoint
-				msg.Nodename = nodename
-				msg.Data = string(ev.Kv.Value)
-				msg.Action = ev.Type.String()
-				log.Debugf("[WatchDeployStatus] app %s_%s event, id %s, action %s", appname, entrypoint, utils.ShortID(msg.ID), msg.Action)
-				if msg.Data != "" {
-					log.Debugf("[WatchDeployStatus] data %s", msg.Data)
+				_, _, _, ID := parseStatusKey(string(ev.Kv.Key))
+				container, err := m.GetContainer(ctx, ID)
+				if err != nil {
+					msg.Error = err
+					ch <- msg
+					continue
 				}
+				if !utils.FilterContainer(container.Labels, labels) {
+					log.Warnf("[ContainerStatusStream] ignore container %s by labels", container.ID)
+					continue
+				}
+				if ev.Type == clientv3.EventTypeDelete {
+					msg.Delete = true
+				}
+				msg.Container = container
+				log.Debugf("[ContainerStatusStream] container %s status changed", container.ID)
 				ch <- msg
 			}
 		}

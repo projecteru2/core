@@ -74,6 +74,7 @@ type Cluster interface {
 	ListContainers(ctx context.Context, opts *types.ListContainersOptions) ([]*types.Container, error)
 	ListNodeContainers(ctx context.Context, nodename string) ([]*types.Container, error)
 	SetContainersStatus(ctx context.Context, status map[string][]byte, ttls map[string]int64) error
+	ContainerStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.ContainerStatus
 	// cluster methods
 	Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error)
 	Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error)
@@ -81,8 +82,6 @@ type Cluster interface {
 	BuildImage(ctx context.Context, opts *enginetypes.BuildOptions) (chan *types.BuildImageMessage, error)
 	CacheImage(ctx context.Context, podname, nodenmae string, images []string, step int) (chan *types.CacheImageMessage, error)
 	RemoveImage(ctx context.Context, podname, nodename string, images []string, step int, prune bool) (chan *types.RemoveImageMessage, error)
-	// for watch
-	DeployStatusStream(ctx context.Context, appname, entrypoint, nodename string) chan *types.DeployStatus
 	// container methods
 	CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
 	ReplaceContainer(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceContainerMessage, error)
