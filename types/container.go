@@ -83,13 +83,9 @@ func (c *Container) Remove(ctx context.Context, force bool) error {
 	return c.Engine.VirtualizationRemove(ctx, c.ID, true, force)
 }
 
-// DeployStatus store deploy status
-type DeployStatus struct {
-	Data       string
-	Error      error
-	Action     string
-	Appname    string
-	Entrypoint string
-	Nodename   string
-	ID         string
+// ContainerStatus store deploy status
+type ContainerStatus struct {
+	Container *Container
+	Error     error
+	Delete    bool
 }

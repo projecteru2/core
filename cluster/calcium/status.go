@@ -24,7 +24,7 @@ func (c *Calcium) SetContainersStatus(ctx context.Context, status map[string][]b
 	return nil
 }
 
-// DeployStatusStream watch deploy status
-func (c *Calcium) DeployStatusStream(ctx context.Context, appname, entrypoint, nodename string) chan *types.DeployStatus {
-	return c.store.WatchDeployStatus(ctx, appname, entrypoint, nodename)
+// ContainerStatusStream stream container status
+func (c *Calcium) ContainerStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.ContainerStatus {
+	return c.store.ContainerStatusStream(ctx, appname, entrypoint, nodename, labels)
 }

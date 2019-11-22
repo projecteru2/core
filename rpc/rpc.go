@@ -386,37 +386,6 @@ func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_R
 	return err
 }
 
-// DeployStatus watch and show deployed status
-func (v *Vibranium) DeployStatus(opts *pb.DeployStatusOptions, stream pb.CoreRPC_DeployStatusServer) error {
-	log.Infof("[rpc] DeployStatus start %s", opts.Appname)
-	defer log.Infof("[rpc] DeployStatus stop %s", opts.Appname)
-
-	ch := v.cluster.DeployStatusStream(stream.Context(), opts.Appname, opts.Entrypoint, opts.Nodename)
-	for {
-		select {
-		case m, ok := <-ch:
-			if !ok {
-				return nil
-			}
-			if m.Error != nil {
-				return m.Error
-			}
-			if err := stream.Send(&pb.DeployStatusMessage{
-				Action:     m.Action,
-				Appname:    m.Appname,
-				Entrypoint: m.Entrypoint,
-				Nodename:   m.Nodename,
-				Id:         m.ID,
-				Data:       []byte(m.Data),
-			}); err != nil {
-				v.logUnsentMessages("DeployStatus", m)
-			}
-		case <-v.rpcch:
-			return nil
-		}
-	}
-}
-
 // RunAndWait is lambda
 func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	RunAndWaitOptions, err := stream.Recv()
@@ -720,6 +689,43 @@ func (v *Vibranium) SetContainersStatus(ctx context.Context, opts *pb.SetContain
 	}
 
 	return &pb.Empty{}, v.cluster.SetContainersStatus(ctx, statusData, ttls)
+}
+
+// ContainerStatusStream watch and show deployed status
+func (v *Vibranium) ContainerStatusStream(opts *pb.ContainerStatusStreamOptions, stream pb.CoreRPC_ContainerStatusStreamServer) error {
+	log.Infof("[rpc] ContainerStatusStream start %s", opts.Appname)
+	defer log.Infof("[rpc] ContainerStatusStream stop %s", opts.Appname)
+
+	ch := v.cluster.ContainerStatusStream(
+		stream.Context(),
+		opts.Appname, opts.Entrypoint, opts.Nodename, opts.Labels,
+	)
+	for {
+		select {
+		case m, ok := <-ch:
+			if !ok {
+				return nil
+			}
+			if m.Error != nil {
+				return m.Error
+			}
+			container, err := toRPCContainer(stream.Context(), m.Container)
+			if err != nil {
+				return err
+			}
+			containerStatus := toRPCContainerStatus(m.Container)
+			if err := stream.Send(&pb.ContainerStatusStreamMessage{
+				Container: container,
+				Status:    containerStatus,
+				Error:     m.Error.Error(),
+				Delete:    m.Delete,
+			}); err != nil {
+				v.logUnsentMessages("ContainerStatusStream", m)
+			}
+		case <-v.rpcch:
+			return nil
+		}
+	}
 }
 
 // ExecuteContainer runs a command in a running container

@@ -109,6 +109,11 @@ class CoreRPCStub(object):
         request_serializer=core__pb2.SetContainersStatusOptions.SerializeToString,
         response_deserializer=core__pb2.Empty.FromString,
         )
+    self.ContainerStatusStream = channel.unary_stream(
+        '/pb.CoreRPC/ContainerStatusStream',
+        request_serializer=core__pb2.ContainerStatusStreamOptions.SerializeToString,
+        response_deserializer=core__pb2.ContainerStatusStreamMessage.FromString,
+        )
     self.Copy = channel.unary_stream(
         '/pb.CoreRPC/Copy',
         request_serializer=core__pb2.CopyOptions.SerializeToString,
@@ -133,11 +138,6 @@ class CoreRPCStub(object):
         '/pb.CoreRPC/RemoveImage',
         request_serializer=core__pb2.RemoveImageOptions.SerializeToString,
         response_deserializer=core__pb2.RemoveImageMessage.FromString,
-        )
-    self.DeployStatus = channel.unary_stream(
-        '/pb.CoreRPC/DeployStatus',
-        request_serializer=core__pb2.DeployStatusOptions.SerializeToString,
-        response_deserializer=core__pb2.DeployStatusMessage.FromString,
         )
     self.CreateContainer = channel.unary_stream(
         '/pb.CoreRPC/CreateContainer',
@@ -323,6 +323,13 @@ class CoreRPCServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def ContainerStatusStream(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def Copy(self, request, context):
     # missing associated documentation comment in .proto file
     pass
@@ -352,13 +359,6 @@ class CoreRPCServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def RemoveImage(self, request, context):
-    # missing associated documentation comment in .proto file
-    pass
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def DeployStatus(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -526,6 +526,11 @@ def add_CoreRPCServicer_to_server(servicer, server):
           request_deserializer=core__pb2.SetContainersStatusOptions.FromString,
           response_serializer=core__pb2.Empty.SerializeToString,
       ),
+      'ContainerStatusStream': grpc.unary_stream_rpc_method_handler(
+          servicer.ContainerStatusStream,
+          request_deserializer=core__pb2.ContainerStatusStreamOptions.FromString,
+          response_serializer=core__pb2.ContainerStatusStreamMessage.SerializeToString,
+      ),
       'Copy': grpc.unary_stream_rpc_method_handler(
           servicer.Copy,
           request_deserializer=core__pb2.CopyOptions.FromString,
@@ -550,11 +555,6 @@ def add_CoreRPCServicer_to_server(servicer, server):
           servicer.RemoveImage,
           request_deserializer=core__pb2.RemoveImageOptions.FromString,
           response_serializer=core__pb2.RemoveImageMessage.SerializeToString,
-      ),
-      'DeployStatus': grpc.unary_stream_rpc_method_handler(
-          servicer.DeployStatus,
-          request_deserializer=core__pb2.DeployStatusOptions.FromString,
-          response_serializer=core__pb2.DeployStatusMessage.SerializeToString,
       ),
       'CreateContainer': grpc.unary_stream_rpc_method_handler(
           servicer.CreateContainer,

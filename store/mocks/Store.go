@@ -78,6 +78,22 @@ func (_m *Store) AddPod(ctx context.Context, name string, desc string) (*types.P
 	return r0, r1
 }
 
+// ContainerStatusStream provides a mock function with given fields: ctx, appname, entrypoint, nodename, labels
+func (_m *Store) ContainerStatusStream(ctx context.Context, appname string, entrypoint string, nodename string, labels map[string]string) chan *types.ContainerStatus {
+	ret := _m.Called(ctx, appname, entrypoint, nodename, labels)
+
+	var r0 chan *types.ContainerStatus
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, map[string]string) chan *types.ContainerStatus); ok {
+		r0 = rf(ctx, appname, entrypoint, nodename, labels)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(chan *types.ContainerStatus)
+		}
+	}
+
+	return r0
+}
+
 // CreateLock provides a mock function with given fields: key, ttl
 func (_m *Store) CreateLock(key string, ttl time.Duration) (lock.DistributedLock, error) {
 	ret := _m.Called(key, ttl)
@@ -494,22 +510,6 @@ func (_m *Store) UpdateProcessing(ctx context.Context, opts *types.DeployOptions
 		r0 = rf(ctx, opts, nodename, count)
 	} else {
 		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// WatchDeployStatus provides a mock function with given fields: ctx, appname, entrypoint, nodename
-func (_m *Store) WatchDeployStatus(ctx context.Context, appname string, entrypoint string, nodename string) chan *types.DeployStatus {
-	ret := _m.Called(ctx, appname, entrypoint, nodename)
-
-	var r0 chan *types.DeployStatus
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) chan *types.DeployStatus); ok {
-		r0 = rf(ctx, appname, entrypoint, nodename)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(chan *types.DeployStatus)
-		}
 	}
 
 	return r0
