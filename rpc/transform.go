@@ -372,21 +372,31 @@ func toRPCAttachContainerMessage(msg *types.AttachContainerMessage) *pb.AttachCo
 	}
 }
 
-func toRPCContainerStatus(container *types.Container) *pb.ContainerStatus {
-	return &pb.ContainerStatus{
-		Running:   container.StatusMeta.Running,
-		Healthy:   container.StatusMeta.Healthy,
-		Networks:  container.StatusMeta.Networks,
-		Extension: container.StatusMeta.Extension,
+func toRPCContainerStatus(containerStatus types.StatusMeta) (*pb.ContainerStatus, error) {
+	b, err := json.Marshal(containerStatus.Extension)
+	if err != nil {
+		return nil, err
 	}
+	r := &pb.ContainerStatus{
+		Id:        containerStatus.ID,
+		Healthy:   containerStatus.Healthy,
+		Running:   containerStatus.Running,
+		Networks:  containerStatus.Networks,
+		Extension: b,
+	}
+	return r, nil
 }
 
-func toRPCContainersStatus(containers []*types.Container) map[string]*pb.ContainerStatus {
-	r := map[string]*pb.ContainerStatus{}
-	for _, c := range containers {
-		r[c.ID] = toRPCContainerStatus(c)
+func toRPCContainersStatus(containersStatus []types.StatusMeta) ([]*pb.ContainerStatus, error) {
+	r := []*pb.ContainerStatus{}
+	for _, cs := range containersStatus {
+		s, err := toRPCContainerStatus(cs)
+		if err != nil {
+			return nil, err
+		}
+		r = append(r, s)
 	}
-	return r
+	return r, nil
 }
 
 func toRPCContainers(ctx context.Context, containers []*types.Container, labels map[string]string) []*pb.Container {

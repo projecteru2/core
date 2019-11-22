@@ -123,7 +123,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				}
 
 				// mark container which belongs to this node as unhealthy
-				if err = c.store.SetContainerStatus(ctx, container, b, 0); err != nil {
+				if _, err = c.store.SetContainerStatus(ctx, container, b, 0); err != nil {
 					log.Errorf("[SetNodeAvailable] Set container %s on node %s inactive failed %v", container.ID, opts.Nodename, err)
 				}
 			}

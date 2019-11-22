@@ -66,41 +66,38 @@ func (m *Mercury) GetContainers(ctx context.Context, IDs []string) (containers [
 }
 
 // GetContainerStatus get container status
-func (m *Mercury) GetContainerStatus(ctx context.Context, ID string) ([]byte, error) {
+func (m *Mercury) GetContainerStatus(ctx context.Context, ID string) (types.StatusMeta, error) {
 	container, err := m.GetContainer(ctx, ID)
 	if err != nil {
-		return nil, err
+		return types.StatusMeta{}, err
 	}
-	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
-	if err != nil {
-		return nil, err
-	}
-	deployKey := filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, ID)
-	kv, err := m.GetOne(ctx, deployKey)
-	if err != nil {
-		return nil, err
-	}
-	return kv.Value, nil
+	return container.StatusMeta, nil
 }
 
 // SetContainerStatus set container status
-func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Container, data []byte, ttl int64) error {
+func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Container, data []byte, ttl int64) (types.StatusMeta, error) {
+	// check data can unmarshal to status meta
+	r := types.StatusMeta{}
+	if err := json.Unmarshal(data, &r); err != nil {
+		return r, err
+	}
+	r.ID = container.ID // force rewrite
 	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
 	if err != nil {
-		return err
+		return r, err
 	}
 	deployKey := filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)
 	opts := []clientv3.OpOption{}
 	if ttl > 0 {
 		lease, err := m.cliv3.Grant(ctx, ttl)
 		if err != nil {
-			return err
+			return r, err
 		}
 		opts = append(opts, clientv3.WithLease(lease.ID))
 	}
 	// Only update when it exist
 	_, err = m.Update(ctx, deployKey, string(data), opts...)
-	return err
+	return r, err
 }
 
 // ListContainers list containers
@@ -161,33 +158,26 @@ func (m *Mercury) ContainerStatusStream(ctx context.Context, appname, entrypoint
 	go func() {
 		defer close(ch)
 		for resp := range m.Watch(ctx, key, clientv3.WithPrefix()) {
-			msg := &types.ContainerStatus{}
 			if resp.Err() != nil {
 				if !resp.Canceled {
-					msg.Error = resp.Err()
-					ch <- msg
+					log.Errorf("[ContainerStatusStream] watch failed %v", resp.Err())
 				}
 				return
 			}
 			for _, ev := range resp.Events {
+				_, _, _, ID := parseStatusKey(string(ev.Kv.Key))
+				msg := &types.ContainerStatus{ID: ID}
 				if ev.Type == clientv3.EventTypeDelete {
 					msg.Delete = true
-					ch <- msg
-					continue
-				}
-				_, _, _, ID := parseStatusKey(string(ev.Kv.Key))
-				container, err := m.GetContainer(ctx, ID)
-				if err != nil {
+				} else if container, err := m.GetContainer(ctx, ID); err != nil {
 					msg.Error = err
-					ch <- msg
+				} else if utils.FilterContainer(container.Labels, labels) {
+					log.Debugf("[ContainerStatusStream] container %s status changed", container.ID)
+					msg.Container = container
+				} else {
+					log.Warnf("[ContainerStatusStream] ignore container %s by labels", ID)
 					continue
 				}
-				if !utils.FilterContainer(container.Labels, labels) {
-					log.Warnf("[ContainerStatusStream] ignore container %s by labels", container.ID)
-					continue
-				}
-				log.Debugf("[ContainerStatusStream] container %s status changed", container.ID)
-				msg.Container = container
 				ch <- msg
 			}
 		}

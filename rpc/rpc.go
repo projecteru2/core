@@ -666,29 +666,42 @@ func (v *Vibranium) GetContainersStatus(ctx context.Context, opts *pb.ContainerI
 	v.taskAdd("GetContainersStatus", false)
 	defer v.taskDone("GetContainersStatus", false)
 
-	containers, err := v.cluster.GetContainers(ctx, opts.Ids)
+	containersStatus, err := v.cluster.GetContainersStatus(ctx, opts.Ids)
 	if err != nil {
 		return nil, err
 	}
-	return &pb.ContainersStatus{Status: toRPCContainersStatus(containers)}, nil
+	r, err := toRPCContainersStatus(containersStatus)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.ContainersStatus{Status: r}, nil
 }
 
 // SetContainersStatus set containers status
-func (v *Vibranium) SetContainersStatus(ctx context.Context, opts *pb.SetContainersStatusOptions) (*pb.Empty, error) {
+func (v *Vibranium) SetContainersStatus(ctx context.Context, opts *pb.SetContainersStatusOptions) (*pb.ContainersStatus, error) {
 	v.taskAdd("SetContainersStatus", false)
 	defer v.taskDone("SetContainersStatus", false)
 
 	var err error
 	statusData := map[string][]byte{}
 	ttls := map[string]int64{}
-	for ID, status := range opts.Status {
-		if statusData[ID], err = json.Marshal(status); err != nil {
+	for _, status := range opts.Status {
+		if statusData[status.Id], err = json.Marshal(status); err != nil {
 			return nil, err
 		}
-		ttls[ID] = status.Ttl
+		ttls[status.Id] = status.Ttl
 	}
 
-	return &pb.Empty{}, v.cluster.SetContainersStatus(ctx, statusData, ttls)
+	status, err := v.cluster.SetContainersStatus(ctx, statusData, ttls)
+	if err != nil {
+		return nil, err
+	}
+	r, err := toRPCContainersStatus(status)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.ContainersStatus{Status: r}, nil
 }
 
 // ContainerStatusStream watch and show deployed status
@@ -706,16 +719,18 @@ func (v *Vibranium) ContainerStatusStream(opts *pb.ContainerStatusStreamOptions,
 			if !ok {
 				return nil
 			}
-			r := &pb.ContainerStatusStreamMessage{Delete: m.Delete}
+			r := &pb.ContainerStatusStreamMessage{Id: m.ID, Delete: m.Delete}
 			if m.Error != nil {
 				r.Error = m.Error.Error()
 			} else if m.Container != nil {
-				container, err := toRPCContainer(stream.Context(), m.Container)
-				if err != nil {
-					return err
+				if container, err := toRPCContainer(stream.Context(), m.Container); err != nil {
+					r.Error = err.Error()
+				} else if status, err := toRPCContainerStatus(m.Container.StatusMeta); err != nil {
+					r.Error = err.Error()
+				} else {
+					r.Container = container
+					r.Status = status
 				}
-				r.Container = container
-				r.Status = toRPCContainerStatus(m.Container)
 			}
 			if err := stream.Send(r); err != nil {
 				v.logUnsentMessages("ContainerStatusStream", m)

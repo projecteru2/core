@@ -82,12 +82,14 @@ func TestContainer(t *testing.T) {
 	assert.Equal(t, containers[1].Name, newContainer.Name)
 	assert.NoError(t, m.RemoveContainer(ctx, newContainer))
 	// Deployed
-	assert.NoError(t, m.SetContainerStatus(ctx, container, []byte(fmt.Sprintf(`{"id":"%s"}`, ID)), 0))
+	_, err = m.SetContainerStatus(ctx, container, []byte(fmt.Sprintf(`{"id":"%s"}`, ID)), 0)
+	assert.NoError(t, err)
 	container2 := &types.Container{
 		ID:       container.ID,
 		Nodename: "n2",
 	}
-	assert.Error(t, m.SetContainerStatus(ctx, container2, []byte(""), 0))
+	_, err = m.SetContainerStatus(ctx, container2, []byte(""), 0)
+	assert.Error(t, err)
 	// ListContainers
 	containers, _ = m.ListContainers(ctx, appname, entrypoint, "", 1)
 	assert.Equal(t, len(containers), 1)
@@ -134,7 +136,8 @@ func TestContainerStatusStream(t *testing.T) {
 	assert.NoError(t, m.AddContainer(ctx, container))
 	// ContainerStatusStream
 	ch := m.ContainerStatusStream(ctx, appname, entrypoint, "", nil)
-	assert.NoError(t, m.SetContainerStatus(ctx, container, []byte("{\"Running\":true}"), 0))
+	_, err = m.SetContainerStatus(ctx, container, []byte("{\"Running\":true}"), 0)
+	assert.NoError(t, err)
 	done := make(chan int)
 	go func() {
 		s := <-ch

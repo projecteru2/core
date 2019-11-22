@@ -6,22 +6,38 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+// GetContainersStatus get container status
+func (c *Calcium) GetContainersStatus(ctx context.Context, IDs []string) ([]types.StatusMeta, error) {
+	r := []types.StatusMeta{}
+	for _, ID := range IDs {
+		s, err := c.store.GetContainerStatus(ctx, ID)
+		if err != nil {
+			return r, err
+		}
+		r = append(r, s)
+	}
+	return r, nil
+}
+
 // SetContainersStatus set containers status
-func (c *Calcium) SetContainersStatus(ctx context.Context, status map[string][]byte, ttls map[string]int64) error {
+func (c *Calcium) SetContainersStatus(ctx context.Context, status map[string][]byte, ttls map[string]int64) ([]types.StatusMeta, error) {
+	r := []types.StatusMeta{}
 	for ID, containerStatus := range status {
 		container, err := c.store.GetContainer(ctx, ID)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		ttl, ok := ttls[ID]
 		if !ok {
 			ttl = 0
 		}
-		if err = c.store.SetContainerStatus(ctx, container, containerStatus, ttl); err != nil {
-			return err
+		var s types.StatusMeta
+		if s, err = c.store.SetContainerStatus(ctx, container, containerStatus, ttl); err != nil {
+			return nil, err
 		}
+		r = append(r, s)
 	}
-	return nil
+	return r, nil
 }
 
 // ContainerStatusStream stream container status
