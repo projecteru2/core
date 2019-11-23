@@ -20,7 +20,7 @@ func (c *Calcium) GetContainersStatus(ctx context.Context, IDs []string) ([]type
 }
 
 // SetContainersStatus set containers status
-func (c *Calcium) SetContainersStatus(ctx context.Context, status map[string][]byte, ttls map[string]int64) ([]types.StatusMeta, error) {
+func (c *Calcium) SetContainersStatus(ctx context.Context, status map[string]types.StatusMeta, ttls map[string]int64) ([]types.StatusMeta, error) {
 	r := []types.StatusMeta{}
 	for ID, containerStatus := range status {
 		container, err := c.store.GetContainer(ctx, ID)
@@ -31,11 +31,11 @@ func (c *Calcium) SetContainersStatus(ctx context.Context, status map[string][]b
 		if !ok {
 			ttl = 0
 		}
-		var s types.StatusMeta
-		if s, err = c.store.SetContainerStatus(ctx, container, containerStatus, ttl); err != nil {
+		container.StatusMeta = containerStatus
+		if err = c.store.SetContainerStatus(ctx, container, ttl); err != nil {
 			return nil, err
 		}
-		r = append(r, s)
+		r = append(r, container.StatusMeta)
 	}
 	return r, nil
 }

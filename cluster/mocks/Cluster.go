@@ -722,11 +722,11 @@ func (_m *Cluster) Send(ctx context.Context, opts *types.SendOptions) (chan *typ
 }
 
 // SetContainersStatus provides a mock function with given fields: ctx, status, ttls
-func (_m *Cluster) SetContainersStatus(ctx context.Context, status map[string][]byte, ttls map[string]int64) ([]types.StatusMeta, error) {
+func (_m *Cluster) SetContainersStatus(ctx context.Context, status map[string]types.StatusMeta, ttls map[string]int64) ([]types.StatusMeta, error) {
 	ret := _m.Called(ctx, status, ttls)
 
 	var r0 []types.StatusMeta
-	if rf, ok := ret.Get(0).(func(context.Context, map[string][]byte, map[string]int64) []types.StatusMeta); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, map[string]types.StatusMeta, map[string]int64) []types.StatusMeta); ok {
 		r0 = rf(ctx, status, ttls)
 	} else {
 		if ret.Get(0) != nil {
@@ -735,7 +735,7 @@ func (_m *Cluster) SetContainersStatus(ctx context.Context, status map[string][]
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, map[string][]byte, map[string]int64) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, map[string]types.StatusMeta, map[string]int64) error); ok {
 		r1 = rf(ctx, status, ttls)
 	} else {
 		r1 = ret.Error(1)

@@ -5,7 +5,6 @@ package calcium
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/sanity-io/litter"
 
@@ -111,19 +110,12 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 			}
 			for _, container := range containers {
 				// subscriber should query eru to get other metas
-				meta := &types.StatusMeta{
-					ID:      container.ID,
-					Running: false,
-					Healthy: false,
-				}
-
-				var b []byte
-				if b, err = json.Marshal(meta); err != nil {
-					log.Errorf("[SetNodeAvailable] unable to marshal unhealthy status %v", err)
-				}
+				container.StatusMeta.ID = container.ID
+				container.StatusMeta.Running = false
+				container.StatusMeta.Healthy = false
 
 				// mark container which belongs to this node as unhealthy
-				if _, err = c.store.SetContainerStatus(ctx, container, b, 0); err != nil {
+				if err = c.store.SetContainerStatus(ctx, container, 0); err != nil {
 					log.Errorf("[SetNodeAvailable] Set container %s on node %s inactive failed %v", container.ID, opts.Nodename, err)
 				}
 			}

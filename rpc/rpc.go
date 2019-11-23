@@ -683,12 +683,19 @@ func (v *Vibranium) SetContainersStatus(ctx context.Context, opts *pb.SetContain
 	defer v.taskDone("SetContainersStatus", false)
 
 	var err error
-	statusData := map[string][]byte{}
+	statusData := map[string]types.StatusMeta{}
 	ttls := map[string]int64{}
 	for _, status := range opts.Status {
-		if statusData[status.Id], err = json.Marshal(status); err != nil {
+		r := types.StatusMeta{
+			ID:       status.Id,
+			Running:  status.Running,
+			Healthy:  status.Healthy,
+			Networks: status.Networks,
+		}
+		if err = json.Unmarshal(status.Extension, &r.Extension); err != nil {
 			return nil, err
 		}
+		statusData[status.Id] = r
 		ttls[status.Id] = status.Ttl
 	}
 

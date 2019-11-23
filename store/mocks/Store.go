@@ -434,25 +434,18 @@ func (_m *Store) SaveProcessing(ctx context.Context, opts *types.DeployOptions, 
 	return r0
 }
 
-// SetContainerStatus provides a mock function with given fields: ctx, container, data, ttl
-func (_m *Store) SetContainerStatus(ctx context.Context, container *types.Container, data []byte, ttl int64) (types.StatusMeta, error) {
-	ret := _m.Called(ctx, container, data, ttl)
+// SetContainerStatus provides a mock function with given fields: ctx, container, ttl
+func (_m *Store) SetContainerStatus(ctx context.Context, container *types.Container, ttl int64) error {
+	ret := _m.Called(ctx, container, ttl)
 
-	var r0 types.StatusMeta
-	if rf, ok := ret.Get(0).(func(context.Context, *types.Container, []byte, int64) types.StatusMeta); ok {
-		r0 = rf(ctx, container, data, ttl)
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Container, int64) error); ok {
+		r0 = rf(ctx, container, ttl)
 	} else {
-		r0 = ret.Get(0).(types.StatusMeta)
+		r0 = ret.Error(0)
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.Container, []byte, int64) error); ok {
-		r1 = rf(ctx, container, data, ttl)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+	return r0
 }
 
 // TerminateEmbededStorage provides a mock function with given fields:
