@@ -75,29 +75,27 @@ func (m *Mercury) GetContainerStatus(ctx context.Context, ID string) (types.Stat
 }
 
 // SetContainerStatus set container status
-func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Container, data []byte, ttl int64) (types.StatusMeta, error) {
-	// check data can unmarshal to status meta
-	r := types.StatusMeta{}
-	if err := json.Unmarshal(data, &r); err != nil {
-		return r, err
-	}
-	r.ID = container.ID // force rewrite
+func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Container, ttl int64) error {
 	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
 	if err != nil {
-		return r, err
+		return err
+	}
+	data, err := json.Marshal(container.StatusMeta)
+	if err != nil {
+		return err
 	}
 	deployKey := filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)
 	opts := []clientv3.OpOption{}
 	if ttl > 0 {
 		lease, err := m.cliv3.Grant(ctx, ttl)
 		if err != nil {
-			return r, err
+			return err
 		}
 		opts = append(opts, clientv3.WithLease(lease.ID))
 	}
 	// Only update when it exist
 	_, err = m.Update(ctx, deployKey, string(data), opts...)
-	return r, err
+	return err
 }
 
 // ListContainers list containers
@@ -287,7 +285,11 @@ func (m *Mercury) doOpsContainer(ctx context.Context, container *types.Container
 	}
 
 	if create {
-		data[filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)] = fmt.Sprintf(`{"id":"%s"}`, container.ID)
+		b, err := json.Marshal(container.StatusMeta)
+		if err != nil {
+			return err
+		}
+		data[filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)] = string(b)
 		_, err = m.BatchCreate(ctx, data)
 	} else {
 		_, err = m.BatchUpdate(ctx, data)

@@ -190,6 +190,7 @@ func (c *Calcium) doCreateAndStartContainer(
 		return createContainerMessage
 	}
 	container.ID = containerCreated.ID
+	container.StatusMeta.ID = containerCreated.ID
 	createContainerMessage.ContainerID = containerCreated.ID
 
 	// Copy data to container

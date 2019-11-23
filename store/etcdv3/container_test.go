@@ -22,10 +22,11 @@ func TestContainer(t *testing.T) {
 	nodename := "n1"
 	podname := "test"
 	container := &types.Container{
-		ID:       ID,
-		Name:     name,
-		Nodename: nodename,
-		Podname:  podname,
+		ID:         ID,
+		Name:       name,
+		Nodename:   nodename,
+		Podname:    podname,
+		StatusMeta: types.StatusMeta{ID: ID},
 	}
 	node := &types.Node{
 		Name:     nodename,
@@ -82,13 +83,17 @@ func TestContainer(t *testing.T) {
 	assert.Equal(t, containers[1].Name, newContainer.Name)
 	assert.NoError(t, m.RemoveContainer(ctx, newContainer))
 	// Deployed
-	_, err = m.SetContainerStatus(ctx, container, []byte(fmt.Sprintf(`{"id":"%s"}`, ID)), 0)
+	container.StatusMeta = types.StatusMeta{
+		Running: true,
+	}
+	err = m.SetContainerStatus(ctx, container, 0)
 	assert.NoError(t, err)
 	container2 := &types.Container{
-		ID:       container.ID,
-		Nodename: "n2",
+		ID:         container.ID,
+		Nodename:   "n2",
+		StatusMeta: types.StatusMeta{Healthy: true},
 	}
-	_, err = m.SetContainerStatus(ctx, container2, []byte(""), 0)
+	err = m.SetContainerStatus(ctx, container2, 0)
 	assert.Error(t, err)
 	// ListContainers
 	containers, _ = m.ListContainers(ctx, appname, entrypoint, "", 1)
@@ -135,16 +140,21 @@ func TestContainerStatusStream(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, m.AddContainer(ctx, container))
 	// ContainerStatusStream
-	ch := m.ContainerStatusStream(ctx, appname, entrypoint, "", nil)
-	_, err = m.SetContainerStatus(ctx, container, []byte("{\"Running\":true}"), 0)
-	assert.NoError(t, err)
-	done := make(chan int)
+	cctx, cancel := context.WithCancel(ctx)
+	ch := m.ContainerStatusStream(cctx, appname, entrypoint, "", nil)
+	b := make(chan int)
 	go func() {
 		s := <-ch
 		assert.False(t, s.Delete)
 		assert.NotNil(t, s.Container)
-		done <- 1
+		cancel()
+		close(b)
 	}()
-	<-done
-	assert.NoError(t, m.RemoveContainer(ctx, container))
+	container.StatusMeta = types.StatusMeta{
+		Running: true,
+	}
+	err = m.SetContainerStatus(ctx, container, 0)
+	assert.NoError(t, err)
+	<-b
+	m.RemoveContainer(ctx, container)
 }
