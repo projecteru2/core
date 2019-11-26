@@ -86,14 +86,14 @@ func TestContainer(t *testing.T) {
 	container.StatusMeta = types.StatusMeta{
 		Running: true,
 	}
-	err = m.SetContainerStatus(ctx, container, 0)
+	err = m.SetContainerStatus(ctx, container, 0, false)
 	assert.NoError(t, err)
 	container2 := &types.Container{
 		ID:         container.ID,
 		Nodename:   "n2",
 		StatusMeta: types.StatusMeta{Healthy: true},
 	}
-	err = m.SetContainerStatus(ctx, container2, 0)
+	err = m.SetContainerStatus(ctx, container2, 0, false)
 	assert.Error(t, err)
 	// ListContainers
 	containers, _ = m.ListContainers(ctx, appname, entrypoint, "", 1)
@@ -151,9 +151,10 @@ func TestContainerStatusStream(t *testing.T) {
 		close(b)
 	}()
 	container.StatusMeta = types.StatusMeta{
+		ID:      ID,
 		Running: true,
 	}
-	err = m.SetContainerStatus(ctx, container, 0)
+	err = m.SetContainerStatus(ctx, container, 0, false)
 	assert.NoError(t, err)
 	<-b
 	m.RemoveContainer(ctx, container)
