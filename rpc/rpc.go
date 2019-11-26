@@ -692,14 +692,16 @@ func (v *Vibranium) SetContainersStatus(ctx context.Context, opts *pb.SetContain
 			Healthy:  status.Healthy,
 			Networks: status.Networks,
 		}
-		if err = json.Unmarshal(status.Extension, &r.Extension); err != nil {
-			return nil, err
+		if len(status.Extension) > 0 {
+			if err = json.Unmarshal(status.Extension, &r.Extension); err != nil {
+				return nil, err
+			}
 		}
 		statusData[status.Id] = r
 		ttls[status.Id] = status.Ttl
 	}
 
-	status, err := v.cluster.SetContainersStatus(ctx, statusData, ttls)
+	status, err := v.cluster.SetContainersStatus(ctx, statusData, ttls, opts.Force)
 	if err != nil {
 		return nil, err
 	}

@@ -43,11 +43,10 @@ var (
 	ErrCannotGetEngine = errors.New("cannot get engine")
 	ErrNilEngine       = errors.New("engine is nil")
 
-	ErrBadMeta              = errors.New("bad meta")
-	ErrRunningStatusUnknown = errors.New("running status unknown")
-	ErrInvaildPassword      = errors.New("invaild password")
-	ErrInvaildUsername      = errors.New("invaild username")
-	ErrNotFitLabels         = errors.New("not fit labels")
+	ErrBadMeta         = errors.New("bad meta")
+	ErrInvaildPassword = errors.New("invaild password")
+	ErrInvaildUsername = errors.New("invaild username")
+	ErrNotFitLabels    = errors.New("not fit labels")
 
 	ErrNoImage                     = errors.New("no image")
 	ErrNoBuildPod                  = errors.New("No build pod set in config")

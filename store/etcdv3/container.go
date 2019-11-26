@@ -75,7 +75,7 @@ func (m *Mercury) GetContainerStatus(ctx context.Context, ID string) (types.Stat
 }
 
 // SetContainerStatus set container status
-func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Container, ttl int64) error {
+func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Container, ttl int64, force bool) error {
 	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
 	if err != nil {
 		return err
@@ -93,8 +93,12 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 		}
 		opts = append(opts, clientv3.WithLease(lease.ID))
 	}
-	// Only update when it exist
-	_, err = m.Update(ctx, deployKey, string(data), opts...)
+	if !force {
+		// Only update when it exist
+		_, err = m.Update(ctx, deployKey, string(data), opts...)
+	} else {
+		_, err = m.Create(ctx, deployKey, string(data), opts...)
+	}
 	return err
 }
 
@@ -234,13 +238,13 @@ func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*typ
 	}
 
 	// deal with container status
-	kvs, err := m.GetMulti(ctx, deployKeys)
-	if err != nil {
-		return nil, err
-	}
-	for _, kv := range kvs {
-		containerID := utils.Tail(string(kv.Key))
-		deployStatus[containerID] = kv.Value
+	if kvs, err := m.GetMulti(ctx, deployKeys); err == nil {
+		for _, kv := range kvs {
+			containerID := utils.Tail(string(kv.Key))
+			deployStatus[containerID] = kv.Value
+		}
+	} else {
+		log.Warnf("[bindContainersAdditions] get container status failed %v", err)
 	}
 
 	nodes, err := m.GetNodes(ctx, podNodes)
@@ -253,12 +257,12 @@ func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*typ
 			return nil, types.ErrBadMeta
 		}
 		containers[index].Engine = nodes[container.Nodename].Engine
-		if _, ok := deployStatus[container.ID]; !ok {
-			return nil, types.ErrRunningStatusUnknown
-		}
-		if err := json.Unmarshal(deployStatus[container.ID], &containers[index].StatusMeta); err != nil {
-			log.Warnf("[bindContainersAdditions] unmarshal %s status data failed %v", container.ID, err)
-			log.Errorf("%s", deployStatus[container.ID])
+		containers[index].StatusMeta.ID = containers[index].ID
+		if _, ok := deployStatus[container.ID]; ok {
+			if err := json.Unmarshal(deployStatus[container.ID], &containers[index].StatusMeta); err != nil {
+				log.Warnf("[bindContainersAdditions] unmarshal %s status data failed %v", container.ID, err)
+				log.Errorf("[bindContainersAdditions] status raw: %s", deployStatus[container.ID])
+			}
 		}
 	}
 	return containers, nil

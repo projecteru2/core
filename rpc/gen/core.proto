@@ -176,6 +176,7 @@ message ContainerStatusStreamMessage {
 
 message SetContainersStatusOptions {
     repeated ContainerStatus status = 1;
+    bool force = 2;
 }
 
 message ContainerStatusStreamOptions {
