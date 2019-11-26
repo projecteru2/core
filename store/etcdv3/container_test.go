@@ -51,7 +51,7 @@ func TestContainer(t *testing.T) {
 	assert.NoError(t, err)
 	r, err := m.GetOne(ctx, filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID))
 	assert.NoError(t, err)
-	assert.Equal(t, string(r.Value), fmt.Sprintf(`{"id":"%s"}`, ID))
+	assert.Equal(t, string(r.Value), "")
 	// Update
 	container.Memory = int64(100)
 	container.Storage = int64(100)
@@ -86,14 +86,14 @@ func TestContainer(t *testing.T) {
 	container.StatusMeta = types.StatusMeta{
 		Running: true,
 	}
-	err = m.SetContainerStatus(ctx, container, 0, false)
+	err = m.SetContainerStatus(ctx, container, 0)
 	assert.NoError(t, err)
 	container2 := &types.Container{
 		ID:         container.ID,
 		Nodename:   "n2",
 		StatusMeta: types.StatusMeta{Healthy: true},
 	}
-	err = m.SetContainerStatus(ctx, container2, 0, false)
+	err = m.SetContainerStatus(ctx, container2, 0)
 	assert.Error(t, err)
 	// ListContainers
 	containers, _ = m.ListContainers(ctx, appname, entrypoint, "", 1)
@@ -142,20 +142,13 @@ func TestContainerStatusStream(t *testing.T) {
 	// ContainerStatusStream
 	cctx, cancel := context.WithCancel(ctx)
 	ch := m.ContainerStatusStream(cctx, appname, entrypoint, "", nil)
-	b := make(chan int)
-	go func() {
-		s := <-ch
-		assert.False(t, s.Delete)
-		assert.NotNil(t, s.Container)
-		cancel()
-		close(b)
-	}()
 	container.StatusMeta = types.StatusMeta{
 		ID:      ID,
 		Running: true,
 	}
-	err = m.SetContainerStatus(ctx, container, 0, false)
-	assert.NoError(t, err)
-	<-b
-	m.RemoveContainer(ctx, container)
+	assert.NoError(t, m.SetContainerStatus(ctx, container, 0))
+	s := <-ch
+	assert.False(t, s.Delete)
+	assert.NotNil(t, s.Container)
+	cancel()
 }

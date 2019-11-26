@@ -210,11 +210,6 @@ func (c *Calcium) doCreateAndStartContainer(
 		}
 	}
 
-	// store eru container
-	if err = c.store.AddContainer(ctx, container); err != nil {
-		return createContainerMessage
-	}
-
 	// start first
 	createContainerMessage.Hook, err = c.doStartContainer(ctx, container, opts.IgnoreHook)
 	if err != nil {
@@ -227,18 +222,20 @@ func (c *Calcium) doCreateAndStartContainer(
 	if err != nil {
 		return createContainerMessage
 	}
+
 	// update meta
 	if containerInfo.Networks != nil {
 		createContainerMessage.Publish = utils.MakePublishInfo(containerInfo.Networks, opts.Entrypoint.Publish)
 	}
+	// reset users
 	if containerInfo.User != container.User {
 		container.User = containerInfo.User
 	}
 	// reset container.hook
 	container.Hook = opts.Entrypoint.Hook
 
-	// update store meta
-	if err = c.store.UpdateContainer(ctx, container); err != nil {
+	// store eru container
+	if err = c.store.AddContainer(ctx, container); err != nil {
 		return createContainerMessage
 	}
 
