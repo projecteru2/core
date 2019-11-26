@@ -75,7 +75,7 @@ func (m *Mercury) GetContainerStatus(ctx context.Context, ID string) (types.Stat
 }
 
 // SetContainerStatus set container status
-func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Container, ttl int64, force bool) error {
+func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Container, ttl int64) error {
 	appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 	if err != nil {
 		return err
 	}
-	deployKey := filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)
+	statusKey := filepath.Join(containerStatusPrefix, appname, entrypoint, container.Nodename, container.ID)
 	opts := []clientv3.OpOption{}
 	if ttl > 0 {
 		lease, err := m.cliv3.Grant(ctx, ttl)
@@ -93,12 +93,7 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 		}
 		opts = append(opts, clientv3.WithLease(lease.ID))
 	}
-	if !force {
-		// Only update when it exist
-		_, err = m.Update(ctx, deployKey, string(data), opts...)
-	} else {
-		_, err = m.Create(ctx, deployKey, string(data), opts...)
-	}
+	_, err = m.Create(ctx, statusKey, string(data), opts...)
 	return err
 }
 
@@ -155,11 +150,11 @@ func (m *Mercury) ContainerStatusStream(ctx context.Context, appname, entrypoint
 		nodename = ""
 	}
 	// 显式加个 / 保证 prefix 唯一
-	key := filepath.Join(containerDeployPrefix, appname, entrypoint, nodename) + "/"
+	statusKey := filepath.Join(containerStatusPrefix, appname, entrypoint, nodename) + "/"
 	ch := make(chan *types.ContainerStatus)
 	go func() {
 		defer close(ch)
-		for resp := range m.Watch(ctx, key, clientv3.WithPrefix()) {
+		for resp := range m.Watch(ctx, statusKey, clientv3.WithPrefix()) {
 			if resp.Err() != nil {
 				if !resp.Canceled {
 					log.Errorf("[ContainerStatusStream] watch failed %v", resp.Err())
@@ -218,7 +213,7 @@ func (m *Mercury) doGetContainers(ctx context.Context, keys []string) (container
 func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*types.Container) ([]*types.Container, error) {
 	podNodes := map[string][]string{}
 	isCached := map[string]struct{}{}
-	deployKeys := []string{}
+	statusKeys := []string{}
 	deployStatus := map[string][]byte{}
 	for _, container := range containers {
 		if _, ok := podNodes[container.Podname]; !ok {
@@ -232,13 +227,13 @@ func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*typ
 		if err != nil {
 			return nil, err
 		}
-		deployKeys = append(deployKeys,
-			filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID),
+		statusKeys = append(statusKeys,
+			filepath.Join(containerStatusPrefix, appname, entrypoint, container.Nodename, container.ID),
 		)
 	}
 
 	// deal with container status
-	if kvs, err := m.GetMulti(ctx, deployKeys); err == nil {
+	if kvs, err := m.GetMulti(ctx, statusKeys); err == nil {
 		for _, kv := range kvs {
 			containerID := utils.Tail(string(kv.Key))
 			deployStatus[containerID] = kv.Value
@@ -289,11 +284,7 @@ func (m *Mercury) doOpsContainer(ctx context.Context, container *types.Container
 	}
 
 	if create {
-		b, err := json.Marshal(container.StatusMeta)
-		if err != nil {
-			return err
-		}
-		data[filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)] = string(b)
+		data[filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)] = ""
 		_, err = m.BatchCreate(ctx, data)
 	} else {
 		_, err = m.BatchUpdate(ctx, data)

@@ -438,13 +438,13 @@ func (_m *Store) SaveProcessing(ctx context.Context, opts *types.DeployOptions, 
 	return r0
 }
 
-// SetContainerStatus provides a mock function with given fields: ctx, container, ttl, force
-func (_m *Store) SetContainerStatus(ctx context.Context, container *types.Container, ttl int64, force bool) error {
-	ret := _m.Called(ctx, container, ttl, force)
+// SetContainerStatus provides a mock function with given fields: ctx, container, ttl
+func (_m *Store) SetContainerStatus(ctx context.Context, container *types.Container, ttl int64) error {
+	ret := _m.Called(ctx, container, ttl)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.Container, int64, bool) error); ok {
-		r0 = rf(ctx, container, ttl, force)
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Container, int64) error); ok {
+		r0 = rf(ctx, container, ttl)
 	} else {
 		r0 = ret.Error(0)
 	}

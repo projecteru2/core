@@ -74,7 +74,7 @@ type Cluster interface {
 	ListContainers(ctx context.Context, opts *types.ListContainersOptions) ([]*types.Container, error)
 	ListNodeContainers(ctx context.Context, nodename string) ([]*types.Container, error)
 	GetContainersStatus(ctx context.Context, IDs []string) ([]types.StatusMeta, error)
-	SetContainersStatus(ctx context.Context, status map[string]types.StatusMeta, ttls map[string]int64, force bool) ([]types.StatusMeta, error)
+	SetContainersStatus(ctx context.Context, status map[string]types.StatusMeta, ttls map[string]int64) ([]types.StatusMeta, error)
 	ContainerStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.ContainerStatus
 	// cluster methods
 	Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error)

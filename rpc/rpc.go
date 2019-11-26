@@ -3,7 +3,6 @@ package rpc
 import (
 	"bufio"
 	"compress/gzip"
-	"encoding/json"
 	"fmt"
 	"io"
 	"sync"
@@ -687,21 +686,17 @@ func (v *Vibranium) SetContainersStatus(ctx context.Context, opts *pb.SetContain
 	ttls := map[string]int64{}
 	for _, status := range opts.Status {
 		r := types.StatusMeta{
-			ID:       status.Id,
-			Running:  status.Running,
-			Healthy:  status.Healthy,
-			Networks: status.Networks,
-		}
-		if len(status.Extension) > 0 {
-			if err = json.Unmarshal(status.Extension, &r.Extension); err != nil {
-				return nil, err
-			}
+			ID:        status.Id,
+			Running:   status.Running,
+			Healthy:   status.Healthy,
+			Networks:  status.Networks,
+			Extension: status.Extension,
 		}
 		statusData[status.Id] = r
 		ttls[status.Id] = status.Ttl
 	}
 
-	status, err := v.cluster.SetContainersStatus(ctx, statusData, ttls, opts.Force)
+	status, err := v.cluster.SetContainersStatus(ctx, statusData, ttls)
 	if err != nil {
 		return nil, err
 	}

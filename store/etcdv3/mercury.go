@@ -35,6 +35,7 @@ const (
 
 	containerInfoKey          = "/containers/%s" // /containers/{containerID}
 	containerDeployPrefix     = "/deploy"        // /deploy/{appname}/{entrypoint}/{nodename}/{containerID} value -> something by agent
+	containerStatusPrefix     = "/status"        // /status/{appname}/{entrypoint}/{nodename}/{containerID} value -> something by agent
 	containerProcessingPrefix = "/processing"    // /processing/{appname}/{entrypoint}/{nodename}/{opsIdent} value -> count
 
 	cmpVersion = "version"

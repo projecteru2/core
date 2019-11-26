@@ -373,16 +373,12 @@ func toRPCAttachContainerMessage(msg *types.AttachContainerMessage) *pb.AttachCo
 }
 
 func toRPCContainerStatus(containerStatus types.StatusMeta) (*pb.ContainerStatus, error) {
-	b, err := json.Marshal(containerStatus.Extension)
-	if err != nil {
-		return nil, err
-	}
 	r := &pb.ContainerStatus{
 		Id:        containerStatus.ID,
 		Healthy:   containerStatus.Healthy,
 		Running:   containerStatus.Running,
 		Networks:  containerStatus.Networks,
-		Extension: b,
+		Extension: containerStatus.Extension,
 	}
 	return r, nil
 }
