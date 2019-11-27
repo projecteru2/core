@@ -151,6 +151,7 @@ message Container {
     map<string, string> publish = 10;
     string image = 11;
     int64 storage = 12;
+    ContainerStatus status = 13;
 }
 
 message ContainerStatus {

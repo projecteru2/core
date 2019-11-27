@@ -58,7 +58,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 					replaceOpts.Volumes = container.Volumes
 					// 继承网络配置
 					if replaceOpts.NetworkInherit {
-						if !container.StatusMeta.Running {
+						if container.StatusMeta == nil || !container.StatusMeta.Running {
 							return types.NewDetailedErr(types.ErrNotSupport,
 								fmt.Sprintf("container %s is not running, can not inherit", container.ID),
 							)
@@ -130,7 +130,7 @@ func (c *Calcium) doReplaceContainer(
 	if err != nil {
 		return nil, removeMessage, err
 	}
-	container.StatusMeta.Running = false
+	container.StatusMeta = nil // 标记容器为无 status 状态，默认含义为停止
 	// 不涉及资源消耗，创建容器失败会被回收容器而不回收资源
 	// 创建成功容器会干掉之前的老容器也不会动资源，实际上实现了动态捆绑
 	createMessage := c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU)

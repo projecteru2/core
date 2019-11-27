@@ -669,11 +669,7 @@ func (v *Vibranium) GetContainersStatus(ctx context.Context, opts *pb.ContainerI
 	if err != nil {
 		return nil, err
 	}
-	r, err := toRPCContainersStatus(containersStatus)
-	if err != nil {
-		return nil, err
-	}
-	return &pb.ContainersStatus{Status: r}, nil
+	return &pb.ContainersStatus{Status: toRPCContainersStatus(containersStatus)}, nil
 }
 
 // SetContainersStatus set containers status
@@ -682,17 +678,17 @@ func (v *Vibranium) SetContainersStatus(ctx context.Context, opts *pb.SetContain
 	defer v.taskDone("SetContainersStatus", false)
 
 	var err error
-	statusData := map[string]types.StatusMeta{}
+	statusData := []*types.StatusMeta{}
 	ttls := map[string]int64{}
 	for _, status := range opts.Status {
-		r := types.StatusMeta{
+		r := &types.StatusMeta{
 			ID:        status.Id,
 			Running:   status.Running,
 			Healthy:   status.Healthy,
 			Networks:  status.Networks,
 			Extension: status.Extension,
 		}
-		statusData[status.Id] = r
+		statusData = append(statusData, r)
 		ttls[status.Id] = status.Ttl
 	}
 
@@ -700,12 +696,7 @@ func (v *Vibranium) SetContainersStatus(ctx context.Context, opts *pb.SetContain
 	if err != nil {
 		return nil, err
 	}
-	r, err := toRPCContainersStatus(status)
-	if err != nil {
-		return nil, err
-	}
-
-	return &pb.ContainersStatus{Status: r}, nil
+	return &pb.ContainersStatus{Status: toRPCContainersStatus(status)}, nil
 }
 
 // ContainerStatusStream watch and show deployed status
@@ -729,11 +720,9 @@ func (v *Vibranium) ContainerStatusStream(opts *pb.ContainerStatusStreamOptions,
 			} else if m.Container != nil {
 				if container, err := toRPCContainer(stream.Context(), m.Container); err != nil {
 					r.Error = err.Error()
-				} else if status, err := toRPCContainerStatus(m.Container.StatusMeta); err != nil {
-					r.Error = err.Error()
 				} else {
 					r.Container = container
-					r.Status = status
+					r.Status = toRPCContainerStatus(m.Container.StatusMeta)
 				}
 			}
 			if err := stream.Send(r); err != nil {

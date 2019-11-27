@@ -109,8 +109,9 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				return err
 			}
 			for _, container := range containers {
-				// subscriber should query eru to get other metas
-				container.StatusMeta.ID = container.ID
+				if container.StatusMeta == nil {
+					container.StatusMeta = &types.StatusMeta{ID: container.ID}
+				}
 				container.StatusMeta.Running = false
 				container.StatusMeta.Healthy = false
 
