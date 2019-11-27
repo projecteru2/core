@@ -192,14 +192,16 @@ func (_m *Store) GetContainer(ctx context.Context, ID string) (*types.Container,
 }
 
 // GetContainerStatus provides a mock function with given fields: ctx, ID
-func (_m *Store) GetContainerStatus(ctx context.Context, ID string) (types.StatusMeta, error) {
+func (_m *Store) GetContainerStatus(ctx context.Context, ID string) (*types.StatusMeta, error) {
 	ret := _m.Called(ctx, ID)
 
-	var r0 types.StatusMeta
-	if rf, ok := ret.Get(0).(func(context.Context, string) types.StatusMeta); ok {
+	var r0 *types.StatusMeta
+	if rf, ok := ret.Get(0).(func(context.Context, string) *types.StatusMeta); ok {
 		r0 = rf(ctx, ID)
 	} else {
-		r0 = ret.Get(0).(types.StatusMeta)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.StatusMeta)
+		}
 	}
 
 	var r1 error

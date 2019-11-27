@@ -14,10 +14,10 @@ func TestGetContainersStatus(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
-	cs := types.StatusMeta{}
+	cs := &types.StatusMeta{}
 
 	// failed
-	store.On("GetContainerStatus", mock.Anything, mock.Anything).Return(types.StatusMeta{}, types.ErrBadCount).Once()
+	store.On("GetContainerStatus", mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
 	_, err := c.GetContainersStatus(ctx, []string{"a"})
 	assert.Error(t, err)
 	store.On("GetContainerStatus", mock.Anything, mock.Anything).Return(cs, nil)
@@ -34,7 +34,7 @@ func TestSetContainersStatus(t *testing.T) {
 
 	// failed
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
-	_, err := c.SetContainersStatus(ctx, map[string]types.StatusMeta{"123": types.StatusMeta{}}, nil)
+	_, err := c.SetContainersStatus(ctx, []*types.StatusMeta{&types.StatusMeta{ID: "123"}}, nil)
 	assert.Error(t, err)
 	container := &types.Container{
 		ID:   "123",
@@ -47,7 +47,7 @@ func TestSetContainersStatus(t *testing.T) {
 		mock.Anything,
 		mock.Anything,
 	).Return(types.ErrBadCount).Once()
-	_, err = c.SetContainersStatus(ctx, map[string]types.StatusMeta{"123": types.StatusMeta{}}, nil)
+	_, err = c.SetContainersStatus(ctx, []*types.StatusMeta{&types.StatusMeta{ID: "123"}}, nil)
 	assert.Error(t, err)
 	// success
 	store.On("SetContainerStatus",
@@ -55,7 +55,7 @@ func TestSetContainersStatus(t *testing.T) {
 		mock.Anything,
 		mock.Anything,
 	).Return(nil)
-	r, err := c.SetContainersStatus(ctx, map[string]types.StatusMeta{"123": types.StatusMeta{}}, nil)
+	r, err := c.SetContainersStatus(ctx, []*types.StatusMeta{&types.StatusMeta{ID: "123"}}, nil)
 	assert.NoError(t, err)
 	assert.Len(t, r, 1)
 }
@@ -66,7 +66,7 @@ func TestContainerStatusStream(t *testing.T) {
 	dataCh := make(chan *types.ContainerStatus)
 	store := c.store.(*storemocks.Store)
 
-	store.On("ContainerStatusStream", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(dataCh)
+	store.On("ContainerStatusStream", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(dataCh)
 	go func() {
 		msg := &types.ContainerStatus{
 			Delete: true,

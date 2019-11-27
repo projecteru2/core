@@ -22,11 +22,10 @@ func TestContainer(t *testing.T) {
 	nodename := "n1"
 	podname := "test"
 	container := &types.Container{
-		ID:         ID,
-		Name:       name,
-		Nodename:   nodename,
-		Podname:    podname,
-		StatusMeta: types.StatusMeta{ID: ID},
+		ID:       ID,
+		Name:     name,
+		Nodename: nodename,
+		Podname:  podname,
 	}
 	node := &types.Node{
 		Name:     nodename,
@@ -51,7 +50,7 @@ func TestContainer(t *testing.T) {
 	assert.NoError(t, err)
 	r, err := m.GetOne(ctx, filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID))
 	assert.NoError(t, err)
-	assert.Equal(t, string(r.Value), "")
+	assert.NotEmpty(t, r.Value)
 	// Update
 	container.Memory = int64(100)
 	container.Storage = int64(100)
@@ -83,7 +82,7 @@ func TestContainer(t *testing.T) {
 	assert.Equal(t, containers[1].Name, newContainer.Name)
 	assert.NoError(t, m.RemoveContainer(ctx, newContainer))
 	// Deployed
-	container.StatusMeta = types.StatusMeta{
+	container.StatusMeta = &types.StatusMeta{
 		Running: true,
 	}
 	err = m.SetContainerStatus(ctx, container, 0)
@@ -91,7 +90,7 @@ func TestContainer(t *testing.T) {
 	container2 := &types.Container{
 		ID:         container.ID,
 		Nodename:   "n2",
-		StatusMeta: types.StatusMeta{Healthy: true},
+		StatusMeta: &types.StatusMeta{Healthy: true},
 	}
 	err = m.SetContainerStatus(ctx, container2, 0)
 	assert.Error(t, err)
@@ -142,7 +141,7 @@ func TestContainerStatusStream(t *testing.T) {
 	// ContainerStatusStream
 	cctx, cancel := context.WithCancel(ctx)
 	ch := m.ContainerStatusStream(cctx, appname, entrypoint, "", nil)
-	container.StatusMeta = types.StatusMeta{
+	container.StatusMeta = &types.StatusMeta{
 		ID:      ID,
 		Running: true,
 	}

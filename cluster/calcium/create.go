@@ -152,8 +152,6 @@ func (c *Calcium) doCreateAndStartContainer(
 		Env:        opts.Env,
 		User:       opts.User,
 		Volumes:    opts.Volumes,
-		Labels:     opts.Labels,
-		StatusMeta: types.StatusMeta{},
 	}
 	createContainerMessage := &types.CreateContainerMessage{
 		Podname:  container.Podname,
@@ -181,6 +179,7 @@ func (c *Calcium) doCreateAndStartContainer(
 	// get config
 	config := c.doMakeContainerOptions(no, cpu, opts, node)
 	container.Name = config.Name
+	container.Labels = config.Labels
 	createContainerMessage.ContainerName = container.Name
 
 	// create container
@@ -190,7 +189,6 @@ func (c *Calcium) doCreateAndStartContainer(
 		return createContainerMessage
 	}
 	container.ID = containerCreated.ID
-	container.StatusMeta.ID = containerCreated.ID
 	createContainerMessage.ContainerID = containerCreated.ID
 
 	// Copy data to container

@@ -126,7 +126,7 @@ func TestControlStop(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	c.store = store
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	StatusMeta := types.StatusMeta{
+	StatusMeta := &types.StatusMeta{
 		ID:      "cid",
 		Running: true,
 	}
@@ -164,6 +164,48 @@ func TestControlStop(t *testing.T) {
 	engine.On("VirtualizationStop", mock.Anything, mock.Anything).Return(nil)
 	// stop success
 	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStop, false)
+	container.ID = "succed"
+	assert.NoError(t, err)
+	for r := range ch {
+		assert.NoError(t, r.Error)
+	}
+}
+
+func TestControlRestart(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	store := &storemocks.Store{}
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	c.store = store
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	engine := &enginemocks.API{}
+	container := &types.Container{
+		ID:         "cid",
+		Privileged: true,
+		Engine:     engine,
+		StatusMeta: &types.StatusMeta{Running: true},
+	}
+	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
+	// failed, hook true, remove always false
+	hook := &types.Hook{
+		BeforeStop: []string{"cmd1"},
+	}
+	container.ID = "failed"
+	container.Hook = hook
+	container.Hook.Force = true
+	engine.On("ExecCreate", mock.Anything, mock.Anything, mock.Anything).Return("", types.ErrNilEngine)
+	ch, err := c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerRestart, false)
+	assert.NoError(t, err)
+	for r := range ch {
+		assert.Error(t, r.Error)
+	}
+	container.Hook = nil
+	// success
+	engine.On("VirtualizationStop", mock.Anything, mock.Anything).Return(nil)
+	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
+	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerRestart, false)
 	container.ID = "succed"
 	assert.NoError(t, err)
 	for r := range ch {

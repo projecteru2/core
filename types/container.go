@@ -44,7 +44,7 @@ type Container struct {
 	Image      string            `json:"image"`
 	Volumes    []string          `json:"volumes"`
 	Labels     map[string]string `json:"labels"`
-	StatusMeta StatusMeta        `json:"-"`
+	StatusMeta *StatusMeta       `json:"-"`
 	Engine     engine.API        `json:"-"`
 }
 

@@ -372,27 +372,28 @@ func toRPCAttachContainerMessage(msg *types.AttachContainerMessage) *pb.AttachCo
 	}
 }
 
-func toRPCContainerStatus(containerStatus types.StatusMeta) (*pb.ContainerStatus, error) {
-	r := &pb.ContainerStatus{
-		Id:        containerStatus.ID,
-		Healthy:   containerStatus.Healthy,
-		Running:   containerStatus.Running,
-		Networks:  containerStatus.Networks,
-		Extension: containerStatus.Extension,
+func toRPCContainerStatus(containerStatus *types.StatusMeta) *pb.ContainerStatus {
+	var r *pb.ContainerStatus
+	if containerStatus != nil {
+		r = &pb.ContainerStatus{}
+		r.Id = containerStatus.ID
+		r.Healthy = containerStatus.Healthy
+		r.Running = containerStatus.Running
+		r.Networks = containerStatus.Networks
+		r.Extension = containerStatus.Extension
 	}
-	return r, nil
+	return r
 }
 
-func toRPCContainersStatus(containersStatus []types.StatusMeta) ([]*pb.ContainerStatus, error) {
+func toRPCContainersStatus(containersStatus []*types.StatusMeta) []*pb.ContainerStatus {
 	r := []*pb.ContainerStatus{}
 	for _, cs := range containersStatus {
-		s, err := toRPCContainerStatus(cs)
-		if err != nil {
-			return nil, err
+		s := toRPCContainerStatus(cs)
+		if s != nil {
+			r = append(r, s)
 		}
-		r = append(r, s)
 	}
-	return r, nil
+	return r
 }
 
 func toRPCContainers(ctx context.Context, containers []*types.Container, labels map[string]string) []*pb.Container {
@@ -412,7 +413,7 @@ func toRPCContainers(ctx context.Context, containers []*types.Container, labels 
 
 func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, error) {
 	publish := map[string]string{}
-	if c.StatusMeta.Running && len(c.StatusMeta.Networks) != 0 {
+	if c.StatusMeta != nil && len(c.StatusMeta.Networks) != 0 {
 		meta := utils.DecodeMetaInLabel(c.Labels)
 		publish = utils.EncodePublishInfo(
 			utils.MakePublishInfo(c.StatusMeta.Networks, meta.Publish),
@@ -433,6 +434,7 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		Publish:    publish,
 		Image:      c.Image,
 		Labels:     c.Labels,
+		Status:     toRPCContainerStatus(c.StatusMeta),
 	}, nil
 }
 
