@@ -404,9 +404,10 @@ func toRPCContainers(ctx context.Context, containers []*types.Container, labels 
 			log.Errorf("[toRPCContainers] trans to pb container failed %v", err)
 			continue
 		}
-		if utils.FilterContainer(pContainer.Labels, labels) {
-			cs = append(cs, pContainer)
+		if !utils.FilterContainer(pContainer.Labels, labels) {
+			continue
 		}
+		cs = append(cs, pContainer)
 	}
 	return cs
 }

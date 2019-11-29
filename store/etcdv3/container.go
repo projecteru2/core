@@ -167,12 +167,12 @@ func (m *Mercury) ContainerStatusStream(ctx context.Context, appname, entrypoint
 					msg.Delete = true
 				} else if container, err := m.GetContainer(ctx, ID); err != nil {
 					msg.Error = err
-				} else if utils.FilterContainer(container.Labels, labels) {
-					log.Debugf("[ContainerStatusStream] container %s status changed", container.ID)
-					msg.Container = container
-				} else {
+				} else if !utils.FilterContainer(container.Labels, labels) {
 					log.Warnf("[ContainerStatusStream] ignore container %s by labels", ID)
 					continue
+				} else {
+					log.Debugf("[ContainerStatusStream] container %s status changed", container.ID)
+					msg.Container = container
 				}
 				ch <- msg
 			}

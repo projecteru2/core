@@ -165,8 +165,8 @@ func (m *Mercury) batchDelete(ctx context.Context, keys []string, opts ...client
 }
 
 // Put save a key value
-func (m *Mercury) Put(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
-	return m.cliv3.Put(ctx, m.parseKey(key), val, opts...)
+func (m *Mercury) Put(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+	return m.batchPut(ctx, map[string]string{key: val}, nil, opts...)
 }
 
 func (m *Mercury) batchPut(ctx context.Context, data map[string]string, limit map[string]map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
