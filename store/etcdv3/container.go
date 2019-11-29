@@ -1,6 +1,7 @@
 package etcdv3
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
@@ -153,7 +154,7 @@ func (m *Mercury) ContainerStatusStream(ctx context.Context, appname, entrypoint
 	ch := make(chan *types.ContainerStatus)
 	go func() {
 		defer close(ch)
-		for resp := range m.Watch(ctx, statusKey, clientv3.WithPrefix()) {
+		for resp := range m.Watch(ctx, statusKey, clientv3.WithPrefix(), clientv3.WithPrevKV()) {
 			if resp.Err() != nil {
 				if !resp.Canceled {
 					log.Errorf("[ContainerStatusStream] watch failed %v", resp.Err())
@@ -161,6 +162,9 @@ func (m *Mercury) ContainerStatusStream(ctx context.Context, appname, entrypoint
 				return
 			}
 			for _, ev := range resp.Events {
+				if ev.Kv != nil && ev.PrevKv != nil && bytes.Equal(ev.Kv.Value, ev.PrevKv.Value) {
+					continue
+				}
 				_, _, _, ID := parseStatusKey(string(ev.Kv.Key))
 				msg := &types.ContainerStatus{ID: ID}
 				if ev.Type == clientv3.EventTypeDelete {

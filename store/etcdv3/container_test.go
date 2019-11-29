@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
@@ -139,15 +140,19 @@ func TestContainerStatusStream(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, m.AddContainer(ctx, container))
 	// ContainerStatusStream
-	cctx, cancel := context.WithCancel(ctx)
-	ch := m.ContainerStatusStream(cctx, appname, entrypoint, "", nil)
 	container.StatusMeta = &types.StatusMeta{
 		ID:      ID,
 		Running: true,
 	}
+	cctx, cancel := context.WithCancel(ctx)
+	ch := m.ContainerStatusStream(cctx, appname, entrypoint, "", nil)
 	assert.NoError(t, m.SetContainerStatus(ctx, container, 0))
-	s := <-ch
-	assert.False(t, s.Delete)
-	assert.NotNil(t, s.Container)
-	cancel()
+	go func() {
+		time.Sleep(1 * time.Second)
+		cancel()
+	}()
+	for s := range ch {
+		assert.False(t, s.Delete)
+		assert.NotNil(t, s.Container)
+	}
 }
