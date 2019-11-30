@@ -221,7 +221,20 @@ func (m *Mercury) Update(ctx context.Context, key, val string, opts ...clientv3.
 	return m.BatchUpdate(ctx, map[string]string{key: val}, opts...)
 }
 
-// BatchUpdate update keys if not exists
+// GetThenPut if key exists, then put
+func (m *Mercury) GetThenPut(ctx context.Context, getKeys []string, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+	prefixKey := m.parseKey(key)
+	ops := []clientv3.Op{clientv3.OpPut(prefixKey, val, opts...)}
+	conds := []clientv3.Cmp{}
+	for _, getKey := range getKeys {
+		prefixGetKey := m.parseKey(getKey)
+		cond := clientv3.Compare(clientv3.Version(prefixGetKey), "!=", 0)
+		conds = append(conds, cond)
+	}
+	return m.doBatchOp(ctx, conds, ops, []clientv3.Op{})
+}
+
+// BatchUpdate batch update keys
 func (m *Mercury) BatchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
 	limit := map[string]map[string]string{}
 	for key := range data {
