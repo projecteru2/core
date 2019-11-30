@@ -90,7 +90,8 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 		}
 		opts = append(opts, clientv3.WithLease(lease.ID))
 	}
-	_, err = m.Put(ctx, statusKey, string(data), opts...)
+	containerKey := fmt.Sprintf(containerInfoKey, container.ID)
+	_, err = m.GetThenPut(ctx, []string{containerKey}, statusKey, string(data), opts...)
 	return err
 }
 
@@ -192,6 +193,7 @@ func (m *Mercury) cleanContainerData(ctx context.Context, container *types.Conta
 	}
 
 	keys := []string{
+		filepath.Join(containerStatusPrefix, appname, entrypoint, container.Nodename, container.ID), // container deploy status
 		filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID), // container deploy status
 		fmt.Sprintf(containerInfoKey, container.ID),                                                 // container info
 		fmt.Sprintf(nodeContainersKey, container.Nodename, container.ID),                            // node containers
