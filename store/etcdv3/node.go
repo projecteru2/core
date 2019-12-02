@@ -109,10 +109,7 @@ func (m *Mercury) GetNode(ctx context.Context, podname, nodename string) (*types
 	podNodes := map[string][]string{podname: []string{nodename}}
 	nodes, err := m.GetNodes(ctx, podNodes)
 	if _, ok := nodes[nodename]; !ok {
-		return nil, types.NewDetailedErr(
-			types.ErrBadMeta,
-			fmt.Sprintf("nodename: %s, nodes: %v", nodename, nodes),
-		)
+		return nil, types.NewDetailedErr(types.ErrBadMeta, fmt.Sprintf("nodename: %s, nodes: %v", nodename, nodes))
 	}
 	return nodes[nodename], err
 }
@@ -334,7 +331,7 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 	data[fmt.Sprintf(nodeInfoKey, podname, name)] = string(bytes)
 	data[fmt.Sprintf(nodePodKey, name)] = podname
 
-	_, err = m.BatchCreate(ctx, data)
+	_, err = m.batchCreate(ctx, data)
 	if err != nil {
 		return nil, err
 	}
