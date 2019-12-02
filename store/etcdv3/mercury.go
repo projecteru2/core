@@ -4,8 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -14,6 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/coreos/etcd/clientv3"
+	"github.com/coreos/etcd/clientv3/namespace"
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/lock/etcdlock"
@@ -77,6 +76,9 @@ func New(config types.Config, embededStorage bool) (*Mercury, error) {
 	}); err != nil {
 		return nil, err
 	}
+	cliv3.KV = namespace.NewKV(cliv3.KV, config.Etcd.Prefix)
+	cliv3.Watcher = namespace.NewWatcher(cliv3.Watcher, config.Etcd.Prefix)
+	cliv3.Lease = namespace.NewLease(cliv3.Lease, config.Etcd.Prefix)
 	return &Mercury{cliv3: cliv3, config: config}, nil
 }
 
@@ -94,16 +96,7 @@ func (m *Mercury) CreateLock(key string, ttl time.Duration) (lock.DistributedLoc
 
 // Get get results or noting
 func (m *Mercury) Get(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.GetResponse, error) {
-	return m.cliv3.Get(ctx, m.parseKey(key), opts...)
-}
-
-func (m *Mercury) batchGet(ctx context.Context, keys []string, opt ...clientv3.OpOption) (txnResponse *clientv3.TxnResponse, err error) {
-	ops := []clientv3.Op{}
-	for _, key := range keys {
-		op := clientv3.OpGet(m.parseKey(key), opt...)
-		ops = append(ops, op)
-	}
-	return m.doBatchOp(ctx, nil, ops, nil)
+	return m.cliv3.Get(ctx, key, opts...)
 }
 
 // GetOne get one result or noting
@@ -112,11 +105,9 @@ func (m *Mercury) GetOne(ctx context.Context, key string, opts ...clientv3.OpOpt
 	if err != nil {
 		return nil, err
 	}
-
 	if resp.Count != 1 {
 		return nil, types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("key: %s", key))
 	}
-
 	return resp.Kvs[0], nil
 }
 
@@ -126,47 +117,75 @@ func (m *Mercury) GetMulti(ctx context.Context, keys []string, opts ...clientv3.
 	if len(keys) == 0 {
 		return
 	}
-
 	if txnResponse, err = m.batchGet(ctx, keys); err != nil {
 		return
 	}
-
 	for idx, responseOp := range txnResponse.Responses {
 		resp := responseOp.GetResponseRange()
 		if resp.Count != 1 {
-			err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("key: %s", keys[idx]))
-			return
+			return nil, types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("key: %s", keys[idx]))
 		}
-
 		kvs = append(kvs, resp.Kvs[0])
 	}
-
 	if len(kvs) != len(keys) {
 		err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("keys: %v", keys))
 	}
-
 	return
 }
 
 // Delete delete key
 func (m *Mercury) Delete(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.DeleteResponse, error) {
-	return m.cliv3.Delete(ctx, m.parseKey(key), opts...)
+	return m.cliv3.Delete(ctx, key, opts...)
 }
 
-// BatchDelete batch delete keys
+// Put save a key value
+func (m *Mercury) Put(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
+	return m.cliv3.Put(ctx, key, val, opts...)
+}
+
+// Create create a key if not exists
+func (m *Mercury) Create(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+	return m.batchCreate(ctx, map[string]string{key: val}, opts...)
+}
+
+// Update update a key if exists
+func (m *Mercury) Update(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+	return m.batchUpdate(ctx, map[string]string{key: val}, opts...)
+}
+
+// GetThenPut if key exists, then put
+func (m *Mercury) GetThenPut(ctx context.Context, getKeys []string, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+	ops := []clientv3.Op{clientv3.OpPut(key, val, opts...)}
+	conds := []clientv3.Cmp{}
+	for _, getKey := range getKeys {
+		cond := clientv3.Compare(clientv3.Version(getKey), "!=", 0)
+		conds = append(conds, cond)
+	}
+	return m.doBatchOp(ctx, conds, ops, []clientv3.Op{})
+}
+
+// Watch wath a key
+func (m *Mercury) watch(ctx context.Context, key string, opts ...clientv3.OpOption) clientv3.WatchChan {
+	return m.cliv3.Watch(ctx, key, opts...)
+}
+
+func (m *Mercury) batchGet(ctx context.Context, keys []string, opt ...clientv3.OpOption) (txnResponse *clientv3.TxnResponse, err error) {
+	ops := []clientv3.Op{}
+	for _, key := range keys {
+		op := clientv3.OpGet(key, opt...)
+		ops = append(ops, op)
+	}
+	return m.doBatchOp(ctx, nil, ops, nil)
+}
+
 func (m *Mercury) batchDelete(ctx context.Context, keys []string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
 	ops := []clientv3.Op{}
 	for _, key := range keys {
-		op := clientv3.OpDelete(m.parseKey(key), opts...)
+		op := clientv3.OpDelete(key, opts...)
 		ops = append(ops, op)
 	}
 
 	return m.doBatchOp(ctx, nil, ops, nil)
-}
-
-// Put save a key value
-func (m *Mercury) Put(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	return m.batchPut(ctx, map[string]string{key: val}, nil, opts...)
 }
 
 func (m *Mercury) batchPut(ctx context.Context, data map[string]string, limit map[string]map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
@@ -174,19 +193,17 @@ func (m *Mercury) batchPut(ctx context.Context, data map[string]string, limit ma
 	failOps := []clientv3.Op{}
 	conds := []clientv3.Cmp{}
 	for key, val := range data {
-		prefixKey := m.parseKey(key)
-		op := clientv3.OpPut(prefixKey, val, opts...)
+		op := clientv3.OpPut(key, val, opts...)
 		ops = append(ops, op)
 		if v, ok := limit[key]; ok {
 			for method, condition := range v {
 				switch method {
 				case cmpVersion:
-					cond := clientv3.Compare(clientv3.Version(prefixKey), condition, 0)
+					cond := clientv3.Compare(clientv3.Version(key), condition, 0)
 					conds = append(conds, cond)
 				case cmpValue:
-					cond := clientv3.Compare(clientv3.Value(prefixKey), condition, val)
-					failOp := clientv3.OpGet(prefixKey)
-					failOps = append(failOps, failOp)
+					cond := clientv3.Compare(clientv3.Value(key), condition, val)
+					failOps = append(failOps, clientv3.OpGet(key))
 					conds = append(conds, cond)
 				}
 			}
@@ -195,13 +212,7 @@ func (m *Mercury) batchPut(ctx context.Context, data map[string]string, limit ma
 	return m.doBatchOp(ctx, conds, ops, failOps)
 }
 
-// Create create a key if not exists
-func (m *Mercury) Create(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	return m.BatchCreate(ctx, map[string]string{key: val}, opts...)
-}
-
-// BatchCreate create key values if not exists
-func (m *Mercury) BatchCreate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+func (m *Mercury) batchCreate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
 	limit := map[string]map[string]string{}
 	for key := range data {
 		limit[key] = map[string]string{cmpVersion: "="}
@@ -216,26 +227,7 @@ func (m *Mercury) BatchCreate(ctx context.Context, data map[string]string, opts 
 	return resp, nil
 }
 
-// Update update a key if exists
-func (m *Mercury) Update(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	return m.BatchUpdate(ctx, map[string]string{key: val}, opts...)
-}
-
-// GetThenPut if key exists, then put
-func (m *Mercury) GetThenPut(ctx context.Context, getKeys []string, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	prefixKey := m.parseKey(key)
-	ops := []clientv3.Op{clientv3.OpPut(prefixKey, val, opts...)}
-	conds := []clientv3.Cmp{}
-	for _, getKey := range getKeys {
-		prefixGetKey := m.parseKey(getKey)
-		cond := clientv3.Compare(clientv3.Version(prefixGetKey), "!=", 0)
-		conds = append(conds, cond)
-	}
-	return m.doBatchOp(ctx, conds, ops, []clientv3.Op{})
-}
-
-// BatchUpdate batch update keys
-func (m *Mercury) BatchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+func (m *Mercury) batchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
 	limit := map[string]map[string]string{}
 	for key := range data {
 		limit[key] = map[string]string{cmpVersion: "!=", cmpValue: "!="} // ignore same data
@@ -252,20 +244,6 @@ func (m *Mercury) BatchUpdate(ctx context.Context, data map[string]string, opts 
 		}
 	}
 	return resp, nil
-}
-
-// Watch wath a key
-func (m *Mercury) Watch(ctx context.Context, key string, opts ...clientv3.OpOption) clientv3.WatchChan {
-	key = m.parseKey(key)
-	return m.cliv3.Watch(ctx, key, opts...)
-}
-
-func (m *Mercury) parseKey(key string) string {
-	after := filepath.Join(m.config.Etcd.Prefix, key)
-	if strings.HasSuffix(key, "/") {
-		after = after + "/"
-	}
-	return after
 }
 
 func (m *Mercury) doBatchOp(ctx context.Context, conds []clientv3.Cmp, ops, failOps []clientv3.Op) (*clientv3.TxnResponse, error) {

@@ -155,7 +155,7 @@ func (m *Mercury) ContainerStatusStream(ctx context.Context, appname, entrypoint
 	ch := make(chan *types.ContainerStatus)
 	go func() {
 		defer close(ch)
-		for resp := range m.Watch(ctx, statusKey, clientv3.WithPrefix(), clientv3.WithPrevKV()) {
+		for resp := range m.watch(ctx, statusKey, clientv3.WithPrefix(), clientv3.WithPrevKV()) {
 			if resp.Err() != nil {
 				if !resp.Canceled {
 					log.Errorf("[ContainerStatusStream] watch failed %v", resp.Err())
@@ -290,9 +290,9 @@ func (m *Mercury) doOpsContainer(ctx context.Context, container *types.Container
 
 	if create {
 		data[filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)] = containerData
-		_, err = m.BatchCreate(ctx, data)
+		_, err = m.batchCreate(ctx, data)
 	} else {
-		_, err = m.BatchUpdate(ctx, data)
+		_, err = m.batchUpdate(ctx, data)
 	}
 	return err
 }

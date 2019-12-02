@@ -84,10 +84,14 @@ func TestContainer(t *testing.T) {
 	assert.NoError(t, m.RemoveContainer(ctx, newContainer))
 	// Deployed
 	container.StatusMeta = &types.StatusMeta{
+		ID:      container.ID,
 		Running: true,
 	}
 	err = m.SetContainerStatus(ctx, container, 0)
 	assert.NoError(t, err)
+	rs, err := m.GetContainerStatus(ctx, container.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, rs.ID, container.ID)
 	container2 := &types.Container{
 		ID:         container.ID,
 		Nodename:   "n2",

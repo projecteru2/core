@@ -75,11 +75,11 @@ func TestMercury(t *testing.T) {
 		"k1": "a1",
 		"k2": "a2",
 	}
-	r, err = m.BatchCreate(ctx, data)
+	r, err = m.batchCreate(ctx, data)
 	assert.NoError(t, err)
 	assert.True(t, r.Succeeded)
 	// BatchCreateFailed
-	r, err = m.BatchCreate(ctx, data)
+	r, err = m.batchCreate(ctx, data)
 	assert.Error(t, err)
 	assert.False(t, r.Succeeded)
 	// Update
@@ -95,7 +95,7 @@ func TestMercury(t *testing.T) {
 		"k1": "b1",
 		"k2": "b2",
 	}
-	r, err = m.BatchUpdate(ctx, data)
+	r, err = m.batchUpdate(ctx, data)
 	assert.NoError(t, err)
 	assert.True(t, r.Succeeded)
 	// BatchUpdateFail
@@ -103,12 +103,12 @@ func TestMercury(t *testing.T) {
 		"k1": "c1",
 		"k3": "b2",
 	}
-	r, err = m.BatchUpdate(ctx, data)
+	r, err = m.batchUpdate(ctx, data)
 	assert.Error(t, err)
 	assert.False(t, r.Succeeded)
 	// Watch
 	ctx2, cancel := context.WithCancel(ctx)
-	ch := m.Watch(ctx2, "watchkey", clientv3.WithPrefix())
+	ch := m.watch(ctx2, "watchkey", clientv3.WithPrefix())
 	go func() {
 		for r := range ch {
 			assert.NotEmpty(t, r.Events)
