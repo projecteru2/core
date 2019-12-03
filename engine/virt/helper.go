@@ -5,9 +5,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/docker/go-units"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coretypes "github.com/projecteru2/core/types"
 )
+
+const MinVirtStorage = int64(units.GiB * 50)
 
 func (v *Virt) parseVolumes(opts *enginetypes.VirtualizationCreateOptions) (map[string]int64, error) {
 	vols := map[string]int64{}

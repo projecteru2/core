@@ -8,17 +8,16 @@ import (
 	"io"
 	"io/ioutil"
 	"net/url"
-
+	
 	log "github.com/sirupsen/logrus"
 
 	virtapi "github.com/projecteru2/libyavirt/client"
-	virtypes "github.com/projecteru2/libyavirt/types"
+	virttypes "github.com/projecteru2/libyavirt/types"
 
 	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coresource "github.com/projecteru2/core/source"
 	coretypes "github.com/projecteru2/core/types"
-	virttypes "github.com/projecteru2/libyavirt/types"
 )
 
 const (
@@ -147,7 +146,15 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 		return nil, err
 	}
 
-	req := virtypes.CreateGuestReq{
+	stor := MinVirtStorage
+	for _, cap := range vols {
+		stor += cap
+	}
+	if opts.Storage < stor {
+		return nil, coretypes.ErrInsufficientStorage
+	}
+
+	req := virttypes.CreateGuestReq{
 		Cpu:       int(opts.Quota),
 		Mem:       opts.Memory,
 		ImageName: opts.Image,
@@ -158,7 +165,7 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 		req.DmiUuid = dmiUUID
 	}
 
-	var resp virtypes.Guest
+	var resp virttypes.Guest
 	if resp, err = v.client.CreateGuest(ctx, req); err != nil {
 		return nil, err
 	}
