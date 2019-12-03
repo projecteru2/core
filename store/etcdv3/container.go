@@ -170,7 +170,8 @@ func (m *Mercury) ContainerStatusStream(ctx context.Context, appname, entrypoint
 				msg := &types.ContainerStatus{ID: ID}
 				if ev.Type == clientv3.EventTypeDelete {
 					msg.Delete = true
-				} else if container, err := m.GetContainer(ctx, ID); err != nil {
+				}
+				if container, err := m.GetContainer(ctx, ID); err != nil {
 					msg.Error = err
 				} else if !utils.FilterContainer(container.Labels, labels) {
 					log.Warnf("[ContainerStatusStream] ignore container %s by labels", ID)

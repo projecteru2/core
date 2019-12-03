@@ -373,9 +373,8 @@ func toRPCAttachContainerMessage(msg *types.AttachContainerMessage) *pb.AttachCo
 }
 
 func toRPCContainerStatus(containerStatus *types.StatusMeta) *pb.ContainerStatus {
-	var r *pb.ContainerStatus
+	r := &pb.ContainerStatus{}
 	if containerStatus != nil {
-		r = &pb.ContainerStatus{}
 		r.Id = containerStatus.ID
 		r.Healthy = containerStatus.Healthy
 		r.Running = containerStatus.Running
