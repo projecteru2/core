@@ -32,13 +32,12 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 						message, err = c.doStartContainer(ctx, container, force)
 						return err
 					case cluster.ContainerRestart:
-						message, err = c.doStopContainer(ctx, container, force)
+						stopHook, err := c.doStopContainer(ctx, container, force)
 						if err != nil {
 							return err
 						}
-						container.StatusMeta = nil // 标记容器为无 status 状态，默认含义为停止
-						m2, err := c.doStartContainer(ctx, container, force)
-						message = append(message, m2...)
+						startHook, err := c.doStartContainer(ctx, container, force)
+						message = append(stopHook, startHook...)
 						return err
 					}
 					return types.ErrUnknownControlType
@@ -61,14 +60,7 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 	return ch, nil
 }
 
-func (c *Calcium) doStartContainer(ctx context.Context, container *types.Container, force bool) ([]*bytes.Buffer, error) {
-	var message []*bytes.Buffer
-	if container.StatusMeta != nil && container.StatusMeta.Running {
-		message = append(message, bytes.NewBufferString("container already running, can't run hook\n"))
-		return message, nil
-	}
-	var err error
-
+func (c *Calcium) doStartContainer(ctx context.Context, container *types.Container, force bool) (message []*bytes.Buffer, err error) {
 	startCtx, cancel := context.WithTimeout(ctx, c.config.GlobalTimeout)
 	defer cancel()
 	if err = container.Start(startCtx); err != nil {
@@ -87,14 +79,7 @@ func (c *Calcium) doStartContainer(ctx context.Context, container *types.Contain
 	return message, err
 }
 
-func (c *Calcium) doStopContainer(ctx context.Context, container *types.Container, force bool) ([]*bytes.Buffer, error) {
-	var message []*bytes.Buffer
-	if container.StatusMeta == nil || !container.StatusMeta.Running {
-		message = append(message, bytes.NewBufferString("container stopped, can't run hook\n"))
-		return message, nil
-	}
-	var err error
-
+func (c *Calcium) doStopContainer(ctx context.Context, container *types.Container, force bool) (message []*bytes.Buffer, err error) {
 	if container.Hook != nil && len(container.Hook.BeforeStop) > 0 {
 		message, err = c.doHook(
 			ctx,

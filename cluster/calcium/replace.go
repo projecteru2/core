@@ -58,14 +58,17 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 					replaceOpts.Volumes = container.Volumes
 					// 继承网络配置
 					if replaceOpts.NetworkInherit {
-						if container.StatusMeta == nil || !container.StatusMeta.Running {
+						info, err := container.Inspect(ctx)
+						if err != nil {
+							return err
+						} else if !info.Running {
 							return types.NewDetailedErr(types.ErrNotSupport,
 								fmt.Sprintf("container %s is not running, can not inherit", container.ID),
 							)
 						}
-						log.Infof("[ReplaceContainer] Inherit old container network configuration mode %v", container.StatusMeta.Networks)
 						replaceOpts.NetworkMode = ""
-						replaceOpts.Networks = container.StatusMeta.Networks
+						replaceOpts.Networks = info.Networks
+						log.Infof("[ReplaceContainer] Inherit old container network configuration mode %v", replaceOpts.Networks)
 					}
 					createMessage, removeMessage, err = c.doReplaceContainer(ctx, container, &replaceOpts, index)
 					return err
