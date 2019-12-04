@@ -11,6 +11,7 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
+// MinVirtStorage define min virt storage
 const MinVirtStorage = int64(units.GiB * 50)
 
 func (v *Virt) parseVolumes(opts *enginetypes.VirtualizationCreateOptions) (map[string]int64, error) {

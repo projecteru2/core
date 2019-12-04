@@ -90,30 +90,34 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, node *types.Node) (*typ
 			nr.NUMAMemoryPercent[nodeID] = float64(nmemory) / float64(initMemory)
 		}
 	}
-	cpumap.Add(node.CPU)
 	if cpus != node.CPUUsed {
 		nr.Verification = false
 		nr.Details = append(nr.Details, fmt.Sprintf("cpus used record: %f but now: %f", node.CPUUsed, cpus))
 	}
-	for i, v := range cpumap {
+	node.CPU.Add(cpumap)
+	for i, v := range node.CPU {
 		if node.InitCPU[i] != v {
 			nr.Verification = false
 			nr.Details = append(nr.Details, fmt.Sprintf("cpu %s now %d", i, v))
 		}
 	}
+
 	if memory+node.MemCap != node.InitMemCap {
 		nr.Verification = false
 		nr.Details = append(nr.Details, fmt.Sprintf("memory now %d", node.InitMemCap-(memory+node.MemCap)))
 	}
 
-	if all := float64(node.InitStorageCap); all == 0 {
-		nr.StoragePercent = 0
-	} else {
-		nr.StoragePercent = float64(storage) / all
+	nr.StoragePercent = 0
+	if node.InitStorageCap != 0 {
+		nr.StoragePercent = float64(storage) / float64(node.InitStorageCap)
 		if storage+node.StorageCap != node.InitStorageCap {
 			nr.Verification = false
 			nr.Details = append(nr.Details, fmt.Sprintf("storage now %d", node.InitStorageCap-(storage+node.StorageCap)))
 		}
+	}
+
+	if err := node.Engine.ResourceValidate(ctx, cpus, cpumap, memory, storage); err != nil {
+		nr.Details = append(nr.Details, err.Error())
 	}
 
 	return nr, nil
