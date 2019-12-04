@@ -90,8 +90,9 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 		}
 		opts = append(opts, clientv3.WithLease(lease.ID))
 	}
-	containerKey := fmt.Sprintf(containerInfoKey, container.ID)
-	_, err = m.GetThenPut(ctx, []string{containerKey}, statusKey, string(data), opts...)
+	ops := []clientv3.Op{clientv3.OpPut(statusKey, string(data), opts...)}
+	conds := []clientv3.Cmp{clientv3.Compare(clientv3.Version(fmt.Sprintf(containerInfoKey, container.ID)), "!=", 0)}
+	_, err = m.doBatchOp(ctx, conds, ops, []clientv3.Op{})
 	return err
 }
 

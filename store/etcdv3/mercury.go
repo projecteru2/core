@@ -153,17 +153,6 @@ func (m *Mercury) Update(ctx context.Context, key, val string, opts ...clientv3.
 	return m.batchUpdate(ctx, map[string]string{key: val}, opts...)
 }
 
-// GetThenPut if key exists, then put
-func (m *Mercury) GetThenPut(ctx context.Context, getKeys []string, key, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	ops := []clientv3.Op{clientv3.OpPut(key, val, opts...)}
-	conds := []clientv3.Cmp{}
-	for _, getKey := range getKeys {
-		cond := clientv3.Compare(clientv3.Version(getKey), "!=", 0)
-		conds = append(conds, cond)
-	}
-	return m.doBatchOp(ctx, conds, ops, []clientv3.Op{})
-}
-
 // Watch wath a key
 func (m *Mercury) watch(ctx context.Context, key string, opts ...clientv3.OpOption) clientv3.WatchChan {
 	return m.cliv3.Watch(ctx, key, opts...)
