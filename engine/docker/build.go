@@ -161,10 +161,12 @@ func (e *Engine) preparedSource(build *types.Build, scm coresource.Source, build
 			return "", err
 		}
 
-		// ensure source code is safe
-		// we don't want any history files to be retrieved
-		if err := scm.Security(cloneDir); err != nil {
-			return "", err
+		if build.Security {
+			// ensure source code is safe
+			// we don't want any history files to be retrieved
+			if err := scm.Security(cloneDir); err != nil {
+				return "", err
+			}
 		}
 	}
 

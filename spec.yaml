@@ -17,6 +17,7 @@ builds:
     # only support ssh protocol
     repo: "git@github.com:projecteru2/core.git"
     version: "HEAD"
+    security: false
     dir: /go/src/github.com/projecteru2/core
     commands:
       - apk add --no-cache build-base musl-dev libgit2-dev git curl make
