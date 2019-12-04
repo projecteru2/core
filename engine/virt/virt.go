@@ -8,7 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/url"
-	
+
 	log "github.com/sirupsen/logrus"
 
 	virtapi "github.com/projecteru2/libyavirt/client"
@@ -252,4 +252,10 @@ func (v *Virt) VirtualizationCopyFrom(ctx context.Context, ID, path string) (io.
 // VirtualizationExecute executes commands in running virtual unit
 func (v *Virt) VirtualizationExecute(ctx context.Context, ID string, commands, env []string, workdir string) (io.WriteCloser, io.ReadCloser, error) {
 	return nil, nil, fmt.Errorf("VirtualizationExecute not implemented")
+}
+
+// ResourceValidate validate resource usage
+func (v *Virt) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int, memory, storage int64) error {
+	// TODO list all containers, calcuate resource
+	return nil
 }

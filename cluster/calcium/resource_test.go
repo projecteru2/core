@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/projecteru2/core/cluster"
+	enginemocks "github.com/projecteru2/core/engine/mocks"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -55,6 +57,11 @@ func TestPodResource(t *testing.T) {
 		},
 	}
 	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(containers, nil)
+	engine := &enginemocks.API{}
+	engine.On("ResourceValidate", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		fmt.Errorf("%s", "not validate"),
+	)
+	node.Engine = engine
 	// success
 	r, err := c.PodResource(ctx, podname)
 	assert.NoError(t, err)
@@ -81,6 +88,11 @@ func TestNodeResource(t *testing.T) {
 		NUMAMemory:     types.NUMAMemory{"0": 1, "1": 1},
 		InitNUMAMemory: types.NUMAMemory{"0": 3, "1": 3},
 	}
+	engine := &enginemocks.API{}
+	engine.On("ResourceValidate", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		fmt.Errorf("%s", "not validate"),
+	)
+	node.Engine = engine
 	// failed by GetNode
 	store.On("GetNode", ctx, podname, nodename).Return(nil, types.ErrNoETCD).Once()
 	_, err := c.NodeResource(ctx, podname, nodename)

@@ -88,5 +88,6 @@ func MakeMockClient() *enginemocks.API {
 	e.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	copyData := ioutil.NopCloser(bytes.NewBufferString("d1...\nd2...\n"))
 	e.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(copyData, "", nil)
+	e.On("ResourceValidate", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	return e
 }
