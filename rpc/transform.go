@@ -148,6 +148,7 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) (*enginetypes.BuildOptions, err
 				Version:    p.Version,
 				Dir:        p.Dir,
 				Submodule:  p.Submodule || false,
+				Security:   p.Security || false,
 				Commands:   p.Commands,
 				Envs:       p.Envs,
 				Args:       p.Args,

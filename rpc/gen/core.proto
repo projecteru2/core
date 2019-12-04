@@ -271,6 +271,7 @@ message Build {
     map<string, string> artifacts = 10;
     map<string, string> cache = 11;
     string stop_signal = 12;
+    bool security = 13;
 }
 
 message Builds {

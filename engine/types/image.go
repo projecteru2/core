@@ -31,6 +31,7 @@ type Build struct {
 	Version    string            `yaml:"version,omitempty"`
 	Dir        string            `yaml:"dir,omitempty"`
 	Submodule  bool              `yaml:"submodule,omitempty"`
+	Security   bool              `yaml:"security,omitempty"`
 	Commands   []string          `yaml:"commands,omitempty,flow"`
 	Envs       map[string]string `yaml:"envs,omitempty,flow"`
 	Args       map[string]string `yaml:"args,omitempty,flow"`
