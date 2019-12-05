@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/url"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -38,20 +38,15 @@ type Virt struct {
 
 // MakeClient makes a virt. client which wraps yavirt API client.
 func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
-	u, err := url.Parse(endpoint)
-	if err != nil {
-		return nil, err
-	}
-
 	var uri string
-	switch u.Scheme {
-	case HTTPPrefixKey:
-		uri = fmt.Sprintf("http://%s/%s", u.Host, config.Virt.APIVersion)
-	case GRPCPrefixKey:
-		uri = "grpc://" + u.Host
-	default:
+	if strings.HasPrefix(endpoint, HTTPPrefixKey) {
+		uri = fmt.Sprintf("http://%s/%s", strings.TrimLeft(endpoint, HTTPPrefixKey), config.Virt.APIVersion)
+	} else if strings.HasPrefix(endpoint, GRPCPrefixKey) {
+		uri = "grpc://" + strings.TrimLeft(endpoint, HTTPPrefixKey)
+	} else {
 		return nil, fmt.Errorf("invalid endpoint: %s", endpoint)
 	}
+
 	cli, err := virtapi.New(uri)
 	if err != nil {
 		return nil, err
