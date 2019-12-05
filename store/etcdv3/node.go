@@ -4,17 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"strconv"
-	"strings"
 
-	"github.com/projecteru2/core/engine/virt"
+	engineInterface "github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/store"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/projecteru2/core/engine"
-	"github.com/projecteru2/core/engine/docker"
-	"github.com/projecteru2/core/engine/mocks/fakeengine"
+	enginefactory "github.com/projecteru2/core/engine/factory"
 	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -27,16 +23,6 @@ import (
 func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string,
 	cpu, share int, memory, storage int64, labels map[string]string,
 	numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
-	if !strings.HasPrefix(endpoint, docker.TCPPrefixKey) &&
-		!strings.HasPrefix(endpoint, docker.SockPrefixKey) &&
-		!strings.HasPrefix(endpoint, fakeengine.PrefixKey) &&
-		!strings.HasPrefix(endpoint, virt.HTTPPrefixKey) &&
-		!strings.HasPrefix(endpoint, virt.GRPCPrefixKey) {
-		return nil, types.NewDetailedErr(types.ErrNodeFormat,
-			fmt.Sprintf("endpoint must starts with %s, %s, %s, %s %q",
-				docker.TCPPrefixKey, docker.SockPrefixKey, fakeengine.PrefixKey, virt.HTTPPrefixKey, endpoint))
-	}
-
 	if n, err := m.GetNodeByName(ctx, name); err == nil {
 		return nil, types.NewDetailedErr(types.ErrNodeExist,
 			fmt.Sprintf("node %s already exists in %s", name, n.Podname))
@@ -49,7 +35,7 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 
 	// 尝试加载的客户端
 	// 会自动判断是否是支持的 url
-	engine, err := m.doMakeClient(ctx, name, endpoint, ca, cert, key)
+	engine, err := enginefactory.GetEngine(ctx, m.config, name, endpoint, ca, cert, key)
 	if err != nil {
 		return nil, err
 	}
@@ -223,9 +209,9 @@ func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu 
 	return m.UpdateNode(ctx, node)
 }
 
-func (m *Mercury) makeClient(ctx context.Context, podname, nodename, endpoint string, force bool) (engine.API, error) {
+func (m *Mercury) makeClient(ctx context.Context, podname, nodename, endpoint string, force bool) (engineInterface.API, error) {
 	// try get client, if nil, create a new one
-	var client engine.API
+	var client engineInterface.API
 	var err error
 	client = _cache.Get(nodename)
 	if client == nil || force {
@@ -246,50 +232,13 @@ func (m *Mercury) makeClient(ctx context.Context, podname, nodename, endpoint st
 			cert = data[1]
 			key = data[2]
 		}
-		client, err = m.doMakeClient(ctx, nodename, endpoint, ca, cert, key)
+		client, err = enginefactory.GetEngine(ctx, m.config, nodename, endpoint, ca, cert, key)
 		if err != nil {
 			return nil, err
 		}
 		_cache.Set(nodename, client)
 	}
 	return client, nil
-}
-
-func (m *Mercury) doMakeClient(ctx context.Context, nodename, endpoint, ca, cert, key string) (engine.API, error) {
-	if strings.HasPrefix(endpoint, fakeengine.PrefixKey) {
-		return makeMockClient()
-	}
-	if strings.HasPrefix(endpoint, virt.HTTPPrefixKey) ||
-		strings.HasPrefix(endpoint, virt.GRPCPrefixKey) {
-		return makeVirtClient(m.config, endpoint, m.config.Virt.APIVersion)
-	}
-	if strings.HasPrefix(endpoint, docker.SockPrefixKey) ||
-		m.config.Docker.CertPath == "" ||
-		(ca == "" || cert == "" || key == "") {
-		return makeDockerClient(m.config, endpoint, m.config.Docker.APIVersion)
-	}
-	if (strings.HasPrefix(endpoint, docker.SockPrefixKey) ||
-		strings.HasPrefix(endpoint, docker.TCPPrefixKey)) &&
-		m.config.Docker.CertPath != "" &&
-		ca != "" && cert != "" && key != "" {
-		caFile, err := ioutil.TempFile(m.config.Docker.CertPath, fmt.Sprintf("ca-%s", nodename))
-		if err != nil {
-			return nil, err
-		}
-		certFile, err := ioutil.TempFile(m.config.Docker.CertPath, fmt.Sprintf("cert-%s", nodename))
-		if err != nil {
-			return nil, err
-		}
-		keyFile, err := ioutil.TempFile(m.config.Docker.CertPath, fmt.Sprintf("key-%s", nodename))
-		if err != nil {
-			return nil, err
-		}
-		if err = dumpFromString(caFile, certFile, keyFile, ca, cert, key); err != nil {
-			return nil, err
-		}
-		return makeDockerClientWithTLS(m.config, caFile, certFile, keyFile, endpoint, m.config.Docker.APIVersion)
-	}
-	return nil, types.ErrNotSupport
 }
 
 func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory, storage int64, labels map[string]string, numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
