@@ -2,12 +2,14 @@ package docker
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -15,6 +17,7 @@ import (
 	"text/template"
 
 	corecluster "github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
@@ -23,6 +26,7 @@ import (
 	"github.com/docker/distribution/reference"
 	dockertypes "github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
+	dockerapi "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/registry"
@@ -238,4 +242,30 @@ func GetIP(daemonHost string) string {
 		return ""
 	}
 	return u.Hostname()
+}
+
+func makeRawClient(ctx context.Context, config coretypes.Config, client *http.Client, endpoint string) (engine.API, error) {
+	cli, err := dockerapi.NewClient(endpoint, config.Docker.APIVersion, client, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &Engine{cli, config}, nil
+}
+
+func dumpFromString(ca, cert, key *os.File, caStr, certStr, keyStr string) error {
+	files := []*os.File{ca, cert, key}
+	data := []string{caStr, certStr, keyStr}
+	for i := 0; i < 3; i++ {
+		if _, err := files[i].WriteString(data[i]); err != nil {
+			return err
+		}
+		if err := files[i].Chmod(0444); err != nil {
+			return err
+		}
+		if err := files[i].Close(); err != nil {
+			return err
+		}
+	}
+	log.Debug("[dumpFromString] Dump ca.pem, cert.pem, key.pem from string")
+	return nil
 }

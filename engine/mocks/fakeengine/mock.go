@@ -3,11 +3,14 @@ package fakeengine
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"io/ioutil"
 
 	"github.com/docker/go-units"
+	"github.com/projecteru2/core/engine"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -27,8 +30,8 @@ func (wc *writeCloser) Close() error {
 	return nil
 }
 
-// MakeMockClient make a mock client
-func MakeMockClient() *enginemocks.API {
+// MakeClient make a mock client
+func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	e := &enginemocks.API{}
 	// info
 	e.On("Info", mock.Anything).Return(&enginetypes.Info{NCPU: 1, MemTotal: units.GiB + 100}, nil)
@@ -89,5 +92,5 @@ func MakeMockClient() *enginemocks.API {
 	copyData := ioutil.NopCloser(bytes.NewBufferString("d1...\nd2...\n"))
 	e.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(copyData, "", nil)
 	e.On("ResourceValidate", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	return e
+	return e, nil
 }

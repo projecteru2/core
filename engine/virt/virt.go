@@ -15,6 +15,7 @@ import (
 	virttypes "github.com/projecteru2/libyavirt/types"
 
 	"github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coresource "github.com/projecteru2/core/source"
 	coretypes "github.com/projecteru2/core/types"
@@ -22,9 +23,9 @@ import (
 
 const (
 	// HTTPPrefixKey indicate http yavirtd
-	HTTPPrefixKey = "virt"
+	HTTPPrefixKey = "virt://"
 	// GRPCPrefixKey indicates grpc yavirtd
-	GRPCPrefixKey = "virt-grpc"
+	GRPCPrefixKey = "virt-grpc://"
 	// DmiUUIDKey indicates the key within deploy info.
 	DmiUUIDKey = "DMIUUID"
 )
@@ -36,7 +37,7 @@ type Virt struct {
 }
 
 // MakeClient makes a virt. client which wraps yavirt API client.
-func MakeClient(config coretypes.Config, endpoint, apiversion string) (*Virt, error) {
+func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		return nil, err

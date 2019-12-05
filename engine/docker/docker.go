@@ -2,11 +2,14 @@ package docker
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 
 	dockerapi "github.com/docker/docker/client"
 	"github.com/docker/go-connections/tlsconfig"
+	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coretypes "github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
@@ -25,38 +28,47 @@ type Engine struct {
 	config coretypes.Config
 }
 
-// MakeRawClient make raw docker cli
-func MakeRawClient(config coretypes.Config, client *http.Client, endpoint, apiversion string) (*Engine, error) {
-	cli, err := dockerapi.NewClient(endpoint, apiversion, client, nil)
-	if err != nil {
-		return nil, err
-	}
-	return &Engine{cli, config}, nil
-}
-
-// MakeRawClientWithTLS make raw docker cli with TLS
-func MakeRawClientWithTLS(config coretypes.Config, ca, cert, key *os.File, endpoint, apiversion string) (*Engine, error) {
+// MakeClient make docker cli
+func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	var client *http.Client
-	options := tlsconfig.Options{
-		CAFile:             ca.Name(),
-		CertFile:           cert.Name(),
-		KeyFile:            key.Name(),
-		InsecureSkipVerify: true,
+	if config.Docker.CertPath != "" && ca != "" && cert != "" && key != "" {
+		caFile, err := ioutil.TempFile(config.Docker.CertPath, fmt.Sprintf("ca-%s", nodename))
+		if err != nil {
+			return nil, err
+		}
+		certFile, err := ioutil.TempFile(config.Docker.CertPath, fmt.Sprintf("cert-%s", nodename))
+		if err != nil {
+			return nil, err
+		}
+		keyFile, err := ioutil.TempFile(config.Docker.CertPath, fmt.Sprintf("key-%s", nodename))
+		if err != nil {
+			return nil, err
+		}
+		if err = dumpFromString(caFile, certFile, keyFile, ca, cert, key); err != nil {
+			return nil, err
+		}
+		options := tlsconfig.Options{
+			CAFile:             caFile.Name(),
+			CertFile:           certFile.Name(),
+			KeyFile:            keyFile.Name(),
+			InsecureSkipVerify: true,
+		}
+		defer os.Remove(caFile.Name())
+		defer os.Remove(certFile.Name())
+		defer os.Remove(keyFile.Name())
+		tlsc, err := tlsconfig.Client(options)
+		if err != nil {
+			return nil, err
+		}
+		client = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: tlsc,
+			},
+		}
 	}
-	defer os.Remove(ca.Name())
-	defer os.Remove(cert.Name())
-	defer os.Remove(key.Name())
-	tlsc, err := tlsconfig.Client(options)
-	if err != nil {
-		return nil, err
-	}
-	client = &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: tlsc,
-		},
-	}
-	log.Debugf("[MakeRawClientWithTLS] Create new http.Client for %s, %s", endpoint, apiversion)
-	return MakeRawClient(config, client, endpoint, apiversion)
+
+	log.Debugf("[MakeDockerEngine] Create new http.Client for %s, %s", endpoint, config.Docker.APIVersion)
+	return makeRawClient(ctx, config, client, endpoint)
 }
 
 // Info show node info
