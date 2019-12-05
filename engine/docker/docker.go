@@ -31,16 +31,16 @@ type Engine struct {
 // MakeClient make docker cli
 func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	var client *http.Client
-	if config.Docker.CertPath != "" && ca != "" && cert != "" && key != "" {
-		caFile, err := ioutil.TempFile(config.Docker.CertPath, fmt.Sprintf("ca-%s", nodename))
+	if config.CertPath != "" && ca != "" && cert != "" && key != "" {
+		caFile, err := ioutil.TempFile(config.CertPath, fmt.Sprintf("ca-%s", nodename))
 		if err != nil {
 			return nil, err
 		}
-		certFile, err := ioutil.TempFile(config.Docker.CertPath, fmt.Sprintf("cert-%s", nodename))
+		certFile, err := ioutil.TempFile(config.CertPath, fmt.Sprintf("cert-%s", nodename))
 		if err != nil {
 			return nil, err
 		}
-		keyFile, err := ioutil.TempFile(config.Docker.CertPath, fmt.Sprintf("key-%s", nodename))
+		keyFile, err := ioutil.TempFile(config.CertPath, fmt.Sprintf("key-%s", nodename))
 		if err != nil {
 			return nil, err
 		}
