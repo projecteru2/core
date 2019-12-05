@@ -2,7 +2,6 @@ package types
 
 import (
 	"context"
-	"time"
 
 	"math"
 
@@ -87,10 +86,7 @@ func (n *Node) Info(ctx context.Context) (*enginetypes.Info, error) {
 	if n.Engine == nil {
 		return nil, ErrNilEngine
 	}
-	// TODO remove it later
-	infoCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
-	defer cancel()
-	return n.Engine.Info(infoCtx)
+	return n.Engine.Info(ctx)
 }
 
 // SetCPUUsed set cpuusage

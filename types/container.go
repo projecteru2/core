@@ -2,7 +2,6 @@ package types
 
 import (
 	"context"
-	"time"
 
 	engine "github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -53,10 +52,7 @@ func (c *Container) Inspect(ctx context.Context) (*enginetypes.VirtualizationInf
 	if c.Engine == nil {
 		return nil, ErrNilEngine
 	}
-	// TODO remove it later like start stop and remove
-	inspectCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	return c.Engine.VirtualizationInspect(inspectCtx, c.ID)
+	return c.Engine.VirtualizationInspect(ctx, c.ID)
 }
 
 // Start a container

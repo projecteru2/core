@@ -68,6 +68,9 @@ var (
 
 	ErrInvalidBind     = errors.New("invalid bind value")
 	ErrIgnoreContainer = errors.New("ignore this container")
+
+	ErrInvalidGitURL        = errors.New("invalid git url format")
+	ErrInvalidContainerName = errors.New("invalid container name")
 )
 
 // NewDetailedErr returns an error with details

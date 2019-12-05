@@ -20,13 +20,10 @@ import (
 type ctxKey string
 
 const (
-	letters              = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	shortenLength        = 7
-	engineKey     ctxKey = "engine"
+	letters       = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	shortenLength = 7
 	// DefaultVersion for default version
 	DefaultVersion = "latest"
-	// WrongVersion for wrong version
-	WrongVersion = "unknown"
 )
 
 // RandomString random a string
@@ -45,15 +42,13 @@ func RandomString(n int) string {
 
 // Tail return tail thing
 func Tail(path string) string {
-	parts := strings.Split(path, "/")
-	return parts[len(parts)-1]
+	return path[strings.LastIndex(path, "/")+1:]
 }
 
 // GetGitRepoName return git repo name
 func GetGitRepoName(url string) (string, error) {
-	if !(strings.Contains(url, "git@") || strings.Contains(url, "gitlab@") || strings.Contains(url, "https://")) ||
-		!strings.HasSuffix(url, ".git") {
-		return "", fmt.Errorf("Bad git url format %q", url)
+	if !(strings.Contains(url, "git@") || strings.Contains(url, "gitlab@") || strings.Contains(url, "https://")) || !strings.HasSuffix(url, ".git") {
+		return "", types.NewDetailedErr(types.ErrInvalidGitURL, url)
 	}
 
 	return strings.TrimSuffix(Tail(url), ".git"), nil
@@ -64,13 +59,7 @@ func GetTag(image string) string {
 	if !strings.Contains(image, ":") {
 		return DefaultVersion
 	}
-
-	parts := strings.Split(image, ":")
-	if len(parts) != 2 {
-		return WrongVersion
-	}
-
-	return parts[len(parts)-1]
+	return image[strings.LastIndex(image, ":")+1:]
 }
 
 // NormalizeImageName will normalize image name
@@ -106,7 +95,7 @@ func ParseContainerName(containerName string) (string, string, string, error) {
 	if length >= 3 {
 		return strings.Join(splits[0:length-2], "_"), splits[length-2], splits[length-1], nil
 	}
-	return "", "", "", fmt.Errorf("Bad containerName: %s", containerName)
+	return "", "", "", types.NewDetailedErr(types.ErrInvalidContainerName, containerName)
 }
 
 // MakePublishInfo generate publish info
@@ -170,10 +159,7 @@ func DecodeMetaInLabel(labels map[string]string) *types.LabelMeta {
 
 // ShortID short container ID
 func ShortID(containerID string) string {
-	if len(containerID) > shortenLength {
-		return containerID[:shortenLength]
-	}
-	return containerID
+	return containerID[:Min(len(containerID), shortenLength)]
 }
 
 // FilterContainer filter container by labels
@@ -248,15 +234,15 @@ func safeSplit(s string) []string {
 			} else {
 				result = append(result, i)
 			}
+			continue
+		}
+		if !strings.HasSuffix(i, inquote) {
+			block += i + " "
 		} else {
-			if !strings.HasSuffix(i, inquote) {
-				block += i + " "
-			} else {
-				block += strings.TrimSuffix(i, inquote)
-				inquote = ""
-				result = append(result, block)
-				block = ""
-			}
+			block += strings.TrimSuffix(i, inquote)
+			inquote = ""
+			result = append(result, block)
+			block = ""
 		}
 	}
 

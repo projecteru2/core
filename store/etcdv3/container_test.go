@@ -87,11 +87,13 @@ func TestContainer(t *testing.T) {
 		ID:      container.ID,
 		Running: true,
 	}
-	err = m.SetContainerStatus(ctx, container, 0)
+	err = m.SetContainerStatus(ctx, container, 10)
 	assert.NoError(t, err)
 	rs, err := m.GetContainerStatus(ctx, container.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, rs.ID, container.ID)
+	_, err = m.GetContainerStatus(ctx, "xxxxx")
+	assert.Error(t, err)
 	container2 := &types.Container{
 		ID:         container.ID,
 		Nodename:   "n2",

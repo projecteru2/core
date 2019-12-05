@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"math"
 	"testing"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
@@ -77,4 +78,18 @@ func TestSetNUMANodeMemory(t *testing.T) {
 	node.DecrNUMANodeMemory("n1", 1)
 	assert.Len(t, node.NUMAMemory, 1)
 	assert.Equal(t, node.NUMAMemory["n1"], int64(100))
+}
+
+func TestStorage(t *testing.T) {
+	node := &Node{
+		InitStorageCap: 0,
+	}
+	assert.Equal(t, node.StorageUsage(), 1.0)
+	assert.Equal(t, node.StorageUsed(), int64(0))
+	assert.Equal(t, node.AvailableStorage(), int64(math.MaxInt64))
+	node.InitStorageCap = 2
+	node.StorageCap = 1
+	assert.Equal(t, node.StorageUsage(), 0.5)
+	assert.Equal(t, node.StorageUsed(), int64(1))
+	assert.Equal(t, node.AvailableStorage(), int64(1))
 }

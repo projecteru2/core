@@ -52,7 +52,7 @@ func TestGetTag(t *testing.T) {
 	v := GetTag("xx")
 	assert.Equal(t, v, DefaultVersion)
 	v = GetTag("xx:1:2")
-	assert.Equal(t, v, WrongVersion)
+	assert.Equal(t, v, "2")
 	v = GetTag("xx:2")
 	assert.Equal(t, v, "2")
 }
@@ -138,6 +138,8 @@ func TestMetaInLabel(t *testing.T) {
 	}
 	meta2 := DecodeMetaInLabel(labels)
 	assert.Equal(t, meta2.Publish[0], "5001")
+	meta3 := DecodeMetaInLabel(map[string]string{cluster.LabelMeta: ""})
+	assert.Nil(t, meta3.HealthCheck)
 }
 
 func TestShortID(t *testing.T) {
@@ -208,4 +210,5 @@ func TestMin(t *testing.T) {
 	a = 1
 	b = 2
 	assert.Equal(t, 1, Min(a, b))
+	assert.Equal(t, 1, Min(b, a))
 }

@@ -53,29 +53,31 @@ func New(config types.Config, embededStorage bool) (*Mercury, error) {
 	var err error
 	var tlsConfig *tls.Config
 
-	if config.Etcd.Ca != "" && config.Etcd.Key != "" && config.Etcd.Cert != "" {
-		tlsInfo := transport.TLSInfo{
-			TrustedCAFile: config.Etcd.Ca,
-			KeyFile:       config.Etcd.Key,
-			CertFile:      config.Etcd.Cert,
+	if embededStorage {
+		cliv3 = embeded.NewCluster()
+		log.Info("[Mercury] use embeded cluster")
+	} else {
+		if config.Etcd.Ca != "" && config.Etcd.Key != "" && config.Etcd.Cert != "" {
+			tlsInfo := transport.TLSInfo{
+				TrustedCAFile: config.Etcd.Ca,
+				KeyFile:       config.Etcd.Key,
+				CertFile:      config.Etcd.Cert,
+			}
+			tlsConfig, err = tlsInfo.ClientConfig()
+			if err != nil {
+				return nil, err
+			}
 		}
-		tlsConfig, err = tlsInfo.ClientConfig()
-		if err != nil {
+		if cliv3, err = clientv3.New(clientv3.Config{
+			Endpoints: config.Etcd.Machines,
+			Username:  config.Etcd.Auth.Username,
+			Password:  config.Etcd.Auth.Password,
+			TLS:       tlsConfig,
+		}); err != nil {
 			return nil, err
 		}
 	}
 
-	if embededStorage {
-		cliv3 = embeded.NewCluster()
-		log.Info("[Mercury] use embeded cluster")
-	} else if cliv3, err = clientv3.New(clientv3.Config{
-		Endpoints: config.Etcd.Machines,
-		Username:  config.Etcd.Auth.Username,
-		Password:  config.Etcd.Auth.Password,
-		TLS:       tlsConfig,
-	}); err != nil {
-		return nil, err
-	}
 	cliv3.KV = namespace.NewKV(cliv3.KV, config.Etcd.Prefix)
 	cliv3.Watcher = namespace.NewWatcher(cliv3.Watcher, config.Etcd.Prefix)
 	cliv3.Lease = namespace.NewLease(cliv3.Lease, config.Etcd.Prefix)

@@ -42,7 +42,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	if strings.HasPrefix(endpoint, HTTPPrefixKey) {
 		uri = fmt.Sprintf("http://%s/%s", strings.TrimLeft(endpoint, HTTPPrefixKey), config.Virt.APIVersion)
 	} else if strings.HasPrefix(endpoint, GRPCPrefixKey) {
-		uri = "grpc://" + strings.TrimLeft(endpoint, HTTPPrefixKey)
+		uri = "grpc://" + strings.TrimLeft(endpoint, GRPCPrefixKey)
 	} else {
 		return nil, fmt.Errorf("invalid endpoint: %s", endpoint)
 	}
