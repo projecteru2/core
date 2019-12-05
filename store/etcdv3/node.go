@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
-	engineInterface "github.com/projecteru2/core/engine"
+	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/store"
 
 	"github.com/coreos/etcd/clientv3"
@@ -35,13 +35,13 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 
 	// 尝试加载的客户端
 	// 会自动判断是否是支持的 url
-	engine, err := enginefactory.GetEngine(ctx, m.config, name, endpoint, ca, cert, key)
+	client, err := enginefactory.GetEngine(ctx, m.config, name, endpoint, ca, cert, key)
 	if err != nil {
 		return nil, err
 	}
 
 	// 判断这货是不是活着的
-	info, err := engine.Info(ctx)
+	info, err := client.Info(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -209,21 +209,19 @@ func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu 
 	return m.UpdateNode(ctx, node)
 }
 
-func (m *Mercury) makeClient(ctx context.Context, podname, nodename, endpoint string, force bool) (engineInterface.API, error) {
+func (m *Mercury) makeClient(ctx context.Context, podname, nodename, endpoint string, force bool) (engine.API, error) {
 	// try get client, if nil, create a new one
-	var client engineInterface.API
+	var client engine.API
 	var err error
 	client = _cache.Get(nodename)
 	if client == nil || force {
 		var ca, cert, key string
-		if m.config.Docker.CertPath != "" {
+		if m.config.CertPath != "" {
 			keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
 			data := []string{"", "", ""}
 			for i := 0; i < 3; i++ {
-				ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], nodename))
-				if err != nil {
+				if ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], nodename)); err != nil {
 					log.Warnf("[makeClient] Get key failed %v", err)
-					data[i] = ""
 				} else {
 					data[i] = string(ev.Value)
 				}

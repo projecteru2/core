@@ -12,6 +12,7 @@ type Config struct {
 	GlobalTimeout time.Duration `yaml:"global_timeout" required:"true" default:"300s"` // timeout for remove, run_and_wait and build, in second
 	Statsd        string        `yaml:"statsd"`                                        // statsd host and port
 	Profile       string        `yaml:"profile"`                                       // profile ip:port
+	CertPath      string        `yaml:"cert_path"`                                     // docker cert files path
 	Auth          AuthConfig    `yaml:"auth"`                                          // grpc auth
 	GRPCConfig    GRPCConfig    `yaml:"grpc"`                                          // grpc config
 
@@ -45,7 +46,6 @@ type GitConfig struct {
 type DockerConfig struct {
 	APIVersion  string                `yaml:"version" required:"true" default:"1.32"`      // docker API version
 	NetworkMode string                `yaml:"network_mode" required:"true" default:"host"` // docker network mode
-	CertPath    string                `yaml:"cert_path" required:"true" default:"/tmp"`    // docker cert files path
 	Hub         string                `yaml:"hub"`                                         // docker hub address
 	Namespace   string                `yaml:"namespace"`                                   // docker hub prefix, will be set to $Hub/$HubPrefix/$appname
 	BuildPod    string                `yaml:"build_pod"`                                   // podname used to build

@@ -190,7 +190,7 @@ RdCPRPt513WozkJZZAjUSP2U
 -----END PRIVATE KEY-----`
 	nodename3 := "nodename3"
 	endpoint3 := "tcp://path"
-	m.config.Docker.CertPath = "/tmp"
+	m.config.CertPath = "/tmp"
 	node3, err := m.doAddNode(ctx, nodename3, endpoint3, podname, ca, cert, certkey, cpu, share, memory, storage, labels, nil, nil)
 	assert.NoError(t, err)
 	engine3, err := m.makeClient(ctx, podname, nodename3, endpoint3, true)
