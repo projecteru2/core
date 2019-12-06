@@ -53,21 +53,17 @@ func (c *Calcium) withContainersLocked(ctx context.Context, IDs []string, f func
 	containers := map[string]*types.Container{}
 	locks := map[string]lock.DistributedLock{}
 	defer func() { c.doUnlockAll(locks) }()
-	for _, ID := range IDs {
-		if _, ok := containers[ID]; ok {
-			continue
-		}
-		lock, err := c.doLock(ctx, fmt.Sprintf(cluster.ContainerLock, ID), c.config.LockTimeout)
+	cs, err := c.GetContainers(ctx, IDs)
+	if err != nil {
+		return err
+	}
+	for _, container := range cs {
+		lock, err := c.doLock(ctx, fmt.Sprintf(cluster.ContainerLock, container.ID), c.config.LockTimeout)
 		if err != nil {
 			return err
 		}
-		log.Debugf("[withContainersLocked] Container %s locked", ID)
-		locks[ID] = lock
-		container, err := c.store.GetContainer(ctx, ID)
-		if err != nil {
-			return err
-		}
-		containers[ID] = container
+		locks[container.ID] = lock
+		containers[container.ID] = container
 	}
 	return f(containers)
 }
@@ -76,7 +72,6 @@ func (c *Calcium) withNodesLocked(ctx context.Context, podname, nodename string,
 	nodes := map[string]*types.Node{}
 	locks := map[string]lock.DistributedLock{}
 	defer func() { c.doUnlockAll(locks) }()
-
 	ns, err := c.GetNodes(ctx, podname, nodename, labels, all)
 	if err != nil {
 		return err

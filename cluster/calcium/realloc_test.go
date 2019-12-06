@@ -60,6 +60,9 @@ func TestRealloc(t *testing.T) {
 		Nodename: "node1",
 	}
 
+	store.On("GetContainers", mock.Anything, []string{"c1"}).Return([]*types.Container{c1}, nil)
+	store.On("GetContainers", mock.Anything, []string{"c2"}).Return([]*types.Container{c2}, nil)
+	store.On("GetContainers", mock.Anything, []string{"c1", "c2"}).Return([]*types.Container{c1, c2}, nil)
 	// failed by lock
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	ch, err := c.ReallocResource(ctx, []string{"c1"}, -1, 2*int64(units.GiB))
@@ -68,8 +71,6 @@ func TestRealloc(t *testing.T) {
 		assert.False(t, r.Success)
 	}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	store.On("GetContainer", mock.Anything, "c1").Return(c1, nil)
-	store.On("GetContainer", mock.Anything, "c2").Return(c2, nil)
 	// failed by GetPod
 	store.On("GetPod", mock.Anything, mock.Anything).Return(pod1, types.ErrNoETCD).Once()
 	ch, err = c.ReallocResource(ctx, []string{"c1"}, -1, 2*int64(units.GiB))
@@ -188,8 +189,7 @@ func TestRealloc(t *testing.T) {
 	}
 	simpleMockScheduler.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nodeCPUPlans, 2, nil)
 	store.On("GetNode", mock.Anything, mock.Anything, "node2").Return(node2, nil)
-	store.On("GetContainer", mock.Anything, "c3").Return(c3, nil)
-	store.On("GetContainer", mock.Anything, "c4").Return(c4, nil)
+	store.On("GetContainers", mock.Anything, []string{"c3", "c4"}).Return([]*types.Container{c3, c4}, nil)
 	ch, err = c.ReallocResource(ctx, []string{"c3", "c4"}, 0.1, 2*int64(units.MiB))
 	assert.NoError(t, err)
 	for r := range ch {

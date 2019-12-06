@@ -123,30 +123,6 @@ func makeErrorBuildImageMessage(err error) *types.BuildImageMessage {
 	return &types.BuildImageMessage{Error: err.Error()}
 }
 
-// 清理一个node上的这个image
-// 只清理同名字不同tag的
-// 并且保留最新的 count 个
-func cleanImageOnNode(ctx context.Context, node *types.Node, image string, count int) error {
-	log.Debugf("[cleanImageOnNode] node: %s, image: %s", node.Name, image)
-	images, err := node.Engine.ImageList(ctx, image)
-	if err != nil {
-		return err
-	}
-
-	if len(images) < count {
-		return nil
-	}
-
-	images = images[count:]
-	for _, image := range images {
-		log.Debugf("[cleanImageOnNode] Delete Images: %s", image.Tags)
-		if _, err := node.Engine.ImageRemove(ctx, image.ID, false, true); err != nil {
-			log.Errorf("[cleanImageOnNode] Node %s ImageRemove error: %s, imageID: %s", node.Name, err, image.Tags)
-		}
-	}
-	return nil
-}
-
 func makeCopyMessage(id, status, name, path string, err error, data io.ReadCloser) *types.CopyMessage {
 	return &types.CopyMessage{
 		ID:     id,
@@ -156,25 +132,6 @@ func makeCopyMessage(id, status, name, path string, err error, data io.ReadClose
 		Error:  err,
 		Data:   data,
 	}
-}
-
-func filterNode(node *types.Node, labels map[string]string) bool {
-	if node.Labels == nil && labels == nil {
-		return true
-	} else if node.Labels == nil && labels != nil {
-		return false
-	} else if node.Labels != nil && labels == nil {
-		return true
-	}
-
-	for k, v := range labels {
-		if d, ok := node.Labels[k]; !ok {
-			return false
-		} else if d != v {
-			return false
-		}
-	}
-	return true
 }
 
 func getNodesInfo(nodes map[string]*types.Node, cpu float64, memory, storage int64) []types.NodeInfo {

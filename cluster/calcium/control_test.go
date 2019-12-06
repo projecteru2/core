@@ -3,7 +3,6 @@ package calcium
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io/ioutil"
 	"testing"
 
@@ -25,27 +24,20 @@ func TestControlStart(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	c.store = store
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-
-	// failed by GetContainer
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Twice()
-	ch, err := c.ControlContainer(ctx, []string{"id1", "id2"}, "", true)
+	// failed by GetContainers
+	store.On("GetContainers", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	ch, err := c.ControlContainer(ctx, []string{"id1"}, "", true)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
-	StatusMeta := &types.StatusMeta{
-		ID:      "cid",
-		Running: false,
-	}
-	_, err = json.Marshal(StatusMeta)
-	assert.NoError(t, err)
 	container := &types.Container{
-		ID:         "cid",
+		ID:         "id1",
 		Privileged: true,
 	}
 	engine := &enginemocks.API{}
 	container.Engine = engine
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
+	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{container}, nil)
 	// failed by type
 	ch, err = c.ControlContainer(ctx, []string{"id1"}, "", true)
 	assert.NoError(t, err)
@@ -64,7 +56,6 @@ func TestControlStart(t *testing.T) {
 	hook := &types.Hook{
 		AfterStart: []string{"cmd1", "cmd2"},
 	}
-	container.ID = "failed"
 	container.Hook = hook
 	container.Hook.Force = false
 	engine.On("ExecCreate", mock.Anything, mock.Anything, mock.Anything).Return("", types.ErrNilEngine).Times(3)
@@ -73,14 +64,13 @@ func TestControlStart(t *testing.T) {
 	for r := range ch {
 		assert.NoError(t, r.Error)
 	}
-	container.ID = "cid"
 	// force false, get no error
 	container.Hook.Force = true
-	ch, err = c.ControlContainer(ctx, []string{"cid"}, cluster.ContainerStart, false)
+	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart, false)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
-		assert.Equal(t, r.ContainerID, "cid")
+		assert.Equal(t, r.ContainerID, "id1")
 	}
 	engine.On("ExecCreate", mock.Anything, mock.Anything, mock.Anything).Return("eid", nil)
 	// failed by ExecAttach
@@ -109,7 +99,6 @@ func TestControlStart(t *testing.T) {
 	// exitCode is 0
 	engine.On("ExecExitCode", mock.Anything, mock.Anything).Return(0, nil)
 	engine.On("ExecAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(ioutil.NopCloser(bytes.NewBufferString("succ")), nil, nil)
-	container.ID = "succ"
 	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStart, false)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -126,25 +115,17 @@ func TestControlStop(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	c.store = store
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	StatusMeta := &types.StatusMeta{
-		ID:      "cid",
-		Running: true,
-	}
-	_, err := json.Marshal(StatusMeta)
-	assert.NoError(t, err)
 	container := &types.Container{
-		ID:         "cid",
+		ID:         "id1",
 		Privileged: true,
-		StatusMeta: StatusMeta,
 	}
 	engine := &enginemocks.API{}
 	container.Engine = engine
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
+	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{container}, nil)
 	// failed, hook true, remove always false
 	hook := &types.Hook{
 		BeforeStop: []string{"cmd1"},
 	}
-	container.ID = "failed"
 	container.Hook = hook
 	container.Hook.Force = true
 	engine.On("ExecCreate", mock.Anything, mock.Anything, mock.Anything).Return("", types.ErrNilEngine)
@@ -164,7 +145,6 @@ func TestControlStop(t *testing.T) {
 	engine.On("VirtualizationStop", mock.Anything, mock.Anything).Return(nil)
 	// stop success
 	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerStop, false)
-	container.ID = "succed"
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.NoError(t, r.Error)
@@ -182,17 +162,15 @@ func TestControlRestart(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	engine := &enginemocks.API{}
 	container := &types.Container{
-		ID:         "cid",
+		ID:         "id1",
 		Privileged: true,
 		Engine:     engine,
-		StatusMeta: &types.StatusMeta{Running: true},
 	}
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
+	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{container}, nil)
 	// failed, hook true, remove always false
 	hook := &types.Hook{
 		BeforeStop: []string{"cmd1"},
 	}
-	container.ID = "failed"
 	container.Hook = hook
 	container.Hook.Force = true
 	engine.On("ExecCreate", mock.Anything, mock.Anything, mock.Anything).Return("", types.ErrNilEngine)
@@ -206,7 +184,6 @@ func TestControlRestart(t *testing.T) {
 	engine.On("VirtualizationStop", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	ch, err = c.ControlContainer(ctx, []string{"id1"}, cluster.ContainerRestart, false)
-	container.ID = "succed"
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.NoError(t, r.Error)

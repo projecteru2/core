@@ -12,7 +12,7 @@ func (c *Calcium) LogStream(ctx context.Context, ID string) (chan *types.LogStre
 	ch := make(chan *types.LogStreamMessage)
 	go func() {
 		defer close(ch)
-		container, err := c.store.GetContainer(ctx, ID)
+		container, err := c.GetContainer(ctx, ID)
 		if err != nil {
 			ch <- &types.LogStreamMessage{ID: ID, Error: err}
 			return

@@ -72,6 +72,9 @@ func (c *Calcium) RemoveImage(ctx context.Context, podname, nodename string, ima
 // 实际上就是在所有的node上去pull一次
 func (c *Calcium) CacheImage(ctx context.Context, podname, nodename string, images []string, step int) (chan *types.CacheImageMessage, error) {
 	ch := make(chan *types.CacheImageMessage)
+	if step < 1 {
+		step = 1
+	}
 
 	nodes, err := c.GetNodes(ctx, podname, nodename, nil, false)
 	if err != nil {
