@@ -89,7 +89,7 @@ func (v *Vibranium) ListPods(ctx context.Context, _ *pb.Empty) (*pb.Pods, error)
 
 // ListPodNodes returns a list of node for pod
 func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions) (*pb.Nodes, error) {
-	ns, err := v.cluster.ListPodNodes(ctx, opts.Podname, opts.All)
+	ns, err := v.cluster.ListPodNodes(ctx, opts.Podname, opts.Labels, opts.All)
 	if err != nil {
 		return nil, err
 	}

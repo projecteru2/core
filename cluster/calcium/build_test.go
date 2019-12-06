@@ -65,12 +65,12 @@ func TestBuild(t *testing.T) {
 	c.config.Docker.BuildPod = "test"
 	// failed by ListPodNodes failed
 	store := &storemocks.Store{}
-	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return(nil, types.ErrBadMeta).Once()
+	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrBadMeta).Once()
 	c.store = store
 	ch, err := c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	// failed by no nodes
-	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return([]*types.Node{}, nil).Once()
+	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	engine := &enginemocks.API{}
@@ -80,7 +80,7 @@ func TestBuild(t *testing.T) {
 		Available: true,
 		Engine:    engine,
 	}
-	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything).Return([]*types.Node{node}, nil)
+	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	scheduler := &schedulermocks.Scheduler{}
 	c.scheduler = scheduler
 	// failed by MaxIdleNode

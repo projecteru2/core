@@ -81,10 +81,10 @@ func TestNode(t *testing.T) {
 	assert.Equal(t, savedNode.Name, node.Name)
 	assert.Equal(t, savedNode.Endpoint, node.Endpoint)
 	// GetNodesByPod
-	nodes, err := m.GetNodesByPod(ctx, "nil")
+	nodes, err := m.GetNodesByPod(ctx, "nil", nil, true)
 	assert.NoError(t, err)
 	assert.Equal(t, len(nodes), 0)
-	nodes, err = m.GetNodesByPod(ctx, podname)
+	nodes, err = m.GetNodesByPod(ctx, podname, nil, true)
 	assert.NoError(t, err)
 	assert.Equal(t, len(nodes), 2)
 	savedNode = nodes[0]

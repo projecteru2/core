@@ -44,18 +44,9 @@ func (c *Calcium) withContainerLocked(ctx context.Context, ID string, f func(con
 }
 
 func (c *Calcium) withNodeLocked(ctx context.Context, podname, nodename string, f func(node *types.Node) error) error {
-	lock, err := c.doLock(ctx, fmt.Sprintf(cluster.NodeLock, podname, nodename), c.config.LockTimeout)
-	if err != nil {
-		return err
-	}
-	defer c.doUnlock(lock, nodename)
-	log.Debugf("[withNodeLocked] Node %s locked", nodename)
-	// Get node
-	node, err := c.GetNode(ctx, podname, nodename)
-	if err != nil {
-		return err
-	}
-	return f(node)
+	return c.withNodesLocked(ctx, podname, nodename, nil, true, func(nodes map[string]*types.Node) error {
+		return f(nodes[nodename])
+	})
 }
 
 func (c *Calcium) withContainersLocked(ctx context.Context, IDs []string, f func(containers map[string]*types.Container) error) error {
@@ -81,32 +72,14 @@ func (c *Calcium) withContainersLocked(ctx context.Context, IDs []string, f func
 	return f(containers)
 }
 
-func (c *Calcium) withNodesLocked(ctx context.Context, podname, nodename string, labels map[string]string, f func(nodes map[string]*types.Node) error) error {
+func (c *Calcium) withNodesLocked(ctx context.Context, podname, nodename string, labels map[string]string, all bool, f func(nodes map[string]*types.Node) error) error {
 	nodes := map[string]*types.Node{}
 	locks := map[string]lock.DistributedLock{}
 	defer func() { c.doUnlockAll(locks) }()
 
-	var ns []*types.Node
-	var err error
-	if nodename == "" {
-		// TODO should consider all nodes
-		ns, err = c.ListPodNodes(ctx, podname, false)
-		if err != nil {
-			return err
-		}
-		nodeList := []*types.Node{}
-		for _, node := range ns {
-			if filterNode(node, labels) {
-				nodeList = append(nodeList, node)
-			}
-		}
-		ns = nodeList
-	} else {
-		n, err := c.GetNode(ctx, podname, nodename)
-		if err != nil {
-			return err
-		}
-		ns = append(ns, n)
+	ns, err := c.GetNodes(ctx, podname, nodename, labels, all)
+	if err != nil {
+		return err
 	}
 
 	for _, n := range ns {

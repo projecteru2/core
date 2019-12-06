@@ -148,7 +148,7 @@ func (m *Mercury) GetNodeByName(ctx context.Context, nodename string) (*types.No
 // GetNodesByPod get all nodes bound to pod
 // here we use podname instead of pod instance
 // storage path in etcd is `/pod/nodes/:podname`
-func (m *Mercury) GetNodesByPod(ctx context.Context, podname string) ([]*types.Node, error) {
+func (m *Mercury) GetNodesByPod(ctx context.Context, podname string, labels map[string]string, all bool) ([]*types.Node, error) {
 	key := fmt.Sprintf(podNodesKey, podname)
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithKeysOnly())
 	if err != nil {
@@ -162,7 +162,9 @@ func (m *Mercury) GetNodesByPod(ctx context.Context, podname string) ([]*types.N
 		if err != nil {
 			return nodes, err
 		}
-		nodes = append(nodes, n)
+		if n.Available || all {
+			nodes = append(nodes, n)
+		}
 	}
 	return nodes, err
 }

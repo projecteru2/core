@@ -444,13 +444,13 @@ func (_m *Cluster) ListNodeContainers(ctx context.Context, nodename string, labe
 	return r0, r1
 }
 
-// ListPodNodes provides a mock function with given fields: ctx, podname, all
-func (_m *Cluster) ListPodNodes(ctx context.Context, podname string, all bool) ([]*types.Node, error) {
-	ret := _m.Called(ctx, podname, all)
+// ListPodNodes provides a mock function with given fields: ctx, podname, labels, all
+func (_m *Cluster) ListPodNodes(ctx context.Context, podname string, labels map[string]string, all bool) ([]*types.Node, error) {
+	ret := _m.Called(ctx, podname, labels, all)
 
 	var r0 []*types.Node
-	if rf, ok := ret.Get(0).(func(context.Context, string, bool) []*types.Node); ok {
-		r0 = rf(ctx, podname, all)
+	if rf, ok := ret.Get(0).(func(context.Context, string, map[string]string, bool) []*types.Node); ok {
+		r0 = rf(ctx, podname, labels, all)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*types.Node)
@@ -458,8 +458,8 @@ func (_m *Cluster) ListPodNodes(ctx context.Context, podname string, all bool) (
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, bool) error); ok {
-		r1 = rf(ctx, podname, all)
+	if rf, ok := ret.Get(1).(func(context.Context, string, map[string]string, bool) error); ok {
+		r1 = rf(ctx, podname, labels, all)
 	} else {
 		r1 = ret.Error(1)
 	}

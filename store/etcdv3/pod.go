@@ -45,7 +45,7 @@ func (m *Mercury) GetPod(ctx context.Context, name string) (*types.Pod, error) {
 func (m *Mercury) RemovePod(ctx context.Context, podname string) error {
 	key := fmt.Sprintf(podInfoKey, podname)
 
-	ns, err := m.GetNodesByPod(ctx, podname)
+	ns, err := m.GetNodesByPod(ctx, podname, nil, true)
 	if err != nil {
 		return err
 	}

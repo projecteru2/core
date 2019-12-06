@@ -27,7 +27,7 @@ func TestPodResource(t *testing.T) {
 	store := &storemocks.Store{}
 	c.store = store
 	// failed by GetNodesByPod
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err := c.PodResource(ctx, podname)
 	assert.Error(t, err)
 	node := &types.Node{
@@ -38,7 +38,7 @@ func TestPodResource(t *testing.T) {
 		InitMemCap:     6,
 		InitStorageCap: 10,
 	}
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	// failed by ListNodeContainers
 	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err = c.PodResource(ctx, podname)
@@ -158,7 +158,7 @@ func TestAllocResource(t *testing.T) {
 	defer store.AssertExpectations(t)
 
 	testAllocFailedAsGetNodesByPodError(t, c, opts)
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 
 	testAllocFailedAsCreateLockError(t, c, opts)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(&dummyLock{}, nil)
@@ -245,7 +245,7 @@ func TestAllocResource(t *testing.T) {
 
 func testAllocFailedAsGetNodesByPodError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
 	store := c.store.(*storemocks.Store)
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)
 }
@@ -263,6 +263,8 @@ func testAllocFailedAsNoLabels(t *testing.T, c *Calcium, opts *types.DeployOptio
 		opts.NodeLabels = ori
 	}()
 
+	store := c.store.(*storemocks.Store)
+	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	opts.NodeLabels = map[string]string{"test": "1"}
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)
