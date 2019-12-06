@@ -87,7 +87,7 @@ func TestRemoveNode(t *testing.T) {
 		mock.Anything,
 		mock.Anything,
 		mock.Anything).Return(node, nil)
-	store.On("DeleteNode", mock.Anything, mock.Anything).Return(nil)
+	store.On("RemoveNode", mock.Anything, mock.Anything).Return(nil)
 	pod := &types.Pod{Name: name}
 	store.On("GetPod", mock.Anything, mock.Anything).Return(pod, nil)
 	c.store = store

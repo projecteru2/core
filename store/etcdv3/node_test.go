@@ -197,10 +197,10 @@ RdCPRPt513WozkJZZAjUSP2U
 	assert.NoError(t, err)
 	_, err = engine3.Info(ctx)
 	assert.Error(t, err)
-	// DeleteNode
-	m.DeleteNode(ctx, node3)
-	m.DeleteNode(ctx, node)
-	m.DeleteNode(ctx, nil)
+	// RemoveNode
+	m.RemoveNode(ctx, node3)
+	m.RemoveNode(ctx, node)
+	m.RemoveNode(ctx, nil)
 	resp, err := m.Get(ctx, fmt.Sprintf(nodeInfoKey, podname, nodename))
 	assert.NoError(t, err)
 	assert.Equal(t, resp.Count, int64(0))

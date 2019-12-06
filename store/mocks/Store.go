@@ -117,20 +117,6 @@ func (_m *Store) CreateLock(key string, ttl time.Duration) (lock.DistributedLock
 	return r0, r1
 }
 
-// DeleteNode provides a mock function with given fields: ctx, node
-func (_m *Store) DeleteNode(ctx context.Context, node *types.Node) error {
-	ret := _m.Called(ctx, node)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.Node) error); ok {
-		r0 = rf(ctx, node)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
 // DeleteProcessing provides a mock function with given fields: ctx, opts, nodeInfo
 func (_m *Store) DeleteProcessing(ctx context.Context, opts *types.DeployOptions, nodeInfo types.NodeInfo) error {
 	ret := _m.Called(ctx, opts, nodeInfo)
@@ -405,6 +391,20 @@ func (_m *Store) RemoveContainer(ctx context.Context, container *types.Container
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *types.Container) error); ok {
 		r0 = rf(ctx, container)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// RemoveNode provides a mock function with given fields: ctx, node
+func (_m *Store) RemoveNode(ctx context.Context, node *types.Node) error {
+	ret := _m.Called(ctx, node)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Node) error); ok {
+		r0 = rf(ctx, node)
 	} else {
 		r0 = ret.Error(0)
 	}
