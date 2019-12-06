@@ -59,6 +59,7 @@ type ListContainersOptions struct {
 	Entrypoint string
 	Nodename   string
 	Limit      int64
+	Labels     map[string]string
 }
 
 // ReplaceOptions for replace container

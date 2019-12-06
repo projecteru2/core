@@ -97,7 +97,7 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 }
 
 // ListContainers list containers
-func (m *Mercury) ListContainers(ctx context.Context, appname, entrypoint, nodename string, limit int64) ([]*types.Container, error) {
+func (m *Mercury) ListContainers(ctx context.Context, appname, entrypoint, nodename string, limit int64, labels map[string]string) ([]*types.Container, error) {
 	if appname == "" {
 		entrypoint = ""
 	}
@@ -117,14 +117,16 @@ func (m *Mercury) ListContainers(ctx context.Context, appname, entrypoint, noden
 		if err := json.Unmarshal(ev.Value, container); err != nil {
 			return nil, err
 		}
-		containers = append(containers, container)
+		if utils.FilterContainer(container.Labels, labels) {
+			containers = append(containers, container)
+		}
 	}
 
 	return m.bindContainersAdditions(ctx, containers)
 }
 
 // ListNodeContainers list containers belong to one node
-func (m *Mercury) ListNodeContainers(ctx context.Context, nodename string) ([]*types.Container, error) {
+func (m *Mercury) ListNodeContainers(ctx context.Context, nodename string, labels map[string]string) ([]*types.Container, error) {
 	key := fmt.Sprintf(nodeContainersKey, nodename, "")
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix())
 	if err != nil {
@@ -137,7 +139,9 @@ func (m *Mercury) ListNodeContainers(ctx context.Context, nodename string) ([]*t
 		if err := json.Unmarshal(ev.Value, container); err != nil {
 			return []*types.Container{}, err
 		}
-		containers = append(containers, container)
+		if utils.FilterContainer(container.Labels, labels) {
+			containers = append(containers, container)
+		}
 	}
 
 	return m.bindContainersAdditions(ctx, containers)
@@ -174,12 +178,11 @@ func (m *Mercury) ContainerStatusStream(ctx context.Context, appname, entrypoint
 				}
 				if container, err := m.GetContainer(ctx, ID); err != nil {
 					msg.Error = err
-				} else if !utils.FilterContainer(container.Labels, labels) {
-					log.Warnf("[ContainerStatusStream] ignore container %s by labels", ID)
-					continue
-				} else {
+				} else if utils.FilterContainer(container.Labels, labels) {
 					log.Debugf("[ContainerStatusStream] container %s status changed", container.ID)
 					msg.Container = container
+				} else {
+					continue
 				}
 				ch <- msg
 			}
