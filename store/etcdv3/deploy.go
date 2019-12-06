@@ -18,13 +18,12 @@ func (m *Mercury) MakeDeployStatus(ctx context.Context, opts *types.DeployOption
 	if err != nil {
 		return nil, err
 	}
-	if resp.Count != 0 {
-		nodesInfo, err = m.doGetDeployStatus(ctx, resp, nodesInfo)
-		if err != nil {
-			return nil, err
-		}
-	} else {
+	if resp.Count == 0 {
 		log.Warnf("[MakeDeployStatus] Deploy status not found %s.%s", opts.Name, opts.Entrypoint.Name)
+	}
+	nodesInfo, err = m.doGetDeployStatus(ctx, resp, nodesInfo)
+	if err != nil {
+		return nil, err
 	}
 	return m.doLoadProcessing(ctx, opts, nodesInfo)
 }

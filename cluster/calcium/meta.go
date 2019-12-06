@@ -37,7 +37,7 @@ func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
 // RemoveNode remove a node
 func (c *Calcium) RemoveNode(ctx context.Context, podname, nodename string) error {
 	return c.withNodeLocked(ctx, podname, nodename, func(node *types.Node) error {
-		return c.store.DeleteNode(ctx, node)
+		return c.store.RemoveNode(ctx, node)
 	})
 }
 

@@ -78,12 +78,12 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 	return m.doAddNode(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, storage, labels, numa, numaMemory)
 }
 
-// DeleteNode delete a node
-func (m *Mercury) DeleteNode(ctx context.Context, node *types.Node) error {
+// RemoveNode delete a node
+func (m *Mercury) RemoveNode(ctx context.Context, node *types.Node) error {
 	if node == nil {
 		return nil
 	}
-	return m.doDeleteNode(ctx, node.Podname, node.Name, node.Endpoint)
+	return m.doRemoveNode(ctx, node.Podname, node.Name, node.Endpoint)
 }
 
 // GetNode get a node from etcd
@@ -154,19 +154,22 @@ func (m *Mercury) GetNodesByPod(ctx context.Context, podname string, labels map[
 	if err != nil {
 		return []*types.Node{}, err
 	}
-
-	nodes := []*types.Node{}
+	podNodes := map[string][]string{podname: []string{}}
 	for _, ev := range resp.Kvs {
 		nodename := utils.Tail(string(ev.Key))
-		n, err := m.GetNode(ctx, podname, nodename)
-		if err != nil {
-			return nodes, err
-		}
-		if n.Available || all {
+		podNodes[podname] = append(podNodes[podname], nodename)
+	}
+	ns, err := m.GetNodes(ctx, podNodes)
+	if err != nil {
+		return nil, err
+	}
+	nodes := []*types.Node{}
+	for _, n := range ns {
+		if (n.Available || all) && utils.FilterContainer(n.Labels, labels) {
 			nodes = append(nodes, n)
 		}
 	}
-	return nodes, err
+	return nodes, nil
 }
 
 // UpdateNode update a node, save it to etcd
@@ -293,7 +296,7 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 // 所以可能出现实际上node创建失败但是却写好了证书的情况
 // 所以需要删除这些留存的证书
 // 至于结果是不是成功就无所谓了
-func (m *Mercury) doDeleteNode(ctx context.Context, podname, nodename, endpoint string) error {
+func (m *Mercury) doRemoveNode(ctx context.Context, podname, nodename, endpoint string) error {
 	keys := []string{
 		fmt.Sprintf(nodeInfoKey, podname, nodename),
 		fmt.Sprintf(nodePodKey, nodename),
@@ -304,6 +307,6 @@ func (m *Mercury) doDeleteNode(ctx context.Context, podname, nodename, endpoint 
 
 	_cache.Delete(nodename)
 	_, err := m.batchDelete(ctx, keys)
-	log.Infof("[doDeleteNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
+	log.Infof("[doRemoveNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 	return err
 }

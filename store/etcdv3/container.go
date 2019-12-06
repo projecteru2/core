@@ -32,12 +32,6 @@ func (m *Mercury) UpdateContainer(ctx context.Context, container *types.Containe
 // RemoveContainer remove a container
 // container id must be in full length
 func (m *Mercury) RemoveContainer(ctx context.Context, container *types.Container) error {
-	if l := len(container.ID); l != 64 {
-		return types.NewDetailedErr(types.ErrBadContainerID,
-			fmt.Sprintf("containerID: %s, length: %d",
-				container.ID, len(container.ID)))
-	}
-
 	return m.cleanContainerData(ctx, container)
 }
 
@@ -289,12 +283,12 @@ func (m *Mercury) doOpsContainer(ctx context.Context, container *types.Container
 	containerData := string(bytes)
 
 	data := map[string]string{
-		fmt.Sprintf(containerInfoKey, container.ID):                      containerData,
-		fmt.Sprintf(nodeContainersKey, container.Nodename, container.ID): containerData,
+		fmt.Sprintf(containerInfoKey, container.ID):                                                 containerData,
+		fmt.Sprintf(nodeContainersKey, container.Nodename, container.ID):                            containerData,
+		filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID): containerData,
 	}
 
 	if create {
-		data[filepath.Join(containerDeployPrefix, appname, entrypoint, container.Nodename, container.ID)] = containerData
 		_, err = m.batchCreate(ctx, data)
 	} else {
 		_, err = m.batchUpdate(ctx, data)
