@@ -251,6 +251,7 @@ message RemoveNodeOptions {
 message GetNodeOptions {
     string podname = 1;
     string nodename = 2;
+    map<string, string> labels = 3;
 }
 
 message ListNodesOptions {

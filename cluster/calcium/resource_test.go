@@ -40,7 +40,7 @@ func TestPodResource(t *testing.T) {
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	// failed by ListNodeContainers
-	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err = c.PodResource(ctx, podname)
 	assert.Error(t, err)
 	containers := []*types.Container{
@@ -56,7 +56,7 @@ func TestPodResource(t *testing.T) {
 			Storage: 1,
 		},
 	}
-	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(containers, nil)
+	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
 	engine := &enginemocks.API{}
 	engine.On("ResourceValidate", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		fmt.Errorf("%s", "not validate"),
@@ -99,7 +99,7 @@ func TestNodeResource(t *testing.T) {
 	assert.Error(t, err)
 	store.On("GetNode", ctx, podname, nodename).Return(node, nil)
 	// failed by list node containers
-	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err = c.NodeResource(ctx, podname, nodename)
 	assert.Error(t, err)
 	containers := []*types.Container{
@@ -114,7 +114,7 @@ func TestNodeResource(t *testing.T) {
 			Quota:  0.5,
 		},
 	}
-	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(containers, nil)
+	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
 	// success but container inspect failed
 	nr, err := c.NodeResource(ctx, podname, nodename)
 	assert.NoError(t, err)

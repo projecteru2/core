@@ -149,14 +149,14 @@ func TestListContainers(t *testing.T) {
 
 	store := &storemocks.Store{}
 	c.store = store
-	store.On("ListContainers", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
-	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(containers, nil)
+	store.On("ListContainers", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
+	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
 
 	cs, err := c.ListContainers(ctx, &types.ListContainersOptions{Appname: "", Entrypoint: "", Nodename: ""})
 	assert.NoError(t, err)
 	assert.Equal(t, len(cs), 1)
 	assert.Equal(t, cs[0].ID, ID)
-	cs, err = c.ListNodeContainers(ctx, "")
+	cs, err = c.ListNodeContainers(ctx, "", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, len(cs), 1)
 	assert.Equal(t, cs[0].ID, ID)
@@ -252,11 +252,11 @@ func TestSetNode(t *testing.T) {
 	assert.Equal(t, n.Name, name)
 	// not available
 	// failed by list node containers
-	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err = c.SetNode(ctx, &types.SetNodeOptions{Status: 0})
 	assert.Error(t, err)
 	containers := []*types.Container{&types.Container{Name: "wrong_name"}, &types.Container{Name: "a_b_c"}}
-	store.On("ListNodeContainers", mock.Anything, mock.Anything).Return(containers, nil)
+	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
 	store.On("SetContainerStatus",
 		mock.Anything, mock.Anything, mock.Anything,
 	).Return(types.ErrNoETCD)

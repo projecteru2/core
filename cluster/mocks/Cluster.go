@@ -421,13 +421,13 @@ func (_m *Cluster) ListNetworks(ctx context.Context, podname string, driver stri
 	return r0, r1
 }
 
-// ListNodeContainers provides a mock function with given fields: ctx, nodename
-func (_m *Cluster) ListNodeContainers(ctx context.Context, nodename string) ([]*types.Container, error) {
-	ret := _m.Called(ctx, nodename)
+// ListNodeContainers provides a mock function with given fields: ctx, nodename, labels
+func (_m *Cluster) ListNodeContainers(ctx context.Context, nodename string, labels map[string]string) ([]*types.Container, error) {
+	ret := _m.Called(ctx, nodename, labels)
 
 	var r0 []*types.Container
-	if rf, ok := ret.Get(0).(func(context.Context, string) []*types.Container); ok {
-		r0 = rf(ctx, nodename)
+	if rf, ok := ret.Get(0).(func(context.Context, string, map[string]string) []*types.Container); ok {
+		r0 = rf(ctx, nodename, labels)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*types.Container)
@@ -435,8 +435,8 @@ func (_m *Cluster) ListNodeContainers(ctx context.Context, nodename string) ([]*
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, nodename)
+	if rf, ok := ret.Get(1).(func(context.Context, string, map[string]string) error); ok {
+		r1 = rf(ctx, nodename, labels)
 	} else {
 		r1 = ret.Error(1)
 	}

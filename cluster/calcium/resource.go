@@ -64,7 +64,7 @@ func (c *Calcium) NodeResource(ctx context.Context, podname, nodename string) (*
 }
 
 func (c *Calcium) doGetNodeResource(ctx context.Context, node *types.Node) (*types.NodeResource, error) {
-	containers, err := c.ListNodeContainers(ctx, node.Name)
+	containers, err := c.ListNodeContainers(ctx, node.Name, nil)
 	if err != nil {
 		return nil, err
 	}

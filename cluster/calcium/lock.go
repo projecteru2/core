@@ -38,18 +38,9 @@ func (c *Calcium) doUnlockAll(locks map[string]lock.DistributedLock) {
 }
 
 func (c *Calcium) withContainerLocked(ctx context.Context, ID string, f func(container *types.Container) error) error {
-	lock, err := c.doLock(ctx, fmt.Sprintf(cluster.ContainerLock, ID), c.config.LockTimeout)
-	if err != nil {
-		return err
-	}
-	defer c.doUnlock(lock, ID)
-	log.Debugf("[withContainerLocked] Container %s locked", ID)
-	// Get container meta
-	container, err := c.store.GetContainer(ctx, ID)
-	if err != nil {
-		return err
-	}
-	return f(container)
+	return c.withContainersLocked(ctx, []string{ID}, func(containers map[string]*types.Container) error {
+		return f(containers[ID])
+	})
 }
 
 func (c *Calcium) withNodeLocked(ctx context.Context, podname, nodename string, f func(node *types.Node) error) error {

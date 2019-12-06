@@ -108,6 +108,7 @@ func (v *Vibranium) ListContainers(opts *pb.ListContainersOptions, stream pb.Cor
 		Entrypoint: opts.Entrypoint,
 		Nodename:   opts.Nodename,
 		Limit:      opts.Limit,
+		Labels:     opts.Labels,
 	}
 	ctx := stream.Context()
 
@@ -127,7 +128,7 @@ func (v *Vibranium) ListContainers(opts *pb.ListContainersOptions, stream pb.Cor
 
 // ListNodeContainers list node containers
 func (v *Vibranium) ListNodeContainers(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Containers, error) {
-	containers, err := v.cluster.ListNodeContainers(ctx, opts.Nodename)
+	containers, err := v.cluster.ListNodeContainers(ctx, opts.Nodename, opts.Labels)
 	if err != nil {
 		return nil, err
 	}

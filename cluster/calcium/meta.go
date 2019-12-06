@@ -64,12 +64,12 @@ func (c *Calcium) ListPodNodes(ctx context.Context, podname string, all bool) ([
 
 // ListContainers list containers
 func (c *Calcium) ListContainers(ctx context.Context, opts *types.ListContainersOptions) ([]*types.Container, error) {
-	return c.store.ListContainers(ctx, opts.Appname, opts.Entrypoint, opts.Nodename, opts.Limit)
+	return c.store.ListContainers(ctx, opts.Appname, opts.Entrypoint, opts.Nodename, opts.Limit, opts.Labels)
 }
 
 // ListNodeContainers list containers belong to one node
-func (c *Calcium) ListNodeContainers(ctx context.Context, nodename string) ([]*types.Container, error) {
-	return c.store.ListNodeContainers(ctx, nodename)
+func (c *Calcium) ListNodeContainers(ctx context.Context, nodename string, labels map[string]string) ([]*types.Container, error) {
+	return c.store.ListNodeContainers(ctx, nodename, labels)
 }
 
 // GetPod get one pod
@@ -104,7 +104,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 			n.Available = true
 		case cluster.NodeDown:
 			n.Available = false
-			containers, err := c.store.ListNodeContainers(ctx, opts.Nodename)
+			containers, err := c.store.ListNodeContainers(ctx, opts.Nodename, nil)
 			if err != nil {
 				return err
 			}

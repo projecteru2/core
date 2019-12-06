@@ -102,14 +102,14 @@ func TestContainer(t *testing.T) {
 	err = m.SetContainerStatus(ctx, container2, 0)
 	assert.Error(t, err)
 	// ListContainers
-	containers, _ = m.ListContainers(ctx, appname, entrypoint, "", 1)
+	containers, _ = m.ListContainers(ctx, appname, entrypoint, "", 1, nil)
 	assert.Equal(t, len(containers), 1)
 	assert.Equal(t, containers[0].Name, name)
 	// ListNodeContainers
-	containers, _ = m.ListNodeContainers(ctx, nodename)
+	containers, _ = m.ListNodeContainers(ctx, nodename, nil)
 	assert.Equal(t, len(containers), 1)
 	assert.Equal(t, containers[0].Name, name)
-	containers, _ = m.ListNodeContainers(ctx, "n2")
+	containers, _ = m.ListNodeContainers(ctx, "n2", nil)
 	assert.Equal(t, len(containers), 0)
 }
 
