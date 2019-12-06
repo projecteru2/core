@@ -38,6 +38,7 @@ func TestDissociateContainer(t *testing.T) {
 		Endpoint: "http://1.1.1.1:1",
 	}
 
+	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{c1}, nil)
 	// failed by lock
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	ch, err := c.DissociateContainer(ctx, []string{"c1"})
@@ -46,7 +47,6 @@ func TestDissociateContainer(t *testing.T) {
 		assert.Error(t, r.Error)
 	}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	store.On("GetContainer", mock.Anything, "c1").Return(c1, nil)
 	store.On("GetNode", mock.Anything, mock.Anything, "node1").Return(node1, nil)
 	// failed by RemoveContainer
 	store.On("RemoveContainer", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()

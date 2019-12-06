@@ -58,12 +58,13 @@ func TestWithContainersLocked(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	// failed to get lock
 	lock.On("Lock", mock.Anything).Return(types.ErrNoETCD).Once()
+	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{&types.Container{}}, nil).Once()
 	err := c.withContainersLocked(ctx, []string{"c1", "c2"}, func(containers map[string]*types.Container) error { return nil })
 	assert.Error(t, err)
 	// success
 	lock.On("Lock", mock.Anything).Return(nil)
 	// failed by getcontainer
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetContainers", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	err = c.withContainersLocked(ctx, []string{"c1", "c2"}, func(containers map[string]*types.Container) error { return nil })
 	assert.Error(t, err)
 	engine := &enginemocks.API{}
@@ -71,7 +72,7 @@ func TestWithContainersLocked(t *testing.T) {
 		ID:     "c1",
 		Engine: engine,
 	}
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
+	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{container}, nil)
 	// success
 	err = c.withContainersLocked(ctx, []string{"c1", "c1"}, func(containers map[string]*types.Container) error {
 		assert.Len(t, containers, 1)
@@ -91,12 +92,13 @@ func TestWithContainerLocked(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	// failed to get lock
 	lock.On("Lock", mock.Anything).Return(types.ErrNoETCD).Once()
+	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{&types.Container{}}, nil).Once()
 	err := c.withContainerLocked(ctx, "c1", func(container *types.Container) error { return nil })
 	assert.Error(t, err)
 	// success
 	lock.On("Lock", mock.Anything).Return(nil)
 	// failed by getcontainer
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetContainers", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	err = c.withContainerLocked(ctx, "c1", func(container *types.Container) error { return nil })
 	assert.Error(t, err)
 	engine := &enginemocks.API{}
@@ -104,7 +106,7 @@ func TestWithContainerLocked(t *testing.T) {
 		ID:     "c1",
 		Engine: engine,
 	}
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
+	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{container}, nil)
 	// success
 	err = c.withContainerLocked(ctx, "c1", func(container *types.Container) error {
 		assert.Equal(t, container.ID, "c1")
