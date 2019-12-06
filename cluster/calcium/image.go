@@ -16,19 +16,9 @@ func (c *Calcium) RemoveImage(ctx context.Context, podname, nodename string, ima
 		step = 1
 	}
 
-	var err error
-	nodes := []*types.Node{}
-	if nodename != "" {
-		n, err := c.GetNode(ctx, podname, nodename)
-		if err != nil {
-			return ch, err
-		}
-		nodes = append(nodes, n)
-	} else {
-		nodes, err = c.store.GetNodesByPod(ctx, podname)
-		if err != nil {
-			return ch, err
-		}
+	nodes, err := c.GetNodes(ctx, podname, nodename, nil, false)
+	if err != nil {
+		return ch, err
 	}
 
 	if len(nodes) == 0 {
@@ -83,19 +73,9 @@ func (c *Calcium) RemoveImage(ctx context.Context, podname, nodename string, ima
 func (c *Calcium) CacheImage(ctx context.Context, podname, nodename string, images []string, step int) (chan *types.CacheImageMessage, error) {
 	ch := make(chan *types.CacheImageMessage)
 
-	var err error
-	nodes := []*types.Node{}
-	if nodename != "" {
-		n, err := c.GetNode(ctx, podname, nodename)
-		if err != nil {
-			return ch, err
-		}
-		nodes = append(nodes, n)
-	} else {
-		nodes, err = c.store.GetNodesByPod(ctx, podname)
-		if err != nil {
-			return ch, err
-		}
+	nodes, err := c.GetNodes(ctx, podname, nodename, nil, false)
+	if err != nil {
+		return ch, err
 	}
 
 	if len(nodes) == 0 {

@@ -16,7 +16,7 @@ import (
 
 // PodResource show pod resource usage
 func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodResource, error) {
-	nodes, err := c.ListPodNodes(ctx, podname, true)
+	nodes, err := c.ListPodNodes(ctx, podname, nil, true)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 	var total int
 	var nodesInfo []types.NodeInfo
 	var nodeCPUPlans map[string][]types.CPUMap
-	if err = c.withNodesLocked(ctx, opts.Podname, opts.Nodename, opts.NodeLabels, func(nodes map[string]*types.Node) error {
+	if err = c.withNodesLocked(ctx, opts.Podname, opts.Nodename, opts.NodeLabels, false, func(nodes map[string]*types.Node) error {
 		if len(nodes) == 0 {
 			return types.ErrInsufficientNodes
 		}

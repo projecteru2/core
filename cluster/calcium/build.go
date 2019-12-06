@@ -42,7 +42,7 @@ func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
 	}
 
 	// get node by scheduler
-	nodes, err := c.ListPodNodes(ctx, c.config.Docker.BuildPod, false)
+	nodes, err := c.ListPodNodes(ctx, c.config.Docker.BuildPod, nil, false)
 	if err != nil {
 		return nil, err
 	}

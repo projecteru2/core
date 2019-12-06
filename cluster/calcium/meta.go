@@ -27,9 +27,9 @@ func (c *Calcium) AddNode(ctx context.Context, nodename, endpoint, podname, ca, 
 
 // RemovePod remove pod
 func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
-	return c.withNodesLocked(ctx, podname, "", nil, func(nodes map[string]*types.Node) error {
+	return c.withNodesLocked(ctx, podname, "", nil, true, func(nodes map[string]*types.Node) error {
 		// TODO dissociate container to node
-		// remove node first
+		// TODO remove node first
 		return c.store.RemovePod(ctx, podname)
 	})
 }
@@ -47,19 +47,8 @@ func (c *Calcium) ListPods(ctx context.Context) ([]*types.Pod, error) {
 }
 
 // ListPodNodes list nodes belong to pod
-func (c *Calcium) ListPodNodes(ctx context.Context, podname string, all bool) ([]*types.Node, error) {
-	var nodes []*types.Node
-	candidates, err := c.store.GetNodesByPod(ctx, podname)
-	if err != nil {
-		log.Errorf("[ListPodNodes] List nodes from %s failed, err: %v", podname, err)
-		return nodes, err
-	}
-	for _, candidate := range candidates {
-		if candidate.Available || all {
-			nodes = append(nodes, candidate)
-		}
-	}
-	return nodes, nil
+func (c *Calcium) ListPodNodes(ctx context.Context, podname string, labels map[string]string, all bool) ([]*types.Node, error) {
+	return c.store.GetNodesByPod(ctx, podname, labels, all)
 }
 
 // ListContainers list containers
@@ -80,6 +69,25 @@ func (c *Calcium) GetPod(ctx context.Context, podname string) (*types.Pod, error
 // GetNode get node
 func (c *Calcium) GetNode(ctx context.Context, podname, nodename string) (*types.Node, error) {
 	return c.store.GetNode(ctx, podname, nodename)
+}
+
+// GetNodes get nodes
+func (c *Calcium) GetNodes(ctx context.Context, podname, nodename string, labels map[string]string, all bool) ([]*types.Node, error) {
+	var ns []*types.Node
+	var err error
+	if nodename == "" {
+		ns, err = c.ListPodNodes(ctx, podname, labels, all)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		n, err := c.GetNode(ctx, podname, nodename)
+		if err != nil {
+			return nil, err
+		}
+		ns = append(ns, n)
+	}
+	return ns, nil
 }
 
 // GetContainer get a container
