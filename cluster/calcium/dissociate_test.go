@@ -47,7 +47,7 @@ func TestDissociateContainer(t *testing.T) {
 		assert.Error(t, r.Error)
 	}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	store.On("GetNode", mock.Anything, mock.Anything, "node1").Return(node1, nil)
+	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
 	// failed by RemoveContainer
 	store.On("RemoveContainer", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
 	ch, err = c.DissociateContainer(ctx, []string{"c1"})

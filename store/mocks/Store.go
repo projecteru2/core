@@ -223,31 +223,8 @@ func (_m *Store) GetContainers(ctx context.Context, IDs []string) ([]*types.Cont
 	return r0, r1
 }
 
-// GetNode provides a mock function with given fields: ctx, podname, nodename
-func (_m *Store) GetNode(ctx context.Context, podname string, nodename string) (*types.Node, error) {
-	ret := _m.Called(ctx, podname, nodename)
-
-	var r0 *types.Node
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *types.Node); ok {
-		r0 = rf(ctx, podname, nodename)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Node)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, podname, nodename)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetNodeByName provides a mock function with given fields: ctx, nodename
-func (_m *Store) GetNodeByName(ctx context.Context, nodename string) (*types.Node, error) {
+// GetNode provides a mock function with given fields: ctx, nodename
+func (_m *Store) GetNode(ctx context.Context, nodename string) (*types.Node, error) {
 	ret := _m.Called(ctx, nodename)
 
 	var r0 *types.Node
@@ -262,6 +239,29 @@ func (_m *Store) GetNodeByName(ctx context.Context, nodename string) (*types.Nod
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = rf(ctx, nodename)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetNodes provides a mock function with given fields: ctx, nodenames
+func (_m *Store) GetNodes(ctx context.Context, nodenames []string) ([]*types.Node, error) {
+	ret := _m.Called(ctx, nodenames)
+
+	var r0 []*types.Node
+	if rf, ok := ret.Get(0).(func(context.Context, []string) []*types.Node); ok {
+		r0 = rf(ctx, nodenames)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*types.Node)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, []string) error); ok {
+		r1 = rf(ctx, nodenames)
 	} else {
 		r1 = ret.Error(1)
 	}

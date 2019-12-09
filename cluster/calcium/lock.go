@@ -85,7 +85,7 @@ func (c *Calcium) withNodesLocked(ctx context.Context, podname, nodename string,
 		log.Debugf("[withNodesLocked] Node %s locked", n.Name)
 		locks[n.Name] = lock
 		// refresh node
-		node, err := c.GetNode(ctx, podname, n.Name)
+		node, err := c.GetNode(ctx, n.Name)
 		if err != nil {
 			return err
 		}

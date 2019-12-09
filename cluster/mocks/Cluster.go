@@ -306,31 +306,8 @@ func (_m *Cluster) GetContainersStatus(ctx context.Context, IDs []string) ([]*ty
 	return r0, r1
 }
 
-// GetNode provides a mock function with given fields: ctx, podname, nodename
-func (_m *Cluster) GetNode(ctx context.Context, podname string, nodename string) (*types.Node, error) {
-	ret := _m.Called(ctx, podname, nodename)
-
-	var r0 *types.Node
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *types.Node); ok {
-		r0 = rf(ctx, podname, nodename)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Node)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, podname, nodename)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetNodeByName provides a mock function with given fields: ctx, nodename
-func (_m *Cluster) GetNodeByName(ctx context.Context, nodename string) (*types.Node, error) {
+// GetNode provides a mock function with given fields: ctx, nodename
+func (_m *Cluster) GetNode(ctx context.Context, nodename string) (*types.Node, error) {
 	ret := _m.Called(ctx, nodename)
 
 	var r0 *types.Node
@@ -513,13 +490,13 @@ func (_m *Cluster) LogStream(ctx context.Context, ID string) (chan *types.LogStr
 	return r0, r1
 }
 
-// NodeResource provides a mock function with given fields: ctx, podname, nodename
-func (_m *Cluster) NodeResource(ctx context.Context, podname string, nodename string) (*types.NodeResource, error) {
-	ret := _m.Called(ctx, podname, nodename)
+// NodeResource provides a mock function with given fields: ctx, nodename
+func (_m *Cluster) NodeResource(ctx context.Context, nodename string) (*types.NodeResource, error) {
+	ret := _m.Called(ctx, nodename)
 
 	var r0 *types.NodeResource
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *types.NodeResource); ok {
-		r0 = rf(ctx, podname, nodename)
+	if rf, ok := ret.Get(0).(func(context.Context, string) *types.NodeResource); ok {
+		r0 = rf(ctx, nodename)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.NodeResource)
@@ -527,8 +504,8 @@ func (_m *Cluster) NodeResource(ctx context.Context, podname string, nodename st
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, podname, nodename)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, nodename)
 	} else {
 		r1 = ret.Error(1)
 	}

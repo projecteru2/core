@@ -1,37 +1,19 @@
 package calcium
 
-// All functions are just proxy to store, since I don't want store to be exported.
-// All these functions are meta data related.
-
 import (
 	"context"
 
-	"github.com/sanity-io/litter"
-
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
+	"github.com/sanity-io/litter"
 	log "github.com/sirupsen/logrus"
 )
-
-// AddPod add pod
-func (c *Calcium) AddPod(ctx context.Context, podname, desc string) (*types.Pod, error) {
-	return c.store.AddPod(ctx, podname, desc)
-}
 
 // AddNode add a node in pod
 func (c *Calcium) AddNode(ctx context.Context, nodename, endpoint, podname, ca, cert, key string,
 	cpu, share int, memory, storage int64, labels map[string]string,
 	numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
 	return c.store.AddNode(ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, storage, labels, numa, numaMemory)
-}
-
-// RemovePod remove pod
-func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
-	return c.withNodesLocked(ctx, podname, "", nil, true, func(nodes map[string]*types.Node) error {
-		// TODO dissociate container to node
-		// TODO remove node first
-		return c.store.RemovePod(ctx, podname)
-	})
 }
 
 // RemoveNode remove a node
@@ -41,34 +23,14 @@ func (c *Calcium) RemoveNode(ctx context.Context, podname, nodename string) erro
 	})
 }
 
-// ListPods show pods
-func (c *Calcium) ListPods(ctx context.Context) ([]*types.Pod, error) {
-	return c.store.GetAllPods(ctx)
-}
-
 // ListPodNodes list nodes belong to pod
 func (c *Calcium) ListPodNodes(ctx context.Context, podname string, labels map[string]string, all bool) ([]*types.Node, error) {
 	return c.store.GetNodesByPod(ctx, podname, labels, all)
 }
 
-// ListContainers list containers
-func (c *Calcium) ListContainers(ctx context.Context, opts *types.ListContainersOptions) ([]*types.Container, error) {
-	return c.store.ListContainers(ctx, opts.Appname, opts.Entrypoint, opts.Nodename, opts.Limit, opts.Labels)
-}
-
-// ListNodeContainers list containers belong to one node
-func (c *Calcium) ListNodeContainers(ctx context.Context, nodename string, labels map[string]string) ([]*types.Container, error) {
-	return c.store.ListNodeContainers(ctx, nodename, labels)
-}
-
-// GetPod get one pod
-func (c *Calcium) GetPod(ctx context.Context, podname string) (*types.Pod, error) {
-	return c.store.GetPod(ctx, podname)
-}
-
 // GetNode get node
-func (c *Calcium) GetNode(ctx context.Context, podname, nodename string) (*types.Node, error) {
-	return c.store.GetNode(ctx, podname, nodename)
+func (c *Calcium) GetNode(ctx context.Context, nodename string) (*types.Node, error) {
+	return c.store.GetNode(ctx, nodename)
 }
 
 // GetNodes get nodes
@@ -77,27 +39,12 @@ func (c *Calcium) GetNodes(ctx context.Context, podname, nodename string, labels
 	var err error
 	if nodename == "" {
 		ns, err = c.ListPodNodes(ctx, podname, labels, all)
-		if err != nil {
-			return nil, err
-		}
 	} else {
-		n, err := c.GetNode(ctx, podname, nodename)
-		if err != nil {
-			return nil, err
-		}
-		ns = append(ns, n)
+		var node *types.Node
+		node, err = c.GetNode(ctx, nodename)
+		ns = []*types.Node{node}
 	}
-	return ns, nil
-}
-
-// GetContainer get a container
-func (c *Calcium) GetContainer(ctx context.Context, ID string) (*types.Container, error) {
-	return c.store.GetContainer(ctx, ID)
-}
-
-// GetContainers get containers
-func (c *Calcium) GetContainers(ctx context.Context, IDs []string) ([]*types.Container, error) {
-	return c.store.GetContainers(ctx, IDs)
+	return ns, err
 }
 
 // SetNode set node available or not
@@ -181,9 +128,4 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		}
 		return c.store.UpdateNode(ctx, n)
 	})
-}
-
-// GetNodeByName get node by name
-func (c *Calcium) GetNodeByName(ctx context.Context, nodename string) (*types.Node, error) {
-	return c.store.GetNodeByName(ctx, nodename)
 }

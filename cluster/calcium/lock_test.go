@@ -143,10 +143,10 @@ func TestWithNodesLocked(t *testing.T) {
 	assert.Empty(t, ns)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, nil)
 	// failed by getnode
-	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	err = c.withNodesLocked(ctx, "test", "test", nil, false, func(nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
-	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(node1, nil).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(node1, nil).Once()
 	// failed by lock
 	lock := &lockmocks.DistributedLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
@@ -157,10 +157,10 @@ func TestWithNodesLocked(t *testing.T) {
 	assert.Error(t, err)
 	lock.On("Lock", mock.Anything).Return(nil)
 	// failed by get locked node
-	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	err = c.withNodesLocked(ctx, "test", "test", nil, false, func(nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
-	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(node1, nil)
+	store.On("GetNode", mock.Anything, mock.Anything).Return(node1, nil)
 	// success
 	err = c.withNodesLocked(ctx, "test", "test", nil, false, func(nodes map[string]*types.Node) error {
 		assert.Len(t, nodes, 1)
@@ -188,10 +188,10 @@ func TestWithNodeLocked(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	lock.On("Lock", mock.Anything).Return(nil)
 	// failed by get locked node
-	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	err := c.withNodeLocked(ctx, "test", "test", func(node *types.Node) error { return nil })
 	assert.Error(t, err)
-	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(node1, nil)
+	store.On("GetNode", mock.Anything, mock.Anything).Return(node1, nil)
 	// success
 	err = c.withNodeLocked(ctx, "test", "test", func(node *types.Node) error {
 		assert.Equal(t, node.Name, node1.Name)

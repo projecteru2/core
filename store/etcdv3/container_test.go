@@ -252,9 +252,9 @@ func TestContainerStatusStream(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = m.AddPod(ctx, podname, "CPU")
 	assert.NoError(t, err)
-	_, err = m.Create(ctx, fmt.Sprintf(nodeInfoKey, podname, nodename), string(nodeBytes))
+	_, err = m.Create(ctx, fmt.Sprintf(nodeInfoKey, nodename), string(nodeBytes))
 	assert.NoError(t, err)
-	_, err = m.Create(ctx, fmt.Sprintf(nodePodKey, nodename), podname)
+	_, err = m.Create(ctx, fmt.Sprintf(nodePodKey, podname, nodename), string(nodeBytes))
 	assert.NoError(t, err)
 	assert.NoError(t, m.AddContainer(ctx, container))
 	// ContainerStatusStream

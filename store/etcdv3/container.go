@@ -220,27 +220,22 @@ func (m *Mercury) doGetContainers(ctx context.Context, keys []string) (container
 }
 
 func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*types.Container) ([]*types.Container, error) {
-	podNodes := map[string][]string{}
-	isCached := map[string]struct{}{}
+	nodes := map[string]*types.Node{}
 	statusKeys := map[string]string{}
 	for _, container := range containers {
-		if _, ok := podNodes[container.Podname]; !ok {
-			podNodes[container.Podname] = []string{}
-		}
-		if _, ok := isCached[container.Nodename]; !ok {
-			podNodes[container.Podname] = append(podNodes[container.Podname], container.Nodename)
-			isCached[container.Nodename] = struct{}{}
-		}
 		appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
 		if err != nil {
 			return nil, err
 		}
 		statusKeys[container.ID] = filepath.Join(containerStatusPrefix, appname, entrypoint, container.Nodename, container.ID)
-	}
+		if _, ok := nodes[container.Nodename]; !ok {
+			node, err := m.GetNode(ctx, container.Nodename)
+			if err != nil {
+				return nil, err
+			}
+			nodes[node.Name] = node
+		}
 
-	nodes, err := m.GetNodes(ctx, podNodes)
-	if err != nil {
-		return nil, err
 	}
 
 	for index, container := range containers {

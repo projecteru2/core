@@ -170,7 +170,7 @@ func (v *Vibranium) GetPodResource(ctx context.Context, opts *pb.GetPodOptions) 
 
 // GetNode get a node
 func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Node, error) {
-	n, err := v.cluster.GetNode(ctx, opts.Podname, opts.Nodename)
+	n, err := v.cluster.GetNode(ctx, opts.Nodename)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +180,7 @@ func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.N
 
 // GetNodeResource check node resource
 func (v *Vibranium) GetNodeResource(ctx context.Context, opts *pb.GetNodeOptions) (*pb.NodeResource, error) {
-	nr, err := v.cluster.NodeResource(ctx, opts.Podname, opts.Nodename)
+	nr, err := v.cluster.NodeResource(ctx, opts.Nodename)
 	if err != nil {
 		return nil, err
 	}
@@ -649,16 +649,6 @@ func (v *Vibranium) LogStream(opts *pb.ContainerID, stream pb.CoreRPC_LogStreamS
 			return nil
 		}
 	}
-}
-
-// GetNodeByName get node by name
-func (v *Vibranium) GetNodeByName(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Node, error) {
-	n, err := v.cluster.GetNodeByName(ctx, opts.Nodename)
-	if err != nil {
-		return nil, err
-	}
-
-	return toRPCNode(ctx, n), nil
 }
 
 // GetContainersStatus get containers status

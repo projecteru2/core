@@ -43,8 +43,8 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 }
 
 // NodeResource check node's container and resource
-func (c *Calcium) NodeResource(ctx context.Context, podname, nodename string) (*types.NodeResource, error) {
-	node, err := c.GetNode(ctx, podname, nodename)
+func (c *Calcium) NodeResource(ctx context.Context, nodename string) (*types.NodeResource, error) {
+	node, err := c.GetNode(ctx, nodename)
 	if err != nil {
 		return nil, err
 	}
