@@ -22,18 +22,17 @@ import (
 )
 
 const (
-	podInfoKey  = "/pod/info/%s"     // /pod/info/{podname}
-	podNodesKey = "/pod/%s:nodes"    // /pod/{podname}:nodes -> for list pod nodes
-	nodeInfoKey = "/pod/%s:nodes/%s" // /pod/{podname}:nodes/{nodenmae} -> for node info
+	podInfoKey = "/pod/info/%s" // /pod/info/{podname}
 
+	nodeInfoKey       = "/node/%s"               // /node/{nodename}
+	nodePodKey        = "/node/%s:pod/%s"        // /node/{podname}:pod/{nodename}
 	nodeCaKey         = "/node/%s:ca"            // /node/{nodename}:ca
 	nodeCertKey       = "/node/%s:cert"          // /node/{nodename}:cert
 	nodeKeyKey        = "/node/%s:key"           // /node/{nodename}:key
-	nodePodKey        = "/node/%s:pod"           // /node/{nodename}:pod value -> podname
 	nodeContainersKey = "/node/%s:containers/%s" // /node/{nodename}:containers/{containerID}
 
 	containerInfoKey          = "/containers/%s" // /containers/{containerID}
-	containerDeployPrefix     = "/deploy"        // /deploy/{appname}/{entrypoint}/{nodename}/{containerID} value -> something by agent
+	containerDeployPrefix     = "/deploy"        // /deploy/{appname}/{entrypoint}/{nodename}/{containerID}
 	containerStatusPrefix     = "/status"        // /status/{appname}/{entrypoint}/{nodename}/{containerID} value -> something by agent
 	containerProcessingPrefix = "/processing"    // /processing/{appname}/{entrypoint}/{nodename}/{opsIdent} value -> count
 

@@ -108,7 +108,7 @@ func (c *Calcium) doReplaceContainer(
 		return nil, removeMessage, types.ErrNotFitLabels
 	}
 	// get node
-	node, err := c.GetNode(ctx, container.Podname, container.Nodename)
+	node, err := c.GetNode(ctx, container.Nodename)
 	if err != nil {
 		return nil, removeMessage, err
 	}

@@ -28,8 +28,8 @@ type Store interface {
 		cpu, share int, memory, storage int64, labels map[string]string,
 		numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error)
 	RemoveNode(ctx context.Context, node *types.Node) error
-	GetNode(ctx context.Context, podname, nodename string) (*types.Node, error)
-	GetNodeByName(ctx context.Context, nodename string) (*types.Node, error)
+	GetNode(ctx context.Context, nodename string) (*types.Node, error)
+	GetNodes(ctx context.Context, nodenames []string) ([]*types.Node, error)
 	GetNodesByPod(ctx context.Context, podname string, labels map[string]string, all bool) ([]*types.Node, error)
 	UpdateNode(ctx context.Context, node *types.Node) error
 	UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, memory, storage int64, action string) error

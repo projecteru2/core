@@ -92,7 +92,7 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 func (c *Calcium) doCreateContainerOnNode(ctx context.Context, nodeInfo types.NodeInfo, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
 	ms := make([]*types.CreateContainerMessage, nodeInfo.Deploy)
 
-	node, err := c.doGetAndPrepareNode(ctx, opts.Podname, nodeInfo.Name, opts.Image)
+	node, err := c.doGetAndPrepareNode(ctx, nodeInfo.Name, opts.Image)
 	if err != nil {
 		log.Errorf("[doCreateContainerOnNode] Get and prepare node error %v", err)
 		for i := 0; i < nodeInfo.Deploy; i++ {
@@ -122,8 +122,8 @@ func (c *Calcium) doCreateContainerOnNode(ctx context.Context, nodeInfo types.No
 	return ms
 }
 
-func (c *Calcium) doGetAndPrepareNode(ctx context.Context, podname, nodename, image string) (*types.Node, error) {
-	node, err := c.GetNode(ctx, podname, nodename)
+func (c *Calcium) doGetAndPrepareNode(ctx context.Context, nodename, image string) (*types.Node, error) {
+	node, err := c.GetNode(ctx, nodename)
 	if err != nil {
 		return nil, err
 	}

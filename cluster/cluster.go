@@ -65,9 +65,8 @@ type Cluster interface {
 		numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error)
 	RemoveNode(ctx context.Context, podname, nodename string) error
 	SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error)
-	GetNode(ctx context.Context, podname, nodename string) (*types.Node, error)
-	NodeResource(ctx context.Context, podname, nodename string) (*types.NodeResource, error)
-	GetNodeByName(ctx context.Context, nodename string) (*types.Node, error)
+	GetNode(ctx context.Context, nodename string) (*types.Node, error)
+	NodeResource(ctx context.Context, nodename string) (*types.NodeResource, error)
 	// meta containers
 	GetContainer(ctx context.Context, ID string) (*types.Container, error)
 	GetContainers(ctx context.Context, IDs []string) ([]*types.Container, error)

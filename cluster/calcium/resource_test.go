@@ -75,7 +75,6 @@ func TestPodResource(t *testing.T) {
 func TestNodeResource(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	podname := "testpod"
 	nodename := "testnode"
 	store := &storemocks.Store{}
 	c.store = store
@@ -94,13 +93,13 @@ func TestNodeResource(t *testing.T) {
 	)
 	node.Engine = engine
 	// failed by GetNode
-	store.On("GetNode", ctx, podname, nodename).Return(nil, types.ErrNoETCD).Once()
-	_, err := c.NodeResource(ctx, podname, nodename)
+	store.On("GetNode", ctx, nodename).Return(nil, types.ErrNoETCD).Once()
+	_, err := c.NodeResource(ctx, nodename)
 	assert.Error(t, err)
-	store.On("GetNode", ctx, podname, nodename).Return(node, nil)
+	store.On("GetNode", ctx, nodename).Return(node, nil)
 	// failed by list node containers
 	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err = c.NodeResource(ctx, podname, nodename)
+	_, err = c.NodeResource(ctx, nodename)
 	assert.Error(t, err)
 	containers := []*types.Container{
 		{
@@ -116,7 +115,7 @@ func TestNodeResource(t *testing.T) {
 	}
 	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
 	// success but container inspect failed
-	nr, err := c.NodeResource(ctx, podname, nodename)
+	nr, err := c.NodeResource(ctx, nodename)
 	assert.NoError(t, err)
 	assert.Equal(t, nr.Name, nodename)
 	assert.NotEmpty(t, nr.Details)
@@ -264,7 +263,7 @@ func testAllocFailedAsNoLabels(t *testing.T, c *Calcium, opts *types.DeployOptio
 	}()
 
 	store := c.store.(*storemocks.Store)
-	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	opts.NodeLabels = map[string]string{"test": "1"}
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)
@@ -272,7 +271,7 @@ func testAllocFailedAsNoLabels(t *testing.T, c *Calcium, opts *types.DeployOptio
 
 func testAllocFailedAsGetNodeError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
 	store := c.store.(*storemocks.Store)
-	store.On("GetNode", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)
 }

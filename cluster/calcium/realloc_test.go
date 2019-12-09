@@ -86,13 +86,13 @@ func TestRealloc(t *testing.T) {
 		assert.False(t, r.Success)
 	}
 	// failed by GetNode
-	store.On("GetNode", mock.Anything, mock.Anything, "node1").Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, "node1").Return(nil, types.ErrNoETCD).Once()
 	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, 2*int64(units.GiB))
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
 	}
-	store.On("GetNode", mock.Anything, mock.Anything, "node1").Return(node1, nil)
+	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
 	// failed by memory not enough
 	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, 2*int64(units.GiB))
 	assert.NoError(t, err)
@@ -188,7 +188,7 @@ func TestRealloc(t *testing.T) {
 		},
 	}
 	simpleMockScheduler.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nodeCPUPlans, 2, nil)
-	store.On("GetNode", mock.Anything, mock.Anything, "node2").Return(node2, nil)
+	store.On("GetNode", mock.Anything, "node2").Return(node2, nil)
 	store.On("GetContainers", mock.Anything, []string{"c3", "c4"}).Return([]*types.Container{c3, c4}, nil)
 	ch, err = c.ReallocResource(ctx, []string{"c3", "c4"}, 0.1, 2*int64(units.MiB))
 	assert.NoError(t, err)

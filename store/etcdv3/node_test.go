@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNode(t *testing.T) {
+func TestAddNode(t *testing.T) {
 	m := NewMercury(t)
 	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
@@ -27,20 +28,24 @@ func TestNode(t *testing.T) {
 	storage := int64(100)
 	m.config.Scheduler.ShareBase = 100
 	labels := map[string]string{"test": "1"}
-
 	// wrong endpoint
 	_, err = m.AddNode(ctx, nodename, "abc", podname, "", "", "", cpu, share, memory, storage, labels, nil, nil)
 	assert.Error(t, err)
 	// wrong because engine not mocked
 	_, err = m.AddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, storage, labels, nil, nil)
 	assert.Error(t, err)
-
 	endpoint = "mock://fakeengine"
+	// wrong no pod
+	_, err = m.AddNode(ctx, nodename, endpoint, "abc", "", "", "", cpu, share, memory, storage, labels, nil, nil)
+	assert.Error(t, err)
 	// AddNode
 	node, err := m.AddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, storage, labels, nil, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, nodename)
 	assert.Equal(t, node.CPU["0"], 100)
+	// add again and failed
+	_, err = m.AddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, storage, labels, nil, nil)
+	assert.Error(t, err)
 	// AddNode with numa
 	nodeWithNuma, err := m.AddNode(ctx, "nodewithnuma", endpoint, "numapod", "", "", "", cpu, share, memory, storage, labels,
 		types.NUMA{"1": "n1", "2": "n2"}, nil)
@@ -52,8 +57,8 @@ func TestNode(t *testing.T) {
 	_, err = m.AddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, storage, labels, nil, nil)
 	assert.Error(t, err)
 	// Check etcd has node data
-	key := fmt.Sprintf(nodeInfoKey, podname, nodename)
-	ev, err := m.GetOne(ctx, key)
+	key := fmt.Sprintf(nodeInfoKey, nodename)
+	_, err = m.GetOne(ctx, key)
 	assert.NoError(t, err)
 	// AddNode with mocked engine and default value
 	node2, err := m.AddNode(ctx, nodename2, endpoint, podname, "", "", "", 0, 0, 0, 0, labels, nil, nil)
@@ -61,71 +66,7 @@ func TestNode(t *testing.T) {
 	assert.Equal(t, node2.CPU["0"], 100)
 	assert.Equal(t, len(node2.CPU), 1)
 	assert.Equal(t, node2.MemCap, int64(1342177405))
-	// GetNode
-	_, err = m.GetNode(ctx, "nil", nodename)
-	assert.Error(t, err)
-	savedNode, err := m.GetNode(ctx, podname, nodename)
-	assert.NoError(t, err)
-	assert.Equal(t, savedNode.Name, node.Name)
-	assert.Equal(t, savedNode.Endpoint, node.Endpoint)
-	// check node pod key
-	key = fmt.Sprintf(nodePodKey, nodename)
-	ev, err = m.GetOne(ctx, key)
-	assert.NoError(t, err)
-	assert.Equal(t, string(ev.Value), podname)
-	// GetNodeByName
-	_, err = m.GetNodeByName(ctx, "nil")
-	assert.Error(t, err)
-	savedNode, err = m.GetNodeByName(ctx, nodename)
-	assert.NoError(t, err)
-	assert.Equal(t, savedNode.Name, node.Name)
-	assert.Equal(t, savedNode.Endpoint, node.Endpoint)
-	// GetNodesByPod
-	nodes, err := m.GetNodesByPod(ctx, "nil", nil, true)
-	assert.NoError(t, err)
-	assert.Equal(t, len(nodes), 0)
-	nodes, err = m.GetNodesByPod(ctx, podname, nil, true)
-	assert.NoError(t, err)
-	assert.Equal(t, len(nodes), 2)
-	savedNode = nodes[0]
-	assert.Equal(t, savedNode.Name, node.Name)
-	assert.Equal(t, savedNode.Endpoint, node.Endpoint)
-	// UpdateNode
-	node.Available = false
-	assert.NoError(t, m.UpdateNode(ctx, node))
-	// UpdateNodeResource
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, nil, 1.0, int64(100), storage, "-"))
-	newNode, err := m.GetNodeByName(ctx, nodename)
-	assert.NoError(t, err)
-	assert.Equal(t, newNode.MemCap, int64(0))
-	assert.Equal(t, newNode.CPUUsed, 1.0)
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, nil, 1.0, int64(100), storage, "+"))
-	newNode, err = m.GetNodeByName(ctx, nodename)
-	assert.NoError(t, err)
-	assert.Equal(t, newNode.MemCap, int64(100))
-	assert.Equal(t, newNode.CPUUsed, 0.0)
-	// numa memory record
-	node.NUMA = types.NUMA{"0": "n1"}
-	node.NUMAMemory = map[string]int64{"n1": 100}
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, types.CPUMap{"0": 10}, 0.01, int64(1), int64(1), "-"))
-	newNode, err = m.GetNodeByName(ctx, nodename)
-	assert.NoError(t, err)
-	assert.Equal(t, newNode.CPU["0"], 90)
-	assert.Equal(t, newNode.CPUUsed, 0.01)
-	assert.Equal(t, newNode.NUMAMemory["n1"], int64(99))
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, types.CPUMap{"0": 10}, 0.01, int64(1), int64(1), "+"))
-	newNode, err = m.GetNodeByName(ctx, nodename)
-	assert.NoError(t, err)
-	assert.Equal(t, newNode.CPU["0"], 100)
-	assert.Equal(t, newNode.CPUUsed, 0.0)
-	assert.Equal(t, newNode.NUMAMemory["n1"], int64(100))
-	err = m.UpdateNodeResource(ctx, node, nil, 0, int64(0), int64(0), "abc")
-	assert.Error(t, err)
-	assert.Equal(t, err.Error(), types.ErrUnknownControlType.Error())
-	// makeClient
-	_, err = m.makeClient(ctx, podname, nodename, endpoint, true)
-	assert.NoError(t, err)
-	// node with tls
+	// with tls
 	ca := `-----BEGIN CERTIFICATE-----
 MIIC7TCCAdWgAwIBAgIJAM8uLRZf9jttMA0GCSqGSIb3DQEBCwUAMA0xCzAJBgNV
 BAYTAkNOMB4XDTE4MDYxODA5MTkwNloXDTI4MDYxNTA5MTkwNlowDTELMAkGA1UE
@@ -193,19 +134,79 @@ RdCPRPt513WozkJZZAjUSP2U
 	m.config.CertPath = "/tmp"
 	node3, err := m.doAddNode(ctx, nodename3, endpoint3, podname, ca, cert, certkey, cpu, share, memory, storage, labels, nil, nil)
 	assert.NoError(t, err)
-	engine3, err := m.makeClient(ctx, podname, nodename3, endpoint3, true)
+	engine3, err := m.makeClient(ctx, node3, true)
 	assert.NoError(t, err)
 	_, err = engine3.Info(ctx)
 	assert.Error(t, err)
-	// RemoveNode
-	m.RemoveNode(ctx, node3)
-	m.RemoveNode(ctx, node)
-	m.RemoveNode(ctx, nil)
-	resp, err := m.Get(ctx, fmt.Sprintf(nodeInfoKey, podname, nodename))
+	// failed by get key
+	node3.Name = "nokey"
+	_, err = m.makeClient(ctx, node3, true)
 	assert.NoError(t, err)
-	assert.Equal(t, resp.Count, int64(0))
-	nodeWithStorage := &types.Node{
-		InitStorageCap: -1,
+}
+
+func TestRemoveNode(t *testing.T) {
+	m := NewMercury(t)
+	defer m.TerminateEmbededStorage()
+	ctx := context.Background()
+	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", 100, 100, 100000, 100000, nil, nil, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, node.Name, "test")
+	assert.NoError(t, m.RemoveNode(ctx, nil))
+	assert.NoError(t, m.RemoveNode(ctx, node))
+}
+
+func TestGetNode(t *testing.T) {
+	m := NewMercury(t)
+	defer m.TerminateEmbededStorage()
+	ctx := context.Background()
+	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", 100, 100, 100000, 100000, nil, nil, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, node.Name, "test")
+	_, err = m.GetNode(ctx, "wtf")
+	assert.Error(t, err)
+	n, err := m.GetNode(ctx, "test")
+	assert.NoError(t, err)
+	assert.Equal(t, node.Name, n.Name)
+}
+
+func TestGetNodesByPod(t *testing.T) {
+	m := NewMercury(t)
+	defer m.TerminateEmbededStorage()
+	ctx := context.Background()
+	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", 100, 100, 100000, 100000, map[string]string{"x": "y"}, nil, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, node.Name, "test")
+	ns, err := m.GetNodesByPod(ctx, "wtf", nil, false)
+	assert.NoError(t, err)
+	assert.Empty(t, ns)
+	ns, err = m.GetNodesByPod(ctx, "testpod", nil, false)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, ns)
+}
+
+func TestUpdateNode(t *testing.T) {
+	m := NewMercury(t)
+	defer m.TerminateEmbededStorage()
+	ctx := context.Background()
+	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", 100, 100, 100000, 100000, map[string]string{"x": "y"}, nil, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, node.Name, "test")
+	fakeNode := &types.Node{
+		Name:    "nil",
+		Podname: "wtf",
 	}
-	assert.Equal(t, nodeWithStorage.StorageUsage(), 1.0)
+	assert.Error(t, m.UpdateNode(ctx, fakeNode))
+	assert.NoError(t, m.UpdateNode(ctx, node))
+}
+
+func TestUpdateNodeResource(t *testing.T) {
+	m := NewMercury(t)
+	defer m.TerminateEmbededStorage()
+	ctx := context.Background()
+	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", 1, 100, 100000, 100000, map[string]string{"x": "y"}, map[string]string{"0": "0"}, map[string]int64{"0": 100})
+	assert.NoError(t, err)
+	assert.Equal(t, node.Name, "test")
+	assert.Error(t, m.UpdateNodeResource(ctx, node, nil, 0, 0, 0, "wtf"))
+	assert.NoError(t, m.UpdateNodeResource(ctx, node, map[string]int{"0": 100}, 0, 0, 0, store.ActionIncr))
+	assert.NoError(t, m.UpdateNodeResource(ctx, node, map[string]int{"0": 100}, 0, 0, 0, store.ActionDecr))
 }
