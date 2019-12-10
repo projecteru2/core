@@ -605,13 +605,13 @@ func (_m *Cluster) RemoveImage(ctx context.Context, podname string, nodename str
 	return r0, r1
 }
 
-// RemoveNode provides a mock function with given fields: ctx, podname, nodename
-func (_m *Cluster) RemoveNode(ctx context.Context, podname string, nodename string) error {
-	ret := _m.Called(ctx, podname, nodename)
+// RemoveNode provides a mock function with given fields: ctx, nodename
+func (_m *Cluster) RemoveNode(ctx context.Context, nodename string) error {
+	ret := _m.Called(ctx, nodename)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = rf(ctx, podname, nodename)
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, nodename)
 	} else {
 		r0 = ret.Error(0)
 	}

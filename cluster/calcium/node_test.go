@@ -54,7 +54,7 @@ func TestRemoveNode(t *testing.T) {
 	c.store = store
 
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
-	err := c.RemoveNode(ctx, "", "")
+	err := c.RemoveNode(ctx, "")
 	assert.NoError(t, err)
 }
 

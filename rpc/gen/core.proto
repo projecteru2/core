@@ -243,7 +243,6 @@ message AddNodeOptions {
 
 message RemoveNodeOptions {
     string nodename = 1;
-    string podname = 2;
 }
 
 message GetNodeOptions {

@@ -68,7 +68,7 @@ func (v *Vibranium) RemovePod(ctx context.Context, opts *pb.RemovePodOptions) (*
 
 // RemoveNode removes the node from etcd
 func (v *Vibranium) RemoveNode(ctx context.Context, opts *pb.RemoveNodeOptions) (*pb.Empty, error) {
-	return &pb.Empty{}, v.cluster.RemoveNode(ctx, opts.Podname, opts.Nodename)
+	return &pb.Empty{}, v.cluster.RemoveNode(ctx, opts.Nodename)
 }
 
 // ListPods returns a list of pods

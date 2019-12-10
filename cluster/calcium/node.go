@@ -17,7 +17,7 @@ func (c *Calcium) AddNode(ctx context.Context, nodename, endpoint, podname, ca, 
 }
 
 // RemoveNode remove a node
-func (c *Calcium) RemoveNode(ctx context.Context, podname, nodename string) error {
+func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 	return c.withNodeLocked(ctx, nodename, func(node *types.Node) error {
 		return c.store.RemoveNode(ctx, node)
 	})
