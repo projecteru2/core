@@ -10,6 +10,7 @@ import (
 	"github.com/projecteru2/core/store"
 
 	"github.com/coreos/etcd/clientv3"
+	"github.com/coreos/etcd/mvcc/mvccpb"
 	enginefactory "github.com/projecteru2/core/engine/factory"
 	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/types"
@@ -102,21 +103,7 @@ func (m *Mercury) GetNodes(ctx context.Context, nodenames []string) ([]*types.No
 	if err != nil {
 		return nil, err
 	}
-
-	nodes := []*types.Node{}
-	for _, kv := range kvs {
-		node := &types.Node{}
-		if err := json.Unmarshal(kv.Value, node); err != nil {
-			return nil, err
-		}
-		engine, err := m.makeClient(ctx, node, false)
-		if err != nil {
-			return nil, err
-		}
-		node.Engine = engine
-		nodes = append(nodes, node)
-	}
-	return nodes, nil
+	return m.doGetNodes(ctx, kvs, nil, true)
 }
 
 // GetNodesByPod get all nodes bound to pod
@@ -127,17 +114,7 @@ func (m *Mercury) GetNodesByPod(ctx context.Context, podname string, labels map[
 	if err != nil {
 		return []*types.Node{}, err
 	}
-	nodes := []*types.Node{}
-	for _, ev := range resp.Kvs {
-		node := &types.Node{}
-		if err := json.Unmarshal(ev.Value, node); err != nil {
-			return nil, err
-		}
-		if (node.Available || all) && utils.FilterContainer(node.Labels, labels) {
-			nodes = append(nodes, node)
-		}
-	}
-	return nodes, nil
+	return m.doGetNodes(ctx, resp.Kvs, labels, all)
 }
 
 // UpdateNode update a node, save it to etcd
@@ -281,4 +258,23 @@ func (m *Mercury) doRemoveNode(ctx context.Context, podname, nodename, endpoint 
 	_, err := m.batchDelete(ctx, keys)
 	log.Infof("[doRemoveNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 	return err
+}
+
+func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels map[string]string, all bool) ([]*types.Node, error) {
+	nodes := []*types.Node{}
+	for _, ev := range kvs {
+		node := &types.Node{}
+		if err := json.Unmarshal(ev.Value, node); err != nil {
+			return nil, err
+		}
+		if (node.Available || all) && utils.FilterContainer(node.Labels, labels) {
+			engine, err := m.makeClient(ctx, node, false)
+			if err != nil {
+				return nil, err
+			}
+			node.Engine = engine
+			nodes = append(nodes, node)
+		}
+	}
+	return nodes, nil
 }
