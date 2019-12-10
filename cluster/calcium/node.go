@@ -18,7 +18,7 @@ func (c *Calcium) AddNode(ctx context.Context, nodename, endpoint, podname, ca, 
 
 // RemoveNode remove a node
 func (c *Calcium) RemoveNode(ctx context.Context, podname, nodename string) error {
-	return c.withNodeLocked(ctx, podname, nodename, func(node *types.Node) error {
+	return c.withNodeLocked(ctx, nodename, func(node *types.Node) error {
 		return c.store.RemoveNode(ctx, node)
 	})
 }
@@ -37,12 +37,12 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string) (*types.Node, er
 func (c *Calcium) GetNodes(ctx context.Context, podname, nodename string, labels map[string]string, all bool) ([]*types.Node, error) {
 	var ns []*types.Node
 	var err error
-	if nodename == "" {
-		ns, err = c.ListPodNodes(ctx, podname, labels, all)
-	} else {
+	if nodename != "" {
 		var node *types.Node
 		node, err = c.GetNode(ctx, nodename)
 		ns = []*types.Node{node}
+	} else {
+		ns, err = c.ListPodNodes(ctx, podname, labels, all)
 	}
 	return ns, err
 }
@@ -50,7 +50,7 @@ func (c *Calcium) GetNodes(ctx context.Context, podname, nodename string, labels
 // SetNode set node available or not
 func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) {
 	var n *types.Node
-	return n, c.withNodeLocked(ctx, opts.Podname, opts.Nodename, func(node *types.Node) error {
+	return n, c.withNodeLocked(ctx, opts.Nodename, func(node *types.Node) error {
 		n = node
 		litter.Dump(opts)
 		// status

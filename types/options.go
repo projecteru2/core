@@ -74,7 +74,6 @@ type ReplaceOptions struct {
 // SetNodeOptions for node set
 type SetNodeOptions struct {
 	Nodename        string
-	Podname         string
 	Status          int
 	DeltaCPU        CPUMap
 	DeltaMemory     int64

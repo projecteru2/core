@@ -189,11 +189,11 @@ func TestWithNodeLocked(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(nil)
 	// failed by get locked node
 	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	err := c.withNodeLocked(ctx, "test", "test", func(node *types.Node) error { return nil })
+	err := c.withNodeLocked(ctx, "test", func(node *types.Node) error { return nil })
 	assert.Error(t, err)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node1, nil)
 	// success
-	err = c.withNodeLocked(ctx, "test", "test", func(node *types.Node) error {
+	err = c.withNodeLocked(ctx, "test", func(node *types.Node) error {
 		assert.Equal(t, node.Name, node1.Name)
 		return nil
 	})

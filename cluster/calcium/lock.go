@@ -43,8 +43,8 @@ func (c *Calcium) withContainerLocked(ctx context.Context, ID string, f func(con
 	})
 }
 
-func (c *Calcium) withNodeLocked(ctx context.Context, podname, nodename string, f func(node *types.Node) error) error {
-	return c.withNodesLocked(ctx, podname, nodename, nil, true, func(nodes map[string]*types.Node) error {
+func (c *Calcium) withNodeLocked(ctx context.Context, nodename string, f func(node *types.Node) error) error {
+	return c.withNodesLocked(ctx, "", nodename, nil, true, func(nodes map[string]*types.Node) error {
 		return f(nodes[nodename])
 	})
 }

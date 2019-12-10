@@ -127,14 +127,13 @@ message NodeAvailable {
 
 message SetNodeOptions {
     string nodename = 1;
-    string podname = 2;
-    int32 status = 3;
-    map<string, int32> delta_cpu = 4;
-    int64 delta_memory = 5;
-    int64 delta_storage = 6;
-    map<string, int64> delta_numa_memory = 7;
-    map<string, string> numa = 8;
-    map<string, string> labels = 9;
+    int32 status = 2;
+    map<string, int32> delta_cpu = 3;
+    int64 delta_memory = 4;
+    int64 delta_storage = 5;
+    map<string, int64> delta_numa_memory = 6;
+    map<string, string> numa = 7;
+    map<string, string> labels = 8;
 }
 
 message Container {
