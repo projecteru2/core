@@ -15,7 +15,7 @@ func (c *Calcium) DissociateContainer(ctx context.Context, IDs []string) (chan *
 		defer close(ch)
 		for _, ID := range IDs {
 			err := c.withContainerLocked(ctx, ID, func(container *types.Container) error {
-				return c.withNodeLocked(ctx, container.Podname, container.Nodename, func(node *types.Node) (err error) {
+				return c.withNodeLocked(ctx, container.Nodename, func(node *types.Node) (err error) {
 					if err := c.store.RemoveContainer(ctx, container); err != nil {
 						return err
 					}

@@ -67,7 +67,7 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 				for i, m := range messages {
 					ch <- m
 					if m.Error != nil && m.ContainerID == "" {
-						if err := c.withNodeLocked(ctx, opts.Podname, nodeInfo.Name, func(node *types.Node) error {
+						if err := c.withNodeLocked(ctx, nodeInfo.Name, func(node *types.Node) error {
 							return c.store.UpdateNodeResource(ctx, node, m.CPU, opts.CPUQuota, opts.Memory, opts.Storage, store.ActionIncr)
 						}); err != nil {
 							log.Errorf("[doCreateContainer] Reset node %s failed %v", nodeInfo.Name, err)

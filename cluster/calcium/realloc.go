@@ -100,7 +100,7 @@ func (c *Calcium) doReallocContainer(
 	for newCPU, memNodesContainers := range cpuMemNodeContainersInfo {
 		for newMemory, nodesContainers := range memNodesContainers {
 			for nodename, containers := range nodesContainers {
-				if err := c.withNodeLocked(ctx, pod.Name, nodename, func(node *types.Node) error {
+				if err := c.withNodeLocked(ctx, nodename, func(node *types.Node) error {
 					// 把记录的 CPU 还回去，变成新的可用资源
 					// 把记录的 Memory 还回去，变成新的可用资源
 					containerWithCPUBind := 0
