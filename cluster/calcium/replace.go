@@ -14,6 +14,9 @@ import (
 
 // ReplaceContainer replace containers with same resource
 func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceContainerMessage, error) {
+	if opts.Count == 0 {
+		opts.Count = 1
+	}
 	if len(opts.IDs) == 0 {
 		oldContainers, err := c.ListContainers(ctx, &types.ListContainersOptions{
 			Appname: opts.Name, Entrypoint: opts.Entrypoint.Name, Nodename: opts.Nodename,
@@ -29,7 +32,6 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 	go func() {
 		defer close(ch)
 		// 并发控制
-		step := opts.Count
 		wg := sync.WaitGroup{}
 		defer wg.Wait()
 		for index, ID := range opts.IDs {
@@ -83,7 +85,7 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 				}
 				ch <- &types.ReplaceContainerMessage{Create: createMessage, Remove: removeMessage, Error: err}
 			}(*opts, index, ID) // 传 opts 的值，产生一次复制
-			if (index+1)%step == 0 {
+			if (index+1)%opts.Count == 0 {
 				wg.Wait()
 			}
 		}
@@ -133,7 +135,6 @@ func (c *Calcium) doReplaceContainer(
 	if err != nil {
 		return nil, removeMessage, err
 	}
-	container.StatusMeta = nil // 标记容器为无 status 状态，默认含义为停止
 	// 不涉及资源消耗，创建容器失败会被回收容器而不回收资源
 	// 创建成功容器会干掉之前的老容器也不会动资源，实际上实现了动态捆绑
 	createMessage := c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU)

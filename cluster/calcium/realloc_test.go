@@ -34,11 +34,13 @@ func TestRealloc(t *testing.T) {
 	}
 
 	node1 := &types.Node{
-		Name:     "node1",
-		MemCap:   int64(units.GiB),
-		CPU:      types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
-		Engine:   engine,
-		Endpoint: "http://1.1.1.1:1",
+		Name:       "node1",
+		MemCap:     int64(units.GiB),
+		CPU:        types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
+		Engine:     engine,
+		Endpoint:   "http://1.1.1.1:1",
+		NUMA:       types.NUMA{"2": "0"},
+		NUMAMemory: types.NUMAMemory{"0": 100000},
 	}
 
 	c1 := &types.Container{
@@ -158,11 +160,13 @@ func TestRealloc(t *testing.T) {
 	// good to go
 	// rest everything
 	node2 := &types.Node{
-		Name:     "node2",
-		MemCap:   int64(units.GiB),
-		CPU:      types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
-		Engine:   engine,
-		Endpoint: "http://1.1.1.1:1",
+		Name:       "node2",
+		MemCap:     int64(units.GiB),
+		CPU:        types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
+		Engine:     engine,
+		Endpoint:   "http://1.1.1.1:1",
+		NUMA:       types.NUMA{"2": "0"},
+		NUMAMemory: types.NUMAMemory{"0": 100000},
 	}
 	c3 := &types.Container{
 		ID:       "c3",
