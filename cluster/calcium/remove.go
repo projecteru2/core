@@ -15,6 +15,10 @@ import (
 // returns a channel that contains removing responses
 func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool, step int) (chan *types.RemoveContainerMessage, error) {
 	ch := make(chan *types.RemoveContainerMessage)
+	if step < 1 {
+		step = 1
+	}
+
 	go func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}

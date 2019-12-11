@@ -531,11 +531,6 @@ func (v *Vibranium) RemoveContainer(opts *pb.RemoveContainerOptions, stream pb.C
 	if len(ids) == 0 {
 		return types.ErrNoContainerIDs
 	}
-	// concurrent set to ids len if below 0
-	if step <= 0 {
-		step = len(ids)
-	}
-
 	//这里不能让 client 打断 remove
 	ch, err := v.cluster.RemoveContainer(context.Background(), ids, force, step)
 	if err != nil {
