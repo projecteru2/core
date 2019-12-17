@@ -76,11 +76,17 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 	}
 	val := string(data)
 	statusKey := filepath.Join(containerStatusPrefix, appname, entrypoint, container.Nodename, container.ID)
-	lease := &clientv3.LeaseGrantResponse{}
-	lease, err = m.cliv3.Grant(ctx, ttl)
+	lease, err := m.cliv3.Grant(ctx, ttl)
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if lease.ID != 0 {
+			if _, err := m.cliv3.Revoke(ctx, lease.ID); err != nil {
+				log.Errorf("[SetContainerStatus] revoke lease failed %v", err) // ignore revoke lease error
+			}
+		}
+	}()
 	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, val, clientv3.WithLease(lease.ID))}
 	tr, err := m.cliv3.Txn(ctx).
 		If(clientv3.Compare(clientv3.Version(fmt.Sprintf(containerInfoKey, container.ID)), "!=", 0)).
@@ -103,18 +109,16 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 	}
 	tr2 := tr.Responses[0].GetResponseTxn()
 	if !tr2.Succeeded { // 没 status key 直接 put
+		lease.ID = 0
 		return nil
 	}
 	tr3 := tr2.Responses[0].GetResponseTxn()
-	leaseID := clientv3.LeaseID(tr3.Responses[0].GetResponseRange().Kvs[0].Lease)
-	revokeID := leaseID // 默认是 status 改变了 revoke 老的 lease 然后直接 put
-	if tr3.Succeeded {  // status 没改变 revoke 新的 lease 然后刷新老的 lease
-		revokeID = lease.ID
-		_, err = m.cliv3.KeepAliveOnce(ctx, clientv3.LeaseID(leaseID))
-	}
-	if _, err := m.cliv3.Revoke(ctx, revokeID); err != nil {
-		log.Errorf("[SetContainerStatus] revoke lease failed %v", err) // ignore revoke lease error
-	}
+	oldLeaseID := clientv3.LeaseID(tr3.Responses[0].GetResponseRange().Kvs[0].Lease) // 拿到 status 绑定的 leaseID
+	if !tr3.Succeeded {                                                              // status 改变了 revoke 老的 lease
+		lease.ID = oldLeaseID
+		return nil
+	} // 没改变就还是 revoke 新的 ID
+	_, err = m.cliv3.KeepAliveOnce(ctx, clientv3.LeaseID(oldLeaseID)) // 刷新 lease
 	return err
 }
 

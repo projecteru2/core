@@ -138,9 +138,10 @@ func TestSetContainerStatus(t *testing.T) {
 	nodename := "n1"
 	podname := "test"
 	container := &types.Container{
-		ID:       ID,
-		Nodename: nodename,
-		Podname:  podname,
+		ID:         ID,
+		Nodename:   nodename,
+		Podname:    podname,
+		StatusMeta: &types.StatusMeta{},
 	}
 	// fail by no name
 	err := m.SetContainerStatus(ctx, container, 0)
@@ -153,8 +154,11 @@ func TestSetContainerStatus(t *testing.T) {
 	// no status key, put succ, err nil
 	err = m.SetContainerStatus(ctx, container, 10)
 	assert.NoError(t, err)
-	// status changed, update
-	// update lease
+	// status not changed, update old lease
+	err = m.SetContainerStatus(ctx, container, 10)
+	assert.NoError(t, err)
+	// status changed, revoke old lease
+	container.StatusMeta.Running = true
 	err = m.SetContainerStatus(ctx, container, 10)
 	assert.NoError(t, err)
 }
