@@ -75,18 +75,49 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 	if err != nil {
 		return err
 	}
+	val := string(data)
 	statusKey := filepath.Join(containerStatusPrefix, appname, entrypoint, container.Nodename, container.ID)
-	opts := []clientv3.OpOption{}
+	lease := &clientv3.LeaseGrantResponse{}
 	if ttl > 0 {
-		lease, err := m.cliv3.Grant(ctx, ttl)
+		lease, err = m.cliv3.Grant(ctx, ttl)
 		if err != nil {
 			return err
 		}
-		opts = append(opts, clientv3.WithLease(lease.ID))
 	}
-	ops := []clientv3.Op{clientv3.OpPut(statusKey, string(data), opts...)}
-	conds := []clientv3.Cmp{clientv3.Compare(clientv3.Version(fmt.Sprintf(containerInfoKey, container.ID)), "!=", 0)}
-	_, err = m.doBatchOp(ctx, conds, ops, []clientv3.Op{})
+	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, val, clientv3.WithLease(lease.ID))}
+	tr, err := m.cliv3.Txn(ctx).
+		If(clientv3.Compare(clientv3.Version(fmt.Sprintf(containerInfoKey, container.ID)), "!=", 0)).
+		Then( // 保证有容器
+			clientv3.OpTxn(
+				[]clientv3.Cmp{clientv3.Compare(clientv3.Version(statusKey), "!=", 0)}, // 判断是否有 status key
+				[]clientv3.Op{clientv3.OpTxn( // 有 status key
+					[]clientv3.Cmp{clientv3.Compare(clientv3.Value(statusKey), "=", val)},
+					[]clientv3.Op{clientv3.OpGet(statusKey)},                          // status 没修改，返回 status
+					append([]clientv3.Op{clientv3.OpGet(statusKey)}, updateStatus...), // 内容修改了就换一个 lease
+				)},
+				updateStatus, // 没有 status key
+			),
+		).Commit()
+	if err != nil {
+		return err
+	}
+	if !tr.Succeeded { // 没容器了退出
+		return nil
+	}
+	tr2 := tr.Responses[0].GetResponseTxn()
+	if !tr2.Succeeded { // 没 status key 直接 put
+		return nil
+	}
+	tr3 := tr2.Responses[0].GetResponseTxn()
+	leaseID := clientv3.LeaseID(tr3.Responses[0].GetResponseRange().Kvs[0].Lease)
+	revokeID := leaseID // 默认是 status 改变了 revoke 老的 lease 然后直接 put
+	if tr3.Succeeded {  // status 没改变 revoke 新的 lease 然后刷新老的 lease
+		revokeID = lease.ID
+		_, err = m.cliv3.KeepAliveOnce(ctx, clientv3.LeaseID(leaseID))
+	}
+	if _, err := m.cliv3.Revoke(ctx, revokeID); err != nil {
+		log.Errorf("[SetContainerStatus] revoke lease failed %v", err) // ignore revoke lease error
+	}
 	return err
 }
 

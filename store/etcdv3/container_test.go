@@ -146,7 +146,15 @@ func TestSetContainerStatus(t *testing.T) {
 	err := m.SetContainerStatus(ctx, container, 0)
 	assert.Error(t, err)
 	container.Name = name
-	// success
+	// no container, err nil
+	err = m.SetContainerStatus(ctx, container, 10)
+	assert.NoError(t, err)
+	assert.NoError(t, m.AddContainer(ctx, container))
+	// no status key, put succ, err nil
+	err = m.SetContainerStatus(ctx, container, 10)
+	assert.NoError(t, err)
+	// status changed, update
+	// update lease
 	err = m.SetContainerStatus(ctx, container, 10)
 	assert.NoError(t, err)
 }
