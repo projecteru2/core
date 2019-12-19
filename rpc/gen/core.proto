@@ -32,7 +32,7 @@ service CoreRPC {
     rpc BuildImage(BuildImageOptions) returns (stream BuildImageMessage) {};
     rpc CacheImage(CacheImageOptions) returns (stream CacheImageMessage) {};
     rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage) {};
-    
+
     rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage) {};
     rpc ReplaceContainer(ReplaceOptions) returns (stream ReplaceContainerMessage) {};
     rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage) {};
@@ -80,6 +80,7 @@ message NodeResource {
     bool verification = 4;
     repeated string details = 5;
     double storage_percent = 6;
+    double volume_percent = 7;
 }
 
 message ListNetworkOptions {
@@ -114,6 +115,9 @@ message Node {
     int64 storage = 15;
     int64 storage_used = 16;
     int64 init_storage = 17;
+    map<string, int64> init_volume = 18;
+    map<string, int64> volume = 19;
+    int64 volume_used = 20;
 }
 
 message Nodes {
@@ -134,6 +138,7 @@ message SetNodeOptions {
     map<string, int64> delta_numa_memory = 6;
     map<string, string> numa = 7;
     map<string, string> labels = 8;
+    map<string, int64> delta_volume = 9;
 }
 
 message Container {
@@ -239,6 +244,7 @@ message AddNodeOptions {
     map<string, string> numa = 11;
     map<string, int64> numa_memory = 12;
     int64 storage = 13;
+    map<string, int64> volume_map = 14;
 }
 
 message RemoveNodeOptions {

@@ -10,7 +10,6 @@ GO_LDFLAGS ?= -s -X $(REPO_PATH)/versioninfo.REVISION=$(REVISION) \
 
 grpc:
 	cd ./rpc/gen/; protoc --go_out=plugins=grpc:. core.proto
-	cd ./rpc/gen/; python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. core.proto;
 
 deps:
 	env GO111MODULE=on go mod download
