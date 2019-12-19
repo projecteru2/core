@@ -155,6 +155,7 @@ message Container {
     string image = 11;
     int64 storage = 12;
     ContainerStatus status = 13;
+    map<string, int64> volume = 14;
 }
 
 message ContainerStatus {
@@ -215,6 +216,7 @@ message ReallocOptions {
     repeated string ids = 1;
     double cpu = 2;
     int64 memory = 3;
+    repeated string volumes = 4;
 }
 
 message AddPodOptions {
@@ -418,6 +420,7 @@ message CreateContainerMessage {
     map<string, string> publish = 10;
     bytes hook = 11;
     int64 storage = 12;
+    map<string, int64> volume = 13;
 }
 
 message ReplaceContainerMessage {
