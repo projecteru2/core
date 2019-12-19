@@ -19,7 +19,7 @@ type nodeContainers map[string][]*types.Container
 type cpuMemNodeContainers map[float64]map[int64]nodeContainers
 
 // ReallocResource allow realloc container resource
-func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64) (chan *types.ReallocResourceMessage, error) {
+func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64, volumes []string) (chan *types.ReallocResourceMessage, error) {
 	ch := make(chan *types.ReallocResourceMessage)
 	go func() {
 		defer close(ch)

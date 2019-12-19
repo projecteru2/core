@@ -594,7 +594,7 @@ func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_R
 	}
 
 	//这里不能让 client 打断 remove
-	ch, err := v.cluster.ReallocResource(context.Background(), ids, opts.Cpu, opts.Memory)
+	ch, err := v.cluster.ReallocResource(context.Background(), ids, opts.Cpu, opts.Memory, opts.Volumes)
 	if err != nil {
 		return err
 	}
