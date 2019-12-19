@@ -22,6 +22,14 @@ func toRPCCPUMap(m types.CPUMap) map[string]int32 {
 	return cpu
 }
 
+func toRPCVolumeMap(m types.VolumeMap) map[string]int64 {
+	volume := make(map[string]int64)
+	for dir, capacity := range volume {
+		volume[dir] = int64(capacity)
+	}
+	return volume
+}
+
 func toRPCPod(p *types.Pod) *pb.Pod {
 	return &pb.Pod{Name: p.Name, Desc: p.Desc}
 }
@@ -61,11 +69,14 @@ func toRPCNode(ctx context.Context, n *types.Node) *pb.Node {
 		MemoryUsed:  n.InitMemCap - n.MemCap,
 		Storage:     n.StorageCap,
 		StorageUsed: n.StorageUsed(),
+		Volume:      toRPCVolumeMap(n.Volume),
+		VolumeUsed:  int64(n.VolumeUsed),
 		Available:   n.Available,
 		Labels:      n.Labels,
 		InitCpu:     toRPCCPUMap(n.InitCPU),
 		InitMemory:  n.InitMemCap,
 		InitStorage: n.InitStorageCap,
+		InitVolume:  toRPCVolumeMap(n.InitVolume),
 		Info:        nodeInfo,
 		Numa:        n.NUMA,
 		NumaMemory:  n.NUMAMemory,
@@ -78,6 +89,7 @@ func toRPCNodeResource(nr *types.NodeResource) *pb.NodeResource {
 		CpuPercent:     nr.CPUPercent,
 		MemoryPercent:  nr.MemoryPercent,
 		StoragePercent: nr.StoragePercent,
+		VolumePercent:  nr.VolumePercent,
 		Verification:   nr.Verification,
 		Details:        nr.Details,
 	}
@@ -110,6 +122,29 @@ func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) {
 	return &types.SendOptions{IDs: b.Ids}, nil
 }
 
+func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
+	r := &types.AddNodeOptions{
+		Nodename:   b.Nodename,
+		Endpoint:   b.Endpoint,
+		Podname:    b.Podname,
+		Ca:         b.Ca,
+		Cert:       b.Cert,
+		Key:        b.Key,
+		Cpu:        int(b.Cpu),
+		Share:      int(b.Share),
+		Memory:     b.Memory,
+		Storage:    b.Storage,
+		Labels:     b.Labels,
+		Numa:       b.Numa,
+		NumaMemory: b.NumaMemory,
+		Volume:     types.VolumeMap{},
+	}
+	for volumeDir, volumeCap := range b.VolumeMap {
+		r.Volume[volumeDir] = int(volumeCap)
+	}
+	return r
+}
+
 func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) {
 	r := &types.SetNodeOptions{
 		Nodename:        b.Nodename,
@@ -118,11 +153,15 @@ func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) {
 		DeltaMemory:     b.DeltaMemory,
 		DeltaStorage:    b.DeltaStorage,
 		DeltaNUMAMemory: b.DeltaNumaMemory,
+		DeltaVolume:     types.VolumeMap{},
 		NUMA:            b.Numa,
 		Labels:          b.Labels,
 	}
 	for cpuID, cpuShare := range b.DeltaCpu {
 		r.DeltaCPU[cpuID] = int(cpuShare)
+	}
+	for volumeDir, volumeCap := range b.DeltaVolume {
+		r.DeltaVolume[volumeDir] = int(volumeCap)
 	}
 	return r, nil
 }

@@ -38,22 +38,8 @@ func (v *Vibranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Pod
 // AddNode saves a node and returns it to client
 // Method must be called synchronously, or nothing will be returned
 func (v *Vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.Node, error) {
-	n, err := v.cluster.AddNode(
-		ctx,
-		opts.Nodename,
-		opts.Endpoint,
-		opts.Podname,
-		opts.Ca,
-		opts.Cert,
-		opts.Key,
-		int(opts.Cpu),
-		int(opts.Share),
-		opts.Memory,
-		opts.Storage,
-		opts.Labels,
-		opts.Numa,
-		opts.NumaMemory,
-	)
+	addNodeOpts := toCoreAddNodeOptions(opts)
+	n, err := v.cluster.AddNode(addNodeOpts)
 	if err != nil {
 		return nil, err
 	}

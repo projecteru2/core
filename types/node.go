@@ -16,13 +16,13 @@ const (
 	DecrUsage = "-"
 )
 
-// CPUMap is cpu core map
-// CPUMap {["0"]10000, ["1"]10000}
-type CPUMap map[string]int
+// ResourceMap is cpu core map
+// ResourceMap {["0"]10000, ["1"]10000}
+type ResourceMap map[string]int
 
 // Total show total cpu
 // Total quotas
-func (c CPUMap) Total() int {
+func (c ResourceMap) Total() int {
 	var count int
 	for _, value := range c {
 		count += value
@@ -31,7 +31,7 @@ func (c CPUMap) Total() int {
 }
 
 // Add return cpu
-func (c CPUMap) Add(q CPUMap) {
+func (c ResourceMap) Add(q ResourceMap) {
 	for label, value := range q {
 		if _, ok := c[label]; !ok {
 			c[label] = value
@@ -42,7 +42,7 @@ func (c CPUMap) Add(q CPUMap) {
 }
 
 // Sub decrease cpus
-func (c CPUMap) Sub(q CPUMap) {
+func (c ResourceMap) Sub(q ResourceMap) {
 	for label, value := range q {
 		if _, ok := c[label]; ok {
 			c[label] -= value
@@ -51,9 +51,17 @@ func (c CPUMap) Sub(q CPUMap) {
 }
 
 // Map return cpu map
-func (c CPUMap) Map() map[string]int {
+func (c ResourceMap) Map() map[string]int {
 	return map[string]int(c)
 }
+
+// CPUMap is cpu core map
+// CPUMap {["0"]10000, ["1"]10000}
+type CPUMap = ResourceMap
+
+// VolumeMap is volume map
+// VolumeMap {["/data1"]1073741824, ["/data2"]1048576}
+type VolumeMap = ResourceMap
 
 // NUMA define NUMA cpuID->nodeID
 type NUMA map[string]string
@@ -67,9 +75,11 @@ type Node struct {
 	Endpoint       string            `json:"endpoint"`
 	Podname        string            `json:"podname"`
 	CPU            CPUMap            `json:"cpu"`
+	Volume         VolumeMap         `json:"volume"`
 	NUMA           NUMA              `json:"numa"`
 	NUMAMemory     NUMAMemory        `json:"numa_memory"`
 	CPUUsed        float64           `json:"cpuused"`
+	VolumeUsed     int               `json:"volumeused"`
 	MemCap         int64             `json:"memcap"`
 	StorageCap     int64             `json:"storage_cap"`
 	Available      bool              `json:"available"`
@@ -78,6 +88,7 @@ type Node struct {
 	InitMemCap     int64             `json:"init_memcap"`
 	InitStorageCap int64             `json:"init_storage_cap"`
 	InitNUMAMemory NUMAMemory        `json:"init_numa_memory"`
+	InitVolume     VolumeMap         `json:"init_volume"`
 	Engine         engine.API        `json:"-"`
 }
 
@@ -191,6 +202,7 @@ type NodeResource struct {
 	MemoryPercent     float64
 	StoragePercent    float64
 	NUMAMemoryPercent map[string]float64
+	VolumePercent     float64
 	Verification      bool
 	Details           []string
 	Containers        []*Container
