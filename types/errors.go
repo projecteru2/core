@@ -35,6 +35,7 @@ var (
 	ErrBadMemory       = errors.New("bad `Memory` value")
 	ErrBadCPU          = errors.New("bad `CPU` value")
 	ErrBadStorage      = errors.New("bad `Storage` value")
+	ErrBadVolume       = errors.New("bad `Volume` value")
 	ErrBadCount        = errors.New("bad `Count` value")
 
 	ErrPodHasNodes = errors.New("pod has nodes")

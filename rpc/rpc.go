@@ -39,7 +39,7 @@ func (v *Vibranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Pod
 // Method must be called synchronously, or nothing will be returned
 func (v *Vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.Node, error) {
 	addNodeOpts := toCoreAddNodeOptions(opts)
-	n, err := v.cluster.AddNode(addNodeOpts)
+	n, err := v.cluster.AddNode(ctx, addNodeOpts)
 	if err != nil {
 		return nil, err
 	}

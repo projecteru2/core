@@ -10,10 +10,13 @@ import (
 )
 
 // AddNode add a node in pod
+/*
 func (c *Calcium) AddNode(ctx context.Context, nodename, endpoint, podname, ca, cert, key string,
 	cpu, share int, memory, storage int64, labels map[string]string,
 	numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
-	return c.store.AddNode(ctx, nodename, endpoint, podname, ca, cert, key, cpu, share, memory, storage, labels, numa, numaMemory)
+*/
+func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*types.Node, error) {
+	return c.store.AddNode(ctx, opts.Nodename, opts.Endpoint, opts.Podname, opts.Ca, opts.Cert, opts.Key, opts.Cpu, opts.Share, opts.Memory, opts.Storage, opts.Labels, opts.Numa, opts.NumaMemory, opts.Volume)
 }
 
 // RemoveNode remove a node
@@ -123,6 +126,22 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				n.InitCPU[cpuID] += cpuShare
 				if n.CPU[cpuID] < 0 {
 					return types.ErrBadCPU
+				}
+			}
+		}
+		// update volume
+		for volumeDir, changeCap := range opts.DeltaVolume {
+			if _, ok := n.Volume[volumeDir]; !ok && changeCap > 0 {
+				n.Volume[volumeDir] = changeCap
+				n.InitVolume[volumeDir] = changeCap
+			} else if ok && changeCap == 0 {
+				delete(n.Volume, volumeDir)
+				delete(n.InitVolume, volumeDir)
+			} else if ok {
+				n.Volume[volumeDir] += changeCap
+				n.InitVolume[volumeDir] += changeCap
+				if n.Volume[volumeDir] < 0 {
+					return types.ErrBadVolume
 				}
 			}
 		}

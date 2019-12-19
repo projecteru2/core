@@ -24,7 +24,7 @@ func toRPCCPUMap(m types.CPUMap) map[string]int32 {
 
 func toRPCVolumeMap(m types.VolumeMap) map[string]int64 {
 	volume := make(map[string]int64)
-	for dir, capacity := range volume {
+	for dir, capacity := range m {
 		volume[dir] = int64(capacity)
 	}
 	return volume

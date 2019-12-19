@@ -23,7 +23,7 @@ import (
 // node->pod path in etcd is `/node/pod/:nodename`
 func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string,
 	cpu, share int, memory, storage int64, labels map[string]string,
-	numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
+	numa types.NUMA, numaMemory types.NUMAMemory, volume types.VolumeMap) (*types.Node, error) {
 	_, err := m.GetPod(ctx, podname)
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 		}
 	}
 
-	return m.doAddNode(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, storage, labels, numa, numaMemory)
+	return m.doAddNode(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, storage, labels, numa, numaMemory, volume)
 }
 
 // RemoveNode delete a node
@@ -192,7 +192,7 @@ func (m *Mercury) makeClient(ctx context.Context, node *types.Node, force bool) 
 	return client, nil
 }
 
-func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory, storage int64, labels map[string]string, numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
+func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory, storage int64, labels map[string]string, numa types.NUMA, numaMemory types.NUMAMemory, volumemap types.VolumeMap) (*types.Node, error) {
 	data := map[string]string{}
 	// 如果有tls的证书需要保存就保存一下
 	if ca != "" && cert != "" && key != "" {
@@ -213,10 +213,12 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 		CPU:            cpumap,
 		MemCap:         memory,
 		StorageCap:     storage,
+		Volume:         volumemap,
 		InitCPU:        cpumap,
 		InitMemCap:     memory,
 		InitStorageCap: storage,
 		InitNUMAMemory: numaMemory,
+		InitVolume:     volumemap,
 		Available:      true,
 		Labels:         labels,
 		NUMA:           numa,
