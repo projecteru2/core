@@ -250,9 +250,12 @@ func safeSplit(s string) []string {
 }
 
 // Min returns the lesser one.
-func Min(x, y int) int {
-	if x < y {
-		return x
+func Min(x int, xs ...int) int {
+	m := x
+	for _, v := range xs {
+		if v < m {
+			m = v
+		}
 	}
-	return y
+	return m
 }

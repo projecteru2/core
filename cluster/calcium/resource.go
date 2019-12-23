@@ -129,6 +129,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 	var total int
 	var nodesInfo []types.NodeInfo
 	var nodeCPUPlans map[string][]types.CPUMap
+	var nodeVolumePlans map[string][]types.VolumeMap
 	if err = c.withNodesLocked(ctx, opts.Podname, opts.Nodename, opts.NodeLabels, false, func(nodes map[string]*types.Node) error {
 		if len(nodes) == 0 {
 			return types.ErrInsufficientNodes
@@ -154,7 +155,13 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 		if nodesInfo, storTotal, err = c.scheduler.SelectStorageNodes(nodesInfo, opts.Storage); err != nil {
 			return err
 		}
-		total = utils.Min(storTotal, total)
+
+		var volumeTotal int
+		if nodesInfo, nodeVolumePlans, volumeTotal, err = c.scheduler.SelectVolumeNodes(nodesInfo, opts.Volumes); err != nil {
+			return err
+		}
+
+		total = utils.Min(volumeTotal, storTotal, total)
 
 		switch opts.DeployMethod {
 		case cluster.DeployAuto:
@@ -185,6 +192,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 			memoryCost := opts.Memory * int64(nodeInfo.Deploy)
 			storageCost := opts.Storage * int64(nodeInfo.Deploy)
 			quotaCost := opts.CPUQuota * float64(nodeInfo.Deploy)
+			volumeCost := types.VolumeMap{}
 
 			if _, ok := nodeCPUPlans[nodeInfo.Name]; ok {
 				cpuList := nodeCPUPlans[nodeInfo.Name][:nodeInfo.Deploy]
@@ -193,7 +201,16 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 					cpuCost.Add(cpu)
 				}
 			}
-			if err = c.store.UpdateNodeResource(ctx, nodes[nodeInfo.Name], cpuCost, quotaCost, memoryCost, storageCost, store.ActionDecr); err != nil {
+
+			if _, ok := nodeVolumePlans[nodeInfo.Name]; ok {
+				volumeList := nodeVolumePlans[nodeInfo.Name][:nodeInfo.Deploy]
+				nodesInfo[i].VolumePlan = volumeList
+				for _, volume := range volumeList {
+					volumeCost.Add(volume)
+				}
+			}
+
+			if err = c.store.UpdateNodeResource(ctx, nodes[nodeInfo.Name], cpuCost, quotaCost, memoryCost, storageCost, volumeCost, store.ActionDecr); err != nil {
 				return err
 			}
 		}

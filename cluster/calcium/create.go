@@ -68,7 +68,7 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 					ch <- m
 					if m.Error != nil && m.ContainerID == "" {
 						if err := c.withNodeLocked(ctx, nodeInfo.Name, func(node *types.Node) error {
-							return c.store.UpdateNodeResource(ctx, node, m.CPU, opts.CPUQuota, opts.Memory, opts.Storage, store.ActionIncr)
+							return c.store.UpdateNodeResource(ctx, node, m.CPU, opts.CPUQuota, opts.Memory, opts.Storage, m.VolumeMap, store.ActionIncr)
 						}); err != nil {
 							log.Errorf("[doCreateContainer] Reset node %s failed %v", nodeInfo.Name, err)
 						}
@@ -100,7 +100,15 @@ func (c *Calcium) doCreateContainerOnNode(ctx context.Context, nodeInfo types.No
 			if len(nodeInfo.CPUPlan) > 0 {
 				cpu = nodeInfo.CPUPlan[i]
 			}
-			ms[i] = &types.CreateContainerMessage{Error: err, CPU: cpu}
+			volume := types.VolumeMap{}
+			if len(nodeInfo.VolumePlan) > 0 {
+				volume = nodeInfo.VolumePlan[i]
+			}
+			ms[i] = &types.CreateContainerMessage{
+				Error:     err,
+				CPU:       cpu,
+				VolumeMap: volume,
+			}
 		}
 		return ms
 	}
@@ -111,7 +119,11 @@ func (c *Calcium) doCreateContainerOnNode(ctx context.Context, nodeInfo types.No
 		if len(nodeInfo.CPUPlan) > 0 {
 			cpu = nodeInfo.CPUPlan[i]
 		}
-		ms[i] = c.doCreateAndStartContainer(ctx, i+index, node, opts, cpu)
+		volume := types.VolumeMap{}
+		if len(nodeInfo.VolumePlan) > 0 {
+			volume = nodeInfo.VolumePlan[i]
+		}
+		ms[i] = c.doCreateAndStartContainer(ctx, i+index, node, opts, cpu, volume)
 		if !ms[i].Success {
 			log.Errorf("[doCreateContainerOnNode] Error when create and start a container, %v", ms[i].Error)
 			continue
@@ -136,6 +148,7 @@ func (c *Calcium) doCreateAndStartContainer(
 	no int, node *types.Node,
 	opts *types.DeployOptions,
 	cpu types.CPUMap,
+	volume types.VolumeMap,
 ) *types.CreateContainerMessage {
 	container := &types.Container{
 		Podname:    opts.Podname,
@@ -152,16 +165,18 @@ func (c *Calcium) doCreateAndStartContainer(
 		Env:        opts.Env,
 		User:       opts.User,
 		Volumes:    opts.Volumes,
+		VolumeMap:  volume,
 	}
 	createContainerMessage := &types.CreateContainerMessage{
-		Podname:  container.Podname,
-		Nodename: container.Nodename,
-		Success:  false,
-		CPU:      cpu,
-		Quota:    opts.CPUQuota,
-		Memory:   opts.Memory,
-		Storage:  opts.Storage,
-		Publish:  map[string][]string{},
+		Podname:   container.Podname,
+		Nodename:  container.Nodename,
+		Success:   false,
+		CPU:       cpu,
+		Quota:     opts.CPUQuota,
+		Memory:    opts.Memory,
+		Storage:   opts.Storage,
+		VolumeMap: volume,
+		Publish:   map[string][]string{},
 	}
 	var err error
 

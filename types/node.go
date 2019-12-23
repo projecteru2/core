@@ -63,6 +63,13 @@ type CPUMap = ResourceMap
 // VolumeMap {["/data1"]1073741824, ["/data2"]1048576}
 type VolumeMap = ResourceMap
 
+func (v VolumeMap) Consumed() (consumed int64) {
+	for _, size := range v {
+		consumed += int64(size)
+	}
+	return
+}
+
 // NUMA define NUMA cpuID->nodeID
 type NUMA map[string]string
 
@@ -79,7 +86,7 @@ type Node struct {
 	NUMA           NUMA              `json:"numa"`
 	NUMAMemory     NUMAMemory        `json:"numa_memory"`
 	CPUUsed        float64           `json:"cpuused"`
-	VolumeUsed     int               `json:"volumeused"`
+	VolumeUsed     int64             `json:"volumeused"`
 	MemCap         int64             `json:"memcap"`
 	StorageCap     int64             `json:"storage_cap"`
 	Available      bool              `json:"available"`
@@ -107,6 +114,16 @@ func (n *Node) SetCPUUsed(quota float64, action string) {
 		n.CPUUsed = Round(n.CPUUsed + quota)
 	case DecrUsage:
 		n.CPUUsed = Round(n.CPUUsed - quota)
+	default:
+	}
+}
+
+func (n *Node) SetVolumeUsed(cost int64, action string) {
+	switch action {
+	case IncrUsage:
+		n.VolumeUsed = n.VolumeUsed + cost
+	case DecrUsage:
+		n.VolumeUsed = n.VolumeUsed - cost
 	default:
 	}
 }
@@ -174,21 +191,24 @@ func (n *Node) AvailableStorage() int64 {
 type NodeInfo struct {
 	Name         string
 	CPUMap       CPUMap
+	VolumeMap    VolumeMap
 	NUMA         NUMA
 	NUMAMemory   NUMAMemory
 	MemCap       int64
 	StorageCap   int64
 	CPUUsed      float64 // CPU目前占用率
+	VolumeUsed   float64 // Current volume usage
 	MemUsage     float64 // MEM目前占用率
 	StorageUsage float64 // Current storage usage ratio
 	CPURate      float64 // 需要增加的 CPU 占用率
 	MemRate      float64 // 需要增加的内存占有率
 	StorageRate  float64 // Storage ratio which would be allocated
 
-	CPUPlan  []CPUMap
-	Capacity int // 可以部署几个
-	Count    int // 上面有几个了
-	Deploy   int // 最终部署几个
+	CPUPlan    []CPUMap
+	VolumePlan []VolumeMap
+	Capacity   int // 可以部署几个
+	Count      int // 上面有几个了
+	Deploy     int // 最终部署几个
 	// 其他需要 filter 的字段
 }
 

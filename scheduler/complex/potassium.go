@@ -122,6 +122,10 @@ func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, me
 	return cpuPriorPlan(quota, memory, nodesInfo, m.maxshare, m.sharebase)
 }
 
+func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, volumes []string) ([]types.NodeInfo, map[string][]types.VolumeMap, int, error) {
+	return nil, nil, 0, nil
+}
+
 // CommonDivision deploy containers by their deploy status
 // 部署完 N 个后全局尽可能平均
 // need 是所需总量，total 是支持部署总量

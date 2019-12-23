@@ -83,6 +83,7 @@ type CreateContainerMessage struct {
 	CPU           CPUMap
 	Quota         float64
 	Memory        int64
+	VolumeMap     VolumeMap
 	Storage       int64
 	Publish       map[string][]string
 	Hook          []*bytes.Buffer

@@ -136,11 +136,13 @@ func (m *Mercury) UpdateNode(ctx context.Context, node *types.Node) error {
 }
 
 // UpdateNodeResource update cpu and memory on a node, either add or subtract
-func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, memory, storage int64, action string) error {
+func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, memory, storage int64, volume types.VolumeMap, action string) error {
 	switch action {
 	case store.ActionIncr:
 		node.CPU.Add(cpu)
 		node.SetCPUUsed(quota, types.DecrUsage)
+		node.Volume.Add(volume)
+		node.SetVolumeUsed(volume.Consumed(), types.DecrUsage)
 		node.MemCap += memory
 		node.StorageCap += storage
 		if nodeID := node.GetNUMANode(cpu); nodeID != "" {
@@ -149,6 +151,8 @@ func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu 
 	case store.ActionDecr:
 		node.CPU.Sub(cpu)
 		node.SetCPUUsed(quota, types.IncrUsage)
+		node.Volume.Sub(volume)
+		node.SetVolumeUsed(volume.Consumed(), types.IncrUsage)
 		node.MemCap -= memory
 		node.StorageCap -= storage
 		if nodeID := node.GetNUMANode(cpu); nodeID != "" {
