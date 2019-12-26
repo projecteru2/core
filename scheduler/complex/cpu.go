@@ -18,10 +18,12 @@ func min(a, b int) int {
 	return b
 }
 
-type cpuInfo struct {
-	no     string
+type resourceInfo struct {
+	id     string
 	pieces int
 }
+
+type cpuInfo = resourceInfo
 
 type host struct {
 	full     []cpuInfo
@@ -35,13 +37,13 @@ func newHost(cpusMap types.CPUMap, share int) *host {
 		full:     []cpuInfo{},
 		fragment: []cpuInfo{},
 	}
-	for no, pieces := range cpusMap {
+	for id, pieces := range cpusMap {
 		// 整数核不应该切分
 		if pieces >= share && pieces%share == 0 {
 			// 只给 share 份
-			result.full = append(result.full, cpuInfo{no: no, pieces: pieces})
+			result.full = append(result.full, cpuInfo{id: id, pieces: pieces})
 		} else {
-			result.fragment = append(result.fragment, cpuInfo{no: no, pieces: pieces})
+			result.fragment = append(result.fragment, cpuInfo{id: id, pieces: pieces})
 		}
 	}
 	// 确保优先分配更碎片的核
@@ -124,16 +126,77 @@ func (h *host) getContainerCores(cpu float64, maxShareCore int) []types.CPUMap {
 	return h.getComplexResult(fullRequire, fragmentRequire, maxShareCore)
 }
 
-func (h *host) getFragmentResult(fragment int, cpus []cpuInfo) []types.CPUMap {
-	result := []types.CPUMap{}
-
-	for i := range cpus {
-		count := cpus[i].pieces / fragment
-		for j := 0; j < count; j++ {
-			result = append(result, types.CPUMap{cpus[i].no: fragment})
-		}
+func (h *host) getFragmentResult(fragment int, cpus []cpuInfo) (result []types.CPUMap) {
+	cpuMaps := h.getFragmentsResult(cpus, fragment)
+	for i, cpuMap := range cpuMaps {
+		result[i] = cpuMap[0]
 	}
 	return result
+}
+
+func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int) (resourceMap [][]types.ResourceMap) {
+	// shouldn't change resources slice
+	defer func(resourceBak []resourceInfo) {
+		resources = resourceBak
+	}(resources)
+
+	nResources := len(resources)
+	sort.Sort(sort.Reverse(sort.IntSlice(fragments))) // fragments is descendant
+	totalRequired := 0
+	for _, fragment := range fragments {
+		totalRequired += fragment
+	}
+
+	for i := 0; i < nResources; i++ {
+		sort.Slice(resources, func(i, j int) bool { return resources[i].pieces < resources[j].pieces })
+
+		count := resources[i].pieces / totalRequired
+
+		// plan on the same resource
+		plan := []types.ResourceMap{}
+		for _, fragment := range fragments {
+			plan = append(plan, types.ResourceMap{resources[i].id: fragment})
+		}
+		for j := 0; j < count; j++ {
+			resourceMap = append(resourceMap, plan)
+		}
+
+		// plan on different resources
+		plan = []types.ResourceMap{}
+		remainder := resources[i].pieces - count*totalRequired
+		refugees := []int{} // refugees record the fragments not able to scheduled on resource[i]
+		for _, fragment := range fragments {
+			if remainder > fragment {
+				remainder -= fragment
+				plan = append(plan, types.ResourceMap{resources[i].id: fragment})
+			} else {
+				refugees = append(refugees, fragment)
+			}
+		}
+		// looking for resource(s) capable of taking in refugees
+		for j := i + 1; j < nResources; j++ {
+			fragments := refugees
+			refugees = []int{}
+			for _, fragment := range fragments {
+				if resources[j].pieces > fragment {
+					resources[j].pieces -= fragment
+					plan = append(plan, types.ResourceMap{resources[j].id: fragment})
+				} else {
+					refugees = append(refugees, fragment)
+				}
+			}
+			if len(refugees) == 0 {
+				resourceMap = append(resourceMap, plan)
+				break
+			}
+		}
+		if len(refugees) > 0 {
+			// fail to complete this plan
+			break
+		}
+	}
+
+	return
 }
 
 func (h *host) getFullResult(full int, cpus []cpuInfo) []types.CPUMap {
@@ -146,9 +209,9 @@ func (h *host) getFullResult(full int, cpus []cpuInfo) []types.CPUMap {
 			// 洗掉没配额的 CPU
 			last := cpus[j].pieces - h.share
 			if last > 0 {
-				newCpus = append(newCpus, cpuInfo{cpus[j].no, last})
+				newCpus = append(newCpus, cpuInfo{cpus[j].id, last})
 			}
-			plan[cpus[j].no] = h.share
+			plan[cpus[j].id] = h.share
 		}
 		result = append(result, plan)
 	}
