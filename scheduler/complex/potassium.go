@@ -123,6 +123,7 @@ func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, me
 }
 
 func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, volumes []string) ([]types.NodeInfo, map[string][]types.VolumeMap, int, error) {
+
 	return nil, nil, 0, nil
 }
 
