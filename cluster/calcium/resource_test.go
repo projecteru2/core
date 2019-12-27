@@ -211,6 +211,8 @@ func TestAllocResource(t *testing.T) {
 	testAllocFailedAsInsufficientCPU(t, c, opts)
 	sched.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, nodeCPUPlans, total, nil)
 
+	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(nodesInfo, nil, total, nil)
+
 	testAllocFailedAsWrongDeployMethod(t, c, opts)
 
 	testAllocFailedAsCommonDivisionError(t, c, opts)

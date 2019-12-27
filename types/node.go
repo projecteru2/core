@@ -20,6 +20,14 @@ const (
 // ResourceMap {["0"]10000, ["1"]10000}
 type ResourceMap map[string]int
 
+func (c ResourceMap) FirstKey() (firstKey string) {
+	for key := range c {
+		firstKey = key
+		break
+	}
+	return
+}
+
 // Total show total cpu
 // Total quotas
 func (c ResourceMap) Total() int {

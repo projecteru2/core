@@ -67,7 +67,7 @@ func TestRealloc(t *testing.T) {
 	store.On("GetContainers", mock.Anything, []string{"c1", "c2"}).Return([]*types.Container{c1, c2}, nil)
 	// failed by lock
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	ch, err := c.ReallocResource(ctx, []string{"c1"}, -1, 2*int64(units.GiB))
+	ch, err := c.ReallocResource(ctx, []string{"c1"}, -1, 2*int64(units.GiB), nil)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
@@ -75,28 +75,28 @@ func TestRealloc(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	// failed by GetPod
 	store.On("GetPod", mock.Anything, mock.Anything).Return(pod1, types.ErrNoETCD).Once()
-	ch, err = c.ReallocResource(ctx, []string{"c1"}, -1, 2*int64(units.GiB))
+	ch, err = c.ReallocResource(ctx, []string{"c1"}, -1, 2*int64(units.GiB), nil)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
 	}
 	store.On("GetPod", mock.Anything, mock.Anything).Return(pod1, nil)
 	// failed by newCPU < 0
-	ch, err = c.ReallocResource(ctx, []string{"c1"}, -1, 2*int64(units.GiB))
+	ch, err = c.ReallocResource(ctx, []string{"c1"}, -1, 2*int64(units.GiB), nil)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
 	}
 	// failed by GetNode
 	store.On("GetNode", mock.Anything, "node1").Return(nil, types.ErrNoETCD).Once()
-	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, 2*int64(units.GiB))
+	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, 2*int64(units.GiB), nil)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
 	}
 	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
 	// failed by memory not enough
-	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, 2*int64(units.GiB))
+	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, 2*int64(units.GiB), nil)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
@@ -105,14 +105,14 @@ func TestRealloc(t *testing.T) {
 	simpleMockScheduler := &schedulermocks.Scheduler{}
 	c.scheduler = simpleMockScheduler
 	simpleMockScheduler.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, 0, types.ErrInsufficientMEM).Once()
-	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, 2*int64(units.MiB))
+	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, 2*int64(units.MiB), nil)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
 	}
 	// failed by wrong total
 	simpleMockScheduler.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, 0, nil).Once()
-	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, 2*int64(units.MiB))
+	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, 2*int64(units.MiB), nil)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
@@ -139,7 +139,7 @@ func TestRealloc(t *testing.T) {
 		Engine:   engine,
 		Endpoint: "http://1.1.1.1:1",
 	}
-	ch, err = c.ReallocResource(ctx, []string{"c1", "c2"}, 0.1, 2*int64(units.MiB))
+	ch, err = c.ReallocResource(ctx, []string{"c1", "c2"}, 0.1, 2*int64(units.MiB), nil)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
@@ -151,7 +151,7 @@ func TestRealloc(t *testing.T) {
 	store.On("UpdateNode", mock.Anything, mock.Anything).Return(nil)
 	// failed by update container
 	store.On("UpdateContainer", mock.Anything, mock.Anything).Return(types.ErrBadContainerID).Twice()
-	ch, err = c.ReallocResource(ctx, []string{"c1", "c2"}, 0.1, 2*int64(units.MiB))
+	ch, err = c.ReallocResource(ctx, []string{"c1", "c2"}, 0.1, 2*int64(units.MiB), nil)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
@@ -194,7 +194,7 @@ func TestRealloc(t *testing.T) {
 	simpleMockScheduler.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nodeCPUPlans, 2, nil)
 	store.On("GetNode", mock.Anything, "node2").Return(node2, nil)
 	store.On("GetContainers", mock.Anything, []string{"c3", "c4"}).Return([]*types.Container{c3, c4}, nil)
-	ch, err = c.ReallocResource(ctx, []string{"c3", "c4"}, 0.1, 2*int64(units.MiB))
+	ch, err = c.ReallocResource(ctx, []string{"c3", "c4"}, 0.1, 2*int64(units.MiB), nil)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.True(t, r.Success)

@@ -40,11 +40,11 @@ func newHost(resourceMap types.ResourceMap, share int) *host {
 	return result
 }
 
-func (h *host) getComplexResult(full, fragment, maxShareCore int) []types.ResourceMap {
-	if maxShareCore == -1 {
-		maxShareCore = len(h.full) - full // 减枝，M == N 的情况下预留至少一个 full 量的核数
+func (h *host) getComplexResult(full, fragment, maxShare int) []types.ResourceMap {
+	if maxShare == -1 {
+		maxShare = len(h.full) - full // 减枝，M == N 的情况下预留至少一个 full 量的核数
 	} else {
-		maxShareCore -= len(h.fragment)
+		maxShare -= len(h.fragment)
 	}
 
 	// 计算默认情况下能部署多少个
@@ -56,7 +56,7 @@ func (h *host) getComplexResult(full, fragment, maxShareCore int) []types.Resour
 	baseLine := min(fragmentResultCount, fullResultCount)
 	fragmentResult := fragmentResultBase
 	fullResult := fullResultBase
-	for i := 1; i < maxShareCore+1; i++ {
+	for i := 1; i < maxShare+1; i++ {
 		fragmentResultBase = h.getFragmentResult(fragment, append(h.fragment, h.full[:i]...))
 		fullResultBase = h.getFullResult(full, h.full[i:])
 		fragmentResultCount = len(fragmentResultBase)
@@ -73,15 +73,15 @@ func (h *host) getComplexResult(full, fragment, maxShareCore int) []types.Resour
 	result := []types.ResourceMap{}
 	for i := 0; i < baseLine; i++ {
 		r := types.ResourceMap{}
-		for no, pieces := range fullResult[i] {
-			if _, ok := r[no]; ok {
-				r[no] += pieces
+		for id, pieces := range fullResult[i] {
+			if _, ok := r[id]; ok {
+				r[id] += pieces
 			} else {
-				r[no] = pieces
+				r[id] = pieces
 			}
 		}
-		for no, pieces := range fragmentResult[i] {
-			r[no] = pieces
+		for id, pieces := range fragmentResult[i] {
+			r[id] = pieces
 		}
 		result = append(result, r)
 	}
@@ -89,20 +89,45 @@ func (h *host) getComplexResult(full, fragment, maxShareCore int) []types.Resour
 	return result
 }
 
-func (h *host) getFragmentResult(fragment int, resources []resourceInfo) (result []types.ResourceMap) {
+func (h *host) getFragmentResult(fragment int, resources []resourceInfo) []types.ResourceMap {
 	resourceMaps := h.getFragmentsResult(resources, fragment)
-	for i, ResourceMap := range resourceMaps {
-		result[i] = ResourceMap[0]
+	result := make([]types.ResourceMap, len(resourceMaps))
+	for i, resourceMap := range resourceMaps {
+		result[i] = resourceMap[0]
+	}
+
+	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
+		result[i], result[j] = result[j], result[i]
+	}
+
+	// to pass tests due to new algorithm return unsorted list
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].FirstKey() < result[j].FirstKey()
+	})
+	return result
+}
+
+func (h *host) _getFragmentResult(fragment int, cpus []cpuInfo) []types.CPUMap {
+	result := []types.CPUMap{}
+
+	for i := range cpus {
+		count := cpus[i].pieces / fragment
+		for j := 0; j < count; j++ {
+			result = append(result, types.CPUMap{cpus[i].id: fragment})
+		}
 	}
 	return result
 }
 
 func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int) (resourceMap [][]types.ResourceMap) {
 	// shouldn't change resources slice
-	defer func(resourceBak []resourceInfo) {
-		resources = resourceBak
-	}(resources)
+	resourcesBak := make([]resourceInfo, len(resources))
+	copy(resourcesBak, resources)
+	defer func() {
+		copy(resources, resourcesBak)
+	}()
 
+	nFragments := len(fragments)
 	nResources := len(resources)
 	sort.Sort(sort.Reverse(sort.IntSlice(fragments))) // fragments is descendant
 	totalRequired := 0
@@ -123,6 +148,7 @@ func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int) (r
 		for j := 0; j < count; j++ {
 			resourceMap = append(resourceMap, plan)
 		}
+		resources[i].pieces -= count * totalRequired
 
 		// plan on different resources
 		plan = []types.ResourceMap{}
@@ -136,6 +162,12 @@ func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int) (r
 				refugees = append(refugees, fragment)
 			}
 		}
+
+		if len(refugees) == nFragments {
+			// resources[i] runs out of capacity, calculate resources[i+1]
+			continue
+		}
+
 		// looking for resource(s) capable of taking in refugees
 		for j := i + 1; j < nResources; j++ {
 			fragments := refugees

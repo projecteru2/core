@@ -33,7 +33,7 @@ func (_m *Store) AddContainer(ctx context.Context, container *types.Container) e
 }
 
 // AddNode provides a mock function with given fields: ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, storage, labels, numa, numaMemory
-func (_m *Store) AddNode(ctx context.Context, name string, endpoint string, podname string, ca string, cert string, key string, cpu int, share int, memory int64, storage int64, labels map[string]string, numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
+func (_m *Store) AddNode(ctx context.Context, name string, endpoint string, podname string, ca string, cert string, key string, cpu int, share int, memory int64, storage int64, labels map[string]string, numa types.NUMA, numaMemory types.NUMAMemory, volumeMap types.VolumeMap) (*types.Node, error) {
 	ret := _m.Called(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, storage, labels, numa, numaMemory)
 
 	var r0 *types.Node
@@ -488,7 +488,7 @@ func (_m *Store) UpdateNode(ctx context.Context, node *types.Node) error {
 }
 
 // UpdateNodeResource provides a mock function with given fields: ctx, node, cpu, quota, memory, storage, action
-func (_m *Store) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, memory int64, storage int64, action string) error {
+func (_m *Store) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, memory int64, storage int64, volume types.VolumeMap, action string) error {
 	ret := _m.Called(ctx, node, cpu, quota, memory, storage, action)
 
 	var r0 error
