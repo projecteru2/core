@@ -42,7 +42,7 @@ func TestAddNode(t *testing.T) {
 	node, err := m.AddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, storage, labels, nil, nil, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, nodename)
-	assert.Equal(t, node.CPU["0"], 100)
+	assert.Equal(t, node.CPU["0"], int64(100))
 	// add again and failed
 	_, err = m.AddNode(ctx, nodename, endpoint, podname, "", "", "", cpu, share, memory, storage, labels, nil, nil, nil)
 	assert.Error(t, err)
@@ -63,7 +63,7 @@ func TestAddNode(t *testing.T) {
 	// AddNode with mocked engine and default value
 	node2, err := m.AddNode(ctx, nodename2, endpoint, podname, "", "", "", 0, 0, 0, 0, labels, nil, nil, nil)
 	assert.NoError(t, err)
-	assert.Equal(t, node2.CPU["0"], 100)
+	assert.Equal(t, node2.CPU["0"], int64(100))
 	assert.Equal(t, len(node2.CPU), 1)
 	assert.Equal(t, node2.MemCap, int64(1342177405))
 	// with tls
@@ -207,6 +207,6 @@ func TestUpdateNodeResource(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	assert.Error(t, m.UpdateNodeResource(ctx, node, nil, 0, 0, 0, nil, "wtf"))
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, map[string]int{"0": 100}, 0, 0, 0, nil, store.ActionIncr))
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, map[string]int{"0": 100}, 0, 0, 0, nil, store.ActionDecr))
+	assert.NoError(t, m.UpdateNodeResource(ctx, node, map[string]int64{"0": 100}, 0, 0, 0, nil, store.ActionIncr))
+	assert.NoError(t, m.UpdateNodeResource(ctx, node, map[string]int64{"0": 100}, 0, 0, 0, nil, store.ActionDecr))
 }

@@ -8,7 +8,7 @@ import (
 
 type resourceInfo struct {
 	id     string
-	pieces int
+	pieces int64
 }
 
 type host struct {
@@ -25,7 +25,7 @@ func newHost(resourceMap types.ResourceMap, share int) *host {
 	}
 	for id, pieces := range resourceMap {
 		// 整数核不应该切分
-		if pieces >= share && pieces%share == 0 {
+		if pieces >= int64(share) && pieces%int64(share) == 0 {
 			// 只给 share 份
 			result.full = append(result.full, resourceInfo{id: id, pieces: pieces})
 		} else {
@@ -40,7 +40,7 @@ func newHost(resourceMap types.ResourceMap, share int) *host {
 	return result
 }
 
-func (h *host) getComplexResult(full, fragment, maxShare int) []types.ResourceMap {
+func (h *host) getComplexResult(full int, fragment int64, maxShare int) []types.ResourceMap {
 	if maxShare == -1 {
 		maxShare = len(h.full) - full // 减枝，M == N 的情况下预留至少一个 full 量的核数
 	} else {
@@ -89,37 +89,25 @@ func (h *host) getComplexResult(full, fragment, maxShare int) []types.ResourceMa
 	return result
 }
 
-func (h *host) getFragmentResult(fragment int, resources []resourceInfo) []types.ResourceMap {
+func (h *host) getFragmentResult(fragment int64, resources []resourceInfo) []types.ResourceMap {
 	resourceMaps := h.getFragmentsResult(resources, fragment)
 	result := make([]types.ResourceMap, len(resourceMaps))
 	for i, resourceMap := range resourceMaps {
 		result[i] = resourceMap[0]
 	}
 
-	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
-		result[i], result[j] = result[j], result[i]
+	// to pass tests due to new algorithm returns unsorted list
+	resourceIdx := map[string]int{}
+	for idx, resource := range resources {
+		resourceIdx[resource.id] = idx
 	}
-
-	// to pass tests due to new algorithm return unsorted list
 	sort.Slice(result, func(i, j int) bool {
-		return result[i].FirstKey() < result[j].FirstKey()
+		return resourceIdx[result[i].FirstKey()] < resourceIdx[result[j].FirstKey()]
 	})
 	return result
 }
 
-func (h *host) _getFragmentResult(fragment int, cpus []cpuInfo) []types.CPUMap {
-	result := []types.CPUMap{}
-
-	for i := range cpus {
-		count := cpus[i].pieces / fragment
-		for j := 0; j < count; j++ {
-			result = append(result, types.CPUMap{cpus[i].id: fragment})
-		}
-	}
-	return result
-}
-
-func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int) (resourceMap [][]types.ResourceMap) {
+func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int64) (resourceMap [][]types.ResourceMap) {
 	// shouldn't change resources slice
 	resourcesBak := make([]resourceInfo, len(resources))
 	copy(resourcesBak, resources)
@@ -129,8 +117,8 @@ func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int) (r
 
 	nFragments := len(fragments)
 	nResources := len(resources)
-	sort.Sort(sort.Reverse(sort.IntSlice(fragments))) // fragments is descendant
-	totalRequired := 0
+	sort.Slice(fragments, func(i, j int) bool { return fragments[i] > fragments[j] }) // fragments is descendant
+	var totalRequired int64
 	for _, fragment := range fragments {
 		totalRequired += fragment
 	}
@@ -145,7 +133,7 @@ func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int) (r
 		for _, fragment := range fragments {
 			plan = append(plan, types.ResourceMap{resources[i].id: fragment})
 		}
-		for j := 0; j < count; j++ {
+		for j := int64(0); j < count; j++ {
 			resourceMap = append(resourceMap, plan)
 		}
 		resources[i].pieces -= count * totalRequired
@@ -153,7 +141,7 @@ func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int) (r
 		// plan on different resources
 		plan = []types.ResourceMap{}
 		remainder := resources[i].pieces - count*totalRequired
-		refugees := []int{} // refugees record the fragments not able to scheduled on resource[i]
+		refugees := []int64{} // refugees record the fragments not able to scheduled on resource[i]
 		for _, fragment := range fragments {
 			if remainder > fragment {
 				remainder -= fragment
@@ -171,7 +159,7 @@ func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int) (r
 		// looking for resource(s) capable of taking in refugees
 		for j := i + 1; j < nResources; j++ {
 			fragments := refugees
-			refugees = []int{}
+			refugees = []int64{}
 			for _, fragment := range fragments {
 				if resources[j].pieces > fragment {
 					resources[j].pieces -= fragment
@@ -196,17 +184,17 @@ func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int) (r
 
 func (h *host) getFullResult(full int, resources []resourceInfo) []types.ResourceMap {
 	result := []types.ResourceMap{}
-	count := len(resources) / full
+	count := len(resources) / int(full)
 	newResources := []resourceInfo{}
 	for i := 0; i < count; i++ {
 		plan := types.ResourceMap{}
 		for j := i * full; j < i*full+full; j++ {
 			// 洗掉没配额的
-			last := resources[j].pieces - h.share
+			last := resources[j].pieces - int64(h.share)
 			if last > 0 {
 				newResources = append(newResources, resourceInfo{resources[j].id, last})
 			}
-			plan[resources[j].id] = h.share
+			plan[resources[j].id] = int64(h.share)
 		}
 		result = append(result, plan)
 	}
@@ -219,8 +207,8 @@ func (h *host) getFullResult(full int, resources []resourceInfo) []types.Resourc
 
 func (h *host) distributeOneRation(ration float64, maxShare int) []types.ResourceMap {
 	ration = ration * float64(h.share)
-	fullRequire := int(ration) / h.share
-	fragmentRequire := int(ration) % h.share
+	fullRequire := int64(ration) / int64(h.share)
+	fragmentRequire := int64(ration) % int64(h.share)
 
 	if fullRequire == 0 {
 		if maxShare == -1 {
@@ -234,12 +222,12 @@ func (h *host) distributeOneRation(ration float64, maxShare int) []types.Resourc
 	}
 
 	if fragmentRequire == 0 {
-		return h.getFullResult(fullRequire, h.full)
+		return h.getFullResult(int(fullRequire), h.full)
 	}
 
-	return h.getComplexResult(fullRequire, fragmentRequire, maxShare)
+	return h.getComplexResult(int(fullRequire), fragmentRequire, maxShare)
 }
 
-func (h *host) distributeMultipleRations(rations []int) [][]types.ResourceMap {
+func (h *host) distributeMultipleRations(rations []int64) [][]types.ResourceMap {
 	return h.getFragmentsResult(h.fragment, rations...)
 }

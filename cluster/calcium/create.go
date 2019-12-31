@@ -261,7 +261,7 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, opts *t
 	config := &enginetypes.VirtualizationCreateOptions{}
 	// general
 	config.Seq = index
-	config.CPU = cpumap.Map()
+	config.CPU = cpumap
 	config.Quota = opts.CPUQuota
 	config.Memory = opts.Memory
 	config.Storage = opts.Storage

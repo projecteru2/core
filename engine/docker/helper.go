@@ -96,7 +96,7 @@ func makeMountPaths(opts *enginetypes.VirtualizationCreateOptions) ([]string, ma
 	return binds, volumes
 }
 
-func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int, numaNode string, softlimit bool) dockercontainer.Resources {
+func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, numaNode string, softlimit bool) dockercontainer.Resources {
 	resource := dockercontainer.Resources{}
 	if cpu > 0 {
 		resource.CPUPeriod = corecluster.CPUPeriodBase

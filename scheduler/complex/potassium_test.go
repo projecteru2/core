@@ -44,7 +44,7 @@ func generateNodes(nums, cores int, memory, storage int64, shares int) []types.N
 		cpumap := types.CPUMap{}
 		for j := 0; j < cores; j++ {
 			coreName := fmt.Sprintf("%d", j)
-			cpumap[coreName] = shares
+			cpumap[coreName] = int64(shares)
 		}
 		nodeInfo := types.NodeInfo{
 			CPUMap:     cpumap,
@@ -268,7 +268,7 @@ func TestSelectCPUNodes(t *testing.T) {
 		assert.Contains(t, []string{"n0", "n1"}, nodename)
 		// assert.Equal(t, len(cpus), 1)
 		cpu := cpus[0]
-		assert.Equal(t, cpu.Total(), 10)
+		assert.Equal(t, cpu.Total(), int64(10))
 	}
 
 	// SelectCPUNodes 里有一些副作用, 粗暴地拿一个新的来测试吧
@@ -282,7 +282,7 @@ func TestSelectCPUNodes(t *testing.T) {
 		assert.Equal(t, len(cpus), 1)
 
 		cpu := cpus[0]
-		assert.Equal(t, cpu.Total(), 13)
+		assert.Equal(t, cpu.Total(), int64(13))
 	}
 }
 
@@ -449,10 +449,10 @@ func TestCpuOverSell(t *testing.T) {
 
 	r, c, err := SelectCPUNodes(k, nodes, 2, 1, 3, false)
 	assert.NoError(t, err)
-	assert.Equal(t, r["nodes1"][0]["0"], 100)
-	assert.Equal(t, r["nodes1"][0]["1"], 100)
-	assert.Equal(t, c["nodes1"]["0"], 0)
-	assert.Equal(t, c["nodes1"]["1"], 0)
+	assert.Equal(t, r["nodes1"][0]["0"], int64(100))
+	assert.Equal(t, r["nodes1"][0]["1"], int64(100))
+	assert.Equal(t, c["nodes1"]["0"], int64(0))
+	assert.Equal(t, c["nodes1"]["1"], int64(0))
 
 	// oversell fragment
 	nodes = []types.NodeInfo{
@@ -488,8 +488,8 @@ func TestCpuOverSell(t *testing.T) {
 	}
 	_, c, err = SelectCPUNodes(k, nodes, 1, 1, 2, false)
 	assert.NoError(t, err)
-	assert.Equal(t, c["nodes1"]["0"], 0)
-	assert.Equal(t, c["nodes1"]["1"], 100)
+	assert.Equal(t, c["nodes1"]["0"], int64(0))
+	assert.Equal(t, c["nodes1"]["1"], int64(100))
 
 	// complex
 	nodes = []types.NodeInfo{
@@ -511,9 +511,9 @@ func TestCpuOverSell(t *testing.T) {
 	}
 	_, c, err = SelectCPUNodes(k, nodes, 1.3, 1, 4, false)
 	assert.NoError(t, err)
-	assert.Equal(t, c["nodes1"]["0"], 10)
-	assert.Equal(t, c["nodes1"]["1"], 40)
-	assert.Equal(t, c["nodes1"]["2"], 0)
+	assert.Equal(t, c["nodes1"]["0"], int64(10))
+	assert.Equal(t, c["nodes1"]["1"], int64(40))
+	assert.Equal(t, c["nodes1"]["2"], int64(0))
 }
 
 func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
@@ -524,22 +524,20 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 		t.Fatalf("Create Potassim error: %v", err)
 	}
 
-	/*
-		// oversell
-		nodes := []types.NodeInfo{
-			{
-				CPUMap: types.CPUMap{"0": 300, "1": 300},
-				MemCap: 12 * int64(units.GiB),
-				Name:   "nodes1",
-			},
-		}
+	// oversell
+	nodes := []types.NodeInfo{
+		{
+			CPUMap: types.CPUMap{"0": 300, "1": 300},
+			MemCap: 12 * int64(units.GiB),
+			Name:   "nodes1",
+		},
+	}
 
-		_, _, err = SelectCPUNodes(k, nodes, 1.7, 1, 1, false)
-		assert.NoError(t, err)
-	*/
+	_, _, err = SelectCPUNodes(k, nodes, 1.7, 1, 1, false)
+	assert.NoError(t, err)
 
 	// stable fragment core
-	nodes := []types.NodeInfo{
+	nodes = []types.NodeInfo{
 		{
 			CPUMap: types.CPUMap{"0": 230, "1": 200},
 			MemCap: 12 * int64(units.GiB),
@@ -548,57 +546,55 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 	}
 	_, changed, err := SelectCPUNodes(k, nodes, 1.7, 1, 1, false)
 	assert.NoError(t, err)
-	assert.Equal(t, changed["nodes1"]["0"], 160)
+	assert.Equal(t, changed["nodes1"]["0"], int64(160))
 	nodes[0].CPUMap = changed["nodes1"]
 	nodes[0].Deploy = 0
 	nodes[0].Count = 0
 	nodes[0].Capacity = 0
 	_, changed, err = SelectCPUNodes(k, nodes, 0.3, 1, 1, false)
 	assert.NoError(t, err)
-	assert.Equal(t, changed["nodes1"]["0"], 130)
-	assert.Equal(t, changed["nodes1"]["1"], 100)
+	assert.Equal(t, changed["nodes1"]["0"], int64(130))
+	assert.Equal(t, changed["nodes1"]["1"], int64(100))
 
-	/*
-		// complex node
-		nodes = []types.NodeInfo{
-			{
-				CPUMap: types.CPUMap{"0": 230, "1": 80, "2": 300, "3": 200},
-				MemCap: 12 * int64(units.GiB),
-				Name:   "nodes1",
-			},
-		}
-		_, changed, err = SelectCPUNodes(k, nodes, 1.7, 1, 2, false)
-		assert.NoError(t, err)
-		assert.Equal(t, changed["nodes1"]["0"], 160)
-		assert.Equal(t, changed["nodes1"]["1"], 10)
+	// complex node
+	nodes = []types.NodeInfo{
+		{
+			CPUMap: types.CPUMap{"0": 230, "1": 80, "2": 300, "3": 200},
+			MemCap: 12 * int64(units.GiB),
+			Name:   "nodes1",
+		},
+	}
+	_, changed, err = SelectCPUNodes(k, nodes, 1.7, 1, 2, false)
+	assert.NoError(t, err)
+	assert.Equal(t, changed["nodes1"]["0"], int64(160))
+	assert.Equal(t, changed["nodes1"]["1"], int64(10))
 
-		// consume full core
-		nodes = []types.NodeInfo{
-			{
-				CPUMap: types.CPUMap{"0": 70, "1": 50, "2": 100, "3": 100, "4": 100},
-				MemCap: 12 * int64(units.GiB),
-				Name:   "nodes1",
-			},
-		}
-		_, changed, err = SelectCPUNodes(k, nodes, 1.7, 1, 2, false)
-		assert.NoError(t, err)
-		assert.Equal(t, changed["nodes1"]["0"], 0)
-		assert.Equal(t, changed["nodes1"]["1"], 50)
+	// consume full core
+	nodes = []types.NodeInfo{
+		{
+			CPUMap: types.CPUMap{"0": 70, "1": 50, "2": 100, "3": 100, "4": 100},
+			MemCap: 12 * int64(units.GiB),
+			Name:   "nodes1",
+		},
+	}
+	_, changed, err = SelectCPUNodes(k, nodes, 1.7, 1, 2, false)
+	assert.NoError(t, err)
+	assert.Equal(t, changed["nodes1"]["0"], int64(0))
+	assert.Equal(t, changed["nodes1"]["1"], int64(50))
 
-		// consume less fragment core
-		nodes = []types.NodeInfo{
-			{
-				CPUMap: types.CPUMap{"0": 70, "1": 50, "2": 90},
-				MemCap: 12 * int64(units.GiB),
-				Name:   "nodes1",
-			},
-		}
-		_, changed, err = SelectCPUNodes(k, nodes, 0.5, 1, 2, false)
-		assert.NoError(t, err)
-		assert.Equal(t, changed["nodes1"]["0"], 20)
-		assert.Equal(t, changed["nodes1"]["1"], 0)
-		assert.Equal(t, changed["nodes1"]["2"], 90)
-	*/
+	// consume less fragment core
+	nodes = []types.NodeInfo{
+		{
+			CPUMap: types.CPUMap{"0": 70, "1": 50, "2": 90},
+			MemCap: 12 * int64(units.GiB),
+			Name:   "nodes1",
+		},
+	}
+	_, changed, err = SelectCPUNodes(k, nodes, 0.5, 1, 2, false)
+	assert.NoError(t, err)
+	assert.Equal(t, changed["nodes1"]["0"], int64(20))
+	assert.Equal(t, changed["nodes1"]["1"], int64(0))
+	assert.Equal(t, changed["nodes1"]["2"], int64(90))
 }
 
 func TestEvenPlan(t *testing.T) {

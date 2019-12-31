@@ -3,6 +3,8 @@ package complexscheduler
 import (
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 
 	"math"
 
@@ -123,7 +125,22 @@ func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, me
 }
 
 func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, volumes []string) ([]types.NodeInfo, map[string][]types.VolumeMap, int, error) {
+	req := []int64{}
+	for _, volume := range volumes {
+		segs := strings.Split(volume, ":")
+		if len(segs) < 4 || segs[0] != "AUTO" {
+			continue
+		}
+		size, err := strconv.ParseInt(segs[3], 10, 64)
+		if err != nil {
+			return nil, nil, 0, err
+		}
+		req = append(req, int64(size))
+	}
 
+	for _, nodeInfo := range nodesInfo {
+		calculateVolumePlan(nodeInfo.VolumeMap, req)
+	}
 	return nil, nil, 0, nil
 }
 

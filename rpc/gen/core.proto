@@ -155,7 +155,7 @@ message Container {
     string image = 11;
     int64 storage = 12;
     ContainerStatus status = 13;
-    map<string, int64> volume = 14;
+    map<string, string> volume = 14;
 }
 
 message ContainerStatus {

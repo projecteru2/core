@@ -2,9 +2,9 @@ package types
 
 // VirtualizationResource define resources
 type VirtualizationResource struct {
-	CPU       map[string]int // for cpu binding
-	Quota     float64        // for cpu quota
-	Memory    int64          // for memory binding
+	CPU       map[string]int64 // for cpu binding
+	Quota     float64          // for cpu quota
+	Memory    int64            // for memory binding
 	Storage   int64
 	SoftLimit bool   // soft limit or not
 	NUMANode  string // numa node

@@ -36,19 +36,16 @@ func TestNode(t *testing.T) {
 func TestCPUMap(t *testing.T) {
 	cpuMap := CPUMap{"0": 50, "1": 70}
 	total := cpuMap.Total()
-	assert.Equal(t, total, 120)
+	assert.Equal(t, total, int64(120))
 
 	cpuMap.Add(CPUMap{"0": 20})
-	assert.Equal(t, cpuMap["0"], 70)
+	assert.Equal(t, cpuMap["0"], int64(70))
 
 	cpuMap.Add(CPUMap{"3": 100})
-	assert.Equal(t, cpuMap["3"], 100)
+	assert.Equal(t, cpuMap["3"], int64(100))
 
 	cpuMap.Sub(CPUMap{"1": 20})
-	assert.Equal(t, cpuMap["1"], 50)
-
-	m := cpuMap.Map()
-	assert.Equal(t, m["1"], 50)
+	assert.Equal(t, cpuMap["1"], int64(50))
 }
 
 func TestGetNUMANode(t *testing.T) {

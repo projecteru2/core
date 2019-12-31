@@ -207,7 +207,7 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 
 	cpumap := types.CPUMap{}
 	for i := 0; i < cpu; i++ {
-		cpumap[strconv.Itoa(i)] = share
+		cpumap[strconv.Itoa(i)] = int64(share)
 	}
 
 	node := &types.Node{

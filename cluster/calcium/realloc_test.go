@@ -145,7 +145,7 @@ func TestRealloc(t *testing.T) {
 		assert.False(t, r.Success)
 	}
 	// check node resource as usual
-	assert.Equal(t, node1.CPU["2"], 10)
+	assert.Equal(t, node1.CPU["2"], int64(10))
 	assert.Equal(t, node1.MemCap, int64(units.GiB))
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("UpdateNode", mock.Anything, mock.Anything).Return(nil)
@@ -199,7 +199,7 @@ func TestRealloc(t *testing.T) {
 	for r := range ch {
 		assert.True(t, r.Success)
 	}
-	assert.Equal(t, node2.CPU["3"], 0)
-	assert.Equal(t, node2.CPU["2"], 100)
+	assert.Equal(t, node2.CPU["3"], int64(0))
+	assert.Equal(t, node2.CPU["2"], int64(100))
 	assert.Equal(t, node2.MemCap, int64(units.GiB)-4*int64(units.MiB))
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-func calculateVolumePlan(volumeMap types.VolumeMap, required []int) (int, [][]types.VolumeMap) {
+func calculateVolumePlan(volumeMap types.VolumeMap, required []int64) (int, [][]types.VolumeMap) {
 	share := int(math.MaxInt64) // all fragments
 	host := newHost(volumeMap, share)
 	plans := host.distributeMultipleRations(required)

@@ -210,10 +210,10 @@ func TestSetNode(t *testing.T) {
 	assert.NoError(t, err)
 	_, ok := n.CPU["1"]
 	assert.False(t, ok)
-	assert.Equal(t, n.CPU["2"], 1)
-	assert.Equal(t, n.InitCPU["2"], 9)
-	assert.Equal(t, n.CPU["3"], 10)
-	assert.Equal(t, n.InitCPU["3"], 10)
+	assert.Equal(t, n.CPU["2"], int64(1))
+	assert.Equal(t, n.InitCPU["2"], int64(9))
+	assert.Equal(t, n.CPU["3"], int64(10))
+	assert.Equal(t, n.InitCPU["3"], int64(10))
 	assert.Equal(t, len(n.CPU), 2)
 	assert.Equal(t, len(n.InitCPU), 2)
 }

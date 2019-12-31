@@ -18,7 +18,7 @@ const (
 
 // ResourceMap is cpu core map
 // ResourceMap {["0"]10000, ["1"]10000}
-type ResourceMap map[string]int
+type ResourceMap map[string]int64
 
 func (c ResourceMap) FirstKey() (firstKey string) {
 	for key := range c {
@@ -30,8 +30,8 @@ func (c ResourceMap) FirstKey() (firstKey string) {
 
 // Total show total cpu
 // Total quotas
-func (c ResourceMap) Total() int {
-	var count int
+func (c ResourceMap) Total() int64 {
+	var count int64
 	for _, value := range c {
 		count += value
 	}
@@ -56,11 +56,6 @@ func (c ResourceMap) Sub(q ResourceMap) {
 			c[label] -= value
 		}
 	}
-}
-
-// Map return cpu map
-func (c ResourceMap) Map() map[string]int {
-	return map[string]int(c)
 }
 
 // CPUMap is cpu core map
