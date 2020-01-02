@@ -226,7 +226,7 @@ func TestAllocResource(t *testing.T) {
 
 	testAllocFailedAsUpdateNodeResourceError(t, c, opts)
 	store.On("UpdateNodeResource",
-		mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 	).Return(nil)
 
@@ -378,7 +378,7 @@ func testAllocFailedAsFillDivisionError(t *testing.T, c *Calcium, opts *types.De
 func testAllocFailedAsUpdateNodeResourceError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
 	store := c.store.(*storemocks.Store)
 	store.On("UpdateNodeResource",
-		mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 	).Return(types.ErrNoETCD).Once()
 	_, err := c.doAllocResource(context.Background(), opts)

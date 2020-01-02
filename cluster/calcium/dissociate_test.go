@@ -57,7 +57,7 @@ func TestDissociateContainer(t *testing.T) {
 	}
 	store.On("RemoveContainer", mock.Anything, mock.Anything).Return(nil)
 	// success
-	store.On("UpdateNodeResource", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("UpdateNodeResource", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	ch, err = c.DissociateContainer(ctx, []string{"c1"})
 	assert.NoError(t, err)
 	for r := range ch {

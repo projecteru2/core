@@ -21,17 +21,18 @@ import (
 // AddNode save it to etcd
 // storage path in etcd is `/pod/nodes/:podname/:nodename`
 // node->pod path in etcd is `/node/pod/:nodename`
-func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string,
-	cpu, share int, memory, storage int64, labels map[string]string,
-	numa types.NUMA, numaMemory types.NUMAMemory, volume types.VolumeMap) (*types.Node, error) {
-	_, err := m.GetPod(ctx, podname)
+//func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string,
+//cpu, share int, memory, storage int64, labels map[string]string,
+//numa types.NUMA, numaMemory types.NUMAMemory, volume types.VolumeMap) (*types.Node, error) {
+func (m *Mercury) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*types.Node, error) {
+	_, err := m.GetPod(ctx, opts.Podname)
 	if err != nil {
 		return nil, err
 	}
 
 	// 尝试加载的客户端
 	// 会自动判断是否是支持的 url
-	client, err := enginefactory.GetEngine(ctx, m.config, name, endpoint, ca, cert, key)
+	client, err := enginefactory.GetEngine(ctx, m.config, opts.Nodename, opts.Endpoint, opts.Ca, opts.Cert, opts.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -42,36 +43,36 @@ func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert
 		return nil, err
 	}
 	// 更新默认值
-	if cpu == 0 {
-		cpu = info.NCPU
+	if opts.Cpu == 0 {
+		opts.Cpu = info.NCPU
 	}
-	if memory == 0 {
-		memory = info.MemTotal * 10 / 8 // use 80% real memory
+	if opts.Memory == 0 {
+		opts.Memory = info.MemTotal * 10 / 8 // use 80% real memory
 	}
-	if storage == 0 {
-		storage = info.StorageTotal * 10 / 8
+	if opts.Storage == 0 {
+		opts.Storage = info.StorageTotal * 10 / 8
 	}
-	if share == 0 {
-		share = m.config.Scheduler.ShareBase
+	if opts.Share == 0 {
+		opts.Share = m.config.Scheduler.ShareBase
 	}
 	// 设置 numa 的内存默认值，如果没有的话，按照 numa node 个数均分
-	if len(numa) > 0 {
+	if len(opts.Numa) > 0 {
 		nodeIDs := map[string]struct{}{}
-		for _, nodeID := range numa {
+		for _, nodeID := range opts.Numa {
 			nodeIDs[nodeID] = struct{}{}
 		}
-		perNodeMemory := memory / int64(len(nodeIDs))
-		if numaMemory == nil {
-			numaMemory = types.NUMAMemory{}
+		perNodeMemory := opts.Memory / int64(len(nodeIDs))
+		if opts.NumaMemory == nil {
+			opts.NumaMemory = types.NUMAMemory{}
 		}
 		for nodeID := range nodeIDs {
-			if _, ok := numaMemory[nodeID]; !ok {
-				numaMemory[nodeID] = perNodeMemory
+			if _, ok := opts.NumaMemory[nodeID]; !ok {
+				opts.NumaMemory[nodeID] = perNodeMemory
 			}
 		}
 	}
 
-	return m.doAddNode(ctx, name, endpoint, podname, ca, cert, key, cpu, share, memory, storage, labels, numa, numaMemory, volume)
+	return m.doAddNode(ctx, opts.Nodename, opts.Endpoint, opts.Podname, opts.Ca, opts.Cert, opts.Key, opts.Cpu, opts.Share, opts.Memory, opts.Storage, opts.Labels, opts.Numa, opts.NumaMemory, opts.Volume)
 }
 
 // RemoveNode delete a node

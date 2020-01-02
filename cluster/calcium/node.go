@@ -16,7 +16,7 @@ func (c *Calcium) AddNode(ctx context.Context, nodename, endpoint, podname, ca, 
 	numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
 */
 func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*types.Node, error) {
-	return c.store.AddNode(ctx, opts.Nodename, opts.Endpoint, opts.Podname, opts.Ca, opts.Cert, opts.Key, opts.Cpu, opts.Share, opts.Memory, opts.Storage, opts.Labels, opts.Numa, opts.NumaMemory, opts.Volume)
+	return c.store.AddNode(ctx, opts)
 }
 
 // RemoveNode remove a node
