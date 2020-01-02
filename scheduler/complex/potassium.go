@@ -124,9 +124,10 @@ func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, me
 	return cpuPriorPlan(quota, memory, nodesInfo, m.maxshare, m.sharebase)
 }
 
-func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, volumes []string) ([]types.NodeInfo, map[string][]types.VolumeMap, int, error) {
+func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, volumeReqs []string) ([]types.NodeInfo, map[string][]types.VolumePlan, int, error) {
 	req := []int64{}
-	for _, volume := range volumes {
+	autoVolumes := []string{}
+	for _, volume := range volumeReqs {
 		segs := strings.Split(volume, ":")
 		if len(segs) < 4 || segs[0] != "AUTO" {
 			continue
@@ -136,12 +137,35 @@ func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, volumes []stri
 			return nil, nil, 0, err
 		}
 		req = append(req, int64(size))
+		autoVolumes = append(autoVolumes, volume)
 	}
 
-	for _, nodeInfo := range nodesInfo {
-		calculateVolumePlan(nodeInfo.VolumeMap, req)
+	volTotal := 0
+	volumePlans := map[string][]types.VolumePlan{}
+	for nodeIdx, nodeInfo := range nodesInfo {
+		capacity, distributions := calculateVolumePlan(nodeInfo.VolumeMap, req)
+		if capacity > 0 {
+			if _, ok := volumePlans[nodeInfo.Name]; !ok {
+				volumePlans[nodeInfo.Name] = []types.VolumePlan{}
+			}
+			nodesInfo[nodeIdx].Capacity = utils.Min(capacity, nodesInfo[nodeIdx].Capacity)
+			volTotal += nodesInfo[nodeIdx].Capacity
+			for _, distribution := range distributions {
+				volumePlans[nodeInfo.Name] = append(
+					volumePlans[nodeInfo.Name],
+					*types.NewVolumePlan(autoVolumes, distribution),
+				)
+			}
+		}
 	}
-	return nil, nil, 0, nil
+
+	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Capacity < nodesInfo[j].Capacity })
+	p := sort.Search(len(nodesInfo), func(i int) bool { return nodesInfo[i].Capacity > 0 })
+	if p == len(nodesInfo) {
+		return nil, nil, 0, types.ErrInsufficientRes
+	}
+
+	return nodesInfo[p:], volumePlans, volTotal, nil
 }
 
 // CommonDivision deploy containers by their deploy status

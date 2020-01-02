@@ -137,7 +137,7 @@ func (c *Calcium) doReplaceContainer(
 	}
 	// 不涉及资源消耗，创建容器失败会被回收容器而不回收资源
 	// 创建成功容器会干掉之前的老容器也不会动资源，实际上实现了动态捆绑
-	createMessage := c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU, container.VolumeMap)
+	createMessage := c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU, container.VolumePlan)
 	if createMessage.Error != nil {
 		// 重启老容器
 		message, err := c.doStartContainer(ctx, container, opts.IgnoreHook)

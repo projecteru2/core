@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"strings"
 
 	"math"
 
@@ -19,14 +20,6 @@ const (
 // ResourceMap is cpu core map
 // ResourceMap {["0"]10000, ["1"]10000}
 type ResourceMap map[string]int64
-
-func (c ResourceMap) FirstKey() (firstKey string) {
-	for key := range c {
-		firstKey = key
-		break
-	}
-	return
-}
 
 // Total show total cpu
 // Total quotas
@@ -69,6 +62,41 @@ type VolumeMap = ResourceMap
 func (v VolumeMap) Consumed() (consumed int64) {
 	for _, size := range v {
 		consumed += int64(size)
+	}
+	return
+}
+
+func (c VolumeMap) GetResourceId() (key string) {
+	for k := range c {
+		key = k
+		break
+	}
+	return
+}
+
+type VolumePlan map[string]VolumeMap
+
+func NewVolumePlan(autoVolumes []string, distribution []VolumeMap) *VolumePlan {
+	volumePlan := VolumePlan{}
+	for idx, autoVolume := range autoVolumes {
+		volumePlan[autoVolume] = distribution[idx]
+	}
+	return &volumePlan
+}
+
+func (p VolumePlan) Consumed() VolumeMap {
+	volumeMap := VolumeMap{}
+	for _, v := range p {
+		volumeMap.Add(v)
+	}
+	return volumeMap
+}
+
+func (p VolumePlan) GetVolumeString(autoVolume string) (volume string) {
+	if volumeMap, ok := p[autoVolume]; ok {
+		volume = strings.Replace(autoVolume, "AUTO", volumeMap.GetResourceId(), 1)
+	} else {
+		volume = autoVolume
 	}
 	return
 }
@@ -207,11 +235,11 @@ type NodeInfo struct {
 	MemRate      float64 // 需要增加的内存占有率
 	StorageRate  float64 // Storage ratio which would be allocated
 
-	CPUPlan    []CPUMap
-	VolumePlan []VolumeMap
-	Capacity   int // 可以部署几个
-	Count      int // 上面有几个了
-	Deploy     int // 最终部署几个
+	CPUPlan     []CPUMap
+	VolumePlans []VolumePlan // {{"AUTO:/data:rw:1024": "/mnt0:/data:rw:1024"}}
+	Capacity    int          // 可以部署几个
+	Count       int          // 上面有几个了
+	Deploy      int          // 最终部署几个
 	// 其他需要 filter 的字段
 }
 

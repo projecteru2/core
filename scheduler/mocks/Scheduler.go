@@ -226,7 +226,7 @@ func (_m *Scheduler) SelectStorageNodes(nodesInfo []types.NodeInfo, storage int6
 }
 
 // SelectVolumeNodes provides a mock function with given fields: nodeInfo, volumes
-func (_m *Scheduler) SelectVolumeNodes(nodeInfo []types.NodeInfo, volumes []string) ([]types.NodeInfo, map[string][]types.ResourceMap, int, error) {
+func (_m *Scheduler) SelectVolumeNodes(nodeInfo []types.NodeInfo, volumes []string) ([]types.NodeInfo, map[string][]types.VolumePlan, int, error) {
 	ret := _m.Called(nodeInfo, volumes)
 
 	var r0 []types.NodeInfo
@@ -238,12 +238,12 @@ func (_m *Scheduler) SelectVolumeNodes(nodeInfo []types.NodeInfo, volumes []stri
 		}
 	}
 
-	var r1 map[string][]types.ResourceMap
-	if rf, ok := ret.Get(1).(func([]types.NodeInfo, []string) map[string][]types.ResourceMap); ok {
+	var r1 map[string][]types.VolumePlan
+	if rf, ok := ret.Get(1).(func([]types.NodeInfo, []string) map[string][]types.VolumePlan); ok {
 		r1 = rf(nodeInfo, volumes)
 	} else {
 		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(map[string][]types.ResourceMap)
+			r1 = ret.Get(1).(map[string][]types.VolumePlan)
 		}
 	}
 

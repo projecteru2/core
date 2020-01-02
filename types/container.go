@@ -42,7 +42,7 @@ type Container struct {
 	Env        []string          `json:"env"`
 	Image      string            `json:"image"`
 	Volumes    []string          `json:"volumes"`
-	VolumeMap  VolumeMap         `json:"volume_map"`
+	VolumePlan VolumePlan        `json:"volume_plan"`
 	Labels     map[string]string `json:"labels"`
 	StatusMeta *StatusMeta       `json:"-"`
 	Engine     engine.API        `json:"-"`

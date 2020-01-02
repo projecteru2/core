@@ -129,7 +129,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 	var total int
 	var nodesInfo []types.NodeInfo
 	var nodeCPUPlans map[string][]types.CPUMap
-	var nodeVolumePlans map[string][]types.VolumeMap
+	var nodeVolumePlans map[string][]types.VolumePlan
 	if err = c.withNodesLocked(ctx, opts.Podname, opts.Nodename, opts.NodeLabels, false, func(nodes map[string]*types.Node) error {
 		if len(nodes) == 0 {
 			return types.ErrInsufficientNodes
@@ -203,10 +203,9 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 			}
 
 			if _, ok := nodeVolumePlans[nodeInfo.Name]; ok {
-				volumeList := nodeVolumePlans[nodeInfo.Name][:nodeInfo.Deploy]
-				nodesInfo[i].VolumePlan = volumeList
-				for _, volume := range volumeList {
-					volumeCost.Add(volume)
+				nodesInfo[i].VolumePlans = nodeVolumePlans[nodeInfo.Name][:nodeInfo.Deploy]
+				for _, volumePlan := range nodesInfo[i].VolumePlans {
+					volumeCost.Add(volumePlan.Consumed())
 				}
 			}
 

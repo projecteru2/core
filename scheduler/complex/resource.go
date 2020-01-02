@@ -102,7 +102,7 @@ func (h *host) getFragmentResult(fragment int64, resources []resourceInfo) []typ
 		resourceIdx[resource.id] = idx
 	}
 	sort.Slice(result, func(i, j int) bool {
-		return resourceIdx[result[i].FirstKey()] < resourceIdx[result[j].FirstKey()]
+		return resourceIdx[result[i].GetResourceId()] < resourceIdx[result[j].GetResourceId()]
 	})
 	return result
 }
