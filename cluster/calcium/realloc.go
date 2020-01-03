@@ -52,7 +52,7 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 			for pod, nodeContainersInfo := range containersInfo {
 				go func(pod *types.Pod, nodeContainersInfo nodeContainers) {
 					defer wg.Done()
-					c.doReallocContainer(ctx, ch, pod, nodeContainersInfo, cpu, memory)
+					c.doReallocContainer(ctx, ch, pod, nodeContainersInfo, cpu, memory, volumes)
 				}(pod, nodeContainersInfo)
 			}
 			wg.Wait()
@@ -72,7 +72,7 @@ func (c *Calcium) doReallocContainer(
 	ch chan *types.ReallocResourceMessage,
 	pod *types.Pod,
 	nodeContainersInfo nodeContainers,
-	cpu float64, memory int64) {
+	cpu float64, memory int64, volumes []string) {
 
 	cpuMemNodeContainersInfo := cpuMemNodeContainers{}
 	for nodename, containers := range nodeContainersInfo {
@@ -138,7 +138,7 @@ func (c *Calcium) doReallocContainer(
 					}
 
 					for _, container := range containers {
-						newResource := &enginetypes.VirtualizationResource{Quota: newCPU, Memory: newMemory, SoftLimit: container.SoftLimit}
+						newResource := &enginetypes.VirtualizationResource{Quota: newCPU, Memory: newMemory, SoftLimit: container.SoftLimit, Volumes: volumes}
 						if len(container.CPU) > 0 {
 							newResource.CPU = cpusets[0]
 							newResource.NUMANode = node.GetNUMANode(cpusets[0])

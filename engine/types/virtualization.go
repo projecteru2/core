@@ -6,8 +6,9 @@ type VirtualizationResource struct {
 	Quota     float64          // for cpu quota
 	Memory    int64            // for memory binding
 	Storage   int64
-	SoftLimit bool   // soft limit or not
-	NUMANode  string // numa node
+	SoftLimit bool     // soft limit or not
+	NUMANode  string   // numa node
+	Volumes   []string // volume binding
 }
 
 // VirtualizationCreateOptions use for create virtualization target

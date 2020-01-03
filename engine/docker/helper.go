@@ -87,9 +87,12 @@ func makeMountPaths(opts *enginetypes.VirtualizationCreateOptions) ([]string, ma
 		if len(parts) == 2 {
 			binds = append(binds, fmt.Sprintf("%s:%s:rw", parts[0], parts[1]))
 			volumes[parts[1]] = struct{}{}
-		} else if len(parts) == 3 {
+		} else if len(parts) >= 3 {
 			binds = append(binds, fmt.Sprintf("%s:%s:%s", parts[0], parts[1], parts[2]))
 			volumes[parts[1]] = struct{}{}
+			if len(parts) == 4 {
+				log.Warn("[makeMountPaths] docker engine not support volume with size limit")
+			}
 		}
 	}
 
