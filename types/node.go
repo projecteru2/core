@@ -2,6 +2,8 @@ package types
 
 import (
 	"context"
+	"sort"
+	"strconv"
 	"strings"
 
 	"math"
@@ -74,9 +76,24 @@ func (c VolumeMap) GetResourceId() (key string) {
 	return
 }
 
+func (c VolumeMap) GetRation() int64 {
+	return c[c.GetResourceId()]
+}
+
 type VolumePlan map[string]VolumeMap
 
 func NewVolumePlan(autoVolumes []string, distribution []VolumeMap) *VolumePlan {
+	sort.Slice(autoVolumes, func(i, j int) bool {
+		// no err check due to volume strings have been converted into int64 before
+		sizeI, _ := strconv.ParseInt(strings.Split(autoVolumes[i], ":")[3], 10, 64)
+		sizeJ, _ := strconv.ParseInt(strings.Split(autoVolumes[j], ":")[3], 10, 64)
+		return sizeI < sizeJ
+	})
+
+	sort.Slice(distribution, func(i, j int) bool {
+		return distribution[i].GetRation() < distribution[j].GetRation()
+	})
+
 	volumePlan := VolumePlan{}
 	for idx, autoVolume := range autoVolumes {
 		volumePlan[autoVolume] = distribution[idx]

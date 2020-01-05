@@ -7,6 +7,10 @@ import (
 )
 
 func calculateVolumePlan(volumeMap types.VolumeMap, required []int64) (int, [][]types.VolumeMap) {
+	if len(required) == 0 {
+		return math.MaxInt32, nil
+	}
+
 	share := int(math.MaxInt64) // all fragments
 	host := newHost(volumeMap, share)
 	plans := host.distributeMultipleRations(required)

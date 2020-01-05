@@ -108,6 +108,10 @@ func (h *host) getFragmentResult(fragment int64, resources []resourceInfo) []typ
 }
 
 func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int64) (resourceMap [][]types.ResourceMap) {
+	if len(fragments) == 0 {
+		return
+	}
+
 	// shouldn't change resources slice
 	resourcesBak := make([]resourceInfo, len(resources))
 	copy(resourcesBak, resources)
@@ -140,11 +144,10 @@ func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int64) 
 
 		// plan on different resources
 		plan = []types.ResourceMap{}
-		remainder := resources[i].pieces - count*totalRequired
 		refugees := []int64{} // refugees record the fragments not able to scheduled on resource[i]
 		for _, fragment := range fragments {
-			if remainder > fragment {
-				remainder -= fragment
+			if resources[i].pieces >= fragment {
+				resources[i].pieces -= fragment
 				plan = append(plan, types.ResourceMap{resources[i].id: fragment})
 			} else {
 				refugees = append(refugees, fragment)
@@ -161,7 +164,7 @@ func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int64) 
 			fragments := refugees
 			refugees = []int64{}
 			for _, fragment := range fragments {
-				if resources[j].pieces > fragment {
+				if resources[j].pieces >= fragment {
 					resources[j].pieces -= fragment
 					plan = append(plan, types.ResourceMap{resources[j].id: fragment})
 				} else {

@@ -1185,3 +1185,192 @@ func SelectStorageNodes(k *Potassium, nodesInfo []types.NodeInfo, storage int64,
 		return k.CommonDivision(nodesInfo, need, total)
 	}
 }
+
+func SelectVolumeNodes(k *Potassium, nodesInfo []types.NodeInfo, volumes []string, need int, each bool) (map[string][]types.VolumePlan, map[string]types.VolumeMap, error) {
+	nodesInfo, plans, total, err := k.SelectVolumeNodes(nodesInfo, volumes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if each {
+		nodesInfo, err = k.EachDivision(nodesInfo, need, 0)
+	} else {
+		nodesInfo, err = k.CommonDivision(nodesInfo, need, total)
+	}
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	result := map[string][]types.VolumePlan{}
+	changed := map[string]types.VolumeMap{}
+
+	for _, nodeInfo := range nodesInfo {
+		if nodeInfo.Deploy <= 0 {
+			continue
+		}
+
+		volumePlans := plans[nodeInfo.Name][:nodeInfo.Deploy]
+		result[nodeInfo.Name] = volumePlans
+		for _, volumePlan := range volumePlans {
+			nodeInfo.VolumeMap.Sub(volumePlan.Consumed())
+		}
+		changed[nodeInfo.Name] = nodeInfo.VolumeMap
+	}
+	return result, changed, nil
+}
+
+func TestSelectVolumeNodesNonAuto(t *testing.T) {
+	k, _ := newPotassium()
+
+	nodes := []types.NodeInfo{
+		{
+			Name:     "0",
+			Capacity: 100,
+			VolumeMap: types.VolumeMap{
+				"/data0": 1024,
+			},
+		},
+	}
+
+	volumes := []string{
+		"/tmp:/tmp:rw:2048",
+		"/var/log:/var/log:ro",
+		"/data0:/data:rw",
+		"/data0:/data",
+	}
+	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 2, true)
+	assert.NoError(t, err)
+	assert.Equal(t, len(res["0"]), 2)
+	assert.Equal(t, res["0"][0].GetVolumeString(volumes[0]), volumes[0])
+	assert.Equal(t, changed["node1"]["/data0"], int64(0))
+}
+
+func TestSelectVolumeNodesAutoInsufficient(t *testing.T) {
+	k, _ := newPotassium()
+
+	nodes := []types.NodeInfo{
+		{
+			Name: "0",
+			VolumeMap: types.VolumeMap{
+				"/data0": 1024,
+				"/data1": 2048,
+			},
+		},
+	}
+
+	volumes := []string{"AUTO:/data:rw:2049"}
+	_, _, err := SelectVolumeNodes(k, nodes, volumes, 1, true)
+	assert.True(t, errors.Is(err, types.ErrInsufficientRes))
+
+	volumes = []string{"AUTO:/data:rw:1024", "AUTO:/dir:rw:1024"}
+	_, _, err = SelectVolumeNodes(k, nodes, volumes, 2, true)
+	assert.Contains(t, err.Error(), "not enough capacity")
+}
+
+func TestSelectVolumeNodesAutoSingle(t *testing.T) {
+	k, _ := newPotassium()
+
+	nodes := []types.NodeInfo{
+		{
+			Name: "0",
+			VolumeMap: types.VolumeMap{
+				"/data0": 1024,
+				"/data1": 2048,
+			},
+		},
+	}
+
+	volumes := []string{"AUTO:/data:rw:70"}
+	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 43, true)
+	assert.Nil(t, err)
+	assert.Equal(t, len(res["0"]), 43)
+	assert.Equal(t, res["0"][0]["AUTO:/data:rw:70"], types.VolumeMap{"/data0": 70})
+	assert.Equal(t, changed["0"], types.VolumeMap{"/data0": 44, "/data1": 18})
+}
+
+func TestSelectVolumeNodesAutoDouble(t *testing.T) {
+	k, _ := newPotassium()
+
+	nodes := []types.NodeInfo{
+		{
+			Name: "0",
+			VolumeMap: types.VolumeMap{
+				"/data0": 1024,
+				"/data1": 1025,
+			},
+		},
+		{
+			Name: "1",
+			VolumeMap: types.VolumeMap{
+				"/data0": 2048,
+				"/data1": 2049,
+			},
+		},
+	}
+
+	volumes := []string{"AUTO:/data:rw:20", "AUTO:/dir:rw:200"}
+	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 5, true)
+	assert.Nil(t, err)
+	assert.Equal(t, res["0"][4]["AUTO:/data:rw:20"], types.VolumeMap{"/data0": 20})
+	assert.Equal(t, res["0"][4]["AUTO:/dir:rw:200"], types.VolumeMap{"/data1": 200})
+	assert.Equal(t, res["1"][4]["AUTO:/data:rw:20"], types.VolumeMap{"/data0": 20})
+	assert.Equal(t, res["1"][4]["AUTO:/dir:rw:200"], types.VolumeMap{"/data0": 200})
+	assert.Equal(t, changed["0"], types.VolumeMap{"/data0": 124, "/data1": 825})
+	assert.Equal(t, changed["1"], types.VolumeMap{"/data0": 948, "/data1": 2049})
+}
+
+func TestSelectVolumeNodesAutoTriple(t *testing.T) {
+	k, _ := newPotassium()
+
+	nodes := []types.NodeInfo{
+		{
+			Name: "0",
+			VolumeMap: types.VolumeMap{
+				"/data1": 1218,
+				"/data2": 1219,
+				"/data0": 2000,
+			},
+		},
+		{
+			Name: "1",
+			VolumeMap: types.VolumeMap{
+				"/data1": 100,
+				"/data2": 10,
+				"/data3": 2110,
+			},
+		},
+		{
+			Name: "2",
+			VolumeMap: types.VolumeMap{
+				"/data2": 1001,
+				"/data3": 1000,
+				"/data4": 1002,
+			},
+		},
+	}
+
+	volumes := []string{
+		"AUTO:/data0:rw:1000",
+		"AUTO:/data1:rw:10",
+		"AUTO:/data2:rw:100",
+	}
+
+	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 2, true)
+	assert.Nil(t, err)
+	assert.Equal(t, res["0"][1]["AUTO:/data0:rw:1000"], types.VolumeMap{"/data2": 1000})
+	assert.Equal(t, res["0"][1]["AUTO:/data1:rw:10"], types.VolumeMap{"/data2": 10})
+	assert.Equal(t, res["0"][1]["AUTO:/data2:rw:100"], types.VolumeMap{"/data1": 100})
+
+	assert.Equal(t, res["1"][0]["AUTO:/data0:rw:1000"], types.VolumeMap{"/data3": 1000})
+	assert.Equal(t, res["1"][0]["AUTO:/data1:rw:10"], types.VolumeMap{"/data2": 10})
+	assert.Equal(t, res["1"][0]["AUTO:/data2:rw:100"], types.VolumeMap{"/data1": 100})
+
+	assert.Equal(t, res["2"][1]["AUTO:/data0:rw:1000"], types.VolumeMap{"/data4": 1000})
+	assert.Equal(t, res["2"][1]["AUTO:/data1:rw:10"], types.VolumeMap{"/data2": 10})
+	assert.Equal(t, res["2"][1]["AUTO:/data2:rw:100"], types.VolumeMap{"/data2": 100})
+
+	assert.Equal(t, changed["0"], types.VolumeMap{"/data1": 8, "/data2": 209, "/data0": 2000})
+	assert.Equal(t, changed["1"], types.VolumeMap{"/data1": 0, "/data2": 0, "/data3": 0})
+	assert.Equal(t, changed["2"], types.VolumeMap{"/data2": 781, "/data3": 0, "/data4": 2})
+}

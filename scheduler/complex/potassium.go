@@ -145,10 +145,14 @@ func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, volumeReqs []s
 	for nodeIdx, nodeInfo := range nodesInfo {
 		capacity, distributions := calculateVolumePlan(nodeInfo.VolumeMap, req)
 		if capacity > 0 {
-			if _, ok := volumePlans[nodeInfo.Name]; !ok {
-				volumePlans[nodeInfo.Name] = []types.VolumePlan{}
+			if nodesInfo[nodeIdx].Capacity == 0 {
+				nodesInfo[nodeIdx].Capacity = capacity
+			} else {
+				nodesInfo[nodeIdx].Capacity = utils.Min(capacity, nodesInfo[nodeIdx].Capacity)
 			}
-			nodesInfo[nodeIdx].Capacity = utils.Min(capacity, nodesInfo[nodeIdx].Capacity)
+			if _, ok := volumePlans[nodeInfo.Name]; !ok {
+				volumePlans[nodeInfo.Name] = make([]types.VolumePlan, 0, nodesInfo[nodeIdx].Capacity)
+			}
 			volTotal += nodesInfo[nodeIdx].Capacity
 			for _, distribution := range distributions {
 				volumePlans[nodeInfo.Name] = append(
