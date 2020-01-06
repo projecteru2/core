@@ -408,6 +408,9 @@ message BuildImageMessage {
 }
 
 message CreateContainerMessage {
+    message Volume {
+        map<string, int64> volume = 1;
+    }
     string podname = 1;
     string nodename = 2;
     string id = 3;
@@ -420,7 +423,7 @@ message CreateContainerMessage {
     map<string, string> publish = 10;
     bytes hook = 11;
     int64 storage = 12;
-    map<string, int64> volume = 13;
+    map<string, Volume> volume_plan = 13;
 }
 
 message ReplaceContainerMessage {

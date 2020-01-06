@@ -300,22 +300,35 @@ func toCoreDeployStorage(storage int64, vols []string) (int64, error) {
 	return stor + storage, nil
 }
 
+func toRPCVolumePlan(v types.VolumePlan) map[string]*pb.CreateContainerMessage_Volume {
+	if v == nil {
+		return nil
+	}
+
+	msg := map[string]*pb.CreateContainerMessage_Volume{}
+	for reqVolume, volume := range v {
+		msg[reqVolume] = &pb.CreateContainerMessage_Volume{Volume: volume}
+	}
+	return msg
+}
+
 func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateContainerMessage {
 	if c == nil {
 		return nil
 	}
 	msg := &pb.CreateContainerMessage{
-		Podname:  c.Podname,
-		Nodename: c.Nodename,
-		Id:       c.ContainerID,
-		Name:     c.ContainerName,
-		Success:  c.Success,
-		Cpu:      toRPCCPUMap(c.CPU),
-		Quota:    c.Quota,
-		Memory:   c.Memory,
-		Storage:  c.Storage,
-		Publish:  utils.EncodePublishInfo(c.Publish),
-		Hook:     types.HookOutput(c.Hook),
+		Podname:    c.Podname,
+		Nodename:   c.Nodename,
+		Id:         c.ContainerID,
+		Name:       c.ContainerName,
+		Success:    c.Success,
+		Cpu:        toRPCCPUMap(c.CPU),
+		Quota:      c.Quota,
+		Memory:     c.Memory,
+		Storage:    c.Storage,
+		VolumePlan: toRPCVolumePlan(c.VolumePlan),
+		Publish:    utils.EncodePublishInfo(c.Publish),
+		Hook:       types.HookOutput(c.Hook),
 	}
 	if c.Error != nil {
 		msg.Error = c.Error.Error()
