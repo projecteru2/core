@@ -61,13 +61,6 @@ type CPUMap = ResourceMap
 // VolumeMap {["/data1"]1073741824, ["/data2"]1048576}
 type VolumeMap = ResourceMap
 
-func (v VolumeMap) Consumed() (consumed int64) {
-	for _, size := range v {
-		consumed += int64(size)
-	}
-	return
-}
-
 func (c VolumeMap) GetResourceId() (key string) {
 	for k := range c {
 		key = k
@@ -101,7 +94,7 @@ func NewVolumePlan(autoVolumes []string, distribution []VolumeMap) *VolumePlan {
 	return &volumePlan
 }
 
-func (p VolumePlan) Consumed() VolumeMap {
+func (p VolumePlan) Merge() VolumeMap {
 	volumeMap := VolumeMap{}
 	for _, v := range p {
 		volumeMap.Add(v)

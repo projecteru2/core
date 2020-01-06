@@ -29,31 +29,31 @@ func TestAddNode(t *testing.T) {
 	m.config.Scheduler.ShareBase = 100
 	labels := map[string]string{"test": "1"}
 	// wrong endpoint
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "abc", Podname: podname, Cpu: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "abc", Podname: podname, CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
 	assert.Error(t, err)
 	// wrong because engine not mocked
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, Cpu: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
 	assert.Error(t, err)
 	endpoint = "mock://fakeengine"
 	// wrong no pod
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: "abc", Cpu: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: "abc", CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
 	assert.Error(t, err)
 	// AddNode
-	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, Cpu: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
+	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, nodename)
 	assert.Equal(t, node.CPU["0"], int64(100))
 	// add again and failed
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, Cpu: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
 	assert.Error(t, err)
 	// AddNode with numa
-	nodeWithNuma, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: "nodewithnuma", Endpoint: endpoint, Podname: "numapod", Cpu: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels, Numa: types.NUMA{"1": "n1", "2": "n2"}})
+	nodeWithNuma, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: "nodewithnuma", Endpoint: endpoint, Podname: "numapod", CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels, Numa: types.NUMA{"1": "n1", "2": "n2"}})
 	assert.NoError(t, err)
 	assert.Equal(t, nodeWithNuma.Name, "nodewithnuma")
 	assert.Equal(t, len(nodeWithNuma.NUMAMemory), 2)
 	assert.Equal(t, nodeWithNuma.NUMAMemory["n1"], int64(50))
 	// Addnode again will failed
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, Cpu: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
 	assert.Error(t, err)
 	// Check etcd has node data
 	key := fmt.Sprintf(nodeInfoKey, nodename)

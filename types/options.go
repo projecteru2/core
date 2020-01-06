@@ -78,7 +78,7 @@ type AddNodeOptions struct {
 	Ca         string
 	Cert       string
 	Key        string
-	Cpu        int
+	CPU        int
 	Share      int
 	Memory     int64
 	Storage    int64

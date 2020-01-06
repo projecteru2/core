@@ -122,7 +122,7 @@ func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
 		Ca:         b.Ca,
 		Cert:       b.Cert,
 		Key:        b.Key,
-		Cpu:        int(b.Cpu),
+		CPU:        int(b.Cpu),
 		Share:      int(b.Share),
 		Memory:     b.Memory,
 		Storage:    b.Storage,

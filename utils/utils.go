@@ -251,11 +251,11 @@ func safeSplit(s string) []string {
 
 // Min returns the lesser one.
 func Min(x int, xs ...int) int {
-	m := x
-	for _, v := range xs {
-		if v < m {
-			m = v
-		}
+	if len(xs) == 0 {
+		return x
 	}
-	return m
+	if m := Min(xs[0], xs[1:]...); m < x {
+		return m
+	}
+	return x
 }

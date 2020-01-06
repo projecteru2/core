@@ -43,8 +43,8 @@ func (m *Mercury) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 		return nil, err
 	}
 	// 更新默认值
-	if opts.Cpu == 0 {
-		opts.Cpu = info.NCPU
+	if opts.CPU == 0 {
+		opts.CPU = info.NCPU
 	}
 	if opts.Memory == 0 {
 		opts.Memory = info.MemTotal * 10 / 8 // use 80% real memory
@@ -72,7 +72,7 @@ func (m *Mercury) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 		}
 	}
 
-	return m.doAddNode(ctx, opts.Nodename, opts.Endpoint, opts.Podname, opts.Ca, opts.Cert, opts.Key, opts.Cpu, opts.Share, opts.Memory, opts.Storage, opts.Labels, opts.Numa, opts.NumaMemory, opts.Volume)
+	return m.doAddNode(ctx, opts.Nodename, opts.Endpoint, opts.Podname, opts.Ca, opts.Cert, opts.Key, opts.CPU, opts.Share, opts.Memory, opts.Storage, opts.Labels, opts.Numa, opts.NumaMemory, opts.Volume)
 }
 
 // RemoveNode delete a node
@@ -143,7 +143,7 @@ func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu 
 		node.CPU.Add(cpu)
 		node.SetCPUUsed(quota, types.DecrUsage)
 		node.Volume.Add(volume)
-		node.SetVolumeUsed(volume.Consumed(), types.DecrUsage)
+		node.SetVolumeUsed(volume.Total(), types.DecrUsage)
 		node.MemCap += memory
 		node.StorageCap += storage
 		if nodeID := node.GetNUMANode(cpu); nodeID != "" {
@@ -153,7 +153,7 @@ func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu 
 		node.CPU.Sub(cpu)
 		node.SetCPUUsed(quota, types.IncrUsage)
 		node.Volume.Sub(volume)
-		node.SetVolumeUsed(volume.Consumed(), types.IncrUsage)
+		node.SetVolumeUsed(volume.Total(), types.IncrUsage)
 		node.MemCap -= memory
 		node.StorageCap -= storage
 		if nodeID := node.GetNUMANode(cpu); nodeID != "" {

@@ -1213,7 +1213,7 @@ func SelectVolumeNodes(k *Potassium, nodesInfo []types.NodeInfo, volumes []strin
 		volumePlans := plans[nodeInfo.Name][:nodeInfo.Deploy]
 		result[nodeInfo.Name] = volumePlans
 		for _, volumePlan := range volumePlans {
-			nodeInfo.VolumeMap.Sub(volumePlan.Consumed())
+			nodeInfo.VolumeMap.Sub(volumePlan.Merge())
 		}
 		changed[nodeInfo.Name] = nodeInfo.VolumeMap
 	}
