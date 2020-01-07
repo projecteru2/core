@@ -142,7 +142,7 @@ func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) {
 		DeltaMemory:     b.DeltaMemory,
 		DeltaStorage:    b.DeltaStorage,
 		DeltaNUMAMemory: b.DeltaNumaMemory,
-		DeltaVolume:     types.VolumeMap{},
+		DeltaVolume:     b.DeltaVolume,
 		NUMA:            b.Numa,
 		Labels:          b.Labels,
 	}
@@ -286,7 +286,7 @@ func toCoreDeployStorage(storage int64, vols []string) (int64, error) {
 	var stor int64
 	for _, bind := range vols {
 		parts := strings.Split(bind, ":")
-		if len(parts) != 4 {
+		if len(parts) != 4 || parts[0] == "AUTO" {
 			continue
 		}
 

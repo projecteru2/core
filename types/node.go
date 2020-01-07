@@ -156,6 +156,15 @@ type Node struct {
 	Engine         engine.API        `json:"-"`
 }
 
+func (n *Node) Init() {
+	if n.Volume == nil {
+		n.Volume = VolumeMap{}
+	}
+	if n.InitVolume == nil {
+		n.InitVolume = VolumeMap{}
+	}
+}
+
 // Info show node info
 func (n *Node) Info(ctx context.Context) (*enginetypes.Info, error) {
 	if n.Engine == nil {

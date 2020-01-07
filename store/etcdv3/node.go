@@ -274,6 +274,7 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 		if err := json.Unmarshal(ev.Value, node); err != nil {
 			return nil, err
 		}
+		node.Init()
 		if (node.Available || all) && utils.FilterContainer(node.Labels, labels) {
 			engine, err := m.makeClient(ctx, node, false)
 			if err != nil {

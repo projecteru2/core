@@ -115,7 +115,7 @@ func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64,
 
 // SelectCPUNodes select nodes with enough cpus
 func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, memory int64) ([]types.NodeInfo, map[string][]types.CPUMap, int, error) {
-	log.Infof("[SelectCPUNodes] nodes %d, need cpu: %f memory: %d", len(nodesInfo), quota, memory)
+	log.Infof("[SelectCPUNodes] nodesInfo %d, need cpu: %f memory: %d", len(nodesInfo), quota, memory)
 	if quota <= 0 {
 		return nil, nil, 0, types.ErrNegativeQuota
 	}
@@ -129,6 +129,7 @@ func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, me
 }
 
 func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, volumeReqs []string) ([]types.NodeInfo, map[string][]types.VolumePlan, int, error) {
+	log.Infof("[SelectVolumeNodes] nodesInfo %v, need volume: %v", nodesInfo, volumeReqs)
 	req := []int64{}
 	autoVolumes := []string{}
 	for _, volume := range volumeReqs {
@@ -148,22 +149,20 @@ func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, volumeReqs []s
 	volumePlans := map[string][]types.VolumePlan{}
 	for nodeIdx, nodeInfo := range nodesInfo {
 		capacity, distributions := calculateVolumePlan(nodeInfo.VolumeMap, req)
-		if capacity > 0 {
-			if nodesInfo[nodeIdx].Capacity == 0 {
-				nodesInfo[nodeIdx].Capacity = capacity
-			} else {
-				nodesInfo[nodeIdx].Capacity = utils.Min(capacity, nodesInfo[nodeIdx].Capacity)
-			}
-			if _, ok := volumePlans[nodeInfo.Name]; !ok {
-				volumePlans[nodeInfo.Name] = make([]types.VolumePlan, 0, nodesInfo[nodeIdx].Capacity)
-			}
-			volTotal += nodesInfo[nodeIdx].Capacity
-			for _, distribution := range distributions {
-				volumePlans[nodeInfo.Name] = append(
-					volumePlans[nodeInfo.Name],
-					*types.NewVolumePlan(autoVolumes, distribution),
-				)
-			}
+		if nodesInfo[nodeIdx].Capacity == 0 {
+			nodesInfo[nodeIdx].Capacity = capacity
+		} else {
+			nodesInfo[nodeIdx].Capacity = utils.Min(capacity, nodesInfo[nodeIdx].Capacity)
+		}
+		if _, ok := volumePlans[nodeInfo.Name]; !ok {
+			volumePlans[nodeInfo.Name] = make([]types.VolumePlan, 0, nodesInfo[nodeIdx].Capacity)
+		}
+		volTotal += nodesInfo[nodeIdx].Capacity
+		for _, distribution := range distributions {
+			volumePlans[nodeInfo.Name] = append(
+				volumePlans[nodeInfo.Name],
+				*types.NewVolumePlan(autoVolumes, distribution),
+			)
 		}
 	}
 
