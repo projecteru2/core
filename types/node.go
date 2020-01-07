@@ -94,6 +94,22 @@ func NewVolumePlan(autoVolumes []string, distribution []VolumeMap) *VolumePlan {
 	return &volumePlan
 }
 
+func ToVolumePlan(plan map[string]map[string]int64) VolumePlan {
+	volumePlan := VolumePlan{}
+	for volumeStr, volumeMap := range plan {
+		volumePlan[volumeStr] = VolumeMap(volumeMap)
+	}
+	return volumePlan
+}
+
+func (p VolumePlan) ToLiteral() map[string]map[string]int64 {
+	plan := map[string]map[string]int64{}
+	for volumeStr, volumeMap := range p {
+		plan[volumeStr] = volumeMap
+	}
+	return plan
+}
+
 func (p VolumePlan) Merge() VolumeMap {
 	volumeMap := VolumeMap{}
 	for _, v := range p {

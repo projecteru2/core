@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strconv"
+	"strings"
 
 	"bufio"
 
@@ -18,6 +20,10 @@ import (
 
 var winchCommand = []byte{0x80}  // 128, non-ASCII
 var escapeCommand = []byte{0x1d} // 29, ^]
+
+const (
+	AUTO = "AUTO"
+)
 
 type window struct {
 	Height uint `json:"Row"`
@@ -233,4 +239,42 @@ func processVirtualizationOutStream(
 		return
 	}()
 	return outCh
+}
+
+func updateAutoVolumeRequests(volumes1 []string, volumes2 []string) (volumes []string, err error) {
+	sizeMap := map[string]int64{} // {"AUTO:/data:rw": 100}
+	for _, vol := range volumes1 {
+		parts := strings.Split(vol, ":")
+		if len(parts) != 4 || parts[0] != AUTO {
+			continue
+		}
+		size, err := strconv.ParseInt(parts[3], 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		prefix := strings.Join(parts[0:3], ":")
+		sizeMap[prefix] = size
+	}
+
+	for _, vol := range volumes2 {
+		parts := strings.Split(vol, ":")
+		if len(parts) != 4 || parts[0] != AUTO {
+			continue
+		}
+		size, err := strconv.ParseInt(parts[3], 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		prefix := strings.Join(parts[0:3], ":")
+		if _, ok := sizeMap[prefix]; ok {
+			sizeMap[prefix] += size
+		} else {
+			sizeMap[prefix] = size
+		}
+	}
+
+	for prefix, size := range sizeMap {
+		volumes = append(volumes, fmt.Sprintf("%s:%d", prefix, size))
+	}
+	return volumes, nil
 }

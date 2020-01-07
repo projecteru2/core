@@ -10,6 +10,7 @@ var (
 	ErrInsufficientCPU     = errors.New("cannot alloc a plan, not enough cpu")
 	ErrInsufficientMEM     = errors.New("cannot alloc a plan, not enough memory")
 	ErrInsufficientStorage = errors.New("cannot alloc a plan, not enough storage")
+	ErrInsufficientVolume  = errors.New("cannot alloc a plan, not enough volume")
 	ErrInsufficientCap     = errors.New("cannot alloc a each node plan, not enough capacity")
 	ErrInsufficientRes     = errors.New("not enough resource")
 	ErrInsufficientNodes   = errors.New("not enough nodes")
