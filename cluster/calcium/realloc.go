@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"context"
+	"sort"
 	"strings"
 	"sync"
 
@@ -85,12 +86,13 @@ func (c *Calcium) doReallocContainer(
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				continue
 			}
-			vol, err := updateAutoVolumeRequests(container.Volumes, volumes)
+			vol, err := mergeAutoVolumeRequests(container.Volumes, volumes)
 			if err != nil {
 				log.Errorf("[doReallocContainer] New resource invalid %s, %v, %v", container.ID, vol, err)
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				continue
 			}
+			sort.Slice(vol, func(i, j int) bool { return vol[i] < vol[j] })
 			newVol := strings.Join(vol, ",")
 
 			if _, ok := volCpuMemNodeContainersInfo[newVol]; !ok {
@@ -117,7 +119,6 @@ func (c *Calcium) doReallocContainer(
 						// 把记录的 CPU 还回去，变成新的可用资源
 						// 把记录的 Memory 还回去，变成新的可用资源
 						containerWithCPUBind := 0
-						containerWithVolumeBind := 0
 						for _, container := range containers {
 							// 不更新 etcd，内存计算
 							node.CPU.Add(container.CPU)
@@ -130,9 +131,6 @@ func (c *Calcium) doReallocContainer(
 							}
 							if len(container.CPU) > 0 {
 								containerWithCPUBind++
-							}
-							if container.VolumePlan != nil {
-								containerWithVolumeBind++
 							}
 						}
 						// 检查内存
@@ -157,6 +155,7 @@ func (c *Calcium) doReallocContainer(
 						}
 
 						var volumePlans []types.VolumePlan
+						// newVol won't be empty as long as existing container bound volumes before or realloc request requires new binding
 						if newVol != "" {
 							volumes := strings.Split(newVol, ",")
 							nodesInfo := []types.NodeInfo{{Name: node.Name, VolumeMap: node.Volume}}
@@ -164,13 +163,27 @@ func (c *Calcium) doReallocContainer(
 							if err != nil {
 								return err
 							}
-							if total < containerWithVolumeBind || len(nodeVolumePlans) != 1 {
+							if total < len(containers) || len(nodeVolumePlans) != 1 {
 								return types.ErrInsufficientVolume
 							}
-							volumePlans = nodeVolumePlans[node.Name][:containerWithVolumeBind]
+
+							// select plans, existing bindings stick to the current devices
+							planForContainer := map[string]types.VolumePlan{}
+							for _, plan := range nodeVolumePlans[node.Name] {
+								for _, container := range containers {
+									if _, ok := planForContainer[container.ID]; !ok && plan.Compatible(container.VolumePlan) {
+										volumePlans = append(volumePlans, plan)
+										planForContainer[container.ID] = plan
+										break
+									}
+								}
+							}
+							if len(volumePlans) < len(containers) {
+								return types.ErrInsufficientVolume
+							}
 						}
 
-						for _, container := range containers {
+						for idx, container := range containers {
 							newResource := &enginetypes.VirtualizationResource{Quota: newCPU, Memory: newMemory, SoftLimit: container.SoftLimit, Volumes: volumes}
 							if len(container.CPU) > 0 {
 								newResource.CPU = cpusets[0]
@@ -178,9 +191,8 @@ func (c *Calcium) doReallocContainer(
 								cpusets = cpusets[1:]
 							}
 
-							if len(container.VolumePlan) > 0 {
-								newResource.VolumePlan = volumePlans[0].ToLiteral()
-								volumePlans = volumePlans[1:]
+							if newVol != "" {
+								newResource.VolumePlan = volumePlans[idx].ToLiteral()
 							}
 
 							updateSuccess := false

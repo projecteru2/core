@@ -104,7 +104,7 @@ func TestStorage(t *testing.T) {
 func TestVolumeMap(t *testing.T) {
 	volume := VolumeMap{"/data": 1000}
 	assert.Equal(t, volume.Total(), int64(1000))
-	assert.Equal(t, volume.GetResourceId(), "/data")
+	assert.Equal(t, volume.GetResourceID(), "/data")
 	assert.Equal(t, volume.GetRation(), int64(1000))
 }
 

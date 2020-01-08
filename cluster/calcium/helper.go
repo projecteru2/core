@@ -241,22 +241,9 @@ func processVirtualizationOutStream(
 	return outCh
 }
 
-func updateAutoVolumeRequests(volumes1 []string, volumes2 []string) (volumes []string, err error) {
+func mergeAutoVolumeRequests(volumes1 []string, volumes2 []string) (volumes []string, err error) {
 	sizeMap := map[string]int64{} // {"AUTO:/data:rw": 100}
-	for _, vol := range volumes1 {
-		parts := strings.Split(vol, ":")
-		if len(parts) != 4 || parts[0] != AUTO {
-			continue
-		}
-		size, err := strconv.ParseInt(parts[3], 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		prefix := strings.Join(parts[0:3], ":")
-		sizeMap[prefix] = size
-	}
-
-	for _, vol := range volumes2 {
+	for _, vol := range append(volumes1, volumes2...) {
 		parts := strings.Split(vol, ":")
 		if len(parts) != 4 || parts[0] != AUTO {
 			continue
@@ -274,6 +261,9 @@ func updateAutoVolumeRequests(volumes1 []string, volumes2 []string) (volumes []s
 	}
 
 	for prefix, size := range sizeMap {
+		if size < 0 {
+			size = 0
+		}
 		volumes = append(volumes, fmt.Sprintf("%s:%d", prefix, size))
 	}
 	return volumes, nil

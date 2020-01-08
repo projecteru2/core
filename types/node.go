@@ -17,6 +17,8 @@ const (
 	IncrUsage = "+"
 	// DecrUsage cpuusage
 	DecrUsage = "-"
+	// AUTO indicates that volume is to be scheduled by scheduler
+	AUTO = "AUTO"
 )
 
 // ResourceMap is cpu core map
@@ -61,7 +63,7 @@ type CPUMap = ResourceMap
 // VolumeMap {["/data1"]1073741824, ["/data2"]1048576}
 type VolumeMap = ResourceMap
 
-func (c VolumeMap) GetResourceId() (key string) {
+func (c VolumeMap) GetResourceID() (key string) {
 	for k := range c {
 		key = k
 		break
@@ -70,7 +72,7 @@ func (c VolumeMap) GetResourceId() (key string) {
 }
 
 func (c VolumeMap) GetRation() int64 {
-	return c[c.GetResourceId()]
+	return c[c.GetResourceID()]
 }
 
 type VolumePlan map[string]VolumeMap
@@ -119,12 +121,34 @@ func (p VolumePlan) Merge() VolumeMap {
 }
 
 func (p VolumePlan) GetVolumeString(autoVolume string) (volume string) {
-	if volumeMap, ok := p[autoVolume]; ok {
-		volume = strings.Replace(autoVolume, "AUTO", volumeMap.GetResourceId(), 1)
-	} else {
-		volume = autoVolume
+	volume = autoVolume
+	if volumeMap := p.GetVolumeMap(autoVolume); volumeMap != nil {
+		volume = strings.Replace(autoVolume, AUTO, volumeMap.GetResourceID(), 1)
 	}
 	return
+}
+
+// GetVolumeMap looks up VolumeMap according to volume destination directory
+func (p VolumePlan) GetVolumeMap(autoVolume string) (volMap VolumeMap) {
+	dstDir := strings.Split(autoVolume, ":")[1]
+	for volume, volMap := range p {
+		if dstDir == strings.Split(volume, ":")[1] {
+			return volMap
+		}
+	}
+	return nil
+}
+
+// Compatible return true if new bindings stick to the old bindings
+func (p VolumePlan) Compatible(oldPlan VolumePlan) bool {
+	for volume, oldBinding := range oldPlan {
+		newBinding := p.GetVolumeMap(volume)
+		// newBinding is ok to be nil when reallocing requires less volumes than before
+		if newBinding != nil && newBinding.GetResourceID() != oldBinding.GetResourceID() {
+			return false
+		}
+	}
+	return true
 }
 
 // NUMA define NUMA cpuID->nodeID
