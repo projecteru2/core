@@ -82,13 +82,13 @@ func (c *Calcium) doReallocContainer(
 			newCPU := utils.Round(container.Quota + cpu)
 			newMem := container.Memory + memory
 			if newCPU <= 0 || newMem <= 0 {
-				log.Errorf("[doReallocContainer] New resource invaild %s, %f, %d", container.ID, newCPU, newMem)
+				log.Errorf("[doReallocContainer] New resource invaild %s, cpu %f, mem %d", container.ID, newCPU, newMem)
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				continue
 			}
 			vol, err := mergeAutoVolumeRequests(container.Volumes, volumes)
 			if err != nil {
-				log.Errorf("[doReallocContainer] New resource invalid %s, %v, %v", container.ID, vol, err)
+				log.Errorf("[doReallocContainer] New resource invalid %s, vol %v, err %v", container.ID, vol, err)
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				continue
 			}

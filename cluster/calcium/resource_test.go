@@ -193,6 +193,13 @@ func TestAllocResource(t *testing.T) {
 			{"0": 10},
 		},
 	}
+	nodeVolumePlans := map[string][]types.VolumePlan{
+		n2: {
+			{"AUTO:/data:rw:100": types.VolumeMap{"/dir": 100}},
+			{"AUTO:/data:rw:100": types.VolumeMap{"/dir": 100}},
+			{"AUTO:/data:rw:100": types.VolumeMap{"/mount": 100}},
+		},
+	}
 
 	testAllocFailedAsMakeDeployStatusError(t, c, opts)
 	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, nil)
@@ -211,7 +218,8 @@ func TestAllocResource(t *testing.T) {
 	testAllocFailedAsInsufficientCPU(t, c, opts)
 	sched.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, nodeCPUPlans, total, nil)
 
-	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(nodesInfo, nil, total, nil)
+	testAllocFailedAsInsufficientVolume(t, c, opts)
+	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(nodesInfo, nodeVolumePlans, total, nil)
 
 	testAllocFailedAsWrongDeployMethod(t, c, opts)
 
@@ -388,6 +396,13 @@ func testAllocFailedAsUpdateNodeResourceError(t *testing.T, c *Calcium, opts *ty
 func testAllocFailedAsSaveProcessingError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
 	store := c.store.(*storemocks.Store)
 	store.On("SaveProcessing", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
+	_, err := c.doAllocResource(context.Background(), opts)
+	assert.Error(t, err)
+}
+
+func testAllocFailedAsInsufficientVolume(t *testing.T, c *Calcium, opts *types.DeployOptions) {
+	sched := c.scheduler.(*schedulermocks.Scheduler)
+	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(nil, nil, 0, types.ErrInsufficientVolume).Once()
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)
 }

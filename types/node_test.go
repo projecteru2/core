@@ -123,6 +123,15 @@ func TestVolumePlan(t *testing.T) {
 	}
 	assert.Equal(t, ToVolumePlan(literal), plan)
 	assert.Equal(t, plan.ToLiteral(), literal)
+
+	assert.True(t, plan.Compatible(VolumePlan{
+		"AUTO:/data0:ro:200": VolumeMap{"/dir0": 200},
+		"AUTO:/data1:rw:100": VolumeMap{"/dir1": 100},
+	}))
+	assert.False(t, plan.Compatible(VolumePlan{
+		"AUTO:/data0:ro:200": VolumeMap{"/dir0": 200},
+		"AUTO:/data1:rw:100": VolumeMap{"/dir2": 100},
+	}))
 }
 
 func TestNewVolumePlan(t *testing.T) {

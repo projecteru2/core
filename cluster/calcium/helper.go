@@ -262,7 +262,7 @@ func mergeAutoVolumeRequests(volumes1 []string, volumes2 []string) (volumes []st
 
 	for prefix, size := range sizeMap {
 		if size < 0 {
-			size = 0
+			continue
 		}
 		volumes = append(volumes, fmt.Sprintf("%s:%d", prefix, size))
 	}
