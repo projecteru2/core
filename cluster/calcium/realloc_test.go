@@ -85,7 +85,7 @@ func TestRealloc(t *testing.T) {
 	}
 	store.On("GetPod", mock.Anything, mock.Anything).Return(pod1, nil)
 	// failed by invalid volume realloc request
-	ch, err = c.ReallocResource(ctx, []string{"c1"}, -1, 2*int64(units.GiB), []string{"AUTO:/data:rw:1g"})
+	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, int64(units.GiB), []string{"AUTO:/data:rw:1g"})
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
@@ -137,7 +137,7 @@ func TestRealloc(t *testing.T) {
 			{"2": 100},
 		},
 	}
-	simpleMockScheduler.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nodeCPUPlans, 2, nil).Times(3)
+	simpleMockScheduler.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nodeCPUPlans, 2, nil).Times(5)
 	// failed by apply resource
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrBadContainerID).Twice()
 	// update node failed
@@ -181,6 +181,20 @@ func TestRealloc(t *testing.T) {
 	}
 	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, []string{"AUTO:/data:rw:100"}).Return(nil, nodeVolumePlans, 4, nil).Once()
 	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, int64(units.MiB), []string{"AUTO:/data:rw:50"})
+	assert.NoError(t, err)
+	for r := range ch {
+		assert.False(t, r.Success)
+	}
+	// failed by volume schedule error
+	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(nil, nil, 0, types.ErrInsufficientVolume).Once()
+	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, int64(units.MiB), []string{"AUTO:/data:rw:1"})
+	assert.NoError(t, err)
+	for r := range ch {
+		assert.False(t, r.Success)
+	}
+	// failed due to re-volume plan less then container number
+	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(nil, nodeVolumePlans, 0, nil).Twice()
+	ch, err = c.ReallocResource(ctx, []string{"c1", "c2"}, 0.1, int64(units.MiB), []string{"AUTO:/data:rw:1"})
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)

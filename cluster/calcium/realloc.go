@@ -232,6 +232,7 @@ func (c *Calcium) doReallocContainer(
 						}
 						return nil
 					}); err != nil {
+						log.Errorf("[doReallocContainer] Realloc container %v failed: %v", containers, err)
 						for _, container := range containers {
 							ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 						}
