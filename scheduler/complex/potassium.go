@@ -138,7 +138,7 @@ func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, volumeReqs []s
 		if err != nil {
 			return nil, nil, 0, err
 		}
-		req = append(req, int64(size))
+		req = append(req, size)
 		autoVolumes = append(autoVolumes, volume)
 	}
 

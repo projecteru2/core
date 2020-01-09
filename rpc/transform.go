@@ -300,14 +300,14 @@ func toCoreDeployStorage(storage int64, vols []string) (int64, error) {
 	return stor + storage, nil
 }
 
-func toRPCVolumePlan(v types.VolumePlan) map[string]*pb.CreateContainerMessage_Volume {
+func toRPCVolumePlan(v types.VolumePlan) map[string]*pb.Volume {
 	if v == nil {
 		return nil
 	}
 
-	msg := map[string]*pb.CreateContainerMessage_Volume{}
+	msg := map[string]*pb.Volume{}
 	for reqVolume, volume := range v {
-		msg[reqVolume] = &pb.CreateContainerMessage_Volume{Volume: volume}
+		msg[reqVolume] = &pb.Volume{Volume: volume}
 	}
 	return msg
 }
@@ -472,6 +472,8 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		Publish:    publish,
 		Image:      c.Image,
 		Labels:     c.Labels,
+		Volumes:    c.Volumes,
+		VolumePlan: toRPCVolumePlan(c.VolumePlan),
 		Status:     toRPCContainerStatus(c.StatusMeta),
 	}, nil
 }

@@ -274,13 +274,13 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, volumeP
 	config.Image = opts.Image
 	config.Stdin = opts.OpenStdin
 	config.Hosts = opts.ExtraHosts
-	config.Volumes = make([]string, len(config.Volumes))
+	config.Volumes = make([]string, len(opts.Volumes))
 	config.Debug = opts.Debug
 	config.Network = opts.NetworkMode
 	config.Networks = opts.Networks
 
 	// volumes
-	for idx, volume := range config.Volumes {
+	for idx, volume := range opts.Volumes {
 		config.Volumes[idx] = volumePlan.GetVolumeString(volume)
 	}
 
