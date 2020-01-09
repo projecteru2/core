@@ -71,6 +71,7 @@ type ReplaceOptions struct {
 	IDs            []string
 }
 
+// AddNodeOptions for adding node
 type AddNodeOptions struct {
 	Nodename   string
 	Endpoint   string

@@ -63,6 +63,8 @@ type CPUMap = ResourceMap
 // VolumeMap {["/data1"]1073741824, ["/data2"]1048576}
 type VolumeMap = ResourceMap
 
+// GetResourceID returns device name such as "/sda0"
+// GetResourceID only works for VolumeMap with single key
 func (c VolumeMap) GetResourceID() (key string) {
 	for k := range c {
 		key = k
@@ -71,12 +73,16 @@ func (c VolumeMap) GetResourceID() (key string) {
 	return
 }
 
+// GetRation returns scheduled size from device
+// GetRation only works for VolumeMap with single key
 func (c VolumeMap) GetRation() int64 {
 	return c[c.GetResourceID()]
 }
 
+// VolumePlan is map from volume string to volumeMap: {"AUTO:/data:rw:100": VolumeMap{"/sda1": 100}}
 type VolumePlan map[string]VolumeMap
 
+// NewVolumePlan creates VolumePlan pointer by volume strings and scheduled VolumeMaps
 func NewVolumePlan(autoVolumes []string, distribution []VolumeMap) *VolumePlan {
 	sort.Slice(autoVolumes, func(i, j int) bool {
 		// no err check due to volume strings have been converted into int64 before
@@ -96,6 +102,7 @@ func NewVolumePlan(autoVolumes []string, distribution []VolumeMap) *VolumePlan {
 	return &volumePlan
 }
 
+// ToVolumePlan convert VolumePlan from literal value
 func ToVolumePlan(plan map[string]map[string]int64) VolumePlan {
 	volumePlan := VolumePlan{}
 	for volumeStr, volumeMap := range plan {
@@ -104,6 +111,7 @@ func ToVolumePlan(plan map[string]map[string]int64) VolumePlan {
 	return volumePlan
 }
 
+// ToLiteral returns literal VolumePlan
 func (p VolumePlan) ToLiteral() map[string]map[string]int64 {
 	plan := map[string]map[string]int64{}
 	for volumeStr, volumeMap := range p {
@@ -112,6 +120,7 @@ func (p VolumePlan) ToLiteral() map[string]map[string]int64 {
 	return plan
 }
 
+// Merge return one VolumeMap with all in VolumePlan added
 func (p VolumePlan) Merge() VolumeMap {
 	volumeMap := VolumeMap{}
 	for _, v := range p {
@@ -120,6 +129,7 @@ func (p VolumePlan) Merge() VolumeMap {
 	return volumeMap
 }
 
+// GetVolumeString generates actual volume string for engine
 func (p VolumePlan) GetVolumeString(autoVolume string) (volume string) {
 	volume = autoVolume
 	if volumeMap := p.GetVolumeMap(autoVolume); volumeMap != nil {

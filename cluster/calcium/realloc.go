@@ -17,8 +17,8 @@ import (
 // nodename -> container list
 type nodeContainers map[string][]*types.Container
 
-// cpu:memory
-type volCpuMemNodeContainers map[string]map[float64]map[int64]nodeContainers
+// volume:cpu:memory
+type volCPUMemNodeContainers map[string]map[float64]map[int64]nodeContainers
 
 // ReallocResource allow realloc container resource
 func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64, volumes []string) (chan *types.ReallocResourceMessage, error) {
@@ -76,7 +76,7 @@ func (c *Calcium) doReallocContainer(
 	nodeContainersInfo nodeContainers,
 	cpu float64, memory int64, volumes []string) {
 
-	volCpuMemNodeContainersInfo := volCpuMemNodeContainers{}
+	volCPUMemNodeContainersInfo := volCPUMemNodeContainers{}
 	for nodename, containers := range nodeContainersInfo {
 		for _, container := range containers {
 			newCPU := utils.Round(container.Quota + cpu)
@@ -95,23 +95,23 @@ func (c *Calcium) doReallocContainer(
 			sort.Slice(vol, func(i, j int) bool { return vol[i] < vol[j] })
 			newVol := strings.Join(vol, ",")
 
-			if _, ok := volCpuMemNodeContainersInfo[newVol]; !ok {
-				volCpuMemNodeContainersInfo[newVol] = map[float64]map[int64]nodeContainers{}
+			if _, ok := volCPUMemNodeContainersInfo[newVol]; !ok {
+				volCPUMemNodeContainersInfo[newVol] = map[float64]map[int64]nodeContainers{}
 			}
-			if _, ok := volCpuMemNodeContainersInfo[newVol][newCPU]; !ok {
-				volCpuMemNodeContainersInfo[newVol][newCPU] = map[int64]nodeContainers{}
+			if _, ok := volCPUMemNodeContainersInfo[newVol][newCPU]; !ok {
+				volCPUMemNodeContainersInfo[newVol][newCPU] = map[int64]nodeContainers{}
 			}
-			if _, ok := volCpuMemNodeContainersInfo[newVol][newCPU][newMem]; !ok {
-				volCpuMemNodeContainersInfo[newVol][newCPU][newMem] = nodeContainers{}
+			if _, ok := volCPUMemNodeContainersInfo[newVol][newCPU][newMem]; !ok {
+				volCPUMemNodeContainersInfo[newVol][newCPU][newMem] = nodeContainers{}
 			}
-			if _, ok := volCpuMemNodeContainersInfo[newVol][newCPU][newMem][nodename]; !ok {
-				volCpuMemNodeContainersInfo[newVol][newCPU][newMem][nodename] = []*types.Container{}
+			if _, ok := volCPUMemNodeContainersInfo[newVol][newCPU][newMem][nodename]; !ok {
+				volCPUMemNodeContainersInfo[newVol][newCPU][newMem][nodename] = []*types.Container{}
 			}
-			volCpuMemNodeContainersInfo[newVol][newCPU][newMem][nodename] = append(volCpuMemNodeContainersInfo[newVol][newCPU][newMem][nodename], container)
+			volCPUMemNodeContainersInfo[newVol][newCPU][newMem][nodename] = append(volCPUMemNodeContainersInfo[newVol][newCPU][newMem][nodename], container)
 		}
 	}
 
-	for newVol, cpuMemNodeContainersInfo := range volCpuMemNodeContainersInfo {
+	for newVol, cpuMemNodeContainersInfo := range volCPUMemNodeContainersInfo {
 		for newCPU, memNodesContainers := range cpuMemNodeContainersInfo {
 			for newMemory, nodesContainers := range memNodesContainers {
 				for nodename, containers := range nodesContainers {

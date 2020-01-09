@@ -21,10 +21,6 @@ import (
 var winchCommand = []byte{0x80}  // 128, non-ASCII
 var escapeCommand = []byte{0x1d} // 29, ^]
 
-const (
-	AUTO = "AUTO"
-)
-
 type window struct {
 	Height uint `json:"Row"`
 	Width  uint `json:"Col"`
@@ -245,7 +241,7 @@ func mergeAutoVolumeRequests(volumes1 []string, volumes2 []string) (volumes []st
 	sizeMap := map[string]int64{} // {"AUTO:/data:rw": 100}
 	for _, vol := range append(volumes1, volumes2...) {
 		parts := strings.Split(vol, ":")
-		if len(parts) != 4 || parts[0] != AUTO {
+		if len(parts) != 4 || parts[0] != types.AUTO {
 			continue
 		}
 		size, err := strconv.ParseInt(parts[3], 10, 64)

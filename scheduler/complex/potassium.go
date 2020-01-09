@@ -13,10 +13,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	AUTO = "AUTO"
-)
-
 // Potassium is a scheduler
 type Potassium struct {
 	maxshare, sharebase int
@@ -128,13 +124,14 @@ func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, me
 	return cpuPriorPlan(quota, memory, nodesInfo, m.maxshare, m.sharebase)
 }
 
+// SelectVolumeNodes calculates plans for volume request
 func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, volumeReqs []string) ([]types.NodeInfo, map[string][]types.VolumePlan, int, error) {
 	log.Infof("[SelectVolumeNodes] nodesInfo %v, need volume: %v", nodesInfo, volumeReqs)
 	req := []int64{}
 	autoVolumes := []string{}
 	for _, volume := range volumeReqs {
 		segs := strings.Split(volume, ":")
-		if len(segs) < 4 || segs[0] != AUTO {
+		if len(segs) < 4 || segs[0] != types.AUTO {
 			continue
 		}
 		size, err := strconv.ParseInt(segs[3], 10, 64)
