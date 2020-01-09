@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	lockmocks "github.com/projecteru2/core/lock/mocks"
@@ -105,6 +106,7 @@ func TestSetNode(t *testing.T) {
 	ctx := context.Background()
 	name := "test"
 	node := &types.Node{Name: name}
+	node.Init()
 
 	store := &storemocks.Store{}
 	c.store = store
@@ -216,4 +218,18 @@ func TestSetNode(t *testing.T) {
 	assert.Equal(t, n.InitCPU["3"], int64(10))
 	assert.Equal(t, len(n.CPU), 2)
 	assert.Equal(t, len(n.InitCPU), 2)
+	// succ set volume
+	n.Volume = types.VolumeMap{"/sda1": 10, "/sda2": 20}
+	setOpts.DeltaCPU = nil
+	setOpts.DeltaVolume = types.VolumeMap{"/sda0": 5, "/sda1": 0, "/sda2": -1}
+	n, err = c.SetNode(ctx, setOpts)
+	assert.NoError(t, err)
+	_, ok = n.Volume["/sda1"]
+	assert.False(t, ok)
+	assert.Equal(t, n.Volume["/sda0"], int64(5))
+	assert.Equal(t, n.Volume["/sda2"], int64(19))
+	// failed by nagative volume size
+	setOpts.DeltaVolume = types.VolumeMap{"/sda0": -100}
+	n, err = c.SetNode(ctx, setOpts)
+	assert.True(t, errors.Is(err, types.ErrBadVolume))
 }

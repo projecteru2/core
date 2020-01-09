@@ -237,16 +237,17 @@ func processVirtualizationOutStream(
 	return outCh
 }
 
-func mergeAutoVolumeRequests(volumes1 []string, volumes2 []string) (volumes []string, err error) {
+func mergeAutoVolumeRequests(volumes1 []string, volumes2 []string) (autoVolumes []string, hardVolumes []string, err error) {
 	sizeMap := map[string]int64{} // {"AUTO:/data:rw": 100}
 	for _, vol := range append(volumes1, volumes2...) {
 		parts := strings.Split(vol, ":")
 		if len(parts) != 4 || parts[0] != types.AUTO {
+			hardVolumes = append(hardVolumes, vol)
 			continue
 		}
 		size, err := strconv.ParseInt(parts[3], 10, 64)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		prefix := strings.Join(parts[0:3], ":")
 		if _, ok := sizeMap[prefix]; ok {
@@ -260,7 +261,7 @@ func mergeAutoVolumeRequests(volumes1 []string, volumes2 []string) (volumes []st
 		if size < 0 {
 			continue
 		}
-		volumes = append(volumes, fmt.Sprintf("%s:%d", prefix, size))
+		autoVolumes = append(autoVolumes, fmt.Sprintf("%s:%d", prefix, size))
 	}
-	return volumes, nil
+	return autoVolumes, hardVolumes, nil
 }

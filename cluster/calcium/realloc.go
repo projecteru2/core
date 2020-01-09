@@ -77,6 +77,7 @@ func (c *Calcium) doReallocContainer(
 	cpu float64, memory int64, volumes []string) {
 
 	volCPUMemNodeContainersInfo := volCPUMemNodeContainers{}
+	hardVolumesForContainer := map[string][]string{}
 	for nodename, containers := range nodeContainersInfo {
 		for _, container := range containers {
 			newCPU := utils.Round(container.Quota + cpu)
@@ -86,14 +87,15 @@ func (c *Calcium) doReallocContainer(
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				continue
 			}
-			vol, err := mergeAutoVolumeRequests(container.Volumes, volumes)
+			autoVolumes, hardVolumes, err := mergeAutoVolumeRequests(container.Volumes, volumes)
+			hardVolumesForContainer[container.ID] = hardVolumes
 			if err != nil {
-				log.Errorf("[doReallocContainer] New resource invalid %s, vol %v, err %v", container.ID, vol, err)
+				log.Errorf("[doReallocContainer] New resource invalid %s, vol %v, err %v", container.ID, volumes, err)
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				continue
 			}
-			sort.Slice(vol, func(i, j int) bool { return vol[i] < vol[j] })
-			newVol := strings.Join(vol, ",")
+			sort.Slice(autoVolumes, func(i, j int) bool { return autoVolumes[i] < autoVolumes[j] })
+			newVol := strings.Join(autoVolumes, ",")
 
 			if _, ok := volCPUMemNodeContainersInfo[newVol]; !ok {
 				volCPUMemNodeContainersInfo[newVol] = map[float64]map[int64]nodeContainers{}
@@ -157,9 +159,8 @@ func (c *Calcium) doReallocContainer(
 						var volumePlans []types.VolumePlan
 						// newVol won't be empty as long as existing container bound volumes before or realloc request requires new binding
 						if newVol != "" {
-							volumes := strings.Split(newVol, ",")
 							nodesInfo := []types.NodeInfo{{Name: node.Name, VolumeMap: node.Volume}}
-							_, nodeVolumePlans, total, err := c.scheduler.SelectVolumeNodes(nodesInfo, volumes)
+							_, nodeVolumePlans, total, err := c.scheduler.SelectVolumeNodes(nodesInfo, strings.Split(newVol, ","))
 							if err != nil {
 								return err
 							}
@@ -184,7 +185,7 @@ func (c *Calcium) doReallocContainer(
 						}
 
 						for idx, container := range containers {
-							newResource := &enginetypes.VirtualizationResource{Quota: newCPU, Memory: newMemory, SoftLimit: container.SoftLimit, Volumes: volumes}
+							newResource := &enginetypes.VirtualizationResource{Quota: newCPU, Memory: newMemory, SoftLimit: container.SoftLimit, Volumes: strings.Split(newVol, ",")}
 							if len(container.CPU) > 0 {
 								newResource.CPU = cpusets[0]
 								newResource.NUMANode = node.GetNUMANode(cpusets[0])
@@ -201,7 +202,7 @@ func (c *Calcium) doReallocContainer(
 								container.CPU = newResource.CPU
 								container.Quota = newResource.Quota
 								container.Memory = newResource.Memory
-								container.Volumes = newResource.Volumes
+								container.Volumes = append(newResource.Volumes, hardVolumesForContainer[container.ID]...)
 								container.VolumePlan = types.ToVolumePlan(newResource.VolumePlan)
 								updateSuccess = true
 							} else {

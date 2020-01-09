@@ -55,6 +55,9 @@ func (m *Mercury) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 	if opts.Share == 0 {
 		opts.Share = m.config.Scheduler.ShareBase
 	}
+	if opts.Volume == nil {
+		opts.Volume = types.VolumeMap{}
+	}
 	// 设置 numa 的内存默认值，如果没有的话，按照 numa node 个数均分
 	if len(opts.Numa) > 0 {
 		nodeIDs := map[string]struct{}{}
