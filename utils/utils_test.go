@@ -212,3 +212,13 @@ func TestMin(t *testing.T) {
 	assert.Equal(t, 1, Min(a, b))
 	assert.Equal(t, 1, Min(b, a))
 }
+
+func TestCompareStringSlice(t *testing.T) {
+	assert.Equal(t, CompareStringSlice(nil, nil), 0)
+	assert.Equal(t, CompareStringSlice([]string{}, []string{}), 0)
+	assert.Equal(t, CompareStringSlice([]string{"a", "c"}, []string{"b"}), -1)
+	assert.Equal(t, CompareStringSlice([]string{"c", "c"}, []string{"b", "e"}), 1)
+	assert.Equal(t, CompareStringSlice([]string{"a"}, []string{"b"}), -1)
+	assert.Equal(t, CompareStringSlice([]string{"a"}, []string{"a", "b"}), -1)
+	assert.Equal(t, CompareStringSlice([]string{"a", "b"}, []string{"a"}), 1)
+}

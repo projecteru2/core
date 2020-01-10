@@ -2,14 +2,15 @@ package types
 
 // VirtualizationResource define resources
 type VirtualizationResource struct {
-	CPU        map[string]int64 // for cpu binding
-	Quota      float64          // for cpu quota
-	Memory     int64            // for memory binding
-	Storage    int64
-	SoftLimit  bool   // soft limit or not
-	NUMANode   string // numa node
-	Volumes    []string
-	VolumePlan map[string]map[string]int64 // literal VolumePlan
+	CPU           map[string]int64 // for cpu binding
+	Quota         float64          // for cpu quota
+	Memory        int64            // for memory binding
+	Storage       int64
+	SoftLimit     bool   // soft limit or not
+	NUMANode      string // numa node
+	Volumes       []string
+	VolumePlan    map[string]map[string]int64 // literal VolumePlan
+	VolumeChanged bool                        // indicate whether new volumes contained in realloc request
 }
 
 // VirtualizationCreateOptions use for create virtualization target

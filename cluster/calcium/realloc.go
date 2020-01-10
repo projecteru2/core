@@ -185,7 +185,12 @@ func (c *Calcium) doReallocContainer(
 						}
 
 						for idx, container := range containers {
-							newResource := &enginetypes.VirtualizationResource{Quota: newCPU, Memory: newMemory, SoftLimit: container.SoftLimit, Volumes: strings.Split(newVol, ",")}
+							newResource := &enginetypes.VirtualizationResource{
+								Quota:     newCPU,
+								Memory:    newMemory,
+								SoftLimit: container.SoftLimit,
+								Volumes:   hardVolumesForContainer[container.ID],
+							}
 							if len(container.CPU) > 0 {
 								newResource.CPU = cpusets[0]
 								newResource.NUMANode = node.GetNUMANode(cpusets[0])
@@ -194,6 +199,11 @@ func (c *Calcium) doReallocContainer(
 
 							if newVol != "" {
 								newResource.VolumePlan = volumePlans[idx].ToLiteral()
+								newResource.Volumes = append(newResource.Volumes, strings.Split(newVol, ",")...)
+							}
+
+							if utils.CompareStringSlice(newResource.Volumes, container.Volumes) != 0 {
+								newResource.VolumeChanged = true
 							}
 
 							updateSuccess := false
@@ -202,7 +212,7 @@ func (c *Calcium) doReallocContainer(
 								container.CPU = newResource.CPU
 								container.Quota = newResource.Quota
 								container.Memory = newResource.Memory
-								container.Volumes = append(newResource.Volumes, hardVolumesForContainer[container.ID]...)
+								container.Volumes = newResource.Volumes
 								container.VolumePlan = types.ToVolumePlan(newResource.VolumePlan)
 								updateSuccess = true
 							} else {

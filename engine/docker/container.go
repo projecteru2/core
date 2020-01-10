@@ -294,8 +294,9 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 	if opts.Memory < minMemory {
 		return coretypes.ErrBadMemory
 	}
-	if opts.VolumePlan != nil {
-		log.Warnf("[VirtualizationUpdateResource] docker engine not support rebinding volume resource: %v", opts.Volumes)
+	if opts.VolumeChanged {
+		log.Errorf("[VirtualizationUpdateResource] docker engine not support rebinding volume resource: %v", opts.Volumes)
+		return coretypes.ErrNotSupport
 	}
 	newResource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode, opts.SoftLimit)
 	updateConfig := dockercontainer.UpdateConfig{Resources: newResource}
