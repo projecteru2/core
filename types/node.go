@@ -169,10 +169,11 @@ type NUMAMemory map[string]int64
 
 // Node store node info
 type Node struct {
-	Name           string            `json:"name"`
-	Endpoint       string            `json:"endpoint"`
-	Podname        string            `json:"podname"`
-	CPU            CPUMap            `json:"cpu"`
+	Name     string `json:"name"`
+	Endpoint string `json:"endpoint"`
+	Podname  string `json:"podname"`
+	CPU      CPUMap `json:"cpu"`
+	// free spaces
 	Volume         VolumeMap         `json:"volume"`
 	NUMA           NUMA              `json:"numa"`
 	NUMAMemory     NUMAMemory        `json:"numa_memory"`
@@ -297,7 +298,6 @@ type NodeInfo struct {
 	MemCap       int64
 	StorageCap   int64
 	CPUUsed      float64 // CPU目前占用率
-	VolumeUsed   float64 // Current volume usage
 	MemUsage     float64 // MEM目前占用率
 	StorageUsage float64 // Current storage usage ratio
 	CPURate      float64 // 需要增加的 CPU 占用率
