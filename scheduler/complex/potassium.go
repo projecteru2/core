@@ -3,8 +3,6 @@ package complexscheduler
 import (
 	"fmt"
 	"sort"
-	"strconv"
-	"strings"
 
 	"math"
 
@@ -125,27 +123,18 @@ func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, me
 }
 
 // SelectVolumeNodes calculates plans for volume request
-func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, volumeReqs []string) ([]types.NodeInfo, map[string][]types.VolumePlan, int, error) {
-	log.Infof("[SelectVolumeNodes] nodesInfo %v, need volume: %v", nodesInfo, volumeReqs)
-	req := []int64{}
-	autoVolumes := []string{}
-	for _, volume := range volumeReqs {
-		segs := strings.Split(volume, ":")
-		if len(segs) < 4 || segs[0] != types.AUTO {
-			continue
-		}
-		size, err := strconv.ParseInt(segs[3], 10, 64)
-		if err != nil {
-			return nil, nil, 0, err
-		}
-		req = append(req, size)
-		autoVolumes = append(autoVolumes, volume)
+func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.VolumeBindings) ([]types.NodeInfo, map[string][]types.VolumePlan, int, error) {
+	log.Infof("[SelectVolumeNodes] nodesInfo %v, need volume: %v", nodesInfo, vbs)
+	sizes := []int64{}
+
+	for _, vb := range vbs {
+		sizes = append(sizes, vb.SizeInBytes)
 	}
 
 	volTotal := 0
 	volumePlans := map[string][]types.VolumePlan{}
 	for nodeIdx, nodeInfo := range nodesInfo {
-		capacity, distributions := calculateVolumePlan(nodeInfo.VolumeMap, req)
+		capacity, distributions := calculateVolumePlan(nodeInfo.VolumeMap, sizes)
 		if nodesInfo[nodeIdx].Capacity == 0 {
 			nodesInfo[nodeIdx].Capacity = capacity
 		} else {
@@ -158,7 +147,7 @@ func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, volumeReqs []s
 		for _, distribution := range distributions {
 			volumePlans[nodeInfo.Name] = append(
 				volumePlans[nodeInfo.Name],
-				*types.NewVolumePlan(autoVolumes, distribution),
+				*types.NewVolumePlan(vbs, distribution),
 			)
 		}
 	}

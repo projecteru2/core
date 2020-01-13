@@ -592,9 +592,13 @@ func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_R
 	if len(ids) == 0 {
 		return types.ErrNoContainerIDs
 	}
+	vbs, err := types.MakeVolumeBindings(opts.Volumes)
+	if err != nil {
+		return err
+	}
 
 	//这里不能让 client 打断 remove
-	ch, err := v.cluster.ReallocResource(context.Background(), ids, opts.Cpu, opts.Memory, opts.Volumes)
+	ch, err := v.cluster.ReallocResource(context.Background(), ids, opts.Cpu, opts.Memory, vbs)
 	if err != nil {
 		return err
 	}
