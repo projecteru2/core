@@ -3,8 +3,6 @@ package types
 import (
 	"context"
 	"sort"
-	"strconv"
-	"strings"
 
 	"math"
 
@@ -80,42 +78,38 @@ func (c VolumeMap) GetRation() int64 {
 }
 
 // VolumePlan is map from volume string to volumeMap: {"AUTO:/data:rw:100": VolumeMap{"/sda1": 100}}
-type VolumePlan map[string]VolumeMap
+type VolumePlan map[*VolumeBinding]VolumeMap
 
 // NewVolumePlan creates VolumePlan pointer by volume strings and scheduled VolumeMaps
-func NewVolumePlan(autoVolumes []string, distribution []VolumeMap) *VolumePlan {
-	sort.Slice(autoVolumes, func(i, j int) bool {
-		// no err check due to volume strings have been converted into int64 before
-		sizeI, _ := strconv.ParseInt(strings.Split(autoVolumes[i], ":")[3], 10, 64)
-		sizeJ, _ := strconv.ParseInt(strings.Split(autoVolumes[j], ":")[3], 10, 64)
-		return sizeI < sizeJ
-	})
-
-	sort.Slice(distribution, func(i, j int) bool {
-		return distribution[i].GetRation() < distribution[j].GetRation()
-	})
+func NewVolumePlan(vbs VolumeBindings, distribution []VolumeMap) *VolumePlan {
+	sort.Slice(vbs, func(i, j int) bool { return vbs[i].SizeInBytes < vbs[j].SizeInBytes })
+	sort.Slice(distribution, func(i, j int) bool { return distribution[i].GetRation() < distribution[j].GetRation() })
 
 	volumePlan := VolumePlan{}
-	for idx, autoVolume := range autoVolumes {
-		volumePlan[autoVolume] = distribution[idx]
+	for idx, vb := range vbs {
+		volumePlan[vb] = distribution[idx]
 	}
 	return &volumePlan
 }
 
 // ToVolumePlan convert VolumePlan from literal value
-func ToVolumePlan(plan map[string]map[string]int64) VolumePlan {
+func ToVolumePlan(plan map[string]map[string]int64) (VolumePlan, error) {
 	volumePlan := VolumePlan{}
-	for volumeStr, volumeMap := range plan {
-		volumePlan[volumeStr] = VolumeMap(volumeMap)
+	for volume, volumeMap := range plan {
+		vb, err := NewVolumeBinding(volume)
+		if err != nil {
+			return nil, err
+		}
+		volumePlan[vb] = VolumeMap(volumeMap)
 	}
-	return volumePlan
+	return volumePlan, nil
 }
 
 // ToLiteral returns literal VolumePlan
 func (p VolumePlan) ToLiteral() map[string]map[string]int64 {
 	plan := map[string]map[string]int64{}
-	for volumeStr, volumeMap := range p {
-		plan[volumeStr] = volumeMap
+	for vb, volumeMap := range p {
+		plan[vb.ToString()] = volumeMap
 	}
 	return plan
 }
@@ -129,20 +123,10 @@ func (p VolumePlan) Merge() VolumeMap {
 	return volumeMap
 }
 
-// GetVolumeString generates actual volume string for engine
-func (p VolumePlan) GetVolumeString(autoVolume string) (volume string) {
-	volume = autoVolume
-	if volumeMap := p.GetVolumeMap(autoVolume); volumeMap != nil {
-		volume = strings.Replace(autoVolume, AUTO, volumeMap.GetResourceID(), 1)
-	}
-	return
-}
-
 // GetVolumeMap looks up VolumeMap according to volume destination directory
-func (p VolumePlan) GetVolumeMap(autoVolume string) (volMap VolumeMap) {
-	dstDir := strings.Split(autoVolume, ":")[1]
+func (p VolumePlan) GetVolumeMap(vb *VolumeBinding) (volMap VolumeMap) {
 	for volume, volMap := range p {
-		if dstDir == strings.Split(volume, ":")[1] {
+		if vb.Destination == volume.Destination {
 			return volMap
 		}
 	}

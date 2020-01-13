@@ -100,7 +100,7 @@ func (c *Calcium) doCreateContainerOnNode(ctx context.Context, nodeInfo types.No
 			if len(nodeInfo.CPUPlan) > 0 {
 				cpu = nodeInfo.CPUPlan[i]
 			}
-			volumePlan := map[string]types.VolumeMap{}
+			volumePlan := map[*types.VolumeBinding]types.VolumeMap{}
 			if len(nodeInfo.VolumePlans) > 0 {
 				volumePlan = nodeInfo.VolumePlans[i]
 			}
@@ -274,15 +274,10 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, volumeP
 	config.Image = opts.Image
 	config.Stdin = opts.OpenStdin
 	config.Hosts = opts.ExtraHosts
-	config.Volumes = make([]string, len(opts.Volumes))
+	config.Volumes = opts.Volumes.ApplyPlan(volumePlan).ToStringSlice(false)
 	config.Debug = opts.Debug
 	config.Network = opts.NetworkMode
 	config.Networks = opts.Networks
-
-	// volumes
-	for idx, volume := range opts.Volumes {
-		config.Volumes[idx] = volumePlan.GetVolumeString(volume)
-	}
 
 	// entry
 	entry := opts.Entrypoint

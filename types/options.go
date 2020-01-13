@@ -16,7 +16,7 @@ type DeployOptions struct {
 	Env          []string          // Env for container
 	DNS          []string          // DNS for container
 	ExtraHosts   []string          // Extra hosts for container
-	Volumes      []string          // Volumes for container
+	Volumes      VolumeBindings    // Volumes for container
 	Networks     map[string]string // Network names and specified IPs
 	NetworkMode  string            // Network mode
 	User         string            // User for container
