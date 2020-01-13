@@ -261,7 +261,7 @@ func Min(x int, xs ...int) int {
 	return x
 }
 
-// CompareStringSlice return nagative if s1 > s2, positive if s1 < s2, else 0
+// CompareStringSlice return positive if s1 > s2, nagetive if s1 < s2, else 0
 func CompareStringSlice(s1, s2 []string) int {
 	sort.Slice(s1, func(i, j int) bool { return s1[i] < s2[j] })
 	sort.Slice(s2, func(i, j int) bool { return s2[i] < s2[j] })
