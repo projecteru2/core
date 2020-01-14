@@ -83,7 +83,7 @@ func (e *Engine) Info(ctx context.Context) (*enginetypes.Info, error) {
 }
 
 // ResourceValidate validate resource usage
-func (e *Engine) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int, memory, storage int64) error {
+func (e *Engine) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory, storage int64) error {
 	// TODO list all containers, calcuate resource
 	return nil
 }

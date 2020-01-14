@@ -38,22 +38,8 @@ func (v *Vibranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Pod
 // AddNode saves a node and returns it to client
 // Method must be called synchronously, or nothing will be returned
 func (v *Vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.Node, error) {
-	n, err := v.cluster.AddNode(
-		ctx,
-		opts.Nodename,
-		opts.Endpoint,
-		opts.Podname,
-		opts.Ca,
-		opts.Cert,
-		opts.Key,
-		int(opts.Cpu),
-		int(opts.Share),
-		opts.Memory,
-		opts.Storage,
-		opts.Labels,
-		opts.Numa,
-		opts.NumaMemory,
-	)
+	addNodeOpts := toCoreAddNodeOptions(opts)
+	n, err := v.cluster.AddNode(ctx, addNodeOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -608,7 +594,7 @@ func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_R
 	}
 
 	//这里不能让 client 打断 remove
-	ch, err := v.cluster.ReallocResource(context.Background(), ids, opts.Cpu, opts.Memory)
+	ch, err := v.cluster.ReallocResource(context.Background(), ids, opts.Cpu, opts.Memory, opts.Volumes)
 	if err != nil {
 		return err
 	}

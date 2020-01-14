@@ -93,7 +93,7 @@ func TestGetContainer(t *testing.T) {
 	// create pod node
 	_, err = m.AddPod(ctx, podname, "")
 	assert.NoError(t, err)
-	_, err = m.AddNode(ctx, nodename, "mock://", podname, "", "", "", 10, 100, 1000, 1000, nil, nil, nil)
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname, CPU: 10, Share: 100, Memory: 1000, Storage: 1000})
 	assert.NoError(t, err)
 	// success
 	_, err = m.GetContainer(ctx, ID)
@@ -123,7 +123,7 @@ func TestGetContainerStatus(t *testing.T) {
 	// add success
 	_, err = m.AddPod(ctx, podname, "")
 	assert.NoError(t, err)
-	_, err = m.AddNode(ctx, nodename, "mock://", podname, "", "", "", 10, 100, 1000, 1000, nil, nil, nil)
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname, CPU: 10, Share: 100, Memory: 1000, Storage: 1000})
 	assert.NoError(t, err)
 	c, err := m.GetContainerStatus(ctx, ID)
 	assert.Nil(t, c)
@@ -188,7 +188,7 @@ func TestListContainers(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = m.AddPod(ctx, podname, "")
 	assert.NoError(t, err)
-	_, err = m.AddNode(ctx, nodename, "mock://", podname, "", "", "", 10, 100, 1000, 1000, nil, nil, nil)
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname, CPU: 10, Share: 100, Memory: 1000, Storage: 1000})
 	assert.NoError(t, err)
 	// no labels
 	cs, err = m.ListContainers(ctx, "", "a", "b", 1, nil)
@@ -225,7 +225,7 @@ func TestListNodeContainers(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = m.AddPod(ctx, podname, "")
 	assert.NoError(t, err)
-	_, err = m.AddNode(ctx, nodename, "mock://", podname, "", "", "", 10, 100, 1000, 1000, nil, nil, nil)
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname, CPU: 10, Share: 100, Memory: 1000, Storage: 1000})
 	assert.NoError(t, err)
 	// no labels
 	cs, err = m.ListNodeContainers(ctx, nodename, nil)

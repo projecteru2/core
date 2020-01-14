@@ -71,6 +71,24 @@ type ReplaceOptions struct {
 	IDs            []string
 }
 
+// AddNodeOptions for adding node
+type AddNodeOptions struct {
+	Nodename   string
+	Endpoint   string
+	Podname    string
+	Ca         string
+	Cert       string
+	Key        string
+	CPU        int
+	Share      int
+	Memory     int64
+	Storage    int64
+	Labels     map[string]string
+	Numa       NUMA
+	NumaMemory NUMAMemory
+	Volume     VolumeMap
+}
+
 // SetNodeOptions for node set
 type SetNodeOptions struct {
 	Nodename        string
@@ -79,6 +97,7 @@ type SetNodeOptions struct {
 	DeltaMemory     int64
 	DeltaStorage    int64
 	DeltaNUMAMemory map[string]int64
+	DeltaVolume     VolumeMap
 	NUMA            map[string]string
 	Labels          map[string]string
 }

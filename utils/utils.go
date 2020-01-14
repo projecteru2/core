@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/projecteru2/core/cluster"
@@ -250,9 +251,27 @@ func safeSplit(s string) []string {
 }
 
 // Min returns the lesser one.
-func Min(x, y int) int {
-	if x < y {
+func Min(x int, xs ...int) int {
+	if len(xs) == 0 {
 		return x
 	}
-	return y
+	if m := Min(xs[0], xs[1:]...); m < x {
+		return m
+	}
+	return x
+}
+
+// CompareStringSlice return positive if s1 > s2, nagetive if s1 < s2, else 0
+func CompareStringSlice(s1, s2 []string) int {
+	sort.Slice(s1, func(i, j int) bool { return s1[i] < s2[j] })
+	sort.Slice(s2, func(i, j int) bool { return s2[i] < s2[j] })
+
+	for i := 0; i < Min(len(s1), len(s2)); i++ {
+		if s1[i] < s2[i] {
+			return -1
+		} else if s1[i] > s2[i] {
+			return 1
+		}
+	}
+	return len(s1) - len(s2)
 }

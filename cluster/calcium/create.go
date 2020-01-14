@@ -68,7 +68,7 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 					ch <- m
 					if m.Error != nil && m.ContainerID == "" {
 						if err := c.withNodeLocked(ctx, nodeInfo.Name, func(node *types.Node) error {
-							return c.store.UpdateNodeResource(ctx, node, m.CPU, opts.CPUQuota, opts.Memory, opts.Storage, store.ActionIncr)
+							return c.store.UpdateNodeResource(ctx, node, m.CPU, opts.CPUQuota, opts.Memory, opts.Storage, m.VolumePlan.Merge(), store.ActionIncr)
 						}); err != nil {
 							log.Errorf("[doCreateContainer] Reset node %s failed %v", nodeInfo.Name, err)
 						}
@@ -100,7 +100,15 @@ func (c *Calcium) doCreateContainerOnNode(ctx context.Context, nodeInfo types.No
 			if len(nodeInfo.CPUPlan) > 0 {
 				cpu = nodeInfo.CPUPlan[i]
 			}
-			ms[i] = &types.CreateContainerMessage{Error: err, CPU: cpu}
+			volumePlan := map[string]types.VolumeMap{}
+			if len(nodeInfo.VolumePlans) > 0 {
+				volumePlan = nodeInfo.VolumePlans[i]
+			}
+			ms[i] = &types.CreateContainerMessage{
+				Error:      err,
+				CPU:        cpu,
+				VolumePlan: volumePlan,
+			}
 		}
 		return ms
 	}
@@ -111,7 +119,11 @@ func (c *Calcium) doCreateContainerOnNode(ctx context.Context, nodeInfo types.No
 		if len(nodeInfo.CPUPlan) > 0 {
 			cpu = nodeInfo.CPUPlan[i]
 		}
-		ms[i] = c.doCreateAndStartContainer(ctx, i+index, node, opts, cpu)
+		volumePlan := types.VolumePlan{}
+		if len(nodeInfo.VolumePlans) > 0 {
+			volumePlan = nodeInfo.VolumePlans[i]
+		}
+		ms[i] = c.doCreateAndStartContainer(ctx, i+index, node, opts, cpu, volumePlan)
 		if !ms[i].Success {
 			log.Errorf("[doCreateContainerOnNode] Error when create and start a container, %v", ms[i].Error)
 			continue
@@ -136,6 +148,7 @@ func (c *Calcium) doCreateAndStartContainer(
 	no int, node *types.Node,
 	opts *types.DeployOptions,
 	cpu types.CPUMap,
+	volumePlan types.VolumePlan,
 ) *types.CreateContainerMessage {
 	container := &types.Container{
 		Podname:    opts.Podname,
@@ -152,16 +165,18 @@ func (c *Calcium) doCreateAndStartContainer(
 		Env:        opts.Env,
 		User:       opts.User,
 		Volumes:    opts.Volumes,
+		VolumePlan: volumePlan,
 	}
 	createContainerMessage := &types.CreateContainerMessage{
-		Podname:  container.Podname,
-		Nodename: container.Nodename,
-		Success:  false,
-		CPU:      cpu,
-		Quota:    opts.CPUQuota,
-		Memory:   opts.Memory,
-		Storage:  opts.Storage,
-		Publish:  map[string][]string{},
+		Podname:    container.Podname,
+		Nodename:   container.Nodename,
+		Success:    false,
+		CPU:        cpu,
+		Quota:      opts.CPUQuota,
+		Memory:     opts.Memory,
+		Storage:    opts.Storage,
+		VolumePlan: volumePlan,
+		Publish:    map[string][]string{},
 	}
 	var err error
 
@@ -177,7 +192,7 @@ func (c *Calcium) doCreateAndStartContainer(
 	}()
 
 	// get config
-	config := c.doMakeContainerOptions(no, cpu, opts, node)
+	config := c.doMakeContainerOptions(no, cpu, volumePlan, opts, node)
 	container.Name = config.Name
 	container.Labels = config.Labels
 	createContainerMessage.ContainerName = container.Name
@@ -242,11 +257,11 @@ func (c *Calcium) doCreateAndStartContainer(
 	return createContainerMessage
 }
 
-func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, opts *types.DeployOptions, node *types.Node) *enginetypes.VirtualizationCreateOptions {
+func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, volumePlan types.VolumePlan, opts *types.DeployOptions, node *types.Node) *enginetypes.VirtualizationCreateOptions {
 	config := &enginetypes.VirtualizationCreateOptions{}
 	// general
 	config.Seq = index
-	config.CPU = cpumap.Map()
+	config.CPU = cpumap
 	config.Quota = opts.CPUQuota
 	config.Memory = opts.Memory
 	config.Storage = opts.Storage
@@ -259,10 +274,16 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, opts *t
 	config.Image = opts.Image
 	config.Stdin = opts.OpenStdin
 	config.Hosts = opts.ExtraHosts
-	config.Volumes = opts.Volumes
+	config.Volumes = make([]string, len(opts.Volumes))
 	config.Debug = opts.Debug
 	config.Network = opts.NetworkMode
 	config.Networks = opts.Networks
+
+	// volumes
+	for idx, volume := range opts.Volumes {
+		config.Volumes[idx] = volumePlan.GetVolumeString(volume)
+	}
+
 	// entry
 	entry := opts.Entrypoint
 	config.WorkingDir = entry.Dir

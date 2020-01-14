@@ -17,6 +17,11 @@ func TestNode(t *testing.T) {
 	mockEngine.On("Info", mock.Anything).Return(r, nil)
 
 	node := &Node{}
+	assert.Nil(t, node.Volume)
+	assert.Nil(t, node.InitVolume)
+	node.Init()
+	assert.Equal(t, node.Volume, VolumeMap{})
+	assert.Equal(t, node.InitVolume, VolumeMap{})
 	ctx := context.Background()
 	_, err := node.Info(ctx)
 	assert.Error(t, err)
@@ -31,24 +36,26 @@ func TestNode(t *testing.T) {
 	assert.Equal(t, node.CPUUsed, 1.0)
 	node.SetCPUUsed(1.0, DecrUsage)
 	assert.Equal(t, node.CPUUsed, 0.0)
+
+	node.SetVolumeUsed(100, IncrUsage)
+	assert.Equal(t, node.VolumeUsed, int64(100))
+	node.SetVolumeUsed(10, DecrUsage)
+	assert.Equal(t, node.VolumeUsed, int64(90))
 }
 
 func TestCPUMap(t *testing.T) {
 	cpuMap := CPUMap{"0": 50, "1": 70}
 	total := cpuMap.Total()
-	assert.Equal(t, total, 120)
+	assert.Equal(t, total, int64(120))
 
 	cpuMap.Add(CPUMap{"0": 20})
-	assert.Equal(t, cpuMap["0"], 70)
+	assert.Equal(t, cpuMap["0"], int64(70))
 
 	cpuMap.Add(CPUMap{"3": 100})
-	assert.Equal(t, cpuMap["3"], 100)
+	assert.Equal(t, cpuMap["3"], int64(100))
 
 	cpuMap.Sub(CPUMap{"1": 20})
-	assert.Equal(t, cpuMap["1"], 50)
-
-	m := cpuMap.Map()
-	assert.Equal(t, m["1"], 50)
+	assert.Equal(t, cpuMap["1"], int64(50))
 }
 
 func TestGetNUMANode(t *testing.T) {
@@ -92,4 +99,53 @@ func TestStorage(t *testing.T) {
 	assert.Equal(t, node.StorageUsage(), 0.5)
 	assert.Equal(t, node.StorageUsed(), int64(1))
 	assert.Equal(t, node.AvailableStorage(), int64(1))
+}
+
+func TestVolumeMap(t *testing.T) {
+	volume := VolumeMap{"/data": 1000}
+	assert.Equal(t, volume.Total(), int64(1000))
+	assert.Equal(t, volume.GetResourceID(), "/data")
+	assert.Equal(t, volume.GetRation(), int64(1000))
+}
+
+func TestVolumePlan(t *testing.T) {
+	plan := VolumePlan{
+		"AUTO:/data0:rw:100":  VolumeMap{"/dir0": 100},
+		"AUTO:/data1:ro:2000": VolumeMap{"/dir1": 2000},
+	}
+	assert.Equal(t, plan.Merge(), VolumeMap{"/dir0": 100, "/dir1": 2000})
+	assert.Equal(t, plan.GetVolumeString("AUTO:/data0:rw:100"), "/dir0:/data0:rw:100")
+	assert.Equal(t, plan.GetVolumeString("/tmp:/tmp:rw:111"), "/tmp:/tmp:rw:111")
+
+	literal := map[string]map[string]int64{
+		"AUTO:/data0:rw:100":  map[string]int64{"/dir0": 100},
+		"AUTO:/data1:ro:2000": map[string]int64{"/dir1": 2000},
+	}
+	assert.Equal(t, ToVolumePlan(literal), plan)
+	assert.Equal(t, plan.ToLiteral(), literal)
+
+	assert.True(t, plan.Compatible(VolumePlan{
+		"AUTO:/data0:ro:200": VolumeMap{"/dir0": 200},
+		"AUTO:/data1:rw:100": VolumeMap{"/dir1": 100},
+	}))
+	assert.False(t, plan.Compatible(VolumePlan{
+		"AUTO:/data0:ro:200": VolumeMap{"/dir0": 200},
+		"AUTO:/data1:rw:100": VolumeMap{"/dir2": 100},
+	}))
+}
+
+func TestNewVolumePlan(t *testing.T) {
+	plan := NewVolumePlan(
+		[]string{"AUTO:/data0:rw:10", "AUTO:/data1:ro:20", "AUTO:/data2:rw:10"},
+		[]VolumeMap{
+			{"/dir0": 10},
+			{"/dir1": 10},
+			{"/dir2": 20},
+		},
+	)
+	assert.Equal(t, plan, &VolumePlan{
+		"AUTO:/data0:rw:10": VolumeMap{"/dir0": 10},
+		"AUTO:/data1:ro:20": VolumeMap{"/dir2": 20},
+		"AUTO:/data2:rw:10": VolumeMap{"/dir1": 10},
+	})
 }

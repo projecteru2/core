@@ -61,11 +61,14 @@ func toRPCNode(ctx context.Context, n *types.Node) *pb.Node {
 		MemoryUsed:  n.InitMemCap - n.MemCap,
 		Storage:     n.StorageCap,
 		StorageUsed: n.StorageUsed(),
+		Volume:      n.Volume,
+		VolumeUsed:  int64(n.VolumeUsed),
 		Available:   n.Available,
 		Labels:      n.Labels,
 		InitCpu:     toRPCCPUMap(n.InitCPU),
 		InitMemory:  n.InitMemCap,
 		InitStorage: n.InitStorageCap,
+		InitVolume:  n.InitVolume,
 		Info:        nodeInfo,
 		Numa:        n.NUMA,
 		NumaMemory:  n.NUMAMemory,
@@ -78,6 +81,7 @@ func toRPCNodeResource(nr *types.NodeResource) *pb.NodeResource {
 		CpuPercent:     nr.CPUPercent,
 		MemoryPercent:  nr.MemoryPercent,
 		StoragePercent: nr.StoragePercent,
+		VolumePercent:  nr.VolumePercent,
 		Verification:   nr.Verification,
 		Details:        nr.Details,
 	}
@@ -110,6 +114,26 @@ func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) {
 	return &types.SendOptions{IDs: b.Ids}, nil
 }
 
+func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
+	r := &types.AddNodeOptions{
+		Nodename:   b.Nodename,
+		Endpoint:   b.Endpoint,
+		Podname:    b.Podname,
+		Ca:         b.Ca,
+		Cert:       b.Cert,
+		Key:        b.Key,
+		CPU:        int(b.Cpu),
+		Share:      int(b.Share),
+		Memory:     b.Memory,
+		Storage:    b.Storage,
+		Labels:     b.Labels,
+		Numa:       b.Numa,
+		NumaMemory: b.NumaMemory,
+		Volume:     types.VolumeMap{},
+	}
+	return r
+}
+
 func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) {
 	r := &types.SetNodeOptions{
 		Nodename:        b.Nodename,
@@ -118,11 +142,12 @@ func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) {
 		DeltaMemory:     b.DeltaMemory,
 		DeltaStorage:    b.DeltaStorage,
 		DeltaNUMAMemory: b.DeltaNumaMemory,
+		DeltaVolume:     b.DeltaVolume,
 		NUMA:            b.Numa,
 		Labels:          b.Labels,
 	}
 	for cpuID, cpuShare := range b.DeltaCpu {
-		r.DeltaCPU[cpuID] = int(cpuShare)
+		r.DeltaCPU[cpuID] = int64(cpuShare)
 	}
 	return r, nil
 }
@@ -261,7 +286,7 @@ func toCoreDeployStorage(storage int64, vols []string) (int64, error) {
 	var stor int64
 	for _, bind := range vols {
 		parts := strings.Split(bind, ":")
-		if len(parts) != 4 {
+		if len(parts) != 4 || parts[0] == types.AUTO {
 			continue
 		}
 
@@ -275,22 +300,35 @@ func toCoreDeployStorage(storage int64, vols []string) (int64, error) {
 	return stor + storage, nil
 }
 
+func toRPCVolumePlan(v types.VolumePlan) map[string]*pb.Volume {
+	if v == nil {
+		return nil
+	}
+
+	msg := map[string]*pb.Volume{}
+	for reqVolume, volume := range v {
+		msg[reqVolume] = &pb.Volume{Volume: volume}
+	}
+	return msg
+}
+
 func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateContainerMessage {
 	if c == nil {
 		return nil
 	}
 	msg := &pb.CreateContainerMessage{
-		Podname:  c.Podname,
-		Nodename: c.Nodename,
-		Id:       c.ContainerID,
-		Name:     c.ContainerName,
-		Success:  c.Success,
-		Cpu:      toRPCCPUMap(c.CPU),
-		Quota:    c.Quota,
-		Memory:   c.Memory,
-		Storage:  c.Storage,
-		Publish:  utils.EncodePublishInfo(c.Publish),
-		Hook:     types.HookOutput(c.Hook),
+		Podname:    c.Podname,
+		Nodename:   c.Nodename,
+		Id:         c.ContainerID,
+		Name:       c.ContainerName,
+		Success:    c.Success,
+		Cpu:        toRPCCPUMap(c.CPU),
+		Quota:      c.Quota,
+		Memory:     c.Memory,
+		Storage:    c.Storage,
+		VolumePlan: toRPCVolumePlan(c.VolumePlan),
+		Publish:    utils.EncodePublishInfo(c.Publish),
+		Hook:       types.HookOutput(c.Hook),
 	}
 	if c.Error != nil {
 		msg.Error = c.Error.Error()
@@ -434,6 +472,8 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		Publish:    publish,
 		Image:      c.Image,
 		Labels:     c.Labels,
+		Volumes:    c.Volumes,
+		VolumePlan: toRPCVolumePlan(c.VolumePlan),
 		Status:     toRPCContainerStatus(c.StatusMeta),
 	}, nil
 }

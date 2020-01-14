@@ -87,16 +87,19 @@ func makeMountPaths(opts *enginetypes.VirtualizationCreateOptions) ([]string, ma
 		if len(parts) == 2 {
 			binds = append(binds, fmt.Sprintf("%s:%s:rw", parts[0], parts[1]))
 			volumes[parts[1]] = struct{}{}
-		} else if len(parts) == 3 {
+		} else if len(parts) >= 3 {
 			binds = append(binds, fmt.Sprintf("%s:%s:%s", parts[0], parts[1], parts[2]))
 			volumes[parts[1]] = struct{}{}
+			if len(parts) == 4 {
+				log.Warn("[makeMountPaths] docker engine not support volume with size limit")
+			}
 		}
 	}
 
 	return binds, volumes
 }
 
-func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int, numaNode string, softlimit bool) dockercontainer.Resources {
+func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, numaNode string, softlimit bool) dockercontainer.Resources {
 	resource := dockercontainer.Resources{}
 	if cpu > 0 {
 		resource.CPUPeriod = corecluster.CPUPeriodBase

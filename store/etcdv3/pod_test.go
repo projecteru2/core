@@ -27,7 +27,7 @@ func TestPod(t *testing.T) {
 	assert.Equal(t, len(pods), 1)
 	assert.Equal(t, pods[0].Name, podname)
 
-	_, err = m.AddNode(ctx, "test", "mock://", podname, "", "", "", 10, 100, 1000, 1000, nil, nil, nil)
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: podname, CPU: 10, Share: 100, Memory: 1000, Storage: 1000})
 	assert.NoError(t, err)
 	err = m.RemovePod(ctx, podname)
 	assert.Error(t, err)

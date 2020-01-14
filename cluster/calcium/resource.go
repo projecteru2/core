@@ -85,6 +85,7 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, node *types.Node) (*typ
 	nr.CPUPercent = cpus / float64(len(node.InitCPU))
 	nr.MemoryPercent = float64(memory) / float64(node.InitMemCap)
 	nr.NUMAMemoryPercent = map[string]float64{}
+	nr.VolumePercent = float64(node.VolumeUsed) / float64(node.InitVolume.Total())
 	for nodeID, nmemory := range node.NUMAMemory {
 		if initMemory, ok := node.InitNUMAMemory[nodeID]; ok {
 			nr.NUMAMemoryPercent[nodeID] = float64(nmemory) / float64(initMemory)
@@ -128,6 +129,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 	var total int
 	var nodesInfo []types.NodeInfo
 	var nodeCPUPlans map[string][]types.CPUMap
+	var nodeVolumePlans map[string][]types.VolumePlan
 	if err = c.withNodesLocked(ctx, opts.Podname, opts.Nodename, opts.NodeLabels, false, func(nodes map[string]*types.Node) error {
 		if len(nodes) == 0 {
 			return types.ErrInsufficientNodes
@@ -153,7 +155,13 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 		if nodesInfo, storTotal, err = c.scheduler.SelectStorageNodes(nodesInfo, opts.Storage); err != nil {
 			return err
 		}
-		total = utils.Min(storTotal, total)
+
+		var volumeTotal int
+		if nodesInfo, nodeVolumePlans, volumeTotal, err = c.scheduler.SelectVolumeNodes(nodesInfo, opts.Volumes); err != nil {
+			return err
+		}
+
+		total = utils.Min(volumeTotal, storTotal, total)
 
 		switch opts.DeployMethod {
 		case cluster.DeployAuto:
@@ -184,6 +192,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 			memoryCost := opts.Memory * int64(nodeInfo.Deploy)
 			storageCost := opts.Storage * int64(nodeInfo.Deploy)
 			quotaCost := opts.CPUQuota * float64(nodeInfo.Deploy)
+			volumeCost := types.VolumeMap{}
 
 			if _, ok := nodeCPUPlans[nodeInfo.Name]; ok {
 				cpuList := nodeCPUPlans[nodeInfo.Name][:nodeInfo.Deploy]
@@ -192,7 +201,15 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 					cpuCost.Add(cpu)
 				}
 			}
-			if err = c.store.UpdateNodeResource(ctx, nodes[nodeInfo.Name], cpuCost, quotaCost, memoryCost, storageCost, store.ActionDecr); err != nil {
+
+			if _, ok := nodeVolumePlans[nodeInfo.Name]; ok {
+				nodesInfo[i].VolumePlans = nodeVolumePlans[nodeInfo.Name][:nodeInfo.Deploy]
+				for _, volumePlan := range nodesInfo[i].VolumePlans {
+					volumeCost.Add(volumePlan.Merge())
+				}
+			}
+
+			if err = c.store.UpdateNodeResource(ctx, nodes[nodeInfo.Name], cpuCost, quotaCost, memoryCost, storageCost, volumeCost, store.ActionDecr); err != nil {
 				return err
 			}
 		}

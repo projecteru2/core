@@ -14,6 +14,8 @@ type Scheduler interface {
 	// select nodes from nodes, return a list of nodenames and the corresponding cpumap, and also the changed nodes with remaining cpumap
 	// quota and number must be given, typically used to determine where to deploy
 	SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, memory int64) ([]types.NodeInfo, map[string][]types.CPUMap, int, error)
+	// select nodes from nodes, return a list a nodenames and the corresponding volumemap
+	SelectVolumeNodes(nodeInfo []types.NodeInfo, volumes []string) ([]types.NodeInfo, map[string][]types.VolumePlan, int, error)
 	// global division
 	GlobalDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error)
 	// common division

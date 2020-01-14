@@ -60,9 +60,7 @@ type Cluster interface {
 	PodResource(ctx context.Context, podname string) (*types.PodResource, error)
 	ListPodNodes(ctx context.Context, podname string, labels map[string]string, all bool) ([]*types.Node, error)
 	// meta node
-	AddNode(ctx context.Context, nodename, endpoint, podname, ca, cert, key string,
-		cpu, share int, memory, storage int64, labels map[string]string,
-		numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error)
+	AddNode(context.Context, *types.AddNodeOptions) (*types.Node, error)
 	RemoveNode(ctx context.Context, nodename string) error
 	SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error)
 	GetNode(ctx context.Context, nodename string) (*types.Node, error)
@@ -88,7 +86,7 @@ type Cluster interface {
 	RemoveContainer(ctx context.Context, IDs []string, force bool, step int) (chan *types.RemoveContainerMessage, error)
 	DissociateContainer(ctx context.Context, IDs []string) (chan *types.DissociateContainerMessage, error)
 	ControlContainer(ctx context.Context, IDs []string, t string, force bool) (chan *types.ControlContainerMessage, error)
-	ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64) (chan *types.ReallocResourceMessage, error)
+	ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64, volumes []string) (chan *types.ReallocResourceMessage, error)
 	LogStream(ctx context.Context, ID string) (chan *types.LogStreamMessage, error)
 	RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) (<-chan *types.AttachContainerMessage, error)
 	ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions, inCh <-chan []byte) chan *types.AttachContainerMessage

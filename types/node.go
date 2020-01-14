@@ -2,6 +2,9 @@ package types
 
 import (
 	"context"
+	"sort"
+	"strconv"
+	"strings"
 
 	"math"
 
@@ -14,16 +17,18 @@ const (
 	IncrUsage = "+"
 	// DecrUsage cpuusage
 	DecrUsage = "-"
+	// AUTO indicates that volume is to be scheduled by scheduler
+	AUTO = "AUTO"
 )
 
-// CPUMap is cpu core map
-// CPUMap {["0"]10000, ["1"]10000}
-type CPUMap map[string]int
+// ResourceMap is cpu core map
+// ResourceMap {["0"]10000, ["1"]10000}
+type ResourceMap map[string]int64
 
 // Total show total cpu
 // Total quotas
-func (c CPUMap) Total() int {
-	var count int
+func (c ResourceMap) Total() int64 {
+	var count int64
 	for _, value := range c {
 		count += value
 	}
@@ -31,7 +36,7 @@ func (c CPUMap) Total() int {
 }
 
 // Add return cpu
-func (c CPUMap) Add(q CPUMap) {
+func (c ResourceMap) Add(q ResourceMap) {
 	for label, value := range q {
 		if _, ok := c[label]; !ok {
 			c[label] = value
@@ -42,7 +47,7 @@ func (c CPUMap) Add(q CPUMap) {
 }
 
 // Sub decrease cpus
-func (c CPUMap) Sub(q CPUMap) {
+func (c ResourceMap) Sub(q ResourceMap) {
 	for label, value := range q {
 		if _, ok := c[label]; ok {
 			c[label] -= value
@@ -50,9 +55,110 @@ func (c CPUMap) Sub(q CPUMap) {
 	}
 }
 
-// Map return cpu map
-func (c CPUMap) Map() map[string]int {
-	return map[string]int(c)
+// CPUMap is cpu core map
+// CPUMap {["0"]10000, ["1"]10000}
+type CPUMap = ResourceMap
+
+// VolumeMap is volume map
+// VolumeMap {["/data1"]1073741824, ["/data2"]1048576}
+type VolumeMap = ResourceMap
+
+// GetResourceID returns device name such as "/sda0"
+// GetResourceID only works for VolumeMap with single key
+func (c VolumeMap) GetResourceID() (key string) {
+	for k := range c {
+		key = k
+		break
+	}
+	return
+}
+
+// GetRation returns scheduled size from device
+// GetRation only works for VolumeMap with single key
+func (c VolumeMap) GetRation() int64 {
+	return c[c.GetResourceID()]
+}
+
+// VolumePlan is map from volume string to volumeMap: {"AUTO:/data:rw:100": VolumeMap{"/sda1": 100}}
+type VolumePlan map[string]VolumeMap
+
+// NewVolumePlan creates VolumePlan pointer by volume strings and scheduled VolumeMaps
+func NewVolumePlan(autoVolumes []string, distribution []VolumeMap) *VolumePlan {
+	sort.Slice(autoVolumes, func(i, j int) bool {
+		// no err check due to volume strings have been converted into int64 before
+		sizeI, _ := strconv.ParseInt(strings.Split(autoVolumes[i], ":")[3], 10, 64)
+		sizeJ, _ := strconv.ParseInt(strings.Split(autoVolumes[j], ":")[3], 10, 64)
+		return sizeI < sizeJ
+	})
+
+	sort.Slice(distribution, func(i, j int) bool {
+		return distribution[i].GetRation() < distribution[j].GetRation()
+	})
+
+	volumePlan := VolumePlan{}
+	for idx, autoVolume := range autoVolumes {
+		volumePlan[autoVolume] = distribution[idx]
+	}
+	return &volumePlan
+}
+
+// ToVolumePlan convert VolumePlan from literal value
+func ToVolumePlan(plan map[string]map[string]int64) VolumePlan {
+	volumePlan := VolumePlan{}
+	for volumeStr, volumeMap := range plan {
+		volumePlan[volumeStr] = VolumeMap(volumeMap)
+	}
+	return volumePlan
+}
+
+// ToLiteral returns literal VolumePlan
+func (p VolumePlan) ToLiteral() map[string]map[string]int64 {
+	plan := map[string]map[string]int64{}
+	for volumeStr, volumeMap := range p {
+		plan[volumeStr] = volumeMap
+	}
+	return plan
+}
+
+// Merge return one VolumeMap with all in VolumePlan added
+func (p VolumePlan) Merge() VolumeMap {
+	volumeMap := VolumeMap{}
+	for _, v := range p {
+		volumeMap.Add(v)
+	}
+	return volumeMap
+}
+
+// GetVolumeString generates actual volume string for engine
+func (p VolumePlan) GetVolumeString(autoVolume string) (volume string) {
+	volume = autoVolume
+	if volumeMap := p.GetVolumeMap(autoVolume); volumeMap != nil {
+		volume = strings.Replace(autoVolume, AUTO, volumeMap.GetResourceID(), 1)
+	}
+	return
+}
+
+// GetVolumeMap looks up VolumeMap according to volume destination directory
+func (p VolumePlan) GetVolumeMap(autoVolume string) (volMap VolumeMap) {
+	dstDir := strings.Split(autoVolume, ":")[1]
+	for volume, volMap := range p {
+		if dstDir == strings.Split(volume, ":")[1] {
+			return volMap
+		}
+	}
+	return nil
+}
+
+// Compatible return true if new bindings stick to the old bindings
+func (p VolumePlan) Compatible(oldPlan VolumePlan) bool {
+	for volume, oldBinding := range oldPlan {
+		newBinding := p.GetVolumeMap(volume)
+		// newBinding is ok to be nil when reallocing requires less volumes than before
+		if newBinding != nil && newBinding.GetResourceID() != oldBinding.GetResourceID() {
+			return false
+		}
+	}
+	return true
 }
 
 // NUMA define NUMA cpuID->nodeID
@@ -63,13 +169,16 @@ type NUMAMemory map[string]int64
 
 // Node store node info
 type Node struct {
-	Name           string            `json:"name"`
-	Endpoint       string            `json:"endpoint"`
-	Podname        string            `json:"podname"`
-	CPU            CPUMap            `json:"cpu"`
+	Name     string `json:"name"`
+	Endpoint string `json:"endpoint"`
+	Podname  string `json:"podname"`
+	CPU      CPUMap `json:"cpu"`
+	// free spaces
+	Volume         VolumeMap         `json:"volume"`
 	NUMA           NUMA              `json:"numa"`
 	NUMAMemory     NUMAMemory        `json:"numa_memory"`
 	CPUUsed        float64           `json:"cpuused"`
+	VolumeUsed     int64             `json:"volumeused"`
 	MemCap         int64             `json:"memcap"`
 	StorageCap     int64             `json:"storage_cap"`
 	Available      bool              `json:"available"`
@@ -78,7 +187,17 @@ type Node struct {
 	InitMemCap     int64             `json:"init_memcap"`
 	InitStorageCap int64             `json:"init_storage_cap"`
 	InitNUMAMemory NUMAMemory        `json:"init_numa_memory"`
+	InitVolume     VolumeMap         `json:"init_volume"`
 	Engine         engine.API        `json:"-"`
+}
+
+func (n *Node) Init() {
+	if n.Volume == nil {
+		n.Volume = VolumeMap{}
+	}
+	if n.InitVolume == nil {
+		n.InitVolume = VolumeMap{}
+	}
 }
 
 // Info show node info
@@ -96,6 +215,16 @@ func (n *Node) SetCPUUsed(quota float64, action string) {
 		n.CPUUsed = Round(n.CPUUsed + quota)
 	case DecrUsage:
 		n.CPUUsed = Round(n.CPUUsed - quota)
+	default:
+	}
+}
+
+func (n *Node) SetVolumeUsed(cost int64, action string) {
+	switch action {
+	case IncrUsage:
+		n.VolumeUsed = n.VolumeUsed + cost
+	case DecrUsage:
+		n.VolumeUsed = n.VolumeUsed - cost
 	default:
 	}
 }
@@ -163,6 +292,7 @@ func (n *Node) AvailableStorage() int64 {
 type NodeInfo struct {
 	Name         string
 	CPUMap       CPUMap
+	VolumeMap    VolumeMap
 	NUMA         NUMA
 	NUMAMemory   NUMAMemory
 	MemCap       int64
@@ -174,10 +304,11 @@ type NodeInfo struct {
 	MemRate      float64 // 需要增加的内存占有率
 	StorageRate  float64 // Storage ratio which would be allocated
 
-	CPUPlan  []CPUMap
-	Capacity int // 可以部署几个
-	Count    int // 上面有几个了
-	Deploy   int // 最终部署几个
+	CPUPlan     []CPUMap
+	VolumePlans []VolumePlan // {{"AUTO:/data:rw:1024": "/mnt0:/data:rw:1024"}}
+	Capacity    int          // 可以部署几个
+	Count       int          // 上面有几个了
+	Deploy      int          // 最终部署几个
 	// 其他需要 filter 的字段
 }
 
@@ -191,6 +322,7 @@ type NodeResource struct {
 	MemoryPercent     float64
 	StoragePercent    float64
 	NUMAMemoryPercent map[string]float64
+	VolumePercent     float64
 	Verification      bool
 	Details           []string
 	Containers        []*Container
