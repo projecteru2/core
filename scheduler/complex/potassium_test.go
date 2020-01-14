@@ -243,6 +243,9 @@ func TestSelectCPUNodes(t *testing.T) {
 	_, _, err := SelectCPUNodes(k, []types.NodeInfo{}, 1, 1, 1, false)
 	assert.True(t, errors.Is(err, types.ErrZeroNodes))
 
+	_, _, err = SelectCPUNodes(k, []types.NodeInfo{}, 1, 0, 1, false)
+	assert.True(t, errors.Is(err, types.ErrNegativeMemory))
+
 	nodes := generateNodes(2, 2, memory, 0, 10)
 	_, _, err = SelectCPUNodes(k, nodes, 0.5, 1, 1, false)
 	assert.NoError(t, err)
@@ -1239,6 +1242,8 @@ func TestSelectVolumeNodesNonAuto(t *testing.T) {
 		"/data0:/data:rw",
 		"/data0:/data",
 	}
+	_, _, err := SelectVolumeNodes(k, nodes, []string{"AUTO:/tmp:rw:abc"}, 2, true)
+	assert.Error(t, err)
 	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 2, true)
 	assert.NoError(t, err)
 	assert.Equal(t, len(res["0"]), 2)

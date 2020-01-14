@@ -18,11 +18,14 @@ func TestNetwork(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := &storemocks.Store{}
-	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
 	c.store = store
 
-	// No nodes
+	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err := c.ListNetworks(ctx, "", "")
+	assert.Error(t, err)
+	// No nodes
+	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
+	_, err = c.ListNetworks(ctx, "", "")
 	assert.Error(t, err)
 	// vaild
 	engine := &enginemocks.API{}
@@ -34,7 +37,7 @@ func TestNetwork(t *testing.T) {
 	name := "test"
 	engine.On("NetworkList", mock.Anything, mock.Anything).Return([]*enginetypes.Network{{Name: name}}, nil)
 	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
-	ns, err := c.ListNetworks(ctx, "", "")
+	ns, err := c.ListNetworks(ctx, "", "xx")
 	assert.NoError(t, err)
 	assert.Equal(t, len(ns), 1)
 	assert.Equal(t, ns[0].Name, name)
