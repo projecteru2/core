@@ -110,33 +110,31 @@ func TestVolumeMap(t *testing.T) {
 
 func TestVolumePlan(t *testing.T) {
 	plan := VolumePlan{
-		"AUTO:/data0:rw:100":  VolumeMap{"/dir0": 100},
-		"AUTO:/data1:ro:2000": VolumeMap{"/dir1": 2000},
+		MustToVolumeBinding("AUTO:/data0:rw:100"):  VolumeMap{"/dir0": 100},
+		MustToVolumeBinding("AUTO:/data1:ro:2000"): VolumeMap{"/dir1": 2000},
 	}
 	assert.Equal(t, plan.Merge(), VolumeMap{"/dir0": 100, "/dir1": 2000})
-	assert.Equal(t, plan.GetVolumeString("AUTO:/data0:rw:100"), "/dir0:/data0:rw:100")
-	assert.Equal(t, plan.GetVolumeString("/tmp:/tmp:rw:111"), "/tmp:/tmp:rw:111")
 
 	literal := map[string]map[string]int64{
 		"AUTO:/data0:rw:100":  map[string]int64{"/dir0": 100},
 		"AUTO:/data1:ro:2000": map[string]int64{"/dir1": 2000},
 	}
-	assert.Equal(t, ToVolumePlan(literal), plan)
+	assert.Equal(t, MustToVolumePlan(literal), plan)
 	assert.Equal(t, plan.ToLiteral(), literal)
 
 	assert.True(t, plan.Compatible(VolumePlan{
-		"AUTO:/data0:ro:200": VolumeMap{"/dir0": 200},
-		"AUTO:/data1:rw:100": VolumeMap{"/dir1": 100},
+		MustToVolumeBinding("AUTO:/data0:ro:200"): VolumeMap{"/dir0": 200},
+		MustToVolumeBinding("AUTO:/data1:rw:100"): VolumeMap{"/dir1": 100},
 	}))
 	assert.False(t, plan.Compatible(VolumePlan{
-		"AUTO:/data0:ro:200": VolumeMap{"/dir0": 200},
-		"AUTO:/data1:rw:100": VolumeMap{"/dir2": 100},
+		MustToVolumeBinding("AUTO:/data0:ro:200"): VolumeMap{"/dir0": 200},
+		MustToVolumeBinding("AUTO:/data1:rw:100"): VolumeMap{"/dir2": 100},
 	}))
 }
 
 func TestNewVolumePlan(t *testing.T) {
 	plan := NewVolumePlan(
-		[]string{"AUTO:/data0:rw:10", "AUTO:/data1:ro:20", "AUTO:/data2:rw:10"},
+		MustToVolumeBindings([]string{"AUTO:/data0:rw:10", "AUTO:/data1:ro:20", "AUTO:/data2:rw:10"}),
 		[]VolumeMap{
 			{"/dir0": 10},
 			{"/dir1": 10},
@@ -144,8 +142,8 @@ func TestNewVolumePlan(t *testing.T) {
 		},
 	)
 	assert.Equal(t, plan, &VolumePlan{
-		"AUTO:/data0:rw:10": VolumeMap{"/dir0": 10},
-		"AUTO:/data1:ro:20": VolumeMap{"/dir2": 20},
-		"AUTO:/data2:rw:10": VolumeMap{"/dir1": 10},
+		MustToVolumeBinding("AUTO:/data0:rw:10"): VolumeMap{"/dir0": 10},
+		MustToVolumeBinding("AUTO:/data1:ro:20"): VolumeMap{"/dir2": 20},
+		MustToVolumeBinding("AUTO:/data2:rw:10"): VolumeMap{"/dir1": 10},
 	})
 }

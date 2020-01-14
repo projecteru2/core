@@ -128,7 +128,9 @@ func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.Volu
 	sizes := []int64{}
 
 	for _, vb := range vbs {
-		sizes = append(sizes, vb.SizeInBytes)
+		if vb.NeedSchedule() {
+			sizes = append(sizes, vb.SizeInBytes)
+		}
 	}
 
 	volTotal := 0

@@ -23,7 +23,8 @@ const (
 	letters       = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	shortenLength = 7
 	// DefaultVersion for default version
-	DefaultVersion = "latest"
+	DefaultVersion     = "latest"
+	CLUSTER_LABEL_META = "ERU_META"
 )
 
 // RandomString random a string

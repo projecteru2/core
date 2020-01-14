@@ -214,7 +214,7 @@ func (c *Calcium) doReallocContainer(
 								container.Quota = newResource.Quota
 								container.Memory = newResource.Memory
 								container.Volumes, _ = types.MakeVolumeBindings(newResource.Volumes)
-								container.VolumePlan, _ = types.ToVolumePlan(newResource.VolumePlan)
+								container.VolumePlan = types.MustToVolumePlan(newResource.VolumePlan)
 								updateSuccess = true
 							} else {
 								log.Errorf("[doReallocContainer] Realloc container %s failed %v", container.ID, err)

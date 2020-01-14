@@ -100,7 +100,7 @@ func (c *Calcium) doCreateContainerOnNode(ctx context.Context, nodeInfo types.No
 			if len(nodeInfo.CPUPlan) > 0 {
 				cpu = nodeInfo.CPUPlan[i]
 			}
-			volumePlan := map[*types.VolumeBinding]types.VolumeMap{}
+			volumePlan := map[types.VolumeBinding]types.VolumeMap{}
 			if len(nodeInfo.VolumePlans) > 0 {
 				volumePlan = nodeInfo.VolumePlans[i]
 			}

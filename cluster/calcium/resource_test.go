@@ -195,9 +195,9 @@ func TestAllocResource(t *testing.T) {
 	}
 	nodeVolumePlans := map[string][]types.VolumePlan{
 		n2: {
-			{"AUTO:/data:rw:100": types.VolumeMap{"/dir": 100}},
-			{"AUTO:/data:rw:100": types.VolumeMap{"/dir": 100}},
-			{"AUTO:/data:rw:100": types.VolumeMap{"/mount": 100}},
+			{types.MustToVolumeBinding("AUTO:/data:rw:100"): types.VolumeMap{"/dir": 100}},
+			{types.MustToVolumeBinding("AUTO:/data:rw:100"): types.VolumeMap{"/dir": 100}},
+			{types.MustToVolumeBinding("AUTO:/data:rw:100"): types.VolumeMap{"/mount": 100}},
 		},
 	}
 

@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"encoding/json"
 	"sort"
 
 	"math"
@@ -78,7 +79,7 @@ func (c VolumeMap) GetRation() int64 {
 }
 
 // VolumePlan is map from volume string to volumeMap: {"AUTO:/data:rw:100": VolumeMap{"/sda1": 100}}
-type VolumePlan map[*VolumeBinding]VolumeMap
+type VolumePlan map[VolumeBinding]VolumeMap
 
 // NewVolumePlan creates VolumePlan pointer by volume strings and scheduled VolumeMaps
 func NewVolumePlan(vbs VolumeBindings, distribution []VolumeMap) *VolumePlan {
@@ -87,22 +88,32 @@ func NewVolumePlan(vbs VolumeBindings, distribution []VolumeMap) *VolumePlan {
 
 	volumePlan := VolumePlan{}
 	for idx, vb := range vbs {
-		volumePlan[vb] = distribution[idx]
+		volumePlan[*vb] = distribution[idx]
 	}
 	return &volumePlan
 }
 
-// ToVolumePlan convert VolumePlan from literal value
-func ToVolumePlan(plan map[string]map[string]int64) (VolumePlan, error) {
-	volumePlan := VolumePlan{}
-	for volume, volumeMap := range plan {
+func (vp *VolumePlan) UnmarshalJSON(b []byte) (err error) {
+	plan := map[string]VolumeMap{}
+	if err = json.Unmarshal(b, &plan); err != nil {
+		return err
+	}
+	for volume, vmap := range plan {
 		vb, err := NewVolumeBinding(volume)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		volumePlan[vb] = VolumeMap(volumeMap)
+		(*vp)[*vb] = vmap
 	}
-	return volumePlan, nil
+	return
+}
+
+func (vp *VolumePlan) MarshalJSON() ([]byte, error) {
+	plan := map[string]VolumeMap{}
+	for vb, vmap := range *vp {
+		plan[vb.ToString()] = vmap
+	}
+	return json.Marshal(plan)
 }
 
 // ToLiteral returns literal VolumePlan
@@ -136,7 +147,7 @@ func (p VolumePlan) GetVolumeMap(vb *VolumeBinding) (volMap VolumeMap) {
 // Compatible return true if new bindings stick to the old bindings
 func (p VolumePlan) Compatible(oldPlan VolumePlan) bool {
 	for volume, oldBinding := range oldPlan {
-		newBinding := p.GetVolumeMap(volume)
+		newBinding := p.GetVolumeMap(&volume)
 		// newBinding is ok to be nil when reallocing requires less volumes than before
 		if newBinding != nil && newBinding.GetResourceID() != oldBinding.GetResourceID() {
 			return false

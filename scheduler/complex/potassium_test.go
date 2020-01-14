@@ -1187,7 +1187,7 @@ func SelectStorageNodes(k *Potassium, nodesInfo []types.NodeInfo, storage int64,
 }
 
 func SelectVolumeNodes(k *Potassium, nodesInfo []types.NodeInfo, volumes []string, need int, each bool) (map[string][]types.VolumePlan, map[string]types.VolumeMap, error) {
-	nodesInfo, plans, total, err := k.SelectVolumeNodes(nodesInfo, volumes)
+	nodesInfo, plans, total, err := k.SelectVolumeNodes(nodesInfo, types.MustToVolumeBindings(volumes))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1242,7 +1242,6 @@ func TestSelectVolumeNodesNonAuto(t *testing.T) {
 	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 2, true)
 	assert.NoError(t, err)
 	assert.Equal(t, len(res["0"]), 2)
-	assert.Equal(t, res["0"][0].GetVolumeString(volumes[0]), volumes[0])
 	assert.Equal(t, changed["node1"]["/data0"], int64(0))
 }
 
@@ -1285,7 +1284,7 @@ func TestSelectVolumeNodesAutoSingle(t *testing.T) {
 	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 43, true)
 	assert.Nil(t, err)
 	assert.Equal(t, len(res["0"]), 43)
-	assert.Equal(t, res["0"][0]["AUTO:/data:rw:70"], types.VolumeMap{"/data0": 70})
+	assert.Equal(t, res["0"][0][types.MustToVolumeBinding("AUTO:/data:rw:70")], types.VolumeMap{"/data0": 70})
 	assert.Equal(t, changed["0"], types.VolumeMap{"/data0": 44, "/data1": 18})
 }
 
@@ -1312,10 +1311,10 @@ func TestSelectVolumeNodesAutoDouble(t *testing.T) {
 	volumes := []string{"AUTO:/data:rw:20", "AUTO:/dir:rw:200"}
 	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 5, true)
 	assert.Nil(t, err)
-	assert.Equal(t, res["0"][4]["AUTO:/data:rw:20"], types.VolumeMap{"/data0": 20})
-	assert.Equal(t, res["0"][4]["AUTO:/dir:rw:200"], types.VolumeMap{"/data1": 200})
-	assert.Equal(t, res["1"][4]["AUTO:/data:rw:20"], types.VolumeMap{"/data0": 20})
-	assert.Equal(t, res["1"][4]["AUTO:/dir:rw:200"], types.VolumeMap{"/data0": 200})
+	assert.Equal(t, res["0"][4][types.MustToVolumeBinding("AUTO:/data:rw:20")], types.VolumeMap{"/data0": 20})
+	assert.Equal(t, res["0"][4][types.MustToVolumeBinding("AUTO:/dir:rw:200")], types.VolumeMap{"/data1": 200})
+	assert.Equal(t, res["1"][4][types.MustToVolumeBinding("AUTO:/data:rw:20")], types.VolumeMap{"/data0": 20})
+	assert.Equal(t, res["1"][4][types.MustToVolumeBinding("AUTO:/dir:rw:200")], types.VolumeMap{"/data0": 200})
 	assert.Equal(t, changed["0"], types.VolumeMap{"/data0": 124, "/data1": 825})
 	assert.Equal(t, changed["1"], types.VolumeMap{"/data0": 948, "/data1": 2049})
 }
@@ -1358,17 +1357,17 @@ func TestSelectVolumeNodesAutoTriple(t *testing.T) {
 
 	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 2, true)
 	assert.Nil(t, err)
-	assert.Equal(t, res["0"][1]["AUTO:/data0:rw:1000"], types.VolumeMap{"/data2": 1000})
-	assert.Equal(t, res["0"][1]["AUTO:/data1:rw:10"], types.VolumeMap{"/data2": 10})
-	assert.Equal(t, res["0"][1]["AUTO:/data2:rw:100"], types.VolumeMap{"/data1": 100})
+	assert.Equal(t, res["0"][1][types.MustToVolumeBinding("AUTO:/data0:rw:1000")], types.VolumeMap{"/data2": 1000})
+	assert.Equal(t, res["0"][1][types.MustToVolumeBinding("AUTO:/data1:rw:10")], types.VolumeMap{"/data2": 10})
+	assert.Equal(t, res["0"][1][types.MustToVolumeBinding("AUTO:/data2:rw:100")], types.VolumeMap{"/data1": 100})
 
-	assert.Equal(t, res["1"][0]["AUTO:/data0:rw:1000"], types.VolumeMap{"/data3": 1000})
-	assert.Equal(t, res["1"][0]["AUTO:/data1:rw:10"], types.VolumeMap{"/data2": 10})
-	assert.Equal(t, res["1"][0]["AUTO:/data2:rw:100"], types.VolumeMap{"/data1": 100})
+	assert.Equal(t, res["1"][0][types.MustToVolumeBinding("AUTO:/data0:rw:1000")], types.VolumeMap{"/data3": 1000})
+	assert.Equal(t, res["1"][0][types.MustToVolumeBinding("AUTO:/data1:rw:10")], types.VolumeMap{"/data2": 10})
+	assert.Equal(t, res["1"][0][types.MustToVolumeBinding("AUTO:/data2:rw:100")], types.VolumeMap{"/data1": 100})
 
-	assert.Equal(t, res["2"][1]["AUTO:/data0:rw:1000"], types.VolumeMap{"/data4": 1000})
-	assert.Equal(t, res["2"][1]["AUTO:/data1:rw:10"], types.VolumeMap{"/data2": 10})
-	assert.Equal(t, res["2"][1]["AUTO:/data2:rw:100"], types.VolumeMap{"/data2": 100})
+	assert.Equal(t, res["2"][1][types.MustToVolumeBinding("AUTO:/data0:rw:1000")], types.VolumeMap{"/data4": 1000})
+	assert.Equal(t, res["2"][1][types.MustToVolumeBinding("AUTO:/data1:rw:10")], types.VolumeMap{"/data2": 10})
+	assert.Equal(t, res["2"][1][types.MustToVolumeBinding("AUTO:/data2:rw:100")], types.VolumeMap{"/data2": 100})
 
 	assert.Equal(t, changed["0"], types.VolumeMap{"/data1": 8, "/data2": 209, "/data0": 2000})
 	assert.Equal(t, changed["1"], types.VolumeMap{"/data1": 0, "/data2": 0, "/data3": 0})
