@@ -138,20 +138,21 @@ func getNodesInfo(nodes map[string]*types.Node, cpu float64, memory, storage int
 	result := []types.NodeInfo{}
 	for _, node := range nodes {
 		nodeInfo := types.NodeInfo{
-			Name:         node.Name,
-			CPUMap:       node.CPU,
-			VolumeMap:    node.Volume,
-			MemCap:       node.MemCap,
-			StorageCap:   node.AvailableStorage(),
-			CPURate:      cpu / float64(len(node.InitCPU)),
-			MemRate:      float64(memory) / float64(node.InitMemCap),
-			StorageRate:  float64(storage) / float64(node.InitStorageCap),
-			CPUUsed:      node.CPUUsed / float64(len(node.InitCPU)),
-			MemUsage:     1.0 - float64(node.MemCap)/float64(node.InitMemCap),
-			StorageUsage: node.StorageUsage(),
-			Capacity:     0,
-			Count:        0,
-			Deploy:       0,
+			Name:          node.Name,
+			CPUMap:        node.CPU,
+			VolumeMap:     node.Volume,
+			InitVolumeMap: node.InitVolume,
+			MemCap:        node.MemCap,
+			StorageCap:    node.AvailableStorage(),
+			CPURate:       cpu / float64(len(node.InitCPU)),
+			MemRate:       float64(memory) / float64(node.InitMemCap),
+			StorageRate:   float64(storage) / float64(node.InitStorageCap),
+			CPUUsed:       node.CPUUsed / float64(len(node.InitCPU)),
+			MemUsage:      1.0 - float64(node.MemCap)/float64(node.InitMemCap),
+			StorageUsage:  node.StorageUsage(),
+			Capacity:      0,
+			Count:         0,
+			Deploy:        0,
 		}
 		result = append(result, nodeInfo)
 	}

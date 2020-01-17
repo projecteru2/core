@@ -64,8 +64,12 @@ func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 	}, nil
 }
 
-func (vb VolumeBinding) NeedSchedule() bool {
+func (vb VolumeBinding) RequireSchedule() bool {
 	return vb.Source == AUTO && vb.Destination != "" && vb.Flags != "" && vb.SizeInBytes != 0
+}
+
+func (vb VolumeBinding) RequireMonopoly() bool {
+	return vb.Source == AUTO && vb.Destination != "" && strings.Contains(vb.Flags, "m") && vb.SizeInBytes != 0
 }
 
 func (vb VolumeBinding) ToString() string {
@@ -134,7 +138,7 @@ func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 func (vbs VolumeBindings) Merge(vbs2 VolumeBindings) (softVolumes VolumeBindings, hardVolumes VolumeBindings, err error) {
 	sizeMap := map[[3]string]int64{} // {["AUTO", "/data", "rw"]: 100}
 	for _, vb := range append(vbs, vbs2...) {
-		if !vb.NeedSchedule() {
+		if !vb.RequireSchedule() {
 			hardVolumes = append(hardVolumes, vb)
 			continue
 		}

@@ -78,6 +78,18 @@ func (c VolumeMap) GetRation() int64 {
 	return c[c.GetResourceID()]
 }
 
+func (vm VolumeMap) SplitByUsed(init VolumeMap) (VolumeMap, VolumeMap) {
+	var used, unused VolumeMap
+	for mountDir, freeSpace := range vm {
+		vmap := used
+		if init[mountDir] == freeSpace {
+			vmap = unused
+		}
+		vmap.Add(VolumeMap{mountDir: freeSpace})
+	}
+	return used, unused
+}
+
 // VolumePlan is map from volume string to volumeMap: {"AUTO:/data:rw:100": VolumeMap{"/sda1": 100}}
 type VolumePlan map[VolumeBinding]VolumeMap
 
@@ -285,19 +297,20 @@ func (n *Node) AvailableStorage() int64 {
 
 // NodeInfo for deploy
 type NodeInfo struct {
-	Name         string
-	CPUMap       CPUMap
-	VolumeMap    VolumeMap
-	NUMA         NUMA
-	NUMAMemory   NUMAMemory
-	MemCap       int64
-	StorageCap   int64
-	CPUUsed      float64 // CPU目前占用率
-	MemUsage     float64 // MEM目前占用率
-	StorageUsage float64 // Current storage usage ratio
-	CPURate      float64 // 需要增加的 CPU 占用率
-	MemRate      float64 // 需要增加的内存占有率
-	StorageRate  float64 // Storage ratio which would be allocated
+	Name          string
+	CPUMap        CPUMap
+	VolumeMap     VolumeMap
+	InitVolumeMap VolumeMap
+	NUMA          NUMA
+	NUMAMemory    NUMAMemory
+	MemCap        int64
+	StorageCap    int64
+	CPUUsed       float64 // CPU目前占用率
+	MemUsage      float64 // MEM目前占用率
+	StorageUsage  float64 // Current storage usage ratio
+	CPURate       float64 // 需要增加的 CPU 占用率
+	MemRate       float64 // 需要增加的内存占有率
+	StorageRate   float64 // Storage ratio which would be allocated
 
 	CPUPlan     []CPUMap
 	VolumePlans []VolumePlan // {{"AUTO:/data:rw:1024": "/mnt0:/data:rw:1024"}}

@@ -158,7 +158,7 @@ func (c *Calcium) doReallocContainer(
 						var volumePlans []types.VolumePlan
 						autoVbs := types.VolumeBindings{}
 						if newAutoVol != "" {
-							nodesInfo := []types.NodeInfo{{Name: node.Name, VolumeMap: node.Volume}}
+							nodesInfo := []types.NodeInfo{{Name: node.Name, VolumeMap: node.Volume, InitVolumeMap: node.InitVolume}}
 							autoVbs, _ = types.MakeVolumeBindings(strings.Split(newAutoVol, ","))
 							_, nodeVolumePlans, total, err := c.scheduler.SelectVolumeNodes(nodesInfo, autoVbs)
 							if err != nil {
