@@ -79,7 +79,8 @@ func (c VolumeMap) GetRation() int64 {
 }
 
 func (vm VolumeMap) SplitByUsed(init VolumeMap) (VolumeMap, VolumeMap) {
-	var used, unused VolumeMap
+	used := VolumeMap{}
+	unused := VolumeMap{}
 	for mountDir, freeSpace := range vm {
 		vmap := used
 		if init[mountDir] == freeSpace {
@@ -100,7 +101,9 @@ func NewVolumePlan(vbs VolumeBindings, distribution []VolumeMap) *VolumePlan {
 
 	volumePlan := VolumePlan{}
 	for idx, vb := range vbs {
-		volumePlan[*vb] = distribution[idx]
+		if vb.RequireSchedule() {
+			volumePlan[*vb] = distribution[idx]
+		}
 	}
 	return &volumePlan
 }

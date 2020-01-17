@@ -8,15 +8,39 @@ import (
 
 func calculateVolumePlan(volumeMap types.VolumeMap, required []int64) (int, [][]types.VolumeMap) {
 	if len(required) == 0 {
-		return math.MaxInt32, nil
+		return math.MaxInt16, nil
 	}
 
 	share := int(math.MaxInt64) // all fragments
 	host := newHost(volumeMap, share)
 	plans := host.distributeMultipleRations(required)
-	cap := len(plans)
-	if cap <= 0 {
-		plans = nil
+	return len(plans), plans
+}
+
+func calculateMonopolyVolumePlan(initVolumeMap types.VolumeMap, volumeMap types.VolumeMap, required []int64) (cap int, plans [][]types.VolumeMap) {
+	cap, rawPlans := calculateVolumePlan(volumeMap, required)
+	if rawPlans == nil {
+		return cap, nil
 	}
-	return cap, plans
+
+	for _, plan := range rawPlans {
+		if !onSameSource(plan) {
+			continue
+		}
+		volume := plan[0].GetResourceID()
+		plans = append(plans, proportionPlan(plan, initVolumeMap[volume]))
+	}
+	return len(plans), plans
+}
+
+func proportionPlan(plan []types.VolumeMap, size int64) (newPlan []types.VolumeMap) {
+	var total int64
+	for _, p := range plan {
+		total += p.GetRation()
+	}
+	for _, p := range plan {
+		newRation := int64(math.Floor(float64(p.GetRation()) / float64(total) * float64(size)))
+		newPlan = append(newPlan, types.VolumeMap{p.GetResourceID(): newRation})
+	}
+	return
 }

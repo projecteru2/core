@@ -1210,12 +1210,14 @@ func SelectVolumeNodes(k *Potassium, nodesInfo []types.NodeInfo, volumes []strin
 			continue
 		}
 
-		volumePlans := plans[nodeInfo.Name][:nodeInfo.Deploy]
-		result[nodeInfo.Name] = volumePlans
-		for _, volumePlan := range volumePlans {
-			nodeInfo.VolumeMap.Sub(volumePlan.Merge())
-		}
 		changed[nodeInfo.Name] = nodeInfo.VolumeMap
+		if ps, ok := plans[nodeInfo.Name]; ok {
+			volumePlans := ps[:nodeInfo.Deploy]
+			result[nodeInfo.Name] = volumePlans
+			for _, volumePlan := range volumePlans {
+				changed[nodeInfo.Name].Sub(volumePlan.Merge())
+			}
+		}
 	}
 	return result, changed, nil
 }
@@ -1241,7 +1243,7 @@ func TestSelectVolumeNodesNonAuto(t *testing.T) {
 	}
 	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 2, true)
 	assert.NoError(t, err)
-	assert.Equal(t, len(res["0"]), 2)
+	assert.Equal(t, len(res["0"]), 0)
 	assert.Equal(t, changed["node1"]["/data0"], int64(0))
 }
 

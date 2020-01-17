@@ -125,32 +125,37 @@ func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, me
 // SelectVolumeNodes calculates plans for volume request
 func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.VolumeBindings) ([]types.NodeInfo, map[string][]types.VolumePlan, int, error) {
 	log.Infof("[SelectVolumeNodes] nodesInfo %v, need volume: %v", nodesInfo, vbs)
-	sizes := []int64{}
+	var normalSizes, monopolySizes []int64
 
 	for _, vb := range vbs {
-		if vb.RequireSchedule() {
-			sizes = append(sizes, vb.SizeInBytes)
+		if vb.RequireMonopoly() {
+			monopolySizes = append(monopolySizes, vb.SizeInBytes)
+		} else if vb.RequireSchedule() {
+			normalSizes = append(normalSizes, vb.SizeInBytes)
 		}
 	}
 
 	volTotal := 0
 	volumePlans := map[string][]types.VolumePlan{}
-	for nodeIdx, nodeInfo := range nodesInfo {
-		capacity, distributions := calculateVolumePlan(nodeInfo.VolumeMap, sizes)
-		if nodesInfo[nodeIdx].Capacity == 0 {
-			nodesInfo[nodeIdx].Capacity = capacity
-		} else {
-			nodesInfo[nodeIdx].Capacity = utils.Min(capacity, nodesInfo[nodeIdx].Capacity)
+	for idx, nodeInfo := range nodesInfo {
+
+		usedVolumeMap, unusedVolumeMap := nodeInfo.VolumeMap.SplitByUsed(nodeInfo.InitVolumeMap)
+		if len(monopolySizes) == 0 {
+			usedVolumeMap.Add(unusedVolumeMap)
 		}
-		if _, ok := volumePlans[nodeInfo.Name]; !ok {
-			volumePlans[nodeInfo.Name] = make([]types.VolumePlan, 0, nodesInfo[nodeIdx].Capacity)
+
+		capNorm, plansNorm := calculateVolumePlan(usedVolumeMap, normalSizes)
+		capMono, plansMono := calculateMonopolyVolumePlan(nodeInfo.InitVolumeMap, unusedVolumeMap, monopolySizes)
+
+		volTotal += updateNodeInfoCapacity(&nodesInfo[idx], utils.Min(capNorm, capMono))
+		plans := mergePlans(plansNorm, plansMono, nodesInfo[idx].Capacity)
+		if plans == nil {
+			continue
 		}
-		volTotal += nodesInfo[nodeIdx].Capacity
-		for _, distribution := range distributions {
-			volumePlans[nodeInfo.Name] = append(
-				volumePlans[nodeInfo.Name],
-				*types.NewVolumePlan(vbs, distribution),
-			)
+
+		volumePlans[nodeInfo.Name] = []types.VolumePlan{}
+		for _, plan := range plans[:nodesInfo[idx].Capacity] {
+			volumePlans[nodeInfo.Name] = append(volumePlans[nodeInfo.Name], *types.NewVolumePlan(vbs, plan))
 		}
 	}
 
