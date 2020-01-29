@@ -113,7 +113,7 @@ func TestVolumePlan(t *testing.T) {
 		MustToVolumeBinding("AUTO:/data0:rw:100"):  VolumeMap{"/dir0": 100},
 		MustToVolumeBinding("AUTO:/data1:ro:2000"): VolumeMap{"/dir1": 2000},
 	}
-	assert.Equal(t, plan.Merge(), VolumeMap{"/dir0": 100, "/dir1": 2000})
+	assert.Equal(t, plan.IntoVolumeMap(), VolumeMap{"/dir0": 100, "/dir1": 2000})
 
 	literal := map[string]map[string]int64{
 		"AUTO:/data0:rw:100":  map[string]int64{"/dir0": 100},
