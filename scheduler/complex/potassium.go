@@ -125,13 +125,16 @@ func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, me
 // SelectVolumeNodes calculates plans for volume request
 func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.VolumeBindings) ([]types.NodeInfo, map[string][]types.VolumePlan, int, error) {
 	log.Infof("[SelectVolumeNodes] nodesInfo %v, need volume: %v", nodesInfo, vbs)
-	var normalSizes, monopolySizes []int64
+	var ReqsNorm, ReqsMono []int64
+	var vbsNorm, vbsMono types.VolumeBindings
 
 	for _, vb := range vbs {
 		if vb.RequireMonopoly() {
-			monopolySizes = append(monopolySizes, vb.SizeInBytes)
+			vbsMono = append(vbsMono, vb)
+			ReqsMono = append(ReqsMono, vb.SizeInBytes)
 		} else if vb.RequireSchedule() {
-			normalSizes = append(normalSizes, vb.SizeInBytes)
+			vbsNorm = append(vbsNorm, vb)
+			ReqsNorm = append(ReqsNorm, vb.SizeInBytes)
 		}
 	}
 
@@ -140,22 +143,30 @@ func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.Volu
 	for idx, nodeInfo := range nodesInfo {
 
 		usedVolumeMap, unusedVolumeMap := nodeInfo.VolumeMap.SplitByUsed(nodeInfo.InitVolumeMap)
-		if len(monopolySizes) == 0 {
+		if len(ReqsMono) == 0 {
 			usedVolumeMap.Add(unusedVolumeMap)
 		}
 
-		capNorm, plansNorm := calculateVolumePlan(usedVolumeMap, normalSizes)
-		capMono, plansMono := calculateMonopolyVolumePlan(nodeInfo.InitVolumeMap, unusedVolumeMap, monopolySizes)
+		capNorm, plansNorm := calculateVolumePlan(usedVolumeMap, ReqsNorm)
+		capMono, plansMono := calculateMonopolyVolumePlan(nodeInfo.InitVolumeMap, unusedVolumeMap, ReqsMono)
 
 		volTotal += updateNodeInfoCapacity(&nodesInfo[idx], utils.Min(capNorm, capMono))
-		plans := mergePlans(plansNorm, plansMono, nodesInfo[idx].Capacity)
-		if plans == nil {
-			continue
-		}
+		cap := nodesInfo[idx].Capacity
 
-		volumePlans[nodeInfo.Name] = []types.VolumePlan{}
-		for _, plan := range plans[:nodesInfo[idx].Capacity] {
-			volumePlans[nodeInfo.Name] = append(volumePlans[nodeInfo.Name], *types.NewVolumePlan(vbs, plan))
+		volumePlans[nodeInfo.Name] = make([]types.VolumePlan, cap)
+		for idx := range volumePlans[nodeInfo.Name] {
+			volumePlans[nodeInfo.Name][idx] = types.VolumePlan{}
+		}
+		if plansNorm != nil {
+			for i, plan := range plansNorm[:cap] {
+				volumePlans[nodeInfo.Name][i].Merge(*types.NewVolumePlan(vbsNorm, plan))
+			}
+		}
+		if plansMono != nil {
+			for i, plan := range plansMono[:cap] {
+				volumePlans[nodeInfo.Name][i].Merge(*types.NewVolumePlan(vbsMono, plan))
+
+			}
 		}
 	}
 

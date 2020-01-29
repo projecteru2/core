@@ -124,8 +124,8 @@ func (c *Calcium) doReallocContainer(
 							// 不更新 etcd，内存计算
 							node.CPU.Add(container.CPU)
 							node.SetCPUUsed(container.Quota, types.DecrUsage)
-							node.Volume.Add(container.VolumePlan.Merge())
-							node.SetVolumeUsed(container.VolumePlan.Merge().Total(), types.DecrUsage)
+							node.Volume.Add(container.VolumePlan.IntoVolumeMap())
+							node.SetVolumeUsed(container.VolumePlan.IntoVolumeMap().Total(), types.DecrUsage)
 							node.MemCap += container.Memory
 							if nodeID := node.GetNUMANode(container.CPU); nodeID != "" {
 								node.IncrNUMANodeMemory(nodeID, container.Memory)
@@ -224,8 +224,8 @@ func (c *Calcium) doReallocContainer(
 							// 失败的话，node 占用为老资源
 							node.CPU.Sub(container.CPU)
 							node.SetCPUUsed(container.Quota, types.IncrUsage)
-							node.Volume.Sub(container.VolumePlan.Merge())
-							node.SetVolumeUsed(container.VolumePlan.Merge().Total(), types.IncrUsage)
+							node.Volume.Sub(container.VolumePlan.IntoVolumeMap())
+							node.SetVolumeUsed(container.VolumePlan.IntoVolumeMap().Total(), types.IncrUsage)
 							node.MemCap -= container.Memory
 							if nodeID := node.GetNUMANode(container.CPU); nodeID != "" {
 								node.DecrNUMANodeMemory(nodeID, container.Memory)

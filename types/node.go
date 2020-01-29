@@ -141,7 +141,7 @@ func (p VolumePlan) ToLiteral() map[string]map[string]int64 {
 }
 
 // Merge return one VolumeMap with all in VolumePlan added
-func (p VolumePlan) Merge() VolumeMap {
+func (p VolumePlan) IntoVolumeMap() VolumeMap {
 	volumeMap := VolumeMap{}
 	for _, v := range p {
 		volumeMap.Add(v)
@@ -169,6 +169,12 @@ func (p VolumePlan) Compatible(oldPlan VolumePlan) bool {
 		}
 	}
 	return true
+}
+
+func (p VolumePlan) Merge(p2 VolumePlan) {
+	for vb, vm := range p2 {
+		p[vb] = vm
+	}
 }
 
 // NUMA define NUMA cpuID->nodeID

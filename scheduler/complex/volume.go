@@ -23,12 +23,19 @@ func calculateMonopolyVolumePlan(initVolumeMap types.VolumeMap, volumeMap types.
 		return cap, nil
 	}
 
+	scheduled := map[string]bool{}
 	for _, plan := range rawPlans {
 		if !onSameSource(plan) {
 			continue
 		}
+
 		volume := plan[0].GetResourceID()
+		if _, ok := scheduled[volume]; ok {
+			continue
+		}
+
 		plans = append(plans, proportionPlan(plan, initVolumeMap[volume]))
+		scheduled[volume] = true
 	}
 	return len(plans), plans
 }

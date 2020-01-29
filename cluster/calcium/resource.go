@@ -205,7 +205,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 			if _, ok := nodeVolumePlans[nodeInfo.Name]; ok {
 				nodesInfo[i].VolumePlans = nodeVolumePlans[nodeInfo.Name][:nodeInfo.Deploy]
 				for _, volumePlan := range nodesInfo[i].VolumePlans {
-					volumeCost.Add(volumePlan.Merge())
+					volumeCost.Add(volumePlan.IntoVolumeMap())
 				}
 			}
 
