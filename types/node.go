@@ -94,8 +94,8 @@ func (vm VolumeMap) SplitByUsed(init VolumeMap) (VolumeMap, VolumeMap) {
 // VolumePlan is map from volume string to volumeMap: {"AUTO:/data:rw:100": VolumeMap{"/sda1": 100}}
 type VolumePlan map[VolumeBinding]VolumeMap
 
-// NewVolumePlan creates VolumePlan pointer by volume strings and scheduled VolumeMaps
-func NewVolumePlan(vbs VolumeBindings, distribution []VolumeMap) *VolumePlan {
+// MakeVolumePlan creates VolumePlan pointer by volume strings and scheduled VolumeMaps
+func MakeVolumePlan(vbs VolumeBindings, distribution []VolumeMap) VolumePlan {
 	sort.Slice(vbs, func(i, j int) bool { return vbs[i].SizeInBytes < vbs[j].SizeInBytes })
 	sort.Slice(distribution, func(i, j int) bool { return distribution[i].GetRation() < distribution[j].GetRation() })
 
@@ -105,7 +105,7 @@ func NewVolumePlan(vbs VolumeBindings, distribution []VolumeMap) *VolumePlan {
 			volumePlan[*vb] = distribution[idx]
 		}
 	}
-	return &volumePlan
+	return volumePlan
 }
 
 func (vp *VolumePlan) UnmarshalJSON(b []byte) (err error) {
@@ -123,9 +123,9 @@ func (vp *VolumePlan) UnmarshalJSON(b []byte) (err error) {
 	return
 }
 
-func (vp *VolumePlan) MarshalJSON() ([]byte, error) {
+func (vp VolumePlan) MarshalJSON() ([]byte, error) {
 	plan := map[string]VolumeMap{}
-	for vb, vmap := range *vp {
+	for vb, vmap := range vp {
 		plan[vb.ToString()] = vmap
 	}
 	return json.Marshal(plan)

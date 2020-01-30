@@ -159,12 +159,12 @@ func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.Volu
 		}
 		if plansNorm != nil {
 			for i, plan := range plansNorm[:cap] {
-				volumePlans[nodeInfo.Name][i].Merge(*types.NewVolumePlan(vbsNorm, plan))
+				volumePlans[nodeInfo.Name][i].Merge(types.MakeVolumePlan(vbsNorm, plan))
 			}
 		}
 		if plansMono != nil {
 			for i, plan := range plansMono[:cap] {
-				volumePlans[nodeInfo.Name][i].Merge(*types.NewVolumePlan(vbsMono, plan))
+				volumePlans[nodeInfo.Name][i].Merge(types.MakeVolumePlan(vbsMono, plan))
 
 			}
 		}

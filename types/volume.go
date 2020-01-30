@@ -110,9 +110,9 @@ func (vbs *VolumeBindings) UnmarshalJSON(b []byte) (err error) {
 	return
 }
 
-func (vbs *VolumeBindings) MarshalJSON() ([]byte, error) {
+func (vbs VolumeBindings) MarshalJSON() ([]byte, error) {
 	volumes := []string{}
-	for _, vb := range *vbs {
+	for _, vb := range vbs {
 		volumes = append(volumes, vb.ToString())
 	}
 	return json.Marshal(volumes)
@@ -133,7 +133,7 @@ func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 		}
 		res = append(res, newVb)
 	}
-	return vbs
+	return
 }
 
 func (vbs VolumeBindings) Merge(vbs2 VolumeBindings) (softVolumes VolumeBindings, hardVolumes VolumeBindings, err error) {

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -62,4 +63,49 @@ func TestNewVolumeBinding(t *testing.T) {
 
 	_, err = NewVolumeBinding("AUTO:/data:rw")
 	assert.Error(t, err, "size must be provided")
+}
+
+func TestVolumeBindingToString(t *testing.T) {
+	cases := NormalVolumeBindingTestcases(t)
+	assert.Equal(t, cases[0].ToString(), "/src:/dst:rwm:1000")
+	assert.Equal(t, cases[1].ToString(), "/src:/dst:rwm")
+	assert.Equal(t, cases[2].ToString(), "/src:/dst")
+}
+
+func TestVolumeBindings(t *testing.T) {
+	vbs, _ := MakeVolumeBindings([]string{"/1:/dst:rw:1000", "/0:/dst:rom"})
+	assert.Equal(t, vbs.ToStringSlice(false), []string{"/1:/dst:rw:1000", "/0:/dst:rom"})
+	assert.Equal(t, vbs.ToStringSlice(true), []string{"/0:/dst:rom", "/1:/dst:rw:1000"})
+	assert.Equal(t, vbs.AdditionalStorage(), int64(1000))
+
+	vbs1, _ := MakeVolumeBindings([]string{"AUTO:/data0:rw:1", "AUTO:/data1:rw:2", "/mnt1:/data2:rw", "/mnt2:/data3:ro"})
+	vbs2, _ := MakeVolumeBindings([]string{"AUTO:/data7:rw:3", "AUTO:/data1:rw:3", "/mnt3:/data8", "AUTO:/data0:rw:-20"})
+	softVolumes, hardVolumes, err := vbs1.Merge(vbs2)
+	assert.Nil(t, err)
+	assert.Equal(t, softVolumes.ToStringSlice(true), []string{"AUTO:/data1:rw:5", "AUTO:/data7:rw:3"})
+	assert.Equal(t, hardVolumes.ToStringSlice(true), []string{"/mnt1:/data2:rw", "/mnt2:/data3:ro", "/mnt3:/data8"})
+
+	assert.True(t, vbs1.IsEqual(vbs1))
+	assert.False(t, vbs1.IsEqual(vbs2))
+
+	vp := VolumePlan{
+		MustToVolumeBinding("AUTO:/data0:rw:1"): VolumeMap{"/mnt0": 1},
+		MustToVolumeBinding("AUTO:/data1:rm:2"): VolumeMap{"/mnt1": 2},
+		MustToVolumeBinding("AUTO:/data7:rw:3"): VolumeMap{"/mnt2": 3},
+	}
+	vbs = vbs1.ApplyPlan(vp)
+	assert.Equal(t, vbs, MustToVolumeBindings([]string{"/mnt0:/data0:rw:1", "/mnt1:/data1:rw:2", "/mnt1:/data2:rw", "/mnt2:/data3:ro"}))
+}
+
+func TestVolumeBindingsJSONEncoding(t *testing.T) {
+	vbs := MustToVolumeBindings([]string{"AUTO:/data0:rw:1", "AUTO:/data1:rw:2", "/mnt1:/data2:rw", "/mnt2:/data3:ro"})
+	data := []byte(`["AUTO:/data0:rw:1","AUTO:/data1:rw:2","/mnt1:/data2:rw","/mnt2:/data3:ro"]`)
+	b, err := json.Marshal(vbs)
+	assert.Nil(t, err)
+	assert.Equal(t, b, data)
+
+	vbs1 := VolumeBindings{}
+	err = json.Unmarshal(data, &vbs1)
+	assert.Nil(t, err)
+	assert.Equal(t, vbs1, vbs)
 }
