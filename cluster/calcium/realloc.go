@@ -94,7 +94,7 @@ func (c *Calcium) doReallocContainer(
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				continue
 			}
-			newAutoVol := strings.Join(autoVolumes.ToStringSlice(true), ",")
+			newAutoVol := strings.Join(autoVolumes.ToStringSlice(true, false), ",")
 
 			if _, ok := volCPUMemNodeContainersInfo[newAutoVol]; !ok {
 				volCPUMemNodeContainersInfo[newAutoVol] = map[float64]map[int64]nodeContainers{}
@@ -189,7 +189,7 @@ func (c *Calcium) doReallocContainer(
 								Quota:     newCPU,
 								Memory:    newMemory,
 								SoftLimit: container.SoftLimit,
-								Volumes:   hardVbsForContainer[container.ID].ToStringSlice(false),
+								Volumes:   hardVbsForContainer[container.ID].ToStringSlice(false, false),
 							}
 							if len(container.CPU) > 0 {
 								newResource.CPU = cpusets[0]
@@ -199,7 +199,7 @@ func (c *Calcium) doReallocContainer(
 
 							if newAutoVol != "" {
 								newResource.VolumePlan = volumePlans[idx].ToLiteral()
-								newResource.Volumes = append(newResource.Volumes, autoVbs.ToStringSlice(false)...)
+								newResource.Volumes = append(newResource.Volumes, autoVbs.ToStringSlice(false, false)...)
 							}
 
 							newVbs, _ := types.MakeVolumeBindings(newResource.Volumes)

@@ -274,7 +274,7 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, volumeP
 	config.Image = opts.Image
 	config.Stdin = opts.OpenStdin
 	config.Hosts = opts.ExtraHosts
-	config.Volumes = opts.Volumes.ApplyPlan(volumePlan).ToStringSlice(false)
+	config.Volumes = opts.Volumes.ApplyPlan(volumePlan).ToStringSlice(false, true)
 	config.Debug = opts.Debug
 	config.Network = opts.NetworkMode
 	config.Networks = opts.Networks

@@ -67,9 +67,9 @@ func TestNewVolumeBinding(t *testing.T) {
 
 func TestVolumeBindingToString(t *testing.T) {
 	cases := NormalVolumeBindingTestcases(t)
-	assert.Equal(t, cases[0].ToString(), "/src:/dst:rwm:1000")
-	assert.Equal(t, cases[1].ToString(), "/src:/dst:rwm")
-	assert.Equal(t, cases[2].ToString(), "/src:/dst")
+	assert.Equal(t, cases[0].ToString(false), "/src:/dst:rwm:1000")
+	assert.Equal(t, cases[1].ToString(false), "/src:/dst:rwm")
+	assert.Equal(t, cases[2].ToString(false), "/src:/dst")
 }
 
 func TestVolumeBindings(t *testing.T) {

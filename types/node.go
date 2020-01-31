@@ -126,7 +126,7 @@ func (vp *VolumePlan) UnmarshalJSON(b []byte) (err error) {
 func (vp VolumePlan) MarshalJSON() ([]byte, error) {
 	plan := map[string]VolumeMap{}
 	for vb, vmap := range vp {
-		plan[vb.ToString()] = vmap
+		plan[vb.ToString(false)] = vmap
 	}
 	return json.Marshal(plan)
 }
@@ -135,7 +135,7 @@ func (vp VolumePlan) MarshalJSON() ([]byte, error) {
 func (p VolumePlan) ToLiteral() map[string]map[string]int64 {
 	plan := map[string]map[string]int64{}
 	for vb, volumeMap := range p {
-		plan[vb.ToString()] = volumeMap
+		plan[vb.ToString(false)] = volumeMap
 	}
 	return plan
 }

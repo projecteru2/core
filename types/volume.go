@@ -64,14 +64,19 @@ func (vb VolumeBinding) RequireMonopoly() bool {
 }
 
 // ToString returns volume string
-func (vb VolumeBinding) ToString() (volume string) {
+func (vb VolumeBinding) ToString(normalize bool) (volume string) {
+	flags := vb.Flags
+	if normalize {
+		flags = strings.ReplaceAll(flags, "m", "")
+	}
+
 	switch {
 	case vb.Flags == "" && vb.SizeInBytes == 0:
 		volume = fmt.Sprintf("%s:%s", vb.Source, vb.Destination)
 	case vb.SizeInBytes == 0:
-		volume = fmt.Sprintf("%s:%s:%s", vb.Source, vb.Destination, vb.Flags)
+		volume = fmt.Sprintf("%s:%s:%s", vb.Source, vb.Destination, flags)
 	default:
-		volume = fmt.Sprintf("%s:%s:%s:%d", vb.Source, vb.Destination, vb.Flags, vb.SizeInBytes)
+		volume = fmt.Sprintf("%s:%s:%s:%d", vb.Source, vb.Destination, flags, vb.SizeInBytes)
 	}
 	return volume
 }
@@ -91,12 +96,12 @@ func MakeVolumeBindings(volumes []string) (volumeBindings VolumeBindings, err er
 	return
 }
 
-func (vbs VolumeBindings) ToStringSlice(sorted bool) (volumes []string) {
+func (vbs VolumeBindings) ToStringSlice(sorted, normalize bool) (volumes []string) {
 	if sorted {
-		sort.Slice(vbs, func(i, j int) bool { return vbs[i].ToString() < vbs[j].ToString() })
+		sort.Slice(vbs, func(i, j int) bool { return vbs[i].ToString(false) < vbs[j].ToString(false) })
 	}
 	for _, vb := range vbs {
-		volumes = append(volumes, vb.ToString())
+		volumes = append(volumes, vb.ToString(normalize))
 	}
 	return
 }
@@ -113,14 +118,16 @@ func (vbs *VolumeBindings) UnmarshalJSON(b []byte) (err error) {
 func (vbs VolumeBindings) MarshalJSON() ([]byte, error) {
 	volumes := []string{}
 	for _, vb := range vbs {
-		volumes = append(volumes, vb.ToString())
+		volumes = append(volumes, vb.ToString(false))
 	}
 	return json.Marshal(volumes)
 }
 
 func (vbs VolumeBindings) AdditionalStorage() (storage int64) {
 	for _, vb := range vbs {
-		storage += vb.SizeInBytes
+		if !vb.RequireSchedule() {
+			storage += vb.SizeInBytes
+		}
 	}
 	return
 }
@@ -161,5 +168,5 @@ func (vbs VolumeBindings) Merge(vbs2 VolumeBindings) (softVolumes VolumeBindings
 }
 
 func (vbs VolumeBindings) IsEqual(vbs2 VolumeBindings) bool {
-	return reflect.DeepEqual(vbs, vbs2)
+	return reflect.DeepEqual(vbs.ToStringSlice(true, false), vbs2.ToStringSlice(true, false))
 }

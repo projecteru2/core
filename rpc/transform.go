@@ -287,7 +287,7 @@ func toRPCVolumePlan(v types.VolumePlan) map[string]*pb.Volume {
 
 	msg := map[string]*pb.Volume{}
 	for vb, volume := range v {
-		msg[vb.ToString()] = &pb.Volume{Volume: volume}
+		msg[vb.ToString(false)] = &pb.Volume{Volume: volume}
 	}
 	return msg
 }
@@ -451,7 +451,7 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		Publish:    publish,
 		Image:      c.Image,
 		Labels:     c.Labels,
-		Volumes:    c.Volumes.ToStringSlice(false),
+		Volumes:    c.Volumes.ToStringSlice(false, false),
 		VolumePlan: toRPCVolumePlan(c.VolumePlan),
 		Status:     toRPCContainerStatus(c.StatusMeta),
 	}, nil

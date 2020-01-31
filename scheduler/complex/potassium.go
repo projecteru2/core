@@ -125,16 +125,16 @@ func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, me
 // SelectVolumeNodes calculates plans for volume request
 func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.VolumeBindings) ([]types.NodeInfo, map[string][]types.VolumePlan, int, error) {
 	log.Infof("[SelectVolumeNodes] nodesInfo %v, need volume: %v", nodesInfo, vbs)
-	var ReqsNorm, ReqsMono []int64
+	var reqsNorm, reqsMono []int64
 	var vbsNorm, vbsMono types.VolumeBindings
 
 	for _, vb := range vbs {
 		if vb.RequireMonopoly() {
 			vbsMono = append(vbsMono, vb)
-			ReqsMono = append(ReqsMono, vb.SizeInBytes)
+			reqsMono = append(reqsMono, vb.SizeInBytes)
 		} else if vb.RequireSchedule() {
 			vbsNorm = append(vbsNorm, vb)
-			ReqsNorm = append(ReqsNorm, vb.SizeInBytes)
+			reqsNorm = append(reqsNorm, vb.SizeInBytes)
 		}
 	}
 
@@ -143,12 +143,12 @@ func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.Volu
 	for idx, nodeInfo := range nodesInfo {
 
 		usedVolumeMap, unusedVolumeMap := nodeInfo.VolumeMap.SplitByUsed(nodeInfo.InitVolumeMap)
-		if len(ReqsMono) == 0 {
+		if len(reqsMono) == 0 {
 			usedVolumeMap.Add(unusedVolumeMap)
 		}
 
-		capNorm, plansNorm := calculateVolumePlan(usedVolumeMap, ReqsNorm)
-		capMono, plansMono := calculateMonopolyVolumePlan(nodeInfo.InitVolumeMap, unusedVolumeMap, ReqsMono)
+		capNorm, plansNorm := calculateVolumePlan(usedVolumeMap, reqsNorm)
+		capMono, plansMono := calculateMonopolyVolumePlan(nodeInfo.InitVolumeMap, unusedVolumeMap, reqsMono)
 
 		volTotal += updateNodeInfoCapacity(&nodesInfo[idx], utils.Min(capNorm, capMono))
 		cap := nodesInfo[idx].Capacity
