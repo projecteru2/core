@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+// MustToVolumeBinding convert volume string into VolumeBinding or panic
 func MustToVolumeBinding(volume string) VolumeBinding {
 	vb, err := NewVolumeBinding(volume)
 	if err != nil {
@@ -12,6 +13,7 @@ func MustToVolumeBinding(volume string) VolumeBinding {
 	return *vb
 }
 
+// MustToVolumeBindings convert slice of volume string into VolumeBindings or panic
 func MustToVolumeBindings(volumes []string) VolumeBindings {
 	vbs, err := MakeVolumeBindings(volumes)
 	if err != nil {

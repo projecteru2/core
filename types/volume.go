@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// VolumeBinding: src:dst:flags:size
+// VolumeBinding src:dst:flags:size
 type VolumeBinding struct {
 	Source      string
 	Destination string
@@ -46,6 +46,7 @@ func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 	return vb, vb.Validate()
 }
 
+// Validate return error if invalid
 func (vb VolumeBinding) Validate() error {
 	if strings.HasSuffix(vb.Source, AUTO) && vb.SizeInBytes == 0 {
 		return fmt.Errorf("invalid volume, size must be provided for schedule: %v", vb)
@@ -96,6 +97,7 @@ func MakeVolumeBindings(volumes []string) (volumeBindings VolumeBindings, err er
 	return
 }
 
+// ToStringSlice converts VolumeBindings into string slice
 func (vbs VolumeBindings) ToStringSlice(sorted, normalize bool) (volumes []string) {
 	if sorted {
 		sort.Slice(vbs, func(i, j int) bool { return vbs[i].ToString(false) < vbs[j].ToString(false) })
@@ -106,6 +108,7 @@ func (vbs VolumeBindings) ToStringSlice(sorted, normalize bool) (volumes []strin
 	return
 }
 
+// UnmarshalJSON is used for encoding/json.Unmarshal
 func (vbs *VolumeBindings) UnmarshalJSON(b []byte) (err error) {
 	volumes := []string{}
 	if err = json.Unmarshal(b, &volumes); err != nil {
@@ -115,6 +118,7 @@ func (vbs *VolumeBindings) UnmarshalJSON(b []byte) (err error) {
 	return
 }
 
+// MarshalJSON is used for encoding/json.Marshal
 func (vbs VolumeBindings) MarshalJSON() ([]byte, error) {
 	volumes := []string{}
 	for _, vb := range vbs {
@@ -123,6 +127,7 @@ func (vbs VolumeBindings) MarshalJSON() ([]byte, error) {
 	return json.Marshal(volumes)
 }
 
+// AdditionalStorage is used for another kind of resource: storage
 func (vbs VolumeBindings) AdditionalStorage() (storage int64) {
 	for _, vb := range vbs {
 		if !vb.RequireSchedule() {
@@ -132,6 +137,7 @@ func (vbs VolumeBindings) AdditionalStorage() (storage int64) {
 	return
 }
 
+// ApplyPlan creates new VolumeBindings according to volume plan
 func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 	for _, vb := range vbs {
 		newVb := &VolumeBinding{vb.Source, vb.Destination, vb.Flags, vb.SizeInBytes}
@@ -143,6 +149,7 @@ func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 	return
 }
 
+// Merge combines two VolumeBindings
 func (vbs VolumeBindings) Merge(vbs2 VolumeBindings) (softVolumes VolumeBindings, hardVolumes VolumeBindings, err error) {
 	sizeMap := map[[3]string]int64{} // {["AUTO", "/data", "rw"]: 100}
 	for _, vb := range append(vbs, vbs2...) {
@@ -167,6 +174,7 @@ func (vbs VolumeBindings) Merge(vbs2 VolumeBindings) (softVolumes VolumeBindings
 	return
 }
 
+// IsEqual return true is two VolumeBindings have the same value
 func (vbs VolumeBindings) IsEqual(vbs2 VolumeBindings) bool {
 	return reflect.DeepEqual(vbs.ToStringSlice(true, false), vbs2.ToStringSlice(true, false))
 }

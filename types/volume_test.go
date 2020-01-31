@@ -74,16 +74,16 @@ func TestVolumeBindingToString(t *testing.T) {
 
 func TestVolumeBindings(t *testing.T) {
 	vbs, _ := MakeVolumeBindings([]string{"/1:/dst:rw:1000", "/0:/dst:rom"})
-	assert.Equal(t, vbs.ToStringSlice(false), []string{"/1:/dst:rw:1000", "/0:/dst:rom"})
-	assert.Equal(t, vbs.ToStringSlice(true), []string{"/0:/dst:rom", "/1:/dst:rw:1000"})
+	assert.Equal(t, vbs.ToStringSlice(false, false), []string{"/1:/dst:rw:1000", "/0:/dst:rom"})
+	assert.Equal(t, vbs.ToStringSlice(true, false), []string{"/0:/dst:rom", "/1:/dst:rw:1000"})
 	assert.Equal(t, vbs.AdditionalStorage(), int64(1000))
 
 	vbs1, _ := MakeVolumeBindings([]string{"AUTO:/data0:rw:1", "AUTO:/data1:rw:2", "/mnt1:/data2:rw", "/mnt2:/data3:ro"})
 	vbs2, _ := MakeVolumeBindings([]string{"AUTO:/data7:rw:3", "AUTO:/data1:rw:3", "/mnt3:/data8", "AUTO:/data0:rw:-20"})
 	softVolumes, hardVolumes, err := vbs1.Merge(vbs2)
 	assert.Nil(t, err)
-	assert.Equal(t, softVolumes.ToStringSlice(true), []string{"AUTO:/data1:rw:5", "AUTO:/data7:rw:3"})
-	assert.Equal(t, hardVolumes.ToStringSlice(true), []string{"/mnt1:/data2:rw", "/mnt2:/data3:ro", "/mnt3:/data8"})
+	assert.Equal(t, softVolumes.ToStringSlice(true, false), []string{"AUTO:/data1:rw:5", "AUTO:/data7:rw:3"})
+	assert.Equal(t, hardVolumes.ToStringSlice(true, false), []string{"/mnt1:/data2:rw", "/mnt2:/data3:ro", "/mnt3:/data8"})
 
 	assert.True(t, vbs1.IsEqual(vbs1))
 	assert.False(t, vbs1.IsEqual(vbs2))
@@ -94,7 +94,7 @@ func TestVolumeBindings(t *testing.T) {
 		MustToVolumeBinding("AUTO:/data7:rw:3"): VolumeMap{"/mnt2": 3},
 	}
 	vbs = vbs1.ApplyPlan(vp)
-	assert.Equal(t, vbs, MustToVolumeBindings([]string{"/mnt0:/data0:rw:1", "/mnt1:/data1:rw:2", "/mnt1:/data2:rw", "/mnt2:/data3:ro"}))
+	assert.True(t, MustToVolumeBindings([]string{"/mnt0:/data0:rw:1", "/mnt1:/data1:rw:2", "/mnt1:/data2:rw", "/mnt2:/data3:ro"}).IsEqual(vbs))
 }
 
 func TestVolumeBindingsJSONEncoding(t *testing.T) {
