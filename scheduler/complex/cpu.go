@@ -52,8 +52,7 @@ func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShar
 				if _, ok := nodeContainer[nodeInfo.Name]; !ok {
 					nodeContainer[nodeInfo.Name] = []types.CPUMap{}
 				}
-				nodesInfo[p].Capacity += cap
-				volTotal += cap
+				volTotal += updateNodeInfoCapacity(&nodesInfo[p], cap)
 				globalMemCap -= int64(cap) * memory
 				for _, cpuPlan := range plan {
 					globalCPUMap.Sub(cpuPlan)

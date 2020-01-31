@@ -1190,7 +1190,7 @@ func SelectStorageNodes(k *Potassium, nodesInfo []types.NodeInfo, storage int64,
 }
 
 func SelectVolumeNodes(k *Potassium, nodesInfo []types.NodeInfo, volumes []string, need int, each bool) (map[string][]types.VolumePlan, map[string]types.VolumeMap, error) {
-	nodesInfo, plans, total, err := k.SelectVolumeNodes(nodesInfo, volumes)
+	nodesInfo, plans, total, err := k.SelectVolumeNodes(nodesInfo, types.MustToVolumeBindings(volumes))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1213,12 +1213,14 @@ func SelectVolumeNodes(k *Potassium, nodesInfo []types.NodeInfo, volumes []strin
 			continue
 		}
 
-		volumePlans := plans[nodeInfo.Name][:nodeInfo.Deploy]
-		result[nodeInfo.Name] = volumePlans
-		for _, volumePlan := range volumePlans {
-			nodeInfo.VolumeMap.Sub(volumePlan.Merge())
-		}
 		changed[nodeInfo.Name] = nodeInfo.VolumeMap
+		if ps, ok := plans[nodeInfo.Name]; ok {
+			volumePlans := ps[:nodeInfo.Deploy]
+			result[nodeInfo.Name] = volumePlans
+			for _, volumePlan := range volumePlans {
+				changed[nodeInfo.Name].Sub(volumePlan.IntoVolumeMap())
+			}
+		}
 	}
 	return result, changed, nil
 }
@@ -1228,8 +1230,7 @@ func TestSelectVolumeNodesNonAuto(t *testing.T) {
 
 	nodes := []types.NodeInfo{
 		{
-			Name:     "0",
-			Capacity: 100,
+			Name: "0",
 			VolumeMap: types.VolumeMap{
 				"/data0": 1024,
 			},
@@ -1247,7 +1248,6 @@ func TestSelectVolumeNodesNonAuto(t *testing.T) {
 	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 2, true)
 	assert.NoError(t, err)
 	assert.Equal(t, len(res["0"]), 2)
-	assert.Equal(t, res["0"][0].GetVolumeString(volumes[0]), volumes[0])
 	assert.Equal(t, changed["node1"]["/data0"], int64(0))
 }
 
@@ -1290,7 +1290,7 @@ func TestSelectVolumeNodesAutoSingle(t *testing.T) {
 	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 43, true)
 	assert.Nil(t, err)
 	assert.Equal(t, len(res["0"]), 43)
-	assert.Equal(t, res["0"][0]["AUTO:/data:rw:70"], types.VolumeMap{"/data0": 70})
+	assert.Equal(t, res["0"][0][types.MustToVolumeBinding("AUTO:/data:rw:70")], types.VolumeMap{"/data0": 70})
 	assert.Equal(t, changed["0"], types.VolumeMap{"/data0": 44, "/data1": 18})
 }
 
@@ -1317,10 +1317,10 @@ func TestSelectVolumeNodesAutoDouble(t *testing.T) {
 	volumes := []string{"AUTO:/data:rw:20", "AUTO:/dir:rw:200"}
 	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 5, true)
 	assert.Nil(t, err)
-	assert.Equal(t, res["0"][4]["AUTO:/data:rw:20"], types.VolumeMap{"/data0": 20})
-	assert.Equal(t, res["0"][4]["AUTO:/dir:rw:200"], types.VolumeMap{"/data1": 200})
-	assert.Equal(t, res["1"][4]["AUTO:/data:rw:20"], types.VolumeMap{"/data0": 20})
-	assert.Equal(t, res["1"][4]["AUTO:/dir:rw:200"], types.VolumeMap{"/data0": 200})
+	assert.Equal(t, res["0"][4][types.MustToVolumeBinding("AUTO:/data:rw:20")], types.VolumeMap{"/data0": 20})
+	assert.Equal(t, res["0"][4][types.MustToVolumeBinding("AUTO:/dir:rw:200")], types.VolumeMap{"/data1": 200})
+	assert.Equal(t, res["1"][4][types.MustToVolumeBinding("AUTO:/data:rw:20")], types.VolumeMap{"/data0": 20})
+	assert.Equal(t, res["1"][4][types.MustToVolumeBinding("AUTO:/dir:rw:200")], types.VolumeMap{"/data0": 200})
 	assert.Equal(t, changed["0"], types.VolumeMap{"/data0": 124, "/data1": 825})
 	assert.Equal(t, changed["1"], types.VolumeMap{"/data0": 948, "/data1": 2049})
 }
@@ -1363,19 +1363,187 @@ func TestSelectVolumeNodesAutoTriple(t *testing.T) {
 
 	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 2, true)
 	assert.Nil(t, err)
-	assert.Equal(t, res["0"][1]["AUTO:/data0:rw:1000"], types.VolumeMap{"/data2": 1000})
-	assert.Equal(t, res["0"][1]["AUTO:/data1:rw:10"], types.VolumeMap{"/data2": 10})
-	assert.Equal(t, res["0"][1]["AUTO:/data2:rw:100"], types.VolumeMap{"/data1": 100})
+	assert.Equal(t, res["0"][1][types.MustToVolumeBinding("AUTO:/data0:rw:1000")], types.VolumeMap{"/data2": 1000})
+	assert.Equal(t, res["0"][1][types.MustToVolumeBinding("AUTO:/data1:rw:10")], types.VolumeMap{"/data2": 10})
+	assert.Equal(t, res["0"][1][types.MustToVolumeBinding("AUTO:/data2:rw:100")], types.VolumeMap{"/data1": 100})
 
-	assert.Equal(t, res["1"][0]["AUTO:/data0:rw:1000"], types.VolumeMap{"/data3": 1000})
-	assert.Equal(t, res["1"][0]["AUTO:/data1:rw:10"], types.VolumeMap{"/data2": 10})
-	assert.Equal(t, res["1"][0]["AUTO:/data2:rw:100"], types.VolumeMap{"/data1": 100})
+	assert.Equal(t, res["1"][0][types.MustToVolumeBinding("AUTO:/data0:rw:1000")], types.VolumeMap{"/data3": 1000})
+	assert.Equal(t, res["1"][0][types.MustToVolumeBinding("AUTO:/data1:rw:10")], types.VolumeMap{"/data2": 10})
+	assert.Equal(t, res["1"][0][types.MustToVolumeBinding("AUTO:/data2:rw:100")], types.VolumeMap{"/data1": 100})
 
-	assert.Equal(t, res["2"][1]["AUTO:/data0:rw:1000"], types.VolumeMap{"/data4": 1000})
-	assert.Equal(t, res["2"][1]["AUTO:/data1:rw:10"], types.VolumeMap{"/data2": 10})
-	assert.Equal(t, res["2"][1]["AUTO:/data2:rw:100"], types.VolumeMap{"/data2": 100})
+	assert.Equal(t, res["2"][1][types.MustToVolumeBinding("AUTO:/data0:rw:1000")], types.VolumeMap{"/data4": 1000})
+	assert.Equal(t, res["2"][1][types.MustToVolumeBinding("AUTO:/data1:rw:10")], types.VolumeMap{"/data2": 10})
+	assert.Equal(t, res["2"][1][types.MustToVolumeBinding("AUTO:/data2:rw:100")], types.VolumeMap{"/data2": 100})
 
 	assert.Equal(t, changed["0"], types.VolumeMap{"/data1": 8, "/data2": 209, "/data0": 2000})
 	assert.Equal(t, changed["1"], types.VolumeMap{"/data1": 0, "/data2": 0, "/data3": 0})
 	assert.Equal(t, changed["2"], types.VolumeMap{"/data2": 781, "/data3": 0, "/data4": 2})
+}
+
+func TestSelectMonopoly(t *testing.T) {
+	k, _ := newPotassium()
+
+	nodes := []types.NodeInfo{
+		{
+			Name: "0",
+			VolumeMap: types.VolumeMap{
+				"/data0": 2000,
+				"/data2": 2000,
+			},
+			InitVolumeMap: types.VolumeMap{
+				"/data0": 2001,
+				"/data2": 2000,
+			},
+		},
+	}
+
+	volumes := []string{"AUTO:/data:rwm:997"}
+	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 1, true)
+
+	assert.Nil(t, err)
+	assert.Equal(t, res["0"][0][types.MustToVolumeBinding("AUTO:/data:rwm:997")], types.VolumeMap{"/data2": 2000})
+	assert.Equal(t, changed["0"], types.VolumeMap{"/data0": 2000, "/data2": 0})
+
+}
+
+func TestSelectMultipleMonopoly(t *testing.T) {
+	k, _ := newPotassium()
+
+	nodes := []types.NodeInfo{
+		{
+			Name: "0",
+			VolumeMap: types.VolumeMap{
+				"/data0": 2000,
+				"/data2": 2000,
+				"/data3": 3000,
+			},
+			InitVolumeMap: types.VolumeMap{
+				"/data0": 2000,
+				"/data2": 2001,
+				"/data3": 3000,
+			},
+		},
+	}
+
+	volumes := []string{"AUTO:/data:rom:100", "AUTO:/data1:rom:200"}
+	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 2, true)
+
+	assert.Nil(t, err)
+	assert.Equal(t, len(res["0"]), 2)
+	assert.Equal(t, res["0"][0][types.MustToVolumeBinding(volumes[0])], types.VolumeMap{"/data0": 666})
+	assert.Equal(t, res["0"][0][types.MustToVolumeBinding(volumes[1])], types.VolumeMap{"/data0": 1333})
+	assert.Equal(t, res["0"][1][types.MustToVolumeBinding(volumes[0])], types.VolumeMap{"/data3": 1000})
+	assert.Equal(t, res["0"][1][types.MustToVolumeBinding(volumes[1])], types.VolumeMap{"/data3": 2000})
+	assert.Equal(t, changed["0"], types.VolumeMap{"/data0": 1, "/data2": 2000, "/data3": 0})
+}
+
+func TestSelectHyperMonopoly(t *testing.T) {
+	k, _ := newPotassium()
+
+	nodes := []types.NodeInfo{
+		{
+			Name: "0",
+			VolumeMap: types.VolumeMap{
+				"/data0": 2000,
+				"/data2": 2000,
+			},
+			InitVolumeMap: types.VolumeMap{
+				"/data0": 2000,
+				"/data2": 2001,
+			},
+		},
+	}
+
+	volumes := []string{
+		"AUTO:/data:rom:100", "AUTO:/data1:rmw:200", "AUTO:/data2:m:300",
+		"AUTO:/data3:ro:100", "AUTO:/data4:rw:400",
+	}
+	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 1, true)
+
+	assert.Nil(t, err)
+	assert.Equal(t, len(res["0"]), 1)
+	assert.Equal(t, res["0"][0][types.MustToVolumeBinding(volumes[0])], types.VolumeMap{"/data0": 333})
+	assert.Equal(t, res["0"][0][types.MustToVolumeBinding(volumes[1])], types.VolumeMap{"/data0": 666})
+	assert.Equal(t, res["0"][0][types.MustToVolumeBinding(volumes[2])], types.VolumeMap{"/data0": 1000})
+	assert.Equal(t, res["0"][0][types.MustToVolumeBinding(volumes[3])], types.VolumeMap{"/data2": 100})
+	assert.Equal(t, res["0"][0][types.MustToVolumeBinding(volumes[4])], types.VolumeMap{"/data2": 400})
+	assert.Equal(t, changed["0"], types.VolumeMap{"/data0": 1, "/data2": 1500})
+}
+
+func TestSelectMonopolyOnMultipleNodes(t *testing.T) {
+	k, _ := newPotassium()
+
+	nodes := []types.NodeInfo{
+		{
+			Name: "0",
+			VolumeMap: types.VolumeMap{
+				"/data0": 2000,
+				"/data1": 2000,
+			},
+			InitVolumeMap: types.VolumeMap{
+				"/data0": 2001,
+				"/data1": 2000,
+			},
+		},
+		{
+			Name: "1",
+			VolumeMap: types.VolumeMap{
+				"/data0": 2000,
+				"/data1": 2000,
+			},
+			InitVolumeMap: types.VolumeMap{
+				"/data0": 2000,
+				"/data1": 2001,
+			},
+		},
+	}
+
+	volumes := []string{"AUTO:/data:rom:100", "AUTO:/data1:wrm:300"}
+	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 1, true)
+
+	assert.Nil(t, err)
+	assert.Equal(t, res["0"][0][types.MustToVolumeBinding(volumes[0])], types.VolumeMap{"/data1": 500})
+	assert.Equal(t, res["0"][0][types.MustToVolumeBinding(volumes[1])], types.VolumeMap{"/data1": 1500})
+	assert.Equal(t, res["1"][0][types.MustToVolumeBinding(volumes[0])], types.VolumeMap{"/data0": 500})
+	assert.Equal(t, res["1"][0][types.MustToVolumeBinding(volumes[1])], types.VolumeMap{"/data0": 1500})
+	assert.Equal(t, changed["0"], types.VolumeMap{"/data0": 2000, "/data1": 0})
+	assert.Equal(t, changed["1"], types.VolumeMap{"/data0": 0, "/data1": 2000})
+}
+
+func TestSelectMonopolyInsufficient(t *testing.T) {
+	k, _ := newPotassium()
+
+	nodes := []types.NodeInfo{
+		{
+			Name: "0",
+			VolumeMap: types.VolumeMap{
+				"/data0": 2000,
+			},
+			InitVolumeMap: types.VolumeMap{
+				"/data0": 2001,
+			},
+		},
+	}
+
+	volumes := []string{"AUTO:/data:m:1"}
+	_, _, err := SelectVolumeNodes(k, nodes, volumes, 1, true)
+	assert.True(t, errors.Is(err, types.ErrInsufficientRes))
+
+	nodes = []types.NodeInfo{
+		{
+			Name: "0",
+			VolumeMap: types.VolumeMap{
+				"/data0": 2000,
+				"/data1": 2000,
+			},
+			InitVolumeMap: types.VolumeMap{
+				"/data0": 2000,
+				"/data1": 2001,
+			},
+		},
+	}
+
+	volumes = []string{"/AUTO:/data:m:200"}
+	_, _, err = SelectVolumeNodes(k, nodes, volumes, 2, true)
+	assert.True(t, errors.Is(err, types.ErrInsufficientCap))
 }

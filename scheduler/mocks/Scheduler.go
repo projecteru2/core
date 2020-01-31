@@ -225,13 +225,13 @@ func (_m *Scheduler) SelectStorageNodes(nodesInfo []types.NodeInfo, storage int6
 	return r0, r1, r2
 }
 
-// SelectVolumeNodes provides a mock function with given fields: nodeInfo, volumes
-func (_m *Scheduler) SelectVolumeNodes(nodeInfo []types.NodeInfo, volumes []string) ([]types.NodeInfo, map[string][]types.VolumePlan, int, error) {
-	ret := _m.Called(nodeInfo, volumes)
+// SelectVolumeNodes provides a mock function with given fields: nodeInfo, vbs
+func (_m *Scheduler) SelectVolumeNodes(nodeInfo []types.NodeInfo, vbs types.VolumeBindings) ([]types.NodeInfo, map[string][]types.VolumePlan, int, error) {
+	ret := _m.Called(nodeInfo, vbs)
 
 	var r0 []types.NodeInfo
-	if rf, ok := ret.Get(0).(func([]types.NodeInfo, []string) []types.NodeInfo); ok {
-		r0 = rf(nodeInfo, volumes)
+	if rf, ok := ret.Get(0).(func([]types.NodeInfo, types.VolumeBindings) []types.NodeInfo); ok {
+		r0 = rf(nodeInfo, vbs)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]types.NodeInfo)
@@ -239,8 +239,8 @@ func (_m *Scheduler) SelectVolumeNodes(nodeInfo []types.NodeInfo, volumes []stri
 	}
 
 	var r1 map[string][]types.VolumePlan
-	if rf, ok := ret.Get(1).(func([]types.NodeInfo, []string) map[string][]types.VolumePlan); ok {
-		r1 = rf(nodeInfo, volumes)
+	if rf, ok := ret.Get(1).(func([]types.NodeInfo, types.VolumeBindings) map[string][]types.VolumePlan); ok {
+		r1 = rf(nodeInfo, vbs)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(map[string][]types.VolumePlan)
@@ -248,15 +248,15 @@ func (_m *Scheduler) SelectVolumeNodes(nodeInfo []types.NodeInfo, volumes []stri
 	}
 
 	var r2 int
-	if rf, ok := ret.Get(2).(func([]types.NodeInfo, []string) int); ok {
-		r2 = rf(nodeInfo, volumes)
+	if rf, ok := ret.Get(2).(func([]types.NodeInfo, types.VolumeBindings) int); ok {
+		r2 = rf(nodeInfo, vbs)
 	} else {
 		r2 = ret.Get(2).(int)
 	}
 
 	var r3 error
-	if rf, ok := ret.Get(3).(func([]types.NodeInfo, []string) error); ok {
-		r3 = rf(nodeInfo, volumes)
+	if rf, ok := ret.Get(3).(func([]types.NodeInfo, types.VolumeBindings) error); ok {
+		r3 = rf(nodeInfo, vbs)
 	} else {
 		r3 = ret.Error(3)
 	}

@@ -3,8 +3,6 @@ package complexscheduler
 import (
 	"fmt"
 	"sort"
-	"strconv"
-	"strings"
 
 	"math"
 
@@ -125,41 +123,50 @@ func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, me
 }
 
 // SelectVolumeNodes calculates plans for volume request
-func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, volumeReqs []string) ([]types.NodeInfo, map[string][]types.VolumePlan, int, error) {
-	log.Infof("[SelectVolumeNodes] nodesInfo %v, need volume: %v", nodesInfo, volumeReqs)
-	req := []int64{}
-	autoVolumes := []string{}
-	for _, volume := range volumeReqs {
-		segs := strings.Split(volume, ":")
-		if len(segs) < 4 || segs[0] != types.AUTO {
-			continue
+func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.VolumeBindings) ([]types.NodeInfo, map[string][]types.VolumePlan, int, error) {
+	log.Infof("[SelectVolumeNodes] nodesInfo %v, need volume: %v", nodesInfo, vbs)
+	var reqsNorm, reqsMono []int64
+	var vbsNorm, vbsMono types.VolumeBindings
+
+	for _, vb := range vbs {
+		if vb.RequireMonopoly() {
+			vbsMono = append(vbsMono, vb)
+			reqsMono = append(reqsMono, vb.SizeInBytes)
+		} else if vb.RequireSchedule() {
+			vbsNorm = append(vbsNorm, vb)
+			reqsNorm = append(reqsNorm, vb.SizeInBytes)
 		}
-		size, err := strconv.ParseInt(segs[3], 10, 64)
-		if err != nil {
-			return nil, nil, 0, err
-		}
-		req = append(req, size)
-		autoVolumes = append(autoVolumes, volume)
 	}
 
 	volTotal := 0
 	volumePlans := map[string][]types.VolumePlan{}
-	for nodeIdx, nodeInfo := range nodesInfo {
-		capacity, distributions := calculateVolumePlan(nodeInfo.VolumeMap, req)
-		if nodesInfo[nodeIdx].Capacity == 0 {
-			nodesInfo[nodeIdx].Capacity = capacity
-		} else {
-			nodesInfo[nodeIdx].Capacity = utils.Min(capacity, nodesInfo[nodeIdx].Capacity)
+	for idx, nodeInfo := range nodesInfo {
+
+		usedVolumeMap, unusedVolumeMap := nodeInfo.VolumeMap.SplitByUsed(nodeInfo.InitVolumeMap)
+		if len(reqsMono) == 0 {
+			usedVolumeMap.Add(unusedVolumeMap)
 		}
-		if _, ok := volumePlans[nodeInfo.Name]; !ok {
-			volumePlans[nodeInfo.Name] = make([]types.VolumePlan, 0, nodesInfo[nodeIdx].Capacity)
+
+		capNorm, plansNorm := calculateVolumePlan(usedVolumeMap, reqsNorm)
+		capMono, plansMono := calculateMonopolyVolumePlan(nodeInfo.InitVolumeMap, unusedVolumeMap, reqsMono)
+
+		volTotal += updateNodeInfoCapacity(&nodesInfo[idx], utils.Min(capNorm, capMono))
+		cap := nodesInfo[idx].Capacity
+
+		volumePlans[nodeInfo.Name] = make([]types.VolumePlan, cap)
+		for idx := range volumePlans[nodeInfo.Name] {
+			volumePlans[nodeInfo.Name][idx] = types.VolumePlan{}
 		}
-		volTotal += nodesInfo[nodeIdx].Capacity
-		for _, distribution := range distributions {
-			volumePlans[nodeInfo.Name] = append(
-				volumePlans[nodeInfo.Name],
-				*types.NewVolumePlan(autoVolumes, distribution),
-			)
+		if plansNorm != nil {
+			for i, plan := range plansNorm[:cap] {
+				volumePlans[nodeInfo.Name][i].Merge(types.MakeVolumePlan(vbsNorm, plan))
+			}
+		}
+		if plansMono != nil {
+			for i, plan := range plansMono[:cap] {
+				volumePlans[nodeInfo.Name][i].Merge(types.MakeVolumePlan(vbsMono, plan))
+
+			}
 		}
 	}
 

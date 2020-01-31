@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"strconv"
-	"strings"
 
 	"bufio"
 
@@ -140,20 +138,21 @@ func getNodesInfo(nodes map[string]*types.Node, cpu float64, memory, storage int
 	result := []types.NodeInfo{}
 	for _, node := range nodes {
 		nodeInfo := types.NodeInfo{
-			Name:         node.Name,
-			CPUMap:       node.CPU,
-			VolumeMap:    node.Volume,
-			MemCap:       node.MemCap,
-			StorageCap:   node.AvailableStorage(),
-			CPURate:      cpu / float64(len(node.InitCPU)),
-			MemRate:      float64(memory) / float64(node.InitMemCap),
-			StorageRate:  float64(storage) / float64(node.InitStorageCap),
-			CPUUsed:      node.CPUUsed / float64(len(node.InitCPU)),
-			MemUsage:     1.0 - float64(node.MemCap)/float64(node.InitMemCap),
-			StorageUsage: node.StorageUsage(),
-			Capacity:     0,
-			Count:        0,
-			Deploy:       0,
+			Name:          node.Name,
+			CPUMap:        node.CPU,
+			VolumeMap:     node.Volume,
+			InitVolumeMap: node.InitVolume,
+			MemCap:        node.MemCap,
+			StorageCap:    node.AvailableStorage(),
+			CPURate:       cpu / float64(len(node.InitCPU)),
+			MemRate:       float64(memory) / float64(node.InitMemCap),
+			StorageRate:   float64(storage) / float64(node.InitStorageCap),
+			CPUUsed:       node.CPUUsed / float64(len(node.InitCPU)),
+			MemUsage:      1.0 - float64(node.MemCap)/float64(node.InitMemCap),
+			StorageUsage:  node.StorageUsage(),
+			Capacity:      0,
+			Count:         0,
+			Deploy:        0,
 		}
 		result = append(result, nodeInfo)
 	}
@@ -234,33 +233,4 @@ func processVirtualizationOutStream(
 		return
 	}()
 	return outCh
-}
-
-func mergeAutoVolumeRequests(volumes1 []string, volumes2 []string) (autoVolumes []string, hardVolumes []string, err error) {
-	sizeMap := map[string]int64{} // {"AUTO:/data:rw": 100}
-	for _, vol := range append(volumes1, volumes2...) {
-		parts := strings.Split(vol, ":")
-		if len(parts) != 4 || parts[0] != types.AUTO {
-			hardVolumes = append(hardVolumes, vol)
-			continue
-		}
-		size, err := strconv.ParseInt(parts[3], 10, 64)
-		if err != nil {
-			return nil, nil, err
-		}
-		prefix := strings.Join(parts[0:3], ":")
-		if _, ok := sizeMap[prefix]; ok {
-			sizeMap[prefix] += size
-		} else {
-			sizeMap[prefix] = size
-		}
-	}
-
-	for prefix, size := range sizeMap {
-		if size < 0 {
-			continue
-		}
-		autoVolumes = append(autoVolumes, fmt.Sprintf("%s:%d", prefix, size))
-	}
-	return autoVolumes, hardVolumes, nil
 }

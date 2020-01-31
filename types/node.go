@@ -2,9 +2,8 @@ package types
 
 import (
 	"context"
+	"encoding/json"
 	"sort"
-	"strconv"
-	"strings"
 
 	"math"
 
@@ -79,49 +78,70 @@ func (c VolumeMap) GetRation() int64 {
 	return c[c.GetResourceID()]
 }
 
-// VolumePlan is map from volume string to volumeMap: {"AUTO:/data:rw:100": VolumeMap{"/sda1": 100}}
-type VolumePlan map[string]VolumeMap
-
-// NewVolumePlan creates VolumePlan pointer by volume strings and scheduled VolumeMaps
-func NewVolumePlan(autoVolumes []string, distribution []VolumeMap) *VolumePlan {
-	sort.Slice(autoVolumes, func(i, j int) bool {
-		// no err check due to volume strings have been converted into int64 before
-		sizeI, _ := strconv.ParseInt(strings.Split(autoVolumes[i], ":")[3], 10, 64)
-		sizeJ, _ := strconv.ParseInt(strings.Split(autoVolumes[j], ":")[3], 10, 64)
-		return sizeI < sizeJ
-	})
-
-	sort.Slice(distribution, func(i, j int) bool {
-		return distribution[i].GetRation() < distribution[j].GetRation()
-	})
-
-	volumePlan := VolumePlan{}
-	for idx, autoVolume := range autoVolumes {
-		volumePlan[autoVolume] = distribution[idx]
+func (vm VolumeMap) SplitByUsed(init VolumeMap) (VolumeMap, VolumeMap) {
+	used := VolumeMap{}
+	unused := VolumeMap{}
+	for mountDir, freeSpace := range vm {
+		vmap := used
+		if init[mountDir] == freeSpace {
+			vmap = unused
+		}
+		vmap.Add(VolumeMap{mountDir: freeSpace})
 	}
-	return &volumePlan
+	return used, unused
 }
 
-// ToVolumePlan convert VolumePlan from literal value
-func ToVolumePlan(plan map[string]map[string]int64) VolumePlan {
+// VolumePlan is map from volume string to volumeMap: {"AUTO:/data:rw:100": VolumeMap{"/sda1": 100}}
+type VolumePlan map[VolumeBinding]VolumeMap
+
+// MakeVolumePlan creates VolumePlan pointer by volume strings and scheduled VolumeMaps
+func MakeVolumePlan(vbs VolumeBindings, distribution []VolumeMap) VolumePlan {
+	sort.Slice(vbs, func(i, j int) bool { return vbs[i].SizeInBytes < vbs[j].SizeInBytes })
+	sort.Slice(distribution, func(i, j int) bool { return distribution[i].GetRation() < distribution[j].GetRation() })
+
 	volumePlan := VolumePlan{}
-	for volumeStr, volumeMap := range plan {
-		volumePlan[volumeStr] = VolumeMap(volumeMap)
+	for idx, vb := range vbs {
+		if vb.RequireSchedule() {
+			volumePlan[*vb] = distribution[idx]
+		}
 	}
 	return volumePlan
+}
+
+func (vp *VolumePlan) UnmarshalJSON(b []byte) (err error) {
+	plan := map[string]VolumeMap{}
+	if err = json.Unmarshal(b, &plan); err != nil {
+		return err
+	}
+	for volume, vmap := range plan {
+		vb, err := NewVolumeBinding(volume)
+		if err != nil {
+			return err
+		}
+		(*vp)[*vb] = vmap
+	}
+	return
+}
+
+func (vp VolumePlan) MarshalJSON() ([]byte, error) {
+	plan := map[string]VolumeMap{}
+	for vb, vmap := range vp {
+		plan[vb.ToString(false)] = vmap
+	}
+	return json.Marshal(plan)
 }
 
 // ToLiteral returns literal VolumePlan
 func (p VolumePlan) ToLiteral() map[string]map[string]int64 {
 	plan := map[string]map[string]int64{}
-	for volumeStr, volumeMap := range p {
-		plan[volumeStr] = volumeMap
+	for vb, volumeMap := range p {
+		plan[vb.ToString(false)] = volumeMap
 	}
 	return plan
 }
 
 // Merge return one VolumeMap with all in VolumePlan added
-func (p VolumePlan) Merge() VolumeMap {
+func (p VolumePlan) IntoVolumeMap() VolumeMap {
 	volumeMap := VolumeMap{}
 	for _, v := range p {
 		volumeMap.Add(v)
@@ -129,20 +149,10 @@ func (p VolumePlan) Merge() VolumeMap {
 	return volumeMap
 }
 
-// GetVolumeString generates actual volume string for engine
-func (p VolumePlan) GetVolumeString(autoVolume string) (volume string) {
-	volume = autoVolume
-	if volumeMap := p.GetVolumeMap(autoVolume); volumeMap != nil {
-		volume = strings.Replace(autoVolume, AUTO, volumeMap.GetResourceID(), 1)
-	}
-	return
-}
-
 // GetVolumeMap looks up VolumeMap according to volume destination directory
-func (p VolumePlan) GetVolumeMap(autoVolume string) (volMap VolumeMap) {
-	dstDir := strings.Split(autoVolume, ":")[1]
+func (p VolumePlan) GetVolumeMap(vb *VolumeBinding) (volMap VolumeMap) {
 	for volume, volMap := range p {
-		if dstDir == strings.Split(volume, ":")[1] {
+		if vb.Destination == volume.Destination {
 			return volMap
 		}
 	}
@@ -152,13 +162,19 @@ func (p VolumePlan) GetVolumeMap(autoVolume string) (volMap VolumeMap) {
 // Compatible return true if new bindings stick to the old bindings
 func (p VolumePlan) Compatible(oldPlan VolumePlan) bool {
 	for volume, oldBinding := range oldPlan {
-		newBinding := p.GetVolumeMap(volume)
+		newBinding := p.GetVolumeMap(&volume)
 		// newBinding is ok to be nil when reallocing requires less volumes than before
 		if newBinding != nil && newBinding.GetResourceID() != oldBinding.GetResourceID() {
 			return false
 		}
 	}
 	return true
+}
+
+func (p VolumePlan) Merge(p2 VolumePlan) {
+	for vb, vm := range p2 {
+		p[vb] = vm
+	}
 }
 
 // NUMA define NUMA cpuID->nodeID
@@ -290,19 +306,20 @@ func (n *Node) AvailableStorage() int64 {
 
 // NodeInfo for deploy
 type NodeInfo struct {
-	Name         string
-	CPUMap       CPUMap
-	VolumeMap    VolumeMap
-	NUMA         NUMA
-	NUMAMemory   NUMAMemory
-	MemCap       int64
-	StorageCap   int64
-	CPUUsed      float64 // CPU目前占用率
-	MemUsage     float64 // MEM目前占用率
-	StorageUsage float64 // Current storage usage ratio
-	CPURate      float64 // 需要增加的 CPU 占用率
-	MemRate      float64 // 需要增加的内存占有率
-	StorageRate  float64 // Storage ratio which would be allocated
+	Name          string
+	CPUMap        CPUMap
+	VolumeMap     VolumeMap
+	InitVolumeMap VolumeMap
+	NUMA          NUMA
+	NUMAMemory    NUMAMemory
+	MemCap        int64
+	StorageCap    int64
+	CPUUsed       float64 // CPU目前占用率
+	MemUsage      float64 // MEM目前占用率
+	StorageUsage  float64 // Current storage usage ratio
+	CPURate       float64 // 需要增加的 CPU 占用率
+	MemRate       float64 // 需要增加的内存占有率
+	StorageRate   float64 // Storage ratio which would be allocated
 
 	CPUPlan     []CPUMap
 	VolumePlans []VolumePlan // {{"AUTO:/data:rw:1024": "/mnt0:/data:rw:1024"}}

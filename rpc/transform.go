@@ -3,8 +3,6 @@ package rpc
 import (
 	"bytes"
 	"encoding/json"
-	"strconv"
-	"strings"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	pb "github.com/projecteru2/core/rpc/gen"
@@ -245,7 +243,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		entry.Hook.Force = entrypoint.Hook.Force
 	}
 
-	storage, err := toCoreDeployStorage(d.Storage, d.Volumes)
+	vbs, err := types.MakeVolumeBindings(d.Volumes)
 	if err != nil {
 		return nil, err
 	}
@@ -260,12 +258,12 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		CPUQuota:     d.CpuQuota,
 		CPUBind:      d.CpuBind,
 		Memory:       d.Memory,
-		Storage:      storage,
+		Storage:      d.Storage + vbs.AdditionalStorage(),
 		Count:        int(d.Count),
 		Env:          d.Env,
 		DNS:          d.Dns,
 		ExtraHosts:   d.ExtraHosts,
-		Volumes:      d.Volumes,
+		Volumes:      vbs,
 		Networks:     d.Networks,
 		NetworkMode:  d.Networkmode,
 		User:         d.User,
@@ -282,32 +280,14 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 	}, nil
 }
 
-func toCoreDeployStorage(storage int64, vols []string) (int64, error) {
-	var stor int64
-	for _, bind := range vols {
-		parts := strings.Split(bind, ":")
-		if len(parts) != 4 || parts[0] == types.AUTO {
-			continue
-		}
-
-		size, err := strconv.ParseInt(parts[3], 10, 64)
-		if err != nil {
-			log.Errorf("[toCoreDeployStorage] last digit %v is not a number %v", parts[3], err)
-		}
-
-		stor += size
-	}
-	return stor + storage, nil
-}
-
 func toRPCVolumePlan(v types.VolumePlan) map[string]*pb.Volume {
 	if v == nil {
 		return nil
 	}
 
 	msg := map[string]*pb.Volume{}
-	for reqVolume, volume := range v {
-		msg[reqVolume] = &pb.Volume{Volume: volume}
+	for vb, volume := range v {
+		msg[vb.ToString(false)] = &pb.Volume{Volume: volume}
 	}
 	return msg
 }
@@ -458,7 +438,6 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		)
 	}
 	cpu := toRPCCPUMap(c.CPU)
-
 	return &pb.Container{
 		Id:         c.ID,
 		Podname:    c.Podname,
@@ -472,7 +451,7 @@ func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, err
 		Publish:    publish,
 		Image:      c.Image,
 		Labels:     c.Labels,
-		Volumes:    c.Volumes,
+		Volumes:    c.Volumes.ToStringSlice(false, false),
 		VolumePlan: toRPCVolumePlan(c.VolumePlan),
 		Status:     toRPCContainerStatus(c.StatusMeta),
 	}, nil

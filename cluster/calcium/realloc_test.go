@@ -52,8 +52,8 @@ func TestRealloc(t *testing.T) {
 		Quota:      0.9,
 		CPU:        types.CPUMap{"2": 90},
 		Nodename:   "node1",
-		VolumePlan: types.VolumePlan{"AUTO:/data:rw:50": types.VolumeMap{"/dir0": 50}},
-		Volumes:    []string{"AUTO:/data:rw:50"},
+		VolumePlan: types.VolumePlan{types.MustToVolumeBinding("AUTO:/data:rw:50"): types.VolumeMap{"/dir0": 50}},
+		Volumes:    types.MustToVolumeBindings([]string{"AUTO:/data:rw:50"}),
 	}
 
 	c2 := &types.Container{
@@ -84,12 +84,6 @@ func TestRealloc(t *testing.T) {
 		assert.False(t, r.Success)
 	}
 	store.On("GetPod", mock.Anything, mock.Anything).Return(pod1, nil)
-	// failed by invalid volume realloc request
-	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, int64(units.GiB), []string{"AUTO:/data:rw:1g"})
-	assert.NoError(t, err)
-	for r := range ch {
-		assert.False(t, r.Success)
-	}
 	// failed by newCPU < 0
 	ch, err = c.ReallocResource(ctx, []string{"c1"}, -1, 2*int64(units.GiB), nil)
 	assert.NoError(t, err)
@@ -115,9 +109,9 @@ func TestRealloc(t *testing.T) {
 	c.scheduler = simpleMockScheduler
 	simpleMockScheduler.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, 0, types.ErrInsufficientMEM).Once()
 	nodeVolumePlans := map[string][]types.VolumePlan{
-		"c1": {{"AUTO:/data:rw:50": types.VolumeMap{"/dir0": 50}}},
+		"c1": {{types.MustToVolumeBinding("AUTO:/data:rw:50"): types.VolumeMap{"/dir0": 50}}},
 	}
-	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, []string{"AUTO:/data:rw:50"}).Return(nil, nodeVolumePlans, 1, nil)
+	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, types.MustToVolumeBindings([]string{"AUTO:/data:rw:50"})).Return(nil, nodeVolumePlans, 1, nil)
 	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, 2*int64(units.MiB), nil)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -173,28 +167,28 @@ func TestRealloc(t *testing.T) {
 	// failed by volume binding incompatible
 	nodeVolumePlans = map[string][]types.VolumePlan{
 		node1.Name: {
-			{"AUTO:/data:rw:100": types.VolumeMap{"/dir1": 100}},
-			{"AUTO:/data:rw:100": types.VolumeMap{"/dir2": 100}},
-			{"AUTO:/data:rw:100": types.VolumeMap{"/dir3": 100}},
-			{"AUTO:/data:rw:100": types.VolumeMap{"/dir4": 100}},
+			{types.MustToVolumeBinding("AUTO:/data:rw:100"): types.VolumeMap{"/dir1": 100}},
+			{types.MustToVolumeBinding("AUTO:/data:rw:100"): types.VolumeMap{"/dir2": 100}},
+			{types.MustToVolumeBinding("AUTO:/data:rw:100"): types.VolumeMap{"/dir3": 100}},
+			{types.MustToVolumeBinding("AUTO:/data:rw:100"): types.VolumeMap{"/dir4": 100}},
 		},
 	}
-	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, []string{"AUTO:/data:rw:100"}).Return(nil, nodeVolumePlans, 4, nil).Once()
-	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, int64(units.MiB), []string{"AUTO:/data:rw:50"})
+	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, types.MustToVolumeBindings([]string{"AUTO:/data:rw:100"})).Return(nil, nodeVolumePlans, 4, nil).Once()
+	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, int64(units.MiB), types.MustToVolumeBindings([]string{"AUTO:/data:rw:50"}))
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
 	}
 	// failed by volume schedule error
 	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(nil, nil, 0, types.ErrInsufficientVolume).Once()
-	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, int64(units.MiB), []string{"AUTO:/data:rw:1"})
+	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, int64(units.MiB), types.MustToVolumeBindings([]string{"AUTO:/data:rw:1"}))
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
 	}
 	// failed due to re-volume plan less then container number
 	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(nil, nodeVolumePlans, 0, nil).Twice()
-	ch, err = c.ReallocResource(ctx, []string{"c1", "c2"}, 0.1, int64(units.MiB), []string{"AUTO:/data:rw:1"})
+	ch, err = c.ReallocResource(ctx, []string{"c1", "c2"}, 0.1, int64(units.MiB), types.MustToVolumeBindings([]string{"AUTO:/data:rw:1"}))
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
@@ -219,10 +213,10 @@ func TestRealloc(t *testing.T) {
 		Memory:  5 * int64(units.MiB),
 		Quota:   0.9,
 		CPU:     types.CPUMap{"2": 90},
-		Volumes: []string{"AUTO:/data0:rw:100", "AUTO:/data1:rw:200"},
+		Volumes: types.MustToVolumeBindings([]string{"AUTO:/data0:rw:100", "AUTO:/data1:rw:200"}),
 		VolumePlan: types.VolumePlan{
-			"AUTO:/data0:rw:100": types.VolumeMap{"/dir0": 100},
-			"AUTO:/data1:rw:200": types.VolumeMap{"/dir1": 200},
+			types.MustToVolumeBinding("AUTO:/data0:rw:100"): types.VolumeMap{"/dir0": 100},
+			types.MustToVolumeBinding("AUTO:/data1:rw:200"): types.VolumeMap{"/dir1": 200},
 		},
 		Nodename: "node2",
 	}
@@ -232,7 +226,7 @@ func TestRealloc(t *testing.T) {
 		Engine:   engine,
 		Memory:   5 * int64(units.MiB),
 		Quota:    0.9,
-		Volumes:  []string{"/tmp:/tmp", "/var/log:/var/log:rw:300"},
+		Volumes:  types.MustToVolumeBindings([]string{"/tmp:/tmp", "/var/log:/var/log:rw:300"}),
 		Nodename: "node2",
 	}
 	nodeCPUPlans = map[string][]types.CPUMap{
@@ -244,20 +238,20 @@ func TestRealloc(t *testing.T) {
 	nodeVolumePlans = map[string][]types.VolumePlan{
 		node2.Name: {
 			{
-				"AUTO:/data0:rw:50":  types.VolumeMap{"/dir1": 50},
-				"AUTO:/data1:rw:200": types.VolumeMap{"/dir2": 200},
+				types.MustToVolumeBinding("AUTO:/data0:rw:50"):  types.VolumeMap{"/dir1": 50},
+				types.MustToVolumeBinding("AUTO:/data1:rw:200"): types.VolumeMap{"/dir2": 200},
 			},
 			{
-				"AUTO:/data0:rw:50":  types.VolumeMap{"/dir0": 50},
-				"AUTO:/data1:rw:200": types.VolumeMap{"/dir1": 200},
+				types.MustToVolumeBinding("AUTO:/data0:rw:50"):  types.VolumeMap{"/dir0": 50},
+				types.MustToVolumeBinding("AUTO:/data1:rw:200"): types.VolumeMap{"/dir1": 200},
 			},
 		},
 	}
 	simpleMockScheduler.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nodeCPUPlans, 2, nil)
-	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, []string{"AUTO:/data0:rw:50", "AUTO:/data1:rw:200"}).Return(nil, nodeVolumePlans, 2, nil)
+	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, types.MustToVolumeBindings([]string{"AUTO:/data0:rw:50", "AUTO:/data1:rw:200"})).Return(nil, nodeVolumePlans, 2, nil)
 	store.On("GetNode", mock.Anything, "node2").Return(node2, nil)
 	store.On("GetContainers", mock.Anything, []string{"c3", "c4"}).Return([]*types.Container{c3, c4}, nil)
-	ch, err = c.ReallocResource(ctx, []string{"c3", "c4"}, 0.1, 2*int64(units.MiB), []string{"AUTO:/data0:rw:-50"})
+	ch, err = c.ReallocResource(ctx, []string{"c3", "c4"}, 0.1, 2*int64(units.MiB), types.MustToVolumeBindings([]string{"AUTO:/data0:rw:-50"}))
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.True(t, r.Success)

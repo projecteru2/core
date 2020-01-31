@@ -533,11 +533,11 @@ func (_m *Cluster) PodResource(ctx context.Context, podname string) (*types.PodR
 }
 
 // ReallocResource provides a mock function with given fields: ctx, IDs, cpu, memory, volumes
-func (_m *Cluster) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64, volumes []string) (chan *types.ReallocResourceMessage, error) {
+func (_m *Cluster) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64, volumes types.VolumeBindings) (chan *types.ReallocResourceMessage, error) {
 	ret := _m.Called(ctx, IDs, cpu, memory, volumes)
 
 	var r0 chan *types.ReallocResourceMessage
-	if rf, ok := ret.Get(0).(func(context.Context, []string, float64, int64, []string) chan *types.ReallocResourceMessage); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, []string, float64, int64, types.VolumeBindings) chan *types.ReallocResourceMessage); ok {
 		r0 = rf(ctx, IDs, cpu, memory, volumes)
 	} else {
 		if ret.Get(0) != nil {
@@ -546,7 +546,7 @@ func (_m *Cluster) ReallocResource(ctx context.Context, IDs []string, cpu float6
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, []string, float64, int64, []string) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, []string, float64, int64, types.VolumeBindings) error); ok {
 		r1 = rf(ctx, IDs, cpu, memory, volumes)
 	} else {
 		r1 = ret.Error(1)

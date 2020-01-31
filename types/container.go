@@ -41,7 +41,7 @@ type Container struct {
 	User       string            `json:"user"`
 	Env        []string          `json:"env"`
 	Image      string            `json:"image"`
-	Volumes    []string          `json:"volumes"`
+	Volumes    VolumeBindings    `json:"volumes"`
 	VolumePlan VolumePlan        `json:"volume_plan"`
 	Labels     map[string]string `json:"labels"`
 	StatusMeta *StatusMeta       `json:"-"`

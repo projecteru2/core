@@ -2,7 +2,6 @@ package calcium
 
 import (
 	"context"
-	"sort"
 	"strings"
 	"sync"
 
@@ -21,7 +20,7 @@ type nodeContainers map[string][]*types.Container
 type volCPUMemNodeContainers map[string]map[float64]map[int64]nodeContainers
 
 // ReallocResource allow realloc container resource
-func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64, volumes []string) (chan *types.ReallocResourceMessage, error) {
+func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64, volumes types.VolumeBindings) (chan *types.ReallocResourceMessage, error) {
 	ch := make(chan *types.ReallocResourceMessage)
 	go func() {
 		defer close(ch)
@@ -74,10 +73,10 @@ func (c *Calcium) doReallocContainer(
 	ch chan *types.ReallocResourceMessage,
 	pod *types.Pod,
 	nodeContainersInfo nodeContainers,
-	cpu float64, memory int64, volumes []string) {
+	cpu float64, memory int64, volumes types.VolumeBindings) {
 
 	volCPUMemNodeContainersInfo := volCPUMemNodeContainers{}
-	hardVolumesForContainer := map[string][]string{}
+	hardVbsForContainer := map[string]types.VolumeBindings{}
 	for nodename, containers := range nodeContainersInfo {
 		for _, container := range containers {
 			newCPU := utils.Round(container.Quota + cpu)
@@ -87,33 +86,33 @@ func (c *Calcium) doReallocContainer(
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				continue
 			}
-			autoVolumes, hardVolumes, err := mergeAutoVolumeRequests(container.Volumes, volumes)
-			hardVolumesForContainer[container.ID] = hardVolumes
+
+			autoVolumes, hardVolumes, err := container.Volumes.Merge(volumes)
+			hardVbsForContainer[container.ID] = hardVolumes
 			if err != nil {
 				log.Errorf("[doReallocContainer] New resource invalid %s, vol %v, err %v", container.ID, volumes, err)
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				continue
 			}
-			sort.Slice(autoVolumes, func(i, j int) bool { return autoVolumes[i] < autoVolumes[j] })
-			newVol := strings.Join(autoVolumes, ",")
+			newAutoVol := strings.Join(autoVolumes.ToStringSlice(true, false), ",")
 
-			if _, ok := volCPUMemNodeContainersInfo[newVol]; !ok {
-				volCPUMemNodeContainersInfo[newVol] = map[float64]map[int64]nodeContainers{}
+			if _, ok := volCPUMemNodeContainersInfo[newAutoVol]; !ok {
+				volCPUMemNodeContainersInfo[newAutoVol] = map[float64]map[int64]nodeContainers{}
 			}
-			if _, ok := volCPUMemNodeContainersInfo[newVol][newCPU]; !ok {
-				volCPUMemNodeContainersInfo[newVol][newCPU] = map[int64]nodeContainers{}
+			if _, ok := volCPUMemNodeContainersInfo[newAutoVol][newCPU]; !ok {
+				volCPUMemNodeContainersInfo[newAutoVol][newCPU] = map[int64]nodeContainers{}
 			}
-			if _, ok := volCPUMemNodeContainersInfo[newVol][newCPU][newMem]; !ok {
-				volCPUMemNodeContainersInfo[newVol][newCPU][newMem] = nodeContainers{}
+			if _, ok := volCPUMemNodeContainersInfo[newAutoVol][newCPU][newMem]; !ok {
+				volCPUMemNodeContainersInfo[newAutoVol][newCPU][newMem] = nodeContainers{}
 			}
-			if _, ok := volCPUMemNodeContainersInfo[newVol][newCPU][newMem][nodename]; !ok {
-				volCPUMemNodeContainersInfo[newVol][newCPU][newMem][nodename] = []*types.Container{}
+			if _, ok := volCPUMemNodeContainersInfo[newAutoVol][newCPU][newMem][nodename]; !ok {
+				volCPUMemNodeContainersInfo[newAutoVol][newCPU][newMem][nodename] = []*types.Container{}
 			}
-			volCPUMemNodeContainersInfo[newVol][newCPU][newMem][nodename] = append(volCPUMemNodeContainersInfo[newVol][newCPU][newMem][nodename], container)
+			volCPUMemNodeContainersInfo[newAutoVol][newCPU][newMem][nodename] = append(volCPUMemNodeContainersInfo[newAutoVol][newCPU][newMem][nodename], container)
 		}
 	}
 
-	for newVol, cpuMemNodeContainersInfo := range volCPUMemNodeContainersInfo {
+	for newAutoVol, cpuMemNodeContainersInfo := range volCPUMemNodeContainersInfo {
 		for newCPU, memNodesContainers := range cpuMemNodeContainersInfo {
 			for newMemory, nodesContainers := range memNodesContainers {
 				for nodename, containers := range nodesContainers {
@@ -125,8 +124,8 @@ func (c *Calcium) doReallocContainer(
 							// 不更新 etcd，内存计算
 							node.CPU.Add(container.CPU)
 							node.SetCPUUsed(container.Quota, types.DecrUsage)
-							node.Volume.Add(container.VolumePlan.Merge())
-							node.SetVolumeUsed(container.VolumePlan.Merge().Total(), types.DecrUsage)
+							node.Volume.Add(container.VolumePlan.IntoVolumeMap())
+							node.SetVolumeUsed(container.VolumePlan.IntoVolumeMap().Total(), types.DecrUsage)
 							node.MemCap += container.Memory
 							if nodeID := node.GetNUMANode(container.CPU); nodeID != "" {
 								node.IncrNUMANodeMemory(nodeID, container.Memory)
@@ -157,10 +156,11 @@ func (c *Calcium) doReallocContainer(
 						}
 
 						var volumePlans []types.VolumePlan
-						// newVol won't be empty as long as existing container bound volumes before or realloc request requires new binding
-						if newVol != "" {
-							nodesInfo := []types.NodeInfo{{Name: node.Name, VolumeMap: node.Volume}}
-							_, nodeVolumePlans, total, err := c.scheduler.SelectVolumeNodes(nodesInfo, strings.Split(newVol, ","))
+						autoVbs := types.VolumeBindings{}
+						if newAutoVol != "" {
+							nodesInfo := []types.NodeInfo{{Name: node.Name, VolumeMap: node.Volume, InitVolumeMap: node.InitVolume}}
+							autoVbs, _ = types.MakeVolumeBindings(strings.Split(newAutoVol, ","))
+							_, nodeVolumePlans, total, err := c.scheduler.SelectVolumeNodes(nodesInfo, autoVbs)
 							if err != nil {
 								return err
 							}
@@ -189,7 +189,7 @@ func (c *Calcium) doReallocContainer(
 								Quota:     newCPU,
 								Memory:    newMemory,
 								SoftLimit: container.SoftLimit,
-								Volumes:   hardVolumesForContainer[container.ID],
+								Volumes:   hardVbsForContainer[container.ID].ToStringSlice(false, false),
 							}
 							if len(container.CPU) > 0 {
 								newResource.CPU = cpusets[0]
@@ -197,12 +197,13 @@ func (c *Calcium) doReallocContainer(
 								cpusets = cpusets[1:]
 							}
 
-							if newVol != "" {
+							if newAutoVol != "" {
 								newResource.VolumePlan = volumePlans[idx].ToLiteral()
-								newResource.Volumes = append(newResource.Volumes, strings.Split(newVol, ",")...)
+								newResource.Volumes = append(newResource.Volumes, autoVbs.ToStringSlice(false, false)...)
 							}
 
-							if utils.CompareStringSlice(newResource.Volumes, container.Volumes) != 0 {
+							newVbs, _ := types.MakeVolumeBindings(newResource.Volumes)
+							if !newVbs.IsEqual(container.Volumes) {
 								newResource.VolumeChanged = true
 							}
 
@@ -212,8 +213,8 @@ func (c *Calcium) doReallocContainer(
 								container.CPU = newResource.CPU
 								container.Quota = newResource.Quota
 								container.Memory = newResource.Memory
-								container.Volumes = newResource.Volumes
-								container.VolumePlan = types.ToVolumePlan(newResource.VolumePlan)
+								container.Volumes, _ = types.MakeVolumeBindings(newResource.Volumes)
+								container.VolumePlan = types.MustToVolumePlan(newResource.VolumePlan)
 								updateSuccess = true
 							} else {
 								log.Errorf("[doReallocContainer] Realloc container %s failed %v", container.ID, err)
@@ -223,8 +224,8 @@ func (c *Calcium) doReallocContainer(
 							// 失败的话，node 占用为老资源
 							node.CPU.Sub(container.CPU)
 							node.SetCPUUsed(container.Quota, types.IncrUsage)
-							node.Volume.Sub(container.VolumePlan.Merge())
-							node.SetVolumeUsed(container.VolumePlan.Merge().Total(), types.IncrUsage)
+							node.Volume.Sub(container.VolumePlan.IntoVolumeMap())
+							node.SetVolumeUsed(container.VolumePlan.IntoVolumeMap().Total(), types.IncrUsage)
 							node.MemCap -= container.Memory
 							if nodeID := node.GetNUMANode(container.CPU); nodeID != "" {
 								node.DecrNUMANodeMemory(nodeID, container.Memory)
