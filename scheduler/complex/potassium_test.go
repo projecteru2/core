@@ -1243,8 +1243,6 @@ func TestSelectVolumeNodesNonAuto(t *testing.T) {
 		"/data0:/data:rw",
 		"/data0:/data",
 	}
-	_, _, err := SelectVolumeNodes(k, nodes, []string{"AUTO:/tmp:rw:abc"}, 2, true)
-	assert.Error(t, err)
 	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 2, true)
 	assert.NoError(t, err)
 	assert.Equal(t, len(res["0"]), 2)
