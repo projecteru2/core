@@ -456,7 +456,7 @@ func (v *Vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 
 	deployOpts, err := toCoreDeployOptions(opts)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	return withDumpFiles(opts.Data, func(files map[string]string) error {
