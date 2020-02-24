@@ -1,9 +1,9 @@
 package complexscheduler
 
 import (
+	"errors"
 	"sort"
 	"testing"
-	"errors"
 
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
@@ -61,7 +61,7 @@ func TestFillPlan(t *testing.T) {
 	assert.Contains(t, err.Error(), "each node has enough containers")
 
 	// LimitNode
-	n = 15
+	n = 10
 	nodes = deployedNodes()
 	_, err = FillPlan(nodes, n, 2)
 	assert.NoError(t, err)

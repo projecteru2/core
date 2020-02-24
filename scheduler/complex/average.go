@@ -21,7 +21,7 @@ func AveragePlan(nodesInfo []types.NodeInfo, need, limit int) ([]types.NodeInfo,
 	if p == nodesInfoLength {
 		return nil, types.ErrInsufficientCap
 	}
-	nodesInfo = nodesInfo[p:]
+	nodesInfo = shuffle(nodesInfo[p:])
 	if limit > 0 {
 		nodesInfo = nodesInfo[:limit]
 	}
