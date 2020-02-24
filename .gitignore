@@ -21,6 +21,7 @@ local.yaml
 tools/test*.go
 tools/update
 tools/fix.go
+tools/check*.go
 cscope.*
 *~
 .DS_Store
