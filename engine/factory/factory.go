@@ -8,6 +8,7 @@ import (
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/docker"
 	"github.com/projecteru2/core/engine/mocks/fakeengine"
+	"github.com/projecteru2/core/engine/systemd"
 	"github.com/projecteru2/core/engine/virt"
 	"github.com/projecteru2/core/types"
 )
@@ -19,6 +20,7 @@ var engines = map[string]factory{
 	docker.SockPrefixKey: docker.MakeClient,
 	virt.HTTPPrefixKey:   virt.MakeClient,
 	virt.GRPCPrefixKey:   virt.MakeClient,
+	systemd.SSHPrefixKey: systemd.MakeClient,
 	fakeengine.PrefixKey: fakeengine.MakeClient,
 }
 
