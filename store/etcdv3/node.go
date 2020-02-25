@@ -176,22 +176,17 @@ func (m *Mercury) makeClient(ctx context.Context, node *types.Node, force bool) 
 	var err error
 	client = _cache.Get(node.Name)
 	if client == nil || force {
-		var ca, cert, key string
-		if m.config.CertPath != "" {
-			keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
-			data := []string{"", "", ""}
-			for i := 0; i < 3; i++ {
-				if ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name)); err != nil {
-					log.Warnf("[makeClient] Get key failed %v", err)
-				} else {
-					data[i] = string(ev.Value)
-				}
+		keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
+		data := []string{"", "", ""}
+		for i := 0; i < 3; i++ {
+			if ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name)); err != nil {
+				log.Warnf("[makeClient] Get key failed %v", err)
+			} else {
+				data[i] = string(ev.Value)
 			}
-			ca = data[0]
-			cert = data[1]
-			key = data[2]
 		}
-		client, err = enginefactory.GetEngine(ctx, m.config, node.Name, node.Endpoint, ca, cert, key)
+
+		client, err = enginefactory.GetEngine(ctx, m.config, node.Name, node.Endpoint, data[0], data[1], data[2])
 		if err != nil {
 			return nil, err
 		}
@@ -203,9 +198,13 @@ func (m *Mercury) makeClient(ctx context.Context, node *types.Node, force bool) 
 func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory, storage int64, labels map[string]string, numa types.NUMA, numaMemory types.NUMAMemory, volumemap types.VolumeMap) (*types.Node, error) {
 	data := map[string]string{}
 	// 如果有tls的证书需要保存就保存一下
-	if ca != "" && cert != "" && key != "" {
+	if ca != "" {
 		data[fmt.Sprintf(nodeCaKey, name)] = ca
+	}
+	if cert != "" {
 		data[fmt.Sprintf(nodeCertKey, name)] = cert
+	}
+	if key != "" {
 		data[fmt.Sprintf(nodeKeyKey, name)] = key
 	}
 
