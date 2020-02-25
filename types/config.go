@@ -16,11 +16,12 @@ type Config struct {
 	Auth          AuthConfig    `yaml:"auth"`                                          // grpc auth
 	GRPCConfig    GRPCConfig    `yaml:"grpc"`                                          // grpc config
 
-	Git       GitConfig    `yaml:"git"`
-	Etcd      EtcdConfig   `yaml:"etcd"`
-	Docker    DockerConfig `yaml:"docker"`
-	Scheduler SchedConfig  `yaml:"scheduler"`
-	Virt      VirtConfig   `yaml:"virt"`
+	Git       GitConfig     `yaml:"git"`
+	Etcd      EtcdConfig    `yaml:"etcd"`
+	Docker    DockerConfig  `yaml:"docker"`
+	Scheduler SchedConfig   `yaml:"scheduler"`
+	Virt      VirtConfig    `yaml:"virt"`
+	Systemd   SystemdConfig `yaml:"systemd"`
 }
 
 // EtcdConfig holds eru-core etcd config
@@ -57,6 +58,10 @@ type DockerConfig struct {
 // VirtConfig holds yavirtd config
 type VirtConfig struct {
 	APIVersion string `yaml:"version"` // Yavirtd API version
+}
+
+type SystemdConfig struct {
+	Username string `yaml:"username" default:"root"`
 }
 
 // LogConfig define log type
