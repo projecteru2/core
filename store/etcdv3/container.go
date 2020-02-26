@@ -185,7 +185,12 @@ func (m *Mercury) ContainerStatusStream(ctx context.Context, appname, entrypoint
 	statusKey := filepath.Join(containerStatusPrefix, appname, entrypoint, nodename) + "/"
 	ch := make(chan *types.ContainerStatus)
 	go func() {
-		defer close(ch)
+		defer func() {
+			log.Info("[ContainerStatusStream] close ContainerStatus channel")
+			close(ch)
+		}()
+
+		log.Infof("[ContainerStatusStream] watch on %s", statusKey)
 		for resp := range m.watch(ctx, statusKey, clientv3.WithPrefix()) {
 			if resp.Err() != nil {
 				if !resp.Canceled {
