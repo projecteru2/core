@@ -25,7 +25,6 @@ func (s *SystemdSSH) ImagesPrune(ctx context.Context) (err error) {
 }
 
 func (s *SystemdSSH) ImagePull(ctx context.Context, ref string, all bool) (reader io.ReadCloser, err error) {
-	err = engine.NotImplementedError
 	return
 }
 

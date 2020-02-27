@@ -39,6 +39,7 @@ require (
 	github.com/opencontainers/image-spec v0.0.0-20180411145040-e562b0440392 // indirect
 	github.com/opencontainers/runc v0.0.0-20180615140650-ad0f5255060d // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/pkg/errors v0.9.1
 	github.com/projecteru2/libyavirt v0.0.0-20191216061912-ff6d6a2732f3
 	github.com/prometheus/client_golang v0.9.3
 	github.com/sanity-io/litter v1.1.0
