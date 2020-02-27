@@ -3,10 +3,12 @@ package systemd
 import (
 	"bytes"
 	"context"
+	"io"
 	"net"
 	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coretypes "github.com/projecteru2/core/types"
@@ -42,6 +44,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 
 func (s *SystemdSSH) WithSession(f func(*ssh.Session) error) (err error) {
 	session, err := s.client.NewSession()
+	defer session.Close()
 	if err != nil {
 		return
 	}
@@ -49,11 +52,11 @@ func (s *SystemdSSH) WithSession(f func(*ssh.Session) error) (err error) {
 }
 
 func (s *SystemdSSH) Info(ctx context.Context) (info *enginetypes.Info, err error) {
-	cpu, err := s.CPUInfo()
+	cpu, err := s.CPUInfo(ctx)
 	if err != nil {
 		return
 	}
-	memory, err := s.MemoryInfo()
+	memory, err := s.MemoryInfo(ctx)
 	if err != nil {
 		return
 	}
@@ -64,29 +67,36 @@ func (s *SystemdSSH) Info(ctx context.Context) (info *enginetypes.Info, err erro
 	}, nil
 }
 
-func (s *SystemdSSH) CPUInfo() (cpu int, err error) {
-	stdout := &bytes.Buffer{}
-	if err = s.WithSession(func(session *ssh.Session) (err error) {
-		session.Stdout = stdout
-		return session.Run(cmdInspectCPUNumber)
-	}); err != nil {
-		return
+func (s *SystemdSSH) CPUInfo(ctx context.Context) (cpu int, err error) {
+	stdout, stderr, err := s.runSingleCommand(ctx, cmdInspectCPUNumber, nil)
+	if err != nil {
+		return 0, errors.Wrap(err, stderr.String())
 	}
-	return strconv.Atoi(strings.TrimSpace(string(stdout.Bytes())))
+	return strconv.Atoi(strings.TrimSpace(stdout.String()))
 }
 
-func (s *SystemdSSH) MemoryInfo() (memoryTotalInBytes int64, err error) {
-	stdout := &bytes.Buffer{}
-	if err = s.WithSession(func(session *ssh.Session) (err error) {
-		session.Stdout = stdout
-		return session.Run(cmdInspectMemoryTotalInBytes)
-	}); err != nil {
-		return
+func (s *SystemdSSH) MemoryInfo(ctx context.Context) (memoryTotalInBytes int64, err error) {
+	stdout, stderr, err := s.runSingleCommand(ctx, cmdInspectMemoryTotalInBytes, nil)
+	if err != nil {
+		return 0, errors.Wrap(err, stderr.String())
 	}
-	memory, err := strconv.Atoi(strings.TrimSpace(string(stdout.Bytes())))
+	memory, err := strconv.Atoi(strings.TrimSpace(stdout.String()))
 	return int64(memory), err
 }
 
 func (s *SystemdSSH) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory, storage int64) (err error) {
 	return engine.NotImplementedError
+}
+
+func (s *SystemdSSH) runSingleCommand(ctx context.Context, cmd string, stdin io.Reader) (stdout, stderr *bytes.Buffer, err error) {
+	// what a pathetic library that leaves context completely useless
+
+	stdout = &bytes.Buffer{}
+	stderr = &bytes.Buffer{}
+	return stdout, stderr, s.WithSession(func(session *ssh.Session) error {
+		session.Stdin = stdin
+		session.Stdout = stdout
+		session.Stderr = stderr
+		return session.Run(cmd)
+	})
 }
