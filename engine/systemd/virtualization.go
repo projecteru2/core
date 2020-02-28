@@ -21,12 +21,7 @@ const (
 )
 
 func (s *SystemdSSH) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (created *enginetypes.VirtualizationCreated, err error) {
-	CPUAmount, err := s.CPUInfo(ctx)
-	if err != nil {
-		return
-	}
-
-	buffer, err := s.newUnitBuilder(opts).buildUnit().buildResource(CPUAmount).buildExec().buffer()
+	buffer, err := s.newUnitBuilder(opts).buildUnit().buildResourceLimit().buildExec().buffer()
 	basename := fmt.Sprintf("%s.service", opts.Name)
 	if err = s.VirtualizationCopyTo(ctx, "", filepath.Join(eruSystemdUnitPath, basename), buffer, true, true); err != nil {
 		return

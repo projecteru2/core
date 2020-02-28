@@ -259,3 +259,13 @@ func Min(x int, xs ...int) int {
 	}
 	return x
 }
+
+func Max(x int, xs ...int) int {
+	if len(xs) == 0 {
+		return x
+	}
+	if m := Max(xs[0], xs[1:]...); m > x {
+		return m
+	}
+	return x
+}
