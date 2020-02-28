@@ -8,7 +8,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/docker/go-units"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/utils"
 )
 
 const (
@@ -58,25 +60,61 @@ func (b *unitBuilder) buildUnit() *unitBuilder {
 	return b
 }
 
-func (b *unitBuilder) buildResource(CPUAmount int) *unitBuilder {
+func (b *unitBuilder) buildResourceLimit() *unitBuilder {
 	if b.err != nil {
 		return b
 	}
 
-	allowedCPUs := []string{}
-	for CPU, _ := range b.opts.CPU {
-		allowedCPUs = append(allowedCPUs, CPU)
+	b.serviceBuffer = append(b.serviceBuffer,
+		fmt.Sprintf("ExecStartPre=/usr/bin/cgcreate -g memory,cpuset:%s", b.opts.Name),
+	)
+
+	return b.buildCPULimit().buildMemoryLimit()
+}
+
+func (b *unitBuilder) buildCPULimit() *unitBuilder {
+	if b.err != nil {
+		return b
 	}
 
-	CPUQuotaPercentage := b.opts.Quota / float64(CPUAmount) * 100
+	if len(b.opts.CPU) > 0 {
+		allowedCPUs := []string{}
+		for CPU, _ := range b.opts.CPU {
+			allowedCPUs = append(allowedCPUs, CPU)
+		}
+		b.serviceBuffer = append(b.serviceBuffer,
+			fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r cpuset.cpus=%s %s", strings.Join(allowedCPUs, ","), b.opts.Name),
+		)
+	}
 
-	b.serviceBuffer = append(b.serviceBuffer, []string{
-		fmt.Sprintf("ExecStartPre=/usr/bin/cgcreate -g memory,cpuset:%s", b.opts.Name),
-		fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r cpuset.cpus=%s %s", strings.Join(allowedCPUs, ","), b.opts.Name),
-		fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r cpuset.mems=0 %s", b.opts.Name),
-		fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r memory.limit_in_bytes=%d %s", b.opts.Memory, b.opts.Name),
-		fmt.Sprintf("CPUQuota=%.2f%%", CPUQuotaPercentage),
-	}...)
+	if b.opts.Quota > 0 {
+		b.serviceBuffer = append(b.serviceBuffer,
+			fmt.Sprintf("CPUQuota=%.2f%%", b.opts.Quota*100),
+		)
+	}
+
+	b.serviceBuffer = append(b.serviceBuffer,
+		fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r cpuset.mems=%s %s", b.opts.NUMANode, b.opts.Name),
+	)
+
+	return b
+}
+func (b *unitBuilder) buildMemoryLimit() *unitBuilder {
+	if b.err != nil {
+		return b
+	}
+
+	if b.opts.SoftLimit {
+		b.serviceBuffer = append(b.serviceBuffer,
+			fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r memory.soft_limit_in_bytes=%d %s", b.opts.Memory, b.opts.Name),
+		)
+
+	} else {
+		b.serviceBuffer = append(b.serviceBuffer,
+			fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r memory.limit_in_bytes=%d %s", b.opts.Memory, b.opts.Name),
+			fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r memory.soft_limit_in_bytes=%d %s", utils.Max(int(b.opts.Memory/2), units.MiB*4), b.opts.Name),
+		)
+	}
 	return b
 }
 
