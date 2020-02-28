@@ -16,18 +16,18 @@ const (
 	cmdFileExist     = `/usr/bin/test -f '%s'`
 	cmdCopyFromStdin = `/bin/cp -f /dev/stdin '%s'`
 	cmdMkdir         = `/bin/mkdir -p %s`
-
-	eruSystemdUnitPath = `/usr/local/lib/systemd/system/`
+	cmdRemove        = `/bin/rm -f %s`
+	cmdSystemdReload = `/bin/systemctl daemon-reload`
 )
 
 func (s *SystemdSSH) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (created *enginetypes.VirtualizationCreated, err error) {
-	buffer, err := s.newUnitBuilder(opts).buildUnit().buildResourceLimit().buildExec().buffer()
-	basename := fmt.Sprintf("%s.service", opts.Name)
-	if err = s.VirtualizationCopyTo(ctx, "", filepath.Join(eruSystemdUnitPath, basename), buffer, true, true); err != nil {
+	ID := "SYSTEMD-" + utils.RandomString(46)
+	buffer, err := s.newUnitBuilder(ID, opts).buildUnit().buildResourceLimit().buildExec().buffer()
+	if err = s.VirtualizationCopyTo(ctx, "", getUnitFilename(ID), buffer, true, true); err != nil {
 		return
 	}
 	return &enginetypes.VirtualizationCreated{
-		ID:   "SYSTEMD-" + utils.RandomString(46),
+		ID:   ID,
 		Name: opts.Name,
 	}, nil
 }
@@ -62,8 +62,14 @@ func (s *SystemdSSH) VirtualizationStop(ctx context.Context, ID string) (err err
 }
 
 func (s *SystemdSSH) VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) (err error) {
-	err = engine.NotImplementedError
-	return
+	// rm -f $FILE
+	if _, stderr, err := s.runSingleCommand(ctx, fmt.Sprintf(cmdRemove, getUnitFilename(ID)), nil); err != nil {
+		return errors.Wrap(err, stderr.String())
+	}
+
+	// systemctl daemon-reload
+	_, stderr, err := s.runSingleCommand(ctx, fmt.Sprintf(cmdSystemdReload), nil)
+	return errors.Wrap(err, stderr.String())
 }
 
 func (s *SystemdSSH) VirtualizationInspect(ctx context.Context, ID string) (info *enginetypes.VirtualizationInfo, err error) {

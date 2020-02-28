@@ -24,6 +24,7 @@ const (
 )
 
 type unitBuilder struct {
+	ID            string
 	opts          *enginetypes.VirtualizationCreateOptions
 	unitBuffer    []string
 	serviceBuffer []string
@@ -31,12 +32,14 @@ type unitBuilder struct {
 }
 
 type unitDesciption struct {
+	ID     string
 	Name   string
 	Labels map[string]string
 }
 
-func (s *SystemdSSH) newUnitBuilder(opts *enginetypes.VirtualizationCreateOptions) *unitBuilder {
+func (s *SystemdSSH) newUnitBuilder(ID string, opts *enginetypes.VirtualizationCreateOptions) *unitBuilder {
 	return &unitBuilder{
+		ID:   ID,
 		opts: opts,
 	}
 }
@@ -46,7 +49,7 @@ func (b *unitBuilder) buildUnit() *unitBuilder {
 		return b
 	}
 
-	description, err := json.Marshal(unitDesciption{Name: b.opts.Name, Labels: b.opts.Labels})
+	description, err := json.Marshal(unitDesciption{ID: b.ID, Name: b.opts.Name, Labels: b.opts.Labels})
 	if err != nil {
 		b.err = err
 		return b
