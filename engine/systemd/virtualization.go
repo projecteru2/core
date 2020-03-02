@@ -20,7 +20,7 @@ const (
 	cmdSystemdReload  = `/bin/systemctl daemon-reload`
 	cmdSystemdRestart = `/bin/systemctl restart %s`
 	cmdSystemdStop    = `/bin/systemctl stop %s`
-	cmdSystemdStatus  = `/bin/systemctl status %s --property SubState,ActiveState`
+	cmdSystemdStatus  = `/bin/systemctl show %s --property SubState,ActiveState,Environment,Description --no-pager`
 )
 
 func (s *SystemdSSH) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (created *enginetypes.VirtualizationCreated, err error) {
@@ -85,15 +85,30 @@ func (s *SystemdSSH) VirtualizationRemove(ctx context.Context, ID string, volume
 }
 
 func (s *SystemdSSH) VirtualizationInspect(ctx context.Context, ID string) (info *enginetypes.VirtualizationInfo, err error) {
-	_, stderr, err := s.runSingleCommand(ctx, fmt.Sprintf(cmdSystemdStatus, ID), nil)
+	stdout, stderr, err := s.runSingleCommand(ctx, fmt.Sprintf(cmdSystemdStatus, ID), nil)
 	if err != nil {
 		return nil, errors.Wrap(err, stderr.String())
 	}
 
+	serviceStatus := newServiceStatus(stdout)
+
+	env, err := serviceStatus.env()
+	if err != nil {
+		return
+	}
+
+	labels, err := serviceStatus.labels()
+	if err != nil {
+		return
+	}
+
 	return &enginetypes.VirtualizationInfo{
-		ID:      ID,
-		User:    "root",
-		Running: false,
+		ID:       ID,
+		User:     "root",
+		Running:  serviceStatus.running(),
+		Env:      env,
+		Labels:   labels,
+		Networks: map[string]string{"host": s.hostIP},
 	}, nil
 }
 

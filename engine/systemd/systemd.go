@@ -23,7 +23,17 @@ const (
 )
 
 type SystemdSSH struct {
+	hostIP string
 	client *ssh.Client
+}
+
+func NewSystemdSSH(endpoint string, config *ssh.ClientConfig) (*SystemdSSH, error) {
+	parts := strings.Split(endpoint, ":")
+	client, err := ssh.Dial("tcp", endpoint, config)
+	return &SystemdSSH{
+		hostIP: parts[0],
+		client: client,
+	}, err
 }
 
 func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (api engine.API, err error) {
@@ -38,8 +48,10 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 		},
 		HostKeyCallback: func(_ string, _ net.Addr, _ ssh.PublicKey) error { return nil },
 	}
-	sshClient, err := ssh.Dial("tcp", strings.TrimPrefix(endpoint, SSHPrefixKey), sshConfig)
-	return &SystemdSSH{sshClient}, err
+	return NewSystemdSSH(
+		strings.TrimPrefix(endpoint, SSHPrefixKey),
+		sshConfig,
+	)
 }
 
 func (s *SystemdSSH) WithSession(f func(*ssh.Session) error) (err error) {
