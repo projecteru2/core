@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/docker/go-units"
+	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -67,7 +69,7 @@ func (b *unitBuilder) buildUnit() *unitBuilder {
 	return b
 }
 
-func (b *unitBuilder) buildPreExec() *unitBuilder {
+func (b *unitBuilder) buildPreExec(cpuAmount int) *unitBuilder {
 	if b.err != nil {
 		return b
 	}
@@ -76,22 +78,44 @@ func (b *unitBuilder) buildPreExec() *unitBuilder {
 		fmt.Sprintf("ExecStartPre=/usr/bin/cgcreate -g memory,cpuset:%s", b.cgroupPath()),
 	)
 
-	return b.buildCPULimit().buildMemoryLimit()
+	return b.buildNetworkLimit().buildCPULimit(cpuAmount).buildMemoryLimit()
 }
 
-func (b *unitBuilder) buildCPULimit() *unitBuilder {
+func (b *unitBuilder) buildNetworkLimit() *unitBuilder {
 	if b.err != nil {
 		return b
 	}
 
+	network := b.opts.Network
+	for net, _ := range b.opts.Networks {
+		if net != "" {
+			network = net
+			break
+		}
+	}
+
+	if network != "" && network != "host" {
+		b.err = errors.Wrapf(engine.NotImplementedError, "systemd engine doesn't support network %s", network)
+		return b
+	}
+	return b
+}
+
+func (b *unitBuilder) buildCPULimit(cpuAmount int) *unitBuilder {
+	if b.err != nil {
+		return b
+	}
+
+	cpusetCPUs := ""
 	if len(b.opts.CPU) > 0 {
 		allowedCPUs := []string{}
 		for CPU, _ := range b.opts.CPU {
 			allowedCPUs = append(allowedCPUs, CPU)
 		}
-		b.serviceBuffer = append(b.serviceBuffer,
-			fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r cpuset.cpus=%s %s", strings.Join(allowedCPUs, ","), b.cgroupPath()),
-		)
+		cpusetCPUs = strings.Join(allowedCPUs, ",")
+	} else {
+
+		cpusetCPUs = fmt.Sprintf("0-%d", cpuAmount-1)
 	}
 
 	if b.opts.Quota > 0 {
@@ -105,6 +129,7 @@ func (b *unitBuilder) buildCPULimit() *unitBuilder {
 		numaNode = "0"
 	}
 	b.serviceBuffer = append(b.serviceBuffer,
+		fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r cpuset.cpus=%s %s", cpusetCPUs, b.cgroupPath()),
 		fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r cpuset.mems=%s %s", numaNode, b.cgroupPath()),
 	)
 
