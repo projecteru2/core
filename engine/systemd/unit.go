@@ -134,6 +134,11 @@ func (b *unitBuilder) buildExec() *unitBuilder {
 		return b
 	}
 
+	user := b.opts.User
+	if user == "" {
+		user = "root"
+	}
+
 	env := []string{}
 	for _, e := range b.opts.Env {
 		env = append(env, fmt.Sprintf(`"%s"`, e))
@@ -153,6 +158,7 @@ func (b *unitBuilder) buildExec() *unitBuilder {
 
 	b.serviceBuffer = append(b.serviceBuffer, []string{
 		fmt.Sprintf("ExecStart=/usr/bin/cgexec -g memory,cpuset:%s %s", b.cgroupPath(), strings.Join(b.opts.Cmd, " ")),
+		fmt.Sprintf("User=%s", user),
 		fmt.Sprintf("Environment=%s", strings.Join(env, " ")),
 		fmt.Sprintf("StandardOutput=%s", stdioType),
 		fmt.Sprintf("StandardError=%s", stdioType),
