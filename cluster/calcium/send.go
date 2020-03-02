@@ -3,7 +3,6 @@ package calcium
 import (
 	"context"
 	"os"
-	"path/filepath"
 	"sync"
 
 	"github.com/projecteru2/core/engine"
@@ -42,7 +41,6 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 }
 
 func (c *Calcium) doSendFileToContainer(ctx context.Context, engine engine.API, ID, dst, src string, AllowOverwriteDirWithFile bool, CopyUIDGID bool) error {
-	path := filepath.Dir(dst)
 	log.Infof("[doSendFileToContainer] Send file to %s:%s", ID, dst)
 	log.Debugf("[doSendFileToContainer] Local file %s, remote path %s", src, dst)
 	f, err := os.Open(src)
@@ -50,5 +48,5 @@ func (c *Calcium) doSendFileToContainer(ctx context.Context, engine engine.API, 
 		return err
 	}
 	defer f.Close()
-	return engine.VirtualizationCopyTo(ctx, ID, path, f, AllowOverwriteDirWithFile, CopyUIDGID)
+	return engine.VirtualizationCopyTo(ctx, ID, dst, f, AllowOverwriteDirWithFile, CopyUIDGID)
 }
