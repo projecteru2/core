@@ -13,6 +13,8 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coretypes "github.com/projecteru2/core/types"
 	"golang.org/x/crypto/ssh"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -102,6 +104,7 @@ func (s *SystemdSSH) ResourceValidate(ctx context.Context, cpu float64, cpumap m
 
 func (s *SystemdSSH) runSingleCommand(ctx context.Context, cmd string, stdin io.Reader) (stdout, stderr *bytes.Buffer, err error) {
 	// what a pathetic library that leaves context completely useless
+	log.Debugf("[runSingleCommand] %s", cmd)
 
 	stdout = &bytes.Buffer{}
 	stderr = &bytes.Buffer{}

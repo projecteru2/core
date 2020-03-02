@@ -25,7 +25,16 @@ const (
 
 func (s *SystemdSSH) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (created *enginetypes.VirtualizationCreated, err error) {
 	ID := "SYSTEMD-" + utils.RandomString(46)
-	buffer, err := s.newUnitBuilder(ID, opts).buildUnit().buildPreExec().buildExec().buildPostExec().buffer()
+
+	cpuAmount, err := s.CPUInfo(ctx)
+	if err != nil {
+		return
+	}
+	buffer, err := s.newUnitBuilder(ID, opts).buildUnit().buildPreExec(cpuAmount).buildExec().buildPostExec().buffer()
+	if err != nil {
+		return
+	}
+
 	// cp - /usr/local/lib/systemd/system/
 	if err = s.VirtualizationCopyTo(ctx, "", getUnitFilename(ID), buffer, true, true); err != nil {
 		return
