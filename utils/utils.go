@@ -234,6 +234,7 @@ func Min(x int, xs ...int) int {
 	return x
 }
 
+// Max returns the biggest int
 func Max(x int, xs ...int) int {
 	if len(xs) == 0 {
 		return x

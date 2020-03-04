@@ -39,7 +39,7 @@ type unitDesciption struct {
 	Labels map[string]string
 }
 
-func (s *SystemdSSH) newUnitBuilder(ID string, opts *enginetypes.VirtualizationCreateOptions) *unitBuilder {
+func (s *SSHClient) newUnitBuilder(ID string, opts *enginetypes.VirtualizationCreateOptions) *unitBuilder {
 	return &unitBuilder{
 		ID:   ID,
 		opts: opts,
@@ -87,7 +87,7 @@ func (b *unitBuilder) buildNetworkLimit() *unitBuilder {
 	}
 
 	network := b.opts.Network
-	for net, _ := range b.opts.Networks {
+	for net := range b.opts.Networks {
 		if net != "" {
 			network = net
 			break
@@ -109,7 +109,7 @@ func (b *unitBuilder) buildCPULimit(cpuAmount int) *unitBuilder {
 	cpusetCPUs := fmt.Sprintf("0-%d", cpuAmount-1)
 	if len(b.opts.CPU) > 0 {
 		allowedCPUs := []string{}
-		for CPU, _ := range b.opts.CPU {
+		for CPU := range b.opts.CPU {
 			allowedCPUs = append(allowedCPUs, CPU)
 		}
 		cpusetCPUs = strings.Join(allowedCPUs, ",")

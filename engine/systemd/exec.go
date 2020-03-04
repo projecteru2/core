@@ -8,27 +8,32 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-func (s *SystemdSSH) ExecCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, err error) {
+// ExecCreate executes a cmd
+func (s *SSHClient) ExecCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
 
-func (s *SystemdSSH) ExecAttach(ctx context.Context, execID string, tty bool) (reader io.ReadCloser, writer io.WriteCloser, err error) {
+// ExecAttach attaches stdio
+func (s *SSHClient) ExecAttach(ctx context.Context, execID string, tty bool) (reader io.ReadCloser, writer io.WriteCloser, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
 
-func (s *SystemdSSH) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, reader io.ReadCloser, writer io.WriteCloser, err error) {
+// Execute executes a cmd and attaches stdio
+func (s *SSHClient) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, reader io.ReadCloser, writer io.WriteCloser, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
 
-func (s *SystemdSSH) ExecResize(ctx context.Context, execID string, height, width uint) (err error) {
+// ExecResize resize the terminal size
+func (s *SSHClient) ExecResize(ctx context.Context, execID string, height, width uint) (err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
 
-func (s *SystemdSSH) ExecExitCode(ctx context.Context, execID string) (execCode int, err error) {
+// ExecExitCode fetches exceuction exit code
+func (s *SSHClient) ExecExitCode(ctx context.Context, execID string) (execCode int, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
