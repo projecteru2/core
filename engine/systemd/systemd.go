@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
 	"golang.org/x/crypto/ssh"
 
@@ -58,10 +59,10 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 
 func (s *SystemdSSH) WithSession(f func(*ssh.Session) error) (err error) {
 	session, err := s.client.NewSession()
-	defer session.Close()
 	if err != nil {
 		return
 	}
+	defer session.Close()
 	return f(session)
 }
 
@@ -99,7 +100,7 @@ func (s *SystemdSSH) MemoryInfo(ctx context.Context) (memoryTotalInBytes int64, 
 }
 
 func (s *SystemdSSH) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory, storage int64) (err error) {
-	return engine.NotImplementedError
+	return types.ErrEngineNotImplemented
 }
 
 func (s *SystemdSSH) runSingleCommand(ctx context.Context, cmd string, stdin io.Reader) (stdout, stderr *bytes.Buffer, err error) {

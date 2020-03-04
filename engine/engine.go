@@ -2,15 +2,10 @@ package engine
 
 import (
 	"context"
-	"errors"
 	"io"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coresource "github.com/projecteru2/core/source"
-)
-
-var (
-	NotImplementedError = errors.New("not implemented")
 )
 
 // API define a remote engine

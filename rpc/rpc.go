@@ -399,7 +399,6 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	}
 
 	v.taskAdd("RunAndWait", true)
-	deployOpts.Data = opts.Data
 
 	inCh := make(chan []byte)
 	go func() {
@@ -455,7 +454,6 @@ func (v *Vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 		return err
 	}
 
-	deployOpts.Data = opts.Data
 	// 这里考虑用全局 Background
 	ch, err := v.cluster.CreateContainer(context.Background(), deployOpts)
 	if err != nil {
@@ -481,7 +479,6 @@ func (v *Vibranium) ReplaceContainer(opts *pb.ReplaceOptions, stream pb.CoreRPC_
 		return err
 	}
 
-	replaceOpts.Data = opts.DeployOpt.Data
 	// 这里考虑用全局 Background
 	ch, err := v.cluster.ReplaceContainer(context.Background(), replaceOpts)
 	if err != nil {

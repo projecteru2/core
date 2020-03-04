@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
 
@@ -24,7 +25,7 @@ const (
 )
 
 func (s *SystemdSSH) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (created *enginetypes.VirtualizationCreated, err error) {
-	ID := "SYSTEMD-" + utils.RandomString(46)
+	ID := "SYSTEMD-" + strings.ToLower(utils.RandomString(46))
 
 	cpuAmount, err := s.CPUInfo(ctx)
 	if err != nil {
@@ -122,31 +123,31 @@ func (s *SystemdSSH) VirtualizationInspect(ctx context.Context, ID string) (info
 }
 
 func (s *SystemdSSH) VirtualizationLogs(ctx context.Context, ID string, follow, stdout, stderr bool) (reader io.ReadCloser, err error) {
-	err = engine.NotImplementedError
+	err = types.ErrEngineNotImplemented
 	return
 }
 
 func (s *SystemdSSH) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (reader io.ReadCloser, writer io.WriteCloser, err error) {
-	err = engine.NotImplementedError
+	err = types.ErrEngineNotImplemented
 	return
 }
 
 func (s *SystemdSSH) VirtualizationResize(ctx context.Context, ID string, height, width uint) (err error) {
-	err = engine.NotImplementedError
+	err = types.ErrEngineNotImplemented
 	return
 }
 
 func (s *SystemdSSH) VirtualizationWait(ctx context.Context, ID, state string) (res *enginetypes.VirtualizationWaitResult, err error) {
-	err = engine.NotImplementedError
+	err = types.ErrEngineNotImplemented
 	return
 }
 
 func (s *SystemdSSH) VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) (err error) {
-	err = engine.NotImplementedError
+	err = types.ErrEngineNotImplemented
 	return
 }
 
 func (s *SystemdSSH) VirtualizationCopyFrom(ctx context.Context, ID, path string) (reader io.ReadCloser, filename string, err error) {
-	err = engine.NotImplementedError
+	err = types.ErrEngineNotImplemented
 	return
 }

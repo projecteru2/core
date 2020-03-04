@@ -73,6 +73,8 @@ var (
 
 	ErrInvalidGitURL        = errors.New("invalid git url format")
 	ErrInvalidContainerName = errors.New("invalid container name")
+
+	ErrEngineNotImplemented = errors.New("not implemented")
 )
 
 // NewDetailedErr returns an error with details
