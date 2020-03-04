@@ -10,8 +10,8 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/docker/go-units"
-	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
 
@@ -95,7 +95,7 @@ func (b *unitBuilder) buildNetworkLimit() *unitBuilder {
 	}
 
 	if network != "" && network != "host" {
-		b.err = errors.Wrapf(engine.NotImplementedError, "systemd engine doesn't support network %s", network)
+		b.err = errors.Wrapf(types.ErrEngineNotImplemented, "systemd engine doesn't support network %s", network)
 		return b
 	}
 	return b
@@ -106,16 +106,13 @@ func (b *unitBuilder) buildCPULimit(cpuAmount int) *unitBuilder {
 		return b
 	}
 
-	cpusetCPUs := ""
+	cpusetCPUs := fmt.Sprintf("0-%d", cpuAmount-1)
 	if len(b.opts.CPU) > 0 {
 		allowedCPUs := []string{}
 		for CPU, _ := range b.opts.CPU {
 			allowedCPUs = append(allowedCPUs, CPU)
 		}
 		cpusetCPUs = strings.Join(allowedCPUs, ",")
-	} else {
-
-		cpusetCPUs = fmt.Sprintf("0-%d", cpuAmount-1)
 	}
 
 	if b.opts.Quota > 0 {

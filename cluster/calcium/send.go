@@ -3,6 +3,7 @@ package calcium
 import (
 	"bytes"
 	"context"
+	"io"
 	"sync"
 
 	"github.com/projecteru2/core/engine"
@@ -27,7 +28,7 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 						ch <- &types.SendMessage{ID: ID, Path: dst, Error: err}
 						continue
 					}
-					if err := c.doSendFileToContainer(ctx, container.Engine, container.ID, dst, content, true, true); err != nil {
+					if err := c.doSendFileToContainer(ctx, container.Engine, container.ID, dst, bytes.NewBuffer(content), true, true); err != nil {
 						ch <- &types.SendMessage{ID: ID, Path: dst, Error: err}
 						continue
 					}
@@ -40,8 +41,8 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 	return ch, nil
 }
 
-func (c *Calcium) doSendFileToContainer(ctx context.Context, engine engine.API, ID, dst string, content []byte, AllowOverwriteDirWithFile bool, CopyUIDGID bool) error {
+func (c *Calcium) doSendFileToContainer(ctx context.Context, engine engine.API, ID, dst string, content io.Reader, AllowOverwriteDirWithFile bool, CopyUIDGID bool) error {
 	log.Infof("[doSendFileToContainer] Send file to %s:%s", ID, dst)
 	log.Debugf("[doSendFileToContainer] remote path %s", dst)
-	return engine.VirtualizationCopyTo(ctx, ID, dst, bytes.NewBuffer(content), AllowOverwriteDirWithFile, CopyUIDGID)
+	return engine.VirtualizationCopyTo(ctx, ID, dst, content, AllowOverwriteDirWithFile, CopyUIDGID)
 }

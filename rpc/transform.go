@@ -3,6 +3,7 @@ package rpc
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	pb "github.com/projecteru2/core/rpc/gen"
@@ -277,7 +278,16 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		IgnoreHook:   d.IgnoreHook,
 		AfterCreate:  d.AfterCreate,
 		RawArgs:      d.RawArgs,
+		Data:         toReaderData(d.Data),
 	}, nil
+}
+
+func toReaderData(data map[string][]byte) map[string]io.Reader {
+	res := map[string]io.Reader{}
+	for target, content := range data {
+		res[target] = io.Reader(bytes.NewBuffer(content))
+	}
+	return res
 }
 
 func toRPCVolumePlan(v types.VolumePlan) map[string]*pb.Volume {
