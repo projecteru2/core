@@ -60,6 +60,7 @@ type VirtConfig struct {
 	APIVersion string `yaml:"version"` // Yavirtd API version
 }
 
+// SystemdConfig is systemd config
 type SystemdConfig struct {
 	Username string `yaml:"username" default:"root"`
 }

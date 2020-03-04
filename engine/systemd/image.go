@@ -9,55 +9,66 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-func (s *SystemdSSH) ImageList(ctx context.Context, image string) (images []*enginetypes.Image, err error) {
+// ImageList lists image
+func (s *SSHClient) ImageList(ctx context.Context, image string) (images []*enginetypes.Image, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
 
-func (s *SystemdSSH) ImageRemove(ctx context.Context, image string, force, prune bool) (layers []string, err error) {
+// ImageRemove removes image
+func (s *SSHClient) ImageRemove(ctx context.Context, image string, force, prune bool) (layers []string, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
 
-func (s *SystemdSSH) ImagesPrune(ctx context.Context) (err error) {
+// ImagesPrune prunes
+func (s *SSHClient) ImagesPrune(ctx context.Context) (err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
 
-func (s *SystemdSSH) ImagePull(ctx context.Context, ref string, all bool) (reader io.ReadCloser, err error) {
+// ImagePull pulls image
+func (s *SSHClient) ImagePull(ctx context.Context, ref string, all bool) (reader io.ReadCloser, err error) {
 	return
 }
 
-func (s *SystemdSSH) ImagePush(ctx context.Context, ref string) (reader io.ReadCloser, err error) {
+// ImagePush pushes image
+func (s *SSHClient) ImagePush(ctx context.Context, ref string) (reader io.ReadCloser, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
 
-func (s *SystemdSSH) ImageBuild(ctx context.Context, input io.Reader, refs []string) (reader io.ReadCloser, err error) {
+// ImageBuild builds image
+func (s *SSHClient) ImageBuild(ctx context.Context, input io.Reader, refs []string) (reader io.ReadCloser, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
 
-func (s *SystemdSSH) ImageBuildCachePrune(ctx context.Context, all bool) (reclaimedInBytes uint64, err error) {
+// ImageBuildCachePrune prunes cache
+func (s *SSHClient) ImageBuildCachePrune(ctx context.Context, all bool) (reclaimedInBytes uint64, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
 
-func (s *SystemdSSH) ImageLocalDigests(ctx context.Context, image string) (digests []string, err error) {
+// ImageLocalDigests gets image local digest
+func (s *SSHClient) ImageLocalDigests(ctx context.Context, image string) (digests []string, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
 
-func (s *SystemdSSH) ImageRemoteDigest(ctx context.Context, image string) (digest string, err error) {
+// ImageRemoteDigest gets image remote digest
+func (s *SSHClient) ImageRemoteDigest(ctx context.Context, image string) (digest string, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
 
-func (s *SystemdSSH) BuildRefs(ctx context.Context, name string, tags []string) (refs []string) {
+// BuildRefs builds images refs
+func (s *SSHClient) BuildRefs(ctx context.Context, name string, tags []string) (refs []string) {
 	return
 }
 
-func (s *SystemdSSH) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildOptions) (dir string, reader io.Reader, err error) {
+// BuildContent builds image content
+func (s *SSHClient) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildOptions) (dir string, reader io.Reader, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }

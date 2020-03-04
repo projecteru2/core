@@ -19,26 +19,30 @@ import (
 )
 
 const (
+	// SSHPrefixKey is engine endpoint prefix
 	SSHPrefixKey = "systemd://"
 
 	cmdInspectCPUNumber          = "/bin/grep -cz processor /proc/cpuinfo"
 	cmdInspectMemoryTotalInBytes = "/usr/bin/awk '/^Mem/ {print $2}' <(/usr/bin/free -bt)"
 )
 
-type SystemdSSH struct {
+// SSHClient contains a connection to sshd
+type SSHClient struct {
 	hostIP string
 	client *ssh.Client
 }
 
-func NewSystemdSSH(endpoint string, config *ssh.ClientConfig) (*SystemdSSH, error) {
+// NewSSHClient creates a SSHClient pointer
+func NewSSHClient(endpoint string, config *ssh.ClientConfig) (*SSHClient, error) {
 	parts := strings.Split(endpoint, ":")
 	client, err := ssh.Dial("tcp", endpoint, config)
-	return &SystemdSSH{
+	return &SSHClient{
 		hostIP: parts[0],
 		client: client,
 	}, err
 }
 
+// MakeClient makes systemd engine instance
 func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (api engine.API, err error) {
 	signer, err := ssh.ParsePrivateKey([]byte(key))
 	if err != nil {
@@ -51,13 +55,13 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 		},
 		HostKeyCallback: func(_ string, _ net.Addr, _ ssh.PublicKey) error { return nil },
 	}
-	return NewSystemdSSH(
+	return NewSSHClient(
 		strings.TrimPrefix(endpoint, SSHPrefixKey),
 		sshConfig,
 	)
 }
 
-func (s *SystemdSSH) WithSession(f func(*ssh.Session) error) (err error) {
+func (s *SSHClient) withSession(f func(*ssh.Session) error) (err error) {
 	session, err := s.client.NewSession()
 	if err != nil {
 		return
@@ -66,12 +70,13 @@ func (s *SystemdSSH) WithSession(f func(*ssh.Session) error) (err error) {
 	return f(session)
 }
 
-func (s *SystemdSSH) Info(ctx context.Context) (info *enginetypes.Info, err error) {
-	cpu, err := s.CPUInfo(ctx)
+// Info fetches cpu info of remote
+func (s *SSHClient) Info(ctx context.Context) (info *enginetypes.Info, err error) {
+	cpu, err := s.cpuInfo(ctx)
 	if err != nil {
 		return
 	}
-	memory, err := s.MemoryInfo(ctx)
+	memory, err := s.memoryInfo(ctx)
 	if err != nil {
 		return
 	}
@@ -82,7 +87,7 @@ func (s *SystemdSSH) Info(ctx context.Context) (info *enginetypes.Info, err erro
 	}, nil
 }
 
-func (s *SystemdSSH) CPUInfo(ctx context.Context) (cpu int, err error) {
+func (s *SSHClient) cpuInfo(ctx context.Context) (cpu int, err error) {
 	stdout, stderr, err := s.runSingleCommand(ctx, cmdInspectCPUNumber, nil)
 	if err != nil {
 		return 0, errors.Wrap(err, stderr.String())
@@ -90,7 +95,7 @@ func (s *SystemdSSH) CPUInfo(ctx context.Context) (cpu int, err error) {
 	return strconv.Atoi(strings.TrimSpace(stdout.String()))
 }
 
-func (s *SystemdSSH) MemoryInfo(ctx context.Context) (memoryTotalInBytes int64, err error) {
+func (s *SSHClient) memoryInfo(ctx context.Context) (memoryTotalInBytes int64, err error) {
 	stdout, stderr, err := s.runSingleCommand(ctx, cmdInspectMemoryTotalInBytes, nil)
 	if err != nil {
 		return 0, errors.Wrap(err, stderr.String())
@@ -99,17 +104,18 @@ func (s *SystemdSSH) MemoryInfo(ctx context.Context) (memoryTotalInBytes int64, 
 	return int64(memory), err
 }
 
-func (s *SystemdSSH) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory, storage int64) (err error) {
+// ResourceValidate validates resources
+func (s *SSHClient) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory, storage int64) (err error) {
 	return types.ErrEngineNotImplemented
 }
 
-func (s *SystemdSSH) runSingleCommand(ctx context.Context, cmd string, stdin io.Reader) (stdout, stderr *bytes.Buffer, err error) {
+func (s *SSHClient) runSingleCommand(ctx context.Context, cmd string, stdin io.Reader) (stdout, stderr *bytes.Buffer, err error) {
 	// what a pathetic library that leaves context completely useless
 	log.Debugf("[runSingleCommand] %s", cmd)
 
 	stdout = &bytes.Buffer{}
 	stderr = &bytes.Buffer{}
-	return stdout, stderr, s.WithSession(func(session *ssh.Session) error {
+	return stdout, stderr, s.withSession(func(session *ssh.Session) error {
 		session.Stdin = stdin
 		session.Stdout = stdout
 		session.Stderr = stderr
