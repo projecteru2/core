@@ -170,8 +170,8 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 	return &enginetypes.VirtualizationCreated{ID: resp.ID, Name: opts.Name}, nil
 }
 
-// VirtualizationCopyTo copies one.
-func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, path string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) (err error) {
+// VirtualizationCcontentopyTo copies one.
+func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, target string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) (err error) {
 	log.Warnf("VirtualizationCopyTo does not implement")
 	return
 }

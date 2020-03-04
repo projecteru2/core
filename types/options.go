@@ -25,7 +25,7 @@ type DeployOptions struct {
 	Labels       map[string]string // Labels for containers
 	NodeLabels   map[string]string // NodeLabels for filter node
 	DeployMethod string            // Deploy method
-	Data         map[string]string // For additional file data
+	Data         map[string][]byte // For additional file data
 	SoftLimit    bool              // Soft limit memory
 	NodesLimit   int               // Limit nodes count
 	ProcessIdent string            // ProcessIdent ident this deploy
@@ -50,7 +50,7 @@ type CopyOptions struct {
 // SendOptions for send files to multiple container
 type SendOptions struct {
 	IDs  []string
-	Data map[string]string
+	Data map[string][]byte
 }
 
 // ListContainersOptions for list containers

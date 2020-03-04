@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/docker/go-connections/nat"
@@ -192,8 +193,14 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 }
 
 // VirtualizationCopyTo copy things to virtualization
-func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, path string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) error {
-	return e.client.CopyToContainer(ctx, ID, filepath.Dir(path), content, dockertypes.CopyToContainerOptions{AllowOverwriteDirWithFile: AllowOverwriteDirWithFile, CopyUIDGID: CopyUIDGID})
+func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) error {
+	return withTarfileDump(target, content, func(target, tarfile string) error {
+		content, err := os.Open(tarfile)
+		if err != nil {
+			return err
+		}
+		return e.client.CopyToContainer(ctx, ID, filepath.Dir(target), content, dockertypes.CopyToContainerOptions{AllowOverwriteDirWithFile: AllowOverwriteDirWithFile, CopyUIDGID: CopyUIDGID})
+	})
 }
 
 // VirtualizationStart start virtualization

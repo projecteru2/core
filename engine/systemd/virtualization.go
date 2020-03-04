@@ -47,22 +47,22 @@ func (s *SystemdSSH) VirtualizationCreate(ctx context.Context, opts *enginetypes
 	}, errors.Wrap(err, stderr.String())
 }
 
-func (s *SystemdSSH) VirtualizationCopyTo(ctx context.Context, ID, path string, content io.Reader, AllowOverwriteDirWithFile, _ bool) (err error) {
+func (s *SystemdSSH) VirtualizationCopyTo(ctx context.Context, ID, target string, content io.Reader, AllowOverwriteDirWithFile, _ bool) (err error) {
 	// mkdir -p $(dirname $PATH)
-	dirname, _ := filepath.Split(path)
+	dirname, _ := filepath.Split(target)
 	if _, stderr, err := s.runSingleCommand(ctx, fmt.Sprintf(cmdMkdir, dirname), nil); err != nil {
 		return errors.Wrap(err, stderr.String())
 	}
 
 	// test -f $PATH && exit -1
 	if !AllowOverwriteDirWithFile {
-		if _, _, err = s.runSingleCommand(ctx, fmt.Sprintf(cmdFileExist, path), nil); err == nil {
-			return fmt.Errorf("[VirtualizationCopyTo] file existed: %s", path)
+		if _, _, err = s.runSingleCommand(ctx, fmt.Sprintf(cmdFileExist, target), nil); err == nil {
+			return fmt.Errorf("[VirtualizationCopyTo] file existed: %s", target)
 		}
 	}
 
 	// cp /dev/stdin $PATH
-	_, stderr, err := s.runSingleCommand(ctx, fmt.Sprintf(cmdCopyFromStdin, path), content)
+	_, stderr, err := s.runSingleCommand(ctx, fmt.Sprintf(cmdCopyFromStdin, target), content)
 	return errors.Wrap(err, stderr.String())
 }
 

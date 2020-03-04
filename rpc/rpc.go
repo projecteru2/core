@@ -288,29 +288,27 @@ func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) err
 		return err
 	}
 
-	return withDumpFiles(opts.Data, func(files map[string]string) error {
-		sendOpts.Data = files
-		ch, err := v.cluster.Send(stream.Context(), sendOpts)
-		if err != nil {
-			return err
+	sendOpts.Data = opts.Data
+	ch, err := v.cluster.Send(stream.Context(), sendOpts)
+	if err != nil {
+		return err
+	}
+
+	for m := range ch {
+		msg := &pb.SendMessage{
+			Id:   m.ID,
+			Path: m.Path,
 		}
 
-		for m := range ch {
-			msg := &pb.SendMessage{
-				Id:   m.ID,
-				Path: m.Path,
-			}
-
-			if m.Error != nil {
-				msg.Error = m.Error.Error()
-			}
-
-			if err := stream.Send(msg); err != nil {
-				v.logUnsentMessages("Send", m)
-			}
+		if m.Error != nil {
+			msg.Error = m.Error.Error()
 		}
-		return nil
-	})
+
+		if err := stream.Send(msg); err != nil {
+			v.logUnsentMessages("Send", m)
+		}
+	}
+	return nil
 }
 
 // BuildImage streamed returned functions
@@ -401,52 +399,50 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	}
 
 	v.taskAdd("RunAndWait", true)
-	return withDumpFiles(opts.Data, func(files map[string]string) error {
-		deployOpts.Data = files
+	deployOpts.Data = opts.Data
 
-		inCh := make(chan []byte)
-		go func() {
-			defer close(inCh)
-			if opts.OpenStdin {
-				for {
-					RunAndWaitOptions, err := stream.Recv()
-					if RunAndWaitOptions == nil || err != nil {
-						log.Errorf("[RunAndWait] Recv command error: %v", err)
-						break
-					}
-					inCh <- RunAndWaitOptions.Cmd
+	inCh := make(chan []byte)
+	go func() {
+		defer close(inCh)
+		if opts.OpenStdin {
+			for {
+				RunAndWaitOptions, err := stream.Recv()
+				if RunAndWaitOptions == nil || err != nil {
+					log.Errorf("[RunAndWait] Recv command error: %v", err)
+					break
 				}
+				inCh <- RunAndWaitOptions.Cmd
 			}
-		}()
-
-		runAndWait := func(f func(<-chan *types.AttachContainerMessage)) error {
-			defer v.taskDone("RunAndWait", true)
-			defer cancel()
-			ch, err := v.cluster.RunAndWait(ctx, deployOpts, inCh)
-			if err != nil {
-				log.Errorf("[RunAndWait] Start run and wait failed %s", err)
-				return err
-			}
-			f(ch)
-			return nil
 		}
+	}()
 
-		if !RunAndWaitOptions.Async {
-			return runAndWait(func(ch <-chan *types.AttachContainerMessage) {
-				for m := range ch {
-					if err = stream.Send(toRPCAttachContainerMessage(m)); err != nil {
-						v.logUnsentMessages("RunAndWait", m)
-					}
-				}
-			})
+	runAndWait := func(f func(<-chan *types.AttachContainerMessage)) error {
+		defer v.taskDone("RunAndWait", true)
+		defer cancel()
+		ch, err := v.cluster.RunAndWait(ctx, deployOpts, inCh)
+		if err != nil {
+			log.Errorf("[RunAndWait] Start run and wait failed %s", err)
+			return err
 		}
-		go runAndWait(func(ch <-chan *types.AttachContainerMessage) {
+		f(ch)
+		return nil
+	}
+
+	if !RunAndWaitOptions.Async {
+		return runAndWait(func(ch <-chan *types.AttachContainerMessage) {
 			for m := range ch {
-				log.Infof("[Async RunAndWait] %v", string(m.Data))
+				if err = stream.Send(toRPCAttachContainerMessage(m)); err != nil {
+					v.logUnsentMessages("RunAndWait", m)
+				}
 			}
 		})
-		return nil
+	}
+	go runAndWait(func(ch <-chan *types.AttachContainerMessage) {
+		for m := range ch {
+			log.Infof("[Async RunAndWait] %v", string(m.Data))
+		}
 	})
+	return nil
 }
 
 // CreateContainer create containers
@@ -459,22 +455,20 @@ func (v *Vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 		return err
 	}
 
-	return withDumpFiles(opts.Data, func(files map[string]string) error {
-		deployOpts.Data = files
-		// 这里考虑用全局 Background
-		ch, err := v.cluster.CreateContainer(context.Background(), deployOpts)
-		if err != nil {
-			return err
-		}
+	deployOpts.Data = opts.Data
+	// 这里考虑用全局 Background
+	ch, err := v.cluster.CreateContainer(context.Background(), deployOpts)
+	if err != nil {
+		return err
+	}
 
-		for m := range ch {
-			if err = stream.Send(toRPCCreateContainerMessage(m)); err != nil {
-				v.logUnsentMessages("CreateContainer", m)
-			}
+	for m := range ch {
+		if err = stream.Send(toRPCCreateContainerMessage(m)); err != nil {
+			v.logUnsentMessages("CreateContainer", m)
 		}
+	}
 
-		return nil
-	})
+	return nil
 }
 
 // ReplaceContainer replace containers
@@ -487,22 +481,20 @@ func (v *Vibranium) ReplaceContainer(opts *pb.ReplaceOptions, stream pb.CoreRPC_
 		return err
 	}
 
-	return withDumpFiles(opts.DeployOpt.Data, func(files map[string]string) error {
-		replaceOpts.Data = files
-		// 这里考虑用全局 Background
-		ch, err := v.cluster.ReplaceContainer(context.Background(), replaceOpts)
-		if err != nil {
-			return err
-		}
+	replaceOpts.Data = opts.DeployOpt.Data
+	// 这里考虑用全局 Background
+	ch, err := v.cluster.ReplaceContainer(context.Background(), replaceOpts)
+	if err != nil {
+		return err
+	}
 
-		for m := range ch {
-			if err = stream.Send(toRPCReplaceContainerMessage(m)); err != nil {
-				v.logUnsentMessages("ReplaceContainer", m)
-			}
+	for m := range ch {
+		if err = stream.Send(toRPCReplaceContainerMessage(m)); err != nil {
+			v.logUnsentMessages("ReplaceContainer", m)
 		}
+	}
 
-		return nil
-	})
+	return nil
 }
 
 // RemoveContainer remove containers
