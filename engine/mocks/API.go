@@ -531,13 +531,13 @@ func (_m *API) VirtualizationCopyFrom(ctx context.Context, ID string, path strin
 	return r0, r1, r2
 }
 
-// VirtualizationCopyTo provides a mock function with given fields: ctx, ID, path, content, AllowOverwriteDirWithFile, CopyUIDGID
-func (_m *API) VirtualizationCopyTo(ctx context.Context, ID string, path string, content io.Reader, AllowOverwriteDirWithFile bool, CopyUIDGID bool) error {
-	ret := _m.Called(ctx, ID, path, content, AllowOverwriteDirWithFile, CopyUIDGID)
+// VirtualizationCopyTo provides a mock function with given fields: ctx, ID, target, content, AllowOverwriteDirWithFile, CopyUIDGID
+func (_m *API) VirtualizationCopyTo(ctx context.Context, ID string, target string, content io.Reader, AllowOverwriteDirWithFile bool, CopyUIDGID bool) error {
+	ret := _m.Called(ctx, ID, target, content, AllowOverwriteDirWithFile, CopyUIDGID)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, string, io.Reader, bool, bool) error); ok {
-		r0 = rf(ctx, ID, path, content, AllowOverwriteDirWithFile, CopyUIDGID)
+		r0 = rf(ctx, ID, target, content, AllowOverwriteDirWithFile, CopyUIDGID)
 	} else {
 		r0 = ret.Error(0)
 	}

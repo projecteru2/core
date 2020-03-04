@@ -1,8 +1,8 @@
 package calcium
 
 import (
+	"bytes"
 	"context"
-	"os"
 	"sync"
 
 	"github.com/projecteru2/core/engine"
@@ -16,10 +16,10 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 	go func() {
 		defer close(ch)
 		wg := &sync.WaitGroup{}
-		for dst, src := range opts.Data {
+		for dst, content := range opts.Data {
 			log.Infof("[Send] Send files to %s", dst)
 			wg.Add(1)
-			go func(dst, src string) {
+			go func(dst string, content []byte) {
 				defer wg.Done()
 				for _, ID := range opts.IDs {
 					container, err := c.GetContainer(ctx, ID)
@@ -27,26 +27,21 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 						ch <- &types.SendMessage{ID: ID, Path: dst, Error: err}
 						continue
 					}
-					if err := c.doSendFileToContainer(ctx, container.Engine, container.ID, dst, src, true, true); err != nil {
+					if err := c.doSendFileToContainer(ctx, container.Engine, container.ID, dst, content, true, true); err != nil {
 						ch <- &types.SendMessage{ID: ID, Path: dst, Error: err}
 						continue
 					}
 					ch <- &types.SendMessage{ID: ID, Path: dst}
 				}
-			}(dst, src)
+			}(dst, content)
 		}
 		wg.Wait()
 	}()
 	return ch, nil
 }
 
-func (c *Calcium) doSendFileToContainer(ctx context.Context, engine engine.API, ID, dst, src string, AllowOverwriteDirWithFile bool, CopyUIDGID bool) error {
+func (c *Calcium) doSendFileToContainer(ctx context.Context, engine engine.API, ID, dst string, content []byte, AllowOverwriteDirWithFile bool, CopyUIDGID bool) error {
 	log.Infof("[doSendFileToContainer] Send file to %s:%s", ID, dst)
-	log.Debugf("[doSendFileToContainer] Local file %s, remote path %s", src, dst)
-	f, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return engine.VirtualizationCopyTo(ctx, ID, dst, f, AllowOverwriteDirWithFile, CopyUIDGID)
+	log.Debugf("[doSendFileToContainer] remote path %s", dst)
+	return engine.VirtualizationCopyTo(ctx, ID, dst, bytes.NewBuffer(content), AllowOverwriteDirWithFile, CopyUIDGID)
 }

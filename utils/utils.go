@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"archive/tar"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
@@ -9,7 +8,6 @@ import (
 	"io/ioutil"
 	"math/big"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/projecteru2/core/cluster"
@@ -188,30 +186,6 @@ func TempFile(stream io.ReadCloser) (string, error) {
 
 	_, err = io.Copy(f, stream)
 	return f.Name(), err
-}
-
-// TempTarFile store and tar bytes to a file
-func TempTarFile(path string, data []byte) (string, error) {
-	filename := filepath.Base(path)
-	f, err := ioutil.TempFile(os.TempDir(), filename)
-	if err != nil {
-		return "", err
-	}
-	name := f.Name()
-	defer f.Close()
-
-	tw := tar.NewWriter(f)
-	defer tw.Close()
-	hdr := &tar.Header{
-		Name: filename,
-		Mode: 0755,
-		Size: int64(len(data)),
-	}
-	if err := tw.WriteHeader(hdr); err != nil {
-		return name, err
-	}
-	_, err = tw.Write(data)
-	return name, err
 }
 
 // Round for float64 to int

@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"archive/tar"
 	"bytes"
 	"fmt"
 	"io/ioutil"
@@ -172,21 +171,6 @@ func TestTempFile(t *testing.T) {
 	b, err := ioutil.ReadAll(f)
 	assert.NoError(t, err)
 	assert.Equal(t, string(b), "test")
-	os.Remove(fname)
-}
-
-func TestTempTarFile(t *testing.T) {
-	data := []byte("test")
-	path := "/tmp/test"
-	fname, err := TempTarFile(path, data)
-	assert.NoError(t, err)
-	f, err := os.Open(fname)
-	assert.NoError(t, err)
-	tr := tar.NewReader(f)
-	hdr, err := tr.Next()
-	assert.NoError(t, err)
-	assert.Equal(t, hdr.Name, "test")
-	f.Close()
 	os.Remove(fname)
 }
 

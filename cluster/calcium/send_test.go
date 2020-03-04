@@ -22,8 +22,8 @@ func TestSend(t *testing.T) {
 	defer tmpfile.Close()
 	opts := &types.SendOptions{
 		IDs: []string{"cid"},
-		Data: map[string]string{
-			"/tmp/1": "nofile",
+		Data: map[string][]byte{
+			"/tmp/1": []byte{},
 		},
 	}
 	store := &storemocks.Store{}
@@ -35,18 +35,13 @@ func TestSend(t *testing.T) {
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
-	// failed by no file
 	engine := &enginemocks.API{}
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(
 		&types.Container{Engine: engine}, nil,
 	)
-	ch, err = c.Send(ctx, opts)
-	assert.NoError(t, err)
-	for r := range ch {
-		assert.Error(t, r.Error)
-	}
 	// failed by engine
-	opts.Data["/tmp/1"] = tmpfile.Name()
+	content, _ := ioutil.ReadAll(tmpfile)
+	opts.Data["/tmp/1"] = content
 	engine.On("VirtualizationCopyTo",
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,
