@@ -282,7 +282,7 @@ func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*typ
 		}
 		kv, err := m.GetOne(ctx, statusKeys[container.ID])
 		if err != nil {
-			log.Warnf("[bindContainersAdditions] get status err: %v", err)
+			// log.Warnf("[bindContainersAdditions] get status err: %v", err)
 			continue
 		}
 		status := &types.StatusMeta{}
