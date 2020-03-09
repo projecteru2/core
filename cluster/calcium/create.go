@@ -31,11 +31,11 @@ func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions
 		return nil, types.NewDetailedErr(types.ErrBadCount, opts.Count)
 	}
 	// 创建时内存不为 0
-	if opts.Memory <= 0 {
+	if opts.Memory < 0 {
 		return nil, types.NewDetailedErr(types.ErrBadMemory, opts.Memory)
 	}
 	// CPUQuota 也需要大于 0
-	if opts.CPUQuota <= 0 {
+	if opts.CPUQuota < 0 {
 		return nil, types.NewDetailedErr(types.ErrBadCPU, opts.CPUQuota)
 	}
 	return c.doCreateContainer(ctx, opts, pod)

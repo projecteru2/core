@@ -73,7 +73,7 @@ func (m *Potassium) SelectStorageNodes(nodesInfo []types.NodeInfo, storage int64
 // SelectMemoryNodes filter nodes with enough memory
 func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64, memory int64) ([]types.NodeInfo, int, error) {
 	log.Infof("[SelectMemoryNodes] nodesInfo: %v, need cpu: %f, memory: %d", nodesInfo, quota, memory)
-	if memory <= 0 {
+	if memory < 0 {
 		return nil, 0, types.ErrNegativeMemory
 	}
 	nodesInfoLength := len(nodesInfo)
@@ -100,7 +100,10 @@ func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64,
 	// 这里 memCap 一定是大于 memory 的所以不用判断 cap 内容
 	volTotal := 0
 	for i, nodeInfo := range nodesInfo {
-		capacity := int(nodeInfo.MemCap / memory)
+		capacity := math.MaxInt16
+		if memory != 0 {
+			capacity = int(nodeInfo.MemCap / memory)
+		}
 		volTotal += capacity
 		nodesInfo[i].Capacity = capacity
 	}
@@ -126,12 +129,14 @@ func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, me
 func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.VolumeBindings) ([]types.NodeInfo, map[string][]types.VolumePlan, int, error) {
 	log.Infof("[SelectVolumeNodes] nodesInfo %v, need volume: %v", nodesInfo, vbs)
 	var reqsNorm, reqsMono []int64
-	var vbsNorm, vbsMono types.VolumeBindings
+	var vbsNorm, vbsMono, vbsUnlimited types.VolumeBindings
 
 	for _, vb := range vbs {
 		if vb.RequireMonopoly() {
 			vbsMono = append(vbsMono, vb)
 			reqsMono = append(reqsMono, vb.SizeInBytes)
+		} else if vb.RequireInfinity() {
+			vbsUnlimited = append(vbsUnlimited, vb)
 		} else if vb.RequireSchedule() {
 			vbsNorm = append(vbsNorm, vb)
 			reqsNorm = append(reqsNorm, vb.SizeInBytes)
@@ -166,6 +171,26 @@ func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.Volu
 			for i, plan := range plansMono[:cap] {
 				volumePlans[nodeInfo.Name][i].Merge(types.MakeVolumePlan(vbsMono, plan))
 
+			}
+		}
+
+		if len(vbsUnlimited) > 0 {
+			// select the device with the most capacity as unlimited plan volume
+			volume := types.VolumeMap{"": 0}
+			currentMaxAvailable := int64(0)
+			for vol, available := range nodeInfo.VolumeMap {
+				if available > currentMaxAvailable {
+					volume = types.VolumeMap{vol: 0}
+				}
+			}
+
+			planUnlimited := types.VolumePlan{}
+			for _, vb := range vbsUnlimited {
+				planUnlimited[*vb] = volume
+			}
+
+			for i := range volumePlans[nodeInfo.Name] {
+				volumePlans[nodeInfo.Name][i].Merge(planUnlimited)
 			}
 		}
 	}

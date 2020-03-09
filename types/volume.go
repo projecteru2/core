@@ -48,20 +48,27 @@ func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 
 // Validate return error if invalid
 func (vb VolumeBinding) Validate() error {
-	if strings.HasSuffix(vb.Source, AUTO) && vb.SizeInBytes == 0 {
-		return fmt.Errorf("invalid volume, size must be provided for schedule: %v", vb)
+	if vb.Destination == "" {
+		return fmt.Errorf("invalid volume, dest must be provided")
+	}
+	if vb.RequireMonopoly() && vb.SizeInBytes == 0 {
+		return fmt.Errorf("invalid volume, size must be provided for monopoly schedule: %v", vb)
 	}
 	return nil
 }
 
 // RequireSchedule returns true if volume binding requires schedule
 func (vb VolumeBinding) RequireSchedule() bool {
-	return strings.HasSuffix(vb.Source, AUTO) && vb.Destination != "" && vb.Flags != "" && vb.SizeInBytes != 0
+	return strings.HasSuffix(vb.Source, AUTO) && vb.Flags != ""
+}
+
+func (vb VolumeBinding) RequireInfinity() bool {
+	return strings.HasSuffix(vb.Source, AUTO) && !strings.Contains(vb.Flags, "m") && vb.SizeInBytes == 0
 }
 
 // RequireMonopoly returns true if volume binding requires monopoly schedule
 func (vb VolumeBinding) RequireMonopoly() bool {
-	return strings.HasSuffix(vb.Source, AUTO) && vb.Destination != "" && strings.Contains(vb.Flags, "m") && vb.SizeInBytes != 0
+	return strings.HasSuffix(vb.Source, AUTO) && strings.Contains(vb.Flags, "m")
 }
 
 // ToString returns volume string
