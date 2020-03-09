@@ -3,7 +3,6 @@ package calcium
 import (
 	"bytes"
 	"context"
-	"io"
 	"io/ioutil"
 	"testing"
 
@@ -120,7 +119,7 @@ func TestReplaceContainer(t *testing.T) {
 		assert.False(t, r.Remove.Success)
 	}
 	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(ioutil.NopCloser(bytes.NewReader([]byte{})), "", nil)
-	opts.DeployOptions.Data = map[string]io.Reader{}
+	opts.DeployOptions.Data = map[string]*bytes.Reader{}
 	// failed by Stop
 	engine.On("VirtualizationStop", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
 	ch, err = c.ReplaceContainer(ctx, opts)
