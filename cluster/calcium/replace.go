@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"sync"
 
 	"github.com/projecteru2/core/types"
@@ -124,7 +125,11 @@ func (c *Calcium) doReplaceContainer(
 		if err != nil {
 			return nil, removeMessage, err
 		}
-		opts.DeployOptions.Data[dst] = stream
+		bs, err := ioutil.ReadAll(stream)
+		if err != nil {
+			return nil, removeMessage, err
+		}
+		opts.DeployOptions.Data[dst] = bytes.NewReader(bs)
 	}
 	// 停止容器
 	removeMessage.Hook, err = c.doStopContainer(ctx, container, opts.IgnoreHook)

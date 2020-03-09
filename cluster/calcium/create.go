@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 	"fmt"
+	"io"
 	"sync"
 
 	"github.com/projecteru2/core/cluster"
@@ -209,6 +210,7 @@ func (c *Calcium) doCreateAndStartContainer(
 	// Copy data to container
 	if len(opts.Data) > 0 {
 		for dst, src := range opts.Data {
+			src.Seek(0, io.SeekStart)
 			if err = c.doSendFileToContainer(ctx, node.Engine, containerCreated.ID, dst, src, true, true); err != nil {
 				return createContainerMessage
 			}
