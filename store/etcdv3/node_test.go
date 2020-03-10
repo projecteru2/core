@@ -64,7 +64,7 @@ func TestAddNode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, node2.CPU["0"], int64(100))
 	assert.Equal(t, len(node2.CPU), 1)
-	assert.Equal(t, node2.MemCap, int64(1342177405))
+	assert.Equal(t, node2.MemCap, int64(858993539))
 	// with tls
 	ca := `-----BEGIN CERTIFICATE-----
 MIIC7TCCAdWgAwIBAgIJAM8uLRZf9jttMA0GCSqGSIb3DQEBCwUAMA0xCzAJBgNV

@@ -47,10 +47,10 @@ func (m *Mercury) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 		opts.CPU = info.NCPU
 	}
 	if opts.Memory == 0 {
-		opts.Memory = info.MemTotal * 10 / 8 // use 80% real memory
+		opts.Memory = info.MemTotal * 8 / 10 // use 80% real memory
 	}
 	if opts.Storage == 0 {
-		opts.Storage = info.StorageTotal * 10 / 8
+		opts.Storage = info.StorageTotal * 8 / 10
 	}
 	if opts.Share == 0 {
 		opts.Share = m.config.Scheduler.ShareBase
