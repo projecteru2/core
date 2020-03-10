@@ -41,7 +41,7 @@ type rawArgs struct {
 func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) {
 	r := &enginetypes.VirtualizationCreated{}
 	// memory should more than 4MiB
-	if opts.Memory < minMemory {
+	if opts.Memory > 0 && opts.Memory < minMemory || opts.Memory < 0 {
 		return r, coretypes.ErrBadMemory
 	}
 	// set default log driver if lambda
@@ -302,7 +302,7 @@ func (e *Engine) VirtualizationWait(ctx context.Context, ID, state string) (*eng
 
 // VirtualizationUpdateResource update virtualization resource
 func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error {
-	if opts.Memory < minMemory {
+	if opts.Memory > 0 && opts.Memory < minMemory || opts.Memory < 0 {
 		return coretypes.ErrBadMemory
 	}
 	if opts.VolumeChanged {
