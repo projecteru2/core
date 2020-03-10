@@ -5,6 +5,7 @@ CPU 分配的核心算法
 package complexscheduler
 
 import (
+	"math"
 	"sort"
 
 	"github.com/projecteru2/core/types"
@@ -88,7 +89,10 @@ func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShar
 func calculateCPUPlan(CPUMap types.CPUMap, MemCap int64, cpu float64, memory int64, maxShareCore, coreShare int) (int, []types.CPUMap) {
 	host := newHost(CPUMap, coreShare)
 	plan := host.distributeOneRation(cpu, maxShareCore)
-	memLimit := int(MemCap / memory)
+	memLimit := math.MaxInt16
+	if memory != 0 {
+		memLimit = int(MemCap / memory)
+	}
 	cap := len(plan) // 每个node可以放的容器数
 	if cap > memLimit {
 		plan = plan[:memLimit]

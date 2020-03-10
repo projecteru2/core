@@ -116,7 +116,7 @@ func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, me
 	if quota <= 0 {
 		return nil, nil, 0, types.ErrNegativeQuota
 	}
-	if memory <= 0 {
+	if memory < 0 {
 		return nil, nil, 0, types.ErrNegativeMemory
 	}
 	if len(nodesInfo) == 0 {
