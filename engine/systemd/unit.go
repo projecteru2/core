@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -137,15 +138,20 @@ func (b *unitBuilder) buildMemoryLimit() *unitBuilder {
 		return b
 	}
 
+	memoryLimit := int64(math.MaxInt64)
+	if b.opts.Memory > 0 {
+		memoryLimit = b.opts.Memory
+	}
+
 	if b.opts.SoftLimit {
 		b.serviceBuffer = append(b.serviceBuffer,
-			fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r memory.soft_limit_in_bytes=%d %s", b.opts.Memory, b.cgroupPath()),
+			fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r memory.soft_limit_in_bytes=%d %s", memoryLimit, b.cgroupPath()),
 		)
 
 	} else {
 		b.serviceBuffer = append(b.serviceBuffer,
-			fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r memory.limit_in_bytes=%d %s", b.opts.Memory, b.cgroupPath()),
-			fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r memory.soft_limit_in_bytes=%d %s", utils.Max(int(b.opts.Memory/2), units.MiB*4), b.cgroupPath()),
+			fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r memory.limit_in_bytes=%d %s", memoryLimit, b.cgroupPath()),
+			fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r memory.soft_limit_in_bytes=%d %s", utils.Max(int(memoryLimit/2), units.MiB*4), b.cgroupPath()),
 		)
 	}
 	return b
