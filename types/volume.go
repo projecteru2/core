@@ -81,8 +81,6 @@ func (vb VolumeBinding) ToString(normalize bool) (volume string) {
 	switch {
 	case vb.Flags == "" && vb.SizeInBytes == 0:
 		volume = fmt.Sprintf("%s:%s", vb.Source, vb.Destination)
-	case vb.SizeInBytes == 0:
-		volume = fmt.Sprintf("%s:%s:%s", vb.Source, vb.Destination, flags)
 	default:
 		volume = fmt.Sprintf("%s:%s:%s:%d", vb.Source, vb.Destination, flags, vb.SizeInBytes)
 	}
