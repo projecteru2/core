@@ -82,7 +82,7 @@ func (c *Calcium) doReallocContainer(
 		for _, container := range containers {
 			newCPU := utils.Round(container.Quota + cpu)
 			newMem := container.Memory + memory
-			if newCPU <= 0 || newMem <= 0 {
+			if newCPU < 0 || newMem < 0 {
 				log.Errorf("[doReallocContainer] New resource invaild %s, cpu %f, mem %d", container.ID, newCPU, newMem)
 				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
 				continue
@@ -136,8 +136,10 @@ func (c *Calcium) doReallocContainer(
 							}
 						}
 						// 检查内存
-						if cap := int(node.MemCap / newMemory); cap < len(containers) {
-							return types.NewDetailedErr(types.ErrInsufficientRes, node.Name)
+						if newMemory != 0 {
+							if cap := int(node.MemCap / newMemory); cap < len(containers) {
+								return types.NewDetailedErr(types.ErrInsufficientRes, node.Name)
+							}
 						}
 						var cpusets []types.CPUMap
 						// 按照 Node one by one 重新计算可以部署多少容器
@@ -249,10 +251,15 @@ func (c *Calcium) reallocVolume(node *types.Node, containers []*types.Container,
 
 	// select plans, existing bindings stick to the current devices
 	plans = map[*types.Container]types.VolumePlan{}
+
+Searching:
 	for _, plan := range nodeVolumePlans[node.Name] {
 		for _, container := range containers {
 			if _, ok := plans[container]; !ok && plan.Compatible(container.VolumePlan) {
 				plans[container] = plan
+				if len(plans) == len(containers) {
+					break Searching
+				}
 				break
 			}
 		}
