@@ -25,9 +25,10 @@ func TestLogStream(t *testing.T) {
 		Engine: engine,
 	}
 	ctx := context.Background()
+	opts := &types.LogStreamOptions{ID: ID}
 	// failed by GetContainer
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	ch, err := c.LogStream(ctx, ID)
+	ch, err := c.LogStream(ctx, opts)
 	assert.NoError(t, err)
 	for c := range ch {
 		assert.Equal(t, c.ID, ID)
@@ -35,17 +36,17 @@ func TestLogStream(t *testing.T) {
 	}
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
 	// failed by VirtualizationLogs
-	engine.On("VirtualizationLogs", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNodeExist).Once()
-	ch, err = c.LogStream(ctx, ID)
+	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(nil, types.ErrNodeExist).Once()
+	ch, err = c.LogStream(ctx, opts)
 	assert.NoError(t, err)
 	for c := range ch {
 		assert.Equal(t, c.ID, ID)
 		assert.Empty(t, c.Data)
 	}
 	reader := bytes.NewBufferString("aaaa\nbbbb\n")
-	engine.On("VirtualizationLogs", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(ioutil.NopCloser(reader), nil)
+	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(ioutil.NopCloser(reader), nil)
 	// success
-	ch, err = c.LogStream(ctx, ID)
+	ch, err = c.LogStream(ctx, opts)
 	assert.NoError(t, err)
 	for c := range ch {
 		assert.Equal(t, c.ID, ID)

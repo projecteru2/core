@@ -216,7 +216,7 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 }
 
 // VirtualizationLogs streams a specific guest's log.
-func (v *Virt) VirtualizationLogs(ctx context.Context, ID string, follow, stdout, stderr bool) (io.ReadCloser, error) {
+func (v *Virt) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (reader io.ReadCloser, err error) {
 	return nil, fmt.Errorf("VirtualizationLogs does not implement")
 }
 

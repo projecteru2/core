@@ -81,7 +81,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	vcJSON := &enginetypes.VirtualizationInfo{ID: ID, Image: "mock-image", Running: true, Networks: map[string]string{"mock-network": "1.1.1.1"}}
 	e.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(vcJSON, nil)
 	logs := ioutil.NopCloser(bytes.NewBufferString("logs1...\nlogs2...\n"))
-	e.On("VirtualizationLogs", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(logs, nil)
+	e.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(logs, nil)
 	attachData := ioutil.NopCloser(bytes.NewBufferString("logs1...\nlogs2...\n"))
 	bw := bufio.NewWriter(bytes.NewBuffer([]byte{}))
 	writeBuffer := &writeCloser{bw}

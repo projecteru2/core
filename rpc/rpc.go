@@ -601,11 +601,13 @@ func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_R
 }
 
 // LogStream get container logs
-func (v *Vibranium) LogStream(opts *pb.ContainerID, stream pb.CoreRPC_LogStreamServer) error {
+func (v *Vibranium) LogStream(opts *pb.LogStreamOptions, stream pb.CoreRPC_LogStreamServer) error {
 	ID := opts.GetId()
 	log.Infof("[LogStream] Get %s log start", ID)
 	defer log.Infof("[LogStream] Get %s log done", ID)
-	ch, err := v.cluster.LogStream(stream.Context(), ID)
+	ch, err := v.cluster.LogStream(stream.Context(), &types.LogStreamOptions{
+		ID: ID, Tail: opts.Tail, Since: opts.Since, Until: opts.Until,
+	})
 	if err != nil {
 		return err
 	}

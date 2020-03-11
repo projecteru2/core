@@ -129,7 +129,7 @@ func (s *SSHClient) VirtualizationInspect(ctx context.Context, ID string) (info 
 }
 
 // VirtualizationLogs fetches service logs
-func (s *SSHClient) VirtualizationLogs(ctx context.Context, ID string, follow, stdout, stderr bool) (reader io.ReadCloser, err error) {
+func (s *SSHClient) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (reader io.ReadCloser, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
