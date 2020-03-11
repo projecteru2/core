@@ -146,7 +146,7 @@ func (vbs VolumeBindings) AdditionalStorage() (storage int64) {
 func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 	for _, vb := range vbs {
 		newVb := &VolumeBinding{vb.Source, vb.Destination, vb.Flags, vb.SizeInBytes}
-		if vmap := plan.GetVolumeMap(vb); vmap != nil {
+		if vmap, _ := plan.GetVolumeMap(vb); vmap != nil {
 			newVb.Source = vmap.GetResourceID()
 		}
 		res = append(res, newVb)

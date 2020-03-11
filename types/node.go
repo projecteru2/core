@@ -150,21 +150,26 @@ func (p VolumePlan) IntoVolumeMap() VolumeMap {
 }
 
 // GetVolumeMap looks up VolumeMap according to volume destination directory
-func (p VolumePlan) GetVolumeMap(vb *VolumeBinding) (volMap VolumeMap) {
+func (p VolumePlan) GetVolumeMap(vb *VolumeBinding) (volMap VolumeMap, volume VolumeBinding) {
 	for volume, volMap := range p {
 		if vb.Destination == volume.Destination {
-			return volMap
+			return volMap, volume
 		}
 	}
-	return nil
+	return
 }
 
 // Compatible return true if new bindings stick to the old bindings
 func (p VolumePlan) Compatible(oldPlan VolumePlan) bool {
 	for volume, oldBinding := range oldPlan {
-		newBinding := p.GetVolumeMap(&volume)
+		newBinding, v := p.GetVolumeMap(&volume)
 		// newBinding is ok to be nil when reallocing requires less volumes than before
 		if newBinding != nil && newBinding.GetResourceID() != oldBinding.GetResourceID() {
+			// unlimited binding, modify binding source
+			if newBinding.GetRation() == 0 {
+				p[v] = oldBinding
+				continue
+			}
 			return false
 		}
 	}
