@@ -7,6 +7,7 @@ import (
 
 	"github.com/sanity-io/litter"
 
+	"github.com/pkg/errors"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -155,36 +156,13 @@ func (c *Calcium) doReallocContainer(
 							cpusets = nodeCPUPlans[node.Name][:containerWithCPUBind]
 						}
 
-						var volumePlans []types.VolumePlan
-						autoVbs := types.VolumeBindings{}
-						if newAutoVol != "" {
-							nodesInfo := []types.NodeInfo{{Name: node.Name, VolumeMap: node.Volume, InitVolumeMap: node.InitVolume}}
-							autoVbs, _ = types.MakeVolumeBindings(strings.Split(newAutoVol, ","))
-							_, nodeVolumePlans, total, err := c.scheduler.SelectVolumeNodes(nodesInfo, autoVbs)
-							if err != nil {
-								return err
-							}
-							if total < len(containers) || len(nodeVolumePlans) != 1 {
-								return types.ErrInsufficientVolume
-							}
-
-							// select plans, existing bindings stick to the current devices
-							planForContainer := map[string]types.VolumePlan{}
-							for _, plan := range nodeVolumePlans[node.Name] {
-								for _, container := range containers {
-									if _, ok := planForContainer[container.ID]; !ok && plan.Compatible(container.VolumePlan) {
-										volumePlans = append(volumePlans, plan)
-										planForContainer[container.ID] = plan
-										break
-									}
-								}
-							}
-							if len(volumePlans) < len(containers) {
-								return types.ErrInsufficientVolume
-							}
+						autoVbs, _ := types.MakeVolumeBindings(strings.Split(newAutoVol, ","))
+						planForContainers, err := c.reallocVolume(node, containers, autoVbs)
+						if err != nil {
+							return err
 						}
 
-						for idx, container := range containers {
+						for _, container := range containers {
 							newResource := &enginetypes.VirtualizationResource{
 								Quota:     newCPU,
 								Memory:    newMemory,
@@ -198,7 +176,7 @@ func (c *Calcium) doReallocContainer(
 							}
 
 							if newAutoVol != "" {
-								newResource.VolumePlan = volumePlans[idx].ToLiteral()
+								newResource.VolumePlan = planForContainers[container].ToLiteral()
 								newResource.Volumes = append(newResource.Volumes, autoVbs.ToStringSlice(false, false)...)
 							}
 
@@ -253,4 +231,35 @@ func (c *Calcium) doReallocContainer(
 			}
 		}
 	}
+}
+
+func (c *Calcium) reallocVolume(node *types.Node, containers []*types.Container, vbs types.VolumeBindings) (plans map[*types.Container]types.VolumePlan, err error) {
+	if len(vbs) == 0 {
+		return
+	}
+
+	nodesInfo := []types.NodeInfo{{Name: node.Name, VolumeMap: node.Volume, InitVolumeMap: node.InitVolume}}
+	_, nodeVolumePlans, total, err := c.scheduler.SelectVolumeNodes(nodesInfo, vbs)
+	if err != nil {
+		return
+	}
+	if total < len(containers) || len(nodeVolumePlans) != 1 {
+		return nil, types.ErrInsufficientVolume
+	}
+
+	// select plans, existing bindings stick to the current devices
+	plans = map[*types.Container]types.VolumePlan{}
+	for _, plan := range nodeVolumePlans[node.Name] {
+		for _, container := range containers {
+			if _, ok := plans[container]; !ok && plan.Compatible(container.VolumePlan) {
+				plans[container] = plan
+				break
+			}
+		}
+	}
+	if len(plans) < len(containers) {
+		return nil, errors.Wrap(types.ErrInsufficientVolume, "reallocated volumes not compatible to existing ones")
+	}
+
+	return
 }
