@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/projecteru2/core/cluster"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -51,7 +52,8 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			}
 
 			var outStream io.ReadCloser
-			if outStream, err = container.Engine.VirtualizationLogs(ctx, message.ContainerID, true, true, true); err != nil {
+			if outStream, err = container.Engine.VirtualizationLogs(ctx, &enginetypes.VirtualizationLogStreamOptions{
+				ID: message.ContainerID, Follow: true, Stdout: true, Stderr: true}); err != nil {
 				log.Errorf("[RunAndWait] Can't fetch log of container %s error %v", message.ContainerID, err)
 				return
 			}

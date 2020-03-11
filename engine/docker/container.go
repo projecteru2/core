@@ -247,9 +247,9 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 }
 
 // VirtualizationLogs show virtualization logs
-func (e *Engine) VirtualizationLogs(ctx context.Context, ID string, follow, stdout, stderr bool) (io.ReadCloser, error) {
-	logsOpts := dockertypes.ContainerLogsOptions{Follow: follow, ShowStdout: stdout, ShowStderr: stderr}
-	resp, err := e.client.ContainerLogs(ctx, ID, logsOpts)
+func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (io.ReadCloser, error) {
+	logsOpts := dockertypes.ContainerLogsOptions{Follow: opts.Follow, ShowStdout: opts.Stdout, ShowStderr: opts.Stderr, Tail: opts.Tail}
+	resp, err := e.client.ContainerLogs(ctx, opts.ID, logsOpts)
 	if err != nil {
 		return nil, err
 	}
