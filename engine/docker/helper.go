@@ -101,11 +101,15 @@ func makeMountPaths(opts *enginetypes.VirtualizationCreateOptions) ([]string, ma
 
 func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, numaNode string, softlimit bool) dockercontainer.Resources {
 	resource := dockercontainer.Resources{}
+
 	resource.CPUQuota = 0
+	resource.CPUPeriod = corecluster.CPUPeriodBase
 	if cpu > 0 {
-		resource.CPUPeriod = corecluster.CPUPeriodBase
 		resource.CPUQuota = int64(cpu * float64(corecluster.CPUPeriodBase))
+	} else if cpu == -1 {
+		resource.CPUQuota = -1
 	}
+
 	if cpuMap != nil && len(cpuMap) > 0 {
 		cpuIDs := []string{}
 		for cpuID := range cpuMap {
