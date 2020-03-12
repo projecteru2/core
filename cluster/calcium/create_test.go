@@ -28,13 +28,13 @@ func TestCreateContainer(t *testing.T) {
 	opts.Count = 1
 
 	// failed by memory check
-	opts.Memory = 0
+	opts.Memory = -1
 	_, err = c.CreateContainer(ctx, opts)
 	assert.Error(t, err)
 	opts.Memory = 1
 
 	// failed by CPUQuota
-	opts.CPUQuota = 0
+	opts.CPUQuota = -1
 	_, err = c.CreateContainer(ctx, opts)
 	assert.Error(t, err)
 }
