@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
@@ -26,6 +28,7 @@ import (
 
 const (
 	minMemory     = units.MiB * 4
+	maxMemory     = math.MaxInt64
 	restartAlways = "always"
 	root          = "root"
 )
@@ -309,7 +312,33 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 		log.Errorf("[VirtualizationUpdateResource] docker engine not support rebinding volume resource: %v", opts.Volumes)
 		return coretypes.ErrNotSupport
 	}
-	newResource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode, opts.SoftLimit)
+
+	memory := opts.Memory
+	softLimit := opts.SoftLimit
+	// unlimited memory
+	if memory == 0 {
+		memory = maxMemory
+		softLimit = false
+	}
+
+	quota := opts.Quota
+	cpuMap := opts.CPU
+	numaNode := opts.NUMANode
+	// unlimited cpu
+	if quota == 0 {
+		info, err := e.Info(ctx)
+		if err != nil {
+			return err
+		}
+		quota = -1
+		numaNode = fmt.Sprintf("0-%d", info.NCPU-1)
+		cpuMap = map[string]int64{}
+		for i := 0; i < info.NCPU; i++ {
+			cpuMap[strconv.Itoa(i)] = int64(e.config.Scheduler.ShareBase)
+		}
+	}
+
+	newResource := makeResourceSetting(quota, memory, cpuMap, numaNode, softLimit)
 	updateConfig := dockercontainer.UpdateConfig{Resources: newResource}
 	_, err := e.client.ContainerUpdate(ctx, ID, updateConfig)
 	return err
