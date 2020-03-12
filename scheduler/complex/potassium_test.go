@@ -243,7 +243,7 @@ func TestSelectCPUNodes(t *testing.T) {
 	_, _, err := SelectCPUNodes(k, []types.NodeInfo{}, 1, 1, 1, false)
 	assert.True(t, errors.Is(err, types.ErrZeroNodes))
 
-	_, _, err = SelectCPUNodes(k, []types.NodeInfo{}, 1, 0, 1, false)
+	_, _, err = SelectCPUNodes(k, []types.NodeInfo{}, 1, -1, 1, false)
 	assert.True(t, errors.Is(err, types.ErrNegativeMemory))
 
 	nodes := generateNodes(2, 2, memory, 0, 10)
@@ -807,7 +807,7 @@ func TestSelectMemoryNodes(t *testing.T) {
 	}
 
 	pod = generateNodes(1, 2, memory, 0, 10)
-	_, err = SelectMemoryNodes(k, pod, cpus, 0, 10, false)
+	_, err = SelectMemoryNodes(k, pod, cpus, -1, 10, false)
 	assert.EqualError(t, err, types.ErrNegativeMemory.Error())
 
 	// test each
