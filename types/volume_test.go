@@ -12,21 +12,21 @@ func NormalVolumeBindingTestcases(t *testing.T) (testcases []*VolumeBinding) {
 	assert.Nil(t, err)
 	assert.Equal(t, vb, &VolumeBinding{"/src", "/dst", "rwm", int64(1000)})
 	assert.False(t, vb.RequireSchedule())
-	assert.False(t, vb.RequireMonopoly())
+	assert.False(t, vb.RequireScheduleMonopoly())
 	testcases = append(testcases, vb)
 
 	vb, err = NewVolumeBinding("/src:/dst:rwm")
 	assert.Nil(t, err)
 	assert.Equal(t, vb, &VolumeBinding{"/src", "/dst", "rwm", int64(0)})
 	assert.False(t, vb.RequireSchedule())
-	assert.False(t, vb.RequireMonopoly())
+	assert.False(t, vb.RequireScheduleMonopoly())
 	testcases = append(testcases, vb)
 
 	vb, err = NewVolumeBinding("/src:/dst")
 	assert.Nil(t, err)
 	assert.Equal(t, vb, &VolumeBinding{"/src", "/dst", "", int64(0)})
 	assert.False(t, vb.RequireSchedule())
-	assert.False(t, vb.RequireMonopoly())
+	assert.False(t, vb.RequireScheduleMonopoly())
 	testcases = append(testcases, vb)
 
 	return
@@ -36,13 +36,13 @@ func AutoVolumeBindingTestcases(t *testing.T) (testcases []*VolumeBinding) {
 	vb, err := NewVolumeBinding("AUTO:/data:rw:1")
 	assert.Nil(t, err)
 	assert.True(t, vb.RequireSchedule())
-	assert.False(t, vb.RequireMonopoly())
+	assert.False(t, vb.RequireScheduleMonopoly())
 	testcases = append(testcases, vb)
 
 	vb, err = NewVolumeBinding("AUTO:/dir:rwm:1")
 	assert.Nil(t, err)
 	assert.True(t, vb.RequireSchedule())
-	assert.True(t, vb.RequireMonopoly())
+	assert.True(t, vb.RequireScheduleMonopoly())
 	testcases = append(testcases, vb)
 
 	return
@@ -63,6 +63,12 @@ func TestNewVolumeBinding(t *testing.T) {
 
 	_, err = NewVolumeBinding("AUTO:/data:rw")
 	assert.Nil(t, err)
+
+	_, err = NewVolumeBinding("AUTO::rw:1")
+	assert.Error(t, err, "dest must be provided")
+
+	_, err = NewVolumeBinding("AUTO:/data:rmo:0")
+	assert.Error(t, err, "monopoly volume must not be limited")
 }
 
 func TestVolumeBindingToString(t *testing.T) {
@@ -70,9 +76,12 @@ func TestVolumeBindingToString(t *testing.T) {
 	assert.Equal(t, cases[0].ToString(false), "/src:/dst:rwm:1000")
 	assert.Equal(t, cases[1].ToString(false), "/src:/dst:rwm:0")
 	assert.Equal(t, cases[2].ToString(false), "/src:/dst")
+	assert.Equal(t, cases[1].ToString(true), "/src:/dst:rw:0")
 }
 
 func TestVolumeBindings(t *testing.T) {
+	_, err := MakeVolumeBindings([]string{"/1::rw:0"})
+	assert.Error(t, err, "dest must be provided")
 	vbs, _ := MakeVolumeBindings([]string{"/1:/dst:rw:1000", "/0:/dst:rom"})
 	assert.Equal(t, vbs.ToStringSlice(false, false), []string{"/1:/dst:rw:1000", "/0:/dst:rom:0"})
 	assert.Equal(t, vbs.ToStringSlice(true, false), []string{"/0:/dst:rom:0", "/1:/dst:rw:1000"})

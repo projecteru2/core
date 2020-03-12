@@ -262,3 +262,131 @@ func TestRealloc(t *testing.T) {
 	assert.Equal(t, node2.Volume, types.VolumeMap{"/dir0": 250, "/dir1": 200, "/dir2": 200})
 	assert.Equal(t, node2.VolumeUsed, int64(250))
 }
+
+func TestReallocVolume(t *testing.T) {
+	c := NewTestCluster()
+	store := &storemocks.Store{}
+	c.store = store
+
+	simpleMockScheduler := &schedulermocks.Scheduler{}
+	c.scheduler = simpleMockScheduler
+	engine := &enginemocks.API{}
+
+	node1 := &types.Node{
+		Name: "node1",
+	}
+
+	c1 := &types.Container{
+		ID:       "c1",
+		Engine:   engine,
+		Nodename: "node1",
+		VolumePlan: types.VolumePlan{
+			types.MustToVolumeBinding("AUTO:/data:rw:0"):    types.VolumeMap{"/dir0": 0},
+			types.MustToVolumeBinding("AUTO:/data1:rw:100"): types.VolumeMap{"/dir0": 100},
+			types.MustToVolumeBinding("AUTO:/data2:rw:0"):   types.VolumeMap{"/dir0": 0},
+			types.MustToVolumeBinding("AUTO:/data3:rw:600"): types.VolumeMap{"/dir0": 600},
+		},
+	}
+
+	newVbs := types.MustToVolumeBindings([]string{
+		"AUTO:/data:rw:0",
+		"AUTO:/data1:rw:0",
+		"AUTO:/data2:ro:110",
+		"AUTO:/data3:rw:20",
+	})
+
+	// test 1: incompatible
+
+	newPlans := map[string][]types.VolumePlan{
+		"node1": {
+			{
+				*newVbs[0]: types.VolumeMap{"/dir1": 0},
+				*newVbs[1]: types.VolumeMap{"/dir1": 0},
+				*newVbs[2]: types.VolumeMap{"/dir0": 110},
+				*newVbs[3]: types.VolumeMap{"/dir1": 20},
+			},
+		},
+	}
+
+	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, newVbs).Return(nil, newPlans, 1, nil).Once()
+	_, err := c.reallocVolume(node1, []*types.Container{c1}, newVbs)
+	assert.Error(t, err, "not compatible")
+
+	// test 2: modify unlimited volume map for compatible requirement
+
+	newPlans = map[string][]types.VolumePlan{
+		"node1": {
+			{
+				*newVbs[0]: types.VolumeMap{"/dir1": 0},
+				*newVbs[1]: types.VolumeMap{"/dir1": 0},
+				*newVbs[2]: types.VolumeMap{"/dir1": 110},
+				*newVbs[3]: types.VolumeMap{"/dir1": 20},
+			},
+			{
+				*newVbs[0]: types.VolumeMap{"/dir1": 0},
+				*newVbs[1]: types.VolumeMap{"/dir1": 0},
+				*newVbs[2]: types.VolumeMap{"/dir0": 110},
+				*newVbs[3]: types.VolumeMap{"/dir0": 20},
+			},
+		},
+	}
+
+	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, newVbs).Return(nil, newPlans, 2, nil).Once()
+
+	plans, err := c.reallocVolume(node1, []*types.Container{c1}, newVbs)
+	assert.Nil(t, err)
+	assert.Equal(t, plans[c1][*newVbs[0]], types.VolumeMap{"/dir0": 0})
+	assert.Equal(t, plans[c1][*newVbs[1]], types.VolumeMap{"/dir0": 0})
+	assert.Equal(t, plans[c1][*newVbs[2]], types.VolumeMap{"/dir0": 110})
+	assert.Equal(t, plans[c1][*newVbs[3]], types.VolumeMap{"/dir0": 20})
+
+	// test 3: multiple containers search compatible respective plans
+
+	newPlans = map[string][]types.VolumePlan{
+		"node1": {
+			{
+				*newVbs[0]: types.VolumeMap{"/dir1": 0},
+				*newVbs[1]: types.VolumeMap{"/dir1": 0},
+				*newVbs[2]: types.VolumeMap{"/dir0": 110},
+				*newVbs[3]: types.VolumeMap{"/dir1": 20},
+			},
+			{
+				*newVbs[0]: types.VolumeMap{"/dir1": 0},
+				*newVbs[1]: types.VolumeMap{"/dir1": 0},
+				*newVbs[2]: types.VolumeMap{"/dir0": 110},
+				*newVbs[3]: types.VolumeMap{"/dir0": 20},
+			},
+			{
+				*newVbs[0]: types.VolumeMap{"/dir1": 0},
+				*newVbs[1]: types.VolumeMap{"/dir1": 0},
+				*newVbs[2]: types.VolumeMap{"/dir1": 110},
+				*newVbs[3]: types.VolumeMap{"/dir0": 20},
+			},
+		},
+	}
+
+	c2 := &types.Container{
+		ID:       "c2",
+		Engine:   engine,
+		Nodename: "node1",
+		VolumePlan: types.VolumePlan{
+			types.MustToVolumeBinding("AUTO:/data:rw:0"):    types.VolumeMap{"/dir0": 0},
+			types.MustToVolumeBinding("AUTO:/data1:rw:100"): types.VolumeMap{"/dir1": 100},
+			types.MustToVolumeBinding("AUTO:/data2:rw:0"):   types.VolumeMap{"/dir1": 0},
+			types.MustToVolumeBinding("AUTO:/data3:rw:600"): types.VolumeMap{"/dir0": 600},
+		},
+	}
+
+	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, newVbs).Return(nil, newPlans, 3, nil).Once()
+
+	plans, err = c.reallocVolume(node1, []*types.Container{c1, c2}, newVbs)
+	assert.Nil(t, err)
+	assert.Equal(t, plans[c1][*newVbs[0]], types.VolumeMap{"/dir0": 0})
+	assert.Equal(t, plans[c1][*newVbs[1]], types.VolumeMap{"/dir0": 0})
+	assert.Equal(t, plans[c1][*newVbs[2]], types.VolumeMap{"/dir0": 110})
+	assert.Equal(t, plans[c1][*newVbs[3]], types.VolumeMap{"/dir0": 20})
+	assert.Equal(t, plans[c2][*newVbs[0]], types.VolumeMap{"/dir0": 0})
+	assert.Equal(t, plans[c2][*newVbs[1]], types.VolumeMap{"/dir1": 0})
+	assert.Equal(t, plans[c2][*newVbs[2]], types.VolumeMap{"/dir1": 110})
+	assert.Equal(t, plans[c2][*newVbs[3]], types.VolumeMap{"/dir0": 20})
+}

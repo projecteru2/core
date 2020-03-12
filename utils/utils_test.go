@@ -196,3 +196,8 @@ func TestMin(t *testing.T) {
 	assert.Equal(t, 1, Min(a, b))
 	assert.Equal(t, 1, Min(b, a))
 }
+
+func TestMax(t *testing.T) {
+	assert.Equal(t, 3, Max(1, 2, 3))
+	assert.Equal(t, 4, Max(1, 4, 3))
+}
