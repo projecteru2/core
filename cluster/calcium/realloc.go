@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -142,6 +143,13 @@ func (c *Calcium) doReallocContainer(
 							}
 						}
 						cpusets := make([]types.CPUMap, containerWithCPUBind)
+						unlimitedCPUSet := types.CPUMap{}
+						for i := 0; i < len(node.InitCPU); i++ {
+							unlimitedCPUSet[strconv.Itoa(i)] = 0
+						}
+						for i := range cpusets {
+							cpusets[i] = unlimitedCPUSet
+						}
 						// 按照 Node one by one 重新计算可以部署多少容器
 						if containerWithCPUBind > 0 && newCPU != 0 {
 							nodesInfo := []types.NodeInfo{{Name: node.Name, CPUMap: node.CPU, MemCap: node.MemCap}}
