@@ -314,6 +314,7 @@ func testAllocFailedAsInsufficientCPU(t *testing.T, c *Calcium, opts *types.Depl
 	}()
 
 	opts.CPUBind = true
+	opts.CPUQuota = -1
 	sched := c.scheduler.(*schedulermocks.Scheduler)
 	sched.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, 0, types.ErrInsufficientCPU).Once()
 	_, err := c.doAllocResource(context.Background(), opts)
