@@ -333,7 +333,7 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 			return err
 		}
 		quota = -1
-		numaNode = fmt.Sprintf("0-%d", info.NCPU-1)
+		numaNode = ""
 		cpuMap = map[string]int64{}
 		for i := 0; i < info.NCPU; i++ {
 			cpuMap[strconv.Itoa(i)] = int64(e.config.Scheduler.ShareBase)
