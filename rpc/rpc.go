@@ -1,10 +1,10 @@
 package rpc
 
 import (
-	"bufio"
-	"compress/gzip"
+	"archive/tar"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"sync"
 	"time"
 
@@ -244,13 +244,18 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 		go func() {
 			defer w.Close()
 			defer m.Data.Close()
-			buffer := bufio.NewWriterSize(w, bsize)
-			defer buffer.Flush()
-			gw := gzip.NewWriter(buffer)
-			defer gw.Close()
-			_, err = io.Copy(gw, m.Data)
+
+			tw := tar.NewWriter(w)
+			bs, err := ioutil.ReadAll(m.Data)
 			if err != nil {
-				log.Errorf("[Copy] Error during copy resp: %v", err)
+				log.Errorf("[Copy] Error during extracting copy data: %v", err)
+			}
+			header := &tar.Header{Name: m.Name, Mode: 0644, Size: int64(len(bs))}
+			if err := tw.WriteHeader(header); err != nil {
+				log.Errorf("[Copy] Error during writing tarball header: %v", err)
+			}
+			if _, err := tw.Write(bs); err != nil {
+				log.Errorf("[Copy] Error during writing tarball content: %v", err)
 			}
 		}()
 
