@@ -141,9 +141,9 @@ func (c *Calcium) doReallocContainer(
 								return types.NewDetailedErr(types.ErrInsufficientRes, node.Name)
 							}
 						}
-						var cpusets []types.CPUMap
+						cpusets := make([]types.CPUMap, containerWithCPUBind)
 						// 按照 Node one by one 重新计算可以部署多少容器
-						if containerWithCPUBind > 0 {
+						if containerWithCPUBind > 0 && newCPU != 0 {
 							nodesInfo := []types.NodeInfo{{Name: node.Name, CPUMap: node.CPU, MemCap: node.MemCap}}
 							// 重新计算需求
 							_, nodeCPUPlans, total, err := c.scheduler.SelectCPUNodes(nodesInfo, newCPU, newMemory)

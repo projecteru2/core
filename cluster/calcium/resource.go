@@ -141,7 +141,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 			return err
 		}
 
-		if !opts.CPUBind {
+		if !opts.CPUBind || opts.CPUQuota == 0 {
 			nodesInfo, total, err = c.scheduler.SelectMemoryNodes(nodesInfo, opts.CPUQuota, opts.Memory) // 还是以 Bytes 作单位， 不转换了
 		} else {
 			log.Info("[doAllocResource] CPU Bind, selecting CPU plan")
