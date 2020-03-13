@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -22,6 +24,7 @@ const (
 	cmdSystemdRestart = `/bin/systemctl restart %s`
 	cmdSystemdStop    = `/bin/systemctl stop %s`
 	cmdSystemdStatus  = `/bin/systemctl show %s --property SubState,ActiveState,Environment,Description --no-pager`
+	cmdCopyToStdout   = `/bin/cp -f '%s' /dev/stdout`
 )
 
 // VirtualizationCreate creates systemd service
@@ -159,7 +162,7 @@ func (s *SSHClient) VirtualizationUpdateResource(ctx context.Context, ID string,
 }
 
 // VirtualizationCopyFrom copy files from one service to another
-func (s *SSHClient) VirtualizationCopyFrom(ctx context.Context, ID, path string) (reader io.ReadCloser, filename string, err error) {
-	err = types.ErrEngineNotImplemented
-	return
+func (s *SSHClient) VirtualizationCopyFrom(ctx context.Context, ID, source string) (reader io.ReadCloser, filename string, err error) {
+	stdout, stderr, err := s.runSingleCommand(ctx, fmt.Sprintf(cmdCopyToStdout, source), nil)
+	return ioutil.NopCloser(stdout), path.Base(source), errors.Wrap(err, stderr.String())
 }

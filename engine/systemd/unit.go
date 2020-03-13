@@ -184,7 +184,10 @@ func (b *unitBuilder) buildExec() *unitBuilder {
 
 	cmds := []string{}
 	for _, cmd := range b.opts.Cmd {
-		cmds = append(cmds, fmt.Sprintf("'%s'", cmd))
+		if strings.Contains(cmd, " ") {
+			cmd = fmt.Sprintf("'%s'", cmd)
+		}
+		cmds = append(cmds, cmd)
 	}
 
 	b.serviceBuffer = append(b.serviceBuffer, []string{
