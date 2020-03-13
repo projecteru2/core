@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"archive/tar"
 	"context"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
+	"github.com/pkg/errors"
 
 	log "github.com/sirupsen/logrus"
 
@@ -350,5 +352,7 @@ func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (i
 	if err != nil {
 		return nil, "", err
 	}
-	return resp, stat.Name, err
+	tarReader := tar.NewReader(resp)
+	_, err = tarReader.Next()
+	return ioutil.NopCloser(tarReader), stat.Name, errors.Wrapf(err, "read tarball from docker API failed: %s", path)
 }
