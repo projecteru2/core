@@ -20,6 +20,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	cli "github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
+
+	_ "go.uber.org/automaxprocs"
 )
 
 var (
@@ -39,6 +41,7 @@ func setupLog(l string) error {
 		FullTimestamp:   true,
 	}
 	log.SetFormatter(formatter)
+	log.SetOutput(os.Stdout)
 	return nil
 }
 
