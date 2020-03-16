@@ -2,6 +2,7 @@ package complexscheduler
 
 import (
 	"math/rand"
+	"sort"
 	"time"
 
 	"github.com/projecteru2/core/types"
@@ -33,5 +34,12 @@ func onSameSource(plan []types.ResourceMap) bool {
 func shuffle(nodesInfo []types.NodeInfo) []types.NodeInfo {
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(nodesInfo), func(i, j int) { nodesInfo[i], nodesInfo[j] = nodesInfo[j], nodesInfo[i] })
+	return nodesInfo
+}
+
+func scoreSort(nodesInfo []types.NodeInfo) []types.NodeInfo {
+	sort.Slice(nodesInfo, func(i, j int) bool {
+		return nodesInfo[i].CPURate+nodesInfo[i].MemRate+nodesInfo[i].StorageRate < nodesInfo[j].CPURate+nodesInfo[j].MemRate+nodesInfo[j].StorageRate
+	})
 	return nodesInfo
 }

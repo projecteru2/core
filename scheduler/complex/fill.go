@@ -21,7 +21,7 @@ func FillPlan(nodesInfo []types.NodeInfo, need, limit int) ([]types.NodeInfo, er
 	if p == nodesInfoLength {
 		return nil, types.ErrAlreadyFilled
 	}
-	nodesInfo = shuffle(nodesInfo[p:])
+	nodesInfo = scoreSort(nodesInfo[p:])
 	if limit > 0 && len(nodesInfo) > limit {
 		nodesInfo = nodesInfo[:limit]
 	}
