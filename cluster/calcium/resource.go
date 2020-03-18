@@ -163,23 +163,24 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 
 		total = utils.Min(volumeTotal, storTotal, total)
 
+		volumeSchedule := false
+		for _, volume := range opts.Volumes {
+			if volume.RequireSchedule() {
+				volumeSchedule = true
+				break
+			}
+		}
+		resourceType := types.GetGlobalResource(opts.CPUBind, volumeSchedule)
+
 		switch opts.DeployMethod {
 		case cluster.DeployAuto:
 			nodesInfo, err = c.scheduler.CommonDivision(nodesInfo, opts.Count, total)
 		case cluster.DeployEach:
-			nodesInfo, err = c.scheduler.EachDivision(nodesInfo, opts.Count, opts.NodesLimit)
+			nodesInfo, err = c.scheduler.EachDivision(nodesInfo, opts.Count, opts.NodesLimit, resourceType)
 		case cluster.DeployFill:
-			nodesInfo, err = c.scheduler.FillDivision(nodesInfo, opts.Count, opts.NodesLimit)
+			nodesInfo, err = c.scheduler.FillDivision(nodesInfo, opts.Count, opts.NodesLimit, resourceType)
 		case cluster.DeployGlobal:
-			volumeSchedule := false
-			for _, volume := range opts.Volumes {
-				if volume.RequireSchedule() {
-					volumeSchedule = true
-					break
-				}
-			}
-			globalResource := types.GetGlobalResource(opts.CPUBind, volumeSchedule)
-			nodesInfo, err = c.scheduler.GlobalDivision(nodesInfo, opts.Count, total, globalResource)
+			nodesInfo, err = c.scheduler.GlobalDivision(nodesInfo, opts.Count, total, resourceType)
 		default:
 			return types.ErrBadDeployMethod
 		}

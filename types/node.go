@@ -319,12 +319,9 @@ type NodeInfo struct {
 	NUMAMemory    NUMAMemory
 	MemCap        int64
 	StorageCap    int64
-	CPUUsed       float64 // CPU目前占用率
-	MemUsage      float64 // MEM目前占用率
-	StorageUsage  float64 // Current storage usage ratio
-	CPURate       float64 // 需要增加的 CPU 占用率
-	MemRate       float64 // 需要增加的内存占有率
-	StorageRate   float64 // Storage ratio which would be allocated
+
+	Usages map[ResourceType]float64
+	Rates  map[ResourceType]float64
 
 	CPUPlan     []CPUMap
 	VolumePlans []VolumePlan // {{"AUTO:/data:rw:1024": "/mnt0:/data:rw:1024"}}
@@ -332,6 +329,24 @@ type NodeInfo struct {
 	Count       int          // 上面有几个了
 	Deploy      int          // 最终部署几个
 	// 其他需要 filter 的字段
+}
+
+func (n *NodeInfo) GetResourceUsage(resource ResourceType) (usage float64) {
+	for _, t := range AllResourceTypes {
+		if t&resource != 0 {
+			usage += n.Usages[t]
+		}
+	}
+	return
+}
+
+func (n *NodeInfo) GetResourceRate(resource ResourceType) (rate float64) {
+	for _, t := range AllResourceTypes {
+		if t&resource != 0 {
+			rate += n.Rates[t]
+		}
+	}
+	return
 }
 
 // NodeResource for node check

@@ -17,11 +17,11 @@ type Scheduler interface {
 	// select nodes from nodes, return a list a nodenames and the corresponding volumemap
 	SelectVolumeNodes(nodeInfo []types.NodeInfo, vbs types.VolumeBindings) ([]types.NodeInfo, map[string][]types.VolumePlan, int, error)
 	// global division
-	GlobalDivision(nodesInfo []types.NodeInfo, need, total int, resource types.GlobalResourceType) ([]types.NodeInfo, error)
+	GlobalDivision(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error)
 	// common division
 	CommonDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error)
 	// average division
-	EachDivision(nodesInfo []types.NodeInfo, need, limit int) ([]types.NodeInfo, error)
+	EachDivision(nodesInfo []types.NodeInfo, need, limit int, resourceType types.ResourceType) ([]types.NodeInfo, error)
 	// fill division
-	FillDivision(nodesInfo []types.NodeInfo, need, limit int) ([]types.NodeInfo, error)
+	FillDivision(nodesInfo []types.NodeInfo, need, limit int, resourceType types.ResourceType) ([]types.NodeInfo, error)
 }

@@ -7,8 +7,8 @@ import (
 )
 
 // GlobalDivisionPlan 基于全局资源配额
-func GlobalDivisionPlan(nodesInfo []types.NodeInfo, need int, resource types.GlobalResourceType) ([]types.NodeInfo, error) {
-	nodesInfo = scoreSort(nodesInfo)
+func GlobalDivisionPlan(nodesInfo []types.NodeInfo, need int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+	nodesInfo = scoreSort(nodesInfo, resourceType)
 	length := len(nodesInfo)
 	i := 0
 
@@ -17,7 +17,7 @@ func GlobalDivisionPlan(nodesInfo []types.NodeInfo, need int, resource types.Glo
 		deploy := 0
 		delta := 0.0
 		if i < length-1 {
-			delta = utils.Round(nodesInfo[i+1].CPURate + nodesInfo[i+1].MemRate + nodesInfo[i+1].StorageRate - nodesInfo[i].CPURate + nodesInfo[i].MemRate + nodesInfo[i].StorageRate)
+			delta = utils.Round(nodesInfo[i+1].GetResourceUsage(resourceType) - nodesInfo[i].GetResourceUsage(resourceType))
 			i++
 		}
 		for j := 0; j <= p && need > 0 && delta >= 0; j++ {
@@ -25,7 +25,7 @@ func GlobalDivisionPlan(nodesInfo []types.NodeInfo, need int, resource types.Glo
 			if nodesInfo[j].Capacity == 0 {
 				continue
 			}
-			cost := utils.Round(nodesInfo[j].CPURate + nodesInfo[j].MemRate + nodesInfo[j].StorageRate)
+			cost := utils.Round(nodesInfo[j].GetResourceRate(resourceType))
 			deploy = int(delta / cost)
 			if deploy == 0 {
 				deploy = 1
