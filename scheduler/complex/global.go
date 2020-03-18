@@ -7,7 +7,7 @@ import (
 )
 
 // GlobalDivisionPlan 基于全局资源配额
-func GlobalDivisionPlan(nodesInfo []types.NodeInfo, need int) ([]types.NodeInfo, error) {
+func GlobalDivisionPlan(nodesInfo []types.NodeInfo, need int, resource types.GlobalResourceType) ([]types.NodeInfo, error) {
 	nodesInfo = scoreSort(nodesInfo)
 	length := len(nodesInfo)
 	i := 0
