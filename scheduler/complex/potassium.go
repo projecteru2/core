@@ -233,10 +233,10 @@ func (m *Potassium) FillDivision(nodesInfo []types.NodeInfo, need, limit int) ([
 // GlobalDivision deploy containers by their resource costs
 // 尽量使得资源消耗平均
 // need 是所需总量，total 是支持部署总量
-func (m *Potassium) GlobalDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error) {
+func (m *Potassium) GlobalDivision(nodesInfo []types.NodeInfo, need, total int, globalResource types.GlobalResourceType) ([]types.NodeInfo, error) {
 	if total < need {
 		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
 			fmt.Sprintf("need: %d, vol: %d", need, total))
 	}
-	return GlobalDivisionPlan(nodesInfo, need)
+	return GlobalDivisionPlan(nodesInfo, need, globalResource)
 }
