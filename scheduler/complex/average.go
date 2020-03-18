@@ -9,7 +9,7 @@ import (
 )
 
 // AveragePlan deploy container each node
-func AveragePlan(nodesInfo []types.NodeInfo, need, limit int) ([]types.NodeInfo, error) {
+func AveragePlan(nodesInfo []types.NodeInfo, need, limit int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
 	log.Debugf("[AveragePlan] need %d limit %d", need, limit)
 	nodesInfoLength := len(nodesInfo)
 	if nodesInfoLength < limit {
@@ -21,7 +21,7 @@ func AveragePlan(nodesInfo []types.NodeInfo, need, limit int) ([]types.NodeInfo,
 	if p == nodesInfoLength {
 		return nil, types.ErrInsufficientCap
 	}
-	nodesInfo = scoreSort(nodesInfo[p:])
+	nodesInfo = scoreSort(nodesInfo[p:], resourceType)
 	if limit > 0 {
 		nodesInfo = nodesInfo[:limit]
 	}
