@@ -134,7 +134,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 		if len(nodes) == 0 {
 			return types.ErrInsufficientNodes
 		}
-		nodesInfo = getNodesInfo(nodes, opts.CPUQuota, opts.Memory, opts.Storage)
+		nodesInfo = getNodesInfo(nodes, opts.CPUQuota, opts.Memory, opts.Storage, opts.Volumes.TotalSize())
 		// 载入之前部署的情况
 		nodesInfo, err = c.store.MakeDeployStatus(ctx, opts, nodesInfo)
 		if err != nil {

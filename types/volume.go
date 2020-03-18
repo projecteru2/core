@@ -185,3 +185,10 @@ func (vbs VolumeBindings) Merge(vbs2 VolumeBindings) (softVolumes VolumeBindings
 func (vbs VolumeBindings) IsEqual(vbs2 VolumeBindings) bool {
 	return reflect.DeepEqual(vbs.ToStringSlice(true, false), vbs2.ToStringSlice(true, false))
 }
+
+func (vbs VolumeBindings) TotalSize() (total int64) {
+	for _, vb := range vbs {
+		total += vb.SizeInBytes
+	}
+	return
+}
