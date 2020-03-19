@@ -19,7 +19,7 @@ func TestFillPlan(t *testing.T) {
 		resultCap = append(resultCap, nodes[i].Capacity-n+nodes[i].Count)
 		resultDeploy = append(resultDeploy, n-nodes[i].Count)
 	}
-	r, err := FillPlan(nodes, n, 0)
+	r, err := FillPlan(nodes, n, 0, types.ResourceAll)
 	assert.NoError(t, err)
 	sort.Slice(r, func(i, j int) bool { return r[i].Count < r[j].Count })
 	for i := range r {
@@ -39,7 +39,7 @@ func TestFillPlan(t *testing.T) {
 		resultCap = append(resultCap, nodes[i].Capacity-n+nodes[i].Count)
 		resultDeploy = append(resultDeploy, n-nodes[i].Count)
 	}
-	r, err = FillPlan(nodes, n, 0)
+	r, err = FillPlan(nodes, n, 0, types.ResourceAll)
 	assert.NoError(t, err)
 	sort.Slice(r, func(i, j int) bool { return r[i].Count < r[j].Count })
 	for i := range r {
@@ -50,20 +50,20 @@ func TestFillPlan(t *testing.T) {
 	// 局部补充不能
 	n = 15
 	nodes = deployedNodes()
-	_, err = FillPlan(nodes, n, 0)
+	_, err = FillPlan(nodes, n, 0, types.ResourceAll)
 	assert.True(t, errors.Is(err, types.ErrInsufficientRes))
 
 	// 全局补充不能
 	n = 1
 	nodes = deployedNodes()
-	_, err = FillPlan(nodes, n, 0)
+	_, err = FillPlan(nodes, n, 0, types.ResourceAll)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "each node has enough containers")
 
 	// LimitNode
 	n = 10
 	nodes = deployedNodes()
-	_, err = FillPlan(nodes, n, 2)
+	_, err = FillPlan(nodes, n, 2, types.ResourceAll)
 	assert.NoError(t, err)
 
 	// 局部补充
@@ -81,7 +81,7 @@ func TestFillPlan(t *testing.T) {
 		},
 	}
 
-	_, err = FillPlan(nodes, n, 3)
+	_, err = FillPlan(nodes, n, 3, types.ResourceAll)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot alloc a fill node plan")
 }
