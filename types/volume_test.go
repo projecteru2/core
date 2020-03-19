@@ -86,6 +86,7 @@ func TestVolumeBindings(t *testing.T) {
 	assert.Equal(t, vbs.ToStringSlice(false, false), []string{"/1:/dst:rw:1000", "/0:/dst:rom:0"})
 	assert.Equal(t, vbs.ToStringSlice(true, false), []string{"/0:/dst:rom:0", "/1:/dst:rw:1000"})
 	assert.Equal(t, vbs.AdditionalStorage(), int64(1000))
+	assert.Equal(t, vbs.TotalSize(), int64(1000))
 
 	vbs1, _ := MakeVolumeBindings([]string{"AUTO:/data0:rw:1", "AUTO:/data1:rw:2", "/mnt1:/data2:rw", "/mnt2:/data3:ro"})
 	vbs2, _ := MakeVolumeBindings([]string{"AUTO:/data7:rw:3", "AUTO:/data1:rw:3", "/mnt3:/data8", "AUTO:/data0:rw:-20"})
