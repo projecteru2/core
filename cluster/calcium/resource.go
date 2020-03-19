@@ -170,7 +170,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 				break
 			}
 		}
-		resourceType := types.GetGlobalResource(opts.CPUBind, volumeSchedule)
+		resourceType := types.GetResourceType(opts.CPUBind, volumeSchedule)
 
 		switch opts.DeployMethod {
 		case cluster.DeployAuto:

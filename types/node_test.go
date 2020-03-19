@@ -174,3 +174,31 @@ func TestNewVolumePlan(t *testing.T) {
 	assert.Equal(t, len(plan), 4)
 	assert.Equal(t, plan[MustToVolumeBinding("AUTO:/data3:rw:10")], VolumeMap{"/dir0": 10})
 }
+
+func TestNodeInfoGetResource(t *testing.T) {
+	n := NodeInfo{
+		Usages: map[ResourceType]float64{
+			ResourceCPU:     0.1,
+			ResourceMemory:  0.2,
+			ResourceStorage: 0.3,
+			ResourceVolume:  0.4,
+		},
+	}
+	assert.InDelta(t, n.GetResourceUsage(ResourceCPU), 0.1, 0.000001)
+	assert.InDelta(t, n.GetResourceUsage(ResourceCPU|ResourceMemory), 0.3, 0.000001)
+	assert.InDelta(t, n.GetResourceUsage(ResourceVolume|ResourceMemory), 0.6, 0.000001)
+	assert.InDelta(t, n.GetResourceUsage(ResourceAll), 1.0, 0.000001)
+
+	n = NodeInfo{
+		Rates: map[ResourceType]float64{
+			ResourceCPU:     0.1,
+			ResourceMemory:  0.2,
+			ResourceStorage: 0.3,
+			ResourceVolume:  0.4,
+		},
+	}
+	assert.InDelta(t, n.GetResourceRate(ResourceCPU), 0.1, 0.000001)
+	assert.InDelta(t, n.GetResourceRate(ResourceCPU|ResourceMemory), 0.3, 0.000001)
+	assert.InDelta(t, n.GetResourceRate(ResourceVolume|ResourceMemory), 0.6, 0.000001)
+	assert.InDelta(t, n.GetResourceRate(ResourceAll), 1.0, 0.000001)
+}
