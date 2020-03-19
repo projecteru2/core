@@ -39,7 +39,7 @@ func shuffle(nodesInfo []types.NodeInfo) []types.NodeInfo {
 
 func scoreSort(nodesInfo []types.NodeInfo, byResource types.ResourceType) []types.NodeInfo {
 	sort.Slice(nodesInfo, func(i, j int) bool {
-		return nodesInfo[i].GetResourceRate(byResource) < nodesInfo[j].GetResourceRate(byResource)
+		return nodesInfo[i].GetResourceUsage(byResource) < nodesInfo[j].GetResourceUsage(byResource)
 	})
 	return nodesInfo
 }

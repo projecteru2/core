@@ -195,9 +195,9 @@ func SelectCPUNodes(k *Potassium, nodesInfo []types.NodeInfo, quota float64, mem
 	}
 
 	if each {
-		nodesInfo, err = k.EachDivision(nodesInfo, need, 0)
+		nodesInfo, err = k.EachDivision(nodesInfo, need, 0, types.ResourceAll)
 	} else {
-		nodesInfo, err = k.CommonDivision(nodesInfo, need, total)
+		nodesInfo, err = k.CommonDivision(nodesInfo, need, total, types.ResourceAll)
 	}
 
 	if err != nil {
@@ -229,9 +229,9 @@ func SelectMemoryNodes(k *Potassium, nodesInfo []types.NodeInfo, rate float64, m
 	}
 	// Make deploy plan
 	if each {
-		nodesInfo, err = k.EachDivision(nodesInfo, need, 0)
+		nodesInfo, err = k.EachDivision(nodesInfo, need, 0, types.ResourceAll)
 	} else {
-		nodesInfo, err = k.CommonDivision(nodesInfo, need, total)
+		nodesInfo, err = k.CommonDivision(nodesInfo, need, total, types.ResourceAll)
 	}
 	return nodesInfo, err
 }
@@ -945,19 +945,23 @@ func TestMaxIdleNode(t *testing.T) {
 
 func TestGlobalDivision(t *testing.T) {
 	k, _ := newPotassium()
-	_, err := k.GlobalDivision([]types.NodeInfo{}, 10, 1)
+	_, err := k.GlobalDivision([]types.NodeInfo{}, 10, 1, types.ResourceAll)
 	assert.Error(t, err)
 	nodeInfo := types.NodeInfo{
-		Name:     "n1",
-		CPUUsed:  0.7,
-		MemUsage: 0.3,
-		CPURate:  0.1,
-		MemRate:  0.2,
+		Name: "n1",
+		Usages: map[types.ResourceType]float64{
+			types.ResourceCPU:    0.7,
+			types.ResourceMemory: 0.3,
+		},
+		Rates: map[types.ResourceType]float64{
+			types.ResourceCPU:    0.1,
+			types.ResourceMemory: 0.2,
+		},
 		Capacity: 100,
 		Count:    21,
 		Deploy:   0,
 	}
-	r, err := k.GlobalDivision([]types.NodeInfo{nodeInfo}, 10, 100)
+	r, err := k.GlobalDivision([]types.NodeInfo{nodeInfo}, 10, 100, types.ResourceAll)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 10)
 }
@@ -1183,9 +1187,9 @@ func SelectStorageNodes(k *Potassium, nodesInfo []types.NodeInfo, storage int64,
 	case err != nil:
 		return nil, err
 	case each:
-		return k.EachDivision(nodesInfo, need, 0)
+		return k.EachDivision(nodesInfo, need, 0, types.ResourceAll)
 	default:
-		return k.CommonDivision(nodesInfo, need, total)
+		return k.CommonDivision(nodesInfo, need, total, types.ResourceAll)
 	}
 }
 
@@ -1196,9 +1200,9 @@ func SelectVolumeNodes(k *Potassium, nodesInfo []types.NodeInfo, volumes []strin
 	}
 
 	if each {
-		nodesInfo, err = k.EachDivision(nodesInfo, need, 0)
+		nodesInfo, err = k.EachDivision(nodesInfo, need, 0, types.ResourceAll)
 	} else {
-		nodesInfo, err = k.CommonDivision(nodesInfo, need, total)
+		nodesInfo, err = k.CommonDivision(nodesInfo, need, total, types.ResourceAll)
 	}
 
 	if err != nil {
