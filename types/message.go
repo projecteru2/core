@@ -110,7 +110,7 @@ type PullImageMessage struct {
 // ReallocResourceMessage for realloc resource
 type ReallocResourceMessage struct {
 	ContainerID string
-	Success     bool
+	Error       error
 }
 
 // LogStreamMessage for log stream

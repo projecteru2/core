@@ -37,7 +37,10 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 				if !ok {
 					pod, err = c.store.GetPod(ctx, container.Podname)
 					if err != nil {
-						ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
+						ch <- &types.ReallocResourceMessage{
+							ContainerID: container.ID,
+							Error:       err,
+						}
 						continue
 					}
 					podCache[container.Podname] = pod
@@ -63,7 +66,10 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 		}); err != nil {
 			log.Errorf("[ReallocResource] Realloc failed %v", err)
 			for _, ID := range IDs {
-				ch <- &types.ReallocResourceMessage{ContainerID: ID, Success: false}
+				ch <- &types.ReallocResourceMessage{
+					ContainerID: ID,
+					Error:       err,
+				}
 			}
 		}
 	}()
@@ -84,8 +90,11 @@ func (c *Calcium) doReallocContainer(
 			newCPU := utils.Round(container.Quota + cpu)
 			newMem := container.Memory + memory
 			if newCPU < 0 || newMem < 0 {
-				log.Errorf("[doReallocContainer] New resource invaild %s, cpu %f, mem %d", container.ID, newCPU, newMem)
-				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
+				log.Errorf("[doReallocContainer] New resource invalid %s, cpu %f, mem %d", container.ID, newCPU, newMem)
+				ch <- &types.ReallocResourceMessage{
+					ContainerID: container.ID,
+					Error:       types.ErrInvalidRes,
+				}
 				continue
 			}
 
@@ -93,7 +102,10 @@ func (c *Calcium) doReallocContainer(
 			hardVbsForContainer[container.ID] = hardVolumes
 			if err != nil {
 				log.Errorf("[doReallocContainer] New resource invalid %s, vol %v, err %v", container.ID, volumes, err)
-				ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
+				ch <- &types.ReallocResourceMessage{
+					ContainerID: container.ID,
+					Error:       err,
+				}
 				continue
 			}
 			newAutoVol := strings.Join(autoVolumes.ToStringSlice(true, false), ",")
@@ -195,17 +207,19 @@ func (c *Calcium) doReallocContainer(
 								newResource.VolumeChanged = true
 							}
 
-							updateSuccess := false
-							setSuccess := false
 							if err := node.Engine.VirtualizationUpdateResource(ctx, container.ID, newResource); err == nil {
 								container.CPU = newResource.CPU
 								container.Quota = newResource.Quota
 								container.Memory = newResource.Memory
 								container.Volumes, _ = types.MakeVolumeBindings(newResource.Volumes)
 								container.VolumePlan = types.MustToVolumePlan(newResource.VolumePlan)
-								updateSuccess = true
 							} else {
 								log.Errorf("[doReallocContainer] Realloc container %s failed %v", container.ID, err)
+								ch <- &types.ReallocResourceMessage{
+									ContainerID: container.ID,
+									Error:       err,
+								}
+								continue
 							}
 							// 成功失败都需要修改 node 的占用
 							// 成功的话，node 占用为新资源
@@ -219,12 +233,15 @@ func (c *Calcium) doReallocContainer(
 								node.DecrNUMANodeMemory(nodeID, container.Memory)
 							}
 							// 更新 container 元数据
-							if err := c.store.UpdateContainer(ctx, container); err == nil {
-								setSuccess = true
-							} else {
+							if err := c.store.UpdateContainer(ctx, container); err != nil {
 								log.Errorf("[doReallocContainer] Realloc finish but update container %s failed %v", container.ID, err)
+
+								ch <- &types.ReallocResourceMessage{
+									ContainerID: container.ID,
+									Error:       err,
+								}
+								continue
 							}
-							ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: updateSuccess && setSuccess}
 						}
 						if err := c.store.UpdateNode(ctx, node); err != nil {
 							log.Errorf("[doReallocContainer] Realloc finish but update node %s failed %s", node.Name, err)
@@ -234,7 +251,10 @@ func (c *Calcium) doReallocContainer(
 					}); err != nil {
 						log.Errorf("[doReallocContainer] Realloc container %v failed: %v", containers, err)
 						for _, container := range containers {
-							ch <- &types.ReallocResourceMessage{ContainerID: container.ID, Success: false}
+							ch <- &types.ReallocResourceMessage{
+								ContainerID: container.ID,
+								Error:       err,
+							}
 						}
 					}
 				}
