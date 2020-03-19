@@ -208,7 +208,7 @@ func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.Volu
 // CommonDivision deploy containers by their deploy status
 // 部署完 N 个后全局尽可能平均
 // need 是所需总量，total 是支持部署总量
-func (m *Potassium) CommonDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error) {
+func (m *Potassium) CommonDivision(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
 	if total < need {
 		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
 			fmt.Sprintf("need: %d, vol: %d", need, total))

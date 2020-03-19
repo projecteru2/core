@@ -174,7 +174,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 
 		switch opts.DeployMethod {
 		case cluster.DeployAuto:
-			nodesInfo, err = c.scheduler.CommonDivision(nodesInfo, opts.Count, total)
+			nodesInfo, err = c.scheduler.CommonDivision(nodesInfo, opts.Count, total, resourceType)
 		case cluster.DeployEach:
 			nodesInfo, err = c.scheduler.EachDivision(nodesInfo, opts.Count, opts.NodesLimit, resourceType)
 		case cluster.DeployFill:
