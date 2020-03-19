@@ -30,6 +30,6 @@ func AveragePlan(nodesInfo []types.NodeInfo, need, limit int, resourceType types
 		nodesInfo[i].Capacity -= need
 	}
 
-	log.Debugf("[AveragePlan] nodesInfo: %v", nodesInfo)
+	log.Debugf("[AveragePlan] resource: %v, nodesInfo: %v", resourceType, nodesInfo)
 	return nodesInfo, nil
 }

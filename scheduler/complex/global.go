@@ -43,6 +43,6 @@ func GlobalDivisionPlan(nodesInfo []types.NodeInfo, need int, resourceType types
 	}
 	// 这里 need 一定会为 0 出来，因为 volTotal 保证了一定大于 need
 	// 这里并不需要再次排序了，理论上的排序是基于资源使用率得到的 Deploy 最终方案
-	log.Debugf("[GlobalDivisionPlan] nodesInfo: %v", nodesInfo)
+	log.Debugf("[GlobalDivisionPlan] resource: %v, nodesInfo: %v", resourceType, nodesInfo)
 	return nodesInfo, nil
 }

@@ -34,6 +34,6 @@ func FillPlan(nodesInfo []types.NodeInfo, need, limit int, resourceType types.Re
 		nodesInfo[i].Deploy = diff
 		nodesInfo[i].Capacity -= diff
 	}
-	log.Debugf("[FillPlan] nodesInfo: %v", nodesInfo)
+	log.Debugf("[FillPlan] resource: %v, nodesInfo: %v", resourceType, nodesInfo)
 	return nodesInfo, nil
 }
