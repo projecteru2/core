@@ -19,7 +19,7 @@ type Scheduler interface {
 	// global division
 	GlobalDivision(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error)
 	// common division
-	CommonDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error)
+	CommonDivision(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error)
 	// average division
 	EachDivision(nodesInfo []types.NodeInfo, need, limit int, resourceType types.ResourceType) ([]types.NodeInfo, error)
 	// fill division
