@@ -64,11 +64,12 @@ func (vb VolumeBinding) RequireSchedule() bool {
 	return strings.HasSuffix(vb.Source, AUTO)
 }
 
+// RequireScheduleUnlimitedQuota .
 func (vb VolumeBinding) RequireScheduleUnlimitedQuota() bool {
 	return vb.RequireSchedule() && vb.SizeInBytes == 0
 }
 
-// RequireMonopoly returns true if volume binding requires monopoly schedule
+// RequireScheduleMonopoly returns true if volume binding requires monopoly schedule
 func (vb VolumeBinding) RequireScheduleMonopoly() bool {
 	return vb.RequireSchedule() && strings.Contains(vb.Flags, "m")
 }
@@ -186,6 +187,7 @@ func (vbs VolumeBindings) IsEqual(vbs2 VolumeBindings) bool {
 	return reflect.DeepEqual(vbs.ToStringSlice(true, false), vbs2.ToStringSlice(true, false))
 }
 
+// TotalSize .
 func (vbs VolumeBindings) TotalSize() (total int64) {
 	for _, vb := range vbs {
 		total += vb.SizeInBytes

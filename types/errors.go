@@ -75,6 +75,9 @@ var (
 	ErrInvalidContainerName = errors.New("invalid container name")
 
 	ErrEngineNotImplemented = errors.New("not implemented")
+
+	ErrNodeNotExists      = errors.New("node not exists")
+	ErrContainerNotExists = errors.New("container not exists")
 )
 
 // NewDetailedErr returns an error with details

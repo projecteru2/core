@@ -56,12 +56,8 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 	return n, c.withNodeLocked(ctx, opts.Nodename, func(node *types.Node) error {
 		n = node
 		litter.Dump(opts)
-		// status
-		switch opts.Status {
-		case cluster.NodeUp:
-			n.Available = true
-		case cluster.NodeDown:
-			n.Available = false
+		n.Available = (opts.Status == cluster.NodeUp)
+		if opts.ContainersDown {
 			containers, err := c.store.ListNodeContainers(ctx, opts.Nodename, nil)
 			if err != nil {
 				return err

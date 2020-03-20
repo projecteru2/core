@@ -136,6 +136,7 @@ func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) {
 	r := &types.SetNodeOptions{
 		Nodename:        b.Nodename,
 		Status:          int(b.Status),
+		ContainersDown:  b.ContainersDown,
 		DeltaCPU:        types.CPUMap{},
 		DeltaMemory:     b.DeltaMemory,
 		DeltaStorage:    b.DeltaStorage,
