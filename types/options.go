@@ -95,6 +95,7 @@ type AddNodeOptions struct {
 type SetNodeOptions struct {
 	Nodename        string
 	Status          int
+	ContainersDown  bool
 	DeltaCPU        CPUMap
 	DeltaMemory     int64
 	DeltaStorage    int64

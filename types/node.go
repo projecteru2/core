@@ -78,10 +78,11 @@ func (c VolumeMap) GetRation() int64 {
 	return c[c.GetResourceID()]
 }
 
-func (vm VolumeMap) SplitByUsed(init VolumeMap) (VolumeMap, VolumeMap) {
+// SplitByUsed .
+func (c VolumeMap) SplitByUsed(init VolumeMap) (VolumeMap, VolumeMap) {
 	used := VolumeMap{}
 	unused := VolumeMap{}
-	for mountDir, freeSpace := range vm {
+	for mountDir, freeSpace := range c {
 		vmap := used
 		if init[mountDir] == freeSpace {
 			vmap = unused
@@ -108,7 +109,8 @@ func MakeVolumePlan(vbs VolumeBindings, distribution []VolumeMap) VolumePlan {
 	return volumePlan
 }
 
-func (vp *VolumePlan) UnmarshalJSON(b []byte) (err error) {
+// UnmarshalJSON .
+func (p *VolumePlan) UnmarshalJSON(b []byte) (err error) {
 	plan := map[string]VolumeMap{}
 	if err = json.Unmarshal(b, &plan); err != nil {
 		return err
@@ -118,14 +120,15 @@ func (vp *VolumePlan) UnmarshalJSON(b []byte) (err error) {
 		if err != nil {
 			return err
 		}
-		(*vp)[*vb] = vmap
+		(*p)[*vb] = vmap
 	}
 	return
 }
 
-func (vp VolumePlan) MarshalJSON() ([]byte, error) {
+// MarshalJSON .
+func (p VolumePlan) MarshalJSON() ([]byte, error) {
 	plan := map[string]VolumeMap{}
-	for vb, vmap := range vp {
+	for vb, vmap := range p {
 		plan[vb.ToString(false)] = vmap
 	}
 	return json.Marshal(plan)
@@ -140,7 +143,7 @@ func (p VolumePlan) ToLiteral() map[string]map[string]int64 {
 	return plan
 }
 
-// Merge return one VolumeMap with all in VolumePlan added
+// IntoVolumeMap Merge return one VolumeMap with all in VolumePlan added
 func (p VolumePlan) IntoVolumeMap() VolumeMap {
 	volumeMap := VolumeMap{}
 	for _, v := range p {
@@ -176,6 +179,7 @@ func (p VolumePlan) Compatible(oldPlan VolumePlan) bool {
 	return true
 }
 
+// Merge .
 func (p VolumePlan) Merge(p2 VolumePlan) {
 	for vb, vm := range p2 {
 		p[vb] = vm
@@ -212,6 +216,7 @@ type Node struct {
 	Engine         engine.API        `json:"-"`
 }
 
+// Init .
 func (n *Node) Init() {
 	if n.Volume == nil {
 		n.Volume = VolumeMap{}
@@ -240,6 +245,7 @@ func (n *Node) SetCPUUsed(quota float64, action string) {
 	}
 }
 
+// SetVolumeUsed .
 func (n *Node) SetVolumeUsed(cost int64, action string) {
 	switch action {
 	case IncrUsage:
@@ -331,6 +337,7 @@ type NodeInfo struct {
 	// 其他需要 filter 的字段
 }
 
+// GetResourceUsage .
 func (n *NodeInfo) GetResourceUsage(resource ResourceType) (usage float64) {
 	for _, t := range AllResourceTypes {
 		if t&resource != 0 {
@@ -340,6 +347,7 @@ func (n *NodeInfo) GetResourceUsage(resource ResourceType) (usage float64) {
 	return
 }
 
+// GetResourceRate .
 func (n *NodeInfo) GetResourceRate(resource ResourceType) (rate float64) {
 	for _, t := range AllResourceTypes {
 		if t&resource != 0 {
