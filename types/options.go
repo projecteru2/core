@@ -37,6 +37,10 @@ type DeployOptions struct {
 	Lambda       bool                     // indicate is lambda container or not
 }
 
+func (o *DeployOptions) Normalize() {
+	o.Storage += o.Volumes.TotalSize()
+}
+
 // RunAndWaitOptions is options for running and waiting
 type RunAndWaitOptions struct {
 	DeployOptions

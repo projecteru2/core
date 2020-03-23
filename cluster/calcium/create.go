@@ -18,6 +18,7 @@ import (
 
 // CreateContainer use options to create containers
 func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+	opts.Normalize()
 	opts.ProcessIdent = utils.RandomString(16)
 	pod, err := c.store.GetPod(ctx, opts.Podname)
 	if err != nil {

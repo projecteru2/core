@@ -135,16 +135,6 @@ func (vbs VolumeBindings) MarshalJSON() ([]byte, error) {
 	return json.Marshal(volumes)
 }
 
-// AdditionalStorage is used for another kind of resource: storage
-func (vbs VolumeBindings) AdditionalStorage() (storage int64) {
-	for _, vb := range vbs {
-		if !vb.RequireSchedule() {
-			storage += vb.SizeInBytes
-		}
-	}
-	return
-}
-
 // ApplyPlan creates new VolumeBindings according to volume plan
 func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 	for _, vb := range vbs {
