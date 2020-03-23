@@ -91,6 +91,11 @@ type AddNodeOptions struct {
 	Volume     VolumeMap
 }
 
+// Normalize keeps options consistant
+func (o *AddNodeOptions) Normalize() {
+	o.Storage += o.Volume.Total()
+}
+
 // SetNodeOptions for node set
 type SetNodeOptions struct {
 	Nodename        string
@@ -103,6 +108,16 @@ type SetNodeOptions struct {
 	DeltaVolume     VolumeMap
 	NUMA            map[string]string
 	Labels          map[string]string
+}
+
+// Normalize keeps options consistent
+func (o *SetNodeOptions) Normalize(node *Node) {
+	o.DeltaStorage += o.DeltaVolume.Total()
+	for volID, size := range o.DeltaVolume {
+		if size == 0 {
+			o.DeltaStorage -= node.InitVolume[volID]
+		}
+	}
 }
 
 // ExecuteContainerOptions for executing commands in running container

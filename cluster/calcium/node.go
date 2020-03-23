@@ -9,13 +9,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// AddNode add a node in pod
-/*
-func (c *Calcium) AddNode(ctx context.Context, nodename, endpoint, podname, ca, cert, key string,
-	cpu, share int, memory, storage int64, labels map[string]string,
-	numa types.NUMA, numaMemory types.NUMAMemory) (*types.Node, error) {
-*/
 func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*types.Node, error) {
+	opts.Normalize()
 	return c.store.AddNode(ctx, opts)
 }
 
@@ -54,6 +49,7 @@ func (c *Calcium) GetNodes(ctx context.Context, podname, nodename string, labels
 func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) {
 	var n *types.Node
 	return n, c.withNodeLocked(ctx, opts.Nodename, func(node *types.Node) error {
+		opts.Normalize(node)
 		n = node
 		litter.Dump(opts)
 		n.Available = (opts.Status == cluster.NodeUp)
