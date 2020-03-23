@@ -22,7 +22,7 @@ require (
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/golang/groupcache v0.0.0-20191027212112-611e8accdfc9 // indirect
-	github.com/golang/protobuf v1.3.2
+	github.com/golang/protobuf v1.3.5
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/mux v0.0.0-20180605211556-cb4698366aa6 // indirect
 	github.com/gorilla/websocket v0.0.0-20170926233335-4201258b820c // indirect
@@ -40,7 +40,7 @@ require (
 	github.com/opencontainers/runc v0.0.0-20180615140650-ad0f5255060d // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
-	github.com/projecteru2/libyavirt v0.0.0-20191216061912-ff6d6a2732f3
+	github.com/projecteru2/libyavirt v0.0.0-20200323074159-8995ed0d1372
 	github.com/prometheus/client_golang v0.9.3
 	github.com/sanity-io/litter v1.1.0
 	github.com/sirupsen/logrus v1.4.2
@@ -54,11 +54,9 @@ require (
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.7.1 // indirect
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
-	golang.org/x/net v0.0.0-20191003171128-d98b1b443823
-	golang.org/x/sys v0.0.0-20191005200804-aed5e4c7ecf9 // indirect
+	golang.org/x/net v0.0.0-20200319234117-63522dbf7eec
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
-	google.golang.org/genproto v0.0.0-20191002211648-c459b9ce5143 // indirect
-	google.golang.org/grpc v1.24.0
+	google.golang.org/grpc v1.28.0
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
 	gotest.tools v2.2.0+incompatible // indirect
 )
