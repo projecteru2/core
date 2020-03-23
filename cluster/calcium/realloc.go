@@ -147,6 +147,7 @@ func (c *Calcium) doReallocContainer(
 							node.CPU.Add(container.CPU)
 							node.SetCPUUsed(container.Quota, types.DecrUsage)
 							node.Volume.Add(container.VolumePlan.IntoVolumeMap())
+							node.StorageCap += container.Storage
 							node.SetVolumeUsed(container.VolumePlan.IntoVolumeMap().Total(), types.DecrUsage)
 							node.MemCap += container.Memory
 							if nodeID := node.GetNUMANode(container.CPU); nodeID != "" {
@@ -268,11 +269,13 @@ func (c *Calcium) updateContainersResources(ctx context.Context, ch chan *types.
 
 func (c *Calcium) updateResource(ctx context.Context, node *types.Node, container *types.Container, newResource *enginetypes.VirtualizationResource) error {
 	if err := node.Engine.VirtualizationUpdateResource(ctx, container.ID, newResource); err == nil {
+		oldVolumes := container.Volumes
 		container.CPU = newResource.CPU
 		container.Quota = newResource.Quota
 		container.Memory = newResource.Memory
 		container.Volumes, _ = types.MakeVolumeBindings(newResource.Volumes)
 		container.VolumePlan = types.MustToVolumePlan(newResource.VolumePlan)
+		container.Storage += container.Volumes.TotalSize() - oldVolumes.TotalSize()
 	} else {
 		log.Errorf("[updateResource] When Realloc container, VirtualizationUpdateResource %s failed %v", container.ID, err)
 		return err
@@ -284,6 +287,7 @@ func (c *Calcium) updateResource(ctx context.Context, node *types.Node, containe
 	node.SetCPUUsed(container.Quota, types.IncrUsage)
 	node.Volume.Sub(container.VolumePlan.IntoVolumeMap())
 	node.SetVolumeUsed(container.VolumePlan.IntoVolumeMap().Total(), types.IncrUsage)
+	node.StorageCap -= container.Storage
 	node.MemCap -= container.Memory
 	if nodeID := node.GetNUMANode(container.CPU); nodeID != "" {
 		node.DecrNUMANodeMemory(nodeID, container.Memory)
