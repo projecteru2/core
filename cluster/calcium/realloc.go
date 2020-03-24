@@ -200,8 +200,8 @@ func (c *Calcium) doReallocContainer(
 						}
 						return nil
 					}); err != nil {
-						log.Errorf("[doReallocContainer] Realloc container %v failed: %v", containers, err)
 						for _, container := range containers {
+							log.Errorf("[doReallocContainer] Realloc container %v failed: %v", container.ID, err)
 							ch <- &types.ReallocResourceMessage{
 								ContainerID: container.ID,
 								Error:       err,
@@ -243,11 +243,9 @@ func (c *Calcium) updateContainersResources(ctx context.Context, ch chan *types.
 		newResource.SoftLimit = container.SoftLimit
 		newResource.Volumes = hardVbsForContainer[container.ID].ToStringSlice(false, false)
 
-		if err := c.updateResource(ctx, node, container, newResource); err != nil {
-			ch <- &types.ReallocResourceMessage{
-				ContainerID: container.ID,
-				Error:       err,
-			}
+		ch <- &types.ReallocResourceMessage{
+			ContainerID: container.ID,
+			Error:       c.updateResource(ctx, node, container, newResource),
 		}
 	}
 	return nil
