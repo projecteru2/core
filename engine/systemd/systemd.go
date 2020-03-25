@@ -22,7 +22,7 @@ const (
 	// SSHPrefixKey is engine endpoint prefix
 	SSHPrefixKey = "systemd://"
 
-	cmdInspectCPUNumber          = "/bin/grep -cz processor /proc/cpuinfo"
+	cmdInspectCPUNumber          = "/bin/grep -c processor /proc/cpuinfo"
 	cmdInspectMemoryTotalInBytes = "/usr/bin/awk '/^Mem/ {print $2}' <(/usr/bin/free -bt)"
 )
 
