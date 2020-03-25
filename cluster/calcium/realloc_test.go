@@ -2,7 +2,6 @@ package calcium
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -137,8 +136,6 @@ func TestRealloc(t *testing.T) {
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrBadContainerID).Twice()
 	// update node failed
 	store.On("UpdateNode", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
-	// update container success
-	store.On("UpdateContainer", mock.Anything, mock.Anything).Return(nil).Once()
 	// reset node
 	node1 = &types.Node{
 		Name:     "node1",
@@ -164,7 +161,6 @@ func TestRealloc(t *testing.T) {
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
-	store.On("UpdateContainer", mock.Anything, mock.Anything).Return(nil)
 	// failed by volume binding incompatible
 	nodeVolumePlans = map[string][]types.VolumePlan{
 		node1.Name: {
@@ -252,13 +248,11 @@ func TestRealloc(t *testing.T) {
 	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, types.MustToVolumeBindings([]string{"AUTO:/data0:rw:50", "AUTO:/data1:rw:200"})).Return(nil, nodeVolumePlans, 2, nil)
 	store.On("GetNode", mock.Anything, "node2").Return(node2, nil)
 	store.On("GetContainers", mock.Anything, []string{"c3", "c4"}).Return([]*types.Container{c3, c4}, nil)
-	// store.On("UpdateContainer", mock.Anything, mock.Anything).Return(nil)
+	store.On("UpdateContainer", mock.Anything, mock.Anything).Return(types.ErrBadContainerID).Twice()
 	ch, err = c.ReallocResource(ctx, []string{"c3", "c4"}, 0.1, 2*int64(units.MiB), types.MustToVolumeBindings([]string{"AUTO:/data0:rw:-50"}))
 	assert.NoError(t, err)
 	for r := range ch {
-		//TODO: Investigate error here
-		fmt.Println("----------------------", r.ContainerID, r.Error)
-		// assert.Error(t, r.Error)
+		assert.Error(t, r.Error)
 	}
 	assert.Equal(t, node2.CPU["3"], int64(0))
 	assert.Equal(t, node2.CPU["2"], int64(100))
