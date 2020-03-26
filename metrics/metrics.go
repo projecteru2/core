@@ -159,5 +159,6 @@ func InitMetrics(statsd string) error {
 		Client.DeployCount, Client.MemoryCapacity,
 		Client.StorageCapacity, Client.CPUMap,
 	)
+
 	return nil
 }
