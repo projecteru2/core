@@ -64,6 +64,7 @@ type Cluster interface {
 	RemoveNode(ctx context.Context, nodename string) error
 	SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error)
 	GetNode(ctx context.Context, nodename string) (*types.Node, error)
+	GetAllNodes(ctx context.Context, labels map[string]string) ([]*types.Node, error)
 	NodeResource(ctx context.Context, nodename string) (*types.NodeResource, error)
 	// meta containers
 	GetContainer(ctx context.Context, ID string) (*types.Container, error)
