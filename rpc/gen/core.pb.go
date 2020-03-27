@@ -1550,8 +1550,8 @@ type ReallocOptions struct {
 	Cpu                  float64  `protobuf:"fixed64,2,opt,name=cpu,proto3" json:"cpu,omitempty"`
 	Memory               int64    `protobuf:"varint,3,opt,name=memory,proto3" json:"memory,omitempty"`
 	Volumes              []string `protobuf:"bytes,4,rep,name=volumes,proto3" json:"volumes,omitempty"`
-	BindCpu              bool     `protobuf:"bool,5,opt,name=bindCpu,proto3" json:"bindCpu,omitempty`
-	UnbindCpu            bool     `protobuf:"bool,5,opt,name=unbindCpu,proto3" json:"unbindCpu,omitempty`
+	BindCpu              bool     `protobuf:"bool,5,opt,name=bindCpu,proto3" json:"bindCpu,omitempty"`
+	UnbindCpu            bool     `protobuf:"bool,5,opt,name=unbindCpu,proto3" json:"unbindCpu,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
