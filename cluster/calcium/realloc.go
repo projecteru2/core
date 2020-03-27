@@ -22,7 +22,10 @@ type nodeContainers map[string][]*types.Container
 type volCPUMemNodeContainers map[string]map[float64]map[int64]nodeContainers
 
 // ReallocResource allow realloc container resource
-func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64, volumes types.VolumeBindings) (chan *types.ReallocResourceMessage, error) {
+func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64, volumes types.VolumeBindings, bindCpu bool, unbindCpu bool) (chan *types.ReallocResourceMessage, error) {
+	if bindCpu {
+		unbindCpu = false
+	}
 	ch := make(chan *types.ReallocResourceMessage)
 	go func() {
 		defer close(ch)
@@ -55,7 +58,7 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 			for pod, nodeContainersInfo := range containersInfo {
 				go func(pod *types.Pod, nodeContainersInfo nodeContainers) {
 					defer wg.Done()
-					c.doReallocContainer(ctx, ch, pod, nodeContainersInfo, cpu, memory, volumes)
+					c.doReallocContainer(ctx, ch, pod, nodeContainersInfo, cpu, memory, volumes, bindCpu, unbindCpu)
 				}(pod, nodeContainersInfo)
 			}
 			wg.Wait()
@@ -70,12 +73,7 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 	return ch, nil
 }
 
-func (c *Calcium) doReallocContainer(
-	ctx context.Context,
-	ch chan *types.ReallocResourceMessage,
-	pod *types.Pod,
-	nodeContainersInfo nodeContainers,
-	cpu float64, memory int64, volumes types.VolumeBindings) {
+func (c *Calcium) doReallocContainer(ctx context.Context, ch chan *types.ReallocResourceMessage, pod *types.Pod, nodeContainersInfo nodeContainers, cpu float64, memory int64, volumes types.VolumeBindings, bindCpu bool, unbindCpu bool) {
 
 	volCPUMemNodeContainersInfo := volCPUMemNodeContainers{}
 	hardVbsForContainer := map[string]types.VolumeBindings{}
@@ -132,9 +130,12 @@ func (c *Calcium) doReallocContainer(
 							if nodeID := node.GetNUMANode(container.CPU); nodeID != "" {
 								node.IncrNUMANodeMemory(nodeID, container.Memory)
 							}
-							if len(container.CPU) > 0 {
+							if len(container.CPU) > 0 || bindCpu {
 								containerWithCPUBind++
 							}
+						}
+						if unbindCpu {
+							containerWithCPUBind = 0
 						}
 						// 检查内存
 						if newMemory != 0 {
@@ -179,7 +180,7 @@ func (c *Calcium) doReallocContainer(
 								SoftLimit: container.SoftLimit,
 								Volumes:   hardVbsForContainer[container.ID].ToStringSlice(false, false),
 							}
-							if len(container.CPU) > 0 {
+							if (len(container.CPU) > 0 || bindCpu) && !unbindCpu {
 								newResource.CPU = cpusets[0]
 								newResource.NUMANode = node.GetNUMANode(cpusets[0])
 								cpusets = cpusets[1:]
