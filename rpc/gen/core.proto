@@ -219,6 +219,8 @@ message ReallocOptions {
     double cpu = 2;
     int64 memory = 3;
     repeated string volumes = 4;
+    bool bindCPU=5;
+    bool unbindCPU=6;
 }
 
 message AddPodOptions {
