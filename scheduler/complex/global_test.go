@@ -81,3 +81,22 @@ func TestGlobalDivisionPlan2(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 2)
 }
+
+func TestGlobalDivisionPlan3(t *testing.T) {
+	n1 := types.NodeInfo{
+		Name: "n1",
+		Usages: map[types.ResourceType]float64{
+			types.ResourceCPU:    0.9,
+			types.ResourceMemory: 0.5259232954545454,
+		},
+		Rates: map[types.ResourceType]float64{
+			types.ResourceCPU:    0.03,
+			types.ResourceMemory: 0.0000712,
+		},
+		Capacity: 100,
+	}
+
+	r, err := GlobalDivisionPlan([]types.NodeInfo{n1}, 1, types.ResourceMemory)
+	assert.NoError(t, err)
+	assert.Equal(t, r[0].Deploy, 1)
+}
