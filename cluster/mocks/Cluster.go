@@ -237,6 +237,29 @@ func (_m *Cluster) Finalizer() {
 	_m.Called()
 }
 
+// GetAllNodes provides a mock function with given fields: ctx, labels
+func (_m *Cluster) GetAllNodes(ctx context.Context, labels map[string]string) ([]*types.Node, error) {
+	ret := _m.Called(ctx, labels)
+
+	var r0 []*types.Node
+	if rf, ok := ret.Get(0).(func(context.Context, map[string]string) []*types.Node); ok {
+		r0 = rf(ctx, labels)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*types.Node)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, map[string]string) error); ok {
+		r1 = rf(ctx, labels)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetContainer provides a mock function with given fields: ctx, ID
 func (_m *Cluster) GetContainer(ctx context.Context, ID string) (*types.Container, error) {
 	ret := _m.Called(ctx, ID)

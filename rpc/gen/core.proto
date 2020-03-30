@@ -139,6 +139,7 @@ message SetNodeOptions {
     map<string, string> numa = 7;
     map<string, string> labels = 8;
     map<string, int64> delta_volume = 9;
+    bool containers_down = 10;
 }
 
 message Container {
@@ -460,7 +461,7 @@ message DissociateContainerMessage {
 
 message ReallocResourceMessage {
     string id = 1;
-    bool success = 2;
+    string error = 2;
 }
 
 message CopyMessage {

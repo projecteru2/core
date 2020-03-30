@@ -55,7 +55,7 @@ func TestRemoveNode(t *testing.T) {
 	c.store = store
 
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
-	err := c.RemoveNode(ctx, "")
+	err := c.RemoveNode(ctx, name)
 	assert.NoError(t, err)
 }
 
@@ -120,9 +120,12 @@ func TestSetNode(t *testing.T) {
 	_, err := c.SetNode(ctx, &types.SetNodeOptions{})
 	assert.Error(t, err)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
+	// failed by no node name
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test1", Status: 2})
+	assert.Error(t, err)
 	// failed by updatenode
 	store.On("UpdateNode", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Status: 2})
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", Status: 2})
 	assert.Error(t, err)
 	store.On("UpdateNode", mock.Anything, mock.Anything).Return(nil)
 	// succ when node available
@@ -132,14 +135,14 @@ func TestSetNode(t *testing.T) {
 	// not available
 	// failed by list node containers
 	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", Status: 0})
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", Status: 0, ContainersDown: true})
 	assert.Error(t, err)
 	containers := []*types.Container{&types.Container{Name: "wrong_name"}, &types.Container{Name: "a_b_c"}}
 	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
 	store.On("SetContainerStatus",
 		mock.Anything, mock.Anything, mock.Anything,
 	).Return(types.ErrNoETCD)
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", Status: 0})
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", Status: 0, ContainersDown: true})
 	assert.NoError(t, err)
 	// test modify
 	setOpts := &types.SetNodeOptions{

@@ -230,7 +230,7 @@ func TestAllocResource(t *testing.T) {
 
 	// Mocks for all.
 	opts.DeployMethod = cluster.DeployFill
-	sched.On("FillDivision", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, nil)
+	sched.On("FillDivision", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, nil)
 
 	testAllocFailedAsUpdateNodeResourceError(t, c, opts)
 	store.On("UpdateNodeResource",
@@ -340,7 +340,7 @@ func testAllocFailedAsCommonDivisionError(t *testing.T, c *Calcium, opts *types.
 
 	opts.DeployMethod = cluster.DeployAuto
 	sched := c.scheduler.(*schedulermocks.Scheduler)
-	sched.On("CommonDivision", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInsufficientRes).Once()
+	sched.On("CommonDivision", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInsufficientRes).Once()
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)
 }
@@ -353,7 +353,7 @@ func testAllocFailedAsGlobalDivisionError(t *testing.T, c *Calcium, opts *types.
 
 	opts.DeployMethod = cluster.DeployGlobal
 	sched := c.scheduler.(*schedulermocks.Scheduler)
-	sched.On("GlobalDivision", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInsufficientRes)
+	sched.On("GlobalDivision", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInsufficientRes)
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)
 }
@@ -366,7 +366,7 @@ func testAllocFailedAsEachDivisionError(t *testing.T, c *Calcium, opts *types.De
 
 	opts.DeployMethod = cluster.DeployEach
 	sched := c.scheduler.(*schedulermocks.Scheduler)
-	sched.On("EachDivision", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInsufficientRes)
+	sched.On("EachDivision", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInsufficientRes)
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)
 }
@@ -379,7 +379,7 @@ func testAllocFailedAsFillDivisionError(t *testing.T, c *Calcium, opts *types.De
 
 	opts.DeployMethod = cluster.DeployFill
 	sched := c.scheduler.(*schedulermocks.Scheduler)
-	sched.On("FillDivision", mock.Anything, mock.Anything, mock.Anything).Return([]types.NodeInfo{}, nil).Once()
+	sched.On("FillDivision", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]types.NodeInfo{}, nil).Once()
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)
 }

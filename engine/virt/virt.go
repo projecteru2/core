@@ -190,7 +190,7 @@ func (v *Virt) VirtualizationStop(ctx context.Context, ID string) (err error) {
 
 // VirtualizationRemove removes a guest.
 func (v *Virt) VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) (err error) {
-	_, err = v.client.DestroyGuest(ctx, ID)
+	_, err = v.client.DestroyGuest(ctx, ID, force)
 	return
 }
 

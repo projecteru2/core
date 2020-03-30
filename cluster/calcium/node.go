@@ -50,18 +50,31 @@ func (c *Calcium) GetNodes(ctx context.Context, podname, nodename string, labels
 	return ns, err
 }
 
+// GetAllNodes get nodes
+func (c *Calcium) GetAllNodes(ctx context.Context, labels map[string]string) ([]*types.Node, error) {
+	var listOfNodes []*types.Node
+	pods, err := c.ListPods(ctx)
+	if err != nil {
+		return listOfNodes, err
+	}
+	for _, pod := range pods {
+		nodes, err := c.ListPodNodes(ctx, pod.Name, labels, true)
+		if err != nil {
+			return listOfNodes, err
+		}
+		listOfNodes = append(listOfNodes, nodes...)
+	}
+	return listOfNodes, err
+}
+
 // SetNode set node available or not
 func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) {
 	var n *types.Node
 	return n, c.withNodeLocked(ctx, opts.Nodename, func(node *types.Node) error {
 		n = node
 		litter.Dump(opts)
-		// status
-		switch opts.Status {
-		case cluster.NodeUp:
-			n.Available = true
-		case cluster.NodeDown:
-			n.Available = false
+		n.Available = (opts.Status == cluster.NodeUp)
+		if opts.ContainersDown {
 			containers, err := c.store.ListNodeContainers(ctx, opts.Nodename, nil)
 			if err != nil {
 				return err

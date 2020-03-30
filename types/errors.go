@@ -13,6 +13,7 @@ var (
 	ErrInsufficientVolume  = errors.New("cannot alloc a plan, not enough volume")
 	ErrInsufficientCap     = errors.New("cannot alloc a each node plan, not enough capacity")
 	ErrInsufficientRes     = errors.New("not enough resource")
+	ErrInvalidRes          = errors.New("invalid resource")
 	ErrInsufficientNodes   = errors.New("not enough nodes")
 	ErrAlreadyFilled       = errors.New("Cannot alloc a fill node plan, each node has enough containers")
 
@@ -75,6 +76,9 @@ var (
 	ErrInvalidContainerName = errors.New("invalid container name")
 
 	ErrEngineNotImplemented = errors.New("not implemented")
+
+	ErrNodeNotExists      = errors.New("node not exists")
+	ErrContainerNotExists = errors.New("container not exists")
 )
 
 // NewDetailedErr returns an error with details

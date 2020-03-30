@@ -134,7 +134,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 		if len(nodes) == 0 {
 			return types.ErrInsufficientNodes
 		}
-		nodesInfo = getNodesInfo(nodes, opts.CPUQuota, opts.Memory, opts.Storage)
+		nodesInfo = getNodesInfo(nodes, opts.CPUQuota, opts.Memory, opts.Storage, opts.Volumes.TotalSize())
 		// 载入之前部署的情况
 		nodesInfo, err = c.store.MakeDeployStatus(ctx, opts, nodesInfo)
 		if err != nil {
@@ -163,15 +163,24 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 
 		total = utils.Min(volumeTotal, storTotal, total)
 
+		volumeSchedule := false
+		for _, volume := range opts.Volumes {
+			if volume.RequireSchedule() {
+				volumeSchedule = true
+				break
+			}
+		}
+		resourceType := types.GetResourceType(opts.CPUBind, volumeSchedule)
+
 		switch opts.DeployMethod {
 		case cluster.DeployAuto:
-			nodesInfo, err = c.scheduler.CommonDivision(nodesInfo, opts.Count, total)
+			nodesInfo, err = c.scheduler.CommonDivision(nodesInfo, opts.Count, total, resourceType)
 		case cluster.DeployEach:
-			nodesInfo, err = c.scheduler.EachDivision(nodesInfo, opts.Count, opts.NodesLimit)
+			nodesInfo, err = c.scheduler.EachDivision(nodesInfo, opts.Count, opts.NodesLimit, resourceType)
 		case cluster.DeployFill:
-			nodesInfo, err = c.scheduler.FillDivision(nodesInfo, opts.Count, opts.NodesLimit)
+			nodesInfo, err = c.scheduler.FillDivision(nodesInfo, opts.Count, opts.NodesLimit, resourceType)
 		case cluster.DeployGlobal:
-			nodesInfo, err = c.scheduler.GlobalDivision(nodesInfo, opts.Count, total)
+			nodesInfo, err = c.scheduler.GlobalDivision(nodesInfo, opts.Count, total, resourceType)
 		default:
 			return types.ErrBadDeployMethod
 		}

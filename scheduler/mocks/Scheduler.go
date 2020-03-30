@@ -11,13 +11,13 @@ type Scheduler struct {
 	mock.Mock
 }
 
-// CommonDivision provides a mock function with given fields: nodesInfo, need, total
-func (_m *Scheduler) CommonDivision(nodesInfo []types.NodeInfo, need int, total int) ([]types.NodeInfo, error) {
-	ret := _m.Called(nodesInfo, need, total)
+// CommonDivision provides a mock function with given fields: nodesInfo, need, total, resourceType
+func (_m *Scheduler) CommonDivision(nodesInfo []types.NodeInfo, need int, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+	ret := _m.Called(nodesInfo, need, total, resourceType)
 
 	var r0 []types.NodeInfo
-	if rf, ok := ret.Get(0).(func([]types.NodeInfo, int, int) []types.NodeInfo); ok {
-		r0 = rf(nodesInfo, need, total)
+	if rf, ok := ret.Get(0).(func([]types.NodeInfo, int, int, types.ResourceType) []types.NodeInfo); ok {
+		r0 = rf(nodesInfo, need, total, resourceType)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]types.NodeInfo)
@@ -25,8 +25,8 @@ func (_m *Scheduler) CommonDivision(nodesInfo []types.NodeInfo, need int, total 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func([]types.NodeInfo, int, int) error); ok {
-		r1 = rf(nodesInfo, need, total)
+	if rf, ok := ret.Get(1).(func([]types.NodeInfo, int, int, types.ResourceType) error); ok {
+		r1 = rf(nodesInfo, need, total, resourceType)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -34,13 +34,13 @@ func (_m *Scheduler) CommonDivision(nodesInfo []types.NodeInfo, need int, total 
 	return r0, r1
 }
 
-// EachDivision provides a mock function with given fields: nodesInfo, need, limit
-func (_m *Scheduler) EachDivision(nodesInfo []types.NodeInfo, need int, limit int) ([]types.NodeInfo, error) {
-	ret := _m.Called(nodesInfo, need, limit)
+// EachDivision provides a mock function with given fields: nodesInfo, need, limit, resourceType
+func (_m *Scheduler) EachDivision(nodesInfo []types.NodeInfo, need int, limit int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+	ret := _m.Called(nodesInfo, need, limit, resourceType)
 
 	var r0 []types.NodeInfo
-	if rf, ok := ret.Get(0).(func([]types.NodeInfo, int, int) []types.NodeInfo); ok {
-		r0 = rf(nodesInfo, need, limit)
+	if rf, ok := ret.Get(0).(func([]types.NodeInfo, int, int, types.ResourceType) []types.NodeInfo); ok {
+		r0 = rf(nodesInfo, need, limit, resourceType)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]types.NodeInfo)
@@ -48,8 +48,8 @@ func (_m *Scheduler) EachDivision(nodesInfo []types.NodeInfo, need int, limit in
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func([]types.NodeInfo, int, int) error); ok {
-		r1 = rf(nodesInfo, need, limit)
+	if rf, ok := ret.Get(1).(func([]types.NodeInfo, int, int, types.ResourceType) error); ok {
+		r1 = rf(nodesInfo, need, limit, resourceType)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -57,13 +57,13 @@ func (_m *Scheduler) EachDivision(nodesInfo []types.NodeInfo, need int, limit in
 	return r0, r1
 }
 
-// FillDivision provides a mock function with given fields: nodesInfo, need, limit
-func (_m *Scheduler) FillDivision(nodesInfo []types.NodeInfo, need int, limit int) ([]types.NodeInfo, error) {
-	ret := _m.Called(nodesInfo, need, limit)
+// FillDivision provides a mock function with given fields: nodesInfo, need, limit, resourceType
+func (_m *Scheduler) FillDivision(nodesInfo []types.NodeInfo, need int, limit int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+	ret := _m.Called(nodesInfo, need, limit, resourceType)
 
 	var r0 []types.NodeInfo
-	if rf, ok := ret.Get(0).(func([]types.NodeInfo, int, int) []types.NodeInfo); ok {
-		r0 = rf(nodesInfo, need, limit)
+	if rf, ok := ret.Get(0).(func([]types.NodeInfo, int, int, types.ResourceType) []types.NodeInfo); ok {
+		r0 = rf(nodesInfo, need, limit, resourceType)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]types.NodeInfo)
@@ -71,8 +71,8 @@ func (_m *Scheduler) FillDivision(nodesInfo []types.NodeInfo, need int, limit in
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func([]types.NodeInfo, int, int) error); ok {
-		r1 = rf(nodesInfo, need, limit)
+	if rf, ok := ret.Get(1).(func([]types.NodeInfo, int, int, types.ResourceType) error); ok {
+		r1 = rf(nodesInfo, need, limit, resourceType)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -80,13 +80,13 @@ func (_m *Scheduler) FillDivision(nodesInfo []types.NodeInfo, need int, limit in
 	return r0, r1
 }
 
-// GlobalDivision provides a mock function with given fields: nodesInfo, need, total
-func (_m *Scheduler) GlobalDivision(nodesInfo []types.NodeInfo, need int, total int) ([]types.NodeInfo, error) {
-	ret := _m.Called(nodesInfo, need, total)
+// GlobalDivision provides a mock function with given fields: nodesInfo, need, total, resourceType
+func (_m *Scheduler) GlobalDivision(nodesInfo []types.NodeInfo, need int, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+	ret := _m.Called(nodesInfo, need, total, resourceType)
 
 	var r0 []types.NodeInfo
-	if rf, ok := ret.Get(0).(func([]types.NodeInfo, int, int) []types.NodeInfo); ok {
-		r0 = rf(nodesInfo, need, total)
+	if rf, ok := ret.Get(0).(func([]types.NodeInfo, int, int, types.ResourceType) []types.NodeInfo); ok {
+		r0 = rf(nodesInfo, need, total, resourceType)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]types.NodeInfo)
@@ -94,8 +94,8 @@ func (_m *Scheduler) GlobalDivision(nodesInfo []types.NodeInfo, need int, total 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func([]types.NodeInfo, int, int) error); ok {
-		r1 = rf(nodesInfo, need, total)
+	if rf, ok := ret.Get(1).(func([]types.NodeInfo, int, int, types.ResourceType) error); ok {
+		r1 = rf(nodesInfo, need, total, resourceType)
 	} else {
 		r1 = ret.Error(1)
 	}

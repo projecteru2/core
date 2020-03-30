@@ -136,6 +136,7 @@ func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) {
 	r := &types.SetNodeOptions{
 		Nodename:        b.Nodename,
 		Status:          int(b.Status),
+		ContainersDown:  b.ContainersDown,
 		DeltaCPU:        types.CPUMap{},
 		DeltaMemory:     b.DeltaMemory,
 		DeltaStorage:    b.DeltaStorage,
@@ -362,10 +363,13 @@ func toRPCControlContainerMessage(c *types.ControlContainerMessage) *pb.ControlC
 }
 
 func toRPCReallocResourceMessage(r *types.ReallocResourceMessage) *pb.ReallocResourceMessage {
-	return &pb.ReallocResourceMessage{
-		Id:      r.ContainerID,
-		Success: r.Success,
+	resp := &pb.ReallocResourceMessage{
+		Id: r.ContainerID,
 	}
+	if r.Error != nil {
+		resp.Error = r.Error.Error()
+	}
+	return resp
 }
 
 func toRPCRemoveContainerMessage(r *types.RemoveContainerMessage) *pb.RemoveContainerMessage {

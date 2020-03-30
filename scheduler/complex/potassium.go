@@ -208,7 +208,7 @@ func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.Volu
 // CommonDivision deploy containers by their deploy status
 // 部署完 N 个后全局尽可能平均
 // need 是所需总量，total 是支持部署总量
-func (m *Potassium) CommonDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error) {
+func (m *Potassium) CommonDivision(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
 	if total < need {
 		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
 			fmt.Sprintf("need: %d, vol: %d", need, total))
@@ -219,24 +219,24 @@ func (m *Potassium) CommonDivision(nodesInfo []types.NodeInfo, need, total int) 
 // EachDivision deploy containers by each node
 // 容量够的机器每一台部署 N 个
 // need 是每台机器所需总量，limit 是限制节点数
-func (m *Potassium) EachDivision(nodesInfo []types.NodeInfo, need, limit int) ([]types.NodeInfo, error) {
-	return AveragePlan(nodesInfo, need, limit)
+func (m *Potassium) EachDivision(nodesInfo []types.NodeInfo, need, limit int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+	return AveragePlan(nodesInfo, need, limit, resourceType)
 }
 
 // FillDivision deploy containers fill nodes by count
 // 根据之前部署的策略每一台补充到 N 个，超过 N 个忽略
 // need 是每台上限, limit 是限制节点数
-func (m *Potassium) FillDivision(nodesInfo []types.NodeInfo, need, limit int) ([]types.NodeInfo, error) {
-	return FillPlan(nodesInfo, need, limit)
+func (m *Potassium) FillDivision(nodesInfo []types.NodeInfo, need, limit int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+	return FillPlan(nodesInfo, need, limit, resourceType)
 }
 
 // GlobalDivision deploy containers by their resource costs
 // 尽量使得资源消耗平均
 // need 是所需总量，total 是支持部署总量
-func (m *Potassium) GlobalDivision(nodesInfo []types.NodeInfo, need, total int) ([]types.NodeInfo, error) {
+func (m *Potassium) GlobalDivision(nodesInfo []types.NodeInfo, need, total int, globalResource types.ResourceType) ([]types.NodeInfo, error) {
 	if total < need {
 		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
 			fmt.Sprintf("need: %d, vol: %d", need, total))
 	}
-	return GlobalDivisionPlan(nodesInfo, need)
+	return GlobalDivisionPlan(nodesInfo, need, globalResource)
 }

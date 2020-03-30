@@ -134,7 +134,7 @@ func makeCopyMessage(id, status, name, path string, err error, data io.ReadClose
 	}
 }
 
-func getNodesInfo(nodes map[string]*types.Node, cpu float64, memory, storage int64) []types.NodeInfo {
+func getNodesInfo(nodes map[string]*types.Node, cpu float64, memory, storage, volumeSize int64) []types.NodeInfo {
 	result := []types.NodeInfo{}
 	for _, node := range nodes {
 		nodeInfo := types.NodeInfo{
@@ -144,15 +144,21 @@ func getNodesInfo(nodes map[string]*types.Node, cpu float64, memory, storage int
 			InitVolumeMap: node.InitVolume,
 			MemCap:        node.MemCap,
 			StorageCap:    node.AvailableStorage(),
-			CPURate:       cpu / float64(len(node.InitCPU)),
-			MemRate:       float64(memory) / float64(node.InitMemCap),
-			StorageRate:   float64(storage) / float64(node.InitStorageCap),
-			CPUUsed:       node.CPUUsed / float64(len(node.InitCPU)),
-			MemUsage:      1.0 - float64(node.MemCap)/float64(node.InitMemCap),
-			StorageUsage:  node.StorageUsage(),
-			Capacity:      0,
-			Count:         0,
-			Deploy:        0,
+			Rates: map[types.ResourceType]float64{
+				types.ResourceCPU:     cpu / float64(len(node.InitCPU)),
+				types.ResourceMemory:  float64(memory) / float64(node.InitMemCap),
+				types.ResourceStorage: float64(storage) / float64(node.InitStorageCap),
+				types.ResourceVolume:  float64(volumeSize) / float64(node.Volume.Total()),
+			},
+			Usages: map[types.ResourceType]float64{
+				types.ResourceCPU:     node.CPUUsed / float64(len(node.InitCPU)),
+				types.ResourceMemory:  1.0 - float64(node.MemCap)/float64(node.InitMemCap),
+				types.ResourceStorage: node.StorageUsage(),
+				types.ResourceVolume:  float64(node.VolumeUsed) / float64(node.Volume.Total()),
+			},
+			Capacity: 0,
+			Count:    0,
+			Deploy:   0,
 		}
 		result = append(result, nodeInfo)
 	}

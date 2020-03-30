@@ -39,13 +39,19 @@ func (c *Calcium) doUnlockAll(locks map[string]lock.DistributedLock) {
 
 func (c *Calcium) withContainerLocked(ctx context.Context, ID string, f func(container *types.Container) error) error {
 	return c.withContainersLocked(ctx, []string{ID}, func(containers map[string]*types.Container) error {
-		return f(containers[ID])
+		if c, ok := containers[ID]; ok {
+			return f(c)
+		}
+		return types.ErrContainerNotExists
 	})
 }
 
 func (c *Calcium) withNodeLocked(ctx context.Context, nodename string, f func(node *types.Node) error) error {
 	return c.withNodesLocked(ctx, "", nodename, nil, true, func(nodes map[string]*types.Node) error {
-		return f(nodes[nodename])
+		if n, ok := nodes[nodename]; ok {
+			return f(n)
+		}
+		return types.ErrNodeNotExists
 	})
 }
 
