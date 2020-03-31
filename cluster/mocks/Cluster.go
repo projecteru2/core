@@ -4,6 +4,7 @@ package mocks
 
 import (
 	context "context"
+	pb "github.com/projecteru2/core/rpc/gen"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	mock "github.com/stretchr/testify/mock"
@@ -560,8 +561,8 @@ func (_m *Cluster) PodResource(ctx context.Context, podname string) (*types.PodR
 }
 
 // ReallocResource provides a mock function with given fields: ctx, IDs, cpu, memory, volumes
-func (_m *Cluster) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64, volumes types.VolumeBindings, bindCpu bool, unbindCpu bool) (chan *types.ReallocResourceMessage, error) {
-	ret := _m.Called(ctx, IDs, cpu, memory, volumes, bindCpu, unbindCpu)
+func (_m *Cluster) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64, volumes types.VolumeBindings, bindCPUOpt pb.BindCPUOpt) (chan *types.ReallocResourceMessage, error) {
+	ret := _m.Called(ctx, IDs, cpu, memory, volumes, bindCPUOpt)
 
 	var r0 chan *types.ReallocResourceMessage
 	if rf, ok := ret.Get(0).(func(context.Context, []string, float64, int64, types.VolumeBindings) chan *types.ReallocResourceMessage); ok {

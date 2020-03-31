@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"context"
+	pb "github.com/projecteru2/core/rpc/gen"
 	"strconv"
 	"strings"
 	"sync"
@@ -22,9 +23,14 @@ type nodeContainers map[string][]*types.Container
 type volCPUMemNodeContainers map[string]map[float64]map[int64]nodeContainers
 
 // ReallocResource allow realloc container resource
-func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64, volumes types.VolumeBindings, bindCPU, unbindCPU bool) (chan *types.ReallocResourceMessage, error) {
-	if bindCPU {
-		unbindCPU = false
+func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64, volumes types.VolumeBindings, bindCPUOpt pb.BindCPUOpt) (chan *types.ReallocResourceMessage, error) {
+	bindCPU := false
+	unbindCPU := false
+	switch bindCPUOpt {
+	case pb.BindCPUOpt_BIND:
+		bindCPU = true
+	case pb.BindCPUOpt_UNBIND:
+		unbindCPU = true
 	}
 	ch := make(chan *types.ReallocResourceMessage)
 	go func() {
