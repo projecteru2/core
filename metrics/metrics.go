@@ -12,10 +12,13 @@ import (
 )
 
 const (
-	cpuMap       = "core.node.%s.cpu.%s"
-	memStats     = "core.node.%s.memory"
-	storageStats = "core.node.%s.storage"
-	deployCount  = "core.%s.deploy.count"
+	cpuMap           = "core.node.%s.cpu.%s"
+	memStats         = "core.node.%s.memory"
+	storageStats     = "core.node.%s.storage"
+	memUsedStats     = "core.node.%s.memory.used"
+	storageUsedStats = "core.node.%s.storage.used"
+	cpuUsedStats     = "core.node.%s.cpu.used"
+	deployCount      = "core.%s.deploy.count"
 )
 
 // Metrics define metrics
@@ -25,8 +28,11 @@ type Metrics struct {
 	statsdClient *statsdlib.Client
 
 	MemoryCapacity  *prometheus.GaugeVec
+	MemoryUsed      *prometheus.GaugeVec
 	StorageCapacity *prometheus.GaugeVec
+	StorageUsed     *prometheus.GaugeVec
 	CPUMap          *prometheus.GaugeVec
+	CPUUsed         *prometheus.GaugeVec
 	DeployCount     *prometheus.CounterVec
 }
 
@@ -69,14 +75,29 @@ func (m *Metrics) SendNodeInfo(node *types.Node) {
 	nodename := utils.CleanStatsdMetrics(node.Name)
 	podname := utils.CleanStatsdMetrics(node.Podname)
 	memory := float64(node.MemCap)
+	memoryUsed := float64(node.InitMemCap - node.MemCap)
 	storage := float64(node.StorageCap)
+	storageUsed := float64(node.InitStorageCap - node.StorageCap)
+	cpuUsed := node.CPUUsed
 
 	if m.MemoryCapacity != nil {
 		m.MemoryCapacity.WithLabelValues(podname, nodename).Set(memory)
 	}
 
+	if m.MemoryUsed != nil {
+		m.MemoryUsed.WithLabelValues(podname, nodename).Set(memoryUsed)
+	}
+
 	if m.StorageCapacity != nil {
 		m.StorageCapacity.WithLabelValues(podname, nodename).Set(storage)
+	}
+
+	if m.StorageUsed != nil {
+		m.StorageUsed.WithLabelValues(podname, nodename).Set(storageUsed)
+	}
+
+	if m.CPUUsed != nil {
+		m.CPUUsed.WithLabelValues(podname, nodename).Set(cpuUsed)
 	}
 
 	for cpuid, value := range node.CPU {
@@ -105,6 +126,18 @@ func (m *Metrics) SendNodeInfo(node *types.Node) {
 
 	if err := m.gauge(fmt.Sprintf(storageStats, nodename), storage); err != nil {
 		log.Errorf("[SendNodeInfo] Error occurred while sending storage data to statsd: %v", err)
+	}
+
+	if err := m.gauge(fmt.Sprintf(memUsedStats, nodename), memoryUsed); err != nil {
+		log.Errorf("[SendNodeInfo] Error occurred while sending memory used data to statsd: %v", err)
+	}
+
+	if err := m.gauge(fmt.Sprintf(storageUsedStats, nodename), storageUsed); err != nil {
+		log.Errorf("[SendNodeInfo] Error occurred while sending storage used data to statsd: %v", err)
+	}
+
+	if err := m.gauge(fmt.Sprintf(cpuUsedStats, nodename), cpuUsed); err != nil {
+		log.Errorf("[SendNodeInfo] Error occurred while sending cpu used data to statsd: %v", err)
 	}
 }
 
@@ -140,15 +173,30 @@ func InitMetrics(statsd string) error {
 		Help: "node available memory.",
 	}, []string{"podname", "nodename"})
 
+	Client.MemoryUsed = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "memory_used",
+		Help: "node used memory.",
+	}, []string{"podname", "nodename"})
+
 	Client.StorageCapacity = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "storage_capacity",
 		Help: "node available storage.",
+	}, []string{"podname", "nodename"})
+
+	Client.StorageUsed = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "storage_used",
+		Help: "node used storage.",
 	}, []string{"podname", "nodename"})
 
 	Client.CPUMap = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "cpu_map",
 		Help: "node available cpu.",
 	}, []string{"podname", "nodename", "cpuid"})
+
+	Client.CPUUsed = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "cpu_used",
+		Help: "node used cpu.",
+	}, []string{"podname", "nodename"})
 
 	Client.DeployCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "core_deploy",
@@ -158,7 +206,7 @@ func InitMetrics(statsd string) error {
 	prometheus.MustRegister(
 		Client.DeployCount, Client.MemoryCapacity,
 		Client.StorageCapacity, Client.CPUMap,
+		Client.MemoryUsed, Client.StorageUsed, Client.CPUUsed,
 	)
-
 	return nil
 }
