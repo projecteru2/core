@@ -213,7 +213,7 @@ message RemoveContainerOptions {
 message DissociateContainerOptions {
     repeated string ids = 1;
 }
-enum BindCPUOpt{
+enum BindCPUOp{
     KEEP =0;
     BIND = 1;
     UNBIND = 2;
@@ -224,7 +224,7 @@ message ReallocOptions {
     double cpu = 2;
     int64 memory = 3;
     repeated string volumes = 4;
-    BindCPUOpt bindCPUOpt =5;
+    BindCPUOp bind_cpu_op =5;
 }
 
 message AddPodOptions {

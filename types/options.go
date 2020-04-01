@@ -114,3 +114,13 @@ type ExecuteContainerOptions struct {
 	OpenStdin   bool
 	ReplCmd     []byte
 }
+
+//BindCPUOption for realloc interface
+type ReallocBindCPUOption int32
+
+const (
+	//keep current setting
+	ReallocBindCPUOption_KEEP ReallocBindCPUOption = iota
+	ReallocBindCPUOption_BIND
+	ReallocBindCPUOption_UNBIND
+)

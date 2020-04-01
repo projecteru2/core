@@ -2,7 +2,6 @@ package calcium
 
 import (
 	"context"
-	pb "github.com/projecteru2/core/rpc/gen"
 	"strconv"
 	"strings"
 	"sync"
@@ -23,15 +22,7 @@ type nodeContainers map[string][]*types.Container
 type volCPUMemNodeContainers map[string]map[float64]map[int64]nodeContainers
 
 // ReallocResource allow realloc container resource
-func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64, volumes types.VolumeBindings, bindCPUOpt pb.BindCPUOpt) (chan *types.ReallocResourceMessage, error) {
-	bindCPU := false
-	unbindCPU := false
-	switch bindCPUOpt {
-	case pb.BindCPUOpt_BIND:
-		bindCPU = true
-	case pb.BindCPUOpt_UNBIND:
-		unbindCPU = true
-	}
+func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64, volumes types.VolumeBindings, bindCPUOpt types.ReallocBindCPUOption) (chan *types.ReallocResourceMessage, error) {
 	ch := make(chan *types.ReallocResourceMessage)
 	go func() {
 		defer close(ch)
@@ -67,7 +58,7 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 			for pod, nodeContainersInfo := range containersInfo {
 				go func(pod *types.Pod, nodeContainersInfo nodeContainers) {
 					defer wg.Done()
-					c.doReallocContainer(ctx, ch, pod, nodeContainersInfo, cpu, memory, volumes, bindCPU, unbindCPU)
+					c.doReallocContainer(ctx, ch, pod, nodeContainersInfo, cpu, memory, volumes, bindCPUOpt)
 				}(pod, nodeContainersInfo)
 			}
 			wg.Wait()
@@ -139,7 +130,7 @@ func (c *Calcium) doReallocContainer(
 	pod *types.Pod,
 	nodeContainersInfo nodeContainers,
 	cpu float64, memory int64, volumes types.VolumeBindings,
-	bindCPU, unbindCPU bool) {
+	bindCPUOpt types.ReallocBindCPUOption) {
 
 	volCPUMemNodeContainersInfo, hardVbsForContainer := calVolCPUMemNodeContainersInfo(ch, nodeContainersInfo, cpu, memory, volumes)
 
@@ -161,11 +152,18 @@ func (c *Calcium) doReallocContainer(
 							if nodeID := node.GetNUMANode(container.CPU); nodeID != "" {
 								node.IncrNUMANodeMemory(nodeID, container.Memory)
 							}
-							if len(container.CPU) > 0 || bindCPU {
+							// cpu 绑定判断
+							switch bindCPUOpt {
+							case types.ReallocBindCPUOption_KEEP:
+								if len(container.CPU) > 0 {
+									containerWithCPUBind++
+								}
+							case types.ReallocBindCPUOption_BIND:
 								containerWithCPUBind++
 							}
+
 						}
-						if unbindCPU {
+						if bindCPUOpt == types.ReallocBindCPUOption_UNBIND {
 							containerWithCPUBind = 0
 						}
 						// 检查内存
@@ -203,7 +201,7 @@ func (c *Calcium) doReallocContainer(
 							Memory: newMemory,
 						}
 
-						if err := c.updateContainersResources(ctx, ch, node, containers, newResource, cpusets, hardVbsForContainer, newAutoVol, bindCPU, unbindCPU); err != nil {
+						if err := c.updateContainersResources(ctx, ch, node, containers, newResource, cpusets, hardVbsForContainer, newAutoVol, bindCPUOpt); err != nil {
 							return err
 						}
 
@@ -230,7 +228,7 @@ func (c *Calcium) doReallocContainer(
 func (c *Calcium) updateContainersResources(ctx context.Context, ch chan *types.ReallocResourceMessage,
 	node *types.Node, containers []*types.Container,
 	newResource *enginetypes.VirtualizationResource,
-	cpusets []types.CPUMap, hardVbsForContainer map[string]types.VolumeBindings, newAutoVol string, bindCPU bool, unbindCPU bool) error {
+	cpusets []types.CPUMap, hardVbsForContainer map[string]types.VolumeBindings, newAutoVol string, bindCPUOpt types.ReallocBindCPUOption) error {
 
 	autoVbs, _ := types.MakeVolumeBindings(strings.Split(newAutoVol, ","))
 	planForContainers, err := c.reallocVolume(node, containers, autoVbs)
@@ -239,7 +237,10 @@ func (c *Calcium) updateContainersResources(ctx context.Context, ch chan *types.
 	}
 
 	for _, container := range containers {
-		if (len(container.CPU) > 0 || bindCPU) && !unbindCPU {
+		// 情况1，原来就有绑定cpu的，保持不变
+		if (len(container.CPU) > 0 && bindCPUOpt == types.ReallocBindCPUOption_KEEP) ||
+			// 情况2，有绑定指令，不管之前有没有cpuMap，都分配
+			bindCPUOpt == types.ReallocBindCPUOption_BIND {
 			newResource.CPU = cpusets[0]
 			newResource.NUMANode = node.GetNUMANode(cpusets[0])
 			cpusets = cpusets[1:]
