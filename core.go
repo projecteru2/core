@@ -46,21 +46,45 @@ func setupLog(l string) error {
 	return nil
 }
 
-func initMetrics(ctx context.Context, statsd string, cluster *calcium.Calcium) error {
-	if err := metrics.InitMetrics(statsd); err != nil {
-		return err
-	}
-	labels := map[string]string{}
-	nodes, err := cluster.GetAllNodes(ctx, labels)
-	if err != nil {
-		return err
-	}
-	for _, node := range nodes {
-		metrics.Client.SendNodeInfo(node)
-	}
+func withUpdateMetrics(ctx context.Context, cluster *calcium.Calcium) func(http.Handler) http.Handler {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			listOfPods, err := cluster.ListPods(ctx)
+			if err != nil {
+				log.Errorf("metrics.Handler: List pods met err %v", err)
+			}
+			for _, pod := range listOfPods {
+				label := map[string]string{}
+				listOfNodes, err := cluster.ListPodNodes(ctx, pod.Name, label, true)
+				if err != nil {
+					log.Errorf("metrics.Handler: List nodes of pod %v met err %v", pod.Name, err)
+				}
+				metrics.Client.UpdatePodMetrics(ctx, pod, listOfNodes)
+			}
 
-	return nil
+			h.ServeHTTP(w, r)
+		})
+	}
 }
+
+// func metricsHandler(ctx context.Context, cluster *calcium.Calcium) http.Handler {
+// 	return func(h http.Handler) http.Handler {
+// 		listOfPods, err := cluster.ListPods(ctx)
+// 		if err != nil {
+// 			log.Errorf("metrics.Handler: List pods met err %v", err)
+// 		}
+// 		for _, pod := range listOfPods {
+// 			label := map[string]string{}
+// 			listOfNodes, err := cluster.ListPodNodes(ctx, pod.Name, label, true)
+// 			if err != nil {
+// 				log.Errorf("metrics.Handler: List nodes of pod %v met err %v", pod.Name, err)
+// 			}
+// 			metrics.Client.UpdatePodMetrics(ctx, pod, listOfNodes)
+// 		}
+
+// 		return promhttp.Handler()
+// 	}
+// }
 
 func serve() {
 	config, err := utils.LoadConfig(configPath)
@@ -72,15 +96,15 @@ func serve() {
 		log.Fatalf("[main] %v", err)
 	}
 
+	if err := metrics.InitMetrics(config.Statsd); err != nil {
+		log.Fatalf("[main] %v", err)
+	}
+
 	cluster, err := calcium.New(config, embeddedStorage)
 	if err != nil {
 		log.Fatalf("[main] %v", err)
 	}
 	defer cluster.Finalizer()
-
-	if err := initMetrics(context.Background(), config.Statsd, cluster); err != nil {
-		log.Fatalf("[main] initMetrics %v", err)
-	}
 
 	rpcch := make(chan struct{}, 1)
 	vibranium := rpc.New(cluster, config, rpcch)
@@ -106,7 +130,7 @@ func serve() {
 	pb.RegisterCoreRPCServer(grpcServer, vibranium)
 	go grpcServer.Serve(s)
 	if config.Profile != "" {
-		http.Handle("/metrics", promhttp.Handler())
+		http.Handle("/metrics", withUpdateMetrics(context.Background(), cluster)(promhttp.Handler()))
 		go http.ListenAndServe(config.Profile, nil)
 	}
 

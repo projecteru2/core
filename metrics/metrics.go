@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -23,6 +24,15 @@ type Metrics struct {
 	StatsdAddr   string
 	Hostname     string
 	statsdClient *statsdlib.Client
+
+	PodAllocatedMemory *prometheus.GaugeVec
+	PodInitMemory      *prometheus.GaugeVec
+
+	PodAllocatedCPU *prometheus.GaugeVec
+	PodInitCPU      *prometheus.GaugeVec
+
+	PodAllocatedStorage *prometheus.GaugeVec
+	PodInitStorage      *prometheus.GaugeVec
 
 	MemoryCapacity  *prometheus.GaugeVec
 	StorageCapacity *prometheus.GaugeVec
@@ -127,6 +137,49 @@ func (m *Metrics) SendDeployCount(n int) {
 // Client is a metrics obj
 var Client = Metrics{}
 
+var needInitNodeStatus = true
+
+// UpdatePodMetrics ...
+func (m *Metrics) UpdatePodMetrics(ctx context.Context, pod *types.Pod, listOfNodes []*types.Node) {
+	initMemory := float64(0)
+	allocatedMemory := float64(0)
+	initCPU := float64(0)
+	allocatedCPU := float64(0)
+	initStorage := float64(0)
+	allocatedStorage := float64(0)
+
+	for _, node := range listOfNodes {
+		if needInitNodeStatus {
+			m.SendNodeInfo(node)
+		}
+		initMemory += float64(node.InitMemCap)
+		allocatedMemory += float64(node.InitMemCap - node.MemCap)
+
+		initCPU += float64(len(node.InitCPU))
+		allocatedCPU += node.CPUUsed
+
+		initStorage += float64(node.InitStorageCap)
+		allocatedStorage += float64(node.InitStorageCap - node.StorageCap)
+	}
+	needInitNodeStatus = false
+
+	if m.PodInitMemory != nil && m.PodAllocatedMemory != nil {
+		m.PodInitMemory.WithLabelValues(pod.Name).Set(initMemory)
+		m.PodAllocatedMemory.WithLabelValues(pod.Name).Set(allocatedMemory)
+	}
+
+	if m.PodInitCPU != nil && m.PodAllocatedCPU != nil {
+		m.PodInitCPU.WithLabelValues(pod.Name).Set(initCPU)
+		m.PodAllocatedCPU.WithLabelValues(pod.Name).Set(allocatedCPU)
+
+	}
+
+	if m.PodInitStorage != nil && m.PodAllocatedStorage != nil {
+		m.PodInitStorage.WithLabelValues(pod.Name).Set(initStorage)
+		m.PodAllocatedStorage.WithLabelValues(pod.Name).Set(allocatedStorage)
+	}
+}
+
 // InitMetrics new a metrics obj
 func InitMetrics(statsd string) error {
 	hostname, err := os.Hostname()
@@ -155,10 +208,42 @@ func InitMetrics(statsd string) error {
 		Help: "core deploy counter",
 	}, []string{"hostname"})
 
+	Client.PodInitMemory = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "pod_init_memory",
+		Help: "pod init memory.",
+	}, []string{"podname"})
+
+	Client.PodAllocatedMemory = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "pod_allocated_memory",
+		Help: "pod allocated memory.",
+	}, []string{"podname"})
+
+	Client.PodInitCPU = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "pod_init_cpu",
+		Help: "pod init cpu.",
+	}, []string{"podname"})
+
+	Client.PodAllocatedCPU = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "pod_allocated_cpu",
+		Help: "pod allocated cpu.",
+	}, []string{"podname"})
+
+	Client.PodInitStorage = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "pod_init_storage",
+		Help: "pod init storage.",
+	}, []string{"podname"})
+
+	Client.PodAllocatedStorage = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "pod_allocated_storage",
+		Help: "pod allocated storage.",
+	}, []string{"podname"})
+
 	prometheus.MustRegister(
 		Client.DeployCount, Client.MemoryCapacity,
 		Client.StorageCapacity, Client.CPUMap,
+		Client.PodAllocatedMemory, Client.PodInitMemory,
+		Client.PodAllocatedCPU, Client.PodInitCPU,
+		Client.PodAllocatedStorage, Client.PodInitStorage,
 	)
-
 	return nil
 }
