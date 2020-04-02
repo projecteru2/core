@@ -590,7 +590,7 @@ func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_R
 	if err != nil {
 		return err
 	}
-	bindCPUOpt := types.ReallocBindCPUOperation(opts.BindCpuOpt)
+	bindCPUOpt := types.BindCPUOptions(opts.BindCpuOpt)
 	//这里不能让 client 打断 remove
 	ch, err := v.cluster.ReallocResource(context.Background(), ids, opts.Cpu, opts.Memory, vbs, bindCPUOpt)
 	if err != nil {

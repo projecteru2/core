@@ -22,7 +22,7 @@ type nodeContainers map[string][]*types.Container
 type volCPUMemNodeContainers map[string]map[float64]map[int64]nodeContainers
 
 // ReallocResource allow realloc container resource
-func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64, volumes types.VolumeBindings, bindCPUOpt types.ReallocBindCPUOperation) (chan *types.ReallocResourceMessage, error) {
+func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64, volumes types.VolumeBindings, bindCPUOpt types.BindCPUOptions) (chan *types.ReallocResourceMessage, error) {
 	ch := make(chan *types.ReallocResourceMessage)
 	go func() {
 		defer close(ch)
@@ -130,7 +130,7 @@ func (c *Calcium) doReallocContainer(
 	pod *types.Pod,
 	nodeContainersInfo nodeContainers,
 	cpu float64, memory int64, volumes types.VolumeBindings,
-	bindCPUOpt types.ReallocBindCPUOperation) {
+	bindCPUOpt types.BindCPUOptions) {
 
 	volCPUMemNodeContainersInfo, hardVbsForContainer := calVolCPUMemNodeContainersInfo(ch, nodeContainersInfo, cpu, memory, volumes)
 
@@ -154,13 +154,13 @@ func (c *Calcium) doReallocContainer(
 							}
 							// cpu 绑定判断
 							switch bindCPUOpt {
-							case types.ReallocBindCPUOperationKeep:
+							case types.BindCPUOptionKeep:
 								if len(container.CPU) > 0 {
 									containerWithCPUBind++
 								}
-							case types.ReallocBindCPUOperationBind:
+							case types.BindCPUOptionBind:
 								containerWithCPUBind++
-							case types.ReallocBindCPUOperationUNBIND:
+							case types.BindCPUOptionUnbind:
 								containerWithCPUBind = 0
 							}
 						}
@@ -227,7 +227,7 @@ func (c *Calcium) doReallocContainer(
 func (c *Calcium) updateContainersResources(ctx context.Context, ch chan *types.ReallocResourceMessage,
 	node *types.Node, containers []*types.Container,
 	newResource *enginetypes.VirtualizationResource,
-	cpusets []types.CPUMap, hardVbsForContainer map[string]types.VolumeBindings, newAutoVol string, bindCPUOpt types.ReallocBindCPUOperation) error {
+	cpusets []types.CPUMap, hardVbsForContainer map[string]types.VolumeBindings, newAutoVol string, bindCPUOpt types.BindCPUOptions) error {
 
 	autoVbs, _ := types.MakeVolumeBindings(strings.Split(newAutoVol, ","))
 	planForContainers, err := c.reallocVolume(node, containers, autoVbs)
@@ -237,9 +237,9 @@ func (c *Calcium) updateContainersResources(ctx context.Context, ch chan *types.
 
 	for _, container := range containers {
 		// 情况1，原来就有绑定cpu的，保持不变
-		if (len(container.CPU) > 0 && bindCPUOpt == types.ReallocBindCPUOperationKeep) ||
+		if (len(container.CPU) > 0 && bindCPUOpt == types.BindCPUOptionKeep) ||
 			// 情况2，有绑定指令，不管之前有没有cpuMap，都分配
-			bindCPUOpt == types.ReallocBindCPUOperationBind {
+			bindCPUOpt == types.BindCPUOptionBind {
 			newResource.CPU = cpusets[0]
 			newResource.NUMANode = node.GetNUMANode(cpusets[0])
 			cpusets = cpusets[1:]
