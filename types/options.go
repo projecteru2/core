@@ -116,11 +116,11 @@ type ExecuteContainerOptions struct {
 }
 
 //BindCPUOption for realloc interface
-type ReallocBindCPUOption int32
+type ReallocBindCPUOperation int32
 
 const (
 	//keep current setting
-	ReallocBindCPUOption_KEEP ReallocBindCPUOption = iota
-	ReallocBindCPUOption_BIND
-	ReallocBindCPUOption_UNBIND
+	ReallocBindCPUOperationKeep ReallocBindCPUOperation = iota
+	ReallocBindCPUOperationBind
+	ReallocBindCPUOperationUNBIND
 )
