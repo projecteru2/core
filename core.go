@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -46,22 +45,6 @@ func setupLog(l string) error {
 	return nil
 }
 
-func initMetrics(ctx context.Context, statsd string, cluster *calcium.Calcium) error {
-	if err := metrics.InitMetrics(statsd); err != nil {
-		return err
-	}
-	labels := map[string]string{}
-	nodes, err := cluster.GetAllNodes(ctx, labels)
-	if err != nil {
-		return err
-	}
-	for _, node := range nodes {
-		metrics.Client.SendNodeInfo(node)
-	}
-
-	return nil
-}
-
 func serve() {
 	config, err := utils.LoadConfig(configPath)
 	if err != nil {
@@ -72,15 +55,15 @@ func serve() {
 		log.Fatalf("[main] %v", err)
 	}
 
+	if err := metrics.InitMetrics(config.Statsd); err != nil {
+		log.Fatalf("[main] %v", err)
+	}
+
 	cluster, err := calcium.New(config, embeddedStorage)
 	if err != nil {
 		log.Fatalf("[main] %v", err)
 	}
 	defer cluster.Finalizer()
-
-	if err := initMetrics(context.Background(), config.Statsd, cluster); err != nil {
-		log.Fatalf("[main] initMetrics %v", err)
-	}
 
 	rpcch := make(chan struct{}, 1)
 	vibranium := rpc.New(cluster, config, rpcch)
@@ -106,7 +89,7 @@ func serve() {
 	pb.RegisterCoreRPCServer(grpcServer, vibranium)
 	go grpcServer.Serve(s)
 	if config.Profile != "" {
-		http.Handle("/metrics", promhttp.Handler())
+		http.Handle("/metrics", metrics.Client.ResourceMiddleware(cluster)(promhttp.Handler()))
 		go http.ListenAndServe(config.Profile, nil)
 	}
 
