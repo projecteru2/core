@@ -184,7 +184,7 @@ func (c *Calcium) doCreateAndStartContainer(
 	defer func() {
 		createContainerMessage.Error = err
 		if !createContainerMessage.Success && container.ID != "" {
-			if err := c.doRemoveContainer(ctx, container, true); err != nil {
+			if err := c.doRemoveContainer(context.Background(), container, true); err != nil {
 				log.Errorf("[doCreateAndStartContainer] create and start container failed, and remove it failed also %v", err)
 				return
 			}
