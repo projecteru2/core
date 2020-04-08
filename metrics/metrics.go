@@ -72,8 +72,9 @@ func (m *Metrics) count(key string, n int, rate float32) error {
 // SendNodeInfo update node resource capacity
 func (m *Metrics) SendNodeInfo(node *types.Node) {
 	log.Debugf("[Metrics] Update %s metrics", node.Name)
-	nodename := utils.CleanStatsdMetrics(node.Name)
-	podname := utils.CleanStatsdMetrics(node.Podname)
+	nodename := node.Name
+	podname := node.Podname
+
 	memory := float64(node.MemCap)
 	memoryUsed := float64(node.InitMemCap - node.MemCap)
 	storage := float64(node.StorageCap)
@@ -100,6 +101,7 @@ func (m *Metrics) SendNodeInfo(node *types.Node) {
 		m.CPUUsed.WithLabelValues(podname, nodename).Set(cpuUsed)
 	}
 
+	cleanedNodeName := utils.CleanStatsdMetrics(nodename)
 	for cpuid, value := range node.CPU {
 		val := float64(value)
 
@@ -111,7 +113,7 @@ func (m *Metrics) SendNodeInfo(node *types.Node) {
 			continue
 		}
 
-		if err := m.gauge(fmt.Sprintf(cpuMap, nodename, cpuid), val); err != nil {
+		if err := m.gauge(fmt.Sprintf(cpuMap, cleanedNodeName, cpuid), val); err != nil {
 			log.Errorf("[SendNodeInfo] Error occurred while sending cpu data to statsd: %v", err)
 		}
 	}
@@ -120,23 +122,23 @@ func (m *Metrics) SendNodeInfo(node *types.Node) {
 		return
 	}
 
-	if err := m.gauge(fmt.Sprintf(memStats, nodename), memory); err != nil {
+	if err := m.gauge(fmt.Sprintf(memStats, cleanedNodeName), memory); err != nil {
 		log.Errorf("[SendNodeInfo] Error occurred while sending memory data to statsd: %v", err)
 	}
 
-	if err := m.gauge(fmt.Sprintf(storageStats, nodename), storage); err != nil {
+	if err := m.gauge(fmt.Sprintf(storageStats, cleanedNodeName), storage); err != nil {
 		log.Errorf("[SendNodeInfo] Error occurred while sending storage data to statsd: %v", err)
 	}
 
-	if err := m.gauge(fmt.Sprintf(memUsedStats, nodename), memoryUsed); err != nil {
+	if err := m.gauge(fmt.Sprintf(memUsedStats, cleanedNodeName), memoryUsed); err != nil {
 		log.Errorf("[SendNodeInfo] Error occurred while sending memory used data to statsd: %v", err)
 	}
 
-	if err := m.gauge(fmt.Sprintf(storageUsedStats, nodename), storageUsed); err != nil {
+	if err := m.gauge(fmt.Sprintf(storageUsedStats, cleanedNodeName), storageUsed); err != nil {
 		log.Errorf("[SendNodeInfo] Error occurred while sending storage used data to statsd: %v", err)
 	}
 
-	if err := m.gauge(fmt.Sprintf(cpuUsedStats, nodename), cpuUsed); err != nil {
+	if err := m.gauge(fmt.Sprintf(cpuUsedStats, cleanedNodeName), cpuUsed); err != nil {
 		log.Errorf("[SendNodeInfo] Error occurred while sending cpu used data to statsd: %v", err)
 	}
 }
