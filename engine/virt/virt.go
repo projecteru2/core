@@ -137,7 +137,7 @@ func (v *Virt) BuildContent(ctx context.Context, scm coresource.Source, opts *en
 
 // VirtualizationCreate creates a guest.
 func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (guest *enginetypes.VirtualizationCreated, err error) {
-	vols, err := v.parseVolumes(opts)
+	vols, err := v.parseVolumes(opts.Volumes)
 	if err != nil {
 		return nil, err
 	}
@@ -236,9 +236,21 @@ func (v *Virt) VirtualizationWait(ctx context.Context, ID, state string) (*engin
 }
 
 // VirtualizationUpdateResource updates resource.
-func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) (err error) {
-	log.Warnf("VirtualizationUpdateResource does not implement")
-	return
+func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error {
+	vols, err := v.parseVolumes(opts.Volumes)
+	if err != nil {
+		return err
+	}
+
+	args := virttypes.ResizeGuestReq{
+		Cpu: int(opts.Quota),
+		Mem: opts.Memory,
+		Volumes: vols,
+	}
+	args.ID = ID
+
+	_, err = v.client.ResizeGuest(ctx, args)
+	return err
 }
 
 // VirtualizationCopyFrom copies from another.
