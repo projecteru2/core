@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
@@ -128,7 +129,17 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		}
 	}
 	if opts.Storage > 0 {
-		rArgs.StorageOpt["size"] = fmt.Sprintf("%v", opts.Storage)
+		volumeTotal := int64(0)
+		for volume, plan := range opts.VolumePlan {
+			if strings.HasPrefix(volume, "AUTO") {
+				for _, size := range plan {
+					volumeTotal += size
+				}
+			}
+		}
+		if opts.Storage-volumeTotal > 0 {
+			rArgs.StorageOpt["size"] = fmt.Sprintf("%v", opts.Storage-volumeTotal)
+		}
 	}
 	// 如果有指定用户，用指定用户
 	// 没有指定用户，用镜像自己的
