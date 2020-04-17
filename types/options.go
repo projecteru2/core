@@ -37,6 +37,7 @@ type DeployOptions struct {
 	Lambda       bool                     // indicate is lambda container or not
 }
 
+// Normalize keeps deploy options consistant
 func (o *DeployOptions) Normalize() {
 	o.Storage += o.Volumes.TotalSize()
 }
