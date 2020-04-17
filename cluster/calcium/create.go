@@ -18,6 +18,7 @@ import (
 
 // CreateContainer use options to create containers
 func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+	opts.Normalize()
 	opts.ProcessIdent = utils.RandomString(16)
 	pod, err := c.store.GetPod(ctx, opts.Podname)
 	if err != nil {
@@ -277,6 +278,7 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, volumeP
 	config.Stdin = opts.OpenStdin
 	config.Hosts = opts.ExtraHosts
 	config.Volumes = opts.Volumes.ApplyPlan(volumePlan).ToStringSlice(false, true)
+	config.VolumePlan = volumePlan.ToLiteral()
 	config.Debug = opts.Debug
 	config.Network = opts.NetworkMode
 	config.Networks = opts.Networks

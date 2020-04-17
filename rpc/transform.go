@@ -264,7 +264,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		CPUQuota:     d.CpuQuota,
 		CPUBind:      d.CpuBind,
 		Memory:       d.Memory,
-		Storage:      d.Storage + vbs.AdditionalStorage(),
+		Storage:      d.Storage,
 		Count:        int(d.Count),
 		Env:          d.Env,
 		DNS:          d.Dns,

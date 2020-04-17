@@ -71,7 +71,6 @@ func (m *Metrics) count(key string, n int, rate float32) error {
 
 // SendNodeInfo update node resource capacity
 func (m *Metrics) SendNodeInfo(node *types.Node) {
-	log.Debugf("[Metrics] Update %s metrics", node.Name)
 	nodename := node.Name
 	podname := node.Podname
 
