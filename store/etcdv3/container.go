@@ -80,13 +80,6 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if lease.ID != 0 {
-			if _, err := m.cliv3.Revoke(ctx, lease.ID); err != nil {
-				log.Errorf("[SetContainerStatus] revoke lease failed %v", err) // ignore revoke lease error
-			}
-		}
-	}()
 	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, val, clientv3.WithLease(lease.ID))}
 	tr, err := m.cliv3.Txn(ctx).
 		If(clientv3.Compare(clientv3.Version(fmt.Sprintf(containerInfoKey, container.ID)), "!=", 0)).
@@ -95,8 +88,8 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 				[]clientv3.Cmp{clientv3.Compare(clientv3.Version(statusKey), "!=", 0)}, // 判断是否有 status key
 				[]clientv3.Op{clientv3.OpTxn( // 有 status key
 					[]clientv3.Cmp{clientv3.Compare(clientv3.Value(statusKey), "=", val)},
-					[]clientv3.Op{clientv3.OpGet(statusKey)},                          // status 没修改，返回 status
-					append([]clientv3.Op{clientv3.OpGet(statusKey)}, updateStatus...), // 内容修改了就换一个 lease
+					[]clientv3.Op{clientv3.OpGet(statusKey)}, // status 没修改，返回 status
+					updateStatus,                             // 内容修改了就换一个 lease
 				)},
 				updateStatus, // 没有 status key
 			),
@@ -113,13 +106,12 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 		return nil
 	}
 	tr3 := tr2.Responses[0].GetResponseTxn()
-	oldLeaseID := clientv3.LeaseID(tr3.Responses[0].GetResponseRange().Kvs[0].Lease) // 拿到 status 绑定的 leaseID
-	if !tr3.Succeeded {                                                              // status 改变了 revoke 老的 lease
-		lease.ID = oldLeaseID
-		return nil
-	} // 没改变就还是 revoke 新的 ID
-	_, err = m.cliv3.KeepAliveOnce(ctx, clientv3.LeaseID(oldLeaseID)) // 刷新 lease
-	return err
+	if tr3.Succeeded {
+		oldLeaseID := clientv3.LeaseID(tr3.Responses[0].GetResponseRange().Kvs[0].Lease) // 拿到 status 绑定的 leaseID
+		_, err := m.cliv3.KeepAliveOnce(ctx, clientv3.LeaseID(oldLeaseID))               // 刷新 lease
+		return err
+	}
+	return nil
 }
 
 // ListContainers list containers
@@ -200,10 +192,7 @@ func (m *Mercury) ContainerStatusStream(ctx context.Context, appname, entrypoint
 			}
 			for _, ev := range resp.Events {
 				_, _, _, ID := parseStatusKey(string(ev.Kv.Key))
-				msg := &types.ContainerStatus{ID: ID}
-				if ev.Type == clientv3.EventTypeDelete {
-					msg.Delete = true
-				}
+				msg := &types.ContainerStatus{ID: ID, Delete: ev.Type == clientv3.EventTypeDelete}
 				if container, err := m.GetContainer(ctx, ID); err != nil {
 					msg.Error = err
 				} else if utils.FilterContainer(container.Labels, labels) {
