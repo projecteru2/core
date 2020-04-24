@@ -130,12 +130,16 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	}
 	if opts.Storage > 0 {
 		volumeTotal := int64(0)
-		for volume, plan := range opts.VolumePlan {
-			if strings.HasPrefix(volume, "AUTO") {
-				for _, size := range plan {
-					volumeTotal += size
-				}
+		for _, v := range opts.Volumes {
+			parts := strings.Split(v, ":")
+			if len(parts) < 4 {
+				continue
 			}
+			size, err := strconv.ParseInt(parts[3], 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			volumeTotal += size
 		}
 		if opts.Storage-volumeTotal > 0 {
 			rArgs.StorageOpt["size"] = fmt.Sprintf("%v", opts.Storage-volumeTotal)
