@@ -151,10 +151,6 @@ func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 func (vbs VolumeBindings) Merge(vbs2 VolumeBindings) (softVolumes VolumeBindings, hardVolumes VolumeBindings, err error) {
 	sizeMap := map[[3]string]int64{} // {["AUTO", "/data", "rw"]: 100}
 	for _, vb := range append(vbs, vbs2...) {
-		if !vb.RequireSchedule() {
-			hardVolumes = append(hardVolumes, vb)
-			continue
-		}
 		key := [3]string{vb.Source, vb.Destination, vb.Flags}
 		if _, ok := sizeMap[key]; ok {
 			sizeMap[key] += vb.SizeInBytes
@@ -167,7 +163,12 @@ func (vbs VolumeBindings) Merge(vbs2 VolumeBindings) (softVolumes VolumeBindings
 		if size < 0 {
 			continue
 		}
-		softVolumes = append(softVolumes, &VolumeBinding{key[0], key[1], key[2], size})
+		vb := &VolumeBinding{key[0], key[1], key[2], size}
+		if strings.HasSuffix(key[0], AUTO) {
+			softVolumes = append(softVolumes, vb)
+		} else {
+			hardVolumes = append(hardVolumes, vb)
+		}
 	}
 	return
 }
