@@ -251,13 +251,13 @@ func (c *Calcium) updateContainersResources(ctx context.Context, ch chan *types.
 			newResource.Volumes = append(newResource.Volumes, autoVbs.ToStringSlice(false, false)...)
 		}
 
+		newResource.SoftLimit = container.SoftLimit
+		newResource.Volumes = append(newResource.Volumes, hardVbsForContainer[container.ID].ToStringSlice(false, false)...)
+
 		newVbs, _ := types.MakeVolumeBindings(newResource.Volumes)
 		if !newVbs.IsEqual(container.Volumes) {
 			newResource.VolumeChanged = true
 		}
-
-		newResource.SoftLimit = container.SoftLimit
-		newResource.Volumes = hardVbsForContainer[container.ID].ToStringSlice(false, false)
 
 		ch <- &types.ReallocResourceMessage{
 			ContainerID: container.ID,
