@@ -3,11 +3,10 @@ package calcium
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
-
-	"github.com/projecteru2/core/source"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
@@ -28,10 +27,17 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *enginetypes.BuildOptions
 	log.Infof("[BuildImage] Building image at pod %s node %s", node.Podname, node.Name)
 	// get refs
 	refs := node.Engine.BuildRefs(ctx, opts.Name, opts.Tags)
-	return c.buildWithContent(ctx, c.source, node, opts, refs,
-		func(resp io.ReadCloser) (chan *types.BuildImageMessage, error) {
-			return c.doBuildImage(ctx, resp, node, refs)
-		})
+
+	switch opts.BuildType() {
+	case enginetypes.BuildFromSCM:
+		return c.buildFromSCM(ctx, node, refs, opts)
+	case enginetypes.BuildFromContent:
+		return c.buildFromContent(ctx, node, refs, opts.Tar)
+	case enginetypes.BuildFromExist:
+		return c.buildFromExist(ctx, node, refs, opts.FromExist)
+	default:
+		return nil, errors.New("unknown build type")
+	}
 }
 
 func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
@@ -53,30 +59,28 @@ func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
 	return c.scheduler.MaxIdleNode(nodes)
 }
 
-func (c *Calcium) buildWithContent(
-	ctx context.Context, source source.Source,
-	node *types.Node, opts *enginetypes.BuildOptions, refs []string,
-	f func(resp io.ReadCloser) (chan *types.BuildImageMessage, error),
-) (chan *types.BuildImageMessage, error) {
-	var err error
-	var path string
-	// support raw build
-	content := opts.Tar
-	if opts.Builds != nil {
-		path, content, err = node.Engine.BuildContent(ctx, source, opts)
-		defer os.RemoveAll(path)
-		if err != nil {
-			return nil, err
-		}
+func (c *Calcium) buildFromSCM(ctx context.Context, node *types.Node, refs []string, opts *enginetypes.BuildOptions) (chan *types.BuildImageMessage, error) {
+	path, content, err := node.Engine.BuildContent(ctx, c.source, opts)
+	defer os.RemoveAll(path)
+	if err != nil {
+		return nil, err
 	}
+	return c.buildFromContent(ctx, node, refs, content)
+}
+
+func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, refs []string, content io.Reader) (chan *types.BuildImageMessage, error) {
 	resp, err := node.Engine.ImageBuild(ctx, content, refs)
 	if err != nil {
 		return nil, err
 	}
-	return f(resp)
+	return c.pushImage(ctx, resp, node, refs)
 }
 
-func (c *Calcium) doBuildImage(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) {
+func (c *Calcium) buildFromExist(ctx context.Context, node *types.Node, refs []string, existID string) (chan *types.BuildImageMessage, error) {
+	return nil, nil
+}
+
+func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) {
 	ch := make(chan *types.BuildImageMessage)
 
 	go func() {
