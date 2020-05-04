@@ -298,8 +298,11 @@ message BuildImageOptions {
     string user = 2;
     int32 uid = 3;
     repeated string tags = 4;
-    Builds builds = 5;
     bytes tar = 6;
+    oneof build_args {
+        Builds builds = 5;
+        string from_exist = 7;
+    }
 }
 
 message HookOptions {
