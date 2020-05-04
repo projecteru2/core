@@ -34,7 +34,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *enginetypes.BuildOptions
 	case enginetypes.BuildFromContent:
 		return c.buildFromContent(ctx, node, refs, opts.Tar)
 	case enginetypes.BuildFromExist:
-		return c.buildFromExist(ctx, node, refs, opts.FromExist)
+		return c.buildFromExist(ctx, node, refs[0], opts.FromExist)
 	default:
 		return nil, errors.New("unknown build type")
 	}
@@ -76,16 +76,20 @@ func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, refs [
 	return c.pushImage(ctx, resp, node, refs)
 }
 
-func (c *Calcium) buildFromExist(ctx context.Context, node *types.Node, refs []string, existID string) (chan *types.BuildImageMessage, error) {
-	return nil, nil
+func (c *Calcium) buildFromExist(ctx context.Context, node *types.Node, ref, existID string) (chan *types.BuildImageMessage, error) {
+	return withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
+		imageID, err := node.Engine.ImageBuildFromExist(ctx, existID, ref)
+		if err != nil {
+			ch <- &types.BuildImageMessage{Error: err.Error()}
+			return
+		}
+		ch <- &types.BuildImageMessage{ID: imageID}
+	}), nil
 }
 
 func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) {
-	ch := make(chan *types.BuildImageMessage)
-
-	go func() {
+	return withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
 		defer resp.Close()
-		defer close(ch)
 		decoder := json.NewDecoder(resp)
 		var lastMessage *types.BuildImageMessage
 		for {
@@ -160,7 +164,15 @@ func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types
 
 			ch <- &types.BuildImageMessage{Stream: fmt.Sprintf("finished %s\n", tag), Status: "finished", Progress: tag}
 		}
-	}()
+	}), nil
 
-	return ch, nil
+}
+
+func withImageBuiltChannel(f func(chan *types.BuildImageMessage)) chan *types.BuildImageMessage {
+	ch := make(chan *types.BuildImageMessage)
+	go func() {
+		defer close(ch)
+		f(ch)
+	}()
+	return ch
 }
