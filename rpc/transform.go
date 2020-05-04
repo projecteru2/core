@@ -151,21 +151,21 @@ func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) {
 	return r, nil
 }
 
-func toCoreBuildOptions(b *pb.BuildImageOptions) (*enginetypes.BuildOptions, error) {
-	var builds *enginetypes.Builds
+func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
+	var builds *types.Builds
 	if b.GetBuilds() != nil {
 		if len(b.GetBuilds().Stages) == 0 {
 			return nil, types.ErrNoBuildsInSpec
 		}
-		builds = &enginetypes.Builds{
+		builds = &types.Builds{
 			Stages: b.GetBuilds().Stages,
 		}
-		builds.Builds = map[string]*enginetypes.Build{}
+		builds.Builds = map[string]*types.Build{}
 		for stage, p := range b.GetBuilds().Builds {
 			if p == nil {
 				return nil, types.ErrNoBuildSpec
 			}
-			builds.Builds[stage] = &enginetypes.Build{
+			builds.Builds[stage] = &types.Build{
 				Base:       p.Base,
 				Repo:       p.Repo,
 				Version:    p.Version,
@@ -182,14 +182,26 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) (*enginetypes.BuildOptions, err
 			}
 		}
 	}
-	return &enginetypes.BuildOptions{
-		Name:      b.Name,
-		User:      b.User,
-		UID:       int(b.Uid),
-		Tags:      b.Tags,
-		Builds:    builds,
-		Tar:       bytes.NewReader(b.Tar),
-		FromExist: b.GetFromExist(),
+
+	var buildMethod types.BuildMethod
+	switch b.GetBuildMethod() {
+	case pb.BuildImageOptions_SCM:
+		buildMethod = types.BuildFromSCM
+	case pb.BuildImageOptions_RAW:
+		buildMethod = types.BuildFromRaw
+	case pb.BuildImageOptions_EXIST:
+		buildMethod = types.BuildFromExist
+	}
+
+	return &types.BuildOptions{
+		Name:        b.Name,
+		User:        b.User,
+		UID:         int(b.Uid),
+		Tags:        b.Tags,
+		BuildMethod: buildMethod,
+		Builds:      builds,
+		Tar:         bytes.NewReader(b.Tar),
+		ExistID:     b.GetExistId(),
 	}, nil
 }
 

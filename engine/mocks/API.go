@@ -15,18 +15,18 @@ type API struct {
 }
 
 // BuildContent provides a mock function with given fields: ctx, scm, opts
-func (_m *API) BuildContent(ctx context.Context, scm source.Source, opts *types.BuildOptions) (string, io.Reader, error) {
+func (_m *API) BuildContent(ctx context.Context, scm source.Source, opts *types.BuildContentOptions) (string, io.Reader, error) {
 	ret := _m.Called(ctx, scm, opts)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(context.Context, source.Source, *types.BuildOptions) string); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, source.Source, *types.BuildContentOptions) string); ok {
 		r0 = rf(ctx, scm, opts)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 io.Reader
-	if rf, ok := ret.Get(1).(func(context.Context, source.Source, *types.BuildOptions) io.Reader); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, source.Source, *types.BuildContentOptions) io.Reader); ok {
 		r1 = rf(ctx, scm, opts)
 	} else {
 		if ret.Get(1) != nil {
@@ -35,7 +35,7 @@ func (_m *API) BuildContent(ctx context.Context, scm source.Source, opts *types.
 	}
 
 	var r2 error
-	if rf, ok := ret.Get(2).(func(context.Context, source.Source, *types.BuildOptions) error); ok {
+	if rf, ok := ret.Get(2).(func(context.Context, source.Source, *types.BuildContentOptions) error); ok {
 		r2 = rf(ctx, scm, opts)
 	} else {
 		r2 = ret.Error(2)

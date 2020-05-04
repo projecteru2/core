@@ -1,15 +1,6 @@
 package types
 
-import "io"
-
-type BuildType int
-
-const (
-	BuildFromUnknown BuildType = iota
-	BuildFromSCM
-	BuildFromContent
-	BuildFromExist
-)
+type BuildMethod int
 
 // Image contain image meta data
 type Image struct {
@@ -17,31 +8,10 @@ type Image struct {
 	Tags []string
 }
 
-// BuildOptions is options for building image
-type BuildOptions struct {
-	Name string
+type BuildContentOptions struct {
 	User string
 	UID  int
-	Tags []string
-	// used for BuildContent + BuildImage (BuildFromSCM)
-	Builds *Builds
-	// used for BuildImage (BuildFromContent)
-	Tar io.Reader
-	// used for BuildFromExist
-	FromExist string `yaml:"from_exist,omitempty"`
-}
-
-func (o *BuildOptions) BuildType() BuildType {
-	if o.FromExist != "" {
-		return BuildFromExist
-	}
-	if o.Tar != nil {
-		return BuildFromContent
-	}
-	if o.Builds != nil {
-		return BuildFromSCM
-	}
-	return BuildFromUnknown
+	*Builds
 }
 
 // Builds define builds

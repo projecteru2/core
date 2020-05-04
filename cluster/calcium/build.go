@@ -14,7 +14,7 @@ import (
 )
 
 // BuildImage will build image
-func (c *Calcium) BuildImage(ctx context.Context, opts *enginetypes.BuildOptions) (chan *types.BuildImageMessage, error) {
+func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
 	// Disable build API if scm not set
 	if c.source == nil {
 		return nil, types.ErrSCMNotSet
@@ -28,13 +28,13 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *enginetypes.BuildOptions
 	// get refs
 	refs := node.Engine.BuildRefs(ctx, opts.Name, opts.Tags)
 
-	switch opts.BuildType() {
-	case enginetypes.BuildFromSCM:
+	switch opts.BuildMethod {
+	case types.BuildFromSCM:
 		return c.buildFromSCM(ctx, node, refs, opts)
-	case enginetypes.BuildFromContent:
+	case types.BuildFromRaw:
 		return c.buildFromContent(ctx, node, refs, opts.Tar)
-	case enginetypes.BuildFromExist:
-		return c.buildFromExist(ctx, node, refs[0], opts.FromExist)
+	case types.BuildFromExist:
+		return c.buildFromExist(ctx, node, refs[0], opts.ExistID)
 	default:
 		return nil, errors.New("unknown build type")
 	}
@@ -59,8 +59,13 @@ func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
 	return c.scheduler.MaxIdleNode(nodes)
 }
 
-func (c *Calcium) buildFromSCM(ctx context.Context, node *types.Node, refs []string, opts *enginetypes.BuildOptions) (chan *types.BuildImageMessage, error) {
-	path, content, err := node.Engine.BuildContent(ctx, c.source, opts)
+func (c *Calcium) buildFromSCM(ctx context.Context, node *types.Node, refs []string, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
+	buildContentOpts := &enginetypes.BuildContentOptions{
+		User:   opts.User,
+		UID:    opts.UID,
+		Builds: opts.Builds,
+	}
+	path, content, err := node.Engine.BuildContent(ctx, c.source, buildContentOpts)
 	defer os.RemoveAll(path)
 	if err != nil {
 		return nil, err

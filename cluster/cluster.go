@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
 )
@@ -76,7 +77,7 @@ type Cluster interface {
 	Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error)
 	Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error)
 	// image methods
-	BuildImage(ctx context.Context, opts *enginetypes.BuildOptions) (chan *types.BuildImageMessage, error)
+	BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error)
 	CacheImage(ctx context.Context, podname, nodenmae string, images []string, step int) (chan *types.CacheImageMessage, error)
 	RemoveImage(ctx context.Context, podname, nodename string, images []string, step int, prune bool) (chan *types.RemoveImageMessage, error)
 	// container methods

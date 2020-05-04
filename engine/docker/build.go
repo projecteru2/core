@@ -64,7 +64,7 @@ func (e *Engine) BuildRefs(ctx context.Context, name string, tags []string) []st
 //
 //    buildDir ├─ :appname ├─ code
 //             ├─ Dockerfile
-func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildOptions) (string, io.Reader, error) {
+func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildContentOptions) (string, io.Reader, error) {
 	if opts.Builds == nil {
 		return "", nil, coretypes.ErrNoBuildsInSpec
 	}
@@ -83,7 +83,7 @@ func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *
 	return buildDir, tar, err
 }
 
-func (e *Engine) makeDockerFile(opts *types.BuildOptions, scm coresource.Source, buildDir string) error {
+func (e *Engine) makeDockerFile(opts *types.BuildContentOptions, scm coresource.Source, buildDir string) error {
 	var preCache map[string]string
 	var preStage string
 	var buildTmpl []string

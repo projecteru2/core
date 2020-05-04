@@ -195,7 +195,7 @@ func makeCommonPart(build *enginetypes.Build) (string, error) {
 	return out.String(), nil
 }
 
-func makeUserPart(opts *enginetypes.BuildOptions) (string, error) {
+func makeUserPart(opts *enginetypes.BuildContentOptions) (string, error) {
 	tmpl := template.Must(template.New("user").Parse(userTmpl))
 	out := bytes.Buffer{}
 	if err := tmpl.Execute(&out, opts); err != nil {
@@ -204,7 +204,7 @@ func makeUserPart(opts *enginetypes.BuildOptions) (string, error) {
 	return out.String(), nil
 }
 
-func makeMainPart(opts *enginetypes.BuildOptions, build *enginetypes.Build, from string, commands, copys []string) (string, error) {
+func makeMainPart(_ *enginetypes.BuildContentOptions, build *enginetypes.Build, from string, commands, copys []string) (string, error) {
 	var buildTmpl []string
 	common, err := makeCommonPart(build)
 	if err != nil {

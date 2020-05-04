@@ -74,7 +74,7 @@ func (s *SSHClient) BuildRefs(ctx context.Context, name string, tags []string) (
 }
 
 // BuildContent builds image content
-func (s *SSHClient) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildOptions) (dir string, reader io.Reader, err error) {
+func (s *SSHClient) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildContentOptions) (dir string, reader io.Reader, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
