@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
-	enginetypes "github.com/projecteru2/core/engine/types"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -27,11 +26,12 @@ const (
 func TestBuild(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	opts := &enginetypes.BuildOptions{
-		Name: "xx",
-		Builds: &enginetypes.Builds{
+	opts := &types.BuildOptions{
+		Name:        "xx",
+		BuildMethod: types.BuildFromSCM,
+		Builds: &types.Builds{
 			Stages: []string{"compile", "build"},
-			Builds: map[string]*enginetypes.Build{
+			Builds: map[string]*types.Build{
 				"compile": {
 					Base:      base,
 					Repo:      repo,
@@ -123,8 +123,9 @@ func TestBuild(t *testing.T) {
 	engine.On("ImageBuildCachePrune", mock.Anything, mock.Anything).Return(uint64(1024), nil)
 	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", nil, nil)
 	ch, err = c.BuildImage(ctx, opts)
-	assert.NoError(t, err)
-	for range ch {
-		assert.NoError(t, err)
+	if assert.NoError(t, err) {
+		for range ch {
+			assert.NoError(t, err)
+		}
 	}
 }
