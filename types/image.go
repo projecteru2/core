@@ -10,8 +10,9 @@ import (
 type BuildMethod int
 
 const (
-	BuildFromUnknown BuildMethod = iota
-	BuildFromSCM
+	// BuildFromSCM must be default method to avoid breaking
+	BuildFromSCM BuildMethod = iota
+	BuildFromUnknown
 	BuildFromRaw
 	BuildFromExist
 )
