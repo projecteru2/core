@@ -300,6 +300,13 @@ message BuildImageOptions {
     repeated string tags = 4;
     Builds builds = 5;
     bytes tar = 6;
+    enum BuildMethod {
+        SCM = 0;
+        RAW = 1;
+        EXIST = 2;
+    }
+    BuildMethod build_method = 7;
+    string exist_id = 8;
 }
 
 message HookOptions {

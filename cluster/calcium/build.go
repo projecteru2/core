@@ -3,11 +3,10 @@ package calcium
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
-
-	"github.com/projecteru2/core/source"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
@@ -15,7 +14,7 @@ import (
 )
 
 // BuildImage will build image
-func (c *Calcium) BuildImage(ctx context.Context, opts *enginetypes.BuildOptions) (chan *types.BuildImageMessage, error) {
+func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
 	// Disable build API if scm not set
 	if c.source == nil {
 		return nil, types.ErrSCMNotSet
@@ -28,10 +27,17 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *enginetypes.BuildOptions
 	log.Infof("[BuildImage] Building image at pod %s node %s", node.Podname, node.Name)
 	// get refs
 	refs := node.Engine.BuildRefs(ctx, opts.Name, opts.Tags)
-	return c.buildWithContent(ctx, c.source, node, opts, refs,
-		func(resp io.ReadCloser) (chan *types.BuildImageMessage, error) {
-			return c.doBuildImage(ctx, resp, node, refs)
-		})
+
+	switch opts.BuildMethod {
+	case types.BuildFromSCM:
+		return c.buildFromSCM(ctx, node, refs, opts)
+	case types.BuildFromRaw:
+		return c.buildFromContent(ctx, node, refs, opts.Tar)
+	case types.BuildFromExist:
+		return c.buildFromExist(ctx, node, refs[0], opts.ExistID)
+	default:
+		return nil, errors.New("unknown build type")
+	}
 }
 
 func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
@@ -53,35 +59,46 @@ func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
 	return c.scheduler.MaxIdleNode(nodes)
 }
 
-func (c *Calcium) buildWithContent(
-	ctx context.Context, source source.Source,
-	node *types.Node, opts *enginetypes.BuildOptions, refs []string,
-	f func(resp io.ReadCloser) (chan *types.BuildImageMessage, error),
-) (chan *types.BuildImageMessage, error) {
-	var err error
-	var path string
-	// support raw build
-	content := opts.Tar
-	if opts.Builds != nil {
-		path, content, err = node.Engine.BuildContent(ctx, source, opts)
-		defer os.RemoveAll(path)
-		if err != nil {
-			return nil, err
-		}
+func (c *Calcium) buildFromSCM(ctx context.Context, node *types.Node, refs []string, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
+	buildContentOpts := &enginetypes.BuildContentOptions{
+		User:   opts.User,
+		UID:    opts.UID,
+		Builds: opts.Builds,
 	}
+	path, content, err := node.Engine.BuildContent(ctx, c.source, buildContentOpts)
+	defer os.RemoveAll(path)
+	if err != nil {
+		return nil, err
+	}
+	return c.buildFromContent(ctx, node, refs, content)
+}
+
+func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, refs []string, content io.Reader) (chan *types.BuildImageMessage, error) {
 	resp, err := node.Engine.ImageBuild(ctx, content, refs)
 	if err != nil {
 		return nil, err
 	}
-	return f(resp)
+	return c.pushImage(ctx, resp, node, refs)
 }
 
-func (c *Calcium) doBuildImage(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) {
-	ch := make(chan *types.BuildImageMessage)
+func (c *Calcium) buildFromExist(ctx context.Context, node *types.Node, ref, existID string) (chan *types.BuildImageMessage, error) {
+	return withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
+		imageID, err := node.Engine.ImageBuildFromExist(ctx, existID, ref)
+		if err != nil {
+			message := &types.BuildImageMessage{
+				Error: err.Error(),
+			}
+			message.ErrorDetail.Message = err.Error()
+			ch <- message
+			return
+		}
+		ch <- &types.BuildImageMessage{ID: imageID}
+	}), nil
+}
 
-	go func() {
+func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) {
+	return withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
 		defer resp.Close()
-		defer close(ch)
 		decoder := json.NewDecoder(resp)
 		var lastMessage *types.BuildImageMessage
 		for {
@@ -156,7 +173,15 @@ func (c *Calcium) doBuildImage(ctx context.Context, resp io.ReadCloser, node *ty
 
 			ch <- &types.BuildImageMessage{Stream: fmt.Sprintf("finished %s\n", tag), Status: "finished", Progress: tag}
 		}
-	}()
+	}), nil
 
-	return ch, nil
+}
+
+func withImageBuiltChannel(f func(chan *types.BuildImageMessage)) chan *types.BuildImageMessage {
+	ch := make(chan *types.BuildImageMessage)
+	go func() {
+		defer close(ch)
+		f(ch)
+	}()
+	return ch
 }

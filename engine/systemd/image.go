@@ -44,6 +44,12 @@ func (s *SSHClient) ImageBuild(ctx context.Context, input io.Reader, refs []stri
 	return
 }
 
+// ImageBuildFromExist won't work for systemd engine
+func (s *SSHClient) ImageBuildFromExist(ctx context.Context, ID, name string) (imageID string, err error) {
+	err = types.ErrEngineNotImplemented
+	return
+}
+
 // ImageBuildCachePrune prunes cache
 func (s *SSHClient) ImageBuildCachePrune(ctx context.Context, all bool) (reclaimedInBytes uint64, err error) {
 	err = types.ErrEngineNotImplemented
@@ -68,7 +74,7 @@ func (s *SSHClient) BuildRefs(ctx context.Context, name string, tags []string) (
 }
 
 // BuildContent builds image content
-func (s *SSHClient) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildOptions) (dir string, reader io.Reader, err error) {
+func (s *SSHClient) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildContentOptions) (dir string, reader io.Reader, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }

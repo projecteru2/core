@@ -44,6 +44,12 @@ func (v *Virt) ImageBuild(ctx context.Context, input io.Reader, refs []string) (
 	return
 }
 
+// ImageBuildFromExist builds vm image from running vm
+func (v *Virt) ImageBuildFromExist(ctx context.Context, ID, name string) (imageID string, err error) {
+	log.Warnf("does not implement")
+	return
+}
+
 // ImageBuildCachePrune prunes cached one.
 func (v *Virt) ImageBuildCachePrune(ctx context.Context, all bool) (reclaimed uint64, err error) {
 	log.Warnf("does not implement")

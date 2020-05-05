@@ -9,6 +9,7 @@ import (
 	dockerfilters "github.com/docker/docker/api/types/filters"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/types"
 )
 
 // ImageList list image
@@ -114,6 +115,11 @@ func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string)
 		return nil, err
 	}
 	return resp.Body, nil
+}
+
+// ImageBuildFromExist commits image from running container
+func (e *Engine) ImageBuildFromExist(ctx context.Context, ID, name string) (imageID string, err error) {
+	return "", types.ErrEngineNotImplemented
 }
 
 // ImageBuildCachePrune prune build cache

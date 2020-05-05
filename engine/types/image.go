@@ -1,6 +1,6 @@
 package types
 
-import "io"
+type BuildMethod int
 
 // Image contain image meta data
 type Image struct {
@@ -8,14 +8,10 @@ type Image struct {
 	Tags []string
 }
 
-// BuildOptions is options for building image
-type BuildOptions struct {
-	Name   string
-	User   string
-	UID    int
-	Tags   []string
-	Builds *Builds
-	Tar    io.Reader
+type BuildContentOptions struct {
+	User string
+	UID  int
+	*Builds
 }
 
 // Builds define builds

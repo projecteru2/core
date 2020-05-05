@@ -31,9 +31,10 @@ type API interface {
 	ImageBuildCachePrune(ctx context.Context, all bool) (uint64, error)
 	ImageLocalDigests(ctx context.Context, image string) ([]string, error)
 	ImageRemoteDigest(ctx context.Context, image string) (string, error)
+	ImageBuildFromExist(ctx context.Context, ID, name string) (string, error)
 
 	BuildRefs(ctx context.Context, name string, tags []string) []string
-	BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildOptions) (string, io.Reader, error)
+	BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildContentOptions) (string, io.Reader, error)
 
 	VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error)
 	VirtualizationCopyTo(ctx context.Context, ID, target string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) error
