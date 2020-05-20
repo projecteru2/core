@@ -28,6 +28,22 @@ mock: deps
 	mockery -dir ./vendor/google.golang.org/grpc -name ServerStream -output 3rdmocks
 	mockery -dir vendor/github.com/docker/docker/client -name APIClient -output engine/docker/mocks
 
+.ONESHELL:
+libgit2:
+	cd /tmp
+	rm -fr libgit2-0.28.5.tar.gz libgit2-0.28.5
+	curl -Lv -O https://github.com/libgit2/libgit2/releases/download/v0.28.5/libgit2-0.28.5.tar.gz
+	tar xvfz libgit2-0.28.5.tar.gz
+	mkdir -p libgit2-0.28.5/build
+	cd libgit2-0.28.5/build
+	cmake ..
+	cmake --build .
+	sudo cp libgit2.pc /usr/lib/pkgconfig/
+	sudo cp libgit2.so.0.28.5 /usr/lib
+	sudo ln -s /usr/lib/libgit2.so.0.28.5 /usr/lib/libgit2.so.28
+	sudo ln -s /usr/lib/libgit2.so.28 /usr/lib/libgit2.so
+	sudo cp -aR ../include/* /usr/local/include/
+
 cloc:
 	cloc --exclude-dir=vendor,3rdmocks,mocks,tools --not-match-f=test .
 
