@@ -24,7 +24,9 @@ func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration
 
 func (c *Calcium) doUnlock(lock lock.DistributedLock, msg string) error {
 	log.Debugf("[doUnlock] Unlock %s", msg)
-	return lock.Unlock(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
+	defer cancel()
+	return lock.Unlock(ctx)
 }
 
 func (c *Calcium) doUnlockAll(locks map[string]lock.DistributedLock) {

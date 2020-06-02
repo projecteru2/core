@@ -63,8 +63,13 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 		for _, nodeInfo := range nodesInfo {
 			go metrics.Client.SendDeployCount(nodeInfo.Deploy)
 			go func(nodeInfo types.NodeInfo, index int) {
-				defer wg.Done()
-				defer c.store.DeleteProcessing(context.Background(), opts, nodeInfo)
+				defer func() {
+					ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
+					defer cancel()
+					c.store.DeleteProcessing(ctx, opts, nodeInfo)
+					wg.Done()
+				}()
+
 				messages := c.doCreateContainerOnNode(ctx, nodeInfo, opts, index)
 				for i, m := range messages {
 					ch <- m
@@ -185,7 +190,9 @@ func (c *Calcium) doCreateAndStartContainer(
 	defer func() {
 		createContainerMessage.Error = err
 		if !createContainerMessage.Success && container.ID != "" {
-			if err := c.doRemoveContainer(context.Background(), container, true); err != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
+			defer cancel()
+			if err := c.doRemoveContainer(ctx, container, true); err != nil {
 				log.Errorf("[doCreateAndStartContainer] create and start container failed, and remove it failed also %v", err)
 				return
 			}
