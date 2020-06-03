@@ -205,6 +205,9 @@ func (c *Calcium) doReallocContainer(
 							return err
 						}
 
+						// since we don't rollback VirutalUpdateResource, client can't interrupt
+						ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
+						defer cancel()
 						if err := c.store.UpdateNode(ctx, node); err != nil {
 							log.Errorf("[doReallocContainer] Realloc finish but update node %s failed %s", node.Name, err)
 							litter.Dump(node)

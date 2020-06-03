@@ -595,9 +595,7 @@ func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_R
 	}
 	bindCPUOpt := types.BindCPUOptions(opts.BindCpuOpt)
 	//这里不能让 client 打断 remove
-	ctx, cancel := context.WithTimeout(context.Background(), v.config.GlobalTimeout)
-	defer cancel()
-	ch, err := v.cluster.ReallocResource(ctx, ids, opts.Cpu, opts.Memory, vbs, bindCPUOpt)
+	ch, err := v.cluster.ReallocResource(stream.Context(), ids, opts.Cpu, opts.Memory, vbs, bindCPUOpt)
 	if err != nil {
 		return err
 	}
