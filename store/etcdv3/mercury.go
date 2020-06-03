@@ -97,6 +97,8 @@ func (m *Mercury) CreateLock(key string, ttl time.Duration) (lock.DistributedLoc
 
 // Get get results or noting
 func (m *Mercury) Get(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.GetResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, m.config.GlobalTimeout)
+	defer cancel()
 	return m.cliv3.Get(ctx, key, opts...)
 }
 
@@ -136,11 +138,15 @@ func (m *Mercury) GetMulti(ctx context.Context, keys []string, opts ...clientv3.
 
 // Delete delete key
 func (m *Mercury) Delete(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.DeleteResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, m.config.GlobalTimeout)
+	defer cancel()
 	return m.cliv3.Delete(ctx, key, opts...)
 }
 
 // Put save a key value
 func (m *Mercury) Put(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, m.config.GlobalTimeout)
+	defer cancel()
 	return m.cliv3.Put(ctx, key, val, opts...)
 }
 
@@ -253,6 +259,8 @@ func (m *Mercury) doBatchOp(ctx context.Context, conds []clientv3.Cmp, ops, fail
 	errs := make([]error, length)
 
 	wg := sync.WaitGroup{}
+	ctx, cancel := context.WithTimeout(ctx, m.config.GlobalTimeout)
+	defer cancel()
 	doOp := func(index int, ops []clientv3.Op) {
 		defer wg.Done()
 		txn := m.cliv3.Txn(ctx)

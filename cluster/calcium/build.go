@@ -159,9 +159,7 @@ func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types
 			// 一样就砍死
 			go func(tag string) {
 				// context 这里的不应该受到 client 的影响
-				ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
-				defer cancel()
-				_, err := node.Engine.ImageRemove(ctx, tag, false, true)
+				_, err := node.Engine.ImageRemove(context.Background(), tag, false, true)
 				if err != nil {
 					log.Errorf("[BuildImage] Remove image error: %s", err)
 				}

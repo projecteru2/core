@@ -302,9 +302,7 @@ func (c *Calcium) updateResource(ctx context.Context, node *types.Node, containe
 	}
 	// 更新 container 元数据
 	// since we don't rollback VirutalUpdateResource, client can't interrupt
-	ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
-	defer cancel()
-	if err := c.store.UpdateContainer(ctx, container); err != nil {
+	if err := c.store.UpdateContainer(context.Background(), container); err != nil {
 		log.Errorf("[updateResource] Realloc finish but update container %s failed %v", container.ID, err)
 
 		return err

@@ -41,9 +41,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 
 		lambda := func(message *types.CreateContainerMessage) {
 			defer func() {
-				ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
-				defer cancel()
-				c.doRemoveContainerSync(ctx, []string{message.ContainerID})
+				c.doRemoveContainerSync(context.Background(), []string{message.ContainerID})
 				log.Infof("[RunAndWait] Container %s finished and removed", utils.ShortID(message.ContainerID))
 				wg.Done()
 			}()

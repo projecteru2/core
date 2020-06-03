@@ -64,9 +64,7 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 			go metrics.Client.SendDeployCount(nodeInfo.Deploy)
 			go func(nodeInfo types.NodeInfo, index int) {
 				defer func() {
-					ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
-					defer cancel()
-					c.store.DeleteProcessing(ctx, opts, nodeInfo)
+					c.store.DeleteProcessing(context.Background(), opts, nodeInfo)
 					wg.Done()
 				}()
 
@@ -158,21 +156,22 @@ func (c *Calcium) doCreateAndStartContainer(
 	volumePlan types.VolumePlan,
 ) *types.CreateContainerMessage {
 	container := &types.Container{
-		Podname:    opts.Podname,
-		Nodename:   node.Name,
-		CPU:        cpu,
-		Quota:      opts.CPUQuota,
-		Memory:     opts.Memory,
-		Storage:    opts.Storage,
-		Hook:       opts.Entrypoint.Hook,
-		Privileged: opts.Entrypoint.Privileged,
-		Engine:     node.Engine,
-		SoftLimit:  opts.SoftLimit,
-		Image:      opts.Image,
-		Env:        opts.Env,
-		User:       opts.User,
-		Volumes:    opts.Volumes,
-		VolumePlan: volumePlan,
+		Podname:          opts.Podname,
+		Nodename:         node.Name,
+		CPU:              cpu,
+		Quota:            opts.CPUQuota,
+		Memory:           opts.Memory,
+		Storage:          opts.Storage,
+		Hook:             opts.Entrypoint.Hook,
+		Privileged:       opts.Entrypoint.Privileged,
+		Engine:           node.Engine,
+		SoftLimit:        opts.SoftLimit,
+		Image:            opts.Image,
+		Env:              opts.Env,
+		User:             opts.User,
+		Volumes:          opts.Volumes,
+		VolumePlan:       volumePlan,
+		OperationTimeout: c.config.GlobalTimeout,
 	}
 	createContainerMessage := &types.CreateContainerMessage{
 		Podname:    container.Podname,
@@ -190,9 +189,7 @@ func (c *Calcium) doCreateAndStartContainer(
 	defer func() {
 		createContainerMessage.Error = err
 		if !createContainerMessage.Success && container.ID != "" {
-			ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
-			defer cancel()
-			if err := c.doRemoveContainer(ctx, container, true); err != nil {
+			if err := c.doRemoveContainer(context.Background(), container, true); err != nil {
 				log.Errorf("[doCreateAndStartContainer] create and start container failed, and remove it failed also %v", err)
 				return
 			}
