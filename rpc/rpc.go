@@ -510,10 +510,7 @@ func (v *Vibranium) RemoveContainer(opts *pb.RemoveContainerOptions, stream pb.C
 	if len(ids) == 0 {
 		return types.ErrNoContainerIDs
 	}
-	// client can't interrupt as there's no way to counteract removing
-	ctx, cancel := context.WithTimeout(context.Background(), v.config.GlobalTimeout)
-	defer cancel()
-	ch, err := v.cluster.RemoveContainer(ctx, ids, force, step)
+	ch, err := v.cluster.RemoveContainer(stream.Context(), ids, force, step)
 	if err != nil {
 		return err
 	}
@@ -537,10 +534,7 @@ func (v *Vibranium) DissociateContainer(opts *pb.DissociateContainerOptions, str
 		return types.ErrNoContainerIDs
 	}
 
-	//这里不能让 client 打断 remove
-	ctx, cancel := context.WithTimeout(context.Background(), v.config.GlobalTimeout)
-	defer cancel()
-	ch, err := v.cluster.DissociateContainer(ctx, ids)
+	ch, err := v.cluster.DissociateContainer(stream.Context(), ids)
 	if err != nil {
 		return err
 	}

@@ -133,27 +133,24 @@ func (c *Calcium) doReplaceContainer(
 	}
 
 	createMessage := &types.CreateContainerMessage{}
-	return createMessage, removeMessage, utils.Transaction(
+	return createMessage, removeMessage, c.Transaction(
+		ctx,
 		// if
-		func() (err error) {
+		func(ctx context.Context) (err error) {
 			removeMessage.Hook, err = c.doStopContainer(ctx, container, opts.IgnoreHook)
 			return
 		},
-
 		// then
-		func() error {
-			return utils.Transaction(
+		func(ctx context.Context) error {
+			return c.Transaction(
+				ctx,
 				// if
-				func() error {
+				func(ctx context.Context) error {
 					createMessage = c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU, container.VolumePlan)
 					return createMessage.Error
 				},
-
 				// then
-				func() (_ error) {
-					// forbid being interrupted by client
-					ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
-					defer cancel()
+				func(ctx context.Context) (_ error) {
 					if err := c.doRemoveContainer(ctx, container, true); err != nil {
 						log.Errorf("[replaceAndRemove] the new started but the old failed to stop")
 						return
@@ -161,14 +158,12 @@ func (c *Calcium) doReplaceContainer(
 					removeMessage.Success = true
 					return
 				},
-
 				// else
 				nil,
 			)
 		},
-
 		// else
-		func() (err error) {
+		func(ctx context.Context) (err error) {
 			messages, err := c.doStartContainer(ctx, container, opts.IgnoreHook)
 			log.Errorf("[replaceAndRemove] Old container %s restart failed %v", container.ID, err)
 			removeMessage.Hook = append(removeMessage.Hook, messages...)
