@@ -131,29 +131,49 @@ func (c *Calcium) doReplaceContainer(
 		}
 		opts.DeployOptions.Data[dst] = bytes.NewReader(bs)
 	}
-	// 停止容器
-	removeMessage.Hook, err = c.doStopContainer(ctx, container, opts.IgnoreHook)
-	if err != nil {
-		return nil, removeMessage, err
-	}
-	// 不涉及资源消耗，创建容器失败会被回收容器而不回收资源
-	// 创建成功容器会干掉之前的老容器也不会动资源，实际上实现了动态捆绑
-	createMessage := c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU, container.VolumePlan)
-	if createMessage.Error != nil {
-		// 重启老容器
-		message, err := c.doStartContainer(ctx, container, opts.IgnoreHook)
-		removeMessage.Hook = append(removeMessage.Hook, message...)
-		if err != nil {
+
+	createMessage := &types.CreateContainerMessage{}
+	return createMessage, removeMessage, utils.Transaction(
+		// if
+		func() (err error) {
+			removeMessage.Hook, err = c.doStopContainer(ctx, container, opts.IgnoreHook)
+			return
+		},
+
+		// then
+		func() error {
+			return utils.Transaction(
+				// if
+				func() error {
+					createMessage = c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU, container.VolumePlan)
+					return createMessage.Error
+				},
+
+				// then
+				func() (_ error) {
+					// forbid being interrupted by client
+					ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
+					defer cancel()
+					if err := c.doRemoveContainer(ctx, container, true); err != nil {
+						log.Errorf("[replaceAndRemove] the new started but the old failed to stop")
+						return
+					}
+					removeMessage.Success = true
+					return
+				},
+
+				// else
+				nil,
+			)
+		},
+
+		// else
+		func() (err error) {
+			messages, err := c.doStartContainer(ctx, container, opts.IgnoreHook)
 			log.Errorf("[replaceAndRemove] Old container %s restart failed %v", container.ID, err)
+			removeMessage.Hook = append(removeMessage.Hook, messages...)
 			removeMessage.Hook = append(removeMessage.Hook, bytes.NewBufferString(err.Error()))
-		}
-		return nil, removeMessage, createMessage.Error
-	}
-	// 干掉老的
-	if err = c.doRemoveContainer(ctx, container, true); err != nil {
-		log.Errorf("[replaceAndRemove] Old container %s remove failed %v", container.ID, err)
-		return createMessage, removeMessage, err
-	}
-	removeMessage.Success = true
-	return createMessage, removeMessage, nil
+			return
+		},
+	)
 }
