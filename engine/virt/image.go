@@ -3,10 +3,14 @@ package virt
 import (
 	"context"
 	"io"
+	"path/filepath"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
+
+	virttypes "github.com/projecteru2/libyavirt/types"
 )
 
 // ImageList lists images.
@@ -45,9 +49,24 @@ func (v *Virt) ImageBuild(ctx context.Context, input io.Reader, refs []string) (
 }
 
 // ImageBuildFromExist builds vm image from running vm
-func (v *Virt) ImageBuildFromExist(ctx context.Context, ID, name string) (imageID string, err error) {
-	log.Warnf("does not implement")
-	return
+func (v *Virt) ImageBuildFromExist(ctx context.Context, ID, name string) (string, error) {
+	// TODO: removes below 2 lines
+	// upper layer may remove 'hub.docker.io/...../<name>' prefix and tag from the name.
+	// due to the domain and tag both are docker concepts.
+	// Removes domain part. 
+	name = filepath.Base(name)
+	// Removes tag (latest by default)
+	name = strings.Split(name, ":")[0]
+
+	req := virttypes.CaptureGuestReq{Name: name}
+	req.ID = ID
+
+	uimg, err := v.client.CaptureGuest(ctx, req)
+	if err != nil {
+		return "", err
+	}
+
+	return uimg.Name, nil
 }
 
 // ImageBuildCachePrune prunes cached one.

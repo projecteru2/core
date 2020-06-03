@@ -34,7 +34,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 	case types.BuildFromRaw:
 		return c.buildFromContent(ctx, node, refs, opts.Tar)
 	case types.BuildFromExist:
-		return c.buildFromExist(ctx, node, refs[0], opts.ExistID)
+		return c.buildFromExist(ctx, refs[0], opts.ExistID)
 	default:
 		return nil, errors.New("unknown build type")
 	}
@@ -81,17 +81,26 @@ func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, refs [
 	return c.pushImage(ctx, resp, node, refs)
 }
 
-func (c *Calcium) buildFromExist(ctx context.Context, node *types.Node, ref, existID string) (chan *types.BuildImageMessage, error) {
+func (c *Calcium) buildFromExist(ctx context.Context, ref, existID string) (chan *types.BuildImageMessage, error) {
+	buildErrMsg := func(err error) *types.BuildImageMessage {
+		msg := &types.BuildImageMessage{Error: err.Error()}
+		msg.ErrorDetail.Message = err.Error()
+		return msg
+	}
+
 	return withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
-		imageID, err := node.Engine.ImageBuildFromExist(ctx, existID, ref)
+		node, err := c.getContainerNode(ctx, existID)
 		if err != nil {
-			message := &types.BuildImageMessage{
-				Error: err.Error(),
-			}
-			message.ErrorDetail.Message = err.Error()
-			ch <- message
+			ch <- buildErrMsg(err)
 			return
 		}
+
+		imageID, err := node.Engine.ImageBuildFromExist(ctx, existID, ref)
+		if err != nil {
+			ch <- buildErrMsg(err)
+			return
+		}
+
 		ch <- &types.BuildImageMessage{ID: imageID}
 	}), nil
 }

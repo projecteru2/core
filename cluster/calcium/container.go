@@ -19,6 +19,14 @@ func (c *Calcium) ListNodeContainers(ctx context.Context, nodename string, label
 	return c.store.ListNodeContainers(ctx, nodename, labels)
 }
 
+func (c *Calcium) getContainerNode(ctx context.Context, ID string) (*types.Node, error) {
+	con, err := c.GetContainer(ctx, ID)
+	if err != nil {
+		return nil, err
+	}
+	return c.GetNode(ctx, con.Nodename)
+}
+
 // GetContainer get a container
 func (c *Calcium) GetContainer(ctx context.Context, ID string) (*types.Container, error) {
 	return c.store.GetContainer(ctx, ID)
