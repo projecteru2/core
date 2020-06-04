@@ -24,7 +24,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		return nil, types.ErrRunAndWaitCountOneWithStdin
 	}
 
-	log.Info("in creating")
 	createChan, err := c.CreateContainer(ctx, opts)
 	if err != nil {
 		log.Errorf("[RunAndWait] Create container error %s", err)

@@ -24,6 +24,8 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 				var message []*bytes.Buffer
 				err := c.withContainerLocked(ctx, ID, func(container *types.Container) error {
 					var err error
+					ctx, cancel := context.WithTimeout(ctx, c.config.GlobalTimeout)
+					defer cancel()
 					switch t {
 					case cluster.ContainerStop:
 						message, err = c.doStopContainer(ctx, container, force)
@@ -61,9 +63,7 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 }
 
 func (c *Calcium) doStartContainer(ctx context.Context, container *types.Container, force bool) (message []*bytes.Buffer, err error) {
-	startCtx, cancel := context.WithTimeout(ctx, c.config.GlobalTimeout)
-	defer cancel()
-	if err = container.Start(startCtx); err != nil {
+	if err = container.Start(ctx); err != nil {
 		return message, err
 	}
 	// TODO healthcheck
@@ -96,9 +96,7 @@ func (c *Calcium) doStopContainer(ctx context.Context, container *types.Containe
 	// 这里 block 的问题很严重，按照目前的配置是 5 分钟一级的 block
 	// 一个简单的处理方法是相信 ctx 不相信 engine 自身的处理
 	// 另外我怀疑 engine 自己的 timeout 实现是完全的等 timeout 而非结束了就退出
-	stopCtx, cancel := context.WithTimeout(ctx, c.config.GlobalTimeout)
-	defer cancel()
-	if err = container.Stop(stopCtx); err != nil {
+	if err = container.Stop(ctx); err != nil {
 		message = append(message, bytes.NewBufferString(err.Error()))
 	}
 	return message, err

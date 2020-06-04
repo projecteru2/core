@@ -64,10 +64,6 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool,
 }
 
 func (c *Calcium) doRemoveContainer(ctx context.Context, container *types.Container, force bool) error {
-	if err := container.Remove(ctx, force); err != nil {
-		return err
-	}
-
 	return c.Transaction(
 		ctx,
 		// if
