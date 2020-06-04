@@ -122,6 +122,7 @@ func TestReplaceContainer(t *testing.T) {
 	opts.DeployOptions.Data = map[string]*bytes.Reader{}
 	// failed by Stop
 	engine.On("VirtualizationStop", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
+	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
 	ch, err = c.ReplaceContainer(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {

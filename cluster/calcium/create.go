@@ -63,8 +63,11 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 		for _, nodeInfo := range nodesInfo {
 			go metrics.Client.SendDeployCount(nodeInfo.Deploy)
 			go func(nodeInfo types.NodeInfo, index int) {
-				defer wg.Done()
-				defer c.store.DeleteProcessing(context.Background(), opts, nodeInfo)
+				defer func() {
+					c.store.DeleteProcessing(context.Background(), opts, nodeInfo)
+					wg.Done()
+				}()
+
 				messages := c.doCreateContainerOnNode(ctx, nodeInfo, opts, index)
 				for i, m := range messages {
 					ch <- m

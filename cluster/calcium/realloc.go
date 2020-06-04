@@ -201,15 +201,23 @@ func (c *Calcium) doReallocContainer(
 							Memory: newMemory,
 						}
 
-						if err := c.updateContainersResources(ctx, ch, node, containers, newResource, cpusets, hardVbsForContainer, newAutoVol, bindCPUOpt); err != nil {
-							return err
-						}
-
-						if err := c.store.UpdateNode(ctx, node); err != nil {
-							log.Errorf("[doReallocContainer] Realloc finish but update node %s failed %s", node.Name, err)
-							litter.Dump(node)
-						}
-						return nil
+						return c.Transaction(
+							ctx,
+							// if
+							func(ctx context.Context) error {
+								return c.updateContainersResources(ctx, ch, node, containers, newResource, cpusets, hardVbsForContainer, newAutoVol, bindCPUOpt)
+							},
+							// then
+							func(ctx context.Context) (err error) {
+								if err = c.store.UpdateNode(ctx, node); err != nil {
+									log.Errorf("[doReallocContainer] Realloc finish but update node %s failed %s", node.Name, err)
+									litter.Dump(node)
+								}
+								return
+							},
+							// rollback
+							nil,
+						)
 					}); err != nil {
 						for _, container := range containers {
 							log.Errorf("[doReallocContainer] Realloc container %v failed: %v", container.ID, err)
@@ -293,7 +301,8 @@ func (c *Calcium) updateResource(ctx context.Context, node *types.Node, containe
 		node.DecrNUMANodeMemory(nodeID, container.Memory)
 	}
 	// 更新 container 元数据
-	if err := c.store.UpdateContainer(ctx, container); err != nil {
+	// since we don't rollback VirutalUpdateResource, client can't interrupt
+	if err := c.store.UpdateContainer(context.Background(), container); err != nil {
 		log.Errorf("[updateResource] Realloc finish but update container %s failed %v", container.ID, err)
 
 		return err

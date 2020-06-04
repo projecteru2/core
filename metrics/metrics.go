@@ -23,6 +23,8 @@ const (
 
 // Metrics define metrics
 type Metrics struct {
+	Config types.Config
+
 	StatsdAddr   string
 	Hostname     string
 	statsdClient *statsdlib.Client
@@ -162,12 +164,16 @@ func (m *Metrics) SendDeployCount(n int) {
 var Client = Metrics{}
 
 // InitMetrics new a metrics obj
-func InitMetrics(statsd string) error {
+func InitMetrics(config types.Config) error {
 	hostname, err := os.Hostname()
 	if err != nil {
 		return err
 	}
-	Client = Metrics{StatsdAddr: statsd, Hostname: utils.CleanStatsdMetrics(hostname)}
+	Client = Metrics{
+		Config:     config,
+		StatsdAddr: config.Statsd,
+		Hostname:   utils.CleanStatsdMetrics(hostname),
+	}
 
 	Client.MemoryCapacity = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "memory_capacity",

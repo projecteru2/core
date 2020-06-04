@@ -34,7 +34,8 @@ func GetEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 	if !ok {
 		return nil, types.ErrNotSupport
 	}
-	return e(ctx, config, nodename, endpoint, ca, cert, key)
+	api, err := e(ctx, config, nodename, endpoint, ca, cert, key)
+	return engine.WithGlobalTimeout(api, config.GlobalTimeout), err
 }
 
 func getEnginePrefix(endpoint string) (string, error) {

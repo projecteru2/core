@@ -55,7 +55,7 @@ func serve() {
 		log.Fatalf("[main] %v", err)
 	}
 
-	if err := metrics.InitMetrics(config.Statsd); err != nil {
+	if err := metrics.InitMetrics(config); err != nil {
 		log.Fatalf("[main] %v", err)
 	}
 

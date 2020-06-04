@@ -31,18 +31,26 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool,
 				success := false
 				if err := c.withContainerLocked(ctx, ID, func(container *types.Container) error {
 					return c.withNodeLocked(ctx, container.Nodename, func(node *types.Node) (err error) {
-						if err = c.doRemoveContainer(ctx, container, force); err != nil {
-							return err
-						}
-						log.Infof("[RemoveContainer] Container %s removed", container.ID)
-						if err = c.store.UpdateNodeResource(ctx, node, container.CPU, container.Quota, container.Memory, container.Storage, container.VolumePlan.IntoVolumeMap(), store.ActionIncr); err == nil {
-							success = true
-						}
-						return err
+						return c.Transaction(
+							ctx,
+							// if
+							func(ctx context.Context) error {
+								return c.doRemoveContainer(ctx, container, force)
+							},
+							// then
+							func(ctx context.Context) error {
+								log.Infof("[RemoveContainer] Container %s removed", container.ID)
+								return c.store.UpdateNodeResource(ctx, node, container.CPU, container.Quota, container.Memory, container.Storage, container.VolumePlan.IntoVolumeMap(), store.ActionIncr)
+							},
+							// rollback
+							nil,
+						)
 					})
 				}); err != nil {
 					log.Errorf("[RemoveContainer] Remove container %s failed, err: %v", ID, err)
 					output = append(output, bytes.NewBufferString(err.Error()))
+				} else {
+					success = true
 				}
 				ch <- &types.RemoveContainerMessage{ContainerID: ID, Success: success, Hook: output}
 			}(ID)
@@ -56,11 +64,20 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool,
 }
 
 func (c *Calcium) doRemoveContainer(ctx context.Context, container *types.Container, force bool) error {
-	if err := container.Remove(ctx, force); err != nil {
-		return err
-	}
+	return c.Transaction(
+		ctx,
+		// if
+		func(ctx context.Context) error {
+			return container.Remove(ctx, force)
+		},
+		// then
+		func(ctx context.Context) error {
+			return c.store.RemoveContainer(ctx, container)
+		},
+		// rollback
+		nil,
+	)
 
-	return c.store.RemoveContainer(ctx, container)
 }
 
 // 同步地删除容器, 在某些需要等待的场合异常有用!

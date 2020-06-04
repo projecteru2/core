@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -32,7 +33,7 @@ func (d *dummyLock) Unlock(ctx context.Context) error {
 
 func NewTestCluster() *Calcium {
 	c := &Calcium{}
-	c.config = types.Config{}
+	c.config = types.Config{GlobalTimeout: 30 * time.Second}
 	c.store = &storemocks.Store{}
 	c.scheduler = &schedulermocks.Scheduler{}
 	c.source = &sourcemocks.Source{}

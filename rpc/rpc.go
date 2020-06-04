@@ -460,8 +460,7 @@ func (v *Vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 		return err
 	}
 
-	// 这里考虑用全局 Background
-	ch, err := v.cluster.CreateContainer(context.Background(), deployOpts)
+	ch, err := v.cluster.CreateContainer(stream.Context(), deployOpts)
 	if err != nil {
 		return err
 	}
@@ -485,8 +484,7 @@ func (v *Vibranium) ReplaceContainer(opts *pb.ReplaceOptions, stream pb.CoreRPC_
 		return err
 	}
 
-	// 这里考虑用全局 Background
-	ch, err := v.cluster.ReplaceContainer(context.Background(), replaceOpts)
+	ch, err := v.cluster.ReplaceContainer(stream.Context(), replaceOpts)
 	if err != nil {
 		return err
 	}
@@ -512,8 +510,7 @@ func (v *Vibranium) RemoveContainer(opts *pb.RemoveContainerOptions, stream pb.C
 	if len(ids) == 0 {
 		return types.ErrNoContainerIDs
 	}
-	//这里不能让 client 打断 remove
-	ch, err := v.cluster.RemoveContainer(context.Background(), ids, force, step)
+	ch, err := v.cluster.RemoveContainer(stream.Context(), ids, force, step)
 	if err != nil {
 		return err
 	}
@@ -537,8 +534,7 @@ func (v *Vibranium) DissociateContainer(opts *pb.DissociateContainerOptions, str
 		return types.ErrNoContainerIDs
 	}
 
-	//这里不能让 client 打断 remove
-	ch, err := v.cluster.DissociateContainer(context.Background(), ids)
+	ch, err := v.cluster.DissociateContainer(stream.Context(), ids)
 	if err != nil {
 		return err
 	}
@@ -593,7 +589,7 @@ func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_R
 	}
 	bindCPUOpt := types.BindCPUOptions(opts.BindCpuOpt)
 	//这里不能让 client 打断 remove
-	ch, err := v.cluster.ReallocResource(context.Background(), ids, opts.Cpu, opts.Memory, vbs, bindCPUOpt)
+	ch, err := v.cluster.ReallocResource(stream.Context(), ids, opts.Cpu, opts.Memory, vbs, bindCPUOpt)
 	if err != nil {
 		return err
 	}

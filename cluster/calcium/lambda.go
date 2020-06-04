@@ -24,9 +24,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		return nil, types.ErrRunAndWaitCountOneWithStdin
 	}
 
-	// 不能让 context 作祟
-	backgroundCtx := context.Background()
-	createChan, err := c.CreateContainer(backgroundCtx, opts)
+	createChan, err := c.CreateContainer(ctx, opts)
 	if err != nil {
 		log.Errorf("[RunAndWait] Create container error %s", err)
 		return nil, err
@@ -41,9 +39,11 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		}
 
 		lambda := func(message *types.CreateContainerMessage) {
-			defer wg.Done()
-			defer log.Infof("[RunAndWait] Container %s finished and removed", utils.ShortID(message.ContainerID))
-			defer c.doRemoveContainerSync(backgroundCtx, []string{message.ContainerID})
+			defer func() {
+				c.doRemoveContainerSync(context.Background(), []string{message.ContainerID})
+				log.Infof("[RunAndWait] Container %s finished and removed", utils.ShortID(message.ContainerID))
+				wg.Done()
+			}()
 
 			container, err := c.GetContainer(ctx, message.ContainerID)
 			if err != nil {
