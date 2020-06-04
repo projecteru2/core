@@ -39,15 +39,11 @@ func (a *TimeoutAPI) ExecCreate(ctx context.Context, target string, config *engi
 
 // ExecAttach .
 func (a *TimeoutAPI) ExecAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error) {
-	ctx, cancel := context.WithTimeout(ctx, a.timeout)
-	defer cancel()
 	return a.api.ExecAttach(ctx, execID, tty)
 }
 
 // Execute .
 func (a *TimeoutAPI) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, io.ReadCloser, io.WriteCloser, error) {
-	ctx, cancel := context.WithTimeout(ctx, a.timeout)
-	defer cancel()
 	return a.api.Execute(ctx, target, config)
 }
 
@@ -214,15 +210,11 @@ func (a *TimeoutAPI) VirtualizationInspect(ctx context.Context, ID string) (*eng
 
 // VirtualizationLogs .
 func (a *TimeoutAPI) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (io.ReadCloser, error) {
-	ctx, cancel := context.WithTimeout(ctx, a.timeout)
-	defer cancel()
 	return a.api.VirtualizationLogs(ctx, opts)
 }
 
 // VirtualizationAttach .
 func (a *TimeoutAPI) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (io.ReadCloser, io.WriteCloser, error) {
-	ctx, cancel := context.WithTimeout(ctx, a.timeout)
-	defer cancel()
 	return a.api.VirtualizationAttach(ctx, ID, stream, stdin)
 }
 

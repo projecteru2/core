@@ -18,10 +18,7 @@ func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration
 	}
 	ctx, cancel := context.WithTimeout(ctx, c.config.GlobalTimeout)
 	defer cancel()
-	if err = lock.Lock(ctx); err != nil {
-		return nil, err
-	}
-	return lock, nil
+	return lock, lock.Lock(ctx)
 }
 
 func (c *Calcium) doUnlock(ctx context.Context, lock lock.DistributedLock, msg string) error {
