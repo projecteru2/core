@@ -27,7 +27,7 @@ func (c *Calcium) Transaction(ctx context.Context, cond contextFunc, then contex
 		}
 	}()
 
-	if tnxErr = cond(ctx); tnxErr != nil {
+	if tnxErr = cond(ctx); tnxErr == nil {
 		// no rollback and forbid interrupting further process
 		var cancel context.CancelFunc
 		if rollback == nil {

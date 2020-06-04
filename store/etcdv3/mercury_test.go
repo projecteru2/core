@@ -14,6 +14,7 @@ import (
 func NewMercury(t *testing.T) *Mercury {
 	config := types.Config{}
 	config.LockTimeout = 10 * time.Second
+	config.GlobalTimeout = 30 * time.Second
 	config.Etcd = types.EtcdConfig{
 		Machines:   []string{"127.0.0.1:2379"},
 		Prefix:     "/eru-test",

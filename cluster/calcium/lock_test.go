@@ -44,7 +44,7 @@ func TestDoUnlockAll(t *testing.T) {
 
 	// failed
 	lock.On("Unlock", mock.Anything).Return(types.ErrNoETCD)
-	c.doUnlockAll(locks)
+	c.doUnlockAll(context.Background(), locks)
 }
 
 func TestWithContainersLocked(t *testing.T) {

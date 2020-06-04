@@ -150,8 +150,8 @@ func (c *Calcium) doReplaceContainer(
 					return createMessage.Error
 				},
 				// then
-				func(ctx context.Context) (_ error) {
-					if err := c.doRemoveContainer(ctx, container, true); err != nil {
+				func(ctx context.Context) (err error) {
+					if err = c.doRemoveContainer(ctx, container, true); err != nil {
 						log.Errorf("[replaceAndRemove] the new started but the old failed to stop")
 						return
 					}
@@ -167,7 +167,9 @@ func (c *Calcium) doReplaceContainer(
 			messages, err := c.doStartContainer(ctx, container, opts.IgnoreHook)
 			log.Errorf("[replaceAndRemove] Old container %s restart failed %v", container.ID, err)
 			removeMessage.Hook = append(removeMessage.Hook, messages...)
-			removeMessage.Hook = append(removeMessage.Hook, bytes.NewBufferString(err.Error()))
+			if err != nil {
+				removeMessage.Hook = append(removeMessage.Hook, bytes.NewBufferString(err.Error()))
+			}
 			return
 		},
 	)
