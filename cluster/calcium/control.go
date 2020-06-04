@@ -24,8 +24,6 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 				var message []*bytes.Buffer
 				err := c.withContainerLocked(ctx, ID, func(container *types.Container) error {
 					var err error
-					ctx, cancel := context.WithTimeout(ctx, c.config.GlobalTimeout)
-					defer cancel()
 					switch t {
 					case cluster.ContainerStop:
 						message, err = c.doStopContainer(ctx, container, force)
