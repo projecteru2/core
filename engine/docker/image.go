@@ -146,7 +146,36 @@ func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string)
 
 // ImageBuildFromExist commits image from running container
 func (e *Engine) ImageBuildFromExist(ctx context.Context, ID, name string) (imageID string, err error) {
-	return "", types.ErrEngineNotImplemented
+	opts := dockertypes.ContainerCommitOptions{
+		Reference: name,
+		Author:    "eru-core",
+	}
+	resp, err := e.client.ContainerCommit(ctx, ID, opts)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		if _, err := e.ImageRemove(context.Background(), resp.ID, true, true); err != nil {
+			log.Errorf("[ImageBuildFromExist] failed to remove built image %s: %+v", resp.ID, err)
+			return
+		}
+		if _, err := e.ImageBuildCachePrune(context.Background(), true); err != nil {
+			log.Errorf("[ImageBuildFromExist] failed to clean build cache: %+v", err)
+		}
+	}()
+
+	ch, err := e.ImagePush(ctx, name)
+	if err != nil {
+		return "", err
+	}
+
+	for m := range ch {
+		if m.Error != "" {
+			return "", fmt.Errorf("failed to push image %s: %s", name, m.Error)
+		}
+	}
+
+	return resp.ID, nil
 }
 
 // ImageBuildCachePrune prune build cache
