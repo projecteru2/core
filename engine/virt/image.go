@@ -37,7 +37,7 @@ func (v *Virt) ImagePull(ctx context.Context, ref string, all bool) (stream io.R
 }
 
 // ImagePush pushes to central image registry.
-func (v *Virt) ImagePush(ctx context.Context, ref string) (rc io.ReadCloser, err error) {
+func (v *Virt) ImagePush(ctx context.Context, ref string) (rc chan *enginetypes.PushImageMessage, err error) {
 	log.Warnf("does not implement")
 	return
 }
@@ -53,7 +53,7 @@ func (v *Virt) ImageBuildFromExist(ctx context.Context, ID, name string) (string
 	// TODO: removes below 2 lines
 	// upper layer may remove 'hub.docker.io/...../<name>' prefix and tag from the name.
 	// due to the domain and tag both are docker concepts.
-	// Removes domain part. 
+	// Removes domain part.
 	name = filepath.Base(name)
 	// Removes tag (latest by default)
 	name = strings.Split(name, ":")[0]

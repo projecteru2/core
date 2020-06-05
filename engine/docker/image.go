@@ -2,14 +2,15 @@ package docker
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 
 	dockertypes "github.com/docker/docker/api/types"
 	dockerfilters "github.com/docker/docker/api/types/filters"
+	log "github.com/sirupsen/logrus"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/types"
 )
 
 // ImageList list image
@@ -76,13 +77,39 @@ func (e *Engine) ImagePull(ctx context.Context, ref string, all bool) (io.ReadCl
 }
 
 // ImagePush push image
-func (e *Engine) ImagePush(ctx context.Context, ref string) (io.ReadCloser, error) {
+func (e *Engine) ImagePush(ctx context.Context, ref string) (chan *enginetypes.PushImageMessage, error) {
 	auth, err := makeEncodedAuthConfigFromRemote(e.config.Docker.AuthConfigs, ref)
 	if err != nil {
 		return nil, err
 	}
 	pushOptions := dockertypes.ImagePushOptions{RegistryAuth: auth}
-	return e.client.ImagePush(ctx, ref, pushOptions)
+	reader, err := e.client.ImagePush(ctx, ref, pushOptions)
+
+	ch := make(chan *enginetypes.PushImageMessage)
+	go func() {
+		defer close(ch)
+		defer reader.Close()
+
+		decoder := json.NewDecoder(reader)
+		for {
+			message := &enginetypes.PushImageMessage{}
+			err := decoder.Decode(message)
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				malformed := []byte{}
+				_, _ = decoder.Buffered().Read(malformed)
+				log.Errorf("[BuildImage] Decode push image message failed %v, buffered: %v", err, malformed)
+				message.Error = err.Error()
+				ch <- message
+				break
+			}
+			ch <- message
+		}
+	}()
+
+	return ch, err
 }
 
 // ImageBuild build image

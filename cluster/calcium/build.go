@@ -140,27 +140,20 @@ func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types
 		for i := range tags {
 			tag := tags[i]
 			log.Infof("[BuildImage] Push image %s", tag)
-			rc, err := node.Engine.ImagePush(ctx, tag)
+			pushCh, err := node.Engine.ImagePush(ctx, tag)
 			if err != nil {
 				ch <- makeErrorBuildImageMessage(err)
 				continue
 			}
-			defer rc.Close()
 
-			decoder2 := json.NewDecoder(rc)
-			for {
-				message := &types.BuildImageMessage{}
-				err := decoder2.Decode(message)
-				if err != nil {
-					if err == io.EOF {
-						break
-					}
-					malformed := []byte{}
-					_, _ = decoder2.Buffered().Read(malformed)
-					log.Errorf("[BuildImage] Decode push image message failed %v, buffered: %v", err, malformed)
-					break
+			for m := range pushCh {
+				ch <- &types.BuildImageMessage{
+					ID:       m.ID,
+					Status:   m.Status,
+					Progress: m.Progress,
+					Error:    m.Error,
+					Stream:   m.Stream,
 				}
-				ch <- message
 			}
 
 			// 无论如何都删掉build机器的
