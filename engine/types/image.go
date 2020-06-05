@@ -43,10 +43,9 @@ type ErrorDetail struct {
 }
 
 type PushImageMessage struct {
-	ID          string      `json:"id,omitempty"`
-	Status      string      `json:"status,omitempty"`
-	Progress    string      `json:"progress,omitempty"`
-	Error       string      `json:"error,omitempty"`
-	Stream      string      `json:"stream,omitempty"`
-	ErrorDetail ErrorDetail `json:"errorDetail,omitempty"`
+	Stream   string `json:"stream,omitempty"`
+	Status   string `json:"status,omitempty"`
+	Progress string `json:"progress,omitempty"`
+	ID       string `json:"id,omitempty"`
+	Error    string `json:"error,omitempty"`
 }

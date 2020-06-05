@@ -322,15 +322,15 @@ func (_m *API) ImagePull(ctx context.Context, ref string, all bool) (io.ReadClos
 }
 
 // ImagePush provides a mock function with given fields: ctx, ref
-func (_m *API) ImagePush(ctx context.Context, ref string) (io.ReadCloser, error) {
+func (_m *API) ImagePush(ctx context.Context, ref string) (chan *types.PushImageMessage, error) {
 	ret := _m.Called(ctx, ref)
 
-	var r0 io.ReadCloser
-	if rf, ok := ret.Get(0).(func(context.Context, string) io.ReadCloser); ok {
+	var r0 chan *types.PushImageMessage
+	if rf, ok := ret.Get(0).(func(context.Context, string) chan *types.PushImageMessage); ok {
 		r0 = rf(ctx, ref)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
+			r0 = ret.Get(0).(chan *types.PushImageMessage)
 		}
 	}
 
