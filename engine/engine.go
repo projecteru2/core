@@ -26,7 +26,7 @@ type API interface {
 	ImageRemove(ctx context.Context, image string, force, prune bool) ([]string, error)
 	ImagesPrune(ctx context.Context) error
 	ImagePull(ctx context.Context, ref string, all bool) (io.ReadCloser, error)
-	ImagePush(ctx context.Context, ref string) (io.ReadCloser, error)
+	ImagePush(ctx context.Context, ref string) (chan *enginetypes.PushImageMessage, error)
 	ImageBuild(ctx context.Context, input io.Reader, refs []string) (io.ReadCloser, error)
 	ImageBuildCachePrune(ctx context.Context, all bool) (uint64, error)
 	ImageLocalDigests(ctx context.Context, image string) ([]string, error)
