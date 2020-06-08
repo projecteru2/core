@@ -37,7 +37,7 @@ func (v *Virt) ImagePull(ctx context.Context, ref string, all bool) (stream io.R
 }
 
 // ImagePush pushes to central image registry.
-func (v *Virt) ImagePush(ctx context.Context, ref string) (rc chan *enginetypes.PushImageMessage, err error) {
+func (v *Virt) ImagePush(ctx context.Context, ref string) (ch chan *enginetypes.PushImageMessage, err error) {
 	log.Warnf("does not implement")
 	return
 }

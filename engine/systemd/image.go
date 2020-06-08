@@ -33,7 +33,7 @@ func (s *SSHClient) ImagePull(ctx context.Context, ref string, all bool) (reader
 }
 
 // ImagePush pushes image
-func (s *SSHClient) ImagePush(ctx context.Context, ref string) (messages chan *enginetypes.PushImageMessage, err error) {
+func (s *SSHClient) ImagePush(ctx context.Context, ref string) (ch chan *enginetypes.PushImageMessage, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
