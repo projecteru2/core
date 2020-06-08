@@ -2,7 +2,6 @@ package docker
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 
@@ -67,49 +66,25 @@ func (e *Engine) ImagesPrune(ctx context.Context) error {
 }
 
 // ImagePull pull Image
-func (e *Engine) ImagePull(ctx context.Context, ref string, all bool) (io.ReadCloser, error) {
+func (e *Engine) ImagePull(ctx context.Context, ref string, all bool) (chan *enginetypes.ImageMessage, error) {
 	auth, err := makeEncodedAuthConfigFromRemote(e.config.Docker.AuthConfigs, ref)
 	if err != nil {
 		return nil, err
 	}
 	pullOptions := dockertypes.ImagePullOptions{All: all, RegistryAuth: auth}
-	return e.client.ImagePull(ctx, ref, pullOptions)
+	reader, err := e.client.ImagePull(ctx, ref, pullOptions)
+	return parseDockerImageMessages(reader), err
 }
 
 // ImagePush push image
-func (e *Engine) ImagePush(ctx context.Context, ref string) (chan *enginetypes.PushImageMessage, error) {
+func (e *Engine) ImagePush(ctx context.Context, ref string) (chan *enginetypes.ImageMessage, error) {
 	auth, err := makeEncodedAuthConfigFromRemote(e.config.Docker.AuthConfigs, ref)
 	if err != nil {
 		return nil, err
 	}
 	pushOptions := dockertypes.ImagePushOptions{RegistryAuth: auth}
 	reader, err := e.client.ImagePush(ctx, ref, pushOptions)
-
-	ch := make(chan *enginetypes.PushImageMessage)
-	go func() {
-		defer close(ch)
-		defer reader.Close()
-
-		decoder := json.NewDecoder(reader)
-		for {
-			message := &enginetypes.PushImageMessage{}
-			err := decoder.Decode(message)
-			if err != nil {
-				if err == io.EOF {
-					break
-				}
-				malformed := []byte{}
-				_, _ = decoder.Buffered().Read(malformed)
-				log.Errorf("[BuildImage] Decode push image message failed %v, buffered: %v", err, malformed)
-				message.Error = err.Error()
-				ch <- message
-				break
-			}
-			ch <- message
-		}
-	}()
-
-	return ch, err
+	return parseDockerImageMessages(reader), err
 }
 
 // ImageBuild build image

@@ -129,10 +129,10 @@ func TestBuild(t *testing.T) {
 	assert.Error(t, err)
 	// correct
 	engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything).Return(buildImageRespReader, nil)
-	pushCh := make(chan *enginetypes.PushImageMessage)
+	pushCh := make(chan *enginetypes.ImageMessage)
 	go func() {
 		defer close(pushCh)
-		pushCh <- &enginetypes.PushImageMessage{
+		pushCh <- &enginetypes.ImageMessage{
 			Progress: buildImageMessage.Progress,
 			Error:    buildImageMessage.Error,
 			ID:       buildImageMessage.ID,

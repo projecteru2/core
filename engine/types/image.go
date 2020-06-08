@@ -37,7 +37,7 @@ type Build struct {
 	StopSignal string            `yaml:"stop_signal,omitempty,flow"`
 }
 
-type PushImageMessage struct {
+type ImageMessage struct {
 	Stream   string `json:"stream,omitempty"`
 	Status   string `json:"status,omitempty"`
 	Progress string `json:"progress,omitempty"`
