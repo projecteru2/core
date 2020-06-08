@@ -281,8 +281,11 @@ func dumpFromString(ca, cert, key *os.File, caStr, certStr, keyStr string) error
 func parseDockerImageMessages(reader io.ReadCloser) chan *enginetypes.ImageMessage {
 	ch := make(chan *enginetypes.ImageMessage)
 	go func() {
-		defer close(ch)
-		defer reader.Close()
+		defer func() {
+			io.Copy(ioutil.Discard, reader)
+			reader.Close()
+			close(ch)
+		}()
 
 		decoder := json.NewDecoder(reader)
 		for {

@@ -23,16 +23,6 @@ type window struct {
 	Width  uint `json:"Col"`
 }
 
-// As the name says,
-// blocks until the stream is empty, until we meet EOF
-func ensureChanClosed(ch chan *enginetypes.ImageMessage) {
-	if ch == nil {
-		return
-	}
-	for range ch {
-	}
-}
-
 func execuateInside(ctx context.Context, client engine.API, ID, cmd, user string, env []string, privileged bool) ([]byte, error) {
 	cmds := utils.MakeCommandLineArgs(cmd)
 	execConfig := &enginetypes.ExecConfig{
@@ -108,12 +98,10 @@ func pullImage(ctx context.Context, node *types.Node, image string) error {
 	}
 
 	log.Info("[pullImage] Image not cached, pulling")
-	messageCh, err := node.Engine.ImagePull(ctx, image, false)
-	if err != nil {
+	if _, err = node.Engine.ImagePull(ctx, image, false); err != nil {
 		log.Errorf("[pullImage] Error during pulling image %s: %v", image, err)
 		return err
 	}
-	ensureChanClosed(messageCh)
 	log.Infof("[pullImage] Done pulling image %s", image)
 	return nil
 }
