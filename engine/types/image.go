@@ -36,3 +36,11 @@ type Build struct {
 	Cache      map[string]string `yaml:"cache,omitempty,flow"`
 	StopSignal string            `yaml:"stop_signal,omitempty,flow"`
 }
+
+type ImageMessage struct {
+	Stream   string `json:"stream,omitempty"`
+	Status   string `json:"status,omitempty"`
+	Progress string `json:"progress,omitempty"`
+	ID       string `json:"id,omitempty"`
+	Error    string `json:"error,omitempty"`
+}

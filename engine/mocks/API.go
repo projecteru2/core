@@ -299,15 +299,15 @@ func (_m *API) ImageLocalDigests(ctx context.Context, image string) ([]string, e
 }
 
 // ImagePull provides a mock function with given fields: ctx, ref, all
-func (_m *API) ImagePull(ctx context.Context, ref string, all bool) (io.ReadCloser, error) {
+func (_m *API) ImagePull(ctx context.Context, ref string, all bool) (chan *types.ImageMessage, error) {
 	ret := _m.Called(ctx, ref, all)
 
-	var r0 io.ReadCloser
-	if rf, ok := ret.Get(0).(func(context.Context, string, bool) io.ReadCloser); ok {
+	var r0 chan *types.ImageMessage
+	if rf, ok := ret.Get(0).(func(context.Context, string, bool) chan *types.ImageMessage); ok {
 		r0 = rf(ctx, ref, all)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
+			r0 = ret.Get(0).(chan *types.ImageMessage)
 		}
 	}
 
@@ -322,15 +322,15 @@ func (_m *API) ImagePull(ctx context.Context, ref string, all bool) (io.ReadClos
 }
 
 // ImagePush provides a mock function with given fields: ctx, ref
-func (_m *API) ImagePush(ctx context.Context, ref string) (io.ReadCloser, error) {
+func (_m *API) ImagePush(ctx context.Context, ref string) (chan *types.ImageMessage, error) {
 	ret := _m.Called(ctx, ref)
 
-	var r0 io.ReadCloser
-	if rf, ok := ret.Get(0).(func(context.Context, string) io.ReadCloser); ok {
+	var r0 chan *types.ImageMessage
+	if rf, ok := ret.Get(0).(func(context.Context, string) chan *types.ImageMessage); ok {
 		r0 = rf(ctx, ref)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
+			r0 = ret.Get(0).(chan *types.ImageMessage)
 		}
 	}
 

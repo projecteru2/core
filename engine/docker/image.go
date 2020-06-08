@@ -7,9 +7,9 @@ import (
 
 	dockertypes "github.com/docker/docker/api/types"
 	dockerfilters "github.com/docker/docker/api/types/filters"
+	log "github.com/sirupsen/logrus"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/types"
 )
 
 // ImageList list image
@@ -66,23 +66,25 @@ func (e *Engine) ImagesPrune(ctx context.Context) error {
 }
 
 // ImagePull pull Image
-func (e *Engine) ImagePull(ctx context.Context, ref string, all bool) (io.ReadCloser, error) {
+func (e *Engine) ImagePull(ctx context.Context, ref string, all bool) (chan *enginetypes.ImageMessage, error) {
 	auth, err := makeEncodedAuthConfigFromRemote(e.config.Docker.AuthConfigs, ref)
 	if err != nil {
 		return nil, err
 	}
 	pullOptions := dockertypes.ImagePullOptions{All: all, RegistryAuth: auth}
-	return e.client.ImagePull(ctx, ref, pullOptions)
+	reader, err := e.client.ImagePull(ctx, ref, pullOptions)
+	return parseDockerImageMessages(reader), err
 }
 
 // ImagePush push image
-func (e *Engine) ImagePush(ctx context.Context, ref string) (io.ReadCloser, error) {
+func (e *Engine) ImagePush(ctx context.Context, ref string) (chan *enginetypes.ImageMessage, error) {
 	auth, err := makeEncodedAuthConfigFromRemote(e.config.Docker.AuthConfigs, ref)
 	if err != nil {
 		return nil, err
 	}
 	pushOptions := dockertypes.ImagePushOptions{RegistryAuth: auth}
-	return e.client.ImagePush(ctx, ref, pushOptions)
+	reader, err := e.client.ImagePush(ctx, ref, pushOptions)
+	return parseDockerImageMessages(reader), err
 }
 
 // ImageBuild build image
@@ -119,7 +121,36 @@ func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string)
 
 // ImageBuildFromExist commits image from running container
 func (e *Engine) ImageBuildFromExist(ctx context.Context, ID, name string) (imageID string, err error) {
-	return "", types.ErrEngineNotImplemented
+	opts := dockertypes.ContainerCommitOptions{
+		Reference: name,
+		Author:    "eru-core",
+	}
+	resp, err := e.client.ContainerCommit(ctx, ID, opts)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		if _, err := e.ImageRemove(context.Background(), resp.ID, true, true); err != nil {
+			log.Errorf("[ImageBuildFromExist] failed to remove built image %s: %+v", resp.ID, err)
+			return
+		}
+		if _, err := e.ImageBuildCachePrune(context.Background(), true); err != nil {
+			log.Errorf("[ImageBuildFromExist] failed to clean build cache: %+v", err)
+		}
+	}()
+
+	ch, err := e.ImagePush(ctx, name)
+	if err != nil {
+		return "", err
+	}
+
+	for m := range ch {
+		if m.Error != "" {
+			return "", fmt.Errorf("failed to push image %s: %s", name, m.Error)
+		}
+	}
+
+	return resp.ID, nil
 }
 
 // ImageBuildCachePrune prune build cache

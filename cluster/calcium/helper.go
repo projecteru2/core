@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"bufio"
 
@@ -26,12 +25,12 @@ type window struct {
 
 // As the name says,
 // blocks until the stream is empty, until we meet EOF
-func ensureReaderClosed(stream io.ReadCloser) {
-	if stream == nil {
+func ensureChanClosed(ch chan *enginetypes.ImageMessage) {
+	if ch == nil {
 		return
 	}
-	io.Copy(ioutil.Discard, stream)
-	stream.Close()
+	for range ch {
+	}
 }
 
 func execuateInside(ctx context.Context, client engine.API, ID, cmd, user string, env []string, privileged bool) ([]byte, error) {
@@ -109,12 +108,12 @@ func pullImage(ctx context.Context, node *types.Node, image string) error {
 	}
 
 	log.Info("[pullImage] Image not cached, pulling")
-	outStream, err := node.Engine.ImagePull(ctx, image, false)
+	messageCh, err := node.Engine.ImagePull(ctx, image, false)
 	if err != nil {
 		log.Errorf("[pullImage] Error during pulling image %s: %v", image, err)
 		return err
 	}
-	ensureReaderClosed(outStream)
+	ensureChanClosed(messageCh)
 	log.Infof("[pullImage] Done pulling image %s", image)
 	return nil
 }

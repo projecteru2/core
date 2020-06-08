@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -101,10 +102,8 @@ func TestBuild(t *testing.T) {
 	buildImageMessage.ErrorDetail.Code = 0
 	buildImageResp, err := json.Marshal(buildImageMessage)
 	assert.NoError(t, err)
-	buildImageResp2, err := json.Marshal(buildImageMessage)
 	assert.NoError(t, err)
 	buildImageRespReader := ioutil.NopCloser(bytes.NewReader(buildImageResp))
-	buildImageRespReader2 := ioutil.NopCloser(bytes.NewReader(buildImageResp2))
 	engine.On("BuildRefs", mock.Anything, mock.Anything, mock.Anything).Return([]string{"t1", "t2"})
 	// failed by build context
 	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", nil, types.ErrBadCount).Once()
@@ -130,7 +129,18 @@ func TestBuild(t *testing.T) {
 	assert.Error(t, err)
 	// correct
 	engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything).Return(buildImageRespReader, nil)
-	engine.On("ImagePush", mock.Anything, mock.Anything).Return(buildImageRespReader2, nil)
+	pushCh := make(chan *enginetypes.ImageMessage)
+	go func() {
+		defer close(pushCh)
+		pushCh <- &enginetypes.ImageMessage{
+			Progress: buildImageMessage.Progress,
+			Error:    buildImageMessage.Error,
+			ID:       buildImageMessage.ID,
+			Status:   buildImageMessage.Status,
+			Stream:   buildImageMessage.Stream,
+		}
+	}()
+	engine.On("ImagePush", mock.Anything, mock.Anything).Return(pushCh, nil)
 	engine.On("ImageRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]string{}, nil)
 	engine.On("ImageBuildCachePrune", mock.Anything, mock.Anything).Return(uint64(1024), nil)
 	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", nil, nil)

@@ -277,3 +277,30 @@ func dumpFromString(ca, cert, key *os.File, caStr, certStr, keyStr string) error
 	log.Debug("[dumpFromString] Dump ca.pem, cert.pem, key.pem from string")
 	return nil
 }
+
+func parseDockerImageMessages(reader io.ReadCloser) chan *enginetypes.ImageMessage {
+	ch := make(chan *enginetypes.ImageMessage)
+	go func() {
+		defer close(ch)
+		defer reader.Close()
+
+		decoder := json.NewDecoder(reader)
+		for {
+			message := &enginetypes.ImageMessage{}
+			err := decoder.Decode(message)
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				malformed := []byte{}
+				_, _ = decoder.Buffered().Read(malformed)
+				log.Errorf("[parseDockerImageMessages] Decode image message failed %v, buffered: %v", err, malformed)
+				message.Error = err.Error()
+				ch <- message
+				break
+			}
+			ch <- message
+		}
+	}()
+	return ch
+}
