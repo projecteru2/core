@@ -104,14 +104,14 @@ func (a *TimeoutAPI) ImagesPrune(ctx context.Context) error {
 }
 
 // ImagePull .
-func (a *TimeoutAPI) ImagePull(ctx context.Context, ref string, all bool) (io.ReadCloser, error) {
+func (a *TimeoutAPI) ImagePull(ctx context.Context, ref string, all bool) (chan *enginetypes.ImageMessage, error) {
 	ctx, cancel := context.WithTimeout(ctx, a.timeout)
 	defer cancel()
 	return a.api.ImagePull(ctx, ref, all)
 }
 
 // ImagePush .
-func (a *TimeoutAPI) ImagePush(ctx context.Context, ref string) (io.ReadCloser, error) {
+func (a *TimeoutAPI) ImagePush(ctx context.Context, ref string) (chan *enginetypes.ImageMessage, error) {
 	ctx, cancel := context.WithTimeout(ctx, a.timeout)
 	defer cancel()
 	return a.api.ImagePush(ctx, ref)
