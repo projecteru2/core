@@ -79,7 +79,6 @@ type CreateContainerMessage struct {
 	ContainerID   string
 	ContainerName string
 	Error         error
-	Success       bool
 	CPU           CPUMap
 	Quota         float64
 	Memory        int64

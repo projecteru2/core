@@ -156,7 +156,7 @@ func TestReplaceContainer(t *testing.T) {
 		assert.NotNil(t, r.Remove)
 		assert.NotNil(t, r.Create)
 		assert.False(t, r.Remove.Success)
-		assert.True(t, r.Create.Success)
+		assert.Nil(t, r.Create.Error)
 	}
 	store.On("RemoveContainer", mock.Anything, mock.Anything).Return(nil)
 	// succ
@@ -167,6 +167,6 @@ func TestReplaceContainer(t *testing.T) {
 		assert.NotNil(t, r.Remove)
 		assert.NotNil(t, r.Create)
 		assert.True(t, r.Remove.Success)
-		assert.True(t, r.Create.Success)
+		assert.Nil(t, r.Create.Error)
 	}
 }
