@@ -135,12 +135,14 @@ type ExecuteContainerOptions struct {
 	ReplCmd     []byte
 }
 
-//BindCPUOption for realloc interface
+// BindCPUOptions for realloc interface
 type BindCPUOptions int
 
 const (
-	//keep current setting
+	// BindCPUOptionKeep keep current setting
 	BindCPUOptionKeep BindCPUOptions = iota
+	// BindCPUOptionBind .
 	BindCPUOptionBind
+	// BindCPUOptionUnbind .
 	BindCPUOptionUnbind
 )

@@ -1,5 +1,6 @@
 package types
 
+// BuildMethod .
 type BuildMethod int
 
 // Image contain image meta data
@@ -8,6 +9,7 @@ type Image struct {
 	Tags []string
 }
 
+// BuildContentOptions .
 type BuildContentOptions struct {
 	User string
 	UID  int
@@ -37,6 +39,7 @@ type Build struct {
 	StopSignal string            `yaml:"stop_signal,omitempty,flow"`
 }
 
+// ImageMessage .
 type ImageMessage struct {
 	Stream   string `json:"stream,omitempty"`
 	Status   string `json:"status,omitempty"`
