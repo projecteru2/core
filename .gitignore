@@ -27,3 +27,4 @@ cscope.*
 .DS_Store
 tools/updatev4.go
 *.swp
+dist/*

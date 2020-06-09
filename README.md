@@ -1,6 +1,7 @@
 Eru
 ====
-![](https://github.com/projecteru2/cli/workflows/goreleaser/badge.svg)
+![](https://github.com/projecteru2/core/workflows/test/badge.svg)
+![](https://github.com/projecteru2/core/workflows/golangci-lint/badge.svg)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/69918e0a02ae45c5ae7dfc42bad5cfe5)](https://www.codacy.com/gh/projecteru2/core?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=projecteru2/core&amp;utm_campaign=Badge_Grade)
 
 Eru is a stateless, flexible, production-ready cluster scheduler designed to easily integrate into existing workflows. Eru can run any containerized things in long or short time. This project is Eru Core. The Core use for resource allocation and manage containers lifetime.
