@@ -188,7 +188,7 @@ func (c *Calcium) doCreateAndStartContainer(
 		createContainerMessage.Error = err
 		if err != nil && container.ID != "" {
 			if err := c.doRemoveContainer(context.Background(), container, true); err != nil {
-				log.Errorf("[doCreateAndStartContainer] create and start container failed, and remove it failed also %v", err)
+				log.Errorf("[doCreateAndStartContainer] create and start container failed, and remove it failed also, %s, %v", container.ID, err)
 				return
 			}
 			createContainerMessage.ContainerID = ""
@@ -208,7 +208,6 @@ func (c *Calcium) doCreateAndStartContainer(
 		return createContainerMessage
 	}
 	container.ID = containerCreated.ID
-	createContainerMessage.ContainerID = containerCreated.ID
 
 	// Copy data to container
 	if len(opts.Data) > 0 {
@@ -256,6 +255,8 @@ func (c *Calcium) doCreateAndStartContainer(
 	if err = c.store.AddContainer(ctx, container); err != nil {
 		return createContainerMessage
 	}
+	// non-empty message.ContainerID signals that "core saves metadata of this container"
+	createContainerMessage.ContainerID = containerCreated.ID
 
 	return createContainerMessage
 }
