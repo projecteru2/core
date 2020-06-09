@@ -34,7 +34,9 @@ func (c *Calcium) Transaction(ctx context.Context, cond contextFunc, then contex
 			ctx, cancel = context.WithTimeout(context.Background(), c.config.GlobalTimeout)
 			defer cancel()
 		}
-		tnxErr = then(ctx)
+		if then != nil {
+			tnxErr = then(ctx)
+		}
 	}
 
 	return tnxErr

@@ -71,17 +71,8 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 				messages := c.doCreateContainerOnNode(ctx, nodeInfo, opts, index)
 				for i, m := range messages {
 					ch <- m
-					if m.Error != nil && m.ContainerID == "" {
-						if err := c.withNodeLocked(ctx, nodeInfo.Name, func(node *types.Node) error {
-							return c.store.UpdateNodeResource(ctx, node, m.CPU, opts.CPUQuota, opts.Memory, opts.Storage, m.VolumePlan.IntoVolumeMap(), store.ActionIncr)
-						}); err != nil {
-							log.Errorf("[doCreateContainer] Reset node %s failed %v", nodeInfo.Name, err)
-						}
-					} else if m.Error != nil && m.ContainerID != "" {
-						log.Warnf("[doCreateContainer] Create container failed %v, and container %s not removed", m.Error, m.ContainerID)
-					}
 					// decr processing count
-					if err := c.store.UpdateProcessing(ctx, opts, nodeInfo.Name, nodeInfo.Deploy-i-1); err != nil {
+					if err := c.store.UpdateProcessing(context.Background(), opts, nodeInfo.Name, nodeInfo.Deploy-i-1); err != nil {
 						log.Warnf("[doCreateContainer] Update processing count failed %v", err)
 					}
 				}
@@ -96,28 +87,6 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 
 func (c *Calcium) doCreateContainerOnNode(ctx context.Context, nodeInfo types.NodeInfo, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
 	ms := make([]*types.CreateContainerMessage, nodeInfo.Deploy)
-
-	node, err := c.doGetAndPrepareNode(ctx, nodeInfo.Name, opts.Image)
-	if err != nil {
-		log.Errorf("[doCreateContainerOnNode] Get and prepare node error %v", err)
-		for i := 0; i < nodeInfo.Deploy; i++ {
-			cpu := types.CPUMap{}
-			if len(nodeInfo.CPUPlan) > 0 {
-				cpu = nodeInfo.CPUPlan[i]
-			}
-			volumePlan := types.VolumePlan{}
-			if len(nodeInfo.VolumePlans) > 0 {
-				volumePlan = nodeInfo.VolumePlans[i]
-			}
-			ms[i] = &types.CreateContainerMessage{
-				Error:      err,
-				CPU:        cpu,
-				VolumePlan: volumePlan,
-			}
-		}
-		return ms
-	}
-
 	for i := 0; i < nodeInfo.Deploy; i++ {
 		// createAndStartContainer will auto cleanup
 		cpu := types.CPUMap{}
@@ -128,9 +97,40 @@ func (c *Calcium) doCreateContainerOnNode(ctx context.Context, nodeInfo types.No
 		if len(nodeInfo.VolumePlans) > 0 {
 			volumePlan = nodeInfo.VolumePlans[i]
 		}
-		ms[i] = c.doCreateAndStartContainer(ctx, i+index, node, opts, cpu, volumePlan)
-		if !ms[i].Success {
-			log.Errorf("[doCreateContainerOnNode] Error when create and start a container, %v", ms[i].Error)
+
+		node := &types.Node{}
+		if err := c.Transaction(
+			ctx,
+			// if
+			func(ctx context.Context) (err error) {
+				node, err = c.doGetAndPrepareNode(ctx, nodeInfo.Name, opts.Image)
+				ms[i] = &types.CreateContainerMessage{
+					Error:      err,
+					CPU:        cpu,
+					VolumePlan: volumePlan,
+				}
+				return
+			},
+			// then
+			func(ctx context.Context) error {
+				ms[i] = c.doCreateAndStartContainer(ctx, i+index, node, opts, cpu, volumePlan)
+				return ms[i].Error
+			},
+			// rollback, will use background context
+			func(ctx context.Context) (err error) {
+				log.Errorf("[doCreateContainerOnNode] Error when create and start a container, %v", ms[i].Error)
+				if ms[i].ContainerID == "" {
+					if err = c.withNodeLocked(ctx, nodeInfo.Name, func(node *types.Node) error {
+						return c.store.UpdateNodeResource(ctx, node, cpu, opts.CPUQuota, opts.Memory, opts.Storage, volumePlan.IntoVolumeMap(), store.ActionIncr)
+					}); err != nil {
+						log.Errorf("[doCreateContainer] Reset node %s failed %v", nodeInfo.Name, err)
+					}
+				} else {
+					log.Warnf("[doCreateContainer] Create container failed %v, and container %s not removed", ms[i].Error, ms[i].ContainerID)
+				}
+				return
+			},
+		); err != nil {
 			continue
 		}
 		log.Infof("[doCreateContainerOnNode] create container success %s", ms[i].ContainerID)
@@ -175,7 +175,6 @@ func (c *Calcium) doCreateAndStartContainer(
 	createContainerMessage := &types.CreateContainerMessage{
 		Podname:    container.Podname,
 		Nodename:   container.Nodename,
-		Success:    false,
 		CPU:        cpu,
 		Quota:      opts.CPUQuota,
 		Memory:     opts.Memory,
@@ -187,7 +186,7 @@ func (c *Calcium) doCreateAndStartContainer(
 
 	defer func() {
 		createContainerMessage.Error = err
-		if !createContainerMessage.Success && container.ID != "" {
+		if err != nil && container.ID != "" {
 			if err := c.doRemoveContainer(context.Background(), container, true); err != nil {
 				log.Errorf("[doCreateAndStartContainer] create and start container failed, and remove it failed also %v", err)
 				return
@@ -258,8 +257,6 @@ func (c *Calcium) doCreateAndStartContainer(
 		return createContainerMessage
 	}
 
-	// mark success
-	createContainerMessage.Success = true
 	return createContainerMessage
 }
 

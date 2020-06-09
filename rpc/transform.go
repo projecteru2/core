@@ -321,7 +321,7 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 		Nodename:   c.Nodename,
 		Id:         c.ContainerID,
 		Name:       c.ContainerName,
-		Success:    c.Success,
+		Success:    c.Error == nil,
 		Cpu:        toRPCCPUMap(c.CPU),
 		Quota:      c.Quota,
 		Memory:     c.Memory,

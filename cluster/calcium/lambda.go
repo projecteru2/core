@@ -33,7 +33,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	runMsgCh := make(chan *types.AttachContainerMessage)
 	wg := &sync.WaitGroup{}
 	for message := range createChan {
-		if !message.Success || message.ContainerID == "" {
+		if message.Error != nil || message.ContainerID == "" {
 			log.Errorf("[RunAndWait] Create container failed %s", message.Error)
 			continue
 		}
