@@ -72,7 +72,7 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 				for i, m := range messages {
 					ch <- m
 					// decr processing count
-					if err := c.store.UpdateProcessing(ctx, opts, nodeInfo.Name, nodeInfo.Deploy-i-1); err != nil {
+					if err := c.store.UpdateProcessing(context.Background(), opts, nodeInfo.Name, nodeInfo.Deploy-i-1); err != nil {
 						log.Warnf("[doCreateContainer] Update processing count failed %v", err)
 					}
 				}
