@@ -31,17 +31,17 @@ mock: deps
 .ONESHELL:
 libgit2:
 	cd /tmp
-	rm -fr libgit2-0.28.5.tar.gz libgit2-0.28.5
-	curl -Lv -O https://github.com/libgit2/libgit2/releases/download/v0.28.5/libgit2-0.28.5.tar.gz
-	tar xvfz libgit2-0.28.5.tar.gz
-	mkdir -p libgit2-0.28.5/build
-	cd libgit2-0.28.5/build
+	rm -fr libgit2-1.0.1.tar.gz libgit2-1.0.1
+	curl -Lv -O https://github.com/libgit2/libgit2/releases/download/v1.0.1/libgit2-1.0.1.tar.gz
+	tar xvfz libgit2-1.0.1.tar.gz
+	mkdir -p libgit2-1.0.1/build
+	cd libgit2-1.0.1/build
 	cmake ..
 	cmake --build .
 	sudo cp libgit2.pc /usr/lib/pkgconfig/
-	sudo cp libgit2.so.0.28.5 /usr/lib
+	sudo cp libgit2.so.1.0.1 /usr/lib
 	sudo rm -f /usr/lib/libgit2.so.28 /usr/lib/libgit2.so
-	sudo ln -s /usr/lib/libgit2.so.0.28.5 /usr/lib/libgit2.so.28
+	sudo ln -s /usr/lib/libgit2.so.1.0.1 /usr/lib/libgit2.so.28
 	sudo ln -s /usr/lib/libgit2.so.28 /usr/lib/libgit2.so
 	sudo cp -aR ../include/* /usr/local/include/
 
