@@ -1,0 +1,13 @@
+name: test
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: projecteru2/footstone:latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: unit tests
+        run: make test
