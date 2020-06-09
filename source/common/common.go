@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	git "github.com/libgit2/git2go"
+	git "github.com/libgit2/git2go/v30"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -34,9 +34,8 @@ func (g *GitScm) SourceCode(repository, path, revision string, submodule bool) e
 	if strings.Contains(repository, "https://") {
 		repo, err = git.Clone(repository, path, &git.CloneOptions{})
 	} else {
-		credentialsCallback := func(url, username string, allowedTypes git.CredType) (git.ErrorCode, *git.Cred) {
-			ret, cred := git.NewCredSshKey(username, g.Config.PublicKey, g.Config.PrivateKey, "")
-			return git.ErrorCode(ret), &cred
+		credentialsCallback := func(url, username string, allowedTypes git.CredType) (*git.Cred, error) {
+			return git.NewCredSshKey(username, g.Config.PublicKey, g.Config.PrivateKey, "")
 		}
 		cloneOpts := &git.CloneOptions{
 			FetchOptions: &git.FetchOptions{

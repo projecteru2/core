@@ -32,7 +32,8 @@ require (
 	github.com/jinzhu/configor v1.1.1
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/json-iterator/go v1.1.6 // indirect
-	github.com/libgit2/git2go v0.0.0-20190813182810-37e5b53f742d
+	github.com/libgit2/git2go v0.28.4 // indirect
+	github.com/libgit2/git2go/v30 v30.0.3
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
@@ -60,5 +61,3 @@ require (
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
 	gotest.tools v2.2.0+incompatible // indirect
 )
-
-replace github.com/libgit2/git2go v0.0.0-20190813182810-37e5b53f742d => github.com/CMGS/git2go v0.0.0-20190930074211-b81086e21275
