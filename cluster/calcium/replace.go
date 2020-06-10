@@ -110,13 +110,9 @@ func (c *Calcium) doReplaceContainer(
 	if !utils.FilterContainer(container.Labels, opts.FilterLabels) {
 		return nil, removeMessage, types.ErrNotFitLabels
 	}
-	// get node
-	node, err := c.GetNode(ctx, container.Nodename)
+	// prepare node
+	node, err := c.doGetAndPrepareNode(ctx, container.Nodename, opts.Image)
 	if err != nil {
-		return nil, removeMessage, err
-	}
-	// pull image
-	if err = pullImage(ctx, node, opts.Image); err != nil {
 		return nil, removeMessage, err
 	}
 	// 获得文件 io

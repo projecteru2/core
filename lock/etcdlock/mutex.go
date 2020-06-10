@@ -49,5 +49,7 @@ func (m *Mutex) Lock(ctx context.Context) error {
 func (m *Mutex) Unlock(ctx context.Context) error {
 	defer m.session.Close()
 	// 一定要释放
-	return m.mutex.Unlock(ctx)
+	lockCtx, cancel := context.WithTimeout(context.Background(), m.timeout)
+	defer cancel()
+	return m.mutex.Unlock(lockCtx)
 }

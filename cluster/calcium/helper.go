@@ -98,16 +98,14 @@ func pullImage(ctx context.Context, node *types.Node, image string) error {
 	}
 
 	log.Info("[pullImage] Image not cached, pulling")
-	if _, err = node.Engine.ImagePull(ctx, image, false); err != nil {
+	rc, err := node.Engine.ImagePull(ctx, image, false)
+	defer utils.EnsureReaderClosed(rc)
+	if err != nil {
 		log.Errorf("[pullImage] Error during pulling image %s: %v", image, err)
 		return err
 	}
 	log.Infof("[pullImage] Done pulling image %s", image)
 	return nil
-}
-
-func makeErrorBuildImageMessage(err error) *types.BuildImageMessage {
-	return &types.BuildImageMessage{Error: err.Error()}
 }
 
 func makeCopyMessage(id, status, name, path string, err error, data io.ReadCloser) *types.CopyMessage {
@@ -223,4 +221,30 @@ func processVirtualizationOutStream(
 		}
 	}()
 	return outCh
+}
+
+func processBuildImageStream(reader io.ReadCloser) chan *types.BuildImageMessage {
+	ch := make(chan *types.BuildImageMessage)
+	go func() {
+		defer close(ch)
+		defer utils.EnsureReaderClosed(reader)
+		decoder := json.NewDecoder(reader)
+		for {
+			message := &types.BuildImageMessage{}
+			err := decoder.Decode(message)
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				malformed := []byte{}
+				_, _ = decoder.Buffered().Read(malformed)
+				log.Errorf("[processBuildImageStream] Decode image message failed %v, buffered: %s", err, string(malformed))
+				message.Error = err.Error()
+				ch <- message
+				break
+			}
+			ch <- message
+		}
+	}()
+	return ch
 }

@@ -140,20 +140,14 @@ func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types
 		for i := range tags {
 			tag := tags[i]
 			log.Infof("[BuildImage] Push image %s", tag)
-			pushCh, err := node.Engine.ImagePush(ctx, tag)
+			rc, err := node.Engine.ImagePush(ctx, tag)
 			if err != nil {
-				ch <- makeErrorBuildImageMessage(err)
+				ch <- &types.BuildImageMessage{Error: err.Error()}
 				continue
 			}
 
-			for m := range pushCh {
-				ch <- &types.BuildImageMessage{
-					ID:       m.ID,
-					Status:   m.Status,
-					Progress: m.Progress,
-					Error:    m.Error,
-					Stream:   m.Stream,
-				}
+			for message := range processBuildImageStream(rc) {
+				ch <- message
 			}
 
 			// 无论如何都删掉build机器的

@@ -32,12 +32,12 @@ func (v *Virt) ImagesPrune(ctx context.Context) (err error) {
 }
 
 // ImagePull pulls an image to local virt-node.
-func (v *Virt) ImagePull(ctx context.Context, ref string, all bool) (ch chan *enginetypes.ImageMessage, err error) {
+func (v *Virt) ImagePull(ctx context.Context, ref string, all bool) (rc io.ReadCloser, err error) {
 	return
 }
 
 // ImagePush pushes to central image registry.
-func (v *Virt) ImagePush(ctx context.Context, ref string) (ch chan *enginetypes.ImageMessage, err error) {
+func (v *Virt) ImagePush(ctx context.Context, ref string) (rc io.ReadCloser, err error) {
 	log.Warnf("does not implement")
 	return
 }

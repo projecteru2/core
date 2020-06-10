@@ -12,31 +12,23 @@ type contextFunc = func(context.Context) error
 // Transaction provides unified API to perform tnx
 func (c *Calcium) Transaction(ctx context.Context, cond contextFunc, then contextFunc, rollback contextFunc) error {
 	var tnxErr error
-	defer func() {
-		if tnxErr != nil && rollback != nil {
-			// forbid interrupting rollback
-			ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
-			defer cancel()
-			if e := rollback(ctx); e != nil {
-				log.Errorf("[Transaction] tnx failed but rollback also failed")
-			}
+	defer func() { // rollback
+		if tnxErr == nil {
+			return
 		}
-
-		if tnxErr != nil && rollback == nil {
-			log.Errorf("[Transaction] tnx failed but no rollback function")
+		if rollback == nil {
+			log.Error("[Transaction] tnx failed but no rollback function")
+			return
+		}
+		// forbid interrupting rollback
+		if err := rollback(context.Background()); err != nil {
+			log.Errorf("[Transaction] tnx failed but rollback also failed, %v", err)
 		}
 	}()
 
-	if tnxErr = cond(ctx); tnxErr == nil {
-		// no rollback and forbid interrupting further process
-		var cancel context.CancelFunc
-		if rollback == nil {
-			ctx, cancel = context.WithTimeout(context.Background(), c.config.GlobalTimeout)
-			defer cancel()
-		}
-		if then != nil {
-			tnxErr = then(ctx)
-		}
+	// let caller decide process then or not
+	if tnxErr = cond(ctx); tnxErr == nil && then != nil {
+		tnxErr = then(ctx)
 	}
 
 	return tnxErr
