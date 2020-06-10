@@ -40,7 +40,7 @@ func TestCPUPriorPlan(t *testing.T) {
 
 func resetNodesInfo() []types.NodeInfo {
 	return []types.NodeInfo{
-		types.NodeInfo{
+		{
 			Name:   "n1",
 			CPUMap: types.CPUMap{"1": 100, "2": 100, "3": 100, "4": 100},
 			MemCap: 3 * int64(units.GiB),

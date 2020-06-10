@@ -1,9 +1,15 @@
 name: test
 
-on: [push, pull_request]
+on:
+  push:
+    tags:
+      - '!v*'
+    branches:
+      - '*'
+  pull_request:
 
 jobs:
-  build:
+  unittests:
     runs-on: ubuntu-latest
     container: projecteru2/footstone:latest
 

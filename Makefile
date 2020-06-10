@@ -40,9 +40,7 @@ libgit2:
 	cmake --build .
 	sudo cp libgit2.pc /usr/lib/pkgconfig/
 	sudo cp libgit2.so.1.0.1 /usr/lib
-	sudo rm -f /usr/lib/libgit2.so.28 /usr/lib/libgit2.so
-	sudo ln -s /usr/lib/libgit2.so.1.0.1 /usr/lib/libgit2.so.28
-	sudo ln -s /usr/lib/libgit2.so.28 /usr/lib/libgit2.so
+	sudo ln -s /usr/lib/libgit2.so.1.0.1 /usr/lib/libgit2.so
 	sudo cp -aR ../include/* /usr/local/include/
 
 cloc:

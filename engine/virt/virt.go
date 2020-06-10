@@ -40,9 +40,9 @@ type Virt struct {
 func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	var uri string
 	if strings.HasPrefix(endpoint, HTTPPrefixKey) {
-		uri = fmt.Sprintf("http://%s/%s", strings.TrimLeft(endpoint, HTTPPrefixKey), config.Virt.APIVersion)
+		uri = fmt.Sprintf("http://%s/%s", strings.TrimPrefix(endpoint, HTTPPrefixKey), config.Virt.APIVersion)
 	} else if strings.HasPrefix(endpoint, GRPCPrefixKey) {
-		uri = "grpc://" + strings.TrimLeft(endpoint, GRPCPrefixKey)
+		uri = "grpc://" + strings.TrimPrefix(endpoint, GRPCPrefixKey)
 	} else {
 		return nil, fmt.Errorf("invalid endpoint: %s", endpoint)
 	}

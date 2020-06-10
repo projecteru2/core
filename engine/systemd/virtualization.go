@@ -89,7 +89,7 @@ func (s *SSHClient) VirtualizationStop(ctx context.Context, ID string) (err erro
 // VirtualizationRemove removes a systemd service
 func (s *SSHClient) VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) (err error) {
 	if force {
-		s.VirtualizationStop(ctx, ID)
+		_ = s.VirtualizationStop(ctx, ID)
 	}
 
 	// rm -f $FILE
@@ -98,7 +98,7 @@ func (s *SSHClient) VirtualizationRemove(ctx context.Context, ID string, volumes
 	}
 
 	// systemctl daemon-reload
-	_, stderr, err := s.runSingleCommand(ctx, fmt.Sprintf(cmdSystemdReload), nil)
+	_, stderr, err := s.runSingleCommand(ctx, cmdSystemdReload, nil)
 	return errors.Wrap(err, stderr.String())
 }
 

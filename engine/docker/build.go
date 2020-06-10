@@ -176,7 +176,9 @@ func (e *Engine) preparedSource(build *types.Build, scm coresource.Source, build
 		artifactsDir := buildDir
 		if cloneDir != "" {
 			os.RemoveAll(cloneDir)
-			os.MkdirAll(cloneDir, os.ModeDir)
+			if err := os.MkdirAll(cloneDir, os.ModeDir); err != nil {
+				return "", err
+			}
 			artifactsDir = cloneDir
 		}
 		for _, artifact := range build.Artifacts {

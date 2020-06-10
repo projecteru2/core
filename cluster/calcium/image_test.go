@@ -27,7 +27,7 @@ func TestRemoveImage(t *testing.T) {
 	assert.Error(t, err)
 	engine := &enginemocks.API{}
 	nodes := []*types.Node{
-		&types.Node{
+		{
 			Name:   "test",
 			Engine: engine,
 		},
@@ -68,7 +68,7 @@ func TestCacheImage(t *testing.T) {
 	assert.Error(t, err)
 	engine := &enginemocks.API{}
 	nodes := []*types.Node{
-		&types.Node{
+		{
 			Name:   "test",
 			Engine: engine,
 		},

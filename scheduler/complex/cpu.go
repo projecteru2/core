@@ -19,8 +19,6 @@ func min(a, b int) int {
 	return b
 }
 
-type cpuInfo = resourceInfo
-
 func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShareCore, coreShare int) ([]types.NodeInfo, map[string][]types.CPUMap, int, error) {
 	var nodeContainer = map[string][]types.CPUMap{}
 	volTotal := 0

@@ -58,7 +58,7 @@ func TestWithContainersLocked(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	// failed to get lock
 	lock.On("Lock", mock.Anything).Return(types.ErrNoETCD).Once()
-	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{&types.Container{}}, nil).Once()
+	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{{}}, nil).Once()
 	err := c.withContainersLocked(ctx, []string{"c1", "c2"}, func(containers map[string]*types.Container) error { return nil })
 	assert.Error(t, err)
 	// success
@@ -92,7 +92,7 @@ func TestWithContainerLocked(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	// failed to get lock
 	lock.On("Lock", mock.Anything).Return(types.ErrNoETCD).Once()
-	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{&types.Container{}}, nil).Once()
+	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{{}}, nil).Once()
 	err := c.withContainerLocked(ctx, "c1", func(container *types.Container) error { return nil })
 	assert.Error(t, err)
 	// success

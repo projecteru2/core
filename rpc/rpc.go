@@ -442,11 +442,13 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 			}
 		})
 	}
-	go runAndWait(func(ch <-chan *types.AttachContainerMessage) {
-		for m := range ch {
-			log.Infof("[Async RunAndWait] %v", string(m.Data))
-		}
-	})
+	go func() {
+		_ = runAndWait(func(ch <-chan *types.AttachContainerMessage) {
+			for m := range ch {
+				log.Infof("[Async RunAndWait] %v", string(m.Data))
+			}
+		})
+	}()
 	return nil
 }
 
@@ -712,7 +714,7 @@ func (v *Vibranium) ExecuteContainer(stream pb.CoreRPC_ExecuteContainerServer) (
 	if err != nil {
 		return
 	}
-	executeContainerOpts := &types.ExecuteContainerOptions{}
+	var executeContainerOpts *types.ExecuteContainerOptions
 	if executeContainerOpts, err = toCoreExecuteContainerOptions(opts); err != nil {
 		return
 	}

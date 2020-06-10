@@ -1,5 +1,10 @@
 name: golangci-lint
 on:
+  push:
+    tags:
+      - '!v*'
+    branches:
+      - '*'
   pull_request:
 
 jobs:

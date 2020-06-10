@@ -32,7 +32,6 @@ require (
 	github.com/jinzhu/configor v1.1.1
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/json-iterator/go v1.1.6 // indirect
-	github.com/libgit2/git2go v0.28.4 // indirect
 	github.com/libgit2/git2go/v30 v30.0.3
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect

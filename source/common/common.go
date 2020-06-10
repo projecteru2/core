@@ -87,21 +87,23 @@ func (g *GitScm) SourceCode(repository, path, revision string, submodule bool) e
 
 	// Prepare submodules
 	if submodule {
-		repo.Submodules.Foreach(func(sub *git.Submodule, name string) int {
-			sub.Init(true)
-			err := sub.Update(true, &git.SubmoduleUpdateOptions{
+		err = repo.Submodules.Foreach(func(sub *git.Submodule, name string) int {
+			if err := sub.Init(true); err != nil {
+				log.Errorf("[SourceCode] init submodule failed %v", err)
+				return 0
+			}
+			if err := sub.Update(true, &git.SubmoduleUpdateOptions{
 				CheckoutOpts: &git.CheckoutOpts{
 					Strategy: git.CheckoutForce | git.CheckoutUpdateSubmodules,
 				},
 				FetchOptions: &git.FetchOptions{},
-			})
-			if err != nil {
-				log.Errorln(err)
+			}); err != nil {
+				log.Errorf("[SourceCode] update submodules failed %v", err)
 			}
 			return 0
 		})
 	}
-	return nil
+	return err
 }
 
 // Artifact download the artifact to the path, then unzip it
@@ -158,7 +160,7 @@ func unzipFile(body io.ReadCloser, path string) error {
 		p := filepath.Join(path, f.Name)
 
 		if f.FileInfo().IsDir() {
-			os.MkdirAll(p, f.Mode())
+			_ = os.MkdirAll(p, f.Mode())
 			continue
 		}
 

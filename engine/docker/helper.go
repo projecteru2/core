@@ -52,7 +52,7 @@ func mergeStream(stream io.ReadCloser) io.Reader {
 	go func() {
 		defer stream.Close()
 		_, err := stdcopy.StdCopy(outw, outw, stream)
-		outw.CloseWithError(err)
+		_ = outw.CloseWithError(err)
 	}()
 
 	return outr
@@ -110,7 +110,7 @@ func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, num
 		resource.CPUQuota = -1
 	}
 
-	if cpuMap != nil && len(cpuMap) > 0 {
+	if len(cpuMap) > 0 {
 		cpuIDs := []string{}
 		for cpuID := range cpuMap {
 			cpuIDs = append(cpuIDs, cpuID)
@@ -282,7 +282,7 @@ func parseDockerImageMessages(reader io.ReadCloser) chan *enginetypes.ImageMessa
 	ch := make(chan *enginetypes.ImageMessage)
 	go func() {
 		defer func() {
-			io.Copy(ioutil.Discard, reader)
+			_, _ = io.Copy(ioutil.Discard, reader)
 			reader.Close()
 			close(ch)
 		}()

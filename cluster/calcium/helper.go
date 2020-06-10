@@ -169,7 +169,6 @@ func processVirtualizationInStream(
 				log.Errorf("[processVirtualizationInStream] resize window error: %v", err)
 				return
 			}
-			return
 		},
 
 		string(escapeCommand): func(body []byte) {
@@ -191,8 +190,7 @@ func rawProcessVirtualizationInStream(
 		defer inStream.Close()
 
 		for cmd := range inCh {
-			cmdKey := string(cmd[:1])
-			if f, ok := specialPrefixCallback[cmdKey]; ok {
+			if f, ok := specialPrefixCallback[string(cmd[:1])]; ok {
 				f(cmd[1:])
 				continue
 			}
@@ -223,7 +221,6 @@ func processVirtualizationOutStream(
 		if err := scanner.Err(); err != nil {
 			log.Errorf("[processVirtualizationOutStream] failed to read output from output stream: %v", err)
 		}
-		return
 	}()
 	return outCh
 }

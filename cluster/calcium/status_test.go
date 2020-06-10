@@ -34,7 +34,7 @@ func TestSetContainersStatus(t *testing.T) {
 
 	// failed
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
-	_, err := c.SetContainersStatus(ctx, []*types.StatusMeta{&types.StatusMeta{ID: "123"}}, nil)
+	_, err := c.SetContainersStatus(ctx, []*types.StatusMeta{{ID: "123"}}, nil)
 	assert.Error(t, err)
 	container := &types.Container{
 		ID:   "123",
@@ -47,7 +47,7 @@ func TestSetContainersStatus(t *testing.T) {
 		mock.Anything,
 		mock.Anything,
 	).Return(types.ErrBadCount).Once()
-	_, err = c.SetContainersStatus(ctx, []*types.StatusMeta{&types.StatusMeta{ID: "123"}}, nil)
+	_, err = c.SetContainersStatus(ctx, []*types.StatusMeta{{ID: "123"}}, nil)
 	assert.Error(t, err)
 	// success
 	store.On("SetContainerStatus",
@@ -55,7 +55,7 @@ func TestSetContainersStatus(t *testing.T) {
 		mock.Anything,
 		mock.Anything,
 	).Return(nil)
-	r, err := c.SetContainersStatus(ctx, []*types.StatusMeta{&types.StatusMeta{ID: "123"}}, nil)
+	r, err := c.SetContainersStatus(ctx, []*types.StatusMeta{{ID: "123"}}, nil)
 	assert.NoError(t, err)
 	assert.Len(t, r, 1)
 }

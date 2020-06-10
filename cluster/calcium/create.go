@@ -64,7 +64,9 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 			go metrics.Client.SendDeployCount(nodeInfo.Deploy)
 			go func(nodeInfo types.NodeInfo, index int) {
 				defer func() {
-					c.store.DeleteProcessing(context.Background(), opts, nodeInfo)
+					if err := c.store.DeleteProcessing(context.Background(), opts, nodeInfo); err != nil {
+						log.Errorf("[doCreateContainer] remove processing status failed %v", err)
+					}
 					wg.Done()
 				}()
 
@@ -212,7 +214,9 @@ func (c *Calcium) doCreateAndStartContainer(
 	// Copy data to container
 	if len(opts.Data) > 0 {
 		for dst, src := range opts.Data {
-			src.Seek(0, io.SeekStart)
+			if _, err = src.Seek(0, io.SeekStart); err != nil {
+				return createContainerMessage
+			}
 			if err = c.doSendFileToContainer(ctx, node.Engine, containerCreated.ID, dst, src, true, true); err != nil {
 				return createContainerMessage
 			}

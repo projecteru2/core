@@ -40,8 +40,11 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 
 		lambda := func(message *types.CreateContainerMessage) {
 			defer func() {
-				c.doRemoveContainerSync(context.Background(), []string{message.ContainerID})
-				log.Infof("[RunAndWait] Container %s finished and removed", utils.ShortID(message.ContainerID))
+				if err := c.doRemoveContainerSync(context.Background(), []string{message.ContainerID}); err != nil {
+					log.Errorf("[RunAndWait] Remove lambda container failed %v", err)
+				} else {
+					log.Infof("[RunAndWait] Container %s finished and removed", utils.ShortID(message.ContainerID))
+				}
 				wg.Done()
 			}()
 
@@ -89,7 +92,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 
 			exitData := []byte(exitDataPrefix + strconv.Itoa(int(r.Code)))
 			runMsgCh <- &types.AttachContainerMessage{ContainerID: message.ContainerID, Data: exitData}
-			return
 		}
 
 		wg.Add(1)

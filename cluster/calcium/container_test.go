@@ -16,7 +16,7 @@ func TestListContainers(t *testing.T) {
 	ctx := context.Background()
 	ID := "testID"
 	containers := []*types.Container{
-		&types.Container{ID: ID},
+		{ID: ID},
 	}
 
 	store := &storemocks.Store{}

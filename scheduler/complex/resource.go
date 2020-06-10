@@ -74,11 +74,7 @@ func (h *host) getComplexResult(full int, fragment int64, maxShare int) []types.
 	for i := 0; i < baseLine; i++ {
 		r := types.ResourceMap{}
 		for id, pieces := range fullResult[i] {
-			if _, ok := r[id]; ok {
-				r[id] += pieces
-			} else {
-				r[id] = pieces
-			}
+			r[id] += pieces
 		}
 		for id, pieces := range fragmentResult[i] {
 			r[id] = pieces

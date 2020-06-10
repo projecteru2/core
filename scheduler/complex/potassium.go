@@ -94,7 +94,6 @@ func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64,
 	if p == nodesInfoLength {
 		return nil, 0, types.ErrInsufficientMEM
 	}
-	nodesInfoLength -= p
 	nodesInfo = nodesInfo[p:]
 
 	// 这里 memCap 一定是大于 memory 的所以不用判断 cap 内容

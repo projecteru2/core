@@ -87,10 +87,18 @@ func serve() {
 
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterCoreRPCServer(grpcServer, vibranium)
-	go grpcServer.Serve(s)
+	go func() {
+		if err := grpcServer.Serve(s); err != nil {
+			log.Fatalf("start grpc failed %v", err)
+		}
+	}()
 	if config.Profile != "" {
 		http.Handle("/metrics", metrics.Client.ResourceMiddleware(cluster)(promhttp.Handler()))
-		go http.ListenAndServe(config.Profile, nil)
+		go func() {
+			if err := http.ListenAndServe(config.Profile, nil); err != nil {
+				log.Errorf("start http failed %v", err)
+			}
+		}()
 	}
 
 	log.Info("[main] Cluster started successfully.")
@@ -137,5 +145,5 @@ func main() {
 		return nil
 	}
 
-	app.Run(os.Args)
+	_ = app.Run(os.Args)
 }

@@ -136,7 +136,7 @@ func TestSetNode(t *testing.T) {
 	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", Status: 0, ContainersDown: true})
 	assert.Error(t, err)
-	containers := []*types.Container{&types.Container{Name: "wrong_name"}, &types.Container{Name: "a_b_c"}}
+	containers := []*types.Container{{Name: "wrong_name"}, {Name: "a_b_c"}}
 	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
 	store.On("SetContainerStatus",
 		mock.Anything, mock.Anything, mock.Anything,

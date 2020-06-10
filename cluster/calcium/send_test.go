@@ -23,7 +23,7 @@ func TestSend(t *testing.T) {
 	opts := &types.SendOptions{
 		IDs: []string{"cid"},
 		Data: map[string][]byte{
-			"/tmp/1": []byte{},
+			"/tmp/1": {},
 		},
 	}
 	store := &storemocks.Store{}

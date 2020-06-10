@@ -116,7 +116,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode, opts.SoftLimit)
 	// set ulimits
 	resource.Ulimits = []*units.Ulimit{
-		&units.Ulimit{Name: "nofile", Soft: 65535, Hard: 65535},
+		{Name: "nofile", Soft: 65535, Hard: 65535},
 	}
 	if networkMode.IsHost() {
 		opts.DNS = []string{}
