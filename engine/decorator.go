@@ -106,15 +106,15 @@ func (a *TimeoutAPI) ImagesPrune(ctx context.Context) error {
 // ImagePull .
 func (a *TimeoutAPI) ImagePull(ctx context.Context, ref string, all bool) (chan *enginetypes.ImageMessage, error) {
 	ctx, cancel := context.WithTimeout(ctx, a.timeout)
-	defer cancel()
-	return a.api.ImagePull(ctx, ref, all)
+	ch, err := a.api.ImagePull(ctx, ref, all)
+	return relayChannel(ch, cancel), err
 }
 
 // ImagePush .
 func (a *TimeoutAPI) ImagePush(ctx context.Context, ref string) (chan *enginetypes.ImageMessage, error) {
 	ctx, cancel := context.WithTimeout(ctx, a.timeout)
-	defer cancel()
-	return a.api.ImagePush(ctx, ref)
+	ch, err := a.api.ImagePush(ctx, ref)
+	return relayChannel(ch, cancel), err
 }
 
 // ImageBuild .
@@ -251,4 +251,18 @@ func (a *TimeoutAPI) ResourceValidate(ctx context.Context, cpu float64, cpumap m
 	ctx, cancel := context.WithTimeout(ctx, a.timeout)
 	defer cancel()
 	return a.api.ResourceValidate(ctx, cpu, cpumap, memory, storage)
+}
+
+func relayChannel(ch chan *enginetypes.ImageMessage, cancel context.CancelFunc) chan *enginetypes.ImageMessage {
+	relay := make(chan *enginetypes.ImageMessage)
+	go func() {
+		defer cancel()
+		defer close(relay)
+		if ch != nil {
+			for m := range ch {
+				relay <- m
+			}
+		}
+	}()
+	return relay
 }

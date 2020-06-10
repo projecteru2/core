@@ -98,9 +98,13 @@ func pullImage(ctx context.Context, node *types.Node, image string) error {
 	}
 
 	log.Info("[pullImage] Image not cached, pulling")
-	if _, err = node.Engine.ImagePull(ctx, image, false); err != nil {
+	ch, err := node.Engine.ImagePull(ctx, image, false)
+	if err != nil {
 		log.Errorf("[pullImage] Error during pulling image %s: %v", image, err)
 		return err
+	}
+	// waiting for pull completion
+	for range ch {
 	}
 	log.Infof("[pullImage] Done pulling image %s", image)
 	return nil

@@ -279,10 +279,15 @@ func dumpFromString(ca, cert, key *os.File, caStr, certStr, keyStr string) error
 }
 
 func parseDockerImageMessages(reader io.ReadCloser) chan *enginetypes.ImageMessage {
+	if reader == nil {
+		return nil
+	}
 	ch := make(chan *enginetypes.ImageMessage)
 	go func() {
 		defer func() {
-			_, _ = io.Copy(ioutil.Discard, reader)
+			if _, err := io.Copy(ioutil.Discard, reader); err != nil {
+				log.Errorf("[parseDockerImageMessages] io.Copy image stream failed: %+v", err)
+			}
 			reader.Close()
 			close(ch)
 		}()
