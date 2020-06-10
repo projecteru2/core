@@ -16,15 +16,11 @@ func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(ctx, c.config.GlobalTimeout)
-	defer cancel()
 	return lock, lock.Lock(ctx)
 }
 
 func (c *Calcium) doUnlock(ctx context.Context, lock lock.DistributedLock, msg string) error {
 	log.Debugf("[doUnlock] Unlock %s", msg)
-	ctx, cancel := context.WithTimeout(ctx, c.config.GlobalTimeout)
-	defer cancel()
 	return lock.Unlock(ctx)
 }
 

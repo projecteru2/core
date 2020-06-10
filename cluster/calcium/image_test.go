@@ -1,11 +1,12 @@
 package calcium
 
 import (
+	"bytes"
 	"context"
+	"io/ioutil"
 	"testing"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
-	enginetypes "github.com/projecteru2/core/engine/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
@@ -84,9 +85,7 @@ func TestCacheImage(t *testing.T) {
 	}
 	engine.On("ImageRemoteDigest", mock.Anything, mock.Anything).Return("yy", nil)
 	engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return([]string{"xx"}, nil)
-	imageCh := make(chan *enginetypes.ImageMessage)
-	close(imageCh)
-	engine.On("ImagePull", mock.Anything, mock.Anything, mock.Anything).Return(imageCh, nil)
+	engine.On("ImagePull", mock.Anything, mock.Anything, mock.Anything).Return(ioutil.NopCloser(bytes.NewReader([]byte{})), nil)
 	// succ
 	ch, err = c.CacheImage(ctx, "", "", []string{"xx"}, 0)
 	for c := range ch {

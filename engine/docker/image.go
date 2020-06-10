@@ -10,6 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/utils"
 )
 
 // ImageList list image
@@ -66,25 +67,23 @@ func (e *Engine) ImagesPrune(ctx context.Context) error {
 }
 
 // ImagePull pull Image
-func (e *Engine) ImagePull(ctx context.Context, ref string, all bool) (chan *enginetypes.ImageMessage, error) {
+func (e *Engine) ImagePull(ctx context.Context, ref string, all bool) (io.ReadCloser, error) {
 	auth, err := makeEncodedAuthConfigFromRemote(e.config.Docker.AuthConfigs, ref)
 	if err != nil {
 		return nil, err
 	}
 	pullOptions := dockertypes.ImagePullOptions{All: all, RegistryAuth: auth}
-	reader, err := e.client.ImagePull(ctx, ref, pullOptions)
-	return parseDockerImageMessages(reader), err
+	return e.client.ImagePull(ctx, ref, pullOptions)
 }
 
 // ImagePush push image
-func (e *Engine) ImagePush(ctx context.Context, ref string) (chan *enginetypes.ImageMessage, error) {
+func (e *Engine) ImagePush(ctx context.Context, ref string) (io.ReadCloser, error) {
 	auth, err := makeEncodedAuthConfigFromRemote(e.config.Docker.AuthConfigs, ref)
 	if err != nil {
 		return nil, err
 	}
 	pushOptions := dockertypes.ImagePushOptions{RegistryAuth: auth}
-	reader, err := e.client.ImagePush(ctx, ref, pushOptions)
-	return parseDockerImageMessages(reader), err
+	return e.client.ImagePush(ctx, ref, pushOptions)
 }
 
 // ImageBuild build image
@@ -139,17 +138,11 @@ func (e *Engine) ImageBuildFromExist(ctx context.Context, ID, name string) (imag
 		}
 	}()
 
-	ch, err := e.ImagePush(ctx, name)
+	stream, err := e.ImagePush(ctx, name)
+	defer utils.EnsureReaderClosed(stream)
 	if err != nil {
 		return "", err
 	}
-
-	for m := range ch {
-		if m.Error != "" {
-			return "", fmt.Errorf("failed to push image %s: %s", name, m.Error)
-		}
-	}
-
 	return resp.ID, nil
 }
 
