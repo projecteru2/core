@@ -134,6 +134,7 @@ func TestReplaceContainer(t *testing.T) {
 	// failed by VirtualizationCreate
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, types.ErrCannotGetEngine).Once()
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
+	store.On("UpdateNodeResource", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
 	ch, err = c.ReplaceContainer(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {

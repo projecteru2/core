@@ -156,9 +156,9 @@ func (c *Calcium) doReplaceContainer(
 				},
 				// rollback
 				func(ctx context.Context) (err error) {
-					if createMessage.ContainerID != "" {
+					if createMessage.Error != nil && createMessage.ContainerID != "" {
 						log.Warnf("[doReplaceContainer] Create container failed and metadata remained: %+v", createMessage.Error)
-					} else {
+					} else if createMessage.Error != nil && createMessage.ContainerID == "" {
 						log.Warnf("[doReplaceContainer] Create container failed and metadata cleaned, reset node resource: %+v", createMessage.Error)
 						if err = c.withNodeLocked(ctx, node.Name, func(node *types.Node) error {
 							return c.store.UpdateNodeResource(ctx, node, createMessage.CPU, createMessage.Quota, createMessage.Memory, createMessage.Storage, createMessage.VolumePlan.IntoVolumeMap(), store.ActionIncr)
