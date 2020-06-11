@@ -2,8 +2,9 @@ package calcium
 
 import (
 	"context"
-	complexscheduler "github.com/projecteru2/core/scheduler/complex"
 	"testing"
+
+	complexscheduler "github.com/projecteru2/core/scheduler/complex"
 
 	"github.com/stretchr/testify/assert"
 
@@ -135,6 +136,7 @@ func TestRealloc(t *testing.T) {
 	simpleMockScheduler.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nodeCPUPlans, 2, nil).Times(5)
 	// failed by apply resource
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrBadContainerID).Twice()
+	store.On("UpdateContainer", mock.Anything, mock.Anything).Return(nil).Twice()
 	// update node failed
 	store.On("UpdateNode", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
 	// reset node

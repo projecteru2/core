@@ -289,7 +289,6 @@ func (c *Calcium) doCreateAndStartContainer(
 		},
 		c.config.GlobalTimeout,
 	)
-
 	return createContainerMessage
 }
 

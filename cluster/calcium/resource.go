@@ -211,7 +211,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 						nodesInfo[i].VolumePlans = nodeVolumePlans[nodeInfo.Name][:nodeInfo.Deploy]
 					}
 					if err = c.store.UpdateNodeResource(ctx, nodes[nodeInfo.Name], cpuCost, quotaCost, memoryCost, storageCost, volumeCost, store.ActionDecr); err != nil {
-						return err
+						return err // due to ctx lifecircle, this will be interrupted by client
 					}
 					track = i
 				}
