@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"sync"
 
+	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -141,24 +142,43 @@ func (c *Calcium) doReplaceContainer(
 				ctx,
 				// if
 				func(ctx context.Context) error {
-					createMessage = c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU, container.VolumePlan)
-					return createMessage.Error
+					return utils.Txn(
+						ctx,
+						func(ctx context.Context) error {
+							createMessage = c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU, container.VolumePlan)
+							return createMessage.Error
+						},
+						nil,
+						func(ctx context.Context) error {
+							log.Errorf("[doReplaceContainer] Error when create and start a container, %v", createMessage.Error)
+							if createMessage.ContainerID != "" {
+								log.Warnf("[doReplaceContainer] Create container failed %v, and container %s not removed", createMessage.Error, createMessage.ContainerID)
+								return nil
+							}
+							if err = c.withNodeLocked(ctx, node.Name, func(node *types.Node) error {
+								return c.store.UpdateNodeResource(ctx, node, createMessage.CPU, createMessage.Quota, createMessage.Memory, createMessage.Storage, createMessage.VolumePlan.IntoVolumeMap(), store.ActionIncr)
+							}); err != nil {
+								log.Errorf("[doReplaceContainer] Reset node resource %s failed %v", node.Name, err)
+							}
+							return nil
+						},
+						c.config.GlobalTimeout,
+					)
 				},
 				// then
 				func(ctx context.Context) (err error) {
 					if err = c.doRemoveContainer(ctx, container, true); err != nil {
-						log.Errorf("[replaceAndRemove] the new started but the old failed to stop")
+						log.Errorf("[doReplaceContainer] the new started but the old failed to stop")
 						return
 					}
 					removeMessage.Success = true
 					return
 				},
-				// else
 				nil,
 				c.config.GlobalTimeout,
 			)
 		},
-		// else
+		// rollback
 		func(ctx context.Context) (err error) {
 			messages, err := c.doStartContainer(ctx, container, opts.IgnoreHook)
 			if err != nil {

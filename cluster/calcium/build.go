@@ -83,12 +83,6 @@ func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, refs [
 }
 
 func (c *Calcium) buildFromExist(ctx context.Context, ref, existID string) (chan *types.BuildImageMessage, error) {
-	buildErrMsg := func(err error) *types.BuildImageMessage {
-		msg := &types.BuildImageMessage{Error: err.Error()}
-		msg.ErrorDetail.Message = err.Error()
-		return msg
-	}
-
 	return withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
 		node, err := c.getContainerNode(ctx, existID)
 		if err != nil {
@@ -183,4 +177,10 @@ func cleanupNodeImages(node *types.Node, IDs []string, ttl time.Duration) {
 	} else {
 		log.Infof("[BuildImage] Clean cached image and release space %d", spaceReclaimed)
 	}
+}
+
+func buildErrMsg(err error) *types.BuildImageMessage {
+	msg := &types.BuildImageMessage{Error: err.Error()}
+	msg.ErrorDetail.Message = err.Error()
+	return msg
 }

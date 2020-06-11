@@ -229,17 +229,17 @@ func (c *Calcium) updateContainersResources(ctx context.Context, ch chan *types.
 }
 
 func (c *Calcium) updateResource(ctx context.Context, node *types.Node, container *types.Container, newResource *enginetypes.VirtualizationResource) error {
-	if err := node.Engine.VirtualizationUpdateResource(ctx, container.ID, newResource); err == nil {
-		oldVolumes := container.Volumes
+	updateResourceErr := node.Engine.VirtualizationUpdateResource(ctx, container.ID, newResource)
+	if updateResourceErr == nil {
+		oldVolumeSize := container.Volumes.TotalSize()
 		container.CPU = newResource.CPU
 		container.Quota = newResource.Quota
 		container.Memory = newResource.Memory
 		container.Volumes, _ = types.MakeVolumeBindings(newResource.Volumes)
 		container.VolumePlan = types.MustToVolumePlan(newResource.VolumePlan)
-		container.Storage += container.Volumes.TotalSize() - oldVolumes.TotalSize()
+		container.Storage += container.Volumes.TotalSize() - oldVolumeSize
 	} else {
-		log.Errorf("[updateResource] When Realloc container, VirtualizationUpdateResource %s failed %v", container.ID, err)
-		return err
+		log.Errorf("[updateResource] When Realloc container, VirtualizationUpdateResource %s failed %v", container.ID, updateResourceErr)
 	}
 	// 成功失败都需要修改 node 的占用
 	// 成功的话，node 占用为新资源
@@ -257,10 +257,9 @@ func (c *Calcium) updateResource(ctx context.Context, node *types.Node, containe
 	// since we don't rollback VirutalUpdateResource, client can't interrupt
 	if err := c.store.UpdateContainer(context.Background(), container); err != nil {
 		log.Errorf("[updateResource] Realloc finish but update container %s failed %v", container.ID, err)
-
 		return err
 	}
-	return nil
+	return updateResourceErr
 }
 
 func (c *Calcium) reallocVolume(node *types.Node, containers []*types.Container, vbs types.VolumeBindings) (plans map[*types.Container]types.VolumePlan, err error) {
