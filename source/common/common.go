@@ -34,14 +34,15 @@ func (g *GitScm) SourceCode(repository, path, revision string, submodule bool) e
 	if strings.Contains(repository, "https://") {
 		repo, err = git.Clone(repository, path, &git.CloneOptions{})
 	} else {
-		credentialsCallback := func(url, username string, allowedTypes git.CredType) (*git.Cred, error) {
-			return git.NewCredSshKey(username, g.Config.PublicKey, g.Config.PrivateKey, "")
-		}
 		cloneOpts := &git.CloneOptions{
 			FetchOptions: &git.FetchOptions{
 				RemoteCallbacks: git.RemoteCallbacks{
-					CredentialsCallback:      credentialsCallback,
-					CertificateCheckCallback: certificateCheckCallback,
+					CredentialsCallback: func(url, username string, allowedTypes git.CredType) (*git.Cred, error) {
+						return git.NewCredSshKey(username, g.Config.PublicKey, g.Config.PrivateKey, "")
+					},
+					CertificateCheckCallback: func(cert *git.Certificate, valid bool, hostname string) git.ErrorCode {
+						return git.ErrorCode(0)
+					},
 				},
 			},
 		}
@@ -175,10 +176,6 @@ func unzipFile(body io.ReadCloser, path string) error {
 		}
 	}
 	return nil
-}
-
-func certificateCheckCallback(cert *git.Certificate, valid bool, hostname string) git.ErrorCode {
-	return git.ErrorCode(0)
 }
 
 func gitcheck(repository, pubkey, prikey string) error {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -16,7 +17,7 @@ func (c *Calcium) DissociateContainer(ctx context.Context, IDs []string) (chan *
 		for _, ID := range IDs {
 			err := c.withContainerLocked(ctx, ID, func(container *types.Container) error {
 				return c.withNodeLocked(ctx, container.Nodename, func(node *types.Node) (err error) {
-					return c.Transaction(
+					return utils.Txn(
 						ctx,
 						// if
 						func(ctx context.Context) error {
@@ -29,6 +30,7 @@ func (c *Calcium) DissociateContainer(ctx context.Context, IDs []string) (chan *
 						},
 						// rollback
 						nil,
+						c.config.GlobalTimeout,
 					)
 				})
 			})

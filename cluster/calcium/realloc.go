@@ -76,54 +76,6 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 	return ch, nil
 }
 
-func calVolCPUMemNodeContainerInfo(nodename string, container *types.Container, cpu float64, memory int64, volumes types.VolumeBindings, volCPUMemNodeContainersInfo volCPUMemNodeContainers, hardVbsForContainer map[string]types.VolumeBindings) error {
-	newCPU := utils.Round(container.Quota + cpu)
-	newMem := container.Memory + memory
-	if newCPU < 0 || newMem < 0 {
-		log.Errorf("[doReallocContainer] New resource invalid %s, cpu %f, mem %d", container.ID, newCPU, newMem)
-		return types.ErrInvalidRes
-	}
-
-	autoVolumes, hardVolumes, err := container.Volumes.Merge(volumes)
-	hardVbsForContainer[container.ID] = hardVolumes
-	if err != nil {
-		log.Errorf("[doReallocContainer] New resource invalid %s, vol %v, err %v", container.ID, volumes, err)
-		return err
-	}
-	newAutoVol := strings.Join(autoVolumes.ToStringSlice(true, false), ",")
-
-	if _, ok := volCPUMemNodeContainersInfo[newAutoVol]; !ok {
-		volCPUMemNodeContainersInfo[newAutoVol] = map[float64]map[int64]nodeContainers{}
-	}
-	if _, ok := volCPUMemNodeContainersInfo[newAutoVol][newCPU]; !ok {
-		volCPUMemNodeContainersInfo[newAutoVol][newCPU] = map[int64]nodeContainers{}
-	}
-	if _, ok := volCPUMemNodeContainersInfo[newAutoVol][newCPU][newMem]; !ok {
-		volCPUMemNodeContainersInfo[newAutoVol][newCPU][newMem] = nodeContainers{}
-	}
-	if _, ok := volCPUMemNodeContainersInfo[newAutoVol][newCPU][newMem][nodename]; !ok {
-		volCPUMemNodeContainersInfo[newAutoVol][newCPU][newMem][nodename] = []*types.Container{}
-	}
-	volCPUMemNodeContainersInfo[newAutoVol][newCPU][newMem][nodename] = append(volCPUMemNodeContainersInfo[newAutoVol][newCPU][newMem][nodename], container)
-	return nil
-}
-
-func calVolCPUMemNodeContainersInfo(ch chan *types.ReallocResourceMessage, nodeContainersInfo nodeContainers, cpu float64, memory int64, volumes types.VolumeBindings) (volCPUMemNodeContainers, map[string]types.VolumeBindings) {
-	volCPUMemNodeContainersInfo := volCPUMemNodeContainers{}
-	hardVbsForContainer := map[string]types.VolumeBindings{}
-	for nodename, containers := range nodeContainersInfo {
-		for _, container := range containers {
-			if err := calVolCPUMemNodeContainerInfo(nodename, container, cpu, memory, volumes, volCPUMemNodeContainersInfo, hardVbsForContainer); err != nil {
-				ch <- &types.ReallocResourceMessage{
-					ContainerID: container.ID,
-					Error:       err,
-				}
-			}
-		}
-	}
-	return volCPUMemNodeContainersInfo, hardVbsForContainer
-}
-
 func (c *Calcium) doReallocContainer(
 	ctx context.Context,
 	ch chan *types.ReallocResourceMessage,
@@ -201,7 +153,7 @@ func (c *Calcium) doReallocContainer(
 							Memory: newMemory,
 						}
 
-						return c.Transaction(
+						return utils.Txn(
 							ctx,
 							// if
 							func(ctx context.Context) error {
@@ -217,6 +169,7 @@ func (c *Calcium) doReallocContainer(
 							},
 							// rollback
 							nil,
+							c.config.GlobalTimeout,
 						)
 					}); err != nil {
 						for _, container := range containers {
@@ -344,4 +297,52 @@ Searching:
 	}
 
 	return
+}
+
+func calVolCPUMemNodeContainerInfo(nodename string, container *types.Container, cpu float64, memory int64, volumes types.VolumeBindings, volCPUMemNodeContainersInfo volCPUMemNodeContainers, hardVbsForContainer map[string]types.VolumeBindings) error {
+	newCPU := utils.Round(container.Quota + cpu)
+	newMem := container.Memory + memory
+	if newCPU < 0 || newMem < 0 {
+		log.Errorf("[calVolCPUMemNodeContainerInfo] New resource invalid %s, cpu %f, mem %d", container.ID, newCPU, newMem)
+		return types.ErrInvalidRes
+	}
+
+	autoVolumes, hardVolumes, err := container.Volumes.Merge(volumes)
+	hardVbsForContainer[container.ID] = hardVolumes
+	if err != nil {
+		log.Errorf("[calVolCPUMemNodeContainerInfo] New resource invalid %s, vol %v, err %v", container.ID, volumes, err)
+		return err
+	}
+	newAutoVol := strings.Join(autoVolumes.ToStringSlice(true, false), ",")
+
+	if _, ok := volCPUMemNodeContainersInfo[newAutoVol]; !ok {
+		volCPUMemNodeContainersInfo[newAutoVol] = map[float64]map[int64]nodeContainers{}
+	}
+	if _, ok := volCPUMemNodeContainersInfo[newAutoVol][newCPU]; !ok {
+		volCPUMemNodeContainersInfo[newAutoVol][newCPU] = map[int64]nodeContainers{}
+	}
+	if _, ok := volCPUMemNodeContainersInfo[newAutoVol][newCPU][newMem]; !ok {
+		volCPUMemNodeContainersInfo[newAutoVol][newCPU][newMem] = nodeContainers{}
+	}
+	if _, ok := volCPUMemNodeContainersInfo[newAutoVol][newCPU][newMem][nodename]; !ok {
+		volCPUMemNodeContainersInfo[newAutoVol][newCPU][newMem][nodename] = []*types.Container{}
+	}
+	volCPUMemNodeContainersInfo[newAutoVol][newCPU][newMem][nodename] = append(volCPUMemNodeContainersInfo[newAutoVol][newCPU][newMem][nodename], container)
+	return nil
+}
+
+func calVolCPUMemNodeContainersInfo(ch chan *types.ReallocResourceMessage, nodeContainersInfo nodeContainers, cpu float64, memory int64, volumes types.VolumeBindings) (volCPUMemNodeContainers, map[string]types.VolumeBindings) {
+	volCPUMemNodeContainersInfo := volCPUMemNodeContainers{}
+	hardVbsForContainer := map[string]types.VolumeBindings{}
+	for nodename, containers := range nodeContainersInfo {
+		for _, container := range containers {
+			if err := calVolCPUMemNodeContainerInfo(nodename, container, cpu, memory, volumes, volCPUMemNodeContainersInfo, hardVbsForContainer); err != nil {
+				ch <- &types.ReallocResourceMessage{
+					ContainerID: container.ID,
+					Error:       err,
+				}
+			}
+		}
+	}
+	return volCPUMemNodeContainersInfo, hardVbsForContainer
 }

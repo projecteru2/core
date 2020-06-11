@@ -16,7 +16,7 @@ func (c *Calcium) RemoveImage(ctx context.Context, podname, nodename string, ima
 		step = 1
 	}
 
-	nodes, err := c.GetNodes(ctx, podname, nodename, nil, false)
+	nodes, err := c.getNodes(ctx, podname, nodename, nil, false)
 	if err != nil {
 		return ch, err
 	}
@@ -76,7 +76,7 @@ func (c *Calcium) CacheImage(ctx context.Context, podname, nodename string, imag
 		step = 1
 	}
 
-	nodes, err := c.GetNodes(ctx, podname, nodename, nil, false)
+	nodes, err := c.getNodes(ctx, podname, nodename, nil, false)
 	if err != nil {
 		return ch, err
 	}

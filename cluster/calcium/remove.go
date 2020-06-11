@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/projecteru2/core/store"
+	"github.com/projecteru2/core/utils"
 
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
@@ -27,11 +28,10 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool,
 			wg.Add(1)
 			go func(ID string) {
 				defer wg.Done()
-				output := []*bytes.Buffer{}
-				success := false
+				ret := &types.RemoveContainerMessage{ContainerID: ID, Success: false, Hook: []*bytes.Buffer{}}
 				if err := c.withContainerLocked(ctx, ID, func(container *types.Container) error {
 					return c.withNodeLocked(ctx, container.Nodename, func(node *types.Node) (err error) {
-						return c.Transaction(
+						return utils.Txn(
 							ctx,
 							// if
 							func(ctx context.Context) error {
@@ -44,15 +44,16 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool,
 							},
 							// rollback
 							nil,
+							c.config.GlobalTimeout,
 						)
 					})
 				}); err != nil {
 					log.Errorf("[RemoveContainer] Remove container %s failed, err: %v", ID, err)
-					output = append(output, bytes.NewBufferString(err.Error()))
+					ret.Hook = append(ret.Hook, bytes.NewBufferString(err.Error()))
 				} else {
-					success = true
+					ret.Success = true
 				}
-				ch <- &types.RemoveContainerMessage{ContainerID: ID, Success: success, Hook: output}
+				ch <- ret
 			}(ID)
 			if (i+1)%step == 0 {
 				log.Info("[RemoveContainer] Wait for previous tasks done")
@@ -64,7 +65,7 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool,
 }
 
 func (c *Calcium) doRemoveContainer(ctx context.Context, container *types.Container, force bool) error {
-	return c.Transaction(
+	return utils.Txn(
 		ctx,
 		// if
 		func(ctx context.Context) error {
@@ -76,6 +77,7 @@ func (c *Calcium) doRemoveContainer(ctx context.Context, container *types.Contai
 		},
 		// rollback
 		nil,
+		c.config.GlobalTimeout,
 	)
 
 }

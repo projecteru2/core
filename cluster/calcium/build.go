@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
@@ -100,7 +101,7 @@ func (c *Calcium) buildFromExist(ctx context.Context, ref, existID string) (chan
 			ch <- buildErrMsg(err)
 			return
 		}
-
+		go cleanupNodeImages(node, []string{imageID}, c.config.GlobalTimeout)
 		ch <- &types.BuildImageMessage{ID: imageID}
 	}), nil
 }
@@ -153,21 +154,9 @@ func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types
 			// 无论如何都删掉build机器的
 			// 事实上他不会跟cached pod一样
 			// 一样就砍死
-			go func(tag string) {
-				// context 这里的不应该受到 client 的影响
-				_, err := node.Engine.ImageRemove(context.Background(), tag, false, true)
-				if err != nil {
-					log.Errorf("[BuildImage] Remove image error: %s", err)
-				}
-				spaceReclaimed, err := node.Engine.ImageBuildCachePrune(ctx, true)
-				if err != nil {
-					log.Errorf("[BuildImage] Remove build image cache error: %s", err)
-				}
-				log.Infof("[BuildImage] Clean cached image and release space %d", spaceReclaimed)
-			}(tag)
-
 			ch <- &types.BuildImageMessage{Stream: fmt.Sprintf("finished %s\n", tag), Status: "finished", Progress: tag}
 		}
+		go cleanupNodeImages(node, tags, c.config.GlobalTimeout)
 	}), nil
 
 }
@@ -179,4 +168,19 @@ func withImageBuiltChannel(f func(chan *types.BuildImageMessage)) chan *types.Bu
 		f(ch)
 	}()
 	return ch
+}
+
+func cleanupNodeImages(node *types.Node, IDs []string, ttl time.Duration) {
+	ctx, cancel := context.WithTimeout(context.Background(), ttl)
+	defer cancel()
+	for _, ID := range IDs {
+		if _, err := node.Engine.ImageRemove(ctx, ID, false, true); err != nil {
+			log.Errorf("[BuildImage] Remove image error: %s", err)
+		}
+	}
+	if spaceReclaimed, err := node.Engine.ImageBuildCachePrune(ctx, true); err != nil {
+		log.Errorf("[BuildImage] Remove build image cache error: %s", err)
+	} else {
+		log.Infof("[BuildImage] Clean cached image and release space %d", spaceReclaimed)
+	}
 }

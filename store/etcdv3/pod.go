@@ -24,23 +24,6 @@ func (m *Mercury) AddPod(ctx context.Context, name, desc string) (*types.Pod, er
 	return pod, err
 }
 
-// GetPod get a pod from etcd
-// storage path in etcd is `/pod/info/:podname`
-func (m *Mercury) GetPod(ctx context.Context, name string) (*types.Pod, error) {
-	key := fmt.Sprintf(podInfoKey, name)
-
-	ev, err := m.GetOne(ctx, key)
-	if err != nil {
-		return nil, err
-	}
-
-	pod := &types.Pod{}
-	if err = json.Unmarshal(ev.Value, pod); err != nil {
-		return nil, err
-	}
-	return pod, err
-}
-
 // RemovePod if the pod has no nodes left, otherwise return an error
 func (m *Mercury) RemovePod(ctx context.Context, podname string) error {
 	key := fmt.Sprintf(podInfoKey, podname)
@@ -57,6 +40,23 @@ func (m *Mercury) RemovePod(ctx context.Context, podname string) error {
 
 	_, err = m.Delete(ctx, key)
 	return err
+}
+
+// GetPod get a pod from etcd
+// storage path in etcd is `/pod/info/:podname`
+func (m *Mercury) GetPod(ctx context.Context, name string) (*types.Pod, error) {
+	key := fmt.Sprintf(podInfoKey, name)
+
+	ev, err := m.GetOne(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+
+	pod := &types.Pod{}
+	if err = json.Unmarshal(ev.Value, pod); err != nil {
+		return nil, err
+	}
+	return pod, err
 }
 
 // GetAllPods get all pods in etcd

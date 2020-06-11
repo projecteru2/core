@@ -425,7 +425,8 @@ func toRPCContainerStatus(containerStatus *types.StatusMeta) *pb.ContainerStatus
 	return r
 }
 
-func toRPCContainersStatus(containersStatus []*types.StatusMeta) []*pb.ContainerStatus {
+func toRPCContainersStatus(containersStatus []*types.StatusMeta) *pb.ContainersStatus {
+	ret := &pb.ContainersStatus{}
 	r := []*pb.ContainerStatus{}
 	for _, cs := range containersStatus {
 		s := toRPCContainerStatus(cs)
@@ -433,10 +434,12 @@ func toRPCContainersStatus(containersStatus []*types.StatusMeta) []*pb.Container
 			r = append(r, s)
 		}
 	}
-	return r
+	ret.Status = r
+	return ret
 }
 
-func toRPCContainers(ctx context.Context, containers []*types.Container, labels map[string]string) []*pb.Container {
+func toRPCContainers(ctx context.Context, containers []*types.Container, labels map[string]string) *pb.Containers {
+	ret := &pb.Containers{}
 	cs := []*pb.Container{}
 	for _, c := range containers {
 		pContainer, err := toRPCContainer(ctx, c)
@@ -449,7 +452,8 @@ func toRPCContainers(ctx context.Context, containers []*types.Container, labels 
 		}
 		cs = append(cs, pContainer)
 	}
-	return cs
+	ret.Containers = cs
+	return ret
 }
 
 func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, error) {

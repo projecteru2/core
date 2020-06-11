@@ -63,21 +63,39 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 		for _, nodeInfo := range nodesInfo {
 			go metrics.Client.SendDeployCount(nodeInfo.Deploy)
 			go func(nodeInfo types.NodeInfo, index int) {
-				defer func() {
-					if err := c.store.DeleteProcessing(context.Background(), opts, nodeInfo); err != nil {
-						log.Errorf("[doCreateContainer] remove processing status failed %v", err)
-					}
-					wg.Done()
-				}()
-
-				messages := c.doCreateContainerOnNode(ctx, nodeInfo, opts, index)
-				for i, m := range messages {
-					ch <- m
-					// decr processing count
-					if err := c.store.UpdateProcessing(context.Background(), opts, nodeInfo.Name, nodeInfo.Deploy-i-1); err != nil {
-						log.Warnf("[doCreateContainer] Update processing count failed %v", err)
-					}
-				}
+				_ = utils.Txn(
+					ctx,
+					func(ctx context.Context) error {
+						for i, m := range c.doCreateContainerOnNode(ctx, nodeInfo, opts, index) {
+							_ = utils.Txn(
+								ctx,
+								func(ctx context.Context) error {
+									ch <- m
+									return nil
+								},
+								func(ctx context.Context) error {
+									// decr processing count
+									if err := c.store.UpdateProcessing(ctx, opts, nodeInfo.Name, nodeInfo.Deploy-i-1); err != nil {
+										log.Warnf("[doCreateContainer] Update processing count failed %v", err)
+									}
+									return nil
+								},
+								nil,
+								c.config.GlobalTimeout,
+							)
+						}
+						return nil
+					},
+					func(ctx context.Context) error {
+						if err := c.store.DeleteProcessing(ctx, opts, nodeInfo); err != nil {
+							log.Errorf("[doCreateContainer] remove processing status failed %v", err)
+						}
+						wg.Done()
+						return nil
+					},
+					nil,
+					c.config.GlobalTimeout,
+				)
 			}(nodeInfo, index)
 			index += nodeInfo.Deploy
 		}
@@ -101,7 +119,7 @@ func (c *Calcium) doCreateContainerOnNode(ctx context.Context, nodeInfo types.No
 		}
 
 		node := &types.Node{}
-		if err := c.Transaction(
+		if err := utils.Txn(
 			ctx,
 			// if
 			func(ctx context.Context) (err error) {
@@ -121,17 +139,18 @@ func (c *Calcium) doCreateContainerOnNode(ctx context.Context, nodeInfo types.No
 			// rollback, will use background context
 			func(ctx context.Context) (err error) {
 				log.Errorf("[doCreateContainerOnNode] Error when create and start a container, %v", ms[i].Error)
-				if ms[i].ContainerID == "" {
-					if err = c.withNodeLocked(ctx, nodeInfo.Name, func(node *types.Node) error {
-						return c.store.UpdateNodeResource(ctx, node, cpu, opts.CPUQuota, opts.Memory, opts.Storage, volumePlan.IntoVolumeMap(), store.ActionIncr)
-					}); err != nil {
-						log.Errorf("[doCreateContainer] Reset node %s failed %v", nodeInfo.Name, err)
-					}
-				} else {
+				if ms[i].ContainerID != "" {
 					log.Warnf("[doCreateContainer] Create container failed %v, and container %s not removed", ms[i].Error, ms[i].ContainerID)
+					return
+				}
+				if err = c.withNodeLocked(ctx, nodeInfo.Name, func(node *types.Node) error {
+					return c.store.UpdateNodeResource(ctx, node, cpu, opts.CPUQuota, opts.Memory, opts.Storage, volumePlan.IntoVolumeMap(), store.ActionIncr)
+				}); err != nil {
+					log.Errorf("[doCreateContainer] Reset node resource %s failed %v", nodeInfo.Name, err)
 				}
 				return
 			},
+			c.config.GlobalTimeout,
 		); err != nil {
 			continue
 		}
@@ -185,82 +204,91 @@ func (c *Calcium) doCreateAndStartContainer(
 		Publish:    map[string][]string{},
 	}
 	var err error
-
-	defer func() {
-		createContainerMessage.Error = err
-		if err != nil && container.ID != "" {
-			if err := c.doRemoveContainer(context.Background(), container, true); err != nil {
-				log.Errorf("[doCreateAndStartContainer] create and start container failed, and remove it failed also, %s, %v", container.ID, err)
-				return
-			}
-			createContainerMessage.ContainerID = ""
-		}
-	}()
-
-	// get config
-	config := c.doMakeContainerOptions(no, cpu, volumePlan, opts, node)
-	container.Name = config.Name
-	container.Labels = config.Labels
-	createContainerMessage.ContainerName = container.Name
-
-	// create container
 	var containerCreated *enginetypes.VirtualizationCreated
-	containerCreated, err = node.Engine.VirtualizationCreate(ctx, config)
-	if err != nil {
-		return createContainerMessage
-	}
-	container.ID = containerCreated.ID
 
-	// Copy data to container
-	if len(opts.Data) > 0 {
-		for dst, src := range opts.Data {
-			if _, err = src.Seek(0, io.SeekStart); err != nil {
-				return createContainerMessage
+	_ = utils.Txn(
+		ctx,
+		func(ctx context.Context) error {
+			// get config
+			config := c.doMakeContainerOptions(no, cpu, volumePlan, opts, node)
+			container.Name = config.Name
+			container.Labels = config.Labels
+			createContainerMessage.ContainerName = container.Name
+
+			// create container
+			containerCreated, err = node.Engine.VirtualizationCreate(ctx, config)
+			if err != nil {
+				return err
 			}
-			if err = c.doSendFileToContainer(ctx, node.Engine, containerCreated.ID, dst, src, true, true); err != nil {
-				return createContainerMessage
+			container.ID = containerCreated.ID
+
+			// Copy data to container
+			if len(opts.Data) > 0 {
+				for dst, src := range opts.Data {
+					if _, err = src.Seek(0, io.SeekStart); err != nil {
+						return err
+					}
+					if err = c.doSendFileToContainer(ctx, node.Engine, container.ID, dst, src, true, true); err != nil {
+						return err
+					}
+				}
 			}
-		}
-	}
 
-	// deal with hook
-	if len(opts.AfterCreate) > 0 && container.Hook != nil {
-		container.Hook = &types.Hook{
-			AfterStart: append(opts.AfterCreate, container.Hook.AfterStart...),
-			Force:      container.Hook.Force,
-		}
-	}
+			// deal with hook
+			if len(opts.AfterCreate) > 0 && container.Hook != nil {
+				container.Hook = &types.Hook{
+					AfterStart: append(opts.AfterCreate, container.Hook.AfterStart...),
+					Force:      container.Hook.Force,
+				}
+			}
 
-	// start first
-	createContainerMessage.Hook, err = c.doStartContainer(ctx, container, opts.IgnoreHook)
-	if err != nil {
-		return createContainerMessage
-	}
+			// start first
+			createContainerMessage.Hook, err = c.doStartContainer(ctx, container, opts.IgnoreHook)
+			if err != nil {
+				return err
+			}
 
-	// inspect real meta
-	var containerInfo *enginetypes.VirtualizationInfo
-	containerInfo, err = container.Inspect(ctx) // 补充静态元数据
-	if err != nil {
-		return createContainerMessage
-	}
+			// inspect real meta
+			var containerInfo *enginetypes.VirtualizationInfo
+			containerInfo, err = container.Inspect(ctx) // 补充静态元数据
+			if err != nil {
+				return err
+			}
 
-	// update meta
-	if containerInfo.Networks != nil {
-		createContainerMessage.Publish = utils.MakePublishInfo(containerInfo.Networks, opts.Entrypoint.Publish)
-	}
-	// reset users
-	if containerInfo.User != container.User {
-		container.User = containerInfo.User
-	}
-	// reset container.hook
-	container.Hook = opts.Entrypoint.Hook
-
-	// store eru container
-	if err = c.store.AddContainer(ctx, container); err != nil {
-		return createContainerMessage
-	}
-	// non-empty message.ContainerID signals that "core saves metadata of this container"
-	createContainerMessage.ContainerID = containerCreated.ID
+			// update meta
+			if containerInfo.Networks != nil {
+				createContainerMessage.Publish = utils.MakePublishInfo(containerInfo.Networks, opts.Entrypoint.Publish)
+			}
+			// reset users
+			if containerInfo.User != container.User {
+				container.User = containerInfo.User
+			}
+			// reset container.hook
+			container.Hook = opts.Entrypoint.Hook
+			return nil
+		},
+		func(ctx context.Context) error {
+			// store eru container
+			if err = c.store.AddContainer(ctx, container); err != nil {
+				return err
+			}
+			// non-empty message.ContainerID means "core saves metadata of this container"
+			createContainerMessage.ContainerID = container.ID
+			return nil
+		},
+		func(ctx context.Context) error {
+			createContainerMessage.Error = err
+			if err != nil && container.ID != "" {
+				if err := c.doRemoveContainer(ctx, container, true); err != nil {
+					log.Errorf("[doCreateAndStartContainer] create and start container failed, and remove it failed also, %s, %v", container.ID, err)
+					return err
+				}
+				createContainerMessage.ContainerID = ""
+			}
+			return nil
+		},
+		c.config.GlobalTimeout,
+	)
 
 	return createContainerMessage
 }

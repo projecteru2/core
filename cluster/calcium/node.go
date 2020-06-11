@@ -32,20 +32,6 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string) (*types.Node, er
 	return c.store.GetNode(ctx, nodename)
 }
 
-// GetNodes get nodes
-func (c *Calcium) GetNodes(ctx context.Context, podname, nodename string, labels map[string]string, all bool) ([]*types.Node, error) {
-	var ns []*types.Node
-	var err error
-	if nodename != "" {
-		var node *types.Node
-		node, err = c.GetNode(ctx, nodename)
-		ns = []*types.Node{node}
-	} else {
-		ns, err = c.ListPodNodes(ctx, podname, labels, all)
-	}
-	return ns, err
-}
-
 // SetNode set node available or not
 func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) {
 	var n *types.Node
@@ -140,4 +126,18 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		}
 		return c.store.UpdateNode(ctx, n)
 	})
+}
+
+// GetNodes get nodes
+func (c *Calcium) getNodes(ctx context.Context, podname, nodename string, labels map[string]string, all bool) ([]*types.Node, error) {
+	var ns []*types.Node
+	var err error
+	if nodename != "" {
+		var node *types.Node
+		node, err = c.GetNode(ctx, nodename)
+		ns = []*types.Node{node}
+	} else {
+		ns, err = c.ListPodNodes(ctx, podname, labels, all)
+	}
+	return ns, err
 }
