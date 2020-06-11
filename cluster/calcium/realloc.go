@@ -229,7 +229,8 @@ func (c *Calcium) updateContainersResources(ctx context.Context, ch chan *types.
 }
 
 func (c *Calcium) updateResource(ctx context.Context, node *types.Node, container *types.Container, newResource *enginetypes.VirtualizationResource) error {
-	if err := node.Engine.VirtualizationUpdateResource(ctx, container.ID, newResource); err == nil {
+	updateResourceErr := node.Engine.VirtualizationUpdateResource(ctx, container.ID, newResource)
+	if updateResourceErr == nil {
 		oldVolumes := container.Volumes
 		container.CPU = newResource.CPU
 		container.Quota = newResource.Quota
@@ -238,8 +239,7 @@ func (c *Calcium) updateResource(ctx context.Context, node *types.Node, containe
 		container.VolumePlan = types.MustToVolumePlan(newResource.VolumePlan)
 		container.Storage += container.Volumes.TotalSize() - oldVolumes.TotalSize()
 	} else {
-		log.Errorf("[updateResource] When Realloc container, VirtualizationUpdateResource %s failed %v", container.ID, err)
-		return err
+		log.Errorf("[updateResource] When Realloc container, VirtualizationUpdateResource %s failed %v", container.ID, updateResourceErr)
 	}
 	// 成功失败都需要修改 node 的占用
 	// 成功的话，node 占用为新资源
@@ -260,7 +260,7 @@ func (c *Calcium) updateResource(ctx context.Context, node *types.Node, containe
 
 		return err
 	}
-	return nil
+	return updateResourceErr
 }
 
 func (c *Calcium) reallocVolume(node *types.Node, containers []*types.Container, vbs types.VolumeBindings) (plans map[*types.Container]types.VolumePlan, err error) {
