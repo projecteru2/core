@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"sync"
 
+	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -153,12 +154,24 @@ func (c *Calcium) doReplaceContainer(
 					removeMessage.Success = true
 					return
 				},
-				// else
-				nil,
+				// rollback
+				func(ctx context.Context) (err error) {
+					if createMessage.ContainerID != "" {
+						log.Warnf("[doReplaceContainer] Create container failed and metadata remained: %+v", createMessage.Error)
+					} else {
+						log.Warnf("[doReplaceContainer] Create container failed and metadata cleaned, reset node resource: %+v", createMessage.Error)
+						if err = c.withNodeLocked(ctx, node.Name, func(node *types.Node) error {
+							return c.store.UpdateNodeResource(ctx, node, createMessage.CPU, createMessage.Quota, createMessage.Memory, createMessage.Storage, createMessage.VolumePlan.IntoVolumeMap(), store.ActionIncr)
+						}); err != nil {
+							log.Errorf("[doReplaceContainer] Reset node resource %s failed: %+v", node.Name, err)
+						}
+					}
+					return
+				},
 				c.config.GlobalTimeout,
 			)
 		},
-		// else
+		// rollback
 		func(ctx context.Context) (err error) {
 			messages, err := c.doStartContainer(ctx, container, opts.IgnoreHook)
 			if err != nil {
