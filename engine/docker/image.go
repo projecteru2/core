@@ -7,7 +7,6 @@ import (
 
 	dockertypes "github.com/docker/docker/api/types"
 	dockerfilters "github.com/docker/docker/api/types/filters"
-	log "github.com/sirupsen/logrus"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/utils"
@@ -128,22 +127,9 @@ func (e *Engine) ImageBuildFromExist(ctx context.Context, ID, name string) (imag
 	if err != nil {
 		return "", err
 	}
-	defer func() {
-		if _, err := e.ImageRemove(context.Background(), resp.ID, true, true); err != nil {
-			log.Errorf("[ImageBuildFromExist] failed to remove built image %s: %+v", resp.ID, err)
-			return
-		}
-		if _, err := e.ImageBuildCachePrune(context.Background(), true); err != nil {
-			log.Errorf("[ImageBuildFromExist] failed to clean build cache: %+v", err)
-		}
-	}()
-
 	stream, err := e.ImagePush(ctx, name)
 	defer utils.EnsureReaderClosed(stream)
-	if err != nil {
-		return "", err
-	}
-	return resp.ID, nil
+	return resp.ID, err
 }
 
 // ImageBuildCachePrune prune build cache

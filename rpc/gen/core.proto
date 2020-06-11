@@ -5,17 +5,19 @@ package pb;
 service CoreRPC {
     rpc ListNetworks(ListNetworkOptions) returns (Networks) {};
 
-    rpc ListPods(Empty) returns (Pods) {};
     rpc AddPod(AddPodOptions) returns (Pod) {};
     rpc RemovePod(RemovePodOptions) returns (Empty) {};
     rpc GetPod(GetPodOptions) returns (Pod) {};
+    rpc ListPods(Empty) returns (Pods) {};
+
     rpc GetPodResource(GetPodOptions) returns (PodResource) {};
-    rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
 
     rpc AddNode(AddNodeOptions) returns (Node) {};
     rpc RemoveNode(RemoveNodeOptions) returns (Empty) {};
-    rpc SetNode(SetNodeOptions) returns (Node) {};
+    rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
     rpc GetNode(GetNodeOptions) returns (Node) {};
+    rpc SetNode(SetNodeOptions) returns (Node) {};
+
     rpc GetNodeResource(GetNodeOptions) returns (NodeResource) {};
 
     rpc GetContainer(ContainerID) returns (Container) {};
@@ -38,10 +40,10 @@ service CoreRPC {
     rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage) {};
     rpc DissociateContainer(DissociateContainerOptions) returns (stream DissociateContainerMessage) {};
     rpc ControlContainer(ControlContainerOptions) returns (stream ControlContainerMessage) {};
+    rpc ExecuteContainer(stream ExecuteContainerOptions) returns (stream AttachContainerMessage) {};
     rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage) {};
     rpc LogStream(LogStreamOptions) returns (stream LogStreamMessage) {};
     rpc RunAndWait(stream RunAndWaitOptions) returns (stream AttachContainerMessage) {};
-    rpc ExecuteContainer(stream ExecuteContainerOptions) returns (stream AttachContainerMessage) {};
 }
 
 message Empty {}

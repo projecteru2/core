@@ -91,7 +91,6 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 			}
 		}
 	}()
-
 	return ch, nil
 }
 
@@ -129,7 +128,7 @@ func (c *Calcium) doReplaceContainer(
 	}
 
 	createMessage := &types.CreateContainerMessage{}
-	return createMessage, removeMessage, c.Transaction(
+	return createMessage, removeMessage, utils.Txn(
 		ctx,
 		// if
 		func(ctx context.Context) (err error) {
@@ -138,7 +137,7 @@ func (c *Calcium) doReplaceContainer(
 		},
 		// then
 		func(ctx context.Context) error {
-			return c.Transaction(
+			return utils.Txn(
 				ctx,
 				// if
 				func(ctx context.Context) error {
@@ -156,17 +155,20 @@ func (c *Calcium) doReplaceContainer(
 				},
 				// else
 				nil,
+				c.config.GlobalTimeout,
 			)
 		},
 		// else
 		func(ctx context.Context) (err error) {
 			messages, err := c.doStartContainer(ctx, container, opts.IgnoreHook)
-			log.Errorf("[replaceAndRemove] Old container %s restart failed %v", container.ID, err)
-			removeMessage.Hook = append(removeMessage.Hook, messages...)
 			if err != nil {
+				log.Errorf("[replaceAndRemove] Old container %s restart failed %v", container.ID, err)
 				removeMessage.Hook = append(removeMessage.Hook, bytes.NewBufferString(err.Error()))
+			} else {
+				removeMessage.Hook = append(removeMessage.Hook, messages...)
 			}
 			return
 		},
+		c.config.GlobalTimeout,
 	)
 }

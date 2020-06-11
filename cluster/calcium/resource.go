@@ -196,38 +196,48 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 			return types.ErrInsufficientRes
 		}
 		nodesInfo = nodesInfo[p:]
-		for i, nodeInfo := range nodesInfo {
-			cpuCost := types.CPUMap{}
-			memoryCost := opts.Memory * int64(nodeInfo.Deploy)
-			storageCost := opts.Storage * int64(nodeInfo.Deploy)
-			quotaCost := opts.CPUQuota * float64(nodeInfo.Deploy)
-			volumeCost := types.VolumeMap{}
-
-			if _, ok := nodeCPUPlans[nodeInfo.Name]; ok {
-				cpuList := nodeCPUPlans[nodeInfo.Name][:nodeInfo.Deploy]
-				nodesInfo[i].CPUPlan = cpuList
-				for _, cpu := range cpuList {
-					cpuCost.Add(cpu)
+		var track int
+		return utils.Txn(
+			ctx,
+			func(ctx context.Context) error {
+				for i, nodeInfo := range nodesInfo {
+					cpuCost, quotaCost, memoryCost, storageCost, volumeCost := calcCost(
+						nodeInfo, opts.Memory, opts.Storage, opts.CPUQuota, nodeCPUPlans, nodeVolumePlans,
+					)
+					if _, ok := nodeCPUPlans[nodeInfo.Name]; ok {
+						nodesInfo[i].CPUPlan = nodeCPUPlans[nodeInfo.Name][:nodeInfo.Deploy]
+					}
+					if _, ok := nodeVolumePlans[nodeInfo.Name]; ok {
+						nodesInfo[i].VolumePlans = nodeVolumePlans[nodeInfo.Name][:nodeInfo.Deploy]
+					}
+					if err = c.store.UpdateNodeResource(ctx, nodes[nodeInfo.Name], cpuCost, quotaCost, memoryCost, storageCost, volumeCost, store.ActionDecr); err != nil {
+						return err
+					}
+					track = i
 				}
-			}
-
-			if _, ok := nodeVolumePlans[nodeInfo.Name]; ok {
-				nodesInfo[i].VolumePlans = nodeVolumePlans[nodeInfo.Name][:nodeInfo.Deploy]
-				for _, volumePlan := range nodesInfo[i].VolumePlans {
-					volumeCost.Add(volumePlan.IntoVolumeMap())
+				return nil
+			},
+			func(ctx context.Context) error {
+				go func() {
+					for _, nodeInfo := range nodesInfo {
+						log.Infof("[allocResource] deploy %d to %s", nodeInfo.Deploy, nodeInfo.Name)
+					}
+				}()
+				return nil
+			},
+			func(ctx context.Context) error {
+				for i := 0; i < track+1; i++ {
+					cpuCost, quotaCost, memoryCost, storageCost, volumeCost := calcCost(
+						nodesInfo[i], opts.Memory, opts.Storage, opts.CPUQuota, nodeCPUPlans, nodeVolumePlans,
+					)
+					if err = c.store.UpdateNodeResource(ctx, nodes[nodesInfo[i].Name], cpuCost, quotaCost, memoryCost, storageCost, volumeCost, store.ActionIncr); err != nil {
+						return err
+					}
 				}
-			}
-
-			if err = c.store.UpdateNodeResource(ctx, nodes[nodeInfo.Name], cpuCost, quotaCost, memoryCost, storageCost, volumeCost, store.ActionDecr); err != nil {
-				return err
-			}
-		}
-		go func() {
-			for _, nodeInfo := range nodesInfo {
-				log.Infof("[allocResource] deploy %d to %s", nodeInfo.Deploy, nodeInfo.Name)
-			}
-		}()
-		return nil
+				return nil
+			},
+			c.config.GlobalTimeout,
+		)
 	}); err != nil {
 		return nil, err
 	}
@@ -242,4 +252,30 @@ func (c *Calcium) doBindProcessStatus(ctx context.Context, opts *types.DeployOpt
 		}
 	}
 	return nil
+}
+
+func calcCost(
+	nodeInfo types.NodeInfo,
+	memory, storage int64, CPUQuota float64,
+	nodeCPUPlans map[string][]types.CPUMap,
+	nodeVolumePlans map[string][]types.VolumePlan) (types.CPUMap, float64, int64, int64, types.VolumeMap) {
+	cpuCost := types.CPUMap{}
+	memoryCost := memory * int64(nodeInfo.Deploy)
+	storageCost := storage * int64(nodeInfo.Deploy)
+	quotaCost := CPUQuota * float64(nodeInfo.Deploy)
+	volumeCost := types.VolumeMap{}
+
+	if _, ok := nodeCPUPlans[nodeInfo.Name]; ok {
+		for _, cpu := range nodeCPUPlans[nodeInfo.Name][:nodeInfo.Deploy] {
+			cpuCost.Add(cpu)
+		}
+	}
+
+	if _, ok := nodeVolumePlans[nodeInfo.Name]; ok {
+		for _, volumePlan := range nodeVolumePlans[nodeInfo.Name][:nodeInfo.Deploy] {
+			volumeCost.Add(volumePlan.IntoVolumeMap())
+		}
+	}
+
+	return cpuCost, quotaCost, memoryCost, storageCost, volumeCost
 }

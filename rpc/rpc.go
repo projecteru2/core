@@ -25,6 +25,20 @@ type Vibranium struct {
 	TaskNum int
 }
 
+// ListNetworks list networks for pod
+func (v *Vibranium) ListNetworks(ctx context.Context, opts *pb.ListNetworkOptions) (*pb.Networks, error) {
+	networks, err := v.cluster.ListNetworks(ctx, opts.Podname, opts.Driver)
+	if err != nil {
+		return nil, err
+	}
+
+	ns := []*pb.Network{}
+	for _, n := range networks {
+		ns = append(ns, toRPCNetwork(n))
+	}
+	return &pb.Networks{Networks: ns}, nil
+}
+
 // AddPod saves a pod, and returns it to client
 func (v *Vibranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Pod, error) {
 	p, err := v.cluster.AddPod(ctx, opts.Name, opts.Desc)
@@ -35,26 +49,19 @@ func (v *Vibranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Pod
 	return toRPCPod(p), nil
 }
 
-// AddNode saves a node and returns it to client
-// Method must be called synchronously, or nothing will be returned
-func (v *Vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.Node, error) {
-	addNodeOpts := toCoreAddNodeOptions(opts)
-	n, err := v.cluster.AddNode(ctx, addNodeOpts)
-	if err != nil {
-		return nil, err
-	}
-
-	return toRPCNode(ctx, n), nil
-}
-
 // RemovePod removes a pod only if it's empty
 func (v *Vibranium) RemovePod(ctx context.Context, opts *pb.RemovePodOptions) (*pb.Empty, error) {
 	return &pb.Empty{}, v.cluster.RemovePod(ctx, opts.Name)
 }
 
-// RemoveNode removes the node from etcd
-func (v *Vibranium) RemoveNode(ctx context.Context, opts *pb.RemoveNodeOptions) (*pb.Empty, error) {
-	return &pb.Empty{}, v.cluster.RemoveNode(ctx, opts.Nodename)
+// GetPod show a pod
+func (v *Vibranium) GetPod(ctx context.Context, opts *pb.GetPodOptions) (*pb.Pod, error) {
+	p, err := v.cluster.GetPod(ctx, opts.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	return toRPCPod(p), nil
 }
 
 // ListPods returns a list of pods
@@ -70,7 +77,32 @@ func (v *Vibranium) ListPods(ctx context.Context, _ *pb.Empty) (*pb.Pods, error)
 	}
 
 	return &pb.Pods{Pods: pods}, nil
+}
 
+// GetPodResource get pod nodes resource usage
+func (v *Vibranium) GetPodResource(ctx context.Context, opts *pb.GetPodOptions) (*pb.PodResource, error) {
+	r, err := v.cluster.PodResource(ctx, opts.Name)
+	if err != nil {
+		return nil, err
+	}
+	return toRPCPodResource(r), nil
+}
+
+// AddNode saves a node and returns it to client
+// Method must be called synchronously, or nothing will be returned
+func (v *Vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.Node, error) {
+	addNodeOpts := toCoreAddNodeOptions(opts)
+	n, err := v.cluster.AddNode(ctx, addNodeOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	return toRPCNode(ctx, n), nil
+}
+
+// RemoveNode removes the node from etcd
+func (v *Vibranium) RemoveNode(ctx context.Context, opts *pb.RemoveNodeOptions) (*pb.Empty, error) {
+	return &pb.Empty{}, v.cluster.RemoveNode(ctx, opts.Nodename)
 }
 
 // ListPodNodes returns a list of node for pod
@@ -87,73 +119,6 @@ func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions)
 	return &pb.Nodes{Nodes: nodes}, nil
 }
 
-// ListContainers by appname with optional entrypoint and nodename
-func (v *Vibranium) ListContainers(opts *pb.ListContainersOptions, stream pb.CoreRPC_ListContainersServer) error {
-	lsopts := &types.ListContainersOptions{
-		Appname:    opts.Appname,
-		Entrypoint: opts.Entrypoint,
-		Nodename:   opts.Nodename,
-		Limit:      opts.Limit,
-		Labels:     opts.Labels,
-	}
-	ctx := stream.Context()
-
-	containers, err := v.cluster.ListContainers(ctx, lsopts)
-	if err != nil {
-		return err
-	}
-
-	for _, c := range toRPCContainers(ctx, containers, opts.Labels) {
-		if err = stream.Send(c); err != nil {
-			v.logUnsentMessages("ListContainers", c)
-			return err
-		}
-	}
-	return nil
-}
-
-// ListNodeContainers list node containers
-func (v *Vibranium) ListNodeContainers(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Containers, error) {
-	containers, err := v.cluster.ListNodeContainers(ctx, opts.Nodename, opts.Labels)
-	if err != nil {
-		return nil, err
-	}
-	return &pb.Containers{Containers: toRPCContainers(ctx, containers, nil)}, nil
-}
-
-// ListNetworks list networks for pod
-func (v *Vibranium) ListNetworks(ctx context.Context, opts *pb.ListNetworkOptions) (*pb.Networks, error) {
-	networks, err := v.cluster.ListNetworks(ctx, opts.Podname, opts.Driver)
-	if err != nil {
-		return nil, err
-	}
-
-	ns := []*pb.Network{}
-	for _, n := range networks {
-		ns = append(ns, toRPCNetwork(n))
-	}
-	return &pb.Networks{Networks: ns}, nil
-}
-
-// GetPod show a pod
-func (v *Vibranium) GetPod(ctx context.Context, opts *pb.GetPodOptions) (*pb.Pod, error) {
-	p, err := v.cluster.GetPod(ctx, opts.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	return toRPCPod(p), nil
-}
-
-// GetPodResource get pod nodes resource usage
-func (v *Vibranium) GetPodResource(ctx context.Context, opts *pb.GetPodOptions) (*pb.PodResource, error) {
-	r, err := v.cluster.PodResource(ctx, opts.Name)
-	if err != nil {
-		return nil, err
-	}
-	return toRPCPodResource(r), nil
-}
-
 // GetNode get a node
 func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Node, error) {
 	n, err := v.cluster.GetNode(ctx, opts.Nodename)
@@ -161,6 +126,19 @@ func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.N
 		return nil, err
 	}
 
+	return toRPCNode(ctx, n), nil
+}
+
+// SetNode set node meta
+func (v *Vibranium) SetNode(ctx context.Context, opts *pb.SetNodeOptions) (*pb.Node, error) {
+	setNodeOpts, err := toCoreSetNodeOptions(opts)
+	if err != nil {
+		return nil, err
+	}
+	n, err := v.cluster.SetNode(ctx, setNodeOpts)
+	if err != nil {
+		return nil, err
+	}
 	return toRPCNode(ctx, n), nil
 }
 
@@ -193,20 +171,107 @@ func (v *Vibranium) GetContainers(ctx context.Context, cids *pb.ContainerIDs) (*
 		return nil, err
 	}
 
-	return &pb.Containers{Containers: toRPCContainers(ctx, containers, nil)}, nil
+	return toRPCContainers(ctx, containers, nil), nil
 }
 
-// SetNode set node meta
-func (v *Vibranium) SetNode(ctx context.Context, opts *pb.SetNodeOptions) (*pb.Node, error) {
-	setNodeOpts, err := toCoreSetNodeOptions(opts)
+// ListContainers by appname with optional entrypoint and nodename
+func (v *Vibranium) ListContainers(opts *pb.ListContainersOptions, stream pb.CoreRPC_ListContainersServer) error {
+	lsopts := &types.ListContainersOptions{
+		Appname:    opts.Appname,
+		Entrypoint: opts.Entrypoint,
+		Nodename:   opts.Nodename,
+		Limit:      opts.Limit,
+		Labels:     opts.Labels,
+	}
+	containers, err := v.cluster.ListContainers(stream.Context(), lsopts)
+	if err != nil {
+		return err
+	}
+
+	for _, c := range toRPCContainers(stream.Context(), containers, opts.Labels).Containers {
+		if err = stream.Send(c); err != nil {
+			v.logUnsentMessages("ListContainers", c)
+			return err
+		}
+	}
+	return nil
+}
+
+// ListNodeContainers list node containers
+func (v *Vibranium) ListNodeContainers(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Containers, error) {
+	containers, err := v.cluster.ListNodeContainers(ctx, opts.Nodename, opts.Labels)
 	if err != nil {
 		return nil, err
 	}
-	n, err := v.cluster.SetNode(ctx, setNodeOpts)
-	if err != nil {
-		return nil, err
+	return toRPCContainers(ctx, containers, nil), nil
+}
+
+// GetContainersStatus get containers status
+func (v *Vibranium) GetContainersStatus(ctx context.Context, opts *pb.ContainerIDs) (*pb.ContainersStatus, error) {
+	v.taskAdd("GetContainersStatus", false)
+	defer v.taskDone("GetContainersStatus", false)
+
+	containersStatus, err := v.cluster.GetContainersStatus(ctx, opts.Ids)
+	return toRPCContainersStatus(containersStatus), err
+}
+
+// SetContainersStatus set containers status
+func (v *Vibranium) SetContainersStatus(ctx context.Context, opts *pb.SetContainersStatusOptions) (*pb.ContainersStatus, error) {
+	v.taskAdd("SetContainersStatus", false)
+	defer v.taskDone("SetContainersStatus", false)
+
+	var err error
+	statusData := []*types.StatusMeta{}
+	ttls := map[string]int64{}
+	for _, status := range opts.Status {
+		r := &types.StatusMeta{
+			ID:        status.Id,
+			Running:   status.Running,
+			Healthy:   status.Healthy,
+			Networks:  status.Networks,
+			Extension: status.Extension,
+		}
+		statusData = append(statusData, r)
+		ttls[status.Id] = status.Ttl
 	}
-	return toRPCNode(ctx, n), nil
+
+	status, err := v.cluster.SetContainersStatus(ctx, statusData, ttls)
+	return toRPCContainersStatus(status), err
+}
+
+// ContainerStatusStream watch and show deployed status
+func (v *Vibranium) ContainerStatusStream(opts *pb.ContainerStatusStreamOptions, stream pb.CoreRPC_ContainerStatusStreamServer) error {
+	log.Infof("[rpc] ContainerStatusStream start %s", opts.Appname)
+	defer log.Infof("[rpc] ContainerStatusStream stop %s", opts.Appname)
+
+	ch := v.cluster.ContainerStatusStream(
+		stream.Context(),
+		opts.Appname, opts.Entrypoint, opts.Nodename, opts.Labels,
+	)
+	for {
+		select {
+		case m, ok := <-ch:
+			if !ok {
+				return nil
+			}
+			r := &pb.ContainerStatusStreamMessage{Id: m.ID, Delete: m.Delete}
+			if m.Error != nil {
+				r.Error = m.Error.Error()
+			} else if m.Container != nil {
+				if container, err := toRPCContainer(stream.Context(), m.Container); err != nil {
+					r.Error = err.Error()
+				} else {
+					r.Container = container
+					r.Status = toRPCContainerStatus(m.Container.StatusMeta)
+				}
+			}
+			if err := stream.Send(r); err != nil {
+				v.logUnsentMessages("ContainerStatusStream", m)
+			}
+		case <-v.rpcch:
+			return nil
+		}
+	}
 }
 
 // Copy copy files from multiple containers
@@ -376,82 +441,6 @@ func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_R
 	return err
 }
 
-// RunAndWait is lambda
-func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
-	RunAndWaitOptions, err := stream.Recv()
-	if err != nil {
-		return err
-	}
-
-	if RunAndWaitOptions.DeployOptions == nil {
-		return types.ErrNoDeployOpts
-	}
-
-	opts := RunAndWaitOptions.DeployOptions
-	deployOpts, err := toCoreDeployOptions(opts)
-	if err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithCancel(stream.Context())
-	if RunAndWaitOptions.Async {
-		timeout := v.config.GlobalTimeout
-		if RunAndWaitOptions.AsyncTimeout != 0 {
-			timeout = time.Second * time.Duration(RunAndWaitOptions.AsyncTimeout)
-		}
-		ctx, cancel = context.WithTimeout(context.Background(), timeout)
-		// force mark stdin to false
-		opts.OpenStdin = false
-	}
-
-	v.taskAdd("RunAndWait", true)
-
-	inCh := make(chan []byte)
-	go func() {
-		defer close(inCh)
-		if opts.OpenStdin {
-			for {
-				RunAndWaitOptions, err := stream.Recv()
-				if RunAndWaitOptions == nil || err != nil {
-					log.Errorf("[RunAndWait] Recv command error: %v", err)
-					break
-				}
-				inCh <- RunAndWaitOptions.Cmd
-			}
-		}
-	}()
-
-	runAndWait := func(f func(<-chan *types.AttachContainerMessage)) error {
-		defer v.taskDone("RunAndWait", true)
-		defer cancel()
-		ch, err := v.cluster.RunAndWait(ctx, deployOpts, inCh)
-		if err != nil {
-			log.Errorf("[RunAndWait] Start run and wait failed %s", err)
-			return err
-		}
-		f(ch)
-		return nil
-	}
-
-	if !RunAndWaitOptions.Async {
-		return runAndWait(func(ch <-chan *types.AttachContainerMessage) {
-			for m := range ch {
-				if err = stream.Send(toRPCAttachContainerMessage(m)); err != nil {
-					v.logUnsentMessages("RunAndWait", m)
-				}
-			}
-		})
-	}
-	go func() {
-		_ = runAndWait(func(ch <-chan *types.AttachContainerMessage) {
-			for m := range ch {
-				log.Infof("[Async RunAndWait] %v", string(m.Data))
-			}
-		})
-	}()
-	return nil
-}
-
 // CreateContainer create containers
 func (v *Vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_CreateContainerServer) error {
 	v.taskAdd("CreateContainer", true)
@@ -472,7 +461,6 @@ func (v *Vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 			v.logUnsentMessages("CreateContainer", m)
 		}
 	}
-
 	return nil
 }
 
@@ -496,7 +484,6 @@ func (v *Vibranium) ReplaceContainer(opts *pb.ReplaceOptions, stream pb.CoreRPC_
 			v.logUnsentMessages("ReplaceContainer", m)
 		}
 	}
-
 	return nil
 }
 
@@ -577,6 +564,43 @@ func (v *Vibranium) ControlContainer(opts *pb.ControlContainerOptions, stream pb
 	return err
 }
 
+// ExecuteContainer runs a command in a running container
+func (v *Vibranium) ExecuteContainer(stream pb.CoreRPC_ExecuteContainerServer) (err error) {
+	v.taskAdd("ExecuteContainer", true)
+	defer v.taskDone("ExecuteContainer", true)
+
+	opts, err := stream.Recv()
+	if err != nil {
+		return
+	}
+	var executeContainerOpts *types.ExecuteContainerOptions
+	if executeContainerOpts, err = toCoreExecuteContainerOptions(opts); err != nil {
+		return
+	}
+
+	inCh := make(chan []byte)
+	go func() {
+		defer close(inCh)
+		if opts.OpenStdin {
+			for {
+				execContainerOpt, err := stream.Recv()
+				if execContainerOpt == nil || err != nil {
+					log.Errorf("[ExecuteContainer] Recv command error: %v", err)
+					return
+				}
+				inCh <- execContainerOpt.ReplCmd
+			}
+		}
+	}()
+
+	for m := range v.cluster.ExecuteContainer(stream.Context(), executeContainerOpts, inCh) {
+		if err = stream.Send(toRPCAttachContainerMessage(m)); err != nil {
+			v.logUnsentMessages("ExecuteContainer", m)
+		}
+	}
+	return
+}
+
 // ReallocResource realloc res for containers
 func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_ReallocResourceServer) error {
 	v.taskAdd("ReallocResource", true)
@@ -631,116 +655,80 @@ func (v *Vibranium) LogStream(opts *pb.LogStreamOptions, stream pb.CoreRPC_LogSt
 	}
 }
 
-// GetContainersStatus get containers status
-func (v *Vibranium) GetContainersStatus(ctx context.Context, opts *pb.ContainerIDs) (*pb.ContainersStatus, error) {
-	v.taskAdd("GetContainersStatus", false)
-	defer v.taskDone("GetContainersStatus", false)
-
-	containersStatus, err := v.cluster.GetContainersStatus(ctx, opts.Ids)
+// RunAndWait is lambda
+func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
+	RunAndWaitOptions, err := stream.Recv()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return &pb.ContainersStatus{Status: toRPCContainersStatus(containersStatus)}, nil
-}
 
-// SetContainersStatus set containers status
-func (v *Vibranium) SetContainersStatus(ctx context.Context, opts *pb.SetContainersStatusOptions) (*pb.ContainersStatus, error) {
-	v.taskAdd("SetContainersStatus", false)
-	defer v.taskDone("SetContainersStatus", false)
+	if RunAndWaitOptions.DeployOptions == nil {
+		return types.ErrNoDeployOpts
+	}
 
-	var err error
-	statusData := []*types.StatusMeta{}
-	ttls := map[string]int64{}
-	for _, status := range opts.Status {
-		r := &types.StatusMeta{
-			ID:        status.Id,
-			Running:   status.Running,
-			Healthy:   status.Healthy,
-			Networks:  status.Networks,
-			Extension: status.Extension,
+	opts := RunAndWaitOptions.DeployOptions
+	deployOpts, err := toCoreDeployOptions(opts)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithCancel(stream.Context())
+	if RunAndWaitOptions.Async {
+		timeout := v.config.GlobalTimeout
+		if RunAndWaitOptions.AsyncTimeout != 0 {
+			timeout = time.Second * time.Duration(RunAndWaitOptions.AsyncTimeout)
 		}
-		statusData = append(statusData, r)
-		ttls[status.Id] = status.Ttl
+		ctx, cancel = context.WithTimeout(context.Background(), timeout)
+		// force mark stdin to false
+		opts.OpenStdin = false
 	}
 
-	status, err := v.cluster.SetContainersStatus(ctx, statusData, ttls)
-	if err != nil {
-		return nil, err
-	}
-	return &pb.ContainersStatus{Status: toRPCContainersStatus(status)}, nil
-}
-
-// ContainerStatusStream watch and show deployed status
-func (v *Vibranium) ContainerStatusStream(opts *pb.ContainerStatusStreamOptions, stream pb.CoreRPC_ContainerStatusStreamServer) error {
-	log.Infof("[rpc] ContainerStatusStream start %s", opts.Appname)
-	defer log.Infof("[rpc] ContainerStatusStream stop %s", opts.Appname)
-
-	ch := v.cluster.ContainerStatusStream(
-		stream.Context(),
-		opts.Appname, opts.Entrypoint, opts.Nodename, opts.Labels,
-	)
-	for {
-		select {
-		case m, ok := <-ch:
-			if !ok {
-				return nil
-			}
-			r := &pb.ContainerStatusStreamMessage{Id: m.ID, Delete: m.Delete}
-			if m.Error != nil {
-				r.Error = m.Error.Error()
-			} else if m.Container != nil {
-				if container, err := toRPCContainer(stream.Context(), m.Container); err != nil {
-					r.Error = err.Error()
-				} else {
-					r.Container = container
-					r.Status = toRPCContainerStatus(m.Container.StatusMeta)
-				}
-			}
-			if err := stream.Send(r); err != nil {
-				v.logUnsentMessages("ContainerStatusStream", m)
-			}
-		case <-v.rpcch:
-			return nil
-		}
-	}
-}
-
-// ExecuteContainer runs a command in a running container
-func (v *Vibranium) ExecuteContainer(stream pb.CoreRPC_ExecuteContainerServer) (err error) {
-	v.taskAdd("ExecuteContainer", true)
-	defer v.taskDone("ExecuteContainer", true)
-
-	opts, err := stream.Recv()
-	if err != nil {
-		return
-	}
-	var executeContainerOpts *types.ExecuteContainerOptions
-	if executeContainerOpts, err = toCoreExecuteContainerOptions(opts); err != nil {
-		return
-	}
+	v.taskAdd("RunAndWait", true)
 
 	inCh := make(chan []byte)
 	go func() {
 		defer close(inCh)
 		if opts.OpenStdin {
 			for {
-				execContainerOpt, err := stream.Recv()
-				if execContainerOpt == nil || err != nil {
-					log.Errorf("[ExecuteContainer] Recv command error: %v", err)
-					return
+				RunAndWaitOptions, err := stream.Recv()
+				if RunAndWaitOptions == nil || err != nil {
+					log.Errorf("[RunAndWait] Recv command error: %v", err)
+					break
 				}
-				inCh <- execContainerOpt.ReplCmd
+				inCh <- RunAndWaitOptions.Cmd
 			}
 		}
 	}()
 
-	for m := range v.cluster.ExecuteContainer(stream.Context(), executeContainerOpts, inCh) {
-		if err = stream.Send(toRPCAttachContainerMessage(m)); err != nil {
-			v.logUnsentMessages("ExecuteContainer", m)
+	runAndWait := func(f func(<-chan *types.AttachContainerMessage)) error {
+		defer v.taskDone("RunAndWait", true)
+		defer cancel()
+		ch, err := v.cluster.RunAndWait(ctx, deployOpts, inCh)
+		if err != nil {
+			log.Errorf("[RunAndWait] Start run and wait failed %s", err)
+			return err
 		}
+		f(ch)
+		return nil
 	}
 
-	return
+	if !RunAndWaitOptions.Async {
+		return runAndWait(func(ch <-chan *types.AttachContainerMessage) {
+			for m := range ch {
+				if err = stream.Send(toRPCAttachContainerMessage(m)); err != nil {
+					v.logUnsentMessages("RunAndWait", m)
+				}
+			}
+		})
+	}
+	go func() {
+		_ = runAndWait(func(ch <-chan *types.AttachContainerMessage) {
+			for m := range ch {
+				log.Infof("[Async RunAndWait] %v", string(m.Data))
+			}
+		})
+	}()
+	return nil
 }
 
 func (v *Vibranium) logUnsentMessages(msgType string, msg interface{}) {
