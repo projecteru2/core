@@ -45,18 +45,24 @@ require (
 	github.com/sanity-io/litter v1.1.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/soheilhy/cmux v0.1.3 // indirect
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/objx v0.2.0 // indirect
+	github.com/stretchr/testify v1.6.1
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20170815181823-89b8d40f7ca8 // indirect
 	github.com/urfave/cli/v2 v2.0.0-alpha.2
+	github.com/vektra/mockery v1.1.2 // indirect
 	github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18 // indirect
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/automaxprocs v1.3.0
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.7.1 // indirect
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
+	golang.org/x/mod v0.3.0 // indirect
 	golang.org/x/net v0.0.0-20200319234117-63522dbf7eec
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
+	golang.org/x/tools v0.0.0-20200612022331-742c5eb664c2 // indirect
 	google.golang.org/grpc v1.28.0
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
+	gopkg.in/yaml.v2 v2.3.0 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20200605160147-a5ece683394c // indirect
 	gotest.tools v2.2.0+incompatible // indirect
 )

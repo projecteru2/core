@@ -389,7 +389,7 @@ func testAllocFailedAsUpdateNodeResourceError(t *testing.T, c *Calcium, opts *ty
 	store.On("UpdateNodeResource",
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
-	).Return(types.ErrNoETCD).Twice()
+	).Return(types.ErrNoETCD).Once()
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)
 }
