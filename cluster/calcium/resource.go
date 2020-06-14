@@ -130,7 +130,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 	var nodesInfo []types.NodeInfo
 	var nodeCPUPlans map[string][]types.CPUMap
 	var nodeVolumePlans map[string][]types.VolumePlan
-	if err = c.withNodesLocked(ctx, opts.Podname, opts.Nodename, opts.NodeLabels, false, func(nodes map[string]*types.Node) error {
+	return nodesInfo, c.withNodesLocked(ctx, opts.Podname, opts.Nodename, opts.NodeLabels, false, func(nodes map[string]*types.Node) error {
 		if len(nodes) == 0 {
 			return types.ErrInsufficientNodes
 		}
@@ -196,7 +196,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 			return types.ErrInsufficientRes
 		}
 		nodesInfo = nodesInfo[p:]
-		var track int
+		track := -1
 		return utils.Txn(
 			ctx,
 			func(ctx context.Context) error {
@@ -223,7 +223,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 						log.Infof("[allocResource] deploy %d to %s", nodeInfo.Deploy, nodeInfo.Name)
 					}
 				}()
-				return nil
+				return c.doBindProcessStatus(ctx, opts, nodesInfo)
 			},
 			func(ctx context.Context) error {
 				for i := 0; i < track+1; i++ {
@@ -238,11 +238,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 			},
 			c.config.GlobalTimeout,
 		)
-	}); err != nil {
-		return nil, err
-	}
-
-	return nodesInfo, c.doBindProcessStatus(ctx, opts, nodesInfo)
+	})
 }
 
 func (c *Calcium) doBindProcessStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) error {
