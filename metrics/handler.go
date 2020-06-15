@@ -11,9 +11,9 @@ import (
 // ResourceMiddleware to make sure update resource correct
 func (m *Metrics) ResourceMiddleware(cluster cluster.Cluster) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
-		ctx, cancel := context.WithTimeout(context.Background(), m.Config.GlobalTimeout)
-		defer cancel()
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx, cancel := context.WithTimeout(context.Background(), m.Config.GlobalTimeout)
+			defer cancel()
 			pods, err := cluster.ListPods(ctx)
 			if err != nil {
 				log.Errorf("[ResourceMiddleware] List pods err %v", err)
