@@ -80,19 +80,19 @@ func (v *Virt) ExecAttach(ctx context.Context, execID string, tty bool) (io.Read
 }
 
 // Execute executes a command in vm
-func (v *Virt) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (_ string, outputStream io.ReadCloser, inputStream io.WriteCloser, err error) {
+func (v *Virt) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, outputStream io.ReadCloser, inputStream io.WriteCloser, err error) {
 	if config.Tty {
 		flags := virttypes.AttachGuestFlags{Safe: true, Force: true}
 		stream, err := v.client.AttachGuest(ctx, target, flags)
 		if err != nil {
 			return "", nil, nil, err
 		}
-		return "", ioutil.NopCloser(stream), stream, nil
+		return target, ioutil.NopCloser(stream), stream, nil
 
 	}
 
 	msg, err := v.client.ExecuteGuest(ctx, target, config.Cmd)
-	return "", ioutil.NopCloser(bytes.NewReader(msg.Data)), nil, err
+	return target, ioutil.NopCloser(bytes.NewReader(msg.Data)), nil, err
 
 }
 
@@ -103,7 +103,10 @@ func (v *Virt) ExecExitCode(ctx context.Context, execID string) (code int, err e
 
 // ExecResize resize exec tty
 func (v *Virt) ExecResize(ctx context.Context, execID string, height, width uint) (err error) {
-	return nil
+	resizeCmd := fmt.Sprintf("/bin/stty -F /dev/ttyS0 rows %d cols %d", height, width)
+	msg, err := v.client.ExecuteGuest(ctx, execID, strings.Split(resizeCmd, " "))
+	log.Debugf("[ExecResize] resize got response: %v", msg)
+	return err
 }
 
 // NetworkConnect connects to a network.
