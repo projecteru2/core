@@ -30,6 +30,9 @@ archives:
 checksum:
   name_template: 'checksums.txt'
 
+release:
+  prerelease: auto
+
 snapshot:
   name_template: "{{ .Tag }}-next"
 
