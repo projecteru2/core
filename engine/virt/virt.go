@@ -63,7 +63,7 @@ func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {
 
 	return &enginetypes.Info{
 		ID:           resp.ID,
-		NCPU:         resp.Cpu,
+		NCPU:         resp.CPU,
 		MemTotal:     resp.Mem,
 		StorageTotal: resp.Storage,
 	}, nil
@@ -155,14 +155,15 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 	}
 
 	req := virttypes.CreateGuestReq{
-		Cpu:       int(opts.Quota),
+		CPU:       int(opts.Quota),
 		Mem:       opts.Memory,
 		ImageName: opts.Image,
 		Volumes:   vols,
+		Labels:    opts.Labels,
 	}
 
 	if dmiUUID, exists := opts.Labels[DmiUUIDKey]; exists {
-		req.DmiUuid = dmiUUID
+		req.DmiUUID = dmiUUID
 	}
 
 	var resp virttypes.Guest
@@ -246,7 +247,7 @@ func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, opts
 	}
 
 	args := virttypes.ResizeGuestReq{
-		Cpu:     int(opts.Quota),
+		CPU:     int(opts.Quota),
 		Mem:     opts.Memory,
 		Volumes: vols,
 	}
