@@ -225,10 +225,15 @@ func (c *Calcium) doCreateAndStartContainer(
 			// Copy data to container
 			if len(opts.Data) > 0 {
 				for dst, src := range opts.Data {
-					if _, err = src.Seek(0, io.SeekStart); err != nil {
-						return err
+					mutexSend := func() error {
+						opts.Mux.Lock()
+						defer opts.Mux.Unlock()
+						if _, err = src.Seek(0, io.SeekStart); err != nil {
+							return err
+						}
+						return c.doSendFileToContainer(ctx, node.Engine, container.ID, dst, src, true, true)
 					}
-					if err = c.doSendFileToContainer(ctx, node.Engine, container.ID, dst, src, true, true); err != nil {
+					if err = mutexSend(); err != nil {
 						return err
 					}
 				}
