@@ -1,6 +1,9 @@
 package types
 
-import "bytes"
+import (
+	"bytes"
+	"sync"
+)
 
 // DeployOptions is options for deploying
 type DeployOptions struct {
@@ -35,6 +38,8 @@ type DeployOptions struct {
 	AfterCreate  []string                 // AfterCreate support run cmds after create
 	RawArgs      []byte                   // RawArgs for raw args processing
 	Lambda       bool                     // indicate is lambda container or not
+
+	Mux sync.Mutex // used for concurrent send during creation
 }
 
 // Normalize keeps deploy options consistant
