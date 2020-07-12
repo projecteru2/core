@@ -119,7 +119,7 @@ func TestReplaceContainer(t *testing.T) {
 		assert.False(t, r.Remove.Success)
 	}
 	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(ioutil.NopCloser(bytes.NewReader([]byte{})), "", nil)
-	opts.DeployOptions.Data = map[string]*bytes.Reader{}
+	opts.DeployOptions.Data = map[string]types.ReaderManager{}
 	// failed by Stop
 	engine.On("VirtualizationStop", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()

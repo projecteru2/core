@@ -2,6 +2,8 @@ package types
 
 import (
 	"bytes"
+	"io"
+	"io/ioutil"
 	"sync"
 )
 
@@ -30,7 +32,7 @@ type DeployOptions struct {
 	Labels       map[string]string        // Labels for containers
 	NodeLabels   map[string]string        // NodeLabels for filter node
 	DeployMethod string                   // Deploy method
-	Data         map[string]*bytes.Reader // For additional file data
+	Data         map[string]ReaderManager // For additional file data
 	SoftLimit    bool                     // Soft limit memory
 	NodesLimit   int                      // Limit nodes count
 	ProcessIdent string                   // ProcessIdent ident this deploy
@@ -38,8 +40,35 @@ type DeployOptions struct {
 	AfterCreate  []string                 // AfterCreate support run cmds after create
 	RawArgs      []byte                   // RawArgs for raw args processing
 	Lambda       bool                     // indicate is lambda container or not
+}
 
-	Mux sync.Mutex // used for concurrent send during creation
+// ReaderManager return Reader under concurrency
+type ReaderManager interface {
+	GetReader() (io.Reader, error)
+}
+
+type readerManager struct {
+	mux sync.Mutex
+	r   io.ReadSeeker
+}
+
+func (rm *readerManager) GetReader() (_ io.Reader, err error) {
+	rm.mux.Lock()
+	defer rm.mux.Unlock()
+	buf := &bytes.Buffer{}
+	if _, err = io.Copy(buf, rm.r); err != nil {
+		return
+	}
+	_, err = rm.r.Seek(0, io.SeekStart)
+	return buf, err
+}
+
+// NewReaderManager converts Reader to ReadSeeker
+func NewReaderManager(r io.Reader) (ReaderManager, error) {
+	bs, err := ioutil.ReadAll(r)
+	return &readerManager{
+		r: bytes.NewReader(bs),
+	}, err
 }
 
 // Normalize keeps deploy options consistant
