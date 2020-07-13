@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/coreos/etcd/clientv3"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
+	"go.etcd.io/etcd/v3/clientv3"
 )
 
 // MakeDeployStatus get deploy status from store
