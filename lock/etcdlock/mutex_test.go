@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/coreos/etcd/integration"
+	"go.etcd.io/etcd/v3/integration"
 )
 
 func TestMutex(t *testing.T) {

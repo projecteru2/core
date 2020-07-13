@@ -6,9 +6,9 @@ import (
 
 	"time"
 
-	"github.com/coreos/etcd/clientv3"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
+	"go.etcd.io/etcd/v3/clientv3"
 )
 
 func NewMercury(t *testing.T) *Mercury {
