@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"archive/tar"
+	"bufio"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -723,8 +724,21 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	}
 	go func() {
 		_ = runAndWait(func(ch <-chan *types.AttachContainerMessage) {
-			for m := range ch {
-				log.Infof("[Async RunAndWait] %v", string(m.Data))
+			r, w := io.Pipe()
+			go func() {
+				defer w.Close()
+				for m := range ch {
+					if _, err := w.Write(m.Data); err != nil {
+						log.Errorf("[Async RunAndWait] iterate and forward AttachContainerMessage error: %v", err)
+					}
+				}
+			}()
+			scanner := bufio.NewScanner(r)
+			for scanner.Scan() {
+				log.Infof("[Async RunAndWait] %v", scanner.Text())
+			}
+			if err := scanner.Err(); err != nil {
+				log.Errorf("Async RunAndWait] scan error: %v", err)
 			}
 		})
 	}()
