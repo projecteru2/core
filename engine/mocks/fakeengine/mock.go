@@ -47,12 +47,12 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	// network
 	e.On("NetworkConnect", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("NetworkDisconnect", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	e.On("NetworkList", mock.Anything, mock.Anything).Return([]*enginetypes.Network{&enginetypes.Network{
+	e.On("NetworkList", mock.Anything, mock.Anything).Return([]*enginetypes.Network{{
 		Name: "mock-network", Subnets: []string{"1.1.1.1/8", "2.2.2.2/8"},
 	}}, nil)
 	// image
 	e.On("ImageList", mock.Anything, mock.Anything).Return(
-		[]*enginetypes.Image{&enginetypes.Image{ID: "mock-image", Tags: []string{"latest"}}}, nil)
+		[]*enginetypes.Image{{ID: "mock-image", Tags: []string{"latest"}}}, nil)
 	e.On("ImageRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		[]string{"mock-image1", "mock-image2"}, nil)
 	e.On("ImagesPrune", mock.Anything).Return(nil)

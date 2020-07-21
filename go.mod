@@ -9,26 +9,17 @@ require (
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/alexcesaro/statsd v2.0.0+incompatible // indirect
 	github.com/containerd/continuity v0.0.0-20180612233548-246e49050efd // indirect
-	github.com/coreos/go-semver v0.2.0 // indirect
-	github.com/coreos/go-systemd v0.0.0-20170731111925-d21964639418 // indirect
-	github.com/coreos/pkg v0.0.0-20160727233714-3ac0863d7acf // indirect
 	github.com/docker/distribution v0.0.0-20171207180435-f4118485915a
 	github.com/docker/docker v0.0.0-20181112142024-a5e2dd2bb141
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.3.3
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
-	github.com/ghodss/yaml v1.0.0 // indirect
-	github.com/go-logfmt/logfmt v0.4.0 // indirect
 	github.com/golang/groupcache v0.0.0-20191027212112-611e8accdfc9 // indirect
 	github.com/golang/protobuf v1.3.5
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/mux v0.0.0-20180605211556-cb4698366aa6 // indirect
-	github.com/gorilla/websocket v0.0.0-20170926233335-4201258b820c // indirect
 	github.com/jinzhu/configor v1.1.1
-	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/libgit2/git2go/v30 v30.0.3
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v0.0.0-20180411145040-e562b0440392 // indirect
 	github.com/opencontainers/runc v0.0.0-20180615140650-ad0f5255060d // indirect
@@ -36,14 +27,11 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/projecteru2/libyavirt v0.0.0-20200706021408-b8f160e2f677
 	github.com/prometheus/client_golang v1.0.0
-	github.com/prometheus/tsdb v0.7.1 // indirect
 	github.com/sanity-io/litter v1.1.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.6.1
-	github.com/tmc/grpc-websocket-proxy v0.0.0-20170815181823-89b8d40f7ca8 // indirect
 	github.com/urfave/cli/v2 v2.0.0-alpha.2
-	github.com/vektra/mockery v1.1.2 // indirect
 	go.etcd.io/etcd/v3 v3.3.0-rc.0.0.20200707003333-58bb8ae09f8e
 	go.uber.org/automaxprocs v1.3.0
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d

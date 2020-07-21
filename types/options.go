@@ -71,7 +71,7 @@ func NewReaderManager(r io.Reader) (ReaderManager, error) {
 	}, err
 }
 
-// Normalize keeps deploy options consistant
+// Normalize keeps deploy options consistent
 func (o *DeployOptions) Normalize() {
 	o.Storage += o.Volumes.TotalSize()
 }
@@ -130,7 +130,7 @@ type AddNodeOptions struct {
 	Volume     VolumeMap
 }
 
-// Normalize keeps options consistant
+// Normalize keeps options consistent
 func (o *AddNodeOptions) Normalize() {
 	o.Storage += o.Volume.Total()
 }

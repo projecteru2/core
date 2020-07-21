@@ -55,11 +55,11 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 			wg := sync.WaitGroup{}
 			wg.Add(len(containersInfo))
 			// deal with normal container
-			for pod, nodeContainersInfo := range containersInfo {
-				go func(pod *types.Pod, nodeContainersInfo nodeContainers) {
+			for _, nodeContainersInfo := range containersInfo {
+				go func(nodeContainersInfo nodeContainers) {
 					defer wg.Done()
-					c.doReallocContainer(ctx, ch, pod, nodeContainersInfo, cpu, memory, volumes, bindCPUOpt)
-				}(pod, nodeContainersInfo)
+					c.doReallocContainer(ctx, ch, nodeContainersInfo, cpu, memory, volumes, bindCPUOpt)
+				}(nodeContainersInfo)
 			}
 			wg.Wait()
 			return nil
@@ -79,7 +79,6 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 func (c *Calcium) doReallocContainer(
 	ctx context.Context,
 	ch chan *types.ReallocResourceMessage,
-	pod *types.Pod,
 	nodeContainersInfo nodeContainers,
 	cpu float64, memory int64, volumes types.VolumeBindings,
 	bindCPUOpt types.BindCPUOptions) {
@@ -94,7 +93,7 @@ func (c *Calcium) doReallocContainer(
 						// 把记录的 CPU 还回去，变成新的可用资源
 						// 把记录的 Memory 还回去，变成新的可用资源
 						containerWithCPUBind := 0
-						for _, container := range containers {
+						for _, container := range containers { // nolint
 							// 不更新 etcd，内存计算
 							node.CPU.Add(container.CPU)
 							node.SetCPUUsed(container.Quota, types.DecrUsage)
@@ -119,8 +118,8 @@ func (c *Calcium) doReallocContainer(
 						}
 
 						// 检查内存
-						if newMemory != 0 {
-							if cap := int(node.MemCap / newMemory); cap < len(containers) {
+						if newMemory != 0 { // nolint
+							if cap := int(node.MemCap / newMemory); cap < len(containers) { // nolint
 								return types.NewDetailedErr(types.ErrInsufficientRes, node.Name)
 							}
 						}
@@ -133,10 +132,10 @@ func (c *Calcium) doReallocContainer(
 							cpusets[i] = unlimitedCPUSet
 						}
 						// 按照 Node one by one 重新计算可以部署多少容器
-						if containerWithCPUBind > 0 && newCPU != 0 {
+						if containerWithCPUBind > 0 && newCPU != 0 { // nolint
 							nodesInfo := []types.NodeInfo{{Name: node.Name, CPUMap: node.CPU, MemCap: node.MemCap}}
 							// 重新计算需求
-							_, nodeCPUPlans, total, err := c.scheduler.SelectCPUNodes(nodesInfo, newCPU, newMemory)
+							_, nodeCPUPlans, total, err := c.scheduler.SelectCPUNodes(nodesInfo, newCPU, newMemory) // nolint
 							if err != nil {
 								return err
 							}
@@ -149,15 +148,15 @@ func (c *Calcium) doReallocContainer(
 						}
 
 						newResource := &enginetypes.VirtualizationResource{
-							Quota:  newCPU,
-							Memory: newMemory,
+							Quota:  newCPU,    // nolint
+							Memory: newMemory, // nolint
 						}
 
 						return utils.Txn(
 							ctx,
 							// if
 							func(ctx context.Context) error {
-								return c.updateContainersResources(ctx, ch, node, containers, newResource, cpusets, hardVbsForContainer, newAutoVol, bindCPUOpt)
+								return c.updateContainersResources(ctx, ch, node, containers, newResource, cpusets, hardVbsForContainer, newAutoVol, bindCPUOpt) // nolint
 							},
 							// then
 							func(ctx context.Context) (err error) {
@@ -295,7 +294,7 @@ Searching:
 		return nil, errors.Wrap(types.ErrInsufficientVolume, "reallocated volumes not compatible to existing ones")
 	}
 
-	return
+	return plans, nil
 }
 
 func calVolCPUMemNodeContainerInfo(nodename string, container *types.Container, cpu float64, memory int64, volumes types.VolumeBindings, volCPUMemNodeContainersInfo volCPUMemNodeContainers, hardVbsForContainer map[string]types.VolumeBindings) error {

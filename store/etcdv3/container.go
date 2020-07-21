@@ -108,7 +108,7 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 	tr3 := tr2.Responses[0].GetResponseTxn()
 	if tr3.Succeeded {
 		oldLeaseID := clientv3.LeaseID(tr3.Responses[0].GetResponseRange().Kvs[0].Lease) // 拿到 status 绑定的 leaseID
-		_, err := m.cliv3.KeepAliveOnce(ctx, clientv3.LeaseID(oldLeaseID))               // 刷新 lease
+		_, err := m.cliv3.KeepAliveOnce(ctx, oldLeaseID)                                 // 刷新 lease
 		return err
 	}
 	return nil
@@ -193,12 +193,14 @@ func (m *Mercury) ContainerStatusStream(ctx context.Context, appname, entrypoint
 			for _, ev := range resp.Events {
 				_, _, _, ID := parseStatusKey(string(ev.Kv.Key))
 				msg := &types.ContainerStatus{ID: ID, Delete: ev.Type == clientv3.EventTypeDelete}
-				if container, err := m.GetContainer(ctx, ID); err != nil {
+				container, err := m.GetContainer(ctx, ID)
+				switch {
+				case err != nil:
 					msg.Error = err
-				} else if utils.FilterContainer(container.Labels, labels) {
+				case utils.FilterContainer(container.Labels, labels):
 					log.Debugf("[ContainerStatusStream] container %s status changed", container.ID)
 					msg.Container = container
-				} else {
+				default:
 					continue
 				}
 				ch <- msg

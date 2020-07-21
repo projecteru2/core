@@ -28,7 +28,7 @@ func (m *Mercury) MakeDeployStatus(ctx context.Context, opts *types.DeployOption
 	return m.doLoadProcessing(ctx, opts, nodesInfo)
 }
 
-func (m *Mercury) doGetDeployStatus(ctx context.Context, resp *clientv3.GetResponse, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
+func (m *Mercury) doGetDeployStatus(_ context.Context, resp *clientv3.GetResponse, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) { // nolint
 	nodesCount := map[string]int{}
 	for _, ev := range resp.Kvs {
 		key := string(ev.Key)

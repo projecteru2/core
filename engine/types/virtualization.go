@@ -62,7 +62,7 @@ type VirtualizationInfo struct {
 	Env      []string
 	Labels   map[string]string
 	Networks map[string]string
-	// TODO other infomation like cpu memory
+	// TODO other information like cpu memory
 }
 
 // VirtualizationWaitResult store exit result

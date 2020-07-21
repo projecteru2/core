@@ -178,12 +178,12 @@ func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int64) 
 		}
 	}
 
-	return
+	return resourceMap
 }
 
 func (h *host) getFullResult(full int, resources []resourceInfo) []types.ResourceMap {
 	result := []types.ResourceMap{}
-	count := len(resources) / int(full)
+	count := len(resources) / full
 	newResources := []resourceInfo{}
 	for i := 0; i < count; i++ {
 		plan := types.ResourceMap{}
@@ -205,7 +205,7 @@ func (h *host) getFullResult(full int, resources []resourceInfo) []types.Resourc
 }
 
 func (h *host) distributeOneRation(ration float64, maxShare int) []types.ResourceMap {
-	ration = ration * float64(h.share)
+	ration *= float64(h.share)
 	fullRequire := int64(ration) / int64(h.share)
 	fragmentRequire := int64(ration) % int64(h.share)
 

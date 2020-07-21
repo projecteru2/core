@@ -252,7 +252,7 @@ func GetIP(daemonHost string) string {
 	return u.Hostname()
 }
 
-func makeRawClient(ctx context.Context, config coretypes.Config, client *http.Client, endpoint string) (engine.API, error) {
+func makeRawClient(_ context.Context, config coretypes.Config, client *http.Client, endpoint string) (engine.API, error) {
 	cli, err := dockerapi.NewClient(endpoint, config.Docker.APIVersion, client, nil)
 	if err != nil {
 		return nil, err

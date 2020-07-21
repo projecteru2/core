@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"runtime"
 	"sync"
 	"time"
 
 	"github.com/projecteru2/core/cluster"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/versioninfo"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
@@ -24,6 +26,17 @@ type Vibranium struct {
 	counter sync.WaitGroup
 	rpcch   chan struct{}
 	TaskNum int
+}
+
+// Info show core info
+func (v *Vibranium) Info(ctx context.Context, opts *pb.Empty) (*pb.CoreInfo, error) {
+	return &pb.CoreInfo{
+		Version:       versioninfo.VERSION,
+		Revison:       versioninfo.REVISION,
+		BuildAt:       versioninfo.BUILTAT,
+		GolangVersion: runtime.Version(),
+		OsArch:        fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+	}, nil
 }
 
 // ListNetworks list networks for pod
@@ -599,7 +612,7 @@ func (v *Vibranium) ExecuteContainer(stream pb.CoreRPC_ExecuteContainerServer) (
 			v.logUnsentMessages("ExecuteContainer", m)
 		}
 	}
-	return
+	return err
 }
 
 // ReallocResource realloc res for containers

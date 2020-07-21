@@ -73,14 +73,14 @@ func TestCreateContainerTxn(t *testing.T) {
 	nodes := []*types.Node{node1, node2}
 
 	// GetPod fails
-	store.On("GetPod", mock.Anything, mock.Anything).Return(
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		nil,
-		errors.Wrap(context.DeadlineExceeded, "GetPod"),
+		errors.Wrap(context.DeadlineExceeded, "GetNodesByPod"),
 	).Once()
 	_, err := c.CreateContainer(ctx, opts)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, context.DeadlineExceeded))
-	assert.Error(t, err, "GetPod")
+	assert.Error(t, err, "GetNodesByPod")
 
 	// doAllocResource fails: MakeDeployStatus
 	lock := &lockmocks.DistributedLock{}

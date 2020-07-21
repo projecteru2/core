@@ -3,6 +3,8 @@ syntax = "proto3";
 package pb;
 
 service CoreRPC {
+    rpc Info(Empty) returns (CoreInfo) {};
+
     rpc ListNetworks(ListNetworkOptions) returns (Networks) {};
 
     rpc AddPod(AddPodOptions) returns (Pod) {};
@@ -47,6 +49,14 @@ service CoreRPC {
 }
 
 message Empty {}
+
+message CoreInfo {
+    string version = 1;
+    string revison = 2;
+    string build_at = 3;
+    string golang_version = 4;
+    string os_arch = 5;
+}
 
 message ListContainersOptions {
     string appname = 1;

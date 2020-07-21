@@ -39,11 +39,12 @@ type Virt struct {
 // MakeClient makes a virt. client which wraps yavirt API client.
 func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	var uri string
-	if strings.HasPrefix(endpoint, HTTPPrefixKey) {
+	switch {
+	case strings.HasPrefix(endpoint, HTTPPrefixKey):
 		uri = fmt.Sprintf("http://%s/%s", strings.TrimPrefix(endpoint, HTTPPrefixKey), config.Virt.APIVersion)
-	} else if strings.HasPrefix(endpoint, GRPCPrefixKey) {
+	case strings.HasPrefix(endpoint, GRPCPrefixKey):
 		uri = "grpc://" + strings.TrimPrefix(endpoint, GRPCPrefixKey)
-	} else {
+	default:
 		return nil, fmt.Errorf("invalid endpoint: %s", endpoint)
 	}
 

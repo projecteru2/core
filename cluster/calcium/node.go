@@ -33,7 +33,7 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string) (*types.Node, er
 }
 
 // SetNode set node available or not
-func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) {
+func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) { // nolint
 	var n *types.Node
 	return n, c.withNodeLocked(ctx, opts.Nodename, func(node *types.Node) error {
 		opts.Normalize(node)
@@ -94,13 +94,15 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		}
 		// update cpu
 		for cpuID, cpuShare := range opts.DeltaCPU {
-			if _, ok := n.CPU[cpuID]; !ok && cpuShare > 0 { // 增加了 CPU
+			_, ok := n.CPU[cpuID]
+			switch {
+			case !ok && cpuShare > 0: // incr CPU
 				n.CPU[cpuID] = cpuShare
 				n.InitCPU[cpuID] = cpuShare
-			} else if ok && cpuShare == 0 { // 删掉 CPU
+			case ok && cpuShare == 0: // decr CPU
 				delete(n.CPU, cpuID)
 				delete(n.InitCPU, cpuID)
-			} else if ok { // 减少份数
+			case ok: // decr share
 				n.CPU[cpuID] += cpuShare
 				n.InitCPU[cpuID] += cpuShare
 				if n.CPU[cpuID] < 0 {
@@ -110,13 +112,15 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		}
 		// update volume
 		for volumeDir, changeCap := range opts.DeltaVolume {
-			if _, ok := n.Volume[volumeDir]; !ok && changeCap > 0 {
+			_, ok := n.Volume[volumeDir]
+			switch {
+			case !ok && changeCap > 0:
 				n.Volume[volumeDir] = changeCap
 				n.InitVolume[volumeDir] = changeCap
-			} else if ok && changeCap == 0 {
+			case ok && changeCap == 0:
 				delete(n.Volume, volumeDir)
 				delete(n.InitVolume, volumeDir)
-			} else if ok {
+			case ok:
 				n.Volume[volumeDir] += changeCap
 				n.InitVolume[volumeDir] += changeCap
 				if n.Volume[volumeDir] < 0 {

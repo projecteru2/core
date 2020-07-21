@@ -11,8 +11,8 @@ import (
 )
 
 // ExecuteContainer executes commands in running containers
-func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions, inCh <-chan []byte) (ch chan *types.AttachContainerMessage) {
-	ch = make(chan *types.AttachContainerMessage)
+func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions, inCh <-chan []byte) chan *types.AttachContainerMessage {
+	ch := make(chan *types.AttachContainerMessage)
 
 	go func() {
 		defer close(ch)
@@ -69,5 +69,5 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 		log.Infof("[ExecuteContainer] Execuate in container %s complete", utils.ShortID(opts.ContainerID))
 	}()
 
-	return
+	return ch
 }

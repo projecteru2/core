@@ -138,7 +138,7 @@ func (g *GitScm) Security(path string) error {
 }
 
 // unzipFile unzip a file(from resp.Body) to the spec path
-func unzipFile(body io.ReadCloser, path string) error {
+func unzipFile(body io.Reader, path string) error {
 	content, err := ioutil.ReadAll(body)
 	if err != nil {
 		return err
@@ -158,7 +158,8 @@ func unzipFile(body io.ReadCloser, path string) error {
 
 		defer zipped.Close()
 
-		p := filepath.Join(path, f.Name)
+		//  G305: File traversal when extracting zip archive
+		p := filepath.Join(path, f.Name) // nolint
 
 		if f.FileInfo().IsDir() {
 			_ = os.MkdirAll(p, f.Mode())
@@ -171,7 +172,8 @@ func unzipFile(body io.ReadCloser, path string) error {
 		}
 
 		defer writer.Close()
-		if _, err = io.Copy(writer, zipped); err != nil {
+		if _, err = io.Copy(writer, zipped); err != nil { // nolint
+			// G110: Potential DoS vulnerability via decompression bomb
 			return err
 		}
 	}

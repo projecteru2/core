@@ -32,12 +32,12 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 						message, err = c.doStartContainer(ctx, container, force)
 						return err
 					case cluster.ContainerRestart:
-						stopHook, err := c.doStopContainer(ctx, container, force)
+						message, err = c.doStopContainer(ctx, container, force)
 						if err != nil {
 							return err
 						}
 						startHook, err := c.doStartContainer(ctx, container, force)
-						message = append(stopHook, startHook...)
+						message = append(message, startHook...)
 						return err
 					}
 					return types.ErrUnknownControlType

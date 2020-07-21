@@ -155,7 +155,7 @@ func processVirtualizationInStream(
 	inStream io.WriteCloser,
 	inCh <-chan []byte,
 	resizeFunc func(height, width uint) error,
-) <-chan struct{} {
+) <-chan struct{} { // nolint
 	specialPrefixCallback := map[string]func([]byte){
 		string(winchCommand): func(body []byte) {
 			w := &window{}
@@ -169,7 +169,7 @@ func processVirtualizationInStream(
 			}
 		},
 
-		string(escapeCommand): func(body []byte) {
+		string(escapeCommand): func(_ []byte) {
 			inStream.Close()
 		},
 	}
@@ -177,7 +177,7 @@ func processVirtualizationInStream(
 }
 
 func rawProcessVirtualizationInStream(
-	ctx context.Context,
+	_ context.Context,
 	inStream io.WriteCloser,
 	inCh <-chan []byte,
 	specialPrefixCallback map[string]func([]byte),
@@ -203,7 +203,7 @@ func rawProcessVirtualizationInStream(
 }
 
 func processVirtualizationOutStream(
-	ctx context.Context,
+	_ context.Context,
 	outStream io.ReadCloser,
 ) <-chan []byte {
 	outCh := make(chan []byte)

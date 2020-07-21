@@ -144,7 +144,7 @@ func (e *Engine) preparedSource(build *types.Build, scm coresource.Source, build
 	var cloneDir string
 	var err error
 	reponame := ""
-	if build.Repo != "" {
+	if build.Repo != "" { // nolint
 		version := build.Version
 		if version == "" {
 			version = "HEAD"

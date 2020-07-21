@@ -131,12 +131,13 @@ func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.Volu
 	var vbsNorm, vbsMono, vbsUnlimited types.VolumeBindings
 
 	for _, vb := range vbs {
-		if vb.RequireScheduleMonopoly() {
+		switch {
+		case vb.RequireScheduleMonopoly():
 			vbsMono = append(vbsMono, vb)
 			reqsMono = append(reqsMono, vb.SizeInBytes)
-		} else if vb.RequireScheduleUnlimitedQuota() {
+		case vb.RequireScheduleUnlimitedQuota():
 			vbsUnlimited = append(vbsUnlimited, vb)
-		} else if vb.RequireSchedule() {
+		case vb.RequireSchedule():
 			vbsNorm = append(vbsNorm, vb)
 			reqsNorm = append(reqsNorm, vb.SizeInBytes)
 		}

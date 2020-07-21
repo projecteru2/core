@@ -19,11 +19,6 @@ import (
 func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	opts.Normalize()
 	opts.ProcessIdent = utils.RandomString(16)
-	pod, err := c.store.GetPod(ctx, opts.Podname)
-	if err != nil {
-		log.Errorf("[CreateContainer %s] Error during GetPod for %s: %v", opts.ProcessIdent, opts.Podname, err)
-		return nil, err
-	}
 	log.Infof("[CreateContainer %s] Creating container with options:", opts.ProcessIdent)
 	litter.Dump(opts)
 	// Count 要大于0
@@ -38,10 +33,10 @@ func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions
 	if opts.CPUQuota < 0 {
 		return nil, types.NewDetailedErr(types.ErrBadCPU, opts.CPUQuota)
 	}
-	return c.doCreateContainer(ctx, opts, pod)
+	return c.doCreateContainer(ctx, opts)
 }
 
-func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptions, pod *types.Pod) (chan *types.CreateContainerMessage, error) {
+func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
 	// RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
 	// 因此需要在这里加个全局锁，直到部署完毕才释放
@@ -69,12 +64,12 @@ func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptio
 							_ = utils.Txn(
 								ctx,
 								func(ctx context.Context) error {
-									ch <- m
+									ch <- m // nolint
 									return nil
 								},
 								func(ctx context.Context) error {
 									// decr processing count
-									if err := c.store.UpdateProcessing(ctx, opts, nodeInfo.Name, nodeInfo.Deploy-i-1); err != nil {
+									if err := c.store.UpdateProcessing(ctx, opts, nodeInfo.Name, nodeInfo.Deploy-i-1); err != nil { // nolint
 										log.Warnf("[doCreateContainer] Update processing count failed %v", err)
 									}
 									return nil
@@ -123,7 +118,7 @@ func (c *Calcium) doCreateContainerOnNode(ctx context.Context, nodeInfo types.No
 			// if
 			func(ctx context.Context) (err error) {
 				node, err = c.doGetAndPrepareNode(ctx, nodeInfo.Name, opts.Image)
-				ms[i] = &types.CreateContainerMessage{
+				ms[i] = &types.CreateContainerMessage{ // nolint
 					Error:      err,
 					CPU:        cpu,
 					VolumePlan: volumePlan,
@@ -132,14 +127,14 @@ func (c *Calcium) doCreateContainerOnNode(ctx context.Context, nodeInfo types.No
 			},
 			// then
 			func(ctx context.Context) error {
-				ms[i] = c.doCreateAndStartContainer(ctx, i+index, node, opts, cpu, volumePlan)
-				return ms[i].Error
+				ms[i] = c.doCreateAndStartContainer(ctx, i+index, node, opts, cpu, volumePlan) // nolint
+				return ms[i].Error                                                             // nolint
 			},
 			// rollback, will use background context
 			func(ctx context.Context) (err error) {
-				log.Errorf("[doCreateContainerOnNode] Error when create and start a container, %v", ms[i].Error)
-				if ms[i].ContainerID != "" {
-					log.Warnf("[doCreateContainer] Create container failed %v, and container %s not removed", ms[i].Error, ms[i].ContainerID)
+				log.Errorf("[doCreateContainerOnNode] Error when create and start a container, %v", ms[i].Error) // nolint
+				if ms[i].ContainerID != "" {                                                                     // nolint
+					log.Warnf("[doCreateContainer] Create container failed %v, and container %s not removed", ms[i].Error, ms[i].ContainerID) // nolint
 					return
 				}
 				if err = c.withNodeLocked(ctx, nodeInfo.Name, func(node *types.Node) error {
