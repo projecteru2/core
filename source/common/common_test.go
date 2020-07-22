@@ -52,6 +52,11 @@ func TestSourceCode(t *testing.T) {
 	err = g.SourceCode("git@xxxx", dname, "MASTER", false)
 	assert.Error(t, err)
 
+	g.Config.PrivateKey = "../../test/id_rsa"
+	g.Config.PublicKey = "../../test/id_rsa.pub"
+	err = g.SourceCode("git@github.com:Weiyureal666/testgogit.git", dname, "HEAD", false)
+	assert.NoError(t, err)
+
 	err = g.SourceCode(repo, dname, "NOTHING", false)
 	assert.Error(t, err)
 	os.RemoveAll(dname)

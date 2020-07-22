@@ -24,9 +24,6 @@ jobs:
         with:
           go-version: 1.14
 
-      - name: Set up libgit2
-        run: make libgit2
-
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2
         with:

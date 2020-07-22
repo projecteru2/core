@@ -29,19 +29,6 @@ mock: deps
 	mockery -dir vendor/github.com/docker/docker/client -name APIClient -output engine/docker/mocks
 
 .ONESHELL:
-libgit2:
-	cd /tmp
-	rm -fr libgit2-1.0.1.tar.gz libgit2-1.0.1
-	curl -Lv -O https://github.com/libgit2/libgit2/releases/download/v1.0.1/libgit2-1.0.1.tar.gz
-	tar xvfz libgit2-1.0.1.tar.gz
-	mkdir -p libgit2-1.0.1/build
-	cd libgit2-1.0.1/build
-	cmake ..
-	cmake --build .
-	sudo cp libgit2.pc /usr/lib/pkgconfig/
-	sudo cp libgit2.so.1.0.1 /usr/lib
-	sudo ln -s /usr/lib/libgit2.so.1.0.1 /usr/lib/libgit2.so
-	sudo cp -aR ../include/* /usr/local/include/
 
 cloc:
 	cloc --exclude-dir=vendor,3rdmocks,mocks,tools --not-match-f=test .

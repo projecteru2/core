@@ -11,9 +11,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	git "github.com/libgit2/git2go/v30"
+	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	gitssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/ssh"
 )
 
 // GitScm is gitlab or github source code manager
@@ -28,80 +31,71 @@ func (g *GitScm) SourceCode(repository, path, revision string, submodule bool) e
 	if err := gitcheck(repository, g.Config.PublicKey, g.Config.PrivateKey); err != nil {
 		return err
 	}
-
-	var repo *git.Repository
+	var repo *gogit.Repository
 	var err error
 	if strings.Contains(repository, "https://") {
-		repo, err = git.Clone(repository, path, &git.CloneOptions{})
+		repo, err = gogit.PlainClone(path, false, &gogit.CloneOptions{
+			URL: repository,
+		})
 	} else {
-		cloneOpts := &git.CloneOptions{
-			FetchOptions: &git.FetchOptions{
-				RemoteCallbacks: git.RemoteCallbacks{
-					CredentialsCallback: func(url, username string, allowedTypes git.CredType) (*git.Cred, error) {
-						return git.NewCredSshKey(username, g.Config.PublicKey, g.Config.PrivateKey, "")
-					},
-					CertificateCheckCallback: func(cert *git.Certificate, valid bool, hostname string) git.ErrorCode {
-						return git.ErrorCode(0)
-					},
-				},
+		sshKey, keyErr := ioutil.ReadFile(g.Config.PrivateKey)
+		if keyErr != nil {
+			return keyErr
+		}
+
+		signer, signErr := ssh.ParsePrivateKey(sshKey)
+		if signErr != nil {
+			return signErr
+		}
+
+		splitRepo := strings.Split(repository, "@")
+
+		auth := &gitssh.PublicKeys{
+			User:   splitRepo[0],
+			Signer: signer,
+			HostKeyCallbackHelper: gitssh.HostKeyCallbackHelper{
+				/* #nosec*/
+				HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 			},
 		}
-		repo, err = git.Clone(repository, path, cloneOpts)
-	}
-	if err != nil {
-		return err
-	}
-	defer repo.Free()
-
-	if err := repo.CheckoutHead(nil); err != nil {
-		return err
+		repo, err = gogit.PlainClone(path, false, &gogit.CloneOptions{
+			URL:      repository,
+			Progress: os.Stdout,
+			Auth:     auth,
+		})
 	}
 
-	object, err := repo.RevparseSingle(revision)
-	if err != nil {
-		return err
-	}
-	defer object.Free()
-
-	object, err = object.Peel(git.ObjectCommit)
 	if err != nil {
 		return err
 	}
 
-	commit, err := object.AsCommit()
+	w, err := repo.Worktree()
+
 	if err != nil {
 		return err
 	}
-	defer commit.Free()
 
-	tree, err := commit.Tree()
+	hash, err := repo.ResolveRevision(plumbing.Revision(revision))
 	if err != nil {
 		return err
 	}
-	defer tree.Free()
 
-	if err := repo.CheckoutTree(tree, &git.CheckoutOpts{Strategy: git.CheckoutSafe}); err != nil {
+	err = w.Checkout(&gogit.CheckoutOptions{Hash: *hash})
+	if err != nil {
 		return err
 	}
+
 	log.Infof("[SourceCode] Fetch repo %s", repository)
-	log.Infof("[SourceCode] Checkout to commit %v", commit.Id())
+	log.Infof("[SourceCode] Checkout to commit %s", hash)
 
 	// Prepare submodules
 	if submodule {
-		err = repo.Submodules.Foreach(func(sub *git.Submodule, name string) int {
-			if err := sub.Init(true); err != nil {
-				log.Errorf("[SourceCode] init submodule failed %v", err)
-				return 0
-			}
-			if err := sub.Update(true, &git.SubmoduleUpdateOptions{
-				CheckoutOpts: &git.CheckoutOpts{
-					Strategy: git.CheckoutForce | git.CheckoutUpdateSubmodules,
-				},
-				FetchOptions: &git.FetchOptions{},
-			}); err != nil {
-				log.Errorf("[SourceCode] update submodules failed %v", err)
-			}
-			return 0
+		s, err := w.Submodules()
+		if err != nil {
+			return err
+		}
+		return s.Update(&gogit.SubmoduleUpdateOptions{
+			Init: true,
 		})
 	}
 	return err

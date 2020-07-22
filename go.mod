@@ -14,12 +14,12 @@ require (
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.3.3
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
+	github.com/go-git/go-git/v5 v5.1.0
 	github.com/golang/groupcache v0.0.0-20191027212112-611e8accdfc9 // indirect
 	github.com/golang/protobuf v1.3.5
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/mux v0.0.0-20180605211556-cb4698366aa6 // indirect
 	github.com/jinzhu/configor v1.1.1
-	github.com/libgit2/git2go/v30 v30.0.3
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v0.0.0-20180411145040-e562b0440392 // indirect
 	github.com/opencontainers/runc v0.0.0-20180615140650-ad0f5255060d // indirect
@@ -34,7 +34,7 @@ require (
 	github.com/urfave/cli/v2 v2.0.0-alpha.2
 	go.etcd.io/etcd/v3 v3.3.0-rc.0.0.20200707003333-58bb8ae09f8e
 	go.uber.org/automaxprocs v1.3.0
-	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
+	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
 	golang.org/x/mod v0.3.0 // indirect
 	golang.org/x/net v0.0.0-20200319234117-63522dbf7eec
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
