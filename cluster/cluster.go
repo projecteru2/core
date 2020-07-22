@@ -89,7 +89,7 @@ type Cluster interface {
 	DissociateContainer(ctx context.Context, IDs []string) (chan *types.DissociateContainerMessage, error)
 	ControlContainer(ctx context.Context, IDs []string, t string, force bool) (chan *types.ControlContainerMessage, error)
 	ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions, inCh <-chan []byte) chan *types.AttachContainerMessage
-	ReallocResource(ctx context.Context, IDs []string, cpu float64, memory int64, volumes types.VolumeBindings, bindCPUOpt types.BindCPUOptions) (chan *types.ReallocResourceMessage, error)
+	ReallocResource(ctx context.Context, IDs []string, cpu float64, bindCPU types.BindCPUOptions, memory int64, memoryLimit types.MemoryLimitOptions, volumes types.VolumeBindings) (chan *types.ReallocResourceMessage, error)
 	LogStream(ctx context.Context, opts *types.LogStreamOptions) (chan *types.LogStreamMessage, error)
 	RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) (<-chan *types.AttachContainerMessage, error)
 	// finalizer
