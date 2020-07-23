@@ -169,23 +169,14 @@ type ExecuteContainerOptions struct {
 	ReplCmd     []byte
 }
 
-// BindCPUOptions for realloc interface
-type BindCPUOptions int
-
-// MemoryLimitOptions .
-type MemoryLimitOptions int
+// TriOptions .
+type TriOptions int
 
 const (
-	// ReallocKeepCPUCurrent keep current setting
-	ReallocKeepCPUCurrent BindCPUOptions = 0
-	// ReallocBindCPU .
-	ReallocBindCPU BindCPUOptions = 1
-	// ReallocFreeCPU .
-	ReallocFreeCPU BindCPUOptions = 2
-	// ReallocMemoryInheritLimit .
-	ReallocMemoryInheritLimit MemoryLimitOptions = 0
-	// ReallocMemorySoftLimit .
-	ReallocMemorySoftLimit MemoryLimitOptions = 1
-	// ReallocMemoryHardLimit .
-	ReallocMemoryHardLimit MemoryLimitOptions = 2
+	// TriKeep .
+	TriKeep = iota
+	// TriTrue .
+	TriTrue
+	// TriFalse
+	TriFalse
 )

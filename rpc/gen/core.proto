@@ -226,16 +226,10 @@ message DissociateContainerOptions {
     repeated string ids = 1;
 }
 
-enum BindCPUOpt{
+enum TriOpt {
     KEEP = 0;
-    BIND = 1;
-    FREE = 2;
-}
-
-enum MemoryLimitOpt {
-    INHERIT = 0;
-    SOFT = 1;
-    HARD = 2;
+    TRUE = 1;
+    FALSEE = 2;
 }
 
 message ReallocOptions {
@@ -243,8 +237,8 @@ message ReallocOptions {
     double cpu = 2;
     int64 memory = 3;
     repeated string volumes = 4;
-    BindCPUOpt bind_cpu = 5;
-    MemoryLimitOpt memory_limit = 6;
+    TriOpt bind_cpu = 5;
+    TriOpt memory_limit = 6;
 }
 
 message AddPodOptions {
