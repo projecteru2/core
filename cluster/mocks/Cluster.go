@@ -536,13 +536,13 @@ func (_m *Cluster) PodResource(ctx context.Context, podname string) (*types.PodR
 	return r0, r1
 }
 
-// ReallocResource provides a mock function with given fields: ctx, IDs, cpu, bindCPU, memory, memoryLimit, volumes
-func (_m *Cluster) ReallocResource(ctx context.Context, IDs []string, cpu float64, bindCPU types.BindCPUOptions, memory int64, memoryLimit types.MemoryLimitOptions, volumes types.VolumeBindings) (chan *types.ReallocResourceMessage, error) {
-	ret := _m.Called(ctx, IDs, cpu, bindCPU, memory, memoryLimit, volumes)
+// ReallocResource provides a mock function with given fields: ctx, opts
+func (_m *Cluster) ReallocResource(ctx context.Context, opts *types.ReallocOptions) (chan *types.ReallocResourceMessage, error) {
+	ret := _m.Called(ctx, opts)
 
 	var r0 chan *types.ReallocResourceMessage
-	if rf, ok := ret.Get(0).(func(context.Context, []string, float64, types.BindCPUOptions, int64, types.MemoryLimitOptions, types.VolumeBindings) chan *types.ReallocResourceMessage); ok {
-		r0 = rf(ctx, IDs, cpu, bindCPU, memory, memoryLimit, volumes)
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReallocOptions) chan *types.ReallocResourceMessage); ok {
+		r0 = rf(ctx, opts)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(chan *types.ReallocResourceMessage)
@@ -550,8 +550,8 @@ func (_m *Cluster) ReallocResource(ctx context.Context, IDs []string, cpu float6
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, []string, float64, types.BindCPUOptions, int64, types.MemoryLimitOptions, types.VolumeBindings) error); ok {
-		r1 = rf(ctx, IDs, cpu, bindCPU, memory, memoryLimit, volumes)
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReallocOptions) error); ok {
+		r1 = rf(ctx, opts)
 	} else {
 		r1 = ret.Error(1)
 	}

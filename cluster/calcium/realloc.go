@@ -22,11 +22,11 @@ type nodeContainers map[string][]*types.Container
 type volCPUMemNodeContainers map[string]map[float64]map[int64]nodeContainers
 
 // ReallocResource allow realloc container resource
-func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64, bindCPU types.BindCPUOptions, memory int64, memoryLimit types.MemoryLimitOptions, volumes types.VolumeBindings) (chan *types.ReallocResourceMessage, error) {
+func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOptions) (chan *types.ReallocResourceMessage, error) {
 	ch := make(chan *types.ReallocResourceMessage)
 	go func() {
 		defer close(ch)
-		if err := c.withContainersLocked(ctx, IDs, func(containers map[string]*types.Container) error {
+		if err := c.withContainersLocked(ctx, opts.IDs, func(containers map[string]*types.Container) error {
 			// Pod-Node-Containers
 			containersInfo := map[*types.Pod]nodeContainers{}
 			// Pod cache
@@ -58,14 +58,14 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 			for _, nodeContainersInfo := range containersInfo {
 				go func(nodeContainersInfo nodeContainers) {
 					defer wg.Done()
-					c.doReallocContainer(ctx, ch, nodeContainersInfo, cpu, bindCPU, memory, memoryLimit, volumes)
+					c.doReallocContainer(ctx, ch, nodeContainersInfo, opts)
 				}(nodeContainersInfo)
 			}
 			wg.Wait()
 			return nil
 		}); err != nil {
 			log.Errorf("[ReallocResource] Realloc failed %v", err)
-			for _, ID := range IDs {
+			for _, ID := range opts.IDs {
 				ch <- &types.ReallocResourceMessage{
 					ContainerID: ID,
 					Error:       err,
@@ -76,15 +76,8 @@ func (c *Calcium) ReallocResource(ctx context.Context, IDs []string, cpu float64
 	return ch, nil
 }
 
-func (c *Calcium) doReallocContainer(
-	ctx context.Context,
-	ch chan *types.ReallocResourceMessage,
-	nodeContainersInfo nodeContainers,
-	cpu float64, bindCPU types.BindCPUOptions,
-	memory int64, memoryLimit types.MemoryLimitOptions,
-	volumes types.VolumeBindings) {
-
-	volCPUMemNodeContainersInfo, hardVbsForContainer := calVolCPUMemNodeContainersInfo(ch, nodeContainersInfo, cpu, memory, volumes)
+func (c *Calcium) doReallocContainer(ctx context.Context, ch chan *types.ReallocResourceMessage, nodeContainersInfo nodeContainers, opts *types.ReallocOptions) {
+	volCPUMemNodeContainersInfo, hardVbsForContainer := calVolCPUMemNodeContainersInfo(ch, nodeContainersInfo, opts.CPU, opts.Memory, opts.Volumes)
 	for newAutoVol, cpuMemNodeContainersInfo := range volCPUMemNodeContainersInfo {
 		for newCPU, memNodesContainers := range cpuMemNodeContainersInfo {
 			for newMemory, nodesContainers := range memNodesContainers {
@@ -105,14 +98,14 @@ func (c *Calcium) doReallocContainer(
 								node.IncrNUMANodeMemory(nodeID, container.Memory)
 							}
 							// cpu 绑定判断
-							switch bindCPU {
-							case types.ReallocKeepCPUCurrent:
+							switch opts.BindCPU {
+							case types.TriKeep:
 								if len(container.CPU) > 0 {
 									containerWithCPUBind++
 								}
-							case types.ReallocBindCPU:
+							case types.TriTrue:
 								containerWithCPUBind++
-							case types.ReallocFreeCPU:
+							case types.TriFalse:
 								containerWithCPUBind = 0
 							}
 						}
@@ -156,7 +149,7 @@ func (c *Calcium) doReallocContainer(
 							ctx,
 							// if
 							func(ctx context.Context) error {
-								return c.updateContainersResources(ctx, ch, node, containers, newResource, cpusets, hardVbsForContainer, newAutoVol, bindCPU, memoryLimit) // nolint
+								return c.updateContainersResources(ctx, ch, node, containers, newResource, cpusets, hardVbsForContainer, newAutoVol, opts.BindCPU, opts.MemoryLimit) // nolint
 							},
 							// then
 							func(ctx context.Context) (err error) {
@@ -189,7 +182,7 @@ func (c *Calcium) updateContainersResources(ctx context.Context, ch chan *types.
 	node *types.Node, containers []*types.Container,
 	newResource *enginetypes.VirtualizationResource,
 	cpusets []types.CPUMap, hardVbsForContainer map[string]types.VolumeBindings, newAutoVol string,
-	bindCPU types.BindCPUOptions, memoryLimit types.MemoryLimitOptions) error {
+	bindCPU, memoryLimit types.TriOptions) error {
 
 	autoVbs, _ := types.MakeVolumeBindings(strings.Split(newAutoVol, ","))
 	planForContainers, err := c.reallocVolume(node, containers, autoVbs)
@@ -200,7 +193,7 @@ func (c *Calcium) updateContainersResources(ctx context.Context, ch chan *types.
 	for _, container := range containers {
 		// 情况1，原来就有绑定cpu的，保持不变
 		// 情况2，有绑定指令，不管之前有没有cpuMap，都分配
-		if (len(container.CPU) > 0 && bindCPU == types.ReallocKeepCPUCurrent) || bindCPU == types.ReallocBindCPU {
+		if (len(container.CPU) > 0 && bindCPU == types.TriKeep) || bindCPU == types.TriTrue {
 			newResource.CPU = cpusets[0]
 			newResource.NUMANode = node.GetNUMANode(cpusets[0])
 			cpusets = cpusets[1:]
@@ -212,12 +205,12 @@ func (c *Calcium) updateContainersResources(ctx context.Context, ch chan *types.
 		}
 
 		switch memoryLimit {
-		case types.ReallocMemoryInheritLimit:
+		case types.TriKeep:
 			newResource.SoftLimit = container.SoftLimit
-		case types.ReallocMemoryHardLimit:
-			newResource.SoftLimit = false
-		case types.ReallocMemorySoftLimit:
+		case types.TriTrue:
 			newResource.SoftLimit = true
+		case types.TriFalse:
+			newResource.SoftLimit = false
 		}
 
 		newResource.Volumes = append(newResource.Volumes, hardVbsForContainer[container.ID].ToStringSlice(false, false)...)
