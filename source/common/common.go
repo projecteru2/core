@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -53,8 +54,12 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 			return signErr
 		}
 		splitRepo := strings.Split(repository, "@")
+		user, parseErr := url.Parse(splitRepo[0])
+		if parseErr != nil {
+			return parseErr
+		}
 		auth := &gitssh.PublicKeys{
-			User:   splitRepo[0],
+			User:   user.Host + user.Path,
 			Signer: signer,
 			HostKeyCallbackHelper: gitssh.HostKeyCallbackHelper{
 				HostKeyCallback: ssh.InsecureIgnoreHostKey(), // nolint
@@ -62,7 +67,7 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 		}
 		repo, err = gogit.PlainCloneContext(ctx, path, false, &gogit.CloneOptions{
 			URL:      repository,
-			Progress: os.Stdout,
+			Progress: ioutil.Discard,
 			Auth:     auth,
 		})
 	default:
