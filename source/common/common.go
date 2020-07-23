@@ -1,10 +1,8 @@
 package common
 
 import (
-	"archive/zip"
-	"bytes"
+	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -24,53 +22,57 @@ type GitScm struct {
 	http.Client
 	Config      types.GitConfig
 	AuthHeaders map[string]string
+
+	keyBytes []byte
+}
+
+// NewGitScm .
+func NewGitScm(config types.GitConfig, authHeaders map[string]string) (*GitScm, error) {
+	b, err := ioutil.ReadFile(config.PrivateKey)
+	return &GitScm{
+		Config:      config,
+		AuthHeaders: authHeaders,
+		keyBytes:    b,
+	}, err
 }
 
 // SourceCode clone code from repository into path, by revision
-func (g *GitScm) SourceCode(repository, path, revision string, submodule bool) error {
-	if err := gitcheck(repository, g.Config.PublicKey, g.Config.PrivateKey); err != nil {
-		return err
-	}
+func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision string, submodule bool) error {
 	var repo *gogit.Repository
 	var err error
-	if strings.Contains(repository, "https://") {
-		repo, err = gogit.PlainClone(path, false, &gogit.CloneOptions{
+	ctx, cancel := context.WithTimeout(ctx, g.Config.CloneTimeout)
+	defer cancel()
+	switch {
+	case strings.Contains(repository, "https://"):
+		repo, err = gogit.PlainCloneContext(ctx, path, false, &gogit.CloneOptions{
 			URL: repository,
 		})
-	} else {
-		sshKey, keyErr := ioutil.ReadFile(g.Config.PrivateKey)
-		if keyErr != nil {
-			return keyErr
-		}
-
-		signer, signErr := ssh.ParsePrivateKey(sshKey)
+	case strings.Contains(repository, "git@") || strings.Contains(repository, "gitlab@"):
+		signer, signErr := ssh.ParsePrivateKey(g.keyBytes)
 		if signErr != nil {
 			return signErr
 		}
-
 		splitRepo := strings.Split(repository, "@")
-
 		auth := &gitssh.PublicKeys{
 			User:   splitRepo[0],
 			Signer: signer,
 			HostKeyCallbackHelper: gitssh.HostKeyCallbackHelper{
-				/* #nosec*/
-				HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+				HostKeyCallback: ssh.InsecureIgnoreHostKey(), // nolint
 			},
 		}
-		repo, err = gogit.PlainClone(path, false, &gogit.CloneOptions{
+		repo, err = gogit.PlainCloneContext(ctx, path, false, &gogit.CloneOptions{
 			URL:      repository,
 			Progress: os.Stdout,
 			Auth:     auth,
 		})
+	default:
+		return types.ErrNotSupport
 	}
-
 	if err != nil {
 		return err
 	}
 
 	w, err := repo.Worktree()
-
 	if err != nil {
 		return err
 	}
@@ -80,8 +82,7 @@ func (g *GitScm) SourceCode(repository, path, revision string, submodule bool) e
 		return err
 	}
 
-	err = w.Checkout(&gogit.CheckoutOptions{Hash: *hash})
-	if err != nil {
+	if err = w.Checkout(&gogit.CheckoutOptions{Hash: *hash}); err != nil {
 		return err
 	}
 
@@ -94,9 +95,7 @@ func (g *GitScm) SourceCode(repository, path, revision string, submodule bool) e
 		if err != nil {
 			return err
 		}
-		return s.Update(&gogit.SubmoduleUpdateOptions{
-			Init: true,
-		})
+		return s.Update(&gogit.SubmoduleUpdateOptions{Init: true})
 	}
 	return err
 }
@@ -129,63 +128,4 @@ func (g *GitScm) Artifact(artifact, path string) error {
 // Security remove the .git folder
 func (g *GitScm) Security(path string) error {
 	return os.RemoveAll(filepath.Join(path, ".git"))
-}
-
-// unzipFile unzip a file(from resp.Body) to the spec path
-func unzipFile(body io.Reader, path string) error {
-	content, err := ioutil.ReadAll(body)
-	if err != nil {
-		return err
-	}
-
-	reader, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
-	if err != nil {
-		return err
-	}
-
-	// extract files from zipfile
-	for _, f := range reader.File {
-		zipped, err := f.Open()
-		if err != nil {
-			return err
-		}
-
-		defer zipped.Close()
-
-		//  G305: File traversal when extracting zip archive
-		p := filepath.Join(path, f.Name) // nolint
-
-		if f.FileInfo().IsDir() {
-			_ = os.MkdirAll(p, f.Mode())
-			continue
-		}
-
-		writer, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE, f.Mode())
-		if err != nil {
-			return err
-		}
-
-		defer writer.Close()
-		if _, err = io.Copy(writer, zipped); err != nil { // nolint
-			// G110: Potential DoS vulnerability via decompression bomb
-			return err
-		}
-	}
-	return nil
-}
-
-func gitcheck(repository, pubkey, prikey string) error {
-	if strings.Contains(repository, "https://") {
-		return nil
-	}
-	if strings.Contains(repository, "git@") || strings.Contains(repository, "gitlab@") {
-		if _, err := os.Stat(pubkey); os.IsNotExist(err) {
-			return fmt.Errorf("Public Key not found(%q)", pubkey)
-		}
-		if _, err := os.Stat(prikey); os.IsNotExist(err) {
-			return fmt.Errorf("Private Key not found(%q)", prikey)
-		}
-		return nil
-	}
-	return types.ErrNotSupport
 }

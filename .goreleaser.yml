@@ -16,6 +16,7 @@ builds:
       - -X github.com/projecteru2/core/versioninfo.BUILTAT={{.Date}}
     goos:
       - linux
+      - darwin
     goarch:
       - amd64
 

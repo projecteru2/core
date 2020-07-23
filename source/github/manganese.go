@@ -8,10 +8,9 @@ import (
 )
 
 // New new a github obj
-func New(config types.Config) *common.GitScm {
+func New(config types.Config) (*common.GitScm, error) {
 	gitConfig := config.Git
 	token := fmt.Sprintf("token %s", gitConfig.Token)
-	authheaders := map[string]string{}
-	authheaders["Authorization"] = token
-	return &common.GitScm{Config: gitConfig, AuthHeaders: authheaders}
+	authHeaders := map[string]string{"Authorization": token}
+	return common.NewGitScm(gitConfig, authHeaders)
 }

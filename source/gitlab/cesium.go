@@ -6,9 +6,8 @@ import (
 )
 
 // New new a gitlab obj
-func New(config types.Config) *common.GitScm {
+func New(config types.Config) (*common.GitScm, error) {
 	gitConfig := config.Git
-	authheaders := map[string]string{}
-	authheaders["PRIVATE-TOKEN"] = gitConfig.Token
-	return &common.GitScm{Config: gitConfig, AuthHeaders: authheaders}
+	authHeaders := map[string]string{"PRIVATE-TOKEN": gitConfig.Token}
+	return common.NewGitScm(gitConfig, authHeaders)
 }

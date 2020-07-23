@@ -27,10 +27,10 @@ etcd:
         password: root
 
 git:
-    public_key: "***REMOVED***"
     private_key: "***REMOVED***"
     token: "***REMOVED***"
     scm_type: "github"
+    clone_timeout: 300s
 
 docker:
     log:
