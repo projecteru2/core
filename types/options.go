@@ -169,6 +169,16 @@ type ExecuteContainerOptions struct {
 	ReplCmd     []byte
 }
 
+// ReallocOptions .
+type ReallocOptions struct {
+	IDs         []string
+	CPU         float64
+	Memory      int64
+	Volumes     VolumeBindings
+	BindCPU     TriOptions
+	MemoryLimit TriOptions
+}
+
 // TriOptions .
 type TriOptions int
 
@@ -177,6 +187,6 @@ const (
 	TriKeep = iota
 	// TriTrue .
 	TriTrue
-	// TriFalse
+	// TriFalse .
 	TriFalse
 )
