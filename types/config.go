@@ -37,10 +37,10 @@ type EtcdConfig struct {
 
 // GitConfig holds eru-core git config
 type GitConfig struct {
-	SCMType    string `yaml:"scm_type"`    // source code manager type [gitlab/github]
-	PublicKey  string `yaml:"public_key"`  // public key to clone code
-	PrivateKey string `yaml:"private_key"` // private key to clone code
-	Token      string `yaml:"token"`       // Token to call SCM API
+	SCMType      string        `yaml:"scm_type"`                                     // source code manager type [gitlab/github]
+	PrivateKey   string        `yaml:"private_key"`                                  // private key to clone code
+	Token        string        `yaml:"token"`                                        // token to call SCM API
+	CloneTimeout time.Duration `yaml:"clone_timeout" required:"true" default:"300s"` // clone timeout
 }
 
 // DockerConfig holds eru-core docker config

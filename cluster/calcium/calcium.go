@@ -42,14 +42,14 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 	scmtype := strings.ToLower(config.Git.SCMType)
 	switch scmtype {
 	case cluster.Gitlab:
-		scm = gitlab.New(config)
+		scm, err = gitlab.New(config)
 	case cluster.Github:
-		scm = github.New(config)
+		scm, err = github.New(config)
 	default:
 		log.Warn("[Calcium] SCM not set, build API disabled")
 	}
 
-	return &Calcium{store: store, config: config, scheduler: scheduler, source: scm}, nil
+	return &Calcium{store: store, config: config, scheduler: scheduler, source: scm}, err
 }
 
 // Finalizer use for defer

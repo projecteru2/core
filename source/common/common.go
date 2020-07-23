@@ -1,19 +1,20 @@
 package common
 
 import (
-	"archive/zip"
-	"bytes"
+	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
-	git "github.com/libgit2/git2go/v30"
+	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	gitssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/ssh"
 )
 
 // GitScm is gitlab or github source code manager
@@ -21,88 +22,80 @@ type GitScm struct {
 	http.Client
 	Config      types.GitConfig
 	AuthHeaders map[string]string
+
+	keyBytes []byte
+}
+
+// NewGitScm .
+func NewGitScm(config types.GitConfig, authHeaders map[string]string) (*GitScm, error) {
+	b, err := ioutil.ReadFile(config.PrivateKey)
+	return &GitScm{
+		Config:      config,
+		AuthHeaders: authHeaders,
+		keyBytes:    b,
+	}, err
 }
 
 // SourceCode clone code from repository into path, by revision
-func (g *GitScm) SourceCode(repository, path, revision string, submodule bool) error {
-	if err := gitcheck(repository, g.Config.PublicKey, g.Config.PrivateKey); err != nil {
-		return err
-	}
-
-	var repo *git.Repository
+func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision string, submodule bool) error {
+	var repo *gogit.Repository
 	var err error
-	if strings.Contains(repository, "https://") {
-		repo, err = git.Clone(repository, path, &git.CloneOptions{})
-	} else {
-		cloneOpts := &git.CloneOptions{
-			FetchOptions: &git.FetchOptions{
-				RemoteCallbacks: git.RemoteCallbacks{
-					CredentialsCallback: func(url, username string, allowedTypes git.CredType) (*git.Cred, error) {
-						return git.NewCredSshKey(username, g.Config.PublicKey, g.Config.PrivateKey, "")
-					},
-					CertificateCheckCallback: func(cert *git.Certificate, valid bool, hostname string) git.ErrorCode {
-						return git.ErrorCode(0)
-					},
-				},
+	ctx, cancel := context.WithTimeout(ctx, g.Config.CloneTimeout)
+	defer cancel()
+	switch {
+	case strings.Contains(repository, "https://"):
+		repo, err = gogit.PlainCloneContext(ctx, path, false, &gogit.CloneOptions{
+			URL: repository,
+		})
+	case strings.Contains(repository, "git@") || strings.Contains(repository, "gitlab@"):
+		signer, signErr := ssh.ParsePrivateKey(g.keyBytes)
+		if signErr != nil {
+			return signErr
+		}
+		splitRepo := strings.Split(repository, "@")
+		auth := &gitssh.PublicKeys{
+			User:   splitRepo[0],
+			Signer: signer,
+			HostKeyCallbackHelper: gitssh.HostKeyCallbackHelper{
+				HostKeyCallback: ssh.InsecureIgnoreHostKey(), // nolint
 			},
 		}
-		repo, err = git.Clone(repository, path, cloneOpts)
+		repo, err = gogit.PlainCloneContext(ctx, path, false, &gogit.CloneOptions{
+			URL:      repository,
+			Progress: os.Stdout,
+			Auth:     auth,
+		})
+	default:
+		return types.ErrNotSupport
 	}
 	if err != nil {
 		return err
 	}
-	defer repo.Free()
 
-	if err := repo.CheckoutHead(nil); err != nil {
-		return err
-	}
-
-	object, err := repo.RevparseSingle(revision)
-	if err != nil {
-		return err
-	}
-	defer object.Free()
-
-	object, err = object.Peel(git.ObjectCommit)
+	w, err := repo.Worktree()
 	if err != nil {
 		return err
 	}
 
-	commit, err := object.AsCommit()
+	hash, err := repo.ResolveRevision(plumbing.Revision(revision))
 	if err != nil {
 		return err
 	}
-	defer commit.Free()
 
-	tree, err := commit.Tree()
-	if err != nil {
+	if err = w.Checkout(&gogit.CheckoutOptions{Hash: *hash}); err != nil {
 		return err
 	}
-	defer tree.Free()
 
-	if err := repo.CheckoutTree(tree, &git.CheckoutOpts{Strategy: git.CheckoutSafe}); err != nil {
-		return err
-	}
 	log.Infof("[SourceCode] Fetch repo %s", repository)
-	log.Infof("[SourceCode] Checkout to commit %v", commit.Id())
+	log.Infof("[SourceCode] Checkout to commit %s", hash)
 
 	// Prepare submodules
 	if submodule {
-		err = repo.Submodules.Foreach(func(sub *git.Submodule, name string) int {
-			if err := sub.Init(true); err != nil {
-				log.Errorf("[SourceCode] init submodule failed %v", err)
-				return 0
-			}
-			if err := sub.Update(true, &git.SubmoduleUpdateOptions{
-				CheckoutOpts: &git.CheckoutOpts{
-					Strategy: git.CheckoutForce | git.CheckoutUpdateSubmodules,
-				},
-				FetchOptions: &git.FetchOptions{},
-			}); err != nil {
-				log.Errorf("[SourceCode] update submodules failed %v", err)
-			}
-			return 0
-		})
+		s, err := w.Submodules()
+		if err != nil {
+			return err
+		}
+		return s.Update(&gogit.SubmoduleUpdateOptions{Init: true})
 	}
 	return err
 }
@@ -135,63 +128,4 @@ func (g *GitScm) Artifact(artifact, path string) error {
 // Security remove the .git folder
 func (g *GitScm) Security(path string) error {
 	return os.RemoveAll(filepath.Join(path, ".git"))
-}
-
-// unzipFile unzip a file(from resp.Body) to the spec path
-func unzipFile(body io.Reader, path string) error {
-	content, err := ioutil.ReadAll(body)
-	if err != nil {
-		return err
-	}
-
-	reader, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
-	if err != nil {
-		return err
-	}
-
-	// extract files from zipfile
-	for _, f := range reader.File {
-		zipped, err := f.Open()
-		if err != nil {
-			return err
-		}
-
-		defer zipped.Close()
-
-		//  G305: File traversal when extracting zip archive
-		p := filepath.Join(path, f.Name) // nolint
-
-		if f.FileInfo().IsDir() {
-			_ = os.MkdirAll(p, f.Mode())
-			continue
-		}
-
-		writer, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE, f.Mode())
-		if err != nil {
-			return err
-		}
-
-		defer writer.Close()
-		if _, err = io.Copy(writer, zipped); err != nil { // nolint
-			// G110: Potential DoS vulnerability via decompression bomb
-			return err
-		}
-	}
-	return nil
-}
-
-func gitcheck(repository, pubkey, prikey string) error {
-	if strings.Contains(repository, "https://") {
-		return nil
-	}
-	if strings.Contains(repository, "git@") || strings.Contains(repository, "gitlab@") {
-		if _, err := os.Stat(pubkey); os.IsNotExist(err) {
-			return fmt.Errorf("Public Key not found(%q)", pubkey)
-		}
-		if _, err := os.Stat(prikey); os.IsNotExist(err) {
-			return fmt.Errorf("Private Key not found(%q)", prikey)
-		}
-		return nil
-	}
-	return types.ErrNotSupport
 }

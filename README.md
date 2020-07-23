@@ -19,18 +19,7 @@ Run ` make test `
 
 Run `make deps` for generating vendor dir.
 
-Under macOS we have to install `libgit2` manually, if you using [Homebrew](https://brew.sh/) please install like this:
-
-```shell
-brew install libgit2
-make deps
-```
-
-Make sure your libgit2 version is 1.0.0
-
-In linux you can reference our image's [Dockerfile](https://github.com/projecteru2/core/blob/master/Dockerfile). Our server were running under CentOS 7, so if your server was different, something will not same.
-
-On other hand, you can use our [footstone](https://hub.docker.com/r/projecteru2/footstone/) image for testing and compiling.
+You can use our [footstone](https://hub.docker.com/r/projecteru2/footstone/) image for testing and compiling.
 
 #### GRPC
 

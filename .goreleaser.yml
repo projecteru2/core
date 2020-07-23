@@ -8,7 +8,7 @@ before:
 builds:
   - binary: eru-core
     env:
-      - CGO_ENABLED=1
+      - CGO_ENABLED=0
     ldflags:
       - -s -w
       - -X github.com/projecteru2/core/versioninfo.REVISION={{.Commit}}
@@ -16,6 +16,7 @@ builds:
       - -X github.com/projecteru2/core/versioninfo.BUILTAT={{.Date}}
     goos:
       - linux
+      - darwin
     goarch:
       - amd64
 

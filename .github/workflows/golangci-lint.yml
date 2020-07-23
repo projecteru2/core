@@ -14,8 +14,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Set up libgit2
-        run: make libgit2
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v1
         with:
