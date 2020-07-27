@@ -3,7 +3,6 @@ package calcium
 import (
 	"context"
 
-	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
 	"github.com/sanity-io/litter"
 	log "github.com/sirupsen/logrus"
@@ -39,7 +38,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		opts.Normalize(node)
 		n = node
 		litter.Dump(opts)
-		n.Available = (opts.Status == cluster.NodeUp) || (opts.Status == cluster.KeepNodeStatus && n.Available)
+		n.Available = (opts.Status == types.TriTrue) || (opts.Status == types.TriKeep && n.Available)
 		if opts.ContainersDown {
 			containers, err := c.store.ListNodeContainers(ctx, opts.Nodename, nil)
 			if err != nil {

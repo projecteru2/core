@@ -138,7 +138,7 @@ func (o *AddNodeOptions) Normalize() {
 // SetNodeOptions for node set
 type SetNodeOptions struct {
 	Nodename        string
-	Status          int
+	Status          TriOptions
 	ContainersDown  bool
 	DeltaCPU        CPUMap
 	DeltaMemory     int64

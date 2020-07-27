@@ -143,7 +143,7 @@ message NodeAvailable {
 
 message SetNodeOptions {
     string nodename = 1;
-    int32 status = 2;
+    TriOpt status = 2;
     map<string, int32> delta_cpu = 3;
     int64 delta_memory = 4;
     int64 delta_storage = 5;
