@@ -83,6 +83,7 @@ message PodResource {
     map<string, bool> verifications = 4;
     map<string, string> details = 5;
     map<string, double> storage_percents = 6;
+    map<string, double> volume_percents = 7;
 }
 
 message NodeResource {

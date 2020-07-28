@@ -28,6 +28,10 @@ func TestPodResource(t *testing.T) {
 	store := &storemocks.Store{}
 	lock := &lockmocks.DistributedLock{}
 	c.store = store
+	lock := &lockmocks.DistributedLock{}
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
 	// failed by GetNodesByPod
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err := c.PodResource(ctx, podname)
@@ -85,6 +89,10 @@ func TestNodeResource(t *testing.T) {
 	store := &storemocks.Store{}
 	lock := &lockmocks.DistributedLock{}
 	c.store = store
+	lock := &lockmocks.DistributedLock{}
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
 	node := &types.Node{
 		Name:           nodename,
 		CPU:            types.CPUMap{"0": 0, "1": 10},

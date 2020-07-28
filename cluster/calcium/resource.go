@@ -25,6 +25,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 		CPUPercents:     map[string]float64{},
 		MemoryPercents:  map[string]float64{},
 		StoragePercents: map[string]float64{},
+		VolumePercents:  map[string]float64{},
 		Verifications:   map[string]bool{},
 		Details:         map[string]string{},
 	}
@@ -37,6 +38,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 		r.CPUPercents[node.Name] = nodeDetail.CPUPercent
 		r.MemoryPercents[node.Name] = nodeDetail.MemoryPercent
 		r.StoragePercents[node.Name] = nodeDetail.StoragePercent
+		r.VolumePercents[node.Name] = nodeDetail.VolumePercent
 		r.Verifications[node.Name] = nodeDetail.Verification
 		r.Details[node.Name] = strings.Join(nodeDetail.Details, "\n")
 	}
@@ -54,8 +56,7 @@ func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (
 		return nil, err
 	}
 	for _, container := range nr.Containers {
-		_, err := container.Inspect(ctx) // 用于探测节点上容器是否存在
-		if err != nil {
+		if _, err := container.Inspect(ctx); err != nil { // 用于探测节点上容器是否存在
 			nr.Verification = false
 			nr.Details = append(nr.Details, fmt.Sprintf("container %s inspect failed %v \n", container.ID, err))
 			continue

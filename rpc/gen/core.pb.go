@@ -513,6 +513,13 @@ func (x *PodResource) GetStoragePercents() map[string]float64 {
 	return nil
 }
 
+func (m *PodResource) GetVolumePercents() map[string]float64 {
+	if m != nil {
+		return m.VolumePercents
+	}
+	return nil
+}
+
 type NodeResource struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

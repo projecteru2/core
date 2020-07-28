@@ -35,9 +35,9 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string) (*types.Node, er
 func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) { // nolint
 	var n *types.Node
 	return n, c.withNodeLocked(ctx, opts.Nodename, func(node *types.Node) error {
+		litter.Dump(opts)
 		opts.Normalize(node)
 		n = node
-		litter.Dump(opts)
 		n.Available = (opts.Status == types.TriTrue) || (opts.Status == types.TriKeep && n.Available)
 		if opts.ContainersDown {
 			containers, err := c.store.ListNodeContainers(ctx, opts.Nodename, nil)

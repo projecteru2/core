@@ -28,3 +28,4 @@ cscope.*
 tools/updatev4.go
 *.swp
 dist/*
+non-live.yaml
