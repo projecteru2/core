@@ -20,7 +20,7 @@ service CoreRPC {
     rpc GetNode(GetNodeOptions) returns (Node) {};
     rpc SetNode(SetNodeOptions) returns (Node) {};
 
-    rpc GetNodeResource(GetNodeOptions) returns (NodeResource) {};
+    rpc GetNodeResource(GetNodeResourceOptions) returns (NodeResource) {};
 
     rpc GetContainer(ContainerID) returns (Container) {};
     rpc GetContainers(ContainerIDs) returns (Containers) {};
@@ -278,6 +278,11 @@ message RemoveNodeOptions {
 message GetNodeOptions {
     string nodename = 1;
     map<string, string> labels = 2;
+}
+
+message GetNodeResourceOptions {
+    GetNodeOptions opts = 1;
+    bool fix = 2;
 }
 
 message ListNodesOptions {

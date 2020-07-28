@@ -157,8 +157,8 @@ func (v *Vibranium) SetNode(ctx context.Context, opts *pb.SetNodeOptions) (*pb.N
 }
 
 // GetNodeResource check node resource
-func (v *Vibranium) GetNodeResource(ctx context.Context, opts *pb.GetNodeOptions) (*pb.NodeResource, error) {
-	nr, err := v.cluster.NodeResource(ctx, opts.Nodename)
+func (v *Vibranium) GetNodeResource(ctx context.Context, opts *pb.GetNodeResourceOptions) (*pb.NodeResource, error) {
+	nr, err := v.cluster.NodeResource(ctx, opts.GetOpts().Nodename, opts.Fix)
 	if err != nil {
 		return nil, err
 	}
