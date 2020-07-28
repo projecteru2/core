@@ -14,6 +14,7 @@ import (
 
 	"github.com/projecteru2/core/cluster"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
+	lockmocks "github.com/projecteru2/core/lock/mocks"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -25,6 +26,7 @@ func TestPodResource(t *testing.T) {
 	podname := "testpod"
 	nodename := "testnode"
 	store := &storemocks.Store{}
+	lock := &lockmocks.DistributedLock{}
 	c.store = store
 	// failed by GetNodesByPod
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
@@ -38,9 +40,13 @@ func TestPodResource(t *testing.T) {
 		InitMemCap:     6,
 		InitStorageCap: 10,
 	}
+	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
-	// failed by ListNodeContainers
 	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	// failed by ListNodeContainers
 	_, err = c.PodResource(ctx, podname)
 	assert.Error(t, err)
 	containers := []*types.Container{
@@ -77,6 +83,7 @@ func TestNodeResource(t *testing.T) {
 	ctx := context.Background()
 	nodename := "testnode"
 	store := &storemocks.Store{}
+	lock := &lockmocks.DistributedLock{}
 	c.store = store
 	node := &types.Node{
 		Name:           nodename,
@@ -94,12 +101,15 @@ func TestNodeResource(t *testing.T) {
 	node.Engine = engine
 	// failed by GetNode
 	store.On("GetNode", ctx, nodename).Return(nil, types.ErrNoETCD).Once()
-	_, err := c.NodeResource(ctx, nodename)
+	_, err := c.NodeResource(ctx, nodename, false)
 	assert.Error(t, err)
 	store.On("GetNode", ctx, nodename).Return(node, nil)
-	// failed by list node containers
 	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err = c.NodeResource(ctx, nodename)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	// failed by list node containers
+	_, err = c.NodeResource(ctx, nodename, false)
 	assert.Error(t, err)
 	containers := []*types.Container{
 		{
@@ -114,8 +124,9 @@ func TestNodeResource(t *testing.T) {
 		},
 	}
 	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
+	store.On("UpdateNode", mock.Anything, mock.Anything).Return(nil)
 	// success but container inspect failed
-	nr, err := c.NodeResource(ctx, nodename)
+	nr, err := c.NodeResource(ctx, nodename, true)
 	assert.NoError(t, err)
 	assert.Equal(t, nr.Name, nodename)
 	assert.NotEmpty(t, nr.Details)
