@@ -30,6 +30,7 @@ func toRPCPodResource(p *types.PodResource) *pb.PodResource {
 		CpuPercents:     p.CPUPercents,
 		MemoryPercents:  p.MemoryPercents,
 		StoragePercents: p.StoragePercents,
+		VolumePercents:  p.VolumePercents,
 		Verifications:   p.Verifications,
 		Details:         p.Details,
 	}
