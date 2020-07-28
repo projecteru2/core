@@ -25,6 +25,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 		CPUPercents:     map[string]float64{},
 		MemoryPercents:  map[string]float64{},
 		StoragePercents: map[string]float64{},
+		VolumePercents:  map[string]float64{},
 		Verifications:   map[string]bool{},
 		Details:         map[string]string{},
 	}
@@ -36,6 +37,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 		r.CPUPercents[node.Name] = nodeDetail.CPUPercent
 		r.MemoryPercents[node.Name] = nodeDetail.MemoryPercent
 		r.StoragePercents[node.Name] = nodeDetail.StoragePercent
+		r.VolumePercents[node.Name] = nodeDetail.VolumePercent
 		r.Verifications[node.Name] = nodeDetail.Verification
 		r.Details[node.Name] = strings.Join(nodeDetail.Details, "\n")
 	}
