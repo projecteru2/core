@@ -28,7 +28,6 @@ func TestPodResource(t *testing.T) {
 	store := &storemocks.Store{}
 	lock := &lockmocks.DistributedLock{}
 	c.store = store
-	lock := &lockmocks.DistributedLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	lock.On("Lock", mock.Anything).Return(nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
@@ -89,7 +88,6 @@ func TestNodeResource(t *testing.T) {
 	store := &storemocks.Store{}
 	lock := &lockmocks.DistributedLock{}
 	c.store = store
-	lock := &lockmocks.DistributedLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	lock.On("Lock", mock.Anything).Return(nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
