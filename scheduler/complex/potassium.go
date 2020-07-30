@@ -80,7 +80,9 @@ func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64,
 
 	// 筛选出能满足 CPU 需求的
 	sort.Slice(nodesInfo, func(i, j int) bool { return len(nodesInfo[i].CPUMap) < len(nodesInfo[j].CPUMap) })
-	p := sort.Search(nodesInfoLength, func(i int) bool { return float64(len(nodesInfo[i].CPUMap)) >= quota })
+	p := sort.Search(nodesInfoLength, func(i int) bool {
+		return float64(len(nodesInfo[i].CPUMap)) >= quota
+	})
 	// p 最大也就是 nodesInfoLength - 1
 	if p == nodesInfoLength {
 		return nil, 0, types.ErrInsufficientCPU

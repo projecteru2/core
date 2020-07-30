@@ -138,6 +138,10 @@ func (c *Calcium) doReallocContainer(ctx context.Context, ch chan *types.Realloc
 							}
 							// 得到最终方案
 							cpusets = nodeCPUPlans[node.Name][:containerWithCPUBind]
+						} else if newCPU != 0 { // nolint
+							if cap := float64(node.InitCPU.Total()) / float64(c.config.Scheduler.ShareBase) / newCPU; int(cap) < len(containers) { // nolint
+								return types.NewDetailedErr(types.ErrInsufficientCPU, node.Name)
+							}
 						}
 
 						newResource := &enginetypes.VirtualizationResource{
