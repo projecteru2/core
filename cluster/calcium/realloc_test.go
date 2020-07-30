@@ -34,6 +34,7 @@ func TestRealloc(t *testing.T) {
 	ctx := context.Background()
 	store := &storemocks.Store{}
 	c.store = store
+	c.config.Scheduler.ShareBase = 100
 
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(nil)
@@ -50,6 +51,7 @@ func TestRealloc(t *testing.T) {
 		Name:       "node1",
 		MemCap:     int64(units.GiB),
 		CPU:        types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
+		InitCPU:    types.CPUMap{"0": 100, "1": 100, "2": 100, "3": 100},
 		Engine:     engine,
 		Endpoint:   "http://1.1.1.1:1",
 		NUMA:       types.NUMA{"2": "0"},
@@ -210,6 +212,7 @@ func TestRealloc(t *testing.T) {
 		Name:       "node2",
 		MemCap:     int64(units.GiB),
 		CPU:        types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
+		InitCPU:    types.CPUMap{"0": 100, "1": 100, "2": 100, "3": 100},
 		Engine:     engine,
 		Endpoint:   "http://1.1.1.1:1",
 		NUMA:       types.NUMA{"2": "0"},
@@ -406,6 +409,7 @@ func TestReallocVolume(t *testing.T) {
 
 func TestReallocBindCpu(t *testing.T) {
 	c := NewTestCluster()
+	c.config.Scheduler.ShareBase = 100
 	ctx := context.Background()
 	store := &storemocks.Store{}
 	c.store = store
@@ -445,6 +449,7 @@ func TestReallocBindCpu(t *testing.T) {
 		Name:       "node3",
 		MemCap:     int64(units.GiB),
 		CPU:        types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
+		InitCPU:    types.CPUMap{"0": 100, "1": 100, "2": 100, "3": 100},
 		CPUUsed:    2.1,
 		Engine:     engine,
 		Endpoint:   "http://1.1.1.1:1",
