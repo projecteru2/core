@@ -104,7 +104,7 @@ func (v *Virt) ExecExitCode(ctx context.Context, execID string) (code int, err e
 
 // ExecResize resize exec tty
 func (v *Virt) ExecResize(ctx context.Context, execID string, height, width uint) (err error) {
-	resizeCmd := fmt.Sprintf("/bin/stty -F /dev/ttyS0 rows %d cols %d", height, width)
+	resizeCmd := fmt.Sprintf("yaexec resize -r %d -c %d", height, width)
 	msg, err := v.client.ExecuteGuest(ctx, execID, strings.Split(resizeCmd, " "))
 	log.Debugf("[ExecResize] resize got response: %v", msg)
 	return err
