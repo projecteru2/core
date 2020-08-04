@@ -148,7 +148,7 @@ func (m *Mercury) ListNodeContainers(ctx context.Context, nodename string, label
 	key := fmt.Sprintf(nodeContainersKey, nodename, "")
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix())
 	if err != nil {
-		return []*types.Container{}, err
+		return nil, err
 	}
 
 	containers := []*types.Container{}
@@ -246,6 +246,8 @@ func (m *Mercury) doGetContainers(ctx context.Context, keys []string) (container
 
 func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*types.Container) ([]*types.Container, error) {
 	nodes := map[string]*types.Node{}
+	nodenames := []string{}
+	nodenameCache := map[string]struct{}{}
 	statusKeys := map[string]string{}
 	for _, container := range containers {
 		appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
@@ -253,14 +255,17 @@ func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*typ
 			return nil, err
 		}
 		statusKeys[container.ID] = filepath.Join(containerStatusPrefix, appname, entrypoint, container.Nodename, container.ID)
-		if _, ok := nodes[container.Nodename]; !ok {
-			node, err := m.GetNode(ctx, container.Nodename)
-			if err != nil {
-				return nil, err
-			}
-			nodes[node.Name] = node
+		if _, ok := nodenameCache[container.Nodename]; !ok {
+			nodenameCache[container.Nodename] = struct{}{}
+			nodenames = append(nodenames, container.Nodename)
 		}
-
+	}
+	ns, err := m.GetNodes(ctx, nodenames)
+	if err != nil {
+		return nil, err
+	}
+	for _, node := range ns {
+		nodes[node.Name] = node
 	}
 
 	for index, container := range containers {
@@ -273,7 +278,6 @@ func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*typ
 		}
 		kv, err := m.GetOne(ctx, statusKeys[container.ID])
 		if err != nil {
-			// log.Warnf("[bindContainersAdditions] get status err: %v", err)
 			continue
 		}
 		status := &types.StatusMeta{}
