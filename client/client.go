@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/projecteru2/core/auth"
+	"github.com/projecteru2/core/client/interceptor"
 	_ "github.com/projecteru2/core/client/resolver/eru"
 	_ "github.com/projecteru2/core/client/resolver/static"
 	pb "github.com/projecteru2/core/rpc/gen"
@@ -42,6 +43,8 @@ func dial(addr string, authConfig types.AuthConfig) *grpc.ClientConn {
 	opts := []grpc.DialOption{
 		grpc.WithInsecure(),
 		grpc.WithBalancerName("round_robin"),
+		grpc.WithUnaryInterceptor(interceptor.NewUnaryRetry(interceptor.RetryOptions{Max: 1})),
+		grpc.WithStreamInterceptor(interceptor.NewStreamRetry(interceptor.RetryOptions{Max: 1})),
 	}
 	if authConfig.Username != "" {
 		opts = append(opts, grpc.WithPerRPCCredentials(auth.NewCredential(authConfig)))
