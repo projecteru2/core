@@ -12,22 +12,6 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
-func (e *Engine) makeIPV4EndpointSetting(ipv4 string) (*dockernetwork.EndpointSettings, error) {
-	config := &dockernetwork.EndpointSettings{
-		IPAMConfig: &dockernetwork.EndpointIPAMConfig{},
-	}
-	// set specified IP
-	// but if IP is empty, just ignore
-	if ipv4 != "" {
-		ip := net.ParseIP(ipv4)
-		if ip == nil {
-			return nil, coretypes.NewDetailedErr(coretypes.ErrBadIPAddress, ipv4)
-		}
-		config.IPAMConfig.IPv4Address = ip.String()
-	}
-	return config, nil
-}
-
 // NetworkConnect connect to a network
 func (e *Engine) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) error {
 	config, err := e.makeIPV4EndpointSetting(ipv4)
@@ -63,4 +47,20 @@ func (e *Engine) NetworkList(ctx context.Context, drivers []string) ([]*enginety
 		networks = append(networks, &enginetypes.Network{Name: n.Name, Subnets: subnets})
 	}
 	return networks, nil
+}
+
+func (e *Engine) makeIPV4EndpointSetting(ipv4 string) (*dockernetwork.EndpointSettings, error) {
+	config := &dockernetwork.EndpointSettings{
+		IPAMConfig: &dockernetwork.EndpointIPAMConfig{},
+	}
+	// set specified IP
+	// but if IP is empty, just ignore
+	if ipv4 != "" {
+		ip := net.ParseIP(ipv4)
+		if ip == nil {
+			return nil, coretypes.NewDetailedErr(coretypes.ErrBadIPAddress, ipv4)
+		}
+		config.IPAMConfig.IPv4Address = ip.String()
+	}
+	return config, nil
 }

@@ -6,6 +6,8 @@ service CoreRPC {
     rpc Info(Empty) returns (CoreInfo) {};
 
     rpc ListNetworks(ListNetworkOptions) returns (Networks) {};
+    rpc ConnectNetwork(ConnectNetworkOptions) returns (Empty) {};
+    rpc DisConnectNetwork(DisConnectNetworkOptions) returns (Empty) {};
 
     rpc AddPod(AddPodOptions) returns (Pod) {};
     rpc RemovePod(RemovePodOptions) returns (Empty) {};
@@ -99,6 +101,19 @@ message NodeResource {
 message ListNetworkOptions {
     string podname = 1;
     string driver = 2;
+}
+
+message ConnectNetworkOptions{
+    string network = 1;
+    string target = 2;
+    string ipv4 = 3;
+    string ipv6 = 4;
+}
+
+message DisConnectNetworkOptions{
+    string network = 1;
+    string target = 2;
+    bool force = 3;    
 }
 
 message Network {
