@@ -42,3 +42,37 @@ func TestNetwork(t *testing.T) {
 	assert.Equal(t, len(ns), 1)
 	assert.Equal(t, ns[0].Name, name)
 }
+
+func TestConnectNetwork(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	store := &storemocks.Store{}
+	c.store = store
+	engine := &enginemocks.API{}
+	container := &types.Container{Engine: engine}
+
+	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrBadMeta).Once()
+	err := c.ConnectNetwork(ctx, "network", "123", "", "")
+	assert.Error(t, err)
+	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
+	engine.On("NetworkConnect", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	err = c.ConnectNetwork(ctx, "network", "123", "", "")
+	assert.NoError(t, err)
+}
+
+func TestDisConnectNetwork(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	store := &storemocks.Store{}
+	c.store = store
+	engine := &enginemocks.API{}
+	container := &types.Container{Engine: engine}
+
+	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrBadMeta).Once()
+	err := c.DisConnectNetwork(ctx, "network", "123", true)
+	assert.Error(t, err)
+	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
+	engine.On("NetworkDisconnect", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	err = c.DisConnectNetwork(ctx, "network", "123", true)
+	assert.NoError(t, err)
+}

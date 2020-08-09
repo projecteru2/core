@@ -46,6 +46,8 @@ const (
 type Cluster interface {
 	// meta networks
 	ListNetworks(ctx context.Context, podname string, driver string) ([]*enginetypes.Network, error)
+	ConnectNetwork(ctx context.Context, network, target, ipv4, ipv6 string) error
+	DisConnectNetwork(ctx context.Context, network, target string, force bool) error
 	// meta pod
 	AddPod(ctx context.Context, podname, desc string) (*types.Pod, error)
 	RemovePod(ctx context.Context, podname string) error

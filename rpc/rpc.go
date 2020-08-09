@@ -53,6 +53,16 @@ func (v *Vibranium) ListNetworks(ctx context.Context, opts *pb.ListNetworkOption
 	return &pb.Networks{Networks: ns}, nil
 }
 
+// ConnectNetwork connect network
+func (v *Vibranium) ConnectNetwork(ctx context.Context, opts *pb.ConnectNetworkOptions) (*pb.Empty, error) {
+	return &pb.Empty{}, v.cluster.ConnectNetwork(ctx, opts.Network, opts.Target, opts.Ipv4, opts.Ipv6)
+}
+
+// DisConnectNetwork disconnect network
+func (v *Vibranium) DisConnectNetwork(ctx context.Context, opts *pb.DisConnectNetworkOptions) (*pb.Empty, error) {
+	return &pb.Empty{}, v.cluster.DisConnectNetwork(ctx, opts.Network, opts.Target, opts.Force)
+}
+
 // AddPod saves a pod, and returns it to client
 func (v *Vibranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Pod, error) {
 	p, err := v.cluster.AddPod(ctx, opts.Name, opts.Desc)
