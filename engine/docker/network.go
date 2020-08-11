@@ -13,12 +13,23 @@ import (
 )
 
 // NetworkConnect connect to a network
-func (e *Engine) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) error {
+func (e *Engine) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) ([]string, error) {
 	config, err := e.makeIPV4EndpointSetting(ipv4)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return e.client.NetworkConnect(ctx, network, target, config)
+	if err := e.client.NetworkConnect(ctx, network, target, config); err != nil {
+		return nil, err
+	}
+	container, err := e.client.ContainerInspect(ctx, target)
+	if err != nil {
+		return nil, err
+	}
+	ns := container.NetworkSettings.Networks[network]
+	if ns == nil {
+		return []string{}, nil
+	}
+	return []string{ns.IPAddress}, nil
 }
 
 // NetworkDisconnect disconnect from a network
