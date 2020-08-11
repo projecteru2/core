@@ -42,6 +42,7 @@ func (c *Client) GetRPCClient() pb.CoreRPCClient {
 func dial(addr string, authConfig types.AuthConfig) *grpc.ClientConn {
 	opts := []grpc.DialOption{
 		grpc.WithInsecure(),
+		//grpc.WithKeepaliveParams(keepalive.ClientParameters{Time: time.Second, Timeout: time.Second}),
 		grpc.WithBalancerName("round_robin"),
 		grpc.WithUnaryInterceptor(interceptor.NewUnaryRetry(interceptor.RetryOptions{Max: 1})),
 		grpc.WithStreamInterceptor(interceptor.NewStreamRetry(interceptor.RetryOptions{Max: 1})),

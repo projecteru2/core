@@ -46,6 +46,7 @@ const (
 type Cluster interface {
 	// meta networks
 	ListNetworks(ctx context.Context, podname string, driver string) ([]*enginetypes.Network, error)
+	WatchServiceStatus(context.Context) (<-chan types.ServiceStatus, error)
 	// meta pod
 	AddPod(ctx context.Context, podname, desc string) (*types.Pod, error)
 	RemovePod(ctx context.Context, podname string) error

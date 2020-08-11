@@ -17,6 +17,11 @@ const (
 
 //Store store eru data
 type Store interface {
+	// service
+	ServiceStatusStream(context.Context) (chan []string, error)
+	RegisterService(context.Context, time.Duration) error
+	UnregisterService(context.Context) error
+
 	// pod
 	AddPod(ctx context.Context, name, desc string) (*types.Pod, error)
 	GetPod(ctx context.Context, podname string) (*types.Pod, error)

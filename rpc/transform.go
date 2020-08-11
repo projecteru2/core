@@ -3,6 +3,7 @@ package rpc
 import (
 	"bytes"
 	"encoding/json"
+	"time"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	pb "github.com/projecteru2/core/rpc/gen"
@@ -11,6 +12,13 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
+
+func toRPCServiceStatus(status types.ServiceStatus) *pb.ServiceStatus {
+	return &pb.ServiceStatus{
+		Addresses:        status.Addresses,
+		IntervalInSecond: int64(status.Interval / time.Second),
+	}
+}
 
 func toRPCCPUMap(m types.CPUMap) map[string]int32 {
 	cpu := make(map[string]int32)

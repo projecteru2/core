@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"context"
 	"strings"
 
 	"github.com/projecteru2/core/cluster"
@@ -21,6 +22,9 @@ type Calcium struct {
 	store     store.Store
 	scheduler scheduler.Scheduler
 	source    source.Source
+	watcher   *serviceWatcher
+
+	cancel context.CancelFunc
 }
 
 // New returns a new cluster config
@@ -49,7 +53,13 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 		log.Warn("[Calcium] SCM not set, build API disabled")
 	}
 
-	return &Calcium{store: store, config: config, scheduler: scheduler, source: scm}, err
+	return &Calcium{store: store, config: config, scheduler: scheduler, source: scm, watcher: &serviceWatcher{}}, err
+}
+
+func (c *Calcium) Register() error {
+	ctx, cancel := context.WithCancel(context.Background())
+	c.cancel = cancel
+	return c.RegisterService(ctx)
 }
 
 // Finalizer use for defer
