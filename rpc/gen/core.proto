@@ -6,7 +6,7 @@ service CoreRPC {
     rpc Info(Empty) returns (CoreInfo) {};
 
     rpc ListNetworks(ListNetworkOptions) returns (Networks) {};
-    rpc ConnectNetwork(ConnectNetworkOptions) returns (Empty) {};
+    rpc ConnectNetwork(ConnectNetworkOptions) returns (Network) {};
     rpc DisConnectNetwork(DisConnectNetworkOptions) returns (Empty) {};
 
     rpc AddPod(AddPodOptions) returns (Pod) {};

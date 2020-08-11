@@ -18,7 +18,7 @@ type API interface {
 	ExecResize(ctx context.Context, execID string, height, width uint) (err error)
 	ExecExitCode(ctx context.Context, execID string) (int, error)
 
-	NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) error
+	NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) ([]string, error)
 	NetworkDisconnect(ctx context.Context, network, target string, force bool) error
 	NetworkList(ctx context.Context, drivers []string) ([]*enginetypes.Network, error)
 

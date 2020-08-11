@@ -52,11 +52,11 @@ func TestConnectNetwork(t *testing.T) {
 	container := &types.Container{Engine: engine}
 
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrBadMeta).Once()
-	err := c.ConnectNetwork(ctx, "network", "123", "", "")
+	_, err := c.ConnectNetwork(ctx, "network", "123", "", "")
 	assert.Error(t, err)
 	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
-	engine.On("NetworkConnect", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	err = c.ConnectNetwork(ctx, "network", "123", "", "")
+	engine.On("NetworkConnect", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]string{}, nil)
+	_, err = c.ConnectNetwork(ctx, "network", "123", "", "")
 	assert.NoError(t, err)
 }
 

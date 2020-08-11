@@ -8,7 +8,7 @@ import (
 )
 
 // NetworkConnect connects target netloc
-func (s *SSHClient) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) (err error) {
+func (s *SSHClient) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) (subnets []string, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
