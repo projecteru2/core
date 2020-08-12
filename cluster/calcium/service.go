@@ -8,11 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
-)
-
-const (
-	watchPushInterval = 10 * time.Second
 )
 
 type serviceWatcher struct {
@@ -20,13 +17,13 @@ type serviceWatcher struct {
 	subs sync.Map
 }
 
-func (w *serviceWatcher) Start(s store.Store) {
+func (w *serviceWatcher) Start(s store.Store, pushInterval time.Duration) {
 	w.once.Do(func() {
-		w.start(s)
+		w.start(s, pushInterval)
 	})
 }
 
-func (w *serviceWatcher) start(s store.Store) {
+func (w *serviceWatcher) start(s store.Store, pushInterval time.Duration) {
 	ch, err := s.ServiceStatusStream(context.Background())
 	if err != nil {
 		log.Errorf("[WatchServiceStatus] failed to start watch: %v", err)
@@ -37,7 +34,7 @@ func (w *serviceWatcher) start(s store.Store) {
 		defer log.Error("[WatchServiceStatus] goroutine exited")
 		var (
 			latestStatus types.ServiceStatus
-			timer        *time.Timer = time.NewTimer(watchPushInterval / 2)
+			timer        *time.Timer = time.NewTimer(pushInterval / 2)
 		)
 		for {
 			select {
@@ -49,7 +46,7 @@ func (w *serviceWatcher) start(s store.Store) {
 
 				latestStatus = types.ServiceStatus{
 					Addresses: addresses,
-					Interval:  watchPushInterval,
+					Interval:  pushInterval,
 				}
 				w.dispatch(latestStatus)
 
@@ -57,7 +54,7 @@ func (w *serviceWatcher) start(s store.Store) {
 				w.dispatch(latestStatus)
 			}
 			timer.Stop()
-			timer.Reset(watchPushInterval / 2)
+			timer.Reset(pushInterval / 2)
 		}
 	}()
 }
@@ -86,7 +83,7 @@ func (w *serviceWatcher) Unsubscribe(id uuid.UUID) {
 
 func (c *Calcium) WatchServiceStatus(ctx context.Context) (<-chan types.ServiceStatus, error) {
 	ch := make(chan types.ServiceStatus)
-	c.watcher.Start(c.store)
+	c.watcher.Start(c.store, c.config.ServiceDiscoveryPushInterval)
 	id := c.watcher.Subscribe(ch)
 	go func() {
 		<-ctx.Done()
@@ -96,20 +93,32 @@ func (c *Calcium) WatchServiceStatus(ctx context.Context) (<-chan types.ServiceS
 	return ch, nil
 }
 
-func (c *Calcium) RegisterService(ctx context.Context) error {
-	expire := 10 * time.Second
-	timeoutCtx, cancel := context.WithTimeout(ctx, c.config.GlobalTimeout)
-	defer cancel()
-	if err := c.store.RegisterService(timeoutCtx, expire); err != nil {
-		log.Errorf("[RegisterService] failed to register service: %v", err)
-		return err
+func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err error) {
+	ctx, cancel := context.WithCancel(ctx)
+	serviceAddress, err := utils.GetOutboundAddress(c.config.Bind)
+	if err != nil {
+		log.Errorf("[RegisterService] failed to get outbound address: %v", err)
+		return
 	}
+	if err = c.store.RegisterService(ctx, serviceAddress, c.config.ServiceHeartbeatInterval); err != nil {
+		log.Errorf("[RegisterService] failed to register service: %v", err)
+		return
+	}
+
+	done := make(chan struct{})
 	go func() {
-		timer := time.NewTicker(expire / 2)
+		defer func() {
+			if err := c.store.UnregisterService(context.Background(), serviceAddress); err != nil {
+				log.Errorf("[RegisterService] failed to unregister service: %v", err)
+			}
+			close(done)
+		}()
+
+		timer := time.NewTicker(c.config.ServiceHeartbeatInterval / 2)
 		for {
 			select {
 			case <-timer.C:
-				if err := c.store.RegisterService(ctx, expire); err != nil {
+				if err := c.store.RegisterService(ctx, serviceAddress, c.config.ServiceHeartbeatInterval); err != nil {
 					log.Errorf("[RegisterService] failed to register service: %v", err)
 				}
 			case <-ctx.Done():
@@ -118,10 +127,8 @@ func (c *Calcium) RegisterService(ctx context.Context) error {
 			}
 		}
 	}()
-	return nil
-}
-
-func (c *Calcium) UnregisterService() error {
-	c.cancel()
-	return c.store.UnregisterService(context.Background())
+	return func() {
+		cancel()
+		<-done
+	}, err
 }

@@ -12,17 +12,17 @@ import (
 
 type endpoints map[string]struct{}
 
-func (e endpoints) Add(endpoint string) (changed bool) {
-	if _, ok := e[endpoint]; !ok {
-		e[endpoint] = struct{}{}
+func (e *endpoints) Add(endpoint string) (changed bool) {
+	if _, ok := (*e)[endpoint]; !ok {
+		(*e)[endpoint] = struct{}{}
 		changed = true
 	}
 	return
 }
 
-func (e endpoints) Remove(endpoint string) (changed bool) {
-	if _, ok := e[endpoint]; ok {
-		delete(e, endpoint)
+func (e *endpoints) Remove(endpoint string) (changed bool) {
+	if _, ok := (*e)[endpoint]; ok {
+		delete(*e, endpoint)
 		changed = true
 	}
 	return
@@ -81,8 +81,8 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 	return ch, nil
 }
 
-func (m *Mercury) RegisterService(ctx context.Context, expire time.Duration) error {
-	key := serviceStatusPrefix + m.config.ServiceAddress
+func (m *Mercury) RegisterService(ctx context.Context, serviceAddress string, expire time.Duration) error {
+	key := serviceStatusPrefix + serviceAddress
 	lease, err := m.cliv3.Grant(ctx, int64(expire/time.Second))
 	if err != nil {
 		return err
@@ -92,8 +92,8 @@ func (m *Mercury) RegisterService(ctx context.Context, expire time.Duration) err
 	return err
 }
 
-func (m *Mercury) UnregisterService(ctx context.Context) error {
-	key := serviceStatusPrefix + m.config.ServiceAddress
+func (m *Mercury) UnregisterService(ctx context.Context, serviceAddress string) error {
+	key := serviceStatusPrefix + serviceAddress
 	_, err := m.Delete(ctx, key)
 	return err
 }

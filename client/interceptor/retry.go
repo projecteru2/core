@@ -2,8 +2,11 @@ package interceptor
 
 import (
 	"context"
+	"strings"
 
 	"github.com/cenkalti/backoff/v4"
+	log "github.com/sirupsen/logrus"
+
 	"google.golang.org/grpc"
 )
 
@@ -15,12 +18,18 @@ func NewUnaryRetry(retryOpts RetryOptions) grpc.UnaryClientInterceptor {
 	}
 }
 
+var RPCNeedRetry = map[string]struct{}{
+	"/pb.CoreRPC/ContainerStatusStream": struct{}{},
+	"/pb.CoreRPC/WatchServiceStatus":    struct{}{},
+}
+
 func NewStreamRetry(retryOpts RetryOptions) grpc.StreamClientInterceptor {
 	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
 		stream, err := streamer(ctx, desc, cc, method, opts...)
-		if method != "/pb.CoreRPC/ContainerStatusStream" {
+		if _, ok := RPCNeedRetry[method]; !ok {
 			return stream, err
 		}
+		log.Debugf("[NewStreamRetry] return retryStreawm for method %s", method)
 		return &retryStream{
 			ctx:          ctx,
 			ClientStream: stream,
@@ -40,11 +49,12 @@ func (s *retryStream) SendMsg(m interface{}) error {
 }
 
 func (s *retryStream) RecvMsg(m interface{}) (err error) {
-	if err = s.ClientStream.RecvMsg(m); err == nil {
+	if err = s.ClientStream.RecvMsg(m); err == nil || strings.Contains(err.Error(), "context canceled") {
 		return
 	}
 
 	return backoff.Retry(func() error {
+		log.Debug("[retryStream] retry on new stream")
 		stream, err := s.newStream()
 		if err != nil {
 			// even io.EOF triggers retry, and it's what we want!

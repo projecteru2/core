@@ -19,8 +19,8 @@ const (
 type Store interface {
 	// service
 	ServiceStatusStream(context.Context) (chan []string, error)
-	RegisterService(context.Context, time.Duration) error
-	UnregisterService(context.Context) error
+	RegisterService(context.Context, string, time.Duration) error
+	UnregisterService(context.Context, string) error
 
 	// pod
 	AddPod(ctx context.Context, name, desc string) (*types.Pod, error)

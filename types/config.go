@@ -6,16 +6,18 @@ import (
 
 // Config holds eru-core config
 type Config struct {
-	LogLevel       string        `yaml:"log_level" required:"true" default:"INFO"`
-	Bind           string        `yaml:"bind" required:"true" default:"5001"` // HTTP API address
-	ServiceAddress string        `yaml:"service_address" required:"true"`
-	LockTimeout    time.Duration `yaml:"lock_timeout" required:"true" default:"30s"`    // timeout for lock (ttl)
-	GlobalTimeout  time.Duration `yaml:"global_timeout" required:"true" default:"300s"` // timeout for remove, run_and_wait and build, in second
-	Statsd         string        `yaml:"statsd"`                                        // statsd host and port
-	Profile        string        `yaml:"profile"`                                       // profile ip:port
-	CertPath       string        `yaml:"cert_path"`                                     // docker cert files path
-	Auth           AuthConfig    `yaml:"auth"`                                          // grpc auth
-	GRPCConfig     GRPCConfig    `yaml:"grpc"`                                          // grpc config
+	LogLevel                     string        `yaml:"log_level" required:"true" default:"INFO"`
+	Bind                         string        `yaml:"bind" required:"true" default:"5001"` // HTTP API address
+	ServiceAddress               string        `yaml:"service_address" required:"true"`
+	ServiceDiscoveryPushInterval time.Duration `yaml:"service_discovery_interval" required:"true" default:"10s"`
+	ServiceHeartbeatInterval     time.Duration `yaml:"service_heartbeat_interval" required:"true" default:"10s"`
+	LockTimeout                  time.Duration `yaml:"lock_timeout" required:"true" default:"30s"`    // timeout for lock (ttl)
+	GlobalTimeout                time.Duration `yaml:"global_timeout" required:"true" default:"300s"` // timeout for remove, run_and_wait and build, in second
+	Statsd                       string        `yaml:"statsd"`                                        // statsd host and port
+	Profile                      string        `yaml:"profile"`                                       // profile ip:port
+	CertPath                     string        `yaml:"cert_path"`                                     // docker cert files path
+	Auth                         AuthConfig    `yaml:"auth"`                                          // grpc auth
+	GRPCConfig                   GRPCConfig    `yaml:"grpc"`                                          // grpc config
 
 	Git       GitConfig     `yaml:"git"`
 	Etcd      EtcdConfig    `yaml:"etcd"`

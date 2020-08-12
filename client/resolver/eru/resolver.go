@@ -3,21 +3,21 @@ package eru
 import (
 	"context"
 
-	"github.com/projecteru2/core/client/service_watcher"
+	"github.com/projecteru2/core/client/service_discovery"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/resolver"
 )
 
 type eruResolver struct {
-	cc      resolver.ClientConn
-	cancel  context.CancelFunc
-	watcher service_watcher.ServiceWatcher
+	cc        resolver.ClientConn
+	cancel    context.CancelFunc
+	discovery service_discovery.ServiceDiscovery
 }
 
-func New(cc resolver.ClientConn, endpoints string) *eruResolver {
+func New(cc resolver.ClientConn, endpoint string) *eruResolver {
 	r := &eruResolver{
-		cc:      cc,
-		watcher: service_watcher.New(),
+		cc:        cc,
+		discovery: service_discovery.New(endpoint),
 	}
 	go r.sync()
 	return r
@@ -32,11 +32,16 @@ func (r *eruResolver) Close() {
 }
 
 func (r *eruResolver) sync() {
+	log.Info("[eruResolver] start sync service discovery")
 	ctx, cancel := context.WithCancel(context.Background())
 	r.cancel = cancel
 	defer cancel()
 
-	ch := r.watcher.Watch(ctx)
+	ch, err := r.discovery.Watch(ctx)
+	if err != nil {
+		log.Errorf("[eruResolver] failed to watch service status: %v", err)
+		return
+	}
 	for {
 		select {
 		case <-ctx.Done():
@@ -49,6 +54,7 @@ func (r *eruResolver) sync() {
 			}
 
 			var addresses []resolver.Address
+			log.Debugf("[eruResolver] update state: %v", endpoints)
 			for _, ep := range endpoints {
 				addresses = append(addresses, resolver.Address{Addr: ep})
 			}

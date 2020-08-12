@@ -24,7 +24,7 @@ type Calcium struct {
 	source    source.Source
 	watcher   *serviceWatcher
 
-	cancel context.CancelFunc
+	cancelServiceHeartbeat context.CancelFunc
 }
 
 // New returns a new cluster config
@@ -54,12 +54,6 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 	}
 
 	return &Calcium{store: store, config: config, scheduler: scheduler, source: scm, watcher: &serviceWatcher{}}, err
-}
-
-func (c *Calcium) Register() error {
-	ctx, cancel := context.WithCancel(context.Background())
-	c.cancel = cancel
-	return c.RegisterService(ctx)
 }
 
 // Finalizer use for defer

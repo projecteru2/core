@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -101,7 +102,8 @@ func serve() {
 		}()
 	}
 
-	if err = cluster.Register(); err != nil {
+	unregisterService, err := cluster.RegisterService(context.Background())
+	if err != nil {
 		log.Errorf("[main] failed to register service: %v", err)
 		return
 	}
@@ -113,9 +115,7 @@ func serve() {
 	sig := <-sigs
 	log.Infof("[main] Get signal %v.", sig)
 	close(rpcch)
-	if err = cluster.UnregisterService(); err != nil {
-		log.Errorf("[main] failed to unregister service: %v", err)
-	}
+	unregisterService()
 	grpcServer.GracefulStop()
 	log.Info("[main] gRPC server gracefully stopped.")
 

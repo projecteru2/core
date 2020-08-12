@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -11,7 +12,9 @@ import (
 	_ "github.com/projecteru2/core/client/resolver/static"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 )
 
 // Client contain grpc conn
@@ -21,10 +24,10 @@ type Client struct {
 }
 
 // NewClient new a client
-func NewClient(addr string, authConfig types.AuthConfig) *Client {
+func NewClient(ctx context.Context, addr string, authConfig types.AuthConfig) *Client {
 	client := &Client{
 		addr: addr,
-		conn: dial(addr, authConfig),
+		conn: dial(ctx, addr, authConfig),
 	}
 	return client
 }
@@ -39,10 +42,10 @@ func (c *Client) GetRPCClient() pb.CoreRPCClient {
 	return pb.NewCoreRPCClient(c.conn)
 }
 
-func dial(addr string, authConfig types.AuthConfig) *grpc.ClientConn {
+func dial(ctx context.Context, addr string, authConfig types.AuthConfig) *grpc.ClientConn {
 	opts := []grpc.DialOption{
 		grpc.WithInsecure(),
-		//grpc.WithKeepaliveParams(keepalive.ClientParameters{Time: time.Second, Timeout: time.Second}),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{Time: 6 * 60 * time.Second, Timeout: time.Second}),
 		grpc.WithBalancerName("round_robin"),
 		grpc.WithUnaryInterceptor(interceptor.NewUnaryRetry(interceptor.RetryOptions{Max: 1})),
 		grpc.WithStreamInterceptor(interceptor.NewStreamRetry(interceptor.RetryOptions{Max: 1})),
@@ -51,8 +54,8 @@ func dial(addr string, authConfig types.AuthConfig) *grpc.ClientConn {
 		opts = append(opts, grpc.WithPerRPCCredentials(auth.NewCredential(authConfig)))
 	}
 
-	target := makeTarget(addr)
-	cc, err := grpc.DialContext(context.Background(), target, opts...)
+	target := utils.MakeTarget(addr)
+	cc, err := grpc.DialContext(ctx, target, opts...)
 	if err != nil {
 		log.Panicf("[NewClient] failed to dial grpc %s: %v", addr, err)
 	}
