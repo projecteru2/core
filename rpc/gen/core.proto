@@ -4,6 +4,7 @@ package pb;
 
 service CoreRPC {
     rpc Info(Empty) returns (CoreInfo) {};
+    rpc WatchServiceStatus(Empty) returns (stream ServiceStatus) {};
 
     rpc ListNetworks(ListNetworkOptions) returns (Networks) {};
     rpc ConnectNetwork(ConnectNetworkOptions) returns (Network) {};
@@ -58,6 +59,11 @@ message CoreInfo {
     string build_at = 3;
     string golang_version = 4;
     string os_arch = 5;
+}
+
+message ServiceStatus {
+    repeated string addresses = 1;
+    int64 interval_in_second = 2;
 }
 
 message ListContainersOptions {
