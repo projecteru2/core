@@ -14,6 +14,8 @@ auth:
 grpc:
     max_concurrent_streams: 100
     max_recv_msg_size: 30 # will covert to MBytes
+    service_discovery_interval: 10s # WatchServiceStatus push interval
+    service_heartbeat_interval: 10s # RegisterService heartbeat
 
 etcd:
     machines:
