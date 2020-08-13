@@ -8,6 +8,7 @@ require (
 	github.com/Microsoft/go-winio v0.4.5 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/alexcesaro/statsd v2.0.0+incompatible // indirect
+	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/containerd/continuity v0.0.0-20180612233548-246e49050efd // indirect
 	github.com/docker/distribution v0.0.0-20171207180435-f4118485915a
 	github.com/docker/docker v0.0.0-20181112142024-a5e2dd2bb141
