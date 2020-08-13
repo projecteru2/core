@@ -39,6 +39,23 @@ func (v *Vibranium) Info(ctx context.Context, opts *pb.Empty) (*pb.CoreInfo, err
 	}, nil
 }
 
+// WatchServiceStatus pushes sibling services
+func (v *Vibranium) WatchServiceStatus(_ *pb.Empty, stream pb.CoreRPC_WatchServiceStatusServer) (err error) {
+	ch, err := v.cluster.WatchServiceStatus(stream.Context())
+	if err != nil {
+		log.Errorf("[WatchServicesStatus] failed to create watch channel: %v", err)
+		return err
+	}
+	for status := range ch {
+		s := toRPCServiceStatus(status)
+		if err = stream.Send(s); err != nil {
+			v.logUnsentMessages("WatchServicesStatus", s)
+			return err
+		}
+	}
+	return nil
+}
+
 // ListNetworks list networks for pod
 func (v *Vibranium) ListNetworks(ctx context.Context, opts *pb.ListNetworkOptions) (*pb.Networks, error) {
 	networks, err := v.cluster.ListNetworks(ctx, opts.Podname, opts.Driver)
