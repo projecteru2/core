@@ -2,6 +2,7 @@ package etcdv3
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -41,7 +42,7 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 	go func() {
 		defer close(ch)
 		log.Info("[ServiceStatusStream] start watching service status")
-		resp, err := m.Get(ctx, serviceStatusPrefix, clientv3.WithPrefix())
+		resp, err := m.Get(ctx, fmt.Sprintf(serviceStatusKey, ""), clientv3.WithPrefix())
 		if err != nil {
 			log.Errorf("[ServiceStatusStream] failed to get current services: %v", err)
 			return
@@ -52,7 +53,7 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 		}
 		ch <- eps.ToSlice()
 
-		for resp := range m.watch(ctx, serviceStatusPrefix, clientv3.WithPrefix()) {
+		for resp := range m.watch(ctx, fmt.Sprintf(serviceStatusKey, ""), clientv3.WithPrefix()) {
 			if resp.Err() != nil {
 				if !resp.Canceled {
 					log.Errorf("[ServiceStatusStream] watch failed %v", resp.Err())
@@ -84,7 +85,7 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 
 // RegisterService put /services/{address}
 func (m *Mercury) RegisterService(ctx context.Context, serviceAddress string, expire time.Duration) error {
-	key := serviceStatusPrefix + serviceAddress
+	key := fmt.Sprintf(serviceStatusKey, serviceAddress)
 	lease, err := m.cliv3.Grant(ctx, int64(expire/time.Second))
 	if err != nil {
 		return err
@@ -96,7 +97,7 @@ func (m *Mercury) RegisterService(ctx context.Context, serviceAddress string, ex
 
 // UnregisterService del /services/{address}
 func (m *Mercury) UnregisterService(ctx context.Context, serviceAddress string) error {
-	key := serviceStatusPrefix + serviceAddress
+	key := fmt.Sprintf(serviceStatusKey, serviceAddress)
 	_, err := m.Delete(ctx, key)
 	return err
 }

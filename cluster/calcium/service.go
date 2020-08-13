@@ -109,11 +109,11 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 	done := make(chan struct{})
 	ctx, cancel := context.WithCancel(ctx)
 	go func() {
+		defer close(done)
 		defer func() {
 			if err := c.store.UnregisterService(context.Background(), serviceAddress); err != nil {
 				log.Errorf("[RegisterService] failed to unregister service: %v", err)
 			}
-			close(done)
 		}()
 
 		timer := time.NewTicker(c.config.GRPCConfig.ServiceHeartbeatInterval / 2)
