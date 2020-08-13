@@ -22,8 +22,8 @@ import (
 )
 
 const (
-	podInfoKey          = "/pod/info/%s" // /pod/info/{podname}
-	serviceStatusPrefix = "/services/"
+	podInfoKey       = "/pod/info/%s" // /pod/info/{podname}
+	serviceStatusKey = "/services/%s" // /service/{ipv4:port}
 
 	nodeInfoKey       = "/node/%s"               // /node/{nodename}
 	nodePodKey        = "/node/%s:pod/%s"        // /node/{podname}:pod/{nodename}
