@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// GetOutboundAddress finds out self service address
 func GetOutboundAddress(bind string) (string, error) {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {

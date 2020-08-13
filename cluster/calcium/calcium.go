@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"context"
 	"strings"
 
 	"github.com/projecteru2/core/cluster"
@@ -23,8 +22,6 @@ type Calcium struct {
 	scheduler scheduler.Scheduler
 	source    source.Source
 	watcher   *serviceWatcher
-
-	cancelServiceHeartbeat context.CancelFunc
 }
 
 // New returns a new cluster config

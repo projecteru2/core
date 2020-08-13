@@ -35,6 +35,7 @@ func (e endpoints) ToSlice() (eps []string) {
 	return
 }
 
+// ServiceStatusStream watches /services/ --prefix
 func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error) {
 	ch := make(chan []string)
 	go func() {
@@ -81,6 +82,7 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 	return ch, nil
 }
 
+// RegisterService put /services/{address}
 func (m *Mercury) RegisterService(ctx context.Context, serviceAddress string, expire time.Duration) error {
 	key := serviceStatusPrefix + serviceAddress
 	lease, err := m.cliv3.Grant(ctx, int64(expire/time.Second))
@@ -92,6 +94,7 @@ func (m *Mercury) RegisterService(ctx context.Context, serviceAddress string, ex
 	return err
 }
 
+// UnregisterService del /services/{address}
 func (m *Mercury) UnregisterService(ctx context.Context, serviceAddress string) error {
 	key := serviceStatusPrefix + serviceAddress
 	_, err := m.Delete(ctx, key)
