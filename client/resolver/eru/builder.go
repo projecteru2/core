@@ -4,7 +4,7 @@ import "google.golang.org/grpc/resolver"
 
 type eruResolverBuilder struct{}
 
-func init() {
+func init() { // nolint
 	resolver.Register(&eruResolverBuilder{})
 }
 
@@ -15,5 +15,5 @@ func (b *eruResolverBuilder) Scheme() string {
 
 // Build for interface
 func (b *eruResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
-	return New(cc, target.Endpoint), nil
+	return New(cc, target.Endpoint, target.Authority), nil
 }

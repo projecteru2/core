@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc"
 )
 
+// NewUnaryRetry makes unary RPC retry on error
 func NewUnaryRetry(retryOpts RetryOptions) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		return backoff.Retry(func() error {
@@ -18,11 +19,13 @@ func NewUnaryRetry(retryOpts RetryOptions) grpc.UnaryClientInterceptor {
 	}
 }
 
+// RPCNeedRetry records rpc stream methods to retry
 var RPCNeedRetry = map[string]struct{}{
-	"/pb.CoreRPC/ContainerStatusStream": struct{}{},
-	"/pb.CoreRPC/WatchServiceStatus":    struct{}{},
+	"/pb.CoreRPC/ContainerStatusStream": {},
+	"/pb.CoreRPC/WatchServiceStatus":    {},
 }
 
+// NewStreamRetry make specific stream retry on error
 func NewStreamRetry(retryOpts RetryOptions) grpc.StreamClientInterceptor {
 	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
 		stream, err := streamer(ctx, desc, cc, method, opts...)

@@ -2,59 +2,69 @@ package eru
 
 import (
 	"context"
+	"strings"
 
-	"github.com/projecteru2/core/client/service_discovery"
+	"github.com/projecteru2/core/client/servicediscovery"
+	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/resolver"
 )
 
-type eruResolver struct {
+// Resolver for target eru://{addr}
+type Resolver struct {
 	cc        resolver.ClientConn
 	cancel    context.CancelFunc
-	discovery service_discovery.ServiceDiscovery
+	discovery servicediscovery.ServiceDiscovery
 }
 
-func New(cc resolver.ClientConn, endpoint string) *eruResolver {
-	r := &eruResolver{
+// New Resolver
+func New(cc resolver.ClientConn, endpoint string, authority string) *Resolver {
+	var username, password string
+	if authority != "" {
+		parts := strings.Split(authority, ":")
+		username, password = strings.TrimLeft(parts[0], "@"), parts[1]
+	}
+	authConfig := types.AuthConfig{Username: username, Password: password}
+	r := &Resolver{
 		cc:        cc,
-		discovery: service_discovery.New(endpoint),
+		discovery: servicediscovery.New(endpoint, authConfig),
 	}
 	go r.sync()
 	return r
 }
 
 // ResolveNow for interface
-func (r *eruResolver) ResolveNow(_ resolver.ResolveNowOptions) {}
+func (r *Resolver) ResolveNow(_ resolver.ResolveNowOptions) {}
 
 // Close for interface
-func (r *eruResolver) Close() {
+func (r *Resolver) Close() {
 	r.cancel()
 }
 
-func (r *eruResolver) sync() {
-	log.Info("[eruResolver] start sync service discovery")
+func (r *Resolver) sync() {
+	log.Info("[EruResolver] start sync service discovery")
 	ctx, cancel := context.WithCancel(context.Background())
 	r.cancel = cancel
 	defer cancel()
 
 	ch, err := r.discovery.Watch(ctx)
 	if err != nil {
-		log.Errorf("[eruResolver] failed to watch service status: %v", err)
+		log.Errorf("[EruResolver] failed to watch service status: %v", err)
 		return
 	}
 	for {
 		select {
 		case <-ctx.Done():
-			log.Errorf("[eruResolver] watch interrupted: %v", ctx.Err())
-			break
+			log.Errorf("[EruResolver] watch interrupted: %v", ctx.Err())
+			return
 		case endpoints, ok := <-ch:
 			if !ok {
-				log.Error("[eruResolver] watch closed")
-				break
+				log.Error("[EruResolver] watch closed")
+				return
 			}
 
 			var addresses []resolver.Address
-			log.Debugf("[eruResolver] update state: %v", endpoints)
+			log.Debugf("[EruResolver] update state: %v", endpoints)
 			for _, ep := range endpoints {
 				addresses = append(addresses, resolver.Address{Addr: ep})
 			}

@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc"
 )
 
+// RetryOptions .
 type RetryOptions struct {
 	Max int
 }

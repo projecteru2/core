@@ -4,7 +4,7 @@ import "google.golang.org/grpc/resolver"
 
 type staticResolverBuilder struct{}
 
-func init() {
+func init() { // nolint
 	resolver.Register(&staticResolverBuilder{})
 }
 

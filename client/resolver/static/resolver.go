@@ -6,25 +6,27 @@ import (
 	"google.golang.org/grpc/resolver"
 )
 
-type staticResolver struct {
+// Resolver for target static://{addr1},{addr2},{addr3}
+type Resolver struct {
 	addresses []resolver.Address
 	cc        resolver.ClientConn
 }
 
-func New(cc resolver.ClientConn, endpoints string) *staticResolver {
+// New Resolver
+func New(cc resolver.ClientConn, endpoints string) *Resolver {
 	var addresses []resolver.Address
 	for _, ep := range strings.Split(endpoints, ",") {
 		addresses = append(addresses, resolver.Address{Addr: ep})
 	}
 	cc.UpdateState(resolver.State{Addresses: addresses})
-	return &staticResolver{
+	return &Resolver{
 		cc:        cc,
 		addresses: addresses,
 	}
 }
 
 // ResolveNow for interface
-func (r *staticResolver) ResolveNow(_ resolver.ResolveNowOptions) {}
+func (r *Resolver) ResolveNow(_ resolver.ResolveNowOptions) {}
 
 // Close for interface
-func (r *staticResolver) Close() {}
+func (r *Resolver) Close() {}

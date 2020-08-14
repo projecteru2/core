@@ -3,14 +3,17 @@ package utils
 import (
 	"fmt"
 	"strings"
+
+	"github.com/projecteru2/core/types"
 )
 
-var legitSchemes map[string]string = map[string]string{
+var legitSchemes = map[string]string{
 	"eru":    "eru://",
 	"static": "static://",
 }
 
-func MakeTarget(addr string) string {
+// MakeTarget return target: {scheme}://@{user}:{password}/{endpoint}
+func MakeTarget(addr string, authConfig types.AuthConfig) string {
 	scheme := "eru"
 	for s, prefix := range legitSchemes {
 		if strings.HasPrefix(addr, prefix) {
@@ -20,5 +23,5 @@ func MakeTarget(addr string) string {
 		}
 	}
 
-	return fmt.Sprintf("%s://_/%s", scheme, addr)
+	return fmt.Sprintf("%s://@%s:%s/%s", scheme, authConfig.Username, authConfig.Password, addr)
 }
