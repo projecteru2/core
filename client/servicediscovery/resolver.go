@@ -1,31 +1,10 @@
-package service_discovery
+package servicediscovery
 
 import (
 	log "github.com/sirupsen/logrus"
 
 	"google.golang.org/grpc/resolver"
 )
-
-type LBResolverBuilder struct {
-	updateCh chan []string
-}
-
-var lbResolverBuilder *LBResolverBuilder
-
-func init() {
-	lbResolverBuilder = &LBResolverBuilder{
-		updateCh: make(chan []string),
-	}
-	resolver.Register(lbResolverBuilder)
-}
-
-func (b *LBResolverBuilder) Scheme() string {
-	return "lb"
-}
-
-func (b *LBResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
-	return newLBResolver(cc, target.Endpoint, b.updateCh), nil
-}
 
 type lbResolver struct {
 	cc resolver.ClientConn

@@ -1,4 +1,4 @@
-package service_discovery
+package servicediscovery
 
 import (
 	"context"
@@ -6,24 +6,31 @@ import (
 	"math"
 	"time"
 
+	"github.com/projecteru2/core/auth"
 	"github.com/projecteru2/core/client/interceptor"
 	pb "github.com/projecteru2/core/rpc/gen"
+	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
-type eruServiceDiscovery struct {
-	endpoint string
+// EruServiceDiscovery watches eru service status
+type EruServiceDiscovery struct {
+	endpoint   string
+	authConfig types.AuthConfig
 }
 
-func New(endpoint string) *eruServiceDiscovery {
-	return &eruServiceDiscovery{
-		endpoint: endpoint,
+// New EruServiceDiscovery
+func New(endpoint string, authConfig types.AuthConfig) *EruServiceDiscovery {
+	return &EruServiceDiscovery{
+		endpoint:   endpoint,
+		authConfig: authConfig,
 	}
 }
 
-func (w *eruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err error) {
-	cc, err := w.dial(ctx, w.endpoint)
+// Watch .
+func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err error) {
+	cc, err := w.dial(ctx, w.endpoint, w.authConfig)
 	if err != nil {
 		log.Errorf("[EruServiceWatch] dial failed: %v", err)
 		return
@@ -36,8 +43,9 @@ func (w *eruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 			watchCtx, cancelWatch := context.WithCancel(ctx)
 			stream, err := client.WatchServiceStatus(watchCtx, &pb.Empty{})
 			if err != nil {
-				log.Errorf("[EruServiceWatch] watch failed: %v", err)
-				return
+				log.Errorf("[EruServiceWatch] watch failed, try later: %v", err)
+				time.Sleep(10 * time.Second)
+				continue
 			}
 			expectedInterval := time.Duration(math.MaxInt64) / time.Second
 
@@ -52,7 +60,6 @@ func (w *eruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 					case <-cancelTimer:
 						return
 					}
-
 				}()
 				status, err := stream.Recv()
 				close(cancelTimer)
@@ -70,11 +77,15 @@ func (w *eruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 	return ch, nil
 }
 
-func (w *eruServiceDiscovery) dial(ctx context.Context, addr string) (*grpc.ClientConn, error) {
+func (w *EruServiceDiscovery) dial(ctx context.Context, addr string, authConfig types.AuthConfig) (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
 		grpc.WithInsecure(),
-		grpc.WithBalancerName("round_robin"),
+		grpc.WithBalancerName("round_robin"), // nolint:staticcheck
 		grpc.WithStreamInterceptor(interceptor.NewStreamRetry(interceptor.RetryOptions{Max: 1})),
+	}
+
+	if authConfig.Username != "" {
+		opts = append(opts, grpc.WithPerRPCCredentials(auth.NewCredential(authConfig)))
 	}
 
 	target := makeServiceDiscoveryTarget(addr)
