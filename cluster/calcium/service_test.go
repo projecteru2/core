@@ -21,7 +21,7 @@ func TestServiceStatusStream(t *testing.T) {
 	c.store = store
 
 	registered := map[string]int{}
-	store.On("RegisterService", mock.AnythingOfType("*context.cancelCtx"), mock.AnythingOfType("string"), mock.AnythingOfType("time.Duration")).Return(
+	store.On("RegisterService", mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("string"), mock.AnythingOfType("time.Duration")).Return(
 		func(_ context.Context, addr string, _ time.Duration) error {
 			if v, ok := registered[addr]; ok {
 				registered[addr] = v + 1
@@ -31,7 +31,7 @@ func TestServiceStatusStream(t *testing.T) {
 			return nil
 		},
 	)
-	store.On("UnregisterService", mock.AnythingOfType("*context.emptyCtx"), mock.AnythingOfType("string")).Return(
+	store.On("UnregisterService", mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("string")).Return(
 		func(_ context.Context, addr string) error {
 			delete(registered, addr)
 			return nil
