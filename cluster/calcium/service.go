@@ -101,43 +101,44 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 		log.Errorf("[RegisterService] failed to get outbound address: %v", err)
 		return
 	}
-
-	ctxRegister, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
-	if err = c.store.RegisterService(ctxRegister, serviceAddress, c.config.GRPCConfig.ServiceHeartbeatInterval); err != nil {
-		log.Errorf("[RegisterService] failed to register service: %v", err)
+	if err = c.registerService(ctx, serviceAddress); err != nil {
+		log.Errorf("[RegisterService] failed to first register service: %v", err)
 		return
 	}
 
-	done := make(chan struct{})
-	ctxHeartbeat, cancelHeartbeat := context.WithCancel(ctx)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	ctx, cancel := context.WithCancel(ctx)
 	go func() {
-		defer close(done)
-		defer func() {
-			ctxUnregister, cancel := context.WithTimeout(context.Background(), time.Second)
-			defer cancel()
-			if err := c.store.UnregisterService(ctxUnregister, serviceAddress); err != nil {
-				log.Errorf("[RegisterService] failed to unregister service: %v", err)
-			}
-		}()
+		defer wg.Done()
+		defer c.unregisterService(ctx, serviceAddress) // nolint
 
 		timer := time.NewTicker(c.config.GRPCConfig.ServiceHeartbeatInterval / 2)
+		defer timer.Stop()
 		for {
 			select {
 			case <-timer.C:
-				ctxRegister, cancel = context.WithTimeout(ctxHeartbeat, time.Second)
-				if err := c.store.RegisterService(ctxRegister, serviceAddress, c.config.GRPCConfig.ServiceHeartbeatInterval); err != nil {
-					log.Errorf("[RegisterService] failed to register service: %v", err)
-				}
-				cancel()
-			case <-ctxRegister.Done():
-				log.Infof("[RegisterService] context done: %v", ctxRegister.Err())
+				_ = c.registerService(ctx, serviceAddress)
+			case <-ctx.Done():
+				log.Infof("[RegisterService] heartbeat done: %v", ctx.Err())
 				return
 			}
 		}
 	}()
 	return func() {
-		cancelHeartbeat()
-		<-done
+		cancel()
+		wg.Wait()
 	}, err
+}
+
+func (c *Calcium) registerService(ctx context.Context, addr string) error {
+	ctx, cancel := context.WithTimeout(ctx, c.config.GRPCConfig.ServiceHeartbeatInterval)
+	defer cancel()
+	return c.store.RegisterService(ctx, addr, c.config.GRPCConfig.ServiceHeartbeatInterval)
+}
+
+func (c *Calcium) unregisterService(ctx context.Context, addr string) error {
+	ctx, cancel := context.WithTimeout(ctx, c.config.GRPCConfig.ServiceHeartbeatInterval)
+	defer cancel()
+	return c.store.UnregisterService(ctx, addr)
 }

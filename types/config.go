@@ -90,6 +90,6 @@ type AuthConfig struct {
 type GRPCConfig struct {
 	MaxConcurrentStreams         int           `yaml:"max_concurrent_streams,omitempty" json:"max_concurrent_streams,omitempty" required:"true" default:"100"`
 	MaxRecvMsgSize               int           `yaml:"max_recv_msg_size,omitempty" json:"max_recv_msg_size,omitempty" required:"true" default:"20971520"`
-	ServiceDiscoveryPushInterval time.Duration `yaml:"service_discovery_interval" required:"true" default:"5s"`
-	ServiceHeartbeatInterval     time.Duration `yaml:"service_heartbeat_interval" required:"true" default:"5s"`
+	ServiceDiscoveryPushInterval time.Duration `yaml:"service_discovery_interval" required:"true" default:"15s"`
+	ServiceHeartbeatInterval     time.Duration `yaml:"service_heartbeat_interval" required:"true" default:"15s"`
 }

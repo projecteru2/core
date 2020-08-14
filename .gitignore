@@ -29,3 +29,4 @@ tools/updatev4.go
 *.swp
 dist/*
 non-live.yaml
+__debug_bin/*
