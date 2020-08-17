@@ -29,6 +29,7 @@ func New(cc resolver.ClientConn, endpoint string, authority string) *Resolver {
 		cc:        cc,
 		discovery: servicediscovery.New(endpoint, authConfig),
 	}
+	cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: endpoint}}})
 	go r.sync()
 	return r
 }
