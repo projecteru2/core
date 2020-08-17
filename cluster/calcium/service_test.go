@@ -48,7 +48,7 @@ func TestServiceStatusStream(t *testing.T) {
 	}
 	time.Sleep(100 * time.Millisecond)
 	for _, v := range registered {
-		assert.Equal(t, v, 2)
+		assert.GreaterOrEqual(t, v, 2)
 	}
 	unregister()
 	assert.Equal(t, len(registered), 0)
