@@ -111,8 +111,20 @@ func (v *Virt) ExecResize(ctx context.Context, execID string, height, width uint
 }
 
 // NetworkConnect connects to a network.
-func (v *Virt) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) (subnet []string, err error) {
-	log.Warnf("NetworkConnect does not implement")
+func (v *Virt) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) (cidrs []string, err error) {
+	req := virttypes.ConnectNetworkReq{
+		Network: network,
+		IPv4:    ipv4,
+	}
+	req.ID = target
+
+	var cidr string
+	if cidr, err = v.client.ConnectNetwork(ctx, req); err != nil {
+		return
+	}
+
+	cidrs = append(cidrs, cidr)
+
 	return
 }
 
