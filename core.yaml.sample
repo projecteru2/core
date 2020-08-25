@@ -13,6 +13,8 @@ auth:
 grpc:
     max_concurrent_streams: 100
     max_recv_msg_size: 30 # will covert to MBytes
+    service_discovery_interval: 5s  # WatchServiceStatus push interval
+    service_heartbeat_interval: 5s  # RegisterService heartbeat
 
 etcd:
     machines:
@@ -27,10 +29,10 @@ etcd:
         password: root
 
 git:
-    public_key: "***REMOVED***"
     private_key: "***REMOVED***"
     token: "***REMOVED***"
     scm_type: "github"
+    clone_timeout: 300s
 
 docker:
     log:

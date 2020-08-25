@@ -3,6 +3,7 @@ package rpc
 import (
 	"bytes"
 	"encoding/json"
+	"time"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	pb "github.com/projecteru2/core/rpc/gen"
@@ -11,6 +12,13 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
+
+func toRPCServiceStatus(status types.ServiceStatus) *pb.ServiceStatus {
+	return &pb.ServiceStatus{
+		Addresses:        status.Addresses,
+		IntervalInSecond: int64(status.Interval / time.Second),
+	}
+}
 
 func toRPCCPUMap(m types.CPUMap) map[string]int32 {
 	cpu := make(map[string]int32)
@@ -30,6 +38,7 @@ func toRPCPodResource(p *types.PodResource) *pb.PodResource {
 		CpuPercents:     p.CPUPercents,
 		MemoryPercents:  p.MemoryPercents,
 		StoragePercents: p.StoragePercents,
+		VolumePercents:  p.VolumePercents,
 		Verifications:   p.Verifications,
 		Details:         p.Details,
 	}
@@ -60,7 +69,7 @@ func toRPCNode(ctx context.Context, n *types.Node) *pb.Node {
 		Storage:     n.StorageCap,
 		StorageUsed: n.StorageUsed(),
 		Volume:      n.Volume,
-		VolumeUsed:  int64(n.VolumeUsed),
+		VolumeUsed:  n.VolumeUsed,
 		Available:   n.Available,
 		Labels:      n.Labels,
 		InitCpu:     toRPCCPUMap(n.InitCPU),
@@ -108,7 +117,7 @@ func toCoreCopyOptions(b *pb.CopyOptions) *types.CopyOptions {
 	return r
 }
 
-func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) {
+func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) { // nolint
 	return &types.SendOptions{IDs: b.Ids}, nil
 }
 
@@ -132,10 +141,10 @@ func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
 	return r
 }
 
-func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) {
+func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) { // nolint
 	r := &types.SetNodeOptions{
 		Nodename:        b.Nodename,
-		Status:          int(b.Status),
+		Status:          types.TriOptions(b.Status),
 		ContainersDown:  b.ContainersDown,
 		DeltaCPU:        types.CPUMap{},
 		DeltaMemory:     b.DeltaMemory,
@@ -262,9 +271,11 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		return nil, err
 	}
 
-	data := map[string]*bytes.Reader{}
+	data := map[string]types.ReaderManager{}
 	for filename, bs := range d.Data {
-		data[filename] = bytes.NewReader(bs)
+		if data[filename], err = types.NewReaderManager(bytes.NewBuffer(bs)); err != nil {
+			return nil, err
+		}
 	}
 
 	return &types.DeployOptions{
@@ -321,7 +332,7 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 		Nodename:   c.Nodename,
 		Id:         c.ContainerID,
 		Name:       c.ContainerName,
-		Success:    c.Success,
+		Success:    c.Error == nil,
 		Cpu:        toRPCCPUMap(c.CPU),
 		Quota:      c.Quota,
 		Memory:     c.Memory,
@@ -425,7 +436,8 @@ func toRPCContainerStatus(containerStatus *types.StatusMeta) *pb.ContainerStatus
 	return r
 }
 
-func toRPCContainersStatus(containersStatus []*types.StatusMeta) []*pb.ContainerStatus {
+func toRPCContainersStatus(containersStatus []*types.StatusMeta) *pb.ContainersStatus {
+	ret := &pb.ContainersStatus{}
 	r := []*pb.ContainerStatus{}
 	for _, cs := range containersStatus {
 		s := toRPCContainerStatus(cs)
@@ -433,10 +445,12 @@ func toRPCContainersStatus(containersStatus []*types.StatusMeta) []*pb.Container
 			r = append(r, s)
 		}
 	}
-	return r
+	ret.Status = r
+	return ret
 }
 
-func toRPCContainers(ctx context.Context, containers []*types.Container, labels map[string]string) []*pb.Container {
+func toRPCContainers(ctx context.Context, containers []*types.Container, labels map[string]string) *pb.Containers {
+	ret := &pb.Containers{}
 	cs := []*pb.Container{}
 	for _, c := range containers {
 		pContainer, err := toRPCContainer(ctx, c)
@@ -449,10 +463,11 @@ func toRPCContainers(ctx context.Context, containers []*types.Container, labels 
 		}
 		cs = append(cs, pContainer)
 	}
-	return cs
+	ret.Containers = cs
+	return ret
 }
 
-func toRPCContainer(ctx context.Context, c *types.Container) (*pb.Container, error) {
+func toRPCContainer(_ context.Context, c *types.Container) (*pb.Container, error) {
 	publish := map[string]string{}
 	if c.StatusMeta != nil && len(c.StatusMeta.Networks) != 0 {
 		meta := utils.DecodeMetaInLabel(c.Labels)
@@ -491,7 +506,7 @@ func toRPCLogStreamMessage(msg *types.LogStreamMessage) *pb.LogStreamMessage {
 	return r
 }
 
-func toCoreExecuteContainerOptions(b *pb.ExecuteContainerOptions) (opts *types.ExecuteContainerOptions, err error) {
+func toCoreExecuteContainerOptions(b *pb.ExecuteContainerOptions) (opts *types.ExecuteContainerOptions, err error) { // nolint
 	return &types.ExecuteContainerOptions{
 		ContainerID: b.ContainerId,
 		Commands:    b.Commands,

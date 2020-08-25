@@ -1,7 +1,8 @@
 Eru
 ====
-[![CircleCI](https://circleci.com/gh/projecteru2/core/tree/master.svg?style=shield)](https://circleci.com/gh/projecteru2/core/tree/master)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/e26ca3ee697d406caa9e49b0c491ff13)](https://www.codacy.com/app/CMGS/core?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=projecteru2/core&amp;utm_campaign=Badge_Grade)
+![](https://github.com/projecteru2/core/workflows/test/badge.svg)
+![](https://github.com/projecteru2/core/workflows/golangci-lint/badge.svg)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/69918e0a02ae45c5ae7dfc42bad5cfe5)](https://www.codacy.com/gh/projecteru2/core?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=projecteru2/core&amp;utm_campaign=Badge_Grade)
 
 Eru is a stateless, flexible, production-ready cluster scheduler designed to easily integrate into existing workflows. Eru can run any containerized things in long or short time. This project is Eru Core. The Core use for resource allocation and manage containers lifetime.
 
@@ -18,16 +19,7 @@ Run ` make test `
 
 Run `make deps` for generating vendor dir.
 
-Under macOS we have to install `libgit2` manually, if you using [Homebrew](https://brew.sh/) please install like this:
-
-```shell
-brew install libgit2
-make deps
-```
-
-In linux you can reference our image's [Dockerfile](https://github.com/projecteru2/core/blob/master/Dockerfile). Our server were running under CentOS 7, so if your server was different, something will not same.
-
-On other hand, you can use our [footstone](https://hub.docker.com/r/projecteru2/footstone/) image for testing and compiling.
+You can use our [footstone](https://hub.docker.com/r/projecteru2/footstone/) image for testing and compiling.
 
 #### GRPC
 

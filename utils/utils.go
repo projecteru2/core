@@ -15,8 +15,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type ctxKey string
-
 const (
 	letters       = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	shortenLength = 7
@@ -243,4 +241,17 @@ func Max(x int, xs ...int) int {
 		return m
 	}
 	return x
+}
+
+// EnsureReaderClosed As the name says,
+// blocks until the stream is empty, until we meet EOF
+func EnsureReaderClosed(stream io.ReadCloser) {
+	if stream == nil {
+		return
+	}
+	_, err := io.Copy(ioutil.Discard, stream)
+	if err != nil {
+		log.Errorf("[EnsureReaderClosed] empty stream failed %v", err)
+	}
+	_ = stream.Close()
 }

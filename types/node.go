@@ -165,7 +165,7 @@ func (p VolumePlan) GetVolumeMap(vb *VolumeBinding) (volMap VolumeMap, volume Vo
 // Compatible return true if new bindings stick to the old bindings
 func (p VolumePlan) Compatible(oldPlan VolumePlan) bool {
 	for volume, oldBinding := range oldPlan {
-		newBinding, v := p.GetVolumeMap(&volume)
+		newBinding, v := p.GetVolumeMap(&volume) // nolint
 		// newBinding is ok to be nil when reallocing requires less volumes than before
 		if newBinding != nil && newBinding.GetResourceID() != oldBinding.GetResourceID() {
 			// unlimited binding, modify binding source
@@ -249,9 +249,9 @@ func (n *Node) SetCPUUsed(quota float64, action string) {
 func (n *Node) SetVolumeUsed(cost int64, action string) {
 	switch action {
 	case IncrUsage:
-		n.VolumeUsed = n.VolumeUsed + cost
+		n.VolumeUsed += cost
 	case DecrUsage:
-		n.VolumeUsed = n.VolumeUsed - cost
+		n.VolumeUsed -= cost
 	default:
 	}
 }

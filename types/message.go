@@ -23,7 +23,7 @@ type errorDetail struct {
 	Message string `json:"message,omitempty"`
 }
 
-// BuildImageMessage for build image message
+// BuildImageMessage for build image ops message
 type BuildImageMessage struct {
 	ID          string      `json:"id,omitempty"`
 	Status      string      `json:"status,omitempty"`
@@ -79,7 +79,6 @@ type CreateContainerMessage struct {
 	ContainerID   string
 	ContainerName string
 	Error         error
-	Success       bool
 	CPU           CPUMap
 	Quota         float64
 	Memory        int64

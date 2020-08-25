@@ -426,17 +426,26 @@ func (_m *API) Info(ctx context.Context) (*types.Info, error) {
 }
 
 // NetworkConnect provides a mock function with given fields: ctx, network, target, ipv4, ipv6
-func (_m *API) NetworkConnect(ctx context.Context, network string, target string, ipv4 string, ipv6 string) error {
+func (_m *API) NetworkConnect(ctx context.Context, network string, target string, ipv4 string, ipv6 string) ([]string, error) {
 	ret := _m.Called(ctx, network, target, ipv4, ipv6)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) error); ok {
+	var r0 []string
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) []string); ok {
 		r0 = rf(ctx, network, target, ipv4, ipv6)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, string) error); ok {
+		r1 = rf(ctx, network, target, ipv4, ipv6)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // NetworkDisconnect provides a mock function with given fields: ctx, network, target, force

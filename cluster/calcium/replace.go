@@ -5,9 +5,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"sync"
 
+	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -91,7 +91,6 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 			}
 		}
 	}()
-
 	return ch, nil
 }
 
@@ -110,13 +109,9 @@ func (c *Calcium) doReplaceContainer(
 	if !utils.FilterContainer(container.Labels, opts.FilterLabels) {
 		return nil, removeMessage, types.ErrNotFitLabels
 	}
-	// get node
-	node, err := c.GetNode(ctx, container.Nodename)
+	// prepare node
+	node, err := c.doGetAndPrepareNode(ctx, container.Nodename, opts.Image)
 	if err != nil {
-		return nil, removeMessage, err
-	}
-	// pull image
-	if err = pullImage(ctx, node, opts.Image); err != nil {
 		return nil, removeMessage, err
 	}
 	// 获得文件 io
@@ -125,35 +120,72 @@ func (c *Calcium) doReplaceContainer(
 		if err != nil {
 			return nil, removeMessage, err
 		}
-		bs, err := ioutil.ReadAll(stream)
-		if err != nil {
+		if opts.DeployOptions.Data[dst], err = types.NewReaderManager(stream); err != nil {
 			return nil, removeMessage, err
 		}
-		opts.DeployOptions.Data[dst] = bytes.NewReader(bs)
 	}
-	// 停止容器
-	removeMessage.Hook, err = c.doStopContainer(ctx, container, opts.IgnoreHook)
-	if err != nil {
-		return nil, removeMessage, err
-	}
-	// 不涉及资源消耗，创建容器失败会被回收容器而不回收资源
-	// 创建成功容器会干掉之前的老容器也不会动资源，实际上实现了动态捆绑
-	createMessage := c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU, container.VolumePlan)
-	if createMessage.Error != nil {
-		// 重启老容器
-		message, err := c.doStartContainer(ctx, container, opts.IgnoreHook)
-		removeMessage.Hook = append(removeMessage.Hook, message...)
-		if err != nil {
-			log.Errorf("[replaceAndRemove] Old container %s restart failed %v", container.ID, err)
-			removeMessage.Hook = append(removeMessage.Hook, bytes.NewBufferString(err.Error()))
-		}
-		return nil, removeMessage, createMessage.Error
-	}
-	// 干掉老的
-	if err = c.doRemoveContainer(ctx, container, true); err != nil {
-		log.Errorf("[replaceAndRemove] Old container %s remove failed %v", container.ID, err)
-		return createMessage, removeMessage, err
-	}
-	removeMessage.Success = true
-	return createMessage, removeMessage, nil
+
+	createMessage := &types.CreateContainerMessage{}
+	return createMessage, removeMessage, utils.Txn(
+		ctx,
+		// if
+		func(ctx context.Context) (err error) {
+			removeMessage.Hook, err = c.doStopContainer(ctx, container, opts.IgnoreHook)
+			return
+		},
+		// then
+		func(ctx context.Context) error {
+			return utils.Txn(
+				ctx,
+				// if
+				func(ctx context.Context) error {
+					return utils.Txn(
+						ctx,
+						func(ctx context.Context) error {
+							createMessage = c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU, container.VolumePlan)
+							return createMessage.Error
+						},
+						nil,
+						func(ctx context.Context) error {
+							log.Errorf("[doReplaceContainer] Error when create and start a container, %v", createMessage.Error)
+							if createMessage.ContainerID != "" {
+								log.Warnf("[doReplaceContainer] Create container failed %v, and container %s not removed", createMessage.Error, createMessage.ContainerID)
+								return nil
+							}
+							if err = c.withNodeLocked(ctx, node.Name, func(node *types.Node) error {
+								return c.store.UpdateNodeResource(ctx, node, createMessage.CPU, createMessage.Quota, createMessage.Memory, createMessage.Storage, createMessage.VolumePlan.IntoVolumeMap(), store.ActionIncr)
+							}); err != nil {
+								log.Errorf("[doReplaceContainer] Reset node resource %s failed %v", node.Name, err)
+							}
+							return nil
+						},
+						c.config.GlobalTimeout,
+					)
+				},
+				// then
+				func(ctx context.Context) (err error) {
+					if err = c.doRemoveContainer(ctx, container, true); err != nil {
+						log.Errorf("[doReplaceContainer] the new started but the old failed to stop")
+						return
+					}
+					removeMessage.Success = true
+					return
+				},
+				nil,
+				c.config.GlobalTimeout,
+			)
+		},
+		// rollback
+		func(ctx context.Context) (err error) {
+			messages, err := c.doStartContainer(ctx, container, opts.IgnoreHook)
+			if err != nil {
+				log.Errorf("[replaceAndRemove] Old container %s restart failed %v", container.ID, err)
+				removeMessage.Hook = append(removeMessage.Hook, bytes.NewBufferString(err.Error()))
+			} else {
+				removeMessage.Hook = append(removeMessage.Hook, messages...)
+			}
+			return
+		},
+		c.config.GlobalTimeout,
+	)
 }

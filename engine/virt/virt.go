@@ -39,11 +39,12 @@ type Virt struct {
 // MakeClient makes a virt. client which wraps yavirt API client.
 func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	var uri string
-	if strings.HasPrefix(endpoint, HTTPPrefixKey) {
-		uri = fmt.Sprintf("http://%s/%s", strings.TrimLeft(endpoint, HTTPPrefixKey), config.Virt.APIVersion)
-	} else if strings.HasPrefix(endpoint, GRPCPrefixKey) {
-		uri = "grpc://" + strings.TrimLeft(endpoint, GRPCPrefixKey)
-	} else {
+	switch {
+	case strings.HasPrefix(endpoint, HTTPPrefixKey):
+		uri = fmt.Sprintf("http://%s/%s", strings.TrimPrefix(endpoint, HTTPPrefixKey), config.Virt.APIVersion)
+	case strings.HasPrefix(endpoint, GRPCPrefixKey):
+		uri = "grpc://" + strings.TrimPrefix(endpoint, GRPCPrefixKey)
+	default:
 		return nil, fmt.Errorf("invalid endpoint: %s", endpoint)
 	}
 
@@ -63,7 +64,7 @@ func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {
 
 	return &enginetypes.Info{
 		ID:           resp.ID,
-		NCPU:         resp.Cpu,
+		NCPU:         resp.CPU,
 		MemTotal:     resp.Mem,
 		StorageTotal: resp.Storage,
 	}, nil
@@ -80,19 +81,19 @@ func (v *Virt) ExecAttach(ctx context.Context, execID string, tty bool) (io.Read
 }
 
 // Execute executes a command in vm
-func (v *Virt) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (_ string, outputStream io.ReadCloser, inputStream io.WriteCloser, err error) {
+func (v *Virt) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, outputStream io.ReadCloser, inputStream io.WriteCloser, err error) {
 	if config.Tty {
 		flags := virttypes.AttachGuestFlags{Safe: true, Force: true}
-		stream, err := v.client.AttachGuest(ctx, target, flags)
+		stream, err := v.client.AttachGuest(ctx, target, config.Cmd, flags)
 		if err != nil {
 			return "", nil, nil, err
 		}
-		return "", ioutil.NopCloser(stream), stream, nil
+		return target, ioutil.NopCloser(stream), stream, nil
 
 	}
 
 	msg, err := v.client.ExecuteGuest(ctx, target, config.Cmd)
-	return "", ioutil.NopCloser(bytes.NewReader(msg.Data)), nil, err
+	return target, ioutil.NopCloser(bytes.NewReader(msg.Data)), nil, err
 
 }
 
@@ -103,12 +104,27 @@ func (v *Virt) ExecExitCode(ctx context.Context, execID string) (code int, err e
 
 // ExecResize resize exec tty
 func (v *Virt) ExecResize(ctx context.Context, execID string, height, width uint) (err error) {
-	return nil
+	resizeCmd := fmt.Sprintf("yaexec resize -r %d -c %d", height, width)
+	msg, err := v.client.ExecuteGuest(ctx, execID, strings.Split(resizeCmd, " "))
+	log.Debugf("[ExecResize] resize got response: %v", msg)
+	return err
 }
 
 // NetworkConnect connects to a network.
-func (v *Virt) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) (err error) {
-	log.Warnf("NetworkConnect does not implement")
+func (v *Virt) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) (cidrs []string, err error) {
+	req := virttypes.ConnectNetworkReq{
+		Network: network,
+		IPv4:    ipv4,
+	}
+	req.ID = target
+
+	var cidr string
+	if cidr, err = v.client.ConnectNetwork(ctx, req); err != nil {
+		return
+	}
+
+	cidrs = append(cidrs, cidr)
+
 	return
 }
 
@@ -152,14 +168,15 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 	}
 
 	req := virttypes.CreateGuestReq{
-		Cpu:       int(opts.Quota),
+		CPU:       int(opts.Quota),
 		Mem:       opts.Memory,
 		ImageName: opts.Image,
 		Volumes:   vols,
+		Labels:    opts.Labels,
 	}
 
 	if dmiUUID, exists := opts.Labels[DmiUUIDKey]; exists {
-		req.DmiUuid = dmiUUID
+		req.DmiUUID = dmiUUID
 	}
 
 	var resp virttypes.Guest
@@ -243,7 +260,7 @@ func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, opts
 	}
 
 	args := virttypes.ResizeGuestReq{
-		Cpu:     int(opts.Quota),
+		CPU:     int(opts.Quota),
 		Mem:     opts.Memory,
 		Volumes: vols,
 	}

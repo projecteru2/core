@@ -2,8 +2,10 @@ package calcium
 
 import (
 	"context"
+	"io/ioutil"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -32,7 +34,12 @@ func (d *dummyLock) Unlock(ctx context.Context) error {
 
 func NewTestCluster() *Calcium {
 	c := &Calcium{}
-	c.config = types.Config{}
+	c.config = types.Config{
+		GlobalTimeout: 30 * time.Second,
+		Git: types.GitConfig{
+			CloneTimeout: 300 * time.Second,
+		},
+	}
 	c.store = &storemocks.Store{}
 	c.scheduler = &schedulermocks.Scheduler{}
 	c.source = &sourcemocks.Source{}
@@ -45,10 +52,15 @@ func TestNewCluster(t *testing.T) {
 	c, err := New(types.Config{}, true)
 	assert.NoError(t, err)
 	c.Finalizer()
-	c, err = New(types.Config{Git: types.GitConfig{SCMType: "gitlab"}}, true)
+	privFile, err := ioutil.TempFile("", "priv")
+	assert.NoError(t, err)
+	_, err = privFile.WriteString("privkey")
+	assert.NoError(t, err)
+	privFile.Close()
+	c, err = New(types.Config{Git: types.GitConfig{SCMType: "gitlab", PrivateKey: privFile.Name()}}, true)
 	assert.NoError(t, err)
 	c.Finalizer()
-	c, err = New(types.Config{Git: types.GitConfig{SCMType: "github"}}, true)
+	c, err = New(types.Config{Git: types.GitConfig{SCMType: "github", PrivateKey: privFile.Name()}}, true)
 	c.Finalizer()
 	assert.NoError(t, err)
 }

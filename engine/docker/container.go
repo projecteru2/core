@@ -116,7 +116,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode, opts.SoftLimit)
 	// set ulimits
 	resource.Ulimits = []*units.Ulimit{
-		&units.Ulimit{Name: "nofile", Soft: 65535, Hard: 65535},
+		{Name: "nofile", Soft: 65535, Hard: 65535},
 	}
 	if networkMode.IsHost() {
 		opts.DNS = []string{}
@@ -342,16 +342,18 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 	cpuMap := opts.CPU
 	numaNode := opts.NUMANode
 	// unlimited cpu
-	if quota == 0 {
-		info, err := e.Info(ctx)
+	if quota == 0 || len(cpuMap) == 0 {
+		info, err := e.Info(ctx) // TODO can fixed in docker engine, support empty Cpusetcpus, or use cache to speed up
 		if err != nil {
 			return err
 		}
-		quota = -1
-		numaNode = ""
 		cpuMap = map[string]int64{}
 		for i := 0; i < info.NCPU; i++ {
 			cpuMap[strconv.Itoa(i)] = int64(e.config.Scheduler.ShareBase)
+		}
+		if quota == 0 {
+			quota = -1
+			numaNode = ""
 		}
 	}
 

@@ -2,8 +2,9 @@ package calcium
 
 import (
 	"context"
-	complexscheduler "github.com/projecteru2/core/scheduler/complex"
 	"testing"
+
+	complexscheduler "github.com/projecteru2/core/scheduler/complex"
 
 	"github.com/stretchr/testify/assert"
 
@@ -17,11 +18,23 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func newReallocOptions(ids []string, cpu float64, memory int64, vbs types.VolumeBindings, bindCPU, memoryLimit types.TriOptions) *types.ReallocOptions {
+	return &types.ReallocOptions{
+		IDs:         ids,
+		CPU:         cpu,
+		Memory:      memory,
+		Volumes:     vbs,
+		BindCPU:     bindCPU,
+		MemoryLimit: memoryLimit,
+	}
+}
+
 func TestRealloc(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := &storemocks.Store{}
 	c.store = store
+	c.config.Scheduler.ShareBase = 100
 
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(nil)
@@ -38,6 +51,7 @@ func TestRealloc(t *testing.T) {
 		Name:       "node1",
 		MemCap:     int64(units.GiB),
 		CPU:        types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
+		InitCPU:    types.CPUMap{"0": 100, "1": 100, "2": 100, "3": 100},
 		Engine:     engine,
 		Endpoint:   "http://1.1.1.1:1",
 		NUMA:       types.NUMA{"2": "0"},
@@ -71,7 +85,7 @@ func TestRealloc(t *testing.T) {
 	store.On("GetContainers", mock.Anything, []string{"c1", "c2"}).Return([]*types.Container{c1, c2}, nil)
 	// failed by lock
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	ch, err := c.ReallocResource(ctx, []string{"c1"}, -1, 2*int64(units.GiB), nil, types.BindCPUOptionKeep)
+	ch, err := c.ReallocResource(ctx, newReallocOptions([]string{"c1"}, -1, 2*int64(units.GiB), nil, types.TriKeep, types.TriKeep))
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
@@ -79,28 +93,28 @@ func TestRealloc(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	// failed by GetPod
 	store.On("GetPod", mock.Anything, mock.Anything).Return(pod1, types.ErrNoETCD).Once()
-	ch, err = c.ReallocResource(ctx, []string{"c1"}, -1, 2*int64(units.GiB), nil, types.BindCPUOptionKeep)
+	ch, err = c.ReallocResource(ctx, newReallocOptions([]string{"c1"}, -1, 2*int64(units.GiB), nil, types.TriKeep, types.TriKeep))
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
 	store.On("GetPod", mock.Anything, mock.Anything).Return(pod1, nil)
 	// failed by newCPU < 0
-	ch, err = c.ReallocResource(ctx, []string{"c1"}, -1, 2*int64(units.GiB), nil, types.BindCPUOptionKeep)
+	ch, err = c.ReallocResource(ctx, newReallocOptions([]string{"c1"}, -1, 2*int64(units.GiB), nil, types.TriKeep, types.TriKeep))
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
 	// failed by GetNode
 	store.On("GetNode", mock.Anything, "node1").Return(nil, types.ErrNoETCD).Once()
-	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, 2*int64(units.GiB), nil, types.BindCPUOptionKeep)
+	ch, err = c.ReallocResource(ctx, newReallocOptions([]string{"c1"}, 0.1, 2*int64(units.GiB), nil, types.TriKeep, types.TriKeep))
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
 	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
 	// failed by memory not enough
-	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, 2*int64(units.GiB), nil, types.BindCPUOptionKeep)
+	ch, err = c.ReallocResource(ctx, newReallocOptions([]string{"c1"}, 0.1, 2*int64(units.GiB), nil, types.TriKeep, types.TriKeep))
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
@@ -113,14 +127,14 @@ func TestRealloc(t *testing.T) {
 		"c1": {{types.MustToVolumeBinding("AUTO:/data:rw:50"): types.VolumeMap{"/dir0": 50}}},
 	}
 	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, types.MustToVolumeBindings([]string{"AUTO:/data:rw:50"})).Return(nil, nodeVolumePlans, 1, nil)
-	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, 2*int64(units.MiB), nil, types.BindCPUOptionKeep)
+	ch, err = c.ReallocResource(ctx, newReallocOptions([]string{"c1"}, 0.1, 2*int64(units.MiB), nil, types.TriKeep, types.TriKeep))
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
 	// failed by wrong total
 	simpleMockScheduler.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, 0, nil).Once()
-	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, 2*int64(units.MiB), nil, types.BindCPUOptionKeep)
+	ch, err = c.ReallocResource(ctx, newReallocOptions([]string{"c1"}, 0.1, 2*int64(units.MiB), nil, types.TriKeep, types.TriKeep))
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
@@ -135,6 +149,7 @@ func TestRealloc(t *testing.T) {
 	simpleMockScheduler.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nodeCPUPlans, 2, nil).Times(5)
 	// failed by apply resource
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrBadContainerID).Twice()
+	store.On("UpdateContainer", mock.Anything, mock.Anything).Return(nil).Twice()
 	// update node failed
 	store.On("UpdateNode", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
 	// reset node
@@ -145,7 +160,7 @@ func TestRealloc(t *testing.T) {
 		Engine:   engine,
 		Endpoint: "http://1.1.1.1:1",
 	}
-	ch, err = c.ReallocResource(ctx, []string{"c1", "c2"}, 0.1, 2*int64(units.MiB), nil, types.BindCPUOptionKeep)
+	ch, err = c.ReallocResource(ctx, newReallocOptions([]string{"c1", "c2"}, 0.1, 2*int64(units.MiB), nil, types.TriKeep, types.TriKeep))
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
@@ -157,7 +172,7 @@ func TestRealloc(t *testing.T) {
 	store.On("UpdateNode", mock.Anything, mock.Anything).Return(nil)
 	// failed by update container
 	store.On("UpdateContainer", mock.Anything, mock.Anything).Return(types.ErrBadContainerID).Once()
-	ch, err = c.ReallocResource(ctx, []string{"c1", "c2"}, 0.1, 2*int64(units.MiB), nil, types.BindCPUOptionKeep)
+	ch, err = c.ReallocResource(ctx, newReallocOptions([]string{"c1", "c2"}, 0.1, 2*int64(units.MiB), nil, types.TriKeep, types.TriKeep))
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
@@ -172,21 +187,21 @@ func TestRealloc(t *testing.T) {
 		},
 	}
 	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, types.MustToVolumeBindings([]string{"AUTO:/data:rw:100"})).Return(nil, nodeVolumePlans, 4, nil).Once()
-	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, int64(units.MiB), types.MustToVolumeBindings([]string{"AUTO:/data:rw:50"}), types.BindCPUOptionKeep)
+	ch, err = c.ReallocResource(ctx, newReallocOptions([]string{"c1"}, 0.1, int64(units.MiB), types.MustToVolumeBindings([]string{"AUTO:/data:rw:50"}), types.TriKeep, types.TriKeep))
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
 	// failed by volume schedule error
 	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(nil, nil, 0, types.ErrInsufficientVolume).Once()
-	ch, err = c.ReallocResource(ctx, []string{"c1"}, 0.1, int64(units.MiB), types.MustToVolumeBindings([]string{"AUTO:/data:rw:1"}), types.BindCPUOptionKeep)
+	ch, err = c.ReallocResource(ctx, newReallocOptions([]string{"c1"}, 0.1, int64(units.MiB), types.MustToVolumeBindings([]string{"AUTO:/data:rw:1"}), types.TriKeep, types.TriKeep))
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
 	// failed due to re-volume plan less then container number
 	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(nil, nodeVolumePlans, 0, nil).Twice()
-	ch, err = c.ReallocResource(ctx, []string{"c1", "c2"}, 0.1, int64(units.MiB), types.MustToVolumeBindings([]string{"AUTO:/data:rw:1"}), types.BindCPUOptionKeep)
+	ch, err = c.ReallocResource(ctx, newReallocOptions([]string{"c1", "c2"}, 0.1, int64(units.MiB), types.MustToVolumeBindings([]string{"AUTO:/data:rw:1"}), types.TriKeep, types.TriKeep))
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
@@ -197,6 +212,7 @@ func TestRealloc(t *testing.T) {
 		Name:       "node2",
 		MemCap:     int64(units.GiB),
 		CPU:        types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
+		InitCPU:    types.CPUMap{"0": 100, "1": 100, "2": 100, "3": 100},
 		Engine:     engine,
 		Endpoint:   "http://1.1.1.1:1",
 		NUMA:       types.NUMA{"2": "0"},
@@ -250,7 +266,7 @@ func TestRealloc(t *testing.T) {
 	store.On("GetNode", mock.Anything, "node2").Return(node2, nil)
 	store.On("GetContainers", mock.Anything, []string{"c3", "c4"}).Return([]*types.Container{c3, c4}, nil)
 	store.On("UpdateContainer", mock.Anything, mock.Anything).Return(types.ErrBadContainerID).Twice()
-	ch, err = c.ReallocResource(ctx, []string{"c3", "c4"}, 0.1, 2*int64(units.MiB), types.MustToVolumeBindings([]string{"AUTO:/data0:rw:-50"}), types.BindCPUOptionKeep)
+	ch, err = c.ReallocResource(ctx, newReallocOptions([]string{"c3", "c4"}, 0.1, 2*int64(units.MiB), types.MustToVolumeBindings([]string{"AUTO:/data0:rw:-50"}), types.TriKeep, types.TriKeep))
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
@@ -392,8 +408,8 @@ func TestReallocVolume(t *testing.T) {
 }
 
 func TestReallocBindCpu(t *testing.T) {
-
 	c := NewTestCluster()
+	c.config.Scheduler.ShareBase = 100
 	ctx := context.Background()
 	store := &storemocks.Store{}
 	c.store = store
@@ -433,6 +449,7 @@ func TestReallocBindCpu(t *testing.T) {
 		Name:       "node3",
 		MemCap:     int64(units.GiB),
 		CPU:        types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
+		InitCPU:    types.CPUMap{"0": 100, "1": 100, "2": 100, "3": 100},
 		CPUUsed:    2.1,
 		Engine:     engine,
 		Endpoint:   "http://1.1.1.1:1",
@@ -466,28 +483,28 @@ func TestReallocBindCpu(t *testing.T) {
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("UpdateNode", mock.Anything, mock.Anything).Return(nil)
 	store.On("UpdateContainer", mock.Anything, mock.Anything).Return(nil)
-	ch, err := c.ReallocResource(ctx, []string{"c5"}, 0.1, 2*int64(units.MiB), nil, types.BindCPUOptionUnbind)
+	ch, err := c.ReallocResource(ctx, newReallocOptions([]string{"c5"}, 0.1, 2*int64(units.MiB), nil, types.TriFalse, types.TriKeep))
 	for r := range ch {
 		assert.NoError(t, r.Error)
 	}
 	assert.NoError(t, err)
 	assert.Empty(t, c5.CPU)
 
-	ch, err = c.ReallocResource(ctx, []string{"c6"}, 0.1, 2*int64(units.MiB), nil, types.BindCPUOptionBind)
+	ch, err = c.ReallocResource(ctx, newReallocOptions([]string{"c6"}, 0.1, 2*int64(units.MiB), nil, types.TriTrue, types.TriKeep))
 	for r := range ch {
 		assert.NoError(t, r.Error)
 	}
 	assert.NoError(t, err)
 	assert.NotEmpty(t, c6.CPU)
 
-	ch, err = c.ReallocResource(ctx, []string{"c6", "c5"}, -0.1, 2*int64(units.MiB), nil, types.BindCPUOptionBind)
+	ch, err = c.ReallocResource(ctx, newReallocOptions([]string{"c6", "c5"}, -0.1, 2*int64(units.MiB), nil, types.TriTrue, types.TriKeep))
 	for r := range ch {
 		assert.NoError(t, r.Error)
 	}
 	assert.NoError(t, err)
 	assert.NotEmpty(t, c6.CPU)
 	assert.NotEmpty(t, c5.CPU)
-	ch, err = c.ReallocResource(ctx, []string{"c6", "c5"}, -0.1, 2*int64(units.MiB), nil, types.BindCPUOptionUnbind)
+	ch, err = c.ReallocResource(ctx, newReallocOptions([]string{"c6", "c5"}, -0.1, 2*int64(units.MiB), nil, types.TriFalse, types.TriKeep))
 	for r := range ch {
 		assert.NoError(t, r.Error)
 	}

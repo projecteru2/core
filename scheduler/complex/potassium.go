@@ -80,7 +80,9 @@ func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64,
 
 	// 筛选出能满足 CPU 需求的
 	sort.Slice(nodesInfo, func(i, j int) bool { return len(nodesInfo[i].CPUMap) < len(nodesInfo[j].CPUMap) })
-	p := sort.Search(nodesInfoLength, func(i int) bool { return float64(len(nodesInfo[i].CPUMap)) >= quota })
+	p := sort.Search(nodesInfoLength, func(i int) bool {
+		return float64(len(nodesInfo[i].CPUMap)) >= quota
+	})
 	// p 最大也就是 nodesInfoLength - 1
 	if p == nodesInfoLength {
 		return nil, 0, types.ErrInsufficientCPU
@@ -94,7 +96,6 @@ func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64,
 	if p == nodesInfoLength {
 		return nil, 0, types.ErrInsufficientMEM
 	}
-	nodesInfoLength -= p
 	nodesInfo = nodesInfo[p:]
 
 	// 这里 memCap 一定是大于 memory 的所以不用判断 cap 内容
@@ -132,12 +133,13 @@ func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.Volu
 	var vbsNorm, vbsMono, vbsUnlimited types.VolumeBindings
 
 	for _, vb := range vbs {
-		if vb.RequireScheduleMonopoly() {
+		switch {
+		case vb.RequireScheduleMonopoly():
 			vbsMono = append(vbsMono, vb)
 			reqsMono = append(reqsMono, vb.SizeInBytes)
-		} else if vb.RequireScheduleUnlimitedQuota() {
+		case vb.RequireScheduleUnlimitedQuota():
 			vbsUnlimited = append(vbsUnlimited, vb)
-		} else if vb.RequireSchedule() {
+		case vb.RequireSchedule():
 			vbsNorm = append(vbsNorm, vb)
 			reqsNorm = append(reqsNorm, vb.SizeInBytes)
 		}

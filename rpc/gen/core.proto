@@ -3,20 +3,27 @@ syntax = "proto3";
 package pb;
 
 service CoreRPC {
-    rpc ListNetworks(ListNetworkOptions) returns (Networks) {};
+    rpc Info(Empty) returns (CoreInfo) {};
+    rpc WatchServiceStatus(Empty) returns (stream ServiceStatus) {};
 
-    rpc ListPods(Empty) returns (Pods) {};
+    rpc ListNetworks(ListNetworkOptions) returns (Networks) {};
+    rpc ConnectNetwork(ConnectNetworkOptions) returns (Network) {};
+    rpc DisconnectNetwork(DisconnectNetworkOptions) returns (Empty) {};
+
     rpc AddPod(AddPodOptions) returns (Pod) {};
     rpc RemovePod(RemovePodOptions) returns (Empty) {};
     rpc GetPod(GetPodOptions) returns (Pod) {};
+    rpc ListPods(Empty) returns (Pods) {};
+
     rpc GetPodResource(GetPodOptions) returns (PodResource) {};
-    rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
 
     rpc AddNode(AddNodeOptions) returns (Node) {};
     rpc RemoveNode(RemoveNodeOptions) returns (Empty) {};
-    rpc SetNode(SetNodeOptions) returns (Node) {};
+    rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
     rpc GetNode(GetNodeOptions) returns (Node) {};
-    rpc GetNodeResource(GetNodeOptions) returns (NodeResource) {};
+    rpc SetNode(SetNodeOptions) returns (Node) {};
+
+    rpc GetNodeResource(GetNodeResourceOptions) returns (NodeResource) {};
 
     rpc GetContainer(ContainerID) returns (Container) {};
     rpc GetContainers(ContainerIDs) returns (Containers) {};
@@ -38,13 +45,26 @@ service CoreRPC {
     rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage) {};
     rpc DissociateContainer(DissociateContainerOptions) returns (stream DissociateContainerMessage) {};
     rpc ControlContainer(ControlContainerOptions) returns (stream ControlContainerMessage) {};
+    rpc ExecuteContainer(stream ExecuteContainerOptions) returns (stream AttachContainerMessage) {};
     rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage) {};
     rpc LogStream(LogStreamOptions) returns (stream LogStreamMessage) {};
     rpc RunAndWait(stream RunAndWaitOptions) returns (stream AttachContainerMessage) {};
-    rpc ExecuteContainer(stream ExecuteContainerOptions) returns (stream AttachContainerMessage) {};
 }
 
 message Empty {}
+
+message CoreInfo {
+    string version = 1;
+    string revison = 2;
+    string build_at = 3;
+    string golang_version = 4;
+    string os_arch = 5;
+}
+
+message ServiceStatus {
+    repeated string addresses = 1;
+    int64 interval_in_second = 2;
+}
 
 message ListContainersOptions {
     string appname = 1;
@@ -71,6 +91,7 @@ message PodResource {
     map<string, bool> verifications = 4;
     map<string, string> details = 5;
     map<string, double> storage_percents = 6;
+    map<string, double> volume_percents = 7;
 }
 
 message NodeResource {
@@ -86,6 +107,19 @@ message NodeResource {
 message ListNetworkOptions {
     string podname = 1;
     string driver = 2;
+}
+
+message ConnectNetworkOptions{
+    string network = 1;
+    string target = 2;
+    string ipv4 = 3;
+    string ipv6 = 4;
+}
+
+message DisconnectNetworkOptions{
+    string network = 1;
+    string target = 2;
+    bool force = 3;    
 }
 
 message Network {
@@ -131,7 +165,7 @@ message NodeAvailable {
 
 message SetNodeOptions {
     string nodename = 1;
-    int32 status = 2;
+    TriOpt status = 2;
     map<string, int32> delta_cpu = 3;
     int64 delta_memory = 4;
     int64 delta_storage = 5;
@@ -213,10 +247,11 @@ message RemoveContainerOptions {
 message DissociateContainerOptions {
     repeated string ids = 1;
 }
-enum BindCPUOpt{
-    KEEP =0;
-    BIND = 1;
-    UNBIND = 2;
+
+enum TriOpt {
+    KEEP = 0;
+    TRUE = 1;
+    FALSE = 2;
 }
 
 message ReallocOptions {
@@ -224,7 +259,8 @@ message ReallocOptions {
     double cpu = 2;
     int64 memory = 3;
     repeated string volumes = 4;
-    BindCPUOpt bind_cpu_opt =5;
+    TriOpt bind_cpu = 5;
+    TriOpt memory_limit = 6;
 }
 
 message AddPodOptions {
@@ -264,6 +300,11 @@ message RemoveNodeOptions {
 message GetNodeOptions {
     string nodename = 1;
     map<string, string> labels = 2;
+}
+
+message GetNodeResourceOptions {
+    GetNodeOptions opts = 1;
+    bool fix = 2;
 }
 
 message ListNodesOptions {

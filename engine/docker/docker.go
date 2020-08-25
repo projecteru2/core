@@ -31,7 +31,7 @@ type Engine struct {
 // MakeClient make docker cli
 func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	var client *http.Client
-	if config.CertPath != "" && ca != "" && cert != "" && key != "" {
+	if config.CertPath != "" && ca != "" && cert != "" && key != "" { // nolint
 		caFile, err := ioutil.TempFile(config.CertPath, fmt.Sprintf("ca-%s", nodename))
 		if err != nil {
 			return nil, err

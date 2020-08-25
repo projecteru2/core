@@ -152,11 +152,7 @@ func (vbs VolumeBindings) Merge(vbs2 VolumeBindings) (softVolumes VolumeBindings
 	sizeMap := map[[3]string]int64{} // {["AUTO", "/data", "rw"]: 100}
 	for _, vb := range append(vbs, vbs2...) {
 		key := [3]string{vb.Source, vb.Destination, vb.Flags}
-		if _, ok := sizeMap[key]; ok {
-			sizeMap[key] += vb.SizeInBytes
-		} else {
-			sizeMap[key] = vb.SizeInBytes
-		}
+		sizeMap[key] += vb.SizeInBytes
 	}
 
 	for key, size := range sizeMap {

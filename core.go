@@ -1,10 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
-	_ "net/http/pprof"
+	_ "net/http/pprof" // nolint
 	"os"
 	"os/signal"
 	"syscall"
@@ -55,7 +56,7 @@ func serve() {
 		log.Fatalf("[main] %v", err)
 	}
 
-	if err := metrics.InitMetrics(config.Statsd); err != nil {
+	if err := metrics.InitMetrics(config); err != nil {
 		log.Fatalf("[main] %v", err)
 	}
 
@@ -87,12 +88,25 @@ func serve() {
 
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterCoreRPCServer(grpcServer, vibranium)
-	go grpcServer.Serve(s)
+	go func() {
+		if err := grpcServer.Serve(s); err != nil {
+			log.Fatalf("[main] start grpc failed %v", err)
+		}
+	}()
 	if config.Profile != "" {
 		http.Handle("/metrics", metrics.Client.ResourceMiddleware(cluster)(promhttp.Handler()))
-		go http.ListenAndServe(config.Profile, nil)
+		go func() {
+			if err := http.ListenAndServe(config.Profile, nil); err != nil {
+				log.Errorf("[main] start http failed %v", err)
+			}
+		}()
 	}
 
+	unregisterService, err := cluster.RegisterService(context.Background())
+	if err != nil {
+		log.Errorf("[main] failed to register service: %v", err)
+		return
+	}
 	log.Info("[main] Cluster started successfully.")
 
 	// wait for unix signals and try to GracefulStop
@@ -101,6 +115,7 @@ func serve() {
 	sig := <-sigs
 	log.Infof("[main] Get signal %v.", sig)
 	close(rpcch)
+	unregisterService()
 	grpcServer.GracefulStop()
 	log.Info("[main] gRPC server gracefully stopped.")
 
@@ -137,5 +152,5 @@ func main() {
 		return nil
 	}
 
-	app.Run(os.Args)
+	_ = app.Run(os.Args)
 }

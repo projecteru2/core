@@ -75,7 +75,7 @@ func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *
 	}
 	log.Debugf("[BuildContent] Build dir %s", buildDir)
 	// create dockerfile
-	if err := e.makeDockerFile(opts, scm, buildDir); err != nil {
+	if err := e.makeDockerFile(ctx, opts, scm, buildDir); err != nil {
 		return buildDir, nil, err
 	}
 	// create stream for Build API
@@ -83,7 +83,7 @@ func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *
 	return buildDir, tar, err
 }
 
-func (e *Engine) makeDockerFile(opts *types.BuildContentOptions, scm coresource.Source, buildDir string) error {
+func (e *Engine) makeDockerFile(ctx context.Context, opts *types.BuildContentOptions, scm coresource.Source, buildDir string) error {
 	var preCache map[string]string
 	var preStage string
 	var buildTmpl []string
@@ -96,7 +96,7 @@ func (e *Engine) makeDockerFile(opts *types.BuildContentOptions, scm coresource.
 		}
 
 		// get source or artifacts
-		reponame, err := e.preparedSource(build, scm, buildDir)
+		reponame, err := e.preparedSource(ctx, build, scm, buildDir)
 		if err != nil {
 			return err
 		}
@@ -138,13 +138,13 @@ func (e *Engine) makeDockerFile(opts *types.BuildContentOptions, scm coresource.
 	return createDockerfile(dockerfile, buildDir)
 }
 
-func (e *Engine) preparedSource(build *types.Build, scm coresource.Source, buildDir string) (string, error) {
+func (e *Engine) preparedSource(ctx context.Context, build *types.Build, scm coresource.Source, buildDir string) (string, error) {
 	// parse repository name
 	// code locates under /:repositoryname
 	var cloneDir string
 	var err error
 	reponame := ""
-	if build.Repo != "" {
+	if build.Repo != "" { // nolint
 		version := build.Version
 		if version == "" {
 			version = "HEAD"
@@ -157,7 +157,7 @@ func (e *Engine) preparedSource(build *types.Build, scm coresource.Source, build
 		// clone code into cloneDir
 		// which is under buildDir and named as repository name
 		cloneDir = filepath.Join(buildDir, reponame)
-		if err := scm.SourceCode(build.Repo, cloneDir, version, build.Submodule); err != nil {
+		if err := scm.SourceCode(ctx, build.Repo, cloneDir, version, build.Submodule); err != nil {
 			return "", err
 		}
 
@@ -176,7 +176,9 @@ func (e *Engine) preparedSource(build *types.Build, scm coresource.Source, build
 		artifactsDir := buildDir
 		if cloneDir != "" {
 			os.RemoveAll(cloneDir)
-			os.MkdirAll(cloneDir, os.ModeDir)
+			if err := os.MkdirAll(cloneDir, os.ModeDir); err != nil {
+				return "", err
+			}
 			artifactsDir = cloneDir
 		}
 		for _, artifact := range build.Artifacts {

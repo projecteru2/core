@@ -20,7 +20,7 @@ builds:
     security: false
     dir: /go/src/github.com/projecteru2/core
     commands:
-      - apk add --no-cache build-base musl-dev libgit2-dev git curl make
+      - apk add --no-cache build-base musl-dev git curl make
       - make test
       - make binary
     cache:
@@ -32,7 +32,4 @@ builds:
       core: 1
     envs:
       CORE_IN_DOCKER: 1
-    commands:
-      - apk add --no-cache libgit2
-      - rm -rf /var/cache/apk/*
 

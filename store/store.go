@@ -17,6 +17,11 @@ const (
 
 //Store store eru data
 type Store interface {
+	// service
+	ServiceStatusStream(context.Context) (chan []string, error)
+	RegisterService(context.Context, string, time.Duration) error
+	UnregisterService(context.Context, string) error
+
 	// pod
 	AddPod(ctx context.Context, name, desc string) (*types.Pod, error)
 	GetPod(ctx context.Context, podname string) (*types.Pod, error)
@@ -55,6 +60,6 @@ type Store interface {
 	// distributed lock
 	CreateLock(key string, ttl time.Duration) (lock.DistributedLock, error)
 
-	// embeded storage
+	// embedded storage
 	TerminateEmbededStorage()
 }

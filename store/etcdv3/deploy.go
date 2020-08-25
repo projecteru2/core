@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/coreos/etcd/clientv3"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
+	"go.etcd.io/etcd/v3/clientv3"
 )
 
 // MakeDeployStatus get deploy status from store
@@ -28,7 +28,7 @@ func (m *Mercury) MakeDeployStatus(ctx context.Context, opts *types.DeployOption
 	return m.doLoadProcessing(ctx, opts, nodesInfo)
 }
 
-func (m *Mercury) doGetDeployStatus(ctx context.Context, resp *clientv3.GetResponse, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
+func (m *Mercury) doGetDeployStatus(_ context.Context, resp *clientv3.GetResponse, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) { // nolint
 	nodesCount := map[string]int{}
 	for _, ev := range resp.Kvs {
 		key := string(ev.Key)

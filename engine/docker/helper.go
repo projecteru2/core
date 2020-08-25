@@ -52,7 +52,7 @@ func mergeStream(stream io.ReadCloser) io.Reader {
 	go func() {
 		defer stream.Close()
 		_, err := stdcopy.StdCopy(outw, outw, stream)
-		outw.CloseWithError(err)
+		_ = outw.CloseWithError(err)
 	}()
 
 	return outr
@@ -110,7 +110,7 @@ func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, num
 		resource.CPUQuota = -1
 	}
 
-	if cpuMap != nil && len(cpuMap) > 0 {
+	if len(cpuMap) > 0 {
 		cpuIDs := []string{}
 		for cpuID := range cpuMap {
 			cpuIDs = append(cpuIDs, cpuID)
@@ -252,7 +252,7 @@ func GetIP(daemonHost string) string {
 	return u.Hostname()
 }
 
-func makeRawClient(ctx context.Context, config coretypes.Config, client *http.Client, endpoint string) (engine.API, error) {
+func makeRawClient(_ context.Context, config coretypes.Config, client *http.Client, endpoint string) (engine.API, error) {
 	cli, err := dockerapi.NewClient(endpoint, config.Docker.APIVersion, client, nil)
 	if err != nil {
 		return nil, err

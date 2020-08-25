@@ -6,10 +6,10 @@ import core_pb2 as core__pb2
 
 class CoreRPCStub(object):
   # missing associated documentation comment in .proto file
-  pass
 
   def __init__(self, channel):
-    """Constructor.
+    """
+    Constructor.
 
     Args:
       channel: A grpc.Channel.

@@ -1,6 +1,11 @@
 package types
 
-import "bytes"
+import (
+	"bytes"
+	"io"
+	"io/ioutil"
+	"sync"
+)
 
 // DeployOptions is options for deploying
 type DeployOptions struct {
@@ -27,7 +32,7 @@ type DeployOptions struct {
 	Labels       map[string]string        // Labels for containers
 	NodeLabels   map[string]string        // NodeLabels for filter node
 	DeployMethod string                   // Deploy method
-	Data         map[string]*bytes.Reader // For additional file data
+	Data         map[string]ReaderManager // For additional file data
 	SoftLimit    bool                     // Soft limit memory
 	NodesLimit   int                      // Limit nodes count
 	ProcessIdent string                   // ProcessIdent ident this deploy
@@ -37,7 +42,36 @@ type DeployOptions struct {
 	Lambda       bool                     // indicate is lambda container or not
 }
 
-// Normalize keeps deploy options consistant
+// ReaderManager return Reader under concurrency
+type ReaderManager interface {
+	GetReader() (io.Reader, error)
+}
+
+type readerManager struct {
+	mux sync.Mutex
+	r   io.ReadSeeker
+}
+
+func (rm *readerManager) GetReader() (_ io.Reader, err error) {
+	rm.mux.Lock()
+	defer rm.mux.Unlock()
+	buf := &bytes.Buffer{}
+	if _, err = io.Copy(buf, rm.r); err != nil {
+		return
+	}
+	_, err = rm.r.Seek(0, io.SeekStart)
+	return buf, err
+}
+
+// NewReaderManager converts Reader to ReadSeeker
+func NewReaderManager(r io.Reader) (ReaderManager, error) {
+	bs, err := ioutil.ReadAll(r)
+	return &readerManager{
+		r: bytes.NewReader(bs),
+	}, err
+}
+
+// Normalize keeps deploy options consistent
 func (o *DeployOptions) Normalize() {
 	o.Storage += o.Volumes.TotalSize()
 }
@@ -96,7 +130,7 @@ type AddNodeOptions struct {
 	Volume     VolumeMap
 }
 
-// Normalize keeps options consistant
+// Normalize keeps options consistent
 func (o *AddNodeOptions) Normalize() {
 	o.Storage += o.Volume.Total()
 }
@@ -104,7 +138,7 @@ func (o *AddNodeOptions) Normalize() {
 // SetNodeOptions for node set
 type SetNodeOptions struct {
 	Nodename        string
-	Status          int
+	Status          TriOptions
 	ContainersDown  bool
 	DeltaCPU        CPUMap
 	DeltaMemory     int64
@@ -135,12 +169,24 @@ type ExecuteContainerOptions struct {
 	ReplCmd     []byte
 }
 
-//BindCPUOption for realloc interface
-type BindCPUOptions int
+// ReallocOptions .
+type ReallocOptions struct {
+	IDs         []string
+	CPU         float64
+	Memory      int64
+	Volumes     VolumeBindings
+	BindCPU     TriOptions
+	MemoryLimit TriOptions
+}
+
+// TriOptions .
+type TriOptions int
 
 const (
-	//keep current setting
-	BindCPUOptionKeep BindCPUOptions = iota
-	BindCPUOptionBind
-	BindCPUOptionUnbind
+	// TriKeep .
+	TriKeep = iota
+	// TriTrue .
+	TriTrue
+	// TriFalse .
+	TriFalse
 )

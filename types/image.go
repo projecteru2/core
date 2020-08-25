@@ -12,8 +12,11 @@ type BuildMethod int
 const (
 	// BuildFromSCM must be default method to avoid breaking
 	BuildFromSCM BuildMethod = iota
+	// BuildFromUnknown .
 	BuildFromUnknown
+	// BuildFromRaw .
 	BuildFromRaw
+	// BuildFromExist .
 	BuildFromExist
 )
 

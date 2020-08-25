@@ -6,14 +6,15 @@ import (
 
 	"time"
 
-	"github.com/coreos/etcd/clientv3"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
+	"go.etcd.io/etcd/v3/clientv3"
 )
 
 func NewMercury(t *testing.T) *Mercury {
 	config := types.Config{}
 	config.LockTimeout = 10 * time.Second
+	config.GlobalTimeout = 30 * time.Second
 	config.Etcd = types.EtcdConfig{
 		Machines:   []string{"127.0.0.1:2379"},
 		Prefix:     "/eru-test",

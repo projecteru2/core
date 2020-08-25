@@ -119,9 +119,10 @@ func TestReplaceContainer(t *testing.T) {
 		assert.False(t, r.Remove.Success)
 	}
 	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(ioutil.NopCloser(bytes.NewReader([]byte{})), "", nil)
-	opts.DeployOptions.Data = map[string]*bytes.Reader{}
+	opts.DeployOptions.Data = map[string]types.ReaderManager{}
 	// failed by Stop
 	engine.On("VirtualizationStop", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
+	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
 	ch, err = c.ReplaceContainer(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -133,6 +134,7 @@ func TestReplaceContainer(t *testing.T) {
 	// failed by VirtualizationCreate
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, types.ErrCannotGetEngine).Once()
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
+	store.On("UpdateNodeResource", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
 	ch, err = c.ReplaceContainer(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -155,7 +157,7 @@ func TestReplaceContainer(t *testing.T) {
 		assert.NotNil(t, r.Remove)
 		assert.NotNil(t, r.Create)
 		assert.False(t, r.Remove.Success)
-		assert.True(t, r.Create.Success)
+		assert.Nil(t, r.Create.Error)
 	}
 	store.On("RemoveContainer", mock.Anything, mock.Anything).Return(nil)
 	// succ
@@ -166,6 +168,6 @@ func TestReplaceContainer(t *testing.T) {
 		assert.NotNil(t, r.Remove)
 		assert.NotNil(t, r.Create)
 		assert.True(t, r.Remove.Success)
-		assert.True(t, r.Create.Success)
+		assert.Nil(t, r.Create.Error)
 	}
 }

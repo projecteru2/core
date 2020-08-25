@@ -2,9 +2,9 @@ package systemd
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/csv"
 	"encoding/json"
+	"io"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -18,7 +18,7 @@ type serviceStatus struct {
 	User        string
 }
 
-func newServiceStatus(buf *bytes.Buffer) *serviceStatus {
+func newServiceStatus(buf io.Reader) *serviceStatus {
 	status := map[string]string{}
 	scanner := bufio.NewScanner(buf)
 	for scanner.Scan() {

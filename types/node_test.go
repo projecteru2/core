@@ -123,8 +123,8 @@ func TestVolumePlan(t *testing.T) {
 	assert.Equal(t, plan.IntoVolumeMap(), VolumeMap{"/dir0": 100, "/dir1": 2000})
 
 	literal := map[string]map[string]int64{
-		"AUTO:/data0:rw:100":  map[string]int64{"/dir0": 100},
-		"AUTO:/data1:ro:2000": map[string]int64{"/dir1": 2000},
+		"AUTO:/data0:rw:100":  {"/dir0": 100},
+		"AUTO:/data1:ro:2000": {"/dir1": 2000},
 	}
 	assert.Equal(t, MustToVolumePlan(literal), plan)
 	assert.Equal(t, plan.ToLiteral(), literal)

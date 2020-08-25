@@ -25,17 +25,19 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 		CPUPercents:     map[string]float64{},
 		MemoryPercents:  map[string]float64{},
 		StoragePercents: map[string]float64{},
+		VolumePercents:  map[string]float64{},
 		Verifications:   map[string]bool{},
 		Details:         map[string]string{},
 	}
 	for _, node := range nodes {
-		nodeDetail, err := c.doGetNodeResource(ctx, node)
+		nodeDetail, err := c.doGetNodeResource(ctx, node.Name, false)
 		if err != nil {
 			return nil, err
 		}
 		r.CPUPercents[node.Name] = nodeDetail.CPUPercent
 		r.MemoryPercents[node.Name] = nodeDetail.MemoryPercent
 		r.StoragePercents[node.Name] = nodeDetail.StoragePercent
+		r.VolumePercents[node.Name] = nodeDetail.VolumePercent
 		r.Verifications[node.Name] = nodeDetail.Verification
 		r.Details[node.Name] = strings.Join(nodeDetail.Details, "\n")
 	}
@@ -43,18 +45,13 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 }
 
 // NodeResource check node's container and resource
-func (c *Calcium) NodeResource(ctx context.Context, nodename string) (*types.NodeResource, error) {
-	node, err := c.GetNode(ctx, nodename)
-	if err != nil {
-		return nil, err
-	}
-	nr, err := c.doGetNodeResource(ctx, node)
+func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
+	nr, err := c.doGetNodeResource(ctx, nodename, fix)
 	if err != nil {
 		return nil, err
 	}
 	for _, container := range nr.Containers {
-		_, err := container.Inspect(ctx) // 用于探测节点上容器是否存在
-		if err != nil {
+		if _, err := container.Inspect(ctx); err != nil { // 用于探测节点上容器是否存在
 			nr.Verification = false
 			nr.Details = append(nr.Details, fmt.Sprintf("container %s inspect failed %v \n", container.ID, err))
 			continue
@@ -63,65 +60,99 @@ func (c *Calcium) NodeResource(ctx context.Context, nodename string) (*types.Nod
 	return nr, err
 }
 
-func (c *Calcium) doGetNodeResource(ctx context.Context, node *types.Node) (*types.NodeResource, error) {
-	containers, err := c.ListNodeContainers(ctx, node.Name, nil)
-	if err != nil {
-		return nil, err
-	}
-	nr := &types.NodeResource{
-		Name: node.Name, CPU: node.CPU, MemCap: node.MemCap, StorageCap: node.StorageCap,
-		Containers: containers, Verification: true, Details: []string{},
-	}
-	cpus := 0.0
-	memory := int64(0)
-	storage := int64(0)
-	cpumap := types.CPUMap{}
-	for _, container := range containers {
-		cpus = utils.Round(cpus + container.Quota)
-		memory += container.Memory
-		storage += container.Storage
-		cpumap.Add(container.CPU)
-	}
-	nr.CPUPercent = cpus / float64(len(node.InitCPU))
-	nr.MemoryPercent = float64(memory) / float64(node.InitMemCap)
-	nr.NUMAMemoryPercent = map[string]float64{}
-	nr.VolumePercent = float64(node.VolumeUsed) / float64(node.InitVolume.Total())
-	for nodeID, nmemory := range node.NUMAMemory {
-		if initMemory, ok := node.InitNUMAMemory[nodeID]; ok {
-			nr.NUMAMemoryPercent[nodeID] = float64(nmemory) / float64(initMemory)
+func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
+	var nr *types.NodeResource
+	return nr, c.withNodeLocked(ctx, nodename, func(node *types.Node) error {
+		containers, err := c.ListNodeContainers(ctx, node.Name, nil)
+		if err != nil {
+			return err
 		}
-	}
-	if cpus != node.CPUUsed {
-		nr.Verification = false
-		nr.Details = append(nr.Details, fmt.Sprintf("cpus used record: %f but now: %f", node.CPUUsed, cpus))
-	}
-	node.CPU.Add(cpumap)
-	for i, v := range node.CPU {
-		if node.InitCPU[i] != v {
+		nr = &types.NodeResource{
+			Name: node.Name, CPU: node.CPU, MemCap: node.MemCap, StorageCap: node.StorageCap,
+			Containers: containers, Verification: true, Details: []string{},
+		}
+
+		cpus := 0.0
+		memory := int64(0)
+		storage := int64(0)
+		cpumap := types.CPUMap{}
+		for _, container := range containers {
+			cpus = utils.Round(cpus + container.Quota)
+			memory += container.Memory
+			storage += container.Storage
+			cpumap.Add(container.CPU)
+		}
+		nr.CPUPercent = cpus / float64(len(node.InitCPU))
+		nr.MemoryPercent = float64(memory) / float64(node.InitMemCap)
+		nr.NUMAMemoryPercent = map[string]float64{}
+		nr.VolumePercent = float64(node.VolumeUsed) / float64(node.InitVolume.Total())
+		for nodeID, nmemory := range node.NUMAMemory {
+			if initMemory, ok := node.InitNUMAMemory[nodeID]; ok {
+				nr.NUMAMemoryPercent[nodeID] = float64(nmemory) / float64(initMemory)
+			}
+		}
+		if cpus != node.CPUUsed {
 			nr.Verification = false
-			nr.Details = append(nr.Details, fmt.Sprintf("cpu %s now %d", i, v))
+			nr.Details = append(nr.Details, fmt.Sprintf("cpus used: %f diff: %f", node.CPUUsed, cpus))
 		}
-	}
+		node.CPU.Add(cpumap)
+		for i, v := range node.CPU {
+			if node.InitCPU[i] != v {
+				nr.Verification = false
+				nr.Details = append(nr.Details, fmt.Sprintf("cpu %s diff %d", i, node.InitCPU[i]-v))
+			}
+		}
 
-	if memory+node.MemCap != node.InitMemCap {
-		nr.Verification = false
-		nr.Details = append(nr.Details, fmt.Sprintf("memory now %d", node.InitMemCap-(memory+node.MemCap)))
-	}
-
-	nr.StoragePercent = 0
-	if node.InitStorageCap != 0 {
-		nr.StoragePercent = float64(storage) / float64(node.InitStorageCap)
-		if storage+node.StorageCap != node.InitStorageCap {
+		if memory+node.MemCap != node.InitMemCap {
 			nr.Verification = false
-			nr.Details = append(nr.Details, fmt.Sprintf("storage now %d", node.InitStorageCap-(storage+node.StorageCap)))
+			nr.Details = append(nr.Details, fmt.Sprintf("memory used: %d, diff %d", node.MemCap, node.InitMemCap-(memory+node.MemCap)))
 		}
-	}
 
-	if err := node.Engine.ResourceValidate(ctx, cpus, cpumap, memory, storage); err != nil {
-		nr.Details = append(nr.Details, err.Error())
-	}
+		nr.StoragePercent = 0
+		if node.InitStorageCap != 0 {
+			nr.StoragePercent = float64(storage) / float64(node.InitStorageCap)
+			if storage+node.StorageCap != node.InitStorageCap {
+				nr.Verification = false
+				nr.Details = append(nr.Details, fmt.Sprintf("storage used: %d, diff %d", node.StorageCap, node.InitStorageCap-(storage+node.StorageCap)))
+			}
+		}
 
-	return nr, nil
+		if err := node.Engine.ResourceValidate(ctx, cpus, cpumap, memory, storage); err != nil {
+			nr.Details = append(nr.Details, err.Error())
+		}
+
+		if fix {
+			if err := c.doFixDiffResource(ctx, node, cpus, memory, storage); err != nil {
+				log.Warnf("[doGetNodeResource] fix node resource failed %v", err)
+			}
+		}
+
+		return nil
+	})
+}
+
+func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus float64, memory, storage int64) error {
+	var n *types.Node
+	var err error
+	return utils.Txn(ctx,
+		func(ctx context.Context) error {
+			if n, err = c.GetNode(ctx, node.Name); err != nil {
+				return err
+			}
+			n.CPUUsed = cpus
+			for i, v := range node.CPU {
+				n.CPU[i] += node.InitCPU[i] - v
+			}
+			n.MemCap += node.InitMemCap - (memory + node.MemCap)
+			n.StorageCap += node.InitStorageCap - (storage + node.StorageCap)
+			return nil
+		},
+		func(ctx context.Context) error {
+			return c.store.UpdateNode(ctx, n)
+		},
+		nil,
+		c.config.GlobalTimeout,
+	)
 }
 
 func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions) ([]types.NodeInfo, error) {
@@ -130,7 +161,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 	var nodesInfo []types.NodeInfo
 	var nodeCPUPlans map[string][]types.CPUMap
 	var nodeVolumePlans map[string][]types.VolumePlan
-	if err = c.withNodesLocked(ctx, opts.Podname, opts.Nodename, opts.NodeLabels, false, func(nodes map[string]*types.Node) error {
+	return nodesInfo, c.withNodesLocked(ctx, opts.Podname, opts.Nodename, opts.NodeLabels, false, func(nodes map[string]*types.Node) error {
 		if len(nodes) == 0 {
 			return types.ErrInsufficientNodes
 		}
@@ -196,43 +227,49 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 			return types.ErrInsufficientRes
 		}
 		nodesInfo = nodesInfo[p:]
-		for i, nodeInfo := range nodesInfo {
-			cpuCost := types.CPUMap{}
-			memoryCost := opts.Memory * int64(nodeInfo.Deploy)
-			storageCost := opts.Storage * int64(nodeInfo.Deploy)
-			quotaCost := opts.CPUQuota * float64(nodeInfo.Deploy)
-			volumeCost := types.VolumeMap{}
-
-			if _, ok := nodeCPUPlans[nodeInfo.Name]; ok {
-				cpuList := nodeCPUPlans[nodeInfo.Name][:nodeInfo.Deploy]
-				nodesInfo[i].CPUPlan = cpuList
-				for _, cpu := range cpuList {
-					cpuCost.Add(cpu)
+		track := -1
+		return utils.Txn(
+			ctx,
+			func(ctx context.Context) error {
+				for i, nodeInfo := range nodesInfo {
+					cpuCost, quotaCost, memoryCost, storageCost, volumeCost := calcCost(
+						nodeInfo, opts.Memory, opts.Storage, opts.CPUQuota, nodeCPUPlans, nodeVolumePlans,
+					)
+					if _, ok := nodeCPUPlans[nodeInfo.Name]; ok {
+						nodesInfo[i].CPUPlan = nodeCPUPlans[nodeInfo.Name][:nodeInfo.Deploy]
+					}
+					if _, ok := nodeVolumePlans[nodeInfo.Name]; ok {
+						nodesInfo[i].VolumePlans = nodeVolumePlans[nodeInfo.Name][:nodeInfo.Deploy]
+					}
+					if err = c.store.UpdateNodeResource(ctx, nodes[nodeInfo.Name], cpuCost, quotaCost, memoryCost, storageCost, volumeCost, store.ActionDecr); err != nil {
+						return err // due to ctx lifecircle, this will be interrupted by client
+					}
+					track = i
 				}
-			}
-
-			if _, ok := nodeVolumePlans[nodeInfo.Name]; ok {
-				nodesInfo[i].VolumePlans = nodeVolumePlans[nodeInfo.Name][:nodeInfo.Deploy]
-				for _, volumePlan := range nodesInfo[i].VolumePlans {
-					volumeCost.Add(volumePlan.IntoVolumeMap())
+				return nil
+			},
+			func(ctx context.Context) error {
+				go func() {
+					for _, nodeInfo := range nodesInfo {
+						log.Infof("[allocResource] deploy %d to %s", nodeInfo.Deploy, nodeInfo.Name)
+					}
+				}()
+				return c.doBindProcessStatus(ctx, opts, nodesInfo)
+			},
+			func(ctx context.Context) error {
+				for i := 0; i < track+1; i++ {
+					cpuCost, quotaCost, memoryCost, storageCost, volumeCost := calcCost(
+						nodesInfo[i], opts.Memory, opts.Storage, opts.CPUQuota, nodeCPUPlans, nodeVolumePlans,
+					)
+					if err = c.store.UpdateNodeResource(ctx, nodes[nodesInfo[i].Name], cpuCost, quotaCost, memoryCost, storageCost, volumeCost, store.ActionIncr); err != nil {
+						return err
+					}
 				}
-			}
-
-			if err = c.store.UpdateNodeResource(ctx, nodes[nodeInfo.Name], cpuCost, quotaCost, memoryCost, storageCost, volumeCost, store.ActionDecr); err != nil {
-				return err
-			}
-		}
-		go func() {
-			for _, nodeInfo := range nodesInfo {
-				log.Infof("[allocResource] deploy %d to %s", nodeInfo.Deploy, nodeInfo.Name)
-			}
-		}()
-		return nil
-	}); err != nil {
-		return nil, err
-	}
-
-	return nodesInfo, c.doBindProcessStatus(ctx, opts, nodesInfo)
+				return nil
+			},
+			c.config.GlobalTimeout,
+		)
+	})
 }
 
 func (c *Calcium) doBindProcessStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) error {
@@ -242,4 +279,30 @@ func (c *Calcium) doBindProcessStatus(ctx context.Context, opts *types.DeployOpt
 		}
 	}
 	return nil
+}
+
+func calcCost(
+	nodeInfo types.NodeInfo,
+	memory, storage int64, CPUQuota float64,
+	nodeCPUPlans map[string][]types.CPUMap,
+	nodeVolumePlans map[string][]types.VolumePlan) (types.CPUMap, float64, int64, int64, types.VolumeMap) {
+	cpuCost := types.CPUMap{}
+	memoryCost := memory * int64(nodeInfo.Deploy)
+	storageCost := storage * int64(nodeInfo.Deploy)
+	quotaCost := CPUQuota * float64(nodeInfo.Deploy)
+	volumeCost := types.VolumeMap{}
+
+	if _, ok := nodeCPUPlans[nodeInfo.Name]; ok {
+		for _, cpu := range nodeCPUPlans[nodeInfo.Name][:nodeInfo.Deploy] {
+			cpuCost.Add(cpu)
+		}
+	}
+
+	if _, ok := nodeVolumePlans[nodeInfo.Name]; ok {
+		for _, volumePlan := range nodeVolumePlans[nodeInfo.Name][:nodeInfo.Deploy] {
+			volumeCost.Add(volumePlan.IntoVolumeMap())
+		}
+	}
+
+	return cpuCost, quotaCost, memoryCost, storageCost, volumeCost
 }

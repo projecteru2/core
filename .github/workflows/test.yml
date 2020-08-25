@@ -1,0 +1,19 @@
+name: test
+
+on:
+  push:
+    tags:
+      - '!v*'
+    branches:
+      - '*'
+  pull_request:
+
+jobs:
+  unittests:
+    runs-on: ubuntu-latest
+    container: projecteru2/footstone:latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: unit tests
+        run: make test

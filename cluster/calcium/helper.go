@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"bufio"
 
@@ -22,16 +21,6 @@ var escapeCommand = []byte{0x1d} // 29, ^]
 type window struct {
 	Height uint `json:"Row"`
 	Width  uint `json:"Col"`
-}
-
-// As the name says,
-// blocks until the stream is empty, until we meet EOF
-func ensureReaderClosed(stream io.ReadCloser) {
-	if stream == nil {
-		return
-	}
-	io.Copy(ioutil.Discard, stream)
-	stream.Close()
 }
 
 func execuateInside(ctx context.Context, client engine.API, ID, cmd, user string, env []string, privileged bool) ([]byte, error) {
@@ -109,18 +98,14 @@ func pullImage(ctx context.Context, node *types.Node, image string) error {
 	}
 
 	log.Info("[pullImage] Image not cached, pulling")
-	outStream, err := node.Engine.ImagePull(ctx, image, false)
+	rc, err := node.Engine.ImagePull(ctx, image, false)
+	defer utils.EnsureReaderClosed(rc)
 	if err != nil {
 		log.Errorf("[pullImage] Error during pulling image %s: %v", image, err)
 		return err
 	}
-	ensureReaderClosed(outStream)
 	log.Infof("[pullImage] Done pulling image %s", image)
 	return nil
-}
-
-func makeErrorBuildImageMessage(err error) *types.BuildImageMessage {
-	return &types.BuildImageMessage{Error: err.Error()}
 }
 
 func makeCopyMessage(id, status, name, path string, err error, data io.ReadCloser) *types.CopyMessage {
@@ -170,7 +155,7 @@ func processVirtualizationInStream(
 	inStream io.WriteCloser,
 	inCh <-chan []byte,
 	resizeFunc func(height, width uint) error,
-) <-chan struct{} {
+) <-chan struct{} { // nolint
 	specialPrefixCallback := map[string]func([]byte){
 		string(winchCommand): func(body []byte) {
 			w := &window{}
@@ -182,10 +167,9 @@ func processVirtualizationInStream(
 				log.Errorf("[processVirtualizationInStream] resize window error: %v", err)
 				return
 			}
-			return
 		},
 
-		string(escapeCommand): func(body []byte) {
+		string(escapeCommand): func(_ []byte) {
 			inStream.Close()
 		},
 	}
@@ -193,7 +177,7 @@ func processVirtualizationInStream(
 }
 
 func rawProcessVirtualizationInStream(
-	ctx context.Context,
+	_ context.Context,
 	inStream io.WriteCloser,
 	inCh <-chan []byte,
 	specialPrefixCallback map[string]func([]byte),
@@ -204,8 +188,7 @@ func rawProcessVirtualizationInStream(
 		defer inStream.Close()
 
 		for cmd := range inCh {
-			cmdKey := string(cmd[:1])
-			if f, ok := specialPrefixCallback[cmdKey]; ok {
+			if f, ok := specialPrefixCallback[string(cmd[:1])]; ok {
 				f(cmd[1:])
 				continue
 			}
@@ -220,7 +203,7 @@ func rawProcessVirtualizationInStream(
 }
 
 func processVirtualizationOutStream(
-	ctx context.Context,
+	_ context.Context,
 	outStream io.ReadCloser,
 ) <-chan []byte {
 	outCh := make(chan []byte)
@@ -236,7 +219,32 @@ func processVirtualizationOutStream(
 		if err := scanner.Err(); err != nil {
 			log.Errorf("[processVirtualizationOutStream] failed to read output from output stream: %v", err)
 		}
-		return
 	}()
 	return outCh
+}
+
+func processBuildImageStream(reader io.ReadCloser) chan *types.BuildImageMessage {
+	ch := make(chan *types.BuildImageMessage)
+	go func() {
+		defer close(ch)
+		defer utils.EnsureReaderClosed(reader)
+		decoder := json.NewDecoder(reader)
+		for {
+			message := &types.BuildImageMessage{}
+			err := decoder.Decode(message)
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				malformed := []byte{}
+				_, _ = decoder.Buffered().Read(malformed)
+				log.Errorf("[processBuildImageStream] Decode image message failed %v, buffered: %s", err, string(malformed))
+				message.Error = err.Error()
+				ch <- message
+				break
+			}
+			ch <- message
+		}
+	}()
+	return ch
 }

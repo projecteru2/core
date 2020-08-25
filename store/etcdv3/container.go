@@ -7,11 +7,11 @@ import (
 
 	"context"
 
-	"github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
+	"go.etcd.io/etcd/v3/clientv3"
+	"go.etcd.io/etcd/v3/mvcc/mvccpb"
 )
 
 // AddContainer add a container
@@ -108,7 +108,7 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 	tr3 := tr2.Responses[0].GetResponseTxn()
 	if tr3.Succeeded {
 		oldLeaseID := clientv3.LeaseID(tr3.Responses[0].GetResponseRange().Kvs[0].Lease) // 拿到 status 绑定的 leaseID
-		_, err := m.cliv3.KeepAliveOnce(ctx, clientv3.LeaseID(oldLeaseID))               // 刷新 lease
+		_, err := m.cliv3.KeepAliveOnce(ctx, oldLeaseID)                                 // 刷新 lease
 		return err
 	}
 	return nil
@@ -148,7 +148,7 @@ func (m *Mercury) ListNodeContainers(ctx context.Context, nodename string, label
 	key := fmt.Sprintf(nodeContainersKey, nodename, "")
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix())
 	if err != nil {
-		return []*types.Container{}, err
+		return nil, err
 	}
 
 	containers := []*types.Container{}
@@ -193,12 +193,14 @@ func (m *Mercury) ContainerStatusStream(ctx context.Context, appname, entrypoint
 			for _, ev := range resp.Events {
 				_, _, _, ID := parseStatusKey(string(ev.Kv.Key))
 				msg := &types.ContainerStatus{ID: ID, Delete: ev.Type == clientv3.EventTypeDelete}
-				if container, err := m.GetContainer(ctx, ID); err != nil {
+				container, err := m.GetContainer(ctx, ID)
+				switch {
+				case err != nil:
 					msg.Error = err
-				} else if utils.FilterContainer(container.Labels, labels) {
+				case utils.FilterContainer(container.Labels, labels):
 					log.Debugf("[ContainerStatusStream] container %s status changed", container.ID)
 					msg.Container = container
-				} else {
+				default:
 					continue
 				}
 				ch <- msg
@@ -244,6 +246,8 @@ func (m *Mercury) doGetContainers(ctx context.Context, keys []string) (container
 
 func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*types.Container) ([]*types.Container, error) {
 	nodes := map[string]*types.Node{}
+	nodenames := []string{}
+	nodenameCache := map[string]struct{}{}
 	statusKeys := map[string]string{}
 	for _, container := range containers {
 		appname, entrypoint, _, err := utils.ParseContainerName(container.Name)
@@ -251,14 +255,17 @@ func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*typ
 			return nil, err
 		}
 		statusKeys[container.ID] = filepath.Join(containerStatusPrefix, appname, entrypoint, container.Nodename, container.ID)
-		if _, ok := nodes[container.Nodename]; !ok {
-			node, err := m.GetNode(ctx, container.Nodename)
-			if err != nil {
-				return nil, err
-			}
-			nodes[node.Name] = node
+		if _, ok := nodenameCache[container.Nodename]; !ok {
+			nodenameCache[container.Nodename] = struct{}{}
+			nodenames = append(nodenames, container.Nodename)
 		}
-
+	}
+	ns, err := m.GetNodes(ctx, nodenames)
+	if err != nil {
+		return nil, err
+	}
+	for _, node := range ns {
+		nodes[node.Name] = node
 	}
 
 	for index, container := range containers {
@@ -271,7 +278,6 @@ func (m *Mercury) bindContainersAdditions(ctx context.Context, containers []*typ
 		}
 		kv, err := m.GetOne(ctx, statusKeys[container.ID])
 		if err != nil {
-			// log.Warnf("[bindContainersAdditions] get status err: %v", err)
 			continue
 		}
 		status := &types.StatusMeta{}

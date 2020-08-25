@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
@@ -34,7 +35,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 	case types.BuildFromRaw:
 		return c.buildFromContent(ctx, node, refs, opts.Tar)
 	case types.BuildFromExist:
-		return c.buildFromExist(ctx, node, refs[0], opts.ExistID)
+		return c.buildFromExist(ctx, refs[0], opts.ExistID)
 	default:
 		return nil, errors.New("unknown build type")
 	}
@@ -81,17 +82,20 @@ func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, refs [
 	return c.pushImage(ctx, resp, node, refs)
 }
 
-func (c *Calcium) buildFromExist(ctx context.Context, node *types.Node, ref, existID string) (chan *types.BuildImageMessage, error) {
+func (c *Calcium) buildFromExist(ctx context.Context, ref, existID string) (chan *types.BuildImageMessage, error) {
 	return withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
-		imageID, err := node.Engine.ImageBuildFromExist(ctx, existID, ref)
+		node, err := c.getContainerNode(ctx, existID)
 		if err != nil {
-			message := &types.BuildImageMessage{
-				Error: err.Error(),
-			}
-			message.ErrorDetail.Message = err.Error()
-			ch <- message
+			ch <- buildErrMsg(err)
 			return
 		}
+
+		imageID, err := node.Engine.ImageBuildFromExist(ctx, existID, ref)
+		if err != nil {
+			ch <- buildErrMsg(err)
+			return
+		}
+		go cleanupNodeImages(node, []string{imageID}, c.config.GlobalTimeout)
 		ch <- &types.BuildImageMessage{ID: imageID}
 	}), nil
 }
@@ -133,46 +137,20 @@ func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types
 			log.Infof("[BuildImage] Push image %s", tag)
 			rc, err := node.Engine.ImagePush(ctx, tag)
 			if err != nil {
-				ch <- makeErrorBuildImageMessage(err)
+				ch <- &types.BuildImageMessage{Error: err.Error()}
 				continue
 			}
-			defer rc.Close()
 
-			decoder2 := json.NewDecoder(rc)
-			for {
-				message := &types.BuildImageMessage{}
-				err := decoder2.Decode(message)
-				if err != nil {
-					if err == io.EOF {
-						break
-					}
-					malformed := []byte{}
-					_, _ = decoder2.Buffered().Read(malformed)
-					log.Errorf("[BuildImage] Decode push image message failed %v, buffered: %v", err, malformed)
-					break
-				}
+			for message := range processBuildImageStream(rc) {
 				ch <- message
 			}
 
 			// 无论如何都删掉build机器的
 			// 事实上他不会跟cached pod一样
 			// 一样就砍死
-			go func(tag string) {
-				// context 这里的不应该受到 client 的影响
-				ctx := context.Background()
-				_, err := node.Engine.ImageRemove(ctx, tag, false, true)
-				if err != nil {
-					log.Errorf("[BuildImage] Remove image error: %s", err)
-				}
-				spaceReclaimed, err := node.Engine.ImageBuildCachePrune(ctx, true)
-				if err != nil {
-					log.Errorf("[BuildImage] Remove build image cache error: %s", err)
-				}
-				log.Infof("[BuildImage] Clean cached image and release space %d", spaceReclaimed)
-			}(tag)
-
 			ch <- &types.BuildImageMessage{Stream: fmt.Sprintf("finished %s\n", tag), Status: "finished", Progress: tag}
 		}
+		go cleanupNodeImages(node, tags, c.config.GlobalTimeout)
 	}), nil
 
 }
@@ -184,4 +162,25 @@ func withImageBuiltChannel(f func(chan *types.BuildImageMessage)) chan *types.Bu
 		f(ch)
 	}()
 	return ch
+}
+
+func cleanupNodeImages(node *types.Node, IDs []string, ttl time.Duration) {
+	ctx, cancel := context.WithTimeout(context.Background(), ttl)
+	defer cancel()
+	for _, ID := range IDs {
+		if _, err := node.Engine.ImageRemove(ctx, ID, false, true); err != nil {
+			log.Errorf("[BuildImage] Remove image error: %s", err)
+		}
+	}
+	if spaceReclaimed, err := node.Engine.ImageBuildCachePrune(ctx, true); err != nil {
+		log.Errorf("[BuildImage] Remove build image cache error: %s", err)
+	} else {
+		log.Infof("[BuildImage] Clean cached image and release space %d", spaceReclaimed)
+	}
+}
+
+func buildErrMsg(err error) *types.BuildImageMessage {
+	msg := &types.BuildImageMessage{Error: err.Error()}
+	msg.ErrorDetail.Message = err.Error()
+	return msg
 }

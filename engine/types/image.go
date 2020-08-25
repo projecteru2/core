@@ -1,5 +1,6 @@
 package types
 
+// BuildMethod .
 type BuildMethod int
 
 // Image contain image meta data
@@ -8,6 +9,7 @@ type Image struct {
 	Tags []string
 }
 
+// BuildContentOptions .
 type BuildContentOptions struct {
 	User string
 	UID  int

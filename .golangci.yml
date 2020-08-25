@@ -1,0 +1,67 @@
+run:
+  timeout: 5m
+  tests: false
+  skip-dirs:
+    - vendor
+    - tools
+  modules-download-mode: readonly
+
+linters-settings:
+  maligned:
+    suggest-new: true
+  gocritic:
+    disabled-checks:
+      - captLocal
+
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - deadcode
+    - depguard
+    - dogsled
+    - gochecknoinits
+    - goconst
+    - gocyclo
+    - gofmt
+    - goimports
+    - golint
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - interfacer
+    - misspell
+    - nakedret
+    - nolintlint
+    - rowserrcheck
+    - scopelint
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - varcheck
+    - asciicheck
+    - nestif
+    - errcheck
+    - gocritic
+    #- gocognit
+    #- gomnd
+    #- dupl
+      #Consider this
+      # - godox
+      # - funlen
+      # - lll
+      # - gochecknoglobals
+      # don't enable:
+      # - whitespace
+      # - goerr113
+      # - godot
+      # - maligned
+      # - prealloc
+      # - testpackage
+      # - wsl
+      # - stylecheck

@@ -21,12 +21,13 @@ type Calcium struct {
 	store     store.Store
 	scheduler scheduler.Scheduler
 	source    source.Source
+	watcher   *serviceWatcher
 }
 
 // New returns a new cluster config
-func New(config types.Config, embededStorage bool) (*Calcium, error) {
+func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 	// set store
-	store, err := etcdv3.New(config, embededStorage)
+	store, err := etcdv3.New(config, embeddedStorage)
 	if err != nil {
 		return nil, err
 	}
@@ -42,14 +43,14 @@ func New(config types.Config, embededStorage bool) (*Calcium, error) {
 	scmtype := strings.ToLower(config.Git.SCMType)
 	switch scmtype {
 	case cluster.Gitlab:
-		scm = gitlab.New(config)
+		scm, err = gitlab.New(config)
 	case cluster.Github:
-		scm = github.New(config)
+		scm, err = github.New(config)
 	default:
 		log.Warn("[Calcium] SCM not set, build API disabled")
 	}
 
-	return &Calcium{store: store, config: config, scheduler: scheduler, source: scm}, nil
+	return &Calcium{store: store, config: config, scheduler: scheduler, source: scm, watcher: &serviceWatcher{}}, err
 }
 
 // Finalizer use for defer

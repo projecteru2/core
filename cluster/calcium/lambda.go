@@ -24,9 +24,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		return nil, types.ErrRunAndWaitCountOneWithStdin
 	}
 
-	// 不能让 context 作祟
-	backgroundCtx := context.Background()
-	createChan, err := c.CreateContainer(backgroundCtx, opts)
+	createChan, err := c.CreateContainer(ctx, opts)
 	if err != nil {
 		log.Errorf("[RunAndWait] Create container error %s", err)
 		return nil, err
@@ -35,15 +33,20 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	runMsgCh := make(chan *types.AttachContainerMessage)
 	wg := &sync.WaitGroup{}
 	for message := range createChan {
-		if !message.Success || message.ContainerID == "" {
+		if message.Error != nil || message.ContainerID == "" {
 			log.Errorf("[RunAndWait] Create container failed %s", message.Error)
 			continue
 		}
 
 		lambda := func(message *types.CreateContainerMessage) {
-			defer wg.Done()
-			defer log.Infof("[RunAndWait] Container %s finished and removed", utils.ShortID(message.ContainerID))
-			defer c.doRemoveContainerSync(backgroundCtx, []string{message.ContainerID})
+			defer func() {
+				if err := c.doRemoveContainerSync(context.Background(), []string{message.ContainerID}); err != nil {
+					log.Errorf("[RunAndWait] Remove lambda container failed %v", err)
+				} else {
+					log.Infof("[RunAndWait] Container %s finished and removed", utils.ShortID(message.ContainerID))
+				}
+				wg.Done()
+			}()
 
 			container, err := c.GetContainer(ctx, message.ContainerID)
 			if err != nil {
@@ -89,7 +92,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 
 			exitData := []byte(exitDataPrefix + strconv.Itoa(int(r.Code)))
 			runMsgCh <- &types.AttachContainerMessage{ContainerID: message.ContainerID, Data: exitData}
-			return
 		}
 
 		wg.Add(1)

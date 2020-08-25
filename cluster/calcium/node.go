@@ -3,7 +3,6 @@ package calcium
 import (
 	"context"
 
-	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
 	"github.com/sanity-io/litter"
 	log "github.com/sirupsen/logrus"
@@ -32,28 +31,14 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string) (*types.Node, er
 	return c.store.GetNode(ctx, nodename)
 }
 
-// GetNodes get nodes
-func (c *Calcium) GetNodes(ctx context.Context, podname, nodename string, labels map[string]string, all bool) ([]*types.Node, error) {
-	var ns []*types.Node
-	var err error
-	if nodename != "" {
-		var node *types.Node
-		node, err = c.GetNode(ctx, nodename)
-		ns = []*types.Node{node}
-	} else {
-		ns, err = c.ListPodNodes(ctx, podname, labels, all)
-	}
-	return ns, err
-}
-
 // SetNode set node available or not
-func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) {
+func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) { // nolint
 	var n *types.Node
 	return n, c.withNodeLocked(ctx, opts.Nodename, func(node *types.Node) error {
+		litter.Dump(opts)
 		opts.Normalize(node)
 		n = node
-		litter.Dump(opts)
-		n.Available = (opts.Status == cluster.NodeUp) || (opts.Status == cluster.KeepNodeStatus && n.Available)
+		n.Available = (opts.Status == types.TriTrue) || (opts.Status == types.TriKeep && n.Available)
 		if opts.ContainersDown {
 			containers, err := c.store.ListNodeContainers(ctx, opts.Nodename, nil)
 			if err != nil {
@@ -108,13 +93,15 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		}
 		// update cpu
 		for cpuID, cpuShare := range opts.DeltaCPU {
-			if _, ok := n.CPU[cpuID]; !ok && cpuShare > 0 { // 增加了 CPU
+			_, ok := n.CPU[cpuID]
+			switch {
+			case !ok && cpuShare > 0: // incr CPU
 				n.CPU[cpuID] = cpuShare
 				n.InitCPU[cpuID] = cpuShare
-			} else if ok && cpuShare == 0 { // 删掉 CPU
+			case ok && cpuShare == 0: // decr CPU
 				delete(n.CPU, cpuID)
 				delete(n.InitCPU, cpuID)
-			} else if ok { // 减少份数
+			case ok: // decr share
 				n.CPU[cpuID] += cpuShare
 				n.InitCPU[cpuID] += cpuShare
 				if n.CPU[cpuID] < 0 {
@@ -124,13 +111,15 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		}
 		// update volume
 		for volumeDir, changeCap := range opts.DeltaVolume {
-			if _, ok := n.Volume[volumeDir]; !ok && changeCap > 0 {
+			_, ok := n.Volume[volumeDir]
+			switch {
+			case !ok && changeCap > 0:
 				n.Volume[volumeDir] = changeCap
 				n.InitVolume[volumeDir] = changeCap
-			} else if ok && changeCap == 0 {
+			case ok && changeCap == 0:
 				delete(n.Volume, volumeDir)
 				delete(n.InitVolume, volumeDir)
-			} else if ok {
+			case ok:
 				n.Volume[volumeDir] += changeCap
 				n.InitVolume[volumeDir] += changeCap
 				if n.Volume[volumeDir] < 0 {
@@ -140,4 +129,18 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		}
 		return c.store.UpdateNode(ctx, n)
 	})
+}
+
+// GetNodes get nodes
+func (c *Calcium) getNodes(ctx context.Context, podname, nodename string, labels map[string]string, all bool) ([]*types.Node, error) {
+	var ns []*types.Node
+	var err error
+	if nodename != "" {
+		var node *types.Node
+		node, err = c.GetNode(ctx, nodename)
+		ns = []*types.Node{node}
+	} else {
+		ns, err = c.ListPodNodes(ctx, podname, labels, all)
+	}
+	return ns, err
 }

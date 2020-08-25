@@ -7,25 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestShuffle(t *testing.T) {
-	ns := []types.NodeInfo{
-		types.NodeInfo{
-			Name: "n1",
-		},
-		types.NodeInfo{
-			Name: "n2",
-		},
-		types.NodeInfo{
-			Name: "n3",
-		},
-	}
-	n2 := shuffle(ns)
-	assert.Len(t, ns, len(n2))
-}
-
 func TestScoreSort(t *testing.T) {
 	ns := []types.NodeInfo{
-		types.NodeInfo{
+		{
 			Name: "n1",
 			Usages: map[types.ResourceType]float64{
 				types.ResourceCPU:    0.1,
@@ -33,7 +17,7 @@ func TestScoreSort(t *testing.T) {
 				types.ResourceMemory: 0.4,
 			},
 		},
-		types.NodeInfo{
+		{
 			Name: "n2",
 			Usages: map[types.ResourceType]float64{
 				types.ResourceCPU:    0.3,
@@ -41,7 +25,7 @@ func TestScoreSort(t *testing.T) {
 				types.ResourceMemory: 0.1,
 			},
 		},
-		types.NodeInfo{
+		{
 			Name: "n3",
 			Usages: map[types.ResourceType]float64{
 				types.ResourceCPU:    0.2,

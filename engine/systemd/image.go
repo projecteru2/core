@@ -28,12 +28,12 @@ func (s *SSHClient) ImagesPrune(ctx context.Context) (err error) {
 }
 
 // ImagePull pulls image
-func (s *SSHClient) ImagePull(ctx context.Context, ref string, all bool) (reader io.ReadCloser, err error) {
+func (s *SSHClient) ImagePull(ctx context.Context, ref string, all bool) (rc io.ReadCloser, err error) {
 	return
 }
 
 // ImagePush pushes image
-func (s *SSHClient) ImagePush(ctx context.Context, ref string) (reader io.ReadCloser, err error) {
+func (s *SSHClient) ImagePush(ctx context.Context, ref string) (rc io.ReadCloser, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }

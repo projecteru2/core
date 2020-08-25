@@ -201,3 +201,9 @@ func TestMax(t *testing.T) {
 	assert.Equal(t, 3, Max(1, 2, 3))
 	assert.Equal(t, 4, Max(1, 4, 3))
 }
+
+func TestEnsureReaderClosed(t *testing.T) {
+	EnsureReaderClosed(nil)
+	s := ioutil.NopCloser(bytes.NewBuffer([]byte{10, 10, 10}))
+	EnsureReaderClosed(s)
+}

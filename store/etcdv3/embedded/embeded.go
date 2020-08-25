@@ -1,11 +1,11 @@
-package embeded
+package embedded
 
 import (
 	"testing"
 
-	"github.com/coreos/etcd/clientv3"
+	"go.etcd.io/etcd/v3/clientv3"
 
-	"github.com/coreos/etcd/integration"
+	"go.etcd.io/etcd/v3/integration"
 )
 
 var (
@@ -13,14 +13,14 @@ var (
 	embeddedCluster *integration.ClusterV3
 )
 
-// NewCluster new a embeded cluster
+// NewCluster new a embedded cluster
 func NewCluster() *clientv3.Client {
 	t = &testing.T{}
 	embeddedCluster = integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
 	return embeddedCluster.RandClient()
 }
 
-// TerminateCluster terminate embeded cluster
+// TerminateCluster terminate embedded cluster
 func TerminateCluster() {
 	if embeddedCluster == nil || t == nil {
 		return
