@@ -130,7 +130,12 @@ func (v *Virt) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 s
 
 // NetworkDisconnect disconnects from one network.
 func (v *Virt) NetworkDisconnect(ctx context.Context, network, target string, force bool) (err error) {
-	log.Warnf("NetworkDisconnect does not implement")
+	var req virttypes.DisconnectNetworkReq
+	req.Network = network
+	req.ID = target
+
+	_, err = v.client.DisconnectNetwork(ctx, req)
+
 	return
 }
 
