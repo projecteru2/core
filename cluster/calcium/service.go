@@ -17,14 +17,14 @@ type serviceWatcher struct {
 	subs sync.Map
 }
 
-func (w *serviceWatcher) Start(s store.Store, pushInterval time.Duration) {
+func (w *serviceWatcher) Start(ctx context.Context, s store.Store, pushInterval time.Duration) {
 	w.once.Do(func() {
-		w.start(s, pushInterval)
+		w.start(ctx, s, pushInterval)
 	})
 }
 
-func (w *serviceWatcher) start(s store.Store, pushInterval time.Duration) {
-	ch, err := s.ServiceStatusStream(context.Background())
+func (w *serviceWatcher) start(ctx context.Context, s store.Store, pushInterval time.Duration) {
+	ch, err := s.ServiceStatusStream(ctx)
 	if err != nil {
 		log.Errorf("[WatchServiceStatus] failed to start watch: %v", err)
 		return
@@ -84,7 +84,7 @@ func (w *serviceWatcher) Unsubscribe(id uuid.UUID) {
 // WatchServiceStatus returns chan of available service address
 func (c *Calcium) WatchServiceStatus(ctx context.Context) (<-chan types.ServiceStatus, error) {
 	ch := make(chan types.ServiceStatus)
-	c.watcher.Start(c.store, c.config.GRPCConfig.ServiceDiscoveryPushInterval)
+	c.watcher.Start(ctx, c.store, c.config.GRPCConfig.ServiceDiscoveryPushInterval)
 	id := c.watcher.Subscribe(ch)
 	go func() {
 		<-ctx.Done()
