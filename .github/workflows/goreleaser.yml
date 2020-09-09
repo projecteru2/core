@@ -18,9 +18,6 @@ jobs:
         run: |
           echo "::set-env name=VERSION::$(git describe --tags $(git rev-list --tags --max-count=1))"
 
-      - name: Unshallow
-        run: git fetch --prune --unshallow
-
       - name: Set up Go
         uses: actions/setup-go@v2
         with:

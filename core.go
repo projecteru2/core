@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -46,7 +45,7 @@ func setupLog(l string) error {
 	return nil
 }
 
-func serve() {
+func serve(c *cli.Context) error {
 	config, err := utils.LoadConfig(configPath)
 	if err != nil {
 		log.Fatalf("[main] %v", err)
@@ -70,7 +69,8 @@ func serve() {
 	vibranium := rpc.New(cluster, config, rpcch)
 	s, err := net.Listen("tcp", config.Bind)
 	if err != nil {
-		log.Fatalf("[main] %v", err)
+		log.Errorf("[main] %v", err)
+		return err
 	}
 
 	opts := []grpc.ServerOption{
@@ -90,9 +90,10 @@ func serve() {
 	pb.RegisterCoreRPCServer(grpcServer, vibranium)
 	go func() {
 		if err := grpcServer.Serve(s); err != nil {
-			log.Fatalf("[main] start grpc failed %v", err)
+			log.Errorf("[main] start grpc failed %v", err)
 		}
 	}()
+
 	if config.Profile != "" {
 		http.Handle("/metrics", metrics.Client.ResourceMiddleware(cluster)(promhttp.Handler()))
 		go func() {
@@ -102,10 +103,10 @@ func serve() {
 		}()
 	}
 
-	unregisterService, err := cluster.RegisterService(context.Background())
+	unregisterService, err := cluster.RegisterService(c.Context)
 	if err != nil {
 		log.Errorf("[main] failed to register service: %v", err)
-		return
+		return err
 	}
 	log.Info("[main] Cluster started successfully.")
 
@@ -122,6 +123,7 @@ func serve() {
 	log.Info("[main] Check if cluster still have running tasks.")
 	vibranium.Wait()
 	log.Info("[main] cluster gracefully stopped.")
+	return nil
 }
 
 func main() {
@@ -147,10 +149,6 @@ func main() {
 			Destination: &embeddedStorage,
 		},
 	}
-	app.Action = func(c *cli.Context) error {
-		serve()
-		return nil
-	}
-
+	app.Action = serve
 	_ = app.Run(os.Args)
 }

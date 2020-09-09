@@ -40,9 +40,7 @@ func Txn(ctx context.Context, cond contextFunc, then contextFunc, rollback conte
 			thenCtx, thenCancel = context.WithTimeout(context.Background(), ttl)
 			defer thenCancel()
 		}
-		if then != nil {
-			tnxErr = then(thenCtx)
-		}
+		tnxErr = then(thenCtx)
 	}
 
 	return tnxErr

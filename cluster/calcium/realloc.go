@@ -233,37 +233,42 @@ func (c *Calcium) updateContainersResources(ctx context.Context, ch chan *types.
 }
 
 func (c *Calcium) updateResource(ctx context.Context, node *types.Node, container *types.Container, newResource *enginetypes.VirtualizationResource) error {
-	updateResourceErr := node.Engine.VirtualizationUpdateResource(ctx, container.ID, newResource)
-	if updateResourceErr == nil {
-		oldVolumeSize := container.Volumes.TotalSize()
-		container.CPU = newResource.CPU
-		container.Quota = newResource.Quota
-		container.Memory = newResource.Memory
-		container.Volumes, _ = types.MakeVolumeBindings(newResource.Volumes)
-		container.VolumePlan = types.MustToVolumePlan(newResource.VolumePlan)
-		container.Storage += container.Volumes.TotalSize() - oldVolumeSize
-	} else {
-		log.Errorf("[updateResource] When Realloc container, VirtualizationUpdateResource %s failed %v", container.ID, updateResourceErr)
-	}
-	// 成功失败都需要修改 node 的占用
-	// 成功的话，node 占用为新资源
-	// 失败的话，node 占用为老资源
-	node.CPU.Sub(container.CPU)
-	node.SetCPUUsed(container.Quota, types.IncrUsage)
-	node.Volume.Sub(container.VolumePlan.IntoVolumeMap())
-	node.SetVolumeUsed(container.VolumePlan.IntoVolumeMap().Total(), types.IncrUsage)
-	node.StorageCap -= container.Storage
-	node.MemCap -= container.Memory
-	if nodeID := node.GetNUMANode(container.CPU); nodeID != "" {
-		node.DecrNUMANodeMemory(nodeID, container.Memory)
-	}
-	// 更新 container 元数据
-	// since we don't rollback VirutalUpdateResource, client can't interrupt
-	if err := c.store.UpdateContainer(context.Background(), container); err != nil {
-		log.Errorf("[updateResource] Realloc finish but update container %s failed %v", container.ID, err)
+	var updateErr error
+	if err := utils.Txn(
+		ctx,
+		func(ctx context.Context) error {
+			if updateErr = node.Engine.VirtualizationUpdateResource(ctx, container.ID, newResource); updateErr == nil {
+				oldVolumeSize := container.Volumes.TotalSize()
+				container.CPU = newResource.CPU
+				container.Quota = newResource.Quota
+				container.Memory = newResource.Memory
+				container.Volumes, _ = types.MakeVolumeBindings(newResource.Volumes)
+				container.VolumePlan = types.MustToVolumePlan(newResource.VolumePlan)
+				container.Storage += container.Volumes.TotalSize() - oldVolumeSize
+			}
+			return nil
+		},
+		func(ctx context.Context) error {
+			// 成功失败都需要修改 node 的占用
+			// 成功的话，node 占用为新资源
+			// 失败的话，node 占用为老资源
+			node.CPU.Sub(container.CPU)
+			node.SetCPUUsed(container.Quota, types.IncrUsage)
+			node.Volume.Sub(container.VolumePlan.IntoVolumeMap())
+			node.SetVolumeUsed(container.VolumePlan.IntoVolumeMap().Total(), types.IncrUsage)
+			node.StorageCap -= container.Storage
+			node.MemCap -= container.Memory
+			if nodeID := node.GetNUMANode(container.CPU); nodeID != "" {
+				node.DecrNUMANodeMemory(nodeID, container.Memory)
+			}
+			return c.store.UpdateContainer(ctx, container)
+		},
+		nil,
+		c.config.GlobalTimeout,
+	); err != nil {
 		return err
 	}
-	return updateResourceErr
+	return updateErr
 }
 
 func (c *Calcium) reallocVolume(node *types.Node, containers []*types.Container, vbs types.VolumeBindings) (plans map[*types.Container]types.VolumePlan, err error) {
