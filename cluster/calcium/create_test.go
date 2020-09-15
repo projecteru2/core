@@ -11,6 +11,7 @@ import (
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
 	st "github.com/projecteru2/core/store"
 	storemocks "github.com/projecteru2/core/store/mocks"
+	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -49,11 +50,11 @@ func TestCreateContainerTxn(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	opts := &types.DeployOptions{
-		Count:        2,
-		DeployMethod: "auto",
-		CPUQuota:     1,
-		Image:        "zc:test",
-		Entrypoint:   &types.Entrypoint{},
+		Count:          2,
+		DeployStrategy: strategy.Auto,
+		CPUQuota:       1,
+		Image:          "zc:test",
+		Entrypoint:     &types.Entrypoint{},
 	}
 	store := &storemocks.Store{}
 	scheduler := &schedulermocks.Scheduler{}
@@ -131,15 +132,16 @@ func TestCreateContainerTxn(t *testing.T) {
 		},
 		nil, len(nodes), nil,
 	)
-	scheduler.On("CommonDivision", mock.AnythingOfType("[]types.NodeInfo"), mock.AnythingOfType("int"), mock.AnythingOfType("int"), mock.AnythingOfType("types.ResourceType")).Return(
-		func(nodesInfo []types.NodeInfo, _, _ int, _ types.ResourceType) []types.NodeInfo {
-			for i := range nodesInfo {
-				nodesInfo[i].Deploy = 1
-			}
-			return nodesInfo
-		},
-		nil,
-	)
+	old := strategy.Plans[strategy.Auto]
+	strategy.Plans[strategy.Auto] = func(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+		for i := range nodesInfo {
+			nodesInfo[i].Deploy = 1
+		}
+		return nodesInfo, nil
+	}
+	defer func() {
+		strategy.Plans[strategy.Auto] = old
+	}()
 	store.On("UpdateNodeResource",
 		mock.AnythingOfType("*context.timerCtx"),
 		mock.AnythingOfType("*types.Node"),

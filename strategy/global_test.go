@@ -1,4 +1,4 @@
-package complexscheduler
+package strategy
 
 import (
 	"testing"
@@ -8,7 +8,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-func TestGlobalDivisionPlan1(t *testing.T) {
+func TestGlobalPlan1(t *testing.T) {
 	n1 := types.NodeInfo{
 		Name: "n1",
 		Usages: map[types.ResourceType]float64{
@@ -46,12 +46,12 @@ func TestGlobalDivisionPlan1(t *testing.T) {
 		Capacity: 1,
 	}
 	arg := []types.NodeInfo{n3, n2, n1}
-	r, err := GlobalDivisionPlan(arg, 3, types.ResourceAll)
+	r, err := GlobalPlan(arg, 3, 100, types.ResourceAll)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 1)
 }
 
-func TestGlobalDivisionPlan2(t *testing.T) {
+func TestGlobalPlan2(t *testing.T) {
 	n1 := types.NodeInfo{
 		Name: "n1",
 		Usages: map[types.ResourceType]float64{
@@ -77,12 +77,12 @@ func TestGlobalDivisionPlan2(t *testing.T) {
 		Capacity: 100,
 	}
 	arg := []types.NodeInfo{n2, n1}
-	r, err := GlobalDivisionPlan(arg, 2, types.ResourceAll)
+	r, err := GlobalPlan(arg, 2, 100, types.ResourceAll)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 2)
 }
 
-func TestGlobalDivisionPlan3(t *testing.T) {
+func TestGlobalPlan3(t *testing.T) {
 	n1 := types.NodeInfo{
 		Name: "n1",
 		Usages: map[types.ResourceType]float64{
@@ -96,7 +96,29 @@ func TestGlobalDivisionPlan3(t *testing.T) {
 		Capacity: 100,
 	}
 
-	r, err := GlobalDivisionPlan([]types.NodeInfo{n1}, 1, types.ResourceMemory)
+	r, err := GlobalPlan([]types.NodeInfo{n1}, 1, 100, types.ResourceMemory)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 1)
+}
+
+func TestGlobal3(t *testing.T) {
+	_, err := GlobalPlan([]types.NodeInfo{}, 10, 1, types.ResourceAll)
+	assert.Error(t, err)
+	nodeInfo := types.NodeInfo{
+		Name: "n1",
+		Usages: map[types.ResourceType]float64{
+			types.ResourceCPU:    0.7,
+			types.ResourceMemory: 0.3,
+		},
+		Rates: map[types.ResourceType]float64{
+			types.ResourceCPU:    0.1,
+			types.ResourceMemory: 0.2,
+		},
+		Capacity: 100,
+		Count:    21,
+		Deploy:   0,
+	}
+	r, err := GlobalPlan([]types.NodeInfo{nodeInfo}, 10, 100, types.ResourceAll)
+	assert.NoError(t, err)
+	assert.Equal(t, r[0].Deploy, 10)
 }

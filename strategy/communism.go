@@ -1,14 +1,20 @@
-package complexscheduler
+package strategy
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 )
 
-// CommunismDivisionPlan 吃我一记共产主义大锅饭
-func CommunismDivisionPlan(arg []types.NodeInfo, need int) ([]types.NodeInfo, error) {
+// CommunismPlan 吃我一记共产主义大锅饭
+// 部署完 N 个后全局尽可能平均
+func CommunismPlan(arg []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+	if total < need {
+		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
+			fmt.Sprintf("need: %d, vol: %d", need, total))
+	}
 	sort.Slice(arg, func(i, j int) bool { return arg[i].Count < arg[j].Count })
 	length := len(arg)
 
@@ -41,6 +47,6 @@ func CommunismDivisionPlan(arg []types.NodeInfo, need int) ([]types.NodeInfo, er
 	}
 	// 这里 need 一定会为 0 出来，因为 volTotal 保证了一定大于 need
 	// 这里并不需要再次排序了，理论上的排序是基于 Count 得到的 Deploy 最终方案
-	log.Debugf("[CommunismDivisionPlan] nodesInfo: %v", arg)
+	log.Debugf("[CommunismPlan] nodesInfo: %v", arg)
 	return arg, nil
 }

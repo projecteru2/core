@@ -8,8 +8,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/store"
+	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -202,20 +202,10 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 			}
 		}
 		resourceType := types.GetResourceType(opts.CPUBind, volumeSchedule)
-
-		switch opts.DeployMethod {
-		case cluster.DeployAuto:
-			nodesInfo, err = c.scheduler.CommonDivision(nodesInfo, opts.Count, total, resourceType)
-		case cluster.DeployEach:
-			nodesInfo, err = c.scheduler.EachDivision(nodesInfo, opts.Count, opts.NodesLimit, resourceType)
-		case cluster.DeployFill:
-			nodesInfo, err = c.scheduler.FillDivision(nodesInfo, opts.Count, opts.NodesLimit, resourceType)
-		case cluster.DeployGlobal:
-			nodesInfo, err = c.scheduler.GlobalDivision(nodesInfo, opts.Count, total, resourceType)
-		default:
-			return types.ErrBadDeployMethod
-		}
-		if err != nil {
+		// deploy strategy
+		if deployMethod, ok := strategy.Plans[opts.DeployStrategy]; !ok {
+			return types.ErrBadDeployStrategy
+		} else if nodesInfo, err = deployMethod(nodesInfo, opts.Count, total, resourceType); err != nil {
 			return err
 		}
 
