@@ -207,3 +207,8 @@ func TestEnsureReaderClosed(t *testing.T) {
 	s := ioutil.NopCloser(bytes.NewBuffer([]byte{10, 10, 10}))
 	EnsureReaderClosed(s)
 }
+
+func TestGenerateNodes(t *testing.T) {
+	ns := GenerateNodes(1, 10, 1000, 1000, 100)
+	assert.Len(t, ns, 1)
+}

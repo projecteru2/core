@@ -254,6 +254,13 @@ enum TriOpt {
     FALSE = 2;
 }
 
+enum DeployStrategy {
+    AUTO = 0;
+    FILL = 1;
+    EACH = 2;
+    GLOBAL = 3;
+}
+
 message ReallocOptions {
     repeated string ids = 1;
     double cpu = 2;
@@ -402,7 +409,7 @@ message DeployOptions {
     bool openStdin = 18;
     map<string, string> labels = 19;
     map<string, string> nodelabels = 20;
-    string deploy_method = 21;
+    DeployStrategy deploy_strategy = 21;
     map<string, bytes> data = 22;
     bool soft_limit = 23;
     int32 nodes_limit = 24;

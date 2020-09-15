@@ -18,14 +18,6 @@ const (
 	CopyOK = "ok"
 	// CPUPeriodBase for cpu period base
 	CPUPeriodBase = 100000
-	// DeployAuto for auto deploy plan
-	DeployAuto = "auto"
-	// DeployEach for each node plan
-	DeployEach = "each"
-	// DeployFill for fill node plan
-	DeployFill = "fill"
-	// DeployGlobal for global node resource plan
-	DeployGlobal = "global"
 	// ERUMark mark container controlled by eru
 	ERUMark = "ERU"
 	// LabelMeta store publish and health things

@@ -1,69 +1,45 @@
-package complexscheduler
+package strategy
 
 import (
 	"math/rand"
 	"testing"
 
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	"github.com/stretchr/testify/assert"
 )
 
-func deployedNodes() []types.NodeInfo {
-	return []types.NodeInfo{
-		{
-			Name:     "n1",
-			Capacity: 10,
-			Count:    2,
-		},
-		{
-			Name:     "n2",
-			Capacity: 10,
-			Count:    3,
-		},
-		{
-			Name:     "n3",
-			Capacity: 10,
-			Count:    5,
-		},
-		{
-			Name:     "n4",
-			Capacity: 10,
-			Count:    7,
-		},
-	}
-}
-
-func TestCommunismDivisionPlan(t *testing.T) {
+func TestCommunismPlan(t *testing.T) {
 	nodes := deployedNodes()
-	r, err := CommunismDivisionPlan(nodes, 1)
+	r, err := CommunismPlan(nodes, 1, 100, types.ResourceAll)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 1)
 	nodes = deployedNodes()
-	r, err = CommunismDivisionPlan(nodes, 2)
+	r, err = CommunismPlan(nodes, 2, 100, types.ResourceAll)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 2)
 	nodes = deployedNodes()
-	r, err = CommunismDivisionPlan(nodes, 3)
+	r, err = CommunismPlan(nodes, 3, 100, types.ResourceAll)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 2)
 	assert.Equal(t, r[1].Deploy, 1)
 	nodes = deployedNodes()
-	r, err = CommunismDivisionPlan(nodes, 4)
+	r, err = CommunismPlan(nodes, 4, 100, types.ResourceAll)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 3)
 	assert.Equal(t, r[1].Deploy, 1)
 	nodes = deployedNodes()
-	r, err = CommunismDivisionPlan(nodes, 29)
+	r, err = CommunismPlan(nodes, 29, 100, types.ResourceAll)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 10)
 	assert.Equal(t, r[1].Deploy, 9)
 	assert.Equal(t, r[2].Deploy, 6)
 	assert.Equal(t, r[3].Deploy, 4)
 	nodes = deployedNodes()
-	r, err = CommunismDivisionPlan(nodes, 37)
+	r, err = CommunismPlan(nodes, 37, 100, types.ResourceAll)
 	assert.NoError(t, err)
 	nodes = deployedNodes()
-	r, err = CommunismDivisionPlan(nodes, 40)
+	r, err = CommunismPlan(nodes, 40, 100, types.ResourceAll)
 	assert.NoError(t, err)
 }
 
@@ -78,7 +54,7 @@ func randomDeployStatus(nodesInfo []types.NodeInfo, maxDeployed int) []types.Nod
 	return nodesInfo
 }
 
-func Benchmark_CommunismDivisionPlan(b *testing.B) {
+func Benchmark_CommunismPlan(b *testing.B) {
 	b.StopTimer()
 	var count = 10000
 	var maxDeployed = 1024
@@ -88,10 +64,10 @@ func Benchmark_CommunismDivisionPlan(b *testing.B) {
 	// and then we deploy `need` containers
 	for i := 0; i < b.N; i++ {
 		// 24 core, 128G memory, 10 pieces per core
-		hugePod := generateNodes(count, 1, 1, 0, 10)
+		hugePod := utils.GenerateNodes(count, 1, 1, 0, 10)
 		hugePod = randomDeployStatus(hugePod, maxDeployed)
 		b.StartTimer()
-		_, err := CommunismDivisionPlan(hugePod, need)
+		_, err := CommunismPlan(hugePod, need, 100, types.ResourceAll)
 		b.StopTimer()
 		assert.NoError(b, err)
 	}

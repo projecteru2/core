@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -19,8 +19,8 @@ const exitDataPrefix = "[exitcode] "
 func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) (<-chan *types.AttachContainerMessage, error) {
 	opts.Lambda = true
 	// count = 1 && OpenStdin
-	if opts.OpenStdin && (opts.Count != 1 || opts.DeployMethod != cluster.DeployAuto) {
-		log.Errorf("Count %d method %s", opts.Count, opts.DeployMethod)
+	if opts.OpenStdin && (opts.Count != 1 || opts.DeployStrategy != strategy.Auto) {
+		log.Errorf("Count %d method %s", opts.Count, opts.DeployStrategy)
 		return nil, types.ErrRunAndWaitCountOneWithStdin
 	}
 

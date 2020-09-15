@@ -1,4 +1,4 @@
-package complexscheduler
+package strategy
 
 import (
 	"fmt"
@@ -9,6 +9,8 @@ import (
 )
 
 // FillPlan deploy container each node
+// 根据之前部署的策略每一台补充到 N 个，超过 N 个忽略
+// need 是每台上限, limit 是限制节点数
 func FillPlan(nodesInfo []types.NodeInfo, need, limit int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
 	log.Debugf("[FillPlan] need %d limit %d", need, limit)
 	nodesInfoLength := len(nodesInfo)

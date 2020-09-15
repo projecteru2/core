@@ -8,7 +8,9 @@ import (
 	"math"
 
 	"github.com/docker/go-units"
+	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,26 +37,7 @@ func newPotassium() (*Potassium, error) {
 }
 
 func generateNodes(nums, cores int, memory, storage int64, shares int) []types.NodeInfo {
-	var name string
-	nodes := []types.NodeInfo{}
-
-	for i := 0; i < nums; i++ {
-		name = fmt.Sprintf("n%d", i)
-
-		cpumap := types.CPUMap{}
-		for j := 0; j < cores; j++ {
-			coreName := fmt.Sprintf("%d", j)
-			cpumap[coreName] = int64(shares)
-		}
-		nodeInfo := types.NodeInfo{
-			CPUMap:     cpumap,
-			MemCap:     memory,
-			StorageCap: storage,
-			Name:       name,
-		}
-		nodes = append(nodes, nodeInfo)
-	}
-	return nodes
+	return utils.GenerateNodes(nums, cores, memory, storage, shares)
 }
 
 func getNodesCapacity(nodes []types.NodeInfo, cpu float64, shares, maxshare int) int {
@@ -195,9 +178,9 @@ func SelectCPUNodes(k *Potassium, nodesInfo []types.NodeInfo, quota float64, mem
 	}
 
 	if each {
-		nodesInfo, err = k.EachDivision(nodesInfo, need, 0, types.ResourceAll)
+		nodesInfo, err = strategy.AveragePlan(nodesInfo, need, 0, types.ResourceAll)
 	} else {
-		nodesInfo, err = k.CommonDivision(nodesInfo, need, total, types.ResourceAll)
+		nodesInfo, err = strategy.CommunismPlan(nodesInfo, need, total, types.ResourceAll)
 	}
 
 	if err != nil {
@@ -229,9 +212,9 @@ func SelectMemoryNodes(k *Potassium, nodesInfo []types.NodeInfo, rate float64, m
 	}
 	// Make deploy plan
 	if each {
-		nodesInfo, err = k.EachDivision(nodesInfo, need, 0, types.ResourceAll)
+		nodesInfo, err = strategy.AveragePlan(nodesInfo, need, 0, types.ResourceAll)
 	} else {
-		nodesInfo, err = k.CommonDivision(nodesInfo, need, total, types.ResourceAll)
+		nodesInfo, err = strategy.CommunismPlan(nodesInfo, need, total, types.ResourceAll)
 	}
 	return nodesInfo, err
 }
@@ -943,29 +926,6 @@ func TestMaxIdleNode(t *testing.T) {
 	assert.Equal(t, node.Name, n2.Name)
 }
 
-func TestGlobalDivision(t *testing.T) {
-	k, _ := newPotassium()
-	_, err := k.GlobalDivision([]types.NodeInfo{}, 10, 1, types.ResourceAll)
-	assert.Error(t, err)
-	nodeInfo := types.NodeInfo{
-		Name: "n1",
-		Usages: map[types.ResourceType]float64{
-			types.ResourceCPU:    0.7,
-			types.ResourceMemory: 0.3,
-		},
-		Rates: map[types.ResourceType]float64{
-			types.ResourceCPU:    0.1,
-			types.ResourceMemory: 0.2,
-		},
-		Capacity: 100,
-		Count:    21,
-		Deploy:   0,
-	}
-	r, err := k.GlobalDivision([]types.NodeInfo{nodeInfo}, 10, 100, types.ResourceAll)
-	assert.NoError(t, err)
-	assert.Equal(t, r[0].Deploy, 10)
-}
-
 func TestSelectStorageNodesMultipleDeployedPerNode(t *testing.T) {
 	k, _ := newPotassium()
 	emptyNode := []types.NodeInfo{}
@@ -1187,9 +1147,9 @@ func SelectStorageNodes(k *Potassium, nodesInfo []types.NodeInfo, storage int64,
 	case err != nil:
 		return nil, err
 	case each:
-		return k.EachDivision(nodesInfo, need, 0, types.ResourceAll)
+		return strategy.AveragePlan(nodesInfo, need, 0, types.ResourceAll)
 	default:
-		return k.CommonDivision(nodesInfo, need, total, types.ResourceAll)
+		return strategy.CommunismPlan(nodesInfo, need, total, types.ResourceAll)
 	}
 }
 
@@ -1200,9 +1160,9 @@ func SelectVolumeNodes(k *Potassium, nodesInfo []types.NodeInfo, volumes []strin
 	}
 
 	if each {
-		nodesInfo, err = k.EachDivision(nodesInfo, need, 0, types.ResourceAll)
+		nodesInfo, err = strategy.AveragePlan(nodesInfo, need, 0, types.ResourceAll)
 	} else {
-		nodesInfo, err = k.CommonDivision(nodesInfo, need, total, types.ResourceAll)
+		nodesInfo, err = strategy.CommunismPlan(nodesInfo, need, total, types.ResourceAll)
 	}
 
 	if err != nil {

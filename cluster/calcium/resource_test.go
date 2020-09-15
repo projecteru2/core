@@ -12,11 +12,11 @@ import (
 
 	"time"
 
-	"github.com/projecteru2/core/cluster"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
+	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 )
 
@@ -240,8 +240,14 @@ func TestAllocResource(t *testing.T) {
 	testAllocFailedAsFillDivisionError(t, c, opts)
 
 	// Mocks for all.
-	opts.DeployMethod = cluster.DeployFill
-	sched.On("FillDivision", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, nil)
+	opts.DeployStrategy = strategy.Fill
+	oldFillFunc := strategy.Plans[strategy.Fill]
+	strategy.Plans[strategy.Fill] = func(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+		return nodesInfo, nil
+	}
+	defer func() {
+		strategy.Plans[strategy.Fill] = oldFillFunc
+	}()
 
 	testAllocFailedAsUpdateNodeResourceError(t, c, opts)
 	store.On("UpdateNodeResource",
@@ -333,64 +339,74 @@ func testAllocFailedAsInsufficientCPU(t *testing.T, c *Calcium, opts *types.Depl
 }
 
 func testAllocFailedAsWrongDeployMethod(t *testing.T, c *Calcium, opts *types.DeployOptions) {
-	ori := opts.DeployMethod
+	ori := opts.DeployStrategy
 	defer func() {
-		opts.DeployMethod = ori
+		opts.DeployStrategy = ori
 	}()
 
-	opts.DeployMethod = "invalid"
+	opts.DeployStrategy = "invalid"
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)
 }
 
 func testAllocFailedAsCommonDivisionError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
-	ori := opts.DeployMethod
+	ori := opts.DeployStrategy
+	opts.DeployStrategy = strategy.Auto
+	old := strategy.Plans[strategy.Auto]
+	strategy.Plans[strategy.Auto] = func(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+		return nil, types.ErrInsufficientRes
+	}
 	defer func() {
-		opts.DeployMethod = ori
+		opts.DeployStrategy = ori
+		strategy.Plans[strategy.Auto] = old
 	}()
 
-	opts.DeployMethod = cluster.DeployAuto
-	sched := c.scheduler.(*schedulermocks.Scheduler)
-	sched.On("CommonDivision", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInsufficientRes).Once()
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)
 }
 
 func testAllocFailedAsGlobalDivisionError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
-	ori := opts.DeployMethod
+	ori := opts.DeployStrategy
+	opts.DeployStrategy = strategy.Global
+	old := strategy.Plans[strategy.Global]
+	strategy.Plans[strategy.Global] = func(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+		return nil, types.ErrInsufficientRes
+	}
 	defer func() {
-		opts.DeployMethod = ori
+		opts.DeployStrategy = ori
+		strategy.Plans[strategy.Global] = old
 	}()
 
-	opts.DeployMethod = cluster.DeployGlobal
-	sched := c.scheduler.(*schedulermocks.Scheduler)
-	sched.On("GlobalDivision", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInsufficientRes)
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)
 }
 
 func testAllocFailedAsEachDivisionError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
-	ori := opts.DeployMethod
+	ori := opts.DeployStrategy
+	opts.DeployStrategy = strategy.Each
+	old := strategy.Plans[strategy.Each]
+	strategy.Plans[strategy.Each] = func(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+		return nil, types.ErrInsufficientRes
+	}
 	defer func() {
-		opts.DeployMethod = ori
+		opts.DeployStrategy = ori
+		strategy.Plans[strategy.Each] = old
 	}()
-
-	opts.DeployMethod = cluster.DeployEach
-	sched := c.scheduler.(*schedulermocks.Scheduler)
-	sched.On("EachDivision", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrInsufficientRes)
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)
 }
 
 func testAllocFailedAsFillDivisionError(t *testing.T, c *Calcium, opts *types.DeployOptions) {
-	ori := opts.DeployMethod
+	ori := opts.DeployStrategy
+	opts.DeployStrategy = strategy.Fill
+	old := strategy.Plans[strategy.Fill]
+	strategy.Plans[strategy.Fill] = func(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+		return nil, types.ErrInsufficientRes
+	}
 	defer func() {
-		opts.DeployMethod = ori
+		opts.DeployStrategy = ori
+		strategy.Plans[strategy.Fill] = old
 	}()
-
-	opts.DeployMethod = cluster.DeployFill
-	sched := c.scheduler.(*schedulermocks.Scheduler)
-	sched.On("FillDivision", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]types.NodeInfo{}, nil).Once()
 	_, err := c.doAllocResource(context.Background(), opts)
 	assert.Error(t, err)
 }

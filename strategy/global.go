@@ -1,13 +1,20 @@
-package complexscheduler
+package strategy
 
 import (
+	"fmt"
+
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-// GlobalDivisionPlan 基于全局资源配额
-func GlobalDivisionPlan(nodesInfo []types.NodeInfo, need int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+// GlobalPlan 基于全局资源配额
+// 尽量使得资源消耗平均
+func GlobalPlan(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+	if total < need {
+		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
+			fmt.Sprintf("need: %d, vol: %d", need, total))
+	}
 	nodesInfo = scoreSort(nodesInfo, resourceType)
 	length := len(nodesInfo)
 	i := 0
@@ -43,6 +50,6 @@ func GlobalDivisionPlan(nodesInfo []types.NodeInfo, need int, resourceType types
 	}
 	// 这里 need 一定会为 0 出来，因为 volTotal 保证了一定大于 need
 	// 这里并不需要再次排序了，理论上的排序是基于资源使用率得到的 Deploy 最终方案
-	log.Debugf("[GlobalDivisionPlan] resource: %v, nodesInfo: %v", resourceType, nodesInfo)
+	log.Debugf("[GlobalPlan] resource: %v, nodesInfo: %v", resourceType, nodesInfo)
 	return nodesInfo, nil
 }

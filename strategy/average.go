@@ -1,4 +1,4 @@
-package complexscheduler
+package strategy
 
 import (
 	"fmt"
@@ -9,6 +9,8 @@ import (
 )
 
 // AveragePlan deploy container each node
+// 容量够的机器每一台部署 N 个
+// need 是每台机器所需总量，limit 是限制节点数
 func AveragePlan(nodesInfo []types.NodeInfo, need, limit int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
 	log.Debugf("[AveragePlan] need %d limit %d", need, limit)
 	nodesInfoLength := len(nodesInfo)

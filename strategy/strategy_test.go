@@ -1,4 +1,4 @@
-package complexscheduler
+package strategy
 
 import (
 	"testing"
@@ -6,6 +6,31 @@ import (
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 )
+
+func deployedNodes() []types.NodeInfo {
+	return []types.NodeInfo{
+		{
+			Name:     "n1",
+			Capacity: 10,
+			Count:    2,
+		},
+		{
+			Name:     "n2",
+			Capacity: 10,
+			Count:    3,
+		},
+		{
+			Name:     "n3",
+			Capacity: 10,
+			Count:    5,
+		},
+		{
+			Name:     "n4",
+			Capacity: 10,
+			Count:    7,
+		},
+	}
+}
 
 func TestScoreSort(t *testing.T) {
 	ns := []types.NodeInfo{
