@@ -205,7 +205,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 		// deploy strategy
 		if deployMethod, ok := strategy.Plans[opts.DeployStrategy]; !ok {
 			return types.ErrBadDeployStrategy
-		} else if nodesInfo, err = deployMethod(nodesInfo, opts.Count, total, resourceType); err != nil {
+		} else if nodesInfo, err = deployMethod(nodesInfo, opts.Count, total, opts.NodesLimit, resourceType); err != nil {
 			return err
 		}
 

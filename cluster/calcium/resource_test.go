@@ -242,7 +242,7 @@ func TestAllocResource(t *testing.T) {
 	// Mocks for all.
 	opts.DeployStrategy = strategy.Fill
 	oldFillFunc := strategy.Plans[strategy.Fill]
-	strategy.Plans[strategy.Fill] = func(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+	strategy.Plans[strategy.Fill] = func(nodesInfo []types.NodeInfo, need, _, limit int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
 		return nodesInfo, nil
 	}
 	defer func() {
@@ -353,7 +353,7 @@ func testAllocFailedAsCommonDivisionError(t *testing.T, c *Calcium, opts *types.
 	ori := opts.DeployStrategy
 	opts.DeployStrategy = strategy.Auto
 	old := strategy.Plans[strategy.Auto]
-	strategy.Plans[strategy.Auto] = func(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+	strategy.Plans[strategy.Auto] = func(nodesInfo []types.NodeInfo, need, total, _ int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
 		return nil, types.ErrInsufficientRes
 	}
 	defer func() {
@@ -369,7 +369,7 @@ func testAllocFailedAsGlobalDivisionError(t *testing.T, c *Calcium, opts *types.
 	ori := opts.DeployStrategy
 	opts.DeployStrategy = strategy.Global
 	old := strategy.Plans[strategy.Global]
-	strategy.Plans[strategy.Global] = func(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+	strategy.Plans[strategy.Global] = func(nodesInfo []types.NodeInfo, need, total, _ int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
 		return nil, types.ErrInsufficientRes
 	}
 	defer func() {
@@ -385,7 +385,7 @@ func testAllocFailedAsEachDivisionError(t *testing.T, c *Calcium, opts *types.De
 	ori := opts.DeployStrategy
 	opts.DeployStrategy = strategy.Each
 	old := strategy.Plans[strategy.Each]
-	strategy.Plans[strategy.Each] = func(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+	strategy.Plans[strategy.Each] = func(nodesInfo []types.NodeInfo, need, _, limit int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
 		return nil, types.ErrInsufficientRes
 	}
 	defer func() {
@@ -400,7 +400,7 @@ func testAllocFailedAsFillDivisionError(t *testing.T, c *Calcium, opts *types.De
 	ori := opts.DeployStrategy
 	opts.DeployStrategy = strategy.Fill
 	old := strategy.Plans[strategy.Fill]
-	strategy.Plans[strategy.Fill] = func(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+	strategy.Plans[strategy.Fill] = func(nodesInfo []types.NodeInfo, need, _, limit int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
 		return nil, types.ErrInsufficientRes
 	}
 	defer func() {

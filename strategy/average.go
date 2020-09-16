@@ -11,12 +11,12 @@ import (
 // AveragePlan deploy container each node
 // 容量够的机器每一台部署 N 个
 // need 是每台机器所需总量，limit 是限制节点数
-func AveragePlan(nodesInfo []types.NodeInfo, need, limit int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+func AveragePlan(nodesInfo []types.NodeInfo, need, total, limit int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
 	log.Debugf("[AveragePlan] need %d limit %d", need, limit)
 	nodesInfoLength := len(nodesInfo)
 	if nodesInfoLength < limit {
 		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
-			fmt.Sprintf("node len %d cannot alloc an average node plan", nodesInfoLength))
+			fmt.Sprintf("node len %d < limit, cannot alloc an average node plan", nodesInfoLength))
 	}
 	sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Capacity < nodesInfo[j].Capacity })
 	p := sort.Search(nodesInfoLength, func(i int) bool { return nodesInfo[i].Capacity >= need })

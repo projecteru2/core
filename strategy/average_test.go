@@ -14,7 +14,7 @@ func TestAveragePlan(t *testing.T) {
 	for i := range nodes {
 		originCap = append(originCap, nodes[i].Capacity)
 	}
-	r, err := AveragePlan(nodes, 1, 0, types.ResourceAll)
+	r, err := AveragePlan(nodes, 1, 0, 0, types.ResourceAll)
 	assert.NoError(t, err)
 	for i := range r {
 		assert.Equal(t, r[i].Deploy, 1)
@@ -22,15 +22,15 @@ func TestAveragePlan(t *testing.T) {
 	}
 	// nodes len < limit
 	nodes = deployedNodes()
-	_, err = AveragePlan(nodes, 100, 5, types.ResourceAll)
+	_, err = AveragePlan(nodes, 100, 0, 5, types.ResourceAll)
 	assert.Error(t, err)
 	// 超过 cap
 	nodes = deployedNodes()
-	_, err = AveragePlan(nodes, 100, 0, types.ResourceAll)
+	_, err = AveragePlan(nodes, 100, 0, 0, types.ResourceAll)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not enough capacity")
 	// 正常 limit
 	nodes = deployedNodes()
-	_, err = AveragePlan(nodes, 1, 1, types.ResourceAll)
+	_, err = AveragePlan(nodes, 1, 1, 1, types.ResourceAll)
 	assert.NoError(t, err)
 }

@@ -133,7 +133,7 @@ func TestCreateContainerTxn(t *testing.T) {
 		nil, len(nodes), nil,
 	)
 	old := strategy.Plans[strategy.Auto]
-	strategy.Plans[strategy.Auto] = func(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+	strategy.Plans[strategy.Auto] = func(nodesInfo []types.NodeInfo, need, total, _ int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
 		for i := range nodesInfo {
 			nodesInfo[i].Deploy = 1
 		}

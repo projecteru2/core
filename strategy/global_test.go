@@ -46,7 +46,7 @@ func TestGlobalPlan1(t *testing.T) {
 		Capacity: 1,
 	}
 	arg := []types.NodeInfo{n3, n2, n1}
-	r, err := GlobalPlan(arg, 3, 100, types.ResourceAll)
+	r, err := GlobalPlan(arg, 3, 100, 0, types.ResourceAll)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 1)
 }
@@ -77,7 +77,7 @@ func TestGlobalPlan2(t *testing.T) {
 		Capacity: 100,
 	}
 	arg := []types.NodeInfo{n2, n1}
-	r, err := GlobalPlan(arg, 2, 100, types.ResourceAll)
+	r, err := GlobalPlan(arg, 2, 100, 0, types.ResourceAll)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 2)
 }
@@ -96,13 +96,13 @@ func TestGlobalPlan3(t *testing.T) {
 		Capacity: 100,
 	}
 
-	r, err := GlobalPlan([]types.NodeInfo{n1}, 1, 100, types.ResourceMemory)
+	r, err := GlobalPlan([]types.NodeInfo{n1}, 1, 100, 0, types.ResourceMemory)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 1)
 }
 
 func TestGlobal3(t *testing.T) {
-	_, err := GlobalPlan([]types.NodeInfo{}, 10, 1, types.ResourceAll)
+	_, err := GlobalPlan([]types.NodeInfo{}, 10, 1, 0, types.ResourceAll)
 	assert.Error(t, err)
 	nodeInfo := types.NodeInfo{
 		Name: "n1",
@@ -118,7 +118,7 @@ func TestGlobal3(t *testing.T) {
 		Count:    21,
 		Deploy:   0,
 	}
-	r, err := GlobalPlan([]types.NodeInfo{nodeInfo}, 10, 100, types.ResourceAll)
+	r, err := GlobalPlan([]types.NodeInfo{nodeInfo}, 10, 100, 0, types.ResourceAll)
 	assert.NoError(t, err)
 	assert.Equal(t, r[0].Deploy, 10)
 }

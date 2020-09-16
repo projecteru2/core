@@ -178,9 +178,9 @@ func SelectCPUNodes(k *Potassium, nodesInfo []types.NodeInfo, quota float64, mem
 	}
 
 	if each {
-		nodesInfo, err = strategy.AveragePlan(nodesInfo, need, 0, types.ResourceAll)
+		nodesInfo, err = strategy.AveragePlan(nodesInfo, need, 0, 0, types.ResourceAll)
 	} else {
-		nodesInfo, err = strategy.CommunismPlan(nodesInfo, need, total, types.ResourceAll)
+		nodesInfo, err = strategy.CommunismPlan(nodesInfo, need, total, 0, types.ResourceAll)
 	}
 
 	if err != nil {
@@ -212,9 +212,9 @@ func SelectMemoryNodes(k *Potassium, nodesInfo []types.NodeInfo, rate float64, m
 	}
 	// Make deploy plan
 	if each {
-		nodesInfo, err = strategy.AveragePlan(nodesInfo, need, 0, types.ResourceAll)
+		nodesInfo, err = strategy.AveragePlan(nodesInfo, need, 0, 100, types.ResourceAll)
 	} else {
-		nodesInfo, err = strategy.CommunismPlan(nodesInfo, need, total, types.ResourceAll)
+		nodesInfo, err = strategy.CommunismPlan(nodesInfo, need, total, 100, types.ResourceAll)
 	}
 	return nodesInfo, err
 }
@@ -1147,9 +1147,9 @@ func SelectStorageNodes(k *Potassium, nodesInfo []types.NodeInfo, storage int64,
 	case err != nil:
 		return nil, err
 	case each:
-		return strategy.AveragePlan(nodesInfo, need, 0, types.ResourceAll)
+		return strategy.AveragePlan(nodesInfo, need, 0, 0, types.ResourceAll)
 	default:
-		return strategy.CommunismPlan(nodesInfo, need, total, types.ResourceAll)
+		return strategy.CommunismPlan(nodesInfo, need, total, 0, types.ResourceAll)
 	}
 }
 
@@ -1160,9 +1160,9 @@ func SelectVolumeNodes(k *Potassium, nodesInfo []types.NodeInfo, volumes []strin
 	}
 
 	if each {
-		nodesInfo, err = strategy.AveragePlan(nodesInfo, need, 0, types.ResourceAll)
+		nodesInfo, err = strategy.AveragePlan(nodesInfo, need, 0, 0, types.ResourceAll)
 	} else {
-		nodesInfo, err = strategy.CommunismPlan(nodesInfo, need, total, types.ResourceAll)
+		nodesInfo, err = strategy.CommunismPlan(nodesInfo, need, total, 0, types.ResourceAll)
 	}
 
 	if err != nil {

@@ -10,7 +10,7 @@ import (
 
 // GlobalPlan 基于全局资源配额
 // 尽量使得资源消耗平均
-func GlobalPlan(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+func GlobalPlan(nodesInfo []types.NodeInfo, need, total, limit int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
 	if total < need {
 		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
 			fmt.Sprintf("need: %d, vol: %d", need, total))

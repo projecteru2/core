@@ -25,7 +25,7 @@ var Plans = map[string]startegyFunc{
 	Global: GlobalPlan,
 }
 
-type startegyFunc = func(nodesInfo []types.NodeInfo, need, total int, resourceType types.ResourceType) ([]types.NodeInfo, error)
+type startegyFunc = func(nodesInfo []types.NodeInfo, need, total, limit int, resourceType types.ResourceType) ([]types.NodeInfo, error)
 
 func scoreSort(nodesInfo []types.NodeInfo, byResource types.ResourceType) []types.NodeInfo {
 	sort.Slice(nodesInfo, func(i, j int) bool {
