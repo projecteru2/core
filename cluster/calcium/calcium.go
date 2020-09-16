@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	"github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/discovery"
+	"github.com/projecteru2/core/discovery/helium"
 	"github.com/projecteru2/core/scheduler"
 	complexscheduler "github.com/projecteru2/core/scheduler/complex"
 	"github.com/projecteru2/core/source"
@@ -21,7 +23,7 @@ type Calcium struct {
 	store     store.Store
 	scheduler scheduler.Scheduler
 	source    source.Source
-	watcher   *serviceWatcher
+	watcher   discovery.Service
 }
 
 // New returns a new cluster config
@@ -50,7 +52,10 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 		log.Warn("[Calcium] SCM not set, build API disabled")
 	}
 
-	return &Calcium{store: store, config: config, scheduler: scheduler, source: scm, watcher: &serviceWatcher{}}, err
+	// set watcher
+	watcher := helium.New(config.GRPCConfig, store)
+
+	return &Calcium{store: store, config: config, scheduler: scheduler, source: scm, watcher: watcher}, err
 }
 
 // Finalizer use for defer

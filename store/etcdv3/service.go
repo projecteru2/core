@@ -41,7 +41,6 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 	ch := make(chan []string)
 	go func() {
 		defer close(ch)
-		log.Info("[ServiceStatusStream] start watching service status")
 		resp, err := m.Get(ctx, fmt.Sprintf(serviceStatusKey, ""), clientv3.WithPrefix())
 		if err != nil {
 			log.Errorf("[ServiceStatusStream] failed to get current services: %v", err)
