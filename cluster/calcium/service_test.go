@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/projecteru2/core/discovery/helium"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -59,8 +60,6 @@ func TestWatchServiceStatus(t *testing.T) {
 	c.config.GRPCConfig.ServiceDiscoveryPushInterval = 500 * time.Millisecond
 	store := &storemocks.Store{}
 	c.store = store
-	c.watcher = &serviceWatcher{}
-
 	store.On("ServiceStatusStream", mock.AnythingOfType("*context.emptyCtx")).Return(
 		func(_ context.Context) chan []string {
 			ch := make(chan []string)
@@ -78,6 +77,7 @@ func TestWatchServiceStatus(t *testing.T) {
 			return ch
 		}, nil,
 	)
+	c.watcher = helium.New(c.config.GRPCConfig, c.store)
 
 	ch, err := c.WatchServiceStatus(context.Background())
 	assert.NoError(t, err)
