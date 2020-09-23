@@ -2,12 +2,19 @@ package complexscheduler
 
 import (
 	"sort"
+	"sync"
 
 	"math"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
+)
+
+var (
+	scheduler *Potassium
+	once      sync.Once
 )
 
 // Potassium is a scheduler
@@ -15,9 +22,23 @@ type Potassium struct {
 	maxshare, sharebase int
 }
 
+func InitSchedulerV1(config types.Config) (_ *Potassium, err error) {
+	once.Do(func() {
+		scheduler, err = New(config)
+	})
+	return scheduler, err
+}
+
 // New a potassium
 func New(config types.Config) (*Potassium, error) {
 	return &Potassium{config.Scheduler.MaxShare, config.Scheduler.ShareBase}, nil
+}
+
+func GetSchedulerV1() (*Potassium, error) {
+	if scheduler == nil {
+		return nil, errors.Errorf("potassium not initiated")
+	}
+	return scheduler, nil
 }
 
 // MaxIdleNode use for build
