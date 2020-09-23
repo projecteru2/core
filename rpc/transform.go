@@ -284,7 +284,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Name:           d.Name,
 		Entrypoint:     entry,
 		Podname:        d.Podname,
-		Nodename:       d.Nodename,
+		Nodenames:      d.Nodenames,
 		Image:          d.Image,
 		ExtraArgs:      d.ExtraArgs,
 		CPUQuota:       d.CpuQuota,

@@ -161,7 +161,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions
 	var nodesInfo []types.NodeInfo
 	var nodeCPUPlans map[string][]types.CPUMap
 	var nodeVolumePlans map[string][]types.VolumePlan
-	return nodesInfo, c.withNodesLocked(ctx, opts.Podname, opts.Nodename, opts.NodeLabels, false, func(nodes map[string]*types.Node) error {
+	return nodesInfo, c.withNodesLocked(ctx, opts.Podname, opts.Nodenames, opts.NodeLabels, false, func(nodes map[string]*types.Node) error {
 		if len(nodes) == 0 {
 			return types.ErrInsufficientNodes
 		}

@@ -7,12 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
 	sourcemocks "github.com/projecteru2/core/source/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
+	"github.com/stretchr/testify/assert"
 )
 
 // DummyLock replace lock for testing
@@ -56,13 +55,17 @@ func TestNewCluster(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = privFile.WriteString("privkey")
 	assert.NoError(t, err)
-	privFile.Close()
-	c, err = New(types.Config{Git: types.GitConfig{SCMType: "gitlab", PrivateKey: privFile.Name()}}, true)
-	assert.NoError(t, err)
-	c.Finalizer()
-	c, err = New(types.Config{Git: types.GitConfig{SCMType: "github", PrivateKey: privFile.Name()}}, true)
-	c.Finalizer()
-	assert.NoError(t, err)
+	defer privFile.Close()
+	go func() {
+		c, err := New(types.Config{Git: types.GitConfig{SCMType: "gitlab", PrivateKey: privFile.Name()}}, true)
+		assert.NoError(t, err)
+		c.Finalizer()
+	}()
+	go func() {
+		c, err := New(types.Config{Git: types.GitConfig{SCMType: "github", PrivateKey: privFile.Name()}}, true)
+		assert.NoError(t, err)
+		c.Finalizer()
+	}()
 }
 
 func TestFinalizer(t *testing.T) {

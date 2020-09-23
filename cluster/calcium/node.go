@@ -132,13 +132,17 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 }
 
 // GetNodes get nodes
-func (c *Calcium) getNodes(ctx context.Context, podname, nodename string, labels map[string]string, all bool) ([]*types.Node, error) {
-	var ns []*types.Node
+func (c *Calcium) getNodes(ctx context.Context, podname string, nodenames []string, labels map[string]string, all bool) ([]*types.Node, error) {
 	var err error
-	if nodename != "" {
-		var node *types.Node
-		node, err = c.GetNode(ctx, nodename)
-		ns = []*types.Node{node}
+	ns := []*types.Node{}
+	if len(nodenames) != 0 {
+		for _, nodename := range nodenames {
+			node, err := c.GetNode(ctx, nodename)
+			if err != nil {
+				return ns, err
+			}
+			ns = append(ns, node)
+		}
 	} else {
 		ns, err = c.ListPodNodes(ctx, podname, labels, all)
 	}

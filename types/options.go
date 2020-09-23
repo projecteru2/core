@@ -12,7 +12,7 @@ type DeployOptions struct {
 	Name           string                   // Name of application
 	Entrypoint     *Entrypoint              // entrypoint
 	Podname        string                   // Name of pod to deploy
-	Nodename       string                   // Specific nodes to deploy, if given, must belong to pod
+	Nodenames      []string                 // Specific nodes to deploy, if given, must belong to pod
 	Image          string                   // Name of image to deploy
 	ExtraArgs      string                   // Extra arguments to append to command
 	CPUQuota       float64                  // How many cores needed, e.g. 1.5
