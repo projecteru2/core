@@ -176,7 +176,7 @@ func TestAllocResource(t *testing.T) {
 	testAllocFailedAsNoLabels(t, c, opts)
 
 	// Defines for below.
-	opts.Nodename = n2
+	opts.Nodenames = []string{n2}
 	testAllocFailedAsGetNodeError(t, c, opts)
 
 	// Mocks for all of rest.

@@ -19,11 +19,18 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 		opts.Count = 1
 	}
 	if len(opts.IDs) == 0 {
-		oldContainers, err := c.ListContainers(ctx, &types.ListContainersOptions{
-			Appname: opts.Name, Entrypoint: opts.Entrypoint.Name, Nodename: opts.Nodename,
-		})
-		if err != nil {
-			return nil, err
+		if len(opts.Nodenames) == 0 {
+			opts.Nodenames = []string{""}
+		}
+		oldContainers := []*types.Container{}
+		for _, nodename := range opts.Nodenames {
+			containers, err := c.ListContainers(ctx, &types.ListContainersOptions{
+				Appname: opts.Name, Entrypoint: opts.Entrypoint.Name, Nodename: nodename,
+			})
+			if err != nil {
+				return nil, err
+			}
+			oldContainers = append(oldContainers, containers...)
 		}
 		for _, container := range oldContainers {
 			opts.IDs = append(opts.IDs, container.ID)
