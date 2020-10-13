@@ -9,8 +9,8 @@ import (
 )
 
 func TestGlobalPlan1(t *testing.T) {
-	n1 := types.NodeInfo{
-		Name: "n1",
+	n1 := types.StrategyInfo{
+		Nodename: "n1",
 		Usages: map[types.ResourceType]float64{
 			types.ResourceCPU:    0.1,
 			types.ResourceMemory: 0.7,
@@ -21,8 +21,8 @@ func TestGlobalPlan1(t *testing.T) {
 		},
 		Capacity: 1,
 	}
-	n2 := types.NodeInfo{
-		Name: "n2",
+	n2 := types.StrategyInfo{
+		Nodename: "n2",
 		Usages: map[types.ResourceType]float64{
 			types.ResourceCPU:    0.2,
 			types.ResourceMemory: 0.3,
@@ -33,8 +33,8 @@ func TestGlobalPlan1(t *testing.T) {
 		},
 		Capacity: 1,
 	}
-	n3 := types.NodeInfo{
-		Name: "n3",
+	n3 := types.StrategyInfo{
+		Nodename: "n3",
 		Usages: map[types.ResourceType]float64{
 			types.ResourceCPU:    1.3,
 			types.ResourceMemory: 0.9,
@@ -45,15 +45,15 @@ func TestGlobalPlan1(t *testing.T) {
 		},
 		Capacity: 1,
 	}
-	arg := []types.NodeInfo{n3, n2, n1}
+	arg := []types.StrategyInfo{n3, n2, n1}
 	r, err := GlobalPlan(arg, 3, 100, 0, types.ResourceAll)
 	assert.NoError(t, err)
-	assert.Equal(t, r[0].Deploy, 1)
+	assert.Equal(t, r[arg[0].Nodename].Deploy, 1)
 }
 
 func TestGlobalPlan2(t *testing.T) {
-	n1 := types.NodeInfo{
-		Name: "n1",
+	n1 := types.StrategyInfo{
+		Nodename: "n1",
 		Usages: map[types.ResourceType]float64{
 			types.ResourceCPU:    0.9,
 			types.ResourceMemory: 0.7,
@@ -64,8 +64,8 @@ func TestGlobalPlan2(t *testing.T) {
 		},
 		Capacity: 100,
 	}
-	n2 := types.NodeInfo{
-		Name: "n2",
+	n2 := types.StrategyInfo{
+		Nodename: "n2",
 		Usages: map[types.ResourceType]float64{
 			types.ResourceCPU:    0.2,
 			types.ResourceMemory: 0.3,
@@ -76,15 +76,15 @@ func TestGlobalPlan2(t *testing.T) {
 		},
 		Capacity: 100,
 	}
-	arg := []types.NodeInfo{n2, n1}
+	arg := []types.StrategyInfo{n2, n1}
 	r, err := GlobalPlan(arg, 2, 100, 0, types.ResourceAll)
 	assert.NoError(t, err)
-	assert.Equal(t, r[0].Deploy, 2)
+	assert.Equal(t, r[arg[0].Nodename].Deploy, 2)
 }
 
 func TestGlobalPlan3(t *testing.T) {
-	n1 := types.NodeInfo{
-		Name: "n1",
+	n1 := types.StrategyInfo{
+		Nodename: "n1",
 		Usages: map[types.ResourceType]float64{
 			types.ResourceCPU:    0.9,
 			types.ResourceMemory: 0.5259232954545454,
@@ -96,16 +96,16 @@ func TestGlobalPlan3(t *testing.T) {
 		Capacity: 100,
 	}
 
-	r, err := GlobalPlan([]types.NodeInfo{n1}, 1, 100, 0, types.ResourceMemory)
+	r, err := GlobalPlan([]types.StrategyInfo{n1}, 1, 100, 0, types.ResourceMemory)
 	assert.NoError(t, err)
-	assert.Equal(t, r[0].Deploy, 1)
+	assert.Equal(t, r["n1"].Deploy, 1)
 }
 
 func TestGlobal3(t *testing.T) {
-	_, err := GlobalPlan([]types.NodeInfo{}, 10, 1, 0, types.ResourceAll)
+	_, err := GlobalPlan([]types.StrategyInfo{}, 10, 1, 0, types.ResourceAll)
 	assert.Error(t, err)
-	nodeInfo := types.NodeInfo{
-		Name: "n1",
+	nodeInfo := types.StrategyInfo{
+		Nodename: "n1",
 		Usages: map[types.ResourceType]float64{
 			types.ResourceCPU:    0.7,
 			types.ResourceMemory: 0.3,
@@ -116,9 +116,8 @@ func TestGlobal3(t *testing.T) {
 		},
 		Capacity: 100,
 		Count:    21,
-		Deploy:   0,
 	}
-	r, err := GlobalPlan([]types.NodeInfo{nodeInfo}, 10, 100, 0, types.ResourceAll)
+	r, err := GlobalPlan([]types.StrategyInfo{nodeInfo}, 10, 100, 0, types.ResourceAll)
 	assert.NoError(t, err)
-	assert.Equal(t, r[0].Deploy, 10)
+	assert.Equal(t, r["n1"].Deploy, 10)
 }

@@ -21,10 +21,10 @@ func TestFillPlan(t *testing.T) {
 	}
 	r, err := FillPlan(nodes, n, 0, 0, types.ResourceAll)
 	assert.NoError(t, err)
-	sort.Slice(r, func(i, j int) bool { return r[i].Count < r[j].Count })
-	for i := range r {
-		assert.Equal(t, r[i].Capacity, resultCap[i])
-		assert.Equal(t, r[i].Deploy, resultDeploy[i])
+	sort.Slice(nodes, func(i, j int) bool { return nodes[i].Count < nodes[j].Count })
+	for i := range nodes {
+		assert.Equal(t, nodes[i].Capacity, resultCap[i])
+		assert.Equal(t, r[nodes[i].Nodename].Deploy, resultDeploy[i])
 	}
 
 	// 局部补充
@@ -41,10 +41,15 @@ func TestFillPlan(t *testing.T) {
 	}
 	r, err = FillPlan(nodes, n, 0, 0, types.ResourceAll)
 	assert.NoError(t, err)
-	sort.Slice(r, func(i, j int) bool { return r[i].Count < r[j].Count })
-	for i := range r {
-		assert.Equal(t, r[i].Capacity, resultCap[i])
-		assert.Equal(t, r[i].Deploy, resultDeploy[i])
+	sort.Slice(nodes, func(i, j int) bool { return nodes[i].Count < nodes[j].Count })
+	i := 0
+	for _, v := range nodes {
+		if v.Capacity >= n {
+			continue
+		}
+		assert.Equal(t, nodes[i].Capacity, resultCap[i])
+		assert.Equal(t, r[nodes[i].Nodename].Deploy, resultDeploy[i])
+		i++
 	}
 
 	// 局部补充不能
@@ -68,14 +73,14 @@ func TestFillPlan(t *testing.T) {
 
 	// 局部补充
 	n = 1
-	nodes = []types.NodeInfo{
+	nodes = []types.StrategyInfo{
 		{
-			Name:     "65",
+			Nodename: "65",
 			Capacity: 0,
 			Count:    0,
 		},
 		{
-			Name:     "67",
+			Nodename: "67",
 			Capacity: 10,
 			Count:    0,
 		},
