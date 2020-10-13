@@ -279,3 +279,10 @@ func GenerateNodes(nums, cores int, memory, storage int64, shares int) []types.N
 	}
 	return nodes
 }
+
+func Range(n int) (res []int) {
+	for i := 0; i < n; i++ {
+		res = append(res, i)
+	}
+	return
+}
