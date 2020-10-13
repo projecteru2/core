@@ -84,6 +84,12 @@ func (vb VolumeBinding) ToString(normalize bool) (volume string) {
 		flags = strings.ReplaceAll(flags, "m", "")
 	}
 
+	if strings.Contains(flags, "o") {
+		flags = strings.ReplaceAll(flags, "o", "")
+		flags = strings.ReplaceAll(flags, "r", "ro")
+		flags = strings.ReplaceAll(flags, "w", "wo")
+	}
+
 	switch {
 	case vb.Flags == "" && vb.SizeInBytes == 0:
 		volume = fmt.Sprintf("%s:%s", vb.Source, vb.Destination)
@@ -150,7 +156,7 @@ func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 	return
 }
 
-// Merge combines two VolumeBindings
+// MergeVolumeBindings combines two VolumeBindings
 func MergeVolumeBindings(vbs1, vbs2 VolumeBindings) (vbs VolumeBindings, err error) {
 	sizeMap := map[[3]string]int64{} // {["AUTO", "/data", "rw"]: 100}
 	for _, vb := range append(vbs1, vbs2...) {
@@ -167,6 +173,7 @@ func MergeVolumeBindings(vbs1, vbs2 VolumeBindings) (vbs VolumeBindings, err err
 	return
 }
 
+// Divide .
 func (vbs VolumeBindings) Divide() (soft VolumeBindings, hard VolumeBindings) {
 	for _, vb := range vbs {
 		if strings.HasSuffix(vb.Source, AUTO) {

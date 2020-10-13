@@ -10,10 +10,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var (
-	potassium *Potassium
-)
-
 // Potassium is a scheduler
 type Potassium struct {
 	maxshare, sharebase int

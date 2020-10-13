@@ -122,6 +122,7 @@ func (m *Mercury) GetNodesByPod(ctx context.Context, podname string, labels map[
 	return m.doGetNodes(ctx, resp.Kvs, labels, all)
 }
 
+// UpdateNodes .
 func (m *Mercury) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
 	data := map[string]string{}
 	for _, node := range nodes {

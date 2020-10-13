@@ -10,12 +10,14 @@ type ResourceType int
 const (
 	// ResourceCPU .
 	ResourceCPU ResourceType = 1 << iota
+	// ResourceCPUBind .
 	ResourceCPUBind
 	// ResourceMemory .
 	ResourceMemory
 	// ResourceVolume .
 	ResourceVolume
-	ResourceVolumeNeedSchedule
+	// ResourceScheduledVolume .
+	ResourceScheduledVolume
 	// ResourceStorage .
 	ResourceStorage
 )
@@ -27,8 +29,10 @@ var (
 	AllResourceTypes = [...]ResourceType{ResourceCPU, ResourceMemory, ResourceVolume, ResourceStorage}
 )
 
+// SchedulerV2 .
 type SchedulerV2 func([]NodeInfo) (ResourcePlans, int, error)
 
+// ResourceRequest .
 type ResourceRequest interface {
 	Type() ResourceType
 	DeployValidate() error
@@ -36,6 +40,7 @@ type ResourceRequest interface {
 	Rate(Node) float64
 }
 
+// ResourcePlans .
 type ResourcePlans interface {
 	Type() ResourceType
 	Capacity() map[string]int
@@ -44,6 +49,7 @@ type ResourcePlans interface {
 	Dispense(DispenseOptions, *Resources) error
 }
 
+// DispenseOptions .
 type DispenseOptions struct {
 	*Node
 	ExistingInstances  []*Container
@@ -51,6 +57,7 @@ type DispenseOptions struct {
 	HardVolumeBindings VolumeBindings
 }
 
+// StrategyInfo .
 type StrategyInfo struct {
 	Nodename string
 
@@ -61,10 +68,12 @@ type StrategyInfo struct {
 	Count    int
 }
 
+// DeployInfo .
 type DeployInfo struct {
 	Deploy int
 }
 
+// NewStrategyInfos .
 func NewStrategyInfos(opts *DeployOptions, nodeMap map[string]*Node, planMap map[ResourceType]ResourcePlans) (strategyInfos []StrategyInfo) {
 	for nodeName, node := range nodeMap {
 		rates := make(map[ResourceType]float64)

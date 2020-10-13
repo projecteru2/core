@@ -16,9 +16,6 @@ import (
 // nodename -> container list
 type nodeContainers map[string][]*types.Container
 
-// volume:cpu:memory
-type volCPUMemNodeContainers map[string]map[float64]map[int64]nodeContainers
-
 // ReallocResource allow realloc container resource
 func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOptions) (chan *types.ReallocResourceMessage, error) {
 	ch := make(chan *types.ReallocResourceMessage)
@@ -75,7 +72,7 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 }
 
 // group containers by node and requests
-func (c *Calcium) doReallocContainersOnPod(ctx context.Context, ch chan *types.ReallocResourceMessage, nodeContainersInfo nodeContainers, opts *types.ReallocOptions) (err error) {
+func (c *Calcium) doReallocContainersOnPod(ctx context.Context, ch chan *types.ReallocResourceMessage, nodeContainersInfo nodeContainers, opts *types.ReallocOptions) {
 	hardVbsMap := map[string]types.VolumeBindings{}
 	containerGroups := map[string]map[[3]types.ResourceRequest][]*types.Container{}
 	for nodename, containers := range nodeContainersInfo {
@@ -84,10 +81,10 @@ func (c *Calcium) doReallocContainersOnPod(ctx context.Context, ch chan *types.R
 			vbs, err := types.MergeVolumeBindings(container.Volumes, opts.Volumes)
 			if err != nil {
 				ch <- &types.ReallocResourceMessage{Error: err}
-				return errors.WithStack(err)
+				return
 			}
 			var autoVbs types.VolumeBindings
-			autoVbs, hardVbsMap[container.Name] = vbs.Divide()
+			autoVbs, hardVbsMap[container.ID] = vbs.Divide()
 
 			reqs := [3]types.ResourceRequest{
 				resources.CPUMemResourceRequest{
@@ -105,7 +102,7 @@ func (c *Calcium) doReallocContainersOnPod(ctx context.Context, ch chan *types.R
 			for _, req := range reqs {
 				if err = req.DeployValidate(); err != nil {
 					ch <- &types.ReallocResourceMessage{Error: err}
-					return errors.WithStack(err)
+					return
 				}
 			}
 			containerGroups[nodename][reqs] = append(containerGroups[nodename][reqs], container)
@@ -114,19 +111,22 @@ func (c *Calcium) doReallocContainersOnPod(ctx context.Context, ch chan *types.R
 
 	for nodename, containerByReq := range containerGroups {
 		for reqs, containers := range containerByReq {
-			if err := c.doReallocContainersOnNode(ctx, ch, nodename, containers, []types.ResourceRequest{reqs[0], reqs[1], reqs[2]}, opts, hardVbsMap); err != nil {
+			if err := c.doReallocContainersOnNode(ctx, ch, nodename, containers, []types.ResourceRequest{reqs[0], reqs[1], reqs[2]}, hardVbsMap); err != nil {
 
 				ch <- &types.ReallocResourceMessage{Error: err}
 			}
 		}
 	}
-	return nil
 }
 
 // transaction: node meta
-func (c *Calcium) doReallocContainersOnNode(ctx context.Context, ch chan *types.ReallocResourceMessage, nodename string, containers []*types.Container, newReqs []types.ResourceRequest, opts *types.ReallocOptions, hardVbsMap map[string]types.VolumeBindings) (err error) {
+func (c *Calcium) doReallocContainersOnNode(ctx context.Context, ch chan *types.ReallocResourceMessage, nodename string, containers []*types.Container, newReqs []types.ResourceRequest, hardVbsMap map[string]types.VolumeBindings) (err error) {
 	{
 		return c.withNodeLocked(ctx, nodename, func(node *types.Node) error {
+
+			for _, container := range containers {
+				recycleResources(node, container)
+			}
 			planMap, total, _, err := scheduler.SelectNodes(newReqs, map[string]*types.Node{node.Name: node})
 			if err != nil {
 				return errors.WithStack(err)
@@ -148,9 +148,6 @@ func (c *Calcium) doReallocContainersOnNode(ctx context.Context, ch chan *types.
 
 					for _, plan := range planMap {
 						plan.ApplyChangesOnNode(node, utils.Range(len(containers))...)
-					}
-					for _, container := range containers {
-						recycleResources(node, container)
 					}
 					return c.store.UpdateNodes(ctx, node)
 				},
@@ -195,8 +192,8 @@ func (c *Calcium) doUpdateResourceOnInstances(ctx context.Context, ch chan *type
 					msg.Error = e
 					rollbacks = append(rollbacks, idx)
 				}
-				wg.Done()
 				ch <- msg
+				wg.Done()
 			}()
 
 			resources := &types.Resources{}
@@ -216,7 +213,7 @@ func (c *Calcium) doUpdateResourceOnInstances(ctx context.Context, ch chan *type
 	}
 
 	wg.Wait()
-	return
+	return rollbacks, err
 }
 
 // transaction: container meta
@@ -230,9 +227,13 @@ func (c *Calcium) doUpdateResourceOnInstance(ctx context.Context, node *types.No
 			container.CPU = resources.CPU
 			container.Quota = resources.Quota
 			container.Memory = resources.Memory
+			container.SoftLimit = resources.SoftLimit
 			container.Volumes = resources.Volume
 			container.VolumePlan = resources.VolumePlan
 			container.Storage = resources.Storage
+			if !resources.CPUBind {
+				container.CPU = nil
+			}
 			return errors.WithStack(c.store.UpdateContainer(ctx, container))
 		},
 

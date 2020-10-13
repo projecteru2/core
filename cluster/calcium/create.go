@@ -53,13 +53,13 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 	go func() {
 		defer func() {
-			close(ch)
-
 			for nodename := range deployMap {
 				if e := c.store.DeleteProcessing(ctx, opts, nodename); e != nil {
+					err = e
 					log.Errorf("[Calcium.doCreateWorkloads] delete processing failed for %s: %+v", nodename, err)
 				}
 			}
+			close(ch)
 		}()
 
 		if err := utils.Txn(
@@ -104,7 +104,8 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 			// rollback: give back resources
 			func(ctx context.Context) (err error) {
-				for nodeName, indices := range rollbackMap {
+				for nodeName, rollbackIndices := range rollbackMap {
+					indices := rollbackIndices
 					if e := c.withNodeLocked(ctx, nodeName, func(node *types.Node) error {
 						for _, plan := range planMap {
 							plan.RollbackChangesOnNode(node, indices...)
@@ -123,7 +124,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		}
 	}()
 
-	return ch, nil
+	return ch, err
 }
 
 func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateContainerMessage, opts *types.DeployOptions, planMap map[types.ResourceType]types.ResourcePlans, deployMap map[string]*types.DeployInfo) (_ map[string][]int, err error) {
@@ -166,7 +167,8 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 			Publish:  map[string][]string{},
 		}
 
-		func() (e error) {
+		func() {
+			var e error
 			defer func() {
 				if e != nil {
 					err = e
@@ -187,7 +189,8 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 				}
 			}
 
-			return c.doDeployOneWorkload(ctx, node, opts, createMsg, seq+idx, deployInfo.Deploy-1-idx)
+			createMsg.Resources = *resources
+			e = c.doDeployOneWorkload(ctx, node, opts, createMsg, seq+idx, deployInfo.Deploy-1-idx)
 		}()
 	}
 
@@ -228,6 +231,7 @@ func (c *Calcium) doDeployOneWorkload(
 		Image:      opts.Image,
 		Env:        opts.Env,
 		User:       opts.User,
+		Volumes:    msg.Volume,
 		VolumePlan: msg.VolumePlan,
 	}
 	return utils.Txn(

@@ -34,6 +34,7 @@ func scoreSort(strategyInfo []types.StrategyInfo, byResource types.ResourceType)
 	return strategyInfo
 }
 
+// Deploy .
 func Deploy(opts *types.DeployOptions, strategyInfos []types.StrategyInfo, total int, resourceTypes types.ResourceType) (map[string]*types.DeployInfo, error) {
 	deployMethod, ok := Plans[opts.DeployStrategy]
 	if !ok {

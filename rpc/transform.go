@@ -288,11 +288,12 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 			Memory:   d.Memory,
 		},
 	}
-	if d.Storage > 0 {
-		resourceRequests = append(resourceRequests, resources.StorageResourceRequest{Quota: d.Storage})
-	}
 	if vbs != nil {
 		resourceRequests = append(resourceRequests, resources.NewVolumeResourceRequest(vbs))
+		d.Storage += vbs.TotalSize()
+	}
+	if d.Storage > 0 {
+		resourceRequests = append(resourceRequests, resources.StorageResourceRequest{Quota: d.Storage})
 	}
 
 	return &types.DeployOptions{

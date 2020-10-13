@@ -180,12 +180,3 @@ func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types
 
 	return planMap, deployMap, nil
 }
-
-func (c *Calcium) doBindProcessStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) error {
-	for _, nodeInfo := range nodesInfo {
-		if err := c.store.SaveProcessing(ctx, opts, nodeInfo.Name, nodeInfo.Deploy); err != nil {
-			return err
-		}
-	}
-	return nil
-}

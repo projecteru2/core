@@ -124,7 +124,7 @@ func TestVolumePlan(t *testing.T) {
 
 	literal := map[string]map[string]int64{
 		"AUTO:/data0:rw:100":  {"/dir0": 100},
-		"AUTO:/data1:or:2000": {"/dir1": 2000},
+		"AUTO:/data1:ro:2000": {"/dir1": 2000},
 	}
 	assert.Equal(t, MustToVolumePlan(literal), plan)
 	assert.Equal(t, plan.ToLiteral(), literal)
@@ -154,7 +154,7 @@ func TestNewVolumePlan(t *testing.T) {
 		MustToVolumeBinding("AUTO:/data2:rw:10"): VolumeMap{"/dir1": 10},
 	})
 
-	data := []byte(`{"AUTO:/data0:rw:10":{"/dir0":10},"AUTO:/data1:or:20":{"/dir2":20},"AUTO:/data2:rw:10":{"/dir1":10}}`)
+	data := []byte(`{"AUTO:/data0:rw:10":{"/dir0":10},"AUTO:/data1:ro:20":{"/dir2":20},"AUTO:/data2:rw:10":{"/dir1":10}}`)
 	b, err := json.Marshal(plan)
 	assert.Nil(t, err)
 	assert.Equal(t, b, data)

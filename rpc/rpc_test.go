@@ -58,3 +58,13 @@ func TestAddNode(t *testing.T) {
 	_, err = v.AddNode(context.Background(), opts)
 	assert.NoError(t, err)
 }
+
+func TestSetNodeTranform(t *testing.T) {
+	b := &pb.SetNodeOptions{
+		Nodename: "a",
+		DeltaCpu: map[string]int32{"0": 1, "1": -1},
+	}
+	o, err := toCoreSetNodeOptions(b)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(o.DeltaCPU))
+}

@@ -611,10 +611,7 @@ func TestReallocBindCpu(t *testing.T) {
 		assert.NoError(t, r.Error)
 	}
 	assert.NoError(t, err)
-	assert.Equal(t, 4, len(c5.CPU))
-	for _, v := range c5.CPU {
-		assert.EqualValues(t, 0, v)
-	}
+	assert.Equal(t, 0, len(c5.CPU))
 
 	ch, err = c.ReallocResource(ctx, newReallocOptions([]string{"c6"}, 0.1, 2*int64(units.MiB), nil, types.TriTrue, types.TriKeep))
 	for r := range ch {
@@ -636,12 +633,6 @@ func TestReallocBindCpu(t *testing.T) {
 		assert.NoError(t, r.Error)
 	}
 	assert.NoError(t, err)
-	assert.Equal(t, 4, len(c5.CPU))
-	for _, v := range c5.CPU {
-		assert.EqualValues(t, 0, v)
-	}
-	assert.Equal(t, 4, len(c6.CPU))
-	for _, v := range c6.CPU {
-		assert.EqualValues(t, 0, v)
-	}
+	assert.Equal(t, 0, len(c5.CPU))
+	assert.Equal(t, 0, len(c6.CPU))
 }

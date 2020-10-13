@@ -183,6 +183,7 @@ const (
 	TriFalse
 )
 
+// ParseTriOption .
 func ParseTriOption(opt TriOptions, original bool) (res bool) {
 	switch opt {
 	case TriKeep:

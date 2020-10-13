@@ -29,10 +29,12 @@ type Scheduler interface {
 	SelectVolumeNodes(nodeInfo []types.NodeInfo, vbs types.VolumeBindings) ([]types.NodeInfo, map[string][]types.VolumePlan, int, error)
 }
 
+// InitSchedulerV1 .
 func InitSchedulerV1(s Scheduler) {
 	scheduler = s
 }
 
+// GetSchedulerV1 .
 func GetSchedulerV1() (Scheduler, error) {
 	if scheduler == nil {
 		return nil, errors.Errorf("potassium not initiated")
@@ -40,6 +42,7 @@ func GetSchedulerV1() (Scheduler, error) {
 	return scheduler, nil
 }
 
+// SelectNodes .
 func SelectNodes(resourceRequests []types.ResourceRequest, nodeMap map[string]*types.Node) (planMap map[types.ResourceType]types.ResourcePlans, total int, scheduleTypes types.ResourceType, err error) {
 	total = math.MaxInt16
 	subTotal := 0
@@ -57,7 +60,7 @@ func SelectNodes(resourceRequests []types.ResourceRequest, nodeMap map[string]*t
 		if req.Type()&types.ResourceCPUBind != 0 {
 			scheduleTypes |= types.ResourceCPU
 		}
-		if req.Type()&types.ResourceVolumeNeedSchedule != 0 {
+		if req.Type()&types.ResourceScheduledVolume != 0 {
 			scheduleTypes |= types.ResourceVolume
 		}
 	}

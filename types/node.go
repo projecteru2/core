@@ -315,6 +315,7 @@ func (n *Node) AvailableStorage() int64 {
 	}
 }
 
+// ResourceUsages .
 func (n *Node) ResourceUsages() map[ResourceType]float64 {
 	return map[ResourceType]float64{
 		ResourceCPU:     n.CPUUsed / float64(len(n.InitCPU)),

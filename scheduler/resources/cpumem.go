@@ -8,6 +8,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+// CPUMemResourceRequest .
 type CPUMemResourceRequest struct {
 	CPUQuota        float64
 	CPUBind         bool
@@ -15,6 +16,7 @@ type CPUMemResourceRequest struct {
 	MemorySoftLimit bool
 }
 
+// Type .
 func (r CPUMemResourceRequest) Type() types.ResourceType {
 	t := types.ResourceCPU | types.ResourceMemory
 	if r.CPUBind {
@@ -23,6 +25,7 @@ func (r CPUMemResourceRequest) Type() types.ResourceType {
 	return t
 }
 
+// DeployValidate .
 func (r CPUMemResourceRequest) DeployValidate() error {
 	if r.Memory < 0 {
 		return types.NewDetailedErr(types.ErrBadMemory, r.Memory)
@@ -33,6 +36,7 @@ func (r CPUMemResourceRequest) DeployValidate() error {
 	return nil
 }
 
+// MakeScheduler .
 func (r CPUMemResourceRequest) MakeScheduler() types.SchedulerV2 {
 	return func(nodesInfo []types.NodeInfo) (plans types.ResourcePlans, total int, err error) {
 		schedulerV1, err := scheduler.GetSchedulerV1()
@@ -52,11 +56,13 @@ func (r CPUMemResourceRequest) MakeScheduler() types.SchedulerV2 {
 			memorySoftLimit: r.MemorySoftLimit,
 			CPUQuota:        r.CPUQuota,
 			CPUPlans:        CPUPlans,
+			CPUBind:         r.CPUBind,
 			capacity:        getCapacity(nodesInfo),
 		}, total, err
 	}
 }
 
+// Rate .
 func (r CPUMemResourceRequest) Rate(node types.Node) float64 {
 	if r.CPUBind {
 		return r.CPUQuota / float64(len(node.InitCPU))
@@ -64,14 +70,17 @@ func (r CPUMemResourceRequest) Rate(node types.Node) float64 {
 	return float64(r.Memory) / float64(node.InitMemCap)
 }
 
+// CPUMemResourcePlans .
 type CPUMemResourcePlans struct {
 	memory          int64
 	memorySoftLimit bool
 	CPUQuota        float64
 	CPUPlans        map[string][]types.CPUMap
+	CPUBind         bool
 	capacity        map[string]int
 }
 
+// Type .
 func (p CPUMemResourcePlans) Type() (resourceType types.ResourceType) {
 	resourceType = types.ResourceCPU | types.ResourceMemory
 	if p.CPUPlans != nil {
@@ -80,10 +89,12 @@ func (p CPUMemResourcePlans) Type() (resourceType types.ResourceType) {
 	return resourceType
 }
 
+// Capacity .
 func (p CPUMemResourcePlans) Capacity() map[string]int {
 	return p.capacity
 }
 
+// ApplyChangesOnNode .
 func (p CPUMemResourcePlans) ApplyChangesOnNode(node *types.Node, indices ...int) {
 	if p.CPUPlans != nil {
 		for _, idx := range indices {
@@ -94,6 +105,7 @@ func (p CPUMemResourcePlans) ApplyChangesOnNode(node *types.Node, indices ...int
 	node.SetCPUUsed(p.CPUQuota*float64(len(indices)), types.IncrUsage)
 }
 
+// RollbackChangesOnNode .
 func (p CPUMemResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...int) {
 	if p.CPUPlans != nil {
 		for _, idx := range indices {
@@ -104,10 +116,12 @@ func (p CPUMemResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...
 	node.SetCPUUsed(p.CPUQuota*float64(len(indices)), types.DecrUsage)
 }
 
+// Dispense .
 func (p CPUMemResourcePlans) Dispense(opts types.DispenseOptions, resources *types.Resources) error {
 	resources.Quota = p.CPUQuota
 	resources.Memory = p.memory
 	resources.SoftLimit = p.memorySoftLimit
+	resources.CPUBind = p.CPUBind
 
 	if len(p.CPUPlans) > 0 {
 		if _, ok := p.CPUPlans[opts.Node.Name]; !ok {

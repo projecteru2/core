@@ -84,9 +84,11 @@ type CreateContainerMessage struct {
 	Resources
 }
 
+// Resources .
 type Resources struct {
 	CPU           CPUMap
 	Quota         float64
+	CPUBind       bool
 	Memory        int64
 	Volume        VolumeBindings
 	VolumePlan    VolumePlan

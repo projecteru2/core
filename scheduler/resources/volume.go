@@ -8,11 +8,13 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+// VolumeResourceRequest .
 type VolumeResourceRequest struct {
 	vbs    [32]types.VolumeBinding
 	length int
 }
 
+// NewVolumeResourceRequest .
 func NewVolumeResourceRequest(vbs types.VolumeBindings) (res VolumeResourceRequest) {
 	sort.Slice(vbs, func(i, j int) bool { return vbs[i].ToString(false) < vbs[j].ToString(false) })
 	for i, vb := range vbs {
@@ -22,19 +24,22 @@ func NewVolumeResourceRequest(vbs types.VolumeBindings) (res VolumeResourceReque
 	return
 }
 
+// Type .
 func (r VolumeResourceRequest) Type() types.ResourceType {
 	t := types.ResourceVolume
 	for i := 0; i < r.length; i++ {
 		if r.vbs[i].RequireSchedule() {
-			t |= types.ResourceVolumeNeedSchedule
+			t |= types.ResourceScheduledVolume
 			break
 		}
 	}
 	return t
 }
 
+// DeployValidate .
 func (r VolumeResourceRequest) DeployValidate() error { return nil }
 
+// MakeScheduler .
 func (r VolumeResourceRequest) MakeScheduler() types.SchedulerV2 {
 	return func(nodesInfo []types.NodeInfo) (plans types.ResourcePlans, total int, err error) {
 		schedulerV1, err := scheduler.GetSchedulerV1()
@@ -55,24 +60,29 @@ func (r VolumeResourceRequest) MakeScheduler() types.SchedulerV2 {
 	}
 }
 
+// Rate .
 func (r VolumeResourceRequest) Rate(node types.Node) float64 {
 	return float64(node.VolumeUsed) / float64(node.Volume.Total())
 }
 
+// VolumeResourcePlans .
 type VolumeResourcePlans struct {
 	capacity map[string]int
 	req      types.VolumeBindings
 	Plans    map[string][]types.VolumePlan
 }
 
+// Type .
 func (p VolumeResourcePlans) Type() types.ResourceType {
 	return types.ResourceVolume
 }
 
+// Capacity .
 func (p VolumeResourcePlans) Capacity() map[string]int {
 	return p.capacity
 }
 
+// ApplyChangesOnNode .
 func (p VolumeResourcePlans) ApplyChangesOnNode(node *types.Node, indices ...int) {
 	if len(p.Plans) == 0 {
 		return
@@ -86,6 +96,7 @@ func (p VolumeResourcePlans) ApplyChangesOnNode(node *types.Node, indices ...int
 	node.SetVolumeUsed(volumeCost.Total(), types.IncrUsage)
 }
 
+// RollbackChangesOnNode .
 func (p VolumeResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...int) {
 	if len(p.Plans) == 0 {
 		return
@@ -99,6 +110,7 @@ func (p VolumeResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...
 	node.SetVolumeUsed(volumeCost.Total(), types.DecrUsage)
 }
 
+// Dispense .
 func (p VolumeResourcePlans) Dispense(opts types.DispenseOptions, resources *types.Resources) error {
 	if len(p.Plans) == 0 {
 		return nil
@@ -132,11 +144,11 @@ func (p VolumeResourcePlans) Dispense(opts types.DispenseOptions, resources *typ
 
 	// append hard vbs
 	if opts.HardVolumeBindings != nil {
-		resources.Volume = types.MustToVolumeBindings(append(resources.Volume.ToStringSlice(false, false), opts.HardVolumeBindings.ToStringSlice(false, false)...))
+		resources.Volume = append(resources.Volume, opts.HardVolumeBindings...)
 	}
 
 	// judge if volume changed
-	if len(opts.ExistingInstances) > 0 && resources.Volume.IsEqual(opts.ExistingInstances[opts.Index].Volumes) {
+	if len(opts.ExistingInstances) > 0 && !resources.Volume.IsEqual(opts.ExistingInstances[opts.Index].Volumes) {
 		resources.VolumeChanged = true
 	}
 	return nil
