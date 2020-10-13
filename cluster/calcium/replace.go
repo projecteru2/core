@@ -51,14 +51,10 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 					}
 					// 使用复制之后的配置
 					// 停老的，起新的
-					replaceOpts.Memory = container.Memory
-					replaceOpts.Storage = container.Storage
-					replaceOpts.CPUQuota = container.Quota
 					replaceOpts.SoftLimit = container.SoftLimit
 					// 覆盖 podname 如果做全量更新的话
 					replaceOpts.Podname = container.Podname
 					// 覆盖 Volumes
-					replaceOpts.Volumes = container.Volumes
 					// 继承网络配置
 					if replaceOpts.NetworkInherit {
 						info, err := container.Inspect(ctx)
@@ -125,7 +121,16 @@ func (c *Calcium) doReplaceContainer(
 		}
 	}
 
-	createMessage := &types.CreateContainerMessage{}
+	createMessage := &types.CreateContainerMessage{
+		Resources: types.Resources{
+			Memory:     container.Memory,
+			Storage:    container.Storage,
+			Quota:      container.Quota,
+			CPU:        container.CPU,
+			Volume:     container.Volumes,
+			VolumePlan: container.VolumePlan,
+		},
+	}
 	return createMessage, removeMessage, utils.Txn(
 		ctx,
 		// if
@@ -142,16 +147,11 @@ func (c *Calcium) doReplaceContainer(
 					return utils.Txn(
 						ctx,
 						func(ctx context.Context) error {
-							createMessage = c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU, container.VolumePlan)
-							return createMessage.Error
+							return c.doDeployOneWorkload(ctx, node, &opts.DeployOptions, createMessage, index, -1)
 						},
 						nil,
 						func(ctx context.Context) error {
 							log.Errorf("[doReplaceContainer] Error when create and start a container, %v", createMessage.Error)
-							if createMessage.ContainerID != "" {
-								log.Warnf("[doReplaceContainer] Create container failed %v, and container %s not removed", createMessage.Error, createMessage.ContainerID)
-								return nil
-							}
 							if err = c.withNodeLocked(ctx, node.Name, func(node *types.Node) error {
 								return c.store.UpdateNodeResource(ctx, node, createMessage.CPU, createMessage.Quota, createMessage.Memory, createMessage.Storage, createMessage.VolumePlan.IntoVolumeMap(), store.ActionIncr)
 							}); err != nil {

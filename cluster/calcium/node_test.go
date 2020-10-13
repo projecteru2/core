@@ -123,10 +123,10 @@ func TestSetNode(t *testing.T) {
 	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test1", Status: 2})
 	assert.Error(t, err)
 	// failed by updatenode
-	store.On("UpdateNode", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
+	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
 	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", Status: 2})
 	assert.Error(t, err)
-	store.On("UpdateNode", mock.Anything, mock.Anything).Return(nil)
+	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
 	// succ when node available
 	n, err := c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", Status: 2})
 	assert.NoError(t, err)

@@ -8,8 +8,9 @@ import (
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	"github.com/projecteru2/core/scheduler"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
-	st "github.com/projecteru2/core/store"
+	"github.com/projecteru2/core/scheduler/resources"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
@@ -23,6 +24,10 @@ func TestCreateContainer(t *testing.T) {
 	opts := &types.DeployOptions{}
 	store := c.store.(*storemocks.Store)
 
+	store.On("SaveProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
 	// failed by GetPod
 	store.On("GetPod", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err := c.CreateContainer(ctx, opts)
@@ -35,13 +40,13 @@ func TestCreateContainer(t *testing.T) {
 	opts.Count = 1
 
 	// failed by memory check
-	opts.Memory = -1
+	opts.ResourceRequests = append(opts.ResourceRequests, resources.CPUMemResourceRequest{Memory: -1})
 	_, err = c.CreateContainer(ctx, opts)
 	assert.Error(t, err)
-	opts.Memory = 1
+	opts.ResourceRequests[0] = resources.CPUMemResourceRequest{Memory: 1}
 
 	// failed by CPUQuota
-	opts.CPUQuota = -1
+	opts.ResourceRequests[0] = resources.CPUMemResourceRequest{CPUQuota: -1}
 	_, err = c.CreateContainer(ctx, opts)
 	assert.Error(t, err)
 }
@@ -50,16 +55,18 @@ func TestCreateContainerTxn(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	opts := &types.DeployOptions{
-		Count:          2,
-		DeployStrategy: strategy.Auto,
-		CPUQuota:       1,
-		Image:          "zc:test",
-		Entrypoint:     &types.Entrypoint{},
+		Count:            2,
+		DeployStrategy:   strategy.Auto,
+		Podname:          "p1",
+		ResourceRequests: []types.ResourceRequest{resources.CPUMemResourceRequest{CPUQuota: 1}},
+		Image:            "zc:test",
+		Entrypoint:       &types.Entrypoint{},
 	}
 	store := &storemocks.Store{}
-	scheduler := &schedulermocks.Scheduler{}
+	sche := &schedulermocks.Scheduler{}
+	scheduler.InitSchedulerV1(sche)
 	c.store = store
-	c.scheduler = scheduler
+	c.scheduler = sche
 	engine := &enginemocks.API{}
 
 	pod1 := &types.Pod{Name: "p1"}
@@ -73,15 +80,9 @@ func TestCreateContainerTxn(t *testing.T) {
 	}
 	nodes := []*types.Node{node1, node2}
 
-	// GetPod fails
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		nil,
-		errors.Wrap(context.DeadlineExceeded, "GetNodesByPod"),
-	).Once()
-	_, err := c.CreateContainer(ctx, opts)
-	assert.Error(t, err)
-	assert.True(t, errors.Is(err, context.DeadlineExceeded))
-	assert.Error(t, err, "GetNodesByPod")
+	store.On("SaveProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	// doAllocResource fails: MakeDeployStatus
 	lock := &lockmocks.DistributedLock{}
@@ -91,7 +92,7 @@ func TestCreateContainerTxn(t *testing.T) {
 	store.On("GetPod", mock.Anything, mock.Anything).Return(pod1, nil)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 	store.On("GetNode",
-		mock.AnythingOfType("*context.emptyCtx"),
+		mock.AnythingOfType("*context.timerCtx"),
 		mock.AnythingOfType("string"),
 	).Return(
 		func(_ context.Context, name string) (node *types.Node) {
@@ -101,134 +102,60 @@ func TestCreateContainerTxn(t *testing.T) {
 			}
 			return
 		}, nil)
-	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(
-		nil,
-		errors.Wrap(context.DeadlineExceeded, "MakeDeployStatus"),
-	).Once()
-	_, err = c.CreateContainer(ctx, opts)
-	assert.Error(t, err)
-	assert.True(t, errors.Is(err, context.DeadlineExceeded))
-	assert.Error(t, err, "MakeDeployStatus")
-
-	// doAllocResource fails: UpdateNodeResource for 1st node
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
-	store.On("MakeDeployStatus", ctx, opts, mock.AnythingOfType("[]types.NodeInfo")).Return(
-		func(_ context.Context, _ *types.DeployOptions, nodesInfo []types.NodeInfo) []types.NodeInfo {
-			return nodesInfo
-		}, nil)
-	scheduler.On("SelectMemoryNodes", mock.AnythingOfType("[]types.NodeInfo"), mock.AnythingOfType("float64"), mock.AnythingOfType("int64")).Return(
+	sche.On("SelectMemoryNodes", mock.AnythingOfType("[]types.NodeInfo"), mock.AnythingOfType("float64"), mock.AnythingOfType("int64")).Return(
 		func(nodesInfo []types.NodeInfo, _ float64, _ int64) []types.NodeInfo {
+			for i := range nodesInfo {
+				nodesInfo[i].Capacity = 1
+			}
 			return nodesInfo
 		}, len(nodes), nil)
-	scheduler.On("SelectStorageNodes", mock.AnythingOfType("[]types.NodeInfo"), mock.AnythingOfType("int64")).Return(
-		func(nodesInfo []types.NodeInfo, _ int64) []types.NodeInfo {
-			return nodesInfo
-		},
-		len(nodes), nil,
-	)
-	scheduler.On("SelectVolumeNodes", mock.AnythingOfType("[]types.NodeInfo"), mock.AnythingOfType("types.VolumeBindings")).Return(
-		func(nodesInfo []types.NodeInfo, _ types.VolumeBindings) []types.NodeInfo {
-			return nodesInfo
-		},
-		nil, len(nodes), nil,
-	)
+	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(
+		errors.Wrap(context.DeadlineExceeded, "MakeDeployStatus"),
+	).Once()
+	ch, err := c.CreateContainer(ctx, opts)
+	assert.Nil(t, err)
+	cnt := 0
+	for m := range ch {
+		cnt++
+		assert.True(t, errors.Is(m.Error, context.DeadlineExceeded))
+		assert.Error(t, m.Error, "MakeDeployStatus")
+	}
+	assert.EqualValues(t, 1, cnt)
+
+	// commit resource changes fails: UpdateNodes
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
+	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	old := strategy.Plans[strategy.Auto]
-	strategy.Plans[strategy.Auto] = func(nodesInfo []types.NodeInfo, need, total, _ int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
-		for i := range nodesInfo {
-			nodesInfo[i].Deploy = 1
+	strategy.Plans[strategy.Auto] = func(sis []types.StrategyInfo, need, total, _ int, resourceType types.ResourceType) (map[string]*types.DeployInfo, error) {
+		deployInfos := make(map[string]*types.DeployInfo)
+		for _, si := range sis {
+			deployInfos[si.Nodename] = &types.DeployInfo{
+				Deploy: 1,
+			}
 		}
-		return nodesInfo, nil
+		return deployInfos, nil
 	}
 	defer func() {
 		strategy.Plans[strategy.Auto] = old
 	}()
-	store.On("UpdateNodeResource",
-		mock.AnythingOfType("*context.timerCtx"),
-		mock.AnythingOfType("*types.Node"),
-		mock.AnythingOfType("types.ResourceMap"),
-		mock.AnythingOfType("float64"),
-		mock.AnythingOfType("int64"),
-		mock.AnythingOfType("int64"),
-		mock.AnythingOfType("types.ResourceMap"),
-		mock.AnythingOfType("string")).Return(
-		func(ctx context.Context, node *types.Node, _ types.CPUMap, quota float64, _, _ int64, _ types.VolumeMap, action string) error {
-			if action == st.ActionDecr {
-				return errors.Wrap(context.DeadlineExceeded, "UpdateNodeResource")
-			}
-			if action == st.ActionIncr {
-				quota = -quota
-			}
-			node.CPUUsed += quota
-			return nil
-		},
-	).Once()
-	_, err = c.CreateContainer(ctx, opts)
-	assert.Error(t, err)
-	assert.True(t, errors.Is(err, context.DeadlineExceeded))
-	assert.Error(t, err, "UpdateNodeResource")
-	assert.EqualValues(t, 0, node1.CPUUsed)
-	assert.EqualValues(t, 0, node2.CPUUsed)
-
-	// doAllocResource fails: UpdateNodeResource for 2nd node
-	cnt := 0
-	store.On("UpdateNodeResource",
-		mock.AnythingOfType("*context.timerCtx"),
-		mock.AnythingOfType("*types.Node"),
-		mock.AnythingOfType("types.ResourceMap"),
-		mock.AnythingOfType("float64"),
-		mock.AnythingOfType("int64"),
-		mock.AnythingOfType("int64"),
-		mock.AnythingOfType("types.ResourceMap"),
-		mock.AnythingOfType("string")).Return(
-		func(ctx context.Context, node *types.Node, _ types.CPUMap, quota float64, _, _ int64, _ types.VolumeMap, action string) error {
-			if action == st.ActionDecr {
-				cnt++
-				if cnt == 2 {
-					return errors.Wrap(context.DeadlineExceeded, "UpdateNodeResource2")
-				}
-			}
-			if action == st.ActionIncr {
-				quota = -quota
-			}
-			node.CPUUsed += quota
-			return nil
-		},
-	).Times(3)
-	_, err = c.CreateContainer(ctx, opts)
-	assert.Error(t, err)
-	assert.True(t, errors.Is(err, context.DeadlineExceeded))
-	assert.Error(t, err, "UpdateNodeResource2")
-	assert.EqualValues(t, 0, node1.CPUUsed)
-	assert.EqualValues(t, 0, node2.CPUUsed)
-	assert.EqualValues(t, 2, cnt)
-
-	// doAllocResource fails: SaveProcessing
-	store.On("UpdateNodeResource",
-		mock.AnythingOfType("*context.timerCtx"),
-		mock.AnythingOfType("*types.Node"),
-		mock.AnythingOfType("types.ResourceMap"),
-		mock.AnythingOfType("float64"),
-		mock.AnythingOfType("int64"),
-		mock.AnythingOfType("int64"),
-		mock.AnythingOfType("types.ResourceMap"),
-		mock.AnythingOfType("string")).Return(
-		func(ctx context.Context, node *types.Node, _ types.CPUMap, quota float64, _, _ int64, _ types.VolumeMap, action string) error {
-			if action == st.ActionIncr {
-				quota = -quota
-			}
-			node.CPUUsed += quota
-			return nil
-		},
-	)
-	store.On("SaveProcessing", mock.Anything, mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "SaveProcessing")).Once()
-	_, err = c.CreateContainer(ctx, opts)
-	assert.Error(t, err)
-	assert.True(t, errors.Is(err, context.DeadlineExceeded))
-	assert.Error(t, err, "SaveProcessing")
-	assert.EqualValues(t, 0, node1.CPUUsed)
-	assert.EqualValues(t, 0, node2.CPUUsed)
+	store.On("UpdateNodes", mock.Anything, mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "UpdateNodes1")).Once()
+	ch, err = c.CreateContainer(ctx, opts)
+	assert.Nil(t, err)
+	cnt = 0
+	for m := range ch {
+		cnt++
+		assert.True(t, errors.Is(m.Error, context.DeadlineExceeded))
+		assert.Error(t, m.Error, "UpdateNodes1")
+	}
+	assert.EqualValues(t, 1, cnt)
+	assert.EqualValues(t, 1, node1.CPUUsed)
+	assert.EqualValues(t, 1, node2.CPUUsed)
+	node1.CPUUsed = 0
+	node2.CPUUsed = 0
 
 	// doCreateContainerOnNode fails: doGetAndPrepareNode
+	store.On("UpdateNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
 	store.On("GetNode",
 		mock.AnythingOfType("*context.timerCtx"),
 		mock.AnythingOfType("string"),
@@ -251,32 +178,39 @@ func TestCreateContainerTxn(t *testing.T) {
 			}
 			return
 		}, nil)
-	store.On("SaveProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "ImageLocalDigest")).Twice()
 	engine.On("ImagePull", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "ImagePull")).Twice()
 	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	ch, err := c.CreateContainer(ctx, opts)
+	ch, err = c.CreateContainer(ctx, opts)
 	assert.Nil(t, err)
+	cnt = 0
 	for m := range ch {
+		cnt++
 		assert.Error(t, m.Error)
 		assert.True(t, errors.Is(m.Error, context.DeadlineExceeded))
 		assert.Error(t, m.Error, "ImagePull")
 	}
+	assert.EqualValues(t, 2, cnt)
 	assert.EqualValues(t, 0, node1.CPUUsed)
 	assert.EqualValues(t, 0, node2.CPUUsed)
 
-	// doCreateAndStartContainer fails: VirtualizationCreate
+	// doDeployOneWorkload fails: VirtualizationCreate
 	engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return([]string{""}, nil)
 	engine.On("ImageRemoteDigest", mock.Anything, mock.Anything).Return("", nil)
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "VirtualizationCreate")).Twice()
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("RemoveContainer", mock.Anything, mock.Anything).Return(nil)
 	ch, err = c.CreateContainer(ctx, opts)
 	assert.Nil(t, err)
+	cnt = 0
 	for m := range ch {
+		cnt++
 		assert.Error(t, m.Error)
 		assert.True(t, errors.Is(m.Error, context.DeadlineExceeded))
 		assert.Error(t, m.Error, "VirtualizationCreate")
 	}
+	assert.EqualValues(t, 2, cnt)
 	assert.EqualValues(t, 0, node1.CPUUsed)
 	assert.EqualValues(t, 0, node2.CPUUsed)
 
@@ -285,28 +219,40 @@ func TestCreateContainerTxn(t *testing.T) {
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
 	store.On("AddContainer", mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "AddContainer")).Twice()
-	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	store.On("RemoveContainer", mock.Anything, mock.Anything).Return(nil).Twice()
 	ch, err = c.CreateContainer(ctx, opts)
 	assert.Nil(t, err)
+	cnt = 0
 	for m := range ch {
+		cnt++
 		assert.Error(t, m.Error)
 		assert.True(t, errors.Is(m.Error, context.DeadlineExceeded))
 		assert.Error(t, m.Error, "AddContainer")
 	}
+	assert.EqualValues(t, 2, cnt)
 	assert.EqualValues(t, 0, node1.CPUUsed)
 	assert.EqualValues(t, 0, node2.CPUUsed)
 
-	// doCreateAndStartContainer fails: RemoveContainer
-	store.On("AddContainer", mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "AddContainer")).Twice()
-	store.On("RemoveContainer", mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "RemoveContainer")).Twice()
+	// doCreateAndStartContainer fails: first time AddContainer failed
+	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "c1"}, nil)
+	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
+	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
+	store.On("AddContainer", mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "AddContainer2")).Once()
+	store.On("AddContainer", mock.Anything, mock.Anything).Return(nil).Once()
 	ch, err = c.CreateContainer(ctx, opts)
 	assert.Nil(t, err)
+	cnt = 0
+	errCnt := 0
 	for m := range ch {
-		assert.Error(t, m.Error)
-		assert.True(t, errors.Is(m.Error, context.DeadlineExceeded))
-		assert.Error(t, m.Error, "AddContainer")
+		cnt++
+		if m.Error != nil {
+			assert.Error(t, m.Error)
+			assert.True(t, errors.Is(m.Error, context.DeadlineExceeded))
+			assert.Error(t, m.Error, "AddContainer2")
+			errCnt++
+		}
 	}
-	assert.EqualValues(t, 0, node1.CPUUsed)
-	assert.EqualValues(t, 0, node2.CPUUsed)
+	assert.EqualValues(t, 2, cnt)
+	assert.EqualValues(t, 1, errCnt)
+	assert.EqualValues(t, 1, node1.CPUUsed+node2.CPUUsed)
+	return
 }

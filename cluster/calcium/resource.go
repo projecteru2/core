@@ -3,12 +3,12 @@ package calcium
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/projecteru2/core/store"
+	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -148,151 +148,44 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 			return nil
 		},
 		func(ctx context.Context) error {
-			return c.store.UpdateNode(ctx, n)
+			return c.store.UpdateNodes(ctx, n)
 		},
 		nil,
 		c.config.GlobalTimeout,
 	)
 }
 
-func (c *Calcium) doAllocResource(ctx context.Context, opts *types.DeployOptions) ([]types.NodeInfo, error) {
-	var err error
-	var total int
-	var nodesInfo []types.NodeInfo
-	var nodeCPUPlans map[string][]types.CPUMap
-	var nodeVolumePlans map[string][]types.VolumePlan
-	return nodesInfo, c.withNodesLocked(ctx, opts.Podname, opts.Nodename, opts.NodeLabels, false, func(nodes map[string]*types.Node) error {
-		if len(nodes) == 0 {
-			return types.ErrInsufficientNodes
-		}
-		nodesInfo = getNodesInfo(nodes, opts.CPUQuota, opts.Memory, opts.Storage, opts.Volumes.TotalSize())
-		// 载入之前部署的情况
-		nodesInfo, err = c.store.MakeDeployStatus(ctx, opts, nodesInfo)
-		if err != nil {
-			return err
-		}
+func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) (map[types.ResourceType]types.ResourcePlans, map[string]*types.DeployInfo, error) {
+	if len(nodeMap) == 0 {
+		return nil, nil, errors.WithStack(types.ErrInsufficientNodes)
+	}
 
-		if !opts.CPUBind || opts.CPUQuota == 0 {
-			nodesInfo, total, err = c.scheduler.SelectMemoryNodes(nodesInfo, opts.CPUQuota, opts.Memory) // 还是以 Bytes 作单位， 不转换了
-		} else {
-			log.Info("[doAllocResource] CPU Bind, selecting CPU plan")
-			nodesInfo, nodeCPUPlans, total, err = c.scheduler.SelectCPUNodes(nodesInfo, opts.CPUQuota, opts.Memory)
-		}
-		if err != nil {
-			return err
-		}
+	// select available nodes
+	planMap, total, scheduleTypes, err := scheduler.SelectNodes(opts.ResourceRequests, nodeMap)
+	if err != nil {
+		return nil, nil, errors.WithStack(err)
+	}
+	log.Errorf("[Calcium.doAllocResource] planMap: %+v, total: %v, type: %+v", planMap, total, scheduleTypes)
 
-		var storTotal int
-		if nodesInfo, storTotal, err = c.scheduler.SelectStorageNodes(nodesInfo, opts.Storage); err != nil {
-			return err
-		}
+	// deploy strategy
+	strategyInfos := types.NewStrategyInfos(opts, nodeMap, planMap)
+	if err := c.store.MakeDeployStatus(ctx, opts, strategyInfos); err != nil {
+		return nil, nil, errors.WithStack(err)
+	}
+	deployMap, err := strategy.Deploy(opts, strategyInfos, total, scheduleTypes)
+	if err != nil {
+		return nil, nil, errors.WithStack(err)
+	}
+	log.Debugf("[Calium.doAllocResource] deployMap: %+v", deployMap)
 
-		var volumeTotal int
-		if nodesInfo, nodeVolumePlans, volumeTotal, err = c.scheduler.SelectVolumeNodes(nodesInfo, opts.Volumes); err != nil {
-			return err
-		}
-
-		total = utils.Min(volumeTotal, storTotal, total)
-
-		volumeSchedule := false
-		for _, volume := range opts.Volumes {
-			if volume.RequireSchedule() {
-				volumeSchedule = true
-				break
-			}
-		}
-		resourceType := types.GetResourceType(opts.CPUBind, volumeSchedule)
-		// deploy strategy
-		if deployMethod, ok := strategy.Plans[opts.DeployStrategy]; !ok {
-			return types.ErrBadDeployStrategy
-		} else if nodesInfo, err = deployMethod(nodesInfo, opts.Count, total, opts.NodesLimit, resourceType); err != nil {
-			return err
-		}
-
-		// 资源处理
-		sort.Slice(nodesInfo, func(i, j int) bool { return nodesInfo[i].Deploy < nodesInfo[j].Deploy })
-		p := sort.Search(len(nodesInfo), func(i int) bool { return nodesInfo[i].Deploy > 0 })
-		// p 最大也就是 len(nodesInfo) - 1
-		if p == len(nodesInfo) {
-			return types.ErrInsufficientRes
-		}
-		nodesInfo = nodesInfo[p:]
-		track := -1
-		return utils.Txn(
-			ctx,
-			func(ctx context.Context) error {
-				for i, nodeInfo := range nodesInfo {
-					cpuCost, quotaCost, memoryCost, storageCost, volumeCost := calcCost(
-						nodeInfo, opts.Memory, opts.Storage, opts.CPUQuota, nodeCPUPlans, nodeVolumePlans,
-					)
-					if _, ok := nodeCPUPlans[nodeInfo.Name]; ok {
-						nodesInfo[i].CPUPlan = nodeCPUPlans[nodeInfo.Name][:nodeInfo.Deploy]
-					}
-					if _, ok := nodeVolumePlans[nodeInfo.Name]; ok {
-						nodesInfo[i].VolumePlans = nodeVolumePlans[nodeInfo.Name][:nodeInfo.Deploy]
-					}
-					if err = c.store.UpdateNodeResource(ctx, nodes[nodeInfo.Name], cpuCost, quotaCost, memoryCost, storageCost, volumeCost, store.ActionDecr); err != nil {
-						return err // due to ctx lifecircle, this will be interrupted by client
-					}
-					track = i
-				}
-				return nil
-			},
-			func(ctx context.Context) error {
-				go func() {
-					for _, nodeInfo := range nodesInfo {
-						log.Infof("[allocResource] deploy %d to %s", nodeInfo.Deploy, nodeInfo.Name)
-					}
-				}()
-				return c.doBindProcessStatus(ctx, opts, nodesInfo)
-			},
-			func(ctx context.Context) error {
-				for i := 0; i < track+1; i++ {
-					cpuCost, quotaCost, memoryCost, storageCost, volumeCost := calcCost(
-						nodesInfo[i], opts.Memory, opts.Storage, opts.CPUQuota, nodeCPUPlans, nodeVolumePlans,
-					)
-					if err = c.store.UpdateNodeResource(ctx, nodes[nodesInfo[i].Name], cpuCost, quotaCost, memoryCost, storageCost, volumeCost, store.ActionIncr); err != nil {
-						return err
-					}
-				}
-				return nil
-			},
-			c.config.GlobalTimeout,
-		)
-	})
+	return planMap, deployMap, nil
 }
 
 func (c *Calcium) doBindProcessStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) error {
 	for _, nodeInfo := range nodesInfo {
-		if err := c.store.SaveProcessing(ctx, opts, nodeInfo); err != nil {
+		if err := c.store.SaveProcessing(ctx, opts, nodeInfo.Name, nodeInfo.Deploy); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func calcCost(
-	nodeInfo types.NodeInfo,
-	memory, storage int64, CPUQuota float64,
-	nodeCPUPlans map[string][]types.CPUMap,
-	nodeVolumePlans map[string][]types.VolumePlan) (types.CPUMap, float64, int64, int64, types.VolumeMap) {
-	cpuCost := types.CPUMap{}
-	memoryCost := memory * int64(nodeInfo.Deploy)
-	storageCost := storage * int64(nodeInfo.Deploy)
-	quotaCost := CPUQuota * float64(nodeInfo.Deploy)
-	volumeCost := types.VolumeMap{}
-
-	if _, ok := nodeCPUPlans[nodeInfo.Name]; ok {
-		for _, cpu := range nodeCPUPlans[nodeInfo.Name][:nodeInfo.Deploy] {
-			cpuCost.Add(cpu)
-		}
-	}
-
-	if _, ok := nodeVolumePlans[nodeInfo.Name]; ok {
-		for _, volumePlan := range nodeVolumePlans[nodeInfo.Name][:nodeInfo.Deploy] {
-			volumeCost.Add(volumePlan.IntoVolumeMap())
-		}
-	}
-
-	return cpuCost, quotaCost, memoryCost, storageCost, volumeCost
 }
