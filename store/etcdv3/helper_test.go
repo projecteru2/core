@@ -21,11 +21,11 @@ func TestSetCount(t *testing.T) {
 		"n1": 1,
 		"n2": 2,
 	}
-	nodesInfo := []types.NodeInfo{
-		{Name: "n1"},
-		{Name: "n2"},
+	sis := []types.StrategyInfo{
+		{Nodename: "n1"},
+		{Nodename: "n2"},
 	}
-	nodesInfo = setCount(nodesCount, nodesInfo)
-	assert.Equal(t, nodesInfo[0].Count, 1)
-	assert.Equal(t, nodesInfo[1].Count, 2)
+	setCount(nodesCount, sis)
+	assert.Equal(t, sis[0].Count, 1)
+	assert.Equal(t, sis[1].Count, 2)
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/store"
 
@@ -121,22 +122,20 @@ func (m *Mercury) GetNodesByPod(ctx context.Context, podname string, labels map[
 	return m.doGetNodes(ctx, resp.Kvs, labels, all)
 }
 
-// UpdateNode update a node, save it to etcd
-// storage path in etcd is `/pod/nodes/:podname/:nodename`
-func (m *Mercury) UpdateNode(ctx context.Context, node *types.Node) error {
-	bytes, err := json.Marshal(node)
-	if err != nil {
-		return err
-	}
-	d := string(bytes)
-	data := map[string]string{
-		fmt.Sprintf(nodeInfoKey, node.Name):              d,
-		fmt.Sprintf(nodePodKey, node.Podname, node.Name): d,
+func (m *Mercury) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
+	data := map[string]string{}
+	for _, node := range nodes {
+		bytes, err := json.Marshal(node)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		d := string(bytes)
+		data[fmt.Sprintf(nodeInfoKey, node.Name)] = d
+		data[fmt.Sprintf(nodePodKey, node.Podname, node.Name)] = d
 	}
 
-	log.Debugf("[UpdateNode] pod %s node %s cpu slots %v memory %v storage %v", node.Podname, node.Name, node.CPU, node.MemCap, node.StorageCap)
-	_, err = m.batchUpdate(ctx, data)
-	return err
+	_, err := m.batchUpdate(ctx, data)
+	return errors.WithStack(err)
 }
 
 // UpdateNodeResource update cpu and memory on a node, either add or subtract
@@ -167,7 +166,7 @@ func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu 
 	}
 
 	go metrics.Client.SendNodeInfo(node)
-	return m.UpdateNode(ctx, node)
+	return m.UpdateNodes(ctx, node)
 }
 
 func (m *Mercury) makeClient(ctx context.Context, node *types.Node, force bool) (engine.API, error) {

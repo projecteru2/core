@@ -117,13 +117,13 @@ func (_m *Store) CreateLock(key string, ttl time.Duration) (lock.DistributedLock
 	return r0, r1
 }
 
-// DeleteProcessing provides a mock function with given fields: ctx, opts, nodeInfo
-func (_m *Store) DeleteProcessing(ctx context.Context, opts *types.DeployOptions, nodeInfo types.NodeInfo) error {
-	ret := _m.Called(ctx, opts, nodeInfo)
+// DeleteProcessing provides a mock function with given fields: ctx, opts, nodename
+func (_m *Store) DeleteProcessing(ctx context.Context, opts *types.DeployOptions, nodename string) error {
+	ret := _m.Called(ctx, opts, nodename)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, types.NodeInfo) error); ok {
-		r0 = rf(ctx, opts, nodeInfo)
+	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, string) error); ok {
+		r0 = rf(ctx, opts, nodename)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -361,27 +361,18 @@ func (_m *Store) ListNodeContainers(ctx context.Context, nodename string, labels
 	return r0, r1
 }
 
-// MakeDeployStatus provides a mock function with given fields: ctx, opts, nodesInfo
-func (_m *Store) MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
-	ret := _m.Called(ctx, opts, nodesInfo)
+// MakeDeployStatus provides a mock function with given fields: ctx, opts, strategyInfo
+func (_m *Store) MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfo []types.StrategyInfo) error {
+	ret := _m.Called(ctx, opts, strategyInfo)
 
-	var r0 []types.NodeInfo
-	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, []types.NodeInfo) []types.NodeInfo); ok {
-		r0 = rf(ctx, opts, nodesInfo)
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, []types.StrategyInfo) error); ok {
+		r0 = rf(ctx, opts, strategyInfo)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]types.NodeInfo)
-		}
+		r0 = ret.Error(0)
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.DeployOptions, []types.NodeInfo) error); ok {
-		r1 = rf(ctx, opts, nodesInfo)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+	return r0
 }
 
 // RegisterService provides a mock function with given fields: _a0, _a1, _a2
@@ -440,13 +431,13 @@ func (_m *Store) RemovePod(ctx context.Context, podname string) error {
 	return r0
 }
 
-// SaveProcessing provides a mock function with given fields: ctx, opts, nodeInfo
-func (_m *Store) SaveProcessing(ctx context.Context, opts *types.DeployOptions, nodeInfo types.NodeInfo) error {
-	ret := _m.Called(ctx, opts, nodeInfo)
+// SaveProcessing provides a mock function with given fields: ctx, opts, nodename, count
+func (_m *Store) SaveProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error {
+	ret := _m.Called(ctx, opts, nodename, count)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, types.NodeInfo) error); ok {
-		r0 = rf(ctx, opts, nodeInfo)
+	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, string, int) error); ok {
+		r0 = rf(ctx, opts, nodename, count)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -524,20 +515,6 @@ func (_m *Store) UpdateContainer(ctx context.Context, container *types.Container
 	return r0
 }
 
-// UpdateNode provides a mock function with given fields: ctx, node
-func (_m *Store) UpdateNode(ctx context.Context, node *types.Node) error {
-	ret := _m.Called(ctx, node)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.Node) error); ok {
-		r0 = rf(ctx, node)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
 // UpdateNodeResource provides a mock function with given fields: ctx, node, cpu, quota, memory, storage, volume, action
 func (_m *Store) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.ResourceMap, quota float64, memory int64, storage int64, volume types.ResourceMap, action string) error {
 	ret := _m.Called(ctx, node, cpu, quota, memory, storage, volume, action)
@@ -545,6 +522,27 @@ func (_m *Store) UpdateNodeResource(ctx context.Context, node *types.Node, cpu t
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *types.Node, types.ResourceMap, float64, int64, int64, types.ResourceMap, string) error); ok {
 		r0 = rf(ctx, node, cpu, quota, memory, storage, volume, action)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UpdateNodes provides a mock function with given fields: _a0, _a1
+func (_m *Store) UpdateNodes(_a0 context.Context, _a1 ...*types.Node) error {
+	_va := make([]interface{}, len(_a1))
+	for _i := range _a1 {
+		_va[_i] = _a1[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _a0)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, ...*types.Node) error); ok {
+		r0 = rf(_a0, _a1...)
 	} else {
 		r0 = ret.Error(0)
 	}
