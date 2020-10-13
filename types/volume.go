@@ -39,10 +39,13 @@ func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 		return nil, fmt.Errorf("invalid volume: %v", volume)
 	}
 
+	flagParts := strings.Split(flags, "")
+	sort.Strings(flagParts)
+
 	vb := &VolumeBinding{
 		Source:      src,
 		Destination: dst,
-		Flags:       flags,
+		Flags:       strings.Join(flagParts, ""),
 		SizeInBytes: size,
 	}
 	return vb, vb.Validate()
@@ -148,9 +151,9 @@ func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 }
 
 // Merge combines two VolumeBindings
-func (vbs VolumeBindings) Merge(vbs2 VolumeBindings) (softVolumes VolumeBindings, hardVolumes VolumeBindings, err error) {
+func MergeVolumeBindings(vbs1, vbs2 VolumeBindings) (vbs VolumeBindings, err error) {
 	sizeMap := map[[3]string]int64{} // {["AUTO", "/data", "rw"]: 100}
-	for _, vb := range append(vbs, vbs2...) {
+	for _, vb := range append(vbs1, vbs2...) {
 		key := [3]string{vb.Source, vb.Destination, vb.Flags}
 		sizeMap[key] += vb.SizeInBytes
 	}
@@ -159,11 +162,17 @@ func (vbs VolumeBindings) Merge(vbs2 VolumeBindings) (softVolumes VolumeBindings
 		if size < 0 {
 			continue
 		}
-		vb := &VolumeBinding{key[0], key[1], key[2], size}
-		if strings.HasSuffix(key[0], AUTO) {
-			softVolumes = append(softVolumes, vb)
+		vbs = append(vbs, &VolumeBinding{key[0], key[1], key[2], size})
+	}
+	return
+}
+
+func (vbs VolumeBindings) Divide() (soft VolumeBindings, hard VolumeBindings) {
+	for _, vb := range vbs {
+		if strings.HasSuffix(vb.Source, AUTO) {
+			soft = append(soft, vb)
 		} else {
-			hardVolumes = append(hardVolumes, vb)
+			hard = append(hard, vb)
 		}
 	}
 	return

@@ -165,12 +165,12 @@ func (p VolumePlan) GetVolumeMap(vb *VolumeBinding) (volMap VolumeMap, volume Vo
 // Compatible return true if new bindings stick to the old bindings
 func (p VolumePlan) Compatible(oldPlan VolumePlan) bool {
 	for volume, oldBinding := range oldPlan {
-		newBinding, v := p.GetVolumeMap(&volume) // nolint
+		newBinding, _ := p.GetVolumeMap(&volume) // nolint
 		// newBinding is ok to be nil when reallocing requires less volumes than before
 		if newBinding != nil && newBinding.GetResourceID() != oldBinding.GetResourceID() {
 			// unlimited binding, modify binding source
 			if newBinding.GetRation() == 0 {
-				p[v] = VolumeMap{oldBinding.GetResourceID(): 0}
+				//p[v] = VolumeMap{oldBinding.GetResourceID(): 0}
 				continue
 			}
 			return false
@@ -315,6 +315,15 @@ func (n *Node) AvailableStorage() int64 {
 	}
 }
 
+func (n *Node) ResourceUsages() map[ResourceType]float64 {
+	return map[ResourceType]float64{
+		ResourceCPU:     n.CPUUsed / float64(len(n.InitCPU)),
+		ResourceMemory:  1.0 - float64(n.MemCap)/float64(n.InitMemCap),
+		ResourceStorage: n.StorageUsage(),
+		ResourceVolume:  float64(n.VolumeUsed) / float64(n.InitVolume.Total()),
+	}
+}
+
 // NodeInfo for deploy
 type NodeInfo struct {
 	Name          string
@@ -326,35 +335,15 @@ type NodeInfo struct {
 	MemCap        int64
 	StorageCap    int64
 
-	Usages map[ResourceType]float64
-	Rates  map[ResourceType]float64
+	Usages map[ResourceType]float64 // deprecated
+	Rates  map[ResourceType]float64 // deprecated
 
 	CPUPlan     []CPUMap
 	VolumePlans []VolumePlan // {{"AUTO:/data:rw:1024": "/mnt0:/data:rw:1024"}}
-	Capacity    int          // 可以部署几个
-	Count       int          // 上面有几个了
-	Deploy      int          // 最终部署几个
+	Capacity    int          // 可以部署几个, deprecated
+	Count       int          // 上面有几个了, deprecated
+	Deploy      int          // 最终部署几个, deprecated
 	// 其他需要 filter 的字段
-}
-
-// GetResourceUsage .
-func (n *NodeInfo) GetResourceUsage(resource ResourceType) (usage float64) {
-	for _, t := range AllResourceTypes {
-		if t&resource != 0 {
-			usage += n.Usages[t]
-		}
-	}
-	return
-}
-
-// GetResourceRate .
-func (n *NodeInfo) GetResourceRate(resource ResourceType) (rate float64) {
-	for _, t := range AllResourceTypes {
-		if t&resource != 0 {
-			rate += n.Rates[t]
-		}
-	}
-	return
 }
 
 // NodeResource for node check
