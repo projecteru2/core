@@ -1,15 +1,41 @@
 package resources
 
 import (
-	complexscheduler "github.com/projecteru2/core/scheduler/complex"
+	"strconv"
+
+	"github.com/pkg/errors"
+	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
 )
 
-type CPUMemResourceRequest types.CPUMemResourceRequest
+type CPUMemResourceRequest struct {
+	CPUQuota        float64
+	CPUBind         bool
+	Memory          int64
+	MemorySoftLimit bool
+}
+
+func (r CPUMemResourceRequest) Type() types.ResourceType {
+	t := types.ResourceCPU | types.ResourceMemory
+	if r.CPUBind {
+		t |= types.ResourceCPUBind
+	}
+	return t
+}
+
+func (r CPUMemResourceRequest) DeployValidate() error {
+	if r.Memory < 0 {
+		return types.NewDetailedErr(types.ErrBadMemory, r.Memory)
+	}
+	if r.CPUQuota < 0 {
+		return types.NewDetailedErr(types.ErrBadCPU, r.CPUQuota)
+	}
+	return nil
+}
 
 func (r CPUMemResourceRequest) MakeScheduler() types.SchedulerV2 {
-	return func(nodesInfo []types.NodeInfo) (plans CPUMemResourcePlans, total int, err error) {
-		schedulerV1, err := complexscheduler.GetSchedulerV1()
+	return func(nodesInfo []types.NodeInfo) (plans types.ResourcePlans, total int, err error) {
+		schedulerV1, err := scheduler.GetSchedulerV1()
 		if err != nil {
 			return
 		}
@@ -22,34 +48,85 @@ func (r CPUMemResourceRequest) MakeScheduler() types.SchedulerV2 {
 		}
 
 		return CPUMemResourcePlans{
-			memory:   r.Memory,
-			CPUQuota: r.CPUQuota,
-			CPUPlans: CPUPlans,
+			memory:          r.Memory,
+			memorySoftLimit: r.MemorySoftLimit,
+			CPUQuota:        r.CPUQuota,
+			CPUPlans:        CPUPlans,
+			capacity:        getCapacity(nodesInfo),
 		}, total, err
 	}
 }
 
+func (r CPUMemResourceRequest) Rate(node types.Node) float64 {
+	if r.CPUBind {
+		return r.CPUQuota / float64(len(node.InitCPU))
+	}
+	return float64(r.Memory) / float64(node.InitMemCap)
+}
+
 type CPUMemResourcePlans struct {
-	memory   int64
-	CPUQuota float64
-	CPUPlans map[string][]types.CPUMap
+	memory          int64
+	memorySoftLimit bool
+	CPUQuota        float64
+	CPUPlans        map[string][]types.CPUMap
+	capacity        map[string]int
 }
 
-func (p CPUMemResourcePlans) Type() types.ResourceType {
-	return types.ResourceCPU | types.ResourceMemory
+func (p CPUMemResourcePlans) Type() (resourceType types.ResourceType) {
+	resourceType = types.ResourceCPU | types.ResourceMemory
+	if p.CPUPlans != nil {
+		resourceType |= types.ResourceCPUBind
+	}
+	return resourceType
 }
 
-func (p CPUMemResourcePlans) ApplyChangesOnNode(nodeInfo types.NodeInfo, node *types.Node) (err error) {
-	quotaCost := p.CPUQuota * float64(nodeInfo.Deploy)
-	memoryCost := p.memory * int64(nodeInfo.Deploy)
+func (p CPUMemResourcePlans) Capacity() map[string]int {
+	return p.capacity
+}
 
-	CPUCost := types.Map{}
-	for _, CPU := range p.CPUPlans[nodeInfo.Name][:nodeInfo.Deploy] {
-		CPUCost.Add(CPU)
+func (p CPUMemResourcePlans) ApplyChangesOnNode(node *types.Node, indices ...int) {
+	if p.CPUPlans != nil {
+		for _, idx := range indices {
+			node.CPU.Sub(p.CPUPlans[node.Name][idx])
+		}
+	}
+	node.MemCap -= p.memory * int64(len(indices))
+	node.SetCPUUsed(p.CPUQuota*float64(len(indices)), types.IncrUsage)
+}
+
+func (p CPUMemResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...int) {
+	if p.CPUPlans != nil {
+		for _, idx := range indices {
+			node.CPU.Add(p.CPUPlans[node.Name][idx])
+		}
+	}
+	node.MemCap += p.memory * int64(len(indices))
+	node.SetCPUUsed(p.CPUQuota*float64(len(indices)), types.DecrUsage)
+}
+
+func (p CPUMemResourcePlans) Dispense(opts types.DispenseOptions, resources *types.Resources) error {
+	resources.Quota = p.CPUQuota
+	resources.Memory = p.memory
+	resources.SoftLimit = p.memorySoftLimit
+
+	if len(p.CPUPlans) > 0 {
+		if _, ok := p.CPUPlans[opts.Node.Name]; !ok {
+			return errors.WithStack(types.ErrInsufficientCPU)
+		}
+		if len(p.CPUPlans[opts.Node.Name]) <= opts.Index {
+			return errors.WithStack(types.ErrInsufficientCPU)
+		}
+		resources.CPU = p.CPUPlans[opts.Node.Name][opts.Index]
+		resources.NUMANode = opts.Node.GetNUMANode(resources.CPU)
+		return nil
 	}
 
-	node.CPU.Sub(CPUCost)
-	node.MemCap -= memoryCost
-	node.SetCPUUsed(quotaCost, types.IncrUsage)
-	return
+	// special handle when convert from cpu-binding to cpu-unbinding
+	if len(opts.ExistingInstances) > opts.Index && len(opts.ExistingInstances[opts.Index].CPU) > 0 && len(p.CPUPlans) == 0 {
+		resources.CPU = types.CPUMap{}
+		for i := 0; i < len(opts.Node.InitCPU); i++ {
+			resources.CPU[strconv.Itoa(i)] = 0
+		}
+	}
+	return nil
 }

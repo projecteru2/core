@@ -2,19 +2,16 @@ package complexscheduler
 
 import (
 	"sort"
-	"sync"
 
 	"math"
 
-	"github.com/pkg/errors"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	scheduler *Potassium
-	once      sync.Once
+	potassium *Potassium
 )
 
 // Potassium is a scheduler
@@ -22,23 +19,9 @@ type Potassium struct {
 	maxshare, sharebase int
 }
 
-func InitSchedulerV1(config types.Config) (_ *Potassium, err error) {
-	once.Do(func() {
-		scheduler, err = New(config)
-	})
-	return scheduler, err
-}
-
 // New a potassium
 func New(config types.Config) (*Potassium, error) {
 	return &Potassium{config.Scheduler.MaxShare, config.Scheduler.ShareBase}, nil
-}
-
-func GetSchedulerV1() (*Potassium, error) {
-	if scheduler == nil {
-		return nil, errors.Errorf("potassium not initiated")
-	}
-	return scheduler, nil
 }
 
 // MaxIdleNode use for build
@@ -83,8 +66,7 @@ func (m *Potassium) SelectStorageNodes(nodesInfo []types.NodeInfo, storage int64
 	total := 0
 	for i := range nodesInfo {
 		storCap := int(nodesInfo[i].StorageCap / storage)
-		nodesInfo[i].Capacity = utils.Min(storCap, nodesInfo[i].Capacity)
-		total += nodesInfo[i].Capacity
+		total += updateNodeInfoCapacity(&nodesInfo[i], storCap)
 	}
 
 	return nodesInfo, total, nil
