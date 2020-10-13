@@ -170,7 +170,7 @@ func TestAllocResource(t *testing.T) {
 	defer store.AssertExpectations(t)
 
 	// Defines for below.
-	opts.Nodename = n2
+	opts.Nodenames = []string{n2}
 
 	// define nodesInfo
 	nodesInfo := []types.NodeInfo{
