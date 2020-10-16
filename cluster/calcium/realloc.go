@@ -145,18 +145,18 @@ func (c *Calcium) doReallocContainersOnNode(ctx context.Context, ch chan *types.
 
 				// if: commit changes of realloc resources
 				func(ctx context.Context) (err error) {
-
 					for _, plan := range planMap {
 						plan.ApplyChangesOnNode(node, utils.Range(len(containers))...)
+					}
+					rollbacks = utils.Range(len(containers))
+					for _, container := range containers {
+						originalContainers = append(originalContainers, *container)
 					}
 					return c.store.UpdateNodes(ctx, node)
 				},
 
 				// then: update instances' resources
 				func(ctx context.Context) error {
-					for _, container := range containers {
-						originalContainers = append(originalContainers, *container)
-					}
 					rollbacks, err = c.doUpdateResourceOnInstances(ctx, ch, node, planMap, containers, hardVbsMap)
 					return err
 				},

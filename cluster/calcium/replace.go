@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -151,23 +150,9 @@ func (c *Calcium) doReplaceContainer(
 				ctx,
 				// if
 				func(ctx context.Context) error {
-					return utils.Txn(
-						ctx,
-						func(ctx context.Context) error {
-							return c.doDeployOneWorkload(ctx, node, &opts.DeployOptions, createMessage, index, -1)
-						},
-						nil,
-						func(ctx context.Context) error {
-							log.Errorf("[doReplaceContainer] Error when create and start a container, %v", createMessage.Error)
-							if err = c.withNodeLocked(ctx, node.Name, func(node *types.Node) error {
-								return c.store.UpdateNodeResource(ctx, node, createMessage.CPU, createMessage.Quota, createMessage.Memory, createMessage.Storage, createMessage.VolumePlan.IntoVolumeMap(), store.ActionIncr)
-							}); err != nil {
-								log.Errorf("[doReplaceContainer] Reset node resource %s failed %v", node.Name, err)
-							}
-							return nil
-						},
-						c.config.GlobalTimeout,
-					)
+					ctx, cancel := context.WithCancel(ctx)
+					cancel()
+					return c.doDeployOneWorkload(ctx, node, &opts.DeployOptions, createMessage, index, -1)
 				},
 				// then
 				func(ctx context.Context) (err error) {
