@@ -62,8 +62,7 @@ func (m *Potassium) SelectStorageNodes(nodesInfo []types.NodeInfo, storage int64
 	total := 0
 	for i := range nodesInfo {
 		storCap := int(nodesInfo[i].StorageCap / storage)
-		nodesInfo[i].Capacity = utils.Min(storCap, nodesInfo[i].Capacity)
-		total += nodesInfo[i].Capacity
+		total += updateNodeInfoCapacity(&nodesInfo[i], storCap)
 	}
 
 	return nodesInfo, total, nil

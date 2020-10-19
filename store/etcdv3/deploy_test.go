@@ -19,13 +19,14 @@ func TestDeploy(t *testing.T) {
 		Entrypoint:   &types.Entrypoint{Name: "entry"},
 		ProcessIdent: "abc",
 	}
-	nodeInfo := types.NodeInfo{Name: "node"}
+	sis := []types.StrategyInfo{
+		{Nodename: "node"},
+	}
 
 	// no container deployed
-	nodesInfo, err := m.MakeDeployStatus(ctx, opts, []types.NodeInfo{nodeInfo})
+	err := m.MakeDeployStatus(ctx, opts, sis)
 	assert.NoError(t, err)
-	assert.Equal(t, len(nodesInfo), 1)
-	assert.Equal(t, nodesInfo[0].Name, nodeInfo.Name)
+	assert.Equal(t, len(sis), 1)
 	// have containers
 	key := filepath.Join(containerDeployPrefix, opts.Name, opts.Entrypoint.Name, "node", "id1")
 	_, err = m.Put(ctx, key, "")
@@ -33,9 +34,9 @@ func TestDeploy(t *testing.T) {
 	key = filepath.Join(containerDeployPrefix, opts.Name, opts.Entrypoint.Name, "node", "id2")
 	_, err = m.Put(ctx, key, "")
 	assert.NoError(t, err)
-	nodesInfo, err = m.MakeDeployStatus(ctx, opts, []types.NodeInfo{nodeInfo})
+	err = m.MakeDeployStatus(ctx, opts, sis)
 	assert.NoError(t, err)
-	assert.Equal(t, len(nodesInfo), 1)
-	assert.Equal(t, nodesInfo[0].Name, nodeInfo.Name)
-	assert.Equal(t, nodesInfo[0].Count, 2)
+	assert.Equal(t, len(sis), 1)
+	assert.Equal(t, sis[0].Nodename, "node")
+	assert.Equal(t, sis[0].Count, 2)
 }

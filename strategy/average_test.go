@@ -10,15 +10,21 @@ import (
 func TestAveragePlan(t *testing.T) {
 	// 正常的
 	nodes := deployedNodes()
-	originCap := []int{}
-	for i := range nodes {
-		originCap = append(originCap, nodes[i].Capacity)
+	originCap := map[string]int{}
+	for _, v := range nodes {
+		originCap[v.Nodename] = v.Capacity
 	}
 	r, err := AveragePlan(nodes, 1, 0, 0, types.ResourceAll)
 	assert.NoError(t, err)
 	for i := range r {
 		assert.Equal(t, r[i].Deploy, 1)
-		assert.Equal(t, r[i].Capacity, originCap[i]-1)
+		capacity := 0
+		for _, si := range nodes {
+			if si.Nodename == i {
+				capacity = si.Capacity
+			}
+		}
+		assert.Equal(t, capacity, originCap[i]-1)
 	}
 	// nodes len < limit
 	nodes = deployedNodes()

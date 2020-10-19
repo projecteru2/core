@@ -127,7 +127,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				}
 			}
 		}
-		return c.store.UpdateNode(ctx, n)
+		return c.store.UpdateNodes(ctx, n)
 	})
 }
 

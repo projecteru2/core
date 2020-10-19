@@ -10,46 +10,50 @@ import (
 
 // GlobalPlan 基于全局资源配额
 // 尽量使得资源消耗平均
-func GlobalPlan(nodesInfo []types.NodeInfo, need, total, limit int, resourceType types.ResourceType) ([]types.NodeInfo, error) {
+func GlobalPlan(strategyInfos []types.StrategyInfo, need, total, limit int, resourceType types.ResourceType) (map[string]*types.DeployInfo, error) {
 	if total < need {
 		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
 			fmt.Sprintf("need: %d, vol: %d", need, total))
 	}
-	nodesInfo = scoreSort(nodesInfo, resourceType)
-	length := len(nodesInfo)
+	strategyInfos = scoreSort(strategyInfos, resourceType)
+	length := len(strategyInfos)
 	i := 0
 
+	deployMap := make(map[string]*types.DeployInfo)
 	for need > 0 {
 		p := i
 		deploy := 0
 		delta := 0.0
 		if i < length-1 {
-			delta = utils.Round(nodesInfo[i+1].GetResourceUsage(resourceType) - nodesInfo[i].GetResourceUsage(resourceType))
+			delta = utils.Round(strategyInfos[i+1].GetResourceUsage(resourceType) - strategyInfos[i].GetResourceUsage(resourceType))
 			i++
 		}
 		for j := 0; j <= p && need > 0 && delta >= 0; j++ {
 			// 减枝
-			if nodesInfo[j].Capacity == 0 {
+			if strategyInfos[j].Capacity == 0 {
 				continue
 			}
-			cost := utils.Round(nodesInfo[j].GetResourceRate(resourceType))
+			cost := utils.Round(strategyInfos[j].GetResourceRate(resourceType))
 			deploy = int(delta / cost)
 			if deploy == 0 {
 				deploy = 1
 			}
-			if deploy > nodesInfo[j].Capacity {
-				deploy = nodesInfo[j].Capacity
+			if deploy > strategyInfos[j].Capacity {
+				deploy = strategyInfos[j].Capacity
 			}
 			if deploy > need {
 				deploy = need
 			}
-			nodesInfo[j].Deploy += deploy
-			nodesInfo[j].Capacity -= deploy
+			strategyInfos[j].Capacity -= deploy
+			if _, ok := deployMap[strategyInfos[j].Nodename]; !ok {
+				deployMap[strategyInfos[j].Nodename] = &types.DeployInfo{}
+			}
+			deployMap[strategyInfos[j].Nodename].Deploy += deploy
 			need -= deploy
 		}
 	}
 	// 这里 need 一定会为 0 出来，因为 volTotal 保证了一定大于 need
 	// 这里并不需要再次排序了，理论上的排序是基于资源使用率得到的 Deploy 最终方案
-	log.Debugf("[GlobalPlan] resource: %v, nodesInfo: %v", resourceType, nodesInfo)
-	return nodesInfo, nil
+	log.Debugf("[GlobalPlan] resource: %v, strategyInfos: %v", resourceType, strategyInfos)
+	return deployMap, nil
 }

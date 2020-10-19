@@ -212,3 +212,11 @@ func TestGenerateNodes(t *testing.T) {
 	ns := GenerateNodes(1, 10, 1000, 1000, 100)
 	assert.Len(t, ns, 1)
 }
+
+func TestRange(t *testing.T) {
+	res := Range(10)
+	assert.Equal(t, 10, len(res))
+	for i := 0; i < 10; i++ {
+		assert.Equal(t, i, res[i])
+	}
+}

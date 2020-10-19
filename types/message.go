@@ -79,13 +79,23 @@ type CreateContainerMessage struct {
 	ContainerID   string
 	ContainerName string
 	Error         error
-	CPU           CPUMap
-	Quota         float64
-	Memory        int64
-	VolumePlan    VolumePlan
-	Storage       int64
 	Publish       map[string][]string
 	Hook          []*bytes.Buffer
+	Resources
+}
+
+// Resources .
+type Resources struct {
+	CPU           CPUMap
+	Quota         float64
+	CPUBind       bool
+	Memory        int64
+	Volume        VolumeBindings
+	VolumePlan    VolumePlan
+	Storage       int64
+	SoftLimit     bool
+	NUMANode      string
+	VolumeChanged bool
 }
 
 // ReplaceContainerMessage for replace method

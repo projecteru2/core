@@ -22,16 +22,16 @@ func TestProcessing(t *testing.T) {
 	// not exists
 	assert.Error(t, m.UpdateProcessing(ctx, opts, nodeInfo.Name, 8))
 	// create
-	assert.NoError(t, m.SaveProcessing(ctx, opts, nodeInfo))
+	assert.NoError(t, m.SaveProcessing(ctx, opts, nodeInfo.Name, nodeInfo.Deploy))
 	// create again
-	assert.Error(t, m.SaveProcessing(ctx, opts, nodeInfo))
+	assert.Error(t, m.SaveProcessing(ctx, opts, nodeInfo.Name, nodeInfo.Deploy))
 	// update
 	assert.NoError(t, m.UpdateProcessing(ctx, opts, nodeInfo.Name, 8))
 
-	nodesInfo, err := m.doLoadProcessing(ctx, opts, []types.NodeInfo{nodeInfo})
+	sis := []types.StrategyInfo{{Nodename: "node"}}
+	err := m.doLoadProcessing(ctx, opts, sis)
 	assert.NoError(t, err)
-	assert.Equal(t, len(nodesInfo), 1)
-	assert.Equal(t, nodesInfo[0].Count, 8)
+	assert.Equal(t, sis[0].Count, 8)
 	// delete
-	assert.NoError(t, m.DeleteProcessing(ctx, opts, nodeInfo))
+	assert.NoError(t, m.DeleteProcessing(ctx, opts, nodeInfo.Name))
 }

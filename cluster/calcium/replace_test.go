@@ -135,6 +135,8 @@ func TestReplaceContainer(t *testing.T) {
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, types.ErrCannotGetEngine).Once()
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
 	store.On("UpdateNodeResource", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+	store.On("RemoveContainer", mock.Anything, mock.Anything).Return(nil).Once()
 	ch, err = c.ReplaceContainer(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -142,6 +144,7 @@ func TestReplaceContainer(t *testing.T) {
 		assert.NotNil(t, r.Remove)
 		assert.False(t, r.Remove.Success)
 	}
+
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "new"}, nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationCopyTo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)

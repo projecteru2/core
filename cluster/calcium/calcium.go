@@ -35,10 +35,11 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 	}
 
 	// set scheduler
-	scheduler, err := complexscheduler.New(config)
+	potassium, err := complexscheduler.New(config)
 	if err != nil {
 		return nil, err
 	}
+	scheduler.InitSchedulerV1(potassium)
 
 	// set scm
 	var scm source.Source
@@ -55,7 +56,7 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 	// set watcher
 	watcher := helium.New(config.GRPCConfig, store)
 
-	return &Calcium{store: store, config: config, scheduler: scheduler, source: scm, watcher: watcher}, err
+	return &Calcium{store: store, config: config, scheduler: potassium, source: scm, watcher: watcher}, err
 }
 
 // Finalizer use for defer

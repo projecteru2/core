@@ -498,10 +498,14 @@ func (v *Vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 
 	ch, err := v.cluster.CreateContainer(stream.Context(), deployOpts)
 	if err != nil {
+		log.Errorf("[Vibranium.CreateContainer] create failed: %+v", err)
 		return err
 	}
 
 	for m := range ch {
+		if m.Error != nil {
+			log.Errorf("[Vibranium.CreateContainer] create specific container failed: %+v", m.Error)
+		}
 		if err = stream.Send(toRPCCreateContainerMessage(m)); err != nil {
 			v.logUnsentMessages("CreateContainer", m)
 		}

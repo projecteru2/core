@@ -194,8 +194,8 @@ func TestUpdateNode(t *testing.T) {
 		Name:    "nil",
 		Podname: "wtf",
 	}
-	assert.Error(t, m.UpdateNode(ctx, fakeNode))
-	assert.NoError(t, m.UpdateNode(ctx, node))
+	assert.Error(t, m.UpdateNodes(ctx, fakeNode))
+	assert.NoError(t, m.UpdateNodes(ctx, node))
 }
 
 func TestUpdateNodeResource(t *testing.T) {

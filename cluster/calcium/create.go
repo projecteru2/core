@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/metrics"
-	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/sanity-io/litter"
@@ -17,166 +17,213 @@ import (
 
 // CreateContainer use options to create containers
 func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
-	opts.Normalize()
+	// TODO: new way to normalize
+	//opts.Normalize()
 	opts.ProcessIdent = utils.RandomString(16)
 	log.Infof("[CreateContainer %s] Creating container with options:", opts.ProcessIdent)
 	litter.Dump(opts)
 	// Count 要大于0
 	if opts.Count <= 0 {
-		return nil, types.NewDetailedErr(types.ErrBadCount, opts.Count)
+		return nil, errors.WithStack(types.NewDetailedErr(types.ErrBadCount, opts.Count))
 	}
-	// 创建时内存不为 0
-	if opts.Memory < 0 {
-		return nil, types.NewDetailedErr(types.ErrBadMemory, opts.Memory)
+
+	for _, req := range opts.ResourceRequests {
+		if err := req.DeployValidate(); err != nil {
+			return nil, errors.WithStack(err)
+		}
 	}
-	// CPUQuota 也需要大于 0
-	if opts.CPUQuota < 0 {
-		return nil, types.NewDetailedErr(types.ErrBadCPU, opts.CPUQuota)
-	}
-	return c.doCreateContainer(ctx, opts)
+
+	ch, err := c.doCreateWorkloads(ctx, opts)
+	return ch, errors.WithStack(err)
 }
 
-func (c *Calcium) doCreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+// transaction: resource metadata consistency
+func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
 	ch := make(chan *types.CreateContainerMessage)
 	// RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
 	// 因此需要在这里加个全局锁，直到部署完毕才释放
 	// 通过 Processing 状态跟踪达成 18 Oct, 2018
-	nodesInfo, err := c.doAllocResource(ctx, opts)
-	if err != nil {
-		log.Errorf("[doCreateContainer] Error during alloc resource: %v", err)
-		return ch, err
-	}
+
+	var (
+		err         error
+		planMap     map[types.ResourceType]types.ResourcePlans
+		deployMap   map[string]*types.DeployInfo
+		rollbackMap map[string][]int
+	)
 
 	go func() {
-		defer close(ch)
-		wg := sync.WaitGroup{}
-		wg.Add(len(nodesInfo))
-		index := 0
+		defer func() {
+			for nodename := range deployMap {
+				if e := c.store.DeleteProcessing(ctx, opts, nodename); e != nil {
+					err = e
+					log.Errorf("[Calcium.doCreateWorkloads] delete processing failed for %s: %+v", nodename, err)
+				}
+			}
+			close(ch)
+		}()
 
-		// do deployment by each node
-		for _, nodeInfo := range nodesInfo {
-			go metrics.Client.SendDeployCount(nodeInfo.Deploy)
-			go func(nodeInfo types.NodeInfo, index int) {
-				_ = utils.Txn(
-					ctx,
-					func(ctx context.Context) error {
-						for i, m := range c.doCreateContainerOnNode(ctx, nodeInfo, opts, index) {
-							_ = utils.Txn(
-								ctx,
-								func(ctx context.Context) error {
-									ch <- m // nolint
-									return nil
-								},
-								func(ctx context.Context) error {
-									// decr processing count
-									if err := c.store.UpdateProcessing(ctx, opts, nodeInfo.Name, nodeInfo.Deploy-i-1); err != nil { // nolint
-										log.Warnf("[doCreateContainer] Update processing count failed %v", err)
-									}
-									return nil
-								},
-								nil,
-								c.config.GlobalTimeout,
-							)
-						}
-						return nil
-					},
-					func(ctx context.Context) error {
-						if err := c.store.DeleteProcessing(ctx, opts, nodeInfo); err != nil {
-							log.Errorf("[doCreateContainer] remove processing status failed %v", err)
-						}
-						wg.Done()
-						return nil
-					},
-					nil,
-					c.config.GlobalTimeout,
-				)
-			}(nodeInfo, index)
-			index += nodeInfo.Deploy
-		}
-		wg.Wait()
-	}()
-
-	return ch, nil
-}
-
-func (c *Calcium) doCreateContainerOnNode(ctx context.Context, nodeInfo types.NodeInfo, opts *types.DeployOptions, index int) []*types.CreateContainerMessage {
-	ms := make([]*types.CreateContainerMessage, nodeInfo.Deploy)
-	for i := 0; i < nodeInfo.Deploy; i++ {
-		// createAndStartContainer will auto cleanup
-		cpu := types.CPUMap{}
-		if len(nodeInfo.CPUPlan) > 0 {
-			cpu = nodeInfo.CPUPlan[i]
-		}
-		volumePlan := types.VolumePlan{}
-		if len(nodeInfo.VolumePlans) > 0 {
-			volumePlan = nodeInfo.VolumePlans[i]
-		}
-
-		node := &types.Node{}
 		if err := utils.Txn(
 			ctx,
-			// if
-			func(ctx context.Context) (err error) {
-				node, err = c.doGetAndPrepareNode(ctx, nodeInfo.Name, opts.Image)
-				ms[i] = &types.CreateContainerMessage{ // nolint
-					Error:      err,
-					CPU:        cpu,
-					VolumePlan: volumePlan,
-				}
-				return
-			},
-			// then
+
+			// if: alloc resources
 			func(ctx context.Context) error {
-				ms[i] = c.doCreateAndStartContainer(ctx, i+index, node, opts, cpu, volumePlan) // nolint
-				return ms[i].Error                                                             // nolint
+				return c.withNodesLocked(ctx, opts.Podname, opts.Nodenames, opts.NodeLabels, false, func(nodeMap map[string]*types.Node) (err error) {
+					defer func() {
+						if err != nil {
+							ch <- &types.CreateContainerMessage{Error: err}
+						}
+					}()
+
+					// calculate plans
+					if planMap, deployMap, err = c.doAllocResource(ctx, nodeMap, opts); err != nil {
+						return errors.WithStack(err)
+					}
+
+					// commit changes
+					nodes := []*types.Node{}
+					for nodeName, deployInfo := range deployMap {
+						for _, plan := range planMap {
+							plan.ApplyChangesOnNode(nodeMap[nodeName], utils.Range(deployInfo.Deploy)...)
+						}
+						nodes = append(nodes, nodeMap[nodeName])
+					}
+					for nodename, deployInfo := range deployMap {
+						if err = c.store.SaveProcessing(ctx, opts, nodename, deployInfo.Deploy); err != nil {
+							return errors.WithStack(err)
+						}
+					}
+					return errors.WithStack(c.store.UpdateNodes(ctx, nodes...))
+				})
 			},
-			// rollback, will use background context
+
+			// then: deploy containers
+			func(ctx context.Context) error {
+				rollbackMap, err = c.doDeployWorkloads(ctx, ch, opts, planMap, deployMap)
+				return errors.WithStack(err)
+			},
+
+			// rollback: give back resources
 			func(ctx context.Context) (err error) {
-				log.Errorf("[doCreateContainerOnNode] Error when create and start a container, %v", ms[i].Error) // nolint
-				if ms[i].ContainerID != "" {                                                                     // nolint
-					log.Warnf("[doCreateContainer] Create container failed %v, and container %s not removed", ms[i].Error, ms[i].ContainerID) // nolint
-					return
+				for nodeName, rollbackIndices := range rollbackMap {
+					indices := rollbackIndices
+					if e := c.withNodeLocked(ctx, nodeName, func(node *types.Node) error {
+						for _, plan := range planMap {
+							plan.RollbackChangesOnNode(node, indices...)
+						}
+						return errors.WithStack(c.store.UpdateNodes(ctx, node))
+					}); e != nil {
+						err = e
+					}
 				}
-				if err = c.withNodeLocked(ctx, nodeInfo.Name, func(node *types.Node) error {
-					return c.store.UpdateNodeResource(ctx, node, cpu, opts.CPUQuota, opts.Memory, opts.Storage, volumePlan.IntoVolumeMap(), store.ActionIncr)
-				}); err != nil {
-					log.Errorf("[doCreateContainer] Reset node resource %s failed %v", nodeInfo.Name, err)
-				}
-				return
+				return errors.WithStack(err)
 			},
+
 			c.config.GlobalTimeout,
 		); err != nil {
-			continue
+			log.Errorf("[Calcium.doCreateWorkloads] %+v", err)
 		}
-		log.Infof("[doCreateContainerOnNode] create container success %s", ms[i].ContainerID)
+	}()
+
+	return ch, err
+}
+
+func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateContainerMessage, opts *types.DeployOptions, planMap map[types.ResourceType]types.ResourcePlans, deployMap map[string]*types.DeployInfo) (_ map[string][]int, err error) {
+	wg := sync.WaitGroup{}
+	wg.Add(len(deployMap))
+
+	seq := 0
+	rollbackMap := make(map[string][]int)
+	for nodename, deployInfo := range deployMap {
+		go metrics.Client.SendDeployCount(deployInfo.Deploy)
+		go func(nodename string, seq int) {
+			defer wg.Done()
+			if indices, e := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deployInfo, planMap, seq); e != nil {
+				err = e
+				rollbackMap[nodename] = indices
+			}
+			//process
+		}(nodename, seq)
+		seq += deployInfo.Deploy
 	}
 
-	return ms
+	wg.Wait()
+	return rollbackMap, errors.WithStack(err)
+}
+
+// deploy scheduled containers on one node
+func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.CreateContainerMessage, nodeName string, opts *types.DeployOptions, deployInfo *types.DeployInfo, planMap map[types.ResourceType]types.ResourcePlans, seq int) (indices []int, err error) {
+	node, err := c.doGetAndPrepareNode(ctx, nodeName, opts.Image)
+	if err != nil {
+		for i := 0; i < deployInfo.Deploy; i++ {
+			ch <- &types.CreateContainerMessage{Error: err}
+		}
+		return utils.Range(deployInfo.Deploy), errors.WithStack(err)
+	}
+
+	for idx := 0; idx < deployInfo.Deploy; idx++ {
+		createMsg := &types.CreateContainerMessage{
+			Podname:  opts.Podname,
+			Nodename: nodeName,
+			Publish:  map[string][]string{},
+		}
+
+		func() {
+			var e error
+			defer func() {
+				if e != nil {
+					err = e
+					createMsg.Error = e
+					indices = append(indices, idx)
+				}
+				ch <- createMsg
+			}()
+
+			resources := &types.Resources{}
+			o := types.DispenseOptions{
+				Node:  node,
+				Index: idx,
+			}
+			for _, plan := range planMap {
+				if e = plan.Dispense(o, resources); e != nil {
+					return
+				}
+			}
+
+			createMsg.Resources = *resources
+			e = c.doDeployOneWorkload(ctx, node, opts, createMsg, seq+idx, deployInfo.Deploy-1-idx)
+		}()
+	}
+
+	return indices, errors.WithStack(err)
 }
 
 func (c *Calcium) doGetAndPrepareNode(ctx context.Context, nodename, image string) (*types.Node, error) {
 	node, err := c.GetNode(ctx, nodename)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
-	return node, pullImage(ctx, node, image)
+	return node, errors.WithStack(pullImage(ctx, node, image))
 }
 
-func (c *Calcium) doCreateAndStartContainer(
+// transaction: container metadata consistency
+func (c *Calcium) doDeployOneWorkload(
 	ctx context.Context,
-	no int, node *types.Node,
+	node *types.Node,
 	opts *types.DeployOptions,
-	cpu types.CPUMap,
-	volumePlan types.VolumePlan,
-) *types.CreateContainerMessage {
+	msg *types.CreateContainerMessage,
+	no, processingCount int,
+) (err error) {
+	config := c.doMakeContainerOptions(no, msg, opts, node)
 	container := &types.Container{
+		Name:       config.Name,
+		Labels:     config.Labels,
 		Podname:    opts.Podname,
 		Nodename:   node.Name,
-		CPU:        cpu,
-		Quota:      opts.CPUQuota,
-		Memory:     opts.Memory,
-		Storage:    opts.Storage,
+		CPU:        msg.CPU,
+		Quota:      msg.Quota,
+		Memory:     msg.Memory,
+		Storage:    msg.Storage,
 		Hook:       opts.Entrypoint.Hook,
 		Privileged: opts.Entrypoint.Privileged,
 		Engine:     node.Engine,
@@ -184,47 +231,31 @@ func (c *Calcium) doCreateAndStartContainer(
 		Image:      opts.Image,
 		Env:        opts.Env,
 		User:       opts.User,
-		Volumes:    opts.Volumes,
-		VolumePlan: volumePlan,
+		Volumes:    msg.Volume,
+		VolumePlan: msg.VolumePlan,
 	}
-	createContainerMessage := &types.CreateContainerMessage{
-		Podname:    container.Podname,
-		Nodename:   container.Nodename,
-		CPU:        cpu,
-		Quota:      opts.CPUQuota,
-		Memory:     opts.Memory,
-		Storage:    opts.Storage,
-		VolumePlan: volumePlan,
-		Publish:    map[string][]string{},
-	}
-	var err error
-	var containerCreated *enginetypes.VirtualizationCreated
-
-	_ = utils.Txn(
+	return utils.Txn(
 		ctx,
+		// create container
 		func(ctx context.Context) error {
-			// get config
-			config := c.doMakeContainerOptions(no, cpu, volumePlan, opts, node)
-			container.Name = config.Name
-			container.Labels = config.Labels
-			createContainerMessage.ContainerName = container.Name
-
-			// create container
-			containerCreated, err = node.Engine.VirtualizationCreate(ctx, config)
+			created, err := node.Engine.VirtualizationCreate(ctx, config)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
-			container.ID = containerCreated.ID
+			container.ID = created.ID
+			return nil
+		},
 
+		func(ctx context.Context) (err error) {
 			// Copy data to container
 			if len(opts.Data) > 0 {
 				for dst, readerManager := range opts.Data {
 					reader, err := readerManager.GetReader()
 					if err != nil {
-						return err
+						return errors.WithStack(err)
 					}
 					if err = c.doSendFileToContainer(ctx, node.Engine, container.ID, dst, reader, true, true); err != nil {
-						return err
+						return errors.WithStack(err)
 					}
 				}
 			}
@@ -238,21 +269,21 @@ func (c *Calcium) doCreateAndStartContainer(
 			}
 
 			// start first
-			createContainerMessage.Hook, err = c.doStartContainer(ctx, container, opts.IgnoreHook)
+			msg.Hook, err = c.doStartContainer(ctx, container, opts.IgnoreHook)
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 
 			// inspect real meta
 			var containerInfo *enginetypes.VirtualizationInfo
 			containerInfo, err = container.Inspect(ctx) // 补充静态元数据
 			if err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 
 			// update meta
 			if containerInfo.Networks != nil {
-				createContainerMessage.Publish = utils.MakePublishInfo(containerInfo.Networks, opts.Entrypoint.Publish)
+				msg.Publish = utils.MakePublishInfo(containerInfo.Networks, opts.Entrypoint.Publish)
 			}
 			// reset users
 			if containerInfo.User != container.User {
@@ -260,42 +291,37 @@ func (c *Calcium) doCreateAndStartContainer(
 			}
 			// reset container.hook
 			container.Hook = opts.Entrypoint.Hook
-			return nil
-		},
-		func(ctx context.Context) error {
-			// store eru container
-			if err = c.store.AddContainer(ctx, container); err != nil {
-				return err
-			}
-			// non-empty message.ContainerID means "core saves metadata of this container"
-			createContainerMessage.ContainerID = container.ID
-			return nil
-		},
-		func(ctx context.Context) error {
-			createContainerMessage.Error = err
-			if err != nil && container.ID != "" {
-				if err := c.doRemoveContainer(ctx, container, true); err != nil {
-					log.Errorf("[doCreateAndStartContainer] create and start container failed, and remove it failed also, %s, %v", container.ID, err)
-					return err
+
+			// update processing
+			if processingCount >= 0 {
+				if err := c.store.UpdateProcessing(ctx, opts, node.Name, processingCount); err != nil {
+					return errors.WithStack(err)
 				}
-				createContainerMessage.ContainerID = ""
 			}
+
+			if err := c.store.AddContainer(ctx, container); err != nil {
+				return errors.WithStack(err)
+			}
+			msg.ContainerID = container.ID
 			return nil
+		},
+
+		// remove container
+		func(ctx context.Context) error {
+			return errors.WithStack(c.doRemoveContainer(ctx, container, true))
 		},
 		c.config.GlobalTimeout,
 	)
-	return createContainerMessage
 }
 
-func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, volumePlan types.VolumePlan, opts *types.DeployOptions, node *types.Node) *enginetypes.VirtualizationCreateOptions {
+func (c *Calcium) doMakeContainerOptions(no int, msg *types.CreateContainerMessage, opts *types.DeployOptions, node *types.Node) *enginetypes.VirtualizationCreateOptions {
 	config := &enginetypes.VirtualizationCreateOptions{}
 	// general
-	config.Seq = index
-	config.CPU = cpumap
-	config.Quota = opts.CPUQuota
-	config.Memory = opts.Memory
-	config.Storage = opts.Storage
-	config.NUMANode = node.GetNUMANode(cpumap)
+	config.CPU = msg.CPU
+	config.Quota = msg.Quota
+	config.Memory = msg.Memory
+	config.Storage = msg.Storage
+	config.NUMANode = node.GetNUMANode(msg.CPU)
 	config.SoftLimit = opts.SoftLimit
 	config.RawArgs = opts.RawArgs
 	config.Lambda = opts.Lambda
@@ -304,8 +330,8 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, volumeP
 	config.Image = opts.Image
 	config.Stdin = opts.OpenStdin
 	config.Hosts = opts.ExtraHosts
-	config.Volumes = opts.Volumes.ApplyPlan(volumePlan).ToStringSlice(false, true)
-	config.VolumePlan = volumePlan.ToLiteral()
+	config.Volumes = msg.Volume.ApplyPlan(msg.VolumePlan).ToStringSlice(false, true)
+	config.VolumePlan = msg.VolumePlan.ToLiteral()
 	config.Debug = opts.Debug
 	config.Network = opts.NetworkMode
 	config.Networks = opts.Networks
@@ -324,6 +350,7 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, volumeP
 	// name
 	suffix := utils.RandomString(6)
 	config.Name = utils.MakeContainerName(opts.Name, opts.Entrypoint.Name, suffix)
+	msg.ContainerName = config.Name
 	// command and user
 	// extra args is dynamically
 	slices := utils.MakeCommandLineArgs(fmt.Sprintf("%s %s", entry.Command, opts.ExtraArgs))
@@ -332,9 +359,9 @@ func (c *Calcium) doMakeContainerOptions(index int, cpumap types.CPUMap, volumeP
 	env := append(opts.Env, fmt.Sprintf("APP_NAME=%s", opts.Name))
 	env = append(env, fmt.Sprintf("ERU_POD=%s", opts.Podname))
 	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", node.Name))
-	env = append(env, fmt.Sprintf("ERU_CONTAINER_NO=%d", index))
-	env = append(env, fmt.Sprintf("ERU_MEMORY=%d", opts.Memory))
-	env = append(env, fmt.Sprintf("ERU_STORAGE=%d", opts.Storage))
+	env = append(env, fmt.Sprintf("ERU_CONTAINER_NO=%d", no))
+	env = append(env, fmt.Sprintf("ERU_MEMORY=%d", msg.Memory))
+	env = append(env, fmt.Sprintf("ERU_STORAGE=%d", msg.Storage))
 	config.Env = env
 	// basic labels, bind to LabelMeta
 	config.Labels = map[string]string{
