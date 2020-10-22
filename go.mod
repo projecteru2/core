@@ -28,7 +28,7 @@ require (
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
-	github.com/projecteru2/libyavirt v0.0.0-20200821065010-ea41aa314ef3
+	github.com/projecteru2/libyavirt v0.0.0-20200831030711-2bb3f2ba0cb7
 	github.com/prometheus/client_golang v1.7.1
 	github.com/sanity-io/litter v1.3.0
 	github.com/sirupsen/logrus v1.6.0
@@ -41,7 +41,6 @@ require (
 	golang.org/x/net v0.0.0-20200813134508-3edf25e44fcc
 	golang.org/x/sys v0.0.0-20200812155832-6a926be9bd1d // indirect
 	google.golang.org/grpc v1.28.0
-	google.golang.org/protobuf v1.25.0
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
 	gotest.tools v2.2.0+incompatible // indirect
 )

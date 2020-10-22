@@ -9,37 +9,33 @@ import (
 
 // DeployOptions is options for deploying
 type DeployOptions struct {
-	Name         string                   // Name of application
-	Entrypoint   *Entrypoint              // entrypoint
-	Podname      string                   // Name of pod to deploy
-	Nodename     string                   // Specific nodes to deploy, if given, must belong to pod
-	Image        string                   // Name of image to deploy
-	ExtraArgs    string                   // Extra arguments to append to command
-	CPUQuota     float64                  // How many cores needed, e.g. 1.5
-	CPUBind      bool                     // Bind CPU or not ( old CPU piror )
-	Memory       int64                    // Memory for container, in bytes
-	Storage      int64                    // Storage for container, in bytes
-	Count        int                      // How many containers needed, e.g. 4
-	Env          []string                 // Env for container
-	DNS          []string                 // DNS for container
-	ExtraHosts   []string                 // Extra hosts for container
-	Volumes      VolumeBindings           // Volumes for container
-	Networks     map[string]string        // Network names and specified IPs
-	NetworkMode  string                   // Network mode
-	User         string                   // User for container
-	Debug        bool                     // debug mode, use syslog as log driver
-	OpenStdin    bool                     // OpenStdin for container
-	Labels       map[string]string        // Labels for containers
-	NodeLabels   map[string]string        // NodeLabels for filter node
-	DeployMethod string                   // Deploy method
-	Data         map[string]ReaderManager // For additional file data
-	SoftLimit    bool                     // Soft limit memory
-	NodesLimit   int                      // Limit nodes count
-	ProcessIdent string                   // ProcessIdent ident this deploy
-	IgnoreHook   bool                     // IgnoreHook ignore hook process
-	AfterCreate  []string                 // AfterCreate support run cmds after create
-	RawArgs      []byte                   // RawArgs for raw args processing
-	Lambda       bool                     // indicate is lambda container or not
+	Name             string                   // Name of application
+	Entrypoint       *Entrypoint              // entrypoint
+	Podname          string                   // Name of pod to deploy
+	Nodenames        []string                 // Specific nodes to deploy, if given, must belong to pod
+	Image            string                   // Name of image to deploy
+	ExtraArgs        string                   // Extra arguments to append to command
+	Count            int                      // How many containers needed, e.g. 4
+	Env              []string                 // Env for container
+	DNS              []string                 // DNS for container
+	ExtraHosts       []string                 // Extra hosts for container
+	Networks         map[string]string        // Network names and specified IPs
+	NetworkMode      string                   // Network mode
+	User             string                   // User for container
+	Debug            bool                     // debug mode, use syslog as log driver
+	OpenStdin        bool                     // OpenStdin for container
+	Labels           map[string]string        // Labels for containers
+	NodeLabels       map[string]string        // NodeLabels for filter node
+	DeployStrategy   string                   // Deploy strategy
+	Data             map[string]ReaderManager // For additional file data
+	SoftLimit        bool                     // Soft limit memory
+	NodesLimit       int                      // Limit nodes count
+	ProcessIdent     string                   // ProcessIdent ident this deploy
+	IgnoreHook       bool                     // IgnoreHook ignore hook process
+	AfterCreate      []string                 // AfterCreate support run cmds after create
+	RawArgs          []byte                   // RawArgs for raw args processing
+	Lambda           bool                     // indicate is lambda container or not
+	ResourceRequests []ResourceRequest
 }
 
 // ReaderManager return Reader under concurrency
@@ -69,11 +65,6 @@ func NewReaderManager(r io.Reader) (ReaderManager, error) {
 	return &readerManager{
 		r: bytes.NewReader(bs),
 	}, err
-}
-
-// Normalize keeps deploy options consistent
-func (o *DeployOptions) Normalize() {
-	o.Storage += o.Volumes.TotalSize()
 }
 
 // RunAndWaitOptions is options for running and waiting
@@ -174,6 +165,7 @@ type ReallocOptions struct {
 	IDs         []string
 	CPU         float64
 	Memory      int64
+	Storage     int64
 	Volumes     VolumeBindings
 	BindCPU     TriOptions
 	MemoryLimit TriOptions
@@ -190,3 +182,16 @@ const (
 	// TriFalse .
 	TriFalse
 )
+
+// ParseTriOption .
+func ParseTriOption(opt TriOptions, original bool) (res bool) {
+	switch opt {
+	case TriKeep:
+		res = original
+	case TriTrue:
+		res = true
+	case TriFalse:
+		res = false
+	}
+	return
+}

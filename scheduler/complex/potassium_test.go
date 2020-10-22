@@ -8,7 +8,11 @@ import (
 	"math"
 
 	"github.com/docker/go-units"
+	"github.com/projecteru2/core/scheduler"
+	"github.com/projecteru2/core/scheduler/resources"
+	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,30 +35,12 @@ func newPotassium() (*Potassium, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Create Potassim error: %v", err)
 	}
+	scheduler.InitSchedulerV1(potassium)
 	return potassium, nil
 }
 
 func generateNodes(nums, cores int, memory, storage int64, shares int) []types.NodeInfo {
-	var name string
-	nodes := []types.NodeInfo{}
-
-	for i := 0; i < nums; i++ {
-		name = fmt.Sprintf("n%d", i)
-
-		cpumap := types.CPUMap{}
-		for j := 0; j < cores; j++ {
-			coreName := fmt.Sprintf("%d", j)
-			cpumap[coreName] = int64(shares)
-		}
-		nodeInfo := types.NodeInfo{
-			CPUMap:     cpumap,
-			MemCap:     memory,
-			StorageCap: storage,
-			Name:       name,
-		}
-		nodes = append(nodes, nodeInfo)
-	}
-	return nodes
+	return utils.GenerateNodes(nums, cores, memory, storage, shares)
 }
 
 func getNodesCapacity(nodes []types.NodeInfo, cpu float64, shares, maxshare int) int {
@@ -188,52 +174,104 @@ func getEvenPlanNodes() []types.NodeInfo {
 	}
 }
 
-func SelectCPUNodes(k *Potassium, nodesInfo []types.NodeInfo, quota float64, memory int64, need int, each bool) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
-	nodesInfo, nodePlans, total, err := k.SelectCPUNodes(nodesInfo, quota, memory)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if each {
-		nodesInfo, err = k.EachDivision(nodesInfo, need, 0, types.ResourceAll)
-	} else {
-		nodesInfo, err = k.CommonDivision(nodesInfo, need, total, types.ResourceAll)
-	}
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	result := make(map[string][]types.CPUMap)
-	changed := make(map[string]types.CPUMap)
-
-	// 只返回有修改的就可以了, 返回有修改的还剩下多少
+func getNodeMapFromNodesInfo(nodesInfo []types.NodeInfo) map[string]*types.Node {
+	nodeMap := map[string]*types.Node{}
 	for _, nodeInfo := range nodesInfo {
-		if nodeInfo.Deploy <= 0 {
+		nodeMap[nodeInfo.Name] = &types.Node{
+			MemCap:     nodeInfo.MemCap,
+			CPU:        nodeInfo.CPUMap,
+			StorageCap: nodeInfo.StorageCap,
+			Name:       nodeInfo.Name,
+			Volume:     nodeInfo.VolumeMap,
+			InitVolume: nodeInfo.InitVolumeMap,
+		}
+	}
+	return nodeMap
+}
+
+func getStrategyInfosFromNodesInfo(nodesInfo []types.NodeInfo, planMap map[types.ResourceType]types.ResourcePlans) (strategyInfos []types.StrategyInfo) {
+	for _, nodeInfo := range nodesInfo {
+		capacity := math.MaxInt32
+		for _, v := range planMap {
+			capacity = utils.Min(capacity, v.Capacity()[nodeInfo.Name])
+		}
+		if nodeInfo.Capacity > 0 {
+			capacity = utils.Min(capacity, nodeInfo.Capacity)
+		}
+		if capacity == math.MaxInt32 {
+			capacity = 0
+		}
+		if capacity == 0 {
 			continue
 		}
-		cpuList := nodePlans[nodeInfo.Name][:nodeInfo.Deploy]
-		result[nodeInfo.Name] = cpuList
-		for _, cpu := range cpuList {
-			nodeInfo.CPUMap.Sub(cpu)
+		strategyInfos = append(strategyInfos, types.StrategyInfo{
+			Nodename: nodeInfo.Name,
+			Count:    nodeInfo.Count,
+			Rates:    nodeInfo.Rates,
+			Usages:   nodeInfo.Usages,
+			Capacity: capacity,
+		})
+	}
+	return strategyInfos
+}
+
+func newDeployOptions(need int, each bool) *types.DeployOptions {
+	opts := &types.DeployOptions{
+		DeployStrategy: strategy.Auto,
+		Count:          need,
+	}
+	if each {
+		opts.DeployStrategy = strategy.Each
+	}
+	return opts
+}
+
+func SelectCPUNodes(k *Potassium, nodesInfo []types.NodeInfo, quota float64, memory int64, need int, each bool) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
+	reqs := []types.ResourceRequest{resources.CPUMemResourceRequest{
+		CPUQuota: quota, Memory: memory, CPUBind: true,
+	}}
+	nodeMap := getNodeMapFromNodesInfo(nodesInfo)
+	planMap, total, sType, err := scheduler.SelectNodes(reqs, nodeMap)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	deployMap, err := strategy.Deploy(newDeployOptions(need, each), getStrategyInfosFromNodesInfo(nodesInfo, planMap), total, sType)
+	if err != nil {
+		return nil, nil, err
+	}
+	result := make(map[string][]types.CPUMap)
+	changed := make(map[string]types.CPUMap)
+	for nodename, deployInfo := range deployMap {
+		for _, plan := range planMap {
+			CPUPlan := plan.(resources.CPUMemResourcePlans)
+			result[nodename] = CPUPlan.CPUPlans[nodename][:deployInfo.Deploy]
+			plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deployInfo.Deploy)...)
+			changed[nodename] = nodeMap[nodename].CPU
 		}
-		changed[nodeInfo.Name] = nodeInfo.CPUMap
 	}
 	return result, changed, nil
 }
 
 func SelectMemoryNodes(k *Potassium, nodesInfo []types.NodeInfo, rate float64, memory int64, need int, each bool) ([]types.NodeInfo, error) {
-	nodesInfo, total, err := k.SelectMemoryNodes(nodesInfo, rate, memory)
+	reqs := []types.ResourceRequest{resources.CPUMemResourceRequest{
+		CPUQuota: rate, Memory: memory,
+	}}
+	planMap, total, sType, err := scheduler.SelectNodes(reqs, getNodeMapFromNodesInfo(nodesInfo))
 	if err != nil {
-		return nodesInfo, err
+		return nil, err
 	}
-	// Make deploy plan
-	if each {
-		nodesInfo, err = k.EachDivision(nodesInfo, need, 0, types.ResourceAll)
-	} else {
-		nodesInfo, err = k.CommonDivision(nodesInfo, need, total, types.ResourceAll)
+
+	deployMap, err := strategy.Deploy(newDeployOptions(need, each), getStrategyInfosFromNodesInfo(nodesInfo, planMap), total, sType)
+	if err != nil {
+		return nil, err
 	}
-	return nodesInfo, err
+	for i, nodeInfo := range nodesInfo {
+		if deployInfo, ok := deployMap[nodeInfo.Name]; ok {
+			nodesInfo[i].Deploy = deployInfo.Deploy
+		}
+	}
+	return nodesInfo, nil
 }
 
 func TestSelectCPUNodes(t *testing.T) {
@@ -291,6 +329,9 @@ func TestSelectCPUNodes(t *testing.T) {
 
 func TestSelectCPUNodesWithMemoryLimit(t *testing.T) {
 	k, _ := newPotassium()
+
+	_, _, _, err := k.SelectCPUNodes([]types.NodeInfo{}, 0, 0)
+	assert.Error(t, err)
 
 	// 测试 2 个 Node，每个 CPU 10%，但是内存吃满
 	nodes := generateNodes(2, 2, 1024, 0, 10)
@@ -357,6 +398,7 @@ func TestComplexNodes(t *testing.T) {
 	if merr != nil {
 		t.Fatalf("Create Potassim error: %v", merr)
 	}
+	scheduler.InitSchedulerV1(k)
 
 	// test1
 	nodes := getComplexNodes()
@@ -400,11 +442,6 @@ func TestComplexNodes(t *testing.T) {
 
 	//test5
 	nodes = getComplexNodes()
-	_, _, err = SelectCPUNodes(k, nodes, 0, 1, 10, false)
-	assert.EqualError(t, err, types.ErrNegativeQuota.Error())
-
-	//test6
-	nodes = getComplexNodes()
 	res6, _, err := SelectCPUNodes(k, nodes, 1, 1, 2, true)
 	assert.NoError(t, err)
 	assert.Equal(t, len(res6), 5)
@@ -418,6 +455,7 @@ func TestCPUWithMaxShareLimit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create Potassim error: %v", err)
 	}
+	scheduler.InitSchedulerV1(k)
 
 	// oversell
 	nodes := []types.NodeInfo{
@@ -440,6 +478,7 @@ func TestCpuOverSell(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create Potassim error: %v", err)
 	}
+	scheduler.InitSchedulerV1(k)
 
 	// oversell
 	nodes := []types.NodeInfo{
@@ -526,6 +565,7 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create Potassim error: %v", err)
 	}
+	scheduler.InitSchedulerV1(k)
 
 	// oversell
 	nodes := []types.NodeInfo{
@@ -547,7 +587,8 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 			Name:   "nodes1",
 		},
 	}
-	_, changed, err := SelectCPUNodes(k, nodes, 1.7, 1, 1, false)
+	res, changed, err := SelectCPUNodes(k, nodes, 1.7, 1, 1, false)
+	println(res)
 	assert.NoError(t, err)
 	assert.Equal(t, changed["nodes1"]["0"], int64(160))
 	nodes[0].CPUMap = changed["nodes1"]
@@ -943,29 +984,6 @@ func TestMaxIdleNode(t *testing.T) {
 	assert.Equal(t, node.Name, n2.Name)
 }
 
-func TestGlobalDivision(t *testing.T) {
-	k, _ := newPotassium()
-	_, err := k.GlobalDivision([]types.NodeInfo{}, 10, 1, types.ResourceAll)
-	assert.Error(t, err)
-	nodeInfo := types.NodeInfo{
-		Name: "n1",
-		Usages: map[types.ResourceType]float64{
-			types.ResourceCPU:    0.7,
-			types.ResourceMemory: 0.3,
-		},
-		Rates: map[types.ResourceType]float64{
-			types.ResourceCPU:    0.1,
-			types.ResourceMemory: 0.2,
-		},
-		Capacity: 100,
-		Count:    21,
-		Deploy:   0,
-	}
-	r, err := k.GlobalDivision([]types.NodeInfo{nodeInfo}, 10, 100, types.ResourceAll)
-	assert.NoError(t, err)
-	assert.Equal(t, r[0].Deploy, 10)
-}
-
 func TestSelectStorageNodesMultipleDeployedPerNode(t *testing.T) {
 	k, _ := newPotassium()
 	emptyNode := []types.NodeInfo{}
@@ -1162,8 +1180,8 @@ func TestSelectStorageNodesSequence(t *testing.T) {
 	assert.Equal(t, 0, res[j].Capacity)
 
 	refreshPod(res, mem, stor)
-	assert.Equal(t, 2, res[0].Count)
-	assert.Equal(t, 1, res[1].Count)
+	assert.Equal(t, 2, res[j].Count)
+	assert.Equal(t, 1, res[i].Count)
 
 	res, total, err = k.SelectMemoryNodes(res, 1.0, mem)
 	assert.NoError(t, err)
@@ -1176,54 +1194,57 @@ func TestSelectStorageNodesSequence(t *testing.T) {
 
 	res, err = SelectStorageNodes(k, res, int64(units.GiB), 1, false)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, len(res))
-	assert.Equal(t, 1, res[0].Count)
-	assert.Equal(t, 1, res[0].Deploy)
-	assert.Equal(t, 0, res[0].Capacity)
+	i, j = getLess(res)
+	assert.Equal(t, 2, len(res))
+	assert.Equal(t, 1, res[i].Count)
+	assert.Equal(t, 1, res[i].Deploy)
+	assert.Equal(t, 0, res[i].Capacity)
 }
 
 func SelectStorageNodes(k *Potassium, nodesInfo []types.NodeInfo, storage int64, need int, each bool) ([]types.NodeInfo, error) {
-	switch nodesInfo, total, err := k.SelectStorageNodes(nodesInfo, storage); {
-	case err != nil:
+	planMap, total, sType, err := scheduler.SelectNodes([]types.ResourceRequest{resources.StorageResourceRequest{Quota: storage}}, getNodeMapFromNodesInfo(nodesInfo))
+	if err != nil {
 		return nil, err
-	case each:
-		return k.EachDivision(nodesInfo, need, 0, types.ResourceAll)
-	default:
-		return k.CommonDivision(nodesInfo, need, total, types.ResourceAll)
 	}
+
+	strategyInfos := getStrategyInfosFromNodesInfo(nodesInfo, planMap)
+	deployMap, err := strategy.Deploy(newDeployOptions(need, each), strategyInfos, total, sType)
+	if err != nil {
+		return nil, err
+	}
+	for i, nodeInfo := range nodesInfo {
+		if deployInfo, ok := deployMap[nodeInfo.Name]; ok {
+			nodesInfo[i].Deploy = deployInfo.Deploy
+		}
+		for _, si := range strategyInfos {
+			if si.Nodename == nodeInfo.Name {
+				nodesInfo[i].Capacity = si.Capacity
+			}
+		}
+	}
+	return nodesInfo, nil
 }
 
 func SelectVolumeNodes(k *Potassium, nodesInfo []types.NodeInfo, volumes []string, need int, each bool) (map[string][]types.VolumePlan, map[string]types.VolumeMap, error) {
-	nodesInfo, plans, total, err := k.SelectVolumeNodes(nodesInfo, types.MustToVolumeBindings(volumes))
+	reqs := []types.ResourceRequest{resources.NewVolumeResourceRequest(types.MustToVolumeBindings(volumes))}
+	nodeMap := getNodeMapFromNodesInfo(nodesInfo)
+	planMap, total, sType, err := scheduler.SelectNodes(reqs, nodeMap)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if each {
-		nodesInfo, err = k.EachDivision(nodesInfo, need, 0, types.ResourceAll)
-	} else {
-		nodesInfo, err = k.CommonDivision(nodesInfo, need, total, types.ResourceAll)
-	}
-
+	deployMap, err := strategy.Deploy(newDeployOptions(need, each), getStrategyInfosFromNodesInfo(nodesInfo, planMap), total, sType)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	result := map[string][]types.VolumePlan{}
-	changed := map[string]types.VolumeMap{}
-
-	for _, nodeInfo := range nodesInfo {
-		if nodeInfo.Deploy <= 0 {
-			continue
-		}
-
-		changed[nodeInfo.Name] = nodeInfo.VolumeMap
-		if ps, ok := plans[nodeInfo.Name]; ok {
-			volumePlans := ps[:nodeInfo.Deploy]
-			result[nodeInfo.Name] = volumePlans
-			for _, volumePlan := range volumePlans {
-				changed[nodeInfo.Name].Sub(volumePlan.IntoVolumeMap())
-			}
+	result := make(map[string][]types.VolumePlan)
+	changed := make(map[string]types.VolumeMap)
+	for nodename, deployInfo := range deployMap {
+		for _, plan := range planMap {
+			volumePlan := plan.(resources.VolumeResourcePlans)
+			result[nodename] = volumePlan.Plans[nodename][:deployInfo.Deploy]
+			plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deployInfo.Deploy)...)
+			changed[nodename] = nodeMap[nodename].Volume
 		}
 	}
 	return result, changed, nil

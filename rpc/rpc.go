@@ -455,7 +455,7 @@ func (v *Vibranium) CacheImage(opts *pb.CacheImageOptions, stream pb.CoreRPC_Cac
 	v.taskAdd("CacheImage", true)
 	defer v.taskDone("CacheImage", true)
 
-	ch, err := v.cluster.CacheImage(stream.Context(), opts.Podname, opts.Nodename, opts.Images, int(opts.Step))
+	ch, err := v.cluster.CacheImage(stream.Context(), opts.Podname, opts.Nodenames, opts.Images, int(opts.Step))
 	if err != nil {
 		return err
 	}
@@ -473,7 +473,7 @@ func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_R
 	v.taskAdd("RemoveImage", true)
 	defer v.taskDone("RemoveImage", true)
 
-	ch, err := v.cluster.RemoveImage(stream.Context(), opts.Podname, opts.Nodename, opts.Images, int(opts.Step), opts.Prune)
+	ch, err := v.cluster.RemoveImage(stream.Context(), opts.Podname, opts.Nodenames, opts.Images, int(opts.Step), opts.Prune)
 	if err != nil {
 		return err
 	}
@@ -498,10 +498,14 @@ func (v *Vibranium) CreateContainer(opts *pb.DeployOptions, stream pb.CoreRPC_Cr
 
 	ch, err := v.cluster.CreateContainer(stream.Context(), deployOpts)
 	if err != nil {
+		log.Errorf("[Vibranium.CreateContainer] create failed: %+v", err)
 		return err
 	}
 
 	for m := range ch {
+		if m.Error != nil {
+			log.Errorf("[Vibranium.CreateContainer] create specific container failed: %+v", m.Error)
+		}
 		if err = stream.Send(toRPCCreateContainerMessage(m)); err != nil {
 			v.logUnsentMessages("CreateContainer", m)
 		}

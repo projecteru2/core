@@ -7,21 +7,21 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-var legitSchemes = map[string]string{
-	"eru":    "eru://",
-	"static": "static://",
+var legitSchemas = []string{
+	"eru://",
+	"static://",
 }
 
 // MakeTarget return target: {scheme}://@{user}:{password}/{endpoint}
 func MakeTarget(addr string, authConfig types.AuthConfig) string {
-	scheme := "eru"
-	for s, prefix := range legitSchemes {
+	schema := legitSchemas[0]
+	for _, prefix := range legitSchemas {
 		if strings.HasPrefix(addr, prefix) {
-			scheme = s
+			schema = prefix
 			addr = strings.TrimPrefix(addr, prefix)
 			break
 		}
 	}
 
-	return fmt.Sprintf("%s://@%s:%s/%s", scheme, authConfig.Username, authConfig.Password, addr)
+	return fmt.Sprintf("%s@%s:%s/%s", schema, authConfig.Username, authConfig.Password, addr)
 }

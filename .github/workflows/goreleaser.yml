@@ -11,13 +11,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Set up environment variables
         run: |
           echo "::set-env name=VERSION::$(git describe --tags $(git rev-list --tags --max-count=1))"
-
-      - name: Unshallow
-        run: git fetch --prune --unshallow
 
       - name: Set up Go
         uses: actions/setup-go@v2

@@ -4,7 +4,11 @@ Eru
 ![](https://github.com/projecteru2/core/workflows/golangci-lint/badge.svg)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/69918e0a02ae45c5ae7dfc42bad5cfe5)](https://www.codacy.com/gh/projecteru2/core?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=projecteru2/core&amp;utm_campaign=Badge_Grade)
 
-Eru is a stateless, flexible, production-ready cluster scheduler designed to easily integrate into existing workflows. Eru can run any containerized things in long or short time. This project is Eru Core. The Core use for resource allocation and manage containers lifetime.
+Eru is a stateless, flexible, production-ready resource scheduler designed to easily integrate into existing systems. 
+
+Eru can use multiple engines to run anything for the long or short term. 
+
+This project is Eru Core. The Core use for resource allocation and manage resource's lifetime.
 
 ### Testing
 
@@ -23,11 +27,10 @@ You can use our [footstone](https://hub.docker.com/r/projecteru2/footstone/) ima
 
 #### GRPC
 
-Generate golang & python 3 code
+Generate golang grpc definitions.
 
 ```shell
 go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
-pip install -U grpcio-tools
 make grpc
 ```
 
@@ -60,7 +63,7 @@ docker run -d \
 
 ### Build and Deploy by Eru itself
 
-After we implemented bootstrap in eru2, now you can build and deploy eru with [cli](https://github.com/projecteru2/cli) tool.
+After we implemented bootstrap in eru, now you can build and deploy eru with [cli](https://github.com/projecteru2/cli) tool.
 
 1. Test source code and build image
 

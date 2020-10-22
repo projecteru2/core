@@ -10,13 +10,13 @@ import (
 )
 
 // RemoveImage remove images
-func (c *Calcium) RemoveImage(ctx context.Context, podname, nodename string, images []string, step int, prune bool) (chan *types.RemoveImageMessage, error) {
+func (c *Calcium) RemoveImage(ctx context.Context, podname string, nodenames []string, images []string, step int, prune bool) (chan *types.RemoveImageMessage, error) {
 	ch := make(chan *types.RemoveImageMessage)
 	if step < 1 {
 		step = 1
 	}
 
-	nodes, err := c.getNodes(ctx, podname, nodename, nil, false)
+	nodes, err := c.getNodes(ctx, podname, nodenames, nil, false)
 	if err != nil {
 		return ch, err
 	}
@@ -70,13 +70,13 @@ func (c *Calcium) RemoveImage(ctx context.Context, podname, nodename string, ima
 // CacheImage cache Image
 // 在podname上cache这个image
 // 实际上就是在所有的node上去pull一次
-func (c *Calcium) CacheImage(ctx context.Context, podname, nodename string, images []string, step int) (chan *types.CacheImageMessage, error) {
+func (c *Calcium) CacheImage(ctx context.Context, podname string, nodenames []string, images []string, step int) (chan *types.CacheImageMessage, error) {
 	ch := make(chan *types.CacheImageMessage)
 	if step < 1 {
 		step = 1
 	}
 
-	nodes, err := c.getNodes(ctx, podname, nodename, nil, false)
+	nodes, err := c.getNodes(ctx, podname, nodenames, nil, false)
 	if err != nil {
 		return ch, err
 	}

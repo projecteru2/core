@@ -15,9 +15,9 @@ import (
 )
 
 // SaveProcessing save processing status in etcd
-func (m *Mercury) SaveProcessing(ctx context.Context, opts *types.DeployOptions, nodeInfo types.NodeInfo) error {
-	processingKey := filepath.Join(containerProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodeInfo.Name, opts.ProcessIdent)
-	_, err := m.Create(ctx, processingKey, fmt.Sprintf("%d", nodeInfo.Deploy))
+func (m *Mercury) SaveProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error {
+	processingKey := filepath.Join(containerProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodename, opts.ProcessIdent)
+	_, err := m.Create(ctx, processingKey, fmt.Sprintf("%d", count))
 	return err
 }
 
@@ -29,22 +29,22 @@ func (m *Mercury) UpdateProcessing(ctx context.Context, opts *types.DeployOption
 }
 
 // DeleteProcessing delete processing status in etcd
-func (m *Mercury) DeleteProcessing(ctx context.Context, opts *types.DeployOptions, nodeInfo types.NodeInfo) error {
-	processingKey := filepath.Join(containerProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodeInfo.Name, opts.ProcessIdent)
+func (m *Mercury) DeleteProcessing(ctx context.Context, opts *types.DeployOptions, nodename string) error {
+	processingKey := filepath.Join(containerProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodename, opts.ProcessIdent)
 	_, err := m.Delete(ctx, processingKey)
 	return err
 }
 
-func (m *Mercury) doLoadProcessing(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
+func (m *Mercury) doLoadProcessing(ctx context.Context, opts *types.DeployOptions, strategyInfos []types.StrategyInfo) error {
 	// 显式的加 / 保证 prefix 一致性
 	processingKey := filepath.Join(containerProcessingPrefix, opts.Name, opts.Entrypoint.Name) + "/"
 	resp, err := m.Get(ctx, processingKey, clientv3.WithPrefix())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if resp.Count == 0 {
-		return nodesInfo, nil
+		return nil
 	}
 	nodesCount := map[string]int{}
 	for _, ev := range resp.Kvs {
@@ -65,5 +65,6 @@ func (m *Mercury) doLoadProcessing(ctx context.Context, opts *types.DeployOption
 
 	log.Debug("[doLoadProcessing] Processing result:")
 	litter.Dump(nodesCount)
-	return setCount(nodesCount, nodesInfo), nil
+	setCount(nodesCount, strategyInfos)
+	return nil
 }

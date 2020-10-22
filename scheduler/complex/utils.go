@@ -1,8 +1,6 @@
 package complexscheduler
 
 import (
-	"sort"
-
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -27,11 +25,4 @@ func onSameSource(plan []types.ResourceMap) bool {
 		}
 	}
 	return true
-}
-
-func scoreSort(nodesInfo []types.NodeInfo, byResource types.ResourceType) []types.NodeInfo {
-	sort.Slice(nodesInfo, func(i, j int) bool {
-		return nodesInfo[i].GetResourceUsage(byResource) < nodesInfo[j].GetResourceUsage(byResource)
-	})
-	return nodesInfo
 }

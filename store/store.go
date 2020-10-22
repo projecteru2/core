@@ -34,7 +34,7 @@ type Store interface {
 	GetNode(ctx context.Context, nodename string) (*types.Node, error)
 	GetNodes(ctx context.Context, nodenames []string) ([]*types.Node, error)
 	GetNodesByPod(ctx context.Context, podname string, labels map[string]string, all bool) ([]*types.Node, error)
-	UpdateNode(ctx context.Context, node *types.Node) error
+	UpdateNodes(context.Context, ...*types.Node) error
 	UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, memory, storage int64, volume types.VolumeMap, action string) error
 
 	// container
@@ -50,12 +50,12 @@ type Store interface {
 	ContainerStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.ContainerStatus
 
 	// deploy status
-	MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error)
+	MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfo []types.StrategyInfo) error
 
 	// processing status
-	SaveProcessing(ctx context.Context, opts *types.DeployOptions, nodeInfo types.NodeInfo) error
+	SaveProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error
 	UpdateProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error
-	DeleteProcessing(ctx context.Context, opts *types.DeployOptions, nodeInfo types.NodeInfo) error
+	DeleteProcessing(ctx context.Context, opts *types.DeployOptions, nodename string) error
 
 	// distributed lock
 	CreateLock(key string, ttl time.Duration) (lock.DistributedLock, error)

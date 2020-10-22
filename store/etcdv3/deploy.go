@@ -11,24 +11,23 @@ import (
 )
 
 // MakeDeployStatus get deploy status from store
-func (m *Mercury) MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) {
+func (m *Mercury) MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfos []types.StrategyInfo) error {
 	// 手动加 / 防止不精确
 	key := filepath.Join(containerDeployPrefix, opts.Name, opts.Entrypoint.Name) + "/"
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithKeysOnly())
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if resp.Count == 0 {
 		log.Warnf("[MakeDeployStatus] Deploy status not found %s.%s", opts.Name, opts.Entrypoint.Name)
 	}
-	nodesInfo, err = m.doGetDeployStatus(ctx, resp, nodesInfo)
-	if err != nil {
-		return nil, err
+	if err = m.doGetDeployStatus(ctx, resp, strategyInfos); err != nil {
+		return err
 	}
-	return m.doLoadProcessing(ctx, opts, nodesInfo)
+	return m.doLoadProcessing(ctx, opts, strategyInfos)
 }
 
-func (m *Mercury) doGetDeployStatus(_ context.Context, resp *clientv3.GetResponse, nodesInfo []types.NodeInfo) ([]types.NodeInfo, error) { // nolint
+func (m *Mercury) doGetDeployStatus(_ context.Context, resp *clientv3.GetResponse, strategyInfos []types.StrategyInfo) error {
 	nodesCount := map[string]int{}
 	for _, ev := range resp.Kvs {
 		key := string(ev.Key)
@@ -41,5 +40,6 @@ func (m *Mercury) doGetDeployStatus(_ context.Context, resp *clientv3.GetRespons
 		nodesCount[nodename]++
 	}
 
-	return setCount(nodesCount, nodesInfo), nil
+	setCount(nodesCount, strategyInfos)
+	return nil
 }

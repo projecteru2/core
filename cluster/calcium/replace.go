@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -19,11 +18,18 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 		opts.Count = 1
 	}
 	if len(opts.IDs) == 0 {
-		oldContainers, err := c.ListContainers(ctx, &types.ListContainersOptions{
-			Appname: opts.Name, Entrypoint: opts.Entrypoint.Name, Nodename: opts.Nodename,
-		})
-		if err != nil {
-			return nil, err
+		if len(opts.Nodenames) == 0 {
+			opts.Nodenames = []string{""}
+		}
+		oldContainers := []*types.Container{}
+		for _, nodename := range opts.Nodenames {
+			containers, err := c.ListContainers(ctx, &types.ListContainersOptions{
+				Appname: opts.Name, Entrypoint: opts.Entrypoint.Name, Nodename: nodename,
+			})
+			if err != nil {
+				return nil, err
+			}
+			oldContainers = append(oldContainers, containers...)
 		}
 		for _, container := range oldContainers {
 			opts.IDs = append(opts.IDs, container.ID)
@@ -51,14 +57,10 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 					}
 					// 使用复制之后的配置
 					// 停老的，起新的
-					replaceOpts.Memory = container.Memory
-					replaceOpts.Storage = container.Storage
-					replaceOpts.CPUQuota = container.Quota
 					replaceOpts.SoftLimit = container.SoftLimit
 					// 覆盖 podname 如果做全量更新的话
 					replaceOpts.Podname = container.Podname
 					// 覆盖 Volumes
-					replaceOpts.Volumes = container.Volumes
 					// 继承网络配置
 					if replaceOpts.NetworkInherit {
 						info, err := container.Inspect(ctx)
@@ -125,7 +127,16 @@ func (c *Calcium) doReplaceContainer(
 		}
 	}
 
-	createMessage := &types.CreateContainerMessage{}
+	createMessage := &types.CreateContainerMessage{
+		Resources: types.Resources{
+			Memory:     container.Memory,
+			Storage:    container.Storage,
+			Quota:      container.Quota,
+			CPU:        container.CPU,
+			Volume:     container.Volumes,
+			VolumePlan: container.VolumePlan,
+		},
+	}
 	return createMessage, removeMessage, utils.Txn(
 		ctx,
 		// if
@@ -139,28 +150,9 @@ func (c *Calcium) doReplaceContainer(
 				ctx,
 				// if
 				func(ctx context.Context) error {
-					return utils.Txn(
-						ctx,
-						func(ctx context.Context) error {
-							createMessage = c.doCreateAndStartContainer(ctx, index, node, &opts.DeployOptions, container.CPU, container.VolumePlan)
-							return createMessage.Error
-						},
-						nil,
-						func(ctx context.Context) error {
-							log.Errorf("[doReplaceContainer] Error when create and start a container, %v", createMessage.Error)
-							if createMessage.ContainerID != "" {
-								log.Warnf("[doReplaceContainer] Create container failed %v, and container %s not removed", createMessage.Error, createMessage.ContainerID)
-								return nil
-							}
-							if err = c.withNodeLocked(ctx, node.Name, func(node *types.Node) error {
-								return c.store.UpdateNodeResource(ctx, node, createMessage.CPU, createMessage.Quota, createMessage.Memory, createMessage.Storage, createMessage.VolumePlan.IntoVolumeMap(), store.ActionIncr)
-							}); err != nil {
-								log.Errorf("[doReplaceContainer] Reset node resource %s failed %v", node.Name, err)
-							}
-							return nil
-						},
-						c.config.GlobalTimeout,
-					)
+					ctx, cancel := context.WithCancel(ctx)
+					cancel()
+					return c.doDeployOneWorkload(ctx, node, &opts.DeployOptions, createMessage, index, -1)
 				},
 				// then
 				func(ctx context.Context) (err error) {

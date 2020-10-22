@@ -16,7 +16,6 @@ type VirtualizationResource struct {
 // VirtualizationCreateOptions use for create virtualization target
 type VirtualizationCreateOptions struct {
 	VirtualizationResource
-	Seq        int // for count
 	Name       string
 	User       string
 	Image      string

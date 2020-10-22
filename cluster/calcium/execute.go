@@ -6,7 +6,6 @@ import (
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -66,7 +65,8 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 
 		exitData := []byte(exitDataPrefix + strconv.Itoa(execCode))
 		ch <- &types.AttachContainerMessage{ContainerID: opts.ContainerID, Data: exitData}
-		log.Infof("[ExecuteContainer] Execuate in container %s complete", utils.ShortID(opts.ContainerID))
+		log.Infof("[ExecuteContainer] Execuate in container %s complete", opts.ContainerID)
+		log.Infof("[ExecuteContainer] %v", opts.Commands)
 	}()
 
 	return ch

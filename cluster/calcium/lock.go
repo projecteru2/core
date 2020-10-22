@@ -44,7 +44,7 @@ func (c *Calcium) withContainerLocked(ctx context.Context, ID string, f func(con
 }
 
 func (c *Calcium) withNodeLocked(ctx context.Context, nodename string, f func(node *types.Node) error) error {
-	return c.withNodesLocked(ctx, "", nodename, nil, true, func(nodes map[string]*types.Node) error {
+	return c.withNodesLocked(ctx, "", []string{nodename}, nil, true, func(nodes map[string]*types.Node) error {
 		if n, ok := nodes[nodename]; ok {
 			return f(n)
 		}
@@ -71,11 +71,11 @@ func (c *Calcium) withContainersLocked(ctx context.Context, IDs []string, f func
 	return f(containers)
 }
 
-func (c *Calcium) withNodesLocked(ctx context.Context, podname, nodename string, labels map[string]string, all bool, f func(nodes map[string]*types.Node) error) error {
+func (c *Calcium) withNodesLocked(ctx context.Context, podname string, nodenames []string, labels map[string]string, all bool, f func(nodes map[string]*types.Node) error) error {
 	nodes := map[string]*types.Node{}
 	locks := map[string]lock.DistributedLock{}
 	defer func() { c.doUnlockAll(ctx, locks) }()
-	ns, err := c.getNodes(ctx, podname, nodename, labels, all)
+	ns, err := c.getNodes(ctx, podname, nodenames, labels, all)
 	if err != nil {
 		return err
 	}
