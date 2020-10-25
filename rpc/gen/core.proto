@@ -119,7 +119,7 @@ message ConnectNetworkOptions{
 message DisconnectNetworkOptions{
     string network = 1;
     string target = 2;
-    bool force = 3;    
+    bool force = 3;
 }
 
 message Network {
@@ -417,6 +417,10 @@ message DeployOptions {
     repeated string after_create = 27;
     bytes raw_args = 28;
     int64 storage = 29;
+    double cpu_quota_request = 30; // original cpu_quota denotes cpu_quota_limit
+    int64 memory_request = 31; // original memory denotes memory_limit
+    repeated string volumes_request = 32; // original volumes denotes volumes_limit
+    int64 storage_request = 33; // original storage denotes storage_limit
 }
 
 message ReplaceOptions {

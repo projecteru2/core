@@ -273,6 +273,11 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		return nil, err
 	}
 
+	vbsRequest, err := types.MakeVolumeBindings(d.VolumesRequest)
+	if err != nil {
+		return nil, err
+	}
+
 	data := map[string]types.ReaderManager{}
 	for filename, bs := range d.Data {
 		if data[filename], err = types.NewReaderManager(bytes.NewBuffer(bs)); err != nil {
@@ -306,15 +311,15 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		RawArgs:        d.RawArgs,
 		Data:           data,
 		RawResourceOptions: types.RawResourceOptions{
-			CPURequest:     d.CpuQuota,
+			CPURequest:     d.CpuQuotaRequest,
 			CPULimit:       d.CpuQuota,
 			CPUBind:        d.CpuBind,
-			MemoryRequest:  d.Memory,
+			MemoryRequest:  d.MemoryRequest,
 			MemoryLimit:    d.Memory,
 			MemorySoft:     d.SoftLimit,
-			VolumeRequest:  vbs,
+			VolumeRequest:  vbsRequest,
 			VolumeLimit:    vbs,
-			StorageRequest: d.Storage,
+			StorageRequest: d.StorageRequest,
 			StorageLimit:   d.Storage,
 		},
 	}, nil
