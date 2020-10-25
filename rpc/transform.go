@@ -7,7 +7,6 @@ import (
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	pb "github.com/projecteru2/core/rpc/gen"
-	"github.com/projecteru2/core/scheduler/resources"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -281,47 +280,43 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		}
 	}
 
-	resourceRequests := []types.ResourceRequest{
-		resources.CPUMemResourceRequest{
-			CPUQuota: d.CpuQuota,
-			CPUBind:  d.CpuBind,
-			Memory:   d.Memory,
-		},
-	}
-	if vbs != nil {
-		resourceRequests = append(resourceRequests, resources.NewVolumeResourceRequest(vbs))
-		d.Storage += vbs.TotalSize()
-	}
-	if d.Storage > 0 {
-		resourceRequests = append(resourceRequests, resources.StorageResourceRequest{Quota: d.Storage})
-	}
-
 	return &types.DeployOptions{
-		Name:             d.Name,
-		Entrypoint:       entry,
-		Podname:          d.Podname,
-		Nodenames:        d.Nodenames,
-		Image:            d.Image,
-		ExtraArgs:        d.ExtraArgs,
-		Count:            int(d.Count),
-		Env:              d.Env,
-		DNS:              d.Dns,
-		ExtraHosts:       d.ExtraHosts,
-		Networks:         d.Networks,
-		NetworkMode:      d.Networkmode,
-		User:             d.User,
-		Debug:            d.Debug,
-		OpenStdin:        d.OpenStdin,
-		Labels:           d.Labels,
-		NodeLabels:       d.Nodelabels,
-		DeployStrategy:   d.DeployStrategy.String(),
-		SoftLimit:        d.SoftLimit,
-		NodesLimit:       int(d.NodesLimit),
-		IgnoreHook:       d.IgnoreHook,
-		AfterCreate:      d.AfterCreate,
-		RawArgs:          d.RawArgs,
-		Data:             data,
-		ResourceRequests: resourceRequests,
+		Name:           d.Name,
+		Entrypoint:     entry,
+		Podname:        d.Podname,
+		Nodenames:      d.Nodenames,
+		Image:          d.Image,
+		ExtraArgs:      d.ExtraArgs,
+		Count:          int(d.Count),
+		Env:            d.Env,
+		DNS:            d.Dns,
+		ExtraHosts:     d.ExtraHosts,
+		Networks:       d.Networks,
+		NetworkMode:    d.Networkmode,
+		User:           d.User,
+		Debug:          d.Debug,
+		OpenStdin:      d.OpenStdin,
+		Labels:         d.Labels,
+		NodeLabels:     d.Nodelabels,
+		DeployStrategy: d.DeployStrategy.String(),
+		SoftLimit:      d.SoftLimit,
+		NodesLimit:     int(d.NodesLimit),
+		IgnoreHook:     d.IgnoreHook,
+		AfterCreate:    d.AfterCreate,
+		RawArgs:        d.RawArgs,
+		Data:           data,
+		RawResourceOptions: types.RawResourceOptions{
+			CPURequest:     d.CpuQuota,
+			CPULimit:       d.CpuQuota,
+			CPUBind:        d.CpuBind,
+			MemoryRequest:  d.Memory,
+			MemoryLimit:    d.Memory,
+			MemorySoft:     d.SoftLimit,
+			VolumeRequest:  vbs,
+			VolumeLimit:    vbs,
+			StorageRequest: d.Storage,
+			StorageLimit:   d.Storage,
+		},
 	}, nil
 }
 

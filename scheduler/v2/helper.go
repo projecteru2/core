@@ -1,4 +1,4 @@
-package resources
+package v2
 
 import "github.com/projecteru2/core/types"
 

@@ -5,13 +5,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 	"go.etcd.io/etcd/v3/clientv3"
 )
 
 // MakeDeployStatus get deploy status from store
-func (m *Mercury) MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfos []types.StrategyInfo) error {
+func (m *Mercury) MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfos []strategy.StrategyInfo) error {
 	// 手动加 / 防止不精确
 	key := filepath.Join(containerDeployPrefix, opts.Name, opts.Entrypoint.Name) + "/"
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithKeysOnly())
@@ -27,7 +28,7 @@ func (m *Mercury) MakeDeployStatus(ctx context.Context, opts *types.DeployOption
 	return m.doLoadProcessing(ctx, opts, strategyInfos)
 }
 
-func (m *Mercury) doGetDeployStatus(_ context.Context, resp *clientv3.GetResponse, strategyInfos []types.StrategyInfo) error {
+func (m *Mercury) doGetDeployStatus(_ context.Context, resp *clientv3.GetResponse, strategyInfos []strategy.StrategyInfo) error {
 	nodesCount := map[string]int{}
 	for _, ev := range resp.Kvs {
 		key := string(ev.Key)

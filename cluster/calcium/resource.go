@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/projecteru2/core/scheduler"
+	schedulerv2 "github.com/projecteru2/core/scheduler/v2"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -155,20 +155,25 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 	)
 }
 
-func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) (map[types.ResourceType]types.ResourcePlans, map[string]*types.DeployInfo, error) {
+func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) (map[types.ResourceType]schedulerv2.ResourcePlans, map[string]*types.DeployInfo, error) {
 	if len(nodeMap) == 0 {
 		return nil, nil, errors.WithStack(types.ErrInsufficientNodes)
 	}
 
+	apps, err := schedulerv2.NewResourceApplications(opts.RawResourceOptions)
+	if err != nil {
+		return nil, nil, errors.WithStack(err)
+	}
+
 	// select available nodes
-	planMap, total, scheduleTypes, err := scheduler.SelectNodes(opts.ResourceRequests, nodeMap)
+	planMap, total, scheduleTypes, err := schedulerv2.SelectNodes(apps, nodeMap)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
 	log.Errorf("[Calcium.doAllocResource] planMap: %+v, total: %v, type: %+v", planMap, total, scheduleTypes)
 
 	// deploy strategy
-	strategyInfos := types.NewStrategyInfos(opts, nodeMap, planMap)
+	strategyInfos := strategy.NewStrategyInfos(apps, nodeMap, planMap)
 	if err := c.store.MakeDeployStatus(ctx, opts, strategyInfos); err != nil {
 		return nil, nil, errors.WithStack(err)
 	}

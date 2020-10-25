@@ -6,8 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/scheduler"
-	"github.com/projecteru2/core/scheduler/resources"
+	schedulerv2 "github.com/projecteru2/core/scheduler/v2"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -74,44 +73,43 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 // group containers by node and requests
 func (c *Calcium) doReallocContainersOnPod(ctx context.Context, ch chan *types.ReallocResourceMessage, nodeContainersInfo nodeContainers, opts *types.ReallocOptions) {
 	hardVbsMap := map[string]types.VolumeBindings{}
-	containerGroups := map[string]map[[3]types.ResourceRequest][]*types.Container{}
+	containerGroups := map[string]map[schedulerv2.ResourceApplications][]*types.Container{}
 	for nodename, containers := range nodeContainersInfo {
-		containerGroups[nodename] = map[[3]types.ResourceRequest][]*types.Container{}
+		containerGroups[nodename] = map[schedulerv2.ResourceApplications][]*types.Container{}
 		for _, container := range containers {
-			vbs, err := types.MergeVolumeBindings(container.Volumes, opts.Volumes)
-			if err != nil {
+			if err := func() (err error) {
+				var (
+					autoVbs types.VolumeBindings
+					apps    schedulerv2.ResourceApplications
+				)
+				vbs, err := types.MergeVolumeBindings(container.Volumes, opts.Volumes)
+				if err != nil {
+					return errors.WithStack(err)
+				}
+				autoVbs, hardVbsMap[container.ID] = vbs.Divide()
+
+				apps, err = schedulerv2.NewResourceApplications(types.RawResourceOptions{
+					CPULimit:     container.Quota + opts.CPU,
+					CPUBind:      types.ParseTriOption(opts.BindCPU, len(container.CPU) > 0),
+					MemoryLimit:  container.Memory + opts.Memory,
+					MemorySoft:   types.ParseTriOption(opts.MemoryLimit, container.SoftLimit),
+					VolumeLimit:  autoVbs,
+					StorageLimit: container.Storage + opts.Storage,
+				})
+
+				containerGroups[nodename][apps] = append(containerGroups[nodename][apps], container)
+				return
+
+			}(); err != nil {
 				ch <- &types.ReallocResourceMessage{Error: err}
 				return
 			}
-			var autoVbs types.VolumeBindings
-			autoVbs, hardVbsMap[container.ID] = vbs.Divide()
-
-			reqs := [3]types.ResourceRequest{
-				resources.CPUMemResourceRequest{
-					CPUQuota:        container.Quota + opts.CPU,
-					CPUBind:         types.ParseTriOption(opts.BindCPU, len(container.CPU) > 0),
-					Memory:          container.Memory + opts.Memory,
-					MemorySoftLimit: types.ParseTriOption(opts.MemoryLimit, container.SoftLimit),
-				},
-				resources.NewVolumeResourceRequest(autoVbs),
-				resources.StorageResourceRequest{
-					Quota: container.Storage + opts.Storage,
-				},
-			}
-
-			for _, req := range reqs {
-				if err = req.DeployValidate(); err != nil {
-					ch <- &types.ReallocResourceMessage{Error: err}
-					return
-				}
-			}
-			containerGroups[nodename][reqs] = append(containerGroups[nodename][reqs], container)
 		}
 	}
 
-	for nodename, containerByReq := range containerGroups {
-		for reqs, containers := range containerByReq {
-			if err := c.doReallocContainersOnNode(ctx, ch, nodename, containers, []types.ResourceRequest{reqs[0], reqs[1], reqs[2]}, hardVbsMap); err != nil {
+	for nodename, containerByApps := range containerGroups {
+		for apps, containers := range containerByApps {
+			if err := c.doReallocContainersOnNode(ctx, ch, nodename, containers, apps, hardVbsMap); err != nil {
 
 				ch <- &types.ReallocResourceMessage{Error: err}
 			}
@@ -120,14 +118,14 @@ func (c *Calcium) doReallocContainersOnPod(ctx context.Context, ch chan *types.R
 }
 
 // transaction: node meta
-func (c *Calcium) doReallocContainersOnNode(ctx context.Context, ch chan *types.ReallocResourceMessage, nodename string, containers []*types.Container, newReqs []types.ResourceRequest, hardVbsMap map[string]types.VolumeBindings) (err error) {
+func (c *Calcium) doReallocContainersOnNode(ctx context.Context, ch chan *types.ReallocResourceMessage, nodename string, containers []*types.Container, apps schedulerv2.ResourceApplications, hardVbsMap map[string]types.VolumeBindings) (err error) {
 	{
 		return c.withNodeLocked(ctx, nodename, func(node *types.Node) error {
 
 			for _, container := range containers {
 				recycleResources(node, container)
 			}
-			planMap, total, _, err := scheduler.SelectNodes(newReqs, map[string]*types.Node{node.Name: node})
+			planMap, total, _, err := schedulerv2.SelectNodes(apps, map[string]*types.Node{node.Name: node})
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -178,7 +176,7 @@ func (c *Calcium) doReallocContainersOnNode(ctx context.Context, ch chan *types.
 }
 
 // boundary: chan *types.ReallocResourceMessage
-func (c *Calcium) doUpdateResourceOnInstances(ctx context.Context, ch chan *types.ReallocResourceMessage, node *types.Node, planMap map[types.ResourceType]types.ResourcePlans, containers []*types.Container, hardVbsMap map[string]types.VolumeBindings) (rollbacks []int, err error) {
+func (c *Calcium) doUpdateResourceOnInstances(ctx context.Context, ch chan *types.ReallocResourceMessage, node *types.Node, planMap map[types.ResourceType]schedulerv2.ResourcePlans, containers []*types.Container, hardVbsMap map[string]types.VolumeBindings) (rollbacks []int, err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(containers))
 
@@ -198,7 +196,7 @@ func (c *Calcium) doUpdateResourceOnInstances(ctx context.Context, ch chan *type
 
 			resources := &types.Resources{}
 			for _, plan := range planMap {
-				if e = plan.Dispense(types.DispenseOptions{
+				if e = plan.Dispense(schedulerv2.DispenseOptions{
 					Node:               node,
 					Index:              idx,
 					ExistingInstances:  containers,
