@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	schedulerv2 "github.com/projecteru2/core/scheduler/v2"
+	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -77,10 +77,10 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 		storage := int64(0)
 		cpumap := types.CPUMap{}
 		for _, container := range containers {
-			cpus = utils.Round(cpus + container.Quota)
-			memory += container.Memory
-			storage += container.Storage
-			cpumap.Add(container.CPU)
+			cpus = utils.Round(cpus + container.QuotaRequest)
+			memory += container.MemoryRequest
+			storage += container.StorageRequest
+			cpumap.Add(container.CPURequest)
 		}
 		nr.CPUPercent = cpus / float64(len(node.InitCPU))
 		nr.MemoryPercent = float64(memory) / float64(node.InitMemCap)
@@ -155,18 +155,18 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 	)
 }
 
-func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) (map[types.ResourceType]schedulerv2.ResourcePlans, map[string]*types.DeployInfo, error) {
+func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) (map[types.ResourceType]resources.ResourcePlans, map[string]*types.DeployInfo, error) {
 	if len(nodeMap) == 0 {
 		return nil, nil, errors.WithStack(types.ErrInsufficientNodes)
 	}
 
-	apps, err := schedulerv2.NewResourceApplications(opts.RawResourceOptions)
+	apps, err := resources.NewResourceApplications(opts.RawResourceOptions)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
 
 	// select available nodes
-	planMap, total, scheduleTypes, err := schedulerv2.SelectNodes(apps, nodeMap)
+	planMap, total, scheduleTypes, err := resources.SelectNodes(apps, nodeMap)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}

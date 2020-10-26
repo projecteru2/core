@@ -9,8 +9,8 @@ import (
 	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/metrics"
+	"github.com/projecteru2/core/resources"
 
-	schedulerv2 "github.com/projecteru2/core/scheduler/v2"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/sanity-io/litter"
@@ -42,7 +42,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 	var (
 		err         error
-		planMap     map[types.ResourceType]schedulerv2.ResourcePlans
+		planMap     map[types.ResourceType]resources.ResourcePlans
 		deployMap   map[string]*types.DeployInfo
 		rollbackMap map[string][]int
 	)
@@ -123,7 +123,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 	return ch, err
 }
 
-func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateContainerMessage, opts *types.DeployOptions, planMap map[types.ResourceType]schedulerv2.ResourcePlans, deployMap map[string]*types.DeployInfo) (_ map[string][]int, err error) {
+func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateContainerMessage, opts *types.DeployOptions, planMap map[types.ResourceType]resources.ResourcePlans, deployMap map[string]*types.DeployInfo) (_ map[string][]int, err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(deployMap))
 
@@ -147,7 +147,7 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateCo
 }
 
 // deploy scheduled containers on one node
-func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.CreateContainerMessage, nodeName string, opts *types.DeployOptions, deployInfo *types.DeployInfo, planMap map[types.ResourceType]schedulerv2.ResourcePlans, seq int) (indices []int, err error) {
+func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.CreateContainerMessage, nodeName string, opts *types.DeployOptions, deployInfo *types.DeployInfo, planMap map[types.ResourceType]resources.ResourcePlans, seq int) (indices []int, err error) {
 	node, err := c.doGetAndPrepareNode(ctx, nodeName, opts.Image)
 	if err != nil {
 		for i := 0; i < deployInfo.Deploy; i++ {
@@ -174,18 +174,18 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 				ch <- createMsg
 			}()
 
-			resources := &types.Resources{}
-			o := schedulerv2.DispenseOptions{
+			rsc := &types.Resources{}
+			o := resources.DispenseOptions{
 				Node:  node,
 				Index: idx,
 			}
 			for _, plan := range planMap {
-				if e = plan.Dispense(o, resources); e != nil {
+				if e = plan.Dispense(o, rsc); e != nil {
 					return
 				}
 			}
 
-			createMsg.Resources = *resources
+			createMsg.Resources = *rsc
 			e = c.doDeployOneWorkload(ctx, node, opts, createMsg, seq+idx, deployInfo.Deploy-1-idx)
 		}()
 	}
@@ -212,23 +212,28 @@ func (c *Calcium) doDeployOneWorkload(
 ) (err error) {
 	config := c.doMakeContainerOptions(no, msg, opts, node)
 	container := &types.Container{
-		Name:       config.Name,
-		Labels:     config.Labels,
-		Podname:    opts.Podname,
-		Nodename:   node.Name,
-		CPU:        msg.CPU,
-		Quota:      msg.Quota,
-		Memory:     msg.Memory,
-		Storage:    msg.Storage,
-		Hook:       opts.Entrypoint.Hook,
-		Privileged: opts.Entrypoint.Privileged,
-		Engine:     node.Engine,
-		SoftLimit:  opts.SoftLimit,
-		Image:      opts.Image,
-		Env:        opts.Env,
-		User:       opts.User,
-		Volumes:    msg.Volume,
-		VolumePlan: msg.VolumePlan,
+		Name:              config.Name,
+		Labels:            config.Labels,
+		Podname:           opts.Podname,
+		Nodename:          node.Name,
+		CPURequest:        msg.CPURequest,
+		QuotaRequest:      msg.CPUQuotaRequest,
+		QuotaLimit:        msg.CPUQuotaLimit,
+		MemoryRequest:     msg.MemoryRequest,
+		MemoryLimit:       msg.MemoryLimit,
+		StorageRequest:    msg.StorageRequest,
+		StorageLimit:      msg.StorageLimit,
+		VolumeRequest:     msg.VolumeRequest,
+		VolumeLimit:       msg.VolumeLimit,
+		VolumePlanRequest: msg.VolumePlanRequest,
+		VolumePlanLimit:   msg.VolumePlanLimit,
+		Hook:              opts.Entrypoint.Hook,
+		Privileged:        opts.Entrypoint.Privileged,
+		Engine:            node.Engine,
+		SoftLimit:         opts.SoftLimit,
+		Image:             opts.Image,
+		Env:               opts.Env,
+		User:              opts.User,
 	}
 	return utils.Txn(
 		ctx,
@@ -313,11 +318,11 @@ func (c *Calcium) doDeployOneWorkload(
 func (c *Calcium) doMakeContainerOptions(no int, msg *types.CreateContainerMessage, opts *types.DeployOptions, node *types.Node) *enginetypes.VirtualizationCreateOptions {
 	config := &enginetypes.VirtualizationCreateOptions{}
 	// general
-	config.CPU = msg.CPU
-	config.Quota = msg.Quota
-	config.Memory = msg.Memory
-	config.Storage = msg.Storage
-	config.NUMANode = node.GetNUMANode(msg.CPU)
+	config.CPU = msg.CPULimit
+	config.Quota = msg.CPUQuotaLimit
+	config.Memory = msg.MemoryLimit
+	config.Storage = msg.StorageLimit
+	config.NUMANode = node.GetNUMANode(msg.CPULimit)
 	config.SoftLimit = opts.SoftLimit
 	config.RawArgs = opts.RawArgs
 	config.Lambda = opts.Lambda
@@ -326,8 +331,8 @@ func (c *Calcium) doMakeContainerOptions(no int, msg *types.CreateContainerMessa
 	config.Image = opts.Image
 	config.Stdin = opts.OpenStdin
 	config.Hosts = opts.ExtraHosts
-	config.Volumes = msg.Volume.ApplyPlan(msg.VolumePlan).ToStringSlice(false, true)
-	config.VolumePlan = msg.VolumePlan.ToLiteral()
+	config.Volumes = msg.VolumeLimit.ApplyPlan(msg.VolumePlanLimit).ToStringSlice(false, true)
+	config.VolumePlan = msg.VolumePlanLimit.ToLiteral()
 	config.Debug = opts.Debug
 	config.Network = opts.NetworkMode
 	config.Networks = opts.Networks
@@ -356,8 +361,8 @@ func (c *Calcium) doMakeContainerOptions(no int, msg *types.CreateContainerMessa
 	env = append(env, fmt.Sprintf("ERU_POD=%s", opts.Podname))
 	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", node.Name))
 	env = append(env, fmt.Sprintf("ERU_CONTAINER_NO=%d", no))
-	env = append(env, fmt.Sprintf("ERU_MEMORY=%d", msg.Memory))
-	env = append(env, fmt.Sprintf("ERU_STORAGE=%d", msg.Storage))
+	env = append(env, fmt.Sprintf("ERU_MEMORY=%d", msg.MemoryLimit))
+	env = append(env, fmt.Sprintf("ERU_STORAGE=%d", msg.StorageLimit))
 	config.Env = env
 	// basic labels, bind to LabelMeta
 	config.Labels = map[string]string{

@@ -347,11 +347,11 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 		Id:         c.ContainerID,
 		Name:       c.ContainerName,
 		Success:    c.Error == nil,
-		Cpu:        toRPCCPUMap(c.CPU),
-		Quota:      c.Quota,
-		Memory:     c.Memory,
-		Storage:    c.Storage,
-		VolumePlan: toRPCVolumePlan(c.VolumePlan),
+		Cpu:        toRPCCPUMap(c.CPULimit),
+		Quota:      c.CPUQuotaLimit,
+		Memory:     c.MemoryLimit,
+		Storage:    c.StorageLimit,
+		VolumePlan: toRPCVolumePlan(c.VolumePlanLimit),
 		Publish:    utils.EncodePublishInfo(c.Publish),
 		Hook:       types.HookOutput(c.Hook),
 	}
@@ -489,22 +489,22 @@ func toRPCContainer(_ context.Context, c *types.Container) (*pb.Container, error
 			utils.MakePublishInfo(c.StatusMeta.Networks, meta.Publish),
 		)
 	}
-	cpu := toRPCCPUMap(c.CPU)
+	cpu := toRPCCPUMap(c.CPURequest)
 	return &pb.Container{
 		Id:         c.ID,
 		Podname:    c.Podname,
 		Nodename:   c.Nodename,
 		Name:       c.Name,
 		Cpu:        cpu,
-		Quota:      c.Quota,
-		Memory:     c.Memory,
-		Storage:    c.Storage,
+		Quota:      c.QuotaLimit,
+		Memory:     c.MemoryLimit,
+		Storage:    c.StorageLimit,
 		Privileged: c.Privileged,
 		Publish:    publish,
 		Image:      c.Image,
 		Labels:     c.Labels,
-		Volumes:    c.Volumes.ToStringSlice(false, false),
-		VolumePlan: toRPCVolumePlan(c.VolumePlan),
+		Volumes:    c.VolumeLimit.ToStringSlice(false, false),
+		VolumePlan: toRPCVolumePlan(c.VolumePlanLimit),
 		Status:     toRPCContainerStatus(c.StatusMeta),
 	}, nil
 }

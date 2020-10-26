@@ -2,6 +2,7 @@ package resources
 
 import (
 	"github.com/pkg/errors"
+	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
 )
@@ -12,12 +13,14 @@ type StorageResourceApply struct {
 	limit   int64
 }
 
-func NewStorageApplication(request, limit int64) (*StorageResourceApply, error) {
-	apply := &StorageResourceApply{
-		request: request,
-		limit:   limit,
-	}
-	return apply, apply.Validate()
+func init() {
+	resources.RegisterApplicationFactory(func(opts types.RawResourceOptions) (resources.ResourceApplication, error) {
+		a := &StorageResourceApply{
+			request: opts.StorageRequest,
+			limit:   opts.StorageLimit,
+		}
+		return a, a.Validate()
+	})
 }
 
 // Type .
@@ -26,7 +29,7 @@ func (a StorageResourceApply) Type() types.ResourceType {
 }
 
 // Validate .
-func (a StorageResourceApply) Validate() error {
+func (a *StorageResourceApply) Validate() error {
 	if a.limit > 0 && a.request == 0 {
 		a.request = a.limit
 	}
@@ -40,8 +43,8 @@ func (a StorageResourceApply) Validate() error {
 }
 
 // MakeScheduler .
-func (a StorageResourceApply) MakeScheduler() types.SchedulerV2 {
-	return func(nodesInfo []types.NodeInfo) (plans types.ResourcePlans, total int, err error) {
+func (a StorageResourceApply) MakeScheduler() resources.SchedulerV2 {
+	return func(nodesInfo []types.NodeInfo) (plans resources.ResourcePlans, total int, err error) {
 		schedulerV1, err := scheduler.GetSchedulerV1()
 		if err != nil {
 			return
@@ -51,7 +54,7 @@ func (a StorageResourceApply) MakeScheduler() types.SchedulerV2 {
 		return StorageResourcePlans{
 			request:  a.request,
 			limit:    a.limit,
-			capacity: getCapacity(nodesInfo),
+			capacity: resources.GetCapacity(nodesInfo),
 		}, total, err
 	}
 }
@@ -89,7 +92,8 @@ func (p StorageResourcePlans) RollbackChangesOnNode(node *types.Node, indices ..
 }
 
 // Dispense .
-func (p StorageResourcePlans) Dispense(opts types.DispenseOptions, resources *types.Resources) error {
-	resources.Storage = p.limit
+func (p StorageResourcePlans) Dispense(opts resources.DispenseOptions, resources *types.Resources) error {
+	resources.StorageLimit = p.limit
+	resources.StorageRequest = p.request
 	return nil
 }

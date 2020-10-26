@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	enginetypes "github.com/projecteru2/core/engine/types"
-	schedulerv2 "github.com/projecteru2/core/scheduler/v2"
+	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -73,28 +73,28 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 // group containers by node and requests
 func (c *Calcium) doReallocContainersOnPod(ctx context.Context, ch chan *types.ReallocResourceMessage, nodeContainersInfo nodeContainers, opts *types.ReallocOptions) {
 	hardVbsMap := map[string]types.VolumeBindings{}
-	containerGroups := map[string]map[schedulerv2.ResourceApplications][]*types.Container{}
+	containerGroups := map[string]map[resources.ResourceApplications][]*types.Container{}
 	for nodename, containers := range nodeContainersInfo {
-		containerGroups[nodename] = map[schedulerv2.ResourceApplications][]*types.Container{}
+		containerGroups[nodename] = map[resources.ResourceApplications][]*types.Container{}
 		for _, container := range containers {
 			if err := func() (err error) {
 				var (
 					autoVbs types.VolumeBindings
-					apps    schedulerv2.ResourceApplications
+					apps    resources.ResourceApplications
 				)
-				vbs, err := types.MergeVolumeBindings(container.Volumes, opts.Volumes)
+				vbs, err := types.MergeVolumeBindings(container.VolumeLimit, opts.Volumes)
 				if err != nil {
 					return errors.WithStack(err)
 				}
 				autoVbs, hardVbsMap[container.ID] = vbs.Divide()
 
-				apps, err = schedulerv2.NewResourceApplications(types.RawResourceOptions{
-					CPULimit:     container.Quota + opts.CPU,
-					CPUBind:      types.ParseTriOption(opts.BindCPU, len(container.CPU) > 0),
-					MemoryLimit:  container.Memory + opts.Memory,
+				apps, err = resources.NewResourceApplications(types.RawResourceOptions{
+					CPULimit:     container.QuotaLimit + opts.CPU,
+					CPUBind:      types.ParseTriOption(opts.BindCPU, len(container.CPURequest) > 0),
+					MemoryLimit:  container.MemoryLimit + opts.Memory,
 					MemorySoft:   types.ParseTriOption(opts.MemoryLimit, container.SoftLimit),
 					VolumeLimit:  autoVbs,
-					StorageLimit: container.Storage + opts.Storage,
+					StorageLimit: container.StorageLimit + opts.Storage,
 				})
 
 				containerGroups[nodename][apps] = append(containerGroups[nodename][apps], container)
@@ -118,14 +118,14 @@ func (c *Calcium) doReallocContainersOnPod(ctx context.Context, ch chan *types.R
 }
 
 // transaction: node meta
-func (c *Calcium) doReallocContainersOnNode(ctx context.Context, ch chan *types.ReallocResourceMessage, nodename string, containers []*types.Container, apps schedulerv2.ResourceApplications, hardVbsMap map[string]types.VolumeBindings) (err error) {
+func (c *Calcium) doReallocContainersOnNode(ctx context.Context, ch chan *types.ReallocResourceMessage, nodename string, containers []*types.Container, apps resources.ResourceApplications, hardVbsMap map[string]types.VolumeBindings) (err error) {
 	{
 		return c.withNodeLocked(ctx, nodename, func(node *types.Node) error {
 
 			for _, container := range containers {
 				recycleResources(node, container)
 			}
-			planMap, total, _, err := schedulerv2.SelectNodes(apps, map[string]*types.Node{node.Name: node})
+			planMap, total, _, err := resources.SelectNodes(apps, map[string]*types.Node{node.Name: node})
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -176,7 +176,7 @@ func (c *Calcium) doReallocContainersOnNode(ctx context.Context, ch chan *types.
 }
 
 // boundary: chan *types.ReallocResourceMessage
-func (c *Calcium) doUpdateResourceOnInstances(ctx context.Context, ch chan *types.ReallocResourceMessage, node *types.Node, planMap map[types.ResourceType]schedulerv2.ResourcePlans, containers []*types.Container, hardVbsMap map[string]types.VolumeBindings) (rollbacks []int, err error) {
+func (c *Calcium) doUpdateResourceOnInstances(ctx context.Context, ch chan *types.ReallocResourceMessage, node *types.Node, planMap map[types.ResourceType]resources.ResourcePlans, containers []*types.Container, hardVbsMap map[string]types.VolumeBindings) (rollbacks []int, err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(containers))
 
@@ -194,19 +194,19 @@ func (c *Calcium) doUpdateResourceOnInstances(ctx context.Context, ch chan *type
 				wg.Done()
 			}()
 
-			resources := &types.Resources{}
+			rsc := &types.Resources{}
 			for _, plan := range planMap {
-				if e = plan.Dispense(schedulerv2.DispenseOptions{
+				if e = plan.Dispense(resources.DispenseOptions{
 					Node:               node,
 					Index:              idx,
 					ExistingInstances:  containers,
 					HardVolumeBindings: hardVbsMap[container.ID],
-				}, resources); e != nil {
+				}, rsc); e != nil {
 					return
 				}
 			}
 
-			e = c.doUpdateResourceOnInstance(ctx, node, container, *resources)
+			e = c.doUpdateResourceOnInstance(ctx, node, container, *rsc)
 		}(container, idx)
 	}
 
@@ -215,38 +215,36 @@ func (c *Calcium) doUpdateResourceOnInstances(ctx context.Context, ch chan *type
 }
 
 // transaction: container meta
-func (c *Calcium) doUpdateResourceOnInstance(ctx context.Context, node *types.Node, container *types.Container, resources types.Resources) error {
+func (c *Calcium) doUpdateResourceOnInstance(ctx context.Context, node *types.Node, container *types.Container, rsc types.Resources) error {
 	originContainer := *container
 	return utils.Txn(
 		ctx,
 
 		// if: update container meta
 		func(ctx context.Context) error {
-			container.CPU = resources.CPU
-			container.Quota = resources.Quota
-			container.Memory = resources.Memory
-			container.SoftLimit = resources.SoftLimit
-			container.Volumes = resources.Volume
-			container.VolumePlan = resources.VolumePlan
-			container.Storage = resources.Storage
-			if !resources.CPUBind {
-				container.CPU = nil
-			}
+			container.CPURequest = rsc.CPURequest
+			container.QuotaRequest = rsc.CPUQuotaRequest
+			container.MemoryRequest = rsc.MemoryRequest
+			container.MemoryLimit = rsc.MemoryLimit
+			container.SoftLimit = rsc.MemorySoftLimit
+			container.VolumeRequest = rsc.VolumeRequest
+			container.VolumePlanRequest = rsc.VolumePlanRequest
+			container.StorageLimit = rsc.StorageLimit
 			return errors.WithStack(c.store.UpdateContainer(ctx, container))
 		},
 
 		// then: update container resources
 		func(ctx context.Context) error {
 			r := &enginetypes.VirtualizationResource{
-				CPU:           resources.CPU,
-				Quota:         resources.Quota,
-				NUMANode:      resources.NUMANode,
-				Memory:        resources.Memory,
-				SoftLimit:     resources.SoftLimit,
-				Volumes:       resources.Volume.ToStringSlice(false, false),
-				VolumePlan:    resources.VolumePlan.ToLiteral(),
-				VolumeChanged: resources.VolumeChanged,
-				Storage:       resources.Storage,
+				CPU:           rsc.CPURequest,
+				Quota:         rsc.CPUQuotaLimit,
+				NUMANode:      rsc.NUMANode,
+				Memory:        rsc.MemoryLimit,
+				SoftLimit:     rsc.MemorySoftLimit,
+				Volumes:       rsc.VolumeLimit.ToStringSlice(false, false),
+				VolumePlan:    rsc.VolumePlanLimit.ToLiteral(),
+				VolumeChanged: rsc.VolumeChanged,
+				Storage:       rsc.StorageLimit,
 			}
 			return errors.WithStack(node.Engine.VirtualizationUpdateResource(ctx, container.ID, r))
 		},
@@ -261,25 +259,25 @@ func (c *Calcium) doUpdateResourceOnInstance(ctx context.Context, node *types.No
 }
 
 func recycleResources(node *types.Node, container *types.Container) {
-	node.CPU.Add(container.CPU)
-	node.SetCPUUsed(container.Quota, types.DecrUsage)
-	node.Volume.Add(container.VolumePlan.IntoVolumeMap())
-	node.SetVolumeUsed(container.VolumePlan.IntoVolumeMap().Total(), types.DecrUsage)
-	node.StorageCap += container.Storage
-	node.MemCap += container.Memory
-	if nodeID := node.GetNUMANode(container.CPU); nodeID != "" {
-		node.IncrNUMANodeMemory(nodeID, container.Memory)
+	node.CPU.Add(container.CPURequest)
+	node.SetCPUUsed(container.QuotaRequest, types.DecrUsage)
+	node.Volume.Add(container.VolumePlanRequest.IntoVolumeMap())
+	node.SetVolumeUsed(container.VolumePlanRequest.IntoVolumeMap().Total(), types.DecrUsage)
+	node.StorageCap += container.StorageRequest
+	node.MemCap += container.MemoryRequest
+	if nodeID := node.GetNUMANode(container.CPURequest); nodeID != "" {
+		node.IncrNUMANodeMemory(nodeID, container.MemoryRequest)
 	}
 }
 
 func preserveResources(node *types.Node, container *types.Container) {
-	node.CPU.Sub(container.CPU)
-	node.SetCPUUsed(container.Quota, types.IncrUsage)
-	node.Volume.Sub(container.VolumePlan.IntoVolumeMap())
-	node.SetVolumeUsed(container.VolumePlan.IntoVolumeMap().Total(), types.IncrUsage)
-	node.StorageCap -= container.Storage
-	node.MemCap -= container.Memory
-	if nodeID := node.GetNUMANode(container.CPU); nodeID != "" {
-		node.DecrNUMANodeMemory(nodeID, container.Memory)
+	node.CPU.Sub(container.CPURequest)
+	node.SetCPUUsed(container.QuotaRequest, types.IncrUsage)
+	node.Volume.Sub(container.VolumePlanRequest.IntoVolumeMap())
+	node.SetVolumeUsed(container.VolumePlanRequest.IntoVolumeMap().Total(), types.IncrUsage)
+	node.StorageCap -= container.StorageRequest
+	node.MemCap -= container.MemoryRequest
+	if nodeID := node.GetNUMANode(container.CPURequest); nodeID != "" {
+		node.DecrNUMANodeMemory(nodeID, container.MemoryRequest)
 	}
 }

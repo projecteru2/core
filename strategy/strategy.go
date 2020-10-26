@@ -5,7 +5,7 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
-	schedulerv2 "github.com/projecteru2/core/scheduler/v2"
+	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/types"
 )
 
@@ -58,7 +58,7 @@ type StrategyInfo struct {
 }
 
 // NewStrategyInfos .
-func NewStrategyInfos(apps schedulerv2.ResourceApplications, nodeMap map[string]*types.Node, planMap map[types.ResourceType]schedulerv2.ResourcePlans) (strategyInfos []StrategyInfo) {
+func NewStrategyInfos(apps resources.ResourceApplications, nodeMap map[string]*types.Node, planMap map[types.ResourceType]resources.ResourcePlans) (strategyInfos []StrategyInfo) {
 	for nodeName, node := range nodeMap {
 		rates := make(map[types.ResourceType]float64)
 		for _, app := range apps {

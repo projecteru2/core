@@ -4,8 +4,8 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
+	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/scheduler"
-	"github.com/projecteru2/core/scheduler/v2/resources"
 	"github.com/projecteru2/core/types"
 )
 
@@ -44,7 +44,7 @@ func (a CPUMemApplication) Type() types.ResourceType {
 }
 
 // Validate .
-func (a CPUMemApplication) Validate() error {
+func (a *CPUMemApplication) Validate() error {
 	if a.memoryLimit < 0 || a.memoryRequest < 0 {
 		return errors.Wrap(types.ErrBadMemory, "limit or request less than 0")
 	}
@@ -71,8 +71,8 @@ func (a CPUMemApplication) Validate() error {
 }
 
 // MakeScheduler .
-func (a CPUMemApplication) MakeScheduler() types.SchedulerV2 {
-	return func(nodesInfo []types.NodeInfo) (plans types.ResourcePlans, total int, err error) {
+func (a CPUMemApplication) MakeScheduler() resources.SchedulerV2 {
+	return func(nodesInfo []types.NodeInfo) (plans resources.ResourcePlans, total int, err error) {
 		schedulerV1, err := scheduler.GetSchedulerV1()
 		if err != nil {
 			return
@@ -93,7 +93,7 @@ func (a CPUMemApplication) MakeScheduler() types.SchedulerV2 {
 			CPULimit:        a.CPULimit,
 			CPUPlans:        CPUPlans,
 			CPUBind:         a.CPUBind,
-			capacity:        getCapacity(nodesInfo),
+			capacity:        resources.GetCapacity(nodesInfo),
 		}, total, err
 	}
 }
@@ -157,11 +157,14 @@ func (p CPUMemResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...
 }
 
 // Dispense .
-func (p CPUMemResourcePlans) Dispense(opts types.DispenseOptions, resources *types.Resources) error {
-	resources.Quota = p.CPULimit
-	resources.Memory = p.memoryLimit
-	resources.SoftLimit = p.memorySoftLimit
+func (p CPUMemResourcePlans) Dispense(opts resources.DispenseOptions, resources *types.Resources) error {
+	resources.CPUQuotaLimit = p.CPULimit
+	resources.CPUQuotaRequest = p.CPURequest
 	resources.CPUBind = p.CPUBind
+
+	resources.MemoryLimit = p.memoryLimit
+	resources.MemoryRequest = p.memoryRequest
+	resources.MemorySoftLimit = p.memorySoftLimit
 
 	if len(p.CPUPlans) > 0 && p.CPULimit > 0 {
 		if _, ok := p.CPUPlans[opts.Node.Name]; !ok {
@@ -170,16 +173,17 @@ func (p CPUMemResourcePlans) Dispense(opts types.DispenseOptions, resources *typ
 		if len(p.CPUPlans[opts.Node.Name]) <= opts.Index {
 			return errors.WithStack(types.ErrInsufficientCPU)
 		}
-		resources.CPU = p.CPUPlans[opts.Node.Name][opts.Index]
-		resources.NUMANode = opts.Node.GetNUMANode(resources.CPU)
+		resources.CPURequest = p.CPUPlans[opts.Node.Name][opts.Index]
+		resources.CPULimit = resources.CPURequest
+		resources.NUMANode = opts.Node.GetNUMANode(resources.CPURequest)
 		return nil
 	}
 
 	// special handle when converting from cpu-binding to cpu-unbinding
-	if len(opts.ExistingInstances) > opts.Index && len(opts.ExistingInstances[opts.Index].CPU) > 0 && len(p.CPUPlans) == 0 {
-		resources.CPU = types.CPUMap{}
+	if len(opts.ExistingInstances) > opts.Index && len(opts.ExistingInstances[opts.Index].CPURequest) > 0 && len(p.CPUPlans) == 0 {
+		resources.CPURequest = types.CPUMap{}
 		for i := 0; i < len(opts.Node.InitCPU); i++ {
-			resources.CPU[strconv.Itoa(i)] = 0
+			resources.CPULimit[strconv.Itoa(i)] = 0
 		}
 	}
 	return nil
