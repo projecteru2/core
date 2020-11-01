@@ -1,30 +1,28 @@
-package resources
+package cpumem
 
 import (
 	"strconv"
 
 	"github.com/pkg/errors"
-	"github.com/projecteru2/core/resources"
+	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
 )
 
-func init() {
-	resources.RegisterApplicationFactory(func(opts types.RawResourceOptions) (resources.ResourceApplication, error) {
-		a := &CPUMemApplication{
-			CPURequest:      opts.CPURequest,
-			CPULimit:        opts.CPULimit,
-			CPUBind:         opts.CPUBind,
-			memoryRequest:   opts.MemoryRequest,
-			memoryLimit:     opts.MemoryLimit,
-			memorySoftLimit: opts.MemorySoft,
-		}
-		return a, a.Validate()
-	})
+func NewResourceRequirement(opts types.RawResourceOptions) (resourcetypes.ResourceRequirement, error) {
+	a := &cpuMemRequirement{
+		CPURequest:      opts.CPURequest,
+		CPULimit:        opts.CPULimit,
+		CPUBind:         opts.CPUBind,
+		memoryRequest:   opts.MemoryRequest,
+		memoryLimit:     opts.MemoryLimit,
+		memorySoftLimit: opts.MemorySoft,
+	}
+	return a, a.Validate()
 }
 
-// CPUMemApplication .
-type CPUMemApplication struct {
+// cpuMemRequirement .
+type cpuMemRequirement struct {
 	CPURequest float64
 	CPULimit   float64
 	CPUBind    bool
@@ -35,7 +33,7 @@ type CPUMemApplication struct {
 }
 
 // Type .
-func (a CPUMemApplication) Type() types.ResourceType {
+func (a cpuMemRequirement) Type() types.ResourceType {
 	t := types.ResourceCPU | types.ResourceMemory
 	if a.CPUBind {
 		t |= types.ResourceCPUBind
@@ -44,7 +42,7 @@ func (a CPUMemApplication) Type() types.ResourceType {
 }
 
 // Validate .
-func (a *CPUMemApplication) Validate() error {
+func (a *cpuMemRequirement) Validate() error {
 	if a.memoryLimit < 0 || a.memoryRequest < 0 {
 		return errors.Wrap(types.ErrBadMemory, "limit or request less than 0")
 	}
@@ -71,8 +69,8 @@ func (a *CPUMemApplication) Validate() error {
 }
 
 // MakeScheduler .
-func (a CPUMemApplication) MakeScheduler() resources.SchedulerV2 {
-	return func(nodesInfo []types.NodeInfo) (plans resources.ResourcePlans, total int, err error) {
+func (a cpuMemRequirement) MakeScheduler() resourcetypes.SchedulerV2 {
+	return func(nodesInfo []types.NodeInfo) (plans resourcetypes.ResourcePlans, total int, err error) {
 		schedulerV1, err := scheduler.GetSchedulerV1()
 		if err != nil {
 			return
@@ -93,13 +91,13 @@ func (a CPUMemApplication) MakeScheduler() resources.SchedulerV2 {
 			CPULimit:        a.CPULimit,
 			CPUPlans:        CPUPlans,
 			CPUBind:         a.CPUBind,
-			capacity:        resources.GetCapacity(nodesInfo),
+			capacity:        resourcetypes.GetCapacity(nodesInfo),
 		}, total, err
 	}
 }
 
 // Rate .
-func (a CPUMemApplication) Rate(node types.Node) float64 {
+func (a cpuMemRequirement) Rate(node types.Node) float64 {
 	if a.CPUBind {
 		return a.CPURequest / float64(len(node.InitCPU))
 	}
@@ -157,14 +155,14 @@ func (p CPUMemResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...
 }
 
 // Dispense .
-func (p CPUMemResourcePlans) Dispense(opts resources.DispenseOptions, resources *types.Resources) error {
-	resources.CPUQuotaLimit = p.CPULimit
-	resources.CPUQuotaRequest = p.CPURequest
-	resources.CPUBind = p.CPUBind
+func (p CPUMemResourcePlans) Dispense(opts resourcetypes.DispenseOptions, rsc *types.Resources) error {
+	rsc.CPUQuotaLimit = p.CPULimit
+	rsc.CPUQuotaRequest = p.CPURequest
+	rsc.CPUBind = p.CPUBind
 
-	resources.MemoryLimit = p.memoryLimit
-	resources.MemoryRequest = p.memoryRequest
-	resources.MemorySoftLimit = p.memorySoftLimit
+	rsc.MemoryLimit = p.memoryLimit
+	rsc.MemoryRequest = p.memoryRequest
+	rsc.MemorySoftLimit = p.memorySoftLimit
 
 	if len(p.CPUPlans) > 0 && p.CPULimit > 0 {
 		if _, ok := p.CPUPlans[opts.Node.Name]; !ok {
@@ -173,17 +171,17 @@ func (p CPUMemResourcePlans) Dispense(opts resources.DispenseOptions, resources 
 		if len(p.CPUPlans[opts.Node.Name]) <= opts.Index {
 			return errors.WithStack(types.ErrInsufficientCPU)
 		}
-		resources.CPURequest = p.CPUPlans[opts.Node.Name][opts.Index]
-		resources.CPULimit = resources.CPURequest
-		resources.NUMANode = opts.Node.GetNUMANode(resources.CPURequest)
+		rsc.CPURequest = p.CPUPlans[opts.Node.Name][opts.Index]
+		rsc.CPULimit = rsc.CPURequest
+		rsc.NUMANode = opts.Node.GetNUMANode(rsc.CPURequest)
 		return nil
 	}
 
 	// special handle when converting from cpu-binding to cpu-unbinding
 	if len(opts.ExistingInstances) > opts.Index && len(opts.ExistingInstances[opts.Index].CPURequest) > 0 && len(p.CPUPlans) == 0 {
-		resources.CPURequest = types.CPUMap{}
+		rsc.CPURequest = types.CPUMap{}
 		for i := 0; i < len(opts.Node.InitCPU); i++ {
-			resources.CPULimit[strconv.Itoa(i)] = 0
+			rsc.CPULimit[strconv.Itoa(i)] = 0
 		}
 	}
 	return nil

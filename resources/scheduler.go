@@ -3,33 +3,31 @@ package resources
 import (
 	"math"
 
+	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-// SchedulerV2 .
-type SchedulerV2 func([]types.NodeInfo) (ResourcePlans, int, error)
-
 // SelectNodes .
-func SelectNodes(resourceApps ResourceApplications, nodeMap map[string]*types.Node) (planMap map[types.ResourceType]ResourcePlans, total int, scheduleTypes types.ResourceType, err error) {
+func SelectNodes(rrs resourcetypes.ResourceRequirements, nodeMap map[string]*types.Node) (planMap map[types.ResourceType]resourcetypes.ResourcePlans, total int, scheduleTypes types.ResourceType, err error) {
 	total = math.MaxInt16
 	subTotal := 0
-	planMap = make(map[types.ResourceType]ResourcePlans)
+	planMap = make(map[types.ResourceType]resourcetypes.ResourcePlans)
 	nodesInfo := getNodesInfo(nodeMap)
 	log.Debugf("[SelectNode] nodesInfo: %+v", nodesInfo)
-	for _, app := range resourceApps {
-		scheduler := app.MakeScheduler()
-		if planMap[app.Type()], subTotal, err = scheduler(nodesInfo); err != nil {
+	for _, rr := range rrs {
+		scheduler := rr.MakeScheduler()
+		if planMap[rr.Type()], subTotal, err = scheduler(nodesInfo); err != nil {
 			return
 		}
 		total = utils.Min(total, subTotal)
 
 		// calculate schedule type
-		if app.Type()&types.ResourceCPUBind != 0 {
+		if rr.Type()&types.ResourceCPUBind != 0 {
 			scheduleTypes |= types.ResourceCPU
 		}
-		if app.Type()&types.ResourceScheduledVolume != 0 {
+		if rr.Type()&types.ResourceScheduledVolume != 0 {
 			scheduleTypes |= types.ResourceVolume
 		}
 	}

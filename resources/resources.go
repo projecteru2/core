@@ -1,48 +1,24 @@
 package resources
 
 import (
+	"github.com/projecteru2/core/resources/cpumem"
+	"github.com/projecteru2/core/resources/storage"
+	resourcetypes "github.com/projecteru2/core/resources/types"
+	"github.com/projecteru2/core/resources/volume"
 	"github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
 )
 
-// ResourceApplication .
-type ResourceApplication interface {
-	Type() types.ResourceType
-	Validate() error
-	MakeScheduler() SchedulerV2
-	Rate(types.Node) float64
+var registeredFactories = []func(types.RawResourceOptions) (resourcetypes.ResourceRequirement, error){
+	cpumem.NewResourceRequirement,
+	volume.NewResourceRequirement,
+	storage.NewResourceRequirement,
 }
 
-// ResourcePlans .
-type ResourcePlans interface {
-	Type() types.ResourceType
-	Capacity() map[string]int
-	ApplyChangesOnNode(*types.Node, ...int)
-	RollbackChangesOnNode(*types.Node, ...int)
-	Dispense(DispenseOptions, *types.Resources) error
-}
-
-var registeredFactories []func(types.RawResourceOptions) (ResourceApplication, error)
-
-func RegisterApplicationFactory(f func(types.RawResourceOptions) (ResourceApplication, error)) {
-	registeredFactories = append(registeredFactories, f)
-}
-
-type ResourceApplications [ResourceQuantity]ResourceApplication
-
-func NewResourceApplications(opts types.RawResourceOptions) (apps ResourceApplications, err error) {
-	if len(registeredFactories) != ResourceQuantity {
-		log.Panicf("wrong quantity of resource applications: expect %d", ResourceQuantity)
-	}
-
+func NewResourceRequirements(opts types.RawResourceOptions) (rrs resourcetypes.ResourceRequirements, err error) {
 	for idx, factory := range registeredFactories {
-		app, err := factory(opts)
-		if err != nil {
-			return apps, err
+		if rrs[idx], err = factory(opts); err != nil {
+			return
 		}
-		apps[idx] = app
 	}
 	return
 }
-
-const ResourceQuantity = 3

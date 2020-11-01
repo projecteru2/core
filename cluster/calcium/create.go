@@ -9,7 +9,7 @@ import (
 	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/metrics"
-	"github.com/projecteru2/core/resources"
+	resourcetypes "github.com/projecteru2/core/resources/types"
 
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -42,7 +42,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 	var (
 		err         error
-		planMap     map[types.ResourceType]resources.ResourcePlans
+		planMap     map[types.ResourceType]resourcetypes.ResourcePlans
 		deployMap   map[string]*types.DeployInfo
 		rollbackMap map[string][]int
 	)
@@ -123,7 +123,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 	return ch, err
 }
 
-func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateContainerMessage, opts *types.DeployOptions, planMap map[types.ResourceType]resources.ResourcePlans, deployMap map[string]*types.DeployInfo) (_ map[string][]int, err error) {
+func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateContainerMessage, opts *types.DeployOptions, planMap map[types.ResourceType]resourcetypes.ResourcePlans, deployMap map[string]*types.DeployInfo) (_ map[string][]int, err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(deployMap))
 
@@ -147,7 +147,7 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateCo
 }
 
 // deploy scheduled containers on one node
-func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.CreateContainerMessage, nodeName string, opts *types.DeployOptions, deployInfo *types.DeployInfo, planMap map[types.ResourceType]resources.ResourcePlans, seq int) (indices []int, err error) {
+func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.CreateContainerMessage, nodeName string, opts *types.DeployOptions, deployInfo *types.DeployInfo, planMap map[types.ResourceType]resourcetypes.ResourcePlans, seq int) (indices []int, err error) {
 	node, err := c.doGetAndPrepareNode(ctx, nodeName, opts.Image)
 	if err != nil {
 		for i := 0; i < deployInfo.Deploy; i++ {
@@ -175,7 +175,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 			}()
 
 			rsc := &types.Resources{}
-			o := resources.DispenseOptions{
+			o := resourcetypes.DispenseOptions{
 				Node:  node,
 				Index: idx,
 			}

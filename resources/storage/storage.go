@@ -1,35 +1,33 @@
-package resources
+package storage
 
 import (
 	"github.com/pkg/errors"
-	"github.com/projecteru2/core/resources"
+	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
 )
 
-// StorageResourceApply .
-type StorageResourceApply struct {
+// storageResourceRequirement .
+type storageResourceRequirement struct {
 	request int64
 	limit   int64
 }
 
-func init() {
-	resources.RegisterApplicationFactory(func(opts types.RawResourceOptions) (resources.ResourceApplication, error) {
-		a := &StorageResourceApply{
-			request: opts.StorageRequest,
-			limit:   opts.StorageLimit,
-		}
-		return a, a.Validate()
-	})
+func NewResourceRequirement(opts types.RawResourceOptions) (resourcetypes.ResourceRequirement, error) {
+	a := &storageResourceRequirement{
+		request: opts.StorageRequest,
+		limit:   opts.StorageLimit,
+	}
+	return a, a.Validate()
 }
 
 // Type .
-func (a StorageResourceApply) Type() types.ResourceType {
+func (a storageResourceRequirement) Type() types.ResourceType {
 	return types.ResourceStorage
 }
 
 // Validate .
-func (a *StorageResourceApply) Validate() error {
+func (a *storageResourceRequirement) Validate() error {
 	if a.limit > 0 && a.request == 0 {
 		a.request = a.limit
 	}
@@ -43,8 +41,8 @@ func (a *StorageResourceApply) Validate() error {
 }
 
 // MakeScheduler .
-func (a StorageResourceApply) MakeScheduler() resources.SchedulerV2 {
-	return func(nodesInfo []types.NodeInfo) (plans resources.ResourcePlans, total int, err error) {
+func (a storageResourceRequirement) MakeScheduler() resourcetypes.SchedulerV2 {
+	return func(nodesInfo []types.NodeInfo) (plans resourcetypes.ResourcePlans, total int, err error) {
 		schedulerV1, err := scheduler.GetSchedulerV1()
 		if err != nil {
 			return
@@ -54,13 +52,13 @@ func (a StorageResourceApply) MakeScheduler() resources.SchedulerV2 {
 		return StorageResourcePlans{
 			request:  a.request,
 			limit:    a.limit,
-			capacity: resources.GetCapacity(nodesInfo),
+			capacity: resourcetypes.GetCapacity(nodesInfo),
 		}, total, err
 	}
 }
 
 // Rate .
-func (a StorageResourceApply) Rate(node types.Node) float64 {
+func (a storageResourceRequirement) Rate(node types.Node) float64 {
 	return float64(0) / float64(node.Volume.Total())
 }
 
@@ -92,8 +90,8 @@ func (p StorageResourcePlans) RollbackChangesOnNode(node *types.Node, indices ..
 }
 
 // Dispense .
-func (p StorageResourcePlans) Dispense(opts resources.DispenseOptions, resources *types.Resources) error {
-	resources.StorageLimit = p.limit
-	resources.StorageRequest = p.request
+func (p StorageResourcePlans) Dispense(opts resourcetypes.DispenseOptions, rsc *types.Resources) error {
+	rsc.StorageLimit = p.limit
+	rsc.StorageRequest = p.request
 	return nil
 }

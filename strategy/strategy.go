@@ -5,7 +5,7 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
-	"github.com/projecteru2/core/resources"
+	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
 )
 
@@ -58,11 +58,11 @@ type StrategyInfo struct {
 }
 
 // NewStrategyInfos .
-func NewStrategyInfos(apps resources.ResourceApplications, nodeMap map[string]*types.Node, planMap map[types.ResourceType]resources.ResourcePlans) (strategyInfos []StrategyInfo) {
+func NewStrategyInfos(rrs resourcetypes.ResourceRequirements, nodeMap map[string]*types.Node, planMap map[types.ResourceType]resourcetypes.ResourcePlans) (strategyInfos []StrategyInfo) {
 	for nodeName, node := range nodeMap {
 		rates := make(map[types.ResourceType]float64)
-		for _, app := range apps {
-			rates[app.Type()] = app.Rate(*node)
+		for _, rr := range rrs {
+			rates[rr.Type()] = rr.Rate(*node)
 		}
 
 		capacity := math.MaxInt32

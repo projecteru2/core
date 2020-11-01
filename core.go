@@ -21,9 +21,6 @@ import (
 	cli "github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
 
-	_ "github.com/projecteru2/core/resources/cpumem"
-	_ "github.com/projecteru2/core/resources/storage"
-	_ "github.com/projecteru2/core/resources/volume"
 	_ "go.uber.org/automaxprocs"
 )
 

@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/projecteru2/core/resources"
+	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -155,12 +156,12 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 	)
 }
 
-func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) (map[types.ResourceType]resources.ResourcePlans, map[string]*types.DeployInfo, error) {
+func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) (map[types.ResourceType]resourcetypes.ResourcePlans, map[string]*types.DeployInfo, error) {
 	if len(nodeMap) == 0 {
 		return nil, nil, errors.WithStack(types.ErrInsufficientNodes)
 	}
 
-	apps, err := resources.NewResourceApplications(opts.RawResourceOptions)
+	apps, err := resources.NewResourceRequirements(opts.RawResourceOptions)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}

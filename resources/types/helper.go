@@ -1,6 +1,8 @@
-package resources
+package types
 
-import "github.com/projecteru2/core/types"
+import (
+	"github.com/projecteru2/core/types"
+)
 
 func GetCapacity(nodesInfo []types.NodeInfo) map[string]int {
 	capacity := make(map[string]int)
