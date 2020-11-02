@@ -157,11 +157,13 @@ func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 }
 
 // MergeVolumeBindings combines two VolumeBindings
-func MergeVolumeBindings(vbs1, vbs2 VolumeBindings) (vbs VolumeBindings, err error) {
+func MergeVolumeBindings(vbs1 VolumeBindings, vbs2 ...VolumeBindings) (vbs VolumeBindings) {
 	sizeMap := map[[3]string]int64{} // {["AUTO", "/data", "rw"]: 100}
-	for _, vb := range append(vbs1, vbs2...) {
-		key := [3]string{vb.Source, vb.Destination, vb.Flags}
-		sizeMap[key] += vb.SizeInBytes
+	for _, vbs := range append(vbs2, vbs1) {
+		for _, vb := range vbs {
+			key := [3]string{vb.Source, vb.Destination, vb.Flags}
+			sizeMap[key] += vb.SizeInBytes
+		}
 	}
 
 	for key, size := range sizeMap {

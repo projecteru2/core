@@ -112,7 +112,7 @@ func MakeVolumePlan(vbs VolumeBindings, distribution []VolumeMap) VolumePlan {
 // UnmarshalJSON .
 func (p *VolumePlan) UnmarshalJSON(b []byte) (err error) {
 	if *p == nil {
-		p = &VolumePlan{}
+		*p = VolumePlan{}
 	}
 	plan := map[string]VolumeMap{}
 	if err = json.Unmarshal(b, &plan); err != nil {

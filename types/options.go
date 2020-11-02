@@ -178,13 +178,22 @@ type ExecuteContainerOptions struct {
 
 // ReallocOptions .
 type ReallocOptions struct {
-	IDs         []string
-	CPU         float64
-	Memory      int64
-	Storage     int64
-	Volumes     VolumeBindings
-	BindCPU     TriOptions
-	MemoryLimit TriOptions
+	IDs             []string
+	CPU             float64
+	Memory          int64
+	Storage         int64
+	Volumes         VolumeBindings
+	BindCPU         TriOptions
+	MemorySoftLimit TriOptions
+
+	CPURequest     float64
+	CPULimit       float64
+	MemoryRequest  int64
+	MemoryLimit    int64
+	StorageRequest int64
+	StorageLimit   int64
+	VolumeRequest  VolumeBindings
+	VolumeLimit    VolumeBindings
 }
 
 // TriOptions .

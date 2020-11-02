@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"encoding/json"
 
 	engine "github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -32,25 +33,52 @@ type Container struct {
 	Podname           string            `json:"podname"`
 	Nodename          string            `json:"nodename"`
 	CPURequest        CPUMap            `json:"cpu"`
-	QuotaLimit        float64           `json:"quota_limit"`
-	QuotaRequest      float64           `json:"quota"`
-	MemoryRequest     int64             `json:"memory"`
-	MemoryLimit       int64             `json:"memory_limit"`
-	StorageRequest    int64             `json:"storage"`
-	StorageLimit      int64             `json:"storage_limit"`
+	QuotaLimit        float64           `json:"quota"`
+	QuotaRequest      float64           `json:"quota_request"`
+	MemoryRequest     int64             `json:"memory_request"`
+	MemoryLimit       int64             `json:"memory"`
+	StorageRequest    int64             `json:"storage_request"`
+	StorageLimit      int64             `json:"storage"`
 	Hook              *Hook             `json:"hook"`
 	Privileged        bool              `json:"privileged"`
 	SoftLimit         bool              `json:"softlimit"`
 	User              string            `json:"user"`
 	Env               []string          `json:"env"`
 	Image             string            `json:"image"`
-	VolumeRequest     VolumeBindings    `json:"volumes"`
-	VolumePlanRequest VolumePlan        `json:"volume_plan"`
-	VolumeLimit       VolumeBindings    `json:"volumes_limit"`
-	VolumePlanLimit   VolumePlan        `json:"volume_plan_limit"`
+	VolumeRequest     VolumeBindings    `json:"volumes_request"`
+	VolumePlanRequest VolumePlan        `json:"volume_plan_request"`
+	VolumeLimit       VolumeBindings    `json:"volumes"`
+	VolumePlanLimit   VolumePlan        `json:"volume_plan"`
 	Labels            map[string]string `json:"labels"`
 	StatusMeta        *StatusMeta       `json:"-"`
 	Engine            engine.API        `json:"-"`
+}
+
+type container Container
+
+// Unmarshal makes compatible for old resource fields
+func (c *Container) UnmarshalJSON(b []byte) error {
+	cc := &container{}
+	if err := json.Unmarshal(b, cc); err != nil {
+		return err
+	}
+
+	*c = Container(*cc)
+
+	if c.QuotaLimit > 0 && c.QuotaRequest == 0 {
+		c.QuotaRequest = c.QuotaLimit
+	}
+	if c.StorageLimit > 0 && c.StorageRequest == 0 {
+		c.StorageRequest = c.StorageLimit
+	}
+	if c.MemoryLimit > 0 && c.MemoryRequest == 0 {
+		c.MemoryRequest = c.MemoryLimit
+	}
+	if len(c.VolumeLimit) > 0 && len(c.VolumeRequest) == 0 {
+		c.VolumeRequest = c.VolumeLimit
+		c.VolumePlanRequest = c.VolumePlanLimit
+	}
+	return nil
 }
 
 // Inspect a container

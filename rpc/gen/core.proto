@@ -261,6 +261,15 @@ message ReallocOptions {
     repeated string volumes = 4;
     TriOpt bind_cpu = 5;
     TriOpt memory_limit = 6;
+
+    double cpu_request = 7;
+    double cpu_limit = 8;
+    int64 memory_request = 9;
+    int64 memory_lim = 10;
+    int64 storage_request = 11;
+    int64 storage_limit = 12;
+    repeated string volume_request = 13;
+    repeated string volume_limit = 14;
 }
 
 message AddPodOptions {

@@ -59,7 +59,7 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 			wg.Wait()
 			return nil
 		}); err != nil {
-			log.Errorf("[ReallocResource] Realloc failed %v", err)
+			log.Errorf("[ReallocResource] Realloc failed %+v", err)
 			for _, ID := range opts.IDs {
 				ch <- &types.ReallocResourceMessage{
 					ContainerID: ID,
@@ -80,28 +80,30 @@ func (c *Calcium) doReallocContainersOnPod(ctx context.Context, ch chan *types.R
 		for _, container := range containers {
 			if err := func() (err error) {
 				var (
-					autoVbs types.VolumeBindings
-					apps    resourcetypes.ResourceRequirements
+					autoVbsRequest, autoVbsLimit types.VolumeBindings
+					rrs                          resourcetypes.ResourceRequirements
 				)
-				vbs, err := types.MergeVolumeBindings(container.VolumeLimit, opts.Volumes)
-				if err != nil {
-					return errors.WithStack(err)
-				}
-				autoVbs, hardVbsMap[container.ID] = vbs.Divide()
+				autoVbsRequest, hardVbsMap[container.ID] = types.MergeVolumeBindings(container.VolumeRequest, opts.VolumeRequest, opts.Volumes).Divide()
+				autoVbsLimit, _ = types.MergeVolumeBindings(container.VolumeLimit, opts.VolumeLimit, opts.Volumes).Divide()
 
-				apps, err = resources.NewResourceRequirements(types.RawResourceOptions{
-					CPULimit:     container.QuotaLimit + opts.CPU,
-					CPUBind:      types.ParseTriOption(opts.BindCPU, len(container.CPURequest) > 0),
-					MemoryLimit:  container.MemoryLimit + opts.Memory,
-					MemorySoft:   types.ParseTriOption(opts.MemoryLimit, container.SoftLimit),
-					VolumeLimit:  autoVbs,
-					StorageLimit: container.StorageLimit + opts.Storage,
+				rrs, err = resources.NewResourceRequirements(types.RawResourceOptions{
+					CPURequest:     container.QuotaRequest + opts.CPURequest + opts.CPU,
+					CPULimit:       container.QuotaLimit + opts.CPULimit + opts.CPU,
+					CPUBind:        types.ParseTriOption(opts.BindCPU, len(container.CPURequest) > 0),
+					MemoryRequest:  container.MemoryRequest + opts.MemoryRequest + opts.Memory,
+					MemoryLimit:    container.MemoryLimit + opts.MemoryLimit + opts.Memory,
+					MemorySoft:     types.ParseTriOption(opts.MemorySoftLimit, container.SoftLimit),
+					VolumeRequest:  autoVbsRequest,
+					VolumeLimit:    autoVbsLimit,
+					StorageRequest: container.StorageRequest + opts.StorageRequest + opts.Storage,
+					StorageLimit:   container.StorageLimit + opts.StorageLimit + opts.Storage,
 				})
 
-				containerGroups[nodename][apps] = append(containerGroups[nodename][apps], container)
+				containerGroups[nodename][rrs] = append(containerGroups[nodename][rrs], container)
 				return
 
 			}(); err != nil {
+				log.Errorf("[ReallocResource.doReallocContainersOnPod] Realloc failed: %+v", err)
 				ch <- &types.ReallocResourceMessage{Error: err}
 				return
 			}
@@ -109,9 +111,10 @@ func (c *Calcium) doReallocContainersOnPod(ctx context.Context, ch chan *types.R
 	}
 
 	for nodename, containerByApps := range containerGroups {
-		for apps, containers := range containerByApps {
-			if err := c.doReallocContainersOnNode(ctx, ch, nodename, containers, apps, hardVbsMap); err != nil {
+		for rrs, containers := range containerByApps {
+			if err := c.doReallocContainersOnNode(ctx, ch, nodename, containers, rrs, hardVbsMap); err != nil {
 
+				log.Errorf("[ReallocResource.doReallocContainersOnPod] Realloc failed: %+v", err)
 				ch <- &types.ReallocResourceMessage{Error: err}
 			}
 		}
@@ -119,14 +122,14 @@ func (c *Calcium) doReallocContainersOnPod(ctx context.Context, ch chan *types.R
 }
 
 // transaction: node meta
-func (c *Calcium) doReallocContainersOnNode(ctx context.Context, ch chan *types.ReallocResourceMessage, nodename string, containers []*types.Container, apps resourcetypes.ResourceRequirements, hardVbsMap map[string]types.VolumeBindings) (err error) {
+func (c *Calcium) doReallocContainersOnNode(ctx context.Context, ch chan *types.ReallocResourceMessage, nodename string, containers []*types.Container, rrs resourcetypes.ResourceRequirements, hardVbsMap map[string]types.VolumeBindings) (err error) {
 	{
 		return c.withNodeLocked(ctx, nodename, func(node *types.Node) error {
 
 			for _, container := range containers {
 				recycleResources(node, container)
 			}
-			planMap, total, _, err := resources.SelectNodes(apps, map[string]*types.Node{node.Name: node})
+			planMap, total, _, err := resources.SelectNodes(rrs, map[string]*types.Node{node.Name: node})
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -212,7 +215,7 @@ func (c *Calcium) doUpdateResourceOnInstances(ctx context.Context, ch chan *type
 	}
 
 	wg.Wait()
-	return rollbacks, err
+	return rollbacks, errors.WithStack(err)
 }
 
 // transaction: container meta
@@ -225,11 +228,15 @@ func (c *Calcium) doUpdateResourceOnInstance(ctx context.Context, node *types.No
 		func(ctx context.Context) error {
 			container.CPURequest = rsc.CPURequest
 			container.QuotaRequest = rsc.CPUQuotaRequest
+			container.QuotaLimit = rsc.CPUQuotaLimit
 			container.MemoryRequest = rsc.MemoryRequest
 			container.MemoryLimit = rsc.MemoryLimit
 			container.SoftLimit = rsc.MemorySoftLimit
 			container.VolumeRequest = rsc.VolumeRequest
 			container.VolumePlanRequest = rsc.VolumePlanRequest
+			container.VolumeLimit = rsc.VolumeLimit
+			container.VolumePlanLimit = rsc.VolumePlanLimit
+			container.StorageRequest = rsc.StorageRequest
 			container.StorageLimit = rsc.StorageLimit
 			return errors.WithStack(c.store.UpdateContainer(ctx, container))
 		},

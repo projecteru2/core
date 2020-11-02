@@ -179,7 +179,7 @@ func (p CPUMemResourcePlans) Dispense(opts resourcetypes.DispenseOptions, rsc *t
 
 	// special handle when converting from cpu-binding to cpu-unbinding
 	if len(opts.ExistingInstances) > opts.Index && len(opts.ExistingInstances[opts.Index].CPURequest) > 0 && len(p.CPUPlans) == 0 {
-		rsc.CPURequest = types.CPUMap{}
+		rsc.CPULimit = types.CPUMap{}
 		for i := 0; i < len(opts.Node.InitCPU); i++ {
 			rsc.CPULimit[strconv.Itoa(i)] = 0
 		}

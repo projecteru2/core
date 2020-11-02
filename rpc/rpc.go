@@ -662,12 +662,34 @@ func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_R
 	if err != nil {
 		return err
 	}
-	bindCPU := types.TriOptions(opts.BindCpu)
-	memoryLimit := types.TriOptions(opts.MemoryLimit)
+	vbsRequest, err := types.MakeVolumeBindings(opts.VolumeRequest)
+	if err != nil {
+		return err
+	}
+	vbsLimit, err := types.MakeVolumeBindings(opts.VolumeLimit)
+	if err != nil {
+		return err
+	}
+
 	//这里不能让 client 打断 remove
 	ch, err := v.cluster.ReallocResource(
 		stream.Context(),
-		&types.ReallocOptions{IDs: ids, CPU: opts.Cpu, BindCPU: bindCPU, Memory: opts.Memory, MemoryLimit: memoryLimit, Volumes: vbs},
+		&types.ReallocOptions{IDs: ids,
+			CPU:             opts.Cpu,
+			BindCPU:         types.TriOptions(opts.BindCpu),
+			Memory:          opts.Memory,
+			MemorySoftLimit: types.TriOptions(opts.MemoryLimit),
+			Volumes:         vbs,
+
+			CPURequest:     opts.CpuRequest,
+			CPULimit:       opts.CpuLimit,
+			MemoryRequest:  opts.MemoryRequest,
+			MemoryLimit:    opts.MemoryLim,
+			VolumeRequest:  vbsRequest,
+			VolumeLimit:    vbsLimit,
+			StorageRequest: opts.StorageRequest,
+			StorageLimit:   opts.StorageLimit,
+		},
 	)
 	if err != nil {
 		return err
