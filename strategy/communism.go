@@ -10,7 +10,7 @@ import (
 
 // CommunismPlan 吃我一记共产主义大锅饭
 // 部署完 N 个后全局尽可能平均
-func CommunismPlan(arg []StrategyInfo, need, total, limit int, resourceType types.ResourceType) (map[string]*types.DeployInfo, error) {
+func CommunismPlan(arg []Info, need, total, limit int, resourceType types.ResourceType) (map[string]*types.DeployInfo, error) {
 	if total < need {
 		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
 			fmt.Sprintf("need: %d, vol: %d", need, total))

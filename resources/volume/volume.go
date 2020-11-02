@@ -17,7 +17,7 @@ type volumeResourceApply struct {
 	lenLim  int
 }
 
-// NewVolumeResourceRequest .
+// NewResourceRequirement .
 func NewResourceRequirement(opts types.RawResourceOptions) (resourcetypes.ResourceRequirement, error) {
 	a := &volumeResourceApply{}
 	sort.Slice(opts.VolumeRequest, func(i, j int) bool {
@@ -84,11 +84,11 @@ func (a volumeResourceApply) MakeScheduler() resourcetypes.SchedulerV2 {
 		}
 
 		nodesInfo, volumePlans, total, err := schedulerV1.SelectVolumeNodes(nodesInfo, req)
-		return VolumeResourcePlans{
+		return ResourcePlans{
 			capacity: resourcetypes.GetCapacity(nodesInfo),
 			req:      req,
 			lim:      lim,
-			planReq:  volumePlans,
+			PlanReq:  volumePlans,
 		}, total, err
 	}
 }
@@ -98,66 +98,70 @@ func (a volumeResourceApply) Rate(node types.Node) float64 {
 	return float64(node.VolumeUsed) / float64(node.Volume.Total())
 }
 
-// VolumeResourcePlans .
-type VolumeResourcePlans struct {
+// ResourcePlans .
+type ResourcePlans struct {
 	capacity map[string]int
 	req      types.VolumeBindings
 	lim      types.VolumeBindings
-	planReq  map[string][]types.VolumePlan
+	PlanReq  map[string][]types.VolumePlan
 }
 
 // Type .
-func (p VolumeResourcePlans) Type() types.ResourceType {
+func (p ResourcePlans) Type() types.ResourceType {
 	return types.ResourceVolume
 }
 
 // Capacity .
-func (p VolumeResourcePlans) Capacity() map[string]int {
+func (p ResourcePlans) Capacity() map[string]int {
 	return p.capacity
 }
 
 // ApplyChangesOnNode .
-func (p VolumeResourcePlans) ApplyChangesOnNode(node *types.Node, indices ...int) {
-	if len(p.planReq) == 0 {
+func (p ResourcePlans) ApplyChangesOnNode(node *types.Node, indices ...int) {
+	if len(p.PlanReq) == 0 {
 		return
 	}
 
 	volumeCost := types.VolumeMap{}
 	for _, idx := range indices {
-		volumeCost.Add(p.planReq[node.Name][idx].IntoVolumeMap())
+		plans, ok := p.PlanReq[node.Name]
+		if !ok {
+			continue
+		}
+		volumeCost.Add(plans[idx].IntoVolumeMap())
 	}
 	node.Volume.Sub(volumeCost)
 	node.SetVolumeUsed(volumeCost.Total(), types.IncrUsage)
 }
 
 // RollbackChangesOnNode .
-func (p VolumeResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...int) {
-	if len(p.planReq) == 0 {
+func (p ResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...int) {
+	if len(p.PlanReq) == 0 {
 		return
 	}
 
 	volumeCost := types.VolumeMap{}
 	for _, idx := range indices {
-		volumeCost.Add(p.planReq[node.Name][idx].IntoVolumeMap())
+		volumeCost.Add(p.PlanReq[node.Name][idx].IntoVolumeMap())
 	}
 	node.Volume.Add(volumeCost)
 	node.SetVolumeUsed(volumeCost.Total(), types.DecrUsage)
 }
 
 // Dispense .
-func (p VolumeResourcePlans) Dispense(opts resourcetypes.DispenseOptions, rsc *types.Resources) error {
-	if len(p.planReq) == 0 {
+func (p ResourcePlans) Dispense(opts resourcetypes.DispenseOptions, rsc *types.Resources) error {
+	if len(p.PlanReq) == 0 {
 		return nil
 	}
 
 	rsc.VolumeRequest = p.req
-	rsc.VolumePlanRequest = p.planReq[opts.Node.Name][opts.Index]
+	rsc.VolumePlanRequest = p.PlanReq[opts.Node.Name][opts.Index]
 
 	// if there are existing ones, ensure new volumes are compatible
 	if len(opts.ExistingInstances) > 0 {
 		plans := map[*types.Container]types.VolumePlan{}
 	Searching:
-		for _, plan := range p.planReq[opts.Node.Name] {
+		for _, plan := range p.PlanReq[opts.Node.Name] {
 			for _, container := range opts.ExistingInstances {
 				if _, ok := plans[container]; !ok && plan.Compatible(container.VolumePlanRequest) {
 					plans[container] = plan
@@ -176,24 +180,26 @@ func (p VolumeResourcePlans) Dispense(opts resourcetypes.DispenseOptions, rsc *t
 		rsc.VolumePlanRequest = plans[opts.ExistingInstances[opts.Index]]
 	}
 
+	// fix plans while limit > request
+	rsc.VolumeLimit = p.lim
+	rsc.VolumePlanLimit = types.VolumePlan{}
+	for i := range p.req {
+		req, lim := p.req[i], p.lim[i]
+		if !req.RequireSchedule() {
+			continue
+		}
+		if lim.SizeInBytes > req.SizeInBytes {
+			p := rsc.VolumePlanRequest[*req]
+			rsc.VolumePlanLimit[*lim] = types.VolumeMap{p.GetResourceID(): p.GetRation() + lim.SizeInBytes - req.SizeInBytes}
+		} else {
+			rsc.VolumePlanLimit[*lim] = rsc.VolumePlanRequest[*req]
+		}
+	}
+
 	// append hard vbs
 	if opts.HardVolumeBindings != nil {
 		rsc.VolumeRequest = append(rsc.VolumeRequest, opts.HardVolumeBindings...)
-	}
-
-	// fix plans while limit > request
-	rsc.VolumeLimit = rsc.VolumeRequest
-	rsc.VolumePlanLimit = rsc.VolumePlanRequest
-	planLimit := types.VolumePlan{}
-	// TODO@zc: hard req in p.req
-	for i := range p.req {
-		req, lim := p.req[i], p.lim[i]
-		if lim.SizeInBytes > req.SizeInBytes {
-			p := rsc.VolumePlanRequest[*req]
-			planLimit[*lim] = types.VolumeMap{p.GetResourceID(): p.GetRation() + lim.SizeInBytes - req.SizeInBytes}
-		} else {
-			planLimit[*lim] = rsc.VolumePlanRequest[*req]
-		}
+		rsc.VolumeLimit = append(rsc.VolumeLimit, opts.HardVolumeBindings...)
 	}
 
 	// judge if volume changed

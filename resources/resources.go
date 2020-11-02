@@ -14,6 +14,7 @@ var registeredFactories = []func(types.RawResourceOptions) (resourcetypes.Resour
 	storage.NewResourceRequirement,
 }
 
+// NewResourceRequirements .
 func NewResourceRequirements(opts types.RawResourceOptions) (rrs resourcetypes.ResourceRequirements, err error) {
 	for idx, factory := range registeredFactories {
 		if rrs[idx], err = factory(opts); err != nil {

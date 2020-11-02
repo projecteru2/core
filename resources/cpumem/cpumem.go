@@ -9,6 +9,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+// NewResourceRequirement .
 func NewResourceRequirement(opts types.RawResourceOptions) (resourcetypes.ResourceRequirement, error) {
 	a := &cpuMemRequirement{
 		CPURequest:      opts.CPURequest,
@@ -83,7 +84,7 @@ func (a cpuMemRequirement) MakeScheduler() resourcetypes.SchedulerV2 {
 			nodesInfo, CPUPlans, total, err = schedulerV1.SelectCPUNodes(nodesInfo, a.CPURequest, a.memoryRequest)
 		}
 
-		return CPUMemResourcePlans{
+		return ResourcePlans{
 			memoryRequest:   a.memoryRequest,
 			memoryLimit:     a.memoryLimit,
 			memorySoftLimit: a.memorySoftLimit,
@@ -104,8 +105,8 @@ func (a cpuMemRequirement) Rate(node types.Node) float64 {
 	return float64(a.memoryRequest) / float64(node.InitMemCap)
 }
 
-// CPUMemResourcePlans .
-type CPUMemResourcePlans struct {
+// ResourcePlans .
+type ResourcePlans struct {
 	memoryRequest   int64
 	memoryLimit     int64
 	memorySoftLimit bool
@@ -119,7 +120,7 @@ type CPUMemResourcePlans struct {
 }
 
 // Type .
-func (p CPUMemResourcePlans) Type() (resourceType types.ResourceType) {
+func (p ResourcePlans) Type() (resourceType types.ResourceType) {
 	resourceType = types.ResourceCPU | types.ResourceMemory
 	if p.CPUPlans != nil {
 		resourceType |= types.ResourceCPUBind
@@ -128,12 +129,12 @@ func (p CPUMemResourcePlans) Type() (resourceType types.ResourceType) {
 }
 
 // Capacity .
-func (p CPUMemResourcePlans) Capacity() map[string]int {
+func (p ResourcePlans) Capacity() map[string]int {
 	return p.capacity
 }
 
 // ApplyChangesOnNode .
-func (p CPUMemResourcePlans) ApplyChangesOnNode(node *types.Node, indices ...int) {
+func (p ResourcePlans) ApplyChangesOnNode(node *types.Node, indices ...int) {
 	if p.CPUPlans != nil {
 		for _, idx := range indices {
 			node.CPU.Sub(p.CPUPlans[node.Name][idx])
@@ -144,7 +145,7 @@ func (p CPUMemResourcePlans) ApplyChangesOnNode(node *types.Node, indices ...int
 }
 
 // RollbackChangesOnNode .
-func (p CPUMemResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...int) {
+func (p ResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...int) {
 	if p.CPUPlans != nil {
 		for _, idx := range indices {
 			node.CPU.Add(p.CPUPlans[node.Name][idx])
@@ -155,7 +156,7 @@ func (p CPUMemResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...
 }
 
 // Dispense .
-func (p CPUMemResourcePlans) Dispense(opts resourcetypes.DispenseOptions, rsc *types.Resources) error {
+func (p ResourcePlans) Dispense(opts resourcetypes.DispenseOptions, rsc *types.Resources) error {
 	rsc.CPUQuotaLimit = p.CPULimit
 	rsc.CPUQuotaRequest = p.CPURequest
 	rsc.CPUBind = p.CPUBind
@@ -164,7 +165,7 @@ func (p CPUMemResourcePlans) Dispense(opts resourcetypes.DispenseOptions, rsc *t
 	rsc.MemoryRequest = p.memoryRequest
 	rsc.MemorySoftLimit = p.memorySoftLimit
 
-	if len(p.CPUPlans) > 0 && p.CPULimit > 0 {
+	if len(p.CPUPlans) > 0 {
 		if _, ok := p.CPUPlans[opts.Node.Name]; !ok {
 			return errors.WithStack(types.ErrInsufficientCPU)
 		}
@@ -172,9 +173,11 @@ func (p CPUMemResourcePlans) Dispense(opts resourcetypes.DispenseOptions, rsc *t
 			return errors.WithStack(types.ErrInsufficientCPU)
 		}
 		rsc.CPURequest = p.CPUPlans[opts.Node.Name][opts.Index]
-		rsc.CPULimit = rsc.CPURequest
 		rsc.NUMANode = opts.Node.GetNUMANode(rsc.CPURequest)
-		return nil
+	}
+
+	if p.CPULimit > 0 {
+		rsc.CPULimit = rsc.CPURequest
 	}
 
 	// special handle when converting from cpu-binding to cpu-unbinding

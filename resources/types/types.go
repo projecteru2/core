@@ -32,4 +32,5 @@ type ResourcePlans interface {
 	Dispense(DispenseOptions, *types.Resources) error
 }
 
+// ResourceRequirements .
 type ResourceRequirements [3]ResourceRequirement

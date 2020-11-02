@@ -13,6 +13,7 @@ type storageResourceRequirement struct {
 	limit   int64
 }
 
+// NewResourceRequirement .
 func NewResourceRequirement(opts types.RawResourceOptions) (resourcetypes.ResourceRequirement, error) {
 	a := &storageResourceRequirement{
 		request: opts.StorageRequest,
@@ -49,7 +50,7 @@ func (a storageResourceRequirement) MakeScheduler() resourcetypes.SchedulerV2 {
 		}
 
 		nodesInfo, total, err = schedulerV1.SelectStorageNodes(nodesInfo, a.request)
-		return StorageResourcePlans{
+		return ResourcePlans{
 			request:  a.request,
 			limit:    a.limit,
 			capacity: resourcetypes.GetCapacity(nodesInfo),
@@ -62,35 +63,35 @@ func (a storageResourceRequirement) Rate(node types.Node) float64 {
 	return float64(0) / float64(node.Volume.Total())
 }
 
-// StorageResourcePlans .
-type StorageResourcePlans struct {
+// ResourcePlans .
+type ResourcePlans struct {
 	request  int64
 	limit    int64
 	capacity map[string]int
 }
 
 // Type .
-func (p StorageResourcePlans) Type() types.ResourceType {
+func (p ResourcePlans) Type() types.ResourceType {
 	return types.ResourceStorage
 }
 
 // Capacity .
-func (p StorageResourcePlans) Capacity() map[string]int {
+func (p ResourcePlans) Capacity() map[string]int {
 	return p.capacity
 }
 
 // ApplyChangesOnNode .
-func (p StorageResourcePlans) ApplyChangesOnNode(node *types.Node, indices ...int) {
+func (p ResourcePlans) ApplyChangesOnNode(node *types.Node, indices ...int) {
 	node.StorageCap -= int64(len(indices)) * p.request
 }
 
 // RollbackChangesOnNode .
-func (p StorageResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...int) {
+func (p ResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...int) {
 	node.StorageCap += int64(len(indices)) * p.request
 }
 
 // Dispense .
-func (p StorageResourcePlans) Dispense(opts resourcetypes.DispenseOptions, rsc *types.Resources) error {
+func (p ResourcePlans) Dispense(opts resourcetypes.DispenseOptions, rsc *types.Resources) error {
 	rsc.StorageLimit = p.limit
 	rsc.StorageRequest = p.request
 	return nil

@@ -38,6 +38,7 @@ type DeployOptions struct {
 	RawResourceOptions
 }
 
+// RawResourceOptions .
 type RawResourceOptions struct {
 	CPURequest float64
 	CPULimit   float64

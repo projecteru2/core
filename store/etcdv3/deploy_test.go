@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 )
 
@@ -19,7 +20,7 @@ func TestDeploy(t *testing.T) {
 		Entrypoint:   &types.Entrypoint{Name: "entry"},
 		ProcessIdent: "abc",
 	}
-	sis := []types.StrategyInfo{
+	sis := []strategy.Info{
 		{Nodename: "node"},
 	}
 

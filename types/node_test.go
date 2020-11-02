@@ -194,3 +194,11 @@ func TestNodeUsage(t *testing.T) {
 	assert.EqualValues(t, 0.75, usages[ResourceCPU])
 	assert.EqualValues(t, 500./3500., usages[ResourceVolume])
 }
+
+func TestAddNodeOptions(t *testing.T) {
+	o := AddNodeOptions{
+		Volume: VolumeMap{"/data1": 1, "/data2": 2},
+	}
+	o.Normalize()
+	assert.EqualValues(t, 3, o.Storage)
+}

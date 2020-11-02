@@ -28,35 +28,37 @@ type LabelMeta struct {
 // only relationship with pod and node is stored
 // if you wanna get realtime information, use Inspect method
 type Container struct {
-	ID                string            `json:"id"`
-	Name              string            `json:"name"`
-	Podname           string            `json:"podname"`
-	Nodename          string            `json:"nodename"`
-	CPURequest        CPUMap            `json:"cpu"`
-	QuotaLimit        float64           `json:"quota"`
-	QuotaRequest      float64           `json:"quota_request"`
-	MemoryRequest     int64             `json:"memory_request"`
-	MemoryLimit       int64             `json:"memory"`
-	StorageRequest    int64             `json:"storage_request"`
-	StorageLimit      int64             `json:"storage"`
-	Hook              *Hook             `json:"hook"`
-	Privileged        bool              `json:"privileged"`
-	SoftLimit         bool              `json:"softlimit"`
-	User              string            `json:"user"`
-	Env               []string          `json:"env"`
-	Image             string            `json:"image"`
-	VolumeRequest     VolumeBindings    `json:"volumes_request"`
-	VolumePlanRequest VolumePlan        `json:"volume_plan_request"`
-	VolumeLimit       VolumeBindings    `json:"volumes"`
-	VolumePlanLimit   VolumePlan        `json:"volume_plan"`
-	Labels            map[string]string `json:"labels"`
-	StatusMeta        *StatusMeta       `json:"-"`
-	Engine            engine.API        `json:"-"`
+	ID                   string            `json:"id"`
+	Name                 string            `json:"name"`
+	Podname              string            `json:"podname"`
+	Nodename             string            `json:"nodename"`
+	CPURequest           CPUMap            `json:"cpu"`
+	CPULimit             CPUMap            `json:"cpu_limit"`
+	QuotaRequest         float64           `json:"quota"`
+	QuotaLimit           float64           `json:"quota_limit"`
+	MemoryRequest        int64             `json:"memory"`
+	MemoryLimit          int64             `json:"memory_limit"`
+	StorageRequest       int64             `json:"storage"`
+	StorageLimit         int64             `json:"storage_limit"`
+	Hook                 *Hook             `json:"hook"`
+	Privileged           bool              `json:"privileged"`
+	SoftLimit            bool              `json:"softlimit"`
+	User                 string            `json:"user"`
+	Env                  []string          `json:"env"`
+	Image                string            `json:"image"`
+	VolumeRequest        VolumeBindings    `json:"volumes"`
+	VolumePlanRequest    VolumePlan        `json:"volume_plan"`
+	VolumeLimit          VolumeBindings    `json:"volumes_limit"`
+	VolumePlanLimit      VolumePlan        `json:"volume_plan_limit"`
+	Labels               map[string]string `json:"labels"`
+	StatusMeta           *StatusMeta       `json:"-"`
+	Engine               engine.API        `json:"-"`
+	ResourceSubdivisible bool              `json:"resource_subdivisible"` // to tell apart from existing container metas
 }
 
 type container Container
 
-// Unmarshal makes compatible for old resource fields
+// UnmarshalJSON makes compatible for old resource fields
 func (c *Container) UnmarshalJSON(b []byte) error {
 	cc := &container{}
 	if err := json.Unmarshal(b, cc); err != nil {
@@ -65,18 +67,14 @@ func (c *Container) UnmarshalJSON(b []byte) error {
 
 	*c = Container(*cc)
 
-	if c.QuotaLimit > 0 && c.QuotaRequest == 0 {
-		c.QuotaRequest = c.QuotaLimit
-	}
-	if c.StorageLimit > 0 && c.StorageRequest == 0 {
-		c.StorageRequest = c.StorageLimit
-	}
-	if c.MemoryLimit > 0 && c.MemoryRequest == 0 {
-		c.MemoryRequest = c.MemoryLimit
-	}
-	if len(c.VolumeLimit) > 0 && len(c.VolumeRequest) == 0 {
-		c.VolumeRequest = c.VolumeLimit
-		c.VolumePlanRequest = c.VolumePlanLimit
+	// existing container meta
+	if !c.ResourceSubdivisible {
+		c.QuotaLimit = c.QuotaRequest
+		c.CPULimit = c.CPURequest
+		c.StorageLimit = c.StorageRequest
+		c.MemoryLimit = c.MemoryRequest
+		c.VolumeLimit = c.VolumeRequest
+		c.VolumePlanLimit = c.VolumePlanRequest
 	}
 	return nil
 }

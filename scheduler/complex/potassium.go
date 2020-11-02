@@ -71,9 +71,6 @@ func (m *Potassium) SelectStorageNodes(nodesInfo []types.NodeInfo, storage int64
 // SelectMemoryNodes filter nodes with enough memory
 func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64, memory int64) ([]types.NodeInfo, int, error) {
 	log.Infof("[SelectMemoryNodes] nodesInfo: %v, need cpu: %f, memory: %d", nodesInfo, quota, memory)
-	if memory < 0 {
-		return nil, 0, types.ErrNegativeMemory
-	}
 	nodesInfoLength := len(nodesInfo)
 
 	// 筛选出能满足 CPU 需求的
@@ -115,9 +112,6 @@ func (m *Potassium) SelectCPUNodes(nodesInfo []types.NodeInfo, quota float64, me
 	if quota <= 0 {
 		return nil, nil, 0, types.ErrNegativeQuota
 	}
-	if memory < 0 {
-		return nil, nil, 0, types.ErrNegativeMemory
-	}
 	if len(nodesInfo) == 0 {
 		return nil, nil, 0, types.ErrZeroNodes
 	}
@@ -143,9 +137,20 @@ func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.Volu
 		}
 	}
 
+	if len(vbsNorm) == 0 && len(vbsMono) == 0 && len(vbsUnlimited) == 0 {
+		for i := range nodesInfo {
+			nodesInfo[i].Capacity = math.MaxInt16
+		}
+		return nodesInfo, nil, math.MaxUint16, nil
+	}
+
 	volTotal := 0
 	volumePlans := map[string][]types.VolumePlan{}
 	for idx, nodeInfo := range nodesInfo {
+		if len(nodeInfo.VolumeMap) == 0 {
+			volTotal += updateNodeInfoCapacity(&nodesInfo[idx], 0)
+			continue
+		}
 
 		usedVolumeMap, unusedVolumeMap := nodeInfo.VolumeMap.SplitByUsed(nodeInfo.InitVolumeMap)
 		if len(reqsMono) == 0 {

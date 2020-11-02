@@ -3,12 +3,15 @@ package strategy
 import (
 	"testing"
 
+	"github.com/projecteru2/core/resources"
+	resourcetypes "github.com/projecteru2/core/resources/types"
+	resourcetypesmocks "github.com/projecteru2/core/resources/types/mocks"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 )
 
-func deployedNodes() []types.StrategyInfo {
-	return []types.StrategyInfo{
+func deployedNodes() []Info {
+	return []Info{
 		{
 			Nodename: "n1",
 			Capacity: 10,
@@ -33,7 +36,7 @@ func deployedNodes() []types.StrategyInfo {
 }
 
 func TestScoreSort(t *testing.T) {
-	ns := []types.StrategyInfo{
+	ns := []Info{
 		{
 			Nodename: "n1",
 			Usages: map[types.ResourceType]float64{
@@ -79,9 +82,22 @@ func TestDeploy(t *testing.T) {
 	}
 	_, err := Deploy(opts, nil, 2, types.ResourceCPU)
 	opts.DeployStrategy = "AUTO"
-	Plans["test"] = func(_ []types.StrategyInfo, _, _, _ int, _ types.ResourceType) (map[string]*types.DeployInfo, error) {
+	Plans["test"] = func(_ []Info, _, _, _ int, _ types.ResourceType) (map[string]*types.DeployInfo, error) {
 		return nil, nil
 	}
 	_, err = Deploy(opts, nil, 2, types.ResourceCPU)
 	assert.Nil(t, err)
+}
+
+func TestNewInfos(t *testing.T) {
+	rrs, err := resources.NewResourceRequirements(types.RawResourceOptions{})
+	assert.Nil(t, err)
+	nodeMap := map[string]*types.Node{
+		"node1": {},
+		"node2": {},
+	}
+	mockPlan := &resourcetypesmocks.ResourcePlans{}
+	mockPlan.On("Capacity").Return(map[string]int{"node1": 1})
+	planMap := map[types.ResourceType]resourcetypes.ResourcePlans{1: mockPlan}
+	NewInfos(rrs, nodeMap, planMap)
 }

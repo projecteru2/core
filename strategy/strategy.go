@@ -27,9 +27,9 @@ var Plans = map[string]startegyFunc{
 	Global: GlobalPlan,
 }
 
-type startegyFunc = func(_ []StrategyInfo, need, total, limit int, _ types.ResourceType) (map[string]*types.DeployInfo, error)
+type startegyFunc = func(_ []Info, need, total, limit int, _ types.ResourceType) (map[string]*types.DeployInfo, error)
 
-func scoreSort(strategyInfo []StrategyInfo, byResource types.ResourceType) []StrategyInfo {
+func scoreSort(strategyInfo []Info, byResource types.ResourceType) []Info {
 	sort.Slice(strategyInfo, func(i, j int) bool {
 		return strategyInfo[i].GetResourceUsage(byResource) < strategyInfo[j].GetResourceUsage(byResource)
 	})
@@ -37,7 +37,7 @@ func scoreSort(strategyInfo []StrategyInfo, byResource types.ResourceType) []Str
 }
 
 // Deploy .
-func Deploy(opts *types.DeployOptions, strategyInfos []StrategyInfo, total int, resourceTypes types.ResourceType) (map[string]*types.DeployInfo, error) {
+func Deploy(opts *types.DeployOptions, strategyInfos []Info, total int, resourceTypes types.ResourceType) (map[string]*types.DeployInfo, error) {
 	deployMethod, ok := Plans[opts.DeployStrategy]
 	if !ok {
 		return nil, errors.WithStack(types.ErrBadDeployStrategy)
@@ -46,8 +46,8 @@ func Deploy(opts *types.DeployOptions, strategyInfos []StrategyInfo, total int, 
 	return deployMethod(strategyInfos, opts.Count, total, opts.NodesLimit, resourceTypes)
 }
 
-// StrategyInfo .
-type StrategyInfo struct {
+// Info .
+type Info struct {
 	Nodename string
 
 	Usages map[types.ResourceType]float64
@@ -57,8 +57,8 @@ type StrategyInfo struct {
 	Count    int
 }
 
-// NewStrategyInfos .
-func NewStrategyInfos(rrs resourcetypes.ResourceRequirements, nodeMap map[string]*types.Node, planMap map[types.ResourceType]resourcetypes.ResourcePlans) (strategyInfos []StrategyInfo) {
+// NewInfos .
+func NewInfos(rrs resourcetypes.ResourceRequirements, nodeMap map[string]*types.Node, planMap map[types.ResourceType]resourcetypes.ResourcePlans) (strategyInfos []Info) {
 	for nodeName, node := range nodeMap {
 		rates := make(map[types.ResourceType]float64)
 		for _, rr := range rrs {
@@ -75,7 +75,7 @@ func NewStrategyInfos(rrs resourcetypes.ResourceRequirements, nodeMap map[string
 			continue
 		}
 
-		strategyInfos = append(strategyInfos, StrategyInfo{
+		strategyInfos = append(strategyInfos, Info{
 			Nodename: nodeName,
 			Rates:    rates,
 			Usages:   node.ResourceUsages(),
@@ -86,7 +86,7 @@ func NewStrategyInfos(rrs resourcetypes.ResourceRequirements, nodeMap map[string
 }
 
 // GetResourceUsage .
-func (s *StrategyInfo) GetResourceUsage(resource types.ResourceType) (usage float64) {
+func (s *Info) GetResourceUsage(resource types.ResourceType) (usage float64) {
 	for _, resourceType := range types.AllResourceTypes {
 		if resourceType&resource != 0 {
 			for t, u := range s.Usages {
@@ -100,7 +100,7 @@ func (s *StrategyInfo) GetResourceUsage(resource types.ResourceType) (usage floa
 }
 
 // GetResourceRate .
-func (s *StrategyInfo) GetResourceRate(resource types.ResourceType) (rate float64) {
+func (s *Info) GetResourceRate(resource types.ResourceType) (rate float64) {
 	for _, resourceType := range types.AllResourceTypes {
 		if resourceType&resource != 0 {
 			for t, r := range s.Rates {

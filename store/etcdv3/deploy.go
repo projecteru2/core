@@ -12,7 +12,7 @@ import (
 )
 
 // MakeDeployStatus get deploy status from store
-func (m *Mercury) MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfos []strategy.StrategyInfo) error {
+func (m *Mercury) MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfos []strategy.Info) error {
 	// 手动加 / 防止不精确
 	key := filepath.Join(containerDeployPrefix, opts.Name, opts.Entrypoint.Name) + "/"
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithKeysOnly())
@@ -28,7 +28,7 @@ func (m *Mercury) MakeDeployStatus(ctx context.Context, opts *types.DeployOption
 	return m.doLoadProcessing(ctx, opts, strategyInfos)
 }
 
-func (m *Mercury) doGetDeployStatus(_ context.Context, resp *clientv3.GetResponse, strategyInfos []strategy.StrategyInfo) error {
+func (m *Mercury) doGetDeployStatus(_ context.Context, resp *clientv3.GetResponse, strategyInfos []strategy.Info) error {
 	nodesCount := map[string]int{}
 	for _, ev := range resp.Kvs {
 		key := string(ev.Key)

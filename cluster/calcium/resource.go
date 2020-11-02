@@ -171,10 +171,10 @@ func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	log.Errorf("[Calcium.doAllocResource] planMap: %+v, total: %v, type: %+v", planMap, total, scheduleTypes)
+	//log.Debugf("[Calcium.doAllocResource] planMap: %+v, total: %v, type: %+v", planMap, total, scheduleTypes)
 
 	// deploy strategy
-	strategyInfos := strategy.NewStrategyInfos(apps, nodeMap, planMap)
+	strategyInfos := strategy.NewInfos(apps, nodeMap, planMap)
 	if err := c.store.MakeDeployStatus(ctx, opts, strategyInfos); err != nil {
 		return nil, nil, errors.WithStack(err)
 	}

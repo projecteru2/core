@@ -89,8 +89,7 @@ func TestVolumeBindings(t *testing.T) {
 
 	vbs1, _ := MakeVolumeBindings([]string{"AUTO:/data0:rw:1", "AUTO:/data1:rw:2", "/mnt1:/data2:rw", "/mnt2:/data3:ro"})
 	vbs2, _ := MakeVolumeBindings([]string{"AUTO:/data7:rw:3", "AUTO:/data1:rw:3", "/mnt3:/data8", "AUTO:/data0:rw:-20"})
-	vbs, err = MergeVolumeBindings(vbs1, vbs2)
-	assert.Nil(t, err)
+	vbs = MergeVolumeBindings(vbs1, vbs2)
 	softVolumes, hardVolumes := vbs.Divide()
 	assert.Equal(t, softVolumes.ToStringSlice(true, false), []string{"AUTO:/data1:rw:5", "AUTO:/data7:rw:3"})
 	assert.Equal(t, hardVolumes.ToStringSlice(true, false), []string{"/mnt1:/data2:rw:0", "/mnt2:/data3:ro:0", "/mnt3:/data8"})

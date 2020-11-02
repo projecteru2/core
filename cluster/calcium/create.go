@@ -77,13 +77,11 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 					// commit changes
 					nodes := []*types.Node{}
-					for nodeName, deployInfo := range deployMap {
-						for _, plan := range planMap {
-							plan.ApplyChangesOnNode(nodeMap[nodeName], utils.Range(deployInfo.Deploy)...)
-						}
-						nodes = append(nodes, nodeMap[nodeName])
-					}
 					for nodename, deployInfo := range deployMap {
+						for _, plan := range planMap {
+							plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deployInfo.Deploy)...)
+						}
+						nodes = append(nodes, nodeMap[nodename])
 						if err = c.store.SaveProcessing(ctx, opts, nodename, deployInfo.Deploy); err != nil {
 							return errors.WithStack(err)
 						}
@@ -212,28 +210,30 @@ func (c *Calcium) doDeployOneWorkload(
 ) (err error) {
 	config := c.doMakeContainerOptions(no, msg, opts, node)
 	container := &types.Container{
-		Name:              config.Name,
-		Labels:            config.Labels,
-		Podname:           opts.Podname,
-		Nodename:          node.Name,
-		CPURequest:        msg.CPURequest,
-		QuotaRequest:      msg.CPUQuotaRequest,
-		QuotaLimit:        msg.CPUQuotaLimit,
-		MemoryRequest:     msg.MemoryRequest,
-		MemoryLimit:       msg.MemoryLimit,
-		StorageRequest:    msg.StorageRequest,
-		StorageLimit:      msg.StorageLimit,
-		VolumeRequest:     msg.VolumeRequest,
-		VolumeLimit:       msg.VolumeLimit,
-		VolumePlanRequest: msg.VolumePlanRequest,
-		VolumePlanLimit:   msg.VolumePlanLimit,
-		Hook:              opts.Entrypoint.Hook,
-		Privileged:        opts.Entrypoint.Privileged,
-		Engine:            node.Engine,
-		SoftLimit:         opts.SoftLimit,
-		Image:             opts.Image,
-		Env:               opts.Env,
-		User:              opts.User,
+		Name:                 config.Name,
+		Labels:               config.Labels,
+		Podname:              opts.Podname,
+		Nodename:             node.Name,
+		CPURequest:           msg.CPURequest,
+		CPULimit:             msg.CPULimit,
+		QuotaRequest:         msg.CPUQuotaRequest,
+		QuotaLimit:           msg.CPUQuotaLimit,
+		MemoryRequest:        msg.MemoryRequest,
+		MemoryLimit:          msg.MemoryLimit,
+		StorageRequest:       msg.StorageRequest,
+		StorageLimit:         msg.StorageLimit,
+		VolumeRequest:        msg.VolumeRequest,
+		VolumeLimit:          msg.VolumeLimit,
+		VolumePlanRequest:    msg.VolumePlanRequest,
+		VolumePlanLimit:      msg.VolumePlanLimit,
+		Hook:                 opts.Entrypoint.Hook,
+		Privileged:           opts.Entrypoint.Privileged,
+		Engine:               node.Engine,
+		SoftLimit:            opts.SoftLimit,
+		Image:                opts.Image,
+		Env:                  opts.Env,
+		User:                 opts.User,
+		ResourceSubdivisible: true,
 	}
 	return utils.Txn(
 		ctx,

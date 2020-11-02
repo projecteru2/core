@@ -3,7 +3,7 @@ package etcdv3
 import (
 	"testing"
 
-	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/strategy"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +21,7 @@ func TestSetCount(t *testing.T) {
 		"n1": 1,
 		"n2": 2,
 	}
-	sis := []types.StrategyInfo{
+	sis := []strategy.Info{
 		{Nodename: "n1"},
 		{Nodename: "n2"},
 	}

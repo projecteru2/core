@@ -8,8 +8,11 @@ import (
 	"math"
 
 	"github.com/docker/go-units"
+	"github.com/projecteru2/core/resources"
+	"github.com/projecteru2/core/resources/cpumem"
+	resourcetypes "github.com/projecteru2/core/resources/types"
+	"github.com/projecteru2/core/resources/volume"
 	"github.com/projecteru2/core/scheduler"
-	"github.com/projecteru2/core/scheduler/resources"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -189,7 +192,7 @@ func getNodeMapFromNodesInfo(nodesInfo []types.NodeInfo) map[string]*types.Node 
 	return nodeMap
 }
 
-func getStrategyInfosFromNodesInfo(nodesInfo []types.NodeInfo, planMap map[types.ResourceType]types.ResourcePlans) (strategyInfos []types.StrategyInfo) {
+func getInfosFromNodesInfo(nodesInfo []types.NodeInfo, planMap map[types.ResourceType]resourcetypes.ResourcePlans) (strategyInfos []strategy.Info) {
 	for _, nodeInfo := range nodesInfo {
 		capacity := math.MaxInt32
 		for _, v := range planMap {
@@ -204,7 +207,7 @@ func getStrategyInfosFromNodesInfo(nodesInfo []types.NodeInfo, planMap map[types
 		if capacity == 0 {
 			continue
 		}
-		strategyInfos = append(strategyInfos, types.StrategyInfo{
+		strategyInfos = append(strategyInfos, strategy.Info{
 			Nodename: nodeInfo.Name,
 			Count:    nodeInfo.Count,
 			Rates:    nodeInfo.Rates,
@@ -227,16 +230,17 @@ func newDeployOptions(need int, each bool) *types.DeployOptions {
 }
 
 func SelectCPUNodes(k *Potassium, nodesInfo []types.NodeInfo, quota float64, memory int64, need int, each bool) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
-	reqs := []types.ResourceRequest{resources.CPUMemResourceRequest{
-		CPUQuota: quota, Memory: memory, CPUBind: true,
-	}}
+	rrs, err := resources.NewResourceRequirements(types.RawResourceOptions{CPULimit: quota, MemoryLimit: memory, CPUBind: true})
+	if err != nil {
+		return nil, nil, err
+	}
 	nodeMap := getNodeMapFromNodesInfo(nodesInfo)
-	planMap, total, sType, err := scheduler.SelectNodes(reqs, nodeMap)
+	planMap, total, sType, err := resources.SelectNodes(rrs, nodeMap)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	deployMap, err := strategy.Deploy(newDeployOptions(need, each), getStrategyInfosFromNodesInfo(nodesInfo, planMap), total, sType)
+	deployMap, err := strategy.Deploy(newDeployOptions(need, each), getInfosFromNodesInfo(nodesInfo, planMap), total, sType)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -244,25 +248,27 @@ func SelectCPUNodes(k *Potassium, nodesInfo []types.NodeInfo, quota float64, mem
 	changed := make(map[string]types.CPUMap)
 	for nodename, deployInfo := range deployMap {
 		for _, plan := range planMap {
-			CPUPlan := plan.(resources.CPUMemResourcePlans)
-			result[nodename] = CPUPlan.CPUPlans[nodename][:deployInfo.Deploy]
-			plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deployInfo.Deploy)...)
-			changed[nodename] = nodeMap[nodename].CPU
+			if CPUPlan, ok := plan.(cpumem.ResourcePlans); ok {
+				result[nodename] = CPUPlan.CPUPlans[nodename][:deployInfo.Deploy]
+				plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deployInfo.Deploy)...)
+				changed[nodename] = nodeMap[nodename].CPU
+			}
 		}
 	}
 	return result, changed, nil
 }
 
 func SelectMemoryNodes(k *Potassium, nodesInfo []types.NodeInfo, rate float64, memory int64, need int, each bool) ([]types.NodeInfo, error) {
-	reqs := []types.ResourceRequest{resources.CPUMemResourceRequest{
-		CPUQuota: rate, Memory: memory,
-	}}
-	planMap, total, sType, err := scheduler.SelectNodes(reqs, getNodeMapFromNodesInfo(nodesInfo))
+	rrs, err := resources.NewResourceRequirements(types.RawResourceOptions{CPULimit: rate, MemoryLimit: memory})
+	if err != nil {
+		return nil, err
+	}
+	planMap, total, sType, err := resources.SelectNodes(rrs, getNodeMapFromNodesInfo(nodesInfo))
 	if err != nil {
 		return nil, err
 	}
 
-	deployMap, err := strategy.Deploy(newDeployOptions(need, each), getStrategyInfosFromNodesInfo(nodesInfo, planMap), total, sType)
+	deployMap, err := strategy.Deploy(newDeployOptions(need, each), getInfosFromNodesInfo(nodesInfo, planMap), total, sType)
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +288,7 @@ func TestSelectCPUNodes(t *testing.T) {
 	assert.True(t, errors.Is(err, types.ErrZeroNodes))
 
 	_, _, err = SelectCPUNodes(k, []types.NodeInfo{}, 1, -1, 1, false)
-	assert.True(t, errors.Is(err, types.ErrNegativeMemory))
+	assert.EqualError(t, err, "limit or request less than 0: bad `Memory` value")
 
 	nodes := generateNodes(2, 2, memory, 0, 10)
 	_, _, err = SelectCPUNodes(k, nodes, 0.5, 1, 1, false)
@@ -815,6 +821,10 @@ func TestSelectMemoryNodes(t *testing.T) {
 	memory := 4 * int64(units.GiB)
 	pod := generateNodes(2, 2, memory, 0, 10)
 	k, _ := newPotassium()
+	// nega memory
+	_, err := SelectMemoryNodes(k, pod, 1.0, -1, 4, false)
+	assert.Error(t, err)
+
 	cpus := 1.0
 	res, err := SelectMemoryNodes(k, pod, cpus, 512*int64(units.MiB), 4, false)
 	assert.NoError(t, err)
@@ -849,7 +859,7 @@ func TestSelectMemoryNodes(t *testing.T) {
 
 	pod = generateNodes(1, 2, memory, 0, 10)
 	_, err = SelectMemoryNodes(k, pod, cpus, -1, 10, false)
-	assert.EqualError(t, err, types.ErrNegativeMemory.Error())
+	assert.EqualError(t, err, "limit or request less than 0: bad `Memory` value")
 
 	// test each
 	pod = generateNodes(4, 2, memory, 0, 10)
@@ -1202,12 +1212,16 @@ func TestSelectStorageNodesSequence(t *testing.T) {
 }
 
 func SelectStorageNodes(k *Potassium, nodesInfo []types.NodeInfo, storage int64, need int, each bool) ([]types.NodeInfo, error) {
-	planMap, total, sType, err := scheduler.SelectNodes([]types.ResourceRequest{resources.StorageResourceRequest{Quota: storage}}, getNodeMapFromNodesInfo(nodesInfo))
+	rrs, err := resources.NewResourceRequirements(types.RawResourceOptions{StorageLimit: storage})
+	if err != nil {
+		return nil, err
+	}
+	planMap, total, sType, err := resources.SelectNodes(rrs, getNodeMapFromNodesInfo(nodesInfo))
 	if err != nil {
 		return nil, err
 	}
 
-	strategyInfos := getStrategyInfosFromNodesInfo(nodesInfo, planMap)
+	strategyInfos := getInfosFromNodesInfo(nodesInfo, planMap)
 	deployMap, err := strategy.Deploy(newDeployOptions(need, each), strategyInfos, total, sType)
 	if err != nil {
 		return nil, err
@@ -1226,14 +1240,17 @@ func SelectStorageNodes(k *Potassium, nodesInfo []types.NodeInfo, storage int64,
 }
 
 func SelectVolumeNodes(k *Potassium, nodesInfo []types.NodeInfo, volumes []string, need int, each bool) (map[string][]types.VolumePlan, map[string]types.VolumeMap, error) {
-	reqs := []types.ResourceRequest{resources.NewVolumeResourceRequest(types.MustToVolumeBindings(volumes))}
+	rrs, err := resources.NewResourceRequirements(types.RawResourceOptions{VolumeLimit: types.MustToVolumeBindings(volumes)})
+	if err != nil {
+		return nil, nil, err
+	}
 	nodeMap := getNodeMapFromNodesInfo(nodesInfo)
-	planMap, total, sType, err := scheduler.SelectNodes(reqs, nodeMap)
+	planMap, total, sType, err := resources.SelectNodes(rrs, nodeMap)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	deployMap, err := strategy.Deploy(newDeployOptions(need, each), getStrategyInfosFromNodesInfo(nodesInfo, planMap), total, sType)
+	deployMap, err := strategy.Deploy(newDeployOptions(need, each), getInfosFromNodesInfo(nodesInfo, planMap), total, sType)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1241,10 +1258,13 @@ func SelectVolumeNodes(k *Potassium, nodesInfo []types.NodeInfo, volumes []strin
 	changed := make(map[string]types.VolumeMap)
 	for nodename, deployInfo := range deployMap {
 		for _, plan := range planMap {
-			volumePlan := plan.(resources.VolumeResourcePlans)
-			result[nodename] = volumePlan.Plans[nodename][:deployInfo.Deploy]
-			plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deployInfo.Deploy)...)
-			changed[nodename] = nodeMap[nodename].Volume
+			if volumePlan, ok := plan.(volume.ResourcePlans); ok {
+				if plans, ok := volumePlan.PlanReq[nodename]; ok {
+					result[nodename] = plans[:deployInfo.Deploy]
+				}
+				plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deployInfo.Deploy)...)
+				changed[nodename] = nodeMap[nodename].Volume
+			}
 		}
 	}
 	return result, changed, nil
@@ -1270,7 +1290,7 @@ func TestSelectVolumeNodesNonAuto(t *testing.T) {
 	}
 	res, changed, err := SelectVolumeNodes(k, nodes, volumes, 2, true)
 	assert.NoError(t, err)
-	assert.Equal(t, len(res["0"]), 2)
+	assert.Equal(t, len(res["0"]), 0)
 	assert.Equal(t, changed["node1"]["/data0"], int64(0))
 }
 
@@ -1518,6 +1538,9 @@ func TestSelectMonopolyOnMultipleNodes(t *testing.T) {
 				"/data0": 2000,
 				"/data1": 2001,
 			},
+		},
+		{
+			Name: "2",
 		},
 	}
 
