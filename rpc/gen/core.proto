@@ -192,6 +192,11 @@ message Container {
     ContainerStatus status = 13;
     repeated string volumes = 14;
     map<string, Volume> volume_plan = 15;
+    double quota_request = 16;
+    int64 memory_request = 17;
+    int64 storage_request = 18;
+    repeated string volumes_request = 19;
+    map<string, Volume> volume_plan_request = 20;
 }
 
 message ContainerStatus {
@@ -500,6 +505,10 @@ message CreateContainerMessage {
     bytes hook = 11;
     int64 storage = 12;
     map<string, Volume> volume_plan = 13;
+    double quota_request = 14;
+    int64 memory_request = 15;
+    int64 storage_request = 16;
+    map<string, Volume> volume_plan_request = 17;
 }
 
 message ReplaceContainerMessage {
