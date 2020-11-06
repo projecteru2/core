@@ -156,7 +156,7 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 	)
 }
 
-func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) (map[types.ResourceType]resourcetypes.ResourcePlans, map[string]*types.DeployInfo, error) {
+func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) (map[types.ResourceType]resourcetypes.ResourcePlans, map[string]int, error) {
 	if len(nodeMap) == 0 {
 		return nil, nil, errors.WithStack(types.ErrInsufficientNodes)
 	}
@@ -171,7 +171,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	//log.Debugf("[Calcium.doAllocResource] planMap: %+v, total: %v, type: %+v", planMap, total, scheduleTypes)
+	log.Debugf("[Calcium.doAllocResource] planMap: %+v, total: %v, type: %+v", planMap, total, scheduleTypes)
 
 	// deploy strategy
 	strategyInfos := strategy.NewInfos(apps, nodeMap, planMap)
@@ -182,7 +182,6 @@ func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	log.Debugf("[Calium.doAllocResource] deployMap: %+v", deployMap)
-
+	log.Infof("[Calium.doAllocResource] deployMap: %+v", deployMap)
 	return planMap, deployMap, nil
 }

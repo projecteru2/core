@@ -17,7 +17,7 @@ func TestAveragePlan(t *testing.T) {
 	r, err := AveragePlan(nodes, 1, 0, 0, types.ResourceAll)
 	assert.NoError(t, err)
 	for i := range r {
-		assert.Equal(t, r[i].Deploy, 1)
+		assert.Equal(t, r[i], 1)
 		capacity := 0
 		for _, si := range nodes {
 			if si.Nodename == i {

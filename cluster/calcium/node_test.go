@@ -120,34 +120,34 @@ func TestSetNode(t *testing.T) {
 	assert.Error(t, err)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	// failed by no node name
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test1", Status: 2})
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test1", StatusOpt: 2})
 	assert.Error(t, err)
 	// failed by updatenode
 	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", Status: 2})
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", StatusOpt: 2})
 	assert.Error(t, err)
 	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
 	// succ when node available
-	n, err := c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", Status: 2})
+	n, err := c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", StatusOpt: 2})
 	assert.NoError(t, err)
 	assert.Equal(t, n.Name, name)
 	// not available
 	// failed by list node containers
 	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", Status: 0, ContainersDown: true})
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", StatusOpt: 0, ContainersDown: true})
 	assert.Error(t, err)
 	containers := []*types.Container{{Name: "wrong_name"}, {Name: "a_b_c"}}
 	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
 	store.On("SetContainerStatus",
 		mock.Anything, mock.Anything, mock.Anything,
 	).Return(types.ErrNoETCD)
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", Status: 0, ContainersDown: true})
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", StatusOpt: 0, ContainersDown: true})
 	assert.NoError(t, err)
 	// test modify
 	setOpts := &types.SetNodeOptions{
-		Nodename: "test",
-		Status:   1,
-		Labels:   map[string]string{"some": "1"},
+		Nodename:  "test",
+		StatusOpt: 1,
+		Labels:    map[string]string{"some": "1"},
 	}
 	// set label
 	n, err = c.SetNode(ctx, setOpts)

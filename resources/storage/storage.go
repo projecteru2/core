@@ -5,6 +5,7 @@ import (
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 // storageResourceRequirement .
@@ -53,7 +54,7 @@ func (a storageResourceRequirement) MakeScheduler() resourcetypes.SchedulerV2 {
 		return ResourcePlans{
 			request:  a.request,
 			limit:    a.limit,
-			capacity: resourcetypes.GetCapacity(nodesInfo),
+			capacity: utils.GetCapacity(nodesInfo),
 		}, total, err
 	}
 }

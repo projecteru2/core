@@ -165,7 +165,7 @@ message NodeAvailable {
 
 message SetNodeOptions {
     string nodename = 1;
-    TriOpt status = 2;
+    TriOpt status_opt = 2;
     map<string, int32> delta_cpu = 3;
     int64 delta_memory = 4;
     int64 delta_storage = 5;
@@ -264,13 +264,13 @@ message ReallocOptions {
     double cpu = 2;
     int64 memory = 3;
     repeated string volumes = 4;
-    TriOpt bind_cpu = 5;
-    TriOpt memory_limit = 6;
+    TriOpt bind_cpu_opt = 5;
+    TriOpt memory_limit_opt = 6;
 
     double cpu_request = 7;
     double cpu_limit = 8;
     int64 memory_request = 9;
-    int64 memory_lim = 10;
+    int64 memory_limit = 10;
     int64 storage_request = 11;
     int64 storage_limit = 12;
     repeated string volume_request = 13;

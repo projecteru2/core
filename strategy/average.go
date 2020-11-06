@@ -11,7 +11,7 @@ import (
 // AveragePlan deploy container each node
 // 容量够的机器每一台部署 N 个
 // need 是每台机器所需总量，limit 是限制节点数
-func AveragePlan(strategyInfos []Info, need, total, limit int, resourceType types.ResourceType) (map[string]*types.DeployInfo, error) {
+func AveragePlan(strategyInfos []Info, need, total, limit int, resourceType types.ResourceType) (map[string]int, error) {
 	log.Debugf("[AveragePlan] need %d limit %d", need, limit)
 	nodesInfoLength := len(strategyInfos)
 	if nodesInfoLength < limit {
@@ -27,13 +27,10 @@ func AveragePlan(strategyInfos []Info, need, total, limit int, resourceType type
 	if limit > 0 {
 		strategyInfos = strategyInfos[:limit]
 	}
-	deployMap := make(map[string]*types.DeployInfo)
+	deployMap := map[string]int{}
 	for i, strategyInfo := range strategyInfos {
 		strategyInfos[i].Capacity -= need
-		if _, ok := deployMap[strategyInfo.Nodename]; !ok {
-			deployMap[strategyInfo.Nodename] = &types.DeployInfo{}
-		}
-		deployMap[strategyInfo.Nodename].Deploy += need
+		deployMap[strategyInfo.Nodename] += need
 	}
 
 	log.Debugf("[AveragePlan] resource: %v, strategyInfos: %v", resourceType, strategyInfos)

@@ -80,15 +80,15 @@ func TestVolumeBindingToString(t *testing.T) {
 }
 
 func TestVolumeBindings(t *testing.T) {
-	_, err := MakeVolumeBindings([]string{"/1::rw:0"})
+	_, err := NewVolumeBindings([]string{"/1::rw:0"})
 	assert.Error(t, err, "dest must be provided")
-	vbs, _ := MakeVolumeBindings([]string{"/1:/dst:rw:1000", "/0:/dst:rom"})
+	vbs, _ := NewVolumeBindings([]string{"/1:/dst:rw:1000", "/0:/dst:rom"})
 	assert.Equal(t, vbs.ToStringSlice(false, false), []string{"/1:/dst:rw:1000", "/0:/dst:mro:0"})
 	assert.Equal(t, vbs.ToStringSlice(true, false), []string{"/0:/dst:mro:0", "/1:/dst:rw:1000"})
 	assert.Equal(t, vbs.TotalSize(), int64(1000))
 
-	vbs1, _ := MakeVolumeBindings([]string{"AUTO:/data0:rw:1", "AUTO:/data1:rw:2", "/mnt1:/data2:rw", "/mnt2:/data3:ro"})
-	vbs2, _ := MakeVolumeBindings([]string{"AUTO:/data7:rw:3", "AUTO:/data1:rw:3", "/mnt3:/data8", "AUTO:/data0:rw:-20"})
+	vbs1, _ := NewVolumeBindings([]string{"AUTO:/data0:rw:1", "AUTO:/data1:rw:2", "/mnt1:/data2:rw", "/mnt2:/data3:ro"})
+	vbs2, _ := NewVolumeBindings([]string{"AUTO:/data7:rw:3", "AUTO:/data1:rw:3", "/mnt3:/data8", "AUTO:/data0:rw:-20"})
 	vbs = MergeVolumeBindings(vbs1, vbs2)
 	softVolumes, hardVolumes := vbs.Divide()
 	assert.Equal(t, softVolumes.ToStringSlice(true, false), []string{"AUTO:/data1:rw:5", "AUTO:/data7:rw:3"})

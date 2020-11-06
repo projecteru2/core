@@ -137,12 +137,10 @@ func TestCreateContainerTxn(t *testing.T) {
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	old := strategy.Plans[strategy.Auto]
-	strategy.Plans[strategy.Auto] = func(sis []strategy.Info, need, total, _ int, resourceType types.ResourceType) (map[string]*types.DeployInfo, error) {
-		deployInfos := make(map[string]*types.DeployInfo)
+	strategy.Plans[strategy.Auto] = func(sis []strategy.Info, need, total, _ int, resourceType types.ResourceType) (map[string]int, error) {
+		deployInfos := make(map[string]int)
 		for _, si := range sis {
-			deployInfos[si.Nodename] = &types.DeployInfo{
-				Deploy: 1,
-			}
+			deployInfos[si.Nodename] = 1
 		}
 		return deployInfos, nil
 	}

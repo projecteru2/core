@@ -188,6 +188,13 @@ func TestRound(t *testing.T) {
 	assert.Equal(t, f(Round(a)), "19.99998")
 }
 
+func TestMergeHookOutputs(t *testing.T) {
+	test := []*bytes.Buffer{bytes.NewBufferString("a"), bytes.NewBufferString("b")}
+	r := MergeHookOutputs(test)
+	assert.NotEmpty(t, r)
+	assert.Equal(t, string(r), "ab")
+}
+
 func TestMin(t *testing.T) {
 	var a int
 	var b int

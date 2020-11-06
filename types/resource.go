@@ -24,8 +24,3 @@ var (
 	// AllResourceTypes .
 	AllResourceTypes = [...]ResourceType{ResourceCPU, ResourceMemory, ResourceVolume, ResourceStorage}
 )
-
-// DeployInfo .
-type DeployInfo struct {
-	Deploy int
-}

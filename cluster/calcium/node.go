@@ -38,7 +38,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		litter.Dump(opts)
 		opts.Normalize(node)
 		n = node
-		n.Available = (opts.Status == types.TriTrue) || (opts.Status == types.TriKeep && n.Available)
+		n.Available = (opts.StatusOpt == types.TriTrue) || (opts.StatusOpt == types.TriKeep && n.Available)
 		if opts.ContainersDown {
 			containers, err := c.store.ListNodeContainers(ctx, opts.Nodename, nil)
 			if err != nil {

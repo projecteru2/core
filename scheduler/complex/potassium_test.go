@@ -246,11 +246,11 @@ func SelectCPUNodes(k *Potassium, nodesInfo []types.NodeInfo, quota float64, mem
 	}
 	result := make(map[string][]types.CPUMap)
 	changed := make(map[string]types.CPUMap)
-	for nodename, deployInfo := range deployMap {
+	for nodename, deploy := range deployMap {
 		for _, plan := range planMap {
 			if CPUPlan, ok := plan.(cpumem.ResourcePlans); ok {
-				result[nodename] = CPUPlan.CPUPlans[nodename][:deployInfo.Deploy]
-				plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deployInfo.Deploy)...)
+				result[nodename] = CPUPlan.CPUPlans[nodename][:deploy]
+				plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deploy)...)
 				changed[nodename] = nodeMap[nodename].CPU
 			}
 		}
@@ -273,9 +273,7 @@ func SelectMemoryNodes(k *Potassium, nodesInfo []types.NodeInfo, rate float64, m
 		return nil, err
 	}
 	for i, nodeInfo := range nodesInfo {
-		if deployInfo, ok := deployMap[nodeInfo.Name]; ok {
-			nodesInfo[i].Deploy = deployInfo.Deploy
-		}
+		nodesInfo[i].Deploy = deployMap[nodeInfo.Name]
 	}
 	return nodesInfo, nil
 }
@@ -1227,9 +1225,7 @@ func SelectStorageNodes(k *Potassium, nodesInfo []types.NodeInfo, storage int64,
 		return nil, err
 	}
 	for i, nodeInfo := range nodesInfo {
-		if deployInfo, ok := deployMap[nodeInfo.Name]; ok {
-			nodesInfo[i].Deploy = deployInfo.Deploy
-		}
+		nodesInfo[i].Deploy = deployMap[nodeInfo.Name]
 		for _, si := range strategyInfos {
 			if si.Nodename == nodeInfo.Name {
 				nodesInfo[i].Capacity = si.Capacity
@@ -1256,13 +1252,11 @@ func SelectVolumeNodes(k *Potassium, nodesInfo []types.NodeInfo, volumes []strin
 	}
 	result := make(map[string][]types.VolumePlan)
 	changed := make(map[string]types.VolumeMap)
-	for nodename, deployInfo := range deployMap {
+	for nodename, deploy := range deployMap {
 		for _, plan := range planMap {
 			if volumePlan, ok := plan.(volume.ResourcePlans); ok {
-				if plans, ok := volumePlan.PlanReq[nodename]; ok {
-					result[nodename] = plans[:deployInfo.Deploy]
-				}
-				plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deployInfo.Deploy)...)
+				result[nodename] = volumePlan.PlanReq[nodename]
+				plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deploy)...)
 				changed[nodename] = nodeMap[nodename].Volume
 			}
 		}

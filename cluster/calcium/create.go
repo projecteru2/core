@@ -43,7 +43,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 	var (
 		err         error
 		planMap     map[types.ResourceType]resourcetypes.ResourcePlans
-		deployMap   map[string]*types.DeployInfo
+		deployMap   map[string]int
 		rollbackMap map[string][]int
 	)
 
@@ -77,12 +77,12 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 					// commit changes
 					nodes := []*types.Node{}
-					for nodename, deployInfo := range deployMap {
+					for nodename, deploy := range deployMap {
 						for _, plan := range planMap {
-							plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deployInfo.Deploy)...)
+							plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deploy)...)
 						}
 						nodes = append(nodes, nodeMap[nodename])
-						if err = c.store.SaveProcessing(ctx, opts, nodename, deployInfo.Deploy); err != nil {
+						if err = c.store.SaveProcessing(ctx, opts, nodename, deploy); err != nil {
 							return errors.WithStack(err)
 						}
 					}
@@ -121,23 +121,23 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 	return ch, err
 }
 
-func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateContainerMessage, opts *types.DeployOptions, planMap map[types.ResourceType]resourcetypes.ResourcePlans, deployMap map[string]*types.DeployInfo) (_ map[string][]int, err error) {
+func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateContainerMessage, opts *types.DeployOptions, planMap map[types.ResourceType]resourcetypes.ResourcePlans, deployMap map[string]int) (_ map[string][]int, err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(deployMap))
 
 	seq := 0
 	rollbackMap := make(map[string][]int)
-	for nodename, deployInfo := range deployMap {
-		go metrics.Client.SendDeployCount(deployInfo.Deploy)
-		go func(nodename string, seq int) {
+	for nodename, deploy := range deployMap {
+		go metrics.Client.SendDeployCount(deploy)
+		go func(nodename string, deploy, seq int) {
 			defer wg.Done()
-			if indices, e := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deployInfo, planMap, seq); e != nil {
+			if indices, e := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, planMap, seq); e != nil {
 				err = e
 				rollbackMap[nodename] = indices
 			}
 			//process
-		}(nodename, seq)
-		seq += deployInfo.Deploy
+		}(nodename, deploy, seq)
+		seq += deploy
 	}
 
 	wg.Wait()
@@ -145,16 +145,16 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateCo
 }
 
 // deploy scheduled containers on one node
-func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.CreateContainerMessage, nodeName string, opts *types.DeployOptions, deployInfo *types.DeployInfo, planMap map[types.ResourceType]resourcetypes.ResourcePlans, seq int) (indices []int, err error) {
+func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.CreateContainerMessage, nodeName string, opts *types.DeployOptions, deploy int, planMap map[types.ResourceType]resourcetypes.ResourcePlans, seq int) (indices []int, err error) {
 	node, err := c.doGetAndPrepareNode(ctx, nodeName, opts.Image)
 	if err != nil {
-		for i := 0; i < deployInfo.Deploy; i++ {
+		for i := 0; i < deploy; i++ {
 			ch <- &types.CreateContainerMessage{Error: err}
 		}
-		return utils.Range(deployInfo.Deploy), errors.WithStack(err)
+		return utils.Range(deploy), errors.WithStack(err)
 	}
 
-	for idx := 0; idx < deployInfo.Deploy; idx++ {
+	for idx := 0; idx < deploy; idx++ {
 		createMsg := &types.CreateContainerMessage{
 			Podname:  opts.Podname,
 			Nodename: nodeName,
@@ -184,7 +184,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 			}
 
 			createMsg.Resources = *rsc
-			e = c.doDeployOneWorkload(ctx, node, opts, createMsg, seq+idx, deployInfo.Deploy-1-idx)
+			e = c.doDeployOneWorkload(ctx, node, opts, createMsg, seq+idx, deploy-1-idx)
 		}()
 	}
 
