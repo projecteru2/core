@@ -74,6 +74,7 @@ type ControlContainerMessage struct {
 
 // CreateContainerMessage for create message
 type CreateContainerMessage struct {
+	Resource
 	Podname       string
 	Nodename      string
 	ContainerID   string
@@ -81,30 +82,6 @@ type CreateContainerMessage struct {
 	Error         error
 	Publish       map[string][]string
 	Hook          []*bytes.Buffer
-	Resources
-}
-
-// Resources .
-type Resources struct {
-	CPURequest      CPUMap
-	CPULimit        CPUMap
-	CPUQuotaRequest float64
-	CPUQuotaLimit   float64
-	CPUBind         bool
-	NUMANode        string
-
-	MemoryRequest   int64
-	MemoryLimit     int64
-	MemorySoftLimit bool
-
-	VolumeRequest     VolumeBindings
-	VolumeLimit       VolumeBindings
-	VolumePlanRequest VolumePlan
-	VolumePlanLimit   VolumePlan
-	VolumeChanged     bool
-
-	StorageRequest int64
-	StorageLimit   int64
 }
 
 // ReplaceContainerMessage for replace method

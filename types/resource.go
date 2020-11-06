@@ -1,5 +1,21 @@
 package types
 
+// Resource .
+type Resource struct {
+	CPUQuotaRequest float64
+	CPUQuotaLimit   float64
+	CPU             CPUMap
+
+	MemoryRequest int64
+	MemoryLimit   int64
+
+	VolumeRequest VolumeBindings
+	VolumeLimit   VolumeBindings
+
+	StorageRequest int64
+	StorageLimit   int64
+}
+
 // ResourceType .
 type ResourceType int
 
@@ -24,3 +40,26 @@ var (
 	// AllResourceTypes .
 	AllResourceTypes = [...]ResourceType{ResourceCPU, ResourceMemory, ResourceVolume, ResourceStorage}
 )
+
+//// Resources .
+//type Resources struct {
+//	CPURequest      CPUMap
+//	CPULimit        CPUMap
+//	CPUQuotaRequest float64
+//	CPUQuotaLimit   float64
+//	CPUBind         bool
+//	NUMANode        string
+//
+//	MemoryRequest   int64
+//	MemoryLimit     int64
+//	MemorySoftLimit bool
+//
+//	VolumeRequest     VolumeBindings
+//	VolumeLimit       VolumeBindings
+//	VolumePlanRequest VolumePlan
+//	VolumePlanLimit   VolumePlan
+//	VolumeChanged     bool
+//
+//	StorageRequest int64
+//	StorageLimit   int64
+//}

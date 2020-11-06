@@ -658,15 +658,13 @@ func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_R
 	if len(ids) == 0 {
 		return types.ErrNoContainerIDs
 	}
-	vbs, err := types.NewVolumeBindings(opts.Volumes)
+
+	vbsRequest, err := types.NewVolumeBindings(opts.Resource.VolumesRequest)
 	if err != nil {
 		return err
 	}
-	vbsRequest, err := types.NewVolumeBindings(opts.VolumeRequest)
-	if err != nil {
-		return err
-	}
-	vbsLimit, err := types.NewVolumeBindings(opts.VolumeLimit)
+
+	vbsLimit, err := types.NewVolumeBindings(opts.Resource.VolumesLimit)
 	if err != nil {
 		return err
 	}
@@ -674,21 +672,19 @@ func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_R
 	//这里不能让 client 打断 remove
 	ch, err := v.cluster.ReallocResource(
 		stream.Context(),
-		&types.ReallocOptions{IDs: ids,
-			CPU:            opts.Cpu,
-			BindCPUOpt:     types.TriOptions(opts.BindCpuOpt),
-			Memory:         opts.Memory,
-			MemoryLimitOpt: types.TriOptions(opts.MemoryLimitOpt),
-			Volumes:        vbs,
-
-			CPURequest:     opts.CpuRequest,
-			CPULimit:       opts.CpuLimit,
-			MemoryRequest:  opts.MemoryRequest,
-			MemoryLimit:    opts.MemoryLimit,
-			VolumeRequest:  vbsRequest,
-			VolumeLimit:    vbsLimit,
-			StorageRequest: opts.StorageRequest,
-			StorageLimit:   opts.StorageLimit,
+		&types.ReallocOptions{
+			IDs:        ids,
+			CPUBindOpt: types.TriOptions(opts.BindCpuOpt),
+			Resource: types.Resource{
+				CPUQuotaRequest: opts.Resource.CpuQuotaRequest,
+				CPUQuotaLimit:   opts.Resource.CpuQuotaLimit,
+				MemoryRequest:   opts.Resource.MemoryRequest,
+				MemoryLimit:     opts.Resource.MemoryLimit,
+				VolumeRequest:   vbsRequest,
+				VolumeLimit:     vbsLimit,
+				StorageRequest:  opts.Resource.StorageRequest,
+				StorageLimit:    opts.Resource.StorageLimit,
+			},
 		},
 	)
 	if err != nil {

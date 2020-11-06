@@ -186,9 +186,7 @@ message Container {
     map<string, string> publish = 7;
     string image = 8;
     ContainerStatus status = 9;
-    repeated string volumes = 10;
-    map<string, Volume> volume_plan = 11;
-    ContainerResource resource = 12;
+    Resource resource = 12;
 }
 
 message ContainerStatus {
@@ -253,8 +251,8 @@ enum TriOpt {
 
 message ReallocOptions {
     repeated string ids = 1;
-    TriOpt cpu_bind_opt = 2;
-    ContainerResource resource_opt = 3;
+    TriOpt bind_cpu_opt = 2;
+    Resource resource = 3;
 }
 
 message AddPodOptions {
@@ -375,17 +373,16 @@ message EntrypointOptions {
     map<string, string> sysctls = 10;
 }
 
-message ContainerResource {
+message Resource {
     double cpu_quota_limit = 1;
     double cpu_quota_request = 2; 
-    int64 memory_limit = 3;
-    int64 memory_request = 4;
-    repeated string volumes_limit = 5;
-    repeated string volumes_request = 6; 
-    int64 storage_limit = 7;
-    int64 storage_request = 8; 
-    map<string, int32> cpu_limit = 9; // not for deploy only for response
-    map<string, int32> cpu_request = 10; // not for deploy only for response
+    map<string, int32> cpu = 3; // not for deploy only for response
+    int64 memory_limit = 4;
+    int64 memory_request = 5;
+    repeated string volumes_limit = 6;
+    repeated string volumes_request = 7; 
+    int64 storage_limit = 8;
+    int64 storage_request = 9; 
 }
 
 message DeployOptions {
@@ -419,7 +416,7 @@ message DeployOptions {
     bool ignore_hook = 22;
     repeated string after_create = 23;
     bytes raw_args = 24;
-    ContainerResource resource = 25;
+    Resource resource = 25;
 }
 
 message ReplaceOptions {
@@ -472,10 +469,6 @@ message BuildImageMessage {
     ErrorDetail error_detail = 6;
 }
 
-message Volume {
-    map<string, int64> volume = 1;
-}
-
 message CreateContainerMessage {
     string podname = 1;
     string nodename = 2;
@@ -485,7 +478,7 @@ message CreateContainerMessage {
     bool success = 6;
     map<string, string> publish = 7;
     bytes hook = 8;
-    
+    Resource resource = 9; 
 }
 
 message ReplaceContainerMessage {
