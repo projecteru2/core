@@ -8,16 +8,16 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-var registeredFactories = []func(types.RawResourceOptions) (resourcetypes.ResourceRequirement, error){
-	cpumem.NewResourceRequirement,
-	volume.NewResourceRequirement,
-	storage.NewResourceRequirement,
+var registeredFactories = []func(types.ResourceOptions) (resourcetypes.ResourceRequest, error){
+	cpumem.MakeRequest,
+	storage.MakeRequest,
+	volume.MakeRequest,
 }
 
-// NewResourceRequirements .
-func NewResourceRequirements(opts types.RawResourceOptions) (rrs resourcetypes.ResourceRequirements, err error) {
+// MakeRequests .
+func MakeRequests(opts types.ResourceOptions) (resourceRequests resourcetypes.ResourceRequests, err error) {
 	for idx, factory := range registeredFactories {
-		if rrs[idx], err = factory(opts); err != nil {
+		if resourceRequests[idx], err = factory(opts); err != nil {
 			return
 		}
 	}

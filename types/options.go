@@ -2,7 +2,7 @@ package types
 
 // DeployOptions is options for deploying
 type DeployOptions struct {
-	Resource
+	ResourceOpts   ResourceOptions
 	Name           string                   // Name of application
 	Entrypoint     *Entrypoint              // entrypoint
 	Podname        string                   // Name of pod to deploy
@@ -28,7 +28,6 @@ type DeployOptions struct {
 	AfterCreate    []string                 // AfterCreate support run cmds after create
 	RawArgs        []byte                   // RawArgs for raw args processing
 	Lambda         bool                     // indicate is lambda container or not
-	CPUBind        bool                     // indicate bind cpu when deploying
 }
 
 // RunAndWaitOptions is options for running and waiting
@@ -126,9 +125,9 @@ type ExecuteContainerOptions struct {
 
 // ReallocOptions .
 type ReallocOptions struct {
-	Resource
-	IDs        []string
-	CPUBindOpt TriOptions
+	IDs          []string
+	CPUBindOpts  TriOptions
+	ResourceOpts ResourceOptions
 }
 
 // TriOptions .

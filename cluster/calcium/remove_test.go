@@ -57,7 +57,7 @@ func TestRemoveContainer(t *testing.T) {
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{container}, nil)
 	store.On("RemoveContainer", mock.Anything, mock.Anything).Return(nil)
-	store.On("UpdateNodeResource", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("UpdateNodeResource", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	// success
 	ch, err = c.RemoveContainer(ctx, []string{"xx"}, false, 0)
 	assert.NoError(t, err)

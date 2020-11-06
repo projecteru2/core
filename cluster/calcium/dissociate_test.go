@@ -23,14 +23,16 @@ func TestDissociateContainer(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 
 	c1 := &types.Container{
-		ID:            "c1",
-		Podname:       "p1",
-		MemoryLimit:   5 * int64(units.MiB),
-		MemoryRequest: 5 * int64(units.MiB),
-		QuotaLimit:    0.9,
-		QuotaRequest:  0.9,
-		CPURequest:    types.CPUMap{"2": 90},
-		Nodename:      "node1",
+		Resource1: types.Resource1{
+			MemoryLimit:     5 * int64(units.MiB),
+			MemoryRequest:   5 * int64(units.MiB),
+			CPUQuotaLimit:   0.9,
+			CPUQuotaRequest: 0.9,
+			CPU:             types.CPUMap{"2": 90},
+		},
+		ID:       "c1",
+		Podname:  "p1",
+		Nodename: "node1",
 	}
 
 	node1 := &types.Node{
@@ -59,7 +61,7 @@ func TestDissociateContainer(t *testing.T) {
 	}
 	store.On("RemoveContainer", mock.Anything, mock.Anything).Return(nil)
 	// success
-	store.On("UpdateNodeResource", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("UpdateNodeResource", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	ch, err = c.DissociateContainer(ctx, []string{"c1"})
 	assert.NoError(t, err)
 	for r := range ch {

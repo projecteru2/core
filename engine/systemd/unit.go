@@ -141,17 +141,17 @@ func (b *unitBuilder) buildMemoryLimit() *unitBuilder {
 		return b
 	}
 
-	if b.opts.SoftLimit {
-		b.serviceBuffer = append(b.serviceBuffer,
-			fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r memory.soft_limit_in_bytes=%d %s", b.opts.Memory, b.cgroupPath()),
-		)
-
-	} else {
-		b.serviceBuffer = append(b.serviceBuffer,
-			fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r memory.limit_in_bytes=%d %s", b.opts.Memory, b.cgroupPath()),
-			fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r memory.soft_limit_in_bytes=%d %s", utils.Max(int(b.opts.Memory/2), units.MiB*4), b.cgroupPath()),
-		)
-	}
+	//	if b.opts.SoftLimit {
+	//		b.serviceBuffer = append(b.serviceBuffer,
+	//			fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r memory.soft_limit_in_bytes=%d %s", b.opts.Memory, b.cgroupPath()),
+	//		)
+	//
+	//	} else {
+	b.serviceBuffer = append(b.serviceBuffer,
+		fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r memory.limit_in_bytes=%d %s", b.opts.Memory, b.cgroupPath()),
+		fmt.Sprintf("ExecStartPre=/usr/bin/cgset -r memory.soft_limit_in_bytes=%d %s", utils.Max(int(b.opts.Memory/2), units.MiB*4), b.cgroupPath()),
+	)
+	//	}
 	return b
 }
 

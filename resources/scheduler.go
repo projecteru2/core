@@ -9,38 +9,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// SelectNodes .
-func SelectNodes(rrs resourcetypes.ResourceRequirements, nodeMap map[string]*types.Node) (planMap map[types.ResourceType]resourcetypes.ResourcePlans, total int, scheduleTypes types.ResourceType, err error) {
+// SelectNodesByResourceRequests select nodes by resource requests
+func SelectNodesByResourceRequests(resourceRequests resourcetypes.ResourceRequests, nodeMap map[string]*types.Node) (
+	scheduleType types.ResourceType,
+	total int,
+	planMap map[types.ResourceType]resourcetypes.ResourcePlans,
+	err error,
+) {
 	total = math.MaxInt16
 	subTotal := 0
-	planMap = make(map[types.ResourceType]resourcetypes.ResourcePlans)
-	nodesInfo := getNodesInfo(nodeMap)
-	log.Debugf("[SelectNode] nodesInfo: %+v", nodesInfo)
-	for _, rr := range rrs {
-		scheduler := rr.MakeScheduler()
-		if planMap[rr.Type()], subTotal, err = scheduler(nodesInfo); err != nil {
-			return
-		}
-		total = utils.Min(total, subTotal)
-
-		// calculate schedule type
-		if rr.Type()&types.ResourceCPUBind != 0 {
-			scheduleTypes |= types.ResourceCPU
-		}
-		if rr.Type()&types.ResourceScheduledVolume != 0 {
-			scheduleTypes |= types.ResourceVolume
-		}
-	}
-
-	if scheduleTypes == 0 {
-		scheduleTypes = types.ResourceMemory
-	}
-	return
-}
-
-func getNodesInfo(nodes map[string]*types.Node) []types.NodeInfo {
-	result := []types.NodeInfo{}
-	for _, node := range nodes {
+	planMap = map[types.ResourceType]resourcetypes.ResourcePlans{}
+	nodesInfo := []types.NodeInfo{}
+	for _, node := range nodeMap {
 		nodeInfo := types.NodeInfo{
 			Name:          node.Name,
 			CPUMap:        node.CPU,
@@ -50,7 +30,26 @@ func getNodesInfo(nodes map[string]*types.Node) []types.NodeInfo {
 			StorageCap:    node.StorageCap,
 			Capacity:      0,
 		}
-		result = append(result, nodeInfo)
+		nodesInfo = append(nodesInfo, nodeInfo)
 	}
-	return result
+	log.Debugf("[SelectNode] nodesInfo: %+v", nodesInfo)
+	for _, resourceRequest := range resourceRequests {
+		if planMap[resourceRequest.Type()], subTotal, err = resourceRequest.MakeScheduler()(nodesInfo); err != nil {
+			return
+		}
+		total = utils.Min(total, subTotal)
+
+		// calculate schedule type
+		if resourceRequest.Type()&types.ResourceCPUBind != 0 {
+			scheduleType |= types.ResourceCPU
+		}
+		if resourceRequest.Type()&types.ResourceScheduledVolume != 0 {
+			scheduleType |= types.ResourceVolume
+		}
+	}
+
+	if scheduleType == 0 {
+		scheduleType = types.ResourceMemory
+	}
+	return
 }

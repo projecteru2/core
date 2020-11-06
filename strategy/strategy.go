@@ -58,17 +58,18 @@ type Info struct {
 }
 
 // NewInfos .
-func NewInfos(rrs resourcetypes.ResourceRequirements, nodeMap map[string]*types.Node, planMap map[types.ResourceType]resourcetypes.ResourcePlans) (strategyInfos []Info) {
-	for nodeName, node := range nodeMap {
+// TODO strange name, need to revise
+func NewInfos(resourceRequests resourcetypes.ResourceRequests, nodeMap map[string]*types.Node, planMap map[types.ResourceType]resourcetypes.ResourcePlans) (strategyInfos []Info) {
+	for nodename, node := range nodeMap {
 		rates := make(map[types.ResourceType]float64)
-		for _, rr := range rrs {
-			rates[rr.Type()] = rr.Rate(*node)
+		for _, resourceRequest := range resourceRequests {
+			rates[resourceRequest.Type()] = resourceRequest.Rate(*node)
 		}
 
 		capacity := math.MaxInt32
 		for _, plan := range planMap {
-			if plan.Capacity()[nodeName] < capacity {
-				capacity = plan.Capacity()[nodeName]
+			if plan.Capacity()[nodename] < capacity {
+				capacity = plan.Capacity()[nodename]
 			}
 		}
 		if capacity <= 0 {
@@ -76,7 +77,7 @@ func NewInfos(rrs resourcetypes.ResourceRequirements, nodeMap map[string]*types.
 		}
 
 		strategyInfos = append(strategyInfos, Info{
-			Nodename: nodeName,
+			Nodename: nodename,
 			Rates:    rates,
 			Usages:   node.ResourceUsages(),
 			Capacity: capacity,
