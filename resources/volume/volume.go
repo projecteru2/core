@@ -7,6 +7,7 @@ import (
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 // volumeResourceApply .
@@ -85,7 +86,7 @@ func (a volumeResourceApply) MakeScheduler() resourcetypes.SchedulerV2 {
 
 		nodesInfo, volumePlans, total, err := schedulerV1.SelectVolumeNodes(nodesInfo, req)
 		return ResourcePlans{
-			capacity: resourcetypes.GetCapacity(nodesInfo),
+			capacity: utils.GetCapacity(nodesInfo),
 			req:      req,
 			lim:      lim,
 			PlanReq:  volumePlans,

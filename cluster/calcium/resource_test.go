@@ -159,14 +159,14 @@ func TestAllocResource(t *testing.T) {
 	n1 := "n2"
 	n2 := "n2"
 	nodeMap := map[string]*types.Node{
-		n1: &types.Node{
+		n1: {
 			Name:      n1,
 			Available: false,
 			Labels:    map[string]string{"test": "1"},
 			CPU:       types.CPUMap{"0": 100},
 			MemCap:    100,
 		},
-		n2: &types.Node{
+		n2: {
 			Name:      n2,
 			Available: true,
 			CPU:       types.CPUMap{"0": 100},
@@ -210,10 +210,10 @@ func TestAllocResource(t *testing.T) {
 	// Mocks for all.
 	opts.DeployStrategy = strategy.Fill
 	oldFillFunc := strategy.Plans[strategy.Fill]
-	strategy.Plans[strategy.Fill] = func(sis []strategy.Info, need, _, limit int, resourceType types.ResourceType) (map[string]*types.DeployInfo, error) {
-		dis := make(map[string]*types.DeployInfo)
+	strategy.Plans[strategy.Fill] = func(sis []strategy.Info, need, _, limit int, resourceType types.ResourceType) (map[string]int, error) {
+		dis := make(map[string]int)
 		for _, si := range sis {
-			dis[si.Nodename] = &types.DeployInfo{Deploy: 3}
+			dis[si.Nodename] = 3
 		}
 		return dis, nil
 	}
@@ -251,7 +251,7 @@ func testAllocFailedAsWrongDeployMethod(t *testing.T, c *Calcium, opts *types.De
 func testAllocFailedAsCommonDivisionError(t *testing.T, c *Calcium, opts *types.DeployOptions, nodeMap map[string]*types.Node) {
 	opts.DeployStrategy = strategy.Auto
 	old := strategy.Plans[strategy.Auto]
-	strategy.Plans[strategy.Auto] = func(_ []strategy.Info, need, total, _ int, resourceType types.ResourceType) (map[string]*types.DeployInfo, error) {
+	strategy.Plans[strategy.Auto] = func(_ []strategy.Info, need, total, _ int, resourceType types.ResourceType) (map[string]int, error) {
 		return nil, types.ErrInsufficientRes
 	}
 	defer func() {

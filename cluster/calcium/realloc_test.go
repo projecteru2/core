@@ -17,14 +17,14 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func newReallocOptions(ids []string, cpu float64, memory int64, vbs types.VolumeBindings, bindCPU, memoryLimit types.TriOptions) *types.ReallocOptions {
+func newReallocOptions(ids []string, cpu float64, memory int64, vbs types.VolumeBindings, bindCPUOpt, memoryLimitOpt types.TriOptions) *types.ReallocOptions {
 	return &types.ReallocOptions{
-		IDs:             ids,
-		CPU:             cpu,
-		Memory:          memory,
-		Volumes:         vbs,
-		BindCPU:         bindCPU,
-		MemorySoftLimit: memoryLimit,
+		IDs:            ids,
+		CPU:            cpu,
+		Memory:         memory,
+		Volumes:        vbs,
+		BindCPUOpt:     bindCPUOpt,
+		MemoryLimitOpt: memoryLimitOpt,
 	}
 }
 

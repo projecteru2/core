@@ -102,8 +102,8 @@ func (vb VolumeBinding) ToString(normalize bool) (volume string) {
 // VolumeBindings is a collection of VolumeBinding
 type VolumeBindings []*VolumeBinding
 
-// MakeVolumeBindings return VolumeBindings of reference type
-func MakeVolumeBindings(volumes []string) (volumeBindings VolumeBindings, err error) {
+// NewVolumeBindings return VolumeBindings of reference type
+func NewVolumeBindings(volumes []string) (volumeBindings VolumeBindings, err error) {
 	for _, vb := range volumes {
 		volumeBinding, err := NewVolumeBinding(vb)
 		if err != nil {
@@ -131,7 +131,7 @@ func (vbs *VolumeBindings) UnmarshalJSON(b []byte) (err error) {
 	if err = json.Unmarshal(b, &volumes); err != nil {
 		return err
 	}
-	*vbs, err = MakeVolumeBindings(volumes)
+	*vbs, err = NewVolumeBindings(volumes)
 	return
 }
 
@@ -152,25 +152,6 @@ func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 			newVb.Source = vmap.GetResourceID()
 		}
 		res = append(res, newVb)
-	}
-	return
-}
-
-// MergeVolumeBindings combines two VolumeBindings
-func MergeVolumeBindings(vbs1 VolumeBindings, vbs2 ...VolumeBindings) (vbs VolumeBindings) {
-	sizeMap := map[[3]string]int64{} // {["AUTO", "/data", "rw"]: 100}
-	for _, vbs := range append(vbs2, vbs1) {
-		for _, vb := range vbs {
-			key := [3]string{vb.Source, vb.Destination, vb.Flags}
-			sizeMap[key] += vb.SizeInBytes
-		}
-	}
-
-	for key, size := range sizeMap {
-		if size < 0 {
-			continue
-		}
-		vbs = append(vbs, &VolumeBinding{key[0], key[1], key[2], size})
 	}
 	return
 }
@@ -196,6 +177,30 @@ func (vbs VolumeBindings) IsEqual(vbs2 VolumeBindings) bool {
 func (vbs VolumeBindings) TotalSize() (total int64) {
 	for _, vb := range vbs {
 		total += vb.SizeInBytes
+	}
+	return
+}
+
+// MergeVolumeBindings combines two VolumeBindings
+func MergeVolumeBindings(vbs1 VolumeBindings, vbs2 ...VolumeBindings) (vbs VolumeBindings) {
+	sizeMap := map[[3]string]int64{} // {["AUTO", "/data", "rw"]: 100}
+	for _, vbs := range append(vbs2, vbs1) {
+		for _, vb := range vbs {
+			key := [3]string{vb.Source, vb.Destination, vb.Flags}
+			sizeMap[key] += vb.SizeInBytes
+		}
+	}
+
+	for key, size := range sizeMap {
+		if size < 0 {
+			continue
+		}
+		vbs = append(vbs, &VolumeBinding{
+			Source:      key[0],
+			Destination: key[1],
+			Flags:       key[2],
+			SizeInBytes: size,
+		})
 	}
 	return
 }

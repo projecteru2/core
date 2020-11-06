@@ -82,7 +82,7 @@ func TestDeploy(t *testing.T) {
 	}
 	_, err := Deploy(opts, nil, 2, types.ResourceCPU)
 	opts.DeployStrategy = "AUTO"
-	Plans["test"] = func(_ []Info, _, _, _ int, _ types.ResourceType) (map[string]*types.DeployInfo, error) {
+	Plans["test"] = func(_ []Info, _, _, _ int, _ types.ResourceType) (map[string]int, error) {
 		return nil, nil
 	}
 	_, err = Deploy(opts, nil, 2, types.ResourceCPU)

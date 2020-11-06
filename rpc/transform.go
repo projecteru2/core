@@ -146,7 +146,7 @@ func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
 func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) { // nolint
 	r := &types.SetNodeOptions{
 		Nodename:        b.Nodename,
-		Status:          types.TriOptions(b.Status),
+		StatusOpt:       types.TriOptions(b.StatusOpt),
 		ContainersDown:  b.ContainersDown,
 		DeltaCPU:        types.CPUMap{},
 		DeltaMemory:     b.DeltaMemory,
@@ -268,12 +268,12 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		entry.Hook.Force = entrypoint.Hook.Force
 	}
 
-	vbs, err := types.MakeVolumeBindings(d.Volumes)
+	vbs, err := types.NewVolumeBindings(d.Volumes)
 	if err != nil {
 		return nil, err
 	}
 
-	vbsRequest, err := types.MakeVolumeBindings(d.VolumesRequest)
+	vbsRequest, err := types.NewVolumeBindings(d.VolumesRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -348,7 +348,7 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 		Name:              c.ContainerName,
 		Success:           c.Error == nil,
 		Publish:           utils.EncodePublishInfo(c.Publish),
-		Hook:              types.HookOutput(c.Hook),
+		Hook:              utils.MergeHookOutputs(c.Hook),
 		Cpu:               toRPCCPUMap(c.CPULimit),
 		Quota:             c.CPUQuotaLimit,
 		QuotaRequest:      c.CPUQuotaRequest,
@@ -396,7 +396,7 @@ func toRPCRemoveImageMessage(r *types.RemoveImageMessage) *pb.RemoveImageMessage
 func toRPCControlContainerMessage(c *types.ControlContainerMessage) *pb.ControlContainerMessage {
 	r := &pb.ControlContainerMessage{
 		Id:   c.ContainerID,
-		Hook: types.HookOutput(c.Hook),
+		Hook: utils.MergeHookOutputs(c.Hook),
 	}
 	if c.Error != nil {
 		r.Error = c.Error.Error()
@@ -421,7 +421,7 @@ func toRPCRemoveContainerMessage(r *types.RemoveContainerMessage) *pb.RemoveCont
 	return &pb.RemoveContainerMessage{
 		Id:      r.ContainerID,
 		Success: r.Success,
-		Hook:    string(types.HookOutput(r.Hook)),
+		Hook:    string(utils.MergeHookOutputs(r.Hook)),
 	}
 }
 

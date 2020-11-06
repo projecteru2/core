@@ -658,15 +658,15 @@ func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_R
 	if len(ids) == 0 {
 		return types.ErrNoContainerIDs
 	}
-	vbs, err := types.MakeVolumeBindings(opts.Volumes)
+	vbs, err := types.NewVolumeBindings(opts.Volumes)
 	if err != nil {
 		return err
 	}
-	vbsRequest, err := types.MakeVolumeBindings(opts.VolumeRequest)
+	vbsRequest, err := types.NewVolumeBindings(opts.VolumeRequest)
 	if err != nil {
 		return err
 	}
-	vbsLimit, err := types.MakeVolumeBindings(opts.VolumeLimit)
+	vbsLimit, err := types.NewVolumeBindings(opts.VolumeLimit)
 	if err != nil {
 		return err
 	}
@@ -675,16 +675,16 @@ func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_R
 	ch, err := v.cluster.ReallocResource(
 		stream.Context(),
 		&types.ReallocOptions{IDs: ids,
-			CPU:             opts.Cpu,
-			BindCPU:         types.TriOptions(opts.BindCpu),
-			Memory:          opts.Memory,
-			MemorySoftLimit: types.TriOptions(opts.MemoryLimit),
-			Volumes:         vbs,
+			CPU:            opts.Cpu,
+			BindCPUOpt:     types.TriOptions(opts.BindCpuOpt),
+			Memory:         opts.Memory,
+			MemoryLimitOpt: types.TriOptions(opts.MemoryLimitOpt),
+			Volumes:        vbs,
 
 			CPURequest:     opts.CpuRequest,
 			CPULimit:       opts.CpuLimit,
 			MemoryRequest:  opts.MemoryRequest,
-			MemoryLimit:    opts.MemoryLim,
+			MemoryLimit:    opts.MemoryLimit,
 			VolumeRequest:  vbsRequest,
 			VolumeLimit:    vbsLimit,
 			StorageRequest: opts.StorageRequest,

@@ -4,6 +4,19 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+const supported = 3
+
+// ResourceRequirements .
+type ResourceRequirements [supported]ResourceRequirement
+
+// ResourceRequirement .
+type ResourceRequirement interface {
+	Type() types.ResourceType
+	Validate() error
+	MakeScheduler() SchedulerV2
+	Rate(types.Node) float64
+}
+
 // SchedulerV2 .
 type SchedulerV2 func([]types.NodeInfo) (ResourcePlans, int, error)
 
@@ -15,14 +28,6 @@ type DispenseOptions struct {
 	HardVolumeBindings types.VolumeBindings
 }
 
-// ResourceRequirement .
-type ResourceRequirement interface {
-	Type() types.ResourceType
-	Validate() error
-	MakeScheduler() SchedulerV2
-	Rate(types.Node) float64
-}
-
 // ResourcePlans .
 type ResourcePlans interface {
 	Type() types.ResourceType
@@ -31,6 +36,3 @@ type ResourcePlans interface {
 	RollbackChangesOnNode(*types.Node, ...int)
 	Dispense(DispenseOptions, *types.Resources) error
 }
-
-// ResourceRequirements .
-type ResourceRequirements [3]ResourceRequirement

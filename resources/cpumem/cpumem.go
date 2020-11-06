@@ -7,6 +7,7 @@ import (
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 // NewResourceRequirement .
@@ -92,7 +93,7 @@ func (a cpuMemRequirement) MakeScheduler() resourcetypes.SchedulerV2 {
 			CPULimit:        a.CPULimit,
 			CPUPlans:        CPUPlans,
 			CPUBind:         a.CPUBind,
-			capacity:        resourcetypes.GetCapacity(nodesInfo),
+			capacity:        utils.GetCapacity(nodesInfo),
 		}, total, err
 	}
 }

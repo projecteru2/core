@@ -146,7 +146,7 @@ func (o *AddNodeOptions) Normalize() {
 // SetNodeOptions for node set
 type SetNodeOptions struct {
 	Nodename        string
-	Status          TriOptions
+	StatusOpt       TriOptions
 	ContainersDown  bool
 	DeltaCPU        CPUMap
 	DeltaMemory     int64
@@ -179,13 +179,13 @@ type ExecuteContainerOptions struct {
 
 // ReallocOptions .
 type ReallocOptions struct {
-	IDs             []string
-	CPU             float64
-	Memory          int64
-	Storage         int64
-	Volumes         VolumeBindings
-	BindCPU         TriOptions
-	MemorySoftLimit TriOptions
+	IDs            []string
+	CPU            float64
+	Memory         int64
+	Storage        int64
+	Volumes        VolumeBindings
+	BindCPUOpt     TriOptions
+	MemoryLimitOpt TriOptions
 
 	CPURequest     float64
 	CPULimit       float64

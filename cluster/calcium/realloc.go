@@ -89,10 +89,10 @@ func (c *Calcium) doReallocContainersOnPod(ctx context.Context, ch chan *types.R
 				rrs, err = resources.NewResourceRequirements(types.RawResourceOptions{
 					CPURequest:     container.QuotaRequest + opts.CPURequest + opts.CPU,
 					CPULimit:       container.QuotaLimit + opts.CPULimit + opts.CPU,
-					CPUBind:        types.ParseTriOption(opts.BindCPU, len(container.CPURequest) > 0),
+					CPUBind:        types.ParseTriOption(opts.BindCPUOpt, len(container.CPURequest) > 0),
 					MemoryRequest:  container.MemoryRequest + opts.MemoryRequest + opts.Memory,
 					MemoryLimit:    container.MemoryLimit + opts.MemoryLimit + opts.Memory,
-					MemorySoft:     types.ParseTriOption(opts.MemorySoftLimit, container.SoftLimit),
+					MemorySoft:     types.ParseTriOption(opts.MemoryLimitOpt, container.SoftLimit),
 					VolumeRequest:  autoVbsRequest,
 					VolumeLimit:    autoVbsLimit,
 					StorageRequest: container.StorageRequest + opts.StorageRequest + opts.Storage,

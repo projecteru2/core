@@ -11,7 +11,7 @@ import (
 // FillPlan deploy container each node
 // 根据之前部署的策略每一台补充到 N 个，超过 N 个忽略
 // need 是每台上限, limit 是限制节点数
-func FillPlan(strategyInfos []Info, need, total, limit int, resourceType types.ResourceType) (map[string]*types.DeployInfo, error) {
+func FillPlan(strategyInfos []Info, need, total, limit int, resourceType types.ResourceType) (map[string]int, error) {
 	log.Debugf("[FillPlan] need %d limit %d", need, limit)
 	nodesInfoLength := len(strategyInfos)
 	if nodesInfoLength < limit {
@@ -27,7 +27,7 @@ func FillPlan(strategyInfos []Info, need, total, limit int, resourceType types.R
 	if limit > 0 && len(strategyInfos) > limit {
 		strategyInfos = strategyInfos[:limit]
 	}
-	deployMap := make(map[string]*types.DeployInfo)
+	deployMap := make(map[string]int)
 	for i, strategyInfo := range strategyInfos {
 		diff := need - strategyInfos[i].Count
 		if strategyInfos[i].Capacity < diff {
@@ -35,10 +35,7 @@ func FillPlan(strategyInfos []Info, need, total, limit int, resourceType types.R
 				fmt.Sprintf("node %s cannot alloc a fill node plan", strategyInfos[i].Nodename))
 		}
 		strategyInfos[i].Capacity -= diff
-		if _, ok := deployMap[strategyInfo.Nodename]; !ok {
-			deployMap[strategyInfo.Nodename] = &types.DeployInfo{}
-		}
-		deployMap[strategyInfo.Nodename].Deploy += diff
+		deployMap[strategyInfo.Nodename] += diff
 	}
 	log.Debugf("[FillPlan] resource: %v, strategyInfos: %v", resourceType, strategyInfos)
 	return deployMap, nil

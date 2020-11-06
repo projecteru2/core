@@ -1,8 +1,6 @@
-package types
+package utils
 
-import (
-	"github.com/projecteru2/core/types"
-)
+import "github.com/projecteru2/core/types"
 
 // GetCapacity .
 func GetCapacity(nodesInfo []types.NodeInfo) map[string]int {

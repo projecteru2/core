@@ -27,7 +27,7 @@ var Plans = map[string]startegyFunc{
 	Global: GlobalPlan,
 }
 
-type startegyFunc = func(_ []Info, need, total, limit int, _ types.ResourceType) (map[string]*types.DeployInfo, error)
+type startegyFunc = func(_ []Info, need, total, limit int, _ types.ResourceType) (map[string]int, error)
 
 func scoreSort(strategyInfo []Info, byResource types.ResourceType) []Info {
 	sort.Slice(strategyInfo, func(i, j int) bool {
@@ -37,7 +37,7 @@ func scoreSort(strategyInfo []Info, byResource types.ResourceType) []Info {
 }
 
 // Deploy .
-func Deploy(opts *types.DeployOptions, strategyInfos []Info, total int, resourceTypes types.ResourceType) (map[string]*types.DeployInfo, error) {
+func Deploy(opts *types.DeployOptions, strategyInfos []Info, total int, resourceTypes types.ResourceType) (map[string]int, error) {
 	deployMethod, ok := Plans[opts.DeployStrategy]
 	if !ok {
 		return nil, errors.WithStack(types.ErrBadDeployStrategy)

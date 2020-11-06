@@ -24,7 +24,7 @@ func TestFillPlan(t *testing.T) {
 	sort.Slice(nodes, func(i, j int) bool { return nodes[i].Count < nodes[j].Count })
 	for i := range nodes {
 		assert.Equal(t, nodes[i].Capacity, resultCap[i])
-		assert.Equal(t, r[nodes[i].Nodename].Deploy, resultDeploy[i])
+		assert.Equal(t, r[nodes[i].Nodename], resultDeploy[i])
 	}
 
 	// 局部补充
@@ -48,7 +48,7 @@ func TestFillPlan(t *testing.T) {
 			continue
 		}
 		assert.Equal(t, nodes[i].Capacity, resultCap[i])
-		assert.Equal(t, r[nodes[i].Nodename].Deploy, resultDeploy[i])
+		assert.Equal(t, r[nodes[i].Nodename], resultDeploy[i])
 		i++
 	}
 
