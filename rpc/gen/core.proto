@@ -181,22 +181,14 @@ message Container {
     string podname = 2;
     string nodename = 3;
     string name = 4;
-    map<string, int32> cpu = 5;
-    double quota = 6;
-    int64 memory = 7;
-    bool privileged = 8;
-    map<string, string> labels = 9;
-    map<string, string> publish = 10;
-    string image = 11;
-    int64 storage = 12;
-    ContainerStatus status = 13;
-    repeated string volumes = 14;
-    map<string, Volume> volume_plan = 15;
-    double quota_request = 16;
-    int64 memory_request = 17;
-    int64 storage_request = 18;
-    repeated string volumes_request = 19;
-    map<string, Volume> volume_plan_request = 20;
+    bool privileged = 5;
+    map<string, string> labels = 6;
+    map<string, string> publish = 7;
+    string image = 8;
+    ContainerStatus status = 9;
+    repeated string volumes = 10;
+    map<string, Volume> volume_plan = 11;
+    ContainerResource resource = 12;
 }
 
 message ContainerStatus {
@@ -261,20 +253,8 @@ enum TriOpt {
 
 message ReallocOptions {
     repeated string ids = 1;
-    double cpu = 2;
-    int64 memory = 3;
-    repeated string volumes = 4;
-    TriOpt bind_cpu_opt = 5;
-    TriOpt memory_limit_opt = 6;
-
-    double cpu_request = 7;
-    double cpu_limit = 8;
-    int64 memory_request = 9;
-    int64 memory_limit = 10;
-    int64 storage_request = 11;
-    int64 storage_limit = 12;
-    repeated string volume_request = 13;
-    repeated string volume_limit = 14;
+    TriOpt cpu_bind_opt = 2;
+    ContainerResource resource_opt = 3;
 }
 
 message AddPodOptions {
@@ -395,46 +375,51 @@ message EntrypointOptions {
     map<string, string> sysctls = 10;
 }
 
+message ContainerResource {
+    double cpu_quota_limit = 1;
+    double cpu_quota_request = 2; 
+    int64 memory_limit = 3;
+    int64 memory_request = 4;
+    repeated string volumes_limit = 5;
+    repeated string volumes_request = 6; 
+    int64 storage_limit = 7;
+    int64 storage_request = 8; 
+    map<string, int32> cpu_limit = 9; // not for deploy only for response
+    map<string, int32> cpu_request = 10; // not for deploy only for response
+}
+
 message DeployOptions {
-    string name = 1;
-    EntrypointOptions entrypoint = 2;
-    string podname = 3;
-    repeated string nodenames = 4;
-    string image = 5;
-    string extra_args = 6;
-    double cpu_quota = 7;
-    int64 memory = 8;
-    int32 count = 9;
-    repeated string env = 10;
-    repeated string dns = 11;
-    repeated string extra_hosts = 12;
-    repeated string volumes = 13;
-    map<string, string> networks = 14;
-    string networkmode = 15;
-    string user = 16;
-    bool debug = 17;
-    bool openStdin = 18;
-    map<string, string> labels = 19;
-    map<string, string> nodelabels = 20;
     enum Strategy {
         AUTO = 0;
         FILL = 1;
         EACH = 2;
         GLOBAL = 3;
     }
-    Strategy deploy_strategy = 21;
-    map<string, bytes> data = 22;
-    bool soft_limit = 23;
-    int32 nodes_limit = 24;
-    bool cpu_bind = 25;
-    bool ignore_hook = 26;
-    repeated string after_create = 27;
-    bytes raw_args = 28;
-    int64 storage = 29;
-    double cpu_quota_request = 30; // original cpu_quota denotes cpu_quota_limit
-    int64 memory_request = 31; // original memory denotes memory_limit
-    repeated string volumes_request = 32; // original volumes denotes volumes_limit
-    int64 storage_request = 33; // original storage denotes storage_limit
+    string name = 1;
+    EntrypointOptions entrypoint = 2;
+    string podname = 3;
+    repeated string nodenames = 4;
+    string image = 5;
+    string extra_args = 6;
+    int32 count = 7;
+    repeated string env = 8;
+    repeated string dns = 9;
+    repeated string extra_hosts = 10;
+    map<string, string> networks = 11;
+    string networkmode = 12;
+    string user = 13;
+    bool debug = 14;
+    bool openStdin = 15;
+    map<string, string> labels = 16;
+    map<string, string> nodelabels = 17;
+    Strategy deploy_strategy = 18;
+    map<string, bytes> data = 19;
+    int32 nodes_limit = 20;
+    bool cpu_bind = 21;
+    bool ignore_hook = 22;
+    repeated string after_create = 23;
+    bytes raw_args = 24;
+    ContainerResource resource = 25;
 }
 
 message ReplaceOptions {
@@ -498,17 +483,9 @@ message CreateContainerMessage {
     string name = 4;
     string error = 5;
     bool success = 6;
-    map<string, int32> cpu = 7;
-    double quota = 8;
-    int64 memory = 9;
-    map<string, string> publish = 10;
-    bytes hook = 11;
-    int64 storage = 12;
-    map<string, Volume> volume_plan = 13;
-    double quota_request = 14;
-    int64 memory_request = 15;
-    int64 storage_request = 16;
-    map<string, Volume> volume_plan_request = 17;
+    map<string, string> publish = 7;
+    bytes hook = 8;
+    
 }
 
 message ReplaceContainerMessage {
