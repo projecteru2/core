@@ -8,14 +8,14 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-var registeredFactories = []func(types.RawResourceOptions) (resourcetypes.ResourceRequirement, error){
+var registeredFactories = []func(types.Resource) (resourcetypes.ResourceRequirement, error){
 	cpumem.NewResourceRequirement,
-	volume.NewResourceRequirement,
 	storage.NewResourceRequirement,
+	volume.NewResourceRequirement,
 }
 
 // NewResourceRequirements .
-func NewResourceRequirements(opts types.RawResourceOptions) (rrs resourcetypes.ResourceRequirements, err error) {
+func NewResourceRequirements(opts types.Resource) (rrs resourcetypes.ResourceRequirements, err error) {
 	for idx, factory := range registeredFactories {
 		if rrs[idx], err = factory(opts); err != nil {
 			return

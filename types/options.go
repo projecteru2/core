@@ -28,7 +28,6 @@ type DeployOptions struct {
 	AfterCreate    []string                 // AfterCreate support run cmds after create
 	RawArgs        []byte                   // RawArgs for raw args processing
 	Lambda         bool                     // indicate is lambda container or not
-	CPUBind        bool                     // indicate bind cpu when deploying
 }
 
 // RunAndWaitOptions is options for running and waiting

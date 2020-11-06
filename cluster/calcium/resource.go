@@ -161,7 +161,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types
 		return nil, nil, errors.WithStack(types.ErrInsufficientNodes)
 	}
 
-	apps, err := resources.NewResourceRequirements(opts.RawResourceOptions)
+	apps, err := resources.NewResourceRequirements(opts.Resource)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}

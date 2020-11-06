@@ -5,12 +5,15 @@ type Resource struct {
 	CPUQuotaRequest float64
 	CPUQuotaLimit   float64
 	CPU             CPUMap
+	CPUBind         bool // indicate CPU Bind
+	NUMANode        string
 
 	MemoryRequest int64
 	MemoryLimit   int64
 
 	VolumeRequest VolumeBindings
 	VolumeLimit   VolumeBindings
+	VolumeChanged bool // only for realloc used
 
 	StorageRequest int64
 	StorageLimit   int64

@@ -375,14 +375,15 @@ message EntrypointOptions {
 
 message Resource {
     double cpu_quota_limit = 1;
-    double cpu_quota_request = 2; 
+    double cpu_quota_request = 2;
     map<string, int32> cpu = 3; // not for deploy only for response
-    int64 memory_limit = 4;
-    int64 memory_request = 5;
-    repeated string volumes_limit = 6;
-    repeated string volumes_request = 7; 
-    int64 storage_limit = 8;
-    int64 storage_request = 9; 
+    bool cpu_bind = 4; 
+    int64 memory_limit = 5;
+    int64 memory_request = 6;
+    repeated string volumes_limit = 7;
+    repeated string volumes_request = 8; 
+    int64 storage_limit = 9;
+    int64 storage_request = 10; 
 }
 
 message DeployOptions {
@@ -412,11 +413,10 @@ message DeployOptions {
     Strategy deploy_strategy = 18;
     map<string, bytes> data = 19;
     int32 nodes_limit = 20;
-    bool cpu_bind = 21;
-    bool ignore_hook = 22;
-    repeated string after_create = 23;
-    bytes raw_args = 24;
-    Resource resource = 25;
+    bool ignore_hook = 21;
+    repeated string after_create = 22;
+    bytes raw_args = 23;
+    Resource resource = 24;
 }
 
 message ReplaceOptions {

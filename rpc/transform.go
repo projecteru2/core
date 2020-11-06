@@ -290,6 +290,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Resource: types.Resource{
 			CPUQuotaRequest: d.Resource.CpuQuotaRequest,
 			CPUQuotaLimit:   d.Resource.CpuQuotaLimit,
+			CPUBind:         d.Resource.CpuBind,
 			MemoryRequest:   d.Resource.MemoryRequest,
 			MemoryLimit:     d.Resource.MemoryLimit,
 			VolumeRequest:   vbsRequest,
@@ -320,7 +321,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		AfterCreate:    d.AfterCreate,
 		RawArgs:        d.RawArgs,
 		Data:           data,
-		CPUBind:        d.CpuBind,
 	}, nil
 }
 
