@@ -131,7 +131,7 @@ func (m *Mercury) ListContainers(ctx context.Context, appname, entrypoint, noden
 
 	containers := []*types.Container{}
 	for _, ev := range resp.Kvs {
-		container := &types.Container{VolumePlan: types.VolumePlan{}}
+		container := &types.Container{}
 		if err := json.Unmarshal(ev.Value, container); err != nil {
 			return nil, err
 		}
@@ -153,7 +153,7 @@ func (m *Mercury) ListNodeContainers(ctx context.Context, nodename string, label
 
 	containers := []*types.Container{}
 	for _, ev := range resp.Kvs {
-		container := &types.Container{VolumePlan: types.VolumePlan{}}
+		container := &types.Container{}
 		if err := json.Unmarshal(ev.Value, container); err != nil {
 			return []*types.Container{}, err
 		}
@@ -233,7 +233,7 @@ func (m *Mercury) doGetContainers(ctx context.Context, keys []string) (container
 	}
 
 	for _, kv := range kvs {
-		container := &types.Container{VolumePlan: types.VolumePlan{}}
+		container := &types.Container{}
 		if err = json.Unmarshal(kv.Value, container); err != nil {
 			log.Errorf("[doGetContainers] failed to unmarshal %v, err: %v", string(kv.Key), err)
 			return

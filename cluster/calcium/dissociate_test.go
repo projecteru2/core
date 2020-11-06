@@ -23,12 +23,14 @@ func TestDissociateContainer(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 
 	c1 := &types.Container{
-		ID:       "c1",
-		Podname:  "p1",
-		Memory:   5 * int64(units.MiB),
-		Quota:    0.9,
-		CPU:      types.CPUMap{"2": 90},
-		Nodename: "node1",
+		ID:            "c1",
+		Podname:       "p1",
+		MemoryLimit:   5 * int64(units.MiB),
+		MemoryRequest: 5 * int64(units.MiB),
+		QuotaLimit:    0.9,
+		QuotaRequest:  0.9,
+		CPURequest:    types.CPUMap{"2": 90},
+		Nodename:      "node1",
 	}
 
 	node1 := &types.Node{

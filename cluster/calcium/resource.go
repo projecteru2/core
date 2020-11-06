@@ -8,7 +8,8 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/projecteru2/core/scheduler"
+	"github.com/projecteru2/core/resources"
+	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -77,10 +78,10 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 		storage := int64(0)
 		cpumap := types.CPUMap{}
 		for _, container := range containers {
-			cpus = utils.Round(cpus + container.Quota)
-			memory += container.Memory
-			storage += container.Storage
-			cpumap.Add(container.CPU)
+			cpus = utils.Round(cpus + container.QuotaRequest)
+			memory += container.MemoryRequest
+			storage += container.StorageRequest
+			cpumap.Add(container.CPURequest)
 		}
 		nr.CPUPercent = cpus / float64(len(node.InitCPU))
 		nr.MemoryPercent = float64(memory) / float64(node.InitMemCap)
@@ -155,20 +156,25 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 	)
 }
 
-func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) (map[types.ResourceType]types.ResourcePlans, map[string]*types.DeployInfo, error) {
+func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) (map[types.ResourceType]resourcetypes.ResourcePlans, map[string]*types.DeployInfo, error) {
 	if len(nodeMap) == 0 {
 		return nil, nil, errors.WithStack(types.ErrInsufficientNodes)
 	}
 
-	// select available nodes
-	planMap, total, scheduleTypes, err := scheduler.SelectNodes(opts.ResourceRequests, nodeMap)
+	apps, err := resources.NewResourceRequirements(opts.RawResourceOptions)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	log.Errorf("[Calcium.doAllocResource] planMap: %+v, total: %v, type: %+v", planMap, total, scheduleTypes)
+
+	// select available nodes
+	planMap, total, scheduleTypes, err := resources.SelectNodes(apps, nodeMap)
+	if err != nil {
+		return nil, nil, errors.WithStack(err)
+	}
+	//log.Debugf("[Calcium.doAllocResource] planMap: %+v, total: %v, type: %+v", planMap, total, scheduleTypes)
 
 	// deploy strategy
-	strategyInfos := types.NewStrategyInfos(opts, nodeMap, planMap)
+	strategyInfos := strategy.NewInfos(apps, nodeMap, planMap)
 	if err := c.store.MakeDeployStatus(ctx, opts, strategyInfos); err != nil {
 		return nil, nil, errors.WithStack(err)
 	}

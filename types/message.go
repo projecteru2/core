@@ -86,16 +86,25 @@ type CreateContainerMessage struct {
 
 // Resources .
 type Resources struct {
-	CPU           CPUMap
-	Quota         float64
-	CPUBind       bool
-	Memory        int64
-	Volume        VolumeBindings
-	VolumePlan    VolumePlan
-	Storage       int64
-	SoftLimit     bool
-	NUMANode      string
-	VolumeChanged bool
+	CPURequest      CPUMap
+	CPULimit        CPUMap
+	CPUQuotaRequest float64
+	CPUQuotaLimit   float64
+	CPUBind         bool
+	NUMANode        string
+
+	MemoryRequest   int64
+	MemoryLimit     int64
+	MemorySoftLimit bool
+
+	VolumeRequest     VolumeBindings
+	VolumeLimit       VolumeBindings
+	VolumePlanRequest VolumePlan
+	VolumePlanLimit   VolumePlan
+	VolumeChanged     bool
+
+	StorageRequest int64
+	StorageLimit   int64
 }
 
 // ReplaceContainerMessage for replace method

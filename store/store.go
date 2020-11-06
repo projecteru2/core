@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/projecteru2/core/lock"
+	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 )
 
@@ -50,7 +51,7 @@ type Store interface {
 	ContainerStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.ContainerStatus
 
 	// deploy status
-	MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfo []types.StrategyInfo) error
+	MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfo []strategy.Info) error
 
 	// processing status
 	SaveProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error

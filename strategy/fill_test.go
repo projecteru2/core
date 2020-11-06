@@ -73,7 +73,7 @@ func TestFillPlan(t *testing.T) {
 
 	// 局部补充
 	n = 1
-	nodes = []types.StrategyInfo{
+	nodes = []Info{
 		{
 			Nodename: "65",
 			Capacity: 0,

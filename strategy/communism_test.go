@@ -46,11 +46,11 @@ func TestCommunismPlan(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func randomDeployStatus(nodesInfo []types.NodeInfo, maxDeployed int) (sis []types.StrategyInfo) {
+func randomDeployStatus(nodesInfo []types.NodeInfo, maxDeployed int) (sis []Info) {
 	s := rand.NewSource(int64(1024))
 	r := rand.New(s)
 	for _ = range nodesInfo {
-		sis = append(sis, types.StrategyInfo{
+		sis = append(sis, Info{
 			Capacity: maxDeployed,
 			Count:    r.Intn(maxDeployed),
 		})

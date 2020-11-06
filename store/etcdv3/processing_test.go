@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -28,7 +29,7 @@ func TestProcessing(t *testing.T) {
 	// update
 	assert.NoError(t, m.UpdateProcessing(ctx, opts, nodeInfo.Name, 8))
 
-	sis := []types.StrategyInfo{{Nodename: "node"}}
+	sis := []strategy.Info{{Nodename: "node"}}
 	err := m.doLoadProcessing(ctx, opts, sis)
 	assert.NoError(t, err)
 	assert.Equal(t, sis[0].Count, 8)

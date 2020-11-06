@@ -11,7 +11,7 @@ import (
 // FillPlan deploy container each node
 // 根据之前部署的策略每一台补充到 N 个，超过 N 个忽略
 // need 是每台上限, limit 是限制节点数
-func FillPlan(strategyInfos []types.StrategyInfo, need, total, limit int, resourceType types.ResourceType) (map[string]*types.DeployInfo, error) {
+func FillPlan(strategyInfos []Info, need, total, limit int, resourceType types.ResourceType) (map[string]*types.DeployInfo, error) {
 	log.Debugf("[FillPlan] need %d limit %d", need, limit)
 	nodesInfoLength := len(strategyInfos)
 	if nodesInfoLength < limit {

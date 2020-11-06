@@ -129,12 +129,17 @@ func (c *Calcium) doReplaceContainer(
 
 	createMessage := &types.CreateContainerMessage{
 		Resources: types.Resources{
-			Memory:     container.Memory,
-			Storage:    container.Storage,
-			Quota:      container.Quota,
-			CPU:        container.CPU,
-			Volume:     container.Volumes,
-			VolumePlan: container.VolumePlan,
+			MemoryRequest:     container.MemoryRequest,
+			MemoryLimit:       container.MemoryLimit,
+			StorageRequest:    container.StorageRequest,
+			StorageLimit:      container.StorageLimit,
+			CPUQuotaRequest:   container.QuotaRequest,
+			CPUQuotaLimit:     container.QuotaLimit,
+			CPURequest:        container.CPURequest,
+			VolumeRequest:     container.VolumeRequest,
+			VolumePlanRequest: container.VolumePlanRequest,
+			VolumeLimit:       container.VolumeLimit,
+			VolumePlanLimit:   container.VolumePlanLimit,
 		},
 	}
 	return createMessage, removeMessage, utils.Txn(

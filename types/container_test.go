@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -47,4 +48,15 @@ func TestContainerControl(t *testing.T) {
 	assert.NoError(t, err)
 	err = c.Remove(ctx, true)
 	assert.NoError(t, err)
+}
+
+func TestContainerUnmarshal(t *testing.T) {
+	c := Container{QuotaRequest: 1}
+	b, err := json.Marshal(c)
+	assert.Nil(t, err)
+	c1 := Container{}
+	err = json.Unmarshal(b, &c1)
+	assert.Nil(t, err)
+	assert.EqualValues(t, 1, c1.QuotaLimit)
+	assert.EqualValues(t, 1, c1.QuotaRequest)
 }

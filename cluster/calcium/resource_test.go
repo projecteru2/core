@@ -15,7 +15,6 @@ import (
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	"github.com/projecteru2/core/scheduler"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
-	"github.com/projecteru2/core/scheduler/resources"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
@@ -52,15 +51,20 @@ func TestPodResource(t *testing.T) {
 	assert.Error(t, err)
 	containers := []*types.Container{
 		{
-			Memory: 1,
-			CPU:    types.CPUMap{"0": 100, "1": 30},
-			Quota:  1.3,
+			MemoryRequest: 1,
+			MemoryLimit:   1,
+			CPURequest:    types.CPUMap{"0": 100, "1": 30},
+			QuotaRequest:  1.3,
+			QuotaLimit:    1.3,
 		},
 		{
-			Memory:  2,
-			CPU:     types.CPUMap{"1": 50},
-			Quota:   0.5,
-			Storage: 1,
+			MemoryLimit:    2,
+			MemoryRequest:  2,
+			CPURequest:     types.CPUMap{"1": 50},
+			QuotaRequest:   0.5,
+			QuotaLimit:     0.5,
+			StorageRequest: 1,
+			StorageLimit:   1,
 		},
 	}
 	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
@@ -114,14 +118,18 @@ func TestNodeResource(t *testing.T) {
 	assert.Error(t, err)
 	containers := []*types.Container{
 		{
-			Memory: 1,
-			CPU:    types.CPUMap{"0": 100, "1": 30},
-			Quota:  1.3,
+			MemoryRequest: 1,
+			MemoryLimit:   1,
+			CPURequest:    types.CPUMap{"0": 100, "1": 30},
+			QuotaRequest:  1.3,
+			QuotaLimit:    1.3,
 		},
 		{
-			Memory: 2,
-			CPU:    types.CPUMap{"1": 50},
-			Quota:  0.5,
+			MemoryRequest: 2,
+			MemoryLimit:   2,
+			CPURequest:    types.CPUMap{"1": 50},
+			QuotaRequest:  0.5,
+			QuotaLimit:    0.5,
 		},
 	}
 	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
@@ -184,17 +192,17 @@ func TestAllocResource(t *testing.T) {
 		},
 	}
 
-	testAllocFailedAsMakeDeployStatusError(t, c, opts, nodeMap)
-	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-
-	testAllocFailedAsInsufficientMemory(t, c, opts, nodeMap)
-
 	sched := c.scheduler.(*schedulermocks.Scheduler)
 	defer sched.AssertExpectations(t)
-
 	total := 3
-	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, total, nil)
 	sched.On("SelectStorageNodes", mock.Anything, mock.Anything).Return(nodesInfo, total, nil)
+	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(nodesInfo, nil, total, nil)
+	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, types.ErrInsufficientMEM).Once()
+	testAllocFailedAsInsufficientMemory(t, c, opts, nodeMap)
+
+	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, total, nil)
+	testAllocFailedAsMakeDeployStatusError(t, c, opts, nodeMap)
+	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	testAllocFailedAsWrongDeployMethod(t, c, opts, nodeMap)
 	testAllocFailedAsCommonDivisionError(t, c, opts, nodeMap)
@@ -202,7 +210,7 @@ func TestAllocResource(t *testing.T) {
 	// Mocks for all.
 	opts.DeployStrategy = strategy.Fill
 	oldFillFunc := strategy.Plans[strategy.Fill]
-	strategy.Plans[strategy.Fill] = func(sis []types.StrategyInfo, need, _, limit int, resourceType types.ResourceType) (map[string]*types.DeployInfo, error) {
+	strategy.Plans[strategy.Fill] = func(sis []strategy.Info, need, _, limit int, resourceType types.ResourceType) (map[string]*types.DeployInfo, error) {
 		dis := make(map[string]*types.DeployInfo)
 		for _, si := range sis {
 			dis[si.Nodename] = &types.DeployInfo{Deploy: 3}
@@ -214,10 +222,7 @@ func TestAllocResource(t *testing.T) {
 	}()
 
 	// success
-	opts.ResourceRequests = []types.ResourceRequest{
-		resources.CPUMemResourceRequest{CPUQuota: 1, Memory: 1},
-		resources.StorageResourceRequest{Quota: 1},
-	}
+	opts.RawResourceOptions = types.RawResourceOptions{CPULimit: 1, MemoryLimit: 1, StorageLimit: 1}
 	_, _, err := c.doAllocResource(ctx, nodeMap, opts)
 	assert.NoError(t, err)
 }
@@ -230,11 +235,7 @@ func testAllocFailedAsMakeDeployStatusError(t *testing.T, c *Calcium, opts *type
 }
 
 func testAllocFailedAsInsufficientMemory(t *testing.T, c *Calcium, opts *types.DeployOptions, nodeMap map[string]*types.Node) {
-	sched := c.scheduler.(*schedulermocks.Scheduler)
-	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, types.ErrInsufficientMEM).Once()
-	opts.ResourceRequests = []types.ResourceRequest{
-		resources.CPUMemResourceRequest{CPUQuota: 1, Memory: 1},
-	}
+	opts.RawResourceOptions = types.RawResourceOptions{CPULimit: 1, MemoryLimit: 1}
 	_, _, err := c.doAllocResource(context.Background(), nodeMap, opts)
 	assert.Error(t, err)
 }
@@ -250,7 +251,7 @@ func testAllocFailedAsWrongDeployMethod(t *testing.T, c *Calcium, opts *types.De
 func testAllocFailedAsCommonDivisionError(t *testing.T, c *Calcium, opts *types.DeployOptions, nodeMap map[string]*types.Node) {
 	opts.DeployStrategy = strategy.Auto
 	old := strategy.Plans[strategy.Auto]
-	strategy.Plans[strategy.Auto] = func(_ []types.StrategyInfo, need, total, _ int, resourceType types.ResourceType) (map[string]*types.DeployInfo, error) {
+	strategy.Plans[strategy.Auto] = func(_ []strategy.Info, need, total, _ int, resourceType types.ResourceType) (map[string]*types.DeployInfo, error) {
 		return nil, types.ErrInsufficientRes
 	}
 	defer func() {
