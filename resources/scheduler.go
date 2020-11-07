@@ -17,8 +17,7 @@ func SelectNodes(rrs resourcetypes.ResourceRequirements, nodeMap map[string]*typ
 	nodesInfo := getNodesInfo(nodeMap)
 	log.Debugf("[SelectNode] nodesInfo: %+v", nodesInfo)
 	for _, rr := range rrs {
-		scheduler := rr.MakeScheduler()
-		if planMap[rr.Type()], subTotal, err = scheduler(nodesInfo); err != nil {
+		if planMap[rr.Type()], subTotal, err = rr.MakeScheduler()(nodesInfo); err != nil {
 			return
 		}
 		total = utils.Min(total, subTotal)

@@ -98,11 +98,10 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 			// rollback: give back resources
 			func(ctx context.Context) (err error) {
-				for nodeName, rollbackIndices := range rollbackMap {
-					indices := rollbackIndices
-					if e := c.withNodeLocked(ctx, nodeName, func(node *types.Node) error {
+				for nodename, rollbackIndices := range rollbackMap {
+					if e := c.withNodeLocked(ctx, nodename, func(node *types.Node) error {
 						for _, plan := range planMap {
-							plan.RollbackChangesOnNode(node, indices...)
+							plan.RollbackChangesOnNode(node, rollbackIndices...)
 						}
 						return errors.WithStack(c.store.UpdateNodes(ctx, node))
 					}); e != nil {
@@ -145,8 +144,8 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateCo
 }
 
 // deploy scheduled containers on one node
-func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.CreateContainerMessage, nodeName string, opts *types.DeployOptions, deploy int, planMap map[types.ResourceType]resourcetypes.ResourcePlans, seq int) (indices []int, err error) {
-	node, err := c.doGetAndPrepareNode(ctx, nodeName, opts.Image)
+func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.CreateContainerMessage, nodename string, opts *types.DeployOptions, deploy int, planMap map[types.ResourceType]resourcetypes.ResourcePlans, seq int) (indices []int, err error) {
+	node, err := c.doGetAndPrepareNode(ctx, nodename, opts.Image)
 	if err != nil {
 		for i := 0; i < deploy; i++ {
 			ch <- &types.CreateContainerMessage{Error: err}
@@ -157,12 +156,11 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 	for idx := 0; idx < deploy; idx++ {
 		createMsg := &types.CreateContainerMessage{
 			Podname:  opts.Podname,
-			Nodename: nodeName,
+			Nodename: nodename,
 			Publish:  map[string][]string{},
 		}
 
-		func() {
-			var e error
+		do := func(idx int) (e error) {
 			defer func() {
 				if e != nil {
 					err = e
@@ -172,20 +170,22 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 				ch <- createMsg
 			}()
 
-			rsc := &types.Resources{}
+			var r *types.Resource
 			o := resourcetypes.DispenseOptions{
 				Node:  node,
 				Index: idx,
 			}
 			for _, plan := range planMap {
-				if e = plan.Dispense(o, rsc); e != nil {
+				if r, e = plan.Dispense(o); e != nil {
 					return
 				}
 			}
 
-			createMsg.Resources = *rsc
+			createMsg.Resource = *r
 			e = c.doDeployOneWorkload(ctx, node, opts, createMsg, seq+idx, deploy-1-idx)
-		}()
+			return e
+		}
+		_ = do(idx)
 	}
 
 	return indices, errors.WithStack(err)
@@ -210,30 +210,29 @@ func (c *Calcium) doDeployOneWorkload(
 ) (err error) {
 	config := c.doMakeContainerOptions(no, msg, opts, node)
 	container := &types.Container{
-		Name:                 config.Name,
-		Labels:               config.Labels,
-		Podname:              opts.Podname,
-		Nodename:             node.Name,
-		CPURequest:           msg.CPURequest,
-		CPULimit:             msg.CPULimit,
-		QuotaRequest:         msg.CPUQuotaRequest,
-		QuotaLimit:           msg.CPUQuotaLimit,
-		MemoryRequest:        msg.MemoryRequest,
-		MemoryLimit:          msg.MemoryLimit,
-		StorageRequest:       msg.StorageRequest,
-		StorageLimit:         msg.StorageLimit,
-		VolumeRequest:        msg.VolumeRequest,
-		VolumeLimit:          msg.VolumeLimit,
-		VolumePlanRequest:    msg.VolumePlanRequest,
-		VolumePlanLimit:      msg.VolumePlanLimit,
-		Hook:                 opts.Entrypoint.Hook,
-		Privileged:           opts.Entrypoint.Privileged,
-		Engine:               node.Engine,
-		SoftLimit:            opts.SoftLimit,
-		Image:                opts.Image,
-		Env:                  opts.Env,
-		User:                 opts.User,
-		ResourceSubdivisible: true,
+		Resource: types.Resource{
+			CPU:               msg.CPU,
+			CPUQuotaRequest:   msg.CPUQuotaRequest,
+			CPUQuotaLimit:     msg.CPUQuotaLimit,
+			MemoryRequest:     msg.MemoryRequest,
+			MemoryLimit:       msg.MemoryLimit,
+			StorageRequest:    msg.StorageRequest,
+			StorageLimit:      msg.StorageLimit,
+			VolumeRequest:     msg.VolumeRequest,
+			VolumeLimit:       msg.VolumeLimit,
+			VolumePlanRequest: msg.VolumePlanRequest,
+			VolumePlanLimit:   msg.VolumePlanLimit,
+		},
+		Name:       config.Name,
+		Labels:     config.Labels,
+		Podname:    opts.Podname,
+		Nodename:   node.Name,
+		Hook:       opts.Entrypoint.Hook,
+		Privileged: opts.Entrypoint.Privileged,
+		Engine:     node.Engine,
+		Image:      opts.Image,
+		Env:        opts.Env,
+		User:       opts.User,
 	}
 	return utils.Txn(
 		ctx,
@@ -318,12 +317,11 @@ func (c *Calcium) doDeployOneWorkload(
 func (c *Calcium) doMakeContainerOptions(no int, msg *types.CreateContainerMessage, opts *types.DeployOptions, node *types.Node) *enginetypes.VirtualizationCreateOptions {
 	config := &enginetypes.VirtualizationCreateOptions{}
 	// general
-	config.CPU = msg.CPULimit
+	config.CPU = msg.CPU
 	config.Quota = msg.CPUQuotaLimit
 	config.Memory = msg.MemoryLimit
 	config.Storage = msg.StorageLimit
-	config.NUMANode = node.GetNUMANode(msg.CPULimit)
-	config.SoftLimit = opts.SoftLimit
+	config.NUMANode = node.GetNUMANode(msg.CPU)
 	config.RawArgs = opts.RawArgs
 	config.Lambda = opts.Lambda
 	config.User = opts.User

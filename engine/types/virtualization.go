@@ -6,7 +6,6 @@ type VirtualizationResource struct {
 	Quota         float64          // for cpu quota
 	Memory        int64            // for memory binding
 	Storage       int64
-	SoftLimit     bool   // soft limit or not
 	NUMANode      string // numa node
 	Volumes       []string
 	VolumePlan    map[string]map[string]int64 // literal VolumePlan
