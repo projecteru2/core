@@ -26,7 +26,7 @@ func (c *Calcium) DissociateContainer(ctx context.Context, IDs []string) (chan *
 						// then
 						func(ctx context.Context) error {
 							log.Infof("[DissociateContainer] Container %s dissociated", container.ID)
-							return c.store.UpdateNodeResource(ctx, node, &container.Resource, store.ActionIncr)
+							return c.store.UpdateNodeResource(ctx, node, &container.Resource1, store.ActionIncr)
 						},
 						// rollback
 						nil,

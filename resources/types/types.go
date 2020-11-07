@@ -6,11 +6,11 @@ import (
 
 const supported = 3
 
-// ResourceRequirements .
-type ResourceRequirements [supported]ResourceRequirement
+// ResourceRequests .
+type ResourceRequests [supported]ResourceRequest
 
 // ResourceRequirement .
-type ResourceRequirement interface {
+type ResourceRequest interface {
 	Type() types.ResourceType
 	Validate() error
 	MakeScheduler() SchedulerV2
@@ -34,5 +34,5 @@ type ResourcePlans interface {
 	Capacity() map[string]int
 	ApplyChangesOnNode(*types.Node, ...int)
 	RollbackChangesOnNode(*types.Node, ...int)
-	Dispense(DispenseOptions) (*types.Resource, error)
+	Dispense(DispenseOptions, *types.Resource1) (*types.Resource1, error)
 }

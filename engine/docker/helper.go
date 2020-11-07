@@ -99,7 +99,7 @@ func makeMountPaths(opts *enginetypes.VirtualizationCreateOptions) ([]string, ma
 	return binds, volumes
 }
 
-func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, numaNode string, softlimit bool) dockercontainer.Resources {
+func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, numaNode string) dockercontainer.Resources {
 	resource := dockercontainer.Resources{}
 
 	resource.CPUQuota = 0
@@ -119,16 +119,16 @@ func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, num
 		// numaNode will empty or numaNode
 		resource.CpusetMems = numaNode
 	}
-	if softlimit {
-		resource.MemoryReservation = memory
-	} else {
-		resource.Memory = memory
-		resource.MemorySwap = memory
-		resource.MemoryReservation = memory / 2
-		if memory != 0 && memory/2 < int64(units.MiB*4) {
-			resource.MemoryReservation = int64(units.MiB * 4)
-		}
+	//if softlimit {
+	//	resource.MemoryReservation = memory
+	//} else {
+	resource.Memory = memory
+	resource.MemorySwap = memory
+	resource.MemoryReservation = memory / 2
+	if memory != 0 && memory/2 < int64(units.MiB*4) {
+		resource.MemoryReservation = int64(units.MiB * 4)
 	}
+	//}
 	return resource
 }
 

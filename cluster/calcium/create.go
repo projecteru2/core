@@ -170,18 +170,18 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 				ch <- createMsg
 			}()
 
-			var r *types.Resource
+			var r *types.Resource1
 			o := resourcetypes.DispenseOptions{
 				Node:  node,
 				Index: idx,
 			}
 			for _, plan := range planMap {
-				if r, e = plan.Dispense(o); e != nil {
+				if r, e = plan.Dispense(o, r); e != nil {
 					return
 				}
 			}
 
-			createMsg.Resource = *r
+			createMsg.Resource1 = *r
 			e = c.doDeployOneWorkload(ctx, node, opts, createMsg, seq+idx, deploy-1-idx)
 			return e
 		}
@@ -210,7 +210,7 @@ func (c *Calcium) doDeployOneWorkload(
 ) (err error) {
 	config := c.doMakeContainerOptions(no, msg, opts, node)
 	container := &types.Container{
-		Resource: types.Resource{
+		Resource1: types.Resource1{
 			CPU:               msg.CPU,
 			CPUQuotaRequest:   msg.CPUQuotaRequest,
 			CPUQuotaLimit:     msg.CPUQuotaLimit,
@@ -321,7 +321,7 @@ func (c *Calcium) doMakeContainerOptions(no int, msg *types.CreateContainerMessa
 	config.Quota = msg.CPUQuotaLimit
 	config.Memory = msg.MemoryLimit
 	config.Storage = msg.StorageLimit
-	config.NUMANode = node.GetNUMANode(msg.CPU)
+	config.NUMANode = msg.NUMANode
 	config.RawArgs = opts.RawArgs
 	config.Lambda = opts.Lambda
 	config.User = opts.User

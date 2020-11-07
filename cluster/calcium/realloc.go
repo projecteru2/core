@@ -74,22 +74,22 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 // group containers by node and requests
 func (c *Calcium) doReallocContainersOnPod(ctx context.Context, ch chan *types.ReallocResourceMessage, nodeContainersInfo nodeContainers, opts *types.ReallocOptions) {
 	hardVbsMap := map[string]types.VolumeBindings{}
-	containerGroups := map[string]map[resourcetypes.ResourceRequirements][]*types.Container{}
+	containerGroups := map[string]map[resourcetypes.ResourceRequests][]*types.Container{}
 	for nodename, containers := range nodeContainersInfo {
-		containerGroups[nodename] = map[resourcetypes.ResourceRequirements][]*types.Container{}
+		containerGroups[nodename] = map[resourcetypes.ResourceRequests][]*types.Container{}
 		for _, container := range containers {
 			if err := func() (err error) {
 				var (
 					autoVbsRequest, autoVbsLimit types.VolumeBindings
-					rrs                          resourcetypes.ResourceRequirements
+					rrs                          resourcetypes.ResourceRequests
 				)
-				autoVbsRequest, hardVbsMap[container.ID] = types.MergeVolumeBindings(container.VolumeRequest, opts.VolumeRequest, opts.Volumes).Divide()
-				autoVbsLimit, _ = types.MergeVolumeBindings(container.VolumeLimit, opts.VolumeLimit, opts.Volumes).Divide()
+				autoVbsRequest, hardVbsMap[container.ID] = types.MergeVolumeBindings(container.VolumeRequest, opts.ResourceOpts.VolumeRequest, opts.ResourceOpts.Volumes).Divide()
+				autoVbsLimit, _ = types.MergeVolumeBindings(container.VolumeLimit, opts.ResourceOpts.VolumeLimit, opts.Volumes).Divide()
 
-				rrs, err = resources.NewResourceRequirements(
-					types.Resource{
-						CPUQuotaRequest: container.CPUQuotaRequest + opts.CPURequest + opts.CPU,
-						CPULimit:        container.QuotaLimit + opts.CPULimit + opts.CPU,
+				rrs, err = resources.MakeRequests(
+					types.ResourceOptions{
+						CPUQuotaRequest: container.CPUQuotaRequest + opts.ResourceOpts.CPUQuotaRequest + opts.CPU,
+						CPUQuotaLimit:   container.CPUQuotaLimit + opts.CPULimit + opts.CPU,
 						CPUBind:         types.ParseTriOption(opts.BindCPUOpt, len(container.CPURequest) > 0),
 						MemoryRequest:   container.MemoryRequest + opts.MemoryRequest + opts.Memory,
 						MemoryLimit:     container.MemoryLimit + opts.MemoryLimit + opts.Memory,

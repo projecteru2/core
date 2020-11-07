@@ -51,7 +51,7 @@ func TestPodResource(t *testing.T) {
 	assert.Error(t, err)
 	containers := []*types.Container{
 		{
-			Resource: types.Resource{
+			Resource1: types.Resource1{
 				MemoryRequest:   1,
 				MemoryLimit:     1,
 				CPU:             types.CPUMap{"0": 100, "1": 30},
@@ -60,7 +60,7 @@ func TestPodResource(t *testing.T) {
 			},
 		},
 		{
-			Resource: types.Resource{
+			Resource1: types.Resource1{
 				MemoryLimit:     2,
 				MemoryRequest:   2,
 				CPU:             types.CPUMap{"1": 50},
@@ -122,7 +122,7 @@ func TestNodeResource(t *testing.T) {
 	assert.Error(t, err)
 	containers := []*types.Container{
 		{
-			Resource: types.Resource{
+			Resource1: types.Resource1{
 				MemoryRequest:   1,
 				MemoryLimit:     1,
 				CPU:             types.CPUMap{"0": 100, "1": 30},
@@ -131,7 +131,7 @@ func TestNodeResource(t *testing.T) {
 			},
 		},
 		{
-			Resource: types.Resource{
+			Resource1: types.Resource1{
 				MemoryRequest:   2,
 				MemoryLimit:     2,
 				CPU:             types.CPUMap{"1": 50},
@@ -230,7 +230,7 @@ func TestAllocResource(t *testing.T) {
 	}()
 
 	// success
-	opts.Resource = types.Resource{CPUQuotaLimit: 1, MemoryLimit: 1, StorageLimit: 1}
+	opts.ResourceOpts = types.ResourceOptions{CPUQuotaLimit: 1, MemoryLimit: 1, StorageLimit: 1}
 	_, _, err := c.doAllocResource(ctx, nodeMap, opts)
 	assert.NoError(t, err)
 }
@@ -243,7 +243,7 @@ func testAllocFailedAsMakeDeployStatusError(t *testing.T, c *Calcium, opts *type
 }
 
 func testAllocFailedAsInsufficientMemory(t *testing.T, c *Calcium, opts *types.DeployOptions, nodeMap map[string]*types.Node) {
-	opts.Resource = types.Resource{CPUQuotaLimit: 1, MemoryLimit: 1}
+	opts.ResourceOpts = types.ResourceOptions{CPUQuotaLimit: 1, MemoryLimit: 1}
 	_, _, err := c.doAllocResource(context.Background(), nodeMap, opts)
 	assert.Error(t, err)
 }

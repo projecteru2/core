@@ -140,7 +140,7 @@ func (m *Mercury) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
 }
 
 // UpdateNodeResource update cpu and memory on a node, either add or subtract
-func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, resource *types.Resource, action string) error {
+func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, resource *types.Resource1, action string) error {
 	switch action {
 	case store.ActionIncr:
 		node.RecycleResources(resource)

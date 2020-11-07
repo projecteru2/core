@@ -57,7 +57,17 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 					}
 					// 使用复制之后的配置
 					// 停老的，起新的
-					replaceOpts.Resource = container.Resource
+					replaceOpts.ResourceOpts = types.ResourceOptions{
+						CPUQuotaRequest: container.CPUQuotaRequest,
+						CPUQuotaLimit:   container.CPUQuotaLimit,
+						CPUBind:         len(container.CPU) > 0,
+						MemoryRequest:   container.MemoryRequest,
+						MemoryLimit:     container.MemoryLimit,
+						StorageRequest:  container.StorageRequest,
+						StorageLimit:    container.StorageLimit,
+						VolumeRequest:   container.VolumeRequest,
+						VolumeLimit:     container.VolumeLimit,
+					}
 					// 覆盖 podname 如果做全量更新的话
 					replaceOpts.Podname = container.Podname
 					// 覆盖 Volumes
@@ -128,7 +138,7 @@ func (c *Calcium) doReplaceContainer(
 	}
 
 	createMessage := &types.CreateContainerMessage{
-		Resource: types.Resource{
+		Resource1: types.Resource1{
 			MemoryRequest:     container.MemoryRequest,
 			MemoryLimit:       container.MemoryLimit,
 			StorageRequest:    container.StorageRequest,

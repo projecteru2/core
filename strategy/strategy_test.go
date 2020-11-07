@@ -90,7 +90,7 @@ func TestDeploy(t *testing.T) {
 }
 
 func TestNewInfos(t *testing.T) {
-	rrs, err := resources.NewResourceRequirements(types.Resource{})
+	rrs, err := resources.MakeRequests(types.ResourceOptions{})
 	assert.Nil(t, err)
 	nodeMap := map[string]*types.Node{
 		"node1": {},

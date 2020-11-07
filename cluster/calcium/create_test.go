@@ -39,7 +39,7 @@ func TestCreateContainer(t *testing.T) {
 	opts.Count = 1
 
 	// failed by memory check
-	opts.RawResourceOptions = types.RawResourceOptions{MemoryLimit: -1}
+	opts.ResourceOpts = types.ResourceOptions{MemoryLimit: -1}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
 	ch, err := c.CreateContainer(ctx, opts)
 	assert.Nil(t, err)
@@ -48,7 +48,7 @@ func TestCreateContainer(t *testing.T) {
 	}
 
 	// failed by CPUQuota
-	opts.RawResourceOptions = types.RawResourceOptions{CPULimit: -1, MemoryLimit: 1}
+	opts.ResourceOpts = types.ResourceOptions{CPUQuotaLimit: -1, MemoryLimit: 1}
 	ch, err = c.CreateContainer(ctx, opts)
 	assert.Nil(t, err)
 	for m := range ch {
@@ -60,12 +60,12 @@ func TestCreateContainerTxn(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	opts := &types.DeployOptions{
-		Count:              2,
-		DeployStrategy:     strategy.Auto,
-		Podname:            "p1",
-		RawResourceOptions: types.RawResourceOptions{CPULimit: 1},
-		Image:              "zc:test",
-		Entrypoint:         &types.Entrypoint{},
+		Count:          2,
+		DeployStrategy: strategy.Auto,
+		Podname:        "p1",
+		ResourceOpts:   types.ResourceOptions{CPUQuotaLimit: 1},
+		Image:          "zc:test",
+		Entrypoint:     &types.Entrypoint{},
 	}
 	store := &storemocks.Store{}
 	sche := &schedulermocks.Scheduler{}

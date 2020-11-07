@@ -161,20 +161,20 @@ func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types
 		return nil, nil, errors.WithStack(types.ErrInsufficientNodes)
 	}
 
-	resourceRequirements, err := resources.NewResourceRequirements(opts.Resource)
+	resourceRequests, err := resources.MakeRequests(opts.ResourceOpts)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
 
 	// select available nodes
-	planMap, total, scheduleTypes, err := resources.SelectNodes(resourceRequirements, nodeMap)
+	scheduleTypes, total, planMap, err := resources.SelectNodesByResourceRequests(resourceRequests, nodeMap)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
 	log.Debugf("[Calcium.doAllocResource] planMap: %+v, total: %v, type: %+v", planMap, total, scheduleTypes)
 
 	// deploy strategy
-	strategyInfos := strategy.NewInfos(resourceRequirements, nodeMap, planMap)
+	strategyInfos := strategy.NewInfos(resourceRequests, nodeMap, planMap)
 	if err := c.store.MakeDeployStatus(ctx, opts, strategyInfos); err != nil {
 		return nil, nil, errors.WithStack(err)
 	}

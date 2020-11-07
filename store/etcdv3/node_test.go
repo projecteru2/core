@@ -206,6 +206,6 @@ func TestUpdateNodeResource(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	assert.Error(t, m.UpdateNodeResource(ctx, node, nil, "wtf"))
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, &types.Resource{CPU: map[string]int64{"0": 100}}, store.ActionIncr))
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, &types.Resource{CPU: map[string]int64{"0": 100}}, store.ActionDecr))
+	assert.NoError(t, m.UpdateNodeResource(ctx, node, &types.Resource1{CPU: map[string]int64{"0": 100}}, store.ActionIncr))
+	assert.NoError(t, m.UpdateNodeResource(ctx, node, &types.Resource1{CPU: map[string]int64{"0": 100}}, store.ActionDecr))
 }

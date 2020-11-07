@@ -276,27 +276,27 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		}
 	}
 
-	vbsLimit, err := types.NewVolumeBindings(d.Resource.VolumesLimit)
+	vbsLimit, err := types.NewVolumeBindings(d.ResourceOpts.VolumesLimit)
 	if err != nil {
 		return nil, err
 	}
 
-	vbsRequest, err := types.NewVolumeBindings(d.Resource.VolumesRequest)
+	vbsRequest, err := types.NewVolumeBindings(d.ResourceOpts.VolumesRequest)
 	if err != nil {
 		return nil, err
 	}
 
 	return &types.DeployOptions{
-		Resource: types.Resource{
-			CPUQuotaRequest: d.Resource.CpuQuotaRequest,
-			CPUQuotaLimit:   d.Resource.CpuQuotaLimit,
-			CPUBind:         d.Resource.CpuBind,
-			MemoryRequest:   d.Resource.MemoryRequest,
-			MemoryLimit:     d.Resource.MemoryLimit,
+		ResourceOpts: types.ResourceOptions{
+			CPUQuotaRequest: d.ResourceOpts.CpuQuotaRequest,
+			CPUQuotaLimit:   d.ResourceOpts.CpuQuotaLimit,
+			CPUBind:         d.ResourceOpts.CpuBind,
+			MemoryRequest:   d.ResourceOpts.MemoryRequest,
+			MemoryLimit:     d.ResourceOpts.MemoryLimit,
 			VolumeRequest:   vbsRequest,
 			VolumeLimit:     vbsLimit,
-			StorageRequest:  d.Resource.StorageRequest,
-			StorageLimit:    d.Resource.StorageLimit,
+			StorageRequest:  d.ResourceOpts.StorageRequest,
+			StorageLimit:    d.ResourceOpts.StorageLimit,
 		},
 		Name:           d.Name,
 		Entrypoint:     entry,
@@ -493,17 +493,31 @@ func toRPCContainer(_ context.Context, c *types.Container) (*pb.Container, error
 		Labels:     c.Labels,
 		Status:     toRPCContainerStatus(c.StatusMeta),
 		Resource: &pb.Resource{
-			CpuQuotaLimit:   c.CPUQuotaLimit,
-			CpuQuotaRequest: c.CPUQuotaRequest,
-			Cpu:             toRPCCPUMap(c.CPU),
-			MemoryLimit:     c.MemoryLimit,
-			MemoryRequest:   c.MemoryRequest,
-			StorageLimit:    c.StorageLimit,
-			StorageRequest:  c.StorageRequest,
-			VolumesLimit:    c.VolumeLimit.ToStringSlice(false, false),
-			VolumesRequest:  c.VolumeRequest.ToStringSlice(false, false),
+			CpuQuotaLimit:     c.CPUQuotaLimit,
+			CpuQuotaRequest:   c.CPUQuotaRequest,
+			Cpu:               toRPCCPUMap(c.CPU),
+			MemoryLimit:       c.MemoryLimit,
+			MemoryRequest:     c.MemoryRequest,
+			StorageLimit:      c.StorageLimit,
+			StorageRequest:    c.StorageRequest,
+			VolumesLimit:      c.VolumeLimit.ToStringSlice(false, false),
+			VolumesRequest:    c.VolumeRequest.ToStringSlice(false, false),
+			VolumePlanLimit:   toRPCVolumePlan(c.VolumePlanLimit),
+			VolumePlanRequest: toRPCVolumePlan(c.VolumePlanRequest),
 		},
 	}, nil
+}
+
+func toRPCVolumePlan(v types.VolumePlan) map[string]*pb.Volume {
+	if v == nil {
+		return nil
+	}
+
+	msg := map[string]*pb.Volume{}
+	for vb, volume := range v {
+		msg[vb.ToString(false)] = &pb.Volume{Volume: volume}
+	}
+	return msg
 }
 
 func toRPCLogStreamMessage(msg *types.LogStreamMessage) *pb.LogStreamMessage {

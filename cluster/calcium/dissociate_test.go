@@ -23,7 +23,7 @@ func TestDissociateContainer(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 
 	c1 := &types.Container{
-		Resource: types.Resource{
+		Resource1: types.Resource1{
 			MemoryLimit:     5 * int64(units.MiB),
 			MemoryRequest:   5 * int64(units.MiB),
 			CPUQuotaLimit:   0.9,

@@ -10,8 +10,7 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// cpuMemRequirement .
-type cpuMemRequirement struct {
+type cpuMemRequest struct {
 	CPUQuotaRequest float64
 	CPUQuotaLimit   float64
 	CPUBind         bool
@@ -20,20 +19,20 @@ type cpuMemRequirement struct {
 	memoryLimit   int64
 }
 
-// NewResourceRequirement .
-func NewResourceRequirement(opts types.Resource) (resourcetypes.ResourceRequirement, error) {
-	cm := &cpuMemRequirement{
+// MakeRequest .
+func MakeRequest(opts types.ResourceOptions) (resourcetypes.ResourceRequest, error) {
+	cmr := &cpuMemRequest{
 		CPUQuotaRequest: opts.CPUQuotaRequest,
 		CPUQuotaLimit:   opts.CPUQuotaLimit,
 		CPUBind:         opts.CPUBind,
 		memoryRequest:   opts.MemoryRequest,
 		memoryLimit:     opts.MemoryLimit,
 	}
-	return cm, cm.Validate()
+	return cmr, cmr.Validate()
 }
 
 // Type .
-func (cm cpuMemRequirement) Type() types.ResourceType {
+func (cm cpuMemRequest) Type() types.ResourceType {
 	t := types.ResourceCPU | types.ResourceMemory
 	if cm.CPUBind {
 		t |= types.ResourceCPUBind
@@ -42,25 +41,26 @@ func (cm cpuMemRequirement) Type() types.ResourceType {
 }
 
 // Validate .
-func (cm *cpuMemRequirement) Validate() error {
+func (cm *cpuMemRequest) Validate() error {
 	if cm.memoryLimit < 0 || cm.memoryRequest < 0 {
 		return errors.Wrap(types.ErrBadMemory, "limit or request less than 0")
 	}
-	if cm.memoryRequest == 0 && cm.memoryLimit > 0 {
-		cm.memoryRequest = cm.memoryLimit
-	}
-	if cm.memoryLimit > 0 && cm.memoryRequest > 0 && cm.memoryRequest > cm.memoryLimit {
-		cm.memoryLimit = cm.memoryRequest
-	}
-
 	if cm.CPUQuotaLimit < 0 || cm.CPUQuotaRequest < 0 {
 		return errors.Wrap(types.ErrBadCPU, "limit or request less than 0")
 	}
-	if cm.CPUQuotaRequest == 0 && cm.CPUQuotaLimit > 0 {
-		cm.CPUQuotaRequest = cm.CPUQuotaLimit
-	}
 	if cm.CPUQuotaRequest == 0 && cm.CPUBind {
 		return errors.Wrap(types.ErrBadCPU, "unlimited request with bind")
+	}
+
+	if cm.memoryRequest == 0 && cm.memoryLimit > 0 {
+		cm.memoryRequest = cm.memoryLimit
+	}
+	// 如果需求量大于限制量，悄咪咪的把限制量抬到需求量的水平，做成名义上的软限制
+	if cm.memoryLimit > 0 && cm.memoryRequest > 0 && cm.memoryRequest > cm.memoryLimit {
+		cm.memoryLimit = cm.memoryRequest
+	}
+	if cm.CPUQuotaRequest == 0 && cm.CPUQuotaLimit > 0 {
+		cm.CPUQuotaRequest = cm.CPUQuotaLimit
 	}
 	if cm.CPUQuotaRequest > 0 && cm.CPUQuotaLimit > 0 && cm.CPUQuotaRequest > cm.CPUQuotaLimit {
 		cm.CPUQuotaLimit = cm.CPUQuotaRequest
@@ -69,7 +69,7 @@ func (cm *cpuMemRequirement) Validate() error {
 }
 
 // MakeScheduler .
-func (cm cpuMemRequirement) MakeScheduler() resourcetypes.SchedulerV2 {
+func (cm cpuMemRequest) MakeScheduler() resourcetypes.SchedulerV2 {
 	return func(nodesInfo []types.NodeInfo) (plans resourcetypes.ResourcePlans, total int, err error) {
 		schedulerV1, err := scheduler.GetSchedulerV1()
 		if err != nil {
@@ -95,7 +95,7 @@ func (cm cpuMemRequirement) MakeScheduler() resourcetypes.SchedulerV2 {
 }
 
 // Rate for global strategy
-func (cm cpuMemRequirement) Rate(node types.Node) float64 {
+func (cm cpuMemRequest) Rate(node types.Node) float64 {
 	if cm.CPUBind {
 		return cm.CPUQuotaRequest / float64(len(node.InitCPU))
 	}
@@ -151,13 +151,11 @@ func (rp ResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...int) 
 }
 
 // Dispense .
-func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions) (*types.Resource, error) {
-	r := &types.Resource{
-		CPUQuotaLimit:   rp.CPUQuotaLimit,
-		CPUQuotaRequest: rp.CPUQuotaRequest,
-		MemoryLimit:     rp.memoryLimit,
-		MemoryRequest:   rp.memoryRequest,
-	}
+func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions, r *types.Resource1) (*types.Resource1, error) {
+	r.CPUQuotaLimit = rp.CPUQuotaLimit
+	r.CPUQuotaRequest = rp.CPUQuotaRequest
+	r.MemoryLimit = rp.memoryLimit
+	r.MemoryRequest = rp.memoryRequest
 
 	if len(rp.CPUPlans) > 0 {
 		if _, ok := rp.CPUPlans[opts.Node.Name]; !ok {

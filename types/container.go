@@ -27,7 +27,7 @@ type LabelMeta struct {
 // only relationship with pod and node is stored
 // if you wanna get realtime information, use Inspect method
 type Container struct {
-	Resource
+	Resource1
 	ID         string            `json:"id"`
 	Name       string            `json:"name"`
 	Podname    string            `json:"podname"`

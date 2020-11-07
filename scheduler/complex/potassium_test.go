@@ -230,12 +230,12 @@ func newDeployOptions(need int, each bool) *types.DeployOptions {
 }
 
 func SelectCPUNodes(k *Potassium, nodesInfo []types.NodeInfo, quota float64, memory int64, need int, each bool) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
-	rrs, err := resources.NewResourceRequirements(types.Resource{CPUQuotaLimit: quota, MemoryLimit: memory, CPUBind: true})
+	rrs, err := resources.MakeRequests(types.ResourceOptions{CPUQuotaLimit: quota, MemoryLimit: memory, CPUBind: true})
 	if err != nil {
 		return nil, nil, err
 	}
 	nodeMap := getNodeMapFromNodesInfo(nodesInfo)
-	planMap, total, sType, err := resources.SelectNodes(rrs, nodeMap)
+	sType, total, planMap, err := resources.SelectNodesByResourceRequests(rrs, nodeMap)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -259,11 +259,11 @@ func SelectCPUNodes(k *Potassium, nodesInfo []types.NodeInfo, quota float64, mem
 }
 
 func SelectMemoryNodes(k *Potassium, nodesInfo []types.NodeInfo, rate float64, memory int64, need int, each bool) ([]types.NodeInfo, error) {
-	rrs, err := resources.NewResourceRequirements(types.Resource{CPUQuotaLimit: rate, MemoryLimit: memory})
+	rrs, err := resources.MakeRequests(types.ResourceOptions{CPUQuotaLimit: rate, MemoryLimit: memory})
 	if err != nil {
 		return nil, err
 	}
-	planMap, total, sType, err := resources.SelectNodes(rrs, getNodeMapFromNodesInfo(nodesInfo))
+	sType, total, planMap, err := resources.SelectNodesByResourceRequests(rrs, getNodeMapFromNodesInfo(nodesInfo))
 	if err != nil {
 		return nil, err
 	}
@@ -1210,11 +1210,11 @@ func TestSelectStorageNodesSequence(t *testing.T) {
 }
 
 func SelectStorageNodes(k *Potassium, nodesInfo []types.NodeInfo, storage int64, need int, each bool) ([]types.NodeInfo, error) {
-	rrs, err := resources.NewResourceRequirements(types.Resource{StorageLimit: storage})
+	rrs, err := resources.MakeRequests(types.ResourceOptions{StorageLimit: storage})
 	if err != nil {
 		return nil, err
 	}
-	planMap, total, sType, err := resources.SelectNodes(rrs, getNodeMapFromNodesInfo(nodesInfo))
+	sType, total, planMap, err := resources.SelectNodesByResourceRequests(rrs, getNodeMapFromNodesInfo(nodesInfo))
 	if err != nil {
 		return nil, err
 	}
@@ -1236,12 +1236,12 @@ func SelectStorageNodes(k *Potassium, nodesInfo []types.NodeInfo, storage int64,
 }
 
 func SelectVolumeNodes(k *Potassium, nodesInfo []types.NodeInfo, volumes []string, need int, each bool) (map[string][]types.VolumePlan, map[string]types.VolumeMap, error) {
-	rrs, err := resources.NewResourceRequirements(types.Resource{VolumeLimit: types.MustToVolumeBindings(volumes)})
+	rrs, err := resources.MakeRequests(types.ResourceOptions{VolumeLimit: types.MustToVolumeBindings(volumes)})
 	if err != nil {
 		return nil, nil, err
 	}
 	nodeMap := getNodeMapFromNodesInfo(nodesInfo)
-	planMap, total, sType, err := resources.SelectNodes(rrs, nodeMap)
+	sType, total, planMap, err := resources.SelectNodesByResourceRequests(rrs, nodeMap)
 	if err != nil {
 		return nil, nil, err
 	}

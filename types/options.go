@@ -2,7 +2,7 @@ package types
 
 // DeployOptions is options for deploying
 type DeployOptions struct {
-	Resource
+	ResourceOpts   ResourceOptions
 	Name           string                   // Name of application
 	Entrypoint     *Entrypoint              // entrypoint
 	Podname        string                   // Name of pod to deploy
@@ -125,9 +125,9 @@ type ExecuteContainerOptions struct {
 
 // ReallocOptions .
 type ReallocOptions struct {
-	Resource
-	IDs        []string
-	CPUBindOpt TriOptions
+	IDs          []string
+	CPUBindOpts  TriOptions
+	ResourceOpts ResourceOptions
 }
 
 // TriOptions .

@@ -74,7 +74,7 @@ type ControlContainerMessage struct {
 
 // CreateContainerMessage for create message
 type CreateContainerMessage struct {
-	Resource
+	Resource1
 	Podname       string
 	Nodename      string
 	ContainerID   string

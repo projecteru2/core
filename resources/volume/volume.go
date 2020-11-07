@@ -12,17 +12,16 @@ import (
 
 const maxVolumes = 32
 
-// volumeResourceRequirement .
-type volumeResourceRequirement struct {
+type volumeRequest struct {
 	request  [maxVolumes]types.VolumeBinding
 	limit    [maxVolumes]types.VolumeBinding
 	requests int
 	limits   int
 }
 
-// NewResourceRequirement .
-func NewResourceRequirement(opts types.Resource) (resourcetypes.ResourceRequirement, error) {
-	v := &volumeResourceRequirement{}
+// MakeRequest .
+func MakeRequest(opts types.ResourceOptions) (resourcetypes.ResourceRequest, error) {
+	v := &volumeRequest{}
 	sort.Slice(opts.VolumeRequest, func(i, j int) bool {
 		return opts.VolumeRequest[i].ToString(false) < opts.VolumeRequest[j].ToString(false)
 	})
@@ -42,7 +41,7 @@ func NewResourceRequirement(opts types.Resource) (resourcetypes.ResourceRequirem
 }
 
 // Type .
-func (v volumeResourceRequirement) Type() types.ResourceType {
+func (v volumeRequest) Type() types.ResourceType {
 	t := types.ResourceVolume
 	for i := 0; i < v.requests; i++ {
 		if v.request[i].RequireSchedule() {
@@ -54,7 +53,7 @@ func (v volumeResourceRequirement) Type() types.ResourceType {
 }
 
 // Validate .
-func (v *volumeResourceRequirement) Validate() error {
+func (v *volumeRequest) Validate() error {
 	if v.requests == 0 && v.limits > 0 {
 		v.request = v.limit
 		v.requests = v.limits
@@ -75,7 +74,7 @@ func (v *volumeResourceRequirement) Validate() error {
 }
 
 // MakeScheduler .
-func (v volumeResourceRequirement) MakeScheduler() resourcetypes.SchedulerV2 {
+func (v volumeRequest) MakeScheduler() resourcetypes.SchedulerV2 {
 	return func(nodesInfo []types.NodeInfo) (plans resourcetypes.ResourcePlans, total int, err error) {
 		schedulerV1, err := scheduler.GetSchedulerV1()
 		if err != nil {
@@ -99,7 +98,7 @@ func (v volumeResourceRequirement) MakeScheduler() resourcetypes.SchedulerV2 {
 }
 
 // Rate .
-func (v volumeResourceRequirement) Rate(node types.Node) float64 {
+func (v volumeRequest) Rate(node types.Node) float64 {
 	return float64(node.VolumeUsed) / float64(node.Volume.Total())
 }
 
@@ -154,8 +153,7 @@ func (rp ResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...int) 
 }
 
 // Dispense .
-func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions) (*types.Resource, error) {
-	r := &types.Resource{}
+func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions, r *types.Resource1) (*types.Resource1, error) {
 	if len(rp.plan) == 0 {
 		return r, nil
 	}

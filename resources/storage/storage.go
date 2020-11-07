@@ -8,33 +8,32 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-// storageResourceRequirement .
-type storageResourceRequirement struct {
+type storageRequest struct {
 	request int64
 	limit   int64
 }
 
-// NewResourceRequirement .
-func NewResourceRequirement(opts types.Resource) (resourcetypes.ResourceRequirement, error) {
-	s := &storageResourceRequirement{
+// MakeRequest .
+func MakeRequest(opts types.ResourceOptions) (resourcetypes.ResourceRequest, error) {
+	sr := &storageRequest{
 		request: opts.StorageRequest,
 		limit:   opts.StorageLimit,
 	}
-	return s, s.Validate()
+	return sr, sr.Validate()
 }
 
 // Type .
-func (s storageResourceRequirement) Type() types.ResourceType {
+func (s storageRequest) Type() types.ResourceType {
 	return types.ResourceStorage
 }
 
 // Validate .
-func (s *storageResourceRequirement) Validate() error {
-	if s.limit > 0 && s.request == 0 {
-		s.request = s.limit
-	}
+func (s *storageRequest) Validate() error {
 	if s.limit < 0 || s.request < 0 {
 		return errors.Wrap(types.ErrBadStorage, "storage limit or request less than 0")
+	}
+	if s.limit > 0 && s.request == 0 {
+		s.request = s.limit
 	}
 	if s.limit > 0 && s.request > 0 && s.request > s.limit {
 		s.limit = s.request // softlimit storage size
@@ -43,7 +42,7 @@ func (s *storageResourceRequirement) Validate() error {
 }
 
 // MakeScheduler .
-func (s storageResourceRequirement) MakeScheduler() resourcetypes.SchedulerV2 {
+func (s storageRequest) MakeScheduler() resourcetypes.SchedulerV2 {
 	return func(nodesInfo []types.NodeInfo) (plans resourcetypes.ResourcePlans, total int, err error) {
 		schedulerV1, err := scheduler.GetSchedulerV1()
 		if err != nil {
@@ -60,7 +59,7 @@ func (s storageResourceRequirement) MakeScheduler() resourcetypes.SchedulerV2 {
 }
 
 // Rate .
-func (a storageResourceRequirement) Rate(node types.Node) float64 {
+func (s storageRequest) Rate(node types.Node) float64 {
 	return float64(0) / float64(node.Volume.Total())
 }
 
@@ -92,10 +91,8 @@ func (rp ResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...int) 
 }
 
 // Dispense .
-func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions) (*types.Resource, error) {
-	r := &types.Resource{
-		StorageLimit:   rp.limit,
-		StorageRequest: rp.request,
-	}
+func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions, r *types.Resource1) (*types.Resource1, error) {
+	r.StorageLimit = rp.limit
+	r.StorageRequest = rp.request
 	return r, nil
 }

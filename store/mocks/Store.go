@@ -513,11 +513,11 @@ func (_m *Store) UpdateContainer(ctx context.Context, container *types.Container
 }
 
 // UpdateNodeResource provides a mock function with given fields: ctx, node, resource, action
-func (_m *Store) UpdateNodeResource(ctx context.Context, node *types.Node, resource *types.Resource, action string) error {
+func (_m *Store) UpdateNodeResource(ctx context.Context, node *types.Node, resource *types.Resource1, action string) error {
 	ret := _m.Called(ctx, node, resource, action)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.Node, *types.Resource, string) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Node, *types.Resource1, string) error); ok {
 		r0 = rf(ctx, node, resource, action)
 	} else {
 		r0 = ret.Error(0)
