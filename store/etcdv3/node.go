@@ -140,32 +140,15 @@ func (m *Mercury) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
 }
 
 // UpdateNodeResource update cpu and memory on a node, either add or subtract
-func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, memory, storage int64, volume types.VolumeMap, action string) error {
+func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, resource *types.Resource, action string) error {
 	switch action {
 	case store.ActionIncr:
-		node.CPU.Add(cpu)
-		node.SetCPUUsed(quota, types.DecrUsage)
-		node.Volume.Add(volume)
-		node.SetVolumeUsed(volume.Total(), types.DecrUsage)
-		node.MemCap += memory
-		node.StorageCap += storage
-		if nodeID := node.GetNUMANode(cpu); nodeID != "" {
-			node.IncrNUMANodeMemory(nodeID, memory)
-		}
+		node.RecycleResources(resource)
 	case store.ActionDecr:
-		node.CPU.Sub(cpu)
-		node.SetCPUUsed(quota, types.IncrUsage)
-		node.Volume.Sub(volume)
-		node.SetVolumeUsed(volume.Total(), types.IncrUsage)
-		node.MemCap -= memory
-		node.StorageCap -= storage
-		if nodeID := node.GetNUMANode(cpu); nodeID != "" {
-			node.DecrNUMANodeMemory(nodeID, memory)
-		}
+		node.PreserveResources(resource)
 	default:
 		return types.ErrUnknownControlType
 	}
-
 	go metrics.Client.SendNodeInfo(node)
 	return m.UpdateNodes(ctx, node)
 }

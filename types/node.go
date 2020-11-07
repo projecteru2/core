@@ -328,6 +328,34 @@ func (n *Node) ResourceUsages() map[ResourceType]float64 {
 	}
 }
 
+// RecycleResources .
+// TODO need tests
+func (n *Node) RecycleResources(resource *Resource) {
+	n.CPU.Add(resource.CPU)
+	n.SetCPUUsed(resource.CPUQuotaRequest, DecrUsage)
+	n.Volume.Add(resource.VolumePlanRequest.IntoVolumeMap())
+	n.SetVolumeUsed(resource.VolumePlanRequest.IntoVolumeMap().Total(), DecrUsage)
+	n.MemCap += resource.MemoryRequest
+	n.StorageCap += resource.StorageRequest
+	if nodeID := n.GetNUMANode(resource.CPU); nodeID != "" {
+		n.IncrNUMANodeMemory(nodeID, resource.MemoryRequest)
+	}
+}
+
+// PreserveResources .
+// TODO need tests
+func (n *Node) PreserveResources(resource *Resource) {
+	n.CPU.Sub(resource.CPU)
+	n.SetCPUUsed(resource.CPUQuotaRequest, IncrUsage)
+	n.Volume.Sub(resource.VolumePlanRequest.IntoVolumeMap())
+	n.SetVolumeUsed(resource.VolumePlanRequest.IntoVolumeMap().Total(), IncrUsage)
+	n.MemCap -= resource.MemoryRequest
+	n.StorageCap -= resource.StorageRequest
+	if nodeID := n.GetNUMANode(resource.CPU); nodeID != "" {
+		n.DecrNUMANodeMemory(nodeID, resource.MemoryRequest)
+	}
+}
+
 // NodeInfo for deploy
 type NodeInfo struct {
 	Name          string

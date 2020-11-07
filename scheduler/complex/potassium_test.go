@@ -230,7 +230,7 @@ func newDeployOptions(need int, each bool) *types.DeployOptions {
 }
 
 func SelectCPUNodes(k *Potassium, nodesInfo []types.NodeInfo, quota float64, memory int64, need int, each bool) (map[string][]types.CPUMap, map[string]types.CPUMap, error) {
-	rrs, err := resources.NewResourceRequirements(types.RawResourceOptions{CPULimit: quota, MemoryLimit: memory, CPUBind: true})
+	rrs, err := resources.NewResourceRequirements(types.Resource{CPUQuotaLimit: quota, MemoryLimit: memory, CPUBind: true})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -259,7 +259,7 @@ func SelectCPUNodes(k *Potassium, nodesInfo []types.NodeInfo, quota float64, mem
 }
 
 func SelectMemoryNodes(k *Potassium, nodesInfo []types.NodeInfo, rate float64, memory int64, need int, each bool) ([]types.NodeInfo, error) {
-	rrs, err := resources.NewResourceRequirements(types.RawResourceOptions{CPULimit: rate, MemoryLimit: memory})
+	rrs, err := resources.NewResourceRequirements(types.Resource{CPUQuotaLimit: rate, MemoryLimit: memory})
 	if err != nil {
 		return nil, err
 	}
@@ -1210,7 +1210,7 @@ func TestSelectStorageNodesSequence(t *testing.T) {
 }
 
 func SelectStorageNodes(k *Potassium, nodesInfo []types.NodeInfo, storage int64, need int, each bool) ([]types.NodeInfo, error) {
-	rrs, err := resources.NewResourceRequirements(types.RawResourceOptions{StorageLimit: storage})
+	rrs, err := resources.NewResourceRequirements(types.Resource{StorageLimit: storage})
 	if err != nil {
 		return nil, err
 	}
@@ -1236,7 +1236,7 @@ func SelectStorageNodes(k *Potassium, nodesInfo []types.NodeInfo, storage int64,
 }
 
 func SelectVolumeNodes(k *Potassium, nodesInfo []types.NodeInfo, volumes []string, need int, each bool) (map[string][]types.VolumePlan, map[string]types.VolumeMap, error) {
-	rrs, err := resources.NewResourceRequirements(types.RawResourceOptions{VolumeLimit: types.MustToVolumeBindings(volumes)})
+	rrs, err := resources.NewResourceRequirements(types.Resource{VolumeLimit: types.MustToVolumeBindings(volumes)})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1255,7 +1255,7 @@ func SelectVolumeNodes(k *Potassium, nodesInfo []types.NodeInfo, volumes []strin
 	for nodename, deploy := range deployMap {
 		for _, plan := range planMap {
 			if volumePlan, ok := plan.(volume.ResourcePlans); ok {
-				result[nodename] = volumePlan.PlanReq[nodename]
+				result[nodename] = volumePlan.GetPlan(nodename)
 				plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deploy)...)
 				changed[nodename] = nodeMap[nodename].Volume
 			}

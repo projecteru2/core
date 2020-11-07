@@ -160,14 +160,14 @@ func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions) (*types.Res
 		return r, nil
 	}
 
-	r.VolumeRequest = rp.req
-	r.VolumePlanRequest = rp.PlanReq[opts.Node.Name][opts.Index]
+	r.VolumeRequest = rp.request
+	r.VolumePlanRequest = rp.plan[opts.Node.Name][opts.Index]
 
 	// if there are existing ones, ensure new volumes are compatible
 	if len(opts.ExistingInstances) > 0 {
 		plans := map[*types.Container]types.VolumePlan{}
 	Searching:
-		for _, plan := range rp.PlanReq[opts.Node.Name] {
+		for _, plan := range rp.plan[opts.Node.Name] {
 			for _, container := range opts.ExistingInstances {
 				if _, ok := plans[container]; !ok && plan.Compatible(container.VolumePlanRequest) {
 					plans[container] = plan
@@ -180,37 +180,39 @@ func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions) (*types.Res
 		}
 
 		if len(plans) < len(opts.ExistingInstances) {
-			return errors.Wrap(types.ErrInsufficientVolume, "incompatible volume plans")
+			return nil, errors.Wrap(types.ErrInsufficientVolume, "incompatible volume plans")
 		}
 
-		rsc.VolumePlanRequest = plans[opts.ExistingInstances[opts.Index]]
+		r.VolumePlanRequest = plans[opts.ExistingInstances[opts.Index]]
 	}
 
 	// fix plans while limit > request
-	rsc.VolumeLimit = rp.lim
-	rsc.VolumePlanLimit = types.VolumePlan{}
-	for i := range rp.req {
-		req, lim := rp.req[i], rp.lim[i]
-		if !req.RequireSchedule() {
+	r.VolumeLimit = rp.limit
+	r.VolumePlanLimit = types.VolumePlan{}
+	for i := range rp.request {
+		request, limit := rp.request[i], rp.limit[i]
+		if !request.RequireSchedule() {
 			continue
 		}
-		if lim.SizeInBytes > req.SizeInBytes {
-			p := rsc.VolumePlanRequest[*req]
-			rsc.VolumePlanLimit[*lim] = types.VolumeMap{rp.GetResourceID(): rp.GetRation() + lim.SizeInBytes - req.SizeInBytes}
+		if limit.SizeInBytes > request.SizeInBytes {
+			p := r.VolumePlanRequest[*request]
+			r.VolumePlanLimit[*limit] = types.VolumeMap{p.GetResourceID(): p.GetRation() + limit.SizeInBytes - request.SizeInBytes}
 		} else {
-			rsc.VolumePlanLimit[*lim] = rsc.VolumePlanRequest[*req]
+			r.VolumePlanLimit[*limit] = r.VolumePlanRequest[*request]
 		}
 	}
 
 	// append hard vbs
 	if opts.HardVolumeBindings != nil {
-		rsc.VolumeRequest = append(rsc.VolumeRequest, opts.HardVolumeBindings...)
-		rsc.VolumeLimit = append(rsc.VolumeLimit, opts.HardVolumeBindings...)
+		r.VolumeRequest = append(r.VolumeRequest, opts.HardVolumeBindings...)
+		r.VolumeLimit = append(r.VolumeLimit, opts.HardVolumeBindings...)
 	}
 
 	// judge if volume changed
-	if len(opts.ExistingInstances) > 0 && !rsc.VolumeLimit.IsEqual(opts.ExistingInstances[opts.Index].VolumeLimit) {
-		rsc.VolumeChanged = true
-	}
-	return nil
+	r.VolumeChanged = len(opts.ExistingInstances) > 0 && !r.VolumeLimit.IsEqual(opts.ExistingInstances[opts.Index].VolumeLimit)
+	return r, nil
+}
+
+func (rp ResourcePlans) GetPlan(nodename string) []types.VolumePlan {
+	return rp.plan[nodename]
 }

@@ -36,7 +36,7 @@ type Store interface {
 	GetNodes(ctx context.Context, nodenames []string) ([]*types.Node, error)
 	GetNodesByPod(ctx context.Context, podname string, labels map[string]string, all bool) ([]*types.Node, error)
 	UpdateNodes(context.Context, ...*types.Node) error
-	UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, memory, storage int64, volume types.VolumeMap, action string) error
+	UpdateNodeResource(ctx context.Context, node *types.Node, resource *types.Resource, action string) error
 
 	// container
 	AddContainer(ctx context.Context, container *types.Container) error

@@ -89,7 +89,6 @@ func (cm cpuMemRequirement) MakeScheduler() resourcetypes.SchedulerV2 {
 			CPUQuotaRequest: cm.CPUQuotaRequest,
 			CPUQuotaLimit:   cm.CPUQuotaLimit,
 			CPUPlans:        CPUPlans,
-			CPUBind:         cm.CPUBind,
 			capacity:        utils.GetCapacity(nodesInfo),
 		}, total, err
 	}
@@ -111,7 +110,6 @@ type ResourcePlans struct {
 	CPUQuotaRequest float64
 	CPUQuotaLimit   float64
 	CPUPlans        map[string][]types.CPUMap
-	CPUBind         bool
 
 	capacity map[string]int
 }
@@ -157,7 +155,6 @@ func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions) (*types.Res
 	r := &types.Resource{
 		CPUQuotaLimit:   rp.CPUQuotaLimit,
 		CPUQuotaRequest: rp.CPUQuotaRequest,
-		CPUBind:         rp.CPUBind,
 		MemoryLimit:     rp.memoryLimit,
 		MemoryRequest:   rp.memoryRequest,
 	}
