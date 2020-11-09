@@ -161,6 +161,9 @@ func TestSetContainerStatus(t *testing.T) {
 	container.StatusMeta.Running = true
 	err = m.SetContainerStatus(ctx, container, 10)
 	assert.NoError(t, err)
+	// status not changed, ttl = 0
+	err = m.SetContainerStatus(ctx, container, 0)
+	assert.NoError(t, err)
 }
 
 func TestListContainers(t *testing.T) {
