@@ -68,11 +68,9 @@ func (h *Helium) start(ctx context.Context) {
 					Addresses: addresses,
 					Interval:  h.config.ServiceDiscoveryPushInterval * 2,
 				}
-				h.dispatch(latestStatus)
-
 			case <-timer.C:
-				h.dispatch(latestStatus)
 			}
+			h.dispatch(latestStatus)
 			timer.Stop()
 			timer.Reset(h.config.ServiceDiscoveryPushInterval)
 		}
