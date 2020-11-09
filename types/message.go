@@ -74,7 +74,7 @@ type ControlContainerMessage struct {
 
 // CreateContainerMessage for create message
 type CreateContainerMessage struct {
-	Resource1
+	ResourceMeta
 	Podname       string
 	Nodename      string
 	ContainerID   string
@@ -105,7 +105,6 @@ type PullImageMessage struct {
 // ReallocResourceMessage for realloc resource
 type ReallocResourceMessage struct {
 	ContainerID string
-	Error       error
 }
 
 // LogStreamMessage for log stream

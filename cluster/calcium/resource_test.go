@@ -51,7 +51,7 @@ func TestPodResource(t *testing.T) {
 	assert.Error(t, err)
 	containers := []*types.Container{
 		{
-			Resource1: types.Resource1{
+			ResourceMeta: types.ResourceMeta{
 				MemoryRequest:   1,
 				MemoryLimit:     1,
 				CPU:             types.CPUMap{"0": 100, "1": 30},
@@ -60,7 +60,7 @@ func TestPodResource(t *testing.T) {
 			},
 		},
 		{
-			Resource1: types.Resource1{
+			ResourceMeta: types.ResourceMeta{
 				MemoryLimit:     2,
 				MemoryRequest:   2,
 				CPU:             types.CPUMap{"1": 50},
@@ -122,7 +122,7 @@ func TestNodeResource(t *testing.T) {
 	assert.Error(t, err)
 	containers := []*types.Container{
 		{
-			Resource1: types.Resource1{
+			ResourceMeta: types.ResourceMeta{
 				MemoryRequest:   1,
 				MemoryLimit:     1,
 				CPU:             types.CPUMap{"0": 100, "1": 30},
@@ -131,7 +131,7 @@ func TestNodeResource(t *testing.T) {
 			},
 		},
 		{
-			Resource1: types.Resource1{
+			ResourceMeta: types.ResourceMeta{
 				MemoryRequest:   2,
 				MemoryLimit:     2,
 				CPU:             types.CPUMap{"1": 50},

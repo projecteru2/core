@@ -159,7 +159,7 @@ func (n *Node) ResourceUsages() map[ResourceType]float64 {
 
 // RecycleResources .
 // TODO need tests
-func (n *Node) RecycleResources(resource *Resource1) {
+func (n *Node) RecycleResources(resource *ResourceMeta) {
 	n.CPU.Add(resource.CPU)
 	n.SetCPUUsed(resource.CPUQuotaRequest, DecrUsage)
 	n.Volume.Add(resource.VolumePlanRequest.IntoVolumeMap())
@@ -173,7 +173,7 @@ func (n *Node) RecycleResources(resource *Resource1) {
 
 // PreserveResources .
 // TODO need tests
-func (n *Node) PreserveResources(resource *Resource1) {
+func (n *Node) PreserveResources(resource *ResourceMeta) {
 	n.CPU.Sub(resource.CPU)
 	n.SetCPUUsed(resource.CPUQuotaRequest, IncrUsage)
 	n.Volume.Sub(resource.VolumePlanRequest.IntoVolumeMap())

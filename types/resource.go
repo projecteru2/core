@@ -21,8 +21,8 @@ type ResourceOptions struct {
 	StorageLimit   int64
 }
 
-// Resource1 for messages and container to store
-type Resource1 struct {
+// ResourceMeta for messages and container to store
+type ResourceMeta struct {
 	CPUQuotaRequest float64
 	CPUQuotaLimit   float64
 	CPU             ResourceMap

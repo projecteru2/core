@@ -138,7 +138,7 @@ func (c *Calcium) doReplaceContainer(
 	}
 
 	createMessage := &types.CreateContainerMessage{
-		Resource1: types.Resource1{
+		ResourceMeta: types.ResourceMeta{
 			MemoryRequest:     container.MemoryRequest,
 			MemoryLimit:       container.MemoryLimit,
 			StorageRequest:    container.StorageRequest,

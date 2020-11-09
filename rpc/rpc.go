@@ -651,29 +651,35 @@ func (v *Vibranium) ExecuteContainer(stream pb.CoreRPC_ExecuteContainerServer) (
 }
 
 // ReallocResource realloc res for containers
-func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_ReallocResourceServer) error {
+func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions) (msg *pb.ReallocResourceMessage, err error) {
+	defer func() {
+		if err != nil {
+			msg = &pb.ReallocResourceMessage{Error: err.Error()}
+			err = nil
+		}
+	}()
+
 	v.taskAdd("ReallocResource", true)
 	defer v.taskDone("ReallocResource", true)
-	ids := opts.GetIds()
-	if len(ids) == 0 {
-		return types.ErrNoContainerIDs
+	if opts.Id == "" {
+		return msg, types.ErrNoContainerIDs
 	}
 
 	vbsRequest, err := types.NewVolumeBindings(opts.ResourceOpts.VolumesRequest)
 	if err != nil {
-		return err
+		return msg, err
 	}
 
 	vbsLimit, err := types.NewVolumeBindings(opts.ResourceOpts.VolumesLimit)
 	if err != nil {
-		return err
+		return msg, err
 	}
 
 	//这里不能让 client 打断 remove
-	ch, err := v.cluster.ReallocResource(
-		stream.Context(),
+	return msg, v.cluster.ReallocResource(
+		ctx,
 		&types.ReallocOptions{
-			IDs:         ids,
+			ID:          opts.Id,
 			CPUBindOpts: types.TriOptions(opts.BindCpuOpt),
 			ResourceOpts: types.ResourceOptions{
 				CPUQuotaRequest: opts.ResourceOpts.CpuQuotaRequest,
@@ -687,16 +693,6 @@ func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_R
 			},
 		},
 	)
-	if err != nil {
-		return err
-	}
-
-	for m := range ch {
-		if err = stream.Send(toRPCReallocResourceMessage(m)); err != nil {
-			v.logUnsentMessages("ReallocResource", m)
-		}
-	}
-	return err
 }
 
 // LogStream get container logs

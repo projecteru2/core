@@ -46,7 +46,7 @@ service CoreRPC {
     rpc DissociateContainer(DissociateContainerOptions) returns (stream DissociateContainerMessage) {};
     rpc ControlContainer(ControlContainerOptions) returns (stream ControlContainerMessage) {};
     rpc ExecuteContainer(stream ExecuteContainerOptions) returns (stream AttachContainerMessage) {};
-    rpc ReallocResource(ReallocOptions) returns (stream ReallocResourceMessage) {};
+    rpc ReallocResource(ReallocOptions) returns (ReallocResourceMessage) {};
     rpc LogStream(LogStreamOptions) returns (stream LogStreamMessage) {};
     rpc RunAndWait(stream RunAndWaitOptions) returns (stream AttachContainerMessage) {};
 }
@@ -250,7 +250,7 @@ enum TriOpt {
 }
 
 message ReallocOptions {
-    repeated string ids = 1;
+    string id = 1;
     TriOpt bind_cpu_opt = 2;
     ResourceOptions resource_opts = 3;
 }
@@ -376,13 +376,13 @@ message EntrypointOptions {
 message ResourceOptions {
     double cpu_quota_limit = 1;
     double cpu_quota_request = 2;
-    bool cpu_bind = 3; 
+    bool cpu_bind = 3;
     int64 memory_limit = 4;
     int64 memory_request = 5;
     int64 storage_limit = 6;
-    int64 storage_request = 7; 
+    int64 storage_request = 7;
     repeated string volumes_limit = 8;
-    repeated string volumes_request = 9; 
+    repeated string volumes_request = 9;
 }
 
 message Resource {
@@ -392,9 +392,9 @@ message Resource {
     int64 memory_limit = 4;
     int64 memory_request = 5;
     int64 storage_limit = 6;
-    int64 storage_request = 7; 
+    int64 storage_request = 7;
     repeated string volumes_limit = 8;
-    repeated string volumes_request = 9; 
+    repeated string volumes_request = 9;
     map<string, Volume> volume_plan_limit = 10;
     map<string, Volume> volume_plan_request = 11;
 }
@@ -495,7 +495,7 @@ message CreateContainerMessage {
     bool success = 6;
     map<string, string> publish = 7;
     bytes hook = 8;
-    Resource resource = 9; 
+    Resource resource = 9;
 }
 
 message ReplaceContainerMessage {
@@ -529,8 +529,7 @@ message DissociateContainerMessage {
 }
 
 message ReallocResourceMessage {
-    string id = 1;
-    string error = 2;
+    string error = 1;
 }
 
 message CopyMessage {

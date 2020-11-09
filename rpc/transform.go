@@ -393,16 +393,6 @@ func toRPCControlContainerMessage(c *types.ControlContainerMessage) *pb.ControlC
 	return r
 }
 
-func toRPCReallocResourceMessage(r *types.ReallocResourceMessage) *pb.ReallocResourceMessage {
-	resp := &pb.ReallocResourceMessage{
-		Id: r.ContainerID,
-	}
-	if r.Error != nil {
-		resp.Error = r.Error.Error()
-	}
-	return resp
-}
-
 func toRPCRemoveContainerMessage(r *types.RemoveContainerMessage) *pb.RemoveContainerMessage {
 	if r == nil {
 		return nil

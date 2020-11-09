@@ -34,5 +34,5 @@ type ResourcePlans interface {
 	Capacity() map[string]int
 	ApplyChangesOnNode(*types.Node, ...int)
 	RollbackChangesOnNode(*types.Node, ...int)
-	Dispense(DispenseOptions, *types.Resource1) (*types.Resource1, error)
+	Dispense(DispenseOptions, *types.ResourceMeta) (*types.ResourceMeta, error)
 }

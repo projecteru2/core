@@ -156,7 +156,7 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 	)
 }
 
-func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) (map[types.ResourceType]resourcetypes.ResourcePlans, map[string]int, error) {
+func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) ([]resourcetypes.ResourcePlans, map[string]int, error) {
 	if len(nodeMap) == 0 {
 		return nil, nil, errors.WithStack(types.ErrInsufficientNodes)
 	}
@@ -167,14 +167,14 @@ func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types
 	}
 
 	// select available nodes
-	scheduleTypes, total, planMap, err := resources.SelectNodesByResourceRequests(resourceRequests, nodeMap)
+	scheduleTypes, total, plans, err := resources.SelectNodesByResourceRequests(resourceRequests, nodeMap)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	log.Debugf("[Calcium.doAllocResource] planMap: %+v, total: %v, type: %+v", planMap, total, scheduleTypes)
+	log.Debugf("[Calcium.doAllocResource] plans: %+v, total: %v, type: %+v", plans, total, scheduleTypes)
 
 	// deploy strategy
-	strategyInfos := strategy.NewInfos(resourceRequests, nodeMap, planMap)
+	strategyInfos := strategy.NewInfos(resourceRequests, nodeMap, plans)
 	if err := c.store.MakeDeployStatus(ctx, opts, strategyInfos); err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
@@ -183,5 +183,5 @@ func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types
 		return nil, nil, errors.WithStack(err)
 	}
 	log.Infof("[Calium.doAllocResource] deployMap: %+v", deployMap)
-	return planMap, deployMap, nil
+	return plans, deployMap, nil
 }

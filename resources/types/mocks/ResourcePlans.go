@@ -40,20 +40,20 @@ func (_m *ResourcePlans) Capacity() map[string]int {
 }
 
 // Dispense provides a mock function with given fields: _a0, _a1
-func (_m *ResourcePlans) Dispense(_a0 resourcestypes.DispenseOptions, _a1 *types.Resource1) (*types.Resource1, error) {
+func (_m *ResourcePlans) Dispense(_a0 resourcestypes.DispenseOptions, _a1 *types.ResourceMeta) (*types.ResourceMeta, error) {
 	ret := _m.Called(_a0, _a1)
 
-	var r0 *types.Resource1
-	if rf, ok := ret.Get(0).(func(resourcestypes.DispenseOptions, *types.Resource1) *types.Resource1); ok {
+	var r0 *types.ResourceMeta
+	if rf, ok := ret.Get(0).(func(resourcestypes.DispenseOptions, *types.ResourceMeta) *types.ResourceMeta); ok {
 		r0 = rf(_a0, _a1)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Resource1)
+			r0 = ret.Get(0).(*types.ResourceMeta)
 		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(resourcestypes.DispenseOptions, *types.Resource1) error); ok {
+	if rf, ok := ret.Get(1).(func(resourcestypes.DispenseOptions, *types.ResourceMeta) error); ok {
 		r1 = rf(_a0, _a1)
 	} else {
 		r1 = ret.Error(1)

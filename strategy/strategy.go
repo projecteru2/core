@@ -59,7 +59,7 @@ type Info struct {
 
 // NewInfos .
 // TODO strange name, need to revise
-func NewInfos(resourceRequests resourcetypes.ResourceRequests, nodeMap map[string]*types.Node, planMap map[types.ResourceType]resourcetypes.ResourcePlans) (strategyInfos []Info) {
+func NewInfos(resourceRequests resourcetypes.ResourceRequests, nodeMap map[string]*types.Node, plans []resourcetypes.ResourcePlans) (strategyInfos []Info) {
 	for nodename, node := range nodeMap {
 		rates := make(map[types.ResourceType]float64)
 		for _, resourceRequest := range resourceRequests {
@@ -67,7 +67,7 @@ func NewInfos(resourceRequests resourcetypes.ResourceRequests, nodeMap map[strin
 		}
 
 		capacity := math.MaxInt32
-		for _, plan := range planMap {
+		for _, plan := range plans {
 			if plan.Capacity()[nodename] < capacity {
 				capacity = plan.Capacity()[nodename]
 			}

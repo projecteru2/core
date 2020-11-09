@@ -125,7 +125,7 @@ type ExecuteContainerOptions struct {
 
 // ReallocOptions .
 type ReallocOptions struct {
-	IDs          []string
+	ID           string
 	CPUBindOpts  TriOptions
 	ResourceOpts ResourceOptions
 }

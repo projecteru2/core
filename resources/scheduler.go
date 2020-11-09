@@ -13,12 +13,10 @@ import (
 func SelectNodesByResourceRequests(resourceRequests resourcetypes.ResourceRequests, nodeMap map[string]*types.Node) (
 	scheduleType types.ResourceType,
 	total int,
-	planMap map[types.ResourceType]resourcetypes.ResourcePlans,
+	plans []resourcetypes.ResourcePlans,
 	err error,
 ) {
 	total = math.MaxInt16
-	subTotal := 0
-	planMap = map[types.ResourceType]resourcetypes.ResourcePlans{}
 	nodesInfo := []types.NodeInfo{}
 	for _, node := range nodeMap {
 		nodeInfo := types.NodeInfo{
@@ -34,9 +32,11 @@ func SelectNodesByResourceRequests(resourceRequests resourcetypes.ResourceReques
 	}
 	log.Debugf("[SelectNode] nodesInfo: %+v", nodesInfo)
 	for _, resourceRequest := range resourceRequests {
-		if planMap[resourceRequest.Type()], subTotal, err = resourceRequest.MakeScheduler()(nodesInfo); err != nil {
-			return
+		plan, subTotal, err := resourceRequest.MakeScheduler()(nodesInfo)
+		if err != nil {
+			return scheduleType, total, plans, err
 		}
+		plans = append(plans, plan)
 		total = utils.Min(total, subTotal)
 
 		// calculate schedule type

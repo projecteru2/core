@@ -91,7 +91,7 @@ func (rp ResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...int) 
 }
 
 // Dispense .
-func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions, r *types.Resource1) (*types.Resource1, error) {
+func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions, r *types.ResourceMeta) (*types.ResourceMeta, error) {
 	r.StorageLimit = rp.limit
 	r.StorageRequest = rp.request
 	return r, nil
