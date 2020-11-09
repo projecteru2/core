@@ -181,6 +181,11 @@ func TestGetNodesByPod(t *testing.T) {
 	ns, err = m.GetNodesByPod(ctx, "testpod", nil, false)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, ns)
+	_, err = m.AddPod(ctx, "testpod", "")
+	assert.NoError(t, err)
+	ns, err = m.GetNodesByPod(ctx, "", nil, false)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, ns)
 }
 
 func TestUpdateNode(t *testing.T) {
