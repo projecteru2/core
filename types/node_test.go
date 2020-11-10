@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math"
+	"reflect"
 	"testing"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
@@ -201,4 +202,35 @@ func TestAddNodeOptions(t *testing.T) {
 	}
 	o.Normalize()
 	assert.EqualValues(t, 3, o.Storage)
+}
+
+func TestNodeWithResource(t *testing.T) {
+	n := Node{
+		CPU:    CPUMap{"0": 0},
+		Volume: VolumeMap{"sda1": 0},
+	}
+	resource := &ResourceMeta{
+		CPUQuotaLimit:     0.4,
+		CPUQuotaRequest:   0.3,
+		CPU:               CPUMap{"0": 30},
+		MemoryLimit:       100,
+		MemoryRequest:     99,
+		StorageLimit:      88,
+		StorageRequest:    87,
+		VolumePlanLimit:   MustToVolumePlan(map[string]map[string]int64{"AUTO:/data0:rw:100": {"/sda0": 100}}),
+		VolumePlanRequest: MustToVolumePlan(map[string]map[string]int64{"AUTO:/data1:rw:101": {"sda1": 101}}),
+	}
+	n.RecycleResources(resource)
+	assert.EqualValues(t, -0.3, n.CPUUsed)
+	assert.True(t, reflect.DeepEqual(n.CPU, CPUMap{"0": 30}))
+	assert.EqualValues(t, 99, n.MemCap)
+	assert.EqualValues(t, 87, n.StorageCap)
+	assert.EqualValues(t, -101, n.VolumeUsed)
+
+	n.PreserveResources(resource)
+	assert.EqualValues(t, 0, n.CPUUsed)
+	assert.True(t, reflect.DeepEqual(n.CPU, CPUMap{"0": 0}))
+	assert.EqualValues(t, 0, n.MemCap)
+	assert.EqualValues(t, 0, n.StorageCap)
+	assert.EqualValues(t, 0, n.VolumeUsed)
 }

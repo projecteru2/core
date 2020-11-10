@@ -101,7 +101,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 				for nodename, rollbackIndices := range rollbackMap {
 					if e := c.withNodeLocked(ctx, nodename, func(node *types.Node) error {
 						for _, plan := range plans {
-							plan.RollbackChangesOnNode(node, rollbackIndices...)
+							plan.RollbackChangesOnNode(node, rollbackIndices...) // nolint:scopelint
 						}
 						return errors.WithStack(c.store.UpdateNodes(ctx, node))
 					}); e != nil {

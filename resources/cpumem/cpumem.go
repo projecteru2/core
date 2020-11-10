@@ -165,15 +165,5 @@ func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions, r *types.Re
 		r.CPU = rp.CPUPlans[opts.Node.Name][opts.Index]
 		r.NUMANode = opts.Node.GetNUMANode(r.CPU)
 	}
-
-	/* TODO@zc: check this
-	// special handle when converting from cpu-binding to cpu-unbinding
-	if len(opts.ExistingInstances) > opts.Index && len(opts.ExistingInstances[opts.Index].CPU) > 0 && len(rp.CPUPlans) == 0 {
-		r.CPU = types.CPUMap{}
-		for i := 0; i < len(opts.Node.InitCPU); i++ {
-			r.CPU[strconv.Itoa(i)] = 0
-		}
-	}
-	*/
 	return r, nil
 }

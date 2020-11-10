@@ -51,5 +51,5 @@ func SelectNodesByResourceRequests(resourceRequests resourcetypes.ResourceReques
 	if scheduleType == 0 {
 		scheduleType = types.ResourceMemory
 	}
-	return
+	return // nolint:nakedret
 }

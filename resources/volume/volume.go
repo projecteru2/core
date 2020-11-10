@@ -67,7 +67,7 @@ func (v *volumeRequest) Validate() error {
 			return errors.Wrap(types.ErrBadVolume, "request and limit not match")
 		}
 		if req.SizeInBytes > 0 && lim.SizeInBytes > 0 && req.SizeInBytes > lim.SizeInBytes {
-			return errors.Wrap(types.ErrBadVolume, "request size less than limit size ")
+			v.limit[i].SizeInBytes = req.SizeInBytes
 		}
 	}
 	return nil
@@ -162,26 +162,19 @@ func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions, r *types.Re
 	r.VolumePlanRequest = rp.plan[opts.Node.Name][opts.Index]
 
 	// if there are existing ones, ensure new volumes are compatible
-	if len(opts.ExistingInstances) > 0 {
-		plans := map[*types.Container]types.VolumePlan{}
-	Searching:
+	if opts.ExistingInstance != nil {
+		found := false
 		for _, plan := range rp.plan[opts.Node.Name] {
-			for _, container := range opts.ExistingInstances {
-				if _, ok := plans[container]; !ok && plan.Compatible(container.VolumePlanRequest) {
-					plans[container] = plan
-					if len(plans) == len(opts.ExistingInstances) {
-						break Searching
-					}
-					break
-				}
+			if plan.Compatible(opts.ExistingInstance.VolumePlanRequest) {
+				r.VolumePlanRequest = plan
+				found = true
+				break
 			}
 		}
 
-		if len(plans) < len(opts.ExistingInstances) {
+		if !found {
 			return nil, errors.Wrap(types.ErrInsufficientVolume, "incompatible volume plans")
 		}
-
-		r.VolumePlanRequest = plans[opts.ExistingInstances[opts.Index]]
 	}
 
 	// fix plans while limit > request
@@ -200,17 +193,12 @@ func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions, r *types.Re
 		}
 	}
 
-	// append hard vbs
-	if opts.HardVolumeBindings != nil {
-		r.VolumeRequest = append(r.VolumeRequest, opts.HardVolumeBindings...)
-		r.VolumeLimit = append(r.VolumeLimit, opts.HardVolumeBindings...)
-	}
-
 	// judge if volume changed
-	r.VolumeChanged = len(opts.ExistingInstances) > 0 && !r.VolumeLimit.IsEqual(opts.ExistingInstances[opts.Index].VolumeLimit)
+	r.VolumeChanged = opts.ExistingInstance != nil && !r.VolumeLimit.IsEqual(opts.ExistingInstance.VolumeLimit)
 	return r, nil
 }
 
+// GetPlan return volume plans by nodename
 func (rp ResourcePlans) GetPlan(nodename string) []types.VolumePlan {
 	return rp.plan[nodename]
 }

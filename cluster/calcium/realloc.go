@@ -11,6 +11,7 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
+// ReallocResource updates workload resource dynamically
 func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOptions) (err error) {
 	return c.withContainerLocked(ctx, opts.ID, func(container *types.Container) error {
 		rrs, err := resources.MakeRequests(
@@ -41,11 +42,10 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, nodename string, containe
 		if err != nil {
 			return errors.WithStack(err)
 		}
-		if total != 1 {
+		if total < 1 {
 			return errors.WithStack(types.ErrInsufficientRes)
 		}
 
-		originalContainer := *container
 		return utils.Txn(
 			ctx,
 
@@ -60,17 +60,8 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, nodename string, containe
 				}
 				return c.store.UpdateNodes(ctx, node)
 			},
-			// rollback to origin
-			func(ctx context.Context, failureByCond bool) error {
-				if failureByCond {
-					return nil
-				}
-				for _, plan := range plans {
-					plan.RollbackChangesOnNode(node, 1)
-				}
-				node.PreserveResources(&originalContainer.ResourceMeta)
-				return c.store.UpdateNodes(ctx, node)
-			},
+			// no need rollback
+			nil,
 
 			c.config.GlobalTimeout,
 		)
@@ -80,12 +71,9 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, nodename string, containe
 func (c *Calcium) doReallocContainersOnInstance(ctx context.Context, node *types.Node, plans []resourcetypes.ResourcePlans, container *types.Container) (err error) {
 	r := &types.ResourceMeta{}
 	for _, plan := range plans {
-		// TODO@zc: single existing instance
-		// TODO@zc: no HardVolumeBindings
 		if r, err = plan.Dispense(resourcetypes.DispenseOptions{
-			Node:              node,
-			Index:             1,
-			ExistingInstances: []*types.Container{container},
+			Node:             node,
+			ExistingInstance: container,
 		}, r); err != nil {
 			return
 		}
@@ -131,7 +119,17 @@ func (c *Calcium) doReallocContainersOnInstance(ctx context.Context, node *types
 			if failureByCond {
 				return nil
 			}
-			return errors.WithStack(c.store.UpdateContainer(ctx, &originalContainer))
+			r := &enginetypes.VirtualizationResource{
+				CPU:           originalContainer.CPU,
+				Quota:         originalContainer.CPUQuotaLimit,
+				NUMANode:      originalContainer.NUMANode,
+				Memory:        originalContainer.MemoryLimit,
+				Volumes:       originalContainer.VolumeLimit.ToStringSlice(false, false),
+				VolumePlan:    originalContainer.VolumePlanLimit.ToLiteral(),
+				VolumeChanged: r.VolumeChanged,
+				Storage:       originalContainer.StorageLimit,
+			}
+			return errors.WithStack(node.Engine.VirtualizationUpdateResource(ctx, container.ID, r))
 		},
 
 		c.config.GlobalTimeout,

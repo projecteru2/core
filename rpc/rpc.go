@@ -653,10 +653,11 @@ func (v *Vibranium) ExecuteContainer(stream pb.CoreRPC_ExecuteContainerServer) (
 // ReallocResource realloc res for containers
 func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions) (msg *pb.ReallocResourceMessage, err error) {
 	defer func() {
+		errString := ""
 		if err != nil {
-			msg = &pb.ReallocResourceMessage{Error: err.Error()}
-			err = nil
+			errString = err.Error()
 		}
+		msg = &pb.ReallocResourceMessage{Error: errString}
 	}()
 
 	v.taskAdd("ReallocResource", true)
