@@ -98,6 +98,6 @@ func TestNewInfos(t *testing.T) {
 	}
 	mockPlan := &resourcetypesmocks.ResourcePlans{}
 	mockPlan.On("Capacity").Return(map[string]int{"node1": 1})
-	planMap := map[types.ResourceType]resourcetypes.ResourcePlans{1: mockPlan}
-	NewInfos(rrs, nodeMap, planMap)
+	plans := []resourcetypes.ResourcePlans{mockPlan}
+	NewInfos(rrs, nodeMap, plans)
 }

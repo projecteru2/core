@@ -49,21 +49,22 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, nodename string, containe
 		return utils.Txn(
 			ctx,
 
-			// if commit changes
+			// if update workload resources
 			func(ctx context.Context) (err error) {
+				return c.doReallocContainersOnInstance(ctx, node, plans, container)
+			},
+			// then commit changes
+			func(ctx context.Context) error {
 				for _, plan := range plans {
 					plan.ApplyChangesOnNode(node, 1)
 				}
 				return c.store.UpdateNodes(ctx, node)
 			},
-
-			// then update workload resources
-			func(ctx context.Context) error {
-				return c.doReallocContainersOnInstance(ctx, node, plans, container)
-			},
-
 			// rollback to origin
-			func(ctx context.Context) error {
+			func(ctx context.Context, failureByCond bool) error {
+				if failureByCond {
+					return nil
+				}
 				for _, plan := range plans {
 					plan.RollbackChangesOnNode(node, 1)
 				}
@@ -94,7 +95,22 @@ func (c *Calcium) doReallocContainersOnInstance(ctx context.Context, node *types
 	return utils.Txn(
 		ctx,
 
-		// if: update container meta
+		// if: update container resources
+		func(ctx context.Context) error {
+			r := &enginetypes.VirtualizationResource{
+				CPU:           r.CPU,
+				Quota:         r.CPUQuotaLimit,
+				NUMANode:      r.NUMANode,
+				Memory:        r.MemoryLimit,
+				Volumes:       r.VolumeLimit.ToStringSlice(false, false),
+				VolumePlan:    r.VolumePlanLimit.ToLiteral(),
+				VolumeChanged: r.VolumeChanged,
+				Storage:       r.StorageLimit,
+			}
+			return errors.WithStack(node.Engine.VirtualizationUpdateResource(ctx, container.ID, r))
+		},
+
+		// then: update container meta
 		func(ctx context.Context) error {
 			container.CPUQuotaRequest = r.CPUQuotaRequest
 			container.CPUQuotaLimit = r.CPUQuotaLimit
@@ -110,23 +126,11 @@ func (c *Calcium) doReallocContainersOnInstance(ctx context.Context, node *types
 			return errors.WithStack(c.store.UpdateContainer(ctx, container))
 		},
 
-		// then: update container resources
-		func(ctx context.Context) error {
-			r := &enginetypes.VirtualizationResource{
-				CPU:           r.CPU,
-				Quota:         r.CPUQuotaLimit,
-				NUMANode:      r.NUMANode,
-				Memory:        r.MemoryLimit,
-				Volumes:       r.VolumeLimit.ToStringSlice(false, false),
-				VolumePlan:    r.VolumePlanLimit.ToLiteral(),
-				VolumeChanged: r.VolumeChanged,
-				Storage:       r.StorageLimit,
-			}
-			return errors.WithStack(node.Engine.VirtualizationUpdateResource(ctx, container.ID, r))
-		},
-
 		// rollback: container meta
-		func(ctx context.Context) error {
+		func(ctx context.Context, failureByCond bool) error {
+			if failureByCond {
+				return nil
+			}
 			return errors.WithStack(c.store.UpdateContainer(ctx, &originalContainer))
 		},
 

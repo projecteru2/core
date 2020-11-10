@@ -41,6 +41,7 @@ require (
 	golang.org/x/net v0.0.0-20200813134508-3edf25e44fcc
 	golang.org/x/sys v0.0.0-20200812155832-6a926be9bd1d // indirect
 	google.golang.org/grpc v1.28.0
+	google.golang.org/protobuf v1.23.0
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
 	gotest.tools v2.2.0+incompatible // indirect
 )

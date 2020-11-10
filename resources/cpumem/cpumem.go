@@ -40,6 +40,9 @@ func (cm cpuMemRequest) Type() types.ResourceType {
 
 // Validate .
 func (cm *cpuMemRequest) Validate() error {
+	if cm.CPUQuotaRequest == 0 && cm.CPUQuotaLimit > 0 {
+		cm.CPUQuotaRequest = cm.CPUQuotaLimit
+	}
 	if cm.memoryLimit < 0 || cm.memoryRequest < 0 {
 		return errors.Wrap(types.ErrBadMemory, "limit or request less than 0")
 	}
@@ -56,9 +59,6 @@ func (cm *cpuMemRequest) Validate() error {
 	// 如果需求量大于限制量，悄咪咪的把限制量抬到需求量的水平，做成名义上的软限制
 	if cm.memoryLimit > 0 && cm.memoryRequest > 0 && cm.memoryRequest > cm.memoryLimit {
 		cm.memoryLimit = cm.memoryRequest
-	}
-	if cm.CPUQuotaRequest == 0 && cm.CPUQuotaLimit > 0 {
-		cm.CPUQuotaRequest = cm.CPUQuotaLimit
 	}
 	if cm.CPUQuotaRequest > 0 && cm.CPUQuotaLimit > 0 && cm.CPUQuotaRequest > cm.CPUQuotaLimit {
 		cm.CPUQuotaLimit = cm.CPUQuotaRequest

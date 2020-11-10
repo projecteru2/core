@@ -183,7 +183,7 @@ func (c *Calcium) doReplaceContainer(
 			)
 		},
 		// rollback
-		func(ctx context.Context) (err error) {
+		func(ctx context.Context, _ bool) (err error) {
 			messages, err := c.doStartContainer(ctx, container, opts.IgnoreHook)
 			if err != nil {
 				log.Errorf("[replaceAndRemove] Old container %s restart failed %v", container.ID, err)

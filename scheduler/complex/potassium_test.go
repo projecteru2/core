@@ -192,7 +192,7 @@ func getNodeMapFromNodesInfo(nodesInfo []types.NodeInfo) map[string]*types.Node 
 	return nodeMap
 }
 
-func getInfosFromNodesInfo(nodesInfo []types.NodeInfo, planMap map[types.ResourceType]resourcetypes.ResourcePlans) (strategyInfos []strategy.Info) {
+func getInfosFromNodesInfo(nodesInfo []types.NodeInfo, planMap []resourcetypes.ResourcePlans) (strategyInfos []strategy.Info) {
 	for _, nodeInfo := range nodesInfo {
 		capacity := math.MaxInt32
 		for _, v := range planMap {

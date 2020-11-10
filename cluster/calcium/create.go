@@ -97,7 +97,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			},
 
 			// rollback: give back resources
-			func(ctx context.Context) (err error) {
+			func(ctx context.Context, _ bool) (err error) {
 				for nodename, rollbackIndices := range rollbackMap {
 					if e := c.withNodeLocked(ctx, nodename, func(node *types.Node) error {
 						for _, plan := range plans {
@@ -170,7 +170,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 				ch <- createMsg
 			}()
 
-			var r *types.ResourceMeta
+			r := &types.ResourceMeta{}
 			o := resourcetypes.DispenseOptions{
 				Node:  node,
 				Index: idx,
@@ -182,8 +182,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 			}
 
 			createMsg.ResourceMeta = *r
-			e = c.doDeployOneWorkload(ctx, node, opts, createMsg, seq+idx, deploy-1-idx)
-			return e
+			return c.doDeployOneWorkload(ctx, node, opts, createMsg, seq+idx, deploy-1-idx)
 		}
 		_ = do(idx)
 	}
@@ -307,7 +306,7 @@ func (c *Calcium) doDeployOneWorkload(
 		},
 
 		// remove container
-		func(ctx context.Context) error {
+		func(ctx context.Context, _ bool) error {
 			return errors.WithStack(c.doRemoveContainer(ctx, container, true))
 		},
 		c.config.GlobalTimeout,
