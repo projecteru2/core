@@ -51,20 +51,24 @@ func TestPodResource(t *testing.T) {
 	assert.Error(t, err)
 	containers := []*types.Container{
 		{
-			MemoryRequest: 1,
-			MemoryLimit:   1,
-			CPURequest:    types.CPUMap{"0": 100, "1": 30},
-			QuotaRequest:  1.3,
-			QuotaLimit:    1.3,
+			ResourceMeta: types.ResourceMeta{
+				MemoryRequest:   1,
+				MemoryLimit:     1,
+				CPU:             types.CPUMap{"0": 100, "1": 30},
+				CPUQuotaRequest: 1.3,
+				CPUQuotaLimit:   1.3,
+			},
 		},
 		{
-			MemoryLimit:    2,
-			MemoryRequest:  2,
-			CPURequest:     types.CPUMap{"1": 50},
-			QuotaRequest:   0.5,
-			QuotaLimit:     0.5,
-			StorageRequest: 1,
-			StorageLimit:   1,
+			ResourceMeta: types.ResourceMeta{
+				MemoryLimit:     2,
+				MemoryRequest:   2,
+				CPU:             types.CPUMap{"1": 50},
+				CPUQuotaRequest: 0.5,
+				CPUQuotaLimit:   0.5,
+				StorageRequest:  1,
+				StorageLimit:    1,
+			},
 		},
 	}
 	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
@@ -118,18 +122,22 @@ func TestNodeResource(t *testing.T) {
 	assert.Error(t, err)
 	containers := []*types.Container{
 		{
-			MemoryRequest: 1,
-			MemoryLimit:   1,
-			CPURequest:    types.CPUMap{"0": 100, "1": 30},
-			QuotaRequest:  1.3,
-			QuotaLimit:    1.3,
+			ResourceMeta: types.ResourceMeta{
+				MemoryRequest:   1,
+				MemoryLimit:     1,
+				CPU:             types.CPUMap{"0": 100, "1": 30},
+				CPUQuotaRequest: 1.3,
+				CPUQuotaLimit:   1.3,
+			},
 		},
 		{
-			MemoryRequest: 2,
-			MemoryLimit:   2,
-			CPURequest:    types.CPUMap{"1": 50},
-			QuotaRequest:  0.5,
-			QuotaLimit:    0.5,
+			ResourceMeta: types.ResourceMeta{
+				MemoryRequest:   2,
+				MemoryLimit:     2,
+				CPU:             types.CPUMap{"1": 50},
+				CPUQuotaRequest: 0.5,
+				CPUQuotaLimit:   0.5,
+			},
 		},
 	}
 	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
@@ -222,7 +230,7 @@ func TestAllocResource(t *testing.T) {
 	}()
 
 	// success
-	opts.RawResourceOptions = types.RawResourceOptions{CPULimit: 1, MemoryLimit: 1, StorageLimit: 1}
+	opts.ResourceOpts = types.ResourceOptions{CPUQuotaLimit: 1, MemoryLimit: 1, StorageLimit: 1}
 	_, _, err := c.doAllocResource(ctx, nodeMap, opts)
 	assert.NoError(t, err)
 }
@@ -235,7 +243,7 @@ func testAllocFailedAsMakeDeployStatusError(t *testing.T, c *Calcium, opts *type
 }
 
 func testAllocFailedAsInsufficientMemory(t *testing.T, c *Calcium, opts *types.DeployOptions, nodeMap map[string]*types.Node) {
-	opts.RawResourceOptions = types.RawResourceOptions{CPULimit: 1, MemoryLimit: 1}
+	opts.ResourceOpts = types.ResourceOptions{CPUQuotaLimit: 1, MemoryLimit: 1}
 	_, _, err := c.doAllocResource(context.Background(), nodeMap, opts)
 	assert.Error(t, err)
 }

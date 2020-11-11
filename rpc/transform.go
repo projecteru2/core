@@ -268,16 +268,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		entry.Hook.Force = entrypoint.Hook.Force
 	}
 
-	vbs, err := types.NewVolumeBindings(d.Volumes)
-	if err != nil {
-		return nil, err
-	}
-
-	vbsRequest, err := types.NewVolumeBindings(d.VolumesRequest)
-	if err != nil {
-		return nil, err
-	}
-
+	var err error
 	data := map[string]types.ReaderManager{}
 	for filename, bs := range d.Data {
 		if data[filename], err = types.NewReaderManager(bytes.NewBuffer(bs)); err != nil {
@@ -285,7 +276,28 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		}
 	}
 
+	vbsLimit, err := types.NewVolumeBindings(d.ResourceOpts.VolumesLimit)
+	if err != nil {
+		return nil, err
+	}
+
+	vbsRequest, err := types.NewVolumeBindings(d.ResourceOpts.VolumesRequest)
+	if err != nil {
+		return nil, err
+	}
+
 	return &types.DeployOptions{
+		ResourceOpts: types.ResourceOptions{
+			CPUQuotaRequest: d.ResourceOpts.CpuQuotaRequest,
+			CPUQuotaLimit:   d.ResourceOpts.CpuQuotaLimit,
+			CPUBind:         d.ResourceOpts.CpuBind,
+			MemoryRequest:   d.ResourceOpts.MemoryRequest,
+			MemoryLimit:     d.ResourceOpts.MemoryLimit,
+			VolumeRequest:   vbsRequest,
+			VolumeLimit:     vbsLimit,
+			StorageRequest:  d.ResourceOpts.StorageRequest,
+			StorageLimit:    d.ResourceOpts.StorageLimit,
+		},
 		Name:           d.Name,
 		Entrypoint:     entry,
 		Podname:        d.Podname,
@@ -304,37 +316,12 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Labels:         d.Labels,
 		NodeLabels:     d.Nodelabels,
 		DeployStrategy: d.DeployStrategy.String(),
-		SoftLimit:      d.SoftLimit,
 		NodesLimit:     int(d.NodesLimit),
 		IgnoreHook:     d.IgnoreHook,
 		AfterCreate:    d.AfterCreate,
 		RawArgs:        d.RawArgs,
 		Data:           data,
-		RawResourceOptions: types.RawResourceOptions{
-			CPURequest:     d.CpuQuotaRequest,
-			CPULimit:       d.CpuQuota,
-			CPUBind:        d.CpuBind,
-			MemoryRequest:  d.MemoryRequest,
-			MemoryLimit:    d.Memory,
-			MemorySoft:     d.SoftLimit,
-			VolumeRequest:  vbsRequest,
-			VolumeLimit:    vbs,
-			StorageRequest: d.StorageRequest,
-			StorageLimit:   d.Storage,
-		},
 	}, nil
-}
-
-func toRPCVolumePlan(v types.VolumePlan) map[string]*pb.Volume {
-	if v == nil {
-		return nil
-	}
-
-	msg := map[string]*pb.Volume{}
-	for vb, volume := range v {
-		msg[vb.ToString(false)] = &pb.Volume{Volume: volume}
-	}
-	return msg
 }
 
 func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateContainerMessage {
@@ -342,22 +329,24 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 		return nil
 	}
 	msg := &pb.CreateContainerMessage{
-		Podname:           c.Podname,
-		Nodename:          c.Nodename,
-		Id:                c.ContainerID,
-		Name:              c.ContainerName,
-		Success:           c.Error == nil,
-		Publish:           utils.EncodePublishInfo(c.Publish),
-		Hook:              utils.MergeHookOutputs(c.Hook),
-		Cpu:               toRPCCPUMap(c.CPULimit),
-		Quota:             c.CPUQuotaLimit,
-		QuotaRequest:      c.CPUQuotaRequest,
-		Memory:            c.MemoryLimit,
-		MemoryRequest:     c.MemoryRequest,
-		Storage:           c.StorageLimit,
-		StorageRequest:    c.StorageRequest,
-		VolumePlan:        toRPCVolumePlan(c.VolumePlanLimit),
-		VolumePlanRequest: toRPCVolumePlan(c.VolumePlanRequest),
+		Podname:  c.Podname,
+		Nodename: c.Nodename,
+		Id:       c.ContainerID,
+		Name:     c.ContainerName,
+		Success:  c.Error == nil,
+		Publish:  utils.EncodePublishInfo(c.Publish),
+		Hook:     utils.MergeHookOutputs(c.Hook),
+		Resource: &pb.Resource{
+			CpuQuotaLimit:   c.CPUQuotaLimit,
+			CpuQuotaRequest: c.CPUQuotaRequest,
+			Cpu:             toRPCCPUMap(c.CPU),
+			MemoryLimit:     c.MemoryLimit,
+			MemoryRequest:   c.MemoryRequest,
+			StorageLimit:    c.StorageLimit,
+			StorageRequest:  c.StorageRequest,
+			VolumesLimit:    c.VolumeLimit.ToStringSlice(false, false),
+			VolumesRequest:  c.VolumeRequest.ToStringSlice(false, false),
+		},
 	}
 	if c.Error != nil {
 		msg.Error = c.Error.Error()
@@ -402,16 +391,6 @@ func toRPCControlContainerMessage(c *types.ControlContainerMessage) *pb.ControlC
 		r.Error = c.Error.Error()
 	}
 	return r
-}
-
-func toRPCReallocResourceMessage(r *types.ReallocResourceMessage) *pb.ReallocResourceMessage {
-	resp := &pb.ReallocResourceMessage{
-		Id: r.ContainerID,
-	}
-	if r.Error != nil {
-		resp.Error = r.Error.Error()
-	}
-	return resp
 }
 
 func toRPCRemoveContainerMessage(r *types.RemoveContainerMessage) *pb.RemoveContainerMessage {
@@ -493,29 +472,42 @@ func toRPCContainer(_ context.Context, c *types.Container) (*pb.Container, error
 			utils.MakePublishInfo(c.StatusMeta.Networks, meta.Publish),
 		)
 	}
-	cpu := toRPCCPUMap(c.CPURequest)
 	return &pb.Container{
-		Id:                c.ID,
-		Podname:           c.Podname,
-		Nodename:          c.Nodename,
-		Name:              c.Name,
-		Cpu:               cpu,
-		Privileged:        c.Privileged,
-		Publish:           publish,
-		Image:             c.Image,
-		Labels:            c.Labels,
-		Status:            toRPCContainerStatus(c.StatusMeta),
-		Quota:             c.QuotaLimit,
-		QuotaRequest:      c.QuotaRequest,
-		Memory:            c.MemoryLimit,
-		MemoryRequest:     c.MemoryRequest,
-		Storage:           c.StorageLimit,
-		StorageRequest:    c.StorageRequest,
-		Volumes:           c.VolumeLimit.ToStringSlice(false, false),
-		VolumesRequest:    c.VolumeRequest.ToStringSlice(false, false),
-		VolumePlan:        toRPCVolumePlan(c.VolumePlanLimit),
-		VolumePlanRequest: toRPCVolumePlan(c.VolumePlanRequest),
+		Id:         c.ID,
+		Podname:    c.Podname,
+		Nodename:   c.Nodename,
+		Name:       c.Name,
+		Privileged: c.Privileged,
+		Publish:    publish,
+		Image:      c.Image,
+		Labels:     c.Labels,
+		Status:     toRPCContainerStatus(c.StatusMeta),
+		Resource: &pb.Resource{
+			CpuQuotaLimit:     c.CPUQuotaLimit,
+			CpuQuotaRequest:   c.CPUQuotaRequest,
+			Cpu:               toRPCCPUMap(c.CPU),
+			MemoryLimit:       c.MemoryLimit,
+			MemoryRequest:     c.MemoryRequest,
+			StorageLimit:      c.StorageLimit,
+			StorageRequest:    c.StorageRequest,
+			VolumesLimit:      c.VolumeLimit.ToStringSlice(false, false),
+			VolumesRequest:    c.VolumeRequest.ToStringSlice(false, false),
+			VolumePlanLimit:   toRPCVolumePlan(c.VolumePlanLimit),
+			VolumePlanRequest: toRPCVolumePlan(c.VolumePlanRequest),
+		},
 	}, nil
+}
+
+func toRPCVolumePlan(v types.VolumePlan) map[string]*pb.Volume {
+	if v == nil {
+		return nil
+	}
+
+	msg := map[string]*pb.Volume{}
+	for vb, volume := range v {
+		msg[vb.ToString(false)] = &pb.Volume{Volume: volume}
+	}
+	return msg
 }
 
 func toRPCLogStreamMessage(msg *types.LogStreamMessage) *pb.LogStreamMessage {

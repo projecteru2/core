@@ -78,10 +78,10 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 		storage := int64(0)
 		cpumap := types.CPUMap{}
 		for _, container := range containers {
-			cpus = utils.Round(cpus + container.QuotaRequest)
+			cpus = utils.Round(cpus + container.CPUQuotaRequest)
 			memory += container.MemoryRequest
 			storage += container.StorageRequest
-			cpumap.Add(container.CPURequest)
+			cpumap.Add(container.CPU)
 		}
 		nr.CPUPercent = cpus / float64(len(node.InitCPU))
 		nr.MemoryPercent = float64(memory) / float64(node.InitMemCap)
@@ -156,25 +156,25 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 	)
 }
 
-func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) (map[types.ResourceType]resourcetypes.ResourcePlans, map[string]int, error) {
+func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) ([]resourcetypes.ResourcePlans, map[string]int, error) {
 	if len(nodeMap) == 0 {
 		return nil, nil, errors.WithStack(types.ErrInsufficientNodes)
 	}
 
-	apps, err := resources.NewResourceRequirements(opts.RawResourceOptions)
+	resourceRequests, err := resources.MakeRequests(opts.ResourceOpts)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
 
 	// select available nodes
-	planMap, total, scheduleTypes, err := resources.SelectNodes(apps, nodeMap)
+	scheduleTypes, total, plans, err := resources.SelectNodesByResourceRequests(resourceRequests, nodeMap)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	log.Debugf("[Calcium.doAllocResource] planMap: %+v, total: %v, type: %+v", planMap, total, scheduleTypes)
+	log.Debugf("[Calcium.doAllocResource] plans: %+v, total: %v, type: %+v", plans, total, scheduleTypes)
 
 	// deploy strategy
-	strategyInfos := strategy.NewInfos(apps, nodeMap, planMap)
+	strategyInfos := strategy.NewInfos(resourceRequests, nodeMap, plans)
 	if err := c.store.MakeDeployStatus(ctx, opts, strategyInfos); err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
@@ -183,5 +183,5 @@ func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types
 		return nil, nil, errors.WithStack(err)
 	}
 	log.Infof("[Calium.doAllocResource] deployMap: %+v", deployMap)
-	return planMap, deployMap, nil
+	return plans, deployMap, nil
 }

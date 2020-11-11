@@ -57,7 +57,17 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 					}
 					// 使用复制之后的配置
 					// 停老的，起新的
-					replaceOpts.SoftLimit = container.SoftLimit
+					replaceOpts.ResourceOpts = types.ResourceOptions{
+						CPUQuotaRequest: container.CPUQuotaRequest,
+						CPUQuotaLimit:   container.CPUQuotaLimit,
+						CPUBind:         len(container.CPU) > 0,
+						MemoryRequest:   container.MemoryRequest,
+						MemoryLimit:     container.MemoryLimit,
+						StorageRequest:  container.StorageRequest,
+						StorageLimit:    container.StorageLimit,
+						VolumeRequest:   container.VolumeRequest,
+						VolumeLimit:     container.VolumeLimit,
+					}
 					// 覆盖 podname 如果做全量更新的话
 					replaceOpts.Podname = container.Podname
 					// 覆盖 Volumes
@@ -128,14 +138,14 @@ func (c *Calcium) doReplaceContainer(
 	}
 
 	createMessage := &types.CreateContainerMessage{
-		Resources: types.Resources{
+		ResourceMeta: types.ResourceMeta{
 			MemoryRequest:     container.MemoryRequest,
 			MemoryLimit:       container.MemoryLimit,
 			StorageRequest:    container.StorageRequest,
 			StorageLimit:      container.StorageLimit,
-			CPUQuotaRequest:   container.QuotaRequest,
-			CPUQuotaLimit:     container.QuotaLimit,
-			CPURequest:        container.CPURequest,
+			CPUQuotaRequest:   container.CPUQuotaRequest,
+			CPUQuotaLimit:     container.CPUQuotaLimit,
+			CPU:               container.CPU,
 			VolumeRequest:     container.VolumeRequest,
 			VolumePlanRequest: container.VolumePlanRequest,
 			VolumeLimit:       container.VolumeLimit,
@@ -173,7 +183,7 @@ func (c *Calcium) doReplaceContainer(
 			)
 		},
 		// rollback
-		func(ctx context.Context) (err error) {
+		func(ctx context.Context, _ bool) (err error) {
 			messages, err := c.doStartContainer(ctx, container, opts.IgnoreHook)
 			if err != nil {
 				log.Errorf("[replaceAndRemove] Old container %s restart failed %v", container.ID, err)

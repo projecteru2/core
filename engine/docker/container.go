@@ -113,7 +113,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		Tty:             opts.Stdin,
 	}
 
-	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode, opts.SoftLimit)
+	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode)
 	// set ulimits
 	resource.Ulimits = []*units.Ulimit{
 		{Name: "nofile", Soft: 65535, Hard: 65535},
@@ -331,11 +331,11 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 	}
 
 	memory := opts.Memory
-	softLimit := opts.SoftLimit
+	//softLimit := opts.SoftLimit
 	// unlimited memory
 	if memory == 0 {
 		memory = maxMemory
-		softLimit = false
+		//softLimit = false
 	}
 
 	quota := opts.Quota
@@ -357,7 +357,7 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 		}
 	}
 
-	newResource := makeResourceSetting(quota, memory, cpuMap, numaNode, softLimit)
+	newResource := makeResourceSetting(quota, memory, cpuMap, numaNode)
 	updateConfig := dockercontainer.UpdateConfig{Resources: newResource}
 	_, err := e.client.ContainerUpdate(ctx, ID, updateConfig)
 	return err

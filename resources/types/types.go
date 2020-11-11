@@ -6,11 +6,11 @@ import (
 
 const supported = 3
 
-// ResourceRequirements .
-type ResourceRequirements [supported]ResourceRequirement
+// ResourceRequests .
+type ResourceRequests [supported]ResourceRequest
 
 // ResourceRequirement .
-type ResourceRequirement interface {
+type ResourceRequest interface {
 	Type() types.ResourceType
 	Validate() error
 	MakeScheduler() SchedulerV2
@@ -23,9 +23,8 @@ type SchedulerV2 func([]types.NodeInfo) (ResourcePlans, int, error)
 // DispenseOptions .
 type DispenseOptions struct {
 	*types.Node
-	ExistingInstances  []*types.Container
-	Index              int
-	HardVolumeBindings types.VolumeBindings
+	Index            int
+	ExistingInstance *types.Container
 }
 
 // ResourcePlans .
@@ -34,5 +33,5 @@ type ResourcePlans interface {
 	Capacity() map[string]int
 	ApplyChangesOnNode(*types.Node, ...int)
 	RollbackChangesOnNode(*types.Node, ...int)
-	Dispense(DispenseOptions, *types.Resources) error
+	Dispense(DispenseOptions, *types.ResourceMeta) (*types.ResourceMeta, error)
 }

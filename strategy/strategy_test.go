@@ -90,7 +90,7 @@ func TestDeploy(t *testing.T) {
 }
 
 func TestNewInfos(t *testing.T) {
-	rrs, err := resources.NewResourceRequirements(types.RawResourceOptions{})
+	rrs, err := resources.MakeRequests(types.ResourceOptions{})
 	assert.Nil(t, err)
 	nodeMap := map[string]*types.Node{
 		"node1": {},
@@ -98,6 +98,6 @@ func TestNewInfos(t *testing.T) {
 	}
 	mockPlan := &resourcetypesmocks.ResourcePlans{}
 	mockPlan.On("Capacity").Return(map[string]int{"node1": 1})
-	planMap := map[types.ResourceType]resourcetypes.ResourcePlans{1: mockPlan}
-	NewInfos(rrs, nodeMap, planMap)
+	plans := []resourcetypes.ResourcePlans{mockPlan}
+	NewInfos(rrs, nodeMap, plans)
 }

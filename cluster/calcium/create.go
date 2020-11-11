@@ -42,7 +42,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 	var (
 		err         error
-		planMap     map[types.ResourceType]resourcetypes.ResourcePlans
+		plans       []resourcetypes.ResourcePlans
 		deployMap   map[string]int
 		rollbackMap map[string][]int
 	)
@@ -71,14 +71,14 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					}()
 
 					// calculate plans
-					if planMap, deployMap, err = c.doAllocResource(ctx, nodeMap, opts); err != nil {
+					if plans, deployMap, err = c.doAllocResource(ctx, nodeMap, opts); err != nil {
 						return errors.WithStack(err)
 					}
 
 					// commit changes
 					nodes := []*types.Node{}
 					for nodename, deploy := range deployMap {
-						for _, plan := range planMap {
+						for _, plan := range plans {
 							plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deploy)...)
 						}
 						nodes = append(nodes, nodeMap[nodename])
@@ -92,17 +92,16 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 			// then: deploy containers
 			func(ctx context.Context) error {
-				rollbackMap, err = c.doDeployWorkloads(ctx, ch, opts, planMap, deployMap)
+				rollbackMap, err = c.doDeployWorkloads(ctx, ch, opts, plans, deployMap)
 				return errors.WithStack(err)
 			},
 
 			// rollback: give back resources
-			func(ctx context.Context) (err error) {
-				for nodeName, rollbackIndices := range rollbackMap {
-					indices := rollbackIndices
-					if e := c.withNodeLocked(ctx, nodeName, func(node *types.Node) error {
-						for _, plan := range planMap {
-							plan.RollbackChangesOnNode(node, indices...)
+			func(ctx context.Context, _ bool) (err error) {
+				for nodename, rollbackIndices := range rollbackMap {
+					if e := c.withNodeLocked(ctx, nodename, func(node *types.Node) error {
+						for _, plan := range plans {
+							plan.RollbackChangesOnNode(node, rollbackIndices...) // nolint:scopelint
 						}
 						return errors.WithStack(c.store.UpdateNodes(ctx, node))
 					}); e != nil {
@@ -121,7 +120,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 	return ch, err
 }
 
-func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateContainerMessage, opts *types.DeployOptions, planMap map[types.ResourceType]resourcetypes.ResourcePlans, deployMap map[string]int) (_ map[string][]int, err error) {
+func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateContainerMessage, opts *types.DeployOptions, plans []resourcetypes.ResourcePlans, deployMap map[string]int) (_ map[string][]int, err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(deployMap))
 
@@ -131,7 +130,7 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateCo
 		go metrics.Client.SendDeployCount(deploy)
 		go func(nodename string, deploy, seq int) {
 			defer wg.Done()
-			if indices, e := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, planMap, seq); e != nil {
+			if indices, e := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, plans, seq); e != nil {
 				err = e
 				rollbackMap[nodename] = indices
 			}
@@ -145,8 +144,8 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateCo
 }
 
 // deploy scheduled containers on one node
-func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.CreateContainerMessage, nodeName string, opts *types.DeployOptions, deploy int, planMap map[types.ResourceType]resourcetypes.ResourcePlans, seq int) (indices []int, err error) {
-	node, err := c.doGetAndPrepareNode(ctx, nodeName, opts.Image)
+func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.CreateContainerMessage, nodename string, opts *types.DeployOptions, deploy int, plans []resourcetypes.ResourcePlans, seq int) (indices []int, err error) {
+	node, err := c.doGetAndPrepareNode(ctx, nodename, opts.Image)
 	if err != nil {
 		for i := 0; i < deploy; i++ {
 			ch <- &types.CreateContainerMessage{Error: err}
@@ -157,12 +156,11 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 	for idx := 0; idx < deploy; idx++ {
 		createMsg := &types.CreateContainerMessage{
 			Podname:  opts.Podname,
-			Nodename: nodeName,
+			Nodename: nodename,
 			Publish:  map[string][]string{},
 		}
 
-		func() {
-			var e error
+		do := func(idx int) (e error) {
 			defer func() {
 				if e != nil {
 					err = e
@@ -172,20 +170,21 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 				ch <- createMsg
 			}()
 
-			rsc := &types.Resources{}
+			r := &types.ResourceMeta{}
 			o := resourcetypes.DispenseOptions{
 				Node:  node,
 				Index: idx,
 			}
-			for _, plan := range planMap {
-				if e = plan.Dispense(o, rsc); e != nil {
+			for _, plan := range plans {
+				if r, e = plan.Dispense(o, r); e != nil {
 					return
 				}
 			}
 
-			createMsg.Resources = *rsc
-			e = c.doDeployOneWorkload(ctx, node, opts, createMsg, seq+idx, deploy-1-idx)
-		}()
+			createMsg.ResourceMeta = *r
+			return c.doDeployOneWorkload(ctx, node, opts, createMsg, seq+idx, deploy-1-idx)
+		}
+		_ = do(idx)
 	}
 
 	return indices, errors.WithStack(err)
@@ -210,30 +209,29 @@ func (c *Calcium) doDeployOneWorkload(
 ) (err error) {
 	config := c.doMakeContainerOptions(no, msg, opts, node)
 	container := &types.Container{
-		Name:                 config.Name,
-		Labels:               config.Labels,
-		Podname:              opts.Podname,
-		Nodename:             node.Name,
-		CPURequest:           msg.CPURequest,
-		CPULimit:             msg.CPULimit,
-		QuotaRequest:         msg.CPUQuotaRequest,
-		QuotaLimit:           msg.CPUQuotaLimit,
-		MemoryRequest:        msg.MemoryRequest,
-		MemoryLimit:          msg.MemoryLimit,
-		StorageRequest:       msg.StorageRequest,
-		StorageLimit:         msg.StorageLimit,
-		VolumeRequest:        msg.VolumeRequest,
-		VolumeLimit:          msg.VolumeLimit,
-		VolumePlanRequest:    msg.VolumePlanRequest,
-		VolumePlanLimit:      msg.VolumePlanLimit,
-		Hook:                 opts.Entrypoint.Hook,
-		Privileged:           opts.Entrypoint.Privileged,
-		Engine:               node.Engine,
-		SoftLimit:            opts.SoftLimit,
-		Image:                opts.Image,
-		Env:                  opts.Env,
-		User:                 opts.User,
-		ResourceSubdivisible: true,
+		ResourceMeta: types.ResourceMeta{
+			CPU:               msg.CPU,
+			CPUQuotaRequest:   msg.CPUQuotaRequest,
+			CPUQuotaLimit:     msg.CPUQuotaLimit,
+			MemoryRequest:     msg.MemoryRequest,
+			MemoryLimit:       msg.MemoryLimit,
+			StorageRequest:    msg.StorageRequest,
+			StorageLimit:      msg.StorageLimit,
+			VolumeRequest:     msg.VolumeRequest,
+			VolumeLimit:       msg.VolumeLimit,
+			VolumePlanRequest: msg.VolumePlanRequest,
+			VolumePlanLimit:   msg.VolumePlanLimit,
+		},
+		Name:       config.Name,
+		Labels:     config.Labels,
+		Podname:    opts.Podname,
+		Nodename:   node.Name,
+		Hook:       opts.Entrypoint.Hook,
+		Privileged: opts.Entrypoint.Privileged,
+		Engine:     node.Engine,
+		Image:      opts.Image,
+		Env:        opts.Env,
+		User:       opts.User,
 	}
 	return utils.Txn(
 		ctx,
@@ -308,7 +306,7 @@ func (c *Calcium) doDeployOneWorkload(
 		},
 
 		// remove container
-		func(ctx context.Context) error {
+		func(ctx context.Context, _ bool) error {
 			return errors.WithStack(c.doRemoveContainer(ctx, container, true))
 		},
 		c.config.GlobalTimeout,
@@ -318,12 +316,11 @@ func (c *Calcium) doDeployOneWorkload(
 func (c *Calcium) doMakeContainerOptions(no int, msg *types.CreateContainerMessage, opts *types.DeployOptions, node *types.Node) *enginetypes.VirtualizationCreateOptions {
 	config := &enginetypes.VirtualizationCreateOptions{}
 	// general
-	config.CPU = msg.CPULimit
+	config.CPU = msg.CPU
 	config.Quota = msg.CPUQuotaLimit
 	config.Memory = msg.MemoryLimit
 	config.Storage = msg.StorageLimit
-	config.NUMANode = node.GetNUMANode(msg.CPULimit)
-	config.SoftLimit = opts.SoftLimit
+	config.NUMANode = msg.NUMANode
 	config.RawArgs = opts.RawArgs
 	config.Lambda = opts.Lambda
 	config.User = opts.User

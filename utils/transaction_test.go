@@ -17,7 +17,7 @@ func TestTxn(t *testing.T) {
 			return err1
 		},
 		nil,
-		func(context.Context) error {
+		func(context.Context, bool) error {
 			return errors.New("error 2")
 		},
 		10*time.Second,
