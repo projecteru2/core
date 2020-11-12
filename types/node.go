@@ -158,7 +158,6 @@ func (n *Node) ResourceUsages() map[ResourceType]float64 {
 }
 
 // RecycleResources .
-// TODO need tests
 func (n *Node) RecycleResources(resource *ResourceMeta) {
 	n.CPU.Add(resource.CPU)
 	n.SetCPUUsed(resource.CPUQuotaRequest, DecrUsage)
@@ -172,7 +171,6 @@ func (n *Node) RecycleResources(resource *ResourceMeta) {
 }
 
 // PreserveResources .
-// TODO need tests
 func (n *Node) PreserveResources(resource *ResourceMeta) {
 	n.CPU.Sub(resource.CPU)
 	n.SetCPUUsed(resource.CPUQuotaRequest, IncrUsage)
@@ -218,7 +216,6 @@ type NodeResource struct {
 	StoragePercent    float64
 	NUMAMemoryPercent map[string]float64
 	VolumePercent     float64
-	Verification      bool
-	Details           []string
+	Diffs             []string
 	Containers        []*Container
 }

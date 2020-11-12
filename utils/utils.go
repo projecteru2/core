@@ -171,7 +171,7 @@ func FilterContainer(extend map[string]string, labels map[string]string) bool {
 
 // CleanStatsdMetrics trans dot to _
 func CleanStatsdMetrics(k string) string {
-	return strings.Replace(k, ".", "-", -1)
+	return strings.ReplaceAll(k, ".", "-")
 }
 
 // TempFile store a temp file
@@ -233,30 +233,6 @@ func EnsureReaderClosed(stream io.ReadCloser) {
 		log.Errorf("[EnsureReaderClosed] empty stream failed %v", err)
 	}
 	_ = stream.Close()
-}
-
-// GenerateNodes generate nodes
-func GenerateNodes(nums, cores int, memory, storage int64, shares int) []types.NodeInfo {
-	var name string
-	nodes := []types.NodeInfo{}
-
-	for i := 0; i < nums; i++ {
-		name = fmt.Sprintf("n%d", i)
-
-		cpumap := types.CPUMap{}
-		for j := 0; j < cores; j++ {
-			coreName := fmt.Sprintf("%d", j)
-			cpumap[coreName] = int64(shares)
-		}
-		nodeInfo := types.NodeInfo{
-			CPUMap:     cpumap,
-			MemCap:     memory,
-			StorageCap: storage,
-			Name:       name,
-		}
-		nodes = append(nodes, nodeInfo)
-	}
-	return nodes
 }
 
 // Range .

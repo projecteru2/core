@@ -16,7 +16,7 @@ const (
 	ActionDecr = "-"
 )
 
-//Store store eru data
+// Store store eru data
 type Store interface {
 	// service
 	ServiceStatusStream(context.Context) (chan []string, error)

@@ -80,11 +80,10 @@ func TestPodResource(t *testing.T) {
 	// success
 	r, err := c.PodResource(ctx, podname)
 	assert.NoError(t, err)
-	assert.Len(t, r.CPUPercents, 1)
-	assert.Len(t, r.MemoryPercents, 1)
-	assert.Len(t, r.StoragePercents, 1)
-	assert.False(t, r.Verifications[nodename])
-	assert.NotEmpty(t, r.Details[nodename])
+	assert.Equal(t, r.NodesResource[0].CPUPercent, 0.9)
+	assert.Equal(t, r.NodesResource[0].MemoryPercent, 0.5)
+	assert.Equal(t, r.NodesResource[0].StoragePercent, 0.1)
+	assert.NotEmpty(t, r.NodesResource[0].Diffs)
 }
 
 func TestNodeResource(t *testing.T) {
@@ -146,9 +145,8 @@ func TestNodeResource(t *testing.T) {
 	nr, err := c.NodeResource(ctx, nodename, true)
 	assert.NoError(t, err)
 	assert.Equal(t, nr.Name, nodename)
-	assert.NotEmpty(t, nr.Details)
-	assert.False(t, nr.Verification)
-	details := strings.Join(nr.Details, ",")
+	assert.NotEmpty(t, nr.Diffs)
+	details := strings.Join(nr.Diffs, ",")
 	assert.Contains(t, details, "inspect failed")
 }
 

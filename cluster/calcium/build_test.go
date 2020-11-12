@@ -21,7 +21,6 @@ const (
 	repo = "https://test/repo.git"
 )
 
-// TODO test errors
 // test no tags
 func TestBuild(t *testing.T) {
 	c := NewTestCluster()

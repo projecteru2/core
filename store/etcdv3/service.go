@@ -89,8 +89,22 @@ func (m *Mercury) RegisterService(ctx context.Context, serviceAddress string, ex
 	if err != nil {
 		return err
 	}
-
-	_, err = m.Put(ctx, key, "", clientv3.WithLease(lease.ID))
+	tr, err := m.cliv3.Txn(ctx).
+		If(clientv3.Compare(clientv3.Version(key), "!=", 0)).
+		Then(clientv3.OpGet(key)).
+		Else(clientv3.OpPut(key, "", clientv3.WithLease(lease.ID))).
+		Commit()
+	if err != nil {
+		return err
+	}
+	if !tr.Succeeded {
+		return nil
+	}
+	oldLeaseID := clientv3.LeaseID(tr.Responses[0].GetResponseRange().Kvs[0].Lease)
+	if _, err = m.cliv3.Revoke(ctx, lease.ID); err != nil {
+		log.Warnf("[RegisterService] revoke lease failed %v", err)
+	}
+	_, err = m.cliv3.KeepAliveOnce(ctx, oldLeaseID)
 	return err
 }
 

@@ -17,7 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//Calcium implement the cluster
+// Calcium implement the cluster
 type Calcium struct {
 	config    types.Config
 	store     store.Store

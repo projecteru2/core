@@ -215,11 +215,6 @@ func TestEnsureReaderClosed(t *testing.T) {
 	EnsureReaderClosed(s)
 }
 
-func TestGenerateNodes(t *testing.T) {
-	ns := GenerateNodes(1, 10, 1000, 1000, 100)
-	assert.Len(t, ns, 1)
-}
-
 func TestRange(t *testing.T) {
 	res := Range(10)
 	assert.Equal(t, 10, len(res))

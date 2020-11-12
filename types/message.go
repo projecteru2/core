@@ -18,11 +18,6 @@ type DissociateContainerMessage struct {
 	Error       error
 }
 
-type errorDetail struct {
-	Code    int    `json:"code,omitempty"`
-	Message string `json:"message,omitempty"`
-}
-
 // BuildImageMessage for build image ops message
 type BuildImageMessage struct {
 	ID          string      `json:"id,omitempty"`
@@ -112,4 +107,9 @@ type LogStreamMessage struct {
 	ID    string
 	Error error
 	Data  []byte
+}
+
+type errorDetail struct {
+	Code    int    `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
 }

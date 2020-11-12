@@ -34,13 +34,11 @@ func toRPCPod(p *types.Pod) *pb.Pod {
 
 func toRPCPodResource(p *types.PodResource) *pb.PodResource {
 	r := &pb.PodResource{
-		Name:            p.Name,
-		CpuPercents:     p.CPUPercents,
-		MemoryPercents:  p.MemoryPercents,
-		StoragePercents: p.StoragePercents,
-		VolumePercents:  p.VolumePercents,
-		Verifications:   p.Verifications,
-		Details:         p.Details,
+		Name:          p.Name,
+		NodesResource: []*pb.NodeResource{},
+	}
+	for _, nodeResource := range p.NodesResource {
+		r.NodesResource = append(r.NodesResource, toRPCNodeResource(nodeResource))
 	}
 	return r
 }
@@ -91,8 +89,7 @@ func toRPCNodeResource(nr *types.NodeResource) *pb.NodeResource {
 		MemoryPercent:  nr.MemoryPercent,
 		StoragePercent: nr.StoragePercent,
 		VolumePercent:  nr.VolumePercent,
-		Verification:   nr.Verification,
-		Details:        nr.Details,
+		Diffs:          nr.Diffs,
 	}
 }
 

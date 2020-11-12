@@ -331,11 +331,8 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 	}
 
 	memory := opts.Memory
-	//softLimit := opts.SoftLimit
-	// unlimited memory
 	if memory == 0 {
 		memory = maxMemory
-		//softLimit = false
 	}
 
 	quota := opts.Quota

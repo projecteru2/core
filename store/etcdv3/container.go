@@ -76,11 +76,14 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 	}
 	val := string(data)
 	statusKey := filepath.Join(containerStatusPrefix, appname, entrypoint, container.Nodename, container.ID)
-	lease, err := m.cliv3.Grant(ctx, ttl)
-	if err != nil {
-		return err
+	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, val)}
+	lease := &clientv3.LeaseGrantResponse{}
+	if ttl != 0 {
+		if lease, err = m.cliv3.Grant(ctx, ttl); err != nil {
+			return err
+		}
+		updateStatus = []clientv3.Op{clientv3.OpPut(statusKey, val, clientv3.WithLease(lease.ID))}
 	}
-	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, val, clientv3.WithLease(lease.ID))}
 	tr, err := m.cliv3.Txn(ctx).
 		If(clientv3.Compare(clientv3.Version(fmt.Sprintf(containerInfoKey, container.ID)), "!=", 0)).
 		Then( // 保证有容器
@@ -106,7 +109,7 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 		return nil
 	}
 	tr3 := tr2.Responses[0].GetResponseTxn()
-	if tr3.Succeeded {
+	if tr3.Succeeded && ttl != 0 { // 有 status 并且内容还跟之前一样
 		oldLeaseID := clientv3.LeaseID(tr3.Responses[0].GetResponseRange().Kvs[0].Lease) // 拿到 status 绑定的 leaseID
 		_, err := m.cliv3.KeepAliveOnce(ctx, oldLeaseID)                                 // 刷新 lease
 		return err

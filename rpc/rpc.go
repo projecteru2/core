@@ -329,10 +329,8 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 	if err != nil {
 		return err
 	}
-
-	//4K buffer
+	// 4K buffer
 	bsize := 4 * 1024
-
 	for m := range ch {
 		var copyError string
 		if m.Error != nil {
@@ -435,7 +433,6 @@ func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 	if err != nil {
 		return err
 	}
-	// TODO VM BRANCH
 	ch, err := v.cluster.BuildImage(stream.Context(), buildOpts)
 	if err != nil {
 		log.Errorf("[BuildImage] build image error %+v", err)
@@ -676,7 +673,7 @@ func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions
 		return msg, err
 	}
 
-	//这里不能让 client 打断 remove
+	// 这里不能让 client 打断 remove
 	return msg, v.cluster.ReallocResource(
 		ctx,
 		&types.ReallocOptions{

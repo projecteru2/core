@@ -29,7 +29,7 @@ func (v *Vibranium) taskDone(name string, verbose bool) {
 	v.TaskNum--
 }
 
-//Wait for all tasks done
+// Wait for all tasks done
 // 会在外面graceful之后调用.
 // 不完成不给退出进程.
 func (v *Vibranium) Wait() {
