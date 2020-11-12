@@ -86,12 +86,7 @@ message Pods {
 
 message PodResource {
     string name = 1;
-    map<string,double> cpu_percents = 2;
-    map<string,double> memory_percents = 3;
-    map<string, bool> verifications = 4;
-    map<string, string> details = 5;
-    map<string, double> storage_percents = 6;
-    map<string, double> volume_percents = 7;
+    repeated NodeResource nodes_resource = 2;
 }
 
 message NodeResource {
@@ -202,14 +197,6 @@ message ContainersStatus {
     repeated ContainerStatus status = 1;
 }
 
-message ContainerStatusStreamMessage {
-    string id = 1;
-    Container container = 2;
-    ContainerStatus status = 3;
-    string error = 4;
-    bool delete = 5;
-}
-
 message SetContainersStatusOptions {
     repeated ContainerStatus status = 1;
 }
@@ -219,6 +206,14 @@ message ContainerStatusStreamOptions {
     string entrypoint = 2;
     string nodename = 3;
     map<string, string> labels = 4;
+}
+
+message ContainerStatusStreamMessage {
+    string id = 1;
+    Container container = 2;
+    ContainerStatus status = 3;
+    string error = 4;
+    bool delete = 5;
 }
 
 message Containers {

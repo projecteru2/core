@@ -3,7 +3,6 @@ package calcium
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -22,25 +21,15 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 		return nil, err
 	}
 	r := &types.PodResource{
-		Name:            podname,
-		CPUPercents:     map[string]float64{},
-		MemoryPercents:  map[string]float64{},
-		StoragePercents: map[string]float64{},
-		VolumePercents:  map[string]float64{},
-		Verifications:   map[string]bool{},
-		Details:         map[string]string{},
+		Name:          podname,
+		NodesResource: []*types.NodeResource{},
 	}
 	for _, node := range nodes {
-		nodeDetail, err := c.doGetNodeResource(ctx, node.Name, false)
+		nodeResource, err := c.doGetNodeResource(ctx, node.Name, false)
 		if err != nil {
 			return nil, err
 		}
-		r.CPUPercents[node.Name] = nodeDetail.CPUPercent
-		r.MemoryPercents[node.Name] = nodeDetail.MemoryPercent
-		r.StoragePercents[node.Name] = nodeDetail.StoragePercent
-		r.VolumePercents[node.Name] = nodeDetail.VolumePercent
-		r.Verifications[node.Name] = nodeDetail.Verification
-		r.Details[node.Name] = strings.Join(nodeDetail.Details, "\n")
+		r.NodesResource = append(r.NodesResource, nodeResource)
 	}
 	return r, nil
 }
