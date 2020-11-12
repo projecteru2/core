@@ -65,7 +65,7 @@ func (c *Calcium) doStartContainer(ctx context.Context, container *types.Contain
 	if err = container.Start(ctx); err != nil {
 		return message, err
 	}
-	// TODO healthcheck
+	// TODO healthcheck first
 	if container.Hook != nil && len(container.Hook.AfterStart) > 0 {
 		message, err = c.doHook(
 			ctx,

@@ -79,8 +79,7 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, val)}
 	lease := &clientv3.LeaseGrantResponse{}
 	if ttl != 0 {
-		lease, err = m.cliv3.Grant(ctx, ttl)
-		if err != nil {
+		if lease, err = m.cliv3.Grant(ctx, ttl); err != nil {
 			return err
 		}
 		updateStatus = []clientv3.Op{clientv3.OpPut(statusKey, val, clientv3.WithLease(lease.ID))}

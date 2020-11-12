@@ -43,7 +43,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 
 func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
 	// get pod from config
-	// TODO VM BRANCH conside vm build machines.
+	// TODO can choose multiple pod here for other engine support
 	if c.config.Docker.BuildPod == "" {
 		return nil, types.ErrNoBuildPod
 	}

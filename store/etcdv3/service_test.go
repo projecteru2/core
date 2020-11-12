@@ -17,6 +17,8 @@ func TestRegisterService(t *testing.T) {
 	expire := 100 * time.Millisecond
 	err := m.RegisterService(ctx, "127.0.0.1:5002", expire)
 	assert.NoError(t, err)
+	err = m.RegisterService(ctx, "127.0.0.1:5002", expire)
+	assert.NoError(t, err)
 	kv, err := m.GetOne(ctx, "/services/127.0.0.1:5002")
 	assert.NoError(t, err)
 	assert.True(t, strings.HasSuffix(string(kv.Key), "127.0.0.1:5002"))

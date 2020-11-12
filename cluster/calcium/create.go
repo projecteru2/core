@@ -19,8 +19,6 @@ import (
 
 // CreateContainer use options to create containers
 func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
-	// TODO: new way to normalize
-	// opts.Normalize()
 	opts.ProcessIdent = utils.RandomString(16)
 	log.Infof("[CreateContainer %s] Creating container with options:", opts.ProcessIdent)
 	litter.Dump(opts)
