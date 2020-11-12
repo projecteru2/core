@@ -40,7 +40,7 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool,
 							// then
 							func(ctx context.Context) error {
 								log.Infof("[RemoveContainer] Container %s removed", container.ID)
-								return c.store.UpdateNodeResource(ctx, node, container.CPU, container.Quota, container.Memory, container.Storage, container.VolumePlan.IntoVolumeMap(), store.ActionIncr)
+								return c.store.UpdateNodeResource(ctx, node, &container.ResourceMeta, store.ActionIncr)
 							},
 							// rollback
 							nil,

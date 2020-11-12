@@ -76,11 +76,14 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 	}
 	val := string(data)
 	statusKey := filepath.Join(containerStatusPrefix, appname, entrypoint, container.Nodename, container.ID)
-	lease, err := m.cliv3.Grant(ctx, ttl)
-	if err != nil {
-		return err
+	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, val)}
+	lease := &clientv3.LeaseGrantResponse{}
+	if ttl != 0 {
+		if lease, err = m.cliv3.Grant(ctx, ttl); err != nil {
+			return err
+		}
+		updateStatus = []clientv3.Op{clientv3.OpPut(statusKey, val, clientv3.WithLease(lease.ID))}
 	}
-	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, val, clientv3.WithLease(lease.ID))}
 	tr, err := m.cliv3.Txn(ctx).
 		If(clientv3.Compare(clientv3.Version(fmt.Sprintf(containerInfoKey, container.ID)), "!=", 0)).
 		Then( // 保证有容器
@@ -106,7 +109,7 @@ func (m *Mercury) SetContainerStatus(ctx context.Context, container *types.Conta
 		return nil
 	}
 	tr3 := tr2.Responses[0].GetResponseTxn()
-	if tr3.Succeeded {
+	if tr3.Succeeded && ttl != 0 { // 有 status 并且内容还跟之前一样
 		oldLeaseID := clientv3.LeaseID(tr3.Responses[0].GetResponseRange().Kvs[0].Lease) // 拿到 status 绑定的 leaseID
 		_, err := m.cliv3.KeepAliveOnce(ctx, oldLeaseID)                                 // 刷新 lease
 		return err
@@ -131,7 +134,7 @@ func (m *Mercury) ListContainers(ctx context.Context, appname, entrypoint, noden
 
 	containers := []*types.Container{}
 	for _, ev := range resp.Kvs {
-		container := &types.Container{VolumePlan: types.VolumePlan{}}
+		container := &types.Container{}
 		if err := json.Unmarshal(ev.Value, container); err != nil {
 			return nil, err
 		}
@@ -153,7 +156,7 @@ func (m *Mercury) ListNodeContainers(ctx context.Context, nodename string, label
 
 	containers := []*types.Container{}
 	for _, ev := range resp.Kvs {
-		container := &types.Container{VolumePlan: types.VolumePlan{}}
+		container := &types.Container{}
 		if err := json.Unmarshal(ev.Value, container); err != nil {
 			return []*types.Container{}, err
 		}
@@ -233,7 +236,7 @@ func (m *Mercury) doGetContainers(ctx context.Context, keys []string) (container
 	}
 
 	for _, kv := range kvs {
-		container := &types.Container{VolumePlan: types.VolumePlan{}}
+		container := &types.Container{}
 		if err = json.Unmarshal(kv.Value, container); err != nil {
 			log.Errorf("[doGetContainers] failed to unmarshal %v, err: %v", string(kv.Key), err)
 			return

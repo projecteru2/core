@@ -10,7 +10,7 @@ import (
 
 // CommunismPlan 吃我一记共产主义大锅饭
 // 部署完 N 个后全局尽可能平均
-func CommunismPlan(arg []types.StrategyInfo, need, total, limit int, resourceType types.ResourceType) (map[string]*types.DeployInfo, error) {
+func CommunismPlan(arg []Info, need, total, limit int, resourceType types.ResourceType) (map[string]int, error) {
 	if total < need {
 		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
 			fmt.Sprintf("need: %d, vol: %d", need, total))
@@ -18,7 +18,7 @@ func CommunismPlan(arg []types.StrategyInfo, need, total, limit int, resourceTyp
 	sort.Slice(arg, func(i, j int) bool { return arg[i].Count < arg[j].Count })
 	length := len(arg)
 
-	deployMap := make(map[string]*types.DeployInfo)
+	deployMap := map[string]int{}
 	for i := 0; i < length; i++ {
 		if need <= 0 {
 			break
@@ -44,10 +44,7 @@ func CommunismPlan(arg []types.StrategyInfo, need, total, limit int, resourceTyp
 				continue
 			}
 			arg[j].Capacity -= d
-			if _, ok := deployMap[arg[j].Nodename]; !ok {
-				deployMap[arg[j].Nodename] = &types.DeployInfo{}
-			}
-			deployMap[arg[j].Nodename].Deploy += d
+			deployMap[arg[j].Nodename] += d
 			need -= d
 			req -= d
 		}

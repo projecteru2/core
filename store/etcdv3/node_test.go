@@ -181,6 +181,11 @@ func TestGetNodesByPod(t *testing.T) {
 	ns, err = m.GetNodesByPod(ctx, "testpod", nil, false)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, ns)
+	_, err = m.AddPod(ctx, "testpod", "")
+	assert.NoError(t, err)
+	ns, err = m.GetNodesByPod(ctx, "", nil, false)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, ns)
 }
 
 func TestUpdateNode(t *testing.T) {
@@ -205,7 +210,7 @@ func TestUpdateNodeResource(t *testing.T) {
 	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", 1, 100, 100000, 100000, map[string]string{"x": "y"}, map[string]string{"0": "0"}, map[string]int64{"0": 100}, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
-	assert.Error(t, m.UpdateNodeResource(ctx, node, nil, 0, 0, 0, nil, "wtf"))
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, map[string]int64{"0": 100}, 0, 0, 0, nil, store.ActionIncr))
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, map[string]int64{"0": 100}, 0, 0, 0, nil, store.ActionDecr))
+	assert.Error(t, m.UpdateNodeResource(ctx, node, nil, "wtf"))
+	assert.NoError(t, m.UpdateNodeResource(ctx, node, &types.ResourceMeta{CPU: map[string]int64{"0": 100}}, store.ActionIncr))
+	assert.NoError(t, m.UpdateNodeResource(ctx, node, &types.ResourceMeta{CPU: map[string]int64{"0": 100}}, store.ActionDecr))
 }

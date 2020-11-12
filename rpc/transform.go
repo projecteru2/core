@@ -7,7 +7,6 @@ import (
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	pb "github.com/projecteru2/core/rpc/gen"
-	"github.com/projecteru2/core/scheduler/resources"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -35,13 +34,11 @@ func toRPCPod(p *types.Pod) *pb.Pod {
 
 func toRPCPodResource(p *types.PodResource) *pb.PodResource {
 	r := &pb.PodResource{
-		Name:            p.Name,
-		CpuPercents:     p.CPUPercents,
-		MemoryPercents:  p.MemoryPercents,
-		StoragePercents: p.StoragePercents,
-		VolumePercents:  p.VolumePercents,
-		Verifications:   p.Verifications,
-		Details:         p.Details,
+		Name:          p.Name,
+		NodesResource: []*pb.NodeResource{},
+	}
+	for _, nodeResource := range p.NodesResource {
+		r.NodesResource = append(r.NodesResource, toRPCNodeResource(nodeResource))
 	}
 	return r
 }
@@ -92,8 +89,7 @@ func toRPCNodeResource(nr *types.NodeResource) *pb.NodeResource {
 		MemoryPercent:  nr.MemoryPercent,
 		StoragePercent: nr.StoragePercent,
 		VolumePercent:  nr.VolumePercent,
-		Verification:   nr.Verification,
-		Details:        nr.Details,
+		Diffs:          nr.Diffs,
 	}
 }
 
@@ -147,7 +143,7 @@ func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
 func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) { // nolint
 	r := &types.SetNodeOptions{
 		Nodename:        b.Nodename,
-		Status:          types.TriOptions(b.Status),
+		StatusOpt:       types.TriOptions(b.StatusOpt),
 		ContainersDown:  b.ContainersDown,
 		DeltaCPU:        types.CPUMap{},
 		DeltaMemory:     b.DeltaMemory,
@@ -269,11 +265,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		entry.Hook.Force = entrypoint.Hook.Force
 	}
 
-	vbs, err := types.MakeVolumeBindings(d.Volumes)
-	if err != nil {
-		return nil, err
-	}
-
+	var err error
 	data := map[string]types.ReaderManager{}
 	for filename, bs := range d.Data {
 		if data[filename], err = types.NewReaderManager(bytes.NewBuffer(bs)); err != nil {
@@ -281,60 +273,52 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		}
 	}
 
-	resourceRequests := []types.ResourceRequest{
-		resources.CPUMemResourceRequest{
-			CPUQuota: d.CpuQuota,
-			CPUBind:  d.CpuBind,
-			Memory:   d.Memory,
-		},
+	vbsLimit, err := types.NewVolumeBindings(d.ResourceOpts.VolumesLimit)
+	if err != nil {
+		return nil, err
 	}
-	if vbs != nil {
-		resourceRequests = append(resourceRequests, resources.NewVolumeResourceRequest(vbs))
-		d.Storage += vbs.TotalSize()
-	}
-	if d.Storage > 0 {
-		resourceRequests = append(resourceRequests, resources.StorageResourceRequest{Quota: d.Storage})
+
+	vbsRequest, err := types.NewVolumeBindings(d.ResourceOpts.VolumesRequest)
+	if err != nil {
+		return nil, err
 	}
 
 	return &types.DeployOptions{
-		Name:             d.Name,
-		Entrypoint:       entry,
-		Podname:          d.Podname,
-		Nodenames:        d.Nodenames,
-		Image:            d.Image,
-		ExtraArgs:        d.ExtraArgs,
-		Count:            int(d.Count),
-		Env:              d.Env,
-		DNS:              d.Dns,
-		ExtraHosts:       d.ExtraHosts,
-		Networks:         d.Networks,
-		NetworkMode:      d.Networkmode,
-		User:             d.User,
-		Debug:            d.Debug,
-		OpenStdin:        d.OpenStdin,
-		Labels:           d.Labels,
-		NodeLabels:       d.Nodelabels,
-		DeployStrategy:   d.DeployStrategy.String(),
-		SoftLimit:        d.SoftLimit,
-		NodesLimit:       int(d.NodesLimit),
-		IgnoreHook:       d.IgnoreHook,
-		AfterCreate:      d.AfterCreate,
-		RawArgs:          d.RawArgs,
-		Data:             data,
-		ResourceRequests: resourceRequests,
+		ResourceOpts: types.ResourceOptions{
+			CPUQuotaRequest: d.ResourceOpts.CpuQuotaRequest,
+			CPUQuotaLimit:   d.ResourceOpts.CpuQuotaLimit,
+			CPUBind:         d.ResourceOpts.CpuBind,
+			MemoryRequest:   d.ResourceOpts.MemoryRequest,
+			MemoryLimit:     d.ResourceOpts.MemoryLimit,
+			VolumeRequest:   vbsRequest,
+			VolumeLimit:     vbsLimit,
+			StorageRequest:  d.ResourceOpts.StorageRequest,
+			StorageLimit:    d.ResourceOpts.StorageLimit,
+		},
+		Name:           d.Name,
+		Entrypoint:     entry,
+		Podname:        d.Podname,
+		Nodenames:      d.Nodenames,
+		Image:          d.Image,
+		ExtraArgs:      d.ExtraArgs,
+		Count:          int(d.Count),
+		Env:            d.Env,
+		DNS:            d.Dns,
+		ExtraHosts:     d.ExtraHosts,
+		Networks:       d.Networks,
+		NetworkMode:    d.Networkmode,
+		User:           d.User,
+		Debug:          d.Debug,
+		OpenStdin:      d.OpenStdin,
+		Labels:         d.Labels,
+		NodeLabels:     d.Nodelabels,
+		DeployStrategy: d.DeployStrategy.String(),
+		NodesLimit:     int(d.NodesLimit),
+		IgnoreHook:     d.IgnoreHook,
+		AfterCreate:    d.AfterCreate,
+		RawArgs:        d.RawArgs,
+		Data:           data,
 	}, nil
-}
-
-func toRPCVolumePlan(v types.VolumePlan) map[string]*pb.Volume {
-	if v == nil {
-		return nil
-	}
-
-	msg := map[string]*pb.Volume{}
-	for vb, volume := range v {
-		msg[vb.ToString(false)] = &pb.Volume{Volume: volume}
-	}
-	return msg
 }
 
 func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateContainerMessage {
@@ -342,18 +326,24 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 		return nil
 	}
 	msg := &pb.CreateContainerMessage{
-		Podname:    c.Podname,
-		Nodename:   c.Nodename,
-		Id:         c.ContainerID,
-		Name:       c.ContainerName,
-		Success:    c.Error == nil,
-		Cpu:        toRPCCPUMap(c.CPU),
-		Quota:      c.Quota,
-		Memory:     c.Memory,
-		Storage:    c.Storage,
-		VolumePlan: toRPCVolumePlan(c.VolumePlan),
-		Publish:    utils.EncodePublishInfo(c.Publish),
-		Hook:       types.HookOutput(c.Hook),
+		Podname:  c.Podname,
+		Nodename: c.Nodename,
+		Id:       c.ContainerID,
+		Name:     c.ContainerName,
+		Success:  c.Error == nil,
+		Publish:  utils.EncodePublishInfo(c.Publish),
+		Hook:     utils.MergeHookOutputs(c.Hook),
+		Resource: &pb.Resource{
+			CpuQuotaLimit:   c.CPUQuotaLimit,
+			CpuQuotaRequest: c.CPUQuotaRequest,
+			Cpu:             toRPCCPUMap(c.CPU),
+			MemoryLimit:     c.MemoryLimit,
+			MemoryRequest:   c.MemoryRequest,
+			StorageLimit:    c.StorageLimit,
+			StorageRequest:  c.StorageRequest,
+			VolumesLimit:    c.VolumeLimit.ToStringSlice(false, false),
+			VolumesRequest:  c.VolumeRequest.ToStringSlice(false, false),
+		},
 	}
 	if c.Error != nil {
 		msg.Error = c.Error.Error()
@@ -392,22 +382,12 @@ func toRPCRemoveImageMessage(r *types.RemoveImageMessage) *pb.RemoveImageMessage
 func toRPCControlContainerMessage(c *types.ControlContainerMessage) *pb.ControlContainerMessage {
 	r := &pb.ControlContainerMessage{
 		Id:   c.ContainerID,
-		Hook: types.HookOutput(c.Hook),
+		Hook: utils.MergeHookOutputs(c.Hook),
 	}
 	if c.Error != nil {
 		r.Error = c.Error.Error()
 	}
 	return r
-}
-
-func toRPCReallocResourceMessage(r *types.ReallocResourceMessage) *pb.ReallocResourceMessage {
-	resp := &pb.ReallocResourceMessage{
-		Id: r.ContainerID,
-	}
-	if r.Error != nil {
-		resp.Error = r.Error.Error()
-	}
-	return resp
 }
 
 func toRPCRemoveContainerMessage(r *types.RemoveContainerMessage) *pb.RemoveContainerMessage {
@@ -417,7 +397,7 @@ func toRPCRemoveContainerMessage(r *types.RemoveContainerMessage) *pb.RemoveCont
 	return &pb.RemoveContainerMessage{
 		Id:      r.ContainerID,
 		Success: r.Success,
-		Hook:    string(types.HookOutput(r.Hook)),
+		Hook:    string(utils.MergeHookOutputs(r.Hook)),
 	}
 }
 
@@ -489,24 +469,42 @@ func toRPCContainer(_ context.Context, c *types.Container) (*pb.Container, error
 			utils.MakePublishInfo(c.StatusMeta.Networks, meta.Publish),
 		)
 	}
-	cpu := toRPCCPUMap(c.CPU)
 	return &pb.Container{
 		Id:         c.ID,
 		Podname:    c.Podname,
 		Nodename:   c.Nodename,
 		Name:       c.Name,
-		Cpu:        cpu,
-		Quota:      c.Quota,
-		Memory:     c.Memory,
-		Storage:    c.Storage,
 		Privileged: c.Privileged,
 		Publish:    publish,
 		Image:      c.Image,
 		Labels:     c.Labels,
-		Volumes:    c.Volumes.ToStringSlice(false, false),
-		VolumePlan: toRPCVolumePlan(c.VolumePlan),
 		Status:     toRPCContainerStatus(c.StatusMeta),
+		Resource: &pb.Resource{
+			CpuQuotaLimit:     c.CPUQuotaLimit,
+			CpuQuotaRequest:   c.CPUQuotaRequest,
+			Cpu:               toRPCCPUMap(c.CPU),
+			MemoryLimit:       c.MemoryLimit,
+			MemoryRequest:     c.MemoryRequest,
+			StorageLimit:      c.StorageLimit,
+			StorageRequest:    c.StorageRequest,
+			VolumesLimit:      c.VolumeLimit.ToStringSlice(false, false),
+			VolumesRequest:    c.VolumeRequest.ToStringSlice(false, false),
+			VolumePlanLimit:   toRPCVolumePlan(c.VolumePlanLimit),
+			VolumePlanRequest: toRPCVolumePlan(c.VolumePlanRequest),
+		},
 	}, nil
+}
+
+func toRPCVolumePlan(v types.VolumePlan) map[string]*pb.Volume {
+	if v == nil {
+		return nil
+	}
+
+	msg := map[string]*pb.Volume{}
+	for vb, volume := range v {
+		msg[vb.ToString(false)] = &pb.Volume{Volume: volume}
+	}
+	return msg
 }
 
 func toRPCLogStreamMessage(msg *types.LogStreamMessage) *pb.LogStreamMessage {

@@ -10,7 +10,6 @@ import (
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	"github.com/projecteru2/core/scheduler"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
-	"github.com/projecteru2/core/scheduler/resources"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
@@ -40,27 +39,33 @@ func TestCreateContainer(t *testing.T) {
 	opts.Count = 1
 
 	// failed by memory check
-	opts.ResourceRequests = append(opts.ResourceRequests, resources.CPUMemResourceRequest{Memory: -1})
-	_, err = c.CreateContainer(ctx, opts)
-	assert.Error(t, err)
-	opts.ResourceRequests[0] = resources.CPUMemResourceRequest{Memory: 1}
+	opts.ResourceOpts = types.ResourceOptions{MemoryLimit: -1}
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	ch, err := c.CreateContainer(ctx, opts)
+	assert.Nil(t, err)
+	for m := range ch {
+		assert.Error(t, m.Error)
+	}
 
 	// failed by CPUQuota
-	opts.ResourceRequests[0] = resources.CPUMemResourceRequest{CPUQuota: -1}
-	_, err = c.CreateContainer(ctx, opts)
-	assert.Error(t, err)
+	opts.ResourceOpts = types.ResourceOptions{CPUQuotaLimit: -1, MemoryLimit: 1}
+	ch, err = c.CreateContainer(ctx, opts)
+	assert.Nil(t, err)
+	for m := range ch {
+		assert.Error(t, m.Error)
+	}
 }
 
 func TestCreateContainerTxn(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	opts := &types.DeployOptions{
-		Count:            2,
-		DeployStrategy:   strategy.Auto,
-		Podname:          "p1",
-		ResourceRequests: []types.ResourceRequest{resources.CPUMemResourceRequest{CPUQuota: 1}},
-		Image:            "zc:test",
-		Entrypoint:       &types.Entrypoint{},
+		Count:          2,
+		DeployStrategy: strategy.Auto,
+		Podname:        "p1",
+		ResourceOpts:   types.ResourceOptions{CPUQuotaLimit: 1},
+		Image:          "zc:test",
+		Entrypoint:     &types.Entrypoint{},
 	}
 	store := &storemocks.Store{}
 	sche := &schedulermocks.Scheduler{}
@@ -102,6 +107,12 @@ func TestCreateContainerTxn(t *testing.T) {
 			}
 			return
 		}, nil)
+	sche.On("SelectStorageNodes", mock.AnythingOfType("[]types.NodeInfo"), mock.AnythingOfType("int64")).Return(func(nodesInfo []types.NodeInfo, _ int64) []types.NodeInfo {
+		return nodesInfo
+	}, len(nodes), nil)
+	sche.On("SelectVolumeNodes", mock.AnythingOfType("[]types.NodeInfo"), mock.AnythingOfType("types.VolumeBindings")).Return(func(nodesInfo []types.NodeInfo, _ types.VolumeBindings) []types.NodeInfo {
+		return nodesInfo
+	}, nil, len(nodes), nil)
 	sche.On("SelectMemoryNodes", mock.AnythingOfType("[]types.NodeInfo"), mock.AnythingOfType("float64"), mock.AnythingOfType("int64")).Return(
 		func(nodesInfo []types.NodeInfo, _ float64, _ int64) []types.NodeInfo {
 			for i := range nodesInfo {
@@ -126,12 +137,10 @@ func TestCreateContainerTxn(t *testing.T) {
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	old := strategy.Plans[strategy.Auto]
-	strategy.Plans[strategy.Auto] = func(sis []types.StrategyInfo, need, total, _ int, resourceType types.ResourceType) (map[string]*types.DeployInfo, error) {
-		deployInfos := make(map[string]*types.DeployInfo)
+	strategy.Plans[strategy.Auto] = func(sis []strategy.Info, need, total, _ int, resourceType types.ResourceType) (map[string]int, error) {
+		deployInfos := make(map[string]int)
 		for _, si := range sis {
-			deployInfos[si.Nodename] = &types.DeployInfo{
-				Deploy: 1,
-			}
+			deployInfos[si.Nodename] = 1
 		}
 		return deployInfos, nil
 	}

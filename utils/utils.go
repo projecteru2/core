@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
@@ -170,7 +171,7 @@ func FilterContainer(extend map[string]string, labels map[string]string) bool {
 
 // CleanStatsdMetrics trans dot to _
 func CleanStatsdMetrics(k string) string {
-	return strings.Replace(k, ".", "-", -1)
+	return strings.ReplaceAll(k, ".", "-")
 }
 
 // TempFile store a temp file
@@ -191,34 +192,13 @@ func Round(f float64) float64 {
 	return types.Round(f)
 }
 
-// copied from https://gist.github.com/jmervine/d88c75329f98e09f5c87
-func safeSplit(s string) []string {
-	split := strings.Split(s, " ")
-
-	var result []string
-	var inquote string
-	var block string
-	for _, i := range split {
-		if inquote == "" {
-			if strings.HasPrefix(i, "'") || strings.HasPrefix(i, "\"") {
-				inquote = string(i[0])
-				block = strings.TrimPrefix(i, inquote) + " "
-			} else {
-				result = append(result, i)
-			}
-			continue
-		}
-		if !strings.HasSuffix(i, inquote) {
-			block += i + " "
-		} else {
-			block += strings.TrimSuffix(i, inquote)
-			inquote = ""
-			result = append(result, block)
-			block = ""
-		}
+// MergeHookOutputs merge hooks output
+func MergeHookOutputs(outputs []*bytes.Buffer) []byte {
+	r := []byte{}
+	for _, m := range outputs {
+		r = append(r, m.Bytes()...)
 	}
-
-	return result
+	return r
 }
 
 // Min returns the lesser one.
@@ -249,35 +229,10 @@ func EnsureReaderClosed(stream io.ReadCloser) {
 	if stream == nil {
 		return
 	}
-	_, err := io.Copy(ioutil.Discard, stream)
-	if err != nil {
+	if _, err := io.Copy(ioutil.Discard, stream); err != nil {
 		log.Errorf("[EnsureReaderClosed] empty stream failed %v", err)
 	}
 	_ = stream.Close()
-}
-
-// GenerateNodes generate nodes
-func GenerateNodes(nums, cores int, memory, storage int64, shares int) []types.NodeInfo {
-	var name string
-	nodes := []types.NodeInfo{}
-
-	for i := 0; i < nums; i++ {
-		name = fmt.Sprintf("n%d", i)
-
-		cpumap := types.CPUMap{}
-		for j := 0; j < cores; j++ {
-			coreName := fmt.Sprintf("%d", j)
-			cpumap[coreName] = int64(shares)
-		}
-		nodeInfo := types.NodeInfo{
-			CPUMap:     cpumap,
-			MemCap:     memory,
-			StorageCap: storage,
-			Name:       name,
-		}
-		nodes = append(nodes, nodeInfo)
-	}
-	return nodes
 }
 
 // Range .
@@ -286,4 +241,34 @@ func Range(n int) (res []int) {
 		res = append(res, i)
 	}
 	return
+}
+
+// copied from https://gist.github.com/jmervine/d88c75329f98e09f5c87
+func safeSplit(s string) []string {
+	split := strings.Split(s, " ")
+
+	var result []string
+	var inquote string
+	var block string
+	for _, i := range split {
+		if inquote == "" {
+			if strings.HasPrefix(i, "'") || strings.HasPrefix(i, "\"") {
+				inquote = string(i[0])
+				block = strings.TrimPrefix(i, inquote) + " "
+			} else {
+				result = append(result, i)
+			}
+			continue
+		}
+		if !strings.HasSuffix(i, inquote) {
+			block += i + " "
+		} else {
+			block += strings.TrimSuffix(i, inquote)
+			inquote = ""
+			result = append(result, block)
+			block = ""
+		}
+	}
+
+	return result
 }

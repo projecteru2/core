@@ -1,70 +1,33 @@
 package types
 
-import (
-	"bytes"
-	"io"
-	"io/ioutil"
-	"sync"
-)
-
 // DeployOptions is options for deploying
 type DeployOptions struct {
-	Name             string                   // Name of application
-	Entrypoint       *Entrypoint              // entrypoint
-	Podname          string                   // Name of pod to deploy
-	Nodenames        []string                 // Specific nodes to deploy, if given, must belong to pod
-	Image            string                   // Name of image to deploy
-	ExtraArgs        string                   // Extra arguments to append to command
-	Count            int                      // How many containers needed, e.g. 4
-	Env              []string                 // Env for container
-	DNS              []string                 // DNS for container
-	ExtraHosts       []string                 // Extra hosts for container
-	Networks         map[string]string        // Network names and specified IPs
-	NetworkMode      string                   // Network mode
-	User             string                   // User for container
-	Debug            bool                     // debug mode, use syslog as log driver
-	OpenStdin        bool                     // OpenStdin for container
-	Labels           map[string]string        // Labels for containers
-	NodeLabels       map[string]string        // NodeLabels for filter node
-	DeployStrategy   string                   // Deploy strategy
-	Data             map[string]ReaderManager // For additional file data
-	SoftLimit        bool                     // Soft limit memory
-	NodesLimit       int                      // Limit nodes count
-	ProcessIdent     string                   // ProcessIdent ident this deploy
-	IgnoreHook       bool                     // IgnoreHook ignore hook process
-	AfterCreate      []string                 // AfterCreate support run cmds after create
-	RawArgs          []byte                   // RawArgs for raw args processing
-	Lambda           bool                     // indicate is lambda container or not
-	ResourceRequests []ResourceRequest
-}
-
-// ReaderManager return Reader under concurrency
-type ReaderManager interface {
-	GetReader() (io.Reader, error)
-}
-
-type readerManager struct {
-	mux sync.Mutex
-	r   io.ReadSeeker
-}
-
-func (rm *readerManager) GetReader() (_ io.Reader, err error) {
-	rm.mux.Lock()
-	defer rm.mux.Unlock()
-	buf := &bytes.Buffer{}
-	if _, err = io.Copy(buf, rm.r); err != nil {
-		return
-	}
-	_, err = rm.r.Seek(0, io.SeekStart)
-	return buf, err
-}
-
-// NewReaderManager converts Reader to ReadSeeker
-func NewReaderManager(r io.Reader) (ReaderManager, error) {
-	bs, err := ioutil.ReadAll(r)
-	return &readerManager{
-		r: bytes.NewReader(bs),
-	}, err
+	ResourceOpts   ResourceOptions
+	Name           string                   // Name of application
+	Entrypoint     *Entrypoint              // entrypoint
+	Podname        string                   // Name of pod to deploy
+	Nodenames      []string                 // Specific nodes to deploy, if given, must belong to pod
+	Image          string                   // Name of image to deploy
+	ExtraArgs      string                   // Extra arguments to append to command
+	Count          int                      // How many containers needed, e.g. 4
+	Env            []string                 // Env for container
+	DNS            []string                 // DNS for container
+	ExtraHosts     []string                 // Extra hosts for container
+	Networks       map[string]string        // Network names and specified IPs
+	NetworkMode    string                   // Network mode
+	User           string                   // User for container
+	Debug          bool                     // debug mode, use syslog as log driver
+	OpenStdin      bool                     // OpenStdin for container
+	Labels         map[string]string        // Labels for containers
+	NodeLabels     map[string]string        // NodeLabels for filter node
+	DeployStrategy string                   // Deploy strategy
+	Data           map[string]ReaderManager // For additional file data
+	NodesLimit     int                      // Limit nodes count
+	ProcessIdent   string                   // ProcessIdent ident this deploy
+	IgnoreHook     bool                     // IgnoreHook ignore hook process
+	AfterCreate    []string                 // AfterCreate support run cmds after create
+	RawArgs        []byte                   // RawArgs for raw args processing
+	Lambda         bool                     // indicate is lambda container or not
 }
 
 // RunAndWaitOptions is options for running and waiting
@@ -129,7 +92,7 @@ func (o *AddNodeOptions) Normalize() {
 // SetNodeOptions for node set
 type SetNodeOptions struct {
 	Nodename        string
-	Status          TriOptions
+	StatusOpt       TriOptions
 	ContainersDown  bool
 	DeltaCPU        CPUMap
 	DeltaMemory     int64
@@ -162,13 +125,9 @@ type ExecuteContainerOptions struct {
 
 // ReallocOptions .
 type ReallocOptions struct {
-	IDs         []string
-	CPU         float64
-	Memory      int64
-	Storage     int64
-	Volumes     VolumeBindings
-	BindCPU     TriOptions
-	MemoryLimit TriOptions
+	ID           string
+	CPUBindOpts  TriOptions
+	ResourceOpts ResourceOptions
 }
 
 // TriOptions .

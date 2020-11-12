@@ -3,12 +3,12 @@ package calcium
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/projecteru2/core/scheduler"
+	"github.com/projecteru2/core/resources"
+	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -21,25 +21,15 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 		return nil, err
 	}
 	r := &types.PodResource{
-		Name:            podname,
-		CPUPercents:     map[string]float64{},
-		MemoryPercents:  map[string]float64{},
-		StoragePercents: map[string]float64{},
-		VolumePercents:  map[string]float64{},
-		Verifications:   map[string]bool{},
-		Details:         map[string]string{},
+		Name:          podname,
+		NodesResource: []*types.NodeResource{},
 	}
 	for _, node := range nodes {
-		nodeDetail, err := c.doGetNodeResource(ctx, node.Name, false)
+		nodeResource, err := c.doGetNodeResource(ctx, node.Name, false)
 		if err != nil {
 			return nil, err
 		}
-		r.CPUPercents[node.Name] = nodeDetail.CPUPercent
-		r.MemoryPercents[node.Name] = nodeDetail.MemoryPercent
-		r.StoragePercents[node.Name] = nodeDetail.StoragePercent
-		r.VolumePercents[node.Name] = nodeDetail.VolumePercent
-		r.Verifications[node.Name] = nodeDetail.Verification
-		r.Details[node.Name] = strings.Join(nodeDetail.Details, "\n")
+		r.NodesResource = append(r.NodesResource, nodeResource)
 	}
 	return r, nil
 }
@@ -52,8 +42,7 @@ func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (
 	}
 	for _, container := range nr.Containers {
 		if _, err := container.Inspect(ctx); err != nil { // 用于探测节点上容器是否存在
-			nr.Verification = false
-			nr.Details = append(nr.Details, fmt.Sprintf("container %s inspect failed %v \n", container.ID, err))
+			nr.Diffs = append(nr.Diffs, fmt.Sprintf("container %s inspect failed %v \n", container.ID, err))
 			continue
 		}
 	}
@@ -69,7 +58,7 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 		}
 		nr = &types.NodeResource{
 			Name: node.Name, CPU: node.CPU, MemCap: node.MemCap, StorageCap: node.StorageCap,
-			Containers: containers, Verification: true, Details: []string{},
+			Containers: containers, Diffs: []string{},
 		}
 
 		cpus := 0.0
@@ -77,9 +66,9 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 		storage := int64(0)
 		cpumap := types.CPUMap{}
 		for _, container := range containers {
-			cpus = utils.Round(cpus + container.Quota)
-			memory += container.Memory
-			storage += container.Storage
+			cpus = utils.Round(cpus + container.CPUQuotaRequest)
+			memory += container.MemoryRequest
+			storage += container.StorageRequest
 			cpumap.Add(container.CPU)
 		}
 		nr.CPUPercent = cpus / float64(len(node.InitCPU))
@@ -92,33 +81,29 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 			}
 		}
 		if cpus != node.CPUUsed {
-			nr.Verification = false
-			nr.Details = append(nr.Details, fmt.Sprintf("cpus used: %f diff: %f", node.CPUUsed, cpus))
+			nr.Diffs = append(nr.Diffs, fmt.Sprintf("cpus used: %f diff: %f", node.CPUUsed, cpus))
 		}
 		node.CPU.Add(cpumap)
 		for i, v := range node.CPU {
 			if node.InitCPU[i] != v {
-				nr.Verification = false
-				nr.Details = append(nr.Details, fmt.Sprintf("cpu %s diff %d", i, node.InitCPU[i]-v))
+				nr.Diffs = append(nr.Diffs, fmt.Sprintf("cpu %s diff %d", i, node.InitCPU[i]-v))
 			}
 		}
 
 		if memory+node.MemCap != node.InitMemCap {
-			nr.Verification = false
-			nr.Details = append(nr.Details, fmt.Sprintf("memory used: %d, diff %d", node.MemCap, node.InitMemCap-(memory+node.MemCap)))
+			nr.Diffs = append(nr.Diffs, fmt.Sprintf("memory used: %d, diff %d", node.MemCap, node.InitMemCap-(memory+node.MemCap)))
 		}
 
 		nr.StoragePercent = 0
 		if node.InitStorageCap != 0 {
 			nr.StoragePercent = float64(storage) / float64(node.InitStorageCap)
 			if storage+node.StorageCap != node.InitStorageCap {
-				nr.Verification = false
-				nr.Details = append(nr.Details, fmt.Sprintf("storage used: %d, diff %d", node.StorageCap, node.InitStorageCap-(storage+node.StorageCap)))
+				nr.Diffs = append(nr.Diffs, fmt.Sprintf("storage used: %d, diff %d", node.StorageCap, node.InitStorageCap-(storage+node.StorageCap)))
 			}
 		}
 
 		if err := node.Engine.ResourceValidate(ctx, cpus, cpumap, memory, storage); err != nil {
-			nr.Details = append(nr.Details, err.Error())
+			nr.Diffs = append(nr.Diffs, err.Error())
 		}
 
 		if fix {
@@ -155,20 +140,25 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 	)
 }
 
-func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) (map[types.ResourceType]types.ResourcePlans, map[string]*types.DeployInfo, error) {
+func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) ([]resourcetypes.ResourcePlans, map[string]int, error) {
 	if len(nodeMap) == 0 {
 		return nil, nil, errors.WithStack(types.ErrInsufficientNodes)
 	}
 
-	// select available nodes
-	planMap, total, scheduleTypes, err := scheduler.SelectNodes(opts.ResourceRequests, nodeMap)
+	resourceRequests, err := resources.MakeRequests(opts.ResourceOpts)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	log.Errorf("[Calcium.doAllocResource] planMap: %+v, total: %v, type: %+v", planMap, total, scheduleTypes)
+
+	// select available nodes
+	scheduleTypes, total, plans, err := resources.SelectNodesByResourceRequests(resourceRequests, nodeMap)
+	if err != nil {
+		return nil, nil, errors.WithStack(err)
+	}
+	log.Debugf("[Calcium.doAllocResource] plans: %+v, total: %v, type: %+v", plans, total, scheduleTypes)
 
 	// deploy strategy
-	strategyInfos := types.NewStrategyInfos(opts, nodeMap, planMap)
+	strategyInfos := strategy.NewInfos(resourceRequests, nodeMap, plans)
 	if err := c.store.MakeDeployStatus(ctx, opts, strategyInfos); err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
@@ -176,7 +166,6 @@ func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	log.Debugf("[Calium.doAllocResource] deployMap: %+v", deployMap)
-
-	return planMap, deployMap, nil
+	log.Infof("[Calium.doAllocResource] deployMap: %+v", deployMap)
+	return plans, deployMap, nil
 }

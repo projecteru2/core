@@ -10,7 +10,7 @@ import (
 
 // GlobalPlan 基于全局资源配额
 // 尽量使得资源消耗平均
-func GlobalPlan(strategyInfos []types.StrategyInfo, need, total, limit int, resourceType types.ResourceType) (map[string]*types.DeployInfo, error) {
+func GlobalPlan(strategyInfos []Info, need, total, limit int, resourceType types.ResourceType) (map[string]int, error) {
 	if total < need {
 		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
 			fmt.Sprintf("need: %d, vol: %d", need, total))
@@ -19,7 +19,7 @@ func GlobalPlan(strategyInfos []types.StrategyInfo, need, total, limit int, reso
 	length := len(strategyInfos)
 	i := 0
 
-	deployMap := make(map[string]*types.DeployInfo)
+	deployMap := make(map[string]int)
 	for need > 0 {
 		p := i
 		deploy := 0
@@ -45,10 +45,7 @@ func GlobalPlan(strategyInfos []types.StrategyInfo, need, total, limit int, reso
 				deploy = need
 			}
 			strategyInfos[j].Capacity -= deploy
-			if _, ok := deployMap[strategyInfos[j].Nodename]; !ok {
-				deployMap[strategyInfos[j].Nodename] = &types.DeployInfo{}
-			}
-			deployMap[strategyInfos[j].Nodename].Deploy += deploy
+			deployMap[strategyInfos[j].Nodename] += deploy
 			need -= deploy
 		}
 	}

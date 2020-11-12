@@ -329,10 +329,8 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 	if err != nil {
 		return err
 	}
-
-	//4K buffer
+	// 4K buffer
 	bsize := 4 * 1024
-
 	for m := range ch {
 		var copyError string
 		if m.Error != nil {
@@ -435,7 +433,6 @@ func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 	if err != nil {
 		return err
 	}
-	// TODO VM BRANCH
 	ch, err := v.cluster.BuildImage(stream.Context(), buildOpts)
 	if err != nil {
 		log.Errorf("[BuildImage] build image error %+v", err)
@@ -651,34 +648,49 @@ func (v *Vibranium) ExecuteContainer(stream pb.CoreRPC_ExecuteContainerServer) (
 }
 
 // ReallocResource realloc res for containers
-func (v *Vibranium) ReallocResource(opts *pb.ReallocOptions, stream pb.CoreRPC_ReallocResourceServer) error {
+func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions) (msg *pb.ReallocResourceMessage, err error) {
+	defer func() {
+		errString := ""
+		if err != nil {
+			errString = err.Error()
+		}
+		msg = &pb.ReallocResourceMessage{Error: errString}
+	}()
+
 	v.taskAdd("ReallocResource", true)
 	defer v.taskDone("ReallocResource", true)
-	ids := opts.GetIds()
-	if len(ids) == 0 {
-		return types.ErrNoContainerIDs
-	}
-	vbs, err := types.MakeVolumeBindings(opts.Volumes)
-	if err != nil {
-		return err
-	}
-	bindCPU := types.TriOptions(opts.BindCpu)
-	memoryLimit := types.TriOptions(opts.MemoryLimit)
-	//这里不能让 client 打断 remove
-	ch, err := v.cluster.ReallocResource(
-		stream.Context(),
-		&types.ReallocOptions{IDs: ids, CPU: opts.Cpu, BindCPU: bindCPU, Memory: opts.Memory, MemoryLimit: memoryLimit, Volumes: vbs},
-	)
-	if err != nil {
-		return err
+	if opts.Id == "" {
+		return msg, types.ErrNoContainerIDs
 	}
 
-	for m := range ch {
-		if err = stream.Send(toRPCReallocResourceMessage(m)); err != nil {
-			v.logUnsentMessages("ReallocResource", m)
-		}
+	vbsRequest, err := types.NewVolumeBindings(opts.ResourceOpts.VolumesRequest)
+	if err != nil {
+		return msg, err
 	}
-	return err
+
+	vbsLimit, err := types.NewVolumeBindings(opts.ResourceOpts.VolumesLimit)
+	if err != nil {
+		return msg, err
+	}
+
+	// 这里不能让 client 打断 remove
+	return msg, v.cluster.ReallocResource(
+		ctx,
+		&types.ReallocOptions{
+			ID:          opts.Id,
+			CPUBindOpts: types.TriOptions(opts.BindCpuOpt),
+			ResourceOpts: types.ResourceOptions{
+				CPUQuotaRequest: opts.ResourceOpts.CpuQuotaRequest,
+				CPUQuotaLimit:   opts.ResourceOpts.CpuQuotaLimit,
+				MemoryRequest:   opts.ResourceOpts.MemoryRequest,
+				MemoryLimit:     opts.ResourceOpts.MemoryLimit,
+				VolumeRequest:   vbsRequest,
+				VolumeLimit:     vbsLimit,
+				StorageRequest:  opts.ResourceOpts.StorageRequest,
+				StorageLimit:    opts.ResourceOpts.StorageLimit,
+			},
+		},
+	)
 }
 
 // LogStream get container logs

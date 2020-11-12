@@ -27,22 +27,17 @@ type LabelMeta struct {
 // only relationship with pod and node is stored
 // if you wanna get realtime information, use Inspect method
 type Container struct {
+	ResourceMeta
 	ID         string            `json:"id"`
 	Name       string            `json:"name"`
 	Podname    string            `json:"podname"`
 	Nodename   string            `json:"nodename"`
-	CPU        CPUMap            `json:"cpu"`
-	Quota      float64           `json:"quota"`
-	Memory     int64             `json:"memory"`
-	Storage    int64             `json:"storage"`
 	Hook       *Hook             `json:"hook"`
 	Privileged bool              `json:"privileged"`
 	SoftLimit  bool              `json:"softlimit"`
 	User       string            `json:"user"`
 	Env        []string          `json:"env"`
 	Image      string            `json:"image"`
-	Volumes    VolumeBindings    `json:"volumes"`
-	VolumePlan VolumePlan        `json:"volume_plan"`
 	Labels     map[string]string `json:"labels"`
 	StatusMeta *StatusMeta       `json:"-"`
 	Engine     engine.API        `json:"-"`

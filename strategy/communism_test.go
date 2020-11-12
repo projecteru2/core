@@ -13,31 +13,31 @@ func TestCommunismPlan(t *testing.T) {
 	nodes := deployedNodes()
 	r, err := CommunismPlan(nodes, 1, 100, 0, types.ResourceAll)
 	assert.NoError(t, err)
-	assert.Equal(t, r[nodes[0].Nodename].Deploy, 1)
+	assert.Equal(t, r[nodes[0].Nodename], 1)
 	nodes = deployedNodes()
 	r, err = CommunismPlan(nodes, 2, 1, 0, types.ResourceAll)
 	assert.Error(t, err)
 	nodes = deployedNodes()
 	r, err = CommunismPlan(nodes, 2, 100, 0, types.ResourceAll)
 	assert.NoError(t, err)
-	assert.Equal(t, r[nodes[0].Nodename].Deploy, 2)
+	assert.Equal(t, r[nodes[0].Nodename], 2)
 	nodes = deployedNodes()
 	r, err = CommunismPlan(nodes, 3, 100, 0, types.ResourceAll)
 	assert.NoError(t, err)
-	assert.Equal(t, r[nodes[0].Nodename].Deploy, 2)
-	assert.Equal(t, r[nodes[1].Nodename].Deploy, 1)
+	assert.Equal(t, r[nodes[0].Nodename], 2)
+	assert.Equal(t, r[nodes[1].Nodename], 1)
 	nodes = deployedNodes()
 	r, err = CommunismPlan(nodes, 4, 100, 0, types.ResourceAll)
 	assert.NoError(t, err)
-	assert.Equal(t, r[nodes[0].Nodename].Deploy, 3)
-	assert.Equal(t, r[nodes[1].Nodename].Deploy, 1)
+	assert.Equal(t, r[nodes[0].Nodename], 3)
+	assert.Equal(t, r[nodes[1].Nodename], 1)
 	nodes = deployedNodes()
 	r, err = CommunismPlan(nodes, 29, 100, 0, types.ResourceAll)
 	assert.NoError(t, err)
-	assert.Equal(t, r[nodes[0].Nodename].Deploy, 10)
-	assert.Equal(t, r[nodes[1].Nodename].Deploy, 9)
-	assert.Equal(t, r[nodes[2].Nodename].Deploy, 6)
-	assert.Equal(t, r[nodes[3].Nodename].Deploy, 4)
+	assert.Equal(t, r[nodes[0].Nodename], 10)
+	assert.Equal(t, r[nodes[1].Nodename], 9)
+	assert.Equal(t, r[nodes[2].Nodename], 6)
+	assert.Equal(t, r[nodes[3].Nodename], 4)
 	nodes = deployedNodes()
 	r, err = CommunismPlan(nodes, 37, 100, 0, types.ResourceAll)
 	assert.NoError(t, err)
@@ -46,11 +46,11 @@ func TestCommunismPlan(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func randomDeployStatus(nodesInfo []types.NodeInfo, maxDeployed int) (sis []types.StrategyInfo) {
+func randomDeployStatus(nodesInfo []types.NodeInfo, maxDeployed int) (sis []Info) {
 	s := rand.NewSource(int64(1024))
 	r := rand.New(s)
-	for _ = range nodesInfo {
-		sis = append(sis, types.StrategyInfo{
+	for range nodesInfo {
+		sis = append(sis, Info{
 			Capacity: maxDeployed,
 			Count:    r.Intn(maxDeployed),
 		})

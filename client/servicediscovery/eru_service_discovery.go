@@ -51,7 +51,7 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 
 			for {
 				cancelTimer := make(chan struct{})
-				go func() {
+				go func(expectedInterval time.Duration) {
 					timer := time.NewTimer(expectedInterval * time.Second)
 					defer timer.Stop()
 					select {
@@ -60,7 +60,7 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 					case <-cancelTimer:
 						return
 					}
-				}()
+				}(expectedInterval)
 				status, err := stream.Recv()
 				close(cancelTimer)
 				if err != nil {

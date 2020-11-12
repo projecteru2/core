@@ -9,6 +9,8 @@ import (
 	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/metrics"
+	resourcetypes "github.com/projecteru2/core/resources/types"
+
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/sanity-io/litter"
@@ -17,20 +19,12 @@ import (
 
 // CreateContainer use options to create containers
 func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
-	// TODO: new way to normalize
-	//opts.Normalize()
 	opts.ProcessIdent = utils.RandomString(16)
 	log.Infof("[CreateContainer %s] Creating container with options:", opts.ProcessIdent)
 	litter.Dump(opts)
 	// Count 要大于0
 	if opts.Count <= 0 {
 		return nil, errors.WithStack(types.NewDetailedErr(types.ErrBadCount, opts.Count))
-	}
-
-	for _, req := range opts.ResourceRequests {
-		if err := req.DeployValidate(); err != nil {
-			return nil, errors.WithStack(err)
-		}
 	}
 
 	ch, err := c.doCreateWorkloads(ctx, opts)
@@ -46,8 +40,8 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 	var (
 		err         error
-		planMap     map[types.ResourceType]types.ResourcePlans
-		deployMap   map[string]*types.DeployInfo
+		plans       []resourcetypes.ResourcePlans
+		deployMap   map[string]int
 		rollbackMap map[string][]int
 	)
 
@@ -75,20 +69,18 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					}()
 
 					// calculate plans
-					if planMap, deployMap, err = c.doAllocResource(ctx, nodeMap, opts); err != nil {
+					if plans, deployMap, err = c.doAllocResource(ctx, nodeMap, opts); err != nil {
 						return errors.WithStack(err)
 					}
 
 					// commit changes
 					nodes := []*types.Node{}
-					for nodeName, deployInfo := range deployMap {
-						for _, plan := range planMap {
-							plan.ApplyChangesOnNode(nodeMap[nodeName], utils.Range(deployInfo.Deploy)...)
+					for nodename, deploy := range deployMap {
+						for _, plan := range plans {
+							plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deploy)...)
 						}
-						nodes = append(nodes, nodeMap[nodeName])
-					}
-					for nodename, deployInfo := range deployMap {
-						if err = c.store.SaveProcessing(ctx, opts, nodename, deployInfo.Deploy); err != nil {
+						nodes = append(nodes, nodeMap[nodename])
+						if err = c.store.SaveProcessing(ctx, opts, nodename, deploy); err != nil {
 							return errors.WithStack(err)
 						}
 					}
@@ -98,17 +90,16 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 			// then: deploy containers
 			func(ctx context.Context) error {
-				rollbackMap, err = c.doDeployWorkloads(ctx, ch, opts, planMap, deployMap)
+				rollbackMap, err = c.doDeployWorkloads(ctx, ch, opts, plans, deployMap)
 				return errors.WithStack(err)
 			},
 
 			// rollback: give back resources
-			func(ctx context.Context) (err error) {
-				for nodeName, rollbackIndices := range rollbackMap {
-					indices := rollbackIndices
-					if e := c.withNodeLocked(ctx, nodeName, func(node *types.Node) error {
-						for _, plan := range planMap {
-							plan.RollbackChangesOnNode(node, indices...)
+			func(ctx context.Context, _ bool) (err error) {
+				for nodename, rollbackIndices := range rollbackMap {
+					if e := c.withNodeLocked(ctx, nodename, func(node *types.Node) error {
+						for _, plan := range plans {
+							plan.RollbackChangesOnNode(node, rollbackIndices...) // nolint:scopelint
 						}
 						return errors.WithStack(c.store.UpdateNodes(ctx, node))
 					}); e != nil {
@@ -127,23 +118,22 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 	return ch, err
 }
 
-func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateContainerMessage, opts *types.DeployOptions, planMap map[types.ResourceType]types.ResourcePlans, deployMap map[string]*types.DeployInfo) (_ map[string][]int, err error) {
+func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateContainerMessage, opts *types.DeployOptions, plans []resourcetypes.ResourcePlans, deployMap map[string]int) (_ map[string][]int, err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(deployMap))
 
 	seq := 0
 	rollbackMap := make(map[string][]int)
-	for nodename, deployInfo := range deployMap {
-		go metrics.Client.SendDeployCount(deployInfo.Deploy)
-		go func(nodename string, seq int) {
+	for nodename, deploy := range deployMap {
+		go metrics.Client.SendDeployCount(deploy)
+		go func(nodename string, deploy, seq int) {
 			defer wg.Done()
-			if indices, e := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deployInfo, planMap, seq); e != nil {
+			if indices, e := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, plans, seq); e != nil {
 				err = e
 				rollbackMap[nodename] = indices
 			}
-			//process
-		}(nodename, seq)
-		seq += deployInfo.Deploy
+		}(nodename, deploy, seq)
+		seq += deploy
 	}
 
 	wg.Wait()
@@ -151,24 +141,23 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateCo
 }
 
 // deploy scheduled containers on one node
-func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.CreateContainerMessage, nodeName string, opts *types.DeployOptions, deployInfo *types.DeployInfo, planMap map[types.ResourceType]types.ResourcePlans, seq int) (indices []int, err error) {
-	node, err := c.doGetAndPrepareNode(ctx, nodeName, opts.Image)
+func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.CreateContainerMessage, nodename string, opts *types.DeployOptions, deploy int, plans []resourcetypes.ResourcePlans, seq int) (indices []int, err error) {
+	node, err := c.doGetAndPrepareNode(ctx, nodename, opts.Image)
 	if err != nil {
-		for i := 0; i < deployInfo.Deploy; i++ {
+		for i := 0; i < deploy; i++ {
 			ch <- &types.CreateContainerMessage{Error: err}
 		}
-		return utils.Range(deployInfo.Deploy), errors.WithStack(err)
+		return utils.Range(deploy), errors.WithStack(err)
 	}
 
-	for idx := 0; idx < deployInfo.Deploy; idx++ {
+	for idx := 0; idx < deploy; idx++ {
 		createMsg := &types.CreateContainerMessage{
 			Podname:  opts.Podname,
-			Nodename: nodeName,
+			Nodename: nodename,
 			Publish:  map[string][]string{},
 		}
 
-		func() {
-			var e error
+		do := func(idx int) (e error) {
 			defer func() {
 				if e != nil {
 					err = e
@@ -178,20 +167,21 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 				ch <- createMsg
 			}()
 
-			resources := &types.Resources{}
-			o := types.DispenseOptions{
+			r := &types.ResourceMeta{}
+			o := resourcetypes.DispenseOptions{
 				Node:  node,
 				Index: idx,
 			}
-			for _, plan := range planMap {
-				if e = plan.Dispense(o, resources); e != nil {
+			for _, plan := range plans {
+				if r, e = plan.Dispense(o, r); e != nil {
 					return
 				}
 			}
 
-			createMsg.Resources = *resources
-			e = c.doDeployOneWorkload(ctx, node, opts, createMsg, seq+idx, deployInfo.Deploy-1-idx)
-		}()
+			createMsg.ResourceMeta = *r
+			return c.doDeployOneWorkload(ctx, node, opts, createMsg, seq+idx, deploy-1-idx)
+		}
+		_ = do(idx)
 	}
 
 	return indices, errors.WithStack(err)
@@ -216,23 +206,29 @@ func (c *Calcium) doDeployOneWorkload(
 ) (err error) {
 	config := c.doMakeContainerOptions(no, msg, opts, node)
 	container := &types.Container{
+		ResourceMeta: types.ResourceMeta{
+			CPU:               msg.CPU,
+			CPUQuotaRequest:   msg.CPUQuotaRequest,
+			CPUQuotaLimit:     msg.CPUQuotaLimit,
+			MemoryRequest:     msg.MemoryRequest,
+			MemoryLimit:       msg.MemoryLimit,
+			StorageRequest:    msg.StorageRequest,
+			StorageLimit:      msg.StorageLimit,
+			VolumeRequest:     msg.VolumeRequest,
+			VolumeLimit:       msg.VolumeLimit,
+			VolumePlanRequest: msg.VolumePlanRequest,
+			VolumePlanLimit:   msg.VolumePlanLimit,
+		},
 		Name:       config.Name,
 		Labels:     config.Labels,
 		Podname:    opts.Podname,
 		Nodename:   node.Name,
-		CPU:        msg.CPU,
-		Quota:      msg.Quota,
-		Memory:     msg.Memory,
-		Storage:    msg.Storage,
 		Hook:       opts.Entrypoint.Hook,
 		Privileged: opts.Entrypoint.Privileged,
 		Engine:     node.Engine,
-		SoftLimit:  opts.SoftLimit,
 		Image:      opts.Image,
 		Env:        opts.Env,
 		User:       opts.User,
-		Volumes:    msg.Volume,
-		VolumePlan: msg.VolumePlan,
 	}
 	return utils.Txn(
 		ctx,
@@ -307,7 +303,7 @@ func (c *Calcium) doDeployOneWorkload(
 		},
 
 		// remove container
-		func(ctx context.Context) error {
+		func(ctx context.Context, _ bool) error {
 			return errors.WithStack(c.doRemoveContainer(ctx, container, true))
 		},
 		c.config.GlobalTimeout,
@@ -318,11 +314,10 @@ func (c *Calcium) doMakeContainerOptions(no int, msg *types.CreateContainerMessa
 	config := &enginetypes.VirtualizationCreateOptions{}
 	// general
 	config.CPU = msg.CPU
-	config.Quota = msg.Quota
-	config.Memory = msg.Memory
-	config.Storage = msg.Storage
-	config.NUMANode = node.GetNUMANode(msg.CPU)
-	config.SoftLimit = opts.SoftLimit
+	config.Quota = msg.CPUQuotaLimit
+	config.Memory = msg.MemoryLimit
+	config.Storage = msg.StorageLimit
+	config.NUMANode = msg.NUMANode
 	config.RawArgs = opts.RawArgs
 	config.Lambda = opts.Lambda
 	config.User = opts.User
@@ -330,8 +325,8 @@ func (c *Calcium) doMakeContainerOptions(no int, msg *types.CreateContainerMessa
 	config.Image = opts.Image
 	config.Stdin = opts.OpenStdin
 	config.Hosts = opts.ExtraHosts
-	config.Volumes = msg.Volume.ApplyPlan(msg.VolumePlan).ToStringSlice(false, true)
-	config.VolumePlan = msg.VolumePlan.ToLiteral()
+	config.Volumes = msg.VolumeLimit.ApplyPlan(msg.VolumePlanLimit).ToStringSlice(false, true)
+	config.VolumePlan = msg.VolumePlanLimit.ToLiteral()
 	config.Debug = opts.Debug
 	config.Network = opts.NetworkMode
 	config.Networks = opts.Networks
@@ -360,8 +355,8 @@ func (c *Calcium) doMakeContainerOptions(no int, msg *types.CreateContainerMessa
 	env = append(env, fmt.Sprintf("ERU_POD=%s", opts.Podname))
 	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", node.Name))
 	env = append(env, fmt.Sprintf("ERU_CONTAINER_NO=%d", no))
-	env = append(env, fmt.Sprintf("ERU_MEMORY=%d", msg.Memory))
-	env = append(env, fmt.Sprintf("ERU_STORAGE=%d", msg.Storage))
+	env = append(env, fmt.Sprintf("ERU_MEMORY=%d", msg.MemoryLimit))
+	env = append(env, fmt.Sprintf("ERU_STORAGE=%d", msg.StorageLimit))
 	config.Env = env
 	// basic labels, bind to LabelMeta
 	config.Labels = map[string]string{

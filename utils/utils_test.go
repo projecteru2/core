@@ -188,6 +188,13 @@ func TestRound(t *testing.T) {
 	assert.Equal(t, f(Round(a)), "19.99998")
 }
 
+func TestMergeHookOutputs(t *testing.T) {
+	test := []*bytes.Buffer{bytes.NewBufferString("a"), bytes.NewBufferString("b")}
+	r := MergeHookOutputs(test)
+	assert.NotEmpty(t, r)
+	assert.Equal(t, string(r), "ab")
+}
+
 func TestMin(t *testing.T) {
 	var a int
 	var b int
@@ -206,11 +213,6 @@ func TestEnsureReaderClosed(t *testing.T) {
 	EnsureReaderClosed(nil)
 	s := ioutil.NopCloser(bytes.NewBuffer([]byte{10, 10, 10}))
 	EnsureReaderClosed(s)
-}
-
-func TestGenerateNodes(t *testing.T) {
-	ns := GenerateNodes(1, 10, 1000, 1000, 100)
-	assert.Len(t, ns, 1)
 }
 
 func TestRange(t *testing.T) {

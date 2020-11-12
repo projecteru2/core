@@ -1,8 +1,6 @@
 package types
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // MustToVolumeBinding convert volume string into VolumeBinding or panic
 func MustToVolumeBinding(volume string) VolumeBinding {
@@ -15,7 +13,7 @@ func MustToVolumeBinding(volume string) VolumeBinding {
 
 // MustToVolumeBindings convert slice of volume string into VolumeBindings or panic
 func MustToVolumeBindings(volumes []string) VolumeBindings {
-	vbs, err := MakeVolumeBindings(volumes)
+	vbs, err := NewVolumeBindings(volumes)
 	if err != nil {
 		panic(fmt.Errorf("invalid volumes: %s", volumes))
 	}

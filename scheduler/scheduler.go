@@ -1,12 +1,8 @@
 package scheduler
 
 import (
-	"math"
-
 	"github.com/pkg/errors"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -40,50 +36,4 @@ func GetSchedulerV1() (Scheduler, error) {
 		return nil, errors.Errorf("potassium not initiated")
 	}
 	return scheduler, nil
-}
-
-// SelectNodes .
-func SelectNodes(resourceRequests []types.ResourceRequest, nodeMap map[string]*types.Node) (planMap map[types.ResourceType]types.ResourcePlans, total int, scheduleTypes types.ResourceType, err error) {
-	total = math.MaxInt16
-	subTotal := 0
-	planMap = make(map[types.ResourceType]types.ResourcePlans)
-	nodesInfo := getNodesInfo(nodeMap)
-	log.Debugf("[SelectNode] nodesInfo: %+v", nodesInfo)
-	for _, req := range resourceRequests {
-		scheduler := req.MakeScheduler()
-		if planMap[req.Type()], subTotal, err = scheduler(nodesInfo); err != nil {
-			return
-		}
-		total = utils.Min(total, subTotal)
-
-		// calculate schedule type
-		if req.Type()&types.ResourceCPUBind != 0 {
-			scheduleTypes |= types.ResourceCPU
-		}
-		if req.Type()&types.ResourceScheduledVolume != 0 {
-			scheduleTypes |= types.ResourceVolume
-		}
-	}
-
-	if scheduleTypes == 0 {
-		scheduleTypes = types.ResourceMemory
-	}
-	return
-}
-
-func getNodesInfo(nodes map[string]*types.Node) []types.NodeInfo {
-	result := []types.NodeInfo{}
-	for _, node := range nodes {
-		nodeInfo := types.NodeInfo{
-			Name:          node.Name,
-			CPUMap:        node.CPU,
-			VolumeMap:     node.Volume,
-			InitVolumeMap: node.InitVolume,
-			MemCap:        node.MemCap,
-			StorageCap:    node.StorageCap,
-			Capacity:      0,
-		}
-		result = append(result, nodeInfo)
-	}
-	return result
 }

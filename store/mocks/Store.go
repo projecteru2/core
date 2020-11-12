@@ -6,6 +6,7 @@ import context "context"
 import lock "github.com/projecteru2/core/lock"
 import mock "github.com/stretchr/testify/mock"
 
+import strategy "github.com/projecteru2/core/strategy"
 import time "time"
 import types "github.com/projecteru2/core/types"
 
@@ -358,11 +359,11 @@ func (_m *Store) ListNodeContainers(ctx context.Context, nodename string, labels
 }
 
 // MakeDeployStatus provides a mock function with given fields: ctx, opts, strategyInfo
-func (_m *Store) MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfo []types.StrategyInfo) error {
+func (_m *Store) MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfo []strategy.Info) error {
 	ret := _m.Called(ctx, opts, strategyInfo)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, []types.StrategyInfo) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, []strategy.Info) error); ok {
 		r0 = rf(ctx, opts, strategyInfo)
 	} else {
 		r0 = ret.Error(0)
@@ -511,13 +512,13 @@ func (_m *Store) UpdateContainer(ctx context.Context, container *types.Container
 	return r0
 }
 
-// UpdateNodeResource provides a mock function with given fields: ctx, node, cpu, quota, memory, storage, volume, action
-func (_m *Store) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.ResourceMap, quota float64, memory int64, storage int64, volume types.ResourceMap, action string) error {
-	ret := _m.Called(ctx, node, cpu, quota, memory, storage, volume, action)
+// UpdateNodeResource provides a mock function with given fields: ctx, node, resource, action
+func (_m *Store) UpdateNodeResource(ctx context.Context, node *types.Node, resource *types.ResourceMeta, action string) error {
+	ret := _m.Called(ctx, node, resource, action)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.Node, types.ResourceMap, float64, int64, int64, types.ResourceMap, string) error); ok {
-		r0 = rf(ctx, node, cpu, quota, memory, storage, volume, action)
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Node, *types.ResourceMeta, string) error); ok {
+		r0 = rf(ctx, node, resource, action)
 	} else {
 		r0 = ret.Error(0)
 	}

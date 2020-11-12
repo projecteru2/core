@@ -7,6 +7,7 @@ import (
 
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -45,7 +46,7 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 				if err == nil {
 					log.Infof("[ControlContainer] Container %s %s", ID, t)
 					log.Info("[ControlContainer] Hook Output:")
-					log.Info(string(types.HookOutput(message)))
+					log.Info(string(utils.MergeHookOutputs(message)))
 				}
 				ch <- &types.ControlContainerMessage{
 					ContainerID: ID,
@@ -64,7 +65,7 @@ func (c *Calcium) doStartContainer(ctx context.Context, container *types.Contain
 	if err = container.Start(ctx); err != nil {
 		return message, err
 	}
-	// TODO healthcheck
+	// TODO healthcheck first
 	if container.Hook != nil && len(container.Hook.AfterStart) > 0 {
 		message, err = c.doHook(
 			ctx,

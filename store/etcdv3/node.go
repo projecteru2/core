@@ -22,9 +22,9 @@ import (
 // AddNode save it to etcd
 // storage path in etcd is `/pod/nodes/:podname/:nodename`
 // node->pod path in etcd is `/node/pod/:nodename`
-//func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string,
-//cpu, share int, memory, storage int64, labels map[string]string,
-//numa types.NUMA, numaMemory types.NUMAMemory, volume types.VolumeMap) (*types.Node, error) {
+// func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string,
+// cpu, share int, memory, storage int64, labels map[string]string,
+// numa types.NUMA, numaMemory types.NUMAMemory, volume types.VolumeMap) (*types.Node, error) {
 func (m *Mercury) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*types.Node, error) {
 	_, err := m.GetPod(ctx, opts.Podname)
 	if err != nil {
@@ -114,12 +114,30 @@ func (m *Mercury) GetNodes(ctx context.Context, nodenames []string) ([]*types.No
 // GetNodesByPod get all nodes bound to pod
 // here we use podname instead of pod instance
 func (m *Mercury) GetNodesByPod(ctx context.Context, podname string, labels map[string]string, all bool) ([]*types.Node, error) {
-	key := fmt.Sprintf(nodePodKey, podname, "")
-	resp, err := m.Get(ctx, key, clientv3.WithPrefix())
-	if err != nil {
-		return []*types.Node{}, err
+	do := func(podname string) ([]*types.Node, error) {
+		key := fmt.Sprintf(nodePodKey, podname, "")
+		resp, err := m.Get(ctx, key, clientv3.WithPrefix())
+		if err != nil {
+			return nil, err
+		}
+		return m.doGetNodes(ctx, resp.Kvs, labels, all)
 	}
-	return m.doGetNodes(ctx, resp.Kvs, labels, all)
+	if podname != "" {
+		return do(podname)
+	}
+	pods, err := m.GetAllPods(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := []*types.Node{}
+	for _, pod := range pods {
+		ns, err := do(pod.Name)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, ns...)
+	}
+	return result, nil
 }
 
 // UpdateNodes .
@@ -140,32 +158,15 @@ func (m *Mercury) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
 }
 
 // UpdateNodeResource update cpu and memory on a node, either add or subtract
-func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, cpu types.CPUMap, quota float64, memory, storage int64, volume types.VolumeMap, action string) error {
+func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, resource *types.ResourceMeta, action string) error {
 	switch action {
 	case store.ActionIncr:
-		node.CPU.Add(cpu)
-		node.SetCPUUsed(quota, types.DecrUsage)
-		node.Volume.Add(volume)
-		node.SetVolumeUsed(volume.Total(), types.DecrUsage)
-		node.MemCap += memory
-		node.StorageCap += storage
-		if nodeID := node.GetNUMANode(cpu); nodeID != "" {
-			node.IncrNUMANodeMemory(nodeID, memory)
-		}
+		node.RecycleResources(resource)
 	case store.ActionDecr:
-		node.CPU.Sub(cpu)
-		node.SetCPUUsed(quota, types.IncrUsage)
-		node.Volume.Sub(volume)
-		node.SetVolumeUsed(volume.Total(), types.IncrUsage)
-		node.MemCap -= memory
-		node.StorageCap -= storage
-		if nodeID := node.GetNUMANode(cpu); nodeID != "" {
-			node.DecrNUMANodeMemory(nodeID, memory)
-		}
+		node.PreserveResources(resource)
 	default:
 		return types.ErrUnknownControlType
 	}
-
 	go metrics.Client.SendNodeInfo(node)
 	return m.UpdateNodes(ctx, node)
 }

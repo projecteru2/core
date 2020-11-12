@@ -57,7 +57,17 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 					}
 					// 使用复制之后的配置
 					// 停老的，起新的
-					replaceOpts.SoftLimit = container.SoftLimit
+					replaceOpts.ResourceOpts = types.ResourceOptions{
+						CPUQuotaRequest: container.CPUQuotaRequest,
+						CPUQuotaLimit:   container.CPUQuotaLimit,
+						CPUBind:         len(container.CPU) > 0,
+						MemoryRequest:   container.MemoryRequest,
+						MemoryLimit:     container.MemoryLimit,
+						StorageRequest:  container.StorageRequest,
+						StorageLimit:    container.StorageLimit,
+						VolumeRequest:   container.VolumeRequest,
+						VolumeLimit:     container.VolumeLimit,
+					}
 					// 覆盖 podname 如果做全量更新的话
 					replaceOpts.Podname = container.Podname
 					// 覆盖 Volumes
@@ -128,13 +138,18 @@ func (c *Calcium) doReplaceContainer(
 	}
 
 	createMessage := &types.CreateContainerMessage{
-		Resources: types.Resources{
-			Memory:     container.Memory,
-			Storage:    container.Storage,
-			Quota:      container.Quota,
-			CPU:        container.CPU,
-			Volume:     container.Volumes,
-			VolumePlan: container.VolumePlan,
+		ResourceMeta: types.ResourceMeta{
+			MemoryRequest:     container.MemoryRequest,
+			MemoryLimit:       container.MemoryLimit,
+			StorageRequest:    container.StorageRequest,
+			StorageLimit:      container.StorageLimit,
+			CPUQuotaRequest:   container.CPUQuotaRequest,
+			CPUQuotaLimit:     container.CPUQuotaLimit,
+			CPU:               container.CPU,
+			VolumeRequest:     container.VolumeRequest,
+			VolumePlanRequest: container.VolumePlanRequest,
+			VolumeLimit:       container.VolumeLimit,
+			VolumePlanLimit:   container.VolumePlanLimit,
 		},
 	}
 	return createMessage, removeMessage, utils.Txn(
@@ -168,7 +183,7 @@ func (c *Calcium) doReplaceContainer(
 			)
 		},
 		// rollback
-		func(ctx context.Context) (err error) {
+		func(ctx context.Context, _ bool) (err error) {
 			messages, err := c.doStartContainer(ctx, container, opts.IgnoreHook)
 			if err != nil {
 				log.Errorf("[replaceAndRemove] Old container %s restart failed %v", container.ID, err)

@@ -18,11 +18,6 @@ type DissociateContainerMessage struct {
 	Error       error
 }
 
-type errorDetail struct {
-	Code    int    `json:"code,omitempty"`
-	Message string `json:"message,omitempty"`
-}
-
 // BuildImageMessage for build image ops message
 type BuildImageMessage struct {
 	ID          string      `json:"id,omitempty"`
@@ -74,6 +69,7 @@ type ControlContainerMessage struct {
 
 // CreateContainerMessage for create message
 type CreateContainerMessage struct {
+	ResourceMeta
 	Podname       string
 	Nodename      string
 	ContainerID   string
@@ -81,21 +77,6 @@ type CreateContainerMessage struct {
 	Error         error
 	Publish       map[string][]string
 	Hook          []*bytes.Buffer
-	Resources
-}
-
-// Resources .
-type Resources struct {
-	CPU           CPUMap
-	Quota         float64
-	CPUBind       bool
-	Memory        int64
-	Volume        VolumeBindings
-	VolumePlan    VolumePlan
-	Storage       int64
-	SoftLimit     bool
-	NUMANode      string
-	VolumeChanged bool
 }
 
 // ReplaceContainerMessage for replace method
@@ -119,7 +100,6 @@ type PullImageMessage struct {
 // ReallocResourceMessage for realloc resource
 type ReallocResourceMessage struct {
 	ContainerID string
-	Error       error
 }
 
 // LogStreamMessage for log stream
@@ -127,4 +107,9 @@ type LogStreamMessage struct {
 	ID    string
 	Error error
 	Data  []byte
+}
+
+type errorDetail struct {
+	Code    int    `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
 }
