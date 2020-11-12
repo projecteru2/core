@@ -119,9 +119,6 @@ func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, num
 		// numaNode will empty or numaNode
 		resource.CpusetMems = numaNode
 	}
-	//if softlimit {
-	//	resource.MemoryReservation = memory
-	//} else {
 	resource.Memory = memory
 	resource.MemorySwap = memory
 	resource.MemoryReservation = memory / 2

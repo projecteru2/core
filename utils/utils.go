@@ -171,7 +171,7 @@ func FilterContainer(extend map[string]string, labels map[string]string) bool {
 
 // CleanStatsdMetrics trans dot to _
 func CleanStatsdMetrics(k string) string {
-	return strings.Replace(k, ".", "-", -1)
+	return strings.ReplaceAll(k, ".", "-")
 }
 
 // TempFile store a temp file

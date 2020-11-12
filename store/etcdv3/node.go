@@ -22,9 +22,9 @@ import (
 // AddNode save it to etcd
 // storage path in etcd is `/pod/nodes/:podname/:nodename`
 // node->pod path in etcd is `/node/pod/:nodename`
-//func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string,
-//cpu, share int, memory, storage int64, labels map[string]string,
-//numa types.NUMA, numaMemory types.NUMAMemory, volume types.VolumeMap) (*types.Node, error) {
+// func (m *Mercury) AddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string,
+// cpu, share int, memory, storage int64, labels map[string]string,
+// numa types.NUMA, numaMemory types.NUMAMemory, volume types.VolumeMap) (*types.Node, error) {
 func (m *Mercury) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*types.Node, error) {
 	_, err := m.GetPod(ctx, opts.Podname)
 	if err != nil {
@@ -118,7 +118,7 @@ func (m *Mercury) GetNodesByPod(ctx context.Context, podname string, labels map[
 		key := fmt.Sprintf(nodePodKey, podname, "")
 		resp, err := m.Get(ctx, key, clientv3.WithPrefix())
 		if err != nil {
-			return []*types.Node{}, err
+			return nil, err
 		}
 		return m.doGetNodes(ctx, resp.Kvs, labels, all)
 	}
@@ -127,13 +127,13 @@ func (m *Mercury) GetNodesByPod(ctx context.Context, podname string, labels map[
 	}
 	pods, err := m.GetAllPods(ctx)
 	if err != nil {
-		return []*types.Node{}, err
+		return nil, err
 	}
 	result := []*types.Node{}
 	for _, pod := range pods {
 		ns, err := do(pod.Name)
 		if err != nil {
-			return []*types.Node{}, err
+			return nil, err
 		}
 		result = append(result, ns...)
 	}

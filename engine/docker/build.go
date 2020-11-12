@@ -34,8 +34,8 @@ WORKDIR {{.Dir}}{{ end }}
 {{ if .StopSignal }}STOPSIGNAL {{.StopSignal}} {{ end }}`
 	copyTmpl = "COPY --from=%s %s %s"
 	runTmpl  = "RUN %s"
-	//TODO consider work dir privilege
-	//Add user manually
+	// TODO consider work dir privilege
+	// Add user manually
 	userTmpl = `RUN echo "{{.User}}::{{.UID}}:{{.UID}}:{{.User}}:/dev/null:/sbin/nologin" >> /etc/passwd && \
 echo "{{.User}}:x:{{.UID}}:" >> /etc/group && \
 echo "{{.User}}:!::0:::::" >> /etc/shadow

@@ -219,7 +219,7 @@ func (p VolumePlan) Compatible(oldPlan VolumePlan) bool {
 		if newBinding != nil && newBinding.GetResourceID() != oldBinding.GetResourceID() {
 			// unlimited binding, modify binding source
 			if newBinding.GetRation() == 0 {
-				//p[v] = VolumeMap{oldBinding.GetResourceID(): 0}
+				// p[v] = VolumeMap{oldBinding.GetResourceID(): 0}
 				continue
 			}
 			return false
