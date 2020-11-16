@@ -12,7 +12,7 @@ import (
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
-	"go.etcd.io/etcd/v3/clientv3"
+	"go.etcd.io/etcd/clientv3"
 )
 
 // SaveProcessing save processing status in etcd

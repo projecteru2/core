@@ -350,15 +350,19 @@ func TestReallocBindCpu(t *testing.T) {
 	store.On("GetContainers", mock.Anything, []string{"c6"}).Return([]*types.Container{c6}, nil)
 	store.On("GetContainers", mock.Anything, []string{"c6", "c5"}).Return([]*types.Container{c5, c6}, nil)
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
 	store.On("UpdateContainer", mock.Anything, mock.Anything).Return(nil)
-	err := c.ReallocResource(ctx, newReallocOptions("c5", 0.1, 2*int64(units.MiB), nil, types.TriFalse, types.TriKeep))
 
+	// failed by UpdateNodes
+	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(types.ErrBadContainerID).Once()
+	err := c.ReallocResource(ctx, newReallocOptions("c5", 0.1, 2*int64(units.MiB), nil, types.TriFalse, types.TriKeep))
+	assert.Error(t, err)
+	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
+
+	err = c.ReallocResource(ctx, newReallocOptions("c5", 0.1, 2*int64(units.MiB), nil, types.TriFalse, types.TriKeep))
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(c5.ResourceMeta.CPU))
 
 	err = c.ReallocResource(ctx, newReallocOptions("c6", 0.1, 2*int64(units.MiB), nil, types.TriTrue, types.TriKeep))
-
 	assert.NoError(t, err)
 	assert.NotEmpty(t, c6.ResourceMeta.CPU)
 

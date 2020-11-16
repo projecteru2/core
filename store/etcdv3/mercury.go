@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"go.etcd.io/etcd/v3/pkg/transport"
+	"go.etcd.io/etcd/pkg/transport"
 
 	log "github.com/sirupsen/logrus"
 
@@ -16,9 +16,9 @@ import (
 	"github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	"go.etcd.io/etcd/v3/clientv3"
-	"go.etcd.io/etcd/v3/clientv3/namespace"
-	"go.etcd.io/etcd/v3/mvcc/mvccpb"
+	"go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/clientv3/namespace"
+	"go.etcd.io/etcd/mvcc/mvccpb"
 )
 
 const (
