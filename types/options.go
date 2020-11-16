@@ -190,3 +190,12 @@ const (
 	// TriFalse .
 	TriFalse
 )
+
+type CalculateCapacityOptions struct {
+	Podname  string
+	CPUQuota float64
+	CPUBind  bool
+	Memory   int64
+	Volumes  VolumeBindings
+	Storage  int64
+}

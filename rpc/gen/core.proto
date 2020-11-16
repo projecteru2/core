@@ -40,6 +40,7 @@ service CoreRPC {
     rpc CacheImage(CacheImageOptions) returns (stream CacheImageMessage) {};
     rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage) {};
 
+    rpc CalculateCapacity(CalculateCapacityOptions) returns (CapacityMessage);
     rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage) {};
     rpc ReplaceContainer(ReplaceOptions) returns (stream ReplaceContainerMessage) {};
     rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage) {};
@@ -119,7 +120,7 @@ message ConnectNetworkOptions{
 message DisconnectNetworkOptions{
     string network = 1;
     string target = 2;
-    bool force = 3;    
+    bool force = 3;
 }
 
 message Network {
@@ -379,6 +380,32 @@ message EntrypointOptions {
     HookOptions hook = 8;
     string restart_policy = 9;
     map<string, string> sysctls = 10;
+}
+
+message CalculateCapacityOptions {
+    string appname = 1;
+    string entryname = 2;
+    string podname = 3;
+    repeated string nodenames = 4;
+    double cpu_quota = 5;
+    bool cpu_bind = 6;
+    int64 memory = 7;
+    repeated string volumes = 8;
+    int64 storage = 9;
+}
+
+message CapacityMessage {
+    message NodeCapacity {
+        string name = 1;
+        int64 capacity = 2;
+        int64 exist = 3;
+        int64 capacity_cpumem = 4;
+        int64 capacity_volume = 5;
+        int64 capacity_storage = 6;
+    }
+    int64 total = 1;
+    map<string, NodeCapacity> node_capacities = 2;
+
 }
 
 message DeployOptions {

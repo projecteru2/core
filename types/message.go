@@ -118,3 +118,16 @@ type LogStreamMessage struct {
 	Error error
 	Data  []byte
 }
+
+type CapacityMessage struct {
+	NodeCapacities map[string]CapacityInfo
+}
+
+type CapacityInfo struct {
+	Nodename        string
+	Capacity        int
+	Exist           int
+	CapacityCPUMem  int
+	CapacityVolume  int
+	CapacityStorage int
+}
