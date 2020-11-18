@@ -191,6 +191,7 @@ const (
 	TriFalse
 )
 
+// CalculateCapacityOptions for CalculateCapacity API input
 type CalculateCapacityOptions struct {
 	Appname   string
 	Entryname string

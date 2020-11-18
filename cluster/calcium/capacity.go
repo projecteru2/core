@@ -9,6 +9,7 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
+// CalculateCapacity calculates capacity
 func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.CalculateCapacityOptions) (msg *types.CapacityMessage, err error) {
 	return msg, c.withNodesLocked(ctx, opts.Podname, opts.Nodenames, nil, true, func(nodes map[string]*types.Node) error {
 		msg, err = c.calculateCapacity(ctx, opts, nodes)
@@ -57,6 +58,9 @@ func (c *Calcium) calculateCapacity(ctx context.Context, opts *types.CalculateCa
 		} else {
 			nodesInfo, _, totalCPUMem, err = c.scheduler.SelectCPUNodes(nodesInfo, opts.CPUQuota, opts.Memory)
 		}
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
 		for _, nodeInfo := range nodesInfo {
 			msg.NodeCapacities[nodeInfo.Name].CapacityCPUMem = nodeInfo.Capacity
 		}
@@ -86,10 +90,7 @@ func (c *Calcium) calculateCapacity(ctx context.Context, opts *types.CalculateCa
 			return nil, errors.WithStack(err)
 		}
 		for _, nodeInfo := range nodesInfo {
-			msg.NodeCapacities[nodeInfo.Name].CapacityStorage = int(nodeInfo.StorageCap / int64(opts.Storage))
-		}
-		for _, capacity := range msg.NodeCapacities {
-			capacity.CapacityVolume = 0
+			msg.NodeCapacities[nodeInfo.Name].CapacityStorage = int(nodeInfo.StorageCap / opts.Storage)
 		}
 	}
 
