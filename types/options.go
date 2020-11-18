@@ -192,10 +192,13 @@ const (
 )
 
 type CalculateCapacityOptions struct {
-	Podname  string
-	CPUQuota float64
-	CPUBind  bool
-	Memory   int64
-	Volumes  VolumeBindings
-	Storage  int64
+	Appname   string
+	Entryname string
+	Podname   string
+	Nodenames []string
+	CPUQuota  float64
+	CPUBind   bool
+	Memory    int64
+	Volumes   VolumeBindings
+	Storage   int64
 }

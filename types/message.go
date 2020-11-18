@@ -120,7 +120,8 @@ type LogStreamMessage struct {
 }
 
 type CapacityMessage struct {
-	NodeCapacities map[string]CapacityInfo
+	Total          int
+	NodeCapacities map[string]*CapacityInfo
 }
 
 type CapacityInfo struct {
