@@ -73,6 +73,7 @@ type Cluster interface {
 	CacheImage(ctx context.Context, podname string, nodenames []string, images []string, step int) (chan *types.CacheImageMessage, error)
 	RemoveImage(ctx context.Context, podname string, nodenames []string, images []string, step int, prune bool) (chan *types.RemoveImageMessage, error)
 	// container methods
+	CalculateCapacity(context.Context, *types.CalculateCapacityOptions) (*types.CapacityMessage, error)
 	CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
 	ReplaceContainer(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceContainerMessage, error)
 	RemoveContainer(ctx context.Context, IDs []string, force bool, step int) (chan *types.RemoveContainerMessage, error)

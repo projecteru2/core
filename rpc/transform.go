@@ -518,3 +518,36 @@ func toCoreExecuteContainerOptions(b *pb.ExecuteContainerOptions) (opts *types.E
 		ReplCmd:     b.ReplCmd,
 	}, nil
 }
+
+func toCoreCalculateCapacityOptions(opts *pb.CalculateCapacityOptions) (*types.CalculateCapacityOptions, error) {
+	vbs, err := types.MakeVolumeBindings(opts.Volumes)
+	return &types.CalculateCapacityOptions{
+		Appname:   opts.Appname,
+		Entryname: opts.Entryname,
+		Podname:   opts.Podname,
+		Nodenames: opts.Nodenames,
+		CPUQuota:  opts.CpuQuota,
+		CPUBind:   opts.CpuBind,
+		Memory:    opts.Memory,
+		Volumes:   vbs,
+		Storage:   opts.Storage,
+	}, err
+}
+
+func toRPCCapacityMessage(msg *types.CapacityMessage) *pb.CapacityMessage {
+	caps := make(map[string]*pb.CapacityMessage_NodeCapacity)
+	for nodename, capacity := range msg.NodeCapacities {
+		caps[nodename] = &pb.CapacityMessage_NodeCapacity{
+			Name:            nodename,
+			Capacity:        int64(capacity.Capacity),
+			Exist:           int64(capacity.Exist),
+			CapacityCpumem:  int64(capacity.CapacityCPUMem),
+			CapacityVolume:  int64(capacity.CapacityVolume),
+			CapacityStorage: int64(capacity.CapacityStorage),
+		}
+	}
+	return &pb.CapacityMessage{
+		Total:          int64(msg.Total),
+		NodeCapacities: caps,
+	}
+}
