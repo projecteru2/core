@@ -57,6 +57,8 @@ type Cluster interface {
 	SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error)
 	// node resource
 	NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error)
+	// calculate capacity
+	CalculateCapacity(context.Context, *types.DeployOptions) (*types.CapacityMessage, error)
 	// meta containers
 	GetContainer(ctx context.Context, ID string) (*types.Container, error)
 	GetContainers(ctx context.Context, IDs []string) ([]*types.Container, error)

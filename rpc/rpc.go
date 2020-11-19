@@ -197,6 +197,18 @@ func (v *Vibranium) GetNodeResource(ctx context.Context, opts *pb.GetNodeResourc
 	return toRPCNodeResource(nr), nil
 }
 
+// CalculateCapacity calculates capacity for each node
+func (v *Vibranium) CalculateCapacity(ctx context.Context, opts *pb.DeployOptions) (*pb.CapacityMessage, error) {
+	v.taskAdd("CalculateCapacity", true)
+	defer v.taskDone("CalculateCapacity", true)
+	deployOpts, err := toCoreDeployOptions(opts)
+	if err != nil {
+		return nil, err
+	}
+	m, err := v.cluster.CalculateCapacity(ctx, deployOpts)
+	return toRPCCapacityMessage(m), err
+}
+
 // GetContainer get a container
 // More information will be shown
 func (v *Vibranium) GetContainer(ctx context.Context, id *pb.ContainerID) (*pb.Container, error) {
