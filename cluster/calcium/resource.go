@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/projecteru2/core/resources"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
@@ -141,28 +140,14 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 }
 
 func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) ([]resourcetypes.ResourcePlans, map[string]int, error) {
-	if len(nodeMap) == 0 {
-		return nil, nil, errors.WithStack(types.ErrInsufficientNodes)
-	}
-
-	resourceRequests, err := resources.MakeRequests(opts.ResourceOpts)
+	scheduleType, total, plans, strategyInfos, err := c.doCalculateCapacity(nodeMap, opts)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-
-	// select available nodes
-	scheduleTypes, total, plans, err := resources.SelectNodesByResourceRequests(resourceRequests, nodeMap)
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
-	}
-	log.Debugf("[Calcium.doAllocResource] plans: %+v, total: %v, type: %+v", plans, total, scheduleTypes)
-
-	// deploy strategy
-	strategyInfos := strategy.NewInfos(resourceRequests, nodeMap, plans)
 	if err := c.store.MakeDeployStatus(ctx, opts, strategyInfos); err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	deployMap, err := strategy.Deploy(opts, strategyInfos, total, scheduleTypes)
+	deployMap, err := strategy.Deploy(opts, strategyInfos, total, scheduleType)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}

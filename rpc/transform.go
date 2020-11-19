@@ -530,9 +530,9 @@ func toCoreExecuteContainerOptions(b *pb.ExecuteContainerOptions) (opts *types.E
 }
 
 func toRPCCapacityMessage(msg *types.CapacityMessage) *pb.CapacityMessage {
-	caps := map[string]int32{}
+	caps := map[string]int64{}
 	for nodename, capacity := range msg.NodeCapacities {
-		caps[nodename] = int32(capacity)
+		caps[nodename] = int64(capacity)
 	}
 	return &pb.CapacityMessage{
 		Total:          int64(msg.Total),

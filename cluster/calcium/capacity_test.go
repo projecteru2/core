@@ -65,4 +65,8 @@ func TestCalculateCapacity(t *testing.T) {
 	r, err := c.CalculateCapacity(ctx, opts)
 	assert.NoError(t, err)
 	assert.Equal(t, r.Total, 5)
+	opts.DeployStrategy = strategy.Dummy
+	r, err = c.CalculateCapacity(ctx, opts)
+	assert.NoError(t, err)
+	assert.Equal(t, r.Total, 5)
 }

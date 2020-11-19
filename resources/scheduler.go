@@ -16,7 +16,7 @@ func SelectNodesByResourceRequests(resourceRequests resourcetypes.ResourceReques
 	plans []resourcetypes.ResourcePlans,
 	err error,
 ) {
-	total = math.MaxInt16
+	total = math.MaxInt64
 	nodesInfo := []types.NodeInfo{}
 	for _, node := range nodeMap {
 		nodeInfo := types.NodeInfo{
@@ -30,7 +30,7 @@ func SelectNodesByResourceRequests(resourceRequests resourcetypes.ResourceReques
 		}
 		nodesInfo = append(nodesInfo, nodeInfo)
 	}
-	log.Debugf("[SelectNode] nodesInfo: %+v", nodesInfo)
+	log.Debugf("[SelectNodesByResourceRequests] nodesInfo: %+v", nodesInfo)
 	for _, resourceRequest := range resourceRequests {
 		plan, subTotal, err := resourceRequest.MakeScheduler()(nodesInfo)
 		if err != nil {

@@ -405,6 +405,7 @@ message DeployOptions {
         FILL = 1;
         EACH = 2;
         GLOBAL = 3;
+        DUMMY = 99;
     }
     string name = 1;
     EntrypointOptions entrypoint = 2;
@@ -591,5 +592,5 @@ message ExecuteContainerOptions {
 
 message CapacityMessage {
     int64 total = 1;
-    map<string, int32> node_capacities = 2;
+    map<string, int64> node_capacities = 2;
 }

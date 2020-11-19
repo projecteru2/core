@@ -194,14 +194,14 @@ func getNodeMapFromNodesInfo(nodesInfo []types.NodeInfo) map[string]*types.Node 
 
 func getInfosFromNodesInfo(nodesInfo []types.NodeInfo, planMap []resourcetypes.ResourcePlans) (strategyInfos []strategy.Info) {
 	for _, nodeInfo := range nodesInfo {
-		capacity := math.MaxInt32
+		capacity := math.MaxInt64
 		for _, v := range planMap {
 			capacity = utils.Min(capacity, v.Capacity()[nodeInfo.Name])
 		}
 		if nodeInfo.Capacity > 0 {
 			capacity = utils.Min(capacity, nodeInfo.Capacity)
 		}
-		if capacity == math.MaxInt32 {
+		if capacity == math.MaxInt64 {
 			capacity = 0
 		}
 		if capacity == 0 {
@@ -999,7 +999,7 @@ func TestSelectStorageNodesMultipleDeployedPerNode(t *testing.T) {
 	assert.Zero(t, r)
 	assert.Error(t, err)
 	_, r, err = k.SelectStorageNodes(emptyNode, 0)
-	assert.Equal(t, r, math.MaxInt32)
+	assert.Equal(t, r, math.MaxInt64)
 	assert.NoError(t, err)
 	nodesInfo := generateNodes(2, 2, 4*int64(units.GiB), 8*int64(units.GiB), 10)
 	nodesInfo, total, err := k.SelectMemoryNodes(nodesInfo, 1.0, int64(units.GiB))

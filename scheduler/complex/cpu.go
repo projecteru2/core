@@ -87,7 +87,7 @@ func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShar
 func calculateCPUPlan(CPUMap types.CPUMap, MemCap int64, cpu float64, memory int64, maxShareCore, coreShare int) (int, []types.CPUMap) {
 	host := newHost(CPUMap, coreShare)
 	plan := host.distributeOneRation(cpu, maxShareCore)
-	memLimit := math.MaxInt16
+	memLimit := math.MaxInt64
 	if memory != 0 {
 		memLimit = int(MemCap / memory)
 	}
