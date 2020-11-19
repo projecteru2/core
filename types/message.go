@@ -109,6 +109,12 @@ type LogStreamMessage struct {
 	Data  []byte
 }
 
+// CapacityMessage for CalculateCapacity API output
+type CapacityMessage struct {
+	Total          int
+	NodeCapacities map[string]int
+}
+
 type errorDetail struct {
 	Code    int    `json:"code,omitempty"`
 	Message string `json:"message,omitempty"`

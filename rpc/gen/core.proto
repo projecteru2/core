@@ -25,6 +25,8 @@ service CoreRPC {
 
     rpc GetNodeResource(GetNodeResourceOptions) returns (NodeResource) {};
 
+    rpc CalculateCapacity(DeployOptions) returns (CapacityMessage);
+
     rpc GetContainer(ContainerID) returns (Container) {};
     rpc GetContainers(ContainerIDs) returns (Containers) {};
     rpc ListContainers(ListContainersOptions) returns (stream Container) {};
@@ -585,4 +587,9 @@ message ExecuteContainerOptions {
     string workdir = 4;
     bool open_stdin = 5;
     bytes repl_cmd = 6;
+}
+
+message CapacityMessage {
+    int64 total = 1;
+    map<string, int32> node_capacities = 2;
 }
