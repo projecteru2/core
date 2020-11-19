@@ -190,3 +190,16 @@ const (
 	// TriFalse .
 	TriFalse
 )
+
+// CalculateCapacityOptions for CalculateCapacity API input
+type CalculateCapacityOptions struct {
+	Appname   string
+	Entryname string
+	Podname   string
+	Nodenames []string
+	CPUQuota  float64
+	CPUBind   bool
+	Memory    int64
+	Volumes   VolumeBindings
+	Storage   int64
+}
