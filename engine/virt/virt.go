@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -275,9 +276,13 @@ func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, opts
 	return err
 }
 
-// VirtualizationCopyFrom copies from another.
+// VirtualizationCopyFrom copies file content from the container.
 func (v *Virt) VirtualizationCopyFrom(ctx context.Context, ID, path string) (io.ReadCloser, string, error) {
-	return nil, "", fmt.Errorf("VirtualizationCopyFrom does not implement")
+	rd, err := v.client.Cat(ctx, ID, path)
+	if err != nil {
+		return nil, "", err
+	}
+	return ioutil.NopCloser(rd), filepath.Base(path), nil
 }
 
 // VirtualizationExecute executes commands in running virtual unit
