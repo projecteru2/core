@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestCreateContainer(t *testing.T) {
+func TestCreateWorkload(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	opts := &types.DeployOptions{}
@@ -29,19 +29,19 @@ func TestCreateContainer(t *testing.T) {
 
 	// failed by GetPod
 	store.On("GetPod", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err := c.CreateContainer(ctx, opts)
+	_, err := c.CreateWorkload(ctx, opts)
 	assert.Error(t, err)
 	store.On("GetPod", mock.Anything, mock.Anything).Return(&types.Pod{Name: "test"}, nil)
 	// failed by count
 	opts.Count = 0
-	_, err = c.CreateContainer(ctx, opts)
+	_, err = c.CreateWorkload(ctx, opts)
 	assert.Error(t, err)
 	opts.Count = 1
 
 	// failed by memory check
 	opts.ResourceOpts = types.ResourceOptions{MemoryLimit: -1}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
-	ch, err := c.CreateContainer(ctx, opts)
+	ch, err := c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	for m := range ch {
 		assert.Error(t, m.Error)
@@ -49,14 +49,14 @@ func TestCreateContainer(t *testing.T) {
 
 	// failed by CPUQuota
 	opts.ResourceOpts = types.ResourceOptions{CPUQuotaLimit: -1, MemoryLimit: 1}
-	ch, err = c.CreateContainer(ctx, opts)
+	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	for m := range ch {
 		assert.Error(t, m.Error)
 	}
 }
 
-func TestCreateContainerTxn(t *testing.T) {
+func TestCreateWorkloadTxn(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	opts := &types.DeployOptions{
@@ -123,7 +123,7 @@ func TestCreateContainerTxn(t *testing.T) {
 	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(
 		errors.Wrap(context.DeadlineExceeded, "MakeDeployStatus"),
 	).Once()
-	ch, err := c.CreateContainer(ctx, opts)
+	ch, err := c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	cnt := 0
 	for m := range ch {
@@ -148,7 +148,7 @@ func TestCreateContainerTxn(t *testing.T) {
 		strategy.Plans[strategy.Auto] = old
 	}()
 	store.On("UpdateNodes", mock.Anything, mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "UpdateNodes1")).Once()
-	ch, err = c.CreateContainer(ctx, opts)
+	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	cnt = 0
 	for m := range ch {
@@ -162,7 +162,7 @@ func TestCreateContainerTxn(t *testing.T) {
 	node1.CPUUsed = 0
 	node2.CPUUsed = 0
 
-	// doCreateContainerOnNode fails: doGetAndPrepareNode
+	// doCreateWorkloadOnNode fails: doGetAndPrepareNode
 	store.On("UpdateNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
 	store.On("GetNode",
@@ -191,7 +191,7 @@ func TestCreateContainerTxn(t *testing.T) {
 	engine.On("ImagePull", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "ImagePull")).Twice()
 	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	ch, err = c.CreateContainer(ctx, opts)
+	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	cnt = 0
 	for m := range ch {
@@ -209,8 +209,8 @@ func TestCreateContainerTxn(t *testing.T) {
 	engine.On("ImageRemoteDigest", mock.Anything, mock.Anything).Return("", nil)
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "VirtualizationCreate")).Twice()
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	store.On("RemoveContainer", mock.Anything, mock.Anything).Return(nil)
-	ch, err = c.CreateContainer(ctx, opts)
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
+	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	cnt = 0
 	for m := range ch {
@@ -223,31 +223,31 @@ func TestCreateContainerTxn(t *testing.T) {
 	assert.EqualValues(t, 0, node1.CPUUsed)
 	assert.EqualValues(t, 0, node2.CPUUsed)
 
-	// doCreateAndStartContainer fails: AddContainer
+	// doCreateAndStartWorkload fails: AddWorkload
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "c1"}, nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
-	store.On("AddContainer", mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "AddContainer")).Twice()
-	ch, err = c.CreateContainer(ctx, opts)
+	store.On("AddWorkload", mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "AddWorkload")).Twice()
+	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	cnt = 0
 	for m := range ch {
 		cnt++
 		assert.Error(t, m.Error)
 		assert.True(t, errors.Is(m.Error, context.DeadlineExceeded))
-		assert.Error(t, m.Error, "AddContainer")
+		assert.Error(t, m.Error, "AddWorkload")
 	}
 	assert.EqualValues(t, 2, cnt)
 	assert.EqualValues(t, 0, node1.CPUUsed)
 	assert.EqualValues(t, 0, node2.CPUUsed)
 
-	// doCreateAndStartContainer fails: first time AddContainer failed
+	// doCreateAndStartWorkload fails: first time AddWorkload failed
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "c1"}, nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
-	store.On("AddContainer", mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "AddContainer2")).Once()
-	store.On("AddContainer", mock.Anything, mock.Anything).Return(nil).Once()
-	ch, err = c.CreateContainer(ctx, opts)
+	store.On("AddWorkload", mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "AddWorkload2")).Once()
+	store.On("AddWorkload", mock.Anything, mock.Anything).Return(nil).Once()
+	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	cnt = 0
 	errCnt := 0
@@ -256,7 +256,7 @@ func TestCreateContainerTxn(t *testing.T) {
 		if m.Error != nil {
 			assert.Error(t, m.Error)
 			assert.True(t, errors.Is(m.Error, context.DeadlineExceeded))
-			assert.Error(t, m.Error, "AddContainer2")
+			assert.Error(t, m.Error, "AddWorkload2")
 			errCnt++
 		}
 	}

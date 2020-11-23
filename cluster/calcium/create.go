@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/projecteru2/core/cluster"
@@ -17,10 +18,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// CreateContainer use options to create containers
-func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+// CreateWorkload use options to create workloads
+func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
 	opts.ProcessIdent = utils.RandomString(16)
-	log.Infof("[CreateContainer %s] Creating container with options:", opts.ProcessIdent)
+	log.Infof("[CreateWorkload %s] Creating workload with options:", opts.ProcessIdent)
 	litter.Dump(opts)
 	// Count 要大于0
 	if opts.Count <= 0 {
@@ -32,8 +33,8 @@ func (c *Calcium) CreateContainer(ctx context.Context, opts *types.DeployOptions
 }
 
 // transaction: resource metadata consistency
-func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
-	ch := make(chan *types.CreateContainerMessage)
+func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
+	ch := make(chan *types.CreateWorkloadMessage)
 	// RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
 	// 因此需要在这里加个全局锁，直到部署完毕才释放
 	// 通过 Processing 状态跟踪达成 18 Oct, 2018
@@ -64,7 +65,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 				return c.withNodesLocked(ctx, opts.Podname, opts.Nodenames, opts.NodeLabels, false, func(nodeMap map[string]*types.Node) (err error) {
 					defer func() {
 						if err != nil {
-							ch <- &types.CreateContainerMessage{Error: err}
+							ch <- &types.CreateWorkloadMessage{Error: err}
 						}
 					}()
 
@@ -88,7 +89,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 				})
 			},
 
-			// then: deploy containers
+			// then: deploy workloads
 			func(ctx context.Context) error {
 				rollbackMap, err = c.doDeployWorkloads(ctx, ch, opts, plans, deployMap)
 				return errors.WithStack(err)
@@ -118,7 +119,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 	return ch, err
 }
 
-func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateContainerMessage, opts *types.DeployOptions, plans []resourcetypes.ResourcePlans, deployMap map[string]int) (_ map[string][]int, err error) {
+func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateWorkloadMessage, opts *types.DeployOptions, plans []resourcetypes.ResourcePlans, deployMap map[string]int) (_ map[string][]int, err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(deployMap))
 
@@ -140,18 +141,18 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateCo
 	return rollbackMap, errors.WithStack(err)
 }
 
-// deploy scheduled containers on one node
-func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.CreateContainerMessage, nodename string, opts *types.DeployOptions, deploy int, plans []resourcetypes.ResourcePlans, seq int) (indices []int, err error) {
+// deploy scheduled workloads on one node
+func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.CreateWorkloadMessage, nodename string, opts *types.DeployOptions, deploy int, plans []resourcetypes.ResourcePlans, seq int) (indices []int, err error) {
 	node, err := c.doGetAndPrepareNode(ctx, nodename, opts.Image)
 	if err != nil {
 		for i := 0; i < deploy; i++ {
-			ch <- &types.CreateContainerMessage{Error: err}
+			ch <- &types.CreateWorkloadMessage{Error: err}
 		}
 		return utils.Range(deploy), errors.WithStack(err)
 	}
 
 	for idx := 0; idx < deploy; idx++ {
-		createMsg := &types.CreateContainerMessage{
+		createMsg := &types.CreateWorkloadMessage{
 			Podname:  opts.Podname,
 			Nodename: nodename,
 			Publish:  map[string][]string{},
@@ -196,16 +197,16 @@ func (c *Calcium) doGetAndPrepareNode(ctx context.Context, nodename, image strin
 	return node, errors.WithStack(pullImage(ctx, node, image))
 }
 
-// transaction: container metadata consistency
+// transaction: workload metadata consistency
 func (c *Calcium) doDeployOneWorkload(
 	ctx context.Context,
 	node *types.Node,
 	opts *types.DeployOptions,
-	msg *types.CreateContainerMessage,
+	msg *types.CreateWorkloadMessage,
 	no, processingCount int,
 ) (err error) {
-	config := c.doMakeContainerOptions(no, msg, opts, node)
-	container := &types.Container{
+	config := c.doMakeWorkloadOptions(no, msg, opts, node)
+	workload := &types.Workload{
 		ResourceMeta: types.ResourceMeta{
 			CPU:               msg.CPU,
 			CPUQuotaRequest:   msg.CPUQuotaRequest,
@@ -229,64 +230,65 @@ func (c *Calcium) doDeployOneWorkload(
 		Image:      opts.Image,
 		Env:        opts.Env,
 		User:       opts.User,
+		CreateTime: time.Now().Unix(),
 	}
 	return utils.Txn(
 		ctx,
-		// create container
+		// create workload
 		func(ctx context.Context) error {
 			created, err := node.Engine.VirtualizationCreate(ctx, config)
 			if err != nil {
 				return errors.WithStack(err)
 			}
-			container.ID = created.ID
+			workload.ID = created.ID
 			return nil
 		},
 
 		func(ctx context.Context) (err error) {
-			// Copy data to container
+			// Copy data to workload
 			if len(opts.Data) > 0 {
 				for dst, readerManager := range opts.Data {
 					reader, err := readerManager.GetReader()
 					if err != nil {
 						return errors.WithStack(err)
 					}
-					if err = c.doSendFileToContainer(ctx, node.Engine, container.ID, dst, reader, true, true); err != nil {
+					if err = c.doSendFileToWorkload(ctx, node.Engine, workload.ID, dst, reader, true, true); err != nil {
 						return errors.WithStack(err)
 					}
 				}
 			}
 
 			// deal with hook
-			if len(opts.AfterCreate) > 0 && container.Hook != nil {
-				container.Hook = &types.Hook{
-					AfterStart: append(opts.AfterCreate, container.Hook.AfterStart...),
-					Force:      container.Hook.Force,
+			if len(opts.AfterCreate) > 0 && workload.Hook != nil {
+				workload.Hook = &types.Hook{
+					AfterStart: append(opts.AfterCreate, workload.Hook.AfterStart...),
+					Force:      workload.Hook.Force,
 				}
 			}
 
 			// start first
-			msg.Hook, err = c.doStartContainer(ctx, container, opts.IgnoreHook)
+			msg.Hook, err = c.doStartWorkload(ctx, workload, opts.IgnoreHook)
 			if err != nil {
 				return errors.WithStack(err)
 			}
 
 			// inspect real meta
-			var containerInfo *enginetypes.VirtualizationInfo
-			containerInfo, err = container.Inspect(ctx) // 补充静态元数据
+			var workloadInfo *enginetypes.VirtualizationInfo
+			workloadInfo, err = workload.Inspect(ctx) // 补充静态元数据
 			if err != nil {
 				return errors.WithStack(err)
 			}
 
 			// update meta
-			if containerInfo.Networks != nil {
-				msg.Publish = utils.MakePublishInfo(containerInfo.Networks, opts.Entrypoint.Publish)
+			if workloadInfo.Networks != nil {
+				msg.Publish = utils.MakePublishInfo(workloadInfo.Networks, opts.Entrypoint.Publish)
 			}
 			// reset users
-			if containerInfo.User != container.User {
-				container.User = containerInfo.User
+			if workloadInfo.User != workload.User {
+				workload.User = workloadInfo.User
 			}
-			// reset container.hook
-			container.Hook = opts.Entrypoint.Hook
+			// reset workload.hook
+			workload.Hook = opts.Entrypoint.Hook
 
 			// update processing
 			if processingCount >= 0 {
@@ -295,22 +297,22 @@ func (c *Calcium) doDeployOneWorkload(
 				}
 			}
 
-			if err := c.store.AddContainer(ctx, container); err != nil {
+			if err := c.store.AddWorkload(ctx, workload); err != nil {
 				return errors.WithStack(err)
 			}
-			msg.ContainerID = container.ID
+			msg.WorkloadID = workload.ID
 			return nil
 		},
 
-		// remove container
+		// remove workload
 		func(ctx context.Context, _ bool) error {
-			return errors.WithStack(c.doRemoveContainer(ctx, container, true))
+			return errors.WithStack(c.doRemoveWorkload(ctx, workload, true))
 		},
 		c.config.GlobalTimeout,
 	)
 }
 
-func (c *Calcium) doMakeContainerOptions(no int, msg *types.CreateContainerMessage, opts *types.DeployOptions, node *types.Node) *enginetypes.VirtualizationCreateOptions {
+func (c *Calcium) doMakeWorkloadOptions(no int, msg *types.CreateWorkloadMessage, opts *types.DeployOptions, node *types.Node) *enginetypes.VirtualizationCreateOptions {
 	config := &enginetypes.VirtualizationCreateOptions{}
 	// general
 	config.CPU = msg.CPU
@@ -344,8 +346,8 @@ func (c *Calcium) doMakeContainerOptions(no int, msg *types.CreateContainerMessa
 	}
 	// name
 	suffix := utils.RandomString(6)
-	config.Name = utils.MakeContainerName(opts.Name, opts.Entrypoint.Name, suffix)
-	msg.ContainerName = config.Name
+	config.Name = utils.MakeWorkloadName(opts.Name, opts.Entrypoint.Name, suffix)
+	msg.WorkloadName = config.Name
 	// command and user
 	// extra args is dynamically
 	slices := utils.MakeCommandLineArgs(fmt.Sprintf("%s %s", entry.Command, opts.ExtraArgs))
@@ -354,7 +356,7 @@ func (c *Calcium) doMakeContainerOptions(no int, msg *types.CreateContainerMessa
 	env := append(opts.Env, fmt.Sprintf("APP_NAME=%s", opts.Name))
 	env = append(env, fmt.Sprintf("ERU_POD=%s", opts.Podname))
 	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", node.Name))
-	env = append(env, fmt.Sprintf("ERU_CONTAINER_NO=%d", no))
+	env = append(env, fmt.Sprintf("ERU_WORKLOAD_SEQ=%d", no))
 	env = append(env, fmt.Sprintf("ERU_MEMORY=%d", msg.MemoryLimit))
 	env = append(env, fmt.Sprintf("ERU_STORAGE=%d", msg.StorageLimit))
 	config.Env = env

@@ -9,9 +9,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// ExecuteContainer executes commands in running containers
-func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions, inCh <-chan []byte) chan *types.AttachContainerMessage {
-	ch := make(chan *types.AttachContainerMessage)
+// ExecuteWorkload executes commands in running workloads
+func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorkloadOptions, inCh <-chan []byte) chan *types.AttachWorkloadMessage {
+	ch := make(chan *types.AttachWorkloadMessage)
 
 	go func() {
 		defer close(ch)
@@ -19,12 +19,12 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 		responses := []string{}
 		defer func() {
 			for _, resp := range responses {
-				msg := &types.AttachContainerMessage{ContainerID: opts.ContainerID, Data: []byte(resp)}
+				msg := &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: []byte(resp)}
 				ch <- msg
 			}
 		}()
 
-		container, err := c.GetContainer(ctx, opts.ContainerID)
+		workload, err := c.GetWorkload(ctx, opts.WorkloadID)
 		if err != nil {
 			responses = append(responses, err.Error())
 			return
@@ -41,32 +41,32 @@ func (c *Calcium) ExecuteContainer(ctx context.Context, opts *types.ExecuteConta
 			Detach:       false,
 		}
 
-		execID, outStream, inStream, err := container.Engine.Execute(ctx, opts.ContainerID, execConfig)
+		execID, outStream, inStream, err := workload.Engine.Execute(ctx, opts.WorkloadID, execConfig)
 		if err != nil {
-			log.Errorf("[ExecuteContainer] Failed to attach execID: %v", err)
+			log.Errorf("[ExecuteWorkload] Failed to attach execID: %v", err)
 			return
 		}
 
 		if opts.OpenStdin {
 			processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
-				return container.Engine.ExecResize(ctx, execID, height, width)
+				return workload.Engine.ExecResize(ctx, execID, height, width)
 			})
 		}
 
 		for data := range processVirtualizationOutStream(ctx, outStream) {
-			ch <- &types.AttachContainerMessage{ContainerID: opts.ContainerID, Data: data}
+			ch <- &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: data}
 		}
 
-		execCode, err := container.Engine.ExecExitCode(ctx, execID)
+		execCode, err := workload.Engine.ExecExitCode(ctx, execID)
 		if err != nil {
-			log.Errorf("[ExecuteContainer] Failed to get exitcode: %v", err)
+			log.Errorf("[ExecuteWorkload] Failed to get exitcode: %v", err)
 			return
 		}
 
 		exitData := []byte(exitDataPrefix + strconv.Itoa(execCode))
-		ch <- &types.AttachContainerMessage{ContainerID: opts.ContainerID, Data: exitData}
-		log.Infof("[ExecuteContainer] Execuate in container %s complete", opts.ContainerID)
-		log.Infof("[ExecuteContainer] %v", opts.Commands)
+		ch <- &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: exitData}
+		log.Infof("[ExecuteWorkload] Execuate in workload %s complete", opts.WorkloadID)
+		log.Infof("[ExecuteWorkload] %v", opts.Commands)
 	}()
 
 	return ch

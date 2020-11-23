@@ -15,13 +15,13 @@ type Store struct {
 	mock.Mock
 }
 
-// AddContainer provides a mock function with given fields: ctx, container
-func (_m *Store) AddContainer(ctx context.Context, container *types.Container) error {
-	ret := _m.Called(ctx, container)
+// AddWorkload provides a mock function with given fields: ctx, workload
+func (_m *Store) AddWorkload(ctx context.Context, workload *types.Workload) error {
+	ret := _m.Called(ctx, workload)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.Container) error); ok {
-		r0 = rf(ctx, container)
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Workload) error); ok {
+		r0 = rf(ctx, workload)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -75,16 +75,16 @@ func (_m *Store) AddPod(ctx context.Context, name string, desc string) (*types.P
 	return r0, r1
 }
 
-// ContainerStatusStream provides a mock function with given fields: ctx, appname, entrypoint, nodename, labels
-func (_m *Store) ContainerStatusStream(ctx context.Context, appname string, entrypoint string, nodename string, labels map[string]string) chan *types.ContainerStatus {
+// WorkloadStatusStream provides a mock function with given fields: ctx, appname, entrypoint, nodename, labels
+func (_m *Store) WorkloadStatusStream(ctx context.Context, appname string, entrypoint string, nodename string, labels map[string]string) chan *types.WorkloadStatus {
 	ret := _m.Called(ctx, appname, entrypoint, nodename, labels)
 
-	var r0 chan *types.ContainerStatus
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, map[string]string) chan *types.ContainerStatus); ok {
+	var r0 chan *types.WorkloadStatus
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, map[string]string) chan *types.WorkloadStatus); ok {
 		r0 = rf(ctx, appname, entrypoint, nodename, labels)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(chan *types.ContainerStatus)
+			r0 = ret.Get(0).(chan *types.WorkloadStatus)
 		}
 	}
 
@@ -151,16 +151,16 @@ func (_m *Store) GetAllPods(ctx context.Context) ([]*types.Pod, error) {
 	return r0, r1
 }
 
-// GetContainer provides a mock function with given fields: ctx, ID
-func (_m *Store) GetContainer(ctx context.Context, ID string) (*types.Container, error) {
+// GetWorkload provides a mock function with given fields: ctx, ID
+func (_m *Store) GetWorkload(ctx context.Context, ID string) (*types.Workload, error) {
 	ret := _m.Called(ctx, ID)
 
-	var r0 *types.Container
-	if rf, ok := ret.Get(0).(func(context.Context, string) *types.Container); ok {
+	var r0 *types.Workload
+	if rf, ok := ret.Get(0).(func(context.Context, string) *types.Workload); ok {
 		r0 = rf(ctx, ID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Container)
+			r0 = ret.Get(0).(*types.Workload)
 		}
 	}
 
@@ -174,8 +174,8 @@ func (_m *Store) GetContainer(ctx context.Context, ID string) (*types.Container,
 	return r0, r1
 }
 
-// GetContainerStatus provides a mock function with given fields: ctx, ID
-func (_m *Store) GetContainerStatus(ctx context.Context, ID string) (*types.StatusMeta, error) {
+// GetWorkloadStatus provides a mock function with given fields: ctx, ID
+func (_m *Store) GetWorkloadStatus(ctx context.Context, ID string) (*types.StatusMeta, error) {
 	ret := _m.Called(ctx, ID)
 
 	var r0 *types.StatusMeta
@@ -197,16 +197,16 @@ func (_m *Store) GetContainerStatus(ctx context.Context, ID string) (*types.Stat
 	return r0, r1
 }
 
-// GetContainers provides a mock function with given fields: ctx, IDs
-func (_m *Store) GetContainers(ctx context.Context, IDs []string) ([]*types.Container, error) {
+// GetWorkloads provides a mock function with given fields: ctx, IDs
+func (_m *Store) GetWorkloads(ctx context.Context, IDs []string) ([]*types.Workload, error) {
 	ret := _m.Called(ctx, IDs)
 
-	var r0 []*types.Container
-	if rf, ok := ret.Get(0).(func(context.Context, []string) []*types.Container); ok {
+	var r0 []*types.Workload
+	if rf, ok := ret.Get(0).(func(context.Context, []string) []*types.Workload); ok {
 		r0 = rf(ctx, IDs)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*types.Container)
+			r0 = ret.Get(0).([]*types.Workload)
 		}
 	}
 
@@ -312,16 +312,16 @@ func (_m *Store) GetPod(ctx context.Context, podname string) (*types.Pod, error)
 	return r0, r1
 }
 
-// ListContainers provides a mock function with given fields: ctx, appname, entrypoint, nodename, limit, labels
-func (_m *Store) ListContainers(ctx context.Context, appname string, entrypoint string, nodename string, limit int64, labels map[string]string) ([]*types.Container, error) {
+// ListWorkloads provides a mock function with given fields: ctx, appname, entrypoint, nodename, limit, labels
+func (_m *Store) ListWorkloads(ctx context.Context, appname string, entrypoint string, nodename string, limit int64, labels map[string]string) ([]*types.Workload, error) {
 	ret := _m.Called(ctx, appname, entrypoint, nodename, limit, labels)
 
-	var r0 []*types.Container
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, int64, map[string]string) []*types.Container); ok {
+	var r0 []*types.Workload
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, int64, map[string]string) []*types.Workload); ok {
 		r0 = rf(ctx, appname, entrypoint, nodename, limit, labels)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*types.Container)
+			r0 = ret.Get(0).([]*types.Workload)
 		}
 	}
 
@@ -335,16 +335,16 @@ func (_m *Store) ListContainers(ctx context.Context, appname string, entrypoint 
 	return r0, r1
 }
 
-// ListNodeContainers provides a mock function with given fields: ctx, nodename, labels
-func (_m *Store) ListNodeContainers(ctx context.Context, nodename string, labels map[string]string) ([]*types.Container, error) {
+// ListNodeWorkloads provides a mock function with given fields: ctx, nodename, labels
+func (_m *Store) ListNodeWorkloads(ctx context.Context, nodename string, labels map[string]string) ([]*types.Workload, error) {
 	ret := _m.Called(ctx, nodename, labels)
 
-	var r0 []*types.Container
-	if rf, ok := ret.Get(0).(func(context.Context, string, map[string]string) []*types.Container); ok {
+	var r0 []*types.Workload
+	if rf, ok := ret.Get(0).(func(context.Context, string, map[string]string) []*types.Workload); ok {
 		r0 = rf(ctx, nodename, labels)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*types.Container)
+			r0 = ret.Get(0).([]*types.Workload)
 		}
 	}
 
@@ -386,13 +386,13 @@ func (_m *Store) RegisterService(_a0 context.Context, _a1 string, _a2 time.Durat
 	return r0
 }
 
-// RemoveContainer provides a mock function with given fields: ctx, container
-func (_m *Store) RemoveContainer(ctx context.Context, container *types.Container) error {
-	ret := _m.Called(ctx, container)
+// RemoveWorkload provides a mock function with given fields: ctx, workload
+func (_m *Store) RemoveWorkload(ctx context.Context, workload *types.Workload) error {
+	ret := _m.Called(ctx, workload)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.Container) error); ok {
-		r0 = rf(ctx, container)
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Workload) error); ok {
+		r0 = rf(ctx, workload)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -465,13 +465,13 @@ func (_m *Store) ServiceStatusStream(_a0 context.Context) (chan []string, error)
 	return r0, r1
 }
 
-// SetContainerStatus provides a mock function with given fields: ctx, container, ttl
-func (_m *Store) SetContainerStatus(ctx context.Context, container *types.Container, ttl int64) error {
-	ret := _m.Called(ctx, container, ttl)
+// SetWorkloadStatus provides a mock function with given fields: ctx, workload, ttl
+func (_m *Store) SetWorkloadStatus(ctx context.Context, workload *types.Workload, ttl int64) error {
+	ret := _m.Called(ctx, workload, ttl)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.Container, int64) error); ok {
-		r0 = rf(ctx, container, ttl)
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Workload, int64) error); ok {
+		r0 = rf(ctx, workload, ttl)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -498,13 +498,13 @@ func (_m *Store) UnregisterService(_a0 context.Context, _a1 string) error {
 	return r0
 }
 
-// UpdateContainer provides a mock function with given fields: ctx, container
-func (_m *Store) UpdateContainer(ctx context.Context, container *types.Container) error {
-	ret := _m.Called(ctx, container)
+// UpdateWorkload provides a mock function with given fields: ctx, workload
+func (_m *Store) UpdateWorkload(ctx context.Context, workload *types.Workload) error {
+	ret := _m.Called(ctx, workload)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.Container) error); ok {
-		r0 = rf(ctx, container)
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Workload) error); ok {
+		r0 = rf(ctx, workload)
 	} else {
 		r0 = ret.Error(0)
 	}

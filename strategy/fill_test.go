@@ -63,7 +63,7 @@ func TestFillPlan(t *testing.T) {
 	nodes = deployedNodes()
 	_, err = FillPlan(nodes, n, 0, 0, types.ResourceAll)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "each node has enough containers")
+	assert.Contains(t, err.Error(), "each node has enough workloads")
 
 	// LimitNode
 	n = 10

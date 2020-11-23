@@ -64,8 +64,8 @@ func Benchmark_CommunismPlan(b *testing.B) {
 	var maxDeployed = 1024
 	var volTotal = maxDeployed * count
 	var need = volTotal - 1
-	// Simulate `count` nodes with difference deploy status, each one can deploy `maxDeployed` containers
-	// and then we deploy `need` containers
+	// Simulate `count` nodes with difference deploy status, each one can deploy `maxDeployed` workloads
+	// and then we deploy `need` workloads
 	for i := 0; i < b.N; i++ {
 		// 24 core, 128G memory, 10 pieces per core
 		t := utils.GenerateNodes(count, 1, 1, 0, 10)

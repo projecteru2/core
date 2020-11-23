@@ -31,6 +31,6 @@ type Entrypoint struct {
 
 // Bind define a single bind
 type Bind struct {
-	InContainerPath string `yaml:"bind,omitempty"`
-	ReadOnly        bool   `yaml:"ro,omitempty"`
+	InWorkloadPath string `yaml:"bind,omitempty"`
+	ReadOnly       bool   `yaml:"ro,omitempty"`
 }

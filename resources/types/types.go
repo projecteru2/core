@@ -24,7 +24,7 @@ type SchedulerV2 func([]types.NodeInfo) (ResourcePlans, int, error)
 type DispenseOptions struct {
 	*types.Node
 	Index            int
-	ExistingInstance *types.Container
+	ExistingInstance *types.Workload
 }
 
 // ResourcePlans .

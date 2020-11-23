@@ -55,8 +55,8 @@ func TestRealloc(t *testing.T) {
 		Volume:     types.VolumeMap{"/dir0": 100},
 	}
 
-	newC1 := func(context.Context, []string) []*types.Container {
-		return []*types.Container{
+	newC1 := func(context.Context, []string) []*types.Workload {
+		return []*types.Workload{
 			{
 				ID:      "c1",
 				Podname: "p1",
@@ -77,8 +77,8 @@ func TestRealloc(t *testing.T) {
 		}
 	}
 
-	newC2 := func(context.Context, []string) []*types.Container {
-		return []*types.Container{
+	newC2 := func(context.Context, []string) []*types.Workload {
+		return []*types.Workload{
 			{
 				ID:      "c2",
 				Podname: "p1",
@@ -94,7 +94,7 @@ func TestRealloc(t *testing.T) {
 		}
 	}
 
-	store.On("GetContainers", mock.Anything, []string{"c1"}).Return(newC1, nil)
+	store.On("GetWorkloads", mock.Anything, []string{"c1"}).Return(newC1, nil)
 	// failed by lock
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	err := c.ReallocResource(ctx, newReallocOptions("c1", -1, 2*int64(units.GiB), nil, types.TriKeep, types.TriKeep))
@@ -146,7 +146,7 @@ func TestRealloc(t *testing.T) {
 	simpleMockScheduler.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, 2, nil).Once()
 	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(nil, nil, 100, nil).Once()
 	// failed by apply resource
-	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrBadContainerID).Once()
+	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrBadWorkloadID).Once()
 	// reset node
 	node1 = &types.Node{
 		Name:     "node1",
@@ -155,21 +155,21 @@ func TestRealloc(t *testing.T) {
 		Engine:   engine,
 		Endpoint: "http://1.1.1.1:1",
 	}
-	store.On("GetContainers", mock.Anything, []string{"c2"}).Return(newC2, nil)
+	store.On("GetWorkloads", mock.Anything, []string{"c2"}).Return(newC2, nil)
 	err = c.ReallocResource(ctx, newReallocOptions("c2", 0.1, 2*int64(units.MiB), nil, types.TriKeep, types.TriKeep))
-	assert.EqualError(t, err, "container ID must be length of 64")
+	assert.EqualError(t, err, "workload ID must be length of 64")
 	assert.Equal(t, node1.CPU["2"], int64(10))
 	assert.Equal(t, node1.MemCap, int64(units.GiB))
 	simpleMockScheduler.AssertExpectations(t)
 	store.AssertExpectations(t)
 
-	// failed by update container
+	// failed by update workload
 	simpleMockScheduler.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nodeCPUPlans, 2, nil).Once()
 	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(nil, nil, 100, nil).Once()
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	store.On("UpdateContainer", mock.Anything, mock.Anything).Return(types.ErrBadContainerID).Times(1)
+	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(types.ErrBadWorkloadID).Times(1)
 	err = c.ReallocResource(ctx, newReallocOptions("c1", 0.1, 2*int64(units.MiB), nil, types.TriKeep, types.TriKeep))
-	assert.EqualError(t, err, "container ID must be length of 64")
+	assert.EqualError(t, err, "workload ID must be length of 64")
 	simpleMockScheduler.AssertExpectations(t)
 	store.AssertExpectations(t)
 
@@ -211,7 +211,7 @@ func TestRealloc(t *testing.T) {
 		Volume:     types.VolumeMap{"/dir0": 200, "/dir1": 200, "/dir2": 200},
 		VolumeUsed: int64(300),
 	}
-	c3 := &types.Container{
+	c3 := &types.Workload{
 		ID:      "c3",
 		Podname: "p1",
 		Engine:  engine,
@@ -254,10 +254,10 @@ func TestRealloc(t *testing.T) {
 	simpleMockScheduler.On("SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nodeCPUPlans, 2, nil)
 	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(nil, nodeVolumePlans, 2, nil)
 	store.On("GetNode", mock.Anything, "node2").Return(node2, nil)
-	store.On("GetContainers", mock.Anything, []string{"c3"}).Return([]*types.Container{c3}, nil)
-	store.On("UpdateContainer", mock.Anything, mock.Anything).Return(types.ErrBadContainerID).Times(1)
+	store.On("GetWorkloads", mock.Anything, []string{"c3"}).Return([]*types.Workload{c3}, nil)
+	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(types.ErrBadWorkloadID).Times(1)
 	err = c.ReallocResource(ctx, newReallocOptions("c3", 0.1, 2*int64(units.MiB), types.MustToVolumeBindings([]string{"AUTO:/data0:rw:-50"}), types.TriKeep, types.TriKeep))
-	assert.EqualError(t, err, "container ID must be length of 64")
+	assert.EqualError(t, err, "workload ID must be length of 64")
 	assert.Equal(t, node2.CPU["3"], int64(100))
 	assert.Equal(t, node2.CPU["2"], int64(100))
 	assert.Equal(t, node2.MemCap, int64(units.GiB)+5*int64(units.MiB))
@@ -269,7 +269,6 @@ func TestRealloc(t *testing.T) {
 
 func TestReallocBindCpu(t *testing.T) {
 	c := NewTestCluster()
-	c.config.Scheduler.ShareBase = 100
 	ctx := context.Background()
 	store := &storemocks.Store{}
 	c.store = store
@@ -319,7 +318,7 @@ func TestReallocBindCpu(t *testing.T) {
 		Volume:     types.VolumeMap{"/dir0": 200, "/dir1": 200, "/dir2": 200},
 		VolumeUsed: int64(300),
 	}
-	c5 := &types.Container{
+	c5 := &types.Workload{
 		ID:      "c5",
 		Podname: "p1",
 		Engine:  engine,
@@ -332,7 +331,7 @@ func TestReallocBindCpu(t *testing.T) {
 		},
 		Nodename: "node3",
 	}
-	c6 := &types.Container{
+	c6 := &types.Workload{
 		ID:      "c6",
 		Podname: "p1",
 		Engine:  engine,
@@ -346,14 +345,14 @@ func TestReallocBindCpu(t *testing.T) {
 	}
 
 	store.On("GetNode", mock.Anything, "node3").Return(node3, nil)
-	store.On("GetContainers", mock.Anything, []string{"c5"}).Return([]*types.Container{c5}, nil)
-	store.On("GetContainers", mock.Anything, []string{"c6"}).Return([]*types.Container{c6}, nil)
-	store.On("GetContainers", mock.Anything, []string{"c6", "c5"}).Return([]*types.Container{c5, c6}, nil)
+	store.On("GetWorkloads", mock.Anything, []string{"c5"}).Return([]*types.Workload{c5}, nil)
+	store.On("GetWorkloads", mock.Anything, []string{"c6"}).Return([]*types.Workload{c6}, nil)
+	store.On("GetWorkloads", mock.Anything, []string{"c6", "c5"}).Return([]*types.Workload{c5, c6}, nil)
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	store.On("UpdateContainer", mock.Anything, mock.Anything).Return(nil)
+	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(nil)
 
 	// failed by UpdateNodes
-	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(types.ErrBadContainerID).Once()
+	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(types.ErrBadWorkloadID).Once()
 	err := c.ReallocResource(ctx, newReallocOptions("c5", 0.1, 2*int64(units.MiB), nil, types.TriFalse, types.TriKeep))
 	assert.Error(t, err)
 	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)

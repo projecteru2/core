@@ -24,15 +24,15 @@ func TestDeploy(t *testing.T) {
 		{Nodename: "node"},
 	}
 
-	// no container deployed
+	// no workload deployed
 	err := m.MakeDeployStatus(ctx, opts, sis)
 	assert.NoError(t, err)
 	assert.Equal(t, len(sis), 1)
-	// have containers
-	key := filepath.Join(containerDeployPrefix, opts.Name, opts.Entrypoint.Name, "node", "id1")
+	// have workloads
+	key := filepath.Join(workloadDeployPrefix, opts.Name, opts.Entrypoint.Name, "node", "id1")
 	_, err = m.Put(ctx, key, "")
 	assert.NoError(t, err)
-	key = filepath.Join(containerDeployPrefix, opts.Name, opts.Entrypoint.Name, "node", "id2")
+	key = filepath.Join(workloadDeployPrefix, opts.Name, opts.Entrypoint.Name, "node", "id2")
 	_, err = m.Put(ctx, key, "")
 	assert.NoError(t, err)
 	err = m.MakeDeployStatus(ctx, opts, sis)

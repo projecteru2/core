@@ -21,11 +21,11 @@ func (e *Engine) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6
 	if err := e.client.NetworkConnect(ctx, network, target, config); err != nil {
 		return nil, err
 	}
-	container, err := e.client.ContainerInspect(ctx, target)
+	workload, err := e.client.ContainerInspect(ctx, target)
 	if err != nil {
 		return nil, err
 	}
-	ns := container.NetworkSettings.Networks[network]
+	ns := workload.NetworkSettings.Networks[network]
 	if ns == nil {
 		return []string{}, nil
 	}

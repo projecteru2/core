@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestDissociateContainer(t *testing.T) {
+func TestDissociateWorkload(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := &storemocks.Store{}
@@ -22,7 +22,7 @@ func TestDissociateContainer(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 
-	c1 := &types.Container{
+	c1 := &types.Workload{
 		ResourceMeta: types.ResourceMeta{
 			MemoryLimit:     5 * int64(units.MiB),
 			MemoryRequest:   5 * int64(units.MiB),
@@ -42,27 +42,27 @@ func TestDissociateContainer(t *testing.T) {
 		Endpoint: "http://1.1.1.1:1",
 	}
 
-	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{c1}, nil)
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{c1}, nil)
 	// failed by lock
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	ch, err := c.DissociateContainer(ctx, []string{"c1"})
+	ch, err := c.DissociateWorkload(ctx, []string{"c1"})
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
-	// failed by RemoveContainer
-	store.On("RemoveContainer", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
-	ch, err = c.DissociateContainer(ctx, []string{"c1"})
+	// failed by RemoveWorkload
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
+	ch, err = c.DissociateWorkload(ctx, []string{"c1"})
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
-	store.On("RemoveContainer", mock.Anything, mock.Anything).Return(nil)
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
 	// success
 	store.On("UpdateNodeResource", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	ch, err = c.DissociateContainer(ctx, []string{"c1"})
+	ch, err = c.DissociateWorkload(ctx, []string{"c1"})
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.NoError(t, r.Error)

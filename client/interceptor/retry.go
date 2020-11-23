@@ -21,8 +21,8 @@ func NewUnaryRetry(retryOpts RetryOptions) grpc.UnaryClientInterceptor {
 
 // RPCNeedRetry records rpc stream methods to retry
 var RPCNeedRetry = map[string]struct{}{
-	"/pb.CoreRPC/ContainerStatusStream": {},
-	"/pb.CoreRPC/WatchServiceStatus":    {},
+	"/pb.CoreRPC/WorkloadStatusStream": {},
+	"/pb.CoreRPC/WatchServiceStatus":   {},
 }
 
 // NewStreamRetry make specific stream retry on error

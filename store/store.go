@@ -38,17 +38,17 @@ type Store interface {
 	UpdateNodes(context.Context, ...*types.Node) error
 	UpdateNodeResource(ctx context.Context, node *types.Node, resource *types.ResourceMeta, action string) error
 
-	// container
-	AddContainer(ctx context.Context, container *types.Container) error
-	UpdateContainer(ctx context.Context, container *types.Container) error
-	RemoveContainer(ctx context.Context, container *types.Container) error
-	GetContainer(ctx context.Context, ID string) (*types.Container, error)
-	GetContainers(ctx context.Context, IDs []string) ([]*types.Container, error)
-	GetContainerStatus(ctx context.Context, ID string) (*types.StatusMeta, error)
-	SetContainerStatus(ctx context.Context, container *types.Container, ttl int64) error
-	ListContainers(ctx context.Context, appname, entrypoint, nodename string, limit int64, labels map[string]string) ([]*types.Container, error)
-	ListNodeContainers(ctx context.Context, nodename string, labels map[string]string) ([]*types.Container, error)
-	ContainerStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.ContainerStatus
+	// workload
+	AddWorkload(ctx context.Context, workload *types.Workload) error
+	UpdateWorkload(ctx context.Context, workload *types.Workload) error
+	RemoveWorkload(ctx context.Context, workload *types.Workload) error
+	GetWorkload(ctx context.Context, ID string) (*types.Workload, error)
+	GetWorkloads(ctx context.Context, IDs []string) ([]*types.Workload, error)
+	GetWorkloadStatus(ctx context.Context, ID string) (*types.StatusMeta, error)
+	SetWorkloadStatus(ctx context.Context, workload *types.Workload, ttl int64) error
+	ListWorkloads(ctx context.Context, appname, entrypoint, nodename string, limit int64, labels map[string]string) ([]*types.Workload, error)
+	ListNodeWorkloads(ctx context.Context, nodename string, labels map[string]string) ([]*types.Workload, error)
+	WorkloadStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.WorkloadStatus
 
 	// deploy status
 	MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfo []strategy.Info) error

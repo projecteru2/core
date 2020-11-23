@@ -25,17 +25,17 @@ func TestCopy(t *testing.T) {
 	}
 	store := &storemocks.Store{}
 	c.store = store
-	// failed by GetContainer
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	// failed by GetWorkload
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	ch, err := c.Copy(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
-	container := &types.Container{ID: "cid"}
+	workload := &types.Workload{ID: "cid"}
 	engine := &enginemocks.API{}
-	container.Engine = engine
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
+	workload.Engine = engine
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	// failed by VirtualizationCopyFrom
 	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(nil, "", types.ErrNilEngine).Twice()
 	ch, err = c.Copy(ctx, opts)

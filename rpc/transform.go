@@ -144,7 +144,7 @@ func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) {
 	r := &types.SetNodeOptions{
 		Nodename:        b.Nodename,
 		StatusOpt:       types.TriOptions(b.StatusOpt),
-		ContainersDown:  b.ContainersDown,
+		WorkloadsDown:   b.WorkloadsDown,
 		DeltaCPU:        types.CPUMap{},
 		DeltaMemory:     b.DeltaMemory,
 		DeltaStorage:    b.DeltaStorage,
@@ -321,15 +321,15 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 	}, nil
 }
 
-func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateContainerMessage {
+func toRPCCreateWorkloadMessage(c *types.CreateWorkloadMessage) *pb.CreateWorkloadMessage {
 	if c == nil {
 		return nil
 	}
-	msg := &pb.CreateContainerMessage{
+	msg := &pb.CreateWorkloadMessage{
 		Podname:  c.Podname,
 		Nodename: c.Nodename,
-		Id:       c.ContainerID,
-		Name:     c.ContainerName,
+		Id:       c.WorkloadID,
+		Name:     c.WorkloadName,
 		Success:  c.Error == nil,
 		Publish:  utils.EncodePublishInfo(c.Publish),
 		Hook:     utils.MergeHookOutputs(c.Hook),
@@ -351,10 +351,10 @@ func toRPCCreateContainerMessage(c *types.CreateContainerMessage) *pb.CreateCont
 	return msg
 }
 
-func toRPCReplaceContainerMessage(r *types.ReplaceContainerMessage) *pb.ReplaceContainerMessage {
-	msg := &pb.ReplaceContainerMessage{
-		Create: toRPCCreateContainerMessage(r.Create),
-		Remove: toRPCRemoveContainerMessage(r.Remove),
+func toRPCReplaceWorkloadMessage(r *types.ReplaceWorkloadMessage) *pb.ReplaceWorkloadMessage {
+	msg := &pb.ReplaceWorkloadMessage{
+		Create: toRPCCreateWorkloadMessage(r.Create),
+		Remove: toRPCRemoveWorkloadMessage(r.Remove),
 	}
 	if r.Error != nil {
 		msg.Error = r.Error.Error()
@@ -379,9 +379,9 @@ func toRPCRemoveImageMessage(r *types.RemoveImageMessage) *pb.RemoveImageMessage
 	}
 }
 
-func toRPCControlContainerMessage(c *types.ControlContainerMessage) *pb.ControlContainerMessage {
-	r := &pb.ControlContainerMessage{
-		Id:   c.ContainerID,
+func toRPCControlWorkloadMessage(c *types.ControlWorkloadMessage) *pb.ControlWorkloadMessage {
+	r := &pb.ControlWorkloadMessage{
+		Id:   c.WorkloadID,
 		Hook: utils.MergeHookOutputs(c.Hook),
 	}
 	if c.Error != nil {
@@ -390,20 +390,20 @@ func toRPCControlContainerMessage(c *types.ControlContainerMessage) *pb.ControlC
 	return r
 }
 
-func toRPCRemoveContainerMessage(r *types.RemoveContainerMessage) *pb.RemoveContainerMessage {
+func toRPCRemoveWorkloadMessage(r *types.RemoveWorkloadMessage) *pb.RemoveWorkloadMessage {
 	if r == nil {
 		return nil
 	}
-	return &pb.RemoveContainerMessage{
-		Id:      r.ContainerID,
+	return &pb.RemoveWorkloadMessage{
+		Id:      r.WorkloadID,
 		Success: r.Success,
 		Hook:    string(utils.MergeHookOutputs(r.Hook)),
 	}
 }
 
-func toRPCDissociateContainerMessage(r *types.DissociateContainerMessage) *pb.DissociateContainerMessage {
-	resp := &pb.DissociateContainerMessage{
-		Id: r.ContainerID,
+func toRPCDissociateWorkloadMessage(r *types.DissociateWorkloadMessage) *pb.DissociateWorkloadMessage {
+	resp := &pb.DissociateWorkloadMessage{
+		Id: r.WorkloadID,
 	}
 	if r.Error != nil {
 		resp.Error = r.Error.Error()
@@ -411,30 +411,30 @@ func toRPCDissociateContainerMessage(r *types.DissociateContainerMessage) *pb.Di
 	return resp
 }
 
-func toRPCAttachContainerMessage(msg *types.AttachContainerMessage) *pb.AttachContainerMessage {
-	return &pb.AttachContainerMessage{
-		ContainerId: msg.ContainerID,
-		Data:        msg.Data,
+func toRPCAttachWorkloadMessage(msg *types.AttachWorkloadMessage) *pb.AttachWorkloadMessage {
+	return &pb.AttachWorkloadMessage{
+		WorkloadId: msg.WorkloadID,
+		Data:       msg.Data,
 	}
 }
 
-func toRPCContainerStatus(containerStatus *types.StatusMeta) *pb.ContainerStatus {
-	r := &pb.ContainerStatus{}
-	if containerStatus != nil {
-		r.Id = containerStatus.ID
-		r.Healthy = containerStatus.Healthy
-		r.Running = containerStatus.Running
-		r.Networks = containerStatus.Networks
-		r.Extension = containerStatus.Extension
+func toRPCWorkloadStatus(workloadStatus *types.StatusMeta) *pb.WorkloadStatus {
+	r := &pb.WorkloadStatus{}
+	if workloadStatus != nil {
+		r.Id = workloadStatus.ID
+		r.Healthy = workloadStatus.Healthy
+		r.Running = workloadStatus.Running
+		r.Networks = workloadStatus.Networks
+		r.Extension = workloadStatus.Extension
 	}
 	return r
 }
 
-func toRPCContainersStatus(containersStatus []*types.StatusMeta) *pb.ContainersStatus {
-	ret := &pb.ContainersStatus{}
-	r := []*pb.ContainerStatus{}
-	for _, cs := range containersStatus {
-		s := toRPCContainerStatus(cs)
+func toRPCWorkloadsStatus(workloadsStatus []*types.StatusMeta) *pb.WorkloadsStatus {
+	ret := &pb.WorkloadsStatus{}
+	r := []*pb.WorkloadStatus{}
+	for _, cs := range workloadsStatus {
+		s := toRPCWorkloadStatus(cs)
 		if s != nil {
 			r = append(r, s)
 		}
@@ -443,25 +443,25 @@ func toRPCContainersStatus(containersStatus []*types.StatusMeta) *pb.ContainersS
 	return ret
 }
 
-func toRPCContainers(ctx context.Context, containers []*types.Container, labels map[string]string) *pb.Containers {
-	ret := &pb.Containers{}
-	cs := []*pb.Container{}
-	for _, c := range containers {
-		pContainer, err := toRPCContainer(ctx, c)
+func toRPCWorkloads(ctx context.Context, workloads []*types.Workload, labels map[string]string) *pb.Workloads {
+	ret := &pb.Workloads{}
+	cs := []*pb.Workload{}
+	for _, c := range workloads {
+		pWorkload, err := toRPCWorkload(ctx, c)
 		if err != nil {
-			log.Errorf("[toRPCContainers] trans to pb container failed %v", err)
+			log.Errorf("[toRPCWorkloads] trans to pb workload failed %v", err)
 			continue
 		}
-		if !utils.FilterContainer(pContainer.Labels, labels) {
+		if !utils.FilterWorkload(pWorkload.Labels, labels) {
 			continue
 		}
-		cs = append(cs, pContainer)
+		cs = append(cs, pWorkload)
 	}
-	ret.Containers = cs
+	ret.Workloads = cs
 	return ret
 }
 
-func toRPCContainer(_ context.Context, c *types.Container) (*pb.Container, error) {
+func toRPCWorkload(_ context.Context, c *types.Workload) (*pb.Workload, error) {
 	publish := map[string]string{}
 	if c.StatusMeta != nil && len(c.StatusMeta.Networks) != 0 {
 		meta := utils.DecodeMetaInLabel(c.Labels)
@@ -469,7 +469,7 @@ func toRPCContainer(_ context.Context, c *types.Container) (*pb.Container, error
 			utils.MakePublishInfo(c.StatusMeta.Networks, meta.Publish),
 		)
 	}
-	return &pb.Container{
+	return &pb.Workload{
 		Id:         c.ID,
 		Podname:    c.Podname,
 		Nodename:   c.Nodename,
@@ -478,7 +478,8 @@ func toRPCContainer(_ context.Context, c *types.Container) (*pb.Container, error
 		Publish:    publish,
 		Image:      c.Image,
 		Labels:     c.Labels,
-		Status:     toRPCContainerStatus(c.StatusMeta),
+		Status:     toRPCWorkloadStatus(c.StatusMeta),
+		CreateTime: c.CreateTime,
 		Resource: &pb.Resource{
 			CpuQuotaLimit:     c.CPUQuotaLimit,
 			CpuQuotaRequest:   c.CPUQuotaRequest,
@@ -518,14 +519,14 @@ func toRPCLogStreamMessage(msg *types.LogStreamMessage) *pb.LogStreamMessage {
 	return r
 }
 
-func toCoreExecuteContainerOptions(b *pb.ExecuteContainerOptions) (opts *types.ExecuteContainerOptions, err error) { // nolint
-	return &types.ExecuteContainerOptions{
-		ContainerID: b.ContainerId,
-		Commands:    b.Commands,
-		Envs:        b.Envs,
-		Workdir:     b.Workdir,
-		OpenStdin:   b.OpenStdin,
-		ReplCmd:     b.ReplCmd,
+func toCoreExecuteWorkloadOptions(b *pb.ExecuteWorkloadOptions) (opts *types.ExecuteWorkloadOptions, err error) { // nolint
+	return &types.ExecuteWorkloadOptions{
+		WorkloadID: b.WorkloadId,
+		Commands:   b.Commands,
+		Envs:       b.Envs,
+		Workdir:    b.Workdir,
+		OpenStdin:  b.OpenStdin,
+		ReplCmd:    b.ReplCmd,
 	}, nil
 }
 

@@ -10,72 +10,72 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestGetContainersStatus(t *testing.T) {
+func TestGetWorkloadsStatus(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
 	cs := &types.StatusMeta{}
 
 	// failed
-	store.On("GetContainerStatus", mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
-	_, err := c.GetContainersStatus(ctx, []string{"a"})
+	store.On("GetWorkloadStatus", mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
+	_, err := c.GetWorkloadsStatus(ctx, []string{"a"})
 	assert.Error(t, err)
-	store.On("GetContainerStatus", mock.Anything, mock.Anything).Return(cs, nil)
+	store.On("GetWorkloadStatus", mock.Anything, mock.Anything).Return(cs, nil)
 	// succ
-	r, err := c.GetContainersStatus(ctx, []string{"a"})
+	r, err := c.GetWorkloadsStatus(ctx, []string{"a"})
 	assert.NoError(t, err)
 	assert.Len(t, r, 1)
 }
 
-func TestSetContainersStatus(t *testing.T) {
+func TestSetWorkloadsStatus(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
 
 	// failed
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
-	_, err := c.SetContainersStatus(ctx, []*types.StatusMeta{{ID: "123"}}, nil)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
+	_, err := c.SetWorkloadsStatus(ctx, []*types.StatusMeta{{ID: "123"}}, nil)
 	assert.Error(t, err)
-	container := &types.Container{
+	workload := &types.Workload{
 		ID:   "123",
 		Name: "a_b_c",
 	}
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
-	// failed by SetContainerStatus
-	store.On("SetContainerStatus",
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
+	// failed by SetWorkloadStatus
+	store.On("SetWorkloadStatus",
 		mock.Anything,
 		mock.Anything,
 		mock.Anything,
 	).Return(types.ErrBadCount).Once()
-	_, err = c.SetContainersStatus(ctx, []*types.StatusMeta{{ID: "123"}}, nil)
+	_, err = c.SetWorkloadsStatus(ctx, []*types.StatusMeta{{ID: "123"}}, nil)
 	assert.Error(t, err)
 	// success
-	store.On("SetContainerStatus",
+	store.On("SetWorkloadStatus",
 		mock.Anything,
 		mock.Anything,
 		mock.Anything,
 	).Return(nil)
-	r, err := c.SetContainersStatus(ctx, []*types.StatusMeta{{ID: "123"}}, nil)
+	r, err := c.SetWorkloadsStatus(ctx, []*types.StatusMeta{{ID: "123"}}, nil)
 	assert.NoError(t, err)
 	assert.Len(t, r, 1)
 }
 
-func TestContainerStatusStream(t *testing.T) {
+func TestWorkloadStatusStream(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	dataCh := make(chan *types.ContainerStatus)
+	dataCh := make(chan *types.WorkloadStatus)
 	store := c.store.(*storemocks.Store)
 
-	store.On("ContainerStatusStream", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(dataCh)
+	store.On("WorkloadStatusStream", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(dataCh)
 	go func() {
-		msg := &types.ContainerStatus{
+		msg := &types.WorkloadStatus{
 			Delete: true,
 		}
 		dataCh <- msg
 		close(dataCh)
 	}()
 
-	ch := c.ContainerStatusStream(ctx, "", "", "", nil)
+	ch := c.WorkloadStatusStream(ctx, "", "", "", nil)
 	for c := range ch {
 		assert.Equal(t, c.Delete, true)
 	}

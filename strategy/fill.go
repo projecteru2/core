@@ -8,7 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// FillPlan deploy container each node
+// FillPlan deploy workload each node
 // 根据之前部署的策略每一台补充到 N 个，超过 N 个忽略
 // need 是每台上限, limit 是限制节点数
 func FillPlan(strategyInfos []Info, need, total, limit int, resourceType types.ResourceType) (map[string]int, error) {

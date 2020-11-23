@@ -12,10 +12,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// RemoveContainer remove containers
+// RemoveWorkload remove workloads
 // returns a channel that contains removing responses
-func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool, step int) (chan *types.RemoveContainerMessage, error) {
-	ch := make(chan *types.RemoveContainerMessage)
+func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool, step int) (chan *types.RemoveWorkloadMessage, error) {
+	ch := make(chan *types.RemoveWorkloadMessage)
 	if step < 1 {
 		step = 1
 	}
@@ -28,19 +28,19 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool,
 			wg.Add(1)
 			go func(ID string) {
 				defer wg.Done()
-				ret := &types.RemoveContainerMessage{ContainerID: ID, Success: false, Hook: []*bytes.Buffer{}}
-				if err := c.withContainerLocked(ctx, ID, func(container *types.Container) error {
-					return c.withNodeLocked(ctx, container.Nodename, func(node *types.Node) (err error) {
+				ret := &types.RemoveWorkloadMessage{WorkloadID: ID, Success: false, Hook: []*bytes.Buffer{}}
+				if err := c.withWorkloadLocked(ctx, ID, func(workload *types.Workload) error {
+					return c.withNodeLocked(ctx, workload.Nodename, func(node *types.Node) (err error) {
 						return utils.Txn(
 							ctx,
 							// if
 							func(ctx context.Context) error {
-								return c.doRemoveContainer(ctx, container, force)
+								return c.doRemoveWorkload(ctx, workload, force)
 							},
 							// then
 							func(ctx context.Context) error {
-								log.Infof("[RemoveContainer] Container %s removed", container.ID)
-								return c.store.UpdateNodeResource(ctx, node, &container.ResourceMeta, store.ActionIncr)
+								log.Infof("[RemoveWorkload] Workload %s removed", workload.ID)
+								return c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionIncr)
 							},
 							// rollback
 							nil,
@@ -48,7 +48,7 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool,
 						)
 					})
 				}); err != nil {
-					log.Errorf("[RemoveContainer] Remove container %s failed, err: %v", ID, err)
+					log.Errorf("[RemoveWorkload] Remove workload %s failed, err: %v", ID, err)
 					ret.Hook = append(ret.Hook, bytes.NewBufferString(err.Error()))
 				} else {
 					ret.Success = true
@@ -56,7 +56,7 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool,
 				ch <- ret
 			}(ID)
 			if (i+1)%step == 0 {
-				log.Info("[RemoveContainer] Wait for previous tasks done")
+				log.Info("[RemoveWorkload] Wait for previous tasks done")
 				wg.Wait()
 			}
 		}
@@ -64,16 +64,16 @@ func (c *Calcium) RemoveContainer(ctx context.Context, IDs []string, force bool,
 	return ch, nil
 }
 
-func (c *Calcium) doRemoveContainer(ctx context.Context, container *types.Container, force bool) error {
+func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload, force bool) error {
 	return utils.Txn(
 		ctx,
 		// if
 		func(ctx context.Context) error {
-			return container.Remove(ctx, force)
+			return workload.Remove(ctx, force)
 		},
 		// then
 		func(ctx context.Context) error {
-			return c.store.RemoveContainer(ctx, container)
+			return c.store.RemoveWorkload(ctx, workload)
 		},
 		// rollback
 		nil,
@@ -83,14 +83,14 @@ func (c *Calcium) doRemoveContainer(ctx context.Context, container *types.Contai
 }
 
 // 同步地删除容器, 在某些需要等待的场合异常有用!
-func (c *Calcium) doRemoveContainerSync(ctx context.Context, IDs []string) error {
-	ch, err := c.RemoveContainer(ctx, IDs, true, 1)
+func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, IDs []string) error {
+	ch, err := c.RemoveWorkload(ctx, IDs, true, 1)
 	if err != nil {
 		return err
 	}
 
 	for m := range ch {
-		log.Debugf("[doRemoveContainerSync] Removed %s", m.ContainerID)
+		log.Debugf("[doRemoveWorkloadSync] Removed %s", m.WorkloadID)
 	}
 	return nil
 }

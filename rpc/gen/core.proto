@@ -27,13 +27,13 @@ service CoreRPC {
 
     rpc CalculateCapacity(DeployOptions) returns (CapacityMessage);
 
-    rpc GetContainer(ContainerID) returns (Container) {};
-    rpc GetContainers(ContainerIDs) returns (Containers) {};
-    rpc ListContainers(ListContainersOptions) returns (stream Container) {};
-    rpc ListNodeContainers(GetNodeOptions) returns (Containers) {};
-    rpc GetContainersStatus(ContainerIDs) returns (ContainersStatus) {};
-    rpc SetContainersStatus(SetContainersStatusOptions) returns (ContainersStatus) {};
-    rpc ContainerStatusStream(ContainerStatusStreamOptions) returns (stream ContainerStatusStreamMessage) {};
+    rpc GetWorkload(WorkloadID) returns (Workload) {};
+    rpc GetWorkloads(WorkloadIDs) returns (Workloads) {};
+    rpc ListWorkloads(ListWorkloadsOptions) returns (stream Workload) {};
+    rpc ListNodeWorkloads(GetNodeOptions) returns (Workloads) {};
+    rpc GetWorkloadsStatus(WorkloadIDs) returns (WorkloadsStatus) {};
+    rpc SetWorkloadsStatus(SetWorkloadsStatusOptions) returns (WorkloadsStatus) {};
+    rpc WorkloadStatusStream(WorkloadStatusStreamOptions) returns (stream WorkloadStatusStreamMessage) {};
 
     rpc Copy(CopyOptions) returns (stream CopyMessage) {};
     rpc Send(SendOptions) returns (stream SendMessage) {};
@@ -42,15 +42,15 @@ service CoreRPC {
     rpc CacheImage(CacheImageOptions) returns (stream CacheImageMessage) {};
     rpc RemoveImage(RemoveImageOptions) returns (stream RemoveImageMessage) {};
 
-    rpc CreateContainer(DeployOptions) returns (stream CreateContainerMessage) {};
-    rpc ReplaceContainer(ReplaceOptions) returns (stream ReplaceContainerMessage) {};
-    rpc RemoveContainer(RemoveContainerOptions) returns (stream RemoveContainerMessage) {};
-    rpc DissociateContainer(DissociateContainerOptions) returns (stream DissociateContainerMessage) {};
-    rpc ControlContainer(ControlContainerOptions) returns (stream ControlContainerMessage) {};
-    rpc ExecuteContainer(stream ExecuteContainerOptions) returns (stream AttachContainerMessage) {};
+    rpc CreateWorkload(DeployOptions) returns (stream CreateWorkloadMessage) {};
+    rpc ReplaceWorkload(ReplaceOptions) returns (stream ReplaceWorkloadMessage) {};
+    rpc RemoveWorkload(RemoveWorkloadOptions) returns (stream RemoveWorkloadMessage) {};
+    rpc DissociateWorkload(DissociateWorkloadOptions) returns (stream DissociateWorkloadMessage) {};
+    rpc ControlWorkload(ControlWorkloadOptions) returns (stream ControlWorkloadMessage) {};
+    rpc ExecuteWorkload(stream ExecuteWorkloadOptions) returns (stream AttachWorkloadMessage) {};
     rpc ReallocResource(ReallocOptions) returns (ReallocResourceMessage) {};
     rpc LogStream(LogStreamOptions) returns (stream LogStreamMessage) {};
-    rpc RunAndWait(stream RunAndWaitOptions) returns (stream AttachContainerMessage) {};
+    rpc RunAndWait(stream RunAndWaitOptions) returns (stream AttachWorkloadMessage) {};
 }
 
 message Empty {}
@@ -68,7 +68,7 @@ message ServiceStatus {
     int64 interval_in_second = 2;
 }
 
-message ListContainersOptions {
+message ListWorkloadsOptions {
     string appname = 1;
     string entrypoint = 2;
     string nodename = 3;
@@ -169,10 +169,10 @@ message SetNodeOptions {
     map<string, string> numa = 7;
     map<string, string> labels = 8;
     map<string, int64> delta_volume = 9;
-    bool containers_down = 10;
+    bool workloads_down = 10;
 }
 
-message Container {
+message Workload {
     string id = 1;
     string podname = 2;
     string nodename = 3;
@@ -181,11 +181,12 @@ message Container {
     map<string, string> labels = 6;
     map<string, string> publish = 7;
     string image = 8;
-    ContainerStatus status = 9;
+    WorkloadStatus status = 9;
     Resource resource = 10;
+    int64 create_time = 11;
 }
 
-message ContainerStatus {
+message WorkloadStatus {
     string id = 1;
     bool running = 2;
     bool healthy = 3;
@@ -194,48 +195,48 @@ message ContainerStatus {
     int64 ttl = 6;
 }
 
-message ContainersStatus {
-    repeated ContainerStatus status = 1;
+message WorkloadsStatus {
+    repeated WorkloadStatus status = 1;
 }
 
-message SetContainersStatusOptions {
-    repeated ContainerStatus status = 1;
+message SetWorkloadsStatusOptions {
+    repeated WorkloadStatus status = 1;
 }
 
-message ContainerStatusStreamOptions {
+message WorkloadStatusStreamOptions {
     string appname = 1;
     string entrypoint = 2;
     string nodename = 3;
     map<string, string> labels = 4;
 }
 
-message ContainerStatusStreamMessage {
+message WorkloadStatusStreamMessage {
     string id = 1;
-    Container container = 2;
-    ContainerStatus status = 3;
+    Workload workload = 2;
+    WorkloadStatus status = 3;
     string error = 4;
     bool delete = 5;
 }
 
-message Containers {
-    repeated Container containers = 1;
+message Workloads {
+    repeated Workload workloads = 1;
 }
 
-message ContainerID {
+message WorkloadID {
     string id = 1;
 }
 
-message ContainerIDs {
+message WorkloadIDs {
     repeated string ids = 1;
 }
 
-message RemoveContainerOptions {
+message RemoveWorkloadOptions {
     repeated string ids = 1;
     bool force = 2;
     int32 step = 3;
 }
 
-message DissociateContainerOptions {
+message DissociateWorkloadOptions {
     repeated string ids = 1;
 }
 
@@ -483,7 +484,7 @@ message BuildImageMessage {
     ErrorDetail error_detail = 6;
 }
 
-message CreateContainerMessage {
+message CreateWorkloadMessage {
     string podname = 1;
     string nodename = 2;
     string id = 3;
@@ -495,9 +496,9 @@ message CreateContainerMessage {
     Resource resource = 9;
 }
 
-message ReplaceContainerMessage {
-    CreateContainerMessage create = 1;
-    RemoveContainerMessage remove = 2;
+message ReplaceWorkloadMessage {
+    CreateWorkloadMessage create = 1;
+    RemoveWorkloadMessage remove = 2;
     string error = 3;
 }
 
@@ -514,13 +515,13 @@ message RemoveImageMessage {
     repeated string messages = 3;
 }
 
-message RemoveContainerMessage {
+message RemoveWorkloadMessage {
     string id = 1;
     bool success = 2;
     string hook = 3;
 }
 
-message DissociateContainerMessage {
+message DissociateWorkloadMessage {
     string id = 1;
     string error = 2;
 }
@@ -544,8 +545,8 @@ message SendMessage {
     string error = 3;
 }
 
-message AttachContainerMessage {
-    string container_id = 1;
+message AttachWorkloadMessage {
+    string workload_id = 1;
     bytes data = 2;
 }
 
@@ -556,13 +557,13 @@ message RunAndWaitOptions{
     int32 async_timeout = 4;
 }
 
-message ControlContainerOptions {
+message ControlWorkloadOptions {
     repeated string ids = 1;
     string type = 2;
     bool force = 3;
 }
 
-message ControlContainerMessage {
+message ControlWorkloadMessage {
     string id = 1;
     string error = 2;
     bytes hook = 3;
@@ -581,8 +582,8 @@ message LogStreamMessage {
     bytes data = 3;
 }
 
-message ExecuteContainerOptions {
-    string container_id = 1;
+message ExecuteWorkloadOptions {
+    string workload_id = 1;
     repeated string commands = 2;
     repeated string envs = 3;
     string workdir = 4;

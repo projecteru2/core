@@ -5,7 +5,7 @@ package types
 // copy from github.com/docker/docker/api/types
 type ExecConfig struct {
 	User         string   // User that will run the command
-	Privileged   bool     // Is the container in privileged mode
+	Privileged   bool     // Is the workload in privileged mode
 	Tty          bool     // Attach standard streams to a tty.
 	AttachStdin  bool     // Attach the standard input, makes possible user interaction
 	AttachStderr bool     // Attach the standard error

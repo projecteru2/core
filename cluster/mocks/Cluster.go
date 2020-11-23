@@ -150,32 +150,32 @@ func (_m *Cluster) ConnectNetwork(ctx context.Context, network string, target st
 	return r0, r1
 }
 
-// ContainerStatusStream provides a mock function with given fields: ctx, appname, entrypoint, nodename, labels
-func (_m *Cluster) ContainerStatusStream(ctx context.Context, appname string, entrypoint string, nodename string, labels map[string]string) chan *types.ContainerStatus {
+// WorkloadStatusStream provides a mock function with given fields: ctx, appname, entrypoint, nodename, labels
+func (_m *Cluster) WorkloadStatusStream(ctx context.Context, appname string, entrypoint string, nodename string, labels map[string]string) chan *types.WorkloadStatus {
 	ret := _m.Called(ctx, appname, entrypoint, nodename, labels)
 
-	var r0 chan *types.ContainerStatus
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, map[string]string) chan *types.ContainerStatus); ok {
+	var r0 chan *types.WorkloadStatus
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, map[string]string) chan *types.WorkloadStatus); ok {
 		r0 = rf(ctx, appname, entrypoint, nodename, labels)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(chan *types.ContainerStatus)
+			r0 = ret.Get(0).(chan *types.WorkloadStatus)
 		}
 	}
 
 	return r0
 }
 
-// ControlContainer provides a mock function with given fields: ctx, IDs, t, force
-func (_m *Cluster) ControlContainer(ctx context.Context, IDs []string, t string, force bool) (chan *types.ControlContainerMessage, error) {
+// ControlWorkload provides a mock function with given fields: ctx, IDs, t, force
+func (_m *Cluster) ControlWorkload(ctx context.Context, IDs []string, t string, force bool) (chan *types.ControlWorkloadMessage, error) {
 	ret := _m.Called(ctx, IDs, t, force)
 
-	var r0 chan *types.ControlContainerMessage
-	if rf, ok := ret.Get(0).(func(context.Context, []string, string, bool) chan *types.ControlContainerMessage); ok {
+	var r0 chan *types.ControlWorkloadMessage
+	if rf, ok := ret.Get(0).(func(context.Context, []string, string, bool) chan *types.ControlWorkloadMessage); ok {
 		r0 = rf(ctx, IDs, t, force)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(chan *types.ControlContainerMessage)
+			r0 = ret.Get(0).(chan *types.ControlWorkloadMessage)
 		}
 	}
 
@@ -212,16 +212,16 @@ func (_m *Cluster) Copy(ctx context.Context, opts *types.CopyOptions) (chan *typ
 	return r0, r1
 }
 
-// CreateContainer provides a mock function with given fields: ctx, opts
-func (_m *Cluster) CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error) {
+// CreateWorkload provides a mock function with given fields: ctx, opts
+func (_m *Cluster) CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
 	ret := _m.Called(ctx, opts)
 
-	var r0 chan *types.CreateContainerMessage
-	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions) chan *types.CreateContainerMessage); ok {
+	var r0 chan *types.CreateWorkloadMessage
+	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions) chan *types.CreateWorkloadMessage); ok {
 		r0 = rf(ctx, opts)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(chan *types.CreateContainerMessage)
+			r0 = ret.Get(0).(chan *types.CreateWorkloadMessage)
 		}
 	}
 
@@ -249,16 +249,16 @@ func (_m *Cluster) DisconnectNetwork(ctx context.Context, network string, target
 	return r0
 }
 
-// DissociateContainer provides a mock function with given fields: ctx, IDs
-func (_m *Cluster) DissociateContainer(ctx context.Context, IDs []string) (chan *types.DissociateContainerMessage, error) {
+// DissociateWorkload provides a mock function with given fields: ctx, IDs
+func (_m *Cluster) DissociateWorkload(ctx context.Context, IDs []string) (chan *types.DissociateWorkloadMessage, error) {
 	ret := _m.Called(ctx, IDs)
 
-	var r0 chan *types.DissociateContainerMessage
-	if rf, ok := ret.Get(0).(func(context.Context, []string) chan *types.DissociateContainerMessage); ok {
+	var r0 chan *types.DissociateWorkloadMessage
+	if rf, ok := ret.Get(0).(func(context.Context, []string) chan *types.DissociateWorkloadMessage); ok {
 		r0 = rf(ctx, IDs)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(chan *types.DissociateContainerMessage)
+			r0 = ret.Get(0).(chan *types.DissociateWorkloadMessage)
 		}
 	}
 
@@ -272,16 +272,16 @@ func (_m *Cluster) DissociateContainer(ctx context.Context, IDs []string) (chan 
 	return r0, r1
 }
 
-// ExecuteContainer provides a mock function with given fields: ctx, opts, inCh
-func (_m *Cluster) ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions, inCh <-chan []byte) chan *types.AttachContainerMessage {
+// ExecuteWorkload provides a mock function with given fields: ctx, opts, inCh
+func (_m *Cluster) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorkloadOptions, inCh <-chan []byte) chan *types.AttachWorkloadMessage {
 	ret := _m.Called(ctx, opts, inCh)
 
-	var r0 chan *types.AttachContainerMessage
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ExecuteContainerOptions, <-chan []byte) chan *types.AttachContainerMessage); ok {
+	var r0 chan *types.AttachWorkloadMessage
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ExecuteWorkloadOptions, <-chan []byte) chan *types.AttachWorkloadMessage); ok {
 		r0 = rf(ctx, opts, inCh)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(chan *types.AttachContainerMessage)
+			r0 = ret.Get(0).(chan *types.AttachWorkloadMessage)
 		}
 	}
 
@@ -293,16 +293,16 @@ func (_m *Cluster) Finalizer() {
 	_m.Called()
 }
 
-// GetContainer provides a mock function with given fields: ctx, ID
-func (_m *Cluster) GetContainer(ctx context.Context, ID string) (*types.Container, error) {
+// GetWorkload provides a mock function with given fields: ctx, ID
+func (_m *Cluster) GetWorkload(ctx context.Context, ID string) (*types.Workload, error) {
 	ret := _m.Called(ctx, ID)
 
-	var r0 *types.Container
-	if rf, ok := ret.Get(0).(func(context.Context, string) *types.Container); ok {
+	var r0 *types.Workload
+	if rf, ok := ret.Get(0).(func(context.Context, string) *types.Workload); ok {
 		r0 = rf(ctx, ID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Container)
+			r0 = ret.Get(0).(*types.Workload)
 		}
 	}
 
@@ -316,16 +316,16 @@ func (_m *Cluster) GetContainer(ctx context.Context, ID string) (*types.Containe
 	return r0, r1
 }
 
-// GetContainers provides a mock function with given fields: ctx, IDs
-func (_m *Cluster) GetContainers(ctx context.Context, IDs []string) ([]*types.Container, error) {
+// GetWorkloads provides a mock function with given fields: ctx, IDs
+func (_m *Cluster) GetWorkloads(ctx context.Context, IDs []string) ([]*types.Workload, error) {
 	ret := _m.Called(ctx, IDs)
 
-	var r0 []*types.Container
-	if rf, ok := ret.Get(0).(func(context.Context, []string) []*types.Container); ok {
+	var r0 []*types.Workload
+	if rf, ok := ret.Get(0).(func(context.Context, []string) []*types.Workload); ok {
 		r0 = rf(ctx, IDs)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*types.Container)
+			r0 = ret.Get(0).([]*types.Workload)
 		}
 	}
 
@@ -339,8 +339,8 @@ func (_m *Cluster) GetContainers(ctx context.Context, IDs []string) ([]*types.Co
 	return r0, r1
 }
 
-// GetContainersStatus provides a mock function with given fields: ctx, IDs
-func (_m *Cluster) GetContainersStatus(ctx context.Context, IDs []string) ([]*types.StatusMeta, error) {
+// GetWorkloadsStatus provides a mock function with given fields: ctx, IDs
+func (_m *Cluster) GetWorkloadsStatus(ctx context.Context, IDs []string) ([]*types.StatusMeta, error) {
 	ret := _m.Called(ctx, IDs)
 
 	var r0 []*types.StatusMeta
@@ -408,21 +408,21 @@ func (_m *Cluster) GetPod(ctx context.Context, podname string) (*types.Pod, erro
 	return r0, r1
 }
 
-// ListContainers provides a mock function with given fields: ctx, opts
-func (_m *Cluster) ListContainers(ctx context.Context, opts *types.ListContainersOptions) ([]*types.Container, error) {
+// ListWorkloads provides a mock function with given fields: ctx, opts
+func (_m *Cluster) ListWorkloads(ctx context.Context, opts *types.ListWorkloadsOptions) ([]*types.Workload, error) {
 	ret := _m.Called(ctx, opts)
 
-	var r0 []*types.Container
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ListContainersOptions) []*types.Container); ok {
+	var r0 []*types.Workload
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ListWorkloadsOptions) []*types.Workload); ok {
 		r0 = rf(ctx, opts)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*types.Container)
+			r0 = ret.Get(0).([]*types.Workload)
 		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ListContainersOptions) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ListWorkloadsOptions) error); ok {
 		r1 = rf(ctx, opts)
 	} else {
 		r1 = ret.Error(1)
@@ -454,16 +454,16 @@ func (_m *Cluster) ListNetworks(ctx context.Context, podname string, driver stri
 	return r0, r1
 }
 
-// ListNodeContainers provides a mock function with given fields: ctx, nodename, labels
-func (_m *Cluster) ListNodeContainers(ctx context.Context, nodename string, labels map[string]string) ([]*types.Container, error) {
+// ListNodeWorkloads provides a mock function with given fields: ctx, nodename, labels
+func (_m *Cluster) ListNodeWorkloads(ctx context.Context, nodename string, labels map[string]string) ([]*types.Workload, error) {
 	ret := _m.Called(ctx, nodename, labels)
 
-	var r0 []*types.Container
-	if rf, ok := ret.Get(0).(func(context.Context, string, map[string]string) []*types.Container); ok {
+	var r0 []*types.Workload
+	if rf, ok := ret.Get(0).(func(context.Context, string, map[string]string) []*types.Workload); ok {
 		r0 = rf(ctx, nodename, labels)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*types.Container)
+			r0 = ret.Get(0).([]*types.Workload)
 		}
 	}
 
@@ -606,16 +606,16 @@ func (_m *Cluster) ReallocResource(ctx context.Context, opts *types.ReallocOptio
 	return r0
 }
 
-// RemoveContainer provides a mock function with given fields: ctx, IDs, force, step
-func (_m *Cluster) RemoveContainer(ctx context.Context, IDs []string, force bool, step int) (chan *types.RemoveContainerMessage, error) {
+// RemoveWorkload provides a mock function with given fields: ctx, IDs, force, step
+func (_m *Cluster) RemoveWorkload(ctx context.Context, IDs []string, force bool, step int) (chan *types.RemoveWorkloadMessage, error) {
 	ret := _m.Called(ctx, IDs, force, step)
 
-	var r0 chan *types.RemoveContainerMessage
-	if rf, ok := ret.Get(0).(func(context.Context, []string, bool, int) chan *types.RemoveContainerMessage); ok {
+	var r0 chan *types.RemoveWorkloadMessage
+	if rf, ok := ret.Get(0).(func(context.Context, []string, bool, int) chan *types.RemoveWorkloadMessage); ok {
 		r0 = rf(ctx, IDs, force, step)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(chan *types.RemoveContainerMessage)
+			r0 = ret.Get(0).(chan *types.RemoveWorkloadMessage)
 		}
 	}
 
@@ -680,16 +680,16 @@ func (_m *Cluster) RemovePod(ctx context.Context, podname string) error {
 	return r0
 }
 
-// ReplaceContainer provides a mock function with given fields: ctx, opts
-func (_m *Cluster) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceContainerMessage, error) {
+// ReplaceWorkload provides a mock function with given fields: ctx, opts
+func (_m *Cluster) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceWorkloadMessage, error) {
 	ret := _m.Called(ctx, opts)
 
-	var r0 chan *types.ReplaceContainerMessage
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReplaceOptions) chan *types.ReplaceContainerMessage); ok {
+	var r0 chan *types.ReplaceWorkloadMessage
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReplaceOptions) chan *types.ReplaceWorkloadMessage); ok {
 		r0 = rf(ctx, opts)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(chan *types.ReplaceContainerMessage)
+			r0 = ret.Get(0).(chan *types.ReplaceWorkloadMessage)
 		}
 	}
 
@@ -704,15 +704,15 @@ func (_m *Cluster) ReplaceContainer(ctx context.Context, opts *types.ReplaceOpti
 }
 
 // RunAndWait provides a mock function with given fields: ctx, opts, inCh
-func (_m *Cluster) RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) (<-chan *types.AttachContainerMessage, error) {
+func (_m *Cluster) RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) (<-chan *types.AttachWorkloadMessage, error) {
 	ret := _m.Called(ctx, opts, inCh)
 
-	var r0 <-chan *types.AttachContainerMessage
-	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, <-chan []byte) <-chan *types.AttachContainerMessage); ok {
+	var r0 <-chan *types.AttachWorkloadMessage
+	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, <-chan []byte) <-chan *types.AttachWorkloadMessage); ok {
 		r0 = rf(ctx, opts, inCh)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(<-chan *types.AttachContainerMessage)
+			r0 = ret.Get(0).(<-chan *types.AttachWorkloadMessage)
 		}
 	}
 
@@ -749,8 +749,8 @@ func (_m *Cluster) Send(ctx context.Context, opts *types.SendOptions) (chan *typ
 	return r0, r1
 }
 
-// SetContainersStatus provides a mock function with given fields: ctx, status, ttls
-func (_m *Cluster) SetContainersStatus(ctx context.Context, status []*types.StatusMeta, ttls map[string]int64) ([]*types.StatusMeta, error) {
+// SetWorkloadsStatus provides a mock function with given fields: ctx, status, ttls
+func (_m *Cluster) SetWorkloadsStatus(ctx context.Context, status []*types.StatusMeta, ttls map[string]int64) ([]*types.StatusMeta, error) {
 	ret := _m.Called(ctx, status, ttls)
 
 	var r0 []*types.StatusMeta

@@ -79,20 +79,20 @@ func MakeCommandLineArgs(s string) []string {
 	return r
 }
 
-// MakeContainerName joins appname, entrypoint, ident using '_'
-func MakeContainerName(appname, entrypoint, ident string) string {
+// MakeWorkloadName joins appname, entrypoint, ident using '_'
+func MakeWorkloadName(appname, entrypoint, ident string) string {
 	return strings.Join([]string{appname, entrypoint, ident}, "_")
 }
 
-// ParseContainerName does the opposite thing as MakeContainerName
-func ParseContainerName(containerName string) (string, string, string, error) {
-	containerName = strings.TrimLeft(containerName, "/")
-	splits := strings.Split(containerName, "_")
+// ParseWorkloadName does the opposite thing as MakeWorkloadName
+func ParseWorkloadName(workloadName string) (string, string, string, error) {
+	workloadName = strings.TrimLeft(workloadName, "/")
+	splits := strings.Split(workloadName, "_")
 	length := len(splits)
 	if length >= 3 {
 		return strings.Join(splits[0:length-2], "_"), splits[length-2], splits[length-1], nil
 	}
-	return "", "", "", types.NewDetailedErr(types.ErrInvalidContainerName, containerName)
+	return "", "", "", types.NewDetailedErr(types.ErrInvalidWorkloadName, workloadName)
 }
 
 // MakePublishInfo generate publish info
@@ -154,13 +154,13 @@ func DecodeMetaInLabel(labels map[string]string) *types.LabelMeta {
 	return meta
 }
 
-// ShortID short container ID
-func ShortID(containerID string) string {
-	return containerID[:Min(len(containerID), shortenLength)]
+// ShortID short workload ID
+func ShortID(workloadID string) string {
+	return workloadID[:Min(len(workloadID), shortenLength)]
 }
 
-// FilterContainer filter container by labels
-func FilterContainer(extend map[string]string, labels map[string]string) bool {
+// FilterWorkload filter workload by labels
+func FilterWorkload(extend map[string]string, labels map[string]string) bool {
 	for k, v := range labels {
 		if n, ok := extend[k]; !ok || n != v {
 			return false

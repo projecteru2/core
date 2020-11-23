@@ -39,21 +39,21 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		opts.Normalize(node)
 		n = node
 		n.Available = (opts.StatusOpt == types.TriTrue) || (opts.StatusOpt == types.TriKeep && n.Available)
-		if opts.ContainersDown {
-			containers, err := c.store.ListNodeContainers(ctx, opts.Nodename, nil)
+		if opts.WorkloadsDown {
+			workloads, err := c.store.ListNodeWorkloads(ctx, opts.Nodename, nil)
 			if err != nil {
 				return err
 			}
-			for _, container := range containers {
-				if container.StatusMeta == nil {
-					container.StatusMeta = &types.StatusMeta{ID: container.ID}
+			for _, workload := range workloads {
+				if workload.StatusMeta == nil {
+					workload.StatusMeta = &types.StatusMeta{ID: workload.ID}
 				}
-				container.StatusMeta.Running = false
-				container.StatusMeta.Healthy = false
+				workload.StatusMeta.Running = false
+				workload.StatusMeta.Healthy = false
 
-				// mark container which belongs to this node as unhealthy
-				if err = c.store.SetContainerStatus(ctx, container, 0); err != nil {
-					log.Errorf("[SetNodeAvailable] Set container %s on node %s inactive failed %v", container.ID, opts.Nodename, err)
+				// mark workload which belongs to this node as unhealthy
+				if err = c.store.SetWorkloadStatus(ctx, workload, 0); err != nil {
+					log.Errorf("[SetNodeAvailable] Set workload %s on node %s inactive failed %v", workload.ID, opts.Nodename, err)
 				}
 			}
 		}
