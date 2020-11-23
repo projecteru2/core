@@ -479,6 +479,7 @@ func toRPCWorkload(_ context.Context, c *types.Workload) (*pb.Workload, error) {
 		Image:      c.Image,
 		Labels:     c.Labels,
 		Status:     toRPCWorkloadStatus(c.StatusMeta),
+		CreateTime: c.CreateTime,
 		Resource: &pb.Resource{
 			CpuQuotaLimit:     c.CPUQuotaLimit,
 			CpuQuotaRequest:   c.CPUQuotaRequest,

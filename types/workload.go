@@ -34,11 +34,11 @@ type Workload struct {
 	Nodename   string            `json:"nodename"`
 	Hook       *Hook             `json:"hook"`
 	Privileged bool              `json:"privileged"`
-	SoftLimit  bool              `json:"softlimit"`
 	User       string            `json:"user"`
 	Env        []string          `json:"env"`
 	Image      string            `json:"image"`
 	Labels     map[string]string `json:"labels"`
+	CreateTime int64             `json:"create_time"`
 	StatusMeta *StatusMeta       `json:"-"`
 	Engine     engine.API        `json:"-"`
 }

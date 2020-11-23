@@ -269,7 +269,6 @@ func TestRealloc(t *testing.T) {
 
 func TestReallocBindCpu(t *testing.T) {
 	c := NewTestCluster()
-	c.config.Scheduler.ShareBase = 100
 	ctx := context.Background()
 	store := &storemocks.Store{}
 	c.store = store

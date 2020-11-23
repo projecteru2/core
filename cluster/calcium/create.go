@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/projecteru2/core/cluster"
@@ -229,6 +230,7 @@ func (c *Calcium) doDeployOneWorkload(
 		Image:      opts.Image,
 		Env:        opts.Env,
 		User:       opts.User,
+		CreateTime: time.Now().Unix(),
 	}
 	return utils.Txn(
 		ctx,

@@ -158,7 +158,7 @@ func (m *Mercury) ListNodeWorkloads(ctx context.Context, nodename string, labels
 	for _, ev := range resp.Kvs {
 		workload := &types.Workload{}
 		if err := json.Unmarshal(ev.Value, workload); err != nil {
-			return []*types.Workload{}, err
+			return nil, err
 		}
 		if utils.FilterWorkload(workload.Labels, labels) {
 			workloads = append(workloads, workload)
