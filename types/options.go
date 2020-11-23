@@ -9,16 +9,16 @@ type DeployOptions struct {
 	Nodenames      []string                 // Specific nodes to deploy, if given, must belong to pod
 	Image          string                   // Name of image to deploy
 	ExtraArgs      string                   // Extra arguments to append to command
-	Count          int                      // How many containers needed, e.g. 4
-	Env            []string                 // Env for container
-	DNS            []string                 // DNS for container
-	ExtraHosts     []string                 // Extra hosts for container
+	Count          int                      // How many workloads needed, e.g. 4
+	Env            []string                 // Env for workload
+	DNS            []string                 // DNS for workload
+	ExtraHosts     []string                 // Extra hosts for workload
 	Networks       map[string]string        // Network names and specified IPs
 	NetworkMode    string                   // Network mode
-	User           string                   // User for container
+	User           string                   // User for workload
 	Debug          bool                     // debug mode, use syslog as log driver
-	OpenStdin      bool                     // OpenStdin for container
-	Labels         map[string]string        // Labels for containers
+	OpenStdin      bool                     // OpenStdin for workload
+	Labels         map[string]string        // Labels for workloads
 	NodeLabels     map[string]string        // NodeLabels for filter node
 	DeployStrategy string                   // Deploy strategy
 	Data           map[string]ReaderManager // For additional file data
@@ -27,7 +27,7 @@ type DeployOptions struct {
 	IgnoreHook     bool                     // IgnoreHook ignore hook process
 	AfterCreate    []string                 // AfterCreate support run cmds after create
 	RawArgs        []byte                   // RawArgs for raw args processing
-	Lambda         bool                     // indicate is lambda container or not
+	Lambda         bool                     // indicate is lambda workload or not
 }
 
 // RunAndWaitOptions is options for running and waiting
@@ -37,19 +37,19 @@ type RunAndWaitOptions struct {
 	Cmd     string
 }
 
-// CopyOptions for multiple container files copy
+// CopyOptions for multiple workload files copy
 type CopyOptions struct {
 	Targets map[string][]string
 }
 
-// SendOptions for send files to multiple container
+// SendOptions for send files to multiple workload
 type SendOptions struct {
 	IDs  []string
 	Data map[string][]byte
 }
 
-// ListContainersOptions for list containers
-type ListContainersOptions struct {
+// ListWorkloadsOptions for list workloads
+type ListWorkloadsOptions struct {
 	Appname    string
 	Entrypoint string
 	Nodename   string
@@ -57,7 +57,7 @@ type ListContainersOptions struct {
 	Labels     map[string]string
 }
 
-// ReplaceOptions for replace container
+// ReplaceOptions for replace workload
 type ReplaceOptions struct {
 	DeployOptions
 	NetworkInherit bool
@@ -93,7 +93,7 @@ func (o *AddNodeOptions) Normalize() {
 type SetNodeOptions struct {
 	Nodename        string
 	StatusOpt       TriOptions
-	ContainersDown  bool
+	WorkloadsDown   bool
 	DeltaCPU        CPUMap
 	DeltaMemory     int64
 	DeltaStorage    int64
@@ -113,14 +113,14 @@ func (o *SetNodeOptions) Normalize(node *Node) {
 	}
 }
 
-// ExecuteContainerOptions for executing commands in running container
-type ExecuteContainerOptions struct {
-	ContainerID string
-	Commands    []string
-	Envs        []string
-	Workdir     string
-	OpenStdin   bool
-	ReplCmd     []byte
+// ExecuteWorkloadOptions for executing commands in running workload
+type ExecuteWorkloadOptions struct {
+	WorkloadID string
+	Commands   []string
+	Envs       []string
+	Workdir    string
+	OpenStdin  bool
+	ReplCmd    []byte
 }
 
 // ReallocOptions .

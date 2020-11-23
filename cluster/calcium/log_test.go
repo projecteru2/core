@@ -20,21 +20,21 @@ func TestLogStream(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 	engine := &enginemocks.API{}
 	ID := "test"
-	container := &types.Container{
+	workload := &types.Workload{
 		ID:     ID,
 		Engine: engine,
 	}
 	ctx := context.Background()
 	opts := &types.LogStreamOptions{ID: ID}
-	// failed by GetContainer
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	// failed by GetWorkload
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	ch, err := c.LogStream(ctx, opts)
 	assert.NoError(t, err)
 	for c := range ch {
 		assert.Equal(t, c.ID, ID)
 		assert.Empty(t, c.Data)
 	}
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	// failed by VirtualizationLogs
 	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(nil, types.ErrNodeExist).Once()
 	ch, err = c.LogStream(ctx, opts)

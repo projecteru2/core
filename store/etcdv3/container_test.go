@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAddORUpdateContainer(t *testing.T) {
+func TestAddORUpdateWorkload(t *testing.T) {
 	m := NewMercury(t)
 	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
@@ -19,28 +19,28 @@ func TestAddORUpdateContainer(t *testing.T) {
 	name := "test_app_1"
 	nodename := "n1"
 	podname := "test"
-	container := &types.Container{
+	workload := &types.Workload{
 		ID:       ID,
 		Nodename: nodename,
 		Podname:  podname,
 		Name:     "a",
 	}
 	// failed by name
-	err := m.AddContainer(ctx, container)
+	err := m.AddWorkload(ctx, workload)
 	assert.Error(t, err)
-	container.Name = name
+	workload.Name = name
 	// fail update
-	err = m.UpdateContainer(ctx, container)
+	err = m.UpdateWorkload(ctx, workload)
 	assert.Error(t, err)
 	// success create
-	err = m.AddContainer(ctx, container)
+	err = m.AddWorkload(ctx, workload)
 	assert.NoError(t, err)
 	// success updat
-	err = m.UpdateContainer(ctx, container)
+	err = m.UpdateWorkload(ctx, workload)
 	assert.NoError(t, err)
 }
 
-func TestRemoveContainer(t *testing.T) {
+func TestRemoveWorkload(t *testing.T) {
 	m := NewMercury(t)
 	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
@@ -48,26 +48,26 @@ func TestRemoveContainer(t *testing.T) {
 	name := "test_app_1"
 	nodename := "n1"
 	podname := "test"
-	container := &types.Container{
+	workload := &types.Workload{
 		ID:       ID,
 		Nodename: nodename,
 		Podname:  podname,
 		Name:     name,
 	}
 	// success create
-	err := m.AddContainer(ctx, container)
+	err := m.AddWorkload(ctx, workload)
 	assert.NoError(t, err)
 	// fail remove
-	container.Name = "a"
-	err = m.RemoveContainer(ctx, container)
+	workload.Name = "a"
+	err = m.RemoveWorkload(ctx, workload)
 	assert.Error(t, err)
-	container.Name = name
+	workload.Name = name
 	// success remove
-	err = m.RemoveContainer(ctx, container)
+	err = m.RemoveWorkload(ctx, workload)
 	assert.NoError(t, err)
 }
 
-func TestGetContainer(t *testing.T) {
+func TestGetWorkload(t *testing.T) {
 	m := NewMercury(t)
 	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
@@ -75,20 +75,20 @@ func TestGetContainer(t *testing.T) {
 	name := "test_app_1"
 	nodename := "n1"
 	podname := "test"
-	container := &types.Container{
+	workload := &types.Workload{
 		ID:       ID,
 		Nodename: nodename,
 		Podname:  podname,
 		Name:     name,
 	}
 	// success create
-	err := m.AddContainer(ctx, container)
+	err := m.AddWorkload(ctx, workload)
 	assert.NoError(t, err)
-	// failed by no container
-	_, err = m.GetContainers(ctx, []string{ID, "xxx"})
+	// failed by no workload
+	_, err = m.GetWorkloads(ctx, []string{ID, "xxx"})
 	assert.Error(t, err)
 	// failed by no pod nodes
-	_, err = m.GetContainer(ctx, ID)
+	_, err = m.GetWorkload(ctx, ID)
 	assert.Error(t, err)
 	// create pod node
 	_, err = m.AddPod(ctx, podname, "")
@@ -96,11 +96,11 @@ func TestGetContainer(t *testing.T) {
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname, CPU: 10, Share: 100, Memory: 1000, Storage: 1000})
 	assert.NoError(t, err)
 	// success
-	_, err = m.GetContainer(ctx, ID)
+	_, err = m.GetWorkload(ctx, ID)
 	assert.NoError(t, err)
 }
 
-func TestGetContainerStatus(t *testing.T) {
+func TestGetWorkloadStatus(t *testing.T) {
 	m := NewMercury(t)
 	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
@@ -108,28 +108,28 @@ func TestGetContainerStatus(t *testing.T) {
 	name := "test_app_1"
 	nodename := "n1"
 	podname := "test"
-	container := &types.Container{
+	workload := &types.Workload{
 		ID:       ID,
 		Nodename: nodename,
 		Podname:  podname,
 		Name:     name,
 	}
 	// success create
-	err := m.AddContainer(ctx, container)
+	err := m.AddWorkload(ctx, workload)
 	assert.NoError(t, err)
 	// failed no pod no node
-	_, err = m.GetContainerStatus(ctx, ID)
+	_, err = m.GetWorkloadStatus(ctx, ID)
 	assert.Error(t, err)
 	// add success
 	_, err = m.AddPod(ctx, podname, "")
 	assert.NoError(t, err)
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname, CPU: 10, Share: 100, Memory: 1000, Storage: 1000})
 	assert.NoError(t, err)
-	c, err := m.GetContainerStatus(ctx, ID)
+	c, err := m.GetWorkloadStatus(ctx, ID)
 	assert.Nil(t, c)
 }
 
-func TestSetContainerStatus(t *testing.T) {
+func TestSetWorkloadStatus(t *testing.T) {
 	m := NewMercury(t)
 	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
@@ -137,49 +137,49 @@ func TestSetContainerStatus(t *testing.T) {
 	name := "test_app_1"
 	nodename := "n1"
 	podname := "test"
-	container := &types.Container{
+	workload := &types.Workload{
 		ID:         ID,
 		Nodename:   nodename,
 		Podname:    podname,
 		StatusMeta: &types.StatusMeta{},
 	}
 	// fail by no name
-	err := m.SetContainerStatus(ctx, container, 0)
+	err := m.SetWorkloadStatus(ctx, workload, 0)
 	assert.Error(t, err)
-	container.Name = name
-	// no container, err nil
-	err = m.SetContainerStatus(ctx, container, 10)
+	workload.Name = name
+	// no workload, err nil
+	err = m.SetWorkloadStatus(ctx, workload, 10)
 	assert.NoError(t, err)
-	assert.NoError(t, m.AddContainer(ctx, container))
+	assert.NoError(t, m.AddWorkload(ctx, workload))
 	// no status key, put succ, err nil
-	err = m.SetContainerStatus(ctx, container, 10)
+	err = m.SetWorkloadStatus(ctx, workload, 10)
 	assert.NoError(t, err)
 	// status not changed, update old lease
-	err = m.SetContainerStatus(ctx, container, 10)
+	err = m.SetWorkloadStatus(ctx, workload, 10)
 	assert.NoError(t, err)
 	// status changed, revoke old lease
-	container.StatusMeta.Running = true
-	err = m.SetContainerStatus(ctx, container, 10)
+	workload.StatusMeta.Running = true
+	err = m.SetWorkloadStatus(ctx, workload, 10)
 	assert.NoError(t, err)
 	// status not changed, ttl = 0
-	err = m.SetContainerStatus(ctx, container, 0)
+	err = m.SetWorkloadStatus(ctx, workload, 0)
 	assert.NoError(t, err)
 }
 
-func TestListContainers(t *testing.T) {
+func TestListWorkloads(t *testing.T) {
 	m := NewMercury(t)
 	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	// no key
-	cs, err := m.ListContainers(ctx, "", "a", "b", 1, nil)
+	cs, err := m.ListWorkloads(ctx, "", "a", "b", 1, nil)
 	assert.NoError(t, err)
 	assert.Empty(t, cs)
-	// add container
+	// add workload
 	name := "test_app_1"
 	nodename := "n1"
 	podname := "test"
 	ID := "1234567812345678123456781234567812345678123456781234567812345678"
-	container := &types.Container{
+	workload := &types.Workload{
 		ID:       ID,
 		Nodename: nodename,
 		Podname:  podname,
@@ -187,36 +187,36 @@ func TestListContainers(t *testing.T) {
 		Labels:   map[string]string{"x": "y"},
 	}
 	// success create
-	err = m.AddContainer(ctx, container)
+	err = m.AddWorkload(ctx, workload)
 	assert.NoError(t, err)
 	_, err = m.AddPod(ctx, podname, "")
 	assert.NoError(t, err)
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname, CPU: 10, Share: 100, Memory: 1000, Storage: 1000})
 	assert.NoError(t, err)
 	// no labels
-	cs, err = m.ListContainers(ctx, "", "a", "b", 1, nil)
+	cs, err = m.ListWorkloads(ctx, "", "a", "b", 1, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, cs)
 	// labels
-	cs, err = m.ListContainers(ctx, "", "a", "b", 1, map[string]string{"x": "z"})
+	cs, err = m.ListWorkloads(ctx, "", "a", "b", 1, map[string]string{"x": "z"})
 	assert.NoError(t, err)
 	assert.Empty(t, cs)
 }
 
-func TestListNodeContainers(t *testing.T) {
+func TestListNodeWorkloads(t *testing.T) {
 	m := NewMercury(t)
 	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	// no key
-	cs, err := m.ListNodeContainers(ctx, "", nil)
+	cs, err := m.ListNodeWorkloads(ctx, "", nil)
 	assert.NoError(t, err)
 	assert.Empty(t, cs)
-	// add container
+	// add workload
 	name := "test_app_1"
 	nodename := "n1"
 	podname := "test"
 	ID := "1234567812345678123456781234567812345678123456781234567812345678"
-	container := &types.Container{
+	workload := &types.Workload{
 		ID:       ID,
 		Nodename: nodename,
 		Podname:  podname,
@@ -224,23 +224,23 @@ func TestListNodeContainers(t *testing.T) {
 		Labels:   map[string]string{"x": "y"},
 	}
 	// success create
-	err = m.AddContainer(ctx, container)
+	err = m.AddWorkload(ctx, workload)
 	assert.NoError(t, err)
 	_, err = m.AddPod(ctx, podname, "")
 	assert.NoError(t, err)
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname, CPU: 10, Share: 100, Memory: 1000, Storage: 1000})
 	assert.NoError(t, err)
 	// no labels
-	cs, err = m.ListNodeContainers(ctx, nodename, nil)
+	cs, err = m.ListNodeWorkloads(ctx, nodename, nil)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, cs)
 	// labels
-	cs, err = m.ListNodeContainers(ctx, nodename, map[string]string{"x": "z"})
+	cs, err = m.ListNodeWorkloads(ctx, nodename, map[string]string{"x": "z"})
 	assert.NoError(t, err)
 	assert.Empty(t, cs)
 }
 
-func TestContainerStatusStream(t *testing.T) {
+func TestWorkloadStatusStream(t *testing.T) {
 	m := NewMercury(t)
 	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
@@ -250,7 +250,7 @@ func TestContainerStatusStream(t *testing.T) {
 	entrypoint := "app"
 	nodename := "n1"
 	podname := "test"
-	container := &types.Container{
+	workload := &types.Workload{
 		ID:       ID,
 		Name:     name,
 		Nodename: nodename,
@@ -261,7 +261,7 @@ func TestContainerStatusStream(t *testing.T) {
 		Podname:  podname,
 		Endpoint: "tcp://127.0.0.1:2376",
 	}
-	_, err := json.Marshal(container)
+	_, err := json.Marshal(workload)
 	assert.NoError(t, err)
 	nodeBytes, err := json.Marshal(node)
 	assert.NoError(t, err)
@@ -271,21 +271,21 @@ func TestContainerStatusStream(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = m.Create(ctx, fmt.Sprintf(nodePodKey, podname, nodename), string(nodeBytes))
 	assert.NoError(t, err)
-	assert.NoError(t, m.AddContainer(ctx, container))
-	// ContainerStatusStream
-	container.StatusMeta = &types.StatusMeta{
+	assert.NoError(t, m.AddWorkload(ctx, workload))
+	// WorkloadStatusStream
+	workload.StatusMeta = &types.StatusMeta{
 		ID:      ID,
 		Running: true,
 	}
 	cctx, cancel := context.WithCancel(ctx)
-	ch := m.ContainerStatusStream(cctx, appname, entrypoint, "", nil)
-	assert.NoError(t, m.SetContainerStatus(ctx, container, 0))
+	ch := m.WorkloadStatusStream(cctx, appname, entrypoint, "", nil)
+	assert.NoError(t, m.SetWorkloadStatus(ctx, workload, 0))
 	go func() {
 		time.Sleep(1 * time.Second)
 		cancel()
 	}()
 	for s := range ch {
 		assert.False(t, s.Delete)
-		assert.NotNil(t, s.Container)
+		assert.NotNil(t, s.Workload)
 	}
 }

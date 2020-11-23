@@ -11,9 +11,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// ControlContainer control containers status
-func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, force bool) (chan *types.ControlContainerMessage, error) {
-	ch := make(chan *types.ControlContainerMessage)
+// ControlWorkload control workloads status
+func (c *Calcium) ControlWorkload(ctx context.Context, IDs []string, t string, force bool) (chan *types.ControlWorkloadMessage, error) {
+	ch := make(chan *types.ControlWorkloadMessage)
 
 	go func() {
 		defer close(ch)
@@ -23,35 +23,35 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 			go func(ID string) {
 				defer wg.Done()
 				var message []*bytes.Buffer
-				err := c.withContainerLocked(ctx, ID, func(container *types.Container) error {
+				err := c.withWorkloadLocked(ctx, ID, func(workload *types.Workload) error {
 					var err error
 					switch t {
-					case cluster.ContainerStop:
-						message, err = c.doStopContainer(ctx, container, force)
+					case cluster.WorkloadStop:
+						message, err = c.doStopWorkload(ctx, workload, force)
 						return err
-					case cluster.ContainerStart:
-						message, err = c.doStartContainer(ctx, container, force)
+					case cluster.WorkloadStart:
+						message, err = c.doStartWorkload(ctx, workload, force)
 						return err
-					case cluster.ContainerRestart:
-						message, err = c.doStopContainer(ctx, container, force)
+					case cluster.WorkloadRestart:
+						message, err = c.doStopWorkload(ctx, workload, force)
 						if err != nil {
 							return err
 						}
-						startHook, err := c.doStartContainer(ctx, container, force)
+						startHook, err := c.doStartWorkload(ctx, workload, force)
 						message = append(message, startHook...)
 						return err
 					}
 					return types.ErrUnknownControlType
 				})
 				if err == nil {
-					log.Infof("[ControlContainer] Container %s %s", ID, t)
-					log.Info("[ControlContainer] Hook Output:")
+					log.Infof("[ControlWorkload] Workload %s %s", ID, t)
+					log.Info("[ControlWorkload] Hook Output:")
 					log.Info(string(utils.MergeHookOutputs(message)))
 				}
-				ch <- &types.ControlContainerMessage{
-					ContainerID: ID,
-					Error:       err,
-					Hook:        message,
+				ch <- &types.ControlWorkloadMessage{
+					WorkloadID: ID,
+					Error:      err,
+					Hook:       message,
 				}
 			}(ID)
 		}
@@ -61,31 +61,31 @@ func (c *Calcium) ControlContainer(ctx context.Context, IDs []string, t string, 
 	return ch, nil
 }
 
-func (c *Calcium) doStartContainer(ctx context.Context, container *types.Container, force bool) (message []*bytes.Buffer, err error) {
-	if err = container.Start(ctx); err != nil {
+func (c *Calcium) doStartWorkload(ctx context.Context, workload *types.Workload, force bool) (message []*bytes.Buffer, err error) {
+	if err = workload.Start(ctx); err != nil {
 		return message, err
 	}
 	// TODO healthcheck first
-	if container.Hook != nil && len(container.Hook.AfterStart) > 0 {
+	if workload.Hook != nil && len(workload.Hook.AfterStart) > 0 {
 		message, err = c.doHook(
 			ctx,
-			container.ID, container.User,
-			container.Hook.AfterStart, container.Env,
-			container.Hook.Force, container.Privileged,
-			force, container.Engine,
+			workload.ID, workload.User,
+			workload.Hook.AfterStart, workload.Env,
+			workload.Hook.Force, workload.Privileged,
+			force, workload.Engine,
 		)
 	}
 	return message, err
 }
 
-func (c *Calcium) doStopContainer(ctx context.Context, container *types.Container, force bool) (message []*bytes.Buffer, err error) {
-	if container.Hook != nil && len(container.Hook.BeforeStop) > 0 {
+func (c *Calcium) doStopWorkload(ctx context.Context, workload *types.Workload, force bool) (message []*bytes.Buffer, err error) {
+	if workload.Hook != nil && len(workload.Hook.BeforeStop) > 0 {
 		message, err = c.doHook(
 			ctx,
-			container.ID, container.User,
-			container.Hook.BeforeStop, container.Env,
-			container.Hook.Force, container.Privileged,
-			force, container.Engine,
+			workload.ID, workload.User,
+			workload.Hook.BeforeStop, workload.Env,
+			workload.Hook.Force, workload.Privileged,
+			force, workload.Engine,
 		)
 		if err != nil {
 			return message, err
@@ -95,7 +95,7 @@ func (c *Calcium) doStopContainer(ctx context.Context, container *types.Containe
 	// 这里 block 的问题很严重，按照目前的配置是 5 分钟一级的 block
 	// 一个简单的处理方法是相信 ctx 不相信 engine 自身的处理
 	// 另外我怀疑 engine 自己的 timeout 实现是完全的等 timeout 而非结束了就退出
-	if err = container.Stop(ctx); err != nil {
+	if err = workload.Stop(ctx); err != nil {
 		message = append(message, bytes.NewBufferString(err.Error()))
 	}
 	return message, err

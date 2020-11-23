@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Send send files to container
+// Send send files to workload
 func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error) {
 	ch := make(chan *types.SendMessage)
 	go func() {
@@ -23,12 +23,12 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 			go func(dst string, content []byte) {
 				defer wg.Done()
 				for _, ID := range opts.IDs {
-					container, err := c.GetContainer(ctx, ID)
+					workload, err := c.GetWorkload(ctx, ID)
 					if err != nil {
 						ch <- &types.SendMessage{ID: ID, Path: dst, Error: err}
 						continue
 					}
-					if err := c.doSendFileToContainer(ctx, container.Engine, container.ID, dst, bytes.NewBuffer(content), true, true); err != nil {
+					if err := c.doSendFileToWorkload(ctx, workload.Engine, workload.ID, dst, bytes.NewBuffer(content), true, true); err != nil {
 						ch <- &types.SendMessage{ID: ID, Path: dst, Error: err}
 						continue
 					}
@@ -41,8 +41,8 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 	return ch, nil
 }
 
-func (c *Calcium) doSendFileToContainer(ctx context.Context, engine engine.API, ID, dst string, content io.Reader, AllowOverwriteDirWithFile bool, CopyUIDGID bool) error {
-	log.Infof("[doSendFileToContainer] Send file to %s:%s", ID, dst)
-	log.Debugf("[doSendFileToContainer] remote path %s", dst)
+func (c *Calcium) doSendFileToWorkload(ctx context.Context, engine engine.API, ID, dst string, content io.Reader, AllowOverwriteDirWithFile bool, CopyUIDGID bool) error {
+	log.Infof("[doSendFileToWorkload] Send file to %s:%s", ID, dst)
+	log.Debugf("[doSendFileToWorkload] remote path %s", dst)
 	return engine.VirtualizationCopyTo(ctx, ID, dst, content, AllowOverwriteDirWithFile, CopyUIDGID)
 }

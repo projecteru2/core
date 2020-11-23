@@ -47,7 +47,7 @@ func TestDoUnlockAll(t *testing.T) {
 	c.doUnlockAll(context.Background(), locks)
 }
 
-func TestWithContainersLocked(t *testing.T) {
+func TestWithWorkloadsLocked(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := &storemocks.Store{}
@@ -58,30 +58,30 @@ func TestWithContainersLocked(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	// failed to get lock
 	lock.On("Lock", mock.Anything).Return(types.ErrNoETCD).Once()
-	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{{}}, nil).Once()
-	err := c.withContainersLocked(ctx, []string{"c1", "c2"}, func(containers map[string]*types.Container) error { return nil })
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{{}}, nil).Once()
+	err := c.withWorkloadsLocked(ctx, []string{"c1", "c2"}, func(workloads map[string]*types.Workload) error { return nil })
 	assert.Error(t, err)
 	// success
 	lock.On("Lock", mock.Anything).Return(nil)
-	// failed by getcontainer
-	store.On("GetContainers", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	err = c.withContainersLocked(ctx, []string{"c1", "c2"}, func(containers map[string]*types.Container) error { return nil })
+	// failed by getworkload
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	err = c.withWorkloadsLocked(ctx, []string{"c1", "c2"}, func(workloads map[string]*types.Workload) error { return nil })
 	assert.Error(t, err)
 	engine := &enginemocks.API{}
-	container := &types.Container{
+	workload := &types.Workload{
 		ID:     "c1",
 		Engine: engine,
 	}
-	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{container}, nil)
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
 	// success
-	err = c.withContainersLocked(ctx, []string{"c1", "c1"}, func(containers map[string]*types.Container) error {
-		assert.Len(t, containers, 1)
+	err = c.withWorkloadsLocked(ctx, []string{"c1", "c1"}, func(workloads map[string]*types.Workload) error {
+		assert.Len(t, workloads, 1)
 		return nil
 	})
 	assert.NoError(t, err)
 }
 
-func TestWithContainerLocked(t *testing.T) {
+func TestWithWorkloadLocked(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := &storemocks.Store{}
@@ -92,24 +92,24 @@ func TestWithContainerLocked(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	// failed to get lock
 	lock.On("Lock", mock.Anything).Return(types.ErrNoETCD).Once()
-	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{{}}, nil).Once()
-	err := c.withContainerLocked(ctx, "c1", func(container *types.Container) error { return nil })
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{{}}, nil).Once()
+	err := c.withWorkloadLocked(ctx, "c1", func(workload *types.Workload) error { return nil })
 	assert.Error(t, err)
 	// success
 	lock.On("Lock", mock.Anything).Return(nil)
-	// failed by getcontainer
-	store.On("GetContainers", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	err = c.withContainerLocked(ctx, "c1", func(container *types.Container) error { return nil })
+	// failed by getworkload
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	err = c.withWorkloadLocked(ctx, "c1", func(workload *types.Workload) error { return nil })
 	assert.Error(t, err)
 	engine := &enginemocks.API{}
-	container := &types.Container{
+	workload := &types.Workload{
 		ID:     "c1",
 		Engine: engine,
 	}
-	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{container}, nil)
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
 	// success
-	err = c.withContainerLocked(ctx, "c1", func(container *types.Container) error {
-		assert.Equal(t, container.ID, "c1")
+	err = c.withWorkloadLocked(ctx, "c1", func(workload *types.Workload) error {
+		assert.Equal(t, workload.ID, "c1")
 		return nil
 	})
 	assert.NoError(t, err)

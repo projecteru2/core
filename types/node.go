@@ -215,5 +215,5 @@ type NodeResource struct {
 	NUMAMemoryPercent map[string]float64
 	VolumePercent     float64
 	Diffs             []string
-	Containers        []*Container
+	Workloads         []*Workload
 }

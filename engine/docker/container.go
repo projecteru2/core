@@ -43,7 +43,7 @@ type rawArgs struct {
 	CapDrop    []string                `json:"cap_drop"`
 }
 
-// VirtualizationCreate create a container
+// VirtualizationCreate create a workload
 func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) {
 	r := &enginetypes.VirtualizationCreated{}
 	// memory should more than 4MiB
@@ -206,9 +206,9 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		log.Infof("[ConnectToNetwork] Connect to %v with IP %v", networkID, ipForShow)
 	}
 
-	containerCreated, err := e.client.ContainerCreate(ctx, config, hostConfig, networkConfig, opts.Name)
+	workloadCreated, err := e.client.ContainerCreate(ctx, config, hostConfig, networkConfig, opts.Name)
 	r.Name = opts.Name
-	r.ID = containerCreated.ID
+	r.ID = workloadCreated.ID
 	return r, err
 }
 
@@ -244,19 +244,19 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 		return nil, coretypes.ErrNilEngine
 	}
 
-	containerJSON, err := e.client.ContainerInspect(ctx, ID)
+	workloadJSON, err := e.client.ContainerInspect(ctx, ID)
 	r := &enginetypes.VirtualizationInfo{}
 	if err != nil {
 		return r, err
 	}
-	r.ID = containerJSON.ID
-	r.User = containerJSON.Config.User
-	r.Image = containerJSON.Config.Image
-	r.Env = containerJSON.Config.Env
-	r.Labels = containerJSON.Config.Labels
-	r.Running = containerJSON.State.Running
+	r.ID = workloadJSON.ID
+	r.User = workloadJSON.Config.User
+	r.Image = workloadJSON.Config.Image
+	r.Env = workloadJSON.Config.Env
+	r.Labels = workloadJSON.Config.Labels
+	r.Running = workloadJSON.State.Running
 	r.Networks = map[string]string{}
-	for networkName, networkSetting := range containerJSON.NetworkSettings.Networks {
+	for networkName, networkSetting := range workloadJSON.NetworkSettings.Networks {
 		ip := networkSetting.IPAddress
 		if dockercontainer.NetworkMode(networkName).IsHost() {
 			ip = GetIP(e.client.DaemonHost())
@@ -293,13 +293,13 @@ func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, stream, st
 }
 
 // VirtualizationResize resizes remote terminal
-func (e *Engine) VirtualizationResize(ctx context.Context, containerID string, height, width uint) (err error) {
+func (e *Engine) VirtualizationResize(ctx context.Context, workloadID string, height, width uint) (err error) {
 	opts := dockertypes.ResizeOptions{
 		Height: height,
 		Width:  width,
 	}
 
-	return e.client.ContainerResize(ctx, containerID, opts)
+	return e.client.ContainerResize(ctx, workloadID, opts)
 }
 
 // VirtualizationWait wait virtualization exit

@@ -70,25 +70,25 @@ func TestMakeCommandLine(t *testing.T) {
 	assert.Equal(t, r2, []string{"test", "-a", "-b", "-d"})
 }
 
-func TestMakeContainerName(t *testing.T) {
-	r1 := MakeContainerName("test_appname", "web", "whatever")
+func TestMakeWorkloadName(t *testing.T) {
+	r1 := MakeWorkloadName("test_appname", "web", "whatever")
 	assert.Equal(t, r1, "test_appname_web_whatever")
-	appname, entrypoint, ident, err := ParseContainerName("test_appname_web_whatever")
+	appname, entrypoint, ident, err := ParseWorkloadName("test_appname_web_whatever")
 	assert.Equal(t, appname, "test_appname")
 	assert.Equal(t, entrypoint, "web")
 	assert.Equal(t, ident, "whatever")
 	assert.Equal(t, err, nil)
 }
 
-func TestParseContainerName(t *testing.T) {
+func TestParseWorkloadName(t *testing.T) {
 	appname := "test_bad"
-	p1, p2, p3, err := ParseContainerName(appname)
+	p1, p2, p3, err := ParseWorkloadName(appname)
 	assert.Error(t, err)
 	assert.Equal(t, p1, "")
 	assert.Equal(t, p2, "")
 	assert.Equal(t, p3, "")
 	appname = "test_good_name_1"
-	p1, p2, p3, err = ParseContainerName(appname)
+	p1, p2, p3, err = ParseWorkloadName(appname)
 	assert.NoError(t, err)
 	assert.Equal(t, p1, "test_good")
 	assert.Equal(t, p2, "name")
@@ -148,12 +148,12 @@ func TestShortID(t *testing.T) {
 	assert.Equal(t, r2, "1234567")
 }
 
-func TestFilterContainer(t *testing.T) {
+func TestFilterWorkload(t *testing.T) {
 	e := map[string]string{"a": "b"}
 	l := map[string]string{"a": "b"}
-	assert.True(t, FilterContainer(e, l))
+	assert.True(t, FilterWorkload(e, l))
 	l["c"] = "d"
-	assert.False(t, FilterContainer(e, l))
+	assert.False(t, FilterWorkload(e, l))
 }
 
 func TestCleanStatsdMetrics(t *testing.T) {

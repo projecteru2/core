@@ -58,7 +58,7 @@ func (e *Engine) BuildRefs(ctx context.Context, name string, tags []string) []st
 }
 
 // BuildContent generate build content
-// since we wanna set UID for the user inside container, we have to know the uid parameter
+// since we wanna set UID for the user inside workload, we have to know the uid parameter
 //
 // build directory is like:
 //

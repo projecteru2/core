@@ -33,20 +33,20 @@ func (c *Calcium) ListNetworks(ctx context.Context, podname string, driver strin
 
 // ConnectNetwork connect to a network
 func (c *Calcium) ConnectNetwork(ctx context.Context, network, target, ipv4, ipv6 string) ([]string, error) {
-	container, err := c.GetContainer(ctx, target)
+	workload, err := c.GetWorkload(ctx, target)
 	if err != nil {
 		return nil, err
 	}
 
-	return container.Engine.NetworkConnect(ctx, network, target, ipv4, ipv6)
+	return workload.Engine.NetworkConnect(ctx, network, target, ipv4, ipv6)
 }
 
 // DisconnectNetwork connect to a network
 func (c *Calcium) DisconnectNetwork(ctx context.Context, network, target string, force bool) error {
-	container, err := c.GetContainer(ctx, target)
+	workload, err := c.GetWorkload(ctx, target)
 	if err != nil {
 		return err
 	}
 
-	return container.Engine.NetworkDisconnect(ctx, network, target, force)
+	return workload.Engine.NetworkDisconnect(ctx, network, target, force)
 }

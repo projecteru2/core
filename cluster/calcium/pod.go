@@ -14,7 +14,7 @@ func (c *Calcium) AddPod(ctx context.Context, podname, desc string) (*types.Pod,
 // RemovePod remove pod
 func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
 	return c.withNodesLocked(ctx, podname, []string{}, nil, true, func(nodes map[string]*types.Node) error {
-		// TODO dissociate container to node
+		// TODO dissociate workload to node
 		// TODO should remove node first
 		return c.store.RemovePod(ctx, podname)
 	})

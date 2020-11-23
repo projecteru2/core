@@ -84,7 +84,7 @@ func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, refs [
 
 func (c *Calcium) buildFromExist(ctx context.Context, ref, existID string) (chan *types.BuildImageMessage, error) {
 	return withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
-		node, err := c.getContainerNode(ctx, existID)
+		node, err := c.getWorkloadNode(ctx, existID)
 		if err != nil {
 			ch <- buildErrMsg(err)
 			return

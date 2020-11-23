@@ -90,14 +90,14 @@ func refreshPod(nodes []types.NodeInfo, memory, storage int64) {
 func getComplexNodes() []types.NodeInfo {
 	return []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{ // 2 containers
+			CPUMap: types.CPUMap{ // 2 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 			},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "n1",
 		},
 		{
-			CPUMap: types.CPUMap{ // 7 containers
+			CPUMap: types.CPUMap{ // 7 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 				"8": 10, "9": 10, "10": 10, "11": 10,
@@ -107,7 +107,7 @@ func getComplexNodes() []types.NodeInfo {
 			Name:   "n2",
 		},
 		{
-			CPUMap: types.CPUMap{ // 6 containers
+			CPUMap: types.CPUMap{ // 6 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 				"8": 10, "9": 10, "10": 10, "11": 10,
@@ -116,7 +116,7 @@ func getComplexNodes() []types.NodeInfo {
 			Name:   "n3",
 		},
 		{
-			CPUMap: types.CPUMap{ // 9 containers
+			CPUMap: types.CPUMap{ // 9 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 				"8": 10, "9": 10, "10": 10, "11": 10,
@@ -127,7 +127,7 @@ func getComplexNodes() []types.NodeInfo {
 			Name:   "n4",
 		},
 		{
-			CPUMap: types.CPUMap{ // 4 containers
+			CPUMap: types.CPUMap{ // 4 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 			},
@@ -140,7 +140,7 @@ func getComplexNodes() []types.NodeInfo {
 func getEvenPlanNodes() []types.NodeInfo {
 	return []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{ // 4 containers
+			CPUMap: types.CPUMap{ // 4 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 			},
@@ -148,7 +148,7 @@ func getEvenPlanNodes() []types.NodeInfo {
 			Name:   "n1",
 		},
 		{
-			CPUMap: types.CPUMap{ // 5 containers
+			CPUMap: types.CPUMap{ // 5 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 				"8": 10, "9": 10,
@@ -157,7 +157,7 @@ func getEvenPlanNodes() []types.NodeInfo {
 			Name:   "n2",
 		},
 		{
-			CPUMap: types.CPUMap{ // 6 containers
+			CPUMap: types.CPUMap{ // 6 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 				"8": 10, "9": 10, "10": 10, "11": 10,
@@ -166,7 +166,7 @@ func getEvenPlanNodes() []types.NodeInfo {
 			Name:   "n3",
 		},
 		{
-			CPUMap: types.CPUMap{ // 5 containers
+			CPUMap: types.CPUMap{ // 5 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 				"8": 10, "9": 10,
@@ -441,7 +441,7 @@ func TestComplexNodes(t *testing.T) {
 	nodes = getComplexNodes()
 	_, _, newErr := SelectCPUNodes(k, nodes, 1.6, 1, 29, false)
 	if newErr == nil {
-		t.Fatalf("how to alloc 29 containers when you only have 28?")
+		t.Fatalf("how to alloc 29 workloads when you only have 28?")
 	}
 
 	//test5
@@ -704,14 +704,14 @@ func TestEvenPlan(t *testing.T) {
 func TestSpecialCase(t *testing.T) {
 	pod := []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{ // 4 containers
+			CPUMap: types.CPUMap{ // 4 workloads
 				"0": 10, "1": 10,
 			},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "n1",
 		},
 		{
-			CPUMap: types.CPUMap{ // 5 containers
+			CPUMap: types.CPUMap{ // 5 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10,
 			},
@@ -719,7 +719,7 @@ func TestSpecialCase(t *testing.T) {
 			Name:   "n2",
 		},
 		{
-			CPUMap: types.CPUMap{ // 6 containers
+			CPUMap: types.CPUMap{ // 6 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 			},
@@ -735,7 +735,7 @@ func TestSpecialCase(t *testing.T) {
 
 	newpod := []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{ // 4 containers
+			CPUMap: types.CPUMap{ // 4 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10,
 			},
@@ -743,7 +743,7 @@ func TestSpecialCase(t *testing.T) {
 			Name:   "n1",
 		},
 		{
-			CPUMap: types.CPUMap{ // 4 containers
+			CPUMap: types.CPUMap{ // 4 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 			},
@@ -798,7 +798,7 @@ func Benchmark_MemAlloc(b *testing.B) {
 	b.StopTimer()
 	k, _ := newPotassium()
 	var count = 10000
-	// 128M per container
+	// 128M per workload
 	var memory int64 = 1024 * 1024 * 128
 	// Max vol is 128G/128M * 10000 nodes
 	var need = 10240000
@@ -815,7 +815,7 @@ func Benchmark_MemAlloc(b *testing.B) {
 
 // Test SelectMemoryNodes
 func TestSelectMemoryNodes(t *testing.T) {
-	// 2 nodes [2 containers per node]
+	// 2 nodes [2 workloads per node]
 	memory := 4 * int64(units.GiB)
 	pod := generateNodes(2, 2, memory, 0, 10)
 	k, _ := newPotassium()
@@ -830,13 +830,13 @@ func TestSelectMemoryNodes(t *testing.T) {
 		assert.Equal(t, node.Deploy, 2)
 	}
 
-	// 4 nodes [1 container on the first node]
+	// 4 nodes [1 workload on the first node]
 	pod = generateNodes(4, 2, memory, 0, 10)
 	res, err = SelectMemoryNodes(k, pod, cpus, 512*int64(units.MiB), 1, false)
 	assert.NoError(t, err)
 	assert.Equal(t, res[0].Deploy, 1)
 
-	// 4 nodes [1 container per node]
+	// 4 nodes [1 workload per node]
 	pod = generateNodes(4, 2, memory, 0, 10)
 	res, err = SelectMemoryNodes(k, pod, cpus, 512*int64(units.MiB), 4, false)
 	assert.NoError(t, err)

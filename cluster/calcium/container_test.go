@@ -11,45 +11,45 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-func TestListContainers(t *testing.T) {
+func TestListWorkloads(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	ID := "testID"
-	containers := []*types.Container{
+	workloads := []*types.Workload{
 		{ID: ID},
 	}
 
 	store := &storemocks.Store{}
 	c.store = store
-	store.On("ListContainers", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
-	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
+	store.On("ListWorkloads", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
 
-	cs, err := c.ListContainers(ctx, &types.ListContainersOptions{Appname: "", Entrypoint: "", Nodename: ""})
+	cs, err := c.ListWorkloads(ctx, &types.ListWorkloadsOptions{Appname: "", Entrypoint: "", Nodename: ""})
 	assert.NoError(t, err)
 	assert.Equal(t, len(cs), 1)
 	assert.Equal(t, cs[0].ID, ID)
-	cs, err = c.ListNodeContainers(ctx, "", nil)
+	cs, err = c.ListNodeWorkloads(ctx, "", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, len(cs), 1)
 	assert.Equal(t, cs[0].ID, ID)
 }
 
-func TestGetContainers(t *testing.T) {
+func TestGetWorkloads(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	ID := "testID"
-	container := &types.Container{ID: ID}
-	containers := []*types.Container{container}
+	workload := &types.Workload{ID: ID}
+	workloads := []*types.Workload{workload}
 
 	store := &storemocks.Store{}
 	c.store = store
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
-	store.On("GetContainers", mock.Anything, mock.Anything).Return(containers, nil)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(workloads, nil)
 
-	savedContainer, err := c.GetContainer(ctx, "")
+	savedWorkload, err := c.GetWorkload(ctx, "")
 	assert.NoError(t, err)
-	assert.Equal(t, savedContainer.ID, ID)
-	cs, err := c.GetContainers(ctx, []string{})
+	assert.Equal(t, savedWorkload.ID, ID)
+	cs, err := c.GetWorkloads(ctx, []string{})
 	assert.NoError(t, err)
 	assert.Equal(t, len(cs), 1)
 	assert.Equal(t, cs[0].ID, ID)

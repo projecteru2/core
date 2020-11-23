@@ -117,7 +117,7 @@ func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string)
 	return resp.Body, nil
 }
 
-// ImageBuildFromExist commits image from running container
+// ImageBuildFromExist commits image from running workload
 func (e *Engine) ImageBuildFromExist(ctx context.Context, ID, name string) (imageID string, err error) {
 	opts := dockertypes.ContainerCommitOptions{
 		Reference: name,

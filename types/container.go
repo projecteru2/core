@@ -23,10 +23,10 @@ type LabelMeta struct {
 	HealthCheck *HealthCheck
 }
 
-// Container store container info
+// Workload store workload info
 // only relationship with pod and node is stored
 // if you wanna get realtime information, use Inspect method
-type Container struct {
+type Workload struct {
 	ResourceMeta
 	ID         string            `json:"id"`
 	Name       string            `json:"name"`
@@ -43,42 +43,42 @@ type Container struct {
 	Engine     engine.API        `json:"-"`
 }
 
-// Inspect a container
-func (c *Container) Inspect(ctx context.Context) (*enginetypes.VirtualizationInfo, error) {
+// Inspect a workload
+func (c *Workload) Inspect(ctx context.Context) (*enginetypes.VirtualizationInfo, error) {
 	if c.Engine == nil {
 		return nil, ErrNilEngine
 	}
 	return c.Engine.VirtualizationInspect(ctx, c.ID)
 }
 
-// Start a container
-func (c *Container) Start(ctx context.Context) error {
+// Start a workload
+func (c *Workload) Start(ctx context.Context) error {
 	if c.Engine == nil {
 		return ErrNilEngine
 	}
 	return c.Engine.VirtualizationStart(ctx, c.ID)
 }
 
-// Stop a container
-func (c *Container) Stop(ctx context.Context) error {
+// Stop a workload
+func (c *Workload) Stop(ctx context.Context) error {
 	if c.Engine == nil {
 		return ErrNilEngine
 	}
 	return c.Engine.VirtualizationStop(ctx, c.ID)
 }
 
-// Remove a container
-func (c *Container) Remove(ctx context.Context, force bool) error {
+// Remove a workload
+func (c *Workload) Remove(ctx context.Context, force bool) error {
 	if c.Engine == nil {
 		return ErrNilEngine
 	}
 	return c.Engine.VirtualizationRemove(ctx, c.ID, true, force)
 }
 
-// ContainerStatus store deploy status
-type ContainerStatus struct {
-	ID        string
-	Container *Container
-	Error     error
-	Delete    bool
+// WorkloadStatus store deploy status
+type WorkloadStatus struct {
+	ID       string
+	Workload *Workload
+	Error    error
+	Delete   bool
 }

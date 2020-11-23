@@ -12,8 +12,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// ReplaceContainer replace containers with same resource
-func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceContainerMessage, error) {
+// ReplaceWorkload replace workloads with same resource
+func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceWorkloadMessage, error) {
 	if opts.Count == 0 {
 		opts.Count = 1
 	}
@@ -21,21 +21,21 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 		if len(opts.Nodenames) == 0 {
 			opts.Nodenames = []string{""}
 		}
-		oldContainers := []*types.Container{}
+		oldWorkloads := []*types.Workload{}
 		for _, nodename := range opts.Nodenames {
-			containers, err := c.ListContainers(ctx, &types.ListContainersOptions{
+			workloads, err := c.ListWorkloads(ctx, &types.ListWorkloadsOptions{
 				Appname: opts.Name, Entrypoint: opts.Entrypoint.Name, Nodename: nodename,
 			})
 			if err != nil {
 				return nil, err
 			}
-			oldContainers = append(oldContainers, containers...)
+			oldWorkloads = append(oldWorkloads, workloads...)
 		}
-		for _, container := range oldContainers {
-			opts.IDs = append(opts.IDs, container.ID)
+		for _, workload := range oldWorkloads {
+			opts.IDs = append(opts.IDs, workload.ID)
 		}
 	}
-	ch := make(chan *types.ReplaceContainerMessage)
+	ch := make(chan *types.ReplaceWorkloadMessage)
 	go func() {
 		defer close(ch)
 		// 并发控制
@@ -45,58 +45,58 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 			wg.Add(1)
 			go func(replaceOpts types.ReplaceOptions, index int, ID string) {
 				defer wg.Done()
-				var createMessage *types.CreateContainerMessage
-				removeMessage := &types.RemoveContainerMessage{ContainerID: ID}
+				var createMessage *types.CreateWorkloadMessage
+				removeMessage := &types.RemoveWorkloadMessage{WorkloadID: ID}
 				var err error
-				if err = c.withContainerLocked(ctx, ID, func(container *types.Container) error {
-					if opts.Podname != "" && container.Podname != opts.Podname {
-						log.Warnf("[ReplaceContainer] Skip not in pod container %s", container.ID)
-						return types.NewDetailedErr(types.ErrIgnoreContainer,
-							fmt.Sprintf("container %s not in pod %s", container.ID, opts.Podname),
+				if err = c.withWorkloadLocked(ctx, ID, func(workload *types.Workload) error {
+					if opts.Podname != "" && workload.Podname != opts.Podname {
+						log.Warnf("[ReplaceWorkload] Skip not in pod workload %s", workload.ID)
+						return types.NewDetailedErr(types.ErrIgnoreWorkload,
+							fmt.Sprintf("workload %s not in pod %s", workload.ID, opts.Podname),
 						)
 					}
 					// 使用复制之后的配置
 					// 停老的，起新的
 					replaceOpts.ResourceOpts = types.ResourceOptions{
-						CPUQuotaRequest: container.CPUQuotaRequest,
-						CPUQuotaLimit:   container.CPUQuotaLimit,
-						CPUBind:         len(container.CPU) > 0,
-						MemoryRequest:   container.MemoryRequest,
-						MemoryLimit:     container.MemoryLimit,
-						StorageRequest:  container.StorageRequest,
-						StorageLimit:    container.StorageLimit,
-						VolumeRequest:   container.VolumeRequest,
-						VolumeLimit:     container.VolumeLimit,
+						CPUQuotaRequest: workload.CPUQuotaRequest,
+						CPUQuotaLimit:   workload.CPUQuotaLimit,
+						CPUBind:         len(workload.CPU) > 0,
+						MemoryRequest:   workload.MemoryRequest,
+						MemoryLimit:     workload.MemoryLimit,
+						StorageRequest:  workload.StorageRequest,
+						StorageLimit:    workload.StorageLimit,
+						VolumeRequest:   workload.VolumeRequest,
+						VolumeLimit:     workload.VolumeLimit,
 					}
 					// 覆盖 podname 如果做全量更新的话
-					replaceOpts.Podname = container.Podname
+					replaceOpts.Podname = workload.Podname
 					// 覆盖 Volumes
 					// 继承网络配置
 					if replaceOpts.NetworkInherit {
-						info, err := container.Inspect(ctx)
+						info, err := workload.Inspect(ctx)
 						if err != nil {
 							return err
 						} else if !info.Running {
 							return types.NewDetailedErr(types.ErrNotSupport,
-								fmt.Sprintf("container %s is not running, can not inherit", container.ID),
+								fmt.Sprintf("workload %s is not running, can not inherit", workload.ID),
 							)
 						}
 						replaceOpts.NetworkMode = ""
 						replaceOpts.Networks = info.Networks
-						log.Infof("[ReplaceContainer] Inherit old container network configuration mode %v", replaceOpts.Networks)
+						log.Infof("[ReplaceWorkload] Inherit old workload network configuration mode %v", replaceOpts.Networks)
 					}
-					createMessage, removeMessage, err = c.doReplaceContainer(ctx, container, &replaceOpts, index)
+					createMessage, removeMessage, err = c.doReplaceWorkload(ctx, workload, &replaceOpts, index)
 					return err
 				}); err != nil {
-					if errors.Is(err, types.ErrIgnoreContainer) {
+					if errors.Is(err, types.ErrIgnoreWorkload) {
 						return
 					}
-					log.Errorf("[ReplaceContainer] Replace and remove failed %v, old container restarted", err)
+					log.Errorf("[ReplaceWorkload] Replace and remove failed %v, old workload restarted", err)
 				} else {
-					log.Infof("[ReplaceContainer] Replace and remove success %s", ID)
-					log.Infof("[ReplaceContainer] New container %s", createMessage.ContainerID)
+					log.Infof("[ReplaceWorkload] Replace and remove success %s", ID)
+					log.Infof("[ReplaceWorkload] New workload %s", createMessage.WorkloadID)
 				}
-				ch <- &types.ReplaceContainerMessage{Create: createMessage, Remove: removeMessage, Error: err}
+				ch <- &types.ReplaceWorkloadMessage{Create: createMessage, Remove: removeMessage, Error: err}
 			}(*opts, index, ID) // 传 opts 的值，产生一次复制
 			if (index+1)%opts.Count == 0 {
 				wg.Wait()
@@ -106,29 +106,29 @@ func (c *Calcium) ReplaceContainer(ctx context.Context, opts *types.ReplaceOptio
 	return ch, nil
 }
 
-func (c *Calcium) doReplaceContainer(
+func (c *Calcium) doReplaceWorkload(
 	ctx context.Context,
-	container *types.Container,
+	workload *types.Workload,
 	opts *types.ReplaceOptions,
 	index int,
-) (*types.CreateContainerMessage, *types.RemoveContainerMessage, error) {
-	removeMessage := &types.RemoveContainerMessage{
-		ContainerID: container.ID,
-		Success:     false,
-		Hook:        []*bytes.Buffer{},
+) (*types.CreateWorkloadMessage, *types.RemoveWorkloadMessage, error) {
+	removeMessage := &types.RemoveWorkloadMessage{
+		WorkloadID: workload.ID,
+		Success:    false,
+		Hook:       []*bytes.Buffer{},
 	}
 	// label filter
-	if !utils.FilterContainer(container.Labels, opts.FilterLabels) {
+	if !utils.FilterWorkload(workload.Labels, opts.FilterLabels) {
 		return nil, removeMessage, types.ErrNotFitLabels
 	}
 	// prepare node
-	node, err := c.doGetAndPrepareNode(ctx, container.Nodename, opts.Image)
+	node, err := c.doGetAndPrepareNode(ctx, workload.Nodename, opts.Image)
 	if err != nil {
 		return nil, removeMessage, err
 	}
 	// 获得文件 io
 	for src, dst := range opts.Copy {
-		stream, _, err := container.Engine.VirtualizationCopyFrom(ctx, container.ID, src)
+		stream, _, err := workload.Engine.VirtualizationCopyFrom(ctx, workload.ID, src)
 		if err != nil {
 			return nil, removeMessage, err
 		}
@@ -137,26 +137,26 @@ func (c *Calcium) doReplaceContainer(
 		}
 	}
 
-	createMessage := &types.CreateContainerMessage{
+	createMessage := &types.CreateWorkloadMessage{
 		ResourceMeta: types.ResourceMeta{
-			MemoryRequest:     container.MemoryRequest,
-			MemoryLimit:       container.MemoryLimit,
-			StorageRequest:    container.StorageRequest,
-			StorageLimit:      container.StorageLimit,
-			CPUQuotaRequest:   container.CPUQuotaRequest,
-			CPUQuotaLimit:     container.CPUQuotaLimit,
-			CPU:               container.CPU,
-			VolumeRequest:     container.VolumeRequest,
-			VolumePlanRequest: container.VolumePlanRequest,
-			VolumeLimit:       container.VolumeLimit,
-			VolumePlanLimit:   container.VolumePlanLimit,
+			MemoryRequest:     workload.MemoryRequest,
+			MemoryLimit:       workload.MemoryLimit,
+			StorageRequest:    workload.StorageRequest,
+			StorageLimit:      workload.StorageLimit,
+			CPUQuotaRequest:   workload.CPUQuotaRequest,
+			CPUQuotaLimit:     workload.CPUQuotaLimit,
+			CPU:               workload.CPU,
+			VolumeRequest:     workload.VolumeRequest,
+			VolumePlanRequest: workload.VolumePlanRequest,
+			VolumeLimit:       workload.VolumeLimit,
+			VolumePlanLimit:   workload.VolumePlanLimit,
 		},
 	}
 	return createMessage, removeMessage, utils.Txn(
 		ctx,
 		// if
 		func(ctx context.Context) (err error) {
-			removeMessage.Hook, err = c.doStopContainer(ctx, container, opts.IgnoreHook)
+			removeMessage.Hook, err = c.doStopWorkload(ctx, workload, opts.IgnoreHook)
 			return
 		},
 		// then
@@ -169,8 +169,8 @@ func (c *Calcium) doReplaceContainer(
 				},
 				// then
 				func(ctx context.Context) (err error) {
-					if err = c.doRemoveContainer(ctx, container, true); err != nil {
-						log.Errorf("[doReplaceContainer] the new started but the old failed to stop")
+					if err = c.doRemoveWorkload(ctx, workload, true); err != nil {
+						log.Errorf("[doReplaceWorkload] the new started but the old failed to stop")
 						return
 					}
 					removeMessage.Success = true
@@ -182,9 +182,9 @@ func (c *Calcium) doReplaceContainer(
 		},
 		// rollback
 		func(ctx context.Context, _ bool) (err error) {
-			messages, err := c.doStartContainer(ctx, container, opts.IgnoreHook)
+			messages, err := c.doStartWorkload(ctx, workload, opts.IgnoreHook)
 			if err != nil {
-				log.Errorf("[replaceAndRemove] Old container %s restart failed %v", container.ID, err)
+				log.Errorf("[replaceAndRemove] Old workload %s restart failed %v", workload.ID, err)
 				removeMessage.Hook = append(removeMessage.Hook, bytes.NewBufferString(err.Error()))
 			} else {
 				removeMessage.Hook = append(removeMessage.Hook, messages...)

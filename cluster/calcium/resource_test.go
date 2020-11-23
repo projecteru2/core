@@ -45,11 +45,11 @@ func TestPodResource(t *testing.T) {
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
-	// failed by ListNodeContainers
-	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	// failed by ListNodeWorkloads
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err = c.PodResource(ctx, podname)
 	assert.Error(t, err)
-	containers := []*types.Container{
+	workloads := []*types.Workload{
 		{
 			ResourceMeta: types.ResourceMeta{
 				MemoryRequest:   1,
@@ -71,7 +71,7 @@ func TestPodResource(t *testing.T) {
 			},
 		},
 	}
-	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
 	engine := &enginemocks.API{}
 	engine.On("ResourceValidate", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		fmt.Errorf("%s", "not validate"),
@@ -115,11 +115,11 @@ func TestNodeResource(t *testing.T) {
 	_, err := c.NodeResource(ctx, nodename, false)
 	assert.Error(t, err)
 	store.On("GetNode", mock.Anything, nodename).Return(node, nil)
-	// failed by list node containers
-	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	// failed by list node workloads
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err = c.NodeResource(ctx, nodename, false)
 	assert.Error(t, err)
-	containers := []*types.Container{
+	workloads := []*types.Workload{
 		{
 			ResourceMeta: types.ResourceMeta{
 				MemoryRequest:   1,
@@ -139,9 +139,9 @@ func TestNodeResource(t *testing.T) {
 			},
 		},
 	}
-	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
 	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
-	// success but container inspect failed
+	// success but workload inspect failed
 	nr, err := c.NodeResource(ctx, nodename, true)
 	assert.NoError(t, err)
 	assert.Equal(t, nr.Name, nodename)

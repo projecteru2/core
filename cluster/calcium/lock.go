@@ -34,12 +34,12 @@ func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.Distrib
 	}
 }
 
-func (c *Calcium) withContainerLocked(ctx context.Context, ID string, f func(container *types.Container) error) error {
-	return c.withContainersLocked(ctx, []string{ID}, func(containers map[string]*types.Container) error {
-		if c, ok := containers[ID]; ok {
+func (c *Calcium) withWorkloadLocked(ctx context.Context, ID string, f func(workload *types.Workload) error) error {
+	return c.withWorkloadsLocked(ctx, []string{ID}, func(workloads map[string]*types.Workload) error {
+		if c, ok := workloads[ID]; ok {
 			return f(c)
 		}
-		return types.ErrContainerNotExists
+		return types.ErrWorkloadNotExists
 	})
 }
 
@@ -52,23 +52,23 @@ func (c *Calcium) withNodeLocked(ctx context.Context, nodename string, f func(no
 	})
 }
 
-func (c *Calcium) withContainersLocked(ctx context.Context, IDs []string, f func(containers map[string]*types.Container) error) error {
-	containers := map[string]*types.Container{}
+func (c *Calcium) withWorkloadsLocked(ctx context.Context, IDs []string, f func(workloads map[string]*types.Workload) error) error {
+	workloads := map[string]*types.Workload{}
 	locks := map[string]lock.DistributedLock{}
 	defer func() { c.doUnlockAll(ctx, locks) }()
-	cs, err := c.GetContainers(ctx, IDs)
+	cs, err := c.GetWorkloads(ctx, IDs)
 	if err != nil {
 		return err
 	}
-	for _, container := range cs {
-		lock, err := c.doLock(ctx, fmt.Sprintf(cluster.ContainerLock, container.ID), c.config.LockTimeout)
+	for _, workload := range cs {
+		lock, err := c.doLock(ctx, fmt.Sprintf(cluster.WorkloadLock, workload.ID), c.config.LockTimeout)
 		if err != nil {
 			return err
 		}
-		locks[container.ID] = lock
-		containers[container.ID] = container
+		locks[workload.ID] = lock
+		workloads[workload.ID] = workload
 	}
-	return f(containers)
+	return f(workloads)
 }
 
 func (c *Calcium) withNodesLocked(ctx context.Context, podname string, nodenames []string, labels map[string]string, all bool, f func(nodes map[string]*types.Node) error) error {

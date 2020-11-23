@@ -14,7 +14,7 @@ import (
 // MakeDeployStatus get deploy status from store
 func (m *Mercury) MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfos []strategy.Info) error {
 	// 手动加 / 防止不精确
-	key := filepath.Join(containerDeployPrefix, opts.Name, opts.Entrypoint.Name) + "/"
+	key := filepath.Join(workloadDeployPrefix, opts.Name, opts.Entrypoint.Name) + "/"
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithKeysOnly())
 	if err != nil {
 		return err
