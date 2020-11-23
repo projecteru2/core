@@ -165,8 +165,6 @@ func (c *Calcium) doReplaceContainer(
 				ctx,
 				// if
 				func(ctx context.Context) error {
-					ctx, cancel := context.WithCancel(ctx)
-					cancel()
 					return c.doDeployOneWorkload(ctx, node, &opts.DeployOptions, createMessage, index, -1)
 				},
 				// then
