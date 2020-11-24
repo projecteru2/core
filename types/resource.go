@@ -23,22 +23,22 @@ type ResourceOptions struct {
 
 // ResourceMeta for messages and workload to store
 type ResourceMeta struct {
-	CPUQuotaRequest float64
-	CPUQuotaLimit   float64
-	CPU             ResourceMap
-	NUMANode        string
+	CPUQuotaRequest float64     `json:"cpu_quota_request"`
+	CPUQuotaLimit   float64     `json:"cpu_quota_limit"`
+	CPU             ResourceMap `json:"cpu"`
+	NUMANode        string      `json:"numa_node"`
 
-	MemoryRequest int64
-	MemoryLimit   int64
+	MemoryRequest int64 `json:"memory_request"`
+	MemoryLimit   int64 `json:"memory_limit"`
 
-	VolumeRequest     VolumeBindings
-	VolumeLimit       VolumeBindings
-	VolumePlanRequest VolumePlan
-	VolumePlanLimit   VolumePlan
-	VolumeChanged     bool
+	VolumeRequest     VolumeBindings `json:"volume_request"`
+	VolumeLimit       VolumeBindings `json:"volume_limit"`
+	VolumePlanRequest VolumePlan     `json:"volume_plan_request"`
+	VolumePlanLimit   VolumePlan     `json:"volume_plan_limit"`
+	VolumeChanged     bool           `json:"volume_changed"`
 
-	StorageRequest int64
-	StorageLimit   int64
+	StorageRequest int64 `json:"storage_request"`
+	StorageLimit   int64 `json:"storage_limit"`
 }
 
 // ResourceType .
