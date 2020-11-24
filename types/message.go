@@ -5,17 +5,17 @@ import (
 	"io"
 )
 
-// RemoveContainerMessage for remove message
-type RemoveContainerMessage struct {
-	ContainerID string
-	Success     bool
-	Hook        []*bytes.Buffer
+// RemoveWorkloadMessage for remove message
+type RemoveWorkloadMessage struct {
+	WorkloadID string
+	Success    bool
+	Hook       []*bytes.Buffer
 }
 
-// DissociateContainerMessage for dissociate container message
-type DissociateContainerMessage struct {
-	ContainerID string
-	Error       error
+// DissociateWorkloadMessage for dissociate workload message
+type DissociateWorkloadMessage struct {
+	WorkloadID string
+	Error      error
 }
 
 // BuildImageMessage for build image ops message
@@ -60,36 +60,36 @@ type RemoveImageMessage struct {
 	Messages []string
 }
 
-// ControlContainerMessage for container control message
-type ControlContainerMessage struct {
-	ContainerID string
-	Error       error
-	Hook        []*bytes.Buffer
+// ControlWorkloadMessage for workload control message
+type ControlWorkloadMessage struct {
+	WorkloadID string
+	Error      error
+	Hook       []*bytes.Buffer
 }
 
-// CreateContainerMessage for create message
-type CreateContainerMessage struct {
+// CreateWorkloadMessage for create message
+type CreateWorkloadMessage struct {
 	ResourceMeta
-	Podname       string
-	Nodename      string
-	ContainerID   string
-	ContainerName string
-	Error         error
-	Publish       map[string][]string
-	Hook          []*bytes.Buffer
+	Podname      string
+	Nodename     string
+	WorkloadID   string
+	WorkloadName string
+	Error        error
+	Publish      map[string][]string
+	Hook         []*bytes.Buffer
 }
 
-// ReplaceContainerMessage for replace method
-type ReplaceContainerMessage struct {
-	Create *CreateContainerMessage
-	Remove *RemoveContainerMessage
+// ReplaceWorkloadMessage for replace method
+type ReplaceWorkloadMessage struct {
+	Create *CreateWorkloadMessage
+	Remove *RemoveWorkloadMessage
 	Error  error
 }
 
-// AttachContainerMessage for run and wait
-type AttachContainerMessage struct {
-	ContainerID string
-	Data        []byte
+// AttachWorkloadMessage for run and wait
+type AttachWorkloadMessage struct {
+	WorkloadID string
+	Data       []byte
 }
 
 // PullImageMessage for cache image
@@ -99,7 +99,7 @@ type PullImageMessage struct {
 
 // ReallocResourceMessage for realloc resource
 type ReallocResourceMessage struct {
-	ContainerID string
+	WorkloadID string
 }
 
 // LogStreamMessage for log stream
@@ -107,6 +107,12 @@ type LogStreamMessage struct {
 	ID    string
 	Error error
 	Data  []byte
+}
+
+// CapacityMessage for CalculateCapacity API output
+type CapacityMessage struct {
+	Total          int
+	NodeCapacities map[string]int
 }
 
 type errorDetail struct {

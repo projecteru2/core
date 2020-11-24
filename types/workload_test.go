@@ -11,13 +11,13 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestContainerInspect(t *testing.T) {
+func TestWorkloadInspect(t *testing.T) {
 	mockEngine := &mocks.API{}
 	r := &enginetypes.VirtualizationInfo{ID: "12345"}
 	mockEngine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(r, nil)
 
 	ctx := context.Background()
-	c := Container{}
+	c := Workload{}
 	_, err := c.Inspect(ctx)
 	assert.Error(t, err)
 	c.Engine = mockEngine
@@ -25,14 +25,14 @@ func TestContainerInspect(t *testing.T) {
 	assert.Equal(t, r.ID, r2.ID)
 }
 
-func TestContainerControl(t *testing.T) {
+func TestWorkloadControl(t *testing.T) {
 	mockEngine := &mocks.API{}
 	mockEngine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	mockEngine.On("VirtualizationStop", mock.Anything, mock.Anything).Return(nil)
 	mockEngine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	ctx := context.Background()
-	c := Container{}
+	c := Workload{}
 	err := c.Start(ctx)
 	assert.Error(t, err)
 	err = c.Stop(ctx)

@@ -20,7 +20,7 @@ func min(a, b int) int {
 }
 
 func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShareCore, coreShare int) ([]types.NodeInfo, map[string][]types.CPUMap, int, error) {
-	var nodeContainer = map[string][]types.CPUMap{}
+	var nodeWorkload = map[string][]types.CPUMap{}
 	volTotal := 0
 
 	for p, nodeInfo := range nodesInfo {
@@ -48,14 +48,14 @@ func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShar
 			}
 			cap, plan := calculateCPUPlan(nodeCPUMap, nodeMemCap, cpu, memory, maxShareCore, coreShare)
 			if cap > 0 {
-				if _, ok := nodeContainer[nodeInfo.Name]; !ok {
-					nodeContainer[nodeInfo.Name] = []types.CPUMap{}
+				if _, ok := nodeWorkload[nodeInfo.Name]; !ok {
+					nodeWorkload[nodeInfo.Name] = []types.CPUMap{}
 				}
 				volTotal += updateNodeInfoCapacity(&nodesInfo[p], cap)
 				globalMemCap -= int64(cap) * memory
 				for _, cpuPlan := range plan {
 					globalCPUMap.Sub(cpuPlan)
-					nodeContainer[nodeInfo.Name] = append(nodeContainer[nodeInfo.Name], cpuPlan)
+					nodeWorkload[nodeInfo.Name] = append(nodeWorkload[nodeInfo.Name], cpuPlan)
 				}
 			}
 			log.Infof("[cpuPriorPlan] node %s numa node %s deploy capacity %d", nodeInfo.Name, nodeID, cap)
@@ -64,12 +64,12 @@ func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShar
 		// 或者是扣掉 numa 分配后剩下的资源里面
 		cap, plan := calculateCPUPlan(globalCPUMap, globalMemCap, cpu, memory, maxShareCore, coreShare)
 		if cap > 0 {
-			if _, ok := nodeContainer[nodeInfo.Name]; !ok {
-				nodeContainer[nodeInfo.Name] = []types.CPUMap{}
+			if _, ok := nodeWorkload[nodeInfo.Name]; !ok {
+				nodeWorkload[nodeInfo.Name] = []types.CPUMap{}
 			}
 			nodesInfo[p].Capacity += cap
 			volTotal += cap
-			nodeContainer[nodeInfo.Name] = append(nodeContainer[nodeInfo.Name], plan...)
+			nodeWorkload[nodeInfo.Name] = append(nodeWorkload[nodeInfo.Name], plan...)
 		}
 		log.Infof("[cpuPriorPlan] node %s total deploy capacity %d", nodeInfo.Name, nodesInfo[p].Capacity)
 	}
@@ -81,13 +81,13 @@ func cpuPriorPlan(cpu float64, memory int64, nodesInfo []types.NodeInfo, maxShar
 		return nil, nil, 0, types.ErrInsufficientRes
 	}
 
-	return nodesInfo[p:], nodeContainer, volTotal, nil
+	return nodesInfo[p:], nodeWorkload, volTotal, nil
 }
 
 func calculateCPUPlan(CPUMap types.CPUMap, MemCap int64, cpu float64, memory int64, maxShareCore, coreShare int) (int, []types.CPUMap) {
 	host := newHost(CPUMap, coreShare)
 	plan := host.distributeOneRation(cpu, maxShareCore)
-	memLimit := math.MaxInt16
+	memLimit := math.MaxInt64
 	if memory != 0 {
 		memLimit = int(MemCap / memory)
 	}

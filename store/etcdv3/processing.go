@@ -12,33 +12,33 @@ import (
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
-	"go.etcd.io/etcd/v3/clientv3"
+	"go.etcd.io/etcd/clientv3"
 )
 
 // SaveProcessing save processing status in etcd
 func (m *Mercury) SaveProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error {
-	processingKey := filepath.Join(containerProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodename, opts.ProcessIdent)
+	processingKey := filepath.Join(workloadProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodename, opts.ProcessIdent)
 	_, err := m.Create(ctx, processingKey, fmt.Sprintf("%d", count))
 	return err
 }
 
 // UpdateProcessing update processing status in etcd
 func (m *Mercury) UpdateProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error {
-	processingKey := filepath.Join(containerProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodename, opts.ProcessIdent)
+	processingKey := filepath.Join(workloadProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodename, opts.ProcessIdent)
 	_, err := m.Update(ctx, processingKey, fmt.Sprintf("%d", count))
 	return err
 }
 
 // DeleteProcessing delete processing status in etcd
 func (m *Mercury) DeleteProcessing(ctx context.Context, opts *types.DeployOptions, nodename string) error {
-	processingKey := filepath.Join(containerProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodename, opts.ProcessIdent)
+	processingKey := filepath.Join(workloadProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodename, opts.ProcessIdent)
 	_, err := m.Delete(ctx, processingKey)
 	return err
 }
 
 func (m *Mercury) doLoadProcessing(ctx context.Context, opts *types.DeployOptions, strategyInfos []strategy.Info) error {
 	// 显式的加 / 保证 prefix 一致性
-	processingKey := filepath.Join(containerProcessingPrefix, opts.Name, opts.Entrypoint.Name) + "/"
+	processingKey := filepath.Join(workloadProcessingPrefix, opts.Name, opts.Entrypoint.Name) + "/"
 	resp, err := m.Get(ctx, processingKey, clientv3.WithPrefix())
 	if err != nil {
 		return err

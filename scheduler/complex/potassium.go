@@ -44,7 +44,7 @@ func (m *Potassium) SelectStorageNodes(nodesInfo []types.NodeInfo, storage int64
 	case storage < 0:
 		return nil, 0, types.ErrNegativeStorage
 	case storage == 0:
-		return nodesInfo, math.MaxInt32, nil
+		return nodesInfo, math.MaxInt64, nil
 	default:
 		log.Infof("[SelectStorageNodes] nodesInfo: %v, need: %d", nodesInfo, storage)
 	}
@@ -96,7 +96,7 @@ func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64,
 	// 这里 memCap 一定是大于 memory 的所以不用判断 cap 内容
 	volTotal := 0
 	for i, nodeInfo := range nodesInfo {
-		capacity := math.MaxInt16
+		capacity := math.MaxInt32
 		if memory != 0 {
 			capacity = int(nodeInfo.MemCap / memory)
 		}
@@ -139,9 +139,9 @@ func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.Volu
 
 	if len(vbsNorm) == 0 && len(vbsMono) == 0 && len(vbsUnlimited) == 0 {
 		for i := range nodesInfo {
-			nodesInfo[i].Capacity = math.MaxInt16
+			nodesInfo[i].Capacity = math.MaxInt64
 		}
-		return nodesInfo, nil, math.MaxUint16, nil
+		return nodesInfo, nil, math.MaxInt64, nil
 	}
 
 	volTotal := 0

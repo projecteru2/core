@@ -28,16 +28,16 @@ func TestSend(t *testing.T) {
 	}
 	store := &storemocks.Store{}
 	c.store = store
-	// failed by GetContainer
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	// failed by GetWorkload
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	ch, err := c.Send(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
 	engine := &enginemocks.API{}
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(
-		&types.Container{Engine: engine}, nil,
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(
+		&types.Workload{Engine: engine}, nil,
 	)
 	// failed by engine
 	content, _ := ioutil.ReadAll(tmpfile)

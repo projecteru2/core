@@ -22,45 +22,45 @@ func (i *inStream) Close() error {
 	return nil
 }
 
-func TestExecuteContainer(t *testing.T) {
+func TestExecuteWorkload(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := &storemocks.Store{}
 	c.store = store
-	// failed by GetContainer
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
-	ch := c.ExecuteContainer(ctx, &types.ExecuteContainerOptions{}, nil)
+	// failed by GetWorkload
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
+	ch := c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{}, nil)
 	for ac := range ch {
 		assert.NotEmpty(t, ac.Data)
 	}
 	engine := &enginemocks.API{}
 	ID := "abc"
-	container := &types.Container{
+	workload := &types.Workload{
 		ID:     ID,
 		Engine: engine,
 	}
-	store.On("GetContainer", mock.Anything, mock.Anything).Return(container, nil)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	// failed by Execute
 	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(ID, nil, nil, types.ErrCannotGetEngine).Once()
-	ch = c.ExecuteContainer(ctx, &types.ExecuteContainerOptions{}, nil)
+	ch = c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{}, nil)
 	for ac := range ch {
-		assert.Equal(t, ac.ContainerID, ID)
+		assert.Equal(t, ac.WorkloadID, ID)
 	}
 	buf := ioutil.NopCloser(bytes.NewBufferString(`echo 1\n`))
 	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(ID, buf, nil, nil).Twice()
 	// failed by ExecExitCode
 	engine.On("ExecExitCode", mock.Anything, mock.Anything).Return(-1, types.ErrCannotGetEngine).Once()
-	ch = c.ExecuteContainer(ctx, &types.ExecuteContainerOptions{ContainerID: ID}, nil)
+	ch = c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: ID}, nil)
 	data := []byte{}
 	for ac := range ch {
-		assert.Equal(t, ac.ContainerID, ID)
+		assert.Equal(t, ac.WorkloadID, ID)
 		data = append(data, ac.Data...)
 	}
 	assert.Contains(t, string(data), "echo")
 	engine.On("ExecExitCode", mock.Anything, mock.Anything).Return(0, nil)
-	ch = c.ExecuteContainer(ctx, &types.ExecuteContainerOptions{ContainerID: ID}, nil)
+	ch = c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: ID}, nil)
 	for ac := range ch {
-		assert.Equal(t, ac.ContainerID, ID)
+		assert.Equal(t, ac.WorkloadID, ID)
 		data = append(data, ac.Data...)
 	}
 	assert.Contains(t, string(data), "exitcode")
@@ -68,7 +68,7 @@ func TestExecuteContainer(t *testing.T) {
 	inChan := make(chan []byte)
 	inS := &inStream{bytes.NewBufferString("")}
 	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(ID, buf, inS, nil)
-	ch = c.ExecuteContainer(ctx, &types.ExecuteContainerOptions{ContainerID: ID, OpenStdin: true}, inChan)
+	ch = c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: ID, OpenStdin: true}, inChan)
 	inChan <- []byte("a")
 	inChan <- escapeCommand
 	engine.On("ExecResize", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(types.ErrAlreadyFilled)
@@ -78,7 +78,7 @@ func TestExecuteContainer(t *testing.T) {
 	inChan <- append(winchCommand, []byte(`{Row: 100, Col: 100}`)...)
 	inChan <- append(winchCommand, b...)
 	for ac := range ch {
-		assert.Equal(t, ac.ContainerID, ID)
+		assert.Equal(t, ac.WorkloadID, ID)
 		data = append(data, ac.Data...)
 	}
 	assert.Contains(t, inS.String(), "a")

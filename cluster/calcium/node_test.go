@@ -132,16 +132,16 @@ func TestSetNode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, n.Name, name)
 	// not available
-	// failed by list node containers
-	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", StatusOpt: 0, ContainersDown: true})
+	// failed by list node workloads
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", StatusOpt: 0, WorkloadsDown: true})
 	assert.Error(t, err)
-	containers := []*types.Container{{Name: "wrong_name"}, {Name: "a_b_c"}}
-	store.On("ListNodeContainers", mock.Anything, mock.Anything, mock.Anything).Return(containers, nil)
-	store.On("SetContainerStatus",
+	workloads := []*types.Workload{{Name: "wrong_name"}, {Name: "a_b_c"}}
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
+	store.On("SetWorkloadStatus",
 		mock.Anything, mock.Anything, mock.Anything,
 	).Return(types.ErrNoETCD)
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", StatusOpt: 0, ContainersDown: true})
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", StatusOpt: 0, WorkloadsDown: true})
 	assert.NoError(t, err)
 	// test modify
 	setOpts := &types.SetNodeOptions{

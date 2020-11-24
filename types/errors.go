@@ -15,7 +15,7 @@ var (
 	ErrInsufficientRes     = errors.New("not enough resource")
 	ErrInvalidRes          = errors.New("invalid resource")
 	ErrInsufficientNodes   = errors.New("not enough nodes")
-	ErrAlreadyFilled       = errors.New("Cannot alloc a fill node plan, each node has enough containers")
+	ErrAlreadyFilled       = errors.New("Cannot alloc a fill node plan, each node has enough workloads")
 
 	ErrNegativeMemory  = errors.New("memory must be positive")
 	ErrNegativeStorage = errors.New("storage must be positive")
@@ -30,7 +30,7 @@ var (
 	ErrKeyIsNotDir = errors.New("key is not a directory")
 	ErrKeyIsEmpty  = errors.New("key is empty")
 
-	ErrBadContainerID    = errors.New("container ID must be length of 64")
+	ErrBadWorkloadID     = errors.New("workload ID must be length of 64")
 	ErrBadDeployStrategy = errors.New("deploy method not support yet")
 	ErrBadIPAddress      = errors.New("bad IP address")
 	ErrBadSCMType        = errors.New("unknown SCM type")
@@ -57,7 +57,7 @@ var (
 	ErrNoBuildSpec                 = errors.New("No build spec")
 	ErrNoEntryInSpec               = errors.New("No entry in spec")
 	ErrNoDeployOpts                = errors.New("No deploy options")
-	ErrNoContainerIDs              = errors.New("No container ids given")
+	ErrNoWorkloadIDs               = errors.New("No workload ids given")
 	ErrRunAndWaitCountOneWithStdin = errors.New("Count must be 1 if OpenStdin is true")
 	ErrUnknownControlType          = errors.New("Unknown control type")
 
@@ -69,16 +69,16 @@ var (
 	ErrNotSupport = errors.New("Not Support")
 	ErrSCMNotSet  = errors.New("SCM not set")
 
-	ErrInvalidBind     = errors.New("invalid bind value")
-	ErrIgnoreContainer = errors.New("ignore this container")
+	ErrInvalidBind    = errors.New("invalid bind value")
+	ErrIgnoreWorkload = errors.New("ignore this workload")
 
-	ErrInvalidGitURL        = errors.New("invalid git url format")
-	ErrInvalidContainerName = errors.New("invalid container name")
+	ErrInvalidGitURL       = errors.New("invalid git url format")
+	ErrInvalidWorkloadName = errors.New("invalid workload name")
 
 	ErrEngineNotImplemented = errors.New("not implemented")
 
-	ErrNodeNotExists      = errors.New("node not exists")
-	ErrContainerNotExists = errors.New("container not exists")
+	ErrNodeNotExists     = errors.New("node not exists")
+	ErrWorkloadNotExists = errors.New("workload not exists")
 )
 
 // NewDetailedErr returns an error with details

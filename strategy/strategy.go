@@ -18,6 +18,8 @@ const (
 	Each = "EACH"
 	// Global .
 	Global = "GLOBAL"
+	// Dummy for calculate capacity
+	Dummy = "DUMMY"
 )
 
 var Plans = map[string]startegyFunc{
@@ -66,7 +68,7 @@ func NewInfos(resourceRequests resourcetypes.ResourceRequests, nodeMap map[strin
 			rates[resourceRequest.Type()] = resourceRequest.Rate(*node)
 		}
 
-		capacity := math.MaxInt32
+		capacity := math.MaxInt64
 		for _, plan := range plans {
 			if plan.Capacity()[nodename] < capacity {
 				capacity = plan.Capacity()[nodename]

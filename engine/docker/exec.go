@@ -44,7 +44,7 @@ func (e *Engine) ExecAttach(ctx context.Context, execID string, tty bool) (io.Re
 	return ioutil.NopCloser(resp.Reader), resp.Conn, nil
 }
 
-// Execute executes a container
+// Execute executes a workload
 func (e *Engine) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, io.ReadCloser, io.WriteCloser, error) {
 	execID, err := e.ExecCreate(ctx, target, config)
 	if err != nil {

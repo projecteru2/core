@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"go.etcd.io/etcd/v3/pkg/transport"
+	"go.etcd.io/etcd/pkg/transport"
 
 	log "github.com/sirupsen/logrus"
 
@@ -16,26 +16,26 @@ import (
 	"github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	"go.etcd.io/etcd/v3/clientv3"
-	"go.etcd.io/etcd/v3/clientv3/namespace"
-	"go.etcd.io/etcd/v3/mvcc/mvccpb"
+	"go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/clientv3/namespace"
+	"go.etcd.io/etcd/mvcc/mvccpb"
 )
 
 const (
 	podInfoKey       = "/pod/info/%s" // /pod/info/{podname}
 	serviceStatusKey = "/services/%s" // /service/{ipv4:port}
 
-	nodeInfoKey       = "/node/%s"               // /node/{nodename}
-	nodePodKey        = "/node/%s:pod/%s"        // /node/{podname}:pod/{nodename}
-	nodeCaKey         = "/node/%s:ca"            // /node/{nodename}:ca
-	nodeCertKey       = "/node/%s:cert"          // /node/{nodename}:cert
-	nodeKeyKey        = "/node/%s:key"           // /node/{nodename}:key
-	nodeContainersKey = "/node/%s:containers/%s" // /node/{nodename}:containers/{containerID}
+	nodeInfoKey      = "/node/%s"              // /node/{nodename}
+	nodePodKey       = "/node/%s:pod/%s"       // /node/{podname}:pod/{nodename}
+	nodeCaKey        = "/node/%s:ca"           // /node/{nodename}:ca
+	nodeCertKey      = "/node/%s:cert"         // /node/{nodename}:cert
+	nodeKeyKey       = "/node/%s:key"          // /node/{nodename}:key
+	nodeWorkloadsKey = "/node/%s:workloads/%s" // /node/{nodename}:workloads/{workloadID}
 
-	containerInfoKey          = "/containers/%s" // /containers/{containerID}
-	containerDeployPrefix     = "/deploy"        // /deploy/{appname}/{entrypoint}/{nodename}/{containerID}
-	containerStatusPrefix     = "/status"        // /status/{appname}/{entrypoint}/{nodename}/{containerID} value -> something by agent
-	containerProcessingPrefix = "/processing"    // /processing/{appname}/{entrypoint}/{nodename}/{opsIdent} value -> count
+	workloadInfoKey          = "/workloads/%s" // /workloads/{workloadID}
+	workloadDeployPrefix     = "/deploy"       // /deploy/{appname}/{entrypoint}/{nodename}/{workloadID}
+	workloadStatusPrefix     = "/status"       // /status/{appname}/{entrypoint}/{nodename}/{workloadID} value -> something by agent
+	workloadProcessingPrefix = "/processing"   // /processing/{appname}/{entrypoint}/{nodename}/{opsIdent} value -> count
 
 	cmpVersion = "version"
 	cmpValue   = "value"

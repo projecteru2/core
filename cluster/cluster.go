@@ -18,18 +18,18 @@ const (
 	CopyOK = "ok"
 	// CPUPeriodBase for cpu period base
 	CPUPeriodBase = 100000
-	// ERUMark mark container controlled by eru
+	// ERUMark mark workload controlled by eru
 	ERUMark = "ERU"
 	// LabelMeta store publish and health things
 	LabelMeta = "ERU_META"
-	// ContainerStop for stop container
-	ContainerStop = "stop"
-	// ContainerStart for start container
-	ContainerStart = "start"
-	// ContainerRestart for restart container
-	ContainerRestart = "restart"
-	// ContainerLock for lock container
-	ContainerLock = "clock_%s"
+	// WorkloadStop for stop workload
+	WorkloadStop = "stop"
+	// WorkloadStart for start workload
+	WorkloadStart = "start"
+	// WorkloadRestart for restart workload
+	WorkloadRestart = "restart"
+	// WorkloadLock for lock workload
+	WorkloadLock = "clock_%s"
 	// NodeLock for lock node
 	NodeLock = "cnode_%s_%s"
 )
@@ -57,14 +57,16 @@ type Cluster interface {
 	SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error)
 	// node resource
 	NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error)
-	// meta containers
-	GetContainer(ctx context.Context, ID string) (*types.Container, error)
-	GetContainers(ctx context.Context, IDs []string) ([]*types.Container, error)
-	ListContainers(ctx context.Context, opts *types.ListContainersOptions) ([]*types.Container, error)
-	ListNodeContainers(ctx context.Context, nodename string, labels map[string]string) ([]*types.Container, error)
-	GetContainersStatus(ctx context.Context, IDs []string) ([]*types.StatusMeta, error)
-	SetContainersStatus(ctx context.Context, status []*types.StatusMeta, ttls map[string]int64) ([]*types.StatusMeta, error)
-	ContainerStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.ContainerStatus
+	// calculate capacity
+	CalculateCapacity(context.Context, *types.DeployOptions) (*types.CapacityMessage, error)
+	// meta workloads
+	GetWorkload(ctx context.Context, ID string) (*types.Workload, error)
+	GetWorkloads(ctx context.Context, IDs []string) ([]*types.Workload, error)
+	ListWorkloads(ctx context.Context, opts *types.ListWorkloadsOptions) ([]*types.Workload, error)
+	ListNodeWorkloads(ctx context.Context, nodename string, labels map[string]string) ([]*types.Workload, error)
+	GetWorkloadsStatus(ctx context.Context, IDs []string) ([]*types.StatusMeta, error)
+	SetWorkloadsStatus(ctx context.Context, status []*types.StatusMeta, ttls map[string]int64) ([]*types.StatusMeta, error)
+	WorkloadStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.WorkloadStatus
 	// file methods
 	Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error)
 	Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error)
@@ -72,16 +74,16 @@ type Cluster interface {
 	BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error)
 	CacheImage(ctx context.Context, podname string, nodenames []string, images []string, step int) (chan *types.CacheImageMessage, error)
 	RemoveImage(ctx context.Context, podname string, nodenames []string, images []string, step int, prune bool) (chan *types.RemoveImageMessage, error)
-	// container methods
-	CreateContainer(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateContainerMessage, error)
-	ReplaceContainer(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceContainerMessage, error)
-	RemoveContainer(ctx context.Context, IDs []string, force bool, step int) (chan *types.RemoveContainerMessage, error)
-	DissociateContainer(ctx context.Context, IDs []string) (chan *types.DissociateContainerMessage, error)
-	ControlContainer(ctx context.Context, IDs []string, t string, force bool) (chan *types.ControlContainerMessage, error)
-	ExecuteContainer(ctx context.Context, opts *types.ExecuteContainerOptions, inCh <-chan []byte) chan *types.AttachContainerMessage
+	// workload methods
+	CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error)
+	ReplaceWorkload(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceWorkloadMessage, error)
+	RemoveWorkload(ctx context.Context, IDs []string, force bool, step int) (chan *types.RemoveWorkloadMessage, error)
+	DissociateWorkload(ctx context.Context, IDs []string) (chan *types.DissociateWorkloadMessage, error)
+	ControlWorkload(ctx context.Context, IDs []string, t string, force bool) (chan *types.ControlWorkloadMessage, error)
+	ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorkloadOptions, inCh <-chan []byte) chan *types.AttachWorkloadMessage
 	ReallocResource(ctx context.Context, opts *types.ReallocOptions) error
 	LogStream(ctx context.Context, opts *types.LogStreamOptions) (chan *types.LogStreamMessage, error)
-	RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) (<-chan *types.AttachContainerMessage, error)
+	RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) (<-chan *types.AttachWorkloadMessage, error)
 	// finalizer
 	Finalizer()
 }

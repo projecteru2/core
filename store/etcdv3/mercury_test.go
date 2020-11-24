@@ -8,7 +8,7 @@ import (
 
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
-	"go.etcd.io/etcd/v3/clientv3"
+	"go.etcd.io/etcd/clientv3"
 )
 
 func NewMercury(t *testing.T) *Mercury {

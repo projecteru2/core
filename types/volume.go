@@ -11,6 +11,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+const auto = "AUTO"
+
 // VolumeBinding src:dst:flags:size
 type VolumeBinding struct {
 	Source      string
@@ -64,7 +66,7 @@ func (vb VolumeBinding) Validate() error {
 
 // RequireSchedule returns true if volume binding requires schedule
 func (vb VolumeBinding) RequireSchedule() bool {
-	return strings.HasSuffix(vb.Source, AUTO)
+	return strings.HasSuffix(vb.Source, auto)
 }
 
 // RequireScheduleUnlimitedQuota .
@@ -159,7 +161,7 @@ func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 // Divide .
 func (vbs VolumeBindings) Divide() (soft VolumeBindings, hard VolumeBindings) {
 	for _, vb := range vbs {
-		if strings.HasSuffix(vb.Source, AUTO) {
+		if strings.HasSuffix(vb.Source, auto) {
 			soft = append(soft, vb)
 		} else {
 			hard = append(hard, vb)

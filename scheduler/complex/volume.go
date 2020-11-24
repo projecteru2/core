@@ -8,7 +8,7 @@ import (
 
 func calculateVolumePlan(volumeMap types.VolumeMap, required []int64) (int, [][]types.VolumeMap) {
 	if len(required) == 0 {
-		return math.MaxInt16, nil
+		return math.MaxInt64, nil
 	}
 
 	share := int(math.MaxInt64) // all fragments

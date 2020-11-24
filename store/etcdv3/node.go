@@ -15,8 +15,8 @@ import (
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
-	"go.etcd.io/etcd/v3/clientv3"
-	"go.etcd.io/etcd/v3/mvcc/mvccpb"
+	"go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/mvcc/mvccpb"
 )
 
 // AddNode save it to etcd
@@ -278,7 +278,7 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 			return nil, err
 		}
 		node.Init()
-		if (node.Available || all) && utils.FilterContainer(node.Labels, labels) {
+		if (node.Available || all) && utils.FilterWorkload(node.Labels, labels) {
 			engine, err := m.makeClient(ctx, node, false)
 			if err != nil {
 				return nil, err

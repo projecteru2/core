@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestRemoveContainer(t *testing.T) {
+func TestRemoveWorkload(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	lock := &lockmocks.DistributedLock{}
@@ -21,22 +21,22 @@ func TestRemoveContainer(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
-	// failed by GetContainer
-	store.On("GetContainers", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	ch, err := c.RemoveContainer(ctx, []string{"xx"}, false, 0)
+	// failed by GetWorkload
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	ch, err := c.RemoveWorkload(ctx, []string{"xx"}, false, 0)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
 	}
-	container := &types.Container{
+	workload := &types.Workload{
 		ID:       "xx",
 		Name:     "test",
 		Nodename: "test",
 	}
-	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{container}, nil)
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
 	// failed by GetNode
 	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	ch, err = c.RemoveContainer(ctx, []string{"xx"}, false, 0)
+	ch, err = c.RemoveWorkload(ctx, []string{"xx"}, false, 0)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
@@ -46,20 +46,20 @@ func TestRemoveContainer(t *testing.T) {
 	}
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	// failed by Remove
-	ch, err = c.RemoveContainer(ctx, []string{"xx"}, false, 0)
+	ch, err = c.RemoveWorkload(ctx, []string{"xx"}, false, 0)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
 	}
-	assert.NoError(t, c.doRemoveContainerSync(ctx, []string{"xx"}))
+	assert.NoError(t, c.doRemoveWorkloadSync(ctx, []string{"xx"}))
 	engine := &enginemocks.API{}
-	container.Engine = engine
+	workload.Engine = engine
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	store.On("GetContainers", mock.Anything, mock.Anything).Return([]*types.Container{container}, nil)
-	store.On("RemoveContainer", mock.Anything, mock.Anything).Return(nil)
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
 	store.On("UpdateNodeResource", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	// success
-	ch, err = c.RemoveContainer(ctx, []string{"xx"}, false, 0)
+	ch, err = c.RemoveWorkload(ctx, []string{"xx"}, false, 0)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.True(t, r.Success)

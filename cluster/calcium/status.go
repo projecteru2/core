@@ -6,11 +6,11 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// GetContainersStatus get container status
-func (c *Calcium) GetContainersStatus(ctx context.Context, IDs []string) ([]*types.StatusMeta, error) {
+// GetWorkloadsStatus get workload status
+func (c *Calcium) GetWorkloadsStatus(ctx context.Context, IDs []string) ([]*types.StatusMeta, error) {
 	r := []*types.StatusMeta{}
 	for _, ID := range IDs {
-		s, err := c.store.GetContainerStatus(ctx, ID)
+		s, err := c.store.GetWorkloadStatus(ctx, ID)
 		if err != nil {
 			return r, err
 		}
@@ -19,28 +19,28 @@ func (c *Calcium) GetContainersStatus(ctx context.Context, IDs []string) ([]*typ
 	return r, nil
 }
 
-// SetContainersStatus set containers status
-func (c *Calcium) SetContainersStatus(ctx context.Context, status []*types.StatusMeta, ttls map[string]int64) ([]*types.StatusMeta, error) {
+// SetWorkloadsStatus set workloads status
+func (c *Calcium) SetWorkloadsStatus(ctx context.Context, status []*types.StatusMeta, ttls map[string]int64) ([]*types.StatusMeta, error) {
 	r := []*types.StatusMeta{}
-	for _, containerStatus := range status {
-		container, err := c.store.GetContainer(ctx, containerStatus.ID)
+	for _, workloadStatus := range status {
+		workload, err := c.store.GetWorkload(ctx, workloadStatus.ID)
 		if err != nil {
 			return nil, err
 		}
-		ttl, ok := ttls[containerStatus.ID]
+		ttl, ok := ttls[workloadStatus.ID]
 		if !ok {
 			ttl = 0
 		}
-		container.StatusMeta = containerStatus
-		if err = c.store.SetContainerStatus(ctx, container, ttl); err != nil {
+		workload.StatusMeta = workloadStatus
+		if err = c.store.SetWorkloadStatus(ctx, workload, ttl); err != nil {
 			return nil, err
 		}
-		r = append(r, container.StatusMeta)
+		r = append(r, workload.StatusMeta)
 	}
 	return r, nil
 }
 
-// ContainerStatusStream stream container status
-func (c *Calcium) ContainerStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.ContainerStatus {
-	return c.store.ContainerStatusStream(ctx, appname, entrypoint, nodename, labels)
+// WorkloadStatusStream stream workload status
+func (c *Calcium) WorkloadStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.WorkloadStatus {
+	return c.store.WorkloadStatusStream(ctx, appname, entrypoint, nodename, labels)
 }

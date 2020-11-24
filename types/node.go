@@ -14,8 +14,6 @@ const (
 	IncrUsage = "+"
 	// DecrUsage cpuusage
 	DecrUsage = "-"
-	// AUTO indicates that volume is to be scheduled by scheduler
-	AUTO = "AUTO"
 )
 
 // NUMA define NUMA cpuID->nodeID
@@ -217,5 +215,5 @@ type NodeResource struct {
 	NUMAMemoryPercent map[string]float64
 	VolumePercent     float64
 	Diffs             []string
-	Containers        []*Container
+	Workloads         []*Workload
 }

@@ -80,7 +80,6 @@ func (cm cpuMemRequest) MakeScheduler() resourcetypes.SchedulerV2 {
 		} else {
 			nodesInfo, CPUPlans, total, err = schedulerV1.SelectCPUNodes(nodesInfo, cm.CPUQuotaRequest, cm.memoryRequest)
 		}
-
 		return ResourcePlans{
 			memoryRequest:   cm.memoryRequest,
 			memoryLimit:     cm.memoryLimit,

@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/projecteru2/core/resources"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
@@ -34,15 +33,15 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 	return r, nil
 }
 
-// NodeResource check node's container and resource
+// NodeResource check node's workload and resource
 func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
 	nr, err := c.doGetNodeResource(ctx, nodename, fix)
 	if err != nil {
 		return nil, err
 	}
-	for _, container := range nr.Containers {
-		if _, err := container.Inspect(ctx); err != nil { // 用于探测节点上容器是否存在
-			nr.Diffs = append(nr.Diffs, fmt.Sprintf("container %s inspect failed %v \n", container.ID, err))
+	for _, workload := range nr.Workloads {
+		if _, err := workload.Inspect(ctx); err != nil { // 用于探测节点上容器是否存在
+			nr.Diffs = append(nr.Diffs, fmt.Sprintf("workload %s inspect failed %v \n", workload.ID, err))
 			continue
 		}
 	}
@@ -52,24 +51,24 @@ func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (
 func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
 	var nr *types.NodeResource
 	return nr, c.withNodeLocked(ctx, nodename, func(node *types.Node) error {
-		containers, err := c.ListNodeContainers(ctx, node.Name, nil)
+		workloads, err := c.ListNodeWorkloads(ctx, node.Name, nil)
 		if err != nil {
 			return err
 		}
 		nr = &types.NodeResource{
 			Name: node.Name, CPU: node.CPU, MemCap: node.MemCap, StorageCap: node.StorageCap,
-			Containers: containers, Diffs: []string{},
+			Workloads: workloads, Diffs: []string{},
 		}
 
 		cpus := 0.0
 		memory := int64(0)
 		storage := int64(0)
 		cpumap := types.CPUMap{}
-		for _, container := range containers {
-			cpus = utils.Round(cpus + container.CPUQuotaRequest)
-			memory += container.MemoryRequest
-			storage += container.StorageRequest
-			cpumap.Add(container.CPU)
+		for _, workload := range workloads {
+			cpus = utils.Round(cpus + workload.CPUQuotaRequest)
+			memory += workload.MemoryRequest
+			storage += workload.StorageRequest
+			cpumap.Add(workload.CPU)
 		}
 		nr.CPUPercent = cpus / float64(len(node.InitCPU))
 		nr.MemoryPercent = float64(memory) / float64(node.InitMemCap)
@@ -141,28 +140,14 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 }
 
 func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) ([]resourcetypes.ResourcePlans, map[string]int, error) {
-	if len(nodeMap) == 0 {
-		return nil, nil, errors.WithStack(types.ErrInsufficientNodes)
-	}
-
-	resourceRequests, err := resources.MakeRequests(opts.ResourceOpts)
+	scheduleType, total, plans, strategyInfos, err := c.doCalculateCapacity(nodeMap, opts)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-
-	// select available nodes
-	scheduleTypes, total, plans, err := resources.SelectNodesByResourceRequests(resourceRequests, nodeMap)
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
-	}
-	log.Debugf("[Calcium.doAllocResource] plans: %+v, total: %v, type: %+v", plans, total, scheduleTypes)
-
-	// deploy strategy
-	strategyInfos := strategy.NewInfos(resourceRequests, nodeMap, plans)
 	if err := c.store.MakeDeployStatus(ctx, opts, strategyInfos); err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	deployMap, err := strategy.Deploy(opts, strategyInfos, total, scheduleTypes)
+	deployMap, err := strategy.Deploy(opts, strategyInfos, total, scheduleType)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
