@@ -6,8 +6,6 @@ import (
 	"net/http"
 	_ "net/http/pprof" // nolint
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/projecteru2/core/auth"
 	"github.com/projecteru2/core/cluster/calcium"
@@ -17,6 +15,7 @@ import (
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/versioninfo"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/sethvargo/go-signalcontext"
 	log "github.com/sirupsen/logrus"
 	cli "github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
@@ -111,10 +110,11 @@ func serve(c *cli.Context) error {
 	log.Info("[main] Cluster started successfully.")
 
 	// wait for unix signals and try to GracefulStop
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGHUP, syscall.SIGTERM)
-	sig := <-sigs
-	log.Infof("[main] Get signal %v.", sig)
+	ctx, cancel := signalcontext.OnInterrupt()
+	defer cancel()
+	<-ctx.Done()
+
+	log.Info("[main] Interrupt by signal")
 	close(rpcch)
 	unregisterService()
 	grpcServer.GracefulStop()

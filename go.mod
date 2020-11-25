@@ -31,6 +31,7 @@ require (
 	github.com/projecteru2/libyavirt v0.0.0-20200831030711-2bb3f2ba0cb7
 	github.com/prometheus/client_golang v1.7.1
 	github.com/sanity-io/litter v1.3.0
+	github.com/sethvargo/go-signalcontext v0.1.0 
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.6.1
 	github.com/urfave/cli/v2 v2.2.0

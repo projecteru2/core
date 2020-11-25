@@ -76,7 +76,7 @@ Make sure you can clone code. After the fresh image was named and tagged, it wil
 2. Deploy core itself
 
 ```shell
-<cli_execute_path> container deploy --pod <pod_name> [--node <node_name>] --entry core --network <network_name> --image <projecteru2/core>|<your_own_image> --file <core_config_yaml>:/core.yaml [--count <count_num>] [--cpu 0.3 | --mem 1024000000] http://bit.ly/EruCore
+<cli_execute_path> workloads deploy --pod <pod_name> [--node <node_name>] --entry core --network <network_name> --image <projecteru2/core>|<your_own_image> --file <core_config_yaml>:/core.yaml [--count <count_num>] [--cpu 0.3 | --mem 1024000000] http://bit.ly/EruCore
 ```
 
 Now you will find core was started in nodes.
