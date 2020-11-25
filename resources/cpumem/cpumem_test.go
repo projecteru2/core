@@ -73,6 +73,26 @@ func TestType(t *testing.T) {
 	assert.True(t, req.Type()&types.ResourceCPUBind > 0)
 }
 
+func TestRate(t *testing.T) {
+	req, err := MakeRequest(types.ResourceOptions{
+		MemoryRequest: 0,
+		MemoryLimit:   1,
+	})
+	assert.Nil(t, err)
+	node := types.Node{
+		InitCPU:    types.CPUMap{"1": 100, "2": 100},
+		InitMemCap: 100,
+	}
+	assert.Equal(t, req.Rate(node), 0.01)
+	req, err = MakeRequest(types.ResourceOptions{
+		CPUQuotaRequest: 0,
+		CPUQuotaLimit:   2,
+		CPUBind:         true,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, req.Rate(node), 1.0)
+}
+
 func TestRequestCpuNode(t *testing.T) {
 	run(t, newRequestCPUNodeTest())
 }
@@ -104,6 +124,11 @@ type nodeSchdulerTest interface {
 }
 
 func run(t *testing.T, test nodeSchdulerTest) {
+	resourceRequest, err := MakeRequest(test.getRequestOptions())
+	assert.NoError(t, err)
+	_, _, err = resourceRequest.MakeScheduler()([]types.NodeInfo{})
+	assert.Error(t, err)
+
 	s := test.getScheduler()
 	prevSche, _ := scheduler.GetSchedulerV1()
 	scheduler.InitSchedulerV1(s)
@@ -111,8 +136,8 @@ func run(t *testing.T, test nodeSchdulerTest) {
 		scheduler.InitSchedulerV1(prevSche)
 	}()
 
-	resourceRequest, err := MakeRequest(test.getRequestOptions())
-	assert.Nil(t, err)
+	resourceRequest, err = MakeRequest(test.getRequestOptions())
+	assert.NoError(t, err)
 
 	sche := resourceRequest.MakeScheduler()
 
@@ -120,6 +145,9 @@ func run(t *testing.T, test nodeSchdulerTest) {
 	assert.Nil(t, err)
 
 	var node = test.getNode()
+
+	assert.True(t, plans.Type()&(types.ResourceCPU|types.ResourceMemory) > 0)
+	assert.NotNil(t, plans.Capacity())
 
 	plans.ApplyChangesOnNode(node, 0)
 	test.assertAfterChanges(t)
@@ -161,7 +189,7 @@ func newRequestCPUNodeTest() nodeSchdulerTest {
 				CPUPlan:    []types.CPUMap{{"0": 10000, "1": 10000}},
 			},
 		},
-		cpuMap: map[string][]types.CPUMap{"TestNode": []types.CPUMap{{"0": 10000, "1": 10000}}},
+		cpuMap: map[string][]types.CPUMap{"TestNode": {{"0": 10000, "1": 10000}}},
 	}
 }
 

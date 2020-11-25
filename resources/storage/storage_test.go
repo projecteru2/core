@@ -36,6 +36,24 @@ func TestMakeRequest(t *testing.T) {
 		StorageLimit:   0,
 	})
 	assert.Nil(t, err)
+
+	_, err = MakeRequest(types.ResourceOptions{
+		StorageRequest: 2024,
+		StorageLimit:   1024,
+	})
+	assert.Nil(t, err)
+}
+
+func TestRate(t *testing.T) {
+	req, err := MakeRequest(types.ResourceOptions{
+		StorageRequest: 1024,
+		StorageLimit:   1024,
+	})
+	assert.Nil(t, err)
+	node := types.Node{
+		InitStorageCap: 1024,
+	}
+	assert.Equal(t, req.Rate(node), 1.0)
 }
 
 func TestStorage(t *testing.T) {
@@ -57,21 +75,22 @@ func TestStorage(t *testing.T) {
 		"SelectStorageNodes", mock.Anything, mock.Anything,
 	).Return(nodeInfos, 1, nil)
 
+	resourceRequest, err := MakeRequest(types.ResourceOptions{
+		StorageRequest: 1024,
+		StorageLimit:   1024,
+	})
+	assert.NoError(t, err)
+	_, _, err = resourceRequest.MakeScheduler()([]types.NodeInfo{})
+	assert.Error(t, err)
+
+	assert.True(t, resourceRequest.Type()&types.ResourceStorage > 0)
 	prevSche, _ := scheduler.GetSchedulerV1()
 	scheduler.InitSchedulerV1(mockScheduler)
 	defer func() {
 		scheduler.InitSchedulerV1(prevSche)
 	}()
 
-	resourceRequest, err := MakeRequest(types.ResourceOptions{
-		StorageRequest: 1024,
-		StorageLimit:   1024,
-	})
-	assert.Nil(t, err)
-	assert.True(t, resourceRequest.Type()&types.ResourceStorage > 0)
-
 	sche := resourceRequest.MakeScheduler()
-
 	plans, _, err := sche(nodeInfos)
 	assert.Nil(t, err)
 
@@ -86,6 +105,8 @@ func TestStorage(t *testing.T) {
 	}
 
 	assert.True(t, plans.Type()&types.ResourceStorage > 0)
+
+	assert.NotNil(t, plans.Capacity())
 
 	plans.ApplyChangesOnNode(&node, 0)
 	assert.Less(t, node.StorageCap, storage)

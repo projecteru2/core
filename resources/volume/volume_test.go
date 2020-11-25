@@ -15,7 +15,7 @@ import (
 func TestMakeRequest(t *testing.T) {
 	_, err := MakeRequest(types.ResourceOptions{
 		VolumeLimit: []*types.VolumeBinding{
-			&types.VolumeBinding{
+			{
 				Source:      "/data1",
 				Destination: "/data1",
 			},
@@ -25,17 +25,17 @@ func TestMakeRequest(t *testing.T) {
 
 	_, err = MakeRequest(types.ResourceOptions{
 		VolumeRequest: []*types.VolumeBinding{
-			&types.VolumeBinding{
+			{
 				Source:      "/data1",
 				Destination: "/data1",
 			},
 		},
 		VolumeLimit: []*types.VolumeBinding{
-			&types.VolumeBinding{
+			{
 				Source:      "/data1",
 				Destination: "/data1",
 			},
-			&types.VolumeBinding{
+			{
 				Source:      "/data2",
 				Destination: "/data2",
 			},
@@ -93,13 +93,13 @@ func TestStorage(t *testing.T) {
 
 	resourceRequest, err := MakeRequest(types.ResourceOptions{
 		VolumeRequest: []*types.VolumeBinding{
-			&types.VolumeBinding{
+			{
 				Source:      "/data1",
 				Destination: "/data1",
 			},
 		},
 		VolumeLimit: []*types.VolumeBinding{
-			&types.VolumeBinding{
+			{
 				Source:      "/data1",
 				Destination: "/data1",
 			},
@@ -127,6 +127,7 @@ func TestStorage(t *testing.T) {
 		InitVolume: types.VolumeMap{"/data1": 512, "/data2": 512},
 	}
 
+	assert.NotNil(t, plans.Capacity())
 	plans.ApplyChangesOnNode(&node, 0)
 	assert.Less(t, node.Volume["/data1"], int64(512))
 
@@ -152,4 +153,16 @@ func TestStorage(t *testing.T) {
 	r := &types.ResourceMeta{}
 	_, err = plans.Dispense(opts, r)
 	assert.Nil(t, err)
+}
+
+func TestRate(t *testing.T) {
+	req, err := MakeRequest(types.ResourceOptions{
+		VolumeRequest: types.VolumeBindings{&types.VolumeBinding{SizeInBytes: 1024}},
+		VolumeLimit:   types.VolumeBindings{&types.VolumeBinding{SizeInBytes: 1024}},
+	})
+	assert.Nil(t, err)
+	node := types.Node{
+		Volume: types.VolumeMap{"1": 1024},
+	}
+	assert.Equal(t, req.Rate(node), 1.0)
 }
