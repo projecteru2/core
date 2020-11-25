@@ -60,7 +60,7 @@ func (s storageRequest) MakeScheduler() resourcetypes.SchedulerV2 {
 
 // Rate .
 func (s storageRequest) Rate(node types.Node) float64 {
-	return float64(0) / float64(node.Volume.Total())
+	return float64(s.request) / float64(node.InitStorageCap)
 }
 
 // ResourcePlans .
