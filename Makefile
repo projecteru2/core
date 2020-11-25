@@ -44,8 +44,10 @@ unit-test:
 	./rpc/. ./lock/etcdlock/... \
 	./auth/simple/... \
 	./cluster/calcium/... \
-	./resources/... \
-	./discovery/helium...
+	./discovery/helium... \
+	./resources/storage/... \
+	./resources/volume/... \
+	./resources/cpumem/...
 
 lint:
 	golangci-lint run

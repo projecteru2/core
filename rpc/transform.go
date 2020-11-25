@@ -531,6 +531,9 @@ func toCoreExecuteWorkloadOptions(b *pb.ExecuteWorkloadOptions) (opts *types.Exe
 }
 
 func toRPCCapacityMessage(msg *types.CapacityMessage) *pb.CapacityMessage {
+	if msg == nil {
+		return nil
+	}
 	caps := map[string]int64{}
 	for nodename, capacity := range msg.NodeCapacities {
 		caps[nodename] = int64(capacity)
