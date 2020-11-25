@@ -12,6 +12,43 @@ def remove_prefix(s, prefix):
     return s[len(prefix):].lstrip('/') if s.startswith(prefix) else s
 
 def range_prefix(meta, obj_prefix, fn):
+    etcd = meta.etcd
+    orig_prefix = os.path.join(meta.orig_root_prefix, obj_prefix)
+    range_start = orig_prefix
+    range_end = etcd3.utils.increment_last_byte(
+        etcd3.utils.to_bytes(range_start)
+    )
+
+    while True:
+        range_request = etcd3.etcdrpc.RangeRequest()
+        range_request.key = etcd3.utils.to_bytes(range_start)
+        range_request.keys_only = False
+        range_request.range_end = etcd3.utils.to_bytes(range_end)
+        range_request.sort_order = etcd3.etcdrpc.RangeRequest.ASCEND
+        range_request.sort_target = etcd3.etcdrpc.RangeRequest.KEY
+        range_request.serializable = True
+        range_request.limit = 1000
+
+        range_response = etcd.kvstub.Range(
+            range_request,
+            etcd.timeout,
+            credentials=etcd.call_credentials,
+            metadata=etcd.metadata,
+        )
+
+        for kv in range_response.kvs:
+            orig_key = kv.key.decode('utf-8')
+            objname = remove_prefix(orig_key, orig_prefix)
+            new_key = fn(objname, kv.value.decode('utf-8'))
+            if new_key:
+                print('convert %s to %s' % (orig_key, new_key))
+
+        if not range_response.more:
+            break
+
+        range_start = etcd3.utils.increment_last_byte(kv.key)
+
+def range_prefix2(meta, obj_prefix, fn):
     orig_prefix = os.path.join(meta.orig_root_prefix, obj_prefix)
 
     for orig_value, orig_meta in meta.etcd.get_prefix(orig_prefix):
@@ -151,7 +188,8 @@ class Workload(object):
     def _trans_deploy(self, deploy_key, orig_value):
         parts = deploy_key.split('/')
         if len(parts) != 4:
-            raise ValueError('invalid deploy key: %s' % deploy_key)
+            print('invalid deploy key: %s' % deploy_key)
+            return
 
         appname, entrypoint, nodename, wrk_id = parts
 
@@ -200,8 +238,8 @@ class Workload(object):
             cpu_quota_limit=get('cpu_quota_limit', 'quota', 'CPUQuotaLimit'),
             memory_request=get('memory_request', 'memory', 'MemoryRequest'),
             memory_limit=get('memory_limit', 'memory', 'MemoryLimit'),
-            volume_request=get('volume_request', 'volumes', 'VolumeRequest'),
-            volume_limit=get('volume_limit', 'volumes', 'VolumeLimit'),
+            volume_request=get('volume_request', 'volumes', 'VolumeRequest', default=[]),
+            volume_limit=get('volume_limit', 'volumes', 'VolumeLimit', default=[]),
             volume_plan_request=get('volume_plan_request', 'volume_plan', 'VolumePlanRequest', default={}),
             volume_plan_limit=get('volume_plan_limit', 'volume_plan', 'VolumePlanLimit', default={}),
             volume_changed=dic.get('volume_changed', False),
