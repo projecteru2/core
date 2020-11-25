@@ -99,7 +99,11 @@ func (v volumeRequest) MakeScheduler() resourcetypes.SchedulerV2 {
 
 // Rate .
 func (v volumeRequest) Rate(node types.Node) float64 {
-	return float64(node.VolumeUsed) / float64(node.Volume.Total())
+	var totalRequest int64
+	for i := 0; i < v.requests; i++ {
+		totalRequest += v.request[i].SizeInBytes
+	}
+	return float64(totalRequest) / float64(node.Volume.Total())
 }
 
 // ResourcePlans .

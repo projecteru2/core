@@ -35,7 +35,19 @@ cloc:
 
 unit-test:
 	go vet `go list ./... | grep -v '/vendor/' | grep -v '/tools'`
-	go test -timeout 120s -count=1 -cover ./utils/... ./types/... ./store/etcdv3/... ./source/common/... ./strategy/... ./scheduler/complex/... ./rpc/. ./lock/etcdlock/... ./auth/simple/... ./cluster/calcium/...
+	go test -timeout 120s -count=1 -cover ./utils/... \
+	./types/... \
+	./store/etcdv3/... \
+	./source/common/... \
+	./strategy/... \
+	./scheduler/complex/... \
+	./rpc/. ./lock/etcdlock/... \
+	./auth/simple/... \
+	./cluster/calcium/... \
+	./discovery/helium... \
+	./resources/storage/... \
+	./resources/volume/... \
+	./resources/cpumem/...
 
 lint:
 	golangci-lint run
