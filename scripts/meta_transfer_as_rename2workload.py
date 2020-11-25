@@ -133,6 +133,7 @@ class Workload(object):
         """Initializes a workload transfer."""
         self.meta = meta
         self.container_prefix = 'containers'
+        self.wrk_prefix = 'workloads'
         self.deploy_prefix = 'deploy'
         self.range_prefix = functools.partial(range_prefix, self.meta)
         self.node_transfer = node_transfer
@@ -142,7 +143,7 @@ class Workload(object):
         self.range_prefix(self.deploy_prefix, self._trans_deploy)
 
     def _trans_container(self, wrk_id, orig_value):
-        new_key = os.path.join(self.meta.new_root_prefix, self.container_prefix, wrk_id)
+        new_key = os.path.join(self.meta.new_root_prefix, self.wrk_prefix, wrk_id)
         wrk = self.conv(orig_value, self.node_transfer)
         self.meta.etcd.put(new_key, json.dumps(wrk))
         return new_key
