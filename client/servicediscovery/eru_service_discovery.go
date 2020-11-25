@@ -80,7 +80,6 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 func (w *EruServiceDiscovery) dial(ctx context.Context, addr string, authConfig types.AuthConfig) (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
 		grpc.WithInsecure(),
-		grpc.WithBalancerName("round_robin"), // nolint:staticcheck
 		grpc.WithStreamInterceptor(interceptor.NewStreamRetry(interceptor.RetryOptions{Max: 1})),
 	}
 
