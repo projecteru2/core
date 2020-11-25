@@ -495,7 +495,10 @@ func (v *Vibranium) CalculateCapacity(ctx context.Context, opts *pb.CalculateCap
 		return nil, err
 	}
 	m, err := v.cluster.CalculateCapacity(ctx, calOpts)
-	return toRPCCapacityMessage(m), err
+	if err != nil {
+		return nil, err
+	}
+	return toRPCCapacityMessage(m), nil
 }
 
 // CreateContainer create containers
