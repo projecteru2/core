@@ -92,7 +92,9 @@ func TestReplaceWorkload(t *testing.T) {
 		assert.False(t, r.Remove.Success)
 	}
 	node := &types.Node{
-		Name: "test",
+		NodeMeta: types.NodeMeta{
+			Name: "test",
+		},
 	}
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil).Once()
 	// failed by no image

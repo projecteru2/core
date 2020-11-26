@@ -34,7 +34,7 @@ func TestRemovePod(t *testing.T) {
 	store := &storemocks.Store{}
 	c.store = store
 	store.On("RemovePod", mock.Anything, mock.Anything).Return(nil)
-	node := &types.Node{Name: "n1", Available: true}
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: "n1"}, Available: true}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	lock := &lockmocks.DistributedLock{}

@@ -60,21 +60,23 @@ func TestStorage(t *testing.T) {
 		}
 		nodeInfos []types.NodeInfo = []types.NodeInfo{
 			{
-				Name:       "TestNode",
-				CPU:     map[string]int64{"0": 10000, "1": 10000},
-				NUMA:       map[string]string{"0": "0", "1": "1"},
-				NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
-				MemCap:     10240,
-				CPUPlan:    []types.CPUMap{{"0": 10000, "1": 10000}},
-				StorageCap: 10240,
-				Volume: types.VolumeMap{
-					"/data1": 1024,
-					"/data2": 1024,
-				},
-				InitVolume: types.VolumeMap{
-					"/data0": 1024,
+				NodeMeta: types.NodeMeta{
+					Name:       "TestNode",
+					CPU:        map[string]int64{"0": 10000, "1": 10000},
+					NUMA:       map[string]string{"0": "0", "1": "1"},
+					NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
+					MemCap:     10240,
+					StorageCap: 10240,
+					Volume: types.VolumeMap{
+						"/data1": 1024,
+						"/data2": 1024,
+					},
+					InitVolume: types.VolumeMap{
+						"/data0": 1024,
+					},
 				},
 				VolumePlans: volumePlans,
+				CPUPlan:     []types.CPUMap{{"0": 10000, "1": 10000}},
 			},
 		}
 		volumePlan = map[string][]types.VolumePlan{
@@ -116,15 +118,17 @@ func TestStorage(t *testing.T) {
 
 	const storage = int64(10240)
 	var node = types.Node{
-		Name:       "TestNode",
-		CPU:        map[string]int64{"0": 10000, "1": 10000},
-		NUMA:       map[string]string{"0": "0", "1": "1"},
-		NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
-		MemCap:     10240,
-		StorageCap: storage,
-		Volume:     types.VolumeMap{"/data1": 512, "/data2": 512},
+		NodeMeta: types.NodeMeta{
+			Name:       "TestNode",
+			CPU:        map[string]int64{"0": 10000, "1": 10000},
+			NUMA:       map[string]string{"0": "0", "1": "1"},
+			NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
+			MemCap:     10240,
+			StorageCap: storage,
+			Volume:     types.VolumeMap{"/data1": 512, "/data2": 512},
+			InitVolume: types.VolumeMap{"/data1": 512, "/data2": 512},
+		},
 		VolumeUsed: 0,
-		InitVolume: types.VolumeMap{"/data1": 512, "/data2": 512},
 	}
 
 	assert.NotNil(t, plans.Capacity())
@@ -162,7 +166,9 @@ func TestRate(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	node := types.Node{
-		Volume: types.VolumeMap{"1": 1024},
+		NodeMeta: types.NodeMeta{
+			Volume: types.VolumeMap{"1": 1024},
+		},
 	}
 	assert.Equal(t, req.Rate(node), 1.0)
 }

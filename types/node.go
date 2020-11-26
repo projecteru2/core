@@ -22,28 +22,35 @@ type NUMA map[string]string
 // NUMAMemory fine NUMA memory NODE
 type NUMAMemory map[string]int64
 
+// NodeMeta .
+type NodeMeta struct {
+	Name     string            `json:"name"`
+	Endpoint string            `json:"endpoint"`
+	Podname  string            `json:"podname"`
+	Labels   map[string]string `json:"labels"`
+
+	CPU            CPUMap     `json:"cpu"`
+	Volume         VolumeMap  `json:"volume"`
+	NUMA           NUMA       `json:"numa"`
+	NUMAMemory     NUMAMemory `json:"numa_memory"`
+	MemCap         int64      `json:"memcap"`
+	StorageCap     int64      `json:"storage_cap"`
+	InitCPU        CPUMap     `json:"init_cpu"`
+	InitMemCap     int64      `json:"init_memcap"`
+	InitStorageCap int64      `json:"init_storage_cap"`
+	InitNUMAMemory NUMAMemory `json:"init_numa_memory"`
+	InitVolume     VolumeMap  `json:"init_volume"`
+}
+
 // Node store node info
 type Node struct {
-	Name     string `json:"name"`
-	Endpoint string `json:"endpoint"`
-	Podname  string `json:"podname"`
-	CPU      CPUMap `json:"cpu"`
-	// free spaces
-	Volume         VolumeMap         `json:"volume"`
-	NUMA           NUMA              `json:"numa"`
-	NUMAMemory     NUMAMemory        `json:"numa_memory"`
-	CPUUsed        float64           `json:"cpuused"`
-	VolumeUsed     int64             `json:"volumeused"`
-	MemCap         int64             `json:"memcap"`
-	StorageCap     int64             `json:"storage_cap"`
-	Available      bool              `json:"available"`
-	Labels         map[string]string `json:"labels"`
-	InitCPU        CPUMap            `json:"init_cpu"`
-	InitMemCap     int64             `json:"init_memcap"`
-	InitStorageCap int64             `json:"init_storage_cap"`
-	InitNUMAMemory NUMAMemory        `json:"init_numa_memory"`
-	InitVolume     VolumeMap         `json:"init_volume"`
-	Engine         engine.API        `json:"-"`
+	NodeMeta
+
+	CPUUsed    float64 `json:"cpuused"`
+	VolumeUsed int64   `json:"volumeused"`
+
+	Available bool       `json:"available"`
+	Engine    engine.API `json:"-"`
 }
 
 // Init .
@@ -183,14 +190,7 @@ func (n *Node) PreserveResources(resource *ResourceMeta) {
 
 // NodeInfo for deploy
 type NodeInfo struct {
-	Name       string
-	CPU        CPUMap
-	Volume     VolumeMap
-	InitVolume VolumeMap
-	NUMA       NUMA
-	NUMAMemory NUMAMemory
-	MemCap     int64
-	StorageCap int64
+	NodeMeta
 
 	Usages map[ResourceType]float64 // deprecated
 	Rates  map[ResourceType]float64 // deprecated

@@ -76,11 +76,15 @@ func TestCreateWorkloadTxn(t *testing.T) {
 
 	pod1 := &types.Pod{Name: "p1"}
 	node1 := &types.Node{
-		Name:   "n1",
+		NodeMeta: types.NodeMeta{
+			Name: "n1",
+		},
 		Engine: engine,
 	}
 	node2 := &types.Node{
-		Name:   "n2",
+		NodeMeta: types.NodeMeta{
+			Name: "n2",
+		},
 		Engine: engine,
 	}
 	nodes := []*types.Node{node1, node2}

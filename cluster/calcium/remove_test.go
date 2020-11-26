@@ -42,7 +42,9 @@ func TestRemoveWorkload(t *testing.T) {
 		assert.False(t, r.Success)
 	}
 	node := &types.Node{
-		Name: "test",
+		NodeMeta: types.NodeMeta{
+			Name: "test",
+		},
 	}
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	// failed by Remove

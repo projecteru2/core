@@ -44,15 +44,17 @@ func TestRealloc(t *testing.T) {
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
 
 	node1 := &types.Node{
-		Name:       "node1",
-		MemCap:     int64(units.GiB),
-		CPU:        types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
-		InitCPU:    types.CPUMap{"0": 100, "1": 100, "2": 100, "3": 100},
-		Engine:     engine,
-		Endpoint:   "http://1.1.1.1:1",
-		NUMA:       types.NUMA{"2": "0"},
-		NUMAMemory: types.NUMAMemory{"0": 100000},
-		Volume:     types.VolumeMap{"/dir0": 100},
+		NodeMeta: types.NodeMeta{
+			Name:       "node1",
+			MemCap:     int64(units.GiB),
+			CPU:        types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
+			InitCPU:    types.CPUMap{"0": 100, "1": 100, "2": 100, "3": 100},
+			Endpoint:   "http://1.1.1.1:1",
+			NUMA:       types.NUMA{"2": "0"},
+			NUMAMemory: types.NUMAMemory{"0": 100000},
+			Volume:     types.VolumeMap{"/dir0": 100},
+		},
+		Engine: engine,
 	}
 
 	newC1 := func(context.Context, []string) []*types.Workload {
@@ -149,11 +151,13 @@ func TestRealloc(t *testing.T) {
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrBadWorkloadID).Once()
 	// reset node
 	node1 = &types.Node{
-		Name:     "node1",
-		MemCap:   int64(units.GiB),
-		CPU:      types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
-		Engine:   engine,
-		Endpoint: "http://1.1.1.1:1",
+		NodeMeta: types.NodeMeta{
+			Name:     "node1",
+			MemCap:   int64(units.GiB),
+			CPU:      types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
+			Endpoint: "http://1.1.1.1:1",
+		},
+		Engine: engine,
 	}
 	store.On("GetWorkloads", mock.Anything, []string{"c2"}).Return(newC2, nil)
 	err = c.ReallocResource(ctx, newReallocOptions("c2", 0.1, 2*int64(units.MiB), nil, types.TriKeep, types.TriKeep))
@@ -200,16 +204,18 @@ func TestRealloc(t *testing.T) {
 	// good to go
 	// rest everything
 	node2 := &types.Node{
-		Name:       "node2",
-		MemCap:     int64(units.GiB),
-		CPU:        types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
-		InitCPU:    types.CPUMap{"0": 100, "1": 100, "2": 100, "3": 100},
-		Engine:     engine,
-		Endpoint:   "http://1.1.1.1:1",
-		NUMA:       types.NUMA{"2": "0"},
-		NUMAMemory: types.NUMAMemory{"0": 100000},
-		Volume:     types.VolumeMap{"/dir0": 200, "/dir1": 200, "/dir2": 200},
+		NodeMeta: types.NodeMeta{
+			Name:       "node2",
+			MemCap:     int64(units.GiB),
+			CPU:        types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
+			InitCPU:    types.CPUMap{"0": 100, "1": 100, "2": 100, "3": 100},
+			Endpoint:   "http://1.1.1.1:1",
+			NUMA:       types.NUMA{"2": "0"},
+			NUMAMemory: types.NUMAMemory{"0": 100000},
+			Volume:     types.VolumeMap{"/dir0": 200, "/dir1": 200, "/dir2": 200},
+		},
 		VolumeUsed: int64(300),
+		Engine:     engine,
 	}
 	c3 := &types.Workload{
 		ID:      "c3",
@@ -306,17 +312,19 @@ func TestReallocBindCpu(t *testing.T) {
 
 	//test bindCpu
 	node3 := &types.Node{
-		Name:       "node3",
-		MemCap:     int64(units.GiB),
-		CPU:        types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
-		InitCPU:    types.CPUMap{"0": 100, "1": 100, "2": 100, "3": 100},
+		NodeMeta: types.NodeMeta{
+			Name:       "node3",
+			MemCap:     int64(units.GiB),
+			CPU:        types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
+			InitCPU:    types.CPUMap{"0": 100, "1": 100, "2": 100, "3": 100},
+			Endpoint:   "http://1.1.1.1:1",
+			NUMA:       types.NUMA{"2": "0"},
+			NUMAMemory: types.NUMAMemory{"0": 100000},
+			Volume:     types.VolumeMap{"/dir0": 200, "/dir1": 200, "/dir2": 200},
+		},
+		VolumeUsed: int64(300),
 		CPUUsed:    2.1,
 		Engine:     engine,
-		Endpoint:   "http://1.1.1.1:1",
-		NUMA:       types.NUMA{"2": "0"},
-		NUMAMemory: types.NUMAMemory{"0": 100000},
-		Volume:     types.VolumeMap{"/dir0": 200, "/dir1": 200, "/dir2": 200},
-		VolumeUsed: int64(300),
 	}
 	c5 := &types.Workload{
 		ID:      "c5",

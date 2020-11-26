@@ -22,7 +22,9 @@ func TestSetNodeOptions(t *testing.T) {
 	assert.EqualValues(t, -7, o.DeltaStorage)
 
 	node := &Node{
-		InitVolume: VolumeMap{"/data0": 100, "/data1": 3},
+		NodeMeta: NodeMeta{
+			InitVolume: VolumeMap{"/data0": 100, "/data1": 3},
+		},
 	}
 	o = &SetNodeOptions{
 		DeltaVolume:  VolumeMap{"/data0": 0, "/data1": 10},

@@ -36,12 +36,14 @@ func TestPodResource(t *testing.T) {
 	_, err := c.PodResource(ctx, podname)
 	assert.Error(t, err)
 	node := &types.Node{
-		Name:           nodename,
-		CPU:            types.CPUMap{"0": 0, "1": 10},
-		MemCap:         2,
-		InitCPU:        types.CPUMap{"0": 100, "1": 100},
-		InitMemCap:     6,
-		InitStorageCap: 10,
+		NodeMeta: types.NodeMeta{
+			Name:           nodename,
+			CPU:            types.CPUMap{"0": 0, "1": 10},
+			MemCap:         2,
+			InitCPU:        types.CPUMap{"0": 100, "1": 100},
+			InitMemCap:     6,
+			InitStorageCap: 10,
+		},
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
@@ -97,13 +99,15 @@ func TestNodeResource(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	node := &types.Node{
-		Name:           nodename,
-		CPU:            types.CPUMap{"0": 0, "1": 10},
-		MemCap:         2,
-		InitCPU:        types.CPUMap{"0": 100, "1": 100},
-		InitMemCap:     6,
-		NUMAMemory:     types.NUMAMemory{"0": 1, "1": 1},
-		InitNUMAMemory: types.NUMAMemory{"0": 3, "1": 3},
+		NodeMeta: types.NodeMeta{
+			Name:           nodename,
+			CPU:            types.CPUMap{"0": 0, "1": 10},
+			MemCap:         2,
+			InitCPU:        types.CPUMap{"0": 100, "1": 100},
+			InitMemCap:     6,
+			NUMAMemory:     types.NUMAMemory{"0": 1, "1": 1},
+			InitNUMAMemory: types.NUMAMemory{"0": 3, "1": 3},
+		},
 	}
 	engine := &enginemocks.API{}
 	engine.On("ResourceValidate", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
@@ -166,17 +170,21 @@ func TestAllocResource(t *testing.T) {
 	n2 := "n2"
 	nodeMap := map[string]*types.Node{
 		n1: {
-			Name:      n1,
+			NodeMeta: types.NodeMeta{
+				Name:   n1,
+				Labels: map[string]string{"test": "1"},
+				CPU:    types.CPUMap{"0": 100},
+				MemCap: 100,
+			},
 			Available: false,
-			Labels:    map[string]string{"test": "1"},
-			CPU:       types.CPUMap{"0": 100},
-			MemCap:    100,
 		},
 		n2: {
-			Name:      n2,
+			NodeMeta: types.NodeMeta{
+				Name:   n2,
+				CPU:    types.CPUMap{"0": 100},
+				MemCap: 100,
+			},
 			Available: true,
-			CPU:       types.CPUMap{"0": 100},
-			MemCap:    100,
 		},
 	}
 
@@ -189,9 +197,11 @@ func TestAllocResource(t *testing.T) {
 	// define nodesInfo
 	nodesInfo := []types.NodeInfo{
 		{
-			Name:     n2,
-			CPU:   types.CPUMap{"0": 100},
-			MemCap:   100,
+			NodeMeta: types.NodeMeta{
+				Name:   n2,
+				CPU:    types.CPUMap{"0": 100},
+				MemCap: 100,
+			},
 			Count:    1,  // 1 exists
 			Deploy:   3,  // deploy 1
 			Capacity: 10, // can deploy 10

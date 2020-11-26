@@ -51,7 +51,9 @@ func TestRate(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	node := types.Node{
-		InitStorageCap: 1024,
+		NodeMeta: types.NodeMeta{
+			InitStorageCap: 1024,
+		},
 	}
 	assert.Equal(t, req.Rate(node), 1.0)
 }
@@ -61,13 +63,15 @@ func TestStorage(t *testing.T) {
 	var (
 		nodeInfos []types.NodeInfo = []types.NodeInfo{
 			{
-				Name:       "TestNode",
-				CPU:     map[string]int64{"0": 10000, "1": 10000},
-				NUMA:       map[string]string{"0": "0", "1": "1"},
-				NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
-				MemCap:     10240,
-				CPUPlan:    []types.CPUMap{{"0": 10000, "1": 10000}},
-				StorageCap: 10240,
+				NodeMeta: types.NodeMeta{
+					Name:       "TestNode",
+					CPU:        map[string]int64{"0": 10000, "1": 10000},
+					NUMA:       map[string]string{"0": "0", "1": "1"},
+					NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
+					MemCap:     10240,
+					StorageCap: 10240,
+				},
+				CPUPlan: []types.CPUMap{{"0": 10000, "1": 10000}},
 			},
 		}
 	)
@@ -96,12 +100,14 @@ func TestStorage(t *testing.T) {
 
 	const storage = int64(10240)
 	var node = types.Node{
-		Name:       "TestNode",
-		CPU:        map[string]int64{"0": 10000, "1": 10000},
-		NUMA:       map[string]string{"0": "0", "1": "1"},
-		NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
-		MemCap:     10240,
-		StorageCap: storage,
+		NodeMeta: types.NodeMeta{
+			Name:       "TestNode",
+			CPU:        map[string]int64{"0": 10000, "1": 10000},
+			NUMA:       map[string]string{"0": "0", "1": "1"},
+			NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
+			MemCap:     10240,
+			StorageCap: storage,
+		},
 	}
 
 	assert.True(t, plans.Type()&types.ResourceStorage > 0)

@@ -46,7 +46,9 @@ func TestAddNode(t *testing.T) {
 	assert.Error(t, err)
 	engine := &enginemock.API{}
 	node := &types.Node{
-		Name:   "test",
+		NodeMeta: types.NodeMeta{
+			Name: "test",
+		},
 		Engine: engine,
 	}
 	engine.On("Info", mock.Anything).Return(&enginetypes.Info{}, nil)

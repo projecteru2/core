@@ -36,10 +36,12 @@ func TestDissociateWorkload(t *testing.T) {
 	}
 
 	node1 := &types.Node{
-		Name:     "node1",
-		MemCap:   units.GiB,
-		CPU:      types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
-		Endpoint: "http://1.1.1.1:1",
+		NodeMeta: types.NodeMeta{
+			Name:     "node1",
+			MemCap:   units.GiB,
+			CPU:      types.CPUMap{"0": 10, "1": 70, "2": 10, "3": 100},
+			Endpoint: "http://1.1.1.1:1",
+		},
 	}
 
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{c1}, nil)

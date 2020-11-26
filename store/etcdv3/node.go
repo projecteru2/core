@@ -215,22 +215,24 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 	}
 
 	node := &types.Node{
-		Name:           name,
-		Endpoint:       endpoint,
-		Podname:        podname,
-		CPU:            cpumap,
-		MemCap:         memory,
-		StorageCap:     storage,
-		Volume:         volumemap,
-		InitCPU:        cpumap,
-		InitMemCap:     memory,
-		InitStorageCap: storage,
-		InitNUMAMemory: numaMemory,
-		InitVolume:     volumemap,
-		Available:      true,
-		Labels:         labels,
-		NUMA:           numa,
-		NUMAMemory:     numaMemory,
+		NodeMeta: types.NodeMeta{
+			Name:           name,
+			Endpoint:       endpoint,
+			Podname:        podname,
+			CPU:            cpumap,
+			MemCap:         memory,
+			StorageCap:     storage,
+			Volume:         volumemap,
+			InitCPU:        cpumap,
+			InitMemCap:     memory,
+			InitStorageCap: storage,
+			InitNUMAMemory: numaMemory,
+			InitVolume:     volumemap,
+			Labels:         labels,
+			NUMA:           numa,
+			NUMAMemory:     numaMemory,
+		},
+		Available: true,
 	}
 
 	bytes, err := json.Marshal(node)

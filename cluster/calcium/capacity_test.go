@@ -24,9 +24,11 @@ func TestCalculateCapacity(t *testing.T) {
 
 	// pod1 := &types.Pod{Name: "p1"}
 	node1 := &types.Node{
-		Name:   "n1",
+		NodeMeta: types.NodeMeta{
+			Name: "n1",
+			CPU:  types.CPUMap{"0": 100, "1": 100},
+		},
 		Engine: engine,
-		CPU:    types.CPUMap{"0": 100, "1": 100},
 	}
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node1, nil)
 	lock := &lockmocks.DistributedLock{}
@@ -51,8 +53,10 @@ func TestCalculateCapacity(t *testing.T) {
 	// define nodesInfo
 	nodesInfo := []types.NodeInfo{
 		{
-			Name:     "n1",
-			MemCap:   100,
+			NodeMeta: types.NodeMeta{
+				Name:   "n1",
+				MemCap: 100,
+			},
 			Deploy:   5,
 			Capacity: 10,
 			Count:    1,

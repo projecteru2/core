@@ -41,18 +41,20 @@ func TestCPUPriorPlan(t *testing.T) {
 func resetNodesInfo() []types.NodeInfo {
 	return []types.NodeInfo{
 		{
-			Name:   "n1",
-			CPU: types.CPUMap{"1": 100, "2": 100, "3": 100, "4": 100},
-			MemCap: 3 * int64(units.GiB),
-			NUMA: types.NUMA{
-				"1": "node0",
-				"2": "node1",
-				"3": "node0",
-				"4": "node1",
-			},
-			NUMAMemory: types.NUMAMemory{
-				"node0": int64(units.GiB),
-				"node1": int64(units.GiB),
+			NodeMeta: types.NodeMeta{
+				Name:   "n1",
+				CPU:    types.CPUMap{"1": 100, "2": 100, "3": 100, "4": 100},
+				MemCap: 3 * int64(units.GiB),
+				NUMA: types.NUMA{
+					"1": "node0",
+					"2": "node1",
+					"3": "node0",
+					"4": "node1",
+				},
+				NUMAMemory: types.NUMAMemory{
+					"node0": int64(units.GiB),
+					"node1": int64(units.GiB),
+				},
 			},
 		},
 	}

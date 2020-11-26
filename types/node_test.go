@@ -46,7 +46,7 @@ func TestNode(t *testing.T) {
 
 func TestGetNUMANode(t *testing.T) {
 	node := &Node{
-		NUMA: NUMA{"1": "node1", "2": "node2", "3": "node1", "4": "node2"},
+		NodeMeta: NodeMeta{NUMA: NUMA{"1": "node1", "2": "node2", "3": "node1", "4": "node2"}},
 	}
 	cpu := CPUMap{"1": 100, "2": 100}
 	nodeID := node.GetNUMANode(cpu)
@@ -61,7 +61,7 @@ func TestGetNUMANode(t *testing.T) {
 
 func TestSetNUMANodeMemory(t *testing.T) {
 	node := &Node{
-		NUMAMemory: NUMAMemory{"n1": 100},
+		NodeMeta: NodeMeta{NUMAMemory: NUMAMemory{"n1": 100}},
 	}
 	// incr
 	node.IncrNUMANodeMemory("n1", 1)
@@ -75,7 +75,7 @@ func TestSetNUMANodeMemory(t *testing.T) {
 
 func TestStorage(t *testing.T) {
 	node := &Node{
-		InitStorageCap: 0,
+		NodeMeta: NodeMeta{InitStorageCap: 0},
 	}
 	assert.Equal(t, node.StorageUsage(), 1.0)
 	assert.Equal(t, node.StorageUsed(), int64(0))
@@ -87,19 +87,20 @@ func TestStorage(t *testing.T) {
 	assert.Equal(t, node.AvailableStorage(), int64(1))
 }
 
-
 func TestNodeUsage(t *testing.T) {
 	node := Node{
-		CPU:            CPUMap{"0": 100, "1": 50},
-		CPUUsed:        1.5,
-		InitCPU:        CPUMap{"0": 200, "1": 200},
-		Volume:         VolumeMap{"/data1": 1000, "/data2": 2000},
-		VolumeUsed:     500,
-		InitVolume:     VolumeMap{"/data1": 1000, "/data2": 2500},
-		MemCap:         1,
-		InitMemCap:     100,
-		StorageCap:     0,
-		InitStorageCap: 2,
+		NodeMeta: NodeMeta{
+			CPU:            CPUMap{"0": 100, "1": 50},
+			InitCPU:        CPUMap{"0": 200, "1": 200},
+			Volume:         VolumeMap{"/data1": 1000, "/data2": 2000},
+			InitVolume:     VolumeMap{"/data1": 1000, "/data2": 2500},
+			MemCap:         1,
+			InitMemCap:     100,
+			StorageCap:     0,
+			InitStorageCap: 2,
+		},
+		CPUUsed:    1.5,
+		VolumeUsed: 500,
 	}
 	usages := node.ResourceUsages()
 	assert.EqualValues(t, 1, usages[ResourceStorage])
@@ -118,8 +119,10 @@ func TestAddNodeOptions(t *testing.T) {
 
 func TestNodeWithResource(t *testing.T) {
 	n := Node{
-		CPU:    CPUMap{"0": 0},
-		Volume: VolumeMap{"sda1": 0},
+		NodeMeta: NodeMeta{
+			CPU:    CPUMap{"0": 0},
+			Volume: VolumeMap{"sda1": 0},
+		},
 	}
 	resource := &ResourceMeta{
 		CPUQuotaLimit:     0.4,

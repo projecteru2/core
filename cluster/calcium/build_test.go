@@ -74,8 +74,10 @@ func TestBuild(t *testing.T) {
 	assert.Error(t, err)
 	engine := &enginemocks.API{}
 	node := &types.Node{
-		Name:      "test",
-		Podname:   "testpod",
+		NodeMeta: types.NodeMeta{
+			Name:    "test",
+			Podname: "testpod",
+		},
 		Available: true,
 		Engine:    engine,
 	}

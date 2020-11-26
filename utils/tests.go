@@ -20,10 +20,12 @@ func GenerateNodes(nums, cores int, memory, storage int64, shares int) []types.N
 			cpumap[coreName] = int64(shares)
 		}
 		nodeInfo := types.NodeInfo{
-			CPU:        cpumap,
-			MemCap:     memory,
-			StorageCap: storage,
-			Name:       name,
+			NodeMeta: types.NodeMeta{
+				CPU:        cpumap,
+				MemCap:     memory,
+				StorageCap: storage,
+				Name:       name,
+			},
 		}
 		nodes = append(nodes, nodeInfo)
 	}

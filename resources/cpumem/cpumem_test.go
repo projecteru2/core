@@ -80,8 +80,10 @@ func TestRate(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	node := types.Node{
-		InitCPU:    types.CPUMap{"1": 100, "2": 100},
-		InitMemCap: 100,
+		NodeMeta: types.NodeMeta{
+			InitCPU:    types.CPUMap{"1": 100, "2": 100},
+			InitMemCap: 100,
+		},
 	}
 	assert.Equal(t, req.Rate(node), 0.01)
 	req, err = MakeRequest(types.ResourceOptions{
@@ -173,20 +175,24 @@ type requestCPUNodeTest struct {
 func newRequestCPUNodeTest() nodeSchdulerTest {
 	return &requestCPUNodeTest{
 		node: types.Node{
-			Name:       "TestNode",
-			CPU:        map[string]int64{"0": 10000, "1": 10000},
-			NUMA:       map[string]string{"0": "0", "1": "1"},
-			NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
-			MemCap:     10240,
-		},
-		nodeInfos: []types.NodeInfo{
-			{
+			NodeMeta: types.NodeMeta{
 				Name:       "TestNode",
-				CPU:     map[string]int64{"0": 10000, "1": 10000},
+				CPU:        map[string]int64{"0": 10000, "1": 10000},
 				NUMA:       map[string]string{"0": "0", "1": "1"},
 				NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
 				MemCap:     10240,
-				CPUPlan:    []types.CPUMap{{"0": 10000, "1": 10000}},
+			},
+		},
+		nodeInfos: []types.NodeInfo{
+			{
+				NodeMeta: types.NodeMeta{
+					Name:       "TestNode",
+					CPU:        map[string]int64{"0": 10000, "1": 10000},
+					NUMA:       map[string]string{"0": "0", "1": "1"},
+					NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
+					MemCap:     10240,
+				},
+				CPUPlan: []types.CPUMap{{"0": 10000, "1": 10000}},
 			},
 		},
 		cpuMap: map[string][]types.CPUMap{"TestNode": {{"0": 10000, "1": 10000}}},
@@ -239,20 +245,24 @@ type requestMemNodeTest struct {
 func newRequestMemNodeTest(reqOpt types.ResourceOptions) nodeSchdulerTest {
 	return &requestMemNodeTest{
 		node: types.Node{
-			Name:       "TestNode",
-			CPU:        map[string]int64{"0": 10000, "1": 10000},
-			NUMA:       map[string]string{"0": "0", "1": "1"},
-			NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
-			MemCap:     10240,
-		},
-		nodeInfos: []types.NodeInfo{
-			{
+			NodeMeta: types.NodeMeta{
 				Name:       "TestNode",
-				CPU:     map[string]int64{"0": 10000, "1": 10000},
+				CPU:        map[string]int64{"0": 10000, "1": 10000},
 				NUMA:       map[string]string{"0": "0", "1": "1"},
 				NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
 				MemCap:     10240,
-				CPUPlan:    []types.CPUMap{{"0": 10000, "1": 10000}},
+			},
+		},
+		nodeInfos: []types.NodeInfo{
+			{
+				NodeMeta: types.NodeMeta{
+					Name:       "TestNode",
+					CPU:        map[string]int64{"0": 10000, "1": 10000},
+					NUMA:       map[string]string{"0": "0", "1": "1"},
+					NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
+					MemCap:     10240,
+				},
+				CPUPlan: []types.CPUMap{{"0": 10000, "1": 10000}},
 			},
 		},
 		reqOpt: reqOpt,

@@ -18,7 +18,7 @@ func TestProcessing(t *testing.T) {
 		Entrypoint:   &types.Entrypoint{Name: "entry"},
 		ProcessIdent: "abc",
 	}
-	nodeInfo := types.NodeInfo{Name: "node", Deploy: 10}
+	nodeInfo := types.NodeInfo{NodeMeta: types.NodeMeta{Name: "node"}, Deploy: 10}
 
 	// not exists
 	assert.Error(t, m.UpdateProcessing(ctx, opts, nodeInfo.Name, 8))

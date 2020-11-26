@@ -196,8 +196,10 @@ func TestUpdateNode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	fakeNode := &types.Node{
-		Name:    "nil",
-		Podname: "wtf",
+		NodeMeta: types.NodeMeta{
+			Name:    "nil",
+			Podname: "wtf",
+		},
 	}
 	assert.Error(t, m.UpdateNodes(ctx, fakeNode))
 	assert.NoError(t, m.UpdateNodes(ctx, node))
