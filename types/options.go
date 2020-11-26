@@ -1,5 +1,7 @@
 package types
 
+// TODO should validate options
+
 // DeployOptions is options for deploying
 type DeployOptions struct {
 	ResourceOpts   ResourceOptions
