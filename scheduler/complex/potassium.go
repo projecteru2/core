@@ -74,9 +74,9 @@ func (m *Potassium) SelectMemoryNodes(nodesInfo []types.NodeInfo, quota float64,
 	nodesInfoLength := len(nodesInfo)
 
 	// 筛选出能满足 CPU 需求的
-	sort.Slice(nodesInfo, func(i, j int) bool { return len(nodesInfo[i].CPUMap) < len(nodesInfo[j].CPUMap) })
+	sort.Slice(nodesInfo, func(i, j int) bool { return len(nodesInfo[i].CPU) < len(nodesInfo[j].CPU) })
 	p := sort.Search(nodesInfoLength, func(i int) bool {
-		return float64(len(nodesInfo[i].CPUMap)) >= quota
+		return float64(len(nodesInfo[i].CPU)) >= quota
 	})
 	// p 最大也就是 nodesInfoLength - 1
 	if p == nodesInfoLength {
@@ -147,18 +147,18 @@ func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.Volu
 	volTotal := 0
 	volumePlans := map[string][]types.VolumePlan{}
 	for idx, nodeInfo := range nodesInfo {
-		if len(nodeInfo.VolumeMap) == 0 {
+		if len(nodeInfo.Volume) == 0 {
 			volTotal += updateNodeInfoCapacity(&nodesInfo[idx], 0)
 			continue
 		}
 
-		usedVolumeMap, unusedVolumeMap := nodeInfo.VolumeMap.SplitByUsed(nodeInfo.InitVolumeMap)
+		usedVolumeMap, unusedVolumeMap := nodeInfo.Volume.SplitByUsed(nodeInfo.InitVolume)
 		if len(reqsMono) == 0 {
 			usedVolumeMap.Add(unusedVolumeMap)
 		}
 
 		capNorm, plansNorm := calculateVolumePlan(usedVolumeMap, reqsNorm)
-		capMono, plansMono := calculateMonopolyVolumePlan(nodeInfo.InitVolumeMap, unusedVolumeMap, reqsMono)
+		capMono, plansMono := calculateMonopolyVolumePlan(nodeInfo.InitVolume, unusedVolumeMap, reqsMono)
 
 		volTotal += updateNodeInfoCapacity(&nodesInfo[idx], utils.Min(capNorm, capMono))
 		cap := nodesInfo[idx].Capacity
@@ -183,7 +183,7 @@ func (m *Potassium) SelectVolumeNodes(nodesInfo []types.NodeInfo, vbs types.Volu
 			// select the device with the most capacity as unlimited plan volume
 			volume := types.VolumeMap{"": 0}
 			currentMaxAvailable := int64(0)
-			for vol, available := range nodeInfo.VolumeMap {
+			for vol, available := range nodeInfo.Volume {
 				if available > currentMaxAvailable {
 					currentMaxAvailable = available
 					volume = types.VolumeMap{vol: 0}

@@ -61,17 +61,17 @@ func TestStorage(t *testing.T) {
 		nodeInfos []types.NodeInfo = []types.NodeInfo{
 			{
 				Name:       "TestNode",
-				CPUMap:     map[string]int64{"0": 10000, "1": 10000},
+				CPU:     map[string]int64{"0": 10000, "1": 10000},
 				NUMA:       map[string]string{"0": "0", "1": "1"},
 				NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
 				MemCap:     10240,
 				CPUPlan:    []types.CPUMap{{"0": 10000, "1": 10000}},
 				StorageCap: 10240,
-				VolumeMap: types.VolumeMap{
+				Volume: types.VolumeMap{
 					"/data1": 1024,
 					"/data2": 1024,
 				},
-				InitVolumeMap: types.VolumeMap{
+				InitVolume: types.VolumeMap{
 					"/data0": 1024,
 				},
 				VolumePlans: volumePlans,

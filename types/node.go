@@ -183,14 +183,14 @@ func (n *Node) PreserveResources(resource *ResourceMeta) {
 
 // NodeInfo for deploy
 type NodeInfo struct {
-	Name          string
-	CPUMap        CPUMap
-	VolumeMap     VolumeMap
-	InitVolumeMap VolumeMap
-	NUMA          NUMA
-	NUMAMemory    NUMAMemory
-	MemCap        int64
-	StorageCap    int64
+	Name       string
+	CPU        CPUMap
+	Volume     VolumeMap
+	InitVolume VolumeMap
+	NUMA       NUMA
+	NUMAMemory NUMAMemory
+	MemCap     int64
+	StorageCap int64
 
 	Usages map[ResourceType]float64 // deprecated
 	Rates  map[ResourceType]float64 // deprecated

@@ -182,7 +182,7 @@ func newRequestCPUNodeTest() nodeSchdulerTest {
 		nodeInfos: []types.NodeInfo{
 			{
 				Name:       "TestNode",
-				CPUMap:     map[string]int64{"0": 10000, "1": 10000},
+				CPU:     map[string]int64{"0": 10000, "1": 10000},
 				NUMA:       map[string]string{"0": "0", "1": "1"},
 				NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
 				MemCap:     10240,
@@ -248,7 +248,7 @@ func newRequestMemNodeTest(reqOpt types.ResourceOptions) nodeSchdulerTest {
 		nodeInfos: []types.NodeInfo{
 			{
 				Name:       "TestNode",
-				CPUMap:     map[string]int64{"0": 10000, "1": 10000},
+				CPU:     map[string]int64{"0": 10000, "1": 10000},
 				NUMA:       map[string]string{"0": "0", "1": "1"},
 				NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
 				MemCap:     10240,

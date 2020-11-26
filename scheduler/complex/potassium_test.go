@@ -52,7 +52,7 @@ func getNodesCapacity(nodes []types.NodeInfo, cpu float64, shares, maxshare int)
 	var plan []types.CPUMap
 
 	for _, nodeInfo := range nodes {
-		host = newHost(nodeInfo.CPUMap, shares)
+		host = newHost(nodeInfo.CPU, shares)
 		plan = host.distributeOneRation(cpu, maxshare)
 		res += len(plan)
 	}
@@ -90,14 +90,14 @@ func refreshPod(nodes []types.NodeInfo, memory, storage int64) {
 func getComplexNodes() []types.NodeInfo {
 	return []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{ // 2 workloads
+			CPU: types.CPUMap{ // 2 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 			},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "n1",
 		},
 		{
-			CPUMap: types.CPUMap{ // 7 workloads
+			CPU: types.CPUMap{ // 7 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 				"8": 10, "9": 10, "10": 10, "11": 10,
@@ -107,7 +107,7 @@ func getComplexNodes() []types.NodeInfo {
 			Name:   "n2",
 		},
 		{
-			CPUMap: types.CPUMap{ // 6 workloads
+			CPU: types.CPUMap{ // 6 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 				"8": 10, "9": 10, "10": 10, "11": 10,
@@ -116,7 +116,7 @@ func getComplexNodes() []types.NodeInfo {
 			Name:   "n3",
 		},
 		{
-			CPUMap: types.CPUMap{ // 9 workloads
+			CPU: types.CPUMap{ // 9 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 				"8": 10, "9": 10, "10": 10, "11": 10,
@@ -127,7 +127,7 @@ func getComplexNodes() []types.NodeInfo {
 			Name:   "n4",
 		},
 		{
-			CPUMap: types.CPUMap{ // 4 workloads
+			CPU: types.CPUMap{ // 4 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 			},
@@ -140,7 +140,7 @@ func getComplexNodes() []types.NodeInfo {
 func getEvenPlanNodes() []types.NodeInfo {
 	return []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{ // 4 workloads
+			CPU: types.CPUMap{ // 4 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 			},
@@ -148,7 +148,7 @@ func getEvenPlanNodes() []types.NodeInfo {
 			Name:   "n1",
 		},
 		{
-			CPUMap: types.CPUMap{ // 5 workloads
+			CPU: types.CPUMap{ // 5 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 				"8": 10, "9": 10,
@@ -157,7 +157,7 @@ func getEvenPlanNodes() []types.NodeInfo {
 			Name:   "n2",
 		},
 		{
-			CPUMap: types.CPUMap{ // 6 workloads
+			CPU: types.CPUMap{ // 6 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 				"8": 10, "9": 10, "10": 10, "11": 10,
@@ -166,7 +166,7 @@ func getEvenPlanNodes() []types.NodeInfo {
 			Name:   "n3",
 		},
 		{
-			CPUMap: types.CPUMap{ // 5 workloads
+			CPU: types.CPUMap{ // 5 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 				"8": 10, "9": 10,
@@ -182,11 +182,11 @@ func getNodeMapFromNodesInfo(nodesInfo []types.NodeInfo) map[string]*types.Node 
 	for _, nodeInfo := range nodesInfo {
 		nodeMap[nodeInfo.Name] = &types.Node{
 			MemCap:     nodeInfo.MemCap,
-			CPU:        nodeInfo.CPUMap,
+			CPU:        nodeInfo.CPU,
 			StorageCap: nodeInfo.StorageCap,
 			Name:       nodeInfo.Name,
-			Volume:     nodeInfo.VolumeMap,
-			InitVolume: nodeInfo.InitVolumeMap,
+			Volume:     nodeInfo.Volume,
+			InitVolume: nodeInfo.InitVolume,
 		}
 	}
 	return nodeMap
@@ -364,22 +364,22 @@ func TestRecurrence(t *testing.T) {
 
 	nodes := []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{"0": 0, "10": 0, "7": 0, "8": 10, "9": 10, "13": 0, "14": 0, "15": 10, "2": 10, "5": 10, "11": 0, "12": 0, "4": 0, "1": 0, "3": 10, "6": 0},
+			CPU: types.CPUMap{"0": 0, "10": 0, "7": 0, "8": 10, "9": 10, "13": 0, "14": 0, "15": 10, "2": 10, "5": 10, "11": 0, "12": 0, "4": 0, "1": 0, "3": 10, "6": 0},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "c2-node-26",
 		},
 		{
-			CPUMap: types.CPUMap{"6": 10, "10": 0, "13": 0, "14": 10, "2": 0, "7": 0, "1": 0, "11": 0, "15": 0, "8": 10, "0": 0, "3": 0, "4": 0, "5": 0, "9": 10, "12": 0},
+			CPU: types.CPUMap{"6": 10, "10": 0, "13": 0, "14": 10, "2": 0, "7": 0, "1": 0, "11": 0, "15": 0, "8": 10, "0": 0, "3": 0, "4": 0, "5": 0, "9": 10, "12": 0},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "c2-node-27",
 		},
 		{
-			CPUMap: types.CPUMap{"13": 0, "14": 0, "15": 0, "4": 10, "9": 0, "1": 0, "10": 0, "12": 10, "5": 10, "6": 10, "8": 10, "0": 0, "11": 0, "2": 10, "3": 0, "7": 0},
+			CPU: types.CPUMap{"13": 0, "14": 0, "15": 0, "4": 10, "9": 0, "1": 0, "10": 0, "12": 10, "5": 10, "6": 10, "8": 10, "0": 0, "11": 0, "2": 10, "3": 0, "7": 0},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "c2-node-28",
 		},
 		{
-			CPUMap: types.CPUMap{"15": 0, "3": 10, "0": 0, "10": 0, "13": 0, "7": 10, "8": 0, "9": 10, "12": 10, "2": 10, "4": 10, "1": 0, "11": 0, "14": 10, "5": 10, "6": 10},
+			CPU: types.CPUMap{"15": 0, "3": 10, "0": 0, "10": 0, "13": 0, "7": 10, "8": 0, "9": 10, "12": 10, "2": 10, "4": 10, "1": 0, "11": 0, "14": 10, "5": 10, "6": 10},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "c2-node-29",
 		},
@@ -464,7 +464,7 @@ func TestCPUWithMaxShareLimit(t *testing.T) {
 	// oversell
 	nodes := []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{"0": 100, "1": 100, "2": 100, "3": 100, "4": 100, "5": 100},
+			CPU: types.CPUMap{"0": 100, "1": 100, "2": 100, "3": 100, "4": 100, "5": 100},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "nodes1",
 		},
@@ -487,7 +487,7 @@ func TestCpuOverSell(t *testing.T) {
 	// oversell
 	nodes := []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{"0": 300, "1": 300},
+			CPU: types.CPUMap{"0": 300, "1": 300},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "nodes1",
 		},
@@ -503,7 +503,7 @@ func TestCpuOverSell(t *testing.T) {
 	// oversell fragment
 	nodes = []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{"0": 300},
+			CPU: types.CPUMap{"0": 300},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "nodes1",
 		},
@@ -515,7 +515,7 @@ func TestCpuOverSell(t *testing.T) {
 	// one core oversell
 	nodes = []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{"0": 300},
+			CPU: types.CPUMap{"0": 300},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "nodes1",
 		},
@@ -527,7 +527,7 @@ func TestCpuOverSell(t *testing.T) {
 	// balance
 	nodes = []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{"0": 100, "1": 200, "2": 300},
+			CPU: types.CPUMap{"0": 100, "1": 200, "2": 300},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "nodes1",
 		},
@@ -540,7 +540,7 @@ func TestCpuOverSell(t *testing.T) {
 	// complex
 	nodes = []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{"0": 50, "1": 100, "2": 300, "3": 70, "4": 200, "5": 30, "6": 230},
+			CPU: types.CPUMap{"0": 50, "1": 100, "2": 300, "3": 70, "4": 200, "5": 30, "6": 230},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "nodes1",
 		},
@@ -550,7 +550,7 @@ func TestCpuOverSell(t *testing.T) {
 
 	nodes = []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{"0": 70, "1": 100, "2": 400},
+			CPU: types.CPUMap{"0": 70, "1": 100, "2": 400},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "nodes1",
 		},
@@ -574,7 +574,7 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 	// oversell
 	nodes := []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{"0": 300, "1": 300},
+			CPU: types.CPUMap{"0": 300, "1": 300},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "nodes1",
 		},
@@ -586,7 +586,7 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 	// stable fragment core
 	nodes = []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{"0": 230, "1": 200},
+			CPU: types.CPUMap{"0": 230, "1": 200},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "nodes1",
 		},
@@ -595,7 +595,7 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 	println(res)
 	assert.NoError(t, err)
 	assert.Equal(t, changed["nodes1"]["0"], int64(160))
-	nodes[0].CPUMap = changed["nodes1"]
+	nodes[0].CPU = changed["nodes1"]
 	nodes[0].Deploy = 0
 	nodes[0].Count = 0
 	nodes[0].Capacity = 0
@@ -607,7 +607,7 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 	// complex node
 	nodes = []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{"0": 230, "1": 80, "2": 300, "3": 200},
+			CPU: types.CPUMap{"0": 230, "1": 80, "2": 300, "3": 200},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "nodes1",
 		},
@@ -620,7 +620,7 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 	// consume full core
 	nodes = []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{"0": 70, "1": 50, "2": 100, "3": 100, "4": 100},
+			CPU: types.CPUMap{"0": 70, "1": 50, "2": 100, "3": 100, "4": 100},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "nodes1",
 		},
@@ -633,7 +633,7 @@ func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 	// consume less fragment core
 	nodes = []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{"0": 70, "1": 50, "2": 90},
+			CPU: types.CPUMap{"0": 70, "1": 50, "2": 90},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "nodes1",
 		},
@@ -654,14 +654,14 @@ func TestEvenPlan(t *testing.T) {
 	// nodes -- n1: 2, n2: 2
 	pod1 := []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{
+			CPU: types.CPUMap{
 				"0": 10, "1": 10, "2": 10, "3": 10,
 			},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "node1",
 		},
 		{
-			CPUMap: types.CPUMap{
+			CPU: types.CPUMap{
 				"0": 10, "1": 10, "2": 10, "3": 10,
 			},
 			MemCap: 12 * int64(units.GiB),
@@ -704,14 +704,14 @@ func TestEvenPlan(t *testing.T) {
 func TestSpecialCase(t *testing.T) {
 	pod := []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{ // 4 workloads
+			CPU: types.CPUMap{ // 4 workloads
 				"0": 10, "1": 10,
 			},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "n1",
 		},
 		{
-			CPUMap: types.CPUMap{ // 5 workloads
+			CPU: types.CPUMap{ // 5 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10,
 			},
@@ -719,7 +719,7 @@ func TestSpecialCase(t *testing.T) {
 			Name:   "n2",
 		},
 		{
-			CPUMap: types.CPUMap{ // 6 workloads
+			CPU: types.CPUMap{ // 6 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 			},
@@ -735,7 +735,7 @@ func TestSpecialCase(t *testing.T) {
 
 	newpod := []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{ // 4 workloads
+			CPU: types.CPUMap{ // 4 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10,
 			},
@@ -743,7 +743,7 @@ func TestSpecialCase(t *testing.T) {
 			Name:   "n1",
 		},
 		{
-			CPUMap: types.CPUMap{ // 4 workloads
+			CPU: types.CPUMap{ // 4 workloads
 				"0": 10, "1": 10, "2": 10, "3": 10,
 				"4": 10, "5": 10, "6": 10, "7": 10,
 			},
@@ -761,7 +761,7 @@ func TestSpecialCase(t *testing.T) {
 func TestGetPodVol(t *testing.T) {
 	nodes := []types.NodeInfo{
 		{
-			CPUMap: types.CPUMap{"15": 0, "3": 10, "0": 0, "10": 0, "13": 0, "7": 10, "8": 0, "9": 10, "12": 10, "2": 10, "4": 10, "1": 0, "11": 0, "14": 10, "5": 10, "6": 10},
+			CPU: types.CPUMap{"15": 0, "3": 10, "0": 0, "10": 0, "13": 0, "7": 10, "8": 0, "9": 10, "12": 10, "2": 10, "4": 10, "1": 0, "11": 0, "14": 10, "5": 10, "6": 10},
 			MemCap: 12 * int64(units.GiB),
 			Name:   "c2-node-26",
 		},
@@ -1270,7 +1270,7 @@ func TestSelectVolumeNodesNonAuto(t *testing.T) {
 	nodes := []types.NodeInfo{
 		{
 			Name: "0",
-			VolumeMap: types.VolumeMap{
+			Volume: types.VolumeMap{
 				"/data0": 1024,
 			},
 		},
@@ -1294,7 +1294,7 @@ func TestSelectVolumeNodesAutoInsufficient(t *testing.T) {
 	nodes := []types.NodeInfo{
 		{
 			Name: "0",
-			VolumeMap: types.VolumeMap{
+			Volume: types.VolumeMap{
 				"/data0": 1024,
 				"/data1": 2048,
 			},
@@ -1316,7 +1316,7 @@ func TestSelectVolumeNodesAutoSingle(t *testing.T) {
 	nodes := []types.NodeInfo{
 		{
 			Name: "0",
-			VolumeMap: types.VolumeMap{
+			Volume: types.VolumeMap{
 				"/data0": 1024,
 				"/data1": 2048,
 			},
@@ -1337,14 +1337,14 @@ func TestSelectVolumeNodesAutoDouble(t *testing.T) {
 	nodes := []types.NodeInfo{
 		{
 			Name: "0",
-			VolumeMap: types.VolumeMap{
+			Volume: types.VolumeMap{
 				"/data0": 1024,
 				"/data1": 1025,
 			},
 		},
 		{
 			Name: "1",
-			VolumeMap: types.VolumeMap{
+			Volume: types.VolumeMap{
 				"/data0": 2048,
 				"/data1": 2049,
 			},
@@ -1368,7 +1368,7 @@ func TestSelectVolumeNodesAutoTriple(t *testing.T) {
 	nodes := []types.NodeInfo{
 		{
 			Name: "0",
-			VolumeMap: types.VolumeMap{
+			Volume: types.VolumeMap{
 				"/data1": 1218,
 				"/data2": 1219,
 				"/data0": 2000,
@@ -1376,7 +1376,7 @@ func TestSelectVolumeNodesAutoTriple(t *testing.T) {
 		},
 		{
 			Name: "1",
-			VolumeMap: types.VolumeMap{
+			Volume: types.VolumeMap{
 				"/data1": 100,
 				"/data2": 10,
 				"/data3": 2110,
@@ -1384,7 +1384,7 @@ func TestSelectVolumeNodesAutoTriple(t *testing.T) {
 		},
 		{
 			Name: "2",
-			VolumeMap: types.VolumeMap{
+			Volume: types.VolumeMap{
 				"/data2": 1001,
 				"/data3": 1000,
 				"/data4": 1002,
@@ -1423,11 +1423,11 @@ func TestSelectMonopoly(t *testing.T) {
 	nodes := []types.NodeInfo{
 		{
 			Name: "0",
-			VolumeMap: types.VolumeMap{
+			Volume: types.VolumeMap{
 				"/data0": 2000,
 				"/data2": 2000,
 			},
-			InitVolumeMap: types.VolumeMap{
+			InitVolume: types.VolumeMap{
 				"/data0": 2001,
 				"/data2": 2000,
 			},
@@ -1449,12 +1449,12 @@ func TestSelectMultipleMonopoly(t *testing.T) {
 	nodes := []types.NodeInfo{
 		{
 			Name: "0",
-			VolumeMap: types.VolumeMap{
+			Volume: types.VolumeMap{
 				"/data0": 2000,
 				"/data2": 2000,
 				"/data3": 3000,
 			},
-			InitVolumeMap: types.VolumeMap{
+			InitVolume: types.VolumeMap{
 				"/data0": 2000,
 				"/data2": 2001,
 				"/data3": 3000,
@@ -1480,11 +1480,11 @@ func TestSelectHyperMonopoly(t *testing.T) {
 	nodes := []types.NodeInfo{
 		{
 			Name: "0",
-			VolumeMap: types.VolumeMap{
+			Volume: types.VolumeMap{
 				"/data0": 2000,
 				"/data2": 2000,
 			},
-			InitVolumeMap: types.VolumeMap{
+			InitVolume: types.VolumeMap{
 				"/data0": 2000,
 				"/data2": 2001,
 			},
@@ -1513,22 +1513,22 @@ func TestSelectMonopolyOnMultipleNodes(t *testing.T) {
 	nodes := []types.NodeInfo{
 		{
 			Name: "0",
-			VolumeMap: types.VolumeMap{
+			Volume: types.VolumeMap{
 				"/data0": 2000,
 				"/data1": 2000,
 			},
-			InitVolumeMap: types.VolumeMap{
+			InitVolume: types.VolumeMap{
 				"/data0": 2001,
 				"/data1": 2000,
 			},
 		},
 		{
 			Name: "1",
-			VolumeMap: types.VolumeMap{
+			Volume: types.VolumeMap{
 				"/data0": 2000,
 				"/data1": 2000,
 			},
-			InitVolumeMap: types.VolumeMap{
+			InitVolume: types.VolumeMap{
 				"/data0": 2000,
 				"/data1": 2001,
 			},
@@ -1556,10 +1556,10 @@ func TestSelectMonopolyInsufficient(t *testing.T) {
 	nodes := []types.NodeInfo{
 		{
 			Name: "0",
-			VolumeMap: types.VolumeMap{
+			Volume: types.VolumeMap{
 				"/data0": 2000,
 			},
-			InitVolumeMap: types.VolumeMap{
+			InitVolume: types.VolumeMap{
 				"/data0": 2001,
 			},
 		},
@@ -1572,11 +1572,11 @@ func TestSelectMonopolyInsufficient(t *testing.T) {
 	nodes = []types.NodeInfo{
 		{
 			Name: "0",
-			VolumeMap: types.VolumeMap{
+			Volume: types.VolumeMap{
 				"/data0": 2000,
 				"/data1": 2000,
 			},
-			InitVolumeMap: types.VolumeMap{
+			InitVolume: types.VolumeMap{
 				"/data0": 2000,
 				"/data1": 2001,
 			},
@@ -1594,7 +1594,7 @@ func TestSelectUnlimited(t *testing.T) {
 	nodes := []types.NodeInfo{
 		{
 			Name: "0",
-			VolumeMap: types.VolumeMap{
+			Volume: types.VolumeMap{
 				"/data1": 1218,
 				"/data2": 1219,
 				"/data0": 2000,
@@ -1602,7 +1602,7 @@ func TestSelectUnlimited(t *testing.T) {
 		},
 		{
 			Name: "1",
-			VolumeMap: types.VolumeMap{
+			Volume: types.VolumeMap{
 				"/data1": 100,
 				"/data2": 10,
 				"/data3": 2110,
@@ -1610,7 +1610,7 @@ func TestSelectUnlimited(t *testing.T) {
 		},
 		{
 			Name: "2",
-			VolumeMap: types.VolumeMap{
+			Volume: types.VolumeMap{
 				"/data2": 1001,
 				"/data3": 1000,
 				"/data4": 1002,

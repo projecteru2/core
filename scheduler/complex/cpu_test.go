@@ -42,7 +42,7 @@ func resetNodesInfo() []types.NodeInfo {
 	return []types.NodeInfo{
 		{
 			Name:   "n1",
-			CPUMap: types.CPUMap{"1": 100, "2": 100, "3": 100, "4": 100},
+			CPU: types.CPUMap{"1": 100, "2": 100, "3": 100, "4": 100},
 			MemCap: 3 * int64(units.GiB),
 			NUMA: types.NUMA{
 				"1": "node0",

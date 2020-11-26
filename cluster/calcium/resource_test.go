@@ -190,7 +190,7 @@ func TestAllocResource(t *testing.T) {
 	nodesInfo := []types.NodeInfo{
 		{
 			Name:     n2,
-			CPUMap:   types.CPUMap{"0": 100},
+			CPU:   types.CPUMap{"0": 100},
 			MemCap:   100,
 			Count:    1,  // 1 exists
 			Deploy:   3,  // deploy 1

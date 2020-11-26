@@ -20,13 +20,15 @@ func SelectNodesByResourceRequests(resourceRequests resourcetypes.ResourceReques
 	nodesInfo := []types.NodeInfo{}
 	for _, node := range nodeMap {
 		nodeInfo := types.NodeInfo{
-			Name:          node.Name,
-			CPUMap:        node.CPU,
-			VolumeMap:     node.Volume,
-			InitVolumeMap: node.InitVolume,
-			MemCap:        node.MemCap,
-			StorageCap:    node.StorageCap,
-			Capacity:      0,
+			Name:       node.Name,
+			CPU:        node.CPU,
+			Volume:     node.Volume,
+			InitVolume: node.InitVolume,
+			NUMA:       node.NUMA,
+			NUMAMemory: node.NUMAMemory,
+			MemCap:     node.MemCap,
+			StorageCap: node.StorageCap,
+			Capacity:   0,
 		}
 		nodesInfo = append(nodesInfo, nodeInfo)
 	}
