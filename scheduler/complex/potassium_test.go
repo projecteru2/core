@@ -230,8 +230,6 @@ func getInfosFromNodesInfo(nodesInfo []types.NodeInfo, planMap []resourcetypes.R
 		strategyInfos = append(strategyInfos, strategy.Info{
 			Nodename: nodeInfo.Name,
 			Count:    nodeInfo.Count,
-			Rates:    nodeInfo.Rates,
-			Usages:   nodeInfo.Usages,
 			Capacity: capacity,
 		})
 	}

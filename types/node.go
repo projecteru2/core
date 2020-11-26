@@ -192,9 +192,6 @@ func (n *Node) PreserveResources(resource *ResourceMeta) {
 type NodeInfo struct {
 	NodeMeta
 
-	Usages map[ResourceType]float64 // deprecated
-	Rates  map[ResourceType]float64 // deprecated
-
 	CPUPlan     []CPUMap
 	VolumePlans []VolumePlan // {{"AUTO:/data:rw:1024": "/mnt0:/data:rw:1024"}}
 	Capacity    int          // 可以部署几个, deprecated
