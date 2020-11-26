@@ -30,3 +30,4 @@ tools/updatev4.go
 dist/*
 non-live.yaml
 __debug_bin/*
+coverage.out
