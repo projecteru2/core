@@ -157,6 +157,8 @@ func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions)
 		return nil, err
 	}
 
+	ctx, cancel := context.WithTimeout(ctx, v.config.GlobalTimeout)
+	defer cancel()
 	nodes := []*pb.Node{}
 	for _, n := range ns {
 		nodes = append(nodes, toRPCNode(ctx, n))

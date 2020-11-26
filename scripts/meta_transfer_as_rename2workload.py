@@ -134,7 +134,7 @@ class Node(object):
         if not (nodename and wrk_id):
             return
 
-        new_key = os.path.join(self.meta.new_root_prefix, self.info_prefix, '%s:worklods' % nodename, wrk_id)
+        new_key = os.path.join(self.meta.new_root_prefix, self.info_prefix, '%s:workloads' % nodename, wrk_id)
         wrk = Workload.conv(orig_value, self)
         self.meta.etcd.put(new_key, json.dumps(wrk))
         return new_key
