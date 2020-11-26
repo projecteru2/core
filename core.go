@@ -64,8 +64,7 @@ func serve(c *cli.Context) error {
 	}
 	defer cluster.Finalizer()
 
-	rpcch := make(chan struct{}, 1)
-	vibranium := rpc.New(cluster, config, rpcch)
+	vibranium := rpc.New(cluster, config)
 	s, err := net.Listen("tcp", config.Bind)
 	if err != nil {
 		log.Errorf("[main] %v", err)
@@ -115,13 +114,12 @@ func serve(c *cli.Context) error {
 	<-ctx.Done()
 
 	log.Info("[main] Interrupt by signal")
-	close(rpcch)
+	vibranium.Close()
 	unregisterService()
 	grpcServer.GracefulStop()
 	log.Info("[main] gRPC server gracefully stopped.")
 
 	log.Info("[main] Check if cluster still have running tasks.")
-	vibranium.Wait()
 	log.Info("[main] cluster gracefully stopped.")
 	return nil
 }
