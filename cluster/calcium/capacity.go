@@ -11,7 +11,7 @@ import (
 
 // CalculateCapacity calculates capacity
 func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.CalculateCapacityOptions) (msg *types.CapacityMessage, err error) {
-	return msg, c.withNodesLocked(ctx, opts.Podname, opts.Nodenames, nil, true, func(nodes map[string]*types.Node) error {
+	return msg, c.withNodesLocked(ctx, opts.Podname, opts.Nodenames, nil, false, func(nodes map[string]*types.Node) error {
 		msg, err = c.calculateCapacity(ctx, opts, nodes)
 		return err
 	})
