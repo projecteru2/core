@@ -49,8 +49,6 @@ func toRPCNetwork(n *enginetypes.Network) *pb.Network {
 
 func toRPCNode(ctx context.Context, n *types.Node) *pb.Node {
 	var nodeInfo string
-	ctx, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
 	if info, err := n.Info(ctx); err == nil {
 		bytes, _ := json.Marshal(info)
 		nodeInfo = string(bytes)
