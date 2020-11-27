@@ -532,11 +532,10 @@ message ReallocResourceMessage {
 
 message CopyMessage {
     string id = 1;
-    string status = 2;
-    string name = 3;
-    string path = 4;
-    string error = 5;
-    bytes data = 6;
+    string name = 2;
+    string path = 3;
+    string error = 4;
+    bytes data = 5;
 }
 
 message SendMessage {
