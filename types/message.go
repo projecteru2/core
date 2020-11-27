@@ -30,12 +30,11 @@ type BuildImageMessage struct {
 
 // CopyMessage for copy message
 type CopyMessage struct {
-	ID     string        `json:"id,omitempty"`
-	Status string        `json:"status,omitempty"`
-	Name   string        `json:"name,omitempty"`
-	Path   string        `json:"path,omitempty"`
-	Error  error         `json:"error,omitempty"`
-	Data   io.ReadCloser `json:"-"`
+	ID    string        `json:"id,omitempty"`
+	Name  string        `json:"name,omitempty"`
+	Path  string        `json:"path,omitempty"`
+	Error error         `json:"error,omitempty"`
+	Data  io.ReadCloser `json:"-"`
 }
 
 // SendMessage for send message

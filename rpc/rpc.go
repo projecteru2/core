@@ -344,19 +344,12 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 		return err
 	}
 	// 4K buffer
-	bsize := 4 * 1024
+	p := make([]byte, 4096)
 	for m := range ch {
-		var copyError string
+		msg := &pb.CopyMessage{Id: m.ID, Name: m.Name, Path: m.Path}
 		if m.Error != nil {
-			copyError = fmt.Sprintf("%v", m.Error)
-			if err := stream.Send(&pb.CopyMessage{
-				Id:     m.ID,
-				Status: m.Status,
-				Name:   m.Name,
-				Path:   m.Path,
-				Error:  copyError,
-				Data:   []byte{},
-			}); err != nil {
+			msg.Error = m.Error.Error()
+			if err := stream.Send(msg); err != nil {
 				v.logUnsentMessages("Copy", m)
 			}
 			continue
@@ -382,22 +375,19 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 		}()
 
 		for {
-			p := make([]byte, bsize)
 			n, err := r.Read(p)
 			if err != nil {
 				if err != io.EOF {
 					log.Errorf("[Copy] Error during buffer resp: %v", err)
+					msg.Error = err.Error()
+					if err = stream.Send(msg); err != nil {
+						v.logUnsentMessages("Copy", m)
+					}
 				}
 				break
 			}
-			if err = stream.Send(&pb.CopyMessage{
-				Id:     m.ID,
-				Status: m.Status,
-				Name:   m.Name,
-				Path:   m.Path,
-				Error:  copyError,
-				Data:   p[:n],
-			}); err != nil {
+			msg.Data = p[:n]
+			if err = stream.Send(msg); err != nil {
 				v.logUnsentMessages("Copy", m)
 			}
 		}

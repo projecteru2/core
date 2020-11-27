@@ -17,24 +17,22 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 	go func() {
 		defer close(ch)
 		wg := &sync.WaitGroup{}
-		for dst, content := range opts.Data {
-			log.Infof("[Send] Send files to %s", dst)
+
+		for _, ID := range opts.IDs {
+			log.Infof("[Send] Send files to %s", ID)
 			wg.Add(1)
-			go func(dst string, content []byte) {
+			go func(ID string) {
 				defer wg.Done()
-				for _, ID := range opts.IDs {
-					workload, err := c.GetWorkload(ctx, ID)
-					if err != nil {
+				if err := c.withWorkloadLocked(ctx, ID, func(workload *types.Workload) error {
+					for dst, content := range opts.Data {
+						err := c.doSendFileToWorkload(ctx, workload.Engine, workload.ID, dst, bytes.NewBuffer(content), true, true)
 						ch <- &types.SendMessage{ID: ID, Path: dst, Error: err}
-						continue
 					}
-					if err := c.doSendFileToWorkload(ctx, workload.Engine, workload.ID, dst, bytes.NewBuffer(content), true, true); err != nil {
-						ch <- &types.SendMessage{ID: ID, Path: dst, Error: err}
-						continue
-					}
-					ch <- &types.SendMessage{ID: ID, Path: dst}
+					return nil
+				}); err != nil {
+					ch <- &types.SendMessage{ID: ID, Error: err}
 				}
-			}(dst, content)
+			}(ID)
 		}
 		wg.Wait()
 	}()
