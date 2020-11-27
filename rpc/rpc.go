@@ -357,20 +357,26 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 
 		r, w := io.Pipe()
 		go func() {
-			defer w.Close()
+			var err error
+			defer func() {
+				w.CloseWithError(err) // nolint
+			}()
 			defer m.Data.Close()
 
+			var bs []byte
 			tw := tar.NewWriter(w)
-			bs, err := ioutil.ReadAll(m.Data)
-			if err != nil {
+			if bs, err = ioutil.ReadAll(m.Data); err != nil {
 				log.Errorf("[Copy] Error during extracting copy data: %v", err)
+				return
 			}
 			header := &tar.Header{Name: m.Name, Mode: 0644, Size: int64(len(bs))}
-			if err := tw.WriteHeader(header); err != nil {
+			if err = tw.WriteHeader(header); err != nil {
 				log.Errorf("[Copy] Error during writing tarball header: %v", err)
+				return
 			}
-			if _, err := tw.Write(bs); err != nil {
+			if _, err = tw.Write(bs); err != nil {
 				log.Errorf("[Copy] Error during writing tarball content: %v", err)
+				return
 			}
 		}()
 
