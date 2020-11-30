@@ -156,6 +156,9 @@ func rawProcessVirtualizationInStream(
 		defer inStream.Close()
 
 		for cmd := range inCh {
+			if len(cmd) == 0 {
+				continue
+			}
 			if f, ok := specialPrefixCallback[string(cmd[:1])]; ok {
 				f(cmd[1:])
 				continue
