@@ -61,7 +61,7 @@ func TestRate(t *testing.T) {
 func TestStorage(t *testing.T) {
 	mockScheduler := &schedulerMocks.Scheduler{}
 	var (
-		nodeInfos []types.NodeInfo = []types.NodeInfo{
+		scheduleInfos []resourcetypes.ScheduleInfo = []resourcetypes.ScheduleInfo{
 			{
 				NodeMeta: types.NodeMeta{
 					Name:       "TestNode",
@@ -77,14 +77,14 @@ func TestStorage(t *testing.T) {
 	)
 	mockScheduler.On(
 		"SelectStorageNodes", mock.Anything, mock.Anything,
-	).Return(nodeInfos, 1, nil)
+	).Return(scheduleInfos, 1, nil)
 
 	resourceRequest, err := MakeRequest(types.ResourceOptions{
 		StorageRequest: 1024,
 		StorageLimit:   1024,
 	})
 	assert.NoError(t, err)
-	_, _, err = resourceRequest.MakeScheduler()([]types.NodeInfo{})
+	_, _, err = resourceRequest.MakeScheduler()([]resourcetypes.ScheduleInfo{})
 	assert.Error(t, err)
 
 	assert.True(t, resourceRequest.Type()&types.ResourceStorage > 0)
@@ -95,7 +95,7 @@ func TestStorage(t *testing.T) {
 	}()
 
 	sche := resourceRequest.MakeScheduler()
-	plans, _, err := sche(nodeInfos)
+	plans, _, err := sche(scheduleInfos)
 	assert.Nil(t, err)
 
 	const storage = int64(10240)

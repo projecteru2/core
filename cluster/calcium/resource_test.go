@@ -13,6 +13,7 @@ import (
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/scheduler"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
@@ -194,16 +195,14 @@ func TestAllocResource(t *testing.T) {
 	// Defines for below.
 	opts.Nodenames = []string{n2}
 
-	// define nodesInfo
-	nodesInfo := []types.NodeInfo{
+	// define scheduleInfos
+	scheduleInfos := []resourcetypes.ScheduleInfo{
 		{
 			NodeMeta: types.NodeMeta{
 				Name:   n2,
 				CPU:    types.CPUMap{"0": 100},
 				MemCap: 100,
 			},
-			Count:    1,  // 1 exists
-			Deploy:   3,  // deploy 1
 			Capacity: 10, // can deploy 10
 		},
 	}
@@ -211,12 +210,12 @@ func TestAllocResource(t *testing.T) {
 	sched := c.scheduler.(*schedulermocks.Scheduler)
 	defer sched.AssertExpectations(t)
 	total := 3
-	sched.On("SelectStorageNodes", mock.Anything, mock.Anything).Return(nodesInfo, total, nil)
-	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(nodesInfo, nil, total, nil)
+	sched.On("SelectStorageNodes", mock.Anything, mock.Anything).Return(scheduleInfos, total, nil)
+	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(scheduleInfos, nil, total, nil)
 	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, types.ErrInsufficientMEM).Once()
 	testAllocFailedAsInsufficientMemory(t, c, opts, nodeMap)
 
-	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, total, nil)
+	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, total, nil)
 	testAllocFailedAsMakeDeployStatusError(t, c, opts, nodeMap)
 	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 

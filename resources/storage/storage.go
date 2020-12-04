@@ -5,7 +5,6 @@ import (
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
 type storageRequest struct {
@@ -43,17 +42,17 @@ func (s *storageRequest) Validate() error {
 
 // MakeScheduler .
 func (s storageRequest) MakeScheduler() resourcetypes.SchedulerV2 {
-	return func(nodesInfo []types.NodeInfo) (plans resourcetypes.ResourcePlans, total int, err error) {
+	return func(scheduleInfos []resourcetypes.ScheduleInfo) (plans resourcetypes.ResourcePlans, total int, err error) {
 		schedulerV1, err := scheduler.GetSchedulerV1()
 		if err != nil {
 			return
 		}
 
-		nodesInfo, total, err = schedulerV1.SelectStorageNodes(nodesInfo, s.request)
+		scheduleInfos, total, err = schedulerV1.SelectStorageNodes(scheduleInfos, s.request)
 		return ResourcePlans{
 			request:  s.request,
 			limit:    s.limit,
-			capacity: utils.GetCapacity(nodesInfo),
+			capacity: resourcetypes.GetCapacity(scheduleInfos),
 		}, total, err
 	}
 }

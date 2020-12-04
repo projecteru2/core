@@ -117,7 +117,7 @@ func TestRequestMemNode(t *testing.T) {
 }
 
 type nodeSchdulerTest interface {
-	getNodeInfos() []types.NodeInfo
+	getScheduleInfo() []resourcetypes.ScheduleInfo
 	getScheduler() scheduler.Scheduler
 	getRequestOptions() types.ResourceOptions
 	getNode() *types.Node
@@ -128,7 +128,7 @@ type nodeSchdulerTest interface {
 func run(t *testing.T, test nodeSchdulerTest) {
 	resourceRequest, err := MakeRequest(test.getRequestOptions())
 	assert.NoError(t, err)
-	_, _, err = resourceRequest.MakeScheduler()([]types.NodeInfo{})
+	_, _, err = resourceRequest.MakeScheduler()([]resourcetypes.ScheduleInfo{})
 	assert.Error(t, err)
 
 	s := test.getScheduler()
@@ -143,7 +143,7 @@ func run(t *testing.T, test nodeSchdulerTest) {
 
 	sche := resourceRequest.MakeScheduler()
 
-	plans, _, err := sche(test.getNodeInfos())
+	plans, _, err := sche(test.getScheduleInfo())
 	assert.Nil(t, err)
 
 	var node = test.getNode()
@@ -167,9 +167,9 @@ func run(t *testing.T, test nodeSchdulerTest) {
 }
 
 type requestCPUNodeTest struct {
-	node      types.Node
-	nodeInfos []types.NodeInfo
-	cpuMap    map[string][]types.CPUMap
+	node          types.Node
+	scheduleInfos []resourcetypes.ScheduleInfo
+	cpuMap        map[string][]types.CPUMap
 }
 
 func newRequestCPUNodeTest() nodeSchdulerTest {
@@ -183,7 +183,7 @@ func newRequestCPUNodeTest() nodeSchdulerTest {
 				MemCap:     10240,
 			},
 		},
-		nodeInfos: []types.NodeInfo{
+		scheduleInfos: []resourcetypes.ScheduleInfo{
 			{
 				NodeMeta: types.NodeMeta{
 					Name:       "TestNode",
@@ -199,18 +199,18 @@ func newRequestCPUNodeTest() nodeSchdulerTest {
 	}
 }
 
-func (test *requestCPUNodeTest) getNodeInfos() []types.NodeInfo {
-	return test.nodeInfos
+func (test *requestCPUNodeTest) getScheduleInfo() []resourcetypes.ScheduleInfo {
+	return test.scheduleInfos
 }
 
 func (test *requestCPUNodeTest) getScheduler() scheduler.Scheduler {
 	mockScheduler := &schedulerMocks.Scheduler{}
 	mockScheduler.On(
 		"SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything,
-	).Return(test.nodeInfos, test.cpuMap, 1, nil)
+	).Return(test.scheduleInfos, test.cpuMap, 1, nil)
 	mockScheduler.On(
 		"SelectMemoryNodess", mock.Anything, mock.Anything, mock.Anything,
-	).Return(test.nodeInfos, 1, errors.New("should not select memory node here"))
+	).Return(test.scheduleInfos, 1, errors.New("should not select memory node here"))
 	return mockScheduler
 }
 
@@ -237,9 +237,9 @@ func (test *requestCPUNodeTest) assertAfterRollback(t *testing.T) {
 }
 
 type requestMemNodeTest struct {
-	node      types.Node
-	nodeInfos []types.NodeInfo
-	reqOpt    types.ResourceOptions
+	node          types.Node
+	scheduleInfos []resourcetypes.ScheduleInfo
+	reqOpt        types.ResourceOptions
 }
 
 func newRequestMemNodeTest(reqOpt types.ResourceOptions) nodeSchdulerTest {
@@ -253,7 +253,7 @@ func newRequestMemNodeTest(reqOpt types.ResourceOptions) nodeSchdulerTest {
 				MemCap:     10240,
 			},
 		},
-		nodeInfos: []types.NodeInfo{
+		scheduleInfos: []resourcetypes.ScheduleInfo{
 			{
 				NodeMeta: types.NodeMeta{
 					Name:       "TestNode",
@@ -273,18 +273,18 @@ func (test *requestMemNodeTest) getRequestOptions() types.ResourceOptions {
 	return test.reqOpt
 }
 
-func (test *requestMemNodeTest) getNodeInfos() []types.NodeInfo {
-	return test.nodeInfos
+func (test *requestMemNodeTest) getScheduleInfo() []resourcetypes.ScheduleInfo {
+	return test.scheduleInfos
 }
 
 func (test *requestMemNodeTest) getScheduler() scheduler.Scheduler {
 	mockScheduler := &schedulerMocks.Scheduler{}
 	mockScheduler.On(
 		"SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything,
-	).Return(test.nodeInfos, nil, 1, errors.New("should not select memory node here"))
+	).Return(test.scheduleInfos, nil, 1, errors.New("should not select memory node here"))
 	mockScheduler.On(
 		"SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything,
-	).Return(test.nodeInfos, 1, nil)
+	).Return(test.scheduleInfos, 1, nil)
 	return mockScheduler
 }
 

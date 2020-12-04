@@ -188,18 +188,6 @@ func (n *Node) PreserveResources(resource *ResourceMeta) {
 	}
 }
 
-// NodeInfo for deploy
-type NodeInfo struct {
-	NodeMeta
-
-	CPUPlan     []CPUMap
-	VolumePlans []VolumePlan // {{"AUTO:/data:rw:1024": "/mnt0:/data:rw:1024"}}
-	Capacity    int          // 可以部署几个, deprecated
-	Count       int          // 上面有几个了, deprecated
-	Deploy      int          // 最终部署几个, deprecated
-	// 其他需要 filter 的字段
-}
-
 // NodeResource for node check
 type NodeResource struct {
 	Name              string

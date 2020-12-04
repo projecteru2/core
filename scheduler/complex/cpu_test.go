@@ -6,19 +6,20 @@ import (
 	"github.com/docker/go-units"
 	"github.com/stretchr/testify/assert"
 
+	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
 )
 
 func TestCPUPriorPlan(t *testing.T) {
 	// normal 分配
-	nodesInfo := resetNodesInfo()
-	_, resultCPUPlan, total, err := cpuPriorPlan(3.0, int64(units.MiB), nodesInfo, -1, 100)
+	scheduleInfos := resetscheduleInfos()
+	_, resultCPUPlan, total, err := cpuPriorPlan(3.0, int64(units.MiB), scheduleInfos, -1, 100)
 	assert.NoError(t, err)
 	assert.Equal(t, len(resultCPUPlan), 1)
 	assert.Equal(t, total, 1)
 	// numa 分配
-	nodesInfo = resetNodesInfo()
-	_, resultCPUPlan, total, err = cpuPriorPlan(1.5, int64(units.MiB), nodesInfo, -1, 100)
+	scheduleInfos = resetscheduleInfos()
+	_, resultCPUPlan, total, err = cpuPriorPlan(1.5, int64(units.MiB), scheduleInfos, -1, 100)
 	assert.NoError(t, err)
 	assert.Equal(t, len(resultCPUPlan), 1)
 	assert.Equal(t, total, 2)
@@ -31,15 +32,15 @@ func TestCPUPriorPlan(t *testing.T) {
 		assert.True(t, (ok1 && ok3) || (ok2 && ok4))
 	}
 	// numa and normal 分配
-	nodesInfo = resetNodesInfo()
-	_, resultCPUPlan, total, err = cpuPriorPlan(1, int64(units.GiB), nodesInfo, -1, 100)
+	scheduleInfos = resetscheduleInfos()
+	_, resultCPUPlan, total, err = cpuPriorPlan(1, int64(units.GiB), scheduleInfos, -1, 100)
 	assert.NoError(t, err)
 	assert.Equal(t, len(resultCPUPlan), 1)
 	assert.Equal(t, total, 3)
 }
 
-func resetNodesInfo() []types.NodeInfo {
-	return []types.NodeInfo{
+func resetscheduleInfos() []resourcetypes.ScheduleInfo {
+	return []resourcetypes.ScheduleInfo{
 		{
 			NodeMeta: types.NodeMeta{
 				Name:   "n1",

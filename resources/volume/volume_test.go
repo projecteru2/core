@@ -58,7 +58,7 @@ func TestStorage(t *testing.T) {
 				},
 			},
 		}
-		nodeInfos []types.NodeInfo = []types.NodeInfo{
+		scheduleInfos []resourcetypes.ScheduleInfo = []resourcetypes.ScheduleInfo{
 			{
 				NodeMeta: types.NodeMeta{
 					Name:       "TestNode",
@@ -85,7 +85,7 @@ func TestStorage(t *testing.T) {
 	)
 	mockScheduler.On(
 		"SelectVolumeNodes", mock.Anything, mock.Anything,
-	).Return(nodeInfos, volumePlan, 1, nil)
+	).Return(scheduleInfos, volumePlan, 1, nil)
 
 	prevSche, _ := scheduler.GetSchedulerV1()
 	scheduler.InitSchedulerV1(mockScheduler)
@@ -112,7 +112,7 @@ func TestStorage(t *testing.T) {
 
 	sche := resourceRequest.MakeScheduler()
 
-	plans, _, err := sche(nodeInfos)
+	plans, _, err := sche(scheduleInfos)
 	assert.Nil(t, err)
 	assert.True(t, plans.Type()&types.ResourceVolume > 0)
 

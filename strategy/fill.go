@@ -13,14 +13,14 @@ import (
 // need 是每台上限, limit 是限制节点数
 func FillPlan(strategyInfos []Info, need, total, limit int, resourceType types.ResourceType) (map[string]int, error) {
 	log.Debugf("[FillPlan] need %d limit %d", need, limit)
-	nodesInfoLength := len(strategyInfos)
-	if nodesInfoLength < limit {
+	scheduleInfosLength := len(strategyInfos)
+	if scheduleInfosLength < limit {
 		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
-			fmt.Sprintf("node len %d cannot alloc a fill node plan", nodesInfoLength))
+			fmt.Sprintf("node len %d cannot alloc a fill node plan", scheduleInfosLength))
 	}
 	sort.Slice(strategyInfos, func(i, j int) bool { return strategyInfos[i].Count > strategyInfos[j].Count })
-	p := sort.Search(nodesInfoLength, func(i int) bool { return strategyInfos[i].Count < need })
-	if p == nodesInfoLength {
+	p := sort.Search(scheduleInfosLength, func(i int) bool { return strategyInfos[i].Count < need })
+	if p == scheduleInfosLength {
 		return nil, types.ErrAlreadyFilled
 	}
 	strategyInfos = scoreSort(strategyInfos[p:], resourceType)

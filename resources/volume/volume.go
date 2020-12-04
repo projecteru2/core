@@ -7,7 +7,6 @@ import (
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
 const maxVolumes = 32
@@ -75,7 +74,7 @@ func (v *volumeRequest) Validate() error {
 
 // MakeScheduler .
 func (v volumeRequest) MakeScheduler() resourcetypes.SchedulerV2 {
-	return func(nodesInfo []types.NodeInfo) (plans resourcetypes.ResourcePlans, total int, err error) {
+	return func(scheduleInfos []resourcetypes.ScheduleInfo) (plans resourcetypes.ResourcePlans, total int, err error) {
 		schedulerV1, err := scheduler.GetSchedulerV1()
 		if err != nil {
 			return
@@ -87,9 +86,9 @@ func (v volumeRequest) MakeScheduler() resourcetypes.SchedulerV2 {
 			limit = append(limit, &v.limit[i])
 		}
 
-		nodesInfo, volumePlans, total, err := schedulerV1.SelectVolumeNodes(nodesInfo, request)
+		scheduleInfos, volumePlans, total, err := schedulerV1.SelectVolumeNodes(scheduleInfos, request)
 		return ResourcePlans{
-			capacity: utils.GetCapacity(nodesInfo),
+			capacity: resourcetypes.GetCapacity(scheduleInfos),
 			request:  request,
 			limit:    limit,
 			plan:     volumePlans,
