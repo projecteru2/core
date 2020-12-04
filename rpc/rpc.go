@@ -807,12 +807,25 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 					}
 				}
 			}()
-			scanner := bufio.NewScanner(r)
-			for scanner.Scan() {
-				log.Infof("[Async RunAndWait] %v", scanner.Text())
-			}
-			if err := scanner.Err(); err != nil {
-				log.Errorf("Async RunAndWait] scan error: %v", err)
+			bufReader := bufio.NewReader(r)
+			for {
+				var (
+					line, part []byte
+					isPrefix   bool
+					err        error
+				)
+				for {
+					if part, isPrefix, err = bufReader.ReadLine(); err != nil {
+						log.Errorf("[Aysnc RunAndWait] read error: %+v", err)
+						return
+					}
+					line = append(line, part...)
+					if !isPrefix {
+						break
+					}
+
+				}
+				log.Infof("[Async RunAndWait] %s", line)
 			}
 		})
 	}()
