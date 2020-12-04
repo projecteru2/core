@@ -43,6 +43,8 @@ type VirtualizationCreateOptions struct {
 
 	RawArgs []byte
 	Lambda  bool
+
+	AncestorWorkloadID string
 }
 
 // VirtualizationCreated use for store name and ID
