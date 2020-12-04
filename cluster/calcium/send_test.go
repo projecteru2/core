@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
+	lockmocks "github.com/projecteru2/core/lock/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
@@ -28,16 +29,20 @@ func TestSend(t *testing.T) {
 	}
 	store := &storemocks.Store{}
 	c.store = store
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	// failed by GetWorkload
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	ch, err := c.Send(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
 	engine := &enginemocks.API{}
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(
-		&types.Workload{Engine: engine}, nil,
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(
+		[]*types.Workload{{ID: "cid", Engine: engine}}, nil,
 	)
 	// failed by engine
 	content, _ := ioutil.ReadAll(tmpfile)

@@ -41,7 +41,8 @@ unit-test:
 	./source/common/... \
 	./strategy/... \
 	./scheduler/complex/... \
-	./rpc/. ./lock/etcdlock/... \
+	./rpc/. \
+	./lock/etcdlock/... \
 	./auth/simple/... \
 	./cluster/calcium/... \
 	./discovery/helium... \

@@ -344,19 +344,12 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 		return err
 	}
 	// 4K buffer
-	bsize := 4 * 1024
+	p := make([]byte, 4096)
 	for m := range ch {
-		var copyError string
+		msg := &pb.CopyMessage{Id: m.ID, Name: m.Name, Path: m.Path}
 		if m.Error != nil {
-			copyError = fmt.Sprintf("%v", m.Error)
-			if err := stream.Send(&pb.CopyMessage{
-				Id:     m.ID,
-				Status: m.Status,
-				Name:   m.Name,
-				Path:   m.Path,
-				Error:  copyError,
-				Data:   []byte{},
-			}); err != nil {
+			msg.Error = m.Error.Error()
+			if err := stream.Send(msg); err != nil {
 				v.logUnsentMessages("Copy", m)
 			}
 			continue
@@ -364,40 +357,43 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 
 		r, w := io.Pipe()
 		go func() {
-			defer w.Close()
+			var err error
+			defer func() {
+				w.CloseWithError(err) // nolint
+			}()
 			defer m.Data.Close()
 
+			var bs []byte
 			tw := tar.NewWriter(w)
-			bs, err := ioutil.ReadAll(m.Data)
-			if err != nil {
+			if bs, err = ioutil.ReadAll(m.Data); err != nil {
 				log.Errorf("[Copy] Error during extracting copy data: %v", err)
+				return
 			}
 			header := &tar.Header{Name: m.Name, Mode: 0644, Size: int64(len(bs))}
-			if err := tw.WriteHeader(header); err != nil {
+			if err = tw.WriteHeader(header); err != nil {
 				log.Errorf("[Copy] Error during writing tarball header: %v", err)
+				return
 			}
-			if _, err := tw.Write(bs); err != nil {
+			if _, err = tw.Write(bs); err != nil {
 				log.Errorf("[Copy] Error during writing tarball content: %v", err)
+				return
 			}
 		}()
 
 		for {
-			p := make([]byte, bsize)
 			n, err := r.Read(p)
 			if err != nil {
 				if err != io.EOF {
 					log.Errorf("[Copy] Error during buffer resp: %v", err)
+					msg.Error = err.Error()
+					if err = stream.Send(msg); err != nil {
+						v.logUnsentMessages("Copy", m)
+					}
 				}
 				break
 			}
-			if err = stream.Send(&pb.CopyMessage{
-				Id:     m.ID,
-				Status: m.Status,
-				Name:   m.Name,
-				Path:   m.Path,
-				Error:  copyError,
-				Data:   p[:n],
-			}); err != nil {
+			msg.Data = p[:n]
+			if err = stream.Send(msg); err != nil {
 				v.logUnsentMessages("Copy", m)
 			}
 		}

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -104,10 +105,7 @@ func (v *Virt) ExecExitCode(ctx context.Context, execID string) (code int, err e
 
 // ExecResize resize exec tty
 func (v *Virt) ExecResize(ctx context.Context, execID string, height, width uint) (err error) {
-	resizeCmd := fmt.Sprintf("yaexec resize -r %d -c %d", height, width)
-	msg, err := v.client.ExecuteGuest(ctx, execID, strings.Split(resizeCmd, " "))
-	log.Debugf("[ExecResize] resize got response: %v", msg)
-	return err
+	return v.client.ResizeConsoleWindow(ctx, execID, height, width)
 }
 
 // NetworkConnect connects to a network.
@@ -275,9 +273,13 @@ func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, opts
 	return err
 }
 
-// VirtualizationCopyFrom copies from another.
+// VirtualizationCopyFrom copies file content from the container.
 func (v *Virt) VirtualizationCopyFrom(ctx context.Context, ID, path string) (io.ReadCloser, string, error) {
-	return nil, "", fmt.Errorf("VirtualizationCopyFrom does not implement")
+	rd, err := v.client.Cat(ctx, ID, path)
+	if err != nil {
+		return nil, "", err
+	}
+	return ioutil.NopCloser(rd), filepath.Base(path), nil
 }
 
 // VirtualizationExecute executes commands in running virtual unit

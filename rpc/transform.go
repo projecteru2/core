@@ -226,12 +226,11 @@ func toCoreReplaceOptions(r *pb.ReplaceOptions) (*types.ReplaceOptions, error) {
 }
 
 func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
-	if d.Entrypoint == nil {
+	if d.Entrypoint == nil || d.Entrypoint.Name == "" {
 		return nil, types.ErrNoEntryInSpec
 	}
 
 	entrypoint := d.Entrypoint
-
 	entry := &types.Entrypoint{
 		Name:          entrypoint.Name,
 		Command:       entrypoint.Command,

@@ -12,10 +12,6 @@ const (
 	Gitlab = "gitlab"
 	// Github for github
 	Github = "github"
-	// CopyFailed for copy failed
-	CopyFailed = "failed"
-	// CopyOK for copy ok
-	CopyOK = "ok"
 	// CPUPeriodBase for cpu period base
 	CPUPeriodBase = 100000
 	// ERUMark mark workload controlled by eru

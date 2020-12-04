@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -32,17 +33,17 @@ func execuateInside(ctx context.Context, client engine.API, ID, cmd, user string
 		AttachStderr: true,
 		AttachStdout: true,
 	}
+	b := []byte{}
 	execID, err := client.ExecCreate(ctx, ID, execConfig)
 	if err != nil {
-		return []byte{}, err
+		return b, err
 	}
 
 	outStream, _, err := client.ExecAttach(ctx, execID, false)
 	if err != nil {
-		return []byte{}, err
+		return b, err
 	}
 
-	b := []byte{}
 	for data := range processVirtualizationOutStream(ctx, outStream) {
 		b = append(b, data...)
 	}
@@ -107,14 +108,13 @@ func pullImage(ctx context.Context, node *types.Node, image string) error {
 	return nil
 }
 
-func makeCopyMessage(id, status, name, path string, err error, data io.ReadCloser) *types.CopyMessage {
+func makeCopyMessage(id, name, path string, err error, data io.ReadCloser) *types.CopyMessage {
 	return &types.CopyMessage{
-		ID:     id,
-		Status: status,
-		Name:   name,
-		Path:   path,
-		Error:  err,
-		Data:   data,
+		ID:    id,
+		Name:  name,
+		Path:  path,
+		Error: err,
+		Data:  data,
 	}
 }
 
@@ -156,6 +156,9 @@ func rawProcessVirtualizationInStream(
 		defer inStream.Close()
 
 		for cmd := range inCh {
+			if len(cmd) == 0 {
+				continue
+			}
 			if f, ok := specialPrefixCallback[string(cmd[:1])]; ok {
 				f(cmd[1:])
 				continue
@@ -201,14 +204,12 @@ func processBuildImageStream(reader io.ReadCloser) chan *types.BuildImageMessage
 			message := &types.BuildImageMessage{}
 			err := decoder.Decode(message)
 			if err != nil {
-				if err == io.EOF {
-					break
+				if err != io.EOF {
+					malformed, _ := ioutil.ReadAll(decoder.Buffered()) // TODO err check
+					log.Errorf("[processBuildImageStream] Decode image message failed %v, buffered: %s", err, string(malformed))
+					message.Error = err.Error()
+					ch <- message
 				}
-				malformed := []byte{}
-				_, _ = decoder.Buffered().Read(malformed)
-				log.Errorf("[processBuildImageStream] Decode image message failed %v, buffered: %s", err, string(malformed))
-				message.Error = err.Error()
-				ch <- message
 				break
 			}
 			ch <- message
