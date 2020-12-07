@@ -180,7 +180,8 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 			}
 
 			createMsg.ResourceMeta = *r
-			return c.doDeployOneWorkload(ctx, node, opts, createMsg, seq+idx, deploy-1-idx)
+			createOpts := c.doMakeWorkloadOptions(seq+idx, createMsg, opts, node)
+			return c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts, deploy-1-idx)
 		}
 		_ = do(idx)
 	}
@@ -203,9 +204,9 @@ func (c *Calcium) doDeployOneWorkload(
 	node *types.Node,
 	opts *types.DeployOptions,
 	msg *types.CreateWorkloadMessage,
-	no, processingCount int,
+	config *enginetypes.VirtualizationCreateOptions,
+	processingCount int,
 ) (err error) {
-	config := c.doMakeWorkloadOptions(no, msg, opts, node)
 	workload := &types.Workload{
 		ResourceMeta: types.ResourceMeta{
 			CPU:               msg.CPU,

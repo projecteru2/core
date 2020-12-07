@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sync"
 
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -165,7 +166,8 @@ func (c *Calcium) doReplaceWorkload(
 				ctx,
 				// if
 				func(ctx context.Context) error {
-					return c.doDeployOneWorkload(ctx, node, &opts.DeployOptions, createMessage, index, -1)
+					vco := c.doMakeReplaceWorkloadOptions(index, createMessage, &opts.DeployOptions, node, workload.ID)
+					return c.doDeployOneWorkload(ctx, node, &opts.DeployOptions, createMessage, vco, -1)
 				},
 				// then
 				func(ctx context.Context) (err error) {
@@ -193,4 +195,10 @@ func (c *Calcium) doReplaceWorkload(
 		},
 		c.config.GlobalTimeout,
 	)
+}
+
+func (c *Calcium) doMakeReplaceWorkloadOptions(no int, msg *types.CreateWorkloadMessage, opts *types.DeployOptions, node *types.Node, ancestorWorkloadID string) *enginetypes.VirtualizationCreateOptions {
+	vco := c.doMakeWorkloadOptions(no, msg, opts, node)
+	vco.AncestorWorkloadID = ancestorWorkloadID
+	return vco
 }

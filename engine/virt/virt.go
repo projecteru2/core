@@ -171,11 +171,12 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 	}
 
 	req := virttypes.CreateGuestReq{
-		CPU:       int(opts.Quota),
-		Mem:       opts.Memory,
-		ImageName: opts.Image,
-		Volumes:   vols,
-		Labels:    opts.Labels,
+		CPU:        int(opts.Quota),
+		Mem:        opts.Memory,
+		ImageName:  opts.Image,
+		Volumes:    vols,
+		Labels:     opts.Labels,
+		AncestorID: opts.AncestorWorkloadID,
 	}
 
 	if dmiUUID, exists := opts.Labels[DmiUUIDKey]; exists {
