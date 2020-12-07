@@ -232,10 +232,26 @@ func testStoragePlans(t *testing.T, reqOpts types.ResourceOptions) {
 				},
 			},
 		}
-		nodeInfos []types.NodeInfo = []types.NodeInfo{
+		scheduleInfos []resourcetypes.ScheduleInfo = []resourcetypes.ScheduleInfo{
 			{
-				Name:     "TestNode",
-				Capacity: 100,
+				NodeMeta: types.NodeMeta{
+					Name:       "TestNode",
+					CPU:        map[string]int64{"0": 10000, "1": 10000},
+					NUMA:       map[string]string{"0": "0", "1": "1"},
+					NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
+					MemCap:     10240,
+					StorageCap: 10240,
+					Volume: types.VolumeMap{
+						"/data1": 1024,
+						"/data2": 1024,
+					},
+					InitVolume: types.VolumeMap{
+						"/data0": 1024,
+					},
+				},
+				VolumePlans: volumePlans,
+				CPUPlan:     []types.CPUMap{{"0": 10000, "1": 10000}},
+				Capacity:    100,
 			},
 		}
 		volumePlan = map[string][]types.VolumePlan{
@@ -250,12 +266,12 @@ func testStoragePlans(t *testing.T, reqOpts types.ResourceOptions) {
 
 	mockScheduler.On(
 		"SelectVolumeNodes", mock.Anything, mock.Anything,
-	).Return(nodeInfos, volumePlan, 1, nil)
+	).Return(scheduleInfos, volumePlan, 1, nil)
 
 	prevSche, _ := scheduler.GetSchedulerV1()
 	scheduler.InitSchedulerV1(nil)
 
-	plans, _, err := sche(nodeInfos)
+	plans, _, err := sche(scheduleInfos)
 	assert.Error(t, err)
 
 	scheduler.InitSchedulerV1(mockScheduler)
@@ -263,20 +279,21 @@ func testStoragePlans(t *testing.T, reqOpts types.ResourceOptions) {
 		scheduler.InitSchedulerV1(prevSche)
 	}()
 
-	plans, _, err = sche(nodeInfos)
+	plans, _, err = sche(scheduleInfos)
 	assert.Nil(t, err)
 	assert.True(t, plans.Type()&types.ResourceVolume > 0)
 
 	const storage = int64(10240)
 	var node = types.Node{
-		Name:       "TestNode",
-		CPU:        map[string]int64{"0": 10000, "1": 10000},
-		NUMA:       map[string]string{"0": "0", "1": "1"},
-		NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
-		MemCap:     10240,
-		StorageCap: storage,
-		Volume:     types.VolumeMap{"/dev0": 10240, "/dev1": 5120},
-		VolumeUsed: 0,
+		NodeMeta: types.NodeMeta{
+			Name:       "TestNode",
+			CPU:        map[string]int64{"0": 10000, "1": 10000},
+			NUMA:       map[string]string{"0": "0", "1": "1"},
+			NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
+			MemCap:     10240,
+			StorageCap: storage,
+			Volume:     types.VolumeMap{"/dev0": 10240, "/dev1": 5120},
+		},
 	}
 
 	assert.NotNil(t, plans.Capacity())
@@ -319,9 +336,11 @@ func TestStorage(t *testing.T) {
 				},
 			},
 		}
-		nodeInfos []types.NodeInfo = []types.NodeInfo{
+		scheduleInfos []resourcetypes.ScheduleInfo = []resourcetypes.ScheduleInfo{
 			{
-				Name:     "TestNode",
+				NodeMeta: types.NodeMeta{
+					Name: "TestNode",
+				},
 				Capacity: 100,
 			},
 		}
@@ -354,12 +373,12 @@ func TestStorage(t *testing.T) {
 
 	mockScheduler.On(
 		"SelectVolumeNodes", mock.Anything, mock.Anything,
-	).Return(nodeInfos, volumePlan, 1, nil)
+	).Return(scheduleInfos, volumePlan, 1, nil)
 
 	prevSche, _ := scheduler.GetSchedulerV1()
 	scheduler.InitSchedulerV1(nil)
 
-	plans, _, err := sche(nodeInfos)
+	plans, _, err := sche(scheduleInfos)
 	assert.Error(t, err)
 
 	scheduler.InitSchedulerV1(mockScheduler)
@@ -367,19 +386,21 @@ func TestStorage(t *testing.T) {
 		scheduler.InitSchedulerV1(prevSche)
 	}()
 
-	plans, _, err = sche(nodeInfos)
+	plans, _, err = sche(scheduleInfos)
 	assert.Nil(t, err)
 	assert.True(t, plans.Type()&types.ResourceVolume > 0)
 
 	const storage = int64(10240)
 	var node = types.Node{
-		Name:       "TestNode",
-		CPU:        map[string]int64{"0": 10000, "1": 10000},
-		NUMA:       map[string]string{"0": "0", "1": "1"},
-		NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
-		MemCap:     10240,
-		StorageCap: storage,
-		Volume:     types.VolumeMap{"/dev0": 10240, "/dev1": 5120},
+		NodeMeta: types.NodeMeta{
+			Name:       "TestNode",
+			CPU:        map[string]int64{"0": 10000, "1": 10000},
+			NUMA:       map[string]string{"0": "0", "1": "1"},
+			NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
+			MemCap:     10240,
+			StorageCap: storage,
+			Volume:     types.VolumeMap{"/dev0": 10240, "/dev1": 5120},
+		},
 		VolumeUsed: 0,
 	}
 
@@ -448,7 +469,9 @@ func TestRate(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	node := types.Node{
-		Volume: types.VolumeMap{"1": 1024},
+		NodeMeta: types.NodeMeta{
+			Volume: types.VolumeMap{"1": 1024},
+		},
 	}
 	assert.Equal(t, req.Rate(node), 1.0)
 }

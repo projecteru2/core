@@ -7,6 +7,6 @@ import (
 )
 
 func TestGenerateNodes(t *testing.T) {
-	ns := GenerateNodes(1, 10, 1000, 1000, 100)
+	ns := GenerateScheduleInfos(1, 10, 1000, 1000, 100)
 	assert.Len(t, ns, 1)
 }

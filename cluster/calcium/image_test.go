@@ -29,7 +29,9 @@ func TestRemoveImage(t *testing.T) {
 	engine := &enginemocks.API{}
 	nodes := []*types.Node{
 		{
-			Name:   "test",
+			NodeMeta: types.NodeMeta{
+				Name: "test",
+			},
 			Engine: engine,
 		},
 	}
@@ -70,7 +72,9 @@ func TestCacheImage(t *testing.T) {
 	engine := &enginemocks.API{}
 	nodes := []*types.Node{
 		{
-			Name:   "test",
+			NodeMeta: types.NodeMeta{
+				Name: "test",
+			},
 			Engine: engine,
 		},
 	}

@@ -1,17 +1,18 @@
 package complexscheduler
 
 import (
+	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
 
-func updateNodeInfoCapacity(nodeInfo *types.NodeInfo, capacity int) int {
-	if nodeInfo.Capacity == 0 {
-		nodeInfo.Capacity = capacity
+func updateScheduleInfoCapacity(scheduleInfo *resourcetypes.ScheduleInfo, capacity int) int {
+	if scheduleInfo.Capacity == 0 {
+		scheduleInfo.Capacity = capacity
 	} else {
-		nodeInfo.Capacity = utils.Min(capacity, nodeInfo.Capacity)
+		scheduleInfo.Capacity = utils.Min(capacity, scheduleInfo.Capacity)
 	}
-	return nodeInfo.Capacity
+	return scheduleInfo.Capacity
 }
 
 func onSameSource(plan []types.ResourceMap) bool {

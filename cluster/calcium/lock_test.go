@@ -122,9 +122,11 @@ func TestWithNodesLocked(t *testing.T) {
 	c.store = store
 
 	node1 := &types.Node{
-		Name: "test",
-		Labels: map[string]string{
-			"eru": "1",
+		NodeMeta: types.NodeMeta{
+			Name: "test",
+			Labels: map[string]string{
+				"eru": "1",
+			},
 		},
 		Available: true,
 	}
@@ -176,9 +178,11 @@ func TestWithNodeLocked(t *testing.T) {
 	c.store = store
 
 	node1 := &types.Node{
-		Name: "test",
-		Labels: map[string]string{
-			"eru": "1",
+		NodeMeta: types.NodeMeta{
+			Name: "test",
+			Labels: map[string]string{
+				"eru": "1",
+			},
 		},
 		Available: true,
 	}

@@ -22,28 +22,35 @@ type NUMA map[string]string
 // NUMAMemory fine NUMA memory NODE
 type NUMAMemory map[string]int64
 
+// NodeMeta .
+type NodeMeta struct {
+	Name     string            `json:"name"`
+	Endpoint string            `json:"endpoint"`
+	Podname  string            `json:"podname"`
+	Labels   map[string]string `json:"labels"`
+
+	CPU            CPUMap     `json:"cpu"`
+	Volume         VolumeMap  `json:"volume"`
+	NUMA           NUMA       `json:"numa"`
+	NUMAMemory     NUMAMemory `json:"numa_memory"`
+	MemCap         int64      `json:"memcap"`
+	StorageCap     int64      `json:"storage_cap"`
+	InitCPU        CPUMap     `json:"init_cpu"`
+	InitMemCap     int64      `json:"init_memcap"`
+	InitStorageCap int64      `json:"init_storage_cap"`
+	InitNUMAMemory NUMAMemory `json:"init_numa_memory"`
+	InitVolume     VolumeMap  `json:"init_volume"`
+}
+
 // Node store node info
 type Node struct {
-	Name     string `json:"name"`
-	Endpoint string `json:"endpoint"`
-	Podname  string `json:"podname"`
-	CPU      CPUMap `json:"cpu"`
-	// free spaces
-	Volume         VolumeMap         `json:"volume"`
-	NUMA           NUMA              `json:"numa"`
-	NUMAMemory     NUMAMemory        `json:"numa_memory"`
-	CPUUsed        float64           `json:"cpuused"`
-	VolumeUsed     int64             `json:"volumeused"`
-	MemCap         int64             `json:"memcap"`
-	StorageCap     int64             `json:"storage_cap"`
-	Available      bool              `json:"available"`
-	Labels         map[string]string `json:"labels"`
-	InitCPU        CPUMap            `json:"init_cpu"`
-	InitMemCap     int64             `json:"init_memcap"`
-	InitStorageCap int64             `json:"init_storage_cap"`
-	InitNUMAMemory NUMAMemory        `json:"init_numa_memory"`
-	InitVolume     VolumeMap         `json:"init_volume"`
-	Engine         engine.API        `json:"-"`
+	NodeMeta
+
+	CPUUsed    float64 `json:"cpuused"`
+	VolumeUsed int64   `json:"volumeused"`
+
+	Available bool       `json:"available"`
+	Engine    engine.API `json:"-"`
 }
 
 // Init .
@@ -179,28 +186,6 @@ func (n *Node) PreserveResources(resource *ResourceMeta) {
 	if resource.NUMANode != "" {
 		n.DecrNUMANodeMemory(resource.NUMANode, resource.MemoryRequest)
 	}
-}
-
-// NodeInfo for deploy
-type NodeInfo struct {
-	Name          string
-	CPUMap        CPUMap
-	VolumeMap     VolumeMap
-	InitVolumeMap VolumeMap
-	NUMA          NUMA
-	NUMAMemory    NUMAMemory
-	MemCap        int64
-	StorageCap    int64
-
-	Usages map[ResourceType]float64 // deprecated
-	Rates  map[ResourceType]float64 // deprecated
-
-	CPUPlan     []CPUMap
-	VolumePlans []VolumePlan // {{"AUTO:/data:rw:1024": "/mnt0:/data:rw:1024"}}
-	Capacity    int          // 可以部署几个, deprecated
-	Count       int          // 上面有几个了, deprecated
-	Deploy      int          // 最终部署几个, deprecated
-	// 其他需要 filter 的字段
 }
 
 // NodeResource for node check

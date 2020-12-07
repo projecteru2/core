@@ -13,6 +13,7 @@ import (
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/scheduler"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
@@ -36,12 +37,14 @@ func TestPodResource(t *testing.T) {
 	_, err := c.PodResource(ctx, podname)
 	assert.Error(t, err)
 	node := &types.Node{
-		Name:           nodename,
-		CPU:            types.CPUMap{"0": 0, "1": 10},
-		MemCap:         2,
-		InitCPU:        types.CPUMap{"0": 100, "1": 100},
-		InitMemCap:     6,
-		InitStorageCap: 10,
+		NodeMeta: types.NodeMeta{
+			Name:           nodename,
+			CPU:            types.CPUMap{"0": 0, "1": 10},
+			MemCap:         2,
+			InitCPU:        types.CPUMap{"0": 100, "1": 100},
+			InitMemCap:     6,
+			InitStorageCap: 10,
+		},
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
@@ -97,13 +100,15 @@ func TestNodeResource(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	node := &types.Node{
-		Name:           nodename,
-		CPU:            types.CPUMap{"0": 0, "1": 10},
-		MemCap:         2,
-		InitCPU:        types.CPUMap{"0": 100, "1": 100},
-		InitMemCap:     6,
-		NUMAMemory:     types.NUMAMemory{"0": 1, "1": 1},
-		InitNUMAMemory: types.NUMAMemory{"0": 3, "1": 3},
+		NodeMeta: types.NodeMeta{
+			Name:           nodename,
+			CPU:            types.CPUMap{"0": 0, "1": 10},
+			MemCap:         2,
+			InitCPU:        types.CPUMap{"0": 100, "1": 100},
+			InitMemCap:     6,
+			NUMAMemory:     types.NUMAMemory{"0": 1, "1": 1},
+			InitNUMAMemory: types.NUMAMemory{"0": 3, "1": 3},
+		},
 	}
 	engine := &enginemocks.API{}
 	engine.On("ResourceValidate", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
@@ -166,17 +171,21 @@ func TestAllocResource(t *testing.T) {
 	n2 := "n2"
 	nodeMap := map[string]*types.Node{
 		n1: {
-			Name:      n1,
+			NodeMeta: types.NodeMeta{
+				Name:   n1,
+				Labels: map[string]string{"test": "1"},
+				CPU:    types.CPUMap{"0": 100},
+				MemCap: 100,
+			},
 			Available: false,
-			Labels:    map[string]string{"test": "1"},
-			CPU:       types.CPUMap{"0": 100},
-			MemCap:    100,
 		},
 		n2: {
-			Name:      n2,
+			NodeMeta: types.NodeMeta{
+				Name:   n2,
+				CPU:    types.CPUMap{"0": 100},
+				MemCap: 100,
+			},
 			Available: true,
-			CPU:       types.CPUMap{"0": 100},
-			MemCap:    100,
 		},
 	}
 
@@ -186,14 +195,14 @@ func TestAllocResource(t *testing.T) {
 	// Defines for below.
 	opts.Nodenames = []string{n2}
 
-	// define nodesInfo
-	nodesInfo := []types.NodeInfo{
+	// define scheduleInfos
+	scheduleInfos := []resourcetypes.ScheduleInfo{
 		{
-			Name:     n2,
-			CPUMap:   types.CPUMap{"0": 100},
-			MemCap:   100,
-			Count:    1,  // 1 exists
-			Deploy:   3,  // deploy 1
+			NodeMeta: types.NodeMeta{
+				Name:   n2,
+				CPU:    types.CPUMap{"0": 100},
+				MemCap: 100,
+			},
 			Capacity: 10, // can deploy 10
 		},
 	}
@@ -201,12 +210,12 @@ func TestAllocResource(t *testing.T) {
 	sched := c.scheduler.(*schedulermocks.Scheduler)
 	defer sched.AssertExpectations(t)
 	total := 3
-	sched.On("SelectStorageNodes", mock.Anything, mock.Anything).Return(nodesInfo, total, nil)
-	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(nodesInfo, nil, total, nil)
+	sched.On("SelectStorageNodes", mock.Anything, mock.Anything).Return(scheduleInfos, total, nil)
+	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(scheduleInfos, nil, total, nil)
 	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, types.ErrInsufficientMEM).Once()
 	testAllocFailedAsInsufficientMemory(t, c, opts, nodeMap)
 
-	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(nodesInfo, total, nil)
+	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, total, nil)
 	testAllocFailedAsMakeDeployStatusError(t, c, opts, nodeMap)
 	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 

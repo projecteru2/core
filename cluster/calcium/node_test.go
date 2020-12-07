@@ -16,7 +16,7 @@ func TestAddNode(t *testing.T) {
 	ctx := context.Background()
 	name := "test"
 	node := &types.Node{
-		Name: name,
+		NodeMeta: types.NodeMeta{Name: name},
 	}
 
 	store := &storemocks.Store{}
@@ -38,7 +38,7 @@ func TestRemoveNode(t *testing.T) {
 	ctx := context.Background()
 
 	name := "test"
-	node := &types.Node{Name: name}
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: name}}
 	store := &storemocks.Store{}
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(nil)
@@ -64,8 +64,8 @@ func TestListPodNodes(t *testing.T) {
 	name1 := "test1"
 	name2 := "test2"
 	nodes := []*types.Node{
-		{Name: name1, Available: true},
-		{Name: name2, Available: false},
+		{NodeMeta: types.NodeMeta{Name: name1}, Available: true},
+		{NodeMeta: types.NodeMeta{Name: name2}, Available: false},
 	}
 
 	store := &storemocks.Store{}
@@ -88,7 +88,7 @@ func TestGetNode(t *testing.T) {
 	ctx := context.Background()
 	name := "test"
 	node := &types.Node{
-		Name: name,
+		NodeMeta: types.NodeMeta{Name: name},
 	}
 
 	store := &storemocks.Store{}
@@ -104,7 +104,7 @@ func TestSetNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	name := "test"
-	node := &types.Node{Name: name}
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: name}}
 	node.Init()
 
 	store := &storemocks.Store{}

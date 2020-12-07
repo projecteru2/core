@@ -8,6 +8,7 @@ import (
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/scheduler"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
@@ -76,11 +77,15 @@ func TestCreateWorkloadTxn(t *testing.T) {
 
 	pod1 := &types.Pod{Name: "p1"}
 	node1 := &types.Node{
-		Name:   "n1",
+		NodeMeta: types.NodeMeta{
+			Name: "n1",
+		},
 		Engine: engine,
 	}
 	node2 := &types.Node{
-		Name:   "n2",
+		NodeMeta: types.NodeMeta{
+			Name: "n2",
+		},
 		Engine: engine,
 	}
 	nodes := []*types.Node{node1, node2}
@@ -107,18 +112,21 @@ func TestCreateWorkloadTxn(t *testing.T) {
 			}
 			return
 		}, nil)
-	sche.On("SelectStorageNodes", mock.AnythingOfType("[]types.NodeInfo"), mock.AnythingOfType("int64")).Return(func(nodesInfo []types.NodeInfo, _ int64) []types.NodeInfo {
-		return nodesInfo
+	sche.On("SelectStorageNodes", mock.AnythingOfType("[]resourcetypes.ScheduleInfo"), mock.AnythingOfType("int64")).Return(func(scheduleInfos []resourcetypes.ScheduleInfo, _ int64) []resourcetypes.ScheduleInfo {
+		return scheduleInfos
 	}, len(nodes), nil)
-	sche.On("SelectVolumeNodes", mock.AnythingOfType("[]types.NodeInfo"), mock.AnythingOfType("types.VolumeBindings")).Return(func(nodesInfo []types.NodeInfo, _ types.VolumeBindings) []types.NodeInfo {
-		return nodesInfo
+	sche.On("SelectStorageNodes", mock.AnythingOfType("[]types.ScheduleInfo"), mock.AnythingOfType("int64")).Return(func(scheduleInfos []resourcetypes.ScheduleInfo, _ int64) []resourcetypes.ScheduleInfo {
+		return scheduleInfos
+	}, len(nodes), nil)
+	sche.On("SelectVolumeNodes", mock.AnythingOfType("[]types.ScheduleInfo"), mock.AnythingOfType("types.VolumeBindings")).Return(func(scheduleInfos []resourcetypes.ScheduleInfo, _ types.VolumeBindings) []resourcetypes.ScheduleInfo {
+		return scheduleInfos
 	}, nil, len(nodes), nil)
-	sche.On("SelectMemoryNodes", mock.AnythingOfType("[]types.NodeInfo"), mock.AnythingOfType("float64"), mock.AnythingOfType("int64")).Return(
-		func(nodesInfo []types.NodeInfo, _ float64, _ int64) []types.NodeInfo {
-			for i := range nodesInfo {
-				nodesInfo[i].Capacity = 1
+	sche.On("SelectMemoryNodes", mock.AnythingOfType("[]types.ScheduleInfo"), mock.AnythingOfType("float64"), mock.AnythingOfType("int64")).Return(
+		func(scheduleInfos []resourcetypes.ScheduleInfo, _ float64, _ int64) []resourcetypes.ScheduleInfo {
+			for i := range scheduleInfos {
+				scheduleInfos[i].Capacity = 1
 			}
-			return nodesInfo
+			return scheduleInfos
 		}, len(nodes), nil)
 	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(
 		errors.Wrap(context.DeadlineExceeded, "MakeDeployStatus"),

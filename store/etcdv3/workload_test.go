@@ -257,9 +257,11 @@ func TestWorkloadStatusStream(t *testing.T) {
 		Podname:  podname,
 	}
 	node := &types.Node{
-		Name:     nodename,
-		Podname:  podname,
-		Endpoint: "tcp://127.0.0.1:2376",
+		NodeMeta: types.NodeMeta{
+			Name:     nodename,
+			Podname:  podname,
+			Endpoint: "tcp://127.0.0.1:2376",
+		},
 	}
 	_, err := json.Marshal(workload)
 	assert.NoError(t, err)

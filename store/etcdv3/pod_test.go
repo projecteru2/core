@@ -31,7 +31,7 @@ func TestPod(t *testing.T) {
 	assert.NoError(t, err)
 	err = m.RemovePod(ctx, podname)
 	assert.Error(t, err)
-	err = m.RemoveNode(ctx, &types.Node{Podname: podname, Name: "test", Endpoint: "mock://"})
+	err = m.RemoveNode(ctx, &types.Node{NodeMeta: types.NodeMeta{Podname: podname, Name: "test", Endpoint: "mock://"}})
 	assert.NoError(t, err)
 	err = m.RemovePod(ctx, podname)
 	assert.NoError(t, err)

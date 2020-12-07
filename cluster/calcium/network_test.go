@@ -30,7 +30,9 @@ func TestNetwork(t *testing.T) {
 	// vaild
 	engine := &enginemocks.API{}
 	node := &types.Node{
-		Name:      "test",
+		NodeMeta: types.NodeMeta{
+			Name: "test",
+		},
 		Available: true,
 		Engine:    engine,
 	}

@@ -823,7 +823,6 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 					if !isPrefix {
 						break
 					}
-
 				}
 				log.Infof("[Async RunAndWait] %s", line)
 			}

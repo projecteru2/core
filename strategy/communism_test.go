@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"testing"
 
+	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/stretchr/testify/assert"
@@ -46,10 +47,10 @@ func TestCommunismPlan(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func randomDeployStatus(nodesInfo []types.NodeInfo, maxDeployed int) (sis []Info) {
+func randomDeployStatus(scheduleInfos []resourcetypes.ScheduleInfo, maxDeployed int) (sis []Info) {
 	s := rand.NewSource(int64(1024))
 	r := rand.New(s)
-	for range nodesInfo {
+	for range scheduleInfos {
 		sis = append(sis, Info{
 			Capacity: maxDeployed,
 			Count:    r.Intn(maxDeployed),
@@ -68,7 +69,7 @@ func Benchmark_CommunismPlan(b *testing.B) {
 	// and then we deploy `need` workloads
 	for i := 0; i < b.N; i++ {
 		// 24 core, 128G memory, 10 pieces per core
-		t := utils.GenerateNodes(count, 1, 1, 0, 10)
+		t := utils.GenerateScheduleInfos(count, 1, 1, 0, 10)
 		hugePod := randomDeployStatus(t, maxDeployed)
 		b.StartTimer()
 		_, err := CommunismPlan(hugePod, need, 100, 0, types.ResourceAll)

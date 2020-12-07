@@ -18,21 +18,20 @@ func TestProcessing(t *testing.T) {
 		Entrypoint:   &types.Entrypoint{Name: "entry"},
 		ProcessIdent: "abc",
 	}
-	nodeInfo := types.NodeInfo{Name: "node", Deploy: 10}
 
 	// not exists
-	assert.Error(t, m.UpdateProcessing(ctx, opts, nodeInfo.Name, 8))
+	assert.Error(t, m.UpdateProcessing(ctx, opts, "node", 8))
 	// create
-	assert.NoError(t, m.SaveProcessing(ctx, opts, nodeInfo.Name, nodeInfo.Deploy))
+	assert.NoError(t, m.SaveProcessing(ctx, opts, "node", 10))
 	// create again
-	assert.Error(t, m.SaveProcessing(ctx, opts, nodeInfo.Name, nodeInfo.Deploy))
+	assert.Error(t, m.SaveProcessing(ctx, opts, "node", 10))
 	// update
-	assert.NoError(t, m.UpdateProcessing(ctx, opts, nodeInfo.Name, 8))
+	assert.NoError(t, m.UpdateProcessing(ctx, opts, "node", 8))
 
 	sis := []strategy.Info{{Nodename: "node"}}
 	err := m.doLoadProcessing(ctx, opts, sis)
 	assert.NoError(t, err)
 	assert.Equal(t, sis[0].Count, 8)
 	// delete
-	assert.NoError(t, m.DeleteProcessing(ctx, opts, nodeInfo.Name))
+	assert.NoError(t, m.DeleteProcessing(ctx, opts, "node"))
 }

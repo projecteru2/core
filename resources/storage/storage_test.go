@@ -51,7 +51,9 @@ func TestRate(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	node := types.Node{
-		InitStorageCap: 1024,
+		NodeMeta: types.NodeMeta{
+			InitStorageCap: 1024,
+		},
 	}
 	assert.Equal(t, req.Rate(node), 1.0)
 }
@@ -59,28 +61,30 @@ func TestRate(t *testing.T) {
 func TestStorage(t *testing.T) {
 	mockScheduler := &schedulerMocks.Scheduler{}
 	var (
-		nodeInfos []types.NodeInfo = []types.NodeInfo{
+		scheduleInfos []resourcetypes.ScheduleInfo = []resourcetypes.ScheduleInfo{
 			{
-				Name:       "TestNode",
-				CPUMap:     map[string]int64{"0": 10000, "1": 10000},
-				NUMA:       map[string]string{"0": "0", "1": "1"},
-				NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
-				MemCap:     10240,
-				CPUPlan:    []types.CPUMap{{"0": 10000, "1": 10000}},
-				StorageCap: 10240,
+				NodeMeta: types.NodeMeta{
+					Name:       "TestNode",
+					CPU:        map[string]int64{"0": 10000, "1": 10000},
+					NUMA:       map[string]string{"0": "0", "1": "1"},
+					NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
+					MemCap:     10240,
+					StorageCap: 10240,
+				},
+				CPUPlan: []types.CPUMap{{"0": 10000, "1": 10000}},
 			},
 		}
 	)
 	mockScheduler.On(
 		"SelectStorageNodes", mock.Anything, mock.Anything,
-	).Return(nodeInfos, 1, nil)
+	).Return(scheduleInfos, 1, nil)
 
 	resourceRequest, err := MakeRequest(types.ResourceOptions{
 		StorageRequest: 1024,
 		StorageLimit:   1024,
 	})
 	assert.NoError(t, err)
-	_, _, err = resourceRequest.MakeScheduler()([]types.NodeInfo{})
+	_, _, err = resourceRequest.MakeScheduler()([]resourcetypes.ScheduleInfo{})
 	assert.Error(t, err)
 
 	assert.True(t, resourceRequest.Type()&types.ResourceStorage > 0)
@@ -91,17 +95,19 @@ func TestStorage(t *testing.T) {
 	}()
 
 	sche := resourceRequest.MakeScheduler()
-	plans, _, err := sche(nodeInfos)
+	plans, _, err := sche(scheduleInfos)
 	assert.Nil(t, err)
 
 	const storage = int64(10240)
 	var node = types.Node{
-		Name:       "TestNode",
-		CPU:        map[string]int64{"0": 10000, "1": 10000},
-		NUMA:       map[string]string{"0": "0", "1": "1"},
-		NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
-		MemCap:     10240,
-		StorageCap: storage,
+		NodeMeta: types.NodeMeta{
+			Name:       "TestNode",
+			CPU:        map[string]int64{"0": 10000, "1": 10000},
+			NUMA:       map[string]string{"0": "0", "1": "1"},
+			NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
+			MemCap:     10240,
+			StorageCap: storage,
+		},
 	}
 
 	assert.True(t, plans.Type()&types.ResourceStorage > 0)

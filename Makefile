@@ -46,6 +46,7 @@ unit-test:
 	./auth/simple/... \
 	./cluster/calcium/... \
 	./discovery/helium... \
+	./resources/types/. \
 	./resources/storage/... \
 	./resources/volume/... \
 	./resources/cpumem/...
