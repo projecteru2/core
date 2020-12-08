@@ -80,6 +80,8 @@ type Cluster interface {
 	ReallocResource(ctx context.Context, opts *types.ReallocOptions) error
 	LogStream(ctx context.Context, opts *types.LogStreamOptions) (chan *types.LogStreamMessage, error)
 	RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) (<-chan *types.AttachWorkloadMessage, error)
+	// Lambda services
+	ReapLambda(ctx context.Context, exit <-chan struct{}) (notifier <-chan struct{}, err error)
 	// finalizer
 	Finalizer()
 }

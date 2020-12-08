@@ -1,6 +1,7 @@
 package etcdv3
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/projecteru2/core/strategy"
@@ -18,4 +19,8 @@ func setCount(nodesCount map[string]int, strategyInfos []strategy.Info) {
 			strategyInfos[i].Count += v
 		}
 	}
+}
+
+func makeLambdaKey(id string) string {
+	return fmt.Sprintf(lambdaInfoKey, id)
 }

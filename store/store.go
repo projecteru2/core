@@ -50,6 +50,9 @@ type Store interface {
 	ListNodeWorkloads(ctx context.Context, nodename string, labels map[string]string) ([]*types.Workload, error)
 	WorkloadStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.WorkloadStatus
 
+	// lambda
+	WatchLambda(ctx context.Context) <-chan *types.LambdaStatus
+
 	// deploy status
 	MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfo []strategy.Info) error
 

@@ -37,6 +37,8 @@ const (
 	workloadStatusPrefix     = "/status"       // /status/{appname}/{entrypoint}/{nodename}/{workloadID} value -> something by agent
 	workloadProcessingPrefix = "/processing"   // /processing/{appname}/{entrypoint}/{nodename}/{opsIdent} value -> count
 
+	lambdaInfoKey = "/lambda/active/%s" // /lambda/{lambdaID}
+
 	cmpVersion = "version"
 	cmpValue   = "value"
 )

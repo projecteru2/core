@@ -61,6 +61,9 @@ var (
 	ErrRunAndWaitCountOneWithStdin = errors.New("Count must be 1 if OpenStdin is true")
 	ErrUnknownControlType          = errors.New("Unknown control type")
 
+	ErrInvalidLambda       = errors.New("invalid Lambda")
+	ErrInvalidLambdaStatus = errors.New("invalid LambdaStatus")
+
 	ErrNoETCD       = errors.New("ETCD must be set")
 	ErrKeyNotExists = errors.New("Key not exists")
 	ErrKeyExists    = errors.New("Key exists")

@@ -64,8 +64,8 @@ func serve(c *cli.Context) error {
 	}
 	defer cluster.Finalizer()
 
-	rpcch := make(chan struct{}, 1)
-	vibranium := rpc.New(cluster, config, rpcch)
+	exitCh := make(chan struct{}, 1)
+	vibranium := rpc.New(cluster, config, exitCh)
 	s, err := net.Listen("tcp", config.Bind)
 	if err != nil {
 		log.Errorf("[main] %v", err)
@@ -102,6 +102,11 @@ func serve(c *cli.Context) error {
 		}()
 	}
 
+	if _, err = cluster.ReapLambda(c.Context, exitCh); err != nil {
+		log.Errorf("[main] failed to start Lambda reaper: %v", err)
+		return err
+	}
+
 	unregisterService, err := cluster.RegisterService(c.Context)
 	if err != nil {
 		log.Errorf("[main] failed to register service: %v", err)
@@ -115,7 +120,7 @@ func serve(c *cli.Context) error {
 	<-ctx.Done()
 
 	log.Info("[main] Interrupt by signal")
-	close(rpcch)
+	close(exitCh)
 	unregisterService()
 	grpcServer.GracefulStop()
 	log.Info("[main] gRPC server gracefully stopped.")

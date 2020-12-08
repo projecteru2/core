@@ -106,3 +106,53 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 
 	return runMsgCh, nil
 }
+
+// ReapLambda starts a lambda reaper thread.
+func (c *Calcium) ReapLambda(ctx context.Context, exit <-chan struct{}) (<-chan struct{}, error) {
+	watcher := c.store.WatchLambda(ctx)
+	done := make(chan struct{})
+
+	go func() {
+		defer log.Infof("[ReapLambda] reaper done")
+		defer close(done)
+
+		for {
+			if _, err := c.reapLambda(ctx, exit, watcher); err != nil {
+				log.Errorf("[ReapLambda] reap failed: %v", err)
+			}
+
+			select {
+			case <-ctx.Done():
+			case <-exit:
+
+			default:
+				continue
+			}
+
+			return
+		}
+	}()
+
+	return done, nil
+}
+
+func (c *Calcium) reapLambda(ctx context.Context, exit <-chan struct{}, watcher <-chan *types.LambdaStatus) (*types.Lambda, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-exit:
+		return nil, nil
+
+	case st := <-watcher:
+		switch {
+		case st == nil:
+			return nil, types.ErrInvalidLambdaStatus
+		case st.Error != nil:
+			return nil, st.Error
+		}
+
+		// TODO: biz
+
+		return st.Lambda, nil
+	}
+}
