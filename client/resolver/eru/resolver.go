@@ -43,7 +43,7 @@ func (r *Resolver) Close() {
 }
 
 func (r *Resolver) sync() {
-	log.Info("[EruResolver] start sync service discovery")
+	log.Debug("[EruResolver] start sync service discovery")
 	ctx, cancel := context.WithCancel(context.Background())
 	r.cancel = cancel
 	defer cancel()
