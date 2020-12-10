@@ -80,6 +80,9 @@ var (
 
 	ErrNodeNotExists     = errors.New("node not exists")
 	ErrWorkloadNotExists = errors.New("workload not exists")
+
+	ErrUnregisteredWALEventType = errors.New("unregistered WAL event type")
+	ErrInvalidWALBucket         = errors.New("invalid WAL bucket")
 )
 
 // NewDetailedErr returns an error with details
