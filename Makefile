@@ -14,11 +14,9 @@ grpc:
 deps:
 	env GO111MODULE=on go mod download
 	env GO111MODULE=on go mod vendor
-	# fix mock docker client bug, see https://github.com/moby/moby/pull/34383 [docker 17.05.0-ce]
-	sed -i.bak "143s/\*http.Transport/http.RoundTripper/" ./vendor/github.com/docker/docker/client/client.go
 
 binary:
-	go build -ldflags "$(GO_LDFLAGS)" -a -tags "netgo osusergo" -installsuffix netgo -o eru-core
+	CGO_ENABLED=0 go build -ldflags "$(GO_LDFLAGS)" -o eru-core
 
 build: deps binary
 
