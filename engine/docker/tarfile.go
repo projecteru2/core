@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 )
 
 func withTarfileDump(target string, content io.Reader, f func(target, tarfile string) error) error {

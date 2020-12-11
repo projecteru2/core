@@ -5,10 +5,11 @@ import (
 
 	"math"
 
+	"github.com/pkg/errors"
+	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	log "github.com/sirupsen/logrus"
 )
 
 // Potassium is a scheduler
@@ -24,7 +25,7 @@ func New(config types.Config) (*Potassium, error) {
 // MaxIdleNode use for build
 func (m *Potassium) MaxIdleNode(nodes []*types.Node) (*types.Node, error) {
 	if len(nodes) < 1 {
-		return nil, types.ErrInsufficientNodes
+		return nil, errors.WithStack(types.ErrInsufficientNodes)
 	}
 	pos := 0
 	node := nodes[pos]
@@ -43,7 +44,7 @@ func (m *Potassium) MaxIdleNode(nodes []*types.Node) (*types.Node, error) {
 func (m *Potassium) SelectStorageNodes(scheduleInfos []resourcetypes.ScheduleInfo, storage int64) ([]resourcetypes.ScheduleInfo, int, error) {
 	switch {
 	case storage < 0:
-		return nil, 0, types.ErrNegativeStorage
+		return nil, 0, errors.WithStack(types.ErrNegativeStorage)
 	case storage == 0:
 		return scheduleInfos, math.MaxInt64, nil
 	default:
@@ -55,7 +56,7 @@ func (m *Potassium) SelectStorageNodes(scheduleInfos []resourcetypes.ScheduleInf
 	sort.Slice(scheduleInfos, func(i, j int) bool { return scheduleInfos[i].StorageCap < scheduleInfos[j].StorageCap })
 	p := sort.Search(leng, func(i int) bool { return scheduleInfos[i].StorageCap >= storage })
 	if p == leng {
-		return nil, 0, types.ErrInsufficientStorage
+		return nil, 0, errors.WithStack(types.ErrInsufficientStorage)
 	}
 
 	scheduleInfos = scheduleInfos[p:]
@@ -81,7 +82,7 @@ func (m *Potassium) SelectMemoryNodes(scheduleInfos []resourcetypes.ScheduleInfo
 	})
 	// p 最大也就是 scheduleInfosLength - 1
 	if p == scheduleInfosLength {
-		return nil, 0, types.ErrInsufficientCPU
+		return nil, 0, errors.WithStack(types.ErrInsufficientCPU)
 	}
 	scheduleInfosLength -= p
 	scheduleInfos = scheduleInfos[p:]
@@ -90,7 +91,7 @@ func (m *Potassium) SelectMemoryNodes(scheduleInfos []resourcetypes.ScheduleInfo
 	sort.Slice(scheduleInfos, func(i, j int) bool { return scheduleInfos[i].MemCap < scheduleInfos[j].MemCap })
 	p = sort.Search(scheduleInfosLength, func(i int) bool { return scheduleInfos[i].MemCap >= memory })
 	if p == scheduleInfosLength {
-		return nil, 0, types.ErrInsufficientMEM
+		return nil, 0, errors.WithStack(types.ErrInsufficientMEM)
 	}
 	scheduleInfos = scheduleInfos[p:]
 
@@ -111,10 +112,10 @@ func (m *Potassium) SelectMemoryNodes(scheduleInfos []resourcetypes.ScheduleInfo
 func (m *Potassium) SelectCPUNodes(scheduleInfos []resourcetypes.ScheduleInfo, quota float64, memory int64) ([]resourcetypes.ScheduleInfo, map[string][]types.CPUMap, int, error) {
 	log.Infof("[SelectCPUNodes] scheduleInfos %d, need cpu: %f memory: %d", len(scheduleInfos), quota, memory)
 	if quota <= 0 {
-		return nil, nil, 0, types.ErrNegativeQuota
+		return nil, nil, 0, errors.WithStack(types.ErrNegativeQuota)
 	}
 	if len(scheduleInfos) == 0 {
-		return nil, nil, 0, types.ErrZeroNodes
+		return nil, nil, 0, errors.WithStack(types.ErrZeroNodes)
 	}
 	return cpuPriorPlan(quota, memory, scheduleInfos, m.maxshare, m.sharebase)
 }

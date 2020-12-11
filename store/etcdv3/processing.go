@@ -9,9 +9,9 @@ import (
 
 	"github.com/sanity-io/litter"
 
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
 	"go.etcd.io/etcd/clientv3"
 )
 

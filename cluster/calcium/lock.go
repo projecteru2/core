@@ -7,8 +7,8 @@ import (
 
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/lock"
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
 )
 
 func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration) (lock.DistributedLock, error) {

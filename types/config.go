@@ -22,6 +22,7 @@ type Config struct {
 	Scheduler SchedConfig   `yaml:"scheduler"`
 	Virt      VirtConfig    `yaml:"virt"`
 	Systemd   SystemdConfig `yaml:"systemd"`
+	SentryDSN string        `yaml:"sentry_dsn"`
 }
 
 // EtcdConfig holds eru-core etcd config

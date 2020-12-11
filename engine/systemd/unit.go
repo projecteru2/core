@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 
 	"github.com/docker/go-units"
 	enginetypes "github.com/projecteru2/core/engine/types"

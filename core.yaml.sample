@@ -5,6 +5,7 @@ profile: ":12346"
 global_timeout: 300s
 lock_timeout: 30s
 cert_path: "/etc/eru/tls"
+sentry_dsn: "https://examplePublicKey@o0.ingest.sentry.io/0"
 
 auth:
     username: admin

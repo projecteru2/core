@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/log"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/version"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 

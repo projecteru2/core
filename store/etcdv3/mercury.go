@@ -9,7 +9,7 @@ import (
 
 	"go.etcd.io/etcd/pkg/transport"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/lock/etcdlock"

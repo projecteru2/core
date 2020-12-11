@@ -3,10 +3,11 @@ package resources
 import (
 	"math"
 
+	"github.com/pkg/errors"
+	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	log "github.com/sirupsen/logrus"
 )
 
 // SelectNodesByResourceRequests select nodes by resource requests
@@ -28,7 +29,7 @@ func SelectNodesByResourceRequests(resourceRequests resourcetypes.ResourceReques
 	for _, resourceRequest := range resourceRequests {
 		plan, subTotal, err := resourceRequest.MakeScheduler()(scheduleInfos)
 		if err != nil {
-			return scheduleType, total, plans, err
+			return scheduleType, total, plans, errors.WithStack(err)
 		}
 		plans = append(plans, plan)
 		total = utils.Min(total, subTotal)

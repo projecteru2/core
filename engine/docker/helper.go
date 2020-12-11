@@ -19,9 +19,9 @@ import (
 	corecluster "github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/docker/distribution/reference"
 	dockertypes "github.com/docker/docker/api/types"

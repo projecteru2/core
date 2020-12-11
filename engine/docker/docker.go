@@ -11,8 +11,8 @@ import (
 	"github.com/docker/go-connections/tlsconfig"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
 )
 
 const (

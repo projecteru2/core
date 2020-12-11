@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
 )
 
 // CalculateCapacity calculates capacity

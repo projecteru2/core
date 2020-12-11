@@ -8,9 +8,9 @@ import (
 	"math"
 	"sort"
 
+	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
 )
 
 func min(a, b int) int {

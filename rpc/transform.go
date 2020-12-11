@@ -6,10 +6,10 @@ import (
 	"time"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 

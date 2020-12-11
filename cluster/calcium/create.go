@@ -12,10 +12,10 @@ import (
 	"github.com/projecteru2/core/metrics"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/sanity-io/litter"
-	log "github.com/sirupsen/logrus"
 )
 
 // CreateWorkload use options to create workloads
@@ -116,7 +116,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		}
 	}()
 
-	return ch, err
+	return ch, errors.WithStack(err)
 }
 
 func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateWorkloadMessage, opts *types.DeployOptions, plans []resourcetypes.ResourcePlans, deployMap map[string]int) (_ map[string][]int, err error) {

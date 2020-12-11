@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
 )
 
 // RemoveImage remove images

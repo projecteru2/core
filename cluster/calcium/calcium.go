@@ -6,6 +6,7 @@ import (
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/discovery"
 	"github.com/projecteru2/core/discovery/helium"
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/scheduler"
 	complexscheduler "github.com/projecteru2/core/scheduler/complex"
 	"github.com/projecteru2/core/source"
@@ -14,7 +15,6 @@ import (
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/store/etcdv3"
 	"github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
 )
 
 // Calcium implement the cluster

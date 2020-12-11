@@ -11,10 +11,10 @@ import (
 
 	"github.com/projecteru2/core/engine/types"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
 	coresource "github.com/projecteru2/core/source"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
