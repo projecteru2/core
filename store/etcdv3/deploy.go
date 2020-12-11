@@ -7,7 +7,7 @@ import (
 
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 	"go.etcd.io/etcd/clientv3"
 )
 

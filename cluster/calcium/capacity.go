@@ -8,7 +8,7 @@ import (
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 )
 
 // CalculateCapacity calculates capacity

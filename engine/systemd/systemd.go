@@ -15,7 +15,7 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 	"golang.org/x/crypto/ssh"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 )
 
 const (

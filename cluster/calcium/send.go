@@ -8,7 +8,7 @@ import (
 
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 )
 
 // Send send files to workload

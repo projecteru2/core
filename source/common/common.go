@@ -14,7 +14,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	gitssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 	"golang.org/x/crypto/ssh"
 )
 

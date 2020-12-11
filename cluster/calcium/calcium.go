@@ -14,7 +14,7 @@ import (
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/store/etcdv3"
 	"github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 )
 
 // Calcium implement the cluster

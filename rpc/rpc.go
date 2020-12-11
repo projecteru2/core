@@ -14,7 +14,7 @@ import (
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/versioninfo"
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 	"golang.org/x/net/context"
 )
 

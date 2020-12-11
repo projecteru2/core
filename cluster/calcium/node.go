@@ -5,7 +5,7 @@ import (
 
 	"github.com/projecteru2/core/types"
 	"github.com/sanity-io/litter"
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 )
 
 // AddNode adds a node

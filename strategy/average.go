@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/pkg/errors"
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
 )
 
 // AveragePlan deploy workload each node
@@ -15,13 +16,13 @@ func AveragePlan(strategyInfos []Info, need, total, limit int, resourceType type
 	log.Debugf("[AveragePlan] need %d limit %d", need, limit)
 	scheduleInfosLength := len(strategyInfos)
 	if scheduleInfosLength < limit {
-		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
-			fmt.Sprintf("node len %d < limit, cannot alloc an average node plan", scheduleInfosLength))
+		return nil, errors.WithStack(types.NewDetailedErr(types.ErrInsufficientRes,
+			fmt.Sprintf("node len %d < limit, cannot alloc an average node plan", scheduleInfosLength)))
 	}
 	sort.Slice(strategyInfos, func(i, j int) bool { return strategyInfos[i].Capacity < strategyInfos[j].Capacity })
 	p := sort.Search(scheduleInfosLength, func(i int) bool { return strategyInfos[i].Capacity >= need })
 	if p == scheduleInfosLength {
-		return nil, types.ErrInsufficientCap
+		return nil, errors.WithStack(types.ErrInsufficientCap)
 	}
 	strategyInfos = scoreSort(strategyInfos[p:], resourceType)
 	if limit > 0 {

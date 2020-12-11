@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 
 	virtapi "github.com/projecteru2/libyavirt/client"
 	virttypes "github.com/projecteru2/libyavirt/types"

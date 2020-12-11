@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/pkg/errors"
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
 )
 
 // CommunismPlan 吃我一记共产主义大锅饭
 // 部署完 N 个后全局尽可能平均
 func CommunismPlan(arg []Info, need, total, limit int, resourceType types.ResourceType) (map[string]int, error) {
 	if total < need {
-		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
-			fmt.Sprintf("need: %d, vol: %d", need, total))
+		return nil, errors.WithStack(types.NewDetailedErr(types.ErrInsufficientRes,
+			fmt.Sprintf("need: %d, vol: %d", need, total)))
 	}
 	sort.Slice(arg, func(i, j int) bool { return arg[i].Count < arg[j].Count })
 	length := len(arg)

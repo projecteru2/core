@@ -16,7 +16,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 
 	dockertypes "github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"

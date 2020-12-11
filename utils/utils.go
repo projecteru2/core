@@ -13,7 +13,7 @@ import (
 
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 )
 
 const (

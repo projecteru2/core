@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/cenkalti/backoff/v4"
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 
 	"google.golang.org/grpc"
 )

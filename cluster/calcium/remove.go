@@ -9,7 +9,7 @@ import (
 	"github.com/projecteru2/core/utils"
 
 	"github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 )
 
 // RemoveWorkload remove workloads

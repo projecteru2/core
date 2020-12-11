@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/projecteru2/core/cluster"
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 )
 
 // ResourceMiddleware to make sure update resource correct

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 

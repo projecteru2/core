@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 )
 
 // Helium .

@@ -34,7 +34,7 @@ func InitSchedulerV1(s Scheduler) {
 // GetSchedulerV1 .
 func GetSchedulerV1() (Scheduler, error) {
 	if scheduler == nil {
-		return nil, errors.Errorf("potassium not initiated")
+		return nil, errors.WithStack(errors.Errorf("potassium not initiated"))
 	}
 	return scheduler, nil
 }

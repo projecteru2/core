@@ -21,7 +21,7 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 
 	"github.com/docker/distribution/reference"
 	dockertypes "github.com/docker/docker/api/types"
