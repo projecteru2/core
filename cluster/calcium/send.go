@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/projecteru2/core/engine"
-	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/types"
 )
 
 // Send send files to workload

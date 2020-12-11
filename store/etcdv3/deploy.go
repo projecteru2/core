@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/log"
 	"go.etcd.io/etcd/clientv3"
 )
 

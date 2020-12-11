@@ -11,9 +11,9 @@ builds:
       - CGO_ENABLED=0
     ldflags:
       - -s -w
-      - -X github.com/projecteru2/core/versioninfo.REVISION={{.Commit}}
-      - -X github.com/projecteru2/core/versioninfo.VERSION={{.Env.VERSION}}
-      - -X github.com/projecteru2/core/versioninfo.BUILTAT={{.Date}}
+      - -X github.com/projecteru2/core/version.REVISION={{.Commit}}
+      - -X github.com/projecteru2/core/version.VERSION={{.Env.VERSION}}
+      - -X github.com/projecteru2/core/version.BUILTAT={{.Date}}
     goos:
       - linux
       - darwin

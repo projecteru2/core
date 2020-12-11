@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/log"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/versioninfo"
-	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/version"
 	"golang.org/x/net/context"
 )
 
@@ -31,9 +31,9 @@ type Vibranium struct {
 // Info show core info
 func (v *Vibranium) Info(ctx context.Context, opts *pb.Empty) (*pb.CoreInfo, error) {
 	return &pb.CoreInfo{
-		Version:       versioninfo.VERSION,
-		Revison:       versioninfo.REVISION,
-		BuildAt:       versioninfo.BUILTAT,
+		Version:       version.VERSION,
+		Revison:       version.REVISION,
+		BuildAt:       version.BUILTAT,
 		GolangVersion: runtime.Version(),
 		OsArch:        fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	}, nil

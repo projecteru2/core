@@ -8,6 +8,7 @@ import (
 	"math"
 
 	"github.com/docker/go-units"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/resources/cpumem"
 	resourcetypes "github.com/projecteru2/core/resources/types"
@@ -943,12 +944,12 @@ func TestSelectMemoryNodesNotEnough(t *testing.T) {
 	// 2 nodes [memory not enough]
 	pod = generateNodes(2, 2, memory, 0, 10)
 	_, _, err = SelectMemoryNodes(k, pod, nil, 1, 5*int64(units.GiB), 1, false)
-	assert.Equal(t, err, types.ErrInsufficientMEM)
+	assert.Equal(t, pkgerrors.Cause(err), types.ErrInsufficientMEM)
 
 	// 2 nodes [cpu not enough]
 	pod = generateNodes(2, 2, memory, 0, 10)
 	_, _, err = SelectMemoryNodes(k, pod, nil, 1e10, 512*int64(units.MiB), 1, false)
-	assert.Equal(t, err, types.ErrInsufficientCPU)
+	assert.Equal(t, pkgerrors.Cause(err), types.ErrInsufficientCPU)
 }
 
 func TestSelectMemoryNodesSequence(t *testing.T) {
@@ -1199,7 +1200,7 @@ func TestSelectStorageNodesNotEnough(t *testing.T) {
 	assert.Equal(t, 4, scheduleInfos[0].Capacity)
 
 	res, _, err := SelectStorageNodes(k, scheduleInfos, nil, int64(units.GiB), 1, false)
-	assert.Equal(t, types.ErrInsufficientStorage, err)
+	assert.Equal(t, types.ErrInsufficientStorage, pkgerrors.Cause(err))
 	assert.Nil(t, res)
 }
 

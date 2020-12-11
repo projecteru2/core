@@ -7,9 +7,9 @@ import (
 
 	"context"
 
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	"github.com/projecteru2/core/log"
 	"go.etcd.io/etcd/clientv3"
 	"go.etcd.io/etcd/mvcc/mvccpb"
 )

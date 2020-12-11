@@ -6,9 +6,9 @@ import (
 	"sync"
 
 	"github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	"github.com/projecteru2/core/log"
 )
 
 // ControlWorkload control workloads status

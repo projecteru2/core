@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/types"
 )
 
 // Copy uses VirtualizationCopyFrom cp to copy specified things and send to remote

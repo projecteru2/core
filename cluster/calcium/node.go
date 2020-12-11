@@ -3,9 +3,9 @@ package calcium
 import (
 	"context"
 
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/sanity-io/litter"
-	"github.com/projecteru2/core/log"
 )
 
 // AddNode adds a node

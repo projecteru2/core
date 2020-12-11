@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	"github.com/projecteru2/core/log"
 )
 
 // WatchServiceStatus returns chan of available service address

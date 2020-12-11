@@ -5,8 +5,8 @@ import (
 	"strconv"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/types"
 )
 
 // ExecuteWorkload executes commands in running workloads
