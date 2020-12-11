@@ -65,12 +65,14 @@ func serve(c *cli.Context) error {
 	}
 
 	if err := metrics.InitMetrics(config); err != nil {
-		log.Fatalf("[main] %v", err)
+		log.Errorf("[main] %v", err)
+		return err
 	}
 
 	cluster, err := calcium.New(config, embeddedStorage)
 	if err != nil {
-		log.Fatalf("[main] %v", err)
+		log.Errorf("[main] %v", err)
+		return err
 	}
 	defer cluster.Finalizer()
 
