@@ -13,7 +13,7 @@ import (
 	"github.com/projecteru2/core/rpc"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/utils"
-	"github.com/projecteru2/core/versioninfo"
+	"github.com/projecteru2/core/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sethvargo/go-signalcontext"
 	log "github.com/sirupsen/logrus"
@@ -128,13 +128,13 @@ func serve(c *cli.Context) error {
 
 func main() {
 	cli.VersionPrinter = func(c *cli.Context) {
-		fmt.Print(versioninfo.VersionString())
+		fmt.Print(version.String())
 	}
 
 	app := cli.NewApp()
-	app.Name = versioninfo.NAME
+	app.Name = version.NAME
 	app.Usage = "Run eru core"
-	app.Version = versioninfo.VERSION
+	app.Version = version.VERSION
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:        "config",

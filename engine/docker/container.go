@@ -206,7 +206,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		log.Infof("[ConnectToNetwork] Connect to %v with IP %v", networkID, ipForShow)
 	}
 
-	workloadCreated, err := e.client.ContainerCreate(ctx, config, hostConfig, networkConfig, opts.Name)
+	workloadCreated, err := e.client.ContainerCreate(ctx, config, hostConfig, networkConfig, nil, opts.Name)
 	r.Name = opts.Name
 	r.ID = workloadCreated.ID
 	return r, err
