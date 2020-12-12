@@ -253,7 +253,7 @@ func (c *Calcium) doDeployOneWorkload(
 					if err != nil {
 						return errors.WithStack(err)
 					}
-					if err = c.doSendFileToWorkload(ctx, node.Engine, workload.ID, dst, reader, true, true); err != nil {
+					if err = c.doSendFileToWorkload(ctx, node.Engine, workload.ID, dst, reader, true, false); err != nil {
 						return errors.WithStack(err)
 					}
 				}
