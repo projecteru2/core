@@ -10,6 +10,7 @@ type ResourceOptions struct {
 	CPUQuotaRequest float64
 	CPUQuotaLimit   float64
 	CPUBind         bool
+	CPUMapExisting  map[string]CPUMap
 
 	MemoryRequest int64
 	MemoryLimit   int64
