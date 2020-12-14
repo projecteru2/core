@@ -181,13 +181,13 @@ func TestReplaceWorkload(t *testing.T) {
 	}
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
 	// succ
-	// ch, err = c.ReplaceWorkload(ctx, opts)
-	// assert.NoError(t, err)
-	// for r := range ch {
-	// 	assert.NoError(t, r.Error)
-	// 	assert.NotNil(t, r.Remove)
-	// 	assert.NotNil(t, r.Create)
-	// 	assert.True(t, r.Remove.Success)
-	// 	assert.Nil(t, r.Create.Error)
-	// }
+	ch, err = c.ReplaceWorkload(ctx, opts)
+	assert.NoError(t, err)
+	for r := range ch {
+		assert.NoError(t, r.Error)
+		assert.NotNil(t, r.Remove)
+		assert.NotNil(t, r.Create)
+		assert.True(t, r.Remove.Success)
+		assert.Nil(t, r.Create.Error)
+	}
 }
