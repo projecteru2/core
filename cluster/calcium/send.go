@@ -13,6 +13,9 @@ import (
 
 // Send send files to workload
 func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, err
+	}
 	ch := make(chan *types.SendMessage)
 	go func() {
 		defer close(ch)

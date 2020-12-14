@@ -115,9 +115,12 @@ func TestNodeResource(t *testing.T) {
 		fmt.Errorf("%s", "not validate"),
 	)
 	node.Engine = engine
+	// fail by validating
+	_, err := c.NodeResource(ctx, "", false)
+	assert.Error(t, err)
 	// failed by GetNode
 	store.On("GetNode", ctx, nodename).Return(nil, types.ErrNoETCD).Once()
-	_, err := c.NodeResource(ctx, nodename, false)
+	_, err = c.NodeResource(ctx, nodename, false)
 	assert.Error(t, err)
 	store.On("GetNode", mock.Anything, nodename).Return(node, nil)
 	// failed by list node workloads

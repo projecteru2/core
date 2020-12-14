@@ -86,3 +86,20 @@ var (
 func NewDetailedErr(err error, details interface{}) error {
 	return fmt.Errorf("%w: %v", err, details)
 }
+
+// validation errors
+var (
+	ErrEmptyNodeName     = errors.New("node name is empty")
+	ErrEmptyAppName      = errors.New("app name is empty")
+	ErrEmptyPodName      = errors.New("pod name is empty")
+	ErrEmptyNodeEndpoint = errors.New("node endpoint is empty")
+	ErrEmptyImage        = errors.New("image is empty")
+	ErrEmptyCount        = errors.New("count is 0")
+	ErrEmptyWorkloadID   = errors.New("workload id is empty")
+
+	ErrEmptyEntrypointName       = errors.New("entrypoint name is empty")
+	ErrUnderlineInEntrypointName = errors.New("entrypoint name has '_' character")
+
+	ErrNoFilesToSend = errors.New("no files to send")
+	ErrNoFilesToCopy = errors.New("no files to copy")
+)

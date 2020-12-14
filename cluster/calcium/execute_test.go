@@ -29,12 +29,12 @@ func TestExecuteWorkload(t *testing.T) {
 	c.store = store
 	// failed by GetWorkload
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
-	ch := c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{}, nil)
+	ID := "abc"
+	ch := c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: ID}, nil)
 	for ac := range ch {
 		assert.NotEmpty(t, ac.Data)
 	}
 	engine := &enginemocks.API{}
-	ID := "abc"
 	workload := &types.Workload{
 		ID:     ID,
 		Engine: engine,
@@ -42,7 +42,7 @@ func TestExecuteWorkload(t *testing.T) {
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	// failed by Execute
 	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(ID, nil, nil, types.ErrCannotGetEngine).Once()
-	ch = c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{}, nil)
+	ch = c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: ID}, nil)
 	for ac := range ch {
 		assert.Equal(t, ac.WorkloadID, ID)
 	}

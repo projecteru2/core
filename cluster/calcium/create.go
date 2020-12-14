@@ -20,6 +20,10 @@ import (
 
 // CreateWorkload use options to create workloads
 func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, err
+	}
+
 	opts.ProcessIdent = utils.RandomString(16)
 	log.Infof("[CreateWorkload %s] Creating workload with options:", opts.ProcessIdent)
 	litter.Dump(opts)

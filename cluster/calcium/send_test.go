@@ -17,6 +17,12 @@ import (
 func TestSend(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
+
+	_, err := c.Send(ctx, &types.SendOptions{IDs: []string{}, Data: map[string][]byte{"xxx": {}}})
+	assert.Error(t, err)
+	_, err = c.Send(ctx, &types.SendOptions{IDs: []string{"id"}, Data: map[string][]byte{}})
+	assert.Error(t, err)
+
 	tmpfile, err := ioutil.TempFile("", "example")
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmpfile.Name())
