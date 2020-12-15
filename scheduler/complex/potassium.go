@@ -110,21 +110,35 @@ func (m *Potassium) SelectMemoryNodes(scheduleInfos []resourcetypes.ScheduleInfo
 
 // SelectCPUNodes select nodes with enough cpus
 func (m *Potassium) SelectCPUNodes(scheduleInfos []resourcetypes.ScheduleInfo, quota float64, memory int64, existCPUInfo map[string]types.CPUMap) (rScheduleInfos []resourcetypes.ScheduleInfo, cpuPlans map[string][]types.CPUMap, total int, err error) {
+	log.Infof("[SelectCPUNodes] scheduleInfos %d, need cpu: %f memory: %d", len(scheduleInfos), quota, memory)
+	if quota <= 0 {
+		return nil, nil, 0, errors.WithStack(types.ErrNegativeQuota)
+	}
+	if len(scheduleInfos) == 0 {
+		return nil, nil, 0, errors.WithStack(types.ErrZeroNodes)
+	}
+
 	// existCPUInfo != nil only happens on single container realloc
-	if existCPUInfo != nil {
+	if existCPUInfo != nil { // nolint:nestif
 		var affinityPlan types.CPUMap
 		// remaining quota that's impossible to achieve affinity
-		if scheduleInfos, quota, affinityPlan = m.cpuReallocPlan(scheduleInfos, quota, existCPUInfo); quota == 0 {
+		if scheduleInfos, quota, affinityPlan = cpuReallocPlan(scheduleInfos, quota, existCPUInfo, int64(m.sharebase)); quota == 0 {
+			// len(existCPUInfo) == 1
 			for nodename := range existCPUInfo {
 				cpuPlans = map[string][]types.CPUMap{
 					nodename: {
 						affinityPlan,
 					},
 				}
+				for idx, scheduleInfo := range scheduleInfos {
+					if scheduleInfo.Name == nodename {
+						scheduleInfos[idx].Capacity = 1
+					}
+				}
 			}
 			return scheduleInfos, cpuPlans, 1, nil
 		}
-		// defer process data after cpuPriorPlan
+		// defer processes data after cpuPriorPlan
 		defer func() {
 			if err != nil {
 				return
@@ -144,17 +158,10 @@ func (m *Potassium) SelectCPUNodes(scheduleInfos []resourcetypes.ScheduleInfo, q
 		}()
 	}
 
-	log.Infof("[SelectCPUNodes] scheduleInfos %d, need cpu: %f memory: %d", len(scheduleInfos), quota, memory)
-	if quota <= 0 {
-		return nil, nil, 0, errors.WithStack(types.ErrNegativeQuota)
-	}
-	if len(scheduleInfos) == 0 {
-		return nil, nil, 0, errors.WithStack(types.ErrZeroNodes)
-	}
 	return cpuPriorPlan(quota, memory, scheduleInfos, m.maxshare, m.sharebase)
 }
 
-func (m *Potassium) cpuReallocPlan(scheduleInfos []resourcetypes.ScheduleInfo, quota float64, existCPUInfo map[string]types.CPUMap) ([]resourcetypes.ScheduleInfo, float64, types.CPUMap) {
+func cpuReallocPlan(scheduleInfos []resourcetypes.ScheduleInfo, quota float64, existCPUInfo map[string]types.CPUMap, sharebase int64) ([]resourcetypes.ScheduleInfo, float64, types.CPUMap) {
 	var (
 		affinityPlan     types.CPUMap = make(types.CPUMap)
 		existNodename    string
@@ -163,19 +170,24 @@ func (m *Potassium) cpuReallocPlan(scheduleInfos []resourcetypes.ScheduleInfo, q
 	)
 	for existNodename, existCPUMap = range existCPUInfo {
 	}
+	found := false
 	for existScheduleIdx = range scheduleInfos {
 		if scheduleInfos[existScheduleIdx].Name == existNodename {
+			found = true
 			break
 		}
 	}
+	if !found {
+		return scheduleInfos, quota, nil
+	}
 
-	diff := int64(quota*float64(m.sharebase)) - existCPUMap.Total()
+	diff := int64(quota*float64(sharebase)) - existCPUMap.Total()
 	// sort by pieces
 	cpuIDs := []string{}
 	for cpuID := range existCPUMap {
 		cpuIDs = append(cpuIDs, cpuID)
 	}
-	sort.Slice(cpuIDs, func(i, j int) bool { return existCPUMap[cpuIDs[i]] < existCPUMap[cpuIDs[j]] })
+	sort.Slice(cpuIDs, func(i, j int) bool { return existCPUMap[cpuIDs[i]] < existCPUMap[cpuIDs[j]] }) // nolint:scopelint
 
 	// shrink, ensure affinity
 	if diff <= 0 {
@@ -187,6 +199,9 @@ func (m *Potassium) cpuReallocPlan(scheduleInfos []resourcetypes.ScheduleInfo, q
 			}
 			shrink := utils.Min64(affinityPlan[cpuID], -diff)
 			affinityPlan[cpuID] -= shrink
+			if affinityPlan[cpuID] == 0 {
+				delete(affinityPlan, cpuID)
+			}
 			diff += shrink
 			scheduleInfos[existScheduleIdx].CPU[cpuID] += shrink
 		}
@@ -194,29 +209,35 @@ func (m *Potassium) cpuReallocPlan(scheduleInfos []resourcetypes.ScheduleInfo, q
 	}
 
 	// expand, prioritize full cpus
-	needPieces := int64(quota * float64(m.sharebase))
+	needPieces := int64(quota * float64(sharebase))
 	for i := len(cpuIDs) - 1; i >= 0; i-- {
-		if needPieces == 0 {
-			break
-		}
 		cpuID := cpuIDs[i]
+		if needPieces == 0 {
+			scheduleInfos[existScheduleIdx].CPU[cpuID] += existCPUMap[cpuID]
+			continue
+		}
+
 		// whole cpu, keep it
-		if existCPUMap[cpuID] == int64(m.sharebase) {
-			affinityPlan[cpuID] = int64(m.sharebase)
-			needPieces -= int64(m.sharebase)
+		if existCPUMap[cpuID] == sharebase {
+			affinityPlan[cpuID] = sharebase
+			needPieces -= sharebase
 			continue
 		}
 
 		// fragments, try to find complement
-		if available := scheduleInfos[existScheduleIdx].CPU[cpuID]; available == int64(m.sharebase)-existCPUMap[cpuID] {
+		if available := scheduleInfos[existScheduleIdx].CPU[cpuID]; available == sharebase-existCPUMap[cpuID] {
 			expand := utils.Min64(available, needPieces)
 			affinityPlan[cpuID] = existCPUMap[cpuID] + expand
 			scheduleInfos[existScheduleIdx].CPU[cpuID] -= expand
-			needPieces -= expand
+			needPieces -= sharebase
+			continue
 		}
+
+		// else, return to cpu pools
+		scheduleInfos[existScheduleIdx].CPU[cpuID] += existCPUMap[cpuID]
 	}
 
-	return scheduleInfos, float64(needPieces) / float64(m.maxshare), affinityPlan
+	return scheduleInfos, float64(needPieces) / float64(sharebase), affinityPlan
 }
 
 // SelectVolumeNodes calculates plans for volume request

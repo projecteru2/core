@@ -352,7 +352,7 @@ func TestSelectCPUNodes(t *testing.T) {
 func TestSelectCPUNodesWithMemoryLimit(t *testing.T) {
 	k, _ := newPotassium()
 
-	_, _, _, err := k.SelectCPUNodes([]resourcetypes.ScheduleInfo{}, 0, 0)
+	_, _, _, err := k.SelectCPUNodes([]resourcetypes.ScheduleInfo{}, 0, 0, nil)
 	assert.Error(t, err)
 
 	// 测试 2 个 Node，每个 CPU 10%，但是内存吃满
@@ -411,7 +411,7 @@ func TestRecurrence(t *testing.T) {
 		},
 	}
 
-	r, rp, total, err := k.SelectCPUNodes(nodes, 0.5, 1)
+	r, rp, total, err := k.SelectCPUNodes(nodes, 0.5, 1, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, len(r), len(rp))
 	v := 0

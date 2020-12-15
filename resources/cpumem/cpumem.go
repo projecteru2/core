@@ -25,6 +25,7 @@ func MakeRequest(opts types.ResourceOptions) (resourcetypes.ResourceRequest, err
 		CPUBind:         opts.CPUBind,
 		memoryRequest:   opts.MemoryRequest,
 		memoryLimit:     opts.MemoryLimit,
+		CPUMapExist:     opts.CPUMapExist,
 	}
 	return cmr, cmr.Validate()
 }

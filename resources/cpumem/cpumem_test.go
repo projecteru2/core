@@ -206,7 +206,7 @@ func (test *requestCPUNodeTest) getScheduleInfo() []resourcetypes.ScheduleInfo {
 func (test *requestCPUNodeTest) getScheduler() scheduler.Scheduler {
 	mockScheduler := &schedulerMocks.Scheduler{}
 	mockScheduler.On(
-		"SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything,
+		"SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 	).Return(test.scheduleInfos, test.cpuMap, 1, nil)
 	mockScheduler.On(
 		"SelectMemoryNodess", mock.Anything, mock.Anything, mock.Anything,
@@ -280,7 +280,7 @@ func (test *requestMemNodeTest) getScheduleInfo() []resourcetypes.ScheduleInfo {
 func (test *requestMemNodeTest) getScheduler() scheduler.Scheduler {
 	mockScheduler := &schedulerMocks.Scheduler{}
 	mockScheduler.On(
-		"SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything,
+		"SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 	).Return(test.scheduleInfos, nil, 1, errors.New("should not select memory node here"))
 	mockScheduler.On(
 		"SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything,
