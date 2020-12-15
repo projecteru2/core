@@ -17,6 +17,13 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 // RemoveNode remove a node
 func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 	return c.withNodeLocked(ctx, nodename, func(node *types.Node) error {
+		ws, err := c.ListNodeWorkloads(ctx, node.Name, nil)
+		if err != nil {
+			return err
+		}
+		if len(ws) > 0 {
+			return types.ErrNodeNotEmpty
+		}
 		return c.store.RemoveNode(ctx, node)
 	})
 }
