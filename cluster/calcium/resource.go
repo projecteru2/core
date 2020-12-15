@@ -35,6 +35,10 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 
 // NodeResource check node's workload and resource
 func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
+	if nodename == "" {
+		return nil, types.ErrEmptyNodeName
+	}
+
 	nr, err := c.doGetNodeResource(ctx, nodename, fix)
 	if err != nil {
 		return nil, err

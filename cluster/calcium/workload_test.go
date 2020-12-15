@@ -28,7 +28,11 @@ func TestListWorkloads(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, len(cs), 1)
 	assert.Equal(t, cs[0].ID, ID)
-	cs, err = c.ListNodeWorkloads(ctx, "", nil)
+
+	_, err = c.ListNodeWorkloads(ctx, "", nil)
+	assert.Error(t, err)
+
+	cs, err = c.ListNodeWorkloads(ctx, "nodename", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, len(cs), 1)
 	assert.Equal(t, cs[0].ID, ID)
@@ -46,7 +50,10 @@ func TestGetWorkloads(t *testing.T) {
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(workloads, nil)
 
-	savedWorkload, err := c.GetWorkload(ctx, "")
+	_, err := c.GetWorkload(ctx, "")
+	assert.Error(t, err)
+
+	savedWorkload, err := c.GetWorkload(ctx, "someid")
 	assert.NoError(t, err)
 	assert.Equal(t, savedWorkload.ID, ID)
 	cs, err := c.GetWorkloads(ctx, []string{})

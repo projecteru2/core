@@ -16,6 +16,12 @@ import (
 func TestCopy(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
+
+	_, err := c.Copy(ctx, &types.CopyOptions{
+		Targets: map[string][]string{},
+	})
+	assert.Error(t, err)
+
 	opts := &types.CopyOptions{
 		Targets: map[string][]string{
 			"cid": {

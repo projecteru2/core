@@ -32,11 +32,21 @@ type DeployOptions struct {
 	Lambda         bool                     // indicate is lambda workload or not
 }
 
-// RunAndWaitOptions is options for running and waiting
-type RunAndWaitOptions struct {
-	DeployOptions
-	Timeout int
-	Cmd     string
+// Validate checks options
+func (o *DeployOptions) Validate() error {
+	if o.Name == "" {
+		return ErrEmptyAppName
+	}
+	if o.Podname == "" {
+		return ErrEmptyPodName
+	}
+	if o.Image == "" {
+		return ErrEmptyImage
+	}
+	if o.Count == 0 {
+		return ErrEmptyCount
+	}
+	return o.Entrypoint.Validate()
 }
 
 // CopyOptions for multiple workload files copy
@@ -44,10 +54,29 @@ type CopyOptions struct {
 	Targets map[string][]string
 }
 
+// Validate checks options
+func (o *CopyOptions) Validate() error {
+	if len(o.Targets) == 0 {
+		return ErrNoFilesToCopy
+	}
+	return nil
+}
+
 // SendOptions for send files to multiple workload
 type SendOptions struct {
 	IDs  []string
 	Data map[string][]byte
+}
+
+// Validate checks options
+func (o *SendOptions) Validate() error {
+	if len(o.IDs) == 0 {
+		return ErrNoWorkloadIDs
+	}
+	if len(o.Data) == 0 {
+		return ErrNoFilesToSend
+	}
+	return nil
 }
 
 // ListWorkloadsOptions for list workloads
@@ -68,6 +97,16 @@ type ReplaceOptions struct {
 	IDs            []string
 }
 
+// Validate doesn't check image here
+// because in cluster/calcium//helper.go, pullImage will check this
+// to keep the original behavior, no check here.
+func (o *ReplaceOptions) Validate() error {
+	if o.DeployOptions.Name == "" {
+		return ErrEmptyAppName
+	}
+	return o.DeployOptions.Entrypoint.Validate()
+}
+
 // AddNodeOptions for adding node
 type AddNodeOptions struct {
 	Nodename   string
@@ -84,6 +123,20 @@ type AddNodeOptions struct {
 	Numa       NUMA
 	NumaMemory NUMAMemory
 	Volume     VolumeMap
+}
+
+// Validate checks options
+func (o *AddNodeOptions) Validate() error {
+	if o.Nodename == "" {
+		return ErrEmptyNodeName
+	}
+	if o.Podname == "" {
+		return ErrEmptyPodName
+	}
+	if o.Endpoint == "" {
+		return ErrEmptyNodeEndpoint
+	}
+	return nil
 }
 
 // Normalize keeps options consistent
@@ -105,6 +158,14 @@ type SetNodeOptions struct {
 	Labels          map[string]string
 }
 
+// Validate checks options
+func (o *SetNodeOptions) Validate() error {
+	if o.Nodename == "" {
+		return ErrEmptyNodeName
+	}
+	return nil
+}
+
 // Normalize keeps options consistent
 func (o *SetNodeOptions) Normalize(node *Node) {
 	o.DeltaStorage += o.DeltaVolume.Total()
@@ -112,6 +173,31 @@ func (o *SetNodeOptions) Normalize(node *Node) {
 		if size == 0 {
 			o.DeltaStorage -= node.InitVolume[volID]
 		}
+	}
+}
+
+// ImageOptions wraps options for images
+// Prune is only used when remove image
+type ImageOptions struct {
+	Podname   string
+	Nodenames []string
+	Images    []string
+	Step      int
+	Prune     bool
+}
+
+// Validate checks the options
+func (o *ImageOptions) Validate() error {
+	if o.Podname == "" {
+		return ErrEmptyPodName
+	}
+	return nil
+}
+
+// Normalize checks steps and set it properly
+func (o *ImageOptions) Normalize() {
+	if o.Step < 1 {
+		o.Step = 1
 	}
 }
 

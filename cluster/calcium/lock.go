@@ -74,7 +74,7 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, IDs []string, f func(
 func (c *Calcium) withNodesLocked(ctx context.Context, podname string, nodenames []string, labels map[string]string, all bool, f func(nodes map[string]*types.Node) error) error {
 	nodes := map[string]*types.Node{}
 	locks := map[string]lock.DistributedLock{}
-	defer func() { c.doUnlockAll(ctx, locks) }()
+	defer c.doUnlockAll(ctx, locks)
 	ns, err := c.getNodes(ctx, podname, nodenames, labels, all)
 	if err != nil {
 		return err

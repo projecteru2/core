@@ -1,5 +1,9 @@
 package types
 
+import (
+	"strings"
+)
+
 // Hook define hooks
 type Hook struct {
 	AfterStart []string `yaml:"after_start,omitempty"`
@@ -27,6 +31,17 @@ type Entrypoint struct {
 	Hook          *Hook             `yaml:"hook,omitempty,flow"`
 	RestartPolicy string            `yaml:"restart,omitempty"`
 	Sysctls       map[string]string `yaml:"sysctls,omitempty,flow"`
+}
+
+// Validate checks entrypoint's name
+func (e *Entrypoint) Validate() error {
+	if e.Name == "" {
+		return ErrEmptyEntrypointName
+	}
+	if strings.Contains(e.Name, "_") {
+		return ErrUnderlineInEntrypointName
+	}
+	return nil
 }
 
 // Bind define a single bind

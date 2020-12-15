@@ -17,6 +17,9 @@ const exitDataPrefix = "[exitcode] "
 
 // RunAndWait implement lambda
 func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) (<-chan *types.AttachWorkloadMessage, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, err
+	}
 	opts.Lambda = true
 	// count = 1 && OpenStdin
 	if opts.OpenStdin && (opts.Count != 1 || opts.DeployStrategy != strategy.Auto) {

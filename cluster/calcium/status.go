@@ -7,10 +7,10 @@ import (
 )
 
 // GetWorkloadsStatus get workload status
-func (c *Calcium) GetWorkloadsStatus(ctx context.Context, IDs []string) ([]*types.StatusMeta, error) {
+func (c *Calcium) GetWorkloadsStatus(ctx context.Context, ids []string) ([]*types.StatusMeta, error) {
 	r := []*types.StatusMeta{}
-	for _, ID := range IDs {
-		s, err := c.store.GetWorkloadStatus(ctx, ID)
+	for _, id := range ids {
+		s, err := c.store.GetWorkloadStatus(ctx, id)
 		if err != nil {
 			return r, err
 		}

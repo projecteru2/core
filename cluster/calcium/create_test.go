@@ -21,23 +21,46 @@ import (
 func TestCreateWorkload(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	opts := &types.DeployOptions{}
+	opts := &types.DeployOptions{
+		Name:    "deployname",
+		Podname: "somepod",
+		Image:   "image:todeploy",
+		Count:   1,
+		Entrypoint: &types.Entrypoint{
+			Name: "some-nice-entrypoint",
+		},
+	}
 	store := c.store.(*storemocks.Store)
 
 	store.On("SaveProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-	// failed by GetPod
-	store.On("GetPod", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	// failed by validating
+	opts.Name = ""
 	_, err := c.CreateWorkload(ctx, opts)
 	assert.Error(t, err)
-	store.On("GetPod", mock.Anything, mock.Anything).Return(&types.Pod{Name: "test"}, nil)
-	// failed by count
+	opts.Name = "deployname"
+
+	opts.Podname = ""
+	_, err = c.CreateWorkload(ctx, opts)
+	assert.Error(t, err)
+	opts.Podname = "somepod"
+
+	opts.Image = ""
+	_, err = c.CreateWorkload(ctx, opts)
+	assert.Error(t, err)
+	opts.Image = "image:todeploy"
+
 	opts.Count = 0
 	_, err = c.CreateWorkload(ctx, opts)
 	assert.Error(t, err)
 	opts.Count = 1
+
+	opts.Entrypoint.Name = "bad_entry_name"
+	_, err = c.CreateWorkload(ctx, opts)
+	assert.Error(t, err)
+	opts.Entrypoint.Name = "some-nice-entrypoint"
 
 	// failed by memory check
 	opts.ResourceOpts = types.ResourceOptions{MemoryLimit: -1}
@@ -61,12 +84,15 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	opts := &types.DeployOptions{
+		Name:           "zc:name",
 		Count:          2,
 		DeployStrategy: strategy.Auto,
 		Podname:        "p1",
 		ResourceOpts:   types.ResourceOptions{CPUQuotaLimit: 1},
 		Image:          "zc:test",
-		Entrypoint:     &types.Entrypoint{},
+		Entrypoint: &types.Entrypoint{
+			Name: "good-entrypoint",
+		},
 	}
 	store := &storemocks.Store{}
 	sche := &schedulermocks.Scheduler{}

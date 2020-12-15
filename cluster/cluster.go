@@ -68,8 +68,8 @@ type Cluster interface {
 	Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error)
 	// image methods
 	BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error)
-	CacheImage(ctx context.Context, podname string, nodenames []string, images []string, step int) (chan *types.CacheImageMessage, error)
-	RemoveImage(ctx context.Context, podname string, nodenames []string, images []string, step int, prune bool) (chan *types.RemoveImageMessage, error)
+	CacheImage(ctx context.Context, opts *types.ImageOptions) (chan *types.CacheImageMessage, error)
+	RemoveImage(ctx context.Context, opts *types.ImageOptions) (chan *types.RemoveImageMessage, error)
 	// workload methods
 	CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error)
 	ReplaceWorkload(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceWorkloadMessage, error)
