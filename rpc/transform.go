@@ -540,3 +540,22 @@ func toRPCCapacityMessage(msg *types.CapacityMessage) *pb.CapacityMessage {
 		NodeCapacities: caps,
 	}
 }
+
+func toCoreCacheImageOptions(opts *pb.CacheImageOptions) (*types.ImageOptions, error) {
+	return &types.ImageOptions{
+		Podname:   opts.Podname,
+		Nodenames: opts.Nodenames,
+		Images:    opts.Images,
+		Step:      int(opts.Step),
+	}, nil
+}
+
+func toCoreRemoveImageOptions(opts *pb.RemoveImageOptions) (*types.ImageOptions, error) {
+	return &types.ImageOptions{
+		Podname:   opts.Podname,
+		Nodenames: opts.Nodenames,
+		Images:    opts.Images,
+		Step:      int(opts.Step),
+		Prune:     opts.Prune,
+	}, nil
+}

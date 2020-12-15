@@ -10,12 +10,13 @@ import (
 )
 
 // RemoveImage remove images
-func (c *Calcium) RemoveImage(ctx context.Context, podname string, nodenames []string, images []string, step int, prune bool) (chan *types.RemoveImageMessage, error) {
-	if podname == "" {
-		return nil, types.ErrEmptyPodName
+func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (chan *types.RemoveImageMessage, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, err
 	}
+	opts.Normalize()
 
-	nodes, err := c.getNodes(ctx, podname, nodenames, nil, false)
+	nodes, err := c.getNodes(ctx, opts.Podname, opts.Nodenames, nil, false)
 	if err != nil {
 		return nil, err
 	}
@@ -25,9 +26,6 @@ func (c *Calcium) RemoveImage(ctx context.Context, podname string, nodenames []s
 	}
 
 	ch := make(chan *types.RemoveImageMessage)
-	if step < 1 {
-		step = 1
-	}
 
 	go func() {
 		defer close(ch)
@@ -37,7 +35,7 @@ func (c *Calcium) RemoveImage(ctx context.Context, podname string, nodenames []s
 			wg.Add(1)
 			go func(node *types.Node) {
 				defer wg.Done()
-				for _, image := range images {
+				for _, image := range opts.Images {
 					m := &types.RemoveImageMessage{
 						Success:  false,
 						Image:    image,
@@ -53,15 +51,15 @@ func (c *Calcium) RemoveImage(ctx context.Context, podname string, nodenames []s
 					}
 					ch <- m
 				}
-				if prune {
+				if opts.Prune {
 					if err := node.Engine.ImagesPrune(ctx); err != nil {
-						log.Errorf("[RemoveImage] Prune %s pod %s node failed: %v", podname, node.Name, err)
+						log.Errorf("[RemoveImage] Prune %s pod %s node failed: %v", opts.Podname, node.Name, err)
 					} else {
-						log.Infof("[RemoveImage] Prune %s pod %s node", podname, node.Name)
+						log.Infof("[RemoveImage] Prune %s pod %s node", opts.Podname, node.Name)
 					}
 				}
 			}(node)
-			if (i+1)%step == 0 {
+			if (i+1)%opts.Step == 0 {
 				log.Info("[RemoveImage] Wait for previous cleaner done")
 				wg.Wait()
 			}
@@ -74,12 +72,13 @@ func (c *Calcium) RemoveImage(ctx context.Context, podname string, nodenames []s
 // CacheImage cache Image
 // 在podname上cache这个image
 // 实际上就是在所有的node上去pull一次
-func (c *Calcium) CacheImage(ctx context.Context, podname string, nodenames []string, images []string, step int) (chan *types.CacheImageMessage, error) {
-	if podname == "" {
-		return nil, types.ErrEmptyPodName
+func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (chan *types.CacheImageMessage, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, err
 	}
+	opts.Normalize()
 
-	nodes, err := c.getNodes(ctx, podname, nodenames, nil, false)
+	nodes, err := c.getNodes(ctx, opts.Podname, opts.Nodenames, nil, false)
 	if err != nil {
 		return nil, err
 	}
@@ -89,9 +88,6 @@ func (c *Calcium) CacheImage(ctx context.Context, podname string, nodenames []st
 	}
 
 	ch := make(chan *types.CacheImageMessage)
-	if step < 1 {
-		step = 1
-	}
 
 	go func() {
 		defer close(ch)
@@ -101,7 +97,7 @@ func (c *Calcium) CacheImage(ctx context.Context, podname string, nodenames []st
 			wg.Add(1)
 			go func(node *types.Node) {
 				defer wg.Done()
-				for _, image := range images {
+				for _, image := range opts.Images {
 					m := &types.CacheImageMessage{
 						Image:    image,
 						Success:  true,
@@ -115,7 +111,7 @@ func (c *Calcium) CacheImage(ctx context.Context, podname string, nodenames []st
 					ch <- m
 				}
 			}(node)
-			if (i+1)%step == 0 {
+			if (i+1)%opts.Step == 0 {
 				log.Info("[CacheImage] Wait for puller cleaner done")
 				wg.Wait()
 			}

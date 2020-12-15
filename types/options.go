@@ -176,6 +176,31 @@ func (o *SetNodeOptions) Normalize(node *Node) {
 	}
 }
 
+// ImageOptions wraps options for images
+// Prune is only used when remove image
+type ImageOptions struct {
+	Podname   string
+	Nodenames []string
+	Images    []string
+	Step      int
+	Prune     bool
+}
+
+// Validate checks the options
+func (o *ImageOptions) Validate() error {
+	if o.Podname == "" {
+		return ErrEmptyPodName
+	}
+	return nil
+}
+
+// Normalize checks steps and set it properly
+func (o *ImageOptions) Normalize() {
+	if o.Step < 1 {
+		o.Step = 1
+	}
+}
+
 // ExecuteWorkloadOptions for executing commands in running workload
 type ExecuteWorkloadOptions struct {
 	WorkloadID string
