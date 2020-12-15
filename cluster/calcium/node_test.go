@@ -40,6 +40,8 @@ func TestRemoveNode(t *testing.T) {
 	name := "test"
 	node := &types.Node{NodeMeta: types.NodeMeta{Name: name}}
 	store := &storemocks.Store{}
+	c.store = store
+
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
@@ -48,14 +50,21 @@ func TestRemoveNode(t *testing.T) {
 	store.On("GetNode",
 		mock.Anything,
 		mock.Anything).Return(node, nil)
+	// fail, ListNodeWorkloads fail
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{}, types.ErrNoETCD).Once()
+	assert.Error(t, c.RemoveNode(ctx, name))
+	// fail, node still has associated workloads
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{{}}, nil).Once()
+	assert.Error(t, c.RemoveNode(ctx, name))
+
+	// succeed
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{}, nil)
 	store.On("RemoveNode", mock.Anything, mock.Anything).Return(nil)
 	pod := &types.Pod{Name: name}
 	store.On("GetPod", mock.Anything, mock.Anything).Return(pod, nil)
-	c.store = store
 
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
-	err := c.RemoveNode(ctx, name)
-	assert.NoError(t, err)
+	assert.NoError(t, c.RemoveNode(ctx, name))
 }
 
 func TestListPodNodes(t *testing.T) {
