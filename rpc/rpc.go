@@ -462,11 +462,7 @@ func (v *Vibranium) CacheImage(opts *pb.CacheImageOptions, stream pb.CoreRPC_Cac
 	v.taskAdd("CacheImage", true)
 	defer v.taskDone("CacheImage", true)
 
-	cacheImageOptions, err := toCoreCacheImageOptions(opts)
-	if err != nil {
-		return err
-	}
-	ch, err := v.cluster.CacheImage(stream.Context(), cacheImageOptions)
+	ch, err := v.cluster.CacheImage(stream.Context(), toCoreCacheImageOptions(opts))
 	if err != nil {
 		return err
 	}
@@ -484,11 +480,7 @@ func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_R
 	v.taskAdd("RemoveImage", true)
 	defer v.taskDone("RemoveImage", true)
 
-	removeImageOptions, err := toCoreRemoveImageOptions(opts)
-	if err != nil {
-		return err
-	}
-	ch, err := v.cluster.RemoveImage(stream.Context(), removeImageOptions)
+	ch, err := v.cluster.RemoveImage(stream.Context(), toCoreRemoveImageOptions(opts))
 	if err != nil {
 		return err
 	}
