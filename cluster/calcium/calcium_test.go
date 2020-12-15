@@ -20,9 +20,9 @@ type dummyLock struct {
 }
 
 // Lock for lock
-func (d *dummyLock) Lock(ctx context.Context) error {
+func (d *dummyLock) Lock(ctx context.Context) (context.Context, error) {
 	d.m.Lock()
-	return nil
+	return context.Background(), nil
 }
 
 // Unlock for unlock

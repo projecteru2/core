@@ -79,6 +79,8 @@ var (
 
 	ErrNodeNotExists     = errors.New("node not exists")
 	ErrWorkloadNotExists = errors.New("workload not exists")
+
+	ErrLockSessionDone = errors.New("lock session done")
 )
 
 // NewDetailedErr returns an error with details
