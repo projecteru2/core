@@ -33,7 +33,6 @@ type VirtualizationCreateOptions struct {
 
 	RestartPolicy string
 
-	Network  string
 	Networks map[string]string
 
 	Volumes []string

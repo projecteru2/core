@@ -16,7 +16,6 @@ type DeployOptions struct {
 	DNS            []string                 // DNS for workload
 	ExtraHosts     []string                 // Extra hosts for workload
 	Networks       map[string]string        // Network names and specified IPs
-	NetworkMode    string                   // Network mode
 	User           string                   // User for workload
 	Debug          bool                     // debug mode, use syslog as log driver
 	OpenStdin      bool                     // OpenStdin for workload
@@ -105,6 +104,13 @@ func (o *ReplaceOptions) Validate() error {
 		return ErrEmptyAppName
 	}
 	return o.DeployOptions.Entrypoint.Validate()
+}
+
+// Normalize checks count
+func (o *ReplaceOptions) Normalize() {
+	if o.Count == 0 {
+		o.Count = 1
+	}
 }
 
 // AddNodeOptions for adding node

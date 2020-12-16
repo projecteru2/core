@@ -335,7 +335,6 @@ func (c *Calcium) doMakeWorkloadOptions(no int, msg *types.CreateWorkloadMessage
 	config.Volumes = msg.VolumeLimit.ApplyPlan(msg.VolumePlanLimit).ToStringSlice(false, true)
 	config.VolumePlan = msg.VolumePlanLimit.ToLiteral()
 	config.Debug = opts.Debug
-	config.Network = opts.NetworkMode
 	config.Networks = opts.Networks
 
 	// entry

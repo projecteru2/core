@@ -59,10 +59,13 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	if opts.RestartPolicy == restartAlways {
 		restartRetryCount = 0
 	}
+	// no longer use opts.Network as networkmode
+	// always get network name from networks
+	// -----------------------------------------
 	// network mode 和 networks 互斥
 	// 没有 networks 的时候用 networkmode 的值
 	// 有 networks 的时候一律用用 networks 的值作为 mode
-	networkMode := dockercontainer.NetworkMode(opts.Network)
+	var networkMode dockercontainer.NetworkMode
 	for name := range opts.Networks {
 		networkMode = dockercontainer.NetworkMode(name)
 		if networkMode.IsHost() {

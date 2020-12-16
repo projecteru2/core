@@ -18,9 +18,7 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 	if err := opts.Validate(); err != nil {
 		return nil, err
 	}
-	if opts.Count == 0 {
-		opts.Count = 1
-	}
+	opts.Normalize()
 	if len(opts.IDs) == 0 {
 		if len(opts.Nodenames) == 0 {
 			opts.Nodenames = []string{""}
@@ -83,7 +81,6 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 								fmt.Sprintf("workload %s is not running, can not inherit", workload.ID),
 							)
 						}
-						replaceOpts.NetworkMode = ""
 						replaceOpts.Networks = info.Networks
 						log.Infof("[ReplaceWorkload] Inherit old workload network configuration mode %v", replaceOpts.Networks)
 					}
