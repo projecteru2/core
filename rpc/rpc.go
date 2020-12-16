@@ -709,7 +709,11 @@ func (v *Vibranium) LogStream(opts *pb.LogStreamOptions, stream pb.CoreRPC_LogSt
 	log.Infof("[LogStream] Get %s log start", ID)
 	defer log.Infof("[LogStream] Get %s log done", ID)
 	ch, err := v.cluster.LogStream(stream.Context(), &types.LogStreamOptions{
-		ID: ID, Tail: opts.Tail, Since: opts.Since, Until: opts.Until,
+		ID:     ID,
+		Tail:   opts.Tail,
+		Since:  opts.Since,
+		Until:  opts.Until,
+		Follow: opts.Follow,
 	})
 	if err != nil {
 		return err
