@@ -109,7 +109,7 @@ func (m *Potassium) SelectMemoryNodes(scheduleInfos []resourcetypes.ScheduleInfo
 }
 
 // SelectCPUNodes select nodes with enough cpus
-func (m *Potassium) SelectCPUNodes(scheduleInfos []resourcetypes.ScheduleInfo, quota float64, memory int64, existCPUInfo map[string]types.CPUMap) (rScheduleInfos []resourcetypes.ScheduleInfo, cpuPlans map[string][]types.CPUMap, total int, err error) {
+func (m *Potassium) SelectCPUNodes(scheduleInfos []resourcetypes.ScheduleInfo, quota float64, memory int64, CPU map[string]types.CPUMap) (rScheduleInfos []resourcetypes.ScheduleInfo, cpuPlans map[string][]types.CPUMap, total int, err error) {
 	log.Infof("[SelectCPUNodes] scheduleInfos %d, need cpu: %f memory: %d", len(scheduleInfos), quota, memory)
 	if quota <= 0 {
 		return nil, nil, 0, errors.WithStack(types.ErrNegativeQuota)
@@ -118,13 +118,13 @@ func (m *Potassium) SelectCPUNodes(scheduleInfos []resourcetypes.ScheduleInfo, q
 		return nil, nil, 0, errors.WithStack(types.ErrZeroNodes)
 	}
 
-	// existCPUInfo != nil only happens on single container realloc
-	if existCPUInfo != nil { // nolint:nestif
+	// CPU != nil only happens on single container realloc
+	if CPU != nil { // nolint:nestif
 		var affinityPlan types.CPUMap
 		// remaining quota that's impossible to achieve affinity
-		if scheduleInfos, quota, affinityPlan = cpuReallocPlan(scheduleInfos, quota, existCPUInfo, int64(m.sharebase)); quota == 0 {
-			// len(existCPUInfo) == 1
-			for nodename := range existCPUInfo {
+		if scheduleInfos, quota, affinityPlan = cpuReallocPlan(scheduleInfos, quota, CPU, int64(m.sharebase)); quota == 0 {
+			// len(CPU) == 1
+			for nodename := range CPU {
 				cpuPlans = map[string][]types.CPUMap{
 					nodename: {
 						affinityPlan,
@@ -161,14 +161,14 @@ func (m *Potassium) SelectCPUNodes(scheduleInfos []resourcetypes.ScheduleInfo, q
 	return cpuPriorPlan(quota, memory, scheduleInfos, m.maxshare, m.sharebase)
 }
 
-func cpuReallocPlan(scheduleInfos []resourcetypes.ScheduleInfo, quota float64, existCPUInfo map[string]types.CPUMap, sharebase int64) ([]resourcetypes.ScheduleInfo, float64, types.CPUMap) {
+func cpuReallocPlan(scheduleInfos []resourcetypes.ScheduleInfo, quota float64, CPU map[string]types.CPUMap, sharebase int64) ([]resourcetypes.ScheduleInfo, float64, types.CPUMap) {
 	var (
 		affinityPlan     types.CPUMap = make(types.CPUMap)
 		existNodename    string
 		existCPUMap      types.CPUMap
 		existScheduleIdx int
 	)
-	for existNodename, existCPUMap = range existCPUInfo {
+	for existNodename, existCPUMap = range CPU {
 	}
 	found := false
 	for existScheduleIdx = range scheduleInfos {

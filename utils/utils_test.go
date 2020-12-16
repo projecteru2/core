@@ -204,6 +204,15 @@ func TestMin(t *testing.T) {
 	assert.Equal(t, 1, Min(b, a))
 }
 
+func TestMin64(t *testing.T) {
+	var a int64
+	var b int64
+	a = 1
+	b = 2
+	assert.Equal(t, int64(1), Min64(a, b))
+	assert.Equal(t, int64(1), Min64(b, a))
+}
+
 func TestMax(t *testing.T) {
 	assert.Equal(t, 3, Max(1, 2, 3))
 	assert.Equal(t, 4, Max(1, 4, 3))

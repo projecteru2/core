@@ -71,12 +71,12 @@ func TestCPUReallocPlan(t *testing.T) {
 			},
 		},
 	}
-	existCPUInfo := map[string]types.CPUMap{
+	CPU := map[string]types.CPUMap{
 		"n2": {
 			"0": 100,
 		},
 	}
-	_, remain, aff := cpuReallocPlan(scheduleInfos, 1, existCPUInfo, 100)
+	_, remain, aff := cpuReallocPlan(scheduleInfos, 1, CPU, 100)
 	assert.Nil(t, aff)
 	assert.EqualValues(t, 1, remain)
 
@@ -93,14 +93,14 @@ func TestCPUReallocPlan(t *testing.T) {
 			},
 		},
 	}
-	existCPUInfo = map[string]types.CPUMap{
+	CPU = map[string]types.CPUMap{
 		"n1": {
 			"0": 100,
 			"1": 30,
 			"2": 40,
 		},
 	}
-	sis, remain, aff := cpuReallocPlan(scheduleInfos, 1, existCPUInfo, 100)
+	sis, remain, aff := cpuReallocPlan(scheduleInfos, 1, CPU, 100)
 	assert.EqualValues(t, 0, remain)
 	assert.True(t, reflect.DeepEqual(aff, types.CPUMap{"0": 100}))
 	assert.True(t, reflect.DeepEqual(sis[0].CPU, types.CPUMap{"0": 0, "1": 60, "2": 40}))
@@ -118,14 +118,14 @@ func TestCPUReallocPlan(t *testing.T) {
 			},
 		},
 	}
-	existCPUInfo = map[string]types.CPUMap{
+	CPU = map[string]types.CPUMap{
 		"n1": {
 			"0": 100,
 			"1": 30,
 			"2": 40,
 		},
 	}
-	sis, remain, aff = cpuReallocPlan(scheduleInfos, 1.2, existCPUInfo, 100)
+	sis, remain, aff = cpuReallocPlan(scheduleInfos, 1.2, CPU, 100)
 	assert.EqualValues(t, 0, remain)
 	assert.True(t, reflect.DeepEqual(aff, types.CPUMap{"0": 100, "2": 20}))
 	assert.True(t, reflect.DeepEqual(sis[0].CPU, types.CPUMap{"0": 0, "1": 60, "2": 20}))
@@ -144,7 +144,7 @@ func TestCPUReallocPlan(t *testing.T) {
 			},
 		},
 	}
-	existCPUInfo = map[string]types.CPUMap{
+	CPU = map[string]types.CPUMap{
 		"n1": {
 			"0": 100,
 			"1": 20,
@@ -152,7 +152,7 @@ func TestCPUReallocPlan(t *testing.T) {
 			"3": 10,
 		},
 	}
-	sis, remain, aff = cpuReallocPlan(scheduleInfos, 2, existCPUInfo, 100)
+	sis, remain, aff = cpuReallocPlan(scheduleInfos, 2, CPU, 100)
 	assert.EqualValues(t, 0, remain)
 	assert.True(t, reflect.DeepEqual(aff, types.CPUMap{"0": 100, "1": 100}))
 	assert.True(t, reflect.DeepEqual(sis[0].CPU, types.CPUMap{"0": 0, "1": 0, "2": 40, "3": 10}))
@@ -170,14 +170,14 @@ func TestCPUReallocPlan(t *testing.T) {
 			},
 		},
 	}
-	existCPUInfo = map[string]types.CPUMap{
+	CPU = map[string]types.CPUMap{
 		"n1": {
 			"0": 100,
 			"1": 30,
 			"2": 40,
 		},
 	}
-	sis, remain, aff = cpuReallocPlan(scheduleInfos, 2, existCPUInfo, 100)
+	sis, remain, aff = cpuReallocPlan(scheduleInfos, 2, CPU, 100)
 	assert.EqualValues(t, 1, remain)
 	assert.True(t, reflect.DeepEqual(aff, types.CPUMap{"0": 100}))
 	assert.True(t, reflect.DeepEqual(sis[0].CPU, types.CPUMap{"0": 0, "1": 99, "2": 50}))
@@ -203,14 +203,14 @@ func TestCPUReallocWithPriorPlan(t *testing.T) {
 			},
 		},
 	}
-	existCPUInfo := map[string]types.CPUMap{
+	CPU := map[string]types.CPUMap{
 		"n1": {
 			"0": 100,
 			"1": 30,
 			"2": 40,
 		},
 	}
-	rsi, cpuPlans, total, err := po.SelectCPUNodes(scheduleInfos, 2, 0, existCPUInfo)
+	rsi, cpuPlans, total, err := po.SelectCPUNodes(scheduleInfos, 2, 0, CPU)
 	assert.Nil(t, err)
 	assert.EqualValues(t, 1, total)
 	assert.True(t, reflect.DeepEqual(cpuPlans, map[string][]types.CPUMap{"n1": {{"0": 100, "1": 100}}}))
@@ -231,14 +231,14 @@ func TestCPUReallocWithPriorPlan(t *testing.T) {
 			},
 		},
 	}
-	existCPUInfo = map[string]types.CPUMap{
+	CPU = map[string]types.CPUMap{
 		"n1": {
 			"0": 100,
 			"1": 30,
 			"2": 40,
 		},
 	}
-	rsi, cpuPlans, total, err = po.SelectCPUNodes(scheduleInfos, 2, 0, existCPUInfo)
+	rsi, cpuPlans, total, err = po.SelectCPUNodes(scheduleInfos, 2, 0, CPU)
 	assert.Nil(t, err)
 	assert.EqualValues(t, 3, total)
 	asserted := 0
@@ -270,13 +270,13 @@ func TestCPUReallocWithPriorPlan(t *testing.T) {
 			},
 		},
 	}
-	existCPUInfo = map[string]types.CPUMap{
+	CPU = map[string]types.CPUMap{
 		"n1": {
 			"0": 100,
 			"1": 30,
 			"2": 40,
 		},
 	}
-	rsi, cpuPlans, total, err = po.SelectCPUNodes(scheduleInfos, 2, 0, existCPUInfo)
+	rsi, cpuPlans, total, err = po.SelectCPUNodes(scheduleInfos, 2, 0, CPU)
 	assert.EqualError(t, err, "not enough resource")
 }
