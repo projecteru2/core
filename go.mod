@@ -43,5 +43,6 @@ require (
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
 	golang.org/x/net v0.0.0-20200813134508-3edf25e44fcc
 	google.golang.org/grpc v1.28.0
+	google.golang.org/protobuf v1.23.0
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
 )

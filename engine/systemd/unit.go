@@ -86,7 +86,7 @@ func (b *unitBuilder) buildNetworkLimit() *unitBuilder {
 		return b
 	}
 
-	network := b.opts.Network
+	network := ""
 	for net := range b.opts.Networks {
 		if net != "" {
 			network = net

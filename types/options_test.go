@@ -109,6 +109,13 @@ func TestReplaceOptions(t *testing.T) {
 
 	o.DeployOptions.Entrypoint.Name = "good-entry-point"
 	assert.NoError(o.Validate())
+
+	assert.Equal(o.Count, 0)
+	o.Normalize()
+	assert.Equal(o.Count, 1)
+	o.Count = 2
+	o.Normalize()
+	assert.Equal(o.Count, 2)
 }
 
 func TestValidatingAddNodeOptions(t *testing.T) {

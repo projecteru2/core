@@ -419,7 +419,6 @@ message DeployOptions {
     repeated string dns = 9;
     repeated string extra_hosts = 10;
     map<string, string> networks = 11;
-    string networkmode = 12;
     string user = 13;
     bool debug = 14;
     bool openStdin = 15;

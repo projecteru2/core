@@ -303,7 +303,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		DNS:            d.Dns,
 		ExtraHosts:     d.ExtraHosts,
 		Networks:       d.Networks,
-		NetworkMode:    d.Networkmode,
 		User:           d.User,
 		Debug:          d.Debug,
 		OpenStdin:      d.OpenStdin,
