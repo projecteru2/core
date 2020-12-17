@@ -572,6 +572,7 @@ message LogStreamOptions {
     string tail = 2;
     string since = 3;
     string until = 4;
+    bool follow = 5;
 }
 
 message LogStreamMessage {

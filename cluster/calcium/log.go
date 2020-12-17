@@ -20,8 +20,13 @@ func (c *Calcium) LogStream(ctx context.Context, opts *types.LogStreamOptions) (
 		}
 
 		resp, err := workload.Engine.VirtualizationLogs(ctx, &enginetypes.VirtualizationLogStreamOptions{
-			ID: opts.ID, Tail: opts.Tail, Since: opts.Since, Until: opts.Until,
-			Follow: true, Stdout: true, Stderr: true,
+			ID:     opts.ID,
+			Tail:   opts.Tail,
+			Since:  opts.Since,
+			Until:  opts.Until,
+			Follow: opts.Follow,
+			Stdout: true,
+			Stderr: true,
 		})
 		if err != nil {
 			ch <- &types.LogStreamMessage{ID: opts.ID, Error: err}
