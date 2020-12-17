@@ -11,7 +11,7 @@ type cpuMemRequest struct {
 	CPUQuotaRequest float64
 	CPUQuotaLimit   float64
 	CPUBind         bool
-	CPU             map[string]types.CPUMap
+	CPU             types.CPUMap
 
 	memoryRequest int64
 	memoryLimit   int64
@@ -76,10 +76,13 @@ func (cm cpuMemRequest) MakeScheduler() resourcetypes.SchedulerV2 {
 		}
 
 		var CPUPlans map[string][]types.CPUMap
-		if !cm.CPUBind || cm.CPUQuotaRequest == 0 {
+		switch {
+		case !cm.CPUBind || cm.CPUQuotaRequest == 0:
 			scheduleInfos, total, err = schedulerV1.SelectMemoryNodes(scheduleInfos, cm.CPUQuotaRequest, cm.memoryRequest)
-		} else {
-			scheduleInfos, CPUPlans, total, err = schedulerV1.SelectCPUNodes(scheduleInfos, cm.CPUQuotaRequest, cm.memoryRequest, cm.CPU)
+		case cm.CPU != nil:
+			scheduleInfos[0], CPUPlans, total, err = schedulerV1.ReselectCPUNodes(scheduleInfos[0], cm.CPU, cm.CPUQuotaRequest, cm.memoryRequest)
+		default:
+			scheduleInfos, CPUPlans, total, err = schedulerV1.SelectCPUNodes(scheduleInfos, cm.CPUQuotaRequest, cm.memoryRequest)
 		}
 		return ResourcePlans{
 			memoryRequest:   cm.memoryRequest,

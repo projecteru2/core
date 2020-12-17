@@ -20,7 +20,7 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 				CPUQuotaRequest: workload.CPUQuotaRequest + opts.ResourceOpts.CPUQuotaRequest,
 				CPUQuotaLimit:   workload.CPUQuotaLimit + opts.ResourceOpts.CPUQuotaLimit,
 				CPUBind:         types.ParseTriOption(opts.CPUBindOpts, len(workload.CPU) > 0),
-				CPU:             map[string]types.CPUMap{workload.Nodename: workload.CPU},
+				CPU:             workload.CPU,
 				MemoryRequest:   workload.MemoryRequest + opts.ResourceOpts.MemoryRequest,
 				MemoryLimit:     workload.MemoryLimit + opts.ResourceOpts.MemoryLimit,
 				StorageRequest:  workload.StorageRequest + opts.ResourceOpts.StorageRequest,
