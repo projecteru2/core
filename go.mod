@@ -6,6 +6,7 @@ require (
 	github.com/CMGS/statsd v0.0.0-20160223095033-48c421b3c1ab
 	github.com/Microsoft/hcsshim v0.8.11 // indirect
 	github.com/alexcesaro/statsd v2.0.0+incompatible // indirect
+	github.com/boltdb/bolt v1.3.1
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/containerd/containerd v1.4.3 // indirect
 	github.com/containerd/continuity v0.0.0-20200710164510-efbc4488d8fe // indirect

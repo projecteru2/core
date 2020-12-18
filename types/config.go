@@ -16,6 +16,9 @@ type Config struct {
 	Auth          AuthConfig    `yaml:"auth"`                                          // grpc auth
 	GRPCConfig    GRPCConfig    `yaml:"grpc"`                                          // grpc config
 
+	WALFile        string        `yaml:"wal_file" required:"true" default:"core.wal"`   // WAL file path
+	WALOpenTimeout time.Duration `yaml:"wal_open_timeout" required:"true" default:"8s"` // timeout for opening a WAL file
+
 	Git       GitConfig     `yaml:"git"`
 	Etcd      EtcdConfig    `yaml:"etcd"`
 	Docker    DockerConfig  `yaml:"docker"`
