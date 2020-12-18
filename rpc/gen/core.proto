@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package pb;
 
+option go_package = "github.com/projecteru2/core/rpc/gen";
+
 service CoreRPC {
     rpc Info(Empty) returns (CoreInfo) {};
     rpc WatchServiceStatus(Empty) returns (stream ServiceStatus) {};
