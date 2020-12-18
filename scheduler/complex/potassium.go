@@ -117,7 +117,104 @@ func (m *Potassium) SelectCPUNodes(scheduleInfos []resourcetypes.ScheduleInfo, q
 	if len(scheduleInfos) == 0 {
 		return nil, nil, 0, errors.WithStack(types.ErrZeroNodes)
 	}
+
 	return cpuPriorPlan(quota, memory, scheduleInfos, m.maxshare, m.sharebase)
+}
+
+// ReselectCPUNodes used for realloc one container with cpu affinity
+func (m *Potassium) ReselectCPUNodes(scheduleInfo resourcetypes.ScheduleInfo, CPU types.CPUMap, quota float64, memory int64) (resourcetypes.ScheduleInfo, map[string][]types.CPUMap, int, error) {
+	var affinityPlan types.CPUMap
+	// remaining quota that's impossible to achieve affinity
+	if scheduleInfo, quota, affinityPlan = cpuReallocPlan(scheduleInfo, quota, CPU, int64(m.sharebase)); quota == 0 {
+		cpuPlans := map[string][]types.CPUMap{
+			scheduleInfo.Name: {
+				affinityPlan,
+			},
+		}
+		scheduleInfo.Capacity = 1
+		return scheduleInfo, cpuPlans, 1, nil
+	}
+
+	scheduleInfos, cpuPlans, total, err := m.SelectCPUNodes([]resourcetypes.ScheduleInfo{scheduleInfo}, quota, memory)
+	if err != nil {
+		return scheduleInfo, nil, 0, err
+	}
+
+	// add affinity plans
+	for i, plan := range cpuPlans[scheduleInfo.Name] {
+		for cpuID, pieces := range affinityPlan {
+			if _, ok := plan[cpuID]; ok {
+				cpuPlans[scheduleInfo.Name][i][cpuID] += pieces
+			} else {
+				cpuPlans[scheduleInfo.Name][i][cpuID] = pieces
+			}
+		}
+	}
+	return scheduleInfos[0], cpuPlans, total, nil
+}
+
+func cpuReallocPlan(scheduleInfo resourcetypes.ScheduleInfo, quota float64, CPU types.CPUMap, sharebase int64) (resourcetypes.ScheduleInfo, float64, types.CPUMap) {
+	var (
+		affinityPlan types.CPUMap = make(types.CPUMap)
+	)
+
+	diff := int64(quota*float64(sharebase)) - CPU.Total()
+	// sort by pieces
+	cpuIDs := []string{}
+	for cpuID := range CPU {
+		cpuIDs = append(cpuIDs, cpuID)
+	}
+	sort.Slice(cpuIDs, func(i, j int) bool { return CPU[cpuIDs[i]] < CPU[cpuIDs[j]] })
+
+	// shrink, ensure affinity
+	if diff <= 0 {
+		affinityPlan = CPU
+		// prioritize fragments
+		for _, cpuID := range cpuIDs {
+			if diff == 0 {
+				break
+			}
+			shrink := utils.Min64(affinityPlan[cpuID], -diff)
+			affinityPlan[cpuID] -= shrink
+			if affinityPlan[cpuID] == 0 {
+				delete(affinityPlan, cpuID)
+			}
+			diff += shrink
+			scheduleInfo.CPU[cpuID] += shrink
+		}
+		return scheduleInfo, float64(0), affinityPlan
+	}
+
+	// expand, prioritize full cpus
+	needPieces := int64(quota * float64(sharebase))
+	for i := len(cpuIDs) - 1; i >= 0; i-- {
+		cpuID := cpuIDs[i]
+		if needPieces == 0 {
+			scheduleInfo.CPU[cpuID] += CPU[cpuID]
+			continue
+		}
+
+		// whole cpu, keep it
+		if CPU[cpuID] == sharebase {
+			affinityPlan[cpuID] = sharebase
+			needPieces -= sharebase
+			continue
+		}
+
+		// fragments, try to find complement
+		if available := scheduleInfo.CPU[cpuID]; available == sharebase-CPU[cpuID] {
+			expand := utils.Min64(available, needPieces)
+			affinityPlan[cpuID] = CPU[cpuID] + expand
+			scheduleInfo.CPU[cpuID] -= expand
+			needPieces -= sharebase
+			continue
+		}
+
+		// else, return to cpu pools
+		scheduleInfo.CPU[cpuID] += CPU[cpuID]
+	}
+
+	return scheduleInfo, float64(needPieces) / float64(sharebase), affinityPlan
 }
 
 // SelectVolumeNodes calculates plans for volume request

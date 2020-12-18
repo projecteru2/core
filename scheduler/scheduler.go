@@ -22,6 +22,8 @@ type Scheduler interface {
 	// select nodes from nodes, return a list of nodenames and the corresponding cpumap, and also the changed nodes with remaining cpumap
 	// quota and number must be given, typically used to determine where to deploy
 	SelectCPUNodes(scheduleInfos []resourcetypes.ScheduleInfo, quota float64, memory int64) ([]resourcetypes.ScheduleInfo, map[string][]types.CPUMap, int, error)
+	// ReselectCPUNodes is used for realloc only
+	ReselectCPUNodes(scheduleInfo resourcetypes.ScheduleInfo, CPU types.CPUMap, quota float64, memory int64) (resourcetypes.ScheduleInfo, map[string][]types.CPUMap, int, error)
 	// select nodes from nodes, return a list a nodenames and the corresponding volumemap
 	SelectVolumeNodes(scheduleInfo []resourcetypes.ScheduleInfo, vbs types.VolumeBindings) ([]resourcetypes.ScheduleInfo, map[string][]types.VolumePlan, int, error)
 }

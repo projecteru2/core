@@ -37,6 +37,43 @@ func (_m *Scheduler) MaxIdleNode(nodes []*types.Node) (*types.Node, error) {
 	return r0, r1
 }
 
+// ReselectCPUNodes provides a mock function with given fields: scheduleInfo, CPU, quota, memory
+func (_m *Scheduler) ReselectCPUNodes(scheduleInfo resourcestypes.ScheduleInfo, CPU types.ResourceMap, quota float64, memory int64) (resourcestypes.ScheduleInfo, map[string][]types.ResourceMap, int, error) {
+	ret := _m.Called(scheduleInfo, CPU, quota, memory)
+
+	var r0 resourcestypes.ScheduleInfo
+	if rf, ok := ret.Get(0).(func(resourcestypes.ScheduleInfo, types.ResourceMap, float64, int64) resourcestypes.ScheduleInfo); ok {
+		r0 = rf(scheduleInfo, CPU, quota, memory)
+	} else {
+		r0 = ret.Get(0).(resourcestypes.ScheduleInfo)
+	}
+
+	var r1 map[string][]types.ResourceMap
+	if rf, ok := ret.Get(1).(func(resourcestypes.ScheduleInfo, types.ResourceMap, float64, int64) map[string][]types.ResourceMap); ok {
+		r1 = rf(scheduleInfo, CPU, quota, memory)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(map[string][]types.ResourceMap)
+		}
+	}
+
+	var r2 int
+	if rf, ok := ret.Get(2).(func(resourcestypes.ScheduleInfo, types.ResourceMap, float64, int64) int); ok {
+		r2 = rf(scheduleInfo, CPU, quota, memory)
+	} else {
+		r2 = ret.Get(2).(int)
+	}
+
+	var r3 error
+	if rf, ok := ret.Get(3).(func(resourcestypes.ScheduleInfo, types.ResourceMap, float64, int64) error); ok {
+		r3 = rf(scheduleInfo, CPU, quota, memory)
+	} else {
+		r3 = ret.Error(3)
+	}
+
+	return r0, r1, r2, r3
+}
+
 // SelectCPUNodes provides a mock function with given fields: scheduleInfos, quota, memory
 func (_m *Scheduler) SelectCPUNodes(scheduleInfos []resourcestypes.ScheduleInfo, quota float64, memory int64) ([]resourcestypes.ScheduleInfo, map[string][]types.ResourceMap, int, error) {
 	ret := _m.Called(scheduleInfos, quota, memory)

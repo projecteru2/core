@@ -212,6 +212,17 @@ func Min(x int, xs ...int) int {
 	return x
 }
 
+// Min64 return lesser one
+func Min64(x int64, xs ...int64) int64 {
+	if len(xs) == 0 {
+		return x
+	}
+	if m := Min64(xs[0], xs[1:]...); m < x {
+		return m
+	}
+	return x
+}
+
 // Max returns the biggest int
 func Max(x int, xs ...int) int {
 	if len(xs) == 0 {

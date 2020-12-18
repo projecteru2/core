@@ -20,6 +20,7 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 				CPUQuotaRequest: workload.CPUQuotaRequest + opts.ResourceOpts.CPUQuotaRequest,
 				CPUQuotaLimit:   workload.CPUQuotaLimit + opts.ResourceOpts.CPUQuotaLimit,
 				CPUBind:         types.ParseTriOption(opts.CPUBindOpts, len(workload.CPU) > 0),
+				CPU:             workload.CPU,
 				MemoryRequest:   workload.MemoryRequest + opts.ResourceOpts.MemoryRequest,
 				MemoryLimit:     workload.MemoryLimit + opts.ResourceOpts.MemoryLimit,
 				StorageRequest:  workload.StorageRequest + opts.ResourceOpts.StorageRequest,
@@ -68,7 +69,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, nodename string, workload
 			// then commit changes
 			func(ctx context.Context) error {
 				for _, plan := range plans {
-					plan.ApplyChangesOnNode(node, 1)
+					plan.ApplyChangesOnNode(node, 0)
 				}
 				return errors.WithStack(c.store.UpdateNodes(ctx, node))
 			},
