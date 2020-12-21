@@ -45,7 +45,9 @@ func (h *Hydro) Register(handler EventHandler) {
 
 // Recover starts a disaster recovery, which will replay all the events.
 func (h *Hydro) Recover(ctx context.Context) {
-	for ent := range h.kv.Scan(ctx, []byte(EventPrefix)) {
+	ch, _ := h.kv.Scan(ctx, []byte(EventPrefix))
+
+	for ent := range ch {
 		event, err := h.decodeEvent(ent)
 		if err != nil {
 			log.Errorf("[Recover] decode event error: %v", err)

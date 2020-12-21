@@ -23,7 +23,7 @@ type Simpler interface {
 
 // Scanner is the interface that wraps the basic Scan method.
 type Scanner interface {
-	Scan(context.Context, []byte) <-chan ScanEntry
+	Scan(context.Context, []byte) (<-chan ScanEntry, func())
 }
 
 // Sequencer is the interface that wraps the basic NextSequence method.

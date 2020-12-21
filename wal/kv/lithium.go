@@ -92,8 +92,14 @@ func (l *Lithium) Delete(ctx context.Context, key []byte) error {
 }
 
 // Scan scans all the key/value pairs.
-func (l *Lithium) Scan(ctx context.Context, prefix []byte) <-chan ScanEntry {
+func (l *Lithium) Scan(ctx context.Context, prefix []byte) (<-chan ScanEntry, func()) {
 	ch := make(chan ScanEntry)
+	locked := make(chan struct{})
+
+	exit := make(chan struct{})
+	abort := func() {
+		close(exit)
+	}
 
 	go func() {
 		defer close(ch)
@@ -101,6 +107,7 @@ func (l *Lithium) Scan(ctx context.Context, prefix []byte) <-chan ScanEntry {
 		l.Lock()
 		defer l.Unlock()
 
+		close(locked)
 		ent := &LithiumScanEntry{}
 
 		scan := func(bkt *bolt.Bucket) error {
@@ -108,18 +115,29 @@ func (l *Lithium) Scan(ctx context.Context, prefix []byte) <-chan ScanEntry {
 			for key, value := c.First(); key != nil && bytes.HasPrefix(key, prefix); key, value = c.Next() {
 				ent.key = key
 				ent.value = value
-				ch <- *ent
+
+				select {
+				case <-exit:
+					return nil
+				case ch <- *ent:
+				}
 			}
 			return nil
 		}
 
 		if err := l.view(scan); err != nil {
 			ent.err = err
-			ch <- *ent
+			select {
+			case <-exit:
+			case ch <- *ent:
+			}
 		}
 	}()
 
-	return ch
+	// Makes sure that the scan goroutine has been locked.
+	<-locked
+
+	return ch, abort
 }
 
 func (l *Lithium) view(fn func(*bolt.Bucket) error) error {
