@@ -3,8 +3,10 @@ package wal
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/projecteru2/core/wal/kv"
 )
@@ -51,5 +53,11 @@ func (e HydroEvent) Delete(ctx context.Context) error {
 
 // Key returns this event's key path.
 func (e HydroEvent) Key() []byte {
-	return []byte(filepath.Join(EventPrefix, strconv.FormatUint(e.ID, 10)))
+	return []byte(filepath.Join(EventPrefix, fmt.Sprintf("%016x", e.ID)))
+}
+
+func parseHydroEventID(key []byte) (uint64, error) {
+	// Trims the EventPrefix, then trims the padding 0.
+	id := strings.TrimLeft(strings.TrimPrefix(string(key), EventPrefix), "0")
+	return strconv.ParseUint(id, 16, 64)
 }

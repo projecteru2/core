@@ -195,6 +195,17 @@ func TestHydroRecover(t *testing.T) {
 	require.True(t, handled)
 }
 
+func TestHydroEventKeyMustPadZero(t *testing.T) {
+	event := HydroEvent{ID: 15}
+	require.Equal(t, "/events/000000000000000f", string(event.Key()))
+}
+
+func TestHydroEventParseIDShouldRemovePadding(t *testing.T) {
+	id, err := parseHydroEventID([]byte("/events/00000000000000000000000000f"))
+	require.NoError(t, err)
+	require.Equal(t, uint64(15), id)
+}
+
 func newTestEventHandler(eventype string, checked, handled, encoded, decoded *bool) EventHandler {
 	check := func(interface{}) (bool, error) {
 		*checked = true

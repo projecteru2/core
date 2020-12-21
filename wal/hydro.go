@@ -3,8 +3,6 @@ package wal
 import (
 	"context"
 	"encoding/json"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -133,7 +131,7 @@ func (h *Hydro) decodeEvent(ent kv.ScanEntry) (event HydroEvent, err error) {
 
 	event.kv = h.kv
 
-	event.ID, err = strconv.ParseUint(strings.TrimPrefix(string(key), EventPrefix), 10, 64)
+	event.ID, err = parseHydroEventID(key)
 
 	return
 }

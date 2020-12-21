@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -84,11 +86,50 @@ func TestScanAbort(t *testing.T) {
 }
 
 func TestNextSequence(t *testing.T) {
-	// TODO
+	lit, cancel := newTestLithium(t)
+	defer cancel()
+
+	seq0, err := lit.NextSequence(context.Background())
+	require.NoError(t, err)
+	require.True(t, seq0 > 0)
+
+	seq1, err := lit.NextSequence(context.Background())
+	require.NoError(t, err)
+	require.True(t, seq1 > seq0)
+
+	// Closes and Reopens
+	require.NoError(t, lit.Reopen(context.Background()))
+
+	seq2, err := lit.NextSequence(context.Background())
+	require.NoError(t, err)
+	require.True(t, seq2 > seq1)
 }
 
-func TestScanOrderedKeys(t *testing.T) {
-	// TODO
+func TestScanOrderedByKeys(t *testing.T) {
+	lit, cancel := newTestLithium(t)
+	defer cancel()
+
+	// put by descending order.
+	for i := 0xf; i > 0; i-- {
+		key := []byte(fmt.Sprintf("/events/%016x", i))
+		require.NoError(t, lit.Put(context.Background(), key, []byte("v")))
+	}
+
+	var last uint64
+	// asserts read by ascending order.
+	ch, _ := lit.Scan(context.Background(), []byte("/events/"))
+	for ent := range ch {
+		require.NoError(t, ent.Error())
+
+		key, _ := ent.Pair()
+		raw := strings.TrimLeft(strings.TrimPrefix(string(key), "/events/"), "0")
+
+		id, err := strconv.ParseUint(raw, 16, 64)
+		require.NoError(t, err)
+		require.True(t, id > last)
+
+		last = id
+	}
 }
 
 func newTestLithium(t *testing.T) (lit *Lithium, cancel func()) {
