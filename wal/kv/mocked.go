@@ -80,14 +80,24 @@ func (m *MockedKV) Delete(ctx context.Context, key []byte) (err error) {
 }
 
 // Scan .
-func (m *MockedKV) Scan(ctx context.Context, prefix []byte) <-chan ScanEntry {
+func (m *MockedKV) Scan(ctx context.Context, prefix []byte) (<-chan ScanEntry, func()) {
 	ch := make(chan ScanEntry)
+
+	exit := make(chan struct{})
+	abort := func() {
+		close(exit)
+	}
 
 	go func() {
 		defer close(ch)
 
 		m.pool.Range(func(rkey, rvalue interface{}) (next bool) {
-			next = true
+			select {
+			case <-exit:
+				next = false
+			default:
+				next = true
+			}
 
 			var entry MockedScanEntry
 			defer func() {
@@ -113,7 +123,7 @@ func (m *MockedKV) Scan(ctx context.Context, prefix []byte) <-chan ScanEntry {
 		})
 	}()
 
-	return ch
+	return ch, abort
 }
 
 // MockedScanEntry .

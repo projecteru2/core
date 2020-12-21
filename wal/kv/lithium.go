@@ -19,7 +19,10 @@ type Lithium struct {
 	// Name of the root bucket.
 	RootBucketKey []byte
 
-	bolt *bolt.DB
+	bolt    *bolt.DB
+	path    string
+	mode    os.FileMode
+	timeout time.Duration
 }
 
 // NewLithium initializes a new Lithium instance.
@@ -29,12 +32,32 @@ func NewLithium() *Lithium {
 	}
 }
 
+// Reopen re-open a kvdb file.
+func (l *Lithium) Reopen(ctx context.Context) error {
+	l.Lock()
+	defer l.Unlock()
+
+	if err := l.close(ctx); err != nil {
+		return err
+	}
+
+	return l.open(ctx)
+}
+
 // Open opens a kvdb file.
 func (l *Lithium) Open(ctx context.Context, path string, mode os.FileMode, timeout time.Duration) (err error) {
 	l.Lock()
 	defer l.Unlock()
 
-	if l.bolt, err = bolt.Open(path, mode, &bolt.Options{Timeout: timeout}); err != nil {
+	l.path = path
+	l.mode = mode
+	l.timeout = timeout
+
+	return l.open(ctx)
+}
+
+func (l *Lithium) open(context.Context) (err error) {
+	if l.bolt, err = bolt.Open(l.path, l.mode, &bolt.Options{Timeout: l.timeout}); err != nil {
 		return
 	}
 
@@ -50,6 +73,10 @@ func (l *Lithium) Open(ctx context.Context, path string, mode os.FileMode, timeo
 func (l *Lithium) Close(ctx context.Context) error {
 	l.Lock()
 	defer l.Unlock()
+	return l.close(ctx)
+}
+
+func (l *Lithium) close(context.Context) error {
 	return l.bolt.Close()
 }
 
@@ -92,8 +119,14 @@ func (l *Lithium) Delete(ctx context.Context, key []byte) error {
 }
 
 // Scan scans all the key/value pairs.
-func (l *Lithium) Scan(ctx context.Context, prefix []byte) <-chan ScanEntry {
+func (l *Lithium) Scan(ctx context.Context, prefix []byte) (<-chan ScanEntry, func()) {
 	ch := make(chan ScanEntry)
+	locked := make(chan struct{})
+
+	exit := make(chan struct{})
+	abort := func() {
+		close(exit)
+	}
 
 	go func() {
 		defer close(ch)
@@ -101,6 +134,7 @@ func (l *Lithium) Scan(ctx context.Context, prefix []byte) <-chan ScanEntry {
 		l.Lock()
 		defer l.Unlock()
 
+		close(locked)
 		ent := &LithiumScanEntry{}
 
 		scan := func(bkt *bolt.Bucket) error {
@@ -108,18 +142,43 @@ func (l *Lithium) Scan(ctx context.Context, prefix []byte) <-chan ScanEntry {
 			for key, value := c.First(); key != nil && bytes.HasPrefix(key, prefix); key, value = c.Next() {
 				ent.key = key
 				ent.value = value
-				ch <- *ent
+
+				select {
+				case <-exit:
+					return nil
+				case ch <- *ent:
+				}
 			}
 			return nil
 		}
 
 		if err := l.view(scan); err != nil {
 			ent.err = err
-			ch <- *ent
+			select {
+			case <-exit:
+			case ch <- *ent:
+			}
 		}
 	}()
 
-	return ch
+	// Makes sure that the scan goroutine has been locked.
+	<-locked
+
+	return ch, abort
+}
+
+// NextSequence generates a new sequence.
+func (l *Lithium) NextSequence(context.Context) (uint64, error) {
+	l.Lock()
+	defer l.Unlock()
+
+	var seq uint64
+	err := l.update(func(bkt *bolt.Bucket) (ue error) {
+		seq, ue = bkt.NextSequence()
+		return
+	})
+
+	return seq, err
 }
 
 func (l *Lithium) view(fn func(*bolt.Bucket) error) error {
@@ -148,11 +207,6 @@ func (l *Lithium) getBucket(tx *bolt.Tx, key []byte) (bkt *bolt.Bucket, err erro
 		err = types.NewDetailedErr(types.ErrInvalidWALBucket, key)
 	}
 	return
-}
-
-// NextSequence generates a new sequence.
-func (l *Lithium) NextSequence(context.Context) (uint64, error) {
-	return 0, nil
 }
 
 // LithiumScanEntry indicates an entry of scanning.

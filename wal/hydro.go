@@ -3,8 +3,6 @@ package wal
 import (
 	"context"
 	"encoding/json"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -45,7 +43,9 @@ func (h *Hydro) Register(handler EventHandler) {
 
 // Recover starts a disaster recovery, which will replay all the events.
 func (h *Hydro) Recover(ctx context.Context) {
-	for ent := range h.kv.Scan(ctx, []byte(EventPrefix)) {
+	ch, _ := h.kv.Scan(ctx, []byte(EventPrefix))
+
+	for ent := range ch {
 		event, err := h.decodeEvent(ent)
 		if err != nil {
 			log.Errorf("[Recover] decode event error: %v", err)
@@ -131,7 +131,7 @@ func (h *Hydro) decodeEvent(ent kv.ScanEntry) (event HydroEvent, err error) {
 
 	event.kv = h.kv
 
-	event.ID, err = strconv.ParseUint(strings.TrimPrefix(string(key), EventPrefix), 10, 64)
+	event.ID, err = parseHydroEventID(key)
 
 	return
 }
