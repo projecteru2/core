@@ -18,7 +18,7 @@ const (
 	Each = "EACH"
 	// Global .
 	Global = "GLOBAL"
-	// Fill + Global
+	// FillGlobal .
 	FillGlobal = "FILLGLOBAL"
 	// Dummy for calculate capacity
 	Dummy = "DUMMY"

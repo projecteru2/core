@@ -5,6 +5,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+// FillGlobalPlan try fill strategy and fallback to global strategy
 func FillGlobalPlan(strategyInfo []Info, need, total, limit int, resourceType types.ResourceType) (map[string]int, error) {
 	originStrategyInfo := make([]Info, len(strategyInfo))
 	copy(originStrategyInfo, strategyInfo)
@@ -13,6 +14,6 @@ func FillGlobalPlan(strategyInfo []Info, need, total, limit int, resourceType ty
 	if err == nil {
 		return deployMap, nil
 	}
-	log.Info("[FillGlobalPlan] fill plan failed, try global fill: %+v", err)
+	log.Infof("[FillGlobalPlan] fill plan failed, try global fill: %+v", err)
 	return GlobalPlan(originStrategyInfo, need, total, limit, resourceType)
 }
