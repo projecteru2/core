@@ -83,6 +83,7 @@ var (
 
 	ErrUnregisteredWALEventType = errors.New("unregistered WAL event type")
 	ErrInvalidWALBucket         = errors.New("invalid WAL bucket")
+	ErrLockSessionDone          = errors.New("lock session done")
 )
 
 // NewDetailedErr returns an error with details
