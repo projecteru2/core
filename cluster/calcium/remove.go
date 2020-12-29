@@ -29,7 +29,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool, 
 			go func(ID string) {
 				defer wg.Done()
 				ret := &types.RemoveWorkloadMessage{WorkloadID: ID, Success: false, Hook: []*bytes.Buffer{}}
-				if err := c.withWorkloadLocked(ctx, ID, func(workload *types.Workload) error {
+				if err := c.withWorkloadLocked(ctx, ID, func(ctx context.Context, workload *types.Workload) error {
 					return c.withNodeLocked(ctx, workload.Nodename, func(node *types.Node) (err error) {
 						return utils.Txn(
 							ctx,

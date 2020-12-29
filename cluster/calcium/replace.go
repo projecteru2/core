@@ -49,7 +49,7 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 				var createMessage *types.CreateWorkloadMessage
 				removeMessage := &types.RemoveWorkloadMessage{WorkloadID: ID}
 				var err error
-				if err = c.withWorkloadLocked(ctx, ID, func(workload *types.Workload) error {
+				if err = c.withWorkloadLocked(ctx, ID, func(ctx context.Context, workload *types.Workload) error {
 					if opts.Podname != "" && workload.Podname != opts.Podname {
 						log.Warnf("[ReplaceWorkload] Skip not in pod workload %s", workload.ID)
 						return types.NewDetailedErr(types.ErrIgnoreWorkload,

@@ -14,7 +14,7 @@ import (
 
 // ReallocResource updates workload resource dynamically
 func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOptions) (err error) {
-	return c.withWorkloadLocked(ctx, opts.ID, func(workload *types.Workload) error {
+	return c.withWorkloadLocked(ctx, opts.ID, func(ctx context.Context, workload *types.Workload) error {
 		rrs, err := resources.MakeRequests(
 			types.ResourceOptions{
 				CPUQuotaRequest: workload.CPUQuotaRequest + opts.ResourceOpts.CPUQuotaRequest,
