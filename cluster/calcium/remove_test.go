@@ -16,7 +16,7 @@ func TestRemoveWorkload(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store := c.store.(*storemocks.Store)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)

@@ -54,7 +54,7 @@ func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (
 
 func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
 	var nr *types.NodeResource
-	return nr, c.withNodeLocked(ctx, nodename, func(node *types.Node) error {
+	return nr, c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 		workloads, err := c.ListNodeWorkloads(ctx, node.Name, nil)
 		if err != nil {
 			return err

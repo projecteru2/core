@@ -12,8 +12,6 @@ import (
 	"golang.org/x/net/context"
 )
 
-const SessionErrorKey = "session_error_key"
-
 // Mutex is etcdv3 lock
 type Mutex struct {
 	timeout time.Duration
@@ -21,22 +19,25 @@ type Mutex struct {
 	session *concurrency.Session
 }
 
-type ErrorHolder struct {
-	mu sync.Mutex
-	err error
+type lockContext struct {
+	err   error
+	mutex sync.Mutex
+	context.Context
 }
 
-func (eh *ErrorHolder) SetError(err error) {
-	eh.mu.Lock()
-	eh.err = err
-	eh.mu.Unlock()
+func (c *lockContext) setError(err error) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.err = err
 }
 
-func (eh *ErrorHolder) Error() error {
-	eh.mu.Lock()
-	defer eh.mu.Unlock()
-
-	return eh.err
+func (c *lockContext) Err() error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	if c.err != nil {
+		return c.err
+	}
+	return c.Context.Err()
 }
 
 // New new a lock
@@ -68,42 +69,37 @@ func (m *Mutex) Lock(ctx context.Context) (context.Context, error) {
 		return nil, err
 	}
 
-	parentCtx, parentCancel := context.WithCancel(ctx)
-	userCtx := context.WithValue(parentCtx, SessionErrorKey, &ErrorHolder{})
+	ctx, cancel = context.WithCancel(ctx)
+	rCtx := &lockContext{Context: ctx}
 
 	go func() {
-		defer func() {
-			userCtx.Value(SessionErrorKey).(*ErrorHolder).SetError(types.ErrLockSessionDone) // give user a chance to know its error type
-			parentCancel()
-		}()
+		defer cancel()
 
-		<-m.session.Done()
+		select {
+		case <-m.session.Done():
+			rCtx.setError(types.ErrLockSessionDone)
+		case <-ctx.Done():
+		}
 	}()
 
-	select {
-	case <-m.session.Done():
-		// Don't return an invalid ctx
-		return nil, types.ErrLockSessionDone
-	default:
-		return userCtx, nil
-	}
+	return rCtx, nil
 }
 
 // Unlock unlock
-func (m *Mutex) Unlock(_ context.Context) error {
+func (m *Mutex) Unlock(ctx context.Context) error {
 	defer m.session.Close()
 	// release resource
 
-	lockCtx, cancel := context.WithTimeout(context.Background(), m.timeout)
+	lockCtx, cancel := context.WithTimeout(ctx, m.timeout)
 	defer cancel()
 	return m.unlock(lockCtx)
 }
 
 func (m *Mutex) unlock(ctx context.Context) error {
-	_, err :=m.session.Client().Txn(ctx).If(m.mutex.IsOwner()).
+	_, err := m.session.Client().Txn(ctx).If(m.mutex.IsOwner()).
 		Then(clientv3.OpDelete(m.mutex.Key())).Commit()
-	//no way to clear it...
-	//m.myKey = "\x00"
-	//m.myRev = -1
+	// no way to clear it...
+	// m.myKey = "\x00"
+	// m.myRev = -1
 	return err
 }

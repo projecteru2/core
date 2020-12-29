@@ -122,13 +122,13 @@ func TestCreateWorkloadTxn(t *testing.T) {
 
 	// doAllocResource fails: MakeDeployStatus
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetPod", mock.Anything, mock.Anything).Return(pod1, nil)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 	store.On("GetNode",
-		mock.AnythingOfType("*context.timerCtx"),
+		mock.AnythingOfType("*context.emptyCtx"),
 		mock.AnythingOfType("string"),
 	).Return(
 		func(_ context.Context, name string) (node *types.Node) {

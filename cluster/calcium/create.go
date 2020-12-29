@@ -66,7 +66,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 			// if: alloc resources
 			func(ctx context.Context) error {
-				return c.withNodesLocked(ctx, opts.Podname, opts.Nodenames, opts.NodeLabels, false, func(nodeMap map[string]*types.Node) (err error) {
+				return c.withNodesLocked(ctx, opts.Podname, opts.Nodenames, opts.NodeLabels, false, func(ctx context.Context, nodeMap map[string]*types.Node) (err error) {
 					defer func() {
 						if err != nil {
 							ch <- &types.CreateWorkloadMessage{Error: err}
@@ -102,7 +102,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			// rollback: give back resources
 			func(ctx context.Context, _ bool) (err error) {
 				for nodename, rollbackIndices := range rollbackMap {
-					if e := c.withNodeLocked(ctx, nodename, func(node *types.Node) error {
+					if e := c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 						for _, plan := range plans {
 							plan.RollbackChangesOnNode(node, rollbackIndices...) // nolint:scopelint
 						}

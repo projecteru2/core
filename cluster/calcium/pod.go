@@ -19,7 +19,7 @@ func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
 	if podname == "" {
 		return types.ErrEmptyPodName
 	}
-	return c.withNodesLocked(ctx, podname, []string{}, nil, true, func(nodes map[string]*types.Node) error {
+	return c.withNodesLocked(ctx, podname, []string{}, nil, true, func(ctx context.Context, nodes map[string]*types.Node) error {
 		// TODO dissociate workload to node
 		// TODO should remove node first
 		return c.store.RemovePod(ctx, podname)

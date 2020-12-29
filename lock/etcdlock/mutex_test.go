@@ -21,7 +21,7 @@ func TestMutex(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := context.Background()
-	err = mutex.Lock(ctx)
+	_, err = mutex.Lock(ctx)
 	assert.NoError(t, err)
 	err = mutex.Unlock(ctx)
 	assert.NoError(t, err)

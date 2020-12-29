@@ -20,7 +20,7 @@ func TestControlStart(t *testing.T) {
 	ctx := context.Background()
 	store := &storemocks.Store{}
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	c.store = store
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
@@ -111,7 +111,7 @@ func TestControlStop(t *testing.T) {
 	ctx := context.Background()
 	store := &storemocks.Store{}
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	c.store = store
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
@@ -156,7 +156,7 @@ func TestControlRestart(t *testing.T) {
 	ctx := context.Background()
 	store := &storemocks.Store{}
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	c.store = store
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
