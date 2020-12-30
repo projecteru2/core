@@ -18,15 +18,18 @@ const (
 	Each = "EACH"
 	// Global .
 	Global = "GLOBAL"
+	// FillGlobal .
+	FillGlobal = "FILLGLOBAL"
 	// Dummy for calculate capacity
 	Dummy = "DUMMY"
 )
 
 var Plans = map[string]startegyFunc{
-	Auto:   CommunismPlan,
-	Fill:   FillPlan,
-	Each:   AveragePlan,
-	Global: GlobalPlan,
+	Auto:       CommunismPlan,
+	Fill:       FillPlan,
+	Each:       AveragePlan,
+	Global:     GlobalPlan,
+	FillGlobal: FillGlobalPlan,
 }
 
 type startegyFunc = func(_ []Info, need, total, limit int, _ types.ResourceType) (map[string]int, error)
