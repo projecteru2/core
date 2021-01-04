@@ -21,8 +21,10 @@ func TestMutex(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := context.Background()
-	err = mutex.Lock(ctx)
+	ctx, err = mutex.Lock(ctx)
+	assert.Nil(t, ctx.Err())
 	assert.NoError(t, err)
 	err = mutex.Unlock(ctx)
 	assert.NoError(t, err)
+	assert.EqualError(t, ctx.Err(), "lock session done")
 }

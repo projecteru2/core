@@ -19,7 +19,7 @@ func TestDissociateWorkload(t *testing.T) {
 	c.store = store
 
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 
 	c1 := &types.Workload{

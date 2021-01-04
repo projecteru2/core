@@ -33,7 +33,7 @@ func TestCalculateCapacity(t *testing.T) {
 	}
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node1, nil)
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	// failed by wrong resource

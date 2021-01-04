@@ -15,8 +15,8 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *t
 	go func() {
 		defer close(ch)
 		for _, ID := range IDs {
-			err := c.withWorkloadLocked(ctx, ID, func(workload *types.Workload) error {
-				return c.withNodeLocked(ctx, workload.Nodename, func(node *types.Node) (err error) {
+			err := c.withWorkloadLocked(ctx, ID, func(ctx context.Context, workload *types.Workload) error {
+				return c.withNodeLocked(ctx, workload.Nodename, func(ctx context.Context, node *types.Node) (err error) {
 					return utils.Txn(
 						ctx,
 						// if

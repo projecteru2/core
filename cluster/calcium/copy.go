@@ -23,7 +23,7 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 			wg.Add(1)
 			go func(id string, paths []string) {
 				defer wg.Done()
-				if err := c.withWorkloadLocked(ctx, id, func(workload *types.Workload) error {
+				if err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
 					for _, path := range paths {
 						resp, name, err := workload.Engine.VirtualizationCopyFrom(ctx, workload.ID, path)
 						ch <- makeCopyMessage(id, name, path, err, resp)

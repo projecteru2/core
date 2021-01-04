@@ -22,7 +22,7 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 	if nodename == "" {
 		return types.ErrEmptyNodeName
 	}
-	return c.withNodeLocked(ctx, nodename, func(node *types.Node) error {
+	return c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 		ws, err := c.ListNodeWorkloads(ctx, node.Name, nil)
 		if err != nil {
 			return err
@@ -53,7 +53,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		return nil, err
 	}
 	var n *types.Node
-	return n, c.withNodeLocked(ctx, opts.Nodename, func(node *types.Node) error {
+	return n, c.withNodeLocked(ctx, opts.Nodename, func(ctx context.Context, node *types.Node) error {
 		litter.Dump(opts)
 		opts.Normalize(node)
 		n = node

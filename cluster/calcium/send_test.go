@@ -36,7 +36,7 @@ func TestSend(t *testing.T) {
 	store := &storemocks.Store{}
 	c.store = store
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(nil)
+	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	// failed by GetWorkload
