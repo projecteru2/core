@@ -52,13 +52,13 @@ func TestControlStart(t *testing.T) {
 		assert.Error(t, r.Error)
 	}
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
-	// failed by ExecCreate
+	// failed by Execute
 	hook := &types.Hook{
 		AfterStart: []string{"cmd1", "cmd2"},
 	}
 	workload.Hook = hook
 	workload.Hook.Force = false
-	engine.On("ExecCreate", mock.Anything, mock.Anything, mock.Anything).Return("", types.ErrNilEngine).Times(3)
+	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return("", nil, nil, types.ErrNilEngine).Times(3)
 	ch, err = c.ControlWorkload(ctx, []string{"id1"}, cluster.WorkloadStart, false)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -72,16 +72,8 @@ func TestControlStart(t *testing.T) {
 		assert.Error(t, r.Error)
 		assert.Equal(t, r.WorkloadID, "id1")
 	}
-	engine.On("ExecCreate", mock.Anything, mock.Anything, mock.Anything).Return("eid", nil)
-	// failed by ExecAttach
-	engine.On("ExecAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, types.ErrNilEngine).Once()
-	ch, err = c.ControlWorkload(ctx, []string{"id1"}, cluster.WorkloadStart, false)
-	assert.NoError(t, err)
-	for r := range ch {
-		assert.Error(t, r.Error)
-	}
 	data := ioutil.NopCloser(bytes.NewBufferString("output"))
-	engine.On("ExecAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(data, nil, nil).Twice()
+	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return("eid", data, nil, nil).Times(4)
 	// failed by ExecExitCode
 	engine.On("ExecExitCode", mock.Anything, mock.Anything).Return(-1, types.ErrNilEngine).Once()
 	ch, err = c.ControlWorkload(ctx, []string{"id1"}, cluster.WorkloadStart, false)
@@ -98,7 +90,6 @@ func TestControlStart(t *testing.T) {
 	}
 	// exitCode is 0
 	engine.On("ExecExitCode", mock.Anything, mock.Anything).Return(0, nil)
-	engine.On("ExecAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(ioutil.NopCloser(bytes.NewBufferString("succ")), nil, nil)
 	ch, err = c.ControlWorkload(ctx, []string{"id1"}, cluster.WorkloadStart, false)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -128,7 +119,7 @@ func TestControlStop(t *testing.T) {
 	}
 	workload.Hook = hook
 	workload.Hook.Force = true
-	engine.On("ExecCreate", mock.Anything, mock.Anything, mock.Anything).Return("", types.ErrNilEngine)
+	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return("", nil, nil, types.ErrNilEngine)
 	ch, err := c.ControlWorkload(ctx, []string{"id1"}, cluster.WorkloadStop, false)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -173,7 +164,7 @@ func TestControlRestart(t *testing.T) {
 	}
 	workload.Hook = hook
 	workload.Hook.Force = true
-	engine.On("ExecCreate", mock.Anything, mock.Anything, mock.Anything).Return("", types.ErrNilEngine)
+	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return("", nil, nil, types.ErrNilEngine)
 	ch, err := c.ControlWorkload(ctx, []string{"id1"}, cluster.WorkloadRestart, false)
 	assert.NoError(t, err)
 	for r := range ch {

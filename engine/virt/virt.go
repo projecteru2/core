@@ -71,16 +71,6 @@ func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {
 	}, nil
 }
 
-// ExecCreate creates an execution.
-func (v *Virt) ExecCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (id string, err error) {
-	return "", fmt.Errorf("ExecCreate does not implement")
-}
-
-// ExecAttach executes an attachment.
-func (v *Virt) ExecAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error) {
-	return nil, nil, fmt.Errorf("ExecAttach does not implement")
-}
-
 // Execute executes a command in vm
 func (v *Virt) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, outputStream io.ReadCloser, inputStream io.WriteCloser, err error) {
 	if config.Tty {

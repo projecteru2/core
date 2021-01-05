@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -34,14 +35,9 @@ func execuateInside(ctx context.Context, client engine.API, ID, cmd, user string
 		AttachStdout: true,
 	}
 	b := []byte{}
-	execID, err := client.ExecCreate(ctx, ID, execConfig)
+	execID, outStream, _, err := client.Execute(ctx, ID, execConfig)
 	if err != nil {
-		return b, err
-	}
-
-	outStream, _, err := client.ExecAttach(ctx, execID, false)
-	if err != nil {
-		return b, err
+		return nil, errors.WithStack(err)
 	}
 
 	for data := range processVirtualizationOutStream(ctx, outStream) {

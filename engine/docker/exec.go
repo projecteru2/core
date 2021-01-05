@@ -10,7 +10,7 @@ import (
 )
 
 // ExecCreate create a exec
-func (e *Engine) ExecCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, error) {
+func (e *Engine) execCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, error) {
 	execConfig := dockertypes.ExecConfig{
 		User:         config.User,
 		Privileged:   config.Privileged,
@@ -33,7 +33,7 @@ func (e *Engine) ExecCreate(ctx context.Context, target string, config *enginety
 }
 
 // ExecAttach attach a exec
-func (e *Engine) ExecAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error) {
+func (e *Engine) execAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error) {
 	execStartCheck := dockertypes.ExecStartCheck{
 		Tty: tty,
 	}
@@ -46,12 +46,12 @@ func (e *Engine) ExecAttach(ctx context.Context, execID string, tty bool) (io.Re
 
 // Execute executes a workload
 func (e *Engine) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, io.ReadCloser, io.WriteCloser, error) {
-	execID, err := e.ExecCreate(ctx, target, config)
+	execID, err := e.execCreate(ctx, target, config)
 	if err != nil {
 		return "", nil, nil, err
 	}
 
-	reader, writer, err := e.ExecAttach(ctx, execID, config.Tty)
+	reader, writer, err := e.execAttach(ctx, execID, config.Tty)
 	return execID, reader, writer, err
 }
 
