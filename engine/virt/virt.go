@@ -161,15 +161,6 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 		return nil, err
 	}
 
-	stor := MinVirtStorage
-	for _, cap := range vols {
-		stor += cap
-	}
-	if opts.Storage < stor {
-		return nil, coretypes.NewDetailedErr(coretypes.ErrInsufficientStorage,
-			fmt.Sprintf("specify at least %d bytes for the storage", stor))
-	}
-
 	req := virttypes.CreateGuestReq{
 		CPU:        int(opts.Quota),
 		Mem:        opts.Memory,
