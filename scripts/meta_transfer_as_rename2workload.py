@@ -48,30 +48,23 @@ def range_prefix(meta, obj_prefix, fn):
 
         range_start = etcd3.utils.increment_last_byte(kv.key)
 
-def range_prefix2(meta, obj_prefix, fn):
-    orig_prefix = os.path.join(meta.orig_root_prefix, obj_prefix)
-
-    for orig_value, orig_meta in meta.etcd.get_prefix(orig_prefix):
-        orig_key = orig_meta.key.decode('utf-8')
-        objname = remove_prefix(orig_key, orig_prefix)
-
-        new_key = fn(objname, orig_value.decode('utf-8'))
-        if new_key:
-            print('convert %s to %s' % (orig_key, new_key))
-
-
 class Pod(object):
 
-    def __init__(self, meta):
+    def __init__(self, meta, podname=None):
         """Initializes a pod transfer."""
         self.meta = meta
         self.pod_prefix = 'pod/info'
         self.range_prefix = functools.partial(range_prefix, self.meta)
+        self.podname = podname
 
     def trans(self):
         self.range_prefix(self.pod_prefix, self._trans)
 
     def _trans(self, podname, orig_value):
+        # Only trans the specific pod if any.
+        if self.podname and self.podname != podname:
+            return
+
         new_key = os.path.join(self.meta.new_root_prefix, self.pod_prefix, podname)
         self.meta.etcd.put(new_key, orig_value)
         return new_key
@@ -79,25 +72,30 @@ class Pod(object):
 
 class Node(object):
 
-    def __init__(self, meta):
+    def __init__(self, meta, podname):
         """Initializes a node transfer."""
         self.meta = meta
         self.info_prefix = 'node'
         self.range_prefix = functools.partial(range_prefix, self.meta, self.info_prefix)
-        self.nodes = {}
+        self.pod_nodes = {}
+        self.podname = podname
 
     def trans(self):
-        self.range_prefix(self._trans_info)
         self.range_prefix(self._trans_pod)
+        self.range_prefix(self._trans_info)
         self.range_prefix(self._trans_cert)
         self.range_prefix(self._trans_workload)
+        return self.pod_nodes.keys()
 
     def _trans_info(self, nodename, orig_value):
         # skipping extra info.
         if ':' in nodename:
             return
 
-        self.nodes[nodename] = json.loads(orig_value)
+        if not self._belong_pod(nodename):
+            return
+
+        self.pod_nodes[nodename] = json.loads(orig_value)
 
         new_key = os.path.join(self.meta.new_root_prefix, self.info_prefix, nodename)
         self.meta.etcd.put(new_key, orig_value)
@@ -112,12 +110,20 @@ class Node(object):
         if not (podname and nodename):
             raise ValueError('invalid podname or nodename for %s' % node_pod_pair)
 
+        # Only trans the specific pod if any.
+        if self.podname and self.podname != podname:
+            return
+
+        self.pod_nodes[nodename] = {}
+
         new_key = os.path.join(self.meta.new_root_prefix, self.info_prefix, '%s:pod' % podname, nodename)
         self.meta.etcd.put(new_key, orig_value)
         return new_key
 
     def _trans_cert(self, cert_key, orig_value):
         nodename, _, cert_type = cert_key.partition(':')
+        if not self._belong_pod(nodename):
+            return
 
         # parsering orig_key which ends with :ca, :cert, :key only
         if cert_type not in ('ca', 'cert', 'key'):
@@ -129,9 +135,11 @@ class Node(object):
 
     def _trans_workload(self, node_wrk_pair, orig_value):
         nodename, _, wrk_id = node_wrk_pair.partition(':containers/')
-
         # parsering orig_key which belongs node-workload pair only.
         if not (nodename and wrk_id):
+            return
+
+        if not self._belong_pod(nodename):
             return
 
         new_key = os.path.join(self.meta.new_root_prefix, self.info_prefix, '%s:workloads' % nodename, wrk_id)
@@ -139,11 +147,16 @@ class Node(object):
         self.meta.etcd.put(new_key, json.dumps(wrk))
         return new_key
 
+    def _belong_pod(self, nodename):
+        if not self.podname:
+            return True
+        return nodename in self.pod_nodes.keys()
+
     def get_numa_node(self, cpumap, nodename):
         """Ref core types/core.go GetNUMANode func."""
         numa_node_id = ""
 
-        node = self.nodes.get(nodename)
+        node = self.pod_nodes.get(nodename)
         if not node:
             raise ValueError('invalid nodename %s' % nodename)
 
@@ -166,7 +179,7 @@ class Node(object):
 
 class Workload(object):
 
-    def __init__(self, meta, node_transfer):
+    def __init__(self, meta, node_transfer, podname=None, pod_nodes=None):
         """Initializes a workload transfer."""
         self.meta = meta
         self.container_prefix = 'containers'
@@ -174,12 +187,19 @@ class Workload(object):
         self.deploy_prefix = 'deploy'
         self.range_prefix = functools.partial(range_prefix, self.meta)
         self.node_transfer = node_transfer
+        self.podname = podname
+        self.pod_nodes = pod_nodes
+        self.workloads = set()
 
     def trans(self):
-        self.range_prefix(self.container_prefix, self._trans_container)
         self.range_prefix(self.deploy_prefix, self._trans_deploy)
+        self.range_prefix(self.container_prefix, self._trans_container)
 
     def _trans_container(self, wrk_id, orig_value):
+        # skipping if the workload doesn't belong the specific pod.
+        if not self.podname or wrk_id not in self.workloads:
+            return
+
         new_key = os.path.join(self.meta.new_root_prefix, self.wrk_prefix, wrk_id)
         wrk = self.conv(orig_value, self.node_transfer)
         self.meta.etcd.put(new_key, json.dumps(wrk))
@@ -192,12 +212,21 @@ class Workload(object):
             return
 
         appname, entrypoint, nodename, wrk_id = parts
+        if not self._belong_pod(nodename):
+            return
+
+        self.workloads.update(wrk_id)
 
         new_key = os.path.join(self.meta.new_root_prefix, self.deploy_prefix, appname, entrypoint, nodename, wrk_id)
         wrk = self.conv(orig_value, self.node_transfer)
         self.meta.etcd.put(new_key, json.dumps(wrk))
 
         return new_key
+
+    def _belong_pod(self, nodename):
+        if not self.podname:
+            return True
+        return nodename in self.pod_nodes
 
     @classmethod
     def conv(cls, orig_value, node_transfer):
@@ -272,18 +301,19 @@ class Transfer(object):
         self.orig_root_prefix = orig_root_prefix
         self.new_root_prefix = new_root_prefix
 
-    def trans(self):
-        Pod(self).trans()
+    def trans(self, podname=None):
+        Pod(self, podname).trans()
 
-        node_transfer = Node(self)
-        node_transfer.trans()
+        node_transfer = Node(self, podname)
+        nodes = node_transfer.trans()
 
-        Workload(self, node_transfer).trans()
+        Workload(self, node_transfer, podname, nodes).trans()
 
 def getargs():
     ap = argparse.ArgumentParser()
-    ap.add_argument('-o', dest='orig_root_prefix', help='original prefix', default='/eru')
-    ap.add_argument('-n', dest='new_root_prefix', help='new prefix', default='/eru2')
+    ap.add_argument('-o', '--orig', dest='orig_root_prefix', help='original prefix', default='/eru')
+    ap.add_argument('-n', '--new', dest='new_root_prefix', help='new prefix', default='/eru2')
+    ap.add_argument('-p', '--pod', dest='podname')
     ap.add_argument('--etcd-host', default='127.0.0.1')
     ap.add_argument('--etcd-port', type=int, default=2379)
     return ap.parse_args()
@@ -295,7 +325,7 @@ def main():
     args = getargs()
     etcd = connect_etcd(args.etcd_host, args.etcd_port)
     trans = Transfer(etcd, args.orig_root_prefix, args.new_root_prefix)
-    trans.trans()
+    trans.trans(args.podname)
     return 0
 
 if __name__ == '__main__':
