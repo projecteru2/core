@@ -157,11 +157,12 @@ func (rp ResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...int) 
 
 // Dispense .
 func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions, r *types.ResourceMeta) (*types.ResourceMeta, error) {
+	r.VolumeRequest = rp.request
+	r.VolumeLimit = rp.limit
 	if len(rp.plan) == 0 {
 		return r, nil
 	}
 
-	r.VolumeRequest = rp.request
 	r.VolumePlanRequest = rp.plan[opts.Node.Name][opts.Index]
 
 	// if there are existing ones, ensure new volumes are compatible
@@ -181,7 +182,6 @@ func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions, r *types.Re
 	}
 
 	// fix plans while limit > request
-	r.VolumeLimit = rp.limit
 	r.VolumePlanLimit = types.VolumePlan{}
 	for i := range rp.request {
 		request, limit := rp.request[i], rp.limit[i]
