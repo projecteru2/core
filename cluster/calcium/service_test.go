@@ -21,38 +21,62 @@ func TestServiceStatusStream(t *testing.T) {
 	store := &storemocks.Store{}
 	c.store = store
 
-	registered := map[string]int{}
-	store.On("RegisterService", mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("string"), mock.AnythingOfType("time.Duration")).Return(
-		func(_ context.Context, addr string, _ time.Duration) error {
-			if v, ok := registered[addr]; ok {
-				registered[addr] = v + 1
-			} else {
-				registered[addr] = 1
-			}
-			return nil
-		},
-	)
-	store.On("UnregisterService", mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("string")).Return(
-		func(_ context.Context, addr string) error {
-			delete(registered, addr)
-			return nil
-		},
-	)
+	var unregistered bool
+	unregister := func() { unregistered = true }
+	expiry := make(<-chan struct{})
+	store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).Return(expiry, unregister, nil).Once()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	unregister, err := c.RegisterService(ctx)
+	unregisterService, err := c.RegisterService(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, len(registered), 1)
-	for _, v := range registered {
-		assert.Equal(t, v, 1)
-	}
-	time.Sleep(100 * time.Millisecond)
-	for _, v := range registered {
-		assert.GreaterOrEqual(t, v, 2)
-	}
-	unregister()
-	assert.Equal(t, len(registered), 0)
+
+	unregisterService()
+	assert.True(t, unregistered)
+}
+
+func TestServiceStatusStreamWithMultipleRegisteringAsExpired(t *testing.T) {
+	c := NewTestCluster()
+	c.config.Bind = ":5001"
+	c.config.GRPCConfig.ServiceHeartbeatInterval = 100 * time.Millisecond
+	c.config.GRPCConfig.ServiceDiscoveryPushInterval = 10 * time.Second
+	store := &storemocks.Store{}
+	c.store = store
+
+	raw := make(chan struct{})
+	var expiry <-chan struct{} = raw
+	store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).Return(expiry, func() {}, nil).Once()
+	// Once the original one expired, the new calling's expiry must also be a brand new <-chan.
+	store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).Return(make(<-chan struct{}), func() {}, nil).Once()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	_, err := c.RegisterService(ctx)
+	assert.NoError(t, err)
+
+	// Triggers the original one expired.
+	close(raw)
+	// Waiting for the second calling of store.RegisterService.
+	time.Sleep(time.Millisecond)
+	store.AssertExpectations(t)
+}
+
+func TestRegisterServiceFailed(t *testing.T) {
+	c := NewTestCluster()
+	c.config.Bind = ":5001"
+	c.config.GRPCConfig.ServiceHeartbeatInterval = 100 * time.Millisecond
+	c.config.GRPCConfig.ServiceDiscoveryPushInterval = 10 * time.Second
+	store := &storemocks.Store{}
+	c.store = store
+
+	experr := fmt.Errorf("error")
+	store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).Return(make(<-chan struct{}), func() {}, experr).Once()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	_, err := c.RegisterService(ctx)
+	assert.Equal(t, experr, err)
 }
 
 func TestWatchServiceStatus(t *testing.T) {

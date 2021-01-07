@@ -20,8 +20,10 @@ const (
 type Store interface {
 	// service
 	ServiceStatusStream(context.Context) (chan []string, error)
-	RegisterService(context.Context, string, time.Duration) error
-	UnregisterService(context.Context, string) error
+	RegisterService(context.Context, string, time.Duration) (<-chan struct{}, func(), error)
+
+	// ephemeral nodes primitive
+	StartEphemeral(ctx context.Context, path string, heartbeat time.Duration) (<-chan struct{}, func(), error)
 
 	// pod
 	AddPod(ctx context.Context, name, desc string) (*types.Pod, error)
