@@ -13,44 +13,26 @@ func TestFillPlan(t *testing.T) {
 	// 正常的全量补充
 	n := 10
 	nodes := deployedNodes()
-	resultCap := []int{}
-	resultDeploy := []int{}
-	for i := range nodes {
-		resultCap = append(resultCap, nodes[i].Capacity-n+nodes[i].Count)
-		resultDeploy = append(resultDeploy, n-nodes[i].Count)
-	}
 	r, err := FillPlan(nodes, n, 0, 0, types.ResourceAll)
 	assert.NoError(t, err)
-	sort.Slice(nodes, func(i, j int) bool { return nodes[i].Count < nodes[j].Count })
-	for i := range nodes {
-		assert.Equal(t, nodes[i].Capacity, resultCap[i])
-		assert.Equal(t, r[nodes[i].Nodename], resultDeploy[i])
+	finalCounts := []int{}
+	for _, node := range nodes {
+		finalCounts = append(finalCounts, node.Count+r[node.Nodename])
 	}
+	sort.Ints(finalCounts)
+	assert.ElementsMatch(t, []int{10, 10, 10, 10}, finalCounts)
 
 	// 局部补充
 	n = 5
 	nodes = deployedNodes()
-	resultCap = []int{}
-	resultDeploy = []int{}
-	for i := range nodes {
-		if nodes[i].Count >= n {
-			continue
-		}
-		resultCap = append(resultCap, nodes[i].Capacity-n+nodes[i].Count)
-		resultDeploy = append(resultDeploy, n-nodes[i].Count)
-	}
 	r, err = FillPlan(nodes, n, 0, 0, types.ResourceAll)
 	assert.NoError(t, err)
-	sort.Slice(nodes, func(i, j int) bool { return nodes[i].Count < nodes[j].Count })
-	i := 0
-	for _, v := range nodes {
-		if v.Capacity >= n {
-			continue
-		}
-		assert.Equal(t, nodes[i].Capacity, resultCap[i])
-		assert.Equal(t, r[nodes[i].Nodename], resultDeploy[i])
-		i++
+	finalCounts = []int{}
+	for _, node := range nodes {
+		finalCounts = append(finalCounts, node.Count+r[node.Nodename])
 	}
+	sort.Ints(finalCounts)
+	assert.ElementsMatch(t, []int{5, 5, 5, 7}, finalCounts)
 
 	// 局部补充不能
 	n = 15

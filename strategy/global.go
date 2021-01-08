@@ -11,11 +11,13 @@ import (
 
 // GlobalPlan 基于全局资源配额
 // 尽量使得资源消耗平均
-func GlobalPlan(strategyInfos []Info, need, total, limit int, resourceType types.ResourceType) (map[string]int, error) {
+func GlobalPlan(infos []Info, need, total, limit int, resourceType types.ResourceType) (map[string]int, error) {
 	if total < need {
 		return nil, errors.WithStack(types.NewDetailedErr(types.ErrInsufficientRes,
 			fmt.Sprintf("need: %d, vol: %d", need, total)))
 	}
+	strategyInfos := make([]Info, len(infos))
+	copy(strategyInfos, infos)
 	strategyInfos = scoreSort(strategyInfos, resourceType)
 	length := len(strategyInfos)
 	i := 0

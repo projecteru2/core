@@ -3,6 +3,7 @@ package complexscheduler
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"testing"
 
 	"math"
@@ -1011,8 +1012,10 @@ func TestSelectMemoryNodesSequence(t *testing.T) {
 	refreshPod(res, deployMap, mem, 0)
 	res, deployMap, err = SelectMemoryNodes(k, res, nil, cpu, mem, 5, false)
 	assert.NoError(t, err)
-	assert.Equal(t, deployMap[res[0].Name], 3)
-	assert.Equal(t, deployMap[res[1].Name], 2)
+	finalCounts := []int{deployMap[res[0].Name], deployMap[res[1].Name]}
+	sort.Ints(finalCounts)
+	assert.ElementsMatch(t, []int{2, 3}, finalCounts)
+
 }
 
 func TestSelectMemoryNodesGiven(t *testing.T) {
@@ -1024,15 +1027,15 @@ func TestSelectMemoryNodesGiven(t *testing.T) {
 	}
 
 	k, _ := newPotassium()
-	res, deployMap, err := SelectMemoryNodes(k, pod, countMap, 1.0, 512*int64(units.MiB), 2, false)
+	_, deployMap, err := SelectMemoryNodes(k, pod, countMap, 1.0, 512*int64(units.MiB), 2, false)
 	assert.NoError(t, err)
-	for _, node := range res {
-		if node.Name == "n3" {
-			assert.Equal(t, deployMap[node.Name], 2)
-			continue
-		}
-		assert.Equal(t, deployMap[node.Name], 0)
+	finalCounts := []int{}
+	for _, node := range pod {
+		finalCounts = append(finalCounts, countMap[node.Name]+deployMap[node.Name])
 	}
+	sort.Ints(finalCounts)
+	assert.ElementsMatch(t, []int{1, 1, 1, 2}, finalCounts)
+
 }
 
 func TestMaxIdleNode(t *testing.T) {
@@ -1219,10 +1222,11 @@ func TestSelectStorageNodesSequence(t *testing.T) {
 	res, deployMap, err := SelectStorageNodes(k, scheduleInfos, nil, stor, 1, false)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(res))
-	assert.Equal(t, 1, deployMap[res[0].Name])
 	assert.Equal(t, 1, res[0].Capacity)
-	assert.Equal(t, 0, deployMap[res[1].Name])
 	assert.Equal(t, 2, res[1].Capacity)
+	counts := []int{deployMap[scheduleInfos[0].Name], deployMap[scheduleInfos[1].Name]}
+	sort.Ints(counts)
+	assert.ElementsMatch(t, []int{0, 1}, counts)
 
 	refreshPod(res, deployMap, mem, stor)
 	countMap := map[string]int{
@@ -1251,10 +1255,14 @@ func TestSelectStorageNodesSequence(t *testing.T) {
 		return
 	}
 	i, j := getLess(res)
-	assert.Equal(t, 0, deployMap[res[i].Name])
-	assert.Equal(t, 2, deployMap[res[j].Name])
-	assert.Equal(t, 1, res[i].Capacity)
-	assert.Equal(t, 0, res[j].Capacity)
+	getFinalCounts := func(deployMap, countMap map[string]int) (counts []int) {
+		for name, d := range deployMap {
+			counts = append(counts, d+countMap[name])
+		}
+		sort.Ints(counts)
+		return
+	}
+	assert.ElementsMatch(t, []int{1, 2}, getFinalCounts(deployMap, countMap))
 
 	refreshPod(res, deployMap, mem, stor)
 	countMap = map[string]int{
@@ -1268,13 +1276,6 @@ func TestSelectStorageNodesSequence(t *testing.T) {
 	assert.Equal(t, 2, len(res))
 	assert.Equal(t, 14, res[0].Capacity)
 	assert.Equal(t, 15, res[1].Capacity)
-
-	res, deployMap, err = SelectStorageNodes(k, res, countMap, int64(units.GiB), 1, false)
-	assert.NoError(t, err)
-	i, j = getLess(res)
-	assert.Equal(t, 2, len(res))
-	assert.Equal(t, 1, deployMap[res[i].Name])
-	assert.Equal(t, 0, res[i].Capacity)
 }
 
 func SelectStorageNodes(k *Potassium, scheduleInfos []resourcetypes.ScheduleInfo, countMap map[string]int, storage int64, need int, each bool) ([]resourcetypes.ScheduleInfo, map[string]int, error) {
@@ -1295,7 +1296,7 @@ func SelectStorageNodes(k *Potassium, scheduleInfos []resourcetypes.ScheduleInfo
 	for i, scheduleInfo := range scheduleInfos {
 		for _, si := range strategyInfos {
 			if si.Nodename == scheduleInfo.Name {
-				scheduleInfos[i].Capacity = si.Capacity
+				scheduleInfos[i].Capacity = si.Capacity - deployMap[si.Nodename]
 			}
 		}
 	}

@@ -86,7 +86,7 @@ func TestDeploy(t *testing.T) {
 		return nil, nil
 	}
 	_, err = Deploy(opts, nil, 2, types.ResourceCPU)
-	assert.Nil(t, err)
+	assert.Error(t, err)
 }
 
 func TestNewInfos(t *testing.T) {

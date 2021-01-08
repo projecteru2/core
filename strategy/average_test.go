@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/projecteru2/core/types"
@@ -10,22 +11,15 @@ import (
 func TestAveragePlan(t *testing.T) {
 	// 正常的
 	nodes := deployedNodes()
-	originCap := map[string]int{}
-	for _, v := range nodes {
-		originCap[v.Nodename] = v.Capacity
-	}
 	r, err := AveragePlan(nodes, 1, 0, 0, types.ResourceAll)
 	assert.NoError(t, err)
-	for i := range r {
-		assert.Equal(t, r[i], 1)
-		capacity := 0
-		for _, si := range nodes {
-			if si.Nodename == i {
-				capacity = si.Capacity
-			}
-		}
-		assert.Equal(t, capacity, originCap[i]-1)
+	finalCounts := []int{}
+	for _, node := range nodes {
+		finalCounts = append(finalCounts, node.Count+r[node.Nodename])
 	}
+	sort.Ints(finalCounts)
+	assert.ElementsMatch(t, []int{3, 4, 6, 8}, finalCounts)
+
 	// nodes len < limit
 	nodes = deployedNodes()
 	_, err = AveragePlan(nodes, 100, 0, 5, types.ResourceAll)
