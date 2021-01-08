@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	"fmt"
 	"math/rand"
 	"sort"
 	"testing"
@@ -91,38 +92,57 @@ func Benchmark_CommunismPlan(b *testing.B) {
 }
 
 func TestCommunismPlanCapacityPriority(t *testing.T) {
-	nodes := []Info{
-		{
-			Nodename: "n1",
-			Capacity: 1,
-			Count:    0,
-		},
-		{
-			Nodename: "n2",
-			Capacity: 2,
-			Count:    0,
-		},
-		{
-			Nodename: "n3",
-			Capacity: 1,
-			Count:    0,
-		},
-		{
-			Nodename: "n4",
-			Capacity: 5,
-			Count:    0,
-		},
-		{
-			Nodename: "n5",
-			Capacity: 10,
-			Count:    0,
-		},
+	genNodesByCapCount := func(caps, counts []int) (infos []Info) {
+		for i := range caps {
+			infos = append(infos, Info{
+				Nodename: fmt.Sprintf("%d", i),
+				Capacity: caps[i],
+				Count:    counts[i],
+			})
+		}
+		return
 	}
+	getFinalStatus := func(deploy map[string]int, infos []Info) (counts []int) {
+		for _, info := range infos {
+			counts = append(counts, info.Count+deploy[info.Nodename])
+		}
+		sort.Ints(counts)
+		return
+	}
+
+	nodes := genNodesByCapCount([]int{1, 2, 1, 5, 10}, []int{0, 0, 0, 0, 0})
 	deploy, err := CommunismPlan(nodes, 3, 15, 0, types.ResourceAll)
 	assert.Nil(t, err)
-	total := 0
-	for _, d := range deploy {
-		total += d
-	}
-	assert.EqualValues(t, 3, total)
+	assert.ElementsMatch(t, []int{0, 0, 1, 1, 1}, getFinalStatus(deploy, nodes))
+	assert.EqualValues(t, 1, deploy["1"])
+	assert.EqualValues(t, 1, deploy["3"])
+	assert.EqualValues(t, 1, deploy["4"])
+
+	nodes = genNodesByCapCount([]int{10, 4, 4}, []int{1, 1, 10})
+	deploy, err = CommunismPlan(nodes, 5, 100, 0, types.ResourceAll)
+	assert.Nil(t, err)
+	assert.ElementsMatch(t, []int{3, 4, 10}, getFinalStatus(deploy, nodes))
+	assert.EqualValues(t, 3, deploy["0"])
+	assert.EqualValues(t, 2, deploy["1"])
+
+	nodes = genNodesByCapCount([]int{4, 5, 4, 10}, []int{2, 2, 4, 0})
+	deploy, err = CommunismPlan(nodes, 3, 100, 0, types.ResourceAll)
+	assert.Nil(t, err)
+	assert.ElementsMatch(t, []int{2, 2, 3, 4}, getFinalStatus(deploy, nodes))
+	assert.EqualValues(t, 3, deploy["3"])
+
+	nodes = genNodesByCapCount([]int{3, 4, 5, 10}, []int{0, 0, 0, 0})
+	deploy, err = CommunismPlan(nodes, 3, 100, 0, types.ResourceAll)
+	assert.Nil(t, err)
+	assert.ElementsMatch(t, []int{0, 1, 1, 1}, getFinalStatus(deploy, nodes))
+	assert.EqualValues(t, 1, deploy["3"])
+	assert.EqualValues(t, 1, deploy["2"])
+	assert.EqualValues(t, 1, deploy["1"])
+
+	// test limit
+	nodes = genNodesByCapCount([]int{3, 4, 5, 10}, []int{3, 5, 7, 10})
+	deploy, err = CommunismPlan(nodes, 3, 10, 5, types.ResourceAll)
+	assert.EqualError(t, err, "not enough resource")
+	deploy, err = CommunismPlan(nodes, 3, 10, 6, types.ResourceAll)
+	assert.Nil(t, err)
 }
