@@ -83,36 +83,9 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 }
 
 // RegisterService put /services/{address}
-func (m *Mercury) RegisterService(ctx context.Context, serviceAddress string, expire time.Duration) error {
+func (m *Mercury) RegisterService(ctx context.Context, serviceAddress string, expire time.Duration) (<-chan struct{}, func(), error) {
 	key := fmt.Sprintf(serviceStatusKey, serviceAddress)
-	lease, err := m.cliv3.Grant(ctx, int64(expire/time.Second))
-	if err != nil {
-		return err
-	}
-	tr, err := m.cliv3.Txn(ctx).
-		If(clientv3.Compare(clientv3.Version(key), "!=", 0)).
-		Then(clientv3.OpGet(key)).
-		Else(clientv3.OpPut(key, "", clientv3.WithLease(lease.ID))).
-		Commit()
-	if err != nil {
-		return err
-	}
-	if !tr.Succeeded {
-		return nil
-	}
-	oldLeaseID := clientv3.LeaseID(tr.Responses[0].GetResponseRange().Kvs[0].Lease)
-	if _, err = m.cliv3.Revoke(ctx, lease.ID); err != nil {
-		log.Warnf("[RegisterService] revoke lease failed %v", err)
-	}
-	_, err = m.cliv3.KeepAliveOnce(ctx, oldLeaseID)
-	return err
-}
-
-// UnregisterService del /services/{address}
-func (m *Mercury) UnregisterService(ctx context.Context, serviceAddress string) error {
-	key := fmt.Sprintf(serviceStatusKey, serviceAddress)
-	_, err := m.Delete(ctx, key)
-	return err
+	return m.StartEphemeral(ctx, key, expire)
 }
 
 func parseServiceKey(key []byte) (endpoint string) {
