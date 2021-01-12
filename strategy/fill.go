@@ -7,39 +7,38 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 // FillPlan deploy workload each node
-// 根据之前部署的策略每一台补充到 N 个，超过 N 个忽略
-// need 是每台上限, limit 是限制节点数
+// 根据之前部署的策略每一台补充到 N 个，已经超过 N 个的节点视为已满足
+// need 是每台上限, limit 是限制节点数, 保证最终状态至少有 limit*need 个实例
 func FillPlan(infos []Info, need, total, limit int, resourceType types.ResourceType) (map[string]int, error) {
-	log.Debugf("[FillPlan] need %d limit %d", need, limit)
+	log.Debugf("[FillPlan] need %d limit %d infos", need, limit, infos)
 	scheduleInfosLength := len(infos)
 	if scheduleInfosLength < limit {
 		return nil, errors.WithStack(types.NewDetailedErr(types.ErrInsufficientRes,
 			fmt.Sprintf("node len %d cannot alloc a fill node plan", scheduleInfosLength)))
 	}
-	strategyInfos := make([]Info, scheduleInfosLength)
-	copy(strategyInfos, infos)
-	sort.Slice(strategyInfos, func(i, j int) bool { return strategyInfos[i].Count > strategyInfos[j].Count })
-	p := sort.Search(scheduleInfosLength, func(i int) bool { return strategyInfos[i].Count < need })
-	if p == scheduleInfosLength {
-		return nil, errors.WithStack(types.ErrAlreadyFilled)
-	}
-	strategyInfos = scoreSort(strategyInfos[p:], resourceType)
-	if limit > 0 && len(strategyInfos) > limit {
-		strategyInfos = strategyInfos[:limit]
-	}
-	deployMap := make(map[string]int)
-	for i, strategyInfo := range strategyInfos {
-		diff := need - strategyInfos[i].Count
-		if strategyInfos[i].Capacity < diff {
-			return nil, errors.WithStack(types.NewDetailedErr(types.ErrInsufficientRes,
-				fmt.Sprintf("node %s cannot alloc a fill node plan", strategyInfos[i].Nodename)))
+	sort.Slice(infos, func(i, j int) bool {
+		if infos[i].Count == infos[j].Count {
+			return infos[i].Capacity > infos[j].Capacity
 		}
-		strategyInfos[i].Capacity -= diff
-		deployMap[strategyInfo.Nodename] += diff
+		return infos[i].Count > infos[j].Count
+	})
+	deployMap := make(map[string]int)
+	for _, info := range infos {
+		if info.Count+info.Capacity >= need {
+			deployMap[info.Nodename] += utils.Max(need-info.Count, 0)
+			limit -= 1
+			if limit == 0 {
+				return deployMap, nil
+			}
+		}
 	}
-	log.Debugf("[FillPlan] resource: %v, strategyInfos: %v", resourceType, strategyInfos)
+	if limit > 0 {
+		return nil, errors.WithStack(types.NewDetailedErr(types.ErrInsufficientRes,
+			fmt.Sprintf("insufficient nodes to fill %d, %d more nodes needed", need, limit)))
+	}
 	return deployMap, nil
 }
