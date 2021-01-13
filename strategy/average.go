@@ -12,7 +12,7 @@ import (
 // AveragePlan deploy workload each node
 // 容量够的机器每一台部署 N 个
 // need 是每台机器所需总量，limit 是限制节点数, 保证本轮增量部署 need*limit 个实例
-func AveragePlan(infos []Info, need, total, limit int, resourceType types.ResourceType) (map[string]int, error) {
+func AveragePlan(infos []Info, need, total, limit int) (map[string]int, error) {
 	log.Debugf("[AveragePlan] need %d limit %d infos %v", need, limit, infos)
 	scheduleInfosLength := len(infos)
 	if scheduleInfosLength < limit {

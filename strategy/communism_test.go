@@ -139,6 +139,10 @@ func TestCommunismPlanCapacityPriority(t *testing.T) {
 	assert.EqualValues(t, 1, deploy["2"])
 	assert.EqualValues(t, 1, deploy["1"])
 
+	nodes = genNodesByCapCount([]int{1, 1, 1, 1}, []int{0, 0, 0, 0})
+	_, err = CommunismPlan(nodes, 5, 100, 0, types.ResourceAll)
+	assert.Nil(t, err)
+
 	// test limit
 	nodes = genNodesByCapCount([]int{3, 4, 5, 10}, []int{3, 5, 7, 10})
 	deploy, err = CommunismPlan(nodes, 3, 10, 5, types.ResourceAll)

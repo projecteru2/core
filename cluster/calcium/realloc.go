@@ -40,7 +40,7 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 func (c *Calcium) doReallocOnNode(ctx context.Context, nodename string, workload *types.Workload, rrs resourcetypes.ResourceRequests) error {
 	return c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 		node.RecycleResources(&workload.ResourceMeta)
-		_, total, plans, err := resources.SelectNodesByResourceRequests(rrs, map[string]*types.Node{node.Name: node})
+		total, plans, err := resources.SelectNodesByResourceRequests(rrs, map[string]*types.Node{node.Name: node})
 		if err != nil {
 			return errors.WithStack(err)
 		}
