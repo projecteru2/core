@@ -9,6 +9,7 @@ const supported = 3
 // ResourceRequests .
 type ResourceRequests [supported]ResourceRequest
 
+// MainResourceType calculates main resource type
 func (rr ResourceRequests) MainResourceType() (mainType types.ResourceType) {
 	for _, req := range rr {
 		if req.Type()&types.ResourceCPUBind != 0 {
@@ -24,6 +25,7 @@ func (rr ResourceRequests) MainResourceType() (mainType types.ResourceType) {
 	return mainType
 }
 
+// MainRateOnNode calculates resource consumption rate for this request on a node
 func (rr ResourceRequests) MainRateOnNode(node types.Node) (rate float64) {
 	mainType := rr.MainResourceType()
 	for _, req := range rr {
@@ -34,6 +36,7 @@ func (rr ResourceRequests) MainRateOnNode(node types.Node) (rate float64) {
 	return
 }
 
+// MainUsageOnNode calculates current resource usage rate based on MainType
 func (rr ResourceRequests) MainUsageOnNode(node types.Node) (usage float64) {
 	mainType := rr.MainResourceType()
 	for t, use := range node.ResourceUsages() {

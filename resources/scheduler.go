@@ -33,5 +33,5 @@ func SelectNodesByResourceRequests(resourceRequests resourcetypes.ResourceReques
 		plans = append(plans, plan)
 		total = utils.Min(total, subTotal)
 	}
-	return // nolint:nakedret
+	return
 }

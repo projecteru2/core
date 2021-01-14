@@ -12,9 +12,13 @@ import (
 // AveragePlan deploy workload each node
 // 容量够的机器每一台部署 N 个
 // need 是每台机器所需总量，limit 是限制节点数, 保证本轮增量部署 need*limit 个实例
+// limit = 0 即对所有节点部署
 func AveragePlan(infos []Info, need, total, limit int) (map[string]int, error) {
 	log.Debugf("[AveragePlan] need %d limit %d infos %v", need, limit, infos)
 	scheduleInfosLength := len(infos)
+	if limit == 0 {
+		limit = scheduleInfosLength
+	}
 	if scheduleInfosLength < limit {
 		return nil, errors.WithStack(types.NewDetailedErr(types.ErrInsufficientRes,
 			fmt.Sprintf("node len %d < limit, cannot alloc an average node plan", scheduleInfosLength)))
@@ -26,15 +30,11 @@ func AveragePlan(infos []Info, need, total, limit int) (map[string]int, error) {
 	if p == 0 {
 		return nil, errors.WithStack(types.NewDetailedErr(types.ErrInsufficientCap, "insufficient nodes, at least 1 needed"))
 	}
-	if limit > 0 && limit > p {
+	if p < limit {
 		return nil, types.NewDetailedErr(types.ErrInsufficientRes, fmt.Sprintf("insufficient nodes, %d more needed", limit-p))
 	}
 	deployMap := map[string]int{}
-	n := len(strategyInfos)
-	if limit > 0 {
-		n = limit
-	}
-	for _, strategyInfo := range strategyInfos[:n] {
+	for _, strategyInfo := range strategyInfos[:limit] {
 		deployMap[strategyInfo.Nodename] += need
 	}
 
