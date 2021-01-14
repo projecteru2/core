@@ -1,4 +1,4 @@
-package etcdv3
+package meta
 
 import (
 	"context"
@@ -11,13 +11,13 @@ import (
 )
 
 // StartEphemeral starts an empheral kv pair.
-func (m *Mercury) StartEphemeral(ctx context.Context, path string, heartbeat time.Duration) (<-chan struct{}, func(), error) {
-	lease, err := m.cliv3.Grant(ctx, int64(heartbeat/time.Second))
+func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.Duration) (<-chan struct{}, func(), error) {
+	lease, err := e.cliv3.Grant(ctx, int64(heartbeat/time.Second))
 	if err != nil {
 		return nil, nil, err
 	}
 
-	switch tx, err := m.cliv3.Txn(ctx).
+	switch tx, err := e.cliv3.Txn(ctx).
 		If(clientv3.Compare(clientv3.Version(path), "=", 0)).
 		Then(clientv3.OpPut(path, "", clientv3.WithLease(lease.ID))).
 		Commit(); {
@@ -37,7 +37,7 @@ func (m *Mercury) StartEphemeral(ctx context.Context, path string, heartbeat tim
 		defer tick.Stop()
 
 		revoke := func() {
-			if _, err := m.cliv3.Revoke(context.Background(), lease.ID); err != nil {
+			if _, err := e.cliv3.Revoke(context.Background(), lease.ID); err != nil {
 				log.Errorf("[StartEphemeral] revoke %d with %s failed: %v", lease.ID, path, err)
 			}
 		}
@@ -45,7 +45,7 @@ func (m *Mercury) StartEphemeral(ctx context.Context, path string, heartbeat tim
 		for {
 			select {
 			case <-tick.C:
-				if _, err := m.cliv3.KeepAliveOnce(context.Background(), lease.ID); err != nil {
+				if _, err := e.cliv3.KeepAliveOnce(context.Background(), lease.ID); err != nil {
 					log.Errorf("[StartEphemeral] keepalive %d with %s failed: %v", lease.ID, path, err)
 					revoke()
 					return
