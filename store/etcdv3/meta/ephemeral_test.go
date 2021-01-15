@@ -1,4 +1,4 @@
-package etcdv3
+package meta
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 )
 
 func TestEphemeral(t *testing.T) {
-	m := NewMercury(t)
+	m := NewEmbeddedETCD(t)
 	defer m.TerminateEmbededStorage()
 
 	ctx := context.Background()
@@ -52,7 +52,7 @@ func TestEphemeral(t *testing.T) {
 }
 
 func TestEphemeralFailedAsPutAlready(t *testing.T) {
-	m := NewMercury(t)
+	m := NewEmbeddedETCD(t)
 	defer m.TerminateEmbededStorage()
 
 	ctx := context.Background()
@@ -70,7 +70,7 @@ func TestEphemeralFailedAsPutAlready(t *testing.T) {
 }
 
 func TestEphemeralMustRevokeAfterKeepaliveFailed(t *testing.T) {
-	m := NewMercury(t)
+	m := NewEmbeddedETCD(t)
 
 	ctx := context.Background()
 	path := "/ident"

@@ -153,7 +153,7 @@ func (m *Mercury) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
 		data[fmt.Sprintf(nodePodKey, node.Podname, node.Name)] = d
 	}
 
-	_, err := m.batchUpdate(ctx, data)
+	_, err := m.BatchUpdate(ctx, data)
 	return errors.WithStack(err)
 }
 
@@ -244,7 +244,7 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 	data[fmt.Sprintf(nodeInfoKey, name)] = d
 	data[fmt.Sprintf(nodePodKey, podname, name)] = d
 
-	_, err = m.batchCreate(ctx, data)
+	_, err = m.BatchCreate(ctx, data)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +267,7 @@ func (m *Mercury) doRemoveNode(ctx context.Context, podname, nodename, endpoint 
 	}
 
 	_cache.Delete(nodename)
-	_, err := m.batchDelete(ctx, keys)
+	_, err := m.BatchDelete(ctx, keys)
 	log.Infof("[doRemoveNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 	return err
 }
