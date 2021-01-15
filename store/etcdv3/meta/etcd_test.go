@@ -2,12 +2,62 @@ package meta
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
-	"github.com/projecteru2/core/types"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.etcd.io/etcd/clientv3"
+
+	"github.com/projecteru2/core/store/etcdv3/meta/mocks"
+	"github.com/projecteru2/core/types"
 )
+
+func TestGetOneError(t *testing.T) {
+	e := NewMockedETCD(t)
+	expErr := fmt.Errorf("exp")
+	e.cliv3.(*mocks.ETCDClientV3).On("Get", mock.Anything, mock.Anything).Return(nil, expErr).Once()
+	kv, err := e.GetOne(context.Background(), "foo")
+	require.Equal(t, expErr, err)
+	require.Nil(t, kv)
+}
+
+func TestGetOneFailedAsRespondMore(t *testing.T) {
+	e := NewMockedETCD(t)
+	expResp := &clientv3.GetResponse{Count: 2}
+	e.cliv3.(*mocks.ETCDClientV3).On("Get", mock.Anything, mock.Anything).Return(expResp, nil).Once()
+	kv, err := e.GetOne(context.Background(), "foo")
+	require.Error(t, err)
+	require.Nil(t, kv)
+}
+
+func TestGetMultiWithNoKeys(t *testing.T) {
+	e := NewEmbeddedETCD(t)
+	defer e.TerminateEmbededStorage()
+	kvs, err := e.GetMulti(context.Background(), []string{})
+	require.NoError(t, err)
+	require.Equal(t, 0, len(kvs))
+}
+
+func TestGetMultiFailedAsBatchGetError(t *testing.T) {
+	e := NewMockedETCD(t)
+	expErr := fmt.Errorf("exp")
+	expTxn := &mocks.Txn{}
+	expTxn.On("Then", mock.Anything).Return(expTxn).Once()
+	expTxn.On("Else", mock.Anything).Return(expTxn).Once()
+	expTxn.On("Commit").Return(nil, expErr).Once()
+	e.cliv3.(*mocks.ETCDClientV3).On("Txn", mock.Anything).Return(expTxn)
+	kvs, err := e.GetMulti(context.Background(), []string{"foo"})
+	require.Equal(t, expErr, err)
+	require.Nil(t, kvs)
+}
+
+func NewMockedETCD(t *testing.T) *ETCD {
+	e := NewEmbeddedETCD(t)
+	e.cliv3 = &mocks.ETCDClientV3{}
+	e.TerminateEmbededStorage()
+	return e
+}
 
 func NewEmbeddedETCD(t *testing.T) *ETCD {
 	config := types.EtcdConfig{
