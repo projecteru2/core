@@ -29,7 +29,7 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 			}
 		} else {
 			var infos []strategy.Info
-			_, msg.Total, _, infos, err = c.doCalculateCapacity(nodeMap, opts)
+			msg.Total, _, infos, err = c.doCalculateCapacity(nodeMap, opts)
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -42,27 +42,27 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 }
 
 func (c *Calcium) doCalculateCapacity(nodeMap map[string]*types.Node, opts *types.DeployOptions) (
-	types.ResourceType, int,
+	int,
 	[]resourcetypes.ResourcePlans,
 	[]strategy.Info,
 	error,
 ) {
 	if len(nodeMap) == 0 {
-		return 0, 0, nil, nil, errors.WithStack(types.ErrInsufficientNodes)
+		return 0, nil, nil, errors.WithStack(types.ErrInsufficientNodes)
 	}
 
 	resourceRequests, err := resources.MakeRequests(opts.ResourceOpts)
 	if err != nil {
-		return 0, 0, nil, nil, errors.WithStack(err)
+		return 0, nil, nil, errors.WithStack(err)
 	}
 
 	// select available nodes
-	scheduleType, total, plans, err := resources.SelectNodesByResourceRequests(resourceRequests, nodeMap)
+	total, plans, err := resources.SelectNodesByResourceRequests(resourceRequests, nodeMap)
 	if err != nil {
-		return 0, 0, nil, nil, errors.WithStack(err)
+		return 0, nil, nil, errors.WithStack(err)
 	}
-	log.Debugf("[Calcium.doCalculateCapacity] plans: %+v, total: %v, type: %+v", plans, total, scheduleType)
+	log.Debugf("[Calcium.doCalculateCapacity] plans: %+v, total: %v", plans, total)
 
 	// deploy strategy
-	return scheduleType, total, plans, strategy.NewInfos(resourceRequests, nodeMap, plans), nil
+	return total, plans, strategy.NewInfos(resourceRequests, nodeMap, plans), nil
 }

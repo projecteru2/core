@@ -12,7 +12,6 @@ import (
 
 // SelectNodesByResourceRequests select nodes by resource requests
 func SelectNodesByResourceRequests(resourceRequests resourcetypes.ResourceRequests, nodeMap map[string]*types.Node) (
-	scheduleType types.ResourceType,
 	total int,
 	plans []resourcetypes.ResourcePlans,
 	err error,
@@ -29,22 +28,10 @@ func SelectNodesByResourceRequests(resourceRequests resourcetypes.ResourceReques
 	for _, resourceRequest := range resourceRequests {
 		plan, subTotal, err := resourceRequest.MakeScheduler()(scheduleInfos)
 		if err != nil {
-			return scheduleType, total, plans, errors.WithStack(err)
+			return total, plans, errors.WithStack(err)
 		}
 		plans = append(plans, plan)
 		total = utils.Min(total, subTotal)
-
-		// calculate schedule type
-		if resourceRequest.Type()&types.ResourceCPUBind != 0 {
-			scheduleType |= types.ResourceCPU
-		}
-		if resourceRequest.Type()&types.ResourceScheduledVolume != 0 {
-			scheduleType |= types.ResourceVolume
-		}
 	}
-
-	if scheduleType == 0 {
-		scheduleType = types.ResourceMemory
-	}
-	return // nolint:nakedret
+	return
 }

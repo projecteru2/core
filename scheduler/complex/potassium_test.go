@@ -257,12 +257,12 @@ func SelectCPUNodes(k *Potassium, scheduleInfos []resourcetypes.ScheduleInfo, co
 		return nil, nil, err
 	}
 	nodeMap := getNodeMapFromscheduleInfos(scheduleInfos)
-	sType, total, planMap, err := resources.SelectNodesByResourceRequests(rrs, nodeMap)
+	total, planMap, err := resources.SelectNodesByResourceRequests(rrs, nodeMap)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	deployMap, err := strategy.Deploy(newDeployOptions(need, each), getInfosFromscheduleInfos(scheduleInfos, planMap, countMap), total, sType)
+	deployMap, err := strategy.Deploy(newDeployOptions(need, each), getInfosFromscheduleInfos(scheduleInfos, planMap, countMap), total)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -285,12 +285,12 @@ func SelectMemoryNodes(k *Potassium, scheduleInfos []resourcetypes.ScheduleInfo,
 	if err != nil {
 		return nil, nil, err
 	}
-	sType, total, planMap, err := resources.SelectNodesByResourceRequests(rrs, getNodeMapFromscheduleInfos(scheduleInfos))
+	total, planMap, err := resources.SelectNodesByResourceRequests(rrs, getNodeMapFromscheduleInfos(scheduleInfos))
 	if err != nil {
 		return nil, nil, err
 	}
 
-	deployMap, err := strategy.Deploy(newDeployOptions(need, each), getInfosFromscheduleInfos(scheduleInfos, planMap, countMap), total, sType)
+	deployMap, err := strategy.Deploy(newDeployOptions(need, each), getInfosFromscheduleInfos(scheduleInfos, planMap, countMap), total)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -373,7 +373,7 @@ func TestSelectCPUNodesWithMemoryLimit(t *testing.T) {
 	// 测试 need 超过 each node 的 capacity
 	nodes = generateNodes(2, 2, 1024, 0, 10)
 	_, _, err = SelectCPUNodes(k, nodes, nil, 0.1, 1024, 2, true)
-	assert.EqualError(t, err, types.ErrInsufficientCap.Error())
+	assert.EqualError(t, err, "cannot alloc a each node plan, not enough capacity: insufficient nodes, at least 1 needed")
 }
 
 func TestRecurrence(t *testing.T) {
@@ -1283,13 +1283,13 @@ func SelectStorageNodes(k *Potassium, scheduleInfos []resourcetypes.ScheduleInfo
 	if err != nil {
 		return nil, nil, err
 	}
-	sType, total, planMap, err := resources.SelectNodesByResourceRequests(rrs, getNodeMapFromscheduleInfos(scheduleInfos))
+	total, planMap, err := resources.SelectNodesByResourceRequests(rrs, getNodeMapFromscheduleInfos(scheduleInfos))
 	if err != nil {
 		return nil, nil, err
 	}
 
 	strategyInfos := getInfosFromscheduleInfos(scheduleInfos, planMap, countMap)
-	deployMap, err := strategy.Deploy(newDeployOptions(need, each), strategyInfos, total, sType)
+	deployMap, err := strategy.Deploy(newDeployOptions(need, each), strategyInfos, total)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1309,12 +1309,12 @@ func SelectVolumeNodes(k *Potassium, scheduleInfos []resourcetypes.ScheduleInfo,
 		return nil, nil, err
 	}
 	nodeMap := getNodeMapFromscheduleInfos(scheduleInfos)
-	sType, total, planMap, err := resources.SelectNodesByResourceRequests(rrs, nodeMap)
+	total, planMap, err := resources.SelectNodesByResourceRequests(rrs, nodeMap)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	deployMap, err := strategy.Deploy(newDeployOptions(need, each), getInfosFromscheduleInfos(scheduleInfos, planMap, countMap), total, sType)
+	deployMap, err := strategy.Deploy(newDeployOptions(need, each), getInfosFromscheduleInfos(scheduleInfos, planMap, countMap), total)
 	if err != nil {
 		return nil, nil, err
 	}

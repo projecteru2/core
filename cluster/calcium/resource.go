@@ -144,14 +144,14 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 }
 
 func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) ([]resourcetypes.ResourcePlans, map[string]int, error) {
-	scheduleType, total, plans, strategyInfos, err := c.doCalculateCapacity(nodeMap, opts)
+	total, plans, strategyInfos, err := c.doCalculateCapacity(nodeMap, opts)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
 	if err := c.store.MakeDeployStatus(ctx, opts, strategyInfos); err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	deployMap, err := strategy.Deploy(opts, strategyInfos, total, scheduleType)
+	deployMap, err := strategy.Deploy(opts, strategyInfos, total)
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}

@@ -228,7 +228,7 @@ func TestAllocResource(t *testing.T) {
 	// Mocks for all.
 	opts.DeployStrategy = strategy.Fill
 	oldFillFunc := strategy.Plans[strategy.Fill]
-	strategy.Plans[strategy.Fill] = func(sis []strategy.Info, need, _, limit int, resourceType types.ResourceType) (map[string]int, error) {
+	strategy.Plans[strategy.Fill] = func(sis []strategy.Info, need, _, limit int) (map[string]int, error) {
 		dis := make(map[string]int)
 		for _, si := range sis {
 			dis[si.Nodename] = 3
@@ -269,7 +269,7 @@ func testAllocFailedAsWrongDeployMethod(t *testing.T, c *Calcium, opts *types.De
 func testAllocFailedAsCommonDivisionError(t *testing.T, c *Calcium, opts *types.DeployOptions, nodeMap map[string]*types.Node) {
 	opts.DeployStrategy = strategy.Auto
 	old := strategy.Plans[strategy.Auto]
-	strategy.Plans[strategy.Auto] = func(_ []strategy.Info, need, total, _ int, resourceType types.ResourceType) (map[string]int, error) {
+	strategy.Plans[strategy.Auto] = func(_ []strategy.Info, need, total, _ int) (map[string]int, error) {
 		return nil, types.ErrInsufficientRes
 	}
 	defer func() {
