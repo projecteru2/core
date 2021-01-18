@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/v3/clientv3"
 
 	"github.com/projecteru2/core/store/etcdv3/meta/mocks"
 	"github.com/projecteru2/core/types"
