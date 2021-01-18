@@ -215,7 +215,7 @@ class Workload(object):
         if not self._belong_pod(nodename):
             return
 
-        self.workloads.update(wrk_id)
+        self.workloads.update({wrk_id})
 
         new_key = os.path.join(self.meta.new_root_prefix, self.deploy_prefix, appname, entrypoint, nodename, wrk_id)
         wrk = self.conv(orig_value, self.node_transfer)
