@@ -164,6 +164,11 @@ func run(t *testing.T, test nodeSchdulerTest) {
 	r := &types.ResourceMeta{}
 	_, err = plans.Dispense(opts, r)
 	assert.Nil(t, err)
+
+	opts.Index = 20001
+	_, err = plans.Dispense(opts, r)
+	assert.EqualError(t, err, "cannot alloc a each node plan, not enough capacity")
+
 }
 
 type requestCPUNodeTest struct {
@@ -192,7 +197,8 @@ func newRequestCPUNodeTest() nodeSchdulerTest {
 					NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
 					MemCap:     10240,
 				},
-				CPUPlan: []types.CPUMap{{"0": 10000, "1": 10000}},
+				CPUPlan:  []types.CPUMap{{"0": 10000, "1": 10000}},
+				Capacity: 20000,
 			},
 		},
 		cpuMap: map[string][]types.CPUMap{"TestNode": {{"0": 10000, "1": 10000}}},
@@ -262,7 +268,8 @@ func newRequestMemNodeTest(reqOpt types.ResourceOptions) nodeSchdulerTest {
 					NUMAMemory: map[string]int64{"0": 1024, "1": 1204},
 					MemCap:     10240,
 				},
-				CPUPlan: []types.CPUMap{{"0": 10000, "1": 10000}},
+				CPUPlan:  []types.CPUMap{{"0": 10000, "1": 10000}},
+				Capacity: 20000,
 			},
 		},
 		reqOpt: reqOpt,

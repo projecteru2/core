@@ -313,6 +313,12 @@ func testStoragePlans(t *testing.T, reqOpts types.ResourceOptions) {
 	_, err = plans.Dispense(opts, r)
 	assert.Nil(t, err)
 
+	assert.Nil(t, plans.(ResourcePlans).GetPlan(""))
+
+	opts.Name = "not_exist"
+	_, err = plans.Dispense(opts, r)
+	assert.EqualError(t, err, "cannot alloc a each node plan, not enough capacity")
+
 	if reqOpts.VolumeRequest[0].SizeInBytes != reqOpts.VolumeLimit[0].SizeInBytes {
 		diff := reqOpts.VolumeLimit[0].SizeInBytes - reqOpts.VolumeRequest[0].SizeInBytes
 		assert.Equal(t, int64(512)+diff, r.VolumePlanLimit[*reqOpts.VolumeLimit[0]]["/dev0"])

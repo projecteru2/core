@@ -61,15 +61,56 @@ func TestCalculateCapacity(t *testing.T) {
 			Capacity: 10,
 		},
 	}
-	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, 5, nil)
-	sched.On("SelectStorageNodes", mock.Anything, mock.Anything).Return(scheduleInfos, 5, nil)
-	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(scheduleInfos, nil, 5, nil)
-	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, 5, nil).Twice()
+	sched.On("SelectStorageNodes", mock.Anything, mock.Anything).Return(scheduleInfos, 5, nil).Twice()
+	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(scheduleInfos, nil, 5, nil).Twice()
+	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
 	r, err := c.CalculateCapacity(ctx, opts)
 	assert.NoError(t, err)
 	assert.Equal(t, r.Total, 5)
 	opts.DeployStrategy = strategy.Dummy
 	r, err = c.CalculateCapacity(ctx, opts)
 	assert.NoError(t, err)
-	assert.Equal(t, r.Total, 5)
+	assert.Equal(t, r.Total, 10)
+	sched.AssertExpectations(t)
+	store.AssertExpectations(t)
+
+	// test for total calculation
+	// fixed on pull/322
+	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return([]resourcetypes.ScheduleInfo{{
+		NodeMeta: types.NodeMeta{Name: "n1"},
+		Capacity: 1,
+	}}, 1, nil).Once()
+	sched.On("SelectStorageNodes", mock.Anything, mock.Anything).Return([]resourcetypes.ScheduleInfo{{
+		NodeMeta: types.NodeMeta{Name: "n2"},
+		Capacity: 1,
+	}}, 1, nil).Once()
+	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return([]resourcetypes.ScheduleInfo{{
+		NodeMeta: types.NodeMeta{Name: "n3"},
+		Capacity: 1,
+	}}, nil, 1, nil).Once()
+	r, err = c.CalculateCapacity(ctx, opts)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, r.Total)
+	sched.AssertExpectations(t)
+	store.AssertExpectations(t)
+
+	// continue
+	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return([]resourcetypes.ScheduleInfo{{
+		NodeMeta: types.NodeMeta{Name: "n1"},
+		Capacity: 1,
+	}}, 1, nil).Once()
+	sched.On("SelectStorageNodes", mock.Anything, mock.Anything).Return([]resourcetypes.ScheduleInfo{{
+		NodeMeta: types.NodeMeta{Name: "n1"},
+		Capacity: 1,
+	}}, 1, nil).Once()
+	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return([]resourcetypes.ScheduleInfo{{
+		NodeMeta: types.NodeMeta{Name: "n2"},
+		Capacity: 1,
+	}}, nil, 1, nil).Once()
+	r, err = c.CalculateCapacity(ctx, opts)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, r.Total)
+	sched.AssertExpectations(t)
+	store.AssertExpectations(t)
 }
