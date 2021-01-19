@@ -51,16 +51,18 @@ type Cluster interface {
 	ListPodNodes(ctx context.Context, podname string, labels map[string]string, all bool) ([]*types.Node, error)
 	GetNode(ctx context.Context, nodename string) (*types.Node, error)
 	SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error)
+	SetNodeStatus(ctx context.Context, nodename string, ttl int64) error
+	NodeStatusStream(ctx context.Context) chan *types.NodeStatus
 	// node resource
 	NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error)
 	// calculate capacity
 	CalculateCapacity(context.Context, *types.DeployOptions) (*types.CapacityMessage, error)
 	// meta workloads
-	GetWorkload(ctx context.Context, ID string) (*types.Workload, error)
-	GetWorkloads(ctx context.Context, IDs []string) ([]*types.Workload, error)
+	GetWorkload(ctx context.Context, id string) (*types.Workload, error)
+	GetWorkloads(ctx context.Context, ids []string) ([]*types.Workload, error)
 	ListWorkloads(ctx context.Context, opts *types.ListWorkloadsOptions) ([]*types.Workload, error)
 	ListNodeWorkloads(ctx context.Context, nodename string, labels map[string]string) ([]*types.Workload, error)
-	GetWorkloadsStatus(ctx context.Context, IDs []string) ([]*types.StatusMeta, error)
+	GetWorkloadsStatus(ctx context.Context, ids []string) ([]*types.StatusMeta, error)
 	SetWorkloadsStatus(ctx context.Context, status []*types.StatusMeta, ttls map[string]int64) ([]*types.StatusMeta, error)
 	WorkloadStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.WorkloadStatus
 	// file methods
@@ -73,9 +75,9 @@ type Cluster interface {
 	// workload methods
 	CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error)
 	ReplaceWorkload(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceWorkloadMessage, error)
-	RemoveWorkload(ctx context.Context, IDs []string, force bool, step int) (chan *types.RemoveWorkloadMessage, error)
-	DissociateWorkload(ctx context.Context, IDs []string) (chan *types.DissociateWorkloadMessage, error)
-	ControlWorkload(ctx context.Context, IDs []string, t string, force bool) (chan *types.ControlWorkloadMessage, error)
+	RemoveWorkload(ctx context.Context, ids []string, force bool, step int) (chan *types.RemoveWorkloadMessage, error)
+	DissociateWorkload(ctx context.Context, ids []string) (chan *types.DissociateWorkloadMessage, error)
+	ControlWorkload(ctx context.Context, ids []string, t string, force bool) (chan *types.ControlWorkloadMessage, error)
 	ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorkloadOptions, inCh <-chan []byte) chan *types.AttachWorkloadMessage
 	ReallocResource(ctx context.Context, opts *types.ReallocOptions) error
 	LogStream(ctx context.Context, opts *types.LogStreamOptions) (chan *types.LogStreamMessage, error)

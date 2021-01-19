@@ -202,3 +202,12 @@ type NodeResource struct {
 	Diffs             []string
 	Workloads         []*Workload
 }
+
+// NodeStatus wraps node status
+// only used for node status stream
+type NodeStatus struct {
+	Nodename string
+	Podname  string
+	Alive    bool
+	Error    error
+}

@@ -9,7 +9,7 @@ GO_LDFLAGS ?= -s -X $(REPO_PATH)/version.REVISION=$(REVISION) \
 			  -X $(REPO_PATH)/version.VERSION=$(VERSION)
 
 grpc:
-	cd ./rpc/gen/; protoc --go_out=plugins=grpc:. core.proto
+	protoc --proto_path=./rpc/gen --go_out=plugins=grpc:./rpc/gen --go_opt=module=github.com/projecteru2/core/rpc/gen core.proto
 
 deps:
 	env GO111MODULE=on go mod download
@@ -23,8 +23,10 @@ build: deps binary
 test: deps unit-test
 
 mock: deps
-	mockery -dir ./vendor/google.golang.org/grpc -name ServerStream -output 3rdmocks
-	mockery -dir vendor/github.com/docker/docker/client -name APIClient -output engine/docker/mocks
+	mockery --dir ./vendor/google.golang.org/grpc --name ServerStream --output 3rdmocks
+	mockery --dir vendor/github.com/docker/docker/client --name APIClient --output engine/docker/mocks
+	mockery --dir store --output store/mocks --name Store
+	mockery --dir cluster --output cluster/mocks --name Cluster
 
 .ONESHELL:
 

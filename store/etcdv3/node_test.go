@@ -3,7 +3,9 @@ package etcdv3
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
@@ -215,4 +217,77 @@ func TestUpdateNodeResource(t *testing.T) {
 	assert.Error(t, m.UpdateNodeResource(ctx, node, nil, "wtf"))
 	assert.NoError(t, m.UpdateNodeResource(ctx, node, &types.ResourceMeta{CPU: map[string]int64{"0": 100}}, store.ActionIncr))
 	assert.NoError(t, m.UpdateNodeResource(ctx, node, &types.ResourceMeta{CPU: map[string]int64{"0": 100}}, store.ActionDecr))
+}
+
+func TestExtractNodename(t *testing.T) {
+	assert := assert.New(t)
+	assert.Equal(extractNodename("/nodestatus/testname"), "testname")
+}
+
+func TestSetNodeStatus(t *testing.T) {
+	assert := assert.New(t)
+	m := NewMercury(t)
+	defer m.TerminateEmbededStorage()
+
+	node := &types.Node{
+		NodeMeta: types.NodeMeta{
+			Name:     "testname",
+			Endpoint: "ep",
+			Podname:  "testpod",
+		},
+	}
+	assert.NoError(m.SetNodeStatus(context.TODO(), node, 1))
+	key := filepath.Join(nodeStatusPrefix, node.Name)
+
+	// not expired yet
+	_, err := m.GetOne(context.TODO(), key)
+	assert.NoError(err)
+	// expired
+	time.Sleep(2000 * time.Millisecond)
+	_, err = m.GetOne(context.TODO(), key)
+	assert.Error(err)
+}
+
+func TestNodeStatusStream(t *testing.T) {
+	assert := assert.New(t)
+	m := NewMercury(t)
+	defer m.TerminateEmbededStorage()
+
+	node := &types.Node{
+		NodeMeta: types.NodeMeta{
+			Name:     "testname",
+			Endpoint: "ep",
+			Podname:  "testpod",
+		},
+	}
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+			time.Sleep(500 * time.Millisecond)
+			assert.NoError(m.SetNodeStatus(context.TODO(), node, 1))
+		}
+	}()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	ch := m.NodeStatusStream(ctx)
+	go func() {
+		time.Sleep(3000 * time.Millisecond)
+		cancel()
+	}()
+
+	statuses := []*types.NodeStatus{}
+	for s := range ch {
+		statuses = append(statuses, s)
+	}
+	for _, s := range statuses[:len(statuses)-1] {
+		assert.True(s.Alive)
+	}
+	assert.False(statuses[len(statuses)-1].Alive)
 }
