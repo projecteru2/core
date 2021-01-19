@@ -213,7 +213,7 @@ func getNodeMapFromscheduleInfos(scheduleInfos []resourcetypes.ScheduleInfo) map
 	return nodeMap
 }
 
-func getInfosFromscheduleInfos(scheduleInfos []resourcetypes.ScheduleInfo, planMap []resourcetypes.ResourcePlans, countMap map[string]int) (strategyInfos []strategy.Info) {
+func getInfosFromscheduleInfos(scheduleInfos []resourcetypes.ScheduleInfo, planMap []resourcetypes.ResourcePlans, countMap map[string]int) (strategyInfos []strategy.Info, total int) {
 	if countMap == nil {
 		countMap = map[string]int{}
 	}
@@ -231,13 +231,14 @@ func getInfosFromscheduleInfos(scheduleInfos []resourcetypes.ScheduleInfo, planM
 		if capacity == 0 {
 			continue
 		}
+		total += capacity
 		strategyInfos = append(strategyInfos, strategy.Info{
 			Nodename: scheduleInfo.Name,
 			Count:    countMap[scheduleInfo.Name],
 			Capacity: capacity,
 		})
 	}
-	return strategyInfos
+	return
 }
 
 func newDeployOptions(need int, each bool) *types.DeployOptions {
@@ -257,12 +258,13 @@ func SelectCPUNodes(k *Potassium, scheduleInfos []resourcetypes.ScheduleInfo, co
 		return nil, nil, err
 	}
 	nodeMap := getNodeMapFromscheduleInfos(scheduleInfos)
-	total, planMap, err := resources.SelectNodesByResourceRequests(rrs, nodeMap)
+	planMap, err := resources.SelectNodesByResourceRequests(rrs, nodeMap)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	deployMap, err := strategy.Deploy(newDeployOptions(need, each), getInfosFromscheduleInfos(scheduleInfos, planMap, countMap), total)
+	infos, total := getInfosFromscheduleInfos(scheduleInfos, planMap, countMap)
+	deployMap, err := strategy.Deploy(newDeployOptions(need, each), infos, total)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -285,12 +287,13 @@ func SelectMemoryNodes(k *Potassium, scheduleInfos []resourcetypes.ScheduleInfo,
 	if err != nil {
 		return nil, nil, err
 	}
-	total, planMap, err := resources.SelectNodesByResourceRequests(rrs, getNodeMapFromscheduleInfos(scheduleInfos))
+	planMap, err := resources.SelectNodesByResourceRequests(rrs, getNodeMapFromscheduleInfos(scheduleInfos))
 	if err != nil {
 		return nil, nil, err
 	}
 
-	deployMap, err := strategy.Deploy(newDeployOptions(need, each), getInfosFromscheduleInfos(scheduleInfos, planMap, countMap), total)
+	infos, total := getInfosFromscheduleInfos(scheduleInfos, planMap, countMap)
+	deployMap, err := strategy.Deploy(newDeployOptions(need, each), infos, total)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1283,12 +1286,12 @@ func SelectStorageNodes(k *Potassium, scheduleInfos []resourcetypes.ScheduleInfo
 	if err != nil {
 		return nil, nil, err
 	}
-	total, planMap, err := resources.SelectNodesByResourceRequests(rrs, getNodeMapFromscheduleInfos(scheduleInfos))
+	planMap, err := resources.SelectNodesByResourceRequests(rrs, getNodeMapFromscheduleInfos(scheduleInfos))
 	if err != nil {
 		return nil, nil, err
 	}
 
-	strategyInfos := getInfosFromscheduleInfos(scheduleInfos, planMap, countMap)
+	strategyInfos, total := getInfosFromscheduleInfos(scheduleInfos, planMap, countMap)
 	deployMap, err := strategy.Deploy(newDeployOptions(need, each), strategyInfos, total)
 	if err != nil {
 		return nil, nil, err
@@ -1309,12 +1312,13 @@ func SelectVolumeNodes(k *Potassium, scheduleInfos []resourcetypes.ScheduleInfo,
 		return nil, nil, err
 	}
 	nodeMap := getNodeMapFromscheduleInfos(scheduleInfos)
-	total, planMap, err := resources.SelectNodesByResourceRequests(rrs, nodeMap)
+	planMap, err := resources.SelectNodesByResourceRequests(rrs, nodeMap)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	deployMap, err := strategy.Deploy(newDeployOptions(need, each), getInfosFromscheduleInfos(scheduleInfos, planMap, countMap), total)
+	infos, total := getInfosFromscheduleInfos(scheduleInfos, planMap, countMap)
+	deployMap, err := strategy.Deploy(newDeployOptions(need, each), infos, total)
 	if err != nil {
 		return nil, nil, err
 	}

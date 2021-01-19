@@ -91,6 +91,9 @@ func (rp ResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...int) 
 
 // Dispense .
 func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions, r *types.ResourceMeta) (*types.ResourceMeta, error) {
+	if rp.capacity[opts.Node.Name] <= opts.Index {
+		return nil, errors.WithStack(types.ErrInsufficientCap)
+	}
 	r.StorageLimit = rp.limit
 	r.StorageRequest = rp.request
 	return r, nil

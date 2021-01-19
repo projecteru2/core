@@ -71,7 +71,8 @@ func TestStorage(t *testing.T) {
 					MemCap:     10240,
 					StorageCap: 10240,
 				},
-				CPUPlan: []types.CPUMap{{"0": 10000, "1": 10000}},
+				CPUPlan:  []types.CPUMap{{"0": 10000, "1": 10000}},
+				Capacity: 1,
 			},
 		}
 	)
@@ -127,4 +128,8 @@ func TestStorage(t *testing.T) {
 	r := &types.ResourceMeta{}
 	_, err = plans.Dispense(opts, r)
 	assert.Nil(t, err)
+
+	opts.Node.Name = "TestNode1"
+	_, err = plans.Dispense(opts, r)
+	assert.EqualError(t, err, "cannot alloc a each node plan, not enough capacity")
 }
