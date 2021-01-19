@@ -153,18 +153,19 @@ func (rp ResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...int) 
 
 // Dispense .
 func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions, r *types.ResourceMeta) (*types.ResourceMeta, error) {
+	if rp.capacity[opts.Node.Name] <= opts.Index {
+		return nil, errors.WithStack(types.ErrInsufficientCap)
+	}
 	r.CPUQuotaLimit = rp.CPUQuotaLimit
 	r.CPUQuotaRequest = rp.CPUQuotaRequest
 	r.MemoryLimit = rp.memoryLimit
 	r.MemoryRequest = rp.memoryRequest
 
 	if len(rp.CPUPlans) > 0 {
-		if _, ok := rp.CPUPlans[opts.Node.Name]; !ok {
+		if p, ok := rp.CPUPlans[opts.Node.Name]; !ok || len(p) <= opts.Index {
 			return nil, errors.WithStack(types.ErrInsufficientCPU)
 		}
-		if len(rp.CPUPlans[opts.Node.Name]) <= opts.Index {
-			return nil, errors.WithStack(types.ErrInsufficientCPU)
-		}
+
 		r.CPU = rp.CPUPlans[opts.Node.Name][opts.Index]
 		r.NUMANode = opts.Node.GetNUMANode(r.CPU)
 	}

@@ -42,10 +42,10 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 }
 
 func (c *Calcium) doCalculateCapacity(nodeMap map[string]*types.Node, opts *types.DeployOptions) (
-	int,
-	[]resourcetypes.ResourcePlans,
-	[]strategy.Info,
-	error,
+	total int,
+	plans []resourcetypes.ResourcePlans,
+	infos []strategy.Info,
+	err error,
 ) {
 	if len(nodeMap) == 0 {
 		return 0, nil, nil, errors.WithStack(types.ErrInsufficientNodes)
@@ -57,12 +57,15 @@ func (c *Calcium) doCalculateCapacity(nodeMap map[string]*types.Node, opts *type
 	}
 
 	// select available nodes
-	total, plans, err := resources.SelectNodesByResourceRequests(resourceRequests, nodeMap)
-	if err != nil {
+	if plans, err = resources.SelectNodesByResourceRequests(resourceRequests, nodeMap); err != nil {
 		return 0, nil, nil, errors.WithStack(err)
 	}
 	log.Debugf("[Calcium.doCalculateCapacity] plans: %+v, total: %v", plans, total)
 
 	// deploy strategy
-	return total, plans, strategy.NewInfos(resourceRequests, nodeMap, plans), nil
+	infos = strategy.NewInfos(resourceRequests, nodeMap, plans)
+	for _, info := range infos {
+		total += info.Capacity
+	}
+	return
 }
