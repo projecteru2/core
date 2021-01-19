@@ -35,9 +35,9 @@ func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.Distrib
 	}
 }
 
-func (c *Calcium) withWorkloadLocked(ctx context.Context, ID string, f func(context.Context, *types.Workload) error) error {
-	return c.withWorkloadsLocked(ctx, []string{ID}, func(ctx context.Context, workloads map[string]*types.Workload) error {
-		if c, ok := workloads[ID]; ok {
+func (c *Calcium) withWorkloadLocked(ctx context.Context, id string, f func(context.Context, *types.Workload) error) error {
+	return c.withWorkloadsLocked(ctx, []string{id}, func(ctx context.Context, workloads map[string]*types.Workload) error {
+		if c, ok := workloads[id]; ok {
 			return f(ctx, c)
 		}
 		return types.ErrWorkloadNotExists
@@ -53,11 +53,11 @@ func (c *Calcium) withNodeLocked(ctx context.Context, nodename string, f func(co
 	})
 }
 
-func (c *Calcium) withWorkloadsLocked(ctx context.Context, IDs []string, f func(context.Context, map[string]*types.Workload) error) error {
+func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(context.Context, map[string]*types.Workload) error) error {
 	workloads := map[string]*types.Workload{}
 	locks := map[string]lock.DistributedLock{}
 	defer func() { c.doUnlockAll(context.Background(), locks) }()
-	cs, err := c.GetWorkloads(ctx, IDs)
+	cs, err := c.GetWorkloads(ctx, ids)
 	if err != nil {
 		return err
 	}

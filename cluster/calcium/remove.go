@@ -14,7 +14,7 @@ import (
 
 // RemoveWorkload remove workloads
 // returns a channel that contains removing responses
-func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool, step int) (chan *types.RemoveWorkloadMessage, error) {
+func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, step int) (chan *types.RemoveWorkloadMessage, error) {
 	ch := make(chan *types.RemoveWorkloadMessage)
 	if step < 1 {
 		step = 1
@@ -24,12 +24,12 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool, 
 		defer close(ch)
 		wg := sync.WaitGroup{}
 		defer wg.Wait()
-		for i, ID := range IDs {
+		for i, id := range ids {
 			wg.Add(1)
-			go func(ID string) {
+			go func(id string) {
 				defer wg.Done()
-				ret := &types.RemoveWorkloadMessage{WorkloadID: ID, Success: false, Hook: []*bytes.Buffer{}}
-				if err := c.withWorkloadLocked(ctx, ID, func(ctx context.Context, workload *types.Workload) error {
+				ret := &types.RemoveWorkloadMessage{WorkloadID: id, Success: false, Hook: []*bytes.Buffer{}}
+				if err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
 					return c.withNodeLocked(ctx, workload.Nodename, func(ctx context.Context, node *types.Node) (err error) {
 						return utils.Txn(
 							ctx,
@@ -48,13 +48,13 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool, 
 						)
 					})
 				}); err != nil {
-					log.Errorf("[RemoveWorkload] Remove workload %s failed, err: %v", ID, err)
+					log.Errorf("[RemoveWorkload] Remove workload %s failed, err: %v", id, err)
 					ret.Hook = append(ret.Hook, bytes.NewBufferString(err.Error()))
 				} else {
 					ret.Success = true
 				}
 				ch <- ret
-			}(ID)
+			}(id)
 			if (i+1)%step == 0 {
 				log.Info("[RemoveWorkload] Wait for previous tasks done")
 				wg.Wait()
@@ -83,8 +83,8 @@ func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload
 }
 
 // 同步地删除容器, 在某些需要等待的场合异常有用!
-func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, IDs []string) error {
-	ch, err := c.RemoveWorkload(ctx, IDs, true, 1)
+func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, ids []string) error {
+	ch, err := c.RemoveWorkload(ctx, ids, true, 1)
 	if err != nil {
 		return err
 	}

@@ -12,18 +12,18 @@ import (
 )
 
 // ControlWorkload control workloads status
-func (c *Calcium) ControlWorkload(ctx context.Context, IDs []string, t string, force bool) (chan *types.ControlWorkloadMessage, error) {
+func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, force bool) (chan *types.ControlWorkloadMessage, error) {
 	ch := make(chan *types.ControlWorkloadMessage)
 
 	go func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
-		for _, ID := range IDs {
+		for _, id := range ids {
 			wg.Add(1)
-			go func(ID string) {
+			go func(id string) {
 				defer wg.Done()
 				var message []*bytes.Buffer
-				err := c.withWorkloadLocked(ctx, ID, func(ctx context.Context, workload *types.Workload) error {
+				err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
 					var err error
 					switch t {
 					case cluster.WorkloadStop:
@@ -44,16 +44,16 @@ func (c *Calcium) ControlWorkload(ctx context.Context, IDs []string, t string, f
 					return types.ErrUnknownControlType
 				})
 				if err == nil {
-					log.Infof("[ControlWorkload] Workload %s %s", ID, t)
+					log.Infof("[ControlWorkload] Workload %s %s", id, t)
 					log.Info("[ControlWorkload] Hook Output:")
 					log.Info(string(utils.MergeHookOutputs(message)))
 				}
 				ch <- &types.ControlWorkloadMessage{
-					WorkloadID: ID,
+					WorkloadID: id,
 					Error:      err,
 					Hook:       message,
 				}
-			}(ID)
+			}(id)
 		}
 		wg.Wait()
 	}()

@@ -164,11 +164,11 @@ func withImageBuiltChannel(f func(chan *types.BuildImageMessage)) chan *types.Bu
 	return ch
 }
 
-func cleanupNodeImages(node *types.Node, IDs []string, ttl time.Duration) {
+func cleanupNodeImages(node *types.Node, ids []string, ttl time.Duration) {
 	ctx, cancel := context.WithTimeout(context.Background(), ttl)
 	defer cancel()
-	for _, ID := range IDs {
-		if _, err := node.Engine.ImageRemove(ctx, ID, false, true); err != nil {
+	for _, id := range ids {
+		if _, err := node.Engine.ImageRemove(ctx, id, false, true); err != nil {
 			log.Errorf("[BuildImage] Remove image error: %s", err)
 		}
 	}
