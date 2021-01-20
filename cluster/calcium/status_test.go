@@ -80,3 +80,57 @@ func TestWorkloadStatusStream(t *testing.T) {
 		assert.Equal(t, c.Delete, true)
 	}
 }
+
+func TestSetNodeStatus(t *testing.T) {
+	assert := assert.New(t)
+	c := NewTestCluster()
+	ctx := context.Background()
+	store := c.store.(*storemocks.Store)
+
+	node := &types.Node{
+		NodeMeta: types.NodeMeta{
+			Name:     "testname",
+			Endpoint: "ep",
+		},
+	}
+	// failed
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
+	assert.Error(c.SetNodeStatus(ctx, node.Name, 10))
+	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
+	// failed by SetWorkloadStatus
+	store.On("SetNodeStatus",
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+	).Return(types.ErrBadCount).Once()
+	assert.Error(c.SetNodeStatus(ctx, node.Name, 10))
+	// success
+	store.On("SetNodeStatus",
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+	).Return(nil)
+	assert.NoError(c.SetNodeStatus(ctx, node.Name, 10))
+}
+
+func TestNodeStatusStream(t *testing.T) {
+	assert := assert.New(t)
+	c := NewTestCluster()
+	ctx := context.Background()
+	dataCh := make(chan *types.NodeStatus)
+	store := c.store.(*storemocks.Store)
+
+	store.On("NodeStatusStream", mock.Anything).Return(dataCh)
+	go func() {
+		msg := &types.NodeStatus{
+			Alive: true,
+		}
+		dataCh <- msg
+		close(dataCh)
+	}()
+
+	ch := c.NodeStatusStream(ctx)
+	for c := range ch {
+		assert.True(c.Alive)
+	}
+}

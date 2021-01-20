@@ -21,21 +21,21 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 		defer close(ch)
 		wg := &sync.WaitGroup{}
 
-		for _, ID := range opts.IDs {
-			log.Infof("[Send] Send files to %s", ID)
+		for _, id := range opts.IDs {
+			log.Infof("[Send] Send files to %s", id)
 			wg.Add(1)
-			go func(ID string) {
+			go func(id string) {
 				defer wg.Done()
-				if err := c.withWorkloadLocked(ctx, ID, func(ctx context.Context, workload *types.Workload) error {
+				if err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
 					for dst, content := range opts.Data {
 						err := c.doSendFileToWorkload(ctx, workload.Engine, workload.ID, dst, bytes.NewBuffer(content), true, true)
-						ch <- &types.SendMessage{ID: ID, Path: dst, Error: err}
+						ch <- &types.SendMessage{ID: id, Path: dst, Error: err}
 					}
 					return nil
 				}); err != nil {
-					ch <- &types.SendMessage{ID: ID, Error: err}
+					ch <- &types.SendMessage{ID: id, Error: err}
 				}
-			}(ID)
+			}(id)
 		}
 		wg.Wait()
 	}()

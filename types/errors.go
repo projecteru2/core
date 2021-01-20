@@ -23,9 +23,10 @@ var (
 
 	ErrZeroNodes = errors.New("no nodes provide to choose some")
 
-	ErrNodeFormat   = errors.New("bad endpoint name")
-	ErrNodeExist    = errors.New("node already exists")
-	ErrNodeNotEmpty = errors.New("node not empty, still has workloads associated")
+	ErrNodeFormat    = errors.New("bad endpoint name")
+	ErrNodeExist     = errors.New("node already exists")
+	ErrNodeNotEmpty  = errors.New("node not empty, still has workloads associated")
+	ErrNodeStatusTTL = errors.New("TTL for node status should be > 0")
 
 	ErrKeyIsDir    = errors.New("key is a directory")
 	ErrKeyIsNotDir = errors.New("key is not a directory")

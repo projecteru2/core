@@ -46,18 +46,18 @@ func (m *Mercury) GetWorkload(ctx context.Context, ID string) (*types.Workload, 
 }
 
 // GetWorkloads get many workloads
-func (m *Mercury) GetWorkloads(ctx context.Context, IDs []string) (workloads []*types.Workload, err error) {
+func (m *Mercury) GetWorkloads(ctx context.Context, ids []string) (workloads []*types.Workload, err error) {
 	keys := []string{}
-	for _, ID := range IDs {
-		keys = append(keys, fmt.Sprintf(workloadInfoKey, ID))
+	for _, id := range ids {
+		keys = append(keys, fmt.Sprintf(workloadInfoKey, id))
 	}
 
 	return m.doGetWorkloads(ctx, keys)
 }
 
 // GetWorkloadStatus get workload status
-func (m *Mercury) GetWorkloadStatus(ctx context.Context, ID string) (*types.StatusMeta, error) {
-	workload, err := m.GetWorkload(ctx, ID)
+func (m *Mercury) GetWorkloadStatus(ctx context.Context, id string) (*types.StatusMeta, error) {
+	workload, err := m.GetWorkload(ctx, id)
 	if err != nil {
 		return nil, err
 	}

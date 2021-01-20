@@ -17,6 +17,7 @@ const (
 	nodeCaKey        = "/node/%s:ca"           // /node/{nodename}:ca
 	nodeCertKey      = "/node/%s:cert"         // /node/{nodename}:cert
 	nodeKeyKey       = "/node/%s:key"          // /node/{nodename}:key
+	nodeStatusPrefix = "/status:node/"         // /status:node/{nodename} -> node status key
 	nodeWorkloadsKey = "/node/%s:workloads/%s" // /node/{nodename}:workloads/{workloadID}
 
 	workloadInfoKey          = "/workloads/%s" // /workloads/{workloadID}
