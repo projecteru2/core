@@ -183,25 +183,26 @@ func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int64) 
 
 func (h *host) getFullResult(full int, resources []resourceInfo) []types.ResourceMap {
 	result := []types.ResourceMap{}
-	count, rem := len(resources)/full, len(resources)%full
-	newResources := []resourceInfo{}
-	for i := 0; i < count; i++ {
-		plan := types.ResourceMap{}
-		for j := i * full; j < i*full+full; j++ {
-			// 洗掉没配额的
-			last := resources[j].pieces - int64(h.share)
-			if last > 0 {
-				newResources = append(newResources, resourceInfo{resources[j].id, last})
+
+	for len(resources)/full > 0 {
+		count, rem := len(resources)/full, len(resources)%full
+		newResources := []resourceInfo{}
+		for i := 0; i < count; i++ {
+			plan := types.ResourceMap{}
+			for j := i * full; j < i*full+full; j++ {
+				// 洗掉没配额的
+				last := resources[j].pieces - int64(h.share)
+				if last > 0 {
+					newResources = append(newResources, resourceInfo{resources[j].id, last})
+				}
+				plan[resources[j].id] = int64(h.share)
 			}
-			plan[resources[j].id] = int64(h.share)
+			result = append(result, plan)
 		}
-		result = append(result, plan)
+
+		resources = append(newResources, resources[len(resources)-rem:]...)
 	}
 
-	newResources = append(newResources, resources[len(resources)-rem:]...)
-	if len(newResources)/full > 0 {
-		return append(result, h.getFullResult(full, newResources)...)
-	}
 	return result
 }
 
