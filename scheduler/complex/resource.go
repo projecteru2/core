@@ -183,7 +183,7 @@ func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int64) 
 
 func (h *host) getFullResult(full int, resources []resourceInfo) []types.ResourceMap {
 	result := []types.ResourceMap{}
-	count := len(resources) / full
+	count, rem := len(resources)/full, len(resources)%full
 	newResources := []resourceInfo{}
 	for i := 0; i < count; i++ {
 		plan := types.ResourceMap{}
@@ -198,6 +198,7 @@ func (h *host) getFullResult(full int, resources []resourceInfo) []types.Resourc
 		result = append(result, plan)
 	}
 
+	newResources = append(newResources, resources[len(resources)-rem:]...)
 	if len(newResources)/full > 0 {
 		return append(result, h.getFullResult(full, newResources)...)
 	}
