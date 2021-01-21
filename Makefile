@@ -37,7 +37,9 @@ unit-test:
 	go vet `go list ./... | grep -v '/vendor/' | grep -v '/tools'`
 	go test -timeout 120s -count=1 -cover ./utils/... \
 	./types/... \
-	./store/etcdv3/... \
+	./store/etcdv3/. \
+	./store/etcdv3/embedded/. \
+	./store/etcdv3/meta/. \
 	./source/common/... \
 	./strategy/... \
 	./scheduler/complex/... \
