@@ -8,6 +8,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestEphemeralDeregister(t *testing.T) {
+	m := NewEmbeddedETCD(t)
+	defer m.TerminateEmbededStorage()
+
+	ctx := context.Background()
+	path := "/ident"
+	heartbeat := time.Millisecond
+	expiry, stop, err := m.StartEphemeral(ctx, path, heartbeat)
+	require.NoError(t, err)
+	require.NotNil(t, stop)
+	require.NotNil(t, expiry)
+
+	kv, err := m.GetOne(ctx, path)
+	require.NoError(t, err)
+	require.Equal(t, path, string(kv.Key))
+
+	stop()
+	kv, err = m.GetOne(ctx, path)
+	require.Error(t, err)
+	require.Nil(t, kv)
+}
+
 func TestEphemeral(t *testing.T) {
 	m := NewEmbeddedETCD(t)
 	defer m.TerminateEmbededStorage()

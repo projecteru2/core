@@ -2,12 +2,34 @@ package etcdv3
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestRegisterServiceWithDeregister(t *testing.T) {
+	m := NewMercury(t)
+	defer m.TerminateEmbededStorage()
+
+	ctx := context.Background()
+	svc := "svc"
+	path := fmt.Sprintf(serviceStatusKey, svc)
+	_, deregister, err := m.RegisterService(ctx, svc, time.Minute)
+	assert.NoError(t, err)
+
+	kv, err := m.GetOne(ctx, path)
+	assert.NoError(t, err)
+	assert.Equal(t, path, string(kv.Key))
+
+	deregister()
+	//time.Sleep(time.Second)
+	kv, err = m.GetOne(ctx, path)
+	assert.Error(t, err)
+	assert.Nil(t, kv)
+}
 
 func TestServiceStatusStream(t *testing.T) {
 	m := NewMercury(t)
