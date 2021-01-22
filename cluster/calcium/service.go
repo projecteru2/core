@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -30,10 +31,21 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 		return
 	}
 
-	expiry, unregisterService, err := c.registerService(ctx, serviceAddress)
-	if err != nil {
-		log.Errorf("[RegisterService] failed to first register service: %v", err)
-		return
+	var (
+		expiry            <-chan struct{}
+		unregisterService func()
+	)
+	for {
+		if expiry, unregisterService, err = c.registerService(ctx, serviceAddress); err == nil {
+			break
+		}
+		if errors.Is(err, types.ErrKeyExists) {
+			log.Debugf("[RegisterService] service key exists: %v", err)
+			time.Sleep(time.Second)
+			continue
+		}
+		log.Errorf("[RegisterService] failed to first register service: %+v", err)
+		return nil, errors.WithStack(err)
 	}
 
 	wg := &sync.WaitGroup{}

@@ -7,6 +7,7 @@ import (
 
 	"go.etcd.io/etcd/v3/clientv3"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
@@ -15,7 +16,7 @@ import (
 func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.Duration) (<-chan struct{}, func(), error) {
 	lease, err := e.cliv3.Grant(ctx, int64(heartbeat/time.Second))
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.WithStack(err)
 	}
 
 	switch tx, err := e.cliv3.Txn(ctx).
@@ -23,9 +24,9 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 		Then(clientv3.OpPut(path, "", clientv3.WithLease(lease.ID))).
 		Commit(); {
 	case err != nil:
-		return nil, nil, err
+		return nil, nil, errors.WithStack(err)
 	case !tx.Succeeded:
-		return nil, nil, types.NewDetailedErr(types.ErrKeyExists, path)
+		return nil, nil, errors.Wrap(types.ErrKeyExists, path)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
