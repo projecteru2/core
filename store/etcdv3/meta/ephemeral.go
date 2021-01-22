@@ -2,6 +2,7 @@ package meta
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"go.etcd.io/etcd/v3/clientv3"
@@ -30,7 +31,10 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 	ctx, cancel := context.WithCancel(context.Background())
 	expiry := make(chan struct{})
 
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		defer close(expiry)
 
 		tick := time.NewTicker(heartbeat / 3)
@@ -58,5 +62,8 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 		}
 	}()
 
-	return expiry, func() { cancel() }, nil
+	return expiry, func() {
+		cancel()
+		wg.Wait()
+	}, nil
 }
