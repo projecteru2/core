@@ -76,7 +76,7 @@ func TestRegisterServiceFailed(t *testing.T) {
 	defer cancel()
 
 	_, err := c.RegisterService(ctx)
-	assert.Equal(t, experr, err)
+	assert.EqualError(t, err, "error")
 }
 
 func TestWatchServiceStatus(t *testing.T) {
