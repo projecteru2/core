@@ -546,9 +546,15 @@ message SendMessage {
     string error = 3;
 }
 
+enum StdType {
+    STDOUT = 0;
+    STDERR = 1;
+}
+
 message AttachWorkloadMessage {
     string workload_id = 1;
     bytes data = 2;
+    StdType std_type = 3;
 }
 
 message RunAndWaitOptions{
