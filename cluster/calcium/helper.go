@@ -35,12 +35,15 @@ func execuateInside(ctx context.Context, client engine.API, ID, cmd, user string
 		AttachStdout: true,
 	}
 	b := []byte{}
-	execID, outStream, _, err := client.Execute(ctx, ID, execConfig)
+	execID, stdoutStream, stderrStream, _, err := client.Execute(ctx, ID, execConfig)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	for data := range processVirtualizationOutStream(ctx, outStream) {
+	for data := range processVirtualizationOutStream(ctx, stdoutStream, bufio.ScanLines, []byte{'\n'}) {
+		b = append(b, data...)
+	}
+	for data := range processVirtualizationOutStream(ctx, stderrStream, bufio.ScanLines, []byte{'\n'}) {
 		b = append(b, data...)
 	}
 
@@ -172,16 +175,21 @@ func rawProcessVirtualizationInStream(
 func processVirtualizationOutStream(
 	_ context.Context,
 	outStream io.ReadCloser,
+	scanSplitFunc bufio.SplitFunc,
+	splitBytes []byte,
+
 ) <-chan []byte {
 	outCh := make(chan []byte)
 	go func() {
-		defer outStream.Close()
 		defer close(outCh)
+		if outStream == nil {
+			return
+		}
+		defer outStream.Close()
 		scanner := bufio.NewScanner(outStream)
-		scanner.Split(bufio.ScanBytes)
+		scanner.Split(scanSplitFunc)
 		for scanner.Scan() {
-			b := scanner.Bytes()
-			outCh <- b
+			outCh <- append(scanner.Bytes(), splitBytes...)
 		}
 		if err := scanner.Err(); err != nil {
 			log.Errorf("[processVirtualizationOutStream] failed to read output from output stream: %v", err)

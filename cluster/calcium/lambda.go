@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"bufio"
 	"context"
 	"io"
 	"strconv"
@@ -78,7 +79,8 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 				})
 			}
 
-			for data := range processVirtualizationOutStream(ctx, outStream) {
+			// TODO@zc
+			for data := range processVirtualizationOutStream(ctx, outStream, bufio.ScanLines, []byte{'\n'}) {
 				runMsgCh <- &types.AttachWorkloadMessage{WorkloadID: message.WorkloadID, Data: data}
 			}
 

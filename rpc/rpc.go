@@ -49,7 +49,7 @@ func (v *Vibranium) WatchServiceStatus(_ *pb.Empty, stream pb.CoreRPC_WatchServi
 	for status := range ch {
 		s := toRPCServiceStatus(status)
 		if err = stream.Send(s); err != nil {
-			v.logUnsentMessages("WatchServicesStatus", s)
+			v.logUnsentMessages("WatchServicesStatus", err, s)
 			return err
 		}
 	}
@@ -249,7 +249,7 @@ func (v *Vibranium) ListWorkloads(opts *pb.ListWorkloadsOptions, stream pb.CoreR
 
 	for _, c := range toRPCWorkloads(stream.Context(), workloads, opts.Labels).Workloads {
 		if err = stream.Send(c); err != nil {
-			v.logUnsentMessages("ListWorkloads", c)
+			v.logUnsentMessages("ListWorkloads", err, c)
 			return err
 		}
 	}
@@ -325,7 +325,7 @@ func (v *Vibranium) WorkloadStatusStream(opts *pb.WorkloadStatusStreamOptions, s
 				}
 			}
 			if err := stream.Send(r); err != nil {
-				v.logUnsentMessages("WorkloadStatusStream", m)
+				v.logUnsentMessages("WorkloadStatusStream", err, m)
 			}
 		case <-v.rpcch:
 			return nil
@@ -350,7 +350,7 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 		if m.Error != nil {
 			msg.Error = m.Error.Error()
 			if err := stream.Send(msg); err != nil {
-				v.logUnsentMessages("Copy", m)
+				v.logUnsentMessages("Copy", err, m)
 			}
 			continue
 		}
@@ -387,14 +387,14 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 					log.Errorf("[Copy] Error during buffer resp: %v", err)
 					msg.Error = err.Error()
 					if err = stream.Send(msg); err != nil {
-						v.logUnsentMessages("Copy", m)
+						v.logUnsentMessages("Copy", err, m)
 					}
 				}
 				break
 			}
 			msg.Data = p[:n]
 			if err = stream.Send(msg); err != nil {
-				v.logUnsentMessages("Copy", m)
+				v.logUnsentMessages("Copy", err, m)
 			}
 		}
 	}
@@ -428,7 +428,7 @@ func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) err
 		}
 
 		if err := stream.Send(msg); err != nil {
-			v.logUnsentMessages("Send", m)
+			v.logUnsentMessages("Send", err, m)
 		}
 	}
 	return nil
@@ -451,7 +451,7 @@ func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 
 	for m := range ch {
 		if err = stream.Send(toRPCBuildImageMessage(m)); err != nil {
-			v.logUnsentMessages("BuildImage", m)
+			v.logUnsentMessages("BuildImage", err, m)
 		}
 	}
 	return err
@@ -469,7 +469,7 @@ func (v *Vibranium) CacheImage(opts *pb.CacheImageOptions, stream pb.CoreRPC_Cac
 
 	for m := range ch {
 		if err = stream.Send(toRPCCacheImageMessage(m)); err != nil {
-			v.logUnsentMessages("CacheImage", m)
+			v.logUnsentMessages("CacheImage", err, m)
 		}
 	}
 	return err
@@ -487,7 +487,7 @@ func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_R
 
 	for m := range ch {
 		if err = stream.Send(toRPCRemoveImageMessage(m)); err != nil {
-			v.logUnsentMessages("RemoveImage", m)
+			v.logUnsentMessages("RemoveImage", err, m)
 		}
 	}
 	return err
@@ -514,7 +514,7 @@ func (v *Vibranium) CreateWorkload(opts *pb.DeployOptions, stream pb.CoreRPC_Cre
 			log.Errorf("[Vibranium.CreateWorkload] create specific workload failed: %+v", m.Error)
 		}
 		if err = stream.Send(toRPCCreateWorkloadMessage(m)); err != nil {
-			v.logUnsentMessages("CreateWorkload", m)
+			v.logUnsentMessages("CreateWorkload", err, m)
 		}
 	}
 	return nil
@@ -537,7 +537,7 @@ func (v *Vibranium) ReplaceWorkload(opts *pb.ReplaceOptions, stream pb.CoreRPC_R
 
 	for m := range ch {
 		if err = stream.Send(toRPCReplaceWorkloadMessage(m)); err != nil {
-			v.logUnsentMessages("ReplaceWorkload", m)
+			v.logUnsentMessages("ReplaceWorkload", err, m)
 		}
 	}
 	return nil
@@ -562,7 +562,7 @@ func (v *Vibranium) RemoveWorkload(opts *pb.RemoveWorkloadOptions, stream pb.Cor
 
 	for m := range ch {
 		if err = stream.Send(toRPCRemoveWorkloadMessage(m)); err != nil {
-			v.logUnsentMessages("RemoveWorkload", m)
+			v.logUnsentMessages("RemoveWorkload", err, m)
 		}
 	}
 
@@ -586,7 +586,7 @@ func (v *Vibranium) DissociateWorkload(opts *pb.DissociateWorkloadOptions, strea
 
 	for m := range ch {
 		if err = stream.Send(toRPCDissociateWorkloadMessage(m)); err != nil {
-			v.logUnsentMessages("DissociateWorkload", m)
+			v.logUnsentMessages("DissociateWorkload", err, m)
 		}
 	}
 
@@ -613,7 +613,7 @@ func (v *Vibranium) ControlWorkload(opts *pb.ControlWorkloadOptions, stream pb.C
 
 	for m := range ch {
 		if err = stream.Send(toRPCControlWorkloadMessage(m)); err != nil {
-			v.logUnsentMessages("ControlWorkload", m)
+			v.logUnsentMessages("ControlWorkload", err, m)
 		}
 	}
 
@@ -651,7 +651,7 @@ func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) (er
 
 	for m := range v.cluster.ExecuteWorkload(stream.Context(), executeWorkloadOpts, inCh) {
 		if err = stream.Send(toRPCAttachWorkloadMessage(m)); err != nil {
-			v.logUnsentMessages("ExecuteWorkload", m)
+			v.logUnsentMessages("ExecuteWorkload", err, m)
 		}
 	}
 	return err
@@ -726,7 +726,7 @@ func (v *Vibranium) LogStream(opts *pb.LogStreamOptions, stream pb.CoreRPC_LogSt
 				return nil
 			}
 			if err = stream.Send(toRPCLogStreamMessage(m)); err != nil {
-				v.logUnsentMessages("LogStream", m)
+				v.logUnsentMessages("LogStream", err, m)
 			}
 		case <-v.rpcch:
 			return nil
@@ -795,7 +795,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		return runAndWait(func(ch <-chan *types.AttachWorkloadMessage) {
 			for m := range ch {
 				if err = stream.Send(toRPCAttachWorkloadMessage(m)); err != nil {
-					v.logUnsentMessages("RunAndWait", m)
+					v.logUnsentMessages("RunAndWait", err, m)
 				}
 			}
 		})
@@ -835,8 +835,8 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	return nil
 }
 
-func (v *Vibranium) logUnsentMessages(msgType string, msg interface{}) {
-	log.Infof("[logUnsentMessages] Unsent %s streamed message: %v", msgType, msg)
+func (v *Vibranium) logUnsentMessages(msgType string, err error, msg interface{}) {
+	log.Infof("[logUnsentMessages] Unsent %s streamed message due to %+v: %v", msgType, err, msg)
 }
 
 // New will new a new cluster instance

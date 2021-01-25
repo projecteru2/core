@@ -72,19 +72,19 @@ func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {
 }
 
 // Execute executes a command in vm
-func (v *Virt) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, outputStream io.ReadCloser, inputStream io.WriteCloser, err error) {
+func (v *Virt) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, stdout io.ReadCloser, stderr io.ReadCloser, inputStream io.WriteCloser, err error) {
 	if config.Tty {
 		flags := virttypes.AttachGuestFlags{Safe: true, Force: true}
 		stream, err := v.client.AttachGuest(ctx, target, config.Cmd, flags)
 		if err != nil {
-			return "", nil, nil, err
+			return "", nil, nil, nil, err
 		}
-		return target, ioutil.NopCloser(stream), stream, nil
+		return target, ioutil.NopCloser(stream), nil, stream, nil
 
 	}
 
 	msg, err := v.client.ExecuteGuest(ctx, target, config.Cmd)
-	return target, ioutil.NopCloser(bytes.NewReader(msg.Data)), nil, err
+	return target, ioutil.NopCloser(bytes.NewReader(msg.Data)), nil, nil, err
 
 }
 

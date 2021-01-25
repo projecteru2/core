@@ -85,10 +85,18 @@ type ReplaceWorkloadMessage struct {
 	Error  error
 }
 
+type StdType int
+
+const (
+	Stdout StdType = iota
+	Stderr StdType = iota
+)
+
 // AttachWorkloadMessage for run and wait
 type AttachWorkloadMessage struct {
 	WorkloadID string
 	Data       []byte
+	StdType
 }
 
 // PullImageMessage for cache image

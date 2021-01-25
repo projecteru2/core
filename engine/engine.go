@@ -12,7 +12,7 @@ import (
 type API interface {
 	Info(ctx context.Context) (*enginetypes.Info, error)
 
-	Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, io.ReadCloser, io.WriteCloser, error)
+	Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, stdout io.ReadCloser, stderr io.ReadCloser, stdin io.WriteCloser, _ error)
 	ExecResize(ctx context.Context, execID string, height, width uint) (err error)
 	ExecExitCode(ctx context.Context, execID string) (int, error)
 

@@ -6,7 +6,9 @@ import (
 	"io/ioutil"
 
 	dockertypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/pkg/stdcopy"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
 )
 
 // ExecCreate create a exec
@@ -45,14 +47,26 @@ func (e *Engine) execAttach(ctx context.Context, execID string, tty bool) (io.Re
 }
 
 // Execute executes a workload
-func (e *Engine) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, io.ReadCloser, io.WriteCloser, error) {
-	execID, err := e.execCreate(ctx, target, config)
-	if err != nil {
-		return "", nil, nil, err
+func (e *Engine) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, stdout io.ReadCloser, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
+	if execID, err = e.execCreate(ctx, target, config); err != nil {
+		return
 	}
 
 	reader, writer, err := e.execAttach(ctx, execID, config.Tty)
-	return execID, reader, writer, err
+	if config.Tty {
+		return execID, reader, nil, writer, err
+	}
+
+	stdout, stdout_w := io.Pipe()
+	stderr, stderr_w := io.Pipe()
+	go func() {
+		defer stdout_w.Close()
+		defer stderr_w.Close()
+		if _, err := stdcopy.StdCopy(stdout_w, stderr_w, reader); err != nil {
+			log.Errorf("[docker.Exceute] StdCopy failed: %v", err)
+		}
+	}()
+	return execID, stdout, stderr, nil, err
 }
 
 // ExecExitCode get exec return code

@@ -407,10 +407,20 @@ func toRPCDissociateWorkloadMessage(r *types.DissociateWorkloadMessage) *pb.Diss
 	return resp
 }
 
+func toRPCStdtype(stdType types.StdType) pb.StdType {
+	switch stdType {
+	case types.Stdout:
+		return pb.StdType_STDOUT
+	default:
+		return pb.StdType_STDERR
+	}
+}
+
 func toRPCAttachWorkloadMessage(msg *types.AttachWorkloadMessage) *pb.AttachWorkloadMessage {
 	return &pb.AttachWorkloadMessage{
 		WorkloadId: msg.WorkloadID,
 		Data:       msg.Data,
+		StdType:    toRPCStdtype(msg.StdType),
 	}
 }
 

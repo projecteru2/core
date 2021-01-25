@@ -9,7 +9,7 @@ import (
 )
 
 // Execute executes a cmd and attaches stdio
-func (s *SSHClient) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, reader io.ReadCloser, writer io.WriteCloser, err error) {
+func (s *SSHClient) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, stdout io.ReadCloser, stderr io.ReadCloser, writer io.WriteCloser, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }

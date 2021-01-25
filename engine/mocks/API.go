@@ -101,7 +101,7 @@ func (_m *API) ExecResize(ctx context.Context, execID string, height uint, width
 }
 
 // Execute provides a mock function with given fields: ctx, target, config
-func (_m *API) Execute(ctx context.Context, target string, config *types.ExecConfig) (string, io.ReadCloser, io.WriteCloser, error) {
+func (_m *API) Execute(ctx context.Context, target string, config *types.ExecConfig) (string, io.ReadCloser, io.ReadCloser, io.WriteCloser, error) {
 	ret := _m.Called(ctx, target, config)
 
 	var r0 string
@@ -120,23 +120,32 @@ func (_m *API) Execute(ctx context.Context, target string, config *types.ExecCon
 		}
 	}
 
-	var r2 io.WriteCloser
-	if rf, ok := ret.Get(2).(func(context.Context, string, *types.ExecConfig) io.WriteCloser); ok {
+	var r2 io.ReadCloser
+	if rf, ok := ret.Get(2).(func(context.Context, string, *types.ExecConfig) io.ReadCloser); ok {
 		r2 = rf(ctx, target, config)
 	} else {
 		if ret.Get(2) != nil {
-			r2 = ret.Get(2).(io.WriteCloser)
+			r2 = ret.Get(2).(io.ReadCloser)
 		}
 	}
 
-	var r3 error
-	if rf, ok := ret.Get(3).(func(context.Context, string, *types.ExecConfig) error); ok {
+	var r3 io.WriteCloser
+	if rf, ok := ret.Get(3).(func(context.Context, string, *types.ExecConfig) io.WriteCloser); ok {
 		r3 = rf(ctx, target, config)
 	} else {
-		r3 = ret.Error(3)
+		if ret.Get(3) != nil {
+			r3 = ret.Get(3).(io.WriteCloser)
+		}
 	}
 
-	return r0, r1, r2, r3
+	var r4 error
+	if rf, ok := ret.Get(4).(func(context.Context, string, *types.ExecConfig) error); ok {
+		r4 = rf(ctx, target, config)
+	} else {
+		r4 = ret.Error(4)
+	}
+
+	return r0, r1, r2, r3, r4
 }
 
 // ImageBuild provides a mock function with given fields: ctx, input, refs
