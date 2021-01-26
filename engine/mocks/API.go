@@ -460,36 +460,45 @@ func (_m *API) ResourceValidate(ctx context.Context, cpu float64, cpumap map[str
 	return r0
 }
 
-// VirtualizationAttach provides a mock function with given fields: ctx, ID, stream, stdin
-func (_m *API) VirtualizationAttach(ctx context.Context, ID string, stream bool, stdin bool) (io.ReadCloser, io.WriteCloser, error) {
-	ret := _m.Called(ctx, ID, stream, stdin)
+// VirtualizationAttach provides a mock function with given fields: ctx, ID, stream, openStdin
+func (_m *API) VirtualizationAttach(ctx context.Context, ID string, stream bool, openStdin bool) (io.ReadCloser, io.ReadCloser, io.WriteCloser, error) {
+	ret := _m.Called(ctx, ID, stream, openStdin)
 
 	var r0 io.ReadCloser
 	if rf, ok := ret.Get(0).(func(context.Context, string, bool, bool) io.ReadCloser); ok {
-		r0 = rf(ctx, ID, stream, stdin)
+		r0 = rf(ctx, ID, stream, openStdin)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(io.ReadCloser)
 		}
 	}
 
-	var r1 io.WriteCloser
-	if rf, ok := ret.Get(1).(func(context.Context, string, bool, bool) io.WriteCloser); ok {
-		r1 = rf(ctx, ID, stream, stdin)
+	var r1 io.ReadCloser
+	if rf, ok := ret.Get(1).(func(context.Context, string, bool, bool) io.ReadCloser); ok {
+		r1 = rf(ctx, ID, stream, openStdin)
 	} else {
 		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(io.WriteCloser)
+			r1 = ret.Get(1).(io.ReadCloser)
 		}
 	}
 
-	var r2 error
-	if rf, ok := ret.Get(2).(func(context.Context, string, bool, bool) error); ok {
-		r2 = rf(ctx, ID, stream, stdin)
+	var r2 io.WriteCloser
+	if rf, ok := ret.Get(2).(func(context.Context, string, bool, bool) io.WriteCloser); ok {
+		r2 = rf(ctx, ID, stream, openStdin)
 	} else {
-		r2 = ret.Error(2)
+		if ret.Get(2) != nil {
+			r2 = ret.Get(2).(io.WriteCloser)
+		}
 	}
 
-	return r0, r1, r2
+	var r3 error
+	if rf, ok := ret.Get(3).(func(context.Context, string, bool, bool) error); ok {
+		r3 = rf(ctx, ID, stream, openStdin)
+	} else {
+		r3 = ret.Error(3)
+	}
+
+	return r0, r1, r2, r3
 }
 
 // VirtualizationCopyFrom provides a mock function with given fields: ctx, ID, path
@@ -583,7 +592,7 @@ func (_m *API) VirtualizationInspect(ctx context.Context, ID string) (*types.Vir
 }
 
 // VirtualizationLogs provides a mock function with given fields: ctx, opts
-func (_m *API) VirtualizationLogs(ctx context.Context, opts *types.VirtualizationLogStreamOptions) (io.ReadCloser, error) {
+func (_m *API) VirtualizationLogs(ctx context.Context, opts *types.VirtualizationLogStreamOptions) (io.ReadCloser, io.ReadCloser, error) {
 	ret := _m.Called(ctx, opts)
 
 	var r0 io.ReadCloser
@@ -595,14 +604,23 @@ func (_m *API) VirtualizationLogs(ctx context.Context, opts *types.Virtualizatio
 		}
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.VirtualizationLogStreamOptions) error); ok {
+	var r1 io.ReadCloser
+	if rf, ok := ret.Get(1).(func(context.Context, *types.VirtualizationLogStreamOptions) io.ReadCloser); ok {
 		r1 = rf(ctx, opts)
 	} else {
-		r1 = ret.Error(1)
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(io.ReadCloser)
+		}
 	}
 
-	return r0, r1
+	var r2 error
+	if rf, ok := ret.Get(2).(func(context.Context, *types.VirtualizationLogStreamOptions) error); ok {
+		r2 = rf(ctx, opts)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // VirtualizationRemove provides a mock function with given fields: ctx, ID, volumes, force

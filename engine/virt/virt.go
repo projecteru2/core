@@ -218,13 +218,13 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 }
 
 // VirtualizationLogs streams a specific guest's log.
-func (v *Virt) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (reader io.ReadCloser, err error) {
-	return nil, fmt.Errorf("VirtualizationLogs does not implement")
+func (v *Virt) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout io.ReadCloser, stderr io.ReadCloser, err error) {
+	return nil, nil, fmt.Errorf("VirtualizationLogs does not implement")
 }
 
 // VirtualizationAttach attaches something to a guest.
-func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (io.ReadCloser, io.WriteCloser, error) {
-	return nil, nil, fmt.Errorf("VirtualizationAttach does not implement")
+func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (io.ReadCloser, io.ReadCloser, io.WriteCloser, error) {
+	return nil, nil, nil, fmt.Errorf("VirtualizationAttach does not implement")
 }
 
 // VirtualizationResize resized window size

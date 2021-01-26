@@ -407,20 +407,20 @@ func toRPCDissociateWorkloadMessage(r *types.DissociateWorkloadMessage) *pb.Diss
 	return resp
 }
 
-func toRPCStdtype(stdType types.StdType) pb.StdType {
+func toRPCStdStreamType(stdType types.StdStreamType) pb.StdStreamType {
 	switch stdType {
 	case types.Stdout:
-		return pb.StdType_STDOUT
+		return pb.StdStreamType_STDOUT
 	default:
-		return pb.StdType_STDERR
+		return pb.StdStreamType_STDERR
 	}
 }
 
 func toRPCAttachWorkloadMessage(msg *types.AttachWorkloadMessage) *pb.AttachWorkloadMessage {
 	return &pb.AttachWorkloadMessage{
-		WorkloadId: msg.WorkloadID,
-		Data:       msg.Data,
-		StdType:    toRPCStdtype(msg.StdType),
+		WorkloadId:    msg.WorkloadID,
+		Data:          msg.Data,
+		StdStreamType: toRPCStdStreamType(msg.StdStreamType),
 	}
 }
 
@@ -516,8 +516,9 @@ func toRPCVolumePlan(v types.VolumePlan) map[string]*pb.Volume {
 
 func toRPCLogStreamMessage(msg *types.LogStreamMessage) *pb.LogStreamMessage {
 	r := &pb.LogStreamMessage{
-		Id:   msg.ID,
-		Data: msg.Data,
+		Id:            msg.ID,
+		Data:          msg.Data,
+		StdStreamType: toRPCStdStreamType(msg.StdStreamType),
 	}
 	if msg.Error != nil {
 		r.Error = msg.Error.Error()

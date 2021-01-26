@@ -85,18 +85,18 @@ type ReplaceWorkloadMessage struct {
 	Error  error
 }
 
-type StdType int
+type StdStreamType int
 
 const (
-	Stdout StdType = iota
-	Stderr StdType = iota
+	Stdout StdStreamType = iota
+	Stderr
 )
 
 // AttachWorkloadMessage for run and wait
 type AttachWorkloadMessage struct {
 	WorkloadID string
 	Data       []byte
-	StdType
+	StdStreamType
 }
 
 // PullImageMessage for cache image
@@ -109,11 +109,17 @@ type ReallocResourceMessage struct {
 	WorkloadID string
 }
 
+type StdStreamMessage struct {
+	Data []byte
+	StdStreamType
+}
+
 // LogStreamMessage for log stream
 type LogStreamMessage struct {
 	ID    string
 	Error error
 	Data  []byte
+	StdStreamType
 }
 
 // CapacityMessage for CalculateCapacity API output

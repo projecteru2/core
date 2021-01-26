@@ -546,7 +546,7 @@ message SendMessage {
     string error = 3;
 }
 
-enum StdType {
+enum StdStreamType {
     STDOUT = 0;
     STDERR = 1;
 }
@@ -554,7 +554,7 @@ enum StdType {
 message AttachWorkloadMessage {
     string workload_id = 1;
     bytes data = 2;
-    StdType std_type = 3;
+    StdStreamType std_stream_type = 3;
 }
 
 message RunAndWaitOptions{
@@ -588,6 +588,7 @@ message LogStreamMessage {
     string id = 1;
     string error = 2;
     bytes data = 3;
+    StdStreamType std_stream_type = 4;
 }
 
 message ExecuteWorkloadOptions {

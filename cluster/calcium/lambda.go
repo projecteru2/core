@@ -58,17 +58,19 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 				return
 			}
 
-			var outStream io.ReadCloser
-			if outStream, err = workload.Engine.VirtualizationLogs(ctx, &enginetypes.VirtualizationLogStreamOptions{
+			var stdout, stderr io.ReadCloser
+			if stdout, stderr, err = workload.Engine.VirtualizationLogs(ctx, &enginetypes.VirtualizationLogStreamOptions{
 				ID: message.WorkloadID, Follow: true, Stdout: true, Stderr: true}); err != nil {
 				log.Errorf("[RunAndWait] Can't fetch log of workload %s error %v", message.WorkloadID, err)
 				return
 			}
 
+			splitFunc, split := bufio.ScanLines, byte('\n')
+
 			// use attach if use stdin
 			if opts.OpenStdin {
 				var inStream io.WriteCloser
-				outStream, inStream, err = workload.Engine.VirtualizationAttach(ctx, message.WorkloadID, true, true)
+				stdout, stderr, inStream, err = workload.Engine.VirtualizationAttach(ctx, message.WorkloadID, true, true)
 				if err != nil {
 					log.Errorf("[RunAndWait] Can't attach workload %s error %v", message.WorkloadID, err)
 					return
@@ -77,11 +79,16 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 				processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
 					return workload.Engine.VirtualizationResize(ctx, message.WorkloadID, height, width)
 				})
+
+				splitFunc, split = bufio.ScanBytes, byte(0)
 			}
 
-			// TODO@zc
-			for data := range processVirtualizationOutStream(ctx, outStream, bufio.ScanLines, []byte{'\n'}) {
-				runMsgCh <- &types.AttachWorkloadMessage{WorkloadID: message.WorkloadID, Data: data}
+			for m := range processStdStream(ctx, stdout, stderr, splitFunc, split) {
+				runMsgCh <- &types.AttachWorkloadMessage{
+					WorkloadID:    message.WorkloadID,
+					Data:          m.Data,
+					StdStreamType: m.StdStreamType,
+				}
 			}
 
 			// wait and forward exitcode

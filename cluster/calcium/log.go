@@ -19,7 +19,7 @@ func (c *Calcium) LogStream(ctx context.Context, opts *types.LogStreamOptions) (
 			return
 		}
 
-		resp, err := workload.Engine.VirtualizationLogs(ctx, &enginetypes.VirtualizationLogStreamOptions{
+		stdout, stderr, err := workload.Engine.VirtualizationLogs(ctx, &enginetypes.VirtualizationLogStreamOptions{
 			ID:     opts.ID,
 			Tail:   opts.Tail,
 			Since:  opts.Since,
@@ -33,11 +33,10 @@ func (c *Calcium) LogStream(ctx context.Context, opts *types.LogStreamOptions) (
 			return
 		}
 
-		scanner := bufio.NewScanner(resp)
-		for scanner.Scan() {
-			data := scanner.Bytes()
-			ch <- &types.LogStreamMessage{ID: opts.ID, Data: data}
+		for m := range processStdStream(ctx, stdout, stderr, bufio.ScanLines, byte('\n')) {
+			ch <- &types.LogStreamMessage{ID: opts.ID, Data: m.Data, StdStreamType: m.StdStreamType}
 		}
 	}()
+
 	return ch, nil
 }

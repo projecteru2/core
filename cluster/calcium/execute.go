@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"strconv"
-	"sync"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -17,19 +16,12 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 
 	go func() {
 		var err error
-		chWg := sync.WaitGroup{}
 
-		chWg.Add(1)
 		defer func() {
-			defer chWg.Done()
 			if err != nil {
 				ch <- &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: []byte(err.Error())}
 			}
-		}()
-
-		go func() {
-			defer close(ch)
-			chWg.Wait()
+			close(ch)
 		}()
 
 		workload, err := c.GetWorkload(ctx, opts.WorkloadID)
@@ -49,46 +41,24 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 			Detach:       false,
 		}
 
-		execID, stdoutStream, stderrStream, inStream, err := workload.Engine.Execute(ctx, opts.WorkloadID, execConfig)
+		execID, stdout, stderr, inStream, err := workload.Engine.Execute(ctx, opts.WorkloadID, execConfig)
 		if err != nil {
 			log.Errorf("[ExecuteWorkload] Failed to attach execID: %v", err)
 			return
 		}
 
+		splitFunc, split := bufio.ScanLines, byte('\n')
 		if opts.OpenStdin {
 			processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
 				return workload.Engine.ExecResize(ctx, execID, height, width)
 			})
+			splitFunc, split = bufio.ScanBytes, byte(0)
 		}
 
-		scanSplitFunc, scanSplitBytes := bufio.ScanLines, []byte{'\n'}
-		if execConfig.Tty {
-			scanSplitFunc, scanSplitBytes = bufio.ScanBytes, []byte{}
+		for m := range processStdStream(ctx, stdout, stderr, splitFunc, split) {
+			ch <- &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: m.Data, StdStreamType: m.StdStreamType}
 		}
 
-		streamWg := sync.WaitGroup{}
-
-		chWg.Add(1)
-		streamWg.Add(1)
-		go func() {
-			defer chWg.Done()
-			defer streamWg.Done()
-			for data := range processVirtualizationOutStream(ctx, stdoutStream, scanSplitFunc, scanSplitBytes) {
-				ch <- &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: data, StdType: types.Stdout}
-			}
-		}()
-
-		chWg.Add(1)
-		streamWg.Add(1)
-		go func() {
-			defer chWg.Done()
-			defer streamWg.Done()
-			for data := range processVirtualizationOutStream(ctx, stderrStream, scanSplitFunc, scanSplitBytes) {
-				ch <- &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: data, StdType: types.Stderr}
-			}
-		}()
-
-		streamWg.Wait()
 		execCode, err := workload.Engine.ExecExitCode(ctx, execID)
 		if err != nil {
 			log.Errorf("[ExecuteWorkload] Failed to get exitcode: %v", err)

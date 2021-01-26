@@ -47,26 +47,34 @@ func (e *Engine) execAttach(ctx context.Context, execID string, tty bool) (io.Re
 }
 
 // Execute executes a workload
-func (e *Engine) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, stdout io.ReadCloser, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
+func (e *Engine) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	if execID, err = e.execCreate(ctx, target, config); err != nil {
 		return
 	}
 
 	reader, writer, err := e.execAttach(ctx, execID, config.Tty)
-	if config.Tty {
+	if err != nil {
+		return
+	}
+	if config.AttachStdin {
 		return execID, reader, nil, writer, err
 	}
 
+	stdout, stderr = e.demultiplexStdStream(reader)
+	return execID, stdout, stderr, nil, err
+}
+
+func (e *Engine) demultiplexStdStream(stdStream io.Reader) (stdout, stderr io.ReadCloser) {
 	stdout, stdout_w := io.Pipe()
 	stderr, stderr_w := io.Pipe()
 	go func() {
 		defer stdout_w.Close()
 		defer stderr_w.Close()
-		if _, err := stdcopy.StdCopy(stdout_w, stderr_w, reader); err != nil {
-			log.Errorf("[docker.Exceute] StdCopy failed: %v", err)
+		if _, err := stdcopy.StdCopy(stdout_w, stderr_w, stdStream); err != nil {
+			log.Errorf("[docker.demultiplex] StdCopy failed: %v", err)
 		}
 	}()
-	return execID, stdout, stderr, nil, err
+	return stdout, stderr
 }
 
 // ExecExitCode get exec return code
