@@ -306,6 +306,9 @@ func (c *Calcium) doDeployOneWorkload(
 				return errors.WithStack(err)
 			}
 			msg.WorkloadID = workload.ID
+			msg.WorkloadName = workload.Name
+			msg.Podname = workload.Podname
+			msg.Nodename = workload.Nodename
 			return nil
 		},
 
