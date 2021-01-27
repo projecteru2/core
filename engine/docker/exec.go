@@ -65,12 +65,12 @@ func (e *Engine) Execute(ctx context.Context, target string, config *enginetypes
 }
 
 func (e *Engine) demultiplexStdStream(stdStream io.Reader) (stdout, stderr io.ReadCloser) {
-	stdout, stdout_w := io.Pipe()
-	stderr, stderr_w := io.Pipe()
+	stdout, stdoutW := io.Pipe()
+	stderr, stderrW := io.Pipe()
 	go func() {
-		defer stdout_w.Close()
-		defer stderr_w.Close()
-		if _, err := stdcopy.StdCopy(stdout_w, stderr_w, stdStream); err != nil {
+		defer stdoutW.Close()
+		defer stderrW.Close()
+		if _, err := stdcopy.StdCopy(stdoutW, stderrW, stdStream); err != nil {
 			log.Errorf("[docker.demultiplex] StdCopy failed: %v", err)
 		}
 	}()

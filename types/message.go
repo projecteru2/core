@@ -85,10 +85,13 @@ type ReplaceWorkloadMessage struct {
 	Error  error
 }
 
+// StdStreamType shows stdout / stderr
 type StdStreamType int
 
 const (
+	// Stdout .
 	Stdout StdStreamType = iota
+	// Stderr .
 	Stderr
 )
 
@@ -109,6 +112,7 @@ type ReallocResourceMessage struct {
 	WorkloadID string
 }
 
+// StdStreamMessage embodies bytes and std type
 type StdStreamMessage struct {
 	Data []byte
 	StdStreamType
