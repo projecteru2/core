@@ -233,6 +233,16 @@ func (e *ETCD) BatchUpdate(ctx context.Context, data map[string]string, opts ...
 	return e.batchUpdate(ctx, data, opts...)
 }
 
+// Grant creates a new lease.
+func (e *ETCD) Grant(ctx context.Context, ttl int64) (*clientv3.LeaseGrantResponse, error) {
+	return e.cliv3.Grant(ctx, ttl)
+}
+
+// KeepAliveOnce keeps on a lease alive.
+func (e *ETCD) KeepAliveOnce(ctx context.Context, id clientv3.LeaseID) (*clientv3.LeaseKeepAliveResponse, error) {
+	return e.cliv3.KeepAliveOnce(ctx, id)
+}
+
 func (e *ETCD) batchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
 	limit := map[string]map[string]string{}
 	for key := range data {

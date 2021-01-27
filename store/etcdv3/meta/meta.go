@@ -14,6 +14,9 @@ import (
 type KV interface {
 	ClientV3() *clientv3.Client
 
+	Grant(ctx context.Context, ttl int64) (*clientv3.LeaseGrantResponse, error)
+	KeepAliveOnce(ctx context.Context, id clientv3.LeaseID) (*clientv3.LeaseKeepAliveResponse, error)
+
 	Get(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.GetResponse, error)
 	GetOne(ctx context.Context, key string, opts ...clientv3.OpOption) (*mvccpb.KeyValue, error)
 	GetMulti(ctx context.Context, keys []string, opts ...clientv3.OpOption) (kvs []*mvccpb.KeyValue, err error)

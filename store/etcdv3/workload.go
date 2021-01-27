@@ -80,7 +80,7 @@ func (m *Mercury) SetWorkloadStatus(ctx context.Context, workload *types.Workloa
 	lease := &clientv3.LeaseGrantResponse{}
 	cliv3 := m.ClientV3()
 	if ttl != 0 {
-		if lease, err = cliv3.Grant(ctx, ttl); err != nil {
+		if lease, err = m.Grant(ctx, ttl); err != nil {
 			return err
 		}
 		updateStatus = []clientv3.Op{clientv3.OpPut(statusKey, val, clientv3.WithLease(lease.ID))}
