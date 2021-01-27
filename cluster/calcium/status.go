@@ -44,3 +44,18 @@ func (c *Calcium) SetWorkloadsStatus(ctx context.Context, status []*types.Status
 func (c *Calcium) WorkloadStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.WorkloadStatus {
 	return c.store.WorkloadStatusStream(ctx, appname, entrypoint, nodename, labels)
 }
+
+// SetNodeStatus set status of a node
+// it's used to report whether a node is still alive
+func (c *Calcium) SetNodeStatus(ctx context.Context, nodename string, ttl int64) error {
+	node, err := c.store.GetNode(ctx, nodename)
+	if err != nil {
+		return err
+	}
+	return c.store.SetNodeStatus(ctx, node, ttl)
+}
+
+// NodeStatusStream returns a stream of node status for subscribing
+func (c *Calcium) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
+	return c.store.NodeStatusStream(ctx)
+}

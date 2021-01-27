@@ -171,7 +171,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	old := strategy.Plans[strategy.Auto]
-	strategy.Plans[strategy.Auto] = func(sis []strategy.Info, need, total, _ int, resourceType types.ResourceType) (map[string]int, error) {
+	strategy.Plans[strategy.Auto] = func(sis []strategy.Info, need, total, _ int) (map[string]int, error) {
 		deployInfos := make(map[string]int)
 		for _, si := range sis {
 			deployInfos[si.Nodename] = 1

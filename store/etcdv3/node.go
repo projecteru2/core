@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/projecteru2/core/engine"
@@ -15,8 +17,8 @@ import (
 	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	"go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/mvcc/mvccpb"
+	"go.etcd.io/etcd/v3/clientv3"
+	"go.etcd.io/etcd/v3/mvcc/mvccpb"
 )
 
 // AddNode save it to etcd
@@ -153,7 +155,7 @@ func (m *Mercury) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
 		data[fmt.Sprintf(nodePodKey, node.Podname, node.Name)] = d
 	}
 
-	_, err := m.batchUpdate(ctx, data)
+	_, err := m.BatchUpdate(ctx, data)
 	return errors.WithStack(err)
 }
 
@@ -244,7 +246,7 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 	data[fmt.Sprintf(nodeInfoKey, name)] = d
 	data[fmt.Sprintf(nodePodKey, podname, name)] = d
 
-	_, err = m.batchCreate(ctx, data)
+	_, err = m.BatchCreate(ctx, data)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +269,7 @@ func (m *Mercury) doRemoveNode(ctx context.Context, podname, nodename, endpoint 
 	}
 
 	_cache.Delete(nodename)
-	_, err := m.batchDelete(ctx, keys)
+	_, err := m.BatchDelete(ctx, keys)
 	log.Infof("[doRemoveNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 	return err
 }
@@ -290,4 +292,79 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 		}
 	}
 	return nodes, nil
+}
+
+// SetNodeStatus sets status for a node, value will expire after ttl seconds
+// ttl should be larger than 0
+// this is heartbeat of node
+func (m *Mercury) SetNodeStatus(ctx context.Context, node *types.Node, ttl int64) error {
+	if ttl <= 0 {
+		return types.ErrNodeStatusTTL
+	}
+
+	data, err := json.Marshal(types.NodeStatus{
+		Nodename: node.Name,
+		Podname:  node.Podname,
+		Alive:    true,
+	})
+	if err != nil {
+		return err
+	}
+
+	cliv3 := m.ClientV3()
+	lease, err := cliv3.Grant(ctx, ttl)
+	if err != nil {
+		return err
+	}
+
+	// nodenames are unique
+	key := filepath.Join(nodeStatusPrefix, node.Name)
+	_, err = m.Put(ctx, key, string(data), clientv3.WithLease(lease.ID))
+	return err
+}
+
+// NodeStatusStream returns a stream of node status
+// it tells you if status of a node is changed, either PUT or DELETE
+// PUT    -> Alive: true
+// DELETE -> Alive: false
+func (m *Mercury) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
+	ch := make(chan *types.NodeStatus)
+	go func() {
+		defer func() {
+			log.Info("[NodeStatusStream] close NodeStatusStream channel")
+			close(ch)
+		}()
+
+		log.Infof("[NodeStatusStream] watch on %s", nodeStatusPrefix)
+		for resp := range m.Watch(ctx, nodeStatusPrefix, clientv3.WithPrefix()) {
+			if resp.Err() != nil {
+				if !resp.Canceled {
+					log.Errorf("[NodeStatusStream] watch failed %v", resp.Err())
+				}
+				return
+			}
+			for _, event := range resp.Events {
+				nodename := extractNodename(string(event.Kv.Key))
+				status := &types.NodeStatus{
+					Nodename: nodename,
+					Alive:    event.Type != clientv3.EventTypeDelete,
+				}
+				node, err := m.GetNode(ctx, nodename)
+				if err != nil {
+					status.Error = err
+				} else {
+					status.Podname = node.Podname
+				}
+				ch <- status
+			}
+		}
+	}()
+	return ch
+}
+
+// extracts node name from key
+// /nodestatus/nodename -> nodename
+func extractNodename(s string) string {
+	ps := strings.Split(s, "/")
+	return ps[len(ps)-1]
 }

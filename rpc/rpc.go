@@ -189,6 +189,41 @@ func (v *Vibranium) SetNode(ctx context.Context, opts *pb.SetNodeOptions) (*pb.N
 	return toRPCNode(ctx, n), nil
 }
 
+// SetNodeStatus set status of a node for reporting
+func (v *Vibranium) SetNodeStatus(ctx context.Context, opts *pb.SetNodeStatusOptions) (*pb.Empty, error) {
+	err := v.cluster.SetNodeStatus(ctx, opts.Nodename, opts.Ttl)
+	return &pb.Empty{}, err
+}
+
+// NodeStatusStream watch and show deployed status
+func (v *Vibranium) NodeStatusStream(_ *pb.Empty, stream pb.CoreRPC_NodeStatusStreamServer) error {
+	log.Info("[rpc] NodeStatusStream started")
+	defer log.Info("[rpc] NodeStatusStream stopped")
+
+	ch := v.cluster.NodeStatusStream(stream.Context())
+	for {
+		select {
+		case m, ok := <-ch:
+			if !ok {
+				return nil
+			}
+			r := &pb.NodeStatusStreamMessage{
+				Nodename: m.Nodename,
+				Podname:  m.Podname,
+				Alive:    m.Alive,
+			}
+			if m.Error != nil {
+				r.Error = m.Error.Error()
+			}
+			if err := stream.Send(r); err != nil {
+				v.logUnsentMessages("NodeStatusStream", err, m)
+			}
+		case <-v.rpcch:
+			return nil
+		}
+	}
+}
+
 // GetNodeResource check node resource
 func (v *Vibranium) GetNodeResource(ctx context.Context, opts *pb.GetNodeResourceOptions) (*pb.NodeResource, error) {
 	nr, err := v.cluster.NodeResource(ctx, opts.GetOpts().Nodename, opts.Fix)

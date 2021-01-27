@@ -10,8 +10,8 @@ import (
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	"go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/mvcc/mvccpb"
+	"go.etcd.io/etcd/v3/clientv3"
+	"go.etcd.io/etcd/v3/mvcc/mvccpb"
 )
 
 // AddWorkload add a workload
@@ -46,18 +46,18 @@ func (m *Mercury) GetWorkload(ctx context.Context, ID string) (*types.Workload, 
 }
 
 // GetWorkloads get many workloads
-func (m *Mercury) GetWorkloads(ctx context.Context, IDs []string) (workloads []*types.Workload, err error) {
+func (m *Mercury) GetWorkloads(ctx context.Context, ids []string) (workloads []*types.Workload, err error) {
 	keys := []string{}
-	for _, ID := range IDs {
-		keys = append(keys, fmt.Sprintf(workloadInfoKey, ID))
+	for _, id := range ids {
+		keys = append(keys, fmt.Sprintf(workloadInfoKey, id))
 	}
 
 	return m.doGetWorkloads(ctx, keys)
 }
 
 // GetWorkloadStatus get workload status
-func (m *Mercury) GetWorkloadStatus(ctx context.Context, ID string) (*types.StatusMeta, error) {
-	workload, err := m.GetWorkload(ctx, ID)
+func (m *Mercury) GetWorkloadStatus(ctx context.Context, id string) (*types.StatusMeta, error) {
+	workload, err := m.GetWorkload(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -78,13 +78,14 @@ func (m *Mercury) SetWorkloadStatus(ctx context.Context, workload *types.Workloa
 	statusKey := filepath.Join(workloadStatusPrefix, appname, entrypoint, workload.Nodename, workload.ID)
 	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, val)}
 	lease := &clientv3.LeaseGrantResponse{}
+	cliv3 := m.ClientV3()
 	if ttl != 0 {
-		if lease, err = m.cliv3.Grant(ctx, ttl); err != nil {
+		if lease, err = cliv3.Grant(ctx, ttl); err != nil {
 			return err
 		}
 		updateStatus = []clientv3.Op{clientv3.OpPut(statusKey, val, clientv3.WithLease(lease.ID))}
 	}
-	tr, err := m.cliv3.Txn(ctx).
+	tr, err := cliv3.Txn(ctx).
 		If(clientv3.Compare(clientv3.Version(fmt.Sprintf(workloadInfoKey, workload.ID)), "!=", 0)).
 		Then( // 保证有容器
 			clientv3.OpTxn(
@@ -111,7 +112,7 @@ func (m *Mercury) SetWorkloadStatus(ctx context.Context, workload *types.Workloa
 	tr3 := tr2.Responses[0].GetResponseTxn()
 	if tr3.Succeeded && ttl != 0 { // 有 status 并且内容还跟之前一样
 		oldLeaseID := clientv3.LeaseID(tr3.Responses[0].GetResponseRange().Kvs[0].Lease) // 拿到 status 绑定的 leaseID
-		_, err := m.cliv3.KeepAliveOnce(ctx, oldLeaseID)                                 // 刷新 lease
+		_, err := cliv3.KeepAliveOnce(ctx, oldLeaseID)                                   // 刷新 lease
 		return err
 	}
 	return nil
@@ -186,7 +187,7 @@ func (m *Mercury) WorkloadStatusStream(ctx context.Context, appname, entrypoint,
 		}()
 
 		log.Infof("[WorkloadStatusStream] watch on %s", statusKey)
-		for resp := range m.watch(ctx, statusKey, clientv3.WithPrefix()) {
+		for resp := range m.Watch(ctx, statusKey, clientv3.WithPrefix()) {
 			if resp.Err() != nil {
 				if !resp.Canceled {
 					log.Errorf("[WorkloadStatusStream] watch failed %v", resp.Err())
@@ -225,7 +226,7 @@ func (m *Mercury) cleanWorkloadData(ctx context.Context, workload *types.Workloa
 		fmt.Sprintf(workloadInfoKey, workload.ID),                                                // workload info
 		fmt.Sprintf(nodeWorkloadsKey, workload.Nodename, workload.ID),                            // node workloads
 	}
-	_, err = m.batchDelete(ctx, keys)
+	_, err = m.BatchDelete(ctx, keys)
 	return err
 }
 
@@ -316,9 +317,9 @@ func (m *Mercury) doOpsWorkload(ctx context.Context, workload *types.Workload, c
 	}
 
 	if create {
-		_, err = m.batchCreate(ctx, data)
+		_, err = m.BatchCreate(ctx, data)
 	} else {
-		_, err = m.batchUpdate(ctx, data)
+		_, err = m.BatchUpdate(ctx, data)
 	}
 	return err
 }

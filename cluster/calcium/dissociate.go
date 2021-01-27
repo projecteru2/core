@@ -10,12 +10,12 @@ import (
 )
 
 // DissociateWorkload dissociate workload from eru, return it resource but not modity it
-func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *types.DissociateWorkloadMessage, error) {
+func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *types.DissociateWorkloadMessage, error) {
 	ch := make(chan *types.DissociateWorkloadMessage)
 	go func() {
 		defer close(ch)
-		for _, ID := range IDs {
-			err := c.withWorkloadLocked(ctx, ID, func(ctx context.Context, workload *types.Workload) error {
+		for _, id := range ids {
+			err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
 				return c.withNodeLocked(ctx, workload.Nodename, func(ctx context.Context, node *types.Node) (err error) {
 					return utils.Txn(
 						ctx,
@@ -35,9 +35,9 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *t
 				})
 			})
 			if err != nil {
-				log.Errorf("[DissociateWorkload] Dissociate workload %s failed, err: %v", ID, err)
+				log.Errorf("[DissociateWorkload] Dissociate workload %s failed, err: %v", id, err)
 			}
-			ch <- &types.DissociateWorkloadMessage{WorkloadID: ID, Error: err}
+			ch <- &types.DissociateWorkloadMessage{WorkloadID: id, Error: err}
 		}
 	}()
 	return ch, nil

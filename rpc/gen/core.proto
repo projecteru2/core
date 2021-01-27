@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package pb;
 
-option go_package = "github.com/projecteru2/core/rpc/gen";
+option go_package = "github.com/projecteru2/core/rpc/gen;pb";
 
 service CoreRPC {
     rpc Info(Empty) returns (CoreInfo) {};
@@ -24,6 +24,8 @@ service CoreRPC {
     rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
     rpc GetNode(GetNodeOptions) returns (Node) {};
     rpc SetNode(SetNodeOptions) returns (Node) {};
+    rpc SetNodeStatus(SetNodeStatusOptions) returns (Empty) {};
+    rpc NodeStatusStream(Empty) returns (stream NodeStatusStreamMessage) {};
 
     rpc GetNodeResource(GetNodeResourceOptions) returns (NodeResource) {};
 
@@ -172,6 +174,18 @@ message SetNodeOptions {
     map<string, string> labels = 8;
     map<string, int64> delta_volume = 9;
     bool workloads_down = 10;
+}
+
+message SetNodeStatusOptions {
+    string nodename = 1;
+    int64 ttl = 2;
+}
+
+message NodeStatusStreamMessage {
+    string nodename = 1;
+    string podname = 2;
+    bool alive = 3;
+    string error = 4;
 }
 
 message Workload {
@@ -408,7 +422,6 @@ message DeployOptions {
         FILL = 1;
         EACH = 2;
         GLOBAL = 3;
-        FILLGLOBAL = 4;
         DUMMY = 99;
     }
     string name = 1;

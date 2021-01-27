@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -29,24 +30,45 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 		log.Errorf("[RegisterService] failed to get outbound address: %v", err)
 		return
 	}
-	if err = c.registerService(ctx, serviceAddress); err != nil {
-		log.Errorf("[RegisterService] failed to first register service: %v", err)
-		return
+
+	var (
+		expiry            <-chan struct{}
+		unregisterService func()
+	)
+	for {
+		if expiry, unregisterService, err = c.registerService(ctx, serviceAddress); err == nil {
+			break
+		}
+		if errors.Is(err, types.ErrKeyExists) {
+			log.Debugf("[RegisterService] service key exists: %v", err)
+			time.Sleep(time.Second)
+			continue
+		}
+		log.Errorf("[RegisterService] failed to first register service: %+v", err)
+		return nil, errors.WithStack(err)
 	}
 
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	ctx, cancel := context.WithCancel(ctx)
 	go func() {
-		defer wg.Done()
-		defer c.unregisterService(ctx, serviceAddress) // nolint
+		defer func() {
+			unregisterService()
+			wg.Done()
+		}()
 
-		timer := time.NewTicker(c.config.GRPCConfig.ServiceHeartbeatInterval / 2)
-		defer timer.Stop()
 		for {
 			select {
-			case <-timer.C:
-				_ = c.registerService(ctx, serviceAddress)
+			case <-expiry:
+				// The original one had been expired, we're going to register again.
+				if ne, us, err := c.registerService(ctx, serviceAddress); err != nil {
+					log.Errorf("[RegisterService] failed to re-register service: %v", err)
+					time.Sleep(c.config.GRPCConfig.ServiceHeartbeatInterval)
+				} else {
+					expiry = ne
+					unregisterService = us
+				}
+
 			case <-ctx.Done():
 				log.Infof("[RegisterService] heartbeat done: %v", ctx.Err())
 				return
@@ -56,17 +78,9 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 	return func() {
 		cancel()
 		wg.Wait()
-	}, err
+	}, nil
 }
 
-func (c *Calcium) registerService(ctx context.Context, addr string) error {
-	ctx, cancel := context.WithTimeout(ctx, c.config.GRPCConfig.ServiceHeartbeatInterval)
-	defer cancel()
+func (c *Calcium) registerService(ctx context.Context, addr string) (<-chan struct{}, func(), error) {
 	return c.store.RegisterService(ctx, addr, c.config.GRPCConfig.ServiceHeartbeatInterval)
-}
-
-func (c *Calcium) unregisterService(ctx context.Context, addr string) error {
-	ctx, cancel := context.WithTimeout(ctx, c.config.GRPCConfig.ServiceHeartbeatInterval)
-	defer cancel()
-	return c.store.UnregisterService(ctx, addr)
 }

@@ -235,3 +235,28 @@ func TestCPUReallocWithPriorPlan(t *testing.T) {
 	_, _, _, err = po.ReselectCPUNodes(scheduleInfo, CPU, 2, 0)
 	assert.EqualError(t, err, "not enough resource")
 }
+
+func TestGetFullResult(t *testing.T) {
+	h := host{share: 100}
+	res := h.getFullResult(2, []resourceInfo{
+		{
+			id:     "0",
+			pieces: 400,
+		},
+		{
+			id:     "1",
+			pieces: 200,
+		},
+		{
+			id:     "2",
+			pieces: 400,
+		},
+	})
+	assert.EqualValues(t, 4, len(res))
+	assert.ElementsMatch(t, res, []types.ResourceMap{
+		{"0": 100, "1": 100},
+		{"0": 100, "1": 100},
+		{"0": 100, "2": 100},
+		{"0": 100, "2": 100},
+	})
+}
