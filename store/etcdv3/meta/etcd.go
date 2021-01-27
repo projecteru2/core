@@ -74,11 +74,6 @@ func NewETCD(config types.EtcdConfig, embeddedStorage bool) (*ETCD, error) {
 	return &ETCD{cliv3: cliv3, config: config}, nil
 }
 
-// ClientV3 gets the raw ETCD client v3.
-func (e *ETCD) ClientV3() *clientv3.Client {
-	return e.cliv3.(*clientv3.Client)
-}
-
 // TerminateEmbededStorage terminate embedded storage
 func (e *ETCD) TerminateEmbededStorage() {
 	embedded.TerminateCluster()
@@ -87,7 +82,7 @@ func (e *ETCD) TerminateEmbededStorage() {
 // CreateLock create a lock instance
 func (e *ETCD) CreateLock(key string, ttl time.Duration) (lock.DistributedLock, error) {
 	lockKey := fmt.Sprintf("%s/%s", e.config.LockPrefix, key)
-	mutex, err := etcdlock.New(e.ClientV3(), lockKey, ttl)
+	mutex, err := etcdlock.New(e.cliv3.(*clientv3.Client), lockKey, ttl)
 	return mutex, err
 }
 
@@ -241,6 +236,11 @@ func (e *ETCD) Grant(ctx context.Context, ttl int64) (*clientv3.LeaseGrantRespon
 // KeepAliveOnce keeps on a lease alive.
 func (e *ETCD) KeepAliveOnce(ctx context.Context, id clientv3.LeaseID) (*clientv3.LeaseKeepAliveResponse, error) {
 	return e.cliv3.KeepAliveOnce(ctx, id)
+}
+
+// Txn creates a new Txn
+func (e *ETCD) Txn(ctx context.Context) clientv3.Txn {
+	return e.cliv3.Txn(ctx)
 }
 
 func (e *ETCD) batchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {

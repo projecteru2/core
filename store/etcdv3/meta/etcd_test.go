@@ -70,6 +70,13 @@ func TestKeepAliveOnce(t *testing.T) {
 	require.Nil(t, resp)
 }
 
+func TestTxn(t *testing.T) {
+	e := NewMockedETCD(t)
+	expTxn := &mocks.Txn{}
+	e.cliv3.(*mocks.ETCDClientV3).On("Txn", mock.Anything).Return(expTxn)
+	require.Equal(t, expTxn, e.Txn(context.Background()))
+}
+
 func NewMockedETCD(t *testing.T) *ETCD {
 	e := NewEmbeddedETCD(t)
 	e.cliv3 = &mocks.ETCDClientV3{}
