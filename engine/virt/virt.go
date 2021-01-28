@@ -71,30 +71,20 @@ func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {
 	}, nil
 }
 
-// ExecCreate creates an execution.
-func (v *Virt) ExecCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (id string, err error) {
-	return "", fmt.Errorf("ExecCreate does not implement")
-}
-
-// ExecAttach executes an attachment.
-func (v *Virt) ExecAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error) {
-	return nil, nil, fmt.Errorf("ExecAttach does not implement")
-}
-
 // Execute executes a command in vm
-func (v *Virt) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, outputStream io.ReadCloser, inputStream io.WriteCloser, err error) {
+func (v *Virt) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, stdout io.ReadCloser, stderr io.ReadCloser, inputStream io.WriteCloser, err error) {
 	if config.Tty {
 		flags := virttypes.AttachGuestFlags{Safe: true, Force: true}
 		stream, err := v.client.AttachGuest(ctx, target, config.Cmd, flags)
 		if err != nil {
-			return "", nil, nil, err
+			return "", nil, nil, nil, err
 		}
-		return target, ioutil.NopCloser(stream), stream, nil
+		return target, ioutil.NopCloser(stream), nil, stream, nil
 
 	}
 
 	msg, err := v.client.ExecuteGuest(ctx, target, config.Cmd)
-	return target, ioutil.NopCloser(bytes.NewReader(msg.Data)), nil, err
+	return target, ioutil.NopCloser(bytes.NewReader(msg.Data)), nil, nil, err
 
 }
 
@@ -228,13 +218,13 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 }
 
 // VirtualizationLogs streams a specific guest's log.
-func (v *Virt) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (reader io.ReadCloser, err error) {
-	return nil, fmt.Errorf("VirtualizationLogs does not implement")
+func (v *Virt) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout io.ReadCloser, stderr io.ReadCloser, err error) {
+	return nil, nil, fmt.Errorf("VirtualizationLogs does not implement")
 }
 
 // VirtualizationAttach attaches something to a guest.
-func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (io.ReadCloser, io.WriteCloser, error) {
-	return nil, nil, fmt.Errorf("VirtualizationAttach does not implement")
+func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (io.ReadCloser, io.ReadCloser, io.WriteCloser, error) {
+	return nil, nil, nil, fmt.Errorf("VirtualizationAttach does not implement")
 }
 
 // VirtualizationResize resized window size

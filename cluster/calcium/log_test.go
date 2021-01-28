@@ -36,7 +36,7 @@ func TestLogStream(t *testing.T) {
 	}
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	// failed by VirtualizationLogs
-	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(nil, types.ErrNodeExist).Once()
+	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(nil, nil, types.ErrNodeExist).Once()
 	ch, err = c.LogStream(ctx, opts)
 	assert.NoError(t, err)
 	for c := range ch {
@@ -44,7 +44,7 @@ func TestLogStream(t *testing.T) {
 		assert.Empty(t, c.Data)
 	}
 	reader := bytes.NewBufferString("aaaa\nbbbb\n")
-	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(ioutil.NopCloser(reader), nil)
+	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(ioutil.NopCloser(reader), nil, nil)
 	// success
 	ch, err = c.LogStream(ctx, opts)
 	assert.NoError(t, err)

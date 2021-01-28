@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"bufio"
 	"context"
 	"strconv"
 
@@ -14,19 +15,18 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 	ch := make(chan *types.AttachWorkloadMessage)
 
 	go func() {
-		defer close(ch)
 		var err error
-		responses := []string{}
+
 		defer func() {
-			for _, resp := range responses {
-				msg := &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: []byte(resp)}
-				ch <- msg
+			if err != nil {
+				ch <- &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: []byte(err.Error())}
 			}
+			close(ch)
 		}()
 
 		workload, err := c.GetWorkload(ctx, opts.WorkloadID)
 		if err != nil {
-			responses = append(responses, err.Error())
+			log.Errorf("[ExecuteWorkload] Failed to get wordload: %v", err)
 			return
 		}
 
@@ -41,20 +41,22 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 			Detach:       false,
 		}
 
-		execID, outStream, inStream, err := workload.Engine.Execute(ctx, opts.WorkloadID, execConfig)
+		execID, stdout, stderr, inStream, err := workload.Engine.Execute(ctx, opts.WorkloadID, execConfig)
 		if err != nil {
 			log.Errorf("[ExecuteWorkload] Failed to attach execID: %v", err)
 			return
 		}
 
+		splitFunc, split := bufio.ScanLines, byte('\n')
 		if opts.OpenStdin {
 			processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
 				return workload.Engine.ExecResize(ctx, execID, height, width)
 			})
+			splitFunc, split = bufio.ScanBytes, byte(0)
 		}
 
-		for data := range processVirtualizationOutStream(ctx, outStream) {
-			ch <- &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: data}
+		for m := range processStdStream(ctx, stdout, stderr, splitFunc, split) {
+			ch <- &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: m.Data, StdStreamType: m.StdStreamType}
 		}
 
 		execCode, err := workload.Engine.ExecExitCode(ctx, execID)

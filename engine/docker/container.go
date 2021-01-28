@@ -270,7 +270,7 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 }
 
 // VirtualizationLogs show virtualization logs
-func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (io.ReadCloser, error) {
+func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout, stderr io.ReadCloser, err error) {
 	logsOpts := dockertypes.ContainerLogsOptions{
 		ShowStdout: opts.Stdout,
 		ShowStderr: opts.Stderr,
@@ -281,13 +281,17 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtu
 	}
 	resp, err := e.client.ContainerLogs(ctx, opts.ID, logsOpts)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return ioutil.NopCloser(mergeStream(resp)), nil
+	if !opts.Stderr {
+		return ioutil.NopCloser(mergeStream(resp)), nil, nil
+	}
+	stdout, stderr = e.demultiplexStdStream(resp)
+	return stdout, stderr, nil
 }
 
 // VirtualizationAttach attach to a virtualization
-func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (io.ReadCloser, io.WriteCloser, error) {
+func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (stdout, stderr io.ReadCloser, _ io.WriteCloser, err error) {
 	opts := dockertypes.ContainerAttachOptions{
 		Stream: stream,
 		Stdin:  stdin,
@@ -297,9 +301,13 @@ func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, stream, st
 	}
 	resp, err := e.client.ContainerAttach(ctx, ID, opts)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return ioutil.NopCloser(resp.Reader), resp.Conn, nil
+	if stdin {
+		return ioutil.NopCloser(resp.Reader), nil, resp.Conn, nil
+	}
+	stdout, stderr = e.demultiplexStdStream(resp.Reader)
+	return stdout, stderr, resp.Conn, nil
 }
 
 // VirtualizationResize resizes remote terminal

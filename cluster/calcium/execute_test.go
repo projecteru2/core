@@ -41,13 +41,13 @@ func TestExecuteWorkload(t *testing.T) {
 	}
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	// failed by Execute
-	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(ID, nil, nil, types.ErrCannotGetEngine).Once()
+	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(ID, nil, nil, nil, types.ErrCannotGetEngine).Once()
 	ch = c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: ID}, nil)
 	for ac := range ch {
 		assert.Equal(t, ac.WorkloadID, ID)
 	}
 	buf := ioutil.NopCloser(bytes.NewBufferString(`echo 1\n`))
-	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(ID, buf, nil, nil).Twice()
+	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(ID, buf, nil, nil, nil).Twice()
 	// failed by ExecExitCode
 	engine.On("ExecExitCode", mock.Anything, mock.Anything).Return(-1, types.ErrCannotGetEngine).Once()
 	ch = c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: ID}, nil)
@@ -67,7 +67,7 @@ func TestExecuteWorkload(t *testing.T) {
 	assert.Contains(t, string(data), "0")
 	inChan := make(chan []byte)
 	inS := &inStream{bytes.NewBufferString("")}
-	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(ID, buf, inS, nil)
+	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(ID, buf, nil, inS, nil)
 	ch = c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: ID, OpenStdin: true}, inChan)
 	inChan <- []byte("a")
 	inChan <- escapeCommand

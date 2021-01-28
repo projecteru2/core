@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -34,18 +36,13 @@ func execuateInside(ctx context.Context, client engine.API, ID, cmd, user string
 		AttachStdout: true,
 	}
 	b := []byte{}
-	execID, err := client.ExecCreate(ctx, ID, execConfig)
+	execID, stdout, stderr, _, err := client.Execute(ctx, ID, execConfig)
 	if err != nil {
-		return b, err
+		return nil, errors.WithStack(err)
 	}
 
-	outStream, _, err := client.ExecAttach(ctx, execID, false)
-	if err != nil {
-		return b, err
-	}
-
-	for data := range processVirtualizationOutStream(ctx, outStream) {
-		b = append(b, data...)
+	for m := range processStdStream(ctx, stdout, stderr, bufio.ScanLines, byte('\n')) {
+		b = append(b, m.Data...)
 	}
 
 	exitCode, err := client.ExecExitCode(ctx, execID)
@@ -176,16 +173,25 @@ func rawProcessVirtualizationInStream(
 func processVirtualizationOutStream(
 	_ context.Context,
 	outStream io.ReadCloser,
+	splitFunc bufio.SplitFunc,
+	split byte,
+
 ) <-chan []byte {
 	outCh := make(chan []byte)
 	go func() {
-		defer outStream.Close()
 		defer close(outCh)
+		if outStream == nil {
+			return
+		}
+		defer outStream.Close()
 		scanner := bufio.NewScanner(outStream)
-		scanner.Split(bufio.ScanBytes)
+		scanner.Split(splitFunc)
 		for scanner.Scan() {
-			b := scanner.Bytes()
-			outCh <- b
+			bs := scanner.Bytes()
+			if split != 0 {
+				bs = append(bs, split)
+			}
+			outCh <- bs
 		}
 		if err := scanner.Err(); err != nil {
 			log.Errorf("[processVirtualizationOutStream] failed to read output from output stream: %v", err)
@@ -215,5 +221,34 @@ func processBuildImageStream(reader io.ReadCloser) chan *types.BuildImageMessage
 			ch <- message
 		}
 	}()
+	return ch
+}
+
+func processStdStream(ctx context.Context, stdout, stderr io.ReadCloser, splitFunc bufio.SplitFunc, split byte) chan types.StdStreamMessage {
+	ch := make(chan types.StdStreamMessage)
+
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for data := range processVirtualizationOutStream(ctx, stdout, splitFunc, split) {
+			ch <- types.StdStreamMessage{Data: data, StdStreamType: types.Stdout}
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for data := range processVirtualizationOutStream(ctx, stderr, splitFunc, split) {
+			ch <- types.StdStreamMessage{Data: data, StdStreamType: types.Stderr}
+		}
+	}()
+
+	go func() {
+		defer close(ch)
+		wg.Wait()
+	}()
+
 	return ch
 }

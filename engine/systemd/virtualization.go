@@ -132,13 +132,13 @@ func (s *SSHClient) VirtualizationInspect(ctx context.Context, ID string) (info 
 }
 
 // VirtualizationLogs fetches service logs
-func (s *SSHClient) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (reader io.ReadCloser, err error) {
+func (s *SSHClient) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout io.ReadCloser, stderr io.ReadCloser, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
 
 // VirtualizationAttach attaches a service's stdio
-func (s *SSHClient) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (reader io.ReadCloser, writer io.WriteCloser, err error) {
+func (s *SSHClient) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (stdout, stderr io.ReadCloser, writer io.WriteCloser, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }

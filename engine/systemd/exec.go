@@ -8,20 +8,8 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
-// ExecCreate executes a cmd
-func (s *SSHClient) ExecCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, err error) {
-	err = types.ErrEngineNotImplemented
-	return
-}
-
-// ExecAttach attaches stdio
-func (s *SSHClient) ExecAttach(ctx context.Context, execID string, tty bool) (reader io.ReadCloser, writer io.WriteCloser, err error) {
-	err = types.ErrEngineNotImplemented
-	return
-}
-
 // Execute executes a cmd and attaches stdio
-func (s *SSHClient) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, reader io.ReadCloser, writer io.WriteCloser, err error) {
+func (s *SSHClient) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, stdout io.ReadCloser, stderr io.ReadCloser, writer io.WriteCloser, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }

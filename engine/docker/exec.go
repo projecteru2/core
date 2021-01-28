@@ -6,11 +6,13 @@ import (
 	"io/ioutil"
 
 	dockertypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/pkg/stdcopy"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
 )
 
 // ExecCreate create a exec
-func (e *Engine) ExecCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, error) {
+func (e *Engine) execCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, error) {
 	execConfig := dockertypes.ExecConfig{
 		User:         config.User,
 		Privileged:   config.Privileged,
@@ -33,7 +35,7 @@ func (e *Engine) ExecCreate(ctx context.Context, target string, config *enginety
 }
 
 // ExecAttach attach a exec
-func (e *Engine) ExecAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error) {
+func (e *Engine) execAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error) {
 	execStartCheck := dockertypes.ExecStartCheck{
 		Tty: tty,
 	}
@@ -45,14 +47,34 @@ func (e *Engine) ExecAttach(ctx context.Context, execID string, tty bool) (io.Re
 }
 
 // Execute executes a workload
-func (e *Engine) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, io.ReadCloser, io.WriteCloser, error) {
-	execID, err := e.ExecCreate(ctx, target, config)
-	if err != nil {
-		return "", nil, nil, err
+func (e *Engine) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
+	if execID, err = e.execCreate(ctx, target, config); err != nil {
+		return
 	}
 
-	reader, writer, err := e.ExecAttach(ctx, execID, config.Tty)
-	return execID, reader, writer, err
+	reader, writer, err := e.execAttach(ctx, execID, config.Tty)
+	if err != nil {
+		return
+	}
+	if config.AttachStdin {
+		return execID, reader, nil, writer, err
+	}
+
+	stdout, stderr = e.demultiplexStdStream(reader)
+	return execID, stdout, stderr, nil, err
+}
+
+func (e *Engine) demultiplexStdStream(stdStream io.Reader) (stdout, stderr io.ReadCloser) {
+	stdout, stdoutW := io.Pipe()
+	stderr, stderrW := io.Pipe()
+	go func() {
+		defer stdoutW.Close()
+		defer stderrW.Close()
+		if _, err := stdcopy.StdCopy(stdoutW, stderrW, stdStream); err != nil {
+			log.Errorf("[docker.demultiplex] StdCopy failed: %v", err)
+		}
+	}()
+	return stdout, stderr
 }
 
 // ExecExitCode get exec return code

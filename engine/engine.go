@@ -12,9 +12,7 @@ import (
 type API interface {
 	Info(ctx context.Context) (*enginetypes.Info, error)
 
-	ExecCreate(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, error)
-	ExecAttach(ctx context.Context, execID string, tty bool) (io.ReadCloser, io.WriteCloser, error)
-	Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (string, io.ReadCloser, io.WriteCloser, error)
+	Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, _ error)
 	ExecResize(ctx context.Context, execID string, height, width uint) (err error)
 	ExecExitCode(ctx context.Context, execID string) (int, error)
 
@@ -42,8 +40,8 @@ type API interface {
 	VirtualizationStop(ctx context.Context, ID string) error
 	VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) error
 	VirtualizationInspect(ctx context.Context, ID string) (*enginetypes.VirtualizationInfo, error)
-	VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (io.ReadCloser, error)
-	VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (io.ReadCloser, io.WriteCloser, error)
+	VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout, stderr io.ReadCloser, err error)
+	VirtualizationAttach(ctx context.Context, ID string, stream, openStdin bool) (stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error)
 	VirtualizationResize(ctx context.Context, ID string, height, width uint) error
 	VirtualizationWait(ctx context.Context, ID, state string) (*enginetypes.VirtualizationWaitResult, error)
 	VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error
