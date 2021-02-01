@@ -74,47 +74,10 @@ func (m *Mercury) SetWorkloadStatus(ctx context.Context, workload *types.Workloa
 	if err != nil {
 		return err
 	}
-	val := string(data)
+	statusVal := string(data)
 	statusKey := filepath.Join(workloadStatusPrefix, appname, entrypoint, workload.Nodename, workload.ID)
-	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, val)}
-	lease := &clientv3.LeaseGrantResponse{}
-	if ttl != 0 {
-		if lease, err = m.Grant(ctx, ttl); err != nil {
-			return err
-		}
-		updateStatus = []clientv3.Op{clientv3.OpPut(statusKey, val, clientv3.WithLease(lease.ID))}
-	}
-	tr, err := m.Txn(ctx).
-		If(clientv3.Compare(clientv3.Version(fmt.Sprintf(workloadInfoKey, workload.ID)), "!=", 0)).
-		Then( // 保证有容器
-			clientv3.OpTxn(
-				[]clientv3.Cmp{clientv3.Compare(clientv3.Version(statusKey), "!=", 0)}, // 判断是否有 status key
-				[]clientv3.Op{clientv3.OpTxn( // 有 status key
-					[]clientv3.Cmp{clientv3.Compare(clientv3.Value(statusKey), "=", val)},
-					[]clientv3.Op{clientv3.OpGet(statusKey)}, // status 没修改，返回 status
-					updateStatus,                             // 内容修改了就换一个 lease
-				)},
-				updateStatus, // 没有 status key
-			),
-		).Commit()
-	if err != nil {
-		return err
-	}
-	if !tr.Succeeded { // 没容器了退出
-		return nil
-	}
-	tr2 := tr.Responses[0].GetResponseTxn()
-	if !tr2.Succeeded { // 没 status key 直接 put
-		lease.ID = 0
-		return nil
-	}
-	tr3 := tr2.Responses[0].GetResponseTxn()
-	if tr3.Succeeded && ttl != 0 { // 有 status 并且内容还跟之前一样
-		oldLeaseID := clientv3.LeaseID(tr3.Responses[0].GetResponseRange().Kvs[0].Lease) // 拿到 status 绑定的 leaseID
-		_, err := m.KeepAliveOnce(ctx, oldLeaseID)                                       // 刷新 lease
-		return err
-	}
-	return nil
+	workloadKey := fmt.Sprintf(workloadInfoKey, workload.ID)
+	return m.BindStatus(ctx, workloadKey, statusKey, statusVal, ttl)
 }
 
 // ListWorkloads list workloads
