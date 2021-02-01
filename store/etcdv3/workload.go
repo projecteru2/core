@@ -78,14 +78,13 @@ func (m *Mercury) SetWorkloadStatus(ctx context.Context, workload *types.Workloa
 	statusKey := filepath.Join(workloadStatusPrefix, appname, entrypoint, workload.Nodename, workload.ID)
 	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, val)}
 	lease := &clientv3.LeaseGrantResponse{}
-	cliv3 := m.ClientV3()
 	if ttl != 0 {
-		if lease, err = cliv3.Grant(ctx, ttl); err != nil {
+		if lease, err = m.Grant(ctx, ttl); err != nil {
 			return err
 		}
 		updateStatus = []clientv3.Op{clientv3.OpPut(statusKey, val, clientv3.WithLease(lease.ID))}
 	}
-	tr, err := cliv3.Txn(ctx).
+	tr, err := m.Txn(ctx).
 		If(clientv3.Compare(clientv3.Version(fmt.Sprintf(workloadInfoKey, workload.ID)), "!=", 0)).
 		Then( // 保证有容器
 			clientv3.OpTxn(
@@ -112,7 +111,7 @@ func (m *Mercury) SetWorkloadStatus(ctx context.Context, workload *types.Workloa
 	tr3 := tr2.Responses[0].GetResponseTxn()
 	if tr3.Succeeded && ttl != 0 { // 有 status 并且内容还跟之前一样
 		oldLeaseID := clientv3.LeaseID(tr3.Responses[0].GetResponseRange().Kvs[0].Lease) // 拿到 status 绑定的 leaseID
-		_, err := cliv3.KeepAliveOnce(ctx, oldLeaseID)                                   // 刷新 lease
+		_, err := m.KeepAliveOnce(ctx, oldLeaseID)                                       // 刷新 lease
 		return err
 	}
 	return nil

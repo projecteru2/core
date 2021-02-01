@@ -52,6 +52,31 @@ func TestGetMultiFailedAsBatchGetError(t *testing.T) {
 	require.Nil(t, kvs)
 }
 
+func TestGrant(t *testing.T) {
+	e := NewMockedETCD(t)
+	expErr := fmt.Errorf("exp")
+	e.cliv3.(*mocks.ETCDClientV3).On("Grant", mock.Anything, mock.Anything).Return(nil, expErr)
+	resp, err := e.Grant(context.Background(), 1)
+	require.Equal(t, expErr, err)
+	require.Nil(t, resp)
+}
+
+func TestKeepAliveOnce(t *testing.T) {
+	e := NewMockedETCD(t)
+	expErr := fmt.Errorf("exp")
+	e.cliv3.(*mocks.ETCDClientV3).On("KeepAliveOnce", mock.Anything, mock.Anything).Return(nil, expErr)
+	resp, err := e.KeepAliveOnce(context.Background(), 1)
+	require.Equal(t, expErr, err)
+	require.Nil(t, resp)
+}
+
+func TestTxn(t *testing.T) {
+	e := NewMockedETCD(t)
+	expTxn := &mocks.Txn{}
+	e.cliv3.(*mocks.ETCDClientV3).On("Txn", mock.Anything).Return(expTxn)
+	require.Equal(t, expTxn, e.Txn(context.Background()))
+}
+
 func NewMockedETCD(t *testing.T) *ETCD {
 	e := NewEmbeddedETCD(t)
 	e.cliv3 = &mocks.ETCDClientV3{}

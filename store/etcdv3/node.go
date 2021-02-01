@@ -311,8 +311,7 @@ func (m *Mercury) SetNodeStatus(ctx context.Context, node *types.Node, ttl int64
 		return err
 	}
 
-	cliv3 := m.ClientV3()
-	lease, err := cliv3.Grant(ctx, ttl)
+	lease, err := m.Grant(ctx, ttl)
 	if err != nil {
 		return err
 	}

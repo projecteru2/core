@@ -12,7 +12,9 @@ import (
 
 // KV .
 type KV interface {
-	ClientV3() *clientv3.Client
+	Grant(ctx context.Context, ttl int64) (*clientv3.LeaseGrantResponse, error)
+	KeepAliveOnce(ctx context.Context, id clientv3.LeaseID) (*clientv3.LeaseKeepAliveResponse, error)
+	Txn(context.Context) clientv3.Txn
 
 	Get(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.GetResponse, error)
 	GetOne(ctx context.Context, key string, opts ...clientv3.OpOption) (*mvccpb.KeyValue, error)
