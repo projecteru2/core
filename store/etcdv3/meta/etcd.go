@@ -228,19 +228,65 @@ func (e *ETCD) BatchUpdate(ctx context.Context, data map[string]string, opts ...
 	return e.batchUpdate(ctx, data, opts...)
 }
 
+// KeepAliveOnce keeps on a lease alive.
+func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
+	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, statusValue)}
+	if ttl != 0 {
+		lease, err := e.Grant(ctx, ttl)
+		if err != nil {
+			return err
+		}
+		updateStatus = []clientv3.Op{clientv3.OpPut(statusKey, statusValue, clientv3.WithLease(lease.ID))}
+	}
+
+	entityTxn, err := e.cliv3.Txn(ctx).
+		If(clientv3.Compare(clientv3.Version(entityKey), "!=", 0)).
+		Then( // making sure there's an exists entity kv-pair.
+			clientv3.OpTxn(
+				[]clientv3.Cmp{clientv3.Compare(clientv3.Version(statusKey), "!=", 0)}, // Is the status exists?
+				[]clientv3.Op{clientv3.OpTxn( // there's an exists status
+					[]clientv3.Cmp{clientv3.Compare(clientv3.Value(statusKey), "=", statusValue)},
+					[]clientv3.Op{clientv3.OpGet(statusKey)}, // The status hasn't been changed.
+					updateStatus,                             // The status had been changed.
+				)},
+				updateStatus, // there isn't a status
+			),
+		).Commit()
+	if err != nil {
+		return err
+	}
+
+	// There isn't the entity kv pair.
+	if !entityTxn.Succeeded {
+		return nil
+	}
+
+	// There isn't a status bound to the entity.
+	statusTxn := entityTxn.Responses[0].GetResponseTxn()
+	if !statusTxn.Succeeded {
+		return nil
+	}
+
+	// A zero TTL means it doesn't affect anything
+	if ttl == 0 {
+		return nil
+	}
+
+	// There is a status bound to the entity yet but its value isn't same as the expected one.
+	valueTxn := statusTxn.Responses[0].GetResponseTxn()
+	if !valueTxn.Succeeded {
+		return nil
+	}
+
+	// Gets the lease ID which binds onto the status, and renew it one round.
+	origLeaseID := clientv3.LeaseID(valueTxn.Responses[0].GetResponseRange().Kvs[0].Lease)
+	_, err = e.cliv3.KeepAliveOnce(ctx, origLeaseID)
+	return err
+}
+
 // Grant creates a new lease.
 func (e *ETCD) Grant(ctx context.Context, ttl int64) (*clientv3.LeaseGrantResponse, error) {
 	return e.cliv3.Grant(ctx, ttl)
-}
-
-// KeepAliveOnce keeps on a lease alive.
-func (e *ETCD) KeepAliveOnce(ctx context.Context, id clientv3.LeaseID) (*clientv3.LeaseKeepAliveResponse, error) {
-	return e.cliv3.KeepAliveOnce(ctx, id)
-}
-
-// Txn creates a new Txn
-func (e *ETCD) Txn(ctx context.Context) clientv3.Txn {
-	return e.cliv3.Txn(ctx)
 }
 
 func (e *ETCD) batchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {

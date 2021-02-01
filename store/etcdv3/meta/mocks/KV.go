@@ -111,22 +111,6 @@ func (_m *KV) BatchUpdate(ctx context.Context, data map[string]string, opts ...c
 	return r0, r1
 }
 
-// ClientV3 provides a mock function with given fields:
-func (_m *KV) ClientV3() *clientv3.Client {
-	ret := _m.Called()
-
-	var r0 *clientv3.Client
-	if rf, ok := ret.Get(0).(func() *clientv3.Client); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*clientv3.Client)
-		}
-	}
-
-	return r0
-}
-
 // Create provides a mock function with given fields: ctx, key, val, opts
 func (_m *KV) Create(ctx context.Context, key string, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -323,27 +307,18 @@ func (_m *KV) Grant(ctx context.Context, ttl int64) (*clientv3.LeaseGrantRespons
 	return r0, r1
 }
 
-// KeepAliveOnce provides a mock function with given fields: ctx, id
-func (_m *KV) KeepAliveOnce(ctx context.Context, id clientv3.LeaseID) (*clientv3.LeaseKeepAliveResponse, error) {
-	ret := _m.Called(ctx, id)
+// KeepAliveOnce provides a mock function with given fields: ctx, entityKey, statusKey, statusValue, ttl
+func (_m *KV) KeepAliveOnce(ctx context.Context, entityKey string, statusKey string, statusValue string, ttl int64) error {
+	ret := _m.Called(ctx, entityKey, statusKey, statusValue, ttl)
 
-	var r0 *clientv3.LeaseKeepAliveResponse
-	if rf, ok := ret.Get(0).(func(context.Context, clientv3.LeaseID) *clientv3.LeaseKeepAliveResponse); ok {
-		r0 = rf(ctx, id)
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, int64) error); ok {
+		r0 = rf(ctx, entityKey, statusKey, statusValue, ttl)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*clientv3.LeaseKeepAliveResponse)
-		}
+		r0 = ret.Error(0)
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, clientv3.LeaseID) error); ok {
-		r1 = rf(ctx, id)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+	return r0
 }
 
 // Put provides a mock function with given fields: ctx, key, val, opts
