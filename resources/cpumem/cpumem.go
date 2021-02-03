@@ -64,6 +64,11 @@ func (cm *cpuMemRequest) Validate() error {
 	if cm.CPUQuotaRequest > 0 && cm.CPUQuotaLimit > 0 && cm.CPUQuotaRequest > cm.CPUQuotaLimit {
 		cm.CPUQuotaLimit = cm.CPUQuotaRequest
 	}
+	// if CPUBind=true, set cpu request=limit to solve the dilemma
+	// only deal with cpu limit>request but not vice versa
+	if cm.CPUBind && cm.CPUQuotaRequest > 0 && cm.CPUQuotaLimit > 0 && cm.CPUQuotaLimit > cm.CPUQuotaRequest {
+		cm.CPUQuotaRequest = cm.CPUQuotaLimit
+	}
 	return nil
 }
 
