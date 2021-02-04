@@ -17,8 +17,8 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 	return c.withWorkloadLocked(ctx, opts.ID, func(ctx context.Context, workload *types.Workload) error {
 		rrs, err := resources.MakeRequests(
 			types.ResourceOptions{
-				CPUQuotaRequest: workload.CPUQuotaRequest + opts.ResourceOpts.CPUQuotaRequest,
-				CPUQuotaLimit:   workload.CPUQuotaLimit + opts.ResourceOpts.CPUQuotaLimit,
+				CPUQuotaRequest: utils.Round(workload.CPUQuotaRequest + opts.ResourceOpts.CPUQuotaRequest),
+				CPUQuotaLimit:   utils.Round(workload.CPUQuotaLimit + opts.ResourceOpts.CPUQuotaLimit),
 				CPUBind:         types.ParseTriOption(opts.CPUBindOpts, len(workload.CPU) > 0),
 				CPU:             workload.CPU,
 				MemoryRequest:   workload.MemoryRequest + opts.ResourceOpts.MemoryRequest,
