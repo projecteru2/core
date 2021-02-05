@@ -4,9 +4,12 @@ REPO_PATH := github.com/projecteru2/core
 REVISION := $(shell git rev-parse HEAD || unknown)
 BUILTAT := $(shell date +%Y-%m-%dT%H:%M:%S)
 VERSION := $(shell git describe --tags $(shell git rev-list --tags --max-count=1))
-GO_LDFLAGS ?= -s -X $(REPO_PATH)/version.REVISION=$(REVISION) \
+GO_LDFLAGS ?= -X $(REPO_PATH)/version.REVISION=$(REVISION) \
 			  -X $(REPO_PATH)/version.BUILTAT=$(BUILTAT) \
 			  -X $(REPO_PATH)/version.VERSION=$(VERSION)
+ifneq ($(KEEP_SYMBOL), 1)
+	GO_LDFLAGS += -s
+endif
 
 grpc:
 	protoc --proto_path=./rpc/gen --go_out=plugins=grpc:./rpc/gen --go_opt=module=github.com/projecteru2/core/rpc/gen core.proto
