@@ -4,6 +4,7 @@ FROM golang:alpine AS BUILD
 RUN apk add --no-cache build-base musl-dev git curl make cmake
 RUN git clone https://github.com/projecteru2/core.git /go/src/github.com/projecteru2/core
 WORKDIR /go/src/github.com/projecteru2/core
+ARG KEEP_SYMBOL
 RUN make build && ./eru-core --version
 
 FROM alpine:latest

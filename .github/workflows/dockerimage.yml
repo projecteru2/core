@@ -22,3 +22,12 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           tag_with_ref: true
           tag_with_sha: false
+
+      - name: "[debug version] build and push"
+        uses: docker/build-push-action@v1
+        with:
+          build_args: KEEP_SYMBOL=1
+          repository: projecteru2/core
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          tag: ${{ github.sha }}-debug
