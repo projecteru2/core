@@ -30,4 +30,4 @@ jobs:
           repository: projecteru2/core
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          tag: ${{ github.sha }}-debug
+          tags: ${{ github.sha }}-debug
