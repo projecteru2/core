@@ -30,10 +30,10 @@ import (
 )
 
 const (
-	minMemory     = units.MiB * 4
-	maxMemory     = math.MaxInt64
-	restartAlways = "always"
-	root          = "root"
+	minMemory = units.MiB * 4
+	maxMemory = math.MaxInt64
+	// restartAlways = "always"
+	root = "root"
 )
 
 type rawArgs struct {
@@ -55,10 +55,10 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		opts.LogType = "json-file"
 	}
 	// set restart always
-	restartRetryCount := 3
-	if opts.RestartPolicy == restartAlways {
-		restartRetryCount = 0
-	}
+	//	restartRetryCount := 3
+	//	if opts.RestartPolicy == restartAlways {
+	//		restartRetryCount = 0
+	//	}
 	// no longer use opts.Network as networkmode
 	// always get network name from networks
 	// -----------------------------------------
@@ -165,8 +165,8 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		},
 		NetworkMode: networkMode,
 		RestartPolicy: dockercontainer.RestartPolicy{
-			Name:              opts.RestartPolicy,
-			MaximumRetryCount: restartRetryCount,
+			Name: opts.RestartPolicy,
+			// MaximumRetryCount: restartRetryCount,
 		},
 		CapAdd:     capAdds,
 		ExtraHosts: opts.Hosts,
