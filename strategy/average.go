@@ -23,10 +23,8 @@ func AveragePlan(infos []Info, need, total, limit int) (map[string]int, error) {
 		return nil, errors.WithStack(types.NewDetailedErr(types.ErrInsufficientRes,
 			fmt.Sprintf("node len %d < limit, cannot alloc an average node plan", scheduleInfosLength)))
 	}
-	strategyInfos := make([]Info, scheduleInfosLength)
-	copy(strategyInfos, infos)
-	sort.Slice(strategyInfos, func(i, j int) bool { return strategyInfos[i].Capacity > strategyInfos[j].Capacity })
-	p := sort.Search(scheduleInfosLength, func(i int) bool { return strategyInfos[i].Capacity < need })
+	sort.Slice(infos, func(i, j int) bool { return infos[i].Capacity > infos[j].Capacity })
+	p := sort.Search(scheduleInfosLength, func(i int) bool { return infos[i].Capacity < need })
 	if p == 0 {
 		return nil, errors.WithStack(types.NewDetailedErr(types.ErrInsufficientCap, "insufficient nodes, at least 1 needed"))
 	}
@@ -34,7 +32,7 @@ func AveragePlan(infos []Info, need, total, limit int) (map[string]int, error) {
 		return nil, types.NewDetailedErr(types.ErrInsufficientRes, fmt.Sprintf("insufficient nodes, %d more needed", limit-p))
 	}
 	deployMap := map[string]int{}
-	for _, strategyInfo := range strategyInfos[:limit] {
+	for _, strategyInfo := range infos[:limit] {
 		deployMap[strategyInfo.Nodename] += need
 	}
 

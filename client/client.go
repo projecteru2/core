@@ -44,7 +44,7 @@ func dial(ctx context.Context, addr string, authConfig types.AuthConfig) (*grpc.
 	opts := []grpc.DialOption{
 		grpc.WithInsecure(),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{Time: 6 * 60 * time.Second, Timeout: time.Second}),
-		grpc.WithBalancerName("round_robin"), // nolint:staticcheck
+		grpc.WithBalancerName("round_robin"), // nolintlint
 		grpc.WithUnaryInterceptor(interceptor.NewUnaryRetry(interceptor.RetryOptions{Max: 1})),
 		grpc.WithStreamInterceptor(interceptor.NewStreamRetry(interceptor.RetryOptions{Max: 1})),
 	}
