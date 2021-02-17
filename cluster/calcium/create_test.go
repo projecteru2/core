@@ -81,7 +81,7 @@ func TestCreateWorkload(t *testing.T) {
 }
 
 func TestCreateWorkloadTxn(t *testing.T) {
-	c := NewTestCluster()
+	c, nodes := newCreateWorkloadCluster(t)
 	ctx := context.Background()
 	opts := &types.DeployOptions{
 		Name:           "zc:name",
@@ -94,69 +94,12 @@ func TestCreateWorkloadTxn(t *testing.T) {
 			Name: "good-entrypoint",
 		},
 	}
-	store := &storemocks.Store{}
-	sche := &schedulermocks.Scheduler{}
-	scheduler.InitSchedulerV1(sche)
-	c.store = store
-	c.scheduler = sche
-	engine := &enginemocks.API{}
 
-	pod1 := &types.Pod{Name: "p1"}
-	node1 := &types.Node{
-		NodeMeta: types.NodeMeta{
-			Name: "n1",
-		},
-		Engine: engine,
-	}
-	node2 := &types.Node{
-		NodeMeta: types.NodeMeta{
-			Name: "n2",
-		},
-		Engine: engine,
-	}
-	nodes := []*types.Node{node1, node2}
-
-	store.On("SaveProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-
-	// doAllocResource fails: MakeDeployStatus
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	store.On("GetPod", mock.Anything, mock.Anything).Return(pod1, nil)
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
-	store.On("GetNode",
-		mock.AnythingOfType("*context.emptyCtx"),
-		mock.AnythingOfType("string"),
-	).Return(
-		func(_ context.Context, name string) (node *types.Node) {
-			node = node1
-			if name == "n2" {
-				node = node2
-			}
-			return
-		}, nil)
-	sche.On("SelectStorageNodes", mock.AnythingOfType("[]resourcetypes.ScheduleInfo"), mock.AnythingOfType("int64")).Return(func(scheduleInfos []resourcetypes.ScheduleInfo, _ int64) []resourcetypes.ScheduleInfo {
-		return scheduleInfos
-	}, len(nodes), nil)
-	sche.On("SelectStorageNodes", mock.AnythingOfType("[]types.ScheduleInfo"), mock.AnythingOfType("int64")).Return(func(scheduleInfos []resourcetypes.ScheduleInfo, _ int64) []resourcetypes.ScheduleInfo {
-		return scheduleInfos
-	}, len(nodes), nil)
-	sche.On("SelectVolumeNodes", mock.AnythingOfType("[]types.ScheduleInfo"), mock.AnythingOfType("types.VolumeBindings")).Return(func(scheduleInfos []resourcetypes.ScheduleInfo, _ types.VolumeBindings) []resourcetypes.ScheduleInfo {
-		return scheduleInfos
-	}, nil, len(nodes), nil)
-	sche.On("SelectMemoryNodes", mock.AnythingOfType("[]types.ScheduleInfo"), mock.AnythingOfType("float64"), mock.AnythingOfType("int64")).Return(
-		func(scheduleInfos []resourcetypes.ScheduleInfo, _ float64, _ int64) []resourcetypes.ScheduleInfo {
-			for i := range scheduleInfos {
-				scheduleInfos[i].Capacity = 1
-			}
-			return scheduleInfos
-		}, len(nodes), nil)
+	store := c.store.(*storemocks.Store)
 	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(
 		errors.Wrap(context.DeadlineExceeded, "MakeDeployStatus"),
 	).Once()
+
 	ch, err := c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	cnt := 0
@@ -168,7 +111,6 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 
 	// commit resource changes fails: UpdateNodes
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	old := strategy.Plans[strategy.Auto]
 	strategy.Plans[strategy.Auto] = func(sis []strategy.Info, need, total, _ int) (map[string]int, error) {
@@ -191,6 +133,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 		assert.Error(t, m.Error, "UpdateNodes1")
 	}
 	assert.EqualValues(t, 1, cnt)
+	node1, node2 := nodes[0], nodes[1]
 	assert.EqualValues(t, 1, node1.CPUUsed)
 	assert.EqualValues(t, 1, node2.CPUUsed)
 	node1.CPUUsed = 0
@@ -221,6 +164,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 			}
 			return
 		}, nil)
+	engine := node1.Engine.(*enginemocks.API)
 	engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "ImageLocalDigest")).Twice()
 	engine.On("ImagePull", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "ImagePull")).Twice()
 	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -298,4 +242,71 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.EqualValues(t, 1, errCnt)
 	assert.EqualValues(t, 1, node1.CPUUsed+node2.CPUUsed)
 	return
+}
+
+func newCreateWorkloadCluster(t *testing.T) (*Calcium, []*types.Node) {
+	c := NewTestCluster()
+	c.store = &storemocks.Store{}
+	c.scheduler = &schedulermocks.Scheduler{}
+	scheduler.InitSchedulerV1(c.scheduler)
+
+	engine := &enginemocks.API{}
+	pod1 := &types.Pod{Name: "p1"}
+	node1 := &types.Node{
+		NodeMeta: types.NodeMeta{
+			Name: "n1",
+		},
+		Engine: engine,
+	}
+	node2 := &types.Node{
+		NodeMeta: types.NodeMeta{
+			Name: "n2",
+		},
+		Engine: engine,
+	}
+	nodes := []*types.Node{node1, node2}
+
+	store := c.store.(*storemocks.Store)
+	store.On("SaveProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	// doAllocResource fails: MakeDeployStatus
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	store.On("GetPod", mock.Anything, mock.Anything).Return(pod1, nil)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
+	store.On("GetNode",
+		mock.AnythingOfType("*context.emptyCtx"),
+		mock.AnythingOfType("string"),
+	).Return(
+		func(_ context.Context, name string) (node *types.Node) {
+			node = node1
+			if name == "n2" {
+				node = node2
+			}
+			return
+		}, nil)
+
+	sche := c.scheduler.(*schedulermocks.Scheduler)
+	sche.On("SelectStorageNodes", mock.AnythingOfType("[]resourcetypes.ScheduleInfo"), mock.AnythingOfType("int64")).Return(func(scheduleInfos []resourcetypes.ScheduleInfo, _ int64) []resourcetypes.ScheduleInfo {
+		return scheduleInfos
+	}, len(nodes), nil)
+	sche.On("SelectStorageNodes", mock.AnythingOfType("[]types.ScheduleInfo"), mock.AnythingOfType("int64")).Return(func(scheduleInfos []resourcetypes.ScheduleInfo, _ int64) []resourcetypes.ScheduleInfo {
+		return scheduleInfos
+	}, len(nodes), nil)
+	sche.On("SelectVolumeNodes", mock.AnythingOfType("[]types.ScheduleInfo"), mock.AnythingOfType("types.VolumeBindings")).Return(func(scheduleInfos []resourcetypes.ScheduleInfo, _ types.VolumeBindings) []resourcetypes.ScheduleInfo {
+		return scheduleInfos
+	}, nil, len(nodes), nil)
+	sche.On("SelectMemoryNodes", mock.AnythingOfType("[]types.ScheduleInfo"), mock.AnythingOfType("float64"), mock.AnythingOfType("int64")).Return(
+		func(scheduleInfos []resourcetypes.ScheduleInfo, _ float64, _ int64) []resourcetypes.ScheduleInfo {
+			for i := range scheduleInfos {
+				scheduleInfos[i].Capacity = 1
+			}
+			return scheduleInfos
+		}, len(nodes), nil)
+
+	return c, nodes
 }

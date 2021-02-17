@@ -38,7 +38,7 @@ func (h *Hydro) Close(ctx context.Context) error {
 
 // Register registers a new event handler.
 func (h *Hydro) Register(handler EventHandler) {
-	h.handlers.Store(handler.Event, handler)
+	h.handlers.Store(handler.Event(), handler)
 }
 
 // Recover starts a disaster recovery, which will replay all the events.
@@ -78,7 +78,11 @@ func (h *Hydro) recover(ctx context.Context, handler EventHandler, event HydroEv
 		return event.Delete(ctx)
 	}
 
-	return handler.Handle(item)
+	if err := handler.Handle(item); err != nil {
+		return err
+	}
+
+	return event.Delete(ctx)
 }
 
 // Log records a log item.

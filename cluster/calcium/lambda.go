@@ -7,14 +7,20 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/google/uuid"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+	"github.com/projecteru2/core/wal"
 )
 
-const exitDataPrefix = "[exitcode] "
+const (
+	exitDataPrefix = "[exitcode] "
+	labelLambdaID  = "LambdaID"
+)
 
 // RunAndWait implement lambda
 func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) (<-chan *types.AttachWorkloadMessage, error) {
@@ -28,6 +34,10 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		return nil, types.ErrRunAndWaitCountOneWithStdin
 	}
 
+	commit, err := c.walCreateLambda(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
 	createChan, err := c.CreateWorkload(ctx, opts)
 	if err != nil {
 		log.Errorf("[RunAndWait] Create workload error %s", err)
@@ -113,8 +123,28 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	go func() {
 		defer close(runMsgCh)
 		wg.Wait()
+		if err := commit(context.Background()); err != nil {
+			log.Errorf("[RunAndWait] Commit WAL %s failed", eventCreateLambda)
+		}
 		log.Info("[RunAndWait] Finish run and wait for workloads")
 	}()
 
 	return runMsgCh, nil
+}
+
+func (c *Calcium) walCreateLambda(ctx context.Context, opts *types.DeployOptions) (wal.Commit, error) {
+	uid, err := uuid.NewRandom()
+	if err != nil {
+		return nil, err
+	}
+
+	lambdaID := uid.String()
+
+	if opts.Labels != nil {
+		opts.Labels[labelLambdaID] = lambdaID
+	} else {
+		opts.Labels = map[string]string{labelLambdaID: lambdaID}
+	}
+
+	return c.wal.logCreateLambda(ctx, opts)
 }
