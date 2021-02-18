@@ -232,13 +232,13 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 
 	entrypoint := d.Entrypoint
 	entry := &types.Entrypoint{
-		Name:          entrypoint.Name,
-		Command:       entrypoint.Command,
-		Privileged:    entrypoint.Privileged,
-		Dir:           entrypoint.Dir,
-		Publish:       entrypoint.Publish,
-		RestartPolicy: entrypoint.RestartPolicy,
-		Sysctls:       entrypoint.Sysctls,
+		Name:       entrypoint.Name,
+		Command:    entrypoint.Command,
+		Privileged: entrypoint.Privileged,
+		Dir:        entrypoint.Dir,
+		Publish:    entrypoint.Publish,
+		Restart:    int(entrypoint.Restart),
+		Sysctls:    entrypoint.Sysctls,
 	}
 
 	if entrypoint.Log != nil && entrypoint.Log.Type != "" {
