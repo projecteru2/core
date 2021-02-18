@@ -30,10 +30,10 @@ import (
 )
 
 const (
-	minMemory = units.MiB * 4
-	maxMemory = math.MaxInt64
-	// restartAlways = "always"
-	root = "root"
+	minMemory     = units.MiB * 4
+	maxMemory     = math.MaxInt64
+	restartAlways = "always"
+	root          = "root"
 )
 
 type rawArgs struct {
@@ -44,7 +44,7 @@ type rawArgs struct {
 }
 
 // VirtualizationCreate create a workload
-func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) {
+func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) { // nolintlint
 	r := &enginetypes.VirtualizationCreated{}
 	// memory should more than 4MiB
 	if opts.Memory > 0 && opts.Memory < minMemory || opts.Memory < 0 {
@@ -54,11 +54,15 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	if opts.Lambda {
 		opts.LogType = "json-file"
 	}
-	// set restart always
-	//	restartRetryCount := 3
-	//	if opts.RestartPolicy == restartAlways {
-	//		restartRetryCount = 0
-	//	}
+
+	restartPolicy := ""
+	restartRetry := 0
+	if opts.Restart == -1 || opts.Restart > 0 {
+		restartPolicy = restartAlways
+	}
+	if opts.Restart > 0 {
+		restartRetry = opts.Restart
+	}
 	// no longer use opts.Network as networkmode
 	// always get network name from networks
 	// -----------------------------------------
@@ -165,8 +169,8 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		},
 		NetworkMode: networkMode,
 		RestartPolicy: dockercontainer.RestartPolicy{
-			Name: opts.RestartPolicy,
-			// MaximumRetryCount: restartRetryCount,
+			Name:              restartPolicy,
+			MaximumRetryCount: restartRetry,
 		},
 		CapAdd:     capAdds,
 		ExtraHosts: opts.Hosts,

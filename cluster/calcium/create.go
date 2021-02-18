@@ -344,9 +344,9 @@ func (c *Calcium) doMakeWorkloadOptions(no int, msg *types.CreateWorkloadMessage
 	entry := opts.Entrypoint
 	config.WorkingDir = entry.Dir
 	config.Privileged = entry.Privileged
-	config.RestartPolicy = entry.RestartPolicy
 	config.Sysctl = entry.Sysctls
 	config.Publish = entry.Publish
+	config.Restart = entry.Restart
 	if entry.Log != nil {
 		config.LogType = entry.Log.Type
 		config.LogConfig = entry.Log.Config
