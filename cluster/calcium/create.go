@@ -19,10 +19,6 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-const (
-	maxConcurrency int64 = 20
-)
-
 // CreateWorkload use options to create workloads
 func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
 	if err := opts.Validate(); err != nil {
@@ -161,7 +157,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 		return utils.Range(deploy), errors.WithStack(err)
 	}
 
-	sem, appendLock := semaphore.NewWeighted(maxConcurrency), sync.Mutex{}
+	sem, appendLock := semaphore.NewWeighted(c.config.MaxConcurrency), sync.Mutex{}
 	for idx := 0; idx < deploy; idx++ {
 		createMsg := &types.CreateWorkloadMessage{
 			Podname:  opts.Podname,
@@ -204,10 +200,10 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 			createMsg.ResourceMeta = *r
 			createOpts := c.doMakeWorkloadOptions(seq+idx, createMsg, opts, node)
 			return c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts, deploy-1-idx)
-		}(idx)
+		}(idx) // nolint:errcheck
 	}
 
-	if e := sem.Acquire(ctx, maxConcurrency); e != nil {
+	if e := sem.Acquire(ctx, c.config.MaxConcurrency); e != nil {
 		log.Errorf("[Calcium.doDeployWorkloadsOnNode] Failed to wait all workers done: %+v", e)
 		err = e
 		indices = utils.Range(deploy)
