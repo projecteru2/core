@@ -191,7 +191,6 @@ func processVirtualizationOutStream(
 			if split != 0 {
 				bs = append(bs, split)
 			}
-			println(string(bs))
 			outCh <- bs
 		}
 		if err := scanner.Err(); err != nil {
