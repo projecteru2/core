@@ -16,6 +16,11 @@ import (
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/sanity-io/litter"
+	"golang.org/x/sync/semaphore"
+)
+
+const (
+	maxConcurrency int64 = 20
 )
 
 // CreateWorkload use options to create workloads
@@ -142,6 +147,7 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateWo
 	}
 
 	wg.Wait()
+	log.Debugf("[Calcium.doDeployWorkloads] rollbackMap: %+v", rollbackMap)
 	return rollbackMap, errors.WithStack(err)
 }
 
@@ -155,6 +161,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 		return utils.Range(deploy), errors.WithStack(err)
 	}
 
+	sem, appendLock := semaphore.NewWeighted(maxConcurrency), sync.Mutex{}
 	for idx := 0; idx < deploy; idx++ {
 		createMsg := &types.CreateWorkloadMessage{
 			Podname:  opts.Podname,
@@ -162,14 +169,25 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 			Publish:  map[string][]string{},
 		}
 
-		do := func(idx int) (e error) {
+		if e := sem.Acquire(ctx, 1); e != nil {
+			log.Errorf("[Calcium.doDeployWorkloadsOnNode] Failed to acquire semaphore: %+v", e)
+			err = e
+			appendLock.Lock()
+			indices = append(indices, utils.Range(deploy)[idx:]...)
+			appendLock.Unlock()
+			break
+		}
+		go func(idx int) (e error) {
 			defer func() {
 				if e != nil {
 					err = e
 					createMsg.Error = e
+					appendLock.Lock()
 					indices = append(indices, idx)
+					appendLock.Unlock()
 				}
 				ch <- createMsg
+				sem.Release(1)
 			}()
 
 			r := &types.ResourceMeta{}
@@ -186,10 +204,14 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 			createMsg.ResourceMeta = *r
 			createOpts := c.doMakeWorkloadOptions(seq+idx, createMsg, opts, node)
 			return c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts, deploy-1-idx)
-		}
-		_ = do(idx)
+		}(idx)
 	}
 
+	if e := sem.Acquire(ctx, maxConcurrency); e != nil {
+		log.Errorf("[Calcium.doDeployWorkloadsOnNode] Failed to wait all workers done: %+v", e)
+		err = e
+		indices = utils.Range(deploy)
+	}
 	return indices, errors.WithStack(err)
 }
 
