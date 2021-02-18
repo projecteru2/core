@@ -16,6 +16,7 @@ import (
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/version"
 	"golang.org/x/net/context"
+	grpcstatus "google.golang.org/grpc/status"
 )
 
 // Vibranium is implementations for grpc server interface
@@ -44,13 +45,13 @@ func (v *Vibranium) WatchServiceStatus(_ *pb.Empty, stream pb.CoreRPC_WatchServi
 	ch, err := v.cluster.WatchServiceStatus(stream.Context())
 	if err != nil {
 		log.Errorf("[WatchServicesStatus] failed to create watch channel: %v", err)
-		return err
+		return grpcstatus.Error(WatchServiceStatus, err.Error())
 	}
 	for status := range ch {
 		s := toRPCServiceStatus(status)
 		if err = stream.Send(s); err != nil {
 			v.logUnsentMessages("WatchServicesStatus", err, s)
-			return err
+			return grpcstatus.Error(WatchServiceStatus, err.Error())
 		}
 	}
 	return nil
@@ -60,7 +61,7 @@ func (v *Vibranium) WatchServiceStatus(_ *pb.Empty, stream pb.CoreRPC_WatchServi
 func (v *Vibranium) ListNetworks(ctx context.Context, opts *pb.ListNetworkOptions) (*pb.Networks, error) {
 	networks, err := v.cluster.ListNetworks(ctx, opts.Podname, opts.Driver)
 	if err != nil {
-		return nil, err
+		return nil, grpcstatus.Error(ListNetworks, err.Error())
 	}
 
 	ns := []*pb.Network{}
@@ -74,21 +75,24 @@ func (v *Vibranium) ListNetworks(ctx context.Context, opts *pb.ListNetworkOption
 func (v *Vibranium) ConnectNetwork(ctx context.Context, opts *pb.ConnectNetworkOptions) (*pb.Network, error) {
 	subnets, err := v.cluster.ConnectNetwork(ctx, opts.Network, opts.Target, opts.Ipv4, opts.Ipv6)
 	if err != nil {
-		return nil, err
+		return nil, grpcstatus.Error(ConnectNetwork, err.Error())
 	}
 	return &pb.Network{Name: opts.Network, Subnets: subnets}, nil
 }
 
 // DisconnectNetwork disconnect network
 func (v *Vibranium) DisconnectNetwork(ctx context.Context, opts *pb.DisconnectNetworkOptions) (*pb.Empty, error) {
-	return &pb.Empty{}, v.cluster.DisconnectNetwork(ctx, opts.Network, opts.Target, opts.Force)
+	if err := v.cluster.DisconnectNetwork(ctx, opts.Network, opts.Target, opts.Force); err != nil {
+		return nil, grpcstatus.Error(DisconnectNetwork, err.Error())
+	}
+	return &pb.Empty{}, nil
 }
 
 // AddPod saves a pod, and returns it to client
 func (v *Vibranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Pod, error) {
 	p, err := v.cluster.AddPod(ctx, opts.Name, opts.Desc)
 	if err != nil {
-		return nil, err
+		return nil, grpcstatus.Error(AddPod, err.Error())
 	}
 
 	return toRPCPod(p), nil
@@ -96,14 +100,17 @@ func (v *Vibranium) AddPod(ctx context.Context, opts *pb.AddPodOptions) (*pb.Pod
 
 // RemovePod removes a pod only if it's empty
 func (v *Vibranium) RemovePod(ctx context.Context, opts *pb.RemovePodOptions) (*pb.Empty, error) {
-	return &pb.Empty{}, v.cluster.RemovePod(ctx, opts.Name)
+	if err := v.cluster.RemovePod(ctx, opts.Name); err != nil {
+		return nil, grpcstatus.Error(RemovePod, err.Error())
+	}
+	return &pb.Empty{}, nil
 }
 
 // GetPod show a pod
 func (v *Vibranium) GetPod(ctx context.Context, opts *pb.GetPodOptions) (*pb.Pod, error) {
 	p, err := v.cluster.GetPod(ctx, opts.Name)
 	if err != nil {
-		return nil, err
+		return nil, grpcstatus.Error(GetPod, err.Error())
 	}
 
 	return toRPCPod(p), nil
@@ -113,7 +120,7 @@ func (v *Vibranium) GetPod(ctx context.Context, opts *pb.GetPodOptions) (*pb.Pod
 func (v *Vibranium) ListPods(ctx context.Context, _ *pb.Empty) (*pb.Pods, error) {
 	ps, err := v.cluster.ListPods(ctx)
 	if err != nil {
-		return nil, err
+		return nil, grpcstatus.Error(ListPods, err.Error())
 	}
 
 	pods := []*pb.Pod{}
@@ -128,7 +135,7 @@ func (v *Vibranium) ListPods(ctx context.Context, _ *pb.Empty) (*pb.Pods, error)
 func (v *Vibranium) GetPodResource(ctx context.Context, opts *pb.GetPodOptions) (*pb.PodResource, error) {
 	r, err := v.cluster.PodResource(ctx, opts.Name)
 	if err != nil {
-		return nil, err
+		return nil, grpcstatus.Error(PodResource, err.Error())
 	}
 	return toRPCPodResource(r), nil
 }
@@ -139,7 +146,7 @@ func (v *Vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.N
 	addNodeOpts := toCoreAddNodeOptions(opts)
 	n, err := v.cluster.AddNode(ctx, addNodeOpts)
 	if err != nil {
-		return nil, err
+		return nil, grpcstatus.Error(AddNode, err.Error())
 	}
 
 	return toRPCNode(ctx, n), nil
@@ -147,14 +154,17 @@ func (v *Vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.N
 
 // RemoveNode removes the node from etcd
 func (v *Vibranium) RemoveNode(ctx context.Context, opts *pb.RemoveNodeOptions) (*pb.Empty, error) {
-	return &pb.Empty{}, v.cluster.RemoveNode(ctx, opts.Nodename)
+	if err := v.cluster.RemoveNode(ctx, opts.Nodename); err != nil {
+		return nil, grpcstatus.Error(RemoveNode, err.Error())
+	}
+	return &pb.Empty{}, nil
 }
 
 // ListPodNodes returns a list of node for pod
 func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions) (*pb.Nodes, error) {
 	ns, err := v.cluster.ListPodNodes(ctx, opts.Podname, opts.Labels, opts.All)
 	if err != nil {
-		return nil, err
+		return nil, grpcstatus.Error(ListPodNodes, err.Error())
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, v.config.GlobalTimeout)
@@ -170,7 +180,7 @@ func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions)
 func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Node, error) {
 	n, err := v.cluster.GetNode(ctx, opts.Nodename)
 	if err != nil {
-		return nil, err
+		return nil, grpcstatus.Error(GetNode, err.Error())
 	}
 
 	return toRPCNode(ctx, n), nil
@@ -180,19 +190,21 @@ func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.N
 func (v *Vibranium) SetNode(ctx context.Context, opts *pb.SetNodeOptions) (*pb.Node, error) {
 	setNodeOpts, err := toCoreSetNodeOptions(opts)
 	if err != nil {
-		return nil, err
+		return nil, grpcstatus.Error(SetNode, err.Error())
 	}
 	n, err := v.cluster.SetNode(ctx, setNodeOpts)
 	if err != nil {
-		return nil, err
+		return nil, grpcstatus.Error(SetNode, err.Error())
 	}
 	return toRPCNode(ctx, n), nil
 }
 
 // SetNodeStatus set status of a node for reporting
 func (v *Vibranium) SetNodeStatus(ctx context.Context, opts *pb.SetNodeStatusOptions) (*pb.Empty, error) {
-	err := v.cluster.SetNodeStatus(ctx, opts.Nodename, opts.Ttl)
-	return &pb.Empty{}, err
+	if err := v.cluster.SetNodeStatus(ctx, opts.Nodename, opts.Ttl); err != nil {
+		return nil, grpcstatus.Error(SetNodeStatus, err.Error())
+	}
+	return &pb.Empty{}, nil
 }
 
 // NodeStatusStream watch and show deployed status
@@ -228,7 +240,7 @@ func (v *Vibranium) NodeStatusStream(_ *pb.Empty, stream pb.CoreRPC_NodeStatusSt
 func (v *Vibranium) GetNodeResource(ctx context.Context, opts *pb.GetNodeResourceOptions) (*pb.NodeResource, error) {
 	nr, err := v.cluster.NodeResource(ctx, opts.GetOpts().Nodename, opts.Fix)
 	if err != nil {
-		return nil, err
+		return nil, grpcstatus.Error(GetNodeResource, err.Error())
 	}
 
 	return toRPCNodeResource(nr), nil
@@ -240,10 +252,13 @@ func (v *Vibranium) CalculateCapacity(ctx context.Context, opts *pb.DeployOption
 	defer v.taskDone("CalculateCapacity", true)
 	deployOpts, err := toCoreDeployOptions(opts)
 	if err != nil {
-		return nil, err
+		return nil, grpcstatus.Error(CalculateCapacity, err.Error())
 	}
 	m, err := v.cluster.CalculateCapacity(ctx, deployOpts)
-	return toRPCCapacityMessage(m), err
+	if err != nil {
+		return nil, grpcstatus.Error(CalculateCapacity, err.Error())
+	}
+	return toRPCCapacityMessage(m), nil
 }
 
 // GetWorkload get a workload
@@ -251,7 +266,7 @@ func (v *Vibranium) CalculateCapacity(ctx context.Context, opts *pb.DeployOption
 func (v *Vibranium) GetWorkload(ctx context.Context, id *pb.WorkloadID) (*pb.Workload, error) {
 	workload, err := v.cluster.GetWorkload(ctx, id.Id)
 	if err != nil {
-		return nil, err
+		return nil, grpcstatus.Error(GetWorkload, err.Error())
 	}
 
 	return toRPCWorkload(ctx, workload)
@@ -262,7 +277,7 @@ func (v *Vibranium) GetWorkload(ctx context.Context, id *pb.WorkloadID) (*pb.Wor
 func (v *Vibranium) GetWorkloads(ctx context.Context, cids *pb.WorkloadIDs) (*pb.Workloads, error) {
 	workloads, err := v.cluster.GetWorkloads(ctx, cids.GetIds())
 	if err != nil {
-		return nil, err
+		return nil, grpcstatus.Error(GetWorkloads, err.Error())
 	}
 
 	return toRPCWorkloads(ctx, workloads, nil), nil
@@ -279,13 +294,13 @@ func (v *Vibranium) ListWorkloads(opts *pb.ListWorkloadsOptions, stream pb.CoreR
 	}
 	workloads, err := v.cluster.ListWorkloads(stream.Context(), lsopts)
 	if err != nil {
-		return err
+		return grpcstatus.Error(ListWorkloads, err.Error())
 	}
 
 	for _, c := range toRPCWorkloads(stream.Context(), workloads, opts.Labels).Workloads {
 		if err = stream.Send(c); err != nil {
 			v.logUnsentMessages("ListWorkloads", err, c)
-			return err
+			return grpcstatus.Error(ListWorkloads, err.Error())
 		}
 	}
 	return nil
@@ -295,7 +310,7 @@ func (v *Vibranium) ListWorkloads(opts *pb.ListWorkloadsOptions, stream pb.CoreR
 func (v *Vibranium) ListNodeWorkloads(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Workloads, error) {
 	workloads, err := v.cluster.ListNodeWorkloads(ctx, opts.Nodename, opts.Labels)
 	if err != nil {
-		return nil, err
+		return nil, grpcstatus.Error(ListNodeWorkloads, err.Error())
 	}
 	return toRPCWorkloads(ctx, workloads, nil), nil
 }
@@ -306,7 +321,10 @@ func (v *Vibranium) GetWorkloadsStatus(ctx context.Context, opts *pb.WorkloadIDs
 	defer v.taskDone("GetWorkloadsStatus", false)
 
 	workloadsStatus, err := v.cluster.GetWorkloadsStatus(ctx, opts.Ids)
-	return toRPCWorkloadsStatus(workloadsStatus), err
+	if err != nil {
+		return nil, grpcstatus.Error(GetWorkloadsStatus, err.Error())
+	}
+	return toRPCWorkloadsStatus(workloadsStatus), nil
 }
 
 // SetWorkloadsStatus set workloads status
@@ -330,7 +348,10 @@ func (v *Vibranium) SetWorkloadsStatus(ctx context.Context, opts *pb.SetWorkload
 	}
 
 	status, err := v.cluster.SetWorkloadsStatus(ctx, statusData, ttls)
-	return toRPCWorkloadsStatus(status), err
+	if err != nil {
+		return nil, grpcstatus.Error(SetWorkloadsStatus, err.Error())
+	}
+	return toRPCWorkloadsStatus(status), nil
 }
 
 // WorkloadStatusStream watch and show deployed status
@@ -376,7 +397,7 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 	copyOpts := toCoreCopyOptions(opts)
 	ch, err := v.cluster.Copy(stream.Context(), copyOpts)
 	if err != nil {
-		return err
+		return grpcstatus.Error(Copy, err.Error())
 	}
 	// 4K buffer
 	p := make([]byte, 4096)
@@ -443,13 +464,13 @@ func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) err
 
 	sendOpts, err := toCoreSendOptions(opts)
 	if err != nil {
-		return err
+		return grpcstatus.Error(Send, err.Error())
 	}
 
 	sendOpts.Data = opts.Data
 	ch, err := v.cluster.Send(stream.Context(), sendOpts)
 	if err != nil {
-		return err
+		return grpcstatus.Error(Send, err.Error())
 	}
 
 	for m := range ch {
@@ -476,12 +497,12 @@ func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 
 	buildOpts, err := toCoreBuildOptions(opts)
 	if err != nil {
-		return err
+		return grpcstatus.Error(BuildImage, err.Error())
 	}
 	ch, err := v.cluster.BuildImage(stream.Context(), buildOpts)
 	if err != nil {
 		log.Errorf("[BuildImage] build image error %+v", err)
-		return err
+		return grpcstatus.Error(BuildImage, err.Error())
 	}
 
 	for m := range ch {
@@ -489,7 +510,7 @@ func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 			v.logUnsentMessages("BuildImage", err, m)
 		}
 	}
-	return err
+	return nil
 }
 
 // CacheImage cache image
@@ -499,7 +520,7 @@ func (v *Vibranium) CacheImage(opts *pb.CacheImageOptions, stream pb.CoreRPC_Cac
 
 	ch, err := v.cluster.CacheImage(stream.Context(), toCoreCacheImageOptions(opts))
 	if err != nil {
-		return err
+		return grpcstatus.Error(CacheImage, err.Error())
 	}
 
 	for m := range ch {
@@ -507,7 +528,7 @@ func (v *Vibranium) CacheImage(opts *pb.CacheImageOptions, stream pb.CoreRPC_Cac
 			v.logUnsentMessages("CacheImage", err, m)
 		}
 	}
-	return err
+	return nil
 }
 
 // RemoveImage remove image
@@ -517,7 +538,7 @@ func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_R
 
 	ch, err := v.cluster.RemoveImage(stream.Context(), toCoreRemoveImageOptions(opts))
 	if err != nil {
-		return err
+		return grpcstatus.Error(RemoveImage, err.Error())
 	}
 
 	for m := range ch {
@@ -525,7 +546,7 @@ func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_R
 			v.logUnsentMessages("RemoveImage", err, m)
 		}
 	}
-	return err
+	return nil
 }
 
 // CreateWorkload create workloads
@@ -535,13 +556,13 @@ func (v *Vibranium) CreateWorkload(opts *pb.DeployOptions, stream pb.CoreRPC_Cre
 
 	deployOpts, err := toCoreDeployOptions(opts)
 	if err != nil {
-		return err
+		return grpcstatus.Error(CreateWorkload, err.Error())
 	}
 
 	ch, err := v.cluster.CreateWorkload(stream.Context(), deployOpts)
 	if err != nil {
 		log.Errorf("[Vibranium.CreateWorkload] create failed: %+v", err)
-		return err
+		return grpcstatus.Error(CreateWorkload, err.Error())
 	}
 
 	for m := range ch {
@@ -562,12 +583,12 @@ func (v *Vibranium) ReplaceWorkload(opts *pb.ReplaceOptions, stream pb.CoreRPC_R
 
 	replaceOpts, err := toCoreReplaceOptions(opts)
 	if err != nil {
-		return err
+		return grpcstatus.Error(ReplaceWorkload, err.Error())
 	}
 
 	ch, err := v.cluster.ReplaceWorkload(stream.Context(), replaceOpts)
 	if err != nil {
-		return err
+		return grpcstatus.Error(ReplaceWorkload, err.Error())
 	}
 
 	for m := range ch {
@@ -592,7 +613,7 @@ func (v *Vibranium) RemoveWorkload(opts *pb.RemoveWorkloadOptions, stream pb.Cor
 	}
 	ch, err := v.cluster.RemoveWorkload(stream.Context(), ids, force, step)
 	if err != nil {
-		return err
+		return grpcstatus.Error(ReplaceWorkload, err.Error())
 	}
 
 	for m := range ch {
@@ -601,7 +622,7 @@ func (v *Vibranium) RemoveWorkload(opts *pb.RemoveWorkloadOptions, stream pb.Cor
 		}
 	}
 
-	return err
+	return nil
 }
 
 // DissociateWorkload dissociate workload
@@ -616,7 +637,7 @@ func (v *Vibranium) DissociateWorkload(opts *pb.DissociateWorkloadOptions, strea
 
 	ch, err := v.cluster.DissociateWorkload(stream.Context(), ids)
 	if err != nil {
-		return err
+		return grpcstatus.Error(DissociateWorkload, err.Error())
 	}
 
 	for m := range ch {
@@ -625,7 +646,7 @@ func (v *Vibranium) DissociateWorkload(opts *pb.DissociateWorkloadOptions, strea
 		}
 	}
 
-	return err
+	return nil
 }
 
 // ControlWorkload control workloads
@@ -643,7 +664,7 @@ func (v *Vibranium) ControlWorkload(opts *pb.ControlWorkloadOptions, stream pb.C
 
 	ch, err := v.cluster.ControlWorkload(stream.Context(), ids, t, force)
 	if err != nil {
-		return err
+		return grpcstatus.Error(ControlWorkload, err.Error())
 	}
 
 	for m := range ch {
@@ -652,21 +673,21 @@ func (v *Vibranium) ControlWorkload(opts *pb.ControlWorkloadOptions, stream pb.C
 		}
 	}
 
-	return err
+	return nil
 }
 
 // ExecuteWorkload runs a command in a running workload
-func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) (err error) {
+func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) error {
 	v.taskAdd("ExecuteWorkload", true)
 	defer v.taskDone("ExecuteWorkload", true)
 
 	opts, err := stream.Recv()
 	if err != nil {
-		return
+		return grpcstatus.Error(ExecuteWorkload, err.Error())
 	}
 	var executeWorkloadOpts *types.ExecuteWorkloadOptions
 	if executeWorkloadOpts, err = toCoreExecuteWorkloadOptions(opts); err != nil {
-		return
+		return grpcstatus.Error(ExecuteWorkload, err.Error())
 	}
 
 	inCh := make(chan []byte)
@@ -689,7 +710,7 @@ func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) (er
 			v.logUnsentMessages("ExecuteWorkload", err, m)
 		}
 	}
-	return err
+	return nil
 }
 
 // ReallocResource realloc res for workloads
@@ -705,21 +726,20 @@ func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions
 	v.taskAdd("ReallocResource", true)
 	defer v.taskDone("ReallocResource", true)
 	if opts.Id == "" {
-		return msg, types.ErrNoWorkloadIDs
+		return msg, grpcstatus.Errorf(ReallocResource, "%v", types.ErrNoWorkloadIDs)
 	}
 
 	vbsRequest, err := types.NewVolumeBindings(opts.ResourceOpts.VolumesRequest)
 	if err != nil {
-		return msg, err
+		return msg, grpcstatus.Error(ReallocResource, err.Error())
 	}
 
 	vbsLimit, err := types.NewVolumeBindings(opts.ResourceOpts.VolumesLimit)
 	if err != nil {
-		return msg, err
+		return msg, grpcstatus.Error(ReallocResource, err.Error())
 	}
 
-	// 这里不能让 client 打断 remove
-	return msg, v.cluster.ReallocResource(
+	if err := v.cluster.ReallocResource(
 		ctx,
 		&types.ReallocOptions{
 			ID:          opts.Id,
@@ -735,7 +755,11 @@ func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions
 				StorageLimit:    opts.ResourceOpts.StorageLimit,
 			},
 		},
-	)
+	); err != nil {
+		return msg, grpcstatus.Error(ReallocResource, err.Error())
+	}
+
+	return msg, nil
 }
 
 // LogStream get workload logs
@@ -751,7 +775,7 @@ func (v *Vibranium) LogStream(opts *pb.LogStreamOptions, stream pb.CoreRPC_LogSt
 		Follow: opts.Follow,
 	})
 	if err != nil {
-		return err
+		return grpcstatus.Error(LogStream, err.Error())
 	}
 
 	for {
@@ -773,7 +797,7 @@ func (v *Vibranium) LogStream(opts *pb.LogStreamOptions, stream pb.CoreRPC_LogSt
 func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	RunAndWaitOptions, err := stream.Recv()
 	if err != nil {
-		return err
+		return grpcstatus.Error(RunAndWait, err.Error())
 	}
 
 	if RunAndWaitOptions.DeployOptions == nil {
@@ -783,7 +807,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	opts := RunAndWaitOptions.DeployOptions
 	deployOpts, err := toCoreDeployOptions(opts)
 	if err != nil {
-		return err
+		return grpcstatus.Error(RunAndWait, err.Error())
 	}
 
 	ctx, cancel := context.WithCancel(stream.Context())
