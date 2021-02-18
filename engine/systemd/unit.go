@@ -176,12 +176,7 @@ func (b *unitBuilder) buildExec() *unitBuilder {
 		return b
 	}
 
-	restartPolicy, err := b.convertToSystemdRestartPolicy(b.opts.RestartPolicy)
-	if err != nil {
-		b.err = err
-		return b
-	}
-
+	restartPolicy := b.convertToSystemdRestartPolicy(b.opts.Restart)
 	cmds := []string{}
 	for _, cmd := range b.opts.Cmd {
 		if strings.Contains(cmd, " ") {
@@ -221,18 +216,11 @@ func (b *unitBuilder) buffer() (*bytes.Buffer, error) {
 	return bytes.NewBufferString(unit), b.err
 }
 
-func (b *unitBuilder) convertToSystemdRestartPolicy(restart string) (policy string, err error) {
-	switch {
-	case restart == "no":
-		policy = "no"
-	case restart == "always" || restart == "":
-		policy = "always"
-	case strings.HasPrefix(restart, "on-failure"):
-		policy = "on-failure"
-	default:
-		err = fmt.Errorf("restart policy not supported: %s", restart)
+func (b *unitBuilder) convertToSystemdRestartPolicy(restart int) (policy string) {
+	if restart == 0 {
+		return "no"
 	}
-	return
+	return "yes"
 }
 
 func (b *unitBuilder) convertToSystemdStdio(logType string) (stdioType string, err error) {

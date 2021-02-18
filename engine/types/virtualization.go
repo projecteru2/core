@@ -29,9 +29,8 @@ type VirtualizationCreateOptions struct {
 	Sysctl     map[string]string
 	Labels     map[string]string
 
-	Debug bool
-
-	RestartPolicy string
+	Debug   bool
+	Restart int
 
 	Networks map[string]string
 

@@ -382,7 +382,7 @@ message EntrypointOptions {
     repeated string publish = 6;
     HealthCheckOptions healthcheck = 7;
     HookOptions hook = 8;
-    string restart_policy = 9;
+    int32 restart = 9;
     map<string, string> sysctls = 10;
 }
 
