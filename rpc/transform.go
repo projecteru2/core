@@ -237,7 +237,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Privileged: entrypoint.Privileged,
 		Dir:        entrypoint.Dir,
 		Publish:    entrypoint.Publish,
-		Restart:    int(entrypoint.Restart),
+		Restart:    entrypoint.Restart,
 		Sysctls:    entrypoint.Sysctls,
 	}
 

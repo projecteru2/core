@@ -30,10 +30,9 @@ import (
 )
 
 const (
-	minMemory     = units.MiB * 4
-	maxMemory     = math.MaxInt64
-	restartAlways = "always"
-	root          = "root"
+	minMemory = units.MiB * 4
+	maxMemory = math.MaxInt64
+	root      = "root"
 )
 
 type rawArgs struct {
@@ -57,11 +56,10 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 
 	restartPolicy := ""
 	restartRetry := 0
-	if opts.Restart == -1 || opts.Restart > 0 {
-		restartPolicy = restartAlways
-	}
-	if opts.Restart > 0 {
-		restartRetry = opts.Restart
+	restartStr := strings.Split(opts.Restart, ":")
+	restartPolicy = restartStr[0]
+	if r, err := strconv.Atoi(restartStr[len(restartStr)-1]); err == nil {
+		restartRetry = r
 	}
 	// no longer use opts.Network as networkmode
 	// always get network name from networks

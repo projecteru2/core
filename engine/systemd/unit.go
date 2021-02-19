@@ -216,11 +216,14 @@ func (b *unitBuilder) buffer() (*bytes.Buffer, error) {
 	return bytes.NewBufferString(unit), b.err
 }
 
-func (b *unitBuilder) convertToSystemdRestartPolicy(restart int) (policy string) {
-	if restart == 0 {
-		return "no"
+func (b *unitBuilder) convertToSystemdRestartPolicy(restart string) (policy string) {
+	switch {
+	case strings.HasPrefix(restart, "always"):
+		return "always"
+	case strings.HasPrefix(restart, "on-failure"):
+		return "on-failure"
 	}
-	return "always"
+	return "no"
 }
 
 func (b *unitBuilder) convertToSystemdStdio(logType string) (stdioType string, err error) {

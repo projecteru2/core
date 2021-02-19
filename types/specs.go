@@ -29,7 +29,7 @@ type Entrypoint struct {
 	Publish     []string          `yaml:"publish,omitempty,flow"`
 	HealthCheck *HealthCheck      `yaml:"healthcheck,omitempty,flow"`
 	Hook        *Hook             `yaml:"hook,omitempty,flow"`
-	Restart     int               `yaml:"restart,omitempty"`
+	Restart     string            `yaml:"restart,omitempty"`
 	Sysctls     map[string]string `yaml:"sysctls,omitempty,flow"`
 }
 
