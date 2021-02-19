@@ -24,6 +24,7 @@ type Calcium struct {
 	scheduler scheduler.Scheduler
 	source    source.Source
 	watcher   discovery.Service
+	wal       *WAL
 }
 
 // New returns a new cluster config
@@ -52,11 +53,17 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 	default:
 		log.Warn("[Calcium] SCM not set, build API disabled")
 	}
+	if err != nil {
+		log.Errorf("[Calcium] SCAM failed: %v", err)
+		return nil, err
+	}
 
 	// set watcher
 	watcher := helium.New(config.GRPCConfig, store)
 
-	return &Calcium{store: store, config: config, scheduler: potassium, source: scm, watcher: watcher}, err
+	cal := &Calcium{store: store, config: config, scheduler: potassium, source: scm, watcher: watcher}
+	cal.wal, err = newCalciumWAL(cal)
+	return cal, err
 }
 
 // Finalizer use for defer

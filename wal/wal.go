@@ -39,26 +39,48 @@ type OpenCloser interface {
 	Close(context.Context) error
 }
 
-// EventHandler indicates a handler of a specific event.
-type EventHandler struct {
-	Event  string
-	Check  Check
-	Encode Encode
-	Decode Decode
-	Handle Handle
+// SimpleEventHandler simply implements the EventHandler.
+type SimpleEventHandler struct {
+	event  string
+	check  func(raw interface{}) (bool, error)
+	encode func(interface{}) ([]byte, error)
+	decode func([]byte) (interface{}, error)
+	handle func(interface{}) error
 }
 
-// Encode is a function to encode a log item
-type Encode func(interface{}) ([]byte, error)
+// Event .
+func (h SimpleEventHandler) Event() string {
+	return h.event
+}
 
-// Decode is a function to decode bytes to an interface{}
-type Decode func([]byte) (interface{}, error)
+// Check .
+func (h SimpleEventHandler) Check(raw interface{}) (bool, error) {
+	return h.check(raw)
+}
 
-// Handle is a function to play a log item.
-type Handle func(interface{}) error
+// Encode .
+func (h SimpleEventHandler) Encode(raw interface{}) ([]byte, error) {
+	return h.encode(raw)
+}
 
-// Check is a function for checking a log item whether need to be played it.
-type Check func(interface{}) (need bool, err error)
+// Decode .
+func (h SimpleEventHandler) Decode(bs []byte) (interface{}, error) {
+	return h.decode(bs)
+}
+
+// Handle .
+func (h SimpleEventHandler) Handle(raw interface{}) error {
+	return h.handle(raw)
+}
+
+// EventHandler is the interface that groups a few methods.
+type EventHandler interface {
+	Event() string
+	Check(interface{}) (need bool, err error)
+	Encode(interface{}) ([]byte, error)
+	Decode([]byte) (interface{}, error)
+	Handle(interface{}) error
+}
 
 // Commit is a function for committing an event log.
 type Commit func(context.Context) error

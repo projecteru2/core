@@ -21,7 +21,7 @@ func TestLogFailedAsEncodeError(t *testing.T) {
 	var checked, handled, encoded, decoded bool
 	eventype := "create"
 	handler := newTestEventHandler(eventype, &checked, &handled, &encoded, &decoded)
-	handler.Encode = func(interface{}) ([]byte, error) { return nil, fmt.Errorf("encode error") }
+	handler.encode = func(interface{}) ([]byte, error) { return nil, fmt.Errorf("encode error") }
 
 	hydro := NewHydro()
 	hydro.kv = kv.NewMockedKV()
@@ -82,7 +82,7 @@ func TestRecoverFailedAsCheckError(t *testing.T) {
 	var checked, handled, encoded, decoded bool
 	eventype := "create"
 	handler := newTestEventHandler(eventype, &checked, &handled, &encoded, &decoded)
-	handler.Check = func(interface{}) (bool, error) {
+	handler.check = func(interface{}) (bool, error) {
 		checked = true
 		return false, fmt.Errorf("check error")
 	}
@@ -129,7 +129,7 @@ func TestRecoverFailedAsDecodeLogError(t *testing.T) {
 	var checked, handled, encoded, decoded bool
 	eventype := "create"
 	handler := newTestEventHandler(eventype, &checked, &handled, &encoded, &decoded)
-	handler.Decode = func([]byte) (interface{}, error) {
+	handler.decode = func([]byte) (interface{}, error) {
 		decoded = true
 		return nil, fmt.Errorf("decode error")
 	}
@@ -158,7 +158,7 @@ func TestHydroRecoverDiscardNoNeedEvent(t *testing.T) {
 
 	eventype := "create"
 	handler := newTestEventHandler(eventype, &checked, &handled, &encoded, &decoded)
-	handler.Check = check
+	handler.check = check
 
 	hydro := NewHydro()
 	hydro.kv = kv.NewMockedKV()
@@ -193,6 +193,12 @@ func TestHydroRecover(t *testing.T) {
 	require.True(t, decoded)
 	require.True(t, checked)
 	require.True(t, handled)
+
+	// The handled events should be removed.
+	ch, _ := hydro.kv.Scan(context.Background(), []byte(EventPrefix))
+	for range ch {
+		require.Fail(t, "the events should be deleted")
+	}
 }
 
 func TestHydroEventKeyMustPadZero(t *testing.T) {
@@ -206,7 +212,7 @@ func TestHydroEventParseIDShouldRemovePadding(t *testing.T) {
 	require.Equal(t, uint64(15), id)
 }
 
-func newTestEventHandler(eventype string, checked, handled, encoded, decoded *bool) EventHandler {
+func newTestEventHandler(eventype string, checked, handled, encoded, decoded *bool) SimpleEventHandler {
 	check := func(interface{}) (bool, error) {
 		*checked = true
 		return true, nil
@@ -227,11 +233,11 @@ func newTestEventHandler(eventype string, checked, handled, encoded, decoded *bo
 		return
 	}
 
-	return EventHandler{
-		Event:  eventype,
-		Encode: encode,
-		Decode: decode,
-		Check:  check,
-		Handle: handle,
+	return SimpleEventHandler{
+		event:  eventype,
+		encode: encode,
+		decode: decode,
+		check:  check,
+		handle: handle,
 	}
 }

@@ -49,12 +49,12 @@ func TestRecover(t *testing.T) {
 
 	eventype := "create"
 
-	Register(EventHandler{
-		Event:  eventype,
-		Encode: encode,
-		Decode: decode,
-		Check:  check,
-		Handle: handle,
+	Register(SimpleEventHandler{
+		event:  eventype,
+		encode: encode,
+		decode: decode,
+		check:  check,
+		handle: handle,
 	})
 
 	Log(context.Background(), eventype, struct{}{})

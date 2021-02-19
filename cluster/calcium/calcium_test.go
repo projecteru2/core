@@ -3,6 +3,8 @@ package calcium
 import (
 	"context"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -32,6 +34,11 @@ func (d *dummyLock) Unlock(ctx context.Context) error {
 }
 
 func NewTestCluster() *Calcium {
+	walDir, err := ioutil.TempDir(os.TempDir(), "core.wal.*")
+	if err != nil {
+		panic(err)
+	}
+
 	c := &Calcium{}
 	c.config = types.Config{
 		GlobalTimeout: 30 * time.Second,
@@ -42,34 +49,60 @@ func NewTestCluster() *Calcium {
 			MaxShare:  -1,
 			ShareBase: 100,
 		},
+		WALFile: filepath.Join(walDir, "core.wal.log"),
 	}
 	c.store = &storemocks.Store{}
 	c.scheduler = &schedulermocks.Scheduler{}
 	c.source = &sourcemocks.Source{}
+
+	wal, err := newCalciumWAL(c)
+	if err != nil {
+		panic(err)
+	}
+	c.wal = wal
+
 	return c
 }
 
 func TestNewCluster(t *testing.T) {
-	_, err := New(types.Config{}, false)
+	config := types.Config{WALFile: "/tmp/a"}
+	_, err := New(config, false)
 	assert.Error(t, err)
-	c, err := New(types.Config{}, true)
+
+	c, err := New(config, true)
 	assert.NoError(t, err)
+
 	c.Finalizer()
 	privFile, err := ioutil.TempFile("", "priv")
 	assert.NoError(t, err)
 	_, err = privFile.WriteString("privkey")
 	assert.NoError(t, err)
 	defer privFile.Close()
+
+	config.Git = types.GitConfig{PrivateKey: privFile.Name()}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
-		c, err := New(types.Config{Git: types.GitConfig{SCMType: "gitlab", PrivateKey: privFile.Name()}}, true)
-		assert.NoError(t, err)
+		defer wg.Done()
+		config.Git.SCMType = "gitlab"
+		config.WALFile = "/tmp/b"
+		c, err := New(config, true)
+		assert.NoError(t, err, err)
 		c.Finalizer()
 	}()
+
+	wg.Add(1)
 	go func() {
-		c, err := New(types.Config{Git: types.GitConfig{SCMType: "github", PrivateKey: privFile.Name()}}, true)
-		assert.NoError(t, err)
+		defer wg.Done()
+		config.WALFile = "/tmp/c"
+		config.Git.SCMType = "github"
+		c, err := New(config, true)
+		assert.NoError(t, err, err)
 		c.Finalizer()
 	}()
+
+	wg.Wait()
 }
 
 func TestFinalizer(t *testing.T) {
