@@ -30,7 +30,7 @@ type VirtualizationCreateOptions struct {
 	Labels     map[string]string
 
 	Debug   bool
-	Restart int
+	Restart string
 
 	Networks map[string]string
 
