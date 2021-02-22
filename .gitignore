@@ -31,3 +31,4 @@ dist/*
 non-live.yaml
 __debug_bin/*
 coverage.out
+core.wal
