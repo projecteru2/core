@@ -68,10 +68,12 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	// 没有 networks 的时候用 networkmode 的值
 	// 有 networks 的时候一律用用 networks 的值作为 mode
 	var networkMode dockercontainer.NetworkMode
-	for name := range opts.Networks {
+	networks := map[string]string{}
+	for name, network := range opts.Networks {
 		networkMode = dockercontainer.NetworkMode(name)
+		networks[name] = network
 		if networkMode.IsHost() {
-			opts.Networks[name] = ""
+			networks[name] = ""
 		}
 	}
 	// 如果没有 network 用默认值替换
@@ -198,7 +200,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	networkConfig := &dockernetwork.NetworkingConfig{
 		EndpointsConfig: map[string]*dockernetwork.EndpointSettings{},
 	}
-	for networkID, ipv4 := range opts.Networks {
+	for networkID, ipv4 := range networks {
 		endpointSetting, err := e.makeIPV4EndpointSetting(ipv4)
 		if err != nil {
 			return r, err

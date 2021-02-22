@@ -49,7 +49,8 @@ func NewTestCluster() *Calcium {
 			MaxShare:  -1,
 			ShareBase: 100,
 		},
-		WALFile: filepath.Join(walDir, "core.wal.log"),
+		WALFile:        filepath.Join(walDir, "core.wal.log"),
+		MaxConcurrency: 10,
 	}
 	c.store = &storemocks.Store{}
 	c.scheduler = &schedulermocks.Scheduler{}
