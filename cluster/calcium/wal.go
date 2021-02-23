@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 	"encoding/json"
+	"strings"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
@@ -10,7 +11,8 @@ import (
 )
 
 const (
-	eventCreateLambda = "create-lambda"
+	eventCreateLambda   = "create-lambda"
+	eventCreateWorkload = "create-workload"
 )
 
 // WAL for calcium.
@@ -37,6 +39,14 @@ func newCalciumWAL(cal *Calcium) (*WAL, error) {
 
 func (w *WAL) registerHandlers() {
 	w.Register(newCreateLambdaHandler(w.calcium))
+	w.Register(newCreateWorkloadHandler(w.calcium))
+}
+
+func (w *WAL) logCreateWorkload(ctx context.Context, workloadID, nodename string) (wal.Commit, error) {
+	return w.Log(ctx, eventCreateWorkload, &types.Workload{
+		ID:       workloadID,
+		Nodename: nodename,
+	})
 }
 
 func (w *WAL) logCreateLambda(ctx context.Context, opts *types.DeployOptions) (wal.Commit, error) {
@@ -45,6 +55,87 @@ func (w *WAL) logCreateLambda(ctx context.Context, opts *types.DeployOptions) (w
 		Entrypoint: opts.Entrypoint.Name,
 		Labels:     map[string]string{labelLambdaID: opts.Labels[labelLambdaID]},
 	})
+}
+
+// CreateWorkloadHandler indicates event handler for creating workload.
+type CreateWorkloadHandler struct {
+	event   string
+	calcium *Calcium
+}
+
+func newCreateWorkloadHandler(cal *Calcium) *CreateWorkloadHandler {
+	return &CreateWorkloadHandler{
+		event:   eventCreateWorkload,
+		calcium: cal,
+	}
+}
+
+// Event .
+func (h *CreateWorkloadHandler) Event() string {
+	return h.event
+}
+
+// Check .
+func (h *CreateWorkloadHandler) Check(raw interface{}) (bool, error) {
+	wrk, ok := raw.(*types.Workload)
+	if !ok {
+		return false, types.NewDetailedErr(types.ErrInvalidType, raw)
+	}
+
+	_, err := h.calcium.GetWorkload(context.Background(), wrk.ID)
+	switch {
+	// there has been an exact workload metadata.
+	case err == nil:
+		log.Infof("[CreateWorkloadHandler.Check] Workload %s is availalbe", wrk.ID)
+		return false, nil
+
+	case strings.HasPrefix(err.Error(), types.ErrBadCount.Error()):
+		log.Errorf("[CreateWorkloadHandler.Check] No such workload: %v", wrk.ID)
+		return true, nil
+
+	default:
+		log.Errorf("[CreateWorkloadHandler.Check] Unexpected error: %v", err)
+		return false, err
+	}
+}
+
+// Encode .
+func (h *CreateWorkloadHandler) Encode(raw interface{}) ([]byte, error) {
+	wrk, ok := raw.(*types.Workload)
+	if !ok {
+		return nil, types.NewDetailedErr(types.ErrInvalidType, raw)
+	}
+	return json.Marshal(wrk)
+}
+
+// Decode .
+func (h *CreateWorkloadHandler) Decode(bs []byte) (interface{}, error) {
+	wrk := &types.Workload{}
+	err := json.Unmarshal(bs, wrk)
+	return wrk, err
+}
+
+// Handle .
+func (h *CreateWorkloadHandler) Handle(raw interface{}) error {
+	wrk, ok := raw.(*types.Workload)
+	if !ok {
+		return types.NewDetailedErr(types.ErrInvalidType, raw)
+	}
+
+	// There hasn't been the exact workload metadata, so we must remove it.
+	node, err := h.calcium.GetNode(context.Background(), wrk.Nodename)
+	if err != nil {
+		log.Errorf("[CreateWorkloadHandler.Check] Get node %s failed: %v", wrk.Nodename, err)
+		return err
+	}
+	wrk.Engine = node.Engine
+
+	err = wrk.Remove(context.Background(), true)
+	if err != nil {
+		log.Errorf("[CreateWorkloadHandler.Check] Remove %s failed: %v", wrk.ID, err)
+	}
+
+	return err
 }
 
 // CreateLambdaHandler indicates event handler for creating lambda.

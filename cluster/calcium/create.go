@@ -7,16 +7,17 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/projecteru2/core/cluster"
-	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/metrics"
-	resourcetypes "github.com/projecteru2/core/resources/types"
-
-	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 	"github.com/sanity-io/litter"
 	"golang.org/x/sync/semaphore"
+
+	"github.com/projecteru2/core/cluster"
+	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/metrics"
+	resourcetypes "github.com/projecteru2/core/resources/types"
+	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
+	"github.com/projecteru2/core/wal"
 )
 
 // CreateWorkload use options to create workloads
@@ -259,6 +260,14 @@ func (c *Calcium) doDeployOneWorkload(
 		User:       opts.User,
 		CreateTime: time.Now().Unix(),
 	}
+	var commit wal.Commit
+	defer func() {
+		if commit != nil {
+			if err := commit(context.Background()); err != nil {
+				log.Errorf("[doDeployOneWorkload] Commit WAL %s failed: %v", eventCreateWorkload, err)
+			}
+		}
+	}()
 	return utils.Txn(
 		ctx,
 		// create workload
@@ -268,6 +277,12 @@ func (c *Calcium) doDeployOneWorkload(
 				return errors.WithStack(err)
 			}
 			workload.ID = created.ID
+			// We couldn't WAL the workload ID above VirtualizationCreate temporarily,
+			// so there's a time gap window, once the core process crashes between
+			// VirtualizationCreate and logCreateWorkload then the worload is leaky.
+			if commit, err = c.wal.logCreateWorkload(ctx, workload.ID, node.Name); err != nil {
+				return errors.WithStack(err)
+			}
 			return nil
 		},
 
