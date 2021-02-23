@@ -124,7 +124,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		defer close(runMsgCh)
 		wg.Wait()
 		if err := commit(context.Background()); err != nil {
-			log.Errorf("[RunAndWait] Commit WAL %s failed", eventCreateLambda)
+			log.Errorf("[RunAndWait] Commit WAL %s failed: %v", eventCreateLambda, err)
 		}
 		log.Info("[RunAndWait] Finish run and wait for workloads")
 	}()

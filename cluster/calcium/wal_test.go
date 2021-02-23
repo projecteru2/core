@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -13,14 +14,125 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+func TestHandleCreateWorkloadNoHandle(t *testing.T) {
+	c := NewTestCluster()
+	wal, err := newCalciumWAL(c)
+	require.NoError(t, err)
+	c.wal = wal
+
+	wrkid := "workload-id"
+	_, err = c.wal.logCreateWorkload(context.Background(), wrkid, "nodename")
+	require.NoError(t, err)
+
+	wrk := &types.Workload{
+		ID: "wrkid",
+	}
+
+	store := c.store.(*storemocks.Store)
+	defer store.AssertExpectations(t)
+	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, nil).Once()
+
+	c.wal.Recover(context.Background())
+
+	// Recovers nothing.
+	c.wal.Recover(context.Background())
+}
+
+func TestHandleCreateWorkloadError(t *testing.T) {
+	c := NewTestCluster()
+	wal, err := newCalciumWAL(c)
+	require.NoError(t, err)
+	c.wal = wal
+
+	node := &types.Node{
+		NodeMeta: types.NodeMeta{Name: "nodename"},
+		Engine:   &enginemocks.API{},
+	}
+	wrkid := "workload-id"
+	_, err = c.wal.logCreateWorkload(context.Background(), wrkid, node.Name)
+	require.NoError(t, err)
+
+	wrk := &types.Workload{
+		ID:       wrkid,
+		Nodename: node.Name,
+	}
+
+	store := c.store.(*storemocks.Store)
+	defer store.AssertExpectations(t)
+	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, fmt.Errorf("err")).Once()
+	c.wal.Recover(context.Background())
+
+	err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("keys: [%s]", wrkid))
+	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, err)
+	store.On("GetNode", mock.Anything, wrk.Nodename).Return(nil, fmt.Errorf("err")).Once()
+	c.wal.Recover(context.Background())
+
+	store.On("GetNode", mock.Anything, wrk.Nodename).Return(node, nil)
+	eng, ok := node.Engine.(*enginemocks.API)
+	require.True(t, ok)
+	defer eng.AssertExpectations(t)
+	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
+		Return(fmt.Errorf("err")).
+		Twice()
+	c.wal.Recover(context.Background())
+
+	// Recovers again because the above recovering had been failed.
+	// so the log item hadn't been deleted.
+	c.wal.Recover(context.Background())
+}
+
+func TestHandleCreateWorkloadHandled(t *testing.T) {
+	c := NewTestCluster()
+	wal, err := newCalciumWAL(c)
+	require.NoError(t, err)
+	c.wal = wal
+
+	node := &types.Node{
+		NodeMeta: types.NodeMeta{Name: "nodename"},
+		Engine:   &enginemocks.API{},
+	}
+
+	wrkid := "workload-id"
+	_, err = c.wal.logCreateWorkload(context.Background(), wrkid, node.Name)
+	require.NoError(t, err)
+
+	wrk := &types.Workload{
+		ID:       wrkid,
+		Nodename: node.Name,
+		Engine:   nil, // explicitly set a nil as it will be evaluated by CreateWorkloadHandler.Handle.
+	}
+
+	store := c.store.(*storemocks.Store)
+	defer store.AssertExpectations(t)
+	err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("keys: [%s]", wrkid))
+	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, err).Once()
+	store.On("GetNode", mock.Anything, wrk.Nodename).Return(node, nil)
+
+	eng, ok := node.Engine.(*enginemocks.API)
+	require.True(t, ok)
+	defer eng.AssertExpectations(t)
+	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
+		Return(nil).
+		Once()
+
+	c.wal.Recover(context.Background())
+
+	// Recovers nothing.
+	c.wal.Recover(context.Background())
+}
+
 func TestHandleCreateLambda(t *testing.T) {
 	c := NewTestCluster()
+	wal, err := newCalciumWAL(c)
+	require.NoError(t, err)
+	c.wal = wal
+
 	deployOpts := &types.DeployOptions{
 		Name:       "appname",
 		Entrypoint: &types.Entrypoint{Name: "entry"},
 		Labels:     map[string]string{labelLambdaID: "lambda"},
 	}
-	_, err := c.wal.logCreateLambda(context.Background(), deployOpts)
+	_, err = c.wal.logCreateLambda(context.Background(), deployOpts)
 	require.NoError(t, err)
 
 	node := &types.Node{
@@ -35,6 +147,11 @@ func TestHandleCreateLambda(t *testing.T) {
 
 	store := c.store.(*storemocks.Store)
 	defer store.AssertExpectations(t)
+	store.On("ListWorkloads", mock.Anything, deployOpts.Name, deployOpts.Entrypoint.Name, "", int64(0), deployOpts.Labels).
+		Return(nil, fmt.Errorf("err")).
+		Once()
+	c.wal.Recover(context.Background())
+
 	store.On("ListWorkloads", mock.Anything, deployOpts.Name, deployOpts.Entrypoint.Name, "", int64(0), deployOpts.Labels).
 		Return([]*types.Workload{wrk}, nil).
 		Once()
@@ -63,7 +180,6 @@ func TestHandleCreateLambda(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
 	c.wal.Recover(context.Background())
-
 	// Recovered nothing.
 	c.wal.Recover(context.Background())
 }

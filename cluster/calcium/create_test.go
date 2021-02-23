@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
@@ -14,8 +17,8 @@ import (
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+	"github.com/projecteru2/core/wal"
+	walmocks "github.com/projecteru2/core/wal/mocks"
 )
 
 func TestCreateWorkload(t *testing.T) {
@@ -100,21 +103,18 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	scheduler.InitSchedulerV1(sche)
 	c.store = store
 	c.scheduler = sche
-	engine := &enginemocks.API{}
 
-	node1 := &types.Node{
-		NodeMeta: types.NodeMeta{
-			Name: "n1",
-		},
-		Engine: engine,
-	}
-	node2 := &types.Node{
-		NodeMeta: types.NodeMeta{
-			Name: "n2",
-		},
-		Engine: engine,
-	}
-	nodes = []*types.Node{node1, node2}
+	node1, node2 := nodes[0], nodes[1]
+
+	c.wal = &WAL{WAL: &walmocks.WAL{}}
+	mwal := c.wal.WAL.(*walmocks.WAL)
+	defer mwal.AssertExpectations(t)
+	var walCommitted bool
+	commit := wal.Commit(func(context.Context) error {
+		walCommitted = true
+		return nil
+	})
+	mwal.On("Log", mock.Anything, eventCreateWorkload, mock.Anything).Return(commit, nil)
 
 	store.On("SaveProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -166,6 +166,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 		assert.Error(t, m.Error, "MakeDeployStatus")
 	}
 	assert.EqualValues(t, 1, cnt)
+	assert.False(t, walCommitted)
 
 	// commit resource changes fails: UpdateNodes
 	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -181,6 +182,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 		strategy.Plans[strategy.Auto] = old
 	}()
 	store.On("UpdateNodes", mock.Anything, mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "UpdateNodes1")).Once()
+	walCommitted = false
 	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	cnt = 0
@@ -195,6 +197,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.EqualValues(t, 1, node2.CPUUsed)
 	node1.CPUUsed = 0
 	node2.CPUUsed = 0
+	assert.False(t, walCommitted)
 
 	// doCreateWorkloadOnNode fails: doGetAndPrepareNode
 	store.On("UpdateNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -210,11 +213,12 @@ func TestCreateWorkloadTxn(t *testing.T) {
 			}
 			return
 		}, nil)
-	engine = node1.Engine.(*enginemocks.API)
+	engine := node1.Engine.(*enginemocks.API)
 	engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "ImageLocalDigest")).Twice()
 	engine.On("ImagePull", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "ImagePull")).Twice()
 	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	walCommitted = false
 	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	cnt = 0
@@ -227,6 +231,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.EqualValues(t, 2, cnt)
 	assert.EqualValues(t, 0, node1.CPUUsed)
 	assert.EqualValues(t, 0, node2.CPUUsed)
+	assert.False(t, walCommitted)
 
 	// doDeployOneWorkload fails: VirtualizationCreate
 	engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return([]string{""}, nil)
@@ -234,6 +239,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "VirtualizationCreate")).Twice()
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
+	walCommitted = false
 	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	cnt = 0
@@ -246,12 +252,14 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.EqualValues(t, 2, cnt)
 	assert.EqualValues(t, 0, node1.CPUUsed)
 	assert.EqualValues(t, 0, node2.CPUUsed)
+	assert.False(t, walCommitted)
 
 	// doCreateAndStartWorkload fails: AddWorkload
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "c1"}, nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
 	store.On("AddWorkload", mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "AddWorkload")).Twice()
+	walCommitted = false
 	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	cnt = 0
@@ -264,6 +272,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.EqualValues(t, 2, cnt)
 	assert.EqualValues(t, 0, node1.CPUUsed)
 	assert.EqualValues(t, 0, node2.CPUUsed)
+	assert.True(t, walCommitted)
 
 	// doCreateAndStartWorkload fails: first time AddWorkload failed
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "c1"}, nil)
@@ -271,6 +280,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
 	store.On("AddWorkload", mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "AddWorkload2")).Once()
 	store.On("AddWorkload", mock.Anything, mock.Anything).Return(nil).Once()
+	walCommitted = false
 	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	cnt = 0
@@ -287,12 +297,14 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.EqualValues(t, 2, cnt)
 	assert.EqualValues(t, 1, errCnt)
 	assert.EqualValues(t, 1, node1.CPUUsed+node2.CPUUsed)
+	assert.True(t, walCommitted)
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
 }
 
 func newCreateWorkloadCluster(t *testing.T) (*Calcium, []*types.Node) {
 	c := NewTestCluster()
+	c.wal = &WAL{WAL: &walmocks.WAL{}}
 	c.store = &storemocks.Store{}
 	c.scheduler = &schedulermocks.Scheduler{}
 	scheduler.InitSchedulerV1(c.scheduler)
@@ -336,6 +348,10 @@ func newCreateWorkloadCluster(t *testing.T) (*Calcium, []*types.Node) {
 			}
 			return
 		}, nil)
+
+	mwal := c.wal.WAL.(*walmocks.WAL)
+	commit := wal.Commit(func(context.Context) error { return nil })
+	mwal.On("Log", mock.Anything, mock.Anything, mock.Anything).Return(commit, nil)
 
 	sche := c.scheduler.(*schedulermocks.Scheduler)
 	sche.On("SelectStorageNodes", mock.AnythingOfType("[]resourcetypes.ScheduleInfo"), mock.AnythingOfType("int64")).Return(func(scheduleInfos []resourcetypes.ScheduleInfo, _ int64) []resourcetypes.ScheduleInfo {

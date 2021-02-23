@@ -9,11 +9,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
 	sourcemocks "github.com/projecteru2/core/source/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
-	"github.com/stretchr/testify/assert"
+	"github.com/projecteru2/core/wal"
+	walmocks "github.com/projecteru2/core/wal/mocks"
 )
 
 // DummyLock replace lock for testing
@@ -55,12 +59,11 @@ func NewTestCluster() *Calcium {
 	c.store = &storemocks.Store{}
 	c.scheduler = &schedulermocks.Scheduler{}
 	c.source = &sourcemocks.Source{}
+	c.wal = &WAL{WAL: &walmocks.WAL{}}
 
-	wal, err := newCalciumWAL(c)
-	if err != nil {
-		panic(err)
-	}
-	c.wal = wal
+	mwal := c.wal.WAL.(*walmocks.WAL)
+	commit := wal.Commit(func(context.Context) error { return nil })
+	mwal.On("Log", mock.Anything, mock.Anything, mock.Anything).Return(commit, nil)
 
 	return c
 }
