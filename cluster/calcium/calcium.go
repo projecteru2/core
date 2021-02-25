@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"context"
 	"strings"
 
 	"github.com/projecteru2/core/cluster"
@@ -64,6 +65,11 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 	cal := &Calcium{store: store, config: config, scheduler: potassium, source: scm, watcher: watcher}
 	cal.wal, err = newCalciumWAL(cal)
 	return cal, err
+}
+
+// DisasterRecover .
+func (c *Calcium) DisasterRecover(ctx context.Context) {
+	c.wal.Recover(ctx)
 }
 
 // Finalizer use for defer
