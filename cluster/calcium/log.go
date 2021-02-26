@@ -5,17 +5,19 @@ import (
 	"context"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
 
 // LogStream log stream for one workload
 func (c *Calcium) LogStream(ctx context.Context, opts *types.LogStreamOptions) (chan *types.LogStreamMessage, error) {
+	logger := log.WithField("Calcium", "LogStream").WithField("opts", opts)
 	ch := make(chan *types.LogStreamMessage)
 	go func() {
 		defer close(ch)
 		workload, err := c.GetWorkload(ctx, opts.ID)
 		if err != nil {
-			ch <- &types.LogStreamMessage{ID: opts.ID, Error: err}
+			ch <- &types.LogStreamMessage{ID: opts.ID, Error: logger.Err(err)}
 			return
 		}
 
@@ -29,7 +31,7 @@ func (c *Calcium) LogStream(ctx context.Context, opts *types.LogStreamOptions) (
 			Stderr: true,
 		})
 		if err != nil {
-			ch <- &types.LogStreamMessage{ID: opts.ID, Error: err}
+			ch <- &types.LogStreamMessage{ID: opts.ID, Error: logger.Err(err)}
 			return
 		}
 

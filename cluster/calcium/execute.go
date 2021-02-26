@@ -12,6 +12,7 @@ import (
 
 // ExecuteWorkload executes commands in running workloads
 func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorkloadOptions, inCh <-chan []byte) chan *types.AttachWorkloadMessage {
+	logger := log.WithField("Calcium", "ExecuteWorkload").WithField("opts", opts)
 	ch := make(chan *types.AttachWorkloadMessage)
 
 	go func() {
@@ -26,7 +27,7 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 
 		workload, err := c.GetWorkload(ctx, opts.WorkloadID)
 		if err != nil {
-			log.Errorf("[ExecuteWorkload] Failed to get wordload: %v", err)
+			logger.Errorf("[ExecuteWorkload] Failed to get wordload: %+v", err)
 			return
 		}
 
@@ -43,7 +44,7 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 
 		execID, stdout, stderr, inStream, err := workload.Engine.Execute(ctx, opts.WorkloadID, execConfig)
 		if err != nil {
-			log.Errorf("[ExecuteWorkload] Failed to attach execID: %v", err)
+			logger.Errorf("[ExecuteWorkload] Failed to attach execID: %+v", err)
 			return
 		}
 
@@ -61,7 +62,7 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 
 		execCode, err := workload.Engine.ExecExitCode(ctx, execID)
 		if err != nil {
-			log.Errorf("[ExecuteWorkload] Failed to get exitcode: %v", err)
+			logger.Errorf("[ExecuteWorkload] Failed to get exitcode: %+v", err)
 			return
 		}
 

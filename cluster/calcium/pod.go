@@ -3,38 +3,46 @@ package calcium
 import (
 	"context"
 
+	"github.com/pkg/errors"
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
 
 // AddPod add pod
 func (c *Calcium) AddPod(ctx context.Context, podname, desc string) (*types.Pod, error) {
+	logger := log.WithField("Calcium", "AddPod").WithField("podname", podname).WithField("desc", desc)
 	if podname == "" {
-		return nil, types.ErrEmptyPodName
+		return nil, logger.Err(errors.WithStack(types.ErrEmptyPodName))
 	}
-	return c.store.AddPod(ctx, podname, desc)
+	pod, err := c.store.AddPod(ctx, podname, desc)
+	return pod, logger.Err(errors.WithStack(err))
 }
 
 // RemovePod remove pod
 func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
+	logger := log.WithField("Calcium", "RemovePod").WithField("podname", podname)
 	if podname == "" {
-		return types.ErrEmptyPodName
+		return logger.Err(errors.WithStack(types.ErrEmptyPodName))
 	}
 	return c.withNodesLocked(ctx, podname, []string{}, nil, true, func(ctx context.Context, nodes map[string]*types.Node) error {
 		// TODO dissociate workload to node
 		// TODO should remove node first
-		return c.store.RemovePod(ctx, podname)
+		return logger.Err(errors.WithStack(c.store.RemovePod(ctx, podname)))
 	})
 }
 
 // GetPod get one pod
 func (c *Calcium) GetPod(ctx context.Context, podname string) (*types.Pod, error) {
+	logger := log.WithField("Calcium", "GetPod").WithField("podname", podname)
 	if podname == "" {
-		return nil, types.ErrEmptyPodName
+		return nil, logger.Err(errors.WithStack(types.ErrEmptyPodName))
 	}
-	return c.store.GetPod(ctx, podname)
+	pod, err := c.store.GetPod(ctx, podname)
+	return pod, logger.Err(errors.WithStack(err))
 }
 
 // ListPods show pods
 func (c *Calcium) ListPods(ctx context.Context) ([]*types.Pod, error) {
-	return c.store.GetAllPods(ctx)
+	pods, err := c.store.GetAllPods(ctx)
+	return pods, log.WithField("Calcium", "ListPods").Err(errors.WithStack(err))
 }

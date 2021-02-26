@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
@@ -14,6 +15,7 @@ import (
 
 // ReallocResource updates workload resource dynamically
 func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOptions) (err error) {
+	logger := log.WithField("Calcium", "ReallocResource").WithField("opts", opts)
 	return c.withWorkloadLocked(ctx, opts.ID, func(ctx context.Context, workload *types.Workload) error {
 		rrs, err := resources.MakeRequests(
 			types.ResourceOptions{
@@ -30,9 +32,9 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 			},
 		)
 		if err != nil {
-			return errors.WithStack(err)
+			return logger.Err(errors.WithStack(err))
 		}
-		return c.doReallocOnNode(ctx, workload.Nodename, workload, rrs)
+		return logger.Err(errors.WithStack(c.doReallocOnNode(ctx, workload.Nodename, workload, rrs)))
 	})
 }
 
@@ -58,7 +60,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, nodename string, workload
 						Node:             node,
 						ExistingInstance: workload,
 					}, resourceMeta); err != nil {
-						return
+						return errors.WithStack(err)
 					}
 				}
 				return errors.WithStack(c.doReallocWorkloadsOnInstance(ctx, node.Engine, resourceMeta, workload))

@@ -22,8 +22,9 @@ import (
 
 // CreateWorkload use options to create workloads
 func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
+	logger := log.WithField("Calcium", "CreateWorkload").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, err
+		return nil, logger.Err(errors.WithStack(err))
 	}
 
 	opts.ProcessIdent = utils.RandomString(16)
@@ -31,15 +32,16 @@ func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions)
 	litter.Dump(opts)
 	// Count 要大于0
 	if opts.Count <= 0 {
-		return nil, errors.WithStack(types.NewDetailedErr(types.ErrBadCount, opts.Count))
+		return nil, logger.Err(errors.WithStack(types.NewDetailedErr(types.ErrBadCount, opts.Count)))
 	}
 
 	ch, err := c.doCreateWorkloads(ctx, opts)
-	return ch, errors.WithStack(err)
+	return ch, logger.Err(errors.WithStack(err))
 }
 
 // transaction: resource metadata consistency
 func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
+	logger := log.WithField("Calcium", "doCreateWorkloads").WithField("opts", opts)
 	ch := make(chan *types.CreateWorkloadMessage)
 	// RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
 	// 因此需要在这里加个全局锁，直到部署完毕才释放
@@ -57,13 +59,13 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			for nodename := range deployMap {
 				if e := c.store.DeleteProcessing(ctx, opts, nodename); e != nil {
 					err = e
-					log.Errorf("[Calcium.doCreateWorkloads] delete processing failed for %s: %+v", nodename, err)
+					logger.Errorf("[Calcium.doCreateWorkloads] delete processing failed for %s: %+v", nodename, err)
 				}
 			}
 			close(ch)
 		}()
 
-		if err := utils.Txn(
+		_ = utils.Txn(
 			ctx,
 
 			// if: alloc resources
@@ -71,7 +73,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 				return c.withNodesLocked(ctx, opts.Podname, opts.Nodenames, opts.NodeLabels, false, func(ctx context.Context, nodeMap map[string]*types.Node) (err error) {
 					defer func() {
 						if err != nil {
-							ch <- &types.CreateWorkloadMessage{Error: err}
+							ch <- &types.CreateWorkloadMessage{Error: logger.Err(err)}
 						}
 					}()
 
@@ -117,9 +119,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			},
 
 			c.config.GlobalTimeout,
-		); err != nil {
-			log.Errorf("[Calcium.doCreateWorkloads] %+v", err)
-		}
+		)
 	}()
 
 	return ch, errors.WithStack(err)
@@ -150,10 +150,11 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateWo
 
 // deploy scheduled workloads on one node
 func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.CreateWorkloadMessage, nodename string, opts *types.DeployOptions, deploy int, plans []resourcetypes.ResourcePlans, seq int) (indices []int, err error) {
+	logger := log.WithField("Calcium", "doDeployWorkloadsOnNode").WithField("nodename", nodename).WithField("opts", opts).WithField("deploy", deploy).WithField("plans", plans).WithField("seq", seq)
 	node, err := c.doGetAndPrepareNode(ctx, nodename, opts.Image)
 	if err != nil {
 		for i := 0; i < deploy; i++ {
-			ch <- &types.CreateWorkloadMessage{Error: err}
+			ch <- &types.CreateWorkloadMessage{Error: logger.Err(err)}
 		}
 		return utils.Range(deploy), errors.WithStack(err)
 	}
@@ -167,7 +168,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 		}
 
 		if e := sem.Acquire(ctx, 1); e != nil {
-			log.Errorf("[Calcium.doDeployWorkloadsOnNode] Failed to acquire semaphore: %+v", e)
+			logger.Errorf("[Calcium.doDeployWorkloadsOnNode] Failed to acquire semaphore: %+v", e)
 			err = e
 			ch <- &types.CreateWorkloadMessage{Error: e}
 			appendLock.Lock()
@@ -179,7 +180,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 			defer func() {
 				if e != nil {
 					err = e
-					createMsg.Error = e
+					createMsg.Error = logger.Err(e)
 					appendLock.Lock()
 					indices = append(indices, idx)
 					appendLock.Unlock()
@@ -195,13 +196,13 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 			}
 			for _, plan := range plans {
 				if r, e = plan.Dispense(o, r); e != nil {
-					return
+					return errors.WithStack(e)
 				}
 			}
 
 			createMsg.ResourceMeta = *r
 			createOpts := c.doMakeWorkloadOptions(seq+idx, createMsg, opts, node)
-			return c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts, deploy-1-idx)
+			return errors.WithStack(c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts, deploy-1-idx))
 		}(idx) // nolint:errcheck
 	}
 
@@ -209,7 +210,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 	// 用 context.Background() 是为了防止语义被破坏: 一定要等到所有 goroutine 完毕, 不能被用户 ctx 打断
 	// 否则可能会出现的情况是, 某些 goroutine 还没结束与运行 defer, 这个函数就 return 并 close channel, 导致 defer 里给 closed channel 发消息 panic
 	if e := sem.Acquire(context.Background(), c.config.MaxConcurrency); e != nil {
-		log.Errorf("[Calcium.doDeployWorkloadsOnNode] Failed to wait all workers done: %+v", e)
+		logger.Errorf("[Calcium.doDeployWorkloadsOnNode] Failed to wait all workers done: %+v", e)
 		err = e
 		indices = utils.Range(deploy)
 	}

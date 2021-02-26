@@ -4,14 +4,16 @@ import (
 	"context"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
 
 // Copy uses VirtualizationCopyFrom cp to copy specified things and send to remote
 func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error) {
+	logger := log.WithField("Calcium", "Copy").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, err
+		return nil, logger.Err(errors.WithStack(err))
 	}
 	ch := make(chan *types.CopyMessage)
 	go func() {
@@ -30,7 +32,7 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 					}
 					return nil
 				}); err != nil {
-					ch <- makeCopyMessage(id, "", "", err, nil)
+					ch <- makeCopyMessage(id, "", "", logger.Err(err), nil)
 				}
 			}(id, paths)
 		}

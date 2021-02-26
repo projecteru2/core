@@ -6,39 +6,50 @@ package calcium
 import (
 	"context"
 
+	"github.com/pkg/errors"
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
 
 // ListWorkloads list workloads
-func (c *Calcium) ListWorkloads(ctx context.Context, opts *types.ListWorkloadsOptions) ([]*types.Workload, error) {
-	return c.store.ListWorkloads(ctx, opts.Appname, opts.Entrypoint, opts.Nodename, opts.Limit, opts.Labels)
+func (c *Calcium) ListWorkloads(ctx context.Context, opts *types.ListWorkloadsOptions) (workloads []*types.Workload, err error) {
+	if workloads, err = c.store.ListWorkloads(ctx, opts.Appname, opts.Entrypoint, opts.Nodename, opts.Limit, opts.Labels); err != nil {
+		log.WithField("opts", opts).Errorf("Calcium.ListWorkloads] store list failed: %+v", err)
+	}
+	return workloads, errors.WithStack(err)
 }
 
 // ListNodeWorkloads list workloads belong to one node
-func (c *Calcium) ListNodeWorkloads(ctx context.Context, nodename string, labels map[string]string) ([]*types.Workload, error) {
+func (c *Calcium) ListNodeWorkloads(ctx context.Context, nodename string, labels map[string]string) (workloads []*types.Workload, err error) {
+	logger := log.WithField("Calcium", "ListNodeWorkloads").WithField("nodename", nodename).WithField("labels", labels)
 	if nodename == "" {
-		return nil, types.ErrEmptyNodeName
+		return workloads, logger.Err(errors.WithStack(types.ErrEmptyNodeName))
 	}
-	return c.store.ListNodeWorkloads(ctx, nodename, labels)
+	workloads, err = c.store.ListNodeWorkloads(ctx, nodename, labels)
+	return workloads, logger.Err(errors.WithStack(err))
 }
 
 func (c *Calcium) getWorkloadNode(ctx context.Context, id string) (*types.Node, error) {
 	w, err := c.GetWorkload(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
-	return c.GetNode(ctx, w.Nodename)
+	node, err := c.GetNode(ctx, w.Nodename)
+	return node, errors.WithStack(err)
 }
 
 // GetWorkload get a workload
-func (c *Calcium) GetWorkload(ctx context.Context, id string) (*types.Workload, error) {
+func (c *Calcium) GetWorkload(ctx context.Context, id string) (workload *types.Workload, err error) {
+	logger := log.WithField("Calcium", "GetWorkload").WithField("id", id)
 	if id == "" {
-		return nil, types.ErrEmptyWorkloadID
+		return workload, logger.Err(errors.WithStack(types.ErrEmptyWorkloadID))
 	}
-	return c.store.GetWorkload(ctx, id)
+	workload, err = c.store.GetWorkload(ctx, id)
+	return workload, logger.Err(errors.WithStack(err))
 }
 
 // GetWorkloads get workloads
-func (c *Calcium) GetWorkloads(ctx context.Context, ids []string) ([]*types.Workload, error) {
-	return c.store.GetWorkloads(ctx, ids)
+func (c *Calcium) GetWorkloads(ctx context.Context, ids []string) (workloads []*types.Workload, err error) {
+	workloads, err = c.store.GetWorkloads(ctx, ids)
+	return workloads, log.WithField("Calcium", "GetWorkloads").WithField("ids", ids).Err(errors.WithStack(err))
 }

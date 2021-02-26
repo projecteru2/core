@@ -5,6 +5,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
@@ -13,6 +14,7 @@ import (
 
 // ControlWorkload control workloads status
 func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, force bool) (chan *types.ControlWorkloadMessage, error) {
+	logger := log.WithField("Calcium", "ControlWorkload").WithField("ids", ids).WithField("t", t).WithField("force", force)
 	ch := make(chan *types.ControlWorkloadMessage)
 
 	go func() {
@@ -28,20 +30,20 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 					switch t {
 					case cluster.WorkloadStop:
 						message, err = c.doStopWorkload(ctx, workload, force)
-						return err
+						return errors.WithStack(err)
 					case cluster.WorkloadStart:
 						message, err = c.doStartWorkload(ctx, workload, force)
-						return err
+						return errors.WithStack(err)
 					case cluster.WorkloadRestart:
 						message, err = c.doStopWorkload(ctx, workload, force)
 						if err != nil {
-							return err
+							return errors.WithStack(err)
 						}
 						startHook, err := c.doStartWorkload(ctx, workload, force)
 						message = append(message, startHook...)
-						return err
+						return errors.WithStack(err)
 					}
-					return types.ErrUnknownControlType
+					return errors.WithStack(types.ErrUnknownControlType)
 				})
 				if err == nil {
 					log.Infof("[ControlWorkload] Workload %s %s", id, t)
@@ -50,7 +52,7 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 				}
 				ch <- &types.ControlWorkloadMessage{
 					WorkloadID: id,
-					Error:      err,
+					Error:      logger.Err(err),
 					Hook:       message,
 				}
 			}(id)
@@ -63,7 +65,7 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 
 func (c *Calcium) doStartWorkload(ctx context.Context, workload *types.Workload, force bool) (message []*bytes.Buffer, err error) {
 	if err = workload.Start(ctx); err != nil {
-		return message, err
+		return message, errors.WithStack(err)
 	}
 	// TODO healthcheck first
 	if workload.Hook != nil && len(workload.Hook.AfterStart) > 0 {
@@ -75,7 +77,7 @@ func (c *Calcium) doStartWorkload(ctx context.Context, workload *types.Workload,
 			force, workload.Engine,
 		)
 	}
-	return message, err
+	return message, errors.WithStack(err)
 }
 
 func (c *Calcium) doStopWorkload(ctx context.Context, workload *types.Workload, force bool) (message []*bytes.Buffer, err error) {
@@ -88,7 +90,7 @@ func (c *Calcium) doStopWorkload(ctx context.Context, workload *types.Workload, 
 			force, workload.Engine,
 		)
 		if err != nil {
-			return message, err
+			return message, errors.WithStack(err)
 		}
 	}
 
@@ -98,5 +100,5 @@ func (c *Calcium) doStopWorkload(ctx context.Context, workload *types.Workload, 
 	if err = workload.Stop(ctx); err != nil {
 		message = append(message, bytes.NewBufferString(err.Error()))
 	}
-	return message, err
+	return message, errors.WithStack(err)
 }
