@@ -73,11 +73,15 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	defer eng.AssertExpectations(t)
 	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
 		Return(fmt.Errorf("err")).
-		Twice()
+		Once()
 	c.wal.Recover(context.Background())
 
-	// Recovers again because the above recovering had been failed.
-	// so the log item hadn't been deleted.
+	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
+		Return(fmt.Errorf("Error: No such container: %s", wrk.ID)).
+		Once()
+	c.wal.Recover(context.Background())
+
+	// Nothing recovered.
 	c.wal.Recover(context.Background())
 }
 

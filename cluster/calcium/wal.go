@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/projecteru2/core/log"
@@ -125,17 +126,24 @@ func (h *CreateWorkloadHandler) Handle(raw interface{}) error {
 	// There hasn't been the exact workload metadata, so we must remove it.
 	node, err := h.calcium.GetNode(context.Background(), wrk.Nodename)
 	if err != nil {
-		log.Errorf("[CreateWorkloadHandler.Check] Get node %s failed: %v", wrk.Nodename, err)
+		log.Errorf("[CreateWorkloadHandler.Handle] Get node %s failed: %v", wrk.Nodename, err)
 		return err
 	}
 	wrk.Engine = node.Engine
 
-	err = wrk.Remove(context.Background(), true)
-	if err != nil {
-		log.Errorf("[CreateWorkloadHandler.Check] Remove %s failed: %v", wrk.ID, err)
+	if err := wrk.Remove(context.Background(), true); err != nil {
+		if strings.HasPrefix(err.Error(), fmt.Sprintf("Error: No such container: %s", wrk.ID)) {
+			log.Errorf("[CreateWorkloadHandler.Handle] %s has been removed yet", wrk.ID)
+			return nil
+		}
+
+		log.Errorf("[CreateWorkloadHandler.Handle] Remove %s failed: %v", wrk.ID, err)
+		return err
 	}
 
-	return err
+	log.Warnf("[CreateWorkloadHandler.Handle] %s has been removed", wrk.ID)
+
+	return nil
 }
 
 // CreateLambdaHandler indicates event handler for creating lambda.
