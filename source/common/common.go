@@ -43,11 +43,13 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 	var err error
 	ctx, cancel := context.WithTimeout(ctx, g.Config.CloneTimeout)
 	defer cancel()
+	opts := &gogit.CloneOptions{
+		URL:      repository,
+		Progress: ioutil.Discard,
+	}
 	switch {
 	case strings.Contains(repository, "https://"):
-		repo, err = gogit.PlainCloneContext(ctx, path, false, &gogit.CloneOptions{
-			URL: repository,
-		})
+		repo, err = gogit.PlainCloneContext(ctx, path, false, opts)
 	case strings.Contains(repository, "git@") || strings.Contains(repository, "gitlab@"):
 		signer, signErr := ssh.ParsePrivateKey(g.keyBytes)
 		if signErr != nil {
@@ -65,11 +67,8 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 				HostKeyCallback: ssh.InsecureIgnoreHostKey(), // nolint
 			},
 		}
-		repo, err = gogit.PlainCloneContext(ctx, path, false, &gogit.CloneOptions{
-			URL:      repository,
-			Progress: ioutil.Discard,
-			Auth:     auth,
-		})
+		opts.Auth = auth
+		repo, err = gogit.PlainCloneContext(ctx, path, false, opts)
 	default:
 		return types.ErrNotSupport
 	}
@@ -100,7 +99,7 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 		if err != nil {
 			return err
 		}
-		return s.Update(&gogit.SubmoduleUpdateOptions{Init: true})
+		return s.Update(&gogit.SubmoduleUpdateOptions{Init: true, Auth: opts.Auth})
 	}
 	return err
 }
