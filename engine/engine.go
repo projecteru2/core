@@ -36,6 +36,7 @@ type API interface {
 	BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildContentOptions) (string, io.Reader, error)
 
 	VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error)
+	VirtualizationResourceRemap(context.Context, *enginetypes.VirtualizationRemapOptions) (<-chan enginetypes.VirtualizationRemapMessage, error)
 	VirtualizationCopyTo(ctx context.Context, ID, target string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) error
 	VirtualizationStart(ctx context.Context, ID string) error
 	VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) error

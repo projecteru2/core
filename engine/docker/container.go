@@ -220,6 +220,10 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	return r, err
 }
 
+func (e *Engine) VirtualizationResourceRemap(ctx context.Context, opts *enginetypes.VirtualizationRemapOptions) (<-chan enginetypes.VirtualizationRemapMessage, error) {
+	return nil, nil
+}
+
 // VirtualizationCopyTo copy things to virtualization
 func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) error {
 	return withTarfileDump(target, content, func(target, tarfile string) error {
