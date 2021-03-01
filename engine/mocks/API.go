@@ -653,6 +653,29 @@ func (_m *API) VirtualizationResize(ctx context.Context, ID string, height uint,
 	return r0
 }
 
+// VirtualizationResourceRemap provides a mock function with given fields: _a0, _a1
+func (_m *API) VirtualizationResourceRemap(_a0 context.Context, _a1 *types.VirtualizationRemapOptions) (<-chan types.VirtualizationRemapMessage, error) {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 <-chan types.VirtualizationRemapMessage
+	if rf, ok := ret.Get(0).(func(context.Context, *types.VirtualizationRemapOptions) <-chan types.VirtualizationRemapMessage); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(<-chan types.VirtualizationRemapMessage)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.VirtualizationRemapOptions) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // VirtualizationStart provides a mock function with given fields: ctx, ID
 func (_m *API) VirtualizationStart(ctx context.Context, ID string) error {
 	ret := _m.Called(ctx, ID)

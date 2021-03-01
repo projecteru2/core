@@ -68,3 +68,15 @@ type VirtualizationWaitResult struct {
 	Message string
 	Code    int64
 }
+
+type VirtualizationRemapOptions struct {
+	CPUAvailable      map[string]int64
+	CPUInit           map[string]int64 // engine can be aware of oversell
+	CPUShareBase      int64
+	WorkloadResources map[string]VirtualizationResource
+}
+
+type VirtualizationRemapMessage struct {
+	ID string
+	VirtualizationResource
+}

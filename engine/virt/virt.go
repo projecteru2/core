@@ -173,6 +173,10 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 	return &enginetypes.VirtualizationCreated{ID: resp.ID, Name: opts.Name}, nil
 }
 
+func (v *Virt) VirtualizationResourceRemap(ctx context.Context, opts *enginetypes.VirtualizationRemapOptions) (<-chan enginetypes.VirtualizationRemapMessage, error) {
+	return nil, nil
+}
+
 // VirtualizationCopyTo copies one.
 func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, target string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) (err error) {
 	log.Warnf("VirtualizationCopyTo does not implement")
