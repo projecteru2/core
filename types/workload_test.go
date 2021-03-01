@@ -28,14 +28,14 @@ func TestWorkloadInspect(t *testing.T) {
 func TestWorkloadControl(t *testing.T) {
 	mockEngine := &mocks.API{}
 	mockEngine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
-	mockEngine.On("VirtualizationStop", mock.Anything, mock.Anything).Return(nil)
+	mockEngine.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	mockEngine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	ctx := context.Background()
 	c := Workload{}
 	err := c.Start(ctx)
 	assert.Error(t, err)
-	err = c.Stop(ctx)
+	err = c.Stop(ctx, true)
 	assert.Error(t, err)
 	err = c.Remove(ctx, true)
 	assert.Error(t, err)
@@ -43,7 +43,7 @@ func TestWorkloadControl(t *testing.T) {
 	c.Engine = mockEngine
 	err = c.Start(ctx)
 	assert.NoError(t, err)
-	err = c.Stop(ctx)
+	err = c.Stop(ctx, true)
 	assert.NoError(t, err)
 	err = c.Remove(ctx, true)
 	assert.NoError(t, err)

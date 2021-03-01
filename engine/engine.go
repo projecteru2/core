@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"io"
+	"time"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coresource "github.com/projecteru2/core/source"
@@ -37,7 +38,7 @@ type API interface {
 	VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error)
 	VirtualizationCopyTo(ctx context.Context, ID, target string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) error
 	VirtualizationStart(ctx context.Context, ID string) error
-	VirtualizationStop(ctx context.Context, ID string) error
+	VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) error
 	VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) error
 	VirtualizationInspect(ctx context.Context, ID string) (*enginetypes.VirtualizationInfo, error)
 	VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout, stderr io.ReadCloser, err error)

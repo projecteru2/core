@@ -128,12 +128,12 @@ func TestControlStop(t *testing.T) {
 	// stop failed
 	workload.Hook.Force = false
 	ch, err = c.ControlWorkload(ctx, []string{"id1"}, cluster.WorkloadStop, false)
-	engine.On("VirtualizationStop", mock.Anything, mock.Anything).Return(types.ErrNilEngine).Once()
+	engine.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrNilEngine).Once()
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
-	engine.On("VirtualizationStop", mock.Anything, mock.Anything).Return(nil)
+	engine.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	// stop success
 	ch, err = c.ControlWorkload(ctx, []string{"id1"}, cluster.WorkloadStop, false)
 	assert.NoError(t, err)
@@ -172,7 +172,7 @@ func TestControlRestart(t *testing.T) {
 	}
 	workload.Hook = nil
 	// success
-	engine.On("VirtualizationStop", mock.Anything, mock.Anything).Return(nil)
+	engine.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	ch, err = c.ControlWorkload(ctx, []string{"id1"}, cluster.WorkloadRestart, false)
 	assert.NoError(t, err)

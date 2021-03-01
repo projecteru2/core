@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -80,7 +81,7 @@ func (s *SSHClient) VirtualizationStart(ctx context.Context, ID string) (err err
 }
 
 // VirtualizationStop stops a systemd service
-func (s *SSHClient) VirtualizationStop(ctx context.Context, ID string) (err error) {
+func (s *SSHClient) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) (err error) {
 	// systemctl stop $ID
 	_, stderr, err := s.runSingleCommand(ctx, fmt.Sprintf(cmdSystemdStop, ID), nil)
 	return errors.Wrap(err, stderr.String())
@@ -89,7 +90,7 @@ func (s *SSHClient) VirtualizationStop(ctx context.Context, ID string) (err erro
 // VirtualizationRemove removes a systemd service
 func (s *SSHClient) VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) (err error) {
 	if force {
-		_ = s.VirtualizationStop(ctx, ID)
+		_ = s.VirtualizationStop(ctx, ID, -1)
 	}
 
 	// rm -f $FILE
