@@ -15,9 +15,10 @@ import (
 
 // PodResource show pod resource usage
 func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodResource, error) {
+	logger := log.WithField("Calcium", "PodResource").WithField("podname", podname)
 	nodes, err := c.ListPodNodes(ctx, podname, nil, true)
 	if err != nil {
-		return nil, err
+		return nil, logger.Err(errors.WithStack(err))
 	}
 	r := &types.PodResource{
 		Name:          podname,
@@ -26,7 +27,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 	for _, node := range nodes {
 		nodeResource, err := c.doGetNodeResource(ctx, node.Name, false)
 		if err != nil {
-			return nil, err
+			return nil, logger.Err(errors.WithStack(err))
 		}
 		r.NodesResource = append(r.NodesResource, nodeResource)
 	}
@@ -35,13 +36,14 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 
 // NodeResource check node's workload and resource
 func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
+	logger := log.WithField("Calcium", "NodeResource").WithField("nodename", nodename).WithField("fix", fix)
 	if nodename == "" {
-		return nil, types.ErrEmptyNodeName
+		return nil, logger.Err(types.ErrEmptyNodeName)
 	}
 
 	nr, err := c.doGetNodeResource(ctx, nodename, fix)
 	if err != nil {
-		return nil, err
+		return nil, logger.Err(err)
 	}
 	for _, workload := range nr.Workloads {
 		if _, err := workload.Inspect(ctx); err != nil { // 用于探测节点上容器是否存在
@@ -49,7 +51,7 @@ func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (
 			continue
 		}
 	}
-	return nr, err
+	return nr, logger.Err(err)
 }
 
 func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
@@ -57,7 +59,7 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 	return nr, c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 		workloads, err := c.ListNodeWorkloads(ctx, node.Name, nil)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		nr = &types.NodeResource{
 			Name: node.Name, CPU: node.CPU, MemCap: node.MemCap, StorageCap: node.StorageCap,
@@ -125,7 +127,7 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 	return utils.Txn(ctx,
 		func(ctx context.Context) error {
 			if n, err = c.GetNode(ctx, node.Name); err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			n.CPUUsed = cpus
 			for i, v := range node.CPU {
@@ -136,7 +138,7 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 			return nil
 		},
 		func(ctx context.Context) error {
-			return c.store.UpdateNodes(ctx, n)
+			return errors.WithStack(c.store.UpdateNodes(ctx, n))
 		},
 		nil,
 		c.config.GlobalTimeout,

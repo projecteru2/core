@@ -3,28 +3,29 @@ package calcium
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"time"
 
+	"github.com/pkg/errors"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
 
 // BuildImage will build image
-func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
+func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch chan *types.BuildImageMessage, err error) {
+	logger := log.WithField("Calcium", "BuildImage").WithField("opts", opts)
 	// Disable build API if scm not set
 	if c.source == nil {
-		return nil, types.ErrSCMNotSet
+		return nil, logger.Err(errors.WithStack(types.ErrSCMNotSet))
 	}
 	// select nodes
 	node, err := c.selectBuildNode(ctx)
 	if err != nil {
-		return nil, err
+		return nil, logger.Err(errors.WithStack(err))
 	}
 	log.Infof("[BuildImage] Building image at pod %s node %s", node.Podname, node.Name)
 	// get refs
@@ -32,33 +33,35 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (cha
 
 	switch opts.BuildMethod {
 	case types.BuildFromSCM:
-		return c.buildFromSCM(ctx, node, refs, opts)
+		ch, err = c.buildFromSCM(ctx, node, refs, opts)
 	case types.BuildFromRaw:
-		return c.buildFromContent(ctx, node, refs, opts.Tar)
+		ch, err = c.buildFromContent(ctx, node, refs, opts.Tar)
 	case types.BuildFromExist:
-		return c.buildFromExist(ctx, refs[0], opts.ExistID)
+		ch, err = c.buildFromExist(ctx, refs[0], opts.ExistID)
 	default:
-		return nil, errors.New("unknown build type")
+		return nil, logger.Err(errors.WithStack(errors.New("unknown build type")))
 	}
+	return ch, logger.Err(errors.WithStack(err))
 }
 
 func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
 	// get pod from config
 	// TODO can choose multiple pod here for other engine support
 	if c.config.Docker.BuildPod == "" {
-		return nil, types.ErrNoBuildPod
+		return nil, errors.WithStack(types.ErrNoBuildPod)
 	}
 
 	// get node by scheduler
 	nodes, err := c.ListPodNodes(ctx, c.config.Docker.BuildPod, nil, false)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if len(nodes) == 0 {
-		return nil, types.ErrInsufficientNodes
+		return nil, errors.WithStack(types.ErrInsufficientNodes)
 	}
 	// get idle max node
-	return c.scheduler.MaxIdleNode(nodes)
+	node, err := c.scheduler.MaxIdleNode(nodes)
+	return node, errors.WithStack(err)
 }
 
 func (c *Calcium) buildFromSCM(ctx context.Context, node *types.Node, refs []string, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
@@ -70,30 +73,33 @@ func (c *Calcium) buildFromSCM(ctx context.Context, node *types.Node, refs []str
 	path, content, err := node.Engine.BuildContent(ctx, c.source, buildContentOpts)
 	defer os.RemoveAll(path)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
-	return c.buildFromContent(ctx, node, refs, content)
+	ch, err := c.buildFromContent(ctx, node, refs, content)
+	return ch, errors.WithStack(err)
 }
 
 func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, refs []string, content io.Reader) (chan *types.BuildImageMessage, error) {
 	resp, err := node.Engine.ImageBuild(ctx, content, refs)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
-	return c.pushImage(ctx, resp, node, refs)
+	ch, err := c.pushImage(ctx, resp, node, refs)
+	return ch, errors.WithStack(err)
 }
 
-func (c *Calcium) buildFromExist(ctx context.Context, ref, existID string) (chan *types.BuildImageMessage, error) {
+func (c *Calcium) buildFromExist(ctx context.Context, ref, existID string) (chan *types.BuildImageMessage, error) { // nolint:unparam
+	logger := log.WithField("Calcium", "buildFromExist").WithField("ref", ref).WithField("existID", existID)
 	return withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
 		node, err := c.getWorkloadNode(ctx, existID)
 		if err != nil {
-			ch <- buildErrMsg(err)
+			ch <- buildErrMsg(logger.Err(err))
 			return
 		}
 
 		imageID, err := node.Engine.ImageBuildFromExist(ctx, existID, ref)
 		if err != nil {
-			ch <- buildErrMsg(err)
+			ch <- buildErrMsg(logger.Err(err))
 			return
 		}
 		go cleanupNodeImages(node, []string{imageID}, c.config.GlobalTimeout)
@@ -101,7 +107,8 @@ func (c *Calcium) buildFromExist(ctx context.Context, ref, existID string) (chan
 	}), nil
 }
 
-func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) {
+func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) { // nolint:unparam
+	logger := log.WithField("Calcium", "pushImage").WithField("node", node).WithField("tags", tags)
 	return withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
 		defer resp.Close()
 		decoder := json.NewDecoder(resp)
@@ -119,7 +126,7 @@ func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types
 					break
 				}
 				malformed, _ := ioutil.ReadAll(decoder.Buffered()) // TODO err check
-				log.Errorf("[BuildImage] Decode build image message failed %v, buffered: %v", err, malformed)
+				logger.Errorf("[BuildImage] Decode build image message failed %+v, buffered: %v", err, malformed)
 				return
 			}
 			ch <- message
@@ -137,7 +144,7 @@ func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types
 			log.Infof("[BuildImage] Push image %s", tag)
 			rc, err := node.Engine.ImagePush(ctx, tag)
 			if err != nil {
-				ch <- &types.BuildImageMessage{Error: err.Error()}
+				ch <- &types.BuildImageMessage{Error: logger.Err(err).Error()}
 				continue
 			}
 
@@ -165,15 +172,16 @@ func withImageBuiltChannel(f func(chan *types.BuildImageMessage)) chan *types.Bu
 }
 
 func cleanupNodeImages(node *types.Node, ids []string, ttl time.Duration) {
+	logger := log.WithField("Calcium", "cleanupNodeImages").WithField("node", node).WithField("ids", ids).WithField("ttl", ttl)
 	ctx, cancel := context.WithTimeout(context.Background(), ttl)
 	defer cancel()
 	for _, id := range ids {
 		if _, err := node.Engine.ImageRemove(ctx, id, false, true); err != nil {
-			log.Errorf("[BuildImage] Remove image error: %s", err)
+			logger.Errorf("[BuildImage] Remove image error: %+v", errors.WithStack(err))
 		}
 	}
 	if spaceReclaimed, err := node.Engine.ImageBuildCachePrune(ctx, true); err != nil {
-		log.Errorf("[BuildImage] Remove build image cache error: %s", err)
+		logger.Errorf("[BuildImage] Remove build image cache error: %+v", errors.WithStack(err))
 	} else {
 		log.Infof("[BuildImage] Clean cached image and release space %d", spaceReclaimed)
 	}

@@ -44,7 +44,6 @@ func (v *Vibranium) Info(ctx context.Context, opts *pb.Empty) (*pb.CoreInfo, err
 func (v *Vibranium) WatchServiceStatus(_ *pb.Empty, stream pb.CoreRPC_WatchServiceStatusServer) (err error) {
 	ch, err := v.cluster.WatchServiceStatus(stream.Context())
 	if err != nil {
-		log.Errorf("[WatchServicesStatus] failed to create watch channel: %v", err)
 		return grpcstatus.Error(WatchServiceStatus, err.Error())
 	}
 	for status := range ch {
@@ -501,7 +500,6 @@ func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 	}
 	ch, err := v.cluster.BuildImage(stream.Context(), buildOpts)
 	if err != nil {
-		log.Errorf("[BuildImage] build image error %+v", err)
 		return grpcstatus.Error(BuildImage, err.Error())
 	}
 
@@ -561,14 +559,9 @@ func (v *Vibranium) CreateWorkload(opts *pb.DeployOptions, stream pb.CoreRPC_Cre
 
 	ch, err := v.cluster.CreateWorkload(stream.Context(), deployOpts)
 	if err != nil {
-		log.Errorf("[Vibranium.CreateWorkload] create failed: %+v", err)
 		return grpcstatus.Error(CreateWorkload, err.Error())
 	}
-
 	for m := range ch {
-		if m.Error != nil {
-			log.Errorf("[Vibranium.CreateWorkload] create specific workload failed: %+v", m.Error)
-		}
 		if err = stream.Send(toRPCCreateWorkloadMessage(m)); err != nil {
 			v.logUnsentMessages("CreateWorkload", err, m)
 		}
@@ -843,7 +836,6 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		defer cancel()
 		ch, err := v.cluster.RunAndWait(ctx, deployOpts, inCh)
 		if err != nil {
-			log.Errorf("[RunAndWait] Start run and wait failed %s", err)
 			return err
 		}
 		f(ch)

@@ -6,6 +6,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
@@ -13,8 +14,9 @@ import (
 
 // Send send files to workload
 func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error) {
+	logger := log.WithField("Calcium", "Send").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, err
+		return nil, logger.Err(errors.WithStack(err))
 	}
 	ch := make(chan *types.SendMessage)
 	go func() {
@@ -29,11 +31,11 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 				if err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
 					for dst, content := range opts.Data {
 						err := c.doSendFileToWorkload(ctx, workload.Engine, workload.ID, dst, bytes.NewBuffer(content), true, true)
-						ch <- &types.SendMessage{ID: id, Path: dst, Error: err}
+						ch <- &types.SendMessage{ID: id, Path: dst, Error: logger.Err(err)}
 					}
 					return nil
 				}); err != nil {
-					ch <- &types.SendMessage{ID: id, Error: err}
+					ch <- &types.SendMessage{ID: id, Error: logger.Err(err)}
 				}
 			}(id)
 		}
@@ -45,5 +47,5 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 func (c *Calcium) doSendFileToWorkload(ctx context.Context, engine engine.API, ID, dst string, content io.Reader, AllowOverwriteDirWithFile bool, CopyUIDGID bool) error {
 	log.Infof("[doSendFileToWorkload] Send file to %s:%s", ID, dst)
 	log.Debugf("[doSendFileToWorkload] remote path %s", dst)
-	return engine.VirtualizationCopyTo(ctx, ID, dst, content, AllowOverwriteDirWithFile, CopyUIDGID)
+	return errors.WithStack(engine.VirtualizationCopyTo(ctx, ID, dst, content, AllowOverwriteDirWithFile, CopyUIDGID))
 }

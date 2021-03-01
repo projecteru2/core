@@ -3,6 +3,8 @@ package calcium
 import (
 	"context"
 
+	"github.com/pkg/errors"
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
 
@@ -12,7 +14,7 @@ func (c *Calcium) GetWorkloadsStatus(ctx context.Context, ids []string) ([]*type
 	for _, id := range ids {
 		s, err := c.store.GetWorkloadStatus(ctx, id)
 		if err != nil {
-			return r, err
+			return r, log.WithField("Calcium", "GetWorkloadStatus").WithField("ids", ids).Err(errors.WithStack(err))
 		}
 		r = append(r, s)
 	}
@@ -21,11 +23,12 @@ func (c *Calcium) GetWorkloadsStatus(ctx context.Context, ids []string) ([]*type
 
 // SetWorkloadsStatus set workloads status
 func (c *Calcium) SetWorkloadsStatus(ctx context.Context, status []*types.StatusMeta, ttls map[string]int64) ([]*types.StatusMeta, error) {
+	logger := log.WithField("Calcium", "SetWorkloadsStatus").WithField("status", status).WithField("ttls", ttls)
 	r := []*types.StatusMeta{}
 	for _, workloadStatus := range status {
 		workload, err := c.store.GetWorkload(ctx, workloadStatus.ID)
 		if err != nil {
-			return nil, err
+			return nil, logger.Err(errors.WithStack(err))
 		}
 		ttl, ok := ttls[workloadStatus.ID]
 		if !ok {
@@ -33,7 +36,7 @@ func (c *Calcium) SetWorkloadsStatus(ctx context.Context, status []*types.Status
 		}
 		workload.StatusMeta = workloadStatus
 		if err = c.store.SetWorkloadStatus(ctx, workload, ttl); err != nil {
-			return nil, err
+			return nil, logger.Err(errors.WithStack(err))
 		}
 		r = append(r, workload.StatusMeta)
 	}
@@ -48,11 +51,12 @@ func (c *Calcium) WorkloadStatusStream(ctx context.Context, appname, entrypoint,
 // SetNodeStatus set status of a node
 // it's used to report whether a node is still alive
 func (c *Calcium) SetNodeStatus(ctx context.Context, nodename string, ttl int64) error {
+	logger := log.WithField("Calcium", "SetNodeStatus").WithField("nodename", nodename).WithField("ttl", ttl)
 	node, err := c.store.GetNode(ctx, nodename)
 	if err != nil {
-		return err
+		return logger.Err(errors.WithStack(err))
 	}
-	return c.store.SetNodeStatus(ctx, node, ttl)
+	return logger.Err(errors.WithStack(c.store.SetNodeStatus(ctx, node, ttl)))
 }
 
 // NodeStatusStream returns a stream of node status for subscribing

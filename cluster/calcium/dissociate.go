@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
@@ -11,6 +12,7 @@ import (
 
 // DissociateWorkload dissociate workload from eru, return it resource but not modity it
 func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *types.DissociateWorkloadMessage, error) {
+	logger := log.WithField("Caliucm", "Dissociate").WithField("ids", ids)
 	ch := make(chan *types.DissociateWorkloadMessage)
 	go func() {
 		defer close(ch)
@@ -21,12 +23,12 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *t
 						ctx,
 						// if
 						func(ctx context.Context) error {
-							return c.store.RemoveWorkload(ctx, workload)
+							return errors.WithStack(c.store.RemoveWorkload(ctx, workload))
 						},
 						// then
 						func(ctx context.Context) error {
 							log.Infof("[DissociateWorkload] Workload %s dissociated", workload.ID)
-							return c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionIncr)
+							return errors.WithStack(c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionIncr))
 						},
 						// rollback
 						nil,
@@ -35,7 +37,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *t
 				})
 			})
 			if err != nil {
-				log.Errorf("[DissociateWorkload] Dissociate workload %s failed, err: %v", id, err)
+				logger.Errorf("[DissociateWorkload] Dissociate workload %s failed, err: %+v", id, err)
 			}
 			ch <- &types.DissociateWorkloadMessage{WorkloadID: id, Error: err}
 		}

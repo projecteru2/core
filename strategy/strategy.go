@@ -37,6 +37,9 @@ func Deploy(opts *types.DeployOptions, strategyInfos []Info, total int) (map[str
 	if !ok {
 		return nil, errors.WithStack(types.ErrBadDeployStrategy)
 	}
+	if opts.Count <= 0 {
+		return nil, errors.WithStack(types.ErrBadCount)
+	}
 
 	return deployMethod(strategyInfos, opts.Count, total, opts.NodesLimit)
 }

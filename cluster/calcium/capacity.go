@@ -13,6 +13,7 @@ import (
 
 // CalculateCapacity calculates capacity
 func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptions) (*types.CapacityMessage, error) {
+	logger := log.WithField("Calcium", "CalculateCapacity").WithField("opts", opts)
 	var err error
 	msg := &types.CapacityMessage{
 		Total:          0,
@@ -21,6 +22,7 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 	return msg, c.withNodesLocked(ctx, opts.Podname, opts.Nodenames, nil, false, func(ctx context.Context, nodeMap map[string]*types.Node) error {
 		if opts.DeployStrategy != strategy.Dummy {
 			if _, msg.NodeCapacities, err = c.doAllocResource(ctx, nodeMap, opts); err != nil {
+				logger.Errorf("[Calcium.CalculateCapacity] doAllocResource failed: %+v", err)
 				return errors.WithStack(err)
 			}
 
@@ -31,6 +33,7 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 			var infos []strategy.Info
 			msg.Total, _, infos, err = c.doCalculateCapacity(nodeMap, opts)
 			if err != nil {
+				logger.Errorf("[Calcium.CalculateCapacity] doCalculateCapacity failed: %+v", err)
 				return errors.WithStack(err)
 			}
 			for _, info := range infos {

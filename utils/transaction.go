@@ -29,13 +29,13 @@ func Txn(ctx context.Context, cond contextFunc, then contextFunc, rollback func(
 			return
 		}
 
-		log.Warnf("[txn] rollback due to %+v", txnErr)
+		log.Warnf("[txn] txn failed, rolling back: %v", txnErr)
 		// forbid interrupting rollback
 		rollbackCtx, rollBackCancel := context.WithTimeout(context.Background(), ttl)
 		defer rollBackCancel()
 		failureByCond := condErr != nil
 		if err := rollback(rollbackCtx, failureByCond); err != nil {
-			log.Errorf("[txn] txn failed but rollback also failed, %v", err)
+			log.Warnf("[txn] txn failed but rollback also failed: %v", err)
 		}
 	}()
 

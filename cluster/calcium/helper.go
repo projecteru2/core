@@ -47,10 +47,10 @@ func execuateInside(ctx context.Context, client engine.API, ID, cmd, user string
 
 	exitCode, err := client.ExecExitCode(ctx, execID)
 	if err != nil {
-		return b, err
+		return b, errors.WithStack(err)
 	}
 	if exitCode != 0 {
-		return b, fmt.Errorf("%s", b)
+		return b, errors.WithStack(fmt.Errorf("%s", b))
 	}
 	return b, nil
 }
@@ -76,7 +76,7 @@ func distributionInspect(ctx context.Context, node *types.Node, image string, di
 func pullImage(ctx context.Context, node *types.Node, image string) error {
 	log.Infof("[pullImage] Pulling image %s", image)
 	if image == "" {
-		return types.ErrNoImage
+		return errors.WithStack(types.ErrNoImage)
 	}
 
 	// check local
@@ -99,7 +99,7 @@ func pullImage(ctx context.Context, node *types.Node, image string) error {
 	defer utils.EnsureReaderClosed(rc)
 	if err != nil {
 		log.Errorf("[pullImage] Error during pulling image %s: %v", image, err)
-		return err
+		return errors.WithStack(err)
 	}
 	log.Infof("[pullImage] Done pulling image %s", image)
 	return nil

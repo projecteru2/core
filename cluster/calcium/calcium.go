@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/discovery"
 	"github.com/projecteru2/core/discovery/helium"
@@ -30,16 +31,17 @@ type Calcium struct {
 
 // New returns a new cluster config
 func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
+	logger := log.WithField("Calcium", "New").WithField("config", config)
 	// set store
 	store, err := etcdv3.New(config, embeddedStorage)
 	if err != nil {
-		return nil, err
+		return nil, logger.Err(errors.WithStack(err))
 	}
 
 	// set scheduler
 	potassium, err := complexscheduler.New(config)
 	if err != nil {
-		return nil, err
+		return nil, logger.Err(errors.WithStack(err))
 	}
 	scheduler.InitSchedulerV1(potassium)
 
@@ -55,8 +57,8 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 		log.Warn("[Calcium] SCM not set, build API disabled")
 	}
 	if err != nil {
-		log.Errorf("[Calcium] SCAM failed: %v", err)
-		return nil, err
+		logger.Errorf("[Calcium] SCAM failed: %+v", err)
+		return nil, errors.WithStack(err)
 	}
 
 	// set watcher
@@ -64,7 +66,7 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 
 	cal := &Calcium{store: store, config: config, scheduler: potassium, source: scm, watcher: watcher}
 	cal.wal, err = newCalciumWAL(cal)
-	return cal, err
+	return cal, logger.Err(errors.WithStack(err))
 }
 
 // DisasterRecover .

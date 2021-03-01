@@ -5,6 +5,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/utils"
 
@@ -15,6 +16,7 @@ import (
 // RemoveWorkload remove workloads
 // returns a channel that contains removing responses
 func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, step int) (chan *types.RemoveWorkloadMessage, error) {
+	logger := log.WithField("Calcium", "RemoveWorkload").WithField("ids", ids).WithField("force", force).WithField("step", step)
 	ch := make(chan *types.RemoveWorkloadMessage)
 	if step < 1 {
 		step = 1
@@ -35,12 +37,12 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, 
 							ctx,
 							// if
 							func(ctx context.Context) error {
-								return c.doRemoveWorkload(ctx, workload, force)
+								return errors.WithStack(c.doRemoveWorkload(ctx, workload, force))
 							},
 							// then
 							func(ctx context.Context) error {
 								log.Infof("[RemoveWorkload] Workload %s removed", workload.ID)
-								return c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionIncr)
+								return errors.WithStack(c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionIncr))
 							},
 							// rollback
 							nil,
@@ -48,7 +50,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, 
 						)
 					})
 				}); err != nil {
-					log.Errorf("[RemoveWorkload] Remove workload %s failed, err: %v", id, err)
+					logger.Errorf("[RemoveWorkload] Remove workload %s failed, err: %+v", id, err)
 					ret.Hook = append(ret.Hook, bytes.NewBufferString(err.Error()))
 				} else {
 					ret.Success = true
@@ -69,11 +71,11 @@ func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload
 		ctx,
 		// if
 		func(ctx context.Context) error {
-			return workload.Remove(ctx, force)
+			return errors.WithStack(workload.Remove(ctx, force))
 		},
 		// then
 		func(ctx context.Context) error {
-			return c.store.RemoveWorkload(ctx, workload)
+			return errors.WithStack(c.store.RemoveWorkload(ctx, workload))
 		},
 		// rollback
 		nil,
@@ -86,7 +88,7 @@ func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload
 func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, ids []string) error {
 	ch, err := c.RemoveWorkload(ctx, ids, true, 1)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	for m := range ch {

@@ -5,24 +5,26 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
 
 // RemoveImage remove images
 func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (chan *types.RemoveImageMessage, error) {
+	logger := log.WithField("Calcium", "RemoveImage").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, err
+		return nil, logger.Err(errors.WithStack(err))
 	}
 	opts.Normalize()
 
 	nodes, err := c.getNodes(ctx, opts.Podname, opts.Nodenames, nil, false)
 	if err != nil {
-		return nil, err
+		return nil, logger.Err(errors.WithStack(err))
 	}
 
 	if len(nodes) == 0 {
-		return nil, types.ErrPodNoNodes
+		return nil, logger.Err(errors.WithStack(types.ErrPodNoNodes))
 	}
 
 	ch := make(chan *types.RemoveImageMessage)
@@ -42,7 +44,7 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 						Messages: []string{},
 					}
 					if removeItems, err := node.Engine.ImageRemove(ctx, image, false, true); err != nil {
-						m.Messages = append(m.Messages, err.Error())
+						m.Messages = append(m.Messages, logger.Err(err).Error())
 					} else {
 						m.Success = true
 						for _, item := range removeItems {
@@ -53,7 +55,7 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 				}
 				if opts.Prune {
 					if err := node.Engine.ImagesPrune(ctx); err != nil {
-						log.Errorf("[RemoveImage] Prune %s pod %s node failed: %v", opts.Podname, node.Name, err)
+						logger.Errorf("[RemoveImage] Prune %s pod %s node failed: %+v", opts.Podname, node.Name, err)
 					} else {
 						log.Infof("[RemoveImage] Prune %s pod %s node", opts.Podname, node.Name)
 					}
@@ -73,18 +75,19 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 // 在podname上cache这个image
 // 实际上就是在所有的node上去pull一次
 func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (chan *types.CacheImageMessage, error) {
+	logger := log.WithField("Calcium", "CacheImage").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, err
+		return nil, logger.Err(errors.WithStack(err))
 	}
 	opts.Normalize()
 
 	nodes, err := c.getNodes(ctx, opts.Podname, opts.Nodenames, nil, false)
 	if err != nil {
-		return nil, err
+		return nil, logger.Err(errors.WithStack(err))
 	}
 
 	if len(nodes) == 0 {
-		return nil, types.ErrPodNoNodes
+		return nil, logger.Err(errors.WithStack(types.ErrPodNoNodes))
 	}
 
 	ch := make(chan *types.CacheImageMessage)
@@ -106,7 +109,7 @@ func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (cha
 					}
 					if err := pullImage(ctx, node, image); err != nil {
 						m.Success = false
-						m.Message = err.Error()
+						m.Message = logger.Err(err).Error()
 					}
 					ch <- m
 				}

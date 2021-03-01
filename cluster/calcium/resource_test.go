@@ -241,6 +241,7 @@ func TestAllocResource(t *testing.T) {
 
 	// success
 	opts.ResourceOpts = types.ResourceOptions{CPUQuotaLimit: 1, MemoryLimit: 1, StorageLimit: 1}
+	opts.Count = 1
 	_, _, err := c.doAllocResource(ctx, nodeMap, opts)
 	assert.NoError(t, err)
 }
