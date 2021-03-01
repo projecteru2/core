@@ -11,6 +11,8 @@ import (
 
 	source "github.com/projecteru2/core/source"
 
+	time "time"
+
 	types "github.com/projecteru2/core/engine/types"
 )
 
@@ -665,13 +667,13 @@ func (_m *API) VirtualizationStart(ctx context.Context, ID string) error {
 	return r0
 }
 
-// VirtualizationStop provides a mock function with given fields: ctx, ID
-func (_m *API) VirtualizationStop(ctx context.Context, ID string) error {
-	ret := _m.Called(ctx, ID)
+// VirtualizationStop provides a mock function with given fields: ctx, ID, gracefulTimeout
+func (_m *API) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) error {
+	ret := _m.Called(ctx, ID, gracefulTimeout)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = rf(ctx, ID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, time.Duration) error); ok {
+		r0 = rf(ctx, ID, gracefulTimeout)
 	} else {
 		r0 = ret.Error(0)
 	}

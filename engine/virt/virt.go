@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/projecteru2/core/log"
 
@@ -185,7 +186,7 @@ func (v *Virt) VirtualizationStart(ctx context.Context, ID string) (err error) {
 }
 
 // VirtualizationStop stops it.
-func (v *Virt) VirtualizationStop(ctx context.Context, ID string) (err error) {
+func (v *Virt) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) (err error) {
 	_, err = v.client.StopGuest(ctx, ID)
 	return
 }

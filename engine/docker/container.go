@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
@@ -236,8 +237,12 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
 }
 
 // VirtualizationStop stop virtualization
-func (e *Engine) VirtualizationStop(ctx context.Context, ID string) error {
-	return e.client.ContainerStop(ctx, ID, nil)
+func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) error {
+	timeout := &gracefulTimeout
+	if gracefulTimeout <= 0 {
+		timeout = nil
+	}
+	return e.client.ContainerStop(ctx, ID, timeout)
 }
 
 // VirtualizationRemove remove virtualization

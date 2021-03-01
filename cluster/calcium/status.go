@@ -23,7 +23,7 @@ func (c *Calcium) GetWorkloadsStatus(ctx context.Context, ids []string) ([]*type
 
 // SetWorkloadsStatus set workloads status
 func (c *Calcium) SetWorkloadsStatus(ctx context.Context, status []*types.StatusMeta, ttls map[string]int64) ([]*types.StatusMeta, error) {
-	logger := log.WithField("Calcium", "SetWorkloadsStatus").WithField("status", status).WithField("ttls", ttls)
+	logger := log.WithField("Calcium", "SetWorkloadsStatus").WithField("status", status[0]).WithField("ttls", ttls)
 	r := []*types.StatusMeta{}
 	for _, workloadStatus := range status {
 		workload, err := c.store.GetWorkload(ctx, workloadStatus.ID)

@@ -138,7 +138,7 @@ func TestReplaceWorkload(t *testing.T) {
 	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(ioutil.NopCloser(bytes.NewReader([]byte{})), "", nil)
 	opts.DeployOptions.Data = map[string]types.ReaderManager{}
 	// failed by Stop
-	engine.On("VirtualizationStop", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
+	engine.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
 	ch, err = c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)
@@ -147,7 +147,7 @@ func TestReplaceWorkload(t *testing.T) {
 		assert.NotNil(t, r.Remove)
 		assert.False(t, r.Remove.Success)
 	}
-	engine.On("VirtualizationStop", mock.Anything, mock.Anything).Return(nil)
+	engine.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	// failed by VirtualizationCreate
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, types.ErrCannotGetEngine).Once()
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()

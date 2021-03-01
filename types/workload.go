@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"time"
 
 	engine "github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -60,11 +61,15 @@ func (c *Workload) Start(ctx context.Context) error {
 }
 
 // Stop a workload
-func (c *Workload) Stop(ctx context.Context) error {
+func (c *Workload) Stop(ctx context.Context, force bool) error {
 	if c.Engine == nil {
 		return ErrNilEngine
 	}
-	return c.Engine.VirtualizationStop(ctx, c.ID)
+	gracefulTimeout := time.Duration(-1) // -1 indicates use engine default timeout
+	if force {
+		gracefulTimeout = 0 // don't wait, kill -15 && kill -9
+	}
+	return c.Engine.VirtualizationStop(ctx, c.ID, gracefulTimeout)
 }
 
 // Remove a workload
