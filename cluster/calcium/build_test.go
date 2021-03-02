@@ -120,8 +120,9 @@ func TestBuild(t *testing.T) {
 	assert.Error(t, err)
 	// build from exist not implemented
 	opts.BuildMethod = types.BuildFromExist
+	opts.ExistID = "123"
 	engine.On("ImageBuildFromExist", mock.Anything, mock.Anything, mock.Anything).Return("", types.ErrEngineNotImplemented).Once()
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(&types.Workload{}, nil)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(&types.Workload{Nodename: "123"}, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(&types.Node{Engine: engine}, nil)
 	ch, err = c.BuildImage(ctx, opts)
 	assert.NoError(t, err)

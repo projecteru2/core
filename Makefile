@@ -34,7 +34,7 @@ mock: deps
 .ONESHELL:
 
 cloc:
-	cloc --exclude-dir=vendor,3rdmocks,mocks,tools --not-match-f=test .
+	cloc --exclude-dir=vendor,3rdmocks,mocks,tools,gen --not-match-f=test .
 
 unit-test:
 	go vet `go list ./... | grep -v '/vendor/' | grep -v '/tools'`

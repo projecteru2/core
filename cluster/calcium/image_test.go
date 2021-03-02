@@ -48,12 +48,12 @@ func TestRemoveImage(t *testing.T) {
 	engine.On("ImageRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]string{"xx"}, nil)
 	// sucess remove but prune fail
 	engine.On("ImagesPrune", mock.Anything).Return(types.ErrBadStorage).Once()
-	ch, err = c.RemoveImage(ctx, &types.ImageOptions{Podname: "podname", Images: []string{"xx"}})
+	ch, err = c.RemoveImage(ctx, &types.ImageOptions{Podname: "podname", Images: []string{"xx"}, Prune: true})
 	for c := range ch {
 		assert.True(t, c.Success)
 	}
 	engine.On("ImagesPrune", mock.Anything).Return(nil)
-	ch, err = c.RemoveImage(ctx, &types.ImageOptions{Podname: "podname", Images: []string{"xx"}})
+	ch, err = c.RemoveImage(ctx, &types.ImageOptions{Podname: "podname", Images: []string{"xx"}, Prune: true})
 	for c := range ch {
 		assert.True(t, c.Success)
 	}
