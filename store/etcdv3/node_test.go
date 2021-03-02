@@ -248,6 +248,32 @@ func TestSetNodeStatus(t *testing.T) {
 	assert.Error(err)
 }
 
+func TestGetNodeStatus(t *testing.T) {
+	assert := assert.New(t)
+	m := NewMercury(t)
+	defer m.TerminateEmbededStorage()
+
+	node := &types.Node{
+		NodeMeta: types.NodeMeta{
+			Name:     "testname",
+			Endpoint: "ep",
+			Podname:  "testpod",
+		},
+	}
+	assert.NoError(m.SetNodeStatus(context.TODO(), node, 1))
+
+	// not expired yet
+	ns, err := m.GetNodeStatus(context.TODO(), node.Name)
+	assert.NoError(err)
+	assert.Equal(ns.Nodename, node.Name)
+	assert.True(ns.Alive)
+	// expired
+	time.Sleep(2000 * time.Millisecond)
+	ns1, err := m.GetNodeStatus(context.TODO(), node.Name)
+	assert.Error(err)
+	assert.Nil(ns1)
+}
+
 func TestNodeStatusStream(t *testing.T) {
 	assert := assert.New(t)
 	m := NewMercury(t)

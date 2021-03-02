@@ -206,6 +206,20 @@ func (v *Vibranium) SetNodeStatus(ctx context.Context, opts *pb.SetNodeStatusOpt
 	return &pb.Empty{}, nil
 }
 
+// GetNodeStatus set status of a node for reporting
+func (v *Vibranium) GetNodeStatus(ctx context.Context, opts *pb.GetNodeStatusOptions) (*pb.NodeStatusStreamMessage, error) {
+	status, err := v.cluster.GetNodeStatus(ctx, opts.Nodename)
+	if err != nil {
+		return nil, grpcstatus.Error(GetNodeStatus, err.Error())
+	}
+	return &pb.NodeStatusStreamMessage{
+		Nodename: status.Nodename,
+		Podname:  status.Podname,
+		Alive:    status.Alive,
+		Error:    status.Error.Error(),
+	}, nil
+}
+
 // NodeStatusStream watch and show deployed status
 func (v *Vibranium) NodeStatusStream(_ *pb.Empty, stream pb.CoreRPC_NodeStatusStreamServer) error {
 	log.Info("[rpc] NodeStatusStream started")

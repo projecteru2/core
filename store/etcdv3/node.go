@@ -322,6 +322,21 @@ func (m *Mercury) SetNodeStatus(ctx context.Context, node *types.Node, ttl int64
 	return err
 }
 
+// GetNodeStatus returns status for a node
+func (m *Mercury) GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error) {
+	key := filepath.Join(nodeStatusPrefix, nodename)
+	ev, err := m.GetOne(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+
+	ns := &types.NodeStatus{}
+	if err := json.Unmarshal(ev.Value, ns); err != nil {
+		return nil, err
+	}
+	return ns, nil
+}
+
 // NodeStatusStream returns a stream of node status
 // it tells you if status of a node is changed, either PUT or DELETE
 // PUT    -> Alive: true

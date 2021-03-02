@@ -304,6 +304,29 @@ func (_m *Cluster) GetNode(ctx context.Context, nodename string) (*types.Node, e
 	return r0, r1
 }
 
+// GetNodeStatus provides a mock function with given fields: ctx, nodename
+func (_m *Cluster) GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error) {
+	ret := _m.Called(ctx, nodename)
+
+	var r0 *types.NodeStatus
+	if rf, ok := ret.Get(0).(func(context.Context, string) *types.NodeStatus); ok {
+		r0 = rf(ctx, nodename)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.NodeStatus)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, nodename)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetPod provides a mock function with given fields: ctx, podname
 func (_m *Cluster) GetPod(ctx context.Context, podname string) (*types.Pod, error) {
 	ret := _m.Called(ctx, podname)

@@ -163,6 +163,29 @@ func (_m *Store) GetNode(ctx context.Context, nodename string) (*types.Node, err
 	return r0, r1
 }
 
+// GetNodeStatus provides a mock function with given fields: ctx, nodename
+func (_m *Store) GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error) {
+	ret := _m.Called(ctx, nodename)
+
+	var r0 *types.NodeStatus
+	if rf, ok := ret.Get(0).(func(context.Context, string) *types.NodeStatus); ok {
+		r0 = rf(ctx, nodename)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.NodeStatus)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, nodename)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetNodes provides a mock function with given fields: ctx, nodenames
 func (_m *Store) GetNodes(ctx context.Context, nodenames []string) ([]*types.Node, error) {
 	ret := _m.Called(ctx, nodenames)

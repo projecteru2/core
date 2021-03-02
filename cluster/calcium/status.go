@@ -59,6 +59,12 @@ func (c *Calcium) SetNodeStatus(ctx context.Context, nodename string, ttl int64)
 	return logger.Err(errors.WithStack(c.store.SetNodeStatus(ctx, node, ttl)))
 }
 
+// GetNodeStatus set status of a node
+// it's used to report whether a node is still alive
+func (c *Calcium) GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error) {
+	return c.store.GetNodeStatus(ctx, nodename)
+}
+
 // NodeStatusStream returns a stream of node status for subscribing
 func (c *Calcium) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 	return c.store.NodeStatusStream(ctx)
