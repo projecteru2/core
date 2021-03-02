@@ -36,6 +36,8 @@ const (
 	SetNode codes.Code = 1035
 	// SetNodeStatus .
 	SetNodeStatus codes.Code = 1036
+	// GetNodeStatus .
+	GetNodeStatus codes.Code = 1038
 	// GetNodeResource .
 	GetNodeResource codes.Code = 1037
 

@@ -52,6 +52,7 @@ type Cluster interface {
 	GetNode(ctx context.Context, nodename string) (*types.Node, error)
 	SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error)
 	SetNodeStatus(ctx context.Context, nodename string, ttl int64) error
+	GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error)
 	NodeStatusStream(ctx context.Context) chan *types.NodeStatus
 	// node resource
 	NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error)
