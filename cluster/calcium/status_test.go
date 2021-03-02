@@ -113,6 +113,29 @@ func TestSetNodeStatus(t *testing.T) {
 	assert.NoError(c.SetNodeStatus(ctx, node.Name, 10))
 }
 
+func TestGetNodeStatus(t *testing.T) {
+	assert := assert.New(t)
+	c := NewTestCluster()
+	ctx := context.Background()
+	store := c.store.(*storemocks.Store)
+
+	ns := &types.NodeStatus{
+		Nodename: "test",
+		Podname:  "test",
+		Alive:    true,
+	}
+	// failed
+	store.On("GetNodeStatus", mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
+	_, err := c.GetNodeStatus(ctx, "test")
+	assert.Error(err)
+
+	store.On("GetNodeStatus", mock.Anything, mock.Anything).Return(ns, nil)
+	s, err := c.GetNodeStatus(ctx, "test")
+	assert.NoError(err)
+	assert.Equal(s.Nodename, "test")
+	assert.True(s.Alive)
+}
+
 func TestNodeStatusStream(t *testing.T) {
 	assert := assert.New(t)
 	c := NewTestCluster()
