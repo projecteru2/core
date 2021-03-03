@@ -121,7 +121,9 @@ func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types
 					break
 				}
 				if err == context.Canceled || err == context.DeadlineExceeded {
+					log.Errorf("[BuildImage] context timeout")
 					lastMessage.ErrorDetail.Code = -1
+					lastMessage.ErrorDetail.Message = err.Error()
 					lastMessage.Error = err.Error()
 					break
 				}

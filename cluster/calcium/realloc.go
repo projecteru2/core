@@ -40,7 +40,7 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 
 // transaction: node resource
 func (c *Calcium) doReallocOnNode(ctx context.Context, nodename string, workload *types.Workload, rrs resourcetypes.ResourceRequests) error {
-	return c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+	return c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) (err error) {
 		node.RecycleResources(&workload.ResourceMeta)
 		plans, err := resources.SelectNodesByResourceRequests(rrs, map[string]*types.Node{node.Name: node})
 		if err != nil {
@@ -49,7 +49,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, nodename string, workload
 
 		originalWorkload := *workload
 		resourceMeta := &types.ResourceMeta{}
-		return utils.Txn(
+		if err = utils.Txn(
 			ctx,
 
 			// if update workload resources
@@ -96,7 +96,12 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, nodename string, workload
 			},
 
 			c.config.GlobalTimeout,
-		)
+		); err != nil {
+			return
+		}
+
+		c.doRemapResourceAndLog(ctx, log.WithField("Calcium", "doReallocOnNode"), node)
+		return nil
 	})
 }
 

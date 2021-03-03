@@ -77,6 +77,6 @@ type VirtualizationRemapOptions struct {
 }
 
 type VirtualizationRemapMessage struct {
-	ID string
-	VirtualizationResource
+	ID    string
+	Error error
 }
