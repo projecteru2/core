@@ -216,7 +216,6 @@ func (v *Vibranium) GetNodeStatus(ctx context.Context, opts *pb.GetNodeStatusOpt
 		Nodename: status.Nodename,
 		Podname:  status.Podname,
 		Alive:    status.Alive,
-		Error:    status.Error.Error(),
 	}, nil
 }
 
