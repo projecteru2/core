@@ -11,12 +11,14 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 
+	corecluster "github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
 
 	dockertypes "github.com/docker/docker/api/types"
@@ -31,9 +33,10 @@ import (
 )
 
 const (
-	minMemory = units.MiB * 4
-	maxMemory = math.MaxInt64
-	root      = "root"
+	minMemory       = units.MiB * 4
+	maxMemory       = math.MaxInt64
+	defaultCPUShare = 1024
+	root            = "root"
 )
 
 type rawArgs struct {
@@ -220,8 +223,56 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	return r, err
 }
 
+// VirtualizationResourceRemap to re-distribute resource according to the whole picture
+// supposedly it's exclusively executed, so free feel to operate IO from remote dockerd
 func (e *Engine) VirtualizationResourceRemap(ctx context.Context, opts *enginetypes.VirtualizationRemapOptions) (<-chan enginetypes.VirtualizationRemapMessage, error) {
-	return nil, nil
+	// calculate share pool
+	sharePool := []string{}
+	for cpuID, available := range opts.CPUAvailable {
+		if available >= opts.CPUShareBase {
+			sharePool = append(sharePool, cpuID)
+		}
+	}
+	shareCPUSet := strings.Join(sharePool, ",")
+	if shareCPUSet == "" {
+		info, err := e.Info(ctx)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		shareCPUSet = fmt.Sprintf("0-%d", info.NCPU-1)
+	}
+
+	// filter out workloads non-binding
+	freeWorkloadResources := map[string]enginetypes.VirtualizationResource{}
+	for workloadID, resource := range opts.WorkloadResources {
+		if resource.CPU == nil {
+			freeWorkloadResources[workloadID] = resource
+		}
+	}
+
+	// update!
+	wg := sync.WaitGroup{}
+	ch := make(chan enginetypes.VirtualizationRemapMessage)
+	for id, resource := range freeWorkloadResources {
+		// TODO@zc: limit the max goroutine
+		wg.Add(1)
+		go func(id string, resource enginetypes.VirtualizationResource) {
+			defer wg.Done()
+			updateConfig := dockercontainer.UpdateConfig{Resources: dockercontainer.Resources{
+				CPUQuota:   int64(resource.Quota * float64(corecluster.CPUPeriodBase)),
+				CPUPeriod:  corecluster.CPUPeriodBase,
+				CpusetCpus: shareCPUSet,
+				CPUShares:  defaultCPUShare,
+			}}
+			_, err := e.client.ContainerUpdate(ctx, id, updateConfig)
+			ch <- enginetypes.VirtualizationRemapMessage{
+				ID:    id,
+				Error: err,
+			}
+		}(id, resource)
+	}
+	wg.Wait()
+	return ch, nil
 }
 
 // VirtualizationCopyTo copy things to virtualization
