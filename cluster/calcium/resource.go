@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 
+	enginetypes "github.com/projecteru2/core/engine/types"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
@@ -159,4 +160,37 @@ func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types
 	}
 	log.Infof("[Calium.doAllocResource] deployMap: %+v", deployMap)
 	return plans, deployMap, nil
+}
+
+// called on changes of resource binding, such as cpu binding
+// as an internal api, remap doesn't lock node, the responsibility of that should be taken on by caller
+func (c *Calcium) remapResource(ctx context.Context, node *types.Node) (ch <-chan enginetypes.VirtualizationRemapMessage, err error) {
+	workloads, err := c.store.ListNodeWorkloads(ctx, node.Name, nil)
+	if err != nil {
+		return
+	}
+	remapOpts := &enginetypes.VirtualizationRemapOptions{
+		CPUAvailable:      node.CPU,
+		CPUInit:           node.InitCPU,
+		CPUShareBase:      int64(c.config.Scheduler.ShareBase),
+		WorkloadResources: make(map[string]enginetypes.VirtualizationResource),
+	}
+	for _, workload := range workloads {
+		remapOpts.WorkloadResources[workload.ID] = enginetypes.VirtualizationResource{
+			CPU:      workload.CPU,
+			Quota:    workload.CPUQuotaLimit,
+			NUMANode: workload.NUMANode,
+		}
+	}
+	ch, err = node.Engine.VirtualizationResourceRemap(ctx, remapOpts)
+	return ch, errors.WithStack(err)
+}
+
+func (c *Calcium) doRemapResourceAndLog(ctx context.Context, logger log.Fields, node *types.Node) {
+	logger = logger.WithField("Calcium", "doRemapResourceIrresponsibly").WithField("nodename", node.Name)
+	if ch, err := c.remapResource(ctx, node); logger.Err(err) == nil {
+		for msg := range ch {
+			logger.WithField("id", msg.ID).Err(msg.Error)
+		}
+	}
 }

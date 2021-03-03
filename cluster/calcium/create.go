@@ -214,6 +214,14 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 		err = e
 		indices = utils.Range(deploy)
 	}
+
+	// remap 就不搞进事务了吧, 回滚代价太大了
+	// 放任 remap 失败的后果是, share pool 没有更新, 这个后果姑且认为是可以承受的
+	// 而且 remap 是一个幂等操作, 就算这次 remap 失败, 下次 remap 也能收敛到正确到状态
+	c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+		c.doRemapResourceAndLog(ctx, logger, node)
+		return nil
+	})
 	return indices, errors.WithStack(err)
 }
 

@@ -33,21 +33,32 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, 
 				ret := &types.RemoveWorkloadMessage{WorkloadID: id, Success: false, Hook: []*bytes.Buffer{}}
 				if err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
 					return c.withNodeLocked(ctx, workload.Nodename, func(ctx context.Context, node *types.Node) (err error) {
-						return utils.Txn(
+						if err = utils.Txn(
 							ctx,
 							// if
 							func(ctx context.Context) error {
-								return errors.WithStack(c.doRemoveWorkload(ctx, workload, force))
+								return errors.WithStack(c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionIncr))
 							},
 							// then
 							func(ctx context.Context) error {
-								log.Infof("[RemoveWorkload] Workload %s removed", workload.ID)
-								return errors.WithStack(c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionIncr))
+								err := errors.WithStack(c.doRemoveWorkload(ctx, workload, force))
+								if err != nil {
+									log.Infof("[RemoveWorkload] Workload %s removed", workload.ID)
+								}
+								return err
 							},
 							// rollback
-							nil,
+							func(ctx context.Context, _ bool) error {
+								return errors.WithStack(c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionDecr))
+							},
 							c.config.GlobalTimeout,
-						)
+						); err != nil {
+							return
+						}
+
+						// TODO@zc: 优化一下, 先按照 node 聚合 ids
+						c.doRemapResourceAndLog(ctx, logger, node)
+						return
 					})
 				}); err != nil {
 					logger.Errorf("[RemoveWorkload] Remove workload %s failed, err: %+v", id, err)
@@ -66,19 +77,22 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, 
 	return ch, nil
 }
 
+// semantic: instance removed on err == nil, instance remained on err != nil
 func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload, force bool) error {
 	return utils.Txn(
 		ctx,
 		// if
 		func(ctx context.Context) error {
-			return errors.WithStack(workload.Remove(ctx, force))
+			return errors.WithStack(c.store.RemoveWorkload(ctx, workload))
 		},
 		// then
 		func(ctx context.Context) error {
-			return errors.WithStack(c.store.RemoveWorkload(ctx, workload))
+			return errors.WithStack(workload.Remove(ctx, force))
 		},
 		// rollback
-		nil,
+		func(ctx context.Context, _ bool) error {
+			return errors.WithStack(c.store.AddWorkload(ctx, workload))
+		},
 		c.config.GlobalTimeout,
 	)
 

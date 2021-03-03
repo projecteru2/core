@@ -153,7 +153,7 @@ func (c *Calcium) doReplaceWorkload(
 			VolumePlanLimit:   workload.VolumePlanLimit,
 		},
 	}
-	return createMessage, removeMessage, utils.Txn(
+	if err = utils.Txn(
 		ctx,
 		// if
 		func(ctx context.Context) (err error) {
@@ -194,7 +194,16 @@ func (c *Calcium) doReplaceWorkload(
 			return errors.WithStack(err)
 		},
 		c.config.GlobalTimeout,
-	)
+	); err != nil {
+		return createMessage, removeMessage, err
+	}
+
+	c.withNodeLocked(ctx, node.Name, func(ctx context.Context, node *types.Node) error {
+		c.doRemapResourceAndLog(ctx, log.WithField("Calcium", "doReplaceWorkload"), node)
+		return nil
+	})
+
+	return createMessage, removeMessage, err
 }
 
 func (c *Calcium) doMakeReplaceWorkloadOptions(no int, msg *types.CreateWorkloadMessage, opts *types.DeployOptions, node *types.Node, ancestorWorkloadID string) *enginetypes.VirtualizationCreateOptions {
