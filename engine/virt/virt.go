@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/types"
 
 	virtapi "github.com/projecteru2/libyavirt/client"
 	virttypes "github.com/projecteru2/libyavirt/types"
@@ -173,8 +174,9 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 	return &enginetypes.VirtualizationCreated{ID: resp.ID, Name: opts.Name}, nil
 }
 
-func (v *Virt) VirtualizationResourceRemap(ctx context.Context, opts *enginetypes.VirtualizationRemapOptions) (<-chan enginetypes.VirtualizationRemapMessage, error) {
-	return nil, nil
+func (v *Virt) VirtualizationResourceRemap(ctx context.Context, opts *enginetypes.VirtualizationRemapOptions) (ch <-chan enginetypes.VirtualizationRemapMessage, err error) {
+	err = types.ErrEngineNotImplemented
+	return
 }
 
 // VirtualizationCopyTo copies one.

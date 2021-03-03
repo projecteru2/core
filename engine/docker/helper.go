@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/http"
 	"net/url"
@@ -118,6 +119,12 @@ func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, num
 		resource.CpusetCpus = strings.Join(cpuIDs, ",")
 		// numaNode will empty or numaNode
 		resource.CpusetMems = numaNode
+		// unrestrain cpu quota for binding
+		resource.CPUQuota = -1
+		// cpu share for fragile pieces
+		if _, divpart := math.Modf(cpu); divpart > 0 {
+			resource.CPUShares = int64(float64(1024) * divpart)
+		}
 	}
 	resource.Memory = memory
 	resource.MemorySwap = memory

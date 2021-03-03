@@ -53,8 +53,9 @@ func (s *SSHClient) VirtualizationCreate(ctx context.Context, opts *enginetypes.
 	}, errors.Wrap(err, stderr.String())
 }
 
-func (s *SSHClient) VirtualizationResourceRemap(ctx context.Context, opts *enginetypes.VirtualizationRemapOptions) (<-chan enginetypes.VirtualizationRemapMessage, error) {
-	return nil, nil
+func (s *SSHClient) VirtualizationResourceRemap(ctx context.Context, opts *enginetypes.VirtualizationRemapOptions) (ch <-chan enginetypes.VirtualizationRemapMessage, err error) {
+	err = types.ErrEngineNotImplemented
+	return
 }
 
 // VirtualizationCopyTo send bytes to file system
