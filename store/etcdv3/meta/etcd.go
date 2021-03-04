@@ -15,7 +15,7 @@ import (
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/lock/etcdlock"
 	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/store/etcdv3/embedded"
+	embedded "github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/projecteru2/core/types"
 )
 
@@ -35,17 +35,21 @@ type ETCDClientV3 interface {
 type ETCD struct {
 	cliv3  ETCDClientV3
 	config types.EtcdConfig
+
+	embededETCD *embedded.EmbededETCD
 }
 
 // NewETCD initailizes a new ETCD instance.
 func NewETCD(config types.EtcdConfig, embeddedStorage bool) (*ETCD, error) {
 	var cliv3 *clientv3.Client
+	var embededETCD *embedded.EmbededETCD
 	var err error
 	var tlsConfig *tls.Config
 
 	switch {
 	case embeddedStorage:
-		cliv3 = embedded.NewCluster()
+		embededETCD = embedded.NewCluster()
+		cliv3 = embededETCD.Cluster.RandClient()
 		log.Info("[Mercury] use embedded cluster")
 	default:
 		if config.Ca != "" && config.Key != "" && config.Cert != "" {
@@ -71,12 +75,15 @@ func NewETCD(config types.EtcdConfig, embeddedStorage bool) (*ETCD, error) {
 	cliv3.KV = namespace.NewKV(cliv3.KV, config.Prefix)
 	cliv3.Watcher = namespace.NewWatcher(cliv3.Watcher, config.Prefix)
 	cliv3.Lease = namespace.NewLease(cliv3.Lease, config.Prefix)
-	return &ETCD{cliv3: cliv3, config: config}, nil
+	return &ETCD{cliv3: cliv3, config: config, embededETCD: embededETCD}, nil
 }
 
 // TerminateEmbededStorage terminate embedded storage
 func (e *ETCD) TerminateEmbededStorage() {
-	embedded.TerminateCluster()
+	if e.embededETCD == nil {
+		return
+	}
+	e.embededETCD.TerminateCluster()
 }
 
 // CreateLock create a lock instance

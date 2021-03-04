@@ -110,7 +110,7 @@ func TestBindStatusButStatusTxnUnsuccessful(t *testing.T) {
 	entityTxn := &clientv3.TxnResponse{
 		Succeeded: true,
 		Responses: []*etcdserverpb.ResponseOp{
-			&etcdserverpb.ResponseOp{
+			{
 				Response: &etcdserverpb.ResponseOp_ResponseTxn{
 					// statusTxn
 					ResponseTxn: &etcdserverpb.TxnResponse{Succeeded: false},
@@ -136,7 +136,7 @@ func TestBindStatusWithZeroTTL(t *testing.T) {
 	entityTxn := &clientv3.TxnResponse{
 		Succeeded: true,
 		Responses: []*etcdserverpb.ResponseOp{
-			&etcdserverpb.ResponseOp{
+			{
 				Response: &etcdserverpb.ResponseOp_ResponseTxn{
 					// statusTxn
 					ResponseTxn: &etcdserverpb.TxnResponse{Succeeded: true},
@@ -161,7 +161,7 @@ func TestBindStatusButValueTxnUnsuccessful(t *testing.T) {
 	statusTxn := &etcdserverpb.TxnResponse{
 		Succeeded: true,
 		Responses: []*etcdserverpb.ResponseOp{
-			&etcdserverpb.ResponseOp{
+			{
 				Response: &etcdserverpb.ResponseOp_ResponseTxn{
 					// valueTxn
 					ResponseTxn: &etcdserverpb.TxnResponse{Succeeded: false},
@@ -172,7 +172,7 @@ func TestBindStatusButValueTxnUnsuccessful(t *testing.T) {
 	entityTxn := &clientv3.TxnResponse{
 		Succeeded: true,
 		Responses: []*etcdserverpb.ResponseOp{
-			&etcdserverpb.ResponseOp{
+			{
 				Response: &etcdserverpb.ResponseOp_ResponseTxn{
 					// statusTxn
 					ResponseTxn: statusTxn,
@@ -198,11 +198,11 @@ func TestBindStatus(t *testing.T) {
 	valueTxn := &etcdserverpb.TxnResponse{
 		Succeeded: true,
 		Responses: []*etcdserverpb.ResponseOp{
-			&etcdserverpb.ResponseOp{
+			{
 				Response: &etcdserverpb.ResponseOp_ResponseRange{
 					ResponseRange: &etcdserverpb.RangeResponse{
 						Kvs: []*mvccpb.KeyValue{
-							&mvccpb.KeyValue{Lease: leaseID},
+							{Lease: leaseID},
 						},
 					},
 				},
@@ -212,7 +212,7 @@ func TestBindStatus(t *testing.T) {
 	statusTxn := &etcdserverpb.TxnResponse{
 		Succeeded: true,
 		Responses: []*etcdserverpb.ResponseOp{
-			&etcdserverpb.ResponseOp{
+			{
 				Response: &etcdserverpb.ResponseOp_ResponseTxn{
 					ResponseTxn: valueTxn,
 				},
@@ -222,7 +222,7 @@ func TestBindStatus(t *testing.T) {
 	entityTxn := &clientv3.TxnResponse{
 		Succeeded: true,
 		Responses: []*etcdserverpb.ResponseOp{
-			&etcdserverpb.ResponseOp{
+			{
 				Response: &etcdserverpb.ResponseOp_ResponseTxn{
 					// statusTxn
 					ResponseTxn: statusTxn,

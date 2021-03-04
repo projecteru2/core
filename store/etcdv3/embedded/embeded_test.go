@@ -8,9 +8,9 @@ import (
 )
 
 func TestEmbededCluster(t *testing.T) {
-	TerminateCluster()
-	cliv3 := NewCluster()
+	embededETCD := NewCluster()
+	cliv3 := embededETCD.Cluster.RandClient()
 	_, err := cliv3.MemberList(context.Background())
 	assert.NoError(t, err)
-	TerminateCluster()
+	embededETCD.TerminateCluster()
 }

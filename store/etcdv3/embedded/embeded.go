@@ -3,27 +3,26 @@ package embedded
 import (
 	"testing"
 
-	"go.etcd.io/etcd/v3/clientv3"
-
 	"go.etcd.io/etcd/v3/integration"
 )
 
-var (
-	t               *testing.T
-	embeddedCluster *integration.ClusterV3
-)
-
-// NewCluster new a embedded cluster
-func NewCluster() *clientv3.Client {
-	t = &testing.T{}
-	embeddedCluster = integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
-	return embeddedCluster.RandClient()
+// EmbededETCD .
+type EmbededETCD struct {
+	t       *testing.T
+	Cluster *integration.ClusterV3
 }
 
 // TerminateCluster terminate embedded cluster
-func TerminateCluster() {
-	if embeddedCluster == nil || t == nil {
+func (e *EmbededETCD) TerminateCluster() {
+	if e.Cluster == nil || e.t == nil {
 		return
 	}
-	embeddedCluster.Terminate(t)
+	e.Cluster.Terminate(e.t)
+}
+
+// NewCluster new a embedded cluster
+func NewCluster() *EmbededETCD {
+	t := &testing.T{}
+	Cluster := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
+	return &EmbededETCD{t, Cluster}
 }

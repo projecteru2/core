@@ -92,7 +92,7 @@ func TestNewCluster(t *testing.T) {
 		config.Git.SCMType = "gitlab"
 		config.WALFile = "/tmp/b"
 		c, err := New(config, true)
-		assert.NoError(t, err, err)
+		assert.NoError(t, err)
 		c.Finalizer()
 	}()
 
@@ -102,7 +102,7 @@ func TestNewCluster(t *testing.T) {
 		config.WALFile = "/tmp/c"
 		config.Git.SCMType = "github"
 		c, err := New(config, true)
-		assert.NoError(t, err, err)
+		assert.NoError(t, err)
 		c.Finalizer()
 	}()
 
