@@ -17,61 +17,66 @@ import (
 // returns a channel that contains removing responses
 func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, step int) (chan *types.RemoveWorkloadMessage, error) {
 	logger := log.WithField("Calcium", "RemoveWorkload").WithField("ids", ids).WithField("force", force).WithField("step", step)
-	ch := make(chan *types.RemoveWorkloadMessage)
-	if step < 1 {
-		step = 1
+
+	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, ids)
+	if err != nil {
+		logger.Errorf("failed to group workloads by node: %+v", err)
+		return nil, errors.WithStack(err)
 	}
 
+	ch := make(chan *types.RemoveWorkloadMessage)
 	go func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
 		defer wg.Wait()
-		for i, id := range ids {
+		for nodename, workloadIDs := range nodeWorkloadGroup {
 			wg.Add(1)
-			go func(id string) {
+			go func(nodename string, workloadIDs []string) {
 				defer wg.Done()
-				ret := &types.RemoveWorkloadMessage{WorkloadID: id, Success: false, Hook: []*bytes.Buffer{}}
-				if err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
-					return c.withNodeLocked(ctx, workload.Nodename, func(ctx context.Context, node *types.Node) (err error) {
-						if err = utils.Txn(
-							ctx,
-							// if
-							func(ctx context.Context) error {
-								return errors.WithStack(c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionIncr))
-							},
-							// then
-							func(ctx context.Context) error {
-								err := errors.WithStack(c.doRemoveWorkload(ctx, workload, force))
-								if err != nil {
-									log.Infof("[RemoveWorkload] Workload %s removed", workload.ID)
-								}
-								return err
-							},
-							// rollback
-							func(ctx context.Context, _ bool) error {
-								return errors.WithStack(c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionDecr))
-							},
-							c.config.GlobalTimeout,
-						); err != nil {
-							return
-						}
+				if err := c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+					for _, workloadID := range workloadIDs {
+						if err := c.withWorkloadLocked(ctx, workloadID, func(ctx context.Context, workload *types.Workload) error {
+							ret := &types.RemoveWorkloadMessage{WorkloadID: workloadID, Success: true, Hook: []*bytes.Buffer{}}
+							if err := utils.Txn(
+								ctx,
+								// if
+								func(ctx context.Context) error {
+									return errors.WithStack(c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionIncr))
+								},
+								// then
+								func(ctx context.Context) error {
+									err := errors.WithStack(c.doRemoveWorkload(ctx, workload, force))
+									if err != nil {
+										log.Infof("[RemoveWorkload] Workload %s removed", workload.ID)
+									}
+									return err
+								},
+								// rollback
+								func(ctx context.Context, failedByCond bool) error {
+									if failedByCond {
+										return nil
+									}
+									return errors.WithStack(c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionDecr))
+								},
+								c.config.GlobalTimeout,
+							); err != nil {
+								logger.WithField("id", workloadID).Errorf("[RemoveWorkload] Remove workload failed: %+v", err)
+								ret.Hook = append(ret.Hook, bytes.NewBufferString(err.Error()))
+								ret.Success = false
+							}
 
-						// TODO@zc: 优化一下, 先按照 node 聚合 ids
-						c.doRemapResourceAndLog(ctx, logger, node)
-						return
-					})
+							ch <- ret
+							return nil
+						}); err != nil {
+							logger.WithField("id", workloadID).Errorf("failed to lock workload: %+v", err)
+						}
+					}
+					c.doRemapResourceAndLog(ctx, logger, node)
+					return nil
 				}); err != nil {
-					logger.Errorf("[RemoveWorkload] Remove workload %s failed, err: %+v", id, err)
-					ret.Hook = append(ret.Hook, bytes.NewBufferString(err.Error()))
-				} else {
-					ret.Success = true
+					logger.WithField("nodename", nodename).Errorf("failed to lock node: %+v", err)
 				}
-				ch <- ret
-			}(id)
-			if (i+1)%step == 0 {
-				log.Info("[RemoveWorkload] Wait for previous tasks done")
-				wg.Wait()
-			}
+			}(nodename, workloadIDs)
 		}
 	}()
 	return ch, nil
@@ -109,4 +114,16 @@ func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, ids []string) error 
 		log.Debugf("[doRemoveWorkloadSync] Removed %s", m.WorkloadID)
 	}
 	return nil
+}
+
+func (c *Calcium) groupWorkloadsByNode(ctx context.Context, ids []string) (map[string][]string, error) {
+	workloads, err := c.store.GetWorkloads(ctx, ids)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	nodeWorkloadGroup := map[string][]string{}
+	for _, workload := range workloads {
+		nodeWorkloadGroup[workload.Nodename] = append(nodeWorkloadGroup[workload.Nodename], workload.ID)
+	}
+	return nodeWorkloadGroup, nil
 }
