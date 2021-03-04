@@ -104,6 +104,7 @@ func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, num
 	resource := dockercontainer.Resources{}
 
 	resource.CPUQuota = 0
+	resource.CPUShares = defaultCPUShare
 	resource.CPUPeriod = corecluster.CPUPeriodBase
 	if cpu > 0 {
 		resource.CPUQuota = int64(cpu * float64(corecluster.CPUPeriodBase))

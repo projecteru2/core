@@ -8,7 +8,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sanity-io/litter"
-	"golang.org/x/sync/semaphore"
 
 	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -104,7 +103,10 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			},
 
 			// rollback: give back resources
-			func(ctx context.Context, _ bool) (err error) {
+			func(ctx context.Context, failedOnCond bool) (err error) {
+				if failedOnCond {
+					return
+				}
 				for nodename, rollbackIndices := range rollbackMap {
 					if e := c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 						for _, plan := range plans {
@@ -159,7 +161,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 		return utils.Range(deploy), errors.WithStack(err)
 	}
 
-	sem, appendLock := semaphore.NewWeighted(c.config.MaxConcurrency), sync.Mutex{}
+	pool, appendLock := utils.NewGoroutinePool(int(c.config.MaxConcurrency)), sync.Mutex{}
 	for idx := 0; idx < deploy; idx++ {
 		createMsg := &types.CreateWorkloadMessage{
 			Podname:  opts.Podname,
@@ -167,53 +169,38 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 			Publish:  map[string][]string{},
 		}
 
-		if e := sem.Acquire(ctx, 1); e != nil {
-			logger.Errorf("[Calcium.doDeployWorkloadsOnNode] Failed to acquire semaphore: %+v", e)
-			err = e
-			ch <- &types.CreateWorkloadMessage{Error: e}
-			appendLock.Lock()
-			indices = append(indices, idx)
-			appendLock.Unlock()
-			continue
-		}
-		go func(idx int) (e error) {
-			defer func() {
-				if e != nil {
-					err = e
-					createMsg.Error = logger.Err(e)
-					appendLock.Lock()
-					indices = append(indices, idx)
-					appendLock.Unlock()
+		pool.Go(func(idx int) func() {
+			return func() {
+				var e error
+				defer func() {
+					if e != nil {
+						err = e
+						createMsg.Error = logger.Err(e)
+						appendLock.Lock()
+						indices = append(indices, idx)
+						appendLock.Unlock()
+					}
+					ch <- createMsg
+				}()
+
+				r := &types.ResourceMeta{}
+				o := resourcetypes.DispenseOptions{
+					Node:  node,
+					Index: idx,
 				}
-				ch <- createMsg
-				sem.Release(1)
-			}()
-
-			r := &types.ResourceMeta{}
-			o := resourcetypes.DispenseOptions{
-				Node:  node,
-				Index: idx,
-			}
-			for _, plan := range plans {
-				if r, e = plan.Dispense(o, r); e != nil {
-					return errors.WithStack(e)
+				for _, plan := range plans {
+					if r, e = plan.Dispense(o, r); e != nil {
+						return
+					}
 				}
+
+				createMsg.ResourceMeta = *r
+				createOpts := c.doMakeWorkloadOptions(seq+idx, createMsg, opts, node)
+				e = errors.WithStack(c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts, deploy-1-idx))
 			}
-
-			createMsg.ResourceMeta = *r
-			createOpts := c.doMakeWorkloadOptions(seq+idx, createMsg, opts, node)
-			return errors.WithStack(c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts, deploy-1-idx))
-		}(idx) // nolint:errcheck
+		}(idx))
 	}
-
-	// sem.Acquire(ctx, MaxConcurrency) 等价于 WaitGroup.Wait()
-	// 用 context.Background() 是为了防止语义被破坏: 一定要等到所有 goroutine 完毕, 不能被用户 ctx 打断
-	// 否则可能会出现的情况是, 某些 goroutine 还没结束与运行 defer, 这个函数就 return 并 close channel, 导致 defer 里给 closed channel 发消息 panic
-	if e := sem.Acquire(context.Background(), c.config.MaxConcurrency); e != nil {
-		logger.Errorf("[Calcium.doDeployWorkloadsOnNode] Failed to wait all workers done: %+v", e)
-		err = e
-		indices = utils.Range(deploy)
-	}
+	pool.Wait()
 
 	// remap 就不搞进事务了吧, 回滚代价太大了
 	// 放任 remap 失败的后果是, share pool 没有更新, 这个后果姑且认为是可以承受的
@@ -367,6 +354,9 @@ func (c *Calcium) doDeployOneWorkload(
 
 		// remove workload
 		func(ctx context.Context, _ bool) error {
+			if workload.ID == "" {
+				return nil
+			}
 			return errors.WithStack(c.doRemoveWorkload(ctx, workload, true))
 		},
 		c.config.GlobalTimeout,
