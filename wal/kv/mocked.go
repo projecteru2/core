@@ -92,16 +92,14 @@ func (m *MockedKV) Scan(ctx context.Context, prefix []byte) (<-chan ScanEntry, f
 		defer close(ch)
 
 		m.pool.Range(func(rkey, rvalue interface{}) (next bool) {
-			select {
-			case <-exit:
-				next = false
-			default:
-				next = true
-			}
-
 			var entry MockedScanEntry
 			defer func() {
-				ch <- entry
+				select {
+				case <-exit:
+					next = false
+				case ch <- entry:
+					next = true
+				}
 			}()
 
 			var ok bool
