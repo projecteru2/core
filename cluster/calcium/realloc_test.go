@@ -285,14 +285,11 @@ func TestReallocBindCpu(t *testing.T) {
 	ctx := context.Background()
 	store := &storemocks.Store{}
 	c.store = store
-	pod1 := &types.Pod{
-		Name: "p1",
-	}
+
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	store.On("GetPod", mock.Anything, mock.Anything).Return(pod1, nil)
 	engine := &enginemocks.API{}
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
 
@@ -361,8 +358,6 @@ func TestReallocBindCpu(t *testing.T) {
 
 	store.On("GetNode", mock.Anything, "node3").Return(node3, nil)
 	store.On("GetWorkloads", mock.Anything, []string{"c5"}).Return([]*types.Workload{c5}, nil)
-	store.On("GetWorkloads", mock.Anything, []string{"c6"}).Return([]*types.Workload{c6}, nil)
-	store.On("GetWorkloads", mock.Anything, []string{"c6", "c5"}).Return([]*types.Workload{c5, c6}, nil)
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(nil)
 
@@ -370,23 +365,27 @@ func TestReallocBindCpu(t *testing.T) {
 	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(types.ErrBadWorkloadID).Once()
 	err := c.ReallocResource(ctx, newReallocOptions("c5", 0.1, 2*int64(units.MiB), nil, types.TriFalse, types.TriKeep))
 	assert.Error(t, err)
-	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
+	store.AssertExpectations(t)
 
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
+	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
 	err = c.ReallocResource(ctx, newReallocOptions("c5", 0.1, 2*int64(units.MiB), nil, types.TriFalse, types.TriKeep))
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(c5.ResourceMeta.CPU))
+	store.AssertExpectations(t)
 
+	store.On("GetWorkloads", mock.Anything, []string{"c6"}).Return([]*types.Workload{c6}, nil)
 	err = c.ReallocResource(ctx, newReallocOptions("c6", 0.1, 2*int64(units.MiB), nil, types.TriTrue, types.TriKeep))
 	assert.NoError(t, err)
 	assert.NotEmpty(t, c6.ResourceMeta.CPU)
+	store.AssertExpectations(t)
 
 	node3.CPU = types.CPUMap{"0": 10, "1": 70, "2": 100, "3": 100}
 	err = c.ReallocResource(ctx, newReallocOptions("c5", -0.1, 2*int64(units.MiB), nil, types.TriTrue, types.TriKeep))
-
 	assert.NoError(t, err)
 	assert.NotEmpty(t, c5.ResourceMeta.CPU)
 	err = c.ReallocResource(ctx, newReallocOptions("c6", -0.1, 2*int64(units.MiB), nil, types.TriFalse, types.TriKeep))
-
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(c6.ResourceMeta.CPU))
+	store.AssertExpectations(t)
 }

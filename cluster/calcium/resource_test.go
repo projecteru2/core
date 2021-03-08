@@ -12,7 +12,9 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/scheduler"
 	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
@@ -279,4 +281,27 @@ func testAllocFailedAsCommonDivisionError(t *testing.T, c *Calcium, opts *types.
 
 	_, _, err := c.doAllocResource(context.Background(), nodeMap, opts)
 	assert.Error(t, err)
+}
+
+func TestRemapResource(t *testing.T) {
+	c := NewTestCluster()
+	store := &storemocks.Store{}
+	c.store = store
+	engine := &enginemocks.API{}
+	node := &types.Node{Engine: engine}
+
+	workload := &types.Workload{
+		ResourceMeta: types.ResourceMeta{
+			CPUQuotaLimit: 1,
+		},
+	}
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
+	ch := make(chan enginetypes.VirtualizationRemapMessage, 1)
+	ch <- enginetypes.VirtualizationRemapMessage{}
+	close(ch)
+	engine.On("VirtualizationResourceRemap", mock.Anything, mock.Anything).Return((<-chan enginetypes.VirtualizationRemapMessage)(ch), nil)
+	_, err := c.remapResource(context.Background(), node)
+	assert.Nil(t, err)
+
+	c.doRemapResourceAndLog(context.Background(), log.WithField("test", "zc"), node)
 }

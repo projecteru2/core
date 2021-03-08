@@ -34,12 +34,11 @@ func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions)
 		return nil, logger.Err(errors.WithStack(types.NewDetailedErr(types.ErrBadCount, opts.Count)))
 	}
 
-	ch, err := c.doCreateWorkloads(ctx, opts)
-	return ch, logger.Err(errors.WithStack(err))
+	return c.doCreateWorkloads(ctx, opts), nil
 }
 
 // transaction: resource metadata consistency
-func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
+func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptions) chan *types.CreateWorkloadMessage {
 	logger := log.WithField("Calcium", "doCreateWorkloads").WithField("opts", opts)
 	ch := make(chan *types.CreateWorkloadMessage)
 	// RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
@@ -47,7 +46,6 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 	// 通过 Processing 状态跟踪达成 18 Oct, 2018
 
 	var (
-		err         error
 		plans       []resourcetypes.ResourcePlans
 		deployMap   map[string]int
 		rollbackMap map[string][]int
@@ -56,9 +54,8 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 	go func() {
 		defer func() {
 			for nodename := range deployMap {
-				if e := c.store.DeleteProcessing(ctx, opts, nodename); e != nil {
-					err = e
-					logger.Errorf("[Calcium.doCreateWorkloads] delete processing failed for %s: %+v", nodename, err)
+				if e := c.store.DeleteProcessing(context.Background(), opts, nodename); e != nil {
+					logger.Errorf("[Calcium.doCreateWorkloads] delete processing failed for %s: %+v", nodename, e)
 				}
 			}
 			close(ch)
@@ -78,7 +75,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 					// calculate plans
 					if plans, deployMap, err = c.doAllocResource(ctx, nodeMap, opts); err != nil {
-						return errors.WithStack(err)
+						return err
 					}
 
 					// commit changes
@@ -97,7 +94,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			},
 
 			// then: deploy workloads
-			func(ctx context.Context) error {
+			func(ctx context.Context) (err error) {
 				rollbackMap, err = c.doDeployWorkloads(ctx, ch, opts, plans, deployMap)
 				return errors.WithStack(err)
 			},
@@ -124,7 +121,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		)
 	}()
 
-	return ch, errors.WithStack(err)
+	return ch
 }
 
 func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateWorkloadMessage, opts *types.DeployOptions, plans []resourcetypes.ResourcePlans, deployMap map[string]int) (_ map[string][]int, err error) {
@@ -205,10 +202,12 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 	// remap 就不搞进事务了吧, 回滚代价太大了
 	// 放任 remap 失败的后果是, share pool 没有更新, 这个后果姑且认为是可以承受的
 	// 而且 remap 是一个幂等操作, 就算这次 remap 失败, 下次 remap 也能收敛到正确到状态
-	c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+	if err := c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 		c.doRemapResourceAndLog(ctx, logger, node)
 		return nil
-	})
+	}); err != nil {
+		logger.Errorf("failed to lock node to remap: %v", err)
+	}
 	return indices, errors.WithStack(err)
 }
 

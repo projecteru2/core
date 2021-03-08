@@ -174,6 +174,7 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 	return &enginetypes.VirtualizationCreated{ID: resp.ID, Name: opts.Name}, nil
 }
 
+// VirtualizationResourceRemap .
 func (v *Virt) VirtualizationResourceRemap(ctx context.Context, opts *enginetypes.VirtualizationRemapOptions) (ch <-chan enginetypes.VirtualizationRemapMessage, err error) {
 	err = types.ErrEngineNotImplemented
 	return

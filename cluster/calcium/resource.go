@@ -187,10 +187,11 @@ func (c *Calcium) remapResource(ctx context.Context, node *types.Node) (ch <-cha
 }
 
 func (c *Calcium) doRemapResourceAndLog(ctx context.Context, logger log.Fields, node *types.Node) {
-	logger = logger.WithField("Calcium", "doRemapResourceIrresponsibly").WithField("nodename", node.Name)
+	log.Debugf("[doRemapResourceAndLog] remap node %s", node.Name)
+	logger = logger.WithField("Calcium", "doRemapResourceAndLog").WithField("nodename", node.Name)
 	if ch, err := c.remapResource(ctx, node); logger.Err(err) == nil {
 		for msg := range ch {
-			logger.WithField("id", msg.ID).Err(msg.Error)
+			logger.WithField("id", msg.ID).Err(msg.Error) // nolint:errcheck
 		}
 	}
 }

@@ -124,7 +124,7 @@ func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, num
 		resource.CPUQuota = -1
 		// cpu share for fragile pieces
 		if _, divpart := math.Modf(cpu); divpart > 0 {
-			resource.CPUShares = int64(float64(1024) * divpart)
+			resource.CPUShares = int64(math.Round(float64(1024) * divpart))
 		}
 	}
 	resource.Memory = memory

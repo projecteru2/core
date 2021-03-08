@@ -22,7 +22,6 @@ func TestReplaceWorkload(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store := c.store.(*storemocks.Store)
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
 	_, err := c.ReplaceWorkload(ctx, &types.ReplaceOptions{
 		DeployOptions: types.DeployOptions{
@@ -52,6 +51,8 @@ func TestReplaceWorkload(t *testing.T) {
 	store.On("ListWorkloads", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err = c.ReplaceWorkload(ctx, opts)
 	assert.Error(t, err)
+	store.AssertExpectations(t)
+
 	store.On("ListWorkloads", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
 	// failed by withWorkloadLocked
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
@@ -60,21 +61,29 @@ func TestReplaceWorkload(t *testing.T) {
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
-	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil).Twice()
+	store.AssertExpectations(t)
+
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil).Once()
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	// ignore because pod not fit
 	opts.Podname = "wtf"
 	ch, err = c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)
 	for range ch {
 	}
+	store.AssertExpectations(t)
+
 	workload.Podname = "wtf"
 	opts.NetworkInherit = true
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil).Once()
 	// failed by inspect
 	ch, err = c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
+	store.AssertExpectations(t)
+
 	engine := &enginemocks.API{}
 	workload.Engine = engine
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
@@ -85,6 +94,8 @@ func TestReplaceWorkload(t *testing.T) {
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
+	store.AssertExpectations(t)
+
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{Running: true}, nil)
 	// failed by not fit
 	opts.FilterLabels = map[string]string{"x": "y"}
@@ -95,6 +106,8 @@ func TestReplaceWorkload(t *testing.T) {
 		assert.NotNil(t, r.Remove)
 		assert.False(t, r.Remove.Success)
 	}
+	store.AssertExpectations(t)
+
 	// failed by get node
 	opts.FilterLabels = map[string]string{}
 	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
@@ -135,6 +148,9 @@ func TestReplaceWorkload(t *testing.T) {
 		assert.NotNil(t, r.Remove)
 		assert.False(t, r.Remove.Success)
 	}
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
+
 	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(ioutil.NopCloser(bytes.NewReader([]byte{})), "", nil)
 	opts.DeployOptions.Data = map[string]types.ReaderManager{}
 	// failed by Stop
@@ -147,13 +163,16 @@ func TestReplaceWorkload(t *testing.T) {
 		assert.NotNil(t, r.Remove)
 		assert.False(t, r.Remove.Success)
 	}
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
+
 	engine.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	// failed by VirtualizationCreate
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, types.ErrCannotGetEngine).Once()
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
-	store.On("UpdateNodeResource", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
-	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
-	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil).Once()
+	//store.On("UpdateNodeResource", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+	//engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+	//store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil).Once()
 	ch, err = c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -161,13 +180,14 @@ func TestReplaceWorkload(t *testing.T) {
 		assert.NotNil(t, r.Remove)
 		assert.False(t, r.Remove.Success)
 	}
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
 
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "new"}, nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationCopyTo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{User: "test"}, nil)
 	store.On("AddWorkload", mock.Anything, mock.Anything).Return(nil)
-	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	// failed by remove workload
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
 	ch, err = c.ReplaceWorkload(ctx, opts)
@@ -179,7 +199,12 @@ func TestReplaceWorkload(t *testing.T) {
 		assert.False(t, r.Remove.Success)
 		assert.Nil(t, r.Create.Error)
 	}
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
+
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
 	// succ
 	ch, err = c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)
