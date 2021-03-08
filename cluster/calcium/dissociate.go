@@ -26,15 +26,17 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *t
 
 		for nodename, workloadIDs := range nodeWorkloadGroup {
 			if err := c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
-				for _, workloadID := range workloadIDs {
+				for _, workloadID := range workloadIDs { // nolint:scopelint
+					msg := &types.DissociateWorkloadMessage{WorkloadID: workloadID} // nolint:scopelint
 					if err := c.withWorkloadLocked(ctx, workloadID, func(ctx context.Context, workload *types.Workload) error {
-						msg := &types.DissociateWorkloadMessage{WorkloadID: workloadID}
-						if err := utils.Txn(
+						return utils.Txn(
 							ctx,
 							// if
-							func(ctx context.Context) error {
-								log.Infof("[DissociateWorkload] Workload %s dissociated", workload.ID)
-								return errors.WithStack(c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionIncr))
+							func(ctx context.Context) (err error) {
+								if err = c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionIncr); err == nil {
+									log.Infof("[DissociateWorkload] Workload %s dissociated", workload.ID)
+								}
+								return errors.WithStack(err)
 							},
 							// then
 							func(ctx context.Context) error {
@@ -48,35 +50,18 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *t
 								return errors.WithStack(c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionDecr))
 							},
 							c.config.GlobalTimeout,
-						); err != nil {
-							msg.Error = err
-							logger.WithField("id", workloadID).Errorf("failed to diss workload: %+v", err)
-						}
-						ch <- msg
-						return nil
+						)
 					}); err != nil {
 						logger.WithField("id", workloadID).Errorf("failed to lock workload: %+v", err)
+						msg.Error = err
 					}
+					ch <- msg
 				}
 				c.doRemapResourceAndLog(ctx, logger, node)
 				return nil
 			}); err != nil {
 				logger.WithField("nodename", nodename).Errorf("failed to lock node: %+v", err)
 			}
-		}
-
-		for _, id := range ids {
-			err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
-				return c.withNodeLocked(ctx, workload.Nodename, func(ctx context.Context, node *types.Node) (err error) {
-
-					c.doRemapResourceAndLog(ctx, logger, node)
-					return err
-				})
-			})
-			if err != nil {
-				logger.Errorf("[DissociateWorkload] Dissociate workload %s failed, err: %+v", id, err)
-			}
-			ch <- &types.DissociateWorkloadMessage{WorkloadID: id, Error: err}
 		}
 	}()
 	return ch, nil

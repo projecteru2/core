@@ -46,27 +46,33 @@ func TestDissociateWorkload(t *testing.T) {
 
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{c1}, nil)
 	// failed by lock
+	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	ch, err := c.DissociateWorkload(ctx, []string{"c1"})
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
+	store.AssertExpectations(t)
+
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
 	// failed by RemoveWorkload
+	store.On("UpdateNodeResource", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
 	ch, err = c.DissociateWorkload(ctx, []string{"c1"})
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
+	store.AssertExpectations(t)
+
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
 	// success
-	store.On("UpdateNodeResource", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	ch, err = c.DissociateWorkload(ctx, []string{"c1"})
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.NoError(t, r.Error)
 	}
+	store.AssertExpectations(t)
 }

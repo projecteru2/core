@@ -253,28 +253,28 @@ func (e *Engine) VirtualizationResourceRemap(ctx context.Context, opts *enginety
 	// update!
 	ch := make(chan enginetypes.VirtualizationRemapMessage)
 	pool := utils.NewGoroutinePool(10)
-	for id, resource := range freeWorkloadResources {
-		pool.Go(func(id string, resource enginetypes.VirtualizationResource) func() {
-			return func() {
-				updateConfig := dockercontainer.UpdateConfig{Resources: dockercontainer.Resources{
-					CPUQuota:   int64(resource.Quota * float64(corecluster.CPUPeriodBase)),
-					CPUPeriod:  corecluster.CPUPeriodBase,
-					CpusetCpus: shareCPUSet,
-					CPUShares:  defaultCPUShare,
-				}}
-				_, err := e.client.ContainerUpdate(ctx, id, updateConfig)
-				ch <- enginetypes.VirtualizationRemapMessage{
-					ID:    id,
-					Error: err,
-				}
-			}
-		}(id, resource))
-	}
-
 	go func() {
 		defer close(ch)
+		for id, resource := range freeWorkloadResources {
+			pool.Go(func(id string, resource enginetypes.VirtualizationResource) func() {
+				return func() {
+					updateConfig := dockercontainer.UpdateConfig{Resources: dockercontainer.Resources{
+						CPUQuota:   int64(resource.Quota * float64(corecluster.CPUPeriodBase)),
+						CPUPeriod:  corecluster.CPUPeriodBase,
+						CpusetCpus: shareCPUSet,
+						CPUShares:  defaultCPUShare,
+					}}
+					_, err := e.client.ContainerUpdate(ctx, id, updateConfig)
+					ch <- enginetypes.VirtualizationRemapMessage{
+						ID:    id,
+						Error: err,
+					}
+				}
+			}(id, resource))
+		}
 		pool.Wait()
 	}()
+
 	return ch, nil
 }
 

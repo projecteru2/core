@@ -69,6 +69,7 @@ type VirtualizationWaitResult struct {
 	Code    int64
 }
 
+// VirtualizationRemapOptions is passed to engine
 type VirtualizationRemapOptions struct {
 	CPUAvailable      map[string]int64
 	CPUInit           map[string]int64 // engine can be aware of oversell
@@ -76,6 +77,7 @@ type VirtualizationRemapOptions struct {
 	WorkloadResources map[string]VirtualizationResource
 }
 
+// VirtualizationRemapMessage returns from engine
 type VirtualizationRemapMessage struct {
 	ID    string
 	Error error

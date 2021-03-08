@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHandleCreateWorkloadNoHandle(t *testing.T) {
@@ -154,6 +153,7 @@ func TestHandleCreateLambda(t *testing.T) {
 	store.On("ListWorkloads", mock.Anything, deployOpts.Name, deployOpts.Entrypoint.Name, "", int64(0), deployOpts.Labels).
 		Return(nil, fmt.Errorf("err")).
 		Once()
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
 	c.wal.Recover(context.Background())
 
 	store.On("ListWorkloads", mock.Anything, deployOpts.Name, deployOpts.Entrypoint.Name, "", int64(0), deployOpts.Labels).
@@ -161,7 +161,7 @@ func TestHandleCreateLambda(t *testing.T) {
 		Once()
 	store.On("GetWorkloads", mock.Anything, []string{wrk.ID}).
 		Return([]*types.Workload{wrk}, nil).
-		Once()
+		Twice()
 	store.On("GetNode", mock.Anything, wrk.Nodename).
 		Return(node, nil)
 

@@ -5,9 +5,6 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
@@ -19,6 +16,8 @@ import (
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/wal"
 	walmocks "github.com/projecteru2/core/wal/mocks"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestCreateWorkload(t *testing.T) {
@@ -110,11 +109,6 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	mwal := c.wal.WAL.(*walmocks.WAL)
 	defer mwal.AssertExpectations(t)
 	var walCommitted bool
-	commit := wal.Commit(func(context.Context) error {
-		walCommitted = true
-		return nil
-	})
-	mwal.On("Log", mock.Anything, eventCreateWorkload, mock.Anything).Return(commit, nil)
 
 	store.On("SaveProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -239,6 +233,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "VirtualizationCreate")).Twice()
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
 	walCommitted = false
 	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
@@ -259,6 +254,11 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
 	store.On("AddWorkload", mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "AddWorkload")).Twice()
+	commit := wal.Commit(func(context.Context) error {
+		walCommitted = true
+		return nil
+	})
+	mwal.On("Log", mock.Anything, eventCreateWorkload, mock.Anything).Return(commit, nil)
 	walCommitted = false
 	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)

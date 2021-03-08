@@ -63,6 +63,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, nodename string, workload
 						return errors.WithStack(err)
 					}
 				}
+
 				return errors.WithStack(c.doReallocWorkloadsOnInstance(ctx, node.Engine, resourceMeta, workload))
 			},
 			// then commit changes

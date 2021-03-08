@@ -57,6 +57,7 @@ func (c *Calcium) withNodeLocked(ctx context.Context, nodename string, f func(co
 func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(context.Context, map[string]*types.Workload) error) error {
 	workloads := map[string]*types.Workload{}
 	locks := map[string]lock.DistributedLock{}
+	defer log.Debugf("[withWorkloadsLocked] Workloads %+v unlocked", ids)
 	defer func() { c.doUnlockAll(context.Background(), locks) }()
 	cs, err := c.GetWorkloads(ctx, ids)
 	if err != nil {
@@ -68,6 +69,7 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(
 		if err != nil {
 			return errors.WithStack(err)
 		}
+		log.Debugf("[withWorkloadsLocked] Workload %s locked", workload.ID)
 		locks[workload.ID] = lock
 		workloads[workload.ID] = workload
 	}
@@ -77,6 +79,7 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(
 func (c *Calcium) withNodesLocked(ctx context.Context, podname string, nodenames []string, labels map[string]string, all bool, f func(context.Context, map[string]*types.Node) error) error {
 	nodes := map[string]*types.Node{}
 	locks := map[string]lock.DistributedLock{}
+	defer log.Debugf("[withNodesLocked] Nodes %+v unlocked", nodenames)
 	defer c.doUnlockAll(context.Background(), locks)
 	ns, err := c.getNodes(ctx, podname, nodenames, labels, all)
 	if err != nil {

@@ -35,18 +35,17 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, 
 				defer wg.Done()
 				if err := c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 					for _, workloadID := range workloadIDs {
+						ret := &types.RemoveWorkloadMessage{WorkloadID: workloadID, Success: true, Hook: []*bytes.Buffer{}}
 						if err := c.withWorkloadLocked(ctx, workloadID, func(ctx context.Context, workload *types.Workload) error {
-							ret := &types.RemoveWorkloadMessage{WorkloadID: workloadID, Success: true, Hook: []*bytes.Buffer{}}
-							if err := utils.Txn(
+							return utils.Txn(
 								ctx,
 								// if
 								func(ctx context.Context) error {
 									return errors.WithStack(c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionIncr))
 								},
 								// then
-								func(ctx context.Context) error {
-									err := errors.WithStack(c.doRemoveWorkload(ctx, workload, force))
-									if err != nil {
+								func(ctx context.Context) (err error) {
+									if err = errors.WithStack(c.doRemoveWorkload(ctx, workload, force)); err != nil {
 										log.Infof("[RemoveWorkload] Workload %s removed", workload.ID)
 									}
 									return err
@@ -59,22 +58,19 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, 
 									return errors.WithStack(c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionDecr))
 								},
 								c.config.GlobalTimeout,
-							); err != nil {
-								logger.WithField("id", workloadID).Errorf("[RemoveWorkload] Remove workload failed: %+v", err)
-								ret.Hook = append(ret.Hook, bytes.NewBufferString(err.Error()))
-								ret.Success = false
-							}
-
-							ch <- ret
-							return nil
+							)
 						}); err != nil {
 							logger.WithField("id", workloadID).Errorf("failed to lock workload: %+v", err)
+							ret.Hook = append(ret.Hook, bytes.NewBufferString(err.Error()))
+							ret.Success = false
 						}
+						ch <- ret
 					}
 					c.doRemapResourceAndLog(ctx, logger, node)
 					return nil
 				}); err != nil {
 					logger.WithField("nodename", nodename).Errorf("failed to lock node: %+v", err)
+					ch <- &types.RemoveWorkloadMessage{Success: false}
 				}
 			}(nodename, workloadIDs)
 		}
@@ -103,7 +99,6 @@ func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload
 		},
 		c.config.GlobalTimeout,
 	)
-
 }
 
 // 同步地删除容器, 在某些需要等待的场合异常有用!
