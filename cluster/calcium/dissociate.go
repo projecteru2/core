@@ -57,7 +57,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *t
 					}
 					ch <- msg
 				}
-				c.doRemapResourceAndLog(ctx, logger, node)
+				c.doRemapResourceAndLog(context.Background(), logger, node)
 				return nil
 			}); err != nil {
 				logger.WithField("nodename", nodename).Errorf("failed to lock node: %+v", err)
