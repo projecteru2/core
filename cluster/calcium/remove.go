@@ -66,7 +66,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, 
 						}
 						ch <- ret
 					}
-					c.doRemapResourceAndLog(ctx, logger, node)
+					c.doRemapResourceAndLog(context.Background(), logger, node)
 					return nil
 				}); err != nil {
 					logger.WithField("nodename", nodename).Errorf("failed to lock node: %+v", err)

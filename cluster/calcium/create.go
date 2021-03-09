@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -202,8 +203,8 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 	// remap 就不搞进事务了吧, 回滚代价太大了
 	// 放任 remap 失败的后果是, share pool 没有更新, 这个后果姑且认为是可以承受的
 	// 而且 remap 是一个幂等操作, 就算这次 remap 失败, 下次 remap 也能收敛到正确到状态
-	if err := c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
-		c.doRemapResourceAndLog(ctx, logger, node)
+	if err := c.withNodeLocked(context.Background(), nodename, func(ctx context.Context, node *types.Node) error {
+		c.doRemapResourceAndLog(context.Background(), logger, node)
 		return nil
 	}); err != nil {
 		logger.Errorf("failed to lock node to remap: %v", err)
@@ -401,6 +402,10 @@ func (c *Calcium) doMakeWorkloadOptions(no int, msg *types.CreateWorkloadMessage
 	env = append(env, fmt.Sprintf("ERU_WORKLOAD_SEQ=%d", no))
 	env = append(env, fmt.Sprintf("ERU_MEMORY=%d", msg.MemoryLimit))
 	env = append(env, fmt.Sprintf("ERU_STORAGE=%d", msg.StorageLimit))
+	if msg.CPU != nil {
+		bs, _ := json.Marshal(msg.CPU)
+		env = append(env, fmt.Sprintf("ERU_CPU=%s", bs))
+	}
 	config.Env = env
 	// basic labels, bind to LabelMeta
 	config.Labels = map[string]string{

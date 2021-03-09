@@ -101,7 +101,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, nodename string, workload
 			return
 		}
 
-		c.doRemapResourceAndLog(ctx, log.WithField("Calcium", "doReallocOnNode"), node)
+		c.doRemapResourceAndLog(context.Background(), log.WithField("Calcium", "doReallocOnNode"), node)
 		return nil
 	})
 }
