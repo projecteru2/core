@@ -302,10 +302,17 @@ func (c *Calcium) doDeployOneWorkload(
 			}
 
 			// deal with hook
-			if len(opts.AfterCreate) > 0 && workload.Hook != nil {
-				workload.Hook = &types.Hook{
-					AfterStart: append(opts.AfterCreate, workload.Hook.AfterStart...),
-					Force:      workload.Hook.Force,
+			if len(opts.AfterCreate) > 0 {
+				if workload.Hook != nil {
+					workload.Hook = &types.Hook{
+						AfterStart: append(opts.AfterCreate, workload.Hook.AfterStart...),
+						Force:      workload.Hook.Force,
+					}
+				} else {
+					workload.Hook = &types.Hook{
+						AfterStart: opts.AfterCreate,
+						Force:      opts.IgnoreHook,
+					}
 				}
 			}
 
