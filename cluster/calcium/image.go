@@ -14,13 +14,13 @@ import (
 func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (chan *types.RemoveImageMessage, error) {
 	logger := log.WithField("Calcium", "RemoveImage").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.Err(errors.WithStack(err))
+		return nil, logger.Err(err)
 	}
 	opts.Normalize()
 
 	nodes, err := c.getNodes(ctx, opts.Podname, opts.Nodenames, nil, false)
 	if err != nil {
-		return nil, logger.Err(errors.WithStack(err))
+		return nil, logger.Err(err)
 	}
 
 	if len(nodes) == 0 {
@@ -77,13 +77,13 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (chan *types.CacheImageMessage, error) {
 	logger := log.WithField("Calcium", "CacheImage").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.Err(errors.WithStack(err))
+		return nil, logger.Err(err)
 	}
 	opts.Normalize()
 
 	nodes, err := c.getNodes(ctx, opts.Podname, opts.Nodenames, nil, false)
 	if err != nil {
-		return nil, logger.Err(errors.WithStack(err))
+		return nil, logger.Err(err)
 	}
 
 	if len(nodes) == 0 {

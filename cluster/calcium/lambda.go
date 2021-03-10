@@ -27,7 +27,7 @@ const (
 func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) (<-chan *types.AttachWorkloadMessage, error) {
 	logger := log.WithField("Calcium", "RunAndWait").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.Err(errors.WithStack(err))
+		return nil, logger.Err(err)
 	}
 	opts.Lambda = true
 	// count = 1 && OpenStdin
@@ -38,12 +38,12 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 
 	commit, err := c.walCreateLambda(ctx, opts)
 	if err != nil {
-		return nil, logger.Err(errors.WithStack(err))
+		return nil, logger.Err(err)
 	}
 	createChan, err := c.CreateWorkload(ctx, opts)
 	if err != nil {
 		logger.Errorf("[RunAndWait] Create workload error %+v", err)
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	runMsgCh := make(chan *types.AttachWorkloadMessage)

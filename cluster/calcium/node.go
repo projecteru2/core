@@ -13,7 +13,7 @@ import (
 func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*types.Node, error) {
 	logger := log.WithField("Calcium", "AddNode").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.Err(errors.WithStack(err))
+		return nil, logger.Err(err)
 	}
 	opts.Normalize()
 	node, err := c.store.AddNode(ctx, opts)
@@ -29,7 +29,7 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 	return c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 		ws, err := c.ListNodeWorkloads(ctx, node.Name, nil)
 		if err != nil {
-			return logger.Err(errors.WithStack(err))
+			return logger.Err(err)
 		}
 		if len(ws) > 0 {
 			return logger.Err(errors.WithStack(types.ErrNodeNotEmpty))
@@ -58,7 +58,7 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string) (*types.Node, er
 func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) { // nolint
 	logger := log.WithField("Calcium", "SetNode").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.Err(errors.WithStack(err))
+		return nil, logger.Err(err)
 	}
 	var n *types.Node
 	return n, c.withNodeLocked(ctx, opts.Nodename, func(ctx context.Context, node *types.Node) error {
@@ -166,12 +166,12 @@ func (c *Calcium) getNodes(ctx context.Context, podname string, nodenames []stri
 		for _, nodename := range nodenames {
 			node, err := c.GetNode(ctx, nodename)
 			if err != nil {
-				return ns, errors.WithStack(err)
+				return ns, err
 			}
 			ns = append(ns, node)
 		}
 	} else {
 		ns, err = c.ListPodNodes(ctx, podname, labels, all)
 	}
-	return ns, errors.WithStack(err)
+	return ns, err
 }

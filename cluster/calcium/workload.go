@@ -32,10 +32,10 @@ func (c *Calcium) ListNodeWorkloads(ctx context.Context, nodename string, labels
 func (c *Calcium) getWorkloadNode(ctx context.Context, id string) (*types.Node, error) {
 	w, err := c.GetWorkload(ctx, id)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	node, err := c.GetNode(ctx, w.Nodename)
-	return node, errors.WithStack(err)
+	return node, err
 }
 
 // GetWorkload get a workload

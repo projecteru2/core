@@ -23,7 +23,7 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 		if opts.DeployStrategy != strategy.Dummy {
 			if _, msg.NodeCapacities, err = c.doAllocResource(ctx, nodeMap, opts); err != nil {
 				logger.Errorf("[Calcium.CalculateCapacity] doAllocResource failed: %+v", err)
-				return errors.WithStack(err)
+				return err
 			}
 
 			for _, capacity := range msg.NodeCapacities {
@@ -34,7 +34,7 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 			msg.Total, _, infos, err = c.doCalculateCapacity(nodeMap, opts)
 			if err != nil {
 				logger.Errorf("[Calcium.CalculateCapacity] doCalculateCapacity failed: %+v", err)
-				return errors.WithStack(err)
+				return err
 			}
 			for _, info := range infos {
 				msg.NodeCapacities[info.Nodename] = info.Capacity
@@ -56,12 +56,12 @@ func (c *Calcium) doCalculateCapacity(nodeMap map[string]*types.Node, opts *type
 
 	resourceRequests, err := resources.MakeRequests(opts.ResourceOpts)
 	if err != nil {
-		return 0, nil, nil, errors.WithStack(err)
+		return 0, nil, nil, err
 	}
 
 	// select available nodes
 	if plans, err = resources.SelectNodesByResourceRequests(resourceRequests, nodeMap); err != nil {
-		return 0, nil, nil, errors.WithStack(err)
+		return 0, nil, nil, err
 	}
 	log.Debugf("[Calcium.doCalculateCapacity] plans: %+v, total: %v", plans, total)
 

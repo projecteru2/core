@@ -1,7 +1,6 @@
 package resources
 
 import (
-	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
@@ -23,7 +22,7 @@ func SelectNodesByResourceRequests(resourceRequests resourcetypes.ResourceReques
 	for _, resourceRequest := range resourceRequests {
 		plan, _, err := resourceRequest.MakeScheduler()(scheduleInfos)
 		if err != nil {
-			return plans, errors.WithStack(err)
+			return plans, err
 		}
 		plans = append(plans, plan)
 	}

@@ -19,7 +19,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 	logger := log.WithField("Calcium", "PodResource").WithField("podname", podname)
 	nodes, err := c.ListPodNodes(ctx, podname, nil, true)
 	if err != nil {
-		return nil, logger.Err(errors.WithStack(err))
+		return nil, logger.Err(err)
 	}
 	r := &types.PodResource{
 		Name:          podname,
@@ -28,7 +28,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 	for _, node := range nodes {
 		nodeResource, err := c.doGetNodeResource(ctx, node.Name, false)
 		if err != nil {
-			return nil, logger.Err(errors.WithStack(err))
+			return nil, logger.Err(err)
 		}
 		r.NodesResource = append(r.NodesResource, nodeResource)
 	}
@@ -60,7 +60,7 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 	return nr, c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 		workloads, err := c.ListNodeWorkloads(ctx, node.Name, nil)
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 		nr = &types.NodeResource{
 			Name: node.Name, CPU: node.CPU, MemCap: node.MemCap, StorageCap: node.StorageCap,
@@ -128,7 +128,7 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 	return utils.Txn(ctx,
 		func(ctx context.Context) error {
 			if n, err = c.GetNode(ctx, node.Name); err != nil {
-				return errors.WithStack(err)
+				return err
 			}
 			n.CPUUsed = cpus
 			for i, v := range node.CPU {
@@ -149,14 +149,14 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) ([]resourcetypes.ResourcePlans, map[string]int, error) {
 	total, plans, strategyInfos, err := c.doCalculateCapacity(nodeMap, opts)
 	if err != nil {
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, err
 	}
 	if err := c.store.MakeDeployStatus(ctx, opts, strategyInfos); err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
 	deployMap, err := strategy.Deploy(opts, strategyInfos, total)
 	if err != nil {
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, err
 	}
 	log.Infof("[Calium.doAllocResource] deployMap: %+v", deployMap)
 	return plans, deployMap, nil

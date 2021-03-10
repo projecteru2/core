@@ -21,7 +21,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, 
 	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, ids)
 	if err != nil {
 		logger.Errorf("failed to group workloads by node: %+v", err)
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	ch := make(chan *types.RemoveWorkloadMessage)
@@ -45,7 +45,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, 
 								},
 								// then
 								func(ctx context.Context) (err error) {
-									if err = errors.WithStack(c.doRemoveWorkload(ctx, workload, force)); err != nil {
+									if err = c.doRemoveWorkload(ctx, workload, force); err != nil {
 										log.Infof("[RemoveWorkload] Workload %s removed", workload.ID)
 									}
 									return err
@@ -88,7 +88,7 @@ func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload
 		},
 		// then
 		func(ctx context.Context) error {
-			return errors.WithStack(workload.Remove(ctx, force))
+			return workload.Remove(ctx, force)
 		},
 		// rollback
 		func(ctx context.Context, failedByCond bool) error {
@@ -105,7 +105,7 @@ func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload
 func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, ids []string) error {
 	ch, err := c.RemoveWorkload(ctx, ids, true, 1)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	for m := range ch {

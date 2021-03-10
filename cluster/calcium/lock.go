@@ -39,7 +39,7 @@ func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.Distrib
 func (c *Calcium) withWorkloadLocked(ctx context.Context, id string, f func(context.Context, *types.Workload) error) error {
 	return c.withWorkloadsLocked(ctx, []string{id}, func(ctx context.Context, workloads map[string]*types.Workload) error {
 		if c, ok := workloads[id]; ok {
-			return errors.WithStack(f(ctx, c))
+			return f(ctx, c)
 		}
 		return errors.WithStack(types.ErrWorkloadNotExists)
 	})
@@ -48,7 +48,7 @@ func (c *Calcium) withWorkloadLocked(ctx context.Context, id string, f func(cont
 func (c *Calcium) withNodeLocked(ctx context.Context, nodename string, f func(context.Context, *types.Node) error) error {
 	return c.withNodesLocked(ctx, "", []string{nodename}, nil, true, func(ctx context.Context, nodes map[string]*types.Node) error {
 		if n, ok := nodes[nodename]; ok {
-			return errors.WithStack(f(ctx, n))
+			return f(ctx, n)
 		}
 		return errors.WithStack(types.ErrNodeNotExists)
 	})
@@ -61,7 +61,7 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(
 	defer func() { c.doUnlockAll(context.Background(), locks) }()
 	cs, err := c.GetWorkloads(ctx, ids)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 	var lock lock.DistributedLock
 	for _, workload := range cs {
@@ -73,7 +73,7 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(
 		locks[workload.ID] = lock
 		workloads[workload.ID] = workload
 	}
-	return errors.WithStack(f(ctx, workloads))
+	return f(ctx, workloads)
 }
 
 func (c *Calcium) withNodesLocked(ctx context.Context, podname string, nodenames []string, labels map[string]string, all bool, f func(context.Context, map[string]*types.Node) error) error {
@@ -83,23 +83,23 @@ func (c *Calcium) withNodesLocked(ctx context.Context, podname string, nodenames
 	defer c.doUnlockAll(context.Background(), locks)
 	ns, err := c.getNodes(ctx, podname, nodenames, labels, all)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	var lock lock.DistributedLock
 	for _, n := range ns {
 		lock, ctx, err = c.doLock(ctx, fmt.Sprintf(cluster.NodeLock, podname, n.Name), c.config.LockTimeout)
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 		log.Debugf("[withNodesLocked] Node %s locked", n.Name)
 		locks[n.Name] = lock
 		// refresh node
 		node, err := c.GetNode(ctx, n.Name)
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 		nodes[n.Name] = node
 	}
-	return errors.WithStack(f(ctx, nodes))
+	return f(ctx, nodes)
 }

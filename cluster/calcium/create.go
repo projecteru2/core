@@ -24,7 +24,7 @@ import (
 func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
 	logger := log.WithField("Calcium", "CreateWorkload").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.Err(errors.WithStack(err))
+		return nil, logger.Err(err)
 	}
 
 	opts.ProcessIdent = utils.RandomString(16)
@@ -97,7 +97,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			// then: deploy workloads
 			func(ctx context.Context) (err error) {
 				rollbackMap, err = c.doDeployWorkloads(ctx, ch, opts, plans, deployMap)
-				return errors.WithStack(err)
+				return err
 			},
 
 			// rollback: give back resources
@@ -115,7 +115,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 						err = e
 					}
 				}
-				return errors.WithStack(err)
+				return err
 			},
 
 			c.config.GlobalTimeout,
@@ -145,7 +145,7 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateWo
 
 	wg.Wait()
 	log.Debugf("[Calcium.doDeployWorkloads] rollbackMap: %+v", rollbackMap)
-	return rollbackMap, errors.WithStack(err)
+	return rollbackMap, err
 }
 
 // deploy scheduled workloads on one node
@@ -156,7 +156,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 		for i := 0; i < deploy; i++ {
 			ch <- &types.CreateWorkloadMessage{Error: logger.Err(err)}
 		}
-		return utils.Range(deploy), errors.WithStack(err)
+		return utils.Range(deploy), err
 	}
 
 	pool, appendLock := utils.NewGoroutinePool(int(c.config.MaxConcurrency)), sync.Mutex{}
@@ -194,7 +194,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 
 				createMsg.ResourceMeta = *r
 				createOpts := c.doMakeWorkloadOptions(seq+idx, createMsg, opts, node)
-				e = errors.WithStack(c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts, deploy-1-idx))
+				e = c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts, deploy-1-idx)
 			}
 		}(idx))
 	}
@@ -209,16 +209,16 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 	}); err != nil {
 		logger.Errorf("failed to lock node to remap: %v", err)
 	}
-	return indices, errors.WithStack(err)
+	return indices, err
 }
 
 func (c *Calcium) doGetAndPrepareNode(ctx context.Context, nodename, image string) (*types.Node, error) {
 	node, err := c.GetNode(ctx, nodename)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
-	return node, errors.WithStack(pullImage(ctx, node, image))
+	return node, pullImage(ctx, node, image)
 }
 
 // transaction: workload metadata consistency
@@ -277,7 +277,7 @@ func (c *Calcium) doDeployOneWorkload(
 			// so there's a time gap window, once the core process crashes between
 			// VirtualizationCreate and logCreateWorkload then the worload is leaky.
 			if commit, err = c.wal.logCreateWorkload(ctx, workload.ID, node.Name); err != nil {
-				return errors.WithStack(err)
+				return err
 			}
 			return nil
 		},
@@ -291,7 +291,7 @@ func (c *Calcium) doDeployOneWorkload(
 						return errors.WithStack(err)
 					}
 					if err = c.doSendFileToWorkload(ctx, node.Engine, workload.ID, dst, reader, true, false); err != nil {
-						return errors.WithStack(err)
+						return err
 					}
 				}
 			}
@@ -314,14 +314,14 @@ func (c *Calcium) doDeployOneWorkload(
 			// start first
 			msg.Hook, err = c.doStartWorkload(ctx, workload, opts.IgnoreHook)
 			if err != nil {
-				return errors.WithStack(err)
+				return err
 			}
 
 			// inspect real meta
 			var workloadInfo *enginetypes.VirtualizationInfo
 			workloadInfo, err = workload.Inspect(ctx) // 补充静态元数据
 			if err != nil {
-				return errors.WithStack(err)
+				return err
 			}
 
 			// update meta
@@ -357,7 +357,7 @@ func (c *Calcium) doDeployOneWorkload(
 			if workload.ID == "" {
 				return nil
 			}
-			return errors.WithStack(c.doRemoveWorkload(ctx, workload, true))
+			return c.doRemoveWorkload(ctx, workload, true)
 		},
 		c.config.GlobalTimeout,
 	)
