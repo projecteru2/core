@@ -17,6 +17,7 @@ func SetupLog(l string) error {
 	log.SetLevel(level)
 
 	formatter := &log.TextFormatter{
+		ForceColors:     true,
 		TimestampFormat: "2006-01-02 15:04:05",
 		FullTimestamp:   true,
 	}
