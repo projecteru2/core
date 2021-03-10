@@ -25,7 +25,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 	// select nodes
 	node, err := c.selectBuildNode(ctx)
 	if err != nil {
-		return nil, logger.Err(errors.WithStack(err))
+		return nil, logger.Err(err)
 	}
 	log.Infof("[BuildImage] Building image at pod %s node %s", node.Podname, node.Name)
 	// get refs
@@ -41,7 +41,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 	default:
 		return nil, logger.Err(errors.WithStack(errors.New("unknown build type")))
 	}
-	return ch, logger.Err(errors.WithStack(err))
+	return ch, logger.Err(err)
 }
 
 func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
@@ -54,14 +54,14 @@ func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
 	// get node by scheduler
 	nodes, err := c.ListPodNodes(ctx, c.config.Docker.BuildPod, nil, false)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	if len(nodes) == 0 {
 		return nil, errors.WithStack(types.ErrInsufficientNodes)
 	}
 	// get idle max node
 	node, err := c.scheduler.MaxIdleNode(nodes)
-	return node, errors.WithStack(err)
+	return node, err
 }
 
 func (c *Calcium) buildFromSCM(ctx context.Context, node *types.Node, refs []string, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
@@ -76,7 +76,7 @@ func (c *Calcium) buildFromSCM(ctx context.Context, node *types.Node, refs []str
 		return nil, errors.WithStack(err)
 	}
 	ch, err := c.buildFromContent(ctx, node, refs, content)
-	return ch, errors.WithStack(err)
+	return ch, err
 }
 
 func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, refs []string, content io.Reader) (chan *types.BuildImageMessage, error) {
@@ -85,7 +85,7 @@ func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, refs [
 		return nil, errors.WithStack(err)
 	}
 	ch, err := c.pushImage(ctx, resp, node, refs)
-	return ch, errors.WithStack(err)
+	return ch, err
 }
 
 func (c *Calcium) buildFromExist(ctx context.Context, ref, existID string) (chan *types.BuildImageMessage, error) { // nolint:unparam

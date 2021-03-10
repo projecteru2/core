@@ -17,7 +17,7 @@ import (
 func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceWorkloadMessage, error) {
 	logger := log.WithField("Calcium", "ReplaceWorkload").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.Err(errors.WithStack(err))
+		return nil, logger.Err(err)
 	}
 	opts.Normalize()
 	if len(opts.IDs) == 0 {
@@ -29,7 +29,7 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 				Appname: opts.Name, Entrypoint: opts.Entrypoint.Name, Nodename: nodename,
 			})
 			if err != nil {
-				return nil, logger.Err(errors.WithStack(err))
+				return nil, logger.Err(err)
 			}
 			for _, workload := range workloads {
 				opts.IDs = append(opts.IDs, workload.ID)
@@ -76,7 +76,7 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 					if replaceOpts.NetworkInherit {
 						info, err := workload.Inspect(ctx)
 						if err != nil {
-							return errors.WithStack(err)
+							return err
 						} else if !info.Running {
 							return errors.WithStack(types.NewDetailedErr(types.ErrNotSupport,
 								fmt.Sprintf("workload %s is not running, can not inherit", workload.ID),
@@ -86,7 +86,7 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 						log.Infof("[ReplaceWorkload] Inherit old workload network configuration mode %v", replaceOpts.Networks)
 					}
 					createMessage, removeMessage, err = c.doReplaceWorkload(ctx, workload, &replaceOpts, index)
-					return errors.WithStack(err)
+					return err
 				}); err != nil {
 					if errors.Is(err, types.ErrIgnoreWorkload) {
 						log.Warnf("[ReplaceWorkload] ignore workload: %v", err)
@@ -125,7 +125,7 @@ func (c *Calcium) doReplaceWorkload(
 	// prepare node
 	node, err := c.doGetAndPrepareNode(ctx, workload.Nodename, opts.Image)
 	if err != nil {
-		return nil, removeMessage, errors.WithStack(err)
+		return nil, removeMessage, err
 	}
 	// 获得文件 io
 	for src, dst := range opts.Copy {
@@ -158,7 +158,7 @@ func (c *Calcium) doReplaceWorkload(
 		// if
 		func(ctx context.Context) (err error) {
 			removeMessage.Hook, err = c.doStopWorkload(ctx, workload, opts.IgnoreHook)
-			return errors.WithStack(err)
+			return err
 		},
 		// then
 		func(ctx context.Context) error {
@@ -167,13 +167,13 @@ func (c *Calcium) doReplaceWorkload(
 				// if
 				func(ctx context.Context) error {
 					vco := c.doMakeReplaceWorkloadOptions(index, createMessage, &opts.DeployOptions, node, workload.ID)
-					return errors.WithStack(c.doDeployOneWorkload(ctx, node, &opts.DeployOptions, createMessage, vco, -1))
+					return c.doDeployOneWorkload(ctx, node, &opts.DeployOptions, createMessage, vco, -1)
 				},
 				// then
 				func(ctx context.Context) (err error) {
 					if err = c.doRemoveWorkload(ctx, workload, true); err != nil {
 						log.Errorf("[doReplaceWorkload] the new started but the old failed to stop")
-						return errors.WithStack(err)
+						return err
 					}
 					removeMessage.Success = true
 					return
@@ -191,7 +191,7 @@ func (c *Calcium) doReplaceWorkload(
 			} else {
 				removeMessage.Hook = append(removeMessage.Hook, messages...)
 			}
-			return errors.WithStack(err)
+			return err
 		},
 		c.config.GlobalTimeout,
 	); err != nil {

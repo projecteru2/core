@@ -1,5 +1,7 @@
 package types
 
+import "github.com/pkg/errors"
+
 // TODO should validate options
 
 // DeployOptions is options for deploying
@@ -34,16 +36,16 @@ type DeployOptions struct {
 // Validate checks options
 func (o *DeployOptions) Validate() error {
 	if o.Name == "" {
-		return ErrEmptyAppName
+		return errors.WithStack(ErrEmptyAppName)
 	}
 	if o.Podname == "" {
-		return ErrEmptyPodName
+		return errors.WithStack(ErrEmptyAppName)
 	}
 	if o.Image == "" {
-		return ErrEmptyImage
+		return errors.WithStack(ErrEmptyImage)
 	}
 	if o.Count == 0 {
-		return ErrEmptyCount
+		return errors.WithStack(ErrEmptyCount)
 	}
 	return o.Entrypoint.Validate()
 }
@@ -56,7 +58,7 @@ type CopyOptions struct {
 // Validate checks options
 func (o *CopyOptions) Validate() error {
 	if len(o.Targets) == 0 {
-		return ErrNoFilesToCopy
+		return errors.WithStack(ErrNoFilesToCopy)
 	}
 	return nil
 }
@@ -70,10 +72,10 @@ type SendOptions struct {
 // Validate checks options
 func (o *SendOptions) Validate() error {
 	if len(o.IDs) == 0 {
-		return ErrNoWorkloadIDs
+		return errors.WithStack(ErrNoWorkloadIDs)
 	}
 	if len(o.Data) == 0 {
-		return ErrNoFilesToSend
+		return errors.WithStack(ErrNoFilesToSend)
 	}
 	return nil
 }
@@ -101,7 +103,7 @@ type ReplaceOptions struct {
 // to keep the original behavior, no check here.
 func (o *ReplaceOptions) Validate() error {
 	if o.DeployOptions.Name == "" {
-		return ErrEmptyAppName
+		return errors.WithStack(ErrEmptyAppName)
 	}
 	return o.DeployOptions.Entrypoint.Validate()
 }
@@ -134,13 +136,13 @@ type AddNodeOptions struct {
 // Validate checks options
 func (o *AddNodeOptions) Validate() error {
 	if o.Nodename == "" {
-		return ErrEmptyNodeName
+		return errors.WithStack(ErrEmptyNodeName)
 	}
 	if o.Podname == "" {
-		return ErrEmptyPodName
+		return errors.WithStack(ErrEmptyPodName)
 	}
 	if o.Endpoint == "" {
-		return ErrEmptyNodeEndpoint
+		return errors.WithStack(ErrEmptyNodeEndpoint)
 	}
 	return nil
 }
@@ -167,7 +169,7 @@ type SetNodeOptions struct {
 // Validate checks options
 func (o *SetNodeOptions) Validate() error {
 	if o.Nodename == "" {
-		return ErrEmptyNodeName
+		return errors.WithStack(ErrEmptyNodeName)
 	}
 	return nil
 }
@@ -195,7 +197,7 @@ type ImageOptions struct {
 // Validate checks the options
 func (o *ImageOptions) Validate() error {
 	if o.Podname == "" {
-		return ErrEmptyPodName
+		return errors.WithStack(ErrEmptyPodName)
 	}
 	return nil
 }

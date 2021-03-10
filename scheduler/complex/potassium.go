@@ -303,7 +303,7 @@ func (m *Potassium) SelectVolumeNodes(scheduleInfos []resourcetypes.ScheduleInfo
 	sort.Slice(scheduleInfos, func(i, j int) bool { return scheduleInfos[i].Capacity < scheduleInfos[j].Capacity })
 	p := sort.Search(len(scheduleInfos), func(i int) bool { return scheduleInfos[i].Capacity > 0 })
 	if p == len(scheduleInfos) {
-		return nil, nil, 0, types.ErrInsufficientRes
+		return nil, nil, 0, errors.WithStack(types.ErrInsufficientRes)
 	}
 
 	return scheduleInfos[p:], volumePlans, volTotal, nil

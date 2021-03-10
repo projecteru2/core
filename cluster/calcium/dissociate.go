@@ -17,7 +17,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *t
 	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, ids)
 	if err != nil {
 		logger.Errorf("failed to group workloads by node: %+v", err)
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	ch := make(chan *types.DissociateWorkloadMessage)

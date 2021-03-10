@@ -30,18 +30,18 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 					switch t {
 					case cluster.WorkloadStop:
 						message, err = c.doStopWorkload(ctx, workload, force)
-						return errors.WithStack(err)
+						return err
 					case cluster.WorkloadStart:
 						message, err = c.doStartWorkload(ctx, workload, force)
-						return errors.WithStack(err)
+						return err
 					case cluster.WorkloadRestart:
 						message, err = c.doStopWorkload(ctx, workload, force)
 						if err != nil {
-							return errors.WithStack(err)
+							return err
 						}
 						startHook, err := c.doStartWorkload(ctx, workload, force)
 						message = append(message, startHook...)
-						return errors.WithStack(err)
+						return err
 					}
 					return errors.WithStack(types.ErrUnknownControlType)
 				})
@@ -65,7 +65,7 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 
 func (c *Calcium) doStartWorkload(ctx context.Context, workload *types.Workload, force bool) (message []*bytes.Buffer, err error) {
 	if err = workload.Start(ctx); err != nil {
-		return message, errors.WithStack(err)
+		return message, err
 	}
 	// TODO healthcheck first
 	if workload.Hook != nil && len(workload.Hook.AfterStart) > 0 {
@@ -77,7 +77,7 @@ func (c *Calcium) doStartWorkload(ctx context.Context, workload *types.Workload,
 			force, workload.Engine,
 		)
 	}
-	return message, errors.WithStack(err)
+	return message, err
 }
 
 func (c *Calcium) doStopWorkload(ctx context.Context, workload *types.Workload, force bool) (message []*bytes.Buffer, err error) {
@@ -90,7 +90,7 @@ func (c *Calcium) doStopWorkload(ctx context.Context, workload *types.Workload, 
 			force, workload.Engine,
 		)
 		if err != nil {
-			return message, errors.WithStack(err)
+			return message, err
 		}
 	}
 
@@ -100,5 +100,5 @@ func (c *Calcium) doStopWorkload(ctx context.Context, workload *types.Workload, 
 	if err = workload.Stop(ctx, force); err != nil {
 		message = append(message, bytes.NewBufferString(err.Error()))
 	}
-	return message, errors.WithStack(err)
+	return message, err
 }

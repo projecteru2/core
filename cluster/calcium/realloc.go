@@ -32,9 +32,9 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 			},
 		)
 		if err != nil {
-			return logger.Err(errors.WithStack(err))
+			return logger.Err(err)
 		}
-		return logger.Err(errors.WithStack(c.doReallocOnNode(ctx, workload.Nodename, workload, rrs)))
+		return logger.Err(c.doReallocOnNode(ctx, workload.Nodename, workload, rrs))
 	})
 }
 
@@ -44,7 +44,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, nodename string, workload
 		node.RecycleResources(&workload.ResourceMeta)
 		plans, err := resources.SelectNodesByResourceRequests(rrs, map[string]*types.Node{node.Name: node})
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 
 		originalWorkload := *workload
@@ -60,11 +60,11 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, nodename string, workload
 						Node:             node,
 						ExistingInstance: workload,
 					}, resourceMeta); err != nil {
-						return errors.WithStack(err)
+						return err
 					}
 				}
 
-				return errors.WithStack(c.doReallocWorkloadsOnInstance(ctx, node.Engine, resourceMeta, workload))
+				return c.doReallocWorkloadsOnInstance(ctx, node.Engine, resourceMeta, workload)
 			},
 			// then commit changes
 			func(ctx context.Context) error {
@@ -93,7 +93,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, nodename string, workload
 					StorageRequest:    originalWorkload.StorageRequest,
 					StorageLimit:      originalWorkload.StorageLimit,
 				}
-				return errors.WithStack(c.doReallocWorkloadsOnInstance(ctx, node.Engine, r, workload))
+				return c.doReallocWorkloadsOnInstance(ctx, node.Engine, r, workload)
 			},
 
 			c.config.GlobalTimeout,

@@ -8,6 +8,7 @@ import (
 	"math"
 	"sort"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
@@ -79,7 +80,7 @@ func cpuPriorPlan(cpu float64, memory int64, scheduleInfos []resourcetypes.Sched
 	sort.Slice(scheduleInfos, func(i, j int) bool { return scheduleInfos[i].Capacity < scheduleInfos[j].Capacity })
 	p := sort.Search(len(scheduleInfos), func(i int) bool { return scheduleInfos[i].Capacity > 0 })
 	if p == len(scheduleInfos) {
-		return nil, nil, 0, types.ErrInsufficientRes
+		return nil, nil, 0, errors.WithStack(types.ErrInsufficientRes)
 	}
 
 	return scheduleInfos[p:], nodeWorkload, volTotal, nil

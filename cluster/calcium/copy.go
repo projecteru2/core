@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
@@ -13,7 +12,7 @@ import (
 func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error) {
 	logger := log.WithField("Calcium", "Copy").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.Err(errors.WithStack(err))
+		return nil, logger.Err(err)
 	}
 	ch := make(chan *types.CopyMessage)
 	go func() {
