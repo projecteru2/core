@@ -39,7 +39,7 @@ func (o *DeployOptions) Validate() error {
 		return errors.WithStack(ErrEmptyAppName)
 	}
 	if o.Podname == "" {
-		return errors.WithStack(ErrEmptyAppName)
+		return errors.WithStack(ErrEmptyPodName)
 	}
 	if o.Image == "" {
 		return errors.WithStack(ErrEmptyImage)
