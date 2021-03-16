@@ -3,6 +3,8 @@ package types
 import (
 	"encoding/json"
 	"sort"
+
+	"github.com/pkg/errors"
 )
 
 // ResourceOptions for create/realloc/replace
@@ -163,12 +165,12 @@ func (p *VolumePlan) UnmarshalJSON(b []byte) (err error) {
 	}
 	plan := map[string]VolumeMap{}
 	if err = json.Unmarshal(b, &plan); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	for volume, vmap := range plan {
 		vb, err := NewVolumeBinding(volume)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		(*p)[*vb] = vmap
 	}
@@ -181,7 +183,8 @@ func (p VolumePlan) MarshalJSON() ([]byte, error) {
 	for vb, vmap := range p {
 		plan[vb.ToString(false)] = vmap
 	}
-	return json.Marshal(plan)
+	bs, err := json.Marshal(plan)
+	return bs, errors.WithStack(err)
 }
 
 // ToLiteral returns literal VolumePlan

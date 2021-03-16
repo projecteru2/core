@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/pkg/errors"
 	engine "github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 )
@@ -47,29 +48,30 @@ type Workload struct {
 // Inspect a workload
 func (c *Workload) Inspect(ctx context.Context) (*enginetypes.VirtualizationInfo, error) {
 	if c.Engine == nil {
-		return nil, ErrNilEngine
+		return nil, errors.WithStack(ErrNilEngine)
 	}
-	return c.Engine.VirtualizationInspect(ctx, c.ID)
+	info, err := c.Engine.VirtualizationInspect(ctx, c.ID)
+	return info, errors.WithStack(err)
 }
 
 // Start a workload
 func (c *Workload) Start(ctx context.Context) error {
 	if c.Engine == nil {
-		return ErrNilEngine
+		return errors.WithStack(ErrNilEngine)
 	}
-	return c.Engine.VirtualizationStart(ctx, c.ID)
+	return errors.WithStack(c.Engine.VirtualizationStart(ctx, c.ID))
 }
 
 // Stop a workload
 func (c *Workload) Stop(ctx context.Context, force bool) error {
 	if c.Engine == nil {
-		return ErrNilEngine
+		return errors.WithStack(ErrNilEngine)
 	}
 	gracefulTimeout := time.Duration(-1) // -1 indicates use engine default timeout
 	if force {
 		gracefulTimeout = 0 // don't wait, kill -15 && kill -9
 	}
-	return c.Engine.VirtualizationStop(ctx, c.ID, gracefulTimeout)
+	return errors.WithStack(c.Engine.VirtualizationStop(ctx, c.ID, gracefulTimeout))
 }
 
 // Remove a workload
@@ -77,7 +79,7 @@ func (c *Workload) Remove(ctx context.Context, force bool) error {
 	if c.Engine == nil {
 		return ErrNilEngine
 	}
-	return c.Engine.VirtualizationRemove(ctx, c.ID, true, force)
+	return errors.WithStack(c.Engine.VirtualizationRemove(ctx, c.ID, true, force))
 }
 
 // WorkloadStatus store deploy status

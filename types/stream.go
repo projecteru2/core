@@ -5,6 +5,8 @@ import (
 	"io"
 	"io/ioutil"
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 // ReaderManager return Reader under concurrency
@@ -17,7 +19,7 @@ func NewReaderManager(r io.Reader) (ReaderManager, error) {
 	bs, err := ioutil.ReadAll(r)
 	return &readerManager{
 		r: bytes.NewReader(bs),
-	}, err
+	}, errors.WithStack(err)
 }
 
 type readerManager struct {
@@ -30,8 +32,8 @@ func (rm *readerManager) GetReader() (_ io.Reader, err error) {
 	defer rm.mux.Unlock()
 	buf := &bytes.Buffer{}
 	if _, err = io.Copy(buf, rm.r); err != nil {
-		return
+		return nil, errors.WithStack(err)
 	}
 	_, err = rm.r.Seek(0, io.SeekStart)
-	return buf, err
+	return buf, errors.WithStack(err)
 }

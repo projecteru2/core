@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/types"
 	"go.etcd.io/etcd/v3/clientv3"
 	"go.etcd.io/etcd/v3/clientv3/concurrency"
@@ -37,13 +38,13 @@ func (c *lockContext) Err() error {
 	if c.err != nil {
 		return c.err
 	}
-	return c.Context.Err()
+	return errors.WithStack(c.Context.Err())
 }
 
 // New new a lock
 func New(cli *clientv3.Client, key string, ttl time.Duration) (*Mutex, error) {
 	if key == "" {
-		return nil, types.ErrKeyIsEmpty
+		return nil, errors.WithStack(types.ErrKeyIsEmpty)
 	}
 
 	if !strings.HasPrefix(key, "/") {

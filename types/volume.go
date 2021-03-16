@@ -35,10 +35,10 @@ func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 	case 4:
 		src, dst, flags = parts[0], parts[1], parts[2]
 		if size, err = strconv.ParseInt(parts[3], 10, 64); err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 	default:
-		return nil, fmt.Errorf("invalid volume: %v", volume)
+		return nil, errors.WithStack(fmt.Errorf("invalid volume: %v", volume))
 	}
 
 	flagParts := strings.Split(flags, "")
@@ -56,10 +56,10 @@ func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 // Validate return error if invalid
 func (vb VolumeBinding) Validate() error {
 	if vb.Destination == "" {
-		return errors.Errorf("invalid volume, dest must be provided: %v", vb)
+		return errors.WithStack(errors.Errorf("invalid volume, dest must be provided: %v", vb))
 	}
 	if vb.RequireScheduleMonopoly() && vb.RequireScheduleUnlimitedQuota() {
-		return errors.Errorf("invalid volume, monopoly volume must not be limited: %v", vb)
+		return errors.WithStack(errors.Errorf("invalid volume, monopoly volume must not be limited: %v", vb))
 	}
 	return nil
 }
@@ -131,7 +131,7 @@ func (vbs VolumeBindings) ToStringSlice(sorted, normalize bool) (volumes []strin
 func (vbs *VolumeBindings) UnmarshalJSON(b []byte) (err error) {
 	volumes := []string{}
 	if err = json.Unmarshal(b, &volumes); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	*vbs, err = NewVolumeBindings(volumes)
 	return
@@ -143,7 +143,8 @@ func (vbs VolumeBindings) MarshalJSON() ([]byte, error) {
 	for _, vb := range vbs {
 		volumes = append(volumes, vb.ToString(false))
 	}
-	return json.Marshal(volumes)
+	bs, err := json.Marshal(volumes)
+	return bs, errors.WithStack(err)
 }
 
 // ApplyPlan creates new VolumeBindings according to volume plan
