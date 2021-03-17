@@ -30,6 +30,7 @@ mock: deps
 	mockery --dir vendor/github.com/docker/docker/client --name APIClient --output engine/docker/mocks
 	mockery --dir store --output store/mocks --name Store
 	mockery --dir cluster --output cluster/mocks --name Cluster
+	mockery --dir lock --output lock/mocks --name DistributedLock
 
 .ONESHELL:
 

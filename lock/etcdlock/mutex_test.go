@@ -28,3 +28,22 @@ func TestMutex(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualError(t, ctx.Err(), "lock session done")
 }
+
+func TestTryLock(t *testing.T) {
+	cluster := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
+	defer cluster.Terminate(t)
+	cli := cluster.RandClient()
+
+	m1, err := New(cli, "test", time.Second*1)
+	assert.NoError(t, err)
+	m2, err := New(cli, "test", time.Second*1)
+	assert.NoError(t, err)
+
+	ctx1, err := m1.Lock(context.Background())
+	assert.Nil(t, ctx1.Err())
+	assert.NoError(t, err)
+
+	ctx2, err := m2.TryLock(context.Background())
+	assert.Nil(t, ctx2)
+	assert.Error(t, err)
+}
