@@ -66,6 +66,9 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		opts.Normalize(node)
 		n = node
 		n.Available = (opts.StatusOpt == types.TriTrue) || (opts.StatusOpt == types.TriKeep && n.Available)
+		if !n.Available {
+			logger.Errorf("[SetNodeAvailable] node marked down: %s", opts.Nodename)
+		}
 		if opts.WorkloadsDown {
 			workloads, err := c.store.ListNodeWorkloads(ctx, opts.Nodename, nil)
 			if err != nil {
