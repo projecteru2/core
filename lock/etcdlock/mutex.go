@@ -86,6 +86,32 @@ func (m *Mutex) Lock(ctx context.Context) (context.Context, error) {
 	return rCtx, nil
 }
 
+// TryLock tries to lock
+// returns error if the lock is already acquired by someone else
+func (m *Mutex) TryLock(ctx context.Context) (context.Context, error) {
+	lockCtx, cancel := context.WithTimeout(ctx, m.timeout)
+	defer cancel()
+
+	if err := m.mutex.TryLock(lockCtx); err != nil {
+		return nil, err
+	}
+
+	ctx, cancel = context.WithCancel(ctx)
+	rCtx := &lockContext{Context: ctx}
+
+	go func() {
+		defer cancel()
+
+		select {
+		case <-m.session.Done():
+			rCtx.setError(types.ErrLockSessionDone)
+		case <-ctx.Done():
+		}
+	}()
+
+	return rCtx, nil
+}
+
 // Unlock unlock
 func (m *Mutex) Unlock(ctx context.Context) error {
 	defer m.session.Close()
