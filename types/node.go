@@ -5,6 +5,7 @@ import (
 
 	"math"
 
+	"github.com/pkg/errors"
 	engine "github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 )
@@ -66,9 +67,10 @@ func (n *Node) Init() {
 // Info show node info
 func (n *Node) Info(ctx context.Context) (*enginetypes.Info, error) {
 	if n.Engine == nil {
-		return nil, ErrNilEngine
+		return nil, errors.WithStack(ErrNilEngine)
 	}
-	return n.Engine.Info(ctx)
+	info, err := n.Engine.Info(ctx)
+	return info, errors.WithStack(err)
 }
 
 // SetCPUUsed set cpuusage

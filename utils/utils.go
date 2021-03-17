@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
@@ -45,7 +46,7 @@ func Tail(path string) string {
 // GetGitRepoName return git repo name
 func GetGitRepoName(url string) (string, error) {
 	if !(strings.Contains(url, "git@") || strings.Contains(url, "gitlab@") || strings.Contains(url, "https://")) || !strings.HasSuffix(url, ".git") {
-		return "", types.NewDetailedErr(types.ErrInvalidGitURL, url)
+		return "", errors.WithStack(types.NewDetailedErr(types.ErrInvalidGitURL, url))
 	}
 
 	return strings.TrimSuffix(Tail(url), ".git"), nil
@@ -92,7 +93,7 @@ func ParseWorkloadName(workloadName string) (string, string, string, error) {
 	if length >= 3 {
 		return strings.Join(splits[0:length-2], "_"), splits[length-2], splits[length-1], nil
 	}
-	return "", "", "", types.NewDetailedErr(types.ErrInvalidWorkloadName, workloadName)
+	return "", "", "", errors.WithStack(types.NewDetailedErr(types.ErrInvalidWorkloadName, workloadName))
 }
 
 // MakePublishInfo generate publish info
@@ -178,13 +179,13 @@ func CleanStatsdMetrics(k string) string {
 func TempFile(stream io.ReadCloser) (string, error) {
 	f, err := ioutil.TempFile(os.TempDir(), "")
 	if err != nil {
-		return "", err
+		return "", errors.WithStack(err)
 	}
 	defer f.Close()
 	defer stream.Close()
 
 	_, err = io.Copy(f, stream)
-	return f.Name(), err
+	return f.Name(), errors.WithStack(err)
 }
 
 // Round for float64 to int
