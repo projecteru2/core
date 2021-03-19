@@ -373,3 +373,52 @@ func newCreateWorkloadCluster(t *testing.T) (*Calcium, []*types.Node) {
 
 	return c, nodes
 }
+
+func TestGetDeployNodenames(t *testing.T) {
+	assert := assert.New(t)
+	c := NewTestCluster()
+	store := c.store.(*storemocks.Store)
+	nodes := []*types.Node{
+		{
+			NodeMeta: types.NodeMeta{Name: "A"},
+		},
+		{
+			NodeMeta: types.NodeMeta{Name: "B"},
+		},
+		{
+			NodeMeta: types.NodeMeta{Name: "C"},
+		},
+		{
+			NodeMeta: types.NodeMeta{Name: "D"},
+		},
+	}
+
+	// error
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("fail to list pod nodes")).Once()
+	_, err := c.getDeployNodenames("pod", []string{}, []string{"A", "X"})
+	assert.Error(err)
+
+	// empty nodenames, non-empty excludeNodenames
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil).Once()
+	nodenames1, err := c.getDeployNodenames("pod", []string{}, []string{"A", "B"})
+	assert.NoError(err)
+	assert.Equal([]string{"C", "D"}, nodenames1)
+
+	// empty nodenames, empty excludeNodenames
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil).Once()
+	nodenames2, err := c.getDeployNodenames("pod", []string{}, []string{})
+	assert.NoError(err)
+	assert.Equal([]string{}, nodenames2)
+
+	// non-empty nodenames, empty excludeNodenames
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil).Once()
+	nodenames3, err := c.getDeployNodenames("pod", []string{"O", "P"}, []string{})
+	assert.NoError(err)
+	assert.Equal([]string{"O", "P"}, nodenames3)
+
+	// non-empty nodenames
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil).Once()
+	nodenames4, err := c.getDeployNodenames("pod", []string{"X", "Y"}, []string{"A", "B"})
+	assert.NoError(err)
+	assert.Equal([]string{"X", "Y"}, nodenames4)
+}

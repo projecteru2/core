@@ -452,6 +452,7 @@ message DeployOptions {
     repeated string after_create = 22;
     bytes raw_args = 23;
     ResourceOptions resource_opts = 24;
+    repeated string excluded_nodenames = 25;
 }
 
 message ReplaceOptions {
