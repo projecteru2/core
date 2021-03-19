@@ -41,12 +41,12 @@ func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions)
 // getDeployNodenames checks nodenames and excludedNodenames
 // if excludedNodenames is not set or nodenames is set, then return nodenames
 // for other cases, then node within excludedNodename list will not be returned
-func (c *Calcium) getDeployNodenames(podname string, nodenames, excludedNodenames []string) ([]string, error) {
+func (c *Calcium) getDeployNodenames(ctx context.Context, podname string, nodenames, excludedNodenames []string) ([]string, error) {
 	if len(excludedNodenames) == 0 || len(nodenames) != 0 {
 		return nodenames, nil
 	}
 
-	allNodes, err := c.ListPodNodes(context.Background(), podname, map[string]string{}, false)
+	allNodes, err := c.ListPodNodes(ctx, podname, map[string]string{}, false)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			close(ch)
 		}()
 
-		nodenames, err := c.getDeployNodenames(opts.Podname, opts.Nodenames, opts.ExcludedNodenames)
+		nodenames, err := c.getDeployNodenames(ctx, opts.Podname, opts.Nodenames, opts.ExcludedNodenames)
 		if err != nil {
 			ch <- &types.CreateWorkloadMessage{Error: logger.Err(err)}
 			return
