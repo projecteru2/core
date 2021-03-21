@@ -183,39 +183,37 @@ func (c *Calcium) getNodes(ctx context.Context, podname string, nodenames []stri
 // the filtering logic is introduced along with NodeFilter
 // NOTE: when nf.Includes is set, they don't need to belong to podname
 func (c *Calcium) filterNodes(ctx context.Context, nf types.NodeFilter) ([]*types.Node, error) {
-	var (
-		err error
-		ns  = []*types.Node{}
-	)
+	ns := []*types.Node{}
+
 	if len(nf.Includes) != 0 {
 		for _, nodename := range nf.Includes {
 			node, err := c.GetNode(ctx, nodename)
 			if err != nil {
-				return ns, err
+				return nil, err
 			}
 			ns = append(ns, node)
 		}
-	} else {
-		listedNodes, err := c.ListPodNodes(ctx, nf.Podname, nf.Labels, nf.All)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(nf.Excludes) != 0 {
-			excludes := map[string]struct{}{}
-			for _, n := range nf.Excludes {
-				excludes[n] = struct{}{}
-			}
-
-			for _, n := range listedNodes {
-				if _, ok := excludes[n.Name]; ok {
-					continue
-				}
-				ns = append(ns, n)
-			}
-		} else {
-			ns = listedNodes
-		}
+		return ns, nil
 	}
-	return ns, err
+
+	listedNodes, err := c.ListPodNodes(ctx, nf.Podname, nf.Labels, nf.All)
+	if err != nil {
+		return nil, err
+	}
+	if len(nf.Excludes) == 0 {
+		return listedNodes, nil
+	}
+
+	excludes := map[string]struct{}{}
+	for _, n := range nf.Excludes {
+		excludes[n] = struct{}{}
+	}
+
+	for _, n := range listedNodes {
+		if _, ok := excludes[n.Name]; ok {
+			continue
+		}
+		ns = append(ns, n)
+	}
+	return ns, nil
 }
