@@ -280,6 +280,17 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		return nil, err
 	}
 
+	// FIXME: adapt ... clean this later
+	nf := types.NodeFilter{
+		Podname:  d.Podname,
+		Includes: d.Nodenames,
+		Labels:   d.Nodelabels,
+	}
+	if d.NodeFilter != nil {
+		nf.Includes = d.NodeFilter.Includes
+		nf.Excludes = d.NodeFilter.Excludes
+	}
+
 	return &types.DeployOptions{
 		ResourceOpts: types.ResourceOptions{
 			CPUQuotaRequest: d.ResourceOpts.CpuQuotaRequest,
@@ -292,29 +303,29 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 			StorageRequest:  d.ResourceOpts.StorageRequest + vbsRequest.TotalSize(),
 			StorageLimit:    d.ResourceOpts.StorageLimit + vbsLimit.TotalSize(),
 		},
-		Name:              d.Name,
-		Entrypoint:        entry,
-		Podname:           d.Podname,
-		Nodenames:         d.Nodenames,
-		ExcludedNodenames: d.ExcludedNodenames,
-		Image:             d.Image,
-		ExtraArgs:         d.ExtraArgs,
-		Count:             int(d.Count),
-		Env:               d.Env,
-		DNS:               d.Dns,
-		ExtraHosts:        d.ExtraHosts,
-		Networks:          d.Networks,
-		User:              d.User,
-		Debug:             d.Debug,
-		OpenStdin:         d.OpenStdin,
-		Labels:            d.Labels,
-		NodeLabels:        d.Nodelabels,
-		DeployStrategy:    d.DeployStrategy.String(),
-		NodesLimit:        int(d.NodesLimit),
-		IgnoreHook:        d.IgnoreHook,
-		AfterCreate:       d.AfterCreate,
-		RawArgs:           d.RawArgs,
-		Data:              data,
+		Name:           d.Name,
+		Entrypoint:     entry,
+		Podname:        d.Podname,
+		Nodenames:      d.Nodenames,
+		NodeFilter:     nf,
+		Image:          d.Image,
+		ExtraArgs:      d.ExtraArgs,
+		Count:          int(d.Count),
+		Env:            d.Env,
+		DNS:            d.Dns,
+		ExtraHosts:     d.ExtraHosts,
+		Networks:       d.Networks,
+		User:           d.User,
+		Debug:          d.Debug,
+		OpenStdin:      d.OpenStdin,
+		Labels:         d.Labels,
+		NodeLabels:     d.Nodelabels,
+		DeployStrategy: d.DeployStrategy.String(),
+		NodesLimit:     int(d.NodesLimit),
+		IgnoreHook:     d.IgnoreHook,
+		AfterCreate:    d.AfterCreate,
+		RawArgs:        d.RawArgs,
+		Data:           data,
 	}, nil
 }
 

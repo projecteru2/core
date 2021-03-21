@@ -38,34 +38,6 @@ func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions)
 	return c.doCreateWorkloads(ctx, opts), nil
 }
 
-// getDeployNodenames checks nodenames and excludedNodenames
-// if excludedNodenames is not set or nodenames is set, then return nodenames
-// for other cases, then node within excludedNodename list will not be returned
-func (c *Calcium) getDeployNodenames(ctx context.Context, podname string, nodenames, excludedNodenames []string) ([]string, error) {
-	if len(excludedNodenames) == 0 || len(nodenames) != 0 {
-		return nodenames, nil
-	}
-
-	allNodes, err := c.ListPodNodes(ctx, podname, map[string]string{}, false)
-	if err != nil {
-		return nil, err
-	}
-
-	excludes := map[string]struct{}{}
-	for _, n := range excludedNodenames {
-		excludes[n] = struct{}{}
-	}
-
-	rv := []string{}
-	for _, n := range allNodes {
-		if _, ok := excludes[n.Name]; ok {
-			continue
-		}
-		rv = append(rv, n.Name)
-	}
-	return rv, nil
-}
-
 // transaction: resource metadata consistency
 func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptions) chan *types.CreateWorkloadMessage {
 	logger := log.WithField("Calcium", "doCreateWorkloads").WithField("opts", opts)
@@ -90,18 +62,12 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			close(ch)
 		}()
 
-		nodenames, err := c.getDeployNodenames(ctx, opts.Podname, opts.Nodenames, opts.ExcludedNodenames)
-		if err != nil {
-			ch <- &types.CreateWorkloadMessage{Error: logger.Err(err)}
-			return
-		}
-
 		_ = utils.Txn(
 			ctx,
 
 			// if: alloc resources
 			func(ctx context.Context) error {
-				return c.withNodesLocked(ctx, opts.Podname, nodenames, opts.NodeLabels, false, func(ctx context.Context, nodeMap map[string]*types.Node) (err error) {
+				return c.withNodesLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) (err error) {
 					defer func() {
 						if err != nil {
 							ch <- &types.CreateWorkloadMessage{Error: logger.Err(err)}

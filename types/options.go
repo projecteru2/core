@@ -6,32 +6,32 @@ import "github.com/pkg/errors"
 
 // DeployOptions is options for deploying
 type DeployOptions struct {
-	ResourceOpts      ResourceOptions
-	Name              string                   // Name of application
-	Entrypoint        *Entrypoint              // entrypoint
-	Podname           string                   // Name of pod to deploy
-	Nodenames         []string                 // Specific nodes to deploy, if given, must belong to pod
-	ExcludedNodenames []string                 // blacklist of nodenames, won't using these nodes to deploy
-	Image             string                   // Name of image to deploy
-	ExtraArgs         string                   // Extra arguments to append to command
-	Count             int                      // How many workloads needed, e.g. 4
-	Env               []string                 // Env for workload
-	DNS               []string                 // DNS for workload
-	ExtraHosts        []string                 // Extra hosts for workload
-	Networks          map[string]string        // Network names and specified IPs
-	User              string                   // User for workload
-	Debug             bool                     // debug mode, use syslog as log driver
-	OpenStdin         bool                     // OpenStdin for workload
-	Labels            map[string]string        // Labels for workloads
-	NodeLabels        map[string]string        // NodeLabels for filter node
-	DeployStrategy    string                   // Deploy strategy
-	Data              map[string]ReaderManager // For additional file data
-	NodesLimit        int                      // Limit nodes count
-	ProcessIdent      string                   // ProcessIdent ident this deploy
-	IgnoreHook        bool                     // IgnoreHook ignore hook process
-	AfterCreate       []string                 // AfterCreate support run cmds after create
-	RawArgs           []byte                   // RawArgs for raw args processing
-	Lambda            bool                     // indicate is lambda workload or not
+	ResourceOpts   ResourceOptions
+	Name           string                   // Name of application
+	Entrypoint     *Entrypoint              // entrypoint
+	Podname        string                   // Name of pod to deploy
+	Nodenames      []string                 // Specific nodes to deploy, if given, must belong to pod, DEPRECATED, use NodeFilter instead
+	NodeFilter     NodeFilter               // filter of nodenames, using includes or not using excludes
+	Image          string                   // Name of image to deploy
+	ExtraArgs      string                   // Extra arguments to append to command
+	Count          int                      // How many workloads needed, e.g. 4
+	Env            []string                 // Env for workload
+	DNS            []string                 // DNS for workload
+	ExtraHosts     []string                 // Extra hosts for workload
+	Networks       map[string]string        // Network names and specified IPs
+	User           string                   // User for workload
+	Debug          bool                     // debug mode, use syslog as log driver
+	OpenStdin      bool                     // OpenStdin for workload
+	Labels         map[string]string        // Labels for workloads
+	NodeLabels     map[string]string        // NodeLabels for filter node, DEPRECATED, use NodeFilter instead
+	DeployStrategy string                   // Deploy strategy
+	Data           map[string]ReaderManager // For additional file data
+	NodesLimit     int                      // Limit nodes count
+	ProcessIdent   string                   // ProcessIdent ident this deploy
+	IgnoreHook     bool                     // IgnoreHook ignore hook process
+	AfterCreate    []string                 // AfterCreate support run cmds after create
+	RawArgs        []byte                   // RawArgs for raw args processing
+	Lambda         bool                     // indicate is lambda workload or not
 }
 
 // Validate checks options

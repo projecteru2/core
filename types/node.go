@@ -213,3 +213,14 @@ type NodeStatus struct {
 	Alive    bool
 	Error    error
 }
+
+// NodeFilter is used to filter nodes in a pod
+// names in includes will be used
+// names in excludes will not be used
+type NodeFilter struct {
+	Podname  string
+	Includes []string
+	Excludes []string
+	Labels   map[string]string
+	All      bool
+}

@@ -193,6 +193,13 @@ message NodeStatusStreamMessage {
     string error = 4;
 }
 
+message NodeFilter {
+    repeated string includes = 1;
+    repeated string excludes = 2;
+    map<string, string> labels = 3;
+    bool all = 4;
+}
+
 message Workload {
     string id = 1;
     string podname = 2;
@@ -452,7 +459,7 @@ message DeployOptions {
     repeated string after_create = 22;
     bytes raw_args = 23;
     ResourceOptions resource_opts = 24;
-    repeated string excluded_nodenames = 25;
+    NodeFilter node_filter = 25;
 }
 
 message ReplaceOptions {
