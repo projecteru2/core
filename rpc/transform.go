@@ -280,15 +280,13 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		return nil, err
 	}
 
-	// FIXME: adapt ... clean this later
 	nf := types.NodeFilter{
-		Podname:  d.Podname,
-		Includes: d.Nodenames,
-		Labels:   d.Nodelabels,
+		Podname: d.Podname,
 	}
 	if d.NodeFilter != nil {
 		nf.Includes = d.NodeFilter.Includes
 		nf.Excludes = d.NodeFilter.Excludes
+		nf.Labels = d.NodeFilter.Labels
 	}
 
 	return &types.DeployOptions{
@@ -306,7 +304,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Name:           d.Name,
 		Entrypoint:     entry,
 		Podname:        d.Podname,
-		Nodenames:      d.Nodenames,
 		NodeFilter:     nf,
 		Image:          d.Image,
 		ExtraArgs:      d.ExtraArgs,
@@ -319,7 +316,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Debug:          d.Debug,
 		OpenStdin:      d.OpenStdin,
 		Labels:         d.Labels,
-		NodeLabels:     d.Nodelabels,
 		DeployStrategy: d.DeployStrategy.String(),
 		NodesLimit:     int(d.NodesLimit),
 		IgnoreHook:     d.IgnoreHook,

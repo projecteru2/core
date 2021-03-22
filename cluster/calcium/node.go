@@ -161,24 +161,6 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 	})
 }
 
-// GetNodes get nodes
-func (c *Calcium) getNodes(ctx context.Context, podname string, nodenames []string, labels map[string]string, all bool) ([]*types.Node, error) {
-	var err error
-	ns := []*types.Node{}
-	if len(nodenames) != 0 {
-		for _, nodename := range nodenames {
-			node, err := c.GetNode(ctx, nodename)
-			if err != nil {
-				return ns, err
-			}
-			ns = append(ns, node)
-		}
-	} else {
-		ns, err = c.ListPodNodes(ctx, podname, labels, all)
-	}
-	return ns, err
-}
-
 // filterNodes filters nodes using NodeFilter nf
 // the filtering logic is introduced along with NodeFilter
 // NOTE: when nf.Includes is set, they don't need to belong to podname

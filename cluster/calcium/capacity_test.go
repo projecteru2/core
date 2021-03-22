@@ -43,7 +43,9 @@ func TestCalculateCapacity(t *testing.T) {
 			CPUQuotaRequest: 0,
 		},
 		DeployStrategy: strategy.Auto,
-		Nodenames:      []string{"n1"},
+		NodeFilter: types.NodeFilter{
+			Includes: []string{"n1"},
+		},
 	}
 	_, err := c.CalculateCapacity(ctx, opts)
 	assert.Error(t, err)

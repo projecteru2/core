@@ -10,7 +10,6 @@ type DeployOptions struct {
 	Name           string                   // Name of application
 	Entrypoint     *Entrypoint              // entrypoint
 	Podname        string                   // Name of pod to deploy
-	Nodenames      []string                 // Specific nodes to deploy, if given, must belong to pod, DEPRECATED, use NodeFilter instead
 	NodeFilter     NodeFilter               // filter of nodenames, using includes or not using excludes
 	Image          string                   // Name of image to deploy
 	ExtraArgs      string                   // Extra arguments to append to command
@@ -23,7 +22,6 @@ type DeployOptions struct {
 	Debug          bool                     // debug mode, use syslog as log driver
 	OpenStdin      bool                     // OpenStdin for workload
 	Labels         map[string]string        // Labels for workloads
-	NodeLabels     map[string]string        // NodeLabels for filter node, DEPRECATED, use NodeFilter instead
 	DeployStrategy string                   // Deploy strategy
 	Data           map[string]ReaderManager // For additional file data
 	NodesLimit     int                      // Limit nodes count
