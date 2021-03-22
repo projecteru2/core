@@ -54,13 +54,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			continue
 		}
 
-		// first message to indicate the workload id
-		runMsgCh <- &types.AttachWorkloadMessage{
-			WorkloadID:    message.WorkloadID,
-			Data:          []byte(""),
-			StdStreamType: types.Stdout,
-		}
-
 		lambda := func(message *types.CreateWorkloadMessage) {
 			defer func() {
 				if err := c.doRemoveWorkloadSync(context.Background(), []string{message.WorkloadID}); err != nil {
