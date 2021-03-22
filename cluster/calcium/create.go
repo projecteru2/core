@@ -357,7 +357,7 @@ func (c *Calcium) doDeployOneWorkload(
 			if workload.ID == "" {
 				return nil
 			}
-			return c.doRemoveWorkload(ctx, workload, true)
+			return workload.Remove(ctx, true)
 		},
 		c.config.GlobalTimeout,
 	)
