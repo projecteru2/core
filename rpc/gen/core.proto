@@ -193,6 +193,13 @@ message NodeStatusStreamMessage {
     string error = 4;
 }
 
+message NodeFilter {
+    repeated string includes = 1;
+    repeated string excludes = 2;
+    map<string, string> labels = 3;
+    bool all = 4;
+}
+
 message Workload {
     string id = 1;
     string podname = 2;
@@ -432,7 +439,7 @@ message DeployOptions {
     string name = 1;
     EntrypointOptions entrypoint = 2;
     string podname = 3;
-    repeated string nodenames = 4;
+    // repeated string nodenames = 4;  DEPRECATED
     string image = 5;
     string extra_args = 6;
     int32 count = 7;
@@ -444,7 +451,7 @@ message DeployOptions {
     bool debug = 14;
     bool openStdin = 15;
     map<string, string> labels = 16;
-    map<string, string> nodelabels = 17;
+    // map<string, string> nodelabels = 17;  DEPRECATED
     Strategy deploy_strategy = 18;
     map<string, bytes> data = 19;
     int32 nodes_limit = 20;
@@ -452,6 +459,7 @@ message DeployOptions {
     repeated string after_create = 22;
     bytes raw_args = 23;
     ResourceOptions resource_opts = 24;
+    NodeFilter node_filter = 25;
 }
 
 message ReplaceOptions {

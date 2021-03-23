@@ -280,6 +280,15 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		return nil, err
 	}
 
+	nf := types.NodeFilter{
+		Podname: d.Podname,
+	}
+	if d.NodeFilter != nil {
+		nf.Includes = d.NodeFilter.Includes
+		nf.Excludes = d.NodeFilter.Excludes
+		nf.Labels = d.NodeFilter.Labels
+	}
+
 	return &types.DeployOptions{
 		ResourceOpts: types.ResourceOptions{
 			CPUQuotaRequest: d.ResourceOpts.CpuQuotaRequest,
@@ -295,7 +304,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Name:           d.Name,
 		Entrypoint:     entry,
 		Podname:        d.Podname,
-		Nodenames:      d.Nodenames,
+		NodeFilter:     nf,
 		Image:          d.Image,
 		ExtraArgs:      d.ExtraArgs,
 		Count:          int(d.Count),
@@ -307,7 +316,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Debug:          d.Debug,
 		OpenStdin:      d.OpenStdin,
 		Labels:         d.Labels,
-		NodeLabels:     d.Nodelabels,
 		DeployStrategy: d.DeployStrategy.String(),
 		NodesLimit:     int(d.NodesLimit),
 		IgnoreHook:     d.IgnoreHook,

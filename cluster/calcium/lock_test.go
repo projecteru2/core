@@ -132,12 +132,12 @@ func TestWithNodesLocked(t *testing.T) {
 	}
 	// failed by list nodes
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, types.ErrNoETCD).Once()
-	err := c.withNodesLocked(ctx, "test", nil, nil, false, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
+	err := c.withNodesLocked(ctx, types.NodeFilter{Podname: "test", All: false}, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
 	// failed by filter
 	var ns map[string]*types.Node
-	err = c.withNodesLocked(ctx, "test", nil, map[string]string{"eru": "2"}, false, func(ctx context.Context, nodes map[string]*types.Node) error {
+	err = c.withNodesLocked(ctx, types.NodeFilter{Podname: "test", Labels: map[string]string{"eru": "2"}, All: false}, func(ctx context.Context, nodes map[string]*types.Node) error {
 		ns = nodes
 		return nil
 	})
@@ -146,7 +146,7 @@ func TestWithNodesLocked(t *testing.T) {
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, nil)
 	// failed by getnode
 	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	err = c.withNodesLocked(ctx, "test", []string{"test"}, nil, false, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
+	err = c.withNodesLocked(ctx, types.NodeFilter{Podname: "test", Includes: []string{"test"}, All: false}, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node1, nil).Once()
 	// failed by lock
@@ -155,16 +155,16 @@ func TestWithNodesLocked(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	// failed to get lock
 	lock.On("Lock", mock.Anything).Return(context.TODO(), types.ErrNoETCD).Once()
-	err = c.withNodesLocked(ctx, "test", []string{"test"}, nil, false, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
+	err = c.withNodesLocked(ctx, types.NodeFilter{Podname: "test", Includes: []string{"test"}, All: false}, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	// failed by get locked node
 	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	err = c.withNodesLocked(ctx, "test", []string{"test"}, nil, false, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
+	err = c.withNodesLocked(ctx, types.NodeFilter{Podname: "test", Includes: []string{"test"}, All: false}, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node1, nil)
 	// success
-	err = c.withNodesLocked(ctx, "test", []string{"test"}, nil, false, func(ctx context.Context, nodes map[string]*types.Node) error {
+	err = c.withNodesLocked(ctx, types.NodeFilter{Podname: "test", Includes: []string{"test"}, All: false}, func(ctx context.Context, nodes map[string]*types.Node) error {
 		assert.Len(t, nodes, 1)
 		return nil
 	})

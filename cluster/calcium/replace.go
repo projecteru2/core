@@ -21,10 +21,10 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 	}
 	opts.Normalize()
 	if len(opts.IDs) == 0 {
-		if len(opts.Nodenames) == 0 {
-			opts.Nodenames = []string{""}
+		if len(opts.NodeFilter.Includes) == 0 {
+			opts.NodeFilter.Includes = []string{""}
 		}
-		for _, nodename := range opts.Nodenames {
+		for _, nodename := range opts.NodeFilter.Includes {
 			workloads, err := c.ListWorkloads(ctx, &types.ListWorkloadsOptions{
 				Appname: opts.Name, Entrypoint: opts.Entrypoint.Name, Nodename: nodename,
 			})

@@ -67,7 +67,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 			// if: alloc resources
 			func(ctx context.Context) error {
-				return c.withNodesLocked(ctx, opts.Podname, opts.Nodenames, opts.NodeLabels, false, func(ctx context.Context, nodeMap map[string]*types.Node) (err error) {
+				return c.withNodesLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) (err error) {
 					defer func() {
 						if err != nil {
 							ch <- &types.CreateWorkloadMessage{Error: logger.Err(err)}

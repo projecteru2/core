@@ -18,7 +18,7 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 	}
 	opts.Normalize()
 
-	nodes, err := c.getNodes(ctx, opts.Podname, opts.Nodenames, nil, false)
+	nodes, err := c.filterNodes(ctx, types.NodeFilter{Podname: opts.Podname, Includes: opts.Nodenames})
 	if err != nil {
 		return nil, logger.Err(err)
 	}
@@ -81,7 +81,7 @@ func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (cha
 	}
 	opts.Normalize()
 
-	nodes, err := c.getNodes(ctx, opts.Podname, opts.Nodenames, nil, false)
+	nodes, err := c.filterNodes(ctx, types.NodeFilter{Podname: opts.Podname, Includes: opts.Nodenames})
 	if err != nil {
 		return nil, logger.Err(err)
 	}

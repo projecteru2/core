@@ -198,7 +198,7 @@ func TestAllocResource(t *testing.T) {
 	defer store.AssertExpectations(t)
 
 	// Defines for below.
-	opts.Nodenames = []string{n2}
+	opts.NodeFilter.Includes = []string{n2}
 
 	// define scheduleInfos
 	scheduleInfos := []resourcetypes.ScheduleInfo{

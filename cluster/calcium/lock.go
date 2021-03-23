@@ -46,7 +46,11 @@ func (c *Calcium) withWorkloadLocked(ctx context.Context, id string, f func(cont
 }
 
 func (c *Calcium) withNodeLocked(ctx context.Context, nodename string, f func(context.Context, *types.Node) error) error {
-	return c.withNodesLocked(ctx, "", []string{nodename}, nil, true, func(ctx context.Context, nodes map[string]*types.Node) error {
+	nf := types.NodeFilter{
+		Includes: []string{nodename},
+		All:      true,
+	}
+	return c.withNodesLocked(ctx, nf, func(ctx context.Context, nodes map[string]*types.Node) error {
 		if n, ok := nodes[nodename]; ok {
 			return f(ctx, n)
 		}
@@ -76,19 +80,22 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(
 	return f(ctx, workloads)
 }
 
-func (c *Calcium) withNodesLocked(ctx context.Context, podname string, nodenames []string, labels map[string]string, all bool, f func(context.Context, map[string]*types.Node) error) error {
+// withNodesLocked will using NodeFilter `nf` to filter nodes
+// and lock the corresponding nodes for the callback function `f` to use
+func (c *Calcium) withNodesLocked(ctx context.Context, nf types.NodeFilter, f func(context.Context, map[string]*types.Node) error) error {
 	nodes := map[string]*types.Node{}
 	locks := map[string]lock.DistributedLock{}
-	defer log.Debugf("[withNodesLocked] Nodes %+v unlocked", nodenames)
+	defer log.Debugf("[withNodesLocked] Nodes %+v unlocked", nf)
 	defer c.doUnlockAll(context.Background(), locks)
-	ns, err := c.getNodes(ctx, podname, nodenames, labels, all)
+
+	ns, err := c.filterNodes(ctx, nf)
 	if err != nil {
 		return err
 	}
 
 	var lock lock.DistributedLock
 	for _, n := range ns {
-		lock, ctx, err = c.doLock(ctx, fmt.Sprintf(cluster.NodeLock, podname, n.Name), c.config.LockTimeout)
+		lock, ctx, err = c.doLock(ctx, fmt.Sprintf(cluster.NodeLock, n.Podname, n.Name), c.config.LockTimeout)
 		if err != nil {
 			return err
 		}

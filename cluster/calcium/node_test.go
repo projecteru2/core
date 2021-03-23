@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/pkg/errors"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -259,4 +260,58 @@ func TestSetNode(t *testing.T) {
 	assert.False(t, ok)
 	assert.Equal(t, n.Volume["/sda0"], int64(5))
 	assert.Equal(t, n.Volume["/sda2"], int64(19))
+}
+
+func TestFilterNodes(t *testing.T) {
+	assert := assert.New(t)
+	c := NewTestCluster()
+	store := c.store.(*storemocks.Store)
+	nodes := []*types.Node{
+		{
+			NodeMeta: types.NodeMeta{Name: "A"},
+		},
+		{
+			NodeMeta: types.NodeMeta{Name: "B"},
+		},
+		{
+			NodeMeta: types.NodeMeta{Name: "C"},
+		},
+		{
+			NodeMeta: types.NodeMeta{Name: "D"},
+		},
+	}
+
+	// error
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("fail to list pod nodes")).Once()
+	_, err := c.filterNodes(context.Background(), types.NodeFilter{Includes: []string{}, Excludes: []string{"A", "X"}})
+	assert.Error(err)
+
+	// empty nodenames, non-empty excludeNodenames
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil).Once()
+	nodes1, err := c.filterNodes(context.Background(), types.NodeFilter{Includes: []string{}, Excludes: []string{"A", "B"}})
+	assert.NoError(err)
+	assert.Equal("C", nodes1[0].Name)
+	assert.Equal("D", nodes1[1].Name)
+
+	// empty nodenames, empty excludeNodenames
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil).Once()
+	nodes2, err := c.filterNodes(context.Background(), types.NodeFilter{Includes: []string{}, Excludes: []string{}})
+	assert.NoError(err)
+	assert.Equal(4, len(nodes2))
+
+	// non-empty nodenames, empty excludeNodenames
+	store.On("GetNode", mock.Anything, "O").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "O"}}, nil).Once()
+	store.On("GetNode", mock.Anything, "P").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "P"}}, nil).Once()
+	nodes3, err := c.filterNodes(context.Background(), types.NodeFilter{Includes: []string{"O", "P"}, Excludes: []string{}})
+	assert.NoError(err)
+	assert.Equal("O", nodes3[0].Name)
+	assert.Equal("P", nodes3[1].Name)
+
+	// non-empty nodenames
+	store.On("GetNode", mock.Anything, "X").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "X"}}, nil).Once()
+	store.On("GetNode", mock.Anything, "Y").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "Y"}}, nil).Once()
+	nodes4, err := c.filterNodes(context.Background(), types.NodeFilter{Includes: []string{"X", "Y"}, Excludes: []string{"A", "B"}})
+	assert.NoError(err)
+	assert.Equal("X", nodes4[0].Name)
+	assert.Equal("Y", nodes4[1].Name)
 }
