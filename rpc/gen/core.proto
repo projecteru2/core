@@ -449,7 +449,7 @@ message DeployOptions {
     map<string, string> networks = 11;
     string user = 13;
     bool debug = 14;
-    bool openStdin = 15;
+    bool open_stdin = 15;
     map<string, string> labels = 16;
     // map<string, string> nodelabels = 17;  DEPRECATED
     Strategy deploy_strategy = 18;

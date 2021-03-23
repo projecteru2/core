@@ -44,6 +44,7 @@ type rawArgs struct {
 	StorageOpt map[string]string       `json:"storage_opt"`
 	CapAdd     []string                `json:"cap_add"`
 	CapDrop    []string                `json:"cap_drop"`
+	Ulimits    []*units.Ulimit         `json:"ulimits"`
 }
 
 // VirtualizationCreate create a workload
@@ -124,20 +125,24 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		Tty:             opts.Stdin,
 	}
 
-	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode)
-	// set ulimits
-	resource.Ulimits = []*units.Ulimit{
-		{Name: "nofile", Soft: 65535, Hard: 65535},
-	}
-	if networkMode.IsHost() {
-		opts.DNS = []string{}
-		opts.Sysctl = map[string]string{}
-	}
 	rArgs := &rawArgs{StorageOpt: map[string]string{}}
 	if len(opts.RawArgs) > 0 {
 		if err := json.Unmarshal(opts.RawArgs, rArgs); err != nil {
 			return r, err
 		}
+	}
+	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode)
+	// set ulimits
+	if len(rArgs.Ulimits) == 0 {
+		resource.Ulimits = []*units.Ulimit{
+			{Name: "nofile", Soft: 65535, Hard: 65535},
+		}
+	} else {
+		resource.Ulimits = rArgs.Ulimits
+	}
+	if networkMode.IsHost() {
+		opts.DNS = []string{}
+		opts.Sysctl = map[string]string{}
 	}
 	if opts.Storage > 0 {
 		volumeTotal := int64(0)

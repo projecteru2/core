@@ -56,7 +56,8 @@ unit-test:
 	./resources/storage/... \
 	./resources/volume/... \
 	./resources/cpumem/... \
-	./wal/...
+	./wal/. \
+	./wal/kv/.
 
 lint:
 	golangci-lint run
