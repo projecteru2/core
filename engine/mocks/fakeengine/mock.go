@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"io"
 	"io/ioutil"
 
 	"github.com/docker/go-units"
@@ -34,14 +35,24 @@ func (wc *writeCloser) Close() error {
 func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	e := &enginemocks.API{}
 	// info
-	e.On("Info", mock.Anything).Return(&enginetypes.Info{NCPU: 1, MemTotal: units.GiB + 100}, nil)
+	e.On("Info", mock.Anything).Return(&enginetypes.Info{NCPU: 100, MemTotal: units.GiB * 100, StorageTotal: units.GiB * 100}, nil)
 	// exec
-	execID := utils.RandomString(64)
-	bw1 := bufio.NewWriter(bytes.NewBuffer([]byte{}))
-	writeBuffer1 := &writeCloser{bw1}
-	e.On("ExecCreate", mock.Anything, mock.Anything, mock.Anything).Return(execID, nil)
-	execData := ioutil.NopCloser(bytes.NewBufferString(execID))
-	e.On("ExecAttach", mock.Anything, execID, mock.Anything).Return(execData, writeBuffer1, nil)
+	var execID string
+	e.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(
+		func(context.Context, string, *enginetypes.ExecConfig) string {
+			return utils.RandomString(64)
+		},
+		func(context.Context, string, *enginetypes.ExecConfig) io.ReadCloser {
+			return ioutil.NopCloser(bytes.NewBufferString(utils.RandomString(128)))
+		},
+		func(context.Context, string, *enginetypes.ExecConfig) io.ReadCloser {
+			return ioutil.NopCloser(bytes.NewBufferString(utils.RandomString(128)))
+		},
+		func(context.Context, string, *enginetypes.ExecConfig) io.WriteCloser {
+			return &writeCloser{bufio.NewWriter(bytes.NewBuffer([]byte{}))}
+		},
+		nil,
+	)
 	e.On("ExecResize", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("ExecExitCode", mock.Anything, execID).Return(0, nil)
 	// network
@@ -66,14 +77,21 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	imageDigest := utils.RandomString(64)
 	e.On("ImageLocalDigests", mock.Anything, mock.Anything).Return([]string{imageDigest}, nil)
 	e.On("ImageRemoteDigest", mock.Anything, mock.Anything).Return(imageDigest, nil)
+	e.On("ImageBuildFromExist", mock.Anything, mock.Anything, mock.Anything).Return("ImageBuildFromExist", nil)
 	// build
 	e.On("BuildRefs", mock.Anything, mock.Anything, mock.Anything).Return([]string{"ref1", "ref2"})
 	buildContent := ioutil.NopCloser(bytes.NewBufferString("this is content"))
-	e.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return(buildContent, nil)
+	e.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("BuildContent", buildContent, nil)
 	// virtualization
-	ID := utils.RandomString(64)
-	vc := &enginetypes.VirtualizationCreated{ID: ID, Name: "mock-test-cvm"}
-	e.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(vc, nil)
+	var ID string
+	e.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(func(context.Context, *enginetypes.VirtualizationCreateOptions) *enginetypes.VirtualizationCreated {
+		ID = utils.RandomString(64)
+		return &enginetypes.VirtualizationCreated{ID: ID, Name: "mock-test-cvm" + utils.RandomString(6)}
+	}, nil)
+	ch := make(chan enginetypes.VirtualizationRemapMessage, 1)
+	ch <- enginetypes.VirtualizationRemapMessage{ID: ID}
+	close(ch)
+	e.On("VirtualizationResourceRemap", mock.Anything, mock.Anything).Return((<-chan enginetypes.VirtualizationRemapMessage)(ch), nil)
 	e.On("VirtualizationCopyTo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -81,11 +99,10 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	vcJSON := &enginetypes.VirtualizationInfo{ID: ID, Image: "mock-image", Running: true, Networks: map[string]string{"mock-network": "1.1.1.1"}}
 	e.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(vcJSON, nil)
 	logs := ioutil.NopCloser(bytes.NewBufferString("logs1...\nlogs2...\n"))
-	e.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(logs, nil)
+	e.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(logs, logs, nil)
 	attachData := ioutil.NopCloser(bytes.NewBufferString("logs1...\nlogs2...\n"))
-	bw := bufio.NewWriter(bytes.NewBuffer([]byte{}))
-	writeBuffer := &writeCloser{bw}
-	e.On("VirtualizationAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(attachData, writeBuffer, nil)
+	writeBuffer := &writeCloser{bufio.NewWriter(bytes.NewBuffer([]byte{}))}
+	e.On("VirtualizationAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(attachData, attachData, writeBuffer, nil)
 	e.On("VirtualizationResize", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationWait", mock.Anything, mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationWaitResult{Message: "", Code: 0}, nil)
 	e.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
