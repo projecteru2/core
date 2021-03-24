@@ -22,6 +22,7 @@ type Config struct {
 
 	Git       GitConfig     `yaml:"git"`
 	Etcd      EtcdConfig    `yaml:"etcd"`
+	Redis     RedisConfig   `yaml:"redis"`
 	Docker    DockerConfig  `yaml:"docker"`
 	Scheduler SchedConfig   `yaml:"scheduler"`
 	Virt      VirtConfig    `yaml:"virt"`
@@ -38,6 +39,14 @@ type EtcdConfig struct {
 	Key        string     `yaml:"key"`                                                // etcd key
 	Cert       string     `yaml:"cert"`                                               // etcd trusted_ca
 	Auth       AuthConfig `yaml:"auth"`                                               // etcd auth
+}
+
+// RedisConfig holds redis config
+// LockPrefix is used for lock
+type RedisConfig struct {
+	Addr       string `yaml:"addr" default:"localhost:6379"` // redis address
+	DB         int    `yaml:"db" default:"0"`                // redis db
+	LockPrefix string `yaml:"lock_prefix" default:"/lock"`   // redis lock prefix
 }
 
 // GitConfig holds eru-core git config
