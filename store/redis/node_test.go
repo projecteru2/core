@@ -61,8 +61,8 @@ func (s *RediaronTestSuite) TestAddNode() {
 	node2, err := s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename2, Endpoint: endpoint, Podname: podname, Labels: labels})
 	s.NoError(err)
 	s.Equal(node2.CPU["0"], int64(100))
-	s.Equal(len(node2.CPU), 1)
-	s.Equal(node2.MemCap, int64(858993539))
+	s.Equal(len(node2.CPU), 100)
+	s.Equal(node2.MemCap, int64(85899345920))
 	// with tls
 	ca := `-----BEGIN CERTIFICATE-----
 MIIC7TCCAdWgAwIBAgIJAM8uLRZf9jttMA0GCSqGSIb3DQEBCwUAMA0xCzAJBgNV
