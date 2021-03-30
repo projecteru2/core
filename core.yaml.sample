@@ -18,6 +18,8 @@ grpc:
     service_discovery_interval: 5s  # WatchServiceStatus push interval
     service_heartbeat_interval: 5s  # RegisterService heartbeat
 
+store: etcd
+
 etcd:
     machines:
         - "http://127.0.0.1:2379"

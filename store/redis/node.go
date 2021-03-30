@@ -361,10 +361,3 @@ func (r *Rediaron) NodeStatusStream(ctx context.Context) chan *types.NodeStatus 
 	}()
 	return ch
 }
-
-// extracts node name from key
-// /nodestatus/nodename -> nodename
-func extractNodename(s string) string {
-	ps := strings.Split(s, "/")
-	return ps[len(ps)-1]
-}

@@ -65,19 +65,11 @@ type Rediaron struct {
 // New creates a new Rediaron instance from config
 // Only redis address and db is used
 // db is used to separate data, by default db 0 will be used
-func New(config types.Config) (*Rediaron, error) {
+func New(config types.Config, embeddedStorage bool) (*Rediaron, error) {
 	cli := redis.NewClient(&redis.Options{
 		Addr: config.Redis.Addr,
 		DB:   config.Redis.DB,
 	})
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	_, err := cli.Ping(ctx).Result()
-	if err != nil {
-		return nil, err
-	}
 
 	return &Rediaron{
 		cli:    cli,
@@ -85,20 +77,6 @@ func New(config types.Config) (*Rediaron, error) {
 		db:     config.Redis.DB,
 	}, nil
 }
-
-// // keysWatchedWithRetry provides a method to retry a transaction
-// func (r *Rediaron) keysWatchedWithRetry(ctx context.Context, keys []string, retry int, txn func(*redis.Tx) error) error {
-// 	for i := 0; i < retry; i++ {
-// 		err := r.cli.Watch(ctx, txn, keys...)
-// 		if err == redis.TxFailedErr {
-// 			// value of watched keys changed, retry
-// 			continue
-// 		}
-// 		// no error or other errors, return
-// 		return err
-// 	}
-// 	return ErrMaxRetryExceeded
-// }
 
 // KNotifyMessage is received when using KNotify
 type KNotifyMessage struct {
@@ -132,33 +110,6 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 		}
 	}()
 	return ch
-}
-
-// getByKeyPattern gets key-value pairs that key matches pattern
-func (r *Rediaron) getByKeyPattern(ctx context.Context, pattern string, limit int64) (map[string]string, error) {
-	var (
-		cursor uint64
-		result []string
-		err    error
-		count  int64
-		keys   = []string{}
-	)
-	for {
-		result, cursor, err = r.cli.Scan(ctx, cursor, pattern, 0).Result()
-		if err != nil {
-			return nil, err
-		}
-
-		keys = append(keys, result...)
-		count += int64(len(result))
-		if cursor == 0 || (limit > 0 && count >= limit) {
-			break
-		}
-	}
-	if limit > 0 && int64(len(keys)) >= limit {
-		keys = keys[:limit]
-	}
-	return r.GetMulti(ctx, keys)
 }
 
 // GetOne is a wrapper

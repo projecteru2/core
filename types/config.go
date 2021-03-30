@@ -4,6 +4,13 @@ import (
 	"time"
 )
 
+const (
+	// Etcd .
+	Etcd = "etcd"
+	// Redis .
+	Redis = "redis"
+)
+
 // Config holds eru-core config
 type Config struct {
 	LogLevel       string        `yaml:"log_level" required:"true" default:"INFO"`
@@ -14,8 +21,10 @@ type Config struct {
 	Profile        string        `yaml:"profile"`                                       // profile ip:port
 	CertPath       string        `yaml:"cert_path"`                                     // docker cert files path
 	MaxConcurrency int64         `yaml:"max_concurrency" default:"20"`                  // concurrently call single runtime in the same time
-	Auth           AuthConfig    `yaml:"auth"`                                          // grpc auth
-	GRPCConfig     GRPCConfig    `yaml:"grpc"`                                          // grpc config
+	Store          string        `yaml:"store" default:"etcd"`                          // store type
+
+	Auth       AuthConfig `yaml:"auth"` // grpc auth
+	GRPCConfig GRPCConfig `yaml:"grpc"` // grpc config
 
 	WALFile        string        `yaml:"wal_file" required:"true" default:"core.wal"`   // WAL file path
 	WALOpenTimeout time.Duration `yaml:"wal_open_timeout" required:"true" default:"8s"` // timeout for opening a WAL file

@@ -16,6 +16,7 @@ import (
 	"github.com/projecteru2/core/source/gitlab"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/store/etcdv3"
+	"github.com/projecteru2/core/store/redis"
 	"github.com/projecteru2/core/types"
 )
 
@@ -32,10 +33,21 @@ type Calcium struct {
 // New returns a new cluster config
 func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 	logger := log.WithField("Calcium", "New").WithField("config", config)
+
 	// set store
-	store, err := etcdv3.New(config, embeddedStorage)
-	if err != nil {
-		return nil, logger.Err(errors.WithStack(err))
+	var store store.Store
+	var err error
+	switch config.Store {
+	case types.Etcd:
+		store, err = etcdv3.New(config, embeddedStorage)
+		if err != nil {
+			return nil, logger.Err(errors.WithStack(err))
+		}
+	case types.Redis:
+		store, err = redis.New(config, embeddedStorage)
+		if err != nil {
+			return nil, logger.Err(errors.WithStack(err))
+		}
 	}
 
 	// set scheduler

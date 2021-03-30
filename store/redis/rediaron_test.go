@@ -26,43 +26,6 @@ func (s *RediaronTestSuite) TearDownTest() {
 	s.rediaron.cli.FlushAll(context.Background())
 }
 
-// func (s *RediaronTestSuite) TestKeysWatchedWithRetry() {
-// 	ctx := context.Background()
-//
-// 	update := func(key string) error {
-// 		txf := func(tx *redis.Tx) error {
-// 			n, err := tx.Get(ctx, key).Int()
-// 			if err != nil && err != redis.Nil {
-// 				return err
-// 			}
-//
-// 			n++
-//
-// 			_, err = tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
-// 				pipe.Set(ctx, key, n, 0)
-// 				return nil
-// 			})
-// 			return err
-// 		}
-// 		return s.rediaron.keysWatchedWithRetry(ctx, []string{"test"}, 200, txf)
-// 	}
-//
-// 	var wg sync.WaitGroup
-// 	for i := 0; i < 100; i++ {
-// 		wg.Add(1)
-// 		go func() {
-// 			defer wg.Done()
-//
-// 			s.NoError(update("test"))
-// 		}()
-// 	}
-// 	wg.Wait()
-//
-// 	n, err := s.rediaron.cli.Get(context.Background(), "test").Int()
-// 	s.NoError(err)
-// 	s.Equal(100, n)
-// }
-
 func (s *RediaronTestSuite) TestKeyNotify() {
 	ctx, cancel := context.WithCancel(context.Background())
 	ch := s.rediaron.KNotify(ctx, "a*")
