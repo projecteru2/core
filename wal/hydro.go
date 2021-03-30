@@ -1,7 +1,6 @@
 package wal
 
 import (
-	"context"
 	"encoding/json"
 	"sync"
 	"time"
@@ -26,14 +25,14 @@ func NewHydro() *Hydro {
 }
 
 // Open connects a kvdb.
-func (h *Hydro) Open(ctx context.Context, path string, timeout time.Duration) (err error) {
-	err = h.kv.Open(ctx, path, 0600, timeout)
+func (h *Hydro) Open(path string, timeout time.Duration) (err error) {
+	err = h.kv.Open(path, 0600, timeout)
 	return
 }
 
 // Close disconnects the kvdb.
-func (h *Hydro) Close(ctx context.Context) error {
-	return h.kv.Close(ctx)
+func (h *Hydro) Close() error {
+	return h.kv.Close()
 }
 
 // Register registers a new event handler.
@@ -42,8 +41,8 @@ func (h *Hydro) Register(handler EventHandler) {
 }
 
 // Recover starts a disaster recovery, which will replay all the events.
-func (h *Hydro) Recover(ctx context.Context) {
-	ch, _ := h.kv.Scan(ctx, []byte(EventPrefix))
+func (h *Hydro) Recover() {
+	ch, _ := h.kv.Scan([]byte(EventPrefix))
 
 	for ent := range ch {
 		event, err := h.decodeEvent(ent)
@@ -58,14 +57,14 @@ func (h *Hydro) Recover(ctx context.Context) {
 			continue
 		}
 
-		if err := h.recover(ctx, handler, event); err != nil {
+		if err := h.recover(handler, event); err != nil {
 			log.Errorf("[Recover] handle event %d (%s) failed: %v", event.ID, event.Type, err)
 			continue
 		}
 	}
 }
 
-func (h *Hydro) recover(ctx context.Context, handler EventHandler, event HydroEvent) error {
+func (h *Hydro) recover(handler EventHandler, event HydroEvent) error {
 	item, err := handler.Decode(event.Item)
 	if err != nil {
 		return err
@@ -75,18 +74,18 @@ func (h *Hydro) recover(ctx context.Context, handler EventHandler, event HydroEv
 	case err != nil:
 		return err
 	case !handle:
-		return event.Delete(ctx)
+		return event.Delete()
 	}
 
 	if err := handler.Handle(item); err != nil {
 		return err
 	}
 
-	return event.Delete(ctx)
+	return event.Delete()
 }
 
 // Log records a log item.
-func (h *Hydro) Log(ctx context.Context, eventype string, item interface{}) (Commit, error) {
+func (h *Hydro) Log(eventype string, item interface{}) (Commit, error) {
 	handler, ok := h.getEventHandler(eventype)
 	if !ok {
 		return nil, coretypes.NewDetailedErr(coretypes.ErrUnregisteredWALEventType, eventype)
@@ -101,15 +100,11 @@ func (h *Hydro) Log(ctx context.Context, eventype string, item interface{}) (Com
 	event.Type = eventype
 	event.Item = bs
 
-	if err = event.Create(ctx); err != nil {
+	if err = event.Create(); err != nil {
 		return nil, err
 	}
 
-	commit := func(context.Context) error {
-		return event.Delete(ctx)
-	}
-
-	return commit, nil
+	return event.Delete, nil
 }
 
 func (h *Hydro) getEventHandler(event string) (handler EventHandler, ok bool) {

@@ -125,7 +125,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	go func() {
 		defer close(runMsgCh)
 		wg.Wait()
-		if err := commit(context.Background()); err != nil {
+		if err := commit(); err != nil {
 			logger.Errorf("[RunAndWait] Commit WAL %s failed: %v", eventCreateLambda, err)
 		}
 		log.Info("[RunAndWait] Finish run and wait for workloads")
@@ -148,5 +148,5 @@ func (c *Calcium) walCreateLambda(ctx context.Context, opts *types.DeployOptions
 		opts.Labels = map[string]string{labelLambdaID: lambdaID}
 	}
 
-	return c.wal.logCreateLambda(ctx, opts)
+	return c.wal.logCreateLambda(opts)
 }

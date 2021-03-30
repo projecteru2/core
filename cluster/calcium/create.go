@@ -259,7 +259,7 @@ func (c *Calcium) doDeployOneWorkload(
 	var commit wal.Commit
 	defer func() {
 		if commit != nil {
-			if err := commit(context.Background()); err != nil {
+			if err := commit(); err != nil {
 				log.Errorf("[doDeployOneWorkload] Commit WAL %s failed: %v", eventCreateWorkload, err)
 			}
 		}
@@ -276,7 +276,7 @@ func (c *Calcium) doDeployOneWorkload(
 			// We couldn't WAL the workload ID above VirtualizationCreate temporarily,
 			// so there's a time gap window, once the core process crashes between
 			// VirtualizationCreate and logCreateWorkload then the worload is leaky.
-			if commit, err = c.wal.logCreateWorkload(ctx, workload.ID, node.Name); err != nil {
+			if commit, err = c.wal.logCreateWorkload(workload.ID, node.Name); err != nil {
 				return err
 			}
 			return nil

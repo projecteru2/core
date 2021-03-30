@@ -1,7 +1,6 @@
 package wal
 
 import (
-	"context"
 	"os"
 	"testing"
 	"time"
@@ -39,8 +38,8 @@ func TestRecover(t *testing.T) {
 	path := "/tmp/wal.unitest.wal"
 	os.Remove(path)
 
-	require.NoError(t, Open(context.Background(), path, time.Second))
-	defer Close(context.Background())
+	require.NoError(t, Open(path, time.Second))
+	defer Close()
 
 	hydro, ok := wal.(*Hydro)
 	require.True(t, ok)
@@ -57,9 +56,9 @@ func TestRecover(t *testing.T) {
 		handle: handle,
 	})
 
-	Log(context.Background(), eventype, struct{}{})
+	Log(eventype, struct{}{})
 
-	Recover(context.Background())
+	Recover()
 	require.True(t, checked)
 	require.True(t, handled)
 	require.True(t, encoded)

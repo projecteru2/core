@@ -20,7 +20,7 @@ func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	c.wal = wal
 
 	wrkid := "workload-id"
-	_, err = c.wal.logCreateWorkload(context.Background(), wrkid, "nodename")
+	_, err = c.wal.logCreateWorkload(wrkid, "nodename")
 	require.NoError(t, err)
 
 	wrk := &types.Workload{
@@ -31,10 +31,10 @@ func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	defer store.AssertExpectations(t)
 	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, nil).Once()
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover()
 
 	// Recovers nothing.
-	c.wal.Recover(context.Background())
+	c.wal.Recover()
 }
 
 func TestHandleCreateWorkloadError(t *testing.T) {
@@ -48,7 +48,7 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 		Engine:   &enginemocks.API{},
 	}
 	wrkid := "workload-id"
-	_, err = c.wal.logCreateWorkload(context.Background(), wrkid, node.Name)
+	_, err = c.wal.logCreateWorkload(wrkid, node.Name)
 	require.NoError(t, err)
 
 	wrk := &types.Workload{
@@ -59,12 +59,12 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 	defer store.AssertExpectations(t)
 	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, fmt.Errorf("err")).Once()
-	c.wal.Recover(context.Background())
+	c.wal.Recover()
 
 	err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("keys: [%s]", wrkid))
 	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, err)
 	store.On("GetNode", mock.Anything, wrk.Nodename).Return(nil, fmt.Errorf("err")).Once()
-	c.wal.Recover(context.Background())
+	c.wal.Recover()
 
 	store.On("GetNode", mock.Anything, wrk.Nodename).Return(node, nil)
 	eng, ok := node.Engine.(*enginemocks.API)
@@ -73,15 +73,15 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
 		Return(fmt.Errorf("err")).
 		Once()
-	c.wal.Recover(context.Background())
+	c.wal.Recover()
 
 	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
 		Return(fmt.Errorf("Error: No such container: %s", wrk.ID)).
 		Once()
-	c.wal.Recover(context.Background())
+	c.wal.Recover()
 
 	// Nothing recovered.
-	c.wal.Recover(context.Background())
+	c.wal.Recover()
 }
 
 func TestHandleCreateWorkloadHandled(t *testing.T) {
@@ -96,7 +96,7 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	}
 
 	wrkid := "workload-id"
-	_, err = c.wal.logCreateWorkload(context.Background(), wrkid, node.Name)
+	_, err = c.wal.logCreateWorkload(wrkid, node.Name)
 	require.NoError(t, err)
 
 	wrk := &types.Workload{
@@ -118,10 +118,10 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 		Return(nil).
 		Once()
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover()
 
 	// Recovers nothing.
-	c.wal.Recover(context.Background())
+	c.wal.Recover()
 }
 
 func TestHandleCreateLambda(t *testing.T) {
@@ -135,7 +135,7 @@ func TestHandleCreateLambda(t *testing.T) {
 		Entrypoint: &types.Entrypoint{Name: "entry"},
 		Labels:     map[string]string{labelLambdaID: "lambda"},
 	}
-	_, err = c.wal.logCreateLambda(context.Background(), deployOpts)
+	_, err = c.wal.logCreateLambda(deployOpts)
 	require.NoError(t, err)
 
 	node := &types.Node{
@@ -154,7 +154,7 @@ func TestHandleCreateLambda(t *testing.T) {
 		Return(nil, fmt.Errorf("err")).
 		Once()
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
-	c.wal.Recover(context.Background())
+	c.wal.Recover()
 
 	store.On("ListWorkloads", mock.Anything, deployOpts.Name, deployOpts.Entrypoint.Name, "", int64(0), deployOpts.Labels).
 		Return([]*types.Workload{wrk}, nil).
@@ -183,7 +183,7 @@ func TestHandleCreateLambda(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
-	c.wal.Recover(context.Background())
+	c.wal.Recover()
 	// Recovered nothing.
-	c.wal.Recover(context.Background())
+	c.wal.Recover()
 }

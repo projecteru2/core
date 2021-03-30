@@ -253,11 +253,11 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
 	store.On("AddWorkload", mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "AddWorkload")).Twice()
-	commit := wal.Commit(func(context.Context) error {
+	commit := wal.Commit(func() error {
 		walCommitted = true
 		return nil
 	})
-	mwal.On("Log", mock.Anything, eventCreateWorkload, mock.Anything).Return(commit, nil)
+	mwal.On("Log", eventCreateWorkload, mock.Anything).Return(commit, nil)
 	walCommitted = false
 	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
@@ -349,8 +349,8 @@ func newCreateWorkloadCluster(t *testing.T) (*Calcium, []*types.Node) {
 		}, nil)
 
 	mwal := c.wal.WAL.(*walmocks.WAL)
-	commit := wal.Commit(func(context.Context) error { return nil })
-	mwal.On("Log", mock.Anything, mock.Anything, mock.Anything).Return(commit, nil)
+	commit := wal.Commit(func() error { return nil })
+	mwal.On("Log", mock.Anything, mock.Anything).Return(commit, nil)
 
 	sche := c.scheduler.(*schedulermocks.Scheduler)
 	sche.On("SelectStorageNodes", mock.AnythingOfType("[]resourcetypes.ScheduleInfo"), mock.AnythingOfType("int64")).Return(func(scheduleInfos []resourcetypes.ScheduleInfo, _ int64) []resourcetypes.ScheduleInfo {
