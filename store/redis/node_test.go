@@ -225,6 +225,8 @@ func (s *RediaronTestSuite) TestSetNodeStatus() {
 	s.NoError(err)
 	// expired
 	time.Sleep(2 * time.Second)
+	// fastforward
+	s.rediserver.FastForward(2 * time.Second)
 	_, err = s.rediaron.GetOne(context.TODO(), key)
 	s.Error(err)
 }
@@ -246,6 +248,8 @@ func (s *RediaronTestSuite) TestGetNodeStatus() {
 	s.True(ns.Alive)
 	// expired
 	time.Sleep(2 * time.Second)
+	// fastforward
+	s.rediserver.FastForward(2 * time.Second)
 	ns1, err := s.rediaron.GetNodeStatus(context.TODO(), node.Name)
 	s.Error(err)
 	s.Nil(ns1)
@@ -261,7 +265,7 @@ func (s *RediaronTestSuite) TestNodeStatusStream() {
 	}
 
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 1000*time.Millisecond)
 		defer cancel()
 		for {
 			select {
@@ -271,13 +275,18 @@ func (s *RediaronTestSuite) TestNodeStatusStream() {
 			}
 			time.Sleep(500 * time.Millisecond)
 			s.NoError(s.rediaron.SetNodeStatus(context.TODO(), node, 1))
+			// manually trigger
+			triggerMockedKeyspaceNotification(s.rediaron.cli, filepath.Join(nodeStatusPrefix, node.Name), actionSet)
 		}
 	}()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	ch := s.rediaron.NodeStatusStream(ctx)
 	go func() {
-		time.Sleep(3000 * time.Millisecond)
+		time.Sleep(1500 * time.Millisecond)
+		// manually trigger
+		triggerMockedKeyspaceNotification(s.rediaron.cli, filepath.Join(nodeStatusPrefix, node.Name), actionExpired)
+		time.Sleep(500 * time.Millisecond)
 		cancel()
 	}()
 

@@ -2,10 +2,11 @@ package redis
 
 import (
 	"context"
-	"os"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/go-redis/redis/v8"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
@@ -15,7 +16,8 @@ import (
 type RediaronTestSuite struct {
 	suite.Suite
 
-	rediaron *Rediaron
+	rediaron   *Rediaron
+	rediserver *miniredis.Miniredis
 }
 
 func (s *RediaronTestSuite) SetupTest() {
@@ -34,11 +36,16 @@ func (s *RediaronTestSuite) TestKeyNotify() {
 		cancel()
 	}()
 
+	// trigger manually
 	time.Sleep(time.Second)
 	s.rediaron.cli.Set(context.Background(), "aaa", 1, 0)
+	triggerMockedKeyspaceNotification(s.rediaron.cli, "aaa", actionSet)
 	s.rediaron.cli.Set(context.Background(), "aab", 1, 0)
+	triggerMockedKeyspaceNotification(s.rediaron.cli, "aab", actionSet)
 	s.rediaron.cli.Set(context.Background(), "bab", 1, 0)
+	triggerMockedKeyspaceNotification(s.rediaron.cli, "bab", actionSet)
 	s.rediaron.cli.Del(context.Background(), "aaa")
+	triggerMockedKeyspaceNotification(s.rediaron.cli, "aaa", actionDel)
 
 	messages := []*KNotifyMessage{}
 	for m := range ch {
@@ -53,25 +60,24 @@ func (s *RediaronTestSuite) TestKeyNotify() {
 	s.Equal(messages[2].Action, "del")
 }
 
-func getRedisHost() string {
-	addr := os.Getenv("REDIS_HOST")
-	if addr == "" {
-		return "localhost:6379"
-	}
-	return addr
-}
-
 func TestRediaron(t *testing.T) {
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fail()
+	}
+	defer s.Close()
+
 	config := types.Config{}
 	config.LockTimeout = 10 * time.Second
 	config.GlobalTimeout = 30 * time.Second
 
 	cli := redis.NewClient(&redis.Options{
-		Addr: getRedisHost(),
+		Addr: s.Addr(),
 		DB:   0,
 	})
 	defer cli.Close()
 	suite.Run(t, &RediaronTestSuite{
+		rediserver: s,
 		rediaron: &Rediaron{
 			cli:    cli,
 			config: config,
@@ -80,8 +86,14 @@ func TestRediaron(t *testing.T) {
 }
 
 func TestTerminateEmbeddedStorage(t *testing.T) {
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fail()
+	}
+	defer s.Close()
+
 	cli := redis.NewClient(&redis.Options{
-		Addr: getRedisHost(),
+		Addr: s.Addr(),
 		DB:   0,
 	})
 	defer cli.Close()
@@ -90,10 +102,15 @@ func TestTerminateEmbeddedStorage(t *testing.T) {
 		cli: cli,
 	}
 
-	_, err := rediaron.cli.Ping(context.Background()).Result()
+	_, err = rediaron.cli.Ping(context.Background()).Result()
 	assert.NoError(t, err)
 
 	rediaron.TerminateEmbededStorage()
 	_, err = rediaron.cli.Ping(context.Background()).Result()
 	assert.Error(t, err)
+}
+
+func triggerMockedKeyspaceNotification(cli *redis.Client, key, action string) {
+	channel := fmt.Sprintf(keyNotifyPrefix, 0, key)
+	cli.Publish(context.Background(), channel, action).Result()
 }

@@ -13,18 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     container: projecteru2/footstone:latest
 
-    services:
-      redis:
-        image: tonic/redis-for-core-test
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - uses: actions/checkout@v2
       - name: unit tests
         run: make test
-        env:
-          REDIS_HOST: redis:6379
