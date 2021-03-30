@@ -36,7 +36,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		return nil, errors.WithStack(types.ErrRunAndWaitCountOneWithStdin)
 	}
 
-	commit, err := c.walCreateLambda(ctx, opts)
+	commit, err := c.walCreateLambda(opts)
 	if err != nil {
 		return nil, logger.Err(err)
 	}
@@ -134,7 +134,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	return runMsgCh, nil
 }
 
-func (c *Calcium) walCreateLambda(ctx context.Context, opts *types.DeployOptions) (wal.Commit, error) {
+func (c *Calcium) walCreateLambda(opts *types.DeployOptions) (wal.Commit, error) {
 	uid, err := uuid.NewRandom()
 	if err != nil {
 		return nil, errors.WithStack(err)
