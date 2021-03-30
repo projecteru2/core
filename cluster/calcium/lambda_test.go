@@ -22,11 +22,11 @@ func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
 	mwal := c.wal.WAL.(*walmocks.WAL)
 	defer mwal.AssertExpectations(t)
 	var walCommitted bool
-	commit := wal.Commit(func(context.Context) error {
+	commit := wal.Commit(func() error {
 		walCommitted = true
 		return nil
 	})
-	mwal.On("Log", mock.Anything, eventCreateLambda, mock.Anything).Return(commit, nil).Once()
+	mwal.On("Log", eventCreateLambda, mock.Anything).Return(commit, nil).Once()
 
 	opts := &types.DeployOptions{
 		Name:           "zc:name",

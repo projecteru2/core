@@ -1,7 +1,6 @@
 package kv
 
 import (
-	"context"
 	"os"
 	"time"
 )
@@ -16,25 +15,25 @@ type KV interface {
 
 // Simpler is the interface that groups the basic Put, Get and Delete methods.
 type Simpler interface {
-	Put(context.Context, []byte, []byte) error
-	Get(context.Context, []byte) ([]byte, error)
-	Delete(context.Context, []byte) error
+	Put([]byte, []byte) error
+	Get([]byte) ([]byte, error)
+	Delete([]byte) error
 }
 
 // Scanner is the interface that wraps the basic Scan method.
 type Scanner interface {
-	Scan(context.Context, []byte) (<-chan ScanEntry, func())
+	Scan([]byte) (<-chan ScanEntry, func())
 }
 
 // Sequencer is the interface that wraps the basic NextSequence method.
 type Sequencer interface {
-	NextSequence(context.Context) (id uint64, err error)
+	NextSequence() (id uint64, err error)
 }
 
 // OpenCloser is the interface that groups the basic Open and Close methods.
 type OpenCloser interface {
-	Open(ctx context.Context, path string, mode os.FileMode, timeout time.Duration) error
-	Close(context.Context) error
+	Open(path string, mode os.FileMode, timeout time.Duration) error
+	Close() error
 }
 
 // ScanEntry is the interface that groups the basic Pair and Error methods.

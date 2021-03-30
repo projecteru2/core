@@ -2,7 +2,6 @@ package kv
 
 import (
 	"bytes"
-	"context"
 	"os"
 	"sync"
 	"time"
@@ -33,19 +32,19 @@ func NewLithium() *Lithium {
 }
 
 // Reopen re-open a kvdb file.
-func (l *Lithium) Reopen(ctx context.Context) error {
+func (l *Lithium) Reopen() error {
 	l.Lock()
 	defer l.Unlock()
 
-	if err := l.close(ctx); err != nil {
+	if err := l.close(); err != nil {
 		return err
 	}
 
-	return l.open(ctx)
+	return l.open()
 }
 
 // Open opens a kvdb file.
-func (l *Lithium) Open(ctx context.Context, path string, mode os.FileMode, timeout time.Duration) (err error) {
+func (l *Lithium) Open(path string, mode os.FileMode, timeout time.Duration) (err error) {
 	l.Lock()
 	defer l.Unlock()
 
@@ -53,10 +52,10 @@ func (l *Lithium) Open(ctx context.Context, path string, mode os.FileMode, timeo
 	l.mode = mode
 	l.timeout = timeout
 
-	return l.open(ctx)
+	return l.open()
 }
 
-func (l *Lithium) open(context.Context) (err error) {
+func (l *Lithium) open() (err error) {
 	if l.bolt, err = bolt.Open(l.path, l.mode, &bolt.Options{Timeout: l.timeout}); err != nil {
 		return
 	}
@@ -70,18 +69,18 @@ func (l *Lithium) open(context.Context) (err error) {
 }
 
 // Close closes the kvdb file.
-func (l *Lithium) Close(ctx context.Context) error {
+func (l *Lithium) Close() error {
 	l.Lock()
 	defer l.Unlock()
-	return l.close(ctx)
+	return l.close()
 }
 
-func (l *Lithium) close(context.Context) error {
+func (l *Lithium) close() error {
 	return l.bolt.Close()
 }
 
 // Put creates/updates a key/value pair.
-func (l *Lithium) Put(ctx context.Context, key []byte, value []byte) (err error) {
+func (l *Lithium) Put(key []byte, value []byte) (err error) {
 	l.Lock()
 	defer l.Unlock()
 
@@ -91,7 +90,7 @@ func (l *Lithium) Put(ctx context.Context, key []byte, value []byte) (err error)
 }
 
 // Get read a key's value.
-func (l *Lithium) Get(ctx context.Context, key []byte) (dst []byte, err error) {
+func (l *Lithium) Get(key []byte) (dst []byte, err error) {
 	l.Lock()
 	defer l.Unlock()
 
@@ -110,7 +109,7 @@ func (l *Lithium) Get(ctx context.Context, key []byte) (dst []byte, err error) {
 }
 
 // Delete deletes a key.
-func (l *Lithium) Delete(ctx context.Context, key []byte) error {
+func (l *Lithium) Delete(key []byte) error {
 	l.Lock()
 	defer l.Unlock()
 	return l.update(func(bkt *bolt.Bucket) error {
@@ -119,7 +118,7 @@ func (l *Lithium) Delete(ctx context.Context, key []byte) error {
 }
 
 // Scan scans all the key/value pairs.
-func (l *Lithium) Scan(ctx context.Context, prefix []byte) (<-chan ScanEntry, func()) {
+func (l *Lithium) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 	ch := make(chan ScanEntry)
 	locked := make(chan struct{})
 
@@ -168,7 +167,7 @@ func (l *Lithium) Scan(ctx context.Context, prefix []byte) (<-chan ScanEntry, fu
 }
 
 // NextSequence generates a new sequence.
-func (l *Lithium) NextSequence(context.Context) (uint64, error) {
+func (l *Lithium) NextSequence() (uint64, error) {
 	l.Lock()
 	defer l.Unlock()
 

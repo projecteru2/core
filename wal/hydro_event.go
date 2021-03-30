@@ -1,7 +1,6 @@
 package wal
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
@@ -33,8 +32,8 @@ func NewHydroEvent(kv kv.KV) (e *HydroEvent) {
 }
 
 // Create persists this event.
-func (e *HydroEvent) Create(ctx context.Context) (err error) {
-	if e.ID, err = e.kv.NextSequence(ctx); err != nil {
+func (e *HydroEvent) Create() (err error) {
+	if e.ID, err = e.kv.NextSequence(); err != nil {
 		return
 	}
 
@@ -43,12 +42,12 @@ func (e *HydroEvent) Create(ctx context.Context) (err error) {
 		return err
 	}
 
-	return e.kv.Put(ctx, e.Key(), value)
+	return e.kv.Put(e.Key(), value)
 }
 
 // Delete removes this event from persistence.
-func (e HydroEvent) Delete(ctx context.Context) error {
-	return e.kv.Delete(ctx, e.Key())
+func (e HydroEvent) Delete() error {
+	return e.kv.Delete(e.Key())
 }
 
 // Key returns this event's key path.

@@ -1,7 +1,6 @@
 package calcium
 
 import (
-	"context"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -82,8 +81,8 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 }
 
 // DisasterRecover .
-func (c *Calcium) DisasterRecover(ctx context.Context) {
-	c.wal.Recover(ctx)
+func (c *Calcium) DisasterRecover() {
+	c.wal.Recover()
 }
 
 // Finalizer use for defer

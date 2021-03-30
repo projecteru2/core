@@ -1,7 +1,6 @@
 package wal
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -12,7 +11,7 @@ import (
 
 func TestLogFailedAsNoSuchHandler(t *testing.T) {
 	hydro := NewHydro()
-	commit, err := hydro.Log(context.Background(), "create", struct{}{})
+	commit, err := hydro.Log("create", struct{}{})
 	require.Error(t, err)
 	require.Nil(t, commit)
 }
@@ -27,7 +26,7 @@ func TestLogFailedAsEncodeError(t *testing.T) {
 	hydro.kv = kv.NewMockedKV()
 	hydro.Register(handler)
 
-	commit, err := hydro.Log(context.Background(), eventype, struct{}{})
+	commit, err := hydro.Log(eventype, struct{}{})
 	require.Error(t, err)
 	require.Nil(t, commit)
 	require.False(t, encoded)
@@ -45,11 +44,11 @@ func TestLogWithCommitEvent(t *testing.T) {
 	hydro.kv = kv.NewMockedKV()
 	hydro.Register(handler)
 
-	commit, err := hydro.Log(context.Background(), eventype, struct{}{})
+	commit, err := hydro.Log(eventype, struct{}{})
 	require.NoError(t, err)
 	require.NotNil(t, commit)
 
-	require.NoError(t, commit(context.Background()))
+	require.NoError(t, commit())
 	require.True(t, encoded)
 	require.False(t, decoded)
 	require.False(t, checked)
@@ -65,13 +64,13 @@ func TestRecoverFailedAsNoSuchHandler(t *testing.T) {
 	hydro.kv = kv.NewMockedKV()
 	hydro.Register(handler)
 
-	commit, err := hydro.Log(context.Background(), eventype, struct{}{})
+	commit, err := hydro.Log(eventype, struct{}{})
 	require.NoError(t, err)
 	require.NotNil(t, commit)
 
 	hydro.handlers.Delete(eventype)
 
-	hydro.Recover(context.Background())
+	hydro.Recover()
 	require.True(t, encoded)
 	require.False(t, decoded)
 	require.False(t, checked)
@@ -91,11 +90,11 @@ func TestRecoverFailedAsCheckError(t *testing.T) {
 	hydro.kv = kv.NewMockedKV()
 	hydro.Register(handler)
 
-	commit, err := hydro.Log(context.Background(), eventype, struct{}{})
+	commit, err := hydro.Log(eventype, struct{}{})
 	require.NoError(t, err)
 	require.NotNil(t, commit)
 
-	hydro.Recover(context.Background())
+	hydro.Recover()
 	require.True(t, encoded)
 	require.True(t, decoded)
 	require.True(t, checked)
@@ -138,11 +137,11 @@ func TestRecoverFailedAsDecodeLogError(t *testing.T) {
 	hydro.kv = kv.NewMockedKV()
 	hydro.Register(handler)
 
-	commit, err := hydro.Log(context.Background(), eventype, struct{}{})
+	commit, err := hydro.Log(eventype, struct{}{})
 	require.NoError(t, err)
 	require.NotNil(t, commit)
 
-	hydro.Recover(context.Background())
+	hydro.Recover()
 	require.True(t, encoded)
 	require.True(t, decoded)
 	require.False(t, checked)
@@ -164,11 +163,11 @@ func TestHydroRecoverDiscardNoNeedEvent(t *testing.T) {
 	hydro.kv = kv.NewMockedKV()
 	hydro.Register(handler)
 
-	commit, err := hydro.Log(context.Background(), eventype, struct{}{})
+	commit, err := hydro.Log(eventype, struct{}{})
 	require.NoError(t, err)
 	require.NotNil(t, commit)
 
-	hydro.Recover(context.Background())
+	hydro.Recover()
 	require.True(t, encoded)
 	require.True(t, decoded)
 	require.True(t, checked)
@@ -184,18 +183,18 @@ func TestHydroRecover(t *testing.T) {
 	hydro.kv = kv.NewMockedKV()
 	hydro.Register(handler)
 
-	commit, err := hydro.Log(context.Background(), eventype, struct{}{})
+	commit, err := hydro.Log(eventype, struct{}{})
 	require.NoError(t, err)
 	require.NotNil(t, commit)
 
-	hydro.Recover(context.Background())
+	hydro.Recover()
 	require.True(t, encoded)
 	require.True(t, decoded)
 	require.True(t, checked)
 	require.True(t, handled)
 
 	// The handled events should be removed.
-	ch, _ := hydro.kv.Scan(context.Background(), []byte(EventPrefix))
+	ch, _ := hydro.kv.Scan([]byte(EventPrefix))
 	for range ch {
 		require.Fail(t, "the events should be deleted")
 	}

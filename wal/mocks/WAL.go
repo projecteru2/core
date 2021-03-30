@@ -3,7 +3,6 @@
 package mocks
 
 import (
-	context "context"
 	time "time"
 
 	mock "github.com/stretchr/testify/mock"
@@ -16,13 +15,13 @@ type WAL struct {
 	mock.Mock
 }
 
-// Close provides a mock function with given fields: _a0
-func (_m *WAL) Close(_a0 context.Context) error {
-	ret := _m.Called(_a0)
+// Close provides a mock function with given fields:
+func (_m *WAL) Close() error {
+	ret := _m.Called()
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
-		r0 = rf(_a0)
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -30,13 +29,13 @@ func (_m *WAL) Close(_a0 context.Context) error {
 	return r0
 }
 
-// Log provides a mock function with given fields: _a0, _a1, _a2
-func (_m *WAL) Log(_a0 context.Context, _a1 string, _a2 interface{}) (wal.Commit, error) {
-	ret := _m.Called(_a0, _a1, _a2)
+// Log provides a mock function with given fields: _a0, _a1
+func (_m *WAL) Log(_a0 string, _a1 interface{}) (wal.Commit, error) {
+	ret := _m.Called(_a0, _a1)
 
 	var r0 wal.Commit
-	if rf, ok := ret.Get(0).(func(context.Context, string, interface{}) wal.Commit); ok {
-		r0 = rf(_a0, _a1, _a2)
+	if rf, ok := ret.Get(0).(func(string, interface{}) wal.Commit); ok {
+		r0 = rf(_a0, _a1)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(wal.Commit)
@@ -44,8 +43,8 @@ func (_m *WAL) Log(_a0 context.Context, _a1 string, _a2 interface{}) (wal.Commit
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, interface{}) error); ok {
-		r1 = rf(_a0, _a1, _a2)
+	if rf, ok := ret.Get(1).(func(string, interface{}) error); ok {
+		r1 = rf(_a0, _a1)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -53,13 +52,13 @@ func (_m *WAL) Log(_a0 context.Context, _a1 string, _a2 interface{}) (wal.Commit
 	return r0, r1
 }
 
-// Open provides a mock function with given fields: _a0, _a1, _a2
-func (_m *WAL) Open(_a0 context.Context, _a1 string, _a2 time.Duration) error {
-	ret := _m.Called(_a0, _a1, _a2)
+// Open provides a mock function with given fields: _a0, _a1
+func (_m *WAL) Open(_a0 string, _a1 time.Duration) error {
+	ret := _m.Called(_a0, _a1)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, time.Duration) error); ok {
-		r0 = rf(_a0, _a1, _a2)
+	if rf, ok := ret.Get(0).(func(string, time.Duration) error); ok {
+		r0 = rf(_a0, _a1)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -67,9 +66,9 @@ func (_m *WAL) Open(_a0 context.Context, _a1 string, _a2 time.Duration) error {
 	return r0
 }
 
-// Recover provides a mock function with given fields: _a0
-func (_m *WAL) Recover(_a0 context.Context) {
-	_m.Called(_a0)
+// Recover provides a mock function with given fields:
+func (_m *WAL) Recover() {
+	_m.Called()
 }
 
 // Register provides a mock function with given fields: _a0

@@ -75,7 +75,7 @@ func serve(c *cli.Context) error {
 		return err
 	}
 	defer cluster.Finalizer()
-	cluster.DisasterRecover(c.Context)
+	cluster.DisasterRecover()
 
 	rpcch := make(chan struct{}, 1)
 	vibranium := rpc.New(cluster, config, rpcch)

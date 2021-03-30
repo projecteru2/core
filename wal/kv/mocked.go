@@ -1,7 +1,6 @@
 package kv
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -24,12 +23,12 @@ func NewMockedKV() *MockedKV {
 }
 
 // Open .
-func (m *MockedKV) Open(ctx context.Context, path string, mode os.FileMode, timeout time.Duration) error {
+func (m *MockedKV) Open(path string, mode os.FileMode, timeout time.Duration) error {
 	return nil
 }
 
 // Close .
-func (m *MockedKV) Close(context.Context) error {
+func (m *MockedKV) Close() error {
 	keys := []interface{}{}
 	m.pool.Range(func(key, _ interface{}) bool {
 		keys = append(keys, key)
@@ -44,7 +43,7 @@ func (m *MockedKV) Close(context.Context) error {
 }
 
 // NextSequence .
-func (m *MockedKV) NextSequence(ctx context.Context) (nextSeq uint64, err error) {
+func (m *MockedKV) NextSequence() (nextSeq uint64, err error) {
 	m.Lock()
 	defer m.Unlock()
 	nextSeq = m.nextSeq
@@ -53,13 +52,13 @@ func (m *MockedKV) NextSequence(ctx context.Context) (nextSeq uint64, err error)
 }
 
 // Put .
-func (m *MockedKV) Put(ctx context.Context, key, value []byte) (err error) {
+func (m *MockedKV) Put(key, value []byte) (err error) {
 	m.pool.Store(string(key), value)
 	return
 }
 
 // Get .
-func (m *MockedKV) Get(ctx context.Context, key []byte) (value []byte, err error) {
+func (m *MockedKV) Get(key []byte) (value []byte, err error) {
 	raw, ok := m.pool.Load(string(key))
 	if !ok {
 		err = fmt.Errorf("no such key: %s", key)
@@ -74,13 +73,13 @@ func (m *MockedKV) Get(ctx context.Context, key []byte) (value []byte, err error
 }
 
 // Delete .
-func (m *MockedKV) Delete(ctx context.Context, key []byte) (err error) {
+func (m *MockedKV) Delete(key []byte) (err error) {
 	m.pool.Delete(string(key))
 	return
 }
 
 // Scan .
-func (m *MockedKV) Scan(ctx context.Context, prefix []byte) (<-chan ScanEntry, func()) {
+func (m *MockedKV) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 	ch := make(chan ScanEntry)
 
 	exit := make(chan struct{})

@@ -29,7 +29,8 @@ func newCalciumWAL(cal *Calcium) (*WAL, error) {
 		config:  cal.config,
 		calcium: cal,
 	}
-	if err := w.WAL.Open(context.Background(), w.config.WALFile, w.config.WALOpenTimeout); err != nil {
+
+	if err := w.WAL.Open(w.config.WALFile, w.config.WALOpenTimeout); err != nil {
 		return nil, err
 	}
 
@@ -43,15 +44,15 @@ func (w *WAL) registerHandlers() {
 	w.Register(newCreateWorkloadHandler(w.calcium))
 }
 
-func (w *WAL) logCreateWorkload(ctx context.Context, workloadID, nodename string) (wal.Commit, error) {
-	return w.Log(ctx, eventCreateWorkload, &types.Workload{
+func (w *WAL) logCreateWorkload(workloadID, nodename string) (wal.Commit, error) {
+	return w.Log(eventCreateWorkload, &types.Workload{
 		ID:       workloadID,
 		Nodename: nodename,
 	})
 }
 
-func (w *WAL) logCreateLambda(ctx context.Context, opts *types.DeployOptions) (wal.Commit, error) {
-	return w.Log(ctx, eventCreateLambda, &types.ListWorkloadsOptions{
+func (w *WAL) logCreateLambda(opts *types.DeployOptions) (wal.Commit, error) {
+	return w.Log(eventCreateLambda, &types.ListWorkloadsOptions{
 		Appname:    opts.Name,
 		Entrypoint: opts.Entrypoint.Name,
 		Labels:     map[string]string{labelLambdaID: opts.Labels[labelLambdaID]},
