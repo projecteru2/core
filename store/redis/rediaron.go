@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -102,6 +103,10 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 				_ = pubsub.PUnsubscribe(context.Background(), channel)
 				return
 			case v := <-subC:
+				if v == nil {
+					log.Warnf("[KNotify] channel already closed, knotify returns")
+					return
+				}
 				ch <- &KNotifyMessage{
 					Key:    strings.TrimPrefix(v.Channel, prefix),
 					Action: strings.ToLower(v.Payload),

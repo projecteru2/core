@@ -2,10 +2,10 @@ package redislock
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/suite"
 )
@@ -55,12 +55,14 @@ func (s *RedisLockTestSuite) TestTryLock() {
 }
 
 func TestRedisLock(t *testing.T) {
-	addr := os.Getenv("REDIS_HOST")
-	if addr == "" {
-		addr = "localhost:6379"
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fail()
 	}
+	defer s.Close()
+
 	cli := redis.NewClient(&redis.Options{
-		Addr: addr,
+		Addr: s.Addr(),
 		DB:   0,
 	})
 	defer cli.Close()

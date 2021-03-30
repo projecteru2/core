@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/assert"
 )
@@ -85,8 +86,14 @@ func (s *RediaronTestSuite) TestEphemeralFailedAsPutAlready() {
 
 func TestEphemeralMustRevokeAfterKeepaliveFailed(t *testing.T) {
 	assert := assert.New(t)
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fail()
+	}
+	defer s.Close()
+
 	cli := redis.NewClient(&redis.Options{
-		Addr: getRedisHost(),
+		Addr: s.Addr(),
 		DB:   0,
 	})
 	defer cli.Close()
