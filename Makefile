@@ -57,10 +57,9 @@ unit-test:
 	./resources/volume/... \
 	./resources/cpumem/... \
 	./wal/. \
-	./wal/kv/.
-	go test -timeout 120s -count=1 -cover -p=1 \
+	./wal/kv/. \
 	./store/redis/... \
-	./lock/redis/... \
+	./lock/redis/...
 
 lint:
 	golangci-lint run

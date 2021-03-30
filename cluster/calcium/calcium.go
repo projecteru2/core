@@ -37,13 +37,13 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 	var store store.Store
 	var err error
 	switch config.Store {
-	case types.Etcd:
-		store, err = etcdv3.New(config, embeddedStorage)
+	case types.Redis:
+		store, err = redis.New(config, embeddedStorage)
 		if err != nil {
 			return nil, logger.Err(errors.WithStack(err))
 		}
-	case types.Redis:
-		store, err = redis.New(config, embeddedStorage)
+	default:
+		store, err = etcdv3.New(config, embeddedStorage)
 		if err != nil {
 			return nil, logger.Err(errors.WithStack(err))
 		}
