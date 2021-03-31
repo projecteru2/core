@@ -213,6 +213,9 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
 
 func toCoreReplaceOptions(r *pb.ReplaceOptions) (*types.ReplaceOptions, error) {
 	deployOpts, err := toCoreDeployOptions(r.DeployOpt)
+	if err != nil {
+		return nil, err
+	}
 
 	replaceOpts := &types.ReplaceOptions{
 		DeployOptions:  *deployOpts,
