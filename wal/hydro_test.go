@@ -2,7 +2,11 @@ package wal
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -209,6 +213,41 @@ func TestHydroEventParseIDShouldRemovePadding(t *testing.T) {
 	id, err := parseHydroEventID([]byte("/events/00000000000000000000000000f"))
 	require.NoError(t, err)
 	require.Equal(t, uint64(15), id)
+}
+
+func TestHydroRecoverWithRealLithium(t *testing.T) {
+	dir, rmdir := tempdir(t)
+	defer rmdir()
+
+	hydro := NewHydro()
+	// Uses a real Lithium instance rather than a mocked one.
+	require.NoError(t, hydro.Open(filepath.Join(dir, "temp.wal"), time.Second))
+
+	handler := SimpleEventHandler{
+		event:  "create",
+		encode: func(interface{}) ([]byte, error) { return []byte("{}"), nil },
+		decode: func([]byte) (interface{}, error) { return struct{}{}, nil },
+		check:  func(interface{}) (bool, error) { return true, nil },
+		handle: func(interface{}) error { return nil },
+	}
+	hydro.Register(handler)
+
+	hydro.Log(handler.event, struct{}{})
+	hydro.Log(handler.event, struct{}{})
+	hydro.Log(handler.event, struct{}{})
+
+	hydro.Recover()
+
+	ch, _ := hydro.kv.Scan([]byte(EventPrefix))
+	for range ch {
+		require.FailNow(t, "expects no data")
+	}
+}
+
+func tempdir(t *testing.T) (string, func()) {
+	dir, err := ioutil.TempDir("", "temp.wal")
+	require.NoError(t, err)
+	return dir, func() { os.RemoveAll(dir) }
 }
 
 func newTestEventHandler(eventype string, checked, handled, encoded, decoded *bool) SimpleEventHandler {
