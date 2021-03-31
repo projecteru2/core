@@ -44,21 +44,25 @@ func (h *Hydro) Register(handler EventHandler) {
 func (h *Hydro) Recover() {
 	ch, _ := h.kv.Scan([]byte(EventPrefix))
 
+	events := []HydroEvent{}
 	for ent := range ch {
-		event, err := h.decodeEvent(ent)
+		ev, err := h.decodeEvent(ent)
 		if err != nil {
 			log.Errorf("[Recover] decode event error: %v", err)
 			continue
 		}
+		events = append(events, ev)
+	}
 
-		handler, ok := h.getEventHandler(event.Type)
+	for _, ev := range events {
+		handler, ok := h.getEventHandler(ev.Type)
 		if !ok {
-			log.Errorf("[Recover] no such event handler for %s", event.Type)
+			log.Errorf("[Recover] no such event handler for %s", ev.Type)
 			continue
 		}
 
-		if err := h.recover(handler, event); err != nil {
-			log.Errorf("[Recover] handle event %d (%s) failed: %v", event.ID, event.Type, err)
+		if err := h.recover(handler, ev); err != nil {
+			log.Errorf("[Recover] handle event %d (%s) failed: %v", ev.ID, ev.Type, err)
 			continue
 		}
 	}
@@ -129,7 +133,6 @@ func (h *Hydro) decodeEvent(ent kv.ScanEntry) (event HydroEvent, err error) {
 	}
 
 	event.kv = h.kv
-
 	event.ID, err = parseHydroEventID(key)
 
 	return

@@ -81,9 +81,6 @@ func (l *Lithium) close() error {
 
 // Put creates/updates a key/value pair.
 func (l *Lithium) Put(key []byte, value []byte) (err error) {
-	l.Lock()
-	defer l.Unlock()
-
 	return l.update(func(bkt *bolt.Bucket) error {
 		return bkt.Put(key, value)
 	})
@@ -91,9 +88,6 @@ func (l *Lithium) Put(key []byte, value []byte) (err error) {
 
 // Get read a key's value.
 func (l *Lithium) Get(key []byte) (dst []byte, err error) {
-	l.Lock()
-	defer l.Unlock()
-
 	err = l.view(func(bkt *bolt.Bucket) error {
 		src := bkt.Get(key)
 		dst = make([]byte, len(src))
@@ -110,8 +104,6 @@ func (l *Lithium) Get(key []byte) (dst []byte, err error) {
 
 // Delete deletes a key.
 func (l *Lithium) Delete(key []byte) error {
-	l.Lock()
-	defer l.Unlock()
 	return l.update(func(bkt *bolt.Bucket) error {
 		return bkt.Delete(key)
 	})
@@ -130,32 +122,24 @@ func (l *Lithium) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 	go func() {
 		defer close(ch)
 
-		l.Lock()
-		defer l.Unlock()
-
 		close(locked)
-		ent := &LithiumScanEntry{}
 
 		scan := func(bkt *bolt.Bucket) error {
 			c := bkt.Cursor()
 			for key, value := c.First(); key != nil && bytes.HasPrefix(key, prefix); key, value = c.Next() {
-				ent.key = key
-				ent.value = value
-
 				select {
 				case <-exit:
 					return nil
-				case ch <- *ent:
+				case ch <- LithiumScanEntry{key: key, value: value}:
 				}
 			}
 			return nil
 		}
 
 		if err := l.view(scan); err != nil {
-			ent.err = err
 			select {
 			case <-exit:
-			case ch <- *ent:
+			case ch <- LithiumScanEntry{err: err}:
 			}
 		}
 	}()
@@ -168,9 +152,6 @@ func (l *Lithium) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 
 // NextSequence generates a new sequence.
 func (l *Lithium) NextSequence() (uint64, error) {
-	l.Lock()
-	defer l.Unlock()
-
 	var seq uint64
 	err := l.update(func(bkt *bolt.Bucket) (ue error) {
 		seq, ue = bkt.NextSequence()
