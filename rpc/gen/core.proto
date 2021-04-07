@@ -212,6 +212,7 @@ message Workload {
     WorkloadStatus status = 9;
     Resource resource = 10;
     int64 create_time = 11;
+    repeated string env = 12;
 }
 
 message WorkloadStatus {
