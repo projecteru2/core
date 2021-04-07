@@ -510,6 +510,7 @@ func toRPCWorkload(_ context.Context, c *types.Workload) (*pb.Workload, error) {
 			VolumePlanLimit:   toRPCVolumePlan(c.VolumePlanLimit),
 			VolumePlanRequest: toRPCVolumePlan(c.VolumePlanRequest),
 		},
+		Env: c.Env,
 	}, nil
 }
 
