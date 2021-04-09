@@ -26,33 +26,38 @@ func SetupLog(l string) error {
 	return nil
 }
 
-// Fields is identical to logrus.Fields
-type Fields log.Fields
+// Fields is a wrapper for logrus.Entry
+// we need to insert some sentry captures here
+type Fields struct {
+	e *log.Entry
+}
 
 // WithField .
 func (f Fields) WithField(key string, value interface{}) Fields {
-	f[key] = value
-	return f
+	e := f.e.WithField(key, value)
+	return Fields{e: e}
 }
 
 // Errorf sends sentry message
 func (f Fields) Errorf(format string, args ...interface{}) {
 	sentry.CaptureMessage(fmt.Sprintf(format, args...))
-	log.WithFields(log.Fields(f)).Errorf(format, args...)
+	f.e.Errorf(format, args...)
 }
 
 // Err is a decorator returning the argument
 func (f Fields) Err(err error) error {
 	if err != nil {
 		sentry.CaptureMessage(fmt.Sprintf("%+v", err))
-		log.WithFields(log.Fields(f)).Errorf("%+v", err)
+		f.e.Errorf("%+v", err)
 	}
 	return err
 }
 
 // WithField add kv into log entry
 func WithField(key string, value interface{}) Fields {
-	return Fields{key: value}
+	return Fields{
+		e: log.WithField(key, value),
+	}
 }
 
 // Error forwards to sentry
