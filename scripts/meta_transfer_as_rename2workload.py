@@ -10,9 +10,11 @@ import etcd3
 
 check_conflict = False
 dry_run = False
+override = False
 
 def remove_prefix(s, prefix):
     return s[len(prefix):].lstrip('/') if s.startswith(prefix) else s
+
 
 def range_prefix(meta, obj_prefix, fn):
     etcd = meta.etcd
@@ -57,6 +59,13 @@ def range_prefix(meta, obj_prefix, fn):
 
         range_start = etcd3.utils.increment_last_byte(kv.key)
 
+
+def exists(client, key):
+    if override:
+        return False
+    return client.get(key)[0] is not None
+
+
 class Pod(object):
 
     def __init__(self, meta, podname=None):
@@ -65,6 +74,7 @@ class Pod(object):
         self.pod_prefix = 'pod/info'
         self.range_prefix = functools.partial(range_prefix, self.meta)
         self.podname = podname
+        self.exists = functools.partial(exists, self.meta.etcd)
 
     def trans(self):
         self.range_prefix(self.pod_prefix, self._trans)
@@ -75,7 +85,7 @@ class Pod(object):
             return
 
         new_key = os.path.join(self.meta.new_root_prefix, self.pod_prefix, podname)
-        if not dry_run:
+        if not dry_run and not self.exists(new_key):
             self.meta.etcd.put(new_key, orig_value)
         return new_key
 
@@ -89,6 +99,7 @@ class Node(object):
         self.range_prefix = functools.partial(range_prefix, self.meta, self.info_prefix)
         self.pod_nodes = {}
         self.podname = podname
+        self.exists = functools.partial(exists, self.meta.etcd)
 
     def trans(self):
         self.range_prefix(self._trans_pod)
@@ -108,7 +119,7 @@ class Node(object):
         self.pod_nodes[nodename] = json.loads(orig_value)
 
         new_key = os.path.join(self.meta.new_root_prefix, self.info_prefix, nodename)
-        if not dry_run:
+        if not dry_run and not self.exists(new_key):
             self.meta.etcd.put(new_key, orig_value)
         return new_key
 
@@ -128,7 +139,7 @@ class Node(object):
         self.pod_nodes[nodename] = {}
 
         new_key = os.path.join(self.meta.new_root_prefix, self.info_prefix, '%s:pod' % podname, nodename)
-        if not dry_run:
+        if not dry_run and not self.exists(new_key):
             self.meta.etcd.put(new_key, orig_value)
         return new_key
 
@@ -142,7 +153,7 @@ class Node(object):
             return
 
         new_key = os.path.join(self.meta.new_root_prefix, self.info_prefix, '%s:%s' % (nodename, cert_type))
-        if not dry_run:
+        if not dry_run and not self.exists(new_key):
             self.meta.etcd.put(new_key, orig_value)
         return new_key
 
@@ -157,7 +168,7 @@ class Node(object):
 
         new_key = os.path.join(self.meta.new_root_prefix, self.info_prefix, '%s:workloads' % nodename, wrk_id)
         wrk = Workload.conv(orig_value, self)
-        if not dry_run:
+        if not dry_run and not self.exists(new_key):
             self.meta.etcd.put(new_key, json.dumps(wrk))
         return new_key
 
@@ -204,6 +215,7 @@ class Workload(object):
         self.podname = podname
         self.pod_nodes = pod_nodes
         self.workloads = set()
+        self.exists = functools.partial(exists, self.meta.etcd)
 
     def trans(self):
         self.range_prefix(self.deploy_prefix, self._trans_deploy)
@@ -216,7 +228,7 @@ class Workload(object):
 
         new_key = os.path.join(self.meta.new_root_prefix, self.wrk_prefix, wrk_id)
         wrk = self.conv(orig_value, self.node_transfer)
-        if not dry_run:
+        if not dry_run and not self.exists(new_key):
             self.meta.etcd.put(new_key, json.dumps(wrk))
         return new_key
 
@@ -234,7 +246,7 @@ class Workload(object):
 
         new_key = os.path.join(self.meta.new_root_prefix, self.deploy_prefix, appname, entrypoint, nodename, wrk_id)
         wrk = self.conv(orig_value, self.node_transfer)
-        if not dry_run:
+        if not dry_run and not self.exists(new_key):
             self.meta.etcd.put(new_key, json.dumps(wrk))
 
         return new_key
@@ -334,6 +346,7 @@ def getargs():
     ap.add_argument('--etcd-port', type=int, default=2379)
     ap.add_argument('--dry-run', dest='dry_run', action='store_true', help='dry run, will not actually migrate')
     ap.add_argument('--check-conflict', dest='check_conflict', action='store_true', help='check conflict, checks if destination already has the key')
+    ap.add_argument('--override', dest='override', action='store_true', help='if set, the value will be migrated anyway no matter if it already exists')
     return ap.parse_args()
 
 def connect_etcd(host, port):
@@ -342,11 +355,12 @@ def connect_etcd(host, port):
 def main():
     args = getargs()
 
-    global dry_run, check_conflict
+    global dry_run, check_conflict, override
     dry_run = args.dry_run
     check_conflict = args.check_conflict
     if check_conflict:
         dry_run = True
+    override = args.override
 
     etcd = connect_etcd(args.etcd_host, args.etcd_port)
     trans = Transfer(etcd, args.orig_root_prefix, args.new_root_prefix)
