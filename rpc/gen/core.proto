@@ -153,6 +153,7 @@ message Node {
     map<string, int64> init_volume = 18;
     map<string, int64> volume = 19;
     int64 volume_used = 20;
+    map<string, int64> init_numa_memory = 21;
 }
 
 message Nodes {
