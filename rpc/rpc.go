@@ -844,13 +844,21 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		}
 	}()
 
+	ch, err := v.cluster.RunAndWait(ctx, deployOpts, inCh)
+	if err != nil {
+		return err
+	}
+	
+	// must send the first message to client before return, otherwise the Stream will be closed
+	// client will get workloadID from the first message
+	m := <- ch
+	if err = stream.Send(toRPCAttachWorkloadMessage(m)); err != nil {
+		v.logUnsentMessages("RunAndWait: first message send failed", err, m)
+	}
+	
 	runAndWait := func(f func(<-chan *types.AttachWorkloadMessage)) error {
 		defer v.taskDone("RunAndWait", true)
 		defer cancel()
-		ch, err := v.cluster.RunAndWait(ctx, deployOpts, inCh)
-		if err != nil {
-			return err
-		}
 		f(ch)
 		return nil
 	}
