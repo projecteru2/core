@@ -219,7 +219,7 @@ func cpuReallocPlan(scheduleInfo resourcetypes.ScheduleInfo, quota float64, CPU 
 
 // SelectVolumeNodes calculates plans for volume request
 func (m *Potassium) SelectVolumeNodes(scheduleInfos []resourcetypes.ScheduleInfo, vbs types.VolumeBindings) ([]resourcetypes.ScheduleInfo, map[string][]types.VolumePlan, int, error) {
-	log.Infof("[SelectVolumeNodes] scheduleInfos %v, need volume: %+v", scheduleInfos, vbs)
+	log.Infof("[SelectVolumeNodes] scheduleInfos %v, need volume: %v", scheduleInfos, vbs.ToStringSlice(true, true))
 	var reqsNorm, reqsMono []int64
 	var vbsNorm, vbsMono, vbsUnlimited types.VolumeBindings
 
