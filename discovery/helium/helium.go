@@ -25,7 +25,7 @@ func New(config types.GRPCConfig, stor store.Store) *Helium {
 	h.config = config
 	h.stor = stor
 	h.Do(func() {
-		h.start(context.Background()) // rewrite ctx here, because this will run only once!
+		h.start(context.TODO()) // rewrite ctx here, because this will run only once!
 	})
 	return h
 }

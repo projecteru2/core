@@ -261,7 +261,7 @@ func (e *Engine) VirtualizationResourceRemap(ctx context.Context, opts *enginety
 	go func() {
 		defer close(ch)
 		for id, resource := range freeWorkloadResources {
-			pool.Go(func(id string, resource enginetypes.VirtualizationResource) func() {
+			pool.Go(ctx, func(id string, resource enginetypes.VirtualizationResource) func() {
 				return func() {
 					updateConfig := dockercontainer.UpdateConfig{Resources: dockercontainer.Resources{
 						CPUQuota:   int64(resource.Quota * float64(corecluster.CPUPeriodBase)),
@@ -277,7 +277,7 @@ func (e *Engine) VirtualizationResourceRemap(ctx context.Context, opts *enginety
 				}
 			}(id, resource))
 		}
-		pool.Wait()
+		pool.Wait(ctx)
 	}()
 
 	return ch, nil

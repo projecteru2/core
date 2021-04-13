@@ -100,7 +100,9 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 		for {
 			select {
 			case <-ctx.Done():
-				_ = pubsub.PUnsubscribe(context.Background(), channel)
+				ctx, cancel := context.WithTimeout(context.Background(), r.config.GlobalTimeout)
+				defer cancel()
+				_ = pubsub.PUnsubscribe(ctx, channel)
 				return
 			case v := <-subC:
 				if v == nil {

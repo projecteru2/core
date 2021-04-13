@@ -303,5 +303,5 @@ func TestRemapResource(t *testing.T) {
 	_, err := c.remapResource(context.Background(), node)
 	assert.Nil(t, err)
 
-	c.doRemapResourceAndLog(context.Background(), log.WithField("test", "zc"), node)
+	c.doRemapResourceAndLog(log.WithField("test", "zc"), node)
 }
