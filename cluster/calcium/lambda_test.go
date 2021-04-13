@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -178,7 +179,7 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 		w2.Write([]byte("stderr line2\n"))
 		w2.Close()
 	}()
-	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(io.NopCloser(r1), io.NopCloser(r2), nil)
+	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(ioutil.NopCloser(r1), ioutil.NopCloser(r2), nil)
 	engine.On("VirtualizationWait", mock.Anything, mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationWaitResult{Code: 0})
 
 	// doCreateAndStartWorkload fails: AddWorkload
