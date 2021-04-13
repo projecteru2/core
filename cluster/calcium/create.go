@@ -54,12 +54,14 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 	go func() {
 		defer func() {
+			cctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
 			for nodename := range deployMap {
-				if e := c.store.DeleteProcessing(context.Background(), opts, nodename); e != nil {
+				if e := c.store.DeleteProcessing(cctx, opts, nodename); e != nil {
 					logger.Errorf("[Calcium.doCreateWorkloads] delete processing failed for %s: %+v", nodename, e)
 				}
 			}
 			close(ch)
+			cancel()
 		}()
 
 		_ = utils.Txn(
@@ -167,7 +169,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 			Publish:  map[string][]string{},
 		}
 
-		pool.Go(func(idx int) func() {
+		pool.Go(ctx, func(idx int) func() {
 			return func() {
 				var e error
 				defer func() {
@@ -198,13 +200,13 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 			}
 		}(idx))
 	}
-	pool.Wait()
+	pool.Wait(ctx)
 
 	// remap 就不搞进事务了吧, 回滚代价太大了
 	// 放任 remap 失败的后果是, share pool 没有更新, 这个后果姑且认为是可以承受的
 	// 而且 remap 是一个幂等操作, 就算这次 remap 失败, 下次 remap 也能收敛到正确到状态
-	if err := c.withNodeLocked(context.Background(), nodename, func(ctx context.Context, node *types.Node) error {
-		c.doRemapResourceAndLog(context.Background(), logger, node)
+	if err := c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+		c.doRemapResourceAndLog(logger, node)
 		return nil
 	}); err != nil {
 		logger.Errorf("failed to lock node to remap: %v", err)

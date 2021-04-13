@@ -42,7 +42,9 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 		defer tick.Stop()
 
 		revoke := func() {
-			if _, err := e.cliv3.Revoke(context.Background(), lease.ID); err != nil {
+			cctx, ccancel := context.WithTimeout(context.Background(), time.Minute) // todo minute sucks
+			defer ccancel()
+			if _, err := e.cliv3.Revoke(cctx, lease.ID); err != nil {
 				log.Errorf("[StartEphemeral] revoke %d with %s failed: %v", lease.ID, path, err)
 			}
 		}
@@ -50,11 +52,14 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 		for {
 			select {
 			case <-tick.C:
-				if _, err := e.cliv3.KeepAliveOnce(context.Background(), lease.ID); err != nil {
+				cctx, ccancel := context.WithTimeout(ctx, time.Minute) // todo minute sucks
+				if _, err := e.cliv3.KeepAliveOnce(cctx, lease.ID); err != nil {
 					log.Errorf("[StartEphemeral] keepalive %d with %s failed: %v", lease.ID, path, err)
+					ccancel()
 					revoke()
 					return
 				}
+				ccancel()
 
 			case <-ctx.Done():
 				revoke()

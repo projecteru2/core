@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 
+	"github.com/projecteru2/core/log"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -22,9 +23,11 @@ func NewGoroutinePool(max int) *GoroutinePool {
 }
 
 // Go spawns new goroutine, but may block due to max number limit
-func (p *GoroutinePool) Go(f func()) {
-	// there won't be error once we use background ctx
-	p.sem.Acquire(context.Background(), 1) // nolint:errcheck
+func (p *GoroutinePool) Go(ctx context.Context, f func()) {
+	if err := p.sem.Acquire(ctx, 1); err != nil {
+		log.Errorf("[GoroutinePool] Go acquire failed %v", err)
+		return
+	}
 	go func() {
 		defer p.sem.Release(1)
 		f()
@@ -32,7 +35,8 @@ func (p *GoroutinePool) Go(f func()) {
 }
 
 // Wait is equivalent to sync.WaitGroup.Wait()
-func (p *GoroutinePool) Wait() {
-	// there won't be error once we use background ctx
-	p.sem.Acquire(context.Background(), p.max) // nolint:errcheck
+func (p *GoroutinePool) Wait(ctx context.Context) {
+	if err := p.sem.Acquire(ctx, p.max); err != nil {
+		log.Errorf("[GoroutinePool] Wait acquire failed %v", err)
+	}
 }

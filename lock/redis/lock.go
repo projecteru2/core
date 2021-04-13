@@ -49,7 +49,9 @@ func New(cli *redis.Client, key string, waitTimeout, lockTTL time.Duration) (*Re
 // Lock acquires the lock
 // will try waitTimeout time before getting the lock
 func (r *RedisLock) Lock(ctx context.Context) (context.Context, error) {
-	return r.lock(ctx, opts)
+	lockCtx, cancel := context.WithTimeout(ctx, r.timeout)
+	defer cancel()
+	return r.lock(lockCtx, opts)
 }
 
 // TryLock tries to lock
@@ -66,7 +68,7 @@ func (r *RedisLock) lock(ctx context.Context, opts *redislock.Options) (context.
 	}
 
 	r.l = l
-	return context.Background(), nil
+	return context.TODO(), nil // no need wrapped, not like etcd
 }
 
 // Unlock releases the lock
