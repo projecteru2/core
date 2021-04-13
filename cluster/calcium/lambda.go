@@ -95,6 +95,12 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 				splitFunc, split = bufio.ScanBytes, byte(0)
 			}
 
+			// return workload id as first message for lambda
+			runMsgCh <- &types.AttachWorkloadMessage{
+				WorkloadID:    message.WorkloadID,
+				Data:          []byte(""),
+				StdStreamType: types.Stdout,
+			}
 			for m := range processStdStream(ctx, stdout, stderr, splitFunc, split) {
 				runMsgCh <- &types.AttachWorkloadMessage{
 					WorkloadID:    message.WorkloadID,
