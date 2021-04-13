@@ -884,7 +884,9 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 				)
 				for {
 					if part, isPrefix, err = bufReader.ReadLine(); err != nil {
-						log.Errorf("[Aysnc RunAndWait] read error: %+v", err)
+						if err != io.EOF {
+							log.Errorf("[Aysnc RunAndWait] read error: %+v", err)
+						}
 						return
 					}
 					line = append(line, part...)
