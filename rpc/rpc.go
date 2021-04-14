@@ -870,7 +870,9 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 				}
 			}
 		})
+		return nil
 	}
+
 	go func() {
 		runAndWait(func(ch <-chan *types.AttachWorkloadMessage) {
 			r, w := io.Pipe()
