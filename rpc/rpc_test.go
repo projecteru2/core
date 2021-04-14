@@ -106,13 +106,13 @@ func TestRunAndWaitSync(t *testing.T) {
 			ch <- &types.AttachWorkloadMessage{
 				WorkloadID:    "workloadidfortonic",
 				Data:          []byte(""),
-				StdStreamType: types.Stdout,
+				StdStreamType: types.TypeWorkloadID,
 			}
 			// second message to report output of process
 			ch <- &types.AttachWorkloadMessage{
 				WorkloadID:    "workloadidfortonic",
 				Data:          []byte("network not reachable"),
-				StdStreamType: types.Stdout,
+				StdStreamType: types.Stderr,
 			}
 			close(ch)
 		}()
@@ -128,10 +128,12 @@ func TestRunAndWaitSync(t *testing.T) {
 	m1 := rc[0]
 	assert.Equal(t, m1.WorkloadId, "workloadidfortonic")
 	assert.Equal(t, m1.Data, []byte(""))
+	assert.Equal(t, m1.StdStreamType, pb.StdStreamType_TYPEWORKLOADID)
 
 	m2 := rc[1]
 	assert.Equal(t, m2.WorkloadId, "workloadidfortonic")
 	assert.Equal(t, m2.Data, []byte("network not reachable"))
+	assert.Equal(t, m2.StdStreamType, pb.StdStreamType_STDERR)
 }
 
 func TestRunAndWaitAsync(t *testing.T) {
@@ -169,13 +171,13 @@ func TestRunAndWaitAsync(t *testing.T) {
 			ch <- &types.AttachWorkloadMessage{
 				WorkloadID:    "workloadidfortonic",
 				Data:          []byte(""),
-				StdStreamType: types.Stdout,
+				StdStreamType: types.TypeWorkloadID,
 			}
 			// second message to report output of process
 			ch <- &types.AttachWorkloadMessage{
 				WorkloadID:    "workloadidfortonic",
 				Data:          []byte("network not reachable"),
-				StdStreamType: types.Stdout,
+				StdStreamType: types.Stderr,
 			}
 			close(ch)
 		}()
@@ -191,4 +193,5 @@ func TestRunAndWaitAsync(t *testing.T) {
 	m1 := rc[0]
 	assert.Equal(t, m1.WorkloadId, "workloadidfortonic")
 	assert.Equal(t, m1.Data, []byte(""))
+	assert.Equal(t, m1.StdStreamType, pb.StdStreamType_TYPEWORKLOADID)
 }

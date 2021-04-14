@@ -421,6 +421,10 @@ func toRPCDissociateWorkloadMessage(r *types.DissociateWorkloadMessage) *pb.Diss
 
 func toRPCStdStreamType(stdType types.StdStreamType) pb.StdStreamType {
 	switch stdType {
+	case types.EruError:
+		return pb.StdStreamType_ERUERROR
+	case types.TypeWorkloadID:
+		return pb.StdStreamType_TYPEWORKLOADID
 	case types.Stdout:
 		return pb.StdStreamType_STDOUT
 	default:

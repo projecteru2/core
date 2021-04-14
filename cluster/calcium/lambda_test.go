@@ -65,7 +65,7 @@ func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
 	assert.True(exists)
 	assert.True(len(lambdaID) > 1)
 	assert.True(walCommitted)
-	assert.Equal(m.StdStreamType, types.Stderr)
+	assert.Equal(m.StdStreamType, types.EruError)
 }
 
 func TestLambdaWithWorkloadIDReturned(t *testing.T) {
@@ -116,10 +116,9 @@ func TestLambdaWithWorkloadIDReturned(t *testing.T) {
 	assert.Equal(len(ms), 8)
 	assert.Equal(ms[0].WorkloadID, "workloadfortonictest")
 	assert.Equal(ms[0].Data, []byte(""))
-	assert.Equal(ms[1].WorkloadID, "workloadfortonictest")
-	assert.Equal(ms[1].Data, []byte(""))
+	assert.Equal(ms[0].StdStreamType, types.TypeWorkloadID)
 	assert.True(strings.HasPrefix(string(ms[7].Data), exitDataPrefix))
-	assert.True(strings.HasPrefix(string(ms[6].Data), exitDataPrefix))
+	assert.Equal(ms[7].StdStreamType, types.Stdout)
 }
 
 func TestLambdaWithError(t *testing.T) {
@@ -150,6 +149,7 @@ func TestLambdaWithError(t *testing.T) {
 	m0 := <-ch0
 	assert.Equal(m0.WorkloadID, "workloadfortonictest")
 	assert.True(strings.HasPrefix(string(m0.Data), "Get workload"))
+	assert.Equal(m0.StdStreamType, types.EruError)
 
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 
@@ -160,6 +160,7 @@ func TestLambdaWithError(t *testing.T) {
 	m1 := <-ch1
 	assert.Equal(m1.WorkloadID, "workloadfortonictest")
 	assert.True(strings.HasPrefix(string(m1.Data), "Fetch log for workload"))
+	assert.Equal(m1.StdStreamType, types.EruError)
 
 	r1, w1 := io.Pipe()
 	go func() {
@@ -187,15 +188,11 @@ func TestLambdaWithError(t *testing.T) {
 	assert.Equal(len(ms), 8)
 	assert.Equal(ms[0].WorkloadID, "workloadfortonictest")
 	assert.Equal(ms[0].Data, []byte(""))
-	assert.Equal(ms[1].WorkloadID, "workloadfortonictest")
-	assert.Equal(ms[1].Data, []byte(""))
+	assert.Equal(ms[0].StdStreamType, types.TypeWorkloadID)
 
-	m2 := ms[7]
-	assert.Equal(m2.WorkloadID, "workloadfortonictest")
-	assert.True(strings.HasPrefix(string(m2.Data), "Wait workload"))
-	m3 := ms[6]
-	assert.Equal(m3.WorkloadID, "workloadfortonictest")
-	assert.True(strings.HasPrefix(string(m3.Data), "Wait workload"))
+	assert.Equal(ms[7].WorkloadID, "workloadfortonictest")
+	assert.True(strings.HasPrefix(string(ms[7].Data), "Wait workload"))
+	assert.Equal(ms[7].StdStreamType, types.EruError)
 }
 
 func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {

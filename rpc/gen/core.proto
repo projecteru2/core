@@ -577,6 +577,8 @@ message SendMessage {
 enum StdStreamType {
     STDOUT = 0;
     STDERR = 1;
+    TYPEWORKLOADID = 6;
+    ERUERROR = -1;
 }
 
 message AttachWorkloadMessage {
