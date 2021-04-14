@@ -826,6 +826,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		// force mark stdin to false
 		opts.OpenStdin = false
 	}
+	defer cancel()
 
 	v.taskAdd("RunAndWait", true)
 
@@ -858,7 +859,6 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 
 	runAndWait := func(f func(<-chan *types.AttachWorkloadMessage)) {
 		defer v.taskDone("RunAndWait", true)
-		defer cancel()
 		f(ch)
 	}
 
