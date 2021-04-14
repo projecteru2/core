@@ -3,6 +3,7 @@ package calcium
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"io"
 	"strconv"
 	"sync"
@@ -46,11 +47,19 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		return nil, err
 	}
 
-	runMsgCh := make(chan *types.AttachWorkloadMessage)
-	wg := &sync.WaitGroup{}
+	var (
+		runMsgCh      = make(chan *types.AttachWorkloadMessage)
+		wg            = &sync.WaitGroup{}
+		errorMessages = []*types.AttachWorkloadMessage{}
+	)
 	for message := range createChan {
 		if message.Error != nil || message.WorkloadID == "" {
 			logger.Errorf("[RunAndWait] Create workload failed %+v", message.Error)
+			errorMessages = append(errorMessages, &types.AttachWorkloadMessage{
+				WorkloadID:    "",
+				Data:          []byte(fmt.Sprintf("Create workload failed %+v", message.Error)),
+				StdStreamType: types.Stderr,
+			})
 			continue
 		}
 
@@ -67,13 +76,27 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			workload, err := c.GetWorkload(ctx, message.WorkloadID)
 			if err != nil {
 				logger.Errorf("[RunAndWait] Get workload failed %+v", err)
+				errorMessages = append(errorMessages, &types.AttachWorkloadMessage{
+					WorkloadID:    message.WorkloadID,
+					Data:          []byte(fmt.Sprintf("Get workload %s failed %+v", message.WorkloadID, err)),
+					StdStreamType: types.Stderr,
+				})
 				return
 			}
 
 			var stdout, stderr io.ReadCloser
 			if stdout, stderr, err = workload.Engine.VirtualizationLogs(ctx, &enginetypes.VirtualizationLogStreamOptions{
-				ID: message.WorkloadID, Follow: true, Stdout: true, Stderr: true}); err != nil {
+				ID:     message.WorkloadID,
+				Follow: true,
+				Stdout: true,
+				Stderr: true,
+			}); err != nil {
 				logger.Errorf("[RunAndWait] Can't fetch log of workload %s error %+v", message.WorkloadID, err)
+				errorMessages = append(errorMessages, &types.AttachWorkloadMessage{
+					WorkloadID:    message.WorkloadID,
+					Data:          []byte(fmt.Sprintf("Fetch log for workload %s failed %+v", message.WorkloadID, err)),
+					StdStreamType: types.Stderr,
+				})
 				return
 			}
 
@@ -85,6 +108,11 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 				stdout, stderr, inStream, err = workload.Engine.VirtualizationAttach(ctx, message.WorkloadID, true, true)
 				if err != nil {
 					logger.Errorf("[RunAndWait] Can't attach workload %s error %+v", message.WorkloadID, err)
+					errorMessages = append(errorMessages, &types.AttachWorkloadMessage{
+						WorkloadID:    message.WorkloadID,
+						Data:          []byte(fmt.Sprintf("Attach to workload %s failed %+v", message.WorkloadID, err)),
+						StdStreamType: types.Stderr,
+					})
 					return
 				}
 
@@ -95,7 +123,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 				splitFunc, split = bufio.ScanBytes, byte(0)
 			}
 
-			// return workload id as first message for lambda
+			// return workload id as first normal message for lambda
 			runMsgCh <- &types.AttachWorkloadMessage{
 				WorkloadID:    message.WorkloadID,
 				Data:          []byte(""),
@@ -113,6 +141,11 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			r, err := workload.Engine.VirtualizationWait(ctx, message.WorkloadID, "")
 			if err != nil {
 				logger.Errorf("[RunAndWait] %s wait failed %+v", utils.ShortID(message.WorkloadID), err)
+				errorMessages = append(errorMessages, &types.AttachWorkloadMessage{
+					WorkloadID:    message.WorkloadID,
+					Data:          []byte(fmt.Sprintf("Wait workload %s failed %+v", message.WorkloadID, err)),
+					StdStreamType: types.Stderr,
+				})
 				return
 			}
 
@@ -133,6 +166,10 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		wg.Wait()
 		if err := commit(); err != nil {
 			logger.Errorf("[RunAndWait] Commit WAL %s failed: %v", eventCreateLambda, err)
+		}
+
+		for _, message := range errorMessages {
+			runMsgCh <- message
 		}
 		log.Info("[RunAndWait] Finish run and wait for workloads")
 	}()
