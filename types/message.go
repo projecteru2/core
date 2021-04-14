@@ -89,10 +89,15 @@ type ReplaceWorkloadMessage struct {
 type StdStreamType int
 
 const (
-	// Stdout .
-	Stdout StdStreamType = iota
-	// Stderr .
-	Stderr
+	// EruError means this message is carrying some error from eru
+	// not from user program
+	EruError StdStreamType = -1
+	// Stdout means this message is carrying stdout from user program
+	Stdout StdStreamType = 0
+	// Stderr means this message is carrying stderr from user program
+	Stderr StdStreamType = 1
+	// TypeWorkloadID means this is the workload id
+	TypeWorkloadID StdStreamType = 6
 )
 
 // AttachWorkloadMessage for run and wait
