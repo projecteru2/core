@@ -807,7 +807,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	}
 
 	if RunAndWaitOptions.DeployOptions == nil {
-		return types.ErrNoDeployOpts
+		return grpcstatus.Error(RunAndWait, types.ErrNoDeployOpts.Error())
 	}
 
 	opts := RunAndWaitOptions.DeployOptions
@@ -833,21 +833,22 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	inCh := make(chan []byte)
 	go func() {
 		defer close(inCh)
-		if opts.OpenStdin {
-			for {
-				RunAndWaitOptions, err := stream.Recv()
-				if RunAndWaitOptions == nil || err != nil {
-					log.Errorf("[RunAndWait] Recv command error: %v", err)
-					break
-				}
-				inCh <- RunAndWaitOptions.Cmd
+		if !opts.OpenStdin {
+			return
+		}
+		for {
+			RunAndWaitOptions, err := stream.Recv()
+			if RunAndWaitOptions == nil || err != nil {
+				log.Errorf("[RunAndWait] Recv command error: %v", err)
+				break
 			}
+			inCh <- RunAndWaitOptions.Cmd
 		}
 	}()
 
 	ids, ch, err := v.cluster.RunAndWait(ctx, deployOpts, inCh)
 	if err != nil {
-		return err
+		return grpcstatus.Error(RunAndWait, err.Error())
 	}
 
 	// send workload ids to client first
