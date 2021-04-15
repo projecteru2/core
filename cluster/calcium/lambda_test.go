@@ -53,11 +53,15 @@ func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
 	mstore := c.store.(*storemocks.Store)
 	mstore.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(fmt.Errorf("err")).Once()
 
-	ch, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
+	_, ch, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
 	assert.NoError(err)
 	assert.NotNil(ch)
 	assert.False(walCommitted)
-	m := <-ch
+	ms := []*types.AttachWorkloadMessage{}
+	for m := range ch {
+		ms = append(ms, m)
+	}
+	m := ms[0]
 	assert.Equal(m.WorkloadID, "")
 	assert.True(strings.HasPrefix(string(m.Data), "Create workload failed"))
 
@@ -105,20 +109,19 @@ func TestLambdaWithWorkloadIDReturned(t *testing.T) {
 	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(ioutil.NopCloser(r1), ioutil.NopCloser(r2), nil)
 	engine.On("VirtualizationWait", mock.Anything, mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationWaitResult{Code: 0}, nil)
 
-	ch, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
+	ids, ch, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
 	assert.NoError(err)
 	assert.NotNil(ch)
+	assert.Equal(len(ids), 2)
+	assert.Equal(ids[0], "workloadfortonictest")
 
 	ms := []*types.AttachWorkloadMessage{}
 	for m := range ch {
 		ms = append(ms, m)
 	}
-	assert.Equal(len(ms), 8)
-	assert.Equal(ms[0].WorkloadID, "workloadfortonictest")
-	assert.Equal(ms[0].Data, []byte(""))
-	assert.Equal(ms[0].StdStreamType, types.TypeWorkloadID)
-	assert.True(strings.HasPrefix(string(ms[7].Data), exitDataPrefix))
-	assert.Equal(ms[7].StdStreamType, types.Stdout)
+	assert.Equal(len(ms), 6)
+	assert.True(strings.HasPrefix(string(ms[5].Data), exitDataPrefix))
+	assert.Equal(ms[5].StdStreamType, types.Stdout)
 }
 
 func TestLambdaWithError(t *testing.T) {
@@ -143,7 +146,7 @@ func TestLambdaWithError(t *testing.T) {
 	}
 
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, fmt.Errorf("error")).Twice()
-	ch0, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
+	_, ch0, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
 	assert.NoError(err)
 	assert.NotNil(ch0)
 	m0 := <-ch0
@@ -154,7 +157,7 @@ func TestLambdaWithError(t *testing.T) {
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 
 	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(nil, nil, fmt.Errorf("error")).Twice()
-	ch1, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
+	_, ch1, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
 	assert.NoError(err)
 	assert.NotNil(ch1)
 	m1 := <-ch1
@@ -177,22 +180,20 @@ func TestLambdaWithError(t *testing.T) {
 	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(ioutil.NopCloser(r1), ioutil.NopCloser(r2), nil)
 
 	engine.On("VirtualizationWait", mock.Anything, mock.Anything, mock.Anything).Return(nil, fmt.Errorf("error"))
-	ch2, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
+	ids, ch2, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
 	assert.NoError(err)
 	assert.NotNil(ch2)
+	assert.Equal(ids[0], "workloadfortonictest")
+	assert.Equal(ids[1], "workloadfortonictest")
 
 	ms := []*types.AttachWorkloadMessage{}
 	for m := range ch2 {
 		ms = append(ms, m)
 	}
-	assert.Equal(len(ms), 8)
-	assert.Equal(ms[0].WorkloadID, "workloadfortonictest")
-	assert.Equal(ms[0].Data, []byte(""))
-	assert.Equal(ms[0].StdStreamType, types.TypeWorkloadID)
-
-	assert.Equal(ms[7].WorkloadID, "workloadfortonictest")
-	assert.True(strings.HasPrefix(string(ms[7].Data), "Wait workload"))
-	assert.Equal(ms[7].StdStreamType, types.EruError)
+	assert.Equal(len(ms), 6)
+	assert.Equal(ms[5].WorkloadID, "workloadfortonictest")
+	assert.True(strings.HasPrefix(string(ms[5].Data), "Wait workload"))
+	assert.Equal(ms[5].StdStreamType, types.EruError)
 }
 
 func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {

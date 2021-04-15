@@ -102,13 +102,7 @@ func TestRunAndWaitSync(t *testing.T) {
 	runAndWait := func(_ context.Context, _ *types.DeployOptions, _ <-chan []byte) <-chan *types.AttachWorkloadMessage {
 		ch := make(chan *types.AttachWorkloadMessage)
 		go func() {
-			// first message to report workload id
-			ch <- &types.AttachWorkloadMessage{
-				WorkloadID:    "workloadidfortonic",
-				Data:          []byte(""),
-				StdStreamType: types.TypeWorkloadID,
-			}
-			// second message to report output of process
+			// message to report output of process
 			ch <- &types.AttachWorkloadMessage{
 				WorkloadID:    "workloadidfortonic",
 				Data:          []byte("network not reachable"),
@@ -119,7 +113,7 @@ func TestRunAndWaitSync(t *testing.T) {
 		return ch
 	}
 	cluster := v.cluster.(*clustermock.Cluster)
-	cluster.On("RunAndWait", mock.Anything, mock.Anything, mock.Anything).Return(runAndWait, nil)
+	cluster.On("RunAndWait", mock.Anything, mock.Anything, mock.Anything).Return([]string{"workloadidfortonic"}, runAndWait, nil)
 
 	err := v.RunAndWait(stream)
 	assert.NoError(t, err)
@@ -167,13 +161,7 @@ func TestRunAndWaitAsync(t *testing.T) {
 	runAndWait := func(_ context.Context, _ *types.DeployOptions, _ <-chan []byte) <-chan *types.AttachWorkloadMessage {
 		ch := make(chan *types.AttachWorkloadMessage)
 		go func() {
-			// first message to report workload id
-			ch <- &types.AttachWorkloadMessage{
-				WorkloadID:    "workloadidfortonic",
-				Data:          []byte(""),
-				StdStreamType: types.TypeWorkloadID,
-			}
-			// second message to report output of process
+			// message to report output of process
 			ch <- &types.AttachWorkloadMessage{
 				WorkloadID:    "workloadidfortonic",
 				Data:          []byte("network not reachable"),
@@ -184,7 +172,7 @@ func TestRunAndWaitAsync(t *testing.T) {
 		return ch
 	}
 	cluster := v.cluster.(*clustermock.Cluster)
-	cluster.On("RunAndWait", mock.Anything, mock.Anything, mock.Anything).Return(runAndWait, nil)
+	cluster.On("RunAndWait", mock.Anything, mock.Anything, mock.Anything).Return([]string{"workloadidfortonic"}, runAndWait, nil)
 
 	err := v.RunAndWait(stream)
 	assert.NoError(t, err)
