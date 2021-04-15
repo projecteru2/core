@@ -65,7 +65,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			logger.Errorf("[RunAndWait] Create workload failed %+v", message.Error)
 			runMsgCh <- &types.AttachWorkloadMessage{
 				WorkloadID:    "",
-				Data:          []byte(fmt.Sprintf("Create workload failed %+v", message.Error)),
+				Data:          []byte(fmt.Sprintf("Create workload failed %+v", errors.Unwrap(message.Error))),
 				StdStreamType: types.EruError,
 			}
 			return
@@ -88,7 +88,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			logger.Errorf("[RunAndWait] Get workload failed %+v", err)
 			runMsgCh <- &types.AttachWorkloadMessage{
 				WorkloadID:    message.WorkloadID,
-				Data:          []byte(fmt.Sprintf("Get workload %s failed %+v", message.WorkloadID, err)),
+				Data:          []byte(fmt.Sprintf("Get workload %s failed %+v", message.WorkloadID, errors.Unwrap(err))),
 				StdStreamType: types.EruError,
 			}
 			return
@@ -107,7 +107,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			logger.Errorf("[RunAndWait] Can't fetch log of workload %s error %+v", message.WorkloadID, err)
 			runMsgCh <- &types.AttachWorkloadMessage{
 				WorkloadID:    message.WorkloadID,
-				Data:          []byte(fmt.Sprintf("Fetch log for workload %s failed %+v", message.WorkloadID, err)),
+				Data:          []byte(fmt.Sprintf("Fetch log for workload %s failed %+v", message.WorkloadID, errors.Unwrap(err))),
 				StdStreamType: types.EruError,
 			}
 			return
@@ -123,7 +123,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 				logger.Errorf("[RunAndWait] Can't attach workload %s error %+v", message.WorkloadID, err)
 				runMsgCh <- &types.AttachWorkloadMessage{
 					WorkloadID:    message.WorkloadID,
-					Data:          []byte(fmt.Sprintf("Attach to workload %s failed %+v", message.WorkloadID, err)),
+					Data:          []byte(fmt.Sprintf("Attach to workload %s failed %+v", message.WorkloadID, errors.Unwrap(err))),
 					StdStreamType: types.EruError,
 				}
 				return
@@ -150,7 +150,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			logger.Errorf("[RunAndWait] %s wait failed %+v", utils.ShortID(message.WorkloadID), err)
 			runMsgCh <- &types.AttachWorkloadMessage{
 				WorkloadID:    message.WorkloadID,
-				Data:          []byte(fmt.Sprintf("Wait workload %s failed %+v", message.WorkloadID, err)),
+				Data:          []byte(fmt.Sprintf("Wait workload %s failed %+v", message.WorkloadID, errors.Unwrap(err))),
 				StdStreamType: types.EruError,
 			}
 			return
