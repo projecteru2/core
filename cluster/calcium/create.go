@@ -402,8 +402,7 @@ func (c *Calcium) doMakeWorkloadOptions(no int, msg *types.CreateWorkloadMessage
 	msg.WorkloadName = config.Name
 	// command and user
 	// extra args is dynamically
-	slices := utils.MakeCommandLineArgs(fmt.Sprintf("%s %s", entry.Command, opts.ExtraArgs))
-	config.Cmd = slices
+	config.Cmd = opts.Entrypoint.Commands
 	// env
 	env := append(opts.Env, fmt.Sprintf("APP_NAME=%s", opts.Name))
 	env = append(env, fmt.Sprintf("ERU_POD=%s", opts.Podname))

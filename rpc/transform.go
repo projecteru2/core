@@ -3,6 +3,7 @@ package rpc
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -237,12 +238,16 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 	entrypoint := d.Entrypoint
 	entry := &types.Entrypoint{
 		Name:       entrypoint.Name,
-		Command:    entrypoint.Command,
+		Commands:   utils.MakeCommandLineArgs(fmt.Sprintf("%s %s", d.Entrypoint.Command, d.ExtraArgs)),
 		Privileged: entrypoint.Privileged,
 		Dir:        entrypoint.Dir,
 		Publish:    entrypoint.Publish,
 		Restart:    entrypoint.Restart,
 		Sysctls:    entrypoint.Sysctls,
+	}
+
+	if len(d.Entrypoint.Commands) > 0 {
+		entry.Commands = d.Entrypoint.Commands
 	}
 
 	if entrypoint.Log != nil && entrypoint.Log.Type != "" {

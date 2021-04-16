@@ -24,7 +24,7 @@ type HealthCheck struct {
 // Entrypoint is a single entrypoint
 type Entrypoint struct {
 	Name        string            `yaml:"name,omitempty"`
-	Command     string            `yaml:"cmd,omitempty"`
+	Commands    []string          `yaml:"commands,omitempty"`
 	Privileged  bool              `yaml:"privileged,omitempty"`
 	Dir         string            `yaml:"dir,omitempty"`
 	Log         *LogConfig        `yaml:"log,omitempty"`

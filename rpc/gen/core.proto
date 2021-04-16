@@ -389,6 +389,7 @@ message LogOptions {
 
 message EntrypointOptions {
     string name = 1;
+    // `command` field is to be deprecated in favor of `commands` field
     string command = 2;
     bool privileged = 3;
     string dir = 4;
@@ -398,6 +399,10 @@ message EntrypointOptions {
     HookOptions hook = 8;
     string restart = 9;
     map<string, string> sysctls = 10;
+    // `commands` is the new-style and preferable fields to specify process to run
+    // to specify shell-like command such as `true && echo a > /dev/null`
+    // please state the shell explicitly: ["sh", "-c", "true && echo a > /dev/null"]
+    repeated string commands = 11;
 }
 
 message ResourceOptions {
