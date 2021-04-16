@@ -826,7 +826,6 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		// force mark stdin to false
 		opts.OpenStdin = false
 	}
-	defer cancel()
 
 	v.taskAdd("RunAndWait", true)
 
@@ -848,6 +847,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 
 	ids, ch, err := v.cluster.RunAndWait(ctx, deployOpts, inCh)
 	if err != nil {
+		cancel()
 		return grpcstatus.Error(RunAndWait, err.Error())
 	}
 
@@ -865,6 +865,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	// then deal with the rest messages
 	runAndWait := func(f func(<-chan *types.AttachWorkloadMessage)) {
 		defer v.taskDone("RunAndWait", true)
+		defer cancel()
 		f(ch)
 	}
 
