@@ -847,6 +847,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 
 	ids, ch, err := v.cluster.RunAndWait(ctx, deployOpts, inCh)
 	if err != nil {
+		cancel()
 		return grpcstatus.Error(RunAndWait, err.Error())
 	}
 
