@@ -169,7 +169,7 @@ func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, reso
 	default:
 		return types.ErrUnknownControlType
 	}
-	go metrics.Client.SendNodeInfo(node)
+	go metrics.Client.SendNodeInfo(node.Metrics())
 	return m.UpdateNodes(ctx, node)
 }
 
@@ -251,7 +251,7 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 		return nil, err
 	}
 
-	go metrics.Client.SendNodeInfo(node)
+	go metrics.Client.SendNodeInfo(node.Metrics())
 	return node, nil
 }
 

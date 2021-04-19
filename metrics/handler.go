@@ -19,7 +19,7 @@ func (m *Metrics) ResourceMiddleware(cluster cluster.Cluster) func(http.Handler)
 				log.Errorf("[ResourceMiddleware] Get all nodes err %v", err)
 			}
 			for _, node := range nodes {
-				m.SendNodeInfo(node)
+				m.SendNodeInfo(node.Metrics())
 			}
 			h.ServeHTTP(w, r)
 		})

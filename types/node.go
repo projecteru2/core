@@ -2,7 +2,6 @@ package types
 
 import (
 	"context"
-
 	"math"
 
 	"github.com/pkg/errors"
@@ -187,6 +186,36 @@ func (n *Node) PreserveResources(resource *ResourceMeta) {
 	n.StorageCap -= resource.StorageRequest
 	if resource.NUMANode != "" {
 		n.DecrNUMANodeMemory(resource.NUMANode, resource.MemoryRequest)
+	}
+}
+
+// NodeMetrics used for metrics collecting
+type NodeMetrics struct {
+	Name        string
+	Podname     string
+	Memory      float64
+	MemoryUsed  float64
+	Storage     float64
+	StorageUsed float64
+	CPUUsed     float64
+	CPU         CPUMap
+}
+
+// Metrics reports metrics value
+func (n *Node) Metrics() *NodeMetrics {
+	nc := CPUMap{}
+	for k, v := range n.CPU {
+		nc[k] = v
+	}
+	return &NodeMetrics{
+		Name:        n.Name,
+		Podname:     n.Podname,
+		Memory:      float64(n.MemCap),
+		MemoryUsed:  float64(n.InitMemCap - n.MemCap),
+		Storage:     float64(n.StorageCap),
+		StorageUsed: float64(n.InitStorageCap - n.StorageCap),
+		CPUUsed:     n.CPUUsed,
+		CPU:         nc,
 	}
 }
 

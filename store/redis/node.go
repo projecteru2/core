@@ -166,7 +166,7 @@ func (r *Rediaron) UpdateNodeResource(ctx context.Context, node *types.Node, res
 	default:
 		return types.ErrUnknownControlType
 	}
-	go metrics.Client.SendNodeInfo(node)
+	go metrics.Client.SendNodeInfo(node.Metrics())
 	return r.UpdateNodes(ctx, node)
 }
 
@@ -249,7 +249,7 @@ func (r *Rediaron) doAddNode(ctx context.Context, name, endpoint, podname, ca, c
 		return nil, err
 	}
 
-	go metrics.Client.SendNodeInfo(node)
+	go metrics.Client.SendNodeInfo(node.Metrics())
 	return node, nil
 }
 
