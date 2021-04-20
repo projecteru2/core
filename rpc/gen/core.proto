@@ -446,7 +446,7 @@ message DeployOptions {
     string name = 1;
     EntrypointOptions entrypoint = 2;
     string podname = 3;
-    // repeated string nodenames = 4;  DEPRECATED
+    repeated string nodenames = 4;
     string image = 5;
     string extra_args = 6;
     int32 count = 7;
@@ -458,7 +458,7 @@ message DeployOptions {
     bool debug = 14;
     bool open_stdin = 15;
     map<string, string> labels = 16;
-    // map<string, string> nodelabels = 17;  DEPRECATED
+    map<string, string> nodelabels = 17;
     Strategy deploy_strategy = 18;
     map<string, bytes> data = 19;
     int32 nodes_limit = 20;
