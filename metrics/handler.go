@@ -14,20 +14,12 @@ func (m *Metrics) ResourceMiddleware(cluster cluster.Cluster) func(http.Handler)
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx, cancel := context.WithTimeout(context.Background(), m.Config.GlobalTimeout)
 			defer cancel()
-			pods, err := cluster.ListPods(ctx)
+			nodes, err := cluster.ListPodNodes(ctx, "", nil, true)
 			if err != nil {
-				log.Errorf("[ResourceMiddleware] List pods err %v", err)
-				// Nothing to do here, pods will be nil
+				log.Errorf("[ResourceMiddleware] Get all nodes err %v", err)
 			}
-			for _, pod := range pods {
-				nodes, err := cluster.ListPodNodes(ctx, pod.Name, nil, true)
-				if err != nil {
-					log.Errorf("[ResourceMiddleware] List pod %s nodes err %v", pod.Name, err)
-					continue
-				}
-				for _, node := range nodes {
-					m.SendNodeInfo(node)
-				}
+			for _, node := range nodes {
+				m.SendNodeInfo(node)
 			}
 			h.ServeHTTP(w, r)
 		})
