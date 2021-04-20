@@ -290,7 +290,9 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 	}
 
 	nf := types.NodeFilter{
-		Podname: d.Podname,
+		Podname:  d.Podname,
+		Includes: d.Nodenames,
+		Labels:   d.Nodelabels,
 	}
 	if d.NodeFilter != nil {
 		nf.Includes = d.NodeFilter.Includes
