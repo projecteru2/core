@@ -1,8 +1,6 @@
 package servicediscovery
 
 import (
-	"github.com/projecteru2/core/log"
-
 	"google.golang.org/grpc/resolver"
 )
 
@@ -22,7 +20,6 @@ func newLBResolver(cc resolver.ClientConn, endpoint string, updateCh <-chan []st
 }
 
 func (r *lbResolver) updateAddresses(endpoints ...string) {
-	log.Debugf("[lbResolver] update state: %v", endpoints)
 	addresses := []resolver.Address{}
 	for _, ep := range endpoints {
 		addresses = append(addresses, resolver.Address{Addr: ep})
