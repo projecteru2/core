@@ -65,7 +65,6 @@ func (r *Resolver) sync() {
 			}
 
 			var addresses []resolver.Address
-			log.Debugf("[EruResolver] update state: %v", endpoints)
 			for _, ep := range endpoints {
 				addresses = append(addresses, resolver.Address{Addr: ep})
 			}

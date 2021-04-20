@@ -8,6 +8,7 @@ import (
 
 	"github.com/projecteru2/core/auth"
 	"github.com/projecteru2/core/client/interceptor"
+	"github.com/projecteru2/core/client/utils"
 	"github.com/projecteru2/core/log"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
@@ -37,6 +38,9 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 	}
 	client := pb.NewCoreRPCClient(cc)
 	ch := make(chan []string)
+	epPusher := utils.NewEndpointPusher()
+	epPusher.Register(ch)
+	epPusher.Register(lbResolverBuilder.updateCh)
 	go func() {
 		defer close(ch)
 		for {
@@ -68,8 +72,8 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 					break
 				}
 				expectedInterval = time.Duration(status.GetIntervalInSecond())
-				lbResolverBuilder.updateCh <- status.GetAddresses()
-				ch <- status.GetAddresses()
+
+				epPusher.Push(status.GetAddresses())
 			}
 		}
 	}()
