@@ -72,15 +72,14 @@ func (m *Metrics) count(key string, n int, rate float32) error {
 }
 
 // SendNodeInfo update node resource capacity
-func (m *Metrics) SendNodeInfo(node *types.Node) {
-	nodename := node.Name
-	podname := node.Podname
-
-	memory := float64(node.MemCap)
-	memoryUsed := float64(node.InitMemCap - node.MemCap)
-	storage := float64(node.StorageCap)
-	storageUsed := float64(node.InitStorageCap - node.StorageCap)
-	cpuUsed := node.CPUUsed
+func (m *Metrics) SendNodeInfo(nm *types.NodeMetrics) {
+	nodename := nm.Name
+	podname := nm.Podname
+	memory := nm.Memory
+	memoryUsed := nm.MemoryUsed
+	storage := nm.Storage
+	storageUsed := nm.StorageUsed
+	cpuUsed := nm.CPUUsed
 
 	if m.MemoryCapacity != nil {
 		m.MemoryCapacity.WithLabelValues(podname, nodename).Set(memory)
@@ -103,7 +102,7 @@ func (m *Metrics) SendNodeInfo(node *types.Node) {
 	}
 
 	cleanedNodeName := utils.CleanStatsdMetrics(nodename)
-	for cpuid, value := range node.CPU {
+	for cpuid, value := range nm.CPU {
 		val := float64(value)
 
 		if m.CPUMap != nil {
