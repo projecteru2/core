@@ -24,7 +24,7 @@ func NewGoroutinePool(max int) *GoroutinePool {
 
 // Go spawns new goroutine, but may block due to max number limit
 func (p *GoroutinePool) Go(ctx context.Context, f func()) {
-	if err := p.sem.Acquire(ctx, 1); err != nil {
+	if err := p.sem.Acquire(context.TODO(), 1); err != nil {
 		log.Errorf("[GoroutinePool] Go acquire failed %v", err)
 		return
 	}
@@ -36,7 +36,7 @@ func (p *GoroutinePool) Go(ctx context.Context, f func()) {
 
 // Wait is equivalent to sync.WaitGroup.Wait()
 func (p *GoroutinePool) Wait(ctx context.Context) {
-	if err := p.sem.Acquire(ctx, p.max); err != nil {
+	if err := p.sem.Acquire(context.TODO(), p.max); err != nil {
 		log.Errorf("[GoroutinePool] Wait acquire failed %v", err)
 	}
 }
