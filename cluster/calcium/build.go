@@ -13,6 +13,7 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 // BuildImage will build image
@@ -102,7 +103,9 @@ func (c *Calcium) buildFromExist(ctx context.Context, ref, existID string) (chan
 			ch <- buildErrMsg(logger.Err(err))
 			return
 		}
-		go cleanupNodeImages(node, []string{imageID}, c.config.GlobalTimeout)
+		utils.SentryGo(func() {
+			cleanupNodeImages(node, []string{imageID}, c.config.GlobalTimeout)
+		})
 		ch <- &types.BuildImageMessage{ID: imageID}
 	}), nil
 }
@@ -159,17 +162,19 @@ func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types
 			// 一样就砍死
 			ch <- &types.BuildImageMessage{Stream: fmt.Sprintf("finished %s\n", tag), Status: "finished", Progress: tag}
 		}
-		go cleanupNodeImages(node, tags, c.config.GlobalTimeout)
+		utils.SentryGo(func() {
+			cleanupNodeImages(node, tags, c.config.GlobalTimeout)
+		})
 	}), nil
 
 }
 
 func withImageBuiltChannel(f func(chan *types.BuildImageMessage)) chan *types.BuildImageMessage {
 	ch := make(chan *types.BuildImageMessage)
-	go func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		f(ch)
-	}()
+	})
 	return ch
 }
 

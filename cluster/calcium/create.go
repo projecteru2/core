@@ -52,7 +52,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		rollbackMap map[string][]int
 	)
 
-	go func() {
+	utils.SentryGo(func() {
 		defer func() {
 			cctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
 			for nodename := range deployMap {
@@ -122,7 +122,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 			c.config.GlobalTimeout,
 		)
-	}()
+	})
 
 	return ch
 }
@@ -134,14 +134,21 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateWo
 	seq := 0
 	rollbackMap := make(map[string][]int)
 	for nodename, deploy := range deployMap {
-		go metrics.Client.SendDeployCount(deploy)
-		go func(nodename string, deploy, seq int) {
-			defer wg.Done()
-			if indices, e := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, plans, seq); e != nil {
-				err = e
-				rollbackMap[nodename] = indices
+		utils.SentryGo(func(deploy int) func() {
+			return func() {
+				metrics.Client.SendDeployCount(deploy)
 			}
-		}(nodename, deploy, seq)
+		}(deploy))
+		utils.SentryGo(func(nodename string, deploy, seq int) func() {
+			return func() {
+				defer wg.Done()
+				if indices, e := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, plans, seq); e != nil {
+					err = e
+					rollbackMap[nodename] = indices
+				}
+			}
+		}(nodename, deploy, seq))
+
 		seq += deploy
 	}
 

@@ -172,10 +172,14 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		// iterate over messages to store workload ids
 		workloadIDs = append(workloadIDs, message.WorkloadID)
 		wg.Add(1)
-		go lambda(message)
+		utils.SentryGo(func(msg *types.CreateWorkloadMessage) func() {
+			return func() {
+				lambda(msg)
+			}
+		}(message))
 	}
 
-	go func() {
+	utils.SentryGo(func() {
 		defer close(runMsgCh)
 		wg.Wait()
 		if err := commit(); err != nil {
@@ -183,7 +187,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		}
 
 		log.Info("[RunAndWait] Finish run and wait for workloads")
-	}()
+	})
 
 	return workloadIDs, runMsgCh, nil
 }

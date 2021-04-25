@@ -8,6 +8,7 @@ import (
 	"github.com/getsentry/sentry-go"
 )
 
+// SentryGo wraps goroutine spawn to capture panic
 func SentryGo(f func()) {
 	go func() {
 		defer func() {

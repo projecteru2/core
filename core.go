@@ -100,19 +100,19 @@ func serve(c *cli.Context) error {
 
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterCoreRPCServer(grpcServer, vibranium)
-	go func() {
+	utils.SentryGo(func() {
 		if err := grpcServer.Serve(s); err != nil {
 			log.Errorf("[main] start grpc failed %v", err)
 		}
-	}()
+	})
 
 	if config.Profile != "" {
 		http.Handle("/metrics", metrics.Client.ResourceMiddleware(cluster)(promhttp.Handler()))
-		go func() {
+		utils.SentryGo(func() {
 			if err := http.ListenAndServe(config.Profile, nil); err != nil {
 				log.Errorf("[main] start http failed %v", err)
 			}
-		}()
+		})
 	}
 
 	unregisterService, err := cluster.RegisterService(c.Context)
