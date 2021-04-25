@@ -28,10 +28,10 @@ func (p *GoroutinePool) Go(ctx context.Context, f func()) {
 		log.Errorf("[GoroutinePool] Go acquire failed %v", err)
 		return
 	}
-	go func() {
+	SentryGo(func() {
 		defer p.sem.Release(1)
 		f()
-	}()
+	})
 }
 
 // Wait is equivalent to sync.WaitGroup.Wait()
