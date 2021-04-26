@@ -89,21 +89,31 @@ func TestNewCluster(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		config.Git.SCMType = "gitlab"
-		config.WALFile = "/tmp/b"
-		c, err := New(config, true)
+		config1 := types.Config{
+			WALFile: "/tmp/b",
+			Git: types.GitConfig{
+				SCMType:    "gitlab",
+				PrivateKey: privFile.Name(),
+			},
+		}
+		c1, err := New(config1, true)
 		assert.NoError(t, err)
-		c.Finalizer()
+		c1.Finalizer()
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		config.WALFile = "/tmp/c"
-		config.Git.SCMType = "github"
-		c, err := New(config, true)
+		config2 := types.Config{
+			WALFile: "/tmp/c",
+			Git: types.GitConfig{
+				SCMType:    "github",
+				PrivateKey: privFile.Name(),
+			},
+		}
+		c2, err := New(config2, true)
 		assert.NoError(t, err)
-		c.Finalizer()
+		c2.Finalizer()
 	}()
 
 	wg.Wait()

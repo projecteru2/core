@@ -6,9 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/boltdb/bolt"
-
 	"github.com/projecteru2/core/types"
+	"go.etcd.io/bbolt"
 )
 
 // Lithium .
@@ -18,7 +17,7 @@ type Lithium struct {
 	// Name of the root bucket.
 	RootBucketKey []byte
 
-	bolt    *bolt.DB
+	bolt    *bbolt.DB
 	path    string
 	mode    os.FileMode
 	timeout time.Duration
@@ -56,11 +55,11 @@ func (l *Lithium) Open(path string, mode os.FileMode, timeout time.Duration) (er
 }
 
 func (l *Lithium) open() (err error) {
-	if l.bolt, err = bolt.Open(l.path, l.mode, &bolt.Options{Timeout: l.timeout}); err != nil {
+	if l.bolt, err = bbolt.Open(l.path, l.mode, &bbolt.Options{Timeout: l.timeout}); err != nil {
 		return
 	}
 
-	err = l.bolt.Update(func(tx *bolt.Tx) error {
+	err = l.bolt.Update(func(tx *bbolt.Tx) error {
 		_, ce := tx.CreateBucketIfNotExists(l.RootBucketKey)
 		return ce
 	})
@@ -81,14 +80,14 @@ func (l *Lithium) close() error {
 
 // Put creates/updates a key/value pair.
 func (l *Lithium) Put(key []byte, value []byte) (err error) {
-	return l.update(func(bkt *bolt.Bucket) error {
+	return l.update(func(bkt *bbolt.Bucket) error {
 		return bkt.Put(key, value)
 	})
 }
 
 // Get read a key's value.
 func (l *Lithium) Get(key []byte) (dst []byte, err error) {
-	err = l.view(func(bkt *bolt.Bucket) error {
+	err = l.view(func(bkt *bbolt.Bucket) error {
 		src := bkt.Get(key)
 		dst = make([]byte, len(src))
 
@@ -104,7 +103,7 @@ func (l *Lithium) Get(key []byte) (dst []byte, err error) {
 
 // Delete deletes a key.
 func (l *Lithium) Delete(key []byte) error {
-	return l.update(func(bkt *bolt.Bucket) error {
+	return l.update(func(bkt *bbolt.Bucket) error {
 		return bkt.Delete(key)
 	})
 }
@@ -124,7 +123,7 @@ func (l *Lithium) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 
 		close(locked)
 
-		scan := func(bkt *bolt.Bucket) error {
+		scan := func(bkt *bbolt.Bucket) error {
 			c := bkt.Cursor()
 			for key, value := c.First(); key != nil && bytes.HasPrefix(key, prefix); key, value = c.Next() {
 				select {
@@ -153,7 +152,7 @@ func (l *Lithium) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 // NextSequence generates a new sequence.
 func (l *Lithium) NextSequence() (uint64, error) {
 	var seq uint64
-	err := l.update(func(bkt *bolt.Bucket) (ue error) {
+	err := l.update(func(bkt *bbolt.Bucket) (ue error) {
 		seq, ue = bkt.NextSequence()
 		return
 	})
@@ -161,8 +160,8 @@ func (l *Lithium) NextSequence() (uint64, error) {
 	return seq, err
 }
 
-func (l *Lithium) view(fn func(*bolt.Bucket) error) error {
-	return l.bolt.Update(func(tx *bolt.Tx) error {
+func (l *Lithium) view(fn func(*bbolt.Bucket) error) error {
+	return l.bolt.Update(func(tx *bbolt.Tx) error {
 		bkt, err := l.getBucket(tx, l.RootBucketKey)
 		if err != nil {
 			return err
@@ -171,8 +170,8 @@ func (l *Lithium) view(fn func(*bolt.Bucket) error) error {
 	})
 }
 
-func (l *Lithium) update(fn func(*bolt.Bucket) error) error {
-	return l.bolt.Update(func(tx *bolt.Tx) error {
+func (l *Lithium) update(fn func(*bbolt.Bucket) error) error {
+	return l.bolt.Update(func(tx *bbolt.Tx) error {
 		bkt, err := l.getBucket(tx, l.RootBucketKey)
 		if err != nil {
 			return err
@@ -181,7 +180,7 @@ func (l *Lithium) update(fn func(*bolt.Bucket) error) error {
 	})
 }
 
-func (l *Lithium) getBucket(tx *bolt.Tx, key []byte) (bkt *bolt.Bucket, err error) {
+func (l *Lithium) getBucket(tx *bbolt.Tx, key []byte) (bkt *bbolt.Bucket, err error) {
 	bkt = tx.Bucket(l.RootBucketKey)
 	if bkt == nil {
 		err = types.NewDetailedErr(types.ErrInvalidWALBucket, key)

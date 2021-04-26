@@ -7,7 +7,6 @@ require (
 	github.com/Microsoft/hcsshim v0.8.11 // indirect
 	github.com/alexcesaro/statsd v2.0.0+incompatible // indirect
 	github.com/alicebob/miniredis/v2 v2.14.3
-	github.com/boltdb/bolt v1.3.1
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/containerd/containerd v1.4.3 // indirect
 	github.com/containerd/continuity v0.0.0-20200710164510-efbc4488d8fe // indirect
@@ -42,6 +41,7 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli/v2 v2.2.0
+	go.etcd.io/bbolt v1.3.5
 	go.etcd.io/etcd/v3 v3.3.0-rc.0.0.20200925060232-add86bbd1a7a
 	go.uber.org/automaxprocs v1.3.0
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
