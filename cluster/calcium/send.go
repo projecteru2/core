@@ -10,6 +10,7 @@ import (
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 // Send send files to workload
@@ -19,28 +20,32 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 		return nil, logger.Err(errors.WithStack(err))
 	}
 	ch := make(chan *types.SendMessage)
-	go func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		wg := &sync.WaitGroup{}
 
 		for _, id := range opts.IDs {
 			log.Infof("[Send] Send files to %s", id)
 			wg.Add(1)
-			go func(id string) {
-				defer wg.Done()
-				if err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
-					for dst, content := range opts.Data {
-						err := c.doSendFileToWorkload(ctx, workload.Engine, workload.ID, dst, bytes.NewBuffer(content), true, true)
-						ch <- &types.SendMessage{ID: id, Path: dst, Error: logger.Err(err)}
+			utils.SentryGo(func(id string) func() {
+				return func() {
+
+					defer wg.Done()
+					if err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
+						for dst, content := range opts.Data {
+							err := c.doSendFileToWorkload(ctx, workload.Engine, workload.ID, dst, bytes.NewBuffer(content), true, true)
+							ch <- &types.SendMessage{ID: id, Path: dst, Error: logger.Err(err)}
+						}
+						return nil
+					}); err != nil {
+						ch <- &types.SendMessage{ID: id, Error: logger.Err(err)}
 					}
-					return nil
-				}); err != nil {
-					ch <- &types.SendMessage{ID: id, Error: logger.Err(err)}
 				}
-			}(id)
+			}(id))
+
 		}
 		wg.Wait()
-	}()
+	})
 	return ch, nil
 }
 

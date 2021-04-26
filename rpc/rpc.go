@@ -14,6 +14,7 @@ import (
 	"github.com/projecteru2/core/log"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/version"
 	"golang.org/x/net/context"
 	grpcstatus "google.golang.org/grpc/status"
@@ -424,29 +425,31 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 		}
 
 		r, w := io.Pipe()
-		go func() {
-			var err error
-			defer func() {
-				w.CloseWithError(err) // nolint
-			}()
-			defer m.Data.Close()
+		utils.SentryGo(func(m *types.CopyMessage) func() {
+			return func() {
+				var err error
+				defer func() {
+					w.CloseWithError(err) // nolint
+				}()
+				defer m.Data.Close()
 
-			var bs []byte
-			tw := tar.NewWriter(w)
-			if bs, err = ioutil.ReadAll(m.Data); err != nil {
-				log.Errorf("[Copy] Error during extracting copy data: %v", err)
-				return
+				var bs []byte
+				tw := tar.NewWriter(w)
+				if bs, err = ioutil.ReadAll(m.Data); err != nil {
+					log.Errorf("[Copy] Error during extracting copy data: %v", err)
+					return
+				}
+				header := &tar.Header{Name: m.Name, Mode: 0644, Size: int64(len(bs))}
+				if err = tw.WriteHeader(header); err != nil {
+					log.Errorf("[Copy] Error during writing tarball header: %v", err)
+					return
+				}
+				if _, err = tw.Write(bs); err != nil {
+					log.Errorf("[Copy] Error during writing tarball content: %v", err)
+					return
+				}
 			}
-			header := &tar.Header{Name: m.Name, Mode: 0644, Size: int64(len(bs))}
-			if err = tw.WriteHeader(header); err != nil {
-				log.Errorf("[Copy] Error during writing tarball header: %v", err)
-				return
-			}
-			if _, err = tw.Write(bs); err != nil {
-				log.Errorf("[Copy] Error during writing tarball content: %v", err)
-				return
-			}
-		}()
+		}(m))
 
 		for {
 			n, err := r.Read(p)
@@ -697,7 +700,7 @@ func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) err
 	}
 
 	inCh := make(chan []byte)
-	go func() {
+	utils.SentryGo(func() {
 		defer close(inCh)
 		if opts.OpenStdin {
 			for {
@@ -709,7 +712,7 @@ func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) err
 				inCh <- execWorkloadOpt.ReplCmd
 			}
 		}
-	}()
+	})
 
 	for m := range v.cluster.ExecuteWorkload(stream.Context(), executeWorkloadOpts, inCh) {
 		if err = stream.Send(toRPCAttachWorkloadMessage(m)); err != nil {
@@ -830,7 +833,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	v.taskAdd("RunAndWait", true)
 
 	inCh := make(chan []byte)
-	go func() {
+	utils.SentryGo(func() {
 		defer close(inCh)
 		if !opts.OpenStdin {
 			return
@@ -843,7 +846,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 			}
 			inCh <- RunAndWaitOptions.Cmd
 		}
-	}()
+	})
 
 	ids, ch, err := v.cluster.RunAndWait(ctx, deployOpts, inCh)
 	if err != nil {
@@ -880,17 +883,17 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		return nil
 	}
 
-	go func() {
+	utils.SentryGo(func() {
 		runAndWait(func(ch <-chan *types.AttachWorkloadMessage) {
 			r, w := io.Pipe()
-			go func() {
+			utils.SentryGo(func() {
 				defer w.Close()
 				for m := range ch {
 					if _, err := w.Write(m.Data); err != nil {
 						log.Errorf("[Async RunAndWait] iterate and forward AttachWorkloadMessage error: %v", err)
 					}
 				}
-			}()
+			})
 			bufReader := bufio.NewReader(r)
 			for {
 				var (
@@ -913,7 +916,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 				log.Infof("[Async RunAndWait] %s", line)
 			}
 		})
-	}()
+	})
 	return nil
 }
 

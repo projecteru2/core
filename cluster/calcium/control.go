@@ -17,48 +17,50 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 	logger := log.WithField("Calcium", "ControlWorkload").WithField("ids", ids).WithField("t", t).WithField("force", force)
 	ch := make(chan *types.ControlWorkloadMessage)
 
-	go func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
 		for _, id := range ids {
 			wg.Add(1)
-			go func(id string) {
-				defer wg.Done()
-				var message []*bytes.Buffer
-				err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
-					var err error
-					switch t {
-					case cluster.WorkloadStop:
-						message, err = c.doStopWorkload(ctx, workload, force)
-						return err
-					case cluster.WorkloadStart:
-						message, err = c.doStartWorkload(ctx, workload, force)
-						return err
-					case cluster.WorkloadRestart:
-						message, err = c.doStopWorkload(ctx, workload, force)
-						if err != nil {
+			utils.SentryGo(func(id string) func() {
+				return func() {
+					defer wg.Done()
+					var message []*bytes.Buffer
+					err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
+						var err error
+						switch t {
+						case cluster.WorkloadStop:
+							message, err = c.doStopWorkload(ctx, workload, force)
+							return err
+						case cluster.WorkloadStart:
+							message, err = c.doStartWorkload(ctx, workload, force)
+							return err
+						case cluster.WorkloadRestart:
+							message, err = c.doStopWorkload(ctx, workload, force)
+							if err != nil {
+								return err
+							}
+							startHook, err := c.doStartWorkload(ctx, workload, force)
+							message = append(message, startHook...)
 							return err
 						}
-						startHook, err := c.doStartWorkload(ctx, workload, force)
-						message = append(message, startHook...)
-						return err
+						return errors.WithStack(types.ErrUnknownControlType)
+					})
+					if err == nil {
+						log.Infof("[ControlWorkload] Workload %s %s", id, t)
+						log.Info("[ControlWorkload] Hook Output:")
+						log.Info(string(utils.MergeHookOutputs(message)))
 					}
-					return errors.WithStack(types.ErrUnknownControlType)
-				})
-				if err == nil {
-					log.Infof("[ControlWorkload] Workload %s %s", id, t)
-					log.Info("[ControlWorkload] Hook Output:")
-					log.Info(string(utils.MergeHookOutputs(message)))
+					ch <- &types.ControlWorkloadMessage{
+						WorkloadID: id,
+						Error:      logger.Err(err),
+						Hook:       message,
+					}
 				}
-				ch <- &types.ControlWorkloadMessage{
-					WorkloadID: id,
-					Error:      logger.Err(err),
-					Hook:       message,
-				}
-			}(id)
+			}(id))
 		}
 		wg.Wait()
-	}()
+	})
 
 	return ch, nil
 }

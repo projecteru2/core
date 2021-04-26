@@ -37,73 +37,76 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 		}
 	}
 	ch := make(chan *types.ReplaceWorkloadMessage)
-	go func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		// 并发控制
 		wg := sync.WaitGroup{}
 		defer wg.Wait()
 		for index, id := range opts.IDs {
 			wg.Add(1)
-			go func(replaceOpts types.ReplaceOptions, index int, id string) {
-				defer wg.Done()
-				var createMessage *types.CreateWorkloadMessage
-				removeMessage := &types.RemoveWorkloadMessage{WorkloadID: id}
-				var err error
-				if err = c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
-					if opts.Podname != "" && workload.Podname != opts.Podname {
-						log.Warnf("[ReplaceWorkload] Skip not in pod workload %s", workload.ID)
-						return errors.WithStack(types.NewDetailedErr(types.ErrIgnoreWorkload,
-							fmt.Sprintf("workload %s not in pod %s", workload.ID, opts.Podname),
-						))
-					}
-					// 使用复制之后的配置
-					// 停老的，起新的
-					replaceOpts.ResourceOpts = types.ResourceOptions{
-						CPUQuotaRequest: workload.CPUQuotaRequest,
-						CPUQuotaLimit:   workload.CPUQuotaLimit,
-						CPUBind:         len(workload.CPU) > 0,
-						MemoryRequest:   workload.MemoryRequest,
-						MemoryLimit:     workload.MemoryLimit,
-						StorageRequest:  workload.StorageRequest,
-						StorageLimit:    workload.StorageLimit,
-						VolumeRequest:   workload.VolumeRequest,
-						VolumeLimit:     workload.VolumeLimit,
-					}
-					// 覆盖 podname 如果做全量更新的话
-					replaceOpts.Podname = workload.Podname
-					// 覆盖 Volumes
-					// 继承网络配置
-					if replaceOpts.NetworkInherit {
-						info, err := workload.Inspect(ctx)
-						if err != nil {
+			utils.SentryGo(
+				func(replaceOpts types.ReplaceOptions, index int, id string) func() {
+					return func() {
+						defer wg.Done()
+						var createMessage *types.CreateWorkloadMessage
+						removeMessage := &types.RemoveWorkloadMessage{WorkloadID: id}
+						var err error
+						if err = c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
+							if opts.Podname != "" && workload.Podname != opts.Podname {
+								log.Warnf("[ReplaceWorkload] Skip not in pod workload %s", workload.ID)
+								return errors.WithStack(types.NewDetailedErr(types.ErrIgnoreWorkload,
+									fmt.Sprintf("workload %s not in pod %s", workload.ID, opts.Podname),
+								))
+							}
+							// 使用复制之后的配置
+							// 停老的，起新的
+							replaceOpts.ResourceOpts = types.ResourceOptions{
+								CPUQuotaRequest: workload.CPUQuotaRequest,
+								CPUQuotaLimit:   workload.CPUQuotaLimit,
+								CPUBind:         len(workload.CPU) > 0,
+								MemoryRequest:   workload.MemoryRequest,
+								MemoryLimit:     workload.MemoryLimit,
+								StorageRequest:  workload.StorageRequest,
+								StorageLimit:    workload.StorageLimit,
+								VolumeRequest:   workload.VolumeRequest,
+								VolumeLimit:     workload.VolumeLimit,
+							}
+							// 覆盖 podname 如果做全量更新的话
+							replaceOpts.Podname = workload.Podname
+							// 覆盖 Volumes
+							// 继承网络配置
+							if replaceOpts.NetworkInherit {
+								info, err := workload.Inspect(ctx)
+								if err != nil {
+									return err
+								} else if !info.Running {
+									return errors.WithStack(types.NewDetailedErr(types.ErrNotSupport,
+										fmt.Sprintf("workload %s is not running, can not inherit", workload.ID),
+									))
+								}
+								replaceOpts.Networks = info.Networks
+								log.Infof("[ReplaceWorkload] Inherit old workload network configuration mode %v", replaceOpts.Networks)
+							}
+							createMessage, removeMessage, err = c.doReplaceWorkload(ctx, workload, &replaceOpts, index)
 							return err
-						} else if !info.Running {
-							return errors.WithStack(types.NewDetailedErr(types.ErrNotSupport,
-								fmt.Sprintf("workload %s is not running, can not inherit", workload.ID),
-							))
+						}); err != nil {
+							if errors.Is(err, types.ErrIgnoreWorkload) {
+								log.Warnf("[ReplaceWorkload] ignore workload: %v", err)
+								return
+							}
+							logger.Errorf("[ReplaceWorkload] Replace and remove failed %+v, old workload restarted", err)
+						} else {
+							log.Infof("[ReplaceWorkload] Replace and remove success %s", id)
+							log.Infof("[ReplaceWorkload] New workload %s", createMessage.WorkloadID)
 						}
-						replaceOpts.Networks = info.Networks
-						log.Infof("[ReplaceWorkload] Inherit old workload network configuration mode %v", replaceOpts.Networks)
+						ch <- &types.ReplaceWorkloadMessage{Create: createMessage, Remove: removeMessage, Error: err}
 					}
-					createMessage, removeMessage, err = c.doReplaceWorkload(ctx, workload, &replaceOpts, index)
-					return err
-				}); err != nil {
-					if errors.Is(err, types.ErrIgnoreWorkload) {
-						log.Warnf("[ReplaceWorkload] ignore workload: %v", err)
-						return
-					}
-					logger.Errorf("[ReplaceWorkload] Replace and remove failed %+v, old workload restarted", err)
-				} else {
-					log.Infof("[ReplaceWorkload] Replace and remove success %s", id)
-					log.Infof("[ReplaceWorkload] New workload %s", createMessage.WorkloadID)
-				}
-				ch <- &types.ReplaceWorkloadMessage{Create: createMessage, Remove: removeMessage, Error: err}
-			}(*opts, index, id) // 传 opts 的值，产生一次复制
+				}(*opts, index, id))
 			if (index+1)%opts.Count == 0 {
 				wg.Wait()
 			}
 		}
-	}()
+	})
 	return ch, nil
 }
 

@@ -148,7 +148,7 @@ func rawProcessVirtualizationInStream(
 	specialPrefixCallback map[string]func([]byte),
 ) <-chan struct{} {
 	done := make(chan struct{})
-	go func() {
+	utils.SentryGo(func() {
 		defer close(done)
 		defer inStream.Close()
 
@@ -165,7 +165,7 @@ func rawProcessVirtualizationInStream(
 				return
 			}
 		}
-	}()
+	})
 
 	return done
 }
@@ -178,7 +178,7 @@ func processVirtualizationOutStream(
 
 ) <-chan []byte {
 	outCh := make(chan []byte)
-	go func() {
+	utils.SentryGo(func() {
 		defer close(outCh)
 		if outStream == nil {
 			return
@@ -196,13 +196,13 @@ func processVirtualizationOutStream(
 		if err := scanner.Err(); err != nil {
 			log.Errorf("[processVirtualizationOutStream] failed to read output from output stream: %v", err)
 		}
-	}()
+	})
 	return outCh
 }
 
 func processBuildImageStream(reader io.ReadCloser) chan *types.BuildImageMessage {
 	ch := make(chan *types.BuildImageMessage)
-	go func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		defer utils.EnsureReaderClosed(reader)
 		decoder := json.NewDecoder(reader)
@@ -220,7 +220,7 @@ func processBuildImageStream(reader io.ReadCloser) chan *types.BuildImageMessage
 			}
 			ch <- message
 		}
-	}()
+	})
 	return ch
 }
 
@@ -230,25 +230,25 @@ func processStdStream(ctx context.Context, stdout, stderr io.ReadCloser, splitFu
 	wg := sync.WaitGroup{}
 
 	wg.Add(1)
-	go func() {
+	utils.SentryGo(func() {
 		defer wg.Done()
 		for data := range processVirtualizationOutStream(ctx, stdout, splitFunc, split) {
 			ch <- types.StdStreamMessage{Data: data, StdStreamType: types.Stdout}
 		}
-	}()
+	})
 
 	wg.Add(1)
-	go func() {
+	utils.SentryGo(func() {
 		defer wg.Done()
 		for data := range processVirtualizationOutStream(ctx, stderr, splitFunc, split) {
 			ch <- types.StdStreamMessage{Data: data, StdStreamType: types.Stderr}
 		}
-	}()
+	})
 
-	go func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		wg.Wait()
-	}()
+	})
 
 	return ch
 }

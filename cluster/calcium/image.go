@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 // RemoveImage remove images
@@ -29,44 +30,46 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 
 	ch := make(chan *types.RemoveImageMessage)
 
-	go func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
 		defer wg.Wait()
 		for i, node := range nodes {
 			wg.Add(1)
-			go func(node *types.Node) {
-				defer wg.Done()
-				for _, image := range opts.Images {
-					m := &types.RemoveImageMessage{
-						Success:  false,
-						Image:    image,
-						Messages: []string{},
+			utils.SentryGo(func(node *types.Node) func() {
+				return func() {
+					defer wg.Done()
+					for _, image := range opts.Images {
+						m := &types.RemoveImageMessage{
+							Success:  false,
+							Image:    image,
+							Messages: []string{},
+						}
+						if removeItems, err := node.Engine.ImageRemove(ctx, image, false, true); err != nil {
+							m.Messages = append(m.Messages, logger.Err(err).Error())
+						} else {
+							m.Success = true
+							for _, item := range removeItems {
+								m.Messages = append(m.Messages, fmt.Sprintf("Clean: %s", item))
+							}
+						}
+						ch <- m
 					}
-					if removeItems, err := node.Engine.ImageRemove(ctx, image, false, true); err != nil {
-						m.Messages = append(m.Messages, logger.Err(err).Error())
-					} else {
-						m.Success = true
-						for _, item := range removeItems {
-							m.Messages = append(m.Messages, fmt.Sprintf("Clean: %s", item))
+					if opts.Prune {
+						if err := node.Engine.ImagesPrune(ctx); err != nil {
+							logger.Errorf("[RemoveImage] Prune %s pod %s node failed: %+v", opts.Podname, node.Name, err)
+						} else {
+							log.Infof("[RemoveImage] Prune %s pod %s node", opts.Podname, node.Name)
 						}
 					}
-					ch <- m
 				}
-				if opts.Prune {
-					if err := node.Engine.ImagesPrune(ctx); err != nil {
-						logger.Errorf("[RemoveImage] Prune %s pod %s node failed: %+v", opts.Podname, node.Name, err)
-					} else {
-						log.Infof("[RemoveImage] Prune %s pod %s node", opts.Podname, node.Name)
-					}
-				}
-			}(node)
+			}(node))
 			if (i+1)%opts.Step == 0 {
 				log.Info("[RemoveImage] Wait for previous cleaner done")
 				wg.Wait()
 			}
 		}
-	}()
+	})
 
 	return ch, nil
 }
@@ -92,34 +95,36 @@ func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (cha
 
 	ch := make(chan *types.CacheImageMessage)
 
-	go func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
 		defer wg.Wait()
 		for i, node := range nodes {
 			wg.Add(1)
-			go func(node *types.Node) {
-				defer wg.Done()
-				for _, image := range opts.Images {
-					m := &types.CacheImageMessage{
-						Image:    image,
-						Success:  true,
-						Nodename: node.Name,
-						Message:  "",
+			utils.SentryGo(func(node *types.Node) func() {
+				return func() {
+					defer wg.Done()
+					for _, image := range opts.Images {
+						m := &types.CacheImageMessage{
+							Image:    image,
+							Success:  true,
+							Nodename: node.Name,
+							Message:  "",
+						}
+						if err := pullImage(ctx, node, image); err != nil {
+							m.Success = false
+							m.Message = logger.Err(err).Error()
+						}
+						ch <- m
 					}
-					if err := pullImage(ctx, node, image); err != nil {
-						m.Success = false
-						m.Message = logger.Err(err).Error()
-					}
-					ch <- m
 				}
-			}(node)
+			}(node))
 			if (i+1)%opts.Step == 0 {
 				log.Info("[CacheImage] Wait for puller cleaner done")
 				wg.Wait()
 			}
 		}
-	}()
+	})
 
 	return ch, nil
 }
