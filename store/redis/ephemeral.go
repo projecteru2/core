@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/types"
 )
 
 var ephemeralValue = "__aaron__"
@@ -18,7 +19,7 @@ func (r *Rediaron) StartEphemeral(ctx context.Context, path string, heartbeat ti
 		return nil, nil, errors.WithStack(err)
 	}
 	if !set {
-		return nil, nil, ErrAlreadyExists
+		return nil, nil, errors.Wrap(types.ErrKeyExists, path)
 	}
 
 	cctx, cancel := context.WithCancel(context.Background())
