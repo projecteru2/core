@@ -40,7 +40,7 @@ cloc:
 
 unit-test:
 	go vet `go list ./... | grep -v '/vendor/' | grep -v '/tools'`
-	go test -timeout 120s -count=1 -cover ./utils/... \
+	go test -race -timeout 240s -count=1 -cover ./utils/... \
 	./types/... \
 	./store/etcdv3/. \
 	./store/etcdv3/embedded/. \

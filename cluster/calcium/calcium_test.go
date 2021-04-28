@@ -85,38 +85,27 @@ func TestNewCluster(t *testing.T) {
 
 	config.Git = types.GitConfig{PrivateKey: privFile.Name()}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		config1 := types.Config{
-			WALFile: "/tmp/b",
-			Git: types.GitConfig{
-				SCMType:    "gitlab",
-				PrivateKey: privFile.Name(),
-			},
-		}
-		c1, err := New(config1, true)
-		assert.NoError(t, err)
-		c1.Finalizer()
-	}()
+	config1 := types.Config{
+		WALFile: "/tmp/b",
+		Git: types.GitConfig{
+			SCMType:    "gitlab",
+			PrivateKey: privFile.Name(),
+		},
+	}
+	c1, err := New(config1, true)
+	assert.NoError(t, err)
+	c1.Finalizer()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		config2 := types.Config{
-			WALFile: "/tmp/c",
-			Git: types.GitConfig{
-				SCMType:    "github",
-				PrivateKey: privFile.Name(),
-			},
-		}
-		c2, err := New(config2, true)
-		assert.NoError(t, err)
-		c2.Finalizer()
-	}()
-
-	wg.Wait()
+	config2 := types.Config{
+		WALFile: "/tmp/c",
+		Git: types.GitConfig{
+			SCMType:    "github",
+			PrivateKey: privFile.Name(),
+		},
+	}
+	c2, err := New(config2, true)
+	assert.NoError(t, err)
+	c2.Finalizer()
 }
 
 func TestFinalizer(t *testing.T) {

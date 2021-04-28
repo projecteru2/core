@@ -86,6 +86,8 @@ var (
 	ErrInvalidWALBucket         = errors.New("invalid WAL bucket")
 	ErrInvalidType              = errors.New("invalid type")
 	ErrLockSessionDone          = errors.New("lock session done")
+
+	ErrRollbackMapIsNotEmpty = errors.New("rollback map is not empty")
 )
 
 // NewDetailedErr returns an error with details

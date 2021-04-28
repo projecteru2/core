@@ -20,7 +20,7 @@ require (
 	github.com/getsentry/sentry-go v0.9.0
 	github.com/go-git/go-git/v5 v5.2.0
 	github.com/go-ping/ping v0.0.0-20210407214646-e4e642a95741
-	github.com/go-redis/redis/v8 v8.8.0
+	github.com/go-redis/redis/v8 v8.8.2
 	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.4 // indirect

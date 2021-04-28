@@ -130,6 +130,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateWorkloadMessage, opts *types.DeployOptions, plans []resourcetypes.ResourcePlans, deployMap map[string]int) (_ map[string][]int, err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(deployMap))
+	syncRollbackMap := sync.Map{}
 
 	seq := 0
 	rollbackMap := make(map[string][]int)
@@ -142,9 +143,8 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateWo
 		utils.SentryGo(func(nodename string, deploy, seq int) func() {
 			return func() {
 				defer wg.Done()
-				if indices, e := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, plans, seq); e != nil {
-					err = e
-					rollbackMap[nodename] = indices
+				if indices, err := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, plans, seq); err != nil {
+					syncRollbackMap.Store(nodename, indices)
 				}
 			}
 		}(nodename, deploy, seq))
@@ -153,7 +153,16 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateWo
 	}
 
 	wg.Wait()
+	syncRollbackMap.Range(func(key, value interface{}) bool {
+		nodename := key.(string)
+		indices := value.([]int)
+		rollbackMap[nodename] = indices
+		return true
+	})
 	log.Debugf("[Calcium.doDeployWorkloads] rollbackMap: %+v", rollbackMap)
+	if len(rollbackMap) != 0 {
+		err = types.ErrRollbackMapIsNotEmpty
+	}
 	return rollbackMap, err
 }
 
