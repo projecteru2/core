@@ -760,8 +760,8 @@ func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions
 				MemoryLimit:     opts.ResourceOpts.MemoryLimit,
 				VolumeRequest:   vbsRequest,
 				VolumeLimit:     vbsLimit,
-				StorageRequest:  opts.ResourceOpts.StorageRequest,
-				StorageLimit:    opts.ResourceOpts.StorageLimit,
+				StorageRequest:  opts.ResourceOpts.StorageRequest + vbsRequest.TotalSize(),
+				StorageLimit:    opts.ResourceOpts.StorageLimit + vbsLimit.TotalSize(),
 			},
 		},
 	); err != nil {
