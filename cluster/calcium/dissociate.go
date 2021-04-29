@@ -16,7 +16,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *t
 
 	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, ids)
 	if err != nil {
-		logger.Errorf("failed to group workloads by node: %+v", err)
+		logger.Errorf(ctx, "failed to group workloads by node: %+v", err)
 		return nil, err
 	}
 
@@ -34,7 +34,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *t
 							// if
 							func(ctx context.Context) (err error) {
 								if err = c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionIncr); err == nil {
-									log.Infof("[DissociateWorkload] Workload %s dissociated", workload.ID)
+									log.Infof(ctx, "[DissociateWorkload] Workload %s dissociated", workload.ID)
 								}
 								return errors.WithStack(err)
 							},
@@ -52,15 +52,15 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *t
 							c.config.GlobalTimeout,
 						)
 					}); err != nil {
-						logger.WithField("id", workloadID).Errorf("failed to lock workload: %+v", err)
+						logger.WithField("id", workloadID).Errorf(ctx, "failed to lock workload: %+v", err)
 						msg.Error = err
 					}
 					ch <- msg
 				}
-				c.doRemapResourceAndLog(logger, node)
+				c.doRemapResourceAndLog(ctx, logger, node)
 				return nil
 			}); err != nil {
-				logger.WithField("nodename", nodename).Errorf("failed to lock node: %+v", err)
+				logger.WithField("nodename", nodename).Errorf(ctx, "failed to lock node: %+v", err)
 			}
 		}
 	})

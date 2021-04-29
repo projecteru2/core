@@ -23,7 +23,7 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 	return msg, c.withNodesLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) error {
 		if opts.DeployStrategy != strategy.Dummy {
 			if _, msg.NodeCapacities, err = c.doAllocResource(ctx, nodeMap, opts); err != nil {
-				logger.Errorf("[Calcium.CalculateCapacity] doAllocResource failed: %+v", err)
+				logger.Errorf(ctx, "[Calcium.CalculateCapacity] doAllocResource failed: %+v", err)
 				return err
 			}
 
@@ -32,9 +32,9 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 			}
 		} else {
 			var infos []strategy.Info
-			msg.Total, _, infos, err = c.doCalculateCapacity(nodeMap, opts)
+			msg.Total, _, infos, err = c.doCalculateCapacity(ctx, nodeMap, opts)
 			if err != nil {
-				logger.Errorf("[Calcium.CalculateCapacity] doCalculateCapacity failed: %+v", err)
+				logger.Errorf(ctx, "[Calcium.CalculateCapacity] doCalculateCapacity failed: %+v", err)
 				return err
 			}
 			for _, info := range infos {
@@ -45,7 +45,7 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 	})
 }
 
-func (c *Calcium) doCalculateCapacity(nodeMap map[string]*types.Node, opts *types.DeployOptions) (
+func (c *Calcium) doCalculateCapacity(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) (
 	total int,
 	plans []resourcetypes.ResourcePlans,
 	infos []strategy.Info,
@@ -61,7 +61,7 @@ func (c *Calcium) doCalculateCapacity(nodeMap map[string]*types.Node, opts *type
 	}
 
 	// select available nodes
-	if plans, err = resources.SelectNodesByResourceRequests(resourceRequests, nodeMap); err != nil {
+	if plans, err = resources.SelectNodesByResourceRequests(ctx, resourceRequests, nodeMap); err != nil {
 		return 0, nil, nil, err
 	}
 
@@ -70,6 +70,6 @@ func (c *Calcium) doCalculateCapacity(nodeMap map[string]*types.Node, opts *type
 	for _, info := range infos {
 		total += info.Capacity
 	}
-	log.Debugf("[Calcium.doCalculateCapacity] plans: %+v, total: %v", plans, total)
+	log.Debugf(ctx, "[Calcium.doCalculateCapacity] plans: %+v, total: %v", plans, total)
 	return
 }

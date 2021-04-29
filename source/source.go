@@ -7,7 +7,7 @@ type Source interface {
 	// Get source code from repository into path by revision
 	SourceCode(ctx context.Context, repository, path, revision string, submodule bool) error
 	// Get related artifact by artifact into path
-	Artifact(artifact, path string) error
+	Artifact(_ context.Context, artifact, path string) error
 	// Keep code security
 	Security(path string) error
 }

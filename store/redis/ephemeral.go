@@ -58,7 +58,7 @@ func (r *Rediaron) revokeEphemeral(path string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	if _, err := r.cli.Del(ctx, path).Result(); err != nil {
-		log.Errorf("[refreshEphemeral] revoke with %s failed: %v", path, err)
+		log.Errorf(nil, "[refreshEphemeral] revoke with %s failed: %v", path, err)
 	}
 }
 

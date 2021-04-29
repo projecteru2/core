@@ -15,19 +15,19 @@ import (
 
 // ImageList lists images.
 func (v *Virt) ImageList(ctx context.Context, image string) (imgs []*enginetypes.Image, err error) {
-	log.Warnf("does not implement")
+	log.Warnf(ctx, "does not implement")
 	return
 }
 
 // ImageRemove removes a specific image.
 func (v *Virt) ImageRemove(ctx context.Context, image string, force, prune bool) (names []string, err error) {
-	log.Warnf("does not implement")
+	log.Warnf(ctx, "does not implement")
 	return
 }
 
 // ImagesPrune prunes one.
 func (v *Virt) ImagesPrune(ctx context.Context) (err error) {
-	log.Warnf("does not implement")
+	log.Warnf(ctx, "does not implement")
 	return
 }
 
@@ -38,13 +38,13 @@ func (v *Virt) ImagePull(ctx context.Context, ref string, all bool) (rc io.ReadC
 
 // ImagePush pushes to central image registry.
 func (v *Virt) ImagePush(ctx context.Context, ref string) (rc io.ReadCloser, err error) {
-	log.Warnf("does not implement")
+	log.Warnf(ctx, "does not implement")
 	return
 }
 
 // ImageBuild captures from a guest.
 func (v *Virt) ImageBuild(ctx context.Context, input io.Reader, refs []string) (rc io.ReadCloser, err error) {
-	log.Warnf("does not implement")
+	log.Warnf(ctx, "does not implement")
 	return
 }
 
@@ -71,7 +71,7 @@ func (v *Virt) ImageBuildFromExist(ctx context.Context, ID, name string) (string
 
 // ImageBuildCachePrune prunes cached one.
 func (v *Virt) ImageBuildCachePrune(ctx context.Context, all bool) (reclaimed uint64, err error) {
-	log.Warnf("does not implement")
+	log.Warnf(ctx, "does not implement")
 	return
 }
 

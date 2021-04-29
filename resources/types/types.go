@@ -1,6 +1,8 @@
 package types
 
 import (
+	"context"
+
 	"github.com/projecteru2/core/types"
 )
 
@@ -56,7 +58,7 @@ type ResourceRequest interface {
 }
 
 // SchedulerV2 .
-type SchedulerV2 func([]ScheduleInfo) (ResourcePlans, int, error)
+type SchedulerV2 func(context.Context, []ScheduleInfo) (ResourcePlans, int, error)
 
 // DispenseOptions .
 type DispenseOptions struct {

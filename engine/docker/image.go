@@ -128,7 +128,7 @@ func (e *Engine) ImageBuildFromExist(ctx context.Context, ID, name string) (imag
 		return "", err
 	}
 	stream, err := e.ImagePush(ctx, name)
-	defer utils.EnsureReaderClosed(stream)
+	defer utils.EnsureReaderClosed(ctx, stream)
 	return resp.ID, err
 }
 

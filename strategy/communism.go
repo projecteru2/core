@@ -2,6 +2,7 @@ package strategy
 
 import (
 	"container/heap"
+	"context"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -56,7 +57,7 @@ func newInfoHeap(infos []Info, limit int) heap.Interface {
 
 // CommunismPlan 吃我一记共产主义大锅饭
 // 部署完 N 个后全局尽可能平均
-func CommunismPlan(infos []Info, need, total, limit int) (map[string]int, error) {
+func CommunismPlan(ctx context.Context, infos []Info, need, total, limit int) (map[string]int, error) {
 	if total < need {
 		return nil, errors.WithStack(types.NewDetailedErr(types.ErrInsufficientRes,
 			fmt.Sprintf("need: %d, vol: %d", need, total)))

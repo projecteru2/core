@@ -53,7 +53,7 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 						var err error
 						if err = c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
 							if opts.Podname != "" && workload.Podname != opts.Podname {
-								log.Warnf("[ReplaceWorkload] Skip not in pod workload %s", workload.ID)
+								log.Warnf(ctx, "[ReplaceWorkload] Skip not in pod workload %s", workload.ID)
 								return errors.WithStack(types.NewDetailedErr(types.ErrIgnoreWorkload,
 									fmt.Sprintf("workload %s not in pod %s", workload.ID, opts.Podname),
 								))
@@ -85,19 +85,19 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 									))
 								}
 								replaceOpts.Networks = info.Networks
-								log.Infof("[ReplaceWorkload] Inherit old workload network configuration mode %v", replaceOpts.Networks)
+								log.Infof(ctx, "[ReplaceWorkload] Inherit old workload network configuration mode %v", replaceOpts.Networks)
 							}
 							createMessage, removeMessage, err = c.doReplaceWorkload(ctx, workload, &replaceOpts, index)
 							return err
 						}); err != nil {
 							if errors.Is(err, types.ErrIgnoreWorkload) {
-								log.Warnf("[ReplaceWorkload] ignore workload: %v", err)
+								log.Warnf(ctx, "[ReplaceWorkload] ignore workload: %v", err)
 								return
 							}
-							logger.Errorf("[ReplaceWorkload] Replace and remove failed %+v, old workload restarted", err)
+							logger.Errorf(ctx, "[ReplaceWorkload] Replace and remove failed %+v, old workload restarted", err)
 						} else {
-							log.Infof("[ReplaceWorkload] Replace and remove success %s", id)
-							log.Infof("[ReplaceWorkload] New workload %s", createMessage.WorkloadID)
+							log.Infof(ctx, "[ReplaceWorkload] Replace and remove success %s", id)
+							log.Infof(ctx, "[ReplaceWorkload] New workload %s", createMessage.WorkloadID)
 						}
 						ch <- &types.ReplaceWorkloadMessage{Create: createMessage, Remove: removeMessage, Error: err}
 					}
@@ -169,13 +169,13 @@ func (c *Calcium) doReplaceWorkload(
 				ctx,
 				// if
 				func(ctx context.Context) error {
-					vco := c.doMakeReplaceWorkloadOptions(index, createMessage, &opts.DeployOptions, node, workload.ID)
+					vco := c.doMakeReplaceWorkloadOptions(ctx, index, createMessage, &opts.DeployOptions, node, workload.ID)
 					return c.doDeployOneWorkload(ctx, node, &opts.DeployOptions, createMessage, vco, -1)
 				},
 				// then
 				func(ctx context.Context) (err error) {
 					if err = c.doRemoveWorkload(ctx, workload, true); err != nil {
-						log.Errorf("[doReplaceWorkload] the new started but the old failed to stop")
+						log.Errorf(ctx, "[doReplaceWorkload] the new started but the old failed to stop")
 						return err
 					}
 					removeMessage.Success = true
@@ -189,7 +189,7 @@ func (c *Calcium) doReplaceWorkload(
 		func(ctx context.Context, _ bool) (err error) {
 			messages, err := c.doStartWorkload(ctx, workload, opts.IgnoreHook)
 			if err != nil {
-				log.Errorf("[replaceAndRemove] Old workload %s restart failed %v", workload.ID, err)
+				log.Errorf(ctx, "[replaceAndRemove] Old workload %s restart failed %v", workload.ID, err)
 				removeMessage.Hook = append(removeMessage.Hook, bytes.NewBufferString(err.Error()))
 			} else {
 				removeMessage.Hook = append(removeMessage.Hook, messages...)
@@ -202,17 +202,17 @@ func (c *Calcium) doReplaceWorkload(
 	}
 
 	if err := c.withNodeLocked(ctx, node.Name, func(_ context.Context, node *types.Node) error {
-		c.doRemapResourceAndLog(log.WithField("Calcium", "doReplaceWorkload"), node)
+		c.doRemapResourceAndLog(ctx, log.WithField("Calcium", "doReplaceWorkload"), node)
 		return nil
 	}); err != nil {
-		log.Errorf("[replaceAndRemove] failed to lock node to remap: %v", err)
+		log.Errorf(ctx, "[replaceAndRemove] failed to lock node to remap: %v", err)
 	}
 
 	return createMessage, removeMessage, err
 }
 
-func (c *Calcium) doMakeReplaceWorkloadOptions(no int, msg *types.CreateWorkloadMessage, opts *types.DeployOptions, node *types.Node, ancestorWorkloadID string) *enginetypes.VirtualizationCreateOptions {
-	vco := c.doMakeWorkloadOptions(no, msg, opts, node)
+func (c *Calcium) doMakeReplaceWorkloadOptions(ctx context.Context, no int, msg *types.CreateWorkloadMessage, opts *types.DeployOptions, node *types.Node, ancestorWorkloadID string) *enginetypes.VirtualizationCreateOptions {
+	vco := c.doMakeWorkloadOptions(ctx, no, msg, opts, node)
 	vco.AncestorWorkloadID = ancestorWorkloadID
 	return vco
 }

@@ -25,7 +25,7 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 		wg := &sync.WaitGroup{}
 
 		for _, id := range opts.IDs {
-			log.Infof("[Send] Send files to %s", id)
+			log.Infof(ctx, "[Send] Send files to %s", id)
 			wg.Add(1)
 			utils.SentryGo(func(id string) func() {
 				return func() {
@@ -50,7 +50,7 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 }
 
 func (c *Calcium) doSendFileToWorkload(ctx context.Context, engine engine.API, ID, dst string, content io.Reader, AllowOverwriteDirWithFile bool, CopyUIDGID bool) error {
-	log.Infof("[doSendFileToWorkload] Send file to %s:%s", ID, dst)
-	log.Debugf("[doSendFileToWorkload] remote path %s", dst)
+	log.Infof(ctx, "[doSendFileToWorkload] Send file to %s:%s", ID, dst)
+	log.Debugf(ctx, "[doSendFileToWorkload] remote path %s", dst)
 	return errors.WithStack(engine.VirtualizationCopyTo(ctx, ID, dst, content, AllowOverwriteDirWithFile, CopyUIDGID))
 }

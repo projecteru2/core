@@ -114,7 +114,7 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 
 		if fix {
 			if err := c.doFixDiffResource(ctx, node, cpus, memory, storage); err != nil {
-				log.Warnf("[doGetNodeResource] fix node resource failed %v", err)
+				log.Warnf(ctx, "[doGetNodeResource] fix node resource failed %v", err)
 			}
 		}
 
@@ -147,18 +147,18 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 }
 
 func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) ([]resourcetypes.ResourcePlans, map[string]int, error) {
-	total, plans, strategyInfos, err := c.doCalculateCapacity(nodeMap, opts)
+	total, plans, strategyInfos, err := c.doCalculateCapacity(ctx, nodeMap, opts)
 	if err != nil {
 		return nil, nil, err
 	}
 	if err := c.store.MakeDeployStatus(ctx, opts, strategyInfos); err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	deployMap, err := strategy.Deploy(opts, strategyInfos, total)
+	deployMap, err := strategy.Deploy(ctx, opts, strategyInfos, total)
 	if err != nil {
 		return nil, nil, err
 	}
-	log.Infof("[Calium.doAllocResource] deployMap: %+v", deployMap)
+	log.Infof(ctx, "[Calium.doAllocResource] deployMap: %+v", deployMap)
 	return plans, deployMap, nil
 }
 
@@ -186,8 +186,8 @@ func (c *Calcium) remapResource(ctx context.Context, node *types.Node) (ch <-cha
 	return ch, errors.WithStack(err)
 }
 
-func (c *Calcium) doRemapResourceAndLog(logger log.Fields, node *types.Node) {
-	log.Debugf("[doRemapResourceAndLog] remap node %s", node.Name)
+func (c *Calcium) doRemapResourceAndLog(ctx context.Context, logger log.Fields, node *types.Node) {
+	log.Debugf(ctx, "[doRemapResourceAndLog] remap node %s", node.Name)
 	ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
 	defer cancel()
 	logger = logger.WithField("Calcium", "doRemapResourceAndLog").WithField("nodename", node.Name)

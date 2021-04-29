@@ -28,7 +28,7 @@ func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions)
 	}
 
 	opts.ProcessIdent = utils.RandomString(16)
-	log.Infof("[CreateWorkload %s] Creating workload with options:", opts.ProcessIdent)
+	log.Infof(ctx, "[CreateWorkload %s] Creating workload with options:", opts.ProcessIdent)
 	litter.Dump(opts)
 	// Count 要大于0
 	if opts.Count <= 0 {
@@ -57,7 +57,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			cctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
 			for nodename := range deployMap {
 				if e := c.store.DeleteProcessing(cctx, opts, nodename); e != nil {
-					logger.Errorf("[Calcium.doCreateWorkloads] delete processing failed for %s: %+v", nodename, e)
+					logger.Errorf(ctx, "[Calcium.doCreateWorkloads] delete processing failed for %s: %+v", nodename, e)
 				}
 			}
 			close(ch)
@@ -159,7 +159,7 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateWo
 		rollbackMap[nodename] = indices
 		return true
 	})
-	log.Debugf("[Calcium.doDeployWorkloads] rollbackMap: %+v", rollbackMap)
+	log.Debugf(ctx, "[Calcium.doDeployWorkloads] rollbackMap: %+v", rollbackMap)
 	if len(rollbackMap) != 0 {
 		err = types.ErrRollbackMapIsNotEmpty
 	}
@@ -211,7 +211,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 				}
 
 				createMsg.ResourceMeta = *r
-				createOpts := c.doMakeWorkloadOptions(seq+idx, createMsg, opts, node)
+				createOpts := c.doMakeWorkloadOptions(ctx, seq+idx, createMsg, opts, node)
 				e = c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts, deploy-1-idx)
 			}
 		}(idx))
@@ -222,10 +222,10 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 	// 放任 remap 失败的后果是, share pool 没有更新, 这个后果姑且认为是可以承受的
 	// 而且 remap 是一个幂等操作, 就算这次 remap 失败, 下次 remap 也能收敛到正确到状态
 	if err := c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
-		c.doRemapResourceAndLog(logger, node)
+		c.doRemapResourceAndLog(ctx, logger, node)
 		return nil
 	}); err != nil {
-		logger.Errorf("failed to lock node to remap: %v", err)
+		logger.Errorf(ctx, "failed to lock node to remap: %v", err)
 	}
 	return indices, err
 }
@@ -278,7 +278,7 @@ func (c *Calcium) doDeployOneWorkload(
 	defer func() {
 		if commit != nil {
 			if err := commit(); err != nil {
-				log.Errorf("[doDeployOneWorkload] Commit WAL %s failed: %v", eventCreateWorkload, err)
+				log.Errorf(ctx, "[doDeployOneWorkload] Commit WAL %s failed: %v", eventCreateWorkload, err)
 			}
 		}
 	}()
@@ -381,7 +381,7 @@ func (c *Calcium) doDeployOneWorkload(
 	)
 }
 
-func (c *Calcium) doMakeWorkloadOptions(no int, msg *types.CreateWorkloadMessage, opts *types.DeployOptions, node *types.Node) *enginetypes.VirtualizationCreateOptions {
+func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.CreateWorkloadMessage, opts *types.DeployOptions, node *types.Node) *enginetypes.VirtualizationCreateOptions {
 	config := &enginetypes.VirtualizationCreateOptions{}
 	// general
 	config.CPU = msg.CPU
@@ -434,7 +434,7 @@ func (c *Calcium) doMakeWorkloadOptions(no int, msg *types.CreateWorkloadMessage
 	// basic labels, bind to LabelMeta
 	config.Labels = map[string]string{
 		cluster.ERUMark: "1",
-		cluster.LabelMeta: utils.EncodeMetaInLabel(&types.LabelMeta{
+		cluster.LabelMeta: utils.EncodeMetaInLabel(ctx, &types.LabelMeta{
 			Publish:     opts.Entrypoint.Publish,
 			HealthCheck: entry.HealthCheck,
 		}),

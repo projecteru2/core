@@ -146,7 +146,7 @@ func (r *Rediaron) WorkloadStatusStream(ctx context.Context, appname, entrypoint
 			close(ch)
 		}()
 
-		log.Infof("[WorkloadStatusStream] watch on %s", statusKey)
+		log.Infof(ctx, "[WorkloadStatusStream] watch on %s", statusKey)
 		for message := range r.KNotify(ctx, statusKey) {
 			_, _, _, id := parseStatusKey(message.Key)
 			msg := &types.WorkloadStatus{
@@ -158,7 +158,7 @@ func (r *Rediaron) WorkloadStatusStream(ctx context.Context, appname, entrypoint
 			case err != nil:
 				msg.Error = err
 			case utils.FilterWorkload(workload.Labels, labels):
-				log.Debugf("[WorkloadStatusStream] workload %s status changed", workload.ID)
+				log.Debugf(ctx, "[WorkloadStatusStream] workload %s status changed", workload.ID)
 				msg.Workload = workload
 			default:
 				continue
@@ -194,7 +194,7 @@ func (r *Rediaron) doGetWorkloads(ctx context.Context, keys []string) ([]*types.
 	for k, v := range data {
 		workload := &types.Workload{}
 		if err = json.Unmarshal([]byte(v), workload); err != nil {
-			log.Errorf("[doGetWorkloads] failed to unmarshal %v, err: %v", k, err)
+			log.Errorf(ctx, "[doGetWorkloads] failed to unmarshal %v, err: %v", k, err)
 			return nil, err
 		}
 		workloads = append(workloads, workload)
@@ -241,8 +241,8 @@ func (r *Rediaron) bindWorkloadsAdditions(ctx context.Context, workloads []*type
 		}
 		status := &types.StatusMeta{}
 		if err := json.Unmarshal([]byte(v), &status); err != nil {
-			log.Warnf("[bindWorkloadsAdditions] unmarshal %s status data failed %v", workload.ID, err)
-			log.Errorf("[bindWorkloadsAdditions] status raw: %s", v)
+			log.Warnf(ctx, "[bindWorkloadsAdditions] unmarshal %s status data failed %v", workload.ID, err)
+			log.Errorf(ctx, "[bindWorkloadsAdditions] status raw: %s", v)
 			continue
 		}
 		workloads[index].StatusMeta = status

@@ -22,7 +22,7 @@ func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration
 }
 
 func (c *Calcium) doUnlock(ctx context.Context, lock lock.DistributedLock, msg string) error {
-	log.Debugf("[doUnlock] Unlock %s", msg)
+	log.Debugf(ctx, "[doUnlock] Unlock %s", msg)
 	return errors.WithStack(lock.Unlock(ctx))
 }
 
@@ -30,7 +30,7 @@ func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.Distrib
 	for n, lock := range locks {
 		// force unlock
 		if err := c.doUnlock(ctx, lock, n); err != nil {
-			log.Errorf("[doUnlockAll] Unlock failed %v", err)
+			log.Errorf(ctx, "[doUnlockAll] Unlock failed %v", err)
 			continue
 		}
 	}
@@ -61,7 +61,7 @@ func (c *Calcium) withNodeLocked(ctx context.Context, nodename string, f func(co
 func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(context.Context, map[string]*types.Workload) error) error {
 	workloads := map[string]*types.Workload{}
 	locks := map[string]lock.DistributedLock{}
-	defer log.Debugf("[withWorkloadsLocked] Workloads %+v unlocked", ids)
+	defer log.Debugf(ctx, "[withWorkloadsLocked] Workloads %+v unlocked", ids)
 	defer func() { c.doUnlockAll(context.Background(), locks) }()
 	cs, err := c.GetWorkloads(ctx, ids)
 	if err != nil {
@@ -73,7 +73,7 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(
 		if err != nil {
 			return errors.WithStack(err)
 		}
-		log.Debugf("[withWorkloadsLocked] Workload %s locked", workload.ID)
+		log.Debugf(ctx, "[withWorkloadsLocked] Workload %s locked", workload.ID)
 		locks[workload.ID] = lock
 		workloads[workload.ID] = workload
 	}
@@ -85,7 +85,7 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(
 func (c *Calcium) withNodesLocked(ctx context.Context, nf types.NodeFilter, f func(context.Context, map[string]*types.Node) error) error {
 	nodes := map[string]*types.Node{}
 	locks := map[string]lock.DistributedLock{}
-	defer log.Debugf("[withNodesLocked] Nodes %+v unlocked", nf)
+	defer log.Debugf(ctx, "[withNodesLocked] Nodes %+v unlocked", nf)
 	defer c.doUnlockAll(context.Background(), locks)
 
 	ns, err := c.filterNodes(ctx, nf)
@@ -99,7 +99,7 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nf types.NodeFilter, f fu
 		if err != nil {
 			return err
 		}
-		log.Debugf("[withNodesLocked] Node %s locked", n.Name)
+		log.Debugf(ctx, "[withNodesLocked] Node %s locked", n.Name)
 		locks[n.Name] = lock
 		// refresh node
 		node, err := c.GetNode(ctx, n.Name)

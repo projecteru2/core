@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	"context"
 	"math"
 
 	"github.com/pkg/errors"
@@ -30,10 +31,10 @@ var Plans = map[string]startegyFunc{
 	Global: GlobalPlan,
 }
 
-type startegyFunc = func(_ []Info, need, total, limit int) (map[string]int, error)
+type startegyFunc = func(_ context.Context, _ []Info, need, total, limit int) (map[string]int, error)
 
 // Deploy .
-func Deploy(opts *types.DeployOptions, strategyInfos []Info, total int) (map[string]int, error) {
+func Deploy(ctx context.Context, opts *types.DeployOptions, strategyInfos []Info, total int) (map[string]int, error) {
 	deployMethod, ok := Plans[opts.DeployStrategy]
 	if !ok {
 		return nil, errors.WithStack(types.ErrBadDeployStrategy)
@@ -42,8 +43,8 @@ func Deploy(opts *types.DeployOptions, strategyInfos []Info, total int) (map[str
 		return nil, errors.WithStack(types.ErrBadCount)
 	}
 
-	log.Debugf("[strategy.Deploy] infos %+v, need %d, total %d, limit %d", strategyInfos, opts.Count, total, opts.NodesLimit)
-	return deployMethod(strategyInfos, opts.Count, total, opts.NodesLimit)
+	log.Debugf(ctx, "[strategy.Deploy] infos %+v, need %d, total %d, limit %d", strategyInfos, opts.Count, total, opts.NodesLimit)
+	return deployMethod(ctx, strategyInfos, opts.Count, total, opts.NodesLimit)
 }
 
 // Info .

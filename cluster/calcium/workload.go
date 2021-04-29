@@ -14,7 +14,7 @@ import (
 // ListWorkloads list workloads
 func (c *Calcium) ListWorkloads(ctx context.Context, opts *types.ListWorkloadsOptions) (workloads []*types.Workload, err error) {
 	if workloads, err = c.store.ListWorkloads(ctx, opts.Appname, opts.Entrypoint, opts.Nodename, opts.Limit, opts.Labels); err != nil {
-		log.WithField("opts", opts).Errorf("Calcium.ListWorkloads] store list failed: %+v", err)
+		log.WithField("opts", opts).Errorf(ctx, "Calcium.ListWorkloads] store list failed: %+v", err)
 	}
 	return workloads, errors.WithStack(err)
 }

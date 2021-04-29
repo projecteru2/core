@@ -28,7 +28,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 	if err != nil {
 		return nil, logger.Err(err)
 	}
-	log.Infof("[BuildImage] Building image at pod %s node %s", node.Podname, node.Name)
+	log.Infof(ctx, "[BuildImage] Building image at pod %s node %s", node.Podname, node.Name)
 	// get refs
 	refs := node.Engine.BuildRefs(ctx, opts.Name, opts.Tags)
 
@@ -124,14 +124,14 @@ func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types
 					break
 				}
 				if err == context.Canceled || err == context.DeadlineExceeded {
-					log.Errorf("[BuildImage] context timeout")
+					log.Errorf(ctx, "[BuildImage] context timeout")
 					lastMessage.ErrorDetail.Code = -1
 					lastMessage.ErrorDetail.Message = err.Error()
 					lastMessage.Error = err.Error()
 					break
 				}
 				malformed, _ := ioutil.ReadAll(decoder.Buffered()) // TODO err check
-				logger.Errorf("[BuildImage] Decode build image message failed %+v, buffered: %v", err, malformed)
+				logger.Errorf(ctx, "[BuildImage] Decode build image message failed %+v, buffered: %v", err, malformed)
 				return
 			}
 			ch <- message
@@ -139,21 +139,21 @@ func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types
 		}
 
 		if lastMessage.Error != "" {
-			log.Errorf("[BuildImage] Build image failed %v", lastMessage.ErrorDetail.Message)
+			log.Errorf(ctx, "[BuildImage] Build image failed %v", lastMessage.ErrorDetail.Message)
 			return
 		}
 
 		// push and clean
 		for i := range tags {
 			tag := tags[i]
-			log.Infof("[BuildImage] Push image %s", tag)
+			log.Infof(ctx, "[BuildImage] Push image %s", tag)
 			rc, err := node.Engine.ImagePush(ctx, tag)
 			if err != nil {
 				ch <- &types.BuildImageMessage{Error: logger.Err(err).Error()}
 				continue
 			}
 
-			for message := range processBuildImageStream(rc) {
+			for message := range processBuildImageStream(ctx, rc) {
 				ch <- message
 			}
 
@@ -184,13 +184,13 @@ func cleanupNodeImages(node *types.Node, ids []string, ttl time.Duration) {
 	defer cancel()
 	for _, id := range ids {
 		if _, err := node.Engine.ImageRemove(ctx, id, false, true); err != nil {
-			logger.Errorf("[BuildImage] Remove image error: %+v", errors.WithStack(err))
+			logger.Errorf(ctx, "[BuildImage] Remove image error: %+v", errors.WithStack(err))
 		}
 	}
 	if spaceReclaimed, err := node.Engine.ImageBuildCachePrune(ctx, true); err != nil {
-		logger.Errorf("[BuildImage] Remove build image cache error: %+v", errors.WithStack(err))
+		logger.Errorf(ctx, "[BuildImage] Remove build image cache error: %+v", errors.WithStack(err))
 	} else {
-		log.Infof("[BuildImage] Clean cached image and release space %d", spaceReclaimed)
+		log.Infof(ctx, "[BuildImage] Clean cached image and release space %d", spaceReclaimed)
 	}
 }
 

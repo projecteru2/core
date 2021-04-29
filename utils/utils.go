@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
@@ -134,22 +135,22 @@ func DecodePublishInfo(info map[string]string) map[string][]string {
 }
 
 // EncodeMetaInLabel encode meta to json
-func EncodeMetaInLabel(meta *types.LabelMeta) string {
+func EncodeMetaInLabel(ctx context.Context, meta *types.LabelMeta) string {
 	data, err := json.Marshal(meta)
 	if err != nil {
-		log.Errorf("[EncodeMetaInLabel] Encode meta failed %v", err)
+		log.Errorf(ctx, "[EncodeMetaInLabel] Encode meta failed %v", err)
 		return ""
 	}
 	return string(data)
 }
 
 // DecodeMetaInLabel get meta from label and decode it
-func DecodeMetaInLabel(labels map[string]string) *types.LabelMeta {
+func DecodeMetaInLabel(ctx context.Context, labels map[string]string) *types.LabelMeta {
 	meta := &types.LabelMeta{}
 	metastr, ok := labels[cluster.LabelMeta]
 	if ok {
 		if err := json.Unmarshal([]byte(metastr), meta); err != nil {
-			log.Errorf("[DecodeMetaInLabel] Decode failed %v", err)
+			log.Errorf(ctx, "[DecodeMetaInLabel] Decode failed %v", err)
 		}
 	}
 	return meta
@@ -237,12 +238,12 @@ func Max(x int, xs ...int) int {
 
 // EnsureReaderClosed As the name says,
 // blocks until the stream is empty, until we meet EOF
-func EnsureReaderClosed(stream io.ReadCloser) {
+func EnsureReaderClosed(ctx context.Context, stream io.ReadCloser) {
 	if stream == nil {
 		return
 	}
 	if _, err := io.Copy(ioutil.Discard, stream); err != nil {
-		log.Errorf("[EnsureReaderClosed] empty stream failed %v", err)
+		log.Errorf(ctx, "[EnsureReaderClosed] empty stream failed %v", err)
 	}
 	_ = stream.Close()
 }

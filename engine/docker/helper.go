@@ -248,10 +248,10 @@ func CreateTarStream(path string) (io.ReadCloser, error) {
 }
 
 // GetIP Get hostIP
-func GetIP(daemonHost string) string {
+func GetIP(ctx context.Context, daemonHost string) string {
 	u, err := url.Parse(daemonHost)
 	if err != nil {
-		log.Errorf("[GetIP] GetIP %s failed %v", daemonHost, err)
+		log.Errorf(ctx, "[GetIP] GetIP %s failed %v", daemonHost, err)
 		return ""
 	}
 	return u.Hostname()
@@ -265,7 +265,7 @@ func makeRawClient(_ context.Context, config coretypes.Config, client *http.Clie
 	return &Engine{cli, config}, nil
 }
 
-func dumpFromString(ca, cert, key *os.File, caStr, certStr, keyStr string) error {
+func dumpFromString(ctx context.Context, ca, cert, key *os.File, caStr, certStr, keyStr string) error {
 	files := []*os.File{ca, cert, key}
 	data := []string{caStr, certStr, keyStr}
 	for i := 0; i < 3; i++ {
@@ -279,6 +279,6 @@ func dumpFromString(ca, cert, key *os.File, caStr, certStr, keyStr string) error
 			return err
 		}
 	}
-	log.Debug("[dumpFromString] Dump ca.pem, cert.pem, key.pem from string")
+	log.Debug(ctx, "[dumpFromString] Dump ca.pem, cert.pem, key.pem from string")
 	return nil
 }

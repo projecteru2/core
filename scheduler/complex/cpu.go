@@ -5,6 +5,7 @@ CPU 分配的核心算法
 package complexscheduler
 
 import (
+	"context"
 	"math"
 	"sort"
 
@@ -21,7 +22,7 @@ func min(a, b int) int {
 	return b
 }
 
-func cpuPriorPlan(cpu float64, memory int64, scheduleInfos []resourcetypes.ScheduleInfo, maxShareCore, coreShare int) ([]resourcetypes.ScheduleInfo, map[string][]types.CPUMap, int, error) {
+func cpuPriorPlan(ctx context.Context, cpu float64, memory int64, scheduleInfos []resourcetypes.ScheduleInfo, maxShareCore, coreShare int) ([]resourcetypes.ScheduleInfo, map[string][]types.CPUMap, int, error) {
 	var nodeWorkload = map[string][]types.CPUMap{}
 	volTotal := 0
 
@@ -60,7 +61,7 @@ func cpuPriorPlan(cpu float64, memory int64, scheduleInfos []resourcetypes.Sched
 					nodeWorkload[scheduleInfo.Name] = append(nodeWorkload[scheduleInfo.Name], cpuPlan)
 				}
 			}
-			log.Infof("[cpuPriorPlan] node %s numa node %s deploy capacity %d", scheduleInfo.Name, nodeID, cap)
+			log.Infof(ctx, "[cpuPriorPlan] node %s numa node %s deploy capacity %d", scheduleInfo.Name, nodeID, cap)
 		}
 		// 非 numa
 		// 或者是扣掉 numa 分配后剩下的资源里面
@@ -73,7 +74,7 @@ func cpuPriorPlan(cpu float64, memory int64, scheduleInfos []resourcetypes.Sched
 			volTotal += cap
 			nodeWorkload[scheduleInfo.Name] = append(nodeWorkload[scheduleInfo.Name], plan...)
 		}
-		log.Infof("[cpuPriorPlan] node %s total deploy capacity %d", scheduleInfo.Name, scheduleInfos[p].Capacity)
+		log.Infof(ctx, "[cpuPriorPlan] node %s total deploy capacity %d", scheduleInfo.Name, scheduleInfos[p].Capacity)
 	}
 
 	// 裁剪掉不能部署的

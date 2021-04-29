@@ -73,7 +73,7 @@ func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *
 	if err != nil {
 		return "", nil, err
 	}
-	log.Debugf("[BuildContent] Build dir %s", buildDir)
+	log.Debugf(ctx, "[BuildContent] Build dir %s", buildDir)
 	// create dockerfile
 	if err := e.makeDockerFile(ctx, opts, scm, buildDir); err != nil {
 		return buildDir, nil, err
@@ -91,7 +91,7 @@ func (e *Engine) makeDockerFile(ctx context.Context, opts *types.BuildContentOpt
 	for _, stage := range opts.Builds.Stages {
 		build, ok := opts.Builds.Builds[stage]
 		if !ok {
-			log.Warnf("[makeDockerFile] Builds stage %s not defined", stage)
+			log.Warnf(ctx, "[makeDockerFile] Builds stage %s not defined", stage)
 			continue
 		}
 
@@ -182,7 +182,7 @@ func (e *Engine) preparedSource(ctx context.Context, build *types.Build, scm cor
 			artifactsDir = cloneDir
 		}
 		for _, artifact := range build.Artifacts {
-			if err := scm.Artifact(artifact, artifactsDir); err != nil {
+			if err := scm.Artifact(ctx, artifact, artifactsDir); err != nil {
 				return "", err
 			}
 		}

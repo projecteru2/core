@@ -109,9 +109,9 @@ func (s *SSHClient) ResourceValidate(ctx context.Context, cpu float64, cpumap ma
 	return types.ErrEngineNotImplemented
 }
 
-func (s *SSHClient) runSingleCommand(_ context.Context, cmd string, stdin io.Reader) (stdout, stderr *bytes.Buffer, err error) {
+func (s *SSHClient) runSingleCommand(ctx context.Context, cmd string, stdin io.Reader) (stdout, stderr *bytes.Buffer, err error) {
 	// what a pathetic library that leaves context completely useless
-	log.Debugf("[runSingleCommand] %s", cmd)
+	log.Debugf(ctx, "[runSingleCommand] %s", cmd)
 
 	stdout = &bytes.Buffer{}
 	stderr = &bytes.Buffer{}

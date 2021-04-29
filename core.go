@@ -59,19 +59,19 @@ func serve(c *cli.Context) error {
 	}
 
 	if sentryDefer, err := setupSentry(config.SentryDSN); err != nil {
-		log.Warnf("[main] sentry %v", err)
+		log.Warnf(nil, "[main] sentry %v", err)
 	} else if sentryDefer != nil {
 		defer sentryDefer()
 	}
 
 	if err := metrics.InitMetrics(config); err != nil {
-		log.Errorf("[main] %v", err)
+		log.Errorf(nil, "[main] %v", err)
 		return err
 	}
 
 	cluster, err := calcium.New(config, embeddedStorage)
 	if err != nil {
-		log.Errorf("[main] %v", err)
+		log.Errorf(nil, "[main] %v", err)
 		return err
 	}
 	defer cluster.Finalizer()
@@ -81,7 +81,7 @@ func serve(c *cli.Context) error {
 	vibranium := rpc.New(cluster, config, rpcch)
 	s, err := net.Listen("tcp", config.Bind)
 	if err != nil {
-		log.Errorf("[main] %v", err)
+		log.Errorf(nil, "[main] %v", err)
 		return err
 	}
 
@@ -95,14 +95,14 @@ func serve(c *cli.Context) error {
 		auth := auth.NewAuth(config.Auth)
 		opts = append(opts, grpc.StreamInterceptor(auth.StreamInterceptor))
 		opts = append(opts, grpc.UnaryInterceptor(auth.UnaryInterceptor))
-		log.Infof("[main] Username %s Password %s", config.Auth.Username, config.Auth.Password)
+		log.Infof(nil, "[main] Username %s Password %s", config.Auth.Username, config.Auth.Password)
 	}
 
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterCoreRPCServer(grpcServer, vibranium)
 	utils.SentryGo(func() {
 		if err := grpcServer.Serve(s); err != nil {
-			log.Errorf("[main] start grpc failed %v", err)
+			log.Errorf(nil, "[main] start grpc failed %v", err)
 		}
 	})
 
@@ -110,14 +110,14 @@ func serve(c *cli.Context) error {
 		http.Handle("/metrics", metrics.Client.ResourceMiddleware(cluster)(promhttp.Handler()))
 		utils.SentryGo(func() {
 			if err := http.ListenAndServe(config.Profile, nil); err != nil {
-				log.Errorf("[main] start http failed %v", err)
+				log.Errorf(nil, "[main] start http failed %v", err)
 			}
 		})
 	}
 
 	unregisterService, err := cluster.RegisterService(c.Context)
 	if err != nil {
-		log.Errorf("[main] failed to register service: %v", err)
+		log.Errorf(nil, "[main] failed to register service: %v", err)
 		return err
 	}
 	log.Info("[main] Cluster started successfully.")

@@ -20,7 +20,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, 
 
 	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, ids)
 	if err != nil {
-		logger.Errorf("failed to group workloads by node: %+v", err)
+		logger.Errorf(ctx, "failed to group workloads by node: %+v", err)
 		return nil, err
 	}
 
@@ -47,7 +47,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, 
 									// then
 									func(ctx context.Context) (err error) {
 										if err = c.doRemoveWorkload(ctx, workload, force); err != nil {
-											log.Infof("[RemoveWorkload] Workload %s removed", workload.ID)
+											log.Infof(ctx, "[RemoveWorkload] Workload %s removed", workload.ID)
 										}
 										return err
 									},
@@ -61,16 +61,16 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, 
 									c.config.GlobalTimeout,
 								)
 							}); err != nil {
-								logger.WithField("id", workloadID).Errorf("failed to lock workload: %+v", err)
+								logger.WithField("id", workloadID).Errorf(ctx, "failed to lock workload: %+v", err)
 								ret.Hook = append(ret.Hook, bytes.NewBufferString(err.Error()))
 								ret.Success = false
 							}
 							ch <- ret
 						}
-						c.doRemapResourceAndLog(logger, node)
+						c.doRemapResourceAndLog(ctx, logger, node)
 						return nil
 					}); err != nil {
-						logger.WithField("nodename", nodename).Errorf("failed to lock node: %+v", err)
+						logger.WithField("nodename", nodename).Errorf(ctx, "failed to lock node: %+v", err)
 						ch <- &types.RemoveWorkloadMessage{Success: false}
 					}
 				}
@@ -111,7 +111,7 @@ func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, ids []string) error 
 	}
 
 	for m := range ch {
-		log.Debugf("[doRemoveWorkloadSync] Removed %s", m.WorkloadID)
+		log.Debugf(ctx, "[doRemoveWorkloadSync] Removed %s", m.WorkloadID)
 	}
 	return nil
 }

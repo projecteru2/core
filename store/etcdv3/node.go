@@ -183,7 +183,7 @@ func (m *Mercury) makeClient(ctx context.Context, node *types.Node, force bool) 
 		data := []string{"", "", ""}
 		for i := 0; i < 3; i++ {
 			if ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name)); err != nil {
-				log.Warnf("[makeClient] Get key failed %v", err)
+				log.Warnf(ctx, "[makeClient] Get key failed %v", err)
 			} else {
 				data[i] = string(ev.Value)
 			}
@@ -270,7 +270,7 @@ func (m *Mercury) doRemoveNode(ctx context.Context, podname, nodename, endpoint 
 
 	_cache.Delete(nodename)
 	_, err := m.BatchDelete(ctx, keys)
-	log.Infof("[doRemoveNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
+	log.Infof(ctx, "[doRemoveNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 	return err
 }
 
@@ -349,11 +349,11 @@ func (m *Mercury) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 			close(ch)
 		}()
 
-		log.Infof("[NodeStatusStream] watch on %s", nodeStatusPrefix)
+		log.Infof(ctx, "[NodeStatusStream] watch on %s", nodeStatusPrefix)
 		for resp := range m.Watch(ctx, nodeStatusPrefix, clientv3.WithPrefix()) {
 			if resp.Err() != nil {
 				if !resp.Canceled {
-					log.Errorf("[NodeStatusStream] watch failed %v", resp.Err())
+					log.Errorf(ctx, "[NodeStatusStream] watch failed %v", resp.Err())
 				}
 				return
 			}

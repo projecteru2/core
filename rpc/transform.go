@@ -478,7 +478,7 @@ func toRPCWorkloads(ctx context.Context, workloads []*types.Workload, labels map
 	for _, c := range workloads {
 		pWorkload, err := toRPCWorkload(ctx, c)
 		if err != nil {
-			log.Errorf("[toRPCWorkloads] trans to pb workload failed %v", err)
+			log.Errorf(ctx, "[toRPCWorkloads] trans to pb workload failed %v", err)
 			continue
 		}
 		if !utils.FilterWorkload(pWorkload.Labels, labels) {
@@ -490,10 +490,10 @@ func toRPCWorkloads(ctx context.Context, workloads []*types.Workload, labels map
 	return ret
 }
 
-func toRPCWorkload(_ context.Context, c *types.Workload) (*pb.Workload, error) {
+func toRPCWorkload(ctx context.Context, c *types.Workload) (*pb.Workload, error) {
 	publish := map[string]string{}
 	if c.StatusMeta != nil && len(c.StatusMeta.Networks) != 0 {
-		meta := utils.DecodeMetaInLabel(c.Labels)
+		meta := utils.DecodeMetaInLabel(ctx, c.Labels)
 		publish = utils.EncodePublishInfo(
 			utils.MakePublishInfo(c.StatusMeta.Networks, meta.Publish),
 		)
