@@ -438,6 +438,8 @@ func (c *Calcium) doMakeWorkloadOptions(no int, msg *types.CreateWorkloadMessage
 			Publish:     opts.Entrypoint.Publish,
 			HealthCheck: entry.HealthCheck,
 		}),
+		cluster.LabelNodeName: node.Name,
+		cluster.LabelCoreID:   c.identifier,
 	}
 	for key, value := range opts.Labels {
 		config.Labels[key] = value

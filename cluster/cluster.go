@@ -18,6 +18,10 @@ const (
 	ERUMark = "ERU"
 	// LabelMeta store publish and health things
 	LabelMeta = "ERU_META"
+	// LabelCoreID is used to label a container with its identifier
+	LabelCoreID = "eru.coreid"
+	// LabelNodeName is used to label a container with the nodename
+	LabelNodeName = "eru.nodename"
 	// WorkloadStop for stop workload
 	WorkloadStop = "stop"
 	// WorkloadStart for start workload
@@ -85,4 +89,8 @@ type Cluster interface {
 	RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) ([]string, <-chan *types.AttachWorkloadMessage, error)
 	// finalizer
 	Finalizer()
+
+	// GetIdentifier returns the identifier for this cluster
+	// identifier will be used to label a container, to announce the container belongs to this cluster
+	GetIdentifier() string
 }

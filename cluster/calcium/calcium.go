@@ -21,12 +21,13 @@ import (
 
 // Calcium implement the cluster
 type Calcium struct {
-	config    types.Config
-	store     store.Store
-	scheduler scheduler.Scheduler
-	source    source.Source
-	watcher   discovery.Service
-	wal       *WAL
+	config     types.Config
+	store      store.Store
+	scheduler  scheduler.Scheduler
+	source     source.Source
+	watcher    discovery.Service
+	wal        *WAL
+	identifier string
 }
 
 // New returns a new cluster config
@@ -77,6 +78,7 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 
 	cal := &Calcium{store: store, config: config, scheduler: potassium, source: scm, watcher: watcher}
 	cal.wal, err = newCalciumWAL(cal)
+	cal.identifier = config.Identifier()
 	return cal, logger.Err(errors.WithStack(err))
 }
 
@@ -88,4 +90,9 @@ func (c *Calcium) DisasterRecover() {
 // Finalizer use for defer
 func (c *Calcium) Finalizer() {
 	c.store.TerminateEmbededStorage()
+}
+
+// GetIdentifier returns the identifier of calcium
+func (c *Calcium) GetIdentifier() string {
+	return c.identifier
 }
