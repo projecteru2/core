@@ -64,12 +64,12 @@ func (c *Calcium) doCalculateCapacity(nodeMap map[string]*types.Node, opts *type
 	if plans, err = resources.SelectNodesByResourceRequests(resourceRequests, nodeMap); err != nil {
 		return 0, nil, nil, err
 	}
-	log.Debugf("[Calcium.doCalculateCapacity] plans: %+v, total: %v", plans, total)
 
 	// deploy strategy
 	infos = strategy.NewInfos(resourceRequests, nodeMap, plans)
 	for _, info := range infos {
 		total += info.Capacity
 	}
+	log.Debugf("[Calcium.doCalculateCapacity] plans: %+v, total: %v", plans, total)
 	return
 }

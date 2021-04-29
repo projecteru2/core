@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/pkg/errors"
+	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -41,6 +42,7 @@ func Deploy(opts *types.DeployOptions, strategyInfos []Info, total int) (map[str
 		return nil, errors.WithStack(types.ErrBadCount)
 	}
 
+	log.Debugf("[strategy.Deploy] infos %+v, need %d, total %d, limit %d", strategyInfos, opts.Count, total, opts.NodesLimit)
 	return deployMethod(strategyInfos, opts.Count, total, opts.NodesLimit)
 }
 
