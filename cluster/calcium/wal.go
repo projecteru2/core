@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
@@ -84,7 +85,10 @@ func (h *CreateWorkloadHandler) Check(raw interface{}) (bool, error) {
 		return false, types.NewDetailedErr(types.ErrInvalidType, raw)
 	}
 
-	_, err := h.calcium.GetWorkload(context.Background(), wrk.ID)
+	ctx, cancel := getReplayContext(context.Background())
+	defer cancel()
+
+	_, err := h.calcium.GetWorkload(ctx, wrk.ID)
 	switch {
 	// there has been an exact workload metadata.
 	case err == nil:
@@ -124,15 +128,18 @@ func (h *CreateWorkloadHandler) Handle(raw interface{}) error {
 		return types.NewDetailedErr(types.ErrInvalidType, raw)
 	}
 
+	ctx, cancel := getReplayContext(context.Background())
+	defer cancel()
+
 	// There hasn't been the exact workload metadata, so we must remove it.
-	node, err := h.calcium.GetNode(context.Background(), wrk.Nodename)
+	node, err := h.calcium.GetNode(ctx, wrk.Nodename)
 	if err != nil {
 		log.Errorf("[CreateWorkloadHandler.Handle] Get node %s failed: %v", wrk.Nodename, err)
 		return err
 	}
 	wrk.Engine = node.Engine
 
-	if err := wrk.Remove(context.Background(), true); err != nil {
+	if err := wrk.Remove(ctx, true); err != nil {
 		if strings.HasPrefix(err.Error(), fmt.Sprintf("Error: No such container: %s", wrk.ID)) {
 			log.Errorf("[CreateWorkloadHandler.Handle] %s has been removed yet", wrk.ID)
 			return nil
@@ -200,7 +207,10 @@ func (h *CreateLambdaHandler) Handle(raw interface{}) error {
 		return err
 	}
 
-	if err := h.calcium.doRemoveWorkloadSync(context.Background(), workloadIDs); err != nil {
+	ctx, cancel := getReplayContext(context.Background())
+	defer cancel()
+
+	if err := h.calcium.doRemoveWorkloadSync(ctx, workloadIDs); err != nil {
 		log.Errorf("[CreateLambdaHandler.Handle] Remove lambda %v failed: %v", opts, err)
 		return err
 	}
@@ -211,7 +221,10 @@ func (h *CreateLambdaHandler) Handle(raw interface{}) error {
 }
 
 func (h *CreateLambdaHandler) getWorkloadIDs(opts *types.ListWorkloadsOptions) ([]string, error) {
-	workloads, err := h.calcium.ListWorkloads(context.Background(), opts)
+	ctx, cancel := getReplayContext(context.Background())
+	defer cancel()
+
+	workloads, err := h.calcium.ListWorkloads(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -222,4 +235,8 @@ func (h *CreateLambdaHandler) getWorkloadIDs(opts *types.ListWorkloadsOptions) (
 	}
 
 	return workloadIDs, nil
+}
+
+func getReplayContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(ctx, time.Second*32)
 }
