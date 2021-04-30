@@ -215,12 +215,12 @@ func TestAllocResource(t *testing.T) {
 	sched := c.scheduler.(*schedulermocks.Scheduler)
 	defer sched.AssertExpectations(t)
 	total := 3
-	sched.On("SelectStorageNodes", mock.Anything, mock.Anything).Return(scheduleInfos, total, nil)
-	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(scheduleInfos, nil, total, nil)
-	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, types.ErrInsufficientMEM).Once()
+	sched.On("SelectStorageNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, total, nil)
+	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, nil, total, nil)
+	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, types.ErrInsufficientMEM).Once()
 	testAllocFailedAsInsufficientMemory(t, c, opts, nodeMap)
 
-	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, total, nil)
+	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, total, nil)
 	testAllocFailedAsMakeDeployStatusError(t, c, opts, nodeMap)
 	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
@@ -230,7 +230,7 @@ func TestAllocResource(t *testing.T) {
 	// Mocks for all.
 	opts.DeployStrategy = strategy.Fill
 	oldFillFunc := strategy.Plans[strategy.Fill]
-	strategy.Plans[strategy.Fill] = func(sis []strategy.Info, need, _, limit int) (map[string]int, error) {
+	strategy.Plans[strategy.Fill] = func(ctx context.Context, sis []strategy.Info, need, _, limit int) (map[string]int, error) {
 		dis := make(map[string]int)
 		for _, si := range sis {
 			dis[si.Nodename] = 3
@@ -272,7 +272,7 @@ func testAllocFailedAsWrongDeployMethod(t *testing.T, c *Calcium, opts *types.De
 func testAllocFailedAsCommonDivisionError(t *testing.T, c *Calcium, opts *types.DeployOptions, nodeMap map[string]*types.Node) {
 	opts.DeployStrategy = strategy.Auto
 	old := strategy.Plans[strategy.Auto]
-	strategy.Plans[strategy.Auto] = func(_ []strategy.Info, need, total, _ int) (map[string]int, error) {
+	strategy.Plans[strategy.Auto] = func(ctx context.Context, _ []strategy.Info, need, total, _ int) (map[string]int, error) {
 		return nil, types.ErrInsufficientRes
 	}
 	defer func() {
@@ -303,5 +303,5 @@ func TestRemapResource(t *testing.T) {
 	_, err := c.remapResource(context.Background(), node)
 	assert.Nil(t, err)
 
-	c.doRemapResourceAndLog(log.WithField("test", "zc"), node)
+	c.doRemapResourceAndLog(context.TODO(), log.WithField("test", "zc"), node)
 }

@@ -42,19 +42,19 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 	case types.Redis:
 		store, err = redis.New(config, embeddedStorage)
 		if err != nil {
-			return nil, logger.Err(nil, errors.WithStack(err))
+			return nil, logger.Err(context.TODO(), errors.WithStack(err))
 		}
 	default:
 		store, err = etcdv3.New(config, embeddedStorage)
 		if err != nil {
-			return nil, logger.Err(nil, errors.WithStack(err))
+			return nil, logger.Err(context.TODO(), errors.WithStack(err))
 		}
 	}
 
 	// set scheduler
 	potassium, err := complexscheduler.New(config)
 	if err != nil {
-		return nil, logger.Err(nil, errors.WithStack(err))
+		return nil, logger.Err(context.TODO(), errors.WithStack(err))
 	}
 	scheduler.InitSchedulerV1(potassium)
 
@@ -70,7 +70,7 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 		log.Warn("[Calcium] SCM not set, build API disabled")
 	}
 	if err != nil {
-		logger.Errorf(nil, "[Calcium] SCAM failed: %+v", err)
+		logger.Errorf(context.TODO(), "[Calcium] SCAM failed: %+v", err)
 		return nil, errors.WithStack(err)
 	}
 

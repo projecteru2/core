@@ -107,8 +107,6 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					return
 				}
 				for nodename, rollbackIndices := range rollbackMap {
-					ctx, cancel := context.WithCancel(ctx)
-					cancel()
 					if e := c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 						for _, plan := range plans {
 							plan.RollbackChangesOnNode(node, rollbackIndices...) // nolint:scopelint

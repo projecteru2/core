@@ -44,8 +44,8 @@ func (v *Vibranium) Info(ctx context.Context, opts *pb.Empty) (*pb.CoreInfo, err
 
 // WatchServiceStatus pushes sibling services
 func (v *Vibranium) WatchServiceStatus(_ *pb.Empty, stream pb.CoreRPC_WatchServiceStatusServer) (err error) {
-	ctx := v.taskAdd("WatchServiceStatus", false, stream.Context())
-	defer v.taskDone("WatchServiceStatus", false, ctx)
+	ctx := v.taskAdd(stream.Context(), "WatchServiceStatus", false)
+	defer v.taskDone(ctx, "WatchServiceStatus", false)
 	ch, err := v.cluster.WatchServiceStatus(ctx)
 	if err != nil {
 		return grpcstatus.Error(WatchServiceStatus, err.Error())
@@ -225,8 +225,8 @@ func (v *Vibranium) GetNodeStatus(ctx context.Context, opts *pb.GetNodeStatusOpt
 
 // NodeStatusStream watch and show deployed status
 func (v *Vibranium) NodeStatusStream(_ *pb.Empty, stream pb.CoreRPC_NodeStatusStreamServer) error {
-	ctx := v.taskAdd("NodeStatusStream", true, stream.Context())
-	defer v.taskDone("NodeStatusStream", true, ctx)
+	ctx := v.taskAdd(stream.Context(), "NodeStatusStream", true)
+	defer v.taskDone(ctx, "NodeStatusStream", true)
 
 	ch := v.cluster.NodeStatusStream(ctx)
 	for {
@@ -264,8 +264,8 @@ func (v *Vibranium) GetNodeResource(ctx context.Context, opts *pb.GetNodeResourc
 
 // CalculateCapacity calculates capacity for each node
 func (v *Vibranium) CalculateCapacity(ctx context.Context, opts *pb.DeployOptions) (*pb.CapacityMessage, error) {
-	ctx = v.taskAdd("CalculateCapacity", true, ctx)
-	defer v.taskDone("CalculateCapacity", true, ctx)
+	ctx = v.taskAdd(ctx, "CalculateCapacity", true)
+	defer v.taskDone(ctx, "CalculateCapacity", true)
 	deployOpts, err := toCoreDeployOptions(opts)
 	if err != nil {
 		return nil, grpcstatus.Error(CalculateCapacity, err.Error())
@@ -301,7 +301,7 @@ func (v *Vibranium) GetWorkloads(ctx context.Context, cids *pb.WorkloadIDs) (*pb
 
 // ListWorkloads by appname with optional entrypoint and nodename
 func (v *Vibranium) ListWorkloads(opts *pb.ListWorkloadsOptions, stream pb.CoreRPC_ListWorkloadsServer) error {
-	ctx := v.taskAdd("ListWorkloads", true, stream.Context())
+	ctx := v.taskAdd(stream.Context(), "ListWorkloads", true)
 	lsopts := &types.ListWorkloadsOptions{
 		Appname:    opts.Appname,
 		Entrypoint: opts.Entrypoint,
@@ -334,8 +334,8 @@ func (v *Vibranium) ListNodeWorkloads(ctx context.Context, opts *pb.GetNodeOptio
 
 // GetWorkloadsStatus get workloads status
 func (v *Vibranium) GetWorkloadsStatus(ctx context.Context, opts *pb.WorkloadIDs) (*pb.WorkloadsStatus, error) {
-	ctx = v.taskAdd("GetWorkloadsStatus", false, ctx)
-	defer v.taskDone("GetWorkloadsStatus", false, ctx)
+	ctx = v.taskAdd(ctx, "GetWorkloadsStatus", false)
+	defer v.taskDone(ctx, "GetWorkloadsStatus", false)
 
 	workloadsStatus, err := v.cluster.GetWorkloadsStatus(ctx, opts.Ids)
 	if err != nil {
@@ -346,8 +346,8 @@ func (v *Vibranium) GetWorkloadsStatus(ctx context.Context, opts *pb.WorkloadIDs
 
 // SetWorkloadsStatus set workloads status
 func (v *Vibranium) SetWorkloadsStatus(ctx context.Context, opts *pb.SetWorkloadsStatusOptions) (*pb.WorkloadsStatus, error) {
-	ctx = v.taskAdd("SetWorkloadsStatus", false, ctx)
-	defer v.taskDone("SetWorkloadsStatus", false, ctx)
+	ctx = v.taskAdd(ctx, "SetWorkloadsStatus", false)
+	defer v.taskDone(ctx, "SetWorkloadsStatus", false)
 
 	var err error
 	statusData := []*types.StatusMeta{}
@@ -373,8 +373,8 @@ func (v *Vibranium) SetWorkloadsStatus(ctx context.Context, opts *pb.SetWorkload
 
 // WorkloadStatusStream watch and show deployed status
 func (v *Vibranium) WorkloadStatusStream(opts *pb.WorkloadStatusStreamOptions, stream pb.CoreRPC_WorkloadStatusStreamServer) error {
-	ctx := v.taskAdd("WorkloadStatusStream", true, stream.Context())
-	defer v.taskDone("WorkloadStatusStream", true, ctx)
+	ctx := v.taskAdd(stream.Context(), "WorkloadStatusStream", true)
+	defer v.taskDone(ctx, "WorkloadStatusStream", true)
 
 	log.Infof(ctx, "[rpc] WorkloadStatusStream start %s", opts.Appname)
 	defer log.Infof(ctx, "[rpc] WorkloadStatusStream stop %s", opts.Appname)
@@ -411,8 +411,8 @@ func (v *Vibranium) WorkloadStatusStream(opts *pb.WorkloadStatusStreamOptions, s
 
 // Copy copy files from multiple workloads
 func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) error {
-	ctx := v.taskAdd("Copy", true, stream.Context())
-	defer v.taskDone("Copy", true, ctx)
+	ctx := v.taskAdd(stream.Context(), "Copy", true)
+	defer v.taskDone(ctx, "Copy", true)
 
 	copyOpts := toCoreCopyOptions(opts)
 	ch, err := v.cluster.Copy(ctx, copyOpts)
@@ -481,8 +481,8 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 
 // Send send files to some contaienrs
 func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) error {
-	ctx := v.taskAdd("Send", true, stream.Context())
-	defer v.taskDone("Send", true, ctx)
+	ctx := v.taskAdd(stream.Context(), "Send", true)
+	defer v.taskDone(ctx, "Send", true)
 
 	sendOpts, err := toCoreSendOptions(opts)
 	if err != nil {
@@ -514,8 +514,8 @@ func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) err
 
 // BuildImage streamed returned functions
 func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_BuildImageServer) error {
-	ctx := v.taskAdd("BuildImage", true, stream.Context())
-	defer v.taskDone("BuildImage", true, ctx)
+	ctx := v.taskAdd(stream.Context(), "BuildImage", true)
+	defer v.taskDone(ctx, "BuildImage", true)
 
 	buildOpts, err := toCoreBuildOptions(opts)
 	if err != nil {
@@ -536,8 +536,8 @@ func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 
 // CacheImage cache image
 func (v *Vibranium) CacheImage(opts *pb.CacheImageOptions, stream pb.CoreRPC_CacheImageServer) error {
-	ctx := v.taskAdd("CacheImage", true, stream.Context())
-	defer v.taskDone("CacheImage", true, ctx)
+	ctx := v.taskAdd(stream.Context(), "CacheImage", true)
+	defer v.taskDone(ctx, "CacheImage", true)
 
 	ch, err := v.cluster.CacheImage(ctx, toCoreCacheImageOptions(opts))
 	if err != nil {
@@ -554,8 +554,8 @@ func (v *Vibranium) CacheImage(opts *pb.CacheImageOptions, stream pb.CoreRPC_Cac
 
 // RemoveImage remove image
 func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_RemoveImageServer) error {
-	ctx := v.taskAdd("RemoveImage", true, stream.Context())
-	defer v.taskDone("RemoveImage", true, ctx)
+	ctx := v.taskAdd(stream.Context(), "RemoveImage", true)
+	defer v.taskDone(ctx, "RemoveImage", true)
 
 	ch, err := v.cluster.RemoveImage(ctx, toCoreRemoveImageOptions(opts))
 	if err != nil {
@@ -572,8 +572,8 @@ func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_R
 
 // CreateWorkload create workloads
 func (v *Vibranium) CreateWorkload(opts *pb.DeployOptions, stream pb.CoreRPC_CreateWorkloadServer) error {
-	ctx := v.taskAdd("CreateWorkload", true, stream.Context())
-	defer v.taskDone("CreateWorkload", true, ctx)
+	ctx := v.taskAdd(stream.Context(), "CreateWorkload", true)
+	defer v.taskDone(ctx, "CreateWorkload", true)
 
 	deployOpts, err := toCoreDeployOptions(opts)
 	if err != nil {
@@ -594,8 +594,8 @@ func (v *Vibranium) CreateWorkload(opts *pb.DeployOptions, stream pb.CoreRPC_Cre
 
 // ReplaceWorkload replace workloads
 func (v *Vibranium) ReplaceWorkload(opts *pb.ReplaceOptions, stream pb.CoreRPC_ReplaceWorkloadServer) error {
-	ctx := v.taskAdd("ReplaceWorkload", true, stream.Context())
-	defer v.taskDone("ReplaceWorkload", true, ctx)
+	ctx := v.taskAdd(stream.Context(), "ReplaceWorkload", true)
+	defer v.taskDone(ctx, "ReplaceWorkload", true)
 
 	replaceOpts, err := toCoreReplaceOptions(opts)
 	if err != nil {
@@ -617,8 +617,8 @@ func (v *Vibranium) ReplaceWorkload(opts *pb.ReplaceOptions, stream pb.CoreRPC_R
 
 // RemoveWorkload remove workloads
 func (v *Vibranium) RemoveWorkload(opts *pb.RemoveWorkloadOptions, stream pb.CoreRPC_RemoveWorkloadServer) error {
-	ctx := v.taskAdd("RemoveWorkload", true, stream.Context())
-	defer v.taskDone("RemoveWorkload", true, ctx)
+	ctx := v.taskAdd(stream.Context(), "RemoveWorkload", true)
+	defer v.taskDone(ctx, "RemoveWorkload", true)
 
 	ids := opts.GetIds()
 	force := opts.GetForce()
@@ -643,8 +643,8 @@ func (v *Vibranium) RemoveWorkload(opts *pb.RemoveWorkloadOptions, stream pb.Cor
 
 // DissociateWorkload dissociate workload
 func (v *Vibranium) DissociateWorkload(opts *pb.DissociateWorkloadOptions, stream pb.CoreRPC_DissociateWorkloadServer) error {
-	ctx := v.taskAdd("DissociateWorkload", true, stream.Context())
-	defer v.taskDone("DissociateWorkload", true, ctx)
+	ctx := v.taskAdd(stream.Context(), "DissociateWorkload", true)
+	defer v.taskDone(ctx, "DissociateWorkload", true)
 
 	ids := opts.GetIds()
 	if len(ids) == 0 {
@@ -667,8 +667,8 @@ func (v *Vibranium) DissociateWorkload(opts *pb.DissociateWorkloadOptions, strea
 
 // ControlWorkload control workloads
 func (v *Vibranium) ControlWorkload(opts *pb.ControlWorkloadOptions, stream pb.CoreRPC_ControlWorkloadServer) error {
-	ctx := v.taskAdd("ControlWorkload", true, stream.Context())
-	defer v.taskDone("ControlWorkload", true, ctx)
+	ctx := v.taskAdd(stream.Context(), "ControlWorkload", true)
+	defer v.taskDone(ctx, "ControlWorkload", true)
 
 	ids := opts.GetIds()
 	t := opts.GetType()
@@ -694,8 +694,8 @@ func (v *Vibranium) ControlWorkload(opts *pb.ControlWorkloadOptions, stream pb.C
 
 // ExecuteWorkload runs a command in a running workload
 func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) error {
-	ctx := v.taskAdd("ExecuteWorkload", true, stream.Context())
-	defer v.taskDone("ExecuteWorkload", true, ctx)
+	ctx := v.taskAdd(stream.Context(), "ExecuteWorkload", true)
+	defer v.taskDone(ctx, "ExecuteWorkload", true)
 
 	opts, err := stream.Recv()
 	if err != nil {
@@ -731,8 +731,8 @@ func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) err
 
 // ReallocResource realloc res for workloads
 func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions) (msg *pb.ReallocResourceMessage, err error) {
-	ctx = v.taskAdd("ReallocResource", true, ctx)
-	defer v.taskDone("ReallocResource", true, ctx)
+	ctx = v.taskAdd(ctx, "ReallocResource", true)
+	defer v.taskDone(ctx, "ReallocResource", true)
 	defer func() {
 		errString := ""
 		if err != nil {
@@ -780,8 +780,8 @@ func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions
 
 // LogStream get workload logs
 func (v *Vibranium) LogStream(opts *pb.LogStreamOptions, stream pb.CoreRPC_LogStreamServer) error {
-	ctx := v.taskAdd("LogStream", true, stream.Context())
-	defer v.taskDone("LogStream", true, ctx)
+	ctx := v.taskAdd(stream.Context(), "LogStream", true)
+	defer v.taskDone(ctx, "LogStream", true)
 
 	ID := opts.GetId()
 	log.Infof(ctx, "[LogStream] Get %s log start", ID)
@@ -814,7 +814,7 @@ func (v *Vibranium) LogStream(opts *pb.LogStreamOptions, stream pb.CoreRPC_LogSt
 
 // RunAndWait is lambda
 func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
-	ctx := v.taskAdd("RunAndWait", true, stream.Context())
+	ctx := v.taskAdd(stream.Context(), "RunAndWait", true)
 	RunAndWaitOptions, err := stream.Recv()
 	if err != nil {
 		return grpcstatus.Error(RunAndWait, err.Error())
@@ -876,7 +876,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 
 	// then deal with the rest messages
 	runAndWait := func(f func(<-chan *types.AttachWorkloadMessage)) {
-		defer v.taskDone("RunAndWait", true, ctx)
+		defer v.taskDone(ctx, "RunAndWait", true)
 		defer cancel()
 		f(ch)
 	}

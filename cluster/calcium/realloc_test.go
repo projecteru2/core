@@ -121,23 +121,23 @@ func TestRealloc(t *testing.T) {
 	simpleMockScheduler := &schedulermocks.Scheduler{}
 	scheduler.InitSchedulerV1(simpleMockScheduler)
 	c.scheduler = simpleMockScheduler
-	simpleMockScheduler.On("ReselectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(resourcetypes.ScheduleInfo{}, nil, 0, types.ErrInsufficientMEM).Once()
+	simpleMockScheduler.On("ReselectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(resourcetypes.ScheduleInfo{}, nil, 0, types.ErrInsufficientMEM).Once()
 	err = c.ReallocResource(ctx, newReallocOptions("c1", 0.1, 2*int64(units.MiB), nil, types.TriKeep, types.TriKeep))
 	assert.EqualError(t, err, "cannot alloc a plan, not enough memory")
 	store.AssertExpectations(t)
 	simpleMockScheduler.AssertExpectations(t)
 
 	// failed by wrong total
-	simpleMockScheduler.On("ReselectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(resourcetypes.ScheduleInfo{}, nil, 0, nil).Once()
+	simpleMockScheduler.On("ReselectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(resourcetypes.ScheduleInfo{}, nil, 0, nil).Once()
 	scheduleInfos := []resourcetypes.ScheduleInfo{{
 		NodeMeta: types.NodeMeta{Name: "node1"},
 		Capacity: 2,
 	}}
-	simpleMockScheduler.On("SelectStorageNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, 100, nil)
+	simpleMockScheduler.On("SelectStorageNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, 100, nil)
 	nodeVolumePlans := map[string][]types.VolumePlan{
 		"node1": {{types.MustToVolumeBinding("AUTO:/data:rw:50"): types.VolumeMap{"/dir0": 50}}},
 	}
-	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, types.MustToVolumeBindings([]string{"AUTO:/data:rw:50"})).Return(nil, nodeVolumePlans, 1, nil).Once()
+	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything, types.MustToVolumeBindings([]string{"AUTO:/data:rw:50"})).Return(nil, nodeVolumePlans, 1, nil).Once()
 	err = c.ReallocResource(ctx, newReallocOptions("c1", 0.1, 2*int64(units.MiB), nil, types.TriKeep, types.TriKeep))
 	assert.EqualError(t, err, "cannot alloc a each node plan, not enough capacity")
 	simpleMockScheduler.AssertExpectations(t)
@@ -151,8 +151,8 @@ func TestRealloc(t *testing.T) {
 			{"node1": 100},
 		},
 	}
-	simpleMockScheduler.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, 2, nil).Once()
-	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(scheduleInfos, nil, 100, nil).Once()
+	simpleMockScheduler.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, 2, nil).Once()
+	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, nil, 100, nil).Once()
 	// failed by apply resource
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrBadWorkloadID).Once()
 	// reset node
@@ -174,8 +174,8 @@ func TestRealloc(t *testing.T) {
 	store.AssertExpectations(t)
 
 	// failed by update workload
-	simpleMockScheduler.On("ReselectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos[0], nodeCPUPlans, 2, nil).Once()
-	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(scheduleInfos, nil, 100, nil).Once()
+	simpleMockScheduler.On("ReselectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos[0], nodeCPUPlans, 2, nil).Once()
+	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, nil, 100, nil).Once()
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(types.ErrBadWorkloadID).Times(1)
 	err = c.ReallocResource(ctx, newReallocOptions("c1", 0.1, 2*int64(units.MiB), nil, types.TriKeep, types.TriKeep))
@@ -192,16 +192,16 @@ func TestRealloc(t *testing.T) {
 			{types.MustToVolumeBinding("AUTO:/data:rw:100"): types.VolumeMap{"/dir4": 100}},
 		},
 	}
-	simpleMockScheduler.On("ReselectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos[0], nodeCPUPlans, 2, nil).Once()
-	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(scheduleInfos, nodeVolumePlans, 4, nil).Once()
+	simpleMockScheduler.On("ReselectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos[0], nodeCPUPlans, 2, nil).Once()
+	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, nodeVolumePlans, 4, nil).Once()
 	err = c.ReallocResource(ctx, newReallocOptions("c1", 0.1, int64(units.MiB), types.MustToVolumeBindings([]string{"AUTO:/data:rw:50"}), types.TriKeep, types.TriKeep))
 	assert.EqualError(t, err, "incompatible volume plans: cannot alloc a plan, not enough volume")
 	simpleMockScheduler.AssertExpectations(t)
 	store.AssertExpectations(t)
 
 	// failed by volume schedule error
-	simpleMockScheduler.On("ReselectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(resourcetypes.ScheduleInfo{}, nodeCPUPlans, 2, nil).Once()
-	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(nil, nil, 0, types.ErrInsufficientVolume).Once()
+	simpleMockScheduler.On("ReselectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(resourcetypes.ScheduleInfo{}, nodeCPUPlans, 2, nil).Once()
+	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, 0, types.ErrInsufficientVolume).Once()
 	err = c.ReallocResource(ctx, newReallocOptions("c1", 0.1, int64(units.MiB), types.MustToVolumeBindings([]string{"AUTO:/data:rw:1"}), types.TriKeep, types.TriKeep))
 	assert.EqualError(t, err, "cannot alloc a plan, not enough volume")
 	simpleMockScheduler.AssertExpectations(t)
@@ -264,8 +264,8 @@ func TestRealloc(t *testing.T) {
 			},
 		},
 	}
-	simpleMockScheduler.On("ReselectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos[0], nodeCPUPlans, 2, nil)
-	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything).Return(scheduleInfos, nodeVolumePlans, 2, nil)
+	simpleMockScheduler.On("ReselectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos[0], nodeCPUPlans, 2, nil)
+	simpleMockScheduler.On("SelectVolumeNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, nodeVolumePlans, 2, nil)
 	store.On("GetNode", mock.Anything, "node2").Return(node2, nil)
 	store.On("GetWorkloads", mock.Anything, []string{"c3"}).Return([]*types.Workload{c3}, nil)
 	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(types.ErrBadWorkloadID).Times(1)

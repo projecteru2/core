@@ -28,6 +28,8 @@ test: deps unit-test
 mock: deps
 	mockery --dir ./vendor/google.golang.org/grpc --name ServerStream --output 3rdmocks
 	mockery --dir vendor/github.com/docker/docker/client --name APIClient --output engine/docker/mocks
+	mockery --dir scheduler --output scheduler/mocks --name Scheduler
+	mockery --dir source --output source/mocks --name Source
 	mockery --dir store --output store/mocks --name Store
 	mockery --dir cluster --output cluster/mocks --name Cluster
 	mockery --dir lock --output lock/mocks --name DistributedLock

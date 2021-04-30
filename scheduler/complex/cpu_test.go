@@ -1,6 +1,7 @@
 package complexscheduler
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -14,13 +15,13 @@ import (
 func TestCPUPriorPlan(t *testing.T) {
 	// normal 分配
 	scheduleInfos := resetscheduleInfos()
-	_, resultCPUPlan, total, err := cpuPriorPlan(3.0, int64(units.MiB), scheduleInfos, -1, 100)
+	_, resultCPUPlan, total, err := cpuPriorPlan(context.TODO(), 3.0, int64(units.MiB), scheduleInfos, -1, 100)
 	assert.NoError(t, err)
 	assert.Equal(t, len(resultCPUPlan), 1)
 	assert.Equal(t, total, 1)
 	// numa 分配
 	scheduleInfos = resetscheduleInfos()
-	_, resultCPUPlan, total, err = cpuPriorPlan(1.5, int64(units.MiB), scheduleInfos, -1, 100)
+	_, resultCPUPlan, total, err = cpuPriorPlan(context.TODO(), 1.5, int64(units.MiB), scheduleInfos, -1, 100)
 	assert.NoError(t, err)
 	assert.Equal(t, len(resultCPUPlan), 1)
 	assert.Equal(t, total, 2)
@@ -34,7 +35,7 @@ func TestCPUPriorPlan(t *testing.T) {
 	}
 	// numa and normal 分配
 	scheduleInfos = resetscheduleInfos()
-	_, resultCPUPlan, total, err = cpuPriorPlan(1, int64(units.GiB), scheduleInfos, -1, 100)
+	_, resultCPUPlan, total, err = cpuPriorPlan(context.TODO(), 1, int64(units.GiB), scheduleInfos, -1, 100)
 	assert.NoError(t, err)
 	assert.Equal(t, len(resultCPUPlan), 1)
 	assert.Equal(t, total, 3)
@@ -173,7 +174,7 @@ func TestCPUReallocWithPriorPlan(t *testing.T) {
 		"1": 30,
 		"2": 40,
 	}
-	si, cpuPlans, total, err := po.ReselectCPUNodes(scheduleInfo, CPU, 2, 0)
+	si, cpuPlans, total, err := po.ReselectCPUNodes(context.TODO(), scheduleInfo, CPU, 2, 0)
 	assert.Nil(t, err)
 	assert.EqualValues(t, 1, total)
 	assert.True(t, reflect.DeepEqual(cpuPlans, map[string][]types.CPUMap{"n1": {{"0": 100, "1": 100}}}))
@@ -197,7 +198,7 @@ func TestCPUReallocWithPriorPlan(t *testing.T) {
 		"1": 30,
 		"2": 40,
 	}
-	si, cpuPlans, total, err = po.ReselectCPUNodes(scheduleInfo, CPU, 2, 0)
+	si, cpuPlans, total, err = po.ReselectCPUNodes(context.TODO(), scheduleInfo, CPU, 2, 0)
 	assert.Nil(t, err)
 	assert.EqualValues(t, 3, total)
 	asserted := 0
@@ -232,7 +233,7 @@ func TestCPUReallocWithPriorPlan(t *testing.T) {
 		"1": 30,
 		"2": 40,
 	}
-	_, _, _, err = po.ReselectCPUNodes(scheduleInfo, CPU, 2, 0)
+	_, _, _, err = po.ReselectCPUNodes(context.TODO(), scheduleInfo, CPU, 2, 0)
 	assert.EqualError(t, err, "not enough resource")
 }
 

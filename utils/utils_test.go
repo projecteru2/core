@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -129,15 +130,15 @@ func TestMetaInLabel(t *testing.T) {
 	meta := &types.LabelMeta{
 		Publish: []string{"1", "2"},
 	}
-	r := EncodeMetaInLabel(meta)
+	r := EncodeMetaInLabel(context.TODO(), meta)
 	assert.NotEmpty(t, r)
 
 	labels := map[string]string{
 		cluster.LabelMeta: "{\"Publish\":[\"5001\"],\"HealthCheck\":{\"TCPPorts\":[\"5001\"],\"HTTPPort\":\"\",\"HTTPURL\":\"\",\"HTTPCode\":0}}",
 	}
-	meta2 := DecodeMetaInLabel(labels)
+	meta2 := DecodeMetaInLabel(context.TODO(), labels)
 	assert.Equal(t, meta2.Publish[0], "5001")
-	meta3 := DecodeMetaInLabel(map[string]string{cluster.LabelMeta: ""})
+	meta3 := DecodeMetaInLabel(context.TODO(), map[string]string{cluster.LabelMeta: ""})
 	assert.Nil(t, meta3.HealthCheck)
 }
 
@@ -219,9 +220,9 @@ func TestMax(t *testing.T) {
 }
 
 func TestEnsureReaderClosed(t *testing.T) {
-	EnsureReaderClosed(nil)
+	EnsureReaderClosed(context.TODO(), nil)
 	s := ioutil.NopCloser(bytes.NewBuffer([]byte{10, 10, 10}))
-	EnsureReaderClosed(s)
+	EnsureReaderClosed(context.TODO(), s)
 }
 
 func TestRange(t *testing.T) {

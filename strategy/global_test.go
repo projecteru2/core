@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,7 +27,7 @@ func TestGlobalPlan1(t *testing.T) {
 		Capacity: 1,
 	}
 	arg := []Info{n3, n2, n1}
-	r, err := GlobalPlan(arg, 3, 100, 0)
+	r, err := GlobalPlan(context.TODO(), arg, 3, 100, 0)
 	assert.NoError(t, err)
 	assert.Equal(t, r[arg[0].Nodename], 1)
 }
@@ -45,7 +46,7 @@ func TestGlobalPlan2(t *testing.T) {
 		Capacity: 100,
 	}
 	arg := []Info{n2, n1}
-	r, err := GlobalPlan(arg, 2, 100, 0)
+	r, err := GlobalPlan(context.TODO(), arg, 2, 100, 0)
 	assert.NoError(t, err)
 	assert.Equal(t, r[arg[0].Nodename], 2)
 }
@@ -58,13 +59,13 @@ func TestGlobalPlan3(t *testing.T) {
 		Capacity: 100,
 	}
 
-	r, err := GlobalPlan([]Info{n1}, 1, 100, 0)
+	r, err := GlobalPlan(context.TODO(), []Info{n1}, 1, 100, 0)
 	assert.NoError(t, err)
 	assert.Equal(t, r["n1"], 1)
 }
 
 func TestGlobal3(t *testing.T) {
-	_, err := GlobalPlan([]Info{}, 10, 1, 0)
+	_, err := GlobalPlan(context.TODO(), []Info{}, 10, 1, 0)
 	assert.Error(t, err)
 	nodeInfo := Info{
 		Nodename: "n1",
@@ -73,7 +74,7 @@ func TestGlobal3(t *testing.T) {
 		Capacity: 100,
 		Count:    21,
 	}
-	r, err := GlobalPlan([]Info{nodeInfo}, 10, 100, 0)
+	r, err := GlobalPlan(context.TODO(), []Info{nodeInfo}, 10, 100, 0)
 	assert.NoError(t, err)
 	assert.Equal(t, r["n1"], 10)
 }

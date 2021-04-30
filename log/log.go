@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/peer"
 )
@@ -126,7 +127,7 @@ func getTracingInfo(ctx context.Context) (tracingInfo string) {
 		tracing = append(tracing, p.Addr.String())
 	}
 
-	if traceID := ctx.Value("traceID"); traceID != nil {
+	if traceID := ctx.Value(types.TracingID); traceID != nil {
 		if tid, ok := traceID.(string); ok {
 			tracing = append(tracing, tid)
 		}

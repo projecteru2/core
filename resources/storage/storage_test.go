@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"testing"
 
 	resourcetypes "github.com/projecteru2/core/resources/types"
@@ -77,7 +78,7 @@ func TestStorage(t *testing.T) {
 		}
 	)
 	mockScheduler.On(
-		"SelectStorageNodes", mock.Anything, mock.Anything,
+		"SelectStorageNodes", mock.Anything, mock.Anything, mock.Anything,
 	).Return(scheduleInfos, 1, nil)
 
 	resourceRequest, err := MakeRequest(types.ResourceOptions{
@@ -85,7 +86,7 @@ func TestStorage(t *testing.T) {
 		StorageLimit:   1024,
 	})
 	assert.NoError(t, err)
-	_, _, err = resourceRequest.MakeScheduler()([]resourcetypes.ScheduleInfo{})
+	_, _, err = resourceRequest.MakeScheduler()(context.TODO(), []resourcetypes.ScheduleInfo{})
 	assert.Error(t, err)
 
 	assert.True(t, resourceRequest.Type()&types.ResourceStorage > 0)
@@ -96,7 +97,7 @@ func TestStorage(t *testing.T) {
 	}()
 
 	sche := resourceRequest.MakeScheduler()
-	plans, _, err := sche(scheduleInfos)
+	plans, _, err := sche(context.TODO(), scheduleInfos)
 	assert.Nil(t, err)
 
 	const storage = int64(10240)
