@@ -13,7 +13,7 @@ import (
 func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error) {
 	logger := log.WithField("Calcium", "Copy").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.Err(err)
+		return nil, logger.Err(ctx, err)
 	}
 	ch := make(chan *types.CopyMessage)
 	utils.SentryGo(func() {
@@ -33,7 +33,7 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 						}
 						return nil
 					}); err != nil {
-						ch <- makeCopyMessage(id, "", "", logger.Err(err), nil)
+						ch <- makeCopyMessage(id, "", "", logger.Err(ctx, err), nil)
 					}
 				}
 			}(id, paths))

@@ -21,12 +21,12 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 	logger := log.WithField("Calcium", "BuildImage").WithField("opts", opts)
 	// Disable build API if scm not set
 	if c.source == nil {
-		return nil, logger.Err(errors.WithStack(types.ErrSCMNotSet))
+		return nil, logger.Err(ctx, errors.WithStack(types.ErrSCMNotSet))
 	}
 	// select nodes
 	node, err := c.selectBuildNode(ctx)
 	if err != nil {
-		return nil, logger.Err(err)
+		return nil, logger.Err(ctx, err)
 	}
 	log.Infof(ctx, "[BuildImage] Building image at pod %s node %s", node.Podname, node.Name)
 	// get refs
@@ -40,9 +40,9 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 	case types.BuildFromExist:
 		ch, err = c.buildFromExist(ctx, refs[0], opts.ExistID)
 	default:
-		return nil, logger.Err(errors.WithStack(errors.New("unknown build type")))
+		return nil, logger.Err(ctx, errors.WithStack(errors.New("unknown build type")))
 	}
-	return ch, logger.Err(err)
+	return ch, logger.Err(ctx, err)
 }
 
 func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
@@ -94,13 +94,13 @@ func (c *Calcium) buildFromExist(ctx context.Context, ref, existID string) (chan
 	return withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
 		node, err := c.getWorkloadNode(ctx, existID)
 		if err != nil {
-			ch <- buildErrMsg(logger.Err(err))
+			ch <- buildErrMsg(logger.Err(ctx, err))
 			return
 		}
 
 		imageID, err := node.Engine.ImageBuildFromExist(ctx, existID, ref)
 		if err != nil {
-			ch <- buildErrMsg(logger.Err(err))
+			ch <- buildErrMsg(logger.Err(ctx, err))
 			return
 		}
 		utils.SentryGo(func() {
@@ -149,7 +149,7 @@ func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types
 			log.Infof(ctx, "[BuildImage] Push image %s", tag)
 			rc, err := node.Engine.ImagePush(ctx, tag)
 			if err != nil {
-				ch <- &types.BuildImageMessage{Error: logger.Err(err).Error()}
+				ch <- &types.BuildImageMessage{Error: logger.Err(ctx, err).Error()}
 				continue
 			}
 

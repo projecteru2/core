@@ -24,7 +24,7 @@ import (
 func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
 	logger := log.WithField("Calcium", "CreateWorkload").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.Err(err)
+		return nil, logger.Err(ctx, err)
 	}
 
 	opts.ProcessIdent = utils.RandomString(16)
@@ -32,7 +32,7 @@ func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions)
 	litter.Dump(opts)
 	// Count 要大于0
 	if opts.Count <= 0 {
-		return nil, logger.Err(errors.WithStack(types.NewDetailedErr(types.ErrBadCount, opts.Count)))
+		return nil, logger.Err(ctx, errors.WithStack(types.NewDetailedErr(types.ErrBadCount, opts.Count)))
 	}
 
 	return c.doCreateWorkloads(ctx, opts), nil
@@ -68,14 +68,13 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			ctx,
 
 			// if: alloc resources
-			func(ctx context.Context) error {
+			func(ctx context.Context) (err error) {
+				defer func() {
+					if err != nil {
+						ch <- &types.CreateWorkloadMessage{Error: logger.Err(ctx, err)}
+					}
+				}()
 				return c.withNodesLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) (err error) {
-					defer func() {
-						if err != nil {
-							ch <- &types.CreateWorkloadMessage{Error: logger.Err(err)}
-						}
-					}()
-
 					// calculate plans
 					if plans, deployMap, err = c.doAllocResource(ctx, nodeMap, opts); err != nil {
 						return err
@@ -108,13 +107,15 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					return
 				}
 				for nodename, rollbackIndices := range rollbackMap {
+					ctx, cancel := context.WithCancel(ctx)
+					cancel()
 					if e := c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 						for _, plan := range plans {
 							plan.RollbackChangesOnNode(node, rollbackIndices...) // nolint:scopelint
 						}
 						return errors.WithStack(c.store.UpdateNodes(ctx, node))
 					}); e != nil {
-						err = e
+						err = logger.Err(ctx, e)
 					}
 				}
 				return err
@@ -172,7 +173,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 	node, err := c.doGetAndPrepareNode(ctx, nodename, opts.Image)
 	if err != nil {
 		for i := 0; i < deploy; i++ {
-			ch <- &types.CreateWorkloadMessage{Error: logger.Err(err)}
+			ch <- &types.CreateWorkloadMessage{Error: logger.Err(ctx, err)}
 		}
 		return utils.Range(deploy), err
 	}
@@ -191,7 +192,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 				defer func() {
 					if e != nil {
 						err = e
-						createMsg.Error = logger.Err(e)
+						createMsg.Error = logger.Err(ctx, e)
 						appendLock.Lock()
 						indices = append(indices, idx)
 						appendLock.Unlock()

@@ -32,9 +32,9 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 			},
 		)
 		if err != nil {
-			return logger.Err(err)
+			return logger.Err(ctx, err)
 		}
-		return logger.Err(c.doReallocOnNode(ctx, workload.Nodename, workload, rrs))
+		return logger.Err(ctx, c.doReallocOnNode(ctx, workload.Nodename, workload, rrs))
 	})
 }
 

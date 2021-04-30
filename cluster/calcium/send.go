@@ -17,7 +17,7 @@ import (
 func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error) {
 	logger := log.WithField("Calcium", "Send").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.Err(errors.WithStack(err))
+		return nil, logger.Err(ctx, errors.WithStack(err))
 	}
 	ch := make(chan *types.SendMessage)
 	utils.SentryGo(func() {
@@ -34,11 +34,11 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 					if err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
 						for dst, content := range opts.Data {
 							err := c.doSendFileToWorkload(ctx, workload.Engine, workload.ID, dst, bytes.NewBuffer(content), true, true)
-							ch <- &types.SendMessage{ID: id, Path: dst, Error: logger.Err(err)}
+							ch <- &types.SendMessage{ID: id, Path: dst, Error: logger.Err(ctx, err)}
 						}
 						return nil
 					}); err != nil {
-						ch <- &types.SendMessage{ID: id, Error: logger.Err(err)}
+						ch <- &types.SendMessage{ID: id, Error: logger.Err(ctx, err)}
 					}
 				}
 			}(id))

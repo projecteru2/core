@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"context"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -41,19 +42,19 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 	case types.Redis:
 		store, err = redis.New(config, embeddedStorage)
 		if err != nil {
-			return nil, logger.Err(errors.WithStack(err))
+			return nil, logger.Err(nil, errors.WithStack(err))
 		}
 	default:
 		store, err = etcdv3.New(config, embeddedStorage)
 		if err != nil {
-			return nil, logger.Err(errors.WithStack(err))
+			return nil, logger.Err(nil, errors.WithStack(err))
 		}
 	}
 
 	// set scheduler
 	potassium, err := complexscheduler.New(config)
 	if err != nil {
-		return nil, logger.Err(errors.WithStack(err))
+		return nil, logger.Err(nil, errors.WithStack(err))
 	}
 	scheduler.InitSchedulerV1(potassium)
 
@@ -79,7 +80,7 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 	cal := &Calcium{store: store, config: config, scheduler: potassium, source: scm, watcher: watcher}
 	cal.wal, err = newCalciumWAL(cal)
 	cal.identifier = config.Identifier()
-	return cal, logger.Err(errors.WithStack(err))
+	return cal, logger.Err(context.TODO(), errors.WithStack(err))
 }
 
 // DisasterRecover .

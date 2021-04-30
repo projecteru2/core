@@ -49,10 +49,11 @@ func (f Fields) Errorf(ctx context.Context, format string, args ...interface{}) 
 }
 
 // Err is a decorator returning the argument
-func (f Fields) Err(err error) error {
+func (f Fields) Err(ctx context.Context, err error) error {
+	format := getTracingInfo(ctx) + "%+v"
 	if err != nil {
-		sentry.CaptureMessage(fmt.Sprintf("%+v", err))
-		f.e.Errorf("%+v", err)
+		sentry.CaptureMessage(fmt.Sprintf(format, err))
+		f.e.Errorf(format, err)
 	}
 	return err
 }
@@ -116,6 +117,10 @@ func Debugf(ctx context.Context, format string, args ...interface{}) {
 }
 
 func getTracingInfo(ctx context.Context) (tracingInfo string) {
+	if ctx == nil {
+		return ""
+	}
+
 	tracing := []string{}
 	if p, ok := peer.FromContext(ctx); ok {
 		tracing = append(tracing, p.Addr.String())

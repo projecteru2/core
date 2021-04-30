@@ -53,7 +53,7 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 					}
 					ch <- &types.ControlWorkloadMessage{
 						WorkloadID: id,
-						Error:      logger.Err(err),
+						Error:      logger.Err(ctx, err),
 						Hook:       message,
 					}
 				}

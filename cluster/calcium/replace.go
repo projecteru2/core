@@ -17,7 +17,7 @@ import (
 func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceWorkloadMessage, error) {
 	logger := log.WithField("Calcium", "ReplaceWorkload").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.Err(err)
+		return nil, logger.Err(ctx, err)
 	}
 	opts.Normalize()
 	if len(opts.IDs) == 0 {
@@ -29,7 +29,7 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 				Appname: opts.Name, Entrypoint: opts.Entrypoint.Name, Nodename: nodename,
 			})
 			if err != nil {
-				return nil, logger.Err(err)
+				return nil, logger.Err(ctx, err)
 			}
 			for _, workload := range workloads {
 				opts.IDs = append(opts.IDs, workload.ID)
