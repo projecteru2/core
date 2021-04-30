@@ -1,6 +1,10 @@
 package types
 
 import (
+	"crypto/sha1" // #nosec
+	"fmt"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -37,6 +41,22 @@ type Config struct {
 	Virt      VirtConfig    `yaml:"virt"`
 	Systemd   SystemdConfig `yaml:"systemd"`
 	SentryDSN string        `yaml:"sentry_dsn"`
+}
+
+// Identifier returns the id of this config
+// we consider the same storage as the same config
+func (c Config) Identifier() string {
+	s := strings.Builder{}
+	_, _ = s.WriteString(c.Store)
+	for _, e := range c.Etcd.Machines {
+		_, _ = s.WriteString(e)
+	}
+	_, _ = s.WriteString(c.Etcd.Prefix)
+	_, _ = s.WriteString(c.Redis.Addr)
+	_, _ = s.WriteString(strconv.Itoa(c.Redis.DB))
+	h := sha1.New() // #nosec
+	_, _ = h.Write([]byte(s.String()))
+	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
 // EtcdConfig holds eru-core etcd config

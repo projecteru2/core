@@ -38,6 +38,7 @@ func (v *Vibranium) Info(ctx context.Context, opts *pb.Empty) (*pb.CoreInfo, err
 		BuildAt:       version.BUILTAT,
 		GolangVersion: runtime.Version(),
 		OsArch:        fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		Identifier:    v.cluster.GetIdentifier(),
 	}, nil
 }
 

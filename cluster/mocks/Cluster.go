@@ -281,6 +281,20 @@ func (_m *Cluster) Finalizer() {
 	_m.Called()
 }
 
+// GetIdentifier provides a mock function with given fields:
+func (_m *Cluster) GetIdentifier() string {
+	ret := _m.Called()
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func() string); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	return r0
+}
+
 // GetNode provides a mock function with given fields: ctx, nodename
 func (_m *Cluster) GetNode(ctx context.Context, nodename string) (*types.Node, error) {
 	ret := _m.Called(ctx, nodename)

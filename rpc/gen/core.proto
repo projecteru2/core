@@ -66,6 +66,7 @@ message CoreInfo {
     string build_at = 3;
     string golang_version = 4;
     string os_arch = 5;
+    string identifier = 6;
 }
 
 message ServiceStatus {
