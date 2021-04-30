@@ -18,7 +18,7 @@ func TestAddNode(t *testing.T) {
 	ctx := context.Background()
 	nodename := "testnode"
 	nodename2 := "testnode2"
-	endpoint := "tcp://127.0.0.1:2376"
+	endpoint := "tcp://128.0.0.1:2376"
 	podname := "testpod"
 	_, err := m.AddPod(ctx, podname, "test")
 	assert.NoError(t, err)
