@@ -194,7 +194,7 @@ func (v *Virt) VirtualizationStart(ctx context.Context, ID string) (err error) {
 
 // VirtualizationStop stops it.
 func (v *Virt) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) (err error) {
-	_, err = v.client.StopGuest(ctx, ID)
+	_, err = v.client.StopGuest(ctx, ID, gracefulTimeout == 0)
 	return
 }
 
