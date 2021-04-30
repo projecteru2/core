@@ -10,6 +10,7 @@ import (
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration) (lock.DistributedLock, context.Context, error) {
@@ -62,7 +63,7 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(
 	workloads := map[string]*types.Workload{}
 	locks := map[string]lock.DistributedLock{}
 	defer log.Debugf(ctx, "[withWorkloadsLocked] Workloads %+v unlocked", ids)
-	defer func() { c.doUnlockAll(context.Background(), locks) }()
+	defer func() { c.doUnlockAll(utils.InheritTracingInfo(ctx, context.Background()), locks) }()
 	cs, err := c.GetWorkloads(ctx, ids)
 	if err != nil {
 		return err
@@ -86,7 +87,7 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nf types.NodeFilter, f fu
 	nodes := map[string]*types.Node{}
 	locks := map[string]lock.DistributedLock{}
 	defer log.Debugf(ctx, "[withNodesLocked] Nodes %+v unlocked", nf)
-	defer c.doUnlockAll(context.Background(), locks)
+	defer c.doUnlockAll(utils.InheritTracingInfo(ctx, context.Background()), locks)
 
 	ns, err := c.filterNodes(ctx, nf)
 	if err != nil {

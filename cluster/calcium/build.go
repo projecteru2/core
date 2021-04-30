@@ -104,7 +104,7 @@ func (c *Calcium) buildFromExist(ctx context.Context, ref, existID string) (chan
 			return
 		}
 		utils.SentryGo(func() {
-			cleanupNodeImages(node, []string{imageID}, c.config.GlobalTimeout)
+			cleanupNodeImages(ctx, node, []string{imageID}, c.config.GlobalTimeout)
 		})
 		ch <- &types.BuildImageMessage{ID: imageID}
 	}), nil
@@ -163,7 +163,7 @@ func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types
 			ch <- &types.BuildImageMessage{Stream: fmt.Sprintf("finished %s\n", tag), Status: "finished", Progress: tag}
 		}
 		utils.SentryGo(func() {
-			cleanupNodeImages(node, tags, c.config.GlobalTimeout)
+			cleanupNodeImages(ctx, node, tags, c.config.GlobalTimeout)
 		})
 	}), nil
 
@@ -178,9 +178,9 @@ func withImageBuiltChannel(f func(chan *types.BuildImageMessage)) chan *types.Bu
 	return ch
 }
 
-func cleanupNodeImages(node *types.Node, ids []string, ttl time.Duration) {
+func cleanupNodeImages(ctx context.Context, node *types.Node, ids []string, ttl time.Duration) {
 	logger := log.WithField("Calcium", "cleanupNodeImages").WithField("node", node).WithField("ids", ids).WithField("ttl", ttl)
-	ctx, cancel := context.WithTimeout(context.Background(), ttl)
+	ctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.Background()), ttl)
 	defer cancel()
 	for _, id := range ids {
 		if _, err := node.Engine.ImageRemove(ctx, id, false, true); err != nil {

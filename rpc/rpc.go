@@ -17,7 +17,6 @@ import (
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/version"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc/peer"
 	grpcstatus "google.golang.org/grpc/status"
 )
 
@@ -33,10 +32,6 @@ type Vibranium struct {
 
 // Info show core info
 func (v *Vibranium) Info(ctx context.Context, opts *pb.Empty) (*pb.CoreInfo, error) {
-	peer, ok := peer.FromContext(ctx)
-	if ok {
-		log.Errorf(ctx, "%+v", peer.Addr)
-	}
 	return &pb.CoreInfo{
 		Version:       version.VERSION,
 		Revison:       version.REVISION,

@@ -117,13 +117,13 @@ func Debugf(ctx context.Context, format string, args ...interface{}) {
 
 func getTracingInfo(ctx context.Context) (tracingInfo string) {
 	tracing := []string{}
-	if peer, ok := peer.FromContext(ctx); ok {
-		tracing = append(tracing, peer.Addr.String())
+	if p, ok := peer.FromContext(ctx); ok {
+		tracing = append(tracing, p.Addr.String())
 	}
 
 	if traceID := ctx.Value("traceID"); traceID != nil {
-		if rid, ok := traceID.(string); ok {
-			tracing = append(tracing, rid)
+		if tid, ok := traceID.(string); ok {
+			tracing = append(tracing, tid)
 		}
 	}
 	tracingInfo = strings.Join(tracing, "-")

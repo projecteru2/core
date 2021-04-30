@@ -188,7 +188,7 @@ func (c *Calcium) remapResource(ctx context.Context, node *types.Node) (ch <-cha
 
 func (c *Calcium) doRemapResourceAndLog(ctx context.Context, logger log.Fields, node *types.Node) {
 	log.Debugf(ctx, "[doRemapResourceAndLog] remap node %s", node.Name)
-	ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
+	ctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.Background()), c.config.GlobalTimeout)
 	defer cancel()
 	logger = logger.WithField("Calcium", "doRemapResourceAndLog").WithField("nodename", node.Name)
 	if ch, err := c.remapResource(ctx, node); logger.Err(err) == nil {
