@@ -194,7 +194,7 @@ func processVirtualizationOutStream(
 			outCh <- bs
 		}
 		if err := scanner.Err(); err != nil {
-			log.Errorf(ctx, "[processVirtualizationOutStream] failed to read output from output stream: %v", err)
+			log.Warnf(ctx, "[processVirtualizationOutStream] failed to read output from output stream: %v", err)
 		}
 	})
 	return outCh
