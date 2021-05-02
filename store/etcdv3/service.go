@@ -41,6 +41,10 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 	ch := make(chan []string)
 	go func() {
 		defer close(ch)
+
+		// must watch prior to get
+		watchChan := m.Watch(ctx, fmt.Sprintf(serviceStatusKey, ""), clientv3.WithPrefix())
+
 		resp, err := m.Get(ctx, fmt.Sprintf(serviceStatusKey, ""), clientv3.WithPrefix())
 		if err != nil {
 			log.Errorf("[ServiceStatusStream] failed to get current services: %v", err)
@@ -52,7 +56,7 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 		}
 		ch <- eps.ToSlice()
 
-		for resp := range m.Watch(ctx, fmt.Sprintf(serviceStatusKey, ""), clientv3.WithPrefix()) {
+		for resp := range watchChan {
 			if resp.Err() != nil {
 				if !resp.Canceled {
 					log.Errorf("[ServiceStatusStream] watch failed %v", resp.Err())
