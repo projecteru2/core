@@ -32,7 +32,7 @@ func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration
 				return
 			}
 			if err = lock.Unlock(ctx); err != nil {
-				log.Errorf("failed to unlock %s: %+v", name, err)
+				log.Errorf(ctx, "failed to unlock %s: %+v", name, err)
 			}
 			return
 		},
