@@ -28,6 +28,7 @@ func TestDoLock(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	// lock failed
 	lock.On("Lock", mock.Anything).Return(context.TODO(), types.ErrNoETCD).Once()
+	lock.On("Unlock", mock.Anything).Return(nil).Once()
 	_, _, err = c.doLock(ctx, "somename", 1)
 	assert.Error(t, err)
 	// success

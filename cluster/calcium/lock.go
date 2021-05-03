@@ -13,13 +13,31 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration) (lock.DistributedLock, context.Context, error) {
-	lock, err := c.store.CreateLock(name, timeout)
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
-	}
-	ctx, err = lock.Lock(ctx)
-	return lock, ctx, errors.WithStack(err)
+func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration) (lock lock.DistributedLock, rCtx context.Context, err error) {
+	return lock, rCtx, utils.Txn(
+		ctx,
+		// if: create session and lease
+		func(ctx context.Context) error {
+			lock, err = c.store.CreateLock(name, timeout)
+			return errors.WithStack(err)
+		},
+		// then: try lock or wait
+		func(ctx context.Context) error {
+			rCtx, err = lock.Lock(ctx)
+			return errors.WithStack(err)
+		},
+		// else: revoke lease
+		func(ctx context.Context, failedByCond bool) (err error) {
+			if failedByCond {
+				return
+			}
+			if err = lock.Unlock(ctx); err != nil {
+				log.Errorf("failed to unlock %s: %+v", name, err)
+			}
+			return
+		},
+		c.config.GlobalTimeout,
+	)
 }
 
 func (c *Calcium) doUnlock(ctx context.Context, lock lock.DistributedLock, msg string) error {
