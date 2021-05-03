@@ -1,13 +1,15 @@
 package resources
 
 import (
+	"context"
+
 	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
 )
 
 // SelectNodesByResourceRequests select nodes by resource requests
-func SelectNodesByResourceRequests(resourceRequests resourcetypes.ResourceRequests, nodeMap map[string]*types.Node) (
+func SelectNodesByResourceRequests(ctx context.Context, resourceRequests resourcetypes.ResourceRequests, nodeMap map[string]*types.Node) (
 	plans []resourcetypes.ResourcePlans,
 	err error,
 ) {
@@ -18,9 +20,9 @@ func SelectNodesByResourceRequests(resourceRequests resourcetypes.ResourceReques
 		}
 		scheduleInfos = append(scheduleInfos, scheduleInfo)
 	}
-	log.Debugf("[SelectNodesByResourceRequests] scheduleInfos: %+v", scheduleInfos)
+	log.Debugf(ctx, "[SelectNodesByResourceRequests] scheduleInfos: %+v", scheduleInfos)
 	for _, resourceRequest := range resourceRequests {
-		plan, _, err := resourceRequest.MakeScheduler()(scheduleInfos)
+		plan, _, err := resourceRequest.MakeScheduler()(ctx, scheduleInfos)
 		if err != nil {
 			return plans, err
 		}

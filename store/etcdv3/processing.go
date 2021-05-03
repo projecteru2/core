@@ -54,7 +54,7 @@ func (m *Mercury) doLoadProcessing(ctx context.Context, opts *types.DeployOption
 		nodename := parts[len(parts)-2]
 		count, err := strconv.Atoi(string(ev.Value))
 		if err != nil {
-			log.Errorf("[doLoadProcessing] Load processing status failed %v", err)
+			log.Errorf(ctx, "[doLoadProcessing] Load processing status failed %v", err)
 			continue
 		}
 		if _, ok := nodesCount[nodename]; !ok {
@@ -64,7 +64,7 @@ func (m *Mercury) doLoadProcessing(ctx context.Context, opts *types.DeployOption
 		nodesCount[nodename] += count
 	}
 
-	log.Debug("[doLoadProcessing] Processing result:")
+	log.Debug(ctx, "[doLoadProcessing] Processing result:")
 	litter.Dump(nodesCount)
 	setCount(nodesCount, strategyInfos)
 	return nil

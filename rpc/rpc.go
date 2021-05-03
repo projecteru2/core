@@ -44,14 +44,16 @@ func (v *Vibranium) Info(ctx context.Context, opts *pb.Empty) (*pb.CoreInfo, err
 
 // WatchServiceStatus pushes sibling services
 func (v *Vibranium) WatchServiceStatus(_ *pb.Empty, stream pb.CoreRPC_WatchServiceStatusServer) (err error) {
-	ch, err := v.cluster.WatchServiceStatus(stream.Context())
+	ctx := v.taskAdd(stream.Context(), "WatchServiceStatus", false)
+	defer v.taskDone(ctx, "WatchServiceStatus", false)
+	ch, err := v.cluster.WatchServiceStatus(ctx)
 	if err != nil {
 		return grpcstatus.Error(WatchServiceStatus, err.Error())
 	}
 	for status := range ch {
 		s := toRPCServiceStatus(status)
 		if err = stream.Send(s); err != nil {
-			v.logUnsentMessages("WatchServicesStatus", err, s)
+			v.logUnsentMessages(ctx, "WatchServicesStatus", err, s)
 			return grpcstatus.Error(WatchServiceStatus, err.Error())
 		}
 	}
@@ -223,10 +225,10 @@ func (v *Vibranium) GetNodeStatus(ctx context.Context, opts *pb.GetNodeStatusOpt
 
 // NodeStatusStream watch and show deployed status
 func (v *Vibranium) NodeStatusStream(_ *pb.Empty, stream pb.CoreRPC_NodeStatusStreamServer) error {
-	log.Info("[rpc] NodeStatusStream started")
-	defer log.Info("[rpc] NodeStatusStream stopped")
+	ctx := v.taskAdd(stream.Context(), "NodeStatusStream", true)
+	defer v.taskDone(ctx, "NodeStatusStream", true)
 
-	ch := v.cluster.NodeStatusStream(stream.Context())
+	ch := v.cluster.NodeStatusStream(ctx)
 	for {
 		select {
 		case m, ok := <-ch:
@@ -242,7 +244,7 @@ func (v *Vibranium) NodeStatusStream(_ *pb.Empty, stream pb.CoreRPC_NodeStatusSt
 				r.Error = m.Error.Error()
 			}
 			if err := stream.Send(r); err != nil {
-				v.logUnsentMessages("NodeStatusStream", err, m)
+				v.logUnsentMessages(ctx, "NodeStatusStream", err, m)
 			}
 		case <-v.rpcch:
 			return nil
@@ -262,8 +264,8 @@ func (v *Vibranium) GetNodeResource(ctx context.Context, opts *pb.GetNodeResourc
 
 // CalculateCapacity calculates capacity for each node
 func (v *Vibranium) CalculateCapacity(ctx context.Context, opts *pb.DeployOptions) (*pb.CapacityMessage, error) {
-	v.taskAdd("CalculateCapacity", true)
-	defer v.taskDone("CalculateCapacity", true)
+	ctx = v.taskAdd(ctx, "CalculateCapacity", true)
+	defer v.taskDone(ctx, "CalculateCapacity", true)
 	deployOpts, err := toCoreDeployOptions(opts)
 	if err != nil {
 		return nil, grpcstatus.Error(CalculateCapacity, err.Error())
@@ -299,6 +301,7 @@ func (v *Vibranium) GetWorkloads(ctx context.Context, cids *pb.WorkloadIDs) (*pb
 
 // ListWorkloads by appname with optional entrypoint and nodename
 func (v *Vibranium) ListWorkloads(opts *pb.ListWorkloadsOptions, stream pb.CoreRPC_ListWorkloadsServer) error {
+	ctx := v.taskAdd(stream.Context(), "ListWorkloads", true)
 	lsopts := &types.ListWorkloadsOptions{
 		Appname:    opts.Appname,
 		Entrypoint: opts.Entrypoint,
@@ -306,14 +309,14 @@ func (v *Vibranium) ListWorkloads(opts *pb.ListWorkloadsOptions, stream pb.CoreR
 		Limit:      opts.Limit,
 		Labels:     opts.Labels,
 	}
-	workloads, err := v.cluster.ListWorkloads(stream.Context(), lsopts)
+	workloads, err := v.cluster.ListWorkloads(ctx, lsopts)
 	if err != nil {
 		return grpcstatus.Error(ListWorkloads, err.Error())
 	}
 
-	for _, c := range toRPCWorkloads(stream.Context(), workloads, opts.Labels).Workloads {
+	for _, c := range toRPCWorkloads(ctx, workloads, opts.Labels).Workloads {
 		if err = stream.Send(c); err != nil {
-			v.logUnsentMessages("ListWorkloads", err, c)
+			v.logUnsentMessages(ctx, "ListWorkloads", err, c)
 			return grpcstatus.Error(ListWorkloads, err.Error())
 		}
 	}
@@ -331,8 +334,8 @@ func (v *Vibranium) ListNodeWorkloads(ctx context.Context, opts *pb.GetNodeOptio
 
 // GetWorkloadsStatus get workloads status
 func (v *Vibranium) GetWorkloadsStatus(ctx context.Context, opts *pb.WorkloadIDs) (*pb.WorkloadsStatus, error) {
-	v.taskAdd("GetWorkloadsStatus", false)
-	defer v.taskDone("GetWorkloadsStatus", false)
+	ctx = v.taskAdd(ctx, "GetWorkloadsStatus", false)
+	defer v.taskDone(ctx, "GetWorkloadsStatus", false)
 
 	workloadsStatus, err := v.cluster.GetWorkloadsStatus(ctx, opts.Ids)
 	if err != nil {
@@ -343,8 +346,8 @@ func (v *Vibranium) GetWorkloadsStatus(ctx context.Context, opts *pb.WorkloadIDs
 
 // SetWorkloadsStatus set workloads status
 func (v *Vibranium) SetWorkloadsStatus(ctx context.Context, opts *pb.SetWorkloadsStatusOptions) (*pb.WorkloadsStatus, error) {
-	v.taskAdd("SetWorkloadsStatus", false)
-	defer v.taskDone("SetWorkloadsStatus", false)
+	ctx = v.taskAdd(ctx, "SetWorkloadsStatus", false)
+	defer v.taskDone(ctx, "SetWorkloadsStatus", false)
 
 	var err error
 	statusData := []*types.StatusMeta{}
@@ -370,11 +373,14 @@ func (v *Vibranium) SetWorkloadsStatus(ctx context.Context, opts *pb.SetWorkload
 
 // WorkloadStatusStream watch and show deployed status
 func (v *Vibranium) WorkloadStatusStream(opts *pb.WorkloadStatusStreamOptions, stream pb.CoreRPC_WorkloadStatusStreamServer) error {
-	log.Infof("[rpc] WorkloadStatusStream start %s", opts.Appname)
-	defer log.Infof("[rpc] WorkloadStatusStream stop %s", opts.Appname)
+	ctx := v.taskAdd(stream.Context(), "WorkloadStatusStream", true)
+	defer v.taskDone(ctx, "WorkloadStatusStream", true)
+
+	log.Infof(ctx, "[rpc] WorkloadStatusStream start %s", opts.Appname)
+	defer log.Infof(ctx, "[rpc] WorkloadStatusStream stop %s", opts.Appname)
 
 	ch := v.cluster.WorkloadStatusStream(
-		stream.Context(),
+		ctx,
 		opts.Appname, opts.Entrypoint, opts.Nodename, opts.Labels,
 	)
 	for {
@@ -387,7 +393,7 @@ func (v *Vibranium) WorkloadStatusStream(opts *pb.WorkloadStatusStreamOptions, s
 			if m.Error != nil {
 				r.Error = m.Error.Error()
 			} else if m.Workload != nil {
-				if workload, err := toRPCWorkload(stream.Context(), m.Workload); err != nil {
+				if workload, err := toRPCWorkload(ctx, m.Workload); err != nil {
 					r.Error = err.Error()
 				} else {
 					r.Workload = workload
@@ -395,7 +401,7 @@ func (v *Vibranium) WorkloadStatusStream(opts *pb.WorkloadStatusStreamOptions, s
 				}
 			}
 			if err := stream.Send(r); err != nil {
-				v.logUnsentMessages("WorkloadStatusStream", err, m)
+				v.logUnsentMessages(ctx, "WorkloadStatusStream", err, m)
 			}
 		case <-v.rpcch:
 			return nil
@@ -405,11 +411,11 @@ func (v *Vibranium) WorkloadStatusStream(opts *pb.WorkloadStatusStreamOptions, s
 
 // Copy copy files from multiple workloads
 func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) error {
-	v.taskAdd("Copy", true)
-	defer v.taskDone("Copy", true)
+	ctx := v.taskAdd(stream.Context(), "Copy", true)
+	defer v.taskDone(ctx, "Copy", true)
 
 	copyOpts := toCoreCopyOptions(opts)
-	ch, err := v.cluster.Copy(stream.Context(), copyOpts)
+	ch, err := v.cluster.Copy(ctx, copyOpts)
 	if err != nil {
 		return grpcstatus.Error(Copy, err.Error())
 	}
@@ -420,7 +426,7 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 		if m.Error != nil {
 			msg.Error = m.Error.Error()
 			if err := stream.Send(msg); err != nil {
-				v.logUnsentMessages("Copy", err, m)
+				v.logUnsentMessages(ctx, "Copy", err, m)
 			}
 			continue
 		}
@@ -437,16 +443,16 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 				var bs []byte
 				tw := tar.NewWriter(w)
 				if bs, err = ioutil.ReadAll(m.Data); err != nil {
-					log.Errorf("[Copy] Error during extracting copy data: %v", err)
+					log.Errorf(ctx, "[Copy] Error during extracting copy data: %v", err)
 					return
 				}
 				header := &tar.Header{Name: m.Name, Mode: 0644, Size: int64(len(bs))}
 				if err = tw.WriteHeader(header); err != nil {
-					log.Errorf("[Copy] Error during writing tarball header: %v", err)
+					log.Errorf(ctx, "[Copy] Error during writing tarball header: %v", err)
 					return
 				}
 				if _, err = tw.Write(bs); err != nil {
-					log.Errorf("[Copy] Error during writing tarball content: %v", err)
+					log.Errorf(ctx, "[Copy] Error during writing tarball content: %v", err)
 					return
 				}
 			}
@@ -456,17 +462,17 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 			n, err := r.Read(p)
 			if err != nil {
 				if err != io.EOF {
-					log.Errorf("[Copy] Error during buffer resp: %v", err)
+					log.Errorf(ctx, "[Copy] Error during buffer resp: %v", err)
 					msg.Error = err.Error()
 					if err = stream.Send(msg); err != nil {
-						v.logUnsentMessages("Copy", err, m)
+						v.logUnsentMessages(ctx, "Copy", err, m)
 					}
 				}
 				break
 			}
 			msg.Data = p[:n]
 			if err = stream.Send(msg); err != nil {
-				v.logUnsentMessages("Copy", err, m)
+				v.logUnsentMessages(ctx, "Copy", err, m)
 			}
 		}
 	}
@@ -475,8 +481,8 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 
 // Send send files to some contaienrs
 func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) error {
-	v.taskAdd("Send", true)
-	defer v.taskDone("Send", true)
+	ctx := v.taskAdd(stream.Context(), "Send", true)
+	defer v.taskDone(ctx, "Send", true)
 
 	sendOpts, err := toCoreSendOptions(opts)
 	if err != nil {
@@ -484,7 +490,7 @@ func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) err
 	}
 
 	sendOpts.Data = opts.Data
-	ch, err := v.cluster.Send(stream.Context(), sendOpts)
+	ch, err := v.cluster.Send(ctx, sendOpts)
 	if err != nil {
 		return grpcstatus.Error(Send, err.Error())
 	}
@@ -500,7 +506,7 @@ func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) err
 		}
 
 		if err := stream.Send(msg); err != nil {
-			v.logUnsentMessages("Send", err, m)
+			v.logUnsentMessages(ctx, "Send", err, m)
 		}
 	}
 	return nil
@@ -508,21 +514,21 @@ func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) err
 
 // BuildImage streamed returned functions
 func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_BuildImageServer) error {
-	v.taskAdd("BuildImage", true)
-	defer v.taskDone("BuildImage", true)
+	ctx := v.taskAdd(stream.Context(), "BuildImage", true)
+	defer v.taskDone(ctx, "BuildImage", true)
 
 	buildOpts, err := toCoreBuildOptions(opts)
 	if err != nil {
 		return grpcstatus.Error(BuildImage, err.Error())
 	}
-	ch, err := v.cluster.BuildImage(stream.Context(), buildOpts)
+	ch, err := v.cluster.BuildImage(ctx, buildOpts)
 	if err != nil {
 		return grpcstatus.Error(BuildImage, err.Error())
 	}
 
 	for m := range ch {
 		if err = stream.Send(toRPCBuildImageMessage(m)); err != nil {
-			v.logUnsentMessages("BuildImage", err, m)
+			v.logUnsentMessages(ctx, "BuildImage", err, m)
 		}
 	}
 	return nil
@@ -530,17 +536,17 @@ func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_Bui
 
 // CacheImage cache image
 func (v *Vibranium) CacheImage(opts *pb.CacheImageOptions, stream pb.CoreRPC_CacheImageServer) error {
-	v.taskAdd("CacheImage", true)
-	defer v.taskDone("CacheImage", true)
+	ctx := v.taskAdd(stream.Context(), "CacheImage", true)
+	defer v.taskDone(ctx, "CacheImage", true)
 
-	ch, err := v.cluster.CacheImage(stream.Context(), toCoreCacheImageOptions(opts))
+	ch, err := v.cluster.CacheImage(ctx, toCoreCacheImageOptions(opts))
 	if err != nil {
 		return grpcstatus.Error(CacheImage, err.Error())
 	}
 
 	for m := range ch {
 		if err = stream.Send(toRPCCacheImageMessage(m)); err != nil {
-			v.logUnsentMessages("CacheImage", err, m)
+			v.logUnsentMessages(ctx, "CacheImage", err, m)
 		}
 	}
 	return nil
@@ -548,17 +554,17 @@ func (v *Vibranium) CacheImage(opts *pb.CacheImageOptions, stream pb.CoreRPC_Cac
 
 // RemoveImage remove image
 func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_RemoveImageServer) error {
-	v.taskAdd("RemoveImage", true)
-	defer v.taskDone("RemoveImage", true)
+	ctx := v.taskAdd(stream.Context(), "RemoveImage", true)
+	defer v.taskDone(ctx, "RemoveImage", true)
 
-	ch, err := v.cluster.RemoveImage(stream.Context(), toCoreRemoveImageOptions(opts))
+	ch, err := v.cluster.RemoveImage(ctx, toCoreRemoveImageOptions(opts))
 	if err != nil {
 		return grpcstatus.Error(RemoveImage, err.Error())
 	}
 
 	for m := range ch {
 		if err = stream.Send(toRPCRemoveImageMessage(m)); err != nil {
-			v.logUnsentMessages("RemoveImage", err, m)
+			v.logUnsentMessages(ctx, "RemoveImage", err, m)
 		}
 	}
 	return nil
@@ -566,21 +572,21 @@ func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_R
 
 // CreateWorkload create workloads
 func (v *Vibranium) CreateWorkload(opts *pb.DeployOptions, stream pb.CoreRPC_CreateWorkloadServer) error {
-	v.taskAdd("CreateWorkload", true)
-	defer v.taskDone("CreateWorkload", true)
+	ctx := v.taskAdd(stream.Context(), "CreateWorkload", true)
+	defer v.taskDone(ctx, "CreateWorkload", true)
 
 	deployOpts, err := toCoreDeployOptions(opts)
 	if err != nil {
 		return grpcstatus.Error(CreateWorkload, err.Error())
 	}
 
-	ch, err := v.cluster.CreateWorkload(stream.Context(), deployOpts)
+	ch, err := v.cluster.CreateWorkload(ctx, deployOpts)
 	if err != nil {
 		return grpcstatus.Error(CreateWorkload, err.Error())
 	}
 	for m := range ch {
 		if err = stream.Send(toRPCCreateWorkloadMessage(m)); err != nil {
-			v.logUnsentMessages("CreateWorkload", err, m)
+			v.logUnsentMessages(ctx, "CreateWorkload", err, m)
 		}
 	}
 	return nil
@@ -588,22 +594,22 @@ func (v *Vibranium) CreateWorkload(opts *pb.DeployOptions, stream pb.CoreRPC_Cre
 
 // ReplaceWorkload replace workloads
 func (v *Vibranium) ReplaceWorkload(opts *pb.ReplaceOptions, stream pb.CoreRPC_ReplaceWorkloadServer) error {
-	v.taskAdd("ReplaceWorkload", true)
-	defer v.taskDone("ReplaceWorkload", true)
+	ctx := v.taskAdd(stream.Context(), "ReplaceWorkload", true)
+	defer v.taskDone(ctx, "ReplaceWorkload", true)
 
 	replaceOpts, err := toCoreReplaceOptions(opts)
 	if err != nil {
 		return grpcstatus.Error(ReplaceWorkload, err.Error())
 	}
 
-	ch, err := v.cluster.ReplaceWorkload(stream.Context(), replaceOpts)
+	ch, err := v.cluster.ReplaceWorkload(ctx, replaceOpts)
 	if err != nil {
 		return grpcstatus.Error(ReplaceWorkload, err.Error())
 	}
 
 	for m := range ch {
 		if err = stream.Send(toRPCReplaceWorkloadMessage(m)); err != nil {
-			v.logUnsentMessages("ReplaceWorkload", err, m)
+			v.logUnsentMessages(ctx, "ReplaceWorkload", err, m)
 		}
 	}
 	return nil
@@ -611,8 +617,8 @@ func (v *Vibranium) ReplaceWorkload(opts *pb.ReplaceOptions, stream pb.CoreRPC_R
 
 // RemoveWorkload remove workloads
 func (v *Vibranium) RemoveWorkload(opts *pb.RemoveWorkloadOptions, stream pb.CoreRPC_RemoveWorkloadServer) error {
-	v.taskAdd("RemoveWorkload", true)
-	defer v.taskDone("RemoveWorkload", true)
+	ctx := v.taskAdd(stream.Context(), "RemoveWorkload", true)
+	defer v.taskDone(ctx, "RemoveWorkload", true)
 
 	ids := opts.GetIds()
 	force := opts.GetForce()
@@ -621,14 +627,14 @@ func (v *Vibranium) RemoveWorkload(opts *pb.RemoveWorkloadOptions, stream pb.Cor
 	if len(ids) == 0 {
 		return types.ErrNoWorkloadIDs
 	}
-	ch, err := v.cluster.RemoveWorkload(stream.Context(), ids, force, step)
+	ch, err := v.cluster.RemoveWorkload(ctx, ids, force, step)
 	if err != nil {
 		return grpcstatus.Error(ReplaceWorkload, err.Error())
 	}
 
 	for m := range ch {
 		if err = stream.Send(toRPCRemoveWorkloadMessage(m)); err != nil {
-			v.logUnsentMessages("RemoveWorkload", err, m)
+			v.logUnsentMessages(ctx, "RemoveWorkload", err, m)
 		}
 	}
 
@@ -637,22 +643,22 @@ func (v *Vibranium) RemoveWorkload(opts *pb.RemoveWorkloadOptions, stream pb.Cor
 
 // DissociateWorkload dissociate workload
 func (v *Vibranium) DissociateWorkload(opts *pb.DissociateWorkloadOptions, stream pb.CoreRPC_DissociateWorkloadServer) error {
-	v.taskAdd("DissociateWorkload", true)
-	defer v.taskDone("DissociateWorkload", true)
+	ctx := v.taskAdd(stream.Context(), "DissociateWorkload", true)
+	defer v.taskDone(ctx, "DissociateWorkload", true)
 
 	ids := opts.GetIds()
 	if len(ids) == 0 {
 		return types.ErrNoWorkloadIDs
 	}
 
-	ch, err := v.cluster.DissociateWorkload(stream.Context(), ids)
+	ch, err := v.cluster.DissociateWorkload(ctx, ids)
 	if err != nil {
 		return grpcstatus.Error(DissociateWorkload, err.Error())
 	}
 
 	for m := range ch {
 		if err = stream.Send(toRPCDissociateWorkloadMessage(m)); err != nil {
-			v.logUnsentMessages("DissociateWorkload", err, m)
+			v.logUnsentMessages(ctx, "DissociateWorkload", err, m)
 		}
 	}
 
@@ -661,8 +667,8 @@ func (v *Vibranium) DissociateWorkload(opts *pb.DissociateWorkloadOptions, strea
 
 // ControlWorkload control workloads
 func (v *Vibranium) ControlWorkload(opts *pb.ControlWorkloadOptions, stream pb.CoreRPC_ControlWorkloadServer) error {
-	v.taskAdd("ControlWorkload", true)
-	defer v.taskDone("ControlWorkload", true)
+	ctx := v.taskAdd(stream.Context(), "ControlWorkload", true)
+	defer v.taskDone(ctx, "ControlWorkload", true)
 
 	ids := opts.GetIds()
 	t := opts.GetType()
@@ -672,14 +678,14 @@ func (v *Vibranium) ControlWorkload(opts *pb.ControlWorkloadOptions, stream pb.C
 		return types.ErrNoWorkloadIDs
 	}
 
-	ch, err := v.cluster.ControlWorkload(stream.Context(), ids, t, force)
+	ch, err := v.cluster.ControlWorkload(ctx, ids, t, force)
 	if err != nil {
 		return grpcstatus.Error(ControlWorkload, err.Error())
 	}
 
 	for m := range ch {
 		if err = stream.Send(toRPCControlWorkloadMessage(m)); err != nil {
-			v.logUnsentMessages("ControlWorkload", err, m)
+			v.logUnsentMessages(ctx, "ControlWorkload", err, m)
 		}
 	}
 
@@ -688,8 +694,8 @@ func (v *Vibranium) ControlWorkload(opts *pb.ControlWorkloadOptions, stream pb.C
 
 // ExecuteWorkload runs a command in a running workload
 func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) error {
-	v.taskAdd("ExecuteWorkload", true)
-	defer v.taskDone("ExecuteWorkload", true)
+	ctx := v.taskAdd(stream.Context(), "ExecuteWorkload", true)
+	defer v.taskDone(ctx, "ExecuteWorkload", true)
 
 	opts, err := stream.Recv()
 	if err != nil {
@@ -707,7 +713,7 @@ func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) err
 			for {
 				execWorkloadOpt, err := stream.Recv()
 				if execWorkloadOpt == nil || err != nil {
-					log.Errorf("[ExecuteWorkload] Recv command error: %v", err)
+					log.Errorf(ctx, "[ExecuteWorkload] Recv command error: %v", err)
 					return
 				}
 				inCh <- execWorkloadOpt.ReplCmd
@@ -715,9 +721,9 @@ func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) err
 		}
 	})
 
-	for m := range v.cluster.ExecuteWorkload(stream.Context(), executeWorkloadOpts, inCh) {
+	for m := range v.cluster.ExecuteWorkload(ctx, executeWorkloadOpts, inCh) {
 		if err = stream.Send(toRPCAttachWorkloadMessage(m)); err != nil {
-			v.logUnsentMessages("ExecuteWorkload", err, m)
+			v.logUnsentMessages(ctx, "ExecuteWorkload", err, m)
 		}
 	}
 	return nil
@@ -725,6 +731,8 @@ func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) err
 
 // ReallocResource realloc res for workloads
 func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions) (msg *pb.ReallocResourceMessage, err error) {
+	ctx = v.taskAdd(ctx, "ReallocResource", true)
+	defer v.taskDone(ctx, "ReallocResource", true)
 	defer func() {
 		errString := ""
 		if err != nil {
@@ -733,8 +741,6 @@ func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions
 		msg = &pb.ReallocResourceMessage{Error: errString}
 	}()
 
-	v.taskAdd("ReallocResource", true)
-	defer v.taskDone("ReallocResource", true)
 	if opts.Id == "" {
 		return msg, grpcstatus.Errorf(ReallocResource, "%v", types.ErrNoWorkloadIDs)
 	}
@@ -774,10 +780,13 @@ func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions
 
 // LogStream get workload logs
 func (v *Vibranium) LogStream(opts *pb.LogStreamOptions, stream pb.CoreRPC_LogStreamServer) error {
+	ctx := v.taskAdd(stream.Context(), "LogStream", true)
+	defer v.taskDone(ctx, "LogStream", true)
+
 	ID := opts.GetId()
-	log.Infof("[LogStream] Get %s log start", ID)
-	defer log.Infof("[LogStream] Get %s log done", ID)
-	ch, err := v.cluster.LogStream(stream.Context(), &types.LogStreamOptions{
+	log.Infof(ctx, "[LogStream] Get %s log start", ID)
+	defer log.Infof(ctx, "[LogStream] Get %s log done", ID)
+	ch, err := v.cluster.LogStream(ctx, &types.LogStreamOptions{
 		ID:     ID,
 		Tail:   opts.Tail,
 		Since:  opts.Since,
@@ -795,7 +804,7 @@ func (v *Vibranium) LogStream(opts *pb.LogStreamOptions, stream pb.CoreRPC_LogSt
 				return nil
 			}
 			if err = stream.Send(toRPCLogStreamMessage(m)); err != nil {
-				v.logUnsentMessages("LogStream", err, m)
+				v.logUnsentMessages(ctx, "LogStream", err, m)
 			}
 		case <-v.rpcch:
 			return nil
@@ -805,6 +814,7 @@ func (v *Vibranium) LogStream(opts *pb.LogStreamOptions, stream pb.CoreRPC_LogSt
 
 // RunAndWait is lambda
 func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
+	ctx := v.taskAdd(stream.Context(), "RunAndWait", true)
 	RunAndWaitOptions, err := stream.Recv()
 	if err != nil {
 		return grpcstatus.Error(RunAndWait, err.Error())
@@ -820,7 +830,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		return grpcstatus.Error(RunAndWait, err.Error())
 	}
 
-	ctx, cancel := context.WithCancel(stream.Context())
+	ctx, cancel := context.WithCancel(ctx)
 	if RunAndWaitOptions.Async {
 		timeout := v.config.GlobalTimeout
 		if RunAndWaitOptions.AsyncTimeout != 0 {
@@ -831,8 +841,6 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		opts.OpenStdin = false
 	}
 
-	v.taskAdd("RunAndWait", true)
-
 	inCh := make(chan []byte)
 	utils.SentryGo(func() {
 		defer close(inCh)
@@ -842,7 +850,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		for {
 			RunAndWaitOptions, err := stream.Recv()
 			if RunAndWaitOptions == nil || err != nil {
-				log.Errorf("[RunAndWait] Recv command error: %v", err)
+				log.Errorf(ctx, "[RunAndWait] Recv command error: %v", err)
 				break
 			}
 			inCh <- RunAndWaitOptions.Cmd
@@ -862,13 +870,13 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 			Data:          []byte(""),
 			StdStreamType: pb.StdStreamType_TYPEWORKLOADID,
 		}); err != nil {
-			v.logUnsentMessages("RunAndWait: first message send failed", err, id)
+			v.logUnsentMessages(ctx, "RunAndWait: first message send failed", err, id)
 		}
 	}
 
 	// then deal with the rest messages
 	runAndWait := func(f func(<-chan *types.AttachWorkloadMessage)) {
-		defer v.taskDone("RunAndWait", true)
+		defer v.taskDone(ctx, "RunAndWait", true)
 		defer cancel()
 		f(ch)
 	}
@@ -877,7 +885,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		runAndWait(func(ch <-chan *types.AttachWorkloadMessage) {
 			for m := range ch {
 				if err = stream.Send(toRPCAttachWorkloadMessage(m)); err != nil {
-					v.logUnsentMessages("RunAndWait", err, m)
+					v.logUnsentMessages(ctx, "RunAndWait", err, m)
 				}
 			}
 		})
@@ -891,7 +899,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 				defer w.Close()
 				for m := range ch {
 					if _, err := w.Write(m.Data); err != nil {
-						log.Errorf("[Async RunAndWait] iterate and forward AttachWorkloadMessage error: %v", err)
+						log.Errorf(ctx, "[Async RunAndWait] iterate and forward AttachWorkloadMessage error: %v", err)
 					}
 				}
 			})
@@ -905,7 +913,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 				for {
 					if part, isPrefix, err = bufReader.ReadLine(); err != nil {
 						if err != io.EOF {
-							log.Errorf("[Aysnc RunAndWait] read error: %+v", err)
+							log.Errorf(ctx, "[Aysnc RunAndWait] read error: %+v", err)
 						}
 						return
 					}
@@ -914,15 +922,15 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 						break
 					}
 				}
-				log.Infof("[Async RunAndWait] %s", line)
+				log.Infof(ctx, "[Async RunAndWait] %s", line)
 			}
 		})
 	})
 	return nil
 }
 
-func (v *Vibranium) logUnsentMessages(msgType string, err error, msg interface{}) {
-	log.Infof("[logUnsentMessages] Unsent %s streamed message due to %+v: %v", msgType, err, msg)
+func (v *Vibranium) logUnsentMessages(ctx context.Context, msgType string, err error, msg interface{}) {
+	log.Infof(ctx, "[logUnsentMessages] Unsent %s streamed message due to %+v: %v", msgType, err, msg)
 }
 
 // New will new a new cluster instance

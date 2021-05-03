@@ -1,11 +1,15 @@
 package log
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/projecteru2/core/types"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc/peer"
 )
 
 // SetupLog init logger
@@ -39,16 +43,18 @@ func (f Fields) WithField(key string, value interface{}) Fields {
 }
 
 // Errorf sends sentry message
-func (f Fields) Errorf(format string, args ...interface{}) {
+func (f Fields) Errorf(ctx context.Context, format string, args ...interface{}) {
+	format = getTracingInfo(ctx) + format
 	sentry.CaptureMessage(fmt.Sprintf(format, args...))
 	f.e.Errorf(format, args...)
 }
 
 // Err is a decorator returning the argument
-func (f Fields) Err(err error) error {
+func (f Fields) Err(ctx context.Context, err error) error {
+	format := getTracingInfo(ctx) + "%+v"
 	if err != nil {
-		sentry.CaptureMessage(fmt.Sprintf("%+v", err))
-		f.e.Errorf("%+v", err)
+		sentry.CaptureMessage(fmt.Sprintf(format, err))
+		f.e.Errorf(format, err)
 	}
 	return err
 }
@@ -67,7 +73,8 @@ func Error(args ...interface{}) {
 }
 
 // Errorf forwards to sentry
-func Errorf(format string, args ...interface{}) {
+func Errorf(ctx context.Context, format string, args ...interface{}) {
+	format = getTracingInfo(ctx) + format
 	sentry.CaptureMessage(fmt.Sprintf(format, args...))
 	log.Errorf(format, args...)
 }
@@ -84,8 +91,8 @@ func Warn(args ...interface{}) {
 }
 
 // Warnf is Warnf
-func Warnf(format string, args ...interface{}) {
-	log.Warnf(format, args...)
+func Warnf(ctx context.Context, format string, args ...interface{}) {
+	log.Warnf(getTracingInfo(ctx)+format, args...)
 }
 
 // Info is Info
@@ -94,16 +101,40 @@ func Info(args ...interface{}) {
 }
 
 // Infof is Infof
-func Infof(format string, args ...interface{}) {
-	log.Infof(format, args...)
+func Infof(ctx context.Context, format string, args ...interface{}) {
+	log.Infof(getTracingInfo(ctx)+format, args...)
 }
 
 // Debug is Debug
-func Debug(args ...interface{}) {
-	log.Debug(args...)
+func Debug(ctx context.Context, args ...interface{}) {
+	a := []interface{}{}
+	a = append(a, interface{}(getTracingInfo(ctx)))
+	log.Debug(append(a, args...))
 }
 
 // Debugf is Debugf
-func Debugf(format string, args ...interface{}) {
-	log.Debugf(format, args...)
+func Debugf(ctx context.Context, format string, args ...interface{}) {
+	log.Debugf(getTracingInfo(ctx)+format, args...)
+}
+
+func getTracingInfo(ctx context.Context) (tracingInfo string) {
+	if ctx == nil {
+		return ""
+	}
+
+	tracing := []string{}
+	if p, ok := peer.FromContext(ctx); ok {
+		tracing = append(tracing, p.Addr.String())
+	}
+
+	if traceID := ctx.Value(types.TracingID); traceID != nil {
+		if tid, ok := traceID.(string); ok {
+			tracing = append(tracing, tid)
+		}
+	}
+	tracingInfo = strings.Join(tracing, "-")
+	if tracingInfo != "" {
+		tracingInfo = fmt.Sprintf("[%s] ", tracingInfo)
+	}
+	return
 }

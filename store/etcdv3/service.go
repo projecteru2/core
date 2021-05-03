@@ -43,7 +43,7 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 		defer close(ch)
 		resp, err := m.Get(ctx, fmt.Sprintf(serviceStatusKey, ""), clientv3.WithPrefix())
 		if err != nil {
-			log.Errorf("[ServiceStatusStream] failed to get current services: %v", err)
+			log.Errorf(ctx, "[ServiceStatusStream] failed to get current services: %v", err)
 			return
 		}
 		eps := endpoints{}
@@ -55,7 +55,7 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 		for resp := range m.Watch(ctx, fmt.Sprintf(serviceStatusKey, ""), clientv3.WithPrefix()) {
 			if resp.Err() != nil {
 				if !resp.Canceled {
-					log.Errorf("[ServiceStatusStream] watch failed %v", resp.Err())
+					log.Errorf(ctx, "[ServiceStatusStream] watch failed %v", resp.Err())
 				}
 				return
 			}

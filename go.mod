@@ -22,7 +22,7 @@ require (
 	github.com/go-ping/ping v0.0.0-20210407214646-e4e642a95741
 	github.com/go-redis/redis/v8 v8.8.2
 	github.com/golang/protobuf v1.4.2
-	github.com/google/uuid v1.1.1
+	github.com/google/uuid v1.1.2
 	github.com/gorilla/mux v1.7.4 // indirect
 	github.com/jinzhu/configor v1.2.0
 	github.com/moby/sys/mount v0.2.0 // indirect
@@ -30,7 +30,7 @@ require (
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/muroq/redislock v0.0.0-20210327061935-5425e33e6f9f
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/image-spec v1.0.1 // indirect
+	github.com/opencontainers/image-spec v1.0.1
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
@@ -48,6 +48,6 @@ require (
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	google.golang.org/grpc v1.29.1
-	google.golang.org/protobuf v1.23.0
+	google.golang.org/protobuf v1.25.0
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
 )

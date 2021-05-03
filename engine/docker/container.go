@@ -99,7 +99,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		}
 	}
 	// add node IP
-	hostIP := GetIP(e.client.DaemonHost())
+	hostIP := GetIP(ctx, e.client.DaemonHost())
 	opts.Env = append(opts.Env, fmt.Sprintf("ERU_NODE_IP=%s", hostIP))
 	// 如果有给dns就优先用给定的dns.
 	// 没有给出dns的时候, 如果设定是用宿主机IP作为dns, 就会把宿主机IP设置过去.
@@ -110,7 +110,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	}
 	// mount paths
 	binds, volumes := makeMountPaths(opts)
-	log.Debugf("[VirtualizationCreate] App %s will bind %v", opts.Name, binds)
+	log.Debugf(ctx, "[VirtualizationCreate] App %s will bind %v", opts.Name, binds)
 
 	config := &dockercontainer.Config{
 		Env:             opts.Env,
@@ -219,7 +219,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 			ipForShow = "[AutoAlloc]"
 		}
 		networkConfig.EndpointsConfig[networkID] = endpointSetting
-		log.Infof("[ConnectToNetwork] Connect to %v with IP %v", networkID, ipForShow)
+		log.Infof(ctx, "[ConnectToNetwork] Connect to %v with IP %v", networkID, ipForShow)
 	}
 
 	workloadCreated, err := e.client.ContainerCreate(ctx, config, hostConfig, networkConfig, nil, opts.Name)
@@ -285,7 +285,7 @@ func (e *Engine) VirtualizationResourceRemap(ctx context.Context, opts *enginety
 
 // VirtualizationCopyTo copy things to virtualization
 func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) error {
-	return withTarfileDump(target, content, func(target, tarfile string) error {
+	return withTarfileDump(ctx, target, content, func(target, tarfile string) error {
 		content, err := os.Open(tarfile)
 		if err != nil {
 			return err
@@ -334,7 +334,7 @@ func (e *Engine) VirtualizationInspect(ctx context.Context, ID string) (*enginet
 	for networkName, networkSetting := range workloadJSON.NetworkSettings.Networks {
 		ip := networkSetting.IPAddress
 		if dockercontainer.NetworkMode(networkName).IsHost() {
-			ip = GetIP(e.client.DaemonHost())
+			ip = GetIP(ctx, e.client.DaemonHost())
 		}
 		r.Networks[networkName] = ip
 	}
@@ -358,7 +358,7 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtu
 	if !opts.Stderr {
 		return ioutil.NopCloser(mergeStream(resp)), nil, nil
 	}
-	stdout, stderr = e.demultiplexStdStream(resp)
+	stdout, stderr = e.demultiplexStdStream(ctx, resp)
 	return stdout, stderr, nil
 }
 
@@ -378,7 +378,7 @@ func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, stream, st
 	if stdin {
 		return ioutil.NopCloser(resp.Reader), nil, resp.Conn, nil
 	}
-	stdout, stderr = e.demultiplexStdStream(resp.Reader)
+	stdout, stderr = e.demultiplexStdStream(ctx, resp.Reader)
 	return stdout, stderr, resp.Conn, nil
 }
 
@@ -416,7 +416,7 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 		return coretypes.ErrBadMemory
 	}
 	if opts.VolumeChanged {
-		log.Errorf("[VirtualizationUpdateResource] docker engine not support rebinding volume resource: %v", opts.Volumes)
+		log.Errorf(ctx, "[VirtualizationUpdateResource] docker engine not support rebinding volume resource: %v", opts.Volumes)
 		return coretypes.ErrNotSupport
 	}
 

@@ -1,6 +1,7 @@
 package volume
 
 import (
+	"context"
 	"sort"
 
 	"github.com/pkg/errors"
@@ -74,7 +75,7 @@ func (v *volumeRequest) Validate() error {
 
 // MakeScheduler .
 func (v volumeRequest) MakeScheduler() resourcetypes.SchedulerV2 {
-	return func(scheduleInfos []resourcetypes.ScheduleInfo) (plans resourcetypes.ResourcePlans, total int, err error) {
+	return func(ctx context.Context, scheduleInfos []resourcetypes.ScheduleInfo) (plans resourcetypes.ResourcePlans, total int, err error) {
 		schedulerV1, err := scheduler.GetSchedulerV1()
 		if err != nil {
 			return
@@ -86,7 +87,7 @@ func (v volumeRequest) MakeScheduler() resourcetypes.SchedulerV2 {
 			limit = append(limit, &v.limit[i])
 		}
 
-		scheduleInfos, volumePlans, total, err := schedulerV1.SelectVolumeNodes(scheduleInfos, request)
+		scheduleInfos, volumePlans, total, err := schedulerV1.SelectVolumeNodes(ctx, scheduleInfos, request)
 		return ResourcePlans{
 			capacity: resourcetypes.GetCapacity(scheduleInfos),
 			request:  request,

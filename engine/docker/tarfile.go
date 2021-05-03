@@ -2,6 +2,7 @@ package docker
 
 import (
 	"archive/tar"
+	"context"
 	"io"
 	"io/ioutil"
 	"os"
@@ -10,7 +11,7 @@ import (
 	"github.com/projecteru2/core/log"
 )
 
-func withTarfileDump(target string, content io.Reader, f func(target, tarfile string) error) error {
+func withTarfileDump(ctx context.Context, target string, content io.Reader, f func(target, tarfile string) error) error {
 	bytes, err := ioutil.ReadAll(content)
 	if err != nil {
 		return err
@@ -19,7 +20,7 @@ func withTarfileDump(target string, content io.Reader, f func(target, tarfile st
 
 	defer func(tarfile string) {
 		if err := os.RemoveAll(tarfile); err != nil {
-			log.Warnf("[cleanDumpFiles] clean dump files failed: %v", err)
+			log.Warnf(ctx, "[cleanDumpFiles] clean dump files failed: %v", err)
 		}
 	}(tarfile)
 

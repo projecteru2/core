@@ -1,6 +1,7 @@
 package strategy
 
 import (
+	"context"
 	"fmt"
 	"sort"
 
@@ -12,7 +13,7 @@ import (
 
 // GlobalPlan 基于全局资源配额
 // 尽量使得资源消耗平均
-func GlobalPlan(infos []Info, need, total, _ int) (map[string]int, error) {
+func GlobalPlan(ctx context.Context, infos []Info, need, total, _ int) (map[string]int, error) {
 	if total < need {
 		return nil, errors.WithStack(types.NewDetailedErr(types.ErrInsufficientRes,
 			fmt.Sprintf("need: %d, vol: %d", need, total)))
@@ -55,6 +56,6 @@ func GlobalPlan(infos []Info, need, total, _ int) (map[string]int, error) {
 	}
 	// 这里 need 一定会为 0 出来，因为 volTotal 保证了一定大于 need
 	// 这里并不需要再次排序了，理论上的排序是基于资源使用率得到的 Deploy 最终方案
-	log.Debugf("[GlobalPlan] strategyInfos: %v", strategyInfos)
+	log.Debugf(ctx, "[GlobalPlan] strategyInfos: %v", strategyInfos)
 	return deployMap, nil
 }

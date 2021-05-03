@@ -1,6 +1,7 @@
 package cpumem
 
 import (
+	"context"
 	"testing"
 
 	resourcetypes "github.com/projecteru2/core/resources/types"
@@ -128,7 +129,7 @@ type nodeSchdulerTest interface {
 func run(t *testing.T, test nodeSchdulerTest) {
 	resourceRequest, err := MakeRequest(test.getRequestOptions())
 	assert.NoError(t, err)
-	_, _, err = resourceRequest.MakeScheduler()([]resourcetypes.ScheduleInfo{})
+	_, _, err = resourceRequest.MakeScheduler()(context.TODO(), []resourcetypes.ScheduleInfo{})
 	assert.Error(t, err)
 
 	s := test.getScheduler()
@@ -143,7 +144,7 @@ func run(t *testing.T, test nodeSchdulerTest) {
 
 	sche := resourceRequest.MakeScheduler()
 
-	plans, _, err := sche(test.getScheduleInfo())
+	plans, _, err := sche(context.TODO(), test.getScheduleInfo())
 	assert.Nil(t, err)
 
 	var node = test.getNode()
@@ -212,10 +213,10 @@ func (test *requestCPUNodeTest) getScheduleInfo() []resourcetypes.ScheduleInfo {
 func (test *requestCPUNodeTest) getScheduler() scheduler.Scheduler {
 	mockScheduler := &schedulerMocks.Scheduler{}
 	mockScheduler.On(
-		"SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+		"SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 	).Return(test.scheduleInfos, test.cpuMap, 1, nil)
 	mockScheduler.On(
-		"SelectMemoryNodess", mock.Anything, mock.Anything, mock.Anything,
+		"SelectMemoryNodess", mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 	).Return(test.scheduleInfos, 1, errors.New("should not select memory node here"))
 	return mockScheduler
 }
@@ -287,10 +288,10 @@ func (test *requestMemNodeTest) getScheduleInfo() []resourcetypes.ScheduleInfo {
 func (test *requestMemNodeTest) getScheduler() scheduler.Scheduler {
 	mockScheduler := &schedulerMocks.Scheduler{}
 	mockScheduler.On(
-		"SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+		"SelectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 	).Return(test.scheduleInfos, nil, 1, errors.New("should not select memory node here"))
 	mockScheduler.On(
-		"SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything,
+		"SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 	).Return(test.scheduleInfos, 1, nil)
 	return mockScheduler
 }

@@ -1,6 +1,7 @@
 package volume
 
 import (
+	"context"
 	"testing"
 
 	resourcetypes "github.com/projecteru2/core/resources/types"
@@ -265,13 +266,13 @@ func testStoragePlans(t *testing.T, reqOpts types.ResourceOptions) {
 	sche := resourceRequest.MakeScheduler()
 
 	mockScheduler.On(
-		"SelectVolumeNodes", mock.Anything, mock.Anything,
+		"SelectVolumeNodes", mock.Anything, mock.Anything, mock.Anything,
 	).Return(scheduleInfos, volumePlan, 1, nil)
 
 	prevSche, _ := scheduler.GetSchedulerV1()
 	scheduler.InitSchedulerV1(nil)
 
-	plans, _, err := sche(scheduleInfos)
+	plans, _, err := sche(context.TODO(), scheduleInfos)
 	assert.Error(t, err)
 
 	scheduler.InitSchedulerV1(mockScheduler)
@@ -279,7 +280,7 @@ func testStoragePlans(t *testing.T, reqOpts types.ResourceOptions) {
 		scheduler.InitSchedulerV1(prevSche)
 	}()
 
-	plans, _, err = sche(scheduleInfos)
+	plans, _, err = sche(context.TODO(), scheduleInfos)
 	assert.Nil(t, err)
 	assert.True(t, plans.Type()&types.ResourceVolume > 0)
 
@@ -378,13 +379,13 @@ func TestStorage(t *testing.T) {
 	sche := resourceRequest.MakeScheduler()
 
 	mockScheduler.On(
-		"SelectVolumeNodes", mock.Anything, mock.Anything,
+		"SelectVolumeNodes", mock.Anything, mock.Anything, mock.Anything,
 	).Return(scheduleInfos, volumePlan, 1, nil)
 
 	prevSche, _ := scheduler.GetSchedulerV1()
 	scheduler.InitSchedulerV1(nil)
 
-	plans, _, err := sche(scheduleInfos)
+	plans, _, err := sche(context.TODO(), scheduleInfos)
 	assert.Error(t, err)
 
 	scheduler.InitSchedulerV1(mockScheduler)
@@ -392,7 +393,7 @@ func TestStorage(t *testing.T) {
 		scheduler.InitSchedulerV1(prevSche)
 	}()
 
-	plans, _, err = sche(scheduleInfos)
+	plans, _, err = sche(context.TODO(), scheduleInfos)
 	assert.Nil(t, err)
 	assert.True(t, plans.Type()&types.ResourceVolume > 0)
 

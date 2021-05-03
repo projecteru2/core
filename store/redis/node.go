@@ -181,7 +181,7 @@ func (r *Rediaron) makeClient(ctx context.Context, node *types.Node, force bool)
 		for i := 0; i < 3; i++ {
 			v, err := r.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
 			if err != nil {
-				log.Warnf("[makeClient] Get key failed %v", err)
+				log.Warnf(ctx, "[makeClient] Get key failed %v", err)
 				continue
 			}
 			data[i] = v
@@ -268,7 +268,7 @@ func (r *Rediaron) doRemoveNode(ctx context.Context, podname, nodename, endpoint
 
 	_cache.Delete(nodename)
 	err := r.BatchDelete(ctx, keys)
-	log.Infof("[doRemoveNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
+	log.Infof(ctx, "[doRemoveNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 	return err
 }
 
@@ -343,7 +343,7 @@ func (r *Rediaron) NodeStatusStream(ctx context.Context) chan *types.NodeStatus 
 		}()
 
 		key := filepath.Join(nodeStatusPrefix, "*")
-		log.Infof("[NodeStatusStream] watch on %s", key)
+		log.Infof(ctx, "[NodeStatusStream] watch on %s", key)
 		for message := range r.KNotify(ctx, key) {
 			nodename := extractNodename(message.Key)
 			status := &types.NodeStatus{

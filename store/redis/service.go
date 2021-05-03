@@ -42,7 +42,7 @@ func (r *Rediaron) ServiceStatusStream(ctx context.Context) (chan []string, erro
 		defer close(ch)
 		data, err := r.getByKeyPattern(ctx, key, 0)
 		if err != nil {
-			log.Errorf("[ServiceStatusStream] failed to get current services: %v", err)
+			log.Errorf(ctx, "[ServiceStatusStream] failed to get current services: %v", err)
 			return
 		}
 		eps := endpoints{}

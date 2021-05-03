@@ -92,15 +92,15 @@ func (h *CreateWorkloadHandler) Check(raw interface{}) (bool, error) {
 	switch {
 	// there has been an exact workload metadata.
 	case err == nil:
-		log.Infof("[CreateWorkloadHandler.Check] Workload %s is availalbe", wrk.ID)
+		log.Infof(ctx, "[CreateWorkloadHandler.Check] Workload %s is availalbe", wrk.ID)
 		return false, nil
 
 	case strings.HasPrefix(err.Error(), types.ErrBadCount.Error()):
-		log.Errorf("[CreateWorkloadHandler.Check] No such workload: %v", wrk.ID)
+		log.Errorf(ctx, "[CreateWorkloadHandler.Check] No such workload: %v", wrk.ID)
 		return true, nil
 
 	default:
-		log.Errorf("[CreateWorkloadHandler.Check] Unexpected error: %v", err)
+		log.Errorf(ctx, "[CreateWorkloadHandler.Check] Unexpected error: %v", err)
 		return false, err
 	}
 }
@@ -134,22 +134,22 @@ func (h *CreateWorkloadHandler) Handle(raw interface{}) error {
 	// There hasn't been the exact workload metadata, so we must remove it.
 	node, err := h.calcium.GetNode(ctx, wrk.Nodename)
 	if err != nil {
-		log.Errorf("[CreateWorkloadHandler.Handle] Get node %s failed: %v", wrk.Nodename, err)
+		log.Errorf(ctx, "[CreateWorkloadHandler.Handle] Get node %s failed: %v", wrk.Nodename, err)
 		return err
 	}
 	wrk.Engine = node.Engine
 
 	if err := wrk.Remove(ctx, true); err != nil {
 		if strings.HasPrefix(err.Error(), fmt.Sprintf("Error: No such container: %s", wrk.ID)) {
-			log.Errorf("[CreateWorkloadHandler.Handle] %s has been removed yet", wrk.ID)
+			log.Errorf(ctx, "[CreateWorkloadHandler.Handle] %s has been removed yet", wrk.ID)
 			return nil
 		}
 
-		log.Errorf("[CreateWorkloadHandler.Handle] Remove %s failed: %v", wrk.ID, err)
+		log.Errorf(ctx, "[CreateWorkloadHandler.Handle] Remove %s failed: %v", wrk.ID, err)
 		return err
 	}
 
-	log.Warnf("[CreateWorkloadHandler.Handle] %s has been removed", wrk.ID)
+	log.Warnf(ctx, "[CreateWorkloadHandler.Handle] %s has been removed", wrk.ID)
 
 	return nil
 }
@@ -202,7 +202,7 @@ func (h *CreateLambdaHandler) Handle(raw interface{}) error {
 
 	workloadIDs, err := h.getWorkloadIDs(opts)
 	if err != nil {
-		log.Errorf("[CreateLambdaHandler.Handle] Get workloads %s/%s/%v failed: %v",
+		log.Errorf(context.TODO(), "[CreateLambdaHandler.Handle] Get workloads %s/%s/%v failed: %v",
 			opts.Appname, opts.Entrypoint, opts.Labels, err)
 		return err
 	}
@@ -211,11 +211,11 @@ func (h *CreateLambdaHandler) Handle(raw interface{}) error {
 	defer cancel()
 
 	if err := h.calcium.doRemoveWorkloadSync(ctx, workloadIDs); err != nil {
-		log.Errorf("[CreateLambdaHandler.Handle] Remove lambda %v failed: %v", opts, err)
+		log.Errorf(ctx, "[CreateLambdaHandler.Handle] Remove lambda %v failed: %v", opts, err)
 		return err
 	}
 
-	log.Infof("[CreateLambdaHandler.Handle] Lambda %v removed", opts)
+	log.Infof(ctx, "[CreateLambdaHandler.Handle] Lambda %v removed", opts)
 
 	return nil
 }

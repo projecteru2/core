@@ -20,7 +20,7 @@ func (m *Mercury) MakeDeployStatus(ctx context.Context, opts *types.DeployOption
 		return err
 	}
 	if resp.Count == 0 {
-		log.Warnf("[MakeDeployStatus] Deploy status not found %s.%s", opts.Name, opts.Entrypoint.Name)
+		log.Warnf(ctx, "[MakeDeployStatus] Deploy status not found %s.%s", opts.Name, opts.Entrypoint.Name)
 	}
 	if err = m.doGetDeployStatus(ctx, resp, strategyInfos); err != nil {
 		return err

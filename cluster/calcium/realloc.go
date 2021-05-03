@@ -32,9 +32,9 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 			},
 		)
 		if err != nil {
-			return logger.Err(err)
+			return logger.Err(ctx, err)
 		}
-		return logger.Err(c.doReallocOnNode(ctx, workload.Nodename, workload, rrs))
+		return logger.Err(ctx, c.doReallocOnNode(ctx, workload.Nodename, workload, rrs))
 	})
 }
 
@@ -42,7 +42,7 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 func (c *Calcium) doReallocOnNode(ctx context.Context, nodename string, workload *types.Workload, rrs resourcetypes.ResourceRequests) error {
 	return c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) (err error) {
 		node.RecycleResources(&workload.ResourceMeta)
-		plans, err := resources.SelectNodesByResourceRequests(rrs, map[string]*types.Node{node.Name: node})
+		plans, err := resources.SelectNodesByResourceRequests(ctx, rrs, map[string]*types.Node{node.Name: node})
 		if err != nil {
 			return err
 		}
@@ -101,7 +101,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, nodename string, workload
 			return
 		}
 
-		c.doRemapResourceAndLog(log.WithField("Calcium", "doReallocOnNode"), node)
+		c.doRemapResourceAndLog(ctx, log.WithField("Calcium", "doReallocOnNode"), node)
 		return nil
 	})
 }

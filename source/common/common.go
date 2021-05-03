@@ -90,8 +90,8 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 		return err
 	}
 
-	log.Infof("[SourceCode] Fetch repo %s", repository)
-	log.Infof("[SourceCode] Checkout to commit %s", hash)
+	log.Infof(ctx, "[SourceCode] Fetch repo %s", repository)
+	log.Infof(ctx, "[SourceCode] Checkout to commit %s", hash)
 
 	// Prepare submodules
 	if submodule {
@@ -105,7 +105,7 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 }
 
 // Artifact download the artifact to the path, then unzip it
-func (g *GitScm) Artifact(artifact, path string) error {
+func (g *GitScm) Artifact(ctx context.Context, artifact, path string) error {
 	req, err := http.NewRequest(http.MethodGet, artifact, nil)
 	if err != nil {
 		return err
@@ -115,7 +115,7 @@ func (g *GitScm) Artifact(artifact, path string) error {
 		req.Header.Add(k, v)
 	}
 
-	log.Infof("[Artifact] Downloading artifacts from %q", artifact)
+	log.Infof(ctx, "[Artifact] Downloading artifacts from %q", artifact)
 	resp, err := g.Do(req)
 	if err != nil {
 		return err

@@ -16,7 +16,7 @@ func (m *Metrics) ResourceMiddleware(cluster cluster.Cluster) func(http.Handler)
 			defer cancel()
 			nodes, err := cluster.ListPodNodes(ctx, "", nil, true)
 			if err != nil {
-				log.Errorf("[ResourceMiddleware] Get all nodes err %v", err)
+				log.Errorf(context.TODO(), "[ResourceMiddleware] Get all nodes err %v", err)
 			}
 			for _, node := range nodes {
 				m.SendNodeInfo(node.Metrics())

@@ -45,7 +45,7 @@ func (h *Helium) Unsubscribe(id uuid.UUID) {
 func (h *Helium) start(ctx context.Context) {
 	ch, err := h.stor.ServiceStatusStream(ctx)
 	if err != nil {
-		log.Errorf("[WatchServiceStatus] failed to start watch: %v", err)
+		log.Errorf(context.TODO(), "[WatchServiceStatus] failed to start watch: %v", err)
 		return
 	}
 

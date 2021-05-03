@@ -17,7 +17,7 @@ import (
 func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error) {
 	logger := log.WithField("Calcium", "Send").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.Err(errors.WithStack(err))
+		return nil, logger.Err(ctx, errors.WithStack(err))
 	}
 	ch := make(chan *types.SendMessage)
 	utils.SentryGo(func() {
@@ -25,7 +25,7 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 		wg := &sync.WaitGroup{}
 
 		for _, id := range opts.IDs {
-			log.Infof("[Send] Send files to %s", id)
+			log.Infof(ctx, "[Send] Send files to %s", id)
 			wg.Add(1)
 			utils.SentryGo(func(id string) func() {
 				return func() {
@@ -34,11 +34,11 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 					if err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
 						for dst, content := range opts.Data {
 							err := c.doSendFileToWorkload(ctx, workload.Engine, workload.ID, dst, bytes.NewBuffer(content), true, true)
-							ch <- &types.SendMessage{ID: id, Path: dst, Error: logger.Err(err)}
+							ch <- &types.SendMessage{ID: id, Path: dst, Error: logger.Err(ctx, err)}
 						}
 						return nil
 					}); err != nil {
-						ch <- &types.SendMessage{ID: id, Error: logger.Err(err)}
+						ch <- &types.SendMessage{ID: id, Error: logger.Err(ctx, err)}
 					}
 				}
 			}(id))
@@ -50,7 +50,7 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 }
 
 func (c *Calcium) doSendFileToWorkload(ctx context.Context, engine engine.API, ID, dst string, content io.Reader, AllowOverwriteDirWithFile bool, CopyUIDGID bool) error {
-	log.Infof("[doSendFileToWorkload] Send file to %s:%s", ID, dst)
-	log.Debugf("[doSendFileToWorkload] remote path %s", dst)
+	log.Infof(ctx, "[doSendFileToWorkload] Send file to %s:%s", ID, dst)
+	log.Debugf(ctx, "[doSendFileToWorkload] remote path %s", dst)
 	return errors.WithStack(engine.VirtualizationCopyTo(ctx, ID, dst, content, AllowOverwriteDirWithFile, CopyUIDGID))
 }

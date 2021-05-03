@@ -58,14 +58,14 @@ func execuateInside(ctx context.Context, client engine.API, ID, cmd, user string
 func distributionInspect(ctx context.Context, node *types.Node, image string, digests []string) bool {
 	remoteDigest, err := node.Engine.ImageRemoteDigest(ctx, image)
 	if err != nil {
-		log.Errorf("[distributionInspect] get manifest failed %v", err)
+		log.Errorf(ctx, "[distributionInspect] get manifest failed %v", err)
 		return false
 	}
 
 	for _, digest := range digests {
 		if digest == remoteDigest {
-			log.Debugf("[distributionInspect] Local digest %s", digest)
-			log.Debugf("[distributionInspect] Remote digest %s", remoteDigest)
+			log.Debugf(ctx, "[distributionInspect] Local digest %s", digest)
+			log.Debugf(ctx, "[distributionInspect] Remote digest %s", remoteDigest)
 			return true
 		}
 	}
@@ -74,7 +74,7 @@ func distributionInspect(ctx context.Context, node *types.Node, image string, di
 
 // Pull an image
 func pullImage(ctx context.Context, node *types.Node, image string) error {
-	log.Infof("[pullImage] Pulling image %s", image)
+	log.Infof(ctx, "[pullImage] Pulling image %s", image)
 	if image == "" {
 		return errors.WithStack(types.ErrNoImage)
 	}
@@ -83,25 +83,25 @@ func pullImage(ctx context.Context, node *types.Node, image string) error {
 	exists := false
 	digests, err := node.Engine.ImageLocalDigests(ctx, image)
 	if err != nil {
-		log.Errorf("[pullImage] Check image failed %v", err)
+		log.Errorf(ctx, "[pullImage] Check image failed %v", err)
 	} else {
-		log.Debug("[pullImage] Local Image exists")
+		log.Debug(ctx, "[pullImage] Local Image exists")
 		exists = true
 	}
 
 	if exists && distributionInspect(ctx, node, image, digests) {
-		log.Debug("[pullImage] Image cached, skip pulling")
+		log.Debug(ctx, "[pullImage] Image cached, skip pulling")
 		return nil
 	}
 
 	log.Info("[pullImage] Image not cached, pulling")
 	rc, err := node.Engine.ImagePull(ctx, image, false)
-	defer utils.EnsureReaderClosed(rc)
+	defer utils.EnsureReaderClosed(ctx, rc)
 	if err != nil {
-		log.Errorf("[pullImage] Error during pulling image %s: %v", image, err)
+		log.Errorf(ctx, "[pullImage] Error during pulling image %s: %v", image, err)
 		return errors.WithStack(err)
 	}
-	log.Infof("[pullImage] Done pulling image %s", image)
+	log.Infof(ctx, "[pullImage] Done pulling image %s", image)
 	return nil
 }
 
@@ -125,11 +125,11 @@ func processVirtualizationInStream(
 		string(winchCommand): func(body []byte) {
 			w := &window{}
 			if err := json.Unmarshal(body, w); err != nil {
-				log.Errorf("[processVirtualizationInStream] invalid winch command: %q", body)
+				log.Errorf(ctx, "[processVirtualizationInStream] invalid winch command: %q", body)
 				return
 			}
 			if err := resizeFunc(w.Height, w.Width); err != nil {
-				log.Errorf("[processVirtualizationInStream] resize window error: %v", err)
+				log.Errorf(ctx, "[processVirtualizationInStream] resize window error: %v", err)
 				return
 			}
 		},
@@ -142,7 +142,7 @@ func processVirtualizationInStream(
 }
 
 func rawProcessVirtualizationInStream(
-	_ context.Context,
+	ctx context.Context,
 	inStream io.WriteCloser,
 	inCh <-chan []byte,
 	specialPrefixCallback map[string]func([]byte),
@@ -161,7 +161,7 @@ func rawProcessVirtualizationInStream(
 				continue
 			}
 			if _, err := inStream.Write(cmd); err != nil {
-				log.Errorf("[rawProcessVirtualizationInStream] failed to write virtual input stream: %v", err)
+				log.Errorf(ctx, "[rawProcessVirtualizationInStream] failed to write virtual input stream: %v", err)
 				return
 			}
 		}
@@ -171,7 +171,7 @@ func rawProcessVirtualizationInStream(
 }
 
 func processVirtualizationOutStream(
-	_ context.Context,
+	ctx context.Context,
 	outStream io.ReadCloser,
 	splitFunc bufio.SplitFunc,
 	split byte,
@@ -194,17 +194,17 @@ func processVirtualizationOutStream(
 			outCh <- bs
 		}
 		if err := scanner.Err(); err != nil {
-			log.Errorf("[processVirtualizationOutStream] failed to read output from output stream: %v", err)
+			log.Warnf(ctx, "[processVirtualizationOutStream] failed to read output from output stream: %v", err)
 		}
 	})
 	return outCh
 }
 
-func processBuildImageStream(reader io.ReadCloser) chan *types.BuildImageMessage {
+func processBuildImageStream(ctx context.Context, reader io.ReadCloser) chan *types.BuildImageMessage {
 	ch := make(chan *types.BuildImageMessage)
 	utils.SentryGo(func() {
 		defer close(ch)
-		defer utils.EnsureReaderClosed(reader)
+		defer utils.EnsureReaderClosed(ctx, reader)
 		decoder := json.NewDecoder(reader)
 		for {
 			message := &types.BuildImageMessage{}
@@ -212,7 +212,7 @@ func processBuildImageStream(reader io.ReadCloser) chan *types.BuildImageMessage
 			if err != nil {
 				if err != io.EOF {
 					malformed, _ := ioutil.ReadAll(decoder.Buffered()) // TODO err check
-					log.Errorf("[processBuildImageStream] Decode image message failed %v, buffered: %s", err, string(malformed))
+					log.Errorf(ctx, "[processBuildImageStream] Decode image message failed %v, buffered: %s", err, string(malformed))
 					message.Error = err.Error()
 					ch <- message
 				}

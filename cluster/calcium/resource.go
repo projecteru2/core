@@ -19,7 +19,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 	logger := log.WithField("Calcium", "PodResource").WithField("podname", podname)
 	nodes, err := c.ListPodNodes(ctx, podname, nil, true)
 	if err != nil {
-		return nil, logger.Err(err)
+		return nil, logger.Err(ctx, err)
 	}
 	r := &types.PodResource{
 		Name:          podname,
@@ -28,7 +28,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 	for _, node := range nodes {
 		nodeResource, err := c.doGetNodeResource(ctx, node.Name, false)
 		if err != nil {
-			return nil, logger.Err(err)
+			return nil, logger.Err(ctx, err)
 		}
 		r.NodesResource = append(r.NodesResource, nodeResource)
 	}
@@ -39,12 +39,12 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodRe
 func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
 	logger := log.WithField("Calcium", "NodeResource").WithField("nodename", nodename).WithField("fix", fix)
 	if nodename == "" {
-		return nil, logger.Err(types.ErrEmptyNodeName)
+		return nil, logger.Err(ctx, types.ErrEmptyNodeName)
 	}
 
 	nr, err := c.doGetNodeResource(ctx, nodename, fix)
 	if err != nil {
-		return nil, logger.Err(err)
+		return nil, logger.Err(ctx, err)
 	}
 	for _, workload := range nr.Workloads {
 		if _, err := workload.Inspect(ctx); err != nil { // 用于探测节点上容器是否存在
@@ -52,7 +52,7 @@ func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (
 			continue
 		}
 	}
-	return nr, logger.Err(err)
+	return nr, logger.Err(ctx, err)
 }
 
 func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
@@ -114,7 +114,7 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 
 		if fix {
 			if err := c.doFixDiffResource(ctx, node, cpus, memory, storage); err != nil {
-				log.Warnf("[doGetNodeResource] fix node resource failed %v", err)
+				log.Warnf(ctx, "[doGetNodeResource] fix node resource failed %v", err)
 			}
 		}
 
@@ -147,18 +147,18 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 }
 
 func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) ([]resourcetypes.ResourcePlans, map[string]int, error) {
-	total, plans, strategyInfos, err := c.doCalculateCapacity(nodeMap, opts)
+	total, plans, strategyInfos, err := c.doCalculateCapacity(ctx, nodeMap, opts)
 	if err != nil {
 		return nil, nil, err
 	}
 	if err := c.store.MakeDeployStatus(ctx, opts, strategyInfos); err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	deployMap, err := strategy.Deploy(opts, strategyInfos, total)
+	deployMap, err := strategy.Deploy(ctx, opts, strategyInfos, total)
 	if err != nil {
 		return nil, nil, err
 	}
-	log.Infof("[Calium.doAllocResource] deployMap: %+v", deployMap)
+	log.Infof(ctx, "[Calium.doAllocResource] deployMap: %+v", deployMap)
 	return plans, deployMap, nil
 }
 
@@ -186,14 +186,14 @@ func (c *Calcium) remapResource(ctx context.Context, node *types.Node) (ch <-cha
 	return ch, errors.WithStack(err)
 }
 
-func (c *Calcium) doRemapResourceAndLog(logger log.Fields, node *types.Node) {
-	log.Debugf("[doRemapResourceAndLog] remap node %s", node.Name)
-	ctx, cancel := context.WithTimeout(context.Background(), c.config.GlobalTimeout)
+func (c *Calcium) doRemapResourceAndLog(ctx context.Context, logger log.Fields, node *types.Node) {
+	log.Debugf(ctx, "[doRemapResourceAndLog] remap node %s", node.Name)
+	ctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.Background()), c.config.GlobalTimeout)
 	defer cancel()
 	logger = logger.WithField("Calcium", "doRemapResourceAndLog").WithField("nodename", node.Name)
-	if ch, err := c.remapResource(ctx, node); logger.Err(err) == nil {
+	if ch, err := c.remapResource(ctx, node); logger.Err(ctx, err) == nil {
 		for msg := range ch {
-			logger.WithField("id", msg.ID).Err(msg.Error) // nolint:errcheck
+			logger.WithField("id", msg.ID).Err(ctx, msg.Error) // nolint:errcheck
 		}
 	}
 }

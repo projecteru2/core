@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/scheduler"
@@ -42,13 +44,13 @@ func (s *storageRequest) Validate() error {
 
 // MakeScheduler .
 func (s storageRequest) MakeScheduler() resourcetypes.SchedulerV2 {
-	return func(scheduleInfos []resourcetypes.ScheduleInfo) (plans resourcetypes.ResourcePlans, total int, err error) {
+	return func(ctx context.Context, scheduleInfos []resourcetypes.ScheduleInfo) (plans resourcetypes.ResourcePlans, total int, err error) {
 		schedulerV1, err := scheduler.GetSchedulerV1()
 		if err != nil {
 			return
 		}
 
-		scheduleInfos, total, err = schedulerV1.SelectStorageNodes(scheduleInfos, s.request)
+		scheduleInfos, total, err = schedulerV1.SelectStorageNodes(ctx, scheduleInfos, s.request)
 		return ResourcePlans{
 			request:  s.request,
 			limit:    s.limit,

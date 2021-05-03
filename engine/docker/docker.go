@@ -44,7 +44,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 		if err != nil {
 			return nil, err
 		}
-		if err = dumpFromString(caFile, certFile, keyFile, ca, cert, key); err != nil {
+		if err = dumpFromString(ctx, caFile, certFile, keyFile, ca, cert, key); err != nil {
 			return nil, err
 		}
 		options := tlsconfig.Options{
@@ -67,7 +67,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 		}
 	}
 
-	log.Debugf("[MakeDockerEngine] Create new http.Client for %s, %s", endpoint, config.Docker.APIVersion)
+	log.Debugf(ctx, "[MakeDockerEngine] Create new http.Client for %s, %s", endpoint, config.Docker.APIVersion)
 	return makeRawClient(ctx, config, client, endpoint)
 }
 

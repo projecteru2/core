@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/projecteru2/core/log"
 
 	"github.com/docker/go-units"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -212,7 +211,6 @@ func (b *unitBuilder) buffer() (*bytes.Buffer, error) {
 		strings.Join(b.unitBuffer, "\n"),
 		strings.Join(b.serviceBuffer, "\n"),
 	)
-	log.Debugf("%s", unit)
 	return bytes.NewBufferString(unit), b.err
 }
 

@@ -9,7 +9,8 @@ import (
 	"github.com/projecteru2/core/auth"
 	"github.com/projecteru2/core/client/interceptor"
 	"github.com/projecteru2/core/client/utils"
-	"github.com/projecteru2/core/log"
+	log "github.com/sirupsen/logrus"
+
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
 	"google.golang.org/grpc"

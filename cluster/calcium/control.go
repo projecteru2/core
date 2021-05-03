@@ -47,13 +47,13 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 						return errors.WithStack(types.ErrUnknownControlType)
 					})
 					if err == nil {
-						log.Infof("[ControlWorkload] Workload %s %s", id, t)
+						log.Infof(ctx, "[ControlWorkload] Workload %s %s", id, t)
 						log.Info("[ControlWorkload] Hook Output:")
 						log.Info(string(utils.MergeHookOutputs(message)))
 					}
 					ch <- &types.ControlWorkloadMessage{
 						WorkloadID: id,
-						Error:      logger.Err(err),
+						Error:      logger.Err(ctx, err),
 						Hook:       message,
 					}
 				}

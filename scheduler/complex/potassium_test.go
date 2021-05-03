@@ -1,6 +1,7 @@
 package complexscheduler
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -258,13 +259,13 @@ func SelectCPUNodes(k *Potassium, scheduleInfos []resourcetypes.ScheduleInfo, co
 		return nil, nil, err
 	}
 	nodeMap := getNodeMapFromscheduleInfos(scheduleInfos)
-	planMap, err := resources.SelectNodesByResourceRequests(rrs, nodeMap)
+	planMap, err := resources.SelectNodesByResourceRequests(context.TODO(), rrs, nodeMap)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	infos, total := getInfosFromscheduleInfos(scheduleInfos, planMap, countMap)
-	deployMap, err := strategy.Deploy(newDeployOptions(need, each), infos, total)
+	deployMap, err := strategy.Deploy(context.TODO(), newDeployOptions(need, each), infos, total)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -287,13 +288,13 @@ func SelectMemoryNodes(k *Potassium, scheduleInfos []resourcetypes.ScheduleInfo,
 	if err != nil {
 		return nil, nil, err
 	}
-	planMap, err := resources.SelectNodesByResourceRequests(rrs, getNodeMapFromscheduleInfos(scheduleInfos))
+	planMap, err := resources.SelectNodesByResourceRequests(context.TODO(), rrs, getNodeMapFromscheduleInfos(scheduleInfos))
 	if err != nil {
 		return nil, nil, err
 	}
 
 	infos, total := getInfosFromscheduleInfos(scheduleInfos, planMap, countMap)
-	deployMap, err := strategy.Deploy(newDeployOptions(need, each), infos, total)
+	deployMap, err := strategy.Deploy(context.TODO(), newDeployOptions(need, each), infos, total)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -356,7 +357,7 @@ func TestSelectCPUNodes(t *testing.T) {
 func TestSelectCPUNodesWithMemoryLimit(t *testing.T) {
 	k, _ := newPotassium()
 
-	_, _, _, err := k.SelectCPUNodes([]resourcetypes.ScheduleInfo{}, 0, 0)
+	_, _, _, err := k.SelectCPUNodes(context.TODO(), []resourcetypes.ScheduleInfo{}, 0, 0)
 	assert.Error(t, err)
 
 	// 测试 2 个 Node，每个 CPU 10%，但是内存吃满
@@ -415,7 +416,7 @@ func TestRecurrence(t *testing.T) {
 		},
 	}
 
-	r, rp, total, err := k.SelectCPUNodes(nodes, 0.5, 1)
+	r, rp, total, err := k.SelectCPUNodes(context.TODO(), nodes, 0.5, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, len(r), len(rp))
 	v := 0
@@ -1071,14 +1072,14 @@ func TestMaxIdleNode(t *testing.T) {
 func TestSelectStorageNodesMultipleDeployedPerNode(t *testing.T) {
 	k, _ := newPotassium()
 	emptyNode := []resourcetypes.ScheduleInfo{}
-	_, r, err := k.SelectStorageNodes(emptyNode, -1)
+	_, r, err := k.SelectStorageNodes(context.TODO(), emptyNode, -1)
 	assert.Zero(t, r)
 	assert.Error(t, err)
-	_, r, err = k.SelectStorageNodes(emptyNode, 0)
+	_, r, err = k.SelectStorageNodes(context.TODO(), emptyNode, 0)
 	assert.Equal(t, r, math.MaxInt64)
 	assert.NoError(t, err)
 	scheduleInfos := generateNodes(2, 2, 4*int64(units.GiB), 8*int64(units.GiB), 10)
-	scheduleInfos, total, err := k.SelectMemoryNodes(scheduleInfos, 1.0, int64(units.GiB))
+	scheduleInfos, total, err := k.SelectMemoryNodes(context.TODO(), scheduleInfos, 1.0, int64(units.GiB))
 	assert.NoError(t, err)
 	assert.Equal(t, 8, total)
 	assert.Equal(t, 2, len(scheduleInfos))
@@ -1097,7 +1098,7 @@ func TestSelectStorageNodesMultipleDeployedPerNode(t *testing.T) {
 func TestSelectStorageNodesDeployedOnFirstNode(t *testing.T) {
 	k, _ := newPotassium()
 	scheduleInfos := generateNodes(2, 2, 4*int64(units.GiB), int64(units.GiB), 10)
-	scheduleInfos, total, err := k.SelectMemoryNodes(scheduleInfos, 1.0, int64(units.GiB))
+	scheduleInfos, total, err := k.SelectMemoryNodes(context.TODO(), scheduleInfos, 1.0, int64(units.GiB))
 	assert.NoError(t, err)
 	assert.Equal(t, 8, total)
 	assert.Equal(t, 2, len(scheduleInfos))
@@ -1116,7 +1117,7 @@ func TestSelectStorageNodesDeployedOnFirstNode(t *testing.T) {
 func TestSelectStorageNodesOneDeployedPerNode(t *testing.T) {
 	k, _ := newPotassium()
 	scheduleInfos := generateNodes(4, 2, 4*int64(units.GiB), int64(units.GiB), 10)
-	scheduleInfos, total, err := k.SelectMemoryNodes(scheduleInfos, 1.0, int64(units.GiB))
+	scheduleInfos, total, err := k.SelectMemoryNodes(context.TODO(), scheduleInfos, 1.0, int64(units.GiB))
 	assert.NoError(t, err)
 	assert.Equal(t, 16, total)
 	assert.Equal(t, 4, len(scheduleInfos))
@@ -1140,7 +1141,7 @@ func TestSelectStorageNodesWithPreOccupied(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		countMap[scheduleInfos[i].Name] += i
 	}
-	scheduleInfos, total, err := k.SelectMemoryNodes(scheduleInfos, 1.0, 512*int64(units.MiB))
+	scheduleInfos, total, err := k.SelectMemoryNodes(context.TODO(), scheduleInfos, 1.0, 512*int64(units.MiB))
 	assert.NoError(t, err)
 	assert.Equal(t, 32, total)
 	assert.Equal(t, 4, len(scheduleInfos))
@@ -1160,7 +1161,7 @@ func TestSelectStorageNodesWithPreOccupied(t *testing.T) {
 func TestSelectStorageNodesAllocEachDivition(t *testing.T) {
 	k, _ := newPotassium()
 	scheduleInfos := generateNodes(4, 2, 4*int64(units.GiB), int64(units.GiB), 10)
-	scheduleInfos, total, err := k.SelectMemoryNodes(scheduleInfos, 1.0, int64(units.GiB))
+	scheduleInfos, total, err := k.SelectMemoryNodes(context.TODO(), scheduleInfos, 1.0, int64(units.GiB))
 	assert.NoError(t, err)
 	assert.Equal(t, 16, total)
 	assert.Equal(t, 4, len(scheduleInfos))
@@ -1180,7 +1181,7 @@ func TestSelectStorageNodesAllocEachDivition(t *testing.T) {
 func TestSelectStorageNodesCapacityLessThanMemory(t *testing.T) {
 	k, _ := newPotassium()
 	scheduleInfos := generateNodes(2, 2, 4*int64(units.GiB), int64(units.GiB), 10)
-	scheduleInfos, total, err := k.SelectMemoryNodes(scheduleInfos, 1.0, int64(units.GiB))
+	scheduleInfos, total, err := k.SelectMemoryNodes(context.TODO(), scheduleInfos, 1.0, int64(units.GiB))
 	assert.NoError(t, err)
 	assert.Equal(t, 8, total)
 	assert.Equal(t, 2, len(scheduleInfos))
@@ -1199,7 +1200,7 @@ func TestSelectStorageNodesCapacityLessThanMemory(t *testing.T) {
 func TestSelectStorageNodesNotEnough(t *testing.T) {
 	k, _ := newPotassium()
 	scheduleInfos := generateNodes(1, 2, 4*int64(units.GiB), int64(units.MiB), 10)
-	scheduleInfos, total, err := k.SelectMemoryNodes(scheduleInfos, 1.0, int64(units.GiB))
+	scheduleInfos, total, err := k.SelectMemoryNodes(context.TODO(), scheduleInfos, 1.0, int64(units.GiB))
 	assert.NoError(t, err)
 	assert.Equal(t, 4, total)
 	assert.Equal(t, 1, len(scheduleInfos))
@@ -1214,7 +1215,7 @@ func TestSelectStorageNodesSequence(t *testing.T) {
 	k, _ := newPotassium()
 	scheduleInfos := generateNodes(2, 4, 8*int64(units.GiB), 2*int64(units.GiB), 10)
 	mem := 512 * int64(units.MiB)
-	scheduleInfos, total, err := k.SelectMemoryNodes(scheduleInfos, 1.0, mem)
+	scheduleInfos, total, err := k.SelectMemoryNodes(context.TODO(), scheduleInfos, 1.0, mem)
 	assert.NoError(t, err)
 	assert.Equal(t, 32, total)
 	assert.Equal(t, 2, len(scheduleInfos))
@@ -1237,7 +1238,7 @@ func TestSelectStorageNodesSequence(t *testing.T) {
 		res[1].Name: 0,
 	}
 
-	res, total, err = k.SelectMemoryNodes(res, 1.0, mem)
+	res, total, err = k.SelectMemoryNodes(context.TODO(), res, 1.0, mem)
 	assert.NoError(t, err)
 	assert.Equal(t, 31, total)
 	assert.Equal(t, 2, len(res))
@@ -1273,7 +1274,7 @@ func TestSelectStorageNodesSequence(t *testing.T) {
 		res[j].Name: 2,
 	}
 
-	res, total, err = k.SelectMemoryNodes(res, 1.0, mem)
+	res, total, err = k.SelectMemoryNodes(context.TODO(), res, 1.0, mem)
 	assert.NoError(t, err)
 	assert.Equal(t, 29, total)
 	assert.Equal(t, 2, len(res))
@@ -1286,13 +1287,13 @@ func SelectStorageNodes(k *Potassium, scheduleInfos []resourcetypes.ScheduleInfo
 	if err != nil {
 		return nil, nil, err
 	}
-	planMap, err := resources.SelectNodesByResourceRequests(rrs, getNodeMapFromscheduleInfos(scheduleInfos))
+	planMap, err := resources.SelectNodesByResourceRequests(context.TODO(), rrs, getNodeMapFromscheduleInfos(scheduleInfos))
 	if err != nil {
 		return nil, nil, err
 	}
 
 	strategyInfos, total := getInfosFromscheduleInfos(scheduleInfos, planMap, countMap)
-	deployMap, err := strategy.Deploy(newDeployOptions(need, each), strategyInfos, total)
+	deployMap, err := strategy.Deploy(context.TODO(), newDeployOptions(need, each), strategyInfos, total)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1312,13 +1313,13 @@ func SelectVolumeNodes(k *Potassium, scheduleInfos []resourcetypes.ScheduleInfo,
 		return nil, nil, err
 	}
 	nodeMap := getNodeMapFromscheduleInfos(scheduleInfos)
-	planMap, err := resources.SelectNodesByResourceRequests(rrs, nodeMap)
+	planMap, err := resources.SelectNodesByResourceRequests(context.TODO(), rrs, nodeMap)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	infos, total := getInfosFromscheduleInfos(scheduleInfos, planMap, countMap)
-	deployMap, err := strategy.Deploy(newDeployOptions(need, each), infos, total)
+	deployMap, err := strategy.Deploy(context.TODO(), newDeployOptions(need, each), infos, total)
 	if err != nil {
 		return nil, nil, err
 	}

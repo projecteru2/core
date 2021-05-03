@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/go-ping/ping"
-	"github.com/projecteru2/core/log"
+	log "github.com/sirupsen/logrus"
 )
 
 // EndpointPusher pushes endpoints to registered channels if the ep is L3 reachable

@@ -131,13 +131,13 @@ func (v *Virt) NetworkDisconnect(ctx context.Context, network, target string, fo
 
 // NetworkList lists all of networks.
 func (v *Virt) NetworkList(ctx context.Context, drivers []string) (nets []*enginetypes.Network, err error) {
-	log.Warnf("NetworkList does not implement")
+	log.Warnf(ctx, "NetworkList does not implement")
 	return
 }
 
 // BuildRefs builds references, it's not necessary for virt. presently.
 func (v *Virt) BuildRefs(ctx context.Context, name string, tags []string) (refs []string) {
-	log.Warnf("BuildRefs does not implement")
+	log.Warnf(ctx, "BuildRefs does not implement")
 	return
 }
 
@@ -182,7 +182,7 @@ func (v *Virt) VirtualizationResourceRemap(ctx context.Context, opts *enginetype
 
 // VirtualizationCopyTo copies one.
 func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, target string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) (err error) {
-	log.Warnf("VirtualizationCopyTo does not implement")
+	log.Warnf(ctx, "VirtualizationCopyTo does not implement")
 	return
 }
 

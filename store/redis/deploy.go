@@ -19,7 +19,7 @@ func (r *Rediaron) MakeDeployStatus(ctx context.Context, opts *types.DeployOptio
 		return err
 	}
 	if len(data) == 0 {
-		log.Warnf("[MakeDeployStatus] Deploy status not found %s.%s", opts.Name, opts.Entrypoint.Name)
+		log.Warnf(ctx, "[MakeDeployStatus] Deploy status not found %s.%s", opts.Name, opts.Entrypoint.Name)
 	}
 	if err = r.doGetDeployStatus(ctx, data, strategyInfos); err != nil {
 		return err
