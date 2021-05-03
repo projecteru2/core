@@ -162,7 +162,7 @@ func rawProcessVirtualizationInStream(
 			}
 			if _, err := inStream.Write(cmd); err != nil {
 				log.Errorf(ctx, "[rawProcessVirtualizationInStream] failed to write virtual input stream: %v", err)
-				return
+				continue
 			}
 		}
 	})
