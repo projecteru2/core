@@ -14,30 +14,22 @@ import (
 )
 
 func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration) (lock lock.DistributedLock, rCtx context.Context, err error) {
-	return lock, rCtx, utils.Txn(
-		ctx,
-		// if: create session and lease
-		func(ctx context.Context) error {
-			lock, err = c.store.CreateLock(name, timeout)
-			return errors.WithStack(err)
-		},
-		// then: try lock or wait
-		func(ctx context.Context) error {
-			rCtx, err = lock.Lock(ctx)
-			return errors.WithStack(err)
-		},
-		// else: revoke lease
-		func(ctx context.Context, failedByCond bool) (err error) {
-			if failedByCond {
-				return
+	if lock, err = c.store.CreateLock(name, timeout); err != nil {
+		return lock, rCtx, errors.WithStack(err)
+	}
+	defer func() {
+		if err != nil {
+			rollbackCtx, cancel := context.WithTimeout(context.Background(), timeout)
+			defer cancel()
+			rollbackCtx = utils.InheritTracingInfo(rollbackCtx, ctx)
+			if e := lock.Unlock(rollbackCtx); e != nil {
+				log.Errorf(rollbackCtx, "failed to unlock %s: %+v", name, err)
 			}
-			if err = lock.Unlock(ctx); err != nil {
-				log.Errorf(ctx, "failed to unlock %s: %+v", name, err)
-			}
-			return
-		},
-		c.config.GlobalTimeout,
-	)
+		}
+	}()
+	rCtx, err = lock.Lock(ctx)
+	return lock, rCtx, errors.WithStack(err)
+
 }
 
 func (c *Calcium) doUnlock(ctx context.Context, lock lock.DistributedLock, msg string) error {
