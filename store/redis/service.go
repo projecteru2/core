@@ -40,6 +40,9 @@ func (r *Rediaron) ServiceStatusStream(ctx context.Context) (chan []string, erro
 	ch := make(chan []string)
 	go func() {
 		defer close(ch)
+
+		watchC := r.KNotify(ctx, key)
+
 		data, err := r.getByKeyPattern(ctx, key, 0)
 		if err != nil {
 			log.Errorf(ctx, "[ServiceStatusStream] failed to get current services: %v", err)
@@ -51,7 +54,7 @@ func (r *Rediaron) ServiceStatusStream(ctx context.Context) (chan []string, erro
 		}
 		ch <- eps.ToSlice()
 
-		for message := range r.KNotify(ctx, key) {
+		for message := range watchC {
 			changed := false
 			endpoint := parseServiceKey(message.Key)
 			switch message.Action {
