@@ -2,6 +2,7 @@ package docker
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -27,7 +28,7 @@ func TestWithDumpFiles(t *testing.T) {
 	}
 	fp := []string{}
 	for target, content := range data {
-		withTarfileDump(target, bytes.NewBuffer(content), func(target, tarfile string) error {
+		withTarfileDump(context.TODO(), target, bytes.NewBuffer(content), func(target, tarfile string) error {
 			assert.True(t, strings.HasPrefix(target, "/tmp/test"))
 			fp = append(fp, tarfile)
 			_, err := os.Stat(tarfile)
