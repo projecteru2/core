@@ -31,6 +31,8 @@ const (
 	GRPCPrefixKey = "virt-grpc://"
 	// DmiUUIDKey indicates the key within deploy info.
 	DmiUUIDKey = "DMIUUID"
+	// ImageUserKey indicates the image's owner
+	ImageUserKey = "ImageUser"
 )
 
 // Virt implements the core engine.API interface.
@@ -157,13 +159,11 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 		CPU:        int(opts.Quota),
 		Mem:        opts.Memory,
 		ImageName:  opts.Image,
+		ImageUser:  opts.User,
 		Volumes:    vols,
 		Labels:     opts.Labels,
 		AncestorID: opts.AncestorWorkloadID,
-	}
-
-	if dmiUUID, exists := opts.Labels[DmiUUIDKey]; exists {
-		req.DmiUUID = dmiUUID
+		DmiUUID:    opts.Labels[DmiUUIDKey],
 	}
 
 	var resp virttypes.Guest
