@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	perrors "github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -55,6 +56,12 @@ const (
 	actionSet     = "set"
 	actionDel     = "del"
 )
+
+// go-redis doesn't export its proto.Error type,
+// we have to check the content in this error
+func isRedisNoKeyError(e error) bool {
+	return e != nil && strings.Contains(e.Error(), "redis: nil")
+}
 
 // Rediaron is a store implemented by redis
 type Rediaron struct {
@@ -119,7 +126,11 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 
 // GetOne is a wrapper
 func (r *Rediaron) GetOne(ctx context.Context, key string) (string, error) {
-	return r.cli.Get(ctx, key).Result()
+	value, err := r.cli.Get(ctx, key).Result()
+	if isRedisNoKeyError(err) {
+		return "", perrors.WithMessage(err, fmt.Sprintf("Key not found: %s", key))
+	}
+	return value, err
 }
 
 // GetMulti is a wrapper
@@ -128,6 +139,9 @@ func (r *Rediaron) GetMulti(ctx context.Context, keys []string) (map[string]stri
 	fetch := func(pipe redis.Pipeliner) error {
 		for _, k := range keys {
 			_, err := pipe.Get(ctx, k).Result()
+			if isRedisNoKeyError(err) {
+				return perrors.WithMessage(err, fmt.Sprintf("Key not found: %s", k))
+			}
 			if err != nil {
 				return err
 			}
