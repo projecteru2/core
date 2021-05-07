@@ -28,6 +28,17 @@ func (s *RediaronTestSuite) TearDownTest() {
 	s.rediaron.cli.FlushAll(context.Background())
 }
 
+func (s *RediaronTestSuite) TestIsRedisNoKeyError() {
+	_, err := s.rediaron.cli.Get(context.Background(), "thiskeydoesnotexistsofcourseitdoesnt").Result()
+	s.True(isRedisNoKeyError(err))
+
+	s.rediaron.cli.Set(context.Background(), "key1", "value1", 0)
+	_, err = s.rediaron.cli.Get(context.Background(), "key1").Result()
+	s.False(isRedisNoKeyError(err))
+
+	s.False(isRedisNoKeyError(fmt.Errorf("i am not redis no key error")))
+}
+
 func (s *RediaronTestSuite) TestKeyNotify() {
 	ctx, cancel := context.WithCancel(context.Background())
 	ch := s.rediaron.KNotify(ctx, "a*")
