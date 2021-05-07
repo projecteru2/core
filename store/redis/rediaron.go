@@ -139,9 +139,6 @@ func (r *Rediaron) GetMulti(ctx context.Context, keys []string) (map[string]stri
 	fetch := func(pipe redis.Pipeliner) error {
 		for _, k := range keys {
 			_, err := pipe.Get(ctx, k).Result()
-			if isRedisNoKeyError(err) {
-				return perrors.WithMessage(err, fmt.Sprintf("Key not found: %s", k))
-			}
 			if err != nil {
 				return err
 			}
@@ -163,6 +160,10 @@ func (r *Rediaron) GetMulti(ctx context.Context, keys []string) (map[string]stri
 		key, ok := args[1].(string)
 		if !ok {
 			return nil, ErrBadCmdType
+		}
+
+		if isRedisNoKeyError(c.Err()) {
+			return nil, perrors.WithMessage(err, fmt.Sprintf("Key not found: %s", key))
 		}
 
 		data[key] = c.Val()
