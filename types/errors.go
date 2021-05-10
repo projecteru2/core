@@ -54,6 +54,7 @@ var (
 	ErrNotFitLabels    = errors.New("not fit labels")
 
 	ErrNoImage                     = errors.New("no image")
+	ErrNoImageUser                 = errors.New("no image user")
 	ErrNoBuildPod                  = errors.New("No build pod set in config")
 	ErrNoBuildsInSpec              = errors.New("No builds in spec")
 	ErrNoBuildSpec                 = errors.New("No build spec")

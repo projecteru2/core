@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/types"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 
@@ -49,7 +50,11 @@ func (v *Virt) ImageBuild(ctx context.Context, input io.Reader, refs []string) (
 }
 
 // ImageBuildFromExist builds vm image from running vm
-func (v *Virt) ImageBuildFromExist(ctx context.Context, ID, name string) (string, error) {
+func (v *Virt) ImageBuildFromExist(ctx context.Context, ID, name, user string) (string, error) {
+	if len(user) < 1 {
+		return "", types.ErrNoImageUser
+	}
+
 	// TODO: removes below 2 lines
 	// upper layer may remove 'hub.docker.io/...../<name>' prefix and tag from the name.
 	// due to the domain and tag both are docker concepts.
@@ -58,7 +63,7 @@ func (v *Virt) ImageBuildFromExist(ctx context.Context, ID, name string) (string
 	// Removes tag (latest by default)
 	name = strings.Split(name, ":")[0]
 
-	req := virttypes.CaptureGuestReq{Name: name}
+	req := virttypes.CaptureGuestReq{Name: name, User: user}
 	req.ID = ID
 
 	uimg, err := v.client.CaptureGuest(ctx, req)
