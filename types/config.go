@@ -105,7 +105,7 @@ type VirtConfig struct {
 
 // SystemdConfig is systemd config
 type SystemdConfig struct {
-	Username string `yaml:"username" default:"root"`
+	Runtime string `yaml:"runtime" default:"io.containerd.eru.v2"`
 }
 
 // LogConfig define log type

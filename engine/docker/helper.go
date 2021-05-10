@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"math"
 	"net"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -18,7 +17,6 @@ import (
 	"text/template"
 
 	corecluster "github.com/projecteru2/core/cluster"
-	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
@@ -27,7 +25,6 @@ import (
 	"github.com/docker/distribution/reference"
 	dockertypes "github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
-	dockerapi "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/registry"
@@ -255,14 +252,6 @@ func GetIP(ctx context.Context, daemonHost string) string {
 		return ""
 	}
 	return u.Hostname()
-}
-
-func makeRawClient(_ context.Context, config coretypes.Config, client *http.Client, endpoint string) (engine.API, error) {
-	cli, err := dockerapi.NewClient(endpoint, config.Docker.APIVersion, client, nil)
-	if err != nil {
-		return nil, err
-	}
-	return &Engine{cli, config}, nil
 }
 
 func dumpFromString(ctx context.Context, ca, cert, key *os.File, caStr, certStr, keyStr string) error {

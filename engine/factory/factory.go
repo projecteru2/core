@@ -16,12 +16,12 @@ import (
 type factory func(ctx context.Context, config types.Config, nodename, endpoint, ca, cert, key string) (engine.API, error)
 
 var engines = map[string]factory{
-	docker.TCPPrefixKey:  docker.MakeClient,
-	docker.SockPrefixKey: docker.MakeClient,
-	virt.HTTPPrefixKey:   virt.MakeClient,
-	virt.GRPCPrefixKey:   virt.MakeClient,
-	systemd.SSHPrefixKey: systemd.MakeClient,
-	fakeengine.PrefixKey: fakeengine.MakeClient,
+	docker.TCPPrefixKey:      docker.MakeClient,
+	docker.SockPrefixKey:     docker.MakeClient,
+	virt.HTTPPrefixKey:       virt.MakeClient,
+	virt.GRPCPrefixKey:       virt.MakeClient,
+	systemd.SystemdPrefixKey: systemd.MakeClient,
+	fakeengine.PrefixKey:     fakeengine.MakeClient,
 }
 
 // GetEngine get engine

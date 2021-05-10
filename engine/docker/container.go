@@ -188,6 +188,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		Sysctls:    opts.Sysctl,
 		PidMode:    rArgs.PidMode,
 		StorageOpt: rArgs.StorageOpt,
+		Runtime:    opts.Runtime,
 	}
 
 	if hostConfig.NetworkMode.IsBridge() {

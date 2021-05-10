@@ -9,19 +9,19 @@ import (
 )
 
 // Execute executes a cmd and attaches stdio
-func (s *SSHClient) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, stdout io.ReadCloser, stderr io.ReadCloser, writer io.WriteCloser, err error) {
+func (s *systemdEngine) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, stdout io.ReadCloser, stderr io.ReadCloser, writer io.WriteCloser, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
 
 // ExecResize resize the terminal size
-func (s *SSHClient) ExecResize(ctx context.Context, execID string, height, width uint) (err error) {
+func (s *systemdEngine) ExecResize(ctx context.Context, execID string, height, width uint) (err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
 
 // ExecExitCode fetches exceuction exit code
-func (s *SSHClient) ExecExitCode(ctx context.Context, execID string) (execCode int, err error) {
+func (s *systemdEngine) ExecExitCode(ctx context.Context, execID string) (execCode int, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
