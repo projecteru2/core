@@ -159,7 +159,7 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 		CPU:        int(opts.Quota),
 		Mem:        opts.Memory,
 		ImageName:  opts.Image,
-		ImageUser:  opts.User,
+		ImageUser:  opts.Labels[ImageUserKey],
 		Volumes:    vols,
 		Labels:     opts.Labels,
 		AncestorID: opts.AncestorWorkloadID,

@@ -38,7 +38,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 	case types.BuildFromRaw:
 		ch, err = c.buildFromContent(ctx, node, refs, opts.Tar)
 	case types.BuildFromExist:
-		ch, err = c.buildFromExist(ctx, refs[0], opts.ExistID)
+		ch, err = c.buildFromExist(ctx, refs[0], opts.ExistID, opts.User)
 	default:
 		return nil, logger.Err(ctx, errors.WithStack(errors.New("unknown build type")))
 	}
@@ -89,7 +89,7 @@ func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, refs [
 	return ch, err
 }
 
-func (c *Calcium) buildFromExist(ctx context.Context, ref, existID string) (chan *types.BuildImageMessage, error) { // nolint:unparam
+func (c *Calcium) buildFromExist(ctx context.Context, ref, existID, user string) (chan *types.BuildImageMessage, error) { // nolint:unparam
 	logger := log.WithField("Calcium", "buildFromExist").WithField("ref", ref).WithField("existID", existID)
 	return withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
 		node, err := c.getWorkloadNode(ctx, existID)
@@ -98,7 +98,7 @@ func (c *Calcium) buildFromExist(ctx context.Context, ref, existID string) (chan
 			return
 		}
 
-		imageID, err := node.Engine.ImageBuildFromExist(ctx, existID, ref)
+		imageID, err := node.Engine.ImageBuildFromExist(ctx, existID, ref, user)
 		if err != nil {
 			ch <- buildErrMsg(logger.Err(ctx, err))
 			return
