@@ -71,7 +71,7 @@ func (v *Virt) ImageBuildFromExist(ctx context.Context, ID, name, user string) (
 		return "", err
 	}
 
-	return uimg.Name, nil
+	return uimg.ID, nil
 }
 
 // ImageBuildCachePrune prunes cached one.

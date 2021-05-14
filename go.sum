@@ -352,6 +352,8 @@ github.com/projecteru2/libyavirt v0.0.0-20210506084619-9ba72c7c2ae3 h1:HPjZPr0Pc
 github.com/projecteru2/libyavirt v0.0.0-20210506084619-9ba72c7c2ae3/go.mod h1:9/SNmdphwl12ubwihkRa9YtOozM6liYLDxsricra1mY=
 github.com/projecteru2/libyavirt v0.0.0-20210510090553-13d6d50dae11 h1:tq7Z0y1WyCNZMGnia8buu5Ju1ktFhQ3m0Zp+BFB+m3I=
 github.com/projecteru2/libyavirt v0.0.0-20210510090553-13d6d50dae11/go.mod h1:9/SNmdphwl12ubwihkRa9YtOozM6liYLDxsricra1mY=
+github.com/projecteru2/libyavirt v0.0.0-20210514093713-959b2e232319 h1:YS2bKys5sRKJMBDKrjsJQGVN+V6NJsSF+vcSg85ll5k=
+github.com/projecteru2/libyavirt v0.0.0-20210514093713-959b2e232319/go.mod h1:9/SNmdphwl12ubwihkRa9YtOozM6liYLDxsricra1mY=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
 github.com/prometheus/client_golang v1.0.0/go.mod h1:db9x61etRT2tGnBNRi70OPL5FsnadC4Ky3P0J6CfImo=
 github.com/prometheus/client_golang v1.1.0/go.mod h1:I1FGZT9+L76gKKOs5djB6ezCbFQP1xR9D75/vuwEF3g=
