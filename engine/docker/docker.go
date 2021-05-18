@@ -68,11 +68,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	}
 
 	log.Debugf(ctx, "[MakeDockerEngine] Create new http.Client for %s, %s", endpoint, config.Docker.APIVersion)
-	cli, err := dockerapi.NewClient(endpoint, config.Docker.APIVersion, client, nil)
-	if err != nil {
-		return nil, err
-	}
-	return &Engine{client: cli, config: config}, nil
+	return makeRawClient(ctx, config, client, endpoint)
 }
 
 // Info show node info

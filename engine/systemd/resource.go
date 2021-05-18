@@ -7,6 +7,6 @@ import (
 )
 
 // ResourceValidate validates resources
-func (s *systemdEngine) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory, storage int64) (err error) {
+func (e *Engine) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory, storage int64) (err error) {
 	return types.ErrEngineNotImplemented
 }

@@ -39,12 +39,14 @@ const (
 	root            = "root"
 )
 
-type rawArgs struct {
+// RawArgs means some underlay args
+type RawArgs struct {
 	PidMode    dockercontainer.PidMode `json:"pid_mod"`
 	StorageOpt map[string]string       `json:"storage_opt"`
 	CapAdd     []string                `json:"cap_add"`
 	CapDrop    []string                `json:"cap_drop"`
 	Ulimits    []*units.Ulimit         `json:"ulimits"`
+	Runtime    string                  `json:"runtime"`
 }
 
 // VirtualizationCreate create a workload
@@ -125,7 +127,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		Tty:             opts.Stdin,
 	}
 
-	rArgs := &rawArgs{StorageOpt: map[string]string{}}
+	rArgs := &RawArgs{StorageOpt: map[string]string{}}
 	if len(opts.RawArgs) > 0 {
 		if err := json.Unmarshal(opts.RawArgs, rArgs); err != nil {
 			return r, err
@@ -188,7 +190,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		Sysctls:    opts.Sysctl,
 		PidMode:    rArgs.PidMode,
 		StorageOpt: rArgs.StorageOpt,
-		Runtime:    opts.Runtime,
+		Runtime:    rArgs.Runtime,
 	}
 
 	if hostConfig.NetworkMode.IsBridge() {

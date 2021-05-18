@@ -19,7 +19,6 @@ type VirtualizationCreateOptions struct {
 	User       string
 	Image      string
 	WorkingDir string
-	Runtime    string
 	Stdin      bool
 	Privileged bool
 	Cmd        []string

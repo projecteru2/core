@@ -8,24 +8,22 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
-// SystemdPrefixKey is engine endpoint prefix
-const SystemdPrefixKey = "systemd://"
+// TCPPrefix is engine endpoint prefix
+const TCPPrefix = "systemd://"
 
-type systemdEngine struct {
+// Engine is engine for systemd
+type Engine struct {
 	engine.API
 	config coretypes.Config
 }
 
-// MakeClient make docker cli
+// MakeClient make systemd cli
 func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
-	var (
-		api engine.API
-		err error
-	)
-	if api, err = docker.MakeClient(ctx, config, nodename, endpoint, ca, cert, key); err != nil {
+	api, err := docker.MakeClient(ctx, config, nodename, endpoint, ca, cert, key)
+	if err != nil {
 		return nil, err
 	}
-	return &systemdEngine{
+	return &Engine{
 		API:    api,
 		config: config,
 	}, nil
