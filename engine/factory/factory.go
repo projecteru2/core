@@ -20,7 +20,7 @@ var engines = map[string]factory{
 	docker.SockPrefixKey: docker.MakeClient,
 	virt.HTTPPrefixKey:   virt.MakeClient,
 	virt.GRPCPrefixKey:   virt.MakeClient,
-	systemd.SSHPrefixKey: systemd.MakeClient,
+	systemd.TCPPrefix:    systemd.MakeClient,
 	fakeengine.PrefixKey: fakeengine.MakeClient,
 }
 
