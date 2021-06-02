@@ -442,6 +442,7 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 
 				var bs []byte
 				tw := tar.NewWriter(w)
+				defer tw.Close()
 				if bs, err = ioutil.ReadAll(m.Data); err != nil {
 					log.Errorf(ctx, "[Copy] Error during extracting copy data: %v", err)
 					return
@@ -470,9 +471,11 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 				}
 				break
 			}
-			msg.Data = p[:n]
-			if err = stream.Send(msg); err != nil {
-				v.logUnsentMessages(ctx, "Copy", err, m)
+			if n > 0 {
+				msg.Data = p[:n]
+				if err = stream.Send(msg); err != nil {
+					v.logUnsentMessages(ctx, "Copy", err, m)
+				}
 			}
 		}
 	}
