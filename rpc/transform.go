@@ -135,7 +135,7 @@ func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
 		Labels:     b.Labels,
 		Numa:       b.Numa,
 		NumaMemory: b.NumaMemory,
-		Volume:     types.VolumeMap{},
+		Volume:     b.VolumeMap,
 	}
 	return r
 }
