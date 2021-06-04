@@ -301,12 +301,13 @@ func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue
 	return err
 }
 
-func (e *ETCD) revokeLease(ctx context.Context, leaseID clientv3.LeaseID) error {
+func (e *ETCD) revokeLease(ctx context.Context, leaseID clientv3.LeaseID) {
 	if leaseID == 0 {
-		return nil
+		return
 	}
-	_, err := e.cliv3.Revoke(ctx, leaseID)
-	return err
+	if _, err := e.cliv3.Revoke(ctx, leaseID); err != nil {
+		log.Errorf(ctx, "[etcd revoke lease error] %v", err)
+	}
 }
 
 // Grant creates a new lease.
