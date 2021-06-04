@@ -264,8 +264,7 @@ func (e *ETCD) bindStatusWithoutLease(ctx context.Context, entityKey, statusKey,
 //        2.2.2.2 status value != current value: create key-value pair with newly granted lease
 func (e *ETCD) bindStatusWithLease(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
 	// entity doen't exist, return err
-	_, err := e.cliv3.Get(ctx, entityKey)
-	if err != nil {
+	if _, err := e.cliv3.Get(ctx, entityKey); err != nil {
 		return err
 	}
 
