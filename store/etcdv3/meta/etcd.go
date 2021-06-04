@@ -237,12 +237,14 @@ func (e *ETCD) BatchUpdate(ctx context.Context, data map[string]string, opts ...
 
 // KeepAliveOnce keeps on a lease alive.
 func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
+	var leaseID clientv3.LeaseID
 	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, statusValue)}
 	if ttl != 0 {
 		lease, err := e.Grant(ctx, ttl)
 		if err != nil {
 			return err
 		}
+		leaseID = lease.ID
 		updateStatus = []clientv3.Op{clientv3.OpPut(statusKey, statusValue, clientv3.WithLease(lease.ID))}
 	}
 
@@ -260,17 +262,20 @@ func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue
 			),
 		).Commit()
 	if err != nil {
+		e.revokeLease(ctx, leaseID)
 		return err
 	}
 
 	// There isn't the entity kv pair.
 	if !entityTxn.Succeeded {
+		e.revokeLease(ctx, leaseID)
 		return nil
 	}
 
 	// There isn't a status bound to the entity.
 	statusTxn := entityTxn.Responses[0].GetResponseTxn()
 	if !statusTxn.Succeeded {
+		e.revokeLease(ctx, leaseID)
 		return nil
 	}
 
@@ -282,12 +287,25 @@ func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue
 	// There is a status bound to the entity yet but its value isn't same as the expected one.
 	valueTxn := statusTxn.Responses[0].GetResponseTxn()
 	if !valueTxn.Succeeded {
+		e.revokeLease(ctx, leaseID)
 		return nil
 	}
 
 	// Gets the lease ID which binds onto the status, and renew it one round.
 	origLeaseID := clientv3.LeaseID(valueTxn.Responses[0].GetResponseRange().Kvs[0].Lease)
+
+	if origLeaseID != leaseID {
+		e.revokeLease(ctx, leaseID)
+	}
 	_, err = e.cliv3.KeepAliveOnce(ctx, origLeaseID)
+	return err
+}
+
+func (e *ETCD) revokeLease(ctx context.Context, leaseID clientv3.LeaseID) error {
+	if leaseID == 0 {
+		return nil
+	}
+	_, err := e.cliv3.Revoke(ctx, leaseID)
 	return err
 }
 
