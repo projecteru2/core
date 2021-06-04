@@ -275,7 +275,6 @@ func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue
 	// There isn't a status bound to the entity.
 	statusTxn := entityTxn.Responses[0].GetResponseTxn()
 	if !statusTxn.Succeeded {
-		e.revokeLease(ctx, leaseID)
 		return nil
 	}
 
@@ -287,7 +286,6 @@ func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue
 	// There is a status bound to the entity yet but its value isn't same as the expected one.
 	valueTxn := statusTxn.Responses[0].GetResponseTxn()
 	if !valueTxn.Succeeded {
-		e.revokeLease(ctx, leaseID)
 		return nil
 	}
 
@@ -297,6 +295,7 @@ func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue
 	if origLeaseID != leaseID {
 		e.revokeLease(ctx, leaseID)
 	}
+
 	_, err = e.cliv3.KeepAliveOnce(ctx, origLeaseID)
 	return err
 }
