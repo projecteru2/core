@@ -235,8 +235,81 @@ func (e *ETCD) BatchUpdate(ctx context.Context, data map[string]string, opts ...
 	return e.batchUpdate(ctx, data, opts...)
 }
 
-// KeepAliveOnce keeps on a lease alive.
+func (e *ETCD) bindStatusWithoutLease(ctx context.Context, entityKey, statusKey, statusValue string) error {
+	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, statusValue)}
+	_, err := e.cliv3.Txn(ctx).
+		If(clientv3.Compare(clientv3.Version(entityKey), "!=", 0)).
+		Then( // making sure there's an exists entity kv-pair.
+			clientv3.OpTxn(
+				[]clientv3.Cmp{clientv3.Compare(clientv3.Version(statusKey), "!=", 0)}, // Is the status exists?
+				[]clientv3.Op{clientv3.OpTxn( // there's an exists status
+					[]clientv3.Cmp{clientv3.Compare(clientv3.Value(statusKey), "!=", statusValue)},
+					updateStatus,    // The status had been changed.
+					[]clientv3.Op{}, // The status hasn't been changed.
+				)},
+				updateStatus, // there isn't a status
+			),
+		).Commit()
+	return err
+}
+
+// bindStatusWithLease does two step:
+// 1. check if entityKey exists: if not, return error
+// 2. check if statusKey exists:
+//    2.1 statusKey doesn't exist: create key-value pair with a newly granted lease
+//    2.2 statusKey exists, we get current lease and current value, if:
+//        2.2.1 current lease is 0: actually its' impossible, but for compatibility, we create key-value pair with newly granted lease
+//        2.2.2 current lease is not 0, we check status value, if:
+//        2.2.2.1 status value == current value: keep alive the current lease
+//        2.2.2.2 status value != current value: create key-value pair with newly granted lease
+func (e *ETCD) bindStatusWithLease(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
+	// entity doen't exist, return err
+	_, err := e.cliv3.Get(ctx, entityKey)
+	if err != nil {
+		return err
+	}
+
+	statusKeyResp, err := e.cliv3.Get(ctx, statusKey)
+	// statusKey doesn't exist, create and return
+	if err != nil || len(statusKeyResp.Kvs) == 0 {
+		return e.putKeyWithNewLease(ctx, statusKey, statusValue, ttl)
+	}
+
+	kv := statusKeyResp.Kvs[0]
+	currentValue := string(kv.Value)
+	currentLease := clientv3.LeaseID(kv.Lease)
+
+	// Has current lease and value doesn't change.
+	// Refresh the current lease.
+	if currentLease > 0 && currentValue == statusValue {
+		_, err := e.cliv3.KeepAliveOnce(ctx, currentLease)
+		return err
+	}
+
+	// Otherwise create
+	return e.putKeyWithNewLease(ctx, statusKey, statusValue, ttl)
+}
+
+// putKeyWithNewLease grants a new lease, and bind it with the key-value pair.
+func (e *ETCD) putKeyWithNewLease(ctx context.Context, key, value string, ttl int64) error {
+	lease, err := e.Grant(ctx, ttl)
+	if err != nil {
+		return err
+	}
+	_, err = e.cliv3.Put(ctx, key, value, clientv3.WithLease(lease.ID))
+	return err
+}
+
+// BindStatus sets statusKey to statusValue, will create or refresh a lease if ttl > 0
 func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
+	if ttl == 0 {
+		return e.bindStatusWithoutLease(ctx, entityKey, statusKey, statusValue)
+	}
+	return e.bindStatusWithLease(ctx, entityKey, statusKey, statusValue, ttl)
+}
+
+// KeepAliveOnce keeps on a lease alive.
+func (e *ETCD) BindStatus2(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
 	var leaseID clientv3.LeaseID
 	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, statusValue)}
 	if ttl != 0 {
