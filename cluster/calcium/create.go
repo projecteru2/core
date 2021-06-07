@@ -362,6 +362,7 @@ func (c *Calcium) doDeployOneWorkload(
 			if err := c.store.AddWorkload(ctx, workload); err != nil {
 				return errors.WithStack(err)
 			}
+			log.Infof(ctx, "[doDeployOneWorkload] workload created and saved: %s", workload.ID)
 			msg.WorkloadID = workload.ID
 			msg.WorkloadName = workload.Name
 			msg.Podname = workload.Podname

@@ -71,11 +71,17 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 		memory := int64(0)
 		storage := int64(0)
 		cpumap := types.CPUMap{}
+		volumes := int64(0)
+		volumeMap := types.VolumeMap{}
 		for _, workload := range workloads {
 			cpus = utils.Round(cpus + workload.CPUQuotaRequest)
 			memory += workload.MemoryRequest
 			storage += workload.StorageRequest
 			cpumap.Add(workload.CPU)
+			for _, vmap := range workload.VolumePlanRequest {
+				volumes += vmap.Total()
+				volumeMap.Add(vmap)
+			}
 		}
 		nr.CPUPercent = cpus / float64(len(node.InitCPU))
 		nr.MemoryPercent = float64(memory) / float64(node.InitMemCap)
@@ -108,12 +114,22 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 			}
 		}
 
+		if node.VolumeUsed != volumes {
+			nr.Diffs = append(nr.Diffs, fmt.Sprintf("volumes used: %d diff: %d", node.VolumeUsed, volumes))
+		}
+		node.Volume.Add(volumeMap)
+		for vol, cap := range node.Volume {
+			if node.InitVolume[vol] != cap {
+				nr.Diffs = append(nr.Diffs, fmt.Sprintf("volume %s diff %d", vol, node.InitVolume[vol]-cap))
+			}
+		}
+
 		if err := node.Engine.ResourceValidate(ctx, cpus, cpumap, memory, storage); err != nil {
 			nr.Diffs = append(nr.Diffs, err.Error())
 		}
 
 		if fix {
-			if err := c.doFixDiffResource(ctx, node, cpus, memory, storage); err != nil {
+			if err := c.doFixDiffResource(ctx, node, cpus, memory, storage, volumes); err != nil {
 				log.Warnf(ctx, "[doGetNodeResource] fix node resource failed %v", err)
 			}
 		}
@@ -122,7 +138,7 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 	})
 }
 
-func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus float64, memory, storage int64) error {
+func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus float64, memory, storage, volumes int64) error {
 	var n *types.Node
 	var err error
 	return utils.Txn(ctx,
@@ -136,6 +152,10 @@ func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus 
 			}
 			n.MemCap += node.InitMemCap - (memory + node.MemCap)
 			n.StorageCap += node.InitStorageCap - (storage + node.StorageCap)
+			n.VolumeUsed = volumes
+			for vol, cap := range node.Volume {
+				n.Volume[vol] += node.InitVolume[vol] - cap
+			}
 			return nil
 		},
 		func(ctx context.Context) error {
