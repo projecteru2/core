@@ -359,6 +359,10 @@ func (v *Vibranium) SetWorkloadsStatus(ctx context.Context, opts *pb.SetWorkload
 			Healthy:   status.Healthy,
 			Networks:  status.Networks,
 			Extension: status.Extension,
+
+			Appname:    status.Appname,
+			Nodename:   status.Nodename,
+			Entrypoint: status.Entrypoint,
 		}
 		statusData = append(statusData, r)
 		ttls[status.Id] = status.Ttl

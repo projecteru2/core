@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 // GetWorkloadsStatus get workload status
@@ -22,23 +23,36 @@ func (c *Calcium) GetWorkloadsStatus(ctx context.Context, ids []string) ([]*type
 }
 
 // SetWorkloadsStatus set workloads status
-func (c *Calcium) SetWorkloadsStatus(ctx context.Context, status []*types.StatusMeta, ttls map[string]int64) ([]*types.StatusMeta, error) {
-	logger := log.WithField("Calcium", "SetWorkloadsStatus").WithField("status", status[0]).WithField("ttls", ttls)
+func (c *Calcium) SetWorkloadsStatus(ctx context.Context, statusMetas []*types.StatusMeta, ttls map[string]int64) ([]*types.StatusMeta, error) {
+	logger := log.WithField("Calcium", "SetWorkloadsStatus").WithField("status", statusMetas[0]).WithField("ttls", ttls)
 	r := []*types.StatusMeta{}
-	for _, workloadStatus := range status {
-		workload, err := c.store.GetWorkload(ctx, workloadStatus.ID)
-		if err != nil {
-			return nil, logger.Err(ctx, errors.WithStack(err))
+	for _, statusMeta := range statusMetas {
+		// In order to compat
+		if statusMeta.Appname == "" || statusMeta.Nodename == "" || statusMeta.Entrypoint == "" {
+			workload, err := c.store.GetWorkload(ctx, statusMeta.ID)
+			if err != nil {
+				return nil, logger.Err(ctx, errors.WithStack(err))
+			}
+
+			appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
+			if err != nil {
+				return nil, logger.Err(ctx, errors.WithStack(err))
+			}
+
+			statusMeta.Appname = appname
+			statusMeta.Nodename = workload.Nodename
+			statusMeta.Entrypoint = entrypoint
 		}
-		ttl, ok := ttls[workloadStatus.ID]
+
+		ttl, ok := ttls[statusMeta.ID]
 		if !ok {
 			ttl = 0
 		}
-		workload.StatusMeta = workloadStatus
-		if err = c.store.SetWorkloadStatus(ctx, workload, ttl); err != nil {
+
+		if err := c.store.SetWorkloadStatus(ctx, statusMeta, ttl); err != nil {
 			return nil, logger.Err(ctx, errors.WithStack(err))
 		}
-		r = append(r, workload.StatusMeta)
+		r = append(r, statusMeta)
 	}
 	return r, nil
 }

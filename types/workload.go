@@ -17,6 +17,11 @@ type StatusMeta struct {
 	Running   bool              `json:"running,omitempty"`
 	Healthy   bool              `json:"healthy,omitempty"`
 	Extension []byte            `json:"extension,omitempty"`
+
+	// These attributes are only used when setting workload status.
+	Appname    string `json:"-"`
+	Nodename   string `json:"-"`
+	Entrypoint string `json:"-"`
 }
 
 // LabelMeta bind meta info store in labels

@@ -26,13 +26,20 @@ func (s *RediaronTestSuite) TestAddNode() {
 	storage := int64(100)
 	s.rediaron.config.Scheduler.ShareBase = 100
 	labels := map[string]string{"test": "1"}
+
 	// wrong endpoint
-	_, err = s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "abc", Podname: podname, CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
+	ctx1, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	_, err = s.rediaron.AddNode(ctx1, &types.AddNodeOptions{Nodename: nodename, Endpoint: "abc", Podname: podname, CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
 	s.Error(err)
+
 	// wrong because engine not mocked
-	_, err = s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
+	ctx2, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	_, err = s.rediaron.AddNode(ctx2, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
 	s.Error(err)
 	endpoint = "mock://fakeengine"
+
 	// wrong no pod
 	_, err = s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: "abc", CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
 	s.Error(err)
