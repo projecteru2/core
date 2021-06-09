@@ -67,7 +67,7 @@ func (m *Mercury) GetWorkloadStatus(ctx context.Context, id string) (*types.Stat
 // SetWorkloadStatus set workload status
 func (m *Mercury) SetWorkloadStatus(ctx context.Context, status *types.StatusMeta, ttl int64) error {
 	if status.Appname == "" || status.Entrypoint == "" || status.Nodename == "" {
-		return fmt.Errorf("SetWorkloadStatus error, status has no appname / entrypoint/ nodename")
+		return types.ErrBadWorkloadStatus
 	}
 
 	data, err := json.Marshal(status)

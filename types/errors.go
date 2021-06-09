@@ -42,6 +42,8 @@ var (
 	ErrBadVolume         = errors.New("bad `Volume` value")
 	ErrBadCount          = errors.New("bad `Count` value")
 
+	ErrBadWorkloadStatus = errors.New("status has no appname / entrypoint/ nodename")
+
 	ErrPodHasNodes = errors.New("pod has nodes")
 	ErrPodNoNodes  = errors.New("pod has no nodes")
 

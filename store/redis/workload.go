@@ -65,7 +65,7 @@ func (r *Rediaron) GetWorkloadStatus(ctx context.Context, id string) (*types.Sta
 // SetWorkloadStatus set workload status
 func (r *Rediaron) SetWorkloadStatus(ctx context.Context, status *types.StatusMeta, ttl int64) error {
 	if status.Appname == "" || status.Entrypoint == "" || status.Nodename == "" {
-		return fmt.Errorf("SetWorkloadStatus error, status has no appname / entrypoint/ nodename")
+		return types.ErrBadWorkloadStatus
 	}
 
 	data, err := json.Marshal(status)
