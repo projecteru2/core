@@ -30,11 +30,17 @@ func TestAddNode(t *testing.T) {
 	storage := int64(100)
 	m.config.Scheduler.ShareBase = 100
 	labels := map[string]string{"test": "1"}
+
 	// wrong endpoint
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "abc", Podname: podname, CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
+	ctx1, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	_, err = m.AddNode(ctx1, &types.AddNodeOptions{Nodename: nodename, Endpoint: "abc", Podname: podname, CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
 	assert.Error(t, err)
+
 	// wrong because engine not mocked
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
+	ctx2, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	_, err = m.AddNode(ctx2, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
 	assert.Error(t, err)
 	endpoint = "mock://fakeengine"
 	// wrong no pod

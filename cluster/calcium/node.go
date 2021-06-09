@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	"github.com/sanity-io/litter"
 )
 
@@ -75,14 +76,25 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				return logger.Err(ctx, errors.WithStack(err))
 			}
 			for _, workload := range workloads {
+				appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
+				if err != nil {
+					log.Errorf(ctx, "[SetNodeAvailable] Set workload %s on node %s inactive failed %v", workload.ID, opts.Nodename, err)
+					continue
+				}
+
 				if workload.StatusMeta == nil {
 					workload.StatusMeta = &types.StatusMeta{ID: workload.ID}
 				}
 				workload.StatusMeta.Running = false
 				workload.StatusMeta.Healthy = false
 
+				// Set these attributes to set workload status
+				workload.StatusMeta.Appname = appname
+				workload.StatusMeta.Nodename = workload.Nodename
+				workload.StatusMeta.Entrypoint = entrypoint
+
 				// mark workload which belongs to this node as unhealthy
-				if err = c.store.SetWorkloadStatus(ctx, workload, 0); err != nil {
+				if err = c.store.SetWorkloadStatus(ctx, workload.StatusMeta, 0); err != nil {
 					log.Errorf(ctx, "[SetNodeAvailable] Set workload %s on node %s inactive failed %v", workload.ID, opts.Nodename, err)
 				}
 			}

@@ -146,28 +146,31 @@ func (s *RediaronTestSuite) TestSetWorkloadStatus() {
 		ID:         id,
 		Nodename:   nodename,
 		Podname:    podname,
-		StatusMeta: &types.StatusMeta{},
+		StatusMeta: &types.StatusMeta{ID: id},
 	}
 	// fail by no name
-	err := m.SetWorkloadStatus(ctx, workload, 0)
+	err := m.SetWorkloadStatus(ctx, workload.StatusMeta, 0)
 	s.Error(err)
 	workload.Name = name
+	workload.StatusMeta.Appname = "test"
+	workload.StatusMeta.Entrypoint = "app"
+	workload.StatusMeta.Nodename = "n1"
 	// no workload, err nil
-	err = m.SetWorkloadStatus(ctx, workload, 10)
+	err = m.SetWorkloadStatus(ctx, workload.StatusMeta, 10)
 	s.NoError(err)
 	s.NoError(m.AddWorkload(ctx, workload))
 	// no status key, put succ, err nil
-	err = m.SetWorkloadStatus(ctx, workload, 10)
+	err = m.SetWorkloadStatus(ctx, workload.StatusMeta, 10)
 	s.NoError(err)
 	// status not changed, update old lease
-	err = m.SetWorkloadStatus(ctx, workload, 10)
+	err = m.SetWorkloadStatus(ctx, workload.StatusMeta, 10)
 	s.NoError(err)
 	// status changed, revoke old lease
 	workload.StatusMeta.Running = true
-	err = m.SetWorkloadStatus(ctx, workload, 10)
+	err = m.SetWorkloadStatus(ctx, workload.StatusMeta, 10)
 	s.NoError(err)
 	// status not changed, ttl = 0
-	err = m.SetWorkloadStatus(ctx, workload, 0)
+	err = m.SetWorkloadStatus(ctx, workload.StatusMeta, 0)
 	s.NoError(err)
 }
 
@@ -261,10 +264,11 @@ func (s *RediaronTestSuite) TestWorkloadStatusStream() {
 	nodename := "n1"
 	podname := "test"
 	workload := &types.Workload{
-		ID:       id,
-		Name:     name,
-		Nodename: nodename,
-		Podname:  podname,
+		ID:         id,
+		Name:       name,
+		Nodename:   nodename,
+		Podname:    podname,
+		StatusMeta: &types.StatusMeta{ID: id},
 	}
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
@@ -286,12 +290,15 @@ func (s *RediaronTestSuite) TestWorkloadStatusStream() {
 	s.NoError(m.AddWorkload(ctx, workload))
 	// WorkloadStatusStream
 	workload.StatusMeta = &types.StatusMeta{
-		ID:      id,
-		Running: true,
+		ID:         id,
+		Running:    true,
+		Appname:    appname,
+		Entrypoint: entrypoint,
+		Nodename:   nodename,
 	}
 	cctx, cancel := context.WithCancel(ctx)
 	ch := m.WorkloadStatusStream(cctx, appname, entrypoint, "", nil)
-	s.NoError(m.SetWorkloadStatus(ctx, workload, 0))
+	s.NoError(m.SetWorkloadStatus(ctx, workload.StatusMeta, 0))
 	go func() {
 		time.Sleep(1 * time.Second)
 		cancel()

@@ -224,6 +224,10 @@ message WorkloadStatus {
     map<string, string> networks = 4;
     bytes extension = 5;
     int64 ttl = 6;
+    // extra fields used to set workload status
+    string appname = 7;
+    string nodename = 8;
+    string entrypoint = 9;
 }
 
 message WorkloadsStatus {

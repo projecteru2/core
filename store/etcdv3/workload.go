@@ -65,18 +65,18 @@ func (m *Mercury) GetWorkloadStatus(ctx context.Context, id string) (*types.Stat
 }
 
 // SetWorkloadStatus set workload status
-func (m *Mercury) SetWorkloadStatus(ctx context.Context, workload *types.Workload, ttl int64) error {
-	appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
-	if err != nil {
-		return err
+func (m *Mercury) SetWorkloadStatus(ctx context.Context, status *types.StatusMeta, ttl int64) error {
+	if status.Appname == "" || status.Entrypoint == "" || status.Nodename == "" {
+		return fmt.Errorf("SetWorkloadStatus error, status has no appname / entrypoint/ nodename")
 	}
-	data, err := json.Marshal(workload.StatusMeta)
+
+	data, err := json.Marshal(status)
 	if err != nil {
 		return err
 	}
 	statusVal := string(data)
-	statusKey := filepath.Join(workloadStatusPrefix, appname, entrypoint, workload.Nodename, workload.ID)
-	workloadKey := fmt.Sprintf(workloadInfoKey, workload.ID)
+	statusKey := filepath.Join(workloadStatusPrefix, status.Appname, status.Entrypoint, status.Nodename, status.ID)
+	workloadKey := fmt.Sprintf(workloadInfoKey, status.ID)
 	return m.BindStatus(ctx, workloadKey, statusKey, statusVal, ttl)
 }
 

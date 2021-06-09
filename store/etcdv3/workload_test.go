@@ -141,28 +141,32 @@ func TestSetWorkloadStatus(t *testing.T) {
 		ID:         ID,
 		Nodename:   nodename,
 		Podname:    podname,
-		StatusMeta: &types.StatusMeta{},
+		StatusMeta: &types.StatusMeta{ID: ID},
 	}
 	// fail by no name
-	err := m.SetWorkloadStatus(ctx, workload, 0)
+	err := m.SetWorkloadStatus(ctx, workload.StatusMeta, 0)
 	assert.Error(t, err)
+
 	workload.Name = name
+	workload.StatusMeta.Appname = "test"
+	workload.StatusMeta.Entrypoint = "app"
+	workload.StatusMeta.Nodename = "n1"
 	// no workload, err nil
-	err = m.SetWorkloadStatus(ctx, workload, 10)
+	err = m.SetWorkloadStatus(ctx, workload.StatusMeta, 10)
 	assert.NoError(t, err)
 	assert.NoError(t, m.AddWorkload(ctx, workload))
 	// no status key, put succ, err nil
-	err = m.SetWorkloadStatus(ctx, workload, 10)
+	err = m.SetWorkloadStatus(ctx, workload.StatusMeta, 10)
 	assert.NoError(t, err)
 	// status not changed, update old lease
-	err = m.SetWorkloadStatus(ctx, workload, 10)
+	err = m.SetWorkloadStatus(ctx, workload.StatusMeta, 10)
 	assert.NoError(t, err)
 	// status changed, revoke old lease
 	workload.StatusMeta.Running = true
-	err = m.SetWorkloadStatus(ctx, workload, 10)
+	err = m.SetWorkloadStatus(ctx, workload.StatusMeta, 10)
 	assert.NoError(t, err)
 	// status not changed, ttl = 0
-	err = m.SetWorkloadStatus(ctx, workload, 0)
+	err = m.SetWorkloadStatus(ctx, workload.StatusMeta, 0)
 	assert.NoError(t, err)
 }
 
@@ -251,10 +255,11 @@ func TestWorkloadStatusStream(t *testing.T) {
 	nodename := "n1"
 	podname := "test"
 	workload := &types.Workload{
-		ID:       ID,
-		Name:     name,
-		Nodename: nodename,
-		Podname:  podname,
+		ID:         ID,
+		Name:       name,
+		Nodename:   nodename,
+		Podname:    podname,
+		StatusMeta: &types.StatusMeta{ID: ID},
 	}
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
@@ -276,12 +281,15 @@ func TestWorkloadStatusStream(t *testing.T) {
 	assert.NoError(t, m.AddWorkload(ctx, workload))
 	// WorkloadStatusStream
 	workload.StatusMeta = &types.StatusMeta{
-		ID:      ID,
-		Running: true,
+		ID:         ID,
+		Running:    true,
+		Appname:    appname,
+		Nodename:   nodename,
+		Entrypoint: entrypoint,
 	}
 	cctx, cancel := context.WithCancel(ctx)
 	ch := m.WorkloadStatusStream(cctx, appname, entrypoint, "", nil)
-	assert.NoError(t, m.SetWorkloadStatus(ctx, workload, 0))
+	assert.NoError(t, m.SetWorkloadStatus(ctx, workload.StatusMeta, 0))
 	go func() {
 		time.Sleep(1 * time.Second)
 		cancel()
