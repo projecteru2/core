@@ -121,3 +121,22 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nf types.NodeFilter, f fu
 	}
 	return f(ctx, nodes)
 }
+
+func (c *Calcium) withProcessingLocked(ctx context.Context, opts *types.DeployOptions, nodenames []string, f func(...*types.Processing) error) (err error) {
+	locks := map[string]lock.DistributedLock{}
+	defer c.doUnlockAll(utils.InheritTracingInfo(ctx, context.Background()), locks)
+
+	var lock lock.DistributedLock
+	processings := []*types.Processing{}
+	for _, nodename := range nodenames {
+		processing := opts.NewProcessing(nodename)
+		lock, ctx, err = c.doLock(ctx, processing.LockKey(), c.config.LockTimeout)
+		if err != nil {
+			return
+		}
+		log.Debugf(ctx, "[withProcessingLocked] Processing %s locked", processing.BaseKey())
+		locks[nodename] = lock
+		processings = append(processings, processing)
+	}
+	return f(processings...)
+}

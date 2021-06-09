@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -388,4 +389,40 @@ func (e *ETCD) doBatchOp(ctx context.Context, conds []clientv3.Cmp, ops, failOps
 		resp.Responses = append(resp.Responses, resps[i].Responses...)
 	}
 	return resp, nil
+}
+
+func (e *ETCD) Decr(ctx context.Context, key string) (err error) {
+	resp, err := e.Get(ctx, key)
+	if err != nil {
+		return
+	}
+
+	kv := resp.Kvs[0]
+
+	for {
+		cnt, err := strconv.Atoi(string(kv.Value))
+		if err != nil {
+			return err
+		}
+
+		conds := []clientv3.Cmp{
+			clientv3.Compare(clientv3.Value(key), "=", kv.Value),
+		}
+		opts := []clientv3.Op{
+			clientv3.OpPut(key, strconv.Itoa(cnt-1)),
+		}
+		failOps := []clientv3.Op{
+			clientv3.OpGet(key),
+		}
+		txnResp, err := e.doBatchOp(ctx, conds, opts, failOps)
+		if err != nil {
+			return err
+		}
+		if txnResp.Succeeded {
+			break
+		}
+		kv = txnResp.Responses[0].GetResponseRange().Kvs[0]
+	}
+
+	return nil
 }

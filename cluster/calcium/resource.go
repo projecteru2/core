@@ -171,8 +171,15 @@ func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := c.store.MakeDeployStatus(ctx, opts, strategyInfos); err != nil {
-		return nil, nil, errors.WithStack(err)
+
+	nodenames := []string{}
+	for nodename := range nodeMap {
+		nodenames = append(nodenames, nodename)
+	}
+	if err = c.withProcessingLocked(ctx, opts, nodenames, func(processings ...*types.Processing) error {
+		return errors.WithStack(c.store.MakeDeployStatus(ctx, processings[0], strategyInfos))
+	}); err != nil {
+		return nil, nil, err
 	}
 	deployMap, err := strategy.Deploy(ctx, opts, strategyInfos, total)
 	if err != nil {

@@ -12,20 +12,20 @@ import (
 )
 
 // MakeDeployStatus get deploy status from store
-func (m *Mercury) MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfos []strategy.Info) error {
+func (m *Mercury) MakeDeployStatus(ctx context.Context, processing *types.Processing, strategyInfos []strategy.Info) error {
 	// 手动加 / 防止不精确
-	key := filepath.Join(workloadDeployPrefix, opts.Name, opts.Entrypoint.Name) + "/"
+	key := filepath.Join(workloadDeployPrefix, processing.Appname, processing.Entryname) + "/"
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithKeysOnly())
 	if err != nil {
 		return err
 	}
 	if resp.Count == 0 {
-		log.Warnf(ctx, "[MakeDeployStatus] Deploy status not found %s.%s", opts.Name, opts.Entrypoint.Name)
+		log.Warnf(ctx, "[MakeDeployStatus] Deploy status not found %s.%s", processing.Appname, processing.Entryname)
 	}
 	if err = m.doGetDeployStatus(ctx, resp, strategyInfos); err != nil {
 		return err
 	}
-	return m.doLoadProcessing(ctx, opts, strategyInfos)
+	return m.doLoadProcessing(ctx, processing, strategyInfos)
 }
 
 func (m *Mercury) doGetDeployStatus(_ context.Context, resp *clientv3.GetResponse, strategyInfos []strategy.Info) error {

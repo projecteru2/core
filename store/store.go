@@ -44,7 +44,7 @@ type Store interface {
 	NodeStatusStream(ctx context.Context) chan *types.NodeStatus
 
 	// workload
-	AddWorkload(ctx context.Context, workload *types.Workload) error
+	AddWorkload(context.Context, *types.Workload) error
 	UpdateWorkload(ctx context.Context, workload *types.Workload) error
 	RemoveWorkload(ctx context.Context, workload *types.Workload) error
 	GetWorkload(ctx context.Context, id string) (*types.Workload, error)
@@ -56,12 +56,12 @@ type Store interface {
 	WorkloadStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.WorkloadStatus
 
 	// deploy status
-	MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfo []strategy.Info) error
+	MakeDeployStatus(context.Context, *types.Processing, []strategy.Info) error
 
 	// processing status
-	SaveProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error
-	UpdateProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error
-	DeleteProcessing(ctx context.Context, opts *types.DeployOptions, nodename string) error
+	CreateProcessing(ctx context.Context, process *types.Processing, count int) error
+	DecrProcessing(context.Context, *types.Processing) error
+	DeleteProcessing(context.Context, *types.Processing) error
 
 	// distributed lock
 	CreateLock(key string, ttl time.Duration) (lock.DistributedLock, error)

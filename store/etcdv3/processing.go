@@ -7,38 +7,31 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sanity-io/litter"
-
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"go.etcd.io/etcd/v3/clientv3"
 )
 
-// SaveProcessing save processing status in etcd
-func (m *Mercury) SaveProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error {
-	processingKey := filepath.Join(workloadProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodename, opts.ProcessIdent)
-	_, err := m.Create(ctx, processingKey, fmt.Sprintf("%d", count))
+// CreateProcessing save processing status in etcd
+func (m *Mercury) CreateProcessing(ctx context.Context, processing *types.Processing, count int) error {
+	_, err := m.Create(ctx, filepath.Join(workloadProcessingPrefix, processing.BaseKey()), fmt.Sprintf("%d", count))
 	return err
 }
 
-// UpdateProcessing update processing status in etcd
-func (m *Mercury) UpdateProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error {
-	processingKey := filepath.Join(workloadProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodename, opts.ProcessIdent)
-	_, err := m.Update(ctx, processingKey, fmt.Sprintf("%d", count))
-	return err
+func (m *Mercury) DecrProcessing(ctx context.Context, processing *types.Processing) error {
+	return m.Decr(ctx, filepath.Join(workloadProcessingPrefix, processing.BaseKey()))
 }
 
 // DeleteProcessing delete processing status in etcd
-func (m *Mercury) DeleteProcessing(ctx context.Context, opts *types.DeployOptions, nodename string) error {
-	processingKey := filepath.Join(workloadProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodename, opts.ProcessIdent)
-	_, err := m.Delete(ctx, processingKey)
+func (m *Mercury) DeleteProcessing(ctx context.Context, processing *types.Processing) error {
+	_, err := m.Delete(ctx, filepath.Join(workloadProcessingPrefix, processing.BaseKey()))
 	return err
 }
 
-func (m *Mercury) doLoadProcessing(ctx context.Context, opts *types.DeployOptions, strategyInfos []strategy.Info) error {
+func (m *Mercury) doLoadProcessing(ctx context.Context, processing *types.Processing, strategyInfos []strategy.Info) error {
 	// 显式的加 / 保证 prefix 一致性
-	processingKey := filepath.Join(workloadProcessingPrefix, opts.Name, opts.Entrypoint.Name) + "/"
+	processingKey := filepath.Join(workloadProcessingPrefix, processing.Appname, processing.Entryname) + "/"
 	resp, err := m.Get(ctx, processingKey, clientv3.WithPrefix())
 	if err != nil {
 		return err
@@ -64,8 +57,7 @@ func (m *Mercury) doLoadProcessing(ctx context.Context, opts *types.DeployOption
 		nodesCount[nodename] += count
 	}
 
-	log.Debug(ctx, "[doLoadProcessing] Processing result:")
-	litter.Dump(nodesCount)
+	log.Debug(ctx, "[doLoadProcessing] Processing result: %+v", nodesCount)
 	setCount(nodesCount, strategyInfos)
 	return nil
 }

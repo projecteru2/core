@@ -14,26 +14,25 @@ import (
 )
 
 // SaveProcessing save processing status in etcd
-func (r *Rediaron) SaveProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error {
-	processingKey := filepath.Join(workloadProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodename, opts.ProcessIdent)
+func (r *Rediaron) CreateProcessing(ctx context.Context, processing *types.Processing, count int) error {
+	processingKey := filepath.Join(workloadProcessingPrefix, processing.BaseKey())
 	return r.BatchCreate(ctx, map[string]string{processingKey: strconv.Itoa(count)})
 }
 
-// UpdateProcessing update processing status in etcd
-func (r *Rediaron) UpdateProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error {
-	processingKey := filepath.Join(workloadProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodename, opts.ProcessIdent)
-	return r.BatchUpdate(ctx, map[string]string{processingKey: strconv.Itoa(count)})
+func (r *Rediaron) DecrProcessing(ctx context.Context, processing *types.Processing) (err error) {
+	_, err = r.cli.Decr(ctx, filepath.Join(workloadProcessingPrefix, processing.BaseKey())).Result()
+	return
 }
 
 // DeleteProcessing delete processing status in etcd
-func (r *Rediaron) DeleteProcessing(ctx context.Context, opts *types.DeployOptions, nodename string) error {
-	processingKey := filepath.Join(workloadProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodename, opts.ProcessIdent)
+func (r *Rediaron) DeleteProcessing(ctx context.Context, processing *types.Processing) error {
+	processingKey := filepath.Join(workloadProcessingPrefix, processing.BaseKey())
 	return r.BatchDelete(ctx, []string{processingKey})
 }
 
-func (r *Rediaron) doLoadProcessing(ctx context.Context, opts *types.DeployOptions, strategyInfos []strategy.Info) error {
+func (r *Rediaron) doLoadProcessing(ctx context.Context, processing *types.Processing, strategyInfos []strategy.Info) error {
 	// 显式的加 / 保证 prefix 一致性
-	processingKey := filepath.Join(workloadProcessingPrefix, opts.Name, opts.Entrypoint.Name) + "/*"
+	processingKey := filepath.Join(workloadProcessingPrefix, processing.Appname, processing.Entryname) + "/*"
 	data, err := r.getByKeyPattern(ctx, processingKey, 0)
 	if err != nil {
 		return err

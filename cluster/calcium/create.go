@@ -56,7 +56,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		defer func() {
 			cctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.Background()), c.config.GlobalTimeout)
 			for nodename := range deployMap {
-				if e := c.store.DeleteProcessing(cctx, opts, nodename); e != nil {
+				if e := c.store.DeleteProcessing(cctx, opts.NewProcessing(nodename)); e != nil {
 					logger.Errorf(ctx, "[Calcium.doCreateWorkloads] delete processing failed for %s: %+v", nodename, e)
 				}
 			}
@@ -86,8 +86,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 						for _, plan := range plans {
 							plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deploy)...)
 						}
-						nodes = append(nodes, nodeMap[nodename])
-						if err = c.store.SaveProcessing(ctx, opts, nodename, deploy); err != nil {
+						if err = c.store.CreateProcessing(ctx, opts.NewProcessing(nodename), deploy); err != nil {
 							return errors.WithStack(err)
 						}
 					}
@@ -211,7 +210,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 
 				createMsg.ResourceMeta = *r
 				createOpts := c.doMakeWorkloadOptions(ctx, seq+idx, createMsg, opts, node)
-				e = c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts, deploy-1-idx)
+				e = c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts)
 			}
 		}(idx))
 	}
@@ -245,7 +244,6 @@ func (c *Calcium) doDeployOneWorkload(
 	opts *types.DeployOptions,
 	msg *types.CreateWorkloadMessage,
 	config *enginetypes.VirtualizationCreateOptions,
-	processingCount int,
 ) (err error) {
 	workload := &types.Workload{
 		ResourceMeta: types.ResourceMeta{
@@ -352,15 +350,14 @@ func (c *Calcium) doDeployOneWorkload(
 			// reset workload.hook
 			workload.Hook = opts.Entrypoint.Hook
 
-			// update processing
-			if processingCount >= 0 {
-				if err := c.store.UpdateProcessing(ctx, opts, node.Name, processingCount); err != nil {
+			// avoid be interrupted by MakeDeployStatus
+			if err = c.withProcessingLocked(ctx, opts, []string{node.Name}, func(processings ...*types.Processing) error {
+				if err := c.store.DecrProcessing(ctx, processings[0]); err != nil {
 					return errors.WithStack(err)
 				}
-			}
-
-			if err := c.store.AddWorkload(ctx, workload); err != nil {
-				return errors.WithStack(err)
+				return errors.WithStack(c.store.AddWorkload(ctx, workload))
+			}); err != nil {
+				return
 			}
 			log.Infof(ctx, "[doDeployOneWorkload] workload created and saved: %s", workload.ID)
 			msg.WorkloadID = workload.ID
