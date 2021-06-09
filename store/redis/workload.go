@@ -17,7 +17,7 @@ import (
 // actually if we already know its node, we will know its pod
 // but we still store it
 // storage path in etcd is `/workload/:workloadid`
-func (r *Rediaron) AddWorkload(ctx context.Context, workload *types.Workload) error {
+func (r *Rediaron) AddWorkload(ctx context.Context, workload *types.Workload, _ *types.Processing) error {
 	return r.doOpsWorkload(ctx, workload, true)
 }
 

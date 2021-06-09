@@ -7,24 +7,23 @@ import (
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/strategy"
-	"github.com/projecteru2/core/types"
 )
 
 // MakeDeployStatus get deploy status from store
-func (r *Rediaron) MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfos []strategy.Info) error {
+func (r *Rediaron) MakeDeployStatus(ctx context.Context, appname, entryname string, strategyInfos []strategy.Info) error {
 	// 手动加 / 防止不精确
-	key := filepath.Join(workloadDeployPrefix, opts.Name, opts.Entrypoint.Name) + "/*"
+	key := filepath.Join(workloadDeployPrefix, appname, entryname) + "/*"
 	data, err := r.getByKeyPattern(ctx, key, 0)
 	if err != nil {
 		return err
 	}
 	if len(data) == 0 {
-		log.Warnf(ctx, "[MakeDeployStatus] Deploy status not found %s.%s", opts.Name, opts.Entrypoint.Name)
+		log.Warnf(ctx, "[MakeDeployStatus] Deploy status not found %s.%s", appname, entryname)
 	}
 	if err = r.doGetDeployStatus(ctx, data, strategyInfos); err != nil {
 		return err
 	}
-	return r.doLoadProcessing(ctx, opts, strategyInfos)
+	return r.doLoadProcessing(ctx, appname, entryname, strategyInfos)
 }
 
 func (r *Rediaron) doGetDeployStatus(_ context.Context, data map[string]string, strategyInfos []strategy.Info) error {

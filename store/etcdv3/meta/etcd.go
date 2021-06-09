@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -388,4 +389,44 @@ func (e *ETCD) doBatchOp(ctx context.Context, conds []clientv3.Cmp, ops, failOps
 		resp.Responses = append(resp.Responses, resps[i].Responses...)
 	}
 	return resp, nil
+}
+
+func (e *ETCD) BatchCreateAndDecr(ctx context.Context, data map[string]string, decrKey string) (err error) {
+	resp, err := e.Get(ctx, decrKey)
+	if err != nil {
+		return
+	}
+
+	decrKv := resp.Kvs[0]
+	putOps := []clientv3.Op{}
+	for key, value := range data {
+		putOps = append(putOps, clientv3.OpPut(key, value))
+	}
+
+	for {
+		cnt, err := strconv.Atoi(string(decrKv.Value))
+		if err != nil {
+			return err
+		}
+
+		conds := []clientv3.Cmp{
+			clientv3.Compare(clientv3.Value(decrKey), "=", string(decrKv.Value)),
+		}
+		ops := append(putOps,
+			clientv3.OpPut(decrKey, strconv.Itoa(cnt-1)),
+		)
+		failOps := []clientv3.Op{
+			clientv3.OpGet(decrKey),
+		}
+		txnResp, err := e.doBatchOp(ctx, conds, ops, failOps)
+		if err != nil {
+			return err
+		}
+		if txnResp.Succeeded {
+			break
+		}
+		decrKv = txnResp.Responses[0].GetResponseRange().Kvs[0]
+	}
+
+	return nil
 }
