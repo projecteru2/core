@@ -52,7 +52,10 @@ func (v *Vibranium) WatchServiceStatus(_ *pb.Empty, stream pb.CoreRPC_WatchServi
 	}
 	for {
 		select {
-		case status := <-ch:
+		case status, ok := <-ch:
+			if !ok {
+				return nil
+			}
 			s := toRPCServiceStatus(status)
 			if err = stream.Send(s); err != nil {
 				v.logUnsentMessages(ctx, "WatchServicesStatus", err, s)
@@ -941,7 +944,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 }
 
 func (v *Vibranium) logUnsentMessages(ctx context.Context, msgType string, err error, msg interface{}) {
-	log.Infof(ctx, "[logUnsentMessages] Unsent %s streamed message due to %+v: %v", msgType, err, msg)
+	log.Infof(ctx, "[logUnsentMessages] Unsent (%s) streamed message due to (%+v): (%v)", msgType, err, msg)
 }
 
 // New will new a new cluster instance
