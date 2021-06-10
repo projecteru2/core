@@ -22,14 +22,14 @@ func (s *RediaronTestSuite) TestAddORUpdateWorkload() {
 		Name:     "a",
 	}
 	// failed by name
-	err := s.rediaron.AddWorkload(ctx, workload)
+	err := s.rediaron.AddWorkload(ctx, workload, nil)
 	s.Error(err)
 	workload.Name = name
 	// fail update
 	err = s.rediaron.UpdateWorkload(ctx, workload)
 	s.Error(err)
 	// success create
-	err = s.rediaron.AddWorkload(ctx, workload)
+	err = s.rediaron.AddWorkload(ctx, workload, nil)
 	s.NoError(err)
 	// success updat
 	err = s.rediaron.UpdateWorkload(ctx, workload)
@@ -49,7 +49,7 @@ func (s *RediaronTestSuite) TestRemoveWorkload() {
 		Name:     name,
 	}
 	// success create
-	err := s.rediaron.AddWorkload(ctx, workload)
+	err := s.rediaron.AddWorkload(ctx, workload, nil)
 	s.NoError(err)
 	// fail remove
 	workload.Name = "a"
@@ -74,7 +74,7 @@ func (s *RediaronTestSuite) TestGetWorkload() {
 		Name:     name,
 	}
 	// success create
-	err := s.rediaron.AddWorkload(ctx, workload)
+	err := s.rediaron.AddWorkload(ctx, workload, nil)
 	s.NoError(err)
 	// failed by no workload
 	_, err = s.rediaron.GetWorkloads(ctx, []string{id, "xxx"})
@@ -113,7 +113,7 @@ func (s *RediaronTestSuite) TestGetWorkloadStatus() {
 		Name:     name,
 	}
 	// success create
-	err := s.rediaron.AddWorkload(ctx, workload)
+	err := s.rediaron.AddWorkload(ctx, workload, nil)
 	s.NoError(err)
 	// failed no pod no node
 	_, err = s.rediaron.GetWorkloadStatus(ctx, id)
@@ -155,7 +155,7 @@ func (s *RediaronTestSuite) TestSetWorkloadStatus() {
 	// no workload, err nil
 	err = m.SetWorkloadStatus(ctx, workload, 10)
 	s.NoError(err)
-	s.NoError(m.AddWorkload(ctx, workload))
+	s.NoError(m.AddWorkload(ctx, workload, nil))
 	// no status key, put succ, err nil
 	err = m.SetWorkloadStatus(ctx, workload, 10)
 	s.NoError(err)
@@ -191,7 +191,7 @@ func (s *RediaronTestSuite) TestListWorkloads() {
 		Labels:   map[string]string{"x": "y"},
 	}
 	// success create
-	err = m.AddWorkload(ctx, workload)
+	err = m.AddWorkload(ctx, workload, nil)
 	s.NoError(err)
 	_, err = m.AddPod(ctx, podname, "")
 	s.NoError(err)
@@ -235,7 +235,7 @@ func (s *RediaronTestSuite) TestListNodeWorkloads() {
 		Labels:   map[string]string{"x": "y"},
 	}
 	// success create
-	err = m.AddWorkload(ctx, workload)
+	err = m.AddWorkload(ctx, workload, nil)
 	s.NoError(err)
 	_, err = m.AddPod(ctx, podname, "")
 	s.NoError(err)
@@ -283,7 +283,7 @@ func (s *RediaronTestSuite) TestWorkloadStatusStream() {
 	s.NoError(err)
 	err = m.BatchCreate(ctx, map[string]string{fmt.Sprintf(nodePodKey, podname, nodename): string(nodeBytes)})
 	s.NoError(err)
-	s.NoError(m.AddWorkload(ctx, workload))
+	s.NoError(m.AddWorkload(ctx, workload, nil))
 	// WorkloadStatusStream
 	workload.StatusMeta = &types.StatusMeta{
 		ID:      id,

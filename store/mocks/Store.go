@@ -66,13 +66,13 @@ func (_m *Store) AddPod(ctx context.Context, name string, desc string) (*types.P
 	return r0, r1
 }
 
-// AddWorkload provides a mock function with given fields: ctx, workload
-func (_m *Store) AddWorkload(ctx context.Context, workload *types.Workload) error {
-	ret := _m.Called(ctx, workload)
+// AddWorkload provides a mock function with given fields: _a0, _a1, _a2
+func (_m *Store) AddWorkload(_a0 context.Context, _a1 *types.Workload, _a2 *types.Processing) error {
+	ret := _m.Called(_a0, _a1, _a2)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.Workload) error); ok {
-		r0 = rf(ctx, workload)
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Workload, *types.Processing) error); ok {
+		r0 = rf(_a0, _a1, _a2)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -103,13 +103,27 @@ func (_m *Store) CreateLock(key string, ttl time.Duration) (lock.DistributedLock
 	return r0, r1
 }
 
-// DeleteProcessing provides a mock function with given fields: ctx, opts, nodename
-func (_m *Store) DeleteProcessing(ctx context.Context, opts *types.DeployOptions, nodename string) error {
-	ret := _m.Called(ctx, opts, nodename)
+// CreateProcessing provides a mock function with given fields: ctx, process, count
+func (_m *Store) CreateProcessing(ctx context.Context, process *types.Processing, count int) error {
+	ret := _m.Called(ctx, process, count)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, string) error); ok {
-		r0 = rf(ctx, opts, nodename)
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Processing, int) error); ok {
+		r0 = rf(ctx, process, count)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DeleteProcessing provides a mock function with given fields: _a0, _a1
+func (_m *Store) DeleteProcessing(_a0 context.Context, _a1 *types.Processing) error {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Processing) error); ok {
+		r0 = rf(_a0, _a1)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -370,13 +384,13 @@ func (_m *Store) ListWorkloads(ctx context.Context, appname string, entrypoint s
 	return r0, r1
 }
 
-// MakeDeployStatus provides a mock function with given fields: ctx, opts, strategyInfo
-func (_m *Store) MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfo []strategy.Info) error {
-	ret := _m.Called(ctx, opts, strategyInfo)
+// MakeDeployStatus provides a mock function with given fields: ctx, appname, entryname, sis
+func (_m *Store) MakeDeployStatus(ctx context.Context, appname string, entryname string, sis []strategy.Info) error {
+	ret := _m.Called(ctx, appname, entryname, sis)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, []strategy.Info) error); ok {
-		r0 = rf(ctx, opts, strategyInfo)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, []strategy.Info) error); ok {
+		r0 = rf(ctx, appname, entryname, sis)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -467,20 +481,6 @@ func (_m *Store) RemoveWorkload(ctx context.Context, workload *types.Workload) e
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *types.Workload) error); ok {
 		r0 = rf(ctx, workload)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// SaveProcessing provides a mock function with given fields: ctx, opts, nodename, count
-func (_m *Store) SaveProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error {
-	ret := _m.Called(ctx, opts, nodename, count)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, string, int) error); ok {
-		r0 = rf(ctx, opts, nodename, count)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -604,20 +604,6 @@ func (_m *Store) UpdateNodes(_a0 context.Context, _a1 ...*types.Node) error {
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, ...*types.Node) error); ok {
 		r0 = rf(_a0, _a1...)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// UpdateProcessing provides a mock function with given fields: ctx, opts, nodename, count
-func (_m *Store) UpdateProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error {
-	ret := _m.Called(ctx, opts, nodename, count)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.DeployOptions, string, int) error); ok {
-		r0 = rf(ctx, opts, nodename, count)
 	} else {
 		r0 = ret.Error(0)
 	}

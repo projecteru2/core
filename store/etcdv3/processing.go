@@ -16,7 +16,7 @@ import (
 )
 
 func (m *Mercury) getProcessingKey(processing *types.Processing) string {
-	return filepath.Join(workloadDeployPrefix, processing.Appname, processing.Entryname, processing.Nodename, processing.Ident)
+	return filepath.Join(workloadProcessingPrefix, processing.Appname, processing.Entryname, processing.Nodename, processing.Ident)
 }
 
 // CreateProcessing save processing status in etcd

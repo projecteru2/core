@@ -51,7 +51,7 @@ func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
 	}
 
 	mstore := c.store.(*storemocks.Store)
-	mstore.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(fmt.Errorf("err")).Once()
+	mstore.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(fmt.Errorf("err")).Once()
 
 	_, ch, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
 	assert.NoError(err)
@@ -207,7 +207,7 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 
 	node1, node2 := nodes[0], nodes[1]
 
-	store.On("SaveProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("CreateProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
@@ -244,7 +244,7 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 			return scheduleInfos
 		}, len(nodes), nil)
 
-	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	old := strategy.Plans[strategy.Auto]
 	strategy.Plans[strategy.Auto] = func(ctx context.Context, sis []strategy.Info, need, total, _ int) (map[string]int, error) {
 		deployInfos := make(map[string]int)
@@ -282,7 +282,7 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
-	store.On("AddWorkload", mock.Anything, mock.Anything).Return(nil)
+	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	return c, nodes
 }

@@ -56,7 +56,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		defer func() {
 			cctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.Background()), c.config.GlobalTimeout)
 			for nodename := range deployMap {
-				if e := c.store.DeleteProcessing(cctx, opts.NewProcessing(nodename)); e != nil {
+				if e := c.store.DeleteProcessing(cctx, opts.GetProcessing(nodename)); e != nil {
 					logger.Errorf(ctx, "[Calcium.doCreateWorkloads] delete processing failed for %s: %+v", nodename, e)
 				}
 			}
@@ -87,7 +87,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 							plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deploy)...)
 						}
 						nodes = append(nodes, nodeMap[nodename])
-						if err = c.store.CreateProcessing(ctx, opts.NewProcessing(nodename), deploy); err != nil {
+						if err = c.store.CreateProcessing(ctx, opts.GetProcessing(nodename), deploy); err != nil {
 							return errors.WithStack(err)
 						}
 					}
@@ -352,7 +352,7 @@ func (c *Calcium) doDeployOneWorkload(
 			workload.Hook = opts.Entrypoint.Hook
 
 			// avoid be interrupted by MakeDeployStatus
-			if err := c.store.AddWorkload(ctx, workload, opts.NewProcessing(node.Name)); err != nil {
+			if err := c.store.AddWorkload(ctx, workload, opts.GetProcessing(node.Name)); err != nil {
 				return errors.WithStack(err)
 			}
 			log.Infof(ctx, "[doDeployOneWorkload] workload created and saved: %s", workload.ID)

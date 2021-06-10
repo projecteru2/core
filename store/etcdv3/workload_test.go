@@ -26,14 +26,14 @@ func TestAddORUpdateWorkload(t *testing.T) {
 		Name:     "a",
 	}
 	// failed by name
-	err := m.AddWorkload(ctx, workload)
+	err := m.AddWorkload(ctx, workload, nil)
 	assert.Error(t, err)
 	workload.Name = name
 	// fail update
 	err = m.UpdateWorkload(ctx, workload)
 	assert.Error(t, err)
 	// success create
-	err = m.AddWorkload(ctx, workload)
+	err = m.AddWorkload(ctx, workload, nil)
 	assert.NoError(t, err)
 	// success updat
 	err = m.UpdateWorkload(ctx, workload)
@@ -55,7 +55,7 @@ func TestRemoveWorkload(t *testing.T) {
 		Name:     name,
 	}
 	// success create
-	err := m.AddWorkload(ctx, workload)
+	err := m.AddWorkload(ctx, workload, nil)
 	assert.NoError(t, err)
 	// fail remove
 	workload.Name = "a"
@@ -82,7 +82,7 @@ func TestGetWorkload(t *testing.T) {
 		Name:     name,
 	}
 	// success create
-	err := m.AddWorkload(ctx, workload)
+	err := m.AddWorkload(ctx, workload, nil)
 	assert.NoError(t, err)
 	// failed by no workload
 	_, err = m.GetWorkloads(ctx, []string{ID, "xxx"})
@@ -115,7 +115,7 @@ func TestGetWorkloadStatus(t *testing.T) {
 		Name:     name,
 	}
 	// success create
-	err := m.AddWorkload(ctx, workload)
+	err := m.AddWorkload(ctx, workload, nil)
 	assert.NoError(t, err)
 	// failed no pod no node
 	_, err = m.GetWorkloadStatus(ctx, ID)
@@ -150,7 +150,7 @@ func TestSetWorkloadStatus(t *testing.T) {
 	// no workload, err nil
 	err = m.SetWorkloadStatus(ctx, workload, 10)
 	assert.NoError(t, err)
-	assert.NoError(t, m.AddWorkload(ctx, workload))
+	assert.NoError(t, m.AddWorkload(ctx, workload, nil))
 	// no status key, put succ, err nil
 	err = m.SetWorkloadStatus(ctx, workload, 10)
 	assert.NoError(t, err)
@@ -187,7 +187,7 @@ func TestListWorkloads(t *testing.T) {
 		Labels:   map[string]string{"x": "y"},
 	}
 	// success create
-	err = m.AddWorkload(ctx, workload)
+	err = m.AddWorkload(ctx, workload, nil)
 	assert.NoError(t, err)
 	_, err = m.AddPod(ctx, podname, "")
 	assert.NoError(t, err)
@@ -224,7 +224,7 @@ func TestListNodeWorkloads(t *testing.T) {
 		Labels:   map[string]string{"x": "y"},
 	}
 	// success create
-	err = m.AddWorkload(ctx, workload)
+	err = m.AddWorkload(ctx, workload, nil)
 	assert.NoError(t, err)
 	_, err = m.AddPod(ctx, podname, "")
 	assert.NoError(t, err)
@@ -273,7 +273,7 @@ func TestWorkloadStatusStream(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = m.Create(ctx, fmt.Sprintf(nodePodKey, podname, nodename), string(nodeBytes))
 	assert.NoError(t, err)
-	assert.NoError(t, m.AddWorkload(ctx, workload))
+	assert.NoError(t, m.AddWorkload(ctx, workload, nil))
 	// WorkloadStatusStream
 	workload.StatusMeta = &types.StatusMeta{
 		ID:      ID,

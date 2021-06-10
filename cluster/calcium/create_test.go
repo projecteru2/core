@@ -34,8 +34,7 @@ func TestCreateWorkload(t *testing.T) {
 	}
 	store := c.store.(*storemocks.Store)
 
-	store.On("SaveProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("CreateProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	// failed by validating
@@ -110,8 +109,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	defer mwal.AssertExpectations(t)
 	var walCommitted bool
 
-	store.On("SaveProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("CreateProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	// doAllocResource fails: MakeDeployStatus
@@ -147,7 +145,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 			}
 			return scheduleInfos
 		}, len(nodes), nil)
-	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(
+	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		errors.Wrap(context.DeadlineExceeded, "MakeDeployStatus"),
 	).Once()
 
@@ -163,7 +161,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.False(t, walCommitted)
 
 	// commit resource changes fails: UpdateNodes
-	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	old := strategy.Plans[strategy.Auto]
 	strategy.Plans[strategy.Auto] = func(ctx context.Context, sis []strategy.Info, need, total, _ int) (map[string]int, error) {
 		deployInfos := make(map[string]int)
@@ -210,7 +208,6 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	engine := node1.Engine.(*enginemocks.API)
 	engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "ImageLocalDigest")).Twice()
 	engine.On("ImagePull", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "ImagePull")).Twice()
-	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	walCommitted = false
 	ch, err = c.CreateWorkload(ctx, opts)
@@ -252,7 +249,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "c1"}, nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
-	store.On("AddWorkload", mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "AddWorkload")).Twice()
+	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "AddWorkload")).Twice()
 	commit := wal.Commit(func() error {
 		walCommitted = true
 		return nil
@@ -277,8 +274,8 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "c1"}, nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
-	store.On("AddWorkload", mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "AddWorkload2")).Once()
-	store.On("AddWorkload", mock.Anything, mock.Anything).Return(nil).Once()
+	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "AddWorkload2")).Once()
+	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
 	walCommitted = false
 	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
@@ -325,8 +322,7 @@ func newCreateWorkloadCluster(t *testing.T) (*Calcium, []*types.Node) {
 	nodes := []*types.Node{node1, node2}
 
 	store := c.store.(*storemocks.Store)
-	store.On("SaveProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("CreateProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	// doAllocResource fails: MakeDeployStatus

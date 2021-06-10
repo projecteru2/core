@@ -56,7 +56,7 @@ type Store interface {
 	WorkloadStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.WorkloadStatus
 
 	// deploy status
-	MakeDeployStatus(ctx context.Context, appname, entryname string, _ []strategy.Info) error
+	MakeDeployStatus(ctx context.Context, appname, entryname string, sis []strategy.Info) error
 
 	// processing status
 	CreateProcessing(ctx context.Context, process *types.Processing, count int) error

@@ -13,25 +13,23 @@ func TestProcessing(t *testing.T) {
 	m := NewMercury(t)
 	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
-	opts := &types.DeployOptions{
-		Name:         "app",
-		Entrypoint:   &types.Entrypoint{Name: "entry"},
-		ProcessIdent: "abc",
+	processing := &types.Processing{
+		Appname:   "app",
+		Entryname: "entry",
+		Nodename:  "node",
+		Ident:     "abc",
 	}
 
-	// not exists
-	assert.Error(t, m.UpdateProcessing(ctx, opts, "node", 8))
 	// create
-	assert.NoError(t, m.SaveProcessing(ctx, opts, "node", 10))
+	assert.NoError(t, m.CreateProcessing(ctx, processing, 10))
 	// create again
-	assert.Error(t, m.SaveProcessing(ctx, opts, "node", 10))
-	// update
-	assert.NoError(t, m.UpdateProcessing(ctx, opts, "node", 8))
+	assert.Error(t, m.CreateProcessing(ctx, processing, 10))
+	assert.NoError(t, m.AddWorkload(ctx, &types.Workload{Name: "a_b_c"}, processing))
 
 	sis := []strategy.Info{{Nodename: "node"}}
-	err := m.doLoadProcessing(ctx, opts, sis)
+	err := m.doLoadProcessing(ctx, processing.Appname, processing.Entryname, sis)
 	assert.NoError(t, err)
-	assert.Equal(t, sis[0].Count, 8)
+	assert.Equal(t, sis[0].Count, 9)
 	// delete
-	assert.NoError(t, m.DeleteProcessing(ctx, opts, "node"))
+	assert.NoError(t, m.DeleteProcessing(ctx, processing))
 }

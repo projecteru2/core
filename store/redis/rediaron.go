@@ -220,6 +220,7 @@ func (r *Rediaron) BatchCreate(ctx context.Context, data map[string]string) erro
 	return err
 }
 
+// BatchCreateAndDecr decr processing and add workload
 func (r *Rediaron) BatchCreateAndDecr(ctx context.Context, data map[string]string, decrKey string) (err error) {
 	batchCreateAndDecr := func(pipe redis.Pipeliner) error {
 		pipe.Decr(ctx, decrKey)

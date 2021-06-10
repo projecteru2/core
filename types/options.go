@@ -40,7 +40,8 @@ type Processing struct {
 	Ident     string
 }
 
-func (o DeployOptions) NewProcessing(nodename string) *Processing {
+// GetProcessing .
+func (o DeployOptions) GetProcessing(nodename string) *Processing {
 	return &Processing{
 		Appname:   o.Name,
 		Entryname: o.Entrypoint.Name,

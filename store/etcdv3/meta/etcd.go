@@ -391,6 +391,7 @@ func (e *ETCD) doBatchOp(ctx context.Context, conds []clientv3.Cmp, ops, failOps
 	return resp, nil
 }
 
+// BatchCreateAndDecr used to decr processing and add workload
 func (e *ETCD) BatchCreateAndDecr(ctx context.Context, data map[string]string, decrKey string) (err error) {
 	resp, err := e.Get(ctx, decrKey)
 	if err != nil {
