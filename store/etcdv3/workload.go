@@ -280,7 +280,8 @@ func (m *Mercury) doOpsWorkload(ctx context.Context, workload *types.Workload, p
 
 	if create {
 		if processing != nil {
-			err = m.BatchCreateAndDecr(ctx, data, filepath.Join(workloadProcessingPrefix, processing.BaseKey()))
+			processingKey := m.getProcessingKey(processing)
+			err = m.BatchCreateAndDecr(ctx, data, processingKey)
 		} else {
 			_, err = m.BatchCreate(ctx, data)
 		}

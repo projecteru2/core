@@ -13,16 +13,19 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+func (r *Rediaron) getProcessingKey(processing *types.Processing) string {
+	return filepath.Join(workloadProcessingPrefix, processing.Appname, processing.Entryname, processing.Nodename, processing.Ident)
+}
+
 // SaveProcessing save processing status in etcd
 func (r *Rediaron) CreateProcessing(ctx context.Context, processing *types.Processing, count int) error {
-	processingKey := filepath.Join(workloadProcessingPrefix, processing.BaseKey())
+	processingKey := r.getProcessingKey(processing)
 	return r.BatchCreate(ctx, map[string]string{processingKey: strconv.Itoa(count)})
 }
 
 // DeleteProcessing delete processing status in etcd
 func (r *Rediaron) DeleteProcessing(ctx context.Context, processing *types.Processing) error {
-	processingKey := filepath.Join(workloadProcessingPrefix, processing.BaseKey())
-	return r.BatchDelete(ctx, []string{processingKey})
+	return r.BatchDelete(ctx, []string{r.getProcessingKey(processing)})
 }
 
 func (r *Rediaron) doLoadProcessing(ctx context.Context, appname, entryname string, strategyInfos []strategy.Info) error {

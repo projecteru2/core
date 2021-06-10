@@ -17,13 +17,13 @@ import (
 // actually if we already know its node, we will know its pod
 // but we still store it
 // storage path in etcd is `/workload/:workloadid`
-func (r *Rediaron) AddWorkload(ctx context.Context, workload *types.Workload, _ *types.Processing) error {
-	return r.doOpsWorkload(ctx, workload, true)
+func (r *Rediaron) AddWorkload(ctx context.Context, workload *types.Workload, processing *types.Processing) error {
+	return r.doOpsWorkload(ctx, workload, processing, true)
 }
 
 // UpdateWorkload update a workload
 func (r *Rediaron) UpdateWorkload(ctx context.Context, workload *types.Workload) error {
-	return r.doOpsWorkload(ctx, workload, false)
+	return r.doOpsWorkload(ctx, workload, nil, false)
 }
 
 // RemoveWorkload remove a workload
@@ -250,7 +250,7 @@ func (r *Rediaron) bindWorkloadsAdditions(ctx context.Context, workloads []*type
 	return workloads, nil
 }
 
-func (r *Rediaron) doOpsWorkload(ctx context.Context, workload *types.Workload, create bool) error {
+func (r *Rediaron) doOpsWorkload(ctx context.Context, workload *types.Workload, processing *types.Processing, create bool) error {
 	var err error
 	appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
 	if err != nil {
@@ -272,7 +272,11 @@ func (r *Rediaron) doOpsWorkload(ctx context.Context, workload *types.Workload, 
 	}
 
 	if create {
-		err = r.BatchCreate(ctx, data)
+		if processing != nil {
+			err = r.BatchCreateAndDecr(ctx, data, r.getProcessingKey(processing))
+		} else {
+			err = r.BatchCreate(ctx, data)
+		}
 	} else {
 		err = r.BatchUpdate(ctx, data)
 	}
