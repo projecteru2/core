@@ -20,7 +20,7 @@ func (s *RediaronTestSuite) TestDeploy() {
 	}
 
 	// no workload deployed
-	err := s.rediaron.MakeDeployStatus(ctx, opts, sis)
+	err := s.rediaron.MakeDeployStatus(ctx, opts.Name, opts.Entrypoint.Name, sis)
 	s.NoError(err)
 	s.Equal(len(sis), 1)
 	// have workloads
@@ -31,7 +31,7 @@ func (s *RediaronTestSuite) TestDeploy() {
 	s.NoError(err)
 	_, err = s.rediaron.cli.Set(ctx, key, "", 0).Result()
 	s.NoError(err)
-	err = s.rediaron.MakeDeployStatus(ctx, opts, sis)
+	err = s.rediaron.MakeDeployStatus(ctx, opts.Name, opts.Entrypoint.Name, sis)
 	s.NoError(err)
 	s.Equal(len(sis), 1)
 	s.Equal(sis[0].Nodename, "node")

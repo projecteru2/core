@@ -167,6 +167,9 @@ func TestAllocResource(t *testing.T) {
 	podname := "testpod"
 	opts := &types.DeployOptions{
 		Podname: podname,
+		Entrypoint: &types.Entrypoint{
+			Name: "entry",
+		},
 	}
 	config := types.Config{
 		LockTimeout: time.Duration(time.Second * 3),
@@ -222,7 +225,7 @@ func TestAllocResource(t *testing.T) {
 
 	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, total, nil)
 	testAllocFailedAsMakeDeployStatusError(t, c, opts, nodeMap)
-	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	testAllocFailedAsWrongDeployMethod(t, c, opts, nodeMap)
 	testAllocFailedAsCommonDivisionError(t, c, opts, nodeMap)
@@ -250,7 +253,7 @@ func TestAllocResource(t *testing.T) {
 
 func testAllocFailedAsMakeDeployStatusError(t *testing.T, c *Calcium, opts *types.DeployOptions, nodeMap map[string]*types.Node) {
 	store := c.store.(*storemocks.Store)
-	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
+	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
 	_, _, err := c.doAllocResource(context.Background(), nodeMap, opts)
 	assert.Error(t, err)
 }

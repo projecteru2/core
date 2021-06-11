@@ -171,7 +171,7 @@ func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := c.store.MakeDeployStatus(ctx, opts, strategyInfos); err != nil {
+	if err = c.store.MakeDeployStatus(ctx, opts.Name, opts.Entrypoint.Name, strategyInfos); err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
 	deployMap, err := strategy.Deploy(ctx, opts, strategyInfos, total)

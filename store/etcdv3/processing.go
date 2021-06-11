@@ -15,30 +15,25 @@ import (
 	"go.etcd.io/etcd/v3/clientv3"
 )
 
-// SaveProcessing save processing status in etcd
-func (m *Mercury) SaveProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error {
-	processingKey := filepath.Join(workloadProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodename, opts.ProcessIdent)
-	_, err := m.Create(ctx, processingKey, fmt.Sprintf("%d", count))
-	return err
+func (m *Mercury) getProcessingKey(processing *types.Processing) string {
+	return filepath.Join(workloadProcessingPrefix, processing.Appname, processing.Entryname, processing.Nodename, processing.Ident)
 }
 
-// UpdateProcessing update processing status in etcd
-func (m *Mercury) UpdateProcessing(ctx context.Context, opts *types.DeployOptions, nodename string, count int) error {
-	processingKey := filepath.Join(workloadProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodename, opts.ProcessIdent)
-	_, err := m.Update(ctx, processingKey, fmt.Sprintf("%d", count))
+// CreateProcessing save processing status in etcd
+func (m *Mercury) CreateProcessing(ctx context.Context, processing *types.Processing, count int) error {
+	_, err := m.Create(ctx, m.getProcessingKey(processing), fmt.Sprintf("%d", count))
 	return err
 }
 
 // DeleteProcessing delete processing status in etcd
-func (m *Mercury) DeleteProcessing(ctx context.Context, opts *types.DeployOptions, nodename string) error {
-	processingKey := filepath.Join(workloadProcessingPrefix, opts.Name, opts.Entrypoint.Name, nodename, opts.ProcessIdent)
-	_, err := m.Delete(ctx, processingKey)
+func (m *Mercury) DeleteProcessing(ctx context.Context, processing *types.Processing) error {
+	_, err := m.Delete(ctx, m.getProcessingKey(processing))
 	return err
 }
 
-func (m *Mercury) doLoadProcessing(ctx context.Context, opts *types.DeployOptions, strategyInfos []strategy.Info) error {
+func (m *Mercury) doLoadProcessing(ctx context.Context, appname, entryname string, strategyInfos []strategy.Info) error {
 	// 显式的加 / 保证 prefix 一致性
-	processingKey := filepath.Join(workloadProcessingPrefix, opts.Name, opts.Entrypoint.Name) + "/"
+	processingKey := filepath.Join(workloadProcessingPrefix, appname, entryname) + "/"
 	resp, err := m.Get(ctx, processingKey, clientv3.WithPrefix())
 	if err != nil {
 		return err

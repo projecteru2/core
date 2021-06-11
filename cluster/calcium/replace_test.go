@@ -187,7 +187,7 @@ func TestReplaceWorkload(t *testing.T) {
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationCopyTo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{User: "test"}, nil)
-	store.On("AddWorkload", mock.Anything, mock.Anything).Return(nil)
+	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	// failed by remove workload
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
 	ch, err = c.ReplaceWorkload(ctx, opts)

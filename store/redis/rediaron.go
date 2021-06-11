@@ -220,6 +220,19 @@ func (r *Rediaron) BatchCreate(ctx context.Context, data map[string]string) erro
 	return err
 }
 
+// BatchCreateAndDecr decr processing and add workload
+func (r *Rediaron) BatchCreateAndDecr(ctx context.Context, data map[string]string, decrKey string) (err error) {
+	batchCreateAndDecr := func(pipe redis.Pipeliner) error {
+		pipe.Decr(ctx, decrKey)
+		for key, value := range data {
+			pipe.SetNX(ctx, key, value, 0)
+		}
+		return nil
+	}
+	_, err = r.cli.TxPipelined(ctx, batchCreateAndDecr)
+	return
+}
+
 // BatchDelete is wrapper to adapt etcd batch delete
 func (r *Rediaron) BatchDelete(ctx context.Context, keys []string) error {
 	del := func(pipe redis.Pipeliner) error {

@@ -19,13 +19,13 @@ import (
 // actually if we already know its node, we will know its pod
 // but we still store it
 // storage path in etcd is `/workload/:workloadid`
-func (m *Mercury) AddWorkload(ctx context.Context, workload *types.Workload) error {
-	return m.doOpsWorkload(ctx, workload, true)
+func (m Mercury) AddWorkload(ctx context.Context, workload *types.Workload, processing *types.Processing) error {
+	return m.doOpsWorkload(ctx, workload, processing, true)
 }
 
 // UpdateWorkload update a workload
 func (m *Mercury) UpdateWorkload(ctx context.Context, workload *types.Workload) error {
-	return m.doOpsWorkload(ctx, workload, false)
+	return m.doOpsWorkload(ctx, workload, nil, false)
 }
 
 // RemoveWorkload remove a workload
@@ -257,7 +257,7 @@ func (m *Mercury) bindWorkloadsAdditions(ctx context.Context, workloads []*types
 	return workloads, nil
 }
 
-func (m *Mercury) doOpsWorkload(ctx context.Context, workload *types.Workload, create bool) error {
+func (m *Mercury) doOpsWorkload(ctx context.Context, workload *types.Workload, processing *types.Processing, create bool) error {
 	var err error
 	appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
 	if err != nil {
@@ -279,7 +279,12 @@ func (m *Mercury) doOpsWorkload(ctx context.Context, workload *types.Workload, c
 	}
 
 	if create {
-		_, err = m.BatchCreate(ctx, data)
+		if processing != nil {
+			processingKey := m.getProcessingKey(processing)
+			err = m.BatchCreateAndDecr(ctx, data, processingKey)
+		} else {
+			_, err = m.BatchCreate(ctx, data)
+		}
 	} else {
 		_, err = m.BatchUpdate(ctx, data)
 	}

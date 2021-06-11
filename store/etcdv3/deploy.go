@@ -7,25 +7,24 @@ import (
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/strategy"
-	"github.com/projecteru2/core/types"
 	"go.etcd.io/etcd/v3/clientv3"
 )
 
 // MakeDeployStatus get deploy status from store
-func (m *Mercury) MakeDeployStatus(ctx context.Context, opts *types.DeployOptions, strategyInfos []strategy.Info) error {
+func (m *Mercury) MakeDeployStatus(ctx context.Context, appname, entryname string, strategyInfos []strategy.Info) error {
 	// 手动加 / 防止不精确
-	key := filepath.Join(workloadDeployPrefix, opts.Name, opts.Entrypoint.Name) + "/"
+	key := filepath.Join(workloadDeployPrefix, appname, entryname) + "/"
 	resp, err := m.Get(ctx, key, clientv3.WithPrefix(), clientv3.WithKeysOnly())
 	if err != nil {
 		return err
 	}
 	if resp.Count == 0 {
-		log.Warnf(ctx, "[MakeDeployStatus] Deploy status not found %s.%s", opts.Name, opts.Entrypoint.Name)
+		log.Warnf(ctx, "[MakeDeployStatus] Deploy status not found %s.%s", appname, entryname)
 	}
 	if err = m.doGetDeployStatus(ctx, resp, strategyInfos); err != nil {
 		return err
 	}
-	return m.doLoadProcessing(ctx, opts, strategyInfos)
+	return m.doLoadProcessing(ctx, appname, entryname, strategyInfos)
 }
 
 func (m *Mercury) doGetDeployStatus(_ context.Context, resp *clientv3.GetResponse, strategyInfos []strategy.Info) error {

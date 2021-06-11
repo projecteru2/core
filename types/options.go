@@ -32,6 +32,24 @@ type DeployOptions struct {
 	Lambda         bool                     // indicate is lambda workload or not
 }
 
+// Processing tracks workloads count yet finished
+type Processing struct {
+	Appname   string
+	Entryname string
+	Nodename  string
+	Ident     string
+}
+
+// GetProcessing .
+func (o DeployOptions) GetProcessing(nodename string) *Processing {
+	return &Processing{
+		Appname:   o.Name,
+		Entryname: o.Entrypoint.Name,
+		Nodename:  nodename,
+		Ident:     o.ProcessIdent,
+	}
+}
+
 // Validate checks options
 func (o *DeployOptions) Validate() error {
 	if o.Name == "" {

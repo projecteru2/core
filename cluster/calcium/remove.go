@@ -97,7 +97,7 @@ func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload
 			if failedByCond {
 				return nil
 			}
-			return errors.WithStack(c.store.AddWorkload(ctx, workload))
+			return errors.WithStack(c.store.AddWorkload(ctx, workload, nil))
 		},
 		c.config.GlobalTimeout,
 	)

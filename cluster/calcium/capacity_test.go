@@ -38,6 +38,9 @@ func TestCalculateCapacity(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	// failed by wrong resource
 	opts := &types.DeployOptions{
+		Entrypoint: &types.Entrypoint{
+			Name: "entry",
+		},
 		ResourceOpts: types.ResourceOptions{
 			CPUBind:         true,
 			CPUQuotaRequest: 0,
@@ -66,7 +69,7 @@ func TestCalculateCapacity(t *testing.T) {
 	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, 5, nil).Twice()
 	sched.On("SelectStorageNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, 5, nil).Twice()
 	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, nil, 5, nil).Twice()
-	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
 	r, err := c.CalculateCapacity(ctx, opts)
 	assert.NoError(t, err)
 	assert.Equal(t, r.Total, 5)

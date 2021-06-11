@@ -9,25 +9,23 @@ import (
 
 func (s *RediaronTestSuite) TestProcessing() {
 	ctx := context.Background()
-	opts := &types.DeployOptions{
-		Name:         "app",
-		Entrypoint:   &types.Entrypoint{Name: "entry"},
-		ProcessIdent: "abc",
+	processing := &types.Processing{
+		Appname:   "app",
+		Entryname: "entry",
+		Ident:     "abc",
+		Nodename:  "node",
 	}
 
-	// not exists
-	s.Error(s.rediaron.UpdateProcessing(ctx, opts, "node", 8))
 	// create
-	s.NoError(s.rediaron.SaveProcessing(ctx, opts, "node", 10))
+	s.NoError(s.rediaron.CreateProcessing(ctx, processing, 10))
 	// create again
-	s.Error(s.rediaron.SaveProcessing(ctx, opts, "node", 10))
-	// update
-	s.NoError(s.rediaron.UpdateProcessing(ctx, opts, "node", 8))
+	s.Error(s.rediaron.CreateProcessing(ctx, processing, 10))
+	s.NoError(s.rediaron.AddWorkload(ctx, &types.Workload{Name: "a_b_c"}, processing))
 
 	sis := []strategy.Info{{Nodename: "node"}}
-	err := s.rediaron.doLoadProcessing(ctx, opts, sis)
+	err := s.rediaron.doLoadProcessing(ctx, processing.Appname, processing.Entryname, sis)
 	s.NoError(err)
-	s.Equal(sis[0].Count, 8)
+	s.Equal(sis[0].Count, 9)
 	// delete
-	s.NoError(s.rediaron.DeleteProcessing(ctx, opts, "node"))
+	s.NoError(s.rediaron.DeleteProcessing(ctx, processing))
 }
