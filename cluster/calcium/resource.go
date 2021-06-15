@@ -67,24 +67,24 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 			Workloads: workloads, Diffs: []string{},
 		}
 
-		cpus := 0.0
-		memory := int64(0)
-		storage := int64(0)
-		cpumap := types.CPUMap{}
-		volumes := int64(0)
-		volumeMap := types.VolumeMap{}
+		cpuByWorkloads := 0.0
+		memoryByWorkloads := int64(0)
+		storageByWorkloads := int64(0) // volume inclusive
+		cpumapByWorkloads := types.CPUMap{}
+		volumeByWorkloads := int64(0)
+		volumeMapByWorkloads := types.VolumeMap{}
 		for _, workload := range workloads {
-			cpus = utils.Round(cpus + workload.CPUQuotaRequest)
-			memory += workload.MemoryRequest
-			storage += workload.StorageRequest
-			cpumap.Add(workload.CPU)
+			cpuByWorkloads = utils.Round(cpuByWorkloads + workload.CPUQuotaRequest)
+			memoryByWorkloads += workload.MemoryRequest
+			storageByWorkloads += workload.StorageRequest
+			cpumapByWorkloads.Add(workload.CPU)
 			for _, vmap := range workload.VolumePlanRequest {
-				volumes += vmap.Total()
-				volumeMap.Add(vmap)
+				volumeByWorkloads += vmap.Total()
+				volumeMapByWorkloads.Add(vmap)
 			}
 		}
-		nr.CPUPercent = cpus / float64(len(node.InitCPU))
-		nr.MemoryPercent = float64(memory) / float64(node.InitMemCap)
+		nr.CPUPercent = cpuByWorkloads / float64(len(node.InitCPU))
+		nr.MemoryPercent = float64(memoryByWorkloads) / float64(node.InitMemCap)
 		nr.NUMAMemoryPercent = map[string]float64{}
 		nr.VolumePercent = float64(node.VolumeUsed) / float64(node.InitVolume.Total())
 		for nodeID, nmemory := range node.NUMAMemory {
@@ -92,44 +92,61 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 				nr.NUMAMemoryPercent[nodeID] = float64(nmemory) / float64(initMemory)
 			}
 		}
-		if cpus != node.CPUUsed {
-			nr.Diffs = append(nr.Diffs, fmt.Sprintf("cpus used: %f diff: %f", node.CPUUsed, cpus))
+
+		// cpu
+		if cpuByWorkloads != node.CPUUsed {
+			nr.Diffs = append(nr.Diffs,
+				fmt.Sprintf("node.CPUUsed != sum(workload.CPURequest): %.2f != %.2f", node.CPUUsed, cpuByWorkloads))
 		}
-		node.CPU.Add(cpumap)
+		node.CPU.Add(cpumapByWorkloads)
 		for i, v := range node.CPU {
 			if node.InitCPU[i] != v {
-				nr.Diffs = append(nr.Diffs, fmt.Sprintf("cpu %s diff %d", i, node.InitCPU[i]-v))
+				nr.Diffs = append(nr.Diffs,
+					fmt.Sprintf("\tsum(workload.CPU[%s]) + node.CPU[%s] != node.InitCPU[%s]: %d + %d != %d", i, i, i,
+						cpumapByWorkloads[i], node.CPU[i]-cpumapByWorkloads[i], node.InitCPU[i]))
 			}
 		}
 
-		if memory+node.MemCap != node.InitMemCap {
-			nr.Diffs = append(nr.Diffs, fmt.Sprintf("memory used: %d, diff %d", node.MemCap, node.InitMemCap-(memory+node.MemCap)))
+		// memory
+		if memoryByWorkloads+node.MemCap != node.InitMemCap {
+			nr.Diffs = append(nr.Diffs,
+				fmt.Sprintf("node.MemCap + sum(workload.memoryRequest) != node.InitMemCap: %d + %d != %d",
+					node.MemCap, memoryByWorkloads, node.InitMemCap))
 		}
 
+		// storage
 		nr.StoragePercent = 0
 		if node.InitStorageCap != 0 {
-			nr.StoragePercent = float64(storage) / float64(node.InitStorageCap)
-			if storage+node.StorageCap != node.InitStorageCap {
-				nr.Diffs = append(nr.Diffs, fmt.Sprintf("storage used: %d, diff %d", node.StorageCap, node.InitStorageCap-(storage+node.StorageCap)))
+			nr.StoragePercent = float64(storageByWorkloads) / float64(node.InitStorageCap)
+		}
+		if storageByWorkloads+node.StorageCap != node.InitStorageCap {
+			nr.Diffs = append(nr.Diffs, fmt.Sprintf("sum(workload.storageRequest) + node.StorageCap != node.InitStorageCap: %d + %d != %d", storageByWorkloads, node.StorageCap, node.InitStorageCap))
+		}
+
+		// volume
+		if node.VolumeUsed != volumeByWorkloads {
+			nr.Diffs = append(nr.Diffs, fmt.Sprintf("node.VolumeUsed != sum(workload.VolumeRequest): %d != %d", node.VolumeUsed, volumeByWorkloads))
+		}
+		node.Volume.Add(volumeMapByWorkloads)
+		for i, v := range node.Volume {
+			if node.InitVolume[i] != v {
+				nr.Diffs = append(nr.Diffs, fmt.Sprintf("\tsum(workload.Volume[%s]) + node.Volume[%s] != node.InitVolume[%s]: %d + %d != %d",
+					i, i, i,
+					volumeMapByWorkloads[i], node.Volume[i]-volumeMapByWorkloads[i], node.InitVolume[i]))
 			}
 		}
 
-		if node.VolumeUsed != volumes {
-			nr.Diffs = append(nr.Diffs, fmt.Sprintf("volumes used: %d diff: %d", node.VolumeUsed, volumes))
-		}
-		node.Volume.Add(volumeMap)
-		for vol, cap := range node.Volume {
-			if node.InitVolume[vol] != cap {
-				nr.Diffs = append(nr.Diffs, fmt.Sprintf("volume %s diff %d", vol, node.InitVolume[vol]-cap))
-			}
+		// volume and storage
+		if node.InitStorageCap < node.InitVolume.Total() {
+			nr.Diffs = append(nr.Diffs, fmt.Sprintf("init storage < init volumes: %d < %d", node.InitStorageCap, node.InitVolume.Total()))
 		}
 
-		if err := node.Engine.ResourceValidate(ctx, cpus, cpumap, memory, storage); err != nil {
+		if err := node.Engine.ResourceValidate(ctx, cpuByWorkloads, cpumapByWorkloads, memoryByWorkloads, storageByWorkloads); err != nil {
 			nr.Diffs = append(nr.Diffs, err.Error())
 		}
 
 		if fix {
-			if err := c.doFixDiffResource(ctx, node, cpus, memory, storage, volumes); err != nil {
+			if err := c.doFixDiffResource(ctx, node, cpuByWorkloads, memoryByWorkloads, storageByWorkloads, volumeByWorkloads); err != nil {
 				log.Warnf(ctx, "[doGetNodeResource] fix node resource failed %v", err)
 			}
 		}
@@ -138,32 +155,25 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 	})
 }
 
-func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpus float64, memory, storage, volumes int64) error {
+func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpuByWorkloads float64, memoryByWorkloads, storageByWorkloads, volumeByWorkloads int64) (err error) {
 	var n *types.Node
-	var err error
-	return utils.Txn(ctx,
-		func(ctx context.Context) error {
-			if n, err = c.GetNode(ctx, node.Name); err != nil {
-				return err
-			}
-			n.CPUUsed = cpus
-			for i, v := range node.CPU {
-				n.CPU[i] += node.InitCPU[i] - v
-			}
-			n.MemCap += node.InitMemCap - (memory + node.MemCap)
-			n.StorageCap += node.InitStorageCap - (storage + node.StorageCap)
-			n.VolumeUsed = volumes
-			for vol, cap := range node.Volume {
-				n.Volume[vol] += node.InitVolume[vol] - cap
-			}
-			return nil
-		},
-		func(ctx context.Context) error {
-			return errors.WithStack(c.store.UpdateNodes(ctx, n))
-		},
-		nil,
-		c.config.GlobalTimeout,
-	)
+	if n, err = c.GetNode(ctx, node.Name); err != nil {
+		return err
+	}
+	n.CPUUsed = cpuByWorkloads
+	for i, v := range node.CPU {
+		n.CPU[i] += node.InitCPU[i] - v
+	}
+	n.MemCap = node.InitMemCap - memoryByWorkloads
+	if n.InitStorageCap < n.InitVolume.Total() {
+		n.InitStorageCap = n.InitVolume.Total()
+	}
+	n.StorageCap = n.InitStorageCap - storageByWorkloads
+	n.VolumeUsed = volumeByWorkloads
+	for i, v := range node.Volume {
+		n.Volume[i] += node.InitVolume[i] - v
+	}
+	return errors.WithStack(c.store.UpdateNodes(ctx, n))
 }
 
 func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) ([]resourcetypes.ResourcePlans, map[string]int, error) {
