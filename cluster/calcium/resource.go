@@ -73,14 +73,18 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 		cpumapByWorkloads := types.CPUMap{}
 		volumeByWorkloads := int64(0)
 		volumeMapByWorkloads := types.VolumeMap{}
+		monopolyVolumeByWorkloads := map[string][]string{} // volume -> array of workload id
 		for _, workload := range workloads {
 			cpuByWorkloads = utils.Round(cpuByWorkloads + workload.CPUQuotaRequest)
 			memoryByWorkloads += workload.MemoryRequest
 			storageByWorkloads += workload.StorageRequest
 			cpumapByWorkloads.Add(workload.CPU)
-			for _, vmap := range workload.VolumePlanRequest {
+			for vb, vmap := range workload.VolumePlanRequest {
 				volumeByWorkloads += vmap.Total()
 				volumeMapByWorkloads.Add(vmap)
+				if vb.RequireScheduleMonopoly() {
+					monopolyVolumeByWorkloads[vmap.GetResourceID()] = append(monopolyVolumeByWorkloads[vmap.GetResourceID()], workload.ID)
+				}
 			}
 		}
 		nr.CPUPercent = cpuByWorkloads / float64(len(node.InitCPU))
@@ -133,6 +137,11 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 				nr.Diffs = append(nr.Diffs, fmt.Sprintf("\tsum(workload.Volume[%s]) + node.Volume[%s] != node.InitVolume[%s]: %d + %d != %d",
 					i, i, i,
 					volumeMapByWorkloads[i], node.Volume[i]-volumeMapByWorkloads[i], node.InitVolume[i]))
+			}
+		}
+		for vol, ids := range monopolyVolumeByWorkloads {
+			if len(ids) > 1 {
+				nr.Diffs = append(nr.Diffs, fmt.Sprintf("\tmonopoly volume used by multiple workloads: %s, %+v", vol, ids))
 			}
 		}
 
