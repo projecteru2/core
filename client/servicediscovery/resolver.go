@@ -24,7 +24,7 @@ func (r *lbResolver) updateAddresses(endpoints ...string) {
 	for _, ep := range endpoints {
 		addresses = append(addresses, resolver.Address{Addr: ep})
 	}
-	r.cc.UpdateState(resolver.State{Addresses: addresses})
+	r.cc.UpdateState(resolver.State{Addresses: addresses}) // nolint
 }
 
 func (r *lbResolver) ResolveNow(_ resolver.ResolveNowOptions) {}

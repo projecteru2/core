@@ -30,7 +30,7 @@ func New(cc resolver.ClientConn, endpoint string, authority string) *Resolver {
 		cc:        cc,
 		discovery: servicediscovery.New(endpoint, authConfig),
 	}
-	cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: endpoint}}})
+	cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: endpoint}}}) // nolint
 	go r.sync()
 	return r
 }
@@ -69,7 +69,7 @@ func (r *Resolver) sync() {
 			for _, ep := range endpoints {
 				addresses = append(addresses, resolver.Address{Addr: ep})
 			}
-			r.cc.UpdateState(resolver.State{Addresses: addresses})
+			r.cc.UpdateState(resolver.State{Addresses: addresses}) // nolint
 		}
 	}
 

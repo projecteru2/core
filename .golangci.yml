@@ -4,6 +4,7 @@ run:
   skip-dirs:
     - vendor
     - tools
+    - 3rdmocks
   modules-download-mode: readonly
 
 linters-settings:
@@ -25,18 +26,23 @@ linters:
     - gocyclo
     - gofmt
     - goimports
-    - golint
+    # golint is replaced by revive
+    # - golint
+    - revive
     - goprintffuncname
     - gosec
     - gosimple
     - govet
     - ineffassign
-    - interfacer
+    # interfacer is deprecated
+    # - interfacer
     - misspell
     - nakedret
     - nolintlint
     - rowserrcheck
-    - scopelint
+    # scopelint is replaced by exportloopref
+    # - scopelint
+    - exportloopref
     - staticcheck
     - structcheck
     - typecheck
@@ -48,7 +54,6 @@ linters:
     - nestif
     - errcheck
     - gocritic
-    - exportloopref
     #- gocognit
     #- gomnd
     #- dupl

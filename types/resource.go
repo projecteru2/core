@@ -218,7 +218,7 @@ func (p VolumePlan) GetVolumeMap(vb *VolumeBinding) (volMap VolumeMap, volume Vo
 // Compatible return true if new bindings stick to the old bindings
 func (p VolumePlan) Compatible(oldPlan VolumePlan) bool {
 	for volume, oldBinding := range oldPlan {
-		newBinding, _ := p.GetVolumeMap(&volume) // nolint
+		newBinding, _ := p.GetVolumeMap(&volume)
 		// newBinding is ok to be nil when reallocing requires less volumes than before
 		if newBinding != nil && newBinding.GetResourceID() != oldBinding.GetResourceID() {
 			// unlimited binding, modify binding source

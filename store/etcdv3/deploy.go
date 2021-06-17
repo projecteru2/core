@@ -7,7 +7,7 @@ import (
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/strategy"
-	"go.etcd.io/etcd/v3/clientv3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 // MakeDeployStatus get deploy status from store

@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/projecteru2/core/types"
-	"go.etcd.io/etcd/v3/clientv3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 // AddPod add a pod

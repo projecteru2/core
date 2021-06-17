@@ -31,6 +31,7 @@ Generate golang grpc definitions.
 
 ```shell
 go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 make grpc
 ```
 

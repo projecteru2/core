@@ -18,7 +18,7 @@ func New(cc resolver.ClientConn, endpoints string) *Resolver {
 	for _, ep := range strings.Split(endpoints, ",") {
 		addresses = append(addresses, resolver.Address{Addr: ep})
 	}
-	cc.UpdateState(resolver.State{Addresses: addresses})
+	cc.UpdateState(resolver.State{Addresses: addresses}) // nolint
 	return &Resolver{
 		cc:        cc,
 		addresses: addresses,
