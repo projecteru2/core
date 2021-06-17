@@ -50,7 +50,7 @@ type RawArgs struct {
 }
 
 // VirtualizationCreate create a workload
-func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) { // nolintlint
+func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) { // nolint
 	r := &enginetypes.VirtualizationCreated{}
 	// memory should more than 4MiB
 	if opts.Memory > 0 && opts.Memory < minMemory || opts.Memory < 0 {

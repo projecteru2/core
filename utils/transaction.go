@@ -42,7 +42,7 @@ func Txn(ctx context.Context, cond contextFunc, then contextFunc, rollback func(
 	// let caller decide process then or not
 	if condErr = cond(txnCtx); condErr == nil && then != nil {
 		// no rollback and forbid interrupting further process
-		var thenCtx context.Context = txnCtx
+		thenCtx := txnCtx
 		var thenCancel context.CancelFunc
 		if rollback == nil {
 			thenCtx, thenCancel = context.WithTimeout(InheritTracingInfo(ctx, context.Background()), ttl)

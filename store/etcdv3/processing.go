@@ -8,11 +8,11 @@ import (
 	"strings"
 
 	"github.com/sanity-io/litter"
+	clientv3 "go.etcd.io/etcd/client/v3"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
-	"go.etcd.io/etcd/v3/clientv3"
 )
 
 func (m *Mercury) getProcessingKey(processing *types.Processing) string {

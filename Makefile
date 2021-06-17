@@ -12,7 +12,10 @@ ifneq ($(KEEP_SYMBOL), 1)
 endif
 
 grpc:
-	protoc --proto_path=./rpc/gen --go_out=plugins=grpc:./rpc/gen --go_opt=module=github.com/projecteru2/core/rpc/gen core.proto
+	protoc --go_out=. --go-grpc_out=. \
+	--go_opt=paths=source_relative \
+	--go-grpc_opt=require_unimplemented_servers=false,paths=source_relative \
+	./rpc/gen/core.proto
 
 deps:
 	env GO111MODULE=on go mod download
@@ -26,13 +29,15 @@ build: deps binary
 test: deps unit-test
 
 mock: deps
-	mockery --dir ./vendor/google.golang.org/grpc --name ServerStream --output 3rdmocks
-	mockery --dir vendor/github.com/docker/docker/client --name APIClient --output engine/docker/mocks
+	mockery --dir vendor/google.golang.org/grpc --output 3rdmocks --name ServerStream
+	mockery --dir vendor/github.com/docker/docker/client --output engine/docker/mocks --name APIClient
 	mockery --dir scheduler --output scheduler/mocks --name Scheduler
 	mockery --dir source --output source/mocks --name Source
 	mockery --dir store --output store/mocks --name Store
 	mockery --dir cluster --output cluster/mocks --name Cluster
 	mockery --dir lock --output lock/mocks --name DistributedLock
+	mockery --dir store/etcdv3/meta --output store/etcdv3/meta/mocks --all
+	mockery --dir vendor/go.etcd.io/etcd/client/v3 --output store/etcdv3/meta/mocks --name Txn
 	mockery --dir rpc/gen/ --output rpc/mocks --name CoreRPC_RunAndWaitServer
 
 .ONESHELL:

@@ -52,10 +52,8 @@ func (h *Helium) start(ctx context.Context) {
 	go func() {
 		log.Info("[WatchServiceStatus] service discovery start")
 		defer log.Error("[WatchServiceStatus] service discovery exited")
-		var (
-			latestStatus types.ServiceStatus
-			timer        *time.Timer = time.NewTimer(h.config.ServiceDiscoveryPushInterval)
-		)
+		var latestStatus types.ServiceStatus
+		timer := time.NewTimer(h.config.ServiceDiscoveryPushInterval)
 		for {
 			select {
 			case addresses, ok := <-ch:

@@ -3,7 +3,7 @@ package embedded
 import (
 	"testing"
 
-	"go.etcd.io/etcd/v3/integration"
+	"go.etcd.io/etcd/tests/v3/integration"
 )
 
 // EmbededETCD .
@@ -23,6 +23,7 @@ func (e *EmbededETCD) TerminateCluster() {
 // NewCluster new a embedded cluster
 func NewCluster() *EmbededETCD {
 	t := &testing.T{}
+	integration.BeforeTestExternal(t)
 	Cluster := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
 	return &EmbededETCD{t, Cluster}
 }

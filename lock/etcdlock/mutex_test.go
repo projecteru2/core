@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-
-	"go.etcd.io/etcd/v3/integration"
+	"go.etcd.io/etcd/tests/v3/integration"
 )
 
 func TestMutex(t *testing.T) {
+	integration.BeforeTestExternal(t)
 	cluster := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
 	defer cluster.Terminate(t)
 	cli := cluster.RandClient()
@@ -30,6 +30,7 @@ func TestMutex(t *testing.T) {
 }
 
 func TestTryLock(t *testing.T) {
+	integration.BeforeTestExternal(t)
 	cluster := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
 	defer cluster.Terminate(t)
 	cli := cluster.RandClient()

@@ -155,10 +155,7 @@ func (m *Potassium) ReselectCPUNodes(ctx context.Context, scheduleInfo resourcet
 }
 
 func cpuReallocPlan(scheduleInfo resourcetypes.ScheduleInfo, quota float64, CPU types.CPUMap, sharebase int64) (resourcetypes.ScheduleInfo, float64, types.CPUMap) {
-	var (
-		affinityPlan types.CPUMap = make(types.CPUMap)
-	)
-
+	affinityPlan := make(types.CPUMap)
 	diff := int64(quota*float64(sharebase)) - CPU.Total()
 	// sort by pieces
 	cpuIDs := []string{}

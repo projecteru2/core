@@ -1,6 +1,6 @@
 module github.com/projecteru2/core
 
-go 1.14
+go 1.16
 
 require (
 	github.com/CMGS/statsd v0.0.0-20160223095033-48c421b3c1ab
@@ -10,7 +10,6 @@ require (
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/containerd/containerd v1.4.3 // indirect
 	github.com/containerd/continuity v0.0.0-20200710164510-efbc4488d8fe // indirect
-	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v20.10.0+incompatible
 	github.com/docker/go-connections v0.4.0
@@ -21,7 +20,6 @@ require (
 	github.com/go-git/go-git/v5 v5.2.0
 	github.com/go-ping/ping v0.0.0-20210407214646-e4e642a95741
 	github.com/go-redis/redis/v8 v8.8.2
-	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/mux v1.7.4 // indirect
 	github.com/jinzhu/configor v1.2.0
@@ -35,19 +33,21 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/projecteru2/libyavirt v0.0.0-20210514093713-959b2e232319
-	github.com/prometheus/client_golang v1.7.1
+	github.com/prometheus/client_golang v1.11.0
 	github.com/sanity-io/litter v1.3.0
 	github.com/sethvargo/go-signalcontext v0.1.0
-	github.com/sirupsen/logrus v1.6.0
+	github.com/sirupsen/logrus v1.7.0
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli/v2 v2.2.0
-	go.etcd.io/bbolt v1.3.5
-	go.etcd.io/etcd/v3 v3.3.0-rc.0.0.20200925060232-add86bbd1a7a
+	go.etcd.io/bbolt v1.3.6
+	go.etcd.io/etcd/api/v3 v3.5.0
+	go.etcd.io/etcd/client/pkg/v3 v3.5.0
+	go.etcd.io/etcd/client/v3 v3.5.0
+	go.etcd.io/etcd/tests/v3 v3.5.0
 	go.uber.org/automaxprocs v1.3.0
-	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
-	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
-	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
-	google.golang.org/grpc v1.29.1
-	google.golang.org/protobuf v1.25.0
-	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
+	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
+	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	google.golang.org/grpc v1.38.0
+	google.golang.org/protobuf v1.26.0
 )

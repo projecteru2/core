@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"go.etcd.io/etcd/v3/clientv3"
-	"go.etcd.io/etcd/v3/clientv3/namespace"
-	"go.etcd.io/etcd/v3/mvcc/mvccpb"
-	"go.etcd.io/etcd/v3/pkg/transport"
+	"go.etcd.io/etcd/api/v3/mvccpb"
+	"go.etcd.io/etcd/client/pkg/v3/transport"
+	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/client/v3/namespace"
 
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/lock/etcdlock"
@@ -413,7 +413,7 @@ func (e *ETCD) BatchCreateAndDecr(ctx context.Context, data map[string]string, d
 		conds := []clientv3.Cmp{
 			clientv3.Compare(clientv3.Value(decrKey), "=", string(decrKv.Value)),
 		}
-		ops := append(putOps,
+		ops := append(putOps, // nolint
 			clientv3.OpPut(decrKey, strconv.Itoa(cnt-1)),
 		)
 		failOps := []clientv3.Op{

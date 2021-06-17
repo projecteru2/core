@@ -413,7 +413,7 @@ func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.
 	// extra args is dynamically
 	config.Cmd = opts.Entrypoint.Commands
 	// env
-	env := append(opts.Env, fmt.Sprintf("APP_NAME=%s", opts.Name))
+	env := append(opts.Env, fmt.Sprintf("APP_NAME=%s", opts.Name)) // nolint
 	env = append(env, fmt.Sprintf("ERU_POD=%s", opts.Podname))
 	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", node.Name))
 	env = append(env, fmt.Sprintf("ERU_WORKLOAD_SEQ=%d", no))
