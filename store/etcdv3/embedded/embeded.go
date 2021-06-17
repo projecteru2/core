@@ -3,27 +3,28 @@ package embedded
 import (
 	"testing"
 
+	"go.etcd.io/etcd/client/v3/namespace"
 	"go.etcd.io/etcd/tests/v3/integration"
 )
 
-// EmbededETCD .
-type EmbededETCD struct {
-	t       *testing.T
-	Cluster *integration.ClusterV3
-}
-
-// TerminateCluster terminate embedded cluster
-func (e *EmbededETCD) TerminateCluster() {
-	if e.Cluster == nil || e.t == nil {
-		return
-	}
-	e.Cluster.Terminate(e.t)
-}
+var clusters map[string]*integration.ClusterV3 = map[string]*integration.ClusterV3{}
 
 // NewCluster new a embedded cluster
-func NewCluster() *EmbededETCD {
-	t := &testing.T{}
-	integration.BeforeTestExternal(t)
-	Cluster := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
-	return &EmbededETCD{t, Cluster}
+func NewCluster(t *testing.T, prefix string) *integration.ClusterV3 {
+	c, ok := clusters[t.Name()]
+	if !ok {
+		integration.BeforeTestExternal(t)
+		cluster := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
+		t.Cleanup(func() {
+			cluster.Terminate(t)
+			delete(clusters, t.Name())
+		})
+		cliv3 := cluster.RandClient()
+		cliv3.KV = namespace.NewKV(cliv3.KV, prefix)
+		cliv3.Watcher = namespace.NewWatcher(cliv3.Watcher, prefix)
+		cliv3.Lease = namespace.NewLease(cliv3.Lease, prefix)
+		clusters[t.Name()] = cluster
+		return cluster
+	}
+	return c
 }

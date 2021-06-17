@@ -64,7 +64,4 @@ type Store interface {
 
 	// distributed lock
 	CreateLock(key string, ttl time.Duration) (lock.DistributedLock, error)
-
-	// embedded storage
-	TerminateEmbededStorage()
 }

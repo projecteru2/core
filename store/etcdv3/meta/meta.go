@@ -33,7 +33,4 @@ type KV interface {
 
 	StartEphemeral(ctx context.Context, path string, heartbeat time.Duration) (<-chan struct{}, func(), error)
 	CreateLock(key string, ttl time.Duration) (lock.DistributedLock, error)
-
-	// This's just for testing.
-	TerminateEmbededStorage()
 }

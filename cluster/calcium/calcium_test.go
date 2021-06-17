@@ -70,10 +70,10 @@ func NewTestCluster() *Calcium {
 
 func TestNewCluster(t *testing.T) {
 	config := types.Config{WALFile: "/tmp/a"}
-	_, err := New(config, false)
+	_, err := New(config, nil)
 	assert.Error(t, err)
 
-	c, err := New(config, true)
+	c, err := New(config, t)
 	assert.NoError(t, err)
 
 	c.Finalizer()
@@ -92,7 +92,7 @@ func TestNewCluster(t *testing.T) {
 			PrivateKey: privFile.Name(),
 		},
 	}
-	c1, err := New(config1, true)
+	c1, err := New(config1, t)
 	assert.NoError(t, err)
 	c1.Finalizer()
 
@@ -103,7 +103,7 @@ func TestNewCluster(t *testing.T) {
 			PrivateKey: privFile.Name(),
 		},
 	}
-	c2, err := New(config2, true)
+	c2, err := New(config2, t)
 	assert.NoError(t, err)
 	c2.Finalizer()
 }

@@ -1,6 +1,7 @@
 package etcdv3
 
 import (
+	"testing"
 	"time"
 
 	"github.com/projecteru2/core/store/etcdv3/meta"
@@ -33,9 +34,9 @@ type Mercury struct {
 }
 
 // New for create a Mercury instance
-func New(config types.Config, embeddedStorage bool) (m *Mercury, err error) {
+func New(config types.Config, t *testing.T) (m *Mercury, err error) {
 	m = &Mercury{config: config}
-	m.KV, err = meta.NewETCD(config.Etcd, embeddedStorage)
+	m.KV, err = meta.NewETCD(config.Etcd, t)
 	return
 }
 

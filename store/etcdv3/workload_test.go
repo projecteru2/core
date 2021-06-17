@@ -13,7 +13,6 @@ import (
 
 func TestAddORUpdateWorkload(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	ID := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
@@ -42,7 +41,6 @@ func TestAddORUpdateWorkload(t *testing.T) {
 
 func TestRemoveWorkload(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	ID := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
@@ -69,7 +67,6 @@ func TestRemoveWorkload(t *testing.T) {
 
 func TestGetWorkload(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	ID := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
@@ -102,7 +99,6 @@ func TestGetWorkload(t *testing.T) {
 
 func TestGetWorkloadStatus(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	ID := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
@@ -131,7 +127,6 @@ func TestGetWorkloadStatus(t *testing.T) {
 
 func TestSetWorkloadStatus(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	ID := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"
@@ -172,7 +167,6 @@ func TestSetWorkloadStatus(t *testing.T) {
 
 func TestListWorkloads(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	// no key
 	cs, err := m.ListWorkloads(ctx, "", "a", "b", 1, nil)
@@ -209,7 +203,6 @@ func TestListWorkloads(t *testing.T) {
 
 func TestListNodeWorkloads(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	// no key
 	cs, err := m.ListNodeWorkloads(ctx, "", nil)
@@ -246,7 +239,6 @@ func TestListNodeWorkloads(t *testing.T) {
 
 func TestWorkloadStatusStream(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	ID := "1234567812345678123456781234567812345678123456781234567812345678"
 	name := "test_app_1"

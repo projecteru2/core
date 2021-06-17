@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 	"strings"
+	"testing"
 
 	"github.com/pkg/errors"
 	"github.com/projecteru2/core/cluster"
@@ -32,7 +33,7 @@ type Calcium struct {
 }
 
 // New returns a new cluster config
-func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
+func New(config types.Config, t *testing.T) (*Calcium, error) {
 	logger := log.WithField("Calcium", "New").WithField("config", config)
 
 	// set store
@@ -40,12 +41,12 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 	var err error
 	switch config.Store {
 	case types.Redis:
-		store, err = redis.New(config, embeddedStorage)
+		store, err = redis.New(config, t)
 		if err != nil {
 			return nil, logger.Err(context.TODO(), errors.WithStack(err))
 		}
 	default:
-		store, err = etcdv3.New(config, embeddedStorage)
+		store, err = etcdv3.New(config, t)
 		if err != nil {
 			return nil, logger.Err(context.TODO(), errors.WithStack(err))
 		}
@@ -70,7 +71,7 @@ func New(config types.Config, embeddedStorage bool) (*Calcium, error) {
 		log.Warn("[Calcium] SCM not set, build API disabled")
 	}
 	if err != nil {
-		logger.Errorf(context.TODO(), "[Calcium] SCAM failed: %+v", err)
+		logger.Errorf(context.TODO(), "[Calcium] SCM failed: %+v", err)
 		return nil, errors.WithStack(err)
 	}
 
@@ -90,7 +91,7 @@ func (c *Calcium) DisasterRecover() {
 
 // Finalizer use for defer
 func (c *Calcium) Finalizer() {
-	c.store.TerminateEmbededStorage()
+	// TODO some resource recycle
 }
 
 // GetIdentifier returns the identifier of calcium

@@ -11,7 +11,6 @@ import (
 
 func TestProcessing(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	processing := &types.Processing{
 		Appname:   "app",
