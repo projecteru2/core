@@ -10,7 +10,6 @@ import (
 
 func TestEphemeralDeregister(t *testing.T) {
 	m := NewEmbeddedETCD(t)
-	defer m.TerminateEmbededStorage()
 
 	ctx := context.Background()
 	path := "/ident"
@@ -32,7 +31,6 @@ func TestEphemeralDeregister(t *testing.T) {
 
 func TestEphemeral(t *testing.T) {
 	m := NewEmbeddedETCD(t)
-	defer m.TerminateEmbededStorage()
 
 	ctx := context.Background()
 	path := "/ident"
@@ -75,7 +73,6 @@ func TestEphemeral(t *testing.T) {
 
 func TestEphemeralFailedAsPutAlready(t *testing.T) {
 	m := NewEmbeddedETCD(t)
-	defer m.TerminateEmbededStorage()
 
 	ctx := context.Background()
 	path := "/ident"
@@ -101,12 +98,11 @@ func TestEphemeralMustRevokeAfterKeepaliveFailed(t *testing.T) {
 	require.NotNil(t, stop)
 	require.NotNil(t, expiry)
 
-	// Triggers keepalive failed.
-	m.TerminateEmbededStorage()
-
+	stop()
+	// TODO should reconsider here
 	select {
 	case <-expiry:
 	case <-time.After(time.Second * 8):
-		require.FailNow(t, "%s should had been removed", path)
+		require.FailNow(t, path+" had been removed")
 	}
 }

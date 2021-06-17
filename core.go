@@ -70,7 +70,7 @@ func serve(c *cli.Context) error {
 		return err
 	}
 
-	cluster, err := calcium.New(config, embeddedStorage)
+	cluster, err := calcium.New(config, nil)
 	if err != nil {
 		log.Errorf(context.TODO(), "[main] %v", err)
 		return err

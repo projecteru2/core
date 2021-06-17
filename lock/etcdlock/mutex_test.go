@@ -5,15 +5,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/stretchr/testify/assert"
-	"go.etcd.io/etcd/tests/v3/integration"
 )
 
 func TestMutex(t *testing.T) {
-	integration.BeforeTestExternal(t)
-	cluster := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
-	defer cluster.Terminate(t)
-	cli := cluster.RandClient()
+	embedd := embedded.NewCluster(t, "/test")
+	cli := embedd.RandClient()
 
 	_, err := New(cli, "", time.Second*1)
 	assert.Error(t, err)
@@ -30,10 +28,8 @@ func TestMutex(t *testing.T) {
 }
 
 func TestTryLock(t *testing.T) {
-	integration.BeforeTestExternal(t)
-	cluster := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
-	defer cluster.Terminate(t)
-	cli := cluster.RandClient()
+	embedd := embedded.NewCluster(t, "/test")
+	cli := embedd.RandClient()
 
 	m1, err := New(cli, "test", time.Second*1)
 	assert.NoError(t, err)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"testing"
 	"time"
 
 	"go.etcd.io/etcd/api/v3/mvccpb"
@@ -36,21 +37,18 @@ type ETCDClientV3 interface {
 type ETCD struct {
 	cliv3  ETCDClientV3
 	config types.EtcdConfig
-
-	embededETCD *embedded.EmbededETCD
 }
 
 // NewETCD initailizes a new ETCD instance.
-func NewETCD(config types.EtcdConfig, embeddedStorage bool) (*ETCD, error) {
+func NewETCD(config types.EtcdConfig, t *testing.T) (*ETCD, error) {
 	var cliv3 *clientv3.Client
-	var embededETCD *embedded.EmbededETCD
 	var err error
 	var tlsConfig *tls.Config
 
 	switch {
-	case embeddedStorage:
-		embededETCD = embedded.NewCluster()
-		cliv3 = embededETCD.Cluster.RandClient()
+	case t != nil:
+		embededETCD := embedded.NewCluster(t, config.Prefix)
+		cliv3 = embededETCD.RandClient()
 		log.Info("[Mercury] use embedded cluster")
 	default:
 		if config.Ca != "" && config.Key != "" && config.Cert != "" {
@@ -72,19 +70,11 @@ func NewETCD(config types.EtcdConfig, embeddedStorage bool) (*ETCD, error) {
 		}); err != nil {
 			return nil, err
 		}
+		cliv3.KV = namespace.NewKV(cliv3.KV, config.Prefix)
+		cliv3.Watcher = namespace.NewWatcher(cliv3.Watcher, config.Prefix)
+		cliv3.Lease = namespace.NewLease(cliv3.Lease, config.Prefix)
 	}
-	cliv3.KV = namespace.NewKV(cliv3.KV, config.Prefix)
-	cliv3.Watcher = namespace.NewWatcher(cliv3.Watcher, config.Prefix)
-	cliv3.Lease = namespace.NewLease(cliv3.Lease, config.Prefix)
-	return &ETCD{cliv3: cliv3, config: config, embededETCD: embededETCD}, nil
-}
-
-// TerminateEmbededStorage terminate embedded storage
-func (e *ETCD) TerminateEmbededStorage() {
-	if e.embededETCD == nil {
-		return
-	}
-	e.embededETCD.TerminateCluster()
+	return &ETCD{cliv3: cliv3, config: config}, nil
 }
 
 // CreateLock create a lock instance

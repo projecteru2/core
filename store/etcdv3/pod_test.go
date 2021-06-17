@@ -10,7 +10,6 @@ import (
 
 func TestPod(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	podname := "testv3"
 

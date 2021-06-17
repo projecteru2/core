@@ -397,11 +397,6 @@ func (_m *KV) StartEphemeral(ctx context.Context, path string, heartbeat time.Du
 	return r0, r1, r2
 }
 
-// TerminateEmbededStorage provides a mock function with given fields:
-func (_m *KV) TerminateEmbededStorage() {
-	_m.Called()
-}
-
 // Update provides a mock function with given fields: ctx, key, val, opts
 func (_m *KV) Update(ctx context.Context, key string, val string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
 	_va := make([]interface{}, len(opts))

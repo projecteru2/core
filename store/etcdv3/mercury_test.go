@@ -20,7 +20,7 @@ func NewMercury(t *testing.T) *Mercury {
 	}
 	//	config.Docker.CertPath = "/tmp"
 
-	m, err := New(config, true)
+	m, err := New(config, t)
 	assert.NoError(t, err)
 	return m
 }

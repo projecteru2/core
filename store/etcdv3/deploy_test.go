@@ -13,7 +13,6 @@ import (
 
 func TestDeploy(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	opts := &types.DeployOptions{
 		Name:         "app",

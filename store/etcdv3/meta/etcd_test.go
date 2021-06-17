@@ -35,7 +35,6 @@ func TestGetOneFailedAsRespondMore(t *testing.T) {
 
 func TestGetMultiWithNoKeys(t *testing.T) {
 	e := NewEmbeddedETCD(t)
-	defer e.TerminateEmbededStorage()
 	kvs, err := e.GetMulti(context.Background(), []string{})
 	require.NoError(t, err)
 	require.Equal(t, 0, len(kvs))
@@ -252,7 +251,6 @@ func testKeepAliveETCD(t *testing.T) (*ETCD, *mocks.ETCDClientV3, func()) {
 func NewMockedETCD(t *testing.T) *ETCD {
 	e := NewEmbeddedETCD(t)
 	e.cliv3 = &mocks.ETCDClientV3{}
-	e.TerminateEmbededStorage()
 	return e
 }
 
@@ -262,14 +260,13 @@ func NewEmbeddedETCD(t *testing.T) *ETCD {
 		Prefix:     "/eru-test",
 		LockPrefix: "/eru-test-lock",
 	}
-	e, err := NewETCD(config, true)
+	e, err := NewETCD(config, t)
 	require.NoError(t, err)
 	return e
 }
 
 func TestETCD(t *testing.T) {
 	m := NewEmbeddedETCD(t)
-	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 
 	// CreateLock

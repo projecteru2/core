@@ -12,7 +12,6 @@ import (
 
 func TestRegisterServiceWithDeregister(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 
 	ctx := context.Background()
 	svc := "svc"
@@ -33,7 +32,6 @@ func TestRegisterServiceWithDeregister(t *testing.T) {
 
 func TestServiceStatusStream(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	_, unregisterService1, err := m.RegisterService(ctx, "127.0.0.1:5001", time.Second)

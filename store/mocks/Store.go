@@ -571,11 +571,6 @@ func (_m *Store) StartEphemeral(ctx context.Context, path string, heartbeat time
 	return r0, r1, r2
 }
 
-// TerminateEmbededStorage provides a mock function with given fields:
-func (_m *Store) TerminateEmbededStorage() {
-	_m.Called()
-}
-
 // UpdateNodeResource provides a mock function with given fields: ctx, node, resource, action
 func (_m *Store) UpdateNodeResource(ctx context.Context, node *types.Node, resource *types.ResourceMeta, action string) error {
 	ret := _m.Called(ctx, node, resource, action)

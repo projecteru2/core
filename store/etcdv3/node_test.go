@@ -14,7 +14,6 @@ import (
 
 func TestAddNode(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	nodename := "testnode"
 	nodename2 := "testnode2"
@@ -153,7 +152,6 @@ RdCPRPt513WozkJZZAjUSP2U
 
 func TestRemoveNode(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", 100, 100, 100000, 100000, nil, nil, nil, nil)
 	assert.NoError(t, err)
@@ -164,7 +162,6 @@ func TestRemoveNode(t *testing.T) {
 
 func TestGetNode(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", 100, 100, 100000, 100000, nil, nil, nil, nil)
 	assert.NoError(t, err)
@@ -178,7 +175,6 @@ func TestGetNode(t *testing.T) {
 
 func TestGetNodesByPod(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", 100, 100, 100000, 100000, map[string]string{"x": "y"}, nil, nil, nil)
 	assert.NoError(t, err)
@@ -198,7 +194,6 @@ func TestGetNodesByPod(t *testing.T) {
 
 func TestUpdateNode(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", 100, 100, 100000, 100000, map[string]string{"x": "y"}, nil, nil, nil)
 	assert.NoError(t, err)
@@ -215,7 +210,6 @@ func TestUpdateNode(t *testing.T) {
 
 func TestUpdateNodeResource(t *testing.T) {
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 	ctx := context.Background()
 	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", 1, 100, 100000, 100000, map[string]string{"x": "y"}, map[string]string{"0": "0"}, map[string]int64{"0": 100}, nil)
 	assert.NoError(t, err)
@@ -233,7 +227,6 @@ func TestExtractNodename(t *testing.T) {
 func TestSetNodeStatus(t *testing.T) {
 	assert := assert.New(t)
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
@@ -257,7 +250,6 @@ func TestSetNodeStatus(t *testing.T) {
 func TestGetNodeStatus(t *testing.T) {
 	assert := assert.New(t)
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
@@ -283,7 +275,6 @@ func TestGetNodeStatus(t *testing.T) {
 func TestNodeStatusStream(t *testing.T) {
 	assert := assert.New(t)
 	m := NewMercury(t)
-	defer m.TerminateEmbededStorage()
 
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
