@@ -17,6 +17,7 @@ type volumeRequest struct {
 	limit    [maxVolumes]types.VolumeBinding
 	requests int
 	limits   int
+	Existing types.VolumePlan
 }
 
 // MakeRequest .
@@ -30,6 +31,7 @@ func MakeRequest(opts types.ResourceOptions) (resourcetypes.ResourceRequest, err
 	}
 	v.requests = len(opts.VolumeRequest)
 	v.limits = len(opts.VolumeLimit)
+	v.Existing = opts.VolumeExist
 
 	sort.Slice(opts.VolumeLimit, func(i, j int) bool {
 		return opts.VolumeLimit[i].ToString(false) < opts.VolumeLimit[j].ToString(false)
@@ -87,7 +89,12 @@ func (v volumeRequest) MakeScheduler() resourcetypes.SchedulerV2 {
 			limit = append(limit, &v.limit[i])
 		}
 
-		scheduleInfos, volumePlans, total, err := schedulerV1.SelectVolumeNodes(ctx, scheduleInfos, request)
+		var volumePlans map[string][]types.VolumePlan
+		if v.Existing != nil {
+			scheduleInfos[0], volumePlans, total, err = schedulerV1.ReselectVolumeNodes(ctx, scheduleInfos[0], v.Existing, request)
+		} else {
+			scheduleInfos, volumePlans, total, err = schedulerV1.SelectVolumeNodes(ctx, scheduleInfos, request)
+		}
 		return ResourcePlans{
 			capacity: resourcetypes.GetCapacity(scheduleInfos),
 			request:  request,
@@ -172,22 +179,6 @@ func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions, r *types.Re
 	}
 	r.VolumePlanRequest = rp.plan[opts.Node.Name][opts.Index]
 
-	// if there are existing ones, ensure new volumes are compatible
-	if opts.ExistingInstance != nil {
-		found := false
-		for _, plan := range rp.plan[opts.Node.Name] {
-			if plan.Compatible(opts.ExistingInstance.VolumePlanRequest) {
-				r.VolumePlanRequest = plan
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			return nil, errors.Wrap(types.ErrInsufficientVolume, "incompatible volume plans")
-		}
-	}
-
 	// fix plans while limit > request
 	r.VolumePlanLimit = types.VolumePlan{}
 	for i := range rp.request {
@@ -204,7 +195,8 @@ func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions, r *types.Re
 	}
 
 	// judge if volume changed
-	r.VolumeChanged = opts.ExistingInstance != nil && !r.VolumeLimit.IsEqual(opts.ExistingInstance.VolumeLimit)
+	// TODO@zc
+	r.VolumeChanged = false
 	return r, nil
 }
 

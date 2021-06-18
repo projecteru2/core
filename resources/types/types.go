@@ -63,8 +63,7 @@ type SchedulerV2 func(context.Context, []ScheduleInfo) (ResourcePlans, int, erro
 // DispenseOptions .
 type DispenseOptions struct {
 	*types.Node
-	Index            int
-	ExistingInstance *types.Workload
+	Index int
 }
 
 // ResourcePlans .

@@ -19,6 +19,7 @@ type ResourceOptions struct {
 
 	VolumeRequest VolumeBindings
 	VolumeLimit   VolumeBindings
+	VolumeExist   VolumePlan
 
 	StorageRequest int64
 	StorageLimit   int64
@@ -237,4 +238,15 @@ func (p VolumePlan) Merge(p2 VolumePlan) {
 	for vb, vm := range p2 {
 		p[vb] = vm
 	}
+}
+
+// FindAffinityPlan .
+func (p VolumePlan) FindAffinityPlan(req VolumeBinding) (_ VolumeBinding, _ VolumeMap, found bool) {
+	for vb, vm := range p {
+		if vb.Source == req.Source && vb.Destination == req.Destination && vb.Flags == req.Flags {
+			return vb, vm, true
+		}
+	}
+	found = false
+	return
 }

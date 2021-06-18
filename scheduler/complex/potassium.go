@@ -364,6 +364,10 @@ func (m *Potassium) ReselectVolumeNodes(ctx context.Context, scheduleInfo resour
 	affinityPlan.Merge(unlimPlan)
 
 	// schedule new volume requests
+	if len(needReschedule) == 0 {
+		scheduleInfo.Capacity = 1
+		return scheduleInfo, map[string][]types.VolumePlan{scheduleInfo.Name: []types.VolumePlan{affinityPlan}}, 1, nil
+	}
 	scheduleInfos, volumePlans, total, err := m.SelectVolumeNodes(ctx, []resourcetypes.ScheduleInfo{scheduleInfo}, needReschedule)
 	if err != nil {
 		return scheduleInfo, nil, 0, err
