@@ -7,6 +7,7 @@ import (
 	"net/http"
 	_ "net/http/pprof" // nolint
 	"os"
+	"testing"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -70,7 +71,11 @@ func serve(c *cli.Context) error {
 		return err
 	}
 
-	cluster, err := calcium.New(config, nil)
+	var t *testing.T
+	if embeddedStorage {
+		t = &testing.T{}
+	}
+	cluster, err := calcium.New(config, t)
 	if err != nil {
 		log.Errorf(context.TODO(), "[main] %v", err)
 		return err
