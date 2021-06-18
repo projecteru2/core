@@ -51,3 +51,29 @@ func proportionPlan(plan []types.VolumeMap, size int64) (newPlan []types.VolumeM
 	}
 	return
 }
+
+func distinguishVolumeBindings(vbs types.VolumeBindings) (norm, mono, unlim types.VolumeBindings) {
+	for _, vb := range vbs {
+		switch {
+		case vb.RequireScheduleMonopoly():
+			mono = append(mono, vb)
+		case vb.RequireScheduleUnlimitedQuota():
+			unlim = append(unlim, vb)
+		case vb.RequireSchedule():
+			norm = append(norm, vb)
+		}
+	}
+	return
+}
+
+func distinguishAffinityVolumeBindings(vbs types.VolumeBindings, existing types.VolumePlan) (requireAff, remain types.VolumeBindings) {
+	for _, vb := range vbs {
+		_, _, found := existing.FindAffinityPlan(*vb)
+		if found {
+			requireAff = append(requireAff, vb)
+		} else {
+			remain = append(remain, vb)
+		}
+	}
+	return
+}
