@@ -107,9 +107,9 @@ func Infof(ctx context.Context, format string, args ...interface{}) {
 
 // Debug is Debug
 func Debug(ctx context.Context, args ...interface{}) {
-	a := []interface{}{}
-	a = append(a, interface{}(getTracingInfo(ctx)))
-	log.Debug(append(a, args...))
+	a := []interface{}{getTracingInfo(ctx)}
+	a = append(a, args...)
+	log.Debug(a)
 }
 
 // Debugf is Debugf

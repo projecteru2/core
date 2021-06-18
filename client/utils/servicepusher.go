@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/go-ping/ping"
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 )
 
 // EndpointPusher pushes endpoints to registered channels if the ep is L3 reachable
@@ -53,7 +53,7 @@ func (p *EndpointPusher) delOutdated(endpoints []string) {
 		if _, ok := newEps[ep]; !ok {
 			cancel()
 			p.pendingEndpoints.Delete(ep)
-			log.Debugf("[EruResolver] pending endpoint deleted: %s", ep)
+			log.Debugf(context.TODO(), "[EruResolver] pending endpoint deleted: %s", ep)
 		}
 		return true
 	})
@@ -66,7 +66,7 @@ func (p *EndpointPusher) delOutdated(endpoints []string) {
 		}
 		if _, ok := newEps[ep]; !ok {
 			p.availableEndpoints.Delete(ep)
-			log.Debugf("[EruResolver] available endpoint deleted: %s", ep)
+			log.Debugf(context.TODO(), "[EruResolver] available endpoint deleted: %s", ep)
 		}
 		return true
 	})
@@ -84,20 +84,20 @@ func (p *EndpointPusher) addCheck(endpoints []string) {
 		ctx, cancel := context.WithCancel(context.Background())
 		p.pendingEndpoints.Store(endpoint, cancel)
 		go p.pollReachability(ctx, endpoint)
-		log.Debugf("[EruResolver] pending endpoint added: %s", endpoint)
+		log.Debugf(ctx, "[EruResolver] pending endpoint added: %s", endpoint)
 	}
 }
 func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) {
 	parts := strings.Split(endpoint, ":")
 	if len(parts) != 2 {
-		log.Errorf("[EruResolver] wrong format of endpoint: %s", endpoint)
+		log.Errorf(context.TODO(), "[EruResolver] wrong format of endpoint: %s", endpoint)
 		return
 	}
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Debugf("[EruResolver] reachability goroutine ends: %s", endpoint)
+			log.Debugf(ctx, "[EruResolver] reachability goroutine ends: %s", endpoint)
 			return
 		default:
 		}
@@ -110,7 +110,7 @@ func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) 
 		p.pendingEndpoints.Delete(endpoint)
 		p.availableEndpoints.Store(endpoint, struct{}{})
 		p.pushEndpoints()
-		log.Debugf("[EruResolver] available endpoint added: %s", endpoint)
+		log.Debugf(ctx, "[EruResolver] available endpoint added: %s", endpoint)
 		return
 	}
 }
@@ -118,7 +118,7 @@ func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) 
 func (p *EndpointPusher) checkReachability(host string) (err error) {
 	pinger, err := ping.NewPinger(host)
 	if err != nil {
-		log.Errorf("[EruResolver] failed to create pinger: %+v", err)
+		log.Errorf(context.TODO(), "[EruResolver] failed to create pinger: %+v", err)
 		return
 	}
 	defer pinger.Stop()

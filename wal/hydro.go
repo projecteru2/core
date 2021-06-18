@@ -1,11 +1,12 @@
 package wal
 
 import (
+	"context"
 	"encoding/json"
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/wal/kv"
@@ -48,7 +49,7 @@ func (h *Hydro) Recover() {
 	for ent := range ch {
 		ev, err := h.decodeEvent(ent)
 		if err != nil {
-			log.Errorf("[Recover] decode event error: %v", err)
+			log.Errorf(context.TODO(), "[Recover] decode event error: %v", err)
 			continue
 		}
 		events = append(events, ev)
@@ -57,12 +58,12 @@ func (h *Hydro) Recover() {
 	for _, ev := range events {
 		handler, ok := h.getEventHandler(ev.Type)
 		if !ok {
-			log.Errorf("[Recover] no such event handler for %s", ev.Type)
+			log.Errorf(context.TODO(), "[Recover] no such event handler for %s", ev.Type)
 			continue
 		}
 
 		if err := h.recover(handler, ev); err != nil {
-			log.Errorf("[Recover] handle event %d (%s) failed: %v", ev.ID, ev.Type, err)
+			log.Errorf(context.TODO(), "[Recover] handle event %d (%s) failed: %v", ev.ID, ev.Type, err)
 			continue
 		}
 	}

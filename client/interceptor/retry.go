@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/cenkalti/backoff/v4"
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 
 	"google.golang.org/grpc"
 )
@@ -32,7 +32,7 @@ func NewStreamRetry(retryOpts RetryOptions) grpc.StreamClientInterceptor {
 		if _, ok := RPCNeedRetry[method]; !ok {
 			return stream, err
 		}
-		log.Debugf("[NewStreamRetry] return retryStreawm for method %s", method)
+		log.Debugf(ctx, "[NewStreamRetry] return retryStreawm for method %s", method)
 		return &retryStream{
 			ctx:          ctx,
 			ClientStream: stream,
@@ -57,7 +57,7 @@ func (s *retryStream) RecvMsg(m interface{}) (err error) {
 	}
 
 	return backoff.Retry(func() error {
-		log.Debug("[retryStream] retry on new stream")
+		log.Debug(context.TODO(), "[retryStream] retry on new stream")
 		stream, err := s.newStream()
 		if err != nil {
 			// even io.EOF triggers retry, and it's what we want!
