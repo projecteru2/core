@@ -29,6 +29,7 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 				StorageLimit:    workload.StorageLimit + opts.ResourceOpts.StorageLimit,
 				VolumeRequest:   types.MergeVolumeBindings(workload.VolumeRequest, opts.ResourceOpts.VolumeRequest),
 				VolumeLimit:     types.MergeVolumeBindings(workload.VolumeLimit, opts.ResourceOpts.VolumeLimit),
+				VolumeExist:     workload.VolumePlanRequest,
 			},
 		)
 		if err != nil {
@@ -57,8 +58,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, nodename string, workload
 				resourceMeta := &types.ResourceMeta{}
 				for _, plan := range plans {
 					if resourceMeta, err = plan.Dispense(resourcetypes.DispenseOptions{
-						Node:             node,
-						ExistingInstance: workload,
+						Node: node,
 					}, resourceMeta); err != nil {
 						return err
 					}
