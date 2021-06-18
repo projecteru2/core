@@ -306,3 +306,137 @@ func (m *Potassium) SelectVolumeNodes(ctx context.Context, scheduleInfos []resou
 
 	return scheduleInfos[p:], volumePlans, volTotal, nil
 }
+
+// ReselectVolumeNodes is used for realloc only
+func (m *Potassium) ReselectVolumeNodes(ctx context.Context, scheduleInfo resourcetypes.ScheduleInfo, existing types.VolumePlan, vbsReq types.VolumeBindings) (resourcetypes.ScheduleInfo, map[string][]types.VolumePlan, int, error) {
+
+	affinityPlan := types.VolumePlan{}
+	needReschedule := types.VolumeBindings{}
+	norm, mono, unlim := distinguishVolumeBindings(vbsReq)
+
+	// norm
+	normAff, normRem := distinguishAffinityVolumeBindings(norm, existing)
+	needReschedule = append(needReschedule, normRem...)
+	for _, vb := range normAff {
+		oldVb, oldVm, _ := existing.FindAffinityPlan(*vb)
+		if scheduleInfo.Volume[oldVm.GetResourceID()] < vb.SizeInBytes-oldVb.SizeInBytes {
+			return scheduleInfo, nil, 0, errors.Wrapf(types.ErrInsufficientVolume, "no space to expand: %+v, %+v", oldVm, vb)
+		}
+		scheduleInfo.Volume[oldVm.GetResourceID()] -= vb.SizeInBytes - oldVb.SizeInBytes
+		affinityPlan.Merge(types.VolumePlan{
+			*vb: types.VolumeMap{oldVm.GetResourceID(): vb.SizeInBytes},
+		})
+	}
+
+	// mono
+	monoAff, _ := distinguishAffinityVolumeBindings(mono, existing)
+	if len(monoAff) == 0 {
+		// all reschedule
+		needReschedule = append(needReschedule, mono...)
+
+	} else {
+		// all no reschedule
+		_, oldVm, _ := existing.FindAffinityPlan(*monoAff[0])
+		monoVolume := oldVm.GetResourceID()
+		newVms, monoTotal, newMonoPlan := []types.VolumeMap{}, int64(0), types.VolumePlan{}
+		for _, vb := range mono {
+			monoTotal += vb.SizeInBytes
+			newVms = append(newVms, types.VolumeMap{monoVolume: vb.SizeInBytes})
+		}
+		if monoTotal > scheduleInfo.InitVolume[monoVolume] {
+			return scheduleInfo, nil, 0, errors.Wrap(types.ErrInsufficientVolume, "no space to expand mono volumes: ")
+		}
+		newVms = proportionPlan(newVms, scheduleInfo.InitVolume[monoVolume])
+		for i, vb := range mono {
+			newMonoPlan[*vb] = newVms[i]
+		}
+		affinityPlan.Merge(newMonoPlan)
+	}
+
+	// unlimit
+	unlimAff, unlimRem := distinguishAffinityVolumeBindings(unlim, existing)
+	needReschedule = append(needReschedule, unlimRem...)
+	unlimPlan := types.VolumePlan{}
+	for _, vb := range unlimAff {
+		_, oldVm, _ := existing.FindAffinityPlan(*vb)
+		unlimPlan[*vb] = oldVm
+	}
+	affinityPlan.Merge(unlimPlan)
+
+	// schedule new volume requests
+	scheduleInfos, volumePlans, total, err := m.SelectVolumeNodes(ctx, []resourcetypes.ScheduleInfo{scheduleInfo}, needReschedule)
+	if err != nil {
+		return scheduleInfo, nil, 0, err
+	}
+
+	// merge
+	for i := range volumePlans[scheduleInfo.Name] {
+		volumePlans[scheduleInfo.Name][i].Merge(affinityPlan)
+	}
+
+	return scheduleInfos[0], volumePlans, total, nil
+}
+
+func findAffinityPlans(resourceMap types.ResourceMap, need int64, existing types.ResourceMap, sharebase int64) (_ types.ResourceMap, remain int64, _ types.ResourceMap) {
+	var (
+		affinityPlan types.ResourceMap = make(types.ResourceMap)
+	)
+
+	diff := need - existing.Total()
+	// sort by pieces
+	resourceIDs := []string{}
+	for resourceID := range existing {
+		resourceIDs = append(resourceIDs, resourceID)
+	}
+	sort.Slice(resourceIDs, func(i, j int) bool { return existing[resourceIDs[i]] < existing[resourceIDs[j]] })
+
+	// shrink, ensure affinity
+	if diff <= 0 {
+		affinityPlan = existing
+		// prioritize fragments
+		for _, resourceID := range resourceIDs {
+			if diff == 0 {
+				break
+			}
+			shrink := utils.Min64(affinityPlan[resourceID], -diff)
+			affinityPlan[resourceID] -= shrink
+			if affinityPlan[resourceID] == 0 {
+				delete(affinityPlan, resourceID)
+			}
+			diff += shrink
+			resourceMap[resourceID] += shrink
+		}
+		return resourceMap, 0, affinityPlan
+	}
+
+	// expand, prioritize full resource unit
+	remain = need
+	for i := len(resourceIDs) - 1; i >= 0; i-- {
+		resourceID := resourceIDs[i]
+		if remain == 0 {
+			resourceMap[resourceID] += existing[resourceID]
+			continue
+		}
+
+		// whole resource, keep it
+		if existing[resourceID] == sharebase {
+			affinityPlan[resourceID] = sharebase
+			remain -= sharebase
+			continue
+		}
+
+		// fragments, try to find complement
+		if available := resourceMap[resourceID]; available == sharebase-existing[resourceID] {
+			expand := utils.Min64(available, remain)
+			affinityPlan[resourceID] = existing[resourceID] + expand
+			resourceMap[resourceID] -= expand
+			remain -= sharebase
+			continue
+		}
+
+		// else, return to resource pools
+		resourceMap[resourceID] += existing[resourceID]
+	}
+
+	return resourceMap, remain, affinityPlan
+}

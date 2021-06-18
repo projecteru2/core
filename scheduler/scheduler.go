@@ -28,6 +28,8 @@ type Scheduler interface {
 	ReselectCPUNodes(ctx context.Context, scheduleInfo resourcetypes.ScheduleInfo, CPU types.CPUMap, quota float64, memory int64) (resourcetypes.ScheduleInfo, map[string][]types.CPUMap, int, error)
 	// select nodes from nodes, return a list a nodenames and the corresponding volumemap
 	SelectVolumeNodes(ctx context.Context, scheduleInfo []resourcetypes.ScheduleInfo, vbs types.VolumeBindings) ([]resourcetypes.ScheduleInfo, map[string][]types.VolumePlan, int, error)
+	// ReselectVolumeNodes is used for realloc only
+	ReselectVolumeNodes(ctx context.Context, scheduleInfo resourcetypes.ScheduleInfo, old types.VolumePlan, request types.VolumeBindings) (resourcetypes.ScheduleInfo, map[string][]types.VolumePlan, int, error)
 }
 
 // InitSchedulerV1 .
