@@ -427,46 +427,6 @@ func TestStorage(t *testing.T) {
 	r := &types.ResourceMeta{}
 	_, err = plans.Dispense(opts, r)
 	assert.Nil(t, err)
-
-	opts = resourcetypes.DispenseOptions{
-		Node:  &node,
-		Index: 0,
-		ExistingInstance: &types.Workload{
-			ResourceMeta: types.ResourceMeta{
-				VolumePlanRequest: types.VolumePlan{
-					types.VolumeBinding{
-						Source:      "/data1",
-						Destination: "/data1",
-					}: types.VolumeMap{
-						"/dev0": 5120,
-					},
-				},
-			},
-		},
-	}
-	r = &types.ResourceMeta{}
-	_, err = plans.Dispense(opts, r)
-	assert.Nil(t, err)
-
-	opts = resourcetypes.DispenseOptions{
-		Node:  &node,
-		Index: 0,
-		ExistingInstance: &types.Workload{
-			ResourceMeta: types.ResourceMeta{
-				VolumePlanRequest: types.VolumePlan{
-					types.VolumeBinding{
-						Source:      "/data1",
-						Destination: "/data1",
-					}: types.VolumeMap{
-						"/data3": 512,
-					},
-				},
-			},
-		},
-	}
-	r = &types.ResourceMeta{}
-	_, err = plans.Dispense(opts, r)
-	assert.Error(t, err)
 }
 
 func TestRate(t *testing.T) {
