@@ -11,10 +11,10 @@ var clusters map[string]*integration.ClusterV3 = map[string]*integration.Cluster
 
 // NewCluster new a embedded cluster
 func NewCluster(t *testing.T, prefix string) *integration.ClusterV3 {
-	c, ok := clusters[t.Name()]
-	if !ok {
+	cluster := clusters[t.Name()]
+	if cluster == nil {
 		integration.BeforeTestExternal(t)
-		cluster := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
+		cluster = integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
 		t.Cleanup(func() {
 			cluster.Terminate(t)
 			delete(clusters, t.Name())
@@ -24,7 +24,6 @@ func NewCluster(t *testing.T, prefix string) *integration.ClusterV3 {
 		cliv3.Watcher = namespace.NewWatcher(cliv3.Watcher, prefix)
 		cliv3.Lease = namespace.NewLease(cliv3.Lease, prefix)
 		clusters[t.Name()] = cluster
-		return cluster
 	}
-	return c
+	return cluster
 }
