@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/projecteru2/core/client/servicediscovery"
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 
 	"github.com/projecteru2/core/types"
 	"google.golang.org/grpc/resolver"
@@ -44,20 +44,20 @@ func (r *Resolver) Close() {
 }
 
 func (r *Resolver) sync() {
-	log.Debug("[EruResolver] start sync service discovery")
+	log.Debug(context.TODO(), "[EruResolver] start sync service discovery")
 	ctx, cancel := context.WithCancel(context.Background())
 	r.cancel = cancel
 	defer cancel()
 
 	ch, err := r.discovery.Watch(ctx)
 	if err != nil {
-		log.Errorf("[EruResolver] failed to watch service status: %v", err)
+		log.Errorf(ctx, "[EruResolver] failed to watch service status: %v", err)
 		return
 	}
 	for {
 		select {
 		case <-ctx.Done():
-			log.Errorf("[EruResolver] watch interrupted: %v", ctx.Err())
+			log.Errorf(ctx, "[EruResolver] watch interrupted: %v", ctx.Err())
 			return
 		case endpoints, ok := <-ch:
 			if !ok {

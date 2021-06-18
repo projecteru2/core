@@ -9,7 +9,7 @@ import (
 	"github.com/projecteru2/core/auth"
 	"github.com/projecteru2/core/client/interceptor"
 	"github.com/projecteru2/core/client/utils"
-	log "github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
@@ -34,7 +34,7 @@ func New(endpoint string, authConfig types.AuthConfig) *EruServiceDiscovery {
 func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err error) {
 	cc, err := w.dial(ctx, w.endpoint, w.authConfig)
 	if err != nil {
-		log.Errorf("[EruServiceWatch] dial failed: %v", err)
+		log.Errorf(ctx, "[EruServiceWatch] dial failed: %v", err)
 		return
 	}
 	client := pb.NewCoreRPCClient(cc)
@@ -48,7 +48,7 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 			watchCtx, cancelWatch := context.WithCancel(ctx)
 			stream, err := client.WatchServiceStatus(watchCtx, &pb.Empty{})
 			if err != nil {
-				log.Errorf("[EruServiceWatch] watch failed, try later: %v", err)
+				log.Errorf(ctx, "[EruServiceWatch] watch failed, try later: %v", err)
 				time.Sleep(10 * time.Second)
 				continue
 			}
@@ -69,7 +69,7 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 				status, err := stream.Recv()
 				close(cancelTimer)
 				if err != nil {
-					log.Errorf("[EruServiceWatch] recv failed: %v", err)
+					log.Errorf(ctx, "[EruServiceWatch] recv failed: %v", err)
 					break
 				}
 				expectedInterval = time.Duration(status.GetIntervalInSecond())
