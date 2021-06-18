@@ -76,6 +76,43 @@ func (_m *Scheduler) ReselectCPUNodes(ctx context.Context, scheduleInfo resource
 	return r0, r1, r2, r3
 }
 
+// ReselectVolumeNodes provides a mock function with given fields: ctx, scheduleInfo, old, request
+func (_m *Scheduler) ReselectVolumeNodes(ctx context.Context, scheduleInfo resourcestypes.ScheduleInfo, old types.VolumePlan, request types.VolumeBindings) (resourcestypes.ScheduleInfo, map[string][]types.VolumePlan, int, error) {
+	ret := _m.Called(ctx, scheduleInfo, old, request)
+
+	var r0 resourcestypes.ScheduleInfo
+	if rf, ok := ret.Get(0).(func(context.Context, resourcestypes.ScheduleInfo, types.VolumePlan, types.VolumeBindings) resourcestypes.ScheduleInfo); ok {
+		r0 = rf(ctx, scheduleInfo, old, request)
+	} else {
+		r0 = ret.Get(0).(resourcestypes.ScheduleInfo)
+	}
+
+	var r1 map[string][]types.VolumePlan
+	if rf, ok := ret.Get(1).(func(context.Context, resourcestypes.ScheduleInfo, types.VolumePlan, types.VolumeBindings) map[string][]types.VolumePlan); ok {
+		r1 = rf(ctx, scheduleInfo, old, request)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(map[string][]types.VolumePlan)
+		}
+	}
+
+	var r2 int
+	if rf, ok := ret.Get(2).(func(context.Context, resourcestypes.ScheduleInfo, types.VolumePlan, types.VolumeBindings) int); ok {
+		r2 = rf(ctx, scheduleInfo, old, request)
+	} else {
+		r2 = ret.Get(2).(int)
+	}
+
+	var r3 error
+	if rf, ok := ret.Get(3).(func(context.Context, resourcestypes.ScheduleInfo, types.VolumePlan, types.VolumeBindings) error); ok {
+		r3 = rf(ctx, scheduleInfo, old, request)
+	} else {
+		r3 = ret.Error(3)
+	}
+
+	return r0, r1, r2, r3
+}
+
 // SelectCPUNodes provides a mock function with given fields: ctx, scheduleInfos, quota, memory
 func (_m *Scheduler) SelectCPUNodes(ctx context.Context, scheduleInfos []resourcestypes.ScheduleInfo, quota float64, memory int64) ([]resourcestypes.ScheduleInfo, map[string][]types.ResourceMap, int, error) {
 	ret := _m.Called(ctx, scheduleInfos, quota, memory)

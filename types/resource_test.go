@@ -93,4 +93,21 @@ func TestVolumePlan(t *testing.T) {
 		MustToVolumeBinding("AUTO:/data0:ro:200"): VolumeMap{"/dir0": 200},
 		MustToVolumeBinding("AUTO:/data1:rw:100"): VolumeMap{"/dir2": 100},
 	}))
+
+	p := MustToVolumePlan(map[string]map[string]int64{
+		"AUTO:/data1:w:100": map[string]int64{
+			"/tmp1": 100,
+		},
+		"AUTO:/data2:w:100": map[string]int64{
+			"/tmp2": 100,
+		},
+	})
+	_, _, found := p.FindAffinityPlan(MustToVolumeBinding("AUTO:/data2:w"))
+	assert.True(t, found)
+	_, _, found = p.FindAffinityPlan(MustToVolumeBinding("AUTO:/data1:w"))
+	assert.True(t, found)
+	_, _, found = p.FindAffinityPlan(MustToVolumeBinding("AUTO:/data1:rw"))
+	assert.False(t, found)
+	_, _, found = p.FindAffinityPlan(MustToVolumeBinding("AUTO:/data3:w"))
+	assert.False(t, found)
 }
