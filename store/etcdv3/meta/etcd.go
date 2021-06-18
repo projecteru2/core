@@ -226,7 +226,7 @@ func (e *ETCD) BatchUpdate(ctx context.Context, data map[string]string, opts ...
 	return e.batchUpdate(ctx, data, opts...)
 }
 
-// KeepAliveOnce keeps on a lease alive.
+// BindStatus keeps on a lease alive.
 func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
 	var leaseID clientv3.LeaseID
 	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, statusValue)}

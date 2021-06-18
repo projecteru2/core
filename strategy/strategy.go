@@ -24,6 +24,7 @@ const (
 	Dummy = "DUMMY"
 )
 
+// Plans .
 var Plans = map[string]startegyFunc{
 	Auto:   CommunismPlan,
 	Fill:   FillPlan,

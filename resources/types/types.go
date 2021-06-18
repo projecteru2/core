@@ -49,7 +49,7 @@ func (rr ResourceRequests) MainUsageOnNode(node types.Node) (usage float64) {
 	return
 }
 
-// ResourceRequirement .
+// ResourceRequest .
 type ResourceRequest interface {
 	Type() types.ResourceType
 	Validate() error
