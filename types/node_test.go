@@ -150,3 +150,21 @@ func TestNodeWithResource(t *testing.T) {
 	assert.EqualValues(t, 0, n.StorageCap)
 	assert.EqualValues(t, 0, n.VolumeUsed)
 }
+
+func TestNodeMeta(t *testing.T) {
+	meta := NodeMeta{
+		CPU: CPUMap{
+			"0": 100,
+		},
+		Volume: VolumeMap{
+			"/tmp": 1000,
+		},
+	}
+
+	co, err := meta.DeepCopy()
+	assert.Nil(t, err)
+	co.CPU["0"] = 0
+	co.Volume["/tmp"] += 1
+	assert.EqualValues(t, 100, meta.CPU["0"])
+	assert.EqualValues(t, 1000, meta.Volume["/tmp"])
+}
