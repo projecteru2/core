@@ -15,8 +15,12 @@ func SelectNodesByResourceRequests(ctx context.Context, resourceRequests resourc
 ) {
 	scheduleInfos := []resourcetypes.ScheduleInfo{}
 	for _, node := range nodeMap {
+		nodeMeta, err := node.NodeMeta.DeepCopy()
+		if err != nil {
+			return nil, err
+		}
 		scheduleInfo := resourcetypes.ScheduleInfo{
-			NodeMeta: node.NodeMeta,
+			NodeMeta: nodeMeta,
 		}
 		scheduleInfos = append(scheduleInfos, scheduleInfo)
 	}

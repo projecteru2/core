@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"encoding/json"
 	"math"
 
 	"github.com/pkg/errors"
@@ -40,6 +41,15 @@ type NodeMeta struct {
 	InitStorageCap int64      `json:"init_storage_cap"`
 	InitNUMAMemory NUMAMemory `json:"init_numa_memory"`
 	InitVolume     VolumeMap  `json:"init_volume"`
+}
+
+// DeepCopy returns a deepcopy of nodemeta
+func (n NodeMeta) DeepCopy() (nn NodeMeta, err error) {
+	b, err := json.Marshal(n)
+	if err != nil {
+		return nn, errors.WithStack(err)
+	}
+	return nn, errors.WithStack(json.Unmarshal(b, &nn))
 }
 
 // Node store node info
