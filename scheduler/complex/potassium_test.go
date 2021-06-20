@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"sort"
 	"testing"
 
@@ -1757,4 +1758,71 @@ func TestSelectUnlimited(t *testing.T) {
 	assert.Equal(t, res["2"][1][types.MustToVolumeBinding("AUTO:/data3:rw:0")], types.VolumeMap{"/data4": 0})
 	assert.Equal(t, res["2"][1][types.MustToVolumeBinding("AUTO:/data4:rw:0")], types.VolumeMap{"/data4": 0})
 
+}
+
+func TestSelectVolumeNormAndMono(t *testing.T) {
+	k, _ := newPotassium()
+
+	nodes := []resourcetypes.ScheduleInfo{
+		{
+			NodeMeta: types.NodeMeta{
+				Name: "n0",
+				Volume: types.VolumeMap{
+					"/data0": 1000,
+					"/data1": 2000,
+				},
+				InitVolume: types.VolumeMap{
+					"/data0": 1000,
+					"/data1": 2000,
+				},
+			},
+		},
+	}
+
+	req := []string{
+		"AUTO:/data0:rw:50",
+		"AUTO:/data1:rwm:50",
+	}
+
+	res, _, err := SelectVolumeNodes(k, nodes, nil, req, 1, false)
+	assert.Nil(t, err)
+	assert.EqualValues(t, 1, len(res["n0"]))
+	assert.True(t, reflect.DeepEqual(res["n0"][0], types.MustToVolumePlan(map[string]map[string]int64{
+		"AUTO:/data0:rw:50": map[string]int64{
+			"/data0": 50,
+		},
+		"AUTO:/data1:rwm:50": map[string]int64{
+			"/data1": 2000,
+		},
+	})))
+
+	// round 2
+	nodes = []resourcetypes.ScheduleInfo{
+		{
+			NodeMeta: types.NodeMeta{
+				Name: "n0",
+				Volume: types.VolumeMap{
+					"/data0": 1000,
+					"/data1": 2000,
+					"/data2": 1000,
+					"/data3": 2000,
+				},
+				InitVolume: types.VolumeMap{
+					"/data0": 1000,
+					"/data1": 2000,
+					"/data2": 1000,
+					"/data3": 2000,
+				},
+			},
+		},
+	}
+
+	req = []string{
+		"AUTO:/data0:rw:50",
+		"AUTO:/data1:rwm:50",
+	}
+
+	res, _, err = SelectVolumeNodes(k, nodes, nil, req, 2, false)
+	assert.Nil(t, err)
+	assert.EqualValues(t, 2, len(res["n0"]))
 }

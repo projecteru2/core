@@ -253,6 +253,22 @@ func (m *Potassium) SelectVolumeNodes(ctx context.Context, scheduleInfos []resou
 		if len(reqsMono) == 0 {
 			usedVolumeMap.Add(unusedVolumeMap)
 		}
+		if len(reqsNorm) != 0 && len(usedVolumeMap) == 0 && len(unusedVolumeMap) != 0 {
+			usedVolumeMap = types.VolumeMap{}
+			// give out half of volumes
+			half, cnt, toDelete := (len(unusedVolumeMap)+1)/2, 0, []string{}
+			for i, v := range unusedVolumeMap {
+				cnt++
+				if cnt > half {
+					break
+				}
+				toDelete = append(toDelete, i)
+				usedVolumeMap[i] = v
+			}
+			for _, i := range toDelete {
+				delete(unusedVolumeMap, i)
+			}
+		}
 
 		capNorm, plansNorm := calculateVolumePlan(usedVolumeMap, reqsNorm)
 		capMono, plansMono := calculateMonopolyVolumePlan(scheduleInfo.InitVolume, unusedVolumeMap, reqsMono)
