@@ -164,7 +164,7 @@ func TestNodeMeta(t *testing.T) {
 	co, err := meta.DeepCopy()
 	assert.Nil(t, err)
 	co.CPU["0"] = 0
-	co.Volume["/tmp"] += 1
+	co.Volume["/tmp"]++
 	assert.EqualValues(t, 100, meta.CPU["0"])
 	assert.EqualValues(t, 1000, meta.Volume["/tmp"])
 }
