@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/pkg/errors"
@@ -72,6 +73,19 @@ func (c *Calcium) withNodeLocked(ctx context.Context, nodename string, f func(co
 func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(context.Context, map[string]*types.Workload) error) error {
 	workloads := map[string]*types.Workload{}
 	locks := map[string]lock.DistributedLock{}
+
+	// sort + unique
+	sort.Strings(ids)
+	j := 0
+	for i, id := range ids {
+		if i > 0 && ids[i-1] == id {
+			continue
+		}
+		ids[j] = id
+		j++
+	}
+	ids = ids[:j]
+
 	defer log.Debugf(ctx, "[withWorkloadsLocked] Workloads %+v unlocked", ids)
 	defer func() { c.doUnlockAll(utils.InheritTracingInfo(ctx, context.Background()), locks) }()
 	cs, err := c.GetWorkloads(ctx, ids)

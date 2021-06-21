@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"context"
+	"sort"
 
 	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
@@ -176,8 +177,24 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 // filterNodes filters nodes using NodeFilter nf
 // the filtering logic is introduced along with NodeFilter
 // NOTE: when nf.Includes is set, they don't need to belong to podname
-func (c *Calcium) filterNodes(ctx context.Context, nf types.NodeFilter) ([]*types.Node, error) {
-	ns := []*types.Node{}
+// updateon 2021-06-21: sort and unique locks to avoid deadlock
+func (c *Calcium) filterNodes(ctx context.Context, nf types.NodeFilter) (ns []*types.Node, err error) {
+	defer func() {
+		if len(ns) == 0 {
+			return
+		}
+		sort.Slice(ns, func(i, j int) bool { return ns[i].Name <= ns[j].Name })
+		// unique
+		j := 0
+		for i, n := range ns {
+			if i > 0 && n.Name == ns[i-1].Name {
+				continue
+			}
+			ns[j] = n
+			j++
+		}
+		ns = ns[:j]
+	}()
 
 	if len(nf.Includes) != 0 {
 		for _, nodename := range nf.Includes {

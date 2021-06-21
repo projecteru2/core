@@ -5,6 +5,7 @@ package calcium
 
 import (
 	"context"
+	"sort"
 
 	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
@@ -50,6 +51,20 @@ func (c *Calcium) GetWorkload(ctx context.Context, id string) (workload *types.W
 
 // GetWorkloads get workloads
 func (c *Calcium) GetWorkloads(ctx context.Context, ids []string) (workloads []*types.Workload, err error) {
+	defer func() {
+		if len(workloads) == 0 {
+			return
+		}
+		sort.Slice(workloads, func(i, j int) bool { return workloads[i].ID <= workloads[j].ID })
+		ws := []*types.Workload{}
+		for i, w := range workloads {
+			for i > 0 && w.ID == workloads[i-1].ID {
+				continue
+			}
+			ws = append(ws, w)
+		}
+		workloads = ws
+	}()
 	workloads, err = c.store.GetWorkloads(ctx, ids)
 	return workloads, log.WithField("Calcium", "GetWorkloads").WithField("ids", ids).Err(ctx, errors.WithStack(err))
 }
