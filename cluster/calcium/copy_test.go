@@ -37,17 +37,16 @@ func TestCopy(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	c.store = store
 	// failed by GetWorkload
-	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	ch, err := c.Copy(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
 	workload := &types.Workload{ID: "cid"}
-	workloads := []*types.Workload{workload}
 	engine := &enginemocks.API{}
 	workload.Engine = engine
-	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(workloads, nil)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	// failed by VirtualizationCopyFrom
 	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(nil, "", types.ErrNilEngine).Twice()
 	ch, err = c.Copy(ctx, opts)
