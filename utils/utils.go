@@ -297,6 +297,7 @@ func Reverse(s interface{}) {
 }
 
 // Unique return a index, where s[:index] is a unique slice
+// Unique requires sorted slice
 func Unique(s interface{}, getVal func(int) string) (j int) {
 	n := reflect.ValueOf(s).Len()
 	swap := reflect.Swapper(s)

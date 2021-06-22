@@ -38,7 +38,7 @@ func (c *Calcium) doUnlock(ctx context.Context, lock lock.DistributedLock, msg s
 	return errors.WithStack(lock.Unlock(ctx))
 }
 
-func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.DistributedLock, order []string) {
+func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.DistributedLock, order ...string) {
 	// unlock in the reverse order
 	if len(order) != len(locks) {
 		log.Warn(ctx, "[doUnlockAll] order length not match lock map")
@@ -88,7 +88,7 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(
 	defer log.Debugf(ctx, "[withWorkloadsLocked] Workloads %+v unlocked", ids)
 	defer func() {
 		utils.Reverse(ids)
-		c.doUnlockAll(utils.InheritTracingInfo(ctx, context.Background()), locks, ids)
+		c.doUnlockAll(utils.InheritTracingInfo(ctx, context.TODO()), locks, ids...)
 	}()
 	cs, err := c.GetWorkloads(ctx, ids)
 	if err != nil {
@@ -116,7 +116,7 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nf types.NodeFilter, f fu
 	defer log.Debugf(ctx, "[withNodesLocked] Nodes %+v unlocked", nf)
 	defer func() {
 		utils.Reverse(nodenames)
-		c.doUnlockAll(utils.InheritTracingInfo(ctx, context.Background()), locks, nodenames)
+		c.doUnlockAll(utils.InheritTracingInfo(ctx, context.TODO()), locks, nodenames...)
 	}()
 
 	ns, err := c.filterNodes(ctx, nf)
