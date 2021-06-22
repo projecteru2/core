@@ -185,15 +185,7 @@ func (c *Calcium) filterNodes(ctx context.Context, nf types.NodeFilter) (ns []*t
 		}
 		sort.Slice(ns, func(i, j int) bool { return ns[i].Name <= ns[j].Name })
 		// unique
-		j := 0
-		for i, n := range ns {
-			if i > 0 && n.Name == ns[i-1].Name {
-				continue
-			}
-			ns[j] = n
-			j++
-		}
-		ns = ns[:j]
+		ns = ns[:utils.Unique(ns, func(i int) string { return ns[i].Name })]
 	}()
 
 	if len(nf.Includes) != 0 {
