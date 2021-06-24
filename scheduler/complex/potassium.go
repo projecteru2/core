@@ -124,6 +124,7 @@ func (m *Potassium) SelectCPUNodes(ctx context.Context, scheduleInfos []resource
 
 // ReselectCPUNodes used for realloc one container with cpu affinity
 func (m *Potassium) ReselectCPUNodes(ctx context.Context, scheduleInfo resourcetypes.ScheduleInfo, CPU types.CPUMap, quota float64, memory int64) (resourcetypes.ScheduleInfo, map[string][]types.CPUMap, int, error) {
+	log.Infof(ctx, "[SelectCPUNodes] scheduleInfo %v, need cpu %f, need memory %d, existing %v", scheduleInfo, quota, memory, CPU)
 	var affinityPlan types.CPUMap
 	// remaining quota that's impossible to achieve affinity
 	if scheduleInfo, quota, affinityPlan = cpuReallocPlan(scheduleInfo, quota, CPU, int64(m.sharebase)); quota == 0 {
@@ -325,7 +326,7 @@ func (m *Potassium) SelectVolumeNodes(ctx context.Context, scheduleInfos []resou
 
 // ReselectVolumeNodes is used for realloc only
 func (m *Potassium) ReselectVolumeNodes(ctx context.Context, scheduleInfo resourcetypes.ScheduleInfo, existing types.VolumePlan, vbsReq types.VolumeBindings) (resourcetypes.ScheduleInfo, map[string][]types.VolumePlan, int, error) {
-
+	log.Infof(ctx, "[ReselectVolumeNodes] scheduleInfo %v, need volume: %v, existing %v", scheduleInfo, vbsReq.ToStringSlice(true, true), existing.ToLiteral())
 	affinityPlan := types.VolumePlan{}
 	needReschedule := types.VolumeBindings{}
 	norm, mono, unlim := distinguishVolumeBindings(vbsReq)

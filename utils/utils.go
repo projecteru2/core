@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"os"
+	"reflect"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -284,4 +285,30 @@ func safeSplit(s string) []string {
 	}
 
 	return result
+}
+
+// Reverse any slice
+func Reverse(s interface{}) {
+	n := reflect.ValueOf(s).Len()
+	swap := reflect.Swapper(s)
+	for i, j := 0, n-1; i < j; i, j = i+1, j-1 {
+		swap(i, j)
+	}
+}
+
+// Unique return a index, where s[:index] is a unique slice
+// Unique requires sorted slice
+func Unique(s interface{}, getVal func(int) string) (j int) {
+	n := reflect.ValueOf(s).Len()
+	swap := reflect.Swapper(s)
+	lastVal := ""
+	for i := 0; i < n; i++ {
+		if getVal(i) == lastVal && i != 0 {
+			continue
+		}
+		lastVal = getVal(i)
+		swap(i, j)
+		j++
+	}
+	return j
 }

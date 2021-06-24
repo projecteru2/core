@@ -97,27 +97,29 @@ func TestRealloc(t *testing.T) {
 		}
 	}
 
-	store.On("GetWorkloads", mock.Anything, []string{"c1"}).Return(newC1, nil)
+	store.On("GetWorkload", mock.Anything, "c1").Return(newC1(context.TODO(), nil)[0], nil)
+
+	// failed by GetNode
+	store.On("GetNode", mock.Anything, "node1").Return(nil, types.ErrNoETCD).Once()
+	err := c.ReallocResource(ctx, newReallocOptions("c1", 0.1, 2*int64(units.GiB), nil, types.TriKeep, types.TriKeep))
+	assert.EqualError(t, err, "ETCD must be set")
+	store.AssertExpectations(t)
+	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
+
 	// failed by lock
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	err := c.ReallocResource(ctx, newReallocOptions("c1", -1, 2*int64(units.GiB), nil, types.TriKeep, types.TriKeep))
+	err = c.ReallocResource(ctx, newReallocOptions("c1", -1, 2*int64(units.GiB), nil, types.TriKeep, types.TriKeep))
 	assert.EqualError(t, err, "ETCD must be set")
 	store.AssertExpectations(t)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
 	// failed by newCPU < 0
+	store.On("GetWorkloads", mock.Anything, []string{"c1"}).Return(newC1, nil)
 	err = c.ReallocResource(ctx, newReallocOptions("c1", -1, 2*int64(units.GiB), nil, types.TriKeep, types.TriKeep))
 	assert.EqualError(t, err, "limit or request less than 0: bad `CPU` value")
 	store.AssertExpectations(t)
 
-	// failed by GetNode
-	store.On("GetNode", mock.Anything, "node1").Return(nil, types.ErrNoETCD).Once()
-	err = c.ReallocResource(ctx, newReallocOptions("c1", 0.1, 2*int64(units.GiB), nil, types.TriKeep, types.TriKeep))
-	assert.EqualError(t, err, "ETCD must be set")
-	store.AssertExpectations(t)
-
 	// failed by no enough mem
-	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
 	simpleMockScheduler := &schedulermocks.Scheduler{}
 	scheduler.InitSchedulerV1(simpleMockScheduler)
 	c.scheduler = simpleMockScheduler
@@ -165,6 +167,7 @@ func TestRealloc(t *testing.T) {
 		},
 		Engine: engine,
 	}
+	store.On("GetWorkload", mock.Anything, "c2").Return(newC2(nil, nil)[0], nil)
 	store.On("GetWorkloads", mock.Anything, []string{"c2"}).Return(newC2, nil)
 	err = c.ReallocResource(ctx, newReallocOptions("c2", 0.1, 2*int64(units.MiB), nil, types.TriKeep, types.TriKeep))
 	assert.EqualError(t, err, "workload ID must be length of 64")
@@ -251,6 +254,7 @@ func TestRealloc(t *testing.T) {
 	simpleMockScheduler.On("ReselectCPUNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos[0], nodeCPUPlans, 2, nil)
 	simpleMockScheduler.On("ReselectVolumeNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos[0], nodeVolumePlans, 2, nil).Once()
 	store.On("GetNode", mock.Anything, "node2").Return(node2, nil)
+	store.On("GetWorkload", mock.Anything, "c3").Return(c3, nil)
 	store.On("GetWorkloads", mock.Anything, []string{"c3"}).Return([]*types.Workload{c3}, nil)
 	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(types.ErrBadWorkloadID).Times(1)
 	err = c.ReallocResource(ctx, newReallocOptions("c3", 0.1, 2*int64(units.MiB), types.MustToVolumeBindings([]string{"AUTO:/data0:rw:-50"}), types.TriKeep, types.TriKeep))
@@ -341,6 +345,7 @@ func TestReallocBindCpu(t *testing.T) {
 	}
 
 	store.On("GetNode", mock.Anything, "node3").Return(node3, nil)
+	store.On("GetWorkload", mock.Anything, "c5").Return(c5, nil)
 	store.On("GetWorkloads", mock.Anything, []string{"c5"}).Return([]*types.Workload{c5}, nil)
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(nil)
@@ -358,6 +363,7 @@ func TestReallocBindCpu(t *testing.T) {
 	assert.Equal(t, 0, len(c5.ResourceMeta.CPU))
 	store.AssertExpectations(t)
 
+	store.On("GetWorkload", mock.Anything, "c6").Return(c6, nil)
 	store.On("GetWorkloads", mock.Anything, []string{"c6"}).Return([]*types.Workload{c6}, nil)
 	err = c.ReallocResource(ctx, newReallocOptions("c6", 0.1, 2*int64(units.MiB), nil, types.TriTrue, types.TriKeep))
 	assert.NoError(t, err)
