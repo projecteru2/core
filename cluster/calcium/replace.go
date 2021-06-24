@@ -170,7 +170,7 @@ func (c *Calcium) doReplaceWorkload(
 				// if
 				func(ctx context.Context) error {
 					vco := c.doMakeReplaceWorkloadOptions(ctx, index, createMessage, &opts.DeployOptions, node, workload.ID)
-					return c.doDeployOneWorkload(ctx, node, &opts.DeployOptions, createMessage, vco)
+					return c.doDeployOneWorkload(ctx, node, &opts.DeployOptions, createMessage, vco, false)
 				},
 				// then
 				func(ctx context.Context) (err error) {
