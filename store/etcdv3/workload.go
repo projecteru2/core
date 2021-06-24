@@ -278,15 +278,22 @@ func (m *Mercury) doOpsWorkload(ctx context.Context, workload *types.Workload, p
 		filepath.Join(workloadDeployPrefix, appname, entrypoint, workload.Nodename, workload.ID): workloadData,
 	}
 
+	var resp *clientv3.TxnResponse
 	if create {
 		if processing != nil {
 			processingKey := m.getProcessingKey(processing)
 			err = m.BatchCreateAndDecr(ctx, data, processingKey)
 		} else {
-			_, err = m.BatchCreate(ctx, data)
+			resp, err = m.BatchCreate(ctx, data)
 		}
 	} else {
-		_, err = m.BatchUpdate(ctx, data)
+		resp, err = m.BatchUpdate(ctx, data)
 	}
-	return err
+	if err != nil {
+		return err
+	}
+	if resp != nil && !resp.Succeeded {
+		return types.ErrTxnConditionFailed
+	}
+	return nil
 }
