@@ -309,6 +309,7 @@ func (v *Vibranium) GetWorkloads(ctx context.Context, cids *pb.WorkloadIDs) (*pb
 // ListWorkloads by appname with optional entrypoint and nodename
 func (v *Vibranium) ListWorkloads(opts *pb.ListWorkloadsOptions, stream pb.CoreRPC_ListWorkloadsServer) error {
 	ctx := v.taskAdd(stream.Context(), "ListWorkloads", true)
+	defer v.taskDone(ctx, "ListWorkloads", true)
 	lsopts := &types.ListWorkloadsOptions{
 		Appname:    opts.Appname,
 		Entrypoint: opts.Entrypoint,
@@ -831,16 +832,19 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	ctx := v.taskAdd(stream.Context(), "RunAndWait", true)
 	RunAndWaitOptions, err := stream.Recv()
 	if err != nil {
+		v.taskDone(ctx, "RunAndWait", true)
 		return grpcstatus.Error(RunAndWait, err.Error())
 	}
 
 	if RunAndWaitOptions.DeployOptions == nil {
+		v.taskDone(ctx, "RunAndWait", true)
 		return grpcstatus.Error(RunAndWait, types.ErrNoDeployOpts.Error())
 	}
 
 	opts := RunAndWaitOptions.DeployOptions
 	deployOpts, err := toCoreDeployOptions(opts)
 	if err != nil {
+		v.taskDone(ctx, "RunAndWait", true)
 		return grpcstatus.Error(RunAndWait, err.Error())
 	}
 
@@ -873,6 +877,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 
 	ids, ch, err := v.cluster.RunAndWait(ctx, deployOpts, inCh)
 	if err != nil {
+		v.taskDone(ctx, "RunAndWait", true)
 		cancel()
 		return grpcstatus.Error(RunAndWait, err.Error())
 	}
