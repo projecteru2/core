@@ -15,9 +15,11 @@ import (
 
 // Mutex is etcdv3 lock
 type Mutex struct {
-	timeout time.Duration
-	mutex   *concurrency.Mutex
-	session *concurrency.Session
+	timeout   time.Duration
+	mutex     *concurrency.Mutex
+	session   *concurrency.Session
+	locked    bool
+	lockedMux sync.Mutex
 }
 
 type lockContext struct {
@@ -73,6 +75,10 @@ func (m *Mutex) Lock(ctx context.Context) (context.Context, error) {
 	ctx, cancel = context.WithCancel(ctx)
 	rCtx := &lockContext{Context: ctx}
 
+	m.lockedMux.Lock()
+	m.locked = true
+	m.lockedMux.Unlock()
+
 	go func() {
 		defer cancel()
 
@@ -99,13 +105,20 @@ func (m *Mutex) TryLock(ctx context.Context) (context.Context, error) {
 	ctx, cancel = context.WithCancel(ctx)
 	rCtx := &lockContext{Context: ctx}
 
-	go func() {
-		defer cancel()
+	m.lockedMux.Lock()
+	m.locked = true
+	m.lockedMux.Unlock()
 
+	go func() {
 		select {
 		case <-m.session.Done():
-			rCtx.setError(types.ErrLockSessionDone)
+			// session.Done() has multi semantics
+			if m.locked {
+				rCtx.setError(types.ErrLockSessionDone)
+				cancel()
+			}
 		case <-ctx.Done():
+			cancel()
 		}
 	}()
 
@@ -123,6 +136,10 @@ func (m *Mutex) Unlock(ctx context.Context) error {
 }
 
 func (m *Mutex) unlock(ctx context.Context) error {
+	m.lockedMux.Lock()
+	m.locked = false
+	m.lockedMux.Unlock()
+
 	_, err := m.session.Client().Txn(ctx).If(m.mutex.IsOwner()).
 		Then(clientv3.OpDelete(m.mutex.Key())).Commit()
 	// no way to clear it...
