@@ -211,7 +211,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 
 				createMsg.ResourceMeta = *r
 				createOpts := c.doMakeWorkloadOptions(ctx, seq+idx, createMsg, opts, node)
-				e = c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts)
+				e = c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts, true)
 			}
 		}(idx))
 	}
@@ -245,6 +245,7 @@ func (c *Calcium) doDeployOneWorkload(
 	opts *types.DeployOptions,
 	msg *types.CreateWorkloadMessage,
 	config *enginetypes.VirtualizationCreateOptions,
+	decrProcessing bool,
 ) (err error) {
 	workload := &types.Workload{
 		ResourceMeta: types.ResourceMeta{
@@ -352,7 +353,11 @@ func (c *Calcium) doDeployOneWorkload(
 			workload.Hook = opts.Entrypoint.Hook
 
 			// avoid be interrupted by MakeDeployStatus
-			if err := c.store.AddWorkload(ctx, workload, opts.GetProcessing(node.Name)); err != nil {
+			processing := opts.GetProcessing(node.Name)
+			if !decrProcessing {
+				processing = nil
+			}
+			if err := c.store.AddWorkload(ctx, workload, processing); err != nil {
 				return errors.WithStack(err)
 			}
 			log.Infof(ctx, "[doDeployOneWorkload] workload created and saved: %s", workload.ID)
