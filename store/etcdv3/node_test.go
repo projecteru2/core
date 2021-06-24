@@ -205,6 +205,8 @@ func TestUpdateNode(t *testing.T) {
 		},
 	}
 	assert.Error(t, m.UpdateNodes(ctx, fakeNode))
+	assert.Error(t, m.UpdateNodes(ctx, node), "ETCD Txn condition failed")
+	node.Available = false
 	assert.NoError(t, m.UpdateNodes(ctx, node))
 }
 

@@ -66,10 +66,11 @@ var (
 	ErrRunAndWaitCountOneWithStdin = errors.New("Count must be 1 if OpenStdin is true")
 	ErrUnknownControlType          = errors.New("Unknown control type")
 
-	ErrNoETCD       = errors.New("ETCD must be set")
-	ErrKeyNotExists = errors.New("Key not exists")
-	ErrKeyExists    = errors.New("Key exists")
-	ErrNoOps        = errors.New("No txn ops")
+	ErrNoETCD             = errors.New("ETCD must be set")
+	ErrKeyNotExists       = errors.New("Key not exists")
+	ErrKeyExists          = errors.New("Key exists")
+	ErrNoOps              = errors.New("No txn ops")
+	ErrTxnConditionFailed = errors.New("ETCD Txn condition failed")
 
 	ErrNotSupport = errors.New("Not Support")
 	ErrSCMNotSet  = errors.New("SCM not set")

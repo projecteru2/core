@@ -155,8 +155,14 @@ func (m *Mercury) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
 		data[fmt.Sprintf(nodePodKey, node.Podname, node.Name)] = d
 	}
 
-	_, err := m.BatchUpdate(ctx, data)
-	return errors.WithStack(err)
+	resp, err := m.BatchUpdate(ctx, data)
+	if err != nil {
+		return err
+	}
+	if !resp.Succeeded {
+		return types.ErrTxnConditionFailed
+	}
+	return nil
 }
 
 // UpdateNodeResource update cpu and memory on a node, either add or subtract
@@ -246,9 +252,12 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 	data[fmt.Sprintf(nodeInfoKey, name)] = d
 	data[fmt.Sprintf(nodePodKey, podname, name)] = d
 
-	_, err = m.BatchCreate(ctx, data)
+	resp, err := m.BatchCreate(ctx, data)
 	if err != nil {
 		return nil, err
+	}
+	if !resp.Succeeded {
+		return nil, types.ErrTxnConditionFailed
 	}
 
 	go metrics.Client.SendNodeInfo(node.Metrics())
