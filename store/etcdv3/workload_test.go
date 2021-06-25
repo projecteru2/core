@@ -36,7 +36,7 @@ func TestAddORUpdateWorkload(t *testing.T) {
 	assert.NoError(t, err)
 	// success updat
 	err = m.UpdateWorkload(ctx, workload)
-	assert.Error(t, err, "ETCD Txn condition failed")
+	assert.NoError(t, err)
 	// success updat
 	workload.Name = "test_app_2"
 	err = m.UpdateWorkload(ctx, workload)
