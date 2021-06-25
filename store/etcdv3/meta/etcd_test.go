@@ -326,7 +326,7 @@ func TestETCD(t *testing.T) {
 	require.True(t, r.Succeeded)
 	// UpdateFail
 	r, err = m.Update(ctx, "test/3", "b")
-	require.Error(t, err)
+	require.NoError(t, err)
 	require.False(t, r.Succeeded)
 	// BatchUpdate
 	data = map[string]string{
@@ -336,13 +336,13 @@ func TestETCD(t *testing.T) {
 	r, err = m.BatchUpdate(ctx, data)
 	require.NoError(t, err)
 	require.True(t, r.Succeeded)
-	// BatchUpdateFail
+	// BatchUpdate
 	data = map[string]string{
 		"k1": "c1",
 		"k3": "b2",
 	}
 	r, err = m.BatchUpdate(ctx, data)
-	require.Error(t, err)
+	require.NoError(t, err)
 	require.False(t, r.Succeeded)
 	// Watch
 	ctx2, cancel := context.WithCancel(ctx)

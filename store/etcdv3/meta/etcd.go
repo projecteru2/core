@@ -308,7 +308,7 @@ func (e *ETCD) Grant(ctx context.Context, ttl int64) (*clientv3.LeaseGrantRespon
 func (e *ETCD) batchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
 	limit := map[string]map[string]string{}
 	for key := range data {
-		limit[key] = map[string]string{cmpVersion: "!=", cmpValue: "!="} // ignore same data
+		limit[key] = map[string]string{cmpVersion: "!="}
 	}
 	resp, err := e.batchPut(ctx, data, limit, opts...)
 	if err != nil {
