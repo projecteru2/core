@@ -49,8 +49,40 @@ type RawArgs struct {
 	Runtime    string                  `json:"runtime"`
 }
 
+// ensureValues checks if value is nil,
+// if so, initiate the value.
+// Though a nil slice won't panic in this situation,
+// still we initiate the values.
+func (r *RawArgs) ensureValues() {
+	if r.StorageOpt == nil {
+		r.StorageOpt = map[string]string{}
+	}
+	if r.CapAdd == nil {
+		r.CapAdd = []string{}
+	}
+	if r.CapDrop == nil {
+		r.CapDrop = []string{}
+	}
+	if r.Ulimits == nil {
+		r.Ulimits = []*units.Ulimit{}
+	}
+}
+
+// loadRawArgs loads RawArgs, if b is given,
+// values from b will over write default values.
+func loadRawArgs(b []byte) (*RawArgs, error) {
+	r := &RawArgs{}
+	if len(b) > 0 {
+		if err := json.Unmarshal(b, r); err != nil {
+			return nil, err
+		}
+	}
+	r.ensureValues()
+	return r, nil
+}
+
 // VirtualizationCreate create a workload
-func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) { // nolint
+func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) {
 	r := &enginetypes.VirtualizationCreated{}
 	// memory should more than 4MiB
 	if opts.Memory > 0 && opts.Memory < minMemory || opts.Memory < 0 {
@@ -127,12 +159,11 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		Tty:             opts.Stdin,
 	}
 
-	rArgs := &RawArgs{StorageOpt: map[string]string{}}
-	if len(opts.RawArgs) > 0 {
-		if err := json.Unmarshal(opts.RawArgs, rArgs); err != nil {
-			return r, err
-		}
+	rArgs, err := loadRawArgs(opts.RawArgs)
+	if err != nil {
+		return r, err
 	}
+
 	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode)
 	// set ulimits
 	if len(rArgs.Ulimits) == 0 {
