@@ -244,6 +244,11 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		EndpointsConfig: map[string]*dockernetwork.EndpointSettings{},
 	}
 	for networkID, ipv4 := range networks {
+		if useCNI(opts.Labels) && ipv4 != "" {
+			config.Labels["ipv4"] = ipv4
+			break
+		}
+
 		endpointSetting, err := e.makeIPV4EndpointSetting(ipv4)
 		if err != nil {
 			return r, err

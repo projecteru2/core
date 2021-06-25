@@ -282,3 +282,12 @@ func dumpFromString(ctx context.Context, ca, cert, key *os.File, caStr, certStr,
 	log.Debug(ctx, "[dumpFromString] Dump ca.pem, cert.pem, key.pem from string")
 	return nil
 }
+
+func useCNI(labels map[string]string) bool {
+	for k, v := range labels {
+		if k == "cni" && v == "1" {
+			return true
+		}
+	}
+	return false
+}
