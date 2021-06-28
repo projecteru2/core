@@ -58,7 +58,6 @@ unit-test:
 	./rpc/. \
 	./lock/etcdlock/... \
 	./auth/simple/... \
-	./cluster/calcium/... \
 	./discovery/helium... \
 	./resources/types/. \
 	./resources/storage/... \
@@ -68,6 +67,7 @@ unit-test:
 	./wal/kv/. \
 	./store/redis/... \
 	./lock/redis/...
+	go test -timeout 240s -count=1 -cover ./cluster/calcium/...
 
 lint:
 	golangci-lint run

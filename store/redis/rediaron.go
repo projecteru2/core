@@ -191,34 +191,53 @@ func (r *Rediaron) BatchUpdate(ctx context.Context, data map[string]string) erro
 
 	update := func(pipe redis.Pipeliner) error {
 		for key, value := range data {
-			_, err := r.cli.Set(ctx, key, value, 0).Result()
-			if err != nil {
-				return err
-			}
+			pipe.Set(ctx, key, value, 0)
 		}
-
 		return nil
 	}
-	_, err = r.cli.TxPipelined(ctx, update)
-	return err
+
+	cmds, err := r.cli.TxPipelined(ctx, update)
+	if err != nil {
+		return err
+	}
+
+	for _, cmd := range cmds {
+		if err := cmd.Err(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // BatchCreate is wrapper to adapt etcd batch create
 func (r *Rediaron) BatchCreate(ctx context.Context, data map[string]string) error {
 	create := func(pipe redis.Pipeliner) error {
 		for key, value := range data {
-			created, err := r.cli.SetNX(ctx, key, value, 0).Result()
-			if !created {
-				return ErrAlreadyExists
-			}
-			if err != nil {
-				return err
-			}
+			pipe.SetNX(ctx, key, value, 0)
 		}
 		return nil
 	}
-	_, err := r.cli.TxPipelined(ctx, create)
-	return err
+
+	cmds, err := r.cli.TxPipelined(ctx, create)
+	if err != nil {
+		return err
+	}
+
+	for _, cmd := range cmds {
+		bc, ok := cmd.(*redis.BoolCmd)
+		if !ok {
+			return ErrBadCmdType
+		}
+
+		created, err := bc.Result()
+		if !created {
+			return ErrAlreadyExists
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // BatchCreateAndDecr decr processing and add workload
@@ -238,10 +257,7 @@ func (r *Rediaron) BatchCreateAndDecr(ctx context.Context, data map[string]strin
 func (r *Rediaron) BatchDelete(ctx context.Context, keys []string) error {
 	del := func(pipe redis.Pipeliner) error {
 		for _, key := range keys {
-			_, err := pipe.Del(ctx, key).Result()
-			if err != nil {
-				return err
-			}
+			pipe.Del(ctx, key)
 		}
 		return nil
 	}
