@@ -25,14 +25,14 @@ const (
 )
 
 // Plans .
-var Plans = map[string]startegyFunc{
+var Plans = map[string]strategyFunc{
 	Auto:   CommunismPlan,
 	Fill:   FillPlan,
 	Each:   AveragePlan,
 	Global: GlobalPlan,
 }
 
-type startegyFunc = func(_ context.Context, _ []Info, need, total, limit int) (map[string]int, error)
+type strategyFunc = func(_ context.Context, _ []Info, need, total, limit int) (map[string]int, error)
 
 // Deploy .
 func Deploy(ctx context.Context, opts *types.DeployOptions, strategyInfos []Info, total int) (map[string]int, error) {
