@@ -67,7 +67,7 @@ func (m *Potassium) SelectStorageNodes(ctx context.Context, scheduleInfos []reso
 	sort.Slice(scheduleInfos, func(i, j int) bool { return scheduleInfos[i].StorageCap < scheduleInfos[j].StorageCap })
 	p := sort.Search(leng, func(i int) bool { return scheduleInfos[i].StorageCap >= storage })
 	if p == leng {
-		return nil, 0, errors.WithStack(types.ErrInsufficientStorage)
+		return nil, 0, errors.Wrapf(types.ErrInsufficientStorage, "no node remains storage more than %d bytes", storage)
 	}
 
 	scheduleInfos = scheduleInfos[p:]
@@ -105,7 +105,7 @@ func (m *Potassium) SelectMemoryNodes(ctx context.Context, scheduleInfos []resou
 	})
 	// p 最大也就是 scheduleInfosLength - 1
 	if p == scheduleInfosLength {
-		return nil, 0, errors.WithStack(types.ErrInsufficientCPU)
+		return nil, 0, errors.Wrapf(types.ErrInsufficientCPU, "no node remains cpu more than %0.2f", quota)
 	}
 	scheduleInfosLength -= p
 	scheduleInfos = scheduleInfos[p:]
@@ -114,7 +114,7 @@ func (m *Potassium) SelectMemoryNodes(ctx context.Context, scheduleInfos []resou
 	sort.Slice(scheduleInfos, func(i, j int) bool { return scheduleInfos[i].MemCap < scheduleInfos[j].MemCap })
 	p = sort.Search(scheduleInfosLength, func(i int) bool { return scheduleInfos[i].MemCap >= memory })
 	if p == scheduleInfosLength {
-		return nil, 0, errors.WithStack(types.ErrInsufficientMEM)
+		return nil, 0, errors.Wrapf(types.ErrInsufficientMEM, "no node remains memory more than %d bytes", memory)
 	}
 	scheduleInfos = scheduleInfos[p:]
 
@@ -179,7 +179,7 @@ func (m *Potassium) ReselectCPUNodes(ctx context.Context, scheduleInfo resourcet
 
 	scheduleInfos, cpuPlans, total, err := m.SelectCPUNodes(ctx, []resourcetypes.ScheduleInfo{scheduleInfo}, quota, memory)
 	if err != nil {
-		return scheduleInfo, nil, 0, err
+		return scheduleInfo, nil, 0, errors.Wrap(err, "failed to reschedule cpu")
 	}
 
 	// add affinity plans
@@ -369,7 +369,7 @@ func (m *Potassium) SelectVolumeNodes(ctx context.Context, scheduleInfos []resou
 	sort.Slice(scheduleInfos, func(i, j int) bool { return scheduleInfos[i].Capacity < scheduleInfos[j].Capacity })
 	p := sort.Search(len(scheduleInfos), func(i int) bool { return scheduleInfos[i].Capacity > 0 })
 	if p == len(scheduleInfos) {
-		return nil, nil, 0, errors.WithStack(types.ErrInsufficientRes)
+		return nil, nil, 0, errors.Wrapf(types.ErrInsufficientRes, "no node remains volumes for requests %+v", vbs.ToStringSlice(true, true))
 	}
 
 	return scheduleInfos[p:], volumePlans, volTotal, nil
@@ -445,7 +445,7 @@ func (m *Potassium) ReselectVolumeNodes(ctx context.Context, scheduleInfo resour
 	}
 	scheduleInfos, volumePlans, total, err := m.SelectVolumeNodes(ctx, []resourcetypes.ScheduleInfo{scheduleInfo}, needReschedule)
 	if err != nil {
-		return scheduleInfo, nil, 0, errors.WithMessage(err, "failed to reschedule")
+		return scheduleInfo, nil, 0, errors.Wrap(err, "failed to reschedule volume")
 	}
 
 	// merge

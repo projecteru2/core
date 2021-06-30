@@ -81,7 +81,7 @@ func cpuPriorPlan(ctx context.Context, cpu float64, memory int64, scheduleInfos 
 	sort.Slice(scheduleInfos, func(i, j int) bool { return scheduleInfos[i].Capacity < scheduleInfos[j].Capacity })
 	p := sort.Search(len(scheduleInfos), func(i int) bool { return scheduleInfos[i].Capacity > 0 })
 	if p == len(scheduleInfos) {
-		return nil, nil, 0, errors.WithStack(types.ErrInsufficientRes)
+		return nil, nil, 0, errors.Wrapf(types.ErrInsufficientRes, "no node remains %.2f pieces of cpu and %d bytes of memory at the same time", cpu, memory)
 	}
 
 	return scheduleInfos[p:], nodeWorkload, volTotal, nil
