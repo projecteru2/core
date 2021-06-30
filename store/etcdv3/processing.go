@@ -59,8 +59,7 @@ func (m *Mercury) doLoadProcessing(ctx context.Context, appname, entryname strin
 		nodesCount[nodename] += count
 	}
 
-	log.Debug(ctx, "[doLoadProcessing] Processing result:")
-	litter.Dump(nodesCount)
+	log.Debug(ctx, "[doLoadProcessing] Processing result: %s", litter.Sdump())
 	setCount(nodesCount, strategyInfos)
 	return nil
 }
