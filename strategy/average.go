@@ -30,7 +30,7 @@ func AveragePlan(ctx context.Context, infos []Info, need, total, limit int) (map
 		return nil, errors.WithStack(types.NewDetailedErr(types.ErrInsufficientCap, "insufficient nodes, at least 1 needed"))
 	}
 	if p < limit {
-		return nil, types.NewDetailedErr(types.ErrInsufficientRes, fmt.Sprintf("insufficient nodes, %d more needed", limit-p))
+		return nil, types.NewDetailedErr(types.ErrInsufficientRes, fmt.Sprintf("not enough nodes with capacity of %d, require %d nodes", need, limit))
 	}
 	deployMap := map[string]int{}
 	for _, strategyInfo := range infos[:limit] {

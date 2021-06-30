@@ -140,7 +140,8 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 			}
 		}
 		for vol, ids := range monopolyVolumeByWorkloads {
-			if len(ids) > 1 {
+			idx := utils.Unique(ids, func(i int) string { return ids[i] })
+			if len(ids[:idx]) > 1 {
 				nr.Diffs = append(nr.Diffs, fmt.Sprintf("\tmonopoly volume used by multiple workloads: %s, %+v", vol, ids))
 			}
 		}

@@ -68,7 +68,7 @@ func CommunismPlan(ctx context.Context, infos []Info, need, total, limit int) (m
 	heap.Init(iHeap)
 	for {
 		if iHeap.Len() == 0 {
-			return nil, errors.WithStack(types.ErrInsufficientRes)
+			return nil, errors.Wrapf(types.ErrInsufficientRes, "reached nodelimit, a node can host at most %d instances", limit)
 		}
 		info := heap.Pop(iHeap).(Info)
 		deploy[info.Nodename]++

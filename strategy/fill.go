@@ -46,5 +46,5 @@ func FillPlan(ctx context.Context, infos []Info, need, _, limit int) (_ map[stri
 		}
 	}
 	return nil, errors.WithStack(types.NewDetailedErr(types.ErrInsufficientRes,
-		fmt.Sprintf("insufficient nodes to fill %d, %d more nodes needed", need, limit)))
+		fmt.Sprintf("not enough nodes that can fill up to %d instances, require %d nodes", need, limit)))
 }

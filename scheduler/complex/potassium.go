@@ -49,7 +49,17 @@ func (m *Potassium) SelectStorageNodes(ctx context.Context, scheduleInfos []reso
 	case storage == 0:
 		return scheduleInfos, math.MaxInt64, nil
 	default:
-		log.Infof(ctx, "[SelectStorageNodes] scheduleInfos: %v, need: %d", scheduleInfos, storage)
+		storages := []struct {
+			Nodename string
+			Storage  int64
+		}{}
+		for _, scheduleInfo := range scheduleInfos {
+			storages = append(storages, struct {
+				Nodename string
+				Storage  int64
+			}{scheduleInfo.Name, scheduleInfo.StorageCap})
+		}
+		log.Infof(ctx, "[SelectStorageNodes] resources: %v, need: %d", storages, storage)
 	}
 
 	leng := len(scheduleInfos)
@@ -57,7 +67,7 @@ func (m *Potassium) SelectStorageNodes(ctx context.Context, scheduleInfos []reso
 	sort.Slice(scheduleInfos, func(i, j int) bool { return scheduleInfos[i].StorageCap < scheduleInfos[j].StorageCap })
 	p := sort.Search(leng, func(i int) bool { return scheduleInfos[i].StorageCap >= storage })
 	if p == leng {
-		return nil, 0, errors.WithStack(types.ErrInsufficientStorage)
+		return nil, 0, errors.Wrapf(types.ErrInsufficientStorage, "no node remains storage more than %d bytes", storage)
 	}
 
 	scheduleInfos = scheduleInfos[p:]
@@ -73,7 +83,19 @@ func (m *Potassium) SelectStorageNodes(ctx context.Context, scheduleInfos []reso
 
 // SelectMemoryNodes filter nodes with enough memory
 func (m *Potassium) SelectMemoryNodes(ctx context.Context, scheduleInfos []resourcetypes.ScheduleInfo, quota float64, memory int64) ([]resourcetypes.ScheduleInfo, int, error) {
-	log.Infof(ctx, "[SelectMemoryNodes] scheduleInfos: %v, need cpu: %f, memory: %d", scheduleInfos, quota, memory)
+	resources := []struct {
+		Nodename string
+		CPU      types.CPUMap
+		Memory   int64
+	}{}
+	for _, scheduleInfo := range scheduleInfos {
+		resources = append(resources, struct {
+			Nodename string
+			CPU      types.CPUMap
+			Memory   int64
+		}{scheduleInfo.Name, scheduleInfo.CPU, scheduleInfo.MemCap})
+	}
+	log.Infof(ctx, "[SelectMemoryNodes] resources: %v, need cpu: %f, memory: %d", resources, quota, memory)
 	scheduleInfosLength := len(scheduleInfos)
 
 	// 筛选出能满足 CPU 需求的
@@ -83,7 +105,7 @@ func (m *Potassium) SelectMemoryNodes(ctx context.Context, scheduleInfos []resou
 	})
 	// p 最大也就是 scheduleInfosLength - 1
 	if p == scheduleInfosLength {
-		return nil, 0, errors.WithStack(types.ErrInsufficientCPU)
+		return nil, 0, errors.Wrapf(types.ErrInsufficientCPU, "no node remains cpu more than %0.2f", quota)
 	}
 	scheduleInfosLength -= p
 	scheduleInfos = scheduleInfos[p:]
@@ -92,7 +114,7 @@ func (m *Potassium) SelectMemoryNodes(ctx context.Context, scheduleInfos []resou
 	sort.Slice(scheduleInfos, func(i, j int) bool { return scheduleInfos[i].MemCap < scheduleInfos[j].MemCap })
 	p = sort.Search(scheduleInfosLength, func(i int) bool { return scheduleInfos[i].MemCap >= memory })
 	if p == scheduleInfosLength {
-		return nil, 0, errors.WithStack(types.ErrInsufficientMEM)
+		return nil, 0, errors.Wrapf(types.ErrInsufficientMEM, "no node remains memory more than %d bytes", memory)
 	}
 	scheduleInfos = scheduleInfos[p:]
 
@@ -111,7 +133,19 @@ func (m *Potassium) SelectMemoryNodes(ctx context.Context, scheduleInfos []resou
 
 // SelectCPUNodes select nodes with enough cpus
 func (m *Potassium) SelectCPUNodes(ctx context.Context, scheduleInfos []resourcetypes.ScheduleInfo, quota float64, memory int64) ([]resourcetypes.ScheduleInfo, map[string][]types.CPUMap, int, error) {
-	log.Infof(ctx, "[SelectCPUNodes] scheduleInfos %d, need cpu: %f memory: %d", len(scheduleInfos), quota, memory)
+	resources := []struct {
+		Nodename string
+		Memory   int64
+		CPU      types.CPUMap
+	}{}
+	for _, scheduleInfo := range scheduleInfos {
+		resources = append(resources, struct {
+			Nodename string
+			Memory   int64
+			CPU      types.CPUMap
+		}{scheduleInfo.Name, scheduleInfo.MemCap, scheduleInfo.CPU})
+	}
+	log.Infof(ctx, "[SelectCPUNodes] resources %v, need cpu: %f memory: %d", resources, quota, memory)
 	if quota <= 0 {
 		return nil, nil, 0, errors.WithStack(types.ErrNegativeQuota)
 	}
@@ -124,7 +158,13 @@ func (m *Potassium) SelectCPUNodes(ctx context.Context, scheduleInfos []resource
 
 // ReselectCPUNodes used for realloc one container with cpu affinity
 func (m *Potassium) ReselectCPUNodes(ctx context.Context, scheduleInfo resourcetypes.ScheduleInfo, CPU types.CPUMap, quota float64, memory int64) (resourcetypes.ScheduleInfo, map[string][]types.CPUMap, int, error) {
-	log.Infof(ctx, "[SelectCPUNodes] scheduleInfo %v, need cpu %f, need memory %d, existing %v", scheduleInfo, quota, memory, CPU)
+	log.Infof(ctx, "[ReselectCPUNodes] resources %v, need cpu %f, need memory %d, existing %v",
+		struct {
+			Nodename string
+			Memory   int64
+			CPU      types.CPUMap
+		}{scheduleInfo.Name, scheduleInfo.MemCap, scheduleInfo.CPU},
+		quota, memory, CPU)
 	var affinityPlan types.CPUMap
 	// remaining quota that's impossible to achieve affinity
 	if scheduleInfo, quota, affinityPlan = cpuReallocPlan(scheduleInfo, quota, CPU, int64(m.sharebase)); quota == 0 {
@@ -139,7 +179,7 @@ func (m *Potassium) ReselectCPUNodes(ctx context.Context, scheduleInfo resourcet
 
 	scheduleInfos, cpuPlans, total, err := m.SelectCPUNodes(ctx, []resourcetypes.ScheduleInfo{scheduleInfo}, quota, memory)
 	if err != nil {
-		return scheduleInfo, nil, 0, err
+		return scheduleInfo, nil, 0, errors.Wrap(err, "failed to reschedule cpu")
 	}
 
 	// add affinity plans
@@ -218,7 +258,18 @@ func cpuReallocPlan(scheduleInfo resourcetypes.ScheduleInfo, quota float64, CPU 
 
 // SelectVolumeNodes calculates plans for volume request
 func (m *Potassium) SelectVolumeNodes(ctx context.Context, scheduleInfos []resourcetypes.ScheduleInfo, vbs types.VolumeBindings) ([]resourcetypes.ScheduleInfo, map[string][]types.VolumePlan, int, error) {
-	log.Infof(ctx, "[SelectVolumeNodes] scheduleInfos %v, need volume: %v", scheduleInfos, vbs.ToStringSlice(true, true))
+	resources := []struct {
+		Nodename string
+		Volume   types.VolumeMap
+	}{}
+	for _, scheduleInfo := range scheduleInfos {
+		resources = append(resources, struct {
+			Nodename string
+			Volume   types.VolumeMap
+		}{scheduleInfo.Name, scheduleInfo.Volume})
+	}
+	log.Infof(ctx, "[SelectVolumeNodes] resources %v, need volume: %v", resources, vbs.ToStringSlice(true, true))
+
 	var reqsNorm, reqsMono []int64
 	var vbsNorm, vbsMono, vbsUnlimited types.VolumeBindings
 
@@ -318,7 +369,7 @@ func (m *Potassium) SelectVolumeNodes(ctx context.Context, scheduleInfos []resou
 	sort.Slice(scheduleInfos, func(i, j int) bool { return scheduleInfos[i].Capacity < scheduleInfos[j].Capacity })
 	p := sort.Search(len(scheduleInfos), func(i int) bool { return scheduleInfos[i].Capacity > 0 })
 	if p == len(scheduleInfos) {
-		return nil, nil, 0, errors.WithStack(types.ErrInsufficientRes)
+		return nil, nil, 0, errors.Wrapf(types.ErrInsufficientRes, "no node remains volumes for requests %+v", vbs.ToStringSlice(true, true))
 	}
 
 	return scheduleInfos[p:], volumePlans, volTotal, nil
@@ -326,7 +377,13 @@ func (m *Potassium) SelectVolumeNodes(ctx context.Context, scheduleInfos []resou
 
 // ReselectVolumeNodes is used for realloc only
 func (m *Potassium) ReselectVolumeNodes(ctx context.Context, scheduleInfo resourcetypes.ScheduleInfo, existing types.VolumePlan, vbsReq types.VolumeBindings) (resourcetypes.ScheduleInfo, map[string][]types.VolumePlan, int, error) {
-	log.Infof(ctx, "[ReselectVolumeNodes] scheduleInfo %v, need volume: %v, existing %v", scheduleInfo, vbsReq.ToStringSlice(true, true), existing.ToLiteral())
+	log.Infof(ctx, "[ReselectVolumeNodes] resources: %v, need volume: %v, existing %v",
+		struct {
+			Nodename   string
+			Volume     types.VolumeMap
+			InitVolume types.VolumeMap
+		}{scheduleInfo.Name, scheduleInfo.Volume, scheduleInfo.InitVolume},
+		vbsReq.ToStringSlice(true, true), existing.ToLiteral())
 	affinityPlan := types.VolumePlan{}
 	needReschedule := types.VolumeBindings{}
 	norm, mono, unlim := distinguishVolumeBindings(vbsReq)
@@ -388,7 +445,7 @@ func (m *Potassium) ReselectVolumeNodes(ctx context.Context, scheduleInfo resour
 	}
 	scheduleInfos, volumePlans, total, err := m.SelectVolumeNodes(ctx, []resourcetypes.ScheduleInfo{scheduleInfo}, needReschedule)
 	if err != nil {
-		return scheduleInfo, nil, 0, errors.WithMessage(err, "failed to reschedule")
+		return scheduleInfo, nil, 0, errors.Wrap(err, "failed to reschedule volume")
 	}
 
 	// merge

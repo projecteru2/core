@@ -71,5 +71,8 @@ func (c *Calcium) doCalculateCapacity(ctx context.Context, nodeMap map[string]*t
 		total += info.Capacity
 	}
 	log.Debugf(ctx, "[Calcium.doCalculateCapacity] plans: %+v, total: %v", plans, total)
+	if total <= 0 {
+		return 0, nil, nil, errors.Wrap(types.ErrInsufficientRes, "no node meets all the resource requirements at the same time")
+	}
 	return
 }

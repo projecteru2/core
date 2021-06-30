@@ -95,8 +95,7 @@ func TestCalculateCapacity(t *testing.T) {
 		Capacity: 1,
 	}}, nil, 1, nil).Once()
 	r, err = c.CalculateCapacity(ctx, opts)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 0, r.Total)
+	assert.Error(t, err, "no node meets all the resource requirements at the same time")
 	sched.AssertExpectations(t)
 	store.AssertExpectations(t)
 
@@ -114,8 +113,7 @@ func TestCalculateCapacity(t *testing.T) {
 		Capacity: 1,
 	}}, nil, 1, nil).Once()
 	r, err = c.CalculateCapacity(ctx, opts)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 0, r.Total)
+	assert.Error(t, err, "no node meets all the resource requirements at the same time")
 	sched.AssertExpectations(t)
 	store.AssertExpectations(t)
 }
