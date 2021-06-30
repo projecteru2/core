@@ -82,5 +82,5 @@ func TestFillPlan(t *testing.T) {
 	assert.EqualValues(t, 1, r["2"])
 
 	_, err = FillPlan(context.TODO(), nodes, 5, 1000, 0)
-	assert.EqualError(t, err, "not enough resource: insufficient nodes to fill 5, 1 more nodes needed")
+	assert.EqualError(t, err, "not enough resource: not enough nodes that can fill up to 5 instances, require 1 nodes")
 }

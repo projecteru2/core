@@ -234,7 +234,7 @@ func TestCPUReallocWithPriorPlan(t *testing.T) {
 		"2": 40,
 	}
 	_, _, _, err = po.ReselectCPUNodes(context.TODO(), scheduleInfo, CPU, 2, 0)
-	assert.EqualError(t, err, "not enough resource")
+	assert.EqualError(t, err, "failed to reschedule cpu: no node remains 1.00 pieces of cpu and 0 bytes of memory at the same time: not enough resource")
 }
 
 func TestGetFullResult(t *testing.T) {

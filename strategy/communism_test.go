@@ -128,7 +128,7 @@ func TestCommunismPlanCapacityPriority(t *testing.T) {
 	// test limit
 	nodes = genNodesByCapCount([]int{3, 4, 5, 10}, []int{3, 5, 7, 10})
 	deploy, err = CommunismPlan(context.TODO(), nodes, 3, 10, 5)
-	assert.EqualError(t, err, "not enough resource")
+	assert.EqualError(t, err, "reached nodelimit, a node can host at most 5 instances: not enough resource")
 	deploy, err = CommunismPlan(context.TODO(), nodes, 3, 10, 6)
 	assert.Nil(t, err)
 }

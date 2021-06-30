@@ -36,9 +36,9 @@ func TestAveragePlan(t *testing.T) {
 
 	nodes = genNodesByCapCount([]int{1, 2, 3, 4, 5}, []int{3, 3, 3, 3, 3})
 	_, err = AveragePlan(context.TODO(), nodes, 4, 100, 4)
-	assert.EqualError(t, err, "not enough resource: insufficient nodes, 2 more needed")
+	assert.EqualError(t, err, "not enough resource: not enough nodes with capacity of 4, require 4 nodes")
 
 	nodes = genNodesByCapCount([]int{1, 2, 3, 4, 5}, []int{3, 3, 3, 3, 3})
 	_, err = AveragePlan(context.TODO(), nodes, 2, 100, 0)
-	assert.EqualError(t, err, "not enough resource: insufficient nodes, 1 more needed")
+	assert.EqualError(t, err, "not enough resource: not enough nodes with capacity of 2, require 5 nodes")
 }

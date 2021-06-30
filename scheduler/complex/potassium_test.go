@@ -373,7 +373,7 @@ func TestSelectCPUNodesWithMemoryLimit(t *testing.T) {
 	// 测试 2 个 Node，内存不足
 	nodes = generateNodes(2, 2, 1024, 0, 10)
 	_, _, err = SelectCPUNodes(k, nodes, nil, 0.1, 1025, 1, true)
-	assert.EqualError(t, err, types.ErrInsufficientRes.Error())
+	assert.EqualError(t, err, "no node remains 0.10 pieces of cpu and 1025 bytes of memory at the same time: not enough resource")
 
 	// 测试 need 超过 each node 的 capacity
 	nodes = generateNodes(2, 2, 1024, 0, 10)
@@ -1793,6 +1793,13 @@ func TestSelectVolumeNormAndMono(t *testing.T) {
 		},
 		"AUTO:/data1:rwm:50": map[string]int64{
 			"/data1": 2000,
+		},
+	})) || reflect.DeepEqual(res["n0"][0], types.MustToVolumePlan(map[string]map[string]int64{
+		"AUTO:/data0:rw:50": map[string]int64{
+			"/data1": 50,
+		},
+		"AUTO:/data1:rwm:50": map[string]int64{
+			"/data0": 1000,
 		},
 	})))
 
