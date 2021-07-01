@@ -45,6 +45,7 @@ func TestGetMultiFailedAsBatchGetError(t *testing.T) {
 	e := NewMockedETCD(t)
 	expErr := fmt.Errorf("exp")
 	expTxn := &mocks.Txn{}
+	expTxn.On("If", mock.Anything).Return(expTxn).Once()
 	expTxn.On("Then", mock.Anything).Return(expTxn).Once()
 	expTxn.On("Else", mock.Anything).Return(expTxn).Once()
 	expTxn.On("Commit").Return(nil, expErr).Once()
