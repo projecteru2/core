@@ -39,6 +39,19 @@ type ETCD struct {
 	config types.EtcdConfig
 }
 
+// ETCDTxn wraps a group of Cmp with Op
+type ETCDTxn struct {
+	If   []clientv3.Cmp
+	Then []clientv3.Op
+	Else []clientv3.Op
+}
+
+// ETCDTxnResp wraps etcd response with error
+type ETCDTxnResp struct {
+	resp *clientv3.TxnResponse
+	err  error
+}
+
 // NewETCD initailizes a new ETCD instance.
 func NewETCD(config types.EtcdConfig, t *testing.T) (*ETCD, error) {
 	var cliv3 *clientv3.Client
@@ -154,12 +167,12 @@ func (e *ETCD) watch(ctx context.Context, key string, opts ...clientv3.OpOption)
 }
 
 func (e *ETCD) batchGet(ctx context.Context, keys []string, opt ...clientv3.OpOption) (txnResponse *clientv3.TxnResponse, err error) {
-	ops := []clientv3.Op{}
+	txn := ETCDTxn{}
 	for _, key := range keys {
 		op := clientv3.OpGet(key, opt...)
-		ops = append(ops, op)
+		txn.Then = append(txn.Then, op)
 	}
-	return e.doBatchOp(ctx, nil, ops, nil)
+	return e.doBatchOp(ctx, []ETCDTxn{txn})
 }
 
 // BatchDelete .
@@ -168,37 +181,37 @@ func (e *ETCD) BatchDelete(ctx context.Context, keys []string, opts ...clientv3.
 }
 
 func (e *ETCD) batchDelete(ctx context.Context, keys []string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	ops := []clientv3.Op{}
+	txn := ETCDTxn{}
 	for _, key := range keys {
 		op := clientv3.OpDelete(key, opts...)
-		ops = append(ops, op)
+		txn.Then = append(txn.Then, op)
 	}
 
-	return e.doBatchOp(ctx, nil, ops, nil)
+	return e.doBatchOp(ctx, []ETCDTxn{txn})
 }
 
 func (e *ETCD) batchPut(ctx context.Context, data map[string]string, limit map[string]map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
-	ops := []clientv3.Op{}
-	failOps := []clientv3.Op{}
-	conds := []clientv3.Cmp{}
+	txnes := []ETCDTxn{}
 	for key, val := range data {
+		txn := ETCDTxn{}
 		op := clientv3.OpPut(key, val, opts...)
-		ops = append(ops, op)
+		txn.Then = append(txn.Then, op)
 		if v, ok := limit[key]; ok {
 			for method, condition := range v {
 				switch method {
 				case cmpVersion:
 					cond := clientv3.Compare(clientv3.Version(key), condition, 0)
-					conds = append(conds, cond)
+					txn.If = append(txn.If, cond)
 				case cmpValue:
 					cond := clientv3.Compare(clientv3.Value(key), condition, val)
-					failOps = append(failOps, clientv3.OpGet(key))
-					conds = append(conds, cond)
+					txn.Else = append(txn.Else, clientv3.OpGet(key))
+					txn.If = append(txn.If, cond)
 				}
 			}
 		}
+		txnes = append(txnes, txn)
 	}
-	return e.doBatchOp(ctx, conds, ops, failOps)
+	return e.doBatchOp(ctx, txnes)
 }
 
 // BatchCreate .
@@ -308,75 +321,85 @@ func (e *ETCD) Grant(ctx context.Context, ttl int64) (*clientv3.LeaseGrantRespon
 func (e *ETCD) batchUpdate(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
 	limit := map[string]map[string]string{}
 	for key := range data {
-		limit[key] = map[string]string{cmpVersion: "!="}
+		limit[key] = map[string]string{cmpVersion: "!="} // check existence
 	}
 	resp, err := e.batchPut(ctx, data, limit, opts...)
 	if err != nil {
 		return resp, err
 	}
 	if !resp.Succeeded {
-		for _, failResp := range resp.Responses {
-			if len(failResp.GetResponseRange().Kvs) == 0 {
-				return resp, types.ErrKeyNotExists
-			}
-		}
+		return resp, types.ErrKeyNotExists
 	}
 	return resp, nil
 }
 
-func (e *ETCD) doBatchOp(ctx context.Context, conds []clientv3.Cmp, ops, failOps []clientv3.Op) (*clientv3.TxnResponse, error) {
-	if len(ops) == 0 {
+func (e *ETCD) doBatchOp(ctx context.Context, txnes []ETCDTxn) (resp *clientv3.TxnResponse, err error) {
+	if len(txnes) == 0 {
 		return nil, types.ErrNoOps
 	}
 
 	const txnLimit = 125
-	count := len(ops) / txnLimit // stupid etcd txn, default limit is 128
-	tail := len(ops) % txnLimit
-	length := count
-	if tail != 0 {
-		length++
-	}
-
-	resps := make([]*clientv3.TxnResponse, length)
-	errs := make([]error, length)
 
 	wg := sync.WaitGroup{}
-	doOp := func(index int, ops []clientv3.Op) {
+	respChan := make(chan ETCDTxnResp)
+	doOp := func(from, to int) {
 		defer wg.Done()
-		txn := e.cliv3.Txn(ctx)
-		if len(conds) != 0 {
-			txn = txn.If(conds...)
+		conds, thens, elses := []clientv3.Cmp{}, []clientv3.Op{}, []clientv3.Op{}
+		for i := from; i < to; i++ {
+			conds = append(conds, txnes[i].If...)
+			thens = append(thens, txnes[i].Then...)
+			elses = append(elses, txnes[i].Else...)
 		}
-		resp, err := txn.Then(ops...).Else(failOps...).Commit()
-		resps[index] = resp
-		errs[index] = err
+		resp, err := e.cliv3.Txn(ctx).If(conds...).Then(thens...).Else(elses...).Commit()
+		respChan <- ETCDTxnResp{resp: resp, err: err}
 	}
 
-	if tail != 0 {
-		wg.Add(1)
-		go doOp(length-1, ops[count*txnLimit:])
-	}
+	lastIdx := 0
+	lenIf, lenThen, lenElse := 0, 0, 0
+	for i := 0; i < len(txnes); i++ {
+		if lenIf+len(txnes[i].If) > txnLimit ||
+			lenThen+len(txnes[i].Then) > txnLimit ||
+			lenElse+len(txnes[i].Else) > txnLimit {
+			wg.Add(1)
+			go doOp(lastIdx, i) // [lastIdx, i)
 
-	for i := 0; i < count; i++ {
-		wg.Add(1)
-		go doOp(i, ops[i*txnLimit:(i+1)*txnLimit])
-	}
-	wg.Wait()
-
-	for _, err := range errs {
-		if err != nil {
-			return nil, err
+			lastIdx = i
+			lenIf, lenThen, lenElse = 0, 0, 0
+			continue
 		}
+
+		lenIf += len(txnes[i].If)
+		lenThen += len(txnes[i].Then)
+		lenElse += len(txnes[i].Else)
+	}
+	wg.Add(1)
+	go doOp(lastIdx, len(txnes))
+
+	go func() {
+		wg.Wait()
+		close(respChan)
+	}()
+
+	resps := []ETCDTxnResp{}
+	for resp := range respChan {
+		resps = append(resps, resp)
+		if resp.err != nil {
+			err = resp.err
+		}
+	}
+	if err != nil {
+		return
 	}
 
 	if len(resps) == 0 {
 		return &clientv3.TxnResponse{}, nil
 	}
 
-	resp := resps[0]
+	resp = resps[0].resp
+	// TODO@zc: should rollback all for any unsucceed txn
 	for i := 1; i < len(resps); i++ {
-		resp.Succeeded = resp.Succeeded && resps[i].Succeeded
-		resp.Responses = append(resp.Responses, resps[i].Responses...)
+		resp.Succeeded = resp.Succeeded && resps[i].resp.Succeeded
+		resp.Responses = append(resp.Responses, resps[i].resp.Responses...)
 	}
 	return resp, nil
 }
