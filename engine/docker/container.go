@@ -82,7 +82,7 @@ func loadRawArgs(b []byte) (*RawArgs, error) {
 }
 
 // VirtualizationCreate create a workload
-func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) {
+func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) { // nolint
 	r := &enginetypes.VirtualizationCreated{}
 	// memory should more than 4MiB
 	if opts.Memory > 0 && opts.Memory < minMemory || opts.Memory < 0 {
@@ -244,6 +244,11 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		EndpointsConfig: map[string]*dockernetwork.EndpointSettings{},
 	}
 	for networkID, ipv4 := range networks {
+		if useCNI(opts.Labels) && ipv4 != "" {
+			config.Labels["ipv4"] = ipv4
+			break
+		}
+
 		endpointSetting, err := e.makeIPV4EndpointSetting(ipv4)
 		if err != nil {
 			return r, err
