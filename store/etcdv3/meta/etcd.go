@@ -324,12 +324,38 @@ func (e *ETCD) batchUpdate(ctx context.Context, data map[string]string, opts ...
 	return resp, nil
 }
 
-func (e *ETCD) doBatchOp(ctx context.Context, txnes []ETCDTxn) (resp *clientv3.TxnResponse, err error) {
-	if len(txnes) == 0 {
+func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (resp *clientv3.TxnResponse, err error) {
+	if len(transactions) == 0 {
 		return nil, types.ErrNoOps
 	}
 
 	const txnLimit = 125
+
+	// split transactions into smaller pieces
+	txnes := []ETCDTxn{}
+	for _, txn := range transactions {
+		// TODO@zc: split if and else
+		if len(txn.Then) <= txnLimit {
+			txnes = append(txnes, txn)
+			continue
+		}
+
+		n, m := len(txn.Then)/txnLimit, len(txn.Then)%txnLimit
+		for i := 0; i < n; i++ {
+			txnes = append(txnes, ETCDTxn{
+				If:   txn.If,
+				Then: txn.Then[i*txnLimit : (i+1)*txnLimit],
+				Else: txn.Else,
+			})
+		}
+		if m > 0 {
+			txnes = append(txnes, ETCDTxn{
+				If:   txn.If,
+				Then: txn.Then[n*txnLimit:],
+				Else: txn.Else,
+			})
+		}
+	}
 
 	wg := sync.WaitGroup{}
 	respChan := make(chan ETCDTxnResp)
@@ -345,7 +371,7 @@ func (e *ETCD) doBatchOp(ctx context.Context, txnes []ETCDTxn) (resp *clientv3.T
 		respChan <- ETCDTxnResp{resp: resp, err: err}
 	}
 
-	lastIdx := 0
+	lastIdx := 0 // last uncommit index
 	lenIf, lenThen, lenElse := 0, 0, 0
 	for i := 0; i < len(txnes); i++ {
 		if lenIf+len(txnes[i].If) > txnLimit ||
@@ -356,7 +382,6 @@ func (e *ETCD) doBatchOp(ctx context.Context, txnes []ETCDTxn) (resp *clientv3.T
 
 			lastIdx = i
 			lenIf, lenThen, lenElse = 0, 0, 0
-			continue
 		}
 
 		lenIf += len(txnes[i].If)
