@@ -165,12 +165,21 @@ func (n *Node) AvailableStorage() int64 {
 
 // ResourceUsages .
 func (n *Node) ResourceUsages() map[ResourceType]float64 {
-	return map[ResourceType]float64{
+	res := map[ResourceType]float64{
 		ResourceCPU:     n.CPUUsed / float64(len(n.InitCPU)),
 		ResourceMemory:  1.0 - float64(n.MemCap)/float64(n.InitMemCap),
 		ResourceStorage: n.StorageUsage(),
 		ResourceVolume:  float64(n.VolumeUsed) / float64(n.InitVolume.Total()),
 	}
+	for k, v := range res {
+		if v > 1.0 {
+			res[k] = 1.0
+		}
+		if v < 0 {
+			res[k] = 0
+		}
+	}
+	return res
 }
 
 // RecycleResources .
