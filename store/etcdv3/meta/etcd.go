@@ -448,16 +448,18 @@ func (e *ETCD) BatchCreateAndDecr(ctx context.Context, data map[string]string, d
 			return err
 		}
 
-		conds := []clientv3.Cmp{
-			clientv3.Compare(clientv3.Value(decrKey), "=", string(decrKv.Value)),
+		txn := ETCDTxn{
+			If: []clientv3.Cmp{
+				clientv3.Compare(clientv3.Value(decrKey), "=", string(decrKv.Value)),
+			},
+			Then: append(putOps,
+				clientv3.OpPut(decrKey, strconv.Itoa(cnt-1)),
+			),
+			Else: []clientv3.Op{
+				clientv3.OpGet(decrKey),
+			},
 		}
-		ops := append(putOps, // nolint
-			clientv3.OpPut(decrKey, strconv.Itoa(cnt-1)),
-		)
-		failOps := []clientv3.Op{
-			clientv3.OpGet(decrKey),
-		}
-		txnResp, err := e.doBatchOp(ctx, conds, ops, failOps)
+		txnResp, err := e.doBatchOp(ctx, []ETCDTxn{txn})
 		if err != nil {
 			return err
 		}
