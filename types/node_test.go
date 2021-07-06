@@ -107,6 +107,27 @@ func TestNodeUsage(t *testing.T) {
 	assert.EqualValues(t, 0.99, usages[ResourceMemory])
 	assert.EqualValues(t, 0.75, usages[ResourceCPU])
 	assert.EqualValues(t, 500./3500., usages[ResourceVolume])
+
+	// negate resources
+	node = Node{
+		NodeMeta: NodeMeta{
+			CPU:            CPUMap{"0": -100, "1": -50},
+			InitCPU:        CPUMap{"0": 200, "1": 200},
+			Volume:         VolumeMap{"/data1": -1000, "/data2": -2000},
+			InitVolume:     VolumeMap{"/data1": 1000, "/data2": 2500},
+			MemCap:         -1,
+			InitMemCap:     100,
+			StorageCap:     -2,
+			InitStorageCap: 2,
+		},
+		CPUUsed:    5.5,
+		VolumeUsed: 6500,
+	}
+	usages = node.ResourceUsages()
+	assert.EqualValues(t, 1, usages[ResourceStorage])
+	assert.EqualValues(t, 1, usages[ResourceMemory])
+	assert.EqualValues(t, 1, usages[ResourceCPU])
+	assert.EqualValues(t, 1, usages[ResourceVolume])
 }
 
 func TestAddNodeOptions(t *testing.T) {
