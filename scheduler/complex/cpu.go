@@ -13,6 +13,7 @@ import (
 	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 func min(a, b int) int {
@@ -92,7 +93,7 @@ func calculateCPUPlan(CPUMap types.CPUMap, MemCap int64, cpu float64, memory int
 	plan := host.distributeOneRation(cpu, maxShareCore)
 	memLimit := math.MaxInt64
 	if memory != 0 {
-		memLimit = int(MemCap / memory)
+		memLimit = utils.Max(int(MemCap/memory), 0)
 	}
 	cap := len(plan) // 每个node可以放的容器数
 	if cap > memLimit {

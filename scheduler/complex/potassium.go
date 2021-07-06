@@ -30,12 +30,12 @@ func (m *Potassium) MaxIdleNode(nodes []*types.Node) (*types.Node, error) {
 	}
 	pos := 0
 	node := nodes[pos]
-	min := float64(node.CPU.Total())/float64(node.InitCPU.Total()) + float64(node.MemCap)/float64(node.InitMemCap)
+	max := float64(node.CPU.Total())/float64(node.InitCPU.Total()) + float64(node.MemCap)/float64(node.InitMemCap)
 	for i, node := range nodes {
 		idle := float64(node.CPU.Total())/float64(node.InitCPU.Total()) + float64(node.MemCap)/float64(node.InitMemCap)
-		if idle < min {
+		if idle > max {
 			pos = i
-			min = idle
+			max = idle
 		}
 	}
 	return nodes[pos], nil

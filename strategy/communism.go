@@ -60,7 +60,7 @@ func newInfoHeap(infos []Info, limit int) heap.Interface {
 func CommunismPlan(ctx context.Context, infos []Info, need, total, limit int) (map[string]int, error) {
 	if total < need {
 		return nil, errors.WithStack(types.NewDetailedErr(types.ErrInsufficientRes,
-			fmt.Sprintf("need: %d, vol: %d", need, total)))
+			fmt.Sprintf("need: %d, available: %d", need, total)))
 	}
 
 	deploy := map[string]int{}

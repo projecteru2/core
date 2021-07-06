@@ -318,7 +318,7 @@ func TestSelectCPUNodes(t *testing.T) {
 
 	_, _, err = SelectCPUNodes(k, nodes, nil, 2, 1, 3, false)
 	assert.True(t, errors.Is(err, types.ErrInsufficientRes))
-	assert.Contains(t, err.Error(), "need: 3, vol: 1")
+	assert.Contains(t, err.Error(), "need: 3, available: 1")
 
 	_, _, err = SelectCPUNodes(k, nodes, nil, 3, 1, 2, false)
 	assert.True(t, errors.Is(err, types.ErrInsufficientRes))
@@ -506,7 +506,7 @@ func TestCPUWithMaxShareLimit(t *testing.T) {
 
 	_, _, err = SelectCPUNodes(k, nodes, nil, 1.7, 1, 3, false)
 	assert.True(t, errors.Is(err, types.ErrInsufficientRes))
-	assert.Contains(t, err.Error(), "vol: 2")
+	assert.Contains(t, err.Error(), "available: 2")
 }
 
 func TestCpuOverSell(t *testing.T) {
@@ -945,7 +945,7 @@ func TestSelectMemoryNodesNotEnough(t *testing.T) {
 	k, _ := newPotassium()
 	_, _, err := SelectMemoryNodes(k, pod, nil, 1, 512*int64(units.MiB), 40, false)
 	assert.True(t, errors.Is(err, types.ErrInsufficientRes))
-	assert.Contains(t, err.Error(), "need: 40, vol: 16")
+	assert.Contains(t, err.Error(), "need: 40, available: 16")
 
 	// 2 nodes [memory not enough]
 	pod = generateNodes(2, 2, memory, 0, 10)
@@ -995,7 +995,7 @@ func TestSelectMemoryNodesSequence(t *testing.T) {
 	refreshPod(res, deployMap, mem, 0)
 	_, _, err = SelectMemoryNodes(k, res, nil, cpu, mem, 40, false)
 	assert.True(t, errors.Is(err, types.ErrInsufficientRes))
-	assert.Contains(t, err.Error(), "need: 40, vol: 7")
+	assert.Contains(t, err.Error(), "need: 40, available: 7")
 
 	// new round
 	pod = generateNodes(2, 2, 4*int64(units.GiB), 0, 10)
@@ -1832,4 +1832,66 @@ func TestSelectVolumeNormAndMono(t *testing.T) {
 	res, _, err = SelectVolumeNodes(k, nodes, nil, req, 2, false)
 	assert.Nil(t, err)
 	assert.EqualValues(t, 2, len(res["n0"]))
+}
+
+func TestSelectFromNegateResources(t *testing.T) {
+	k, _ := newPotassium()
+
+	// memory
+	scheduleInfos := []resourcetypes.ScheduleInfo{
+		{
+			NodeMeta: types.NodeMeta{
+				Name:       "n0",
+				MemCap:     -1000,
+				InitMemCap: 1000,
+			},
+		},
+	}
+	_, total, err := k.SelectMemoryNodes(context.Background(), scheduleInfos, 0, 100)
+	assert.EqualValues(t, 0, total)
+	assert.EqualError(t, err, "no node remains memory more than 100 bytes: cannot alloc a plan, not enough memory")
+
+	// cpu
+	scheduleInfos = []resourcetypes.ScheduleInfo{
+		{
+			NodeMeta: types.NodeMeta{
+				Name:       "n0",
+				CPU:        types.CPUMap{"0": -100, "1": -2000},
+				InitCPU:    types.CPUMap{"0": 100, "1": 100},
+				MemCap:     1000,
+				InitMemCap: 1000,
+			},
+		},
+	}
+	_, _, total, err = k.SelectCPUNodes(context.TODO(), scheduleInfos, 1, 50)
+	assert.EqualValues(t, 0, total)
+	assert.EqualError(t, err, "no node remains 1.00 pieces of cpu and 50 bytes of memory at the same time: not enough resource")
+
+	// storage
+	scheduleInfos = []resourcetypes.ScheduleInfo{
+		{
+			NodeMeta: types.NodeMeta{
+				Name:           "n0",
+				StorageCap:     -1000,
+				InitStorageCap: 1000,
+			},
+		},
+	}
+	_, total, err = k.SelectStorageNodes(context.TODO(), scheduleInfos, 500)
+	assert.EqualValues(t, 0, total)
+	assert.EqualError(t, err, "no node remains storage more than 500 bytes: cannot alloc a plan, not enough storage")
+
+	// volume
+	scheduleInfos = []resourcetypes.ScheduleInfo{
+		{
+			NodeMeta: types.NodeMeta{
+				Name:       "n0",
+				Volume:     types.VolumeMap{"/tmp": -1234},
+				InitVolume: types.VolumeMap{"/tmp": 100000},
+			},
+		},
+	}
+	_, _, total, err = k.SelectVolumeNodes(context.TODO(), scheduleInfos, types.MustToVolumeBindings([]string{"AUTO:/data:rw:1"}))
+	assert.EqualValues(t, 0, total)
+	assert.EqualError(t, err, "no node remains volumes for requests [AUTO:/data:rw:1]: not enough resource")
 }
