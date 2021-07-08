@@ -78,3 +78,32 @@ func TestGlobal3(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, r["n1"], 10)
 }
+
+func TestGlobalIssue455(t *testing.T) {
+	infos := []Info{
+		{
+			Nodename: "spp-qa-vm-node-1",
+			Usage:    0.07999999999999996,
+			Rate:     3.725290298461914e-08,
+			Capacity: 10726691,
+			Count:    7,
+		},
+		{
+			Nodename: "spp-qa-vm-node-2",
+			Usage:    0.24,
+			Rate:     3.725290298461914e-08,
+			Capacity: 4290676,
+			Count:    5,
+		},
+		{
+			Nodename: "spp-qa-vm-node-3",
+			Usage:    0.45999999999999996,
+			Rate:     3.725290298461914e-08,
+			Capacity: 4290676,
+			Count:    6,
+		},
+	}
+	deployMap, err := GlobalPlan(context.TODO(), infos, 1, 19308043, 1)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, deployMap["spp-qa-vm-node-1"])
+}
