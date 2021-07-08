@@ -84,8 +84,21 @@ func (m *Mutex) Lock(ctx context.Context) (context.Context, error) {
 
 		select {
 		case <-m.session.Done():
-			rCtx.setError(types.ErrLockSessionDone)
+			m.lockedMux.Lock()
+			if m.locked {
+				// passive lock release, happened when etcdserver down or so
+				rCtx.setError(types.ErrLockSessionDone)
+				m.lockedMux.Unlock()
+				return
+			}
+			// positive lock release, happened when we call lock.Unlock()
+			m.lockedMux.Unlock()
+			<-ctx.Done()
+			return
+
 		case <-ctx.Done():
+			// context canceled or timeouted from upstream
+			return
 		}
 	}()
 
@@ -109,16 +122,25 @@ func (m *Mutex) TryLock(ctx context.Context) (context.Context, error) {
 	m.locked = true
 	m.lockedMux.Unlock()
 
+	// how to make this DIY?@zc
 	go func() {
+		defer cancel()
+
 		select {
 		case <-m.session.Done():
-			// session.Done() has multi semantics
+			// session.Done() has multi semantics, see comments in Lock() func
+			m.lockedMux.Lock()
 			if m.locked {
 				rCtx.setError(types.ErrLockSessionDone)
-				cancel()
+				m.lockedMux.Unlock()
+				return
 			}
+			m.lockedMux.Unlock()
+			<-ctx.Done()
+			return
+
 		case <-ctx.Done():
-			cancel()
+			return
 		}
 	}()
 
