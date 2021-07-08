@@ -435,6 +435,9 @@ func (e *ETCD) BatchCreateAndDecr(ctx context.Context, data map[string]string, d
 	if err != nil {
 		return
 	}
+	if len(resp.Kvs) == 0 {
+		return types.NewDetailedErr(types.ErrKeyNotExists, decrKey)
+	}
 
 	decrKv := resp.Kvs[0]
 	putOps := []clientv3.Op{}
