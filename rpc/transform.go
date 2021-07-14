@@ -143,6 +143,7 @@ func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
 func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) { // nolint
 	r := &types.SetNodeOptions{
 		Nodename:        b.Nodename,
+		Endpoint:        b.Endpoint,
 		StatusOpt:       types.TriOptions(b.StatusOpt),
 		WorkloadsDown:   b.WorkloadsDown,
 		DeltaCPU:        types.CPUMap{},
