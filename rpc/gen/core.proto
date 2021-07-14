@@ -177,6 +177,7 @@ message SetNodeOptions {
     map<string, string> labels = 8;
     map<string, int64> delta_volume = 9;
     bool workloads_down = 10;
+    string endpoint = 11;
 }
 
 message SetNodeStatusOptions {

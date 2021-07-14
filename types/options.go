@@ -172,6 +172,7 @@ func (o *AddNodeOptions) Normalize() {
 // SetNodeOptions for node set
 type SetNodeOptions struct {
 	Nodename        string
+	Endpoint        string
 	StatusOpt       TriOptions
 	WorkloadsDown   bool
 	DeltaCPU        CPUMap

@@ -158,9 +158,10 @@ func TestSetNode(t *testing.T) {
 	assert.Error(t, err)
 	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
 	// succ when node available
-	n, err := c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", StatusOpt: 2})
+	n, err := c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", StatusOpt: 2, Endpoint: "tcp://127.0.0.1:2379"})
 	assert.NoError(t, err)
 	assert.Equal(t, n.Name, name)
+	assert.Equal(t, n.Endpoint, "tcp://127.0.0.1:2379")
 	// not available
 	// failed by list node workloads
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
@@ -183,6 +184,16 @@ func TestSetNode(t *testing.T) {
 	n, err = c.SetNode(ctx, setOpts)
 	assert.NoError(t, err)
 	assert.Equal(t, n.Labels["some"], "1")
+	// set endpoint
+	setOpts.Endpoint = "tcp://10.10.10.10:2379"
+	n, err = c.SetNode(ctx, setOpts)
+	assert.NoError(t, err)
+	assert.Equal(t, n.Endpoint, "tcp://10.10.10.10:2379")
+	// no impact on endpoint
+	setOpts.Endpoint = ""
+	n, err = c.SetNode(ctx, setOpts)
+	assert.NoError(t, err)
+	assert.Equal(t, n.Endpoint, "tcp://10.10.10.10:2379")
 	// set numa
 	setOpts.NUMA = types.NUMA{"100": "node1"}
 	n, err = c.SetNode(ctx, setOpts)

@@ -100,6 +100,10 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				}
 			}
 		}
+		// update node endpoint
+		if opts.Endpoint != "" {
+			n.Endpoint = opts.Endpoint
+		}
 		// update key value
 		if len(opts.Labels) != 0 {
 			n.Labels = opts.Labels
