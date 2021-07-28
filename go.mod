@@ -8,7 +8,7 @@ require (
 	github.com/alexcesaro/statsd v2.0.0+incompatible // indirect
 	github.com/alicebob/miniredis/v2 v2.14.3
 	github.com/cenkalti/backoff/v4 v4.0.2
-	github.com/containerd/containerd v1.4.3 // indirect
+	github.com/containerd/containerd v1.4.8 // indirect
 	github.com/containerd/continuity v0.0.0-20200710164510-efbc4488d8fe // indirect
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v20.10.0+incompatible
@@ -20,7 +20,7 @@ require (
 	github.com/go-git/go-git/v5 v5.2.0
 	github.com/go-ping/ping v0.0.0-20210407214646-e4e642a95741
 	github.com/go-redis/redis/v8 v8.8.2
-	github.com/golang/protobuf v1.5.2
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/mux v1.7.4 // indirect
 	github.com/jinzhu/configor v1.2.0
@@ -30,7 +30,7 @@ require (
 	github.com/muroq/redislock v0.0.0-20210327061935-5425e33e6f9f
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.1
-	github.com/opencontainers/runc v0.1.1 // indirect
+	github.com/opencontainers/runc v1.0.0-rc95 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/projecteru2/libyavirt v0.0.0-20210514093713-959b2e232319
