@@ -150,6 +150,7 @@ func TestBindStatusWithZeroTTL(t *testing.T) {
 	defer txn.AssertExpectations(t)
 	txn.On("If", mock.Anything).Return(txn).Once()
 	txn.On("Then", mock.Anything).Return(txn).Once()
+	txn.On("Else", mock.Anything).Return(txn).Once()
 	txn.On("Commit").Return(entityTxn, nil)
 
 	etcd.On("Txn", mock.Anything).Return(txn).Once()
@@ -189,7 +190,8 @@ func TestBindStatusButValueTxnUnsuccessful(t *testing.T) {
 	txn.On("Commit").Return(entityTxn, nil)
 
 	etcd.On("Txn", mock.Anything).Return(txn).Once()
-	require.Equal(t, nil, e.BindStatus(context.Background(), "/entity", "/status", "status", 0))
+	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil).Once()
+	require.Equal(t, nil, e.BindStatus(context.Background(), "/entity", "/status", "status", 1))
 }
 
 func TestBindStatus(t *testing.T) {
