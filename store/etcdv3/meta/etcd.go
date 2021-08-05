@@ -241,16 +241,20 @@ func (e *ETCD) BatchUpdate(ctx context.Context, data map[string]string, opts ...
 
 // BindStatus keeps on a lease alive.
 func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
-	var leaseID clientv3.LeaseID
-	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, statusValue)}
-	if ttl != 0 {
-		lease, err := e.Grant(ctx, ttl)
-		if err != nil {
-			return err
-		}
-		leaseID = lease.ID
-		updateStatus = []clientv3.Op{clientv3.OpPut(statusKey, statusValue, clientv3.WithLease(lease.ID))}
+	if ttl == 0 {
+		return e.bindStatusWithoutTTL(ctx, statusKey, statusValue)
 	}
+	return e.bindStatusWithTTL(ctx, entityKey, statusKey, statusValue, ttl)
+}
+
+func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
+	lease, err := e.Grant(ctx, ttl)
+	if err != nil {
+		return err
+	}
+
+	leaseID := lease.ID
+	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, statusValue, clientv3.WithLease(lease.ID))}
 
 	entityTxn, err := e.cliv3.Txn(ctx).
 		If(clientv3.Compare(clientv3.Version(entityKey), "!=", 0)).
@@ -282,11 +286,6 @@ func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue
 		return nil
 	}
 
-	// A zero TTL means it doesn't affect anything
-	if ttl == 0 {
-		return nil
-	}
-
 	// There is a status bound to the entity yet but its value isn't same as the expected one.
 	valueTxn := statusTxn.Responses[0].GetResponseTxn()
 	if !valueTxn.Succeeded {
@@ -301,6 +300,24 @@ func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue
 	}
 
 	_, err = e.cliv3.KeepAliveOnce(ctx, origLeaseID)
+	return err
+}
+
+// bindStatusWithoutTTL sets status without TTL.
+// When dealing with status of 0 TTL, we don't use lease,
+// also we don't check the existence of the entity key since
+// agent may report status earlier when core has not recorded the entity.
+func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, statusKey, statusValue string) error {
+	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, statusValue)}
+	_, err := e.cliv3.Txn(ctx).
+		If(clientv3.Compare(clientv3.Version(statusKey), "!=", 0)). // if there's an existing status key
+		Then(clientv3.OpTxn(                                        // deal with existing status key
+			[]clientv3.Cmp{clientv3.Compare(clientv3.Value(statusKey), "!=", statusValue)}, // if the new value != the old value
+			updateStatus,    // then the status has been changed.
+			[]clientv3.Op{}, // otherwise do nothing.
+		)).
+		Else(updateStatus...). // otherwise deal with non-existing status key
+		Commit()
 	return err
 }
 
