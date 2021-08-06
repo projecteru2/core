@@ -95,7 +95,7 @@ func (v *Virt) Execute(ctx context.Context, target string, config *enginetypes.E
 // ExecExitCode gets return code of a specific execution.
 func (v *Virt) ExecExitCode(ctx context.Context, execID string) (int, error) {
 	log.Warnf(ctx, "ExecExitCode does not implement")
-	return 0, nil //Called between other apis, cannot return error
+	return 0, nil // Called between other apis, cannot return error
 }
 
 // ExecResize resize exec tty
@@ -132,18 +132,18 @@ func (v *Virt) NetworkDisconnect(ctx context.Context, network, target string, fo
 
 // NetworkList lists all of networks.
 func (v *Virt) NetworkList(ctx context.Context, drivers []string) ([]*enginetypes.Network, error) {
-	return nil, fmt.Errorf("NetworkList does not implement")
+	return nil, types.ErrFunctionNotImplemented("NetworkList")
 }
 
 // BuildRefs builds references, it's not necessary for virt. presently.
 func (v *Virt) BuildRefs(ctx context.Context, name string, tags []string) []string {
 	log.Warnf(ctx, "BuildRefs does not implement")
-	return nil //Called between other apis, cannot return error
+	return nil // Called between other apis, cannot return error
 }
 
 // BuildContent builds content, the use of it is similar to BuildRefs.
 func (v *Virt) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildContentOptions) (string, io.Reader, error) {
-	return "", nil, fmt.Errorf("BuildContent does not implement")
+	return "", nil, types.ErrFunctionNotImplemented("BuildContent")
 }
 
 // VirtualizationCreate creates a guest.
@@ -179,7 +179,7 @@ func (v *Virt) VirtualizationResourceRemap(ctx context.Context, opts *enginetype
 
 // VirtualizationCopyTo copies one.
 func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, target string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) error {
-	return fmt.Errorf("VirtualizationCopyTo does not implement")
+	return types.ErrFunctionNotImplemented("VirtualizationCopyTo")
 }
 
 // VirtualizationStart boots a guest.
@@ -223,22 +223,22 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 
 // VirtualizationLogs streams a specific guest's log.
 func (v *Virt) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout io.ReadCloser, stderr io.ReadCloser, err error) {
-	return nil, nil, fmt.Errorf("VirtualizationLogs does not implement")
+	return nil, nil, types.ErrFunctionNotImplemented("VirtualizationLogs")
 }
 
 // VirtualizationAttach attaches something to a guest.
 func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (stdout io.ReadCloser, stderr io.ReadCloser, inStream io.WriteCloser, err error) {
-	return nil, nil, nil, fmt.Errorf("VirtualizationAttach does not implement")
+	return nil, nil, nil, types.ErrFunctionNotImplemented("VirtualizationAttach")
 }
 
 // VirtualizationResize resized window size
 func (v *Virt) VirtualizationResize(ctx context.Context, ID string, height, width uint) error {
-	return fmt.Errorf("VirtualizationResize not implemented")
+	return types.ErrFunctionNotImplemented("VirtualizationResize")
 }
 
 // VirtualizationWait is waiting for a shut-off
 func (v *Virt) VirtualizationWait(ctx context.Context, ID, state string) (*enginetypes.VirtualizationWaitResult, error) {
-	return nil, fmt.Errorf("VirtualizationWait does not implement")
+	return nil, types.ErrFunctionNotImplemented("VirtualizationWait")
 }
 
 // VirtualizationUpdateResource updates resource.
@@ -270,11 +270,11 @@ func (v *Virt) VirtualizationCopyFrom(ctx context.Context, ID, path string) (io.
 
 // VirtualizationExecute executes commands in running virtual unit
 func (v *Virt) VirtualizationExecute(ctx context.Context, ID string, commands, env []string, workdir string) (io.WriteCloser, io.ReadCloser, error) {
-	return nil, nil, fmt.Errorf("VirtualizationExecute not implemented")
+	return nil, nil, types.ErrFunctionNotImplemented("VirtualizationExecute")
 }
 
 // ResourceValidate validate resource usage
 func (v *Virt) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory, storage int64) error {
 	// TODO list all workloads, calculate resource
-	return fmt.Errorf("VirtualizationExecute not implemented")
+	return types.ErrFunctionNotImplemented("ResourceValidate")
 }
