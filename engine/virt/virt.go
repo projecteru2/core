@@ -93,54 +93,52 @@ func (v *Virt) Execute(ctx context.Context, target string, config *enginetypes.E
 }
 
 // ExecExitCode gets return code of a specific execution.
-func (v *Virt) ExecExitCode(ctx context.Context, execID string) (code int, err error) {
-	return 0, nil
+func (v *Virt) ExecExitCode(ctx context.Context, execID string) (int, error) {
+	log.Warnf(ctx, "ExecExitCode does not implement")
+	return 0, nil //Called between other apis, cannot return error
 }
 
 // ExecResize resize exec tty
-func (v *Virt) ExecResize(ctx context.Context, execID string, height, width uint) (err error) {
+func (v *Virt) ExecResize(ctx context.Context, execID string, height, width uint) error {
 	return v.client.ResizeConsoleWindow(ctx, execID, height, width)
 }
 
 // NetworkConnect connects to a network.
-func (v *Virt) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) (cidrs []string, err error) {
+func (v *Virt) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) ([]string, error) {
 	req := virttypes.ConnectNetworkReq{
 		Network: network,
 		IPv4:    ipv4,
 	}
 	req.ID = target
 
-	var cidr string
-	if cidr, err = v.client.ConnectNetwork(ctx, req); err != nil {
-		return
+	cidr, err := v.client.ConnectNetwork(ctx, req)
+	if err != nil {
+		return nil, err
 	}
 
-	cidrs = append(cidrs, cidr)
-
-	return
+	return []string{cidr}, err
 }
 
 // NetworkDisconnect disconnects from one network.
-func (v *Virt) NetworkDisconnect(ctx context.Context, network, target string, force bool) (err error) {
+func (v *Virt) NetworkDisconnect(ctx context.Context, network, target string, force bool) error {
 	var req virttypes.DisconnectNetworkReq
 	req.Network = network
 	req.ID = target
 
-	_, err = v.client.DisconnectNetwork(ctx, req)
+	_, err := v.client.DisconnectNetwork(ctx, req)
 
-	return
+	return err
 }
 
 // NetworkList lists all of networks.
-func (v *Virt) NetworkList(ctx context.Context, drivers []string) (nets []*enginetypes.Network, err error) {
-	log.Warnf(ctx, "NetworkList does not implement")
-	return
+func (v *Virt) NetworkList(ctx context.Context, drivers []string) ([]*enginetypes.Network, error) {
+	return nil, fmt.Errorf("NetworkList does not implement")
 }
 
 // BuildRefs builds references, it's not necessary for virt. presently.
-func (v *Virt) BuildRefs(ctx context.Context, name string, tags []string) (refs []string) {
+func (v *Virt) BuildRefs(ctx context.Context, name string, tags []string) []string {
 	log.Warnf(ctx, "BuildRefs does not implement")
-	return
+	return nil //Called between other apis, cannot return error
 }
 
 // BuildContent builds content, the use of it is similar to BuildRefs.
@@ -149,7 +147,7 @@ func (v *Virt) BuildContent(ctx context.Context, scm coresource.Source, opts *en
 }
 
 // VirtualizationCreate creates a guest.
-func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (guest *enginetypes.VirtualizationCreated, err error) {
+func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) {
 	vols, err := v.parseVolumes(opts.Volumes)
 	if err != nil {
 		return nil, err
@@ -175,33 +173,31 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 }
 
 // VirtualizationResourceRemap .
-func (v *Virt) VirtualizationResourceRemap(ctx context.Context, opts *enginetypes.VirtualizationRemapOptions) (ch <-chan enginetypes.VirtualizationRemapMessage, err error) {
-	err = types.ErrEngineNotImplemented
-	return
+func (v *Virt) VirtualizationResourceRemap(ctx context.Context, opts *enginetypes.VirtualizationRemapOptions) (<-chan enginetypes.VirtualizationRemapMessage, error) {
+	return nil, types.ErrEngineNotImplemented
 }
 
 // VirtualizationCopyTo copies one.
-func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, target string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) (err error) {
-	log.Warnf(ctx, "VirtualizationCopyTo does not implement")
-	return
+func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, target string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) error {
+	return fmt.Errorf("VirtualizationCopyTo does not implement")
 }
 
 // VirtualizationStart boots a guest.
-func (v *Virt) VirtualizationStart(ctx context.Context, ID string) (err error) {
-	_, err = v.client.StartGuest(ctx, ID)
-	return
+func (v *Virt) VirtualizationStart(ctx context.Context, ID string) error {
+	_, err := v.client.StartGuest(ctx, ID)
+	return err
 }
 
 // VirtualizationStop stops it.
-func (v *Virt) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) (err error) {
-	_, err = v.client.StopGuest(ctx, ID, gracefulTimeout == 0)
-	return
+func (v *Virt) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) error {
+	_, err := v.client.StopGuest(ctx, ID, gracefulTimeout == 0)
+	return err
 }
 
 // VirtualizationRemove removes a guest.
-func (v *Virt) VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) (err error) {
-	_, err = v.client.DestroyGuest(ctx, ID, force)
-	return
+func (v *Virt) VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) error {
+	_, err := v.client.DestroyGuest(ctx, ID, force)
+	return err
 }
 
 // VirtualizationInspect gets a guest.
@@ -211,7 +207,7 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 		return nil, err
 	}
 
-	bytes, err := json.Marshal(coretypes.LabelMeta{Publish: []string{"PORT"}})
+	marshal, err := json.Marshal(coretypes.LabelMeta{Publish: []string{"PORT"}})
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +217,7 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 		Image:    guest.ImageName,
 		Running:  guest.Status == "running",
 		Networks: guest.Networks,
-		Labels:   map[string]string{cluster.LabelMeta: string(bytes), cluster.ERUMark: "1"},
+		Labels:   map[string]string{cluster.LabelMeta: string(marshal), cluster.ERUMark: "1"},
 	}, nil
 }
 
@@ -231,7 +227,7 @@ func (v *Virt) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtual
 }
 
 // VirtualizationAttach attaches something to a guest.
-func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (io.ReadCloser, io.ReadCloser, io.WriteCloser, error) {
+func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (stdout io.ReadCloser, stderr io.ReadCloser, inStream io.WriteCloser, err error) {
 	return nil, nil, nil, fmt.Errorf("VirtualizationAttach does not implement")
 }
 
@@ -279,6 +275,6 @@ func (v *Virt) VirtualizationExecute(ctx context.Context, ID string, commands, e
 
 // ResourceValidate validate resource usage
 func (v *Virt) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory, storage int64) error {
-	// TODO list all workloads, calcuate resource
-	return nil
+	// TODO list all workloads, calculate resource
+	return fmt.Errorf("VirtualizationExecute not implemented")
 }
