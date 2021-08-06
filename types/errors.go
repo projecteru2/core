@@ -115,3 +115,8 @@ var (
 	ErrNoFilesToSend = errors.New("no files to send")
 	ErrNoFilesToCopy = errors.New("no files to copy")
 )
+
+// ErrFunctionNotImplemented return a not implemented error for function
+func ErrFunctionNotImplemented(functionName string) error {
+	return errors.New(functionName + " not implemented")
+}
