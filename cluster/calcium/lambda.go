@@ -103,7 +103,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			Follow: true,
 			Stdout: true,
 			Stderr: true,
-		}); err != nil {
+		}); err != nil && !errors.Is(err, types.ErrFunctionNotImplemented("VirtualizationLogs")) {
 			logger.Errorf(ctx, "[RunAndWait] Can't fetch log of workload %s error %+v", message.WorkloadID, err)
 			runMsgCh <- &types.AttachWorkloadMessage{
 				WorkloadID:    message.WorkloadID,
@@ -119,7 +119,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		if opts.OpenStdin {
 			var inStream io.WriteCloser
 			stdout, stderr, inStream, err = workload.Engine.VirtualizationAttach(ctx, message.WorkloadID, true, true)
-			if err != nil {
+			if err != nil && !errors.Is(err, types.ErrFunctionNotImplemented("VirtualizationAttach")) {
 				logger.Errorf(ctx, "[RunAndWait] Can't attach workload %s error %+v", message.WorkloadID, err)
 				runMsgCh <- &types.AttachWorkloadMessage{
 					WorkloadID:    message.WorkloadID,
@@ -146,7 +146,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 
 		// wait and forward exitcode
 		r, err := workload.Engine.VirtualizationWait(ctx, message.WorkloadID, "")
-		if err != nil {
+		if err != nil && !errors.Is(err, types.ErrFunctionNotImplemented("VirtualizationWait")) {
 			logger.Errorf(ctx, "[RunAndWait] %s wait failed %+v", utils.ShortID(message.WorkloadID), err)
 			runMsgCh <- &types.AttachWorkloadMessage{
 				WorkloadID:    message.WorkloadID,

@@ -128,7 +128,7 @@ func processVirtualizationInStream(
 				log.Errorf(ctx, "[processVirtualizationInStream] invalid winch command: %q", body)
 				return
 			}
-			if err := resizeFunc(w.Height, w.Width); err != nil {
+			if err := resizeFunc(w.Height, w.Width); err != nil && !errors.Is(err, types.ErrFunctionNotImplemented("VirtualizationResize")) {
 				log.Errorf(ctx, "[processVirtualizationInStream] resize window error: %v", err)
 				return
 			}

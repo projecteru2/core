@@ -73,7 +73,7 @@ func (c *Calcium) buildFromSCM(ctx context.Context, node *types.Node, refs []str
 	}
 	path, content, err := node.Engine.BuildContent(ctx, c.source, buildContentOpts)
 	defer os.RemoveAll(path)
-	if err != nil {
+	if err != nil && !errors.Is(err, types.ErrFunctionNotImplemented("BuildContent")) {
 		return nil, errors.WithStack(err)
 	}
 	ch, err := c.buildFromContent(ctx, node, refs, content)

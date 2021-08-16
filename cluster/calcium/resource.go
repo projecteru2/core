@@ -151,7 +151,7 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 			nr.Diffs = append(nr.Diffs, fmt.Sprintf("init storage < init volumes: %d < %d", node.InitStorageCap, node.InitVolume.Total()))
 		}
 
-		if err := node.Engine.ResourceValidate(ctx, cpuByWorkloads, cpumapByWorkloads, memoryByWorkloads, storageByWorkloads); err != nil {
+		if err := node.Engine.ResourceValidate(ctx, cpuByWorkloads, cpumapByWorkloads, memoryByWorkloads, storageByWorkloads); err != nil && !errors.Is(err, types.ErrFunctionNotImplemented("ResourceValidate")) {
 			nr.Diffs = append(nr.Diffs, err.Error())
 		}
 

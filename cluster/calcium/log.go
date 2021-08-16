@@ -3,6 +3,7 @@ package calcium
 import (
 	"bufio"
 	"context"
+	"github.com/pkg/errors"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -31,7 +32,7 @@ func (c *Calcium) LogStream(ctx context.Context, opts *types.LogStreamOptions) (
 			Stdout: true,
 			Stderr: true,
 		})
-		if err != nil {
+		if err != nil && !errors.Is(err, types.ErrFunctionNotImplemented("VirtualizationLogs")) {
 			ch <- &types.LogStreamMessage{ID: opts.ID, Error: logger.Err(ctx, err)}
 			return
 		}
