@@ -70,7 +70,7 @@ func (v *Vibranium) WatchServiceStatus(_ *pb.Empty, stream pb.CoreRPC_WatchServi
 // ListNetworks list networks for pod
 func (v *Vibranium) ListNetworks(ctx context.Context, opts *pb.ListNetworkOptions) (*pb.Networks, error) {
 	networks, err := v.cluster.ListNetworks(ctx, opts.Podname, opts.Driver)
-	if err != nil { //RPC need to feedback error.
+	if err != nil { // RPC need to feedback error.
 		return nil, grpcstatus.Error(ListNetworks, err.Error())
 	}
 
