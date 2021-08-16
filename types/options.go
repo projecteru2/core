@@ -182,6 +182,7 @@ type SetNodeOptions struct {
 	DeltaVolume     VolumeMap
 	NUMA            map[string]string
 	Labels          map[string]string
+	BypassOpt       TriOptions
 }
 
 // Validate checks options

@@ -180,9 +180,21 @@ func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions)
 	ctx, cancel := context.WithTimeout(ctx, v.config.GlobalTimeout)
 	defer cancel()
 	nodes := []*pb.Node{}
+	nodeChan := make(chan *pb.Node, len(ns))
+	wg := &sync.WaitGroup{}
 	for _, n := range ns {
-		nodes = append(nodes, toRPCNode(ctx, n))
+		wg.Add(1)
+		go func(node *types.Node) {
+			defer wg.Done()
+			nodeChan <- toRPCNode(ctx, node)
+		}(n)
 	}
+	wg.Wait()
+	close(nodeChan)
+	for node := range nodeChan {
+		nodes = append(nodes, node)
+	}
+
 	return &pb.Nodes{Nodes: nodes}, nil
 }
 

@@ -59,6 +59,8 @@ type Node struct {
 	CPUUsed    float64 `json:"cpuused"`
 	VolumeUsed int64   `json:"volumeused"`
 
+	// Bypass if bypass is true, it will not participate in future scheduling
+	Bypass    bool       `json:"bypass,omitempty"`
 	Available bool       `json:"available"`
 	Engine    engine.API `json:"-"`
 }
@@ -206,6 +208,13 @@ func (n *Node) PreserveResources(resource *ResourceMeta) {
 	if resource.NUMANode != "" {
 		n.DecrNUMANodeMemory(resource.NUMANode, resource.MemoryRequest)
 	}
+}
+
+// IsDown returns if the node is marked as down.
+func (n *Node) IsDown() bool {
+	// If `bypass` is true, then even if the node is still healthy, the node will be regarded as `down`.
+	// Currently `bypass` will only be set when the cli calls the `up` and `down` commands.
+	return n.Bypass || !n.Available
 }
 
 // NodeMetrics used for metrics collecting
