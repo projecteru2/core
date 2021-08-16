@@ -155,6 +155,7 @@ message Node {
     map<string, int64> volume = 19;
     int64 volume_used = 20;
     map<string, int64> init_numa_memory = 21;
+    bool bypass = 22;
 }
 
 message Nodes {
@@ -178,6 +179,7 @@ message SetNodeOptions {
     map<string, int64> delta_volume = 9;
     bool workloads_down = 10;
     string endpoint = 11;
+    TriOpt bypass_opt = 12;
 }
 
 message SetNodeStatusOptions {

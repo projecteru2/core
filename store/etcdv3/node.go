@@ -241,6 +241,7 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 			NUMAMemory:     numaMemory,
 		},
 		Available: true,
+		Bypass:    false,
 	}
 
 	bytes, err := json.Marshal(node)
@@ -291,7 +292,7 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 			return nil, err
 		}
 		node.Init()
-		if (node.Available || all) && utils.FilterWorkload(node.Labels, labels) {
+		if (!node.IsDown() || all) && utils.FilterWorkload(node.Labels, labels) {
 			engine, err := m.makeClient(ctx, node, false)
 			if err != nil {
 				return nil, err

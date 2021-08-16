@@ -79,6 +79,7 @@ func toRPCNode(ctx context.Context, n *types.Node) *pb.Node {
 		Numa:           n.NUMA,
 		NumaMemory:     n.NUMAMemory,
 		InitNumaMemory: n.InitNUMAMemory,
+		Bypass:         n.Bypass,
 	}
 }
 
@@ -153,6 +154,7 @@ func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) {
 		DeltaVolume:     b.DeltaVolume,
 		NUMA:            b.Numa,
 		Labels:          b.Labels,
+		BypassOpt:       types.TriOptions(b.BypassOpt),
 	}
 	for cpuID, cpuShare := range b.DeltaCpu {
 		r.DeltaCPU[cpuID] = int64(cpuShare)

@@ -280,7 +280,7 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 			return nil, err
 		}
 		node.Init()
-		if (node.Available || all) && utils.FilterWorkload(node.Labels, labels) {
+		if (!node.IsDown() || all) && utils.FilterWorkload(node.Labels, labels) {
 			engine, err := r.makeClient(ctx, node, false)
 			if err != nil {
 				return nil, err
