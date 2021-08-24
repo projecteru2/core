@@ -28,7 +28,7 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 		return nil, nil, errors.Wrap(types.ErrKeyExists, path)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	expiry := make(chan struct{})
 
 	var wg sync.WaitGroup
@@ -40,28 +40,24 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 		tick := time.NewTicker(heartbeat / 3)
 		defer tick.Stop()
 
-		revoke := func() {
-			cctx, ccancel := context.WithTimeout(context.Background(), time.Minute) // todo minute sucks
-			defer ccancel()
-			if _, err := e.cliv3.Revoke(cctx, lease.ID); err != nil {
+		// Revokes the lease.
+		defer func() {
+			// It shouldn't be inheriting from the ctx.
+			ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+			defer cancel()
+			if _, err := e.cliv3.Revoke(ctx, lease.ID); err != nil {
 				log.Errorf(ctx, "[StartEphemeral] revoke %d with %s failed: %v", lease.ID, path, err)
 			}
-		}
+		}()
 
 		for {
 			select {
 			case <-tick.C:
-				cctx, ccancel := context.WithTimeout(ctx, time.Minute) // todo minute sucks
-				if _, err := e.cliv3.KeepAliveOnce(cctx, lease.ID); err != nil {
+				if _, err := e.cliv3.KeepAliveOnce(ctx, lease.ID); err != nil {
 					log.Errorf(ctx, "[StartEphemeral] keepalive %d with %s failed: %v", lease.ID, path, err)
-					ccancel()
-					revoke()
 					return
 				}
-				ccancel()
-
 			case <-ctx.Done():
-				revoke()
 				return
 			}
 		}
