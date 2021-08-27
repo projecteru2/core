@@ -22,7 +22,7 @@ func (r *Rediaron) StartEphemeral(ctx context.Context, path string, heartbeat ti
 		return nil, nil, errors.Wrap(types.ErrKeyExists, path)
 	}
 
-	cctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	expiry := make(chan struct{})
 
 	var wg sync.WaitGroup
@@ -37,11 +37,11 @@ func (r *Rediaron) StartEphemeral(ctx context.Context, path string, heartbeat ti
 		for {
 			select {
 			case <-tick.C:
-				if err := r.refreshEphemeral(path, heartbeat); err != nil {
+				if err := r.refreshEphemeral(ctx, path, heartbeat); err != nil {
 					r.revokeEphemeral(path)
 					return
 				}
-			case <-cctx.Done():
+			case <-ctx.Done():
 				r.revokeEphemeral(path)
 				return
 			}
@@ -55,15 +55,15 @@ func (r *Rediaron) StartEphemeral(ctx context.Context, path string, heartbeat ti
 }
 
 func (r *Rediaron) revokeEphemeral(path string) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second)
 	defer cancel()
 	if _, err := r.cli.Del(ctx, path).Result(); err != nil {
 		log.Errorf(context.TODO(), "[refreshEphemeral] revoke with %s failed: %v", path, err)
 	}
 }
 
-func (r *Rediaron) refreshEphemeral(path string, ttl time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+func (r *Rediaron) refreshEphemeral(ctx context.Context, path string, ttl time.Duration) error {
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 	_, err := r.cli.Expire(ctx, path, ttl).Result()
 	return err

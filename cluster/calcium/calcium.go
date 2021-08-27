@@ -85,8 +85,8 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 }
 
 // DisasterRecover .
-func (c *Calcium) DisasterRecover() {
-	c.wal.Recover()
+func (c *Calcium) DisasterRecover(ctx context.Context) {
+	c.wal.Recover(ctx)
 }
 
 // Finalizer use for defer

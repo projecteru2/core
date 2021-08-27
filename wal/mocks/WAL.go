@@ -3,6 +3,7 @@
 package mocks
 
 import (
+	context "context"
 	time "time"
 
 	mock "github.com/stretchr/testify/mock"
@@ -66,9 +67,9 @@ func (_m *WAL) Open(_a0 string, _a1 time.Duration) error {
 	return r0
 }
 
-// Recover provides a mock function with given fields:
-func (_m *WAL) Recover() {
-	_m.Called()
+// Recover provides a mock function with given fields: _a0
+func (_m *WAL) Recover(_a0 context.Context) {
+	_m.Called(_a0)
 }
 
 // Register provides a mock function with given fields: _a0

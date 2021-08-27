@@ -31,10 +31,10 @@ func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	defer store.AssertExpectations(t)
 	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, nil).Once()
 
-	c.wal.Recover()
+	c.wal.Recover(context.TODO())
 
 	// Recovers nothing.
-	c.wal.Recover()
+	c.wal.Recover(context.TODO())
 }
 
 func TestHandleCreateWorkloadError(t *testing.T) {
@@ -59,12 +59,12 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 	defer store.AssertExpectations(t)
 	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, fmt.Errorf("err")).Once()
-	c.wal.Recover()
+	c.wal.Recover(context.TODO())
 
 	err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("keys: [%s]", wrkid))
 	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, err)
 	store.On("GetNode", mock.Anything, wrk.Nodename).Return(nil, fmt.Errorf("err")).Once()
-	c.wal.Recover()
+	c.wal.Recover(context.TODO())
 
 	store.On("GetNode", mock.Anything, wrk.Nodename).Return(node, nil)
 	eng, ok := node.Engine.(*enginemocks.API)
@@ -73,15 +73,15 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
 		Return(fmt.Errorf("err")).
 		Once()
-	c.wal.Recover()
+	c.wal.Recover(context.TODO())
 
 	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
 		Return(fmt.Errorf("Error: No such container: %s", wrk.ID)).
 		Once()
-	c.wal.Recover()
+	c.wal.Recover(context.TODO())
 
 	// Nothing recovered.
-	c.wal.Recover()
+	c.wal.Recover(context.TODO())
 }
 
 func TestHandleCreateWorkloadHandled(t *testing.T) {
@@ -118,10 +118,10 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 		Return(nil).
 		Once()
 
-	c.wal.Recover()
+	c.wal.Recover(context.TODO())
 
 	// Recovers nothing.
-	c.wal.Recover()
+	c.wal.Recover(context.TODO())
 }
 
 func TestHandleCreateLambda(t *testing.T) {
@@ -154,7 +154,7 @@ func TestHandleCreateLambda(t *testing.T) {
 		Return(nil, fmt.Errorf("err")).
 		Once()
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
-	c.wal.Recover()
+	c.wal.Recover(context.TODO())
 
 	store.On("ListWorkloads", mock.Anything, deployOpts.Name, deployOpts.Entrypoint.Name, "", int64(0), deployOpts.Labels).
 		Return([]*types.Workload{wrk}, nil).
@@ -179,11 +179,11 @@ func TestHandleCreateLambda(t *testing.T) {
 		Once()
 
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
-	c.wal.Recover()
+	c.wal.Recover(context.TODO())
 	// Recovered nothing.
-	c.wal.Recover()
+	c.wal.Recover(context.TODO())
 }

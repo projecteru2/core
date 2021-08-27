@@ -79,13 +79,13 @@ func (h *CreateWorkloadHandler) Event() string {
 }
 
 // Check .
-func (h *CreateWorkloadHandler) Check(raw interface{}) (bool, error) {
+func (h *CreateWorkloadHandler) Check(ctx context.Context, raw interface{}) (bool, error) {
 	wrk, ok := raw.(*types.Workload)
 	if !ok {
 		return false, types.NewDetailedErr(types.ErrInvalidType, raw)
 	}
 
-	ctx, cancel := getReplayContext(context.Background())
+	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
 
 	_, err := h.calcium.GetWorkload(ctx, wrk.ID)
@@ -122,13 +122,13 @@ func (h *CreateWorkloadHandler) Decode(bs []byte) (interface{}, error) {
 }
 
 // Handle .
-func (h *CreateWorkloadHandler) Handle(raw interface{}) error {
+func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) error {
 	wrk, ok := raw.(*types.Workload)
 	if !ok {
 		return types.NewDetailedErr(types.ErrInvalidType, raw)
 	}
 
-	ctx, cancel := getReplayContext(context.Background())
+	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
 
 	// There hasn't been the exact workload metadata, so we must remove it.
@@ -173,7 +173,7 @@ func (h *CreateLambdaHandler) Event() string {
 }
 
 // Check .
-func (h *CreateLambdaHandler) Check(interface{}) (bool, error) {
+func (h *CreateLambdaHandler) Check(context.Context, interface{}) (bool, error) {
 	return true, nil
 }
 
@@ -194,20 +194,20 @@ func (h *CreateLambdaHandler) Decode(bs []byte) (interface{}, error) {
 }
 
 // Handle .
-func (h *CreateLambdaHandler) Handle(raw interface{}) error {
+func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error {
 	opts, ok := raw.(*types.ListWorkloadsOptions)
 	if !ok {
 		return types.NewDetailedErr(types.ErrInvalidType, raw)
 	}
 
-	workloadIDs, err := h.getWorkloadIDs(opts)
+	workloadIDs, err := h.getWorkloadIDs(ctx, opts)
 	if err != nil {
 		log.Errorf(context.TODO(), "[CreateLambdaHandler.Handle] Get workloads %s/%s/%v failed: %v",
 			opts.Appname, opts.Entrypoint, opts.Labels, err)
 		return err
 	}
 
-	ctx, cancel := getReplayContext(context.Background())
+	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
 
 	if err := h.calcium.doRemoveWorkloadSync(ctx, workloadIDs); err != nil {
@@ -220,8 +220,8 @@ func (h *CreateLambdaHandler) Handle(raw interface{}) error {
 	return nil
 }
 
-func (h *CreateLambdaHandler) getWorkloadIDs(opts *types.ListWorkloadsOptions) ([]string, error) {
-	ctx, cancel := getReplayContext(context.Background())
+func (h *CreateLambdaHandler) getWorkloadIDs(ctx context.Context, opts *types.ListWorkloadsOptions) ([]string, error) {
+	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
 
 	workloads, err := h.calcium.ListWorkloads(ctx, opts)

@@ -38,8 +38,9 @@ func TestRecover(t *testing.T) {
 	path := "/tmp/wal.unitest.wal"
 	os.Remove(path)
 
-	require.NoError(t, Open(path, time.Second))
-	defer Close()
+	wal WAL := NewHydro()
+	require.NoError(t, wal.Open(path, time.Second))
+	defer wal.Close()
 
 	hydro, ok := wal.(*Hydro)
 	require.True(t, ok)
@@ -48,7 +49,7 @@ func TestRecover(t *testing.T) {
 
 	eventype := "create"
 
-	Register(SimpleEventHandler{
+	wal.Register(SimpleEventHandler{
 		event:  eventype,
 		encode: encode,
 		decode: decode,
@@ -56,9 +57,9 @@ func TestRecover(t *testing.T) {
 		handle: handle,
 	})
 
-	Log(eventype, struct{}{})
+	wal.Log(eventype, struct{}{})
 
-	Recover()
+	wal.Recover(context.TODO())
 	require.True(t, checked)
 	require.True(t, handled)
 	require.True(t, encoded)
