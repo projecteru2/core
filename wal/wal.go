@@ -1,6 +1,9 @@
 package wal
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 const (
 	// EventPrefix indicates the key prefix of all events' keys.
@@ -17,7 +20,7 @@ type WAL interface {
 
 // Recoverer is the interface that wraps the basic Recover method.
 type Recoverer interface {
-	Recover()
+	Recover(context.Context)
 }
 
 // Registry is the interface that wraps the basic Register method.
@@ -51,7 +54,7 @@ func (h SimpleEventHandler) Event() string {
 }
 
 // Check .
-func (h SimpleEventHandler) Check(raw interface{}) (bool, error) {
+func (h SimpleEventHandler) Check(ctx context.Context, raw interface{}) (bool, error) {
 	return h.check(raw)
 }
 
@@ -66,45 +69,18 @@ func (h SimpleEventHandler) Decode(bs []byte) (interface{}, error) {
 }
 
 // Handle .
-func (h SimpleEventHandler) Handle(raw interface{}) error {
+func (h SimpleEventHandler) Handle(ctx context.Context, raw interface{}) error {
 	return h.handle(raw)
 }
 
 // EventHandler is the interface that groups a few methods.
 type EventHandler interface {
 	Event() string
-	Check(interface{}) (need bool, err error)
+	Check(context.Context, interface{}) (need bool, err error)
 	Encode(interface{}) ([]byte, error)
 	Decode([]byte) (interface{}, error)
-	Handle(interface{}) error
+	Handle(context.Context, interface{}) error
 }
 
 // Commit is a function for committing an event log.
 type Commit func() error
-
-// Register registers a new event to doit.
-func Register(handler EventHandler) {
-	wal.Register(handler)
-}
-
-// Log records a log item.
-func Log(event string, item interface{}) (Commit, error) {
-	return wal.Log(event, item)
-}
-
-// Recover makes a disaster recovery.
-func Recover() {
-	wal.Recover()
-}
-
-// Close closes a WAL file.
-func Close() error {
-	return wal.Close()
-}
-
-// Open opens a WAL file.
-func Open(path string, timeout time.Duration) error {
-	return wal.Open(path, timeout)
-}
-
-var wal WAL = NewHydro()

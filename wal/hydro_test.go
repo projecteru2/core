@@ -1,6 +1,7 @@
 package wal
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -74,7 +75,7 @@ func TestRecoverFailedAsNoSuchHandler(t *testing.T) {
 
 	hydro.handlers.Delete(eventype)
 
-	hydro.Recover()
+	hydro.Recover(context.TODO())
 	require.True(t, encoded)
 	require.False(t, decoded)
 	require.False(t, checked)
@@ -98,7 +99,7 @@ func TestRecoverFailedAsCheckError(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, commit)
 
-	hydro.Recover()
+	hydro.Recover(context.TODO())
 	require.True(t, encoded)
 	require.True(t, decoded)
 	require.True(t, checked)
@@ -145,7 +146,7 @@ func TestRecoverFailedAsDecodeLogError(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, commit)
 
-	hydro.Recover()
+	hydro.Recover(context.TODO())
 	require.True(t, encoded)
 	require.True(t, decoded)
 	require.False(t, checked)
@@ -171,7 +172,7 @@ func TestHydroRecoverDiscardNoNeedEvent(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, commit)
 
-	hydro.Recover()
+	hydro.Recover(context.TODO())
 	require.True(t, encoded)
 	require.True(t, decoded)
 	require.True(t, checked)
@@ -191,7 +192,7 @@ func TestHydroRecover(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, commit)
 
-	hydro.Recover()
+	hydro.Recover(context.TODO())
 	require.True(t, encoded)
 	require.True(t, decoded)
 	require.True(t, checked)
@@ -236,7 +237,7 @@ func TestHydroRecoverWithRealLithium(t *testing.T) {
 	hydro.Log(handler.event, struct{}{})
 	hydro.Log(handler.event, struct{}{})
 
-	hydro.Recover()
+	hydro.Recover(context.TODO())
 
 	ch, _ := hydro.kv.Scan([]byte(EventPrefix))
 	for range ch {

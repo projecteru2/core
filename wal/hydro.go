@@ -42,7 +42,7 @@ func (h *Hydro) Register(handler EventHandler) {
 }
 
 // Recover starts a disaster recovery, which will replay all the events.
-func (h *Hydro) Recover() {
+func (h *Hydro) Recover(ctx context.Context) {
 	ch, _ := h.kv.Scan([]byte(EventPrefix))
 
 	events := []HydroEvent{}
@@ -62,27 +62,27 @@ func (h *Hydro) Recover() {
 			continue
 		}
 
-		if err := h.recover(handler, ev); err != nil {
+		if err := h.recover(ctx, handler, ev); err != nil {
 			log.Errorf(context.TODO(), "[Recover] handle event %d (%s) failed: %v", ev.ID, ev.Type, err)
 			continue
 		}
 	}
 }
 
-func (h *Hydro) recover(handler EventHandler, event HydroEvent) error {
+func (h *Hydro) recover(ctx context.Context, handler EventHandler, event HydroEvent) error {
 	item, err := handler.Decode(event.Item)
 	if err != nil {
 		return err
 	}
 
-	switch handle, err := handler.Check(item); {
+	switch handle, err := handler.Check(ctx, item); {
 	case err != nil:
 		return err
 	case !handle:
 		return event.Delete()
 	}
 
-	if err := handler.Handle(item); err != nil {
+	if err := handler.Handle(ctx, item); err != nil {
 		return err
 	}
 
