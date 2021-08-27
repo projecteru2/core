@@ -25,7 +25,7 @@ func New(config types.GRPCConfig, stor store.Store) *Helium {
 	h.config = config
 	h.stor = stor
 	h.Do(func() {
-		h.start(context.TODO()) // rewrite ctx here, because this will run only once!
+		h.start(context.TODO()) // TODO rewrite ctx here, because this will run only once!
 	})
 	return h
 }
@@ -45,7 +45,7 @@ func (h *Helium) Unsubscribe(id uuid.UUID) {
 func (h *Helium) start(ctx context.Context) {
 	ch, err := h.stor.ServiceStatusStream(ctx)
 	if err != nil {
-		log.Errorf(context.TODO(), "[WatchServiceStatus] failed to start watch: %v", err)
+		log.Errorf(nil, "[WatchServiceStatus] failed to start watch: %v", err)
 		return
 	}
 

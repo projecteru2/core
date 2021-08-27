@@ -1,7 +1,6 @@
 package metrics
 
 import (
-	"context"
 	"fmt"
 	"os"
 
@@ -48,9 +47,9 @@ func (m *Metrics) checkConn() error {
 	// We needn't try to renew/reconnect because of only supporting UDP protocol now
 	// We should add an `errorCount` to reconnect when implementing TCP protocol
 	if m.statsdClient, err = statsdlib.New(m.StatsdAddr, statsdlib.WithErrorHandler(func(err error) {
-		log.Errorf(context.TODO(), "[statsd] Sending statsd failed: %v", err)
+		log.Errorf(nil, "[statsd] Sending statsd failed: %v", err)
 	})); err != nil {
-		log.Errorf(context.TODO(), "[statsd] Connect statsd failed: %v", err)
+		log.Errorf(nil, "[statsd] Connect statsd failed: %v", err)
 		return err
 	}
 	return nil
@@ -115,7 +114,7 @@ func (m *Metrics) SendNodeInfo(nm *types.NodeMetrics) {
 		}
 
 		if err := m.gauge(fmt.Sprintf(cpuMap, cleanedNodeName, cpuid), val); err != nil {
-			log.Errorf(context.TODO(), "[SendNodeInfo] Error occurred while sending cpu data to statsd: %v", err)
+			log.Errorf(nil, "[SendNodeInfo] Error occurred while sending cpu data to statsd: %v", err)
 		}
 	}
 
@@ -124,23 +123,23 @@ func (m *Metrics) SendNodeInfo(nm *types.NodeMetrics) {
 	}
 
 	if err := m.gauge(fmt.Sprintf(memStats, cleanedNodeName), memory); err != nil {
-		log.Errorf(context.TODO(), "[SendNodeInfo] Error occurred while sending memory data to statsd: %v", err)
+		log.Errorf(nil, "[SendNodeInfo] Error occurred while sending memory data to statsd: %v", err)
 	}
 
 	if err := m.gauge(fmt.Sprintf(storageStats, cleanedNodeName), storage); err != nil {
-		log.Errorf(context.TODO(), "[SendNodeInfo] Error occurred while sending storage data to statsd: %v", err)
+		log.Errorf(nil, "[SendNodeInfo] Error occurred while sending storage data to statsd: %v", err)
 	}
 
 	if err := m.gauge(fmt.Sprintf(memUsedStats, cleanedNodeName), memoryUsed); err != nil {
-		log.Errorf(context.TODO(), "[SendNodeInfo] Error occurred while sending memory used data to statsd: %v", err)
+		log.Errorf(nil, "[SendNodeInfo] Error occurred while sending memory used data to statsd: %v", err)
 	}
 
 	if err := m.gauge(fmt.Sprintf(storageUsedStats, cleanedNodeName), storageUsed); err != nil {
-		log.Errorf(context.TODO(), "[SendNodeInfo] Error occurred while sending storage used data to statsd: %v", err)
+		log.Errorf(nil, "[SendNodeInfo] Error occurred while sending storage used data to statsd: %v", err)
 	}
 
 	if err := m.gauge(fmt.Sprintf(cpuUsedStats, cleanedNodeName), cpuUsed); err != nil {
-		log.Errorf(context.TODO(), "[SendNodeInfo] Error occurred while sending cpu used data to statsd: %v", err)
+		log.Errorf(nil, "[SendNodeInfo] Error occurred while sending cpu used data to statsd: %v", err)
 	}
 }
 
@@ -156,7 +155,7 @@ func (m *Metrics) SendDeployCount(n int) {
 	}
 	key := fmt.Sprintf(deployCount, m.Hostname)
 	if err := m.count(key, n, 1.0); err != nil {
-		log.Errorf(context.TODO(), "[SendDeployCount] Error occurred while counting: %v", err)
+		log.Errorf(nil, "[SendDeployCount] Error occurred while counting: %v", err)
 	}
 }
 

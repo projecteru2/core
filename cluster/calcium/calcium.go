@@ -71,7 +71,7 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 		log.Warn("[Calcium] SCM not set, build API disabled")
 	}
 	if err != nil {
-		logger.Errorf(context.TODO(), "[Calcium] SCM failed: %+v", err)
+		logger.Errorf(nil, "[Calcium] SCM failed: %+v", err)
 		return nil, errors.WithStack(err)
 	}
 
@@ -81,7 +81,7 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 	cal := &Calcium{store: store, config: config, scheduler: potassium, source: scm, watcher: watcher}
 	cal.wal, err = newCalciumWAL(cal)
 	cal.identifier = config.Identifier()
-	return cal, logger.Err(context.TODO(), errors.WithStack(err))
+	return cal, logger.Err(nil, errors.WithStack(err))
 }
 
 // DisasterRecover .
