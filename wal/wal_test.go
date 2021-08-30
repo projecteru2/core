@@ -38,7 +38,7 @@ func TestRecover(t *testing.T) {
 	path := "/tmp/wal.unitest.wal"
 	os.Remove(path)
 
-	wal WAL := NewHydro()
+	var wal WAL = NewHydro()
 	require.NoError(t, wal.Open(path, time.Second))
 	defer wal.Close()
 

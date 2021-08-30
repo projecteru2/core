@@ -57,7 +57,7 @@ func (s *retryStream) RecvMsg(m interface{}) (err error) {
 	}
 
 	return backoff.Retry(func() error {
-		log.Debug(context.TODO(), "[retryStream] retry on new stream")
+		log.Debug(nil, "[retryStream] retry on new stream") //nolint
 		stream, err := s.newStream()
 		if err != nil {
 			// even io.EOF triggers retry, and it's what we want!

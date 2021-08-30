@@ -20,6 +20,7 @@ require (
 	github.com/go-git/go-git/v5 v5.2.0
 	github.com/go-ping/ping v0.0.0-20210407214646-e4e642a95741
 	github.com/go-redis/redis/v8 v8.8.2
+	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/mux v1.7.4 // indirect
 	github.com/jinzhu/configor v1.2.0
@@ -35,7 +36,6 @@ require (
 	github.com/projecteru2/libyavirt v0.0.0-20210514093713-959b2e232319
 	github.com/prometheus/client_golang v1.11.0
 	github.com/sanity-io/litter v1.5.1
-	github.com/sethvargo/go-signalcontext v0.1.0
 	github.com/sirupsen/logrus v1.7.0
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli/v2 v2.2.0

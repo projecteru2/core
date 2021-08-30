@@ -53,7 +53,7 @@ func (p *EndpointPusher) delOutdated(endpoints []string) {
 		if _, ok := newEps[ep]; !ok {
 			cancel()
 			p.pendingEndpoints.Delete(ep)
-			log.Debugf(context.TODO(), "[EruResolver] pending endpoint deleted: %s", ep)
+			log.Debugf(nil, "[EruResolver] pending endpoint deleted: %s", ep) //nolint
 		}
 		return true
 	})
@@ -66,7 +66,7 @@ func (p *EndpointPusher) delOutdated(endpoints []string) {
 		}
 		if _, ok := newEps[ep]; !ok {
 			p.availableEndpoints.Delete(ep)
-			log.Debugf(context.TODO(), "[EruResolver] available endpoint deleted: %s", ep)
+			log.Debugf(nil, "[EruResolver] available endpoint deleted: %s", ep) //nolint
 		}
 		return true
 	})
@@ -81,16 +81,17 @@ func (p *EndpointPusher) addCheck(endpoints []string) {
 			continue
 		}
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(context.TODO())
 		p.pendingEndpoints.Store(endpoint, cancel)
 		go p.pollReachability(ctx, endpoint)
 		log.Debugf(ctx, "[EruResolver] pending endpoint added: %s", endpoint)
 	}
 }
+
 func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) {
 	parts := strings.Split(endpoint, ":")
 	if len(parts) != 2 {
-		log.Errorf(context.TODO(), "[EruResolver] wrong format of endpoint: %s", endpoint)
+		log.Errorf(ctx, "[EruResolver] wrong format of endpoint: %s", endpoint)
 		return
 	}
 
@@ -118,7 +119,7 @@ func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) 
 func (p *EndpointPusher) checkReachability(host string) (err error) {
 	pinger, err := ping.NewPinger(host)
 	if err != nil {
-		log.Errorf(context.TODO(), "[EruResolver] failed to create pinger: %+v", err)
+		log.Errorf(nil, "[EruResolver] failed to create pinger: %+v", err) //nolint
 		return
 	}
 	defer pinger.Stop()

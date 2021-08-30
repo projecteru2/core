@@ -44,10 +44,10 @@ func (r *Resolver) Close() {
 }
 
 func (r *Resolver) sync() {
-	log.Debug(context.TODO(), "[EruResolver] start sync service discovery")
-	ctx, cancel := context.WithCancel(context.Background())
-	r.cancel = cancel
-	defer cancel()
+	ctx := context.TODO()
+	log.Debug(ctx, "[EruResolver] start sync service discovery")
+	ctx, r.cancel = context.WithCancel(ctx)
+	defer r.cancel()
 
 	ch, err := r.discovery.Watch(ctx)
 	if err != nil {

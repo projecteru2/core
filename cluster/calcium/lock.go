@@ -20,7 +20,7 @@ func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration
 	}
 	defer func() {
 		if err != nil {
-			rollbackCtx, cancel := context.WithTimeout(context.Background(), timeout)
+			rollbackCtx, cancel := context.WithTimeout(context.TODO(), timeout)
 			defer cancel()
 			rollbackCtx = utils.InheritTracingInfo(rollbackCtx, ctx)
 			if e := lock.Unlock(rollbackCtx); e != nil {

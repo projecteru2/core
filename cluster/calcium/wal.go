@@ -202,7 +202,7 @@ func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error
 
 	workloadIDs, err := h.getWorkloadIDs(ctx, opts)
 	if err != nil {
-		log.Errorf(context.TODO(), "[CreateLambdaHandler.Handle] Get workloads %s/%s/%v failed: %v",
+		log.Errorf(nil, "[CreateLambdaHandler.Handle] Get workloads %s/%s/%v failed: %v", //nolint
 			opts.Appname, opts.Entrypoint, opts.Labels, err)
 		return err
 	}

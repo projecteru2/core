@@ -53,7 +53,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 	utils.SentryGo(func() {
 		defer func() {
-			cctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.Background()), c.config.GlobalTimeout)
+			cctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.TODO()), c.config.GlobalTimeout)
 			for nodename := range deployMap {
 				if e := c.store.DeleteProcessing(cctx, opts.GetProcessing(nodename)); e != nil {
 					logger.Errorf(ctx, "[Calcium.doCreateWorkloads] delete processing failed for %s: %+v", nodename, e)
