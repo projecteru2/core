@@ -53,7 +53,7 @@ func (p *EndpointPusher) delOutdated(endpoints []string) {
 		if _, ok := newEps[ep]; !ok {
 			cancel()
 			p.pendingEndpoints.Delete(ep)
-			log.Debugf(nil, "[EruResolver] pending endpoint deleted: %s", ep)
+			log.Debugf(nil, "[EruResolver] pending endpoint deleted: %s", ep) //nolint
 		}
 		return true
 	})
@@ -66,7 +66,7 @@ func (p *EndpointPusher) delOutdated(endpoints []string) {
 		}
 		if _, ok := newEps[ep]; !ok {
 			p.availableEndpoints.Delete(ep)
-			log.Debugf(nil, "[EruResolver] available endpoint deleted: %s", ep)
+			log.Debugf(nil, "[EruResolver] available endpoint deleted: %s", ep) //nolint
 		}
 		return true
 	})
@@ -119,7 +119,7 @@ func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) 
 func (p *EndpointPusher) checkReachability(host string) (err error) {
 	pinger, err := ping.NewPinger(host)
 	if err != nil {
-		log.Errorf(nil, "[EruResolver] failed to create pinger: %+v", err)
+		log.Errorf(nil, "[EruResolver] failed to create pinger: %+v", err) //nolint
 		return
 	}
 	defer pinger.Stop()
