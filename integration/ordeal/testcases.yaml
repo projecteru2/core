@@ -1,0 +1,11 @@
+- method: AddPod
+  requests:
+    name:
+    - a
+    - b
+    desc:
+    - c
+    - d
+  response_callbacks:
+  - AddPodCallback
+
