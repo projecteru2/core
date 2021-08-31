@@ -51,4 +51,4 @@ require (
 	google.golang.org/protobuf v1.27.1
 )
 
-replace github.com/projecteru2/libyavirt => github.com/Aceralon/libyavirt v0.0.0-20210831025617-0f62c80c4ea7
+replace github.com/projecteru2/libyavirt => github.com/Aceralon/libyavirt v0.0.0-20210908085845-766c74b778eb
