@@ -179,9 +179,11 @@ func (v *Virt) VirtualizationResourceRemap(ctx context.Context, opts *enginetype
 }
 
 // VirtualizationCopyTo copies one.
-func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, target string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) (err error) {
-	log.Warnf(ctx, "VirtualizationCopyTo does not implement")
-	return
+func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, dest string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) error {
+	if err := v.client.CopyToGuest(ctx, ID, dest, content, AllowOverwriteDirWithFile, CopyUIDGID); err != nil {
+		return err
+	}
+	return nil
 }
 
 // VirtualizationStart boots a guest.
