@@ -12,7 +12,6 @@ type rpc struct {
 }
 
 type TestCase struct {
-	Method            string                   `yaml:"method"`
-	Requests          map[string][]interface{} `yaml:"requests"`
-	ResponseCallbacks []string                 `yaml:"response_callbacks"`
+	Method   string                   `yaml:"method"`
+	Requests map[string][]interface{} `yaml:"requests"`
 }

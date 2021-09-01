@@ -6,6 +6,3 @@
     desc:
     - c
     - d
-  response_callbacks:
-  - AddPodCallback
-

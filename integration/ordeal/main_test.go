@@ -20,7 +20,7 @@ import (
 var (
 	rpcs      = make(map[string]*rpc)
 	testcases = []TestCase{}
-	callbacks = []func(*testing.T, proto.Message, error){}
+	asserts   = []func(*testing.T, proto.Message, error){}
 )
 
 func TestMain(m *testing.M) {
@@ -80,17 +80,17 @@ func TestCases(t *testing.T) {
 	}
 
 	stub := grpcdynamic.NewStub(client.GetConn())
+	assertion := Assertion{}
 	for _, testcase := range testcases {
 		rpc, ok := rpcs[testcase.Method]
 		if !ok {
 			panic(fmt.Errorf("method not found: %s", testcase.Method))
 		}
 
-		for req := range requestCombinations(testcase.Requests) {
-			stub.InvokeRpc(context.TODO(), rpc.Method, rpc.RequestFactory(req))
+		for args := range requestCombinations(testcase.Requests) {
+			resp, err := stub.InvokeRpc(context.TODO(), rpc.Method, rpc.RequestFactory(args))
 
-			for range testcase.ResponseCallbacks {
-			}
+			assertion.Assert(testcase.Method, t, args, resp, err)
 		}
 
 	}
