@@ -1,26 +1,26 @@
 package ordeal
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/jhump/protoreflect/dynamic"
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
-	"github.com/jinzhu/configor"
 	"github.com/projecteru2/core/client"
 	coretypes "github.com/projecteru2/core/types"
 )
 
 var (
-	rpcs      = make(map[string]*rpc)
-	testcases = []TestCase{}
-	asserts   = []func(*testing.T, proto.Message, error){}
+	rpcs = make(map[string]*rpc)
 )
 
 func TestMain(m *testing.M) {
@@ -53,15 +53,11 @@ func TestMain(m *testing.M) {
 			for _, method := range service.GetMethods() {
 				rpcs[method.GetName()] = &rpc{
 					Method: method,
-					RequestFactory: func(method *desc.MethodDescriptor) func(map[string]interface{}) proto.Message {
-						return func(args map[string]interface{}) proto.Message {
-							dmsg := dynamic.NewMessage(method.GetInputType())
-							for field, val := range args {
-								dmsg.SetFieldByName(field, val)
-							}
+					RequestFactory: func(method *desc.MethodDescriptor) func([]byte) (proto.Message, error) {
+						return func(jsonbuf []byte) (proto.Message, error) {
+
 							msg := dynamic.NewMessageFactoryWithDefaults().NewDynamicMessage(method.GetInputType())
-							dmsg.ConvertTo(msg)
-							return msg
+							return msg, jsonpb.Unmarshal(bytes.NewReader(jsonbuf), msg)
 						}
 					}(method),
 				}
@@ -69,7 +65,6 @@ func TestMain(m *testing.M) {
 		}
 	}
 
-	configor.Load(&testcases, filepath.Join(pwd, "testcases.yaml"))
 	m.Run()
 }
 
@@ -81,17 +76,35 @@ func TestCases(t *testing.T) {
 
 	stub := grpcdynamic.NewStub(client.GetConn())
 	assertion := Assertion{}
-	for _, testcase := range testcases {
-		rpc, ok := rpcs[testcase.Method]
+	f, err := os.Open("/tmp/_core_int_cases")
+	if err != nil {
+		panic("testcase file not found: /tmp/_core_int_cases")
+	}
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		method := scanner.Text()
+		if !scanner.Scan() {
+			panic("testcase stream broken")
+		}
+
+		testcase := scanner.Bytes()
+		rpc, ok := rpcs[method]
 		if !ok {
-			panic(fmt.Errorf("method not found: %s", testcase.Method))
+			panic(fmt.Errorf("method not found: %s", method))
 		}
 
-		for args := range requestCombinations(testcase.Requests) {
-			resp, err := stub.InvokeRpc(context.TODO(), rpc.Method, rpc.RequestFactory(args))
-
-			assertion.Assert(testcase.Method, t, args, resp, err)
+		req, err := rpc.RequestFactory(testcase)
+		if err != nil {
+			panic(fmt.Errorf("invalid request: %+v, %s", err, string(testcase)))
 		}
 
+		if rpc.Method.IsServerStreaming() {
+			stream, err := stub.InvokeRpcServerStream(context.TODO(), rpc.Method, req)
+			assertion.AssertStream(method, t, req, stream, err)
+
+		} else {
+			resp, err := stub.InvokeRpc(context.TODO(), rpc.Method, req)
+			assertion.AssertUnary(method, t, req, resp, err)
+		}
 	}
 }

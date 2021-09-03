@@ -8,10 +8,5 @@ import (
 //rpc represents method of grpc
 type rpc struct {
 	Method         *desc.MethodDescriptor
-	RequestFactory func(map[string]interface{}) proto.Message
-}
-
-type TestCase struct {
-	Method   string                   `yaml:"method"`
-	Requests map[string][]interface{} `yaml:"requests"`
+	RequestFactory func(jsonbuf []byte) (proto.Message, error)
 }
