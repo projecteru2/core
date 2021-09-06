@@ -258,7 +258,10 @@ func GetIP(ctx context.Context, daemonHost string) string {
 }
 
 func makeRawClient(_ context.Context, config coretypes.Config, client *http.Client, endpoint string) (engine.API, error) {
-	cli, err := dockerapi.NewClient(endpoint, config.Docker.APIVersion, client, nil)
+	cli, err := dockerapi.NewClientWithOpts(
+		dockerapi.WithHost(endpoint),
+		dockerapi.WithVersion(config.Docker.APIVersion),
+		dockerapi.WithHTTPClient(client))
 	if err != nil {
 		return nil, err
 	}
