@@ -1,6 +1,7 @@
 package wal
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
