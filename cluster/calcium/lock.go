@@ -6,12 +6,13 @@ import (
 	"sort"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+
+	"github.com/pkg/errors"
 )
 
 func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration) (lock lock.DistributedLock, rCtx context.Context, err error) {

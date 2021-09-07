@@ -2,15 +2,15 @@ package complexscheduler
 
 import (
 	"context"
+	"math"
 	"sort"
 
-	"math"
-
-	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+
+	"github.com/pkg/errors"
 )
 
 // Potassium is a scheduler

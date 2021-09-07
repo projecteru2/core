@@ -5,11 +5,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/docker/go-units"
-	"github.com/stretchr/testify/assert"
-
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
+
+	"github.com/docker/go-units"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCPUPriorPlan(t *testing.T) {

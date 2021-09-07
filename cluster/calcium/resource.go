@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
-	"github.com/projecteru2/core/log"
-
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+
+	"github.com/pkg/errors"
 )
 
 // PodResource show pod resource usage

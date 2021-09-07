@@ -9,6 +9,7 @@ import (
 
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
+
 	"github.com/stretchr/testify/assert"
 )
 

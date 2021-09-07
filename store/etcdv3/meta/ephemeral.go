@@ -5,9 +5,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+
+	"github.com/pkg/errors"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 

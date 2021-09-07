@@ -8,11 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-redis/redis/v8"
-	perrors "github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+
+	"github.com/go-redis/redis/v8"
+	perrors "github.com/pkg/errors"
 )
 
 var (

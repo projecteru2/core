@@ -6,6 +6,7 @@ import (
 
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

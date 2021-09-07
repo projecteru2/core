@@ -1,11 +1,10 @@
 package redis
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
-
-	"context"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"

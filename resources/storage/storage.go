@@ -3,10 +3,11 @@ package storage
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
+
+	"github.com/pkg/errors"
 )
 
 type storageRequest struct {

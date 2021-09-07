@@ -7,10 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
-	"github.com/stretchr/testify/mock"
-
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
@@ -21,6 +17,9 @@ import (
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestPodResource(t *testing.T) {

@@ -8,6 +8,7 @@ import (
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	resourcetypesmocks "github.com/projecteru2/core/resources/types/mocks"
 	"github.com/projecteru2/core/types"
+
 	"github.com/stretchr/testify/assert"
 )
 

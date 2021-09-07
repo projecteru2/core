@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pkg/errors"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/discovery"
 	"github.com/projecteru2/core/discovery/helium"
@@ -19,6 +18,8 @@ import (
 	"github.com/projecteru2/core/store/etcdv3"
 	"github.com/projecteru2/core/store/redis"
 	"github.com/projecteru2/core/types"
+
+	"github.com/pkg/errors"
 )
 
 // Calcium implement the cluster

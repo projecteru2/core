@@ -9,6 +9,7 @@ import (
 
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/utils"
+
 	"github.com/stretchr/testify/assert"
 )
 

@@ -3,6 +3,7 @@ package docker
 import (
 	"archive/tar"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,23 +14,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/go-connections/nat"
-	"github.com/docker/go-units"
-	"github.com/pkg/errors"
-
 	corecluster "github.com/projecteru2/core/cluster"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
+	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 
 	dockertypes "github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	dockernetwork "github.com/docker/docker/api/types/network"
 	dockerslice "github.com/docker/docker/api/types/strslice"
-
-	"encoding/json"
-
-	enginetypes "github.com/projecteru2/core/engine/types"
-	coretypes "github.com/projecteru2/core/types"
+	"github.com/docker/go-connections/nat"
+	"github.com/docker/go-units"
+	"github.com/pkg/errors"
 )
 
 const (

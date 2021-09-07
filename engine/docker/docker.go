@@ -7,12 +7,13 @@ import (
 	"net/http"
 	"os"
 
-	dockerapi "github.com/docker/docker/client"
-	"github.com/docker/go-connections/tlsconfig"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
+
+	dockerapi "github.com/docker/docker/client"
+	"github.com/docker/go-connections/tlsconfig"
 )
 
 const (

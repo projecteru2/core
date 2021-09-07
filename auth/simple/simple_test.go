@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	grpcmocks "github.com/projecteru2/core/3rdmocks"
+
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )

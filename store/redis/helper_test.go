@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/projecteru2/core/strategy"
+
 	"github.com/stretchr/testify/assert"
 )
 

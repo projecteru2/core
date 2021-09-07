@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+
+	"github.com/pkg/errors"
 )
 
 // RemoveImage remove images

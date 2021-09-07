@@ -7,6 +7,7 @@ import (
 
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,13 +38,13 @@ func TestVolumeRealloc(t *testing.T) {
 		}
 	}
 	existing := types.MustToVolumePlan(map[string]map[string]int64{
-		"AUTO:/data1:rmw:1": map[string]int64{
+		"AUTO:/data1:rmw:1": {
 			"/tmp3": 100,
 		},
-		"AUTO:/data2:r:2": map[string]int64{
+		"AUTO:/data2:r:2": {
 			"/tmp5": 2,
 		},
-		"AUTO:/data3:rw": map[string]int64{
+		"AUTO:/data3:rw": {
 			"/tmp3": 0,
 		},
 	})
@@ -56,19 +57,19 @@ func TestVolumeRealloc(t *testing.T) {
 
 	// affinity: complex no change
 	existing = types.MustToVolumePlan(map[string]map[string]int64{
-		"AUTO:/data1:rmw:1": map[string]int64{
+		"AUTO:/data1:rmw:1": {
 			"/tmp3": 50,
 		},
-		"AUTO:/data2:r:2": map[string]int64{
+		"AUTO:/data2:r:2": {
 			"/tmp5": 2,
 		},
-		"AUTO:/data3:rw": map[string]int64{
+		"AUTO:/data3:rw": {
 			"/tmp3": 0,
 		},
-		"AUTO:/data4:rmw:1": map[string]int64{
+		"AUTO:/data4:rmw:1": {
 			"/tmp3": 50,
 		},
-		"AUTO:/data5:w:20": map[string]int64{
+		"AUTO:/data5:w:20": {
 			"/tmp5": 20,
 		},
 	})
@@ -87,10 +88,10 @@ func TestVolumeRealloc(t *testing.T) {
 
 	// affinity: increase
 	existing = types.MustToVolumePlan(map[string]map[string]int64{
-		"AUTO:/data1:rmw:1": map[string]int64{
+		"AUTO:/data1:rmw:1": {
 			"/tmp3": 100,
 		},
-		"AUTO:/data2:r:2": map[string]int64{
+		"AUTO:/data2:r:2": {
 			"/tmp5": 2,
 		},
 	})
@@ -100,26 +101,26 @@ func TestVolumeRealloc(t *testing.T) {
 	assert.EqualValues(t, 1, total)
 	assert.EqualValues(t, 1, si.Capacity)
 	assert.True(t, reflect.DeepEqual(volumePlans[scheduleInfo().Name][0], types.MustToVolumePlan(map[string]map[string]int64{
-		"AUTO:/data1:rmw:2": map[string]int64{
+		"AUTO:/data1:rmw:2": {
 			"/tmp3": 100,
 		},
-		"AUTO:/data2:r:30": map[string]int64{
+		"AUTO:/data2:r:30": {
 			"/tmp5": 30,
 		},
 	})))
 
 	// affinity: decrease
 	existing = types.MustToVolumePlan(map[string]map[string]int64{
-		"AUTO:/data1:rmw:2": map[string]int64{
+		"AUTO:/data1:rmw:2": {
 			"/tmp3": 50,
 		},
-		"AUTO:/data2:r:54": map[string]int64{
+		"AUTO:/data2:r:54": {
 			"/tmp5": 54,
 		},
-		"AUTO:/data3:rmw:2": map[string]int64{
+		"AUTO:/data3:rmw:2": {
 			"/tmp3": 50,
 		},
-		"AUTO:/data4:r:34": map[string]int64{
+		"AUTO:/data4:r:34": {
 			"/tmp5": 34,
 		},
 	})
@@ -134,23 +135,23 @@ func TestVolumeRealloc(t *testing.T) {
 	assert.EqualValues(t, 1, total)
 	assert.EqualValues(t, 1, si.Capacity)
 	assert.True(t, reflect.DeepEqual(volumePlans[scheduleInfo().Name][0], types.MustToVolumePlan(map[string]map[string]int64{
-		"AUTO:/data1:rmw:1": map[string]int64{
+		"AUTO:/data1:rmw:1": {
 			"/tmp3": 25,
 		},
-		"AUTO:/data2:r:30": map[string]int64{
+		"AUTO:/data2:r:30": {
 			"/tmp5": 30,
 		},
-		"AUTO:/data3:rmw:3": map[string]int64{
+		"AUTO:/data3:rmw:3": {
 			"/tmp3": 75,
 		},
-		"AUTO:/data4:r:31": map[string]int64{
+		"AUTO:/data4:r:31": {
 			"/tmp5": 31,
 		},
 	})))
 
 	// add some new volumes
 	existing = types.MustToVolumePlan(map[string]map[string]int64{
-		"AUTO:/data2:r": map[string]int64{
+		"AUTO:/data2:r": {
 			"/tmp5": 0,
 		},
 	})
@@ -167,16 +168,16 @@ func TestVolumeRealloc(t *testing.T) {
 
 	// del some volumes
 	existing = types.MustToVolumePlan(map[string]map[string]int64{
-		"AUTO:/data1:rmw:2": map[string]int64{
+		"AUTO:/data1:rmw:2": {
 			"/tmp3": 50,
 		},
-		"AUTO:/data2:r:54": map[string]int64{
+		"AUTO:/data2:r:54": {
 			"/tmp5": 54,
 		},
-		"AUTO:/data3:rmw:2": map[string]int64{
+		"AUTO:/data3:rmw:2": {
 			"/tmp3": 50,
 		},
-		"AUTO:/data4:r:34": map[string]int64{
+		"AUTO:/data4:r:34": {
 			"/tmp5": 34,
 		},
 	})
@@ -189,17 +190,17 @@ func TestVolumeRealloc(t *testing.T) {
 	assert.EqualValues(t, 1, total)
 	assert.EqualValues(t, 1, si.Capacity)
 	assert.True(t, reflect.DeepEqual(volumePlans[scheduleInfo().Name][0], types.MustToVolumePlan(map[string]map[string]int64{
-		"AUTO:/data1:rmw:1": map[string]int64{
+		"AUTO:/data1:rmw:1": {
 			"/tmp3": 100,
 		},
-		"AUTO:/data2:r:30": map[string]int64{
+		"AUTO:/data2:r:30": {
 			"/tmp5": 30,
 		},
 	})))
 
 	// expand mono error
 	existing = types.MustToVolumePlan(map[string]map[string]int64{
-		"AUTO:/data1:rmw:2": map[string]int64{
+		"AUTO:/data1:rmw:2": {
 			"/tmp3": 100,
 		},
 	})
@@ -212,10 +213,10 @@ func TestVolumeRealloc(t *testing.T) {
 
 	// expand norm error
 	existing = types.MustToVolumePlan(map[string]map[string]int64{
-		"AUTO:/data1:rw:2": map[string]int64{
+		"AUTO:/data1:rw:2": {
 			"/tmp3": 2,
 		},
-		"AUTO:/data2:rw:2": map[string]int64{
+		"AUTO:/data2:rw:2": {
 			"/tmp3": 2,
 		},
 	})

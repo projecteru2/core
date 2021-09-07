@@ -2,10 +2,10 @@ package etcdv3
 
 import (
 	"testing"
-
 	"time"
 
 	"github.com/projecteru2/core/types"
+
 	"github.com/stretchr/testify/assert"
 )
 
