@@ -67,20 +67,20 @@ func (_m *API) BuildRefs(ctx context.Context, name string, tags []string) []stri
 	return r0
 }
 
-// ExecExitCode provides a mock function with given fields: ctx, ID, pid
-func (_m *API) ExecExitCode(ctx context.Context, ID string, pid string) (int, error) {
-	ret := _m.Called(ctx, ID, pid)
+// ExecExitCode provides a mock function with given fields: ctx, execID
+func (_m *API) ExecExitCode(ctx context.Context, execID string) (int, error) {
+	ret := _m.Called(ctx, execID)
 
 	var r0 int
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) int); ok {
-		r0 = rf(ctx, ID, pid)
+	if rf, ok := ret.Get(0).(func(context.Context, string) int); ok {
+		r0 = rf(ctx, execID)
 	} else {
 		r0 = ret.Get(0).(int)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, ID, pid)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, execID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -88,13 +88,13 @@ func (_m *API) ExecExitCode(ctx context.Context, ID string, pid string) (int, er
 	return r0, r1
 }
 
-// ExecResize provides a mock function with given fields: ctx, ID, result, height, width
-func (_m *API) ExecResize(ctx context.Context, ID string, result string, height uint, width uint) error {
-	ret := _m.Called(ctx, ID, result, height, width)
+// ExecResize provides a mock function with given fields: ctx, execID, height, width
+func (_m *API) ExecResize(ctx context.Context, execID string, height uint, width uint) error {
+	ret := _m.Called(ctx, execID, height, width)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, uint, uint) error); ok {
-		r0 = rf(ctx, ID, result, height, width)
+	if rf, ok := ret.Get(0).(func(context.Context, string, uint, uint) error); ok {
+		r0 = rf(ctx, execID, height, width)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -102,20 +102,20 @@ func (_m *API) ExecResize(ctx context.Context, ID string, result string, height 
 	return r0
 }
 
-// Execute provides a mock function with given fields: ctx, ID, config
-func (_m *API) Execute(ctx context.Context, ID string, config *types.ExecConfig) (string, io.ReadCloser, io.ReadCloser, io.WriteCloser, error) {
-	ret := _m.Called(ctx, ID, config)
+// Execute provides a mock function with given fields: ctx, target, config
+func (_m *API) Execute(ctx context.Context, target string, config *types.ExecConfig) (string, io.ReadCloser, io.ReadCloser, io.WriteCloser, error) {
+	ret := _m.Called(ctx, target, config)
 
 	var r0 string
 	if rf, ok := ret.Get(0).(func(context.Context, string, *types.ExecConfig) string); ok {
-		r0 = rf(ctx, ID, config)
+		r0 = rf(ctx, target, config)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 io.ReadCloser
 	if rf, ok := ret.Get(1).(func(context.Context, string, *types.ExecConfig) io.ReadCloser); ok {
-		r1 = rf(ctx, ID, config)
+		r1 = rf(ctx, target, config)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(io.ReadCloser)
@@ -124,7 +124,7 @@ func (_m *API) Execute(ctx context.Context, ID string, config *types.ExecConfig)
 
 	var r2 io.ReadCloser
 	if rf, ok := ret.Get(2).(func(context.Context, string, *types.ExecConfig) io.ReadCloser); ok {
-		r2 = rf(ctx, ID, config)
+		r2 = rf(ctx, target, config)
 	} else {
 		if ret.Get(2) != nil {
 			r2 = ret.Get(2).(io.ReadCloser)
@@ -133,7 +133,7 @@ func (_m *API) Execute(ctx context.Context, ID string, config *types.ExecConfig)
 
 	var r3 io.WriteCloser
 	if rf, ok := ret.Get(3).(func(context.Context, string, *types.ExecConfig) io.WriteCloser); ok {
-		r3 = rf(ctx, ID, config)
+		r3 = rf(ctx, target, config)
 	} else {
 		if ret.Get(3) != nil {
 			r3 = ret.Get(3).(io.WriteCloser)
@@ -142,7 +142,7 @@ func (_m *API) Execute(ctx context.Context, ID string, config *types.ExecConfig)
 
 	var r4 error
 	if rf, ok := ret.Get(4).(func(context.Context, string, *types.ExecConfig) error); ok {
-		r4 = rf(ctx, ID, config)
+		r4 = rf(ctx, target, config)
 	} else {
 		r4 = ret.Error(4)
 	}
