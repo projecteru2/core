@@ -7,14 +7,14 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/projecteru2/core/store/etcdv3/meta/mocks"
+	"github.com/projecteru2/core/types"
+
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
-
-	"github.com/projecteru2/core/store/etcdv3/meta/mocks"
-	"github.com/projecteru2/core/types"
 )
 
 func TestGetOneError(t *testing.T) {
@@ -457,8 +457,8 @@ func TestETCD(t *testing.T) {
 		"cc": "dd",
 	}
 	limit := map[string]map[string]string{
-		"aa": map[string]string{cmpValue: "!="},
-		"cc": map[string]string{cmpValue: "!="},
+		"aa": {cmpValue: "!="},
+		"cc": {cmpValue: "!="},
 	}
 	m.Put(context.TODO(), "aa", "aa")
 	m.Put(context.TODO(), "cc", "cc")

@@ -8,9 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
@@ -22,6 +19,9 @@ import (
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/wal"
 	walmocks "github.com/projecteru2/core/wal/mocks"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {

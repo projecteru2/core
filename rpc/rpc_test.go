@@ -10,6 +10,7 @@ import (
 	pb "github.com/projecteru2/core/rpc/gen"
 	rpcmocks "github.com/projecteru2/core/rpc/mocks"
 	"github.com/projecteru2/core/types"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

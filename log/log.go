@@ -6,8 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/projecteru2/core/types"
+
+	"github.com/getsentry/sentry-go"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/peer"
 )

@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io"
 
-	dockertypes "github.com/docker/docker/api/types"
-	dockerfilters "github.com/docker/docker/api/types/filters"
-
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/utils"
+
+	dockertypes "github.com/docker/docker/api/types"
+	dockerfilters "github.com/docker/docker/api/types/filters"
 )
 
 // ImageList list image

@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
+
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 

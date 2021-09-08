@@ -8,15 +8,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/projecteru2/core/engine"
-	"github.com/projecteru2/core/store"
-
 	enginefactory "github.com/projecteru2/core/engine/factory"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/metrics"
+	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+
+	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -321,15 +321,10 @@ func (m *Mercury) SetNodeStatus(ctx context.Context, node *types.Node, ttl int64
 		return err
 	}
 
-	lease, err := m.Grant(ctx, ttl)
-	if err != nil {
-		return err
-	}
-
 	// nodenames are unique
-	key := filepath.Join(nodeStatusPrefix, node.Name)
-	_, err = m.Put(ctx, key, string(data), clientv3.WithLease(lease.ID))
-	return err
+	statusKey := filepath.Join(nodeStatusPrefix, node.Name)
+	entityKey := fmt.Sprintf(nodeInfoKey, node.Name)
+	return m.BindStatus(ctx, entityKey, statusKey, string(data), ttl)
 }
 
 // GetNodeStatus returns status for a node

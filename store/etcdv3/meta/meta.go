@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
+	"github.com/projecteru2/core/lock"
+
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
-
-	"github.com/projecteru2/core/lock"
 )
 
 // KV .

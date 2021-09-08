@@ -1,8 +1,9 @@
 package discovery
 
 import (
-	"github.com/google/uuid"
 	"github.com/projecteru2/core/types"
+
+	"github.com/google/uuid"
 )
 
 // Service .

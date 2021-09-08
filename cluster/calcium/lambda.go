@@ -8,15 +8,15 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/google/uuid"
-	"github.com/pkg/errors"
-
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
+
+	"github.com/google/uuid"
+	"github.com/pkg/errors"
 )
 
 const (

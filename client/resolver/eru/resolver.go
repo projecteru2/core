@@ -6,8 +6,8 @@ import (
 
 	"github.com/projecteru2/core/client/servicediscovery"
 	"github.com/projecteru2/core/log"
-
 	"github.com/projecteru2/core/types"
+
 	"google.golang.org/grpc/resolver"
 )
 

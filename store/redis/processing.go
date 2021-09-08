@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sanity-io/litter"
-
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
+
+	"github.com/sanity-io/litter"
 )
 
 func (r *Rediaron) getProcessingKey(processing *types.Processing) string {

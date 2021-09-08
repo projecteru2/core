@@ -3,8 +3,9 @@ package utils
 import (
 	"time"
 
-	"github.com/patrickmn/go-cache"
 	"github.com/projecteru2/core/engine"
+
+	"github.com/patrickmn/go-cache"
 )
 
 // EngineCache connections

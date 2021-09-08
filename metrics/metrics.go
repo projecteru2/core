@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	statsdlib "github.com/CMGS/statsd"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+
+	statsdlib "github.com/CMGS/statsd"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

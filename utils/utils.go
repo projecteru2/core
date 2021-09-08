@@ -13,10 +13,11 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+
+	"github.com/pkg/errors"
 )
 
 const (

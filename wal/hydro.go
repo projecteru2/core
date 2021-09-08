@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/projecteru2/core/log"
-
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/wal/kv"
 )

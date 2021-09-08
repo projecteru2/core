@@ -6,11 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-
-	enginetypes "github.com/projecteru2/core/engine/types"
-
 	virttypes "github.com/projecteru2/libyavirt/types"
 )
 

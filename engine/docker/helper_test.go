@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	coreutils "github.com/projecteru2/core/utils"
+
 	"github.com/stretchr/testify/assert"
 )
 

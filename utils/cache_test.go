@@ -5,6 +5,7 @@ import (
 	"time"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
+
 	"github.com/stretchr/testify/assert"
 )
 

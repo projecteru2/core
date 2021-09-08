@@ -6,6 +6,7 @@ import (
 
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
+
 	"github.com/stretchr/testify/assert"
 )
 

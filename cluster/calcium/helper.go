@@ -8,12 +8,13 @@ import (
 	"io/ioutil"
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 )
 

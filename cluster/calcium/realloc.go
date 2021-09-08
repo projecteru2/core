@@ -3,7 +3,6 @@ package calcium
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -11,6 +10,8 @@ import (
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+
+	"github.com/pkg/errors"
 )
 
 // ReallocResource updates workload resource dynamically

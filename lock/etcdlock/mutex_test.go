@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/projecteru2/core/store/etcdv3/embedded"
+
 	"github.com/stretchr/testify/assert"
 )
 

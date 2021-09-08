@@ -4,14 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"sort"
 	"testing"
 
-	"math"
-
-	"github.com/docker/go-units"
-	pkgerrors "github.com/pkg/errors"
 	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/resources/cpumem"
 	resourcetypes "github.com/projecteru2/core/resources/types"
@@ -20,6 +17,9 @@ import (
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+
+	"github.com/docker/go-units"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1788,17 +1788,17 @@ func TestSelectVolumeNormAndMono(t *testing.T) {
 	assert.Nil(t, err)
 	assert.EqualValues(t, 1, len(res["n0"]))
 	assert.True(t, reflect.DeepEqual(res["n0"][0], types.MustToVolumePlan(map[string]map[string]int64{
-		"AUTO:/data0:rw:50": map[string]int64{
+		"AUTO:/data0:rw:50": {
 			"/data0": 50,
 		},
-		"AUTO:/data1:rwm:50": map[string]int64{
+		"AUTO:/data1:rwm:50": {
 			"/data1": 2000,
 		},
 	})) || reflect.DeepEqual(res["n0"][0], types.MustToVolumePlan(map[string]map[string]int64{
-		"AUTO:/data0:rw:50": map[string]int64{
+		"AUTO:/data0:rw:50": {
 			"/data1": 50,
 		},
-		"AUTO:/data1:rwm:50": map[string]int64{
+		"AUTO:/data1:rwm:50": {
 			"/data0": 1000,
 		},
 	})))

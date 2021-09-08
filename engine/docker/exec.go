@@ -5,10 +5,11 @@ import (
 	"io"
 	"io/ioutil"
 
-	dockertypes "github.com/docker/docker/api/types"
-	"github.com/docker/docker/pkg/stdcopy"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
+
+	dockertypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/pkg/stdcopy"
 )
 
 // ExecCreate create a exec

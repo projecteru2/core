@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"math"
 
-	"github.com/pkg/errors"
 	engine "github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
+
+	"github.com/pkg/errors"
 )
 
 const (

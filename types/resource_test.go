@@ -95,10 +95,10 @@ func TestVolumePlan(t *testing.T) {
 	}))
 
 	p := MustToVolumePlan(map[string]map[string]int64{
-		"AUTO:/data1:w:100": map[string]int64{
+		"AUTO:/data1:w:100": {
 			"/tmp1": 100,
 		},
-		"AUTO:/data2:w:100": map[string]int64{
+		"AUTO:/data2:w:100": {
 			"/tmp2": 100,
 		},
 	})
