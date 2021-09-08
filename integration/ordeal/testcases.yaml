@@ -15,33 +15,33 @@
       - ''
       - c
       - d
-  assert:
+  asserts:
     - equal:
-        actual: etcdctl get /eru/pod/info/$(jq '.name' <<<$req) | jq '.name'
-        expected: echo $name
+        actual: etcdctl get --print-value-only /eru/pod/info/$(jq -r '.name' <<<$req) | jq -r '.name'
+        expected: jq -r '.name' <<<$req
 
 
 
-- method: CreateWorkload
-  requests:
-    name:
-    - zc
-    entrypoint:
-      name:
-      - zc
-      command:
-      - bash
-    podname:
-    - local
-    - ''
-    image:
-    - harbor.shopeemobile.com/cloud/bash
-    - ''
-    count:
-    - 1
-    - 2
-    resource_opts:
-      cpu_quota_limit:
-      - 0.1
-      memory_limit:
-      - 14000000
+        #- method: CreateWorkload
+        #  requests:
+        #    name:
+        #    - zc
+        #    entrypoint:
+        #      name:
+        #      - zc
+        #      command:
+        #      - bash
+        #    podname:
+        #    - local
+        #    - ''
+        #    image:
+        #    - harbor.shopeemobile.com/cloud/bash
+        #    - ''
+        #    count:
+        #    - 1
+        #    - 2
+        #    resource_opts:
+        #      cpu_quota_limit:
+        #      - 0.1
+        #      memory_limit:
+        #      - 14000000

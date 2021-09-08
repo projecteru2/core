@@ -10,3 +10,10 @@ type rpc struct {
 	Method         *desc.MethodDescriptor
 	RequestFactory func(jsonbuf []byte) (proto.Message, error)
 }
+
+type Assert struct {
+	Equal struct {
+		Actual   string `json:"actual"`
+		Expected string `json:"expected"`
+	} `json:"equal"`
+}

@@ -2,6 +2,7 @@ package ordeal
 
 import (
 	"log"
+	"os"
 	"reflect"
 	"testing"
 
@@ -29,11 +30,16 @@ func NewAssertion() *Assertion {
 	}
 }
 
-func (a Assertion) AssertUnary(method string, t *testing.T, req *dynamic.Message, resp proto.Message, err error) {
+func (a Assertion) AssertUnary(method string, t *testing.T, req proto.Message, reqjson string, resp proto.Message, respErr error, asserts []Assert) {
+	dyReq, err := dynamic.AsDynamicMessage(req)
+	if err != nil {
+		log.Fatalf("failed to convert proto.Message: %+v", err)
+	}
+
 	meth := reflect.ValueOf(a).MethodByName("Assert" + method)
 	emptyValue := reflect.Value{}
 	if meth == emptyValue {
-		a.AssertNoError(t, method, req, err)
+		a.AssertNoError(t, method, dyReq, respErr)
 		return
 	}
 
@@ -46,41 +52,69 @@ func (a Assertion) AssertUnary(method string, t *testing.T, req *dynamic.Message
 	}
 	values := []reflect.Value{
 		reflect.ValueOf(t),
-		reflect.ValueOf(req),
+		reflect.ValueOf(dyReq),
 		reflect.ValueOf(dyResp),
-		reflect.ValueOf(err),
+		reflect.ValueOf(respErr),
 	}
 	if resp == nil {
 		values[2] = reflect.New(reflect.TypeOf((*dynamic.Message)(nil))).Elem()
 	}
-	if err == nil {
+	if respErr == nil {
 		values[3] = reflect.New(reflect.TypeOf((*error)(nil)).Elem()).Elem()
 	}
 	meth.Call(values)
+	if respErr == nil {
+		a.AssertCustomed(t, reqjson, asserts)
+	}
 }
 
-func (a Assertion) AssertStream(method string, t *testing.T, req *dynamic.Message, stream *grpcdynamic.ServerStream, err error) {
+func (a Assertion) AssertStream(method string, t *testing.T, req proto.Message, reqjson string, stream *grpcdynamic.ServerStream, respErr error, asserts []Assert) {
+	dyReq, err := dynamic.AsDynamicMessage(req)
+	if err != nil {
+		log.Fatalf("failed to convert proto.Message: %+v", err)
+	}
+
 	meth := reflect.ValueOf(a).MethodByName("Assert" + method)
 	emptyValue := reflect.Value{}
 	if meth == emptyValue {
-		a.AssertNoError(t, method, req, err)
+		a.AssertNoError(t, method, dyReq, respErr)
 		return
 	}
 
 	values := []reflect.Value{
 		reflect.ValueOf(t),
-		reflect.ValueOf(req),
+		reflect.ValueOf(dyReq),
 		reflect.ValueOf(stream),
-		reflect.ValueOf(err),
+		reflect.ValueOf(respErr),
 	}
-	if err == nil {
+	if respErr == nil {
 		values[3] = reflect.New(reflect.TypeOf((*error)(nil)).Elem()).Elem()
 	}
 	meth.Call(values)
+	if respErr == nil {
+		a.AssertCustomed(t, reqjson, asserts)
+	}
 }
 
 func (a Assertion) AssertNoError(t *testing.T, method string, req *dynamic.Message, err error) {
 	assert.NoError(t, err, method)
+}
+
+func (a Assertion) AssertCustomed(t *testing.T, req string, asserts []Assert) {
+	envs := append(os.Environ(),
+		"req="+req,
+	)
+	for _, ass := range asserts {
+		actualOut, err := bash(ass.Equal.Actual, envs)
+		if err != nil {
+			log.Fatalf("failed to exec bash command: %+v, %s", err, ass.Equal.Actual)
+		}
+		expectedOut, err := bash(ass.Equal.Expected, envs)
+		if err != nil {
+			log.Fatalf("failed to exec bash command: %+v, %s", err, ass.Equal.Expected)
+		}
+		assert.EqualValues(t, actualOut, expectedOut)
+	}
 }
 
 func (a Assertion) AssertAddPod(t *testing.T, req *dynamic.Message, resp *dynamic.Message, err error) {

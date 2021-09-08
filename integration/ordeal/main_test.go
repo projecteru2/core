@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"log"
 	"os"
 	"path/filepath"
@@ -84,32 +85,37 @@ func TestCases(t *testing.T) {
 	for scanner.Scan() {
 		method := scanner.Text()
 		if !scanner.Scan() {
-			log.Fatalf("testcase stream broken")
+			log.Fatalf("request stream broken")
 		}
 
-		testcase := scanner.Bytes()
+		request := scanner.Bytes()
+		if !scanner.Scan() {
+			log.Fatalf("assert stream broken")
+		}
+
+		assertsBuf := scanner.Bytes()
+		asserts := []Assert{}
+		if err = json.Unmarshal(assertsBuf, &asserts); err != nil {
+			log.Fatalf("failed to parse asserts json: %+v, %s", err, string(assertsBuf))
+		}
+
 		rpc, ok := rpcs[method]
 		if !ok {
 			log.Fatalf("method not found: %s", method)
 		}
 
-		req, err := rpc.RequestFactory(testcase)
+		req, err := rpc.RequestFactory(request)
 		if err != nil {
-			log.Fatalf("invalid request: %+v, %s", err, string(testcase))
-		}
-
-		dyReq, err := dynamic.AsDynamicMessage(req)
-		if err != nil {
-			log.Fatalf("failed to convert proto.Message: %+v", err)
+			log.Fatalf("invalid request: %+v, %s", err, string(request))
 		}
 
 		if rpc.Method.IsServerStreaming() {
 			stream, err := stub.InvokeRpcServerStream(context.TODO(), rpc.Method, req)
-			assertion.AssertStream(method, t, dyReq, stream, err)
+			assertion.AssertStream(method, t, req, string(request), stream, err, asserts)
 
 		} else {
 			resp, err := stub.InvokeRpc(context.TODO(), rpc.Method, req)
-			assertion.AssertUnary(method, t, dyReq, resp, err)
+			assertion.AssertUnary(method, t, req, string(request), resp, err, asserts)
 		}
 	}
 }

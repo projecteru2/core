@@ -76,6 +76,7 @@ def main():
         for req in combine_requests(rpc['requests']):
             print(rpc['method'])
             print(json.dumps(req))
+            print(json.dumps(rpc.get('asserts', [])))
 
 
 if __name__ == '__main__':
