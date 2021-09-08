@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"testing"
@@ -26,13 +26,13 @@ var (
 func TestMain(m *testing.M) {
 	pwd, err := os.Getwd()
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to get working directory: %+v", err)
 	}
 
 	importPath := filepath.Join(filepath.Dir(filepath.Dir(pwd)), "rpc/gen/")
 	fileNames, err := protoparse.ResolveFilenames([]string{importPath}, "core.proto")
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to resolve import paths: %+v", err)
 	}
 	p := protoparse.Parser{
 		ImportPaths:           []string{importPath},
@@ -41,11 +41,11 @@ func TestMain(m *testing.M) {
 	}
 	parsedFiles, err := p.ParseFiles(fileNames...)
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to parse proto file: %+v", err)
 	}
 
 	if len(parsedFiles) < 1 {
-		panic("proto file not found")
+		log.Fatalf("proto file not found")
 	}
 
 	for _, parsedFile := range parsedFiles {
@@ -71,40 +71,45 @@ func TestMain(m *testing.M) {
 func TestCases(t *testing.T) {
 	client, err := client.NewClient(context.TODO(), "127.0.0.1:5001", coretypes.AuthConfig{})
 	if err != nil {
-		panic(fmt.Sprintf("failed to new eru client: %+v", err))
+		log.Fatalf("failed to new eru client: %+v", err)
 	}
 
 	stub := grpcdynamic.NewStub(client.GetConn())
-	assertion := Assertion{}
+	assertion := NewAssertion()
 	f, err := os.Open("/tmp/_core_int_cases")
 	if err != nil {
-		panic("testcase file not found: /tmp/_core_int_cases")
+		log.Fatalf("testcase file not found: /tmp/_core_int_cases")
 	}
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		method := scanner.Text()
 		if !scanner.Scan() {
-			panic("testcase stream broken")
+			log.Fatalf("testcase stream broken")
 		}
 
 		testcase := scanner.Bytes()
 		rpc, ok := rpcs[method]
 		if !ok {
-			panic(fmt.Errorf("method not found: %s", method))
+			log.Fatalf("method not found: %s", method)
 		}
 
 		req, err := rpc.RequestFactory(testcase)
 		if err != nil {
-			panic(fmt.Errorf("invalid request: %+v, %s", err, string(testcase)))
+			log.Fatalf("invalid request: %+v, %s", err, string(testcase))
+		}
+
+		dyReq, err := dynamic.AsDynamicMessage(req)
+		if err != nil {
+			log.Fatalf("failed to convert proto.Message: %+v", err)
 		}
 
 		if rpc.Method.IsServerStreaming() {
 			stream, err := stub.InvokeRpcServerStream(context.TODO(), rpc.Method, req)
-			assertion.AssertStream(method, t, req, stream, err)
+			assertion.AssertStream(method, t, dyReq, stream, err)
 
 		} else {
 			resp, err := stub.InvokeRpc(context.TODO(), rpc.Method, req)
-			assertion.AssertUnary(method, t, req, resp, err)
+			assertion.AssertUnary(method, t, dyReq, resp, err)
 		}
 	}
 }

@@ -1,11 +1,26 @@
+- method: Info
+  requests: {}
+
 - method: AddPod
   requests:
     name:
-    - a
-    - b
+      - ''
+      - local0
+      - local1
+      - local2
+      - local3
+      - local4
+      - local5
     desc:
-    - c
-    - d
+      - ''
+      - c
+      - d
+  assert:
+    - equal:
+        actual: etcdctl get /eru/pod/info/$(jq '.name' <<<$req) | jq '.name'
+        expected: echo $name
+
+
 
 - method: CreateWorkload
   requests:
@@ -18,10 +33,13 @@
       - bash
     podname:
     - local
+    - ''
     image:
     - harbor.shopeemobile.com/cloud/bash
+    - ''
     count:
     - 1
+    - 2
     resource_opts:
       cpu_quota_limit:
       - 0.1
