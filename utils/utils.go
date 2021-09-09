@@ -160,7 +160,7 @@ func DecodeMetaInLabel(ctx context.Context, labels map[string]string) *types.Lab
 
 // ShortID short workload ID
 func ShortID(workloadID string) string {
-	return workloadID[:Min(len(workloadID), shortenLength)]
+	return workloadID[Max(0, len(workloadID)-shortenLength):]
 }
 
 // FilterWorkload filter workload by labels
