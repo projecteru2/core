@@ -180,10 +180,7 @@ func (v *Virt) VirtualizationResourceRemap(ctx context.Context, opts *enginetype
 
 // VirtualizationCopyTo copies one.
 func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, dest string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) error {
-	if err := v.client.CopyToGuest(ctx, ID, dest, content, AllowOverwriteDirWithFile, CopyUIDGID); err != nil {
-		return err
-	}
-	return nil
+	return v.client.CopyToGuest(ctx, ID, dest, content, AllowOverwriteDirWithFile, CopyUIDGID)
 }
 
 // VirtualizationStart boots a guest.
@@ -211,7 +208,7 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 		return nil, err
 	}
 
-	bytes, err := json.Marshal(coretypes.LabelMeta{Publish: []string{"PORT"}})
+	content, err := json.Marshal(coretypes.LabelMeta{Publish: []string{"PORT"}})
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +218,7 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 		Image:    guest.ImageName,
 		Running:  guest.Status == "running",
 		Networks: guest.Networks,
-		Labels:   map[string]string{cluster.LabelMeta: string(bytes), cluster.ERUMark: "1"},
+		Labels:   map[string]string{cluster.LabelMeta: string(content), cluster.ERUMark: "1"},
 	}, nil
 }
 
@@ -279,6 +276,6 @@ func (v *Virt) VirtualizationExecute(ctx context.Context, ID string, commands, e
 
 // ResourceValidate validate resource usage
 func (v *Virt) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory, storage int64) error {
-	// TODO list all workloads, calcßulate resource
+	// TODO list all workloads, calculate resource
 	return nil
 }
