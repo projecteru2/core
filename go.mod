@@ -50,5 +50,3 @@ require (
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
 )
-
-replace github.com/projecteru2/libyavirt => github.com/Aceralon/libyavirt v0.0.0-20210910062604-c7d8899cd579
