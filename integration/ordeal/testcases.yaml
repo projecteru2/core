@@ -1,10 +1,6 @@
-- method: Info
-  requests: {}
-
 - method: AddPod
   requests:
     name:
-      - ''
       - local0
       - local1
       - local2
@@ -19,29 +15,56 @@
     - equal:
         actual: etcdctl get --print-value-only /eru/pod/info/$(jq -r '.name' <<<$req) | jq -r '.name'
         expected: jq -r '.name' <<<$req
+    - equal:
+        actual: jq -r '.name' <<<$resp
+        expected: jq -r '.name' <<<$req
+    - equal:
+        actual: jq -r '.desc' <<<$resp
+        expected: jq -r '.desc' <<<$req
+
+# failure
+- method: AddPod
+  requests:
+    name:
+      - ""
+    desc:
+      - ''
+      - c
+      - d
+  asserts:
+    - equal:
+        actual: |
+          [[ "$err" =~ "pod name is empty" ]] && echo ok
+        expected: echo ok
 
 
+- method: CreateWorkload
+  requests:
+    name:
+    - zc
+    entrypoint:
+      name:
+      - zc
+      command:
+      - bash
+    podname:
+    - test
+    image:
+    - bash
+    count:
+    - 2
+    resource_opts:
+      cpu_quota_limit:
+      - 0.1
+      cpu_bind:
+      - true
+      memory_limit:
+      - 14000000
 
-        #- method: CreateWorkload
-        #  requests:
-        #    name:
-        #    - zc
-        #    entrypoint:
-        #      name:
-        #      - zc
-        #      command:
-        #      - bash
-        #    podname:
-        #    - local
-        #    - ''
-        #    image:
-        #    - harbor.shopeemobile.com/cloud/bash
-        #    - ''
-        #    count:
-        #    - 1
-        #    - 2
-        #    resource_opts:
-        #      cpu_quota_limit:
-        #      - 0.1
-        #      memory_limit:
-        #      - 14000000
+  asserts:
+    - equal:
+        actual: jq -r '.podname' <<<$resp
+        expected: jq -r '.podname' <<<$req
+    - equal:
+        actual: docker inspect $(jq -r '.id' <<<$resp) | jq -r '.[0].HostConfig.CpusetCpus' | awk -F, '{print NF}'
+        expected: echo 1

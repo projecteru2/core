@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -61,6 +62,20 @@ func TestMain(m *testing.M) {
 							return msg, jsonpb.Unmarshal(bytes.NewReader(jsonbuf), msg)
 						}
 					}(method),
+					ResponseMarshal: func(method *desc.MethodDescriptor) func(proto.Message) (string, error) {
+						return func(m proto.Message) (json string, err error) {
+							dym, err := dynamic.AsDynamicMessage(m)
+							if err != nil {
+								return
+							}
+							marshaler := jsonpb.Marshaler{
+								OrigName:     true,
+								EnumsAsInts:  true,
+								EmitDefaults: true,
+							}
+							return marshaler.MarshalToString(dym)
+						}
+					}(method),
 				}
 			}
 		}
@@ -111,11 +126,41 @@ func TestCases(t *testing.T) {
 
 		if rpc.Method.IsServerStreaming() {
 			stream, err := stub.InvokeRpcServerStream(context.TODO(), rpc.Method, req)
-			assertion.AssertStream(method, t, req, string(request), stream, err, asserts)
+			respJSONCh, errString := make(chan string), ""
+			if err == nil {
+				go func() {
+					defer close(respJSONCh)
+					for {
+						msg, err := stream.RecvMsg()
+						if err == io.EOF {
+							return
+						} else if err != nil {
+							log.Fatalf("receive error from stream: %+v", err)
+						}
+						respJSON, err := rpc.ResponseMarshal(msg)
+						if err != nil {
+							log.Fatalf("invalid resp: %+v", err)
+						}
+						respJSONCh <- respJSON
+					}
+				}()
+			} else {
+				close(respJSONCh)
+				errString = err.Error()
+			}
+			assertion.AssertStream(t, string(request), respJSONCh, errString, asserts)
 
 		} else {
 			resp, err := stub.InvokeRpc(context.TODO(), rpc.Method, req)
-			assertion.AssertUnary(method, t, req, string(request), resp, err, asserts)
+			var respJSON, errString string
+			if err == nil {
+				if respJSON, err = rpc.ResponseMarshal(resp); err != nil {
+					log.Fatalf("invalid resp: %+v", err)
+				}
+			} else {
+				errString = err.Error()
+			}
+			assertion.AssertUnary(t, string(request), respJSON, errString, asserts)
 		}
 	}
 }

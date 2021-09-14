@@ -7,8 +7,9 @@ import (
 
 //rpc represents method of grpc
 type rpc struct {
-	Method         *desc.MethodDescriptor
-	RequestFactory func(jsonbuf []byte) (proto.Message, error)
+	Method          *desc.MethodDescriptor
+	RequestFactory  func(jsonbuf []byte) (proto.Message, error)
+	ResponseMarshal func(proto.Message) (string, error)
 }
 
 type Assert struct {
