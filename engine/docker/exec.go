@@ -48,8 +48,8 @@ func (e *Engine) execAttach(ctx context.Context, execID string, tty bool) (io.Re
 }
 
 // Execute executes a workload
-func (e *Engine) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
-	if execID, err = e.execCreate(ctx, target, config); err != nil {
+func (e *Engine) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
+	if execID, err = e.execCreate(ctx, ID, config); err != nil {
 		return
 	}
 
@@ -79,7 +79,7 @@ func (e *Engine) demultiplexStdStream(ctx context.Context, stdStream io.Reader) 
 }
 
 // ExecExitCode get exec return code
-func (e *Engine) ExecExitCode(ctx context.Context, execID string) (int, error) {
+func (e *Engine) ExecExitCode(ctx context.Context, ID, execID string) (int, error) {
 	r, err := e.client.ContainerExecInspect(ctx, execID)
 	if err != nil {
 		return -1, err
@@ -88,7 +88,7 @@ func (e *Engine) ExecExitCode(ctx context.Context, execID string) (int, error) {
 }
 
 // ExecResize resize exec tty
-func (e *Engine) ExecResize(ctx context.Context, execID string, height, width uint) (err error) {
+func (e *Engine) ExecResize(ctx context.Context, ID, execID string, height, width uint) error {
 	opts := dockertypes.ResizeOptions{
 		Height: height,
 		Width:  width,
