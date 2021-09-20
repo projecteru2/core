@@ -14,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Send send files to workload
+// Send files to workload
 func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error) {
 	logger := log.WithField("Calcium", "Send").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {

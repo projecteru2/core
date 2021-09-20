@@ -32,7 +32,7 @@ require (
 	github.com/opencontainers/runc v1.0.0-rc95 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
-	github.com/projecteru2/libyavirt v0.0.0-20210514093713-959b2e232319
+	github.com/projecteru2/libyavirt v0.0.0-20210920022816-abc7aa0cf6ae
 	github.com/prometheus/client_golang v1.11.0
 	github.com/sanity-io/litter v1.5.1
 	github.com/sirupsen/logrus v1.7.0
@@ -43,10 +43,12 @@ require (
 	go.etcd.io/etcd/client/pkg/v3 v3.5.0
 	go.etcd.io/etcd/client/v3 v3.5.0
 	go.etcd.io/etcd/tests/v3 v3.5.0
+	go.opencensus.io v0.22.1 // indirect
 	go.uber.org/automaxprocs v1.3.0
 	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
 	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	google.golang.org/grpc v1.38.0
-	google.golang.org/protobuf v1.26.0
+	google.golang.org/appengine v1.6.3 // indirect
+	google.golang.org/grpc v1.40.0
+	google.golang.org/protobuf v1.27.1
 )
