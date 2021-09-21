@@ -234,7 +234,7 @@ func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, stdi
 
 // VirtualizationResize resized window size
 func (v *Virt) VirtualizationResize(ctx context.Context, ID string, height, width uint) error {
-	return fmt.Errorf("VirtualizationResize not implemented")
+	return v.client.ResizeConsoleWindow(ctx, ID, height, width)
 }
 
 // VirtualizationWait is waiting for a shut-off
