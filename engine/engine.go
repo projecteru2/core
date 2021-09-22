@@ -37,7 +37,7 @@ type API interface {
 
 	VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error)
 	VirtualizationResourceRemap(context.Context, *enginetypes.VirtualizationRemapOptions) (<-chan enginetypes.VirtualizationRemapMessage, error)
-	VirtualizationCopyTo(ctx context.Context, ID, target string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) error
+	VirtualizationCopyTo(ctx context.Context, ID, target string, content []byte, uid, gid int, mode int64) error
 	VirtualizationStart(ctx context.Context, ID string) error
 	VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) error
 	VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) error
@@ -47,7 +47,7 @@ type API interface {
 	VirtualizationResize(ctx context.Context, ID string, height, width uint) error
 	VirtualizationWait(ctx context.Context, ID, state string) (*enginetypes.VirtualizationWaitResult, error)
 	VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error
-	VirtualizationCopyFrom(ctx context.Context, ID, path string) (io.ReadCloser, string, error)
+	VirtualizationCopyFrom(ctx context.Context, ID, path string) (content []byte, uid, gid int, mode int64, _ error)
 
 	ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory, storage int64) error
 }
