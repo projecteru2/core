@@ -119,7 +119,20 @@ func toCoreCopyOptions(b *pb.CopyOptions) *types.CopyOptions {
 }
 
 func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) { // nolint
-	return &types.SendOptions{IDs: b.Ids}, nil
+	files := []types.LinuxFile{}
+	for filename, content := range b.Data {
+		files = append(files, types.LinuxFile{
+			Content:  content,
+			Filename: filename,
+			UID:      int(b.Owners[filename].GetUid()),
+			GID:      int(b.Owners[filename].GetGid()),
+			Mode:     b.Modes[filename].GetMode(),
+		})
+	}
+	return &types.SendOptions{
+		IDs:   b.Ids,
+		Files: files,
+	}, nil
 }
 
 func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
@@ -277,20 +290,14 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 
 	var err error
 	files := []types.LinuxFile{}
-	for filename, bs := d.Data{
-		files = append(files, types.LinuxFile{
-			Content: bs,
-			Filename: filename,
-			OwnerID: int(d.Owners[filename]),
-			GroupID: int(d.Groups[filename]),
-			Mode: d.Mode,
-		})
-	}
-	data := map[string]types.ReaderManager{}
 	for filename, bs := range d.Data {
-		if data[filename], err = types.NewReaderManager(bytes.NewBuffer(bs)); err != nil {
-			return nil, err
-		}
+		files = append(files, types.LinuxFile{
+			Content:  bs,
+			Filename: filename,
+			UID:      int(d.Owners[filename].GetUid()),
+			GID:      int(d.Owners[filename].GetGid()),
+			Mode:     d.Modes[filename].GetMode(),
+		})
 	}
 
 	vbsLimit, err := types.NewVolumeBindings(d.ResourceOpts.VolumesLimit)
@@ -346,7 +353,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		IgnoreHook:     d.IgnoreHook,
 		AfterCreate:    d.AfterCreate,
 		RawArgs:        d.RawArgs,
-		Data:           data,
+		Files:          files,
 	}, nil
 }
 

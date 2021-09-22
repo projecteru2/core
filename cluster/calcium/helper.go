@@ -106,16 +106,6 @@ func pullImage(ctx context.Context, node *types.Node, image string) error {
 	return nil
 }
 
-func makeCopyMessage(id, name, path string, err error, data io.ReadCloser) *types.CopyMessage {
-	return &types.CopyMessage{
-		ID:    id,
-		Name:  name,
-		Path:  path,
-		Error: err,
-		Data:  data,
-	}
-}
-
 func processVirtualizationInStream(
 	ctx context.Context,
 	inStream io.WriteCloser,

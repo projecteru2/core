@@ -300,13 +300,9 @@ func (c *Calcium) doDeployOneWorkload(
 
 		func(ctx context.Context) (err error) {
 			// Copy data to workload
-			if len(opts.Data) > 0 {
-				for dst, readerManager := range opts.Data {
-					reader, err := readerManager.GetReader()
-					if err != nil {
-						return errors.WithStack(err)
-					}
-					if err = c.doSendFileToWorkload(ctx, node.Engine, workload.ID, dst, reader, true, false); err != nil {
+			if len(opts.Files) > 0 {
+				for _, file := range opts.Files {
+					if err = c.doSendFileToWorkload(ctx, node.Engine, workload.ID, file); err != nil {
 						return err
 					}
 				}

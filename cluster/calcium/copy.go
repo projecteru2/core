@@ -33,13 +33,30 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 
 					workload, err := c.GetWorkload(ctx, id)
 					if err != nil {
-						ch <- makeCopyMessage(id, "", "", logger.Err(ctx, err), nil)
+						for _, path := range paths {
+							ch <- &types.CopyMessage{
+								ID:    id,
+								Path:  path,
+								Error: logger.Err(ctx, err),
+							}
+						}
 						return
 					}
 
 					for _, path := range paths {
-						resp, name, err := workload.Engine.VirtualizationCopyFrom(ctx, workload.ID, path)
-						ch <- makeCopyMessage(id, name, path, err, resp)
+						content, uid, gid, mode, err := workload.Engine.VirtualizationCopyFrom(ctx, workload.ID, path)
+						ch <- &types.CopyMessage{
+							ID:    id,
+							Path:  path,
+							Error: err,
+							LinuxFile: types.LinuxFile{
+								Filename: path,
+								Content:  content,
+								UID:      uid,
+								GID:      gid,
+								Mode:     mode,
+							},
+						}
 					}
 				}
 			}(id, paths))
