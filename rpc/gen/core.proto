@@ -475,6 +475,9 @@ message DeployOptions {
     bytes raw_args = 23;
     ResourceOptions resource_opts = 24;
     NodeFilter node_filter = 25;
+    // should be part of field no.19
+    map<string, FileMode> modes = 26;
+    map<string, FileOwner> owners = 27;
 }
 
 message ReplaceOptions {
@@ -508,9 +511,20 @@ message CopyOptions {
     map<string, CopyPaths> targets = 1;
 }
 
+message FileOwner {
+    int32 uid = 1;
+    int32 gid = 2;
+}
+
+message FileMode {
+    int64 mode = 1;
+}
+
 message SendOptions {
     repeated string ids = 1;
     map<string, bytes> data = 2;
+    map<string, FileMode> modes = 3;
+    map<string, FileOwner> owners = 4;
 }
 
 message ErrorDetail {

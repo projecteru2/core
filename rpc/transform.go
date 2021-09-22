@@ -276,6 +276,16 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 	}
 
 	var err error
+	files := []types.LinuxFile{}
+	for filename, bs := d.Data{
+		files = append(files, types.LinuxFile{
+			Content: bs,
+			Filename: filename,
+			OwnerID: int(d.Owners[filename]),
+			GroupID: int(d.Groups[filename]),
+			Mode: d.Mode,
+		})
+	}
 	data := map[string]types.ReaderManager{}
 	for filename, bs := range d.Data {
 		if data[filename], err = types.NewReaderManager(bytes.NewBuffer(bs)); err != nil {
