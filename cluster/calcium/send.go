@@ -1,9 +1,7 @@
 package calcium
 
 import (
-	"bytes"
 	"context"
-	"io"
 	"sync"
 
 	"github.com/projecteru2/core/engine"
@@ -33,9 +31,9 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 
 					defer wg.Done()
 					if err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
-						for dst, content := range opts.Data {
-							err := c.doSendFileToWorkload(ctx, workload.Engine, workload.ID, dst, bytes.NewBuffer(content), true, true)
-							ch <- &types.SendMessage{ID: id, Path: dst, Error: logger.Err(ctx, err)}
+						for _, file := range opts.Files {
+							err := c.doSendFileToWorkload(ctx, workload.Engine, workload.ID, file)
+							ch <- &types.SendMessage{ID: id, Path: file.Filename, Error: logger.Err(ctx, err)}
 						}
 						return nil
 					}); err != nil {
@@ -50,8 +48,7 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 	return ch, nil
 }
 
-func (c *Calcium) doSendFileToWorkload(ctx context.Context, engine engine.API, ID, dst string, content io.Reader, AllowOverwriteDirWithFile bool, CopyUIDGID bool) error {
-	log.Infof(ctx, "[doSendFileToWorkload] Send file to %s:%s", ID, dst)
-	log.Debugf(ctx, "[doSendFileToWorkload] remote path %s", dst)
-	return errors.WithStack(engine.VirtualizationCopyTo(ctx, ID, dst, content, AllowOverwriteDirWithFile, CopyUIDGID))
+func (c *Calcium) doSendFileToWorkload(ctx context.Context, engine engine.API, ID string, file types.LinuxFile) error {
+	log.Infof(ctx, "[doSendFileToWorkload] Send file to %s:%s", ID)
+	return errors.WithStack(engine.VirtualizationCopyTo(ctx, ID, file.Filename, file.Clone().Content, file.UID, file.GID, file.Mode))
 }

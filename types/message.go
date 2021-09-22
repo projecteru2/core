@@ -2,7 +2,6 @@ package types
 
 import (
 	"bytes"
-	"io"
 )
 
 // RemoveWorkloadMessage for remove message
@@ -30,11 +29,10 @@ type BuildImageMessage struct {
 
 // CopyMessage for copy message
 type CopyMessage struct {
-	ID    string        `json:"id,omitempty"`
-	Name  string        `json:"name,omitempty"`
-	Path  string        `json:"path,omitempty"`
-	Error error         `json:"error,omitempty"`
-	Data  io.ReadCloser `json:"-"`
+	ID        string `json:"id,omitempty"`
+	Path      string `json:"path,omitempty"`
+	Error     error  `json:"error,omitempty"`
+	LinuxFile `json:"-"`
 }
 
 // SendMessage for send message

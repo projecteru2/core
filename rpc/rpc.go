@@ -5,7 +5,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
@@ -447,7 +447,10 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 	// 4K buffer
 	p := make([]byte, 4096)
 	for m := range ch {
-		msg := &pb.CopyMessage{Id: m.ID, Name: m.Name, Path: m.Path}
+		msg := &pb.CopyMessage{
+			Id:   m.ID,
+			Path: m.Path,
+		}
 		if m.Error != nil {
 			msg.Error = m.Error.Error()
 			if err := stream.Send(msg); err != nil {
@@ -463,21 +466,21 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 				defer func() {
 					w.CloseWithError(err) // nolint
 				}()
-				defer m.Data.Close()
 
-				var bs []byte
 				tw := tar.NewWriter(w)
 				defer tw.Close()
-				if bs, err = ioutil.ReadAll(m.Data); err != nil {
-					log.Errorf(ctx, "[Copy] Error during extracting copy data: %v", err)
-					return
+				header := &tar.Header{
+					Name: filepath.Base(m.Filename),
+					Uid:  int(m.UID),
+					Gid:  int(m.GID),
+					Mode: m.Mode,
+					Size: int64(len(m.Content)),
 				}
-				header := &tar.Header{Name: m.Name, Mode: 0644, Size: int64(len(bs))}
 				if err = tw.WriteHeader(header); err != nil {
 					log.Errorf(ctx, "[Copy] Error during writing tarball header: %v", err)
 					return
 				}
-				if _, err = tw.Write(bs); err != nil {
+				if _, err = tw.Write(m.Content); err != nil {
 					log.Errorf(ctx, "[Copy] Error during writing tarball content: %v", err)
 					return
 				}
@@ -517,7 +520,6 @@ func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) err
 		return grpcstatus.Error(Send, err.Error())
 	}
 
-	sendOpts.Data = opts.Data
 	ch, err := v.cluster.Send(ctx, sendOpts)
 	if err != nil {
 		return grpcstatus.Error(Send, err.Error())

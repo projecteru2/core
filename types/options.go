@@ -7,29 +7,29 @@ import "github.com/pkg/errors"
 // DeployOptions is options for deploying
 type DeployOptions struct {
 	ResourceOpts   ResourceOptions
-	Name           string                   // Name of application
-	Entrypoint     *Entrypoint              // entrypoint
-	Podname        string                   // Name of pod to deploy
-	NodeFilter     NodeFilter               // filter of nodenames, using includes or not using excludes
-	Image          string                   // Name of image to deploy
-	ExtraArgs      string                   // Extra arguments to append to command
-	Count          int                      // How many workloads needed, e.g. 4
-	Env            []string                 // Env for workload
-	DNS            []string                 // DNS for workload
-	ExtraHosts     []string                 // Extra hosts for workload
-	Networks       map[string]string        // Network names and specified IPs
-	User           string                   // User for workload
-	Debug          bool                     // debug mode, use syslog as log driver
-	OpenStdin      bool                     // OpenStdin for workload
-	Labels         map[string]string        // Labels for workloads
-	DeployStrategy string                   // Deploy strategy
-	Data           map[string]ReaderManager // For additional file data
-	NodesLimit     int                      // Limit nodes count
-	ProcessIdent   string                   // ProcessIdent ident this deploy
-	IgnoreHook     bool                     // IgnoreHook ignore hook process
-	AfterCreate    []string                 // AfterCreate support run cmds after create
-	RawArgs        []byte                   // RawArgs for raw args processing
-	Lambda         bool                     // indicate is lambda workload or not
+	Name           string            // Name of application
+	Entrypoint     *Entrypoint       // entrypoint
+	Podname        string            // Name of pod to deploy
+	NodeFilter     NodeFilter        // filter of nodenames, using includes or not using excludes
+	Image          string            // Name of image to deploy
+	ExtraArgs      string            // Extra arguments to append to command
+	Count          int               // How many workloads needed, e.g. 4
+	Env            []string          // Env for workload
+	DNS            []string          // DNS for workload
+	ExtraHosts     []string          // Extra hosts for workload
+	Networks       map[string]string // Network names and specified IPs
+	User           string            // User for workload
+	Debug          bool              // debug mode, use syslog as log driver
+	OpenStdin      bool              // OpenStdin for workload
+	Labels         map[string]string // Labels for workloads
+	DeployStrategy string            // Deploy strategy
+	Files          []LinuxFile       // For additional file data
+	NodesLimit     int               // Limit nodes count
+	ProcessIdent   string            // ProcessIdent ident this deploy
+	IgnoreHook     bool              // IgnoreHook ignore hook process
+	AfterCreate    []string          // AfterCreate support run cmds after create
+	RawArgs        []byte            // RawArgs for raw args processing
+	Lambda         bool              // indicate is lambda workload or not
 }
 
 // Processing tracks workloads count yet finished
@@ -80,10 +80,32 @@ func (o *CopyOptions) Validate() error {
 	return nil
 }
 
+// LinuxFile is used for copy file
+type LinuxFile struct {
+	Content  []byte
+	Filename string
+	UID      int
+	GID      int
+	Mode     int64
+}
+
+// Clone returns a copy of content bytes
+func (f LinuxFile) Clone() LinuxFile {
+	c := make([]byte, len(f.Content))
+	copy(c, f.Content)
+	return LinuxFile{
+		Content:  c,
+		Filename: f.Filename,
+		UID:      f.UID,
+		GID:      f.GID,
+		Mode:     f.Mode,
+	}
+}
+
 // SendOptions for send files to multiple workload
 type SendOptions struct {
-	IDs  []string
-	Data map[string][]byte
+	IDs   []string
+	Files []LinuxFile
 }
 
 // Validate checks options
@@ -91,7 +113,7 @@ func (o *SendOptions) Validate() error {
 	if len(o.IDs) == 0 {
 		return errors.WithStack(ErrNoWorkloadIDs)
 	}
-	if len(o.Data) == 0 {
+	if len(o.Files) == 0 {
 		return errors.WithStack(ErrNoFilesToSend)
 	}
 	return nil

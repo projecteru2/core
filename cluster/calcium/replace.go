@@ -133,13 +133,17 @@ func (c *Calcium) doReplaceWorkload(
 	}
 	// 获得文件 io
 	for src, dst := range opts.Copy {
-		stream, _, err := workload.Engine.VirtualizationCopyFrom(ctx, workload.ID, src)
+		content, uid, gid, mode, err := workload.Engine.VirtualizationCopyFrom(ctx, workload.ID, src)
 		if err != nil {
 			return nil, removeMessage, errors.WithStack(err)
 		}
-		if opts.DeployOptions.Data[dst], err = types.NewReaderManager(stream); err != nil {
-			return nil, removeMessage, errors.WithStack(err)
-		}
+		opts.DeployOptions.Files = append(opts.DeployOptions.Files, types.LinuxFile{
+			Filename: dst,
+			Content:  content,
+			UID:      uid,
+			GID:      gid,
+			Mode:     mode,
+		})
 	}
 
 	createMessage := &types.CreateWorkloadMessage{
