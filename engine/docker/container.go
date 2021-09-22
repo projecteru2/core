@@ -320,13 +320,13 @@ func (e *Engine) VirtualizationResourceRemap(ctx context.Context, opts *enginety
 }
 
 // VirtualizationCopyTo copy things to virtualization
-func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) error {
-	return withTarfileDump(ctx, target, content, func(target, tarfile string) error {
+func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, content []byte, uid, gid int, mode int64) error {
+	return withTarfileDump(ctx, target, content, uid, gid, mode, func(target, tarfile string) error {
 		content, err := os.Open(tarfile)
 		if err != nil {
 			return err
 		}
-		return e.client.CopyToContainer(ctx, ID, filepath.Dir(target), content, dockertypes.CopyToContainerOptions{AllowOverwriteDirWithFile: AllowOverwriteDirWithFile, CopyUIDGID: CopyUIDGID})
+		return e.client.CopyToContainer(ctx, ID, filepath.Dir(target), content, dockertypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
 	})
 }
 
@@ -487,12 +487,16 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 }
 
 // VirtualizationCopyFrom copy thing from a virtualization
-func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (io.ReadCloser, string, error) {
-	resp, stat, err := e.client.CopyFromContainer(ctx, ID, path)
+func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (content []byte, uid, gid int, mode int64, err error) {
+	resp, _, err := e.client.CopyFromContainer(ctx, ID, path)
 	if err != nil {
-		return nil, "", err
+		return
 	}
 	tarReader := tar.NewReader(resp)
-	_, err = tarReader.Next()
-	return ioutil.NopCloser(tarReader), stat.Name, errors.Wrapf(err, "read tarball from docker API failed: %s", path)
+	header, err := tarReader.Next()
+	if err != nil {
+		return
+	}
+	content, err = ioutil.ReadAll(tarReader)
+	return content, header.Uid, header.Gid, header.Mode, err
 }

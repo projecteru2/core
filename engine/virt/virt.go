@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -179,8 +178,8 @@ func (v *Virt) VirtualizationResourceRemap(ctx context.Context, opts *enginetype
 }
 
 // VirtualizationCopyTo copies one.
-func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, dest string, content io.Reader, AllowOverwriteDirWithFile, CopyUIDGID bool) error {
-	return v.client.CopyToGuest(ctx, ID, dest, content, AllowOverwriteDirWithFile, CopyUIDGID)
+func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, dest string, content []byte, uid, gid int, mode int64) error {
+	return v.client.CopyToGuest(ctx, ID, dest, bytes.NewReader(content), true, true)
 }
 
 // VirtualizationStart boots a guest.
@@ -261,12 +260,14 @@ func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, opts
 }
 
 // VirtualizationCopyFrom copies file content from the container.
-func (v *Virt) VirtualizationCopyFrom(ctx context.Context, ID, path string) (io.ReadCloser, string, error) {
+func (v *Virt) VirtualizationCopyFrom(ctx context.Context, ID, path string) (content []byte, uid, gid int, mode int64, err error) {
+	// TODO@zc: virt shall return the properties too
 	rd, err := v.client.Cat(ctx, ID, path)
 	if err != nil {
-		return nil, "", err
+		return
 	}
-	return ioutil.NopCloser(rd), filepath.Base(path), nil
+	content, err = ioutil.ReadAll(rd)
+	return
 }
 
 // VirtualizationExecute executes commands in running virtual unit

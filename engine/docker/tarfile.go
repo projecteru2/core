@@ -3,7 +3,6 @@ package docker
 import (
 	"archive/tar"
 	"context"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -11,12 +10,8 @@ import (
 	"github.com/projecteru2/core/log"
 )
 
-func withTarfileDump(ctx context.Context, target string, content io.Reader, f func(target, tarfile string) error) error {
-	bytes, err := ioutil.ReadAll(content)
-	if err != nil {
-		return err
-	}
-	tarfile, err := tempTarFile(target, bytes)
+func withTarfileDump(ctx context.Context, target string, content []byte, uid, gid int, mode int64, f func(target, tarfile string) error) error {
+	tarfile, err := tempTarFile(target, content, uid, gid, mode)
 
 	defer func(tarfile string) {
 		if err := os.RemoveAll(tarfile); err != nil {
@@ -30,7 +25,7 @@ func withTarfileDump(ctx context.Context, target string, content io.Reader, f fu
 	return f(target, tarfile)
 }
 
-func tempTarFile(path string, data []byte) (string, error) {
+func tempTarFile(path string, data []byte, uid, gid int, mode int64) (string, error) {
 	filename := filepath.Base(path)
 	f, err := ioutil.TempFile(os.TempDir(), filename)
 	if err != nil {
@@ -43,8 +38,10 @@ func tempTarFile(path string, data []byte) (string, error) {
 	defer tw.Close()
 	hdr := &tar.Header{
 		Name: filename,
-		Mode: 0755,
 		Size: int64(len(data)),
+		Mode: int64(mode),
+		Uid:  int(uid),
+		Gid:  int(gid),
 	}
 	if err := tw.WriteHeader(hdr); err != nil {
 		return name, err
