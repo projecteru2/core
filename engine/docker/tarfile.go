@@ -39,9 +39,9 @@ func tempTarFile(path string, data []byte, uid, gid int, mode int64) (string, er
 	hdr := &tar.Header{
 		Name: filename,
 		Size: int64(len(data)),
-		Mode: int64(mode),
-		Uid:  int(uid),
-		Gid:  int(gid),
+		Mode: mode,
+		Uid:  uid,
+		Gid:  gid,
 	}
 	if err := tw.WriteHeader(hdr); err != nil {
 		return name, err

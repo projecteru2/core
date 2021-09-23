@@ -291,13 +291,17 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 	var err error
 	files := []types.LinuxFile{}
 	for filename, bs := range d.Data {
-		files = append(files, types.LinuxFile{
+		file := types.LinuxFile{
 			Content:  bs,
 			Filename: filename,
 			UID:      int(d.Owners[filename].GetUid()),
 			GID:      int(d.Owners[filename].GetGid()),
 			Mode:     d.Modes[filename].GetMode(),
-		})
+		}
+		if file.Mode == 0 && file.UID == 0 && file.GID == 0 {
+			file.Mode = 0755
+		}
+		files = append(files, file)
 	}
 
 	vbsLimit, err := types.NewVolumeBindings(d.ResourceOpts.VolumesLimit)
