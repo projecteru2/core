@@ -148,7 +148,7 @@ func TestShortID(t *testing.T) {
 	r1 := ShortID("1234")
 	assert.Equal(t, r1, "1234")
 	r2 := ShortID("12345678")
-	assert.Equal(t, r2, "1234567")
+	assert.Equal(t, r2, "2345678")
 }
 
 func TestFilterWorkload(t *testing.T) {
@@ -178,17 +178,14 @@ func TestTempFile(t *testing.T) {
 }
 
 func TestRound(t *testing.T) {
-	f := func(f float64) string {
-		return strconv.FormatFloat(f, 'f', -1, 64)
-	}
 	a := 0.0199999998
-	assert.Equal(t, f(Round(a)), "0.02")
+	assert.InDelta(t, Round(a), 0.02, 1e-5)
 	a = 0.1999998
-	assert.Equal(t, f(Round(a)), "0.2")
+	assert.InDelta(t, Round(a), 0.2, 1e-5)
 	a = 1.999998
-	assert.Equal(t, f(Round(a)), "1.999998")
+	assert.InDelta(t, Round(a), 1.999998, 1e-6)
 	a = 19.99998
-	assert.Equal(t, f(Round(a)), "19.99998")
+	assert.InDelta(t, (Round(a)), 19.99998, 1e-6)
 }
 
 func TestMergeHookOutputs(t *testing.T) {

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"math/big"
 	"os"
 	"reflect"
@@ -193,7 +194,7 @@ func TempFile(stream io.ReadCloser) (string, error) {
 
 // Round for float64 to int
 func Round(f float64) float64 {
-	return types.Round(f)
+	return math.Round(f*1000000000) / 1000000000
 }
 
 // MergeHookOutputs merge hooks output

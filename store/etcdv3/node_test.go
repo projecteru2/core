@@ -234,15 +234,23 @@ func TestSetNodeStatus(t *testing.T) {
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
 			Name:     "testname",
-			Endpoint: "ep",
+			Endpoint: "mock://",
 			Podname:  "testpod",
 		},
 	}
+	_, err := m.AddPod(context.TODO(), node.Podname, "")
+	assert.NoError(err)
+	_, err = m.AddNode(context.TODO(), &types.AddNodeOptions{
+		Nodename: node.Name,
+		Endpoint: node.Endpoint,
+		Podname:  node.Podname,
+	})
+	assert.NoError(err)
 	assert.NoError(m.SetNodeStatus(context.TODO(), node, 1))
 	key := filepath.Join(nodeStatusPrefix, node.Name)
 
 	// not expired yet
-	_, err := m.GetOne(context.TODO(), key)
+	_, err = m.GetOne(context.TODO(), key)
 	assert.NoError(err)
 	// expired
 	time.Sleep(2000 * time.Millisecond)
@@ -257,10 +265,18 @@ func TestGetNodeStatus(t *testing.T) {
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
 			Name:     "testname",
-			Endpoint: "ep",
+			Endpoint: "mock://",
 			Podname:  "testpod",
 		},
 	}
+	_, err := m.AddPod(context.TODO(), node.Podname, "")
+	assert.NoError(err)
+	_, err = m.AddNode(context.TODO(), &types.AddNodeOptions{
+		Nodename: node.Name,
+		Endpoint: node.Endpoint,
+		Podname:  node.Podname,
+	})
+	assert.NoError(err)
 	assert.NoError(m.SetNodeStatus(context.TODO(), node, 1))
 
 	// not expired yet
@@ -269,7 +285,7 @@ func TestGetNodeStatus(t *testing.T) {
 	assert.Equal(ns.Nodename, node.Name)
 	assert.True(ns.Alive)
 	// expired
-	time.Sleep(2000 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 	ns1, err := m.GetNodeStatus(context.TODO(), node.Name)
 	assert.Error(err)
 	assert.Nil(ns1)
@@ -282,10 +298,19 @@ func TestNodeStatusStream(t *testing.T) {
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
 			Name:     "testname",
-			Endpoint: "ep",
+			Endpoint: "mock://",
 			Podname:  "testpod",
 		},
 	}
+
+	_, err := m.AddPod(context.TODO(), node.Podname, "")
+	assert.NoError(err)
+	_, err = m.AddNode(context.TODO(), &types.AddNodeOptions{
+		Nodename: node.Name,
+		Endpoint: node.Endpoint,
+		Podname:  node.Podname,
+	})
+	assert.NoError(err)
 
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)

@@ -1,9 +1,7 @@
 package calcium
 
 import (
-	"bytes"
 	"context"
-	"io/ioutil"
 	"testing"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
@@ -141,7 +139,7 @@ func TestReplaceWorkload(t *testing.T) {
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	// failed by VirtualizationCopyFrom
 	opts.Copy = map[string]string{"src": "dst"}
-	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(nil, "", types.ErrBadWorkloadID).Once()
+	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, 0, int64(0), types.ErrBadWorkloadID).Once()
 	ch, err = c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -152,8 +150,7 @@ func TestReplaceWorkload(t *testing.T) {
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
 
-	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(ioutil.NopCloser(bytes.NewReader([]byte{})), "", nil)
-	opts.DeployOptions.Data = map[string]types.ReaderManager{}
+	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return([]byte{}, 0, 0, int64(0), nil)
 	// failed by Stop
 	engine.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
@@ -186,7 +183,7 @@ func TestReplaceWorkload(t *testing.T) {
 
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "new"}, nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
-	engine.On("VirtualizationCopyTo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	engine.On("VirtualizationCopyTo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{User: "test"}, nil)
 	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	// failed by remove workload

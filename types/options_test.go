@@ -89,9 +89,15 @@ func TestSendOptions(t *testing.T) {
 	o.IDs = []string{"workload_id1", "workload_id2"}
 	assert.Equal(ErrNoFilesToSend, errors.Unwrap(o.Validate()))
 
-	o.Data = map[string][]byte{
-		"filepath1": []byte("filecontent1"),
-		"filepath2": []byte("filecontent2"),
+	o.Files = []LinuxFile{
+		{
+			Filename: "filepath1",
+			Content:  []byte("filecontent1"),
+		},
+		{
+			Filename: "filepath2",
+			Content:  []byte("filecontent2"),
+		},
 	}
 	assert.NoError(o.Validate())
 }

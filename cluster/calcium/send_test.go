@@ -19,9 +19,9 @@ func TestSend(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 
-	_, err := c.Send(ctx, &types.SendOptions{IDs: []string{}, Data: map[string][]byte{"xxx": {}}})
+	_, err := c.Send(ctx, &types.SendOptions{IDs: []string{}, Files: []types.LinuxFile{{Content: []byte("xxx")}}})
 	assert.Error(t, err)
-	_, err = c.Send(ctx, &types.SendOptions{IDs: []string{"id"}, Data: map[string][]byte{}})
+	_, err = c.Send(ctx, &types.SendOptions{IDs: []string{"id"}})
 	assert.Error(t, err)
 
 	tmpfile, err := ioutil.TempFile("", "example")
@@ -30,8 +30,11 @@ func TestSend(t *testing.T) {
 	defer tmpfile.Close()
 	opts := &types.SendOptions{
 		IDs: []string{"cid"},
-		Data: map[string][]byte{
-			"/tmp/1": {},
+		Files: []types.LinuxFile{
+			{
+				Filename: "/tmp/1",
+				Content:  []byte{},
+			},
 		},
 	}
 	store := &storemocks.Store{}
@@ -53,10 +56,11 @@ func TestSend(t *testing.T) {
 	)
 	// failed by engine
 	content, _ := ioutil.ReadAll(tmpfile)
-	opts.Data["/tmp/1"] = content
+	opts.Files[0].Content = content
 	engine.On("VirtualizationCopyTo",
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything,
 	).Return(types.ErrCannotGetEngine).Once()
 	ch, err = c.Send(ctx, opts)
 	assert.NoError(t, err)
@@ -67,6 +71,7 @@ func TestSend(t *testing.T) {
 	engine.On("VirtualizationCopyTo",
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,
+		mock.Anything,
 	).Return(nil)
 	ch, err = c.Send(ctx, opts)
 	assert.NoError(t, err)
