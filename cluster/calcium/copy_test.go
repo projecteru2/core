@@ -48,13 +48,13 @@ func TestCopy(t *testing.T) {
 	workload.Engine = engine
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	// failed by VirtualizationCopyFrom
-	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(nil, "", types.ErrNilEngine).Twice()
+	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, 0, int64(0), types.ErrNilEngine).Twice()
 	ch, err = c.Copy(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
-	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(nil, "omg", nil)
+	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return([]byte("omg"), 0, 0, int64(0), nil)
 	// success
 	ch, err = c.Copy(ctx, opts)
 	assert.NoError(t, err)
