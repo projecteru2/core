@@ -49,6 +49,6 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 }
 
 func (c *Calcium) doSendFileToWorkload(ctx context.Context, engine engine.API, ID string, file types.LinuxFile) error {
-	log.Infof(ctx, "[doSendFileToWorkload] Send file to %s:%s", ID)
+	log.Infof(ctx, "[doSendFileToWorkload] Send file to %s:%s", ID, file.Filename)
 	return errors.WithStack(engine.VirtualizationCopyTo(ctx, ID, file.Filename, file.Clone().Content, file.UID, file.GID, file.Mode))
 }

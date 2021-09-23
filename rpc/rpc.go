@@ -471,8 +471,8 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 				defer tw.Close()
 				header := &tar.Header{
 					Name: filepath.Base(m.Filename),
-					Uid:  int(m.UID),
-					Gid:  int(m.GID),
+					Uid:  m.UID,
+					Gid:  m.GID,
 					Mode: m.Mode,
 					Size: int64(len(m.Content)),
 				}

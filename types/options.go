@@ -116,6 +116,12 @@ func (o *SendOptions) Validate() error {
 	if len(o.Files) == 0 {
 		return errors.WithStack(ErrNoFilesToSend)
 	}
+	for i, file := range o.Files {
+		if file.UID == 0 && file.GID == 0 && file.Mode == 0 {
+			// we see it as requiring "default perm"
+			o.Files[i].Mode = 0755
+		}
+	}
 	return nil
 }
 
