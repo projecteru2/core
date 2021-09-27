@@ -615,6 +615,7 @@ func (v *Vibranium) CreateWorkload(opts *pb.DeployOptions, stream pb.CoreRPC_Cre
 		return grpcstatus.Error(CreateWorkload, err.Error())
 	}
 	for m := range ch {
+		log.Debugf(ctx, "[CreateWorkload] create workload message: %+v", m)
 		if err = stream.Send(toRPCCreateWorkloadMessage(m)); err != nil {
 			v.logUnsentMessages(ctx, "CreateWorkload", err, m)
 		}

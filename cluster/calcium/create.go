@@ -299,6 +299,17 @@ func (c *Calcium) doDeployOneWorkload(
 		},
 
 		func(ctx context.Context) (err error) {
+			// avoid to be interrupted by MakeDeployStatus
+			processing := opts.GetProcessing(node.Name)
+			if !decrProcessing {
+				processing = nil
+			}
+			// add workload metadata first
+			if err := c.store.AddWorkload(ctx, workload, processing); err != nil {
+				return errors.WithStack(err)
+			}
+			log.Infof(ctx, "[doDeployOneWorkload] workload %s metadata created", workload.ID)
+
 			// Copy data to workload
 			if len(opts.Files) > 0 {
 				for _, file := range opts.Files {
@@ -323,11 +334,14 @@ func (c *Calcium) doDeployOneWorkload(
 				}
 			}
 
-			// start first
+			// start workload
 			msg.Hook, err = c.doStartWorkload(ctx, workload, opts.IgnoreHook)
 			if err != nil {
 				return err
 			}
+
+			// reset workload.hook
+			workload.Hook = opts.Entrypoint.Hook
 
 			// inspect real meta
 			var workloadInfo *enginetypes.VirtualizationInfo
@@ -340,22 +354,18 @@ func (c *Calcium) doDeployOneWorkload(
 			if workloadInfo.Networks != nil {
 				msg.Publish = utils.MakePublishInfo(workloadInfo.Networks, opts.Entrypoint.Publish)
 			}
-			// reset users
-			if workloadInfo.User != workload.User {
-				workload.User = workloadInfo.User
-			}
-			// reset workload.hook
-			workload.Hook = opts.Entrypoint.Hook
 
-			// avoid be interrupted by MakeDeployStatus
-			processing := opts.GetProcessing(node.Name)
-			if !decrProcessing {
-				processing = nil
+			// if workload metadata changed, then update
+			if workloadInfo.User != workload.User {
+				// reset users
+				workload.User = workloadInfo.User
+
+				if err := c.store.UpdateWorkload(ctx, workload); err != nil {
+					return errors.WithStack(err)
+				}
+				log.Infof(ctx, "[doDeployOneWorkload] workload %s metadata updated", workload.ID)
 			}
-			if err := c.store.AddWorkload(ctx, workload, processing); err != nil {
-				return errors.WithStack(err)
-			}
-			log.Infof(ctx, "[doDeployOneWorkload] workload created and saved: %s", workload.ID)
+
 			msg.WorkloadID = workload.ID
 			msg.WorkloadName = workload.Name
 			msg.Podname = workload.Podname
@@ -365,9 +375,15 @@ func (c *Calcium) doDeployOneWorkload(
 
 		// remove workload
 		func(ctx context.Context, _ bool) error {
+			log.Errorf(ctx, "[doDeployOneWorkload] failed to deploy workload %s, rollback", workload.ID)
 			if workload.ID == "" {
 				return nil
 			}
+
+			if err := c.store.RemoveWorkload(ctx, workload); err != nil {
+				log.Errorf(ctx, "[doDeployOneWorkload] failed to remove workload %s")
+			}
+
 			return workload.Remove(ctx, true)
 		},
 		c.config.GlobalTimeout,

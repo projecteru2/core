@@ -157,7 +157,7 @@ func (s *RediaronTestSuite) TestSetWorkloadStatus() {
 	workload.StatusMeta.Nodename = "n1"
 	// no workload, err nil
 	err = m.SetWorkloadStatus(ctx, workload.StatusMeta, 10)
-	s.NoError(err)
+	s.ErrorIs(err, types.ErrEntityNotExists)
 	s.NoError(m.AddWorkload(ctx, workload, nil))
 	// no status key, put succ, err nil
 	err = m.SetWorkloadStatus(ctx, workload.StatusMeta, 10)
