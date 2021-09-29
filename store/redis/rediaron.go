@@ -272,10 +272,10 @@ func (r *Rediaron) BindStatus(ctx context.Context, entityKey, statusKey, statusV
 	if err != nil {
 		return err
 	}
-	// doesn't exist, returns nil, does nothing
+	// doesn't exist, returns error
 	// to behave just like etcd
 	if count != 1 {
-		return nil
+		return types.ErrEntityNotExists
 	}
 
 	_, err = r.cli.Set(ctx, statusKey, statusValue, time.Duration(ttl)*time.Second).Result()

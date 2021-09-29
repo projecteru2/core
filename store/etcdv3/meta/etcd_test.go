@@ -102,7 +102,7 @@ func TestBindStatusButEntityTxnUnsuccessful(t *testing.T) {
 
 	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil).Once()
 	etcd.On("Txn", mock.Anything).Return(txn).Once()
-	require.Equal(t, nil, e.BindStatus(context.Background(), "/entity", "/status", "status", 1))
+	require.Equal(t, types.ErrEntityNotExists, e.BindStatus(context.Background(), "/entity", "/status", "status", 1))
 }
 
 func TestBindStatusButStatusTxnUnsuccessful(t *testing.T) {

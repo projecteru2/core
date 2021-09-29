@@ -149,6 +149,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		errors.Wrap(context.DeadlineExceeded, "MakeDeployStatus"),
 	).Once()
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
 
 	ch, err := c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)

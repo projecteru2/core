@@ -277,7 +277,7 @@ func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, stat
 	// There isn't the entity kv pair.
 	if !entityTxn.Succeeded {
 		e.revokeLease(ctx, leaseID)
-		return nil
+		return types.ErrEntityNotExists
 	}
 
 	// There isn't a status bound to the entity.
