@@ -255,7 +255,17 @@ func (v *Virt) VirtualizationResize(ctx context.Context, ID string, height, widt
 
 // VirtualizationWait is waiting for a shut-off
 func (v *Virt) VirtualizationWait(ctx context.Context, ID, state string) (*enginetypes.VirtualizationWaitResult, error) {
-	return nil, fmt.Errorf("VirtualizationWait does not implement")
+	msg, err := v.client.WaitGuest(ctx, ID, true)
+	r := &enginetypes.VirtualizationWaitResult{}
+	if err != nil {
+		r.Message = err.Error()
+		r.Code = -1
+		return r, err
+	}
+
+	r.Message = msg.Msg
+	r.Code = msg.Code
+	return r, nil
 }
 
 // VirtualizationUpdateResource updates resource.
