@@ -250,8 +250,13 @@ func (v *Virt) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtual
 }
 
 // VirtualizationAttach attaches something to a guest.
-func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (io.ReadCloser, io.ReadCloser, io.WriteCloser, error) {
-	return nil, nil, nil, fmt.Errorf("VirtualizationAttach does not implement")
+func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, openStdin bool) (stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
+	flags := virttypes.AttachGuestFlags{Safe: true, Force: true}
+	attachGuest, err := v.client.AttachGuest(ctx, ID, []string{}, flags)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return ioutil.NopCloser(attachGuest), nil, attachGuest, nil
 }
 
 // VirtualizationResize resized window size
