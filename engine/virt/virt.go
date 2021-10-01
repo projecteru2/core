@@ -11,6 +11,9 @@ import (
 	"strings"
 	"time"
 
+	virtapi "github.com/projecteru2/libyavirt/client"
+	virttypes "github.com/projecteru2/libyavirt/types"
+
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -18,8 +21,6 @@ import (
 	coresource "github.com/projecteru2/core/source"
 	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
-	virtapi "github.com/projecteru2/libyavirt/client"
-	virttypes "github.com/projecteru2/libyavirt/types"
 )
 
 const (
@@ -240,7 +241,12 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 
 // VirtualizationLogs streams a specific guest's log.
 func (v *Virt) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout io.ReadCloser, stderr io.ReadCloser, err error) {
-	return nil, nil, fmt.Errorf("VirtualizationLogs does not implement")
+	msg, err := v.client.Log(ctx, 15, opts.ID)
+	if err != nil {
+		return nil, nil, err
+	}
+	reader := ioutil.NopCloser(strings.NewReader(strings.Join(msg, "\n")))
+	return reader, nil, nil
 }
 
 // VirtualizationAttach attaches something to a guest.
