@@ -32,7 +32,7 @@ require (
 	github.com/opencontainers/runc v1.0.0-rc95 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
-	github.com/projecteru2/libyavirt v0.0.0-20211019072514-d14bb80e15f6
+	github.com/projecteru2/libyavirt v0.0.0-20211103081743-247586bcb89f
 	github.com/prometheus/client_golang v1.11.0
 	github.com/sanity-io/litter v1.5.1
 	github.com/sirupsen/logrus v1.7.0
@@ -52,5 +52,3 @@ require (
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
 )
-
-replace github.com/projecteru2/libyavirt => github.com/aceralon/libyavirt v0.0.0-20211027024116-ba0bad4ecffd
