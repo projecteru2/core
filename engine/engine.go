@@ -9,8 +9,16 @@ import (
 	coresource "github.com/projecteru2/core/source"
 )
 
+// EngineType definition.\
+const (
+	Docker = iota
+	VM
+)
+
 // API define a remote engine
 type API interface {
+	EngineType() int
+
 	Info(ctx context.Context) (*enginetypes.Info, error)
 
 	Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, _ error)

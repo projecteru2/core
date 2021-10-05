@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/metrics"
@@ -310,15 +311,6 @@ func (c *Calcium) doDeployOneWorkload(
 			}
 			log.Infof(ctx, "[doDeployOneWorkload] workload %s metadata created", workload.ID)
 
-			// Copy data to workload
-			if len(opts.Files) > 0 {
-				for _, file := range opts.Files {
-					if err = c.doSendFileToWorkload(ctx, node.Engine, workload.ID, file); err != nil {
-						return err
-					}
-				}
-			}
-
 			// deal with hook
 			if len(opts.AfterCreate) > 0 {
 				if workload.Hook != nil {
@@ -334,10 +326,37 @@ func (c *Calcium) doDeployOneWorkload(
 				}
 			}
 
-			// start workload
-			msg.Hook, err = c.doStartWorkload(ctx, workload, opts.IgnoreHook)
-			if err != nil {
-				return err
+			switch workload.Engine.EngineType() {
+			case engine.Docker:
+				// Copy data to workload
+				if len(opts.Files) > 0 {
+					for _, file := range opts.Files {
+						if err = c.doSendFileToWorkload(ctx, node.Engine, workload.ID, file); err != nil {
+							return err
+						}
+					}
+				}
+
+				// start workload
+				msg.Hook, err = c.doStartWorkload(ctx, workload, opts.IgnoreHook)
+				if err != nil {
+					return err
+				}
+			case engine.VM:
+				// start workload
+				msg.Hook, err = c.doStartWorkload(ctx, workload, opts.IgnoreHook)
+				if err != nil {
+					return err
+				}
+
+				// Copy data to workload
+				if len(opts.Files) > 0 {
+					for _, file := range opts.Files {
+						if err = c.doSendFileToWorkload(ctx, node.Engine, workload.ID, file); err != nil {
+							return err
+						}
+					}
+				}
 			}
 
 			// reset workload.hook

@@ -38,6 +38,11 @@ type Virt struct {
 	config coretypes.Config
 }
 
+// EngineType .
+func (v *Virt) EngineType() int {
+	return engine.VM
+}
+
 // MakeClient makes a virt. client which wraps yavirt API client.
 func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	var uri string
@@ -178,7 +183,27 @@ func (v *Virt) VirtualizationResourceRemap(ctx context.Context, opts *enginetype
 }
 
 // VirtualizationCopyTo copies one.
-func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, dest string, content []byte, uid, gid int, mode int64) error {
+func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, dest string, content []byte, uid, gid int, mode int64) (err error) {
+	good := make(chan bool)
+	go func() {
+		ticker := time.NewTicker(time.Second)
+		for range ticker.C {
+			guest, er := v.client.GetGuest(ctx, ID)
+			if er != nil {
+				err = er
+				good <- false
+				return
+			}
+			// wait for guest to start for send file in deploy
+			if guest.Status == "running" {
+				good <- true
+				return
+			}
+		}
+	}()
+	if !<-good {
+		return err
+	}
 	return v.client.CopyToGuest(ctx, ID, dest, bytes.NewReader(content), true, true)
 }
 

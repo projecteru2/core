@@ -72,6 +72,11 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	return makeRawClient(ctx, config, client, endpoint)
 }
 
+// EngineType .
+func (e *Engine) EngineType() int {
+	return engine.Docker
+}
+
 // Info show node info
 // 2 seconds timeout
 // used to be 5, but client won't wait that long
