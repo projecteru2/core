@@ -317,7 +317,7 @@ func Unique(s interface{}, getVal func(int) string) (j int) {
 }
 
 // WithTimeout runs a function with given timeout
-func WithTimeout(ctx context.Context, timeout time.Duration, f func(ctx2 context.Context)) {
+func WithTimeout(ctx context.Context, timeout time.Duration, f func(context.Context)) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	f(ctx)
