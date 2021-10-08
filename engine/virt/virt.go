@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strconv"
 	"strings"
 	"time"
 
@@ -73,30 +74,36 @@ func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {
 }
 
 // Execute executes a command in vm
-func (v *Virt) Execute(ctx context.Context, target string, config *enginetypes.ExecConfig) (execID string, stdout io.ReadCloser, stderr io.ReadCloser, inputStream io.WriteCloser, err error) {
+func (v *Virt) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (pid string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	if config.Tty {
 		flags := virttypes.AttachGuestFlags{Safe: true, Force: true}
-		stream, err := v.client.AttachGuest(ctx, target, config.Cmd, flags)
+		stream, err := v.client.AttachGuest(ctx, ID, config.Cmd, flags)
 		if err != nil {
 			return "", nil, nil, nil, err
 		}
-		return target, ioutil.NopCloser(stream), nil, stream, nil
+		return "", ioutil.NopCloser(stream), nil, stream, nil
 
 	}
-
-	msg, err := v.client.ExecuteGuest(ctx, target, config.Cmd)
-	return target, ioutil.NopCloser(bytes.NewReader(msg.Data)), nil, nil, err
-
+	msg, err := v.client.ExecuteGuest(ctx, ID, config.Cmd)
+	return strconv.Itoa(msg.Pid), ioutil.NopCloser(bytes.NewReader(msg.Data)), nil, nil, err
 }
 
-// ExecExitCode gets return code of a specific execution.
-func (v *Virt) ExecExitCode(ctx context.Context, execID string) (code int, err error) {
-	return 0, nil
+// ExecExitCode get return code of a specific execution.
+func (v *Virt) ExecExitCode(ctx context.Context, ID, pid string) (code int, err error) {
+	intPid, err := strconv.Atoi(pid)
+	if err != nil {
+		return -1, err
+	}
+	code, err = v.client.ExecExitCode(ctx, ID, intPid)
+	if err != nil {
+		return -1, err
+	}
+	return
 }
 
 // ExecResize resize exec tty
-func (v *Virt) ExecResize(ctx context.Context, execID string, height, width uint) (err error) {
-	return v.client.ResizeConsoleWindow(ctx, execID, height, width)
+func (v *Virt) ExecResize(ctx context.Context, ID, pid string, height, width uint) (err error) {
+	return v.client.ResizeConsoleWindow(ctx, ID, height, width)
 }
 
 // NetworkConnect connects to a network.

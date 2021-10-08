@@ -28,6 +28,7 @@ func TestExecuteWorkload(t *testing.T) {
 	ctx := context.Background()
 	store := &storemocks.Store{}
 	c.store = store
+
 	// failed by GetWorkload
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
 	ID := "abc"
@@ -35,22 +36,26 @@ func TestExecuteWorkload(t *testing.T) {
 	for ac := range ch {
 		assert.NotEmpty(t, ac.Data)
 	}
+
 	engine := &enginemocks.API{}
 	workload := &types.Workload{
 		ID:     ID,
 		Engine: engine,
 	}
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
+
 	// failed by Execute
-	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(ID, nil, nil, nil, types.ErrCannotGetEngine).Once()
+	result := "def"
+	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(result, nil, nil, nil, types.ErrCannotGetEngine).Once()
 	ch = c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: ID}, nil)
 	for ac := range ch {
 		assert.Equal(t, ac.WorkloadID, ID)
 	}
 	buf := ioutil.NopCloser(bytes.NewBufferString(`echo 1\n`))
-	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(ID, buf, nil, nil, nil).Twice()
+	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(result, buf, nil, nil, nil).Twice()
+
 	// failed by ExecExitCode
-	engine.On("ExecExitCode", mock.Anything, mock.Anything).Return(-1, types.ErrCannotGetEngine).Once()
+	engine.On("ExecExitCode", mock.Anything, mock.Anything, mock.Anything).Return(-1, types.ErrCannotGetEngine).Once()
 	ch = c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: ID}, nil)
 	data := []byte{}
 	for ac := range ch {
@@ -58,7 +63,7 @@ func TestExecuteWorkload(t *testing.T) {
 		data = append(data, ac.Data...)
 	}
 	assert.Contains(t, string(data), "echo")
-	engine.On("ExecExitCode", mock.Anything, mock.Anything).Return(0, nil)
+	engine.On("ExecExitCode", mock.Anything, mock.Anything, mock.Anything).Return(0, nil)
 	ch = c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: ID}, nil)
 	for ac := range ch {
 		assert.Equal(t, ac.WorkloadID, ID)
@@ -72,7 +77,7 @@ func TestExecuteWorkload(t *testing.T) {
 	ch = c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: ID, OpenStdin: true}, inChan)
 	inChan <- []byte("a")
 	inChan <- escapeCommand
-	engine.On("ExecResize", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(types.ErrAlreadyFilled)
+	engine.On("ExecResize", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(types.ErrAlreadyFilled)
 	w := &window{100, 100}
 	b, err := json.Marshal(w)
 	assert.NoError(t, err)

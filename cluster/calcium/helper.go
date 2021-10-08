@@ -37,7 +37,7 @@ func execuateInside(ctx context.Context, client engine.API, ID, cmd, user string
 		AttachStdout: true,
 	}
 	b := []byte{}
-	execID, stdout, stderr, _, err := client.Execute(ctx, ID, execConfig)
+	result, stdout, stderr, _, err := client.Execute(ctx, ID, execConfig)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -46,7 +46,7 @@ func execuateInside(ctx context.Context, client engine.API, ID, cmd, user string
 		b = append(b, m.Data...)
 	}
 
-	exitCode, err := client.ExecExitCode(ctx, execID)
+	exitCode, err := client.ExecExitCode(ctx, ID, result)
 	if err != nil {
 		return b, errors.WithStack(err)
 	}

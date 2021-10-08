@@ -76,21 +76,21 @@ func TestControlStart(t *testing.T) {
 	data := ioutil.NopCloser(bytes.NewBufferString("output"))
 	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return("eid", data, nil, nil, nil).Times(4)
 	// failed by ExecExitCode
-	engine.On("ExecExitCode", mock.Anything, mock.Anything).Return(-1, types.ErrNilEngine).Once()
+	engine.On("ExecExitCode", mock.Anything, mock.Anything, mock.Anything).Return(-1, types.ErrNilEngine).Once()
 	ch, err = c.ControlWorkload(ctx, []string{"id1"}, cluster.WorkloadStart, false)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
 	// exitCode is not 0
-	engine.On("ExecExitCode", mock.Anything, mock.Anything).Return(-1, nil).Once()
+	engine.On("ExecExitCode", mock.Anything, mock.Anything, mock.Anything).Return(-1, nil).Once()
 	ch, err = c.ControlWorkload(ctx, []string{"id1"}, cluster.WorkloadStart, false)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
 	// exitCode is 0
-	engine.On("ExecExitCode", mock.Anything, mock.Anything).Return(0, nil)
+	engine.On("ExecExitCode", mock.Anything, mock.Anything, mock.Anything).Return(0, nil)
 	ch, err = c.ControlWorkload(ctx, []string{"id1"}, cluster.WorkloadStart, false)
 	assert.NoError(t, err)
 	for r := range ch {
