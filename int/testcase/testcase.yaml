@@ -1,0 +1,58 @@
+- method: AddPod
+  requests:
+    name:
+      - local0
+      - local1
+      - local2
+      - local3
+      - local4
+      - local5
+    desc:
+      - ''
+      - c
+      - d
+  asserts:
+    for_each:
+      equals:
+        - actual: etcdctl get --print-value-only /eru/pod/info/$(jq -r '.name' <<<$req) | jq -r '.name'
+          expected: jq -r '.name' <<<$req
+        - actual: etcdctl get --print-value-only /eru/pod/info/$(jq -r '.name' <<<$req) | jq -r '.name'
+          expected: jq -r '.name' <<<$req
+        - actual: jq -r '.name' <<<$resp
+          expected: jq -r '.name' <<<$req
+        - actual: jq -r '.desc' <<<$resp
+          expected: jq -r '.desc' <<<$req
+
+- method: CreateWorkload
+  requests:
+    name:
+      - zc
+    entrypoint:
+      name:
+        - zc
+      command:
+        - sleep 1000000
+    podname:
+      - test
+    image:
+      - bash
+    count:
+      - 1
+    resource_opts:
+      cpu_quota_limit:
+        - 0.1
+      cpu_bind:
+        - true
+      memory_limit:
+        - 14000000
+  asserts:
+    for_each:
+      equals:
+        - actual: jq -r '.podname' <<<$resp
+          expected: jq -r '.podname' <<<$req
+        - actual: docker inspect $(jq -r '.id' <<<$resp) | jq -r '.[0].HostConfig.CpusetCpus' | awk -F, '{print NF}'
+          expected: echo 1
+    after_completion:
+      equals:
+        - actual: eru-cli -o json workload list | jq length
+          expected: echo 1
