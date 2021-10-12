@@ -1,13 +1,13 @@
 - method: AddPod
   requests:
-    name:
+    name@:
       - local0
       - local1
       - local2
       - local3
       - local4
       - local5
-    desc:
+    desc@:
       - ''
       - c
       - d
@@ -25,26 +25,17 @@
 
 - method: CreateWorkload
   requests:
-    name:
-      - zc
+    name: zc
     entrypoint:
-      name:
-        - zc
-      command:
-        - sleep 1000000
-    podname:
-      - test
-    image:
-      - bash
-    count:
-      - 2
+      name: zc
+      command: sleep 1000000
+    podname: test
+    image: bash
+    count: 2
     resource_opts:
-      cpu_quota_limit:
-        - 0.1
-      cpu_bind:
-        - true
-      memory_limit:
-        - 14000000
+      cpu_quota_limit: 0.1
+      cpu_bind: true
+      memory_limit: 14000000
   asserts:
     for_each:
       equals:
@@ -61,10 +52,8 @@
 
 - method: RemoveWorkload
   requests:
-    ids:
-      - $bash(test -p /tmp/fifo || mkfifo /tmp/fifo; cat /tmp/fifo)
-    force:
-      - true
+    ids: $bash(test -p /tmp/fifo || mkfifo /tmp/fifo; cat /tmp/fifo)
+    force: true
   asserts:
     for_each:
       equals:
