@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"os"
-	"os/exec"
 	"strings"
 	"testing"
 
@@ -16,19 +15,14 @@ type Equal struct {
 	Expected string `json:"expected"`
 }
 
-type Appendvar struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
-}
-
 type Assertion struct {
 	ForEach struct {
-		Equals     []Equal     `json:"equals"`
-		Appendvars []Appendvar `json:"appendvars"`
+		Equals     []Equal  `json:"execs"`
+		RunSuccess []string `json:"run_success"`
 	} `json:"for_each"`
 	AfterCompletion struct {
-		Equals     []Equal     `json:"equals"`
-		Appendvars []Appendvar `json:"appendvars"`
+		Equals     []Equal  `json:"equals"`
+		RunSuccess []string `json:"run_success"`
 	} `json:"after_completion"`
 }
 
@@ -47,7 +41,10 @@ func (a Assertion) assertEach(t *testing.T, req, resp, err string) {
 		"err=" + err,
 	}
 	for _, equal := range a.ForEach.Equals {
-		a.assert(t, equal, env)
+		a.equal(t, equal, env)
+	}
+	for _, command := range a.ForEach.RunSuccess {
+		a.run(t, command, env)
 	}
 }
 
@@ -58,11 +55,14 @@ func (a Assertion) assertCompletion(t *testing.T, req string, resps, errs []stri
 		"errs=" + strings.Join(errs, "\n"),
 	}
 	for _, equal := range a.AfterCompletion.Equals {
-		a.assert(t, equal, env)
+		a.equal(t, equal, env)
+	}
+	for _, command := range a.AfterCompletion.RunSuccess {
+		a.run(t, command, env)
 	}
 }
 
-func (a Assertion) assert(t *testing.T, equal Equal, env []string) {
+func (a Assertion) equal(t *testing.T, equal Equal, env []string) {
 	envString := strings.Join(env, " ")
 	env = append(os.Environ(), env...)
 	actualOut, e := bash(equal.Actual, env)
@@ -76,9 +76,7 @@ func (a Assertion) assert(t *testing.T, equal Equal, env []string) {
 	assert.EqualValues(t, actualOut, expectedOut, envString)
 }
 
-func bash(command string, env []string) (out string, err error) {
-	cmd := exec.Command("/bin/bash", "-c", command)
-	cmd.Env = env
-	output, err := cmd.CombinedOutput()
-	return strings.TrimSpace(string(output)), err
+func (a Assertion) run(t *testing.T, command string, env []string) {
+	_, e := bash(command, append(os.Environ(), env...))
+	assert.NoError(t, e)
 }

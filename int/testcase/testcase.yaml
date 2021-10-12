@@ -37,7 +37,7 @@
     image:
       - bash
     count:
-      - 1
+      - 2
     resource_opts:
       cpu_quota_limit:
         - 0.1
@@ -56,3 +56,21 @@
       equals:
         - actual: eru-cli -o json workload list | jq length
           expected: echo 1
+      run_success:
+        - test -p /tmp/fifo || mkfifo /tmp/fifo; echo -e $resps | jq '.id' | jq -sc > /tmp/fifo
+
+- method: RemoveWorkload
+  requests:
+    ids:
+      - $bash(test -p /tmp/fifo || mkfifo /tmp/fifo; cat /tmp/fifo)
+    force:
+      - true
+  asserts:
+    for_each:
+      equals:
+        - actual: jq -r '.id' <<<$resp
+          expected: jq -r '.id' <<<$req
+        - actual: eru-cli -o json workload get $(jq -r '.id' <<<$req) || echo not found
+          expected: echo not found
+        - actual: etcdctl get /eru/ --prefix | grep $(jq -r '.id' <<<$req) -c
+          expected: echo 0
