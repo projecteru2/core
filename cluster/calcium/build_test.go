@@ -125,7 +125,7 @@ func TestBuild(t *testing.T) {
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(&types.Workload{Nodename: "123"}, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(&types.Node{Engine: engine}, nil)
 	ch, err = c.BuildImage(ctx, opts)
-	assert.NoError(t, err)
+	assert.EqualError(t, err, types.ErrEngineNotImplemented.Error())
 	// unknown build method
 	opts.BuildMethod = types.BuildFromUnknown
 	ch, err = c.BuildImage(ctx, opts)

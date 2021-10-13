@@ -6,7 +6,6 @@ import (
 	"io"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/utils"
 
 	dockertypes "github.com/docker/docker/api/types"
 	dockerfilters "github.com/docker/docker/api/types/filters"
@@ -118,17 +117,20 @@ func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string)
 }
 
 // ImageBuildFromExist commits image from running workload
-func (e *Engine) ImageBuildFromExist(ctx context.Context, ID, name, _ string) (imageID string, err error) {
+func (e *Engine) ImageBuildFromExist(ctx context.Context, ID string, refs []string, _ string) (imageID string, err error) {
 	opts := dockertypes.ContainerCommitOptions{
-		Reference: name,
+		Reference: refs[0],
 		Author:    "eru-core",
 	}
 	resp, err := e.client.ContainerCommit(ctx, ID, opts)
 	if err != nil {
 		return "", err
 	}
-	stream, err := e.ImagePush(ctx, name)
-	defer utils.EnsureReaderClosed(ctx, stream)
+	for i := 1; i < len(refs); i++ {
+		if err := e.client.ImageTag(ctx, resp.ID, refs[i]); err != nil {
+			return "", err
+		}
+	}
 	return resp.ID, err
 }
 

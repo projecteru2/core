@@ -48,10 +48,14 @@ func (v *Virt) ImageBuild(ctx context.Context, input io.Reader, refs []string) (
 }
 
 // ImageBuildFromExist builds vm image from running vm
-func (v *Virt) ImageBuildFromExist(ctx context.Context, ID, name, user string) (string, error) {
+func (v *Virt) ImageBuildFromExist(ctx context.Context, ID string, names []string, user string) (string, error) {
 	if len(user) < 1 {
 		return "", types.ErrNoImageUser
 	}
+	if len(names) > 1 {
+		return "", types.ErrBadRefs
+	}
+	name := names[0]
 
 	// TODO: removes below 2 lines
 	// upper layer may remove 'hub.docker.io/...../<name>' prefix and tag from the name.

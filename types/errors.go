@@ -55,6 +55,7 @@ var (
 	ErrInvaildUsername = errors.New("invaild username")
 	ErrNotFitLabels    = errors.New("not fit labels")
 
+	ErrBadRefs                     = errors.New("invalid image refs")
 	ErrNoImage                     = errors.New("no image")
 	ErrNoImageUser                 = errors.New("no image user")
 	ErrNoBuildPod                  = errors.New("No build pod set in config")
