@@ -1,0 +1,159 @@
+# create a workload for build from exist
+- method: CreateWorkload
+  requests:
+    name: zc
+    entrypoint:
+      name: zc
+      command: sleep 1000000
+    podname: test
+    image: bash
+    count: 1
+    resource_opts:
+      cpu_quota_limit: 0.1
+      memory_limit: 14000000
+  asserts:
+    for_each:
+      run_success:
+        # get workload id, send to fifo
+        - test -p /tmp/fifo || mkfifo /tmp/fifo; jq '.id' <<<$resp > /tmp/fifo
+
+# build from exist
+- method: BuildImage
+  requests:
+    name: zctest
+    tags:
+      - latest
+      - v21.10.13
+    build_method: 2
+    exist_id: $bash(test -p /tmp/fifo || mkfifo /tmp/fifo; cat /tmp/fifo)
+  asserts:
+    for_each:
+      equals:
+        # assert no err
+        - actual: jq '.error' <<<$resp
+          expected: echo
+        - actual: jq '.error_detail' <<<$resp
+          expected: echo
+    after_completion:
+      run_success:
+        # pull images from hub
+        - for tag in $(jq -r '.tags[]' <<<$req); do docker pull harbor.shopeemobile.com/cloud/$(jq -r '.name' <<<$req):$tag; done
+        # remove workload
+        - eru-cli workload remove -f $(jq -r '.exist_id' <<<$req)
+        # remove images
+        - for tag in $(jq -r '.tags[]' <<<$req); do docker rmi harbor.shopeemobile.com/cloud/$(jq -r '.name' <<<$req):$tag; done
+
+# build from raw
+- method: BuildImage
+  requests:
+    name: zctest
+    tags:
+      - raw
+    build_method: 1
+    tar: $bash(base64 -w0 ./int/testcase/Dockerbuild.tar | jq -R)
+  asserts:
+    after_completion:
+      equals:
+        # pull image and run container
+        - actual: docker pull harbor.shopeemobile.com/cloud/$(jq -r '.name' <<<$req):$(jq -r '.tags[0]' <<<$req) &>/dev/null; docker run --rm harbor.shopeemobile.com/cloud/$(jq -r '.name' <<<$req):$(jq -r '.tags[0]' <<<$req) cat /README.md
+          expected: echo justice
+
+# build from scm
+- method: BuildImage
+  requests:
+    name: zctest
+    user@:
+      - ''
+      - not_exist
+    uid@:
+      - 0
+      - 9999
+    tags:
+      - scm1
+      - scm2
+    build_method: 0
+    builds:
+      stages:
+        - build
+        - pack
+      builds:
+        build:
+          base: "golang:alpine"
+          repo: "git@github.com:projecteru2/core.git"
+          version: "HEAD"
+          security: false
+          dir: /go/src/github.com/projecteru2/core
+          commands:
+            - apk add --no-cache build-base musl-dev git curl make
+            - make binary
+          cache:
+            /go/src/github.com/projecteru2/core/eru-core: /usr/bin/eru-core
+        pack:
+          base: alpine
+          labels:
+            ERU: '1'
+            core: '1'
+          envs:
+            CORE_IN_DOCKER: '1'
+  asserts:
+    after_completion:
+      run_success:
+        # pull images
+        - for tag in $(jq -r '.tags[]' <<<$req); do docker pull harbor.shopeemobile.com/cloud/$(jq -r '.name' <<<$req):$tag; done
+        # run container and exec binary inside
+        - for tag in $(jq -r '.tags[]' <<<$req); do docker run --rm harbor.shopeemobile.com/cloud/$(jq -r '.name' <<<$req):$tag /usr/bin/eru-core --version; done
+        # remove images
+        - for tag in $(jq -r '.tags[]' <<<$req); do docker rmi -f harbor.shopeemobile.com/cloud/$(jq -r '.name' <<<$req):$tag; done
+
+- method: CacheImage
+  requests:
+    podname: test
+    nodenames@:
+      - []
+      - ['localhost-test']
+    images@:
+      - ['harbor.shopeemobile.com/cloud/zctest:scm1']
+      - ['harbor.shopeemobile.com/cloud/zctest:scm1', 'harbor.shopeemobile.com/cloud/zctest:scm2']
+    step@:
+      - 0
+      - 1
+      - 10
+  asserts:
+    after_completion:
+      run_success:
+        # assert image existance
+        - for image in $(jq -r '.images[]' <<<$req); do docker inspect $image; done
+        # remove images
+        - for image in $(jq -r '.images[]' <<<$req); do docker rmi -f $image; done
+
+# cache again for RemoveImage
+- method: CacheImage
+  requests:
+    podname: test
+    nodenames:
+      - 'localhost-test'
+    images:
+      - 'harbor.shopeemobile.com/cloud/zctest:scm1'
+      - 'harbor.shopeemobile.com/cloud/zctest:scm2'
+  asserts:
+    after_completion:
+      run_success:
+        # assert image existance
+        - for image in $(jq -r '.images[]' <<<$req); do docker inspect $image; done
+
+- method: RemoveImage
+  requests:
+    podname: test
+    nodenames:
+      - 'localhost-test'
+    images:
+      - 'harbor.shopeemobile.com/cloud/zctest:scm1'
+      - 'harbor.shopeemobile.com/cloud/zctest:scm2'
+  asserts:
+    after_completion:
+      equals:
+        # no image
+        - actual: docker inspect harbor.shopeemobile.com/cloud/zctest:scm1 2>/dev/null | jq length || true
+          expected: echo 0
+        - actual: docker inspect harbor.shopeemobile.com/cloud/zctest:scm2 2>/dev/null | jq length || true
+          expected: echo 0

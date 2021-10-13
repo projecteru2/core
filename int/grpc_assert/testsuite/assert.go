@@ -2,6 +2,7 @@ package testsuite
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -73,10 +74,10 @@ func (a Assertion) equal(t *testing.T, equal Equal, env []string) {
 	if e != nil {
 		log.Fatalf("failed to exec bash command: %+v, %s %s", actualOut, envString, equal.Expected)
 	}
-	assert.EqualValues(t, actualOut, expectedOut, envString)
+	assert.EqualValues(t, actualOut, expectedOut, fmt.Sprintf("%s %s", envString, equal.Actual))
 }
 
 func (a Assertion) run(t *testing.T, command string, env []string) {
-	_, e := bash(command, append(os.Environ(), env...))
-	assert.NoError(t, e)
+	output, e := bash(command, append(os.Environ(), env...))
+	assert.NoError(t, e, fmt.Sprintf("output: %s, command: %s", output, command))
 }

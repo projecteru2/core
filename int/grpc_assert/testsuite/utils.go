@@ -1,12 +1,20 @@
 package testsuite
 
 import (
+	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
 func bash(command string, env []string) (out string, err error) {
-	cmd := exec.Command("/bin/bash", "-c", "set -eo pipefail; "+command)
+	cwd, err := os.Getwd()
+	if err != nil {
+		return
+	}
+	cdCwd := fmt.Sprintf("cd %s; ", filepath.Dir(filepath.Dir(cwd)))
+	cmd := exec.Command("/bin/bash", "-c", "set -eo pipefail; "+cdCwd+command)
 	cmd.Env = env
 	output, err := cmd.CombinedOutput()
 	return strings.TrimSpace(string(output)), err

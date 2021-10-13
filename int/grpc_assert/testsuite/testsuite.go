@@ -25,7 +25,7 @@ func New(method, request, assertion string) *Testsuite {
 func (c Testsuite) Run(t *testing.T, service pbreflect.Service) {
 	responses, err := service.Send(context.TODO(), c.Method, c.Request)
 	if err != nil {
-		log.Fatalf("failed to send request: %+v", err)
+		log.Fatalf("failed to send request %s: %+v", c.Request, err)
 	}
 
 	contents, errs := []string{}, []string{}

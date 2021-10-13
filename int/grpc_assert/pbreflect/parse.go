@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func Parse(filename string) (service Service, err error) {
+func Parse(filename string) (service *Service, err error) {
 	dirname, basename := filepath.Dir(filename), filepath.Base(filename)
 	filenames, err := protoparse.ResolveFilenames([]string{dirname}, basename)
 	if err != nil {
@@ -26,7 +26,7 @@ func Parse(filename string) (service Service, err error) {
 		return service, errors.New("proto file not found")
 	}
 
-	service = *MustNewService()
+	service = MustNewService()
 	for _, parsedFile := range parsedFiles {
 		for _, svc := range parsedFile.GetServices() {
 			for _, method := range svc.GetMethods() {

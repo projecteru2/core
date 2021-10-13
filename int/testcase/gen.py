@@ -29,7 +29,7 @@ def traverse_combinators(
 
         for old_key in keys_to_rename:
             new_key = old_key.rstrip('@')
-            obj[new_key] = obj[old_key]
+            value = obj[new_key] = obj[old_key]
             ret.append((value, itemsetter(obj, new_key)))
             del obj[old_key]
 
