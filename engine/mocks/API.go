@@ -67,20 +67,20 @@ func (_m *API) BuildRefs(ctx context.Context, name string, tags []string) []stri
 	return r0
 }
 
-// ExecExitCode provides a mock function with given fields: ctx, ID, pid
-func (_m *API) ExecExitCode(ctx context.Context, ID string, pid string) (int, error) {
-	ret := _m.Called(ctx, ID, pid)
+// ExecExitCode provides a mock function with given fields: ctx, ID, result
+func (_m *API) ExecExitCode(ctx context.Context, ID string, result string) (int, error) {
+	ret := _m.Called(ctx, ID, result)
 
 	var r0 int
 	if rf, ok := ret.Get(0).(func(context.Context, string, string) int); ok {
-		r0 = rf(ctx, ID, pid)
+		r0 = rf(ctx, ID, result)
 	} else {
 		r0 = ret.Get(0).(int)
 	}
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, ID, pid)
+		r1 = rf(ctx, ID, result)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -194,20 +194,20 @@ func (_m *API) ImageBuildCachePrune(ctx context.Context, all bool) (uint64, erro
 	return r0, r1
 }
 
-// ImageBuildFromExist provides a mock function with given fields: ctx, ID, name, user
-func (_m *API) ImageBuildFromExist(ctx context.Context, ID string, name string, user string) (string, error) {
-	ret := _m.Called(ctx, ID, name, user)
+// ImageBuildFromExist provides a mock function with given fields: ctx, ID, refs, user
+func (_m *API) ImageBuildFromExist(ctx context.Context, ID string, refs []string, user string) (string, error) {
+	ret := _m.Called(ctx, ID, refs, user)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) string); ok {
-		r0 = rf(ctx, ID, name, user)
+	if rf, ok := ret.Get(0).(func(context.Context, string, []string, string) string); ok {
+		r0 = rf(ctx, ID, refs, user)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
-		r1 = rf(ctx, ID, name, user)
+	if rf, ok := ret.Get(1).(func(context.Context, string, []string, string) error); ok {
+		r1 = rf(ctx, ID, refs, user)
 	} else {
 		r1 = ret.Error(1)
 	}

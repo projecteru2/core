@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -33,16 +34,21 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 	// get refs
 	refs := node.Engine.BuildRefs(ctx, opts.Name, opts.Tags)
 
+	var resp io.ReadCloser
 	switch opts.BuildMethod {
 	case types.BuildFromSCM:
-		ch, err = c.buildFromSCM(ctx, node, refs, opts)
+		resp, err = c.buildFromSCM(ctx, node, refs, opts)
 	case types.BuildFromRaw:
-		ch, err = c.buildFromContent(ctx, node, refs, opts.Tar)
+		resp, err = c.buildFromContent(ctx, node, refs, opts.Tar)
 	case types.BuildFromExist:
-		ch, err = c.buildFromExist(ctx, refs[0], opts.ExistID, opts.User)
+		resp, err = c.buildFromExist(ctx, refs, opts.ExistID, opts.User)
 	default:
 		return nil, logger.Err(ctx, errors.WithStack(errors.New("unknown build type")))
 	}
+	if err != nil {
+		return nil, logger.Err(ctx, err)
+	}
+	ch, err = c.pushImageAndClean(ctx, resp, node, refs)
 	return ch, logger.Err(ctx, err)
 }
 
@@ -66,7 +72,7 @@ func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
 	return node, err
 }
 
-func (c *Calcium) buildFromSCM(ctx context.Context, node *types.Node, refs []string, opts *types.BuildOptions) (chan *types.BuildImageMessage, error) {
+func (c *Calcium) buildFromSCM(ctx context.Context, node *types.Node, refs []string, opts *types.BuildOptions) (io.ReadCloser, error) {
 	buildContentOpts := &enginetypes.BuildContentOptions{
 		User:   opts.User,
 		UID:    opts.UID,
@@ -77,46 +83,32 @@ func (c *Calcium) buildFromSCM(ctx context.Context, node *types.Node, refs []str
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	ch, err := c.buildFromContent(ctx, node, refs, content)
-	return ch, err
+	return c.buildFromContent(ctx, node, refs, content)
 }
 
-func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, refs []string, content io.Reader) (chan *types.BuildImageMessage, error) {
+func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, refs []string, content io.Reader) (io.ReadCloser, error) {
 	resp, err := node.Engine.ImageBuild(ctx, content, refs)
+	return resp, errors.WithStack(err)
+}
+
+func (c *Calcium) buildFromExist(ctx context.Context, refs []string, existID, user string) (resp io.ReadCloser, err error) {
+	node, err := c.getWorkloadNode(ctx, existID)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return
 	}
-	ch, err := c.pushImage(ctx, resp, node, refs)
-	return ch, err
+
+	if _, err = node.Engine.ImageBuildFromExist(ctx, existID, refs, user); err != nil {
+		return resp, errors.WithStack(err)
+	}
+	return io.NopCloser(strings.NewReader("")), nil
 }
 
-func (c *Calcium) buildFromExist(ctx context.Context, ref, existID, user string) (chan *types.BuildImageMessage, error) { // nolint:unparam
-	logger := log.WithField("Calcium", "buildFromExist").WithField("ref", ref).WithField("existID", existID)
-	return withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
-		node, err := c.getWorkloadNode(ctx, existID)
-		if err != nil {
-			ch <- buildErrMsg(logger.Err(ctx, err))
-			return
-		}
-
-		imageID, err := node.Engine.ImageBuildFromExist(ctx, existID, ref, user)
-		if err != nil {
-			ch <- buildErrMsg(logger.Err(ctx, err))
-			return
-		}
-		utils.SentryGo(func() {
-			cleanupNodeImages(ctx, node, []string{imageID}, c.config.GlobalTimeout)
-		})
-		ch <- &types.BuildImageMessage{ID: imageID}
-	}), nil
-}
-
-func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) { // nolint:unparam
+func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) { // nolint:unparam
 	logger := log.WithField("Calcium", "pushImage").WithField("node", node).WithField("tags", tags)
 	return withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
 		defer resp.Close()
 		decoder := json.NewDecoder(resp)
-		var lastMessage *types.BuildImageMessage
+		lastMessage := &types.BuildImageMessage{}
 		for {
 			message := &types.BuildImageMessage{}
 			err := decoder.Decode(message)
@@ -158,11 +150,11 @@ func (c *Calcium) pushImage(ctx context.Context, resp io.ReadCloser, node *types
 				ch <- message
 			}
 
-			// 无论如何都删掉build机器的
-			// 事实上他不会跟cached pod一样
-			// 一样就砍死
 			ch <- &types.BuildImageMessage{Stream: fmt.Sprintf("finished %s\n", tag), Status: "finished", Progress: tag}
 		}
+		// 无论如何都删掉build机器的
+		// 事实上他不会跟cached pod一样
+		// 一样就砍死
 		utils.SentryGo(func() {
 			cleanupNodeImages(ctx, node, tags, c.config.GlobalTimeout)
 		})
@@ -193,10 +185,4 @@ func cleanupNodeImages(ctx context.Context, node *types.Node, ids []string, ttl 
 	} else {
 		log.Infof(ctx, "[BuildImage] Clean cached image and release space %d", spaceReclaimed)
 	}
-}
-
-func buildErrMsg(err error) *types.BuildImageMessage {
-	msg := &types.BuildImageMessage{Error: err.Error()}
-	msg.ErrorDetail.Message = err.Error()
-	return msg
 }
