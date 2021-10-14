@@ -32,7 +32,7 @@ require (
 	github.com/opencontainers/runc v1.0.0-rc95 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
-	github.com/projecteru2/libyavirt v0.0.0-20211005075821-cf93676926ff
+	github.com/projecteru2/libyavirt v0.0.0-20211014062234-66e6f24ab6d1
 	github.com/prometheus/client_golang v1.11.0
 	github.com/sanity-io/litter v1.5.1
 	github.com/sirupsen/logrus v1.7.0
