@@ -8,12 +8,14 @@ import (
 	"github.com/projecteru2/core/int/grpc_assert/pbreflect"
 )
 
+// Testsuite .
 type Testsuite struct {
 	Method  string
 	Request string
 	*Assertion
 }
 
+// New .
 func New(method, request, assertion string) *Testsuite {
 	return &Testsuite{
 		Method:    method,
@@ -22,7 +24,8 @@ func New(method, request, assertion string) *Testsuite {
 	}
 }
 
-func (c Testsuite) Run(t *testing.T, service pbreflect.Service) {
+// Run .
+func (c Testsuite) Run(t *testing.T, service *pbreflect.Service) {
 	responses, err := service.Send(context.TODO(), c.Method, c.Request)
 	if err != nil {
 		log.Fatalf("failed to send request %s: %+v", c.Request, err)
@@ -35,5 +38,4 @@ func (c Testsuite) Run(t *testing.T, service pbreflect.Service) {
 		c.assertEach(t, c.Request, response.Content, response.Err)
 	}
 	c.assertCompletion(t, c.Request, contents, errs)
-	return
 }

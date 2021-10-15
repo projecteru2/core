@@ -11,11 +11,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Equal assertion
 type Equal struct {
 	Actual   string `json:"actual"`
 	Expected string `json:"expected"`
 }
 
+// Assertion .
 type Assertion struct {
 	ForEach struct {
 		Equals     []Equal  `json:"execs"`
@@ -27,6 +29,7 @@ type Assertion struct {
 	} `json:"after_completion"`
 }
 
+// MustNewAssertion .
 func MustNewAssertion(a string) *Assertion {
 	asser := &Assertion{}
 	if err := json.Unmarshal([]byte(a), asser); err != nil {

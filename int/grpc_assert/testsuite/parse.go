@@ -11,10 +11,11 @@ import (
 
 var patBashCommand *regexp.Regexp
 
-func init() {
+func init() { // nolint:gochecknoinits
 	patBashCommand = regexp.MustCompile(`"\$bash\(.*?\)"[,}\]]`)
 }
 
+// MustParse .
 func MustParse(r io.Reader) <-chan Testsuite {
 	testcases := make(chan Testsuite)
 
@@ -82,5 +83,5 @@ func mustRender(request string) (res []string) {
 			res = append(res, strings.ReplaceAll(request, matches[idx], replace))
 		}
 	}
-	return
+	return // nolint:nakedret
 }

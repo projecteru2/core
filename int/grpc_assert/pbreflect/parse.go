@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Parse from proto file
 func Parse(filename string) (service *Service, err error) {
 	dirname, basename := filepath.Dir(filename), filepath.Base(filename)
 	filenames, err := protoparse.ResolveFilenames([]string{dirname}, basename)

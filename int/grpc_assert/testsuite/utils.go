@@ -14,7 +14,7 @@ func bash(command string, env []string) (out string, err error) {
 		return
 	}
 	cdCwd := fmt.Sprintf("cd %s; ", filepath.Dir(filepath.Dir(cwd)))
-	cmd := exec.Command("/bin/bash", "-c", "set -eo pipefail; "+cdCwd+command)
+	cmd := exec.Command("/bin/bash", "-c", "set -eo pipefail; "+cdCwd+command) // nolint:gosec
 	cmd.Env = env
 	output, err := cmd.CombinedOutput()
 	return strings.TrimSpace(string(output)), err

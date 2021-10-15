@@ -6,8 +6,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/jsonpb" // nolint:staticcheck // protoreflect relies on this
+	"github.com/golang/protobuf/proto"  // nolint:staticcheck // protoreflect relies on this
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
@@ -15,12 +15,14 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
+// Service represents a grpc service
 type Service struct {
 	rpcs        map[string]*desc.MethodDescriptor
 	pbMarshaler *jsonpb.Marshaler
 	stub        grpcdynamic.Stub
 }
 
+// MustNewService .
 func MustNewService() *Service {
 	client, err := client.NewClient(context.TODO(), "127.0.0.1:5001", coretypes.AuthConfig{})
 	if err != nil {
@@ -42,11 +44,13 @@ type protoMessage struct {
 	err     error
 }
 
+// Response represents a grpc response in json format including error
 type Response struct {
 	Content string
 	Err     string
 }
 
+// Send a grpc request in json, get a channel with responses in json
 func (s Service) Send(ctx context.Context, method, request string) (_ <-chan Response, err error) {
 	meth, req, err := s.encodeResquest(method, request)
 	if err != nil {
