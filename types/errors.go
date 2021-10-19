@@ -46,6 +46,7 @@ var (
 
 	ErrPodHasNodes = errors.New("pod has nodes")
 	ErrPodNoNodes  = errors.New("pod has no nodes")
+	ErrPodNotFound = errors.New("pod not found")
 
 	ErrCannotGetEngine = errors.New("cannot get engine")
 	ErrNilEngine       = errors.New("engine is nil")
