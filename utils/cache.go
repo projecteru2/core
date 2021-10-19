@@ -22,13 +22,13 @@ func NewEngineCache(expire time.Duration, cleanupInterval time.Duration) *Engine
 }
 
 // Set connection with host
-func (c *EngineCache) Set(host string, client engine.API) {
-	c.cache.Set(host, client, cache.DefaultExpiration)
+func (c *EngineCache) Set(endpoint string, client engine.API) {
+	c.cache.Set(endpoint, client, cache.DefaultExpiration)
 }
 
 // Get connection by host
-func (c *EngineCache) Get(host string) engine.API {
-	e, found := c.cache.Get(host)
+func (c *EngineCache) Get(endpoint string) engine.API {
+	e, found := c.cache.Get(endpoint)
 	if found {
 		return e.(engine.API)
 	}
@@ -36,6 +36,6 @@ func (c *EngineCache) Get(host string) engine.API {
 }
 
 // Delete connection by host
-func (c *EngineCache) Delete(host string) {
+func (c *EngineCache) Delete(host string, endpoint ...string) {
 	c.cache.Delete(host)
 }
