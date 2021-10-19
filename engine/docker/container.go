@@ -326,6 +326,7 @@ func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, co
 		if err != nil {
 			return err
 		}
+		defer content.Close()
 		return e.client.CopyToContainer(ctx, ID, filepath.Dir(target), content, dockertypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
 	})
 }
