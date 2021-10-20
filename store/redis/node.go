@@ -170,28 +170,24 @@ func (r *Rediaron) UpdateNodeResource(ctx context.Context, node *types.Node, res
 	return r.UpdateNodes(ctx, node)
 }
 
-func (r *Rediaron) makeClient(ctx context.Context, node *types.Node, force bool) (engine.API, error) {
+func (r *Rediaron) makeClient(ctx context.Context, node *types.Node) (engine.API, error) {
 	// try get client, if nil, create a new one
 	var client engine.API
 	var err error
-	client = _cache.Get(node.Name)
-	if client == nil || force {
-		keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
-		data := []string{"", "", ""}
-		for i := 0; i < 3; i++ {
-			v, err := r.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
-			if err != nil {
-				log.Warnf(ctx, "[makeClient] Get key failed %v", err)
-				continue
-			}
-			data[i] = v
-		}
-
-		client, err = enginefactory.GetEngine(ctx, r.config, node.Name, node.Endpoint, data[0], data[1], data[2])
+	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
+	data := []string{"", "", ""}
+	for i := 0; i < 3; i++ {
+		v, err := r.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
 		if err != nil {
-			return nil, err
+			log.Warnf(ctx, "[makeClient] Get key failed %v", err)
+			continue
 		}
-		_cache.Set(node.Name, client)
+		data[i] = v
+	}
+
+	client, err = enginefactory.GetEngine(ctx, r.config, node.Name, node.Endpoint, data[0], data[1], data[2])
+	if err != nil {
+		return nil, err
 	}
 	return client, nil
 }
@@ -266,7 +262,6 @@ func (r *Rediaron) doRemoveNode(ctx context.Context, podname, nodename, endpoint
 		fmt.Sprintf(nodeKeyKey, nodename),
 	}
 
-	_cache.Delete(nodename)
 	err := r.BatchDelete(ctx, keys)
 	log.Infof(ctx, "[doRemoveNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 	return err
@@ -281,7 +276,7 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 		}
 		node.Init()
 		if (!node.IsDown() || all) && utils.FilterWorkload(node.Labels, labels) {
-			engine, err := r.makeClient(ctx, node, false)
+			engine, err := r.makeClient(ctx, node)
 			if err != nil {
 				return nil, err
 			}

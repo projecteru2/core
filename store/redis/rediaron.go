@@ -10,7 +10,6 @@ import (
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 
 	"github.com/go-redis/redis/v8"
 	perrors "github.com/pkg/errors"
@@ -27,8 +26,6 @@ var (
 	// ErrKeyNotExitsts indicates no key found
 	// When do update, we need to ensure the key exists, just like the behavior of etcd client
 	ErrKeyNotExitsts = errors.New("[Redis exists] Key not exists")
-
-	_cache = utils.NewEngineCache(12*time.Hour, 10*time.Minute)
 )
 
 const (

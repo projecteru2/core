@@ -2,11 +2,9 @@ package etcdv3
 
 import (
 	"testing"
-	"time"
 
 	"github.com/projecteru2/core/store/etcdv3/meta"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
 const (
@@ -39,5 +37,3 @@ func New(config types.Config, t *testing.T) (m *Mercury, err error) {
 	m.KV, err = meta.NewETCD(config.Etcd, t)
 	return
 }
-
-var _cache = utils.NewEngineCache(12*time.Hour, 10*time.Minute)

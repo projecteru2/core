@@ -179,29 +179,18 @@ func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, reso
 	return m.UpdateNodes(ctx, node)
 }
 
-func (m *Mercury) makeClient(ctx context.Context, node *types.Node, force bool) (engine.API, error) {
-	// try get client, if nil, create a new one
-	var client engine.API
-	var err error
-	client = _cache.Get(node.Name)
-	if client == nil || force {
-		keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
-		data := []string{"", "", ""}
-		for i := 0; i < 3; i++ {
-			if ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name)); err != nil {
-				log.Warnf(ctx, "[makeClient] Get key failed %v", err)
-			} else {
-				data[i] = string(ev.Value)
-			}
+func (m *Mercury) makeClient(ctx context.Context, node *types.Node) (client engine.API, err error) {
+	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
+	data := []string{"", "", ""}
+	for i := 0; i < 3; i++ {
+		if ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name)); err != nil {
+			log.Warnf(ctx, "[makeClient] Get key failed %v", err)
+		} else {
+			data[i] = string(ev.Value)
 		}
-
-		client, err = enginefactory.GetEngine(ctx, m.config, node.Name, node.Endpoint, data[0], data[1], data[2])
-		if err != nil {
-			return nil, err
-		}
-		_cache.Set(node.Name, client)
 	}
-	return client, nil
+
+	return enginefactory.GetEngine(ctx, m.config, node.Name, node.Endpoint, data[0], data[1], data[2])
 }
 
 func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory, storage int64, labels map[string]string, numa types.NUMA, numaMemory types.NUMAMemory, volumemap types.VolumeMap) (*types.Node, error) {
@@ -278,14 +267,12 @@ func (m *Mercury) doRemoveNode(ctx context.Context, podname, nodename, endpoint 
 		fmt.Sprintf(nodeKeyKey, nodename),
 	}
 
-	_cache.Delete(nodename)
 	_, err := m.BatchDelete(ctx, keys)
 	log.Infof(ctx, "[doRemoveNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 	return err
 }
 
-func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels map[string]string, all bool) ([]*types.Node, error) {
-	nodes := []*types.Node{}
+func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels map[string]string, all bool) (nodes []*types.Node, err error) {
 	for _, ev := range kvs {
 		node := &types.Node{}
 		if err := json.Unmarshal(ev.Value, node); err != nil {
@@ -293,11 +280,9 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 		}
 		node.Init()
 		if (!node.IsDown() || all) && utils.FilterWorkload(node.Labels, labels) {
-			engine, err := m.makeClient(ctx, node, false)
-			if err != nil {
-				return nil, err
+			if node.Engine, err = m.makeClient(ctx, node); err != nil {
+				return
 			}
-			node.Engine = engine
 			nodes = append(nodes, node)
 		}
 	}
