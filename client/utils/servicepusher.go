@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"errors"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -123,6 +124,7 @@ func (p *EndpointPusher) checkReachability(host string) (err error) {
 		log.Errorf(nil, "[EruResolver] failed to create pinger: %+v", err) //nolint
 		return
 	}
+	pinger.SetPrivileged(os.Getuid() == 0)
 	defer pinger.Stop()
 
 	pinger.Count = 1
