@@ -7,7 +7,6 @@ import (
 
 	"github.com/projecteru2/core/types"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/muroq/redislock"
 	"github.com/pkg/errors"
 )
@@ -29,7 +28,7 @@ type RedisLock struct {
 // key: name of the lock
 // waitTimeout: timeout before getting the lock, Lock returns error if the lock is not acquired after this time
 // lockTTL: ttl of lock, after this time, lock will be released automatically
-func New(cli *redis.Client, key string, waitTimeout, lockTTL time.Duration) (*RedisLock, error) {
+func New(cli redislock.RedisClient, key string, waitTimeout, lockTTL time.Duration) (*RedisLock, error) {
 	if key == "" {
 		return nil, errors.WithStack(types.ErrKeyIsEmpty)
 	}
