@@ -138,13 +138,13 @@ RdCPRPt513WozkJZZAjUSP2U
 	s.rediaron.config.CertPath = "/tmp"
 	node3, err := s.rediaron.doAddNode(ctx, nodename3, endpoint3, podname, ca, cert, certkey, cpu, share, memory, storage, labels, nil, nil, nil)
 	s.NoError(err)
-	engine3, err := s.rediaron.makeClient(ctx, node3, true)
+	engine3, err := s.rediaron.makeClient(ctx, node3)
 	s.NoError(err)
 	_, err = engine3.Info(ctx)
 	s.Error(err)
 	// failed by get key
 	node3.Name = "nokey"
-	_, err = s.rediaron.makeClient(ctx, node3, true)
+	_, err = s.rediaron.makeClient(ctx, node3)
 	s.NoError(err)
 }
 
