@@ -73,6 +73,12 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		n.Bypass = (opts.BypassOpt == types.TriTrue) || (opts.BypassOpt == types.TriKeep && n.Bypass)
 		if n.IsDown() {
 			logger.Errorf(ctx, "[SetNodeAvailable] node marked down: %s", opts.Nodename)
+			// remove node status
+			err := c.store.SetNodeStatus(ctx, node, -1)
+			if err != nil {
+				// don't return here
+				log.Errorf(ctx, "[SetNode] failed to set node status, err: %v", err)
+			}
 		}
 		if opts.WorkloadsDown {
 			workloads, err := c.store.ListNodeWorkloads(ctx, opts.Nodename, nil)

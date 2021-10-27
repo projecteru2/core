@@ -141,13 +141,13 @@ RdCPRPt513WozkJZZAjUSP2U
 	m.config.CertPath = "/tmp"
 	node3, err := m.doAddNode(ctx, nodename3, endpoint3, podname, ca, cert, certkey, cpu, share, memory, storage, labels, nil, nil, nil)
 	assert.NoError(t, err)
-	engine3, err := m.makeClient(ctx, node3, true)
+	engine3, err := m.makeClient(ctx, node3)
 	assert.NoError(t, err)
 	_, err = engine3.Info(ctx)
 	assert.Error(t, err)
 	// failed by get key
 	node3.Name = "nokey"
-	_, err = m.makeClient(ctx, node3, true)
+	_, err = m.makeClient(ctx, node3)
 	assert.NoError(t, err)
 }
 

@@ -290,11 +290,20 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 }
 
 // SetNodeStatus sets status for a node, value will expire after ttl seconds
-// ttl should be larger than 0
+// ttl < 0 means to delete node status
 // this is heartbeat of node
 func (m *Mercury) SetNodeStatus(ctx context.Context, node *types.Node, ttl int64) error {
-	if ttl <= 0 {
+	if ttl == 0 {
 		return types.ErrNodeStatusTTL
+	}
+
+	// nodenames are unique
+	statusKey := filepath.Join(nodeStatusPrefix, node.Name)
+	entityKey := fmt.Sprintf(nodeInfoKey, node.Name)
+
+	if ttl < 0 {
+		_, err := m.Delete(ctx, statusKey)
+		return err
 	}
 
 	data, err := json.Marshal(types.NodeStatus{
@@ -306,9 +315,6 @@ func (m *Mercury) SetNodeStatus(ctx context.Context, node *types.Node, ttl int64
 		return err
 	}
 
-	// nodenames are unique
-	statusKey := filepath.Join(nodeStatusPrefix, node.Name)
-	entityKey := fmt.Sprintf(nodeInfoKey, node.Name)
 	return m.BindStatus(ctx, entityKey, statusKey, string(data), ttl)
 }
 

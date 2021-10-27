@@ -288,11 +288,19 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 }
 
 // SetNodeStatus sets status for a node, value will expire after ttl seconds
-// ttl should be larger than 0
+// ttl < 0 means delete node status
 // this is heartbeat of node
 func (r *Rediaron) SetNodeStatus(ctx context.Context, node *types.Node, ttl int64) error {
-	if ttl <= 0 {
+	if ttl == 0 {
 		return types.ErrNodeStatusTTL
+	}
+
+	// nodenames are unique
+	key := filepath.Join(nodeStatusPrefix, node.Name)
+
+	if ttl < 0 {
+		_, err := r.cli.Del(ctx, key).Result()
+		return err
 	}
 
 	data, err := json.Marshal(types.NodeStatus{
@@ -304,8 +312,6 @@ func (r *Rediaron) SetNodeStatus(ctx context.Context, node *types.Node, ttl int6
 		return err
 	}
 
-	// nodenames are unique
-	key := filepath.Join(nodeStatusPrefix, node.Name)
 	_, err = r.cli.Set(ctx, key, string(data), time.Duration(ttl)*time.Second).Result()
 	return err
 }

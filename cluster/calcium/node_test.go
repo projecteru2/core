@@ -140,6 +140,7 @@ func TestSetNode(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
+	store.On("SetNodeStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	// fail by validating
 	_, err := c.SetNode(ctx, &types.SetNodeOptions{Nodename: ""})
