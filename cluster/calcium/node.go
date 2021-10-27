@@ -77,7 +77,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 			err := c.store.SetNodeStatus(ctx, node, -1)
 			if err != nil {
 				// don't return here
-				log.Errorf(ctx, "[SetNode] failed to set node status, err: %v", err)
+				log.Errorf(ctx, "[SetNode] failed to set node status, err: %+v", errors.WithStack(err))
 			}
 		}
 		if opts.WorkloadsDown {
@@ -154,14 +154,16 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 			case !ok && cpuShare > 0: // incr CPU
 				n.CPU[cpuID] = cpuShare
 				n.InitCPU[cpuID] = cpuShare
-			case ok && cpuShare == 0: // decr CPU
-				delete(n.CPU, cpuID)
-				delete(n.InitCPU, cpuID)
 			case ok: // decr share
 				n.CPU[cpuID] += cpuShare
 				n.InitCPU[cpuID] += cpuShare
 				if n.CPU[cpuID] < 0 {
 					return logger.Err(ctx, errors.WithStack(types.ErrBadCPU))
+				}
+				if n.InitCPU[cpuID] == 0 {
+					// decr CPU
+					delete(n.CPU, cpuID)
+					delete(n.InitCPU, cpuID)
 				}
 			}
 		}

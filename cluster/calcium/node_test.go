@@ -250,9 +250,9 @@ func TestSetNode(t *testing.T) {
 	n, err = c.SetNode(ctx, setOpts)
 	assert.Error(t, err)
 	// succ set cpu, add and del
-	n.CPU = types.CPUMap{"1": 1, "2": 2}
+	n.CPU = types.CPUMap{"1": 10, "2": 2}
 	n.InitCPU = types.CPUMap{"1": 10, "2": 10}
-	setOpts.DeltaCPU = types.CPUMap{"1": 0, "2": -1, "3": 10}
+	setOpts.DeltaCPU = types.CPUMap{"1": -10, "2": -1, "3": 10}
 	n, err = c.SetNode(ctx, setOpts)
 	assert.NoError(t, err)
 	_, ok := n.CPU["1"]
