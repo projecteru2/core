@@ -1,6 +1,11 @@
 package types
 
-import "github.com/pkg/errors"
+import (
+	"fmt"
+	"io"
+
+	"github.com/pkg/errors"
+)
 
 // TODO should validate options
 
@@ -28,7 +33,7 @@ type DeployOptions struct {
 	ProcessIdent   string            // ProcessIdent ident this deploy
 	IgnoreHook     bool              // IgnoreHook ignore hook process
 	AfterCreate    []string          // AfterCreate support run cmds after create
-	RawArgs        []byte            // RawArgs for raw args processing
+	RawArgs        RawArgs           // RawArgs for raw args processing
 	Lambda         bool              // indicate is lambda workload or not
 }
 
@@ -100,6 +105,16 @@ func (f LinuxFile) Clone() LinuxFile {
 		GID:      f.GID,
 		Mode:     f.Mode,
 	}
+}
+
+// String for %+v
+func (f LinuxFile) String() string {
+	return fmt.Sprintf("file %v:%v:%v:%#o, len: %v", f.Filename, f.UID, f.GID, f.Mode, len(f.Content))
+}
+
+// LitterDump for litter.Sdump
+func (f LinuxFile) LitterDump(w io.Writer) {
+	w.Write([]byte(fmt.Sprintf(`{Content:{%d bytes},Filename:%s,UID:%d,GID:%d,Mode:%#o"}`, len(f.Content), f.Filename, f.UID, f.GID, f.Mode))) // nolint:errcheck // here can't import core/log due to cycle dependence
 }
 
 // SendOptions for send files to multiple workload
@@ -296,4 +311,17 @@ func ParseTriOption(opt TriOptions, original bool) (res bool) {
 		res = false
 	}
 	return
+}
+
+// RawArgs .
+type RawArgs []byte
+
+// String for %+v
+func (r RawArgs) String() string {
+	return string(r)
+}
+
+// LitterDump fro litter.Dumper
+func (r RawArgs) LitterDump(w io.Writer) {
+	w.Write(r) // nolint:errcheck // here can't import core/log due to cycle dependence
 }
