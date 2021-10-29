@@ -97,9 +97,24 @@ var (
 	ErrRollbackMapIsNotEmpty = errors.New("rollback map is not empty")
 )
 
+type detailedErr struct {
+	err     error
+	details interface{}
+}
+
+// Error .
+func (d detailedErr) Error() string {
+	return fmt.Sprintf("%s: %v", d.err, d.details)
+}
+
+// Unwrap .
+func (d detailedErr) Unwrap() error {
+	return d.err
+}
+
 // NewDetailedErr returns an error with details
 func NewDetailedErr(err error, details interface{}) error {
-	return fmt.Errorf("%w: %v", err, details)
+	return detailedErr{err: err, details: details}
 }
 
 // validation errors

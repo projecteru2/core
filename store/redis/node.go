@@ -179,7 +179,9 @@ func (r *Rediaron) makeClient(ctx context.Context, node *types.Node) (engine.API
 	for i := 0; i < 3; i++ {
 		v, err := r.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
 		if err != nil {
-			log.Warnf(ctx, "[makeClient] Get key failed %v", err)
+			if !isRedisNoKeyError(err) {
+				log.Warnf(ctx, "[makeClient] Get key failed %v", err)
+			}
 			continue
 		}
 		data[i] = v
