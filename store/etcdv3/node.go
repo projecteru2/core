@@ -183,8 +183,12 @@ func (m *Mercury) makeClient(ctx context.Context, node *types.Node) (client engi
 	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
 	data := []string{"", "", ""}
 	for i := 0; i < 3; i++ {
-		if ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name)); err != nil {
-			log.Warnf(ctx, "[makeClient] Get key failed %v", err)
+		ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
+		if err != nil {
+			if !errors.Is(err, types.ErrBadCount) {
+				log.Warnf(ctx, "[makeClient] Get key failed %v", err)
+			}
+			continue
 		} else {
 			data[i] = string(ev.Value)
 		}
