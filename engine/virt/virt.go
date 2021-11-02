@@ -135,9 +135,19 @@ func (v *Virt) NetworkDisconnect(ctx context.Context, network, target string, fo
 	return
 }
 
-// NetworkList lists all of networks.
+// NetworkList lists all networks.
 func (v *Virt) NetworkList(ctx context.Context, drivers []string) (nets []*enginetypes.Network, err error) {
-	log.Warnf(ctx, "NetworkList does not implement")
+	networks, err := v.client.NetworkList(ctx, drivers)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, network := range networks {
+		nets = append(nets, &enginetypes.Network{
+			Name:    network.Name,
+			Subnets: network.Subnets,
+		})
+	}
 	return
 }
 
