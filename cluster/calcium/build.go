@@ -41,7 +41,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 	case types.BuildFromRaw:
 		resp, err = c.buildFromContent(ctx, node, refs, opts.Tar)
 	case types.BuildFromExist:
-		resp, err = c.buildFromExist(ctx, refs, opts.ExistID, opts.User)
+		node, resp, err = c.buildFromExist(ctx, refs, opts.ExistID, opts.User)
 	default:
 		return nil, logger.Err(ctx, errors.WithStack(errors.New("unknown build type")))
 	}
@@ -91,20 +91,20 @@ func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, refs [
 	return resp, errors.WithStack(err)
 }
 
-func (c *Calcium) buildFromExist(ctx context.Context, refs []string, existID, user string) (resp io.ReadCloser, err error) {
-	node, err := c.getWorkloadNode(ctx, existID)
-	if err != nil {
+func (c *Calcium) buildFromExist(ctx context.Context, refs []string, existID, user string) (node *types.Node, resp io.ReadCloser, err error) {
+	if node, err = c.getWorkloadNode(ctx, existID); err != nil {
 		return
 	}
 
 	if _, err = node.Engine.ImageBuildFromExist(ctx, existID, refs, user); err != nil {
-		return resp, errors.WithStack(err)
+		return nil, nil, errors.WithStack(err)
 	}
-	return io.NopCloser(strings.NewReader("")), nil
+	return node, io.NopCloser(strings.NewReader("")), nil
 }
 
 func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) { // nolint:unparam
 	logger := log.WithField("Calcium", "pushImage").WithField("node", node).WithField("tags", tags)
+	log.Infof(ctx, "[BuildImage] Pushing image at pod %s node %s", node.Podname, node.Name)
 	return withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
 		defer resp.Close()
 		decoder := json.NewDecoder(resp)
