@@ -476,7 +476,7 @@ func TestComplexNodes(t *testing.T) {
 		t.Fatalf("how to alloc 29 workloads when you only have 28?")
 	}
 
-	//test5
+	// test5
 	nodes = getComplexNodes()
 	res6, _, err := SelectCPUNodes(k, nodes, nil, 1, 1, 2, true)
 	assert.NoError(t, err)
@@ -507,6 +507,19 @@ func TestCPUWithMaxShareLimit(t *testing.T) {
 	_, _, err = SelectCPUNodes(k, nodes, nil, 1.7, 1, 3, false)
 	assert.True(t, errors.Is(err, types.ErrInsufficientRes))
 	assert.Contains(t, err.Error(), "available: 2")
+
+	// test2
+	nodes = []resourcetypes.ScheduleInfo{
+		{
+			NodeMeta: types.NodeMeta{
+				CPU:    types.CPUMap{"0": 0, "1": 0, "2": 100, "3": 100},
+				MemCap: 12 * int64(units.GiB),
+				Name:   "nodes1",
+			},
+		},
+	}
+	_, _, err = SelectCPUNodes(k, nodes, nil, 1.2, 1, 1, false)
+	assert.Nil(t, err)
 }
 
 func TestCpuOverSell(t *testing.T) {

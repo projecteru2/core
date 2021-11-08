@@ -28,7 +28,7 @@ func newHost(resourceMap types.ResourceMap, share int) *host {
 		if pieces >= int64(share) && pieces%int64(share) == 0 {
 			// 只给 share 份
 			result.full = append(result.full, resourceInfo{id: id, pieces: pieces})
-		} else {
+		} else if pieces > 0 {
 			result.fragment = append(result.fragment, resourceInfo{id: id, pieces: pieces})
 		}
 	}
@@ -184,23 +184,13 @@ func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int64) 
 func (h *host) getFullResult(full int, resources []resourceInfo) []types.ResourceMap {
 	result := []types.ResourceMap{}
 
-	for len(resources)/full > 0 {
-		count, rem := len(resources)/full, len(resources)%full
-		newResources := []resourceInfo{}
-		for i := 0; i < count; i++ {
-			plan := types.ResourceMap{}
-			for j := i * full; j < i*full+full; j++ {
-				// 洗掉没配额的
-				last := resources[j].pieces - int64(h.share)
-				if last > 0 {
-					newResources = append(newResources, resourceInfo{resources[j].id, last})
-				}
-				plan[resources[j].id] = int64(h.share)
-			}
-			result = append(result, plan)
+	count := len(resources) / full
+	for i := 0; i < count; i++ {
+		plan := types.ResourceMap{}
+		for j := i * full; j < i*full+full; j++ {
+			plan[resources[j].id] = int64(h.share)
 		}
-
-		resources = append(newResources, resources[len(resources)-rem:]...)
+		result = append(result, plan)
 	}
 
 	return result
