@@ -75,8 +75,6 @@ func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {
 
 // Execute executes a command in vm
 func (v *Virt) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (pid string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
-	log.Debugf(ctx, "execute opts on %s: %v", ID, config)
-	defer log.Debugf(ctx, "execute opts done")
 	if config.Tty {
 		flags := virttypes.AttachGuestFlags{Safe: true, Force: true}
 		stream, err := v.client.AttachGuest(ctx, ID, config.Cmd, flags)
@@ -155,7 +153,7 @@ func (v *Virt) NetworkList(ctx context.Context, drivers []string) (nets []*engin
 
 // BuildRefs builds references, it's not necessary for virt. presently.
 func (v *Virt) BuildRefs(ctx context.Context, name string, tags []string) (refs []string) {
-	log.Warnf(ctx, "BuildRefs does not implement")
+	log.Warn(ctx, "BuildRefs does not implement")
 	return
 }
 
@@ -195,7 +193,7 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 // VirtualizationResourceRemap .
 func (v *Virt) VirtualizationResourceRemap(ctx context.Context, opts *enginetypes.VirtualizationRemapOptions) (<-chan enginetypes.VirtualizationRemapMessage, error) {
 	// VM does not support binding cores.
-	log.Debugf(ctx, "virtualizationResourceRemap is not supported by vm")
+	log.Warn(ctx, "virtualizationResourceRemap is not supported by vm")
 	ch := make(chan enginetypes.VirtualizationRemapMessage)
 	defer close(ch)
 	return ch, nil
@@ -247,12 +245,15 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 
 // VirtualizationLogs streams a specific guest's log.
 func (v *Virt) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout io.ReadCloser, stderr io.ReadCloser, err error) {
-	msg, err := v.client.Log(ctx, 15, opts.ID)
-	if err != nil {
-		return nil, nil, err
+	n := -1
+	if opts.Tail != "all" && opts.Tail != "" {
+		if n, err = strconv.Atoi(opts.Tail); err != nil {
+			return nil, nil, err
+		}
 	}
-	reader := ioutil.NopCloser(strings.NewReader(strings.Join(msg, "\n")))
-	return reader, nil, nil
+
+	stream, err := v.client.Log(ctx, n, opts.ID)
+	return stream, nil, err
 }
 
 // VirtualizationAttach attaches something to a guest.
