@@ -46,7 +46,7 @@ cloc:
 	cloc --exclude-dir=vendor,3rdmocks,mocks,tools,gen --not-match-f=test .
 
 unit-test:
-	go vet `go list ./... | grep -v '/vendor/' | grep -v '/tools'`
+	go vet `go list ./... | grep -v '/vendor/' | grep -v '/tools'` && \
 	go test -race -timeout 240s -count=1 -cover ./utils/... \
 	./types/... \
 	./store/etcdv3/. \
@@ -66,7 +66,7 @@ unit-test:
 	./wal/. \
 	./wal/kv/. \
 	./store/redis/... \
-	./lock/redis/...
+	./lock/redis/... && \
 	go test -timeout 240s -count=1 -cover ./cluster/calcium/...
 
 lint:
