@@ -253,11 +253,33 @@ func TestGetFullResult(t *testing.T) {
 			pieces: 400,
 		},
 	})
-	assert.EqualValues(t, 4, len(res))
+	assert.EqualValues(t, 5, len(res))
 	assert.ElementsMatch(t, res, []types.ResourceMap{
 		{"0": 100, "1": 100},
+		{"0": 100, "2": 100},
+		{"0": 100, "2": 100},
+		{"0": 100, "2": 100},
+		{"1": 100, "2": 100},
+	})
+
+	res = h.getFullResult(2,  []resourceInfo{
+		{
+			id:     "0",
+			pieces: 200,
+		},
+		{
+			id:     "1",
+			pieces: 200,
+		},
+		{
+			id:     "2",
+			pieces: 200,
+		},
+	})
+	assert.EqualValues(t, 3, len(res))
+	assert.ElementsMatch(t, res, []types.ResourceMap{
 		{"0": 100, "1": 100},
 		{"0": 100, "2": 100},
-		{"0": 100, "2": 100},
+		{"1": 100, "2": 100},
 	})
 }
