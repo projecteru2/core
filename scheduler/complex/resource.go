@@ -1,6 +1,7 @@
 package complexscheduler
 
 import (
+	"container/heap"
 	"sort"
 
 	"github.com/projecteru2/core/types"
@@ -9,6 +10,37 @@ import (
 type resourceInfo struct {
 	id     string
 	pieces int64
+}
+
+type resourceInfoHeap []resourceInfo
+
+// Len .
+func (r resourceInfoHeap) Len() int {
+	return len(r)
+}
+
+// Less .
+func (r resourceInfoHeap) Less(i, j int) bool {
+	return r[i].pieces > r[j].pieces
+}
+
+// Swap .
+func (r resourceInfoHeap) Swap(i, j int) {
+	r[i], r[j] = r[j], r[i]
+}
+
+// Push .
+func (r *resourceInfoHeap) Push(x interface{}) {
+	*r = append(*r, x.(resourceInfo))
+}
+
+// Pop .
+func (r *resourceInfoHeap) Pop() interface{} {
+	old := *r
+	n := len(old)
+	x := old[n-1]
+	*r = old[:n-1]
+	return x
 }
 
 type host struct {
@@ -183,25 +215,44 @@ func (h *host) getFragmentsResult(resources []resourceInfo, fragments ...int64) 
 
 func (h *host) getFullResult(full int, resources []resourceInfo) []types.ResourceMap {
 	result := []types.ResourceMap{}
+	resourceHeap := &resourceInfoHeap{}
+	indexMap := map[string]int{}
+	for i, resource := range resources {
+		indexMap[resource.id] = i
+		resourceHeap.Push(resourceInfo{id: resource.id, pieces: resource.pieces})
+	}
+	heap.Init(resourceHeap)
 
-	for len(resources)/full > 0 {
-		count, rem := len(resources)/full, len(resources)%full
-		newResources := []resourceInfo{}
-		for i := 0; i < count; i++ {
-			plan := types.ResourceMap{}
-			for j := i * full; j < i*full+full; j++ {
-				// 洗掉没配额的
-				last := resources[j].pieces - int64(h.share)
-				if last > 0 {
-					newResources = append(newResources, resourceInfo{resources[j].id, last})
-				}
-				plan[resources[j].id] = int64(h.share)
+	for resourceHeap.Len() >= full {
+		plan := types.ResourceMap{}
+		resourcesToPush := []resourceInfo{}
+
+		for i := 0; i < full; i++ {
+			resource := heap.Pop(resourceHeap).(resourceInfo)
+			plan[resource.id] = int64(h.share)
+
+			resource.pieces -= int64(h.share)
+			if resource.pieces > 0 {
+				resourcesToPush = append(resourcesToPush, resource)
 			}
-			result = append(result, plan)
 		}
 
-		resources = append(newResources, resources[len(resources)-rem:]...)
+		result = append(result, plan)
+		for _, resource := range resourcesToPush {
+			heap.Push(resourceHeap, resource)
+		}
 	}
+
+	// Try to ensure the effectiveness of the previous priority
+	sumOfIds := func(r types.ResourceMap) int {
+		sum := 0
+		for id := range r {
+			sum += indexMap[id]
+		}
+		return sum
+	}
+
+	sort.Slice(result, func(i, j int) bool { return sumOfIds(result[i]) < sumOfIds(result[j]) })
 
 	return result
 }
