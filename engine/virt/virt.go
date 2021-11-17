@@ -11,15 +11,15 @@ import (
 	"strings"
 	"time"
 
+	virtapi "github.com/projecteru2/libyavirt/client"
+	virttypes "github.com/projecteru2/libyavirt/types"
+
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	coresource "github.com/projecteru2/core/source"
-	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
-	virtapi "github.com/projecteru2/libyavirt/client"
-	virttypes "github.com/projecteru2/libyavirt/types"
 )
 
 const (
@@ -153,7 +153,7 @@ func (v *Virt) NetworkList(ctx context.Context, drivers []string) (nets []*engin
 
 // BuildRefs builds references, it's not necessary for virt. presently.
 func (v *Virt) BuildRefs(ctx context.Context, name string, tags []string) (refs []string) {
-	log.Warnf(ctx, "BuildRefs does not implement")
+	log.Warn(ctx, "BuildRefs does not implement")
 	return
 }
 
@@ -178,6 +178,8 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 		Labels:     opts.Labels,
 		AncestorID: opts.AncestorWorkloadID,
 		DmiUUID:    opts.Labels[DmiUUIDKey],
+		Cmd:        opts.Cmd,
+		Lambda:     opts.Lambda,
 	}
 
 	var resp virttypes.Guest
@@ -189,9 +191,12 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 }
 
 // VirtualizationResourceRemap .
-func (v *Virt) VirtualizationResourceRemap(ctx context.Context, opts *enginetypes.VirtualizationRemapOptions) (ch <-chan enginetypes.VirtualizationRemapMessage, err error) {
-	err = types.ErrEngineNotImplemented
-	return
+func (v *Virt) VirtualizationResourceRemap(ctx context.Context, opts *enginetypes.VirtualizationRemapOptions) (<-chan enginetypes.VirtualizationRemapMessage, error) {
+	// VM does not support binding cores.
+	log.Warn(ctx, "virtualizationResourceRemap is not supported by vm")
+	ch := make(chan enginetypes.VirtualizationRemapMessage)
+	defer close(ch)
+	return ch, nil
 }
 
 // VirtualizationCopyTo copies one.
@@ -240,12 +245,25 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 
 // VirtualizationLogs streams a specific guest's log.
 func (v *Virt) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout io.ReadCloser, stderr io.ReadCloser, err error) {
-	return nil, nil, fmt.Errorf("VirtualizationLogs does not implement")
+	n := -1
+	if opts.Tail != "all" && opts.Tail != "" {
+		if n, err = strconv.Atoi(opts.Tail); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	stream, err := v.client.Log(ctx, n, opts.ID)
+	return stream, nil, err
 }
 
 // VirtualizationAttach attaches something to a guest.
-func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, stdin bool) (io.ReadCloser, io.ReadCloser, io.WriteCloser, error) {
-	return nil, nil, nil, fmt.Errorf("VirtualizationAttach does not implement")
+func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, openStdin bool) (stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
+	flags := virttypes.AttachGuestFlags{Safe: true, Force: true}
+	attachGuest, err := v.client.AttachGuest(ctx, ID, []string{}, flags)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return ioutil.NopCloser(attachGuest), nil, attachGuest, nil
 }
 
 // VirtualizationResize resized window size
@@ -255,7 +273,17 @@ func (v *Virt) VirtualizationResize(ctx context.Context, ID string, height, widt
 
 // VirtualizationWait is waiting for a shut-off
 func (v *Virt) VirtualizationWait(ctx context.Context, ID, state string) (*enginetypes.VirtualizationWaitResult, error) {
-	return nil, fmt.Errorf("VirtualizationWait does not implement")
+	r := &enginetypes.VirtualizationWaitResult{}
+	msg, err := v.client.WaitGuest(ctx, ID, true)
+	if err != nil {
+		r.Message = err.Error()
+		r.Code = -1
+		return r, err
+	}
+
+	r.Message = msg.Msg
+	r.Code = msg.Code
+	return r, nil
 }
 
 // VirtualizationUpdateResource updates resource.
@@ -285,11 +313,6 @@ func (v *Virt) VirtualizationCopyFrom(ctx context.Context, ID, path string) (con
 	}
 	content, err = ioutil.ReadAll(rd)
 	return
-}
-
-// VirtualizationExecute executes commands in running virtual unit
-func (v *Virt) VirtualizationExecute(ctx context.Context, ID string, commands, env []string, workdir string) (io.WriteCloser, io.ReadCloser, error) {
-	return nil, nil, fmt.Errorf("VirtualizationExecute not implemented")
 }
 
 // ResourceValidate validate resource usage
