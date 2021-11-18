@@ -28,7 +28,7 @@ require (
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/muroq/redislock v0.0.0-20210327061935-5425e33e6f9f
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/image-spec v1.0.1
+	github.com/opencontainers/image-spec v1.0.2
 	github.com/opencontainers/runc v1.0.0-rc95 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
