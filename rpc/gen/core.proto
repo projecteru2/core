@@ -338,6 +338,7 @@ message ListNodesOptions {
     string podname = 1;
     bool all = 2;
     map<string, string> labels = 3;
+    int32 timeout_in_second = 4;
 }
 
 message Build {
