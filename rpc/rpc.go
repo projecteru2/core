@@ -173,13 +173,18 @@ func (v *Vibranium) RemoveNode(ctx context.Context, opts *pb.RemoveNodeOptions) 
 
 // ListPodNodes returns a list of node for pod
 func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions) (*pb.Nodes, error) {
+	// default timeout is 10s
+	if opts.TimeoutInSecond <= 0 {
+		opts.TimeoutInSecond = 10
+	}
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(opts.TimeoutInSecond)*time.Second)
+	defer cancel()
+
 	ns, err := v.cluster.ListPodNodes(ctx, opts.Podname, opts.Labels, opts.All)
 	if err != nil {
 		return nil, grpcstatus.Error(ListPodNodes, err.Error())
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, v.config.GlobalTimeout)
-	defer cancel()
 	nodes := []*pb.Node{}
 	nodeChan := make(chan *pb.Node, len(ns))
 	wg := &sync.WaitGroup{}
