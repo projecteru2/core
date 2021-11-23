@@ -31,6 +31,8 @@ const (
 	DmiUUIDKey = "DMIUUID"
 	// ImageUserKey indicates the image's owner
 	ImageUserKey = "ImageUser"
+
+	ttyFlag = "tty"
 )
 
 // Virt implements the core engine.API interface.
@@ -81,8 +83,7 @@ func (v *Virt) Execute(ctx context.Context, ID string, config *enginetypes.ExecC
 		if err != nil {
 			return "", nil, nil, nil, err
 		}
-		return "", ioutil.NopCloser(stream), nil, stream, nil
-
+		return ttyFlag, ioutil.NopCloser(stream), nil, stream, nil
 	}
 	msg, err := v.client.ExecuteGuest(ctx, ID, config.Cmd)
 	return strconv.Itoa(msg.Pid), ioutil.NopCloser(bytes.NewReader(msg.Data)), nil, nil, err
@@ -90,6 +91,10 @@ func (v *Virt) Execute(ctx context.Context, ID string, config *enginetypes.ExecC
 
 // ExecExitCode get return code of a specific execution.
 func (v *Virt) ExecExitCode(ctx context.Context, ID, pid string) (code int, err error) {
+	if pid == ttyFlag {
+		return 0, nil
+	}
+
 	intPid, err := strconv.Atoi(pid)
 	if err != nil {
 		return -1, err
