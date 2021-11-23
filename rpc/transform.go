@@ -51,7 +51,9 @@ func toRPCNetwork(n *enginetypes.Network) *pb.Network {
 
 func toRPCNode(ctx context.Context, n *types.Node) *pb.Node {
 	var nodeInfo string
-	if info, err := n.Info(ctx); err == nil {
+	var info *enginetypes.Info
+	var err error
+	if info, err = n.Info(ctx); err == nil {
 		bytes, _ := json.Marshal(info)
 		nodeInfo = string(bytes)
 	} else {
@@ -70,7 +72,7 @@ func toRPCNode(ctx context.Context, n *types.Node) *pb.Node {
 		StorageUsed:    n.StorageUsed(),
 		Volume:         n.Volume,
 		VolumeUsed:     n.VolumeUsed,
-		Available:      n.Available,
+		Available:      n.Available && err == nil,
 		Labels:         n.Labels,
 		InitCpu:        toRPCCPUMap(n.InitCPU),
 		InitMemory:     n.InitMemCap,
