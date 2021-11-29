@@ -1,13 +1,13 @@
 package calcium
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
-	"strings"
 	"time"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -32,7 +32,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 	}
 	log.Infof(ctx, "[BuildImage] Building image at pod %s node %s", node.Podname, node.Name)
 	// get refs
-	refs := node.Engine.BuildRefs(ctx, opts.Name, opts.Tags)
+	refs := node.Engine.BuildRefs(ctx, toBuildRefOptions(opts))
 
 	var resp io.ReadCloser
 	switch opts.BuildMethod {
@@ -93,13 +93,20 @@ func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, refs [
 
 func (c *Calcium) buildFromExist(ctx context.Context, refs []string, existID, user string) (node *types.Node, resp io.ReadCloser, err error) {
 	if node, err = c.getWorkloadNode(ctx, existID); err != nil {
-		return
+		return nil, nil, err
 	}
 
-	if _, err = node.Engine.ImageBuildFromExist(ctx, existID, refs, user); err != nil {
+	imgID, err := node.Engine.ImageBuildFromExist(ctx, existID, refs, user)
+	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	return node, io.NopCloser(strings.NewReader("")), nil
+
+	buildMsg, err := json.Marshal(types.BuildImageMessage{ID: imgID})
+	if err != nil {
+		return nil, nil, errors.WithStack(err)
+	}
+
+	return node, io.NopCloser(bytes.NewReader(buildMsg)), nil
 }
 
 func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) { // nolint:unparam
@@ -184,5 +191,13 @@ func cleanupNodeImages(ctx context.Context, node *types.Node, ids []string, ttl 
 		logger.Errorf(ctx, "[BuildImage] Remove build image cache error: %+v", errors.WithStack(err))
 	} else {
 		log.Infof(ctx, "[BuildImage] Clean cached image and release space %d", spaceReclaimed)
+	}
+}
+
+func toBuildRefOptions(opts *types.BuildOptions) *enginetypes.BuildRefOptions {
+	return &enginetypes.BuildRefOptions{
+		Name: opts.Name,
+		Tags: opts.Tags,
+		User: opts.User,
 	}
 }

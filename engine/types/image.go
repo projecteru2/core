@@ -16,6 +16,13 @@ type BuildContentOptions struct {
 	*Builds
 }
 
+// BuildRefOptions .
+type BuildRefOptions struct {
+	Name string
+	Tags []string
+	User string
+}
+
 // Builds define builds
 type Builds struct {
 	Stages []string          `yaml:"stages,omitempty,flow"`

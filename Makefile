@@ -34,6 +34,7 @@ mock: deps
 	mockery --dir scheduler --output scheduler/mocks --name Scheduler
 	mockery --dir source --output source/mocks --name Source
 	mockery --dir store --output store/mocks --name Store
+	mockery --dir engine --output engine/mocks --name API
 	mockery --dir cluster --output cluster/mocks --name Cluster
 	mockery --dir lock --output lock/mocks --name DistributedLock
 	mockery --dir store/etcdv3/meta --output store/etcdv3/meta/mocks --all
