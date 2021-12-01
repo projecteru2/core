@@ -44,7 +44,9 @@ USER {{.User}}
 )
 
 // BuildRefs output refs
-func (e *Engine) BuildRefs(ctx context.Context, name string, tags []string) []string {
+func (e *Engine) BuildRefs(ctx context.Context, opts *enginetypes.BuildRefOptions) []string {
+	name := opts.Name
+	tags := opts.Tags
 	refs := []string{}
 	for _, tag := range tags {
 		ref := createImageTag(e.config.Docker, name, tag)

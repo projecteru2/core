@@ -10,7 +10,7 @@ import (
 )
 
 // BuildRefs builds images refs
-func (e *Engine) BuildRefs(ctx context.Context, name string, tags []string) (refs []string) {
+func (e *Engine) BuildRefs(ctx context.Context, opts *enginetypes.BuildRefOptions) (refs []string) {
 	return
 }
 

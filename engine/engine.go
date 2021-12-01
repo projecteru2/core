@@ -32,7 +32,7 @@ type API interface {
 	ImageRemoteDigest(ctx context.Context, image string) (string, error)
 	ImageBuildFromExist(ctx context.Context, ID string, refs []string, user string) (string, error)
 
-	BuildRefs(ctx context.Context, name string, tags []string) []string
+	BuildRefs(ctx context.Context, opts *enginetypes.BuildRefOptions) []string
 	BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildContentOptions) (string, io.Reader, error)
 
 	VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error)
