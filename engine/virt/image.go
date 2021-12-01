@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
-	"strings"
 
 	virttypes "github.com/projecteru2/libyavirt/types"
 
@@ -22,9 +20,13 @@ func (v *Virt) ImageList(ctx context.Context, image string) (imgs []*enginetypes
 }
 
 // ImageRemove removes a specific image.
-func (v *Virt) ImageRemove(ctx context.Context, image string, force, prune bool) (names []string, err error) {
-	log.Warnf(ctx, "ImageRemove does not implement")
-	return
+func (v *Virt) ImageRemove(ctx context.Context, tag string, force, prune bool) (names []string, err error) {
+	user, imgName, err := splitUserImage(tag)
+	if err != nil {
+		return nil, err
+	}
+
+	return v.client.RemoveImage(ctx, imgName, user, force, prune)
 }
 
 // ImagesPrune prunes one.
@@ -40,13 +42,11 @@ func (v *Virt) ImagePull(ctx context.Context, ref string, all bool) (rc io.ReadC
 
 // ImagePush pushes to central image registry.
 func (v *Virt) ImagePush(ctx context.Context, ref string) (rc io.ReadCloser, err error) {
-	un := strings.Split(ref, "\n")
-	if len(un) != 2 {
-		return nil, errors.New("ref incorrect " + ref)
+	user, imgName, err := splitUserImage(ref)
+	if err != nil {
+		return nil, err
 	}
 
-	user := un[0]
-	imgName := un[1]
 	msg, err := v.client.PushImage(ctx, imgName, user)
 	if err != nil {
 		return nil, err
@@ -78,13 +78,12 @@ func (v *Virt) ImageBuildFromExist(ctx context.Context, ID string, refs []string
 		return "", types.ErrBadRefs
 	}
 
-	un := strings.Split(refs[0], "\n")
-	if len(un) != 2 {
-		return "", errors.New("ref incorrect " + refs[0])
+	_, imgName, err := splitUserImage(refs[0])
+	if err != nil {
+		return "", err
 	}
-	name := un[1]
 
-	req := virttypes.CaptureGuestReq{Name: name, User: user}
+	req := virttypes.CaptureGuestReq{Name: imgName, User: user}
 	req.ID = ID
 
 	uimg, err := v.client.CaptureGuest(ctx, req)
@@ -97,7 +96,7 @@ func (v *Virt) ImageBuildFromExist(ctx context.Context, ID string, refs []string
 
 // ImageBuildCachePrune prunes cached one.
 func (v *Virt) ImageBuildCachePrune(ctx context.Context, all bool) (reclaimed uint64, err error) {
-	log.Warnf(ctx, "ImageBuildCachePrune does not implement")
+	log.Warnf(ctx, "ImageBuildCachePrune does not implement and not required by vm")
 	return
 }
 
