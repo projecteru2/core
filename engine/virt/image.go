@@ -14,8 +14,21 @@ import (
 )
 
 // ImageList lists images.
-func (v *Virt) ImageList(ctx context.Context, image string) (imgs []*enginetypes.Image, err error) {
-	log.Warnf(ctx, "ImageList does not implement")
+func (v *Virt) ImageList(ctx context.Context, imageName string) (imgs []*enginetypes.Image, err error) {
+	images, err := v.client.ListImage(ctx, imageName)
+	if err != nil {
+		return nil, err
+	}
+
+	imgs = []*enginetypes.Image{}
+
+	for _, image := range images {
+		imgs = append(imgs, &enginetypes.Image{
+			ID:   image.Id,
+			Tags: []string{image.Name},
+		})
+	}
+
 	return
 }
 

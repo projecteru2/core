@@ -50,6 +50,7 @@ type CoreRPCClient interface {
 	BuildImage(ctx context.Context, in *BuildImageOptions, opts ...grpc.CallOption) (CoreRPC_BuildImageClient, error)
 	CacheImage(ctx context.Context, in *CacheImageOptions, opts ...grpc.CallOption) (CoreRPC_CacheImageClient, error)
 	RemoveImage(ctx context.Context, in *RemoveImageOptions, opts ...grpc.CallOption) (CoreRPC_RemoveImageClient, error)
+	ListImage(ctx context.Context, in *ListImageOptions, opts ...grpc.CallOption) (CoreRPC_ListImageClient, error)
 	CreateWorkload(ctx context.Context, in *DeployOptions, opts ...grpc.CallOption) (CoreRPC_CreateWorkloadClient, error)
 	ReplaceWorkload(ctx context.Context, in *ReplaceOptions, opts ...grpc.CallOption) (CoreRPC_ReplaceWorkloadClient, error)
 	RemoveWorkload(ctx context.Context, in *RemoveWorkloadOptions, opts ...grpc.CallOption) (CoreRPC_RemoveWorkloadClient, error)
@@ -564,8 +565,40 @@ func (x *coreRPCRemoveImageClient) Recv() (*RemoveImageMessage, error) {
 	return m, nil
 }
 
+func (c *coreRPCClient) ListImage(ctx context.Context, in *ListImageOptions, opts ...grpc.CallOption) (CoreRPC_ListImageClient, error) {
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[9], "/pb.CoreRPC/ListImage", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &coreRPCListImageClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type CoreRPC_ListImageClient interface {
+	Recv() (*ListImageMessage, error)
+	grpc.ClientStream
+}
+
+type coreRPCListImageClient struct {
+	grpc.ClientStream
+}
+
+func (x *coreRPCListImageClient) Recv() (*ListImageMessage, error) {
+	m := new(ListImageMessage)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *coreRPCClient) CreateWorkload(ctx context.Context, in *DeployOptions, opts ...grpc.CallOption) (CoreRPC_CreateWorkloadClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[9], "/pb.CoreRPC/CreateWorkload", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[10], "/pb.CoreRPC/CreateWorkload", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -597,7 +630,7 @@ func (x *coreRPCCreateWorkloadClient) Recv() (*CreateWorkloadMessage, error) {
 }
 
 func (c *coreRPCClient) ReplaceWorkload(ctx context.Context, in *ReplaceOptions, opts ...grpc.CallOption) (CoreRPC_ReplaceWorkloadClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[10], "/pb.CoreRPC/ReplaceWorkload", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[11], "/pb.CoreRPC/ReplaceWorkload", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -629,7 +662,7 @@ func (x *coreRPCReplaceWorkloadClient) Recv() (*ReplaceWorkloadMessage, error) {
 }
 
 func (c *coreRPCClient) RemoveWorkload(ctx context.Context, in *RemoveWorkloadOptions, opts ...grpc.CallOption) (CoreRPC_RemoveWorkloadClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[11], "/pb.CoreRPC/RemoveWorkload", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[12], "/pb.CoreRPC/RemoveWorkload", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -661,7 +694,7 @@ func (x *coreRPCRemoveWorkloadClient) Recv() (*RemoveWorkloadMessage, error) {
 }
 
 func (c *coreRPCClient) DissociateWorkload(ctx context.Context, in *DissociateWorkloadOptions, opts ...grpc.CallOption) (CoreRPC_DissociateWorkloadClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[12], "/pb.CoreRPC/DissociateWorkload", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[13], "/pb.CoreRPC/DissociateWorkload", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -693,7 +726,7 @@ func (x *coreRPCDissociateWorkloadClient) Recv() (*DissociateWorkloadMessage, er
 }
 
 func (c *coreRPCClient) ControlWorkload(ctx context.Context, in *ControlWorkloadOptions, opts ...grpc.CallOption) (CoreRPC_ControlWorkloadClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[13], "/pb.CoreRPC/ControlWorkload", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[14], "/pb.CoreRPC/ControlWorkload", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -725,7 +758,7 @@ func (x *coreRPCControlWorkloadClient) Recv() (*ControlWorkloadMessage, error) {
 }
 
 func (c *coreRPCClient) ExecuteWorkload(ctx context.Context, opts ...grpc.CallOption) (CoreRPC_ExecuteWorkloadClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[14], "/pb.CoreRPC/ExecuteWorkload", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[15], "/pb.CoreRPC/ExecuteWorkload", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -765,7 +798,7 @@ func (c *coreRPCClient) ReallocResource(ctx context.Context, in *ReallocOptions,
 }
 
 func (c *coreRPCClient) LogStream(ctx context.Context, in *LogStreamOptions, opts ...grpc.CallOption) (CoreRPC_LogStreamClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[15], "/pb.CoreRPC/LogStream", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[16], "/pb.CoreRPC/LogStream", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -797,7 +830,7 @@ func (x *coreRPCLogStreamClient) Recv() (*LogStreamMessage, error) {
 }
 
 func (c *coreRPCClient) RunAndWait(ctx context.Context, opts ...grpc.CallOption) (CoreRPC_RunAndWaitClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[16], "/pb.CoreRPC/RunAndWait", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[17], "/pb.CoreRPC/RunAndWait", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -863,6 +896,7 @@ type CoreRPCServer interface {
 	BuildImage(*BuildImageOptions, CoreRPC_BuildImageServer) error
 	CacheImage(*CacheImageOptions, CoreRPC_CacheImageServer) error
 	RemoveImage(*RemoveImageOptions, CoreRPC_RemoveImageServer) error
+	ListImage(*ListImageOptions, CoreRPC_ListImageServer) error
 	CreateWorkload(*DeployOptions, CoreRPC_CreateWorkloadServer) error
 	ReplaceWorkload(*ReplaceOptions, CoreRPC_ReplaceWorkloadServer) error
 	RemoveWorkload(*RemoveWorkloadOptions, CoreRPC_RemoveWorkloadServer) error
@@ -973,6 +1007,9 @@ func (UnimplementedCoreRPCServer) CacheImage(*CacheImageOptions, CoreRPC_CacheIm
 }
 func (UnimplementedCoreRPCServer) RemoveImage(*RemoveImageOptions, CoreRPC_RemoveImageServer) error {
 	return status.Errorf(codes.Unimplemented, "method RemoveImage not implemented")
+}
+func (UnimplementedCoreRPCServer) ListImage(*ListImageOptions, CoreRPC_ListImageServer) error {
+	return status.Errorf(codes.Unimplemented, "method ListImage not implemented")
 }
 func (UnimplementedCoreRPCServer) CreateWorkload(*DeployOptions, CoreRPC_CreateWorkloadServer) error {
 	return status.Errorf(codes.Unimplemented, "method CreateWorkload not implemented")
@@ -1616,6 +1653,27 @@ func (x *coreRPCRemoveImageServer) Send(m *RemoveImageMessage) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _CoreRPC_ListImage_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ListImageOptions)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(CoreRPCServer).ListImage(m, &coreRPCListImageServer{stream})
+}
+
+type CoreRPC_ListImageServer interface {
+	Send(*ListImageMessage) error
+	grpc.ServerStream
+}
+
+type coreRPCListImageServer struct {
+	grpc.ServerStream
+}
+
+func (x *coreRPCListImageServer) Send(m *ListImageMessage) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 func _CoreRPC_CreateWorkload_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(DeployOptions)
 	if err := stream.RecvMsg(m); err != nil {
@@ -1960,6 +2018,11 @@ var CoreRPC_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "RemoveImage",
 			Handler:       _CoreRPC_RemoveImage_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ListImage",
+			Handler:       _CoreRPC_ListImage_Handler,
 			ServerStreams: true,
 		},
 		{
