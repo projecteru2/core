@@ -31,17 +31,20 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 		return nil, logger.Err(ctx, err)
 	}
 	log.Infof(ctx, "[BuildImage] Building image at pod %s node %s", node.Podname, node.Name)
-	// get refs
-	refs := node.Engine.BuildRefs(ctx, toBuildRefOptions(opts))
 
-	var resp io.ReadCloser
+	var (
+		refs []string
+		resp io.ReadCloser
+	)
 	switch opts.BuildMethod {
 	case types.BuildFromSCM:
+		refs = node.Engine.BuildRefs(ctx, toBuildRefOptions(opts))
 		resp, err = c.buildFromSCM(ctx, node, refs, opts)
 	case types.BuildFromRaw:
+		refs = node.Engine.BuildRefs(ctx, toBuildRefOptions(opts))
 		resp, err = c.buildFromContent(ctx, node, refs, opts.Tar)
 	case types.BuildFromExist:
-		node, resp, err = c.buildFromExist(ctx, refs, opts.ExistID, opts.User)
+		refs, node, resp, err = c.buildFromExist(ctx, opts)
 	default:
 		return nil, logger.Err(ctx, errors.WithStack(errors.New("unknown build type")))
 	}
@@ -91,22 +94,24 @@ func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, refs [
 	return resp, errors.WithStack(err)
 }
 
-func (c *Calcium) buildFromExist(ctx context.Context, refs []string, existID, user string) (node *types.Node, resp io.ReadCloser, err error) {
-	if node, err = c.getWorkloadNode(ctx, existID); err != nil {
-		return nil, nil, err
+func (c *Calcium) buildFromExist(ctx context.Context, opts *types.BuildOptions) (refs []string, node *types.Node, resp io.ReadCloser, err error) {
+	if node, err = c.getWorkloadNode(ctx, opts.ExistID); err != nil {
+		return nil, nil, nil, err
 	}
 
-	imgID, err := node.Engine.ImageBuildFromExist(ctx, existID, refs, user)
+	refs = node.Engine.BuildRefs(ctx, toBuildRefOptions(opts))
+
+	imgID, err := node.Engine.ImageBuildFromExist(ctx, opts.ExistID, refs, opts.User)
 	if err != nil {
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, nil, errors.WithStack(err)
 	}
 
 	buildMsg, err := json.Marshal(types.BuildImageMessage{ID: imgID})
 	if err != nil {
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, nil, errors.WithStack(err)
 	}
 
-	return node, io.NopCloser(bytes.NewReader(buildMsg)), nil
+	return refs, node, io.NopCloser(bytes.NewReader(buildMsg)), nil
 }
 
 func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) { // nolint:unparam
