@@ -158,7 +158,7 @@ func (v *Virt) NetworkList(ctx context.Context, drivers []string) (nets []*engin
 
 // BuildRefs builds references.
 func (v *Virt) BuildRefs(ctx context.Context, opts *enginetypes.BuildRefOptions) (refs []string) {
-	return []string{fmt.Sprintf("%s\n%s", opts.User, opts.Name)}
+	return []string{combineUserImage(opts.User, opts.Name)}
 }
 
 // BuildContent builds content, the use of it is similar to BuildRefs.

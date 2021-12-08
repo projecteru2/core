@@ -37,3 +37,29 @@ func (v *Virt) parseVolumes(volumes []string) (map[string]int64, error) {
 
 	return vols, nil
 }
+
+const sep = "@"
+
+func splitUserImage(combined string) (user, imageName string, err error) {
+	inputErr := fmt.Errorf("input: \"%s\" not valid", combined)
+	if len(combined) < 1 {
+		return "", "", inputErr
+	}
+
+	un := strings.Split(combined, sep)
+	switch len(un) {
+	case 1:
+		return "", combined, nil
+	case 2:
+		if len(un[0]) < 1 || len(un[1]) < 1 {
+			return "", "", inputErr
+		}
+		return un[0], un[1], nil
+	default:
+		return "", "", inputErr
+	}
+}
+
+func combineUserImage(user, imageName string) string {
+	return fmt.Sprintf("%s%s%s", user, sep, imageName)
+}
