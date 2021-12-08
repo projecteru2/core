@@ -38,11 +38,9 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 	)
 	switch opts.BuildMethod {
 	case types.BuildFromSCM:
-		refs = node.Engine.BuildRefs(ctx, toBuildRefOptions(opts))
-		resp, err = c.buildFromSCM(ctx, node, refs, opts)
+		refs, resp, err = c.buildFromSCM(ctx, node, opts)
 	case types.BuildFromRaw:
-		refs = node.Engine.BuildRefs(ctx, toBuildRefOptions(opts))
-		resp, err = c.buildFromContent(ctx, node, refs, opts.Tar)
+		refs, resp, err = c.buildFromContent(ctx, node, opts)
 	case types.BuildFromExist:
 		refs, node, resp, err = c.buildFromExist(ctx, opts)
 	default:
@@ -75,7 +73,7 @@ func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
 	return node, err
 }
 
-func (c *Calcium) buildFromSCM(ctx context.Context, node *types.Node, refs []string, opts *types.BuildOptions) (io.ReadCloser, error) {
+func (c *Calcium) buildFromSCM(ctx context.Context, node *types.Node, opts *types.BuildOptions) ([]string, io.ReadCloser, error) {
 	buildContentOpts := &enginetypes.BuildContentOptions{
 		User:   opts.User,
 		UID:    opts.UID,
@@ -84,14 +82,16 @@ func (c *Calcium) buildFromSCM(ctx context.Context, node *types.Node, refs []str
 	path, content, err := node.Engine.BuildContent(ctx, c.source, buildContentOpts)
 	defer os.RemoveAll(path)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, nil, errors.WithStack(err)
 	}
-	return c.buildFromContent(ctx, node, refs, content)
+	opts.Tar = content
+	return c.buildFromContent(ctx, node, opts)
 }
 
-func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, refs []string, content io.Reader) (io.ReadCloser, error) {
-	resp, err := node.Engine.ImageBuild(ctx, content, refs)
-	return resp, errors.WithStack(err)
+func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, opts *types.BuildOptions) ([]string, io.ReadCloser, error) {
+	refs := node.Engine.BuildRefs(ctx, toBuildRefOptions(opts))
+	resp, err := node.Engine.ImageBuild(ctx, opts.Tar, refs)
+	return refs, resp, errors.WithStack(err)
 }
 
 func (c *Calcium) buildFromExist(ctx context.Context, opts *types.BuildOptions) (refs []string, node *types.Node, resp io.ReadCloser, err error) {
