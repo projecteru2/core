@@ -57,6 +57,19 @@ type RemoveImageMessage struct {
 	Messages []string
 }
 
+// Image .
+type Image struct {
+	ID   string
+	Tags []string
+}
+
+// ListImageMessage for list image
+type ListImageMessage struct {
+	Images   []*Image
+	Nodename string
+	Error    error
+}
+
 // ControlWorkloadMessage for workload control message
 type ControlWorkloadMessage struct {
 	WorkloadID string

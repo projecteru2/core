@@ -87,4 +87,6 @@ const (
 	LogStream codes.Code = 10711
 	// RunAndWait .
 	RunAndWait codes.Code = 10712
+	// ListImage .
+	ListImage codes.Code = 10713
 )

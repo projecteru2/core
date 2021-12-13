@@ -129,3 +129,56 @@ func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (cha
 
 	return ch, nil
 }
+
+// ListImage list Image on a pod or some nodes.
+func (c *Calcium) ListImage(ctx context.Context, opts *types.ImageOptions) (chan *types.ListImageMessage, error) {
+	logger := log.WithField("Calcium", "ListImage").WithField("opts", opts)
+	opts.Normalize()
+
+	nodes, err := c.filterNodes(ctx, types.NodeFilter{Podname: opts.Podname, Includes: opts.Nodenames})
+	if err != nil {
+		return nil, logger.Err(ctx, err)
+	}
+
+	if len(nodes) == 0 {
+		return nil, logger.Err(ctx, errors.WithStack(types.ErrPodNoNodes))
+	}
+
+	ch := make(chan *types.ListImageMessage)
+
+	utils.SentryGo(func() {
+		defer close(ch)
+		wg := sync.WaitGroup{}
+		defer wg.Wait()
+		for i, node := range nodes {
+			wg.Add(1)
+			utils.SentryGo(func(node *types.Node) func() {
+				return func() {
+					defer wg.Done()
+					msg := &types.ListImageMessage{
+						Images:   []*types.Image{},
+						Nodename: node.Name,
+						Error:    nil,
+					}
+					if images, err := node.Engine.ImageList(ctx, opts.Filter); err != nil {
+						msg.Error = logger.Err(ctx, err)
+					} else {
+						for _, image := range images {
+							msg.Images = append(msg.Images, &types.Image{
+								ID:   image.ID,
+								Tags: image.Tags,
+							})
+						}
+					}
+					ch <- msg
+				}
+			}(node))
+			if (i+1)%opts.Step == 0 {
+				log.Info("[ListImage] Wait for image listed")
+				wg.Wait()
+			}
+		}
+	})
+
+	return ch, nil
+}

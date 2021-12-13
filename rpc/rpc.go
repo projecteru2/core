@@ -605,6 +605,25 @@ func (v *Vibranium) RemoveImage(opts *pb.RemoveImageOptions, stream pb.CoreRPC_R
 	return nil
 }
 
+// ListImage list image
+func (v *Vibranium) ListImage(opts *pb.ListImageOptions, stream pb.CoreRPC_ListImageServer) error {
+	ctx := v.taskAdd(stream.Context(), "ListImage", true)
+	defer v.taskDone(ctx, "ListImage", true)
+
+	ch, err := v.cluster.ListImage(ctx, toCoreListImageOptions(opts))
+	if err != nil {
+		return grpcstatus.Error(ListImage, err.Error())
+	}
+
+	for msg := range ch {
+		if err = stream.Send(toRPCListImageMessage(msg)); err != nil {
+			v.logUnsentMessages(ctx, "ListImage", err, msg)
+		}
+	}
+
+	return nil
+}
+
 // CreateWorkload create workloads
 func (v *Vibranium) CreateWorkload(opts *pb.DeployOptions, stream pb.CoreRPC_CreateWorkloadServer) error {
 	ctx := v.taskAdd(stream.Context(), "CreateWorkload", true)

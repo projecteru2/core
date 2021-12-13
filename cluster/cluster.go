@@ -77,6 +77,7 @@ type Cluster interface {
 	BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error)
 	CacheImage(ctx context.Context, opts *types.ImageOptions) (chan *types.CacheImageMessage, error)
 	RemoveImage(ctx context.Context, opts *types.ImageOptions) (chan *types.RemoveImageMessage, error)
+	ListImage(ctx context.Context, opts *types.ImageOptions) (chan *types.ListImageMessage, error)
 	// workload methods
 	CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error)
 	ReplaceWorkload(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceWorkloadMessage, error)

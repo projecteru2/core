@@ -620,3 +620,36 @@ func toCoreRemoveImageOptions(opts *pb.RemoveImageOptions) *types.ImageOptions {
 		Prune:     opts.Prune,
 	}
 }
+
+func toRPCListImageMessage(msg *types.ListImageMessage) *pb.ListImageMessage {
+	m := &pb.ListImageMessage{
+		Images:   []*pb.ImageItem{},
+		Nodename: "",
+		Err:      "",
+	}
+	if msg == nil {
+		return m
+	}
+	if msg.Error != nil {
+		m.Err = msg.Error.Error()
+		return m
+	}
+
+	m.Nodename = msg.Nodename
+	for _, image := range msg.Images {
+		m.Images = append(m.Images, &pb.ImageItem{
+			Id:   image.ID,
+			Tags: image.Tags,
+		})
+	}
+
+	return m
+}
+
+func toCoreListImageOptions(opts *pb.ListImageOptions) *types.ImageOptions {
+	return &types.ImageOptions{
+		Podname:   opts.Podname,
+		Nodenames: opts.Nodenames,
+		Filter:    opts.Filter,
+	}
+}

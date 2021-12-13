@@ -254,6 +254,7 @@ type ImageOptions struct {
 	Images    []string
 	Step      int
 	Prune     bool
+	Filter    string
 }
 
 // Validate checks the options
