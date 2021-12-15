@@ -21,7 +21,13 @@ func (m *Mercury) AddPod(ctx context.Context, name, desc string) (*types.Pod, er
 	if err != nil {
 		return nil, err
 	}
-	_, err = m.Put(ctx, key, string(bytes))
+	resp, err := m.BatchCreate(ctx, map[string]string{key: string(bytes)})
+	if err != nil {
+		return nil, err
+	}
+	if !resp.Succeeded {
+		return nil, types.ErrTxnConditionFailed
+	}
 	return pod, err
 }
 
