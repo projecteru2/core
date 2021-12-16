@@ -18,6 +18,9 @@ func TestPod(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, pod.Name, podname)
 
+	_, err = m.AddPod(ctx, podname, "CPU")
+	assert.Equal(t, err, types.ErrKeyExists)
+
 	pod2, err := m.GetPod(ctx, podname)
 	assert.NoError(t, err)
 	assert.Equal(t, pod2.Name, podname)

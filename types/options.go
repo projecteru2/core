@@ -204,6 +204,28 @@ func (o *AddNodeOptions) Validate() error {
 	if o.Endpoint == "" {
 		return errors.WithStack(ErrEmptyNodeEndpoint)
 	}
+	if o.CPU < 0 {
+		return errors.WithStack(ErrNegativeCPU)
+	}
+	if o.Share < 0 {
+		return errors.WithStack(ErrNegativeShare)
+	}
+	if o.Memory < 0 {
+		return errors.WithStack(ErrNegativeMemory)
+	}
+	for _, m := range o.NumaMemory {
+		if m < 0 {
+			return errors.WithStack(ErrNegativeNUMAMemory)
+		}
+	}
+	for _, size := range o.Volume {
+		if size < 0 {
+			return errors.WithStack(ErrNegativeVolumeSize)
+		}
+	}
+	if o.Storage < 0 {
+		return errors.WithStack(ErrNegativeStorage)
+	}
 	return nil
 }
 

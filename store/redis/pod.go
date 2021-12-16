@@ -17,7 +17,7 @@ func (r *Rediaron) AddPod(ctx context.Context, name, desc string) (*types.Pod, e
 	if err != nil {
 		return nil, err
 	}
-	_, err = r.cli.Set(ctx, key, string(bytes), 0).Result()
+	err = r.BatchCreate(ctx, map[string]string{key: string(bytes)})
 	return pod, err
 }
 

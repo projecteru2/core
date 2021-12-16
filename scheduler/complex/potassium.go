@@ -147,7 +147,7 @@ func (m *Potassium) SelectCPUNodes(ctx context.Context, scheduleInfos []resource
 	}
 	log.Infof(ctx, "[SelectCPUNodes] resources %v, need cpu: %f memory: %d", resources, quota, memory)
 	if quota <= 0 {
-		return nil, nil, 0, errors.WithStack(types.ErrNegativeQuota)
+		return nil, nil, 0, errors.WithStack(types.ErrNegativeCPU)
 	}
 	if len(scheduleInfos) == 0 {
 		return nil, nil, 0, errors.WithStack(types.ErrZeroNodes)

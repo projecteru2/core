@@ -138,6 +138,25 @@ func TestValidatingAddNodeOptions(t *testing.T) {
 	assert.Equal(ErrEmptyNodeEndpoint, errors.Unwrap(o.Validate()))
 
 	o.Endpoint = "tcp://endpoint:2376"
+	o.CPU = -1
+	o.Share = -1
+	o.Memory = -1
+	o.NumaMemory = NUMAMemory{"0": -1}
+	o.Volume = VolumeMap{"/data": -1}
+	o.Storage = -1
+
+	assert.Equal(ErrNegativeCPU, errors.Unwrap(o.Validate()))
+	o.CPU = 1
+	assert.Equal(ErrNegativeShare, errors.Unwrap(o.Validate()))
+	o.Share = 100
+	assert.Equal(ErrNegativeMemory, errors.Unwrap(o.Validate()))
+	o.Memory = 100
+	assert.Equal(ErrNegativeNUMAMemory, errors.Unwrap(o.Validate()))
+	o.NumaMemory = nil
+	assert.Equal(ErrNegativeVolumeSize, errors.Unwrap(o.Validate()))
+	o.Volume = nil
+	assert.Equal(ErrNegativeStorage, errors.Unwrap(o.Validate()))
+	o.Storage = 1
 	assert.NoError(o.Validate())
 }
 
