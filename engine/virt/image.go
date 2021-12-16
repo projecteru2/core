@@ -129,13 +129,34 @@ func (v *Virt) ImageBuildCachePrune(ctx context.Context, all bool) (reclaimed ui
 }
 
 // ImageLocalDigests shows local images' digests.
-func (v *Virt) ImageLocalDigests(ctx context.Context, image string) (digests []string, err error) {
-	log.Warnf(ctx, "ImageLocalDigests does not implement")
-	return
+// If local image file not exists return error
+// If exists return digests
+// Same for remote digest
+func (v *Virt) ImageLocalDigests(ctx context.Context, image string) ([]string, error) {
+	// If not exists return error
+	// If exists return digests
+	_, imgName, err := splitUserImage(image)
+	if err != nil {
+		return nil, err
+	}
+
+	return v.client.DigestImage(ctx, imgName, true)
 }
 
 // ImageRemoteDigest shows remote one's digest.
-func (v *Virt) ImageRemoteDigest(ctx context.Context, image string) (digest string, err error) {
-	log.Warnf(ctx, "ImageRemoteDigest does not implement")
-	return
+func (v *Virt) ImageRemoteDigest(ctx context.Context, image string) (string, error) {
+	_, imgName, err := splitUserImage(image)
+	if err != nil {
+		return "", err
+	}
+
+	digests, err := v.client.DigestImage(ctx, imgName, true)
+	switch {
+	case err != nil:
+		return "", err
+	case len(digests) < 1:
+		return "", types.ErrNoRemoteDigest
+	default:
+		return digests[0], nil
+	}
 }
