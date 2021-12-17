@@ -289,6 +289,7 @@ func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, stat
 	// There is a status bound to the entity yet but its value isn't same as the expected one.
 	valueTxn := statusTxn.Responses[0].GetResponseTxn()
 	if !valueTxn.Succeeded {
+		log.Infof(ctx, "[bindStatusWithTTL] put: key %s value %s", statusKey, statusValue)
 		return nil
 	}
 
@@ -318,6 +319,9 @@ func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, statusKey, statusValue 
 		)).
 		Else(updateStatus...). // otherwise deal with non-existing status key
 		Commit()
+	if err == nil {
+		log.Infof(ctx, "[bindStatusWithoutTTL] put: key %s value %s", statusKey, statusValue)
+	}
 	return err
 }
 

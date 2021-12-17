@@ -71,13 +71,12 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 
 		n.Available = (opts.StatusOpt == types.TriTrue) || (opts.StatusOpt == types.TriKeep && n.Available)
 		n.Bypass = (opts.BypassOpt == types.TriTrue) || (opts.BypassOpt == types.TriKeep && n.Bypass)
-		if n.IsDown() {
-			logger.Errorf(ctx, "[SetNodeAvailable] node marked down: %s", opts.Nodename)
+		if !n.Bypass && !n.Available {
+			log.Errorf(ctx, "[SetNodeAvailable] node marked down: %s", opts.Nodename)
 			// remove node status
-			err := c.store.SetNodeStatus(ctx, node, -1)
-			if err != nil {
+			if err := c.store.SetNodeStatus(ctx, node, -1); err != nil {
 				// don't return here
-				log.Errorf(ctx, "[SetNode] failed to set node status, err: %+v", errors.WithStack(err))
+				logger.Errorf(ctx, "[SetNode] failed to remove node status, err: %+v", errors.WithStack(err))
 			}
 		}
 		if opts.WorkloadsDown {
@@ -105,7 +104,9 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 
 				// mark workload which belongs to this node as unhealthy
 				if err = c.store.SetWorkloadStatus(ctx, workload.StatusMeta, 0); err != nil {
-					log.Errorf(ctx, "[SetNodeAvailable] Set workload %s on node %s inactive failed %v", workload.ID, opts.Nodename, err)
+					log.Errorf(ctx, "[SetNodeAvailable] Set workload %s on node %s as inactive failed %v", workload.ID, opts.Nodename, err)
+				} else {
+					log.Infof(ctx, "[SetNodeAvailable] Set workload %s on node %s as inactive", workload.ID, opts.Nodename)
 				}
 			}
 		}
