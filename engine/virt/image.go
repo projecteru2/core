@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"strings"
 
 	virttypes "github.com/projecteru2/libyavirt/types"
 
@@ -50,7 +51,21 @@ func (v *Virt) ImagesPrune(ctx context.Context) (err error) {
 
 // ImagePull pulls an image to local virt-node.
 func (v *Virt) ImagePull(ctx context.Context, ref string, all bool) (rc io.ReadCloser, err error) {
-	return
+	// ref is a simple image name without username for now
+	_, imgName, err := splitUserImage(ref)
+	if err != nil {
+		return nil, err
+	}
+
+	msg, err := v.client.PullImage(ctx, imgName, all)
+	if err != nil {
+		return nil, err
+	}
+
+	rc = io.NopCloser(strings.NewReader(msg))
+	defer rc.Close()
+
+	return rc, err
 }
 
 // ImagePush pushes to central image registry.
