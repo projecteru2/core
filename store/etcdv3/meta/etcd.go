@@ -3,6 +3,7 @@ package meta
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -239,6 +240,34 @@ func (e *ETCD) BatchUpdate(ctx context.Context, data map[string]string, opts ...
 	return e.batchUpdate(ctx, data, opts...)
 }
 
+// isTTLChanged returns true if there is a lease with a different ttl bound to the key
+func (e *ETCD) isTTLChanged(ctx context.Context, key string, ttl int64) (bool, error) {
+	resp, err := e.GetOne(ctx, key)
+	if err != nil {
+		if errors.Is(err, types.ErrBadCount) {
+			return ttl != 0, nil
+		}
+		return false, err
+	}
+
+	leaseID := clientv3.LeaseID(resp.Lease)
+	if leaseID == 0 {
+		return ttl != 0, nil
+	}
+
+	getTTLResp, err := e.cliv3.TimeToLive(ctx, leaseID)
+	if err != nil {
+		return false, err
+	}
+
+	changed := getTTLResp.GrantedTTL != ttl
+	if changed {
+		log.Infof(ctx, "[isTTLChanged] key %v ttl changed from %v to %v", key, getTTLResp.GrantedTTL, ttl)
+	}
+
+	return changed, nil
+}
+
 // BindStatus keeps on a lease alive.
 func (e *ETCD) BindStatus(ctx context.Context, entityKey, statusKey, statusValue string, ttl int64) error {
 	if ttl == 0 {
@@ -256,19 +285,38 @@ func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, stat
 	leaseID := lease.ID
 	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, statusValue, clientv3.WithLease(lease.ID))}
 
-	entityTxn, err := e.cliv3.Txn(ctx).
-		If(clientv3.Compare(clientv3.Version(entityKey), "!=", 0)).
-		Then( // making sure there's an exists entity kv-pair.
-			clientv3.OpTxn(
-				[]clientv3.Cmp{clientv3.Compare(clientv3.Version(statusKey), "!=", 0)}, // Is the status exists?
-				[]clientv3.Op{clientv3.OpTxn( // there's an exists status
-					[]clientv3.Cmp{clientv3.Compare(clientv3.Value(statusKey), "=", statusValue)},
-					[]clientv3.Op{clientv3.OpGet(statusKey)}, // The status hasn't been changed.
-					updateStatus,                             // The status had been changed.
-				)},
-				updateStatus, // there isn't a status
-			),
-		).Commit()
+	ttlChanged, err := e.isTTLChanged(ctx, statusKey, ttl)
+	if err != nil {
+		return err
+	}
+
+	var entityTxn *clientv3.TxnResponse
+
+	if ttlChanged {
+		entityTxn, err = e.cliv3.Txn(ctx).
+			If(clientv3.Compare(clientv3.Version(entityKey), "!=", 0)).
+			Then(updateStatus...). // making sure there's an exists entity kv-pair.
+			Commit()
+	} else {
+		entityTxn, err = e.cliv3.Txn(ctx).
+			If(clientv3.Compare(clientv3.Version(entityKey), "!=", 0)).
+			Then( // making sure there's an exists entity kv-pair.
+				clientv3.OpTxn(
+					[]clientv3.Cmp{clientv3.Compare(clientv3.Version(statusKey), "!=", 0)}, // Is the status exists?
+					[]clientv3.Op{clientv3.OpTxn( // there's an exists status
+						[]clientv3.Cmp{clientv3.Compare(clientv3.LeaseValue(statusKey), "!=", 0)}, //
+						[]clientv3.Op{clientv3.OpTxn( // there has been a lease bound to the status
+							[]clientv3.Cmp{clientv3.Compare(clientv3.Value(statusKey), "=", statusValue)}, // Is the status changed?
+							[]clientv3.Op{clientv3.OpGet(statusKey)},                                      // The status hasn't been changed.
+							updateStatus,                                                                  // The status had been changed.
+						)},
+						updateStatus, // there is no lease bound to the status
+					)},
+					updateStatus, // there isn't a status
+				),
+			).Commit()
+	}
+
 	if err != nil {
 		e.revokeLease(ctx, leaseID)
 		return err
@@ -280,14 +328,28 @@ func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, stat
 		return types.ErrEntityNotExists
 	}
 
+	// if ttl is changed, replace with the new lease
+	if ttlChanged {
+		log.Infof(ctx, "[bindStatusWithTTL] put: key %s value %s", statusKey, statusValue)
+		return nil
+	}
+
 	// There isn't a status bound to the entity.
 	statusTxn := entityTxn.Responses[0].GetResponseTxn()
 	if !statusTxn.Succeeded {
+		log.Infof(ctx, "[bindStatusWithTTL] put: key %s value %s", statusKey, statusValue)
+		return nil
+	}
+
+	// There is no lease bound to the status yet
+	leaseTxn := statusTxn.Responses[0].GetResponseTxn()
+	if !leaseTxn.Succeeded {
+		log.Infof(ctx, "[bindStatusWithTTL] put: key %s value %s", statusKey, statusValue)
 		return nil
 	}
 
 	// There is a status bound to the entity yet but its value isn't same as the expected one.
-	valueTxn := statusTxn.Responses[0].GetResponseTxn()
+	valueTxn := leaseTxn.Responses[0].GetResponseTxn()
 	if !valueTxn.Succeeded {
 		log.Infof(ctx, "[bindStatusWithTTL] put: key %s value %s", statusKey, statusValue)
 		return nil
@@ -310,7 +372,22 @@ func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, stat
 // agent may report status earlier when core has not recorded the entity.
 func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, statusKey, statusValue string) error {
 	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, statusValue)}
-	_, err := e.cliv3.Txn(ctx).
+
+	ttlChanged, err := e.isTTLChanged(ctx, statusKey, 0)
+	if err != nil {
+		return err
+	}
+	if ttlChanged {
+		_, err := e.Put(ctx, statusKey, statusValue)
+		if err != nil {
+			return err
+		}
+
+		log.Infof(ctx, "[bindStatusWithoutTTL] put: key %s value %s", statusKey, statusValue)
+		return nil
+	}
+
+	resp, err := e.cliv3.Txn(ctx).
 		If(clientv3.Compare(clientv3.Version(statusKey), "!=", 0)). // if there's an existing status key
 		Then(clientv3.OpTxn(                                        // deal with existing status key
 			[]clientv3.Cmp{clientv3.Compare(clientv3.Value(statusKey), "!=", statusValue)}, // if the new value != the old value
@@ -319,10 +396,13 @@ func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, statusKey, statusValue 
 		)).
 		Else(updateStatus...). // otherwise deal with non-existing status key
 		Commit()
-	if err == nil {
+	if err != nil {
+		return err
+	}
+	if !resp.Succeeded || resp.Responses[0].GetResponseTxn().Succeeded {
 		log.Infof(ctx, "[bindStatusWithoutTTL] put: key %s value %s", statusKey, statusValue)
 	}
-	return err
+	return nil
 }
 
 func (e *ETCD) revokeLease(ctx context.Context, leaseID clientv3.LeaseID) {

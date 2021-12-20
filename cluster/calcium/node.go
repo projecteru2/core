@@ -71,8 +71,10 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 
 		n.Available = (opts.StatusOpt == types.TriTrue) || (opts.StatusOpt == types.TriKeep && n.Available)
 		n.Bypass = (opts.BypassOpt == types.TriTrue) || (opts.BypassOpt == types.TriKeep && n.Bypass)
-		if !n.Bypass && !n.Available {
+		if n.IsDown() {
 			log.Errorf(ctx, "[SetNodeAvailable] node marked down: %s", opts.Nodename)
+		}
+		if !n.Available {
 			// remove node status
 			if err := c.store.SetNodeStatus(ctx, node, -1); err != nil {
 				// don't return here
@@ -104,7 +106,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 
 				// mark workload which belongs to this node as unhealthy
 				if err = c.store.SetWorkloadStatus(ctx, workload.StatusMeta, 0); err != nil {
-					log.Errorf(ctx, "[SetNodeAvailable] Set workload %s on node %s as inactive failed %v", workload.ID, opts.Nodename, err)
+					log.Errorf(ctx, "[SetNodeAvailable] Set workload %s on node %s as inactive failed %v", workload.ID, opts.Nodename, errors.WithStack(err))
 				} else {
 					log.Infof(ctx, "[SetNodeAvailable] Set workload %s on node %s as inactive", workload.ID, opts.Nodename)
 				}
