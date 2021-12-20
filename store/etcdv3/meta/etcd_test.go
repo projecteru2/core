@@ -20,7 +20,7 @@ import (
 func TestGetOneError(t *testing.T) {
 	e := NewMockedETCD(t)
 	expErr := fmt.Errorf("exp")
-	e.cliv3.(*mocks.ETCDClientV3).On("Get", mock.Anything, mock.Anything).Return(nil, expErr).Once()
+	e.cliv3.(*mocks.ETCDClientV3).On("Get", mock.Anything, mock.Anything).Return(nil, expErr)
 	kv, err := e.GetOne(context.Background(), "foo")
 	require.Equal(t, expErr, err)
 	require.Nil(t, kv)
@@ -29,7 +29,7 @@ func TestGetOneError(t *testing.T) {
 func TestGetOneFailedAsRespondMore(t *testing.T) {
 	e := NewMockedETCD(t)
 	expResp := &clientv3.GetResponse{Count: 2}
-	e.cliv3.(*mocks.ETCDClientV3).On("Get", mock.Anything, mock.Anything).Return(expResp, nil).Once()
+	e.cliv3.(*mocks.ETCDClientV3).On("Get", mock.Anything, mock.Anything).Return(expResp, nil)
 	kv, err := e.GetOne(context.Background(), "foo")
 	require.Error(t, err)
 	require.Nil(t, kv)
@@ -46,10 +46,10 @@ func TestGetMultiFailedAsBatchGetError(t *testing.T) {
 	e := NewMockedETCD(t)
 	expErr := fmt.Errorf("exp")
 	expTxn := &mocks.Txn{}
-	expTxn.On("If", mock.Anything).Return(expTxn).Once()
-	expTxn.On("Then", mock.Anything).Return(expTxn).Once()
-	expTxn.On("Else", mock.Anything).Return(expTxn).Once()
-	expTxn.On("Commit").Return(nil, expErr).Once()
+	expTxn.On("If", mock.Anything).Return(expTxn)
+	expTxn.On("Then", mock.Anything).Return(expTxn)
+	expTxn.On("Else", mock.Anything).Return(expTxn)
+	expTxn.On("Commit").Return(nil, expErr)
 	e.cliv3.(*mocks.ETCDClientV3).On("Txn", mock.Anything).Return(expTxn)
 	kvs, err := e.GetMulti(context.Background(), []string{"foo"})
 	require.Equal(t, expErr, err)
@@ -69,7 +69,7 @@ func TestBindStatusFailedAsGrantError(t *testing.T) {
 	e, etcd, assert := testKeepAliveETCD(t)
 	defer assert()
 	expErr := fmt.Errorf("exp")
-	etcd.On("Grant", mock.Anything, mock.Anything).Return(nil, expErr).Once()
+	etcd.On("Grant", mock.Anything, mock.Anything).Return(nil, expErr)
 	require.Equal(t, expErr, e.BindStatus(context.Background(), "/entity", "/status", "status", 1))
 }
 
@@ -80,12 +80,13 @@ func TestBindStatusFailedAsCommitError(t *testing.T) {
 	expErr := fmt.Errorf("exp")
 	txn := &mocks.Txn{}
 	defer txn.AssertExpectations(t)
-	txn.On("If", mock.Anything).Return(txn).Once()
-	txn.On("Then", mock.Anything).Return(txn).Once()
-	txn.On("Commit").Return(nil, expErr).Once()
+	etcd.On("Get", mock.Anything, mock.Anything).Return(&clientv3.GetResponse{}, nil)
+	txn.On("If", mock.Anything).Return(txn)
+	txn.On("Then", mock.Anything).Return(txn)
+	txn.On("Commit").Return(nil, expErr)
 
-	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil).Once()
-	etcd.On("Txn", mock.Anything).Return(txn).Once()
+	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
+	etcd.On("Txn", mock.Anything).Return(txn)
 	require.Equal(t, expErr, e.BindStatus(context.Background(), "/entity", "/status", "status", 1))
 }
 
@@ -96,12 +97,13 @@ func TestBindStatusButEntityTxnUnsuccessful(t *testing.T) {
 	entityTxn := &clientv3.TxnResponse{Succeeded: false}
 	txn := &mocks.Txn{}
 	defer txn.AssertExpectations(t)
-	txn.On("If", mock.Anything).Return(txn).Once()
-	txn.On("Then", mock.Anything).Return(txn).Once()
+	etcd.On("Get", mock.Anything, mock.Anything).Return(&clientv3.GetResponse{}, nil)
+	txn.On("If", mock.Anything).Return(txn)
+	txn.On("Then", mock.Anything).Return(txn)
 	txn.On("Commit").Return(entityTxn, nil)
 
-	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil).Once()
-	etcd.On("Txn", mock.Anything).Return(txn).Once()
+	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
+	etcd.On("Txn", mock.Anything).Return(txn)
 	require.Equal(t, types.ErrEntityNotExists, e.BindStatus(context.Background(), "/entity", "/status", "status", 1))
 }
 
@@ -122,12 +124,13 @@ func TestBindStatusButStatusTxnUnsuccessful(t *testing.T) {
 	}
 	txn := &mocks.Txn{}
 	defer txn.AssertExpectations(t)
-	txn.On("If", mock.Anything).Return(txn).Once()
-	txn.On("Then", mock.Anything).Return(txn).Once()
+	txn.On("If", mock.Anything).Return(txn)
+	txn.On("Then", mock.Anything).Return(txn)
 	txn.On("Commit").Return(entityTxn, nil)
 
-	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil).Once()
-	etcd.On("Txn", mock.Anything).Return(txn).Once()
+	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
+	etcd.On("Txn", mock.Anything).Return(txn)
+	etcd.On("Get", mock.Anything, mock.Anything).Return(&clientv3.GetResponse{}, nil)
 	require.Equal(t, nil, e.BindStatus(context.Background(), "/entity", "/status", "status", 1))
 }
 
@@ -148,12 +151,14 @@ func TestBindStatusWithZeroTTL(t *testing.T) {
 	}
 	txn := &mocks.Txn{}
 	defer txn.AssertExpectations(t)
-	txn.On("If", mock.Anything).Return(txn).Once()
-	txn.On("Then", mock.Anything).Return(txn).Once()
-	txn.On("Else", mock.Anything).Return(txn).Once()
+	txn.On("If", mock.Anything).Return(txn)
+	txn.On("Then", mock.Anything).Return(txn)
+	txn.On("Else", mock.Anything).Return(txn)
 	txn.On("Commit").Return(entityTxn, nil)
 
-	etcd.On("Txn", mock.Anything).Return(txn).Once()
+	etcd.On("Txn", mock.Anything).Return(txn)
+
+	etcd.On("Get", mock.Anything, mock.Anything).Return(&clientv3.GetResponse{}, nil)
 	require.Equal(t, nil, e.BindStatus(context.Background(), "/entity", "/status", "status", 0))
 }
 
@@ -185,12 +190,13 @@ func TestBindStatusButValueTxnUnsuccessful(t *testing.T) {
 	}
 	txn := &mocks.Txn{}
 	defer txn.AssertExpectations(t)
-	txn.On("If", mock.Anything).Return(txn).Once()
-	txn.On("Then", mock.Anything).Return(txn).Once()
+	txn.On("If", mock.Anything).Return(txn)
+	txn.On("Then", mock.Anything).Return(txn)
 	txn.On("Commit").Return(entityTxn, nil)
 
-	etcd.On("Txn", mock.Anything).Return(txn).Once()
-	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil).Once()
+	etcd.On("Txn", mock.Anything).Return(txn)
+	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
+	etcd.On("Get", mock.Anything, mock.Anything).Return(&clientv3.GetResponse{}, nil)
 	require.Equal(t, nil, e.BindStatus(context.Background(), "/entity", "/status", "status", 1))
 }
 
@@ -236,13 +242,13 @@ func TestBindStatus(t *testing.T) {
 	}
 	txn := &mocks.Txn{}
 	defer txn.AssertExpectations(t)
-	txn.On("If", mock.Anything).Return(txn).Once()
-	txn.On("Then", mock.Anything).Return(txn).Once()
+	txn.On("If", mock.Anything).Return(txn)
+	txn.On("Then", mock.Anything).Return(txn)
 	txn.On("Commit").Return(entityTxn, nil)
 
-	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil).Once()
-	etcd.On("Txn", mock.Anything).Return(txn).Once()
-	etcd.On("KeepAliveOnce", mock.Anything, clientv3.LeaseID(leaseID)).Return(nil, nil).Once()
+	etcd.On("Grant", mock.Anything, mock.Anything).Return(&clientv3.LeaseGrantResponse{}, nil)
+	etcd.On("Txn", mock.Anything).Return(txn)
+	etcd.On("Get", mock.Anything, mock.Anything).Return(&clientv3.GetResponse{}, nil)
 	require.Equal(t, nil, e.BindStatus(context.Background(), "/entity", "/status", "status", 1))
 }
 
