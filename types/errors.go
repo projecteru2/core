@@ -63,6 +63,7 @@ var (
 	ErrNoWorkloadIDs               = errors.New("No workload ids given")
 	ErrRunAndWaitCountOneWithStdin = errors.New("Count must be 1 if OpenStdin is true")
 	ErrUnknownControlType          = errors.New("Unknown control type")
+	ErrNoRemoteDigest              = errors.New("got no digest")
 
 	ErrNoETCD             = errors.New("ETCD must be set")
 	ErrKeyNotExists       = errors.New("Key not exists")
