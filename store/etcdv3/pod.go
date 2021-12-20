@@ -48,7 +48,8 @@ func (m *Mercury) RemovePod(ctx context.Context, podname string) error {
 	resp, err := m.Delete(ctx, key)
 	if err != nil {
 		return err
-	} else if resp.Deleted != 1 {
+	}
+	if resp.Deleted != 1 {
 		return types.NewDetailedErr(types.ErrPodNotFound, podname)
 	}
 	return nil

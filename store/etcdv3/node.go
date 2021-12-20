@@ -189,9 +189,8 @@ func (m *Mercury) makeClient(ctx context.Context, node *types.Node) (client engi
 				log.Warnf(ctx, "[makeClient] Get key failed %v", err)
 			}
 			continue
-		} else {
-			data[i] = string(ev.Value)
 		}
+		data[i] = string(ev.Value)
 	}
 
 	return enginefactory.GetEngine(ctx, m.config, node.Name, node.Endpoint, data[0], data[1], data[2])
