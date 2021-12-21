@@ -6,14 +6,39 @@ before:
     - go mod download
 
 builds:
-  - binary: eru-core
+  - id: eru-core
+    binary: eru-core
     env:
       - CGO_ENABLED=0
     ldflags:
-      - -s -w
       - -X github.com/projecteru2/core/version.REVISION={{.Commit}}
       - -X github.com/projecteru2/core/version.VERSION={{.Env.VERSION}}
-      - -X github.com/projecteru2/core/version.BUILTAT={{.Date}}
+      - -X github.com/projecteru2/core/version.BUILTAT={{.CommitDate}}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    hooks:
+      post:
+        - objcopy -S "{{ .Path }}"
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+
+  # the best practice is using prebuilt builder
+  # however it's a Pro feature
+  - id: eru-core-dbg
+    binary: eru-core.dbg
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -X github.com/projecteru2/core/version.REVISION={{.Commit}}
+      - -X github.com/projecteru2/core/version.VERSION={{.Env.VERSION}}
+      - -X github.com/projecteru2/core/version.BUILTAT={{.CommitDate}}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    hooks:
+      post:
+        - objcopy --only-keep-debug "{{ .Path }}" output/eru-core.dbg
+        - cp output/eru-core.dbg "{{ .Path }}"
     goos:
       - linux
       - darwin
@@ -41,5 +66,5 @@ changelog:
   sort: asc
   filters:
     exclude:
-    - '^docs:'
-    - '^test:'
+      - '^docs:'
+      - '^test:'
