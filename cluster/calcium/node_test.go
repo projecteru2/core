@@ -165,10 +165,10 @@ func TestSetNode(t *testing.T) {
 	assert.Equal(t, n.Name, name)
 	assert.Equal(t, n.Endpoint, "tcp://127.0.0.1:2379")
 	// not available
-	// failed by list node workloads
+	// can still set node even if ListNodeWorkloads fails
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", StatusOpt: 0, WorkloadsDown: true})
-	assert.Error(t, err)
+	assert.NoError(t, err)
 	workloads := []*types.Workload{{Name: "wrong_name"}, {Name: "a_b_c"}}
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
 	store.On("SetWorkloadStatus",

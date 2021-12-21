@@ -57,6 +57,40 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string) (*types.Node, er
 	return node, logger.Err(ctx, errors.WithStack(err))
 }
 
+func (c *Calcium) setAllWorkloadsOnNodeDown(ctx context.Context, nodename string) {
+	workloads, err := c.store.ListNodeWorkloads(ctx, nodename, nil)
+	if err != nil {
+		log.Errorf(ctx, "[setAllWorkloadsOnNodeDown] failed to list node workloads, node %v, err: %v", nodename, errors.WithStack(err))
+		return
+	}
+
+	for _, workload := range workloads {
+		appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
+		if err != nil {
+			log.Errorf(ctx, "[setAllWorkloadsOnNodeDown] Set workload %s on node %s as inactive failed %v", workload.ID, nodename, err)
+			continue
+		}
+
+		if workload.StatusMeta == nil {
+			workload.StatusMeta = &types.StatusMeta{ID: workload.ID}
+		}
+		workload.StatusMeta.Running = false
+		workload.StatusMeta.Healthy = false
+
+		// Set these attributes to set workload status
+		workload.StatusMeta.Appname = appname
+		workload.StatusMeta.Nodename = workload.Nodename
+		workload.StatusMeta.Entrypoint = entrypoint
+
+		// mark workload which belongs to this node as unhealthy
+		if err = c.store.SetWorkloadStatus(ctx, workload.StatusMeta, 0); err != nil {
+			log.Errorf(ctx, "[SetNodeAvailable] Set workload %s on node %s as inactive failed %v", workload.ID, nodename, errors.WithStack(err))
+		} else {
+			log.Infof(ctx, "[SetNodeAvailable] Set workload %s on node %s as inactive", workload.ID, nodename)
+		}
+	}
+}
+
 // SetNode set node available or not
 func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) { // nolint
 	logger := log.WithField("Calcium", "SetNode").WithField("opts", opts)
@@ -82,35 +116,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 			}
 		}
 		if opts.WorkloadsDown {
-			workloads, err := c.store.ListNodeWorkloads(ctx, opts.Nodename, nil)
-			if err != nil {
-				return logger.Err(ctx, errors.WithStack(err))
-			}
-			for _, workload := range workloads {
-				appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
-				if err != nil {
-					log.Errorf(ctx, "[SetNodeAvailable] Set workload %s on node %s inactive failed %v", workload.ID, opts.Nodename, err)
-					continue
-				}
-
-				if workload.StatusMeta == nil {
-					workload.StatusMeta = &types.StatusMeta{ID: workload.ID}
-				}
-				workload.StatusMeta.Running = false
-				workload.StatusMeta.Healthy = false
-
-				// Set these attributes to set workload status
-				workload.StatusMeta.Appname = appname
-				workload.StatusMeta.Nodename = workload.Nodename
-				workload.StatusMeta.Entrypoint = entrypoint
-
-				// mark workload which belongs to this node as unhealthy
-				if err = c.store.SetWorkloadStatus(ctx, workload.StatusMeta, 0); err != nil {
-					log.Errorf(ctx, "[SetNodeAvailable] Set workload %s on node %s as inactive failed %v", workload.ID, opts.Nodename, errors.WithStack(err))
-				} else {
-					log.Infof(ctx, "[SetNodeAvailable] Set workload %s on node %s as inactive", workload.ID, opts.Nodename)
-				}
-			}
+			c.setAllWorkloadsOnNodeDown(ctx, opts.Nodename)
 		}
 		// update node endpoint
 		if opts.Endpoint != "" {
