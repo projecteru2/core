@@ -6,17 +6,33 @@ before:
     - go mod download
 
 builds:
-  - binary: eru-core
+  - id: eru-core-debug
+    binary: eru-core.dbg
     env:
       - CGO_ENABLED=0
     ldflags:
-      - -s -w
       - -X github.com/projecteru2/core/version.REVISION={{.Commit}}
       - -X github.com/projecteru2/core/version.VERSION={{.Env.VERSION}}
       - -X github.com/projecteru2/core/version.BUILTAT={{.Date}}
+    hooks:
+      post:
+        - cp {{.Path}} ./eru-core-{{.Os}}.dbg
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+
+  # the best practice is using prebuilt builder
+  # however it's a Pro feature
+  - id: eru-core
+    binary: eru-core
+    hooks:
+      post:
+        - cp ./eru-core-{{.Os}}.dbg {{.Path}}
+        - strip {{.Path}}
     goos:
       - linux
-      - darwin
     goarch:
       - amd64
 
