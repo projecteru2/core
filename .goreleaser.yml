@@ -25,7 +25,7 @@ builds:
 
   # the best practice is using prebuilt builder
   # however it's a Pro feature
-  - id: eru-core
+  - id: eru-core-linux
     binary: eru-core
     hooks:
       post:
@@ -33,6 +33,20 @@ builds:
         - strip {{.Path}}
     goos:
       - linux
+    goarch:
+      - amd64
+
+  - id: eru-core-darwin
+    binary: eru-core
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -w -s
+      - -X github.com/projecteru2/core/version.REVISION={{.Commit}}
+      - -X github.com/projecteru2/core/version.VERSION={{.Env.VERSION}}
+      - -X github.com/projecteru2/core/version.BUILTAT={{.Date}}
+    goos:
+      - darwin
     goarch:
       - amd64
 
