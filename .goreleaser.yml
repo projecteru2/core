@@ -17,8 +17,24 @@ builds:
     mod_timestamp: "{{ .CommitTimestamp }}"
     hooks:
       post:
-        - objcopy --only-keep-debug "{{ .Path }}" "{{ dir .Path }}/eru-core.dbg"
         - objcopy -S "{{ .Path }}"
+    goos:
+      - linux
+    goarch:
+      - amd64
+
+  - id: eru-core-debug
+    binary: eru-core.dbg
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -X github.com/projecteru2/core/version.REVISION={{.Commit}}
+      - -X github.com/projecteru2/core/version.VERSION={{.Env.VERSION}}
+      - -X github.com/projecteru2/core/version.BUILTAT={{.CommitDate}}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    hooks:
+      post:
+        - objcopy --only-keep-debug "{{ .Path }}" "{{ dir .Path }}/eru-core.dbg"
     goos:
       - linux
     goarch:
