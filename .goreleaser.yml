@@ -38,7 +38,7 @@ checksum:
 release:
   prerelease: auto
   extra_files:
-    - glob: "{{ dir .Path }}/eru-core.dbg"
+    - glob: "/home/runner/work/core/core/dist/*/*.dbg"
 
 snapshot:
   name_template: "{{ .Tag }}-next"
