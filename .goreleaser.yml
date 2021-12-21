@@ -37,6 +37,8 @@ checksum:
 
 release:
   prerelease: auto
+  extra_files:
+    - glob: ./eru-core.dbg
 
 snapshot:
   name_template: "{{ .Tag }}-next"
