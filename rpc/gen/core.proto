@@ -18,10 +18,12 @@ service CoreRPC {
   rpc ListPods(Empty) returns (Pods) {};
 
   rpc GetPodResource(GetPodOptions) returns (PodResource) {};
+  rpc PodResourceStream(GetPodOptions) returns (stream NodeResource) {};
 
   rpc AddNode(AddNodeOptions) returns (Node) {};
   rpc RemoveNode(RemoveNodeOptions) returns (Empty) {};
   rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
+  rpc PodNodesStream(ListNodesOptions) returns (stream Node) {};
   rpc GetNode(GetNodeOptions) returns (Node) {};
   rpc SetNode(SetNodeOptions) returns (Node) {};
   rpc SetNodeStatus(SetNodeStatusOptions) returns (Empty) {};

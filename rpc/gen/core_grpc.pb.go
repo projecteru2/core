@@ -28,9 +28,11 @@ type CoreRPCClient interface {
 	GetPod(ctx context.Context, in *GetPodOptions, opts ...grpc.CallOption) (*Pod, error)
 	ListPods(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Pods, error)
 	GetPodResource(ctx context.Context, in *GetPodOptions, opts ...grpc.CallOption) (*PodResource, error)
+	PodResourceStream(ctx context.Context, in *GetPodOptions, opts ...grpc.CallOption) (CoreRPC_PodResourceStreamClient, error)
 	AddNode(ctx context.Context, in *AddNodeOptions, opts ...grpc.CallOption) (*Node, error)
 	RemoveNode(ctx context.Context, in *RemoveNodeOptions, opts ...grpc.CallOption) (*Empty, error)
 	ListPodNodes(ctx context.Context, in *ListNodesOptions, opts ...grpc.CallOption) (*Nodes, error)
+	PodNodesStream(ctx context.Context, in *ListNodesOptions, opts ...grpc.CallOption) (CoreRPC_PodNodesStreamClient, error)
 	GetNode(ctx context.Context, in *GetNodeOptions, opts ...grpc.CallOption) (*Node, error)
 	SetNode(ctx context.Context, in *SetNodeOptions, opts ...grpc.CallOption) (*Node, error)
 	SetNodeStatus(ctx context.Context, in *SetNodeStatusOptions, opts ...grpc.CallOption) (*Empty, error)
@@ -183,6 +185,38 @@ func (c *coreRPCClient) GetPodResource(ctx context.Context, in *GetPodOptions, o
 	return out, nil
 }
 
+func (c *coreRPCClient) PodResourceStream(ctx context.Context, in *GetPodOptions, opts ...grpc.CallOption) (CoreRPC_PodResourceStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[1], "/pb.CoreRPC/PodResourceStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &coreRPCPodResourceStreamClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type CoreRPC_PodResourceStreamClient interface {
+	Recv() (*NodeResource, error)
+	grpc.ClientStream
+}
+
+type coreRPCPodResourceStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *coreRPCPodResourceStreamClient) Recv() (*NodeResource, error) {
+	m := new(NodeResource)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *coreRPCClient) AddNode(ctx context.Context, in *AddNodeOptions, opts ...grpc.CallOption) (*Node, error) {
 	out := new(Node)
 	err := c.cc.Invoke(ctx, "/pb.CoreRPC/AddNode", in, out, opts...)
@@ -208,6 +242,38 @@ func (c *coreRPCClient) ListPodNodes(ctx context.Context, in *ListNodesOptions, 
 		return nil, err
 	}
 	return out, nil
+}
+
+func (c *coreRPCClient) PodNodesStream(ctx context.Context, in *ListNodesOptions, opts ...grpc.CallOption) (CoreRPC_PodNodesStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[2], "/pb.CoreRPC/PodNodesStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &coreRPCPodNodesStreamClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type CoreRPC_PodNodesStreamClient interface {
+	Recv() (*Node, error)
+	grpc.ClientStream
+}
+
+type coreRPCPodNodesStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *coreRPCPodNodesStreamClient) Recv() (*Node, error) {
+	m := new(Node)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (c *coreRPCClient) GetNode(ctx context.Context, in *GetNodeOptions, opts ...grpc.CallOption) (*Node, error) {
@@ -247,7 +313,7 @@ func (c *coreRPCClient) GetNodeStatus(ctx context.Context, in *GetNodeStatusOpti
 }
 
 func (c *coreRPCClient) NodeStatusStream(ctx context.Context, in *Empty, opts ...grpc.CallOption) (CoreRPC_NodeStatusStreamClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[1], "/pb.CoreRPC/NodeStatusStream", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[3], "/pb.CoreRPC/NodeStatusStream", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -315,7 +381,7 @@ func (c *coreRPCClient) GetWorkloads(ctx context.Context, in *WorkloadIDs, opts 
 }
 
 func (c *coreRPCClient) ListWorkloads(ctx context.Context, in *ListWorkloadsOptions, opts ...grpc.CallOption) (CoreRPC_ListWorkloadsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[2], "/pb.CoreRPC/ListWorkloads", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[4], "/pb.CoreRPC/ListWorkloads", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -374,7 +440,7 @@ func (c *coreRPCClient) SetWorkloadsStatus(ctx context.Context, in *SetWorkloads
 }
 
 func (c *coreRPCClient) WorkloadStatusStream(ctx context.Context, in *WorkloadStatusStreamOptions, opts ...grpc.CallOption) (CoreRPC_WorkloadStatusStreamClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[3], "/pb.CoreRPC/WorkloadStatusStream", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[5], "/pb.CoreRPC/WorkloadStatusStream", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -406,7 +472,7 @@ func (x *coreRPCWorkloadStatusStreamClient) Recv() (*WorkloadStatusStreamMessage
 }
 
 func (c *coreRPCClient) Copy(ctx context.Context, in *CopyOptions, opts ...grpc.CallOption) (CoreRPC_CopyClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[4], "/pb.CoreRPC/Copy", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[6], "/pb.CoreRPC/Copy", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -438,7 +504,7 @@ func (x *coreRPCCopyClient) Recv() (*CopyMessage, error) {
 }
 
 func (c *coreRPCClient) Send(ctx context.Context, in *SendOptions, opts ...grpc.CallOption) (CoreRPC_SendClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[5], "/pb.CoreRPC/Send", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[7], "/pb.CoreRPC/Send", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -470,7 +536,7 @@ func (x *coreRPCSendClient) Recv() (*SendMessage, error) {
 }
 
 func (c *coreRPCClient) BuildImage(ctx context.Context, in *BuildImageOptions, opts ...grpc.CallOption) (CoreRPC_BuildImageClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[6], "/pb.CoreRPC/BuildImage", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[8], "/pb.CoreRPC/BuildImage", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -502,7 +568,7 @@ func (x *coreRPCBuildImageClient) Recv() (*BuildImageMessage, error) {
 }
 
 func (c *coreRPCClient) CacheImage(ctx context.Context, in *CacheImageOptions, opts ...grpc.CallOption) (CoreRPC_CacheImageClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[7], "/pb.CoreRPC/CacheImage", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[9], "/pb.CoreRPC/CacheImage", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -534,7 +600,7 @@ func (x *coreRPCCacheImageClient) Recv() (*CacheImageMessage, error) {
 }
 
 func (c *coreRPCClient) RemoveImage(ctx context.Context, in *RemoveImageOptions, opts ...grpc.CallOption) (CoreRPC_RemoveImageClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[8], "/pb.CoreRPC/RemoveImage", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[10], "/pb.CoreRPC/RemoveImage", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -566,7 +632,7 @@ func (x *coreRPCRemoveImageClient) Recv() (*RemoveImageMessage, error) {
 }
 
 func (c *coreRPCClient) ListImage(ctx context.Context, in *ListImageOptions, opts ...grpc.CallOption) (CoreRPC_ListImageClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[9], "/pb.CoreRPC/ListImage", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[11], "/pb.CoreRPC/ListImage", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -598,7 +664,7 @@ func (x *coreRPCListImageClient) Recv() (*ListImageMessage, error) {
 }
 
 func (c *coreRPCClient) CreateWorkload(ctx context.Context, in *DeployOptions, opts ...grpc.CallOption) (CoreRPC_CreateWorkloadClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[10], "/pb.CoreRPC/CreateWorkload", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[12], "/pb.CoreRPC/CreateWorkload", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -630,7 +696,7 @@ func (x *coreRPCCreateWorkloadClient) Recv() (*CreateWorkloadMessage, error) {
 }
 
 func (c *coreRPCClient) ReplaceWorkload(ctx context.Context, in *ReplaceOptions, opts ...grpc.CallOption) (CoreRPC_ReplaceWorkloadClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[11], "/pb.CoreRPC/ReplaceWorkload", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[13], "/pb.CoreRPC/ReplaceWorkload", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -662,7 +728,7 @@ func (x *coreRPCReplaceWorkloadClient) Recv() (*ReplaceWorkloadMessage, error) {
 }
 
 func (c *coreRPCClient) RemoveWorkload(ctx context.Context, in *RemoveWorkloadOptions, opts ...grpc.CallOption) (CoreRPC_RemoveWorkloadClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[12], "/pb.CoreRPC/RemoveWorkload", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[14], "/pb.CoreRPC/RemoveWorkload", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -694,7 +760,7 @@ func (x *coreRPCRemoveWorkloadClient) Recv() (*RemoveWorkloadMessage, error) {
 }
 
 func (c *coreRPCClient) DissociateWorkload(ctx context.Context, in *DissociateWorkloadOptions, opts ...grpc.CallOption) (CoreRPC_DissociateWorkloadClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[13], "/pb.CoreRPC/DissociateWorkload", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[15], "/pb.CoreRPC/DissociateWorkload", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -726,7 +792,7 @@ func (x *coreRPCDissociateWorkloadClient) Recv() (*DissociateWorkloadMessage, er
 }
 
 func (c *coreRPCClient) ControlWorkload(ctx context.Context, in *ControlWorkloadOptions, opts ...grpc.CallOption) (CoreRPC_ControlWorkloadClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[14], "/pb.CoreRPC/ControlWorkload", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[16], "/pb.CoreRPC/ControlWorkload", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -758,7 +824,7 @@ func (x *coreRPCControlWorkloadClient) Recv() (*ControlWorkloadMessage, error) {
 }
 
 func (c *coreRPCClient) ExecuteWorkload(ctx context.Context, opts ...grpc.CallOption) (CoreRPC_ExecuteWorkloadClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[15], "/pb.CoreRPC/ExecuteWorkload", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[17], "/pb.CoreRPC/ExecuteWorkload", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -798,7 +864,7 @@ func (c *coreRPCClient) ReallocResource(ctx context.Context, in *ReallocOptions,
 }
 
 func (c *coreRPCClient) LogStream(ctx context.Context, in *LogStreamOptions, opts ...grpc.CallOption) (CoreRPC_LogStreamClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[16], "/pb.CoreRPC/LogStream", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[18], "/pb.CoreRPC/LogStream", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -830,7 +896,7 @@ func (x *coreRPCLogStreamClient) Recv() (*LogStreamMessage, error) {
 }
 
 func (c *coreRPCClient) RunAndWait(ctx context.Context, opts ...grpc.CallOption) (CoreRPC_RunAndWaitClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[17], "/pb.CoreRPC/RunAndWait", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[19], "/pb.CoreRPC/RunAndWait", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -874,9 +940,11 @@ type CoreRPCServer interface {
 	GetPod(context.Context, *GetPodOptions) (*Pod, error)
 	ListPods(context.Context, *Empty) (*Pods, error)
 	GetPodResource(context.Context, *GetPodOptions) (*PodResource, error)
+	PodResourceStream(*GetPodOptions, CoreRPC_PodResourceStreamServer) error
 	AddNode(context.Context, *AddNodeOptions) (*Node, error)
 	RemoveNode(context.Context, *RemoveNodeOptions) (*Empty, error)
 	ListPodNodes(context.Context, *ListNodesOptions) (*Nodes, error)
+	PodNodesStream(*ListNodesOptions, CoreRPC_PodNodesStreamServer) error
 	GetNode(context.Context, *GetNodeOptions) (*Node, error)
 	SetNode(context.Context, *SetNodeOptions) (*Node, error)
 	SetNodeStatus(context.Context, *SetNodeStatusOptions) (*Empty, error)
@@ -942,6 +1010,9 @@ func (UnimplementedCoreRPCServer) ListPods(context.Context, *Empty) (*Pods, erro
 func (UnimplementedCoreRPCServer) GetPodResource(context.Context, *GetPodOptions) (*PodResource, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPodResource not implemented")
 }
+func (UnimplementedCoreRPCServer) PodResourceStream(*GetPodOptions, CoreRPC_PodResourceStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method PodResourceStream not implemented")
+}
 func (UnimplementedCoreRPCServer) AddNode(context.Context, *AddNodeOptions) (*Node, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddNode not implemented")
 }
@@ -950,6 +1021,9 @@ func (UnimplementedCoreRPCServer) RemoveNode(context.Context, *RemoveNodeOptions
 }
 func (UnimplementedCoreRPCServer) ListPodNodes(context.Context, *ListNodesOptions) (*Nodes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListPodNodes not implemented")
+}
+func (UnimplementedCoreRPCServer) PodNodesStream(*ListNodesOptions, CoreRPC_PodNodesStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method PodNodesStream not implemented")
 }
 func (UnimplementedCoreRPCServer) GetNode(context.Context, *GetNodeOptions) (*Node, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetNode not implemented")
@@ -1233,6 +1307,27 @@ func _CoreRPC_GetPodResource_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CoreRPC_PodResourceStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetPodOptions)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(CoreRPCServer).PodResourceStream(m, &coreRPCPodResourceStreamServer{stream})
+}
+
+type CoreRPC_PodResourceStreamServer interface {
+	Send(*NodeResource) error
+	grpc.ServerStream
+}
+
+type coreRPCPodResourceStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *coreRPCPodResourceStreamServer) Send(m *NodeResource) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 func _CoreRPC_AddNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AddNodeOptions)
 	if err := dec(in); err != nil {
@@ -1285,6 +1380,27 @@ func _CoreRPC_ListPodNodes_Handler(srv interface{}, ctx context.Context, dec fun
 		return srv.(CoreRPCServer).ListPodNodes(ctx, req.(*ListNodesOptions))
 	}
 	return interceptor(ctx, in, info, handler)
+}
+
+func _CoreRPC_PodNodesStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ListNodesOptions)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(CoreRPCServer).PodNodesStream(m, &coreRPCPodNodesStreamServer{stream})
+}
+
+type CoreRPC_PodNodesStreamServer interface {
+	Send(*Node) error
+	grpc.ServerStream
+}
+
+type coreRPCPodNodesStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *coreRPCPodNodesStreamServer) Send(m *Node) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 func _CoreRPC_GetNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -1978,6 +2094,16 @@ var CoreRPC_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "WatchServiceStatus",
 			Handler:       _CoreRPC_WatchServiceStatus_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "PodResourceStream",
+			Handler:       _CoreRPC_PodResourceStream_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "PodNodesStream",
+			Handler:       _CoreRPC_PodNodesStream_Handler,
 			ServerStreams: true,
 		},
 		{
