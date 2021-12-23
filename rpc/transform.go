@@ -34,17 +34,6 @@ func toRPCPod(p *types.Pod) *pb.Pod {
 	return &pb.Pod{Name: p.Name, Desc: p.Desc}
 }
 
-func toRPCPodResource(p *types.PodResource) *pb.PodResource {
-	r := &pb.PodResource{
-		Name:          p.Name,
-		NodesResource: []*pb.NodeResource{},
-	}
-	for _, nodeResource := range p.NodesResource {
-		r.NodesResource = append(r.NodesResource, toRPCNodeResource(nodeResource))
-	}
-	return r
-}
-
 func toRPCNetwork(n *enginetypes.Network) *pb.Network {
 	return &pb.Network{Name: n.Name, Subnets: n.Subnets}
 }

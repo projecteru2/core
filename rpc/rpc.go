@@ -144,11 +144,32 @@ func (v *Vibranium) ListPods(ctx context.Context, _ *pb.Empty) (*pb.Pods, error)
 
 // GetPodResource get pod nodes resource usage
 func (v *Vibranium) GetPodResource(ctx context.Context, opts *pb.GetPodOptions) (*pb.PodResource, error) {
-	r, err := v.cluster.PodResource(ctx, opts.Name)
+	ctx = v.taskAdd(ctx, "GetPodResource", false)
+	defer v.taskDone(ctx, "GetPodResource", false)
+	ch, err := v.cluster.PodResource(ctx, opts.Name)
 	if err != nil {
 		return nil, grpcstatus.Error(PodResource, err.Error())
 	}
-	return toRPCPodResource(r), nil
+	podResource := &pb.PodResource{Name: opts.Name}
+	for nodeResource := range ch {
+		podResource.NodesResource = append(podResource.NodesResource, toRPCNodeResource(nodeResource))
+	}
+	return podResource, nil
+}
+
+func (v *Vibranium) PodResourceStream(opts *pb.GetPodOptions, stream pb.CoreRPC_PodResourceStreamServer) error {
+	ctx := v.taskAdd(stream.Context(), "PodResourceStream", false)
+	defer v.taskDone(ctx, "PodResourceStream", false)
+	ch, err := v.cluster.PodResource(ctx, opts.Name)
+	if err != nil {
+		return grpcstatus.Error(PodResource, err.Error())
+	}
+	for msg := range ch {
+		if err := stream.Send(toRPCNodeResource(msg)); err != nil {
+			v.logUnsentMessages(ctx, "PodResourceStream", err, msg)
+		}
+	}
+	return nil
 }
 
 // AddNode saves a node and returns it to client
@@ -202,6 +223,10 @@ func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions)
 	}
 
 	return &pb.Nodes{Nodes: nodes}, nil
+}
+
+func (v *Vibranium) PodNodesStream(opts *pb.ListNodesOptions, stream pb.CoreRPC_PodNodesStreamServer) error {
+	return nil
 }
 
 // GetNode get a node

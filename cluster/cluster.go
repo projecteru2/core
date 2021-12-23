@@ -48,7 +48,7 @@ type Cluster interface {
 	GetPod(ctx context.Context, podname string) (*types.Pod, error)
 	ListPods(ctx context.Context) ([]*types.Pod, error)
 	// pod resource
-	PodResource(ctx context.Context, podname string) (*types.PodResource, error)
+	PodResource(ctx context.Context, podname string) (chan *types.NodeResource, error)
 	// meta node
 	AddNode(context.Context, *types.AddNodeOptions) (*types.Node, error)
 	RemoveNode(ctx context.Context, nodename string) error
