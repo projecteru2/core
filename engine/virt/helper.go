@@ -61,5 +61,11 @@ func splitUserImage(combined string) (user, imageName string, err error) {
 }
 
 func combineUserImage(user, imageName string) string {
+	if len(imageName) < 1 {
+		return ""
+	}
+	if len(user) < 1 {
+		return imageName
+	}
 	return fmt.Sprintf("%s%s%s", user, sep, imageName)
 }
