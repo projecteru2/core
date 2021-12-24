@@ -181,7 +181,7 @@ func (v *Vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.N
 		return nil, grpcstatus.Error(AddNode, err.Error())
 	}
 
-	return toRPCNode(ctx, n), nil
+	return toRPCNode(n), nil
 }
 
 // RemoveNode removes the node from etcd
@@ -201,25 +201,14 @@ func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions)
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(opts.TimeoutInSecond)*time.Second)
 	defer cancel()
 
-	ns, err := v.cluster.ListPodNodes(ctx, opts.Podname, opts.Labels, opts.All)
+	ns, err := v.cluster.ListPodNodes(ctx, toCoreListNodesOptions(opts))
 	if err != nil {
 		return nil, grpcstatus.Error(ListPodNodes, err.Error())
 	}
 
 	nodes := []*pb.Node{}
-	nodeChan := make(chan *pb.Node, len(ns))
-	wg := &sync.WaitGroup{}
-	for _, n := range ns {
-		wg.Add(1)
-		go func(node *types.Node) {
-			defer wg.Done()
-			nodeChan <- toRPCNode(ctx, node)
-		}(n)
-	}
-	wg.Wait()
-	close(nodeChan)
-	for node := range nodeChan {
-		nodes = append(nodes, node)
+	for n := range ns {
+		nodes = append(nodes, toRPCNode(n))
 	}
 
 	return &pb.Nodes{Nodes: nodes}, nil
@@ -236,7 +225,7 @@ func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.N
 		return nil, grpcstatus.Error(GetNode, err.Error())
 	}
 
-	return toRPCNode(ctx, n), nil
+	return toRPCNode(n), nil
 }
 
 // SetNode set node meta
@@ -249,7 +238,7 @@ func (v *Vibranium) SetNode(ctx context.Context, opts *pb.SetNodeOptions) (*pb.N
 	if err != nil {
 		return nil, grpcstatus.Error(SetNode, err.Error())
 	}
-	return toRPCNode(ctx, n), nil
+	return toRPCNode(n), nil
 }
 
 // SetNodeStatus set status of a node for reporting

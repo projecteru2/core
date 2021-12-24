@@ -17,7 +17,7 @@ import (
 // PodResource show pod resource usage
 func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.NodeResource, error) {
 	logger := log.WithField("Calcium", "PodResource").WithField("podname", podname)
-	nodes, err := c.ListPodNodes(ctx, podname, nil, true)
+	nodeCh, err := c.ListPodNodes(ctx, &types.ListNodesOptions{Podname: podname, All: true})
 	if err != nil {
 		return nil, logger.Err(ctx, err)
 	}
@@ -25,7 +25,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.
 	pool := utils.NewGoroutinePool(int(c.config.MaxConcurrency))
 	go func() {
 		defer close(ch)
-		for _, node := range nodes {
+		for node := range nodeCh {
 			pool.Go(ctx, func() {
 				nodeResource, err := c.doGetNodeResource(ctx, node.Name, false)
 				if err != nil {

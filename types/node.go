@@ -6,7 +6,6 @@ import (
 	"math"
 
 	engine "github.com/projecteru2/core/engine"
-	enginetypes "github.com/projecteru2/core/engine/types"
 
 	"github.com/pkg/errors"
 )
@@ -56,6 +55,7 @@ func (n NodeMeta) DeepCopy() (nn NodeMeta, err error) {
 // Node store node info
 type Node struct {
 	NodeMeta
+	NodeInfo string
 
 	CPUUsed    float64 `json:"cpuused"`
 	VolumeUsed int64   `json:"volumeused"`
@@ -77,12 +77,23 @@ func (n *Node) Init() {
 }
 
 // Info show node info
-func (n *Node) Info(ctx context.Context) (*enginetypes.Info, error) {
+func (n *Node) Info(ctx context.Context) (err error) {
 	if n.Engine == nil {
-		return nil, errors.WithStack(ErrNilEngine)
+		return errors.WithStack(ErrNilEngine)
 	}
 	info, err := n.Engine.Info(ctx)
-	return info, errors.WithStack(err)
+	if err != nil {
+		n.Available = false
+		n.NodeInfo = err.Error()
+		return errors.WithStack(err)
+	}
+	bs, err := json.Marshal(info)
+	if err != nil {
+		n.NodeInfo = err.Error()
+		return errors.WithStack(err)
+	}
+	n.NodeInfo = string(bs)
+	return nil
 }
 
 // SetCPUUsed set cpuusage

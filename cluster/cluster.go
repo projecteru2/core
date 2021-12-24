@@ -52,7 +52,7 @@ type Cluster interface {
 	// meta node
 	AddNode(context.Context, *types.AddNodeOptions) (*types.Node, error)
 	RemoveNode(ctx context.Context, nodename string) error
-	ListPodNodes(ctx context.Context, podname string, labels map[string]string, all bool) ([]*types.Node, error)
+	ListPodNodes(context.Context, *types.ListNodesOptions) (<-chan *types.Node, error)
 	GetNode(ctx context.Context, nodename string) (*types.Node, error)
 	SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error)
 	SetNodeStatus(ctx context.Context, nodename string, ttl int64) error

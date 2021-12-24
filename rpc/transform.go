@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -38,17 +37,7 @@ func toRPCNetwork(n *enginetypes.Network) *pb.Network {
 	return &pb.Network{Name: n.Name, Subnets: n.Subnets}
 }
 
-func toRPCNode(ctx context.Context, n *types.Node) *pb.Node {
-	var nodeInfo string
-	var info *enginetypes.Info
-	var err error
-	if info, err = n.Info(ctx); err == nil {
-		bytes, _ := json.Marshal(info)
-		nodeInfo = string(bytes)
-	} else {
-		nodeInfo = err.Error()
-	}
-
+func toRPCNode(n *types.Node) *pb.Node {
 	return &pb.Node{
 		Name:           n.Name,
 		Endpoint:       n.Endpoint,
@@ -61,13 +50,13 @@ func toRPCNode(ctx context.Context, n *types.Node) *pb.Node {
 		StorageUsed:    n.StorageUsed(),
 		Volume:         n.Volume,
 		VolumeUsed:     n.VolumeUsed,
-		Available:      n.Available && err == nil,
+		Available:      n.Available,
 		Labels:         n.Labels,
 		InitCpu:        toRPCCPUMap(n.InitCPU),
 		InitMemory:     n.InitMemCap,
 		InitStorage:    n.InitStorageCap,
 		InitVolume:     n.InitVolume,
-		Info:           nodeInfo,
+		Info:           n.NodeInfo,
 		Numa:           n.NUMA,
 		NumaMemory:     n.NUMAMemory,
 		InitNumaMemory: n.InitNUMAMemory,
@@ -97,6 +86,15 @@ func toRPCBuildImageMessage(b *types.BuildImageMessage) *pb.BuildImageMessage {
 			Code:    int64(b.ErrorDetail.Code),
 			Message: b.ErrorDetail.Message,
 		},
+	}
+}
+
+func toCoreListNodesOptions(b *pb.ListNodesOptions) *types.ListNodesOptions {
+	return &types.ListNodesOptions{
+		Podname: b.Podname,
+		Labels:  b.Labels,
+		All:     b.All,
+		Info:    !b.SkipInfo,
 	}
 }
 

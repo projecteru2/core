@@ -342,6 +342,7 @@ message ListNodesOptions {
   bool all = 2;
   map<string, string> labels = 3;
   int32 timeout_in_second = 4;
+  bool skip_info = 5;
 }
 
 message Build {

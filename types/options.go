@@ -175,6 +175,13 @@ func (o *ReplaceOptions) Normalize() {
 	}
 }
 
+type ListNodesOptions struct {
+	Podname string
+	Labels  map[string]string
+	All     bool
+	Info    bool
+}
+
 // AddNodeOptions for adding node
 type AddNodeOptions struct {
 	Nodename   string
