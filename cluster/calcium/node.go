@@ -58,6 +58,7 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 
 	pool := utils.NewGoroutinePool(int(c.config.MaxConcurrency))
 	go func() {
+		defer close(ch)
 		for _, node := range nodes {
 			pool.Go(ctx, func(node *types.Node) func() {
 				return func() {
@@ -70,10 +71,7 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 				}
 			}(node))
 		}
-	}()
-	go func() {
 		pool.Wait(ctx)
-		close(ch)
 	}()
 	return ch, nil
 }

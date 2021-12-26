@@ -194,6 +194,9 @@ func (v *Vibranium) RemoveNode(ctx context.Context, opts *pb.RemoveNodeOptions) 
 
 // ListPodNodes returns a list of node for pod
 func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions) (*pb.Nodes, error) {
+	ctx = v.taskAdd(ctx, "ListPodNodes", false)
+	defer v.taskDone(ctx, "ListPodNodes", false)
+
 	// default timeout is 10s
 	if opts.TimeoutInSecond <= 0 {
 		opts.TimeoutInSecond = 10
@@ -201,13 +204,13 @@ func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions)
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(opts.TimeoutInSecond)*time.Second)
 	defer cancel()
 
-	ns, err := v.cluster.ListPodNodes(ctx, toCoreListNodesOptions(opts))
+	ch, err := v.cluster.ListPodNodes(ctx, toCoreListNodesOptions(opts))
 	if err != nil {
 		return nil, grpcstatus.Error(ListPodNodes, err.Error())
 	}
 
 	nodes := []*pb.Node{}
-	for n := range ns {
+	for n := range ch {
 		nodes = append(nodes, toRPCNode(n))
 	}
 
@@ -215,6 +218,25 @@ func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions)
 }
 
 func (v *Vibranium) PodNodesStream(opts *pb.ListNodesOptions, stream pb.CoreRPC_PodNodesStreamServer) error {
+	ctx := v.taskAdd(stream.Context(), "PodNodesStream", false)
+	defer v.taskDone(ctx, "PodNodesStream", false)
+
+	if opts.TimeoutInSecond <= 0 {
+		opts.TimeoutInSecond = 10
+	}
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(opts.TimeoutInSecond)*time.Second)
+	defer cancel()
+
+	ch, err := v.cluster.ListPodNodes(ctx, toCoreListNodesOptions(opts))
+	if err != nil {
+		return grpcstatus.Error(ListPodNodes, err.Error())
+	}
+
+	for msg := range ch {
+		if err := stream.Send(toRPCNode(msg)); err != nil {
+			v.logUnsentMessages(ctx, "PodNodesStream", err, msg)
+		}
+	}
 	return nil
 }
 
