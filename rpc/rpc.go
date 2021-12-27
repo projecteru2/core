@@ -157,6 +157,7 @@ func (v *Vibranium) GetPodResource(ctx context.Context, opts *pb.GetPodOptions) 
 	return podResource, nil
 }
 
+// PodResourceStream returns a stream of NodeResource
 func (v *Vibranium) PodResourceStream(opts *pb.GetPodOptions, stream pb.CoreRPC_PodResourceStreamServer) error {
 	ctx := v.taskAdd(stream.Context(), "PodResourceStream", false)
 	defer v.taskDone(ctx, "PodResourceStream", false)
@@ -217,6 +218,7 @@ func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions)
 	return &pb.Nodes{Nodes: nodes}, nil
 }
 
+// PodNodesStream returns a stream of Node
 func (v *Vibranium) PodNodesStream(opts *pb.ListNodesOptions, stream pb.CoreRPC_PodNodesStreamServer) error {
 	ctx := v.taskAdd(stream.Context(), "PodNodesStream", false)
 	defer v.taskDone(ctx, "PodNodesStream", false)

@@ -93,16 +93,24 @@ func TestListPodNodes(t *testing.T) {
 	store := &storemocks.Store{}
 	c.store = store
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err := c.ListPodNodes(ctx, "", nil, false)
+	_, err := c.ListPodNodes(ctx, &types.ListNodesOptions{})
 	assert.Error(t, err)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
-	ns, err := c.ListPodNodes(ctx, "", nil, false)
+	ns, err := c.ListPodNodes(ctx, &types.ListNodesOptions{})
+	nss := []*types.Node{}
+	for n := range ns {
+		nss = append(nss, n)
+	}
 	assert.NoError(t, err)
-	assert.Equal(t, len(ns), 2)
-	assert.Equal(t, ns[0].Name, name1)
-	ns, err = c.ListPodNodes(ctx, "", nil, true)
+	assert.Equal(t, len(nss), 2)
+	assert.Equal(t, nss[0].Name, name1)
+	ns, err = c.ListPodNodes(ctx, &types.ListNodesOptions{})
 	assert.NoError(t, err)
-	assert.Equal(t, len(ns), 2)
+	cnt := 0
+	for range ns {
+		cnt++
+	}
+	assert.Equal(t, cnt, 2)
 }
 
 func TestGetNode(t *testing.T) {

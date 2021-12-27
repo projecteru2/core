@@ -175,6 +175,7 @@ func (o *ReplaceOptions) Normalize() {
 	}
 }
 
+// ListNodesOptions for list nodes
 type ListNodesOptions struct {
 	Podname string
 	Labels  map[string]string
