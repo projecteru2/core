@@ -160,35 +160,34 @@ func TestSetNode(t *testing.T) {
 	assert.Error(t, err)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	// failed by no node name
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test1", StatusOpt: 2})
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test1"})
 	assert.Error(t, err)
 	// failed by updatenode
 	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", StatusOpt: 2})
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test"})
 	assert.Error(t, err)
 	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
 	// succ when node available
-	n, err := c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", StatusOpt: 2, Endpoint: "tcp://127.0.0.1:2379"})
+	n, err := c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", Endpoint: "tcp://127.0.0.1:2379"})
 	assert.NoError(t, err)
 	assert.Equal(t, n.Name, name)
 	assert.Equal(t, n.Endpoint, "tcp://127.0.0.1:2379")
 	// not available
 	// can still set node even if ListNodeWorkloads fails
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", StatusOpt: 0, WorkloadsDown: true})
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", WorkloadsDown: true})
 	assert.NoError(t, err)
 	workloads := []*types.Workload{{Name: "wrong_name"}, {Name: "a_b_c"}}
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
 	store.On("SetWorkloadStatus",
 		mock.Anything, mock.Anything, mock.Anything,
 	).Return(types.ErrNoETCD)
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", StatusOpt: 0, WorkloadsDown: true})
+	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", WorkloadsDown: true})
 	assert.NoError(t, err)
 	// test modify
 	setOpts := &types.SetNodeOptions{
-		Nodename:  "test",
-		StatusOpt: 1,
-		Labels:    map[string]string{"some": "1"},
+		Nodename: "test",
+		Labels:   map[string]string{"some": "1"},
 	}
 	// set label
 	n, err = c.SetNode(ctx, setOpts)

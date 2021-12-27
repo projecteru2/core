@@ -53,8 +53,9 @@ func NewTestCluster() *Calcium {
 			MaxShare:  -1,
 			ShareBase: 100,
 		},
-		WALFile:        filepath.Join(walDir, "core.wal.log"),
-		MaxConcurrency: 10,
+		WALFile:             filepath.Join(walDir, "core.wal.log"),
+		MaxConcurrency:      10,
+		HAKeepaliveInterval: 16 * time.Second,
 	}
 	c.store = &storemocks.Store{}
 	c.scheduler = &schedulermocks.Scheduler{}
@@ -69,7 +70,7 @@ func NewTestCluster() *Calcium {
 }
 
 func TestNewCluster(t *testing.T) {
-	config := types.Config{WALFile: "/tmp/a"}
+	config := types.Config{WALFile: "/tmp/a", HAKeepaliveInterval: 16 * time.Second}
 	_, err := New(config, nil)
 	assert.Error(t, err)
 
@@ -91,6 +92,7 @@ func TestNewCluster(t *testing.T) {
 			SCMType:    "gitlab",
 			PrivateKey: privFile.Name(),
 		},
+		HAKeepaliveInterval: 16 * time.Second,
 	}
 	c1, err := New(config1, t)
 	assert.NoError(t, err)
@@ -102,6 +104,7 @@ func TestNewCluster(t *testing.T) {
 			SCMType:    "github",
 			PrivateKey: privFile.Name(),
 		},
+		HAKeepaliveInterval: 16 * time.Second,
 	}
 	c2, err := New(config2, t)
 	assert.NoError(t, err)

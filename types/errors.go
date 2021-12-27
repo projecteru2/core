@@ -92,6 +92,8 @@ var (
 	ErrLockSessionDone          = errors.New("lock session done")
 
 	ErrRollbackMapIsNotEmpty = errors.New("rollback map is not empty")
+
+	ErrMessageChanClosed = errors.New("message chan closed")
 )
 
 type detailedErr struct {

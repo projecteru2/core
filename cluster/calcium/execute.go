@@ -28,7 +28,7 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 
 		workload, err := c.GetWorkload(ctx, opts.WorkloadID)
 		if err != nil {
-			logger.Errorf(ctx, "[ExecuteWorkload] Failed to get wordload: %+v", err)
+			logger.Errorf(ctx, "[ExecuteWorkload] Failed to get workload: %+v", err)
 			return
 		}
 

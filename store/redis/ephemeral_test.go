@@ -86,6 +86,7 @@ func (s *RediaronTestSuite) TestEphemeralFailedAsPutAlready() {
 
 func TestEphemeralMustRevokeAfterKeepaliveFailed(t *testing.T) {
 	assert := assert.New(t)
+
 	s, err := miniredis.Run()
 	if err != nil {
 		t.Fail()

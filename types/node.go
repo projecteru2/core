@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"math"
 
-	engine "github.com/projecteru2/core/engine"
-
 	"github.com/pkg/errors"
+
+	engine "github.com/projecteru2/core/engine"
 )
 
 const (
@@ -66,7 +66,7 @@ type Node struct {
 
 	// Bypass if bypass is true, it will not participate in future scheduling
 	Bypass    bool       `json:"bypass,omitempty"`
-	Available bool       `json:"available"`
+	Available bool       `json:"-"`
 	Engine    engine.API `json:"-"`
 }
 
@@ -82,9 +82,6 @@ func (n *Node) Init() {
 
 // Info show node info
 func (n *Node) Info(ctx context.Context) (err error) {
-	if n.Engine == nil {
-		return errors.WithStack(ErrNilEngine)
-	}
 	info, err := n.Engine.Info(ctx)
 	if err != nil {
 		n.Available = false

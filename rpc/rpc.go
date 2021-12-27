@@ -198,11 +198,11 @@ func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions)
 	ctx = v.taskAdd(ctx, "ListPodNodes", false)
 	defer v.taskDone(ctx, "ListPodNodes", false)
 
-	// default timeout is 10s
+	timeout := time.Duration(opts.TimeoutInSecond) * time.Second
 	if opts.TimeoutInSecond <= 0 {
-		opts.TimeoutInSecond = 10
+		timeout = v.config.ConnectionTimeout
 	}
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(opts.TimeoutInSecond)*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	ch, err := v.cluster.ListPodNodes(ctx, toCoreListNodesOptions(opts))
@@ -223,10 +223,11 @@ func (v *Vibranium) PodNodesStream(opts *pb.ListNodesOptions, stream pb.CoreRPC_
 	ctx := v.taskAdd(stream.Context(), "PodNodesStream", false)
 	defer v.taskDone(ctx, "PodNodesStream", false)
 
+	timeout := time.Duration(opts.TimeoutInSecond) * time.Second
 	if opts.TimeoutInSecond <= 0 {
-		opts.TimeoutInSecond = 10
+		timeout = v.config.ConnectionTimeout
 	}
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(opts.TimeoutInSecond)*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	ch, err := v.cluster.ListPodNodes(ctx, toCoreListNodesOptions(opts))

@@ -26,11 +26,9 @@ func TestNode(t *testing.T) {
 	assert.Equal(t, node.Volume, VolumeMap{})
 	assert.Equal(t, node.InitVolume, VolumeMap{})
 	ctx := context.Background()
-	err := node.Info(ctx)
-	assert.Error(t, err)
 
 	node.Engine = mockEngine
-	err = node.Info(ctx)
+	err := node.Info(ctx)
 	assert.NoError(t, err)
 	assert.True(t, strings.Contains(node.NodeInfo, "test"))
 

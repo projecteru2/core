@@ -120,7 +120,7 @@ func (c *Calcium) setAllWorkloadsOnNodeDown(ctx context.Context, nodename string
 }
 
 // SetNode set node available or not
-func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) { // nolint
+func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) {
 	logger := log.WithField("Calcium", "SetNode").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
 		return nil, logger.Err(ctx, err)
@@ -131,17 +131,9 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		opts.Normalize(node)
 		n = node
 
-		n.Available = (opts.StatusOpt == types.TriTrue) || (opts.StatusOpt == types.TriKeep && n.Available)
 		n.Bypass = (opts.BypassOpt == types.TriTrue) || (opts.BypassOpt == types.TriKeep && n.Bypass)
 		if n.IsDown() {
 			log.Errorf(ctx, "[SetNodeAvailable] node marked down: %s", opts.Nodename)
-		}
-		if !n.Available {
-			// remove node status
-			if err := c.store.SetNodeStatus(ctx, node, -1); err != nil {
-				// don't return here
-				logger.Errorf(ctx, "[SetNode] failed to remove node status, err: %+v", errors.WithStack(err))
-			}
 		}
 		if opts.WorkloadsDown {
 			c.setAllWorkloadsOnNodeDown(ctx, opts.Nodename)

@@ -36,6 +36,7 @@ func (c *Calcium) ListNetworks(ctx context.Context, podname string, driver strin
 	}
 
 	node := nodes[0]
+
 	networks, err = node.Engine.NetworkList(ctx, drivers)
 	return networks, logger.Err(ctx, errors.WithStack(err))
 }

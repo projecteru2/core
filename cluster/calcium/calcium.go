@@ -31,6 +31,7 @@ type Calcium struct {
 	watcher    discovery.Service
 	wal        *WAL
 	identifier string
+	selfmon    *NodeStatusWatcher
 }
 
 // New returns a new cluster config
@@ -82,6 +83,11 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 	cal := &Calcium{store: store, config: config, scheduler: potassium, source: scm, watcher: watcher}
 	cal.wal, err = newCalciumWAL(cal)
 	cal.identifier = config.Identifier()
+	cal.selfmon = NewNodeStatusWatcher(cal)
+
+	// start node status watcher
+	go cal.selfmon.run()
+
 	return cal, logger.Err(nil, errors.WithStack(err)) //nolint
 }
 

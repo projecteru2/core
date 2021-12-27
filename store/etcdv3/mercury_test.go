@@ -18,6 +18,7 @@ func NewMercury(t *testing.T) *Mercury {
 		Prefix:     "/eru-test",
 		LockPrefix: "/eru-test-lock",
 	}
+	config.MaxConcurrency = 20
 	//	config.Docker.CertPath = "/tmp"
 
 	m, err := New(config, t)

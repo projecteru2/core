@@ -82,6 +82,7 @@ func TestRediaron(t *testing.T) {
 	config := types.Config{}
 	config.LockTimeout = 10 * time.Second
 	config.GlobalTimeout = 30 * time.Second
+	config.MaxConcurrency = 20
 
 	cli := redis.NewClient(&redis.Options{
 		Addr: s.Addr(),

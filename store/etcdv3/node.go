@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/mvccpb"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/projecteru2/core/engine"
 	enginefactory "github.com/projecteru2/core/engine/factory"
+	"github.com/projecteru2/core/engine/fake"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/store"
@@ -292,27 +292,52 @@ func (m *Mercury) doRemoveNode(ctx context.Context, podname, nodename, endpoint 
 }
 
 func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels map[string]string, all bool) (nodes []*types.Node, err error) {
+	allNodes := []*types.Node{}
 	for _, ev := range kvs {
 		node := &types.Node{}
 		if err := json.Unmarshal(ev.Value, node); err != nil {
 			return nil, err
 		}
 		node.Init()
-		nodes = append(nodes, node)
+		if utils.FilterWorkload(node.Labels, labels) {
+			allNodes = append(allNodes, node)
+		}
 	}
-	wg := &sync.WaitGroup{}
-	wg.Add(len(nodes))
-	for _, node := range nodes {
-		go func(node *types.Node) {
-			defer wg.Done()
-			if (!node.IsDown() || all) && utils.FilterWorkload(node.Labels, labels) {
-				if node.Engine, err = m.makeClient(ctx, node); err != nil {
-					return
+
+	pool := utils.NewGoroutinePool(int(m.config.MaxConcurrency))
+	nodeChan := make(chan *types.Node, len(allNodes))
+
+	for _, n := range allNodes {
+		node := n
+		pool.Go(ctx, func() {
+			if _, err := m.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrBadCount) {
+				log.Errorf(ctx, "[doGetNodes] failed to get node status of %v, err: %v", node.Name, err)
+			} else {
+				node.Available = err == nil
+			}
+
+			if !all && node.IsDown() {
+				return
+			}
+
+			nodeChan <- node
+			if node.Available {
+				if client, err := m.makeClient(ctx, node); err != nil {
+					log.Errorf(ctx, "[doGetNodes] failed to make client for %v, err: %v", node.Name, err)
+					n.Engine = &fake.Engine{}
+				} else {
+					n.Engine = client
 				}
 			}
-		}(node)
+		})
 	}
-	wg.Wait()
+	pool.Wait(ctx)
+	close(nodeChan)
+
+	for node := range nodeChan {
+		nodes = append(nodes, node)
+	}
+
 	return nodes, nil
 }
 
