@@ -150,13 +150,17 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		if opts.Endpoint != "" {
 			n.Endpoint = opts.Endpoint
 		}
+		// update ca / cert / key
+		n.Ca = opts.Ca
+		n.Cert = opts.Cert
+		n.Key = opts.Key
 		// update key value
 		if len(opts.Labels) != 0 {
 			n.Labels = opts.Labels
 		}
 		// update numa
 		if len(opts.NUMA) != 0 {
-			n.NUMA = types.NUMA(opts.NUMA)
+			n.NUMA = opts.NUMA
 		}
 		// update numa memory
 		for numaNode, memoryDelta := range opts.DeltaNUMAMemory {

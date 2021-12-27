@@ -183,6 +183,9 @@ message SetNodeOptions {
   bool workloads_down = 10;
   string endpoint = 11;
   TriOpt bypass_opt = 12;
+  string ca = 13;
+  string cert = 14;
+  string key = 15;
 }
 
 message SetNodeStatusOptions {

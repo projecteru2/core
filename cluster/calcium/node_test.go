@@ -204,6 +204,12 @@ func TestSetNode(t *testing.T) {
 	n, err = c.SetNode(ctx, setOpts)
 	assert.NoError(t, err)
 	assert.Equal(t, n.Endpoint, "tcp://10.10.10.10:2379")
+	// set ca / cert / key
+	setOpts.Ca = "hh"
+	setOpts.Cert = "hh"
+	setOpts.Key = "hh"
+	n, err = c.SetNode(ctx, setOpts)
+	assert.NoError(t, err)
 	// set numa
 	setOpts.NUMA = types.NUMA{"100": "node1"}
 	n, err = c.SetNode(ctx, setOpts)

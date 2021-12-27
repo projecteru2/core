@@ -258,3 +258,8 @@ func TestUnique(t *testing.T) {
 	s3 = s3[:Unique(s3, func(i int) string { return s3[i] })]
 	assert.True(t, reflect.DeepEqual(s3, []string{"", "1"}))
 }
+
+func TestSHA256(t *testing.T) {
+	str := "hhh"
+	assert.Equal(t, "24d166cd6c8b826c779040b49d5b6708d649b236558e8744339dfee6afe11999", SHA256(str))
+}

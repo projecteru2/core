@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -321,4 +323,12 @@ func WithTimeout(ctx context.Context, timeout time.Duration, f func(context.Cont
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	f(ctx)
+}
+
+// SHA256 .
+func SHA256(input string) string {
+	c := sha256.New()
+	c.Write([]byte(input))
+	bytes := c.Sum(nil)
+	return hex.EncodeToString(bytes)
 }
