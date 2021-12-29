@@ -158,6 +158,9 @@ func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) {
 		NUMA:            b.Numa,
 		Labels:          b.Labels,
 		BypassOpt:       types.TriOptions(b.BypassOpt),
+		Ca:              b.Ca,
+		Cert:            b.Cert,
+		Key:             b.Key,
 	}
 	for cpuID, cpuShare := range b.DeltaCpu {
 		r.DeltaCPU[cpuID] = int64(cpuShare)

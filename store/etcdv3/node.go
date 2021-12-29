@@ -7,6 +7,11 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
+
+	"github.com/pkg/errors"
+	"go.etcd.io/etcd/api/v3/mvccpb"
+	clientv3 "go.etcd.io/etcd/client/v3"
 
 	"github.com/projecteru2/core/engine"
 	enginefactory "github.com/projecteru2/core/engine/factory"
@@ -15,10 +20,6 @@ import (
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/pkg/errors"
-	"go.etcd.io/etcd/api/v3/mvccpb"
-	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 // AddNode save it to etcd
@@ -145,6 +146,11 @@ func (m *Mercury) GetNodesByPod(ctx context.Context, podname string, labels map[
 // UpdateNodes .
 func (m *Mercury) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
 	data := map[string]string{}
+	addIfNotEmpty := func(key, value string) {
+		if value != "" {
+			data[key] = value
+		}
+	}
 	for _, node := range nodes {
 		bytes, err := json.Marshal(node)
 		if err != nil {
@@ -153,6 +159,10 @@ func (m *Mercury) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
 		d := string(bytes)
 		data[fmt.Sprintf(nodeInfoKey, node.Name)] = d
 		data[fmt.Sprintf(nodePodKey, node.Podname, node.Name)] = d
+		addIfNotEmpty(fmt.Sprintf(nodeCaKey, node.Name), node.Ca)
+		addIfNotEmpty(fmt.Sprintf(nodeCertKey, node.Name), node.Cert)
+		addIfNotEmpty(fmt.Sprintf(nodeKeyKey, node.Name), node.Key)
+		enginefactory.RemoveEngineFromCache(node.Endpoint, node.Ca, node.Cert, node.Key)
 	}
 
 	resp, err := m.BatchUpdate(ctx, data)
@@ -180,6 +190,11 @@ func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, reso
 }
 
 func (m *Mercury) makeClient(ctx context.Context, node *types.Node) (client engine.API, err error) {
+	// try to get from cache without ca/cert/key
+	if client = enginefactory.GetEngineFromCache(ctx, m.config, node.Endpoint, "", "", ""); client != nil {
+		return client, nil
+	}
+
 	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
 	data := []string{"", "", ""}
 	for i := 0; i < 3; i++ {
@@ -187,6 +202,7 @@ func (m *Mercury) makeClient(ctx context.Context, node *types.Node) (client engi
 		if err != nil {
 			if !errors.Is(err, types.ErrBadCount) {
 				log.Warnf(ctx, "[makeClient] Get key failed %v", err)
+				return nil, err
 			}
 			continue
 		}
@@ -282,13 +298,21 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 			return nil, err
 		}
 		node.Init()
-		if (!node.IsDown() || all) && utils.FilterWorkload(node.Labels, labels) {
-			if node.Engine, err = m.makeClient(ctx, node); err != nil {
-				return
-			}
-			nodes = append(nodes, node)
-		}
+		nodes = append(nodes, node)
 	}
+	wg := &sync.WaitGroup{}
+	wg.Add(len(nodes))
+	for _, node := range nodes {
+		go func(node *types.Node) {
+			defer wg.Done()
+			if (!node.IsDown() || all) && utils.FilterWorkload(node.Labels, labels) {
+				if node.Engine, err = m.makeClient(ctx, node); err != nil {
+					return
+				}
+			}
+		}(node)
+	}
+	wg.Wait()
 	return nodes, nil
 }
 

@@ -141,14 +141,12 @@ RdCPRPt513WozkJZZAjUSP2U
 	m.config.CertPath = "/tmp"
 	node3, err := m.doAddNode(ctx, nodename3, endpoint3, podname, ca, cert, certkey, cpu, share, memory, storage, labels, nil, nil, nil)
 	assert.NoError(t, err)
-	engine3, err := m.makeClient(ctx, node3)
-	assert.NoError(t, err)
-	_, err = engine3.Info(ctx)
+	_, err = m.makeClient(ctx, node3)
 	assert.Error(t, err)
 	// failed by get key
 	node3.Name = "nokey"
 	_, err = m.makeClient(ctx, node3)
-	assert.NoError(t, err)
+	assert.Error(t, err)
 }
 
 func TestRemoveNode(t *testing.T) {
@@ -201,8 +199,12 @@ func TestUpdateNode(t *testing.T) {
 	assert.Equal(t, node.Name, "test")
 	fakeNode := &types.Node{
 		NodeMeta: types.NodeMeta{
-			Name:    "nil",
-			Podname: "wtf",
+			Name:     "nil",
+			Podname:  "wtf",
+			Endpoint: "mock://hh",
+			Ca:       "hh",
+			Cert:     "hh",
+			Key:      "hh",
 		},
 	}
 	assert.Error(t, m.UpdateNodes(ctx, fakeNode))

@@ -41,6 +41,10 @@ type NodeMeta struct {
 	InitStorageCap int64      `json:"init_storage_cap"`
 	InitNUMAMemory NUMAMemory `json:"init_numa_memory"`
 	InitVolume     VolumeMap  `json:"init_volume"`
+
+	Ca   string `json:"-"`
+	Cert string `json:"-"`
+	Key  string `json:"-"`
 }
 
 // DeepCopy returns a deepcopy of nodemeta

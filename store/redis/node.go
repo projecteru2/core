@@ -144,6 +144,11 @@ func (r *Rediaron) GetNodesByPod(ctx context.Context, podname string, labels map
 // UpdateNodes .
 func (r *Rediaron) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
 	data := map[string]string{}
+	addIfNotEmpty := func(key, value string) {
+		if value != "" {
+			data[key] = value
+		}
+	}
 	for _, node := range nodes {
 		bytes, err := json.Marshal(node)
 		if err != nil {
@@ -152,6 +157,9 @@ func (r *Rediaron) UpdateNodes(ctx context.Context, nodes ...*types.Node) error 
 		d := string(bytes)
 		data[fmt.Sprintf(nodeInfoKey, node.Name)] = d
 		data[fmt.Sprintf(nodePodKey, node.Podname, node.Name)] = d
+		addIfNotEmpty(fmt.Sprintf(nodeCaKey, node.Name), node.Ca)
+		addIfNotEmpty(fmt.Sprintf(nodeCertKey, node.Name), node.Cert)
+		addIfNotEmpty(fmt.Sprintf(nodeKeyKey, node.Name), node.Key)
 	}
 	return errors.WithStack(r.BatchUpdate(ctx, data))
 }
@@ -170,10 +178,11 @@ func (r *Rediaron) UpdateNodeResource(ctx context.Context, node *types.Node, res
 	return r.UpdateNodes(ctx, node)
 }
 
-func (r *Rediaron) makeClient(ctx context.Context, node *types.Node) (engine.API, error) {
-	// try get client, if nil, create a new one
-	var client engine.API
-	var err error
+func (r *Rediaron) makeClient(ctx context.Context, node *types.Node) (client engine.API, err error) {
+	// try to get from cache without ca/cert/key
+	if client = enginefactory.GetEngineFromCache(ctx, r.config, node.Endpoint, "", "", ""); client != nil {
+		return client, nil
+	}
 	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
 	data := []string{"", "", ""}
 	for i := 0; i < 3; i++ {
@@ -181,6 +190,7 @@ func (r *Rediaron) makeClient(ctx context.Context, node *types.Node) (engine.API
 		if err != nil {
 			if !isRedisNoKeyError(err) {
 				log.Warnf(ctx, "[makeClient] Get key failed %v", err)
+				return nil, err
 			}
 			continue
 		}

@@ -138,14 +138,12 @@ RdCPRPt513WozkJZZAjUSP2U
 	s.rediaron.config.CertPath = "/tmp"
 	node3, err := s.rediaron.doAddNode(ctx, nodename3, endpoint3, podname, ca, cert, certkey, cpu, share, memory, storage, labels, nil, nil, nil)
 	s.NoError(err)
-	engine3, err := s.rediaron.makeClient(ctx, node3)
-	s.NoError(err)
-	_, err = engine3.Info(ctx)
+	_, err = s.rediaron.makeClient(ctx, node3)
 	s.Error(err)
 	// failed by get key
 	node3.Name = "nokey"
 	_, err = s.rediaron.makeClient(ctx, node3)
-	s.NoError(err)
+	s.Error(err)
 }
 
 func (s *RediaronTestSuite) TestRemoveNode() {
@@ -194,8 +192,12 @@ func (s *RediaronTestSuite) TestUpdateNode() {
 	s.Equal(node.Name, "test")
 	fakeNode := &types.Node{
 		NodeMeta: types.NodeMeta{
-			Name:    "nil",
-			Podname: "wtf",
+			Name:     "nil",
+			Podname:  "wtf",
+			Endpoint: "mock://hh",
+			Ca:       "hh",
+			Cert:     "hh",
+			Key:      "hh",
 		},
 	}
 	s.Error(s.rediaron.UpdateNodes(ctx, fakeNode))

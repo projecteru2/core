@@ -256,6 +256,9 @@ type SetNodeOptions struct {
 	NUMA            map[string]string
 	Labels          map[string]string
 	BypassOpt       TriOptions
+	Ca              string
+	Cert            string
+	Key             string
 }
 
 // Validate checks options
