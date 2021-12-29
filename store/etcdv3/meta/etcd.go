@@ -240,6 +240,11 @@ func (e *ETCD) BatchUpdate(ctx context.Context, data map[string]string, opts ...
 	return e.batchUpdate(ctx, data, opts...)
 }
 
+// BatchPut .
+func (e *ETCD) BatchPut(ctx context.Context, data map[string]string, opts ...clientv3.OpOption) (*clientv3.TxnResponse, error) {
+	return e.batchPut(ctx, data, nil, opts...)
+}
+
 // isTTLChanged returns true if there is a lease with a different ttl bound to the key
 func (e *ETCD) isTTLChanged(ctx context.Context, key string, ttl int64) (bool, error) {
 	resp, err := e.GetOne(ctx, key)

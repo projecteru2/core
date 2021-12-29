@@ -238,6 +238,28 @@ func (r *Rediaron) BatchCreate(ctx context.Context, data map[string]string) erro
 	return nil
 }
 
+// BatchPut is wrapper to adapt etcd batch replace
+func (r *Rediaron) BatchPut(ctx context.Context, data map[string]string) error {
+	replace := func(pipe redis.Pipeliner) error {
+		for key, value := range data {
+			pipe.Set(ctx, key, value, 0)
+		}
+		return nil
+	}
+
+	cmds, err := r.cli.TxPipelined(ctx, replace)
+	if err != nil {
+		return err
+	}
+
+	for _, cmd := range cmds {
+		if err := cmd.Err(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // BatchCreateAndDecr decr processing and add workload
 func (r *Rediaron) BatchCreateAndDecr(ctx context.Context, data map[string]string, decrKey string) (err error) {
 	batchCreateAndDecr := func(pipe redis.Pipeliner) error {

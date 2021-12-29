@@ -57,7 +57,9 @@ func GetEngineFromCache(ctx context.Context, config types.Config, endpoint, ca, 
 
 // RemoveEngineFromCache .
 func RemoveEngineFromCache(endpoint, ca, cert, key string) {
-	engineCache.Delete(getEngineCacheKey(endpoint, ca, cert, key))
+	cacheKey := getEngineCacheKey(endpoint, ca, cert, key)
+	log.Debugf(context.TODO(), "[RemoveEngineFromCache] remove %v, key %v", endpoint, cacheKey)
+	engineCache.Delete(cacheKey)
 }
 
 // GetEngine get engine
@@ -68,7 +70,9 @@ func GetEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 
 	defer func() {
 		if err == nil && client != nil {
-			engineCache.Set(getEngineCacheKey(endpoint, ca, cert, key), client)
+			cacheKey := getEngineCacheKey(endpoint, ca, cert, key)
+			log.Debugf(ctx, "[GetEngine] store engine of %v in cache, key: %v", endpoint, cacheKey)
+			engineCache.Set(cacheKey, client)
 		}
 	}()
 

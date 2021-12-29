@@ -200,7 +200,7 @@ func (s *RediaronTestSuite) TestUpdateNode() {
 			Key:      "hh",
 		},
 	}
-	s.Error(s.rediaron.UpdateNodes(ctx, fakeNode))
+	s.NoError(s.rediaron.UpdateNodes(ctx, fakeNode))
 	s.NoError(s.rediaron.UpdateNodes(ctx, node))
 }
 
