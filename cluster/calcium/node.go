@@ -42,9 +42,37 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 }
 
 // ListPodNodes list nodes belong to pod
-func (c *Calcium) ListPodNodes(ctx context.Context, podname string, labels map[string]string, all bool) ([]*types.Node, error) {
-	nodes, err := c.store.GetNodesByPod(ctx, podname, labels, all)
-	return nodes, log.WithField("Calcium", "ListPodNodes").WithField("podname", podname).WithField("labels", labels).WithField("all", all).Err(ctx, errors.WithStack(err))
+func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions) (<-chan *types.Node, error) {
+	logger := log.WithField("Calcium", "ListPodNodes").WithField("podname", opts.Podname).WithField("labels", opts.Labels).WithField("all", opts.All).WithField("info", opts.Info)
+	ch := make(chan *types.Node)
+	nodes, err := c.store.GetNodesByPod(ctx, opts.Podname, opts.Labels, opts.All)
+	if err != nil || !opts.Info {
+		go func() {
+			defer close(ch)
+			for _, node := range nodes {
+				ch <- node
+			}
+		}()
+		return ch, logger.Err(ctx, errors.WithStack(err))
+	}
+
+	pool := utils.NewGoroutinePool(int(c.config.MaxConcurrency))
+	go func() {
+		defer close(ch)
+		for _, node := range nodes {
+			pool.Go(ctx, func(node *types.Node) func() {
+				return func() {
+					err := node.Info(ctx)
+					if err != nil {
+						logger.Errorf(ctx, "failed to get node info: %+v", err)
+					}
+					ch <- node
+				}
+			}(node))
+		}
+		pool.Wait(ctx)
+	}()
+	return ch, nil
 }
 
 // GetNode get node
@@ -223,9 +251,17 @@ func (c *Calcium) filterNodes(ctx context.Context, nf types.NodeFilter) (ns []*t
 		return ns, nil
 	}
 
-	listedNodes, err := c.ListPodNodes(ctx, nf.Podname, nf.Labels, nf.All)
+	ch, err := c.ListPodNodes(ctx, &types.ListNodesOptions{
+		Podname: nf.Podname,
+		Labels:  nf.Labels,
+		All:     nf.All,
+	})
 	if err != nil {
 		return nil, err
+	}
+	listedNodes := []*types.Node{}
+	for n := range ch {
+		listedNodes = append(listedNodes, n)
 	}
 	if len(nf.Excludes) == 0 {
 		return listedNodes, nil

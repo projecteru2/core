@@ -144,11 +144,33 @@ func (v *Vibranium) ListPods(ctx context.Context, _ *pb.Empty) (*pb.Pods, error)
 
 // GetPodResource get pod nodes resource usage
 func (v *Vibranium) GetPodResource(ctx context.Context, opts *pb.GetPodOptions) (*pb.PodResource, error) {
-	r, err := v.cluster.PodResource(ctx, opts.Name)
+	ctx = v.taskAdd(ctx, "GetPodResource", false)
+	defer v.taskDone(ctx, "GetPodResource", false)
+	ch, err := v.cluster.PodResource(ctx, opts.Name)
 	if err != nil {
 		return nil, grpcstatus.Error(PodResource, err.Error())
 	}
-	return toRPCPodResource(r), nil
+	podResource := &pb.PodResource{Name: opts.Name}
+	for nodeResource := range ch {
+		podResource.NodesResource = append(podResource.NodesResource, toRPCNodeResource(nodeResource))
+	}
+	return podResource, nil
+}
+
+// PodResourceStream returns a stream of NodeResource
+func (v *Vibranium) PodResourceStream(opts *pb.GetPodOptions, stream pb.CoreRPC_PodResourceStreamServer) error {
+	ctx := v.taskAdd(stream.Context(), "PodResourceStream", false)
+	defer v.taskDone(ctx, "PodResourceStream", false)
+	ch, err := v.cluster.PodResource(ctx, opts.Name)
+	if err != nil {
+		return grpcstatus.Error(PodResource, err.Error())
+	}
+	for msg := range ch {
+		if err := stream.Send(toRPCNodeResource(msg)); err != nil {
+			v.logUnsentMessages(ctx, "PodResourceStream", err, msg)
+		}
+	}
+	return nil
 }
 
 // AddNode saves a node and returns it to client
@@ -160,7 +182,7 @@ func (v *Vibranium) AddNode(ctx context.Context, opts *pb.AddNodeOptions) (*pb.N
 		return nil, grpcstatus.Error(AddNode, err.Error())
 	}
 
-	return toRPCNode(ctx, n), nil
+	return toRPCNode(n), nil
 }
 
 // RemoveNode removes the node from etcd
@@ -173,6 +195,9 @@ func (v *Vibranium) RemoveNode(ctx context.Context, opts *pb.RemoveNodeOptions) 
 
 // ListPodNodes returns a list of node for pod
 func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions) (*pb.Nodes, error) {
+	ctx = v.taskAdd(ctx, "ListPodNodes", false)
+	defer v.taskDone(ctx, "ListPodNodes", false)
+
 	// default timeout is 10s
 	if opts.TimeoutInSecond <= 0 {
 		opts.TimeoutInSecond = 10
@@ -180,28 +205,41 @@ func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions)
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(opts.TimeoutInSecond)*time.Second)
 	defer cancel()
 
-	ns, err := v.cluster.ListPodNodes(ctx, opts.Podname, opts.Labels, opts.All)
+	ch, err := v.cluster.ListPodNodes(ctx, toCoreListNodesOptions(opts))
 	if err != nil {
 		return nil, grpcstatus.Error(ListPodNodes, err.Error())
 	}
 
 	nodes := []*pb.Node{}
-	nodeChan := make(chan *pb.Node, len(ns))
-	wg := &sync.WaitGroup{}
-	for _, n := range ns {
-		wg.Add(1)
-		go func(node *types.Node) {
-			defer wg.Done()
-			nodeChan <- toRPCNode(ctx, node)
-		}(n)
-	}
-	wg.Wait()
-	close(nodeChan)
-	for node := range nodeChan {
-		nodes = append(nodes, node)
+	for n := range ch {
+		nodes = append(nodes, toRPCNode(n))
 	}
 
 	return &pb.Nodes{Nodes: nodes}, nil
+}
+
+// PodNodesStream returns a stream of Node
+func (v *Vibranium) PodNodesStream(opts *pb.ListNodesOptions, stream pb.CoreRPC_PodNodesStreamServer) error {
+	ctx := v.taskAdd(stream.Context(), "PodNodesStream", false)
+	defer v.taskDone(ctx, "PodNodesStream", false)
+
+	if opts.TimeoutInSecond <= 0 {
+		opts.TimeoutInSecond = 10
+	}
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(opts.TimeoutInSecond)*time.Second)
+	defer cancel()
+
+	ch, err := v.cluster.ListPodNodes(ctx, toCoreListNodesOptions(opts))
+	if err != nil {
+		return grpcstatus.Error(ListPodNodes, err.Error())
+	}
+
+	for msg := range ch {
+		if err := stream.Send(toRPCNode(msg)); err != nil {
+			v.logUnsentMessages(ctx, "PodNodesStream", err, msg)
+		}
+	}
+	return nil
 }
 
 // GetNode get a node
@@ -211,7 +249,7 @@ func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.N
 		return nil, grpcstatus.Error(GetNode, err.Error())
 	}
 
-	return toRPCNode(ctx, n), nil
+	return toRPCNode(n), nil
 }
 
 // SetNode set node meta
@@ -224,7 +262,7 @@ func (v *Vibranium) SetNode(ctx context.Context, opts *pb.SetNodeOptions) (*pb.N
 	if err != nil {
 		return nil, grpcstatus.Error(SetNode, err.Error())
 	}
-	return toRPCNode(ctx, n), nil
+	return toRPCNode(n), nil
 }
 
 // SetNodeStatus set status of a node for reporting

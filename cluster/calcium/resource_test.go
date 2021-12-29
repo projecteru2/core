@@ -30,13 +30,15 @@ func TestPodResource(t *testing.T) {
 	store := &storemocks.Store{}
 	c.store = store
 	lock := &lockmocks.DistributedLock{}
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	// failed by GetNodesByPod
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err := c.PodResource(ctx, podname)
+	ch, err := c.PodResource(ctx, podname)
 	assert.Error(t, err)
+	store.AssertExpectations(t)
+
+	// failed by ListNodeWorkloads
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
 			Name:           nodename,
@@ -49,10 +51,14 @@ func TestPodResource(t *testing.T) {
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
-	// failed by ListNodeWorkloads
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err = c.PodResource(ctx, podname)
-	assert.Error(t, err)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	ch, err = c.PodResource(ctx, podname)
+	assert.NoError(t, err)
+	msg := <-ch
+	assert.True(t, strings.Contains(msg.Diffs[0], types.ErrNoETCD.Error()))
+	store.AssertExpectations(t)
+
 	workloads := []*types.Workload{
 		{
 			ResourceMeta: types.ResourceMeta{
@@ -84,10 +90,11 @@ func TestPodResource(t *testing.T) {
 	// success
 	r, err := c.PodResource(ctx, podname)
 	assert.NoError(t, err)
-	assert.Equal(t, r.NodesResource[0].CPUPercent, 0.9)
-	assert.Equal(t, r.NodesResource[0].MemoryPercent, 0.5)
-	assert.Equal(t, r.NodesResource[0].StoragePercent, 0.1)
-	assert.NotEmpty(t, r.NodesResource[0].Diffs)
+	first := <-r
+	assert.Equal(t, first.CPUPercent, 0.9)
+	assert.Equal(t, first.MemoryPercent, 0.5)
+	assert.Equal(t, first.StoragePercent, 0.1)
+	assert.NotEmpty(t, first.Diffs)
 }
 
 func TestNodeResource(t *testing.T) {

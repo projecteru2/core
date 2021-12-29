@@ -15,24 +15,30 @@ import (
 )
 
 // PodResource show pod resource usage
-func (c *Calcium) PodResource(ctx context.Context, podname string) (*types.PodResource, error) {
+func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.NodeResource, error) {
 	logger := log.WithField("Calcium", "PodResource").WithField("podname", podname)
-	nodes, err := c.ListPodNodes(ctx, podname, nil, true)
+	nodeCh, err := c.ListPodNodes(ctx, &types.ListNodesOptions{Podname: podname, All: true})
 	if err != nil {
 		return nil, logger.Err(ctx, err)
 	}
-	r := &types.PodResource{
-		Name:          podname,
-		NodesResource: []*types.NodeResource{},
-	}
-	for _, node := range nodes {
-		nodeResource, err := c.doGetNodeResource(ctx, node.Name, false)
-		if err != nil {
-			return nil, logger.Err(ctx, err)
+	ch := make(chan *types.NodeResource)
+	pool := utils.NewGoroutinePool(int(c.config.MaxConcurrency))
+	go func() {
+		defer close(ch)
+		for node := range nodeCh {
+			pool.Go(ctx, func() {
+				nodeResource, err := c.doGetNodeResource(ctx, node.Name, false)
+				if err != nil {
+					nodeResource = &types.NodeResource{
+						Name: node.Name, Diffs: []string{logger.Err(ctx, err).Error()},
+					}
+				}
+				ch <- nodeResource
+			})
 		}
-		r.NodesResource = append(r.NodesResource, nodeResource)
-	}
-	return r, nil
+		pool.Wait(ctx)
+	}()
+	return ch, nil
 }
 
 // NodeResource check node's workload and resource

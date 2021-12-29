@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"reflect"
+	"strings"
 	"testing"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
@@ -25,13 +26,13 @@ func TestNode(t *testing.T) {
 	assert.Equal(t, node.Volume, VolumeMap{})
 	assert.Equal(t, node.InitVolume, VolumeMap{})
 	ctx := context.Background()
-	_, err := node.Info(ctx)
+	err := node.Info(ctx)
 	assert.Error(t, err)
 
 	node.Engine = mockEngine
-	info, err := node.Info(ctx)
+	err = node.Info(ctx)
 	assert.NoError(t, err)
-	assert.Equal(t, info.ID, "test")
+	assert.True(t, strings.Contains(node.NodeInfo, "test"))
 
 	node.CPUUsed = 0.0
 	node.SetCPUUsed(1.0, IncrUsage)
