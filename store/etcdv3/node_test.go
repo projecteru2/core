@@ -207,7 +207,7 @@ func TestUpdateNode(t *testing.T) {
 			Key:      "hh",
 		},
 	}
-	assert.Error(t, m.UpdateNodes(ctx, fakeNode))
+	assert.NoError(t, m.UpdateNodes(ctx, fakeNode))
 	assert.NoError(t, m.UpdateNodes(ctx, node))
 	node.Available = false
 	assert.NoError(t, m.UpdateNodes(ctx, node))

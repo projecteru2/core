@@ -165,7 +165,7 @@ func (m *Mercury) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
 		enginefactory.RemoveEngineFromCache(node.Endpoint, node.Ca, node.Cert, node.Key)
 	}
 
-	resp, err := m.BatchUpdate(ctx, data)
+	resp, err := m.BatchPut(ctx, data)
 	if err != nil {
 		return err
 	}

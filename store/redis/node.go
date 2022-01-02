@@ -161,7 +161,7 @@ func (r *Rediaron) UpdateNodes(ctx context.Context, nodes ...*types.Node) error 
 		addIfNotEmpty(fmt.Sprintf(nodeCertKey, node.Name), node.Cert)
 		addIfNotEmpty(fmt.Sprintf(nodeKeyKey, node.Name), node.Key)
 	}
-	return errors.WithStack(r.BatchUpdate(ctx, data))
+	return errors.WithStack(r.BatchPut(ctx, data))
 }
 
 // UpdateNodeResource update cpu and memory on a node, either add or subtract
