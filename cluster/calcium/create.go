@@ -419,7 +419,10 @@ func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.
 	config.Restart = entry.Restart
 	if entry.Log != nil {
 		config.LogType = entry.Log.Type
-		config.LogConfig = entry.Log.Config
+		config.LogConfig = map[string]string{}
+		for k, v := range entry.Log.Config {
+			config.LogConfig[k] = v
+		}
 	}
 	// name
 	suffix := utils.RandomString(6)
