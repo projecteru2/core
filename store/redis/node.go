@@ -161,6 +161,7 @@ func (r *Rediaron) UpdateNodes(ctx context.Context, nodes ...*types.Node) error 
 		addIfNotEmpty(fmt.Sprintf(nodeCaKey, node.Name), node.Ca)
 		addIfNotEmpty(fmt.Sprintf(nodeCertKey, node.Name), node.Cert)
 		addIfNotEmpty(fmt.Sprintf(nodeKeyKey, node.Name), node.Key)
+		enginefactory.RemoveEngineFromCache(node.Endpoint, node.Ca, node.Cert, node.Key)
 	}
 	return errors.WithStack(r.BatchPut(ctx, data))
 }
@@ -181,7 +182,7 @@ func (r *Rediaron) UpdateNodeResource(ctx context.Context, node *types.Node, res
 
 func (r *Rediaron) makeClient(ctx context.Context, node *types.Node) (client engine.API, err error) {
 	// try to get from cache without ca/cert/key
-	if client = enginefactory.GetEngineFromCache(ctx, r.config, node.Endpoint, "", "", ""); client != nil {
+	if client = enginefactory.GetEngineFromCache(node.Endpoint, "", "", ""); client != nil {
 		return client, nil
 	}
 	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
@@ -288,6 +289,7 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 			return nil, err
 		}
 		node.Init()
+		node.Engine = &fake.Engine{}
 		if utils.FilterWorkload(node.Labels, labels) {
 			allNodes = append(allNodes, node)
 		}
@@ -313,9 +315,8 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 			if node.Available {
 				if client, err := r.makeClient(ctx, node); err != nil {
 					log.Errorf(ctx, "[doGetNodes] failed to make client for %v, err: %v", node.Name, err)
-					n.Engine = &fake.Engine{}
 				} else {
-					n.Engine = client
+					node.Engine = client
 				}
 			}
 		})

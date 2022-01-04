@@ -191,7 +191,7 @@ func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, reso
 
 func (m *Mercury) makeClient(ctx context.Context, node *types.Node) (client engine.API, err error) {
 	// try to get from cache without ca/cert/key
-	if client = enginefactory.GetEngineFromCache(ctx, m.config, node.Endpoint, "", "", ""); client != nil {
+	if client = enginefactory.GetEngineFromCache(node.Endpoint, "", "", ""); client != nil {
 		return client, nil
 	}
 
@@ -299,6 +299,7 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 			return nil, err
 		}
 		node.Init()
+		node.Engine = &fake.Engine{}
 		if utils.FilterWorkload(node.Labels, labels) {
 			allNodes = append(allNodes, node)
 		}
@@ -324,9 +325,8 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 			if node.Available {
 				if client, err := m.makeClient(ctx, node); err != nil {
 					log.Errorf(ctx, "[doGetNodes] failed to make client for %v, err: %v", node.Name, err)
-					n.Engine = &fake.Engine{}
 				} else {
-					n.Engine = client
+					node.Engine = client
 				}
 			}
 		})

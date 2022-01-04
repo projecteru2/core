@@ -448,6 +448,20 @@ func (_m *API) NetworkList(ctx context.Context, drivers []string) ([]*types.Netw
 	return r0, r1
 }
 
+// Ping provides a mock function with given fields: ctx
+func (_m *API) Ping(ctx context.Context) error {
+	ret := _m.Called(ctx)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = rf(ctx)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // ResourceValidate provides a mock function with given fields: ctx, cpu, cpumap, memory, storage
 func (_m *API) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory int64, storage int64) error {
 	ret := _m.Called(ctx, cpu, cpumap, memory, storage)

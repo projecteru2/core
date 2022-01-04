@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/projecteru2/core/engine"
@@ -28,51 +29,77 @@ var (
 		fakeengine.PrefixKey: fakeengine.MakeClient,
 	}
 	engineCache = utils.NewEngineCache(12*time.Hour, 10*time.Minute)
+	keysToCheck = sync.Map{}
 )
 
 func getEngineCacheKey(endpoint, ca, cert, key string) string {
-	return utils.SHA256(fmt.Sprintf("%v:%v:%v:%v", endpoint, ca, cert, key))
+	return endpoint + utils.SHA256(fmt.Sprintf(":%v:%v:%v", ca, cert, key))[:8]
+}
+
+// EngineCacheChecker checks if the engine in cache is available
+func EngineCacheChecker(ctx context.Context, timeout time.Duration) {
+	log.Info("[EngineCacheChecker] starts")
+	defer log.Info("[EngineCacheChecker] ends")
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		keysToRemove := []string{}
+		keysToCheck.Range(func(key, _ interface{}) bool {
+			cacheKey := key.(string)
+			client := engineCache.Get(cacheKey)
+			if client == nil {
+				keysToRemove = append(keysToRemove, cacheKey)
+				return true
+			}
+			if err := validateEngine(ctx, client, timeout); err != nil {
+				log.Errorf(ctx, "[GetEngineFromCache] engine %v is unavailable, will be removed from cache, err: %v", cacheKey, err)
+				keysToRemove = append(keysToRemove, cacheKey)
+			}
+			return true
+		})
+		for _, key := range keysToRemove {
+			engineCache.Delete(key)
+			keysToCheck.Delete(key)
+		}
+		time.Sleep(timeout)
+	}
 }
 
 func validateEngine(ctx context.Context, engine engine.API, timeout time.Duration) (err error) {
 	utils.WithTimeout(ctx, timeout, func(ctx context.Context) {
-		_, err = engine.Info(ctx)
+		err = engine.Ping(ctx)
 	})
 	return err
 }
 
 // GetEngineFromCache .
-func GetEngineFromCache(ctx context.Context, config types.Config, endpoint, ca, cert, key string) engine.API {
-	client := engineCache.Get(getEngineCacheKey(endpoint, ca, cert, key))
-	if client == nil {
-		return nil
-	}
-	if err := validateEngine(ctx, client, config.ConnectionTimeout); err != nil {
-		log.Errorf(ctx, "[GetEngineFromCache] engine of %v is unavailable, will be removed from cache, err: %v", endpoint, err)
-		RemoveEngineFromCache(endpoint, ca, cert, key)
-		return nil
-	}
-	return client
+func GetEngineFromCache(endpoint, ca, cert, key string) engine.API {
+	return engineCache.Get(getEngineCacheKey(endpoint, ca, cert, key))
 }
 
 // RemoveEngineFromCache .
 func RemoveEngineFromCache(endpoint, ca, cert, key string) {
 	cacheKey := getEngineCacheKey(endpoint, ca, cert, key)
-	log.Debugf(context.TODO(), "[RemoveEngineFromCache] remove %v, key %v", endpoint, cacheKey)
+	log.Infof(context.TODO(), "[RemoveEngineFromCache] remove engine %v from cache", cacheKey)
 	engineCache.Delete(cacheKey)
 }
 
 // GetEngine get engine
 func GetEngine(ctx context.Context, config types.Config, nodename, endpoint, ca, cert, key string) (client engine.API, err error) {
-	if client = GetEngineFromCache(ctx, config, endpoint, ca, cert, key); client != nil {
-		return
+	if client = GetEngineFromCache(endpoint, ca, cert, key); client != nil {
+		return client, nil
 	}
 
 	defer func() {
 		if err == nil && client != nil {
 			cacheKey := getEngineCacheKey(endpoint, ca, cert, key)
-			log.Debugf(ctx, "[GetEngine] store engine of %v in cache, key: %v", endpoint, cacheKey)
 			engineCache.Set(cacheKey, client)
+			keysToCheck.Store(cacheKey, struct{}{})
+			log.Infof(ctx, "[GetEngine] store engine %v in cache", cacheKey)
 		}
 	}()
 

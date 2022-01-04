@@ -8,12 +8,13 @@ import (
 	"io/ioutil"
 
 	"github.com/docker/go-units"
+	mock "github.com/stretchr/testify/mock"
+
 	"github.com/projecteru2/core/engine"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	mock "github.com/stretchr/testify/mock"
 )
 
 const (
@@ -36,6 +37,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	e := &enginemocks.API{}
 	// info
 	e.On("Info", mock.Anything).Return(&enginetypes.Info{NCPU: 100, MemTotal: units.GiB * 100, StorageTotal: units.GiB * 100}, nil)
+	e.On("Ping", mock.Anything).Return(nil)
 	// exec
 	var execID string
 	e.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(

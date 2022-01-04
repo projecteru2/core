@@ -75,6 +75,12 @@ func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {
 	}, nil
 }
 
+// Ping tests connection.
+func (v *Virt) Ping(ctx context.Context) error {
+	_, err := v.client.Info(ctx)
+	return err
+}
+
 // Execute executes a command in vm
 func (v *Virt) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (pid string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	if config.Tty {

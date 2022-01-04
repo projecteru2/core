@@ -18,6 +18,11 @@ func (f *Engine) Info(ctx context.Context) (*enginetypes.Info, error) {
 	return nil, types.ErrNilEngine
 }
 
+// Ping .
+func (f *Engine) Ping(ctx context.Context) error {
+	return types.ErrNilEngine
+}
+
 // Execute .
 func (f *Engine) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (result string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	return "", nil, nil, nil, types.ErrNilEngine
