@@ -17,16 +17,17 @@ const (
 
 // Config holds eru-core config
 type Config struct {
-	LogLevel          string        `yaml:"log_level" required:"true" default:"INFO"`
-	Bind              string        `yaml:"bind" required:"true" default:"5001"`           // HTTP API address
-	LockTimeout       time.Duration `yaml:"lock_timeout" required:"true" default:"30s"`    // timeout for lock (ttl)
-	GlobalTimeout     time.Duration `yaml:"global_timeout" required:"true" default:"300s"` // timeout for remove, run_and_wait and build, in second
-	ConnectionTimeout time.Duration `yaml:"connection_timeout" default:"10s"`              // timeout for connections
-	Statsd            string        `yaml:"statsd"`                                        // statsd host and port
-	Profile           string        `yaml:"profile"`                                       // profile ip:port
-	CertPath          string        `yaml:"cert_path"`                                     // docker cert files path
-	MaxConcurrency    int64         `yaml:"max_concurrency" default:"20"`                  // concurrently call single runtime in the same time
-	Store             string        `yaml:"store" default:"etcd"`                          // store type
+	LogLevel            string        `yaml:"log_level" required:"true" default:"INFO"`
+	Bind                string        `yaml:"bind" required:"true" default:"5001"`           // HTTP API address
+	LockTimeout         time.Duration `yaml:"lock_timeout" required:"true" default:"30s"`    // timeout for lock (ttl)
+	GlobalTimeout       time.Duration `yaml:"global_timeout" required:"true" default:"300s"` // timeout for remove, run_and_wait and build, in second
+	ConnectionTimeout   time.Duration `yaml:"connection_timeout" default:"10s"`              // timeout for connections
+	HAKeepaliveInterval time.Duration `yaml:"ha_keepalive_interval" default:"16s"`           // interval for node status watcher
+	Statsd              string        `yaml:"statsd"`                                        // statsd host and port
+	Profile             string        `yaml:"profile"`                                       // profile ip:port
+	CertPath            string        `yaml:"cert_path"`                                     // docker cert files path
+	MaxConcurrency      int64         `yaml:"max_concurrency" default:"20"`                  // concurrently call single runtime in the same time
+	Store               string        `yaml:"store" default:"etcd"`                          // store type
 
 	Auth       AuthConfig `yaml:"auth"` // grpc auth
 	GRPCConfig GRPCConfig `yaml:"grpc"` // grpc config

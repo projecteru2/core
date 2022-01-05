@@ -28,6 +28,7 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 					defer wg.Done()
 					var message []*bytes.Buffer
 					err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
+
 						var err error
 						switch t {
 						case cluster.WorkloadStop:

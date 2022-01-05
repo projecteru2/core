@@ -11,6 +11,7 @@ import (
 
 	"github.com/projecteru2/core/engine"
 	enginefactory "github.com/projecteru2/core/engine/factory"
+	"github.com/projecteru2/core/engine/fake"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/store"
@@ -160,6 +161,7 @@ func (r *Rediaron) UpdateNodes(ctx context.Context, nodes ...*types.Node) error 
 		addIfNotEmpty(fmt.Sprintf(nodeCaKey, node.Name), node.Ca)
 		addIfNotEmpty(fmt.Sprintf(nodeCertKey, node.Name), node.Cert)
 		addIfNotEmpty(fmt.Sprintf(nodeKeyKey, node.Name), node.Key)
+		enginefactory.RemoveEngineFromCache(node.Endpoint, node.Ca, node.Cert, node.Key)
 	}
 	return errors.WithStack(r.BatchPut(ctx, data))
 }
@@ -180,7 +182,7 @@ func (r *Rediaron) UpdateNodeResource(ctx context.Context, node *types.Node, res
 
 func (r *Rediaron) makeClient(ctx context.Context, node *types.Node) (client engine.API, err error) {
 	// try to get from cache without ca/cert/key
-	if client = enginefactory.GetEngineFromCache(ctx, r.config, node.Endpoint, "", "", ""); client != nil {
+	if client = enginefactory.GetEngineFromCache(node.Endpoint, "", "", ""); client != nil {
 		return client, nil
 	}
 	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
@@ -279,23 +281,53 @@ func (r *Rediaron) doRemoveNode(ctx context.Context, podname, nodename, endpoint
 	return err
 }
 
-func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels map[string]string, all bool) ([]*types.Node, error) {
-	nodes := []*types.Node{}
+func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels map[string]string, all bool) (nodes []*types.Node, err error) {
+	allNodes := []*types.Node{}
 	for _, value := range kvs {
 		node := &types.Node{}
 		if err := json.Unmarshal([]byte(value), node); err != nil {
 			return nil, err
 		}
 		node.Init()
-		if (!node.IsDown() || all) && utils.FilterWorkload(node.Labels, labels) {
-			engine, err := r.makeClient(ctx, node)
-			if err != nil {
-				return nil, err
-			}
-			node.Engine = engine
-			nodes = append(nodes, node)
+		node.Engine = &fake.Engine{}
+		if utils.FilterWorkload(node.Labels, labels) {
+			allNodes = append(allNodes, node)
 		}
 	}
+
+	pool := utils.NewGoroutinePool(int(r.config.MaxConcurrency))
+	nodeChan := make(chan *types.Node, len(allNodes))
+
+	for _, n := range allNodes {
+		node := n
+		pool.Go(ctx, func() {
+			if _, err := r.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrBadCount) {
+				log.Errorf(ctx, "[doGetNodes] failed to get node status of %v, err: %v", node.Name, err)
+			} else {
+				node.Available = err == nil
+			}
+
+			if !all && node.IsDown() {
+				return
+			}
+
+			nodeChan <- node
+			if node.Available {
+				if client, err := r.makeClient(ctx, node); err != nil {
+					log.Errorf(ctx, "[doGetNodes] failed to make client for %v, err: %v", node.Name, err)
+				} else {
+					node.Engine = client
+				}
+			}
+		})
+	}
+	pool.Wait(ctx)
+	close(nodeChan)
+
+	for node := range nodeChan {
+		nodes = append(nodes, node)
+	}
+
 	return nodes, nil
 }
 

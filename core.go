@@ -13,6 +13,7 @@ import (
 
 	"github.com/projecteru2/core/auth"
 	"github.com/projecteru2/core/cluster/calcium"
+	"github.com/projecteru2/core/engine/factory"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/rpc"
@@ -131,6 +132,10 @@ func serve(c *cli.Context) error {
 	// wait for unix signals and try to GracefulStop
 	ctx, cancel := signal.NotifyContext(c.Context, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer cancel()
+
+	// start engine cache checker
+	go factory.EngineCacheChecker(ctx, config.ConnectionTimeout)
+
 	<-ctx.Done()
 
 	log.Info("[main] Interrupt by signal")

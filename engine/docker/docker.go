@@ -88,3 +88,9 @@ func (e *Engine) ResourceValidate(ctx context.Context, cpu float64, cpumap map[s
 	// TODO list all workloads, calcuate resource
 	return nil
 }
+
+// Ping test connection
+func (e *Engine) Ping(ctx context.Context) error {
+	_, err := e.client.Ping(ctx)
+	return err
+}

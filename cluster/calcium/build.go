@@ -30,6 +30,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 	if err != nil {
 		return nil, logger.Err(ctx, err)
 	}
+
 	log.Infof(ctx, "[BuildImage] Building image at pod %s node %s", node.Podname, node.Name)
 
 	var (
