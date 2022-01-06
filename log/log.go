@@ -60,6 +60,12 @@ func (f Fields) Err(ctx context.Context, err error) error {
 	return err
 }
 
+// Infof
+func (f Fields) Infof(ctx context.Context, format string, args ...interface{}) {
+	format = getTracingInfo(ctx) + format
+	f.e.Infof(format, args...)
+}
+
 // WithField add kv into log entry
 func WithField(key string, value interface{}) Fields {
 	return Fields{
