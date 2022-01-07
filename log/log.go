@@ -60,7 +60,7 @@ func (f Fields) Err(ctx context.Context, err error) error {
 	return err
 }
 
-// Infof
+// Infof .
 func (f Fields) Infof(ctx context.Context, format string, args ...interface{}) {
 	format = getTracingInfo(ctx) + format
 	f.e.Infof(format, args...)

@@ -20,7 +20,6 @@ import (
 
 const (
 	exitDataPrefix = "[exitcode] "
-	labelLambdaID  = "LambdaID"
 )
 
 // RunAndWait implement lambda

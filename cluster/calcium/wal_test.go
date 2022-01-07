@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -131,12 +133,7 @@ func TestHandleCreateLambda(t *testing.T) {
 	require.NoError(t, err)
 	c.wal = wal
 
-	deployOpts := &types.DeployOptions{
-		Name:       "appname",
-		Entrypoint: &types.Entrypoint{Name: "entry"},
-		Labels:     map[string]string{labelLambdaID: "lambda"},
-	}
-	_, err = c.wal.logCreateLambda(deployOpts)
+	_, err = c.wal.logCreateLambda(&types.CreateWorkloadMessage{WorkloadID: "workloadid"})
 	require.NoError(t, err)
 
 	node := &types.Node{
@@ -150,35 +147,34 @@ func TestHandleCreateLambda(t *testing.T) {
 	}
 
 	store := c.store.(*storemocks.Store)
-	defer store.AssertExpectations(t)
-	store.On("ListWorkloads", mock.Anything, deployOpts.Name, deployOpts.Entrypoint.Name, "", int64(0), deployOpts.Labels).
-		Return(nil, fmt.Errorf("err")).
-		Once()
-	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	c.wal.Recover(context.TODO())
+	time.Sleep(500 * time.Millisecond)
+	store.AssertExpectations(t)
 
-	store.On("ListWorkloads", mock.Anything, deployOpts.Name, deployOpts.Entrypoint.Name, "", int64(0), deployOpts.Labels).
-		Return([]*types.Workload{wrk}, nil).
+	_, err = c.wal.logCreateLambda(&types.CreateWorkloadMessage{WorkloadID: "workloadid"})
+	require.NoError(t, err)
+	store.On("GetWorkload", mock.Anything, mock.Anything).
+		Return(wrk, nil).
 		Once()
-	store.On("GetWorkloads", mock.Anything, []string{wrk.ID}).
-		Return([]*types.Workload{wrk}, nil).
-		Twice()
 	store.On("GetNode", mock.Anything, wrk.Nodename).
 		Return(node, nil)
-
 	eng := wrk.Engine.(*enginemocks.API)
-	defer eng.AssertExpectations(t)
+	eng.On("VirtualizationWait", mock.Anything, wrk.ID, "").Return(&enginetypes.VirtualizationWaitResult{Code: 0}, nil).Once()
 	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
 		Return(nil).
 		Once()
-
+	eng.On("VirtualizationResourceRemap", mock.Anything, mock.Anything).Return(nil, nil).Once()
+	store.On("GetWorkloads", mock.Anything, []string{wrk.ID}).
+		Return([]*types.Workload{wrk}, nil).
+		Twice()
 	store.On("RemoveWorkload", mock.Anything, wrk).
 		Return(nil).
 		Once()
 	store.On("UpdateNodeResource", mock.Anything, node, mock.Anything, mock.Anything).
 		Return(nil).
 		Once()
-
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil).Once()
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
@@ -187,4 +183,7 @@ func TestHandleCreateLambda(t *testing.T) {
 	c.wal.Recover(context.TODO())
 	// Recovered nothing.
 	c.wal.Recover(context.TODO())
+	time.Sleep(500 * time.Millisecond)
+	store.AssertExpectations(t)
+	eng.AssertExpectations(t)
 }

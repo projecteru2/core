@@ -194,12 +194,12 @@ func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error
 		return types.NewDetailedErr(types.ErrInvalidType, raw)
 	}
 
-	logger := log.WithField("WAL", "RunAndWait").WithField("ID", workloadID)
+	logger := log.WithField("WAL.Handle", "RunAndWait").WithField("ID", workloadID)
 	go func() {
 		logger.Infof(ctx, "recovery start")
 		workload, err := h.calcium.GetWorkload(ctx, workloadID)
 		if err != nil {
-			logger.Errorf(nil, "Get workload failed: %v", err)
+			logger.Errorf(ctx, "Get workload failed: %v", err)
 			return
 		}
 
@@ -219,23 +219,6 @@ func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error
 	}()
 
 	return nil
-}
-
-func (h *CreateLambdaHandler) getWorkloadIDs(ctx context.Context, opts *types.ListWorkloadsOptions) ([]string, error) {
-	ctx, cancel := getReplayContext(ctx)
-	defer cancel()
-
-	workloads, err := h.calcium.ListWorkloads(ctx, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	workloadIDs := make([]string, len(workloads))
-	for i, wrk := range workloads {
-		workloadIDs[i] = wrk.ID
-	}
-
-	return workloadIDs, nil
 }
 
 func getReplayContext(ctx context.Context) (context.Context, context.CancelFunc) {
