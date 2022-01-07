@@ -586,6 +586,63 @@ func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) err
 	return nil
 }
 
+func (v *Vibranium) SendLargeFile(server pb.CoreRPC_SendLargeFileServer) error {
+	ctx := v.taskAdd(server.Context(), "SendLargeFile", true)
+	defer v.taskDone(ctx, "SendLargeFile", true)
+
+	fileDetails := &pb.SendOptions{
+		Ids: []string{},
+		Data: make(map[string][]byte),
+		Modes: make(map[string]*pb.FileMode),
+		Owners: make(map[string]*pb.FileOwner),
+	}
+	for {
+		req, err := server.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return grpcstatus.Error(SendLargeFile, err.Error())
+		}
+		metaData := req.Metadata
+		chunk := req.Chunk
+
+		if _, ok := fileDetails.Data[metaData.Dst]; !ok {
+			fileDetails.Ids = metaData.Ids
+			fileDetails.Data[metaData.Dst] = make([]byte, 0)
+			fileDetails.Modes[metaData.Dst] = metaData.Mode
+			fileDetails.Owners[metaData.Dst] = metaData.Owner
+		}
+		fileDetails.Data[metaData.Dst] = append(fileDetails.Data[metaData.Dst], chunk.Data...)
+	}
+
+	sendOpts, err := toCoreSendOptions(fileDetails)
+	if err != nil {
+		return grpcstatus.Error(SendLargeFile, err.Error())
+	}
+
+	ch, err := v.cluster.Send(ctx, sendOpts)
+	if err != nil {
+		return grpcstatus.Error(SendLargeFile, err.Error())
+	}
+
+	for m := range ch {
+		msg := &pb.SendMessage{
+			Id:   m.ID,
+			Path: m.Path,
+		}
+
+		if m.Error != nil {
+			msg.Error = m.Error.Error()
+		}
+
+		if err := server.Send(msg); err != nil {
+			v.logUnsentMessages(ctx, "SendLargeFile", err, m)
+		}
+	}
+	return nil
+}
+
 // BuildImage streamed returned functions
 func (v *Vibranium) BuildImage(opts *pb.BuildImageOptions, stream pb.CoreRPC_BuildImageServer) error {
 	ctx := v.taskAdd(stream.Context(), "BuildImage", true)

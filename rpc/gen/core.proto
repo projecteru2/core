@@ -44,6 +44,7 @@ service CoreRPC {
 
   rpc Copy(CopyOptions) returns (stream CopyMessage) {};
   rpc Send(SendOptions) returns (stream SendMessage) {};
+  rpc SendLargeFile(stream FileOptions) returns (stream SendMessage) {};
 
   rpc BuildImage(BuildImageOptions) returns (stream BuildImageMessage) {};
   rpc CacheImage(CacheImageOptions) returns (stream CacheImageMessage) {};
@@ -538,6 +539,20 @@ message SendOptions {
   map<string, bytes> data = 2;
   map<string, FileMode> modes = 3;
   map<string, FileOwner> owners = 4;
+}
+
+message FileOptions {
+    message Metadata {
+        repeated string ids = 1;
+        string dst = 2;
+        FileMode mode = 3;
+        FileOwner owner = 4;
+    }
+    message Chunk {
+        bytes data = 1;
+    }
+    Metadata metadata = 1;
+    Chunk chunk = 2;
 }
 
 message ErrorDetail {
