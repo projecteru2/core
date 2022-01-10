@@ -3,7 +3,6 @@ package calcium
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"time"
 
@@ -14,7 +13,7 @@ import (
 
 const (
 	eventCreateLambda   = "create-lambda"
-	eventCreateWorkload = "create-workload"
+	eventCreateWorkload = "create-workload" // created but yet to start
 )
 
 // WAL for calcium.
@@ -80,6 +79,7 @@ func (h *CreateWorkloadHandler) Check(ctx context.Context, raw interface{}) (boo
 	if !ok {
 		return false, types.NewDetailedErr(types.ErrInvalidType, raw)
 	}
+	logger := log.WithField("WAL.Check", "CreateWorkload").WithField("ID", wrk.ID)
 
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
@@ -88,15 +88,14 @@ func (h *CreateWorkloadHandler) Check(ctx context.Context, raw interface{}) (boo
 	switch {
 	// there has been an exact workload metadata.
 	case err == nil:
-		log.Infof(ctx, "[CreateWorkloadHandler.Check] Workload %s is availalbe", wrk.ID)
 		return false, nil
 
 	case strings.HasPrefix(err.Error(), types.ErrBadCount.Error()):
-		log.Errorf(ctx, "[CreateWorkloadHandler.Check] No such workload: %v", wrk.ID)
+		logger.Errorf(ctx, "No such workload")
 		return true, nil
 
 	default:
-		log.Errorf(ctx, "[CreateWorkloadHandler.Check] Unexpected error: %v", err)
+		logger.Errorf(ctx, "Unexpected error: %v", err)
 		return false, err
 	}
 }
@@ -118,34 +117,29 @@ func (h *CreateWorkloadHandler) Decode(bs []byte) (interface{}, error) {
 }
 
 // Handle .
-func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) error {
+func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (err error) {
 	wrk, ok := raw.(*types.Workload)
 	if !ok {
 		return types.NewDetailedErr(types.ErrInvalidType, raw)
 	}
+	logger := log.WithField("WAL.Handle", "CreateWorkload").WithField("ID", wrk.ID).WithField("nodename", wrk.Nodename)
 
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
 
-	// There hasn't been the exact workload metadata, so we must remove it.
-	node, err := h.calcium.GetNode(ctx, wrk.Nodename)
+	ch, err := h.calcium.RemoveWorkload(ctx, []string{wrk.ID}, true, 0)
 	if err != nil {
-		log.Errorf(ctx, "[CreateWorkloadHandler.Handle] Get node %s failed: %v", wrk.Nodename, err)
-		return err
+		logger.Errorf(ctx, "failed to remove workload")
+		return
 	}
-	wrk.Engine = node.Engine
-
-	if err := wrk.Remove(ctx, true); err != nil {
-		if strings.HasPrefix(err.Error(), fmt.Sprintf("Error: No such container: %s", wrk.ID)) {
-			log.Errorf(ctx, "[CreateWorkloadHandler.Handle] %s has been removed yet", wrk.ID)
+	for msg := range ch {
+		if !msg.Success {
+			logger.Errorf(ctx, "failed to remove workload")
 			return nil
 		}
-
-		log.Errorf(ctx, "[CreateWorkloadHandler.Handle] Remove %s failed: %v", wrk.ID, err)
-		return err
 	}
 
-	log.Warnf(ctx, "[CreateWorkloadHandler.Handle] %s has been removed", wrk.ID)
+	logger.Infof(ctx, "workload removed")
 
 	return nil
 }

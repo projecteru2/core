@@ -292,9 +292,10 @@ func (c *Calcium) doDeployOneWorkload(
 			// We couldn't WAL the workload ID above VirtualizationCreate temporarily,
 			// so there's a time gap window, once the core process crashes between
 			// VirtualizationCreate and logCreateWorkload then the worload is leaky.
-			if commit, err = c.wal.logCreateWorkload(workload.ID, node.Name); err != nil {
-				return err
-			}
+			commit, err = c.wal.Log(eventCreateWorkload, &types.Workload{
+				ID:       workload.ID,
+				Nodename: workload.Nodename,
+			})
 			return nil
 		},
 
