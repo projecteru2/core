@@ -132,7 +132,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		n = node
 
 		n.Bypass = (opts.BypassOpt == types.TriTrue) || (opts.BypassOpt == types.TriKeep && n.Bypass)
-		if n.IsDown() {
+		if n.IsDown() && n.Bypass {
 			log.Errorf(ctx, "[SetNodeAvailable] node marked down: %s", opts.Nodename)
 		}
 		if opts.WorkloadsDown {
