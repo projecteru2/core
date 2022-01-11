@@ -190,6 +190,7 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 		DmiUUID:    opts.Labels[DmiUUIDKey],
 		Cmd:        opts.Cmd,
 		Lambda:     opts.Lambda,
+		Stdin:      opts.Stdin,
 	}
 
 	var resp virttypes.Guest
