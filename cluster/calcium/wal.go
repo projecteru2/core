@@ -16,6 +16,7 @@ const (
 	eventCreateLambda              = "create-lambda"
 	eventWorkloadCreated           = "create-workload"   // created but yet to start
 	eventWorkloadResourceAllocated = "allocate-workload" // resource updated in node meta but yet to create all workloads
+	eventProcessingCreated         = "create-processing" // processing created but yet to delete
 )
 
 // WAL for calcium.
@@ -45,6 +46,7 @@ func (w *WAL) registerHandlers() {
 	w.Register(newCreateLambdaHandler(w.calcium))
 	w.Register(newCreateWorkloadHandler(w.calcium))
 	w.Register(newWorkloadResourceAllocatedHandler(w.calcium))
+	w.Register(newProcessingCreatedHandler(w.calcium))
 }
 
 func (w *WAL) logCreateWorkload(workloadID, nodename string) (wal.Commit, error) {
@@ -287,4 +289,58 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw inter
 	pool.Wait(ctx)
 
 	return nil
+}
+
+type ProcessingCreatedHandler struct {
+	event   string
+	calcium *Calcium
+}
+
+func newProcessingCreatedHandler(cal *Calcium) *ProcessingCreatedHandler {
+	return &ProcessingCreatedHandler{
+		event:   eventProcessingCreated,
+		calcium: cal,
+	}
+}
+
+// Event .
+func (h *ProcessingCreatedHandler) Event() string {
+	return h.event
+}
+
+// Check .
+func (h ProcessingCreatedHandler) Check(ctx context.Context, raw interface{}) (bool, error) {
+	if _, ok := raw.(*types.Processing); !ok {
+		return false, types.NewDetailedErr(types.ErrInvalidType, raw)
+	}
+	return true, nil
+}
+
+// Encode .
+func (h *ProcessingCreatedHandler) Encode(raw interface{}) ([]byte, error) {
+	processing, ok := raw.(*types.Processing)
+	if !ok {
+		return nil, types.NewDetailedErr(types.ErrInvalidType, raw)
+	}
+	return json.Marshal(processing)
+}
+
+// Decode .
+func (h *ProcessingCreatedHandler) Decode(bs []byte) (interface{}, error) {
+	processing := &types.Processing{}
+	return processing, json.Unmarshal(bs, processing)
+}
+
+// Handle .
+func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw interface{}) (err error) {
+	processing, _ := raw.(*types.Processing)
+	logger := log.WithField("WAL", "Handle").WithField("event", eventProcessingCreated)
+
+	ctx, cancel := getReplayContext(ctx)
+	defer cancel()
+
+	if err = h.calcium.store.DeleteProcessing(ctx, processing); err != nil {
+		logger.Errorf(ctx, "faild to delete processing %s", processing.Ident)
+	}
+	return
 }

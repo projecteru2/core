@@ -55,7 +55,8 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		defer func() {
 			cctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.TODO()), c.config.GlobalTimeout)
 			for nodename := range deployMap {
-				if e := c.store.DeleteProcessing(cctx, opts.GetProcessing(nodename)); e != nil {
+				processing := opts.GetProcessing(nodename)
+				if e := c.store.DeleteProcessing(cctx, processing); e != nil {
 					logger.Errorf(ctx, "[Calcium.doCreateWorkloads] delete processing failed for %s: %+v", nodename, e)
 				}
 			}
@@ -68,6 +69,15 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			if resourceCommit != nil {
 				if err := resourceCommit(); err != nil {
 					logger.Errorf(ctx, "commit wal failed: %s, %+v", eventWorkloadResourceAllocated, err)
+				}
+			}
+		}()
+
+		var processingCommits map[string]wal.Commit
+		defer func() {
+			for nodename := range processingCommits {
+				if err := processingCommits[nodename](); err != nil {
+					logger.Errorf(ctx, "commit wal failed: %s, %s, %+v", eventProcessingCreated, nodename, err)
 				}
 			}
 		}()
@@ -90,17 +100,22 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 					// commit changes
 					nodes := []*types.Node{}
+					processingCommits = make(map[string]wal.Commit)
 					for nodename, deploy := range deployMap {
 						for _, plan := range plans {
 							plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deploy)...)
 						}
 						nodes = append(nodes, nodeMap[nodename])
-						if err = c.store.CreateProcessing(ctx, opts.GetProcessing(nodename), deploy); err != nil {
+						processing := opts.GetProcessing(nodename)
+						if processingCommits[nodename], err = c.wal.Log(eventProcessingCreated, processing); err != nil {
+							return errors.WithStack(err)
+						}
+						if err = c.store.CreateProcessing(ctx, processing, deploy); err != nil {
 							return errors.WithStack(err)
 						}
 					}
 					if resourceCommit, err = c.wal.Log(eventWorkloadResourceAllocated, nodes); err != nil {
-						return
+						return errors.WithStack(err)
 					}
 					return errors.WithStack(c.store.UpdateNodes(ctx, nodes...))
 				})
@@ -309,7 +324,7 @@ func (c *Calcium) doDeployOneWorkload(
 				ID:       workload.ID,
 				Nodename: workload.Nodename,
 			})
-			return nil
+			return errors.WithStack(err)
 		},
 
 		func(ctx context.Context) (err error) {
