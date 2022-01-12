@@ -63,6 +63,15 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			cancel()
 		}()
 
+		var resourceCommit wal.Commit
+		defer func() {
+			if resourceCommit != nil {
+				if err := resourceCommit(); err != nil {
+					logger.Errorf(ctx, "commit wal failed: %s, %+v", eventWorkloadResourceAllocated, err)
+				}
+			}
+		}()
+
 		_ = utils.Txn(
 			ctx,
 
@@ -89,6 +98,9 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 						if err = c.store.CreateProcessing(ctx, opts.GetProcessing(nodename), deploy); err != nil {
 							return errors.WithStack(err)
 						}
+					}
+					if resourceCommit, err = c.wal.Log(eventWorkloadResourceAllocated, nodes); err != nil {
+						return
 					}
 					return errors.WithStack(c.store.UpdateNodes(ctx, nodes...))
 				})
@@ -246,6 +258,7 @@ func (c *Calcium) doDeployOneWorkload(
 	config *enginetypes.VirtualizationCreateOptions,
 	decrProcessing bool,
 ) (err error) {
+	logger := log.WithField("Calcium", "doDeployWorkload").WithField("nodename", node.Name).WithField("opts", opts).WithField("msg", msg)
 	workload := &types.Workload{
 		ResourceMeta: types.ResourceMeta{
 			CPU:               msg.CPU,
@@ -276,7 +289,7 @@ func (c *Calcium) doDeployOneWorkload(
 	defer func() {
 		if commit != nil {
 			if err := commit(); err != nil {
-				log.Errorf(ctx, "[doDeployOneWorkload] Commit WAL %s failed: %v", eventCreateWorkload, err)
+				logger.Errorf(ctx, "Commit WAL %s failed: %+v", eventWorkloadCreated, err)
 			}
 		}
 	}()
@@ -292,7 +305,7 @@ func (c *Calcium) doDeployOneWorkload(
 			// We couldn't WAL the workload ID above VirtualizationCreate temporarily,
 			// so there's a time gap window, once the core process crashes between
 			// VirtualizationCreate and logCreateWorkload then the worload is leaky.
-			commit, err = c.wal.Log(eventCreateWorkload, &types.Workload{
+			commit, err = c.wal.Log(eventWorkloadCreated, &types.Workload{
 				ID:       workload.ID,
 				Nodename: workload.Nodename,
 			})
@@ -376,13 +389,13 @@ func (c *Calcium) doDeployOneWorkload(
 
 		// remove workload
 		func(ctx context.Context, _ bool) error {
-			log.Errorf(ctx, "[doDeployOneWorkload] failed to deploy workload %s, rollback", workload.ID)
+			logger.Errorf(ctx, "[doDeployOneWorkload] failed to deploy workload %s, rollback", workload.ID)
 			if workload.ID == "" {
 				return nil
 			}
 
 			if err := c.store.RemoveWorkload(ctx, workload); err != nil {
-				log.Errorf(ctx, "[doDeployOneWorkload] failed to remove workload %s")
+				logger.Errorf(ctx, "[doDeployOneWorkload] failed to remove workload %s", workload.ID)
 			}
 
 			return workload.Remove(ctx, true)

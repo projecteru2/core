@@ -256,7 +256,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 		walCommitted = true
 		return nil
 	})
-	mwal.On("Log", eventCreateWorkload, mock.Anything).Return(commit, nil)
+	mwal.On("Log", eventWorkloadCreated, mock.Anything).Return(commit, nil)
 	walCommitted = false
 	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)

@@ -8,12 +8,14 @@ import (
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
 )
 
 const (
-	eventCreateLambda   = "create-lambda"
-	eventCreateWorkload = "create-workload" // created but yet to start
+	eventCreateLambda              = "create-lambda"
+	eventWorkloadCreated           = "create-workload"   // created but yet to start
+	eventWorkloadResourceAllocated = "allocate-workload" // resource updated in node meta but yet to create all workloads
 )
 
 // WAL for calcium.
@@ -42,6 +44,7 @@ func newCalciumWAL(cal *Calcium) (*WAL, error) {
 func (w *WAL) registerHandlers() {
 	w.Register(newCreateLambdaHandler(w.calcium))
 	w.Register(newCreateWorkloadHandler(w.calcium))
+	w.Register(newWorkloadResourceAllocatedHandler(w.calcium))
 }
 
 func (w *WAL) logCreateWorkload(workloadID, nodename string) (wal.Commit, error) {
@@ -63,7 +66,7 @@ type CreateWorkloadHandler struct {
 
 func newCreateWorkloadHandler(cal *Calcium) *CreateWorkloadHandler {
 	return &CreateWorkloadHandler{
-		event:   eventCreateWorkload,
+		event:   eventWorkloadCreated,
 		calcium: cal,
 	}
 }
@@ -217,4 +220,71 @@ func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error
 
 func getReplayContext(ctx context.Context) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(ctx, time.Second*32)
+}
+
+type WorkloadResourceAllocatedHandler struct {
+	event   string
+	calcium *Calcium
+}
+
+func newWorkloadResourceAllocatedHandler(cal *Calcium) *WorkloadResourceAllocatedHandler {
+	return &WorkloadResourceAllocatedHandler{
+		event:   eventWorkloadResourceAllocated,
+		calcium: cal,
+	}
+}
+
+// Event .
+func (h *WorkloadResourceAllocatedHandler) Event() string {
+	return h.event
+}
+
+// Check .
+func (h *WorkloadResourceAllocatedHandler) Check(ctx context.Context, raw interface{}) (bool, error) {
+	if _, ok := raw.([]*types.Node); !ok {
+		return false, types.NewDetailedErr(types.ErrInvalidType, raw)
+	}
+	return true, nil
+}
+
+// Encode .
+func (h *WorkloadResourceAllocatedHandler) Encode(raw interface{}) ([]byte, error) {
+	nodes, ok := raw.([]*types.Node)
+	if !ok {
+		return nil, types.NewDetailedErr(types.ErrInvalidType, raw)
+	}
+	return json.Marshal(nodes)
+}
+
+// Decode .
+func (h *WorkloadResourceAllocatedHandler) Decode(bytes []byte) (interface{}, error) {
+	nodes := []*types.Node{}
+	return nodes, json.Unmarshal(bytes, &nodes)
+}
+
+// Handle .
+func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw interface{}) (err error) {
+	nodes, _ := raw.([]*types.Node)
+	logger := log.WithField("WAL", "Handle").WithField("event", eventWorkloadResourceAllocated)
+
+	ctx, cancel := getReplayContext(ctx)
+	defer cancel()
+
+	pool := utils.NewGoroutinePool(20)
+	for _, node := range nodes {
+		pool.Go(ctx, func(nodename string) func() {
+			return func() {
+				{
+					if _, err = h.calcium.NodeResource(ctx, node.Name, true); err != nil {
+						logger.Errorf(ctx, "failed to fix node resource: %s, %+v", node.Name, err)
+						return
+					}
+					logger.Infof(ctx, "fixed node resource: %s", node.Name)
+				}
+			}
+		}(node.Name))
+	}
+	pool.Wait(ctx)
+
+	return nil
 }
