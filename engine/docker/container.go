@@ -331,6 +331,38 @@ func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, co
 	})
 }
 
+// VirtualizationCopyChunkTo copy chunk to virtualization
+func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, content io.Reader, uid, gid int, mode int64) error {
+	// todo 把reader转为tar reader
+	pr, pw := io.Pipe()
+	tw := tar.NewWriter(pw)
+	defer tw.Close()
+	hdr := &tar.Header{
+		Name: filepath.Base(target),
+		//Size: int64(len(data)),
+		Mode: mode,
+		Uid:  uid,
+		Gid:  gid,
+	}
+	if err := tw.WriteHeader(hdr); err != nil {
+		return err
+	}
+	utils.SentryGo(func(writer io.Writer, reader io.Reader) func() {
+		return func() {
+			data := make([]byte, 0)
+			_, err := content.Read(data)
+			if err != nil {
+				return
+			}
+			_, err = tw.Write(data)
+			if err != nil {
+				return
+			}
+		}
+	}(pw, content))
+	return e.client.CopyToContainer(ctx, ID, filepath.Dir(target), pr, dockertypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
+}
+
 // VirtualizationStart start virtualization
 func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
 	return e.client.ContainerStart(ctx, ID, dockertypes.ContainerStartOptions{})

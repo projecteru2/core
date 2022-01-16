@@ -82,3 +82,10 @@ type VirtualizationRemapMessage struct {
 	ID    string
 	Error error
 }
+
+// SendMessage returns from engine
+type SendMessage struct {
+	ID    string
+	Path  string
+	Error error
+}

@@ -575,6 +575,20 @@ func (_m *API) VirtualizationCopyTo(ctx context.Context, ID string, target strin
 	return r0
 }
 
+// VVirtualizationCopyChunkTo provides a mock function with given fields: ctx, ID, target, content, uid, gid, mode
+func (_m *API) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, content io.Reader, uid, gid int, mode int64) error {
+	ret := _m.Called(ctx, ID, target, content, uid, gid, mode)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, io.Reader, int, int, int64) error); ok {
+		r0 = rf(ctx, ID, target, content, uid, gid, mode)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // VirtualizationCreate provides a mock function with given fields: ctx, opts
 func (_m *API) VirtualizationCreate(ctx context.Context, opts *types.VirtualizationCreateOptions) (*types.VirtualizationCreated, error) {
 	ret := _m.Called(ctx, opts)

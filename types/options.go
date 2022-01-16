@@ -358,3 +358,38 @@ func (r RawArgs) String() string {
 func (r RawArgs) LitterDump(w io.Writer) {
 	w.Write(r) // nolint:errcheck // here can't import core/log due to cycle dependence
 }
+
+// SendLargeFileOptions for LargeFileTransfer
+type SendLargeFileOptions struct {
+	FileMetadataOptions
+	FileChunkOptions
+}
+
+// FileMetadataOptions for LargeFileTransfer
+type FileMetadataOptions struct {
+	Ids   []string
+	Dst   string
+	Mode  int64
+	Uid   int
+	Gid   int
+}
+
+// FileChunkOptions for LargeFileTransfer
+type FileChunkOptions struct {
+	Data []byte
+}
+
+// Validate checks options
+func (o *SendLargeFileOptions) Validate() error {
+	if len(o.Ids) == 0 {
+		return errors.WithStack(ErrNoWorkloadIDs)
+	}
+	if len(o.Data) == 0 {
+		return errors.WithStack(ErrNoFilesToSend)
+	}
+	if o.Uid == 0 && o.Gid == 0 && o.Mode == 0 {
+		// we see it as requiring "default perm"
+		o.Mode = 0755
+	}
+	return nil
+}

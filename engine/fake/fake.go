@@ -128,6 +128,11 @@ func (f *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, co
 	return types.ErrNilEngine
 }
 
+// VirtualizationCopyChunkTo .
+func (f *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, content io.Reader, uid, gid int, mode int64) error {
+	return types.ErrNilEngine
+}
+
 // VirtualizationStart .
 func (f *Engine) VirtualizationStart(ctx context.Context, ID string) error {
 	return types.ErrNilEngine

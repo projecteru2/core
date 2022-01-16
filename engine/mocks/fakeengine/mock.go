@@ -95,6 +95,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	close(ch)
 	e.On("VirtualizationResourceRemap", mock.Anything, mock.Anything).Return((<-chan enginetypes.VirtualizationRemapMessage)(ch), nil)
 	e.On("VirtualizationCopyTo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	e.On("VVirtualizationCopyChunkTo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)

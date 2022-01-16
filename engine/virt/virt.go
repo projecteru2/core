@@ -214,6 +214,11 @@ func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, dest string, conten
 	return v.client.CopyToGuest(ctx, ID, dest, bytes.NewReader(content), true, true)
 }
 
+// VirtualizationCopyChunkTo copies one.
+func (v *Virt) VirtualizationCopyChunkTo(ctx context.Context, ID, dest string, content io.Reader, uid, gid int, mode int64) error {
+	return v.client.CopyToGuest(ctx, ID, dest, content, true, true)
+}
+
 // VirtualizationStart boots a guest.
 func (v *Virt) VirtualizationStart(ctx context.Context, ID string) (err error) {
 	_, err = v.client.StartGuest(ctx, ID)

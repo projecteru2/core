@@ -590,12 +590,18 @@ func (v *Vibranium) SendLargeFile(server pb.CoreRPC_SendLargeFileServer) error {
 	ctx := v.taskAdd(server.Context(), "SendLargeFile", true)
 	defer v.taskDone(ctx, "SendLargeFile", true)
 
-	fileDetails := &pb.SendOptions{
-		Ids: []string{},
-		Data: make(map[string][]byte),
-		Modes: make(map[string]*pb.FileMode),
-		Owners: make(map[string]*pb.FileOwner),
-	}
+	dc := make(chan *types.SendLargeFileOptions, 0)
+	ch := make(chan *types.SendMessage, 0)
+	data := &types.SendLargeFileOptions{}
+	utils.SentryGo(func(ctx context.Context, opts chan *types.SendLargeFileOptions, resp chan *types.SendMessage) func() {
+		return func() {
+			err := v.cluster.SendLargeFile(ctx, opts, resp)
+			if err != nil {
+				v.logUnsentMessages(ctx, "SendLargeFile", err, "SendLargeFile")
+			}
+		}
+	}(ctx, dc, ch))
+
 	for {
 		req, err := server.Recv()
 		if err == io.EOF {
@@ -604,26 +610,13 @@ func (v *Vibranium) SendLargeFile(server pb.CoreRPC_SendLargeFileServer) error {
 		if err != nil {
 			return grpcstatus.Error(SendLargeFile, err.Error())
 		}
-		metaData := req.Metadata
-		chunk := req.Chunk
-
-		if _, ok := fileDetails.Data[metaData.Dst]; !ok {
-			fileDetails.Ids = metaData.Ids
-			fileDetails.Data[metaData.Dst] = make([]byte, 0)
-			fileDetails.Modes[metaData.Dst] = metaData.Mode
-			fileDetails.Owners[metaData.Dst] = metaData.Owner
-		}
-		fileDetails.Data[metaData.Dst] = append(fileDetails.Data[metaData.Dst], chunk.Data...)
-	}
-
-	sendOpts, err := toCoreSendOptions(fileDetails)
-	if err != nil {
-		return grpcstatus.Error(SendLargeFile, err.Error())
-	}
-
-	ch, err := v.cluster.Send(ctx, sendOpts)
-	if err != nil {
-		return grpcstatus.Error(SendLargeFile, err.Error())
+		data.FileMetadataOptions.Ids = req.Metadata.Ids
+		data.FileMetadataOptions.Dst = req.Metadata.Dst
+		data.FileMetadataOptions.Uid = int(req.Metadata.Owner.Uid)
+		data.FileMetadataOptions.Gid = int(req.Metadata.Owner.Gid)
+		data.FileMetadataOptions.Mode = req.Metadata.Mode.Mode
+		data.Data = req.Chunk.Data
+		dc <- data
 	}
 
 	for m := range ch {
