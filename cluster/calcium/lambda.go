@@ -15,13 +15,11 @@ import (
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
 
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
 const (
 	exitDataPrefix = "[exitcode] "
-	labelLambdaID  = "LambdaID"
 )
 
 // RunAndWait implement lambda
@@ -39,10 +37,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		return workloadIDs, nil, errors.WithStack(types.ErrRunAndWaitCountOneWithStdin)
 	}
 
-	commit, err := c.walCreateLambda(opts)
-	if err != nil {
-		return workloadIDs, nil, logger.Err(ctx, err)
-	}
 	createChan, err := c.CreateWorkload(ctx, opts)
 	if err != nil {
 		logger.Errorf(ctx, "[RunAndWait] Create workload error %+v", err)
@@ -54,22 +48,39 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		wg       = &sync.WaitGroup{}
 	)
 
-	lambda := func(message *types.CreateWorkloadMessage) {
+	lambda := func(message *types.CreateWorkloadMessage) (attachMessage *types.AttachWorkloadMessage) {
 		// should Done this waitgroup anyway
 		defer wg.Done()
+
+		defer func() {
+			runMsgCh <- attachMessage
+		}()
 
 		// if workload is empty, which means error occurred when created workload
 		// we don't need to remove this non-existing workload
 		// so just send the error message and return
 		if message.Error != nil || message.WorkloadID == "" {
 			logger.Errorf(ctx, "[RunAndWait] Create workload failed %+v", message.Error)
-			runMsgCh <- &types.AttachWorkloadMessage{
+			return &types.AttachWorkloadMessage{
 				WorkloadID:    "",
 				Data:          []byte(fmt.Sprintf("Create workload failed %+v", errors.Unwrap(message.Error))),
 				StdStreamType: types.EruError,
 			}
-			return
 		}
+
+		commit, err := c.walCreateLambda(message)
+		if err != nil {
+			return &types.AttachWorkloadMessage{
+				WorkloadID:    message.WorkloadID,
+				Data:          []byte(fmt.Sprintf("Create wal failed: %s, %+v", message.WorkloadID, logger.Err(ctx, err))),
+				StdStreamType: types.EruError,
+			}
+		}
+		defer func() {
+			if err := commit(); err != nil {
+				logger.Errorf(ctx, "[RunAndWait] Commit WAL %s failed: %s, %v", eventCreateLambda, message.WorkloadID, err)
+			}
+		}()
 
 		// the workload should be removed if it exists
 		// no matter the workload exits successfully or not
@@ -86,12 +97,11 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		workload, err := c.GetWorkload(ctx, message.WorkloadID)
 		if err != nil {
 			logger.Errorf(ctx, "[RunAndWait] Get workload failed %+v", err)
-			runMsgCh <- &types.AttachWorkloadMessage{
+			return &types.AttachWorkloadMessage{
 				WorkloadID:    message.WorkloadID,
 				Data:          []byte(fmt.Sprintf("Get workload %s failed %+v", message.WorkloadID, errors.Unwrap(err))),
 				StdStreamType: types.EruError,
 			}
-			return
 		}
 
 		// for other cases, we have the workload and it works fine
@@ -105,12 +115,11 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			Stderr: true,
 		}); err != nil {
 			logger.Errorf(ctx, "[RunAndWait] Can't fetch log of workload %s error %+v", message.WorkloadID, err)
-			runMsgCh <- &types.AttachWorkloadMessage{
+			return &types.AttachWorkloadMessage{
 				WorkloadID:    message.WorkloadID,
 				Data:          []byte(fmt.Sprintf("Fetch log for workload %s failed %+v", message.WorkloadID, errors.Unwrap(err))),
 				StdStreamType: types.EruError,
 			}
-			return
 		}
 
 		splitFunc, split := bufio.ScanLines, byte('\n')
@@ -121,12 +130,11 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			stdout, stderr, inStream, err = workload.Engine.VirtualizationAttach(ctx, message.WorkloadID, true, true)
 			if err != nil {
 				logger.Errorf(ctx, "[RunAndWait] Can't attach workload %s error %+v", message.WorkloadID, err)
-				runMsgCh <- &types.AttachWorkloadMessage{
+				return &types.AttachWorkloadMessage{
 					WorkloadID:    message.WorkloadID,
 					Data:          []byte(fmt.Sprintf("Attach to workload %s failed %+v", message.WorkloadID, errors.Unwrap(err))),
 					StdStreamType: types.EruError,
 				}
-				return
 			}
 
 			processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
@@ -148,12 +156,11 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		r, err := workload.Engine.VirtualizationWait(ctx, message.WorkloadID, "")
 		if err != nil {
 			logger.Errorf(ctx, "[RunAndWait] %s wait failed %+v", utils.ShortID(message.WorkloadID), err)
-			runMsgCh <- &types.AttachWorkloadMessage{
+			return &types.AttachWorkloadMessage{
 				WorkloadID:    message.WorkloadID,
 				Data:          []byte(fmt.Sprintf("Wait workload %s failed %+v", message.WorkloadID, errors.Unwrap(err))),
 				StdStreamType: types.EruError,
 			}
-			return
 		}
 
 		if r.Code != 0 {
@@ -161,7 +168,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		}
 
 		exitData := []byte(exitDataPrefix + strconv.Itoa(int(r.Code)))
-		runMsgCh <- &types.AttachWorkloadMessage{
+		return &types.AttachWorkloadMessage{
 			WorkloadID:    message.WorkloadID,
 			Data:          exitData,
 			StdStreamType: types.Stdout,
@@ -182,9 +189,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	utils.SentryGo(func() {
 		defer close(runMsgCh)
 		wg.Wait()
-		if err := commit(); err != nil {
-			logger.Errorf(ctx, "[RunAndWait] Commit WAL %s failed: %v", eventCreateLambda, err)
-		}
 
 		log.Info("[RunAndWait] Finish run and wait for workloads")
 	})
@@ -192,19 +196,6 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	return workloadIDs, runMsgCh, nil
 }
 
-func (c *Calcium) walCreateLambda(opts *types.DeployOptions) (wal.Commit, error) {
-	uid, err := uuid.NewRandom()
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	lambdaID := uid.String()
-
-	if opts.Labels != nil {
-		opts.Labels[labelLambdaID] = lambdaID
-	} else {
-		opts.Labels = map[string]string{labelLambdaID: lambdaID}
-	}
-
+func (c *Calcium) walCreateLambda(opts *types.CreateWorkloadMessage) (wal.Commit, error) {
 	return c.wal.logCreateLambda(opts)
 }

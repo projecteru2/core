@@ -9,7 +9,6 @@ import (
 	"github.com/projecteru2/core/utils"
 
 	"github.com/pkg/errors"
-	"github.com/sanity-io/litter"
 )
 
 // AddNode adds a node
@@ -127,13 +126,13 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 	}
 	var n *types.Node
 	return n, c.withNodeLocked(ctx, opts.Nodename, func(ctx context.Context, node *types.Node) error {
-		litter.Dump(opts)
+		logger.Infof(ctx, "set node")
 		opts.Normalize(node)
 		n = node
 
 		n.Bypass = (opts.BypassOpt == types.TriTrue) || (opts.BypassOpt == types.TriKeep && n.Bypass)
 		if n.IsDown() {
-			log.Errorf(ctx, "[SetNodeAvailable] node marked down: %s", opts.Nodename)
+			logger.Errorf(ctx, "[SetNodeAvailable] node marked down: %s", opts.Nodename)
 		}
 		if opts.WorkloadsDown {
 			c.setAllWorkloadsOnNodeDown(ctx, opts.Nodename)
