@@ -17,7 +17,6 @@ import (
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/wal"
 	walmocks "github.com/projecteru2/core/wal/mocks"
 
 	"github.com/stretchr/testify/assert"
@@ -31,12 +30,6 @@ func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
 
 	mwal := c.wal.WAL.(*walmocks.WAL)
 	defer mwal.AssertExpectations(t)
-	var walCommitted bool
-	commit := wal.Commit(func() error {
-		walCommitted = true
-		return nil
-	})
-	mwal.On("Log", eventCreateLambda, mock.Anything).Return(commit, nil).Once()
 
 	opts := &types.DeployOptions{
 		Name:           "zc:name",
@@ -56,7 +49,6 @@ func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
 	_, ch, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
 	assert.NoError(err)
 	assert.NotNil(ch)
-	assert.False(walCommitted)
 	ms := []*types.AttachWorkloadMessage{}
 	for m := range ch {
 		ms = append(ms, m)
@@ -65,10 +57,6 @@ func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
 	assert.Equal(m.WorkloadID, "")
 	assert.True(strings.HasPrefix(string(m.Data), "Create workload failed"))
 
-	lambdaID, exists := opts.Labels[labelLambdaID]
-	assert.True(exists)
-	assert.True(len(lambdaID) > 1)
-	assert.True(walCommitted)
 	assert.Equal(m.StdStreamType, types.EruError)
 }
 

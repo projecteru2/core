@@ -52,12 +52,8 @@ func (w *WAL) logCreateWorkload(workloadID, nodename string) (wal.Commit, error)
 	})
 }
 
-func (w *WAL) logCreateLambda(opts *types.DeployOptions) (wal.Commit, error) {
-	return w.Log(eventCreateLambda, &types.ListWorkloadsOptions{
-		Appname:    opts.Name,
-		Entrypoint: opts.Entrypoint.Name,
-		Labels:     map[string]string{labelLambdaID: opts.Labels[labelLambdaID]},
-	})
+func (w *WAL) logCreateLambda(opts *types.CreateWorkloadMessage) (wal.Commit, error) {
+	return w.Log(eventCreateLambda, opts.WorkloadID)
 }
 
 // CreateWorkloadHandler indicates event handler for creating workload.
@@ -179,62 +175,50 @@ func (h *CreateLambdaHandler) Check(context.Context, interface{}) (bool, error) 
 
 // Encode .
 func (h *CreateLambdaHandler) Encode(raw interface{}) ([]byte, error) {
-	opts, ok := raw.(*types.ListWorkloadsOptions)
+	workloadID, ok := raw.(string)
 	if !ok {
 		return nil, types.NewDetailedErr(types.ErrInvalidType, raw)
 	}
-	return json.Marshal(opts)
+	return []byte(workloadID), nil
 }
 
 // Decode .
 func (h *CreateLambdaHandler) Decode(bs []byte) (interface{}, error) {
-	opts := &types.ListWorkloadsOptions{}
-	err := json.Unmarshal(bs, opts)
-	return opts, err
+	return string(bs), nil
 }
 
 // Handle .
 func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error {
-	opts, ok := raw.(*types.ListWorkloadsOptions)
+	workloadID, ok := raw.(string)
 	if !ok {
 		return types.NewDetailedErr(types.ErrInvalidType, raw)
 	}
 
-	workloadIDs, err := h.getWorkloadIDs(ctx, opts)
-	if err != nil {
-		log.Errorf(nil, "[CreateLambdaHandler.Handle] Get workloads %s/%s/%v failed: %v", //nolint
-			opts.Appname, opts.Entrypoint, opts.Labels, err)
-		return err
-	}
+	logger := log.WithField("WAL.Handle", "RunAndWait").WithField("ID", workloadID)
+	go func() {
+		logger.Infof(ctx, "recovery start")
+		workload, err := h.calcium.GetWorkload(ctx, workloadID)
+		if err != nil {
+			logger.Errorf(ctx, "Get workload failed: %v", err)
+			return
+		}
 
-	ctx, cancel := getReplayContext(ctx)
-	defer cancel()
+		r, err := workload.Engine.VirtualizationWait(ctx, workloadID, "")
+		if err != nil {
+			logger.Errorf(ctx, "Wait failed: %+v", err)
+			return
+		}
+		if r.Code != 0 {
+			logger.Errorf(ctx, "Run failed: %s", r.Message)
+		}
 
-	if err := h.calcium.doRemoveWorkloadSync(ctx, workloadIDs); err != nil {
-		log.Errorf(ctx, "[CreateLambdaHandler.Handle] Remove lambda %v failed: %v", opts, err)
-		return err
-	}
-
-	log.Infof(ctx, "[CreateLambdaHandler.Handle] Lambda %v removed", opts)
+		if err := h.calcium.doRemoveWorkloadSync(ctx, []string{workloadID}); err != nil {
+			logger.Errorf(ctx, "Remove failed: %+v", err)
+		}
+		logger.Infof(ctx, "waited and removed")
+	}()
 
 	return nil
-}
-
-func (h *CreateLambdaHandler) getWorkloadIDs(ctx context.Context, opts *types.ListWorkloadsOptions) ([]string, error) {
-	ctx, cancel := getReplayContext(ctx)
-	defer cancel()
-
-	workloads, err := h.calcium.ListWorkloads(ctx, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	workloadIDs := make([]string, len(workloads))
-	for i, wrk := range workloads {
-		workloadIDs[i] = wrk.ID
-	}
-
-	return workloadIDs, nil
 }
 
 func getReplayContext(ctx context.Context) (context.Context, context.CancelFunc) {
