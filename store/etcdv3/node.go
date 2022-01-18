@@ -322,12 +322,10 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 			}
 
 			nodeChan <- node
-			if node.Available {
-				if client, err := m.makeClient(ctx, node); err != nil {
-					log.Errorf(ctx, "[doGetNodes] failed to make client for %v, err: %v", node.Name, err)
-				} else {
-					node.Engine = client
-				}
+			if client, err := m.makeClient(ctx, node); err != nil {
+				log.Errorf(ctx, "[doGetNodes] failed to make client for %v, err: %v", node.Name, err)
+			} else {
+				node.Engine = client
 			}
 		})
 	}
