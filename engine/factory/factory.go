@@ -33,7 +33,7 @@ var (
 )
 
 func getEngineCacheKey(endpoint, ca, cert, key string) string {
-	return endpoint + utils.SHA256(fmt.Sprintf(":%v:%v:%v", ca, cert, key))[:8]
+	return endpoint + "-" + utils.SHA256(fmt.Sprintf(":%v:%v:%v", ca, cert, key))[:8]
 }
 
 // EngineCacheChecker checks if the engine in cache is available
