@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"math"
@@ -333,30 +334,56 @@ func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, co
 
 // VirtualizationCopyChunkTo copy chunk to virtualization
 func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, content io.Reader, uid, gid int, mode int64) error {
-	// todo 把reader转为tar reader
+	// todo err 怎么抛出
 	pr, pw := io.Pipe()
+	//bf := new(bytes.Buffer)
 	tw := tar.NewWriter(pw)
 	defer tw.Close()
-	hdr := &tar.Header{
-		Name: filepath.Base(target),
-		//Size: int64(len(data)),
-		Mode: mode,
-		Uid:  uid,
-		Gid:  gid,
-	}
-	if err := tw.WriteHeader(hdr); err != nil {
-		return err
-	}
 	utils.SentryGo(func(writer io.Writer, reader io.Reader) func() {
 		return func() {
-			data := make([]byte, 0)
-			_, err := content.Read(data)
-			if err != nil {
+			hdr := &tar.Header{
+				Name: filepath.Base(target),
+				// todo client 传过来
+				Size: 26357760,
+				Mode: mode,
+				Uid:  uid,
+				Gid:  gid,
+			}
+			logrus.Debugf("[VirtualizationCopyChunkTo] write header, target: %s, id: %s", target, ID)
+			if err := tw.WriteHeader(hdr); err != nil {
+				logrus.Debugf("[VirtualizationCopyChunkTo] write header err, err: %v", err)
 				return
 			}
-			_, err = tw.Write(data)
-			if err != nil {
-				return
+			logrus.Debugf("[VirtualizationCopyChunkTo] write header done, target: %s, id: %s", target, ID)
+			for {
+				data := make([]byte, 10 * 1024 * 1024)
+				logrus.Debugf("try to read.....")
+				n, err := reader.Read(data)
+				logrus.Debugf("[VirtualizationCopyChunkTo] read something, len: %d", n)
+				if err != nil {
+					if err == io.EOF {
+						logrus.Debugf("[VirtualizationCopyChunkTo] end!!, target: %s, id: %s", target, ID)
+					}
+					logrus.Debugf("[VirtualizationCopyChunkTo] read something error, len: %d", n)
+					err := writer.(*io.PipeWriter).Close()
+					if err != nil {
+						logrus.Debugf("[VirtualizationCopyChunkTo] close pipe writer, err: %v", err)
+					}
+					return
+				}
+				if n < len(data) {
+					data = data[:n]
+				}
+				_, err = tw.Write(data)
+				logrus.Debugf("[VirtualizationCopyChunkTo] write something, len: %d", len(data))
+				if err != nil {
+					logrus.Debugf("[VirtualizationCopyChunkTo] write something err, err: %v", err)
+					err := writer.(*io.PipeWriter).Close()
+					if err != nil {
+						logrus.Debugf("[VirtualizationCopyChunkTo] close pipe writer, err: %v", err)
+					}
+					return
+				}
 			}
 		}
 	}(pw, content))

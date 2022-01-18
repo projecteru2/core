@@ -618,7 +618,7 @@ func (v *Vibranium) SendLargeFile(server pb.CoreRPC_SendLargeFileServer) error {
 		data.Data = req.Chunk.Data
 		dc <- data
 	}
-
+	close(dc)
 	for m := range ch {
 		msg := &pb.SendMessage{
 			Id:   m.ID,
