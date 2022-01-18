@@ -312,12 +312,10 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 			}
 
 			nodeChan <- node
-			if node.Available {
-				if client, err := r.makeClient(ctx, node); err != nil {
-					log.Errorf(ctx, "[doGetNodes] failed to make client for %v, err: %v", node.Name, err)
-				} else {
-					node.Engine = client
-				}
+			if client, err := r.makeClient(ctx, node); err != nil {
+				log.Errorf(ctx, "[doGetNodes] failed to make client for %v, err: %v", node.Name, err)
+			} else {
+				node.Engine = client
 			}
 		})
 	}
