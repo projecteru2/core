@@ -129,7 +129,7 @@ func (f *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, co
 }
 
 // VirtualizationCopyChunkTo .
-func (f *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, content io.Reader, uid, gid int, mode int64) error {
+func (f *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, size int64, content io.Reader, uid, gid int, mode int64) error {
 	return types.ErrNilEngine
 }
 

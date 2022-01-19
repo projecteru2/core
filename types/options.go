@@ -369,6 +369,7 @@ type SendLargeFileOptions struct {
 type FileMetadataOptions struct {
 	Ids   []string
 	Dst   string
+	Size  int64
 	Mode  int64
 	Uid   int
 	Gid   int

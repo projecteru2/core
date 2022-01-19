@@ -36,19 +36,19 @@ func (c *Calcium) SendLargeFile(ctx context.Context, opts chan *types.SendLargeF
 					wg.Add(1)
 					pr, pw := io.Pipe()
 					writerMap[id][dst] = pw
-					utils.SentryGo(func(id string) func() {
+					utils.SentryGo(func(ID, name string, size int64, content io.Reader, uid, gid int, mode int64) func() {
 						return func() {
 							defer wg.Done()
-							logrus.Debugf("[SendLargeFile] gen goroutine for id:%s", id)
-							if err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
-								err := c.doSendChunkFileToWorkload(ctx, workload.Engine, workload.ID, dst, pr, data.Uid, data.Gid, data.Mode)
-								resp <- &types.SendMessage{ID: id, Path: dst, Error: logger.Err(ctx, err)}
+							logrus.Debugf("[SendLargeFile] gen goroutine for id:%s", ID)
+							if err := c.withWorkloadLocked(ctx, ID, func(ctx context.Context, workload *types.Workload) error {
+								err := c.doSendChunkFileToWorkload(ctx, workload.Engine, workload.ID, name, size, content, uid, gid, mode)
+								resp <- &types.SendMessage{ID: ID, Path: dst, Error: logger.Err(ctx, err)}
 								return nil
 							}); err != nil {
-								resp <- &types.SendMessage{ID: id, Error: logger.Err(ctx, err)}
+								resp <- &types.SendMessage{ID: ID, Error: logger.Err(ctx, err)}
 							}
 						}
-					}(id))
+					}(id, dst, data.Size, pr, data.Uid, data.Gid, data.Mode))
 				}
 				logrus.Debugf("[SendLargeFile] send somethine id: %s; dst: %s", id, dst)
 				writerMap[id][dst].Write(data.Data)
@@ -68,7 +68,7 @@ func (c *Calcium) SendLargeFile(ctx context.Context, opts chan *types.SendLargeF
 	return nil
 }
 
-func (c *Calcium) doSendChunkFileToWorkload(ctx context.Context, engine engine.API, ID, name string, content io.Reader, uid, gid int, mode int64) error {
+func (c *Calcium) doSendChunkFileToWorkload(ctx context.Context, engine engine.API, ID, name string, size int64, content io.Reader, uid, gid int, mode int64) error {
 	log.Infof(ctx, "[doSendChunkFileToWorkload] Send file to %s:%s", ID, name)
-	return errors.WithStack(engine.VirtualizationCopyChunkTo(ctx, ID, name, content, uid, gid, mode))
+	return errors.WithStack(engine.VirtualizationCopyChunkTo(ctx, ID, name, size, content, uid, gid, mode))
 }

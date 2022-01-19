@@ -545,8 +545,9 @@ message FileOptions {
     message Metadata {
         repeated string ids = 1;
         string dst = 2;
-        FileMode mode = 3;
-        FileOwner owner = 4;
+        int64 size = 3;
+        FileMode mode = 4;
+        FileOwner owner = 5;
     }
     message Chunk {
         bytes data = 1;

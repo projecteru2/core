@@ -333,7 +333,7 @@ func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, co
 }
 
 // VirtualizationCopyChunkTo copy chunk to virtualization
-func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, content io.Reader, uid, gid int, mode int64) error {
+func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, size int64, content io.Reader, uid, gid int, mode int64) error {
 	// todo err 怎么抛出
 	pr, pw := io.Pipe()
 	//bf := new(bytes.Buffer)
@@ -343,8 +343,7 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 		return func() {
 			hdr := &tar.Header{
 				Name: filepath.Base(target),
-				// todo client 传过来
-				Size: 26357760,
+				Size: size,
 				Mode: mode,
 				Uid:  uid,
 				Gid:  gid,

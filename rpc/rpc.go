@@ -612,6 +612,7 @@ func (v *Vibranium) SendLargeFile(server pb.CoreRPC_SendLargeFileServer) error {
 		}
 		data.FileMetadataOptions.Ids = req.Metadata.Ids
 		data.FileMetadataOptions.Dst = req.Metadata.Dst
+		data.FileMetadataOptions.Size = req.Metadata.Size
 		data.FileMetadataOptions.Uid = int(req.Metadata.Owner.Uid)
 		data.FileMetadataOptions.Gid = int(req.Metadata.Owner.Gid)
 		data.FileMetadataOptions.Mode = req.Metadata.Mode.Mode
