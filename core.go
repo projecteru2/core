@@ -72,6 +72,8 @@ func serve(c *cli.Context) error {
 		return err
 	}
 
+	factory.InitEngineCache(c.Context, config)
+
 	var t *testing.T
 	if embeddedStorage {
 		t = &testing.T{}
@@ -132,9 +134,6 @@ func serve(c *cli.Context) error {
 	// wait for unix signals and try to GracefulStop
 	ctx, cancel := signal.NotifyContext(c.Context, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer cancel()
-
-	// start engine cache checker
-	go factory.EngineCacheChecker(ctx, config.ConnectionTimeout)
 
 	<-ctx.Done()
 
