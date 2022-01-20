@@ -2,18 +2,14 @@ package store
 
 import (
 	"context"
+	"testing"
 	"time"
 
 	"github.com/projecteru2/core/lock"
+	"github.com/projecteru2/core/store/etcdv3"
+	"github.com/projecteru2/core/store/redis"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
-)
-
-const (
-	// ActionIncr for incr resource
-	ActionIncr = "+"
-	// ActionDecr for decr resource
-	ActionDecr = "-"
 )
 
 // Store store eru data
@@ -64,4 +60,15 @@ type Store interface {
 
 	// distributed lock
 	CreateLock(key string, ttl time.Duration) (lock.DistributedLock, error)
+}
+
+// NewStore creates a store
+func NewStore(config types.Config, t *testing.T) (store Store, err error) {
+	switch config.Store {
+	case types.Redis:
+		store, err = redis.New(config, t)
+	default:
+		store, err = etcdv3.New(config, t)
+	}
+	return store, err
 }

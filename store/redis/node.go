@@ -14,7 +14,6 @@ import (
 	"github.com/projecteru2/core/engine/fake"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/metrics"
-	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 
@@ -169,9 +168,9 @@ func (r *Rediaron) UpdateNodes(ctx context.Context, nodes ...*types.Node) error 
 // UpdateNodeResource update cpu and memory on a node, either add or subtract
 func (r *Rediaron) UpdateNodeResource(ctx context.Context, node *types.Node, resource *types.ResourceMeta, action string) error {
 	switch action {
-	case store.ActionIncr:
+	case types.ActionIncr:
 		node.RecycleResources(resource)
-	case store.ActionDecr:
+	case types.ActionDecr:
 		node.PreserveResources(resource)
 	default:
 		return types.ErrUnknownControlType
