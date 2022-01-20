@@ -1,16 +1,17 @@
-package calcium
+package selfmon
 
 import (
 	"context"
 	"math/rand"
-	"os/signal"
-	"syscall"
+	"testing"
 	"time"
 
 	"github.com/pkg/errors"
 
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
-	coretypes "github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/store"
+	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
 
@@ -19,22 +20,32 @@ const ActiveKey = "/selfmon/active"
 
 // NodeStatusWatcher monitors the changes of node status
 type NodeStatusWatcher struct {
-	id  int64
-	cal *Calcium
+	id      int64
+	config  types.Config
+	cluster cluster.Cluster
+	store   store.Store
 }
 
-// NewNodeStatusWatcher .
-func NewNodeStatusWatcher(cal *Calcium) *NodeStatusWatcher {
+// RunNodeStatusWatcher .
+func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster cluster.Cluster, t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	id := rand.Int63n(10000) // nolint
-	return &NodeStatusWatcher{
-		id:  id,
-		cal: cal,
+	store, err := store.NewStore(config, t)
+	if err != nil {
+		log.Errorf(context.TODO(), "[RunNodeStatusWatcher] %v failed to create store, err: %v", id, err)
+		return
 	}
+
+	watcher := &NodeStatusWatcher{
+		id:      id,
+		config:  config,
+		store:   store,
+		cluster: cluster,
+	}
+	watcher.run(ctx)
 }
 
-func (n *NodeStatusWatcher) run() {
-	ctx := n.getSignalContext(context.TODO())
+func (n *NodeStatusWatcher) run(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -45,20 +56,9 @@ func (n *NodeStatusWatcher) run() {
 					log.Errorf(ctx, "[NodeStatusWatcher] %v stops watching, err: %v", n.id, err)
 				}
 			})
-			time.Sleep(n.cal.config.ConnectionTimeout)
+			time.Sleep(n.config.ConnectionTimeout)
 		}
 	}
-}
-
-func (n *NodeStatusWatcher) getSignalContext(ctx context.Context) context.Context {
-	exitCtx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-	go func() {
-		defer cancel()
-		<-exitCtx.Done()
-		log.Warnf(ctx, "[NodeStatusWatcher] watcher %v receives a signal to exit", n.id)
-	}()
-
-	return exitCtx
 }
 
 // withActiveLock acquires the active lock synchronously
@@ -90,7 +90,7 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 			if errors.Is(err, context.Canceled) {
 				log.Info("[Register] context canceled")
 				return
-			} else if !errors.Is(err, coretypes.ErrKeyExists) {
+			} else if !errors.Is(err, types.ErrKeyExists) {
 				log.Errorf(ctx, "[Register] failed to re-register: %v", err)
 				time.Sleep(time.Second)
 				continue
@@ -126,20 +126,20 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 }
 
 func (n *NodeStatusWatcher) register(ctx context.Context) (<-chan struct{}, func(), error) {
-	return n.cal.store.StartEphemeral(ctx, ActiveKey, n.cal.config.HAKeepaliveInterval)
+	return n.store.StartEphemeral(ctx, ActiveKey, n.config.HAKeepaliveInterval)
 }
 
 func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 	log.Debug(ctx, "[NodeStatusWatcher] init node status started")
-	nodes := make(chan *coretypes.Node)
+	nodes := make(chan *types.Node)
 
 	go func() {
 		defer close(nodes)
 		// Get all nodes which are active status, and regardless of pod.
 		var err error
-		var ch <-chan *coretypes.Node
-		utils.WithTimeout(ctx, n.cal.config.GlobalTimeout, func(ctx context.Context) {
-			ch, err = n.cal.ListPodNodes(ctx, &coretypes.ListNodesOptions{
+		var ch <-chan *types.Node
+		utils.WithTimeout(ctx, n.config.GlobalTimeout, func(ctx context.Context) {
+			ch, err = n.cluster.ListPodNodes(ctx, &types.ListNodesOptions{
 				Podname: "",
 				Labels:  nil,
 				All:     true,
@@ -161,9 +161,9 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 	}()
 
 	for node := range nodes {
-		status, err := n.cal.GetNodeStatus(ctx, node.Name)
+		status, err := n.cluster.GetNodeStatus(ctx, node.Name)
 		if err != nil {
-			status = &coretypes.NodeStatus{
+			status = &types.NodeStatus{
 				Nodename: node.Name,
 				Podname:  node.Podname,
 				Alive:    false,
@@ -178,7 +178,7 @@ func (n *NodeStatusWatcher) monitor(ctx context.Context) error {
 	go n.initNodeStatus(ctx)
 
 	// monitor node status
-	messageChan := n.cal.NodeStatusStream(ctx)
+	messageChan := n.cluster.NodeStatusStream(ctx)
 	log.Infof(ctx, "[NodeStatusWatcher] %v watch node status started", n.id)
 	defer log.Infof(ctx, "[NodeStatusWatcher] %v stop watching node status", n.id)
 
@@ -186,7 +186,7 @@ func (n *NodeStatusWatcher) monitor(ctx context.Context) error {
 		select {
 		case message, ok := <-messageChan:
 			if !ok {
-				return coretypes.ErrMessageChanClosed
+				return types.ErrMessageChanClosed
 			}
 			go n.dealNodeStatusMessage(ctx, message)
 		case <-ctx.Done():
@@ -195,18 +195,18 @@ func (n *NodeStatusWatcher) monitor(ctx context.Context) error {
 	}
 }
 
-func (n *NodeStatusWatcher) dealNodeStatusMessage(ctx context.Context, message *coretypes.NodeStatus) {
+func (n *NodeStatusWatcher) dealNodeStatusMessage(ctx context.Context, message *types.NodeStatus) {
 	if message.Error != nil {
 		log.Errorf(ctx, "[NodeStatusWatcher] deal with node status stream message failed %+v", message)
 		return
 	}
 
 	// TODO maybe we need a distributed lock to control concurrency
-	opts := &coretypes.SetNodeOptions{
+	opts := &types.SetNodeOptions{
 		Nodename:      message.Nodename,
 		WorkloadsDown: !message.Alive,
 	}
-	if _, err := n.cal.SetNode(ctx, opts); err != nil {
+	if _, err := n.cluster.SetNode(ctx, opts); err != nil {
 		log.Errorf(ctx, "[NodeStatusWatcher] set node %s failed %v", message.Nodename, err)
 		return
 	}

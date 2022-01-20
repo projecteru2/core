@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 
 	"github.com/stretchr/testify/assert"
@@ -223,8 +222,8 @@ func TestUpdateNodeResource(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	assert.Error(t, m.UpdateNodeResource(ctx, node, nil, "wtf"))
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, &types.ResourceMeta{CPU: map[string]int64{"0": 100}}, store.ActionIncr))
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, &types.ResourceMeta{CPU: map[string]int64{"0": 100}}, store.ActionDecr))
+	assert.NoError(t, m.UpdateNodeResource(ctx, node, &types.ResourceMeta{CPU: map[string]int64{"0": 100}}, types.ActionIncr))
+	assert.NoError(t, m.UpdateNodeResource(ctx, node, &types.ResourceMeta{CPU: map[string]int64{"0": 100}}, types.ActionDecr))
 }
 
 func TestExtractNodename(t *testing.T) {

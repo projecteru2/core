@@ -15,8 +15,6 @@ import (
 	"github.com/projecteru2/core/source/github"
 	"github.com/projecteru2/core/source/gitlab"
 	"github.com/projecteru2/core/store"
-	"github.com/projecteru2/core/store/etcdv3"
-	"github.com/projecteru2/core/store/redis"
 	"github.com/projecteru2/core/types"
 
 	"github.com/pkg/errors"
@@ -31,7 +29,6 @@ type Calcium struct {
 	watcher    discovery.Service
 	wal        *WAL
 	identifier string
-	selfmon    *NodeStatusWatcher
 }
 
 // New returns a new cluster config
@@ -39,19 +36,9 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 	logger := log.WithField("Calcium", "New").WithField("config", config)
 
 	// set store
-	var store store.Store
-	var err error
-	switch config.Store {
-	case types.Redis:
-		store, err = redis.New(config, t)
-		if err != nil {
-			return nil, logger.Err(context.TODO(), errors.WithStack(err))
-		}
-	default:
-		store, err = etcdv3.New(config, t)
-		if err != nil {
-			return nil, logger.Err(context.TODO(), errors.WithStack(err))
-		}
+	store, err := store.NewStore(config, t)
+	if err != nil {
+		return nil, logger.Err(context.TODO(), errors.WithStack(err))
 	}
 
 	// set scheduler
@@ -83,10 +70,6 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 	cal := &Calcium{store: store, config: config, scheduler: potassium, source: scm, watcher: watcher}
 	cal.wal, err = newCalciumWAL(cal)
 	cal.identifier = config.Identifier()
-	cal.selfmon = NewNodeStatusWatcher(cal)
-
-	// start node status watcher
-	go cal.selfmon.run()
 
 	return cal, logger.Err(nil, errors.WithStack(err)) //nolint
 }
