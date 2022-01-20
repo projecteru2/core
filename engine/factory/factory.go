@@ -33,7 +33,7 @@ var (
 )
 
 func getEngineCacheKey(endpoint, ca, cert, key string) string {
-	return endpoint + "-" + utils.SHA256(fmt.Sprintf(":%v:%v:%v", ca, cert, key))[:8]
+	return fmt.Sprintf("%v-%v", endpoint, utils.SHA256(fmt.Sprintf(":%v:%v:%v", ca, cert, key))[:8])
 }
 
 type engineParams struct {

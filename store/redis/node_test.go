@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 )
 
@@ -213,8 +212,8 @@ func (s *RediaronTestSuite) TestUpdateNodeResource() {
 	s.NoError(err)
 	s.Equal(node.Name, "test")
 	s.Error(s.rediaron.UpdateNodeResource(ctx, node, nil, "wtf"))
-	s.NoError(s.rediaron.UpdateNodeResource(ctx, node, &types.ResourceMeta{CPU: map[string]int64{"0": 100}}, store.ActionIncr))
-	s.NoError(s.rediaron.UpdateNodeResource(ctx, node, &types.ResourceMeta{CPU: map[string]int64{"0": 100}}, store.ActionDecr))
+	s.NoError(s.rediaron.UpdateNodeResource(ctx, node, &types.ResourceMeta{CPU: map[string]int64{"0": 100}}, types.ActionIncr))
+	s.NoError(s.rediaron.UpdateNodeResource(ctx, node, &types.ResourceMeta{CPU: map[string]int64{"0": 100}}, types.ActionDecr))
 }
 
 func (s *RediaronTestSuite) TestExtractNodename() {

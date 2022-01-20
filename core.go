@@ -18,6 +18,7 @@ import (
 	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/rpc"
 	pb "github.com/projecteru2/core/rpc/gen"
+	"github.com/projecteru2/core/selfmon"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/version"
 
@@ -134,6 +135,12 @@ func serve(c *cli.Context) error {
 	// wait for unix signals and try to GracefulStop
 	ctx, cancel := signal.NotifyContext(c.Context, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer cancel()
+
+	// start node status checker
+	go selfmon.RunNodeStatusWatcher(ctx, config, cluster, t)
+
+	// start engine cache checker
+	go factory.EngineCacheChecker(ctx, config.ConnectionTimeout)
 
 	<-ctx.Done()
 
