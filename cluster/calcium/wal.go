@@ -3,7 +3,6 @@ package calcium
 import (
 	"context"
 	"encoding/json"
-	"strings"
 	"time"
 
 	"github.com/projecteru2/core/log"
@@ -49,13 +48,6 @@ func (w *WAL) registerHandlers() {
 	w.Register(newProcessingCreatedHandler(w.calcium))
 }
 
-func (w *WAL) logCreateWorkload(workloadID, nodename string) (wal.Commit, error) {
-	return w.Log(eventCreateWorkload, &types.Workload{
-		ID:       workloadID,
-		Nodename: nodename,
-	})
-}
-
 func (w *WAL) logCreateLambda(opts *types.CreateWorkloadMessage) (wal.Commit, error) {
 	return w.Log(eventCreateLambda, opts.WorkloadID)
 }
@@ -79,30 +71,12 @@ func (h *CreateWorkloadHandler) Event() string {
 }
 
 // Check .
-func (h *CreateWorkloadHandler) Check(ctx context.Context, raw interface{}) (bool, error) {
-	wrk, ok := raw.(*types.Workload)
+func (h *CreateWorkloadHandler) Check(ctx context.Context, raw interface{}) (handle bool, err error) {
+	_, ok := raw.(*types.Workload)
 	if !ok {
 		return false, types.NewDetailedErr(types.ErrInvalidType, raw)
 	}
-	logger := log.WithField("WAL.Check", "CreateWorkload").WithField("ID", wrk.ID)
-
-	ctx, cancel := getReplayContext(ctx)
-	defer cancel()
-
-	_, err := h.calcium.GetWorkload(ctx, wrk.ID)
-	switch {
-	// there has been an exact workload metadata.
-	case err == nil:
-		return false, nil
-
-	case strings.HasPrefix(err.Error(), types.ErrBadCount.Error()):
-		logger.Errorf(ctx, "No such workload")
-		return true, nil
-
-	default:
-		logger.Errorf(ctx, "Unexpected error: %v", err)
-		return false, err
-	}
+	return true, nil
 }
 
 // Encode .
@@ -121,31 +95,38 @@ func (h *CreateWorkloadHandler) Decode(bs []byte) (interface{}, error) {
 	return wrk, err
 }
 
-// Handle .
+// Handle: remove instance, remove meta, restore resource
 func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (err error) {
-	wrk, ok := raw.(*types.Workload)
-	if !ok {
-		return types.NewDetailedErr(types.ErrInvalidType, raw)
-	}
+	wrk, _ := raw.(*types.Workload)
 	logger := log.WithField("WAL.Handle", "CreateWorkload").WithField("ID", wrk.ID).WithField("nodename", wrk.Nodename)
 
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
 
-	ch, err := h.calcium.RemoveWorkload(ctx, []string{wrk.ID}, true, 0)
-	if err != nil {
-		logger.Errorf(ctx, "failed to remove workload")
-		return
-	}
-	for msg := range ch {
-		if !msg.Success {
-			logger.Errorf(ctx, "failed to remove workload")
-			return nil
+	if _, err = h.calcium.GetWorkload(ctx, wrk.ID); err == nil {
+		// workload meta exists
+		ch, err := h.calcium.RemoveWorkload(ctx, []string{wrk.ID}, true, 0)
+		if err != nil {
+			return logger.Err(ctx, err)
 		}
+		for msg := range ch {
+			if !msg.Success {
+				logger.Errorf(ctx, "failed to remove workload")
+			}
+		}
+		return nil
+	}
+
+	// workload meta doesn't exist
+	node, err := h.calcium.GetNode(ctx, wrk.Nodename)
+	if err != nil {
+		return logger.Err(ctx, err)
+	}
+	if _, err = node.Engine.VirtualizationRemove(ctx, wrk.ID, true, true); err != nil {
+		return logger.Err(ctx, err)
 	}
 
 	logger.Infof(ctx, "workload removed")
-
 	return nil
 }
 

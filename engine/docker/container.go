@@ -346,8 +346,14 @@ func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTime
 }
 
 // VirtualizationRemove remove virtualization
-func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, removeVolumes, force bool) error {
-	return e.client.ContainerRemove(ctx, ID, dockertypes.ContainerRemoveOptions{RemoveVolumes: removeVolumes, Force: force})
+func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, removeVolumes, force bool) (removed int, err error) {
+	if err = e.client.ContainerRemove(ctx, ID, dockertypes.ContainerRemoveOptions{RemoveVolumes: removeVolumes, Force: force}); err == nil {
+		return 1, nil
+	}
+	if strings.Contains(err.Error(), "No such container") {
+		return 0, nil
+	}
+	return
 }
 
 // VirtualizationInspect get virtualization info

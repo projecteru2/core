@@ -41,7 +41,7 @@ type API interface {
 	VirtualizationCopyTo(ctx context.Context, ID, target string, content []byte, uid, gid int, mode int64) error
 	VirtualizationStart(ctx context.Context, ID string) error
 	VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) error
-	VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) error
+	VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) (int, error)
 	VirtualizationInspect(ctx context.Context, ID string) (*enginetypes.VirtualizationInfo, error)
 	VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout, stderr io.ReadCloser, err error)
 	VirtualizationAttach(ctx context.Context, ID string, stream, openStdin bool) (stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error)

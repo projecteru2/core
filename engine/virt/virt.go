@@ -228,8 +228,13 @@ func (v *Virt) VirtualizationStop(ctx context.Context, ID string, gracefulTimeou
 }
 
 // VirtualizationRemove removes a guest.
-func (v *Virt) VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) (err error) {
-	_, err = v.client.DestroyGuest(ctx, ID, force)
+func (v *Virt) VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) (removed int, err error) {
+	if _, err = v.client.DestroyGuest(ctx, ID, force); err == nil {
+		return 1, nil
+	}
+	if strings.Contains(err.Error(), "key not exists") {
+		return 0, nil
+	}
 	return
 }
 
