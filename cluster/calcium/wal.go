@@ -95,7 +95,7 @@ func (h *CreateWorkloadHandler) Decode(bs []byte) (interface{}, error) {
 	return wrk, err
 }
 
-// Handle: remove instance, remove meta, restore resource
+// Handle will remove instance, remove meta, restore resource
 func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (err error) {
 	wrk, _ := raw.(*types.Workload)
 	logger := log.WithField("WAL.Handle", "CreateWorkload").WithField("ID", wrk.ID).WithField("nodename", wrk.Nodename)
@@ -114,6 +114,7 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (er
 				logger.Errorf(ctx, "failed to remove workload")
 			}
 		}
+		logger.Infof(ctx, "workload with meta removed")
 		return nil
 	}
 
@@ -176,7 +177,6 @@ func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error
 
 	logger := log.WithField("WAL.Handle", "RunAndWait").WithField("ID", workloadID)
 	go func() {
-		logger.Infof(ctx, "recovery start")
 		workload, err := h.calcium.GetWorkload(ctx, workloadID)
 		if err != nil {
 			logger.Errorf(ctx, "Get workload failed: %v", err)
@@ -205,6 +205,7 @@ func getReplayContext(ctx context.Context) (context.Context, context.CancelFunc)
 	return context.WithTimeout(ctx, time.Second*32)
 }
 
+// WorkloadResourceAllocatedHandler .
 type WorkloadResourceAllocatedHandler struct {
 	event   string
 	calcium *Calcium
@@ -258,7 +259,7 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw inter
 		pool.Go(ctx, func(nodename string) func() {
 			return func() {
 				{
-					if _, err = h.calcium.NodeResource(ctx, node.Name, true); err != nil {
+					if _, err = h.calcium.NodeResource(ctx, nodename, true); err != nil {
 						logger.Errorf(ctx, "failed to fix node resource: %s, %+v", node.Name, err)
 						return
 					}
@@ -272,6 +273,7 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw inter
 	return nil
 }
 
+// ProcessingCreatedHandler .
 type ProcessingCreatedHandler struct {
 	event   string
 	calcium *Calcium
@@ -315,13 +317,14 @@ func (h *ProcessingCreatedHandler) Decode(bs []byte) (interface{}, error) {
 // Handle .
 func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw interface{}) (err error) {
 	processing, _ := raw.(*types.Processing)
-	logger := log.WithField("WAL", "Handle").WithField("event", eventProcessingCreated)
+	logger := log.WithField("WAL", "Handle").WithField("event", eventProcessingCreated).WithField("ident", processing.Ident)
 
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
 
 	if err = h.calcium.store.DeleteProcessing(ctx, processing); err != nil {
-		logger.Errorf(ctx, "faild to delete processing %s", processing.Ident)
+		return logger.Err(ctx, err)
 	}
+	logger.Infof(ctx, "obsolete processing deleted")
 	return
 }

@@ -29,7 +29,8 @@ func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
 	c.wal = &WAL{WAL: &walmocks.WAL{}}
 
 	mwal := c.wal.WAL.(*walmocks.WAL)
-	defer mwal.AssertExpectations(t)
+	defer mwal.AssertNotCalled(t, "Log")
+	mwal.On("Log", mock.Anything, mock.Anything).Return(nil, nil)
 
 	opts := &types.DeployOptions{
 		Name:           "zc:name",
@@ -267,7 +268,7 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 	// doCreateAndStartWorkload fails: AddWorkload
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "workloadfortonictest"}, nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
-	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(1, nil)
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
 	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(nil)
