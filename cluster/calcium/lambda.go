@@ -85,7 +85,9 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		// the workload should be removed if it exists
 		// no matter the workload exits successfully or not
 		defer func() {
-			if err := c.doRemoveWorkloadSync(context.TODO(), []string{message.WorkloadID}); err != nil {
+			ctx, cancel := context.WithCancel(utils.InheritTracingInfo(ctx, context.TODO()))
+			defer cancel()
+			if err := c.doRemoveWorkloadSync(ctx, []string{message.WorkloadID}); err != nil {
 				logger.Errorf(ctx, "[RunAndWait] Remove lambda workload failed %+v", err)
 			} else {
 				log.Infof(ctx, "[RunAndWait] Workload %s finished and removed", utils.ShortID(message.WorkloadID))

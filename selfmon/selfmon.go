@@ -32,7 +32,7 @@ func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster clus
 	id := rand.Int63n(10000) // nolint
 	store, err := store.NewStore(config, t)
 	if err != nil {
-		log.Errorf(context.TODO(), "[RunNodeStatusWatcher] %v failed to create store, err: %v", id, err)
+		log.Errorf(ctx, "[RunNodeStatusWatcher] %v failed to create store, err: %v", id, err)
 		return
 	}
 
@@ -200,6 +200,9 @@ func (n *NodeStatusWatcher) dealNodeStatusMessage(ctx context.Context, message *
 		log.Errorf(ctx, "[NodeStatusWatcher] deal with node status stream message failed %+v", message)
 		return
 	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	// TODO maybe we need a distributed lock to control concurrency
 	opts := &types.SetNodeOptions{
