@@ -1,9 +1,11 @@
 package etcdv3
 
 import (
+	"context"
 	"testing"
 	"time"
 
+	"github.com/projecteru2/core/engine/factory"
 	"github.com/projecteru2/core/types"
 
 	"github.com/stretchr/testify/assert"
@@ -20,6 +22,10 @@ func NewMercury(t *testing.T) *Mercury {
 	}
 	config.MaxConcurrency = 20
 	//	config.Docker.CertPath = "/tmp"
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	factory.InitEngineCache(ctx, config)
 
 	m, err := New(config, t)
 	assert.NoError(t, err)

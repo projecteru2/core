@@ -73,6 +73,9 @@ func serve(c *cli.Context) error {
 		return err
 	}
 
+	// init engine cache and start engine cache checker
+	factory.InitEngineCache(c.Context, config)
+
 	var t *testing.T
 	if embeddedStorage {
 		t = &testing.T{}
@@ -136,9 +139,6 @@ func serve(c *cli.Context) error {
 
 	// start node status checker
 	go selfmon.RunNodeStatusWatcher(ctx, config, cluster, t)
-
-	// start engine cache checker
-	go factory.EngineCacheChecker(ctx, config.ConnectionTimeout)
 
 	<-ctx.Done()
 
