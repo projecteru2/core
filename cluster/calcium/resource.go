@@ -26,11 +26,12 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.
 	go func() {
 		defer close(ch)
 		for node := range nodeCh {
+			nodename := node.Name
 			pool.Go(ctx, func() {
-				nodeResource, err := c.doGetNodeResource(ctx, node.Name, false)
+				nodeResource, err := c.doGetNodeResource(ctx, nodename, false)
 				if err != nil {
 					nodeResource = &types.NodeResource{
-						Name: node.Name, Diffs: []string{logger.Err(ctx, err).Error()},
+						Name: nodename, Diffs: []string{logger.Err(ctx, err).Error()},
 					}
 				}
 				ch <- nodeResource
