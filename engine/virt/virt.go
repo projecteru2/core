@@ -19,6 +19,7 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	coresource "github.com/projecteru2/core/source"
+	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
 )
 
@@ -228,12 +229,12 @@ func (v *Virt) VirtualizationStop(ctx context.Context, ID string, gracefulTimeou
 }
 
 // VirtualizationRemove removes a guest.
-func (v *Virt) VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) (removed int, err error) {
+func (v *Virt) VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) (err error) {
 	if _, err = v.client.DestroyGuest(ctx, ID, force); err == nil {
-		return 1, nil
+		return nil
 	}
 	if strings.Contains(err.Error(), "key not exists") {
-		return 0, nil
+		return types.ErrWorkloadNotExists
 	}
 	return
 }

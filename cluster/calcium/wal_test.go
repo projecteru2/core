@@ -72,14 +72,14 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(wrk, err).Once()
 	store.On("GetNode", mock.Anything, wrk.Nodename).Return(node, nil).Once()
-	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(0, err).Once()
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(err).Once()
 	c.wal.Recover(context.TODO())
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
 
 	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, fmt.Errorf("err")).Once()
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil).Once()
-	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(1, nil).Once()
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(types.ErrWorkloadNotExists).Once()
 	c.wal.Recover(context.TODO())
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
@@ -117,7 +117,7 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	eng, ok := node.Engine.(*enginemocks.API)
 	require.True(t, ok)
 	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
-		Return(1, nil).
+		Return(nil).
 		Once()
 
 	c.wal.Recover(context.TODO())
@@ -163,7 +163,7 @@ func TestHandleCreateLambda(t *testing.T) {
 	eng := wrk.Engine.(*enginemocks.API)
 	eng.On("VirtualizationWait", mock.Anything, wrk.ID, "").Return(&enginetypes.VirtualizationWaitResult{Code: 0}, nil).Once()
 	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
-		Return(1, nil).
+		Return(nil).
 		Once()
 	eng.On("VirtualizationResourceRemap", mock.Anything, mock.Anything).Return(nil, nil).Once()
 	store.On("GetWorkloads", mock.Anything, []string{wrk.ID}).

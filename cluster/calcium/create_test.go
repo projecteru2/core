@@ -233,7 +233,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return([]string{""}, nil)
 	engine.On("ImageRemoteDigest", mock.Anything, mock.Anything).Return("", nil)
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "VirtualizationCreate")).Twice()
-	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(1, nil)
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
 	walCommitted = false
 	ch, err = c.CreateWorkload(ctx, opts)

@@ -56,8 +56,8 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			cctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.TODO()), c.config.GlobalTimeout)
 			for nodename := range deployMap {
 				processing := opts.GetProcessing(nodename)
-				if e := c.store.DeleteProcessing(cctx, processing); e != nil {
-					logger.Errorf(ctx, "[Calcium.doCreateWorkloads] delete processing failed for %s: %+v", nodename, e)
+				if err := c.store.DeleteProcessing(cctx, processing); err != nil {
+					logger.Errorf(ctx, "[Calcium.doCreateWorkloads] delete processing failed for %s: %+v", nodename, err)
 				}
 			}
 			close(ch)
@@ -76,6 +76,9 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		var processingCommits map[string]wal.Commit
 		defer func() {
 			for nodename := range processingCommits {
+				if processingCommits[nodename] == nil {
+					continue
+				}
 				if err := processingCommits[nodename](); err != nil {
 					logger.Errorf(ctx, "commit wal failed: %s, %s, %+v", eventProcessingCreated, nodename, err)
 				}

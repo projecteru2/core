@@ -27,7 +27,7 @@ func TestWorkloadControl(t *testing.T) {
 	mockEngine := &mocks.API{}
 	mockEngine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	mockEngine.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockEngine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(1, nil)
+	mockEngine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	ctx := context.Background()
 	c := Workload{}

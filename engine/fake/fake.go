@@ -139,8 +139,8 @@ func (f *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTime
 }
 
 // VirtualizationRemove .
-func (f *Engine) VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) (int, error) {
-	return 0, types.ErrNilEngine
+func (f *Engine) VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) error {
+	return types.ErrNilEngine
 }
 
 // VirtualizationInspect .

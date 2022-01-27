@@ -168,9 +168,6 @@ func TestReplaceWorkload(t *testing.T) {
 	// failed by VirtualizationCreate
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, types.ErrCannotGetEngine).Once()
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
-	//store.On("UpdateNodeResource", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
-	//engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(1, nil).Once()
-	//store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil).Once()
 	ch, err = c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -200,7 +197,7 @@ func TestReplaceWorkload(t *testing.T) {
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
 
-	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(1, nil)
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
 	// succ

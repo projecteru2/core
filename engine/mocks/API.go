@@ -654,24 +654,17 @@ func (_m *API) VirtualizationLogs(ctx context.Context, opts *types.Virtualizatio
 }
 
 // VirtualizationRemove provides a mock function with given fields: ctx, ID, volumes, force
-func (_m *API) VirtualizationRemove(ctx context.Context, ID string, volumes bool, force bool) (int, error) {
+func (_m *API) VirtualizationRemove(ctx context.Context, ID string, volumes bool, force bool) error {
 	ret := _m.Called(ctx, ID, volumes, force)
 
-	var r0 int
-	if rf, ok := ret.Get(0).(func(context.Context, string, bool, bool) int); ok {
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, bool, bool) error); ok {
 		r0 = rf(ctx, ID, volumes, force)
 	} else {
-		r0 = ret.Get(0).(int)
+		r0 = ret.Error(0)
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, bool, bool) error); ok {
-		r1 = rf(ctx, ID, volumes, force)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+	return r0
 }
 
 // VirtualizationResize provides a mock function with given fields: ctx, ID, height, width

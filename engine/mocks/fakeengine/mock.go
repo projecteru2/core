@@ -97,7 +97,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	e.On("VirtualizationCopyTo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	e.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(1, nil)
+	e.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	vcJSON := &enginetypes.VirtualizationInfo{ID: ID, Image: "mock-image", Running: true, Networks: map[string]string{"mock-network": "1.1.1.1"}}
 	e.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(vcJSON, nil)
 	logs := ioutil.NopCloser(bytes.NewBufferString("logs1...\nlogs2...\n"))

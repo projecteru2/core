@@ -268,7 +268,7 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 	// doCreateAndStartWorkload fails: AddWorkload
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "workloadfortonictest"}, nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
-	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(1, nil)
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
 	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(nil)

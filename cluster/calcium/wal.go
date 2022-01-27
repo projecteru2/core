@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -123,7 +124,7 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (er
 	if err != nil {
 		return logger.Err(ctx, err)
 	}
-	if _, err = node.Engine.VirtualizationRemove(ctx, wrk.ID, true, true); err != nil {
+	if err = node.Engine.VirtualizationRemove(ctx, wrk.ID, true, true); err != nil && !errors.Is(err, types.ErrWorkloadNotExists) {
 		return logger.Err(ctx, err)
 	}
 
