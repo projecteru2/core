@@ -114,7 +114,7 @@ func (f LinuxFile) String() string {
 
 // LitterDump for litter.Sdump
 func (f LinuxFile) LitterDump(w io.Writer) {
-	w.Write([]byte(fmt.Sprintf(`{Content:{%d bytes},Filename:%s,UID:%d,GID:%d,Mode:%#o"}`, len(f.Content), f.Filename, f.UID, f.GID, f.Mode))) // nolint:errcheck // here can't import core/log due to cycle dependence
+	fmt.Fprintf(w, `{Content:{%d bytes},Filename:%s,UID:%d,GID:%d,Mode:%#o"}`, len(f.Content), f.Filename, f.UID, f.GID, f.Mode)
 }
 
 // SendOptions for send files to multiple workload
