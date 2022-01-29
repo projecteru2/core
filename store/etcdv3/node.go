@@ -188,6 +188,89 @@ func (m *Mercury) UpdateNodeResource(ctx context.Context, node *types.Node, reso
 	return m.UpdateNodes(ctx, node)
 }
 
+// SetNodeStatus sets status for a node, value will expire after ttl seconds
+// ttl < 0 means to delete node status
+// this is heartbeat of node
+func (m *Mercury) SetNodeStatus(ctx context.Context, node *types.Node, ttl int64) error {
+	if ttl == 0 {
+		return types.ErrNodeStatusTTL
+	}
+
+	// nodenames are unique
+	statusKey := filepath.Join(nodeStatusPrefix, node.Name)
+	entityKey := fmt.Sprintf(nodeInfoKey, node.Name)
+
+	if ttl < 0 {
+		_, err := m.Delete(ctx, statusKey)
+		return err
+	}
+
+	data, err := json.Marshal(types.NodeStatus{
+		Nodename: node.Name,
+		Podname:  node.Podname,
+		Alive:    true,
+	})
+	if err != nil {
+		return err
+	}
+
+	return m.BindStatus(ctx, entityKey, statusKey, string(data), ttl)
+}
+
+// GetNodeStatus returns status for a node
+func (m *Mercury) GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error) {
+	key := filepath.Join(nodeStatusPrefix, nodename)
+	ev, err := m.GetOne(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+
+	ns := &types.NodeStatus{}
+	if err := json.Unmarshal(ev.Value, ns); err != nil {
+		return nil, err
+	}
+	return ns, nil
+}
+
+// NodeStatusStream returns a stream of node status
+// it tells you if status of a node is changed, either PUT or DELETE
+// PUT    -> Alive: true
+// DELETE -> Alive: false
+func (m *Mercury) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
+	ch := make(chan *types.NodeStatus)
+	go func() {
+		defer func() {
+			log.Info("[NodeStatusStream] close NodeStatusStream channel")
+			close(ch)
+		}()
+
+		log.Infof(ctx, "[NodeStatusStream] watch on %s", nodeStatusPrefix)
+		for resp := range m.Watch(ctx, nodeStatusPrefix, clientv3.WithPrefix()) {
+			if resp.Err() != nil {
+				if !resp.Canceled {
+					log.Errorf(ctx, "[NodeStatusStream] watch failed %v", resp.Err())
+				}
+				return
+			}
+			for _, event := range resp.Events {
+				nodename := extractNodename(string(event.Kv.Key))
+				status := &types.NodeStatus{
+					Nodename: nodename,
+					Alive:    event.Type != clientv3.EventTypeDelete,
+				}
+				node, err := m.GetNode(ctx, nodename)
+				if err != nil {
+					status.Error = err
+				} else {
+					status.Podname = node.Podname
+				}
+				ch <- status
+			}
+		}
+	}()
+	return ch
+}
+
 func (m *Mercury) makeClient(ctx context.Context, node *types.Node) (client engine.API, err error) {
 	// try to get from cache without ca/cert/key
 	if client = enginefactory.GetEngineFromCache(node.Endpoint, "", "", ""); client != nil {
@@ -336,89 +419,6 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 	}
 
 	return nodes, nil
-}
-
-// SetNodeStatus sets status for a node, value will expire after ttl seconds
-// ttl < 0 means to delete node status
-// this is heartbeat of node
-func (m *Mercury) SetNodeStatus(ctx context.Context, node *types.Node, ttl int64) error {
-	if ttl == 0 {
-		return types.ErrNodeStatusTTL
-	}
-
-	// nodenames are unique
-	statusKey := filepath.Join(nodeStatusPrefix, node.Name)
-	entityKey := fmt.Sprintf(nodeInfoKey, node.Name)
-
-	if ttl < 0 {
-		_, err := m.Delete(ctx, statusKey)
-		return err
-	}
-
-	data, err := json.Marshal(types.NodeStatus{
-		Nodename: node.Name,
-		Podname:  node.Podname,
-		Alive:    true,
-	})
-	if err != nil {
-		return err
-	}
-
-	return m.BindStatus(ctx, entityKey, statusKey, string(data), ttl)
-}
-
-// GetNodeStatus returns status for a node
-func (m *Mercury) GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error) {
-	key := filepath.Join(nodeStatusPrefix, nodename)
-	ev, err := m.GetOne(ctx, key)
-	if err != nil {
-		return nil, err
-	}
-
-	ns := &types.NodeStatus{}
-	if err := json.Unmarshal(ev.Value, ns); err != nil {
-		return nil, err
-	}
-	return ns, nil
-}
-
-// NodeStatusStream returns a stream of node status
-// it tells you if status of a node is changed, either PUT or DELETE
-// PUT    -> Alive: true
-// DELETE -> Alive: false
-func (m *Mercury) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
-	ch := make(chan *types.NodeStatus)
-	go func() {
-		defer func() {
-			log.Info("[NodeStatusStream] close NodeStatusStream channel")
-			close(ch)
-		}()
-
-		log.Infof(ctx, "[NodeStatusStream] watch on %s", nodeStatusPrefix)
-		for resp := range m.Watch(ctx, nodeStatusPrefix, clientv3.WithPrefix()) {
-			if resp.Err() != nil {
-				if !resp.Canceled {
-					log.Errorf(ctx, "[NodeStatusStream] watch failed %v", resp.Err())
-				}
-				return
-			}
-			for _, event := range resp.Events {
-				nodename := extractNodename(string(event.Kv.Key))
-				status := &types.NodeStatus{
-					Nodename: nodename,
-					Alive:    event.Type != clientv3.EventTypeDelete,
-				}
-				node, err := m.GetNode(ctx, nodename)
-				if err != nil {
-					status.Error = err
-				} else {
-					status.Podname = node.Podname
-				}
-				ch <- status
-			}
-		}
-	}()
-	return ch
 }
 
 // extracts node name from key

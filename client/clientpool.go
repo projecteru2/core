@@ -31,19 +31,6 @@ type Pool struct {
 	rpcClients []*clientWithStatus
 }
 
-func checkAlive(ctx context.Context, rpc *clientWithStatus, timeout time.Duration) bool {
-	var err error
-	utils.WithTimeout(ctx, timeout, func(ctx context.Context) {
-		_, err = rpc.client.Info(ctx, &pb.Empty{})
-	})
-	if err != nil {
-		log.Errorf("[ClientPool] connect to %s failed, err: %s", rpc.addr, err)
-		return false
-	}
-	log.Debugf("[ClientPool] connect to %s success", rpc.addr)
-	return true
-}
-
 // NewCoreRPCClientPool .
 func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error) {
 	if len(config.EruAddrs) == 0 {
@@ -95,6 +82,29 @@ func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error
 	return c, nil
 }
 
+// GetClient finds the first *client.Client instance with an active connection. If all connections are dead, returns the first one.
+func (c *Pool) GetClient() pb.CoreRPCClient {
+	for _, rpc := range c.rpcClients {
+		if rpc.alive {
+			return rpc.client
+		}
+	}
+	return c.rpcClients[0].client
+}
+
+func checkAlive(ctx context.Context, rpc *clientWithStatus, timeout time.Duration) bool {
+	var err error
+	utils.WithTimeout(ctx, timeout, func(ctx context.Context) {
+		_, err = rpc.client.Info(ctx, &pb.Empty{})
+	})
+	if err != nil {
+		log.Errorf("[ClientPool] connect to %s failed, err: %s", rpc.addr, err)
+		return false
+	}
+	log.Debugf("[ClientPool] connect to %s success", rpc.addr)
+	return true
+}
+
 func (c *Pool) updateClientsStatus(ctx context.Context, timeout time.Duration) {
 	wg := &sync.WaitGroup{}
 	for _, rpc := range c.rpcClients {
@@ -105,14 +115,4 @@ func (c *Pool) updateClientsStatus(ctx context.Context, timeout time.Duration) {
 		}(rpc)
 	}
 	wg.Wait()
-}
-
-// GetClient finds the first *client.Client instance with an active connection. If all connections are dead, returns the first one.
-func (c *Pool) GetClient() pb.CoreRPCClient {
-	for _, rpc := range c.rpcClients {
-		if rpc.alive {
-			return rpc.client
-		}
-	}
-	return c.rpcClients[0].client
 }

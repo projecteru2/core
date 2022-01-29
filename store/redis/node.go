@@ -179,6 +179,82 @@ func (r *Rediaron) UpdateNodeResource(ctx context.Context, node *types.Node, res
 	return r.UpdateNodes(ctx, node)
 }
 
+// SetNodeStatus sets status for a node, value will expire after ttl seconds
+// ttl < 0 means delete node status
+// this is heartbeat of node
+func (r *Rediaron) SetNodeStatus(ctx context.Context, node *types.Node, ttl int64) error {
+	if ttl == 0 {
+		return types.ErrNodeStatusTTL
+	}
+
+	// nodenames are unique
+	key := filepath.Join(nodeStatusPrefix, node.Name)
+
+	if ttl < 0 {
+		_, err := r.cli.Del(ctx, key).Result()
+		return err
+	}
+
+	data, err := json.Marshal(types.NodeStatus{
+		Nodename: node.Name,
+		Podname:  node.Podname,
+		Alive:    true,
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = r.cli.Set(ctx, key, string(data), time.Duration(ttl)*time.Second).Result()
+	return err
+}
+
+// GetNodeStatus returns status for a node
+func (r *Rediaron) GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error) {
+	key := filepath.Join(nodeStatusPrefix, nodename)
+	ev, err := r.GetOne(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+
+	ns := &types.NodeStatus{}
+	if err := json.Unmarshal([]byte(ev), ns); err != nil {
+		return nil, err
+	}
+	return ns, nil
+}
+
+// NodeStatusStream returns a stream of node status
+// it tells you if status of a node is changed, either PUT or DELETE
+// PUT    -> Alive: true
+// DELETE -> Alive: false
+func (r *Rediaron) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
+	ch := make(chan *types.NodeStatus)
+	go func() {
+		defer func() {
+			log.Info("[NodeStatusStream] close NodeStatusStream channel")
+			close(ch)
+		}()
+
+		key := filepath.Join(nodeStatusPrefix, "*")
+		log.Infof(ctx, "[NodeStatusStream] watch on %s", key)
+		for message := range r.KNotify(ctx, key) {
+			nodename := extractNodename(message.Key)
+			status := &types.NodeStatus{
+				Nodename: nodename,
+				Alive:    strings.ToLower(message.Action) != actionExpired,
+			}
+			node, err := r.GetNode(ctx, nodename)
+			if err != nil {
+				status.Error = err
+			} else {
+				status.Podname = node.Podname
+			}
+			ch <- status
+		}
+	}()
+	return ch
+}
+
 func (r *Rediaron) makeClient(ctx context.Context, node *types.Node) (client engine.API, err error) {
 	// try to get from cache without ca/cert/key
 	if client = enginefactory.GetEngineFromCache(node.Endpoint, "", "", ""); client != nil {
@@ -326,80 +402,4 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 	}
 
 	return nodes, nil
-}
-
-// SetNodeStatus sets status for a node, value will expire after ttl seconds
-// ttl < 0 means delete node status
-// this is heartbeat of node
-func (r *Rediaron) SetNodeStatus(ctx context.Context, node *types.Node, ttl int64) error {
-	if ttl == 0 {
-		return types.ErrNodeStatusTTL
-	}
-
-	// nodenames are unique
-	key := filepath.Join(nodeStatusPrefix, node.Name)
-
-	if ttl < 0 {
-		_, err := r.cli.Del(ctx, key).Result()
-		return err
-	}
-
-	data, err := json.Marshal(types.NodeStatus{
-		Nodename: node.Name,
-		Podname:  node.Podname,
-		Alive:    true,
-	})
-	if err != nil {
-		return err
-	}
-
-	_, err = r.cli.Set(ctx, key, string(data), time.Duration(ttl)*time.Second).Result()
-	return err
-}
-
-// GetNodeStatus returns status for a node
-func (r *Rediaron) GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error) {
-	key := filepath.Join(nodeStatusPrefix, nodename)
-	ev, err := r.GetOne(ctx, key)
-	if err != nil {
-		return nil, err
-	}
-
-	ns := &types.NodeStatus{}
-	if err := json.Unmarshal([]byte(ev), ns); err != nil {
-		return nil, err
-	}
-	return ns, nil
-}
-
-// NodeStatusStream returns a stream of node status
-// it tells you if status of a node is changed, either PUT or DELETE
-// PUT    -> Alive: true
-// DELETE -> Alive: false
-func (r *Rediaron) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
-	ch := make(chan *types.NodeStatus)
-	go func() {
-		defer func() {
-			log.Info("[NodeStatusStream] close NodeStatusStream channel")
-			close(ch)
-		}()
-
-		key := filepath.Join(nodeStatusPrefix, "*")
-		log.Infof(ctx, "[NodeStatusStream] watch on %s", key)
-		for message := range r.KNotify(ctx, key) {
-			nodename := extractNodename(message.Key)
-			status := &types.NodeStatus{
-				Nodename: nodename,
-				Alive:    strings.ToLower(message.Action) != actionExpired,
-			}
-			node, err := r.GetNode(ctx, nodename)
-			if err != nil {
-				status.Error = err
-			} else {
-				status.Podname = node.Podname
-			}
-			ch <- status
-		}
-	}()
-	return ch
 }

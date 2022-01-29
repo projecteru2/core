@@ -68,26 +68,6 @@ func (h *Hydro) Recover(ctx context.Context) {
 	}
 }
 
-func (h *Hydro) recover(ctx context.Context, handler EventHandler, event HydroEvent) error {
-	item, err := handler.Decode(event.Item)
-	if err != nil {
-		return err
-	}
-
-	switch handle, err := handler.Check(ctx, item); {
-	case err != nil:
-		return err
-	case !handle:
-		return event.Delete()
-	}
-
-	if err := handler.Handle(ctx, item); err != nil {
-		return err
-	}
-
-	return event.Delete()
-}
-
 // Log records a log item.
 func (h *Hydro) Log(eventype string, item interface{}) (Commit, error) {
 	handler, ok := h.getEventHandler(eventype)
@@ -109,6 +89,26 @@ func (h *Hydro) Log(eventype string, item interface{}) (Commit, error) {
 	}
 
 	return event.Delete, nil
+}
+
+func (h *Hydro) recover(ctx context.Context, handler EventHandler, event HydroEvent) error {
+	item, err := handler.Decode(event.Item)
+	if err != nil {
+		return err
+	}
+
+	switch handle, err := handler.Check(ctx, item); {
+	case err != nil:
+		return err
+	case !handle:
+		return event.Delete()
+	}
+
+	if err := handler.Handle(ctx, item); err != nil {
+		return err
+	}
+
+	return event.Delete()
 }
 
 func (h *Hydro) getEventHandler(event string) (handler EventHandler, ok bool) {

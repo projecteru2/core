@@ -15,10 +15,6 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func (m *Mercury) getProcessingKey(processing *types.Processing) string {
-	return filepath.Join(workloadProcessingPrefix, processing.Appname, processing.Entryname, processing.Nodename, processing.Ident)
-}
-
 // CreateProcessing save processing status in etcd
 func (m *Mercury) CreateProcessing(ctx context.Context, processing *types.Processing, count int) error {
 	_, err := m.Create(ctx, m.getProcessingKey(processing), fmt.Sprintf("%d", count))
@@ -29,6 +25,10 @@ func (m *Mercury) CreateProcessing(ctx context.Context, processing *types.Proces
 func (m *Mercury) DeleteProcessing(ctx context.Context, processing *types.Processing) error {
 	_, err := m.Delete(ctx, m.getProcessingKey(processing))
 	return err
+}
+
+func (m *Mercury) getProcessingKey(processing *types.Processing) string {
+	return filepath.Join(workloadProcessingPrefix, processing.Appname, processing.Entryname, processing.Nodename, processing.Ident)
 }
 
 func (m *Mercury) doLoadProcessing(ctx context.Context, appname, entryname string, strategyInfos []strategy.Info) error {

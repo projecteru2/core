@@ -61,16 +61,6 @@ func (r *RedisLock) TryLock(ctx context.Context) (context.Context, error) {
 	return r.lock(ctx, nil)
 }
 
-func (r *RedisLock) lock(ctx context.Context, opts *redislock.Options) (context.Context, error) {
-	l, err := r.lc.Obtain(ctx, r.key, r.timeout, r.ttl, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	r.l = l
-	return context.TODO(), nil // no need wrapped, not like etcd
-}
-
 // Unlock releases the lock
 // if the lock is not acquired, will return ErrLockNotHeld
 func (r *RedisLock) Unlock(ctx context.Context) error {
@@ -81,4 +71,14 @@ func (r *RedisLock) Unlock(ctx context.Context) error {
 	lockCtx, cancel := context.WithTimeout(ctx, r.ttl)
 	defer cancel()
 	return r.l.Release(lockCtx)
+}
+
+func (r *RedisLock) lock(ctx context.Context, opts *redislock.Options) (context.Context, error) {
+	l, err := r.lc.Obtain(ctx, r.key, r.timeout, r.ttl, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	r.l = l
+	return context.TODO(), nil // no need wrapped, not like etcd
 }
