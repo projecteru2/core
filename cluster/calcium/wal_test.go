@@ -23,7 +23,7 @@ func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	c.wal = wal
 
 	wrkid := "workload-id"
-	_, err = c.wal.logCreateWorkload(wrkid, "nodename")
+	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{ID: wrkid, Nodename: "nodename"})
 	require.NoError(t, err)
 
 	wrk := &types.Workload{
@@ -31,10 +31,11 @@ func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	}
 
 	store := c.store.(*storemocks.Store)
-	defer store.AssertExpectations(t)
 	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, nil).Once()
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, nil)
 
 	c.wal.Recover(context.TODO())
+	store.AssertExpectations(t)
 
 	// Recovers nothing.
 	c.wal.Recover(context.TODO())
@@ -46,12 +47,13 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	require.NoError(t, err)
 	c.wal = wal
 
+	engine := &enginemocks.API{}
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{Name: "nodename"},
-		Engine:   &enginemocks.API{},
+		Engine:   engine,
 	}
 	wrkid := "workload-id"
-	_, err = c.wal.logCreateWorkload(wrkid, node.Name)
+	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{ID: wrkid, Nodename: node.Name})
 	require.NoError(t, err)
 
 	wrk := &types.Workload{
@@ -60,28 +62,27 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	}
 
 	store := c.store.(*storemocks.Store)
-	defer store.AssertExpectations(t)
-	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, fmt.Errorf("err")).Once()
-	c.wal.Recover(context.TODO())
 
 	err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("keys: [%s]", wrkid))
-	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, err)
-	store.On("GetNode", mock.Anything, wrk.Nodename).Return(nil, fmt.Errorf("err")).Once()
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(wrk, err).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, err).Once()
 	c.wal.Recover(context.TODO())
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
 
-	store.On("GetNode", mock.Anything, wrk.Nodename).Return(node, nil)
-	eng, ok := node.Engine.(*enginemocks.API)
-	require.True(t, ok)
-	defer eng.AssertExpectations(t)
-	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
-		Return(fmt.Errorf("err")).
-		Once()
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(wrk, err).Once()
+	store.On("GetNode", mock.Anything, wrk.Nodename).Return(node, nil).Once()
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(err).Once()
 	c.wal.Recover(context.TODO())
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
 
-	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
-		Return(fmt.Errorf("Error: No such container: %s", wrk.ID)).
-		Once()
+	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, fmt.Errorf("err")).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil).Once()
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(types.ErrWorkloadNotExists).Once()
 	c.wal.Recover(context.TODO())
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
 
 	// Nothing recovered.
 	c.wal.Recover(context.TODO())
@@ -99,7 +100,7 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	}
 
 	wrkid := "workload-id"
-	_, err = c.wal.logCreateWorkload(wrkid, node.Name)
+	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{ID: wrkid, Nodename: node.Name})
 	require.NoError(t, err)
 
 	wrk := &types.Workload{
@@ -109,19 +110,19 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	}
 
 	store := c.store.(*storemocks.Store)
-	defer store.AssertExpectations(t)
 	err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("keys: [%s]", wrkid))
-	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, err).Once()
+	store.On("GetWorkload", mock.Anything, wrkid).Return(nil, err).Once()
 	store.On("GetNode", mock.Anything, wrk.Nodename).Return(node, nil)
 
 	eng, ok := node.Engine.(*enginemocks.API)
 	require.True(t, ok)
-	defer eng.AssertExpectations(t)
 	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
 		Return(nil).
 		Once()
 
 	c.wal.Recover(context.TODO())
+	store.AssertExpectations(t)
+	eng.AssertExpectations(t)
 
 	// Recovers nothing.
 	c.wal.Recover(context.TODO())

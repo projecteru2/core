@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/pkg/errors"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
@@ -15,8 +16,6 @@ import (
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/wal"
 	walmocks "github.com/projecteru2/core/wal/mocks"
-
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -107,8 +106,12 @@ func TestCreateWorkloadTxn(t *testing.T) {
 
 	c.wal = &WAL{WAL: &walmocks.WAL{}}
 	mwal := c.wal.WAL.(*walmocks.WAL)
-	defer mwal.AssertExpectations(t)
 	var walCommitted bool
+	commit := wal.Commit(func() error {
+		walCommitted = true
+		return nil
+	})
+	mwal.On("Log", mock.Anything, mock.Anything).Return(commit, nil)
 
 	store.On("CreateProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -191,7 +194,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.EqualValues(t, 1, node2.CPUUsed)
 	node1.CPUUsed = 0
 	node2.CPUUsed = 0
-	assert.False(t, walCommitted)
+	assert.True(t, walCommitted)
 
 	// doCreateWorkloadOnNode fails: doGetAndPrepareNode
 	store.On("UpdateNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -224,7 +227,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.EqualValues(t, 2, cnt)
 	assert.EqualValues(t, 0, node1.CPUUsed)
 	assert.EqualValues(t, 0, node2.CPUUsed)
-	assert.False(t, walCommitted)
+	assert.True(t, walCommitted)
 
 	// doDeployOneWorkload fails: VirtualizationCreate
 	engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return([]string{""}, nil)
@@ -245,18 +248,13 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.EqualValues(t, 2, cnt)
 	assert.EqualValues(t, 0, node1.CPUUsed)
 	assert.EqualValues(t, 0, node2.CPUUsed)
-	assert.False(t, walCommitted)
+	assert.True(t, walCommitted)
 
 	// doCreateAndStartWorkload fails: AddWorkload
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "c1"}, nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
 	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "AddWorkload")).Twice()
-	commit := wal.Commit(func() error {
-		walCommitted = true
-		return nil
-	})
-	mwal.On("Log", eventCreateWorkload, mock.Anything).Return(commit, nil)
 	walCommitted = false
 	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)

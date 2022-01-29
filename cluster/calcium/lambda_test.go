@@ -29,7 +29,8 @@ func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
 	c.wal = &WAL{WAL: &walmocks.WAL{}}
 
 	mwal := c.wal.WAL.(*walmocks.WAL)
-	defer mwal.AssertExpectations(t)
+	defer mwal.AssertNotCalled(t, "Log")
+	mwal.On("Log", mock.Anything, mock.Anything).Return(nil, nil)
 
 	opts := &types.DeployOptions{
 		Name:           "zc:name",

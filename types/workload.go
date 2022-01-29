@@ -81,11 +81,14 @@ func (c *Workload) Stop(ctx context.Context, force bool) error {
 }
 
 // Remove a workload
-func (c *Workload) Remove(ctx context.Context, force bool) error {
+func (c *Workload) Remove(ctx context.Context, force bool) (err error) {
 	if c.Engine == nil {
 		return errors.WithStack(ErrNilEngine)
 	}
-	return errors.WithStack(c.Engine.VirtualizationRemove(ctx, c.ID, true, force))
+	if err = c.Engine.VirtualizationRemove(ctx, c.ID, true, force); errors.Is(err, ErrWorkloadNotExists) {
+		err = nil
+	}
+	return errors.WithStack(err)
 }
 
 // WorkloadStatus store deploy status
