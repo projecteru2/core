@@ -334,9 +334,7 @@ func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, co
 
 // VirtualizationCopyChunkTo copy chunk to virtualization
 func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, size int64, content io.Reader, uid, gid int, mode int64) error {
-	// todo err 怎么抛出
 	pr, pw := io.Pipe()
-	//bf := new(bytes.Buffer)
 	tw := tar.NewWriter(pw)
 	defer tw.Close()
 	utils.SentryGo(func(writer io.Writer, reader io.Reader) func() {
@@ -348,22 +346,18 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 				Uid:  uid,
 				Gid:  gid,
 			}
-			logrus.Debugf("[VirtualizationCopyChunkTo] write header, target: %s, id: %s", target, ID)
 			if err := tw.WriteHeader(hdr); err != nil {
-				logrus.Debugf("[VirtualizationCopyChunkTo] write header err, err: %v", err)
+				logrus.Infof("[VirtualizationCopyChunkTo] write header to %s err, err: %v", ID, err)
 				return
 			}
-			logrus.Debugf("[VirtualizationCopyChunkTo] write header done, target: %s, id: %s", target, ID)
 			for {
 				data := make([]byte, 10 * 1024 * 1024)
-				logrus.Debugf("try to read.....")
 				n, err := reader.Read(data)
-				logrus.Debugf("[VirtualizationCopyChunkTo] read something, len: %d", n)
-				if err != nil {
-					if err == io.EOF {
-						logrus.Debugf("[VirtualizationCopyChunkTo] end!!, target: %s, id: %s", target, ID)
+				if err != nil  {
+					if err != io.EOF {
+						logrus.Debugf("[VirtualizationCopyChunkTo] read data from pipe err, err: %v", err)
 					}
-					logrus.Debugf("[VirtualizationCopyChunkTo] read something error, len: %d", n)
+					logrus.Debugf("[VirtualizationCopyChunkTo] read data end, try to close the pipe, ID=%s, file=%s", ID, target)
 					err := writer.(*io.PipeWriter).Close()
 					if err != nil {
 						logrus.Debugf("[VirtualizationCopyChunkTo] close pipe writer, err: %v", err)
@@ -373,10 +367,10 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 				if n < len(data) {
 					data = data[:n]
 				}
+				logrus.Debugf("[VirtualizationCopyChunkTo] have read data length=%d , and try to write data into %s", len(data), ID)
 				_, err = tw.Write(data)
-				logrus.Debugf("[VirtualizationCopyChunkTo] write something, len: %d", len(data))
 				if err != nil {
-					logrus.Debugf("[VirtualizationCopyChunkTo] write something err, err: %v", err)
+					logrus.Debugf("[VirtualizationCopyChunkTo] write data into %s err, err: %v", ID, err)
 					err := writer.(*io.PipeWriter).Close()
 					if err != nil {
 						logrus.Debugf("[VirtualizationCopyChunkTo] close pipe writer, err: %v", err)
