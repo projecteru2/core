@@ -591,17 +591,7 @@ func (v *Vibranium) SendLargeFile(server pb.CoreRPC_SendLargeFileServer) error {
 	defer v.taskDone(ctx, "SendLargeFile", true)
 
 	dc := make(chan *types.SendLargeFileOptions, 0)
-	ch := make(chan *types.SendMessage, 0)
-	data := &types.SendLargeFileOptions{}
-	utils.SentryGo(func(ctx context.Context, opts chan *types.SendLargeFileOptions, resp chan *types.SendMessage) func() {
-		return func() {
-			err := v.cluster.SendLargeFile(ctx, opts, resp)
-			if err != nil {
-				v.logUnsentMessages(ctx, "SendLargeFile", err, "SendLargeFile")
-			}
-		}
-	}(ctx, dc, ch))
-
+	ch := v.cluster.SendLargeFile(ctx, dc)
 	for {
 		req, err := server.Recv()
 		if err == io.EOF {
@@ -610,18 +600,13 @@ func (v *Vibranium) SendLargeFile(server pb.CoreRPC_SendLargeFileServer) error {
 		if err != nil {
 			return grpcstatus.Error(SendLargeFile, err.Error())
 		}
-		data.FileMetadataOptions.Ids = req.Metadata.Ids
-		data.FileMetadataOptions.Dst = req.Metadata.Dst
-		data.FileMetadataOptions.Size = req.Metadata.Size
-		data.FileMetadataOptions.Uid = int(req.Metadata.Owner.Uid)
-		data.FileMetadataOptions.Gid = int(req.Metadata.Owner.Gid)
-		data.FileMetadataOptions.Mode = req.Metadata.Mode.Mode
-		data.Data = req.Chunk.Data
+		data := toSendLargeFileOptions(req)
 		dc <- data
 	}
 	close(dc)
+	// todo 可能会死锁，后面需要改一下
 	for m := range ch {
-		msg := &pb.SendMessage{
+		msg := &pb.SendMessage {
 			Id:   m.ID,
 			Path: m.Path,
 		}

@@ -12,12 +12,11 @@ import (
 )
 
 // SendLargeFile send large files by stream to workload
-func (c *Calcium) SendLargeFile(ctx context.Context, opts chan *types.SendLargeFileOptions, resp chan *types.SendMessage) error {
-	//logger := log.WithField("Calcium", "SendLargeFile").WithField("opts", opts)
+func (c *Calcium) SendLargeFile(ctx context.Context, opts chan *types.SendLargeFileOptions) chan *types.SendMessage {
+	resp := make(chan *types.SendMessage)
 	wg := &sync.WaitGroup{}
 	utils.SentryGo(func() {
 		defer close(resp)
-
 		handlers := make(map[string]chan *types.SendLargeFileOptions)
 		for data := range opts {
 			if err := data.Validate(); err != nil {
@@ -37,7 +36,7 @@ func (c *Calcium) SendLargeFile(ctx context.Context, opts chan *types.SendLargeF
 		}
 		wg.Wait()
 	})
-	return nil
+	return resp
 }
 
 func (c *Calcium) newWorkloadExecutor(ctx context.Context, ID string, resp chan *types.SendMessage, wg *sync.WaitGroup) chan *types.SendLargeFileOptions {
