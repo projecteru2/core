@@ -94,6 +94,26 @@ var (
 	ErrRollbackMapIsNotEmpty = errors.New("rollback map is not empty")
 
 	ErrMessageChanClosed = errors.New("message chan closed")
+
+	ErrEmptyNodeName      = errors.New("node name is empty")
+	ErrEmptyAppName       = errors.New("app name is empty")
+	ErrEmptyPodName       = errors.New("pod name is empty")
+	ErrEmptyNodeEndpoint  = errors.New("node endpoint is empty")
+	ErrEmptyImage         = errors.New("image is empty")
+	ErrEmptyCount         = errors.New("count is 0")
+	ErrEmptyWorkloadID    = errors.New("workload id is empty")
+	ErrNegativeCPU        = errors.New("cpu is negative")
+	ErrNegativeShare      = errors.New("share is negative")
+	ErrNegativeMemory     = errors.New("memory is negative")
+	ErrNegativeNUMAMemory = errors.New("numa memory is negative")
+	ErrNegativeStorage    = errors.New("storage is negative")
+	ErrNegativeVolumeSize = errors.New("volume size is negative")
+
+	ErrEmptyEntrypointName       = errors.New("entrypoint name is empty")
+	ErrUnderlineInEntrypointName = errors.New("entrypoint name has '_' character")
+
+	ErrNoFilesToSend = errors.New("no files to send")
+	ErrNoFilesToCopy = errors.New("no files to copy")
 )
 
 type detailedErr struct {
@@ -115,26 +135,3 @@ func (d detailedErr) Unwrap() error {
 func NewDetailedErr(err error, details interface{}) error {
 	return detailedErr{err: err, details: details}
 }
-
-// validation errors
-var (
-	ErrEmptyNodeName      = errors.New("node name is empty")
-	ErrEmptyAppName       = errors.New("app name is empty")
-	ErrEmptyPodName       = errors.New("pod name is empty")
-	ErrEmptyNodeEndpoint  = errors.New("node endpoint is empty")
-	ErrEmptyImage         = errors.New("image is empty")
-	ErrEmptyCount         = errors.New("count is 0")
-	ErrEmptyWorkloadID    = errors.New("workload id is empty")
-	ErrNegativeCPU        = errors.New("cpu is negative")
-	ErrNegativeShare      = errors.New("share is negative")
-	ErrNegativeMemory     = errors.New("memory is negative")
-	ErrNegativeNUMAMemory = errors.New("numa memory is negative")
-	ErrNegativeStorage    = errors.New("storage is negative")
-	ErrNegativeVolumeSize = errors.New("volume size is negative")
-
-	ErrEmptyEntrypointName       = errors.New("entrypoint name is empty")
-	ErrUnderlineInEntrypointName = errors.New("entrypoint name has '_' character")
-
-	ErrNoFilesToSend = errors.New("no files to send")
-	ErrNoFilesToCopy = errors.New("no files to copy")
-)

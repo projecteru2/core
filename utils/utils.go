@@ -262,36 +262,6 @@ func Range(n int) (res []int) {
 	return
 }
 
-// copied from https://gist.github.com/jmervine/d88c75329f98e09f5c87
-func safeSplit(s string) []string {
-	split := strings.Split(s, " ")
-
-	var result []string
-	var inquote string
-	var block string
-	for _, i := range split {
-		if inquote == "" {
-			if strings.HasPrefix(i, "'") || strings.HasPrefix(i, "\"") {
-				inquote = string(i[0])
-				block = strings.TrimPrefix(i, inquote) + " "
-			} else {
-				result = append(result, i)
-			}
-			continue
-		}
-		if !strings.HasSuffix(i, inquote) {
-			block += i + " "
-		} else {
-			block += strings.TrimSuffix(i, inquote)
-			inquote = ""
-			result = append(result, block)
-			block = ""
-		}
-	}
-
-	return result
-}
-
 // Reverse any slice
 func Reverse(s interface{}) {
 	n := reflect.ValueOf(s).Len()
@@ -331,4 +301,34 @@ func SHA256(input string) string {
 	c.Write([]byte(input))
 	bytes := c.Sum(nil)
 	return hex.EncodeToString(bytes)
+}
+
+// copied from https://gist.github.com/jmervine/d88c75329f98e09f5c87
+func safeSplit(s string) []string {
+	split := strings.Split(s, " ")
+
+	var result []string
+	var inquote string
+	var block string
+	for _, i := range split {
+		if inquote == "" {
+			if strings.HasPrefix(i, "'") || strings.HasPrefix(i, "\"") {
+				inquote = string(i[0])
+				block = strings.TrimPrefix(i, inquote) + " "
+			} else {
+				result = append(result, i)
+			}
+			continue
+		}
+		if !strings.HasSuffix(i, inquote) {
+			block += i + " "
+		} else {
+			block += strings.TrimSuffix(i, inquote)
+			inquote = ""
+			result = append(result, block)
+			block = ""
+		}
+	}
+
+	return result
 }

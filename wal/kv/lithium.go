@@ -55,28 +55,11 @@ func (l *Lithium) Open(path string, mode os.FileMode, timeout time.Duration) (er
 	return l.open()
 }
 
-func (l *Lithium) open() (err error) {
-	if l.bolt, err = bbolt.Open(l.path, l.mode, &bbolt.Options{Timeout: l.timeout}); err != nil {
-		return
-	}
-
-	err = l.bolt.Update(func(tx *bbolt.Tx) error {
-		_, ce := tx.CreateBucketIfNotExists(l.RootBucketKey)
-		return ce
-	})
-
-	return
-}
-
 // Close closes the kvdb file.
 func (l *Lithium) Close() error {
 	l.Lock()
 	defer l.Unlock()
 	return l.close()
-}
-
-func (l *Lithium) close() error {
-	return l.bolt.Close()
 }
 
 // Put creates/updates a key/value pair.
@@ -159,6 +142,23 @@ func (l *Lithium) NextSequence() (uint64, error) {
 	})
 
 	return seq, err
+}
+
+func (l *Lithium) open() (err error) {
+	if l.bolt, err = bbolt.Open(l.path, l.mode, &bbolt.Options{Timeout: l.timeout}); err != nil {
+		return
+	}
+
+	err = l.bolt.Update(func(tx *bbolt.Tx) error {
+		_, ce := tx.CreateBucketIfNotExists(l.RootBucketKey)
+		return ce
+	})
+
+	return
+}
+
+func (l *Lithium) close() error {
+	return l.bolt.Close()
 }
 
 func (l *Lithium) view(fn func(*bbolt.Bucket) error) error {

@@ -39,39 +39,6 @@ type Metrics struct {
 	DeployCount     *prometheus.CounterVec
 }
 
-// Lazy connect
-func (m *Metrics) checkConn() error {
-	if m.statsdClient != nil {
-		return nil
-	}
-	var err error
-	// We needn't try to renew/reconnect because of only supporting UDP protocol now
-	// We should add an `errorCount` to reconnect when implementing TCP protocol
-	if m.statsdClient, err = statsdlib.New(m.StatsdAddr, statsdlib.WithErrorHandler(func(err error) {
-		log.Errorf(nil, "[statsd] Sending statsd failed: %v", err) //nolint
-	})); err != nil {
-		log.Errorf(nil, "[statsd] Connect statsd failed: %v", err) //nolint
-		return err
-	}
-	return nil
-}
-
-func (m *Metrics) gauge(key string, value float64) error {
-	if err := m.checkConn(); err != nil {
-		return err
-	}
-	m.statsdClient.Gauge(key, value)
-	return nil
-}
-
-func (m *Metrics) count(key string, n int, rate float32) error {
-	if err := m.checkConn(); err != nil {
-		return err
-	}
-	m.statsdClient.Count(key, n, rate)
-	return nil
-}
-
 // SendNodeInfo update node resource capacity
 func (m *Metrics) SendNodeInfo(nm *types.NodeMetrics) {
 	nodename := nm.Name
@@ -142,6 +109,39 @@ func (m *Metrics) SendNodeInfo(nm *types.NodeMetrics) {
 	if err := m.gauge(fmt.Sprintf(cpuUsedStats, cleanedNodeName), cpuUsed); err != nil {
 		log.Errorf(nil, "[SendNodeInfo] Error occurred while sending cpu used data to statsd: %v", err) //nolint
 	}
+}
+
+// Lazy connect
+func (m *Metrics) checkConn() error {
+	if m.statsdClient != nil {
+		return nil
+	}
+	var err error
+	// We needn't try to renew/reconnect because of only supporting UDP protocol now
+	// We should add an `errorCount` to reconnect when implementing TCP protocol
+	if m.statsdClient, err = statsdlib.New(m.StatsdAddr, statsdlib.WithErrorHandler(func(err error) {
+		log.Errorf(nil, "[statsd] Sending statsd failed: %v", err) //nolint
+	})); err != nil {
+		log.Errorf(nil, "[statsd] Connect statsd failed: %v", err) //nolint
+		return err
+	}
+	return nil
+}
+
+func (m *Metrics) gauge(key string, value float64) error {
+	if err := m.checkConn(); err != nil {
+		return err
+	}
+	m.statsdClient.Gauge(key, value)
+	return nil
+}
+
+func (m *Metrics) count(key string, n int, rate float32) error {
+	if err := m.checkConn(); err != nil {
+		return err
+	}
+	m.statsdClient.Count(key, n, rate)
+	return nil
 }
 
 // SendDeployCount update deploy counter
