@@ -3,7 +3,6 @@ package calcium
 import (
 	"bytes"
 	"context"
-	"sync"
 
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
@@ -20,15 +19,12 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 
 	utils.SentryGo(func() {
 		defer close(ch)
-		wg := sync.WaitGroup{}
+		pool := utils.NewGoroutinePool(int(c.config.MaxConcurrency))
 		for _, id := range ids {
-			wg.Add(1)
-			utils.SentryGo(func(id string) func() {
+			pool.Go(ctx, func(id string) func() {
 				return func() {
-					defer wg.Done()
 					var message []*bytes.Buffer
 					err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
-
 						var err error
 						switch t {
 						case cluster.WorkloadStop:
@@ -61,7 +57,7 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 				}
 			}(id))
 		}
-		wg.Wait()
+		pool.Wait(ctx)
 	})
 
 	return ch, nil
