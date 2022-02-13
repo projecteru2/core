@@ -117,17 +117,19 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	if networkMode == "" {
 		networkMode = dockercontainer.NetworkMode(e.config.Docker.NetworkMode)
 	}
-	// log config
-	if opts.LogConfig == nil {
-		opts.LogConfig = map[string]string{}
+	// log config, copy to avoid concurrent writes
+	logConfig := map[string]string{}
+	for k, v := range opts.LogConfig {
+		logConfig[k] = v
 	}
-	opts.LogConfig["mode"] = "non-blocking"
-	opts.LogConfig["max-buffer-size"] = "4m"
-	opts.LogConfig["tag"] = fmt.Sprintf("%s {{.ID}}", opts.Name)
+
+	logConfig["mode"] = "non-blocking"
+	logConfig["max-buffer-size"] = "4m"
+	logConfig["tag"] = fmt.Sprintf("%s {{.ID}}", opts.Name)
 	if opts.Debug {
 		opts.LogType = e.config.Docker.Log.Type
 		for k, v := range e.config.Docker.Log.Config {
-			opts.LogConfig[k] = v
+			logConfig[k] = v
 		}
 	}
 	// add node IP
@@ -205,7 +207,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		DNS:   opts.DNS,
 		LogConfig: dockercontainer.LogConfig{
 			Type:   opts.LogType,
-			Config: opts.LogConfig,
+			Config: logConfig,
 		},
 		NetworkMode: networkMode,
 		RestartPolicy: dockercontainer.RestartPolicy{
