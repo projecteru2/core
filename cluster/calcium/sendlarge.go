@@ -3,7 +3,6 @@ package calcium
 import (
 	"context"
 	"github.com/pkg/errors"
-	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -60,7 +59,7 @@ func (c *Calcium) newWorkloadExecutor(ctx context.Context, ID string, resp chan 
 					return func() {
 						defer wg.Done()
 						if err := c.withWorkloadLocked(ctx, ID, func(ctx context.Context, workload *types.Workload) error {
-							err := c.doSendChunkFileToWorkload(ctx, workload.Engine, workload.ID, name, size, content, uid, gid, mode)
+							err := errors.WithStack(workload.Engine.VirtualizationCopyChunkTo(ctx, ID, name, size, content, uid, gid, mode))
 							resp <- &types.SendMessage{ID: ID, Path: name, Error: err}
 							return nil
 						}); err != nil {
@@ -77,9 +76,4 @@ func (c *Calcium) newWorkloadExecutor(ctx context.Context, ID string, resp chan 
 		}
 	})
 	return input
-}
-
-func (c *Calcium) doSendChunkFileToWorkload(ctx context.Context, engine engine.API, ID, name string, size int64, content io.Reader, uid, gid int, mode int64) error {
-	log.Infof(ctx, "[doSendChunkFileToWorkload] Send file to %s:%s", ID, name)
-	return errors.WithStack(engine.VirtualizationCopyChunkTo(ctx, ID, name, size, content, uid, gid, mode))
 }
