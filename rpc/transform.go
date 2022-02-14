@@ -646,15 +646,15 @@ func toCoreListImageOptions(opts *pb.ListImageOptions) *types.ImageOptions {
 func toSendLargeFileOptions(opts *pb.FileOptions) *types.SendLargeFileOptions {
 	return &types.SendLargeFileOptions{
 		FileMetadataOptions: types.FileMetadataOptions{
-			Ids: opts.Metadata.Ids,
-			Dst: opts.Metadata.Dst,
-			Size: opts.Metadata.Size,
-			Mode: opts.Metadata.Mode.Mode,
-			Uid: int(opts.Metadata.Owner.Uid),
-			Gid: int(opts.Metadata.Owner.Gid),
+			Ids: opts.Ids,
+			Dst: opts.Dst,
+			Size: opts.Size,
+			Mode: opts.Mode.Mode,
+			Uid: int(opts.Owner.Uid),
+			Gid: int(opts.Owner.Gid),
 		},
 		FileChunkOptions: types.FileChunkOptions{
-			Data: opts.Chunk.Data,
+			Data: opts.Chunk,
 		},
 	}
 }

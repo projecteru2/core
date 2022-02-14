@@ -542,18 +542,12 @@ message SendOptions {
 }
 
 message FileOptions {
-    message Metadata {
-        repeated string ids = 1;
-        string dst = 2;
-        int64 size = 3;
-        FileMode mode = 4;
-        FileOwner owner = 5;
-    }
-    message Chunk {
-        bytes data = 1;
-    }
-    Metadata metadata = 1;
-    Chunk chunk = 2;
+    repeated string ids = 1;
+    string dst = 2;
+    int64 size = 3;
+    FileMode mode = 4;
+    FileOwner owner = 5;
+    bytes chunk = 6;
 }
 
 message ErrorDetail {
