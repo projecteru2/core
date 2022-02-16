@@ -592,6 +592,24 @@ func (v *Vibranium) SendLargeFile(server pb.CoreRPC_SendLargeFileServer) error {
 
 	dc := make(chan *types.SendLargeFileOptions, 0)
 	ch := v.cluster.SendLargeFile(ctx, dc)
+
+	utils.SentryGo(func() {
+		for m := range ch {
+			msg := &pb.SendMessage {
+				Id:   m.ID,
+				Path: m.Path,
+			}
+
+			if m.Error != nil {
+				msg.Error = m.Error.Error()
+			}
+
+			if err := server.Send(msg); err != nil {
+				v.logUnsentMessages(ctx, "SendLargeFile", err, m)
+			}
+		}
+	})
+
 	for {
 		req, err := server.Recv()
 		if err == io.EOF {
@@ -604,21 +622,6 @@ func (v *Vibranium) SendLargeFile(server pb.CoreRPC_SendLargeFileServer) error {
 		dc <- data
 	}
 	close(dc)
-	// todo 可能会死锁，后面需要改一下
-	for m := range ch {
-		msg := &pb.SendMessage {
-			Id:   m.ID,
-			Path: m.Path,
-		}
-
-		if m.Error != nil {
-			msg.Error = m.Error.Error()
-		}
-
-		if err := server.Send(msg); err != nil {
-			v.logUnsentMessages(ctx, "SendLargeFile", err, m)
-		}
-	}
 	return nil
 }
 

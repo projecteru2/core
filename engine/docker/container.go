@@ -337,6 +337,7 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 	pr, pw := io.Pipe()
 	tw := tar.NewWriter(pw)
 	defer tw.Close()
+	const maxChunkSize = 2 << 10
 	// todo 这里有点奇怪，之前带参数的匿名函数会随机报错，现在改成无参的函数后就不报错了，还没找到原因
 	utils.SentryGo(func() {
 			hdr := &tar.Header{
@@ -347,39 +348,41 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 				Gid:  gid,
 			}
 			if err := tw.WriteHeader(hdr); err != nil {
-				logrus.Infof("[VirtualizationCopyChunkTo] write header to %s err, err: %v", ID, err)
+				log.Errorf(ctx, "[VirtualizationCopyChunkTo] write header to %s err, err: %v", ID, err)
 				return
 			}
 			for {
-				data := make([]byte, 10 * 1024 * 1024)
+				data := make([]byte, maxChunkSize)
 				n, err := content.Read(data)
 				if err != nil  {
 					if err != io.EOF {
-						logrus.Debugf("[VirtualizationCopyChunkTo] read data from pipe err, err: %v", err)
+						log.Errorf(ctx, "[VirtualizationCopyChunkTo] read data from pipe err, err: %v", err)
 					}
-					logrus.Debugf("[VirtualizationCopyChunkTo] read data end, try to close the pipe, ID=%s, file=%s", ID, target)
 					err := pw.Close()
 					if err != nil {
-						logrus.Debugf("[VirtualizationCopyChunkTo] close pipe writer, err: %v", err)
+						log.Errorf(ctx, "[VirtualizationCopyChunkTo] close pipe writer, err: %v", err)
 					}
 					return
 				}
 				if n < len(data) {
 					data = data[:n]
 				}
-				logrus.Debugf("[VirtualizationCopyChunkTo] have read data length=%d , and try to write data into %s", len(data), ID)
 				_, err = tw.Write(data)
 				if err != nil {
-					logrus.Debugf("[VirtualizationCopyChunkTo] write data into %s err, err: %v", ID, err)
+					log.Debugf(ctx, "[VirtualizationCopyChunkTo] write data into %s err, err: %v", ID, err)
 					err := pw.Close()
 					if err != nil {
-						logrus.Debugf("[VirtualizationCopyChunkTo] close pipe writer, err: %v", err)
+						log.Errorf(ctx, "[VirtualizationCopyChunkTo] close pipe writer, err: %v", err)
 					}
 					return
 				}
 			}
 	})
-	return e.client.CopyToContainer(ctx, ID, filepath.Dir(target), pr, dockertypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
+	err := e.client.CopyToContainer(ctx, ID, filepath.Dir(target), pr, dockertypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
+	if err != nil {
+		logrus.Debugf("[VirtualizationCopyChunkTo] call CopyToContainer, err: %v", err)
+	}
+	return err
 }
 
 // VirtualizationStart start virtualization
