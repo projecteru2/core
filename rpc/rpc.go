@@ -592,7 +592,7 @@ func (v *Vibranium) SendLargeFile(server pb.CoreRPC_SendLargeFileServer) error {
 
 	dc := make(chan *types.SendLargeFileOptions, 0)
 	ch := v.cluster.SendLargeFile(ctx, dc)
-
+	waitCh := make(chan bool)
 	utils.SentryGo(func() {
 		for m := range ch {
 			msg := &pb.SendMessage {
@@ -608,6 +608,7 @@ func (v *Vibranium) SendLargeFile(server pb.CoreRPC_SendLargeFileServer) error {
 				v.logUnsentMessages(ctx, "SendLargeFile", err, m)
 			}
 		}
+		waitCh <- true
 	})
 
 	for {
@@ -622,6 +623,7 @@ func (v *Vibranium) SendLargeFile(server pb.CoreRPC_SendLargeFileServer) error {
 		dc <- data
 	}
 	close(dc)
+	<- waitCh
 	return nil
 }
 

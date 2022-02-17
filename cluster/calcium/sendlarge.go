@@ -63,7 +63,6 @@ func (c *Calcium) newWorkloadExecutor(ctx context.Context, ID string, resp chan 
 							resp <- &types.SendMessage{ID: ID, Path: name, Error: err}
 							return nil
 						}); err != nil {
-							log.Debugf(ctx, "[newWorkloadExecutor]container %s exec %s err, err=%v", ID, name, err)
 							resp <- &types.SendMessage{ID: ID, Error: err}
 						}
 					}

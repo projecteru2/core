@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"math"
@@ -338,7 +337,7 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 	tw := tar.NewWriter(pw)
 	defer tw.Close()
 	const maxChunkSize = 2 << 10
-	// todo 这里有点奇怪，之前带参数的匿名函数会随机报错，现在改成无参的函数后就不报错了，还没找到原因
+	// todo 这里有点奇怪，之前带参数的匿名函数会随机报错，现在改成无参的函数后就不报错了，还没找到原因, 且之前的参数writer用的是interface
 	utils.SentryGo(func() {
 			hdr := &tar.Header{
 				Name: filepath.Base(target),
@@ -378,11 +377,7 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 				}
 			}
 	})
-	err := e.client.CopyToContainer(ctx, ID, filepath.Dir(target), pr, dockertypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
-	if err != nil {
-		logrus.Debugf("[VirtualizationCopyChunkTo] call CopyToContainer, err: %v", err)
-	}
-	return err
+	return e.client.CopyToContainer(ctx, ID, filepath.Dir(target), pr, dockertypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
 }
 
 // VirtualizationStart start virtualization
