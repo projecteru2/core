@@ -377,7 +377,11 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 				}
 			}
 	})
-	return e.client.CopyToContainer(ctx, ID, filepath.Dir(target), pr, dockertypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
+	err := e.client.CopyToContainer(ctx, ID, filepath.Dir(target), pr, dockertypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
+	if err != nil {
+		log.Errorf(ctx, "[VirtualizationCopyChunkTo] copy %s to container %s err, err:%v", target, ID, err)
+	}
+	return err
 }
 
 // VirtualizationStart start virtualization

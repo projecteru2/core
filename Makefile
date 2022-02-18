@@ -22,7 +22,7 @@ deps:
 	env GO111MODULE=on go mod vendor
 
 binary:
-	CGO_ENABLED=0 go build -ldflags "$(GO_LDFLAGS)" -o eru-core
+	CGO_ENABLED=0  GOOS=linux  GOARCH=amd64 go build -ldflags "$(GO_LDFLAGS)" -o eru-core
 
 build: deps binary
 
