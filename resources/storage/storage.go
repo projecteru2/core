@@ -22,9 +22,6 @@ func MakeRequest(opts types.ResourceOptions) (resourcetypes.ResourceRequest, err
 		request: opts.StorageRequest,
 		limit:   opts.StorageLimit,
 	}
-	if sr.limit > 0 && sr.request == 0 {
-		sr.request = sr.limit
-	}
 	// add volume request / limit to storage request / limit
 	if len(opts.VolumeRequest) != 0 && len(opts.VolumeLimit) != len(opts.VolumeRequest) {
 		return nil, errors.Wrapf(types.ErrBadVolume, "volume request and limit must be the same length")

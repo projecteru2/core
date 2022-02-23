@@ -8,7 +8,6 @@ import (
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/store/etcdv3"
 	"github.com/projecteru2/core/store/redis"
-	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 )
 
@@ -52,7 +51,7 @@ type Store interface {
 	WorkloadStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.WorkloadStatus
 
 	// deploy status
-	MakeDeployStatus(ctx context.Context, appname, entryname string, sis []strategy.Info) error
+	GetDeployStatus(ctx context.Context, appname, entryname string) (map[string]int, error)
 
 	// processing status
 	CreateProcessing(ctx context.Context, process *types.Processing, count int) error

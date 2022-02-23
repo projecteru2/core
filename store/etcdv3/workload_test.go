@@ -95,7 +95,7 @@ func TestGetWorkload(t *testing.T) {
 	// create pod node
 	_, err = m.AddPod(ctx, podname, "")
 	assert.NoError(t, err)
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname, CPU: 10, Share: 100, Memory: 1000, Storage: 1000})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname})
 	assert.NoError(t, err)
 	// success
 	_, err = m.GetWorkload(ctx, ID)
@@ -124,7 +124,7 @@ func TestGetWorkloadStatus(t *testing.T) {
 	// add success
 	_, err = m.AddPod(ctx, podname, "")
 	assert.NoError(t, err)
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname, CPU: 10, Share: 100, Memory: 1000, Storage: 1000})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname})
 	assert.NoError(t, err)
 	c, err := m.GetWorkloadStatus(ctx, ID)
 	assert.Nil(t, c)
@@ -194,7 +194,7 @@ func TestListWorkloads(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = m.AddPod(ctx, podname, "")
 	assert.NoError(t, err)
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname, CPU: 10, Share: 100, Memory: 1000, Storage: 1000})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname})
 	assert.NoError(t, err)
 	// no labels
 	cs, err = m.ListWorkloads(ctx, "", "a", "b", 1, nil)
@@ -230,7 +230,7 @@ func TestListNodeWorkloads(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = m.AddPod(ctx, podname, "")
 	assert.NoError(t, err)
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname, CPU: 10, Share: 100, Memory: 1000, Storage: 1000})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname})
 	assert.NoError(t, err)
 	// no labels
 	cs, err = m.ListNodeWorkloads(ctx, nodename, nil)

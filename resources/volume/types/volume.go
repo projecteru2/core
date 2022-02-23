@@ -3,12 +3,12 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
+
+	"github.com/projecteru2/core/utils"
 )
 
 const auto = "AUTO"
@@ -34,7 +34,7 @@ func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 		src, dst, flags = parts[0], parts[1], parts[2]
 	case 4:
 		src, dst, flags = parts[0], parts[1], parts[2]
-		if size, err = strconv.ParseInt(parts[3], 10, 64); err != nil {
+		if size, err = utils.ParseRAMInHuman(parts[3]); err != nil {
 			return nil, errors.WithStack(err)
 		}
 	default:
@@ -101,6 +101,11 @@ func (vb VolumeBinding) ToString(normalize bool) (volume string) {
 	return volume
 }
 
+// GetMapKey .
+func (vb VolumeBinding) GetMapKey() [3]string {
+	return [3]string{vb.Source, vb.Destination, vb.Flags}
+}
+
 // VolumeBindings is a collection of VolumeBinding
 type VolumeBindings []*VolumeBinding
 
@@ -112,17 +117,6 @@ func NewVolumeBindings(volumes []string) (volumeBindings VolumeBindings, err err
 			return nil, err
 		}
 		volumeBindings = append(volumeBindings, volumeBinding)
-	}
-	return
-}
-
-// ToStringSlice converts VolumeBindings into string slice
-func (vbs VolumeBindings) ToStringSlice(sorted, normalize bool) (volumes []string) {
-	if sorted {
-		sort.Slice(vbs, func(i, j int) bool { return vbs[i].ToString(false) < vbs[j].ToString(false) })
-	}
-	for _, vb := range vbs {
-		volumes = append(volumes, vb.ToString(normalize))
 	}
 	return
 }
@@ -147,39 +141,22 @@ func (vbs VolumeBindings) MarshalJSON() ([]byte, error) {
 	return bs, errors.WithStack(err)
 }
 
+// TotalSize .
+func (vbs VolumeBindings) TotalSize() (total int64) {
+	for _, vb := range vbs {
+		total += vb.SizeInBytes
+	}
+	return
+}
+
 // ApplyPlan creates new VolumeBindings according to volume plan
 func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 	for _, vb := range vbs {
 		newVb := &VolumeBinding{vb.Source, vb.Destination, vb.Flags, vb.SizeInBytes}
 		if vmap, _ := plan.GetVolumeMap(vb); vmap != nil {
-			newVb.Source = vmap.GetResourceID()
+			newVb.Source = vmap.GetDevice()
 		}
 		res = append(res, newVb)
-	}
-	return
-}
-
-// Divide .
-func (vbs VolumeBindings) Divide() (soft VolumeBindings, hard VolumeBindings) {
-	for _, vb := range vbs {
-		if strings.HasSuffix(vb.Source, auto) {
-			soft = append(soft, vb)
-		} else {
-			hard = append(hard, vb)
-		}
-	}
-	return
-}
-
-// IsEqual return true is two VolumeBindings have the same value
-func (vbs VolumeBindings) IsEqual(vbs2 VolumeBindings) bool {
-	return reflect.DeepEqual(vbs.ToStringSlice(true, false), vbs2.ToStringSlice(true, false))
-}
-
-// TotalSize .
-func (vbs VolumeBindings) TotalSize() (total int64) {
-	for _, vb := range vbs {
-		total += vb.SizeInBytes
 	}
 	return
 }
@@ -189,8 +166,7 @@ func MergeVolumeBindings(vbs1 VolumeBindings, vbs2 ...VolumeBindings) (vbs Volum
 	sizeMap := map[[3]string]int64{} // {["AUTO", "/data", "rw"]: 100}
 	for _, vbs := range append(vbs2, vbs1) {
 		for _, vb := range vbs {
-			key := [3]string{vb.Source, vb.Destination, vb.Flags}
-			sizeMap[key] += vb.SizeInBytes
+			sizeMap[vb.GetMapKey()] += vb.SizeInBytes
 		}
 	}
 
@@ -204,6 +180,117 @@ func MergeVolumeBindings(vbs1 VolumeBindings, vbs2 ...VolumeBindings) (vbs Volum
 			Flags:       key[2],
 			SizeInBytes: size,
 		})
+	}
+	return
+}
+
+// VolumeMap .
+type VolumeMap map[string]int64
+
+// DeepCopy .
+func (v VolumeMap) DeepCopy() VolumeMap {
+	res := VolumeMap{}
+	for key, value := range v {
+		res[key] = value
+	}
+	return res
+}
+
+// Add .
+func (v VolumeMap) Add(v1 VolumeMap) {
+	for key, value := range v1 {
+		v[key] += value
+	}
+}
+
+// Sub .
+func (v VolumeMap) Sub(v1 VolumeMap) {
+	for key, value := range v1 {
+		v[key] -= value
+	}
+}
+
+// GetDevice returns the first device
+func (v VolumeMap) GetDevice() string {
+	for key := range v {
+		return key
+	}
+	return ""
+}
+
+// GetSize returns the first size
+func (v VolumeMap) GetSize() int64 {
+	for _, size := range v {
+		return size
+	}
+	return 0
+}
+
+// Total .
+func (v VolumeMap) Total() int64 {
+	res := int64(0)
+	for _, size := range v {
+		res += size
+	}
+	return res
+}
+
+// VolumePlan is map from volume string to volumeMap: {"AUTO:/data:rw:100": VolumeMap{"/sda1": 100}}
+type VolumePlan map[*VolumeBinding]VolumeMap
+
+// UnmarshalJSON .
+func (p *VolumePlan) UnmarshalJSON(b []byte) (err error) {
+	if *p == nil {
+		*p = VolumePlan{}
+	}
+	plan := map[string]VolumeMap{}
+	if err = json.Unmarshal(b, &plan); err != nil {
+		return errors.WithStack(err)
+	}
+	for volume, vmap := range plan {
+		vb, err := NewVolumeBinding(volume)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		(*p)[vb] = vmap
+	}
+	return
+}
+
+// MarshalJSON .
+func (p VolumePlan) MarshalJSON() ([]byte, error) {
+	plan := map[string]VolumeMap{}
+	for vb, vmap := range p {
+		plan[vb.ToString(false)] = vmap
+	}
+	bs, err := json.Marshal(plan)
+	return bs, errors.WithStack(err)
+}
+
+// Merge .
+func (p VolumePlan) Merge(p2 VolumePlan) {
+	for vb, vm := range p2 {
+		if oldVM, oldVB := p.GetVolumeMap(vb); oldVB != nil {
+			delete(p, oldVB)
+			vm[vm.GetDevice()] += oldVM.GetSize()
+			vm = VolumeMap{vm.GetDevice(): vm.GetSize() + oldVM.GetSize()}
+			vb = &VolumeBinding{
+				Source:      vb.Source,
+				Destination: vb.Destination,
+				Flags:       vb.Flags,
+				SizeInBytes: vb.SizeInBytes + oldVB.SizeInBytes,
+			}
+		}
+		p[vb] = vm
+	}
+}
+
+// GetVolumeMap looks up VolumeMap according to volume destination directory
+func (p VolumePlan) GetVolumeMap(vb *VolumeBinding) (volMap VolumeMap, volume *VolumeBinding) {
+	for volume, volMap := range p {
+		if vb.Destination == volume.Destination {
+			return volMap, volume
+		}
 	}
 	return
 }

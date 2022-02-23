@@ -35,20 +35,21 @@ type LabelMeta struct {
 // only relationship with pod and node is stored
 // if you wanna get realtime information, use Inspect method
 type Workload struct {
-	ResourceMeta
-	ID         string            `json:"id"`
-	Name       string            `json:"name"`
-	Podname    string            `json:"podname"`
-	Nodename   string            `json:"nodename"`
-	Hook       *Hook             `json:"hook"`
-	Privileged bool              `json:"privileged"`
-	User       string            `json:"user"`
-	Env        []string          `json:"env"`
-	Image      string            `json:"image"`
-	Labels     map[string]string `json:"labels"`
-	CreateTime int64             `json:"create_time"`
-	StatusMeta *StatusMeta       `json:"-"`
-	Engine     engine.API        `json:"-"`
+	ResourceArgs ResourceMeta      `json:"resource_args"`
+	EngineArgs   EngineArgs        `json:"engine_args"`
+	ID           string            `json:"id"`
+	Name         string            `json:"name"`
+	Podname      string            `json:"podname"`
+	Nodename     string            `json:"nodename"`
+	Hook         *Hook             `json:"hook"`
+	Privileged   bool              `json:"privileged"`
+	User         string            `json:"user"`
+	Env          []string          `json:"env"`
+	Image        string            `json:"image"`
+	Labels       map[string]string `json:"labels"`
+	CreateTime   int64             `json:"create_time"`
+	StatusMeta   *StatusMeta       `json:"-"`
+	Engine       engine.API        `json:"-"`
 }
 
 // Inspect a workload

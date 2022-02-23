@@ -115,6 +115,9 @@ var (
 
 	ErrNoFilesToSend = errors.New("no files to send")
 	ErrNoFilesToCopy = errors.New("no files to copy")
+
+	ErrInvalidEngineArgs     = errors.New("invalid engine args")
+	ErrGetMostIdleNodeFailed = errors.New("get most idle node failed")
 )
 
 type detailedErr struct {

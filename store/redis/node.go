@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	enginefactory "github.com/projecteru2/core/engine/factory"
 	"github.com/projecteru2/core/engine/fake"
 	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 
@@ -32,52 +30,7 @@ func (r *Rediaron) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*ty
 		return nil, err
 	}
 
-	// 尝试加载的客户端
-	// 会自动判断是否是支持的 url
-	client, err := enginefactory.GetEngine(ctx, r.config, opts.Nodename, opts.Endpoint, opts.Ca, opts.Cert, opts.Key)
-	if err != nil {
-		return nil, err
-	}
-
-	// 判断这货是不是活着的
-	info, err := client.Info(ctx)
-	if err != nil {
-		return nil, err
-	}
-	// 更新默认值
-	if opts.CPU == 0 {
-		opts.CPU = info.NCPU
-	}
-	if opts.Memory == 0 {
-		opts.Memory = info.MemTotal * 8 / 10 // use 80% real memory
-	}
-	if opts.Storage == 0 {
-		opts.Storage = info.StorageTotal * 8 / 10
-	}
-	if opts.Share == 0 {
-		opts.Share = r.config.Scheduler.ShareBase
-	}
-	if opts.Volume == nil {
-		opts.Volume = types.VolumeMap{}
-	}
-	// 设置 numa 的内存默认值，如果没有的话，按照 numa node 个数均分
-	if len(opts.Numa) > 0 {
-		nodeIDs := map[string]struct{}{}
-		for _, nodeID := range opts.Numa {
-			nodeIDs[nodeID] = struct{}{}
-		}
-		perNodeMemory := opts.Memory / int64(len(nodeIDs))
-		if opts.NumaMemory == nil {
-			opts.NumaMemory = types.NUMAMemory{}
-		}
-		for nodeID := range nodeIDs {
-			if _, ok := opts.NumaMemory[nodeID]; !ok {
-				opts.NumaMemory[nodeID] = perNodeMemory
-			}
-		}
-	}
-
-	return r.doAddNode(ctx, opts.Nodename, opts.Endpoint, opts.Podname, opts.Ca, opts.Cert, opts.Key, opts.CPU, opts.Share, opts.Memory, opts.Storage, opts.Labels, opts.Numa, opts.NumaMemory, opts.Volume)
+	return r.doAddNode(ctx, opts.Nodename, opts.Endpoint, opts.Podname, opts.Ca, opts.Cert, opts.Key, opts.Labels)
 }
 
 // RemoveNode delete a node
@@ -163,20 +116,6 @@ func (r *Rediaron) UpdateNodes(ctx context.Context, nodes ...*types.Node) error 
 		enginefactory.RemoveEngineFromCache(node.Endpoint, node.Ca, node.Cert, node.Key)
 	}
 	return errors.WithStack(r.BatchPut(ctx, data))
-}
-
-// UpdateNodeResource update cpu and memory on a node, either add or subtract
-func (r *Rediaron) UpdateNodeResource(ctx context.Context, node *types.Node, resource *types.ResourceMeta, action string) error {
-	switch action {
-	case types.ActionIncr:
-		node.RecycleResources(resource)
-	case types.ActionDecr:
-		node.PreserveResources(resource)
-	default:
-		return types.ErrUnknownControlType
-	}
-	go metrics.Client.SendNodeInfo(node.Metrics())
-	return r.UpdateNodes(ctx, node)
 }
 
 // SetNodeStatus sets status for a node, value will expire after ttl seconds
@@ -281,7 +220,7 @@ func (r *Rediaron) makeClient(ctx context.Context, node *types.Node) (client eng
 	return client, nil
 }
 
-func (r *Rediaron) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, cpu, share int, memory, storage int64, labels map[string]string, numa types.NUMA, numaMemory types.NUMAMemory, volumemap types.VolumeMap) (*types.Node, error) {
+func (r *Rediaron) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, labels map[string]string) (*types.Node, error) {
 	data := map[string]string{}
 	// 如果有tls的证书需要保存就保存一下
 	if ca != "" {
@@ -294,28 +233,12 @@ func (r *Rediaron) doAddNode(ctx context.Context, name, endpoint, podname, ca, c
 		data[fmt.Sprintf(nodeKeyKey, name)] = key
 	}
 
-	cpumap := types.CPUMap{}
-	for i := 0; i < cpu; i++ {
-		cpumap[strconv.Itoa(i)] = int64(share)
-	}
-
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
-			Name:           name,
-			Endpoint:       endpoint,
-			Podname:        podname,
-			CPU:            cpumap,
-			MemCap:         memory,
-			StorageCap:     storage,
-			Volume:         volumemap,
-			InitCPU:        cpumap,
-			InitMemCap:     memory,
-			InitStorageCap: storage,
-			InitNUMAMemory: numaMemory,
-			InitVolume:     volumemap,
-			Labels:         labels,
-			NUMA:           numa,
-			NUMAMemory:     numaMemory,
+			Name:     name,
+			Endpoint: endpoint,
+			Podname:  podname,
+			Labels:   labels,
 		},
 		Available: true,
 	}
@@ -334,7 +257,7 @@ func (r *Rediaron) doAddNode(ctx context.Context, name, endpoint, podname, ca, c
 		return nil, err
 	}
 
-	go metrics.Client.SendNodeInfo(node.Metrics())
+	// TODO: go metrics.Client.SendNodeInfo(node.Metrics())
 	return node, nil
 }
 
@@ -363,7 +286,6 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 		if err := json.Unmarshal([]byte(value), node); err != nil {
 			return nil, err
 		}
-		node.Init()
 		node.Engine = &fake.Engine{DefaultErr: types.ErrNilEngine}
 		if utils.FilterWorkload(node.Labels, labels) {
 			allNodes = append(allNodes, node)
