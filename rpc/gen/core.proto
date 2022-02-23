@@ -105,13 +105,27 @@ message PodResource {
   repeated NodeResource nodes_resource = 2;
 }
 
+message StringSlice {
+  repeated string slice = 1;
+}
+
+message RawParam {
+  oneof value {
+    string str = 1;
+    StringSlice string_slice = 2;
+  }
+}
+
+
 message NodeResource {
   string name = 1;
-  double cpu_percent = 2;
-  double memory_percent = 3;
-  double storage_percent = 4;
-  double volume_percent = 5;
+  //    double cpu_percent = 2;
+  //    double memory_percent = 3;
+  //    double storage_percent = 4;
+  //    double volume_percent = 5;
   repeated string diffs = 6;
+  string resource_capacity = 7;
+  string resource_usage = 8;
 }
 
 message ListNetworkOptions {
@@ -145,25 +159,27 @@ message Node {
   string name = 1;
   string endpoint = 2;
   string podname = 3;
-  map<string, int32> cpu = 4;
-  double cpu_used = 5;
-  int64 memory = 6;
-  int64 memory_used = 7;
+  //    map<string, int32> cpu = 4;
+  //    double cpu_used= 5;
+  //    int64 memory = 6;
+  //    int64 memory_used = 7;
   bool available = 8;
   map<string, string> labels = 9;
-  int64 init_memory = 10;
-  map<string, int32> init_cpu = 11;
+  //    int64 init_memory = 10;
+  //    map<string, int32> init_cpu = 11;
   string info = 12;
-  map<string, string> numa = 13;
-  map<string, int64> numa_memory = 14;
-  int64 storage = 15;
-  int64 storage_used = 16;
-  int64 init_storage = 17;
-  map<string, int64> init_volume = 18;
-  map<string, int64> volume = 19;
-  int64 volume_used = 20;
-  map<string, int64> init_numa_memory = 21;
+  //    map<string, string> numa = 13;
+  //    map<string, int64> numa_memory = 14;
+  //    int64 storage = 15;
+  //    int64 storage_used = 16;
+  //    int64 init_storage = 17;
+  //    map<string, int64> init_volume = 18;
+  //    map<string, int64> volume = 19;
+  //    int64 volume_used = 20;
+  //    map<string, int64> init_numa_memory = 21;
   bool bypass = 22;
+  string resource_capacity = 23;
+  string resource_usage = 24;
 }
 
 message Nodes {
@@ -177,19 +193,22 @@ message NodeAvailable {
 
 message SetNodeOptions {
   string nodename = 1;
-  map<string, int32> delta_cpu = 3;
-  int64 delta_memory = 4;
-  int64 delta_storage = 5;
-  map<string, int64> delta_numa_memory = 6;
-  map<string, string> numa = 7;
+  TriOpt status_opt = 2;
+  //    map<string, int32> delta_cpu = 3;
+  //    int64 delta_memory = 4;
+  //    int64 delta_storage = 5;
+  //    map<string, int64> delta_numa_memory = 6;
+  //    map<string, string> numa = 7;
   map<string, string> labels = 8;
-  map<string, int64> delta_volume = 9;
+  //    map<string, int64> delta_volume = 9;
   bool workloads_down = 10;
   string endpoint = 11;
   TriOpt bypass_opt = 12;
   string ca = 13;
   string cert = 14;
   string key = 15;
+  map<string, RawParam> resource_opts = 16;
+  bool delta = 17;
 }
 
 message SetNodeStatusOptions {
@@ -225,9 +244,10 @@ message Workload {
   map<string, string> publish = 7;
   string image = 8;
   WorkloadStatus status = 9;
-  Resource resource = 10;
+  //    Resource resource = 10;
   int64 create_time = 11;
   repeated string env = 12;
+  string resource_args = 13;
 }
 
 message WorkloadStatus {
@@ -295,8 +315,9 @@ enum TriOpt {
 
 message ReallocOptions {
   string id = 1;
-  TriOpt bind_cpu_opt = 2;
-  ResourceOptions resource_opts = 3;
+  //    TriOpt bind_cpu_opt = 2;
+  //    ResourceOptions resource_opts = 3;
+  map<string, RawParam> resource_opts = 4;
 }
 
 message AddPodOptions {
@@ -319,14 +340,15 @@ message AddNodeOptions {
   string ca = 4;
   string cert = 5;
   string key = 6;
-  int32 cpu = 7;
-  int32 share = 8;
-  int64 memory = 9;
+  //    int32 cpu = 7;
+  //    int32 share = 8;
+  //    int64 memory = 9;
   map<string, string> labels = 10;
-  map<string, string> numa = 11;
-  map<string, int64> numa_memory = 12;
-  int64 storage = 13;
-  map<string, int64> volume_map = 14;
+  //    map<string, string> numa = 11;
+  //    map<string, int64> numa_memory = 12;
+  //    int64 storage = 13;
+  //    map<string, int64> volume_map = 14;
+  map<string, RawParam> resource_opts = 15;
 }
 
 message RemoveNodeOptions {
@@ -423,32 +445,32 @@ message EntrypointOptions {
   // please state the shell explicitly: ["sh", "-c", "true && echo a > /dev/null"]
   repeated string commands = 11;
 }
-
-message ResourceOptions {
-  double cpu_quota_limit = 1;
-  double cpu_quota_request = 2;
-  bool cpu_bind = 3;
-  int64 memory_limit = 4;
-  int64 memory_request = 5;
-  int64 storage_limit = 6;
-  int64 storage_request = 7;
-  repeated string volumes_limit = 8;
-  repeated string volumes_request = 9;
-}
-
-message Resource {
-  double cpu_quota_limit = 1;
-  double cpu_quota_request = 2;
-  map<string, int32> cpu = 3;
-  int64 memory_limit = 4;
-  int64 memory_request = 5;
-  int64 storage_limit = 6;
-  int64 storage_request = 7;
-  repeated string volumes_limit = 8;
-  repeated string volumes_request = 9;
-  map<string, Volume> volume_plan_limit = 10;
-  map<string, Volume> volume_plan_request = 11;
-}
+//
+//message ResourceOptions {
+//  double cpu_quota_limit = 1;
+//  double cpu_quota_request = 2;
+//  bool cpu_bind = 3;
+//  int64 memory_limit = 4;
+//  int64 memory_request = 5;
+//  int64 storage_limit = 6;
+//  int64 storage_request = 7;
+//  repeated string volumes_limit = 8;
+//  repeated string volumes_request = 9;
+//}
+//
+//message Resource {
+//  double cpu_quota_limit = 1;
+//  double cpu_quota_request = 2;
+//  map<string, int32> cpu = 3;
+//  int64 memory_limit = 4;
+//  int64 memory_request = 5;
+//  int64 storage_limit = 6;
+//  int64 storage_request = 7;
+//  repeated string volumes_limit = 8;
+//  repeated string volumes_request = 9;
+//  map<string, Volume> volume_plan_limit = 10;
+//  map<string, Volume> volume_plan_request = 11;
+//}
 
 message Volume {
   map<string, int64> volume = 1;
@@ -484,11 +506,12 @@ message DeployOptions {
   bool ignore_hook = 21;
   repeated string after_create = 22;
   bytes raw_args = 23;
-  ResourceOptions resource_opts = 24;
+  //    ResourceOptions resource_opts = 24;
   NodeFilter node_filter = 25;
   // should be part of field no.19
   map<string, FileMode> modes = 26;
   map<string, FileOwner> owners = 27;
+  map<string, RawParam> resource_opts = 28;
 }
 
 message ReplaceOptions {
@@ -567,7 +590,8 @@ message CreateWorkloadMessage {
   bool success = 6;
   map<string, string> publish = 7;
   bytes hook = 8;
-  Resource resource = 9;
+  //    Resource resource = 9;
+  string resource_args = 10;
 }
 
 message ReplaceWorkloadMessage {
