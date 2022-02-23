@@ -14,12 +14,7 @@ import (
 	"strings"
 	"time"
 
-	corecluster "github.com/projecteru2/core/cluster"
-	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/types"
-	coretypes "github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
+	"github.com/projecteru2/core/engine"
 
 	dockertypes "github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
@@ -27,7 +22,10 @@ import (
 	dockerslice "github.com/docker/docker/api/types/strslice"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
-	"github.com/pkg/errors"
+
+	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
+	coretypes "github.com/projecteru2/core/types"
 )
 
 const (
@@ -82,6 +80,15 @@ func loadRawArgs(b []byte) (*RawArgs, error) {
 // VirtualizationCreate create a workload
 func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) { // nolint
 	r := &enginetypes.VirtualizationCreated{}
+	var err error
+
+	// parse engine args to resource options
+	opts.VirtualizationResource, err = engine.MakeVirtualizationResource(opts.EngineArgs)
+	if err != nil {
+		log.Errorf(ctx, "[VirtualizationCreate] failed to parse engine args %+v, err %v", opts.EngineArgs, err)
+		return r, coretypes.ErrInvalidEngineArgs
+	}
+
 	// memory should more than 4MiB
 	if opts.Memory > 0 && opts.Memory < minMemory || opts.Memory < 0 {
 		return r, coretypes.ErrBadMemory
@@ -117,19 +124,17 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	if networkMode == "" {
 		networkMode = dockercontainer.NetworkMode(e.config.Docker.NetworkMode)
 	}
-	// log config, copy to avoid concurrent writes
-	logConfig := map[string]string{}
-	for k, v := range opts.LogConfig {
-		logConfig[k] = v
+	// log config
+	if opts.LogConfig == nil {
+		opts.LogConfig = map[string]string{}
 	}
-
-	logConfig["mode"] = "non-blocking"
-	logConfig["max-buffer-size"] = "4m"
-	logConfig["tag"] = fmt.Sprintf("%s {{.ID}}", opts.Name)
+	opts.LogConfig["mode"] = "non-blocking"
+	opts.LogConfig["max-buffer-size"] = "4m"
+	opts.LogConfig["tag"] = fmt.Sprintf("%s {{.ID}}", opts.Name)
 	if opts.Debug {
 		opts.LogType = e.config.Docker.Log.Type
 		for k, v := range e.config.Docker.Log.Config {
-			logConfig[k] = v
+			opts.LogConfig[k] = v
 		}
 	}
 	// add node IP
@@ -164,7 +169,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		return r, err
 	}
 
-	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode)
+	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode, false)
 	// set ulimits
 	if len(rArgs.Ulimits) == 0 {
 		resource.Ulimits = []*units.Ulimit{
@@ -207,7 +212,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		DNS:   opts.DNS,
 		LogConfig: dockercontainer.LogConfig{
 			Type:   opts.LogType,
-			Config: logConfig,
+			Config: opts.LogConfig,
 		},
 		NetworkMode: networkMode,
 		RestartPolicy: dockercontainer.RestartPolicy{
@@ -267,61 +272,6 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	return r, err
 }
 
-// VirtualizationResourceRemap to re-distribute resource according to the whole picture
-// supposedly it's exclusively executed, so free feel to operate IO from remote dockerd
-func (e *Engine) VirtualizationResourceRemap(ctx context.Context, opts *enginetypes.VirtualizationRemapOptions) (<-chan enginetypes.VirtualizationRemapMessage, error) {
-	// calculate share pool
-	sharePool := []string{}
-	for cpuID, available := range opts.CPUAvailable {
-		if available >= opts.CPUShareBase {
-			sharePool = append(sharePool, cpuID)
-		}
-	}
-	shareCPUSet := strings.Join(sharePool, ",")
-	if shareCPUSet == "" {
-		info, err := e.Info(ctx)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		shareCPUSet = fmt.Sprintf("0-%d", info.NCPU-1)
-	}
-
-	// filter out workloads non-binding
-	freeWorkloadResources := map[string]enginetypes.VirtualizationResource{}
-	for workloadID, resource := range opts.WorkloadResources {
-		if resource.CPU == nil {
-			freeWorkloadResources[workloadID] = resource
-		}
-	}
-
-	// update!
-	ch := make(chan enginetypes.VirtualizationRemapMessage)
-	pool := utils.NewGoroutinePool(10)
-	go func() {
-		defer close(ch)
-		for id, resource := range freeWorkloadResources {
-			pool.Go(ctx, func(id string, resource enginetypes.VirtualizationResource) func() {
-				return func() {
-					updateConfig := dockercontainer.UpdateConfig{Resources: dockercontainer.Resources{
-						CPUQuota:   int64(resource.Quota * float64(corecluster.CPUPeriodBase)),
-						CPUPeriod:  corecluster.CPUPeriodBase,
-						CpusetCpus: shareCPUSet,
-						CPUShares:  defaultCPUShare,
-					}}
-					_, err := e.client.ContainerUpdate(ctx, id, updateConfig)
-					ch <- enginetypes.VirtualizationRemapMessage{
-						ID:    id,
-						Error: err,
-					}
-				}
-			}(id, resource))
-		}
-		pool.Wait(ctx)
-	}()
-
-	return ch, nil
-}
-
 // VirtualizationCopyTo copy things to virtualization
 func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, content []byte, uid, gid int, mode int64) error {
 	return withTarfileDump(ctx, target, content, uid, gid, mode, func(target, tarfile string) error {
@@ -349,14 +299,8 @@ func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTime
 }
 
 // VirtualizationRemove remove virtualization
-func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, removeVolumes, force bool) (err error) {
-	if err = e.client.ContainerRemove(ctx, ID, dockertypes.ContainerRemoveOptions{RemoveVolumes: removeVolumes, Force: force}); err == nil {
-		return nil
-	}
-	if strings.Contains(err.Error(), "No such container") {
-		return types.ErrWorkloadNotExists
-	}
-	return
+func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, removeVolumes, force bool) error {
+	return e.client.ContainerRemove(ctx, ID, dockertypes.ContainerRemoveOptions{RemoveVolumes: removeVolumes, Force: force})
 }
 
 // VirtualizationInspect get virtualization info
@@ -458,22 +402,29 @@ func (e *Engine) VirtualizationWait(ctx context.Context, ID, state string) (*eng
 
 // VirtualizationUpdateResource update virtualization resource
 func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error {
-	if opts.Memory > 0 && opts.Memory < minMemory || opts.Memory < 0 {
+	// parse engine args to resource options
+	resourceOpts, err := engine.MakeVirtualizationResource(opts.EngineArgs)
+	if err != nil {
+		log.Errorf(ctx, "[VirtualizationUpdateResource] failed to parse engine args %+v, workload id %v, err %v", opts.EngineArgs, ID, err)
+		return coretypes.ErrInvalidEngineArgs
+	}
+
+	if resourceOpts.Memory > 0 && resourceOpts.Memory < minMemory || resourceOpts.Memory < 0 {
 		return coretypes.ErrBadMemory
 	}
-	if opts.VolumeChanged {
-		log.Errorf(ctx, "[VirtualizationUpdateResource] docker engine not support rebinding volume resource: %v", opts.Volumes)
+	if len(opts.Volumes) > 0 || resourceOpts.VolumeChanged {
+		log.Errorf(ctx, "[VirtualizationUpdateResource] docker engine not support rebinding volume resource: %v", resourceOpts.Volumes)
 		return coretypes.ErrNotSupport
 	}
 
-	memory := opts.Memory
+	memory := resourceOpts.Memory
 	if memory == 0 {
 		memory = maxMemory
 	}
 
-	quota := opts.Quota
-	cpuMap := opts.CPU
-	numaNode := opts.NUMANode
+	quota := resourceOpts.Quota
+	cpuMap := resourceOpts.CPU
+	numaNode := resourceOpts.NUMANode
 	// unlimited cpu
 	if quota == 0 || len(cpuMap) == 0 {
 		info, err := e.Info(ctx) // TODO can fixed in docker engine, support empty Cpusetcpus, or use cache to speed up
@@ -490,9 +441,9 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 		}
 	}
 
-	newResource := makeResourceSetting(quota, memory, cpuMap, numaNode)
+	newResource := makeResourceSetting(quota, memory, cpuMap, numaNode, resourceOpts.Remap)
 	updateConfig := dockercontainer.UpdateConfig{Resources: newResource}
-	_, err := e.client.ContainerUpdate(ctx, ID, updateConfig)
+	_, err = e.client.ContainerUpdate(ctx, ID, updateConfig)
 	return err
 }
 

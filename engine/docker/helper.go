@@ -100,7 +100,7 @@ func makeMountPaths(opts *enginetypes.VirtualizationCreateOptions) ([]string, ma
 	return binds, volumes
 }
 
-func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, numaNode string) dockercontainer.Resources {
+func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, numaNode string, remap bool) dockercontainer.Resources {
 	resource := dockercontainer.Resources{}
 
 	resource.CPUQuota = 0
@@ -120,11 +120,16 @@ func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, num
 		resource.CpusetCpus = strings.Join(cpuIDs, ",")
 		// numaNode will empty or numaNode
 		resource.CpusetMems = numaNode
-		// unrestrain cpu quota for binding
-		resource.CPUQuota = -1
-		// cpu share for fragile pieces
-		if _, divpart := math.Modf(cpu); divpart > 0 {
-			resource.CPUShares = int64(math.Round(float64(1024) * divpart))
+
+		if remap {
+			resource.CPUShares = int64(1024)
+		} else {
+			// unrestrained cpu quota for binding
+			resource.CPUQuota = -1
+			// cpu share for fragile pieces
+			if _, divpart := math.Modf(cpu); divpart > 0 {
+				resource.CPUShares = int64(math.Round(float64(1024) * divpart))
+			}
 		}
 	}
 	resource.Memory = memory

@@ -23,7 +23,6 @@ import (
 	"github.com/projecteru2/core/version"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	cli "github.com/urfave/cli/v2"
 	_ "go.uber.org/automaxprocs"
 	"google.golang.org/grpc"
@@ -118,7 +117,7 @@ func serve(c *cli.Context) error {
 	})
 
 	if config.Profile != "" {
-		http.Handle("/metrics", metrics.Client.ResourceMiddleware(cluster)(promhttp.Handler()))
+		// TODO: http.Handle("/metrics", metrics.Client.ResourceMiddleware(cluster)(promhttp.Handler()))
 		utils.SentryGo(func() {
 			if err := http.ListenAndServe(config.Profile, nil); err != nil {
 				log.Errorf(nil, "[main] start http failed %v", err) //nolint
