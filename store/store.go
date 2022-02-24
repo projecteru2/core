@@ -33,7 +33,6 @@ type Store interface {
 	GetNodes(ctx context.Context, nodenames []string) ([]*types.Node, error)
 	GetNodesByPod(ctx context.Context, podname string, labels map[string]string, all bool) ([]*types.Node, error)
 	UpdateNodes(context.Context, ...*types.Node) error
-	UpdateNodeResource(ctx context.Context, node *types.Node, resource *types.ResourceMeta, action string) error
 	SetNodeStatus(ctx context.Context, node *types.Node, ttl int64) error
 	GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error)
 	NodeStatusStream(ctx context.Context) chan *types.NodeStatus

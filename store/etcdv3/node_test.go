@@ -25,17 +25,6 @@ func TestAddNode(t *testing.T) {
 	assert.NoError(t, err)
 	labels := map[string]string{"test": "1"}
 
-	// wrong endpoint
-	ctx1, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
-	_, err = m.AddNode(ctx1, &types.AddNodeOptions{Nodename: nodename, Endpoint: "abc", Podname: podname, Labels: labels})
-	assert.Error(t, err)
-
-	// wrong because engine not mocked
-	ctx2, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
-	_, err = m.AddNode(ctx2, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, Labels: labels})
-	assert.Error(t, err)
 	endpoint = "mock://fakeengine"
 	// wrong no pod
 	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: "abc", Labels: labels})

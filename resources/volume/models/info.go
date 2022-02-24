@@ -146,14 +146,10 @@ func (v *Volume) SetNodeResourceCapacity(ctx context.Context, node string, nodeR
 
 // SetNodeResourceInfo .
 func (v *Volume) SetNodeResourceInfo(ctx context.Context, node string, resourceCapacity *types.NodeResourceArgs, resourceUsage *types.NodeResourceArgs) error {
-	resourceInfo, err := v.doGetNodeResourceInfo(ctx, node)
-	if err != nil {
-		logrus.Errorf("[SetNodeResourceInfo] failed to get resource info of node %v, err: %v", node, err)
-		return err
+	resourceInfo := &types.NodeResourceInfo{
+		Capacity: resourceCapacity,
+		Usage:    resourceUsage,
 	}
-
-	resourceInfo.Capacity = resourceCapacity
-	resourceInfo.Usage = resourceUsage
 
 	return v.doSetNodeResourceInfo(ctx, node, resourceInfo)
 }

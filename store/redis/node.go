@@ -298,7 +298,7 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 	for _, n := range allNodes {
 		node := n
 		pool.Go(ctx, func() {
-			if _, err := r.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrBadCount) {
+			if _, err := r.GetNodeStatus(ctx, node.Name); err != nil && !isRedisNoKeyError(err) {
 				log.Errorf(ctx, "[doGetNodes] failed to get node status of %v, err: %v", node.Name, err)
 			} else {
 				node.Available = err == nil

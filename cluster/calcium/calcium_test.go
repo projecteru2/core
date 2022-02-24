@@ -1,41 +1,21 @@
 package calcium
 
 import (
-	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
 	"time"
 
-	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	sourcemocks "github.com/projecteru2/core/source/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/wal"
 	walmocks "github.com/projecteru2/core/wal/mocks"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
-
-// DummyLock replace lock for testing
-type dummyLock struct {
-	m sync.Mutex
-}
-
-// Lock for lock
-func (d *dummyLock) Lock(ctx context.Context) (context.Context, error) {
-	d.m.Lock()
-	return context.Background(), nil
-}
-
-// Unlock for unlock
-func (d *dummyLock) Unlock(ctx context.Context) error {
-	d.m.Unlock()
-	return nil
-}
 
 func NewTestCluster() *Calcium {
 	walDir, err := ioutil.TempDir(os.TempDir(), "core.wal.*")
@@ -61,7 +41,6 @@ func NewTestCluster() *Calcium {
 		HAKeepaliveInterval: 16 * time.Second,
 	}
 	c.store = &storemocks.Store{}
-	c.scheduler = &schedulermocks.Scheduler{}
 	c.source = &sourcemocks.Source{}
 	c.wal = &WAL{WAL: &walmocks.WAL{}}
 

@@ -8,8 +8,6 @@ import (
 	lock "github.com/projecteru2/core/lock"
 	mock "github.com/stretchr/testify/mock"
 
-	strategy "github.com/projecteru2/core/strategy"
-
 	time "time"
 
 	types "github.com/projecteru2/core/types"
@@ -147,6 +145,29 @@ func (_m *Store) GetAllPods(ctx context.Context) ([]*types.Pod, error) {
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
 		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetDeployStatus provides a mock function with given fields: ctx, appname, entryname
+func (_m *Store) GetDeployStatus(ctx context.Context, appname string, entryname string) (map[string]int, error) {
+	ret := _m.Called(ctx, appname, entryname)
+
+	var r0 map[string]int
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) map[string]int); ok {
+		r0 = rf(ctx, appname, entryname)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]int)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, appname, entryname)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -384,20 +405,6 @@ func (_m *Store) ListWorkloads(ctx context.Context, appname string, entrypoint s
 	return r0, r1
 }
 
-// MakeDeployStatus provides a mock function with given fields: ctx, appname, entryname, sis
-func (_m *Store) MakeDeployStatus(ctx context.Context, appname string, entryname string, sis []strategy.Info) error {
-	ret := _m.Called(ctx, appname, entryname, sis)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, []strategy.Info) error); ok {
-		r0 = rf(ctx, appname, entryname, sis)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
 // NodeStatusStream provides a mock function with given fields: ctx
 func (_m *Store) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 	ret := _m.Called(ctx)
@@ -569,20 +576,6 @@ func (_m *Store) StartEphemeral(ctx context.Context, path string, heartbeat time
 	}
 
 	return r0, r1, r2
-}
-
-// UpdateNodeResource provides a mock function with given fields: ctx, node, resource, action
-func (_m *Store) UpdateNodeResource(ctx context.Context, node *types.Node, resource *types.ResourceMeta, action string) error {
-	ret := _m.Called(ctx, node, resource, action)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *types.Node, *types.ResourceMeta, string) error); ok {
-		r0 = rf(ctx, node, resource, action)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
 }
 
 // UpdateNodes provides a mock function with given fields: _a0, _a1

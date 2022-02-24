@@ -9,8 +9,9 @@ import (
 	"github.com/projecteru2/core/discovery"
 	"github.com/projecteru2/core/discovery/helium"
 	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/scheduler"
-	complexscheduler "github.com/projecteru2/core/scheduler/complex"
+	"github.com/projecteru2/core/resources"
+	cpumemmodels "github.com/projecteru2/core/resources/cpumem/models"
+	volumemodels "github.com/projecteru2/core/resources/volume/models"
 	"github.com/projecteru2/core/source"
 	"github.com/projecteru2/core/source/github"
 	"github.com/projecteru2/core/source/gitlab"
@@ -24,7 +25,7 @@ import (
 type Calcium struct {
 	config     types.Config
 	store      store.Store
-	scheduler  scheduler.Scheduler
+	resource   *resources.PluginManager
 	source     source.Source
 	watcher    discovery.Service
 	wal        *WAL
@@ -40,13 +41,6 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 	if err != nil {
 		return nil, logger.Err(context.TODO(), errors.WithStack(err))
 	}
-
-	// set scheduler
-	potassium, err := complexscheduler.New(config)
-	if err != nil {
-		return nil, logger.Err(context.TODO(), errors.WithStack(err))
-	}
-	scheduler.InitSchedulerV1(potassium)
 
 	// set scm
 	var scm source.Source
@@ -67,7 +61,30 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 	// set watcher
 	watcher := helium.New(config.GRPCConfig, store)
 
-	cal := &Calcium{store: store, config: config, scheduler: potassium, source: scm, watcher: watcher}
+	// set resource plugin manager
+	resource, err := resources.NewPluginManager(config)
+	if err != nil {
+		return nil, logger.Err(context.TODO(), errors.WithStack(err))
+	}
+
+	// load cpumem plugin
+	cpumem, err := cpumemmodels.NewCPUMemPlugin(config)
+	if err != nil {
+		log.Errorf(context.TODO(), "[NewPluginManager] new cpumem plugin error: %v", err)
+		return nil, err
+	}
+	resource.AddPlugins(cpumem)
+
+	// load volume plugin
+	volume, err := volumemodels.NewVolumePlugin(config)
+	if err != nil {
+		log.Errorf(context.TODO(), "[NewPluginManager] new volume plugin error: %v", err)
+		return nil, err
+	}
+	resource.AddPlugins(volume)
+
+	cal := &Calcium{store: store, config: config, source: scm, watcher: watcher, resource: resource}
+
 	cal.wal, err = newWAL(config, cal)
 	cal.identifier = config.Identifier()
 

@@ -139,3 +139,22 @@ func (d detailedErr) Unwrap() error {
 func NewDetailedErr(err error, details interface{}) error {
 	return detailedErr{err: err, details: details}
 }
+
+type combinedErr struct {
+	ErrMap map[string]error
+}
+
+// Error .
+func (e *combinedErr) Error() string {
+	return fmt.Sprintf("%+v", e.ErrMap)
+}
+
+// Append .
+func (e *combinedErr) Append(key string, err error) {
+	e.ErrMap[key] = err
+}
+
+// NewCombinedErr .
+func NewCombinedErr() *combinedErr {
+	return &combinedErr{ErrMap: map[string]error{}}
+}

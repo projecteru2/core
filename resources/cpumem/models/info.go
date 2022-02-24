@@ -158,14 +158,10 @@ func (c *CPUMem) SetNodeResourceCapacity(ctx context.Context, node string, nodeR
 
 // SetNodeResourceInfo .
 func (c *CPUMem) SetNodeResourceInfo(ctx context.Context, node string, resourceCapacity *types.NodeResourceArgs, resourceUsage *types.NodeResourceArgs) error {
-	resourceInfo, err := c.doGetNodeResourceInfo(ctx, node)
-	if err != nil {
-		logrus.Errorf("[SetNodeResourceInfo] failed to get resource info of node %v, err: %v", node, err)
-		return err
+	resourceInfo := &types.NodeResourceInfo{
+		Capacity: resourceCapacity,
+		Usage:    resourceUsage,
 	}
-
-	resourceInfo.Capacity = resourceCapacity
-	resourceInfo.Usage = resourceUsage
 
 	return c.doSetNodeResourceInfo(ctx, node, resourceInfo)
 }
