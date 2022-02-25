@@ -15,6 +15,7 @@ import (
 // Helium .
 type Helium struct {
 	sync.Once
+	lock   *sync.RWMutex
 	config types.GRPCConfig
 	stor   store.Store
 	subs   sync.Map
@@ -25,6 +26,7 @@ func New(config types.GRPCConfig, stor store.Store) *Helium {
 	h := &Helium{}
 	h.config = config
 	h.stor = stor
+	h.lock = &sync.RWMutex{}
 	h.Do(func() {
 		h.start(context.TODO()) // TODO rewrite ctx here, because this will run only once!
 	})
@@ -33,6 +35,8 @@ func New(config types.GRPCConfig, stor store.Store) *Helium {
 
 // Subscribe .
 func (h *Helium) Subscribe(ch chan<- types.ServiceStatus) uuid.UUID {
+	h.lock.Lock()
+	defer h.lock.Unlock()
 	id := uuid.New()
 	_, _ = h.subs.LoadOrStore(id, ch)
 	return id
@@ -40,6 +44,8 @@ func (h *Helium) Subscribe(ch chan<- types.ServiceStatus) uuid.UUID {
 
 // Unsubscribe .
 func (h *Helium) Unsubscribe(id uuid.UUID) {
+	h.lock.Lock()
+	defer h.lock.Unlock()
 	h.subs.Delete(id)
 }
 
@@ -77,7 +83,14 @@ func (h *Helium) start(ctx context.Context) {
 }
 
 func (h *Helium) dispatch(status types.ServiceStatus) {
+	h.lock.RLock()
+	defer h.lock.RUnlock()
 	h.subs.Range(func(k, v interface{}) bool {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Errorf(context.TODO(), "[dispatch] dispatch %s failed, err: %v", k, err)
+			}
+		}()
 		c, ok := v.(chan<- types.ServiceStatus)
 		if !ok {
 			log.Error("[WatchServiceStatus] failed to cast channel from map")
