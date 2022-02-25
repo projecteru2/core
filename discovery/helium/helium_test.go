@@ -47,3 +47,33 @@ func TestHelium(t *testing.T) {
 	close(chAddr)
 	close(chStatus)
 }
+
+func TestPanic(t *testing.T) {
+	chAddr := make(chan []string)
+
+	store := &storemocks.Store{}
+	store.On("ServiceStatusStream", mock.Anything).Return(chAddr, nil)
+
+	grpcConfig := types.GRPCConfig{
+		ServiceDiscoveryPushInterval: time.Duration(1) * time.Second,
+	}
+	service := New(grpcConfig, store)
+
+	for i := 0; i < 1000; i++ {
+		go func() {
+			chStatus := make(chan types.ServiceStatus)
+			uuid := service.Subscribe(chStatus)
+			time.Sleep(time.Second)
+			service.Unsubscribe(uuid)
+			close(chStatus)
+		}()
+	}
+
+	go func() {
+		for i := 0; i < 1000; i++ {
+			chAddr <- []string{"hhh", "hhh2"}
+		}
+	}()
+
+	time.Sleep(5 * time.Second)
+}
