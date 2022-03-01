@@ -361,23 +361,13 @@ func (r RawArgs) LitterDump(w io.Writer) {
 
 // SendLargeFileOptions for LargeFileTransfer
 type SendLargeFileOptions struct {
-	FileMetadataOptions
-	FileChunkOptions
-}
-
-// FileMetadataOptions for LargeFileTransfer
-type FileMetadataOptions struct {
 	Ids   []string
 	Dst   string
 	Size  int64
 	Mode  int64
 	Uid   int
 	Gid   int
-}
-
-// FileChunkOptions for LargeFileTransfer
-type FileChunkOptions struct {
-	Data []byte
+	Chunk []byte
 }
 
 // Validate checks options
@@ -385,7 +375,7 @@ func (o *SendLargeFileOptions) Validate() error {
 	if len(o.Ids) == 0 {
 		return errors.WithStack(ErrNoWorkloadIDs)
 	}
-	if len(o.Data) == 0 {
+	if len(o.Chunk) == 0 {
 		return errors.WithStack(ErrNoFilesToSend)
 	}
 	if o.Uid == 0 && o.Gid == 0 && o.Mode == 0 {

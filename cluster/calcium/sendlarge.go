@@ -68,7 +68,7 @@ func (c *Calcium) newWorkloadExecutor(ctx context.Context, ID string, resp chan 
 					}
 				}(ID, curFile, data.Size, pr, data.Uid, data.Gid, data.Mode))
 			}
-			writer.Write(data.Data)
+			writer.Write(data.Chunk)
 		}
 		writer.Close()
 	})

@@ -645,17 +645,13 @@ func toCoreListImageOptions(opts *pb.ListImageOptions) *types.ImageOptions {
 
 func toSendLargeFileOptions(opts *pb.FileOptions) *types.SendLargeFileOptions {
 	return &types.SendLargeFileOptions{
-		FileMetadataOptions: types.FileMetadataOptions{
-			Ids: opts.Ids,
-			Dst: opts.Dst,
-			Size: opts.Size,
-			Mode: opts.Mode.Mode,
-			Uid: int(opts.Owner.Uid),
-			Gid: int(opts.Owner.Gid),
-		},
-		FileChunkOptions: types.FileChunkOptions{
-			Data: opts.Chunk,
-		},
+		Ids: opts.Ids,
+		Dst: opts.Dst,
+		Size: opts.Size,
+		Mode: opts.Mode.Mode,
+		Uid: int(opts.Owner.Uid),
+		Gid: int(opts.Owner.Gid),
+		Chunk: opts.Chunk,
 	}
 }
 
@@ -664,20 +660,17 @@ func toSendLargeFileChunks(file types.LinuxFile, ids []string) []*types.SendLarg
 	ret := make([]*types.SendLargeFileOptions, 0)
 	for idx := 0; idx < len(file.Content); idx += maxChunkSize {
 		sendLargeFileOptions := &types.SendLargeFileOptions{
-			FileMetadataOptions: types.FileMetadataOptions{
-				Ids: ids,
-				Dst: file.Filename,
-				Size: int64(len(file.Content)),
-				Mode: file.Mode,
-				Uid: file.UID,
-				Gid: file.GID,
-			},
-			FileChunkOptions: types.FileChunkOptions{},
+			Ids: ids,
+			Dst: file.Filename,
+			Size: int64(len(file.Content)),
+			Mode: file.Mode,
+			Uid: file.UID,
+			Gid: file.GID,
 		}
 		if idx + maxChunkSize > len(file.Content) {
-			sendLargeFileOptions.Data = file.Content[idx:]
+			sendLargeFileOptions.Chunk = file.Content[idx:]
 		} else {
-			sendLargeFileOptions.Data = file.Content[idx: idx+maxChunkSize]
+			sendLargeFileOptions.Chunk = file.Content[idx: idx+maxChunkSize]
 		}
 		ret = append(ret, sendLargeFileOptions)
 	}
