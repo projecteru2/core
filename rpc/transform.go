@@ -658,3 +658,28 @@ func toSendLargeFileOptions(opts *pb.FileOptions) *types.SendLargeFileOptions {
 		},
 	}
 }
+
+func toSendLargeFileChunks(file types.LinuxFile, ids []string) []*types.SendLargeFileOptions {
+	const maxChunkSize = 2 << 10
+	ret := make([]*types.SendLargeFileOptions, 0)
+	for idx := 0; idx < len(file.Content); idx += maxChunkSize {
+		sendLargeFileOptions := &types.SendLargeFileOptions{
+			FileMetadataOptions: types.FileMetadataOptions{
+				Ids: ids,
+				Dst: file.Filename,
+				Size: int64(len(file.Content)),
+				Mode: file.Mode,
+				Uid: file.UID,
+				Gid: file.GID,
+			},
+			FileChunkOptions: types.FileChunkOptions{},
+		}
+		if idx + maxChunkSize > len(file.Content) {
+			sendLargeFileOptions.Data = file.Content[idx:]
+		} else {
+			sendLargeFileOptions.Data = file.Content[idx: idx+maxChunkSize]
+		}
+		ret = append(ret, sendLargeFileOptions)
+	}
+	return ret
+}

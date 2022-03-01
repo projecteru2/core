@@ -564,23 +564,30 @@ func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) err
 		return grpcstatus.Error(Send, err.Error())
 	}
 
-	ch, err := v.cluster.Send(ctx, sendOpts)
-	if err != nil {
-		return grpcstatus.Error(Send, err.Error())
-	}
+	for _, file := range sendOpts.Files {
+		dc := make(chan *types.SendLargeFileOptions)
+		ch := v.cluster.SendLargeFile(ctx, dc)
+		utils.SentryGo(func() {
+			data := toSendLargeFileChunks(file, sendOpts.IDs)
+			for _, chunk := range data {
+				dc <- chunk
+			}
+			close(dc)
+		})
 
-	for m := range ch {
-		msg := &pb.SendMessage{
-			Id:   m.ID,
-			Path: m.Path,
-		}
+		for m := range ch {
+			msg := &pb.SendMessage {
+				Id:   m.ID,
+				Path: m.Path,
+			}
 
-		if m.Error != nil {
-			msg.Error = m.Error.Error()
-		}
+			if m.Error != nil {
+				msg.Error = m.Error.Error()
+			}
 
-		if err := stream.Send(msg); err != nil {
-			v.logUnsentMessages(ctx, "Send", err, m)
+			if err := stream.Send(msg); err != nil {
+				v.logUnsentMessages(ctx, "Send", err, m)
+			}
 		}
 	}
 	return nil
