@@ -41,20 +41,20 @@ func (c *Calcium) SendLargeFile(ctx context.Context, opts chan *types.SendLargeF
 func (c *Calcium) newWorkloadExecutor(ctx context.Context, ID string, resp chan *types.SendMessage, wg *sync.WaitGroup) chan *types.SendLargeFileOptions {
 	input := make(chan *types.SendLargeFileOptions, 10)
 	utils.SentryGo(func() {
-		writerMap := make(map[string]*io.PipeWriter)
-		preFile := ""
+		var writer *io.PipeWriter
+		curFile := ""
 		for data := range input {
-			curFile := data.Dst
-			if preFile == "" || preFile != curFile {
+			if curFile != "" && curFile != data.Dst {
+				// todo 报错之后返回一下?
+				log.Errorf(ctx, "[newWorkloadExecutor] receive different files %s, %s", curFile, data.Dst)
+				break
+			}
+			if curFile == "" {
 				wg.Add(1)
-				log.Debugf(ctx, "[newWorkloadExecutor]Receive new file file %s to %s", curFile, ID)
-				if preFile != "" {
-					writerMap[preFile].Close()
-					delete(writerMap, preFile)
-				}
-				preFile = curFile
+				log.Debugf(ctx, "[newWorkloadExecutor]Receive new file %s to %s", curFile, ID)
+				curFile = data.Dst
 				pr, pw := io.Pipe()
-				writerMap[curFile] = pw
+				writer = pw
 				utils.SentryGo(func(ID, name string, size int64, content io.Reader, uid, gid int, mode int64) func() {
 					return func() {
 						defer wg.Done()
@@ -68,11 +68,9 @@ func (c *Calcium) newWorkloadExecutor(ctx context.Context, ID string, resp chan 
 					}
 				}(ID, curFile, data.Size, pr, data.Uid, data.Gid, data.Mode))
 			}
-			writerMap[curFile].Write(data.Data)
+			writer.Write(data.Data)
 		}
-		for _, pw := range writerMap {
-			pw.Close()
-		}
+		writer.Close()
 	})
 	return input
 }

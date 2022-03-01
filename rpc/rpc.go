@@ -590,40 +590,38 @@ func (v *Vibranium) SendLargeFile(server pb.CoreRPC_SendLargeFileServer) error {
 	ctx := v.taskAdd(server.Context(), "SendLargeFile", true)
 	defer v.taskDone(ctx, "SendLargeFile", true)
 
-	dc := make(chan *types.SendLargeFileOptions, 0)
+	dc := make(chan *types.SendLargeFileOptions)
 	ch := v.cluster.SendLargeFile(ctx, dc)
-	waitCh := make(chan bool)
 	utils.SentryGo(func() {
-		for m := range ch {
-			msg := &pb.SendMessage {
-				Id:   m.ID,
-				Path: m.Path,
+		for {
+			req, err := server.Recv()
+			if err == io.EOF {
+				break
 			}
-
-			if m.Error != nil {
-				msg.Error = m.Error.Error()
+			if err != nil {
+				log.Errorf(ctx, "[SendLargeFile]receive from rpc err: %v", err)
+				return
 			}
-
-			if err := server.Send(msg); err != nil {
-				v.logUnsentMessages(ctx, "SendLargeFile", err, m)
-			}
+			data := toSendLargeFileOptions(req)
+			dc <- data
 		}
-		waitCh <- true
+		close(dc)
 	})
 
-	for {
-		req, err := server.Recv()
-		if err == io.EOF {
-			break
+	for m := range ch {
+		msg := &pb.SendMessage {
+			Id:   m.ID,
+			Path: m.Path,
 		}
-		if err != nil {
-			return grpcstatus.Error(SendLargeFile, err.Error())
+
+		if m.Error != nil {
+			msg.Error = m.Error.Error()
 		}
-		data := toSendLargeFileOptions(req)
-		dc <- data
+
+		if err := server.Send(msg); err != nil {
+			v.logUnsentMessages(ctx, "SendLargeFile", err, m)
+		}
 	}
-	close(dc)
-	<- waitCh
 	return nil
 }
 
