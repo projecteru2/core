@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/sanity-io/litter"
 	"github.com/sirupsen/logrus"
 
 	"github.com/projecteru2/core/resources/cpumem/types"
@@ -26,8 +27,11 @@ func (c *CPUMem) GetNodeResourceInfo(ctx context.Context, node string, workloadR
 		CPUMap:     types.CPUMap{},
 		NUMAMemory: types.NUMAMemory{},
 	}
-	for _, args := range *workloadResourceMap {
-		totalResourceArgs.Add(args)
+
+	if workloadResourceMap != nil {
+		for _, args := range *workloadResourceMap {
+			totalResourceArgs.Add(args)
+		}
 	}
 
 	totalResourceArgs.CPURequest = utils.Round(totalResourceArgs.CPURequest)
@@ -144,11 +148,22 @@ func (c *CPUMem) SetNodeResourceCapacity(ctx context.Context, node string, nodeR
 	}
 
 	before = resourceInfo.Capacity.DeepCopy()
-	if !delta {
+	if !delta && nodeResourceOpts != nil {
 		nodeResourceOpts.SkipEmpty(resourceInfo.Capacity)
 	}
 
-	resourceInfo.Capacity = c.calculateNodeResourceArgs(resourceInfo.Usage, nodeResourceOpts, nodeResourceArgs, nil, delta, incr)
+	resourceInfo.Capacity = c.calculateNodeResourceArgs(resourceInfo.Capacity, nodeResourceOpts, nodeResourceArgs, nil, delta, incr)
+
+	// add new cpu
+	for cpu := range resourceInfo.Capacity.CPUMap {
+		_, ok := resourceInfo.Usage.CPUMap[cpu]
+		if !ok {
+			resourceInfo.Usage.CPUMap[cpu] = 0
+		}
+	}
+
+	// delete cpus with no pieces
+	resourceInfo.RemoveEmptyCores()
 
 	if err := c.doSetNodeResourceInfo(ctx, node, resourceInfo); err != nil {
 		return nil, nil, err
@@ -182,7 +197,7 @@ func (c *CPUMem) doGetNodeResourceInfo(ctx context.Context, node string) (*types
 
 func (c *CPUMem) doSetNodeResourceInfo(ctx context.Context, node string, resourceInfo *types.NodeResourceInfo) error {
 	if err := resourceInfo.Validate(); err != nil {
-		logrus.Errorf("[doSetNodeResourceInfo] invalid resource info %+v, err: %v", resourceInfo, err)
+		logrus.Errorf("[doSetNodeResourceInfo] invalid resource info %v, err: %v", litter.Sdump(resourceInfo), err)
 		return err
 	}
 

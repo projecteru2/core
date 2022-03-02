@@ -68,7 +68,7 @@ func (c *CPUMem) doGetNodeCapacityInfo(node string, resourceInfo *types.NodeReso
 	}
 
 	// if cpu-bind is required, then returns capacity by cpu scheduling
-	cpuPlans := schedule.GetCPUPlans(resourceInfo, nil, c.config.Scheduler.ShareBase, c.config.Scheduler.MaxShare, opts)
+	cpuPlans := schedule.GetCPUPlans(resourceInfo, nil, c.Config.Scheduler.ShareBase, c.Config.Scheduler.MaxShare, opts)
 	capacityInfo.Capacity = len(cpuPlans)
 	capacityInfo.Usage = resourceInfo.Usage.CPU / resourceInfo.Capacity.CPU
 	capacityInfo.Rate = opts.CPURequest / resourceInfo.Capacity.CPU

@@ -40,6 +40,7 @@ mock: deps
 	mockery --dir store/etcdv3/meta --output store/etcdv3/meta/mocks --all
 	mockery --dir vendor/go.etcd.io/etcd/client/v3 --output store/etcdv3/meta/mocks --name Txn
 	mockery --dir rpc/gen/ --output rpc/mocks --name CoreRPC_RunAndWaitServer
+	mockery --dir resources --output resources/mocks --name Plugin
 
 .ONESHELL:
 
@@ -48,7 +49,7 @@ cloc:
 
 unit-test:
 	go vet `go list ./... | grep -v '/vendor/' | grep -v '/tools'` && \
-	GOFLAGS="--gcflags=all=-G=3" go test -race -timeout 240s -count=1 -vet=off -cover ./utils/... \
+	go test -race -timeout 240s -count=1 -vet=off -cover ./utils/... \
 	./types/... \
 	./store/etcdv3/. \
 	./store/etcdv3/embedded/. \
@@ -59,13 +60,15 @@ unit-test:
 	./lock/etcdlock/... \
 	./auth/simple/... \
 	./discovery/helium... \
-	./resources/volume/... \
-	./resources/cpumem/... \
+	./resources/cpumem/models/... \
+	./resources/cpumem/schedule/... \
+	./resources/volume/models/... \
+	./resources/volume/schedule/... \
 	./wal/. \
 	./wal/kv/. \
 	./store/redis/... \
 	./lock/redis/... && \
-	GOFLAGS="--gcflags=all=-G=3" go test -timeout 240s -count=1 -vet=off -cover ./cluster/calcium/...
+	go test -timeout 240s -count=1 -cover ./cluster/calcium/...
 
 lint:
 	golangci-lint run

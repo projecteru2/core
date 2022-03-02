@@ -47,7 +47,7 @@ func (c *CPUMem) GetReallocArgs(ctx context.Context, node string, originResource
 	var numaMemory types.NUMAMemory
 
 	if resourceOpts.CPUBind {
-		cpuPlans := schedule.GetCPUPlans(resourceInfo, originResourceArgs.CPUMap, c.config.Scheduler.ShareBase, c.config.Scheduler.MaxShare, finalResourceOpts)
+		cpuPlans := schedule.GetCPUPlans(resourceInfo, originResourceArgs.CPUMap, c.Config.Scheduler.ShareBase, c.Config.Scheduler.MaxShare, finalResourceOpts)
 		if len(cpuPlans) == 0 {
 			return nil, nil, nil, types.ErrInsufficientResource
 		}

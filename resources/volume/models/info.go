@@ -25,11 +25,13 @@ func (v *Volume) GetNodeResourceInfo(ctx context.Context, node string, workloadR
 	totalVolumeMap := types.VolumeMap{}
 	totalStorageUsage := int64(0)
 
-	for _, args := range *workloadResourceMap {
-		for _, volumeMap := range args.VolumePlanRequest {
-			totalVolumeMap.Add(volumeMap)
+	if workloadResourceMap != nil {
+		for _, args := range *workloadResourceMap {
+			for _, volumeMap := range args.VolumePlanRequest {
+				totalVolumeMap.Add(volumeMap)
+			}
+			totalStorageUsage += args.StorageRequest
 		}
-		totalStorageUsage += args.StorageRequest
 	}
 
 	if resourceInfo.Usage.Storage != totalStorageUsage {
@@ -67,7 +69,7 @@ func (v *Volume) calculateNodeResourceArgs(origin *types.NodeResourceArgs, nodeR
 	if nodeResourceOpts != nil {
 		nodeResourceArgs := &types.NodeResourceArgs{
 			Volumes: nodeResourceOpts.Volumes,
-			Storage: nodeResourceOpts.Storage + nodeResourceOpts.Volumes.Total(),
+			Storage: nodeResourceOpts.Storage,
 		}
 
 		if incr {
@@ -75,9 +77,6 @@ func (v *Volume) calculateNodeResourceArgs(origin *types.NodeResourceArgs, nodeR
 		} else {
 			res.Sub(nodeResourceArgs)
 		}
-
-		//e.g. `--volume /data1:0` means to remove `/data1`
-		res.RemoveEmpty(nodeResourceArgs)
 		return res
 	}
 
@@ -133,10 +132,13 @@ func (v *Volume) SetNodeResourceCapacity(ctx context.Context, node string, nodeR
 	}
 
 	before = resourceInfo.Capacity.DeepCopy()
-	if !delta {
+	if nodeResourceOpts != nil && !delta {
 		nodeResourceOpts.SkipEmpty(resourceInfo.Capacity)
 	}
-	resourceInfo.Capacity = v.calculateNodeResourceArgs(resourceInfo.Usage, nodeResourceOpts, nodeResourceArgs, nil, delta, incr)
+	resourceInfo.Capacity = v.calculateNodeResourceArgs(resourceInfo.Capacity, nodeResourceOpts, nodeResourceArgs, nil, delta, incr)
+	if delta {
+		resourceInfo.Capacity.RemoveEmpty()
+	}
 
 	if err := v.doSetNodeResourceInfo(ctx, node, resourceInfo); err != nil {
 		return nil, nil, err

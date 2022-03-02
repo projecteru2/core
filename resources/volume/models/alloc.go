@@ -26,24 +26,20 @@ func (v *Volume) GetDeployArgs(ctx context.Context, node string, deployCount int
 	return v.doAlloc(resourceInfo, deployCount, opts)
 }
 
-func maxInt64(a, b int64) int64 {
-	if a > b {
-		return a
-	}
-	return b
-}
+func getVolumePlanLimit(volumeRequest types.VolumeBindings, volumeLimit types.VolumeBindings, volumePlan types.VolumePlan) types.VolumePlan {
+	volumePlanLimit := types.VolumePlan{}
 
-func getVolumePlanLimit(bindings types.VolumeBindings, volumePlan types.VolumePlan) types.VolumePlan {
 	volumeBindingToVolumeMap := map[[3]string]types.VolumeMap{}
 	for binding, volumeMap := range volumePlan {
 		volumeBindingToVolumeMap[binding.GetMapKey()] = volumeMap
 	}
 
-	volumePlanLimit := types.VolumePlan{}
-
-	for _, binding := range bindings {
+	for index, binding := range volumeLimit {
+		if !binding.RequireSchedule() {
+			continue
+		}
 		if volumeMap, ok := volumeBindingToVolumeMap[binding.GetMapKey()]; ok {
-			volumePlanLimit[binding] = types.VolumeMap{volumeMap.GetDevice(): maxInt64(binding.SizeInBytes, volumeMap.GetSize())}
+			volumePlanLimit[binding] = types.VolumeMap{volumeMap.GetDevice(): volumeMap.GetSize() + binding.SizeInBytes - volumeRequest[index].SizeInBytes}
 		}
 	}
 	return volumePlanLimit
@@ -75,7 +71,7 @@ func (v *Volume) doAlloc(resourceInfo *types.NodeResourceInfo, deployCount int, 
 		return resEngineArgs, resResourceArgs, nil
 	}
 
-	volumePlans := schedule.GetVolumePlans(resourceInfo, opts.VolumesRequest, v.config.Scheduler.MaxDeployCount)
+	volumePlans := schedule.GetVolumePlans(resourceInfo, opts.VolumesRequest, v.Config.Scheduler.MaxDeployCount)
 	if len(volumePlans) < deployCount {
 		return nil, nil, errors.Wrapf(types.ErrInsufficientResource, "not enough volume plan, need %v, available %v", deployCount, len(volumePlans))
 	}
@@ -96,7 +92,7 @@ func (v *Volume) doAlloc(resourceInfo *types.NodeResourceInfo, deployCount int, 
 			VolumesRequest:    opts.VolumesRequest,
 			VolumesLimit:      opts.VolumesLimit,
 			VolumePlanRequest: volumePlan,
-			VolumePlanLimit:   getVolumePlanLimit(opts.VolumesLimit, volumePlan),
+			VolumePlanLimit:   getVolumePlanLimit(opts.VolumesLimit, opts.VolumesLimit, volumePlan),
 			StorageRequest:    opts.StorageRequest,
 			StorageLimit:      opts.StorageLimit,
 		}

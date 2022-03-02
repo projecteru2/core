@@ -51,6 +51,11 @@ func (pm *PluginManager) AddPlugins(plugins ...Plugin) {
 	pm.plugins = append(pm.plugins, plugins...)
 }
 
+// GetPlugins is used for mock
+func (pm *PluginManager) GetPlugins() []Plugin {
+	return pm.plugins
+}
+
 func (pm *PluginManager) callPlugins(plugins []Plugin, f func(Plugin)) {
 	wg := &sync.WaitGroup{}
 	wg.Add(len(plugins))
@@ -224,7 +229,7 @@ func (pm *PluginManager) Alloc(ctx context.Context, nodeName string, deployCount
 		// commit: update node resources
 		func(ctx context.Context) error {
 			if _, _, err := pm.SetNodeResourceUsage(ctx, nodeName, nil, nil, resResourceArgs, true, Incr); err != nil {
-				log.Errorf(ctx, "[Alloc] failed to update nodeName resource, err: %v", err)
+				log.Errorf(ctx, "[Alloc] failed to update node resource, err: %v", err)
 				return err
 			}
 			return nil
@@ -238,12 +243,12 @@ func (pm *PluginManager) Alloc(ctx context.Context, nodeName string, deployCount
 }
 
 // Realloc reallocates resource for workloads, returns engine args and final resource args.
-func (pm *PluginManager) Realloc(ctx context.Context, nodeName string, originResourceArgs map[string]types.WorkloadResourceArgs, resourceOpts types.WorkloadResourceOpts) (types.EngineArgs, map[string]types.WorkloadResourceArgs, error) {
+func (pm *PluginManager) Realloc(ctx context.Context, nodeName string, originResourceArgs map[string]types.WorkloadResourceArgs, resourceOpts types.WorkloadResourceOpts) (types.EngineArgs, map[string]types.WorkloadResourceArgs, map[string]types.WorkloadResourceArgs, error) {
 	resEngineArgs := types.EngineArgs{}
 	resDeltaResourceArgs := map[string]types.WorkloadResourceArgs{}
 	resFinalResourceArgs := map[string]types.WorkloadResourceArgs{}
 
-	return resEngineArgs, resFinalResourceArgs, utils.Pcr(ctx,
+	return resEngineArgs, resDeltaResourceArgs, resFinalResourceArgs, utils.Pcr(ctx,
 		// prepare: calculate engine args, delta node resource args and final workload resource args
 		func(ctx context.Context) error {
 			respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetReallocArgsResponse, error) {
@@ -272,7 +277,7 @@ func (pm *PluginManager) Realloc(ctx context.Context, nodeName string, originRes
 		// commit: update node resource
 		func(ctx context.Context) error {
 			if _, _, err := pm.SetNodeResourceUsage(ctx, nodeName, nil, nil, []map[string]types.WorkloadResourceArgs{resDeltaResourceArgs}, true, Incr); err != nil {
-				log.Errorf(ctx, "[Alloc] failed to update nodeName resource, err: %v", err)
+				log.Errorf(ctx, "[Realloc] failed to update nodeName resource, err: %v", err)
 				return err
 			}
 			return nil

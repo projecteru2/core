@@ -3,6 +3,8 @@ package calcium
 import (
 	"context"
 
+	"github.com/sanity-io/litter"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources"
@@ -24,13 +26,14 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 	originWorkload := *workload
 	return c.withNodeResourceLocked(ctx, workload.Nodename, func(ctx context.Context, node *types.Node) error {
 		return c.withWorkloadLocked(ctx, opts.ID, func(ctx context.Context, workload *types.Workload) error {
-			return logger.Err(ctx, c.doReallocOnNode(ctx, node, workload, &originWorkload, opts))
+			return logger.Err(ctx, c.doReallocOnNode(ctx, node, workload, originWorkload, opts))
 		})
 	})
 }
 
-func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workload *types.Workload, originWorkload *types.Workload, opts *types.ReallocOptions) error {
+func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workload *types.Workload, originWorkload types.Workload, opts *types.ReallocOptions) error {
 	var resourceArgs map[string]types.WorkloadResourceArgs
+	var deltaResourceArgs map[string]types.WorkloadResourceArgs
 	var engineArgs types.EngineArgs
 	var err error
 
@@ -39,28 +42,31 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 		// if: update workload resource
 		func(ctx context.Context) error {
 			// note here will change the node resource meta (stored in resource plugin)
-			engineArgs, resourceArgs, err = c.resource.Realloc(ctx, workload.Nodename, workload.ResourceArgs, opts.ResourceOpts)
+			// todo: add wal here
+			engineArgs, deltaResourceArgs, resourceArgs, err = c.resource.Realloc(ctx, workload.Nodename, workload.ResourceArgs, opts.ResourceOpts)
 			if err != nil {
 				return err
 			}
-			return node.Engine.VirtualizationUpdateResource(ctx, opts.ID, &enginetypes.VirtualizationResource{EngineArgs: engineArgs})
-		},
-		// then: update workload meta
-		func(ctx context.Context) error {
+			log.Debugf(ctx, "[doReallocOnNode] realloc workload %v, resource args %v, engine args %v", workload.ID, litter.Sdump(resourceArgs), litter.Sdump(engineArgs))
 			workload.EngineArgs = engineArgs
 			workload.ResourceArgs = resourceArgs
 			return c.store.UpdateWorkload(ctx, workload)
+		},
+		// then: update virtualization
+		func(ctx context.Context) error {
+			return node.Engine.VirtualizationUpdateResource(ctx, opts.ID, &enginetypes.VirtualizationResource{EngineArgs: engineArgs})
 		},
 		// rollback: revert the resource changes and rollback workload meta
 		func(ctx context.Context, failureByCond bool) error {
 			if failureByCond {
 				return nil
 			}
-			_, _, err := c.resource.SetNodeResourceUsage(ctx, workload.Nodename, nil, nil, []map[string]types.WorkloadResourceArgs{resourceArgs}, true, resources.Decr)
+			_, _, err := c.resource.SetNodeResourceUsage(ctx, workload.Nodename, nil, nil, []map[string]types.WorkloadResourceArgs{deltaResourceArgs}, true, resources.Decr)
 			if err != nil {
-				return errors.WithStack(err)
+				log.Errorf(ctx, "[doReallocOnNode] failed to rollback workload %v, resource args %v, engine args %v, err %v", workload.ID, litter.Sdump(resourceArgs), litter.Sdump(engineArgs), err)
+				// don't return here, so the node resource can still be fixed
 			}
-			return errors.WithStack(c.store.UpdateWorkload(ctx, originWorkload))
+			return errors.WithStack(c.store.UpdateWorkload(ctx, &originWorkload))
 		},
 		c.config.GlobalTimeout,
 	)

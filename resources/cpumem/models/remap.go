@@ -19,18 +19,22 @@ func (c *CPUMem) GetRemapArgs(ctx context.Context, node string, workloadResource
 
 	shareCPUMap := types.CPUMap{}
 	for cpu, pieces := range availableNodeResource.CPUMap {
-		if pieces >= c.config.Scheduler.ShareBase {
-			shareCPUMap[cpu] = c.config.Scheduler.ShareBase
+		if pieces >= c.Config.Scheduler.ShareBase {
+			shareCPUMap[cpu] = c.Config.Scheduler.ShareBase
 		}
 	}
 
 	if len(shareCPUMap) == 0 {
 		for cpu := range resourceInfo.Capacity.CPUMap {
-			shareCPUMap[cpu] = c.config.Scheduler.ShareBase
+			shareCPUMap[cpu] = c.Config.Scheduler.ShareBase
 		}
 	}
 
 	engineArgsMap := map[string]*types.EngineArgs{}
+
+	if workloadResourceMap == nil {
+		return engineArgsMap, nil
+	}
 
 	for workloadID, workloadResourceArgs := range *workloadResourceMap {
 		// only process workloads without cpu binding

@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/projecteru2/core/resources"
+	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	sourcemocks "github.com/projecteru2/core/source/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -47,6 +49,13 @@ func NewTestCluster() *Calcium {
 	mwal := c.wal.WAL.(*walmocks.WAL)
 	commit := wal.Commit(func() error { return nil })
 	mwal.On("Log", mock.Anything, mock.Anything).Return(commit, nil)
+
+	plugin := &resourcemocks.Plugin{}
+	plugin.On("Name").Return("mock-plugin")
+	if c.resource, err = resources.NewPluginManager(c.config); err != nil {
+		panic(err)
+	}
+	c.resource.AddPlugins(plugin)
 
 	return c
 }

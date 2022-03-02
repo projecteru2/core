@@ -9,6 +9,8 @@ import (
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	"github.com/projecteru2/core/resources"
+	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -46,6 +48,11 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	wal, err := newWAL(c.config, c)
 	require.NoError(t, err)
 	c.wal = wal
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{},
+		Diffs:        []string{"hhh"},
+	}, nil)
 
 	engine := &enginemocks.API{}
 	node := &types.Node{
@@ -93,6 +100,11 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	wal, err := newWAL(c.config, c)
 	require.NoError(t, err)
 	c.wal = wal
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{},
+		Diffs:        []string{"hhh"},
+	}, nil)
 
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{Name: "nodename"},
@@ -133,6 +145,18 @@ func TestHandleCreateLambda(t *testing.T) {
 	wal, err := newWAL(c.config, c)
 	require.NoError(t, err)
 	c.wal = wal
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{},
+		Diffs:        []string{"hhh"},
+	}, nil)
+	plugin.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.SetNodeResourceUsageResponse{
+		Before: types.NodeResourceArgs{},
+		After:  types.NodeResourceArgs{},
+	}, nil)
+	plugin.On("GetRemapArgs", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetRemapArgsResponse{
+		EngineArgsMap: map[string]types.EngineArgs{},
+	}, nil)
 
 	_, err = c.wal.Log(eventCreateLambda, "workloadid")
 	require.NoError(t, err)
@@ -165,14 +189,10 @@ func TestHandleCreateLambda(t *testing.T) {
 	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
 		Return(nil).
 		Once()
-	eng.On("VirtualizationResourceRemap", mock.Anything, mock.Anything).Return(nil, nil).Once()
 	store.On("GetWorkloads", mock.Anything, []string{wrk.ID}).
 		Return([]*types.Workload{wrk}, nil).
 		Twice()
 	store.On("RemoveWorkload", mock.Anything, wrk).
-		Return(nil).
-		Once()
-	store.On("UpdateNodeResource", mock.Anything, node, mock.Anything, mock.Anything).
 		Return(nil).
 		Once()
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil).Once()

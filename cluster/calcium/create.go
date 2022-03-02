@@ -132,8 +132,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 							return errors.WithStack(err)
 						}
 					}
-					// todo: don't have to update nodes?
-					return errors.WithStack(c.store.UpdateNodes(ctx, nodes...))
+					return nil
 				})
 			},
 

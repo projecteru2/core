@@ -141,6 +141,14 @@ func (vbs VolumeBindings) MarshalJSON() ([]byte, error) {
 	return bs, errors.WithStack(err)
 }
 
+func (vbs VolumeBindings) String() string {
+	volumes := []string{}
+	for _, vb := range vbs {
+		volumes = append(volumes, vb.ToString(false))
+	}
+	return strings.Join(volumes, ",")
+}
+
 // TotalSize .
 func (vbs VolumeBindings) TotalSize() (total int64) {
 	for _, vb := range vbs {
@@ -265,6 +273,15 @@ func (p VolumePlan) MarshalJSON() ([]byte, error) {
 	}
 	bs, err := json.Marshal(plan)
 	return bs, errors.WithStack(err)
+}
+
+// String .
+func (p VolumePlan) String() string {
+	if bs, err := p.MarshalJSON(); err != nil {
+		return "can not marshal volume plan"
+	} else {
+		return string(bs)
+	}
 }
 
 // Merge .

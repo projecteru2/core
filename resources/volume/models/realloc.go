@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 
+	"github.com/sanity-io/litter"
 	"github.com/sirupsen/logrus"
 
 	"github.com/projecteru2/core/resources/volume/schedule"
@@ -17,9 +18,21 @@ func (v *Volume) GetReallocArgs(ctx context.Context, node string, originResource
 		return nil, nil, nil, err
 	}
 
+	resourceOpts = &types.WorkloadResourceOpts{
+		VolumesRequest: types.MergeVolumeBindings(resourceOpts.VolumesRequest, originResourceArgs.VolumesRequest),
+		VolumesLimit:   types.MergeVolumeBindings(resourceOpts.VolumesLimit, originResourceArgs.VolumesLimit),
+		StorageRequest: resourceOpts.StorageRequest + originResourceArgs.StorageRequest,
+		StorageLimit:   resourceOpts.StorageLimit + originResourceArgs.StorageLimit,
+	}
+
+	if err := resourceOpts.Validate(); err != nil {
+		logrus.Errorf("[Realloc] invalid resource opts %v, err: %v", litter.Sdump(resourceOpts), err)
+		return nil, nil, nil, err
+	}
+
 	finalWorkloadResourceArgs := &types.WorkloadResourceArgs{
-		VolumesRequest:    types.MergeVolumeBindings(resourceOpts.VolumesRequest, originResourceArgs.VolumesRequest),
-		VolumesLimit:      types.MergeVolumeBindings(resourceOpts.VolumesLimit, originResourceArgs.VolumesLimit),
+		VolumesRequest:    resourceOpts.VolumesRequest,
+		VolumesLimit:      resourceOpts.VolumesLimit,
 		VolumePlanRequest: nil,
 		VolumePlanLimit:   nil,
 		StorageRequest:    resourceOpts.StorageRequest,
@@ -36,7 +49,7 @@ func (v *Volume) GetReallocArgs(ctx context.Context, node string, originResource
 	}
 
 	finalWorkloadResourceArgs.VolumePlanRequest = volumePlan
-	finalWorkloadResourceArgs.VolumePlanLimit = getVolumePlanLimit(finalWorkloadResourceArgs.VolumesRequest, volumePlan)
+	finalWorkloadResourceArgs.VolumePlanLimit = getVolumePlanLimit(finalWorkloadResourceArgs.VolumesRequest, finalWorkloadResourceArgs.VolumesLimit, volumePlan)
 
 	originBindingSet := map[[3]string]struct{}{}
 	for binding := range originResourceArgs.VolumePlanLimit {

@@ -5,8 +5,10 @@ package mocks
 import (
 	context "context"
 
-	resources "github.com/projecteru2/core/resources"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	mock "github.com/stretchr/testify/mock"
+
+	resources "github.com/projecteru2/core/resources"
 
 	types "github.com/projecteru2/core/types"
 )
@@ -16,13 +18,13 @@ type Plugin struct {
 	mock.Mock
 }
 
-// AddNode provides a mock function with given fields: ctx, nodeName, resourceOpts
-func (_m *Plugin) AddNode(ctx context.Context, nodeName string, resourceOpts types.NodeResourceOpts) (*resources.AddNodeResponse, error) {
-	ret := _m.Called(ctx, nodeName, resourceOpts)
+// AddNode provides a mock function with given fields: ctx, nodeName, resourceOpts, nodeInfo
+func (_m *Plugin) AddNode(ctx context.Context, nodeName string, resourceOpts types.NodeResourceOpts, nodeInfo *enginetypes.Info) (*resources.AddNodeResponse, error) {
+	ret := _m.Called(ctx, nodeName, resourceOpts, nodeInfo)
 
 	var r0 *resources.AddNodeResponse
-	if rf, ok := ret.Get(0).(func(context.Context, string, types.NodeResourceOpts) *resources.AddNodeResponse); ok {
-		r0 = rf(ctx, nodeName, resourceOpts)
+	if rf, ok := ret.Get(0).(func(context.Context, string, types.NodeResourceOpts, *enginetypes.Info) *resources.AddNodeResponse); ok {
+		r0 = rf(ctx, nodeName, resourceOpts, nodeInfo)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*resources.AddNodeResponse)
@@ -30,8 +32,8 @@ func (_m *Plugin) AddNode(ctx context.Context, nodeName string, resourceOpts typ
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, types.NodeResourceOpts) error); ok {
-		r1 = rf(ctx, nodeName, resourceOpts)
+	if rf, ok := ret.Get(1).(func(context.Context, string, types.NodeResourceOpts, *enginetypes.Info) error); ok {
+		r1 = rf(ctx, nodeName, resourceOpts, nodeInfo)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -237,6 +239,29 @@ func (_m *Plugin) RemoveNode(ctx context.Context, nodeName string) (*resources.R
 	return r0, r1
 }
 
+// SetNodeResourceCapacity provides a mock function with given fields: ctx, nodeName, nodeResourceOpts, nodeResourceArgs, delta, incr
+func (_m *Plugin) SetNodeResourceCapacity(ctx context.Context, nodeName string, nodeResourceOpts types.NodeResourceOpts, nodeResourceArgs types.NodeResourceArgs, delta bool, incr bool) (*resources.SetNodeResourceCapacityResponse, error) {
+	ret := _m.Called(ctx, nodeName, nodeResourceOpts, nodeResourceArgs, delta, incr)
+
+	var r0 *resources.SetNodeResourceCapacityResponse
+	if rf, ok := ret.Get(0).(func(context.Context, string, types.NodeResourceOpts, types.NodeResourceArgs, bool, bool) *resources.SetNodeResourceCapacityResponse); ok {
+		r0 = rf(ctx, nodeName, nodeResourceOpts, nodeResourceArgs, delta, incr)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*resources.SetNodeResourceCapacityResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, types.NodeResourceOpts, types.NodeResourceArgs, bool, bool) error); ok {
+		r1 = rf(ctx, nodeName, nodeResourceOpts, nodeResourceArgs, delta, incr)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // SetNodeResourceInfo provides a mock function with given fields: ctx, nodeName, resourceCapacity, resourceUsage
 func (_m *Plugin) SetNodeResourceInfo(ctx context.Context, nodeName string, resourceCapacity types.NodeResourceArgs, resourceUsage types.NodeResourceArgs) (*resources.SetNodeResourceInfoResponse, error) {
 	ret := _m.Called(ctx, nodeName, resourceCapacity, resourceUsage)
@@ -260,45 +285,22 @@ func (_m *Plugin) SetNodeResourceInfo(ctx context.Context, nodeName string, reso
 	return r0, r1
 }
 
-// UpdateNodeResourceCapacity provides a mock function with given fields: ctx, nodeName, resourceOpts, incr
-func (_m *Plugin) UpdateNodeResourceCapacity(ctx context.Context, nodeName string, resourceOpts types.NodeResourceOpts, incr bool) (*resources.UpdateNodeResourceCapacityResponse, error) {
-	ret := _m.Called(ctx, nodeName, resourceOpts, incr)
+// SetNodeResourceUsage provides a mock function with given fields: ctx, nodeName, nodeResourceOpts, nodeResourceArgs, workloadResourceArgs, delta, incr
+func (_m *Plugin) SetNodeResourceUsage(ctx context.Context, nodeName string, nodeResourceOpts types.NodeResourceOpts, nodeResourceArgs types.NodeResourceArgs, workloadResourceArgs []types.WorkloadResourceArgs, delta bool, incr bool) (*resources.SetNodeResourceUsageResponse, error) {
+	ret := _m.Called(ctx, nodeName, nodeResourceOpts, nodeResourceArgs, workloadResourceArgs, delta, incr)
 
-	var r0 *resources.UpdateNodeResourceCapacityResponse
-	if rf, ok := ret.Get(0).(func(context.Context, string, types.NodeResourceOpts, bool) *resources.UpdateNodeResourceCapacityResponse); ok {
-		r0 = rf(ctx, nodeName, resourceOpts, incr)
+	var r0 *resources.SetNodeResourceUsageResponse
+	if rf, ok := ret.Get(0).(func(context.Context, string, types.NodeResourceOpts, types.NodeResourceArgs, []types.WorkloadResourceArgs, bool, bool) *resources.SetNodeResourceUsageResponse); ok {
+		r0 = rf(ctx, nodeName, nodeResourceOpts, nodeResourceArgs, workloadResourceArgs, delta, incr)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*resources.UpdateNodeResourceCapacityResponse)
+			r0 = ret.Get(0).(*resources.SetNodeResourceUsageResponse)
 		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, types.NodeResourceOpts, bool) error); ok {
-		r1 = rf(ctx, nodeName, resourceOpts, incr)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// UpdateNodeResourceUsage provides a mock function with given fields: ctx, nodeName, resourceArgs, incr
-func (_m *Plugin) UpdateNodeResourceUsage(ctx context.Context, nodeName string, resourceArgs []types.WorkloadResourceArgs, incr bool) (*resources.UpdateNodeResourceUsageResponse, error) {
-	ret := _m.Called(ctx, nodeName, resourceArgs, incr)
-
-	var r0 *resources.UpdateNodeResourceUsageResponse
-	if rf, ok := ret.Get(0).(func(context.Context, string, []types.WorkloadResourceArgs, bool) *resources.UpdateNodeResourceUsageResponse); ok {
-		r0 = rf(ctx, nodeName, resourceArgs, incr)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*resources.UpdateNodeResourceUsageResponse)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, []types.WorkloadResourceArgs, bool) error); ok {
-		r1 = rf(ctx, nodeName, resourceArgs, incr)
+	if rf, ok := ret.Get(1).(func(context.Context, string, types.NodeResourceOpts, types.NodeResourceArgs, []types.WorkloadResourceArgs, bool, bool) error); ok {
+		r1 = rf(ctx, nodeName, nodeResourceOpts, nodeResourceArgs, workloadResourceArgs, delta, incr)
 	} else {
 		r1 = ret.Error(1)
 	}

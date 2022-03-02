@@ -61,7 +61,7 @@ func (c *CPUMem) doAllocByMemory(resourceInfo *types.NodeResourceInfo, deployCou
 }
 
 func (c *CPUMem) doAllocByCPU(resourceInfo *types.NodeResourceInfo, deployCount int, opts *types.WorkloadResourceOpts) ([]*types.EngineArgs, []*types.WorkloadResourceArgs, error) {
-	cpuPlans := schedule.GetCPUPlans(resourceInfo, nil, c.config.Scheduler.ShareBase, c.config.Scheduler.MaxShare, opts)
+	cpuPlans := schedule.GetCPUPlans(resourceInfo, nil, c.Config.Scheduler.ShareBase, c.Config.Scheduler.MaxShare, opts)
 	if len(cpuPlans) < deployCount {
 		return nil, nil, types.ErrInsufficientResource
 	}

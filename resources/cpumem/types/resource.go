@@ -104,13 +104,8 @@ func (r *WorkloadResourceArgs) DeepCopy() *WorkloadResourceArgs {
 func (r *WorkloadResourceArgs) Add(r1 *WorkloadResourceArgs) {
 	r.CPURequest = coreutils.Round(r.CPURequest + r1.CPURequest)
 	r.MemoryRequest += r1.MemoryRequest
-	if len(r.CPUMap) == 0 {
-		r.CPUMap = r1.CPUMap
-	} else {
-		for cpu := range r1.CPUMap {
-			r.CPUMap[cpu] += r1.CPUMap[cpu]
-		}
-	}
+	r.CPUMap.Add(r1.CPUMap)
+
 	if len(r.NUMAMemory) == 0 {
 		r.NUMAMemory = r1.NUMAMemory
 	} else {
@@ -122,9 +117,6 @@ func (r *WorkloadResourceArgs) Add(r1 *WorkloadResourceArgs) {
 func (r *WorkloadResourceArgs) Sub(r1 *WorkloadResourceArgs) {
 	r.CPURequest = coreutils.Round(r.CPURequest - r1.CPURequest)
 	r.MemoryRequest -= r1.MemoryRequest
-	if len(r.CPUMap) == 0 {
-		r.CPUMap = CPUMap{}
-	}
 	r.CPUMap.Sub(r1.CPUMap)
 	if r.NUMAMemory == nil {
 		r.NUMAMemory = NUMAMemory{}
@@ -165,6 +157,9 @@ func (r *NodeResourceArgs) DeepCopy() *NodeResourceArgs {
 	}
 	for numaNodeID := range r.NUMAMemory {
 		res.NUMAMemory[numaNodeID] = r.NUMAMemory[numaNodeID]
+	}
+	for cpuID := range r.NUMA {
+		res.NUMA[cpuID] = r.NUMA[cpuID]
 	}
 	return res
 }
@@ -213,6 +208,11 @@ func (n *NodeResourceInfo) DeepCopy() *NodeResourceInfo {
 func (n *NodeResourceInfo) RemoveEmptyCores() {
 	keysToDelete := []string{}
 	for cpu := range n.Capacity.CPUMap {
+		if n.Capacity.CPUMap[cpu] == 0 && n.Usage.CPUMap[cpu] == 0 {
+			keysToDelete = append(keysToDelete, cpu)
+		}
+	}
+	for cpu := range n.Usage.CPUMap {
 		if n.Capacity.CPUMap[cpu] == 0 && n.Usage.CPUMap[cpu] == 0 {
 			keysToDelete = append(keysToDelete, cpu)
 		}
@@ -273,9 +273,9 @@ func (n *NodeResourceInfo) Validate() error {
 		}
 	}
 
-	if n.Capacity.NUMAMemory == nil {
-		n.Capacity.NUMAMemory = NUMAMemory{}
-	}
+	// remove nil CPUMap / NUMA / NUMAMemory
+	n.Capacity = n.Capacity.DeepCopy()
+	n.Usage = n.Usage.DeepCopy()
 
 	return nil
 }
@@ -365,18 +365,18 @@ type NodeResourceOpts struct {
 	NUMA       NUMA       `json:"numa"`
 	NUMAMemory NUMAMemory `json:"numa_memory"`
 
-	rawParams coretypes.RawParams
+	RawParams coretypes.RawParams `json:"-"`
 }
 
 func (n *NodeResourceOpts) ParseFromRawParams(rawParams coretypes.RawParams) (err error) {
-	n.rawParams = rawParams
+	n.RawParams = rawParams
 
 	if n.CPUMap == nil {
 		n.CPUMap = CPUMap{}
 	}
 
-	if cpu := n.rawParams.Int64("cpu"); cpu > 0 {
-		share := n.rawParams.Int64("share")
+	if cpu := n.RawParams.Int64("cpu"); cpu > 0 {
+		share := n.RawParams.Int64("share")
 		if share == 0 {
 			share = 100
 		}
@@ -385,7 +385,7 @@ func (n *NodeResourceOpts) ParseFromRawParams(rawParams coretypes.RawParams) (er
 			n.CPUMap[fmt.Sprintf("%v", i)] = int(share)
 		}
 	} else {
-		cpuList := n.rawParams.String("cpu")
+		cpuList := n.RawParams.String("cpu")
 		if cpuList != "" {
 			cpuMapList := strings.Split(cpuList, ",")
 			for _, cpus := range cpuMapList {
@@ -403,20 +403,20 @@ func (n *NodeResourceOpts) ParseFromRawParams(rawParams coretypes.RawParams) (er
 		}
 	}
 
-	if n.Memory, err = coreutils.ParseRAMInHuman(n.rawParams.String("memory")); err != nil {
+	if n.Memory, err = coreutils.ParseRAMInHuman(n.RawParams.String("memory")); err != nil {
 		return err
 	}
 	n.NUMA = NUMA{}
 	n.NUMAMemory = NUMAMemory{}
 
-	for index, cpuList := range n.rawParams.StringSlice("numa-cpu") {
+	for index, cpuList := range n.RawParams.StringSlice("numa-cpu") {
 		nodeID := fmt.Sprintf("%d", index)
 		for _, cpuID := range strings.Split(cpuList, ",") {
 			n.NUMA[cpuID] = nodeID
 		}
 	}
 
-	for index, memoryStr := range n.rawParams.StringSlice("numa-memory") {
+	for index, memoryStr := range n.RawParams.StringSlice("numa-memory") {
 		nodeID := fmt.Sprintf("%d", index)
 		mem, err := coreutils.ParseRAMInHuman(memoryStr)
 		if err != nil {
@@ -433,16 +433,16 @@ func (n *NodeResourceOpts) SkipEmpty(resourceCapacity *NodeResourceArgs) {
 	if n == nil {
 		return
 	}
-	if !n.rawParams.IsSet("cpu") {
+	if !n.RawParams.IsSet("cpu") {
 		n.CPUMap = resourceCapacity.CPUMap
 	}
-	if !n.rawParams.IsSet("memory") {
+	if !n.RawParams.IsSet("memory") {
 		n.Memory = resourceCapacity.Memory
 	}
-	if !n.rawParams.IsSet("numa-cpu") {
+	if !n.RawParams.IsSet("numa-cpu") {
 		n.NUMA = resourceCapacity.NUMA
 	}
-	if !n.rawParams.IsSet("numa-memory") {
+	if !n.RawParams.IsSet("numa-memory") {
 		n.NUMAMemory = resourceCapacity.NUMAMemory
 	}
 }

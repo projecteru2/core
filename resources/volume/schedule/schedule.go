@@ -363,11 +363,6 @@ func (h *host) getAffinityPlan(volumeRequest types.VolumeBindings, existing type
 	normalRequests, monoRequests, unlimitedRequests := h.classifyVolumeBindings(volumeRequest)
 	needRescheduleRequests := types.VolumeBindings{}
 	volumePlan := types.VolumePlan{}
-	for binding, volumeMap := range existing {
-		if !binding.RequireScheduleMonopoly() {
-			volumePlan[binding] = volumeMap
-		}
-	}
 
 	commonProcess := func(requests types.VolumeBindings) error {
 		affinity, nonAffinity := h.classifyAffinityRequests(requests, existing)
@@ -393,34 +388,18 @@ func (h *host) getAffinityPlan(volumeRequest types.VolumeBindings, existing type
 		return nil
 	}
 
-	// mono
 	totalRequestSize := int64(0)
 	totalVolumeSize := int64(0)
-	bindingMap := map[[3]string]*types.VolumeBinding{}
-	for binding, volumeMap := range existing {
-		if binding.RequireScheduleMonopoly() {
-			totalRequestSize += binding.SizeInBytes
-			totalVolumeSize += volumeMap.GetSize()
-			bindingMap[binding.GetMapKey()] = binding
-		}
-	}
-
-	// update bindings
 	for _, binding := range monoRequests {
 		totalRequestSize += binding.SizeInBytes
-		key := binding.GetMapKey()
-		if vb, ok := bindingMap[key]; ok {
-			vb.SizeInBytes += binding.SizeInBytes
-		} else {
-			bindingMap[key] = binding
+	}
+	for binding, volumeMap := range existing {
+		if binding.RequireScheduleMonopoly() {
+			totalVolumeSize += volumeMap.GetSize()
 		}
 	}
-	requestBindings := types.VolumeBindings{}
-	for _, binding := range bindingMap {
-		requestBindings = append(requestBindings, binding)
-	}
 
-	affinity, nonAffinity := h.classifyAffinityRequests(requestBindings, existing)
+	affinity, nonAffinity := h.classifyAffinityRequests(monoRequests, existing)
 	// if there is no affinity plan: all reschedule
 	if len(affinity) == 0 {
 		for binding := range nonAffinity {
@@ -429,11 +408,15 @@ func (h *host) getAffinityPlan(volumeRequest types.VolumeBindings, existing type
 	} else {
 		// if there is any affinity plan: don't reschedule
 		// use the first volume map to get the whole mono volume plan
+		if totalVolumeSize < totalRequestSize {
+			logrus.Errorf("[getAffinityPlan] no space to expand, the size of %v is %v, requires %v", affinity[monoRequests[0]].GetDevice(), totalVolumeSize, totalRequestSize)
+			return nil
+		}
 		for _, volumeMap := range affinity {
 			for _, volume := range h.usedVolumes {
 				if volume.device == volumeMap.GetDevice() {
-					volume.size += totalVolumeSize
-					volumePlan.Merge(h.getMonoPlan(requestBindings, totalRequestSize, volume))
+					volume.size = totalVolumeSize
+					volumePlan.Merge(h.getMonoPlan(monoRequests, totalRequestSize, volume))
 					break
 				}
 			}

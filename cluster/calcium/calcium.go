@@ -10,8 +10,8 @@ import (
 	"github.com/projecteru2/core/discovery/helium"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources"
-	cpumemmodels "github.com/projecteru2/core/resources/cpumem/models"
-	volumemodels "github.com/projecteru2/core/resources/volume/models"
+	"github.com/projecteru2/core/resources/cpumem"
+	"github.com/projecteru2/core/resources/volume"
 	"github.com/projecteru2/core/source"
 	"github.com/projecteru2/core/source/github"
 	"github.com/projecteru2/core/source/gitlab"
@@ -68,7 +68,7 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 	}
 
 	// load cpumem plugin
-	cpumem, err := cpumemmodels.NewCPUMemPlugin(config)
+	cpumem, err := cpumem.NewCPUMemPlugin(config)
 	if err != nil {
 		log.Errorf(context.TODO(), "[NewPluginManager] new cpumem plugin error: %v", err)
 		return nil, err
@@ -76,7 +76,7 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 	resource.AddPlugins(cpumem)
 
 	// load volume plugin
-	volume, err := volumemodels.NewVolumePlugin(config)
+	volume, err := volume.NewVolumePlugin(config)
 	if err != nil {
 		log.Errorf(context.TODO(), "[NewPluginManager] new volume plugin error: %v", err)
 		return nil, err

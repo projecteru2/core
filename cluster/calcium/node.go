@@ -136,13 +136,18 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 }
 
 // GetNode get node
-func (c *Calcium) GetNode(ctx context.Context, nodename string) (*types.Node, error) {
+func (c *Calcium) GetNode(ctx context.Context, nodename string) (node *types.Node, err error) {
 	logger := log.WithField("Calcium", "GetNode").WithField("nodename", nodename)
 	if nodename == "" {
 		return nil, logger.Err(ctx, errors.WithStack(types.ErrEmptyNodeName))
 	}
-	node, err := c.store.GetNode(ctx, nodename)
-	return node, logger.Err(ctx, errors.WithStack(err))
+	if node, err = c.store.GetNode(ctx, nodename); err != nil {
+		return nil, logger.Err(ctx, errors.WithStack(err))
+	}
+	if err = c.getNodeResourceInfo(ctx, node); err != nil {
+		return nil, logger.Err(ctx, errors.WithStack(err))
+	}
+	return node, nil
 }
 
 // GetNodeEngine get node engine

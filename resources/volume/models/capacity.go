@@ -46,7 +46,7 @@ func (v *Volume) doGetNodeCapacityInfo(ctx context.Context, node string, resourc
 	}
 
 	// get volume capacity
-	volumePlans := schedule.GetVolumePlans(resourceInfo, opts.VolumesRequest, v.config.Scheduler.MaxDeployCount)
+	volumePlans := schedule.GetVolumePlans(resourceInfo, opts.VolumesRequest, v.Config.Scheduler.MaxDeployCount)
 	capacityInfo.Capacity = len(volumePlans)
 
 	// get storage capacity

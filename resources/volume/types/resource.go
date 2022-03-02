@@ -22,9 +22,6 @@ type WorkloadResourceOpts struct {
 
 // Validate .
 func (w *WorkloadResourceOpts) Validate() error {
-	if len(w.VolumesRequest) == 0 && len(w.VolumesLimit) == 0 {
-		return nil
-	}
 	if len(w.VolumesLimit) > 0 && len(w.VolumesRequest) == 0 {
 		w.VolumesRequest = w.VolumesLimit
 	}
@@ -116,13 +113,15 @@ type NodeResourceOpts struct {
 	Volumes VolumeMap `json:"volumes"`
 	Storage int64     `json:"storage"`
 
-	rawParams coretypes.RawParams
+	RawParams coretypes.RawParams `json:"-"`
 }
 
 // ParseFromRawParams .
 func (n *NodeResourceOpts) ParseFromRawParams(rawParams coretypes.RawParams) (err error) {
+	n.RawParams = rawParams
+
 	volumes := VolumeMap{}
-	for _, volume := range n.rawParams.StringSlice("volumes") {
+	for _, volume := range n.RawParams.StringSlice("volumes") {
 		parts := strings.Split(volume, ":")
 		if len(parts) != 2 {
 			return errors.Wrap(ErrInvalidVolume, "volume should have 2 parts")
@@ -136,7 +135,7 @@ func (n *NodeResourceOpts) ParseFromRawParams(rawParams coretypes.RawParams) (er
 	}
 	n.Volumes = volumes
 
-	if n.Storage, err = coreutils.ParseRAMInHuman(n.rawParams.String("storage")); err != nil {
+	if n.Storage, err = coreutils.ParseRAMInHuman(n.RawParams.String("storage")); err != nil {
 		return err
 	}
 	return nil
@@ -147,10 +146,10 @@ func (n *NodeResourceOpts) SkipEmpty(resourceCapacity *NodeResourceArgs) {
 	if n == nil {
 		return
 	}
-	if !n.rawParams.IsSet("volumes") {
+	if !n.RawParams.IsSet("volumes") {
 		n.Volumes = resourceCapacity.Volumes
 	}
-	if !n.rawParams.IsSet("storage") {
+	if !n.RawParams.IsSet("storage") {
 		n.Storage = resourceCapacity.Storage
 	}
 }
@@ -176,10 +175,10 @@ func (n *NodeResourceArgs) DeepCopy() *NodeResourceArgs {
 }
 
 // RemoveEmpty .
-func (n *NodeResourceArgs) RemoveEmpty(n1 *NodeResourceArgs) {
-	for device, size := range n1.Volumes {
-		if size == 0 {
-			n.Storage -= n.Volumes[device]
+func (n *NodeResourceArgs) RemoveEmpty() {
+	for device, size := range n.Volumes {
+		if n.Volumes[device] == 0 {
+			n.Storage -= size
 			delete(n.Volumes, device)
 		}
 	}
