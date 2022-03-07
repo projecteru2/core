@@ -32,6 +32,8 @@ const (
 	DmiUUIDKey = "DMIUUID"
 	// ImageUserKey indicates the image's owner
 	ImageUserKey = "ImageUser"
+	// Type indicate type
+	Type = "virt"
 
 	ttyFlag = "tty"
 )
@@ -69,6 +71,7 @@ func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {
 	}
 
 	return &enginetypes.Info{
+		Type:         Type,
 		ID:           resp.ID,
 		NCPU:         resp.CPU,
 		MemTotal:     resp.Mem,

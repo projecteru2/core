@@ -8,6 +8,8 @@ import (
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 
+	enginetypes "github.com/projecteru2/core/engine/types"
+
 	"github.com/pkg/errors"
 )
 
@@ -82,6 +84,20 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string) (*types.Node, er
 	}
 	node, err := c.store.GetNode(ctx, nodename)
 	return node, logger.Err(ctx, errors.WithStack(err))
+}
+
+// GetNodeEngine get node engine
+func (c *Calcium) GetNodeEngine(ctx context.Context, nodename string) (*enginetypes.Info, error) {
+	logger := log.WithField("Calcium", "GetNodeEngine").WithField("nodename", nodename)
+	if nodename == "" {
+		return nil, logger.Err(ctx, errors.WithStack(types.ErrEmptyNodeName))
+	}
+	node, err := c.store.GetNode(ctx, nodename)
+	if err != nil {
+		return nil, logger.Err(ctx, errors.WithStack(err))
+	}
+	engineInfo, err := node.Engine.Info(ctx)
+	return engineInfo, logger.Err(ctx, errors.WithStack(err))
 }
 
 // SetNode set node available or not

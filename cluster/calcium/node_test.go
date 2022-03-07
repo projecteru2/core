@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	enginemocks "github.com/projecteru2/core/engine/mocks"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -133,6 +135,31 @@ func TestGetNode(t *testing.T) {
 	n, err := c.GetNode(ctx, name)
 	assert.NoError(t, err)
 	assert.Equal(t, n.Name, name)
+}
+
+func TestGetNodeEngine(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+
+	// fail by validating
+	_, err := c.GetNodeEngine(ctx, "")
+	assert.Error(t, err)
+
+	engine := &enginemocks.API{}
+	engine.On("Info", mock.Anything).Return(&enginetypes.Info{Type: "fake"}, nil)
+	name := "test"
+	node := &types.Node{
+		NodeMeta: types.NodeMeta{Name: name},
+		Engine:   engine,
+	}
+
+	store := &storemocks.Store{}
+	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
+	c.store = store
+
+	e, err := c.GetNodeEngine(ctx, name)
+	assert.NoError(t, err)
+	assert.Equal(t, e.Type, "fake")
 }
 
 func TestSetNode(t *testing.T) {
