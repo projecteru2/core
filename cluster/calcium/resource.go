@@ -64,7 +64,7 @@ func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (
 
 func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
 	var nr *types.NodeResource
-	return nr, c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+	return nr, c.withNodeResourceLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 		workloads, err := c.ListNodeWorkloads(ctx, node.Name, nil)
 		if err != nil {
 			return err
@@ -237,10 +237,18 @@ func (c *Calcium) doRemapResourceAndLog(ctx context.Context, logger log.Fields, 
 	log.Debugf(ctx, "[doRemapResourceAndLog] remap node %s", node.Name)
 	ctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.TODO()), c.config.GlobalTimeout)
 	defer cancel()
-	logger = logger.WithField("Calcium", "doRemapResourceAndLog").WithField("nodename", node.Name)
-	if ch, err := c.remapResource(ctx, node); logger.Err(ctx, err) == nil {
-		for msg := range ch {
-			logger.WithField("id", msg.ID).Err(ctx, msg.Error) // nolint:errcheck
+
+	err := c.withNodeOperationLocked(ctx, node.Name, func(ctx context.Context, node *types.Node) error {
+		logger = logger.WithField("Calcium", "doRemapResourceAndLog").WithField("nodename", node.Name)
+		if ch, err := c.remapResource(ctx, node); logger.Err(ctx, err) == nil {
+			for msg := range ch {
+				logger.WithField("id", msg.ID).Err(ctx, msg.Error) // nolint:errcheck
+			}
 		}
+		return nil
+	})
+
+	if err != nil {
+		log.Errorf(ctx, "[doRemapResourceAndLog] remap node %s failed, err: %v", node.Name, err)
 	}
 }

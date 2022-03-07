@@ -25,7 +25,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *t
 		defer close(ch)
 
 		for nodename, workloadIDs := range nodeWorkloadGroup {
-			if err := c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+			if err := c.withNodeResourceLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 				for _, workloadID := range workloadIDs { // nolint:scopelint
 					msg := &types.DissociateWorkloadMessage{WorkloadID: workloadID} // nolint:scopelint
 					if err := c.withWorkloadLocked(ctx, workloadID, func(ctx context.Context, workload *types.Workload) error {
@@ -57,7 +57,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *t
 					}
 					ch <- msg
 				}
-				c.doRemapResourceAndLog(ctx, logger, node)
+				go c.doRemapResourceAndLog(ctx, logger, node)
 				return nil
 			}); err != nil {
 				logger.WithField("nodename", nodename).Errorf(ctx, "failed to lock node: %+v", err)

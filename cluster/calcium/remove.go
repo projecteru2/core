@@ -33,7 +33,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, 
 			utils.SentryGo(func(nodename string, workloadIDs []string) func() {
 				return func() {
 					defer wg.Done()
-					if err := c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+					if err := c.withNodeResourceLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 						for _, workloadID := range workloadIDs {
 							ret := &types.RemoveWorkloadMessage{WorkloadID: workloadID, Success: true, Hook: []*bytes.Buffer{}}
 							if err := c.withWorkloadLocked(ctx, workloadID, func(ctx context.Context, workload *types.Workload) error {
@@ -66,7 +66,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, 
 							}
 							ch <- ret
 						}
-						c.doRemapResourceAndLog(ctx, logger, node)
+						go c.doRemapResourceAndLog(ctx, logger, node)
 						return nil
 					}); err != nil {
 						logger.WithField("nodename", nodename).Errorf(ctx, "failed to lock node: %+v", err)
