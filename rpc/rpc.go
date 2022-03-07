@@ -273,6 +273,18 @@ func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.N
 	return toRPCNode(n), nil
 }
 
+// GetNodeEngine get a node engine
+func (v *Vibranium) GetNodeEngine(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Engine, error) {
+	task := v.newTask(ctx, "GetNodeEngine", false)
+	defer task.done()
+	e, err := v.cluster.GetNodeEngine(task.context, opts.Nodename)
+	if err != nil {
+		return nil, grpcstatus.Error(GetNodeEngine, err.Error())
+	}
+
+	return toRPCEngine(e), nil
+}
+
 // SetNode set node meta
 func (v *Vibranium) SetNode(ctx context.Context, opts *pb.SetNodeOptions) (*pb.Node, error) {
 	task := v.newTask(ctx, "SetNode", false)

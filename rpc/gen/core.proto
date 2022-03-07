@@ -25,6 +25,7 @@ service CoreRPC {
   rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
   rpc PodNodesStream(ListNodesOptions) returns (stream Node) {};
   rpc GetNode(GetNodeOptions) returns (Node) {};
+  rpc GetNodeEngine(GetNodeOptions) returns (Engine) {};
   rpc SetNode(SetNodeOptions) returns (Node) {};
   rpc SetNodeStatus(SetNodeStatusOptions) returns (Empty) {};
   rpc GetNodeStatus(GetNodeStatusOptions) returns (NodeStatusStreamMessage) {};
@@ -75,6 +76,10 @@ message CoreInfo {
 message ServiceStatus {
   repeated string addresses = 1;
   int64 interval_in_second = 2;
+}
+
+message Engine {
+  string type = 1;
 }
 
 message ListWorkloadsOptions {

@@ -64,6 +64,12 @@ func toRPCNode(n *types.Node) *pb.Node {
 	}
 }
 
+func toRPCEngine(e *enginetypes.Info) *pb.Engine {
+	return &pb.Engine{
+		Type: e.Type,
+	}
+}
+
 func toRPCNodeResource(nr *types.NodeResource) *pb.NodeResource {
 	return &pb.NodeResource{
 		Name:           nr.Name,

@@ -21,6 +21,8 @@ const (
 	TCPPrefixKey = "tcp://"
 	// SockPrefixKey indicate sock prefix
 	SockPrefixKey = "unix://"
+	// Type indicate docker
+	Type = "docker"
 )
 
 // Engine is engine for docker
@@ -80,7 +82,7 @@ func (e *Engine) Info(ctx context.Context) (*enginetypes.Info, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &enginetypes.Info{ID: r.ID, NCPU: r.NCPU, MemTotal: r.MemTotal}, nil
+	return &enginetypes.Info{Type: Type, ID: r.ID, NCPU: r.NCPU, MemTotal: r.MemTotal}, nil
 }
 
 // ResourceValidate validate resource usage
