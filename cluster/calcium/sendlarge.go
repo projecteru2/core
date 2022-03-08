@@ -18,9 +18,6 @@ func (c *Calcium) SendLargeFile(ctx context.Context, opts chan *types.SendLargeF
 		defer close(resp)
 		senders := make(map[string]*workloadSender)
 		for data := range opts {
-			if err := data.Validate(); err != nil {
-				continue
-			}
 			for _, id := range data.Ids {
 				if _, ok := senders[id]; !ok {
 					log.Debugf(ctx, "[SendLargeFile] create sender for %s", id)
