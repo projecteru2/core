@@ -10,6 +10,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/containerd/containerd v1.4.13 // indirect
 	github.com/containerd/continuity v0.0.0-20200710164510-efbc4488d8fe // indirect
+	github.com/cornelk/hashmap v1.0.2-0.20210201213917-c93d96ce6b8a
 	github.com/docker/distribution v2.8.0+incompatible
 	github.com/docker/docker v20.10.0+incompatible
 	github.com/docker/go-connections v0.4.0
