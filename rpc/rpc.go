@@ -609,7 +609,11 @@ func (v *Vibranium) SendLargeFile(server pb.CoreRPC_SendLargeFileServer) error {
 				log.Errorf(ctx, "[SendLargeFile]receive from rpc err: %v", err)
 				return
 			}
-			data := toSendLargeFileOptions(req)
+			data, err := toSendLargeFileOptions(req)
+			if err != nil {
+				log.Errorf(ctx, "[SendLargeFile]transform data err: %v", err)
+				return
+			}
 			dc <- data
 		}
 		close(dc)

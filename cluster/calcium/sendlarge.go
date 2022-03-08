@@ -16,34 +16,48 @@ func (c *Calcium) SendLargeFile(ctx context.Context, opts chan *types.SendLargeF
 	wg := &sync.WaitGroup{}
 	utils.SentryGo(func() {
 		defer close(resp)
-		handlers := make(map[string]chan *types.SendLargeFileOptions)
+		senders := make(map[string]*workloadSender)
 		for data := range opts {
 			if err := data.Validate(); err != nil {
 				continue
 			}
 			for _, id := range data.Ids {
-				if _, ok := handlers[id]; !ok {
-					log.Debugf(ctx, "[SendLargeFile] create handler for %s", id)
-					handler := c.newWorkloadExecutor(ctx, id, resp, wg)
-					handlers[id] = handler
+				if _, ok := senders[id]; !ok {
+					log.Debugf(ctx, "[SendLargeFile] create sender for %s", id)
+					sender := c.newWorkloadSender(ctx, id, resp, wg)
+					senders[id] = sender
 				}
-				handlers[id] <- data
+				senders[id].send(data)
 			}
 		}
-		for _, handler := range handlers{
-			close(handler)
+		for _, sender := range senders{
+			sender.close()
 		}
 		wg.Wait()
 	})
 	return resp
 }
 
-func (c *Calcium) newWorkloadExecutor(ctx context.Context, ID string, resp chan *types.SendMessage, wg *sync.WaitGroup) chan *types.SendLargeFileOptions {
-	input := make(chan *types.SendLargeFileOptions, 10)
+type workloadSender struct {
+	calcium *Calcium
+	id string
+	wg *sync.WaitGroup
+	buffer chan *types.SendLargeFileOptions
+	resp chan *types.SendMessage
+}
+
+func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *types.SendMessage, wg *sync.WaitGroup) *workloadSender {
+	sender := &workloadSender{
+		calcium: c,
+		id: ID,
+		wg: wg,
+		buffer: make(chan *types.SendLargeFileOptions, 10),
+		resp: resp,
+	}
 	utils.SentryGo(func() {
 		var writer *io.PipeWriter
 		curFile := ""
-		for data := range input {
+		for data := range sender.buffer {
 			if curFile != "" && curFile != data.Dst {
 				// todo 报错之后返回一下?
 				log.Errorf(ctx, "[newWorkloadExecutor] receive different files %s, %s", curFile, data.Dst)
@@ -51,14 +65,14 @@ func (c *Calcium) newWorkloadExecutor(ctx context.Context, ID string, resp chan 
 			}
 			if curFile == "" {
 				wg.Add(1)
-				log.Debugf(ctx, "[newWorkloadExecutor]Receive new file %s to %s", curFile, ID)
+				log.Debugf(ctx, "[newWorkloadExecutor]Receive new file %s to %s", curFile, sender.id)
 				curFile = data.Dst
 				pr, pw := io.Pipe()
 				writer = pw
 				utils.SentryGo(func(ID, name string, size int64, content io.Reader, uid, gid int, mode int64) func() {
 					return func() {
 						defer wg.Done()
-						if err := c.withWorkloadLocked(ctx, ID, func(ctx context.Context, workload *types.Workload) error {
+						if err := sender.calcium.withWorkloadLocked(ctx, ID, func(ctx context.Context, workload *types.Workload) error {
 							err := errors.WithStack(workload.Engine.VirtualizationCopyChunkTo(ctx, ID, name, size, content, uid, gid, mode))
 							resp <- &types.SendMessage{ID: ID, Path: name, Error: err}
 							return nil
@@ -72,5 +86,13 @@ func (c *Calcium) newWorkloadExecutor(ctx context.Context, ID string, resp chan 
 		}
 		writer.Close()
 	})
-	return input
+	return sender
+}
+
+func (s *workloadSender) send(chunk *types.SendLargeFileOptions) {
+	s.buffer <- chunk
+}
+
+func (s *workloadSender) close() {
+	close(s.buffer)
 }

@@ -643,8 +643,8 @@ func toCoreListImageOptions(opts *pb.ListImageOptions) *types.ImageOptions {
 	}
 }
 
-func toSendLargeFileOptions(opts *pb.FileOptions) *types.SendLargeFileOptions {
-	return &types.SendLargeFileOptions{
+func toSendLargeFileOptions(opts *pb.FileOptions) (*types.SendLargeFileOptions, error) {
+	ret := &types.SendLargeFileOptions{
 		Ids: opts.Ids,
 		Dst: opts.Dst,
 		Size: opts.Size,
@@ -653,6 +653,8 @@ func toSendLargeFileOptions(opts *pb.FileOptions) *types.SendLargeFileOptions {
 		Gid: int(opts.Owner.Gid),
 		Chunk: opts.Chunk,
 	}
+	err := ret.Validate()
+	return ret, err
 }
 
 func toSendLargeFileChunks(file types.LinuxFile, ids []string) []*types.SendLargeFileOptions {
