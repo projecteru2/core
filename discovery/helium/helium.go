@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cornelk/hashmap"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
@@ -15,18 +16,14 @@ import (
 // Helium .
 type Helium struct {
 	sync.Once
-	lock   *sync.RWMutex
 	config types.GRPCConfig
 	stor   store.Store
-	subs   sync.Map
+	subs   hashmap.HashMap
 }
 
 // New .
 func New(config types.GRPCConfig, stor store.Store) *Helium {
-	h := &Helium{}
-	h.config = config
-	h.stor = stor
-	h.lock = &sync.RWMutex{}
+	h := &Helium{config: config, stor: stor, subs: hashmap.HashMap{}}
 	h.Do(func() {
 		h.start(context.TODO()) // TODO rewrite ctx here, because this will run only once!
 	})
@@ -35,18 +32,15 @@ func New(config types.GRPCConfig, stor store.Store) *Helium {
 
 // Subscribe .
 func (h *Helium) Subscribe(ch chan<- types.ServiceStatus) uuid.UUID {
-	h.lock.Lock()
-	defer h.lock.Unlock()
 	id := uuid.New()
-	_, _ = h.subs.LoadOrStore(id, ch)
+	key := id.ID()
+	h.subs.Set(key, ch)
 	return id
 }
 
 // Unsubscribe .
 func (h *Helium) Unsubscribe(id uuid.UUID) {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	h.subs.Delete(id)
+	h.subs.Del(id.ID())
 }
 
 func (h *Helium) start(ctx context.Context) {
@@ -83,20 +77,19 @@ func (h *Helium) start(ctx context.Context) {
 }
 
 func (h *Helium) dispatch(status types.ServiceStatus) {
-	h.lock.RLock()
-	defer h.lock.RUnlock()
-	h.subs.Range(func(k, v interface{}) bool {
+	f := func(kv hashmap.KeyValue) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Errorf(context.TODO(), "[dispatch] dispatch %s failed, err: %v", k, err)
+				log.Errorf(context.TODO(), "[dispatch] dispatch %v failed, err: %v", kv.Key, err)
 			}
 		}()
-		c, ok := v.(chan<- types.ServiceStatus)
+		ch, ok := kv.Value.(chan<- types.ServiceStatus)
 		if !ok {
 			log.Error("[WatchServiceStatus] failed to cast channel from map")
-			return true
 		}
-		c <- status
-		return true
-	})
+		ch <- status
+	}
+	for kv := range h.subs.Iter() {
+		f(kv)
+	}
 }
