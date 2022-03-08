@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
+	"unsafe"
 
+	"github.com/cornelk/hashmap"
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/docker"
 	"github.com/projecteru2/core/engine/fake"
@@ -50,7 +51,7 @@ func (ep engineParams) getCacheKey() string {
 // EngineCache .
 type EngineCache struct {
 	cache       *utils.EngineCache
-	keysToCheck sync.Map
+	keysToCheck hashmap.HashMap
 	config      types.Config
 }
 
@@ -58,7 +59,7 @@ type EngineCache struct {
 func NewEngineCache(config types.Config) *EngineCache {
 	return &EngineCache{
 		cache:       utils.NewEngineCache(12*time.Hour, 10*time.Minute),
-		keysToCheck: sync.Map{},
+		keysToCheck: hashmap.HashMap{},
 		config:      config,
 	}
 }
@@ -77,7 +78,7 @@ func (e *EngineCache) Get(key string) engine.API {
 // Set .
 func (e *EngineCache) Set(params engineParams, client engine.API) {
 	e.cache.Set(params.getCacheKey(), client)
-	e.keysToCheck.Store(params, struct{}{})
+	e.keysToCheck.Set(uintptr(unsafe.Pointer(&params)), params)
 }
 
 // Delete .
@@ -98,10 +99,9 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 
 		paramsChan := make(chan engineParams)
 		go func() {
-			e.keysToCheck.Range(func(key, _ interface{}) bool {
-				paramsChan <- key.(engineParams)
-				return true
-			})
+			for kv := range e.keysToCheck.Iter() {
+				paramsChan <- kv.Value.(engineParams)
+			}
 			close(paramsChan)
 		}()
 
@@ -113,7 +113,7 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 				client := e.cache.Get(cacheKey)
 				if client == nil {
 					e.cache.Delete(params.getCacheKey())
-					e.keysToCheck.Delete(params)
+					e.keysToCheck.Del(uintptr(unsafe.Pointer(&params)))
 					return
 				}
 				if _, ok := client.(*fake.Engine); ok {
