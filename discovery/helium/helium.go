@@ -40,6 +40,15 @@ func (h *Helium) Subscribe(ch chan<- types.ServiceStatus) uuid.UUID {
 
 // Unsubscribe .
 func (h *Helium) Unsubscribe(id uuid.UUID) {
+	v, ok := h.subs.GetUintKey(uintptr(id.ID()))
+	if !ok {
+		return
+	}
+	ch, ok := v.(chan<- types.ServiceStatus)
+	if !ok {
+		return
+	}
+	close(ch)
 	h.subs.Del(id.ID())
 }
 
