@@ -96,7 +96,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 						ch <- &types.CreateWorkloadMessage{Error: logger.Err(ctx, err)}
 					}
 				}()
-				return c.withNodesLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) (err error) {
+				return c.withNodesResourceLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) (err error) {
 					// calculate plans
 					if plans, deployMap, err = c.doAllocResource(ctx, nodeMap, opts); err != nil {
 						return err
@@ -137,7 +137,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					return
 				}
 				for nodename, rollbackIndices := range rollbackMap {
-					if e := c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+					if e := c.withNodeResourceLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 						for _, plan := range plans {
 							plan.RollbackChangesOnNode(node, rollbackIndices...) // nolint:scopelint
 						}
@@ -249,12 +249,8 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 	// remap 就不搞进事务了吧, 回滚代价太大了
 	// 放任 remap 失败的后果是, share pool 没有更新, 这个后果姑且认为是可以承受的
 	// 而且 remap 是一个幂等操作, 就算这次 remap 失败, 下次 remap 也能收敛到正确到状态
-	if err := c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
-		c.doRemapResourceAndLog(ctx, logger, node)
-		return nil
-	}); err != nil {
-		logger.Errorf(ctx, "failed to lock node to remap: %v", err)
-	}
+	go c.doRemapResourceAndLog(ctx, logger, node)
+
 	return indices, err
 }
 

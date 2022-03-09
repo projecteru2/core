@@ -206,12 +206,7 @@ func (c *Calcium) doReplaceWorkload(
 		return createMessage, removeMessage, err
 	}
 
-	if err := c.withNodeLocked(ctx, node.Name, func(_ context.Context, node *types.Node) error {
-		c.doRemapResourceAndLog(ctx, log.WithField("Calcium", "doReplaceWorkload"), node)
-		return nil
-	}); err != nil {
-		log.Errorf(ctx, "[replaceAndRemove] failed to lock node to remap: %v", err)
-	}
+	go c.doRemapResourceAndLog(ctx, log.WithField("Calcium", "doReplaceWorkload"), node)
 
 	return createMessage, removeMessage, err
 }

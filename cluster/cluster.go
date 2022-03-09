@@ -30,8 +30,10 @@ const (
 	WorkloadRestart = "restart"
 	// WorkloadLock for lock workload
 	WorkloadLock = "clock_%s"
-	// NodeLock for lock node
-	NodeLock = "cnode_%s_%s"
+	// NodeResourceLock for lock node resource
+	NodeResourceLock = "cnode_%s_%s"
+	// NodeOperationLock for lock node operation
+	NodeOperationLock = "cnode_op_%s_%s"
 )
 
 // Cluster define all interface

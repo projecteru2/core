@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 	"testing"
+	"time"
 
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
@@ -66,9 +67,11 @@ func TestDissociateWorkload(t *testing.T) {
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
+	time.Sleep(time.Second)
 	store.AssertExpectations(t)
 
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
+
 	// success
 	ch, err = c.DissociateWorkload(ctx, []string{"c1"})
 	assert.NoError(t, err)

@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 	"testing"
+	"time"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -362,6 +363,7 @@ func TestReallocBindCpu(t *testing.T) {
 	err = c.ReallocResource(ctx, newReallocOptions("c5", 0.1, 2*int64(units.MiB), nil, types.TriFalse, types.TriKeep))
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(c5.ResourceMeta.CPU))
+	time.Sleep(time.Second)
 	store.AssertExpectations(t)
 
 	store.On("GetWorkload", mock.Anything, "c6").Return(c6, nil)

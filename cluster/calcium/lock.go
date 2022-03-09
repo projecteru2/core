@@ -65,12 +65,20 @@ func (c *Calcium) withWorkloadLocked(ctx context.Context, id string, f func(cont
 	})
 }
 
-func (c *Calcium) withNodeLocked(ctx context.Context, nodename string, f func(context.Context, *types.Node) error) error {
+func (c *Calcium) withNodeResourceLocked(ctx context.Context, nodename string, f func(context.Context, *types.Node) error) error {
+	return c.withNodeLocked(ctx, nodename, cluster.NodeResourceLock, f)
+}
+
+func (c *Calcium) withNodeOperationLocked(ctx context.Context, nodename string, f func(context.Context, *types.Node) error) error {
+	return c.withNodeLocked(ctx, nodename, cluster.NodeOperationLock, f)
+}
+
+func (c *Calcium) withNodeLocked(ctx context.Context, nodename string, lockKeyPattern string, f func(context.Context, *types.Node) error) error {
 	nf := types.NodeFilter{
 		Includes: []string{nodename},
 		All:      true,
 	}
-	return c.withNodesLocked(ctx, nf, func(ctx context.Context, nodes map[string]*types.Node) error {
+	return c.withNodesLocked(ctx, nf, lockKeyPattern, func(ctx context.Context, nodes map[string]*types.Node) error {
 		if n, ok := nodes[nodename]; ok {
 			return f(ctx, n)
 		}
@@ -108,9 +116,17 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(
 	return f(ctx, workloads)
 }
 
+func (c *Calcium) withNodesOperationLocked(ctx context.Context, nf types.NodeFilter, f func(context.Context, map[string]*types.Node) error) error { // nolint
+	return c.withNodesLocked(ctx, nf, cluster.NodeOperationLock, f)
+}
+
+func (c *Calcium) withNodesResourceLocked(ctx context.Context, nf types.NodeFilter, f func(context.Context, map[string]*types.Node) error) error {
+	return c.withNodesLocked(ctx, nf, cluster.NodeResourceLock, f)
+}
+
 // withNodesLocked will using NodeFilter `nf` to filter nodes
 // and lock the corresponding nodes for the callback function `f` to use
-func (c *Calcium) withNodesLocked(ctx context.Context, nf types.NodeFilter, f func(context.Context, map[string]*types.Node) error) error {
+func (c *Calcium) withNodesLocked(ctx context.Context, nf types.NodeFilter, lockKeyPattern string, f func(context.Context, map[string]*types.Node) error) error {
 	nodenames := []string{}
 	nodes := map[string]*types.Node{}
 	locks := map[string]lock.DistributedLock{}
@@ -127,7 +143,7 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nf types.NodeFilter, f fu
 
 	var lock lock.DistributedLock
 	for _, n := range ns {
-		lock, ctx, err = c.doLock(ctx, fmt.Sprintf(cluster.NodeLock, n.Podname, n.Name), c.config.LockTimeout)
+		lock, ctx, err = c.doLock(ctx, fmt.Sprintf(lockKeyPattern, n.Podname, n.Name), c.config.LockTimeout)
 		if err != nil {
 			return err
 		}
