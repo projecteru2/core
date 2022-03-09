@@ -14,6 +14,6 @@ jobs:
     container: projecteru2/footstone:latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: unit tests
         run: make test
