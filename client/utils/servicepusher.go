@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cornelk/hashmap"
@@ -14,6 +15,7 @@ import (
 
 // EndpointPusher pushes endpoints to registered channels if the ep is L3 reachable
 type EndpointPusher struct {
+	sync.Mutex
 	chans              []chan []string
 	pendingEndpoints   hashmap.HashMap
 	availableEndpoints hashmap.HashMap
@@ -36,6 +38,8 @@ func (p *EndpointPusher) Push(endpoints []string) {
 }
 
 func (p *EndpointPusher) delOutdated(endpoints []string) {
+	p.Lock()
+	defer p.Unlock()
 	newEndpoints := make(map[string]struct{}) // TODO after go 1.18, use slice package to search endpoints
 	for _, endpoint := range endpoints {
 		newEndpoints[endpoint] = struct{}{}
@@ -102,6 +106,8 @@ func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) 
 			log.Debugf(ctx, "[EruResolver] reachability goroutine ends: %s", endpoint)
 			return
 		case <-ticker.C:
+			p.Lock()
+			defer p.Unlock()
 			if err := p.checkReachability(parts[0]); err != nil {
 				continue
 			}
