@@ -19,7 +19,6 @@ func (c *Calcium) WatchServiceStatus(ctx context.Context) (<-chan types.ServiceS
 	utils.SentryGo(func() {
 		<-ctx.Done()
 		c.watcher.Unsubscribe(id)
-		close(ch)
 	})
 	return ch, nil
 }

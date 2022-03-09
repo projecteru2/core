@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cornelk/hashmap"
 	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -158,7 +159,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateWorkloadMessage, opts *types.DeployOptions, plans []resourcetypes.ResourcePlans, deployMap map[string]int) (_ map[string][]int, err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(deployMap))
-	syncRollbackMap := sync.Map{}
+	syncRollbackMap := hashmap.HashMap{}
 
 	seq := 0
 	rollbackMap := make(map[string][]int)
@@ -172,7 +173,7 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateWo
 			return func() {
 				defer wg.Done()
 				if indices, err := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, plans, seq); err != nil {
-					syncRollbackMap.Store(nodename, indices)
+					syncRollbackMap.Set(nodename, indices)
 				}
 			}
 		}(nodename, deploy, seq))
@@ -181,12 +182,11 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateWo
 	}
 
 	wg.Wait()
-	syncRollbackMap.Range(func(key, value interface{}) bool {
-		nodename := key.(string)
-		indices := value.([]int)
+	for kv := range syncRollbackMap.Iter() {
+		nodename := kv.Key.(string)
+		indices := kv.Value.([]int)
 		rollbackMap[nodename] = indices
-		return true
-	})
+	}
 	log.Debugf(ctx, "[Calcium.doDeployWorkloads] rollbackMap: %+v", rollbackMap)
 	if len(rollbackMap) != 0 {
 		err = types.ErrRollbackMapIsNotEmpty

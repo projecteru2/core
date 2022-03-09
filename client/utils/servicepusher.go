@@ -8,16 +8,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/projecteru2/core/log"
-
+	"github.com/cornelk/hashmap"
 	"github.com/go-ping/ping"
+	"github.com/projecteru2/core/log"
 )
 
 // EndpointPusher pushes endpoints to registered channels if the ep is L3 reachable
 type EndpointPusher struct {
+	sync.Mutex
 	chans              []chan []string
-	pendingEndpoints   sync.Map
-	availableEndpoints sync.Map
+	pendingEndpoints   hashmap.HashMap
+	availableEndpoints hashmap.HashMap
 }
 
 // NewEndpointPusher .
@@ -37,54 +38,54 @@ func (p *EndpointPusher) Push(endpoints []string) {
 }
 
 func (p *EndpointPusher) delOutdated(endpoints []string) {
-	newEps := make(map[string]struct{})
-	for _, e := range endpoints {
-		newEps[e] = struct{}{}
+	p.Lock()
+	defer p.Unlock()
+	newEndpoints := make(map[string]struct{}) // TODO after go 1.18, use slice package to search endpoints
+	for _, endpoint := range endpoints {
+		newEndpoints[endpoint] = struct{}{}
 	}
 
-	p.pendingEndpoints.Range(func(key, value interface{}) bool {
-		ep, ok := key.(string)
+	for kv := range p.pendingEndpoints.Iter() {
+		endpoint, ok := kv.Key.(string)
 		if !ok {
 			log.Error("[EruResolver] failed to cast key while ranging pendingEndpoints")
-			return true
+			continue
 		}
-		cancel, ok := value.(context.CancelFunc)
+		cancel, ok := kv.Value.(context.CancelFunc)
 		if !ok {
 			log.Error("[EruResolver] failed to cast value while ranging pendingEndpoints")
 		}
-		if _, ok := newEps[ep]; !ok {
+		if _, ok := newEndpoints[endpoint]; !ok {
 			cancel()
-			p.pendingEndpoints.Delete(ep)
-			log.Debugf(nil, "[EruResolver] pending endpoint deleted: %s", ep) //nolint
+			p.pendingEndpoints.Del(endpoint)
+			log.Debugf(nil, "[EruResolver] pending endpoint deleted: %s", endpoint) //nolint
 		}
-		return true
-	})
+	}
 
-	p.availableEndpoints.Range(func(key, _ interface{}) bool {
-		ep, ok := key.(string)
+	for kv := range p.availableEndpoints.Iter() {
+		endpoint, ok := kv.Key.(string)
 		if !ok {
 			log.Error("[EruResolver] failed to cast key while ranging availableEndpoints")
-			return true
+			continue
 		}
-		if _, ok := newEps[ep]; !ok {
-			p.availableEndpoints.Delete(ep)
-			log.Debugf(nil, "[EruResolver] available endpoint deleted: %s", ep) //nolint
+		if _, ok := newEndpoints[endpoint]; !ok {
+			p.availableEndpoints.Del(endpoint)
+			log.Debugf(nil, "[EruResolver] available endpoint deleted: %s", endpoint) //nolint
 		}
-		return true
-	})
+	}
 }
 
 func (p *EndpointPusher) addCheck(endpoints []string) {
 	for _, endpoint := range endpoints {
-		if _, ok := p.pendingEndpoints.Load(endpoint); ok {
+		if _, ok := p.pendingEndpoints.GetStringKey(endpoint); ok {
 			continue
 		}
-		if _, ok := p.availableEndpoints.Load(endpoint); ok {
+		if _, ok := p.availableEndpoints.GetStringKey(endpoint); ok {
 			continue
 		}
 
 		ctx, cancel := context.WithCancel(context.TODO())
-		p.pendingEndpoints.Store(endpoint, cancel)
+		p.pendingEndpoints.Set(endpoint, cancel)
 		go p.pollReachability(ctx, endpoint)
 		log.Debugf(ctx, "[EruResolver] pending endpoint added: %s", endpoint)
 	}
@@ -97,24 +98,25 @@ func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) 
 		return
 	}
 
+	ticker := time.NewTicker(time.Second) // TODO config from outside?
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			log.Debugf(ctx, "[EruResolver] reachability goroutine ends: %s", endpoint)
 			return
-		default:
+		case <-ticker.C:
+			p.Lock()
+			defer p.Unlock()
+			if err := p.checkReachability(parts[0]); err != nil {
+				continue
+			}
+			p.pendingEndpoints.Del(endpoint)
+			p.availableEndpoints.Set(endpoint, struct{}{})
+			p.pushEndpoints()
+			log.Debugf(ctx, "[EruResolver] available endpoint added: %s", endpoint)
+			return
 		}
-
-		time.Sleep(time.Second)
-		if err := p.checkReachability(parts[0]); err != nil {
-			continue
-		}
-
-		p.pendingEndpoints.Delete(endpoint)
-		p.availableEndpoints.Store(endpoint, struct{}{})
-		p.pushEndpoints()
-		log.Debugf(ctx, "[EruResolver] available endpoint added: %s", endpoint)
-		return
 	}
 }
 
@@ -140,15 +142,14 @@ func (p *EndpointPusher) checkReachability(host string) (err error) {
 
 func (p *EndpointPusher) pushEndpoints() {
 	endpoints := []string{}
-	p.availableEndpoints.Range(func(key, value interface{}) bool {
-		endpoint, ok := key.(string)
+	for kv := range p.availableEndpoints.Iter() {
+		endpoint, ok := kv.Key.(string)
 		if !ok {
 			log.Error("[EruResolver] failed to cast key while ranging availableEndpoints")
-			return true
+			continue
 		}
 		endpoints = append(endpoints, endpoint)
-		return true
-	})
+	}
 	for _, ch := range p.chans {
 		ch <- endpoints
 	}
