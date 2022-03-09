@@ -34,10 +34,21 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: |
-            ${{ github.repository }} 
             ghcr.io/${{ github.repository }}
+            ${{ github.repository }}
           tags: |
             type=ref,event=tag
+
+      - name: Docker meta for debug version
+        if: ${{ github.ref == 'refs/heads/master' }}
+        id: debug-meta
+        uses: docker/metadata-action@v3
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+            ${{ github.repository }}
+          tags: |
+            type=sha,format=long,prefix=
 
       - name: Build and push image
         if: ${{ steps.meta.outputs.tags != '' }}
@@ -48,12 +59,11 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
 
       - name: "[debug version] Build and push image"
+        if: ${{ github.ref == 'refs/heads/master' }}
         uses: docker/build-push-action@v2
         with:
           context: "."
           push: true
-          build_args: |
+          build-args: |
             KEEP_SYMBOL=1
-          tags: |
-            ${{ github.repository }}:${{ github.sha }}-debug
-            ghcr.io/${{ github.repository }}:${{ github.sha }}-debug
+          tags: ${{ steps.debug-meta.outputs.tags }}
