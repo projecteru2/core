@@ -13,17 +13,22 @@ import (
 	"github.com/google/uuid"
 )
 
+const interval = 15 * time.Second
+
 // Helium .
 type Helium struct {
 	sync.Once
-	config types.GRPCConfig
-	stor   store.Store
-	subs   hashmap.HashMap
+	stor     store.Store
+	subs     hashmap.HashMap
+	interval time.Duration
 }
 
 // New .
 func New(config types.GRPCConfig, stor store.Store) *Helium {
-	h := &Helium{config: config, stor: stor, subs: hashmap.HashMap{}}
+	h := &Helium{interval: config.ServiceDiscoveryPushInterval, stor: stor, subs: hashmap.HashMap{}}
+	if h.interval < time.Second {
+		h.interval = interval
+	}
 	h.Do(func() {
 		h.start(context.TODO()) // TODO rewrite ctx here, because this will run only once!
 	})
@@ -63,7 +68,8 @@ func (h *Helium) start(ctx context.Context) {
 		log.Info("[WatchServiceStatus] service discovery start")
 		defer log.Error("[WatchServiceStatus] service discovery exited")
 		var latestStatus types.ServiceStatus
-		timer := time.NewTimer(h.config.ServiceDiscoveryPushInterval)
+		ticker := time.NewTicker(h.interval)
+		defer ticker.Stop()
 		for {
 			select {
 			case addresses, ok := <-ch:
@@ -74,13 +80,11 @@ func (h *Helium) start(ctx context.Context) {
 
 				latestStatus = types.ServiceStatus{
 					Addresses: addresses,
-					Interval:  h.config.ServiceDiscoveryPushInterval * 2,
+					Interval:  h.interval * 2,
 				}
-			case <-timer.C:
+			case <-ticker.C:
 			}
 			h.dispatch(latestStatus)
-			timer.Stop()
-			timer.Reset(h.config.ServiceDiscoveryPushInterval)
 		}
 	}()
 }

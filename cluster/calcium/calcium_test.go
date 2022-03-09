@@ -53,6 +53,9 @@ func NewTestCluster() *Calcium {
 			MaxShare:  -1,
 			ShareBase: 100,
 		},
+		GRPCConfig: types.GRPCConfig{
+			ServiceDiscoveryPushInterval: 15 * time.Second,
+		},
 		WALFile:             filepath.Join(walDir, "core.wal.log"),
 		MaxConcurrency:      10,
 		HAKeepaliveInterval: 16 * time.Second,
