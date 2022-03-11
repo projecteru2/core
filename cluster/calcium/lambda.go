@@ -13,7 +13,6 @@ import (
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	"github.com/projecteru2/core/wal"
 
 	"github.com/pkg/errors"
 )
@@ -68,7 +67,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			}
 		}
 
-		commit, err := c.walCreateLambda(message)
+		commit, err := c.wal.Log(eventCreateLambda, message.WorkloadID)
 		if err != nil {
 			return &types.AttachWorkloadMessage{
 				WorkloadID:    message.WorkloadID,
@@ -196,8 +195,4 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	})
 
 	return workloadIDs, runMsgCh, nil
-}
-
-func (c *Calcium) walCreateLambda(opts *types.CreateWorkloadMessage) (wal.Commit, error) {
-	return c.wal.logCreateLambda(opts)
 }

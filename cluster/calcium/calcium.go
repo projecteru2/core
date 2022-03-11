@@ -68,7 +68,7 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 	watcher := helium.New(config.GRPCConfig, store)
 
 	cal := &Calcium{store: store, config: config, scheduler: potassium, source: scm, watcher: watcher}
-	cal.wal, err = newCalciumWAL(cal)
+	cal.wal, err = newWAL(config, cal)
 	cal.identifier = config.Identifier()
 
 	return cal, logger.Err(nil, errors.WithStack(err)) //nolint

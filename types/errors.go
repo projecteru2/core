@@ -87,6 +87,7 @@ var (
 	ErrEntityNotExists   = errors.New("entity not exists")
 
 	ErrUnregisteredWALEventType = errors.New("unregistered WAL event type")
+	ErrBadWALEvent              = errors.New("bad WAL event type")
 	ErrInvalidWALBucket         = errors.New("invalid WAL bucket")
 	ErrInvalidType              = errors.New("invalid type")
 	ErrLockSessionDone          = errors.New("lock session done")

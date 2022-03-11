@@ -6,12 +6,14 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/cornelk/hashmap"
 )
 
 // MockedKV .
 type MockedKV struct {
 	sync.Mutex
-	pool    sync.Map
+	pool    hashmap.HashMap
 	nextSeq uint64
 }
 
@@ -29,16 +31,9 @@ func (m *MockedKV) Open(path string, mode os.FileMode, timeout time.Duration) er
 
 // Close .
 func (m *MockedKV) Close() error {
-	keys := []interface{}{}
-	m.pool.Range(func(key, _ interface{}) bool {
-		keys = append(keys, key)
-		return true
-	})
-
-	for _, key := range keys {
-		m.pool.Delete(key)
+	for kv := range m.pool.Iter() {
+		m.pool.Del(kv.Key)
 	}
-
 	return nil
 }
 
@@ -53,13 +48,13 @@ func (m *MockedKV) NextSequence() (nextSeq uint64, err error) {
 
 // Put .
 func (m *MockedKV) Put(key, value []byte) (err error) {
-	m.pool.Store(string(key), value)
+	m.pool.Set(string(key), value)
 	return
 }
 
 // Get .
 func (m *MockedKV) Get(key []byte) (value []byte, err error) {
-	raw, ok := m.pool.Load(string(key))
+	raw, ok := m.pool.GetStringKey(string(key))
 	if !ok {
 		err = fmt.Errorf("no such key: %s", key)
 		return
@@ -74,7 +69,7 @@ func (m *MockedKV) Get(key []byte) (value []byte, err error) {
 
 // Delete .
 func (m *MockedKV) Delete(key []byte) (err error) {
-	m.pool.Delete(string(key))
+	m.pool.Del(string(key))
 	return
 }
 
@@ -89,35 +84,36 @@ func (m *MockedKV) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 
 	go func() {
 		defer close(ch)
+		dataCh := m.pool.Iter()
 
-		m.pool.Range(func(rkey, rvalue interface{}) (next bool) {
-			var entry MockedScanEntry
-			defer func() {
-				select {
-				case <-exit:
-					next = false
-				case ch <- entry:
-					next = true
+		for {
+			select {
+			case <-exit:
+				return
+			case kv := <-dataCh:
+				var entry MockedScanEntry
+				var ok bool
+
+				if kv.Key == nil {
+					return
 				}
-			}()
 
-			var ok bool
-			if entry.Key, ok = rkey.(string); !ok {
-				entry.Err = fmt.Errorf("key must be a string, but %v", rkey)
-				return
+				if entry.Key, ok = kv.Key.(string); !ok {
+					entry.Err = fmt.Errorf("key must be a string, but %v", kv.Key)
+					continue
+				}
+
+				if !strings.HasPrefix(entry.Key, string(prefix)) {
+					continue
+				}
+
+				if entry.Value, ok = kv.Value.([]byte); !ok {
+					entry.Err = fmt.Errorf("value must be a []byte, but %v", kv.Value)
+					continue
+				}
+				ch <- entry
 			}
-
-			if !strings.HasPrefix(entry.Key, string(prefix)) {
-				return
-			}
-
-			if entry.Value, ok = rvalue.([]byte); !ok {
-				entry.Err = fmt.Errorf("value must be a []byte, but %v", rvalue)
-				return
-			}
-
-			return
-		})
+		}
 	}()
 
 	return ch, abort

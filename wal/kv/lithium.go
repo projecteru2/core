@@ -95,7 +95,6 @@ func (l *Lithium) Delete(key []byte) error {
 // Scan scans all the key/value pairs.
 func (l *Lithium) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 	ch := make(chan ScanEntry)
-	locked := make(chan struct{})
 
 	exit := make(chan struct{})
 	abort := func() {
@@ -104,8 +103,6 @@ func (l *Lithium) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 
 	go func() {
 		defer close(ch)
-
-		close(locked)
 
 		scan := func(bkt *bbolt.Bucket) error {
 			c := bkt.Cursor()
@@ -126,9 +123,6 @@ func (l *Lithium) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 			}
 		}
 	}()
-
-	// Makes sure that the scan goroutine has been locked.
-	<-locked
 
 	return ch, abort
 }
