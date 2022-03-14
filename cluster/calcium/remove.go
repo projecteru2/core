@@ -45,7 +45,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool) 
 									},
 									// then
 									func(ctx context.Context) (err error) {
-										if err = c.doRemoveWorkload(ctx, workload, force); err != nil {
+										if err = c.doRemoveWorkload(ctx, workload, force); err == nil {
 											log.Infof(ctx, "[RemoveWorkload] Workload %s removed", workload.ID)
 										}
 										return err
@@ -110,6 +110,7 @@ func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, ids []string) error 
 	}
 
 	for m := range ch {
+		// TODO deal with failed
 		log.Debugf(ctx, "[doRemoveWorkloadSync] Removed %s", m.WorkloadID)
 	}
 	return nil

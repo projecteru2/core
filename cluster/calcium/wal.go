@@ -169,18 +169,7 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (er
 	defer cancel()
 
 	if _, err = h.calcium.GetWorkload(ctx, wrk.ID); err == nil {
-		// workload meta exists
-		ch, err := h.calcium.RemoveWorkload(ctx, []string{wrk.ID}, true)
-		if err != nil {
-			return logger.Err(ctx, err)
-		}
-		for msg := range ch {
-			if !msg.Success {
-				logger.Errorf(ctx, "failed to remove workload")
-			}
-		}
-		logger.Infof(ctx, "workload with meta removed")
-		return nil
+		return h.calcium.doRemoveWorkloadSync(ctx, []string{wrk.ID})
 	}
 
 	// workload meta doesn't exist
