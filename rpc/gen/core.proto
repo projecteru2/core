@@ -281,7 +281,6 @@ message WorkloadIDs {
 message RemoveWorkloadOptions {
   repeated string ids = 1;
   bool force = 2;
-  int32 step = 3;
 }
 
 message DissociateWorkloadOptions {

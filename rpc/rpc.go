@@ -762,12 +762,11 @@ func (v *Vibranium) RemoveWorkload(opts *pb.RemoveWorkloadOptions, stream pb.Cor
 
 	ids := opts.GetIds()
 	force := opts.GetForce()
-	step := int(opts.GetStep())
 
 	if len(ids) == 0 {
 		return types.ErrNoWorkloadIDs
 	}
-	ch, err := v.cluster.RemoveWorkload(task.context, ids, force, step)
+	ch, err := v.cluster.RemoveWorkload(task.context, ids, force)
 	if err != nil {
 		return grpcstatus.Error(ReplaceWorkload, err.Error())
 	}

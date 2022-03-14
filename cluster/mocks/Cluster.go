@@ -744,13 +744,13 @@ func (_m *Cluster) RemovePod(ctx context.Context, podname string) error {
 	return r0
 }
 
-// RemoveWorkload provides a mock function with given fields: ctx, ids, force, step
-func (_m *Cluster) RemoveWorkload(ctx context.Context, ids []string, force bool, step int) (chan *types.RemoveWorkloadMessage, error) {
-	ret := _m.Called(ctx, ids, force, step)
+// RemoveWorkload provides a mock function with given fields: ctx, ids, force
+func (_m *Cluster) RemoveWorkload(ctx context.Context, ids []string, force bool) (chan *types.RemoveWorkloadMessage, error) {
+	ret := _m.Called(ctx, ids, force)
 
 	var r0 chan *types.RemoveWorkloadMessage
-	if rf, ok := ret.Get(0).(func(context.Context, []string, bool, int) chan *types.RemoveWorkloadMessage); ok {
-		r0 = rf(ctx, ids, force, step)
+	if rf, ok := ret.Get(0).(func(context.Context, []string, bool) chan *types.RemoveWorkloadMessage); ok {
+		r0 = rf(ctx, ids, force)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(chan *types.RemoveWorkloadMessage)
@@ -758,8 +758,8 @@ func (_m *Cluster) RemoveWorkload(ctx context.Context, ids []string, force bool,
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, []string, bool, int) error); ok {
-		r1 = rf(ctx, ids, force, step)
+	if rf, ok := ret.Get(1).(func(context.Context, []string, bool) error); ok {
+		r1 = rf(ctx, ids, force)
 	} else {
 		r1 = ret.Error(1)
 	}

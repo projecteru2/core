@@ -170,7 +170,7 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (er
 
 	if _, err = h.calcium.GetWorkload(ctx, wrk.ID); err == nil {
 		// workload meta exists
-		ch, err := h.calcium.RemoveWorkload(ctx, []string{wrk.ID}, true, 0)
+		ch, err := h.calcium.RemoveWorkload(ctx, []string{wrk.ID}, true)
 		if err != nil {
 			return logger.Err(ctx, err)
 		}
