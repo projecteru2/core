@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 	"testing"
+	"time"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
@@ -60,6 +61,7 @@ func TestRemoveWorkload(t *testing.T) {
 		assert.False(t, r.Success)
 	}
 	assert.NoError(t, c.doRemoveWorkloadSync(ctx, []string{"xx"}))
+	time.Sleep(time.Second)
 	store.AssertExpectations(t)
 
 	// success

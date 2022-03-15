@@ -81,20 +81,20 @@ func (_m *API) CloseConn() error {
 	return r0
 }
 
-// ExecExitCode provides a mock function with given fields: ctx, ID, result
-func (_m *API) ExecExitCode(ctx context.Context, ID string, result string) (int, error) {
-	ret := _m.Called(ctx, ID, result)
+// ExecExitCode provides a mock function with given fields: ctx, ID, execID
+func (_m *API) ExecExitCode(ctx context.Context, ID string, execID string) (int, error) {
+	ret := _m.Called(ctx, ID, execID)
 
 	var r0 int
 	if rf, ok := ret.Get(0).(func(context.Context, string, string) int); ok {
-		r0 = rf(ctx, ID, result)
+		r0 = rf(ctx, ID, execID)
 	} else {
 		r0 = ret.Get(0).(int)
 	}
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, ID, result)
+		r1 = rf(ctx, ID, execID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -102,13 +102,13 @@ func (_m *API) ExecExitCode(ctx context.Context, ID string, result string) (int,
 	return r0, r1
 }
 
-// ExecResize provides a mock function with given fields: ctx, ID, result, height, width
-func (_m *API) ExecResize(ctx context.Context, ID string, result string, height uint, width uint) error {
-	ret := _m.Called(ctx, ID, result, height, width)
+// ExecResize provides a mock function with given fields: ctx, execID, height, width
+func (_m *API) ExecResize(ctx context.Context, execID string, height uint, width uint) error {
+	ret := _m.Called(ctx, execID, height, width)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, uint, uint) error); ok {
-		r0 = rf(ctx, ID, result, height, width)
+	if rf, ok := ret.Get(0).(func(context.Context, string, uint, uint) error); ok {
+		r0 = rf(ctx, execID, height, width)
 	} else {
 		r0 = ret.Error(0)
 	}

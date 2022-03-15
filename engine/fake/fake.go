@@ -30,12 +30,12 @@ func (f *Engine) CloseConn() error {
 }
 
 // Execute .
-func (f *Engine) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (result string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
+func (f *Engine) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	return "", nil, nil, nil, f.DefaultErr
 }
 
 // ExecResize .
-func (f *Engine) ExecResize(ctx context.Context, ID, result string, height, width uint) (err error) {
+func (f *Engine) ExecResize(ctx context.Context, execID string, height, width uint) (err error) {
 	return f.DefaultErr
 }
 

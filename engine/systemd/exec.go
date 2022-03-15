@@ -15,13 +15,13 @@ func (e *Engine) Execute(ctx context.Context, target string, config *enginetypes
 }
 
 // ExecResize resize the terminal size
-func (e *Engine) ExecResize(ctx context.Context, ID, result string, height, width uint) (err error) {
+func (e *Engine) ExecResize(ctx context.Context, execID string, height, width uint) (err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }
 
 // ExecExitCode fetches exceuction exit code
-func (e *Engine) ExecExitCode(ctx context.Context, ID, pid string) (execCode int, err error) {
+func (e *Engine) ExecExitCode(ctx context.Context, ID, execID string) (execCode int, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }

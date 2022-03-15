@@ -15,9 +15,9 @@ type API interface {
 	Ping(ctx context.Context) error
 	CloseConn() error
 
-	Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (result string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error)
-	ExecResize(ctx context.Context, ID, result string, height, width uint) (err error)
-	ExecExitCode(ctx context.Context, ID, result string) (int, error)
+	Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error)
+	ExecResize(ctx context.Context, execID string, height, width uint) (err error)
+	ExecExitCode(ctx context.Context, ID, execID string) (int, error)
 
 	NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) ([]string, error)
 	NetworkDisconnect(ctx context.Context, network, target string, force bool) error
