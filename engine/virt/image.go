@@ -150,7 +150,7 @@ func (v *Virt) ImageRemoteDigest(ctx context.Context, image string) (string, err
 		return "", err
 	}
 
-	digests, err := v.client.DigestImage(ctx, imgName, true)
+	digests, err := v.client.DigestImage(ctx, imgName, false)
 	switch {
 	case err != nil:
 		return "", err
