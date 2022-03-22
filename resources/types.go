@@ -125,27 +125,6 @@ type SetNodeResourceCapacityResponse struct {
 	After  types.NodeResourceArgs `json:"after"`
 }
 
-// UpdateNodeResourceUsageRequest .
-type UpdateNodeResourceUsageRequest struct {
-	NodeName     string                       `json:"node"`
-	ResourceArgs []types.WorkloadResourceArgs `json:"resource-args"`
-	Decr         bool                         `json:"decr"`
-}
-
-// UpdateNodeResourceUsageResponse .
-type UpdateNodeResourceUsageResponse struct{}
-
-// UpdateNodeResourceCapacityRequest .
-type UpdateNodeResourceCapacityRequest struct {
-	NodeName     string                 `json:"node"`
-	ResourceOpts types.NodeResourceOpts `json:"resource-opts"`
-	Decr         bool                   `json:"decr"`
-	Delta        bool                   `json:"delta"`
-}
-
-// UpdateNodeResourceCapacityResponse .
-type UpdateNodeResourceCapacityResponse struct{}
-
 // AddNodeRequest .
 type AddNodeRequest struct {
 	NodeName     string                 `json:"node"`
@@ -176,3 +155,36 @@ type GetMostIdleNodeResponse struct {
 	NodeName string `json:"node"`
 	Priority int    `json:"priority"`
 }
+
+// GetMetricsDescriptionRequest .
+type GetMetricsDescriptionRequest struct{}
+
+// MetricsDescription .
+type MetricsDescription struct {
+	Name   string   `json:"name"`
+	Help   string   `json:"help"`
+	Type   string   `json:"type"`
+	Labels []string `json:"labels"`
+}
+
+// GetMetricsDescriptionResponse .
+type GetMetricsDescriptionResponse []*MetricsDescription
+
+// ResolveNodeResourceInfoToMetricsRequest .
+type ResolveNodeResourceInfoToMetricsRequest struct {
+	PodName  string                 `json:"pod"`
+	NodeName string                 `json:"node"`
+	Capacity types.NodeResourceArgs `json:"capacity"`
+	Usage    types.NodeResourceArgs `json:"usage"`
+}
+
+// Metrics .
+type Metrics struct {
+	Name   string   `json:"name"`
+	Labels []string `json:"labels"`
+	Key    string   `json:"key"`
+	Value  string   `json:"value"`
+}
+
+// ResolveNodeResourceInfoToMetricsResponse .
+type ResolveNodeResourceInfoToMetricsResponse []*Metrics

@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/projecteru2/core/auth"
 	"github.com/projecteru2/core/cluster/calcium"
 	"github.com/projecteru2/core/engine/factory"
@@ -67,11 +69,6 @@ func serve(c *cli.Context) error {
 		defer sentryDefer()
 	}
 
-	if err := metrics.InitMetrics(config); err != nil {
-		log.Errorf(nil, "[main] %v", err) //nolint
-		return err
-	}
-
 	// init engine cache and start engine cache checker
 	factory.InitEngineCache(c.Context, config)
 
@@ -117,7 +114,7 @@ func serve(c *cli.Context) error {
 	})
 
 	if config.Profile != "" {
-		// TODO: http.Handle("/metrics", metrics.Client.ResourceMiddleware(cluster)(promhttp.Handler()))
+		http.Handle("/metrics", metrics.Client.ResourceMiddleware(cluster)(promhttp.Handler()))
 		utils.SentryGo(func() {
 			if err := http.ListenAndServe(config.Profile, nil); err != nil {
 				log.Errorf(nil, "[main] start http failed %v", err) //nolint

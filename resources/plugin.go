@@ -14,17 +14,19 @@ const (
 	// Decr decrease
 	Decr = false
 
-	getNodesCapacityCommand        = "get-capacity"
-	getNodeResourceInfoCommand     = "get-node"
-	setNodeResourceInfoCommand     = "set-node"
-	setNodeResourceUsageCommand    = "set-node-usage"
-	setNodeResourceCapacityCommand = "set-node-capacity"
-	getDeployArgsCommand           = "get-deploy-args"
-	getReallocArgsCommand          = "get-realloc-args"
-	getRemapArgsCommand            = "get-remap-args"
-	addNodeCommand                 = "add-node"
-	removeNodeCommand              = "remove-node"
-	getMostIdleNodeCommand         = "get-idle"
+	getNodesCapacityCommand                 = "get-capacity"
+	getNodeResourceInfoCommand              = "get-node"
+	setNodeResourceInfoCommand              = "set-node"
+	setNodeResourceUsageCommand             = "set-node-usage"
+	setNodeResourceCapacityCommand          = "set-node-capacity"
+	getDeployArgsCommand                    = "get-deploy-args"
+	getReallocArgsCommand                   = "get-realloc-args"
+	getRemapArgsCommand                     = "get-remap-args"
+	addNodeCommand                          = "add-node"
+	removeNodeCommand                       = "remove-node"
+	getMostIdleNodeCommand                  = "get-idle"
+	getMetricsDescriptionCommand            = "desc-metrics"
+	resolveNodeResourceInfoToMetricsCommand = "resolve-metrics"
 )
 
 type Plugin interface {
@@ -72,6 +74,12 @@ type Plugin interface {
 
 	// RemoveNode removes node
 	RemoveNode(ctx context.Context, nodeName string) (*RemoveNodeResponse, error)
+
+	// GetMetricsDescription returns metrics description
+	GetMetricsDescription(ctx context.Context) (*GetMetricsDescriptionResponse, error)
+
+	// ResolveNodeResourceInfoToMetrics resolves node resource info to metrics
+	ResolveNodeResourceInfoToMetrics(ctx context.Context, podName string, nodeName string, nodeResourceInfo *NodeResourceInfo) (*ResolveNodeResourceInfoToMetricsResponse, error)
 
 	// Name returns the name of plugin
 	Name() string

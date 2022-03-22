@@ -1,25 +1,24 @@
 package metrics
 
 import (
-	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 
 	statsdlib "github.com/CMGS/statsd"
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/exp/maps"
 )
 
 const (
-	//cpuMap           = "core.node.%s.cpu.%s"
-	//memStats         = "core.node.%s.memory"
-	//storageStats     = "core.node.%s.storage"
-	//memUsedStats     = "core.node.%s.memory.used"
-	//storageUsedStats = "core.node.%s.storage.used"
-	//cpuUsedStats     = "core.node.%s.cpu.used"
-	deployCount = "core.%s.deploy.count"
+	deployCountKey  = "core.%s.deploy.count"
+	deployCountName = "core_deploy"
+	gaugeType       = "gauge"
+	counterType     = "counter"
 )
 
 // Metrics define metrics
@@ -30,13 +29,7 @@ type Metrics struct {
 	Hostname     string
 	statsdClient *statsdlib.Client
 
-	MemoryCapacity  *prometheus.GaugeVec
-	MemoryUsed      *prometheus.GaugeVec
-	StorageCapacity *prometheus.GaugeVec
-	StorageUsed     *prometheus.GaugeVec
-	CPUMap          *prometheus.GaugeVec
-	CPUUsed         *prometheus.GaugeVec
-	DeployCount     *prometheus.CounterVec
+	Collectors map[string]prometheus.Collector
 }
 
 // Lazy connect
@@ -56,15 +49,21 @@ func (m *Metrics) checkConn() error {
 	return nil
 }
 
-//func (m *Metrics) gauge(key string, value float64) error {
-//	if err := m.checkConn(); err != nil {
-//		return err
-//	}
-//	m.statsdClient.Gauge(key, value)
-//	return nil
-//}
-//
+func (m *Metrics) gauge(key string, value float64) error {
+	if m.StatsdAddr == "" {
+		return nil
+	}
+	if err := m.checkConn(); err != nil {
+		return err
+	}
+	m.statsdClient.Gauge(key, value)
+	return nil
+}
+
 func (m *Metrics) count(key string, n int, rate float32) error {
+	if m.StatsdAddr == "" {
+		return nil
+	}
 	if err := m.checkConn(); err != nil {
 		return err
 	}
@@ -72,92 +71,47 @@ func (m *Metrics) count(key string, n int, rate float32) error {
 	return nil
 }
 
-//
-//// SendNodeInfo update node resource capacity
-//func (m *Metrics) SendNodeInfo(nm *types.NodeMetrics) {
-//	nodename := nm.Name
-//	podname := nm.Podname
-//	memory := nm.Memory
-//	memoryUsed := nm.MemoryUsed
-//	storage := nm.Storage
-//	storageUsed := nm.StorageUsed
-//	cpuUsed := nm.CPUUsed
-//
-//	if m.MemoryCapacity != nil {
-//		m.MemoryCapacity.WithLabelValues(podname, nodename).Set(memory)
-//	}
-//
-//	if m.MemoryUsed != nil {
-//		m.MemoryUsed.WithLabelValues(podname, nodename).Set(memoryUsed)
-//	}
-//
-//	if m.StorageCapacity != nil {
-//		m.StorageCapacity.WithLabelValues(podname, nodename).Set(storage)
-//	}
-//
-//	if m.StorageUsed != nil {
-//		m.StorageUsed.WithLabelValues(podname, nodename).Set(storageUsed)
-//	}
-//
-//	if m.CPUUsed != nil {
-//		m.CPUUsed.WithLabelValues(podname, nodename).Set(cpuUsed)
-//	}
-//
-//	cleanedNodeName := utils.CleanStatsdMetrics(nodename)
-//	for cpuid, value := range nm.CPU {
-//		val := float64(value)
-//
-//		if m.CPUMap != nil {
-//			m.CPUMap.WithLabelValues(podname, nodename, cpuid).Set(val)
-//		}
-//
-//		if m.StatsdAddr == "" {
-//			continue
-//		}
-//
-//		if err := m.gauge(fmt.Sprintf(cpuMap, cleanedNodeName, cpuid), val); err != nil {
-//			log.Errorf(nil, "[SendNodeInfo] Error occurred while sending cpu data to statsd: %v", err) //nolint
-//		}
-//	}
-//
-//	if m.StatsdAddr == "" {
-//		return
-//	}
-//
-//	if err := m.gauge(fmt.Sprintf(memStats, cleanedNodeName), memory); err != nil {
-//		log.Errorf(nil, "[SendNodeInfo] Error occurred while sending memory data to statsd: %v", err) //nolint
-//	}
-//
-//	if err := m.gauge(fmt.Sprintf(storageStats, cleanedNodeName), storage); err != nil {
-//		log.Errorf(nil, "[SendNodeInfo] Error occurred while sending storage data to statsd: %v", err) //nolint
-//	}
-//
-//	if err := m.gauge(fmt.Sprintf(memUsedStats, cleanedNodeName), memoryUsed); err != nil {
-//		log.Errorf(nil, "[SendNodeInfo] Error occurred while sending memory used data to statsd: %v", err) //nolint
-//	}
-//
-//	if err := m.gauge(fmt.Sprintf(storageUsedStats, cleanedNodeName), storageUsed); err != nil {
-//		log.Errorf(nil, "[SendNodeInfo] Error occurred while sending storage used data to statsd: %v", err) //nolint
-//	}
-//
-//	if err := m.gauge(fmt.Sprintf(cpuUsedStats, cleanedNodeName), cpuUsed); err != nil {
-//		log.Errorf(nil, "[SendNodeInfo] Error occurred while sending cpu used data to statsd: %v", err) //nolint
-//	}
-//}
-
 // SendDeployCount update deploy counter
 func (m *Metrics) SendDeployCount(n int) {
 	log.Info("[Metrics] Update deploy counter")
-	if m.DeployCount != nil {
-		m.DeployCount.WithLabelValues(m.Hostname).Add(float64(n))
+	metrics := &resources.Metrics{
+		Name:   deployCountName,
+		Labels: []string{m.Hostname},
+		Key:    deployCountKey,
+		Value:  strconv.Itoa(n),
 	}
 
-	if m.StatsdAddr == "" {
-		return
-	}
-	key := fmt.Sprintf(deployCount, m.Hostname)
-	if err := m.count(key, n, 1.0); err != nil {
-		log.Errorf(nil, "[SendDeployCount] Error occurred while counting: %v", err) //nolint
+	m.SendMetrics(metrics)
+}
+
+// SendMetrics update metrics
+func (m *Metrics) SendMetrics(metrics ...*resources.Metrics) {
+	for _, metric := range metrics {
+		collector, ok := m.Collectors[metric.Name]
+		if !ok {
+			log.Errorf(nil, "[SendMetrics] Collector not found: %s", metric.Name) //nolint
+			continue
+		}
+		switch collector.(type) {
+		case *prometheus.GaugeVec:
+			value, err := strconv.ParseFloat(metric.Value, 64)
+			if err != nil {
+				log.Errorf(nil, "[SendMetrics] Error occurred while parsing %v value %v: %v", metric.Name, metric.Value, err) //nolint
+			}
+			collector.(*prometheus.GaugeVec).WithLabelValues(metric.Labels...).Set(value)
+			if err := m.gauge(metric.Key, value); err != nil {
+				log.Errorf(nil, "[SendMetrics] Error occurred while sending %v data to statsd: %v", metric.Name, err) //nolint
+			}
+		case *prometheus.CounterVec:
+			value, err := strconv.ParseInt(metric.Value, 10, 32)
+			if err != nil {
+				log.Errorf(nil, "[SendMetrics] Error occurred while parsing %v value %v: %v", metric.Name, metric.Value, err) //nolint
+			}
+			collector.(*prometheus.CounterVec).WithLabelValues(metric.Labels...).Add(float64(value))
+			if err := m.count(metric.Key, int(value), 1.0); err != nil {
+				log.Errorf(nil, "[SendMetrics] Error occurred while sending %v data to statsd: %v", metric.Name, err) //nolint
+			}
+		}
 	}
 }
 
@@ -165,7 +119,7 @@ func (m *Metrics) SendDeployCount(n int) {
 var Client = Metrics{}
 
 // InitMetrics new a metrics obj
-func InitMetrics(config types.Config) error {
+func InitMetrics(config types.Config, metricsDescriptions []*resources.MetricsDescription) error {
 	hostname, err := os.Hostname()
 	if err != nil {
 		return err
@@ -174,47 +128,26 @@ func InitMetrics(config types.Config) error {
 		Config:     config,
 		StatsdAddr: config.Statsd,
 		Hostname:   utils.CleanStatsdMetrics(hostname),
+		Collectors: map[string]prometheus.Collector{},
 	}
 
-	Client.MemoryCapacity = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "memory_capacity",
-		Help: "node available memory.",
-	}, []string{"podname", "nodename"})
+	for _, desc := range metricsDescriptions {
+		switch desc.Type {
+		case gaugeType:
+			collector := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+				Name: desc.Name,
+				Help: desc.Help,
+			}, desc.Labels)
+			Client.Collectors[desc.Name] = collector
+		case counterType:
+			collector := prometheus.NewCounterVec(prometheus.CounterOpts{
+				Name: desc.Name,
+				Help: desc.Help,
+			}, desc.Labels)
+			Client.Collectors[desc.Name] = collector
+		}
+	}
 
-	Client.MemoryUsed = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "memory_used",
-		Help: "node used memory.",
-	}, []string{"podname", "nodename"})
-
-	Client.StorageCapacity = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "storage_capacity",
-		Help: "node available storage.",
-	}, []string{"podname", "nodename"})
-
-	Client.StorageUsed = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "storage_used",
-		Help: "node used storage.",
-	}, []string{"podname", "nodename"})
-
-	Client.CPUMap = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "cpu_map",
-		Help: "node available cpu.",
-	}, []string{"podname", "nodename", "cpuid"})
-
-	Client.CPUUsed = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "cpu_used",
-		Help: "node used cpu.",
-	}, []string{"podname", "nodename"})
-
-	Client.DeployCount = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "core_deploy",
-		Help: "core deploy counter",
-	}, []string{"hostname"})
-
-	prometheus.MustRegister(
-		Client.DeployCount, Client.MemoryCapacity,
-		Client.StorageCapacity, Client.CPUMap,
-		Client.MemoryUsed, Client.StorageUsed, Client.CPUUsed,
-	)
+	prometheus.MustRegister(maps.Values(Client.Collectors)...)
 	return nil
 }

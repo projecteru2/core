@@ -275,3 +275,22 @@ func (bp *BinaryPlugin) GetMostIdleNode(ctx context.Context, nodeNames []string)
 func (bp *BinaryPlugin) Name() string {
 	return path.Base(bp.path)
 }
+
+// GetMetricsDescription .
+func (bp *BinaryPlugin) GetMetricsDescription(ctx context.Context) (*GetMetricsDescriptionResponse, error) {
+	req := GetMetricsDescriptionRequest{}
+	resp := &GetMetricsDescriptionResponse{}
+	return resp, bp.call(ctx, getMetricsDescriptionCommand, req, resp)
+}
+
+// ResolveNodeResourceInfoToMetrics .
+func (bp *BinaryPlugin) ResolveNodeResourceInfoToMetrics(ctx context.Context, podName string, nodeName string, nodeResourceInfo *NodeResourceInfo) (*ResolveNodeResourceInfoToMetricsResponse, error) {
+	req := ResolveNodeResourceInfoToMetricsRequest{
+		PodName:  podName,
+		NodeName: nodeName,
+		Capacity: nodeResourceInfo.Capacity,
+		Usage:    nodeResourceInfo.Usage,
+	}
+	resp := &ResolveNodeResourceInfoToMetricsResponse{}
+	return resp, bp.call(ctx, resolveNodeResourceInfoToMetricsCommand, req, resp)
+}

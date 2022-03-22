@@ -307,3 +307,26 @@ func (v *VolumePlugin) getNodeResourceInfo(ctx context.Context, nodeName string,
 	}, resp)
 	return resp, err
 }
+
+// GetMetricsDescription .
+func (v *VolumePlugin) GetMetricsDescription(ctx context.Context) (*resources.GetMetricsDescriptionResponse, error) {
+	resp := &resources.GetMetricsDescriptionResponse{}
+	err := resources.ToResp(v.v.GetMetricsDescription(), resp)
+	return resp, err
+}
+
+// ResolveNodeResourceInfoToMetrics .
+func (v *VolumePlugin) ResolveNodeResourceInfoToMetrics(ctx context.Context, podName string, nodeName string, info *resources.NodeResourceInfo) (*resources.ResolveNodeResourceInfoToMetricsResponse, error) {
+	capacity, usage := &types.NodeResourceArgs{}, &types.NodeResourceArgs{}
+	if err := capacity.ParseFromRawParams(coretypes.RawParams(info.Capacity)); err != nil {
+		return nil, err
+	}
+	if err := usage.ParseFromRawParams(coretypes.RawParams(info.Usage)); err != nil {
+		return nil, err
+	}
+
+	metrics := v.v.ResolveNodeResourceInfoToMetrics(podName, nodeName, capacity, usage)
+	resp := &resources.ResolveNodeResourceInfoToMetricsResponse{}
+	err := resources.ToResp(metrics, resp)
+	return resp, err
+}

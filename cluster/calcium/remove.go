@@ -77,6 +77,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool) 
 							}
 							ch <- ret
 						}
+						go c.SendNodeMetrics(ctx, node.Name)
 						go c.doRemapResourceAndLog(ctx, logger, node)
 						return nil
 					}); err != nil {

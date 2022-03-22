@@ -88,6 +88,8 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 	cal.wal, err = newWAL(config, cal)
 	cal.identifier = config.Identifier()
 
+	go cal.InitMetrics()
+
 	return cal, logger.Err(nil, errors.WithStack(err)) //nolint
 }
 

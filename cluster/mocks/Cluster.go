@@ -845,6 +845,11 @@ func (_m *Cluster) Send(ctx context.Context, opts *types.SendOptions) (chan *typ
 	return r0, r1
 }
 
+// SendNodeMetrics provides a mock function with given fields: ctx, nodeName
+func (_m *Cluster) SendNodeMetrics(ctx context.Context, nodeName string) {
+	_m.Called(ctx, nodeName)
+}
+
 // SetNode provides a mock function with given fields: ctx, opts
 func (_m *Cluster) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) {
 	ret := _m.Called(ctx, opts)

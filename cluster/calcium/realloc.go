@@ -24,7 +24,7 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 	}
 	// copy origin workload
 	originWorkload := *workload
-	return c.withNodeResourceLocked(ctx, workload.Nodename, func(ctx context.Context, node *types.Node) error {
+	return c.withNodePodLocked(ctx, workload.Nodename, func(ctx context.Context, node *types.Node) error {
 		return c.withWorkloadLocked(ctx, opts.ID, func(ctx context.Context, workload *types.Workload) error {
 			return logger.Err(ctx, c.doReallocOnNode(ctx, node, workload, originWorkload, opts))
 		})
@@ -73,6 +73,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 	if err != nil {
 		return errors.WithStack(err)
 	}
+	go c.SendNodeMetrics(ctx, node.Name)
 	go c.doRemapResourceAndLog(ctx, log.WithField("Calcium", "doReallocOnNode"), node)
 	return nil
 }

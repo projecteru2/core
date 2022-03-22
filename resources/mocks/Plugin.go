@@ -87,6 +87,29 @@ func (_m *Plugin) GetDeployArgs(ctx context.Context, nodeName string, deployCoun
 	return r0, r1
 }
 
+// GetMetricsDescription provides a mock function with given fields: ctx
+func (_m *Plugin) GetMetricsDescription(ctx context.Context) (*resources.GetMetricsDescriptionResponse, error) {
+	ret := _m.Called(ctx)
+
+	var r0 *resources.GetMetricsDescriptionResponse
+	if rf, ok := ret.Get(0).(func(context.Context) *resources.GetMetricsDescriptionResponse); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*resources.GetMetricsDescriptionResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetMostIdleNode provides a mock function with given fields: ctx, nodeNames
 func (_m *Plugin) GetMostIdleNode(ctx context.Context, nodeNames []string) (*resources.GetMostIdleNodeResponse, error) {
 	ret := _m.Called(ctx, nodeNames)
@@ -232,6 +255,29 @@ func (_m *Plugin) RemoveNode(ctx context.Context, nodeName string) (*resources.R
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = rf(ctx, nodeName)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ResolveNodeResourceInfoToMetrics provides a mock function with given fields: ctx, podName, nodeName, nodeResourceInfo
+func (_m *Plugin) ResolveNodeResourceInfoToMetrics(ctx context.Context, podName string, nodeName string, nodeResourceInfo *resources.NodeResourceInfo) (*resources.ResolveNodeResourceInfoToMetricsResponse, error) {
+	ret := _m.Called(ctx, podName, nodeName, nodeResourceInfo)
+
+	var r0 *resources.ResolveNodeResourceInfoToMetricsResponse
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, *resources.NodeResourceInfo) *resources.ResolveNodeResourceInfoToMetricsResponse); ok {
+		r0 = rf(ctx, podName, nodeName, nodeResourceInfo)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*resources.ResolveNodeResourceInfoToMetricsResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, *resources.NodeResourceInfo) error); ok {
+		r1 = rf(ctx, podName, nodeName, nodeResourceInfo)
 	} else {
 		r1 = ret.Error(1)
 	}

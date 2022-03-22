@@ -63,7 +63,7 @@ func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (
 
 func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
 	var nr *types.NodeResource
-	return nr, c.withNodeResourceLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+	return nr, c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 		workloads, err := c.ListNodeWorkloads(ctx, nodename, nil)
 		if err != nil {
 			log.Errorf(ctx, "[doGetNodeResource] failed to list node workloads, node %v, err: %v", nodename, err)
@@ -75,6 +75,10 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 		if err != nil {
 			log.Errorf(ctx, "[doGetNodeResource] failed to get node resource, node %v, err: %v", nodename, err)
 			return err
+		}
+
+		if fix {
+			go c.SendNodeMetrics(ctx, node.Name)
 		}
 
 		nr = &types.NodeResource{

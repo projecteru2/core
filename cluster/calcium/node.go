@@ -52,6 +52,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 			}
 			node.ResourceCapacity = resourceCapacity
 			node.ResourceUsage = resourceUsage
+			go c.SendNodeMetrics(ctx, node.Name)
 			return nil
 		},
 		// rollback: remove node with resource plugins
@@ -211,7 +212,11 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 			},
 			// then: update node metadata
 			func(ctx context.Context) error {
-				return errors.WithStack(c.store.UpdateNodes(ctx, n))
+				if err := errors.WithStack(c.store.UpdateNodes(ctx, n)); err != nil {
+					return err
+				}
+				go c.SendNodeMetrics(ctx, node.Name)
+				return nil
 			},
 			// rollback: update node resource capacity in reverse
 			func(ctx context.Context, failureByCond bool) error {

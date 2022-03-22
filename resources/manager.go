@@ -625,3 +625,50 @@ func (pm *PluginManager) GetMostIdleNode(ctx context.Context, nodeNames []string
 	}
 	return mostIdleNode.NodeName, nil
 }
+
+// GetMetricsDescription .
+func (pm *PluginManager) GetMetricsDescription(ctx context.Context) ([]*MetricsDescription, error) {
+	var metricsDescriptions []*MetricsDescription
+	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetMetricsDescriptionResponse, error) {
+		resp, err := plugin.GetMetricsDescription(ctx)
+		if err != nil {
+			log.Errorf(ctx, "[GetMetricsDescription] plugin %v failed to get metrics description, err: %v", plugin.Name(), err)
+		}
+		return resp, err
+	})
+
+	if err != nil {
+		log.Errorf(ctx, "[GetMetricsDescription] failed to get metrics description")
+		return nil, err
+	}
+
+	for _, resp := range respMap {
+		metricsDescriptions = append(metricsDescriptions, *resp...)
+	}
+
+	return metricsDescriptions, nil
+}
+
+// ResolveNodeResourceInfoToMetrics .
+func (pm *PluginManager) ResolveNodeResourceInfoToMetrics(ctx context.Context, podName string, nodeName string, nodeResourceCapacity map[string]types.NodeResourceArgs, nodeResourceUsage map[string]types.NodeResourceArgs) ([]*Metrics, error) {
+	var metrics []*Metrics
+	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*ResolveNodeResourceInfoToMetricsResponse, error) {
+		capacity, usage := nodeResourceCapacity[plugin.Name()], nodeResourceUsage[plugin.Name()]
+		resp, err := plugin.ResolveNodeResourceInfoToMetrics(ctx, podName, nodeName, &NodeResourceInfo{Capacity: capacity, Usage: usage})
+		if err != nil {
+			log.Errorf(ctx, "[ResolveNodeResourceInfoToMetrics] plugin %v failed to resolve node resource info to metrics, err: %v", plugin.Name(), err)
+		}
+		return resp, err
+	})
+
+	if err != nil {
+		log.Errorf(ctx, "[ResolveNodeResourceInfoToMetrics] failed to resolve node resource info to metrics")
+		return nil, err
+	}
+
+	for _, resp := range respMap {
+		metrics = append(metrics, *resp...)
+	}
+
+	return metrics, nil
+}

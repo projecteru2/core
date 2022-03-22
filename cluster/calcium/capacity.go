@@ -20,7 +20,7 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 		NodeCapacities: map[string]int{},
 	}
 
-	return msg, c.withNodesResourceLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) error {
+	return msg, c.withNodesPodLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) error {
 		nodes := []string{}
 		for node := range nodeMap {
 			nodes = append(nodes, node)
