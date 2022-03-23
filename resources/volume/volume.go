@@ -55,6 +55,9 @@ func (v *VolumePlugin) GetReallocArgs(ctx context.Context, nodeName string, orig
 	}
 
 	engineArgs, delta, resourceArgs, err := v.v.GetReallocArgs(ctx, nodeName, originWorkloadResourceArgs, workloadResourceOpts)
+	if err != nil {
+		return nil, err
+	}
 
 	resp := &resources.GetReallocArgsResponse{}
 	err = resources.ToResp(map[string]interface{}{

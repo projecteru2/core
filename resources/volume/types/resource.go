@@ -16,8 +16,8 @@ type WorkloadResourceOpts struct {
 	VolumesRequest VolumeBindings `json:"volumes_request"`
 	VolumesLimit   VolumeBindings `json:"volumes_limit"`
 
-	StorageRequest int64 `json:"storage-request"`
-	StorageLimit   int64 `json:"storage-limit"`
+	StorageRequest int64 `json:"storage_request"`
+	StorageLimit   int64 `json:"storage_limit"`
 }
 
 // Validate .
@@ -95,8 +95,8 @@ type WorkloadResourceArgs struct {
 	VolumePlanRequest VolumePlan `json:"volume_plan_request"`
 	VolumePlanLimit   VolumePlan `json:"volume_plan_limit"`
 
-	StorageRequest int64 `json:"storage-request"`
-	StorageLimit   int64 `json:"storage-limit"`
+	StorageRequest int64 `json:"storage_request"`
+	StorageLimit   int64 `json:"storage_limit"`
 }
 
 // ParseFromRawParams .

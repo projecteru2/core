@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 )
@@ -25,7 +26,16 @@ func (r RawParams) Float64(key string) float64 {
 
 // Int64 .
 func (r RawParams) Int64(key string) int64 {
-	res, _ := strconv.ParseInt(fmt.Sprintf("%v", r[key]), 10, 64)
+	if !r.IsSet(key) {
+		return 0
+	}
+	var str string
+	if f, ok := r[key].(float64); ok {
+		str = fmt.Sprintf("%.0f", f)
+	} else {
+		str = fmt.Sprintf("%v", r[key])
+	}
+	res, _ := strconv.ParseInt(str, 10, 64)
 	return res
 }
 
@@ -74,6 +84,25 @@ func (r RawParams) OneOfStringSlice(keys ...string) []string {
 // Bool .
 func (r RawParams) Bool(key string) bool {
 	return r.IsSet(key)
+}
+
+// RawParams .
+func (r RawParams) RawParams(key string) map[string]interface{} {
+	if !r.IsSet(key) {
+		return map[string]interface{}{}
+	}
+	if m, ok := r[key].(map[string]interface{}); ok {
+		return m
+	}
+	return map[string]interface{}{}
+}
+
+// ConvertRawParamsToMap .
+func ConvertRawParamsToMap[V any](r RawParams) map[string]V {
+	res := map[string]V{}
+	body, _ := json.Marshal(r)
+	_ = json.Unmarshal(body, &res)
+	return res
 }
 
 // NodeResourceOpts .

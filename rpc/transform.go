@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"golang.org/x/exp/maps"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	pb "github.com/projecteru2/core/rpc/gen"
@@ -41,7 +43,7 @@ func toRPCNode(n *types.Node) *pb.Node {
 		resourceUsage[plugin] = types.RawParams(args)
 	}
 
-	return &pb.Node{
+	node := &pb.Node{
 		Name:             n.Name,
 		Endpoint:         n.Endpoint,
 		Podname:          n.Podname,
@@ -52,6 +54,8 @@ func toRPCNode(n *types.Node) *pb.Node {
 		ResourceCapacity: toRPCResourceArgs(resourceCapacity),
 		ResourceUsage:    toRPCResourceArgs(resourceUsage),
 	}
+	fillOldNodeMeta(node, resourceCapacity, resourceUsage)
+	return node
 }
 
 func toRPCResourceArgs(v interface{}) string {
@@ -76,9 +80,16 @@ func toRPCNodeResource(nr *types.NodeResource) *pb.NodeResource {
 		resourceUsage[plugin] = types.RawParams(args)
 	}
 
+	node := &pb.Node{}
+	fillOldNodeMeta(node, resourceCapacity, resourceUsage)
+
 	return &pb.NodeResource{
 		Name:             nr.Name,
 		Diffs:            nr.Diffs,
+		CpuPercent:       node.CpuUsed / float64(len(node.InitCpu)),
+		MemoryPercent:    float64(node.MemoryUsed) / float64(node.InitMemory),
+		StoragePercent:   float64(node.StorageUsed) / float64(node.InitStorage),
+		VolumePercent:    float64(node.VolumeUsed) / float64(utils.Sum(maps.Values(node.InitVolume))),
 		ResourceCapacity: toRPCResourceArgs(resourceCapacity),
 		ResourceUsage:    toRPCResourceArgs(resourceUsage),
 	}
@@ -134,6 +145,24 @@ func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) { // nolin
 }
 
 func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
+	if b.ResourceOpts == nil {
+		b.ResourceOpts = map[string]*pb.RawParam{
+			"cpu":      newPBRawParamStr(fmt.Sprintf("%v", b.Cpu)),
+			"share":    newPBRawParamStr(fmt.Sprintf("%v", b.Share)),
+			"memory":   newPBRawParamStr(fmt.Sprintf("%v", b.Memory)),
+			"numa-cpu": newPBRawParamStringSlice(maps.Values(b.Numa)),
+			"numa-memory": newPBRawParamStringSlice(utils.Map(maps.Values(b.NumaMemory), func(v int64) string {
+				return fmt.Sprintf("%v", v)
+			})),
+			"storage": newPBRawParamStr(fmt.Sprintf("%v", b.Storage)),
+		}
+		volumes := []string{}
+		for device, size := range b.VolumeMap {
+			volumes = append(volumes, fmt.Sprintf("%v:%v", device, size))
+		}
+		b.ResourceOpts["volumes"] = newPBRawParamStringSlice(volumes)
+	}
+
 	r := &types.AddNodeOptions{
 		Nodename:     b.Nodename,
 		Endpoint:     b.Endpoint,
@@ -148,6 +177,23 @@ func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
 }
 
 func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) { // nolint
+	if b.ResourceOpts == nil {
+		b.Delta = true
+		b.ResourceOpts = map[string]*pb.RawParam{
+			"cpu":      newPBRawParamStr(fmt.Sprintf("%v", b.DeltaCpu)),
+			"memory":   newPBRawParamStr(fmt.Sprintf("%v", b.DeltaMemory)),
+			"numa-cpu": newPBRawParamStringSlice(maps.Values(b.Numa)),
+			"numa-memory": newPBRawParamStringSlice(utils.Map(maps.Values(b.DeltaNumaMemory), func(v int64) string {
+				return fmt.Sprintf("%v", v)
+			})),
+			"storage": newPBRawParamStr(fmt.Sprintf("%v", b.DeltaStorage)),
+		}
+		volumes := []string{}
+		for device, size := range b.DeltaVolume {
+			volumes = append(volumes, fmt.Sprintf("%v:%v", device, size))
+		}
+		b.ResourceOpts["volumes"] = newPBRawParamStringSlice(volumes)
+	}
 	r := &types.SetNodeOptions{
 		Nodename:      b.Nodename,
 		Endpoint:      b.Endpoint,
@@ -235,6 +281,13 @@ func toCoreReplaceOptions(r *pb.ReplaceOptions) (*types.ReplaceOptions, error) {
 }
 
 func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
+	if d.ResourceOpts == nil {
+		d.ResourceOpts = toNewResourceOptions(d.OldResourceOpts)
+		if d.OldResourceOpts.CpuBind {
+			d.ResourceOpts["cpu-bind"] = newPBRawParamStr("true")
+		}
+	}
+
 	if d.Entrypoint == nil || d.Entrypoint.Name == "" {
 		return nil, types.ErrNoEntryInSpec
 	}
@@ -346,6 +399,7 @@ func toRPCCreateWorkloadMessage(c *types.CreateWorkloadMessage) *pb.CreateWorklo
 		Publish:      utils.EncodePublishInfo(c.Publish),
 		Hook:         utils.MergeHookOutputs(c.Hook),
 		ResourceArgs: toRPCResourceArgs(resourceArgs),
+		Resource:     toRPCWorkloadResource(resourceArgs),
 	}
 	if c.Error != nil {
 		msg.Error = c.Error.Error()
@@ -502,6 +556,7 @@ func toRPCWorkload(ctx context.Context, c *types.Workload) (*pb.Workload, error)
 		Status:       toRPCWorkloadStatus(c.StatusMeta),
 		CreateTime:   c.CreateTime,
 		ResourceArgs: toRPCResourceArgs(resourceArgs),
+		Resource:     toRPCWorkloadResource(resourceArgs),
 		Env:          c.Env,
 	}, nil
 }
@@ -612,5 +667,116 @@ func toCoreListImageOptions(opts *pb.ListImageOptions) *types.ImageOptions {
 		Podname:   opts.Podname,
 		Nodenames: opts.Nodenames,
 		Filter:    opts.Filter,
+	}
+}
+
+func newPBRawParamStr(str string) *pb.RawParam {
+	return &pb.RawParam{
+		Value: &pb.RawParam_Str{
+			Str: str,
+		},
+	}
+}
+
+func newPBRawParamStringSlice(strs []string) *pb.RawParam {
+	return &pb.RawParam{
+		Value: &pb.RawParam_StringSlice{
+			StringSlice: &pb.StringSlice{
+				Slice: strs,
+			},
+		},
+	}
+}
+
+// fillOldNodeMeta fills the old node meta based on the new node resource args.
+// uses some hard code, should be removed in the future.
+func fillOldNodeMeta(node *pb.Node, resourceCapacity map[string]types.RawParams, resourceUsage map[string]types.RawParams) {
+	if capacity, ok := resourceCapacity["cpumem"]; ok {
+		usage := resourceUsage["cpumem"]
+		node.Cpu = types.ConvertRawParamsToMap[int32](usage.RawParams("cpu_map"))
+		node.InitCpu = types.ConvertRawParamsToMap[int32](capacity.RawParams("cpu_map"))
+		node.CpuUsed = usage.Float64("cpu")
+		node.InitMemory = capacity.Int64("memory")
+		node.MemoryUsed = usage.Int64("memory")
+		node.Memory = node.InitMemory - node.MemoryUsed
+		node.Numa = types.ConvertRawParamsToMap[string](usage.RawParams("numa"))
+		node.InitNumaMemory = types.ConvertRawParamsToMap[int64](capacity.RawParams("numa_memory"))
+		node.NumaMemory = map[string]int64{}
+
+		numaMemoryUsed := types.ConvertRawParamsToMap[int64](usage.RawParams("numa_memory"))
+		for numaNodeID := range numaMemoryUsed {
+			node.NumaMemory[numaNodeID] = node.InitNumaMemory[numaNodeID] - numaMemoryUsed[numaNodeID]
+		}
+	}
+
+	if capacity, ok := resourceCapacity["volume"]; ok {
+		usage := resourceUsage["volume"]
+		node.InitStorage = capacity.Int64("storage")
+		node.StorageUsed = usage.Int64("storage")
+		node.Storage = node.InitStorage - node.StorageUsed
+		node.InitVolume = types.ConvertRawParamsToMap[int64](capacity.RawParams("volumes"))
+		node.Volume = map[string]int64{}
+
+		volumeUsed := types.ConvertRawParamsToMap[int64](usage.RawParams("volumes"))
+		for device, size := range volumeUsed {
+			node.Volume[device] = node.InitVolume[device] - size
+			node.VolumeUsed += size
+		}
+	}
+}
+
+func toRPCWorkloadResource(resourceArgs map[string]types.RawParams) *pb.Resource {
+	res := &pb.Resource{}
+	if args, ok := resourceArgs["cpumem"]; ok {
+		res.CpuQuotaRequest = args.Float64("cpu_request")
+		res.CpuQuotaLimit = args.Float64("cpu_limit")
+		res.Cpu = types.ConvertRawParamsToMap[int32](args.RawParams("cpu_map"))
+		res.MemoryRequest = args.Int64("memory_request")
+		res.MemoryLimit = args.Int64("memory_limit")
+	}
+
+	if args, ok := resourceArgs["volume"]; ok {
+		res.VolumesRequest = args.StringSlice("volumes_request")
+		res.VolumesLimit = args.StringSlice("volumes_limit")
+		res.VolumePlanRequest = toRPCVolumePlan(types.ConvertRawParamsToMap[map[string]int64](args.RawParams("volume_plan_request")))
+		res.VolumePlanLimit = toRPCVolumePlan(types.ConvertRawParamsToMap[map[string]int64](args.RawParams("volume_plan_limit")))
+		res.StorageRequest = args.Int64("storage_request")
+		res.StorageLimit = args.Int64("storage_limit")
+	}
+	return res
+}
+
+func toRPCVolumePlan(volumePlan map[string]map[string]int64) map[string]*pb.Volume {
+	res := map[string]*pb.Volume{}
+	for binding, plan := range volumePlan {
+		res[binding] = &pb.Volume{
+			Volume: plan,
+		}
+	}
+	return res
+}
+
+func toNewResourceOptions(opts *pb.ResourceOptions) map[string]*pb.RawParam {
+	return map[string]*pb.RawParam{
+		"cpu-request":     newPBRawParamStr(fmt.Sprintf("%v", opts.CpuQuotaRequest)),
+		"cpu-limit":       newPBRawParamStr(fmt.Sprintf("%v", opts.CpuQuotaLimit)),
+		"memory-request":  newPBRawParamStr(fmt.Sprintf("%v", opts.MemoryRequest)),
+		"memory-limit":    newPBRawParamStr(fmt.Sprintf("%v", opts.MemoryLimit)),
+		"storage-request": newPBRawParamStr(fmt.Sprintf("%v", opts.StorageRequest)),
+		"storage-limit":   newPBRawParamStr(fmt.Sprintf("%v", opts.StorageLimit)),
+		"volumes-request": newPBRawParamStringSlice(opts.VolumesRequest),
+		"volumes-limit":   newPBRawParamStringSlice(opts.VolumesLimit),
+	}
+}
+
+func fillRPCNewReallocOptions(opts *pb.ReallocOptions) {
+	if opts.ResourceOpts == nil {
+		opts.ResourceOpts = toNewResourceOptions(opts.OldResourceOpts)
+		switch opts.BindCpuOpt {
+		case pb.TriOpt_KEEP:
+			opts.ResourceOpts["keep-cpu-bind"] = newPBRawParamStr("true")
+		case pb.TriOpt_TRUE:
+			opts.ResourceOpts["cpu-bind"] = newPBRawParamStr("true")
+		}
 	}
 }
