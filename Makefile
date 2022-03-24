@@ -36,6 +36,7 @@ mock: deps
 	mockery --dir store --output store/mocks --name Store
 	mockery --dir engine --output engine/mocks --name API
 	mockery --dir cluster --output cluster/mocks --name Cluster
+	mockery --dir wal --output wal/mocks --name WAL
 	mockery --dir lock --output lock/mocks --name DistributedLock
 	mockery --dir store/etcdv3/meta --output store/etcdv3/meta/mocks --all
 	mockery --dir vendor/go.etcd.io/etcd/client/v3 --output store/etcdv3/meta/mocks --name Txn

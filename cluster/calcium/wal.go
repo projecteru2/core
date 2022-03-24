@@ -22,23 +22,21 @@ const (
 // WAL for calcium.
 type WAL struct {
 	wal.WAL
-	config  types.Config
 	calcium *Calcium
 }
 
-func newCalciumWAL(cal *Calcium) (*WAL, error) {
-	w := &WAL{
-		WAL:     wal.NewHydro(),
-		config:  cal.config,
-		calcium: cal,
-	}
-
-	if err := w.WAL.Open(w.config.WALFile, w.config.WALOpenTimeout); err != nil {
+func newWAL(config types.Config, calcium *Calcium) (*WAL, error) {
+	hydro, err := wal.NewHydro(config.WALFile, config.WALOpenTimeout)
+	if err != nil {
 		return nil, err
 	}
 
-	w.registerHandlers()
+	w := &WAL{
+		WAL:     hydro,
+		calcium: calcium,
+	}
 
+	w.registerHandlers()
 	return w, nil
 }
 
@@ -49,105 +47,22 @@ func (w *WAL) registerHandlers() {
 	w.Register(newProcessingCreatedHandler(w.calcium))
 }
 
-func (w *WAL) logCreateLambda(opts *types.CreateWorkloadMessage) (wal.Commit, error) {
-	return w.Log(eventCreateLambda, opts.WorkloadID)
-}
-
-// CreateWorkloadHandler indicates event handler for creating workload.
-type CreateWorkloadHandler struct {
-	event   string
-	calcium *Calcium
-}
-
-func newCreateWorkloadHandler(cal *Calcium) *CreateWorkloadHandler {
-	return &CreateWorkloadHandler{
-		event:   eventWorkloadCreated,
-		calcium: cal,
-	}
-}
-
-// Event .
-func (h *CreateWorkloadHandler) Event() string {
-	return h.event
-}
-
-// Check .
-func (h *CreateWorkloadHandler) Check(ctx context.Context, raw interface{}) (handle bool, err error) {
-	_, ok := raw.(*types.Workload)
-	if !ok {
-		return false, types.NewDetailedErr(types.ErrInvalidType, raw)
-	}
-	return true, nil
-}
-
-// Encode .
-func (h *CreateWorkloadHandler) Encode(raw interface{}) ([]byte, error) {
-	wrk, ok := raw.(*types.Workload)
-	if !ok {
-		return nil, types.NewDetailedErr(types.ErrInvalidType, raw)
-	}
-	return json.Marshal(wrk)
-}
-
-// Decode .
-func (h *CreateWorkloadHandler) Decode(bs []byte) (interface{}, error) {
-	wrk := &types.Workload{}
-	err := json.Unmarshal(bs, wrk)
-	return wrk, err
-}
-
-// Handle will remove instance, remove meta, restore resource
-func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (err error) {
-	wrk, _ := raw.(*types.Workload)
-	logger := log.WithField("WAL.Handle", "CreateWorkload").WithField("ID", wrk.ID).WithField("nodename", wrk.Nodename)
-
-	ctx, cancel := getReplayContext(ctx)
-	defer cancel()
-
-	if _, err = h.calcium.GetWorkload(ctx, wrk.ID); err == nil {
-		// workload meta exists
-		ch, err := h.calcium.RemoveWorkload(ctx, []string{wrk.ID}, true, 0)
-		if err != nil {
-			return logger.Err(ctx, err)
-		}
-		for msg := range ch {
-			if !msg.Success {
-				logger.Errorf(ctx, "failed to remove workload")
-			}
-		}
-		logger.Infof(ctx, "workload with meta removed")
-		return nil
-	}
-
-	// workload meta doesn't exist
-	node, err := h.calcium.GetNode(ctx, wrk.Nodename)
-	if err != nil {
-		return logger.Err(ctx, err)
-	}
-	if err = node.Engine.VirtualizationRemove(ctx, wrk.ID, true, true); err != nil && !errors.Is(err, types.ErrWorkloadNotExists) {
-		return logger.Err(ctx, err)
-	}
-
-	logger.Infof(ctx, "workload removed")
-	return nil
-}
-
 // CreateLambdaHandler indicates event handler for creating lambda.
 type CreateLambdaHandler struct {
-	event   string
+	typ     string
 	calcium *Calcium
 }
 
-func newCreateLambdaHandler(cal *Calcium) *CreateLambdaHandler {
+func newCreateLambdaHandler(calcium *Calcium) *CreateLambdaHandler {
 	return &CreateLambdaHandler{
-		event:   eventCreateLambda,
-		calcium: cal,
+		typ:     eventCreateLambda,
+		calcium: calcium,
 	}
 }
 
 // Event .
-func (h *CreateLambdaHandler) Event() string {
-	return h.event
+func (h *CreateLambdaHandler) Typ() string {
+	return h.typ
 }
 
 // Check .
@@ -202,26 +117,90 @@ func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error
 	return nil
 }
 
-func getReplayContext(ctx context.Context) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(ctx, time.Second*32)
-}
-
-// WorkloadResourceAllocatedHandler .
-type WorkloadResourceAllocatedHandler struct {
-	event   string
+// CreateWorkloadHandler indicates event handler for creating workload.
+type CreateWorkloadHandler struct {
+	typ     string
 	calcium *Calcium
 }
 
-func newWorkloadResourceAllocatedHandler(cal *Calcium) *WorkloadResourceAllocatedHandler {
-	return &WorkloadResourceAllocatedHandler{
-		event:   eventWorkloadResourceAllocated,
-		calcium: cal,
+func newCreateWorkloadHandler(calcium *Calcium) *CreateWorkloadHandler {
+	return &CreateWorkloadHandler{
+		typ:     eventWorkloadCreated,
+		calcium: calcium,
 	}
 }
 
 // Event .
-func (h *WorkloadResourceAllocatedHandler) Event() string {
-	return h.event
+func (h *CreateWorkloadHandler) Typ() string {
+	return h.typ
+}
+
+// Check .
+func (h *CreateWorkloadHandler) Check(ctx context.Context, raw interface{}) (handle bool, err error) {
+	_, ok := raw.(*types.Workload)
+	if !ok {
+		return false, types.NewDetailedErr(types.ErrInvalidType, raw)
+	}
+	return true, nil
+}
+
+// Encode .
+func (h *CreateWorkloadHandler) Encode(raw interface{}) ([]byte, error) {
+	wrk, ok := raw.(*types.Workload)
+	if !ok {
+		return nil, types.NewDetailedErr(types.ErrInvalidType, raw)
+	}
+	return json.Marshal(wrk)
+}
+
+// Decode .
+func (h *CreateWorkloadHandler) Decode(bs []byte) (interface{}, error) {
+	wrk := &types.Workload{}
+	err := json.Unmarshal(bs, wrk)
+	return wrk, err
+}
+
+// Handle will remove instance, remove meta, restore resource
+func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (err error) {
+	wrk, _ := raw.(*types.Workload)
+	logger := log.WithField("WAL.Handle", "CreateWorkload").WithField("ID", wrk.ID).WithField("nodename", wrk.Nodename)
+
+	ctx, cancel := getReplayContext(ctx)
+	defer cancel()
+
+	if _, err = h.calcium.GetWorkload(ctx, wrk.ID); err == nil {
+		return h.calcium.doRemoveWorkloadSync(ctx, []string{wrk.ID})
+	}
+
+	// workload meta doesn't exist
+	node, err := h.calcium.GetNode(ctx, wrk.Nodename)
+	if err != nil {
+		return logger.Err(ctx, err)
+	}
+	if err = node.Engine.VirtualizationRemove(ctx, wrk.ID, true, true); err != nil && !errors.Is(err, types.ErrWorkloadNotExists) {
+		return logger.Err(ctx, err)
+	}
+
+	logger.Infof(ctx, "workload removed")
+	return nil
+}
+
+// WorkloadResourceAllocatedHandler .
+type WorkloadResourceAllocatedHandler struct {
+	typ     string
+	calcium *Calcium
+}
+
+func newWorkloadResourceAllocatedHandler(calcium *Calcium) *WorkloadResourceAllocatedHandler {
+	return &WorkloadResourceAllocatedHandler{
+		typ:     eventWorkloadResourceAllocated,
+		calcium: calcium,
+	}
+}
+
+// Event .
+func (h *WorkloadResourceAllocatedHandler) Typ() string {
+	return h.typ
 }
 
 // Check .
@@ -276,20 +255,20 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw inter
 
 // ProcessingCreatedHandler .
 type ProcessingCreatedHandler struct {
-	event   string
+	typ     string
 	calcium *Calcium
 }
 
-func newProcessingCreatedHandler(cal *Calcium) *ProcessingCreatedHandler {
+func newProcessingCreatedHandler(calcium *Calcium) *ProcessingCreatedHandler {
 	return &ProcessingCreatedHandler{
-		event:   eventProcessingCreated,
-		calcium: cal,
+		typ:     eventProcessingCreated,
+		calcium: calcium,
 	}
 }
 
 // Event .
-func (h *ProcessingCreatedHandler) Event() string {
-	return h.event
+func (h *ProcessingCreatedHandler) Typ() string {
+	return h.typ
 }
 
 // Check .
@@ -328,4 +307,8 @@ func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw interface{}) 
 	}
 	logger.Infof(ctx, "obsolete processing deleted")
 	return
+}
+
+func getReplayContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(ctx, time.Second*32) // TODO why 32?
 }

@@ -8,7 +8,7 @@ import (
 
 	"github.com/projecteru2/core/wal/kv"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRecover(t *testing.T) {
@@ -39,18 +39,20 @@ func TestRecover(t *testing.T) {
 	path := "/tmp/wal.unitest.wal"
 	os.Remove(path)
 
-	var wal WAL = NewHydro()
-	require.NoError(t, wal.Open(path, time.Second))
+	var wal WAL
+	var err error
+	wal, err = NewHydro(path, time.Second)
+	assert.NoError(t, err)
 	defer wal.Close()
 
 	hydro, ok := wal.(*Hydro)
-	require.True(t, ok)
-	require.NotNil(t, hydro)
-	hydro.kv = kv.NewMockedKV()
+	assert.True(t, ok)
+	assert.NotNil(t, hydro)
+	hydro.stor = kv.NewMockedKV()
 
 	eventype := "create"
 
-	wal.Register(SimpleEventHandler{
+	wal.Register(simpleEventHandler{
 		event:  eventype,
 		encode: encode,
 		decode: decode,
@@ -61,8 +63,42 @@ func TestRecover(t *testing.T) {
 	wal.Log(eventype, struct{}{})
 
 	wal.Recover(context.TODO())
-	require.True(t, checked)
-	require.True(t, handled)
-	require.True(t, encoded)
-	require.True(t, decoded)
+	assert.True(t, checked)
+	assert.True(t, handled)
+	assert.True(t, encoded)
+	assert.True(t, decoded)
+}
+
+// simpleEventHandler simply implements the EventHandler.
+type simpleEventHandler struct {
+	event  string
+	check  func(raw interface{}) (bool, error)
+	encode func(interface{}) ([]byte, error)
+	decode func([]byte) (interface{}, error)
+	handle func(interface{}) error
+}
+
+// Event .
+func (h simpleEventHandler) Typ() string {
+	return h.event
+}
+
+// Check .
+func (h simpleEventHandler) Check(ctx context.Context, raw interface{}) (bool, error) {
+	return h.check(raw)
+}
+
+// Encode .
+func (h simpleEventHandler) Encode(raw interface{}) ([]byte, error) {
+	return h.encode(raw)
+}
+
+// Decode .
+func (h simpleEventHandler) Decode(bs []byte) (interface{}, error) {
+	return h.decode(bs)
+}
+
+// Handle .
+func (h simpleEventHandler) Handle(ctx context.Context, raw interface{}) error {
+	return h.handle(raw)
 }

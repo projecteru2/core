@@ -18,7 +18,7 @@ import (
 
 func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := newCalciumWAL(c)
+	wal, err := newWAL(c.config, c)
 	require.NoError(t, err)
 	c.wal = wal
 
@@ -43,7 +43,7 @@ func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 
 func TestHandleCreateWorkloadError(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := newCalciumWAL(c)
+	wal, err := newWAL(c.config, c)
 	require.NoError(t, err)
 	c.wal = wal
 
@@ -90,7 +90,7 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 
 func TestHandleCreateWorkloadHandled(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := newCalciumWAL(c)
+	wal, err := newWAL(c.config, c)
 	require.NoError(t, err)
 	c.wal = wal
 
@@ -130,11 +130,11 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 
 func TestHandleCreateLambda(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := newCalciumWAL(c)
+	wal, err := newWAL(c.config, c)
 	require.NoError(t, err)
 	c.wal = wal
 
-	_, err = c.wal.logCreateLambda(&types.CreateWorkloadMessage{WorkloadID: "workloadid"})
+	_, err = c.wal.Log(eventCreateLambda, "workloadid")
 	require.NoError(t, err)
 
 	node := &types.Node{
@@ -153,7 +153,7 @@ func TestHandleCreateLambda(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 	store.AssertExpectations(t)
 
-	_, err = c.wal.logCreateLambda(&types.CreateWorkloadMessage{WorkloadID: "workloadid"})
+	_, err = c.wal.Log(eventCreateLambda, "workloadid")
 	require.NoError(t, err)
 	store.On("GetWorkload", mock.Anything, mock.Anything).
 		Return(wrk, nil).

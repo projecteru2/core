@@ -14,8 +14,8 @@ import (
 
 // RemoveWorkload remove workloads
 // returns a channel that contains removing responses
-func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, step int) (chan *types.RemoveWorkloadMessage, error) {
-	logger := log.WithField("Calcium", "RemoveWorkload").WithField("ids", ids).WithField("force", force).WithField("step", step)
+func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool) (chan *types.RemoveWorkloadMessage, error) {
+	logger := log.WithField("Calcium", "RemoveWorkload").WithField("ids", ids).WithField("force", force)
 
 	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, ids)
 	if err != nil {
@@ -45,7 +45,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, 
 									},
 									// then
 									func(ctx context.Context) (err error) {
-										if err = c.doRemoveWorkload(ctx, workload, force); err != nil {
+										if err = c.doRemoveWorkload(ctx, workload, force); err == nil {
 											log.Infof(ctx, "[RemoveWorkload] Workload %s removed", workload.ID)
 										}
 										return err
@@ -104,12 +104,13 @@ func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload
 
 // 同步地删除容器, 在某些需要等待的场合异常有用!
 func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, ids []string) error {
-	ch, err := c.RemoveWorkload(ctx, ids, true, 1)
+	ch, err := c.RemoveWorkload(ctx, ids, true)
 	if err != nil {
 		return err
 	}
 
 	for m := range ch {
+		// TODO deal with failed
 		log.Debugf(ctx, "[doRemoveWorkloadSync] Removed %s", m.WorkloadID)
 	}
 	return nil
