@@ -11,6 +11,7 @@ import (
 	"github.com/cornelk/hashmap"
 	"github.com/go-ping/ping"
 	"github.com/projecteru2/core/log"
+	"golang.org/x/exp/slices"
 )
 
 // EndpointPusher pushes endpoints to registered channels if the ep is L3 reachable
@@ -40,10 +41,6 @@ func (p *EndpointPusher) Push(endpoints []string) {
 func (p *EndpointPusher) delOutdated(endpoints []string) {
 	p.Lock()
 	defer p.Unlock()
-	newEndpoints := make(map[string]struct{}) // TODO after go 1.18, use slice package to search endpoints
-	for _, endpoint := range endpoints {
-		newEndpoints[endpoint] = struct{}{}
-	}
 
 	for kv := range p.pendingEndpoints.Iter() {
 		endpoint, ok := kv.Key.(string)
@@ -55,7 +52,7 @@ func (p *EndpointPusher) delOutdated(endpoints []string) {
 		if !ok {
 			log.Error("[EruResolver] failed to cast value while ranging pendingEndpoints")
 		}
-		if _, ok := newEndpoints[endpoint]; !ok {
+		if !slices.Contains(endpoints, endpoint) {
 			cancel()
 			p.pendingEndpoints.Del(endpoint)
 			log.Debugf(nil, "[EruResolver] pending endpoint deleted: %s", endpoint) //nolint
@@ -68,7 +65,7 @@ func (p *EndpointPusher) delOutdated(endpoints []string) {
 			log.Error("[EruResolver] failed to cast key while ranging availableEndpoints")
 			continue
 		}
-		if _, ok := newEndpoints[endpoint]; !ok {
+		if !slices.Contains(endpoints, endpoint) {
 			p.availableEndpoints.Del(endpoint)
 			log.Debugf(nil, "[EruResolver] available endpoint deleted: %s", endpoint) //nolint
 		}
