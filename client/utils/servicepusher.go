@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"os"
-	"slices"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/cornelk/hashmap"
 	"github.com/go-ping/ping"
+	"golang.org/x/exp/slices"
+
 	"github.com/projecteru2/core/log"
 )
 

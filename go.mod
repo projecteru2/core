@@ -33,8 +33,9 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.0
 	go.etcd.io/etcd/tests/v3 v3.5.0
 	go.uber.org/automaxprocs v1.3.0
-	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
-	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+	golang.org/x/exp v0.0.0-20220323204016-c86f0da35e87
+	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
@@ -122,11 +123,11 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.17.0 // indirect
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
-	golang.org/x/mod v0.4.2 // indirect
-	golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40 // indirect
-	golang.org/x/text v0.3.5 // indirect
+	golang.org/x/mod v0.6.0-dev.0.20211013180041-c96bc1413d57 // indirect
+	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654 // indirect
+	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
-	golang.org/x/tools v0.1.2 // indirect
+	golang.org/x/tools v0.1.8-0.20211029000441-d6a9af8af023 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/appengine v1.6.3 // indirect
 	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c // indirect
