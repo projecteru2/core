@@ -64,6 +64,7 @@ var (
 	ErrRunAndWaitCountOneWithStdin = errors.New("Count must be 1 if OpenStdin is true")
 	ErrUnknownControlType          = errors.New("Unknown control type")
 	ErrNoRemoteDigest              = errors.New("got no digest")
+	ErrNotEnoughUUID               = errors.New("not enough uuid")
 
 	ErrNoETCD             = errors.New("ETCD must be set")
 	ErrKeyNotExists       = errors.New("Key not exists")

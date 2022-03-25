@@ -197,6 +197,16 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 		Stdin:      opts.Stdin,
 	}
 
+	uuids := strings.Split(opts.Labels[DmiUUIDKey], ",")
+	if len(uuids) > 1 {
+		if opts.Seq >= len(uuids) {
+			return nil, types.ErrNotEnoughUUID
+		}
+		req.DmiUUID = uuids[opts.Seq]
+	}
+
+	req.Labels[DmiUUIDKey] = req.DmiUUID
+
 	var resp virttypes.Guest
 	if resp, err = v.client.CreateGuest(ctx, req); err != nil {
 		return nil, err
@@ -249,18 +259,23 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 		return nil, err
 	}
 
+	info := &enginetypes.VirtualizationInfo{
+		ID:       guest.ID,
+		Image:    guest.ImageName,
+		Running:  guest.Status == "running",
+		Networks: guest.Networks,
+		Labels:   guest.Labels,
+	}
+
 	content, err := json.Marshal(coretypes.LabelMeta{Publish: []string{"PORT"}})
 	if err != nil {
 		return nil, err
 	}
 
-	return &enginetypes.VirtualizationInfo{
-		ID:       guest.ID,
-		Image:    guest.ImageName,
-		Running:  guest.Status == "running",
-		Networks: guest.Networks,
-		Labels:   map[string]string{cluster.LabelMeta: string(content), cluster.ERUMark: "1"},
-	}, nil
+	info.Labels[cluster.LabelMeta] = string(content)
+	info.Labels[cluster.ERUMark] = "1"
+
+	return info, nil
 }
 
 // VirtualizationLogs streams a specific guest's log.

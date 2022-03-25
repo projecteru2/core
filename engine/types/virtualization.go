@@ -42,6 +42,8 @@ type VirtualizationCreateOptions struct {
 	RawArgs []byte
 	Lambda  bool
 
+	Seq int
+
 	AncestorWorkloadID string
 }
 

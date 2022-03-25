@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cornelk/hashmap"
+
 	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -332,6 +333,13 @@ func (c *Calcium) doDeployOneWorkload(
 			if !decrProcessing {
 				processing = nil
 			}
+
+			info, err := workload.Inspect(ctx) // 补充Labels
+			if err != nil {
+				return err
+			}
+			workload.Labels = info.Labels
+
 			// add workload metadata first
 			if err := c.store.AddWorkload(ctx, workload, processing); err != nil {
 				return errors.WithStack(err)
@@ -484,6 +492,8 @@ func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.
 	for key, value := range opts.Labels {
 		config.Labels[key] = value
 	}
+
+	config.Seq = no
 
 	return config
 }
