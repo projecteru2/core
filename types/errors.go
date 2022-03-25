@@ -140,21 +140,22 @@ func NewDetailedErr(err error, details interface{}) error {
 	return detailedErr{err: err, details: details}
 }
 
-type combinedErr struct {
+// CombinedErr can combine multiple errors into one
+type CombinedErr struct {
 	ErrMap map[string]error
 }
 
 // Error .
-func (e *combinedErr) Error() string {
+func (e *CombinedErr) Error() string {
 	return fmt.Sprintf("%+v", e.ErrMap)
 }
 
 // Append .
-func (e *combinedErr) Append(key string, err error) {
+func (e *CombinedErr) Append(key string, err error) {
 	e.ErrMap[key] = err
 }
 
 // NewCombinedErr .
-func NewCombinedErr() *combinedErr {
-	return &combinedErr{ErrMap: map[string]error{}}
+func NewCombinedErr() *CombinedErr {
+	return &CombinedErr{ErrMap: map[string]error{}}
 }

@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -52,6 +53,7 @@ func NewTestCluster() *Calcium {
 
 	plugin := &resourcemocks.Plugin{}
 	plugin.On("Name").Return("mock-plugin")
+	plugin.On("ResolveNodeResourceInfoToMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, context.DeadlineExceeded)
 	if c.resource, err = resources.NewPluginManager(c.config); err != nil {
 		panic(err)
 	}

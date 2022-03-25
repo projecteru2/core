@@ -167,7 +167,7 @@ func TestGetCPUPlansWithAffinity(t *testing.T) {
 	resourceInfo.Capacity.CPUMap.Add(originCPUMap)
 	cpuPlans = GetCPUPlans(resourceInfo, originCPUMap, 100, -1, &types.WorkloadResourceOpts{CPUBind: true, CPURequest: 2})
 	assert.Equal(t, 2, len(cpuPlans))
-	assert.ElementsMatch(t, cpuPlans, []*cpuPlan{
+	assert.ElementsMatch(t, cpuPlans, []*CPUPlan{
 		{CPUMap: types.CPUMap{"0": 100, "3": 100}},
 		{CPUMap: types.CPUMap{"0": 100, "4": 100}},
 	})
@@ -214,7 +214,7 @@ func TestCPUOverSell(t *testing.T) {
 		MemRequest: 1,
 	})
 	assert.Equal(t, len(cpuPlans), 3)
-	assert.ElementsMatch(t, cpuPlans, []*cpuPlan{
+	assert.ElementsMatch(t, cpuPlans, []*CPUPlan{
 		{CPUMap: types.CPUMap{"0": 100, "1": 100}},
 		{CPUMap: types.CPUMap{"0": 100, "1": 100}},
 		{CPUMap: types.CPUMap{"0": 100, "1": 100}},
@@ -235,7 +235,7 @@ func TestCPUOverSell(t *testing.T) {
 		MemRequest: 1,
 	})
 	assert.Equal(t, len(cpuPlans), 6)
-	assert.ElementsMatch(t, cpuPlans, []*cpuPlan{
+	assert.ElementsMatch(t, cpuPlans, []*CPUPlan{
 		{CPUMap: types.CPUMap{"0": 50}},
 		{CPUMap: types.CPUMap{"0": 50}},
 		{CPUMap: types.CPUMap{"0": 50}},
@@ -259,7 +259,7 @@ func TestCPUOverSell(t *testing.T) {
 		MemRequest: 1,
 	})
 	assert.Equal(t, len(cpuPlans), 6)
-	assert.ElementsMatch(t, cpuPlans[:2], []*cpuPlan{
+	assert.ElementsMatch(t, cpuPlans[:2], []*CPUPlan{
 		{CPUMap: types.CPUMap{"0": 100}},
 		{CPUMap: types.CPUMap{"1": 100}},
 	})
@@ -294,7 +294,7 @@ func TestCPUOverSell(t *testing.T) {
 		MemRequest: 1,
 	})
 	assert.Equal(t, len(cpuPlans), 4)
-	assert.ElementsMatch(t, cpuPlans, []*cpuPlan{
+	assert.ElementsMatch(t, cpuPlans, []*CPUPlan{
 		{CPUMap: types.CPUMap{"0": 30, "2": 100}},
 		{CPUMap: types.CPUMap{"0": 30, "2": 100}},
 		{CPUMap: types.CPUMap{"1": 30, "2": 100}},
@@ -302,7 +302,7 @@ func TestCPUOverSell(t *testing.T) {
 	})
 }
 
-func applyCPUPlans(t *testing.T, resourceInfo *types.NodeResourceInfo, cpuPlans []*cpuPlan) {
+func applyCPUPlans(t *testing.T, resourceInfo *types.NodeResourceInfo, cpuPlans []*CPUPlan) {
 	for _, cpuPlan := range cpuPlans {
 		resourceInfo.Usage.CPUMap.Add(cpuPlan.CPUMap)
 	}
@@ -312,7 +312,7 @@ func applyCPUPlans(t *testing.T, resourceInfo *types.NodeResourceInfo, cpuPlans 
 func TestCPUOverSellAndStableFragmentCore(t *testing.T) {
 	var cpuMap types.CPUMap
 	var resourceInfo *types.NodeResourceInfo
-	var cpuPlans []*cpuPlan
+	var cpuPlans []*CPUPlan
 	maxShare := -1
 	shareBase := 100
 
@@ -436,7 +436,7 @@ func TestNUMANodes(t *testing.T) {
 		MemRequest: 1,
 	})
 	assert.Equal(t, 2, len(cpuPlans))
-	assert.ElementsMatch(t, cpuPlans, []*cpuPlan{
+	assert.ElementsMatch(t, cpuPlans, []*CPUPlan{
 		{CPUMap: types.CPUMap{"0": 30, "1": 100}, NUMANode: "0"},
 		{CPUMap: types.CPUMap{"2": 30, "3": 100}, NUMANode: "1"},
 	})
@@ -460,7 +460,7 @@ func TestNUMANodes(t *testing.T) {
 		MemRequest: 2 * units.GiB,
 	})
 	assert.Equal(t, 3, len(cpuPlans))
-	assert.ElementsMatch(t, cpuPlans, []*cpuPlan{
+	assert.ElementsMatch(t, cpuPlans, []*CPUPlan{
 		{CPUMap: types.CPUMap{"1": 100, "2": 100}, NUMANode: "0"},
 		{CPUMap: types.CPUMap{"4": 100, "5": 100}, NUMANode: "1"},
 		{CPUMap: types.CPUMap{"0": 100, "3": 100}, NUMANode: ""},
@@ -487,7 +487,7 @@ func TestInsufficientMemory(t *testing.T) {
 		MemRequest: 3 * units.GiB,
 	})
 	assert.Equal(t, 1, len(cpuPlans))
-	assert.ElementsMatch(t, cpuPlans, []*cpuPlan{
+	assert.ElementsMatch(t, cpuPlans, []*CPUPlan{
 		{CPUMap: types.CPUMap{"0": 30, "1": 100}},
 	})
 }

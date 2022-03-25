@@ -68,7 +68,7 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 	}
 
 	// load cpumem plugin
-	cpumem, err := cpumem.NewCPUMemPlugin(config)
+	cpumem, err := cpumem.NewPlugin(config)
 	if err != nil {
 		log.Errorf(context.TODO(), "[NewPluginManager] new cpumem plugin error: %v", err)
 		return nil, err
@@ -76,7 +76,7 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 	resource.AddPlugins(cpumem)
 
 	// load volume plugin
-	volume, err := volume.NewVolumePlugin(config)
+	volume, err := volume.NewPlugin(config)
 	if err != nil {
 		log.Errorf(context.TODO(), "[NewPluginManager] new volume plugin error: %v", err)
 		return nil, err

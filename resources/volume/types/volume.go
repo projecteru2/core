@@ -277,11 +277,11 @@ func (p VolumePlan) MarshalJSON() ([]byte, error) {
 
 // String .
 func (p VolumePlan) String() string {
-	if bs, err := p.MarshalJSON(); err != nil {
+	bs, err := p.MarshalJSON()
+	if err != nil {
 		return "can not marshal volume plan"
-	} else {
-		return string(bs)
 	}
+	return string(bs)
 }
 
 // Merge .

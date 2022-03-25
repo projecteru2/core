@@ -10,22 +10,22 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
-// VolumePlugin wrapper of volume
-type VolumePlugin struct {
+// Plugin wrapper of volume
+type Plugin struct {
 	v *models.Volume
 }
 
-// NewVolumePlugin .
-func NewVolumePlugin(config coretypes.Config) (*VolumePlugin, error) {
+// NewPlugin .
+func NewPlugin(config coretypes.Config) (*Plugin, error) {
 	v, err := models.NewVolume(config)
 	if err != nil {
 		return nil, err
 	}
-	return &VolumePlugin{v: v}, nil
+	return &Plugin{v: v}, nil
 }
 
 // GetDeployArgs .
-func (v *VolumePlugin) GetDeployArgs(ctx context.Context, nodeName string, deployCount int, resourceOpts coretypes.WorkloadResourceOpts) (*resources.GetDeployArgsResponse, error) {
+func (v *Plugin) GetDeployArgs(ctx context.Context, nodeName string, deployCount int, resourceOpts coretypes.WorkloadResourceOpts) (*resources.GetDeployArgsResponse, error) {
 	workloadResourceOpts := &types.WorkloadResourceOpts{}
 	if err := workloadResourceOpts.ParseFromRawParams(coretypes.RawParams(resourceOpts)); err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (v *VolumePlugin) GetDeployArgs(ctx context.Context, nodeName string, deplo
 }
 
 // GetReallocArgs .
-func (v *VolumePlugin) GetReallocArgs(ctx context.Context, nodeName string, originResourceArgs coretypes.WorkloadResourceArgs, resourceOpts coretypes.WorkloadResourceOpts) (*resources.GetReallocArgsResponse, error) {
+func (v *Plugin) GetReallocArgs(ctx context.Context, nodeName string, originResourceArgs coretypes.WorkloadResourceArgs, resourceOpts coretypes.WorkloadResourceOpts) (*resources.GetReallocArgsResponse, error) {
 	workloadResourceOpts := &types.WorkloadResourceOpts{}
 	if err := workloadResourceOpts.ParseFromRawParams(coretypes.RawParams(resourceOpts)); err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func (v *VolumePlugin) GetReallocArgs(ctx context.Context, nodeName string, orig
 }
 
 // GetRemapArgs .
-func (v *VolumePlugin) GetRemapArgs(ctx context.Context, nodeName string, workloadMap map[string]*coretypes.Workload) (*resources.GetRemapArgsResponse, error) {
+func (v *Plugin) GetRemapArgs(ctx context.Context, nodeName string, workloadMap map[string]*coretypes.Workload) (*resources.GetRemapArgsResponse, error) {
 	workloadResourceArgsMap, err := v.workloadMapToWorkloadResourceArgsMap(workloadMap)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (v *VolumePlugin) GetRemapArgs(ctx context.Context, nodeName string, worklo
 }
 
 // GetNodesDeployCapacity .
-func (v *VolumePlugin) GetNodesDeployCapacity(ctx context.Context, nodeNames []string, resourceOpts coretypes.WorkloadResourceOpts) (*resources.GetNodesDeployCapacityResponse, error) {
+func (v *Plugin) GetNodesDeployCapacity(ctx context.Context, nodeNames []string, resourceOpts coretypes.WorkloadResourceOpts) (*resources.GetNodesDeployCapacityResponse, error) {
 	workloadResourceOpts := &types.WorkloadResourceOpts{}
 	if err := workloadResourceOpts.ParseFromRawParams(coretypes.RawParams(resourceOpts)); err != nil {
 		return nil, err
@@ -108,7 +108,7 @@ func (v *VolumePlugin) GetNodesDeployCapacity(ctx context.Context, nodeNames []s
 }
 
 // GetMostIdleNode .
-func (v *VolumePlugin) GetMostIdleNode(ctx context.Context, nodeNames []string) (*resources.GetMostIdleNodeResponse, error) {
+func (v *Plugin) GetMostIdleNode(ctx context.Context, nodeNames []string) (*resources.GetMostIdleNodeResponse, error) {
 	nodeName, priority, err := v.v.GetMostIdleNode(ctx, nodeNames)
 	if err != nil {
 		return nil, err
@@ -123,17 +123,17 @@ func (v *VolumePlugin) GetMostIdleNode(ctx context.Context, nodeNames []string) 
 }
 
 // GetNodeResourceInfo .
-func (v *VolumePlugin) GetNodeResourceInfo(ctx context.Context, nodeName string, workloads []*coretypes.Workload) (*resources.GetNodeResourceInfoResponse, error) {
+func (v *Plugin) GetNodeResourceInfo(ctx context.Context, nodeName string, workloads []*coretypes.Workload) (*resources.GetNodeResourceInfoResponse, error) {
 	return v.getNodeResourceInfo(ctx, nodeName, workloads, false)
 }
 
 // FixNodeResource .
-func (v *VolumePlugin) FixNodeResource(ctx context.Context, nodeName string, workloads []*coretypes.Workload) (*resources.GetNodeResourceInfoResponse, error) {
+func (v *Plugin) FixNodeResource(ctx context.Context, nodeName string, workloads []*coretypes.Workload) (*resources.GetNodeResourceInfoResponse, error) {
 	return v.getNodeResourceInfo(ctx, nodeName, workloads, true)
 }
 
 // SetNodeResourceUsage .
-func (v *VolumePlugin) SetNodeResourceUsage(ctx context.Context, nodeName string, resourceOpts coretypes.NodeResourceOpts, resourceArgs coretypes.NodeResourceArgs, workloadResourceArgs []coretypes.WorkloadResourceArgs, delta bool, incr bool) (*resources.SetNodeResourceUsageResponse, error) {
+func (v *Plugin) SetNodeResourceUsage(ctx context.Context, nodeName string, resourceOpts coretypes.NodeResourceOpts, resourceArgs coretypes.NodeResourceArgs, workloadResourceArgs []coretypes.WorkloadResourceArgs, delta bool, incr bool) (*resources.SetNodeResourceUsageResponse, error) {
 	var nodeResourceOpts *types.NodeResourceOpts
 	var nodeResourceArgs *types.NodeResourceArgs
 	var workloadResourceArgsList []*types.WorkloadResourceArgs
@@ -176,7 +176,7 @@ func (v *VolumePlugin) SetNodeResourceUsage(ctx context.Context, nodeName string
 }
 
 // SetNodeResourceCapacity .
-func (v *VolumePlugin) SetNodeResourceCapacity(ctx context.Context, nodeName string, resourceOpts coretypes.NodeResourceOpts, resourceArgs coretypes.NodeResourceArgs, delta bool, incr bool) (*resources.SetNodeResourceCapacityResponse, error) {
+func (v *Plugin) SetNodeResourceCapacity(ctx context.Context, nodeName string, resourceOpts coretypes.NodeResourceOpts, resourceArgs coretypes.NodeResourceArgs, delta bool, incr bool) (*resources.SetNodeResourceCapacityResponse, error) {
 	var nodeResourceOpts *types.NodeResourceOpts
 	var nodeResourceArgs *types.NodeResourceArgs
 
@@ -213,7 +213,7 @@ func (v *VolumePlugin) SetNodeResourceCapacity(ctx context.Context, nodeName str
 }
 
 // SetNodeResourceInfo .
-func (v *VolumePlugin) SetNodeResourceInfo(ctx context.Context, nodeName string, resourceCapacity coretypes.NodeResourceArgs, resourceUsage coretypes.NodeResourceArgs) (*resources.SetNodeResourceInfoResponse, error) {
+func (v *Plugin) SetNodeResourceInfo(ctx context.Context, nodeName string, resourceCapacity coretypes.NodeResourceArgs, resourceUsage coretypes.NodeResourceArgs) (*resources.SetNodeResourceInfoResponse, error) {
 	capacity := &types.NodeResourceArgs{}
 	if err := capacity.ParseFromRawParams(coretypes.RawParams(resourceCapacity)); err != nil {
 		return nil, err
@@ -231,7 +231,7 @@ func (v *VolumePlugin) SetNodeResourceInfo(ctx context.Context, nodeName string,
 }
 
 // AddNode .
-func (v *VolumePlugin) AddNode(ctx context.Context, nodeName string, resourceOpts coretypes.NodeResourceOpts, nodeInfo *enginetypes.Info) (*resources.AddNodeResponse, error) {
+func (v *Plugin) AddNode(ctx context.Context, nodeName string, resourceOpts coretypes.NodeResourceOpts, nodeInfo *enginetypes.Info) (*resources.AddNodeResponse, error) {
 	nodeResourceOpts := &types.NodeResourceOpts{}
 	if err := nodeResourceOpts.ParseFromRawParams(coretypes.RawParams(resourceOpts)); err != nil {
 		return nil, err
@@ -258,7 +258,7 @@ func (v *VolumePlugin) AddNode(ctx context.Context, nodeName string, resourceOpt
 }
 
 // RemoveNode .
-func (v *VolumePlugin) RemoveNode(ctx context.Context, nodeName string) (*resources.RemoveNodeResponse, error) {
+func (v *Plugin) RemoveNode(ctx context.Context, nodeName string) (*resources.RemoveNodeResponse, error) {
 	if err := v.v.RemoveNode(ctx, nodeName); err != nil {
 		return nil, err
 	}
@@ -266,11 +266,11 @@ func (v *VolumePlugin) RemoveNode(ctx context.Context, nodeName string) (*resour
 }
 
 // Name .
-func (v *VolumePlugin) Name() string {
+func (v *Plugin) Name() string {
 	return "volume"
 }
 
-func (v *VolumePlugin) workloadMapToWorkloadResourceArgsMap(workloadMap map[string]*coretypes.Workload) (*types.WorkloadResourceArgsMap, error) {
+func (v *Plugin) workloadMapToWorkloadResourceArgsMap(workloadMap map[string]*coretypes.Workload) (*types.WorkloadResourceArgsMap, error) {
 	workloadResourceArgsMap := types.WorkloadResourceArgsMap{}
 	for workloadID, workload := range workloadMap {
 		workloadResourceArgs := &types.WorkloadResourceArgs{}
@@ -283,7 +283,7 @@ func (v *VolumePlugin) workloadMapToWorkloadResourceArgsMap(workloadMap map[stri
 	return &workloadResourceArgsMap, nil
 }
 
-func (v *VolumePlugin) workloadListToWorkloadResourceArgsMap(workloads []*coretypes.Workload) (*types.WorkloadResourceArgsMap, error) {
+func (v *Plugin) workloadListToWorkloadResourceArgsMap(workloads []*coretypes.Workload) (*types.WorkloadResourceArgsMap, error) {
 	workloadMap := map[string]*coretypes.Workload{}
 	for _, workload := range workloads {
 		workloadMap[workload.ID] = workload
@@ -292,7 +292,7 @@ func (v *VolumePlugin) workloadListToWorkloadResourceArgsMap(workloads []*corety
 	return v.workloadMapToWorkloadResourceArgsMap(workloadMap)
 }
 
-func (v *VolumePlugin) getNodeResourceInfo(ctx context.Context, nodeName string, workloads []*coretypes.Workload, fix bool) (*resources.GetNodeResourceInfoResponse, error) {
+func (v *Plugin) getNodeResourceInfo(ctx context.Context, nodeName string, workloads []*coretypes.Workload, fix bool) (*resources.GetNodeResourceInfoResponse, error) {
 	workloadResourceArgsMap, err := v.workloadListToWorkloadResourceArgsMap(workloads)
 	if err != nil {
 		return nil, err
@@ -312,14 +312,14 @@ func (v *VolumePlugin) getNodeResourceInfo(ctx context.Context, nodeName string,
 }
 
 // GetMetricsDescription .
-func (v *VolumePlugin) GetMetricsDescription(ctx context.Context) (*resources.GetMetricsDescriptionResponse, error) {
+func (v *Plugin) GetMetricsDescription(ctx context.Context) (*resources.GetMetricsDescriptionResponse, error) {
 	resp := &resources.GetMetricsDescriptionResponse{}
 	err := resources.ToResp(v.v.GetMetricsDescription(), resp)
 	return resp, err
 }
 
 // ResolveNodeResourceInfoToMetrics .
-func (v *VolumePlugin) ResolveNodeResourceInfoToMetrics(ctx context.Context, podName string, nodeName string, info *resources.NodeResourceInfo) (*resources.ResolveNodeResourceInfoToMetricsResponse, error) {
+func (v *Plugin) ResolveNodeResourceInfoToMetrics(ctx context.Context, podName string, nodeName string, info *resources.NodeResourceInfo) (*resources.ResolveNodeResourceInfoToMetricsResponse, error) {
 	capacity, usage := &types.NodeResourceArgs{}, &types.NodeResourceArgs{}
 	if err := capacity.ParseFromRawParams(coretypes.RawParams(info.Capacity)); err != nil {
 		return nil, err

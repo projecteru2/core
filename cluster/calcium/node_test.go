@@ -41,6 +41,15 @@ func TestAddNode(t *testing.T) {
 		mock.Anything, mock.Anything, mock.Anything).Return(node, nil)
 	c.store = store
 	plugin.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.AddNodeResponse{}, nil)
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{
+			Capacity: types.NodeResourceArgs{},
+			Usage:    types.NodeResourceArgs{},
+		},
+	}, nil)
+	store.On("GetNode",
+		mock.Anything,
+		mock.Anything).Return(node, nil)
 
 	// fail by validating
 	_, err := c.AddNode(ctx, &types.AddNodeOptions{})

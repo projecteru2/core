@@ -61,7 +61,7 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 							}
 							// 使用复制之后的配置
 							// 停老的，起新的
-							//replaceOpts.ResourceOpts = workload.ResourceUsage
+							// replaceOpts.ResourceOpts = workload.ResourceUsage
 							// 覆盖 podname 如果做全量更新的话
 							replaceOpts.Podname = workload.Podname
 							// 覆盖 Volumes

@@ -35,7 +35,7 @@ func TestRemoveWorkload(t *testing.T) {
 
 	// failed by GetWorkload
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	ch, err := c.RemoveWorkload(ctx, []string{"xx"}, false, 0)
+	ch, err := c.RemoveWorkload(ctx, []string{"xx"}, false)
 	assert.True(t, errors.Is(err, types.ErrNoETCD))
 	store.AssertExpectations(t)
 
@@ -47,7 +47,7 @@ func TestRemoveWorkload(t *testing.T) {
 	}
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	ch, err = c.RemoveWorkload(ctx, []string{"xx"}, false, 0)
+	ch, err = c.RemoveWorkload(ctx, []string{"xx"}, false)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
@@ -66,12 +66,13 @@ func TestRemoveWorkload(t *testing.T) {
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Twice()
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
-	ch, err = c.RemoveWorkload(ctx, []string{"xx"}, false, 0)
+	ch, err = c.RemoveWorkload(ctx, []string{"xx"}, false)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.False(t, r.Success)
 	}
 	assert.NoError(t, c.doRemoveWorkloadSync(ctx, []string{"xx"}))
+	time.Sleep(time.Second)
 	store.AssertExpectations(t)
 
 	// success
@@ -80,7 +81,7 @@ func TestRemoveWorkload(t *testing.T) {
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
-	ch, err = c.RemoveWorkload(ctx, []string{"xx"}, false, 0)
+	ch, err = c.RemoveWorkload(ctx, []string{"xx"}, false)
 	assert.NoError(t, err)
 	for r := range ch {
 		assert.True(t, r.Success)

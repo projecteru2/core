@@ -71,11 +71,11 @@ type WorkloadResourceArgs struct {
 
 // ParseFromRawParams .
 func (r *WorkloadResourceArgs) ParseFromRawParams(rawParams coretypes.RawParams) error {
-	if body, err := json.Marshal(rawParams); err != nil {
+	body, err := json.Marshal(rawParams)
+	if err != nil {
 		return err
-	} else {
-		return json.Unmarshal(body, r)
 	}
+	return json.Unmarshal(body, r)
 }
 
 // DeepCopy .
@@ -135,11 +135,11 @@ type NodeResourceArgs struct {
 
 // ParseFromRawParams .
 func (r *NodeResourceArgs) ParseFromRawParams(rawParams coretypes.RawParams) error {
-	if body, err := json.Marshal(rawParams); err != nil {
+	body, err := json.Marshal(rawParams)
+	if err != nil {
 		return err
-	} else {
-		return json.Unmarshal(body, r)
 	}
+	return json.Unmarshal(body, r)
 }
 
 // DeepCopy .
@@ -384,22 +384,19 @@ func (n *NodeResourceOpts) ParseFromRawParams(rawParams coretypes.RawParams) (er
 		for i := int64(0); i < cpu; i++ {
 			n.CPUMap[fmt.Sprintf("%v", i)] = int(share)
 		}
-	} else {
-		cpuList := n.RawParams.String("cpu")
-		if cpuList != "" {
-			cpuMapList := strings.Split(cpuList, ",")
-			for _, cpus := range cpuMapList {
-				cpuConfigs := strings.Split(cpus, ":")
-				pieces, err := strconv.ParseInt(cpuConfigs[1], 10, 32)
-				if err != nil {
-					return err
-				}
-				cpuID := cpuConfigs[0]
-				if _, err := strconv.Atoi(cpuID); err != nil {
-					return err
-				}
-				n.CPUMap[cpuID] = int(pieces)
+	} else if cpuList := n.RawParams.String("cpu"); cpuList != "" {
+		cpuMapList := strings.Split(cpuList, ",")
+		for _, cpus := range cpuMapList {
+			cpuConfigs := strings.Split(cpus, ":")
+			pieces, err := strconv.ParseInt(cpuConfigs[1], 10, 32)
+			if err != nil {
+				return err
 			}
+			cpuID := cpuConfigs[0]
+			if _, err := strconv.Atoi(cpuID); err != nil {
+				return err
+			}
+			n.CPUMap[cpuID] = int(pieces)
 		}
 	}
 
@@ -470,9 +467,9 @@ type WorkloadResourceArgsMap map[string]*WorkloadResourceArgs
 
 // ParseFromRawParamsMap .
 func (w *WorkloadResourceArgsMap) ParseFromRawParamsMap(rawParamsMap map[string]coretypes.RawParams) error {
-	if body, err := json.Marshal(rawParamsMap); err != nil {
+	body, err := json.Marshal(rawParamsMap)
+	if err != nil {
 		return err
-	} else {
-		return json.Unmarshal(body, w)
 	}
+	return json.Unmarshal(body, w)
 }

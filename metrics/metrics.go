@@ -3,6 +3,7 @@ package metrics
 import (
 	"os"
 	"strconv"
+	"sync"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources"
@@ -92,7 +93,7 @@ func (m *Metrics) SendMetrics(metrics ...*resources.Metrics) {
 			log.Errorf(nil, "[SendMetrics] Collector not found: %s", metric.Name) //nolint
 			continue
 		}
-		switch collector.(type) {
+		switch collector.(type) { // nolint: gocritic
 		case *prometheus.GaugeVec:
 			value, err := strconv.ParseFloat(metric.Value, 64)
 			if err != nil {
@@ -111,12 +112,15 @@ func (m *Metrics) SendMetrics(metrics ...*resources.Metrics) {
 			if err := m.count(metric.Key, int(value), 1.0); err != nil {
 				log.Errorf(nil, "[SendMetrics] Error occurred while sending %v data to statsd: %v", metric.Name, err) //nolint
 			}
+		default:
+			log.Errorf(nil, "[SendMetrics] Unknown collector type: %T", collector) //nolint
 		}
 	}
 }
 
 // Client is a metrics obj
 var Client = Metrics{}
+var once sync.Once
 
 // InitMetrics new a metrics obj
 func InitMetrics(config types.Config, metricsDescriptions []*resources.MetricsDescription) error {
@@ -148,6 +152,8 @@ func InitMetrics(config types.Config, metricsDescriptions []*resources.MetricsDe
 		}
 	}
 
-	prometheus.MustRegister(maps.Values(Client.Collectors)...)
+	once.Do(func() {
+		prometheus.MustRegister(maps.Values(Client.Collectors)...)
+	})
 	return nil
 }

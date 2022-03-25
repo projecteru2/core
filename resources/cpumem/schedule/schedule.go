@@ -61,7 +61,8 @@ type host struct {
 	affinity         bool
 }
 
-type cpuPlan struct {
+// CPUPlan .
+type CPUPlan struct {
 	NUMANode string
 	CPUMap   types.CPUMap
 }
@@ -74,8 +75,8 @@ func min(a, b int) int {
 }
 
 // GetCPUPlans .
-func GetCPUPlans(resourceInfo *types.NodeResourceInfo, originCPUMap types.CPUMap, shareBase int, maxFragmentCores int, resourceOpts *types.WorkloadResourceOpts) []*cpuPlan {
-	cpuPlans := []*cpuPlan{}
+func GetCPUPlans(resourceInfo *types.NodeResourceInfo, originCPUMap types.CPUMap, shareBase int, maxFragmentCores int, resourceOpts *types.WorkloadResourceOpts) []*CPUPlan {
+	cpuPlans := []*CPUPlan{}
 	availableResourceArgs := resourceInfo.GetAvailableResource()
 
 	numaCPUMap := map[string]types.CPUMap{}
@@ -90,7 +91,7 @@ func GetCPUPlans(resourceInfo *types.NodeResourceInfo, originCPUMap types.CPUMap
 	for numaNodeID, cpuMap := range numaCPUMap {
 		numaCPUPlans := doGetCPUPlans(originCPUMap, cpuMap, availableResourceArgs.NUMAMemory[numaNodeID], shareBase, maxFragmentCores, resourceOpts.CPURequest, resourceOpts.MemRequest)
 		for _, workloadCPUMap := range numaCPUPlans {
-			cpuPlans = append(cpuPlans, &cpuPlan{
+			cpuPlans = append(cpuPlans, &CPUPlan{
 				NUMANode: numaNodeID,
 				CPUMap:   workloadCPUMap,
 			})
@@ -106,7 +107,7 @@ func GetCPUPlans(resourceInfo *types.NodeResourceInfo, originCPUMap types.CPUMap
 	// get cpu plan with the remaining resource
 	crossNUMACPUPlans := doGetCPUPlans(originCPUMap, availableResourceArgs.CPUMap, availableResourceArgs.Memory, shareBase, maxFragmentCores, resourceOpts.CPURequest, resourceOpts.MemRequest)
 	for _, workloadCPUMap := range crossNUMACPUPlans {
-		cpuPlans = append(cpuPlans, &cpuPlan{
+		cpuPlans = append(cpuPlans, &CPUPlan{
 			CPUMap: workloadCPUMap,
 		})
 	}

@@ -77,12 +77,12 @@ func (w *WorkloadResourceOpts) ParseFromRawParams(rawParams coretypes.RawParams)
 		return err
 	}
 	if rawParams.IsSet("storage") {
-		if storage, err := coreutils.ParseRAMInHuman(rawParams.String("storage")); err != nil {
+		storage, err := coreutils.ParseRAMInHuman(rawParams.String("storage"))
+		if err != nil {
 			return err
-		} else {
-			w.StorageLimit = storage
-			w.StorageRequest = storage
 		}
+		w.StorageLimit = storage
+		w.StorageRequest = storage
 	}
 	return nil
 }
@@ -269,9 +269,9 @@ type WorkloadResourceArgsMap map[string]*WorkloadResourceArgs
 
 // ParseFromRawParamsMap .
 func (w *WorkloadResourceArgsMap) ParseFromRawParamsMap(rawParamsMap map[string]coretypes.RawParams) error {
-	if body, err := json.Marshal(rawParamsMap); err != nil {
+	body, err := json.Marshal(rawParamsMap)
+	if err != nil {
 		return err
-	} else {
-		return json.Unmarshal(body, w)
 	}
+	return json.Unmarshal(body, w)
 }
