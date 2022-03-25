@@ -130,7 +130,7 @@ type NodeResourceArgs struct {
 	CPUMap     CPUMap     `json:"cpu_map"`
 	Memory     int64      `json:"memory"`
 	NUMAMemory NUMAMemory `json:"numa_memory"`
-	NUMA       NUMA       `json:"numa,omitempty"`
+	NUMA       NUMA       `json:"numa"`
 }
 
 // ParseFromRawParams .

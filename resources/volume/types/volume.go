@@ -163,6 +163,9 @@ func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 		newVb := &VolumeBinding{vb.Source, vb.Destination, vb.Flags, vb.SizeInBytes}
 		if vmap, _ := plan.GetVolumeMap(vb); vmap != nil {
 			newVb.Source = vmap.GetDevice()
+			if vmap.GetSize() > newVb.SizeInBytes {
+				newVb.SizeInBytes = vmap.GetSize()
+			}
 		}
 		res = append(res, newVb)
 	}

@@ -30,6 +30,7 @@ func Txn(ctx context.Context, cond contextFunc, then contextFunc, rollback func(
 		}
 
 		log.Warnf(ctx, "[txn] txn failed, rolling back: %v", txnErr)
+
 		// forbid interrupting rollback
 		rollbackCtx, rollBackCancel := context.WithTimeout(InheritTracingInfo(ctx, context.TODO()), ttl)
 		defer rollBackCancel()
@@ -54,11 +55,11 @@ func Txn(ctx context.Context, cond contextFunc, then contextFunc, rollback func(
 	return txnErr
 }
 
-// Pcr Prepare, Commit, Rollback.
+// PCR Prepare, Commit, Rollback.
 // `prepare` should be a pure calculation process without side effects.
 // `commit` writes the calculation result of `prepare` into database.
 // if `commit` returns error, `rollback` will be performed.
-func Pcr(ctx context.Context, prepare func(ctx context.Context) error, commit func(ctx context.Context) error, rollback func(ctx context.Context) error, ttl time.Duration) error {
+func PCR(ctx context.Context, prepare func(ctx context.Context) error, commit func(ctx context.Context) error, rollback func(ctx context.Context) error, ttl time.Duration) error {
 	return Txn(ctx, prepare, commit, func(ctx context.Context, failureByCond bool) error {
 		if !failureByCond {
 			return rollback(ctx)

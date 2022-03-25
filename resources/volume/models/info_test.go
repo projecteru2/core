@@ -26,7 +26,7 @@ func TestGetNodeResourceInfo(t *testing.T) {
 	// normal case
 	resourceInfo, diffs, err := volume.GetNodeResourceInfo(ctx, node, nil, false)
 	assert.Nil(t, err)
-	assert.Equal(t, len(diffs), 0)
+	assert.Equal(t, len(diffs), 3)
 
 	bindings := generateVolumeBindings(t, []string{
 		"AUTO:/dir0:rw:1GiB",
@@ -47,7 +47,7 @@ func TestGetNodeResourceInfo(t *testing.T) {
 		},
 	}, true)
 	assert.Nil(t, err)
-	assert.Equal(t, len(diffs), 2)
+	assert.Equal(t, len(diffs), 3)
 	assert.Equal(t, resourceInfo.Usage, &types.NodeResourceArgs{
 		Volumes: types.VolumeMap{
 			"/data0": units.GiB,
@@ -103,7 +103,7 @@ func TestSetNodeResourceUsage(t *testing.T) {
 
 	originResourceUsage := &types.NodeResourceArgs{
 		Volumes: types.VolumeMap{"/data0": 200 * units.GiB, "/data1": 300 * units.GiB},
-		Storage: 0,
+		Storage: 500 * units.GiB,
 	}
 
 	afterSetNodeResourceUsageDelta := &types.NodeResourceArgs{
@@ -111,7 +111,7 @@ func TestSetNodeResourceUsage(t *testing.T) {
 			"/data0": 201 * units.GiB,
 			"/data1": 300 * units.GiB,
 		},
-		Storage: units.GiB,
+		Storage: 501 * units.GiB,
 	}
 
 	_, after, err = volume.SetNodeResourceUsage(ctx, node, nodeResourceOpts, nil, nil, true, true)
@@ -171,17 +171,17 @@ func TestNodeResourceCapacity(t *testing.T) {
 
 	originResourceCapacity := &types.NodeResourceArgs{
 		Volumes: types.VolumeMap{"/data0": units.TiB, "/data1": units.TiB, "/data2": units.TiB, "/data3": units.TiB},
-		Storage: units.TiB,
+		Storage: 4 * units.TiB,
 	}
 
 	originResourceCapacityArgs := &types.NodeResourceArgs{
 		Volumes: types.VolumeMap{"/data0": units.TiB, "/data1": units.TiB, "/data2": units.TiB, "/data3": units.TiB},
-		Storage: units.TiB,
+		Storage: 4 * units.TiB,
 	}
 
 	afterSetNodeResourceUsageDelta := &types.NodeResourceArgs{
 		Volumes: types.VolumeMap{"/data0": units.TiB, "/data1": units.TiB, "/data2": units.TiB, "/data3": units.TiB, "/data4": units.TiB},
-		Storage: 2 * units.TiB,
+		Storage: 5 * units.TiB,
 	}
 
 	_, after, err = volume.SetNodeResourceCapacity(ctx, node, nodeResourceOptsDelta, nil, true, true)

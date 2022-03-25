@@ -34,11 +34,11 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 
 	// no volume request
 	resourceOpts = &types.WorkloadResourceOpts{
-		StorageLimit: 100 * units.GiB,
+		StorageLimit: units.TiB,
 	}
 	_, total, err := volume.GetNodesDeployCapacity(ctx, nodes, resourceOpts)
 	assert.NoError(t, err)
-	assert.Equal(t, total, 100)
+	assert.Equal(t, total, 30)
 
 	// no storage request
 	resourceOpts = &types.WorkloadResourceOpts{
@@ -60,5 +60,5 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 	}
 	_, total, err = volume.GetNodesDeployCapacity(ctx, nodes, resourceOpts)
 	assert.NoError(t, err)
-	assert.Equal(t, total, 10)
+	assert.Equal(t, total, 20)
 }

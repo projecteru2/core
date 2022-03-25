@@ -77,8 +77,8 @@ func TestRealloc(t *testing.T) {
 	opts = &types.WorkloadResourceOpts{
 		VolumesRequest: bindings,
 		VolumesLimit:   bindings,
-		StorageRequest: 2 * units.TiB,
-		StorageLimit:   2 * units.TiB,
+		StorageRequest: 4 * units.TiB,
+		StorageLimit:   4 * units.TiB,
 	}
 	_, _, _, err = volume.GetReallocArgs(ctx, node, originResourceArgs, opts)
 	assert.ErrorIs(t, err, types.ErrInsufficientResource)

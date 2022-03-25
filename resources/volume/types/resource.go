@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -18,6 +19,8 @@ type WorkloadResourceOpts struct {
 
 	StorageRequest int64 `json:"storage_request"`
 	StorageLimit   int64 `json:"storage_limit"`
+
+	once sync.Once
 }
 
 // Validate .
@@ -58,6 +61,12 @@ func (w *WorkloadResourceOpts) Validate() error {
 	if w.StorageLimit > 0 && w.StorageRequest > 0 && w.StorageRequest > w.StorageLimit {
 		w.StorageLimit = w.StorageRequest // soft limit storage size
 	}
+
+	// ensure to change storage request / limit only once
+	w.once.Do(func() {
+		w.StorageRequest += w.VolumesRequest.TotalSize()
+		w.StorageLimit += w.VolumesLimit.TotalSize()
+	})
 	return nil
 }
 
@@ -202,8 +211,8 @@ func (n *NodeResourceArgs) Sub(n1 *NodeResourceArgs) {
 
 // NodeResourceInfo .
 type NodeResourceInfo struct {
-	Capacity *NodeResourceArgs
-	Usage    *NodeResourceArgs
+	Capacity *NodeResourceArgs `json:"capacity"`
+	Usage    *NodeResourceArgs `json:"usage"`
 }
 
 // Validate .

@@ -36,7 +36,7 @@ func TestAlloc(t *testing.T) {
 
 	// storage is not enough
 	resourceOpts = &types.WorkloadResourceOpts{
-		StorageRequest: 1 * units.TiB,
+		StorageRequest: 4 * units.TiB,
 		VolumesLimit: generateVolumeBindings(t, []string{
 			"/etc:/etc",
 		}),

@@ -197,7 +197,7 @@ func (pm *PluginManager) Alloc(ctx context.Context, nodeName string, deployCount
 		resResourceArgs[i] = map[string]types.WorkloadResourceArgs{}
 	}
 
-	return resEngineArgs, resResourceArgs, utils.Pcr(ctx,
+	return resEngineArgs, resResourceArgs, utils.PCR(ctx,
 		// prepare: calculate engine args and resource args
 		func(ctx context.Context) error {
 			respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetDeployArgsResponse, error) {
@@ -248,7 +248,7 @@ func (pm *PluginManager) Realloc(ctx context.Context, nodeName string, originRes
 	resDeltaResourceArgs := map[string]types.WorkloadResourceArgs{}
 	resFinalResourceArgs := map[string]types.WorkloadResourceArgs{}
 
-	return resEngineArgs, resDeltaResourceArgs, resFinalResourceArgs, utils.Pcr(ctx,
+	return resEngineArgs, resDeltaResourceArgs, resFinalResourceArgs, utils.PCR(ctx,
 		// prepare: calculate engine args, delta node resource args and final workload resource args
 		func(ctx context.Context) error {
 			respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetReallocArgsResponse, error) {
@@ -330,7 +330,7 @@ func (pm *PluginManager) SetNodeResourceUsage(ctx context.Context, nodeName stri
 	beforeMap := map[string]types.NodeResourceArgs{}
 	afterMap := map[string]types.NodeResourceArgs{}
 
-	return beforeMap, afterMap, utils.Pcr(ctx,
+	return beforeMap, afterMap, utils.PCR(ctx,
 		// prepare: convert []map[plugin]resourceArgs to map[plugin][]resourceArgs
 		// [{"cpu-plugin": {"cpu": 1}}, {"cpu-plugin": {"cpu": 1}}] -> {"cpu-plugin": [{"cpu": 1}, {"cpu": 1}]}
 		func(ctx context.Context) error {
@@ -395,7 +395,7 @@ func (pm *PluginManager) SetNodeResourceCapacity(ctx context.Context, nodeName s
 	beforeMap := map[string]types.NodeResourceArgs{}
 	afterMap := map[string]types.NodeResourceArgs{}
 
-	return beforeMap, afterMap, utils.Pcr(ctx,
+	return beforeMap, afterMap, utils.PCR(ctx,
 		func(ctx context.Context) error {
 			if nodeResourceArgs == nil {
 				nodeResourceArgs = map[string]types.NodeResourceArgs{}
@@ -484,7 +484,7 @@ func (pm *PluginManager) AddNode(ctx context.Context, nodeName string, resourceO
 	resResourceUsage := map[string]types.NodeResourceArgs{}
 	rollbackPlugins := []Plugin{}
 
-	return resResourceCapacity, resResourceUsage, utils.Pcr(ctx,
+	return resResourceCapacity, resResourceUsage, utils.PCR(ctx,
 		// prepare: do nothing
 		func(ctx context.Context) error {
 			return nil
@@ -542,7 +542,7 @@ func (pm *PluginManager) RemoveNode(ctx context.Context, nodeName string) error 
 	var resourceUsageMap map[string]types.NodeResourceArgs
 	rollbackPlugins := []Plugin{}
 
-	return utils.Pcr(ctx,
+	return utils.PCR(ctx,
 		// prepare: get node resource
 		func(ctx context.Context) error {
 			var err error

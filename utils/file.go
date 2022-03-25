@@ -7,10 +7,6 @@ import (
 
 const executablePerm = 0111
 
-func isExecutable(perm fs.FileMode) bool {
-	return perm&executablePerm == executablePerm
-}
-
 // ListAllExecutableFiles returns all the executable files in the given path
 func ListAllExecutableFiles(basedir string) ([]string, error) {
 	files := []string{}
@@ -31,4 +27,8 @@ func ListAllExecutableFiles(basedir string) ([]string, error) {
 		return nil, err
 	}
 	return files, nil
+}
+
+func isExecutable(perm fs.FileMode) bool {
+	return perm&executablePerm == executablePerm
 }

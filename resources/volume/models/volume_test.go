@@ -43,14 +43,14 @@ func generateNodeResourceInfos(num int) []*types.NodeResourceInfo {
 					"/data2": units.TiB,
 					"/data3": units.TiB,
 				},
-				Storage: 1 * units.TiB,
+				Storage: 4 * units.TiB,
 			},
 			Usage: &types.NodeResourceArgs{
 				Volumes: types.VolumeMap{
 					"/data0": 200 * units.GiB,
 					"/data1": 300 * units.GiB,
 				},
-				Storage: 0,
+				Storage: 500 * units.GiB,
 			},
 		}
 		infos = append(infos, info)

@@ -38,9 +38,14 @@ func (v *Volume) GetNodeResourceInfo(ctx context.Context, node string, workloadR
 		diffs = append(diffs, fmt.Sprintf("node.Storage != sum(workload.Storage): %v != %v", resourceInfo.Usage.Storage, totalStorageUsage))
 	}
 
+	for volume, size := range resourceInfo.Usage.Volumes {
+		if totalVolumeMap[volume] != size {
+			diffs = append(diffs, fmt.Sprintf("node.Volumes[%s] != sum(workload.Volumes[%s]): %v != %v", volume, volume, size, totalVolumeMap[volume]))
+		}
+	}
 	for volume, size := range totalVolumeMap {
-		if resourceInfo.Usage.Volumes[volume] != size {
-			diffs = append(diffs, fmt.Sprintf("node.Volumes[%v] != sum(workload.Volumes[%v]: %v != %v)", volume, volume, resourceInfo.Usage.Volumes[volume], size))
+		if vol, ok := resourceInfo.Usage.Volumes[volume]; !ok && vol != size {
+			diffs = append(diffs, fmt.Sprintf("node.Volumes[%s] != sum(workload.Volumes[%s]): %v != %v", volume, volume, resourceInfo.Usage.Volumes[volume], size))
 		}
 	}
 
