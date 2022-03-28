@@ -96,3 +96,8 @@ func (e *Engine) Ping(ctx context.Context) error {
 	_, err := e.client.Ping(ctx)
 	return err
 }
+
+// CloseConn close connection
+func (e *Engine) CloseConn() error {
+	return e.client.Close()
+}

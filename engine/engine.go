@@ -13,6 +13,7 @@ import (
 type API interface {
 	Info(ctx context.Context) (*enginetypes.Info, error)
 	Ping(ctx context.Context) error
+	CloseConn() error
 
 	Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (result string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error)
 	ExecResize(ctx context.Context, ID, result string, height, width uint) (err error)

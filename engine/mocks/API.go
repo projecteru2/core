@@ -67,6 +67,20 @@ func (_m *API) BuildRefs(ctx context.Context, opts *types.BuildRefOptions) []str
 	return r0
 }
 
+// CloseConn provides a mock function with given fields:
+func (_m *API) CloseConn() error {
+	ret := _m.Called()
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // ExecExitCode provides a mock function with given fields: ctx, ID, result
 func (_m *API) ExecExitCode(ctx context.Context, ID string, result string) (int, error) {
 	ret := _m.Called(ctx, ID, result)

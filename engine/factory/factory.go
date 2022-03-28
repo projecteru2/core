@@ -8,6 +8,7 @@ import (
 	"unsafe"
 
 	"github.com/cornelk/hashmap"
+
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/docker"
 	"github.com/projecteru2/core/engine/fake"
@@ -140,6 +141,11 @@ func validateEngine(ctx context.Context, engine engine.API, timeout time.Duratio
 	utils.WithTimeout(ctx, timeout, func(ctx context.Context) {
 		err = engine.Ping(ctx)
 	})
+	if err != nil {
+		if closeErr := engine.CloseConn(); closeErr != nil {
+			log.Errorf(ctx, "[validateEngine] close conn error: %v", closeErr)
+		}
+	}
 	return err
 }
 
