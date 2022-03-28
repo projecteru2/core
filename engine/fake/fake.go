@@ -24,6 +24,11 @@ func (f *Engine) Ping(ctx context.Context) error {
 	return f.DefaultErr
 }
 
+// CloseConn .
+func (f *Engine) CloseConn() error {
+	return nil
+}
+
 // Execute .
 func (f *Engine) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (result string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	return "", nil, nil, nil, f.DefaultErr
