@@ -90,7 +90,7 @@ func (v *Virt) CloseConn() error {
 func (v *Virt) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (pid string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	if config.Tty {
 		flags := virttypes.AttachGuestFlags{Safe: true, Force: true}
-		stream, err := v.client.AttachGuest(ctx, ID, config.Cmd, flags)
+		_, stream, err := v.client.AttachGuest(ctx, ID, config.Cmd, flags)
 		if err != nil {
 			return "", nil, nil, nil, err
 		}
@@ -274,7 +274,7 @@ func (v *Virt) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtual
 // VirtualizationAttach attaches something to a guest.
 func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, openStdin bool) (stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	flags := virttypes.AttachGuestFlags{Safe: true, Force: true}
-	attachGuest, err := v.client.AttachGuest(ctx, ID, []string{}, flags)
+	_, attachGuest, err := v.client.AttachGuest(ctx, ID, []string{}, flags)
 	if err != nil {
 		return nil, nil, nil, err
 	}
