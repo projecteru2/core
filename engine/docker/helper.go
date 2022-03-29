@@ -257,7 +257,7 @@ func GetIP(ctx context.Context, daemonHost string) string {
 	return u.Hostname()
 }
 
-func makeRawClient(_ context.Context, config coretypes.Config, client *http.Client, endpoint string) (engine.API, error) {
+func makeDockerClient(_ context.Context, config coretypes.Config, client *http.Client, endpoint string) (engine.API, error) {
 	cli, err := dockerapi.NewClientWithOpts(
 		dockerapi.WithHost(endpoint),
 		dockerapi.WithVersion(config.Docker.APIVersion),
@@ -266,24 +266,6 @@ func makeRawClient(_ context.Context, config coretypes.Config, client *http.Clie
 		return nil, err
 	}
 	return &Engine{cli, config}, nil
-}
-
-func dumpFromString(ctx context.Context, ca, cert, key *os.File, caStr, certStr, keyStr string) error {
-	files := []*os.File{ca, cert, key}
-	data := []string{caStr, certStr, keyStr}
-	for i := 0; i < 3; i++ {
-		if _, err := files[i].WriteString(data[i]); err != nil {
-			return err
-		}
-		if err := files[i].Chmod(0444); err != nil {
-			return err
-		}
-		if err := files[i].Close(); err != nil {
-			return err
-		}
-	}
-	log.Debug(ctx, "[dumpFromString] Dump ca.pem, cert.pem, key.pem from string")
-	return nil
 }
 
 func useCNI(labels map[string]string) bool {
