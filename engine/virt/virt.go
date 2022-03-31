@@ -28,8 +28,6 @@ const (
 	HTTPPrefixKey = "virt://"
 	// GRPCPrefixKey indicates grpc yavirtd
 	GRPCPrefixKey = "virt-grpc://"
-	// DmiUUIDKey indicates the key within deploy info.
-	DmiUUIDKey = "DMIUUID"
 	// ImageUserKey indicates the image's owner
 	ImageUserKey = "ImageUser"
 	// Type indicate type
@@ -89,7 +87,7 @@ func (v *Virt) Ping(ctx context.Context) error {
 func (v *Virt) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (pid string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	if config.Tty {
 		flags := virttypes.AttachGuestFlags{Safe: true, Force: true}
-		stream, err := v.client.AttachGuest(ctx, ID, config.Cmd, flags)
+		_, stream, err := v.client.AttachGuest(ctx, ID, config.Cmd, flags)
 		if err != nil {
 			return "", nil, nil, nil, err
 		}
@@ -177,7 +175,7 @@ func (v *Virt) BuildContent(ctx context.Context, scm coresource.Source, opts *en
 }
 
 // VirtualizationCreate creates a guest.
-func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (guest *enginetypes.VirtualizationCreated, err error) {
+func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) {
 	vols, err := v.parseVolumes(opts.Volumes)
 	if err != nil {
 		return nil, err
@@ -191,7 +189,6 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 		Volumes:    vols,
 		Labels:     opts.Labels,
 		AncestorID: opts.AncestorWorkloadID,
-		DmiUUID:    opts.Labels[DmiUUIDKey],
 		Cmd:        opts.Cmd,
 		Lambda:     opts.Lambda,
 		Stdin:      opts.Stdin,
@@ -202,7 +199,11 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 		return nil, err
 	}
 
-	return &enginetypes.VirtualizationCreated{ID: resp.ID, Name: opts.Name}, nil
+	return &enginetypes.VirtualizationCreated{
+		ID:     resp.ID,
+		Name:   opts.Name,
+		Labels: resp.Labels,
+	}, nil
 }
 
 // VirtualizationResourceRemap .
@@ -249,18 +250,23 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 		return nil, err
 	}
 
+	info := &enginetypes.VirtualizationInfo{
+		ID:       guest.ID,
+		Image:    guest.ImageName,
+		Running:  guest.Status == "running",
+		Networks: guest.Networks,
+		Labels:   guest.Labels,
+	}
+
 	content, err := json.Marshal(coretypes.LabelMeta{Publish: []string{"PORT"}})
 	if err != nil {
 		return nil, err
 	}
 
-	return &enginetypes.VirtualizationInfo{
-		ID:       guest.ID,
-		Image:    guest.ImageName,
-		Running:  guest.Status == "running",
-		Networks: guest.Networks,
-		Labels:   map[string]string{cluster.LabelMeta: string(content), cluster.ERUMark: "1"},
-	}, nil
+	info.Labels[cluster.LabelMeta] = string(content)
+	info.Labels[cluster.ERUMark] = "1"
+
+	return info, nil
 }
 
 // VirtualizationLogs streams a specific guest's log.
@@ -279,7 +285,7 @@ func (v *Virt) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtual
 // VirtualizationAttach attaches something to a guest.
 func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, openStdin bool) (stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	flags := virttypes.AttachGuestFlags{Safe: true, Force: true}
-	attachGuest, err := v.client.AttachGuest(ctx, ID, []string{}, flags)
+	_, attachGuest, err := v.client.AttachGuest(ctx, ID, []string{}, flags)
 	if err != nil {
 		return nil, nil, nil, err
 	}
