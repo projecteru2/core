@@ -47,8 +47,9 @@ type VirtualizationCreateOptions struct {
 
 // VirtualizationCreated use for store name and ID
 type VirtualizationCreated struct {
-	ID   string
-	Name string
+	ID     string
+	Name   string
+	Labels map[string]string
 }
 
 // VirtualizationInfo store virtualization info

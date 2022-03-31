@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cornelk/hashmap"
+
 	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -316,6 +317,11 @@ func (c *Calcium) doDeployOneWorkload(
 				return errors.WithStack(err)
 			}
 			workload.ID = created.ID
+
+			for key, value := range created.Labels { // add Labels
+				workload.Labels[key] = value
+			}
+
 			// We couldn't WAL the workload ID above VirtualizationCreate temporarily,
 			// so there's a time gap window, once the core process crashes between
 			// VirtualizationCreate and logCreateWorkload then the worload is leaky.

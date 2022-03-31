@@ -21,7 +21,7 @@ require (
 	github.com/opencontainers/image-spec v1.0.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
-	github.com/projecteru2/libyavirt v0.0.0-20220112061300-ac7002c411ff
+	github.com/projecteru2/libyavirt v0.0.0-20220330115351-ec63a4a270d3
 	github.com/prometheus/client_golang v1.11.0
 	github.com/sanity-io/litter v1.5.1
 	github.com/sirupsen/logrus v1.8.1
@@ -34,6 +34,7 @@ require (
 	go.etcd.io/etcd/tests/v3 v3.5.0
 	go.uber.org/automaxprocs v1.3.0
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+	golang.org/x/exp v0.0.0-20220323204016-c86f0da35e87
 	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/grpc v1.40.0
@@ -121,7 +122,6 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.17.0 // indirect
-	golang.org/x/exp v0.0.0-20220323204016-c86f0da35e87 // indirect
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20211013180041-c96bc1413d57 // indirect
 	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654 // indirect

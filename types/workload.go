@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	engine "github.com/projecteru2/core/engine"
+	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 
 	"github.com/pkg/errors"
