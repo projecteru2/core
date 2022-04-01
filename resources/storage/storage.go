@@ -3,11 +3,12 @@ package storage
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/scheduler"
 	"github.com/projecteru2/core/types"
-
-	"github.com/pkg/errors"
+	"github.com/projecteru2/core/utils"
 )
 
 type storageRequest struct {
@@ -21,6 +22,20 @@ func MakeRequest(opts types.ResourceOptions) (resourcetypes.ResourceRequest, err
 		request: opts.StorageRequest,
 		limit:   opts.StorageLimit,
 	}
+	// add volume request / limit to storage request / limit
+	if len(opts.VolumeRequest) != 0 && len(opts.VolumeLimit) != len(opts.VolumeRequest) {
+		return nil, errors.Wrapf(types.ErrBadVolume, "volume request and limit must be the same length")
+	}
+	for idx := range opts.VolumeLimit {
+		if len(opts.VolumeRequest) > 0 {
+			sr.request += opts.VolumeRequest[idx].SizeInBytes
+			sr.limit += utils.Max(opts.VolumeLimit[idx].SizeInBytes, opts.VolumeRequest[idx].SizeInBytes)
+		} else {
+			sr.request += opts.VolumeLimit[idx].SizeInBytes
+			sr.limit += opts.VolumeLimit[idx].SizeInBytes
+		}
+	}
+
 	return sr, sr.Validate()
 }
 

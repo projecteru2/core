@@ -209,8 +209,12 @@ func MergeHookOutputs(outputs []*bytes.Buffer) []byte {
 	return r
 }
 
+type ordered interface {
+	~int | ~int32 | ~int64 | ~uint | ~uint32 | ~uint64 | ~float32 | ~float64
+}
+
 // Min returns the lesser one.
-func Min(x int, xs ...int) int {
+func Min[T ordered](x T, xs ...T) T {
 	if len(xs) == 0 {
 		return x
 	}
@@ -220,19 +224,8 @@ func Min(x int, xs ...int) int {
 	return x
 }
 
-// Min64 return lesser one
-func Min64(x int64, xs ...int64) int64 {
-	if len(xs) == 0 {
-		return x
-	}
-	if m := Min64(xs[0], xs[1:]...); m < x {
-		return m
-	}
-	return x
-}
-
-// Max returns the biggest int
-func Max(x int, xs ...int) int {
+// Max returns the biggest one.
+func Max[T ordered](x T, xs ...T) T {
 	if len(xs) == 0 {
 		return x
 	}

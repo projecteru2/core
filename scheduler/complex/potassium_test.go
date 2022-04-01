@@ -1361,6 +1361,7 @@ func TestSelectVolumeNodesNonAuto(t *testing.T) {
 				Volume: types.VolumeMap{
 					"/data0": 1024,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 	}
@@ -1388,6 +1389,7 @@ func TestSelectVolumeNodesAutoInsufficient(t *testing.T) {
 					"/data0": 1024,
 					"/data1": 2048,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 	}
@@ -1412,6 +1414,7 @@ func TestSelectVolumeNodesAutoSingle(t *testing.T) {
 					"/data0": 1024,
 					"/data1": 2048,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 	}
@@ -1435,6 +1438,7 @@ func TestSelectVolumeNodesAutoDouble(t *testing.T) {
 					"/data0": 1024,
 					"/data1": 1025,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 		{
@@ -1444,6 +1448,7 @@ func TestSelectVolumeNodesAutoDouble(t *testing.T) {
 					"/data0": 2048,
 					"/data1": 2049,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 	}
@@ -1471,6 +1476,7 @@ func TestSelectVolumeNodesAutoTriple(t *testing.T) {
 					"/data2": 1219,
 					"/data0": 2000,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 		{
@@ -1481,6 +1487,7 @@ func TestSelectVolumeNodesAutoTriple(t *testing.T) {
 					"/data2": 10,
 					"/data3": 2110,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 		{
@@ -1491,6 +1498,7 @@ func TestSelectVolumeNodesAutoTriple(t *testing.T) {
 					"/data3": 1000,
 					"/data4": 1002,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 	}
@@ -1535,6 +1543,7 @@ func TestSelectMonopoly(t *testing.T) {
 					"/data0": 2001,
 					"/data2": 2000,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 	}
@@ -1565,6 +1574,7 @@ func TestSelectMultipleMonopoly(t *testing.T) {
 					"/data2": 2001,
 					"/data3": 3000,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 	}
@@ -1596,6 +1606,7 @@ func TestSelectHyperMonopoly(t *testing.T) {
 					"/data0": 2000,
 					"/data2": 2001,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 	}
@@ -1631,6 +1642,7 @@ func TestSelectMonopolyOnMultipleNodes(t *testing.T) {
 					"/data0": 2001,
 					"/data1": 2000,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 		{
@@ -1644,6 +1656,7 @@ func TestSelectMonopolyOnMultipleNodes(t *testing.T) {
 					"/data0": 2000,
 					"/data1": 2001,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 		{
@@ -1678,6 +1691,7 @@ func TestSelectMonopolyInsufficient(t *testing.T) {
 				InitVolume: types.VolumeMap{
 					"/data0": 2001,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 	}
@@ -1698,6 +1712,7 @@ func TestSelectMonopolyInsufficient(t *testing.T) {
 					"/data0": 2000,
 					"/data1": 2001,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 	}
@@ -1719,6 +1734,7 @@ func TestSelectUnlimited(t *testing.T) {
 					"/data2": 1219,
 					"/data0": 2000,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 		{
@@ -1729,6 +1745,7 @@ func TestSelectUnlimited(t *testing.T) {
 					"/data2": 10,
 					"/data3": 2110,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 		{
@@ -1739,6 +1756,7 @@ func TestSelectUnlimited(t *testing.T) {
 					"/data3": 1000,
 					"/data4": 1002,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 	}
@@ -1788,6 +1806,7 @@ func TestSelectVolumeNormAndMono(t *testing.T) {
 					"/data0": 1000,
 					"/data1": 2000,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 	}
@@ -1833,6 +1852,7 @@ func TestSelectVolumeNormAndMono(t *testing.T) {
 					"/data2": 1000,
 					"/data3": 2000,
 				},
+				StorageCap: units.GiB,
 			},
 		},
 	}
