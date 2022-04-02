@@ -8,6 +8,7 @@ import (
 	"unsafe"
 
 	"github.com/cornelk/hashmap"
+
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/docker"
 	"github.com/projecteru2/core/engine/fake"
