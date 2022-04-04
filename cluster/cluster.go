@@ -30,8 +30,8 @@ const (
 	WorkloadRestart = "restart"
 	// WorkloadLock for lock workload
 	WorkloadLock = "clock_%s"
-	// NodeResourceLock for lock node resource
-	NodeResourceLock = "cnode_%s_%s"
+	// PodLock for lock pod
+	PodLock = "plock_%s"
 	// NodeOperationLock for lock node operation
 	NodeOperationLock = "cnode_op_%s_%s"
 )

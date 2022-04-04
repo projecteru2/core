@@ -30,7 +30,7 @@ func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
 		Podname: podname,
 		All:     true,
 	}
-	return c.withNodesResourceLocked(ctx, nf, func(ctx context.Context, nodes map[string]*types.Node) error {
+	return c.withNodesPodLocked(ctx, nf, func(ctx context.Context, nodes map[string]*types.Node) error {
 		// TODO dissociate workload to node
 		// TODO should remove node first
 		return logger.Err(ctx, errors.WithStack(c.store.RemovePod(ctx, podname)))
