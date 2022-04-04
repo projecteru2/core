@@ -213,7 +213,7 @@ func cpuReallocPlan(scheduleInfo resourcetypes.ScheduleInfo, quota float64, CPU 
 			if diff == 0 {
 				break
 			}
-			shrink := utils.Min64(affinityPlan[cpuID], -diff)
+			shrink := utils.Min(affinityPlan[cpuID], -diff)
 			affinityPlan[cpuID] -= shrink
 			if affinityPlan[cpuID] == 0 {
 				delete(affinityPlan, cpuID)
@@ -242,7 +242,7 @@ func cpuReallocPlan(scheduleInfo resourcetypes.ScheduleInfo, quota float64, CPU 
 
 		// fragments, try to find complement
 		if available := scheduleInfo.CPU[cpuID]; available == sharebase-CPU[cpuID] {
-			expand := utils.Min64(available, needPieces)
+			expand := utils.Min(available, needPieces)
 			affinityPlan[cpuID] = CPU[cpuID] + expand
 			scheduleInfo.CPU[cpuID] -= expand
 			needPieces -= sharebase
