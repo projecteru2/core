@@ -30,7 +30,7 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 	if nodename == "" {
 		return logger.Err(ctx, errors.WithStack(types.ErrEmptyNodeName))
 	}
-	return c.withNodeResourceLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+	return c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 		ws, err := c.ListNodeWorkloads(ctx, node.Name, nil)
 		if err != nil {
 			return logger.Err(ctx, err)
@@ -107,7 +107,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		return nil, logger.Err(ctx, err)
 	}
 	var n *types.Node
-	return n, c.withNodeResourceLocked(ctx, opts.Nodename, func(ctx context.Context, node *types.Node) error {
+	return n, c.withNodePodLocked(ctx, opts.Nodename, func(ctx context.Context, node *types.Node) error {
 		logger.Infof(ctx, "set node")
 		opts.Normalize(node)
 		n = node

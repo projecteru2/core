@@ -21,7 +21,7 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 		NodeCapacities: map[string]int{},
 	}
 
-	return msg, c.withNodesResourceLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) error {
+	return msg, c.withNodesPodLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) error {
 		if opts.DeployStrategy != strategy.Dummy {
 			if _, msg.NodeCapacities, err = c.doAllocResource(ctx, nodeMap, opts); err != nil {
 				logger.Errorf(ctx, "[Calcium.CalculateCapacity] doAllocResource failed: %+v", err)
