@@ -242,6 +242,12 @@ func (pm *PluginManager) Alloc(ctx context.Context, nodeName string, deployCount
 	)
 }
 
+// RollbackAlloc rollbacks the allocated resource
+func (pm *PluginManager) RollbackAlloc(ctx context.Context, nodeName string, resourceArgs []map[string]types.WorkloadResourceArgs) error {
+	_, _, err := pm.SetNodeResourceUsage(ctx, nodeName, nil, nil, resourceArgs, true, Decr)
+	return err
+}
+
 // Realloc reallocates resource for workloads, returns engine args and final resource args.
 func (pm *PluginManager) Realloc(ctx context.Context, nodeName string, originResourceArgs map[string]types.WorkloadResourceArgs, resourceOpts types.WorkloadResourceOpts) (types.EngineArgs, map[string]types.WorkloadResourceArgs, map[string]types.WorkloadResourceArgs, error) {
 	resEngineArgs := types.EngineArgs{}
@@ -288,6 +294,12 @@ func (pm *PluginManager) Realloc(ctx context.Context, nodeName string, originRes
 		},
 		pm.config.GlobalTimeout,
 	)
+}
+
+// RollbackRealloc rollbacks the resource changes caused by realloc
+func (pm *PluginManager) RollbackRealloc(ctx context.Context, nodeName string, resourceArgs map[string]types.WorkloadResourceArgs) error {
+	_, _, err := pm.SetNodeResourceUsage(ctx, nodeName, nil, nil, []map[string]types.WorkloadResourceArgs{resourceArgs}, true, Decr)
+	return err
 }
 
 // GetNodeResourceInfo .

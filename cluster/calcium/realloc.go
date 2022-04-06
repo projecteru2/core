@@ -7,7 +7,6 @@ import (
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 
@@ -61,8 +60,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 			if failureByCond {
 				return nil
 			}
-			_, _, err := c.resource.SetNodeResourceUsage(ctx, workload.Nodename, nil, nil, []map[string]types.WorkloadResourceArgs{deltaResourceArgs}, true, resources.Decr)
-			if err != nil {
+			if err := c.resource.RollbackRealloc(ctx, workload.Nodename, deltaResourceArgs); err != nil {
 				log.Errorf(ctx, "[doReallocOnNode] failed to rollback workload %v, resource args %v, engine args %v, err %v", workload.ID, litter.Sdump(resourceArgs), litter.Sdump(engineArgs), err)
 				// don't return here, so the node resource can still be fixed
 			}

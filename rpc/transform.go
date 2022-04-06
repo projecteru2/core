@@ -693,7 +693,7 @@ func newPBRawParamStringSlice(strs []string) *pb.RawParam {
 func fillOldNodeMeta(node *pb.Node, resourceCapacity map[string]types.RawParams, resourceUsage map[string]types.RawParams) {
 	if capacity, ok := resourceCapacity["cpumem"]; ok {
 		usage := resourceUsage["cpumem"]
-		node.Cpu = types.ConvertRawParamsToMap[int32](usage.RawParams("cpu_map"))
+		node.Cpu = map[string]int32{}
 		node.InitCpu = types.ConvertRawParamsToMap[int32](capacity.RawParams("cpu_map"))
 		node.CpuUsed = usage.Float64("cpu")
 		node.InitMemory = capacity.Int64("memory")
@@ -702,6 +702,11 @@ func fillOldNodeMeta(node *pb.Node, resourceCapacity map[string]types.RawParams,
 		node.Numa = types.ConvertRawParamsToMap[string](usage.RawParams("numa"))
 		node.InitNumaMemory = types.ConvertRawParamsToMap[int64](capacity.RawParams("numa_memory"))
 		node.NumaMemory = map[string]int64{}
+
+		cpuMapUsed := types.ConvertRawParamsToMap[int32](usage.RawParams("cpu_map"))
+		for cpuID := range node.InitCpu {
+			node.Cpu[cpuID] = node.InitCpu[cpuID] - cpuMapUsed[cpuID]
+		}
 
 		numaMemoryUsed := types.ConvertRawParamsToMap[int64](usage.RawParams("numa_memory"))
 		for numaNodeID := range numaMemoryUsed {

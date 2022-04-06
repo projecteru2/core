@@ -12,7 +12,6 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/metrics"
-	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
@@ -149,12 +148,10 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 				}
 				for nodename, rollbackIndices := range rollbackMap {
 					if e := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
-						resourceArgsToRollback := []map[string]types.WorkloadResourceArgs{}
-						for _, idx := range rollbackIndices {
-							resourceArgsToRollback = append(resourceArgsToRollback, resourceArgsMap[nodename][idx])
-						}
-						_, _, err := c.resource.SetNodeResourceUsage(ctx, nodename, nil, nil, resourceArgsToRollback, true, resources.Decr)
-						return err
+						resourceArgsToRollback := utils.Map(rollbackIndices, func(idx int) map[string]types.WorkloadResourceArgs {
+							return resourceArgsMap[nodename][idx]
+						})
+						return c.resource.RollbackAlloc(ctx, nodename, resourceArgsToRollback)
 					}); e != nil {
 						err = logger.Err(ctx, e)
 					}
