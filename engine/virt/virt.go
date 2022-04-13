@@ -30,6 +30,8 @@ const (
 	GRPCPrefixKey = "virt-grpc://"
 	// ImageUserKey indicates the image's owner
 	ImageUserKey = "ImageUser"
+	// DmiUUIDKey indicates the key within deploy info.
+	DmiUUIDKey = "DMIUUID"
 	// Type indicate type
 	Type = "virt"
 )
@@ -192,6 +194,7 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 		ImageUser:  opts.Labels[ImageUserKey],
 		Volumes:    vols,
 		Labels:     opts.Labels,
+		DmiUUID:    opts.Labels[DmiUUIDKey],
 		AncestorID: opts.AncestorWorkloadID,
 		Cmd:        opts.Cmd,
 		Lambda:     opts.Lambda,
