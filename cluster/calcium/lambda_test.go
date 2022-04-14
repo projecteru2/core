@@ -11,9 +11,8 @@ import (
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
-	resourcetypes "github.com/projecteru2/core/resources/types"
-	"github.com/projecteru2/core/scheduler"
-	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
+	"github.com/projecteru2/core/resources"
+	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
@@ -27,6 +26,7 @@ func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
 	assert := assert.New(t)
 	c, _ := newCreateWorkloadCluster(t)
 	c.wal = &WAL{WAL: &walmocks.WAL{}}
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
 
 	mwal := c.wal.WAL.(*walmocks.WAL)
 	defer mwal.AssertNotCalled(t, "Log")
@@ -37,15 +37,14 @@ func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
 		Count:          2,
 		DeployStrategy: strategy.Auto,
 		Podname:        "p1",
-		ResourceOpts:   types.ResourceOptions{CPUQuotaLimit: 1},
+		ResourceOpts:   types.WorkloadResourceOpts{},
 		Image:          "zc:test",
 		Entrypoint: &types.Entrypoint{
 			Name: "good-entrypoint",
 		},
 	}
 
-	mstore := c.store.(*storemocks.Store)
-	mstore.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(fmt.Errorf("err")).Once()
+	plugin.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(nil, context.DeadlineExceeded)
 
 	_, ch, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
 	assert.NoError(err)
@@ -76,7 +75,7 @@ func TestLambdaWithWorkloadIDReturned(t *testing.T) {
 		Count:          2,
 		DeployStrategy: strategy.Auto,
 		Podname:        "p1",
-		ResourceOpts:   types.ResourceOptions{CPUQuotaLimit: 1},
+		ResourceOpts:   types.WorkloadResourceOpts{},
 		Image:          "zc:test",
 		Entrypoint: &types.Entrypoint{
 			Name: "good-entrypoint",
@@ -127,7 +126,7 @@ func TestLambdaWithError(t *testing.T) {
 		Count:          2,
 		DeployStrategy: strategy.Auto,
 		Podname:        "p1",
-		ResourceOpts:   types.ResourceOptions{CPUQuotaLimit: 1},
+		ResourceOpts:   types.WorkloadResourceOpts{},
 		Image:          "zc:test",
 		Entrypoint: &types.Entrypoint{
 			Name: "good-entrypoint",
@@ -189,12 +188,41 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 	c, nodes := newCreateWorkloadCluster(t)
 
 	store := &storemocks.Store{}
-	sche := &schedulermocks.Scheduler{}
-	scheduler.InitSchedulerV1(sche)
 	c.store = store
-	c.scheduler = sche
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
 
 	node1, node2 := nodes[0], nodes[1]
+
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{},
+	}, nil)
+	plugin.On("GetDeployArgs", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetDeployArgsResponse{
+		EngineArgs:   []types.EngineArgs{},
+		ResourceArgs: []types.WorkloadResourceArgs{},
+	}, nil)
+	plugin.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.SetNodeResourceUsageResponse{
+		Before: types.NodeResourceArgs{},
+		After:  types.NodeResourceArgs{},
+	}, nil)
+	plugin.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodesDeployCapacityResponse{
+		Nodes: map[string]*resources.NodeCapacityInfo{
+			node1.Name: {
+				NodeName: node1.Name,
+				Capacity: 10,
+				Usage:    0.5,
+				Rate:     0.05,
+				Weight:   100,
+			},
+			node2.Name: {
+				NodeName: node2.Name,
+				Capacity: 10,
+				Usage:    0.5,
+				Rate:     0.05,
+				Weight:   100,
+			},
+		},
+		Total: 20,
+	}, nil)
 
 	store.On("CreateProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -216,24 +244,8 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 			}
 			return
 		}, nil)
-	sche.On("SelectStorageNodes", mock.Anything, mock.AnythingOfType("[]resourcetypes.ScheduleInfo"), mock.AnythingOfType("int64")).Return(func(_ context.Context, scheduleInfos []resourcetypes.ScheduleInfo, _ int64) []resourcetypes.ScheduleInfo {
-		return scheduleInfos
-	}, len(nodes), nil)
-	sche.On("SelectStorageNodes", mock.Anything, mock.AnythingOfType("[]types.ScheduleInfo"), mock.AnythingOfType("int64")).Return(func(_ context.Context, scheduleInfos []resourcetypes.ScheduleInfo, _ int64) []resourcetypes.ScheduleInfo {
-		return scheduleInfos
-	}, len(nodes), nil)
-	sche.On("SelectVolumeNodes", mock.Anything, mock.AnythingOfType("[]types.ScheduleInfo"), mock.AnythingOfType("types.VolumeBindings")).Return(func(_ context.Context, scheduleInfos []resourcetypes.ScheduleInfo, _ types.VolumeBindings) []resourcetypes.ScheduleInfo {
-		return scheduleInfos
-	}, nil, len(nodes), nil)
-	sche.On("SelectMemoryNodes", mock.Anything, mock.AnythingOfType("[]types.ScheduleInfo"), mock.AnythingOfType("float64"), mock.AnythingOfType("int64")).Return(
-		func(_ context.Context, scheduleInfos []resourcetypes.ScheduleInfo, _ float64, _ int64) []resourcetypes.ScheduleInfo {
-			for i := range scheduleInfos {
-				scheduleInfos[i].Capacity = 1
-			}
-			return scheduleInfos
-		}, len(nodes), nil)
 
-	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{}, nil)
 	old := strategy.Plans[strategy.Auto]
 	strategy.Plans[strategy.Auto] = func(ctx context.Context, sis []strategy.Info, need, total, _ int) (map[string]int, error) {
 		deployInfos := make(map[string]int)
@@ -246,8 +258,8 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 		strategy.Plans[strategy.Auto] = old
 	}()
 
-	store.On("UpdateNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
+	//store.On("UpdateNodes", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	//store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
 	store.On("GetNode",
 		mock.AnythingOfType("*context.timerCtx"),
 		mock.AnythingOfType("string"),

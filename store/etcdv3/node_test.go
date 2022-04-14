@@ -23,55 +23,29 @@ func TestAddNode(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = m.AddPod(ctx, "numapod", "test")
 	assert.NoError(t, err)
-	cpu := 1
-	share := 100
-	memory := int64(100)
-	storage := int64(100)
-	m.config.Scheduler.ShareBase = 100
 	labels := map[string]string{"test": "1"}
 
-	// wrong endpoint
-	ctx1, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
-	_, err = m.AddNode(ctx1, &types.AddNodeOptions{Nodename: nodename, Endpoint: "abc", Podname: podname, CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
-	assert.Error(t, err)
-
-	// wrong because engine not mocked
-	ctx2, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
-	_, err = m.AddNode(ctx2, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
-	assert.Error(t, err)
 	endpoint = "mock://fakeengine"
 	// wrong no pod
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: "abc", CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: "abc", Labels: labels})
 	assert.Error(t, err)
 	// AddNode
-	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
+	node, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, Labels: labels})
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, nodename)
-	assert.Equal(t, node.CPU["0"], int64(100))
 	// add again and failed
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, Labels: labels})
 	assert.Error(t, err)
-	// AddNode with numa
-	nodeWithNuma, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: "nodewithnuma", Endpoint: endpoint, Podname: "numapod", CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels, Numa: types.NUMA{"1": "n1", "2": "n2"}})
-	assert.NoError(t, err)
-	assert.Equal(t, nodeWithNuma.Name, "nodewithnuma")
-	assert.Equal(t, len(nodeWithNuma.NUMAMemory), 2)
-	assert.Equal(t, nodeWithNuma.NUMAMemory["n1"], int64(50))
 	// Addnode again will failed
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, CPU: cpu, Share: share, Memory: memory, Storage: storage, Labels: labels})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: endpoint, Podname: podname, Labels: labels})
 	assert.Error(t, err)
 	// Check etcd has node data
 	key := fmt.Sprintf(nodeInfoKey, nodename)
 	_, err = m.GetOne(ctx, key)
 	assert.NoError(t, err)
 	// AddNode with mocked engine and default value
-	node2, err := m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename2, Endpoint: endpoint, Podname: podname, Labels: labels})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename2, Endpoint: endpoint, Podname: podname, Labels: labels})
 	assert.NoError(t, err)
-	assert.Equal(t, node2.CPU["0"], int64(100))
-	assert.Equal(t, len(node2.CPU), 100)
-	assert.Equal(t, node2.MemCap, int64(85899345920))
 	// with tls
 	ca := `-----BEGIN CERTIFICATE-----
 MIIC7TCCAdWgAwIBAgIJAM8uLRZf9jttMA0GCSqGSIb3DQEBCwUAMA0xCzAJBgNV
@@ -138,7 +112,7 @@ RdCPRPt513WozkJZZAjUSP2U
 	nodename3 := "nodename3"
 	endpoint3 := "tcp://path"
 	m.config.CertPath = "/tmp"
-	node3, err := m.doAddNode(ctx, nodename3, endpoint3, podname, ca, cert, certkey, cpu, share, memory, storage, labels, nil, nil, nil)
+	node3, err := m.doAddNode(ctx, nodename3, endpoint3, podname, ca, cert, certkey, labels)
 	assert.NoError(t, err)
 	_, err = m.makeClient(ctx, node3)
 	assert.Error(t, err)
@@ -151,7 +125,7 @@ RdCPRPt513WozkJZZAjUSP2U
 func TestRemoveNode(t *testing.T) {
 	m := NewMercury(t)
 	ctx := context.Background()
-	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", 100, 100, 100000, 100000, nil, nil, nil, nil)
+	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	assert.NoError(t, m.RemoveNode(ctx, nil))
@@ -161,7 +135,7 @@ func TestRemoveNode(t *testing.T) {
 func TestGetNode(t *testing.T) {
 	m := NewMercury(t)
 	ctx := context.Background()
-	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", 100, 100, 100000, 100000, nil, nil, nil, nil)
+	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	_, err = m.GetNode(ctx, "wtf")
@@ -174,7 +148,7 @@ func TestGetNode(t *testing.T) {
 func TestGetNodesByPod(t *testing.T) {
 	m := NewMercury(t)
 	ctx := context.Background()
-	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", 100, 100, 100000, 100000, map[string]string{"x": "y"}, nil, nil, nil)
+	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	ns, err := m.GetNodesByPod(ctx, "wtf", nil, false)
@@ -196,7 +170,7 @@ func TestGetNodesByPod(t *testing.T) {
 func TestUpdateNode(t *testing.T) {
 	m := NewMercury(t)
 	ctx := context.Background()
-	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", 100, 100, 100000, 100000, map[string]string{"x": "y"}, nil, nil, nil)
+	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	fakeNode := &types.Node{
@@ -213,17 +187,6 @@ func TestUpdateNode(t *testing.T) {
 	assert.NoError(t, m.UpdateNodes(ctx, node))
 	node.Available = false
 	assert.NoError(t, m.UpdateNodes(ctx, node))
-}
-
-func TestUpdateNodeResource(t *testing.T) {
-	m := NewMercury(t)
-	ctx := context.Background()
-	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", 1, 100, 100000, 100000, map[string]string{"x": "y"}, map[string]string{"0": "0"}, map[string]int64{"0": 100}, nil)
-	assert.NoError(t, err)
-	assert.Equal(t, node.Name, "test")
-	assert.Error(t, m.UpdateNodeResource(ctx, node, nil, "wtf"))
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, &types.ResourceMeta{CPU: map[string]int64{"0": 100}}, types.ActionIncr))
-	assert.NoError(t, m.UpdateNodeResource(ctx, node, &types.ResourceMeta{CPU: map[string]int64{"0": 100}}, types.ActionDecr))
 }
 
 func TestExtractNodename(t *testing.T) {

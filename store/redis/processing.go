@@ -7,11 +7,12 @@ import (
 	"strings"
 
 	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
-
-	"github.com/sanity-io/litter"
 )
+
+func (r *Rediaron) getProcessingKey(processing *types.Processing) string {
+	return filepath.Join(workloadProcessingPrefix, processing.Appname, processing.Entryname, processing.Nodename, processing.Ident)
+}
 
 // CreateProcessing save processing status in etcd
 func (r *Rediaron) CreateProcessing(ctx context.Context, processing *types.Processing, count int) error {
@@ -24,22 +25,19 @@ func (r *Rediaron) DeleteProcessing(ctx context.Context, processing *types.Proce
 	return r.BatchDelete(ctx, []string{r.getProcessingKey(processing)})
 }
 
-func (r *Rediaron) getProcessingKey(processing *types.Processing) string {
-	return filepath.Join(workloadProcessingPrefix, processing.Appname, processing.Entryname, processing.Nodename, processing.Ident)
-}
-
-func (r *Rediaron) doLoadProcessing(ctx context.Context, appname, entryname string, strategyInfos []strategy.Info) error {
-	// 显式的加 / 保证 prefix 一致性
+// doLoadProcessing returns how many workloads are `processing` on each node
+func (r *Rediaron) doLoadProcessing(ctx context.Context, appname, entryname string) (map[string]int, error) {
+	nodesCount := map[string]int{}
+	// 显式地加 / 保证 prefix 一致性
 	processingKey := filepath.Join(workloadProcessingPrefix, appname, entryname) + "/*"
 	data, err := r.getByKeyPattern(ctx, processingKey, 0)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(data) == 0 {
-		return nil
+		return nodesCount, nil
 	}
 
-	nodesCount := map[string]int{}
 	for k, v := range data {
 		parts := strings.Split(k, "/")
 		nodename := parts[len(parts)-2]
@@ -55,8 +53,6 @@ func (r *Rediaron) doLoadProcessing(ctx context.Context, appname, entryname stri
 		nodesCount[nodename] += count
 	}
 
-	log.Debug(ctx, "[doLoadProcessing] Processing result:")
-	litter.Dump(nodesCount)
-	setCount(nodesCount, strategyInfos)
-	return nil
+	log.Debug(ctx, "[doLoadProcessing] Processing result: %+v", nodesCount)
+	return nodesCount, nil
 }

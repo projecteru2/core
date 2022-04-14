@@ -16,28 +16,12 @@ func TestParseTriOption(t *testing.T) {
 
 func TestSetNodeOptions(t *testing.T) {
 	o := &SetNodeOptions{
-		DeltaVolume:  VolumeMap{"/data": 1, "/data2": 2},
-		DeltaStorage: -10,
+		ResourceOpts: map[string]interface{}{},
 	}
 	assert.Equal(t, ErrEmptyNodeName, errors.Unwrap(o.Validate()))
 
 	o.Nodename = "nodename"
 	assert.NoError(t, o.Validate())
-
-	o.Normalize(nil)
-	assert.EqualValues(t, -7, o.DeltaStorage)
-
-	node := &Node{
-		NodeMeta: NodeMeta{
-			InitVolume: VolumeMap{"/data0": 100, "/data1": 3},
-		},
-	}
-	o = &SetNodeOptions{
-		DeltaVolume:  VolumeMap{"/data0": 0, "/data1": 10},
-		DeltaStorage: 10,
-	}
-	o.Normalize(node)
-	assert.EqualValues(t, 10-100+10, o.DeltaStorage)
 }
 
 func TestDeployOptions(t *testing.T) {
@@ -138,25 +122,6 @@ func TestValidatingAddNodeOptions(t *testing.T) {
 	assert.Equal(ErrEmptyNodeEndpoint, errors.Unwrap(o.Validate()))
 
 	o.Endpoint = "tcp://endpoint:2376"
-	o.CPU = -1
-	o.Share = -1
-	o.Memory = -1
-	o.NumaMemory = NUMAMemory{"0": -1}
-	o.Volume = VolumeMap{"/data": -1}
-	o.Storage = -1
-
-	assert.Equal(ErrNegativeCPU, errors.Unwrap(o.Validate()))
-	o.CPU = 1
-	assert.Equal(ErrNegativeShare, errors.Unwrap(o.Validate()))
-	o.Share = 100
-	assert.Equal(ErrNegativeMemory, errors.Unwrap(o.Validate()))
-	o.Memory = 100
-	assert.Equal(ErrNegativeNUMAMemory, errors.Unwrap(o.Validate()))
-	o.NumaMemory = nil
-	assert.Equal(ErrNegativeVolumeSize, errors.Unwrap(o.Validate()))
-	o.Volume = nil
-	assert.Equal(ErrNegativeStorage, errors.Unwrap(o.Validate()))
-	o.Storage = 1
 	assert.NoError(o.Validate())
 }
 

@@ -2,7 +2,6 @@ package calcium
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -13,7 +12,6 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/metrics"
-	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
@@ -48,9 +46,12 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 	// 通过 Processing 状态跟踪达成 18 Oct, 2018
 
 	var (
-		plans       []resourcetypes.ResourcePlans
 		deployMap   map[string]int
 		rollbackMap map[string][]int
+		// map[node][]engineArgs
+		engineArgsMap = map[string][]types.EngineArgs{}
+		// map[node][]map[plugin]resourceArgs
+		resourceArgsMap = map[string][]map[string]types.WorkloadResourceArgs{}
 	)
 
 	utils.SentryGo(func() {
@@ -98,37 +99,45 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					}
 				}()
 				return c.withNodesPodLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) (err error) {
-					// calculate plans
-					if plans, deployMap, err = c.doAllocResource(ctx, nodeMap, opts); err != nil {
+					nodeNames := []string{}
+					nodes := []*types.Node{}
+					for nodeName, node := range nodeMap {
+						nodeNames = append(nodeNames, nodeName)
+						nodes = append(nodes, node)
+					}
+
+					if resourceCommit, err = c.wal.Log(eventWorkloadResourceAllocated, nodes); err != nil {
+						return errors.WithStack(err)
+					}
+
+					deployMap, err = c.doGetDeployMap(ctx, nodeNames, opts)
+					if err != nil {
 						return err
 					}
 
 					// commit changes
-					nodes := []*types.Node{}
 					processingCommits = make(map[string]wal.Commit)
-					for nodename, deploy := range deployMap {
-						for _, plan := range plans {
-							plan.ApplyChangesOnNode(nodeMap[nodename], utils.Range(deploy)...)
+					for nodeName, deploy := range deployMap {
+						nodes = append(nodes, nodeMap[nodeName])
+						if engineArgsMap[nodeName], resourceArgsMap[nodeName], err = c.resource.Alloc(ctx, nodeName, deploy, opts.ResourceOpts); err != nil {
+							return errors.WithStack(err)
 						}
-						nodes = append(nodes, nodeMap[nodename])
-						processing := opts.GetProcessing(nodename)
-						if processingCommits[nodename], err = c.wal.Log(eventProcessingCreated, processing); err != nil {
+
+						processing := opts.GetProcessing(nodeName)
+						if processingCommits[nodeName], err = c.wal.Log(eventProcessingCreated, processing); err != nil {
 							return errors.WithStack(err)
 						}
 						if err = c.store.CreateProcessing(ctx, processing, deploy); err != nil {
 							return errors.WithStack(err)
 						}
 					}
-					if resourceCommit, err = c.wal.Log(eventWorkloadResourceAllocated, nodes); err != nil {
-						return errors.WithStack(err)
-					}
-					return errors.WithStack(c.store.UpdateNodes(ctx, nodes...))
+					return nil
 				})
 			},
 
 			// then: deploy workloads
 			func(ctx context.Context) (err error) {
-				rollbackMap, err = c.doDeployWorkloads(ctx, ch, opts, plans, deployMap)
+				rollbackMap, err = c.doDeployWorkloads(ctx, ch, opts, engineArgsMap, resourceArgsMap, deployMap)
 				return err
 			},
 
@@ -139,10 +148,10 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 				}
 				for nodename, rollbackIndices := range rollbackMap {
 					if e := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
-						for _, plan := range plans {
-							plan.RollbackChangesOnNode(node, rollbackIndices...) // nolint:scopelint
-						}
-						return errors.WithStack(c.store.UpdateNodes(ctx, node))
+						resourceArgsToRollback := utils.Map(rollbackIndices, func(idx int) map[string]types.WorkloadResourceArgs {
+							return resourceArgsMap[nodename][idx]
+						})
+						return c.resource.RollbackAlloc(ctx, nodename, resourceArgsToRollback)
 					}); e != nil {
 						err = logger.Err(ctx, e)
 					}
@@ -157,7 +166,13 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 	return ch
 }
 
-func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateWorkloadMessage, opts *types.DeployOptions, plans []resourcetypes.ResourcePlans, deployMap map[string]int) (_ map[string][]int, err error) {
+func (c *Calcium) doDeployWorkloads(ctx context.Context,
+	ch chan *types.CreateWorkloadMessage,
+	opts *types.DeployOptions,
+	engineArgsMap map[string][]types.EngineArgs,
+	resourceArgsMap map[string][]map[string]types.WorkloadResourceArgs,
+	deployMap map[string]int) (_ map[string][]int, err error) {
+
 	wg := sync.WaitGroup{}
 	wg.Add(len(deployMap))
 	syncRollbackMap := hashmap.HashMap{}
@@ -173,7 +188,7 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateWo
 		utils.SentryGo(func(nodename string, deploy, seq int) func() {
 			return func() {
 				defer wg.Done()
-				if indices, err := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, plans, seq); err != nil {
+				if indices, err := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, engineArgsMap[nodename], resourceArgsMap[nodename], seq); err != nil {
 					syncRollbackMap.Set(nodename, indices)
 				}
 			}
@@ -196,8 +211,16 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context, ch chan *types.CreateWo
 }
 
 // deploy scheduled workloads on one node
-func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.CreateWorkloadMessage, nodename string, opts *types.DeployOptions, deploy int, plans []resourcetypes.ResourcePlans, seq int) (indices []int, err error) {
-	logger := log.WithField("Calcium", "doDeployWorkloadsOnNode").WithField("nodename", nodename).WithField("opts", opts).WithField("deploy", deploy).WithField("plans", plans).WithField("seq", seq)
+func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
+	ch chan *types.CreateWorkloadMessage,
+	nodename string,
+	opts *types.DeployOptions,
+	deploy int,
+	engineArgs []types.EngineArgs,
+	resourceArgs []map[string]types.WorkloadResourceArgs,
+	seq int) (indices []int, err error) {
+
+	logger := log.WithField("Calcium", "doDeployWorkloadsOnNode").WithField("nodename", nodename).WithField("opts", opts).WithField("deploy", deploy).WithField("seq", seq)
 	node, err := c.doGetAndPrepareNode(ctx, nodename, opts.Image)
 	if err != nil {
 		for i := 0; i < deploy; i++ {
@@ -228,18 +251,12 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context, ch chan *types.Cr
 					ch <- createMsg
 				}()
 
-				r := &types.ResourceMeta{}
-				o := resourcetypes.DispenseOptions{
-					Node:  node,
-					Index: idx,
-				}
-				for _, plan := range plans {
-					if r, e = plan.Dispense(o, r); e != nil {
-						return
-					}
+				createMsg.EngineArgs = engineArgs[idx]
+				createMsg.ResourceArgs = map[string]types.WorkloadResourceArgs{}
+				for k, v := range resourceArgs[idx] {
+					createMsg.ResourceArgs[k] = v
 				}
 
-				createMsg.ResourceMeta = *r
 				createOpts := c.doMakeWorkloadOptions(ctx, seq+idx, createMsg, opts, node)
 				e = c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts, true)
 			}
@@ -275,31 +292,25 @@ func (c *Calcium) doDeployOneWorkload(
 ) (err error) {
 	logger := log.WithField("Calcium", "doDeployWorkload").WithField("nodename", node.Name).WithField("opts", opts).WithField("msg", msg)
 	workload := &types.Workload{
-		ResourceMeta: types.ResourceMeta{
-			CPU:               msg.CPU,
-			CPUQuotaRequest:   msg.CPUQuotaRequest,
-			CPUQuotaLimit:     msg.CPUQuotaLimit,
-			MemoryRequest:     msg.MemoryRequest,
-			MemoryLimit:       msg.MemoryLimit,
-			StorageRequest:    msg.StorageRequest,
-			StorageLimit:      msg.StorageLimit,
-			VolumeRequest:     msg.VolumeRequest,
-			VolumeLimit:       msg.VolumeLimit,
-			VolumePlanRequest: msg.VolumePlanRequest,
-			VolumePlanLimit:   msg.VolumePlanLimit,
-		},
-		Name:       config.Name,
-		Labels:     config.Labels,
-		Podname:    opts.Podname,
-		Nodename:   node.Name,
-		Hook:       opts.Entrypoint.Hook,
-		Privileged: opts.Entrypoint.Privileged,
-		Engine:     node.Engine,
-		Image:      opts.Image,
-		Env:        opts.Env,
-		User:       opts.User,
-		CreateTime: time.Now().Unix(),
+		ResourceArgs: types.ResourceMeta{},
+		EngineArgs:   msg.EngineArgs,
+		Name:         config.Name,
+		Labels:       config.Labels,
+		Podname:      opts.Podname,
+		Nodename:     node.Name,
+		Hook:         opts.Entrypoint.Hook,
+		Privileged:   opts.Entrypoint.Privileged,
+		Engine:       node.Engine,
+		Image:        opts.Image,
+		Env:          opts.Env,
+		User:         opts.User,
+		CreateTime:   time.Now().Unix(),
 	}
+	// copy resource args
+	for k, v := range msg.ResourceArgs {
+		workload.ResourceArgs[k] = v
+	}
+
 	var commit wal.Commit
 	defer func() {
 		if commit != nil {
@@ -427,11 +438,7 @@ func (c *Calcium) doDeployOneWorkload(
 func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.CreateWorkloadMessage, opts *types.DeployOptions, node *types.Node) *enginetypes.VirtualizationCreateOptions {
 	config := &enginetypes.VirtualizationCreateOptions{}
 	// general
-	config.CPU = msg.CPU
-	config.Quota = msg.CPUQuotaLimit
-	config.Memory = msg.MemoryLimit
-	config.Storage = msg.StorageLimit
-	config.NUMANode = msg.NUMANode
+	config.EngineArgs = msg.EngineArgs
 	config.RawArgs = opts.RawArgs
 	config.Lambda = opts.Lambda
 	config.User = opts.User
@@ -439,8 +446,6 @@ func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.
 	config.Image = opts.Image
 	config.Stdin = opts.OpenStdin
 	config.Hosts = opts.ExtraHosts
-	config.Volumes = msg.VolumeLimit.ApplyPlan(msg.VolumePlanLimit).ToStringSlice(false, true)
-	config.VolumePlan = msg.VolumePlanLimit.ToLiteral()
 	config.Debug = opts.Debug
 	config.Networks = opts.Networks
 
@@ -470,12 +475,6 @@ func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.
 	env = append(env, fmt.Sprintf("ERU_POD=%s", opts.Podname))
 	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", node.Name))
 	env = append(env, fmt.Sprintf("ERU_WORKLOAD_SEQ=%d", no))
-	env = append(env, fmt.Sprintf("ERU_MEMORY=%d", msg.MemoryLimit))
-	env = append(env, fmt.Sprintf("ERU_STORAGE=%d", msg.StorageLimit))
-	if msg.CPU != nil {
-		bs, _ := json.Marshal(msg.CPU)
-		env = append(env, fmt.Sprintf("ERU_CPU=%s", bs))
-	}
 	config.Env = env
 	// basic labels, bind to LabelMeta
 	config.Labels = map[string]string{

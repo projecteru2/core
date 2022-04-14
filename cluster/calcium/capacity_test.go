@@ -2,13 +2,13 @@ package calcium
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
-	resourcetypes "github.com/projecteru2/core/resources/types"
-	"github.com/projecteru2/core/scheduler"
-	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
+	"github.com/projecteru2/core/resources"
+	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
@@ -19,16 +19,15 @@ import (
 
 func TestCalculateCapacity(t *testing.T) {
 	c := NewTestCluster()
-	scheduler.InitSchedulerV1(c.scheduler)
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
 	engine := &enginemocks.API{}
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
 
 	// pod1 := &types.Pod{Name: "p1"}
 	node1 := &types.Node{
 		NodeMeta: types.NodeMeta{
 			Name: "n1",
-			CPU:  types.CPUMap{"0": 100, "1": 100},
 		},
 		Engine: engine,
 	}
@@ -37,84 +36,62 @@ func TestCalculateCapacity(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	// failed by wrong resource
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{},
+	}, nil)
+	// failed by call plugin
 	opts := &types.DeployOptions{
 		Entrypoint: &types.Entrypoint{
 			Name: "entry",
 		},
-		ResourceOpts: types.ResourceOptions{
-			CPUBind:         true,
-			CPUQuotaRequest: 0,
-		},
+		ResourceOpts:   types.WorkloadResourceOpts{},
 		DeployStrategy: strategy.Auto,
 		NodeFilter: types.NodeFilter{
 			Includes: []string{"n1"},
 		},
+		Count: 3,
 	}
+	plugin.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("not implemented")).Once()
 	_, err := c.CalculateCapacity(ctx, opts)
 	assert.Error(t, err)
-	opts.ResourceOpts.CPUBind = false
-	opts.ResourceOpts.CPUQuotaRequest = 0.5
-	opts.Count = 5
-	sched := c.scheduler.(*schedulermocks.Scheduler)
-	// define scheduleInfos
-	scheduleInfos := []resourcetypes.ScheduleInfo{
-		{
-			NodeMeta: types.NodeMeta{
-				Name:   "n1",
-				MemCap: 100,
+
+	// failed by get deploy status
+	plugin.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodesDeployCapacityResponse{
+		Nodes: map[string]*resources.NodeCapacityInfo{
+			"n1": {
+				NodeName: "n1",
+				Capacity: 10,
+				Usage:    0.5,
+				Rate:     0.5,
+				Weight:   100,
 			},
-			Capacity: 10,
 		},
-	}
-	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, 5, nil).Twice()
-	sched.On("SelectStorageNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, 5, nil).Twice()
-	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, nil, 5, nil).Twice()
-	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
-	r, err := c.CalculateCapacity(ctx, opts)
+		Total: 0,
+	}, nil)
+	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	_, err = c.CalculateCapacity(ctx, opts)
+	assert.Error(t, err)
+
+	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{"n1": 0}, nil)
+
+	// failed by get deploy plan
+	opts.DeployStrategy = "FAKE"
+	_, err = c.CalculateCapacity(ctx, opts)
+	assert.Error(t, err)
+
+	// strategy: auto
+	opts.DeployStrategy = strategy.Auto
+	msg, err := c.CalculateCapacity(ctx, opts)
 	assert.NoError(t, err)
-	assert.Equal(t, r.Total, 5)
+	assert.Equal(t, msg.NodeCapacities["n1"], 3)
+	assert.Equal(t, msg.Total, 3)
+
+	// strategy: dummy
 	opts.DeployStrategy = strategy.Dummy
-	r, err = c.CalculateCapacity(ctx, opts)
+	msg, err = c.CalculateCapacity(ctx, opts)
 	assert.NoError(t, err)
-	assert.Equal(t, r.Total, 10)
-	sched.AssertExpectations(t)
-	store.AssertExpectations(t)
+	assert.Equal(t, msg.NodeCapacities["n1"], 10)
+	assert.Equal(t, msg.Total, 10)
 
-	// test for total calculation
-	// fixed on pull/322
-	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]resourcetypes.ScheduleInfo{{
-		NodeMeta: types.NodeMeta{Name: "n1"},
-		Capacity: 1,
-	}}, 1, nil).Once()
-	sched.On("SelectStorageNodes", mock.Anything, mock.Anything, mock.Anything).Return([]resourcetypes.ScheduleInfo{{
-		NodeMeta: types.NodeMeta{Name: "n2"},
-		Capacity: 1,
-	}}, 1, nil).Once()
-	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything, mock.Anything).Return([]resourcetypes.ScheduleInfo{{
-		NodeMeta: types.NodeMeta{Name: "n3"},
-		Capacity: 1,
-	}}, nil, 1, nil).Once()
-	r, err = c.CalculateCapacity(ctx, opts)
-	assert.Error(t, err, "no node meets all the resource requirements at the same time")
-	sched.AssertExpectations(t)
-	store.AssertExpectations(t)
-
-	// continue
-	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]resourcetypes.ScheduleInfo{{
-		NodeMeta: types.NodeMeta{Name: "n1"},
-		Capacity: 1,
-	}}, 1, nil).Once()
-	sched.On("SelectStorageNodes", mock.Anything, mock.Anything, mock.Anything).Return([]resourcetypes.ScheduleInfo{{
-		NodeMeta: types.NodeMeta{Name: "n1"},
-		Capacity: 1,
-	}}, 1, nil).Once()
-	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything, mock.Anything).Return([]resourcetypes.ScheduleInfo{{
-		NodeMeta: types.NodeMeta{Name: "n2"},
-		Capacity: 1,
-	}}, nil, 1, nil).Once()
-	r, err = c.CalculateCapacity(ctx, opts)
-	assert.Error(t, err, "no node meets all the resource requirements at the same time")
-	sched.AssertExpectations(t)
 	store.AssertExpectations(t)
 }

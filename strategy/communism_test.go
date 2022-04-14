@@ -3,12 +3,8 @@ package strategy
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"sort"
 	"testing"
-
-	resourcetypes "github.com/projecteru2/core/resources/types"
-	"github.com/projecteru2/core/utils"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -46,36 +42,38 @@ func TestCommunismPlan(t *testing.T) {
 	assert.ElementsMatch(t, []int{12, 13, 15, 17}, getFinalStatus(r, nodes))
 }
 
-func randomDeployStatus(scheduleInfos []resourcetypes.ScheduleInfo, maxDeployed int) (sis []Info) {
-	s := rand.NewSource(int64(1024))
-	r := rand.New(s)
-	for range scheduleInfos {
-		sis = append(sis, Info{
-			Capacity: maxDeployed,
-			Count:    r.Intn(maxDeployed),
-		})
-	}
-	return
-}
+//
+//func randomDeployStatus(scheduleInfos []resourcetypes.ScheduleInfo, maxDeployed int) (sis []Info) {
+//	s := rand.NewSource(int64(1024))
+//	r := rand.New(s)
+//	for range scheduleInfos {
+//		sis = append(sis, Info{
+//			Capacity: maxDeployed,
+//			Count:    r.Intn(maxDeployed),
+//		})
+//	}
+//	return
+//}
 
-func Benchmark_CommunismPlan(b *testing.B) {
-	b.StopTimer()
-	var count = 10000
-	var maxDeployed = 1024
-	var volTotal = maxDeployed * count
-	var need = volTotal - 1
-	// Simulate `count` nodes with difference deploy status, each one can deploy `maxDeployed` workloads
-	// and then we deploy `need` workloads
-	for i := 0; i < b.N; i++ {
-		// 24 core, 128G memory, 10 pieces per core
-		t := utils.GenerateScheduleInfos(count, 1, 1, 0, 10)
-		hugePod := randomDeployStatus(t, maxDeployed)
-		b.StartTimer()
-		_, err := CommunismPlan(context.TODO(), hugePod, need, 100, 0)
-		b.StopTimer()
-		assert.NoError(b, err)
-	}
-}
+//
+//func Benchmark_CommunismPlan(b *testing.B) {
+//	b.StopTimer()
+//	var count = 10000
+//	var maxDeployed = 1024
+//	var volTotal = maxDeployed * count
+//	var need = volTotal - 1
+//	// Simulate `count` nodes with difference deploy status, each one can deploy `maxDeployed` workloads
+//	// and then we deploy `need` workloads
+//	for i := 0; i < b.N; i++ {
+//		// 24 core, 128G memory, 10 pieces per core
+//		t := utils.GenerateScheduleInfos(count, 1, 1, 0, 10)
+//		hugePod := randomDeployStatus(t, maxDeployed)
+//		b.StartTimer()
+//		_, err := CommunismPlan(context.TODO(), hugePod, need, 100, 0)
+//		b.StopTimer()
+//		assert.NoError(b, err)
+//	}
+//}
 func genNodesByCapCount(caps, counts []int) (infos []Info) {
 	for i := range caps {
 		infos = append(infos, Info{

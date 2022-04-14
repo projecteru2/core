@@ -181,7 +181,14 @@ func (v *Virt) BuildContent(ctx context.Context, scm coresource.Source, opts *en
 }
 
 // VirtualizationCreate creates a guest.
-func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) {
+func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (guest *enginetypes.VirtualizationCreated, err error) {
+	// parse engine args to resource options
+	opts.VirtualizationResource, err = engine.MakeVirtualizationResource(opts.EngineArgs)
+	if err != nil {
+		log.Errorf(ctx, "[VirtualizationCreate] failed to parse engine args %+v, err %v", opts.EngineArgs, err)
+		return nil, coretypes.ErrInvalidEngineArgs
+	}
+
 	vols, err := v.parseVolumes(opts.Volumes)
 	if err != nil {
 		return nil, err
@@ -211,15 +218,6 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 		Name:   opts.Name,
 		Labels: resp.Labels,
 	}, nil
-}
-
-// VirtualizationResourceRemap .
-func (v *Virt) VirtualizationResourceRemap(ctx context.Context, opts *enginetypes.VirtualizationRemapOptions) (<-chan enginetypes.VirtualizationRemapMessage, error) {
-	// VM does not support binding cores.
-	log.Warn(ctx, "virtualizationResourceRemap is not supported by vm")
-	ch := make(chan enginetypes.VirtualizationRemapMessage)
-	defer close(ch)
-	return ch, nil
 }
 
 // VirtualizationCopyTo copies one.
@@ -320,7 +318,14 @@ func (v *Virt) VirtualizationWait(ctx context.Context, ID, state string) (*engin
 }
 
 // VirtualizationUpdateResource updates resource.
-func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error {
+func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, resourceOpts *enginetypes.VirtualizationResource) error {
+	// parse engine args to resource options
+	opts, err := engine.MakeVirtualizationResource(resourceOpts.EngineArgs)
+	if err != nil {
+		log.Errorf(ctx, "[VirtualizationCreate] failed to parse engine args %+v, err %v", opts.EngineArgs, err)
+		return coretypes.ErrInvalidEngineArgs
+	}
+
 	vols, err := v.parseVolumes(opts.Volumes)
 	if err != nil {
 		return err

@@ -105,13 +105,27 @@ message PodResource {
   repeated NodeResource nodes_resource = 2;
 }
 
+message StringSlice {
+  repeated string slice = 1;
+}
+
+message RawParam {
+  oneof value {
+    string str = 1;
+    StringSlice string_slice = 2;
+  }
+}
+
+
 message NodeResource {
   string name = 1;
-  double cpu_percent = 2;
-  double memory_percent = 3;
-  double storage_percent = 4;
-  double volume_percent = 5;
+      double cpu_percent = 2;
+      double memory_percent = 3;
+      double storage_percent = 4;
+      double volume_percent = 5;
   repeated string diffs = 6;
+  string resource_capacity = 7;
+  string resource_usage = 8;
 }
 
 message ListNetworkOptions {
@@ -164,6 +178,8 @@ message Node {
   int64 volume_used = 20;
   map<string, int64> init_numa_memory = 21;
   bool bypass = 22;
+  string resource_capacity = 23;
+  string resource_usage = 24;
 }
 
 message Nodes {
@@ -190,6 +206,8 @@ message SetNodeOptions {
   string ca = 13;
   string cert = 14;
   string key = 15;
+  map<string, RawParam> resource_opts = 16;
+  bool delta = 17;
 }
 
 message SetNodeStatusOptions {
@@ -228,6 +246,7 @@ message Workload {
   Resource resource = 10;
   int64 create_time = 11;
   repeated string env = 12;
+  string resource_args = 13;
 }
 
 message WorkloadStatus {
@@ -237,7 +256,7 @@ message WorkloadStatus {
   map<string, string> networks = 4;
   bytes extension = 5;
   int64 ttl = 6;
-  // extra fields used to set workload status
+  //   extra fields used to set workload status
   string appname = 7;
   string nodename = 8;
   string entrypoint = 9;
@@ -295,8 +314,9 @@ enum TriOpt {
 
 message ReallocOptions {
   string id = 1;
-  TriOpt bind_cpu_opt = 2;
-  ResourceOptions resource_opts = 3;
+  TriOpt bind_cpu_opt = 2; // deprecated
+  ResourceOptions old_resource_opts = 3;
+  map<string, RawParam> resource_opts = 4;
 }
 
 message AddPodOptions {
@@ -327,6 +347,7 @@ message AddNodeOptions {
   map<string, int64> numa_memory = 12;
   int64 storage = 13;
   map<string, int64> volume_map = 14;
+  map<string, RawParam> resource_opts = 15;
 }
 
 message RemoveNodeOptions {
@@ -424,6 +445,7 @@ message EntrypointOptions {
   repeated string commands = 11;
 }
 
+// deprecated
 message ResourceOptions {
   double cpu_quota_limit = 1;
   double cpu_quota_request = 2;
@@ -436,6 +458,7 @@ message ResourceOptions {
   repeated string volumes_request = 9;
 }
 
+// deprecated
 message Resource {
   double cpu_quota_limit = 1;
   double cpu_quota_request = 2;
@@ -484,11 +507,12 @@ message DeployOptions {
   bool ignore_hook = 21;
   repeated string after_create = 22;
   bytes raw_args = 23;
-  ResourceOptions resource_opts = 24;
+  ResourceOptions old_resource_opts = 24;
   NodeFilter node_filter = 25;
   // should be part of field no.19
   map<string, FileMode> modes = 26;
   map<string, FileOwner> owners = 27;
+  map<string, RawParam> resource_opts = 28;
 }
 
 message ReplaceOptions {
@@ -568,6 +592,7 @@ message CreateWorkloadMessage {
   map<string, string> publish = 7;
   bytes hook = 8;
   Resource resource = 9;
+  string resource_args = 10;
 }
 
 message ReplaceWorkloadMessage {

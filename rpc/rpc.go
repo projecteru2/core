@@ -884,31 +884,13 @@ func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions
 		return msg, grpcstatus.Errorf(ReallocResource, "%v", types.ErrNoWorkloadIDs)
 	}
 
-	vbsRequest, err := types.NewVolumeBindings(opts.ResourceOpts.VolumesRequest)
-	if err != nil {
-		return msg, grpcstatus.Error(ReallocResource, err.Error())
-	}
-
-	vbsLimit, err := types.NewVolumeBindings(opts.ResourceOpts.VolumesLimit)
-	if err != nil {
-		return msg, grpcstatus.Error(ReallocResource, err.Error())
-	}
+	fillRPCNewReallocOptions(opts)
 
 	if err := v.cluster.ReallocResource(
-		task.context,
+		ctx,
 		&types.ReallocOptions{
-			ID:          opts.Id,
-			CPUBindOpts: types.TriOptions(opts.BindCpuOpt),
-			ResourceOpts: types.ResourceOptions{
-				CPUQuotaRequest: opts.ResourceOpts.CpuQuotaRequest,
-				CPUQuotaLimit:   opts.ResourceOpts.CpuQuotaLimit,
-				MemoryRequest:   opts.ResourceOpts.MemoryRequest,
-				MemoryLimit:     opts.ResourceOpts.MemoryLimit,
-				VolumeRequest:   vbsRequest,
-				VolumeLimit:     vbsLimit,
-				StorageRequest:  opts.ResourceOpts.StorageRequest + vbsRequest.TotalSize(),
-				StorageLimit:    opts.ResourceOpts.StorageLimit + vbsLimit.TotalSize(),
-			},
+			ID:           opts.Id,
+			ResourceOpts: toCoreRawParams(opts.ResourceOpts),
 		},
 	); err != nil {
 		return msg, grpcstatus.Error(ReallocResource, err.Error())

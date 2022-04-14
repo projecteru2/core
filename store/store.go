@@ -8,7 +8,6 @@ import (
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/store/etcdv3"
 	"github.com/projecteru2/core/store/redis"
-	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 )
 
@@ -34,7 +33,6 @@ type Store interface {
 	GetNodes(ctx context.Context, nodenames []string) ([]*types.Node, error)
 	GetNodesByPod(ctx context.Context, podname string, labels map[string]string, all bool) ([]*types.Node, error)
 	UpdateNodes(context.Context, ...*types.Node) error
-	UpdateNodeResource(ctx context.Context, node *types.Node, resource *types.ResourceMeta, action string) error
 	SetNodeStatus(ctx context.Context, node *types.Node, ttl int64) error
 	GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error)
 	NodeStatusStream(ctx context.Context) chan *types.NodeStatus
@@ -52,7 +50,7 @@ type Store interface {
 	WorkloadStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.WorkloadStatus
 
 	// deploy status
-	MakeDeployStatus(ctx context.Context, appname, entryname string, sis []strategy.Info) error
+	GetDeployStatus(ctx context.Context, appname, entryname string) (map[string]int, error)
 
 	// processing status
 	CreateProcessing(ctx context.Context, process *types.Processing, count int) error

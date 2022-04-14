@@ -5,17 +5,14 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"time"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	"github.com/projecteru2/core/log"
-	resourcetypes "github.com/projecteru2/core/resources/types"
-	"github.com/projecteru2/core/scheduler"
-	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
+	"github.com/projecteru2/core/resources"
+	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
-	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 
 	"github.com/stretchr/testify/assert"
@@ -29,6 +26,12 @@ func TestPodResource(t *testing.T) {
 	nodename := "testnode"
 	store := &storemocks.Store{}
 	c.store = store
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{},
+		Diffs:        []string{"hhh"},
+	}, nil)
+
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
@@ -41,12 +44,7 @@ func TestPodResource(t *testing.T) {
 	// failed by ListNodeWorkloads
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
-			Name:           nodename,
-			CPU:            types.CPUMap{"0": 0, "1": 10},
-			MemCap:         2,
-			InitCPU:        types.CPUMap{"0": 100, "1": 100},
-			InitMemCap:     6,
-			InitStorageCap: 10,
+			Name: nodename,
 		},
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
@@ -61,24 +59,10 @@ func TestPodResource(t *testing.T) {
 
 	workloads := []*types.Workload{
 		{
-			ResourceMeta: types.ResourceMeta{
-				MemoryRequest:   1,
-				MemoryLimit:     1,
-				CPU:             types.CPUMap{"0": 100, "1": 30},
-				CPUQuotaRequest: 1.3,
-				CPUQuotaLimit:   1.3,
-			},
+			ResourceArgs: map[string]types.WorkloadResourceArgs{},
 		},
 		{
-			ResourceMeta: types.ResourceMeta{
-				MemoryLimit:     2,
-				MemoryRequest:   2,
-				CPU:             types.CPUMap{"1": 50},
-				CPUQuotaRequest: 0.5,
-				CPUQuotaLimit:   0.5,
-				StorageRequest:  1,
-				StorageLimit:    1,
-			},
+			ResourceArgs: map[string]types.WorkloadResourceArgs{},
 		},
 	}
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
@@ -91,9 +75,6 @@ func TestPodResource(t *testing.T) {
 	r, err := c.PodResource(ctx, podname)
 	assert.NoError(t, err)
 	first := <-r
-	assert.Equal(t, first.CPUPercent, 0.9)
-	assert.Equal(t, first.MemoryPercent, 0.5)
-	assert.Equal(t, first.StoragePercent, 0.1)
 	assert.NotEmpty(t, first.Diffs)
 }
 
@@ -103,19 +84,22 @@ func TestNodeResource(t *testing.T) {
 	nodename := "testnode"
 	store := &storemocks.Store{}
 	c.store = store
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{},
+		Diffs:        []string{"hhh"},
+	}, nil)
+	plugin.On("FixNodeResource", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{},
+		Diffs:        []string{"hhh"},
+	}, nil)
 	lock := &lockmocks.DistributedLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
-			Name:           nodename,
-			CPU:            types.CPUMap{"0": 0, "1": 10},
-			MemCap:         2,
-			InitCPU:        types.CPUMap{"0": 100, "1": 100},
-			InitMemCap:     6,
-			NUMAMemory:     types.NUMAMemory{"0": 1, "1": 1},
-			InitNUMAMemory: types.NUMAMemory{"0": 3, "1": 3},
+			Name: nodename,
 		},
 	}
 	engine := &enginemocks.API{}
@@ -137,22 +121,10 @@ func TestNodeResource(t *testing.T) {
 	assert.Error(t, err)
 	workloads := []*types.Workload{
 		{
-			ResourceMeta: types.ResourceMeta{
-				MemoryRequest:   1,
-				MemoryLimit:     1,
-				CPU:             types.CPUMap{"0": 100, "1": 30},
-				CPUQuotaRequest: 1.3,
-				CPUQuotaLimit:   1.3,
-			},
+			ResourceArgs: map[string]types.WorkloadResourceArgs{},
 		},
 		{
-			ResourceMeta: types.ResourceMeta{
-				MemoryRequest:   2,
-				MemoryLimit:     2,
-				CPU:             types.CPUMap{"1": 50},
-				CPUQuotaRequest: 0.5,
-				CPUQuotaLimit:   0.5,
-			},
+			ResourceArgs: map[string]types.WorkloadResourceArgs{},
 		},
 	}
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
@@ -166,143 +138,23 @@ func TestNodeResource(t *testing.T) {
 	assert.Contains(t, details, "inspect failed")
 }
 
-func TestAllocResource(t *testing.T) {
-	c := NewTestCluster()
-	scheduler.InitSchedulerV1(c.scheduler)
-	ctx := context.Background()
-	podname := "testpod"
-	opts := &types.DeployOptions{
-		Podname: podname,
-		Entrypoint: &types.Entrypoint{
-			Name: "entry",
-		},
-	}
-	config := types.Config{
-		LockTimeout: time.Duration(time.Second * 3),
-	}
-	c.config = config
-	n1 := "n2"
-	n2 := "n2"
-	nodeMap := map[string]*types.Node{
-		n1: {
-			NodeMeta: types.NodeMeta{
-				Name:   n1,
-				Labels: map[string]string{"test": "1"},
-				CPU:    types.CPUMap{"0": 100},
-				MemCap: 100,
-			},
-			Available: false,
-		},
-		n2: {
-			NodeMeta: types.NodeMeta{
-				Name:   n2,
-				CPU:    types.CPUMap{"0": 100},
-				MemCap: 100,
-			},
-			Available: true,
-		},
-	}
-
-	store := c.store.(*storemocks.Store)
-	defer store.AssertExpectations(t)
-
-	// Defines for below.
-	opts.NodeFilter.Includes = []string{n2}
-
-	// define scheduleInfos
-	scheduleInfos := []resourcetypes.ScheduleInfo{
-		{
-			NodeMeta: types.NodeMeta{
-				Name:   n2,
-				CPU:    types.CPUMap{"0": 100},
-				MemCap: 100,
-			},
-			Capacity: 10, // can deploy 10
-		},
-	}
-
-	sched := c.scheduler.(*schedulermocks.Scheduler)
-	defer sched.AssertExpectations(t)
-	total := 3
-	sched.On("SelectStorageNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, total, nil)
-	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, nil, total, nil)
-	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, types.ErrInsufficientMEM).Once()
-	testAllocFailedAsInsufficientMemory(t, c, opts, nodeMap)
-
-	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, total, nil)
-	testAllocFailedAsMakeDeployStatusError(t, c, opts, nodeMap)
-	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-
-	testAllocFailedAsWrongDeployMethod(t, c, opts, nodeMap)
-	testAllocFailedAsCommonDivisionError(t, c, opts, nodeMap)
-
-	// Mocks for all.
-	opts.DeployStrategy = strategy.Fill
-	oldFillFunc := strategy.Plans[strategy.Fill]
-	strategy.Plans[strategy.Fill] = func(ctx context.Context, sis []strategy.Info, need, _, limit int) (map[string]int, error) {
-		dis := make(map[string]int)
-		for _, si := range sis {
-			dis[si.Nodename] = 3
-		}
-		return dis, nil
-	}
-	defer func() {
-		strategy.Plans[strategy.Fill] = oldFillFunc
-	}()
-
-	// success
-	opts.ResourceOpts = types.ResourceOptions{CPUQuotaLimit: 1, MemoryLimit: 1, StorageLimit: 1}
-	opts.Count = 1
-	_, _, err := c.doAllocResource(ctx, nodeMap, opts)
-	assert.NoError(t, err)
-}
-
-func testAllocFailedAsMakeDeployStatusError(t *testing.T, c *Calcium, opts *types.DeployOptions, nodeMap map[string]*types.Node) {
-	store := c.store.(*storemocks.Store)
-	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
-	_, _, err := c.doAllocResource(context.Background(), nodeMap, opts)
-	assert.Error(t, err)
-}
-
-func testAllocFailedAsInsufficientMemory(t *testing.T, c *Calcium, opts *types.DeployOptions, nodeMap map[string]*types.Node) {
-	opts.ResourceOpts = types.ResourceOptions{CPUQuotaLimit: 1, MemoryLimit: 1}
-	_, _, err := c.doAllocResource(context.Background(), nodeMap, opts)
-	assert.Error(t, err)
-}
-
-func testAllocFailedAsWrongDeployMethod(t *testing.T, c *Calcium, opts *types.DeployOptions, nodeMap map[string]*types.Node) {
-
-	opts.DeployStrategy = "invalid"
-	_, _, err := c.doAllocResource(context.Background(), nodeMap, opts)
-	assert.Error(t, err)
-	opts.DeployStrategy = "AUTO"
-}
-
-func testAllocFailedAsCommonDivisionError(t *testing.T, c *Calcium, opts *types.DeployOptions, nodeMap map[string]*types.Node) {
-	opts.DeployStrategy = strategy.Auto
-	old := strategy.Plans[strategy.Auto]
-	strategy.Plans[strategy.Auto] = func(ctx context.Context, _ []strategy.Info, need, total, _ int) (map[string]int, error) {
-		return nil, types.ErrInsufficientRes
-	}
-	defer func() {
-		strategy.Plans[strategy.Auto] = old
-	}()
-
-	_, _, err := c.doAllocResource(context.Background(), nodeMap, opts)
-	assert.Error(t, err)
-}
-
 func TestRemapResource(t *testing.T) {
 	c := NewTestCluster()
 	store := &storemocks.Store{}
 	c.store = store
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{},
+		Diffs:        []string{"hhh"},
+	}, nil)
+	plugin.On("GetRemapArgs", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetRemapArgsResponse{
+		EngineArgsMap: map[string]types.EngineArgs{},
+	}, nil)
 	engine := &enginemocks.API{}
 	node := &types.Node{Engine: engine}
 
 	workload := &types.Workload{
-		ResourceMeta: types.ResourceMeta{
-			CPUQuotaLimit: 1,
-		},
+		ResourceArgs: map[string]types.WorkloadResourceArgs{},
 	}
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
 	ch := make(chan enginetypes.VirtualizationRemapMessage, 1)

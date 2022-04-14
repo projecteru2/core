@@ -115,6 +115,9 @@ var (
 
 	ErrNoFilesToSend = errors.New("no files to send")
 	ErrNoFilesToCopy = errors.New("no files to copy")
+
+	ErrInvalidEngineArgs     = errors.New("invalid engine args")
+	ErrGetMostIdleNodeFailed = errors.New("get most idle node failed")
 )
 
 type detailedErr struct {
@@ -135,4 +138,24 @@ func (d detailedErr) Unwrap() error {
 // NewDetailedErr returns an error with details
 func NewDetailedErr(err error, details interface{}) error {
 	return detailedErr{err: err, details: details}
+}
+
+// CombinedErr can combine multiple errors into one
+type CombinedErr struct {
+	ErrMap map[string]error
+}
+
+// Error .
+func (e *CombinedErr) Error() string {
+	return fmt.Sprintf("%+v", e.ErrMap)
+}
+
+// Append .
+func (e *CombinedErr) Append(key string, err error) {
+	e.ErrMap[key] = err
+}
+
+// NewCombinedErr .
+func NewCombinedErr() *CombinedErr {
+	return &CombinedErr{ErrMap: map[string]error{}}
 }

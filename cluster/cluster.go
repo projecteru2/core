@@ -63,6 +63,7 @@ type Cluster interface {
 	NodeStatusStream(ctx context.Context) chan *types.NodeStatus
 	// node resource
 	NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error)
+	SendNodeMetrics(ctx context.Context, nodeName string)
 	// calculate capacity
 	CalculateCapacity(context.Context, *types.DeployOptions) (*types.CapacityMessage, error)
 	// meta workloads

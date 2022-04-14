@@ -4,9 +4,12 @@ import (
 	"context"
 	"testing"
 
+	"github.com/projecteru2/core/engine/factory"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	"github.com/projecteru2/core/resources"
+	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -18,9 +21,15 @@ import (
 func TestAddNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
+	factory.InitEngineCache(ctx, c.config)
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+
 	name := "test"
 	node := &types.Node{
-		NodeMeta: types.NodeMeta{Name: name},
+		NodeMeta: types.NodeMeta{
+			Name:     name,
+			Endpoint: "endpoint",
+		},
 	}
 
 	store := &storemocks.Store{}
@@ -31,6 +40,16 @@ func TestAddNode(t *testing.T) {
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything).Return(node, nil)
 	c.store = store
+	plugin.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.AddNodeResponse{}, nil)
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{
+			Capacity: types.NodeResourceArgs{},
+			Usage:    types.NodeResourceArgs{},
+		},
+	}, nil)
+	store.On("GetNode",
+		mock.Anything,
+		mock.Anything).Return(node, nil)
 
 	// fail by validating
 	_, err := c.AddNode(ctx, &types.AddNodeOptions{})
@@ -39,7 +58,7 @@ func TestAddNode(t *testing.T) {
 	n, err := c.AddNode(ctx, &types.AddNodeOptions{
 		Nodename: "nodename",
 		Podname:  "podname",
-		Endpoint: "endpoint",
+		Endpoint: "mock://" + name,
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, n.Name, name)
@@ -48,9 +67,7 @@ func TestAddNode(t *testing.T) {
 func TestRemoveNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-
-	// fail by validating
-	assert.Error(t, c.RemoveNode(ctx, ""))
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
 
 	name := "test"
 	node := &types.Node{NodeMeta: types.NodeMeta{Name: name}}
@@ -61,6 +78,13 @@ func TestRemoveNode(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{
+			Capacity: types.NodeResourceArgs{},
+			Usage:    types.NodeResourceArgs{},
+		},
+	}, nil)
+	plugin.On("RemoveNode", mock.Anything, mock.Anything).Return(&resources.RemoveNodeResponse{}, nil)
 
 	store.On("GetNode",
 		mock.Anything,
@@ -118,6 +142,14 @@ func TestListPodNodes(t *testing.T) {
 func TestGetNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{
+			Capacity: types.NodeResourceArgs{},
+			Usage:    types.NodeResourceArgs{},
+		},
+	}, nil)
 
 	// fail by validating
 	_, err := c.GetNode(ctx, "")
@@ -165,9 +197,21 @@ func TestGetNodeEngine(t *testing.T) {
 func TestSetNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{
+			Capacity: types.NodeResourceArgs{},
+			Usage:    types.NodeResourceArgs{},
+		},
+	}, nil)
+	plugin.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.SetNodeResourceUsageResponse{
+		Before: types.NodeResourceArgs{},
+		After:  types.NodeResourceArgs{},
+	}, nil)
+
 	name := "test"
 	node := &types.Node{NodeMeta: types.NodeMeta{Name: name}}
-	node.Init()
 
 	store := &storemocks.Store{}
 	c.store = store
@@ -236,88 +280,19 @@ func TestSetNode(t *testing.T) {
 	setOpts.Key = "hh"
 	n, err = c.SetNode(ctx, setOpts)
 	assert.NoError(t, err)
-	// set numa
-	setOpts.NUMA = types.NUMA{"100": "node1"}
-	n, err = c.SetNode(ctx, setOpts)
-	assert.NoError(t, err)
-	assert.Equal(t, n.NUMA["100"], "node1")
-	// failed by numa node memory < 0
-	n.NUMAMemory = types.NUMAMemory{"node1": 1}
-	n.InitNUMAMemory = types.NUMAMemory{"node1": 2}
-	setOpts.DeltaNUMAMemory = types.NUMAMemory{"node1": -10}
-	n, err = c.SetNode(ctx, setOpts)
-	assert.Error(t, err)
-	// succ set numa node memory
-	n.NUMAMemory = types.NUMAMemory{"node1": 1}
-	n.InitNUMAMemory = types.NUMAMemory{"node1": 2}
-	setOpts.DeltaNUMAMemory = types.NUMAMemory{"node1": -1}
-	n, err = c.SetNode(ctx, setOpts)
-	assert.NoError(t, err)
-	assert.Equal(t, n.NUMAMemory["node1"], int64(0))
-	setOpts.DeltaNUMAMemory = types.NUMAMemory{}
-	// failed set storage
-	n.StorageCap = 1
-	n.InitStorageCap = 2
-	setOpts.DeltaStorage = -10
-	n, err = c.SetNode(ctx, setOpts)
-	assert.Error(t, err)
-	// succ set storage
-	n.StorageCap = 1
-	n.InitStorageCap = 2
-	setOpts.DeltaStorage = -1
-	n, err = c.SetNode(ctx, setOpts)
-	assert.NoError(t, err)
-	assert.Equal(t, n.StorageCap, int64(0))
-	setOpts.DeltaStorage = 0
-	// failed set memory
-	n.MemCap = 1
-	n.InitMemCap = 2
-	setOpts.DeltaMemory = -10
-	n, err = c.SetNode(ctx, setOpts)
-	assert.Error(t, err)
-	// succ set storage
-	n.MemCap = 1
-	n.InitMemCap = 2
-	setOpts.DeltaMemory = -1
-	n, err = c.SetNode(ctx, setOpts)
-	assert.NoError(t, err)
-	assert.Equal(t, n.MemCap, int64(0))
-	setOpts.DeltaMemory = 0
-	// failed by set cpu
-	n.CPU = types.CPUMap{"1": 1}
-	n.InitCPU = types.CPUMap{"1": 2}
-	setOpts.DeltaCPU = types.CPUMap{"1": -10}
-	n, err = c.SetNode(ctx, setOpts)
-	assert.Error(t, err)
-	// succ set cpu, add and del
-	n.CPU = types.CPUMap{"1": 10, "2": 2}
-	n.InitCPU = types.CPUMap{"1": 10, "2": 10}
-	setOpts.DeltaCPU = types.CPUMap{"1": -10, "2": -1, "3": 10}
-	n, err = c.SetNode(ctx, setOpts)
-	assert.NoError(t, err)
-	_, ok := n.CPU["1"]
-	assert.False(t, ok)
-	assert.Equal(t, n.CPU["2"], int64(1))
-	assert.Equal(t, n.InitCPU["2"], int64(9))
-	assert.Equal(t, n.CPU["3"], int64(10))
-	assert.Equal(t, n.InitCPU["3"], int64(10))
-	assert.Equal(t, len(n.CPU), 2)
-	assert.Equal(t, len(n.InitCPU), 2)
-	// succ set volume
-	n.Volume = types.VolumeMap{"/sda1": 10, "/sda2": 20}
-	setOpts.DeltaCPU = nil
-	setOpts.DeltaVolume = types.VolumeMap{"/sda0": 5, "/sda1": 0, "/sda2": -1}
-	n, err = c.SetNode(ctx, setOpts)
-	assert.NoError(t, err)
-	_, ok = n.Volume["/sda1"]
-	assert.False(t, ok)
-	assert.Equal(t, n.Volume["/sda0"], int64(5))
-	assert.Equal(t, n.Volume["/sda2"], int64(19))
 }
 
 func TestFilterNodes(t *testing.T) {
 	assert := assert.New(t)
 	c := NewTestCluster()
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{
+			Capacity: types.NodeResourceArgs{},
+			Usage:    types.NodeResourceArgs{},
+		},
+	}, nil)
 	store := c.store.(*storemocks.Store)
 	nodes := []*types.Node{
 		{

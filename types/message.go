@@ -79,7 +79,8 @@ type ControlWorkloadMessage struct {
 
 // CreateWorkloadMessage for create message
 type CreateWorkloadMessage struct {
-	ResourceMeta
+	EngineArgs   EngineArgs
+	ResourceArgs map[string]WorkloadResourceArgs
 	Podname      string
 	Nodename     string
 	WorkloadID   string

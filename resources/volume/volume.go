@@ -2,206 +2,334 @@ package volume
 
 import (
 	"context"
-	"sort"
 
-	resourcetypes "github.com/projecteru2/core/resources/types"
-	"github.com/projecteru2/core/scheduler"
-	"github.com/projecteru2/core/types"
-
-	"github.com/pkg/errors"
+	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/resources"
+	"github.com/projecteru2/core/resources/volume/models"
+	"github.com/projecteru2/core/resources/volume/types"
+	coretypes "github.com/projecteru2/core/types"
 )
 
-const maxVolumes = 32
-
-type volumeRequest struct {
-	request  [maxVolumes]types.VolumeBinding
-	limit    [maxVolumes]types.VolumeBinding
-	requests int
-	limits   int
-	Existing types.VolumePlan
+// Plugin wrapper of volume
+type Plugin struct {
+	v *models.Volume
 }
 
-// MakeRequest .
-func MakeRequest(opts types.ResourceOptions) (resourcetypes.ResourceRequest, error) {
-	v := &volumeRequest{}
-	sort.Slice(opts.VolumeRequest, func(i, j int) bool {
-		return opts.VolumeRequest[i].ToString(false) < opts.VolumeRequest[j].ToString(false)
-	})
-	for i, vb := range opts.VolumeRequest {
-		v.request[i] = *vb
+// NewPlugin .
+func NewPlugin(config coretypes.Config) (*Plugin, error) {
+	v, err := models.NewVolume(config)
+	if err != nil {
+		return nil, err
 	}
-	v.requests = len(opts.VolumeRequest)
-	v.limits = len(opts.VolumeLimit)
-	v.Existing = opts.VolumeExist
-
-	sort.Slice(opts.VolumeLimit, func(i, j int) bool {
-		return opts.VolumeLimit[i].ToString(false) < opts.VolumeLimit[j].ToString(false)
-	})
-	for i, vb := range opts.VolumeLimit {
-		v.limit[i] = *vb
-	}
-	return v, v.Validate()
+	return &Plugin{v: v}, nil
 }
 
-// Type .
-func (v volumeRequest) Type() types.ResourceType {
-	t := types.ResourceVolume
-	for i := 0; i < v.requests; i++ {
-		if v.request[i].RequireSchedule() {
-			t |= types.ResourceScheduledVolume
-			break
-		}
+// GetDeployArgs .
+func (v *Plugin) GetDeployArgs(ctx context.Context, nodeName string, deployCount int, resourceOpts coretypes.WorkloadResourceOpts) (*resources.GetDeployArgsResponse, error) {
+	workloadResourceOpts := &types.WorkloadResourceOpts{}
+	if err := workloadResourceOpts.ParseFromRawParams(coretypes.RawParams(resourceOpts)); err != nil {
+		return nil, err
 	}
-	return t
+	engineArgs, resourceArgs, err := v.v.GetDeployArgs(ctx, nodeName, deployCount, workloadResourceOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &resources.GetDeployArgsResponse{}
+	err = resources.ToResp(map[string]interface{}{
+		"engine_args":   engineArgs,
+		"resource_args": resourceArgs,
+	}, resp)
+	return resp, err
 }
 
-// Validate .
-func (v *volumeRequest) Validate() error {
-	if v.requests == 0 && v.limits > 0 {
-		v.request = v.limit
-		v.requests = v.limits
+// GetReallocArgs .
+func (v *Plugin) GetReallocArgs(ctx context.Context, nodeName string, originResourceArgs coretypes.WorkloadResourceArgs, resourceOpts coretypes.WorkloadResourceOpts) (*resources.GetReallocArgsResponse, error) {
+	workloadResourceOpts := &types.WorkloadResourceOpts{}
+	if err := workloadResourceOpts.ParseFromRawParams(coretypes.RawParams(resourceOpts)); err != nil {
+		return nil, err
 	}
-	if v.requests != v.limits {
-		return errors.Wrap(types.ErrBadVolume, "different length of request and limit")
+	originWorkloadResourceArgs := &types.WorkloadResourceArgs{}
+	if err := originWorkloadResourceArgs.ParseFromRawParams(coretypes.RawParams(originResourceArgs)); err != nil {
+		return nil, err
 	}
-	for i := 0; i < v.requests; i++ {
-		req, lim := v.request[i], v.limit[i]
-		if req.Source != lim.Source || req.Destination != lim.Destination || req.Flags != lim.Flags {
-			return errors.Wrap(types.ErrBadVolume, "request and limit not match")
-		}
-		if req.SizeInBytes > 0 && lim.SizeInBytes > 0 && req.SizeInBytes > lim.SizeInBytes {
-			v.limit[i].SizeInBytes = req.SizeInBytes
-		}
+
+	engineArgs, delta, resourceArgs, err := v.v.GetReallocArgs(ctx, nodeName, originWorkloadResourceArgs, workloadResourceOpts)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+
+	resp := &resources.GetReallocArgsResponse{}
+	err = resources.ToResp(map[string]interface{}{
+		"engine_args":   engineArgs,
+		"delta":         delta,
+		"resource_args": resourceArgs,
+	}, resp)
+	return resp, err
 }
 
-// MakeScheduler .
-func (v volumeRequest) MakeScheduler() resourcetypes.SchedulerV2 {
-	return func(ctx context.Context, scheduleInfos []resourcetypes.ScheduleInfo) (plans resourcetypes.ResourcePlans, total int, err error) {
-		schedulerV1, err := scheduler.GetSchedulerV1()
-		if err != nil {
-			return
-		}
-
-		request, limit := types.VolumeBindings{}, types.VolumeBindings{}
-		for i := 0; i < v.requests; i++ {
-			request = append(request, &v.request[i])
-			limit = append(limit, &v.limit[i])
-		}
-
-		var volumePlans map[string][]types.VolumePlan
-		if v.Existing != nil {
-			scheduleInfos[0], volumePlans, total, err = schedulerV1.ReselectVolumeNodes(ctx, scheduleInfos[0], v.Existing, request)
-		} else {
-			scheduleInfos, volumePlans, total, err = schedulerV1.SelectVolumeNodes(ctx, scheduleInfos, request)
-		}
-		return ResourcePlans{
-			capacity: resourcetypes.GetCapacity(scheduleInfos),
-			request:  request,
-			limit:    limit,
-			plan:     volumePlans,
-		}, total, err
+// GetRemapArgs .
+func (v *Plugin) GetRemapArgs(ctx context.Context, nodeName string, workloadMap map[string]*coretypes.Workload) (*resources.GetRemapArgsResponse, error) {
+	workloadResourceArgsMap, err := v.workloadMapToWorkloadResourceArgsMap(workloadMap)
+	if err != nil {
+		return nil, err
 	}
+
+	engineArgs, err := v.v.GetRemapArgs(ctx, nodeName, workloadResourceArgsMap)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &resources.GetRemapArgsResponse{}
+	err = resources.ToResp(map[string]interface{}{
+		"engine_args": engineArgs,
+	}, resp)
+	return resp, err
 }
 
-// Rate .
-func (v volumeRequest) Rate(node types.Node) float64 {
-	var totalRequest int64
-	for i := 0; i < v.requests; i++ {
-		totalRequest += v.request[i].SizeInBytes
+// GetNodesDeployCapacity .
+func (v *Plugin) GetNodesDeployCapacity(ctx context.Context, nodeNames []string, resourceOpts coretypes.WorkloadResourceOpts) (*resources.GetNodesDeployCapacityResponse, error) {
+	workloadResourceOpts := &types.WorkloadResourceOpts{}
+	if err := workloadResourceOpts.ParseFromRawParams(coretypes.RawParams(resourceOpts)); err != nil {
+		return nil, err
 	}
-	return float64(totalRequest) / float64(node.Volume.Total())
+
+	nodesDeployCapacity, total, err := v.v.GetNodesDeployCapacity(ctx, nodeNames, workloadResourceOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &resources.GetNodesDeployCapacityResponse{}
+	err = resources.ToResp(map[string]interface{}{
+		"nodes": nodesDeployCapacity,
+		"total": total,
+	}, resp)
+	return resp, err
 }
 
-// ResourcePlans .
-type ResourcePlans struct {
-	capacity map[string]int
-	request  types.VolumeBindings
-	limit    types.VolumeBindings
-	plan     map[string][]types.VolumePlan
+// GetMostIdleNode .
+func (v *Plugin) GetMostIdleNode(ctx context.Context, nodeNames []string) (*resources.GetMostIdleNodeResponse, error) {
+	nodeName, priority, err := v.v.GetMostIdleNode(ctx, nodeNames)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &resources.GetMostIdleNodeResponse{}
+	err = resources.ToResp(map[string]interface{}{
+		"node":     nodeName,
+		"priority": priority,
+	}, resp)
+	return resp, err
 }
 
-// Type .
-func (rp ResourcePlans) Type() types.ResourceType {
-	return types.ResourceVolume
+// GetNodeResourceInfo .
+func (v *Plugin) GetNodeResourceInfo(ctx context.Context, nodeName string, workloads []*coretypes.Workload) (*resources.GetNodeResourceInfoResponse, error) {
+	return v.getNodeResourceInfo(ctx, nodeName, workloads, false)
 }
 
-// Capacity .
-func (rp ResourcePlans) Capacity() map[string]int {
-	return rp.capacity
+// FixNodeResource .
+func (v *Plugin) FixNodeResource(ctx context.Context, nodeName string, workloads []*coretypes.Workload) (*resources.GetNodeResourceInfoResponse, error) {
+	return v.getNodeResourceInfo(ctx, nodeName, workloads, true)
 }
 
-// ApplyChangesOnNode .
-func (rp ResourcePlans) ApplyChangesOnNode(node *types.Node, indices ...int) {
-	if len(rp.plan) == 0 {
-		return
-	}
+// SetNodeResourceUsage .
+func (v *Plugin) SetNodeResourceUsage(ctx context.Context, nodeName string, resourceOpts coretypes.NodeResourceOpts, resourceArgs coretypes.NodeResourceArgs, workloadResourceArgs []coretypes.WorkloadResourceArgs, delta bool, incr bool) (*resources.SetNodeResourceUsageResponse, error) {
+	var nodeResourceOpts *types.NodeResourceOpts
+	var nodeResourceArgs *types.NodeResourceArgs
+	var workloadResourceArgsList []*types.WorkloadResourceArgs
 
-	volumeCost := types.VolumeMap{}
-	for _, idx := range indices {
-		plans, ok := rp.plan[node.Name]
-		if !ok {
-			continue
-		}
-		volumeCost.Add(plans[idx].IntoVolumeMap())
-	}
-	node.Volume.Sub(volumeCost)
-	node.SetVolumeUsed(volumeCost.Total(), types.IncrUsage)
-}
-
-// RollbackChangesOnNode .
-func (rp ResourcePlans) RollbackChangesOnNode(node *types.Node, indices ...int) {
-	if len(rp.plan) == 0 {
-		return
-	}
-
-	volumeCost := types.VolumeMap{}
-	for _, idx := range indices {
-		volumeCost.Add(rp.plan[node.Name][idx].IntoVolumeMap())
-	}
-	node.Volume.Add(volumeCost)
-	node.SetVolumeUsed(volumeCost.Total(), types.DecrUsage)
-}
-
-// Dispense .
-func (rp ResourcePlans) Dispense(opts resourcetypes.DispenseOptions, r *types.ResourceMeta) (*types.ResourceMeta, error) {
-	if rp.capacity[opts.Node.Name] <= opts.Index {
-		return nil, errors.WithStack(types.ErrInsufficientCap)
-	}
-	r.VolumeRequest = rp.request
-	r.VolumeLimit = rp.limit
-	if len(rp.plan) == 0 {
-		return r, nil
-	}
-
-	if p, ok := rp.plan[opts.Node.Name]; !ok || len(p) <= opts.Index {
-		return nil, errors.WithStack(types.ErrInsufficientVolume)
-	}
-	r.VolumePlanRequest = rp.plan[opts.Node.Name][opts.Index]
-
-	// fix plans while limit > request
-	r.VolumePlanLimit = types.VolumePlan{}
-	for i := range rp.request {
-		request, limit := rp.request[i], rp.limit[i]
-		if !request.RequireSchedule() {
-			continue
-		}
-		if limit.SizeInBytes > request.SizeInBytes {
-			p := r.VolumePlanRequest[*request]
-			r.VolumePlanLimit[*limit] = types.VolumeMap{p.GetResourceID(): p.GetRation() + limit.SizeInBytes - request.SizeInBytes}
-		} else {
-			r.VolumePlanLimit[*limit] = r.VolumePlanRequest[*request]
+	if resourceOpts != nil {
+		nodeResourceOpts = &types.NodeResourceOpts{}
+		if err := nodeResourceOpts.ParseFromRawParams(coretypes.RawParams(resourceOpts)); err != nil {
+			return nil, err
 		}
 	}
 
-	// judge if volume changed
-	// TODO@zc
-	r.VolumeChanged = false
-	return r, nil
+	if resourceArgs != nil {
+		nodeResourceArgs = &types.NodeResourceArgs{}
+		if err := nodeResourceArgs.ParseFromRawParams(coretypes.RawParams(resourceArgs)); err != nil {
+			return nil, err
+		}
+	}
+
+	if workloadResourceArgs != nil {
+		workloadResourceArgsList = make([]*types.WorkloadResourceArgs, len(workloadResourceArgs))
+		for i, workloadResourceArg := range workloadResourceArgs {
+			workloadResourceArgsList[i] = &types.WorkloadResourceArgs{}
+			if err := workloadResourceArgsList[i].ParseFromRawParams(coretypes.RawParams(workloadResourceArg)); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	before, after, err := v.v.SetNodeResourceUsage(ctx, nodeName, nodeResourceOpts, nodeResourceArgs, workloadResourceArgsList, delta, incr)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &resources.SetNodeResourceUsageResponse{}
+	err = resources.ToResp(map[string]interface{}{
+		"before": before,
+		"after":  after,
+	}, resp)
+	return resp, err
 }
 
-// GetPlan return volume plans by nodename
-func (rp ResourcePlans) GetPlan(nodename string) []types.VolumePlan {
-	return rp.plan[nodename]
+// SetNodeResourceCapacity .
+func (v *Plugin) SetNodeResourceCapacity(ctx context.Context, nodeName string, resourceOpts coretypes.NodeResourceOpts, resourceArgs coretypes.NodeResourceArgs, delta bool, incr bool) (*resources.SetNodeResourceCapacityResponse, error) {
+	var nodeResourceOpts *types.NodeResourceOpts
+	var nodeResourceArgs *types.NodeResourceArgs
+
+	if resourceOpts != nil {
+		nodeResourceOpts = &types.NodeResourceOpts{}
+		if err := nodeResourceOpts.ParseFromRawParams(coretypes.RawParams(resourceOpts)); err != nil {
+			return nil, err
+		}
+		if delta {
+			nodeResourceOpts.Storage += nodeResourceOpts.Volumes.Total()
+		}
+	}
+	if resourceArgs != nil {
+		nodeResourceArgs = &types.NodeResourceArgs{}
+		if err := nodeResourceArgs.ParseFromRawParams(coretypes.RawParams(resourceArgs)); err != nil {
+			return nil, err
+		}
+		if delta {
+			nodeResourceArgs.Storage += nodeResourceArgs.Volumes.Total()
+		}
+	}
+
+	before, after, err := v.v.SetNodeResourceCapacity(ctx, nodeName, nodeResourceOpts, nodeResourceArgs, delta, incr)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &resources.SetNodeResourceCapacityResponse{}
+	err = resources.ToResp(map[string]interface{}{
+		"before": before,
+		"after":  after,
+	}, resp)
+	return resp, err
+}
+
+// SetNodeResourceInfo .
+func (v *Plugin) SetNodeResourceInfo(ctx context.Context, nodeName string, resourceCapacity coretypes.NodeResourceArgs, resourceUsage coretypes.NodeResourceArgs) (*resources.SetNodeResourceInfoResponse, error) {
+	capacity := &types.NodeResourceArgs{}
+	if err := capacity.ParseFromRawParams(coretypes.RawParams(resourceCapacity)); err != nil {
+		return nil, err
+	}
+
+	usage := &types.NodeResourceArgs{}
+	if err := usage.ParseFromRawParams(coretypes.RawParams(resourceUsage)); err != nil {
+		return nil, err
+	}
+
+	if err := v.v.SetNodeResourceInfo(ctx, nodeName, capacity, usage); err != nil {
+		return nil, err
+	}
+	return &resources.SetNodeResourceInfoResponse{}, nil
+}
+
+// AddNode .
+func (v *Plugin) AddNode(ctx context.Context, nodeName string, resourceOpts coretypes.NodeResourceOpts, nodeInfo *enginetypes.Info) (*resources.AddNodeResponse, error) {
+	nodeResourceOpts := &types.NodeResourceOpts{}
+	if err := nodeResourceOpts.ParseFromRawParams(coretypes.RawParams(resourceOpts)); err != nil {
+		return nil, err
+	}
+
+	// set default value
+	if nodeInfo != nil {
+		if nodeResourceOpts.Storage == 0 {
+			nodeResourceOpts.Storage = nodeInfo.StorageTotal * 8 / 10
+		}
+	}
+
+	nodeResourceInfo, err := v.v.AddNode(ctx, nodeName, nodeResourceOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &resources.AddNodeResponse{}
+	err = resources.ToResp(map[string]interface{}{
+		"capacity": nodeResourceInfo.Capacity,
+		"usage":    nodeResourceInfo.Usage,
+	}, resp)
+	return resp, err
+}
+
+// RemoveNode .
+func (v *Plugin) RemoveNode(ctx context.Context, nodeName string) (*resources.RemoveNodeResponse, error) {
+	if err := v.v.RemoveNode(ctx, nodeName); err != nil {
+		return nil, err
+	}
+	return &resources.RemoveNodeResponse{}, nil
+}
+
+// Name .
+func (v *Plugin) Name() string {
+	return "volume"
+}
+
+func (v *Plugin) workloadMapToWorkloadResourceArgsMap(workloadMap map[string]*coretypes.Workload) (*types.WorkloadResourceArgsMap, error) {
+	workloadResourceArgsMap := types.WorkloadResourceArgsMap{}
+	for workloadID, workload := range workloadMap {
+		workloadResourceArgs := &types.WorkloadResourceArgs{}
+		if err := workloadResourceArgs.ParseFromRawParams(coretypes.RawParams(workload.ResourceArgs[v.Name()])); err != nil {
+			return nil, err
+		}
+		workloadResourceArgsMap[workloadID] = workloadResourceArgs
+	}
+
+	return &workloadResourceArgsMap, nil
+}
+
+func (v *Plugin) workloadListToWorkloadResourceArgsMap(workloads []*coretypes.Workload) (*types.WorkloadResourceArgsMap, error) {
+	workloadMap := map[string]*coretypes.Workload{}
+	for _, workload := range workloads {
+		workloadMap[workload.ID] = workload
+	}
+
+	return v.workloadMapToWorkloadResourceArgsMap(workloadMap)
+}
+
+func (v *Plugin) getNodeResourceInfo(ctx context.Context, nodeName string, workloads []*coretypes.Workload, fix bool) (*resources.GetNodeResourceInfoResponse, error) {
+	workloadResourceArgsMap, err := v.workloadListToWorkloadResourceArgsMap(workloads)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeResourceInfo, diffs, err := v.v.GetNodeResourceInfo(ctx, nodeName, workloadResourceArgsMap, fix)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &resources.GetNodeResourceInfoResponse{}
+	err = resources.ToResp(map[string]interface{}{
+		"resource_info": nodeResourceInfo,
+		"diffs":         diffs,
+	}, resp)
+	return resp, err
+}
+
+// GetMetricsDescription .
+func (v *Plugin) GetMetricsDescription(ctx context.Context) (*resources.GetMetricsDescriptionResponse, error) {
+	resp := &resources.GetMetricsDescriptionResponse{}
+	err := resources.ToResp(v.v.GetMetricsDescription(), resp)
+	return resp, err
+}
+
+// ResolveNodeResourceInfoToMetrics .
+func (v *Plugin) ResolveNodeResourceInfoToMetrics(ctx context.Context, podName string, nodeName string, info *resources.NodeResourceInfo) (*resources.ResolveNodeResourceInfoToMetricsResponse, error) {
+	capacity, usage := &types.NodeResourceArgs{}, &types.NodeResourceArgs{}
+	if err := capacity.ParseFromRawParams(coretypes.RawParams(info.Capacity)); err != nil {
+		return nil, err
+	}
+	if err := usage.ParseFromRawParams(coretypes.RawParams(info.Usage)); err != nil {
+		return nil, err
+	}
+
+	metrics := v.v.ResolveNodeResourceInfoToMetrics(podName, nodeName, capacity, usage)
+	resp := &resources.ResolveNodeResourceInfoToMetricsResponse{}
+	err := resources.ToResp(metrics, resp)
+	return resp, err
 }
