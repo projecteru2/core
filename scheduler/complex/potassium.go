@@ -204,6 +204,7 @@ func cpuReallocPlan(scheduleInfo resourcetypes.ScheduleInfo, quota float64, CPU 
 		cpuIDs = append(cpuIDs, cpuID)
 	}
 	sort.Slice(cpuIDs, func(i, j int) bool { return CPU[cpuIDs[i]] < CPU[cpuIDs[j]] })
+	scheduleInfo.CPU.Sub(CPU)
 
 	// shrink, ensure affinity
 	if diff <= 0 {
