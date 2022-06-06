@@ -80,6 +80,7 @@ func TestCPUReallocPlan(t *testing.T) {
 		"1": 30,
 		"2": 40,
 	}
+	scheduleInfo.CPU.Add(CPU)
 	si, remain, aff := cpuReallocPlan(scheduleInfo, 1, CPU, 100)
 	assert.EqualValues(t, 0, remain)
 	assert.True(t, reflect.DeepEqual(aff, types.CPUMap{"0": 100}))
@@ -101,6 +102,7 @@ func TestCPUReallocPlan(t *testing.T) {
 		"1": 30,
 		"2": 40,
 	}
+	scheduleInfo.CPU.Add(CPU)
 	si, remain, aff = cpuReallocPlan(scheduleInfo, 1.2, CPU, 100)
 	assert.EqualValues(t, 0, remain)
 	assert.True(t, reflect.DeepEqual(aff, types.CPUMap{"0": 100, "2": 20}))
@@ -124,6 +126,7 @@ func TestCPUReallocPlan(t *testing.T) {
 		"2": 40,
 		"3": 10,
 	}
+	scheduleInfo.CPU.Add(CPU)
 	si, remain, aff = cpuReallocPlan(scheduleInfo, 2, CPU, 100)
 	assert.EqualValues(t, 0, remain)
 	assert.True(t, reflect.DeepEqual(aff, types.CPUMap{"0": 100, "1": 100}))
@@ -145,6 +148,7 @@ func TestCPUReallocPlan(t *testing.T) {
 		"1": 30,
 		"2": 40,
 	}
+	scheduleInfo.CPU.Add(CPU)
 	si, remain, aff = cpuReallocPlan(scheduleInfo, 2, CPU, 100)
 	assert.EqualValues(t, 1, remain)
 	assert.True(t, reflect.DeepEqual(aff, types.CPUMap{"0": 100}))
@@ -174,6 +178,7 @@ func TestCPUReallocWithPriorPlan(t *testing.T) {
 		"1": 30,
 		"2": 40,
 	}
+	scheduleInfo.CPU.Add(CPU)
 	si, cpuPlans, total, err := po.ReselectCPUNodes(context.TODO(), scheduleInfo, CPU, 2, 0)
 	assert.Nil(t, err)
 	assert.EqualValues(t, 1, total)
@@ -198,6 +203,7 @@ func TestCPUReallocWithPriorPlan(t *testing.T) {
 		"1": 30,
 		"2": 40,
 	}
+	scheduleInfo.CPU.Add(CPU)
 	si, cpuPlans, total, err = po.ReselectCPUNodes(context.TODO(), scheduleInfo, CPU, 2, 0)
 	assert.Nil(t, err)
 	assert.EqualValues(t, 3, total)
@@ -233,6 +239,7 @@ func TestCPUReallocWithPriorPlan(t *testing.T) {
 		"1": 30,
 		"2": 40,
 	}
+	scheduleInfo.CPU.Add(CPU)
 	_, _, _, err = po.ReselectCPUNodes(context.TODO(), scheduleInfo, CPU, 2, 0)
 	assert.EqualError(t, err, "failed to reschedule cpu: no node remains 1.00 pieces of cpu and 0 bytes of memory at the same time: not enough resource")
 }
@@ -262,7 +269,7 @@ func TestGetFullResult(t *testing.T) {
 		{"1": 100, "2": 100},
 	})
 
-	res = h.getFullResult(2,  []resourceInfo{
+	res = h.getFullResult(2, []resourceInfo{
 		{
 			id:     "0",
 			pieces: 200,
