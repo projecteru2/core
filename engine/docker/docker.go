@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"strings"
 
+	dockerapi "github.com/docker/docker/client"
+
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	dockerapi "github.com/docker/docker/client"
 )
 
 const (

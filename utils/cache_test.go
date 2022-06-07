@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	enginemocks "github.com/projecteru2/core/engine/mocks"
-
 	"github.com/stretchr/testify/assert"
+
+	enginemocks "github.com/projecteru2/core/engine/mocks"
 )
 
 func TestCache(t *testing.T) {

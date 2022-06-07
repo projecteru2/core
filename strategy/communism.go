@@ -5,9 +5,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/projecteru2/core/types"
-
 	"github.com/pkg/errors"
+
+	"github.com/projecteru2/core/types"
 )
 
 type infoHeap struct {

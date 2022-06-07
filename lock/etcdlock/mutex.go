@@ -6,12 +6,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/projecteru2/core/types"
-
 	"github.com/pkg/errors"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 	"golang.org/x/net/context"
+
+	"github.com/projecteru2/core/types"
 )
 
 // Mutex is etcdv3 lock

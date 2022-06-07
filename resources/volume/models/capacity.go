@@ -8,6 +8,7 @@ import (
 
 	"github.com/projecteru2/core/resources/volume/schedule"
 	"github.com/projecteru2/core/resources/volume/types"
+	"github.com/projecteru2/core/utils"
 )
 
 // GetNodesDeployCapacity .
@@ -46,7 +47,7 @@ func (v *Volume) doGetNodeCapacityInfo(ctx context.Context, node string, resourc
 	}
 
 	// get volume capacity
-	volumePlans := schedule.GetVolumePlans(resourceInfo, opts.VolumesRequest, v.Config.Scheduler.MaxDeployCount)
+	volumePlans, _ := schedule.GetVolumePlans(resourceInfo, opts.VolumesRequest, v.Config.Scheduler.MaxDeployCount)
 	capacityInfo.Capacity = len(volumePlans)
 
 	// get storage capacity
@@ -63,11 +64,11 @@ func (v *Volume) doGetNodeCapacityInfo(ctx context.Context, node string, resourc
 	}
 
 	if len(opts.VolumesRequest) > 0 || opts.StorageRequest == 0 {
-		capacityInfo.Usage = float64(resourceInfo.Usage.Volumes.Total()) / float64(resourceInfo.Capacity.Volumes.Total())
-		capacityInfo.Rate = float64(opts.VolumesRequest.TotalSize()) / float64(resourceInfo.Capacity.Volumes.Total())
+		capacityInfo.Usage = utils.AdvancedDivide(float64(resourceInfo.Usage.Volumes.Total()), float64(resourceInfo.Capacity.Volumes.Total()))
+		capacityInfo.Rate = utils.AdvancedDivide(float64(opts.VolumesRequest.TotalSize()), float64(resourceInfo.Capacity.Volumes.Total())) //
 	} else if opts.StorageRequest > 0 {
-		capacityInfo.Usage = float64(resourceInfo.Usage.Storage) / float64(resourceInfo.Capacity.Storage)
-		capacityInfo.Rate = float64(opts.StorageRequest) / float64(resourceInfo.Capacity.Storage)
+		capacityInfo.Usage = utils.AdvancedDivide(float64(resourceInfo.Usage.Storage), float64(resourceInfo.Capacity.Storage))
+		capacityInfo.Rate = utils.AdvancedDivide(float64(opts.StorageRequest), float64(resourceInfo.Capacity.Storage))
 	}
 
 	return capacityInfo

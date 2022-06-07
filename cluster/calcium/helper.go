@@ -8,14 +8,14 @@ import (
 	"io/ioutil"
 	"sync"
 
+	"github.com/pkg/errors"
+	"golang.org/x/net/context"
+
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/pkg/errors"
-	"golang.org/x/net/context"
 )
 
 var winchCommand = []byte{0x80}  // 128, non-ASCII

@@ -11,7 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	cli "github.com/urfave/cli/v2"
+	_ "go.uber.org/automaxprocs"
+	"google.golang.org/grpc"
 
 	"github.com/projecteru2/core/auth"
 	"github.com/projecteru2/core/cluster/calcium"
@@ -23,11 +27,6 @@ import (
 	"github.com/projecteru2/core/selfmon"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/version"
-
-	"github.com/getsentry/sentry-go"
-	cli "github.com/urfave/cli/v2"
-	_ "go.uber.org/automaxprocs"
-	"google.golang.org/grpc"
 )
 
 var (

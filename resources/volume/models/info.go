@@ -24,6 +24,7 @@ func (v *Volume) GetNodeResourceInfo(ctx context.Context, node string, workloadR
 
 	totalVolumeMap := types.VolumeMap{}
 	totalStorageUsage := int64(0)
+	totalDiskUsage := types.Disks{}
 
 	if workloadResourceMap != nil {
 		for _, args := range *workloadResourceMap {
@@ -31,6 +32,7 @@ func (v *Volume) GetNodeResourceInfo(ctx context.Context, node string, workloadR
 				totalVolumeMap.Add(volumeMap)
 			}
 			totalStorageUsage += args.StorageRequest
+			totalDiskUsage.Add(args.DisksRequest.RemoveMounts())
 		}
 	}
 
@@ -48,11 +50,31 @@ func (v *Volume) GetNodeResourceInfo(ctx context.Context, node string, workloadR
 			diffs = append(diffs, fmt.Sprintf("node.Volumes[%s] != sum(workload.Volumes[%s]): %v != %v", volume, volume, resourceInfo.Usage.Volumes[volume], size))
 		}
 	}
+	for _, disk := range resourceInfo.Usage.Disks {
+		d := totalDiskUsage.GetDiskByDevice(disk.Device)
+		if d == nil {
+			d = &types.Disk{
+				Device:    disk.Device,
+				Mounts:    disk.Mounts,
+				ReadIOPS:  0,
+				WriteIOPS: 0,
+				ReadBPS:   0,
+				WriteBPS:  0,
+			}
+		}
+		d.Mounts = disk.Mounts
+		computedDisk := d.String()
+		storedDisk := disk.String()
+		if computedDisk != storedDisk {
+			diffs = append(diffs, fmt.Sprintf("node.Disks[%s] != sum(workload.Disks[%s]): %v != %v", disk.Device, disk.Device, storedDisk, computedDisk))
+		}
+	}
 
 	if fix {
 		resourceInfo.Usage = &types.NodeResourceArgs{
 			Volumes: totalVolumeMap,
 			Storage: totalStorageUsage,
+			Disks:   totalDiskUsage,
 		}
 		if err = v.doSetNodeResourceInfo(ctx, node, resourceInfo); err != nil {
 			logrus.Warnf("[GetNodeResourceInfo] failed to fix node resource, err: %v", err)
@@ -75,6 +97,7 @@ func (v *Volume) calculateNodeResourceArgs(origin *types.NodeResourceArgs, nodeR
 		nodeResourceArgs := &types.NodeResourceArgs{
 			Volumes: nodeResourceOpts.Volumes,
 			Storage: nodeResourceOpts.Storage,
+			Disks:   nodeResourceOpts.Disks,
 		}
 
 		if incr {
@@ -98,6 +121,7 @@ func (v *Volume) calculateNodeResourceArgs(origin *types.NodeResourceArgs, nodeR
 		nodeResourceArgs := &types.NodeResourceArgs{
 			Volumes: map[string]int64{},
 			Storage: args.StorageRequest,
+			Disks:   args.DisksRequest,
 		}
 		for _, volumeMap := range args.VolumePlanRequest {
 			nodeResourceArgs.Volumes.Add(volumeMap)

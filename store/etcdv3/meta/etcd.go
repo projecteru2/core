@@ -10,16 +10,16 @@ import (
 	"testing"
 	"time"
 
+	"go.etcd.io/etcd/api/v3/mvccpb"
+	"go.etcd.io/etcd/client/pkg/v3/transport"
+	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/client/v3/namespace"
+
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/lock/etcdlock"
 	"github.com/projecteru2/core/log"
 	embedded "github.com/projecteru2/core/store/etcdv3/embedded"
 	"github.com/projecteru2/core/types"
-
-	"go.etcd.io/etcd/api/v3/mvccpb"
-	"go.etcd.io/etcd/client/pkg/v3/transport"
-	clientv3 "go.etcd.io/etcd/client/v3"
-	"go.etcd.io/etcd/client/v3/namespace"
 )
 
 const (
@@ -394,10 +394,10 @@ func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, statusKey, statusValue 
 
 	resp, err := e.cliv3.Txn(ctx).
 		If(clientv3.Compare(clientv3.Version(statusKey), "!=", 0)). // if there's an existing status key
-		Then(clientv3.OpTxn(                                        // deal with existing status key
+		Then(clientv3.OpTxn( // deal with existing status key
 			[]clientv3.Cmp{clientv3.Compare(clientv3.Value(statusKey), "!=", statusValue)}, // if the new value != the old value
-			updateStatus,    // then the status has been changed.
-			[]clientv3.Op{}, // otherwise do nothing.
+			updateStatus,                                                                   // then the status has been changed.
+			[]clientv3.Op{},                                                                // otherwise do nothing.
 		)).
 		Else(updateStatus...). // otherwise deal with non-existing status key
 		Commit()

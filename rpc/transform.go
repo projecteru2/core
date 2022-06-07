@@ -4,17 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"golang.org/x/exp/maps"
+	"golang.org/x/net/context"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"golang.org/x/net/context"
 )
 
 func toRPCServiceStatus(status types.ServiceStatus) *pb.ServiceStatus {
@@ -147,14 +147,20 @@ func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) { // nolin
 func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
 	if b.ResourceOpts == nil {
 		b.ResourceOpts = map[string]*pb.RawParam{
-			"cpu":      newPBRawParamStr(fmt.Sprintf("%v", b.Cpu)),
 			"share":    newPBRawParamStr(fmt.Sprintf("%v", b.Share)),
-			"memory":   newPBRawParamStr(fmt.Sprintf("%v", b.Memory)),
 			"numa-cpu": newPBRawParamStringSlice(maps.Values(b.Numa)),
 			"numa-memory": newPBRawParamStringSlice(utils.Map(maps.Values(b.NumaMemory), func(v int64) string {
 				return fmt.Sprintf("%v", v)
 			})),
-			"storage": newPBRawParamStr(fmt.Sprintf("%v", b.Storage)),
+		}
+		if b.Cpu > 0 {
+			b.ResourceOpts["cpu"] = newPBRawParamStr(fmt.Sprintf("%v", b.Cpu))
+		}
+		if b.Memory > 0 {
+			b.ResourceOpts["memory"] = newPBRawParamStr(fmt.Sprintf("%v", b.Memory))
+		}
+		if b.Storage > 0 {
+			b.ResourceOpts["storage"] = newPBRawParamStr(fmt.Sprintf("%v", b.Storage))
 		}
 		volumes := []string{}
 		for device, size := range b.VolumeMap {
@@ -179,8 +185,12 @@ func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
 func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) { // nolint
 	if b.ResourceOpts == nil {
 		b.Delta = true
+		cpuStrs := []string{}
+		for cpu, delta := range b.DeltaCpu {
+			cpuStrs = append(cpuStrs, fmt.Sprintf("%v:%v", cpu, delta))
+		}
 		b.ResourceOpts = map[string]*pb.RawParam{
-			"cpu":      newPBRawParamStr(fmt.Sprintf("%v", b.DeltaCpu)),
+			"cpu":      newPBRawParamStr(strings.Join(cpuStrs, ",")),
 			"memory":   newPBRawParamStr(fmt.Sprintf("%v", b.DeltaMemory)),
 			"numa-cpu": newPBRawParamStringSlice(maps.Values(b.Numa)),
 			"numa-memory": newPBRawParamStringSlice(utils.Map(maps.Values(b.DeltaNumaMemory), func(v int64) string {
@@ -283,7 +293,7 @@ func toCoreReplaceOptions(r *pb.ReplaceOptions) (*types.ReplaceOptions, error) {
 func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 	if d.ResourceOpts == nil {
 		d.ResourceOpts = toNewResourceOptions(d.OldResourceOpts)
-		if d.OldResourceOpts.CpuBind {
+		if d.OldResourceOpts != nil && d.OldResourceOpts.CpuBind {
 			d.ResourceOpts["cpu-bind"] = newPBRawParamStr("true")
 		}
 	}
@@ -723,9 +733,9 @@ func fillOldNodeMeta(node *pb.Node, resourceCapacity map[string]types.RawParams,
 		node.Volume = map[string]int64{}
 
 		volumeUsed := types.ConvertRawParamsToMap[int64](usage.RawParams("volumes"))
-		for device, size := range volumeUsed {
-			node.Volume[device] = node.InitVolume[device] - size
-			node.VolumeUsed += size
+		for device := range node.InitVolume {
+			node.Volume[device] = node.InitVolume[device] - volumeUsed[device]
+			node.VolumeUsed += volumeUsed[device]
 		}
 	}
 }
@@ -762,6 +772,9 @@ func toRPCVolumePlan(volumePlan map[string]map[string]int64) map[string]*pb.Volu
 }
 
 func toNewResourceOptions(opts *pb.ResourceOptions) map[string]*pb.RawParam {
+	if opts == nil {
+		return map[string]*pb.RawParam{}
+	}
 	return map[string]*pb.RawParam{
 		"cpu-request":     newPBRawParamStr(fmt.Sprintf("%v", opts.CpuQuotaRequest)),
 		"cpu-limit":       newPBRawParamStr(fmt.Sprintf("%v", opts.CpuQuotaLimit)),

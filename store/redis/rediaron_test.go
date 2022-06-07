@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/projecteru2/core/engine/factory"
-	"github.com/projecteru2/core/types"
-
 	"github.com/alicebob/miniredis/v2"
 	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/projecteru2/core/engine/factory"
+	"github.com/projecteru2/core/types"
 )
 
 type RediaronTestSuite struct {

@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	enginemocks "github.com/projecteru2/core/engine/mocks"
-	enginetypes "github.com/projecteru2/core/engine/types"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	enginemocks "github.com/projecteru2/core/engine/mocks"
+	enginetypes "github.com/projecteru2/core/engine/types"
 )
 
 func TestNodeInfo(t *testing.T) {

@@ -6,11 +6,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/projecteru2/core/types"
-
 	"github.com/getsentry/sentry-go"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/peer"
+
+	"github.com/projecteru2/core/types"
 )
 
 // SetupLog init logger

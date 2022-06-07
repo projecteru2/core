@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/cornelk/hashmap"
+	"github.com/pkg/errors"
+	"github.com/sanity-io/litter"
 
 	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -15,9 +17,6 @@ import (
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
-
-	"github.com/pkg/errors"
-	"github.com/sanity-io/litter"
 )
 
 // CreateWorkload use options to create workloads

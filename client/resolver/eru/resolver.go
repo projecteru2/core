@@ -4,11 +4,11 @@ import (
 	"context"
 	"strings"
 
+	"google.golang.org/grpc/resolver"
+
 	"github.com/projecteru2/core/client/servicediscovery"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-
-	"google.golang.org/grpc/resolver"
 )
 
 // Resolver for target eru://{addr}

@@ -8,14 +8,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/projecteru2/core/engine"
 	enginefactory "github.com/projecteru2/core/engine/factory"
 	"github.com/projecteru2/core/engine/fake"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/pkg/errors"
 )
 
 // AddNode save it to etcd

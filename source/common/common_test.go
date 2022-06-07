@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/projecteru2/core/types"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/types"
 )
 
 const (

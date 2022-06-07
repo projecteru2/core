@@ -53,6 +53,7 @@ func TestGetNodeResourceInfo(t *testing.T) {
 			"/data0": units.GiB,
 		},
 		Storage: units.GiB,
+		Disks:   types.Disks{},
 	})
 }
 
@@ -85,11 +86,13 @@ func TestSetNodeResourceUsage(t *testing.T) {
 	nodeResourceOpts := &types.NodeResourceOpts{
 		Volumes: types.VolumeMap{"/data0": units.GiB},
 		Storage: units.GiB,
+		Disks:   types.Disks{},
 	}
 
 	nodeResourceArgs := &types.NodeResourceArgs{
 		Volumes: types.VolumeMap{"/data0": units.GiB},
 		Storage: units.GiB,
+		Disks:   types.Disks{},
 	}
 
 	workloadResourceArgs := []*types.WorkloadResourceArgs{
@@ -104,6 +107,7 @@ func TestSetNodeResourceUsage(t *testing.T) {
 	originResourceUsage := &types.NodeResourceArgs{
 		Volumes: types.VolumeMap{"/data0": 200 * units.GiB, "/data1": 300 * units.GiB},
 		Storage: 500 * units.GiB,
+		Disks:   types.Disks{},
 	}
 
 	afterSetNodeResourceUsageDelta := &types.NodeResourceArgs{
@@ -112,6 +116,7 @@ func TestSetNodeResourceUsage(t *testing.T) {
 			"/data1": 300 * units.GiB,
 		},
 		Storage: 501 * units.GiB,
+		Disks:   types.Disks{},
 	}
 
 	_, after, err = volume.SetNodeResourceUsage(ctx, node, nodeResourceOpts, nil, nil, true, true)
@@ -162,26 +167,31 @@ func TestNodeResourceCapacity(t *testing.T) {
 	nodeResourceOptsDelta := &types.NodeResourceOpts{
 		Volumes: types.VolumeMap{"/data4": units.TiB},
 		Storage: units.TiB,
+		Disks:   types.Disks{},
 	}
 
 	nodeResourceArgsDelta := &types.NodeResourceArgs{
 		Volumes: types.VolumeMap{"/data4": units.TiB},
 		Storage: units.TiB,
+		Disks:   types.Disks{},
 	}
 
 	originResourceCapacity := &types.NodeResourceArgs{
 		Volumes: types.VolumeMap{"/data0": units.TiB, "/data1": units.TiB, "/data2": units.TiB, "/data3": units.TiB},
 		Storage: 4 * units.TiB,
+		Disks:   types.Disks{},
 	}
 
 	originResourceCapacityArgs := &types.NodeResourceArgs{
 		Volumes: types.VolumeMap{"/data0": units.TiB, "/data1": units.TiB, "/data2": units.TiB, "/data3": units.TiB},
 		Storage: 4 * units.TiB,
+		Disks:   types.Disks{},
 	}
 
 	afterSetNodeResourceUsageDelta := &types.NodeResourceArgs{
 		Volumes: types.VolumeMap{"/data0": units.TiB, "/data1": units.TiB, "/data2": units.TiB, "/data3": units.TiB, "/data4": units.TiB},
 		Storage: 5 * units.TiB,
+		Disks:   types.Disks{},
 	}
 
 	_, after, err = volume.SetNodeResourceCapacity(ctx, node, nodeResourceOptsDelta, nil, true, true)

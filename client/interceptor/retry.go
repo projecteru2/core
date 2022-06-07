@@ -4,10 +4,10 @@ import (
 	"context"
 	"strings"
 
-	"github.com/projecteru2/core/log"
-
 	"github.com/cenkalti/backoff/v4"
 	"google.golang.org/grpc"
+
+	"github.com/projecteru2/core/log"
 )
 
 // NewUnaryRetry makes unary RPC retry on error

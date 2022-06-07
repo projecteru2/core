@@ -6,9 +6,9 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/projecteru2/core/types"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/types"
 )
 
 func TestFillPlan(t *testing.T) {

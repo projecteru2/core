@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/projecteru2/core/types"
-
 	"go.etcd.io/bbolt"
+
+	"github.com/projecteru2/core/types"
 )
 
 // Lithium .

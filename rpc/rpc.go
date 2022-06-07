@@ -10,15 +10,15 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/net/context"
+	grpcstatus "google.golang.org/grpc/status"
+
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/version"
-
-	"golang.org/x/net/context"
-	grpcstatus "google.golang.org/grpc/status"
 )
 
 // Vibranium is implementations for grpc server interface
@@ -62,6 +62,8 @@ func (v *Vibranium) WatchServiceStatus(_ *pb.Empty, stream pb.CoreRPC_WatchServi
 				v.logUnsentMessages(task.context, "WatchServicesStatus", err, s)
 				return grpcstatus.Error(WatchServiceStatus, err.Error())
 			}
+		case <-task.context.Done():
+			return nil
 		case <-v.stop:
 			return nil
 		}

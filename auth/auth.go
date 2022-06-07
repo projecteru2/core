@@ -3,10 +3,10 @@ package auth
 import (
 	"context"
 
+	"google.golang.org/grpc"
+
 	"github.com/projecteru2/core/auth/simple"
 	"github.com/projecteru2/core/types"
-
-	"google.golang.org/grpc"
 )
 
 // Auth define auth obj

@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/projecteru2/core/discovery/helium"
-	storemocks "github.com/projecteru2/core/store/mocks"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/projecteru2/core/discovery/helium"
+	storemocks "github.com/projecteru2/core/store/mocks"
 )
 
 func TestServiceStatusStream(t *testing.T) {

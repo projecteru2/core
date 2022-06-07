@@ -1,11 +1,11 @@
 package rpc
 
 import (
+	"golang.org/x/net/context"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"golang.org/x/net/context"
 )
 
 type task struct {

@@ -17,21 +17,23 @@ import (
 	"strings"
 	"text/template"
 
-	corecluster "github.com/projecteru2/core/cluster"
-	"github.com/projecteru2/core/engine"
-	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/types"
-	coretypes "github.com/projecteru2/core/types"
-
 	"github.com/docker/distribution/reference"
 	dockertypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/blkiodev"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	dockerapi "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/registry"
 	"github.com/docker/go-units"
+
+	corecluster "github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/engine"
+	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/types"
+	coretypes "github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 type fuckDockerStream struct {
@@ -100,7 +102,7 @@ func makeMountPaths(opts *enginetypes.VirtualizationCreateOptions) ([]string, ma
 	return binds, volumes
 }
 
-func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, numaNode string, remap bool) dockercontainer.Resources {
+func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, numaNode string, iopsOptions map[string]string, remap bool) dockercontainer.Resources {
 	resource := dockercontainer.Resources{}
 
 	resource.CPUQuota = 0
@@ -138,7 +140,43 @@ func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, num
 	if memory != 0 && memory/2 < int64(units.MiB*4) {
 		resource.MemoryReservation = int64(units.MiB * 4)
 	}
-	//}
+
+	if len(iopsOptions) > 0 {
+		var readIOPSDevices, writeIOPSDevices, readBPSDevices, writeBPSDevices []*blkiodev.ThrottleDevice
+		for device, options := range iopsOptions {
+			parts := strings.Split(options, ":")
+			for len(parts) < 4 {
+				parts = append(parts, "0")
+			}
+			var readIOPS, writeIOPS, readBPS, writeBPS int64
+			readIOPS, _ = utils.ParseRAMInHuman(parts[0])
+			writeIOPS, _ = utils.ParseRAMInHuman(parts[1])
+			readBPS, _ = utils.ParseRAMInHuman(parts[2])
+			writeBPS, _ = utils.ParseRAMInHuman(parts[3])
+
+			readIOPSDevices = append(readIOPSDevices, &blkiodev.ThrottleDevice{
+				Path: device,
+				Rate: uint64(readIOPS),
+			})
+			writeIOPSDevices = append(writeIOPSDevices, &blkiodev.ThrottleDevice{
+				Path: device,
+				Rate: uint64(writeIOPS),
+			})
+			readBPSDevices = append(readBPSDevices, &blkiodev.ThrottleDevice{
+				Path: device,
+				Rate: uint64(readBPS),
+			})
+			writeBPSDevices = append(writeBPSDevices, &blkiodev.ThrottleDevice{
+				Path: device,
+				Rate: uint64(writeBPS),
+			})
+		}
+		resource.BlkioDeviceReadIOps = readIOPSDevices
+		resource.BlkioDeviceWriteIOps = writeIOPSDevices
+		resource.BlkioDeviceReadBps = readBPSDevices
+		resource.BlkioDeviceWriteBps = writeBPSDevices
+	}
+
 	return resource
 }
 

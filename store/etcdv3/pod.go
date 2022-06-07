@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/projecteru2/core/types"
-
 	clientv3 "go.etcd.io/etcd/client/v3"
+
+	"github.com/projecteru2/core/types"
 )
 
 // AddPod add a pod

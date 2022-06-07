@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	coreutils "github.com/projecteru2/core/utils"
-
 	"github.com/stretchr/testify/assert"
+
+	coreutils "github.com/projecteru2/core/utils"
 )
 
 func TestCreateTarStream(t *testing.T) {

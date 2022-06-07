@@ -3,11 +3,11 @@ package calcium
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-
-	"github.com/pkg/errors"
 )
 
 // ListNetworks by podname

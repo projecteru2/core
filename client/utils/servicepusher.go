@@ -10,8 +10,9 @@ import (
 
 	"github.com/cornelk/hashmap"
 	"github.com/go-ping/ping"
-	"github.com/projecteru2/core/log"
 	"golang.org/x/exp/slices"
+
+	"github.com/projecteru2/core/log"
 )
 
 // EndpointPusher pushes endpoints to registered channels if the ep is L3 reachable

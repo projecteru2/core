@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/projecteru2/core/store/etcdv3/embedded"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/store/etcdv3/embedded"
 )
 
 func TestMutex(t *testing.T) {

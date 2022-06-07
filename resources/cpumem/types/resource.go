@@ -375,7 +375,7 @@ func (n *NodeResourceOpts) ParseFromRawParams(rawParams coretypes.RawParams) (er
 		n.CPUMap = CPUMap{}
 	}
 
-	if cpu := n.RawParams.Int64("cpu"); cpu > 0 {
+	if cpu := n.RawParams.Int64("cpu"); cpu > 0 { // nolint
 		share := n.RawParams.Int64("share")
 		if share == 0 {
 			share = 100
@@ -386,17 +386,19 @@ func (n *NodeResourceOpts) ParseFromRawParams(rawParams coretypes.RawParams) (er
 		}
 	} else if cpuList := n.RawParams.String("cpu"); cpuList != "" {
 		cpuMapList := strings.Split(cpuList, ",")
-		for _, cpus := range cpuMapList {
-			cpuConfigs := strings.Split(cpus, ":")
-			pieces, err := strconv.ParseInt(cpuConfigs[1], 10, 32)
-			if err != nil {
-				return err
+		if len(cpuMapList) > 0 {
+			for _, cpus := range cpuMapList {
+				cpuConfigs := strings.Split(cpus, ":")
+				pieces, err := strconv.ParseInt(cpuConfigs[1], 10, 32)
+				if err != nil {
+					return err
+				}
+				cpuID := cpuConfigs[0]
+				if _, err := strconv.Atoi(cpuID); err != nil {
+					return err
+				}
+				n.CPUMap[cpuID] = int(pieces)
 			}
-			cpuID := cpuConfigs[0]
-			if _, err := strconv.Atoi(cpuID); err != nil {
-				return err
-			}
-			n.CPUMap[cpuID] = int(pieces)
 		}
 	}
 

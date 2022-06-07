@@ -103,7 +103,7 @@ func callPlugins[T any](ctx context.Context, plugins []Plugin, f func(Plugin) (T
 }
 
 func (pm *PluginManager) mergeNodeCapacityInfo(m1 map[string]*NodeCapacityInfo, m2 map[string]*NodeCapacityInfo) map[string]*NodeCapacityInfo {
-	if len(m1) == 0 {
+	if m1 == nil {
 		return m2
 	}
 
@@ -127,7 +127,7 @@ func (pm *PluginManager) mergeNodeCapacityInfo(m1 map[string]*NodeCapacityInfo, 
 // the caller should require locks
 // pure calculation
 func (pm *PluginManager) GetNodesDeployCapacity(ctx context.Context, nodeNames []string, resourceOpts types.WorkloadResourceOpts) (map[string]*NodeCapacityInfo, int, error) {
-	res := map[string]*NodeCapacityInfo{}
+	var res map[string]*NodeCapacityInfo
 
 	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetNodesDeployCapacityResponse, error) {
 		resp, err := plugin.GetNodesDeployCapacity(ctx, nodeNames, resourceOpts)

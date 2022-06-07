@@ -7,14 +7,14 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/projecteru2/core/store/etcdv3/meta/mocks"
-	"github.com/projecteru2/core/types"
-
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
+
+	"github.com/projecteru2/core/store/etcdv3/meta/mocks"
+	"github.com/projecteru2/core/types"
 )
 
 func TestGetOneError(t *testing.T) {

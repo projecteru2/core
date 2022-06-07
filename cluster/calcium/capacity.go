@@ -3,18 +3,20 @@ package calcium
 import (
 	"context"
 
+	"github.com/pkg/errors"
+	"github.com/sanity-io/litter"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
-
-	"github.com/pkg/errors"
 )
 
 // CalculateCapacity calculates capacity
 func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptions) (*types.CapacityMessage, error) {
 	logger := log.WithField("Calcium", "CalculateCapacity").WithField("opts", opts)
 	var err error
+	log.Infof(ctx, "[CalculateCapacity] Calculate capacity with options:\n%s", litter.Options{Compact: true}.Sdump(opts))
 	msg := &types.CapacityMessage{
 		Total:          0,
 		NodeCapacities: map[string]int{},

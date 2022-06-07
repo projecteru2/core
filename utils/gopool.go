@@ -3,9 +3,9 @@ package utils
 import (
 	"context"
 
-	"github.com/projecteru2/core/log"
-
 	"golang.org/x/sync/semaphore"
+
+	"github.com/projecteru2/core/log"
 )
 
 // GoroutinePool can spawn goroutine limited by a max number

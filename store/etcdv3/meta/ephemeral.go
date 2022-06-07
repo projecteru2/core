@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/types"
-
 	"github.com/pkg/errors"
 	clientv3 "go.etcd.io/etcd/client/v3"
+
+	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/types"
 )
 
 // StartEphemeral starts an empheral kv pair.

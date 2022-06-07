@@ -4,15 +4,15 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	clustermock "github.com/projecteru2/core/cluster/mocks"
 	enginemock "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	pb "github.com/projecteru2/core/rpc/gen"
 	rpcmocks "github.com/projecteru2/core/rpc/mocks"
 	"github.com/projecteru2/core/types"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func newVibranium() *Vibranium {

@@ -1,9 +1,9 @@
 package utils
 
 import (
-	"github.com/projecteru2/core/types"
-
 	"github.com/jinzhu/configor"
+
+	"github.com/projecteru2/core/types"
 )
 
 // LoadConfig load config from yaml

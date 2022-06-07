@@ -5,14 +5,14 @@ import (
 	"strconv"
 	"sync"
 
+	statsdlib "github.com/CMGS/statsd"
+	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/exp/maps"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	statsdlib "github.com/CMGS/statsd"
-	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/exp/maps"
 )
 
 const (
@@ -151,6 +151,10 @@ func InitMetrics(config types.Config, metricsDescriptions []*resources.MetricsDe
 			Client.Collectors[desc.Name] = collector
 		}
 	}
+	Client.Collectors[deployCountName] = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: deployCountName,
+		Help: "core deploy counter",
+	}, []string{"hostname"})
 
 	once.Do(func() {
 		prometheus.MustRegister(maps.Values(Client.Collectors)...)

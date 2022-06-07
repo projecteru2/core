@@ -2,6 +2,8 @@ package calcium
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -331,4 +333,10 @@ func newCreateWorkloadCluster(t *testing.T) (*Calcium, []*types.Node) {
 	mwal.On("Log", mock.Anything, mock.Anything).Return(commit, nil)
 
 	return c, nodes
+}
+
+func TestFunc(t *testing.T) {
+	opts := &types.DeployOptions{ResourceOpts: types.WorkloadResourceOpts{"cpu-limit": "1", "cpu-request": "1", "memory-limit": "524288000", "memory-request": "524288000", "storage-limit": "0", "storage-request": "0", "volumes-limit": []string{"/core/8b6fe443-4100-435a-8396-fd90eff4f138:/core"}, "volumes-request": []string{"/core/8b6fe443-4100-435a-8396-fd90eff4f138:/core"}}, Name: "redisproxy", Entrypoint: &types.Entrypoint{Name: "10058", Commands: []string{"/usr/local/bin/proxy", "--conf-file", "/proxy.conf"}, Privileged: false, Dir: "", Log: nil, Publish: []string{"10058"}, HealthCheck: &types.HealthCheck{TCPPorts: []string{"10058"}, HTTPPort: "", HTTPURL: "", HTTPCode: 0}, Hook: nil, Restart: "on-failure", Sysctls: map[string]string{"net.core.somaxconn": "65535"}}, Podname: "proxy", NodeFilter: types.NodeFilter{Podname: "proxy", Includes: nil, Excludes: nil, Labels: map[string]string(nil), All: false}, Image: "harbor.shopeemobile.com/cloud/mt-proxy:0.8.0", ExtraArgs: "", Count: 1, Env: []string{"ENTRYPOINT_NAME=10058"}, DNS: nil, ExtraHosts: nil, Networks: map[string]string{"host": ""}, User: "", Debug: false, OpenStdin: false, Labels: map[string]string{"cluster": "automation.test.cluster.createonemtproxy_1", "fixed-ip": "", "role": "proxy", "type": "redis", "uuid": "8b6fe443-4100-435a-8396-fd90eff4f138"}, DeployStrategy: "AUTO", NodesLimit: 1, ProcessIdent: "xCmxTgWMujonEvkn", IgnoreHook: false, AfterCreate: nil, Lambda: false}
+	body, _ := json.Marshal(opts)
+	fmt.Println(string(body))
 }

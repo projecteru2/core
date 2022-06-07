@@ -3,10 +3,10 @@ package simple
 import (
 	"context"
 
-	"github.com/projecteru2/core/types"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/projecteru2/core/types"
 )
 
 // BasicAuth use token to auth grcp request

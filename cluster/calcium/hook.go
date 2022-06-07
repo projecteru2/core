@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/projecteru2/core/engine"
-
 	"github.com/pkg/errors"
+
+	"github.com/projecteru2/core/engine"
 )
 
 func (c *Calcium) doHook(

@@ -4,17 +4,23 @@ import (
 	"context"
 	"testing"
 
-	enginemocks "github.com/projecteru2/core/engine/mocks"
-	enginetypes "github.com/projecteru2/core/engine/types"
-	storemocks "github.com/projecteru2/core/store/mocks"
-	"github.com/projecteru2/core/types"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	enginemocks "github.com/projecteru2/core/engine/mocks"
+	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/resources"
+	resourcemocks "github.com/projecteru2/core/resources/mocks"
+	storemocks "github.com/projecteru2/core/store/mocks"
+	"github.com/projecteru2/core/types"
 )
 
 func TestNetwork(t *testing.T) {
 	c := NewTestCluster()
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{},
+	}, nil)
 	ctx := context.Background()
 	store := &storemocks.Store{}
 	c.store = store
@@ -46,6 +52,10 @@ func TestNetwork(t *testing.T) {
 
 func TestConnectNetwork(t *testing.T) {
 	c := NewTestCluster()
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{},
+	}, nil)
 	ctx := context.Background()
 	store := &storemocks.Store{}
 	c.store = store
@@ -63,6 +73,10 @@ func TestConnectNetwork(t *testing.T) {
 
 func TestDisConnectNetwork(t *testing.T) {
 	c := NewTestCluster()
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{},
+	}, nil)
 	ctx := context.Background()
 	store := &storemocks.Store{}
 	c.store = store

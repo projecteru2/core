@@ -14,8 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/projecteru2/core/engine"
-
 	dockertypes "github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	dockernetwork "github.com/docker/docker/api/types/network"
@@ -23,6 +21,7 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
 
+	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
@@ -169,7 +168,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		return r, err
 	}
 
-	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode, false)
+	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode, opts.IOPSOptions, false)
 	// set ulimits
 	if len(rArgs.Ulimits) == 0 {
 		resource.Ulimits = []*units.Ulimit{
@@ -441,7 +440,7 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 		}
 	}
 
-	newResource := makeResourceSetting(quota, memory, cpuMap, numaNode, resourceOpts.Remap)
+	newResource := makeResourceSetting(quota, memory, cpuMap, numaNode, resourceOpts.IOPSOptions, resourceOpts.Remap)
 	updateConfig := dockercontainer.UpdateConfig{Resources: newResource}
 	_, err = e.client.ContainerUpdate(ctx, ID, updateConfig)
 	return err

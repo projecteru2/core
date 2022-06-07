@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/projecteru2/core/types"
-
 	"github.com/muroq/redislock"
 	"github.com/pkg/errors"
+
+	"github.com/projecteru2/core/types"
 )
 
 var opts = &redislock.Options{

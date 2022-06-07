@@ -3,12 +3,12 @@ package calcium
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/pkg/errors"
 )
 
 // DissociateWorkload dissociate workload from eru, return it resource but not modity it

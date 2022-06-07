@@ -5,11 +5,11 @@ import (
 	"errors"
 	"testing"
 
-	grpcmocks "github.com/projecteru2/core/3rdmocks"
-
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+
+	grpcmocks "github.com/projecteru2/core/3rdmocks"
 )
 
 var defaultSrv = 1024

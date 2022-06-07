@@ -3,9 +3,9 @@ package utils
 import (
 	"context"
 
-	"github.com/projecteru2/core/types"
-
 	"google.golang.org/grpc/peer"
+
+	"github.com/projecteru2/core/types"
 )
 
 // InheritTracingInfo pass through the tracing info: peer, tracing id

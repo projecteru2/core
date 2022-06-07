@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/projecteru2/core/types"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/types"
 )
 
 func TestDeploy(t *testing.T) {

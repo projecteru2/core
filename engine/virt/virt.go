@@ -11,9 +11,6 @@ import (
 	"strings"
 	"time"
 
-	virtapi "github.com/projecteru2/libyavirt/client"
-	virttypes "github.com/projecteru2/libyavirt/types"
-
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -21,6 +18,8 @@ import (
 	coresource "github.com/projecteru2/core/source"
 	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
+	virtapi "github.com/projecteru2/libyavirt/client"
+	virttypes "github.com/projecteru2/libyavirt/types"
 )
 
 const (

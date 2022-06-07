@@ -4,6 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/projecteru2/core/engine/factory"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -12,10 +16,6 @@ import (
 	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
-
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestAddNode(t *testing.T) {
@@ -108,6 +108,10 @@ func TestRemoveNode(t *testing.T) {
 
 func TestListPodNodes(t *testing.T) {
 	c := NewTestCluster()
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{},
+	}, nil)
 	ctx := context.Background()
 	name1 := "test1"
 	name2 := "test2"

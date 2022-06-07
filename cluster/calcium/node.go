@@ -4,15 +4,14 @@ import (
 	"context"
 	"sort"
 
+	"github.com/pkg/errors"
+
 	enginefactory "github.com/projecteru2/core/engine/factory"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	enginetypes "github.com/projecteru2/core/engine/types"
-
-	"github.com/pkg/errors"
 )
 
 // AddNode adds a node
@@ -108,6 +107,9 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 		go func() {
 			defer close(ch)
 			for _, node := range nodes {
+				if err := c.getNodeResourceInfo(ctx, node); err != nil {
+					logger.Errorf(ctx, "failed to get node %v resource info: %+v", node.Name, err)
+				}
 				ch <- node
 			}
 		}()
@@ -120,8 +122,7 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 		for _, node := range nodes {
 			pool.Go(ctx, func(node *types.Node) func() {
 				return func() {
-					err := node.Info(ctx)
-					if err != nil {
+					if err := node.Info(ctx); err != nil {
 						logger.Errorf(ctx, "failed to get node %v info: %+v", node.Name, err)
 					}
 					if err := c.getNodeResourceInfo(ctx, node); err != nil {

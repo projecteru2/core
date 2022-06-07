@@ -3,9 +3,9 @@ package utils
 import (
 	"testing"
 
-	"github.com/projecteru2/core/types"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/types"
 )
 
 func TestMakeTarget(t *testing.T) {

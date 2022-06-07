@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/projecteru2/core/log"
-
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
+
+	"github.com/projecteru2/core/log"
 )
 
 type endpoints map[string]struct{}

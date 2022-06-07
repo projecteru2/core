@@ -23,8 +23,12 @@ type WorkloadResourceOpts struct {
 	once sync.Once
 }
 
-// Validate .
-func (w *WorkloadResourceOpts) Validate() error {
+// SkipAddStorage will skip adding volume size to storage request / limit (used in realloc)
+func (w *WorkloadResourceOpts) SkipAddStorage() {
+	w.once.Do(func() {})
+}
+
+func (w *WorkloadResourceOpts) validateVolumes() error {
 	if len(w.VolumesLimit) > 0 && len(w.VolumesRequest) == 0 {
 		w.VolumesRequest = w.VolumesLimit
 	}
@@ -50,8 +54,29 @@ func (w *WorkloadResourceOpts) Validate() error {
 		if request.SizeInBytes > 0 && limit.SizeInBytes > 0 && request.SizeInBytes > limit.SizeInBytes {
 			limit.SizeInBytes = request.SizeInBytes
 		}
+		if request.ReadIOPS > limit.ReadIOPS {
+			limit.ReadIOPS = request.ReadIOPS
+		}
+		if request.WriteIOPS > limit.WriteIOPS {
+			limit.WriteIOPS = request.WriteIOPS
+		}
+		if request.ReadBPS > limit.ReadBPS {
+			limit.ReadBPS = request.ReadBPS
+		}
+		if request.WriteBPS > limit.WriteBPS {
+			limit.WriteBPS = request.WriteBPS
+		}
 	}
 
+	for _, vb := range append(w.VolumesRequest, w.VolumesLimit...) {
+		if err := vb.Validate(); err != nil {
+			return errors.Wrap(ErrInvalidVolume, err.Error())
+		}
+	}
+	return nil
+}
+
+func (w *WorkloadResourceOpts) validateStorage() error {
 	if w.StorageLimit < 0 || w.StorageRequest < 0 {
 		return errors.Wrap(ErrInvalidStorage, "storage limit or request less than 0")
 	}
@@ -67,6 +92,17 @@ func (w *WorkloadResourceOpts) Validate() error {
 		w.StorageRequest += w.VolumesRequest.TotalSize()
 		w.StorageLimit += w.VolumesLimit.TotalSize()
 	})
+	return nil
+}
+
+// Validate .
+func (w *WorkloadResourceOpts) Validate() error {
+	if err := w.validateVolumes(); err != nil {
+		return err
+	}
+	if err := w.validateStorage(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -106,6 +142,9 @@ type WorkloadResourceArgs struct {
 
 	StorageRequest int64 `json:"storage_request"`
 	StorageLimit   int64 `json:"storage_limit"`
+
+	DisksRequest Disks `json:"disks_request"`
+	DisksLimit   Disks `json:"disks_limit"`
 }
 
 // ParseFromRawParams .
@@ -121,6 +160,7 @@ func (w *WorkloadResourceArgs) ParseFromRawParams(rawParams coretypes.RawParams)
 type NodeResourceOpts struct {
 	Volumes VolumeMap `json:"volumes"`
 	Storage int64     `json:"storage"`
+	Disks   Disks     `json:"disks"`
 
 	RawParams coretypes.RawParams `json:"-"`
 }
@@ -147,6 +187,17 @@ func (n *NodeResourceOpts) ParseFromRawParams(rawParams coretypes.RawParams) (er
 	if n.Storage, err = coreutils.ParseRAMInHuman(n.RawParams.String("storage")); err != nil {
 		return err
 	}
+
+	if n.RawParams.IsSet("disks") {
+		for _, rawDiskStr := range n.RawParams.StringSlice("disks") {
+			disk := &Disk{}
+			if err = disk.ParseFromString(rawDiskStr); err != nil {
+				return errors.Wrapf(ErrInvalidDisk, "wrong disk format: %v, %v", rawDiskStr, err)
+			}
+			n.Disks = append(n.Disks, disk)
+		}
+	}
+
 	return nil
 }
 
@@ -161,12 +212,16 @@ func (n *NodeResourceOpts) SkipEmpty(resourceCapacity *NodeResourceArgs) {
 	if !n.RawParams.IsSet("storage") {
 		n.Storage = resourceCapacity.Storage
 	}
+	if !n.RawParams.IsSet("disks") {
+		n.Disks = resourceCapacity.Disks
+	}
 }
 
 // NodeResourceArgs .
 type NodeResourceArgs struct {
 	Volumes VolumeMap `json:"volumes"`
 	Storage int64     `json:"storage"`
+	Disks   Disks     `json:"disks"`
 }
 
 // ParseFromRawParams .
@@ -180,7 +235,7 @@ func (n *NodeResourceArgs) ParseFromRawParams(rawParams coretypes.RawParams) err
 
 // DeepCopy .
 func (n *NodeResourceArgs) DeepCopy() *NodeResourceArgs {
-	return &NodeResourceArgs{Volumes: n.Volumes.DeepCopy(), Storage: n.Storage}
+	return &NodeResourceArgs{Volumes: n.Volumes.DeepCopy(), Storage: n.Storage, Disks: n.Disks.DeepCopy()}
 }
 
 // RemoveEmpty .
@@ -199,6 +254,7 @@ func (n *NodeResourceArgs) Add(n1 *NodeResourceArgs) {
 		n.Volumes[k] += v
 	}
 	n.Storage += n1.Storage
+	n.Disks.Add(n1.Disks)
 }
 
 // Sub .
@@ -207,6 +263,7 @@ func (n *NodeResourceArgs) Sub(n1 *NodeResourceArgs) {
 		n.Volumes[k] -= v
 	}
 	n.Storage -= n1.Storage
+	n.Disks.Sub(n1.Disks)
 }
 
 // NodeResourceInfo .
@@ -215,18 +272,33 @@ type NodeResourceInfo struct {
 	Usage    *NodeResourceArgs `json:"usage"`
 }
 
-// Validate .
-func (n *NodeResourceInfo) Validate() error {
-	if n.Capacity == nil {
-		return ErrInvalidCapacity
-	}
-	if n.Usage == nil {
-		n.Usage = &NodeResourceArgs{Volumes: VolumeMap{}, Storage: 0}
-		for device := range n.Capacity.Volumes {
-			n.Usage.Volumes[device] = 0
+func (n *NodeResourceInfo) validateDisks() error {
+	for _, disk := range n.Capacity.Disks {
+		if disk.ReadIOPS < 0 || disk.WriteIOPS < 0 || disk.ReadBPS < 0 || disk.WriteBPS < 0 {
+			return errors.Wrap(ErrInvalidDisk, "disk IOPS / BPS can't be negative")
+		}
+
+		usage := n.Usage.Disks.GetDiskByDevice(disk.Device)
+		if usage == nil {
+			continue
+		}
+		if usage.ReadIOPS < 0 || usage.WriteIOPS < 0 || usage.ReadBPS < 0 || usage.WriteBPS < 0 {
+			return errors.Wrap(ErrInvalidDisk, "disk IOPS / BPS can't be negative")
+		}
+		if usage.ReadIOPS > disk.ReadIOPS || usage.WriteIOPS > disk.WriteIOPS || usage.ReadBPS > disk.ReadBPS || usage.WriteBPS > disk.WriteBPS {
+			return errors.Wrap(ErrInvalidDisk, "disk IOPS / BPS usage can't be greater than capacity")
 		}
 	}
 
+	for _, disk := range n.Capacity.Disks {
+		if disk.ReadIOPS < 0 || disk.WriteIOPS < 0 || disk.ReadBPS < 0 || disk.WriteBPS < 0 {
+			return errors.Wrap(ErrInvalidDisk, "disk IOPS / BPS can't be negative")
+		}
+	}
+	return nil
+}
+
+func (n *NodeResourceInfo) validateVolume() error {
 	for key, value := range n.Capacity.Volumes {
 		if value < 0 {
 			return errors.Wrap(ErrInvalidVolume, "volume size should not be less than 0")
@@ -240,12 +312,57 @@ func (n *NodeResourceInfo) Validate() error {
 			return errors.Wrap(ErrInvalidVolume, "invalid key in usage")
 		}
 	}
+	return nil
+}
 
+func (n *NodeResourceInfo) validateStorage() error {
 	if n.Capacity.Storage < 0 {
 		return errors.Wrap(ErrInvalidStorage, "storage capacity can't be negative")
 	}
 	if n.Usage.Storage < 0 {
 		return errors.Wrap(ErrInvalidStorage, "storage usage can't be negative")
+	}
+	return nil
+}
+
+// Validate .
+func (n *NodeResourceInfo) Validate() error {
+	if n.Capacity == nil {
+		return ErrInvalidCapacity
+	}
+	if n.Usage == nil {
+		n.Usage = &NodeResourceArgs{Volumes: VolumeMap{}, Storage: 0}
+		for device := range n.Capacity.Volumes {
+			n.Usage.Volumes[device] = 0
+		}
+		for _, disk := range n.Capacity.Disks {
+			n.Usage.Disks = append(n.Usage.Disks, &Disk{
+				Device:    disk.Device,
+				Mounts:    disk.Mounts,
+				ReadIOPS:  0,
+				WriteIOPS: 0,
+				ReadBPS:   0,
+				WriteBPS:  0,
+			})
+		}
+	}
+
+	// sort disks
+	sort.Slice(n.Usage.Disks, func(i, j int) bool {
+		return n.Usage.Disks[i].Device < n.Usage.Disks[j].Device
+	})
+	sort.Slice(n.Capacity.Disks, func(i, j int) bool {
+		return n.Capacity.Disks[i].Device < n.Capacity.Disks[j].Device
+	})
+
+	if err := n.validateVolume(); err != nil {
+		return err
+	}
+	if err := n.validateStorage(); err != nil {
+		return err
+	}
+	if err := n.validateDisks(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -268,9 +385,10 @@ type NodeCapacityInfo struct {
 
 // EngineArgs .
 type EngineArgs struct {
-	Volumes       []string `json:"volumes"`
-	VolumeChanged bool     `json:"volume_changed"` // indicates whether the realloc request includes new volumes
-	Storage       int64    `json:"storage"`
+	Volumes       []string          `json:"volumes"`
+	VolumeChanged bool              `json:"volume_changed"` // indicates whether the realloc request includes new volumes
+	Storage       int64             `json:"storage"`
+	IOPSOptions   map[string]string `json:"iops_options"`
 }
 
 // WorkloadResourceArgsMap .

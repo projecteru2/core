@@ -4,6 +4,9 @@ import (
 	"context"
 	"time"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
+
 	"github.com/projecteru2/core/auth"
 	"github.com/projecteru2/core/client/interceptor"
 	_ "github.com/projecteru2/core/client/resolver/eru"    // register grpc resolver: eru://
@@ -11,9 +14,6 @@ import (
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/keepalive"
 )
 
 // Client contain grpc conn

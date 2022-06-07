@@ -34,6 +34,9 @@ func TestRealloc(t *testing.T) {
 }
 `))
 	assert.Nil(t, err)
+
+	var engineArgs *types.EngineArgs
+
 	bindings := generateVolumeBindings(t, []string{
 		"AUTO:/dir0:rw:100GiB",
 		"AUTO:/dir1:mrw:100GiB",
@@ -107,8 +110,9 @@ func TestRealloc(t *testing.T) {
 		StorageLimit:   units.GiB,
 	}
 
-	_, _, finalWorkloadResourceArgs, err := volume.GetReallocArgs(ctx, node, originResourceArgs, opts)
+	engineArgs, _, finalWorkloadResourceArgs, err := volume.GetReallocArgs(ctx, node, originResourceArgs, opts)
 	assert.Nil(t, err)
+	assert.False(t, engineArgs.VolumeChanged)
 	plan = types.VolumePlan{}
 	assert.Nil(t, plan.UnmarshalJSON([]byte(`
 {
@@ -116,6 +120,34 @@ func TestRealloc(t *testing.T) {
         "/data0": 107374182400
       },
       "AUTO:/dir1:mrw:200GiB": {
+        "/data2": 1099511627776
+      },
+      "AUTO:/dir2:rw:0": {
+        "/data0": 0
+      }
+}
+`)))
+	assert.Equal(t, litter.Sdump(plan), litter.Sdump(finalWorkloadResourceArgs.VolumePlanRequest))
+
+	// no request
+	bindings = types.VolumeBindings{}
+	opts = &types.WorkloadResourceOpts{
+		VolumesRequest: bindings,
+		VolumesLimit:   bindings,
+		StorageRequest: units.GiB,
+		StorageLimit:   units.GiB,
+	}
+
+	engineArgs, _, finalWorkloadResourceArgs, err = volume.GetReallocArgs(ctx, node, originResourceArgs, opts)
+	assert.Nil(t, err)
+	assert.False(t, engineArgs.VolumeChanged)
+	plan = types.VolumePlan{}
+	assert.Nil(t, plan.UnmarshalJSON([]byte(`
+{
+	"AUTO:/dir0:rw:100GiB": {
+        "/data0": 107374182400
+      },
+      "AUTO:/dir1:mrw:100GiB": {
         "/data2": 1099511627776
       },
       "AUTO:/dir2:rw:0": {
