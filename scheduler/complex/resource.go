@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 type resourceInfo struct {
@@ -121,7 +122,10 @@ func (h *host) getFragmentResult(fragment int64, resources []resourceInfo) []typ
 	resourceMaps := h.getFragmentsResult(resources, fragment)
 	result := make([]types.ResourceMap, len(resourceMaps))
 	for i, resourceMap := range resourceMaps {
-		result[i] = resourceMap[0]
+		result[i] = types.ResourceMap{}
+		for id, pieces := range resourceMap[0] {
+			result[i][id] = pieces
+		}
 	}
 
 	// to pass tests due to new algorithm returns unsorted list
@@ -259,16 +263,19 @@ func (h *host) getFullResult(full int, resources []resourceInfo) []types.Resourc
 
 func (h *host) distributeOneRation(ration float64, maxShare int) []types.ResourceMap {
 	ration *= float64(h.share)
-	fullRequire := int64(ration) / int64(h.share)
-	fragmentRequire := int64(ration) % int64(h.share)
+	fullRequire := types.RoundToInt(ration) / int64(h.share)
+	fragmentRequire := types.RoundToInt(ration) % int64(h.share)
 
 	if fullRequire == 0 {
-		if maxShare == -1 {
+		if maxShare < 0 {
 			// 这个时候就把所有的资源都当成碎片
 			maxShare = len(h.full) + len(h.fragment)
 		}
+		maxShare = utils.Min(maxShare, len(h.full)+len(h.fragment))
 		diff := maxShare - len(h.fragment)
-		h.fragment = append(h.fragment, h.full[:diff]...)
+		if diff > 0 {
+			h.fragment = append(h.fragment, h.full[:diff]...)
+		}
 
 		return h.getFragmentResult(fragmentRequire, h.fragment)
 	}

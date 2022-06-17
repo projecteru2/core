@@ -197,7 +197,7 @@ func (m *Potassium) ReselectCPUNodes(ctx context.Context, scheduleInfo resourcet
 
 func cpuReallocPlan(scheduleInfo resourcetypes.ScheduleInfo, quota float64, CPU types.CPUMap, sharebase int64) (resourcetypes.ScheduleInfo, float64, types.CPUMap) {
 	affinityPlan := make(types.CPUMap)
-	diff := int64(quota*float64(sharebase)) - CPU.Total()
+	diff := types.RoundToInt(quota*float64(sharebase)) - CPU.Total()
 	// sort by pieces
 	cpuIDs := []string{}
 	for cpuID := range CPU {
@@ -226,7 +226,7 @@ func cpuReallocPlan(scheduleInfo resourcetypes.ScheduleInfo, quota float64, CPU 
 	}
 
 	// expand, prioritize full cpus
-	needPieces := int64(quota * float64(sharebase))
+	needPieces := types.RoundToInt(quota * float64(sharebase))
 	for i := len(cpuIDs) - 1; i >= 0; i-- {
 		cpuID := cpuIDs[i]
 		if needPieces == 0 {
@@ -243,10 +243,10 @@ func cpuReallocPlan(scheduleInfo resourcetypes.ScheduleInfo, quota float64, CPU 
 
 		// fragments, try to find complement
 		if available := scheduleInfo.CPU[cpuID]; available == sharebase-CPU[cpuID] {
-			expand := utils.Min64(available, needPieces)
+			expand := utils.Min64(available, needPieces-CPU[cpuID])
 			affinityPlan[cpuID] = CPU[cpuID] + expand
 			scheduleInfo.CPU[cpuID] -= expand
-			needPieces -= sharebase
+			needPieces -= affinityPlan[cpuID]
 			continue
 		}
 
