@@ -24,7 +24,7 @@ func (v *Virt) ImageList(ctx context.Context, imageName string) (imgs []*enginet
 
 	for _, image := range images {
 		imgs = append(imgs, &enginetypes.Image{
-			ID:   image.Id,
+			ID:   image.ID,
 			Tags: []string{image.Name},
 		})
 	}

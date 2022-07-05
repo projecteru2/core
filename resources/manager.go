@@ -10,6 +10,7 @@ import (
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -64,22 +65,9 @@ func (pm *PluginManager) GetPlugins() []Plugin {
 	return pm.plugins
 }
 
-func (pm *PluginManager) callPlugins(plugins []Plugin, f func(Plugin)) {
-	wg := &sync.WaitGroup{}
-	wg.Add(len(plugins))
-
-	for _, plugin := range plugins {
-		go func(p Plugin) {
-			defer wg.Done()
-			f(p)
-		}(plugin)
-	}
-	wg.Wait()
-}
-
 func callPlugins[T any](ctx context.Context, plugins []Plugin, f func(Plugin) (T, error)) (map[Plugin]T, error) {
 	resMap := sync.Map{}
-	combinedErr := types.NewCombinedErr()
+	var combinedErr error
 	wg := &sync.WaitGroup{}
 	wg.Add(len(plugins))
 
@@ -88,7 +76,7 @@ func callPlugins[T any](ctx context.Context, plugins []Plugin, f func(Plugin) (T
 			defer wg.Done()
 			if res, err := f(p); err != nil {
 				log.Errorf(ctx, "[callPlugins] failed to call plugin %v, err: %v", p.Name(), err)
-				combinedErr.Append(p.Name(), err)
+				combinedErr = multierror.Append(combinedErr, types.NewDetailedErr(err, p.Name()))
 			} else {
 				resMap.Store(p, res)
 			}

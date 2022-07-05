@@ -22,9 +22,7 @@ require (
 	github.com/go-redis/redis/v8 v8.8.2
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/mux v1.7.4 // indirect
-	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jinzhu/configor v1.2.0
-	github.com/mitchellh/mapstructure v1.5.0
 	github.com/moby/sys/mount v0.2.0 // indirect
 	github.com/moby/term v0.0.0-20201110203204-bea5bbe245bf // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
@@ -56,6 +54,7 @@ require (
 
 require (
 	github.com/cornelk/hashmap v1.0.1
+	github.com/hashicorp/go-multierror v1.1.1
 	go.uber.org/zap v1.17.0
 )
 
