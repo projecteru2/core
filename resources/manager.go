@@ -25,7 +25,6 @@ func NewPluginManager(config types.Config) (*PluginManager, error) {
 		config:  config,
 		plugins: []Plugin{},
 	}
-
 	return pm, nil
 }
 
@@ -54,19 +53,6 @@ func (pm *PluginManager) AddPlugins(plugins ...Plugin) {
 // GetPlugins is used for mock
 func (pm *PluginManager) GetPlugins() []Plugin {
 	return pm.plugins
-}
-
-func (pm *PluginManager) callPlugins(plugins []Plugin, f func(Plugin)) {
-	wg := &sync.WaitGroup{}
-	wg.Add(len(plugins))
-
-	for _, plugin := range plugins {
-		go func(p Plugin) {
-			defer wg.Done()
-			f(p)
-		}(plugin)
-	}
-	wg.Wait()
 }
 
 func callPlugins[T any](ctx context.Context, plugins []Plugin, f func(Plugin) (T, error)) (map[Plugin]T, error) {

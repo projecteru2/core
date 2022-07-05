@@ -18,8 +18,7 @@ grpc:
 	./rpc/gen/core.proto
 
 deps:
-	env GO111MODULE=on go mod download
-	env GO111MODULE=on go mod vendor
+	go mod vendor
 
 binary:
 	CGO_ENABLED=0 go build -ldflags "$(GO_LDFLAGS)" -gcflags=all=-G=3 -o eru-core

@@ -23,10 +23,7 @@ func ListAllExecutableFiles(basedir string) ([]string, error) {
 		return nil
 	})
 
-	if err != nil {
-		return nil, err
-	}
-	return files, nil
+	return files, err
 }
 
 func isExecutable(perm fs.FileMode) bool {
