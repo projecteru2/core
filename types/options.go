@@ -306,7 +306,7 @@ func (r RawArgs) String() string {
 	return string(r)
 }
 
-// LitterDump fro litter.Dumper
+// LitterDump from litter.Dumper
 func (r RawArgs) LitterDump(w io.Writer) {
 	w.Write(r) // nolint:errcheck // here can't import core/log due to cycle dependence
 }

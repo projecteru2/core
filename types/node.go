@@ -22,6 +22,14 @@ type NUMA map[string]string
 // NUMAMemory fine NUMA memory NODE
 type NUMAMemory map[string]int64
 
+// NodeMetrics used for metrics collecting
+type NodeMetrics struct {
+	Name             string
+	Podname          string
+	ResourceCapacity map[string]NodeResourceArgs
+	ResourceUsage    map[string]NodeResourceArgs
+}
+
 // NodeMeta .
 type NodeMeta struct {
 	Name     string            `json:"name"`
@@ -79,14 +87,6 @@ func (n *Node) IsDown() bool {
 	// If `bypass` is true, then even if the node is still healthy, the node will be regarded as `down`.
 	// Currently `bypass` will only be set when the cli calls the `up` and `down` commands.
 	return n.Bypass || !n.Available
-}
-
-// NodeMetrics used for metrics collecting
-type NodeMetrics struct {
-	Name             string
-	Podname          string
-	ResourceCapacity map[string]NodeResourceArgs
-	ResourceUsage    map[string]NodeResourceArgs
 }
 
 // Metrics reports metrics value

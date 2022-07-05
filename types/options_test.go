@@ -1,10 +1,12 @@
 package types
 
 import (
+	"bufio"
 	"testing"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap/buffer"
 )
 
 func TestParseTriOption(t *testing.T) {
@@ -29,6 +31,8 @@ func TestDeployOptions(t *testing.T) {
 
 	o := &DeployOptions{Entrypoint: &Entrypoint{}}
 	assert.Equal(ErrEmptyAppName, errors.Unwrap(o.Validate()))
+
+	assert.NotNil(t, o.GetProcessing("t"))
 
 	o.Name = "testname"
 	assert.Equal(ErrEmptyPodName, errors.Unwrap(o.Validate()))
@@ -62,6 +66,16 @@ func TestCopyOptions(t *testing.T) {
 		},
 	}
 	assert.NoError(o.Validate())
+}
+
+func TestLinuxFile(t *testing.T) {
+	lf := LinuxFile{Filename: "s"}
+	nlf := lf.Clone()
+	assert.Equal(t, lf.Filename, nlf.Filename)
+	assert.NotEmpty(t, lf.String())
+	b := bufio.NewWriter(&buffer.Buffer{})
+	lf.LitterDump(b)
+	assert.NoError(t, b.Flush())
 }
 
 func TestSendOptions(t *testing.T) {
@@ -141,4 +155,12 @@ func TestImageOptions(t *testing.T) {
 	o.Step = 3
 	o.Normalize()
 	assert.Equal(o.Step, 3)
+}
+
+func TestRawArges(t *testing.T) {
+	ra := RawArgs([]byte("abc"))
+	assert.Equal(t, ra.String(), "abc")
+	b := bufio.NewWriter(&buffer.Buffer{})
+	ra.LitterDump(b)
+	assert.NoError(t, b.Flush())
 }

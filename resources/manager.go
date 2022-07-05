@@ -5,6 +5,7 @@ import (
 	"math"
 	"sync"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -57,7 +58,8 @@ func (pm *PluginManager) GetPlugins() []Plugin {
 
 func callPlugins[T any](ctx context.Context, plugins []Plugin, f func(Plugin) (T, error)) (map[Plugin]T, error) {
 	resMap := sync.Map{} // TODO hashmap
-	combinedErr := types.NewCombinedErr()
+
+	var combinedErr error
 	wg := &sync.WaitGroup{}
 	wg.Add(len(plugins))
 
@@ -66,7 +68,7 @@ func callPlugins[T any](ctx context.Context, plugins []Plugin, f func(Plugin) (T
 			defer wg.Done()
 			if res, err := f(p); err != nil {
 				log.Errorf(ctx, "[callPlugins] failed to call plugin %v, err: %v", p.Name(), err)
-				combinedErr.Append(p.Name(), err)
+				combinedErr = multierror.Append(combinedErr, types.NewDetailedErr(err, p.Name()))
 			} else {
 				resMap.Store(p, res)
 			}

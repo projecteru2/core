@@ -20,6 +20,9 @@ func (r RawParams) IsSet(key string) bool {
 
 // Float64 .
 func (r RawParams) Float64(key string) float64 {
+	if !r.IsSet(key) {
+		return float64(0.0)
+	}
 	res, _ := strconv.ParseFloat(fmt.Sprintf("%v", r[key]), 64)
 	return res
 }
@@ -27,7 +30,7 @@ func (r RawParams) Float64(key string) float64 {
 // Int64 .
 func (r RawParams) Int64(key string) int64 {
 	if !r.IsSet(key) {
-		return 0
+		return int64(0)
 	}
 	var str string
 	if f, ok := r[key].(float64); ok {
@@ -63,8 +66,6 @@ func (r RawParams) StringSlice(key string) []string {
 		for _, v := range s {
 			if str, ok := v.(string); ok {
 				res = append(res, str)
-			} else {
-				return nil
 			}
 		}
 	}
@@ -88,11 +89,10 @@ func (r RawParams) Bool(key string) bool {
 
 // RawParams .
 func (r RawParams) RawParams(key string) map[string]interface{} {
-	if !r.IsSet(key) {
-		return map[string]interface{}{}
-	}
-	if m, ok := r[key].(map[string]interface{}); ok {
-		return m
+	if r.IsSet(key) {
+		if m, ok := r[key].(map[string]interface{}); ok {
+			return m
+		}
 	}
 	return map[string]interface{}{}
 }

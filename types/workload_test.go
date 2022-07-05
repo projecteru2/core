@@ -18,6 +18,8 @@ func TestWorkloadInspect(t *testing.T) {
 
 	ctx := context.Background()
 	c := Workload{}
+	_, err := c.Inspect(ctx)
+	assert.Error(t, err)
 	c.Engine = mockEngine
 	r2, _ := c.Inspect(ctx)
 	assert.Equal(t, r.ID, r2.ID)
@@ -31,6 +33,10 @@ func TestWorkloadControl(t *testing.T) {
 
 	ctx := context.Background()
 	c := Workload{}
+	assert.Error(t, c.Start(ctx))
+	assert.Error(t, c.Stop(ctx, true))
+	assert.Error(t, c.Remove(ctx, true))
+
 	c.Engine = mockEngine
 	err := c.Start(ctx)
 	assert.NoError(t, err)

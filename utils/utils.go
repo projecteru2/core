@@ -209,32 +209,6 @@ func MergeHookOutputs(outputs []*bytes.Buffer) []byte {
 	return r
 }
 
-type ordered interface {
-	~int | ~int32 | ~int64 | ~uint | ~uint32 | ~uint64 | ~float32 | ~float64
-}
-
-// Min returns the lesser one.
-func Min[T ordered](x T, xs ...T) T {
-	if len(xs) == 0 {
-		return x
-	}
-	if m := Min(xs[0], xs[1:]...); m < x {
-		return m
-	}
-	return x
-}
-
-// Max returns the biggest one.
-func Max[T ordered](x T, xs ...T) T {
-	if len(xs) == 0 {
-		return x
-	}
-	if m := Max(xs[0], xs[1:]...); m > x {
-		return m
-	}
-	return x
-}
-
 // EnsureReaderClosed As the name says,
 // blocks until the stream is empty, until we meet EOF
 func EnsureReaderClosed(ctx context.Context, stream io.ReadCloser) {

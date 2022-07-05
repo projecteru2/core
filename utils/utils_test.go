@@ -196,18 +196,6 @@ func TestMergeHookOutputs(t *testing.T) {
 	assert.Equal(t, string(r), "ab")
 }
 
-func TestMin(t *testing.T) {
-	assert.Equal(t, 1, Min(1, 2, 3))
-	assert.Equal(t, 1.0, Min(2.0, 1.0, 3.0))
-	assert.Equal(t, uint32(1), Min(uint32(2), uint32(1), uint32(3)))
-}
-
-func TestMax(t *testing.T) {
-	assert.Equal(t, 3, Max(1, 2, 3))
-	assert.Equal(t, 3.0, Max(2.0, 1.0, 3.0))
-	assert.Equal(t, uint32(3), Max(uint32(2), uint32(1), uint32(3)))
-}
-
 func TestEnsureReaderClosed(t *testing.T) {
 	EnsureReaderClosed(context.TODO(), nil)
 	s := ioutil.NopCloser(bytes.NewBuffer([]byte{10, 10, 10}))

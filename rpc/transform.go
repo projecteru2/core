@@ -690,6 +690,7 @@ func newPBRawParamStringSlice(strs []string) *pb.RawParam {
 
 // fillOldNodeMeta fills the old node meta based on the new node resource args.
 // uses some hard code, should be removed in the future.
+// TODO remove it!
 func fillOldNodeMeta(node *pb.Node, resourceCapacity map[string]types.RawParams, resourceUsage map[string]types.RawParams) {
 	if capacity, ok := resourceCapacity["cpumem"]; ok {
 		usage := resourceUsage["cpumem"]
