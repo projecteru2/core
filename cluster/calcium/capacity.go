@@ -7,6 +7,7 @@ import (
 	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
+	"github.com/sanity-io/litter"
 
 	"github.com/pkg/errors"
 )
@@ -15,6 +16,7 @@ import (
 func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptions) (*types.CapacityMessage, error) {
 	logger := log.WithField("Calcium", "CalculateCapacity").WithField("opts", opts)
 	var err error
+	log.Infof(ctx, "[CalculateCapacity] Calculate capacity with options:\n%s", litter.Options{Compact: true}.Sdump(opts))0
 	msg := &types.CapacityMessage{
 		Total:          0,
 		NodeCapacities: map[string]int{},

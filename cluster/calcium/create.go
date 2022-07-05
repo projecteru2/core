@@ -273,7 +273,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 }
 
 func (c *Calcium) doGetAndPrepareNode(ctx context.Context, nodename, image string) (*types.Node, error) {
-	node, err := c.GetNode(ctx, nodename)
+	node, err := c.GetNode(ctx, nodename, nil)
 	if err != nil {
 		return nil, err
 	}

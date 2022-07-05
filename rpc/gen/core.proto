@@ -357,6 +357,7 @@ message RemoveNodeOptions {
 message GetNodeOptions {
   string nodename = 1;
   map<string, string> labels = 2;
+  repeated string plugins = 3;
 }
 
 message GetNodeResourceOptions {

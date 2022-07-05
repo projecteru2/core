@@ -9,12 +9,13 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
-func (v *Virt) parseVolumes(volumes []string) (map[string]int64, error) {
-	vols := map[string]int64{}
+func (v *Virt) parseVolumes(volumes []string) ([]string, error) {
+	vols := []string{}
 
+	// format `/source:/dir0:rw:1G:1000:1000:10M:10M`
 	for _, bind := range volumes {
 		parts := strings.Split(bind, ":")
-		if len(parts) != 4 {
+		if len(parts) != 4 && len(parts) != 8 {
 			return nil, coretypes.NewDetailedErr(coretypes.ErrInvalidBind, bind)
 		}
 
@@ -27,12 +28,17 @@ func (v *Virt) parseVolumes(volumes []string) (map[string]int64, error) {
 			mnt = fmt.Sprintf("%s:%s", src, dest)
 		}
 
-		cap, err := strconv.ParseInt(parts[3], 10, 64)
+		capacity, err := strconv.ParseInt(parts[3], 10, 64)
 		if err != nil {
 			return nil, err
 		}
 
-		vols[mnt] = cap
+		ioConstraints := ""
+		if len(parts) > 4 {
+			ioConstraints = fmt.Sprintf(":%s", strings.Join(parts[4:], ":"))
+		}
+
+		vols = append(vols, fmt.Sprintf("%s:%d%s", mnt, capacity, ioConstraints))
 	}
 
 	return vols, nil

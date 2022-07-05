@@ -14,8 +14,7 @@ import (
 
 // WatchServiceStatus returns chan of available service address
 func (c *Calcium) WatchServiceStatus(ctx context.Context) (<-chan types.ServiceStatus, error) {
-	ch := make(chan types.ServiceStatus)
-	id := c.watcher.Subscribe(ch)
+	id, ch := c.watcher.Subscribe(ctx)
 	utils.SentryGo(func() {
 		<-ctx.Done()
 		c.watcher.Unsubscribe(id)

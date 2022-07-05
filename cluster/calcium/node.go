@@ -5,12 +5,11 @@ import (
 	"sort"
 
 	enginefactory "github.com/projecteru2/core/engine/factory"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	enginetypes "github.com/projecteru2/core/engine/types"
 
 	"github.com/pkg/errors"
 )
@@ -108,6 +107,9 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 		go func() {
 			defer close(ch)
 			for _, node := range nodes {
+				if err := c.getNodeResourceInfo(ctx, node, nil); err != nil {
+					logger.Errorf(ctx, "failed to get node %v resource info: %+v", node.Name, err)
+				}
 				ch <- node
 			}
 		}()
@@ -120,11 +122,10 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 		for _, node := range nodes {
 			pool.Go(ctx, func(node *types.Node) func() {
 				return func() {
-					err := node.Info(ctx)
-					if err != nil {
+					if err := node.Info(ctx); err != nil {
 						logger.Errorf(ctx, "failed to get node %v info: %+v", node.Name, err)
 					}
-					if err := c.getNodeResourceInfo(ctx, node); err != nil {
+					if err := c.getNodeResourceInfo(ctx, node, nil); err != nil {
 						logger.Errorf(ctx, "failed to get node %v resource info: %+v", node.Name, err)
 					}
 					ch <- node
@@ -137,7 +138,7 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 }
 
 // GetNode get node
-func (c *Calcium) GetNode(ctx context.Context, nodename string) (node *types.Node, err error) {
+func (c *Calcium) GetNode(ctx context.Context, nodename string, plugins []string) (node *types.Node, err error) {
 	logger := log.WithField("Calcium", "GetNode").WithField("nodename", nodename)
 	if nodename == "" {
 		return nil, logger.Err(ctx, errors.WithStack(types.ErrEmptyNodeName))
@@ -145,7 +146,7 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string) (node *types.Nod
 	if node, err = c.store.GetNode(ctx, nodename); err != nil {
 		return nil, logger.Err(ctx, errors.WithStack(err))
 	}
-	if err = c.getNodeResourceInfo(ctx, node); err != nil {
+	if err = c.getNodeResourceInfo(ctx, node, plugins); err != nil {
 		return nil, logger.Err(ctx, errors.WithStack(err))
 	}
 	return node, nil
@@ -234,8 +235,8 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 	})
 }
 
-func (c *Calcium) getNodeResourceInfo(ctx context.Context, node *types.Node) (err error) {
-	if node.ResourceCapacity, node.ResourceUsage, _, err = c.resource.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
+func (c *Calcium) getNodeResourceInfo(ctx context.Context, node *types.Node, plugins []string) (err error) {
+	if node.ResourceCapacity, node.ResourceUsage, _, err = c.resource.GetNodeResourceInfo(ctx, node.Name, nil, false, plugins); err != nil {
 		log.Errorf(ctx, "[getNodeResourceInfo] failed to get node resource info for node %v, err: %v", node.Name, err)
 		return errors.WithStack(err)
 	}
@@ -292,7 +293,7 @@ func (c *Calcium) filterNodes(ctx context.Context, nf types.NodeFilter) (ns []*t
 
 	if len(nf.Includes) != 0 {
 		for _, nodename := range nf.Includes {
-			node, err := c.GetNode(ctx, nodename)
+			node, err := c.GetNode(ctx, nodename, nil)
 			if err != nil {
 				return nil, err
 			}

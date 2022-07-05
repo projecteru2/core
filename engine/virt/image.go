@@ -7,11 +7,10 @@ import (
 	"io"
 	"strings"
 
-	virttypes "github.com/projecteru2/libyavirt/types"
-
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	virttypes "github.com/projecteru2/libyavirt/types"
 )
 
 // ImageList lists images.

@@ -108,6 +108,10 @@ func TestRemoveNode(t *testing.T) {
 
 func TestListPodNodes(t *testing.T) {
 	c := NewTestCluster()
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{},
+	}, nil)
 	ctx := context.Background()
 	name1 := "test1"
 	name2 := "test2"
@@ -152,7 +156,7 @@ func TestGetNode(t *testing.T) {
 	}, nil)
 
 	// fail by validating
-	_, err := c.GetNode(ctx, "")
+	_, err := c.GetNode(ctx, "", nil)
 	assert.Error(t, err)
 
 	name := "test"
@@ -164,7 +168,7 @@ func TestGetNode(t *testing.T) {
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	c.store = store
 
-	n, err := c.GetNode(ctx, name)
+	n, err := c.GetNode(ctx, name, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, n.Name, name)
 }

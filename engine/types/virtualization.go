@@ -11,6 +11,7 @@ type VirtualizationResource struct {
 	Volumes       []string                    `json:"volumes"`
 	VolumePlan    map[string]map[string]int64 `json:"volume_plan"`    // literal VolumePlan
 	VolumeChanged bool                        `json:"volume_changed"` // indicate whether new volumes contained in realloc request
+	IOPSOptions   map[string]string           `json:"iops_options"`   // format: {device_name: "read-iops:write-iops:read-bps:write-bps"}
 	Remap         bool                        `json:"remap"`
 }
 

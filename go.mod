@@ -34,7 +34,7 @@ require (
 	github.com/opencontainers/runc v1.1.2 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
-	github.com/projecteru2/libyavirt v0.0.0-20220330115351-ec63a4a270d3
+	github.com/projecteru2/libyavirt v0.0.0-20220621042712-95cdc6363b1c
 	github.com/prometheus/client_golang v1.11.0
 	github.com/sanity-io/litter v1.5.1
 	github.com/sirupsen/logrus v1.8.1
@@ -91,6 +91,7 @@ require (
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/json-iterator/go v1.1.11 // indirect
+	github.com/juju/errors v0.0.0-20220331221717-b38fca44723b // indirect
 	github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect

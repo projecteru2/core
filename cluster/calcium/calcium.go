@@ -82,6 +82,10 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 		return nil, err
 	}
 	resource.AddPlugins(volume)
+	// load binary plugins
+	if err = resource.LoadPlugins(context.TODO()); err != nil {
+		return nil, err
+	}
 
 	cal := &Calcium{store: store, config: config, source: scm, watcher: watcher, resource: resource}
 

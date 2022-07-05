@@ -35,7 +35,7 @@ func (c *Calcium) getWorkloadNode(ctx context.Context, id string) (*types.Node, 
 	if err != nil {
 		return nil, err
 	}
-	node, err := c.GetNode(ctx, w.Nodename)
+	node, err := c.GetNode(ctx, w.Nodename, nil)
 	return node, err
 }
 

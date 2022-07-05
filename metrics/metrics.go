@@ -152,6 +152,11 @@ func InitMetrics(config types.Config, metricsDescriptions []*resources.MetricsDe
 		}
 	}
 
+	Client.Collectors[deployCountName] = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: deployCountName,
+		Help: "core deploy counter",
+	}, []string{"hostname"})
+
 	once.Do(func() {
 		prometheus.MustRegister(maps.Values(Client.Collectors)...)
 	})

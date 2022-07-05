@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"golang.org/x/exp/maps"
@@ -147,14 +148,20 @@ func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) { // nolin
 func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
 	if b.ResourceOpts == nil {
 		b.ResourceOpts = map[string]*pb.RawParam{
-			"cpu":      newPBRawParamStr(fmt.Sprintf("%v", b.Cpu)),
 			"share":    newPBRawParamStr(fmt.Sprintf("%v", b.Share)),
-			"memory":   newPBRawParamStr(fmt.Sprintf("%v", b.Memory)),
 			"numa-cpu": newPBRawParamStringSlice(maps.Values(b.Numa)),
 			"numa-memory": newPBRawParamStringSlice(utils.Map(maps.Values(b.NumaMemory), func(v int64) string {
 				return fmt.Sprintf("%v", v)
 			})),
-			"storage": newPBRawParamStr(fmt.Sprintf("%v", b.Storage)),
+		}
+		if b.Cpu > 0 {
+			b.ResourceOpts["cpu"] = newPBRawParamStr(fmt.Sprintf("%v", b.Cpu))
+		}
+		if b.Memory > 0 {
+			b.ResourceOpts["memory"] = newPBRawParamStr(fmt.Sprintf("%v", b.Memory))
+		}
+		if b.Storage > 0 {
+			b.ResourceOpts["storage"] = newPBRawParamStr(fmt.Sprintf("%v", b.Storage))
 		}
 		volumes := []string{}
 		for device, size := range b.VolumeMap {
@@ -179,8 +186,12 @@ func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
 func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) { // nolint
 	if b.ResourceOpts == nil {
 		b.Delta = true
+		cpuStrs := []string{}
+		for cpu, delta := range b.DeltaCpu {
+			cpuStrs = append(cpuStrs, fmt.Sprintf("%v:%v", cpu, delta))
+		}
 		b.ResourceOpts = map[string]*pb.RawParam{
-			"cpu":      newPBRawParamStr(fmt.Sprintf("%v", b.DeltaCpu)),
+			"cpu":      newPBRawParamStr(strings.Join(cpuStrs, ",")),
 			"memory":   newPBRawParamStr(fmt.Sprintf("%v", b.DeltaMemory)),
 			"numa-cpu": newPBRawParamStringSlice(maps.Values(b.Numa)),
 			"numa-memory": newPBRawParamStringSlice(utils.Map(maps.Values(b.DeltaNumaMemory), func(v int64) string {

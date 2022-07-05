@@ -55,7 +55,7 @@ type Cluster interface {
 	AddNode(context.Context, *types.AddNodeOptions) (*types.Node, error)
 	RemoveNode(ctx context.Context, nodename string) error
 	ListPodNodes(context.Context, *types.ListNodesOptions) (<-chan *types.Node, error)
-	GetNode(ctx context.Context, nodename string) (*types.Node, error)
+	GetNode(ctx context.Context, nodename string, plugins []string) (*types.Node, error)
 	GetNodeEngine(ctx context.Context, nodename string) (*enginetypes.Info, error)
 	SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error)
 	SetNodeStatus(ctx context.Context, nodename string, ttl int64) error
