@@ -32,7 +32,7 @@ You can use our [footstone](https://hub.docker.com/r/projecteru2/footstone/) ima
 Generate golang grpc definitions.
 
 ```shell
-go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 make grpc
 ```
@@ -42,7 +42,6 @@ make grpc
 ```shell
 $ eru-core --config /etc/eru/core.yaml.sample
 ```
-
 or
 
 ```shell
