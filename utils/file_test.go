@@ -26,6 +26,13 @@ func TestListAllExecutableFiles(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, fInfo)
 
-	//file
-	//isExecutable(file.Mode().Perm())
+	assert.False(t, isExecutable(fInfo.Mode().Perm()))
+
+	os.Chmod(file.Name(), 0777)
+	fInfo, _ = os.Stat(file.Name())
+	assert.True(t, isExecutable(fInfo.Mode().Perm()))
+
+	fs, err := ListAllExecutableFiles(dir)
+	assert.NoError(t, err)
+	assert.Len(t, fs, 1)
 }

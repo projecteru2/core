@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
@@ -246,6 +247,15 @@ func TestUnique(t *testing.T) {
 	s3 := []string{"", "1", "1", "1", "1"}
 	s3 = s3[:Unique(s3, func(i int) string { return s3[i] })]
 	assert.True(t, reflect.DeepEqual(s3, []string{"", "1"}))
+}
+
+func TestWithTimeout(t *testing.T) {
+	r := true
+	f := func(context.Context) {
+		r = false
+	}
+	WithTimeout(context.Background(), time.Second, f)
+	assert.False(t, r)
 }
 
 func TestSHA256(t *testing.T) {

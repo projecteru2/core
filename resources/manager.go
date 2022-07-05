@@ -56,7 +56,7 @@ func (pm *PluginManager) GetPlugins() []Plugin {
 }
 
 func callPlugins[T any](ctx context.Context, plugins []Plugin, f func(Plugin) (T, error)) (map[Plugin]T, error) {
-	resMap := sync.Map{}
+	resMap := sync.Map{} // TODO hashmap
 	combinedErr := types.NewCombinedErr()
 	wg := &sync.WaitGroup{}
 	wg.Add(len(plugins))
