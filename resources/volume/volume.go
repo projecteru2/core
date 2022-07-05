@@ -185,17 +185,11 @@ func (v *Plugin) SetNodeResourceCapacity(ctx context.Context, nodeName string, r
 		if err := nodeResourceOpts.ParseFromRawParams(coretypes.RawParams(resourceOpts)); err != nil {
 			return nil, err
 		}
-		if delta {
-			nodeResourceOpts.Storage += nodeResourceOpts.Volumes.Total()
-		}
 	}
 	if resourceArgs != nil {
 		nodeResourceArgs = &types.NodeResourceArgs{}
 		if err := nodeResourceArgs.ParseFromRawParams(coretypes.RawParams(resourceArgs)); err != nil {
 			return nil, err
-		}
-		if delta {
-			nodeResourceArgs.Storage += nodeResourceArgs.Volumes.Total()
 		}
 	}
 

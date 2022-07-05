@@ -1,6 +1,7 @@
 package helium
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -21,8 +22,9 @@ func TestHelium(t *testing.T) {
 		ServiceDiscoveryPushInterval: time.Duration(1) * time.Second,
 	}
 	service := New(grpcConfig, store)
-	chStatus := make(chan types.ServiceStatus)
-	uuid := service.Subscribe(chStatus)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	uuid, chStatus := service.Subscribe(ctx)
 
 	addresses1 := []string{
 		"10.0.0.1",
@@ -45,7 +47,6 @@ func TestHelium(t *testing.T) {
 
 	service.Unsubscribe(uuid)
 	close(chAddr)
-	close(chStatus)
 }
 
 func TestPanic(t *testing.T) {
@@ -58,11 +59,12 @@ func TestPanic(t *testing.T) {
 		ServiceDiscoveryPushInterval: time.Duration(1) * time.Second,
 	}
 	service := New(grpcConfig, store)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	for i := 0; i < 1000; i++ {
 		go func() {
-			chStatus := make(chan types.ServiceStatus)
-			uuid := service.Subscribe(chStatus)
+			uuid, _ := service.Subscribe(ctx)
 			time.Sleep(time.Second)
 			service.Unsubscribe(uuid)
 			//close(chStatus)

@@ -119,10 +119,10 @@ message RawParam {
 
 message NodeResource {
   string name = 1;
-      double cpu_percent = 2;
-      double memory_percent = 3;
-      double storage_percent = 4;
-      double volume_percent = 5;
+  double cpu_percent = 2;
+  double memory_percent = 3;
+  double storage_percent = 4;
+  double volume_percent = 5;
   repeated string diffs = 6;
   string resource_capacity = 7;
   string resource_usage = 8;
@@ -357,6 +357,7 @@ message RemoveNodeOptions {
 message GetNodeOptions {
   string nodename = 1;
   map<string, string> labels = 2;
+  repeated string plugins = 3;
 }
 
 message GetNodeResourceOptions {

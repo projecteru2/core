@@ -7,8 +7,6 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/cornelk/hashmap"
-
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/docker"
 	"github.com/projecteru2/core/engine/fake"
@@ -18,6 +16,8 @@ import (
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+
+	"github.com/cornelk/hashmap"
 )
 
 type factory func(ctx context.Context, config types.Config, nodename, endpoint, ca, cert, key string) (engine.API, error)

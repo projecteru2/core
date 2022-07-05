@@ -6,8 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cornelk/hashmap"
-
 	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -16,6 +14,7 @@ import (
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
 
+	"github.com/cornelk/hashmap"
 	"github.com/pkg/errors"
 	"github.com/sanity-io/litter"
 )
@@ -273,7 +272,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 }
 
 func (c *Calcium) doGetAndPrepareNode(ctx context.Context, nodename, image string) (*types.Node, error) {
-	node, err := c.GetNode(ctx, nodename)
+	node, err := c.GetNode(ctx, nodename, nil)
 	if err != nil {
 		return nil, err
 	}

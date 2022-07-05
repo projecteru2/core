@@ -55,9 +55,9 @@ linters:
     - nestif
     - errcheck
     - gocritic
-    #- gocognit
-    #- gomnd
-    #- dupl
+      #- gocognit
+      #- gomnd
+      #- dupl
       #Consider this
       # - godox
       # - funlen
@@ -71,4 +71,4 @@ linters:
       # - prealloc
       # - testpackage
       # - wsl
-      # - stylecheck
+    # - stylecheck

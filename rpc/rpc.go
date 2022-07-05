@@ -62,6 +62,8 @@ func (v *Vibranium) WatchServiceStatus(_ *pb.Empty, stream pb.CoreRPC_WatchServi
 				v.logUnsentMessages(task.context, "WatchServicesStatus", err, s)
 				return grpcstatus.Error(WatchServiceStatus, err.Error())
 			}
+		case <-task.context.Done():
+			return nil
 		case <-v.stop:
 			return nil
 		}
@@ -265,7 +267,7 @@ func (v *Vibranium) PodNodesStream(opts *pb.ListNodesOptions, stream pb.CoreRPC_
 func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Node, error) {
 	task := v.newTask(ctx, "GetNode", false)
 	defer task.done()
-	n, err := v.cluster.GetNode(task.context, opts.Nodename)
+	n, err := v.cluster.GetNode(task.context, opts.Nodename, opts.Plugins)
 	if err != nil {
 		return nil, grpcstatus.Error(GetNode, err.Error())
 	}

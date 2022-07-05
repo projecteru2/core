@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import sys
-
 import etcd3
 import redis
+import sys
 
 
 def migrate(root, etcd_client, redis_client, dry_run):
@@ -33,7 +32,7 @@ def migrate(root, etcd_client, redis_client, dry_run):
 
         for kv in resp.kvs:
             key = kv.key.decode('utf-8')
-            if not key.startswith(root+'/'):
+            if not key.startswith(root + '/'):
                 continue
 
             key = key.replace(root, '')

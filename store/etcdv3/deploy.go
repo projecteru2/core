@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	clientv3 "go.etcd.io/etcd/client/v3"
-
 	"github.com/projecteru2/core/log"
+
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 // GetDeployStatus get deploy status from store

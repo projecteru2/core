@@ -4,9 +4,9 @@ Eru
 ![](https://github.com/projecteru2/core/workflows/golangci-lint/badge.svg)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/69918e0a02ae45c5ae7dfc42bad5cfe5)](https://www.codacy.com/gh/projecteru2/core?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=projecteru2/core&amp;utm_campaign=Badge_Grade)
 
-Eru is a stateless, flexible, production-ready resource scheduler designed to easily integrate into existing systems. 
+Eru is a stateless, flexible, production-ready resource scheduler designed to easily integrate into existing systems.
 
-Eru can use multiple engines to run anything for the long or short term. 
+Eru can use multiple engines to run anything for the long or short term.
 
 This project is Eru Core. The Core use for resource allocation and manage resource's lifetime.
 
@@ -19,7 +19,8 @@ Run ` make test `
 ### Compile
 
 * Run ` make build ` if you want binary.
-* Run `./make-rpm ` if you want RPM for el7. However we use [FPM](https://github.com/jordansissel/fpm) for packing, so you have to prepare it first.
+* Run `./make-rpm ` if you want RPM for el7. However we use [FPM](https://github.com/jordansissel/fpm) for packing, so
+  you have to prepare it first.
 
 ### Developing
 
@@ -42,6 +43,7 @@ make grpc
 ```shell
 $ eru-core --config /etc/eru/core.yaml.sample
 ```
+
 or
 
 ```shell
@@ -65,7 +67,8 @@ docker run -d \
 
 ### Build and Deploy by Eru itself
 
-After we implemented bootstrap in eru, now you can build and deploy eru with [cli](https://github.com/projecteru2/cli) tool.
+After we implemented bootstrap in eru, now you can build and deploy eru with [cli](https://github.com/projecteru2/cli)
+tool.
 
 1. Test source code and build image
 
@@ -73,7 +76,8 @@ After we implemented bootstrap in eru, now you can build and deploy eru with [cl
 <cli_execute_path> --name <image_name> http://bit.ly/EruCore
 ```
 
-Make sure you can clone code. After the fresh image was named and tagged, it will be auto pushed to the remote registry which was defined in config file.
+Make sure you can clone code. After the fresh image was named and tagged, it will be auto pushed to the remote registry
+which was defined in config file.
 
 2. Deploy core itself
 

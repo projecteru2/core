@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import argparse
+import etcd3
 import functools
 import json
 import os
-
-import etcd3
 import sys
 
 check_conflict = False

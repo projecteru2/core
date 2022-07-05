@@ -3,9 +3,9 @@ package engine
 import (
 	"encoding/json"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/projecteru2/core/engine/types"
+
+	"github.com/sirupsen/logrus"
 )
 
 func MakeVirtualizationResource(engineArgs map[string]interface{}) (types.VirtualizationResource, error) {

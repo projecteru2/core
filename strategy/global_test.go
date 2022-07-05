@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/projecteru2/core/types"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGlobalPlan1(t *testing.T) {

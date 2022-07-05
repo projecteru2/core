@@ -7,11 +7,10 @@ import (
 	"io"
 	"strings"
 
-	virttypes "github.com/projecteru2/libyavirt/types"
-
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	virttypes "github.com/projecteru2/libyavirt/types"
 )
 
 // ImageList lists images.
@@ -25,7 +24,7 @@ func (v *Virt) ImageList(ctx context.Context, imageName string) (imgs []*enginet
 
 	for _, image := range images {
 		imgs = append(imgs, &enginetypes.Image{
-			ID:   image.Id,
+			ID:   image.ID,
 			Tags: []string{image.Name},
 		})
 	}

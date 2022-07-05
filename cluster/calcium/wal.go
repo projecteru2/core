@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -173,7 +174,7 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (er
 	}
 
 	// workload meta doesn't exist
-	node, err := h.calcium.GetNode(ctx, wrk.Nodename)
+	node, err := h.calcium.GetNode(ctx, wrk.Nodename, nil)
 	if err != nil {
 		return logger.Err(ctx, err)
 	}

@@ -6,39 +6,51 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/projecteru2/core/utils"
+
+	"github.com/pkg/errors"
 )
 
 const auto = "AUTO"
 
-// VolumeBinding src:dst:flags:size
+// VolumeBinding src:dst[:flags][:size][:read_iops:write_iops:read_bytes:write_bytes]
 type VolumeBinding struct {
 	Source      string
 	Destination string
 	Flags       string
 	SizeInBytes int64
+	ReadIOPS    int64
+	WriteIOPS   int64
+	ReadBPS     int64
+	WriteBPS    int64
 }
 
 // NewVolumeBinding returns pointer of VolumeBinding
 func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 	var src, dst, flags string
-	var size int64
+	var size, readIOPS, writeIOPS, readBPS, writeBPS int64
 
 	parts := strings.Split(volume, ":")
-	switch len(parts) {
-	case 2:
-		src, dst = parts[0], parts[1]
-	case 3:
-		src, dst, flags = parts[0], parts[1], parts[2]
-	case 4:
-		src, dst, flags = parts[0], parts[1], parts[2]
-		if size, err = utils.ParseRAMInHuman(parts[3]); err != nil {
+	if len(parts) > 8 || len(parts) < 2 {
+		return nil, errors.WithStack(errors.Errorf("invalid volume: %s", volume))
+	}
+	if len(parts) == 2 {
+		parts = append(parts, "rw")
+	}
+	for len(parts) < 8 {
+		parts = append(parts, "0")
+	}
+	src = parts[0]
+	dst = parts[1]
+	flags = parts[2]
+
+	ptrs := []*int64{&size, &readIOPS, &writeIOPS, &readBPS, &writeBPS}
+	for i, ptr := range ptrs {
+		value, err := utils.ParseRAMInHuman(parts[i+3])
+		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-	default:
-		return nil, errors.WithStack(fmt.Errorf("invalid volume: %v", volume))
+		*ptr = value
 	}
 
 	flagParts := strings.Split(flags, "")
@@ -49,7 +61,16 @@ func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 		Destination: dst,
 		Flags:       strings.Join(flagParts, ""),
 		SizeInBytes: size,
+		ReadIOPS:    readIOPS,
+		WriteIOPS:   writeIOPS,
+		ReadBPS:     readBPS,
+		WriteBPS:    writeBPS,
 	}
+
+	if vb.Flags == "" {
+		vb.Flags = "rw"
+	}
+
 	return vb, vb.Validate()
 }
 
@@ -58,25 +79,32 @@ func (vb VolumeBinding) Validate() error {
 	if vb.Destination == "" {
 		return errors.WithStack(errors.Errorf("invalid volume, dest must be provided: %v", vb))
 	}
-	if vb.RequireScheduleMonopoly() && vb.RequireScheduleUnlimitedQuota() {
-		return errors.WithStack(errors.Errorf("invalid volume, monopoly volume must not be limited: %v", vb))
-	}
 	return nil
 }
 
 // RequireSchedule returns true if volume binding requires schedule
 func (vb VolumeBinding) RequireSchedule() bool {
-	return strings.HasSuffix(vb.Source, auto)
+	return strings.HasSuffix(vb.Source, auto) || vb.Source == ""
 }
 
 // RequireScheduleUnlimitedQuota .
 func (vb VolumeBinding) RequireScheduleUnlimitedQuota() bool {
-	return vb.RequireSchedule() && vb.SizeInBytes == 0
+	return vb.RequireSchedule() && vb.SizeInBytes == 0 && vb.ReadIOPS == 0 && vb.WriteIOPS == 0 && vb.ReadBPS == 0 && vb.WriteBPS == 0
 }
 
 // RequireScheduleMonopoly returns true if volume binding requires monopoly schedule
 func (vb VolumeBinding) RequireScheduleMonopoly() bool {
 	return vb.RequireSchedule() && strings.Contains(vb.Flags, "m")
+}
+
+// RequireIOPS returns true if volume binding requires IOPS / BPS
+func (vb VolumeBinding) RequireIOPS() bool {
+	return vb.ReadIOPS > 0 || vb.WriteIOPS > 0 || vb.ReadBPS > 0 || vb.WriteBPS > 0
+}
+
+// ValidIOParameters returns true if all io related parameters are valid
+func (vb VolumeBinding) ValidIOParameters() bool {
+	return vb.ReadIOPS >= 0 && vb.WriteIOPS >= 0 && vb.ReadBPS >= 0 && vb.WriteBPS >= 0
 }
 
 // ToString returns volume string
@@ -92,11 +120,17 @@ func (vb VolumeBinding) ToString(normalize bool) (volume string) {
 		flags = strings.ReplaceAll(flags, "w", "wo")
 	}
 
-	switch {
-	case vb.Flags == "" && vb.SizeInBytes == 0:
-		volume = fmt.Sprintf("%s:%s", vb.Source, vb.Destination)
-	default:
-		volume = fmt.Sprintf("%s:%s:%s:%d", vb.Source, vb.Destination, flags, vb.SizeInBytes)
+	if !normalize {
+		volume = fmt.Sprintf("%s:%s:%s:%d:%d:%d:%d:%d", vb.Source, vb.Destination, flags, vb.SizeInBytes, vb.ReadIOPS, vb.WriteIOPS, vb.ReadBPS, vb.WriteBPS)
+	} else {
+		switch {
+		case vb.Flags == "" && vb.SizeInBytes == 0:
+			volume = fmt.Sprintf("%s:%s", vb.Source, vb.Destination)
+		case vb.ReadIOPS != 0 || vb.WriteIOPS != 0 || vb.ReadBPS != 0 || vb.WriteBPS != 0:
+			volume = fmt.Sprintf("%s:%s:%s:%d:%d:%d:%d:%d", vb.Source, vb.Destination, flags, vb.SizeInBytes, vb.ReadIOPS, vb.WriteIOPS, vb.ReadBPS, vb.WriteBPS)
+		default:
+			volume = fmt.Sprintf("%s:%s:%s:%d", vb.Source, vb.Destination, flags, vb.SizeInBytes)
+		}
 	}
 	return volume
 }
@@ -104,6 +138,20 @@ func (vb VolumeBinding) ToString(normalize bool) (volume string) {
 // GetMapKey .
 func (vb VolumeBinding) GetMapKey() [3]string {
 	return [3]string{vb.Source, vb.Destination, vb.Flags}
+}
+
+// DeepCopy .
+func (vb VolumeBinding) DeepCopy() *VolumeBinding {
+	return &VolumeBinding{
+		Source:      vb.Source,
+		Destination: vb.Destination,
+		Flags:       vb.Flags,
+		SizeInBytes: vb.SizeInBytes,
+		ReadIOPS:    vb.ReadIOPS,
+		WriteIOPS:   vb.WriteIOPS,
+		ReadBPS:     vb.ReadBPS,
+		WriteBPS:    vb.WriteBPS,
+	}
 }
 
 // VolumeBindings is a collection of VolumeBinding
@@ -119,6 +167,19 @@ func NewVolumeBindings(volumes []string) (volumeBindings VolumeBindings, err err
 		volumeBindings = append(volumeBindings, volumeBinding)
 	}
 	return
+}
+
+// Validate .
+func (vbs VolumeBindings) Validate() error {
+	for _, vb := range vbs {
+		if vb.RequireScheduleMonopoly() && vb.RequireScheduleUnlimitedQuota() {
+			return errors.WithStack(errors.Errorf("invalid volume, monopoly volume can't be unlimited: %v", vb))
+		}
+		if !vb.ValidIOParameters() {
+			return errors.WithStack(errors.Errorf("invalid io parameters: %v", vb))
+		}
+	}
+	return nil
 }
 
 // UnmarshalJSON is used for encoding/json.Unmarshal
@@ -160,7 +221,7 @@ func (vbs VolumeBindings) TotalSize() (total int64) {
 // ApplyPlan creates new VolumeBindings according to volume plan
 func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 	for _, vb := range vbs {
-		newVb := &VolumeBinding{vb.Source, vb.Destination, vb.Flags, vb.SizeInBytes}
+		newVb := vb.DeepCopy()
 		if vmap, _ := plan.GetVolumeMap(vb); vmap != nil {
 			newVb.Source = vmap.GetDevice()
 			if vmap.GetSize() > newVb.SizeInBytes {
@@ -174,25 +235,36 @@ func (vbs VolumeBindings) ApplyPlan(plan VolumePlan) (res VolumeBindings) {
 
 // MergeVolumeBindings combines two VolumeBindings
 func MergeVolumeBindings(vbs1 VolumeBindings, vbs2 ...VolumeBindings) (vbs VolumeBindings) {
-	sizeMap := map[[3]string]int64{} // {["AUTO", "/data", "rw"]: 100}
+	vbMap := map[[3]string]*VolumeBinding{}
 	for _, vbs := range append(vbs2, vbs1) {
 		for _, vb := range vbs {
-			sizeMap[vb.GetMapKey()] += vb.SizeInBytes
+			if binding, ok := vbMap[vb.GetMapKey()]; ok {
+				binding.SizeInBytes += vb.SizeInBytes
+				binding.ReadIOPS += vb.ReadIOPS
+				binding.WriteIOPS += vb.WriteIOPS
+				binding.ReadBPS += vb.ReadBPS
+				binding.WriteBPS += vb.WriteBPS
+			} else {
+				vbMap[vb.GetMapKey()] = &VolumeBinding{
+					Source:      vb.Source,
+					Destination: vb.Destination,
+					Flags:       vb.Flags,
+					SizeInBytes: vb.SizeInBytes,
+					ReadIOPS:    vb.ReadIOPS,
+					WriteIOPS:   vb.WriteIOPS,
+					ReadBPS:     vb.ReadBPS,
+					WriteBPS:    vb.WriteBPS,
+				}
+			}
 		}
 	}
 
-	for key, size := range sizeMap {
-		if size < 0 {
-			continue
+	for _, vb := range vbMap {
+		if vb.SizeInBytes >= 0 {
+			vbs = append(vbs, vb)
 		}
-		vbs = append(vbs, &VolumeBinding{
-			Source:      key[0],
-			Destination: key[1],
-			Flags:       key[2],
-			SizeInBytes: size,
-		})
 	}
-	return
+	return vbs
 }
 
 // VolumeMap .
@@ -299,6 +371,10 @@ func (p VolumePlan) Merge(p2 VolumePlan) {
 				Destination: vb.Destination,
 				Flags:       vb.Flags,
 				SizeInBytes: vb.SizeInBytes + oldVB.SizeInBytes,
+				ReadIOPS:    vb.ReadIOPS + oldVB.ReadIOPS,
+				WriteIOPS:   vb.WriteIOPS + oldVB.WriteIOPS,
+				ReadBPS:     vb.ReadBPS + oldVB.ReadBPS,
+				WriteBPS:    vb.WriteBPS + oldVB.WriteBPS,
 			}
 		}
 		p[vb] = vm

@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/projecteru2/core/log"
+
 	"github.com/cornelk/hashmap"
 	"github.com/docker/go-connections/tlsconfig"
-
-	"github.com/projecteru2/core/log"
 )
 
 var defaultHTTPClient = &http.Client{

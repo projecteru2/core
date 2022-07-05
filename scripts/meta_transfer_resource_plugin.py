@@ -2,11 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import etcd3
 import functools
 import json
 import os
-
-import etcd3
 
 dry_run = False
 record_prefix = "upgrade_"

@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/pkg/errors"
-
 	engine "github.com/projecteru2/core/engine"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -48,8 +48,8 @@ type Node struct {
 	NodeMeta
 	NodeInfo string `json:"-"`
 
-	ResourceCapacity map[string]NodeResourceArgs `json:"resource_capacity,omitempty"`
-	ResourceUsage    map[string]NodeResourceArgs `json:"resource_usage,omitempty"`
+	ResourceCapacity map[string]NodeResourceArgs `json:"-"`
+	ResourceUsage    map[string]NodeResourceArgs `json:"-"`
 
 	// Bypass if bypass is true, it will not participate in future scheduling
 	Bypass    bool       `json:"bypass,omitempty"`

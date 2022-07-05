@@ -26,6 +26,10 @@ const (
 func TestBuild(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
+	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{},
+	}, nil)
 	opts := &types.BuildOptions{
 		Name:        "xx",
 		BuildMethod: types.BuildFromSCM,
@@ -60,6 +64,10 @@ func TestBuild(t *testing.T) {
 	assert.Error(t, err)
 	// failed by buildpod not set
 	c = NewTestCluster()
+	plugin = c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+		ResourceInfo: &resources.NodeResourceInfo{},
+	}, nil)
 	_, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	c.config.Docker.BuildPod = "test"
@@ -84,17 +92,12 @@ func TestBuild(t *testing.T) {
 	}
 	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-
 	// failed by plugin error
 	plugin.On("GetMostIdleNode", mock.Anything, mock.Anything).Return(nil, types.ErrGetMostIdleNodeFailed).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 
 	plugin.On("GetMostIdleNode", mock.Anything, mock.Anything).Return(&resources.GetMostIdleNodeResponse{NodeName: node.Name, Priority: 100}, nil)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-	}, nil)
 	// create image
 	c.config.Docker.Hub = "test.com"
 	c.config.Docker.Namespace = "test"

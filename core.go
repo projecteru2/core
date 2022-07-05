@@ -11,8 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-
 	"github.com/projecteru2/core/auth"
 	"github.com/projecteru2/core/cluster/calcium"
 	"github.com/projecteru2/core/engine/factory"
@@ -25,6 +23,7 @@ import (
 	"github.com/projecteru2/core/version"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	cli "github.com/urfave/cli/v2"
 	_ "go.uber.org/automaxprocs"
 	"google.golang.org/grpc"

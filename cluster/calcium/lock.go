@@ -163,7 +163,7 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nf types.NodeFilter, genK
 		}
 
 		// refresh node
-		node, err := c.GetNode(ctx, n.Name)
+		node, err := c.GetNode(ctx, n.Name, nil)
 		if err != nil {
 			return err
 		}

@@ -5,10 +5,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
-
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+
+	"github.com/pkg/errors"
 )
 
 type infoHeapForGlobalStrategy []Info

@@ -3,10 +3,11 @@ package schedule
 import (
 	"testing"
 
+	"github.com/projecteru2/core/resources/volume/types"
+	"github.com/projecteru2/core/utils"
+
 	"github.com/docker/go-units"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/projecteru2/core/resources/volume/types"
 )
 
 var maxDeployCount = 1000
@@ -20,11 +21,47 @@ func generateResourceInfo() *types.NodeResourceInfo {
 				"/data2": units.TiB,
 				"/data3": units.TiB,
 			},
+			Disks: []*types.Disk{
+				{
+					Device:    "/dev/vda",
+					Mounts:    []string{"/", "/data"},
+					ReadIOPS:  1000,
+					WriteIOPS: 1000,
+					ReadBPS:   units.GiB,
+					WriteBPS:  units.GiB,
+				},
+				{
+					Device:    "/dev/vdb",
+					Mounts:    []string{"/data1"},
+					ReadIOPS:  0,
+					WriteIOPS: 0,
+					ReadBPS:   units.GiB,
+					WriteBPS:  units.GiB,
+				},
+			},
 		},
 		Usage: &types.NodeResourceArgs{
 			Volumes: types.VolumeMap{
 				"/data0": 200 * units.GiB,
 				"/data1": 300 * units.GiB,
+			},
+			Disks: []*types.Disk{
+				{
+					Device:    "/dev/vda",
+					Mounts:    []string{"/", "/data"},
+					ReadIOPS:  0,
+					WriteIOPS: 0,
+					ReadBPS:   0,
+					WriteBPS:  0,
+				},
+				{
+					Device:    "/dev/vdb",
+					Mounts:    []string{"/data1"},
+					ReadIOPS:  0,
+					WriteIOPS: 0,
+					ReadBPS:   0,
+					WriteBPS:  0,
+				},
 			},
 		},
 	}
@@ -54,21 +91,32 @@ func applyPlans(resourceInfo *types.NodeResourceInfo, plans []types.VolumePlan) 
 func noMorePlans(t *testing.T, resourceInfo *types.NodeResourceInfo, volumePlans []types.VolumePlan, volumeRequest types.VolumeBindings) {
 	applyPlans(resourceInfo, volumePlans)
 	assert.Nil(t, resourceInfo.Validate())
-	plan := GetVolumePlans(resourceInfo, volumeRequest, maxDeployCount)
+	plan, _ := GetVolumePlans(resourceInfo, volumeRequest, maxDeployCount)
 	assert.Equal(t, len(plan), 0)
 }
 
 func validateVolumePlan(t *testing.T, resourceInfo *types.NodeResourceInfo, volumeRequest types.VolumeBindings, volumePlan types.VolumePlan) {
 	t.Logf("volume plan: %v", volumePlan)
 	t.Logf("volume request: %v", volumeRequest)
+
+	allocIOPSQuotaForMountRequests(resourceInfo, volumeRequest)
+
 	monoDevice := ""
 	monoTotalSize := int64(0)
+
 	for _, binding := range volumeRequest {
 		if !binding.RequireSchedule() {
 			continue
 		}
 		volumeMap, ok := volumePlan[binding]
 		assert.True(t, ok)
+		disk := resourceInfo.Usage.Disks.GetDiskByPath(volumeMap.GetDevice())
+		assert.NotNil(t, disk)
+		disk.ReadIOPS += binding.ReadIOPS
+		disk.WriteIOPS += binding.WriteIOPS
+		disk.ReadBPS += binding.ReadBPS
+		disk.WriteBPS += binding.WriteBPS
+
 		switch {
 		case binding.RequireScheduleMonopoly():
 			if monoDevice == "" {
@@ -82,6 +130,20 @@ func validateVolumePlan(t *testing.T, resourceInfo *types.NodeResourceInfo, volu
 	}
 
 	assert.Equal(t, monoTotalSize, resourceInfo.Capacity.Volumes[monoDevice])
+	assert.Nil(t, resourceInfo.Validate())
+}
+
+func allocIOPSQuotaForMountRequests(resourceInfo *types.NodeResourceInfo, volumeRequest types.VolumeBindings) {
+	for _, binding := range volumeRequest {
+		if binding.RequireSchedule() {
+			continue
+		}
+		disk := resourceInfo.Usage.Disks.GetDiskByPath(binding.Source)
+		disk.ReadIOPS += binding.ReadIOPS
+		disk.WriteIOPS += binding.WriteIOPS
+		disk.ReadBPS += binding.ReadBPS
+		disk.WriteBPS += binding.WriteBPS
+	}
 }
 
 func validateVolumePlans(t *testing.T, resourceInfo *types.NodeResourceInfo, volumeRequest types.VolumeBindings, volumePlans []types.VolumePlan) {
@@ -90,7 +152,11 @@ func validateVolumePlans(t *testing.T, resourceInfo *types.NodeResourceInfo, vol
 	for _, plan := range volumePlans {
 		validateVolumePlan(t, resourceInfo, volumeRequest, plan)
 	}
-	noMorePlans(t, resourceInfo, volumePlans, volumeRequest)
+	if utils.Any(volumeRequest, func(plan *types.VolumeBinding) bool {
+		return plan.RequireSchedule() && !plan.RequireScheduleUnlimitedQuota()
+	}) {
+		noMorePlans(t, resourceInfo, volumePlans, volumeRequest)
+	}
 }
 
 func generateVolumeBindings(t *testing.T, str []string) types.VolumeBindings {
@@ -104,10 +170,11 @@ func TestGetVolumePlans(t *testing.T) {
 	resourceInfo := generateEmptyResourceInfo()
 
 	// single normal request
-	volumeRequest, err := types.NewVolumeBindings([]string{})
-	assert.Nil(t, err)
+	volumeRequest := generateVolumeBindings(t, []string{
+		"AUTO:/dir1:rw:500GiB",
+	})
 
-	plans := GetVolumePlans(resourceInfo, volumeRequest, maxDeployCount)
+	plans, _ := GetVolumePlans(resourceInfo, volumeRequest, maxDeployCount)
 	assert.Equal(t, len(plans), 0)
 
 	// normal cases
@@ -142,11 +209,15 @@ func TestGetVolumePlans(t *testing.T) {
 			"AUTO:/dir4:rwm:100GiB",
 			"AUTO:/dir5:rwm:100GiB",
 		}),
+		// single unlimited requests
+		generateVolumeBindings(t, []string{
+			"AUTO:/dir1:rw:0",
+		}),
 	}
 
 	for _, volumeRequest := range requests {
 		resourceInfo = generateResourceInfo()
-		plans = GetVolumePlans(resourceInfo, volumeRequest, maxDeployCount)
+		plans, _ = GetVolumePlans(resourceInfo, volumeRequest, maxDeployCount)
 		validateVolumePlans(t, resourceInfo, volumeRequest, plans)
 	}
 
@@ -185,7 +256,7 @@ func TestGetVolumePlans(t *testing.T) {
 
 	for _, volumeRequest := range requests {
 		resourceInfo = generateResourceInfo()
-		plans = GetVolumePlans(resourceInfo, volumeRequest, maxDeployCount)
+		plans, _ = GetVolumePlans(resourceInfo, volumeRequest, maxDeployCount)
 		assert.Equal(t, len(plans), 0)
 	}
 }
@@ -194,7 +265,7 @@ func generateExistingVolumePlan(t *testing.T) (types.VolumeBindings, types.Volum
 	plan := types.VolumePlan{}
 	err := plan.UnmarshalJSON([]byte(`
 {
-	"AUTO:/dir0:rw:100GiB": {
+	"AUTO:/dir0:rw:100GiB:100:100:100M:100M": {
         "/data0": 107374182400
       },
       "AUTO:/dir1:mrw:100GiB": {
@@ -207,11 +278,34 @@ func generateExistingVolumePlan(t *testing.T) (types.VolumeBindings, types.Volum
 `))
 	assert.Nil(t, err)
 	bindings := generateVolumeBindings(t, []string{
-		"AUTO:/dir0:rw:100GiB",
+		"AUTO:/dir0:rw:100GiB:100:100:100M:100M",
 		"AUTO:/dir1:mrw:100GiB",
 		"AUTO:/dir2:rw:0",
 	})
 	return bindings, plan
+}
+
+func TestGetVolumePlansWithIOPS(t *testing.T) {
+	resourceInfo := generateResourceInfo()
+	requests := []types.VolumeBindings{
+		generateVolumeBindings(t, []string{
+			"AUTO:/dir1:rw:500GiB:500:100:100M:100M",
+			":/dir2:rw:500GiB:100:100:100M:100M",
+		}),
+		generateVolumeBindings(t, []string{
+			"AUTO:/dir1:rw:500GiB:500:100:100M:100M",
+			":/dir2:rw:500GiB:100:100:100M:10000M",
+		}),
+		generateVolumeBindings(t, []string{
+			":/dir2:rw",
+		}),
+	}
+
+	for _, volumeRequest := range requests {
+		resourceInfo = generateResourceInfo()
+		plans, _ := GetVolumePlans(resourceInfo, volumeRequest, maxDeployCount)
+		validateVolumePlans(t, resourceInfo, volumeRequest, plans)
+	}
 }
 
 func TestGetAffinityPlan(t *testing.T) {
@@ -260,7 +354,7 @@ func TestGetAffinityPlan(t *testing.T) {
 		}
 		mergedRequest := types.MergeVolumeBindings(request, originRequest)
 
-		plan := GetAffinityPlan(resourceInfo, mergedRequest, existing)
+		plan, _, _ := GetAffinityPlan(resourceInfo, mergedRequest, existing, originRequest)
 		validateVolumePlan(t, resourceInfo, mergedRequest, plan)
 	}
 
@@ -273,7 +367,7 @@ func TestGetAffinityPlan(t *testing.T) {
 	emptyRequest := types.VolumeBindings{}
 	mergedRequest := types.MergeVolumeBindings(emptyRequest, originRequest)
 
-	plan := GetAffinityPlan(resourceInfo, mergedRequest, existing)
+	plan, _, _ := GetAffinityPlan(resourceInfo, mergedRequest, existing, originRequest)
 	assert.Equal(t, existing.String(), plan.String())
 
 	invalidRequests := []types.VolumeBindings{
@@ -300,7 +394,21 @@ func TestGetAffinityPlan(t *testing.T) {
 		}
 		mergedRequest := types.MergeVolumeBindings(request, originRequest)
 
-		plan := GetAffinityPlan(resourceInfo, mergedRequest, existing)
+		plan, _, _ := GetAffinityPlan(resourceInfo, mergedRequest, existing, originRequest)
 		assert.Equal(t, len(plan), 0)
 	}
+}
+
+func TestAffinityPlan2(t *testing.T) {
+	req := generateVolumeBindings(t, []string{
+		"AUTO:/dir0:rw:800GiB",
+		"AUTO:/dir10:rw:800GiB",
+	})
+	resourceInfo := generateResourceInfo()
+	resourceInfo.Usage.Volumes["/data2"] = units.TiB
+	resourceInfo.Usage.Volumes["/data3"] = units.TiB
+	originRequest, existing := generateExistingVolumePlan(t)
+	mergedRequest := types.MergeVolumeBindings(req, originRequest)
+	plan, _, _ := GetAffinityPlan(resourceInfo, mergedRequest, existing, originRequest)
+	assert.Equal(t, len(plan), 0)
 }

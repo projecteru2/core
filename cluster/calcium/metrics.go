@@ -3,11 +3,11 @@ package calcium
 import (
 	"context"
 
-	"github.com/sanity-io/litter"
-
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/utils"
+
+	"github.com/sanity-io/litter"
 )
 
 // InitMetrics .
@@ -31,7 +31,7 @@ func (c *Calcium) InitMetrics() {
 func (c *Calcium) SendNodeMetrics(ctx context.Context, nodeName string) {
 	ctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.TODO()), c.config.GlobalTimeout)
 	defer cancel()
-	node, err := c.GetNode(ctx, nodeName)
+	node, err := c.GetNode(ctx, nodeName, nil)
 	if err != nil {
 		log.Errorf(ctx, "[SendNodeMetrics] get node %s failed, %v", nodeName, err)
 		return

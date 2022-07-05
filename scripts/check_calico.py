@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 import argparse
+import etcd3
 import json
 import os
 import re
 import subprocess
 import sys
 
-import etcd3
 
 def sh(prog, *args):
-    p = subprocess.Popen((prog,)+args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+    p = subprocess.Popen((prog,) + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
     so, se = p.communicate()
     return p.returncode, so, se
 
@@ -51,7 +51,7 @@ class WorkloadEndpoint(object):
     @property
     def name(self):
         return self.dict['metadata']['name']
-    
+
     @property
     def namespace(self):
         return self.dict['metadata']['namespace']
@@ -142,11 +142,13 @@ class ETCD(object):
 def print_dangling(wep):
     print('%s/%s is dangling' % (wep.namespace, wep.name))
 
+
 def get_args():
     ap = argparse.ArgumentParser()
     ap.add_argument('-e', '--eru-etcd-endpoints', help='the ERU ETCD endpoints', default='127.0.0.1:2379')
     ap.add_argument('-p', '--eru-etcd-prefix', help='the ERU ETCD root prefix', required=True)
     return ap.parse_args()
+
 
 def main():
     args = get_args()
@@ -166,6 +168,7 @@ def main():
         print_dangling(wep)
 
     return 0
+
 
 if __name__ == '__main__':
     sys.exit(main())

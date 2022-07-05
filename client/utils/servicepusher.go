@@ -8,9 +8,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/projecteru2/core/log"
+
 	"github.com/cornelk/hashmap"
 	"github.com/go-ping/ping"
-	"github.com/projecteru2/core/log"
 	"golang.org/x/exp/slices"
 )
 

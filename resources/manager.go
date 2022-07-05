@@ -5,12 +5,14 @@ import (
 	"math"
 	"sync"
 
-	"github.com/pkg/errors"
-
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+
+	"github.com/pkg/errors"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 // PluginManager manages plugins
@@ -25,24 +27,31 @@ func NewPluginManager(config types.Config) (*PluginManager, error) {
 		config:  config,
 		plugins: []Plugin{},
 	}
+
 	return pm, nil
 }
 
 // LoadPlugins .
-func (pm *PluginManager) LoadPlugins(ctx context.Context) {
-	pm.plugins = []Plugin{}
+func (pm *PluginManager) LoadPlugins(ctx context.Context) error {
 	if len(pm.config.ResourcePluginsDir) > 0 {
 		pluginFiles, err := utils.ListAllExecutableFiles(pm.config.ResourcePluginsDir)
 		if err != nil {
 			log.Errorf(ctx, "[LoadPlugins] failed to list all executable files dir: %v, err: %v", pm.config.ResourcePluginsDir, err)
-			return
+			return err
 		}
 
 		for _, file := range pluginFiles {
 			log.Infof(ctx, "[LoadPlugins] load binary plugin: %v", file)
 			pm.plugins = append(pm.plugins, &BinaryPlugin{path: file, config: pm.config})
 		}
+
+		pluginMap := map[string]Plugin{}
+		for _, plugin := range pm.plugins {
+			pluginMap[plugin.Name()] = plugin
+		}
+		pm.plugins = maps.Values(pluginMap)
 	}
+	return nil
 }
 
 // AddPlugins adds a plugin (for test and debug)
@@ -53,6 +62,19 @@ func (pm *PluginManager) AddPlugins(plugins ...Plugin) {
 // GetPlugins is used for mock
 func (pm *PluginManager) GetPlugins() []Plugin {
 	return pm.plugins
+}
+
+func (pm *PluginManager) callPlugins(plugins []Plugin, f func(Plugin)) {
+	wg := &sync.WaitGroup{}
+	wg.Add(len(plugins))
+
+	for _, plugin := range plugins {
+		go func(p Plugin) {
+			defer wg.Done()
+			f(p)
+		}(plugin)
+	}
+	wg.Wait()
 }
 
 func callPlugins[T any](ctx context.Context, plugins []Plugin, f func(Plugin) (T, error)) (map[Plugin]T, error) {
@@ -89,7 +111,7 @@ func callPlugins[T any](ctx context.Context, plugins []Plugin, f func(Plugin) (T
 }
 
 func (pm *PluginManager) mergeNodeCapacityInfo(m1 map[string]*NodeCapacityInfo, m2 map[string]*NodeCapacityInfo) map[string]*NodeCapacityInfo {
-	if len(m1) == 0 {
+	if m1 == nil {
 		return m2
 	}
 
@@ -113,7 +135,7 @@ func (pm *PluginManager) mergeNodeCapacityInfo(m1 map[string]*NodeCapacityInfo, 
 // the caller should require locks
 // pure calculation
 func (pm *PluginManager) GetNodesDeployCapacity(ctx context.Context, nodeNames []string, resourceOpts types.WorkloadResourceOpts) (map[string]*NodeCapacityInfo, int, error) {
-	res := map[string]*NodeCapacityInfo{}
+	var res map[string]*NodeCapacityInfo
 
 	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetNodesDeployCapacityResponse, error) {
 		resp, err := plugin.GetNodesDeployCapacity(ctx, nodeNames, resourceOpts)
@@ -289,12 +311,19 @@ func (pm *PluginManager) RollbackRealloc(ctx context.Context, nodeName string, r
 }
 
 // GetNodeResourceInfo .
-func (pm *PluginManager) GetNodeResourceInfo(ctx context.Context, nodeName string, workloads []*types.Workload, fix bool) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, []string, error) {
+func (pm *PluginManager) GetNodeResourceInfo(ctx context.Context, nodeName string, workloads []*types.Workload, fix bool, pluginWhiteList []string) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, []string, error) {
 	resResourceCapacity := map[string]types.NodeResourceArgs{}
 	resResourceUsage := map[string]types.NodeResourceArgs{}
 	resDiffs := []string{}
 
-	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetNodeResourceInfoResponse, error) {
+	plugins := pm.plugins
+	if pluginWhiteList != nil {
+		plugins = utils.Filter(plugins, func(plugin Plugin) bool {
+			return slices.Contains(pluginWhiteList, plugin.Name())
+		})
+	}
+
+	respMap, err := callPlugins(ctx, plugins, func(plugin Plugin) (*GetNodeResourceInfoResponse, error) {
 		var resp *GetNodeResourceInfoResponse
 		var err error
 		if fix {
@@ -544,7 +573,7 @@ func (pm *PluginManager) RemoveNode(ctx context.Context, nodeName string) error 
 		// prepare: get node resource
 		func(ctx context.Context) error {
 			var err error
-			resourceCapacityMap, resourceUsageMap, _, err = pm.GetNodeResourceInfo(ctx, nodeName, nil, false)
+			resourceCapacityMap, resourceUsageMap, _, err = pm.GetNodeResourceInfo(ctx, nodeName, nil, false, nil)
 			if err != nil {
 				log.Errorf(ctx, "[RemoveNode] failed to get node %v resource, err: %v", nodeName, err)
 				return err

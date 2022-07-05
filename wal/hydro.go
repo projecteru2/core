@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/cornelk/hashmap"
 	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/wal/kv"
+
+	"github.com/cornelk/hashmap"
 )
 
 const (

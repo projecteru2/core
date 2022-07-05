@@ -93,22 +93,22 @@ func (m *Metrics) SendMetrics(metrics ...*resources.Metrics) {
 			log.Errorf(nil, "[SendMetrics] Collector not found: %s", metric.Name) //nolint
 			continue
 		}
-		switch collector.(type) { // nolint
+		switch collector.(type) { // nolint: gocritic
 		case *prometheus.GaugeVec:
 			value, err := strconv.ParseFloat(metric.Value, 64)
 			if err != nil {
 				log.Errorf(nil, "[SendMetrics] Error occurred while parsing %v value %v: %v", metric.Name, metric.Value, err) //nolint
 			}
-			collector.(*prometheus.GaugeVec).WithLabelValues(metric.Labels...).Set(value) // nolint
+			collector.(*prometheus.GaugeVec).WithLabelValues(metric.Labels...).Set(value)
 			if err := m.gauge(metric.Key, value); err != nil {
 				log.Errorf(nil, "[SendMetrics] Error occurred while sending %v data to statsd: %v", metric.Name, err) //nolint
 			}
 		case *prometheus.CounterVec:
-			value, err := strconv.ParseInt(metric.Value, 10, 32) // nolint
+			value, err := strconv.ParseInt(metric.Value, 10, 32)
 			if err != nil {
 				log.Errorf(nil, "[SendMetrics] Error occurred while parsing %v value %v: %v", metric.Name, metric.Value, err) //nolint
 			}
-			collector.(*prometheus.CounterVec).WithLabelValues(metric.Labels...).Add(float64(value)) // nolint
+			collector.(*prometheus.CounterVec).WithLabelValues(metric.Labels...).Add(float64(value))
 			if err := m.count(metric.Key, int(value), 1.0); err != nil {
 				log.Errorf(nil, "[SendMetrics] Error occurred while sending %v data to statsd: %v", metric.Name, err) //nolint
 			}
@@ -151,6 +151,10 @@ func InitMetrics(config types.Config, metricsDescriptions []*resources.MetricsDe
 			Client.Collectors[desc.Name] = collector
 		}
 	}
+	Client.Collectors[deployCountName] = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: deployCountName,
+		Help: "core deploy counter",
+	}, []string{"hostname"})
 
 	once.Do(func() {
 		prometheus.MustRegister(maps.Values(Client.Collectors)...)
