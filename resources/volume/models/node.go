@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-
 	"github.com/projecteru2/core/resources/volume/types"
 	coretypes "github.com/projecteru2/core/types"
+
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // AddNode .
@@ -25,7 +25,8 @@ func (v *Volume) AddNode(ctx context.Context, node string, resourceOpts *types.N
 	resourceInfo := &types.NodeResourceInfo{
 		Capacity: &types.NodeResourceArgs{
 			Volumes: resourceOpts.Volumes,
-			Storage: resourceOpts.Storage + resourceOpts.Volumes.Total(),
+			Storage: resourceOpts.Storage,
+			Disks:   resourceOpts.Disks,
 		},
 		Usage: nil,
 	}

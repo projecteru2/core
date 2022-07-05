@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/docker/go-units"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/projecteru2/core/resources/volume/types"
 	coretypes "github.com/projecteru2/core/types"
+
+	"github.com/docker/go-units"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAddNode(t *testing.T) {
@@ -29,9 +29,9 @@ func TestAddNode(t *testing.T) {
 	// normal case
 	resourceInfo, err := volume.AddNode(ctx, "new-node", resourceOpts)
 	assert.NoError(t, err)
-	assert.Equal(t, resourceInfo.Capacity.Storage, resourceOpts.Storage+resourceOpts.Volumes.Total())
+	assert.Equal(t, resourceInfo.Capacity.Storage, resourceOpts.Storage)
 	assert.Equal(t, resourceInfo.Capacity.Volumes, resourceOpts.Volumes)
-	assert.Equal(t, resourceInfo.Usage, &types.NodeResourceArgs{Volumes: types.VolumeMap{"/data0": 0}})
+	assert.Equal(t, resourceInfo.Usage, &types.NodeResourceArgs{Volumes: types.VolumeMap{"/data0": 0}, Disks: types.Disks{}})
 }
 
 func TestRemoveNode(t *testing.T) {

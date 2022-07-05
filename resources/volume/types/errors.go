@@ -7,6 +7,7 @@ var (
 	ErrInvalidVolume        = errors.New("invalid volume")
 	ErrInsufficientResource = errors.New("cannot alloc a plan, not enough resource")
 	ErrInvalidStorage       = errors.New("invalid storage")
+	ErrInvalidDisk          = errors.New("invalid disk")
 
 	ErrNodeExists = errors.New("node already exists")
 )

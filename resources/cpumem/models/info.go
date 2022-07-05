@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/sanity-io/litter"
-	"github.com/sirupsen/logrus"
-
 	"github.com/projecteru2/core/resources/cpumem/types"
 	"github.com/projecteru2/core/utils"
+
+	"github.com/sanity-io/litter"
+	"github.com/sirupsen/logrus"
 )
 
 const NodeResourceInfoKey = "/resource/cpumem/%s"

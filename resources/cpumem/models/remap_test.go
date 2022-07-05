@@ -5,11 +5,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/docker/go-units"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/projecteru2/core/resources/cpumem/types"
 	coretypes "github.com/projecteru2/core/types"
+
+	"github.com/docker/go-units"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRemap(t *testing.T) {

@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/docker/go-units"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/projecteru2/core/resources/volume/types"
 	coretypes "github.com/projecteru2/core/types"
+
+	"github.com/docker/go-units"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetNodesDeployCapacity(t *testing.T) {

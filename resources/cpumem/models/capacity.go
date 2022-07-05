@@ -4,10 +4,11 @@ import (
 	"context"
 	"math"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/projecteru2/core/resources/cpumem/schedule"
 	"github.com/projecteru2/core/resources/cpumem/types"
+	"github.com/projecteru2/core/utils"
+
+	"github.com/sirupsen/logrus"
 )
 
 // GetNodesDeployCapacity .
@@ -60,9 +61,9 @@ func (c *CPUMem) doGetNodeCapacityInfo(node string, resourceInfo *types.NodeReso
 			capacityInfo.Rate = 0
 		} else {
 			capacityInfo.Capacity = int(availableResourceArgs.Memory / opts.MemRequest)
-			capacityInfo.Rate = float64(opts.MemRequest) / float64(resourceInfo.Capacity.Memory)
+			capacityInfo.Rate = utils.AdvancedDivide(float64(opts.MemRequest), float64(resourceInfo.Capacity.Memory))
 		}
-		capacityInfo.Usage = float64(resourceInfo.Usage.Memory) / float64(resourceInfo.Capacity.Memory)
+		capacityInfo.Usage = utils.AdvancedDivide(float64(resourceInfo.Usage.Memory), float64(resourceInfo.Capacity.Memory))
 
 		return capacityInfo
 	}
@@ -70,8 +71,8 @@ func (c *CPUMem) doGetNodeCapacityInfo(node string, resourceInfo *types.NodeReso
 	// if cpu-bind is required, then returns capacity by cpu scheduling
 	cpuPlans := schedule.GetCPUPlans(resourceInfo, nil, c.Config.Scheduler.ShareBase, c.Config.Scheduler.MaxShare, opts)
 	capacityInfo.Capacity = len(cpuPlans)
-	capacityInfo.Usage = resourceInfo.Usage.CPU / resourceInfo.Capacity.CPU
-	capacityInfo.Rate = opts.CPURequest / resourceInfo.Capacity.CPU
+	capacityInfo.Usage = utils.AdvancedDivide(resourceInfo.Usage.CPU, resourceInfo.Capacity.CPU)
+	capacityInfo.Rate = utils.AdvancedDivide(opts.CPURequest, resourceInfo.Capacity.CPU)
 	capacityInfo.Weight = 100
 
 	return capacityInfo
