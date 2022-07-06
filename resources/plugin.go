@@ -4,6 +4,7 @@ import (
 	"context"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
 )
 
@@ -29,6 +30,7 @@ const (
 	resolveNodeResourceInfoToMetricsCommand = "resolve-metrics"
 )
 
+// Plugin indicate plugin methods
 type Plugin interface {
 	// GetDeployArgs tries to allocate resource, returns engine args for each workload, format: [{"cpus": 1.2}, {"cpus": 1.2}]
 	// also returns resource args for each workload, format: [{"cpus": 1.2}, {"cpus": 1.2}]
@@ -78,9 +80,36 @@ type Plugin interface {
 	// GetMetricsDescription returns metrics description
 	GetMetricsDescription(ctx context.Context) (*GetMetricsDescriptionResponse, error)
 
-	// ResolveNodeResourceInfoToMetrics resolves node resource info to metrics
-	ResolveNodeResourceInfoToMetrics(ctx context.Context, podName string, nodeName string, nodeResourceInfo *NodeResourceInfo) (*ResolveNodeResourceInfoToMetricsResponse, error)
+	// ConvertNodeResourceInfoToMetrics resolves node resource info to metrics
+	ConvertNodeResourceInfoToMetrics(ctx context.Context, podName string, nodeName string, nodeResourceInfo *NodeResourceInfo) (*ConvertNodeResourceInfoToMetricsResponse, error)
 
 	// Name returns the name of plugin
 	Name() string
+}
+
+// Manager indicate manages
+type Manager interface {
+	// GetMostIdleNode .
+	GetMostIdleNode(context.Context, []string) (string, error)
+
+	GetNodesDeployCapacity(context.Context, []string, types.WorkloadResourceOpts) (map[string]*NodeCapacityInfo, int, error)
+
+	SetNodeResourceCapacity(context.Context, string, types.NodeResourceOpts, map[string]types.NodeResourceArgs, bool, bool) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, error)
+
+	GetNodeResourceInfo(context.Context, string, []*types.Workload, bool, []string) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, []string, error)
+
+	SetNodeResourceUsage(context.Context, string, types.NodeResourceOpts, map[string]types.NodeResourceArgs, []map[string]types.WorkloadResourceArgs, bool, bool) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, error)
+
+	Alloc(context.Context, string, int, types.WorkloadResourceOpts) ([]types.EngineArgs, []map[string]types.WorkloadResourceArgs, error)
+	RollbackAlloc(context.Context, string, []map[string]types.WorkloadResourceArgs) error
+	Realloc(context.Context, string, map[string]types.WorkloadResourceArgs, types.WorkloadResourceOpts) (types.EngineArgs, map[string]types.WorkloadResourceArgs, map[string]types.WorkloadResourceArgs, error)
+	RollbackRealloc(context.Context, string, map[string]types.WorkloadResourceArgs) error
+
+	GetMetricsDescription(context.Context) ([]*MetricsDescription, error)
+	ConvertNodeResourceInfoToMetrics(context.Context, string, string, map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs) ([]*Metrics, error)
+
+	AddNode(context.Context, string, types.NodeResourceOpts, *enginetypes.Info) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, error)
+	RemoveNode(context.Context, string) error
+
+	GetRemapArgs(context.Context, string, map[string]*types.Workload) (map[string]types.EngineArgs, error)
 }

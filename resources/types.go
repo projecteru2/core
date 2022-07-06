@@ -170,8 +170,8 @@ type MetricsDescription struct {
 // GetMetricsDescriptionResponse .
 type GetMetricsDescriptionResponse []*MetricsDescription
 
-// ResolveNodeResourceInfoToMetricsRequest .
-type ResolveNodeResourceInfoToMetricsRequest struct {
+// ConvertNodeResourceInfoToMetricsRequest .
+type ConvertNodeResourceInfoToMetricsRequest struct {
 	PodName  string                 `json:"pod"`
 	NodeName string                 `json:"node"`
 	Capacity types.NodeResourceArgs `json:"capacity"`
@@ -186,5 +186,5 @@ type Metrics struct {
 	Value  string   `json:"value"`
 }
 
-// ResolveNodeResourceInfoToMetricsResponse .
-type ResolveNodeResourceInfoToMetricsResponse []*Metrics
+// ConvertNodeResourceInfoToMetricsResponse .
+type ConvertNodeResourceInfoToMetricsResponse []*Metrics

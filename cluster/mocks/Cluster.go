@@ -767,6 +767,20 @@ func (_m *Cluster) RemoveWorkload(ctx context.Context, ids []string, force bool)
 	return r0, r1
 }
 
+// RemoveWorkloadSync provides a mock function with given fields: ctx, ids
+func (_m *Cluster) RemoveWorkloadSync(ctx context.Context, ids []string) error {
+	ret := _m.Called(ctx, ids)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, []string) error); ok {
+		r0 = rf(ctx, ids)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // ReplaceWorkload provides a mock function with given fields: ctx, opts
 func (_m *Cluster) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceWorkloadMessage, error) {
 	ret := _m.Called(ctx, opts)

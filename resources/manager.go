@@ -3,126 +3,52 @@ package resources
 import (
 	"context"
 	"math"
-	"sync"
 
+	"github.com/pkg/errors"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/hashicorp/go-multierror"
-	"github.com/pkg/errors"
-	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
 
-// PluginManager manages plugins
-type PluginManager struct {
-	config  types.Config
-	plugins []Plugin
-}
+// GetMostIdleNode .
+func (pm *PluginsManager) GetMostIdleNode(ctx context.Context, nodeNames []string) (string, error) {
+	var mostIdleNode *GetMostIdleNodeResponse
 
-// NewPluginManager creates a plugin manager
-func NewPluginManager(config types.Config) (*PluginManager, error) {
-	pm := &PluginManager{
-		config:  config,
-		plugins: []Plugin{},
+	if len(nodeNames) == 0 {
+		return "", errors.Wrap(types.ErrGetMostIdleNodeFailed, "empty node names")
 	}
 
-	return pm, nil
-}
-
-// LoadPlugins .
-func (pm *PluginManager) LoadPlugins(ctx context.Context) error {
-	if len(pm.config.ResourcePluginsDir) > 0 { // it's not a slice !
-		pluginFiles, err := utils.ListAllExecutableFiles(pm.config.ResourcePluginsDir)
+	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetMostIdleNodeResponse, error) {
+		resp, err := plugin.GetMostIdleNode(ctx, nodeNames)
 		if err != nil {
-			log.Errorf(ctx, "[LoadPlugins] failed to list all executable files dir: %v, err: %v", pm.config.ResourcePluginsDir, err)
-			return err
+			log.Errorf(ctx, "[GetMostIdleNode] plugin %v failed to get the most idle node of %v, err: %v", plugin.Name(), nodeNames, err)
 		}
-
-		for _, file := range pluginFiles {
-			log.Infof(ctx, "[LoadPlugins] load binary plugin: %v", file)
-			pm.plugins = append(pm.plugins, &BinaryPlugin{path: file, config: pm.config})
-		}
-
-		pluginMap := map[string]Plugin{}
-		for _, plugin := range pm.plugins {
-			pluginMap[plugin.Name()] = plugin
-		}
-		pm.plugins = maps.Values(pluginMap)
-	}
-	return nil
-}
-
-// AddPlugins adds a plugin (for test and debug)
-func (pm *PluginManager) AddPlugins(plugins ...Plugin) {
-	pm.plugins = append(pm.plugins, plugins...)
-}
-
-// GetPlugins is used for mock
-func (pm *PluginManager) GetPlugins() []Plugin {
-	return pm.plugins
-}
-
-func callPlugins[T any](ctx context.Context, plugins []Plugin, f func(Plugin) (T, error)) (map[Plugin]T, error) {
-	resMap := sync.Map{}
-	var combinedErr error
-	wg := &sync.WaitGroup{}
-	wg.Add(len(plugins))
-
-	for _, plugin := range plugins {
-		go func(p Plugin) {
-			defer wg.Done()
-			if res, err := f(p); err != nil {
-				log.Errorf(ctx, "[callPlugins] failed to call plugin %v, err: %v", p.Name(), err)
-				combinedErr = multierror.Append(combinedErr, types.NewDetailedErr(err, p.Name()))
-			} else {
-				resMap.Store(p, res)
-			}
-		}(plugin)
-	}
-	wg.Wait()
-
-	results := map[Plugin]T{}
-	resMap.Range(func(key, value interface{}) bool {
-		plugin := key.(Plugin)
-		res := value.(T)
-		results[plugin] = res
-		return true
+		return resp, err
 	})
-	if len(results) == len(plugins) {
-		return results, nil
+
+	if err != nil {
+		log.Errorf(ctx, "[GetMostIdleNode] failed to get the most idle node of %v", nodeNames)
+		return "", err
 	}
 
-	return results, combinedErr
-}
-
-func (pm *PluginManager) mergeNodeCapacityInfo(m1 map[string]*NodeCapacityInfo, m2 map[string]*NodeCapacityInfo) map[string]*NodeCapacityInfo {
-	if m1 == nil {
-		return m2
-	}
-
-	res := map[string]*NodeCapacityInfo{}
-	for node, info1 := range m1 {
-		// all the capacities should > 0
-		if info2, ok := m2[node]; ok {
-			res[node] = &NodeCapacityInfo{
-				NodeName: node,
-				Capacity: utils.Min(info1.Capacity, info2.Capacity),
-				Rate:     info1.Rate + info2.Rate*info2.Weight,
-				Usage:    info1.Usage + info2.Usage*info2.Weight,
-				Weight:   info1.Weight + info2.Weight,
-			}
+	for _, resp := range respMap {
+		if (mostIdleNode == nil || resp.Priority > mostIdleNode.Priority) && len(resp.NodeName) > 0 {
+			mostIdleNode = resp
 		}
 	}
-	return res
+
+	if mostIdleNode == nil {
+		return "", types.ErrGetMostIdleNodeFailed
+	}
+	return mostIdleNode.NodeName, nil
 }
 
 // GetNodesDeployCapacity returns available nodes which meet all the requirements
 // the caller should require locks
 // pure calculation
-func (pm *PluginManager) GetNodesDeployCapacity(ctx context.Context, nodeNames []string, resourceOpts types.WorkloadResourceOpts) (map[string]*NodeCapacityInfo, int, error) {
+func (pm *PluginsManager) GetNodesDeployCapacity(ctx context.Context, nodeNames []string, resourceOpts types.WorkloadResourceOpts) (map[string]*NodeCapacityInfo, int, error) {
 	var res map[string]*NodeCapacityInfo
 
 	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetNodesDeployCapacityResponse, error) {
@@ -158,148 +84,63 @@ func (pm *PluginManager) GetNodesDeployCapacity(ctx context.Context, nodeNames [
 	return res, total, nil
 }
 
-// mergeEngineArgs e.g. {"file": ["/bin/sh:/bin/sh"], "cpu": 1.2, "cpu-bind": true} + {"file": ["/bin/ls:/bin/ls"], "mem": "1PB"}
-// => {"file": ["/bin/sh:/bin/sh", "/bin/ls:/bin/ls"], "cpu": 1.2, "cpu-bind": true, "mem": "1PB"}
-func (pm *PluginManager) mergeEngineArgs(ctx context.Context, m1 types.EngineArgs, m2 types.EngineArgs) (types.EngineArgs, error) {
-	res := types.EngineArgs{}
-	for key, value := range m1 {
-		res[key] = value
-	}
-	for key, value := range m2 {
-		if _, ok := res[key]; ok {
-			// only two string slices can be merged
-			_, ok1 := res[key].([]string)
-			_, ok2 := value.([]string)
-			if !ok1 || !ok2 {
-				log.Errorf(ctx, "[mergeEngineArgs] only two string slices can be merged! error key %v, m1[key] = %v, m2[key] = %v", key, m1[key], m2[key])
-				return nil, types.ErrInvalidEngineArgs
-			}
-			res[key] = append(res[key].([]string), value.([]string)...)
-		} else {
-			res[key] = value
-		}
-	}
-	return res, nil
-}
+// SetNodeResourceCapacity updates node resource capacity
+// receives resource options instead of resource args
+func (pm *PluginsManager) SetNodeResourceCapacity(ctx context.Context, nodeName string, nodeResourceOpts types.NodeResourceOpts, nodeResourceArgs map[string]types.NodeResourceArgs, delta bool, incr bool) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, error) {
+	rollbackPlugins := []Plugin{}
+	beforeMap := map[string]types.NodeResourceArgs{}
+	afterMap := map[string]types.NodeResourceArgs{}
 
-// Alloc .
-func (pm *PluginManager) Alloc(ctx context.Context, nodeName string, deployCount int, resourceOpts types.WorkloadResourceOpts) ([]types.EngineArgs, []map[string]types.WorkloadResourceArgs, error) {
-	resEngineArgs := make([]types.EngineArgs, deployCount)
-	resResourceArgs := make([]map[string]types.WorkloadResourceArgs, deployCount)
-
-	// init engine args
-	for i := 0; i < deployCount; i++ {
-		resEngineArgs[i] = types.EngineArgs{}
-		resResourceArgs[i] = map[string]types.WorkloadResourceArgs{}
-	}
-
-	return resEngineArgs, resResourceArgs, utils.PCR(ctx,
-		// prepare: calculate engine args and resource args
+	return beforeMap, afterMap, utils.PCR(ctx,
 		func(ctx context.Context) error {
-			respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetDeployArgsResponse, error) {
-				resp, err := plugin.GetDeployArgs(ctx, nodeName, deployCount, resourceOpts)
+			if nodeResourceArgs == nil {
+				nodeResourceArgs = map[string]types.NodeResourceArgs{}
+			}
+			return nil
+		},
+		// commit: call plugins to set node resource
+		func(ctx context.Context) error {
+			respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*SetNodeResourceCapacityResponse, error) {
+				resp, err := plugin.SetNodeResourceCapacity(ctx, nodeName, nodeResourceOpts, nodeResourceArgs[plugin.Name()], delta, incr)
 				if err != nil {
-					log.Errorf(ctx, "[Alloc] plugin %v failed to compute alloc args, request %v, node %v, deploy count %v, err %v", plugin.Name(), resourceOpts, nodeName, deployCount, err)
-				}
-				return resp, err
-			})
-			if err != nil {
-				return err
-			}
-
-			// calculate engine args
-			for plugin, resp := range respMap {
-				for index, args := range resp.ResourceArgs {
-					resResourceArgs[index][plugin.Name()] = args
-				}
-				for index, args := range resp.EngineArgs {
-					resEngineArgs[index], err = pm.mergeEngineArgs(ctx, resEngineArgs[index], args)
-					if err != nil {
-						log.Errorf(ctx, "[Alloc] invalid engine args")
-						return err
-					}
-				}
-			}
-			return nil
-		},
-		// commit: update node resources
-		func(ctx context.Context) error {
-			if _, _, err := pm.SetNodeResourceUsage(ctx, nodeName, nil, nil, resResourceArgs, true, Incr); err != nil {
-				log.Errorf(ctx, "[Alloc] failed to update node resource, err: %v", err)
-				return err
-			}
-			return nil
-		},
-		// rollback: do nothing
-		func(ctx context.Context) error {
-			return nil
-		},
-		pm.config.GlobalTimeout,
-	)
-}
-
-// RollbackAlloc rollbacks the allocated resource
-func (pm *PluginManager) RollbackAlloc(ctx context.Context, nodeName string, resourceArgs []map[string]types.WorkloadResourceArgs) error {
-	_, _, err := pm.SetNodeResourceUsage(ctx, nodeName, nil, nil, resourceArgs, true, Decr)
-	return err
-}
-
-// Realloc reallocates resource for workloads, returns engine args and final resource args.
-func (pm *PluginManager) Realloc(ctx context.Context, nodeName string, originResourceArgs map[string]types.WorkloadResourceArgs, resourceOpts types.WorkloadResourceOpts) (types.EngineArgs, map[string]types.WorkloadResourceArgs, map[string]types.WorkloadResourceArgs, error) {
-	resEngineArgs := types.EngineArgs{}
-	resDeltaResourceArgs := map[string]types.WorkloadResourceArgs{}
-	resFinalResourceArgs := map[string]types.WorkloadResourceArgs{}
-
-	return resEngineArgs, resDeltaResourceArgs, resFinalResourceArgs, utils.PCR(ctx,
-		// prepare: calculate engine args, delta node resource args and final workload resource args
-		func(ctx context.Context) error {
-			respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetReallocArgsResponse, error) {
-				resp, err := plugin.GetReallocArgs(ctx, nodeName, originResourceArgs[plugin.Name()], resourceOpts)
-				if err != nil {
-					log.Errorf(ctx, "[Realloc] plugin %v failed to calculate realloc args, err: %v", plugin.Name(), err)
+					log.Errorf(ctx, "[SetNodeResourceCapacity] node %v plugin %v failed to set node resource capacity, err: %v", nodeName, plugin.Name(), err)
 				}
 				return resp, err
 			})
 
 			if err != nil {
-				log.Errorf(ctx, "[Realloc] realloc failed, origin: %+v, opts: %+v", originResourceArgs, resourceOpts)
-				return err
-			}
-
-			for plugin, resp := range respMap {
-				if resEngineArgs, err = pm.mergeEngineArgs(ctx, resEngineArgs, resp.EngineArgs); err != nil {
-					log.Errorf(ctx, "[Realloc] invalid engine args, err: %v", err)
-					return err
+				for plugin, resp := range respMap {
+					rollbackPlugins = append(rollbackPlugins, plugin)
+					beforeMap[plugin.Name()] = resp.Before
+					afterMap[plugin.Name()] = resp.After
 				}
-				resDeltaResourceArgs[plugin.Name()] = resp.Delta
-				resFinalResourceArgs[plugin.Name()] = resp.ResourceArgs
-			}
-			return nil
-		},
-		// commit: update node resource
-		func(ctx context.Context) error {
-			if _, _, err := pm.SetNodeResourceUsage(ctx, nodeName, nil, nil, []map[string]types.WorkloadResourceArgs{resDeltaResourceArgs}, true, Incr); err != nil {
-				log.Errorf(ctx, "[Realloc] failed to update nodeName resource, err: %v", err)
+
+				log.Errorf(ctx, "[SetNodeResourceCapacity] failed to set node resource for node %v", nodeName)
 				return err
 			}
 			return nil
 		},
-		// rollback: do nothing
+		// rollback: set the rollback resource args in reverse
 		func(ctx context.Context) error {
+			_, err := callPlugins(ctx, rollbackPlugins, func(plugin Plugin) (*SetNodeResourceCapacityResponse, error) {
+				resp, err := plugin.SetNodeResourceCapacity(ctx, nodeName, nil, beforeMap[plugin.Name()], false, false)
+				if err != nil {
+					log.Errorf(ctx, "[SetNodeResourceCapacity] node %v plugin %v failed to rollback node resource capacity, err: %v", err)
+				}
+				return resp, err
+			})
+
+			if err != nil {
+				return err
+			}
 			return nil
 		},
 		pm.config.GlobalTimeout,
 	)
-}
-
-// RollbackRealloc rollbacks the resource changes caused by realloc
-func (pm *PluginManager) RollbackRealloc(ctx context.Context, nodeName string, resourceArgs map[string]types.WorkloadResourceArgs) error {
-	_, _, err := pm.SetNodeResourceUsage(ctx, nodeName, nil, nil, []map[string]types.WorkloadResourceArgs{resourceArgs}, true, Decr)
-	return err
 }
 
 // GetNodeResourceInfo .
-func (pm *PluginManager) GetNodeResourceInfo(ctx context.Context, nodeName string, workloads []*types.Workload, fix bool, pluginWhiteList []string) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, []string, error) {
+func (pm *PluginsManager) GetNodeResourceInfo(ctx context.Context, nodeName string, workloads []*types.Workload, fix bool, pluginWhiteList []string) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, []string, error) {
 	resResourceCapacity := map[string]types.NodeResourceArgs{}
 	resResourceUsage := map[string]types.NodeResourceArgs{}
 	resDiffs := []string{}
@@ -339,7 +180,7 @@ func (pm *PluginManager) GetNodeResourceInfo(ctx context.Context, nodeName strin
 }
 
 // SetNodeResourceUsage with rollback
-func (pm *PluginManager) SetNodeResourceUsage(ctx context.Context, nodeName string, nodeResourceOpts types.NodeResourceOpts, nodeResourceArgs map[string]types.NodeResourceArgs, workloadResourceArgs []map[string]types.WorkloadResourceArgs, delta bool, incr bool) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, error) {
+func (pm *PluginsManager) SetNodeResourceUsage(ctx context.Context, nodeName string, nodeResourceOpts types.NodeResourceOpts, nodeResourceArgs map[string]types.NodeResourceArgs, workloadResourceArgs []map[string]types.WorkloadResourceArgs, delta bool, incr bool) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, error) {
 	workloadResourceArgsMap := map[string][]types.WorkloadResourceArgs{}
 	rollbackPlugins := []Plugin{}
 	beforeMap := map[string]types.NodeResourceArgs{}
@@ -403,98 +244,171 @@ func (pm *PluginManager) SetNodeResourceUsage(ctx context.Context, nodeName stri
 	)
 }
 
-// SetNodeResourceCapacity updates node resource capacity
-// receives resource options instead of resource args
-func (pm *PluginManager) SetNodeResourceCapacity(ctx context.Context, nodeName string, nodeResourceOpts types.NodeResourceOpts, nodeResourceArgs map[string]types.NodeResourceArgs, delta bool, incr bool) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, error) {
-	rollbackPlugins := []Plugin{}
-	beforeMap := map[string]types.NodeResourceArgs{}
-	afterMap := map[string]types.NodeResourceArgs{}
+// Alloc .
+func (pm *PluginsManager) Alloc(ctx context.Context, nodeName string, deployCount int, resourceOpts types.WorkloadResourceOpts) ([]types.EngineArgs, []map[string]types.WorkloadResourceArgs, error) {
+	resEngineArgs := make([]types.EngineArgs, deployCount)
+	resResourceArgs := make([]map[string]types.WorkloadResourceArgs, deployCount)
 
-	return beforeMap, afterMap, utils.PCR(ctx,
+	// init engine args
+	for i := 0; i < deployCount; i++ {
+		resEngineArgs[i] = types.EngineArgs{}
+		resResourceArgs[i] = map[string]types.WorkloadResourceArgs{}
+	}
+
+	return resEngineArgs, resResourceArgs, utils.PCR(ctx,
+		// prepare: calculate engine args and resource args
 		func(ctx context.Context) error {
-			if nodeResourceArgs == nil {
-				nodeResourceArgs = map[string]types.NodeResourceArgs{}
-			}
-			return nil
-		},
-		// commit: call plugins to set node resource
-		func(ctx context.Context) error {
-			respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*SetNodeResourceCapacityResponse, error) {
-				resp, err := plugin.SetNodeResourceCapacity(ctx, nodeName, nodeResourceOpts, nodeResourceArgs[plugin.Name()], delta, incr)
+			respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetDeployArgsResponse, error) {
+				resp, err := plugin.GetDeployArgs(ctx, nodeName, deployCount, resourceOpts)
 				if err != nil {
-					log.Errorf(ctx, "[SetNodeResourceCapacity] node %v plugin %v failed to set node resource capacity, err: %v", nodeName, plugin.Name(), err)
+					log.Errorf(ctx, "[Alloc] plugin %v failed to compute alloc args, request %v, node %v, deploy count %v, err %v", plugin.Name(), resourceOpts, nodeName, deployCount, err)
 				}
 				return resp, err
 			})
-
 			if err != nil {
-				for plugin, resp := range respMap {
-					rollbackPlugins = append(rollbackPlugins, plugin)
-					beforeMap[plugin.Name()] = resp.Before
-					afterMap[plugin.Name()] = resp.After
-				}
+				return err
+			}
 
-				log.Errorf(ctx, "[SetNodeResourceCapacity] failed to set node resource for node %v", nodeName)
+			// calculate engine args
+			for plugin, resp := range respMap {
+				for index, args := range resp.ResourceArgs {
+					resResourceArgs[index][plugin.Name()] = args
+				}
+				for index, args := range resp.EngineArgs {
+					resEngineArgs[index], err = pm.mergeEngineArgs(ctx, resEngineArgs[index], args)
+					if err != nil {
+						log.Errorf(ctx, "[Alloc] invalid engine args")
+						return err
+					}
+				}
+			}
+			return nil
+		},
+		// commit: update node resources
+		func(ctx context.Context) error {
+			if _, _, err := pm.SetNodeResourceUsage(ctx, nodeName, nil, nil, resResourceArgs, true, Incr); err != nil {
+				log.Errorf(ctx, "[Alloc] failed to update node resource, err: %v", err)
 				return err
 			}
 			return nil
 		},
-		// rollback: set the rollback resource args in reverse
+		// rollback: do nothing
 		func(ctx context.Context) error {
-			_, err := callPlugins(ctx, rollbackPlugins, func(plugin Plugin) (*SetNodeResourceCapacityResponse, error) {
-				resp, err := plugin.SetNodeResourceCapacity(ctx, nodeName, nil, beforeMap[plugin.Name()], false, false)
-				if err != nil {
-					log.Errorf(ctx, "[SetNodeResourceCapacity] node %v plugin %v failed to rollback node resource capacity, err: %v", err)
-				}
-				return resp, err
-			})
-
-			if err != nil {
-				return err
-			}
 			return nil
 		},
 		pm.config.GlobalTimeout,
 	)
 }
 
-// GetRemapArgs remaps resource and returns engine args for workloads. format: {"workload-1": {"cpus": ["1-3"]}}
-// remap doesn't change resource args
-func (pm *PluginManager) GetRemapArgs(ctx context.Context, nodeName string, workloadMap map[string]*types.Workload) (map[string]types.EngineArgs, error) {
-	resEngineArgsMap := map[string]types.EngineArgs{}
+// RollbackAlloc rollbacks the allocated resource
+func (pm *PluginsManager) RollbackAlloc(ctx context.Context, nodeName string, resourceArgs []map[string]types.WorkloadResourceArgs) error {
+	_, _, err := pm.SetNodeResourceUsage(ctx, nodeName, nil, nil, resourceArgs, true, Decr)
+	return err
+}
 
-	// call plugins to remap
-	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetRemapArgsResponse, error) {
-		resp, err := plugin.GetRemapArgs(ctx, nodeName, workloadMap)
+// Realloc reallocates resource for workloads, returns engine args and final resource args.
+func (pm *PluginsManager) Realloc(ctx context.Context, nodeName string, originResourceArgs map[string]types.WorkloadResourceArgs, resourceOpts types.WorkloadResourceOpts) (types.EngineArgs, map[string]types.WorkloadResourceArgs, map[string]types.WorkloadResourceArgs, error) {
+	resEngineArgs := types.EngineArgs{}
+	resDeltaResourceArgs := map[string]types.WorkloadResourceArgs{}
+	resFinalResourceArgs := map[string]types.WorkloadResourceArgs{}
+
+	return resEngineArgs, resDeltaResourceArgs, resFinalResourceArgs, utils.PCR(ctx,
+		// prepare: calculate engine args, delta node resource args and final workload resource args
+		func(ctx context.Context) error {
+			respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetReallocArgsResponse, error) {
+				resp, err := plugin.GetReallocArgs(ctx, nodeName, originResourceArgs[plugin.Name()], resourceOpts)
+				if err != nil {
+					log.Errorf(ctx, "[Realloc] plugin %v failed to calculate realloc args, err: %v", plugin.Name(), err)
+				}
+				return resp, err
+			})
+
+			if err != nil {
+				log.Errorf(ctx, "[Realloc] realloc failed, origin: %+v, opts: %+v", originResourceArgs, resourceOpts)
+				return err
+			}
+
+			for plugin, resp := range respMap {
+				if resEngineArgs, err = pm.mergeEngineArgs(ctx, resEngineArgs, resp.EngineArgs); err != nil {
+					log.Errorf(ctx, "[Realloc] invalid engine args, err: %v", err)
+					return err
+				}
+				resDeltaResourceArgs[plugin.Name()] = resp.Delta
+				resFinalResourceArgs[plugin.Name()] = resp.ResourceArgs
+			}
+			return nil
+		},
+		// commit: update node resource
+		func(ctx context.Context) error {
+			if _, _, err := pm.SetNodeResourceUsage(ctx, nodeName, nil, nil, []map[string]types.WorkloadResourceArgs{resDeltaResourceArgs}, true, Incr); err != nil {
+				log.Errorf(ctx, "[Realloc] failed to update nodeName resource, err: %v", err)
+				return err
+			}
+			return nil
+		},
+		// rollback: do nothing
+		func(ctx context.Context) error {
+			return nil
+		},
+		pm.config.GlobalTimeout,
+	)
+}
+
+// RollbackRealloc rollbacks the resource changes caused by realloc
+func (pm *PluginsManager) RollbackRealloc(ctx context.Context, nodeName string, resourceArgs map[string]types.WorkloadResourceArgs) error {
+	_, _, err := pm.SetNodeResourceUsage(ctx, nodeName, nil, nil, []map[string]types.WorkloadResourceArgs{resourceArgs}, true, Decr)
+	return err
+}
+
+// GetMetricsDescription .
+func (pm *PluginsManager) GetMetricsDescription(ctx context.Context) ([]*MetricsDescription, error) {
+	var metricsDescriptions []*MetricsDescription
+	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetMetricsDescriptionResponse, error) {
+		resp, err := plugin.GetMetricsDescription(ctx)
 		if err != nil {
-			log.Errorf(ctx, "[GetRemapArgs] plugin %v node %v failed to remap, err: %v", plugin.Name(), nodeName, err)
+			log.Errorf(ctx, "[GetMetricsDescription] plugin %v failed to get metrics description, err: %v", plugin.Name(), err)
 		}
 		return resp, err
 	})
 
 	if err != nil {
+		log.Errorf(ctx, "[GetMetricsDescription] failed to get metrics description")
 		return nil, err
 	}
 
-	// merge engine args
 	for _, resp := range respMap {
-		for workloadID, engineArgs := range resp.EngineArgsMap {
-			if _, ok := resEngineArgsMap[workloadID]; !ok {
-				resEngineArgsMap[workloadID] = types.EngineArgs{}
-			}
-			resEngineArgsMap[workloadID], err = pm.mergeEngineArgs(ctx, resEngineArgsMap[workloadID], engineArgs)
-			if err != nil {
-				log.Errorf(ctx, "[GetRemapArgs] invalid engine args")
-				return nil, err
-			}
-		}
+		metricsDescriptions = append(metricsDescriptions, *resp...)
 	}
 
-	return resEngineArgsMap, nil
+	return metricsDescriptions, nil
+}
+
+// ConvertNodeResourceInfoToMetrics .
+func (pm *PluginsManager) ConvertNodeResourceInfoToMetrics(ctx context.Context, podName string, nodeName string, nodeResourceCapacity map[string]types.NodeResourceArgs, nodeResourceUsage map[string]types.NodeResourceArgs) ([]*Metrics, error) {
+	var metrics []*Metrics
+	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*ConvertNodeResourceInfoToMetricsResponse, error) {
+		capacity, usage := nodeResourceCapacity[plugin.Name()], nodeResourceUsage[plugin.Name()]
+		resp, err := plugin.ConvertNodeResourceInfoToMetrics(ctx, podName, nodeName, &NodeResourceInfo{Capacity: capacity, Usage: usage})
+		if err != nil {
+			log.Errorf(ctx, "[ConvertNodeResourceInfoToMetrics] plugin %v failed to resolve node resource info to metrics, err: %v", plugin.Name(), err)
+		}
+		return resp, err
+	})
+
+	if err != nil {
+		log.Errorf(ctx, "[ConvertNodeResourceInfoToMetrics] failed to resolve node resource info to metrics")
+		return nil, err
+	}
+
+	for _, resp := range respMap {
+		metrics = append(metrics, *resp...)
+	}
+
+	return metrics, nil
 }
 
 // AddNode .
-func (pm *PluginManager) AddNode(ctx context.Context, nodeName string, resourceOpts types.NodeResourceOpts, nodeInfo *enginetypes.Info) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, error) {
+func (pm *PluginsManager) AddNode(ctx context.Context, nodeName string, resourceOpts types.NodeResourceOpts, nodeInfo *enginetypes.Info) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, error) {
 	resResourceCapacity := map[string]types.NodeResourceArgs{}
 	resResourceUsage := map[string]types.NodeResourceArgs{}
 	rollbackPlugins := []Plugin{}
@@ -552,7 +466,7 @@ func (pm *PluginManager) AddNode(ctx context.Context, nodeName string, resourceO
 }
 
 // RemoveNode .
-func (pm *PluginManager) RemoveNode(ctx context.Context, nodeName string) error {
+func (pm *PluginsManager) RemoveNode(ctx context.Context, nodeName string) error {
 	var resourceCapacityMap map[string]types.NodeResourceArgs
 	var resourceUsageMap map[string]types.NodeResourceArgs
 	rollbackPlugins := []Plugin{}
@@ -608,82 +522,82 @@ func (pm *PluginManager) RemoveNode(ctx context.Context, nodeName string) error 
 	)
 }
 
-// GetMostIdleNode ,
-func (pm *PluginManager) GetMostIdleNode(ctx context.Context, nodeNames []string) (string, error) {
-	var mostIdleNode *GetMostIdleNodeResponse
+// GetRemapArgs remaps resource and returns engine args for workloads. format: {"workload-1": {"cpus": ["1-3"]}}
+// remap doesn't change resource args
+func (pm *PluginsManager) GetRemapArgs(ctx context.Context, nodeName string, workloadMap map[string]*types.Workload) (map[string]types.EngineArgs, error) {
+	resEngineArgsMap := map[string]types.EngineArgs{}
 
-	if len(nodeNames) == 0 {
-		return "", errors.Wrap(types.ErrGetMostIdleNodeFailed, "empty node names")
-	}
-
-	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetMostIdleNodeResponse, error) {
-		resp, err := plugin.GetMostIdleNode(ctx, nodeNames)
+	// call plugins to remap
+	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetRemapArgsResponse, error) {
+		resp, err := plugin.GetRemapArgs(ctx, nodeName, workloadMap)
 		if err != nil {
-			log.Errorf(ctx, "[GetMostIdleNode] plugin %v failed to get the most idle node of %v, err: %v", plugin.Name(), nodeNames, err)
+			log.Errorf(ctx, "[GetRemapArgs] plugin %v node %v failed to remap, err: %v", plugin.Name(), nodeName, err)
 		}
 		return resp, err
 	})
 
 	if err != nil {
-		log.Errorf(ctx, "[GetMostIdleNode] failed to get the most idle node of %v", nodeNames)
-		return "", err
-	}
-
-	for _, resp := range respMap {
-		if (mostIdleNode == nil || resp.Priority > mostIdleNode.Priority) && len(resp.NodeName) > 0 {
-			mostIdleNode = resp
-		}
-	}
-
-	if mostIdleNode == nil {
-		return "", types.ErrGetMostIdleNodeFailed
-	}
-	return mostIdleNode.NodeName, nil
-}
-
-// GetMetricsDescription .
-func (pm *PluginManager) GetMetricsDescription(ctx context.Context) ([]*MetricsDescription, error) {
-	var metricsDescriptions []*MetricsDescription
-	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetMetricsDescriptionResponse, error) {
-		resp, err := plugin.GetMetricsDescription(ctx)
-		if err != nil {
-			log.Errorf(ctx, "[GetMetricsDescription] plugin %v failed to get metrics description, err: %v", plugin.Name(), err)
-		}
-		return resp, err
-	})
-
-	if err != nil {
-		log.Errorf(ctx, "[GetMetricsDescription] failed to get metrics description")
 		return nil, err
 	}
 
+	// merge engine args
 	for _, resp := range respMap {
-		metricsDescriptions = append(metricsDescriptions, *resp...)
+		for workloadID, engineArgs := range resp.EngineArgsMap {
+			if _, ok := resEngineArgsMap[workloadID]; !ok {
+				resEngineArgsMap[workloadID] = types.EngineArgs{}
+			}
+			resEngineArgsMap[workloadID], err = pm.mergeEngineArgs(ctx, resEngineArgsMap[workloadID], engineArgs)
+			if err != nil {
+				log.Errorf(ctx, "[GetRemapArgs] invalid engine args")
+				return nil, err
+			}
+		}
 	}
 
-	return metricsDescriptions, nil
+	return resEngineArgsMap, nil
 }
 
-// ResolveNodeResourceInfoToMetrics .
-func (pm *PluginManager) ResolveNodeResourceInfoToMetrics(ctx context.Context, podName string, nodeName string, nodeResourceCapacity map[string]types.NodeResourceArgs, nodeResourceUsage map[string]types.NodeResourceArgs) ([]*Metrics, error) {
-	var metrics []*Metrics
-	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*ResolveNodeResourceInfoToMetricsResponse, error) {
-		capacity, usage := nodeResourceCapacity[plugin.Name()], nodeResourceUsage[plugin.Name()]
-		resp, err := plugin.ResolveNodeResourceInfoToMetrics(ctx, podName, nodeName, &NodeResourceInfo{Capacity: capacity, Usage: usage})
-		if err != nil {
-			log.Errorf(ctx, "[ResolveNodeResourceInfoToMetrics] plugin %v failed to resolve node resource info to metrics, err: %v", plugin.Name(), err)
+func (pm *PluginsManager) mergeNodeCapacityInfo(m1 map[string]*NodeCapacityInfo, m2 map[string]*NodeCapacityInfo) map[string]*NodeCapacityInfo {
+	if m1 == nil {
+		return m2
+	}
+
+	res := map[string]*NodeCapacityInfo{}
+	for node, info1 := range m1 {
+		// all the capacities should > 0
+		if info2, ok := m2[node]; ok {
+			res[node] = &NodeCapacityInfo{
+				NodeName: node,
+				Capacity: utils.Min(info1.Capacity, info2.Capacity),
+				Rate:     info1.Rate + info2.Rate*info2.Weight,
+				Usage:    info1.Usage + info2.Usage*info2.Weight,
+				Weight:   info1.Weight + info2.Weight,
+			}
 		}
-		return resp, err
-	})
-
-	if err != nil {
-		log.Errorf(ctx, "[ResolveNodeResourceInfoToMetrics] failed to resolve node resource info to metrics")
-		return nil, err
 	}
+	return res
+}
 
-	for _, resp := range respMap {
-		metrics = append(metrics, *resp...)
+// mergeEngineArgs e.g. {"file": ["/bin/sh:/bin/sh"], "cpu": 1.2, "cpu-bind": true} + {"file": ["/bin/ls:/bin/ls"], "mem": "1PB"}
+// => {"file": ["/bin/sh:/bin/sh", "/bin/ls:/bin/ls"], "cpu": 1.2, "cpu-bind": true, "mem": "1PB"}
+func (pm *PluginsManager) mergeEngineArgs(ctx context.Context, m1 types.EngineArgs, m2 types.EngineArgs) (types.EngineArgs, error) {
+	res := types.EngineArgs{}
+	for key, value := range m1 {
+		res[key] = value
 	}
-
-	return metrics, nil
+	for key, value := range m2 {
+		if _, ok := res[key]; ok {
+			// only two string slices can be merged
+			_, ok1 := res[key].([]string)
+			_, ok2 := value.([]string)
+			if !ok1 || !ok2 {
+				log.Errorf(ctx, "[mergeEngineArgs] only two string slices can be merged! error key %v, m1[key] = %v, m2[key] = %v", key, m1[key], m2[key])
+				return nil, types.ErrInvalidEngineArgs
+			}
+			res[key] = append(res[key].([]string), value.([]string)...)
+		} else {
+			res[key] = value
+		}
+	}
+	return res, nil
 }

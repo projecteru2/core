@@ -15,7 +15,7 @@ func (c *Calcium) InitMetrics() {
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
-	metricsDescriptions, err := c.resource.GetMetricsDescription(ctx)
+	metricsDescriptions, err := c.rmgr.GetMetricsDescription(ctx)
 	if err != nil {
 		log.Errorf(ctx, "[InitMetrics] failed to get metrics description, err: %v", err)
 		return
@@ -37,7 +37,7 @@ func (c *Calcium) SendNodeMetrics(ctx context.Context, nodeName string) {
 		return
 	}
 
-	nodeMetrics, err := c.resource.ResolveNodeResourceInfoToMetrics(ctx, node.Podname, node.Name, node.ResourceCapacity, node.ResourceUsage)
+	nodeMetrics, err := c.rmgr.ConvertNodeResourceInfoToMetrics(ctx, node.Podname, node.Name, node.ResourceCapacity, node.ResourceUsage)
 	if err != nil {
 		log.Errorf(ctx, "[SendNodeMetrics] resolve node %s resource info to metrics failed, %v", nodeName, err)
 		return

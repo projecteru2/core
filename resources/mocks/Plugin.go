@@ -41,6 +41,29 @@ func (_m *Plugin) AddNode(ctx context.Context, nodeName string, resourceOpts typ
 	return r0, r1
 }
 
+// ConvertNodeResourceInfoToMetrics provides a mock function with given fields: ctx, podName, nodeName, nodeResourceInfo
+func (_m *Plugin) ConvertNodeResourceInfoToMetrics(ctx context.Context, podName string, nodeName string, nodeResourceInfo *resources.NodeResourceInfo) (*resources.ConvertNodeResourceInfoToMetricsResponse, error) {
+	ret := _m.Called(ctx, podName, nodeName, nodeResourceInfo)
+
+	var r0 *resources.ConvertNodeResourceInfoToMetricsResponse
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, *resources.NodeResourceInfo) *resources.ConvertNodeResourceInfoToMetricsResponse); ok {
+		r0 = rf(ctx, podName, nodeName, nodeResourceInfo)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*resources.ConvertNodeResourceInfoToMetricsResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, *resources.NodeResourceInfo) error); ok {
+		r1 = rf(ctx, podName, nodeName, nodeResourceInfo)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // FixNodeResource provides a mock function with given fields: ctx, nodeName, workloads
 func (_m *Plugin) FixNodeResource(ctx context.Context, nodeName string, workloads []*types.Workload) (*resources.GetNodeResourceInfoResponse, error) {
 	ret := _m.Called(ctx, nodeName, workloads)
@@ -255,29 +278,6 @@ func (_m *Plugin) RemoveNode(ctx context.Context, nodeName string) (*resources.R
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = rf(ctx, nodeName)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// ResolveNodeResourceInfoToMetrics provides a mock function with given fields: ctx, podName, nodeName, nodeResourceInfo
-func (_m *Plugin) ResolveNodeResourceInfoToMetrics(ctx context.Context, podName string, nodeName string, nodeResourceInfo *resources.NodeResourceInfo) (*resources.ResolveNodeResourceInfoToMetricsResponse, error) {
-	ret := _m.Called(ctx, podName, nodeName, nodeResourceInfo)
-
-	var r0 *resources.ResolveNodeResourceInfoToMetricsResponse
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, *resources.NodeResourceInfo) *resources.ResolveNodeResourceInfoToMetricsResponse); ok {
-		r0 = rf(ctx, podName, nodeName, nodeResourceInfo)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*resources.ResolveNodeResourceInfoToMetricsResponse)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, *resources.NodeResourceInfo) error); ok {
-		r1 = rf(ctx, podName, nodeName, nodeResourceInfo)
 	} else {
 		r1 = ret.Error(1)
 	}

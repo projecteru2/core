@@ -39,7 +39,7 @@ mock: deps
 	mockery --dir store/etcdv3/meta --output store/etcdv3/meta/mocks --all
 	mockery --dir vendor/go.etcd.io/etcd/client/v3 --output store/etcdv3/meta/mocks --name Txn
 	mockery --dir rpc/gen/ --output rpc/mocks --name CoreRPC_RunAndWaitServer
-	mockery --dir resources --output resources/mocks --name Plugin
+	mockery --dir resources --output resources/mocks --all
 
 .ONESHELL:
 

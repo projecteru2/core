@@ -46,7 +46,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool) 
 										for plugin, args := range workload.ResourceArgs {
 											resourceArgs[plugin] = args
 										}
-										_, _, err = c.resource.SetNodeResourceUsage(ctx, node.Name, nil, nil, []map[string]types.WorkloadResourceArgs{resourceArgs}, true, resources.Decr)
+										_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []map[string]types.WorkloadResourceArgs{resourceArgs}, true, resources.Decr)
 										return errors.WithStack(err)
 									},
 									// then
@@ -65,7 +65,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool) 
 										for plugin, args := range workload.ResourceArgs {
 											resourceArgs[plugin] = args
 										}
-										_, _, err = c.resource.SetNodeResourceUsage(ctx, node.Name, nil, nil, []map[string]types.WorkloadResourceArgs{resourceArgs}, true, resources.Incr)
+										_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []map[string]types.WorkloadResourceArgs{resourceArgs}, true, resources.Incr)
 										return errors.WithStack(err)
 									},
 									c.config.GlobalTimeout,
@@ -89,6 +89,11 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool) 
 		}
 	})
 	return ch, nil
+}
+
+// RemoveWorkloadSync .
+func (c *Calcium) RemoveWorkloadSync(ctx context.Context, ids []string) error {
+	return c.doRemoveWorkloadSync(ctx, ids)
 }
 
 // semantic: instance removed on err == nil, instance remained on err != nil

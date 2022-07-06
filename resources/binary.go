@@ -21,96 +21,6 @@ type BinaryPlugin struct {
 	config coretypes.Config
 }
 
-func (bp *BinaryPlugin) getArgs(req interface{}) []string {
-	t := reflect.TypeOf(req)
-	if t.Kind() != reflect.Struct {
-		return nil
-	}
-	v := reflect.ValueOf(req)
-	args := []string{}
-
-	for i := 0; i < t.NumField(); i++ {
-		fieldType := t.Field(i).Type
-		fieldValue := v.Field(i).Interface()
-		jsonTag := t.Field(i).Tag.Get("json")
-
-		switch {
-		case fieldType.Kind() == reflect.Map:
-			if v.Field(i).IsZero() {
-				break
-			}
-			body, err := json.Marshal(fieldValue)
-			if err != nil {
-				break
-			}
-			args = append(args, "--"+jsonTag, string(body))
-		case fieldType.Kind() == reflect.Slice:
-			for j := 0; j < v.Field(i).Len(); j++ {
-				if v.Field(i).Index(j).Kind() == reflect.Map {
-					body, err := json.Marshal(v.Field(i).Index(j).Interface())
-					if err != nil {
-						break
-					}
-					args = append(args, "--"+jsonTag, string(body))
-				} else {
-					args = append(args, "--"+jsonTag, fmt.Sprintf("%v", v.Field(i).Index(j).Interface()))
-				}
-			}
-		case fieldType.Kind() == reflect.Bool:
-			if fieldValue.(bool) {
-				args = append(args, "--"+jsonTag)
-			}
-		default:
-			args = append(args, "--"+jsonTag, fmt.Sprintf("%v", fieldValue))
-		}
-	}
-	return args
-}
-
-func (bp *BinaryPlugin) execCommand(cmd *exec.Cmd) (output, log string, err error) {
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	err = cmd.Run()
-	output = stdout.String()
-	log = stderr.String()
-	if err != nil {
-		err = fmt.Errorf("err: %v, output: %v, log: %v", err, output, log)
-	}
-	return output, log, err
-}
-
-// calls the plugin and gets json response
-func (bp *BinaryPlugin) call(ctx context.Context, cmd string, req interface{}, resp interface{}) error {
-	ctx, cancel := context.WithTimeout(ctx, bp.config.ResourcePluginsTimeout)
-	defer cancel()
-
-	args := bp.getArgs(req)
-	args = append([]string{cmd}, args...)
-	command := exec.CommandContext(ctx, bp.path, args...) // nolint: gosec
-	command.Dir = bp.config.ResourcePluginsDir
-	log.Infof(ctx, "[callBinaryPlugin] command: %s %s", bp.path, strings.Join(args, " "))
-	pluginOutput, pluginLog, err := bp.execCommand(command)
-
-	defer log.Infof(ctx, "[callBinaryPlugin] log from plugin %s: %s", bp.path, pluginLog)
-	defer log.Infof(ctx, "[callBinaryPlugin] output from plugin %s: %s", bp.path, pluginOutput)
-
-	if err != nil {
-		log.Errorf(ctx, "[callBinaryPlugin] failed to run plugin %s, command %v, err %s", bp.path, args, err)
-		return err
-	}
-
-	if len(pluginOutput) == 0 {
-		pluginOutput = "{}"
-	}
-	if err := json.Unmarshal([]byte(pluginOutput), resp); err != nil {
-		log.Errorf(ctx, "[callBinaryPlugin] failed to unmarshal output of plugin %s, command %v, output %s, err %s", bp.path, args, pluginOutput, err)
-		return err
-	}
-	return nil
-}
-
 // GetNodesDeployCapacity .
 func (bp *BinaryPlugin) GetNodesDeployCapacity(ctx context.Context, nodes []string, resourceOpts coretypes.WorkloadResourceOpts) (resp *GetNodesDeployCapacityResponse, err error) {
 	req := GetNodesDeployCapacityRequest{
@@ -120,24 +30,6 @@ func (bp *BinaryPlugin) GetNodesDeployCapacity(ctx context.Context, nodes []stri
 	resp = &GetNodesDeployCapacityResponse{}
 	err = bp.call(ctx, getNodesCapacityCommand, req, resp)
 	return resp, err
-}
-
-func (bp *BinaryPlugin) getNodeResourceInfo(ctx context.Context, nodeName string, workloads []*coretypes.Workload, fix bool) (resp *GetNodeResourceInfoResponse, err error) {
-	workloadMap := map[string]coretypes.WorkloadResourceArgs{}
-	for _, workload := range workloads {
-		workloadMap[workload.ID] = workload.ResourceArgs[bp.Name()]
-	}
-
-	req := GetNodeResourceInfoRequest{
-		NodeName:    nodeName,
-		WorkloadMap: workloadMap,
-		Fix:         fix,
-	}
-	resp = &GetNodeResourceInfoResponse{}
-	if err = bp.call(ctx, getNodeResourceInfoCommand, req, resp); err != nil {
-		return nil, err
-	}
-	return resp, nil
 }
 
 // GetNodeResourceInfo .
@@ -271,11 +163,6 @@ func (bp *BinaryPlugin) GetMostIdleNode(ctx context.Context, nodeNames []string)
 	return resp, bp.call(ctx, getMostIdleNodeCommand, req, resp)
 }
 
-// Name .
-func (bp *BinaryPlugin) Name() string {
-	return path.Base(bp.path)
-}
-
 // GetMetricsDescription .
 func (bp *BinaryPlugin) GetMetricsDescription(ctx context.Context) (*GetMetricsDescriptionResponse, error) {
 	req := GetMetricsDescriptionRequest{}
@@ -283,14 +170,127 @@ func (bp *BinaryPlugin) GetMetricsDescription(ctx context.Context) (*GetMetricsD
 	return resp, bp.call(ctx, getMetricsDescriptionCommand, req, resp)
 }
 
-// ResolveNodeResourceInfoToMetrics .
-func (bp *BinaryPlugin) ResolveNodeResourceInfoToMetrics(ctx context.Context, podName string, nodeName string, nodeResourceInfo *NodeResourceInfo) (*ResolveNodeResourceInfoToMetricsResponse, error) {
-	req := ResolveNodeResourceInfoToMetricsRequest{
+// ConvertNodeResourceInfoToMetrics .
+func (bp *BinaryPlugin) ConvertNodeResourceInfoToMetrics(ctx context.Context, podName string, nodeName string, nodeResourceInfo *NodeResourceInfo) (*ConvertNodeResourceInfoToMetricsResponse, error) {
+	req := ConvertNodeResourceInfoToMetricsRequest{
 		PodName:  podName,
 		NodeName: nodeName,
 		Capacity: nodeResourceInfo.Capacity,
 		Usage:    nodeResourceInfo.Usage,
 	}
-	resp := &ResolveNodeResourceInfoToMetricsResponse{}
+	resp := &ConvertNodeResourceInfoToMetricsResponse{}
 	return resp, bp.call(ctx, resolveNodeResourceInfoToMetricsCommand, req, resp)
+}
+
+// Name .
+func (bp *BinaryPlugin) Name() string {
+	return path.Base(bp.path)
+}
+
+func (bp *BinaryPlugin) getArgs(req interface{}) []string {
+	t := reflect.TypeOf(req)
+	if t.Kind() != reflect.Struct {
+		return nil
+	}
+	v := reflect.ValueOf(req)
+	args := []string{}
+
+	for i := 0; i < t.NumField(); i++ {
+		fieldType := t.Field(i).Type
+		fieldValue := v.Field(i).Interface()
+		jsonTag := t.Field(i).Tag.Get("json")
+
+		switch {
+		case fieldType.Kind() == reflect.Map:
+			if v.Field(i).IsZero() {
+				break
+			}
+			body, err := json.Marshal(fieldValue)
+			if err != nil {
+				break
+			}
+			args = append(args, "--"+jsonTag, string(body))
+		case fieldType.Kind() == reflect.Slice:
+			for j := 0; j < v.Field(i).Len(); j++ {
+				if v.Field(i).Index(j).Kind() == reflect.Map {
+					body, err := json.Marshal(v.Field(i).Index(j).Interface())
+					if err != nil {
+						break
+					}
+					args = append(args, "--"+jsonTag, string(body))
+				} else {
+					args = append(args, "--"+jsonTag, fmt.Sprintf("%v", v.Field(i).Index(j).Interface()))
+				}
+			}
+		case fieldType.Kind() == reflect.Bool:
+			if fieldValue.(bool) {
+				args = append(args, "--"+jsonTag)
+			}
+		default:
+			args = append(args, "--"+jsonTag, fmt.Sprintf("%v", fieldValue))
+		}
+	}
+	return args
+}
+
+func (bp *BinaryPlugin) execCommand(cmd *exec.Cmd) (output, log string, err error) {
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err = cmd.Run()
+	output = stdout.String()
+	log = stderr.String()
+	if err != nil {
+		err = fmt.Errorf("err: %v, output: %v, log: %v", err, output, log)
+	}
+	return output, log, err
+}
+
+// calls the plugin and gets json response
+func (bp *BinaryPlugin) call(ctx context.Context, cmd string, req interface{}, resp interface{}) error {
+	ctx, cancel := context.WithTimeout(ctx, bp.config.ResourcePluginsTimeout)
+	defer cancel()
+
+	args := bp.getArgs(req)
+	args = append([]string{cmd}, args...)
+	command := exec.CommandContext(ctx, bp.path, args...) // nolint: gosec
+	command.Dir = bp.config.ResourcePluginsDir
+	log.Infof(ctx, "[callBinaryPlugin] command: %s %s", bp.path, strings.Join(args, " "))
+	pluginOutput, pluginLog, err := bp.execCommand(command)
+
+	defer log.Infof(ctx, "[callBinaryPlugin] log from plugin %s: %s", bp.path, pluginLog)
+	defer log.Infof(ctx, "[callBinaryPlugin] output from plugin %s: %s", bp.path, pluginOutput)
+
+	if err != nil {
+		log.Errorf(ctx, "[callBinaryPlugin] failed to run plugin %s, command %v, err %s", bp.path, args, err)
+		return err
+	}
+
+	if len(pluginOutput) == 0 {
+		pluginOutput = "{}"
+	}
+	if err := json.Unmarshal([]byte(pluginOutput), resp); err != nil {
+		log.Errorf(ctx, "[callBinaryPlugin] failed to unmarshal output of plugin %s, command %v, output %s, err %s", bp.path, args, pluginOutput, err)
+		return err
+	}
+	return nil
+}
+
+func (bp *BinaryPlugin) getNodeResourceInfo(ctx context.Context, nodeName string, workloads []*coretypes.Workload, fix bool) (resp *GetNodeResourceInfoResponse, err error) {
+	workloadMap := map[string]coretypes.WorkloadResourceArgs{}
+	for _, workload := range workloads {
+		workloadMap[workload.ID] = workload.ResourceArgs[bp.Name()]
+	}
+
+	req := GetNodeResourceInfoRequest{
+		NodeName:    nodeName,
+		WorkloadMap: workloadMap,
+		Fix:         fix,
+	}
+	resp = &GetNodeResourceInfoResponse{}
+	if err = bp.call(ctx, getNodeResourceInfoCommand, req, resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
 }

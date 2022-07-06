@@ -25,7 +25,7 @@ func (v *Volume) GetMetricsDescription() []map[string]interface{} {
 	}
 }
 
-func (v *Volume) ResolveNodeResourceInfoToMetrics(podName string, nodeName string, nodeResourceCapacity *types.NodeResourceArgs, nodeResourceUsage *types.NodeResourceArgs) []map[string]interface{} {
+func (v *Volume) ConvertNodeResourceInfoToMetrics(podName string, nodeName string, nodeResourceCapacity *types.NodeResourceArgs, nodeResourceUsage *types.NodeResourceArgs) []map[string]interface{} {
 	cleanedNodeName := strings.ReplaceAll(nodeName, ".", "_")
 	metrics := []map[string]interface{}{
 		{

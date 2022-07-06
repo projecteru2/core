@@ -17,6 +17,7 @@ import (
 	"github.com/projecteru2/core/source/gitlab"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/wal"
 
 	"github.com/pkg/errors"
 )
@@ -25,10 +26,10 @@ import (
 type Calcium struct {
 	config     types.Config
 	store      store.Store
-	resource   *resources.PluginManager
+	rmgr       resources.Manager
 	source     source.Source
 	watcher    discovery.Service
-	wal        *WAL
+	wal        wal.WAL
 	identifier string
 }
 
@@ -62,7 +63,7 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 	watcher := helium.New(config.GRPCConfig, store)
 
 	// set resource plugin manager
-	resource, err := resources.NewPluginManager(config)
+	rmgr, err := resources.NewPluginsManager(config)
 	if err != nil {
 		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
@@ -73,23 +74,20 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 		log.Errorf(ctx, "[NewPluginManager] new cpumem plugin error: %v", err)
 		return nil, err
 	}
-	resource.AddPlugins(cpumem)
-
-	// load volume plugin
 	volume, err := volume.NewPlugin(config)
 	if err != nil {
 		log.Errorf(ctx, "[NewPluginManager] new volume plugin error: %v", err)
 		return nil, err
 	}
-	resource.AddPlugins(volume)
+	rmgr.AddPlugins(cpumem, volume)
 	// load binary plugins
-	if err = resource.LoadPlugins(ctx); err != nil {
+	if err = rmgr.LoadPlugins(ctx); err != nil {
 		return nil, err
 	}
 
-	cal := &Calcium{store: store, config: config, source: scm, watcher: watcher, resource: resource}
+	cal := &Calcium{store: store, config: config, source: scm, watcher: watcher, rmgr: rmgr}
 
-	cal.wal, err = newWAL(config, cal)
+	cal.wal, err = enableWAL(config, cal, store)
 	if err != nil {
 		return nil, logger.ErrWithTracing(nil, errors.WithStack(err)) //nolint
 	}

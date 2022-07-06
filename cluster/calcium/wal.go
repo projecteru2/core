@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
@@ -19,44 +21,31 @@ const (
 	eventProcessingCreated         = "create-processing" // processing created but yet to delete
 )
 
-// WAL for calcium.
-type WAL struct {
-	wal.WAL
-	calcium *Calcium
-}
-
-func newWAL(config types.Config, calcium *Calcium) (*WAL, error) {
+func enableWAL(config types.Config, calcium cluster.Cluster, stor store.Store) (wal.WAL, error) {
 	hydro, err := wal.NewHydro(config.WALFile, config.WALOpenTimeout)
 	if err != nil {
 		return nil, err
 	}
 
-	w := &WAL{
-		WAL:     hydro,
-		calcium: calcium,
-	}
-
-	w.registerHandlers()
-	return w, nil
-}
-
-func (w *WAL) registerHandlers() {
-	w.Register(newCreateLambdaHandler(w.calcium))
-	w.Register(newCreateWorkloadHandler(w.calcium))
-	w.Register(newWorkloadResourceAllocatedHandler(w.calcium))
-	w.Register(newProcessingCreatedHandler(w.calcium))
+	hydro.Register(newCreateLambdaHandler(calcium, stor))
+	hydro.Register(newCreateWorkloadHandler(calcium, stor))
+	hydro.Register(newWorkloadResourceAllocatedHandler(calcium, stor))
+	hydro.Register(newProcessingCreatedHandler(calcium, stor))
+	return hydro, nil
 }
 
 // CreateLambdaHandler indicates event handler for creating lambda.
 type CreateLambdaHandler struct {
 	typ     string
-	calcium *Calcium
+	calcium cluster.Cluster
+	stor    store.Store
 }
 
-func newCreateLambdaHandler(calcium *Calcium) *CreateLambdaHandler {
+func newCreateLambdaHandler(calcium cluster.Cluster, stor store.Store) *CreateLambdaHandler {
 	return &CreateLambdaHandler{
 		typ:     eventCreateLambda,
 		calcium: calcium,
+		stor:    stor,
 	}
 }
 
@@ -108,7 +97,7 @@ func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error
 			logger.Errorf(ctx, "Run failed: %s", r.Message)
 		}
 
-		if err := h.calcium.doRemoveWorkloadSync(ctx, []string{workloadID}); err != nil {
+		if err := h.calcium.RemoveWorkloadSync(ctx, []string{workloadID}); err != nil {
 			logger.Errorf(ctx, "Remove failed: %+v", err)
 		}
 		logger.Infof(ctx, "waited and removed")
@@ -120,13 +109,15 @@ func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error
 // CreateWorkloadHandler indicates event handler for creating workload.
 type CreateWorkloadHandler struct {
 	typ     string
-	calcium *Calcium
+	calcium cluster.Cluster
+	stor    store.Store
 }
 
-func newCreateWorkloadHandler(calcium *Calcium) *CreateWorkloadHandler {
+func newCreateWorkloadHandler(calcium cluster.Cluster, stor store.Store) *CreateWorkloadHandler {
 	return &CreateWorkloadHandler{
 		typ:     eventWorkloadCreated,
 		calcium: calcium,
+		stor:    stor,
 	}
 }
 
@@ -169,7 +160,7 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (er
 	defer cancel()
 
 	if _, err = h.calcium.GetWorkload(ctx, wrk.ID); err == nil {
-		return h.calcium.doRemoveWorkloadSync(ctx, []string{wrk.ID})
+		return h.calcium.RemoveWorkloadSync(ctx, []string{wrk.ID})
 	}
 
 	// workload meta doesn't exist
@@ -188,13 +179,15 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (er
 // WorkloadResourceAllocatedHandler .
 type WorkloadResourceAllocatedHandler struct {
 	typ     string
-	calcium *Calcium
+	calcium cluster.Cluster
+	stor    store.Store
 }
 
-func newWorkloadResourceAllocatedHandler(calcium *Calcium) *WorkloadResourceAllocatedHandler {
+func newWorkloadResourceAllocatedHandler(calcium cluster.Cluster, stor store.Store) *WorkloadResourceAllocatedHandler {
 	return &WorkloadResourceAllocatedHandler{
 		typ:     eventWorkloadResourceAllocated,
 		calcium: calcium,
+		stor:    stor,
 	}
 }
 
@@ -256,13 +249,15 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw inter
 // ProcessingCreatedHandler .
 type ProcessingCreatedHandler struct {
 	typ     string
-	calcium *Calcium
+	calcium cluster.Cluster
+	stor    store.Store
 }
 
-func newProcessingCreatedHandler(calcium *Calcium) *ProcessingCreatedHandler {
+func newProcessingCreatedHandler(calcium cluster.Cluster, stor store.Store) *ProcessingCreatedHandler {
 	return &ProcessingCreatedHandler{
 		typ:     eventProcessingCreated,
 		calcium: calcium,
+		stor:    stor,
 	}
 }
 
@@ -302,7 +297,7 @@ func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw interface{}) 
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
 
-	if err = h.calcium.store.DeleteProcessing(ctx, processing); err != nil {
+	if err = h.stor.DeleteProcessing(ctx, processing); err != nil {
 		return logger.ErrWithTracing(ctx, err)
 	}
 	logger.Infof(ctx, "obsolete processing deleted")

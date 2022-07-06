@@ -42,7 +42,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 		func(ctx context.Context) error {
 			// note here will change the node resource meta (stored in resource plugin)
 			// todo: add wal here
-			engineArgs, deltaResourceArgs, resourceArgs, err = c.resource.Realloc(ctx, workload.Nodename, workload.ResourceArgs, opts.ResourceOpts)
+			engineArgs, deltaResourceArgs, resourceArgs, err = c.rmgr.Realloc(ctx, workload.Nodename, workload.ResourceArgs, opts.ResourceOpts)
 			if err != nil {
 				return err
 			}
@@ -60,7 +60,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 			if failureByCond {
 				return nil
 			}
-			if err := c.resource.RollbackRealloc(ctx, workload.Nodename, deltaResourceArgs); err != nil {
+			if err := c.rmgr.RollbackRealloc(ctx, workload.Nodename, deltaResourceArgs); err != nil {
 				log.Errorf(ctx, "[doReallocOnNode] failed to rollback workload %v, resource args %v, engine args %v, err %v", workload.ID, litter.Sdump(resourceArgs), litter.Sdump(engineArgs), err)
 				// don't return here, so the node resource can still be fixed
 			}

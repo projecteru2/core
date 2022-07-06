@@ -311,8 +311,8 @@ func (c *Plugin) GetMetricsDescription(ctx context.Context) (*resources.GetMetri
 	return resp, mapstructure.Decode(c.c.GetMetricsDescription(), resp)
 }
 
-// ResolveNodeResourceInfoToMetrics .
-func (c *Plugin) ResolveNodeResourceInfoToMetrics(ctx context.Context, podName string, nodeName string, info *resources.NodeResourceInfo) (*resources.ResolveNodeResourceInfoToMetricsResponse, error) {
+// ConvertNodeResourceInfoToMetrics .
+func (c *Plugin) ConvertNodeResourceInfoToMetrics(ctx context.Context, podName string, nodeName string, info *resources.NodeResourceInfo) (*resources.ConvertNodeResourceInfoToMetricsResponse, error) {
 	capacity, usage := &types.NodeResourceArgs{}, &types.NodeResourceArgs{}
 	if err := capacity.ParseFromRawParams(coretypes.RawParams(info.Capacity)); err != nil {
 		return nil, err
@@ -321,7 +321,7 @@ func (c *Plugin) ResolveNodeResourceInfoToMetrics(ctx context.Context, podName s
 		return nil, err
 	}
 
-	metrics := c.c.ResolveNodeResourceInfoToMetrics(podName, nodeName, capacity, usage)
-	resp := &resources.ResolveNodeResourceInfoToMetricsResponse{}
+	metrics := c.c.ConvertNodeResourceInfoToMetrics(podName, nodeName, capacity, usage)
+	resp := &resources.ConvertNodeResourceInfoToMetricsResponse{}
 	return resp, mapstructure.Decode(metrics, resp)
 }

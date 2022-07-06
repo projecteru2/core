@@ -86,7 +86,7 @@ func (c *Calcium) getMostIdleNode(ctx context.Context, nodes []*types.Node) (*ty
 		nodeMap[node.Name] = node
 	}
 
-	mostIdleNode, err := c.resource.GetMostIdleNode(ctx, nodeNames)
+	mostIdleNode, err := c.rmgr.GetMostIdleNode(ctx, nodeNames)
 	if err != nil {
 		return nil, err
 	}

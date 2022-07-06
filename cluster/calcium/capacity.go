@@ -39,7 +39,7 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 			}
 		} else {
 			var infos map[string]*resources.NodeCapacityInfo
-			infos, msg.Total, err = c.resource.GetNodesDeployCapacity(ctx, nodes, opts.ResourceOpts)
+			infos, msg.Total, err = c.rmgr.GetNodesDeployCapacity(ctx, nodes, opts.ResourceOpts)
 			if err != nil {
 				logger.Errorf(ctx, "[Calcium.CalculateCapacity] failed to get nodes capacity: %+v", err)
 				return err

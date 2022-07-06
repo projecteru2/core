@@ -40,7 +40,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 		ctx,
 		// if: add node resource with resource plugins
 		func(ctx context.Context) error {
-			resourceCapacity, resourceUsage, err = c.resource.AddNode(ctx, opts.Nodename, opts.ResourceOpts, nodeInfo)
+			resourceCapacity, resourceUsage, err = c.rmgr.AddNode(ctx, opts.Nodename, opts.ResourceOpts, nodeInfo)
 			return errors.WithStack(err)
 		},
 		// then: add node meta in store
@@ -59,7 +59,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 			if failureByCond {
 				return nil
 			}
-			return errors.WithStack(c.resource.RemoveNode(ctx, opts.Nodename))
+			return errors.WithStack(c.rmgr.RemoveNode(ctx, opts.Nodename))
 		},
 		c.config.GlobalTimeout),
 	)
@@ -87,7 +87,7 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 			},
 			// then: remove node resource metadata
 			func(ctx context.Context) error {
-				return errors.WithStack(c.resource.RemoveNode(ctx, nodename))
+				return errors.WithStack(c.rmgr.RemoveNode(ctx, nodename))
 			},
 			// rollback: do nothing
 			func(ctx context.Context, failureByCond bool) error {
@@ -208,7 +208,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 					return nil
 				}
 
-				originNodeResourceCapacity, _, err = c.resource.SetNodeResourceCapacity(ctx, n.Name, opts.ResourceOpts, nil, opts.Delta, resources.Incr)
+				originNodeResourceCapacity, _, err = c.rmgr.SetNodeResourceCapacity(ctx, n.Name, opts.ResourceOpts, nil, opts.Delta, resources.Incr)
 				return errors.WithStack(err)
 			},
 			// then: update node metadata
@@ -227,7 +227,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				if len(opts.ResourceOpts) == 0 {
 					return nil
 				}
-				_, _, err = c.resource.SetNodeResourceCapacity(ctx, n.Name, nil, originNodeResourceCapacity, false, resources.Decr)
+				_, _, err = c.rmgr.SetNodeResourceCapacity(ctx, n.Name, nil, originNodeResourceCapacity, false, resources.Decr)
 				return errors.WithStack(err)
 			},
 			c.config.GlobalTimeout,
@@ -236,7 +236,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 }
 
 func (c *Calcium) getNodeResourceInfo(ctx context.Context, node *types.Node, plugins []string) (err error) {
-	if node.ResourceCapacity, node.ResourceUsage, _, err = c.resource.GetNodeResourceInfo(ctx, node.Name, nil, false, plugins); err != nil {
+	if node.ResourceCapacity, node.ResourceUsage, _, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false, plugins); err != nil {
 		log.Errorf(ctx, "[getNodeResourceInfo] failed to get node resource info for node %v, err: %v", node.Name, err)
 		return errors.WithStack(err)
 	}
