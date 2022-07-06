@@ -112,4 +112,7 @@ type Manager interface {
 	RemoveNode(context.Context, string) error
 
 	GetRemapArgs(context.Context, string, map[string]*types.Workload) (map[string]types.EngineArgs, error)
+
+	// GetPlugins for testing
+	GetPlugins() []Plugin
 }

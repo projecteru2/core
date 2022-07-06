@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"testing"
 
@@ -25,4 +26,10 @@ func TestGetHTTPSClient(t *testing.T) {
 	client, err = GetHTTPSClient(ctx, os.TempDir(), "abc", "1", "2", "3")
 	assert.Error(t, err)
 	assert.Nil(t, client)
+}
+
+func TestCheckRedirect(t *testing.T) {
+	via := []*http.Request{{Method: http.MethodGet}}
+	err := checkRedirect(nil, via)
+	assert.Equal(t, err, http.ErrUseLastResponse)
 }

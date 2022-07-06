@@ -20,7 +20,7 @@ import (
 
 func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := newWAL(c.config, c)
+	wal, err := enableWAL(c.config, c, c.store)
 	require.NoError(t, err)
 	c.wal = wal
 
@@ -45,10 +45,10 @@ func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 
 func TestHandleCreateWorkloadError(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := newWAL(c.config, c)
+	wal, err := enableWAL(c.config, c, c.store)
 	require.NoError(t, err)
 	c.wal = wal
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	plugin := c.rmgr.GetPlugins()[0].(*resourcemocks.Plugin)
 	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
 		ResourceInfo: &resources.NodeResourceInfo{},
 		Diffs:        []string{"hhh"},
@@ -97,10 +97,10 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 
 func TestHandleCreateWorkloadHandled(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := newWAL(c.config, c)
+	wal, err := enableWAL(c.config, c, c.store)
 	require.NoError(t, err)
 	c.wal = wal
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	plugin := c.rmgr.GetPlugins()[0].(*resourcemocks.Plugin)
 	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
 		ResourceInfo: &resources.NodeResourceInfo{},
 		Diffs:        []string{"hhh"},
@@ -142,10 +142,10 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 
 func TestHandleCreateLambda(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := newWAL(c.config, c)
+	wal, err := enableWAL(c.config, c, c.store)
 	require.NoError(t, err)
 	c.wal = wal
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	plugin := c.rmgr.GetPlugins()[0].(*resourcemocks.Plugin)
 	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
 		ResourceInfo: &resources.NodeResourceInfo{},
 		Diffs:        []string{"hhh"},

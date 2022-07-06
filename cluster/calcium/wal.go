@@ -21,16 +21,16 @@ const (
 	eventProcessingCreated         = "create-processing" // processing created but yet to delete
 )
 
-func enableWAL(config types.Config, calcium cluster.Cluster, stor store.Store) (wal.WAL, error) {
+func enableWAL(config types.Config, calcium cluster.Cluster, store store.Store) (wal.WAL, error) {
 	hydro, err := wal.NewHydro(config.WALFile, config.WALOpenTimeout)
 	if err != nil {
 		return nil, err
 	}
 
-	hydro.Register(newCreateLambdaHandler(calcium, stor))
-	hydro.Register(newCreateWorkloadHandler(calcium, stor))
-	hydro.Register(newWorkloadResourceAllocatedHandler(calcium, stor))
-	hydro.Register(newProcessingCreatedHandler(calcium, stor))
+	hydro.Register(newCreateLambdaHandler(calcium, store))
+	hydro.Register(newCreateWorkloadHandler(calcium, store))
+	hydro.Register(newWorkloadResourceAllocatedHandler(calcium, store))
+	hydro.Register(newProcessingCreatedHandler(calcium, store))
 	return hydro, nil
 }
 
@@ -38,14 +38,14 @@ func enableWAL(config types.Config, calcium cluster.Cluster, stor store.Store) (
 type CreateLambdaHandler struct {
 	typ     string
 	calcium cluster.Cluster
-	stor    store.Store
+	store   store.Store
 }
 
-func newCreateLambdaHandler(calcium cluster.Cluster, stor store.Store) *CreateLambdaHandler {
+func newCreateLambdaHandler(calcium cluster.Cluster, store store.Store) *CreateLambdaHandler {
 	return &CreateLambdaHandler{
 		typ:     eventCreateLambda,
 		calcium: calcium,
-		stor:    stor,
+		store:   store,
 	}
 }
 
@@ -110,14 +110,14 @@ func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error
 type CreateWorkloadHandler struct {
 	typ     string
 	calcium cluster.Cluster
-	stor    store.Store
+	store   store.Store
 }
 
-func newCreateWorkloadHandler(calcium cluster.Cluster, stor store.Store) *CreateWorkloadHandler {
+func newCreateWorkloadHandler(calcium cluster.Cluster, store store.Store) *CreateWorkloadHandler {
 	return &CreateWorkloadHandler{
 		typ:     eventWorkloadCreated,
 		calcium: calcium,
-		stor:    stor,
+		store:   store,
 	}
 }
 
@@ -180,14 +180,14 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (er
 type WorkloadResourceAllocatedHandler struct {
 	typ     string
 	calcium cluster.Cluster
-	stor    store.Store
+	store   store.Store
 }
 
-func newWorkloadResourceAllocatedHandler(calcium cluster.Cluster, stor store.Store) *WorkloadResourceAllocatedHandler {
+func newWorkloadResourceAllocatedHandler(calcium cluster.Cluster, store store.Store) *WorkloadResourceAllocatedHandler {
 	return &WorkloadResourceAllocatedHandler{
 		typ:     eventWorkloadResourceAllocated,
 		calcium: calcium,
-		stor:    stor,
+		store:   store,
 	}
 }
 
@@ -250,14 +250,14 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw inter
 type ProcessingCreatedHandler struct {
 	typ     string
 	calcium cluster.Cluster
-	stor    store.Store
+	store   store.Store
 }
 
-func newProcessingCreatedHandler(calcium cluster.Cluster, stor store.Store) *ProcessingCreatedHandler {
+func newProcessingCreatedHandler(calcium cluster.Cluster, store store.Store) *ProcessingCreatedHandler {
 	return &ProcessingCreatedHandler{
 		typ:     eventProcessingCreated,
 		calcium: calcium,
-		stor:    stor,
+		store:   store,
 	}
 }
 
@@ -297,7 +297,7 @@ func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw interface{}) 
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
 
-	if err = h.stor.DeleteProcessing(ctx, processing); err != nil {
+	if err = h.store.DeleteProcessing(ctx, processing); err != nil {
 		return logger.ErrWithTracing(ctx, err)
 	}
 	logger.Infof(ctx, "obsolete processing deleted")
