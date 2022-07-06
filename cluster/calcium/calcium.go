@@ -90,7 +90,14 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 	cal := &Calcium{store: store, config: config, source: scm, watcher: watcher, resource: resource}
 
 	cal.wal, err = newWAL(config, cal)
-	cal.identifier = config.Identifier()
+	if err != nil {
+		return nil, logger.ErrWithTracing(nil, errors.WithStack(err)) //nolint
+	}
+
+	cal.identifier, err = config.Identifier()
+	if err != nil {
+		return nil, logger.ErrWithTracing(nil, errors.WithStack(err)) //nolint
+	}
 
 	go cal.InitMetrics()
 
