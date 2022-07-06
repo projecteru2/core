@@ -10,6 +10,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.1.1
 	github.com/containerd/containerd v1.5.13 // indirect
 	github.com/containerd/continuity v0.1.0 // indirect
+	github.com/cornelk/hashmap v1.0.1
 	github.com/docker/distribution v2.8.0+incompatible
 	github.com/docker/docker v20.10.0+incompatible
 	github.com/docker/go-connections v0.4.0
@@ -22,7 +23,9 @@ require (
 	github.com/go-redis/redis/v8 v8.8.2
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/mux v1.7.4 // indirect
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jinzhu/configor v1.2.0
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/moby/sys/mount v0.2.0 // indirect
 	github.com/moby/term v0.0.0-20201110203204-bea5bbe245bf // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
@@ -44,18 +47,13 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.0
 	go.etcd.io/etcd/tests/v3 v3.5.0
 	go.uber.org/automaxprocs v1.3.0
+	go.uber.org/zap v1.17.0
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/exp v0.0.0-20220328175248-053ad81199eb
 	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
-)
-
-require (
-	github.com/cornelk/hashmap v1.0.1
-	github.com/hashicorp/go-multierror v1.1.1
-	go.uber.org/zap v1.17.0
 )
 
 require (

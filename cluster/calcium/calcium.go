@@ -33,13 +33,13 @@ type Calcium struct {
 }
 
 // New returns a new cluster config
-func New(config types.Config, t *testing.T) (*Calcium, error) {
+func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, error) {
 	logger := log.WithField("Calcium", "New").WithField("config", config)
 
 	// set store
 	store, err := store.NewStore(config, t)
 	if err != nil {
-		return nil, logger.ErrWithTracing(context.TODO(), errors.WithStack(err))
+		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
 
 	// set scm
@@ -64,13 +64,13 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 	// set resource plugin manager
 	resource, err := resources.NewPluginManager(config)
 	if err != nil {
-		return nil, logger.ErrWithTracing(context.TODO(), errors.WithStack(err))
+		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
 
 	// load cpumem plugin
 	cpumem, err := cpumem.NewPlugin(config)
 	if err != nil {
-		log.Errorf(context.TODO(), "[NewPluginManager] new cpumem plugin error: %v", err)
+		log.Errorf(ctx, "[NewPluginManager] new cpumem plugin error: %v", err)
 		return nil, err
 	}
 	resource.AddPlugins(cpumem)
@@ -78,12 +78,12 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 	// load volume plugin
 	volume, err := volume.NewPlugin(config)
 	if err != nil {
-		log.Errorf(context.TODO(), "[NewPluginManager] new volume plugin error: %v", err)
+		log.Errorf(ctx, "[NewPluginManager] new volume plugin error: %v", err)
 		return nil, err
 	}
 	resource.AddPlugins(volume)
 	// load binary plugins
-	if err = resource.LoadPlugins(context.TODO()); err != nil {
+	if err = resource.LoadPlugins(ctx); err != nil {
 		return nil, err
 	}
 

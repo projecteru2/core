@@ -63,11 +63,12 @@ func NewTestCluster() *Calcium {
 }
 
 func TestNewCluster(t *testing.T) {
+	ctx := context.TODO()
 	config := types.Config{WALFile: "/tmp/a", HAKeepaliveInterval: 16 * time.Second}
-	_, err := New(config, nil)
+	_, err := New(ctx, config, nil)
 	assert.Error(t, err)
 
-	c, err := New(config, t)
+	c, err := New(ctx, config, t)
 	assert.NoError(t, err)
 
 	c.Finalizer()
@@ -87,7 +88,7 @@ func TestNewCluster(t *testing.T) {
 		},
 		HAKeepaliveInterval: 16 * time.Second,
 	}
-	c1, err := New(config1, t)
+	c1, err := New(ctx, config1, t)
 	assert.NoError(t, err)
 	c1.Finalizer()
 
@@ -99,7 +100,7 @@ func TestNewCluster(t *testing.T) {
 		},
 		HAKeepaliveInterval: 16 * time.Second,
 	}
-	c2, err := New(config2, t)
+	c2, err := New(ctx, config2, t)
 	assert.NoError(t, err)
 	c2.Finalizer()
 }

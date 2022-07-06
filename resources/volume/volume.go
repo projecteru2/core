@@ -3,6 +3,7 @@ package volume
 import (
 	"context"
 
+	"github.com/mitchellh/mapstructure"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/resources/volume/models"
@@ -36,11 +37,10 @@ func (v *Plugin) GetDeployArgs(ctx context.Context, nodeName string, deployCount
 	}
 
 	resp := &resources.GetDeployArgsResponse{}
-	err = resources.ToResp(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]interface{}{
 		"engine_args":   engineArgs,
 		"resource_args": resourceArgs,
 	}, resp)
-	return resp, err
 }
 
 // GetReallocArgs .
@@ -60,12 +60,11 @@ func (v *Plugin) GetReallocArgs(ctx context.Context, nodeName string, originReso
 	}
 
 	resp := &resources.GetReallocArgsResponse{}
-	err = resources.ToResp(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]interface{}{
 		"engine_args":   engineArgs,
 		"delta":         delta,
 		"resource_args": resourceArgs,
 	}, resp)
-	return resp, err
 }
 
 // GetRemapArgs .
@@ -81,10 +80,9 @@ func (v *Plugin) GetRemapArgs(ctx context.Context, nodeName string, workloadMap 
 	}
 
 	resp := &resources.GetRemapArgsResponse{}
-	err = resources.ToResp(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]interface{}{
 		"engine_args": engineArgs,
 	}, resp)
-	return resp, err
 }
 
 // GetNodesDeployCapacity .
@@ -100,11 +98,10 @@ func (v *Plugin) GetNodesDeployCapacity(ctx context.Context, nodeNames []string,
 	}
 
 	resp := &resources.GetNodesDeployCapacityResponse{}
-	err = resources.ToResp(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]interface{}{
 		"nodes": nodesDeployCapacity,
 		"total": total,
 	}, resp)
-	return resp, err
 }
 
 // GetMostIdleNode .
@@ -115,11 +112,10 @@ func (v *Plugin) GetMostIdleNode(ctx context.Context, nodeNames []string) (*reso
 	}
 
 	resp := &resources.GetMostIdleNodeResponse{}
-	err = resources.ToResp(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]interface{}{
 		"node":     nodeName,
 		"priority": priority,
 	}, resp)
-	return resp, err
 }
 
 // GetNodeResourceInfo .
@@ -168,11 +164,10 @@ func (v *Plugin) SetNodeResourceUsage(ctx context.Context, nodeName string, reso
 	}
 
 	resp := &resources.SetNodeResourceUsageResponse{}
-	err = resources.ToResp(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]interface{}{
 		"before": before,
 		"after":  after,
 	}, resp)
-	return resp, err
 }
 
 // SetNodeResourceCapacity .
@@ -199,11 +194,10 @@ func (v *Plugin) SetNodeResourceCapacity(ctx context.Context, nodeName string, r
 	}
 
 	resp := &resources.SetNodeResourceCapacityResponse{}
-	err = resources.ToResp(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]interface{}{
 		"before": before,
 		"after":  after,
 	}, resp)
-	return resp, err
 }
 
 // SetNodeResourceInfo .
@@ -244,11 +238,10 @@ func (v *Plugin) AddNode(ctx context.Context, nodeName string, resourceOpts core
 	}
 
 	resp := &resources.AddNodeResponse{}
-	err = resources.ToResp(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]interface{}{
 		"capacity": nodeResourceInfo.Capacity,
 		"usage":    nodeResourceInfo.Usage,
 	}, resp)
-	return resp, err
 }
 
 // RemoveNode .
@@ -298,18 +291,16 @@ func (v *Plugin) getNodeResourceInfo(ctx context.Context, nodeName string, workl
 	}
 
 	resp := &resources.GetNodeResourceInfoResponse{}
-	err = resources.ToResp(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]interface{}{
 		"resource_info": nodeResourceInfo,
 		"diffs":         diffs,
 	}, resp)
-	return resp, err
 }
 
 // GetMetricsDescription .
 func (v *Plugin) GetMetricsDescription(ctx context.Context) (*resources.GetMetricsDescriptionResponse, error) {
 	resp := &resources.GetMetricsDescriptionResponse{}
-	err := resources.ToResp(v.v.GetMetricsDescription(), resp)
-	return resp, err
+	return resp, mapstructure.Decode(v.v.GetMetricsDescription(), resp)
 }
 
 // ResolveNodeResourceInfoToMetrics .
@@ -324,6 +315,5 @@ func (v *Plugin) ResolveNodeResourceInfoToMetrics(ctx context.Context, podName s
 
 	metrics := v.v.ResolveNodeResourceInfoToMetrics(podName, nodeName, capacity, usage)
 	resp := &resources.ResolveNodeResourceInfoToMetricsResponse{}
-	err := resources.ToResp(metrics, resp)
-	return resp, err
+	return resp, mapstructure.Decode(metrics, resp)
 }

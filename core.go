@@ -76,7 +76,7 @@ func serve(c *cli.Context) error {
 	if embeddedStorage {
 		t = &testing.T{}
 	}
-	cluster, err := calcium.New(config, t)
+	cluster, err := calcium.New(c.Context, config, t)
 	if err != nil {
 		log.Errorf(nil, "[main] %v", err) //nolint
 		return err

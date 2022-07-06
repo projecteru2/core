@@ -156,29 +156,6 @@ func RemoveEngineFromCache(endpoint, ca, cert, key string) {
 	engineCache.Delete(cacheKey)
 }
 
-// newEngine get engine
-func newEngine(ctx context.Context, config types.Config, nodename, endpoint, ca, cert, key string) (client engine.API, err error) {
-	prefix, err := getEnginePrefix(endpoint)
-	if err != nil {
-		return nil, err
-	}
-	e, ok := engines[prefix]
-	if !ok {
-		return nil, types.ErrNotSupport
-	}
-	utils.WithTimeout(ctx, config.ConnectionTimeout, func(ctx context.Context) {
-		client, err = e(ctx, config, nodename, endpoint, ca, cert, key)
-	})
-	if err != nil {
-		return nil, err
-	}
-	if err = validateEngine(ctx, client, config.ConnectionTimeout); err != nil {
-		log.Errorf(ctx, "[GetEngine] engine of %v is unavailable, err: %v", endpoint, err)
-		return nil, err
-	}
-	return client, nil
-}
-
 // GetEngine get engine with cache
 func GetEngine(ctx context.Context, config types.Config, nodename, endpoint, ca, cert, key string) (client engine.API, err error) {
 	if client = GetEngineFromCache(endpoint, ca, cert, key); client != nil {
@@ -203,6 +180,29 @@ func GetEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 	}()
 
 	return newEngine(ctx, config, nodename, endpoint, ca, cert, key)
+}
+
+// newEngine get engine
+func newEngine(ctx context.Context, config types.Config, nodename, endpoint, ca, cert, key string) (client engine.API, err error) {
+	prefix, err := getEnginePrefix(endpoint)
+	if err != nil {
+		return nil, err
+	}
+	e, ok := engines[prefix]
+	if !ok {
+		return nil, types.ErrNotSupport
+	}
+	utils.WithTimeout(ctx, config.ConnectionTimeout, func(ctx context.Context) {
+		client, err = e(ctx, config, nodename, endpoint, ca, cert, key)
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err = validateEngine(ctx, client, config.ConnectionTimeout); err != nil {
+		log.Errorf(ctx, "[GetEngine] engine of %v is unavailable, err: %v", endpoint, err)
+		return nil, err
+	}
+	return client, nil
 }
 
 func getEnginePrefix(endpoint string) (string, error) {
