@@ -18,7 +18,7 @@ func (c *Calcium) LogStream(ctx context.Context, opts *types.LogStreamOptions) (
 		defer close(ch)
 		workload, err := c.GetWorkload(ctx, opts.ID)
 		if err != nil {
-			ch <- &types.LogStreamMessage{ID: opts.ID, Error: logger.Err(ctx, err)}
+			ch <- &types.LogStreamMessage{ID: opts.ID, Error: logger.ErrWithTracing(ctx, err)}
 			return
 		}
 
@@ -32,7 +32,7 @@ func (c *Calcium) LogStream(ctx context.Context, opts *types.LogStreamOptions) (
 			Stderr: true,
 		})
 		if err != nil {
-			ch <- &types.LogStreamMessage{ID: opts.ID, Error: logger.Err(ctx, err)}
+			ch <- &types.LogStreamMessage{ID: opts.ID, Error: logger.ErrWithTracing(ctx, err)}
 			return
 		}
 

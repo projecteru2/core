@@ -18,7 +18,7 @@ import (
 func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*types.Node, error) {
 	logger := log.WithField("Calcium", "AddNode").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.Err(ctx, err)
+		return nil, logger.ErrWithTracing(ctx, err)
 	}
 	var resourceCapacity map[string]types.NodeResourceArgs
 	var resourceUsage map[string]types.NodeResourceArgs
@@ -36,7 +36,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 		return nil, errors.WithStack(err)
 	}
 
-	return node, logger.Err(ctx, utils.Txn(
+	return node, logger.ErrWithTracing(ctx, utils.Txn(
 		ctx,
 		// if: add node resource with resource plugins
 		func(ctx context.Context) error {
@@ -69,18 +69,18 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 	logger := log.WithField("Calcium", "RemoveNode").WithField("nodename", nodename)
 	if nodename == "" {
-		return logger.Err(ctx, errors.WithStack(types.ErrEmptyNodeName))
+		return logger.ErrWithTracing(ctx, errors.WithStack(types.ErrEmptyNodeName))
 	}
 	return c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 		ws, err := c.ListNodeWorkloads(ctx, node.Name, nil)
 		if err != nil {
-			return logger.Err(ctx, err)
+			return logger.ErrWithTracing(ctx, err)
 		}
 		if len(ws) > 0 {
-			return logger.Err(ctx, errors.WithStack(types.ErrNodeNotEmpty))
+			return logger.ErrWithTracing(ctx, errors.WithStack(types.ErrNodeNotEmpty))
 		}
 
-		return logger.Err(ctx, utils.Txn(ctx,
+		return logger.ErrWithTracing(ctx, utils.Txn(ctx,
 			// if: remove node metadata
 			func(ctx context.Context) error {
 				return errors.WithStack(c.store.RemoveNode(ctx, node))
@@ -113,7 +113,7 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 				ch <- node
 			}
 		}()
-		return ch, logger.Err(ctx, errors.WithStack(err))
+		return ch, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
 
 	pool := utils.NewGoroutinePool(int(c.config.MaxConcurrency))
@@ -141,13 +141,13 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 func (c *Calcium) GetNode(ctx context.Context, nodename string, plugins []string) (node *types.Node, err error) {
 	logger := log.WithField("Calcium", "GetNode").WithField("nodename", nodename)
 	if nodename == "" {
-		return nil, logger.Err(ctx, errors.WithStack(types.ErrEmptyNodeName))
+		return nil, logger.ErrWithTracing(ctx, errors.WithStack(types.ErrEmptyNodeName))
 	}
 	if node, err = c.store.GetNode(ctx, nodename); err != nil {
-		return nil, logger.Err(ctx, errors.WithStack(err))
+		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
 	if err = c.getNodeResourceInfo(ctx, node, plugins); err != nil {
-		return nil, logger.Err(ctx, errors.WithStack(err))
+		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
 	return node, nil
 }
@@ -156,21 +156,21 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string, plugins []string
 func (c *Calcium) GetNodeEngine(ctx context.Context, nodename string) (*enginetypes.Info, error) {
 	logger := log.WithField("Calcium", "GetNodeEngine").WithField("nodename", nodename)
 	if nodename == "" {
-		return nil, logger.Err(ctx, errors.WithStack(types.ErrEmptyNodeName))
+		return nil, logger.ErrWithTracing(ctx, errors.WithStack(types.ErrEmptyNodeName))
 	}
 	node, err := c.store.GetNode(ctx, nodename)
 	if err != nil {
-		return nil, logger.Err(ctx, errors.WithStack(err))
+		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
 	engineInfo, err := node.Engine.Info(ctx)
-	return engineInfo, logger.Err(ctx, errors.WithStack(err))
+	return engineInfo, logger.ErrWithTracing(ctx, errors.WithStack(err))
 }
 
 // SetNode set node available or not
 func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) {
 	logger := log.WithField("Calcium", "SetNode").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.Err(ctx, err)
+		return nil, logger.ErrWithTracing(ctx, err)
 	}
 	var n *types.Node
 	return n, c.withNodePodLocked(ctx, opts.Nodename, func(ctx context.Context, node *types.Node) error {
@@ -201,7 +201,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		var originNodeResourceCapacity map[string]types.NodeResourceArgs
 		var err error
 
-		return logger.Err(ctx, utils.Txn(ctx,
+		return logger.ErrWithTracing(ctx, utils.Txn(ctx,
 			// if: update node resource capacity success
 			func(ctx context.Context) error {
 				if len(opts.ResourceOpts) == 0 {

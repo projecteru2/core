@@ -23,12 +23,12 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 	logger := log.WithField("Calcium", "BuildImage").WithField("opts", opts)
 	// Disable build API if scm not set
 	if c.source == nil {
-		return nil, logger.Err(ctx, errors.WithStack(types.ErrSCMNotSet))
+		return nil, logger.ErrWithTracing(ctx, errors.WithStack(types.ErrSCMNotSet))
 	}
 	// select nodes
 	node, err := c.selectBuildNode(ctx)
 	if err != nil {
-		return nil, logger.Err(ctx, err)
+		return nil, logger.ErrWithTracing(ctx, err)
 	}
 
 	log.Infof(ctx, "[BuildImage] Building image at pod %s node %s", node.Podname, node.Name)
@@ -45,13 +45,13 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 	case types.BuildFromExist:
 		refs, node, resp, err = c.buildFromExist(ctx, opts)
 	default:
-		return nil, logger.Err(ctx, errors.WithStack(errors.New("unknown build type")))
+		return nil, logger.ErrWithTracing(ctx, errors.WithStack(errors.New("unknown build type")))
 	}
 	if err != nil {
-		return nil, logger.Err(ctx, err)
+		return nil, logger.ErrWithTracing(ctx, err)
 	}
 	ch, err = c.pushImageAndClean(ctx, resp, node, refs)
-	return ch, logger.Err(ctx, err)
+	return ch, logger.ErrWithTracing(ctx, err)
 }
 
 func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
@@ -174,7 +174,7 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 			log.Infof(ctx, "[BuildImage] Push image %s", tag)
 			rc, err := node.Engine.ImagePush(ctx, tag)
 			if err != nil {
-				ch <- &types.BuildImageMessage{Error: logger.Err(ctx, err).Error()}
+				ch <- &types.BuildImageMessage{Error: logger.ErrWithTracing(ctx, err).Error()}
 				continue
 			}
 

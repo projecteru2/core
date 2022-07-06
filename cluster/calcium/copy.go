@@ -13,7 +13,7 @@ import (
 func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error) {
 	logger := log.WithField("Calcium", "Copy").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.Err(ctx, err)
+		return nil, logger.ErrWithTracing(ctx, err)
 	}
 
 	ch := make(chan *types.CopyMessage)
@@ -37,7 +37,7 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 							ch <- &types.CopyMessage{
 								ID:    id,
 								Path:  path,
-								Error: logger.Err(ctx, err),
+								Error: logger.ErrWithTracing(ctx, err),
 							}
 						}
 						return

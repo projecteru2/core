@@ -50,8 +50,8 @@ func (f Fields) Errorf(ctx context.Context, format string, args ...interface{}) 
 	f.e.Errorf(format, args...)
 }
 
-// Err is a decorator returning the argument
-func (f Fields) Err(ctx context.Context, err error) error {
+// ErrWithTracing is a decorator returning the argument
+func (f Fields) ErrWithTracing(ctx context.Context, err error) error {
 	format := getTracingInfo(ctx) + "%+v"
 	if err != nil {
 		sentry.CaptureMessage(fmt.Sprintf(format, err))

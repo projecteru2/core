@@ -27,7 +27,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 
 	logger := log.WithField("Calcium", "RunAndWait").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return workloadIDs, nil, logger.Err(ctx, err)
+		return workloadIDs, nil, logger.ErrWithTracing(ctx, err)
 	}
 	opts.Lambda = true
 	// count = 1 && OpenStdin
@@ -71,7 +71,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		if err != nil {
 			return &types.AttachWorkloadMessage{
 				WorkloadID:    message.WorkloadID,
-				Data:          []byte(fmt.Sprintf("Create wal failed: %s, %+v", message.WorkloadID, logger.Err(ctx, err))),
+				Data:          []byte(fmt.Sprintf("Create wal failed: %s, %+v", message.WorkloadID, logger.ErrWithTracing(ctx, err))),
 				StdStreamType: types.EruError,
 			}
 		}

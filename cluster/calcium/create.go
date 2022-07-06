@@ -24,14 +24,14 @@ import (
 func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
 	logger := log.WithField("Calcium", "CreateWorkload").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.Err(ctx, err)
+		return nil, logger.ErrWithTracing(ctx, err)
 	}
 
 	opts.ProcessIdent = utils.RandomString(16)
 	log.Infof(ctx, "[CreateWorkload %s] Creating workload with options:\n%s", opts.ProcessIdent, litter.Options{Compact: true}.Sdump(opts))
 	// Count 要大于0
 	if opts.Count <= 0 {
-		return nil, logger.Err(ctx, errors.WithStack(types.NewDetailedErr(types.ErrBadCount, opts.Count)))
+		return nil, logger.ErrWithTracing(ctx, errors.WithStack(types.NewDetailedErr(types.ErrBadCount, opts.Count)))
 	}
 
 	return c.doCreateWorkloads(ctx, opts), nil
@@ -95,7 +95,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			func(ctx context.Context) (err error) {
 				defer func() {
 					if err != nil {
-						ch <- &types.CreateWorkloadMessage{Error: logger.Err(ctx, err)}
+						ch <- &types.CreateWorkloadMessage{Error: logger.ErrWithTracing(ctx, err)}
 					}
 				}()
 				return c.withNodesPodLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) (err error) {
@@ -153,7 +153,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 						})
 						return c.resource.RollbackAlloc(ctx, nodename, resourceArgsToRollback)
 					}); e != nil {
-						err = logger.Err(ctx, e)
+						err = logger.ErrWithTracing(ctx, e)
 					}
 				}
 				return err
@@ -224,7 +224,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	node, err := c.doGetAndPrepareNode(ctx, nodename, opts.Image)
 	if err != nil {
 		for i := 0; i < deploy; i++ {
-			ch <- &types.CreateWorkloadMessage{Error: logger.Err(ctx, err)}
+			ch <- &types.CreateWorkloadMessage{Error: logger.ErrWithTracing(ctx, err)}
 		}
 		return utils.Range(deploy), err
 	}
@@ -243,7 +243,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 				defer func() {
 					if e != nil {
 						err = e
-						createMsg.Error = logger.Err(ctx, e)
+						createMsg.Error = logger.ErrWithTracing(ctx, e)
 						appendLock.Lock()
 						indices = append(indices, idx)
 						appendLock.Unlock()

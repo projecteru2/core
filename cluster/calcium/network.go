@@ -19,7 +19,7 @@ func (c *Calcium) ListNetworks(ctx context.Context, podname string, driver strin
 	networks := []*enginetypes.Network{}
 	ch, err := c.ListPodNodes(ctx, &types.ListNodesOptions{Podname: podname})
 	if err != nil {
-		return networks, logger.Err(ctx, errors.WithStack(err))
+		return networks, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
 
 	nodes := []*types.Node{}
@@ -27,7 +27,7 @@ func (c *Calcium) ListNetworks(ctx context.Context, podname string, driver strin
 		nodes = append(nodes, n)
 	}
 	if len(nodes) == 0 {
-		return networks, logger.Err(ctx, errors.WithStack(types.NewDetailedErr(types.ErrPodNoNodes, podname)))
+		return networks, logger.ErrWithTracing(ctx, errors.WithStack(types.NewDetailedErr(types.ErrPodNoNodes, podname)))
 	}
 
 	drivers := []string{}
@@ -38,7 +38,7 @@ func (c *Calcium) ListNetworks(ctx context.Context, podname string, driver strin
 	node := nodes[0]
 
 	networks, err = node.Engine.NetworkList(ctx, drivers)
-	return networks, logger.Err(ctx, errors.WithStack(err))
+	return networks, logger.ErrWithTracing(ctx, errors.WithStack(err))
 }
 
 // ConnectNetwork connect to a network
@@ -46,11 +46,11 @@ func (c *Calcium) ConnectNetwork(ctx context.Context, network, target, ipv4, ipv
 	logger := log.WithField("Calcium", "ConnectNetwork").WithField("network", network).WithField("target", target).WithField("ipv4", ipv4).WithField("ipv6", ipv6)
 	workload, err := c.GetWorkload(ctx, target)
 	if err != nil {
-		return nil, logger.Err(ctx, errors.WithStack(err))
+		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
 
 	networks, err := workload.Engine.NetworkConnect(ctx, network, target, ipv4, ipv6)
-	return networks, logger.Err(ctx, errors.WithStack(err))
+	return networks, logger.ErrWithTracing(ctx, errors.WithStack(err))
 }
 
 // DisconnectNetwork connect to a network
@@ -58,8 +58,8 @@ func (c *Calcium) DisconnectNetwork(ctx context.Context, network, target string,
 	logger := log.WithField("Calcium", "DisconnectNetwork").WithField("network", network).WithField("target", target).WithField("force", force)
 	workload, err := c.GetWorkload(ctx, target)
 	if err != nil {
-		return logger.Err(ctx, errors.WithStack(err))
+		return logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
 
-	return logger.Err(ctx, errors.WithStack(workload.Engine.NetworkDisconnect(ctx, network, target, force)))
+	return logger.ErrWithTracing(ctx, errors.WithStack(workload.Engine.NetworkDisconnect(ctx, network, target, force)))
 }

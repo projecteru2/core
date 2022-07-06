@@ -18,7 +18,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.
 	logger := log.WithField("Calcium", "PodResource").WithField("podname", podname)
 	nodeCh, err := c.ListPodNodes(ctx, &types.ListNodesOptions{Podname: podname, All: true})
 	if err != nil {
-		return nil, logger.Err(ctx, err)
+		return nil, logger.ErrWithTracing(ctx, err)
 	}
 	ch := make(chan *types.NodeResource)
 	pool := utils.NewGoroutinePool(int(c.config.MaxConcurrency))
@@ -30,7 +30,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.
 				nodeResource, err := c.doGetNodeResource(ctx, nodename, false)
 				if err != nil {
 					nodeResource = &types.NodeResource{
-						Name: nodename, Diffs: []string{logger.Err(ctx, err).Error()},
+						Name: nodename, Diffs: []string{logger.ErrWithTracing(ctx, err).Error()},
 					}
 				}
 				ch <- nodeResource
@@ -45,12 +45,12 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.
 func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
 	logger := log.WithField("Calcium", "NodeResource").WithField("nodename", nodename).WithField("fix", fix)
 	if nodename == "" {
-		return nil, logger.Err(ctx, types.ErrEmptyNodeName)
+		return nil, logger.ErrWithTracing(ctx, types.ErrEmptyNodeName)
 	}
 
 	nr, err := c.doGetNodeResource(ctx, nodename, fix)
 	if err != nil {
-		return nil, logger.Err(ctx, err)
+		return nil, logger.ErrWithTracing(ctx, err)
 	}
 	for _, workload := range nr.Workloads {
 		if _, err := workload.Inspect(ctx); err != nil { // 用于探测节点上容器是否存在
@@ -58,7 +58,7 @@ func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (
 			continue
 		}
 	}
-	return nr, logger.Err(ctx, err)
+	return nr, logger.ErrWithTracing(ctx, err)
 }
 
 func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
@@ -172,10 +172,10 @@ func (c *Calcium) doRemapResourceAndLog(ctx context.Context, logger log.Fields, 
 
 	err := c.withNodeOperationLocked(ctx, node.Name, func(ctx context.Context, node *types.Node) error {
 		logger = logger.WithField("Calcium", "doRemapResourceAndLog").WithField("nodename", node.Name)
-		if ch, err := c.remapResource(ctx, node); logger.Err(ctx, err) == nil {
+		if ch, err := c.remapResource(ctx, node); logger.ErrWithTracing(ctx, err) == nil {
 			for msg := range ch {
 				log.Infof(ctx, "[doRemapResourceAndLog] id %v", msg.id)
-				logger.WithField("id", msg.id).Err(ctx, msg.err) // nolint:errcheck
+				logger.WithField("id", msg.id).ErrWithTracing(ctx, msg.err) // nolint:errcheck
 			}
 		}
 		return nil

@@ -39,7 +39,7 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 	// set store
 	store, err := store.NewStore(config, t)
 	if err != nil {
-		return nil, logger.Err(context.TODO(), errors.WithStack(err))
+		return nil, logger.ErrWithTracing(context.TODO(), errors.WithStack(err))
 	}
 
 	// set scm
@@ -64,7 +64,7 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 	// set resource plugin manager
 	resource, err := resources.NewPluginManager(config)
 	if err != nil {
-		return nil, logger.Err(context.TODO(), errors.WithStack(err))
+		return nil, logger.ErrWithTracing(context.TODO(), errors.WithStack(err))
 	}
 
 	// load cpumem plugin
@@ -94,7 +94,7 @@ func New(config types.Config, t *testing.T) (*Calcium, error) {
 
 	go cal.InitMetrics()
 
-	return cal, logger.Err(nil, errors.WithStack(err)) //nolint
+	return cal, logger.ErrWithTracing(nil, errors.WithStack(err)) //nolint
 }
 
 // DisasterRecover .
