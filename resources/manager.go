@@ -34,7 +34,7 @@ func NewPluginManager(config types.Config) (*PluginManager, error) {
 
 // LoadPlugins .
 func (pm *PluginManager) LoadPlugins(ctx context.Context) error {
-	if len(pm.config.ResourcePluginsDir) > 0 {
+	if len(pm.config.ResourcePluginsDir) > 0 { // it's not a slice !
 		pluginFiles, err := utils.ListAllExecutableFiles(pm.config.ResourcePluginsDir)
 		if err != nil {
 			log.Errorf(ctx, "[LoadPlugins] failed to list all executable files dir: %v, err: %v", pm.config.ResourcePluginsDir, err)

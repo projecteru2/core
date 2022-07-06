@@ -18,7 +18,7 @@ func newTestVolume(t *testing.T) *Volume {
 		Etcd: coretypes.EtcdConfig{
 			Prefix: "/Volume",
 		},
-		Scheduler: coretypes.SchedConfig{
+		Scheduler: coretypes.SchedulerConfig{
 			MaxShare:       -1,
 			ShareBase:      100,
 			MaxDeployCount: 1000,

@@ -32,7 +32,7 @@ func NewTestCluster() *Calcium {
 		Git: types.GitConfig{
 			CloneTimeout: 300 * time.Second,
 		},
-		Scheduler: types.SchedConfig{
+		Scheduler: types.SchedulerConfig{
 			MaxShare:  -1,
 			ShareBase: 100,
 		},

@@ -19,7 +19,7 @@ func newTestCPUMem(t *testing.T) *CPUMem {
 		Etcd: coretypes.EtcdConfig{
 			Prefix: "/cpumem",
 		},
-		Scheduler: coretypes.SchedConfig{
+		Scheduler: coretypes.SchedulerConfig{
 			MaxShare:  -1,
 			ShareBase: 100,
 		},
@@ -73,7 +73,7 @@ func TestNewCPUMem(t *testing.T) {
 		Etcd: coretypes.EtcdConfig{
 			Machines: []string{"invalid-address"},
 		},
-		Scheduler: coretypes.SchedConfig{
+		Scheduler: coretypes.SchedulerConfig{
 			MaxShare:  -1,
 			ShareBase: 100,
 		},

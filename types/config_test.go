@@ -14,5 +14,7 @@ func TestIdentifier(t *testing.T) {
 			"2.2.2.2",
 		},
 	}
-	assert.NotEmpty(t, config.Identifier())
+	r, err := config.Identifier()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, r)
 }

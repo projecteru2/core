@@ -1,31 +1,43 @@
-log_level: "DEBUG"
-bind: ":5001"
-statsd: "127.0.0.1:8125"
-profile: ":12346"
-global_timeout: 300s
-connection_timeout: 10s
-lock_timeout: 30s
-cert_path: "/etc/eru/tls"
-sentry_dsn: "https://examplePublicKey@o0.ingest.sentry.io/0"
-max_concurrency: 20
+log_level: "DEBUG"                                                      # required, default INFO
+bind: ":5001"                                                           # required, default 5001
+lock_timeout: 30s                                                       # required, default 30s
+global_timeout: 300s                                                    # required, default 300s
+connection_timeout: 10s                                                 # required, default 10s
+ha_keepalive_interval: 16s                                              # required, default 16s
+statsd: "127.0.0.1:8125"                                                # optional
+profile: ":12346"                                                       # optional
+cert_path: "/etc/eru/tls"                                               # optional, if you need connect to daemon without https
+max_concurrency: 20                                                     # optional, default 20 for pool size
+store: etcd                                                             # optional, default etcd can choose redis
+sentry_dsn: "https://examplePublicKey@o0.ingest.sentry.io/0"            # optional
 
-auth:
+wal_file: core.wal                                                      # required, default core.wal
+wal_open_timeout: 8s                                                    # required, default 8s
+
+resource_plugins_dir: /etc/eru/plugins                                  # optional, default /etc/eru/plugins
+resource_plugins_timeout: 30s                                           # optional, if need to use plugin, set it
+
+auth:                                                                   # optional
     username: admin
     password: password
 
-grpc:
-    max_concurrent_streams: 100
-    max_recv_msg_size: 30 # will covert to MBytes
-    service_discovery_interval: 5s  # WatchServiceStatus push interval
-    service_heartbeat_interval: 5s  # RegisterService heartbeat
+grpc:                                                                   # required
+    max_concurrent_streams: 100                                         # default 100
+    max_recv_msg_size: 20971520 # in MBytes                             # default 20971520
+    service_discovery_interval: 5s  # WatchServiceStatus push interval  # default 15s
+    service_heartbeat_interval: 5s  # RegisterService heartbeat         # default 15s
 
-store: etcd
+git:                                                                    # optional
+    scm_type: "github"
+    private_key: "***REMOVED***"                                        # file path
+    token: "***REMOVED***"
+    clone_timeout: 300s
 
 etcd:
-    machines:
+    machines:                                                           # required
         - "http://127.0.0.1:2379"
-    prefix: "/core"
-    lock_prefix: "core/_lock"
+    prefix: "/eru"                                                      # required, default /eru
+    lock_prefix: "__lock__/eru"                                         # required, default __lock__/eru
     ca: PATH_TO_CA
     key: PATH_TO_KEY
     cert: PATH_TO_CERT
@@ -33,26 +45,34 @@ etcd:
         username: root
         password: root
 
-git:
-    private_key: "***REMOVED***"
-    token: "***REMOVED***"
-    scm_type: "github"
-    clone_timeout: 300s
+redis:                                                                  # optional
+    addr: localhost:6379
+    lock_prefix: "/lock"                                                # default  /lock
+    db: 0
 
 docker:
+    version: "1.32"                                                     # required, default 1.32
+    network_mode: "bridge"                                              # required, default host
+    use_local_dns: true
     log:
-      type: "json-file"
+      type: "json-file"                                                 # required, default journald
       config:
         "max-size": "10m"
-    network_mode: "bridge"
+ 
     hub: "hub.docker.com"
     namespace: "projecteru2"
     build_pod: "eru-test"
-    local_dns: true
-
-scheduler:
-    maxshare: -1
-    sharebase: 100
+    auth:
+        username: root
+        password: root
 
 virt:
     version: "v1"
+
+systemd:
+    runtime: "io.containerd.eru.v2"
+
+scheduler:
+    maxshare: -1                                                        # required default -1
+    sharebase: 100                                                      # required default 100
+    max_deploy_count: 10000
