@@ -19,8 +19,7 @@ func TestListWorkloads(t *testing.T) {
 		{ID: ID},
 	}
 
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 	store.On("ListWorkloads", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
 
@@ -45,8 +44,7 @@ func TestGetWorkloads(t *testing.T) {
 	workload := &types.Workload{ID: ID}
 	workloads := []*types.Workload{workload}
 
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(workloads, nil)
 

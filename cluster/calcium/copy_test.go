@@ -30,12 +30,11 @@ func TestCopy(t *testing.T) {
 			},
 		},
 	}
-	store := &storemocks.Store{}
+	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	c.store = store
 	// failed by GetWorkload
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	ch, err := c.Copy(ctx, opts)

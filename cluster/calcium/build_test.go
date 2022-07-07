@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
-	"github.com/projecteru2/core/resources"
 	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -26,10 +25,6 @@ const (
 func TestBuild(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-	}, nil)
 	opts := &types.BuildOptions{
 		Name:        "xx",
 		BuildMethod: types.BuildFromSCM,
@@ -64,21 +59,16 @@ func TestBuild(t *testing.T) {
 	assert.Error(t, err)
 	// failed by buildpod not set
 	c = NewTestCluster()
-	plugin = c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-	}, nil)
 	_, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	c.config.Docker.BuildPod = "test"
 	// failed by ListPodNodes failed
-	store := &storemocks.Store{}
-	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrBadMeta).Once()
-	c.store = store
+	store := c.store.(*storemocks.Store)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrBadMeta).Once()
 	ch, err := c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	// failed by no nodes
-	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	engine := &enginemocks.API{}
@@ -90,14 +80,14 @@ func TestBuild(t *testing.T) {
 		Available: true,
 		Engine:    engine,
 	}
-	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
-
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	// failed by plugin error
-	plugin.On("GetMostIdleNode", mock.Anything, mock.Anything).Return(nil, types.ErrGetMostIdleNodeFailed).Once()
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+	rmgr.On("GetMostIdleNode", mock.Anything, mock.Anything).Return("", types.ErrBadCount).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
-
-	plugin.On("GetMostIdleNode", mock.Anything, mock.Anything).Return(&resources.GetMostIdleNodeResponse{NodeName: node.Name, Priority: 100}, nil)
+	rmgr.On("GetMostIdleNode", mock.Anything, mock.Anything).Return("test", nil)
 	// create image
 	c.config.Docker.Hub = "test.com"
 	c.config.Docker.Namespace = "test"

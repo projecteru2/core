@@ -50,6 +50,17 @@ func (_m *Manager) AddNode(_a0 context.Context, _a1 string, _a2 types.NodeResour
 	return r0, r1, r2
 }
 
+// AddPlugins provides a mock function with given fields: _a0
+func (_m *Manager) AddPlugins(_a0 ...resources.Plugin) {
+	_va := make([]interface{}, len(_a0))
+	for _i := range _a0 {
+		_va[_i] = _a0[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _va...)
+	_m.Called(_ca...)
+}
+
 // Alloc provides a mock function with given fields: _a0, _a1, _a2, _a3
 func (_m *Manager) Alloc(_a0 context.Context, _a1 string, _a2 int, _a3 types.WorkloadResourceOpts) ([]types.EngineArgs, []map[string]types.WorkloadResourceArgs, error) {
 	ret := _m.Called(_a0, _a1, _a2, _a3)
@@ -218,6 +229,22 @@ func (_m *Manager) GetNodesDeployCapacity(_a0 context.Context, _a1 []string, _a2
 	}
 
 	return r0, r1, r2
+}
+
+// GetPlugins provides a mock function with given fields:
+func (_m *Manager) GetPlugins() []resources.Plugin {
+	ret := _m.Called()
+
+	var r0 []resources.Plugin
+	if rf, ok := ret.Get(0).(func() []resources.Plugin); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]resources.Plugin)
+		}
+	}
+
+	return r0
 }
 
 // GetRemapArgs provides a mock function with given fields: _a0, _a1, _a2

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	lockmocks "github.com/projecteru2/core/lock/mocks"
-	"github.com/projecteru2/core/resources"
 	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -18,9 +17,8 @@ import (
 func TestDissociateWorkload(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	store := &storemocks.Store{}
-	c.store = store
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	store := c.store.(*storemocks.Store)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
 
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
@@ -41,9 +39,7 @@ func TestDissociateWorkload(t *testing.T) {
 	}
 
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{c1}, nil)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-	}, nil)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	// failed by lock
 	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
@@ -56,10 +52,10 @@ func TestDissociateWorkload(t *testing.T) {
 
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	// failed by RemoveWorkload
-	plugin.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.SetNodeResourceUsageResponse{
-		Before: types.NodeResourceArgs{},
-		After:  types.NodeResourceArgs{},
-	}, nil)
+	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		map[string]types.NodeResourceArgs{},
+		map[string]types.NodeResourceArgs{},
+		nil)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
 	ch, err = c.DissociateWorkload(ctx, []string{"c1"})

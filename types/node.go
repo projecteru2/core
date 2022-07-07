@@ -58,6 +58,7 @@ type Node struct {
 
 	ResourceCapacity map[string]NodeResourceArgs `json:"resource_capacity,omitempty"`
 	ResourceUsage    map[string]NodeResourceArgs `json:"resource_usage,omitempty"`
+	Diffs            []string                    `json:"diffs,omitempty"`
 
 	// Bypass if bypass is true, it will not participate in future scheduling
 	Bypass    bool       `json:"bypass,omitempty"`

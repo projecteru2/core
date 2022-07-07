@@ -68,7 +68,7 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
 
-	// load cpumem plugin
+	// load internal plugins
 	cpumem, err := cpumem.NewPlugin(config)
 	if err != nil {
 		log.Errorf(ctx, "[NewPluginManager] new cpumem plugin error: %v", err)

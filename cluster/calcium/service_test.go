@@ -19,8 +19,7 @@ func TestServiceStatusStream(t *testing.T) {
 	c.config.Bind = ":5001"
 	c.config.GRPCConfig.ServiceHeartbeatInterval = 100 * time.Millisecond
 	c.config.GRPCConfig.ServiceDiscoveryPushInterval = 10 * time.Second
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 
 	var unregistered bool
 	unregister := func() { unregistered = true }
@@ -41,8 +40,7 @@ func TestServiceStatusStreamWithMultipleRegisteringAsExpired(t *testing.T) {
 	c.config.Bind = ":5001"
 	c.config.GRPCConfig.ServiceHeartbeatInterval = 100 * time.Millisecond
 	c.config.GRPCConfig.ServiceDiscoveryPushInterval = 10 * time.Second
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 
 	raw := make(chan struct{})
 	var expiry <-chan struct{} = raw
@@ -67,8 +65,7 @@ func TestRegisterServiceFailed(t *testing.T) {
 	c.config.Bind = ":5001"
 	c.config.GRPCConfig.ServiceHeartbeatInterval = 100 * time.Millisecond
 	c.config.GRPCConfig.ServiceDiscoveryPushInterval = 10 * time.Second
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 
 	experr := fmt.Errorf("error")
 	store.On("RegisterService", mock.Anything, mock.Anything, mock.Anything).Return(make(<-chan struct{}), func() {}, experr).Once()
@@ -83,8 +80,7 @@ func TestRegisterServiceFailed(t *testing.T) {
 func TestWatchServiceStatus(t *testing.T) {
 	c := NewTestCluster()
 	c.config.GRPCConfig.ServiceDiscoveryPushInterval = 500 * time.Millisecond
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 	store.On("ServiceStatusStream", mock.AnythingOfType("*context.emptyCtx")).Return(
 		func(_ context.Context) chan []string {
 			ch := make(chan []string)

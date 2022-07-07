@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
-	"github.com/projecteru2/core/resources"
 	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -18,13 +17,10 @@ import (
 
 func TestRemoveImage(t *testing.T) {
 	c := NewTestCluster()
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-	}, nil)
 	ctx := context.Background()
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	// fail by validating
 	_, err := c.RemoveImage(ctx, &types.ImageOptions{Podname: ""})
 	assert.Error(t, err)
@@ -68,13 +64,10 @@ func TestRemoveImage(t *testing.T) {
 
 func TestCacheImage(t *testing.T) {
 	c := NewTestCluster()
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-	}, nil)
 	ctx := context.Background()
-	store := &storemocks.Store{}
-	c.store = store
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	store := c.store.(*storemocks.Store)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	// fail by validating
 	_, err := c.CacheImage(ctx, &types.ImageOptions{Podname: ""})
 	assert.Error(t, err)

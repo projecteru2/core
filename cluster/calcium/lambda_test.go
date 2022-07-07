@@ -11,7 +11,6 @@ import (
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
-	"github.com/projecteru2/core/resources"
 	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/strategy"
@@ -25,10 +24,10 @@ import (
 func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
 	assert := assert.New(t)
 	c, _ := newCreateWorkloadCluster(t)
-	c.wal = &WAL{WAL: &walmocks.WAL{}}
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 
-	mwal := c.wal.WAL.(*walmocks.WAL)
+	mwal := c.wal.(*walmocks.WAL)
 	defer mwal.AssertNotCalled(t, "Log")
 	mwal.On("Log", mock.Anything, mock.Anything).Return(nil, nil)
 
@@ -43,8 +42,6 @@ func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
 			Name: "good-entrypoint",
 		},
 	}
-
-	plugin.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(nil, context.DeadlineExceeded)
 
 	_, ch, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
 	assert.NoError(err)
@@ -187,42 +184,41 @@ func TestLambdaWithError(t *testing.T) {
 func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 	c, nodes := newCreateWorkloadCluster(t)
 
-	store := &storemocks.Store{}
-	c.store = store
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	store := c.store.(*storemocks.Store)
+	//	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
 
 	node1, node2 := nodes[0], nodes[1]
 
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-	}, nil)
-	plugin.On("GetDeployArgs", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetDeployArgsResponse{
-		EngineArgs:   []types.EngineArgs{},
-		ResourceArgs: []types.WorkloadResourceArgs{},
-	}, nil)
-	plugin.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.SetNodeResourceUsageResponse{
-		Before: types.NodeResourceArgs{},
-		After:  types.NodeResourceArgs{},
-	}, nil)
-	plugin.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodesDeployCapacityResponse{
-		Nodes: map[string]*resources.NodeCapacityInfo{
-			node1.Name: {
-				NodeName: node1.Name,
-				Capacity: 10,
-				Usage:    0.5,
-				Rate:     0.05,
-				Weight:   100,
-			},
-			node2.Name: {
-				NodeName: node2.Name,
-				Capacity: 10,
-				Usage:    0.5,
-				Rate:     0.05,
-				Weight:   100,
-			},
-		},
-		Total: 20,
-	}, nil)
+	//	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+	//		ResourceInfo: &resources.NodeResourceInfo{},
+	//	}, nil)
+	//	plugin.On("GetDeployArgs", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetDeployArgsResponse{
+	//		EngineArgs:   []types.EngineArgs{},
+	//		ResourceArgs: []types.WorkloadResourceArgs{},
+	//	}, nil)
+	//	plugin.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.SetNodeResourceUsageResponse{
+	//		Before: types.NodeResourceArgs{},
+	//		After:  types.NodeResourceArgs{},
+	//	}, nil)
+	//	plugin.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodesDeployCapacityResponse{
+	//		Nodes: map[string]*resources.NodeCapacityInfo{
+	//			node1.Name: {
+	//				NodeName: node1.Name,
+	//				Capacity: 10,
+	//				Usage:    0.5,
+	//				Rate:     0.05,
+	//				Weight:   100,
+	//			},
+	//			node2.Name: {
+	//				NodeName: node2.Name,
+	//				Capacity: 10,
+	//				Usage:    0.5,
+	//				Rate:     0.05,
+	//				Weight:   100,
+	//			},
+	//		},
+	//		Total: 20,
+	//	}, nil)
 
 	store.On("CreateProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("UpdateProcessing", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)

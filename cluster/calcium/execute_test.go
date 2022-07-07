@@ -26,8 +26,7 @@ func (i *inStream) Close() error {
 func TestExecuteWorkload(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 
 	// failed by GetWorkload
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()

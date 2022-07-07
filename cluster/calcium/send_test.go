@@ -37,8 +37,7 @@ func TestSend(t *testing.T) {
 			},
 		},
 	}
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)

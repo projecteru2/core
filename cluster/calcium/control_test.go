@@ -19,11 +19,10 @@ import (
 func TestControlStart(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	store := &storemocks.Store{}
+	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
-	c.store = store
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	// failed by GetWorkloads
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
@@ -101,11 +100,10 @@ func TestControlStart(t *testing.T) {
 func TestControlStop(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	store := &storemocks.Store{}
+	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
-	c.store = store
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	workload := &types.Workload{
 		ID:         "id1",
@@ -146,11 +144,10 @@ func TestControlStop(t *testing.T) {
 func TestControlRestart(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	store := &storemocks.Store{}
+	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
-	c.store = store
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	engine := &enginemocks.API{}
 	workload := &types.Workload{

@@ -8,8 +8,6 @@ import (
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
-	"github.com/projecteru2/core/resources"
-	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -22,7 +20,7 @@ func TestAddNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	factory.InitEngineCache(ctx, c.config)
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	//plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
 
 	name := "test"
 	node := &types.Node{
@@ -32,21 +30,20 @@ func TestAddNode(t *testing.T) {
 		},
 	}
 
-	store := &storemocks.Store{}
+	store := c.store.(*storemocks.Store)
 	store.On("AddNode",
 		mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything).Return(node, nil)
-	c.store = store
-	plugin.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.AddNodeResponse{}, nil)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{
-			Capacity: types.NodeResourceArgs{},
-			Usage:    types.NodeResourceArgs{},
-		},
-	}, nil)
+	//	plugin.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.AddNodeResponse{}, nil)
+	//	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+	//		ResourceInfo: &resources.NodeResourceInfo{
+	//			Capacity: types.NodeResourceArgs{},
+	//			Usage:    types.NodeResourceArgs{},
+	//		},
+	//	}, nil)
 	store.On("GetNode",
 		mock.Anything,
 		mock.Anything).Return(node, nil)
@@ -67,24 +64,23 @@ func TestAddNode(t *testing.T) {
 func TestRemoveNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	//	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
 
 	name := "test"
 	node := &types.Node{NodeMeta: types.NodeMeta{Name: name}}
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{
-			Capacity: types.NodeResourceArgs{},
-			Usage:    types.NodeResourceArgs{},
-		},
-	}, nil)
-	plugin.On("RemoveNode", mock.Anything, mock.Anything).Return(&resources.RemoveNodeResponse{}, nil)
+	//	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+	//		ResourceInfo: &resources.NodeResourceInfo{
+	//			Capacity: types.NodeResourceArgs{},
+	//			Usage:    types.NodeResourceArgs{},
+	//		},
+	//	}, nil)
+	//	plugin.On("RemoveNode", mock.Anything, mock.Anything).Return(&resources.RemoveNodeResponse{}, nil)
 
 	store.On("GetNode",
 		mock.Anything,
@@ -108,10 +104,10 @@ func TestRemoveNode(t *testing.T) {
 
 func TestListPodNodes(t *testing.T) {
 	c := NewTestCluster()
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-	}, nil)
+	//	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	//	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+	//		ResourceInfo: &resources.NodeResourceInfo{},
+	//	}, nil)
 	ctx := context.Background()
 	name1 := "test1"
 	name2 := "test2"
@@ -120,8 +116,7 @@ func TestListPodNodes(t *testing.T) {
 		{NodeMeta: types.NodeMeta{Name: name2}, Available: false},
 	}
 
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err := c.ListPodNodes(ctx, &types.ListNodesOptions{})
 	assert.Error(t, err)
@@ -146,14 +141,14 @@ func TestListPodNodes(t *testing.T) {
 func TestGetNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{
-			Capacity: types.NodeResourceArgs{},
-			Usage:    types.NodeResourceArgs{},
-		},
-	}, nil)
+	//	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	//
+	//	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+	//		ResourceInfo: &resources.NodeResourceInfo{
+	//			Capacity: types.NodeResourceArgs{},
+	//			Usage:    types.NodeResourceArgs{},
+	//		},
+	//	}, nil)
 
 	// fail by validating
 	_, err := c.GetNode(ctx, "", nil)
@@ -164,9 +159,8 @@ func TestGetNode(t *testing.T) {
 		NodeMeta: types.NodeMeta{Name: name},
 	}
 
-	store := &storemocks.Store{}
+	store := c.store.(*storemocks.Store)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
-	c.store = store
 
 	n, err := c.GetNode(ctx, name, nil)
 	assert.NoError(t, err)
@@ -189,9 +183,8 @@ func TestGetNodeEngine(t *testing.T) {
 		Engine:   engine,
 	}
 
-	store := &storemocks.Store{}
+	store := c.store.(*storemocks.Store)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
-	c.store = store
 
 	e, err := c.GetNodeEngine(ctx, name)
 	assert.NoError(t, err)
@@ -201,24 +194,23 @@ func TestGetNodeEngine(t *testing.T) {
 func TestSetNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	//plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
 
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{
-			Capacity: types.NodeResourceArgs{},
-			Usage:    types.NodeResourceArgs{},
-		},
-	}, nil)
-	plugin.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.SetNodeResourceUsageResponse{
-		Before: types.NodeResourceArgs{},
-		After:  types.NodeResourceArgs{},
-	}, nil)
+	//	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+	//		ResourceInfo: &resources.NodeResourceInfo{
+	//			Capacity: types.NodeResourceArgs{},
+	//			Usage:    types.NodeResourceArgs{},
+	//		},
+	//	}, nil)
+	//	plugin.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.SetNodeResourceUsageResponse{
+	//		Before: types.NodeResourceArgs{},
+	//		After:  types.NodeResourceArgs{},
+	//	}, nil)
 
 	name := "test"
 	node := &types.Node{NodeMeta: types.NodeMeta{Name: name}}
 
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
@@ -289,14 +281,14 @@ func TestSetNode(t *testing.T) {
 func TestFilterNodes(t *testing.T) {
 	assert := assert.New(t)
 	c := NewTestCluster()
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	//	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
 
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{
-			Capacity: types.NodeResourceArgs{},
-			Usage:    types.NodeResourceArgs{},
-		},
-	}, nil)
+	//	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
+	//		ResourceInfo: &resources.NodeResourceInfo{
+	//			Capacity: types.NodeResourceArgs{},
+	//			Usage:    types.NodeResourceArgs{},
+	//		},
+	//	}, nil)
 	store := c.store.(*storemocks.Store)
 	nodes := []*types.Node{
 		{

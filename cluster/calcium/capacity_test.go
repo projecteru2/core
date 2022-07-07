@@ -21,8 +21,9 @@ func TestCalculateCapacity(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	engine := &enginemocks.API{}
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
 
 	// pod1 := &types.Pod{Name: "p1"}
 	node1 := &types.Node{
@@ -36,9 +37,6 @@ func TestCalculateCapacity(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-	}, nil)
 	// failed by call plugin
 	opts := &types.DeployOptions{
 		Entrypoint: &types.Entrypoint{
@@ -51,13 +49,25 @@ func TestCalculateCapacity(t *testing.T) {
 		},
 		Count: 3,
 	}
-	plugin.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("not implemented")).Once()
+	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, errors.New("not implemented")).Times(3)
 	_, err := c.CalculateCapacity(ctx, opts)
 	assert.Error(t, err)
 
 	// failed by get deploy status
-	plugin.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodesDeployCapacityResponse{
-		Nodes: map[string]*resources.NodeCapacityInfo{
+	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	_, err = c.CalculateCapacity(ctx, opts)
+	assert.Error(t, err)
+	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{"n1": 0}, nil)
+
+	// failed by get deploy plan
+	opts.DeployStrategy = "FAKE"
+	_, err = c.CalculateCapacity(ctx, opts)
+	assert.Error(t, err)
+
+	// strategy: dummy
+	opts.DeployStrategy = strategy.Dummy
+	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
+		map[string]*resources.NodeCapacityInfo{
 			"n1": {
 				NodeName: "n1",
 				Capacity: 10,
@@ -66,32 +76,12 @@ func TestCalculateCapacity(t *testing.T) {
 				Weight:   100,
 			},
 		},
-		Total: 0,
-	}, nil)
-	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err = c.CalculateCapacity(ctx, opts)
-	assert.Error(t, err)
-
-	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{"n1": 0}, nil)
-
-	// failed by get deploy plan
-	opts.DeployStrategy = "FAKE"
-	_, err = c.CalculateCapacity(ctx, opts)
-	assert.Error(t, err)
-
-	// strategy: auto
-	opts.DeployStrategy = strategy.Auto
+		10, nil,
+	)
 	msg, err := c.CalculateCapacity(ctx, opts)
-	assert.NoError(t, err)
-	assert.Equal(t, msg.NodeCapacities["n1"], 3)
-	assert.Equal(t, msg.Total, 3)
-
-	// strategy: dummy
-	opts.DeployStrategy = strategy.Dummy
-	msg, err = c.CalculateCapacity(ctx, opts)
 	assert.NoError(t, err)
 	assert.Equal(t, msg.NodeCapacities["n1"], 10)
 	assert.Equal(t, msg.Total, 10)
 
-	store.AssertExpectations(t)
+	rmgr.AssertExpectations(t)
 }

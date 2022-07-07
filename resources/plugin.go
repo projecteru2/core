@@ -113,6 +113,8 @@ type Manager interface {
 
 	GetRemapArgs(context.Context, string, map[string]*types.Workload) (map[string]types.EngineArgs, error)
 
+	// AddPlugins for testing
+	AddPlugins(...Plugin)
 	// GetPlugins for testing
 	GetPlugins() []Plugin
 }

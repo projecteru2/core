@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/projecteru2/core/resources"
 	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	sourcemocks "github.com/projecteru2/core/source/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
@@ -45,20 +44,12 @@ func NewTestCluster() *Calcium {
 	}
 	c.store = &storemocks.Store{}
 	c.source = &sourcemocks.Source{}
-	c.wal = &WAL{WAL: &walmocks.WAL{}}
+	c.wal = &walmocks.WAL{}
+	c.rmgr = &resourcemocks.Manager{}
 
-	mwal := c.wal.WAL.(*walmocks.WAL)
+	mwal := c.wal.(*walmocks.WAL)
 	commit := wal.Commit(func() error { return nil })
 	mwal.On("Log", mock.Anything, mock.Anything).Return(commit, nil)
-
-	plugin := &resourcemocks.Plugin{}
-	plugin.On("Name").Return("mock-plugin")
-	plugin.On("ResolveNodeResourceInfoToMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, context.DeadlineExceeded)
-	if c.resource, err = resources.NewPluginManager(c.config); err != nil {
-		panic(err)
-	}
-	c.resource.AddPlugins(plugin)
-
 	return c
 }
 
@@ -107,8 +98,7 @@ func TestNewCluster(t *testing.T) {
 
 func TestFinalizer(t *testing.T) {
 	c := NewTestCluster()
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 	store.On("TerminateEmbededStorage").Return(nil)
 	c.Finalizer()
 }

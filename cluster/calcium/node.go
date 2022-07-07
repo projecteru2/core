@@ -236,7 +236,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 }
 
 func (c *Calcium) getNodeResourceInfo(ctx context.Context, node *types.Node, plugins []string) (err error) {
-	if node.ResourceCapacity, node.ResourceUsage, _, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false, plugins); err != nil {
+	if node.ResourceCapacity, node.ResourceUsage, node.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false, plugins); err != nil {
 		log.Errorf(ctx, "[getNodeResourceInfo] failed to get node resource info for node %v, err: %v", node.Name, err)
 		return errors.WithStack(err)
 	}

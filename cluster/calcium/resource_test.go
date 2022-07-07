@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/resources"
+	resourcetypes "github.com/projecteru2/core/resources"
 	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -24,17 +25,12 @@ func TestPodResource(t *testing.T) {
 	ctx := context.Background()
 	podname := "testpod"
 	nodename := "testnode"
-	store := &storemocks.Store{}
-	c.store = store
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-		Diffs:        []string{"hhh"},
-	}, nil)
-
+	store := c.store.(*storemocks.Store)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
+
 	// failed by GetNodesByPod
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	ch, err := c.PodResource(ctx, podname)
@@ -47,6 +43,11 @@ func TestPodResource(t *testing.T) {
 			Name: nodename,
 		},
 	}
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		map[string]types.NodeResourceArgs{"test": map[string]interface{}{"abc": 123}},
+		map[string]types.NodeResourceArgs{"test": map[string]interface{}{"abc": 123}},
+		[]string{types.ErrNoETCD.Error()},
+		nil)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
@@ -58,12 +59,8 @@ func TestPodResource(t *testing.T) {
 	store.AssertExpectations(t)
 
 	workloads := []*types.Workload{
-		{
-			ResourceArgs: map[string]types.WorkloadResourceArgs{},
-		},
-		{
-			ResourceArgs: map[string]types.WorkloadResourceArgs{},
-		},
+		{ResourceArgs: map[string]types.WorkloadResourceArgs{}},
+		{ResourceArgs: map[string]types.WorkloadResourceArgs{}},
 	}
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
 	engine := &enginemocks.API{}
@@ -71,7 +68,9 @@ func TestPodResource(t *testing.T) {
 		fmt.Errorf("%s", "not validate"),
 	)
 	node.Engine = engine
+
 	// success
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, []string{"a"}, nil)
 	r, err := c.PodResource(ctx, podname)
 	assert.NoError(t, err)
 	first := <-r
@@ -82,17 +81,11 @@ func TestNodeResource(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	nodename := "testnode"
-	store := &storemocks.Store{}
-	c.store = store
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-		Diffs:        []string{"hhh"},
-	}, nil)
-	plugin.On("FixNodeResource", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-		Diffs:        []string{"hhh"},
-	}, nil)
+	store := c.store.(*storemocks.Store)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		nil, nil, nil, nil,
+	)
 	lock := &lockmocks.DistributedLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
@@ -129,8 +122,10 @@ func TestNodeResource(t *testing.T) {
 	}
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
 	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
+	rmgr.On("ConvertNodeResourceInfoToMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*resourcetypes.Metrics{}, nil)
 	// success but workload inspect failed
 	nr, err := c.NodeResource(ctx, nodename, true)
+	time.Sleep(time.Second)
 	assert.NoError(t, err)
 	assert.Equal(t, nr.Name, nodename)
 	assert.NotEmpty(t, nr.Diffs)
@@ -140,16 +135,17 @@ func TestNodeResource(t *testing.T) {
 
 func TestRemapResource(t *testing.T) {
 	c := NewTestCluster()
-	store := &storemocks.Store{}
-	c.store = store
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-		Diffs:        []string{"hhh"},
-	}, nil)
-	plugin.On("GetRemapArgs", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetRemapArgsResponse{
-		EngineArgsMap: map[string]types.EngineArgs{},
-	}, nil)
+	store := c.store.(*storemocks.Store)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		map[string]types.NodeResourceArgs{"test": map[string]interface{}{"abc": 123}},
+		map[string]types.NodeResourceArgs{"test": map[string]interface{}{"abc": 123}},
+		[]string{types.ErrNoETCD.Error()},
+		nil)
+	rmgr.On("GetRemapArgs", mock.Anything, mock.Anything, mock.Anything).Return(
+		map[string]types.EngineArgs{},
+		nil,
+	)
 	engine := &enginemocks.API{}
 	node := &types.Node{Engine: engine}
 

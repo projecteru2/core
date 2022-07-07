@@ -7,7 +7,6 @@ import (
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	"github.com/projecteru2/core/lock"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
-	"github.com/projecteru2/core/resources"
 	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -19,8 +18,7 @@ import (
 func TestDoLock(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 	// create lock failed
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, _, err := c.doLock(ctx, "somename", 1)
@@ -53,8 +51,7 @@ func TestDoUnlockAll(t *testing.T) {
 func TestWithWorkloadsLocked(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 
 	lock := &lockmocks.DistributedLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
@@ -87,8 +84,7 @@ func TestWithWorkloadsLocked(t *testing.T) {
 func TestWithWorkloadLocked(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 
 	lock := &lockmocks.DistributedLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
@@ -121,13 +117,9 @@ func TestWithWorkloadLocked(t *testing.T) {
 func TestWithNodesPodLocked(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	store := &storemocks.Store{}
-	c.store = store
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-		Diffs:        []string{"hhh"},
-	}, nil)
+	store := c.store.(*storemocks.Store)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 
 	node1 := &types.Node{
 		NodeMeta: types.NodeMeta{
@@ -183,13 +175,9 @@ func TestWithNodesPodLocked(t *testing.T) {
 func TestWithNodePodLocked(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	store := &storemocks.Store{}
-	c.store = store
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-		Diffs:        []string{"hhh"},
-	}, nil)
+	store := c.store.(*storemocks.Store)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 
 	node1 := &types.Node{
 		NodeMeta: types.NodeMeta{
@@ -222,13 +210,9 @@ func TestWithNodePodLocked(t *testing.T) {
 func TestWithNodesOperationLocked(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	store := &storemocks.Store{}
-	c.store = store
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-		Diffs:        []string{"hhh"},
-	}, nil)
+	store := c.store.(*storemocks.Store)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 
 	node1 := &types.Node{
 		NodeMeta: types.NodeMeta{
@@ -283,13 +267,9 @@ func TestWithNodesOperationLocked(t *testing.T) {
 func TestWithNodeOperationLocked(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	store := &storemocks.Store{}
-	c.store = store
-	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-		Diffs:        []string{"hhh"},
-	}, nil)
+	store := c.store.(*storemocks.Store)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 
 	node1 := &types.Node{
 		NodeMeta: types.NodeMeta{
