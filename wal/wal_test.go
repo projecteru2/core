@@ -48,7 +48,7 @@ func TestRecover(t *testing.T) {
 	hydro, ok := wal.(*Hydro)
 	assert.True(t, ok)
 	assert.NotNil(t, hydro)
-	hydro.stor = kv.NewMockedKV()
+	hydro.store = kv.NewMockedKV()
 
 	eventype := "create"
 

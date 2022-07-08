@@ -26,7 +26,7 @@ func TestLogFailedAsEncodeError(t *testing.T) {
 	handler.encode = func(interface{}) ([]byte, error) { return nil, fmt.Errorf("encode error") }
 
 	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
-	hydro.stor = kv.NewMockedKV()
+	hydro.store = kv.NewMockedKV()
 	hydro.Register(handler)
 
 	commit, err := hydro.Log(eventype, struct{}{})
@@ -44,7 +44,7 @@ func TestLogWithCommitEvent(t *testing.T) {
 	handler := newTestEventHandler(eventype, &checked, &handled, &encoded, &decoded)
 
 	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
-	hydro.stor = kv.NewMockedKV()
+	hydro.store = kv.NewMockedKV()
 	hydro.Register(handler)
 
 	commit, err := hydro.Log(eventype, struct{}{})
@@ -64,7 +64,7 @@ func TestRecoverFailedAsNoSuchHandler(t *testing.T) {
 	handler := newTestEventHandler(eventype, &checked, &handled, &encoded, &decoded)
 
 	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
-	hydro.stor = kv.NewMockedKV()
+	hydro.store = kv.NewMockedKV()
 	hydro.Register(handler)
 
 	commit, err := hydro.Log(eventype, struct{}{})
@@ -90,7 +90,7 @@ func TestRecoverFailedAsCheckError(t *testing.T) {
 	}
 
 	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
-	hydro.stor = kv.NewMockedKV()
+	hydro.store = kv.NewMockedKV()
 	hydro.Register(handler)
 
 	commit, err := hydro.Log(eventype, struct{}{})
@@ -137,7 +137,7 @@ func TestRecoverFailedAsDecodeLogError(t *testing.T) {
 	}
 
 	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
-	hydro.stor = kv.NewMockedKV()
+	hydro.store = kv.NewMockedKV()
 	hydro.Register(handler)
 
 	commit, err := hydro.Log(eventype, struct{}{})
@@ -163,7 +163,7 @@ func TestHydroRecoverDiscardNoNeedEvent(t *testing.T) {
 	handler.check = check
 
 	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
-	hydro.stor = kv.NewMockedKV()
+	hydro.store = kv.NewMockedKV()
 	hydro.Register(handler)
 
 	commit, err := hydro.Log(eventype, struct{}{})
@@ -183,7 +183,7 @@ func TestHydroRecover(t *testing.T) {
 	handler := newTestEventHandler(eventype, &checked, &handled, &encoded, &decoded)
 
 	hydro, _ := NewHydro(path.Join(t.TempDir(), "1"), time.Second)
-	hydro.stor = kv.NewMockedKV()
+	hydro.store = kv.NewMockedKV()
 	hydro.Register(handler)
 
 	commit, err := hydro.Log(eventype, struct{}{})
@@ -197,7 +197,7 @@ func TestHydroRecover(t *testing.T) {
 	assert.True(t, handled)
 
 	// The handled events should be removed.
-	ch, _ := hydro.stor.Scan([]byte(eventPrefix))
+	ch, _ := hydro.store.Scan([]byte(eventPrefix))
 	for range ch {
 		assert.Fail(t, "the events should be deleted")
 	}
@@ -234,7 +234,7 @@ func TestHydroRecoverWithRealLithium(t *testing.T) {
 
 	hydro.Recover(context.TODO())
 
-	ch, _ := hydro.stor.Scan([]byte(eventPrefix))
+	ch, _ := hydro.store.Scan([]byte(eventPrefix))
 	for range ch {
 		assert.FailNow(t, "expects no data")
 	}

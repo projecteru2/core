@@ -18,7 +18,7 @@ const interval = 15 * time.Second
 // Helium .
 type Helium struct {
 	sync.Once
-	stor     store.Store
+	store    store.Store
 	subs     hashmap.HashMap
 	interval time.Duration
 }
@@ -30,8 +30,8 @@ type entry struct {
 }
 
 // New .
-func New(config types.GRPCConfig, stor store.Store) *Helium {
-	h := &Helium{interval: config.ServiceDiscoveryPushInterval, stor: stor, subs: hashmap.HashMap{}}
+func New(config types.GRPCConfig, store store.Store) *Helium {
+	h := &Helium{interval: config.ServiceDiscoveryPushInterval, store: store, subs: hashmap.HashMap{}}
 	if h.interval < time.Second {
 		h.interval = interval
 	}
@@ -72,7 +72,7 @@ func (h *Helium) Unsubscribe(id uuid.UUID) {
 }
 
 func (h *Helium) start(ctx context.Context) {
-	ch, err := h.stor.ServiceStatusStream(ctx)
+	ch, err := h.store.ServiceStatusStream(ctx)
 	if err != nil {
 		log.Errorf(nil, "[WatchServiceStatus] failed to start watch: %v", err) //nolint
 		return

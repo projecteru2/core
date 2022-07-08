@@ -18,21 +18,21 @@ const (
 // Hydro is the simplest wal implementation.
 type Hydro struct {
 	hashmap.HashMap
-	stor kv.KV
+	store kv.KV
 }
 
 // NewHydro initailizes a new Hydro instance.
 func NewHydro(path string, timeout time.Duration) (*Hydro, error) {
-	stor := kv.NewLithium()
-	if err := stor.Open(path, fileMode, timeout); err != nil {
+	store := kv.NewLithium()
+	if err := store.Open(path, fileMode, timeout); err != nil {
 		return nil, err
 	}
-	return &Hydro{HashMap: hashmap.HashMap{}, stor: stor}, nil
+	return &Hydro{HashMap: hashmap.HashMap{}, store: store}, nil
 }
 
 // Close disconnects the kvdb.
 func (h *Hydro) Close() error {
-	return h.stor.Close()
+	return h.store.Close()
 }
 
 // Register registers a new event handler.
@@ -42,7 +42,7 @@ func (h *Hydro) Register(handler EventHandler) {
 
 // Recover starts a disaster recovery, which will replay all the events.
 func (h *Hydro) Recover(ctx context.Context) {
-	ch, _ := h.stor.Scan([]byte(eventPrefix))
+	ch, _ := h.store.Scan([]byte(eventPrefix))
 
 	events := []HydroEvent{}
 	for scanEntry := range ch {
@@ -81,7 +81,7 @@ func (h *Hydro) Log(eventyp string, item interface{}) (Commit, error) {
 	}
 
 	var id uint64
-	if id, err = h.stor.NextSequence(); err != nil {
+	if id, err = h.store.NextSequence(); err != nil {
 		return nil, err
 	}
 
@@ -90,12 +90,12 @@ func (h *Hydro) Log(eventyp string, item interface{}) (Commit, error) {
 		return nil, coretypes.ErrBadWALEvent
 	}
 
-	if err = h.stor.Put(event.Key(), bs); err != nil {
+	if err = h.store.Put(event.Key(), bs); err != nil {
 		return nil, err
 	}
 
 	return func() error {
-		return h.stor.Delete(event.Key())
+		return h.store.Delete(event.Key())
 	}, nil
 }
 
@@ -106,7 +106,7 @@ func (h *Hydro) recover(ctx context.Context, handler EventHandler, event HydroEv
 	}
 
 	delete := func() error {
-		return h.stor.Delete(event.Key())
+		return h.store.Delete(event.Key())
 	}
 
 	switch handle, err := handler.Check(ctx, item); {
