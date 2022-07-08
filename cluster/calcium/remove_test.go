@@ -7,6 +7,8 @@ import (
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	resourcetypes "github.com/projecteru2/core/resources"
+	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -22,14 +24,14 @@ func TestRemoveWorkload(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store := c.store.(*storemocks.Store)
-	//plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-	//plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-	//	ResourceInfo: &resources.NodeResourceInfo{},
-	//}, nil)
-	//plugin.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.SetNodeResourceUsageResponse{
-	//	Before: types.NodeResourceArgs{},
-	//	After:  types.NodeResourceArgs{},
-	//}, nil)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		map[string]types.NodeResourceArgs{},
+		map[string]types.NodeResourceArgs{},
+		nil,
+	)
+	rmgr.On("ConvertNodeResourceInfoToMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*resourcetypes.Metrics{}, nil)
 
 	// failed by GetWorkload
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()

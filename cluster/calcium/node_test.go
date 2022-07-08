@@ -183,7 +183,7 @@ func TestSetNode(t *testing.T) {
 	ctx := context.Background()
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
-	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+	rmgr.On("SetNodeResourceCapacity", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		map[string]types.NodeResourceArgs{},
 		map[string]types.NodeResourceArgs{},
 		nil,
@@ -236,8 +236,9 @@ func TestSetNode(t *testing.T) {
 	assert.NoError(t, err)
 	// test modify
 	setOpts := &types.SetNodeOptions{
-		Nodename: "test",
-		Labels:   map[string]string{"some": "1"},
+		Nodename:     "test",
+		Labels:       map[string]string{"some": "1"},
+		ResourceOpts: types.NodeResourceOpts{"w": 1},
 	}
 	// set label
 	n, err = c.SetNode(ctx, setOpts)
