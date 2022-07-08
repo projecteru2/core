@@ -8,6 +8,8 @@ import (
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	resourcetypes "github.com/projecteru2/core/resources"
+	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -20,7 +22,7 @@ func TestAddNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	factory.InitEngineCache(ctx, c.config)
-	//plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
 
 	name := "test"
 	node := &types.Node{
@@ -37,13 +39,13 @@ func TestAddNode(t *testing.T) {
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything).Return(node, nil)
-	//	plugin.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.AddNodeResponse{}, nil)
-	//	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-	//		ResourceInfo: &resources.NodeResourceInfo{
-	//			Capacity: types.NodeResourceArgs{},
-	//			Usage:    types.NodeResourceArgs{},
-	//		},
-	//	}, nil)
+	rmgr.On("AddNode",
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
+	).Return(
+		map[string]types.NodeResourceArgs{},
+		map[string]types.NodeResourceArgs{},
+		nil,
+	)
 	store.On("GetNode",
 		mock.Anything,
 		mock.Anything).Return(node, nil)
@@ -64,7 +66,7 @@ func TestAddNode(t *testing.T) {
 func TestRemoveNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	//	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
 
 	name := "test"
 	node := &types.Node{NodeMeta: types.NodeMeta{Name: name}}
@@ -74,14 +76,8 @@ func TestRemoveNode(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	//	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-	//		ResourceInfo: &resources.NodeResourceInfo{
-	//			Capacity: types.NodeResourceArgs{},
-	//			Usage:    types.NodeResourceArgs{},
-	//		},
-	//	}, nil)
-	//	plugin.On("RemoveNode", mock.Anything, mock.Anything).Return(&resources.RemoveNodeResponse{}, nil)
-
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+	rmgr.On("RemoveNode", mock.Anything, mock.Anything).Return(nil)
 	store.On("GetNode",
 		mock.Anything,
 		mock.Anything).Return(node, nil)
@@ -104,10 +100,8 @@ func TestRemoveNode(t *testing.T) {
 
 func TestListPodNodes(t *testing.T) {
 	c := NewTestCluster()
-	//	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-	//	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-	//		ResourceInfo: &resources.NodeResourceInfo{},
-	//	}, nil)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	ctx := context.Background()
 	name1 := "test1"
 	name2 := "test2"
@@ -141,15 +135,8 @@ func TestListPodNodes(t *testing.T) {
 func TestGetNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	//	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-	//
-	//	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-	//		ResourceInfo: &resources.NodeResourceInfo{
-	//			Capacity: types.NodeResourceArgs{},
-	//			Usage:    types.NodeResourceArgs{},
-	//		},
-	//	}, nil)
-
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	// fail by validating
 	_, err := c.GetNode(ctx, "", nil)
 	assert.Error(t, err)
@@ -194,18 +181,14 @@ func TestGetNodeEngine(t *testing.T) {
 func TestSetNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	//plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-
-	//	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-	//		ResourceInfo: &resources.NodeResourceInfo{
-	//			Capacity: types.NodeResourceArgs{},
-	//			Usage:    types.NodeResourceArgs{},
-	//		},
-	//	}, nil)
-	//	plugin.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.SetNodeResourceUsageResponse{
-	//		Before: types.NodeResourceArgs{},
-	//		After:  types.NodeResourceArgs{},
-	//	}, nil)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		map[string]types.NodeResourceArgs{},
+		map[string]types.NodeResourceArgs{},
+		nil,
+	)
+	rmgr.On("ConvertNodeResourceInfoToMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*resourcetypes.Metrics{}, nil)
 
 	name := "test"
 	node := &types.Node{NodeMeta: types.NodeMeta{Name: name}}
@@ -281,14 +264,8 @@ func TestSetNode(t *testing.T) {
 func TestFilterNodes(t *testing.T) {
 	assert := assert.New(t)
 	c := NewTestCluster()
-	//	plugin := c.resource.GetPlugins()[0].(*resourcemocks.Plugin)
-
-	//	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-	//		ResourceInfo: &resources.NodeResourceInfo{
-	//			Capacity: types.NodeResourceArgs{},
-	//			Usage:    types.NodeResourceArgs{},
-	//		},
-	//	}, nil)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	store := c.store.(*storemocks.Store)
 	nodes := []*types.Node{
 		{
