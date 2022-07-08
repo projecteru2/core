@@ -55,7 +55,8 @@ func TestDissociateWorkload(t *testing.T) {
 	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		map[string]types.NodeResourceArgs{},
 		map[string]types.NodeResourceArgs{},
-		nil)
+		nil,
+	)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
 	ch, err = c.DissociateWorkload(ctx, []string{"c1"})

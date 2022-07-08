@@ -23,6 +23,8 @@ func TestAddNode(t *testing.T) {
 	ctx := context.Background()
 	factory.InitEngineCache(ctx, c.config)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+	rmgr.On("ConvertNodeResourceInfoToMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*resourcetypes.Metrics{}, nil)
 
 	name := "test"
 	node := &types.Node{

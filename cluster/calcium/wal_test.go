@@ -9,7 +9,7 @@ import (
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
-	"github.com/projecteru2/core/resources"
+	resourcetypes "github.com/projecteru2/core/resources"
 	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -23,6 +23,13 @@ func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	wal, err := enableWAL(c.config, c, c.store)
 	require.NoError(t, err)
 	c.wal = wal
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		map[string]types.NodeResourceArgs{},
+		map[string]types.NodeResourceArgs{},
+		[]string{},
+		nil,
+	)
 
 	wrkid := "workload-id"
 	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{ID: wrkid, Nodename: "nodename"})
@@ -48,11 +55,13 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	wal, err := enableWAL(c.config, c, c.store)
 	require.NoError(t, err)
 	c.wal = wal
-	plugin := c.rmgr.GetPlugins()[0].(*resourcemocks.Plugin)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-		Diffs:        []string{"hhh"},
-	}, nil)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		map[string]types.NodeResourceArgs{},
+		map[string]types.NodeResourceArgs{},
+		[]string{},
+		nil,
+	)
 
 	engine := &enginemocks.API{}
 	node := &types.Node{
@@ -100,11 +109,13 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	wal, err := enableWAL(c.config, c, c.store)
 	require.NoError(t, err)
 	c.wal = wal
-	plugin := c.rmgr.GetPlugins()[0].(*resourcemocks.Plugin)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-		Diffs:        []string{"hhh"},
-	}, nil)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		map[string]types.NodeResourceArgs{},
+		map[string]types.NodeResourceArgs{},
+		[]string{},
+		nil,
+	)
 
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{Name: "nodename"},
@@ -145,18 +156,23 @@ func TestHandleCreateLambda(t *testing.T) {
 	wal, err := enableWAL(c.config, c, c.store)
 	require.NoError(t, err)
 	c.wal = wal
-	plugin := c.rmgr.GetPlugins()[0].(*resourcemocks.Plugin)
-	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-		ResourceInfo: &resources.NodeResourceInfo{},
-		Diffs:        []string{"hhh"},
-	}, nil)
-	plugin.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.SetNodeResourceUsageResponse{
-		Before: types.NodeResourceArgs{},
-		After:  types.NodeResourceArgs{},
-	}, nil)
-	plugin.On("GetRemapArgs", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetRemapArgsResponse{
-		EngineArgsMap: map[string]types.EngineArgs{},
-	}, nil)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		map[string]types.NodeResourceArgs{},
+		map[string]types.NodeResourceArgs{},
+		[]string{},
+		nil,
+	)
+	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		map[string]types.NodeResourceArgs{},
+		map[string]types.NodeResourceArgs{},
+		nil,
+	)
+	rmgr.On("ConvertNodeResourceInfoToMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*resourcetypes.Metrics{}, nil)
+	rmgr.On("GetRemapArgs", mock.Anything, mock.Anything, mock.Anything).Return(
+		map[string]types.EngineArgs{},
+		nil,
+	)
 
 	_, err = c.wal.Log(eventCreateLambda, "workloadid")
 	require.NoError(t, err)

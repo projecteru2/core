@@ -62,7 +62,6 @@ func TestRemoveWorkload(t *testing.T) {
 			Name: "test",
 		},
 	}
-	//	plugin.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil).Twice()
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Twice()
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)

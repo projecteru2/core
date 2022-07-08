@@ -238,13 +238,10 @@ func (bp *BinaryPlugin) execCommand(cmd *exec.Cmd) (output, log string, err erro
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	err = cmd.Run()
-	output = stdout.String()
-	log = stderr.String()
-	if err != nil {
+	if err = cmd.Run(); err != nil {
 		err = fmt.Errorf("err: %v, output: %v, log: %v", err, output, log)
 	}
-	return output, log, err
+	return stdout.String(), stderr.String(), err
 }
 
 // calls the plugin and gets json response
