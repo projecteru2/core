@@ -11,6 +11,7 @@ import (
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	"github.com/projecteru2/core/resources"
 	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/strategy"
@@ -80,7 +81,9 @@ func TestCreateWorkloadTxn(t *testing.T) {
 
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	mwal := c.wal.(*walmocks.WAL)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+	mwal := &walmocks.WAL{}
+	c.wal = mwal
 	var walCommitted bool
 	commit := wal.Commit(func() error {
 		walCommitted = true
@@ -110,7 +113,9 @@ func TestCreateWorkloadTxn(t *testing.T) {
 			return
 		}, nil)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
-	rmgr.On("Alloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, types.ErrKeyIsEmpty).Once()
+	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
+		nil, 0, types.ErrKeyIsEmpty,
+	).Once()
 	ch, err := c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	cnt := 0
@@ -121,29 +126,27 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 	assert.True(t, walCommitted)
 	walCommitted = false
-	//rmgr.On("Alloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodesDeployCapacityResponse{
-	//Nodes: map[string]*resources.NodeCapacityInfo{
-	//node1.Name: {
-	//NodeName: node1.Name,
-	//Capacity: 10,
-	//Usage:    0.5,
-	//Rate:     0.05,
-	//Weight:   100,
-	//},
-	//node2.Name: {
-	//NodeName: node2.Name,
-	//Capacity: 10,
-	//Usage:    0.5,
-	//Rate:     0.05,
-	//Weight:   100,
-	//},
-	//},
-	//Total: 20,
-	//}, nil)
+	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
+		map[string]*resources.NodeCapacityInfo{
+			node1.Name: {
+				NodeName: node1.Name,
+				Capacity: 10,
+				Usage:    0.5,
+				Rate:     0.05,
+				Weight:   100,
+			},
+			node2.Name: {
+				NodeName: node2.Name,
+				Capacity: 10,
+				Usage:    0.5,
+				Rate:     0.05,
+				Weight:   100,
+			},
+		}, 20, nil,
+	)
 
 	// doAllocResource fails: GetDeployStatus
 	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "GetDeployStatus")).Once()
-
 	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	cnt = 0
@@ -155,10 +158,12 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 	assert.True(t, walCommitted)
 	walCommitted = false
+	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{}, nil)
 
 	// doAllocResource fails: Alloc
-	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{}, nil)
-	//plugin.On("GetDeployArgs", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, context.DeadlineExceeded).Once()
+	rmgr.On("Alloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		nil, nil, types.ErrBadCPU,
+	).Once()
 	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	cnt = 0
@@ -169,16 +174,15 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 	assert.True(t, walCommitted)
 	walCommitted = false
-
-	// doCreateWorkloadOnNode fails: doGetAndPrepareNode
-	//	plugin.On("GetDeployArgs", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetDeployArgsResponse{
-	//		EngineArgs:   []types.EngineArgs{},
-	//		ResourceArgs: []types.WorkloadResourceArgs{},
-	//	}, nil)
-	//	plugin.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&resources.SetNodeResourceUsageResponse{
-	//		Before: types.NodeResourceArgs{},
-	//		After:  types.NodeResourceArgs{},
-	//	}, nil)
+	rmgr.On("Alloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		[]types.EngineArgs{{}, {}},
+		[]map[string]types.WorkloadResourceArgs{
+			{node1.Name: {}},
+			{node2.Name: {}},
+		},
+		nil,
+	)
+	rmgr.On("RollbackAlloc", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("GetNode",
 		mock.AnythingOfType("*context.timerCtx"),
 		mock.AnythingOfType("string"),
@@ -272,7 +276,6 @@ func newCreateWorkloadCluster(t *testing.T) (*Calcium, []*types.Node) {
 	c := NewTestCluster()
 
 	engine := &enginemocks.API{}
-	pod1 := &types.Pod{Name: "p1"}
 	node1 := &types.Node{
 		NodeMeta: types.NodeMeta{
 			Name: "n1",
@@ -296,7 +299,6 @@ func newCreateWorkloadCluster(t *testing.T) (*Calcium, []*types.Node) {
 	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	store.On("GetPod", mock.Anything, mock.Anything).Return(pod1, nil)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 	store.On("GetNode",
 		mock.AnythingOfType("*context.emptyCtx"),
@@ -309,14 +311,6 @@ func newCreateWorkloadCluster(t *testing.T) (*Calcium, []*types.Node) {
 			}
 			return
 		}, nil)
-
-	//	plugin.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything).Return(&resources.GetNodeResourceInfoResponse{
-	//		ResourceInfo: &resources.NodeResourceInfo{},
-	//	}, nil)
-
-	mwal := c.wal.(*walmocks.WAL)
-	commit := wal.Commit(func() error { return nil })
-	mwal.On("Log", mock.Anything, mock.Anything).Return(commit, nil)
 
 	return c, nodes
 }
