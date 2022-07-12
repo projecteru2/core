@@ -55,7 +55,7 @@ func TestMutex(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = m5.Lock(context.Background())
 	assert.NoError(t, err)
-	// then after embeded ETCD close, m5 will be unlocked from passive branch
+	// then after embedded ETCD close, m5 will be unlocked from passive branch
 }
 
 func TestTryLock(t *testing.T) {
@@ -109,5 +109,5 @@ func TestTryLock(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = m6.TryLock(context.Background())
 	assert.NoError(t, err)
-	// then after embeded ETCD close, m5 will be unlocked from passive branch
+	// then after embedded ETCD close, m5 will be unlocked from passive branch
 }

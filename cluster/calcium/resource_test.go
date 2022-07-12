@@ -8,9 +8,7 @@ import (
 	"time"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
-	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
-	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resources"
 	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
@@ -131,34 +129,4 @@ func TestNodeResource(t *testing.T) {
 	assert.NotEmpty(t, nr.Diffs)
 	details := strings.Join(nr.Diffs, ",")
 	assert.Contains(t, details, "inspect failed")
-}
-
-func TestRemapResource(t *testing.T) {
-	c := NewTestCluster()
-	store := c.store.(*storemocks.Store)
-	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		map[string]types.NodeResourceArgs{"test": map[string]interface{}{"abc": 123}},
-		map[string]types.NodeResourceArgs{"test": map[string]interface{}{"abc": 123}},
-		[]string{types.ErrNoETCD.Error()},
-		nil)
-	rmgr.On("GetRemapArgs", mock.Anything, mock.Anything, mock.Anything).Return(
-		map[string]types.EngineArgs{},
-		nil,
-	)
-	engine := &enginemocks.API{}
-	node := &types.Node{Engine: engine}
-
-	workload := &types.Workload{
-		ResourceArgs: map[string]types.WorkloadResourceArgs{},
-	}
-	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
-	ch := make(chan enginetypes.VirtualizationRemapMessage, 1)
-	ch <- enginetypes.VirtualizationRemapMessage{}
-	close(ch)
-	engine.On("VirtualizationResourceRemap", mock.Anything, mock.Anything).Return((<-chan enginetypes.VirtualizationRemapMessage)(ch), nil)
-	_, err := c.remapResource(context.Background(), node)
-	assert.Nil(t, err)
-
-	c.doRemapResourceAndLog(context.TODO(), log.WithField("test", "zc"), node)
 }
