@@ -37,7 +37,7 @@ func (v *Volume) AddNode(ctx context.Context, node string, resourceOpts *types.N
 // RemoveNode .
 func (v *Volume) RemoveNode(ctx context.Context, node string) error {
 	if _, err := v.store.Delete(ctx, fmt.Sprintf(NodeResourceInfoKey, node)); err != nil {
-		logrus.Errorf("[doSetNodeResourceInfo] faield to delete node %v, err: %v", node, err)
+		logrus.Errorf("[RemoveNode] faield to delete node %v, err: %v", node, err)
 		return err
 	}
 	return nil

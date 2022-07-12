@@ -31,7 +31,7 @@ func TestAddNode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, resourceInfo.Capacity.Storage, resourceOpts.Storage)
 	assert.Equal(t, resourceInfo.Capacity.Volumes, resourceOpts.Volumes)
-	assert.Equal(t, resourceInfo.Usage, &types.NodeResourceArgs{Volumes: types.VolumeMap{"/data0": 0}, Disks: types.Disks{}})
+	assert.Equal(t, resourceInfo.Usage, &types.NodeResourceArgs{Volumes: types.VolumeMap{"/data0": 0}})
 }
 
 func TestRemoveNode(t *testing.T) {

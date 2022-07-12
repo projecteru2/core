@@ -1,11 +1,12 @@
 package utils
 
-type numbers interface {
-	~int | ~int32 | ~int64 | ~uint | ~uint32 | ~uint64 | ~float32 | ~float64 | ~complex64 | ~complex128
-}
+import (
+	"golang.org/x/exp/constraints"
+	"golang.org/x/exp/slices"
+)
 
-type orderedNumbers interface {
-	~int | ~int32 | ~int64 | ~uint | ~uint32 | ~uint64 | ~float32 | ~float64
+type numbers interface {
+	constraints.Integer | constraints.Float | constraints.Complex
 }
 
 // Map like map in Python
@@ -27,7 +28,7 @@ func Sum[T numbers](slice []T) T {
 }
 
 // Min returns the lesser one.
-func Min[T orderedNumbers](x T, xs ...T) T {
+func Min[T constraints.Ordered](x T, xs ...T) T {
 	if len(xs) == 0 {
 		return x
 	}
@@ -38,7 +39,7 @@ func Min[T orderedNumbers](x T, xs ...T) T {
 }
 
 // Max returns the biggest one.
-func Max[T orderedNumbers](x T, xs ...T) T {
+func Max[T constraints.Ordered](x T, xs ...T) T {
 	if len(xs) == 0 {
 		return x
 	}
@@ -87,4 +88,27 @@ func AdvancedDivide[T numbers](a, b T) T {
 		return 0
 	}
 	return a / b
+}
+
+// Reverse any slice
+func Reverse[T any](s []T) {
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+		s[i], s[j] = s[j], s[i]
+	}
+}
+
+// Unique return a index, where s[:index] is a unique slice
+// Unique requires sorted slice
+func Unique[T, E constraints.Ordered](s []T, getVal func(int) E) (j int) {
+	slices.Sort(s)
+	var lastVal E
+	for i := 0; i < len(s); i++ {
+		if getVal(i) == lastVal && i != 0 {
+			continue
+		}
+		lastVal = getVal(i)
+		s[i], s[j] = s[j], s[i]
+		j++
+	}
+	return j
 }

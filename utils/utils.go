@@ -13,7 +13,6 @@ import (
 	"math"
 	"math/big"
 	"os"
-	"reflect"
 	"strings"
 	"time"
 
@@ -227,32 +226,6 @@ func Range(n int) (res []int) {
 		res = append(res, i)
 	}
 	return
-}
-
-// Reverse any slice
-func Reverse(s interface{}) {
-	n := reflect.ValueOf(s).Len()
-	swap := reflect.Swapper(s)
-	for i, j := 0, n-1; i < j; i, j = i+1, j-1 {
-		swap(i, j)
-	}
-}
-
-// Unique return a index, where s[:index] is a unique slice
-// Unique requires sorted slice
-func Unique(s interface{}, getVal func(int) string) (j int) {
-	n := reflect.ValueOf(s).Len()
-	swap := reflect.Swapper(s)
-	lastVal := ""
-	for i := 0; i < n; i++ {
-		if getVal(i) == lastVal && i != 0 {
-			continue
-		}
-		lastVal = getVal(i)
-		swap(i, j)
-		j++
-	}
-	return j
 }
 
 // WithTimeout runs a function with given timeout

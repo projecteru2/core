@@ -294,8 +294,7 @@ func TestFilterNodes(t *testing.T) {
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil).Once()
 	nodes1, err := c.filterNodes(context.Background(), types.NodeFilter{Includes: []string{}, Excludes: []string{"A", "B"}})
 	assert.NoError(err)
-	assert.Equal("C", nodes1[0].Name)
-	assert.Equal("D", nodes1[1].Name)
+	assert.Equal(2, len(nodes1))
 
 	// empty nodenames, empty excludeNodenames
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil).Once()

@@ -2,6 +2,8 @@ package utils
 
 import (
 	"fmt"
+	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -76,4 +78,31 @@ func TestAdvancedDivide(t *testing.T) {
 	assert.Equal(t, 0, s2)
 	s3 := AdvancedDivide(1, 1)
 	assert.Equal(t, 1, s3)
+}
+
+func TestReverse(t *testing.T) {
+	s1 := []string{"a", "b", "c"}
+	Reverse(s1)
+	assert.True(t, reflect.DeepEqual(s1, []string{"c", "b", "a"}))
+
+	s2 := []string{}
+	Reverse(s2)
+
+	s3 := []int{1, 2, 3, 4}
+	Reverse(s3)
+	assert.True(t, reflect.DeepEqual(s3, []int{4, 3, 2, 1}))
+}
+
+func TestUnique(t *testing.T) {
+	s1 := []int64{1, 2, 3}
+	s1 = s1[:Unique(s1, func(i int) string { return strconv.Itoa(int(s1[i])) })]
+	assert.True(t, reflect.DeepEqual(s1, []int64{1, 2, 3}))
+
+	s2 := []string{"a", "a", "a", "b", "b", "c"}
+	s2 = s2[:Unique(s2, func(i int) string { return s2[i] })]
+	assert.True(t, reflect.DeepEqual(s2, []string{"a", "b", "c"}))
+
+	s3 := []string{"", "1", "1", "1", "1"}
+	s3 = s3[:Unique(s3, func(i int) string { return s3[i] })]
+	assert.True(t, reflect.DeepEqual(s3, []string{"", "1"}))
 }

@@ -2,7 +2,6 @@ package calcium
 
 import (
 	"context"
-	"sort"
 
 	enginefactory "github.com/projecteru2/core/engine/factory"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -280,9 +279,11 @@ func (c *Calcium) filterNodes(ctx context.Context, nf types.NodeFilter) (ns []*t
 		if len(ns) == 0 {
 			return
 		}
-		sort.Slice(ns, func(i, j int) bool { return ns[i].Name <= ns[j].Name })
+		// sorted by nodenames
+		nodenames := utils.Map(ns, func(node *types.Node) string { return node.Name })
 		// unique
-		ns = ns[:utils.Unique(ns, func(i int) string { return ns[i].Name })]
+		p := utils.Unique(nodenames, func(i int) string { return nodenames[i] })
+		ns = ns[:p]
 	}()
 
 	if len(nf.Includes) != 0 {
