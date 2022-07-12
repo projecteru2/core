@@ -2,7 +2,6 @@ package utils
 
 import (
 	"context"
-	"errors"
 	"os"
 	"strings"
 	"sync"
@@ -11,6 +10,7 @@ import (
 	"github.com/cornelk/hashmap"
 	"github.com/go-ping/ping"
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/types"
 	"golang.org/x/exp/slices"
 )
 
@@ -132,7 +132,7 @@ func (p *EndpointPusher) checkReachability(host string) (err error) {
 		return
 	}
 	if pinger.Statistics().PacketsRecv != 1 {
-		return errors.New("icmp packet lost")
+		return types.ErrICMPLost
 	}
 	return
 }

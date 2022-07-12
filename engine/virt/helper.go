@@ -9,6 +9,8 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
+const sep = "@"
+
 func (v *Virt) parseVolumes(volumes []string) ([]string, error) {
 	vols := []string{}
 
@@ -43,8 +45,6 @@ func (v *Virt) parseVolumes(volumes []string) ([]string, error) {
 
 	return vols, nil
 }
-
-const sep = "@"
 
 func splitUserImage(combined string) (user, imageName string, err error) {
 	inputErr := fmt.Errorf("input: \"%s\" not valid", combined)

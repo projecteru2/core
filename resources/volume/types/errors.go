@@ -9,5 +9,6 @@ var (
 	ErrInvalidStorage       = errors.New("invalid storage")
 	ErrInvalidDisk          = errors.New("invalid disk")
 
-	ErrNodeExists = errors.New("node already exists")
+	ErrNodeExists       = errors.New("node already exists")
+	ErrRMDiskNotSupport = errors.New("rm disk is not supported when delta is true")
 )

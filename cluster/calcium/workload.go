@@ -30,15 +30,6 @@ func (c *Calcium) ListNodeWorkloads(ctx context.Context, nodename string, labels
 	return workloads, logger.ErrWithTracing(ctx, errors.WithStack(err))
 }
 
-func (c *Calcium) getWorkloadNode(ctx context.Context, id string) (*types.Node, error) {
-	w, err := c.GetWorkload(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	node, err := c.GetNode(ctx, w.Nodename, nil)
-	return node, err
-}
-
 // GetWorkload get a workload
 func (c *Calcium) GetWorkload(ctx context.Context, id string) (workload *types.Workload, err error) {
 	logger := log.WithField("Calcium", "GetWorkload").WithField("id", id)
@@ -53,4 +44,13 @@ func (c *Calcium) GetWorkload(ctx context.Context, id string) (workload *types.W
 func (c *Calcium) GetWorkloads(ctx context.Context, ids []string) (workloads []*types.Workload, err error) {
 	workloads, err = c.store.GetWorkloads(ctx, ids)
 	return workloads, log.WithField("Calcium", "GetWorkloads").WithField("ids", ids).ErrWithTracing(ctx, errors.WithStack(err))
+}
+
+func (c *Calcium) getWorkloadNode(ctx context.Context, id string) (*types.Node, error) {
+	w, err := c.GetWorkload(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	node, err := c.GetNode(ctx, w.Nodename, nil)
+	return node, err
 }

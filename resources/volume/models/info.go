@@ -165,7 +165,7 @@ func (v *Volume) SetNodeResourceCapacity(ctx context.Context, node string, nodeR
 	if nodeResourceOpts != nil {
 		if len(nodeResourceOpts.RMDisks) > 0 {
 			if delta {
-				return nil, nil, fmt.Errorf("rm disk is not supported when delta is true")
+				return nil, nil, types.ErrRMDiskNotSupport
 			}
 			rmDisksMap := map[string]struct{}{}
 			for _, rmDisk := range nodeResourceOpts.RMDisks {

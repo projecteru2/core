@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"time"
 
@@ -34,7 +33,7 @@ type Pool struct {
 // NewCoreRPCClientPool .
 func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error) {
 	if len(config.EruAddrs) == 0 {
-		return nil, errors.New("core addr not set")
+		return nil, types.ErrBadIPAddress
 	}
 	c := &Pool{rpcClients: []*clientWithStatus{}}
 	for _, addr := range config.EruAddrs {
@@ -63,7 +62,7 @@ func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error
 
 	if allFailed {
 		log.Error("[NewCoreRPCClientPool] all connections failed")
-		return nil, errors.New("all connections failed")
+		return nil, types.ErrAllConnectionsFailed
 	}
 
 	go func() {

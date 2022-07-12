@@ -63,6 +63,7 @@ var (
 	ErrNoWorkloadIDs               = errors.New("No workload ids given")
 	ErrRunAndWaitCountOneWithStdin = errors.New("Count must be 1 if OpenStdin is true")
 	ErrUnknownControlType          = errors.New("Unknown control type")
+	ErrUnknownBuildType            = errors.New("Unknown build type")
 	ErrNoRemoteDigest              = errors.New("got no digest")
 
 	ErrNoETCD             = errors.New("ETCD must be set")
@@ -118,6 +119,11 @@ var (
 
 	ErrInvalidEngineArgs     = errors.New("invalid engine args")
 	ErrGetMostIdleNodeFailed = errors.New("get most idle node failed")
+
+	ErrICMPLost             = errors.New("icmp packets lost")
+	ErrAllConnectionsFailed = errors.New("all connections failed")
+
+	ErrUnexpectedRedirect = errors.New("unexpected redirect")
 )
 
 type detailedErr struct {

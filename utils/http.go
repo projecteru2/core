@@ -15,6 +15,7 @@ import (
 	"github.com/docker/go-connections/tlsconfig"
 
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/types"
 )
 
 var defaultHTTPClient = &http.Client{
@@ -136,5 +137,5 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 	if via[0].Method == http.MethodGet {
 		return http.ErrUseLastResponse
 	}
-	return fmt.Errorf("unexpected redirect")
+	return types.ErrUnexpectedRedirect
 }

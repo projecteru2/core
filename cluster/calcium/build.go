@@ -45,7 +45,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 	case types.BuildFromExist:
 		refs, node, resp, err = c.buildFromExist(ctx, opts)
 	default:
-		return nil, logger.ErrWithTracing(ctx, errors.WithStack(errors.New("unknown build type")))
+		return nil, logger.ErrWithTracing(ctx, errors.WithStack(types.ErrUnknownBuildType))
 	}
 	if err != nil {
 		return nil, logger.ErrWithTracing(ctx, err)
