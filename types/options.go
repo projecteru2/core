@@ -177,10 +177,10 @@ func (o *ReplaceOptions) Normalize() {
 
 // ListNodesOptions for list nodes
 type ListNodesOptions struct {
-	Podname string
-	Labels  map[string]string
-	All     bool
-	Info    bool
+	Podname  string
+	Labels   map[string]string
+	All      bool
+	CallInfo bool
 }
 
 // AddNodeOptions for adding node

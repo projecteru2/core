@@ -1,14 +1,10 @@
 package utils
 
-type addable interface {
+type numbers interface {
 	~int | ~int32 | ~int64 | ~uint | ~uint32 | ~uint64 | ~float32 | ~float64 | ~complex64 | ~complex128
 }
 
-type ordered interface {
-	~int | ~int32 | ~int64 | ~uint | ~uint32 | ~uint64 | ~float32 | ~float64
-}
-
-type dividable interface {
+type orderedNumbers interface {
 	~int | ~int32 | ~int64 | ~uint | ~uint32 | ~uint64 | ~float32 | ~float64
 }
 
@@ -22,7 +18,7 @@ func Map[T1, T2 any](slice []T1, f func(T1) T2) []T2 {
 }
 
 // Sum returns sum of all elements in slice
-func Sum[T addable](slice []T) T {
+func Sum[T numbers](slice []T) T {
 	var result T
 	for _, v := range slice {
 		result += v
@@ -31,7 +27,7 @@ func Sum[T addable](slice []T) T {
 }
 
 // Min returns the lesser one.
-func Min[T ordered](x T, xs ...T) T {
+func Min[T orderedNumbers](x T, xs ...T) T {
 	if len(xs) == 0 {
 		return x
 	}
@@ -42,7 +38,7 @@ func Min[T ordered](x T, xs ...T) T {
 }
 
 // Max returns the biggest one.
-func Max[T ordered](x T, xs ...T) T {
+func Max[T orderedNumbers](x T, xs ...T) T {
 	if len(xs) == 0 {
 		return x
 	}
@@ -64,6 +60,9 @@ func Any[T any](slice []T, f func(T) bool) bool {
 
 // Filter returns a new slice with elements that meet the requirement
 func Filter[T any](slice []T, f func(T) bool) []T {
+	if slice == nil {
+		return slice
+	}
 	result := make([]T, 0)
 	for _, v := range slice {
 		if f(v) {
@@ -83,7 +82,7 @@ func GenerateSlice[T any](l int, factory func() T) []T {
 }
 
 // AdvancedDivide returns 0 when 0/0
-func AdvancedDivide[T dividable](a, b T) T {
+func AdvancedDivide[T numbers](a, b T) T {
 	if a == 0 || b == 0 {
 		return 0
 	}

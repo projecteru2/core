@@ -140,15 +140,15 @@ func (pm *PluginsManager) SetNodeResourceCapacity(ctx context.Context, nodeName 
 }
 
 // GetNodeResourceInfo .
-func (pm *PluginsManager) GetNodeResourceInfo(ctx context.Context, nodeName string, workloads []*types.Workload, fix bool, pluginWhiteList []string) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, []string, error) {
-	resResourceCapacity := map[string]types.NodeResourceArgs{}
-	resResourceUsage := map[string]types.NodeResourceArgs{}
-	resDiffs := []string{}
+func (pm *PluginsManager) GetNodeResourceInfo(ctx context.Context, nodeName string, workloads []*types.Workload, fix bool, whitelist []string) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, []string, error) {
+	resourceCapacity := map[string]types.NodeResourceArgs{}
+	resourceUsage := map[string]types.NodeResourceArgs{}
+	resourceDiffs := []string{}
 
 	plugins := pm.plugins
-	if pluginWhiteList != nil {
+	if whitelist != nil {
 		plugins = utils.Filter(plugins, func(plugin Plugin) bool {
-			return slices.Contains(pluginWhiteList, plugin.Name())
+			return slices.Contains(whitelist, plugin.Name())
 		})
 	}
 
@@ -171,12 +171,12 @@ func (pm *PluginsManager) GetNodeResourceInfo(ctx context.Context, nodeName stri
 	}
 
 	for plugin, resp := range respMap {
-		resResourceCapacity[plugin.Name()] = resp.ResourceInfo.Capacity
-		resResourceUsage[plugin.Name()] = resp.ResourceInfo.Usage
-		resDiffs = append(resDiffs, resp.Diffs...)
+		resourceCapacity[plugin.Name()] = resp.ResourceInfo.Capacity
+		resourceUsage[plugin.Name()] = resp.ResourceInfo.Usage
+		resourceDiffs = append(resourceDiffs, resp.Diffs...)
 	}
 
-	return resResourceCapacity, resResourceUsage, resDiffs, nil
+	return resourceCapacity, resourceUsage, resourceDiffs, nil
 }
 
 // SetNodeResourceUsage with rollback

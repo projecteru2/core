@@ -112,10 +112,10 @@ func toRPCBuildImageMessage(b *types.BuildImageMessage) *pb.BuildImageMessage {
 
 func toCoreListNodesOptions(b *pb.ListNodesOptions) *types.ListNodesOptions {
 	return &types.ListNodesOptions{
-		Podname: b.Podname,
-		Labels:  b.Labels,
-		All:     b.All,
-		Info:    !b.SkipInfo,
+		Podname:  b.Podname,
+		Labels:   b.Labels,
+		All:      b.All,
+		CallInfo: !b.SkipInfo,
 	}
 }
 

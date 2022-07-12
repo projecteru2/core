@@ -140,10 +140,10 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 		var ch <-chan *types.Node
 		utils.WithTimeout(ctx, n.config.GlobalTimeout, func(ctx context.Context) {
 			ch, err = n.cluster.ListPodNodes(ctx, &types.ListNodesOptions{
-				Podname: "",
-				Labels:  nil,
-				All:     true,
-				Info:    false,
+				Podname:  "",
+				Labels:   nil,
+				All:      true,
+				CallInfo: false,
 			})
 			if err != nil {
 				log.Errorf(ctx, "[NodeStatusWatcher] get pod nodes failed %v", err)

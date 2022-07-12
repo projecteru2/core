@@ -100,19 +100,11 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 
 // ListPodNodes list nodes belong to pod
 func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions) (<-chan *types.Node, error) {
-	logger := log.WithField("Calcium", "ListPodNodes").WithField("podname", opts.Podname).WithField("labels", opts.Labels).WithField("all", opts.All).WithField("info", opts.Info)
+	logger := log.WithField("Calcium", "ListPodNodes").WithField("podname", opts.Podname).WithField("labels", opts.Labels).WithField("all", opts.All).WithField("info", opts.CallInfo)
 	ch := make(chan *types.Node)
 	nodes, err := c.store.GetNodesByPod(ctx, opts.Podname, opts.Labels, opts.All)
-	if err != nil || !opts.Info {
-		go func() {
-			defer close(ch)
-			for _, node := range nodes {
-				if err := c.getNodeResourceInfo(ctx, node, nil); err != nil {
-					logger.Errorf(ctx, "failed to get node %v resource info: %+v", node.Name, err)
-				}
-				ch <- node
-			}
-		}()
+	if err != nil {
+		defer close(ch)
 		return ch, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
 
@@ -122,11 +114,13 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 		for _, node := range nodes {
 			pool.Go(ctx, func(node *types.Node) func() {
 				return func() {
-					if err := node.Info(ctx); err != nil {
-						logger.Errorf(ctx, "failed to get node %v info: %+v", node.Name, err)
-					}
 					if err := c.getNodeResourceInfo(ctx, node, nil); err != nil {
 						logger.Errorf(ctx, "failed to get node %v resource info: %+v", node.Name, err)
+					}
+					if opts.CallInfo {
+						if err := node.Info(ctx); err != nil {
+							logger.Errorf(ctx, "failed to get node %v info: %+v", node.Name, err)
+						}
 					}
 					ch <- node
 				}

@@ -124,7 +124,7 @@ func TestListPodNodes(t *testing.T) {
 	}
 	assert.NoError(t, err)
 	assert.Equal(t, len(nss), 2)
-	assert.Equal(t, nss[0].Name, name1)
+	assert.Contains(t, nss[0].Name, "test")
 	ns, err = c.ListPodNodes(ctx, &types.ListNodesOptions{})
 	assert.NoError(t, err)
 	cnt := 0

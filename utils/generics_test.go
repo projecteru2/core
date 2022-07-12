@@ -47,6 +47,10 @@ func TestAny(t *testing.T) {
 }
 
 func TestFilter(t *testing.T) {
+	var s0 []int
+	s0 = Filter(s0, func(int) bool { return true })
+	assert.Nil(t, s0)
+
 	s1 := GenerateSlice(5, func() int {
 		return 0
 	})

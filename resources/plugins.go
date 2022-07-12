@@ -65,6 +65,7 @@ func (pm *PluginsManager) GetPlugins() []Plugin {
 }
 
 func callPlugins[T any](ctx context.Context, plugins []Plugin, f func(Plugin) (T, error)) (map[Plugin]T, error) {
+	// TODO 并行化，意义不大
 	var combinedErr error
 	results := map[Plugin]T{}
 
