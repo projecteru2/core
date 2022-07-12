@@ -284,28 +284,29 @@ func TestFilterNodes(t *testing.T) {
 			NodeMeta: types.NodeMeta{Name: "D"},
 		},
 	}
+	ctx := context.Background()
 
 	// error
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("fail to list pod nodes")).Once()
-	_, err := c.filterNodes(context.Background(), types.NodeFilter{Includes: []string{}, Excludes: []string{"A", "X"}})
+	_, err := c.filterNodes(ctx, types.NodeFilter{Includes: []string{}, Excludes: []string{"A", "X"}})
 	assert.Error(err)
 
 	// empty nodenames, non-empty excludeNodenames
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil).Once()
-	nodes1, err := c.filterNodes(context.Background(), types.NodeFilter{Includes: []string{}, Excludes: []string{"A", "B"}})
+	nodes1, err := c.filterNodes(ctx, types.NodeFilter{Includes: []string{}, Excludes: []string{"A", "B"}})
 	assert.NoError(err)
 	assert.Equal(2, len(nodes1))
 
 	// empty nodenames, empty excludeNodenames
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil).Once()
-	nodes2, err := c.filterNodes(context.Background(), types.NodeFilter{Includes: []string{}, Excludes: []string{}})
+	nodes2, err := c.filterNodes(ctx, types.NodeFilter{Includes: []string{}, Excludes: []string{}})
 	assert.NoError(err)
 	assert.Equal(4, len(nodes2))
 
 	// non-empty nodenames, empty excludeNodenames
 	store.On("GetNode", mock.Anything, "O").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "O"}}, nil).Once()
 	store.On("GetNode", mock.Anything, "P").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "P"}}, nil).Once()
-	nodes3, err := c.filterNodes(context.Background(), types.NodeFilter{Includes: []string{"O", "P"}, Excludes: []string{}})
+	nodes3, err := c.filterNodes(ctx, types.NodeFilter{Includes: []string{"O", "P"}, Excludes: []string{}})
 	assert.NoError(err)
 	assert.Equal("O", nodes3[0].Name)
 	assert.Equal("P", nodes3[1].Name)
@@ -313,7 +314,7 @@ func TestFilterNodes(t *testing.T) {
 	// non-empty nodenames
 	store.On("GetNode", mock.Anything, "X").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "X"}}, nil).Once()
 	store.On("GetNode", mock.Anything, "Y").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "Y"}}, nil).Once()
-	nodes4, err := c.filterNodes(context.Background(), types.NodeFilter{Includes: []string{"X", "Y"}, Excludes: []string{"A", "B"}})
+	nodes4, err := c.filterNodes(ctx, types.NodeFilter{Includes: []string{"X", "Y"}, Excludes: []string{"A", "B"}})
 	assert.NoError(err)
 	assert.Equal("X", nodes4[0].Name)
 	assert.Equal("Y", nodes4[1].Name)

@@ -15,6 +15,7 @@ import (
 	sourcemocks "github.com/projecteru2/core/source/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
 	walmocks "github.com/projecteru2/core/wal/mocks"
 )
@@ -25,7 +26,8 @@ func NewTestCluster() *Calcium {
 		panic(err)
 	}
 
-	c := &Calcium{}
+	pool, _ := utils.NewPool(20)
+	c := &Calcium{pool: pool}
 	c.config = types.Config{
 		GlobalTimeout: 30 * time.Second,
 		Git: types.GitConfig{

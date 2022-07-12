@@ -3,8 +3,10 @@ package calcium
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"time"
 
+	"github.com/panjf2000/ants/v2"
 	"github.com/pkg/errors"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
@@ -27,23 +29,25 @@ func enableWAL(config types.Config, calcium cluster.Cluster, store store.Store) 
 		return nil, err
 	}
 
-	hydro.Register(newCreateLambdaHandler(calcium, store))
-	hydro.Register(newCreateWorkloadHandler(calcium, store))
-	hydro.Register(newWorkloadResourceAllocatedHandler(calcium, store))
-	hydro.Register(newProcessingCreatedHandler(calcium, store))
+	hydro.Register(newCreateLambdaHandler(config, calcium, store))
+	hydro.Register(newCreateWorkloadHandler(config, calcium, store))
+	hydro.Register(newWorkloadResourceAllocatedHandler(config, calcium, store))
+	hydro.Register(newProcessingCreatedHandler(config, calcium, store))
 	return hydro, nil
 }
 
 // CreateLambdaHandler indicates event handler for creating lambda.
 type CreateLambdaHandler struct {
 	typ     string
+	config  types.Config
 	calcium cluster.Cluster
 	store   store.Store
 }
 
-func newCreateLambdaHandler(calcium cluster.Cluster, store store.Store) *CreateLambdaHandler {
+func newCreateLambdaHandler(config types.Config, calcium cluster.Cluster, store store.Store) *CreateLambdaHandler {
 	return &CreateLambdaHandler{
 		typ:     eventCreateLambda,
+		config:  config,
 		calcium: calcium,
 		store:   store,
 	}
@@ -109,13 +113,15 @@ func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error
 // CreateWorkloadHandler indicates event handler for creating workload.
 type CreateWorkloadHandler struct {
 	typ     string
+	config  types.Config
 	calcium cluster.Cluster
 	store   store.Store
 }
 
-func newCreateWorkloadHandler(calcium cluster.Cluster, store store.Store) *CreateWorkloadHandler {
+func newCreateWorkloadHandler(config types.Config, calcium cluster.Cluster, store store.Store) *CreateWorkloadHandler {
 	return &CreateWorkloadHandler{
 		typ:     eventWorkloadCreated,
+		config:  config,
 		calcium: calcium,
 		store:   store,
 	}
@@ -179,15 +185,20 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (er
 // WorkloadResourceAllocatedHandler .
 type WorkloadResourceAllocatedHandler struct {
 	typ     string
+	config  types.Config
 	calcium cluster.Cluster
 	store   store.Store
+	pool    *ants.PoolWithFunc
 }
 
-func newWorkloadResourceAllocatedHandler(calcium cluster.Cluster, store store.Store) *WorkloadResourceAllocatedHandler {
+func newWorkloadResourceAllocatedHandler(config types.Config, calcium cluster.Cluster, store store.Store) *WorkloadResourceAllocatedHandler {
+	pool, _ := utils.NewPool(config.MaxConcurrency)
 	return &WorkloadResourceAllocatedHandler{
 		typ:     eventWorkloadResourceAllocated,
+		config:  config,
 		calcium: calcium,
 		store:   store,
+		pool:    pool,
 	}
 }
 
@@ -227,21 +238,20 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw inter
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
 
-	pool := utils.NewGoroutinePool(20)
+	wg := &sync.WaitGroup{}
+	wg.Add(len(nodes))
 	for _, node := range nodes {
-		pool.Go(ctx, func(nodename string) func() {
-			return func() {
-				{
-					if _, err = h.calcium.NodeResource(ctx, nodename, true); err != nil {
-						logger.Errorf(ctx, "failed to fix node resource: %s, %+v", node.Name, err)
-						return
-					}
-					logger.Infof(ctx, "fixed node resource: %s", node.Name)
-				}
+		node := node
+		_ = h.pool.Invoke(func() {
+			defer wg.Done()
+			if _, err = h.calcium.NodeResource(ctx, node.Name, true); err != nil {
+				logger.Errorf(ctx, "failed to fix node resource: %s, %+v", node.Name, err)
+				return
 			}
-		}(node.Name))
+			logger.Infof(ctx, "fixed node resource: %s", node.Name)
+		})
 	}
-	pool.Wait(ctx)
+	wg.Wait()
 
 	return nil
 }
@@ -249,13 +259,15 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw inter
 // ProcessingCreatedHandler .
 type ProcessingCreatedHandler struct {
 	typ     string
+	config  types.Config
 	calcium cluster.Cluster
 	store   store.Store
 }
 
-func newProcessingCreatedHandler(calcium cluster.Cluster, store store.Store) *ProcessingCreatedHandler {
+func newProcessingCreatedHandler(config types.Config, calcium cluster.Cluster, store store.Store) *ProcessingCreatedHandler {
 	return &ProcessingCreatedHandler{
 		typ:     eventProcessingCreated,
+		config:  config,
 		calcium: calcium,
 		store:   store,
 	}

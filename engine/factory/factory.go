@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 	"unsafe"
 
 	"github.com/cornelk/hashmap"
+	"github.com/panjf2000/ants/v2"
 
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/engine/docker"
@@ -53,14 +55,17 @@ func (ep engineParams) getCacheKey() string {
 type EngineCache struct {
 	cache       *utils.EngineCache
 	keysToCheck hashmap.HashMap
+	pool        *ants.PoolWithFunc
 	config      types.Config
 }
 
 // NewEngineCache .
 func NewEngineCache(config types.Config) *EngineCache {
+	pool, _ := utils.NewPool(config.MaxConcurrency)
 	return &EngineCache{
 		cache:       utils.NewEngineCache(12*time.Hour, 10*time.Minute),
 		keysToCheck: hashmap.HashMap{},
+		pool:        pool,
 		config:      config,
 	}
 }
@@ -91,6 +96,7 @@ func (e *EngineCache) Delete(key string) {
 func (e *EngineCache) CheckAlive(ctx context.Context) {
 	log.Info("[EngineCache] starts")
 	defer log.Info("[EngineCache] ends")
+	defer e.pool.Release()
 	for {
 		select {
 		case <-ctx.Done():
@@ -106,10 +112,12 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 			close(paramsChan)
 		}()
 
-		pool := utils.NewGoroutinePool(int(e.config.MaxConcurrency))
+		wg := &sync.WaitGroup{}
 		for params := range paramsChan {
+			wg.Add(1)
 			params := params
-			pool.Go(ctx, func() {
+			_ = e.pool.Invoke(func() {
+				defer wg.Done()
 				cacheKey := params.getCacheKey()
 				client := e.cache.Get(cacheKey)
 				if client == nil {
@@ -131,8 +139,7 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 				}
 			})
 		}
-
-		pool.Wait(ctx)
+		wg.Wait()
 		time.Sleep(e.config.ConnectionTimeout)
 	}
 }

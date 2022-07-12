@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/mvccpb"
@@ -309,12 +310,14 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 		}
 	}
 
-	pool := utils.NewGoroutinePool(int(m.config.MaxConcurrency))
+	wg := &sync.WaitGroup{}
+	wg.Add(len(allNodes))
 	nodeChan := make(chan *types.Node, len(allNodes))
 
-	for _, n := range allNodes {
-		node := n
-		pool.Go(ctx, func() {
+	for _, node := range allNodes {
+		node := node
+		_ = m.pool.Invoke(func() {
+			defer wg.Done()
 			if _, err := m.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrBadCount) {
 				log.Errorf(ctx, "[doGetNodes] failed to get node status of %v, err: %v", node.Name, err)
 			} else {
@@ -333,7 +336,7 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 			}
 		})
 	}
-	pool.Wait(ctx)
+	wg.Wait()
 	close(nodeChan)
 
 	for node := range nodeChan {

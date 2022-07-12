@@ -229,40 +229,42 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 		return utils.Range(deploy), err
 	}
 
-	pool, appendLock := utils.NewGoroutinePool(int(c.config.MaxConcurrency)), sync.Mutex{}
+	appendLock := sync.Mutex{}
+	wg := &sync.WaitGroup{}
+	wg.Add(deploy)
 	for idx := 0; idx < deploy; idx++ {
+		idx := idx
 		createMsg := &types.CreateWorkloadMessage{
 			Podname:  opts.Podname,
 			Nodename: nodename,
 			Publish:  map[string][]string{},
 		}
 
-		pool.Go(ctx, func(idx int) func() {
-			return func() {
-				var e error
-				defer func() {
-					if e != nil {
-						err = e
-						createMsg.Error = logger.ErrWithTracing(ctx, e)
-						appendLock.Lock()
-						indices = append(indices, idx)
-						appendLock.Unlock()
-					}
-					ch <- createMsg
-				}()
-
-				createMsg.EngineArgs = engineArgs[idx]
-				createMsg.ResourceArgs = map[string]types.WorkloadResourceArgs{}
-				for k, v := range resourceArgs[idx] {
-					createMsg.ResourceArgs[k] = v
+		_ = c.pool.Invoke(func() {
+			defer wg.Done()
+			var e error
+			defer func() {
+				if e != nil {
+					err = e
+					createMsg.Error = logger.ErrWithTracing(ctx, e)
+					appendLock.Lock()
+					indices = append(indices, idx)
+					appendLock.Unlock()
 				}
+				ch <- createMsg
+			}()
 
-				createOpts := c.doMakeWorkloadOptions(ctx, seq+idx, createMsg, opts, node)
-				e = c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts, true)
+			createMsg.EngineArgs = engineArgs[idx]
+			createMsg.ResourceArgs = map[string]types.WorkloadResourceArgs{}
+			for k, v := range resourceArgs[idx] {
+				createMsg.ResourceArgs[k] = v
 			}
-		}(idx))
+
+			createOpts := c.doMakeWorkloadOptions(ctx, seq+idx, createMsg, opts, node)
+			e = c.doDeployOneWorkload(ctx, node, opts, createMsg, createOpts, true)
+		})
 	}
-	pool.Wait(ctx)
+	wg.Wait()
 
 	// remap 就不搞进事务了吧, 回滚代价太大了
 	// 放任 remap 失败的后果是, share pool 没有更新, 这个后果姑且认为是可以承受的

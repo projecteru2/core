@@ -3,11 +3,11 @@ package calcium
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 
 	"github.com/pkg/errors"
 )
@@ -20,22 +20,25 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.
 		return nil, logger.ErrWithTracing(ctx, err)
 	}
 	ch := make(chan *types.NodeResource)
-	pool := utils.NewGoroutinePool(int(c.config.MaxConcurrency))
+
 	go func() {
 		defer close(ch)
+		wg := &sync.WaitGroup{}
 		for node := range nodeCh {
-			nodename := node.Name
-			pool.Go(ctx, func() {
-				nodeResource, err := c.doGetNodeResource(ctx, nodename, false)
+			node := node
+			wg.Add(1)
+			_ = c.pool.Invoke(func() {
+				defer wg.Done()
+				nodeResource, err := c.doGetNodeResource(ctx, node.Name, false)
 				if err != nil {
 					nodeResource = &types.NodeResource{
-						Name: nodename, Diffs: []string{logger.ErrWithTracing(ctx, err).Error()},
+						Name: node.Name, Diffs: []string{logger.ErrWithTracing(ctx, err).Error()},
 					}
 				}
 				ch <- nodeResource
 			})
 		}
-		pool.Wait(ctx)
+		wg.Wait()
 	}()
 	return ch, nil
 }

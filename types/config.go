@@ -26,7 +26,7 @@ type Config struct {
 	Statsd              string        `yaml:"statsd"`                                              // statsd host and port
 	Profile             string        `yaml:"profile"`                                             // profile ip:port
 	CertPath            string        `yaml:"cert_path"`                                           // docker cert files path
-	MaxConcurrency      int64         `yaml:"max_concurrency" default:"20"`                        // concurrently call single runtime in the same time
+	MaxConcurrency      int           `yaml:"max_concurrency" default:"100"`                       // concurrently call single runtime in the same time
 	Store               string        `yaml:"store" default:"etcd"`                                // store type
 	SentryDSN           string        `yaml:"sentry_dsn"`
 

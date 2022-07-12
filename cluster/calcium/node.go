@@ -2,6 +2,7 @@ package calcium
 
 import (
 	"context"
+	"sync"
 
 	enginefactory "github.com/projecteru2/core/engine/factory"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -107,26 +108,27 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 		return ch, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
 
-	pool := utils.NewGoroutinePool(int(c.config.MaxConcurrency))
-	go func() {
+	utils.SentryGo(func() {
+		wg := &sync.WaitGroup{}
+		wg.Add(len(nodes))
 		defer close(ch)
 		for _, node := range nodes {
-			pool.Go(ctx, func(node *types.Node) func() {
-				return func() {
-					if err := c.getNodeResourceInfo(ctx, node, nil); err != nil {
-						logger.Errorf(ctx, "failed to get node %v resource info: %+v", node.Name, err)
-					}
-					if opts.CallInfo {
-						if err := node.Info(ctx); err != nil {
-							logger.Errorf(ctx, "failed to get node %v info: %+v", node.Name, err)
-						}
-					}
-					ch <- node
+			node := node
+			_ = c.pool.Invoke(func() {
+				defer wg.Done()
+				if err := c.getNodeResourceInfo(ctx, node, nil); err != nil {
+					logger.Errorf(ctx, "failed to get node %v resource info: %+v", node.Name, err)
 				}
-			}(node))
+				if opts.CallInfo {
+					if err := node.Info(ctx); err != nil {
+						logger.Errorf(ctx, "failed to get node %v info: %+v", node.Name, err)
+					}
+				}
+				ch <- node
+			})
 		}
-		pool.Wait(ctx)
-	}()
+		wg.Wait()
+	})
 	return ch, nil
 }
 

@@ -3,6 +3,7 @@ package calcium
 import (
 	"bytes"
 	"context"
+	"sync"
 
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
@@ -19,45 +20,46 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 
 	utils.SentryGo(func() {
 		defer close(ch)
-		pool := utils.NewGoroutinePool(int(c.config.MaxConcurrency))
+		wg := &sync.WaitGroup{}
+		wg.Add(len(ids))
 		for _, id := range ids {
-			pool.Go(ctx, func(id string) func() {
-				return func() {
-					var message []*bytes.Buffer
-					err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
-						var err error
-						switch t {
-						case cluster.WorkloadStop:
-							message, err = c.doStopWorkload(ctx, workload, force)
-							return err
-						case cluster.WorkloadStart:
-							message, err = c.doStartWorkload(ctx, workload, force)
-							return err
-						case cluster.WorkloadRestart:
-							message, err = c.doStopWorkload(ctx, workload, force)
-							if err != nil {
-								return err
-							}
-							startHook, err := c.doStartWorkload(ctx, workload, force)
-							message = append(message, startHook...)
+			id := id
+			_ = c.pool.Invoke(func() {
+				defer wg.Done()
+				var message []*bytes.Buffer
+				err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
+					var err error
+					switch t {
+					case cluster.WorkloadStop:
+						message, err = c.doStopWorkload(ctx, workload, force)
+						return err
+					case cluster.WorkloadStart:
+						message, err = c.doStartWorkload(ctx, workload, force)
+						return err
+					case cluster.WorkloadRestart:
+						message, err = c.doStopWorkload(ctx, workload, force)
+						if err != nil {
 							return err
 						}
-						return errors.WithStack(types.ErrUnknownControlType)
-					})
-					if err == nil {
-						log.Infof(ctx, "[ControlWorkload] Workload %s %s", id, t)
-						log.Info("[ControlWorkload] Hook Output:")
-						log.Info(string(utils.MergeHookOutputs(message)))
+						startHook, err := c.doStartWorkload(ctx, workload, force)
+						message = append(message, startHook...)
+						return err
 					}
-					ch <- &types.ControlWorkloadMessage{
-						WorkloadID: id,
-						Error:      logger.ErrWithTracing(ctx, err),
-						Hook:       message,
-					}
+					return errors.WithStack(types.ErrUnknownControlType)
+				})
+				if err == nil {
+					log.Infof(ctx, "[ControlWorkload] Workload %s %s", id, t)
+					log.Info("[ControlWorkload] Hook Output:")
+					log.Info(string(utils.MergeHookOutputs(message)))
 				}
-			}(id))
+				ch <- &types.ControlWorkloadMessage{
+					WorkloadID: id,
+					Error:      logger.ErrWithTracing(ctx, err),
+					Hook:       message,
+				}
+			})
 		}
-		pool.Wait(ctx)
+		wg.Wait()
 	})
 
 	return ch, nil

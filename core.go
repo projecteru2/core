@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"syscall"
 	"testing"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -35,24 +34,6 @@ var (
 	embeddedStorage bool
 )
 
-func setupSentry(dsn string) (func(), error) {
-	if dsn == "" {
-		return nil, nil
-	}
-
-	sentryDefer := func() {
-		defer sentry.Flush(2 * time.Second)
-		err := recover()
-		if err != nil {
-			sentry.CaptureMessage(fmt.Sprintf("%+v", err))
-			panic(err)
-		}
-	}
-	return sentryDefer, sentry.Init(sentry.ClientOptions{
-		Dsn: dsn,
-	})
-}
-
 func serve(c *cli.Context) error {
 	config, err := utils.LoadConfig(configPath)
 	if err != nil {
@@ -63,10 +44,10 @@ func serve(c *cli.Context) error {
 		log.Fatalf("[main] %v", err)
 	}
 
-	if sentryDefer, err := setupSentry(config.SentryDSN); err != nil {
-		log.Warnf(nil, "[main] sentry %v", err) //nolint
-	} else if sentryDefer != nil {
-		defer sentryDefer()
+	if config.SentryDSN != "" {
+		defer utils.SentryDefer()
+		log.Infof(c.Context, "[main] sentry %v", config.SentryDSN)
+		_ = sentry.Init(sentry.ClientOptions{Dsn: config.SentryDSN})
 	}
 
 	// init engine cache and start engine cache checker
@@ -78,7 +59,7 @@ func serve(c *cli.Context) error {
 	}
 	cluster, err := calcium.New(c.Context, config, t)
 	if err != nil {
-		log.Errorf(nil, "[main] %v", err) //nolint
+		log.Errorf(c.Context, "[main] %v", err) //nolint
 		return err
 	}
 	defer cluster.Finalizer()
@@ -88,7 +69,7 @@ func serve(c *cli.Context) error {
 	vibranium := rpc.New(cluster, config, stop)
 	s, err := net.Listen("tcp", config.Bind)
 	if err != nil {
-		log.Errorf(nil, "[main] %v", err) //nolint
+		log.Errorf(c.Context, "[main] %v", err) //nolint
 		return err
 	}
 
@@ -102,14 +83,14 @@ func serve(c *cli.Context) error {
 		auth := auth.NewAuth(config.Auth)
 		opts = append(opts, grpc.StreamInterceptor(auth.StreamInterceptor))
 		opts = append(opts, grpc.UnaryInterceptor(auth.UnaryInterceptor))
-		log.Infof(nil, "[main] Username %s Password %s", config.Auth.Username, config.Auth.Password) //nolint
+		log.Infof(c.Context, "[main] Username %s Password %s", config.Auth.Username, config.Auth.Password) //nolint
 	}
 
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterCoreRPCServer(grpcServer, vibranium)
 	utils.SentryGo(func() {
 		if err := grpcServer.Serve(s); err != nil {
-			log.Errorf(nil, "[main] start grpc failed %v", err) //nolint
+			log.Errorf(c.Context, "[main] start grpc failed %v", err) //nolint
 		}
 	})
 
@@ -117,14 +98,14 @@ func serve(c *cli.Context) error {
 		http.Handle("/metrics", metrics.Client.ResourceMiddleware(cluster)(promhttp.Handler()))
 		utils.SentryGo(func() {
 			if err := http.ListenAndServe(config.Profile, nil); err != nil {
-				log.Errorf(nil, "[main] start http failed %v", err) //nolint
+				log.Errorf(c.Context, "[main] start http failed %v", err) //nolint
 			}
 		})
 	}
 
 	unregisterService, err := cluster.RegisterService(c.Context)
 	if err != nil {
-		log.Errorf(nil, "[main] failed to register service: %v", err) //nolint
+		log.Errorf(c.Context, "[main] failed to register service: %v", err) //nolint
 		return err
 	}
 	log.Info("[main] Cluster started successfully.")

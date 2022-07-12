@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/projecteru2/core/engine"
@@ -292,13 +293,15 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 		}
 	}
 
-	pool := utils.NewGoroutinePool(int(r.config.MaxConcurrency))
+	wg := &sync.WaitGroup{}
+	wg.Add(len(allNodes))
 	nodeChan := make(chan *types.Node, len(allNodes))
 
-	for _, n := range allNodes {
-		node := n
-		pool.Go(ctx, func() {
-			if _, err := r.GetNodeStatus(ctx, node.Name); err != nil && !isRedisNoKeyError(err) {
+	for _, node := range allNodes {
+		node := node
+		_ = r.pool.Invoke(func() {
+			defer wg.Done()
+			if _, err := r.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrBadCount) {
 				log.Errorf(ctx, "[doGetNodes] failed to get node status of %v, err: %v", node.Name, err)
 			} else {
 				node.Available = err == nil
@@ -316,7 +319,7 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 			}
 		})
 	}
-	pool.Wait(ctx)
+	wg.Wait()
 	close(nodeChan)
 
 	for node := range nodeChan {

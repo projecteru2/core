@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/panjf2000/ants/v2"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/discovery"
 	"github.com/projecteru2/core/discovery/helium"
@@ -17,6 +18,7 @@ import (
 	"github.com/projecteru2/core/source/gitlab"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
 
 	"github.com/pkg/errors"
@@ -30,6 +32,7 @@ type Calcium struct {
 	source     source.Source
 	watcher    discovery.Service
 	wal        wal.WAL
+	pool       *ants.PoolWithFunc
 	identifier string
 }
 
@@ -85,7 +88,13 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 		return nil, err
 	}
 
-	cal := &Calcium{store: store, config: config, source: scm, watcher: watcher, rmgr: rmgr}
+	// init pool
+	pool, err := utils.NewPool(config.MaxConcurrency)
+	if err != nil {
+		return nil, err
+	}
+
+	cal := &Calcium{store: store, config: config, source: scm, watcher: watcher, rmgr: rmgr, pool: pool}
 
 	cal.wal, err = enableWAL(config, cal, store)
 	if err != nil {
@@ -110,6 +119,7 @@ func (c *Calcium) DisasterRecover(ctx context.Context) {
 // Finalizer use for defer
 func (c *Calcium) Finalizer() {
 	// TODO some resource recycle
+	c.pool.Release()
 }
 
 // GetIdentifier returns the identifier of calcium

@@ -8,8 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/panjf2000/ants/v2"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 
 	"github.com/go-redis/redis/v8"
 	perrors "github.com/pkg/errors"
@@ -66,6 +68,7 @@ func isRedisNoKeyError(e error) bool {
 type Rediaron struct {
 	cli    *redis.Client
 	config types.Config
+	pool   *ants.PoolWithFunc
 	db     int
 }
 
@@ -77,10 +80,14 @@ func New(config types.Config, t *testing.T) (*Rediaron, error) {
 		Addr: config.Redis.Addr,
 		DB:   config.Redis.DB,
 	})
-
+	pool, err := utils.NewPool(config.MaxConcurrency)
+	if err != nil {
+		return nil, err
+	}
 	return &Rediaron{
 		cli:    cli,
 		config: config,
+		pool:   pool,
 		db:     config.Redis.DB,
 	}, nil
 }
