@@ -21,12 +21,12 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 		defer close(ch)
 
 		wg := sync.WaitGroup{}
+		wg.Add(len(opts.Targets))
+		defer wg.Wait()
 		log.Infof(ctx, "[Copy] Copy %d workloads files", len(opts.Targets))
 
 		// workload one by one
 		for id, paths := range opts.Targets {
-			wg.Add(1)
-
 			utils.SentryGo(func(id string, paths []string) func() {
 				return func() {
 					defer wg.Done()
@@ -61,7 +61,6 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 				}
 			}(id, paths))
 		}
-		wg.Wait()
 	})
 	return ch, nil
 }

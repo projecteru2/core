@@ -50,8 +50,8 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 			if err != nil {
 				return errors.WithStack(err)
 			}
-			node.ResourceCapacity = resourceCapacity
-			node.ResourceUsage = resourceUsage
+			node.Resource.Capacity = resourceCapacity
+			node.Resource.Usage = resourceUsage
 			go c.doSendNodeMetrics(ctx, node)
 			return nil
 		},
@@ -114,12 +114,13 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 		defer close(ch)
 		wg := &sync.WaitGroup{}
 		wg.Add(len(nodes))
+		defer wg.Wait()
 		for _, node := range nodes {
 			node := node
 			_ = c.pool.Invoke(func() {
 				defer wg.Done()
 				var err error
-				if node.ResourceCapacity, node.ResourceUsage, node.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
+				if node.Resource.Capacity, node.Resource.Usage, node.Resource.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
 					logger.Errorf(ctx, "failed to get node %v resource info: %+v", node.Name, err)
 				}
 				if opts.CallInfo {
@@ -130,7 +131,6 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 				ch <- node
 			})
 		}
-		wg.Wait()
 	})
 
 	return ch, nil
@@ -146,7 +146,7 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string) (node *types.Nod
 	if node, err = c.store.GetNode(ctx, nodename); err != nil {
 		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
-	if node.ResourceCapacity, node.ResourceUsage, node.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
+	if node.Resource.Capacity, node.Resource.Usage, node.Resource.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
 		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
 	return node, nil
@@ -178,7 +178,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		logger.Infof(ctx, "set node")
 		// update resource map
 		var err error
-		node.ResourceCapacity, node.ResourceUsage, node.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
+		node.Resource.Capacity, node.Resource.Usage, node.Resource.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
 		if err != nil {
 			return err
 		}
@@ -225,7 +225,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				// update resource
 				// actually we can ignore err here, if update success
 				if len(opts.ResourceOpts) != 0 {
-					n.ResourceCapacity, n.ResourceUsage, n.Diffs, _ = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
+					n.Resource.Capacity, n.Resource.Usage, n.Resource.Diffs, _ = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
 				}
 				// use send to update the usage
 				go c.doSendNodeMetrics(ctx, n)
@@ -251,7 +251,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 // the filtering logic is introduced along with NodeFilter
 // NOTE: when nf.Includes is set, they don't need to belong to podname
 // update on 2021-06-21: sort and unique locks to avoid deadlock
-// node without resource info
+// node without resource info if batch get
 func (c *Calcium) filterNodes(ctx context.Context, nf types.NodeFilter) (ns []*types.Node, err error) {
 	defer func() {
 		if len(ns) == 0 {

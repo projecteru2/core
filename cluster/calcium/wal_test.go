@@ -168,7 +168,7 @@ func TestHandleCreateLambda(t *testing.T) {
 		map[string]types.NodeResourceArgs{},
 		nil,
 	)
-	rmgr.On("ConvertNodeResourceInfoToMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*resourcetypes.Metrics{}, nil)
+	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*resourcetypes.Metrics{}, nil)
 	rmgr.On("GetRemapArgs", mock.Anything, mock.Anything, mock.Anything).Return(
 		map[string]types.EngineArgs{},
 		nil,
@@ -213,7 +213,7 @@ func TestHandleCreateLambda(t *testing.T) {
 		Once()
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil).Once()
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 

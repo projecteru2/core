@@ -12,24 +12,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ListWorkloads list workloads
-func (c *Calcium) ListWorkloads(ctx context.Context, opts *types.ListWorkloadsOptions) (workloads []*types.Workload, err error) {
-	if workloads, err = c.store.ListWorkloads(ctx, opts.Appname, opts.Entrypoint, opts.Nodename, opts.Limit, opts.Labels); err != nil {
-		log.WithField("opts", opts).Errorf(ctx, "Calcium.ListWorkloads] store list failed: %+v", err)
-	}
-	return workloads, errors.WithStack(err)
-}
-
-// ListNodeWorkloads list workloads belong to one node
-func (c *Calcium) ListNodeWorkloads(ctx context.Context, nodename string, labels map[string]string) (workloads []*types.Workload, err error) {
-	logger := log.WithField("Calcium", "ListNodeWorkloads").WithField("nodename", nodename).WithField("labels", labels)
-	if nodename == "" {
-		return workloads, logger.ErrWithTracing(ctx, errors.WithStack(types.ErrEmptyNodeName))
-	}
-	workloads, err = c.store.ListNodeWorkloads(ctx, nodename, labels)
-	return workloads, logger.ErrWithTracing(ctx, errors.WithStack(err))
-}
-
 // GetWorkload get a workload
 func (c *Calcium) GetWorkload(ctx context.Context, id string) (workload *types.Workload, err error) {
 	logger := log.WithField("Calcium", "GetWorkload").WithField("id", id)
@@ -46,11 +28,20 @@ func (c *Calcium) GetWorkloads(ctx context.Context, ids []string) (workloads []*
 	return workloads, log.WithField("Calcium", "GetWorkloads").WithField("ids", ids).ErrWithTracing(ctx, errors.WithStack(err))
 }
 
-func (c *Calcium) getWorkloadNode(ctx context.Context, id string) (*types.Node, error) {
-	w, err := c.GetWorkload(ctx, id)
-	if err != nil {
-		return nil, err
+// ListWorkloads list workloads
+func (c *Calcium) ListWorkloads(ctx context.Context, opts *types.ListWorkloadsOptions) (workloads []*types.Workload, err error) {
+	if workloads, err = c.store.ListWorkloads(ctx, opts.Appname, opts.Entrypoint, opts.Nodename, opts.Limit, opts.Labels); err != nil {
+		log.WithField("opts", opts).Errorf(ctx, "Calcium.ListWorkloads] store list failed: %+v", err)
 	}
-	node, err := c.GetNode(ctx, w.Nodename)
-	return node, err
+	return workloads, errors.WithStack(err)
+}
+
+// ListNodeWorkloads list workloads belong to one node
+func (c *Calcium) ListNodeWorkloads(ctx context.Context, nodename string, labels map[string]string) (workloads []*types.Workload, err error) {
+	logger := log.WithField("Calcium", "ListNodeWorkloads").WithField("nodename", nodename).WithField("labels", labels)
+	if nodename == "" {
+		return workloads, logger.ErrWithTracing(ctx, errors.WithStack(types.ErrEmptyNodeName))
+	}
+	workloads, err = c.store.ListNodeWorkloads(ctx, nodename, labels)
+	return workloads, logger.ErrWithTracing(ctx, errors.WithStack(err))
 }

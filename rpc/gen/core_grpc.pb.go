@@ -39,17 +39,17 @@ type CoreRPCClient interface {
 	GetNode(ctx context.Context, in *GetNodeOptions, opts ...grpc.CallOption) (*Node, error)
 	GetNodeEngineInfo(ctx context.Context, in *GetNodeOptions, opts ...grpc.CallOption) (*Engine, error)
 	SetNode(ctx context.Context, in *SetNodeOptions, opts ...grpc.CallOption) (*Node, error)
-	SetNodeStatus(ctx context.Context, in *SetNodeStatusOptions, opts ...grpc.CallOption) (*Empty, error)
 	GetNodeStatus(ctx context.Context, in *GetNodeStatusOptions, opts ...grpc.CallOption) (*NodeStatusStreamMessage, error)
+	SetNodeStatus(ctx context.Context, in *SetNodeStatusOptions, opts ...grpc.CallOption) (*Empty, error)
 	NodeStatusStream(ctx context.Context, in *Empty, opts ...grpc.CallOption) (CoreRPC_NodeStatusStreamClient, error)
+	GetWorkloadsStatus(ctx context.Context, in *WorkloadIDs, opts ...grpc.CallOption) (*WorkloadsStatus, error)
+	SetWorkloadsStatus(ctx context.Context, in *SetWorkloadsStatusOptions, opts ...grpc.CallOption) (*WorkloadsStatus, error)
+	WorkloadStatusStream(ctx context.Context, in *WorkloadStatusStreamOptions, opts ...grpc.CallOption) (CoreRPC_WorkloadStatusStreamClient, error)
 	CalculateCapacity(ctx context.Context, in *DeployOptions, opts ...grpc.CallOption) (*CapacityMessage, error)
 	GetWorkload(ctx context.Context, in *WorkloadID, opts ...grpc.CallOption) (*Workload, error)
 	GetWorkloads(ctx context.Context, in *WorkloadIDs, opts ...grpc.CallOption) (*Workloads, error)
 	ListWorkloads(ctx context.Context, in *ListWorkloadsOptions, opts ...grpc.CallOption) (CoreRPC_ListWorkloadsClient, error)
 	ListNodeWorkloads(ctx context.Context, in *GetNodeOptions, opts ...grpc.CallOption) (*Workloads, error)
-	GetWorkloadsStatus(ctx context.Context, in *WorkloadIDs, opts ...grpc.CallOption) (*WorkloadsStatus, error)
-	SetWorkloadsStatus(ctx context.Context, in *SetWorkloadsStatusOptions, opts ...grpc.CallOption) (*WorkloadsStatus, error)
-	WorkloadStatusStream(ctx context.Context, in *WorkloadStatusStreamOptions, opts ...grpc.CallOption) (CoreRPC_WorkloadStatusStreamClient, error)
 	Copy(ctx context.Context, in *CopyOptions, opts ...grpc.CallOption) (CoreRPC_CopyClient, error)
 	Send(ctx context.Context, in *SendOptions, opts ...grpc.CallOption) (CoreRPC_SendClient, error)
 	BuildImage(ctx context.Context, in *BuildImageOptions, opts ...grpc.CallOption) (CoreRPC_BuildImageClient, error)
@@ -297,18 +297,18 @@ func (c *coreRPCClient) SetNode(ctx context.Context, in *SetNodeOptions, opts ..
 	return out, nil
 }
 
-func (c *coreRPCClient) SetNodeStatus(ctx context.Context, in *SetNodeStatusOptions, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/pb.CoreRPC/SetNodeStatus", in, out, opts...)
+func (c *coreRPCClient) GetNodeStatus(ctx context.Context, in *GetNodeStatusOptions, opts ...grpc.CallOption) (*NodeStatusStreamMessage, error) {
+	out := new(NodeStatusStreamMessage)
+	err := c.cc.Invoke(ctx, "/pb.CoreRPC/GetNodeStatus", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *coreRPCClient) GetNodeStatus(ctx context.Context, in *GetNodeStatusOptions, opts ...grpc.CallOption) (*NodeStatusStreamMessage, error) {
-	out := new(NodeStatusStreamMessage)
-	err := c.cc.Invoke(ctx, "/pb.CoreRPC/GetNodeStatus", in, out, opts...)
+func (c *coreRPCClient) SetNodeStatus(ctx context.Context, in *SetNodeStatusOptions, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/pb.CoreRPC/SetNodeStatus", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -347,6 +347,56 @@ func (x *coreRPCNodeStatusStreamClient) Recv() (*NodeStatusStreamMessage, error)
 	return m, nil
 }
 
+func (c *coreRPCClient) GetWorkloadsStatus(ctx context.Context, in *WorkloadIDs, opts ...grpc.CallOption) (*WorkloadsStatus, error) {
+	out := new(WorkloadsStatus)
+	err := c.cc.Invoke(ctx, "/pb.CoreRPC/GetWorkloadsStatus", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *coreRPCClient) SetWorkloadsStatus(ctx context.Context, in *SetWorkloadsStatusOptions, opts ...grpc.CallOption) (*WorkloadsStatus, error) {
+	out := new(WorkloadsStatus)
+	err := c.cc.Invoke(ctx, "/pb.CoreRPC/SetWorkloadsStatus", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *coreRPCClient) WorkloadStatusStream(ctx context.Context, in *WorkloadStatusStreamOptions, opts ...grpc.CallOption) (CoreRPC_WorkloadStatusStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[4], "/pb.CoreRPC/WorkloadStatusStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &coreRPCWorkloadStatusStreamClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type CoreRPC_WorkloadStatusStreamClient interface {
+	Recv() (*WorkloadStatusStreamMessage, error)
+	grpc.ClientStream
+}
+
+type coreRPCWorkloadStatusStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *coreRPCWorkloadStatusStreamClient) Recv() (*WorkloadStatusStreamMessage, error) {
+	m := new(WorkloadStatusStreamMessage)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *coreRPCClient) CalculateCapacity(ctx context.Context, in *DeployOptions, opts ...grpc.CallOption) (*CapacityMessage, error) {
 	out := new(CapacityMessage)
 	err := c.cc.Invoke(ctx, "/pb.CoreRPC/CalculateCapacity", in, out, opts...)
@@ -375,7 +425,7 @@ func (c *coreRPCClient) GetWorkloads(ctx context.Context, in *WorkloadIDs, opts 
 }
 
 func (c *coreRPCClient) ListWorkloads(ctx context.Context, in *ListWorkloadsOptions, opts ...grpc.CallOption) (CoreRPC_ListWorkloadsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[4], "/pb.CoreRPC/ListWorkloads", opts...)
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[5], "/pb.CoreRPC/ListWorkloads", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -413,56 +463,6 @@ func (c *coreRPCClient) ListNodeWorkloads(ctx context.Context, in *GetNodeOption
 		return nil, err
 	}
 	return out, nil
-}
-
-func (c *coreRPCClient) GetWorkloadsStatus(ctx context.Context, in *WorkloadIDs, opts ...grpc.CallOption) (*WorkloadsStatus, error) {
-	out := new(WorkloadsStatus)
-	err := c.cc.Invoke(ctx, "/pb.CoreRPC/GetWorkloadsStatus", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *coreRPCClient) SetWorkloadsStatus(ctx context.Context, in *SetWorkloadsStatusOptions, opts ...grpc.CallOption) (*WorkloadsStatus, error) {
-	out := new(WorkloadsStatus)
-	err := c.cc.Invoke(ctx, "/pb.CoreRPC/SetWorkloadsStatus", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *coreRPCClient) WorkloadStatusStream(ctx context.Context, in *WorkloadStatusStreamOptions, opts ...grpc.CallOption) (CoreRPC_WorkloadStatusStreamClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[5], "/pb.CoreRPC/WorkloadStatusStream", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &coreRPCWorkloadStatusStreamClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type CoreRPC_WorkloadStatusStreamClient interface {
-	Recv() (*WorkloadStatusStreamMessage, error)
-	grpc.ClientStream
-}
-
-type coreRPCWorkloadStatusStreamClient struct {
-	grpc.ClientStream
-}
-
-func (x *coreRPCWorkloadStatusStreamClient) Recv() (*WorkloadStatusStreamMessage, error) {
-	m := new(WorkloadStatusStreamMessage)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
 }
 
 func (c *coreRPCClient) Copy(ctx context.Context, in *CopyOptions, opts ...grpc.CallOption) (CoreRPC_CopyClient, error) {
@@ -941,17 +941,17 @@ type CoreRPCServer interface {
 	GetNode(context.Context, *GetNodeOptions) (*Node, error)
 	GetNodeEngineInfo(context.Context, *GetNodeOptions) (*Engine, error)
 	SetNode(context.Context, *SetNodeOptions) (*Node, error)
-	SetNodeStatus(context.Context, *SetNodeStatusOptions) (*Empty, error)
 	GetNodeStatus(context.Context, *GetNodeStatusOptions) (*NodeStatusStreamMessage, error)
+	SetNodeStatus(context.Context, *SetNodeStatusOptions) (*Empty, error)
 	NodeStatusStream(*Empty, CoreRPC_NodeStatusStreamServer) error
+	GetWorkloadsStatus(context.Context, *WorkloadIDs) (*WorkloadsStatus, error)
+	SetWorkloadsStatus(context.Context, *SetWorkloadsStatusOptions) (*WorkloadsStatus, error)
+	WorkloadStatusStream(*WorkloadStatusStreamOptions, CoreRPC_WorkloadStatusStreamServer) error
 	CalculateCapacity(context.Context, *DeployOptions) (*CapacityMessage, error)
 	GetWorkload(context.Context, *WorkloadID) (*Workload, error)
 	GetWorkloads(context.Context, *WorkloadIDs) (*Workloads, error)
 	ListWorkloads(*ListWorkloadsOptions, CoreRPC_ListWorkloadsServer) error
 	ListNodeWorkloads(context.Context, *GetNodeOptions) (*Workloads, error)
-	GetWorkloadsStatus(context.Context, *WorkloadIDs) (*WorkloadsStatus, error)
-	SetWorkloadsStatus(context.Context, *SetWorkloadsStatusOptions) (*WorkloadsStatus, error)
-	WorkloadStatusStream(*WorkloadStatusStreamOptions, CoreRPC_WorkloadStatusStreamServer) error
 	Copy(*CopyOptions, CoreRPC_CopyServer) error
 	Send(*SendOptions, CoreRPC_SendServer) error
 	BuildImage(*BuildImageOptions, CoreRPC_BuildImageServer) error
@@ -1024,14 +1024,23 @@ func (UnimplementedCoreRPCServer) GetNodeEngineInfo(context.Context, *GetNodeOpt
 func (UnimplementedCoreRPCServer) SetNode(context.Context, *SetNodeOptions) (*Node, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetNode not implemented")
 }
-func (UnimplementedCoreRPCServer) SetNodeStatus(context.Context, *SetNodeStatusOptions) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetNodeStatus not implemented")
-}
 func (UnimplementedCoreRPCServer) GetNodeStatus(context.Context, *GetNodeStatusOptions) (*NodeStatusStreamMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetNodeStatus not implemented")
 }
+func (UnimplementedCoreRPCServer) SetNodeStatus(context.Context, *SetNodeStatusOptions) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetNodeStatus not implemented")
+}
 func (UnimplementedCoreRPCServer) NodeStatusStream(*Empty, CoreRPC_NodeStatusStreamServer) error {
 	return status.Errorf(codes.Unimplemented, "method NodeStatusStream not implemented")
+}
+func (UnimplementedCoreRPCServer) GetWorkloadsStatus(context.Context, *WorkloadIDs) (*WorkloadsStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetWorkloadsStatus not implemented")
+}
+func (UnimplementedCoreRPCServer) SetWorkloadsStatus(context.Context, *SetWorkloadsStatusOptions) (*WorkloadsStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetWorkloadsStatus not implemented")
+}
+func (UnimplementedCoreRPCServer) WorkloadStatusStream(*WorkloadStatusStreamOptions, CoreRPC_WorkloadStatusStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method WorkloadStatusStream not implemented")
 }
 func (UnimplementedCoreRPCServer) CalculateCapacity(context.Context, *DeployOptions) (*CapacityMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CalculateCapacity not implemented")
@@ -1047,15 +1056,6 @@ func (UnimplementedCoreRPCServer) ListWorkloads(*ListWorkloadsOptions, CoreRPC_L
 }
 func (UnimplementedCoreRPCServer) ListNodeWorkloads(context.Context, *GetNodeOptions) (*Workloads, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListNodeWorkloads not implemented")
-}
-func (UnimplementedCoreRPCServer) GetWorkloadsStatus(context.Context, *WorkloadIDs) (*WorkloadsStatus, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetWorkloadsStatus not implemented")
-}
-func (UnimplementedCoreRPCServer) SetWorkloadsStatus(context.Context, *SetWorkloadsStatusOptions) (*WorkloadsStatus, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetWorkloadsStatus not implemented")
-}
-func (UnimplementedCoreRPCServer) WorkloadStatusStream(*WorkloadStatusStreamOptions, CoreRPC_WorkloadStatusStreamServer) error {
-	return status.Errorf(codes.Unimplemented, "method WorkloadStatusStream not implemented")
 }
 func (UnimplementedCoreRPCServer) Copy(*CopyOptions, CoreRPC_CopyServer) error {
 	return status.Errorf(codes.Unimplemented, "method Copy not implemented")
@@ -1429,24 +1429,6 @@ func _CoreRPC_SetNode_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CoreRPC_SetNodeStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetNodeStatusOptions)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CoreRPCServer).SetNodeStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/pb.CoreRPC/SetNodeStatus",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CoreRPCServer).SetNodeStatus(ctx, req.(*SetNodeStatusOptions))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _CoreRPC_GetNodeStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetNodeStatusOptions)
 	if err := dec(in); err != nil {
@@ -1461,6 +1443,24 @@ func _CoreRPC_GetNodeStatus_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CoreRPCServer).GetNodeStatus(ctx, req.(*GetNodeStatusOptions))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CoreRPC_SetNodeStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetNodeStatusOptions)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoreRPCServer).SetNodeStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.CoreRPC/SetNodeStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoreRPCServer).SetNodeStatus(ctx, req.(*SetNodeStatusOptions))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1483,6 +1483,63 @@ type coreRPCNodeStatusStreamServer struct {
 }
 
 func (x *coreRPCNodeStatusStreamServer) Send(m *NodeStatusStreamMessage) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _CoreRPC_GetWorkloadsStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WorkloadIDs)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoreRPCServer).GetWorkloadsStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.CoreRPC/GetWorkloadsStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoreRPCServer).GetWorkloadsStatus(ctx, req.(*WorkloadIDs))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CoreRPC_SetWorkloadsStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetWorkloadsStatusOptions)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoreRPCServer).SetWorkloadsStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.CoreRPC/SetWorkloadsStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoreRPCServer).SetWorkloadsStatus(ctx, req.(*SetWorkloadsStatusOptions))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CoreRPC_WorkloadStatusStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(WorkloadStatusStreamOptions)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(CoreRPCServer).WorkloadStatusStream(m, &coreRPCWorkloadStatusStreamServer{stream})
+}
+
+type CoreRPC_WorkloadStatusStreamServer interface {
+	Send(*WorkloadStatusStreamMessage) error
+	grpc.ServerStream
+}
+
+type coreRPCWorkloadStatusStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *coreRPCWorkloadStatusStreamServer) Send(m *WorkloadStatusStreamMessage) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -1577,63 +1634,6 @@ func _CoreRPC_ListNodeWorkloads_Handler(srv interface{}, ctx context.Context, de
 		return srv.(CoreRPCServer).ListNodeWorkloads(ctx, req.(*GetNodeOptions))
 	}
 	return interceptor(ctx, in, info, handler)
-}
-
-func _CoreRPC_GetWorkloadsStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(WorkloadIDs)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CoreRPCServer).GetWorkloadsStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/pb.CoreRPC/GetWorkloadsStatus",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CoreRPCServer).GetWorkloadsStatus(ctx, req.(*WorkloadIDs))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _CoreRPC_SetWorkloadsStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetWorkloadsStatusOptions)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CoreRPCServer).SetWorkloadsStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/pb.CoreRPC/SetWorkloadsStatus",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CoreRPCServer).SetWorkloadsStatus(ctx, req.(*SetWorkloadsStatusOptions))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _CoreRPC_WorkloadStatusStream_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(WorkloadStatusStreamOptions)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(CoreRPCServer).WorkloadStatusStream(m, &coreRPCWorkloadStatusStreamServer{stream})
-}
-
-type CoreRPC_WorkloadStatusStreamServer interface {
-	Send(*WorkloadStatusStreamMessage) error
-	grpc.ServerStream
-}
-
-type coreRPCWorkloadStatusStreamServer struct {
-	grpc.ServerStream
-}
-
-func (x *coreRPCWorkloadStatusStreamServer) Send(m *WorkloadStatusStreamMessage) error {
-	return x.ServerStream.SendMsg(m)
 }
 
 func _CoreRPC_Copy_Handler(srv interface{}, stream grpc.ServerStream) error {
@@ -2022,12 +2022,20 @@ var CoreRPC_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CoreRPC_SetNode_Handler,
 		},
 		{
+			MethodName: "GetNodeStatus",
+			Handler:    _CoreRPC_GetNodeStatus_Handler,
+		},
+		{
 			MethodName: "SetNodeStatus",
 			Handler:    _CoreRPC_SetNodeStatus_Handler,
 		},
 		{
-			MethodName: "GetNodeStatus",
-			Handler:    _CoreRPC_GetNodeStatus_Handler,
+			MethodName: "GetWorkloadsStatus",
+			Handler:    _CoreRPC_GetWorkloadsStatus_Handler,
+		},
+		{
+			MethodName: "SetWorkloadsStatus",
+			Handler:    _CoreRPC_SetWorkloadsStatus_Handler,
 		},
 		{
 			MethodName: "CalculateCapacity",
@@ -2044,14 +2052,6 @@ var CoreRPC_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListNodeWorkloads",
 			Handler:    _CoreRPC_ListNodeWorkloads_Handler,
-		},
-		{
-			MethodName: "GetWorkloadsStatus",
-			Handler:    _CoreRPC_GetWorkloadsStatus_Handler,
-		},
-		{
-			MethodName: "SetWorkloadsStatus",
-			Handler:    _CoreRPC_SetWorkloadsStatus_Handler,
 		},
 		{
 			MethodName: "ReallocResource",
@@ -2080,13 +2080,13 @@ var CoreRPC_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 		{
-			StreamName:    "ListWorkloads",
-			Handler:       _CoreRPC_ListWorkloads_Handler,
+			StreamName:    "WorkloadStatusStream",
+			Handler:       _CoreRPC_WorkloadStatusStream_Handler,
 			ServerStreams: true,
 		},
 		{
-			StreamName:    "WorkloadStatusStream",
-			Handler:       _CoreRPC_WorkloadStatusStream_Handler,
+			StreamName:    "ListWorkloads",
+			Handler:       _CoreRPC_ListWorkloads_Handler,
 			ServerStreams: true,
 		},
 		{

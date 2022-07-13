@@ -48,7 +48,7 @@ cloc:
 
 unit-test:
 	go vet `go list ./... | grep -v '/vendor/' | grep -v '/tools'` && \
-	go test -race -timeout 240s -count=1 -vet=off -cover ./utils/... \
+	go test -race -timeout 600s -count=1 -vet=off -cover ./utils/... \
 	./types/... \
 	./store/etcdv3/. \
 	./store/etcdv3/embedded/. \
@@ -67,7 +67,7 @@ unit-test:
 	./wal/kv/. \
 	./store/redis/... \
 	./lock/redis/... && \
-	go test -timeout 240s -count=1 -cover ./cluster/calcium/...
+	go test -timeout 600s -count=1 -cover ./cluster/calcium/...
 
 lint:
 	golangci-lint run

@@ -31,45 +31,8 @@ type Metrics struct {
 	statsdClient *statsdlib.Client
 
 	Collectors map[string]prometheus.Collector
-}
 
-// Lazy connect
-func (m *Metrics) checkConn() error {
-	if m.statsdClient != nil {
-		return nil
-	}
-	var err error
-	// We needn't try to renew/reconnect because of only supporting UDP protocol now
-	// We should add an `errorCount` to reconnect when implementing TCP protocol
-	if m.statsdClient, err = statsdlib.New(m.StatsdAddr, statsdlib.WithErrorHandler(func(err error) {
-		log.Errorf(nil, "[statsd] Sending statsd failed: %v", err) //nolint
-	})); err != nil {
-		log.Errorf(nil, "[statsd] Connect statsd failed: %v", err) //nolint
-		return err
-	}
-	return nil
-}
-
-func (m *Metrics) gauge(key string, value float64) error {
-	if m.StatsdAddr == "" {
-		return nil
-	}
-	if err := m.checkConn(); err != nil {
-		return err
-	}
-	m.statsdClient.Gauge(key, value)
-	return nil
-}
-
-func (m *Metrics) count(key string, n int, rate float32) error {
-	if m.StatsdAddr == "" {
-		return nil
-	}
-	if err := m.checkConn(); err != nil {
-		return err
-	}
-	m.statsdClient.Count(key, n, rate)
-	return nil
+	rmgr resources.Manager
 }
 
 // SendDeployCount update deploy counter
@@ -113,9 +76,48 @@ func (m *Metrics) SendMetrics(metrics ...*resources.Metrics) {
 				log.Errorf(nil, "[SendMetrics] Error occurred while sending %v data to statsd: %v", metric.Name, err) //nolint
 			}
 		default:
-			log.Errorf(nil, "[SendMetrics] Unknown collector type: %T", collector) //nolint
+			log.Errorf(nil, "[SendMetrics] Unknown collector type: %T", collector) // nolint
 		}
 	}
+}
+
+// Lazy connect
+func (m *Metrics) checkConn() error {
+	if m.statsdClient != nil {
+		return nil
+	}
+	var err error
+	// We needn't try to renew/reconnect because of only supporting UDP protocol now
+	// We should add an `errorCount` to reconnect when implementing TCP protocol
+	if m.statsdClient, err = statsdlib.New(m.StatsdAddr, statsdlib.WithErrorHandler(func(err error) {
+		log.Errorf(nil, "[statsd] Sending statsd failed: %v", err) //nolint
+	})); err != nil {
+		log.Errorf(nil, "[statsd] Connect statsd failed: %v", err) //nolint
+		return err
+	}
+	return nil
+}
+
+func (m *Metrics) gauge(key string, value float64) error {
+	if m.StatsdAddr == "" {
+		return nil
+	}
+	if err := m.checkConn(); err != nil {
+		return err
+	}
+	m.statsdClient.Gauge(key, value)
+	return nil
+}
+
+func (m *Metrics) count(key string, n int, rate float32) error {
+	if m.StatsdAddr == "" {
+		return nil
+	}
+	if err := m.checkConn(); err != nil {
+		return err
+	}
+	m.statsdClient.Count(key, n, rate)
+	return nil
 }
 
 // Client is a metrics obj
@@ -128,11 +130,16 @@ func InitMetrics(config types.Config, metricsDescriptions []*resources.MetricsDe
 	if err != nil {
 		return err
 	}
+	rmgr, err := resources.NewPluginsManager(config)
+	if err != nil {
+		return err
+	}
 	Client = Metrics{
 		Config:     config,
 		StatsdAddr: config.Statsd,
 		Hostname:   utils.CleanStatsdMetrics(hostname),
 		Collectors: map[string]prometheus.Collector{},
+		rmgr:       rmgr,
 	}
 
 	for _, desc := range metricsDescriptions {

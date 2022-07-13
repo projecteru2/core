@@ -22,6 +22,7 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 		defer close(ch)
 		wg := &sync.WaitGroup{}
 		wg.Add(len(ids))
+		defer wg.Wait()
 		for _, id := range ids {
 			id := id
 			_ = c.pool.Invoke(func() {
@@ -59,7 +60,6 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 				}
 			})
 		}
-		wg.Wait()
 	})
 
 	return ch, nil

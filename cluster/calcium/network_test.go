@@ -14,70 +14,79 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestNetwork(t *testing.T) {
+func TestListNetworks(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	store := c.store.(*storemocks.Store)
-	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 
+	store := c.store.(*storemocks.Store)
+
+	// failed by GetNodesByPod
 	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err := c.ListNetworks(ctx, "", "")
 	assert.Error(t, err)
+
 	// No nodes
 	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
 	_, err = c.ListNetworks(ctx, "", "")
 	assert.Error(t, err)
+
 	// vaild
+	name := "test"
 	engine := &enginemocks.API{}
+	engine.On("NetworkList", mock.Anything, mock.Anything).Return([]*enginetypes.Network{{Name: name}}, nil)
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{
-			Name: "test",
+			Name: name,
 		},
 		Available: true,
 		Engine:    engine,
 	}
-	name := "test"
-	engine.On("NetworkList", mock.Anything, mock.Anything).Return([]*enginetypes.Network{{Name: name}}, nil)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	ns, err := c.ListNetworks(ctx, "", "xx")
 	assert.NoError(t, err)
 	assert.Equal(t, len(ns), 1)
 	assert.Equal(t, ns[0].Name, name)
+	store.AssertExpectations(t)
 }
 
 func TestConnectNetwork(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	store := c.store.(*storemocks.Store)
-	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
-	engine := &enginemocks.API{}
-	workload := &types.Workload{Engine: engine}
 
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrBadMeta).Once()
+	store := c.store.(*storemocks.Store)
+
+	// failed by GetWorkload
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err := c.ConnectNetwork(ctx, "network", "123", "", "")
 	assert.Error(t, err)
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
+
+	// success
+	engine := &enginemocks.API{}
 	engine.On("NetworkConnect", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]string{}, nil)
+	workload := &types.Workload{Engine: engine}
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	_, err = c.ConnectNetwork(ctx, "network", "123", "", "")
 	assert.NoError(t, err)
+	store.AssertExpectations(t)
 }
 
 func TestDisConnectNetwork(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	store := c.store.(*storemocks.Store)
-	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
-	engine := &enginemocks.API{}
-	workload := &types.Workload{Engine: engine}
 
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrBadMeta).Once()
-	err := c.DisconnectNetwork(ctx, "network", "123", true)
-	assert.Error(t, err)
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
+	store := c.store.(*storemocks.Store)
+
+	// failed by GetWorkload
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	assert.Error(t, c.DisconnectNetwork(ctx, "network", "123", true))
+
+	// success
+	engine := &enginemocks.API{}
 	engine.On("NetworkDisconnect", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	err = c.DisconnectNetwork(ctx, "network", "123", true)
-	assert.NoError(t, err)
+	workload := &types.Workload{Engine: engine}
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
+	assert.NoError(t, c.DisconnectNetwork(ctx, "network", "123", true))
+	store.AssertExpectations(t)
 }

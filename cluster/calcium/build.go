@@ -61,16 +61,12 @@ func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
 		return nil, errors.WithStack(types.ErrNoBuildPod)
 	}
 
-	// get node by scheduler
-	ch, err := c.ListPodNodes(ctx, &types.ListNodesOptions{Podname: c.config.Docker.BuildPod})
+	// get nodes
+	nodes, err := c.store.GetNodesByPod(ctx, c.config.Docker.BuildPod, nil, false)
 	if err != nil {
 		return nil, err
 	}
 
-	nodes := []*types.Node{}
-	for n := range ch {
-		nodes = append(nodes, n)
-	}
 	if len(nodes) == 0 {
 		return nil, errors.WithStack(types.ErrInsufficientNodes)
 	}
@@ -79,14 +75,14 @@ func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
 }
 
 func (c *Calcium) getMostIdleNode(ctx context.Context, nodes []*types.Node) (*types.Node, error) {
-	nodeNames := []string{}
+	nodenames := []string{}
 	nodeMap := map[string]*types.Node{}
 	for _, node := range nodes {
-		nodeNames = append(nodeNames, node.Name)
+		nodenames = append(nodenames, node.Name)
 		nodeMap[node.Name] = node
 	}
 
-	mostIdleNode, err := c.rmgr.GetMostIdleNode(ctx, nodeNames)
+	mostIdleNode, err := c.rmgr.GetMostIdleNode(ctx, nodenames)
 	if err != nil {
 		return nil, err
 	}
@@ -192,6 +188,15 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 		})
 	}), nil
 
+}
+
+func (c *Calcium) getWorkloadNode(ctx context.Context, id string) (*types.Node, error) {
+	w, err := c.store.GetWorkload(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	node, err := c.store.GetNode(ctx, w.Nodename)
+	return node, err
 }
 
 func withImageBuiltChannel(f func(chan *types.BuildImageMessage)) chan *types.BuildImageMessage {

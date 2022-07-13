@@ -274,16 +274,6 @@ func (v *Vibranium) SetNode(ctx context.Context, opts *pb.SetNodeOptions) (*pb.N
 	return toRPCNode(n), nil
 }
 
-// SetNodeStatus set status of a node for reporting
-func (v *Vibranium) SetNodeStatus(ctx context.Context, opts *pb.SetNodeStatusOptions) (*pb.Empty, error) {
-	task := v.newTask(ctx, "SetNodeStatus", false)
-	defer task.done()
-	if err := v.cluster.SetNodeStatus(task.context, opts.Nodename, opts.Ttl); err != nil {
-		return nil, grpcstatus.Error(SetNodeStatus, err.Error())
-	}
-	return &pb.Empty{}, nil
-}
-
 // GetNodeStatus set status of a node for reporting
 func (v *Vibranium) GetNodeStatus(ctx context.Context, opts *pb.GetNodeStatusOptions) (*pb.NodeStatusStreamMessage, error) {
 	task := v.newTask(ctx, "GetNodeStatus", false)
@@ -297,6 +287,16 @@ func (v *Vibranium) GetNodeStatus(ctx context.Context, opts *pb.GetNodeStatusOpt
 		Podname:  status.Podname,
 		Alive:    status.Alive,
 	}, nil
+}
+
+// SetNodeStatus set status of a node for reporting
+func (v *Vibranium) SetNodeStatus(ctx context.Context, opts *pb.SetNodeStatusOptions) (*pb.Empty, error) {
+	task := v.newTask(ctx, "SetNodeStatus", false)
+	defer task.done()
+	if err := v.cluster.SetNodeStatus(task.context, opts.Nodename, opts.Ttl); err != nil {
+		return nil, grpcstatus.Error(SetNodeStatus, err.Error())
+	}
+	return &pb.Empty{}, nil
 }
 
 // NodeStatusStream watch and show deployed status
@@ -321,6 +321,87 @@ func (v *Vibranium) NodeStatusStream(_ *pb.Empty, stream pb.CoreRPC_NodeStatusSt
 			}
 			if err := stream.Send(r); err != nil {
 				v.logUnsentMessages(task.context, "NodeStatusStream", err, m)
+			}
+		case <-v.stop:
+			return nil
+		}
+	}
+}
+
+// GetWorkloadsStatus get workloads status
+func (v *Vibranium) GetWorkloadsStatus(ctx context.Context, opts *pb.WorkloadIDs) (*pb.WorkloadsStatus, error) {
+	task := v.newTask(ctx, "GetWorkloadsStatus", false)
+	defer task.done()
+
+	workloadsStatus, err := v.cluster.GetWorkloadsStatus(task.context, opts.Ids)
+	if err != nil {
+		return nil, grpcstatus.Error(GetWorkloadsStatus, err.Error())
+	}
+	return toRPCWorkloadsStatus(workloadsStatus), nil
+}
+
+// SetWorkloadsStatus set workloads status
+func (v *Vibranium) SetWorkloadsStatus(ctx context.Context, opts *pb.SetWorkloadsStatusOptions) (*pb.WorkloadsStatus, error) {
+	task := v.newTask(ctx, "SetWorkloadsStatus", false)
+	defer task.done()
+
+	var err error
+	statusData := []*types.StatusMeta{}
+	ttls := map[string]int64{}
+	for _, status := range opts.Status {
+		r := &types.StatusMeta{
+			ID:        status.Id,
+			Running:   status.Running,
+			Healthy:   status.Healthy,
+			Networks:  status.Networks,
+			Extension: status.Extension,
+
+			Appname:    status.Appname,
+			Nodename:   status.Nodename,
+			Entrypoint: status.Entrypoint,
+		}
+		statusData = append(statusData, r)
+		ttls[status.Id] = status.Ttl
+	}
+
+	status, err := v.cluster.SetWorkloadsStatus(task.context, statusData, ttls)
+	if err != nil {
+		return nil, grpcstatus.Error(SetWorkloadsStatus, err.Error())
+	}
+	return toRPCWorkloadsStatus(status), nil
+}
+
+// WorkloadStatusStream watch and show deployed status
+func (v *Vibranium) WorkloadStatusStream(opts *pb.WorkloadStatusStreamOptions, stream pb.CoreRPC_WorkloadStatusStreamServer) error {
+	task := v.newTask(stream.Context(), "WorkloadStatusStream", true)
+	defer task.done()
+
+	log.Infof(task.context, "[rpc] WorkloadStatusStream start %s", opts.Appname)
+	defer log.Infof(task.context, "[rpc] WorkloadStatusStream stop %s", opts.Appname)
+
+	ch := v.cluster.WorkloadStatusStream(
+		task.context,
+		opts.Appname, opts.Entrypoint, opts.Nodename, opts.Labels,
+	)
+	for {
+		select {
+		case m, ok := <-ch:
+			if !ok {
+				return nil
+			}
+			r := &pb.WorkloadStatusStreamMessage{Id: m.ID, Delete: m.Delete}
+			if m.Error != nil {
+				r.Error = m.Error.Error()
+			} else if m.Workload != nil {
+				if workload, err := toRPCWorkload(task.context, m.Workload); err != nil {
+					r.Error = err.Error()
+				} else {
+					r.Workload = workload
+					r.Status = toRPCWorkloadStatus(m.Workload.StatusMeta)
+				}
+			}
+			if err := stream.Send(r); err != nil {
+				v.logUnsentMessages(task.context, "WorkloadStatusStream", err, m)
 			}
 		case <-v.stop:
 			return nil
@@ -403,87 +484,6 @@ func (v *Vibranium) ListNodeWorkloads(ctx context.Context, opts *pb.GetNodeOptio
 		return nil, grpcstatus.Error(ListNodeWorkloads, err.Error())
 	}
 	return toRPCWorkloads(task.context, workloads, nil), nil
-}
-
-// GetWorkloadsStatus get workloads status
-func (v *Vibranium) GetWorkloadsStatus(ctx context.Context, opts *pb.WorkloadIDs) (*pb.WorkloadsStatus, error) {
-	task := v.newTask(ctx, "GetWorkloadsStatus", false)
-	defer task.done()
-
-	workloadsStatus, err := v.cluster.GetWorkloadsStatus(task.context, opts.Ids)
-	if err != nil {
-		return nil, grpcstatus.Error(GetWorkloadsStatus, err.Error())
-	}
-	return toRPCWorkloadsStatus(workloadsStatus), nil
-}
-
-// SetWorkloadsStatus set workloads status
-func (v *Vibranium) SetWorkloadsStatus(ctx context.Context, opts *pb.SetWorkloadsStatusOptions) (*pb.WorkloadsStatus, error) {
-	task := v.newTask(ctx, "SetWorkloadsStatus", false)
-	defer task.done()
-
-	var err error
-	statusData := []*types.StatusMeta{}
-	ttls := map[string]int64{}
-	for _, status := range opts.Status {
-		r := &types.StatusMeta{
-			ID:        status.Id,
-			Running:   status.Running,
-			Healthy:   status.Healthy,
-			Networks:  status.Networks,
-			Extension: status.Extension,
-
-			Appname:    status.Appname,
-			Nodename:   status.Nodename,
-			Entrypoint: status.Entrypoint,
-		}
-		statusData = append(statusData, r)
-		ttls[status.Id] = status.Ttl
-	}
-
-	status, err := v.cluster.SetWorkloadsStatus(task.context, statusData, ttls)
-	if err != nil {
-		return nil, grpcstatus.Error(SetWorkloadsStatus, err.Error())
-	}
-	return toRPCWorkloadsStatus(status), nil
-}
-
-// WorkloadStatusStream watch and show deployed status
-func (v *Vibranium) WorkloadStatusStream(opts *pb.WorkloadStatusStreamOptions, stream pb.CoreRPC_WorkloadStatusStreamServer) error {
-	task := v.newTask(stream.Context(), "WorkloadStatusStream", true)
-	defer task.done()
-
-	log.Infof(task.context, "[rpc] WorkloadStatusStream start %s", opts.Appname)
-	defer log.Infof(task.context, "[rpc] WorkloadStatusStream stop %s", opts.Appname)
-
-	ch := v.cluster.WorkloadStatusStream(
-		task.context,
-		opts.Appname, opts.Entrypoint, opts.Nodename, opts.Labels,
-	)
-	for {
-		select {
-		case m, ok := <-ch:
-			if !ok {
-				return nil
-			}
-			r := &pb.WorkloadStatusStreamMessage{Id: m.ID, Delete: m.Delete}
-			if m.Error != nil {
-				r.Error = m.Error.Error()
-			} else if m.Workload != nil {
-				if workload, err := toRPCWorkload(task.context, m.Workload); err != nil {
-					r.Error = err.Error()
-				} else {
-					r.Workload = workload
-					r.Status = toRPCWorkloadStatus(m.Workload.StatusMeta)
-				}
-			}
-			if err := stream.Send(r); err != nil {
-				v.logUnsentMessages(task.context, "WorkloadStatusStream", err, m)
-			}
-		case <-v.stop:
-			return nil
-		}
-	}
 }
 
 // Copy copy files from multiple workloads

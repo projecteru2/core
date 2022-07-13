@@ -37,7 +37,7 @@ func (c *CPUMem) GetMetricsDescription() []map[string]interface{} {
 	}
 }
 
-func (c *CPUMem) ConvertNodeResourceInfoToMetrics(podname string, nodename string, nodeResourceCapacity *types.NodeResourceArgs, nodeResourceUsage *types.NodeResourceArgs) []map[string]interface{} {
+func (c *CPUMem) GetNodeMetrics(podname string, nodename string, nodeResourceCapacity *types.NodeResourceArgs, nodeResourceUsage *types.NodeResourceArgs) []map[string]interface{} {
 	cleanedNodeName := strings.ReplaceAll(nodename, ".", "_")
 	metrics := []map[string]interface{}{
 		{

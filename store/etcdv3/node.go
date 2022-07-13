@@ -312,7 +312,6 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 	wg := &sync.WaitGroup{}
 	wg.Add(len(allNodes))
 	nodesCh := make(chan *types.Node, len(allNodes))
-	defer close(nodesCh)
 
 	for _, node := range allNodes {
 		node := node
@@ -338,6 +337,7 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 		})
 	}
 	wg.Wait()
+	close(nodesCh)
 
 	for node := range nodesCh {
 		nodes = append(nodes, node)

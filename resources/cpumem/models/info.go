@@ -75,7 +75,7 @@ func (c *CPUMem) GetNodeResourceInfo(ctx context.Context, node string, workloadR
 // calculateNodeResourceArgs priority: node resource opts > node resource args > workload resource args list
 func (c *CPUMem) calculateNodeResourceArgs(origin *types.NodeResourceArgs, nodeResourceOpts *types.NodeResourceOpts, nodeResourceArgs *types.NodeResourceArgs, workloadResourceArgs []*types.WorkloadResourceArgs, delta bool, incr bool) (res *types.NodeResourceArgs) {
 	if origin == nil || !delta {
-		res = &types.NodeResourceArgs{}
+		res = (&types.NodeResourceArgs{}).DeepCopy()
 	} else {
 		res = origin.DeepCopy()
 	}

@@ -84,7 +84,7 @@ func TestRediaron(t *testing.T) {
 	config := types.Config{}
 	config.LockTimeout = 10 * time.Second
 	config.GlobalTimeout = 30 * time.Second
-	config.MaxConcurrency = 20
+	config.MaxConcurrency = 100000
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

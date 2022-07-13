@@ -86,13 +86,13 @@ func (v *Plugin) GetRemapArgs(ctx context.Context, nodename string, workloadMap 
 }
 
 // GetNodesDeployCapacity .
-func (v *Plugin) GetNodesDeployCapacity(ctx context.Context, nodeNames []string, resourceOpts coretypes.WorkloadResourceOpts) (*resources.GetNodesDeployCapacityResponse, error) {
+func (v *Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, resourceOpts coretypes.WorkloadResourceOpts) (*resources.GetNodesDeployCapacityResponse, error) {
 	workloadResourceOpts := &types.WorkloadResourceOpts{}
 	if err := workloadResourceOpts.ParseFromRawParams(coretypes.RawParams(resourceOpts)); err != nil {
 		return nil, err
 	}
 
-	nodesDeployCapacity, total, err := v.v.GetNodesDeployCapacity(ctx, nodeNames, workloadResourceOpts)
+	nodesDeployCapacity, total, err := v.v.GetNodesDeployCapacity(ctx, nodenames, workloadResourceOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -105,8 +105,8 @@ func (v *Plugin) GetNodesDeployCapacity(ctx context.Context, nodeNames []string,
 }
 
 // GetMostIdleNode .
-func (v *Plugin) GetMostIdleNode(ctx context.Context, nodeNames []string) (*resources.GetMostIdleNodeResponse, error) {
-	nodename, priority, err := v.v.GetMostIdleNode(ctx, nodeNames)
+func (v *Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*resources.GetMostIdleNodeResponse, error) {
+	nodename, priority, err := v.v.GetMostIdleNode(ctx, nodenames)
 	if err != nil {
 		return nil, err
 	}
@@ -292,8 +292,8 @@ func (v *Plugin) GetMetricsDescription(ctx context.Context) (*resources.GetMetri
 	return resp, mapstructure.Decode(v.v.GetMetricsDescription(), resp)
 }
 
-// ConvertNodeResourceInfoToMetrics .
-func (v *Plugin) ConvertNodeResourceInfoToMetrics(ctx context.Context, podname string, nodename string, info *resources.NodeResourceInfo) (*resources.ConvertNodeResourceInfoToMetricsResponse, error) {
+// GetNodeMetrics .
+func (v *Plugin) GetNodeMetrics(ctx context.Context, podname string, nodename string, info *resources.NodeResourceInfo) (*resources.GetNodeMetricsResponse, error) {
 	capacity, usage := &types.NodeResourceArgs{}, &types.NodeResourceArgs{}
 	if err := capacity.ParseFromRawParams(coretypes.RawParams(info.Capacity)); err != nil {
 		return nil, err
@@ -302,7 +302,7 @@ func (v *Plugin) ConvertNodeResourceInfoToMetrics(ctx context.Context, podname s
 		return nil, err
 	}
 
-	metrics := v.v.ConvertNodeResourceInfoToMetrics(podname, nodename, capacity, usage)
-	resp := &resources.ConvertNodeResourceInfoToMetricsResponse{}
+	metrics := v.v.GetNodeMetrics(podname, nodename, capacity, usage)
+	resp := &resources.GetNodeMetricsResponse{}
 	return resp, mapstructure.Decode(metrics, resp)
 }

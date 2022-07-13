@@ -42,12 +42,12 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 		defer close(ch)
 		// 并发控制
 		wg := sync.WaitGroup{}
+		wg.Add(len(opts.IDs))
 		defer wg.Wait()
 		for index, id := range opts.IDs {
-			wg.Add(1)
-			utils.SentryGo(
-				func(replaceOpts types.ReplaceOptions, index int, id string) func() {
-					return func() {
+			utils.SentryGo(func(replaceOpts types.ReplaceOptions, index int, id string) func() {
+				return func() {
+					_ = c.pool.Invoke(func() {
 						defer wg.Done()
 						var createMessage *types.CreateWorkloadMessage
 						removeMessage := &types.RemoveWorkloadMessage{WorkloadID: id}
@@ -91,11 +91,9 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 							log.Infof(ctx, "[ReplaceWorkload] New workload %s", createMessage.WorkloadID)
 						}
 						ch <- &types.ReplaceWorkloadMessage{Create: createMessage, Remove: removeMessage, Error: err}
-					}
-				}(*opts, index, id))
-			if (index+1)%opts.Count == 0 {
-				wg.Wait()
-			}
+					})
+				}
+			}(*opts, index, id))
 		}
 	})
 	return ch, nil

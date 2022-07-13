@@ -240,6 +240,7 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw inter
 
 	wg := &sync.WaitGroup{}
 	wg.Add(len(nodes))
+	defer wg.Wait()
 	for _, node := range nodes {
 		node := node
 		_ = h.pool.Invoke(func() {
@@ -251,7 +252,6 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw inter
 			logger.Infof(ctx, "fixed node resource: %s", node.Name)
 		})
 	}
-	wg.Wait()
 
 	return nil
 }

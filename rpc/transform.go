@@ -34,10 +34,10 @@ func toRPCNode(n *types.Node) *pb.Node {
 	resourceCapacity := map[string]types.RawParams{}
 	resourceUsage := map[string]types.RawParams{}
 
-	for plugin, args := range n.ResourceCapacity {
+	for plugin, args := range n.Resource.Capacity {
 		resourceCapacity[plugin] = types.RawParams(args)
 	}
-	for plugin, args := range n.ResourceUsage {
+	for plugin, args := range n.Resource.Usage {
 		resourceUsage[plugin] = types.RawParams(args)
 	}
 
@@ -70,10 +70,10 @@ func toRPCNodeResource(nr *types.NodeResource) *pb.NodeResource {
 	resourceCapacity := map[string]types.RawParams{}
 	resourceUsage := map[string]types.RawParams{}
 
-	for plugin, args := range nr.ResourceCapacity {
+	for plugin, args := range nr.Capacity {
 		resourceCapacity[plugin] = types.RawParams(args)
 	}
-	for plugin, args := range nr.ResourceUsage {
+	for plugin, args := range nr.Usage {
 		resourceUsage[plugin] = types.RawParams(args)
 	}
 
@@ -549,7 +549,6 @@ func toCoreCacheImageOptions(opts *pb.CacheImageOptions) *types.ImageOptions {
 		Podname:   opts.Podname,
 		Nodenames: opts.Nodenames,
 		Images:    opts.Images,
-		Step:      int(opts.Step),
 	}
 }
 
@@ -558,7 +557,6 @@ func toCoreRemoveImageOptions(opts *pb.RemoveImageOptions) *types.ImageOptions {
 		Podname:   opts.Podname,
 		Nodenames: opts.Nodenames,
 		Images:    opts.Images,
-		Step:      int(opts.Step),
 		Prune:     opts.Prune,
 	}
 }

@@ -93,29 +93,6 @@ func (_m *Manager) Alloc(_a0 context.Context, _a1 string, _a2 int, _a3 types.Wor
 	return r0, r1, r2
 }
 
-// ConvertNodeResourceInfoToMetrics provides a mock function with given fields: _a0, _a1, _a2, _a3, _a4
-func (_m *Manager) ConvertNodeResourceInfoToMetrics(_a0 context.Context, _a1 string, _a2 string, _a3 map[string]types.NodeResourceArgs, _a4 map[string]types.NodeResourceArgs) ([]*resources.Metrics, error) {
-	ret := _m.Called(_a0, _a1, _a2, _a3, _a4)
-
-	var r0 []*resources.Metrics
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs) []*resources.Metrics); ok {
-		r0 = rf(_a0, _a1, _a2, _a3, _a4)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*resources.Metrics)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs) error); ok {
-		r1 = rf(_a0, _a1, _a2, _a3, _a4)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetMetricsDescription provides a mock function with given fields: _a0
 func (_m *Manager) GetMetricsDescription(_a0 context.Context) ([]*resources.MetricsDescription, error) {
 	ret := _m.Called(_a0)
@@ -152,6 +129,29 @@ func (_m *Manager) GetMostIdleNode(_a0 context.Context, _a1 []string) (string, e
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, []string) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetNodeMetrics provides a mock function with given fields: _a0, _a1
+func (_m *Manager) GetNodeMetrics(_a0 context.Context, _a1 *types.Node) ([]*resources.Metrics, error) {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 []*resources.Metrics
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Node) []*resources.Metrics); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*resources.Metrics)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.Node) error); ok {
 		r1 = rf(_a0, _a1)
 	} else {
 		r1 = ret.Error(1)

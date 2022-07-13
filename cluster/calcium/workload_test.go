@@ -11,30 +11,20 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestListWorkloads(t *testing.T) {
+func TestGetWorkload(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
+
 	ID := "testID"
-	workloads := []*types.Workload{
-		{ID: ID},
-	}
-
+	workload := &types.Workload{ID: ID}
 	store := c.store.(*storemocks.Store)
-	store.On("ListWorkloads", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
-	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
-
-	cs, err := c.ListWorkloads(ctx, &types.ListWorkloadsOptions{Appname: "", Entrypoint: "", Nodename: ""})
-	assert.NoError(t, err)
-	assert.Equal(t, len(cs), 1)
-	assert.Equal(t, cs[0].ID, ID)
-
-	_, err = c.ListNodeWorkloads(ctx, "", nil)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
+	_, err := c.GetWorkload(ctx, "")
 	assert.Error(t, err)
 
-	cs, err = c.ListNodeWorkloads(ctx, "nodename", nil)
+	_, err = c.GetWorkload(ctx, ID)
 	assert.NoError(t, err)
-	assert.Equal(t, len(cs), 1)
-	assert.Equal(t, cs[0].ID, ID)
+
 }
 
 func TestGetWorkloads(t *testing.T) {
@@ -45,16 +35,50 @@ func TestGetWorkloads(t *testing.T) {
 	workloads := []*types.Workload{workload}
 
 	store := c.store.(*storemocks.Store)
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(workloads, nil)
 
-	_, err := c.GetWorkload(ctx, "")
+	cs, err := c.GetWorkloads(ctx, []string{})
+	assert.NoError(t, err)
+	assert.Equal(t, len(cs), 1)
+	assert.Equal(t, cs[0].ID, ID)
+}
+
+func TestListWorkloads(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	ID := "testID"
+	workloads := []*types.Workload{
+		{ID: ID},
+	}
+
+	// failed by ListWorkloads
+	store := c.store.(*storemocks.Store)
+	store.On("ListWorkloads", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	_, err := c.ListWorkloads(ctx, &types.ListWorkloadsOptions{Appname: "", Entrypoint: "", Nodename: ""})
 	assert.Error(t, err)
 
-	savedWorkload, err := c.GetWorkload(ctx, "someid")
+	// success
+	store.On("ListWorkloads", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
+	cs, err := c.ListWorkloads(ctx, &types.ListWorkloadsOptions{Appname: "", Entrypoint: "", Nodename: ""})
 	assert.NoError(t, err)
-	assert.Equal(t, savedWorkload.ID, ID)
-	cs, err := c.GetWorkloads(ctx, []string{})
+	assert.Equal(t, len(cs), 1)
+	assert.Equal(t, cs[0].ID, ID)
+}
+
+func TestListNodeWorkloads(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	ID := "testID"
+	workloads := []*types.Workload{
+		{ID: ID},
+	}
+
+	_, err := c.ListNodeWorkloads(ctx, "", nil)
+	assert.Error(t, err)
+
+	store := c.store.(*storemocks.Store)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
+	cs, err := c.ListNodeWorkloads(ctx, "nodename", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, len(cs), 1)
 	assert.Equal(t, cs[0].ID, ID)

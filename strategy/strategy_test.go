@@ -4,8 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/projecteru2/core/types"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,16 +33,19 @@ func deployedNodes() []Info {
 }
 
 func TestDeploy(t *testing.T) {
-	opts := &types.DeployOptions{
-		DeployStrategy: "invalid",
-		Count:          1,
-		NodesLimit:     3,
-	}
-	_, err := Deploy(context.TODO(), opts.DeployStrategy, opts.Count, opts.NodesLimit, nil, 2)
-	opts.DeployStrategy = "AUTO"
+	ctx := context.TODO()
+
+	// invaild strategy
+	_, err := Deploy(ctx, "invalid", -1, 3, nil, 2)
+	assert.Error(t, err)
+
+	// count < 0
+	_, err = Deploy(ctx, "AUTO", -1, 3, nil, 2)
+	assert.Error(t, err)
+
 	Plans["test"] = func(_ context.Context, _ []Info, _, _, _ int) (map[string]int, error) {
 		return nil, nil
 	}
-	_, err = Deploy(context.TODO(), opts.DeployStrategy, opts.Count, opts.NodesLimit, nil, 2)
-	assert.Error(t, err)
+	_, err = Deploy(ctx, "test", 1, 3, nil, 2)
+	assert.NoError(t, err)
 }

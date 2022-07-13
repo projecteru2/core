@@ -10,6 +10,28 @@ import (
 	"github.com/pkg/errors"
 )
 
+// GetNodeStatus set status of a node
+// it's used to report whether a node is still alive
+func (c *Calcium) GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error) {
+	return c.store.GetNodeStatus(ctx, nodename)
+}
+
+// SetNodeStatus set status of a node
+// it's used to report whether a node is still alive
+func (c *Calcium) SetNodeStatus(ctx context.Context, nodename string, ttl int64) error {
+	logger := log.WithField("Calcium", "SetNodeStatus").WithField("nodename", nodename).WithField("ttl", ttl)
+	node, err := c.store.GetNode(ctx, nodename)
+	if err != nil {
+		return logger.ErrWithTracing(ctx, errors.WithStack(err))
+	}
+	return logger.ErrWithTracing(ctx, errors.WithStack(c.store.SetNodeStatus(ctx, node, ttl)))
+}
+
+// NodeStatusStream returns a stream of node status for subscribing
+func (c *Calcium) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
+	return c.store.NodeStatusStream(ctx)
+}
+
 // GetWorkloadsStatus get workload status
 func (c *Calcium) GetWorkloadsStatus(ctx context.Context, ids []string) ([]*types.StatusMeta, error) {
 	r := []*types.StatusMeta{}
@@ -61,26 +83,4 @@ func (c *Calcium) SetWorkloadsStatus(ctx context.Context, statusMetas []*types.S
 // WorkloadStatusStream stream workload status
 func (c *Calcium) WorkloadStatusStream(ctx context.Context, appname, entrypoint, nodename string, labels map[string]string) chan *types.WorkloadStatus {
 	return c.store.WorkloadStatusStream(ctx, appname, entrypoint, nodename, labels)
-}
-
-// SetNodeStatus set status of a node
-// it's used to report whether a node is still alive
-func (c *Calcium) SetNodeStatus(ctx context.Context, nodename string, ttl int64) error {
-	logger := log.WithField("Calcium", "SetNodeStatus").WithField("nodename", nodename).WithField("ttl", ttl)
-	node, err := c.store.GetNode(ctx, nodename)
-	if err != nil {
-		return logger.ErrWithTracing(ctx, errors.WithStack(err))
-	}
-	return logger.ErrWithTracing(ctx, errors.WithStack(c.store.SetNodeStatus(ctx, node, ttl)))
-}
-
-// GetNodeStatus set status of a node
-// it's used to report whether a node is still alive
-func (c *Calcium) GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error) {
-	return c.store.GetNodeStatus(ctx, nodename)
-}
-
-// NodeStatusStream returns a stream of node status for subscribing
-func (c *Calcium) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
-	return c.store.NodeStatusStream(ctx)
 }

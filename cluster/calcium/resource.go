@@ -26,6 +26,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.
 		defer close(ch)
 		wg := &sync.WaitGroup{}
 		wg.Add(len(nodes))
+		defer wg.Wait()
 		for _, node := range nodes {
 			node := node
 			_ = c.pool.Invoke(func() {
@@ -39,7 +40,6 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.
 				ch <- nr
 			})
 		}
-		wg.Wait()
 	})
 
 	return ch, nil
@@ -72,11 +72,11 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, inspec
 			return err
 		}
 		nr = &types.NodeResource{
-			Name:             node.Name,
-			ResourceCapacity: resourceCapacity,
-			ResourceUsage:    resourceUsage,
-			Diffs:            resourceDiffs,
-			Workloads:        workloads,
+			Name:      node.Name,
+			Capacity:  resourceCapacity,
+			Usage:     resourceUsage,
+			Diffs:     resourceDiffs,
+			Workloads: workloads,
 		}
 
 		if inspect {
@@ -92,11 +92,11 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, inspec
 	})
 }
 
-func (c *Calcium) doGetDeployMap(ctx context.Context, nodes []string, opts *types.DeployOptions) (map[string]int, error) {
+func (c *Calcium) doGetDeployStrategy(ctx context.Context, nodenames []string, opts *types.DeployOptions) (map[string]int, error) {
 	// get nodes with capacity > 0
-	nodeResourceInfoMap, total, err := c.rmgr.GetNodesDeployCapacity(ctx, nodes, opts.ResourceOpts)
+	nodeResourceInfoMap, total, err := c.rmgr.GetNodesDeployCapacity(ctx, nodenames, opts.ResourceOpts)
 	if err != nil {
-		log.Errorf(ctx, "[doGetDeployMap] failed to select available nodes, nodes %v, err %v", nodes, err)
+		log.Errorf(ctx, "[doGetDeployMap] failed to select available nodes, nodes %v, err %v", nodenames, err)
 		return nil, errors.WithStack(err)
 	}
 

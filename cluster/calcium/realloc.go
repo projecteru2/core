@@ -71,7 +71,6 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	go c.SendNodeMetrics(ctx, node.Name)
 	go c.doRemapResourceAndLog(ctx, log.WithField("Calcium", "doReallocOnNode"), node)
 	return nil
 }

@@ -237,7 +237,6 @@ type ImageOptions struct {
 	Podname   string
 	Nodenames []string
 	Images    []string
-	Step      int
 	Prune     bool
 	Filter    string
 }
@@ -248,13 +247,6 @@ func (o *ImageOptions) Validate() error {
 		return errors.WithStack(ErrEmptyPodName)
 	}
 	return nil
-}
-
-// Normalize checks steps and set it properly
-func (o *ImageOptions) Normalize() {
-	if o.Step < 1 {
-		o.Step = 1
-	}
 }
 
 // ExecuteWorkloadOptions for executing commands in running workload

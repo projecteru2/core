@@ -99,10 +99,10 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					}
 				}()
 				return c.withNodesPodLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) (err error) {
-					nodeNames := []string{}
+					nodenames := []string{}
 					nodes := []*types.Node{}
 					for nodename, node := range nodeMap {
-						nodeNames = append(nodeNames, nodename)
+						nodenames = append(nodenames, nodename)
 						nodes = append(nodes, node)
 					}
 
@@ -110,7 +110,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 						return errors.WithStack(err)
 					}
 
-					deployMap, err = c.doGetDeployMap(ctx, nodeNames, opts)
+					deployMap, err = c.doGetDeployStrategy(ctx, nodenames, opts)
 					if err != nil {
 						return err
 					}
@@ -275,7 +275,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 }
 
 func (c *Calcium) doGetAndPrepareNode(ctx context.Context, nodename, image string) (*types.Node, error) {
-	node, err := c.GetNode(ctx, nodename)
+	node, err := c.store.GetNode(ctx, nodename)
 	if err != nil {
 		return nil, err
 	}

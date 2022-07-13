@@ -19,6 +19,7 @@ func TestSend(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 
+	// failed by validating
 	_, err := c.Send(ctx, &types.SendOptions{IDs: []string{}, Files: []types.LinuxFile{{Content: []byte("xxx")}}})
 	assert.Error(t, err)
 	_, err = c.Send(ctx, &types.SendOptions{IDs: []string{"id"}})
@@ -39,7 +40,7 @@ func TestSend(t *testing.T) {
 	}
 	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
+	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	// failed by GetWorkload
@@ -60,7 +61,7 @@ func TestSend(t *testing.T) {
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything,
-	).Return(types.ErrCannotGetEngine).Once()
+	).Return(types.ErrNoETCD).Once()
 	ch, err = c.Send(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {

@@ -6,6 +6,7 @@ import (
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	lockmocks "github.com/projecteru2/core/lock/mocks"
 	"github.com/projecteru2/core/log"
 	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
@@ -41,5 +42,10 @@ func TestRemapResource(t *testing.T) {
 	_, err := c.remapResource(context.Background(), node)
 	assert.Nil(t, err)
 
+	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	c.doRemapResourceAndLog(context.TODO(), log.WithField("test", "zc"), node)
 }

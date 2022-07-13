@@ -38,8 +38,3 @@ func TestNodeInfo(t *testing.T) {
 	node.Bypass = true
 	assert.True(t, node.IsDown())
 }
-
-func TestNodeMetrics(t *testing.T) {
-	nm := Node{}
-	assert.NotNil(t, nm.Metrics())
-}

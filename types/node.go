@@ -9,27 +9,6 @@ import (
 	engine "github.com/projecteru2/core/engine"
 )
 
-const (
-	// IncrUsage add cpuusage
-	IncrUsage = "+"
-	// DecrUsage cpuusage
-	DecrUsage = "-"
-)
-
-// NUMA define NUMA cpuID->nodeID
-type NUMA map[string]string
-
-// NUMAMemory fine NUMA memory NODE
-type NUMAMemory map[string]int64
-
-// NodeMetrics used for metrics collecting
-type NodeMetrics struct {
-	Name             string
-	Podname          string
-	ResourceCapacity map[string]NodeResourceArgs
-	ResourceUsage    map[string]NodeResourceArgs
-}
-
 // NodeMeta .
 type NodeMeta struct {
 	Name     string            `json:"name"`
@@ -51,14 +30,20 @@ func (n NodeMeta) DeepCopy() (nn NodeMeta, err error) {
 	return nn, errors.WithStack(json.Unmarshal(b, &nn))
 }
 
+// NodeResource for resource
+type NodeResource struct {
+	Name      string                      `json:"-"`
+	Capacity  map[string]NodeResourceArgs `json:"capacity,omitempty"`
+	Usage     map[string]NodeResourceArgs `json:"usage,omitempty"`
+	Diffs     []string                    `json:"diffs,omitempty"`
+	Workloads []*Workload                 `json:"-"`
+}
+
 // Node store node info
 type Node struct {
 	NodeMeta
-	NodeInfo string `json:"-"`
-
-	ResourceCapacity map[string]NodeResourceArgs `json:"resource_capacity,omitempty"`
-	ResourceUsage    map[string]NodeResourceArgs `json:"resource_usage,omitempty"`
-	Diffs            []string                    `json:"diffs,omitempty"`
+	Resource NodeResource `jason:"resource,omitempty"`
+	NodeInfo string       `json:"-"`
 
 	// Bypass if bypass is true, it will not participate in future scheduling
 	Bypass    bool       `json:"bypass,omitempty"`
@@ -88,24 +73,6 @@ func (n *Node) IsDown() bool {
 	// If `bypass` is true, then even if the node is still healthy, the node will be regarded as `down`.
 	// Currently `bypass` will only be set when the cli calls the `up` and `down` commands.
 	return n.Bypass || !n.Available
-}
-
-// Metrics reports metrics value
-func (n *Node) Metrics() *NodeMetrics {
-	return &NodeMetrics{
-		Name:    n.Name,
-		Podname: n.Podname,
-		// TODO: resource args
-	}
-}
-
-// NodeResource for node check
-type NodeResource struct {
-	Name             string
-	ResourceCapacity map[string]NodeResourceArgs
-	ResourceUsage    map[string]NodeResourceArgs
-	Diffs            []string
-	Workloads        []*Workload
 }
 
 // NodeStatus wraps node status

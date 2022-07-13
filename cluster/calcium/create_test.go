@@ -20,7 +20,7 @@ import (
 	walmocks "github.com/projecteru2/core/wal/mocks"
 )
 
-func TestCreateWorkload(t *testing.T) {
+func TestCreateWorkloadValidating(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	opts := &types.DeployOptions{
@@ -32,11 +32,6 @@ func TestCreateWorkload(t *testing.T) {
 			Name: "some-nice-entrypoint",
 		},
 	}
-	store := c.store.(*storemocks.Store)
-
-	store.On("CreateProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-
 	// failed by validating
 	opts.Name = ""
 	_, err := c.CreateWorkload(ctx, opts)
@@ -81,7 +76,6 @@ func TestCreateWorkloadTxn(t *testing.T) {
 
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	mwal := &walmocks.WAL{}
 	c.wal = mwal
 	var walCommitted bool
@@ -90,32 +84,10 @@ func TestCreateWorkloadTxn(t *testing.T) {
 		return nil
 	})
 	mwal.On("Log", mock.Anything, mock.Anything).Return(commit, nil)
-
 	node1, node2 := nodes[0], nodes[1]
-	store.On("CreateProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	// doAllocResource fails: GetNodesDeployCapacity
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
-	store.On("GetNode",
-		mock.AnythingOfType("*context.emptyCtx"),
-		mock.AnythingOfType("string"),
-	).Return(
-		func(_ context.Context, name string) (node *types.Node) {
-			node = node1
-			if name == "n2" {
-				node = node2
-			}
-			return
-		}, nil)
-	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
-	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
-		nil, 0, types.ErrKeyIsEmpty,
-	).Once()
+	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, types.ErrNoETCD).Once()
 	ch, err := c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	cnt := 0
@@ -290,20 +262,20 @@ func newCreateWorkloadCluster(t *testing.T) (*Calcium, []*types.Node) {
 	}
 	nodes := []*types.Node{node1, node2}
 
+	// for processing
 	store := c.store.(*storemocks.Store)
 	store.On("CreateProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-	// doAllocResource fails: MakeDeployStatus
+	// for lock
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+
+	// for get node
 	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
-	store.On("GetNode",
-		mock.AnythingOfType("*context.emptyCtx"),
-		mock.AnythingOfType("string"),
-	).Return(
+	store.On("GetNode", mock.Anything, mock.Anything).Return(
 		func(_ context.Context, name string) (node *types.Node) {
 			node = node1
 			if name == "n2" {
@@ -311,6 +283,8 @@ func newCreateWorkloadCluster(t *testing.T) (*Calcium, []*types.Node) {
 			}
 			return
 		}, nil)
+
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
 
 	return c, nodes
 }

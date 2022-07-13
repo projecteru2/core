@@ -106,6 +106,7 @@ func checkAlive(ctx context.Context, rpc *clientWithStatus, timeout time.Duratio
 
 func (c *Pool) updateClientsStatus(ctx context.Context, timeout time.Duration) {
 	wg := &sync.WaitGroup{}
+	defer wg.Wait()
 	for _, rpc := range c.rpcClients {
 		wg.Add(1)
 		go func(r *clientWithStatus) {
@@ -113,5 +114,4 @@ func (c *Pool) updateClientsStatus(ctx context.Context, timeout time.Duration) {
 			r.alive = checkAlive(ctx, r, timeout)
 		}(rpc)
 	}
-	wg.Wait()
 }

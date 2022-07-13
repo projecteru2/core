@@ -20,7 +20,7 @@ func NewMercury(t *testing.T) *Mercury {
 		Prefix:     "/eru-test",
 		LockPrefix: "/eru-test-lock",
 	}
-	config.MaxConcurrency = 20
+	config.MaxConcurrency = 100000
 	//	config.Docker.CertPath = "/tmp"
 
 	ctx, cancel := context.WithCancel(context.Background())

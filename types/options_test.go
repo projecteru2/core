@@ -142,19 +142,11 @@ func TestValidatingAddNodeOptions(t *testing.T) {
 func TestImageOptions(t *testing.T) {
 	assert := assert.New(t)
 
-	o := &ImageOptions{Step: -1}
+	o := &ImageOptions{}
 	assert.Equal(ErrEmptyPodName, errors.Unwrap(o.Validate()))
 
 	o.Podname = "podname"
 	assert.NoError(o.Validate())
-
-	assert.Equal(o.Step, -1)
-	o.Normalize()
-	assert.Equal(o.Step, 1)
-
-	o.Step = 3
-	o.Normalize()
-	assert.Equal(o.Step, 3)
 }
 
 func TestRawArges(t *testing.T) {

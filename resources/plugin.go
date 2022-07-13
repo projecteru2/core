@@ -47,10 +47,10 @@ type Plugin interface {
 	GetRemapArgs(ctx context.Context, nodename string, workloadMap map[string]*coretypes.Workload) (*GetRemapArgsResponse, error)
 
 	// GetNodesDeployCapacity returns available nodes and total capacity
-	GetNodesDeployCapacity(ctx context.Context, nodeNames []string, resourceOpts coretypes.WorkloadResourceOpts) (*GetNodesDeployCapacityResponse, error)
+	GetNodesDeployCapacity(ctx context.Context, nodenames []string, resourceOpts coretypes.WorkloadResourceOpts) (*GetNodesDeployCapacityResponse, error)
 
 	// GetMostIdleNode returns the most idle node for building
-	GetMostIdleNode(ctx context.Context, nodeNames []string) (*GetMostIdleNodeResponse, error)
+	GetMostIdleNode(ctx context.Context, nodenames []string) (*GetMostIdleNodeResponse, error)
 
 	// GetNodeResourceInfo returns total resource info and available resource info of the node, format: {"cpu": 2}
 	// also returns diffs, format: ["node.VolumeUsed != sum(workload.VolumeRequest"]
@@ -78,8 +78,8 @@ type Plugin interface {
 	// GetMetricsDescription returns metrics description
 	GetMetricsDescription(ctx context.Context) (*GetMetricsDescriptionResponse, error)
 
-	// ConvertNodeResourceInfoToMetrics resolves node resource info to metrics
-	ConvertNodeResourceInfoToMetrics(ctx context.Context, podname string, nodename string, nodeResourceInfo *NodeResourceInfo) (*ConvertNodeResourceInfoToMetricsResponse, error)
+	// GetNodeMetrics resolves node resource info to metrics
+	GetNodeMetrics(ctx context.Context, podname string, nodename string, nodeResourceInfo *NodeResourceInfo) (*GetNodeMetricsResponse, error)
 
 	// Name returns the name of plugin
 	Name() string
@@ -104,7 +104,7 @@ type Manager interface {
 	RollbackRealloc(context.Context, string, map[string]types.WorkloadResourceArgs) error
 
 	GetMetricsDescription(context.Context) ([]*MetricsDescription, error)
-	ConvertNodeResourceInfoToMetrics(context.Context, string, string, map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs) ([]*Metrics, error)
+	GetNodeMetrics(context.Context, *types.Node) ([]*Metrics, error)
 
 	AddNode(context.Context, string, types.NodeResourceOpts, *enginetypes.Info) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, error)
 	RemoveNode(context.Context, string) error

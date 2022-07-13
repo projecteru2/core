@@ -13,23 +13,23 @@ import (
 )
 
 // GetMostIdleNode .
-func (pm *PluginsManager) GetMostIdleNode(ctx context.Context, nodeNames []string) (string, error) {
+func (pm *PluginsManager) GetMostIdleNode(ctx context.Context, nodenames []string) (string, error) {
 	var mostIdleNode *GetMostIdleNodeResponse
 
-	if len(nodeNames) == 0 {
+	if len(nodenames) == 0 {
 		return "", errors.Wrap(types.ErrGetMostIdleNodeFailed, "empty node names")
 	}
 
 	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetMostIdleNodeResponse, error) {
-		resp, err := plugin.GetMostIdleNode(ctx, nodeNames)
+		resp, err := plugin.GetMostIdleNode(ctx, nodenames)
 		if err != nil {
-			log.Errorf(ctx, "[GetMostIdleNode] plugin %v failed to get the most idle node of %v, err: %v", plugin.Name(), nodeNames, err)
+			log.Errorf(ctx, "[GetMostIdleNode] plugin %v failed to get the most idle node of %v, err: %v", plugin.Name(), nodenames, err)
 		}
 		return resp, err
 	})
 
 	if err != nil {
-		log.Errorf(ctx, "[GetMostIdleNode] failed to get the most idle node of %v", nodeNames)
+		log.Errorf(ctx, "[GetMostIdleNode] failed to get the most idle node of %v", nodenames)
 		return "", err
 	}
 
@@ -48,13 +48,13 @@ func (pm *PluginsManager) GetMostIdleNode(ctx context.Context, nodeNames []strin
 // GetNodesDeployCapacity returns available nodes which meet all the requirements
 // the caller should require locks
 // pure calculation
-func (pm *PluginsManager) GetNodesDeployCapacity(ctx context.Context, nodeNames []string, resourceOpts types.WorkloadResourceOpts) (map[string]*NodeCapacityInfo, int, error) {
+func (pm *PluginsManager) GetNodesDeployCapacity(ctx context.Context, nodenames []string, resourceOpts types.WorkloadResourceOpts) (map[string]*NodeCapacityInfo, int, error) {
 	var res map[string]*NodeCapacityInfo
 
 	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetNodesDeployCapacityResponse, error) {
-		resp, err := plugin.GetNodesDeployCapacity(ctx, nodeNames, resourceOpts)
+		resp, err := plugin.GetNodesDeployCapacity(ctx, nodenames, resourceOpts)
 		if err != nil {
-			log.Errorf(ctx, "[GetNodesDeployCapacity] plugin %v failed to get available nodeNames, request %v, err %v", plugin.Name(), resourceOpts, err)
+			log.Errorf(ctx, "[GetNodesDeployCapacity] plugin %v failed to get available nodenames, request %v, err %v", plugin.Name(), resourceOpts, err)
 		}
 		return resp, err
 	})
@@ -63,7 +63,7 @@ func (pm *PluginsManager) GetNodesDeployCapacity(ctx context.Context, nodeNames 
 		return nil, 0, err
 	}
 
-	// get nodeNames with all resource capacities > 0
+	// get nodenames with all resource capacities > 0
 	for _, infoMap := range respMap {
 		res = pm.mergeNodeCapacityInfo(res, infoMap.Nodes)
 	}
@@ -377,20 +377,20 @@ func (pm *PluginsManager) GetMetricsDescription(ctx context.Context) ([]*Metrics
 	return metricsDescriptions, nil
 }
 
-// ConvertNodeResourceInfoToMetrics .
-func (pm *PluginsManager) ConvertNodeResourceInfoToMetrics(ctx context.Context, podname string, nodename string, nodeResourceCapacity map[string]types.NodeResourceArgs, nodeResourceUsage map[string]types.NodeResourceArgs) ([]*Metrics, error) {
+// GetNodeMetrics .
+func (pm *PluginsManager) GetNodeMetrics(ctx context.Context, node *types.Node) ([]*Metrics, error) {
 	var metrics []*Metrics
-	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*ConvertNodeResourceInfoToMetricsResponse, error) {
-		capacity, usage := nodeResourceCapacity[plugin.Name()], nodeResourceUsage[plugin.Name()]
-		resp, err := plugin.ConvertNodeResourceInfoToMetrics(ctx, podname, nodename, &NodeResourceInfo{Capacity: capacity, Usage: usage})
+	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetNodeMetricsResponse, error) {
+		capacity, usage := node.Resource.Capacity[plugin.Name()], node.Resource.Usage[plugin.Name()]
+		resp, err := plugin.GetNodeMetrics(ctx, node.Podname, node.Name, &NodeResourceInfo{Capacity: capacity, Usage: usage})
 		if err != nil {
-			log.Errorf(ctx, "[ConvertNodeResourceInfoToMetrics] plugin %v failed to convert node resource info to metrics, err: %v", plugin.Name(), err)
+			log.Errorf(ctx, "[GetNodeMetrics] plugin %v failed to convert node resource info to metrics, err: %v", plugin.Name(), err)
 		}
 		return resp, err
 	})
 
 	if err != nil {
-		log.Errorf(ctx, "[ConvertNodeResourceInfoToMetrics] failed to convert node resource info to metrics")
+		log.Errorf(ctx, "[GetNodeMetrics] failed to convert node resource info to metrics")
 		return nil, err
 	}
 

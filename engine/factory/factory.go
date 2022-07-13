@@ -159,7 +159,7 @@ func GetEngineFromCache(endpoint, ca, cert, key string) engine.API {
 // RemoveEngineFromCache .
 func RemoveEngineFromCache(endpoint, ca, cert, key string) {
 	cacheKey := getEngineCacheKey(endpoint, ca, cert, key)
-	log.Infof(context.TODO(), "[RemoveEngineFromCache] remove engine %v from cache", cacheKey)
+	log.Infof(nil, "[RemoveEngineFromCache] remove engine %v from cache", cacheKey) // nolint
 	engineCache.Delete(cacheKey)
 }
 

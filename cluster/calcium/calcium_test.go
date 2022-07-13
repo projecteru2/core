@@ -41,7 +41,7 @@ func NewTestCluster() *Calcium {
 			ServiceDiscoveryPushInterval: 15 * time.Second,
 		},
 		WALFile:             filepath.Join(walDir, "core.wal.log"),
-		MaxConcurrency:      10,
+		MaxConcurrency:      100000,
 		HAKeepaliveInterval: 16 * time.Second,
 	}
 	c.store = &storemocks.Store{}

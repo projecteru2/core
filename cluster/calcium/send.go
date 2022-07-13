@@ -22,13 +22,12 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 	utils.SentryGo(func() {
 		defer close(ch)
 		wg := &sync.WaitGroup{}
+		wg.Add(len(opts.IDs))
 
 		for _, id := range opts.IDs {
 			log.Infof(ctx, "[Send] Send files to %s", id)
-			wg.Add(1)
 			utils.SentryGo(func(id string) func() {
 				return func() {
-
 					defer wg.Done()
 					if err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
 						for _, file := range opts.Files {
@@ -41,7 +40,6 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 					}
 				}
 			}(id))
-
 		}
 		wg.Wait()
 	})

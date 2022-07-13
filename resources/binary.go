@@ -164,9 +164,9 @@ func (bp *BinaryPlugin) RemoveNode(ctx context.Context, nodename string) (*Remov
 }
 
 // GetMostIdleNode .
-func (bp *BinaryPlugin) GetMostIdleNode(ctx context.Context, nodeNames []string) (*GetMostIdleNodeResponse, error) {
+func (bp *BinaryPlugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*GetMostIdleNodeResponse, error) {
 	req := GetMostIdleNodeRequest{
-		NodeNames: nodeNames,
+		NodeNames: nodenames,
 	}
 	resp := &GetMostIdleNodeResponse{}
 	return resp, bp.call(ctx, getMostIdleNodeCommand, req, resp)
@@ -179,15 +179,15 @@ func (bp *BinaryPlugin) GetMetricsDescription(ctx context.Context) (*GetMetricsD
 	return resp, bp.call(ctx, getMetricsDescriptionCommand, req, resp)
 }
 
-// ConvertNodeResourceInfoToMetrics .
-func (bp *BinaryPlugin) ConvertNodeResourceInfoToMetrics(ctx context.Context, podname string, nodename string, nodeResourceInfo *NodeResourceInfo) (*ConvertNodeResourceInfoToMetricsResponse, error) {
-	req := ConvertNodeResourceInfoToMetricsRequest{
+// GetNodeMetrics .
+func (bp *BinaryPlugin) GetNodeMetrics(ctx context.Context, podname string, nodename string, nodeResourceInfo *NodeResourceInfo) (*GetNodeMetricsResponse, error) {
+	req := GetNodeMetricsRequest{
 		PodName:  podname,
 		NodeName: nodename,
 		Capacity: nodeResourceInfo.Capacity,
 		Usage:    nodeResourceInfo.Usage,
 	}
-	resp := &ConvertNodeResourceInfoToMetricsResponse{}
+	resp := &GetNodeMetricsResponse{}
 	return resp, bp.call(ctx, resolveNodeResourceInfoToMetricsCommand, req, resp)
 }
 
