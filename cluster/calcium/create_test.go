@@ -81,7 +81,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	mwal := &walmocks.WAL{}
 	c.wal = mwal
 	var walCommitted bool

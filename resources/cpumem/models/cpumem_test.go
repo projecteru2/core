@@ -60,9 +60,9 @@ func generateNodes(t *testing.T, cpuMem *CPUMem, nums int, cores int, memory int
 	infos := generateNodeResourceInfos(t, nums, cores, memory, shares)
 
 	for i, info := range infos {
-		nodeName := fmt.Sprintf("node%d", i)
-		assert.Nil(t, cpuMem.doSetNodeResourceInfo(context.Background(), nodeName, info))
-		nodes = append(nodes, nodeName)
+		nodename := fmt.Sprintf("node%d", i)
+		assert.Nil(t, cpuMem.doSetNodeResourceInfo(context.Background(), nodename, info))
+		nodes = append(nodes, nodename)
 	}
 
 	return nodes

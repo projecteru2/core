@@ -288,7 +288,7 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 			return nil, err
 		}
 		node.Engine = &fake.Engine{DefaultErr: types.ErrNilEngine}
-		if utils.FilterWorkload(node.Labels, labels) {
+		if utils.LabelsFilter(node.Labels, labels) {
 			allNodes = append(allNodes, node)
 		}
 	}

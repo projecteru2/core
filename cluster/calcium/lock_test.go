@@ -119,7 +119,7 @@ func TestWithNodesPodLocked(t *testing.T) {
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 
 	node1 := &types.Node{
 		NodeMeta: types.NodeMeta{
@@ -177,7 +177,7 @@ func TestWithNodePodLocked(t *testing.T) {
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 
 	node1 := &types.Node{
 		NodeMeta: types.NodeMeta{
@@ -212,7 +212,7 @@ func TestWithNodesOperationLocked(t *testing.T) {
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 
 	node1 := &types.Node{
 		NodeMeta: types.NodeMeta{
@@ -269,7 +269,7 @@ func TestWithNodeOperationLocked(t *testing.T) {
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 
 	node1 := &types.Node{
 		NodeMeta: types.NodeMeta{

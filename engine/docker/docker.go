@@ -58,12 +58,6 @@ func (e *Engine) Info(ctx context.Context) (*enginetypes.Info, error) {
 	return &enginetypes.Info{Type: Type, ID: r.ID, NCPU: r.NCPU, MemTotal: r.MemTotal}, nil
 }
 
-// ResourceValidate validate resource usage
-func (e *Engine) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory, storage int64) error {
-	// TODO list all workloads, calcuate resource
-	return nil
-}
-
 // Ping test connection
 func (e *Engine) Ping(ctx context.Context) error {
 	_, err := e.client.Ping(ctx)

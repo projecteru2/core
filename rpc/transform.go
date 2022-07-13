@@ -4,10 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
-
-	"golang.org/x/exp/maps"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -55,7 +52,6 @@ func toRPCNode(n *types.Node) *pb.Node {
 		ResourceCapacity: toRPCResourceArgs(resourceCapacity),
 		ResourceUsage:    toRPCResourceArgs(resourceUsage),
 	}
-	fillOldNodeMeta(node, resourceCapacity, resourceUsage)
 	return node
 }
 
@@ -81,16 +77,9 @@ func toRPCNodeResource(nr *types.NodeResource) *pb.NodeResource {
 		resourceUsage[plugin] = types.RawParams(args)
 	}
 
-	node := &pb.Node{}
-	fillOldNodeMeta(node, resourceCapacity, resourceUsage)
-
 	return &pb.NodeResource{
 		Name:             nr.Name,
 		Diffs:            nr.Diffs,
-		CpuPercent:       node.CpuUsed / float64(len(node.InitCpu)),
-		MemoryPercent:    float64(node.MemoryUsed) / float64(node.InitMemory),
-		StoragePercent:   float64(node.StorageUsed) / float64(node.InitStorage),
-		VolumePercent:    float64(node.VolumeUsed) / float64(utils.Sum(maps.Values(node.InitVolume))),
 		ResourceCapacity: toRPCResourceArgs(resourceCapacity),
 		ResourceUsage:    toRPCResourceArgs(resourceUsage),
 	}
@@ -146,30 +135,6 @@ func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) { // nolin
 }
 
 func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
-	if b.ResourceOpts == nil {
-		b.ResourceOpts = map[string]*pb.RawParam{
-			"share":    newPBRawParamStr(fmt.Sprintf("%v", b.Share)),
-			"numa-cpu": newPBRawParamStringSlice(maps.Values(b.Numa)),
-			"numa-memory": newPBRawParamStringSlice(utils.Map(maps.Values(b.NumaMemory), func(v int64) string {
-				return fmt.Sprintf("%v", v)
-			})),
-		}
-		if b.Cpu > 0 {
-			b.ResourceOpts["cpu"] = newPBRawParamStr(fmt.Sprintf("%v", b.Cpu))
-		}
-		if b.Memory > 0 {
-			b.ResourceOpts["memory"] = newPBRawParamStr(fmt.Sprintf("%v", b.Memory))
-		}
-		if b.Storage > 0 {
-			b.ResourceOpts["storage"] = newPBRawParamStr(fmt.Sprintf("%v", b.Storage))
-		}
-		volumes := []string{}
-		for device, size := range b.VolumeMap {
-			volumes = append(volumes, fmt.Sprintf("%v:%v", device, size))
-		}
-		b.ResourceOpts["volumes"] = newPBRawParamStringSlice(volumes)
-	}
-
 	r := &types.AddNodeOptions{
 		Nodename:     b.Nodename,
 		Endpoint:     b.Endpoint,
@@ -184,27 +149,6 @@ func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
 }
 
 func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) { // nolint
-	if b.ResourceOpts == nil {
-		b.Delta = true
-		cpuStrs := []string{}
-		for cpu, delta := range b.DeltaCpu {
-			cpuStrs = append(cpuStrs, fmt.Sprintf("%v:%v", cpu, delta))
-		}
-		b.ResourceOpts = map[string]*pb.RawParam{
-			"cpu":      newPBRawParamStr(strings.Join(cpuStrs, ",")),
-			"memory":   newPBRawParamStr(fmt.Sprintf("%v", b.DeltaMemory)),
-			"numa-cpu": newPBRawParamStringSlice(maps.Values(b.Numa)),
-			"numa-memory": newPBRawParamStringSlice(utils.Map(maps.Values(b.DeltaNumaMemory), func(v int64) string {
-				return fmt.Sprintf("%v", v)
-			})),
-			"storage": newPBRawParamStr(fmt.Sprintf("%v", b.DeltaStorage)),
-		}
-		volumes := []string{}
-		for device, size := range b.DeltaVolume {
-			volumes = append(volumes, fmt.Sprintf("%v:%v", device, size))
-		}
-		b.ResourceOpts["volumes"] = newPBRawParamStringSlice(volumes)
-	}
 	r := &types.SetNodeOptions{
 		Nodename:      b.Nodename,
 		Endpoint:      b.Endpoint,
@@ -215,7 +159,7 @@ func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) {
 		ResourceOpts:  toCoreRawParams(b.ResourceOpts),
 		Delta:         b.Delta,
 		Labels:        b.Labels,
-		BypassOpt:     types.TriOptions(b.BypassOpt),
+		Bypass:        types.TriOptions(b.Bypass),
 	}
 	return r, nil
 }
@@ -525,7 +469,7 @@ func toRPCWorkloads(ctx context.Context, workloads []*types.Workload, labels map
 			log.Errorf(ctx, "[toRPCWorkloads] trans to pb workload failed %v", err)
 			continue
 		}
-		if !utils.FilterWorkload(pWorkload.Labels, labels) {
+		if !utils.LabelsFilter(pWorkload.Labels, labels) {
 			continue
 		}
 		cs = append(cs, pWorkload)
@@ -672,63 +616,45 @@ func toCoreListImageOptions(opts *pb.ListImageOptions) *types.ImageOptions {
 	}
 }
 
-func newPBRawParamStr(str string) *pb.RawParam {
-	return &pb.RawParam{
-		Value: &pb.RawParam_Str{
-			Str: str,
-		},
-	}
-}
-
-func newPBRawParamStringSlice(strs []string) *pb.RawParam {
-	return &pb.RawParam{
-		Value: &pb.RawParam_StringSlice{
-			StringSlice: &pb.StringSlice{
-				Slice: strs,
-			},
-		},
-	}
-}
-
 // fillOldNodeMeta fills the old node meta based on the new node resource args.
 // uses some hard code, should be removed in the future.
 // TODO remove it!
-func fillOldNodeMeta(node *pb.Node, resourceCapacity map[string]types.RawParams, resourceUsage map[string]types.RawParams) {
-	if capacity, ok := resourceCapacity["cpumem"]; ok {
-		usage := resourceUsage["cpumem"]
-		node.Cpu = map[string]int32{}
-		node.InitCpu = types.ConvertRawParamsToMap[int32](capacity.RawParams("cpu_map"))
-		node.CpuUsed = usage.Float64("cpu")
-		node.InitMemory = capacity.Int64("memory")
-		node.MemoryUsed = usage.Int64("memory")
-		node.Memory = node.InitMemory - node.MemoryUsed
-		node.Numa = types.ConvertRawParamsToMap[string](usage.RawParams("numa"))
-		node.InitNumaMemory = types.ConvertRawParamsToMap[int64](capacity.RawParams("numa_memory"))
-		node.NumaMemory = map[string]int64{}
-
-		cpuMapUsed := types.ConvertRawParamsToMap[int32](usage.RawParams("cpu_map"))
-		for cpuID := range node.InitCpu {
-			node.Cpu[cpuID] = node.InitCpu[cpuID] - cpuMapUsed[cpuID]
-		}
-
-		numaMemoryUsed := types.ConvertRawParamsToMap[int64](usage.RawParams("numa_memory"))
-		for numaNodeID := range numaMemoryUsed {
-			node.NumaMemory[numaNodeID] = node.InitNumaMemory[numaNodeID] - numaMemoryUsed[numaNodeID]
-		}
-	}
-
-	if capacity, ok := resourceCapacity["volume"]; ok {
-		usage := resourceUsage["volume"]
-		node.InitStorage = capacity.Int64("storage")
-		node.StorageUsed = usage.Int64("storage")
-		node.Storage = node.InitStorage - node.StorageUsed
-		node.InitVolume = types.ConvertRawParamsToMap[int64](capacity.RawParams("volumes"))
-		node.Volume = map[string]int64{}
-
-		volumeUsed := types.ConvertRawParamsToMap[int64](usage.RawParams("volumes"))
-		for device, size := range volumeUsed {
-			node.Volume[device] = node.InitVolume[device] - size
-			node.VolumeUsed += size
-		}
-	}
-}
+// func fillOldNodeMeta(node *pb.Node, resourceCapacity map[string]types.RawParams, resourceUsage map[string]types.RawParams) {
+// 	if capacity, ok := resourceCapacity["cpumem"]; ok {
+// 		usage := resourceUsage["cpumem"]
+// 		node.Cpu = map[string]int32{}
+// 		node.InitCpu = types.ConvertRawParamsToMap[int32](capacity.RawParams("cpu_map"))
+// 		node.CpuUsed = usage.Float64("cpu")
+// 		node.InitMemory = capacity.Int64("memory")
+// 		node.MemoryUsed = usage.Int64("memory")
+// 		node.Memory = node.InitMemory - node.MemoryUsed
+// 		node.Numa = types.ConvertRawParamsToMap[string](usage.RawParams("numa"))
+// 		node.InitNumaMemory = types.ConvertRawParamsToMap[int64](capacity.RawParams("numa_memory"))
+// 		node.NumaMemory = map[string]int64{}
+//
+// 		cpuMapUsed := types.ConvertRawParamsToMap[int32](usage.RawParams("cpu_map"))
+// 		for cpuID := range node.InitCpu {
+// 			node.Cpu[cpuID] = node.InitCpu[cpuID] - cpuMapUsed[cpuID]
+// 		}
+//
+// 		numaMemoryUsed := types.ConvertRawParamsToMap[int64](usage.RawParams("numa_memory"))
+// 		for numaNodeID := range numaMemoryUsed {
+// 			node.NumaMemory[numaNodeID] = node.InitNumaMemory[numaNodeID] - numaMemoryUsed[numaNodeID]
+// 		}
+// 	}
+//
+// 	if capacity, ok := resourceCapacity["volume"]; ok {
+// 		usage := resourceUsage["volume"]
+// 		node.InitStorage = capacity.Int64("storage")
+// 		node.StorageUsed = usage.Int64("storage")
+// 		node.Storage = node.InitStorage - node.StorageUsed
+// 		node.InitVolume = types.ConvertRawParamsToMap[int64](capacity.RawParams("volumes"))
+// 		node.Volume = map[string]int64{}
+//
+// 		volumeUsed := types.ConvertRawParamsToMap[int64](usage.RawParams("volumes"))
+// 		for device, size := range volumeUsed {
+// 			node.Volume[device] = node.InitVolume[device] - size
+// 			node.VolumeUsed += size
+// 		}
+// 	}
+// }

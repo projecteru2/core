@@ -115,9 +115,9 @@ func generateComplexNodes(t *testing.T, cpuMem *CPUMem) []string {
 	}
 	nodes := []string{}
 	for i, info := range infos {
-		nodeName := fmt.Sprintf("node%d", i)
-		assert.Nil(t, cpuMem.doSetNodeResourceInfo(context.Background(), nodeName, info))
-		nodes = append(nodes, nodeName)
+		nodename := fmt.Sprintf("node%d", i)
+		assert.Nil(t, cpuMem.doSetNodeResourceInfo(context.Background(), nodename, info))
+		nodes = append(nodes, nodename)
 	}
 	return nodes
 }

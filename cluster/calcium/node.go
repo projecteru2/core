@@ -15,6 +15,7 @@ import (
 )
 
 // AddNode adds a node
+// node with resource info
 func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*types.Node, error) {
 	logger := log.WithField("Calcium", "AddNode").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
@@ -51,7 +52,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 			}
 			node.ResourceCapacity = resourceCapacity
 			node.ResourceUsage = resourceUsage
-			go c.SendNodeMetrics(ctx, node.Name)
+			go c.doSendNodeMetrics(ctx, node)
 			return nil
 		},
 		// rollback: remove node with resource plugins
@@ -72,11 +73,12 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 		return logger.ErrWithTracing(ctx, errors.WithStack(types.ErrEmptyNodeName))
 	}
 	return c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
-		ws, err := c.ListNodeWorkloads(ctx, node.Name, nil)
+		workloads, err := c.ListNodeWorkloads(ctx, node.Name, nil)
 		if err != nil {
 			return logger.ErrWithTracing(ctx, err)
 		}
-		if len(ws) > 0 {
+		// need drain first
+		if len(workloads) > 0 {
 			return logger.ErrWithTracing(ctx, errors.WithStack(types.ErrNodeNotEmpty))
 		}
 
@@ -99,24 +101,25 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 }
 
 // ListPodNodes list nodes belong to pod
+// node with resource info
 func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions) (<-chan *types.Node, error) {
 	logger := log.WithField("Calcium", "ListPodNodes").WithField("podname", opts.Podname).WithField("labels", opts.Labels).WithField("all", opts.All).WithField("info", opts.CallInfo)
-	ch := make(chan *types.Node)
 	nodes, err := c.store.GetNodesByPod(ctx, opts.Podname, opts.Labels, opts.All)
 	if err != nil {
-		defer close(ch)
-		return ch, logger.ErrWithTracing(ctx, errors.WithStack(err))
+		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
+	ch := make(chan *types.Node)
 
 	utils.SentryGo(func() {
+		defer close(ch)
 		wg := &sync.WaitGroup{}
 		wg.Add(len(nodes))
-		defer close(ch)
 		for _, node := range nodes {
 			node := node
 			_ = c.pool.Invoke(func() {
 				defer wg.Done()
-				if err := c.getNodeResourceInfo(ctx, node, nil); err != nil {
+				var err error
+				if node.ResourceCapacity, node.ResourceUsage, node.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
 					logger.Errorf(ctx, "failed to get node %v resource info: %+v", node.Name, err)
 				}
 				if opts.CallInfo {
@@ -129,11 +132,13 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 		}
 		wg.Wait()
 	})
+
 	return ch, nil
 }
 
 // GetNode get node
-func (c *Calcium) GetNode(ctx context.Context, nodename string, plugins []string) (node *types.Node, err error) {
+// node with resource info
+func (c *Calcium) GetNode(ctx context.Context, nodename string) (node *types.Node, err error) {
 	logger := log.WithField("Calcium", "GetNode").WithField("nodename", nodename)
 	if nodename == "" {
 		return nil, logger.ErrWithTracing(ctx, errors.WithStack(types.ErrEmptyNodeName))
@@ -141,14 +146,14 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string, plugins []string
 	if node, err = c.store.GetNode(ctx, nodename); err != nil {
 		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
-	if err = c.getNodeResourceInfo(ctx, node, plugins); err != nil {
+	if node.ResourceCapacity, node.ResourceUsage, node.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
 		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
 	return node, nil
 }
 
-// GetNodeEngine get node engine
-func (c *Calcium) GetNodeEngine(ctx context.Context, nodename string) (*enginetypes.Info, error) {
+// GetNodeEngineInfo get node engine
+func (c *Calcium) GetNodeEngineInfo(ctx context.Context, nodename string) (*enginetypes.Info, error) {
 	logger := log.WithField("Calcium", "GetNodeEngine").WithField("nodename", nodename)
 	if nodename == "" {
 		return nil, logger.ErrWithTracing(ctx, errors.WithStack(types.ErrEmptyNodeName))
@@ -162,6 +167,7 @@ func (c *Calcium) GetNodeEngine(ctx context.Context, nodename string) (*enginety
 }
 
 // SetNode set node available or not
+// node with resource info
 func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) {
 	logger := log.WithField("Calcium", "SetNode").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
@@ -170,14 +176,21 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 	var n *types.Node
 	return n, c.withNodePodLocked(ctx, opts.Nodename, func(ctx context.Context, node *types.Node) error {
 		logger.Infof(ctx, "set node")
+		// update resource map
+		var err error
+		node.ResourceCapacity, node.ResourceUsage, node.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
+		if err != nil {
+			return err
+		}
 		n = node
 
-		n.Bypass = (opts.BypassOpt == types.TriTrue) || (opts.BypassOpt == types.TriKeep && n.Bypass)
+		n.Bypass = (opts.Bypass == types.TriTrue) || (opts.Bypass == types.TriKeep && n.Bypass)
 		if n.IsDown() {
-			logger.Errorf(ctx, "[SetNodeAvailable] node marked down: %s", opts.Nodename)
+			logger.Errorf(ctx, "[SetNode] node marked down: %s", opts.Nodename)
 		}
+
 		if opts.WorkloadsDown {
-			c.setAllWorkloadsOnNodeDown(ctx, opts.Nodename)
+			c.setAllWorkloadsOnNodeDown(ctx, n.Name)
 		}
 
 		// update node endpoint
@@ -194,8 +207,6 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		}
 
 		var originNodeResourceCapacity map[string]types.NodeResourceArgs
-		var err error
-
 		return logger.ErrWithTracing(ctx, utils.Txn(ctx,
 			// if: update node resource capacity success
 			func(ctx context.Context) error {
@@ -211,7 +222,13 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				if err := errors.WithStack(c.store.UpdateNodes(ctx, n)); err != nil {
 					return err
 				}
-				go c.SendNodeMetrics(ctx, node.Name)
+				// update resource
+				// actually we can ignore err here, if update success
+				if len(opts.ResourceOpts) != 0 {
+					n.ResourceCapacity, n.ResourceUsage, n.Diffs, _ = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
+				}
+				// use send to update the usage
+				go c.doSendNodeMetrics(ctx, n)
 				return nil
 			},
 			// rollback: update node resource capacity in reverse
@@ -230,12 +247,54 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 	})
 }
 
-func (c *Calcium) getNodeResourceInfo(ctx context.Context, node *types.Node, plugins []string) (err error) {
-	if node.ResourceCapacity, node.ResourceUsage, node.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false, plugins); err != nil {
-		log.Errorf(ctx, "[getNodeResourceInfo] failed to get node resource info for node %v, err: %v", node.Name, err)
-		return errors.WithStack(err)
+// filterNodes filters nodes using NodeFilter nf
+// the filtering logic is introduced along with NodeFilter
+// NOTE: when nf.Includes is set, they don't need to belong to podname
+// update on 2021-06-21: sort and unique locks to avoid deadlock
+// node without resource info
+func (c *Calcium) filterNodes(ctx context.Context, nf types.NodeFilter) (ns []*types.Node, err error) {
+	defer func() {
+		if len(ns) == 0 {
+			return
+		}
+		// sorted by nodenames
+		nodenames := utils.Map(ns, func(node *types.Node) string { return node.Name })
+		// unique
+		p := utils.Unique(nodenames, func(i int) string { return nodenames[i] })
+		ns = ns[:p]
+	}()
+
+	if len(nf.Includes) != 0 {
+		for _, nodename := range nf.Includes {
+			node, err := c.store.GetNode(ctx, nodename)
+			if err != nil {
+				return nil, err
+			}
+			ns = append(ns, node)
+		}
+		return ns, nil
 	}
-	return nil
+
+	listedNodes, err := c.store.GetNodesByPod(ctx, nf.Podname, nf.Labels, nf.All)
+	if err != nil {
+		return nil, err
+	}
+	if len(nf.Excludes) == 0 {
+		return listedNodes, nil
+	}
+
+	excludes := map[string]struct{}{}
+	for _, n := range nf.Excludes {
+		excludes[n] = struct{}{}
+	}
+
+	for _, n := range listedNodes {
+		if _, ok := excludes[n.Name]; ok {
+			continue
+		}
+		ns = append(ns, n)
+	}
+	return ns, nil
 }
 
 func (c *Calcium) setAllWorkloadsOnNodeDown(ctx context.Context, nodename string) {
@@ -270,61 +329,4 @@ func (c *Calcium) setAllWorkloadsOnNodeDown(ctx context.Context, nodename string
 			log.Infof(ctx, "[SetNodeAvailable] Set workload %s on node %s as inactive", workload.ID, nodename)
 		}
 	}
-}
-
-// filterNodes filters nodes using NodeFilter nf
-// the filtering logic is introduced along with NodeFilter
-// NOTE: when nf.Includes is set, they don't need to belong to podname
-// updateon 2021-06-21: sort and unique locks to avoid deadlock
-func (c *Calcium) filterNodes(ctx context.Context, nf types.NodeFilter) (ns []*types.Node, err error) {
-	defer func() {
-		if len(ns) == 0 {
-			return
-		}
-		// sorted by nodenames
-		nodenames := utils.Map(ns, func(node *types.Node) string { return node.Name })
-		// unique
-		p := utils.Unique(nodenames, func(i int) string { return nodenames[i] })
-		ns = ns[:p]
-	}()
-
-	if len(nf.Includes) != 0 {
-		for _, nodename := range nf.Includes {
-			node, err := c.GetNode(ctx, nodename, nil)
-			if err != nil {
-				return nil, err
-			}
-			ns = append(ns, node)
-		}
-		return ns, nil
-	}
-
-	ch, err := c.ListPodNodes(ctx, &types.ListNodesOptions{
-		Podname: nf.Podname,
-		Labels:  nf.Labels,
-		All:     nf.All,
-	})
-	if err != nil {
-		return nil, err
-	}
-	listedNodes := []*types.Node{}
-	for n := range ch {
-		listedNodes = append(listedNodes, n)
-	}
-	if len(nf.Excludes) == 0 {
-		return listedNodes, nil
-	}
-
-	excludes := map[string]struct{}{}
-	for _, n := range nf.Excludes {
-		excludes[n] = struct{}{}
-	}
-
-	for _, n := range listedNodes {
-		if _, ok := excludes[n.Name]; ok {
-			continue
-		}
-		ns = append(ns, n)
-	}
-	return ns, nil
 }

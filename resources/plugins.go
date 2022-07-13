@@ -28,13 +28,13 @@ func NewPluginsManager(config types.Config) (*PluginsManager, error) {
 
 // LoadPlugins .
 func (pm *PluginsManager) LoadPlugins(ctx context.Context) error {
-	if pm.config.ResourcePluginsDir == "" {
+	if pm.config.ResourcePlugin.Dir == "" {
 		return nil
 	}
 
-	pluginFiles, err := utils.ListAllExecutableFiles(pm.config.ResourcePluginsDir)
+	pluginFiles, err := utils.ListAllExecutableFiles(pm.config.ResourcePlugin.Dir)
 	if err != nil {
-		log.Errorf(ctx, "[LoadPlugins] failed to list all executable files dir: %v, err: %v", pm.config.ResourcePluginsDir, err)
+		log.Errorf(ctx, "[LoadPlugins] failed to list all executable files dir: %v, err: %v", pm.config.ResourcePlugin.Dir, err)
 		return err
 	}
 

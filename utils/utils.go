@@ -166,8 +166,8 @@ func ShortID(workloadID string) string {
 	return workloadID[Max(0, len(workloadID)-shortenLength):]
 }
 
-// FilterWorkload filter workload by labels
-func FilterWorkload(extend map[string]string, labels map[string]string) bool {
+// LabelsFilter filter workload by labels
+func LabelsFilter(extend map[string]string, labels map[string]string) bool {
 	for k, v := range labels {
 		if n, ok := extend[k]; !ok || n != v {
 			return false

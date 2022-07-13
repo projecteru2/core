@@ -275,7 +275,6 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 		return nil, types.ErrTxnConditionFailed
 	}
 
-	// TODO: go metrics.Client.SendNodeInfo(node.Metrics())
 	return node, nil
 }
 
@@ -305,14 +304,15 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 			return nil, err
 		}
 		node.Engine = &fake.Engine{DefaultErr: types.ErrNilEngine}
-		if utils.FilterWorkload(node.Labels, labels) {
+		if utils.LabelsFilter(node.Labels, labels) {
 			allNodes = append(allNodes, node)
 		}
 	}
 
 	wg := &sync.WaitGroup{}
 	wg.Add(len(allNodes))
-	nodeChan := make(chan *types.Node, len(allNodes))
+	nodesCh := make(chan *types.Node, len(allNodes))
+	defer close(nodesCh)
 
 	for _, node := range allNodes {
 		node := node
@@ -328,18 +328,18 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 				return
 			}
 
-			nodeChan <- node
+			// update engine
 			if client, err := m.makeClient(ctx, node); err != nil {
 				log.Errorf(ctx, "[doGetNodes] failed to make client for %v, err: %v", node.Name, err)
 			} else {
 				node.Engine = client
 			}
+			nodesCh <- node
 		})
 	}
 	wg.Wait()
-	close(nodeChan)
 
-	for node := range nodeChan {
+	for node := range nodesCh {
 		nodes = append(nodes, node)
 	}
 

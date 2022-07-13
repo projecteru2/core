@@ -217,7 +217,7 @@ type SetNodeOptions struct {
 	ResourceOpts  NodeResourceOpts
 	Delta         bool
 	Labels        map[string]string
-	BypassOpt     TriOptions
+	Bypass        TriOptions
 	Ca            string
 	Cert          string
 	Key           string

@@ -17,21 +17,18 @@ service CoreRPC {
   rpc GetPod(GetPodOptions) returns (Pod) {};
   rpc ListPods(Empty) returns (Pods) {};
 
-  rpc GetPodResource(GetPodOptions) returns (PodResource) {};
-  rpc PodResourceStream(GetPodOptions) returns (stream NodeResource) {};
+  rpc GetPodResource(GetPodOptions) returns (stream NodeResource) {};
+  rpc GetNodeResource(GetNodeResourceOptions) returns (NodeResource) {};
 
   rpc AddNode(AddNodeOptions) returns (Node) {};
   rpc RemoveNode(RemoveNodeOptions) returns (Empty) {};
-  rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
-  rpc PodNodesStream(ListNodesOptions) returns (stream Node) {};
+  rpc ListPodNodes(ListNodesOptions) returns (stream Node) {};
   rpc GetNode(GetNodeOptions) returns (Node) {};
-  rpc GetNodeEngine(GetNodeOptions) returns (Engine) {};
+  rpc GetNodeEngineInfo(GetNodeOptions) returns (Engine) {};
   rpc SetNode(SetNodeOptions) returns (Node) {};
   rpc SetNodeStatus(SetNodeStatusOptions) returns (Empty) {};
   rpc GetNodeStatus(GetNodeStatusOptions) returns (NodeStatusStreamMessage) {};
   rpc NodeStatusStream(Empty) returns (stream NodeStatusStreamMessage) {};
-
-  rpc GetNodeResource(GetNodeResourceOptions) returns (NodeResource) {};
 
   rpc CalculateCapacity(DeployOptions) returns (CapacityMessage);
 
@@ -65,172 +62,178 @@ service CoreRPC {
 message Empty {}
 
 message CoreInfo {
-  string version = 1;
-  string revison = 2;
-  string build_at = 3;
-  string golang_version = 4;
-  string os_arch = 5;
-  string identifier = 6;
+  string version = 1001;
+  string revison = 1002;
+  string build_at = 1003;
+  string golang_version = 1004;
+  string os_arch = 1005;
+  string identifier = 1006;
 }
 
 message ServiceStatus {
-  repeated string addresses = 1;
-  int64 interval_in_second = 2;
+  repeated string addresses = 1001;
+  int64 interval_in_second = 1002;
 }
 
-message Engine {
-  string type = 1;
+message Engine{
+  string type = 1001;
 }
 
 message ListWorkloadsOptions {
-  string appname = 1;
-  string entrypoint = 2;
-  string nodename = 3;
-  map<string, string> labels = 4;
-  int64 limit = 5;
+  string appname = 1001;
+  string entrypoint = 1002;
+  string nodename = 1003;
+  map<string, string> labels = 1004;
+  int64 limit = 1005;
 }
 
 // 对的, protobuf 就是这样...
 message Pod {
-  string name = 1;
-  string desc = 2;
+  string name = 1001;
+  string desc = 1002;
 }
 
 message Pods {
-  repeated Pod pods = 1;
-}
-
-message PodResource {
-  string name = 1;
-  repeated NodeResource nodes_resource = 2;
+  repeated Pod pods = 1001;
 }
 
 message StringSlice {
-  repeated string slice = 1;
+  repeated string slice = 1001;
 }
 
 message RawParam {
   oneof value {
-    string str = 1;
-    StringSlice string_slice = 2;
+    string str = 1001;
+    StringSlice string_slice = 1002;
   }
 }
 
-
 message NodeResource {
-  string name = 1;
-  double cpu_percent = 2;
-  double memory_percent = 3;
-  double storage_percent = 4;
-  double volume_percent = 5;
-  repeated string diffs = 6;
-  string resource_capacity = 7;
-  string resource_usage = 8;
+  string name = 1001;
+  repeated string diffs = 1002;
+  string resource_capacity = 1003;
+  string resource_usage = 1004;
 }
 
 message ListNetworkOptions {
-  string podname = 1;
-  string driver = 2;
+  string podname = 1001;
+  string driver = 1002;
 }
 
 message ConnectNetworkOptions{
-  string network = 1;
-  string target = 2;
-  string ipv4 = 3;
-  string ipv6 = 4;
+  string network = 1001;
+  string target = 1002;
+  string ipv4 = 1003;
+  string ipv6 = 1004;
 }
 
 message DisconnectNetworkOptions{
-  string network = 1;
-  string target = 2;
-  bool force = 3;
+  string network = 1001;
+  string target = 1002;
+  bool force = 1003;
 }
 
 message Network {
-  string name = 1;
-  repeated string subnets = 2;
+  string name = 1001;
+  repeated string subnets = 1002;
 }
 
 message Networks {
-  repeated Network networks = 1;
+  repeated Network networks = 1001;
 }
 
 message Node {
-  string name = 1;
-  string endpoint = 2;
-  string podname = 3;
-  map<string, int32> cpu = 4;
-  double cpu_used = 5;
-  int64 memory = 6;
-  int64 memory_used = 7;
-  bool available = 8;
-  map<string, string> labels = 9;
-  int64 init_memory = 10;
-  map<string, int32> init_cpu = 11;
-  string info = 12;
-  map<string, string> numa = 13;
-  map<string, int64> numa_memory = 14;
-  int64 storage = 15;
-  int64 storage_used = 16;
-  int64 init_storage = 17;
-  map<string, int64> init_volume = 18;
-  map<string, int64> volume = 19;
-  int64 volume_used = 20;
-  map<string, int64> init_numa_memory = 21;
-  bool bypass = 22;
-  string resource_capacity = 23;
-  string resource_usage = 24;
+  string name = 1001;
+  string endpoint = 1002;
+  string podname = 1003;
+  bool available = 1004;
+  bool bypass = 1005;
+  map<string, string> labels = 1006;
+  string info = 1007;
+  string resource_capacity = 1008;
+  string resource_usage = 1009;
 }
 
-message Nodes {
-  repeated Node nodes = 1;
+message AddPodOptions {
+  string name = 1001;
+  string desc = 1002;
 }
 
-message NodeAvailable {
-  string nodename = 1;
-  string podname = 2;
+message RemovePodOptions {
+  string name = 1001;
+}
+
+message GetPodOptions {
+  string name = 1001;
+}
+
+message AddNodeOptions {
+  string nodename = 1001;
+  string endpoint = 1002;
+  string podname = 1003;
+  string ca = 1004;
+  string cert = 1005;
+  string key = 1006;
+  map<string, string> labels = 1007;
+  map<string, RawParam> resource_opts = 1008;
+}
+
+message RemoveNodeOptions {
+  string nodename = 1001;
+}
+
+message GetNodeOptions {
+  string nodename = 1001;
+  map<string, string> labels = 1002;
+}
+
+message GetNodeResourceOptions {
+  GetNodeOptions opts = 1001;
+  bool fix = 1002;
+}
+
+message ListNodesOptions {
+  string podname = 1001;
+  bool all = 1002;
+  map<string, string> labels = 1003;
+  int32 timeout_in_second = 1004;
+  bool skip_info = 1005;
 }
 
 message SetNodeOptions {
-  string nodename = 1;
-  map<string, int32> delta_cpu = 3;
-  int64 delta_memory = 4;
-  int64 delta_storage = 5;
-  map<string, int64> delta_numa_memory = 6;
-  map<string, string> numa = 7;
-  map<string, string> labels = 8;
-  map<string, int64> delta_volume = 9;
-  bool workloads_down = 10;
-  string endpoint = 11;
-  TriOpt bypass_opt = 12;
-  string ca = 13;
-  string cert = 14;
-  string key = 15;
-  map<string, RawParam> resource_opts = 16;
-  bool delta = 17;
+  string nodename = 1001;
+  string endpoint = 1002;
+  string ca = 1003;
+  string cert = 1004;
+  string key = 1005;
+  map<string, string> labels = 1006;
+  map<string, RawParam> resource_opts = 1007;
+  bool delta = 1008;
+  bool workloads_down = 1009;
+  TriOpt bypass = 1010;
 }
 
 message SetNodeStatusOptions {
-  string nodename = 1;
-  int64 ttl = 2;
+  string nodename = 1001;
+  int64 ttl = 1002;
 }
 
 message GetNodeStatusOptions {
-  string nodename = 1;
+  string nodename = 1001;
 }
 
 message NodeStatusStreamMessage {
-  string nodename = 1;
-  string podname = 2;
-  bool alive = 3;
-  string error = 4;
+  string nodename = 1001;
+  string podname = 1002;
+  bool alive = 1003;
+  string error = 1004;
 }
 
 message NodeFilter {
-  repeated string includes = 1;
-  repeated string excludes = 2;
-  map<string, string> labels = 3;
-  bool all = 4;
+  repeated string includes = 1001;
+  repeated string excludes = 1002;
+  map<string, string> labels = 1003;
+  bool all = 1004;
 }
 
 message Workload {
@@ -313,64 +316,8 @@ enum TriOpt {
 }
 
 message ReallocOptions {
-  string id = 1;
-//  TriOpt bind_cpu_opt = 2; // deprecated
-//  ResourceOptions old_resource_opts = 3;
-  map<string, RawParam> resource_opts = 4;
-}
-
-message AddPodOptions {
-  string name = 1;
-  string desc = 2;
-}
-
-message RemovePodOptions {
-  string name = 1;
-}
-
-message GetPodOptions {
-  string name = 1;
-}
-
-message AddNodeOptions {
-  string nodename = 1;
-  string endpoint = 2;
-  string podname = 3;
-  string ca = 4;
-  string cert = 5;
-  string key = 6;
-  int32 cpu = 7;
-  int32 share = 8;
-  int64 memory = 9;
-  map<string, string> labels = 10;
-  map<string, string> numa = 11;
-  map<string, int64> numa_memory = 12;
-  int64 storage = 13;
-  map<string, int64> volume_map = 14;
-  map<string, RawParam> resource_opts = 15;
-}
-
-message RemoveNodeOptions {
-  string nodename = 1;
-}
-
-message GetNodeOptions {
-  string nodename = 1;
-  map<string, string> labels = 2;
-  repeated string plugins = 3;
-}
-
-message GetNodeResourceOptions {
-  GetNodeOptions opts = 1;
-  bool fix = 2;
-}
-
-message ListNodesOptions {
-  string podname = 1;
-  bool all = 2;
-  map<string, string> labels = 3;
-  int32 timeout_in_second = 4;
-  bool skip_info = 5;
+  string id = 1001;
+  map<string, RawParam> resource_opts = 1002;
 }
 
 message Build {

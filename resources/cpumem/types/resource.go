@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mitchellh/mapstructure"
 	coretypes "github.com/projecteru2/core/types"
 	coreutils "github.com/projecteru2/core/utils"
 
@@ -135,11 +136,7 @@ type NodeResourceArgs struct {
 
 // ParseFromRawParams .
 func (r *NodeResourceArgs) ParseFromRawParams(rawParams coretypes.RawParams) error {
-	body, err := json.Marshal(rawParams)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(body, r)
+	return mapstructure.Decode(rawParams, r)
 }
 
 // DeepCopy .

@@ -37,24 +37,24 @@ func (c *CPUMem) GetMetricsDescription() []map[string]interface{} {
 	}
 }
 
-func (c *CPUMem) ConvertNodeResourceInfoToMetrics(podName string, nodeName string, nodeResourceCapacity *types.NodeResourceArgs, nodeResourceUsage *types.NodeResourceArgs) []map[string]interface{} {
-	cleanedNodeName := strings.ReplaceAll(nodeName, ".", "_")
+func (c *CPUMem) ConvertNodeResourceInfoToMetrics(podname string, nodename string, nodeResourceCapacity *types.NodeResourceArgs, nodeResourceUsage *types.NodeResourceArgs) []map[string]interface{} {
+	cleanedNodeName := strings.ReplaceAll(nodename, ".", "_")
 	metrics := []map[string]interface{}{
 		{
 			"name":   "memory_capacity",
-			"labels": []string{podName, nodeName},
+			"labels": []string{podname, nodename},
 			"value":  fmt.Sprintf("%v", nodeResourceCapacity.Memory),
 			"key":    fmt.Sprintf("core.node.%s.memory", cleanedNodeName),
 		},
 		{
 			"name":   "memory_used",
-			"labels": []string{podName, nodeName},
+			"labels": []string{podname, nodename},
 			"value":  fmt.Sprintf("%v", nodeResourceUsage.Memory),
 			"key":    fmt.Sprintf("core.node.%s.memory.used", cleanedNodeName),
 		},
 		{
 			"name":   "cpu_used",
-			"labels": []string{podName, nodeName},
+			"labels": []string{podname, nodename},
 			"value":  fmt.Sprintf("%v", nodeResourceUsage.CPU),
 			"key":    fmt.Sprintf("core.node.%s.cpu.used", cleanedNodeName),
 		},
@@ -63,7 +63,7 @@ func (c *CPUMem) ConvertNodeResourceInfoToMetrics(podName string, nodeName strin
 	for cpuID, pieces := range nodeResourceUsage.CPUMap {
 		metrics = append(metrics, map[string]interface{}{
 			"name":   "cpu_map",
-			"labels": []string{podName, nodeName, cpuID},
+			"labels": []string{podname, nodename, cpuID},
 			"value":  fmt.Sprintf("%v", pieces),
 			"key":    fmt.Sprintf("core.node.%s.cpu.%s", cleanedNodeName, cpuID),
 		})

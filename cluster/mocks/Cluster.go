@@ -295,13 +295,13 @@ func (_m *Cluster) GetIdentifier() string {
 	return r0
 }
 
-// GetNode provides a mock function with given fields: ctx, nodename, plugins
-func (_m *Cluster) GetNode(ctx context.Context, nodename string, plugins []string) (*types.Node, error) {
-	ret := _m.Called(ctx, nodename, plugins)
+// GetNode provides a mock function with given fields: ctx, nodename
+func (_m *Cluster) GetNode(ctx context.Context, nodename string) (*types.Node, error) {
+	ret := _m.Called(ctx, nodename)
 
 	var r0 *types.Node
-	if rf, ok := ret.Get(0).(func(context.Context, string, []string) *types.Node); ok {
-		r0 = rf(ctx, nodename, plugins)
+	if rf, ok := ret.Get(0).(func(context.Context, string) *types.Node); ok {
+		r0 = rf(ctx, nodename)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.Node)
@@ -309,8 +309,8 @@ func (_m *Cluster) GetNode(ctx context.Context, nodename string, plugins []strin
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, []string) error); ok {
-		r1 = rf(ctx, nodename, plugins)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, nodename)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -318,8 +318,8 @@ func (_m *Cluster) GetNode(ctx context.Context, nodename string, plugins []strin
 	return r0, r1
 }
 
-// GetNodeEngine provides a mock function with given fields: ctx, nodename
-func (_m *Cluster) GetNodeEngine(ctx context.Context, nodename string) (*enginetypes.Info, error) {
+// GetNodeEngineInfo provides a mock function with given fields: ctx, nodename
+func (_m *Cluster) GetNodeEngineInfo(ctx context.Context, nodename string) (*enginetypes.Info, error) {
 	ret := _m.Called(ctx, nodename)
 
 	var r0 *enginetypes.Info
@@ -859,9 +859,9 @@ func (_m *Cluster) Send(ctx context.Context, opts *types.SendOptions) (chan *typ
 	return r0, r1
 }
 
-// SendNodeMetrics provides a mock function with given fields: ctx, nodeName
-func (_m *Cluster) SendNodeMetrics(ctx context.Context, nodeName string) {
-	_m.Called(ctx, nodeName)
+// SendNodeMetrics provides a mock function with given fields: ctx, nodename
+func (_m *Cluster) SendNodeMetrics(ctx context.Context, nodename string) {
+	_m.Called(ctx, nodename)
 }
 
 // SetNode provides a mock function with given fields: ctx, opts

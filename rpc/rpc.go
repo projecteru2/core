@@ -159,23 +159,8 @@ func (v *Vibranium) ListPods(ctx context.Context, _ *pb.Empty) (*pb.Pods, error)
 }
 
 // GetPodResource get pod nodes resource usage
-func (v *Vibranium) GetPodResource(ctx context.Context, opts *pb.GetPodOptions) (*pb.PodResource, error) {
-	task := v.newTask(ctx, "GetPodResource", false)
-	defer task.done()
-	ch, err := v.cluster.PodResource(task.context, opts.Name)
-	if err != nil {
-		return nil, grpcstatus.Error(PodResource, err.Error())
-	}
-	podResource := &pb.PodResource{Name: opts.Name}
-	for nodeResource := range ch {
-		podResource.NodesResource = append(podResource.NodesResource, toRPCNodeResource(nodeResource))
-	}
-	return podResource, nil
-}
-
-// PodResourceStream returns a stream of NodeResource
-func (v *Vibranium) PodResourceStream(opts *pb.GetPodOptions, stream pb.CoreRPC_PodResourceStreamServer) error {
-	task := v.newTask(stream.Context(), "PodResourceStream", false)
+func (v *Vibranium) GetPodResource(opts *pb.GetPodOptions, stream pb.CoreRPC_GetPodResourceServer) error {
+	task := v.newTask(stream.Context(), "GetPodResource", false)
 	defer task.done()
 	ch, err := v.cluster.PodResource(task.context, opts.Name)
 	if err != nil {
@@ -183,10 +168,22 @@ func (v *Vibranium) PodResourceStream(opts *pb.GetPodOptions, stream pb.CoreRPC_
 	}
 	for msg := range ch {
 		if err := stream.Send(toRPCNodeResource(msg)); err != nil {
-			v.logUnsentMessages(task.context, "PodResourceStream", err, msg)
+			v.logUnsentMessages(task.context, "GetPodResource", err, msg)
 		}
 	}
 	return nil
+}
+
+// GetNodeResource check node resource
+func (v *Vibranium) GetNodeResource(ctx context.Context, opts *pb.GetNodeResourceOptions) (*pb.NodeResource, error) {
+	task := v.newTask(ctx, "GetNodeResource", false)
+	defer task.done()
+	nr, err := v.cluster.NodeResource(task.context, opts.GetOpts().Nodename, opts.Fix)
+	if err != nil {
+		return nil, grpcstatus.Error(GetNodeResource, err.Error())
+	}
+
+	return toRPCNodeResource(nr), nil
 }
 
 // AddNode saves a node and returns it to client
@@ -214,33 +211,8 @@ func (v *Vibranium) RemoveNode(ctx context.Context, opts *pb.RemoveNodeOptions) 
 }
 
 // ListPodNodes returns a list of node for pod
-func (v *Vibranium) ListPodNodes(ctx context.Context, opts *pb.ListNodesOptions) (*pb.Nodes, error) {
-	task := v.newTask(ctx, "ListPodNodes", false)
-	defer task.done()
-
-	timeout := time.Duration(opts.TimeoutInSecond) * time.Second
-	if opts.TimeoutInSecond <= 0 {
-		timeout = v.config.ConnectionTimeout
-	}
-	ctx, cancel := context.WithTimeout(task.context, timeout)
-	defer cancel()
-
-	ch, err := v.cluster.ListPodNodes(ctx, toCoreListNodesOptions(opts))
-	if err != nil {
-		return nil, grpcstatus.Error(ListPodNodes, err.Error())
-	}
-
-	nodes := []*pb.Node{}
-	for n := range ch {
-		nodes = append(nodes, toRPCNode(n))
-	}
-
-	return &pb.Nodes{Nodes: nodes}, nil
-}
-
-// PodNodesStream returns a stream of Node
-func (v *Vibranium) PodNodesStream(opts *pb.ListNodesOptions, stream pb.CoreRPC_PodNodesStreamServer) error {
-	task := v.newTask(stream.Context(), "PodNodesStream", false)
+func (v *Vibranium) ListPodNodes(opts *pb.ListNodesOptions, stream pb.CoreRPC_ListPodNodesServer) error {
+	task := v.newTask(stream.Context(), "ListPodNodes", false)
 	defer task.done()
 
 	timeout := time.Duration(opts.TimeoutInSecond) * time.Second
@@ -267,7 +239,7 @@ func (v *Vibranium) PodNodesStream(opts *pb.ListNodesOptions, stream pb.CoreRPC_
 func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Node, error) {
 	task := v.newTask(ctx, "GetNode", false)
 	defer task.done()
-	n, err := v.cluster.GetNode(task.context, opts.Nodename, opts.Plugins)
+	n, err := v.cluster.GetNode(task.context, opts.Nodename)
 	if err != nil {
 		return nil, grpcstatus.Error(GetNode, err.Error())
 	}
@@ -276,10 +248,10 @@ func (v *Vibranium) GetNode(ctx context.Context, opts *pb.GetNodeOptions) (*pb.N
 }
 
 // GetNodeEngine get a node engine
-func (v *Vibranium) GetNodeEngine(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Engine, error) {
+func (v *Vibranium) GetNodeEngineInfo(ctx context.Context, opts *pb.GetNodeOptions) (*pb.Engine, error) {
 	task := v.newTask(ctx, "GetNodeEngine", false)
 	defer task.done()
-	e, err := v.cluster.GetNodeEngine(task.context, opts.Nodename)
+	e, err := v.cluster.GetNodeEngineInfo(task.context, opts.Nodename)
 	if err != nil {
 		return nil, grpcstatus.Error(GetNodeEngine, err.Error())
 	}
@@ -354,18 +326,6 @@ func (v *Vibranium) NodeStatusStream(_ *pb.Empty, stream pb.CoreRPC_NodeStatusSt
 			return nil
 		}
 	}
-}
-
-// GetNodeResource check node resource
-func (v *Vibranium) GetNodeResource(ctx context.Context, opts *pb.GetNodeResourceOptions) (*pb.NodeResource, error) {
-	task := v.newTask(ctx, "GetNodeResource", false)
-	defer task.done()
-	nr, err := v.cluster.NodeResource(task.context, opts.GetOpts().Nodename, opts.Fix)
-	if err != nil {
-		return nil, grpcstatus.Error(GetNodeResource, err.Error())
-	}
-
-	return toRPCNodeResource(nr), nil
 }
 
 // CalculateCapacity calculates capacity for each node

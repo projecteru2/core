@@ -24,7 +24,7 @@ func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	require.NoError(t, err)
 	c.wal = wal
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		map[string]types.NodeResourceArgs{},
 		map[string]types.NodeResourceArgs{},
 		[]string{},
@@ -56,7 +56,7 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	require.NoError(t, err)
 	c.wal = wal
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		map[string]types.NodeResourceArgs{},
 		map[string]types.NodeResourceArgs{},
 		[]string{},
@@ -110,7 +110,7 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	require.NoError(t, err)
 	c.wal = wal
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		map[string]types.NodeResourceArgs{},
 		map[string]types.NodeResourceArgs{},
 		[]string{},
@@ -157,7 +157,7 @@ func TestHandleCreateLambda(t *testing.T) {
 	require.NoError(t, err)
 	c.wal = wal
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		map[string]types.NodeResourceArgs{},
 		map[string]types.NodeResourceArgs{},
 		[]string{},

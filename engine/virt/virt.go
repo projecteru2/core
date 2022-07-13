@@ -355,9 +355,3 @@ func (v *Virt) VirtualizationCopyFrom(ctx context.Context, ID, path string) (con
 	content, err = ioutil.ReadAll(rd)
 	return
 }
-
-// ResourceValidate validate resource usage
-func (v *Virt) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory, storage int64) error {
-	// TODO list all workloads, calculate resource
-	return nil
-}

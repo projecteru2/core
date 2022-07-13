@@ -27,7 +27,7 @@ func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
 	c, _ := newCreateWorkloadCluster(t)
 
 	rmgr := &resourcemocks.Manager{}
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
 		nil, 0, types.ErrNoETCD,
 	)
@@ -192,7 +192,7 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		map[string]types.NodeResourceArgs{},
 		map[string]types.NodeResourceArgs{},
 		[]string{},

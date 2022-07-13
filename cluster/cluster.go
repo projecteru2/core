@@ -55,15 +55,15 @@ type Cluster interface {
 	AddNode(context.Context, *types.AddNodeOptions) (*types.Node, error)
 	RemoveNode(ctx context.Context, nodename string) error
 	ListPodNodes(context.Context, *types.ListNodesOptions) (<-chan *types.Node, error)
-	GetNode(ctx context.Context, nodename string, plugins []string) (*types.Node, error)
-	GetNodeEngine(ctx context.Context, nodename string) (*enginetypes.Info, error)
+	GetNode(ctx context.Context, nodename string) (*types.Node, error)
+	GetNodeEngineInfo(ctx context.Context, nodename string) (*enginetypes.Info, error)
 	SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error)
 	SetNodeStatus(ctx context.Context, nodename string, ttl int64) error
 	GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error)
 	NodeStatusStream(ctx context.Context) chan *types.NodeStatus
 	// node resource
 	NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error)
-	SendNodeMetrics(ctx context.Context, nodeName string)
+	SendNodeMetrics(ctx context.Context, nodename string)
 	// calculate capacity
 	CalculateCapacity(context.Context, *types.DeployOptions) (*types.CapacityMessage, error)
 	// meta workloads

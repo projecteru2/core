@@ -14,9 +14,6 @@ sentry_dsn: "https://examplePublicKey@o0.ingest.sentry.io/0"            # option
 wal_file: core.wal                                                      # required, default core.wal
 wal_open_timeout: 8s                                                    # required, default 8s
 
-resource_plugins_dir: /etc/eru/plugins                                  # optional, default /etc/eru/plugins
-resource_plugins_timeout: 30s                                           # optional, if need to use plugin, set it
-
 auth:                                                                   # optional
     username: admin
     password: password
@@ -76,3 +73,8 @@ scheduler:
     maxshare: -1                                                        # required default -1
     sharebase: 100                                                      # required default 100
     max_deploy_count: 10000
+
+resource_plugin:
+    dir: /etc/eru/plugins                                               # optional, default /etc/eru/plugins
+call_timeout: 30s                                                       # optional, if need to use plugin, set it
+whitelist:                                                              # optional, if need plugins whitelist

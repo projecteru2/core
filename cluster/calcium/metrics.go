@@ -2,12 +2,12 @@ package calcium
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/sanity-io/litter"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/metrics"
+	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
 
@@ -29,19 +29,22 @@ func (c *Calcium) InitMetrics() {
 }
 
 // SendNodeMetrics .
-func (c *Calcium) SendNodeMetrics(ctx context.Context, nodeName string) {
+func (c *Calcium) SendNodeMetrics(ctx context.Context, nodename string) {
 	ctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.TODO()), c.config.GlobalTimeout)
 	defer cancel()
-	node, err := c.GetNode(ctx, nodeName, nil)
-	fmt.Println(err)
+	node, err := c.GetNode(ctx, nodename)
 	if err != nil {
-		log.Errorf(ctx, "[SendNodeMetrics] get node %s failed, %v", nodeName, err)
+		log.Errorf(ctx, "[SendNodeMetrics] get node %s failed, %v", nodename, err)
 		return
 	}
 
+	c.doSendNodeMetrics(ctx, node)
+}
+
+func (c *Calcium) doSendNodeMetrics(ctx context.Context, node *types.Node) {
 	nodeMetrics, err := c.rmgr.ConvertNodeResourceInfoToMetrics(ctx, node.Podname, node.Name, node.ResourceCapacity, node.ResourceUsage)
 	if err != nil {
-		log.Errorf(ctx, "[SendNodeMetrics] resolve node %s resource info to metrics failed, %v", nodeName, err)
+		log.Errorf(ctx, "[SendNodeMetrics] convert node %s resource info to metrics failed, %v", node.Name, err)
 		return
 	}
 	metrics.Client.SendMetrics(nodeMetrics...)

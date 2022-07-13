@@ -18,7 +18,7 @@ func TestRemapResource(t *testing.T) {
 	c := NewTestCluster()
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		map[string]types.NodeResourceArgs{"test": map[string]interface{}{"abc": 123}},
 		map[string]types.NodeResourceArgs{"test": map[string]interface{}{"abc": 123}},
 		[]string{types.ErrNoETCD.Error()},

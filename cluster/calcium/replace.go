@@ -113,7 +113,7 @@ func (c *Calcium) doReplaceWorkload(
 		Hook:       []*bytes.Buffer{},
 	}
 	// label filter
-	if !utils.FilterWorkload(workload.Labels, opts.FilterLabels) {
+	if !utils.LabelsFilter(workload.Labels, opts.FilterLabels) {
 		return nil, removeMessage, errors.WithStack(types.ErrNotFitLabels)
 	}
 	// prepare node

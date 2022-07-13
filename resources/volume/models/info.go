@@ -79,7 +79,7 @@ func (v *Volume) GetNodeResourceInfo(ctx context.Context, node string, workloadR
 		}
 		if err = v.doSetNodeResourceInfo(ctx, node, resourceInfo); err != nil {
 			logrus.Warnf("[GetNodeResourceInfo] failed to fix node resource, err: %v", err)
-			diffs = append(diffs, "fix failed")
+			diffs = append(diffs, err.Error())
 		}
 	}
 

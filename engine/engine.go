@@ -49,6 +49,4 @@ type API interface {
 	VirtualizationWait(ctx context.Context, ID, state string) (*enginetypes.VirtualizationWaitResult, error)
 	VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error
 	VirtualizationCopyFrom(ctx context.Context, ID, path string) (content []byte, uid, gid int, mode int64, _ error)
-
-	ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory, storage int64) error
 }

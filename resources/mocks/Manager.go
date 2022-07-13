@@ -160,13 +160,13 @@ func (_m *Manager) GetMostIdleNode(_a0 context.Context, _a1 []string) (string, e
 	return r0, r1
 }
 
-// GetNodeResourceInfo provides a mock function with given fields: _a0, _a1, _a2, _a3, _a4
-func (_m *Manager) GetNodeResourceInfo(_a0 context.Context, _a1 string, _a2 []*types.Workload, _a3 bool, _a4 []string) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, []string, error) {
-	ret := _m.Called(_a0, _a1, _a2, _a3, _a4)
+// GetNodeResourceInfo provides a mock function with given fields: _a0, _a1, _a2, _a3
+func (_m *Manager) GetNodeResourceInfo(_a0 context.Context, _a1 string, _a2 []*types.Workload, _a3 bool) (map[string]types.NodeResourceArgs, map[string]types.NodeResourceArgs, []string, error) {
+	ret := _m.Called(_a0, _a1, _a2, _a3)
 
 	var r0 map[string]types.NodeResourceArgs
-	if rf, ok := ret.Get(0).(func(context.Context, string, []*types.Workload, bool, []string) map[string]types.NodeResourceArgs); ok {
-		r0 = rf(_a0, _a1, _a2, _a3, _a4)
+	if rf, ok := ret.Get(0).(func(context.Context, string, []*types.Workload, bool) map[string]types.NodeResourceArgs); ok {
+		r0 = rf(_a0, _a1, _a2, _a3)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(map[string]types.NodeResourceArgs)
@@ -174,8 +174,8 @@ func (_m *Manager) GetNodeResourceInfo(_a0 context.Context, _a1 string, _a2 []*t
 	}
 
 	var r1 map[string]types.NodeResourceArgs
-	if rf, ok := ret.Get(1).(func(context.Context, string, []*types.Workload, bool, []string) map[string]types.NodeResourceArgs); ok {
-		r1 = rf(_a0, _a1, _a2, _a3, _a4)
+	if rf, ok := ret.Get(1).(func(context.Context, string, []*types.Workload, bool) map[string]types.NodeResourceArgs); ok {
+		r1 = rf(_a0, _a1, _a2, _a3)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(map[string]types.NodeResourceArgs)
@@ -183,8 +183,8 @@ func (_m *Manager) GetNodeResourceInfo(_a0 context.Context, _a1 string, _a2 []*t
 	}
 
 	var r2 []string
-	if rf, ok := ret.Get(2).(func(context.Context, string, []*types.Workload, bool, []string) []string); ok {
-		r2 = rf(_a0, _a1, _a2, _a3, _a4)
+	if rf, ok := ret.Get(2).(func(context.Context, string, []*types.Workload, bool) []string); ok {
+		r2 = rf(_a0, _a1, _a2, _a3)
 	} else {
 		if ret.Get(2) != nil {
 			r2 = ret.Get(2).([]string)
@@ -192,8 +192,8 @@ func (_m *Manager) GetNodeResourceInfo(_a0 context.Context, _a1 string, _a2 []*t
 	}
 
 	var r3 error
-	if rf, ok := ret.Get(3).(func(context.Context, string, []*types.Workload, bool, []string) error); ok {
-		r3 = rf(_a0, _a1, _a2, _a3, _a4)
+	if rf, ok := ret.Get(3).(func(context.Context, string, []*types.Workload, bool) error); ok {
+		r3 = rf(_a0, _a1, _a2, _a3)
 	} else {
 		r3 = ret.Error(3)
 	}

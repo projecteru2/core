@@ -25,18 +25,18 @@ func (v *Volume) GetMetricsDescription() []map[string]interface{} {
 	}
 }
 
-func (v *Volume) ConvertNodeResourceInfoToMetrics(podName string, nodeName string, nodeResourceCapacity *types.NodeResourceArgs, nodeResourceUsage *types.NodeResourceArgs) []map[string]interface{} {
-	cleanedNodeName := strings.ReplaceAll(nodeName, ".", "_")
+func (v *Volume) ConvertNodeResourceInfoToMetrics(podname string, nodename string, nodeResourceCapacity *types.NodeResourceArgs, nodeResourceUsage *types.NodeResourceArgs) []map[string]interface{} {
+	cleanedNodeName := strings.ReplaceAll(nodename, ".", "_")
 	metrics := []map[string]interface{}{
 		{
 			"name":   "storage_used",
-			"labels": []string{podName, nodeName},
+			"labels": []string{podname, nodename},
 			"value":  fmt.Sprintf("%v", nodeResourceUsage.Storage),
 			"key":    fmt.Sprintf("core.node.%s.storage.used", cleanedNodeName),
 		},
 		{
 			"name":   "storage_capacity",
-			"labels": []string{podName, nodeName},
+			"labels": []string{podname, nodename},
 			"value":  fmt.Sprintf("%v", nodeResourceCapacity.Storage),
 			"key":    fmt.Sprintf("core.node.%s.storage.used", cleanedNodeName),
 		},

@@ -170,7 +170,7 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (er
 	}
 
 	// workload meta doesn't exist
-	node, err := h.calcium.GetNode(ctx, wrk.Nodename, nil)
+	node, err := h.calcium.GetNode(ctx, wrk.Nodename)
 	if err != nil {
 		return logger.ErrWithTracing(ctx, err)
 	}

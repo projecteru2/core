@@ -8,6 +8,7 @@ import (
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 
 	"github.com/pkg/errors"
 )
@@ -15,74 +16,78 @@ import (
 // PodResource show pod resource usage
 func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.NodeResource, error) {
 	logger := log.WithField("Calcium", "PodResource").WithField("podname", podname)
-	nodeCh, err := c.ListPodNodes(ctx, &types.ListNodesOptions{Podname: podname, All: true})
+	nodes, err := c.store.GetNodesByPod(ctx, podname, nil, true)
 	if err != nil {
 		return nil, logger.ErrWithTracing(ctx, err)
 	}
 	ch := make(chan *types.NodeResource)
 
-	go func() {
+	utils.SentryGo(func() {
 		defer close(ch)
 		wg := &sync.WaitGroup{}
-		for node := range nodeCh {
+		wg.Add(len(nodes))
+		for _, node := range nodes {
 			node := node
-			wg.Add(1)
 			_ = c.pool.Invoke(func() {
 				defer wg.Done()
-				nodeResource, err := c.doGetNodeResource(ctx, node.Name, false)
+				nr, err := c.doGetNodeResource(ctx, node.Name, false, false)
 				if err != nil {
-					nodeResource = &types.NodeResource{
+					nr = &types.NodeResource{
 						Name: node.Name, Diffs: []string{logger.ErrWithTracing(ctx, err).Error()},
 					}
 				}
-				ch <- nodeResource
+				ch <- nr
 			})
 		}
 		wg.Wait()
-	}()
+	})
+
 	return ch, nil
 }
 
 // NodeResource check node's workload and resource
 func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
 	logger := log.WithField("Calcium", "NodeResource").WithField("nodename", nodename).WithField("fix", fix)
-	if nodename == "" {
-		return nil, logger.ErrWithTracing(ctx, types.ErrEmptyNodeName)
-	}
-
-	nr, err := c.doGetNodeResource(ctx, nodename, fix)
-	if err != nil {
-		return nil, logger.ErrWithTracing(ctx, err)
-	}
-	for _, workload := range nr.Workloads {
-		if _, err := workload.Inspect(ctx); err != nil { // 用于探测节点上容器是否存在
-			nr.Diffs = append(nr.Diffs, fmt.Sprintf("workload %s inspect failed %v \n", workload.ID, err))
-			continue
-		}
-	}
+	nr, err := c.doGetNodeResource(ctx, nodename, true, fix)
 	return nr, logger.ErrWithTracing(ctx, err)
 }
 
-func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
+func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, inspect, fix bool) (*types.NodeResource, error) {
+	logger := log.WithField("Calcium", "doGetNodeResource").WithField("nodename", nodename).WithField("inspect", inspect).WithField("fix", fix)
+	if nodename == "" {
+		return nil, logger.ErrWithTracing(ctx, types.ErrEmptyNodeName)
+	}
 	var nr *types.NodeResource
 	return nr, c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
-		workloads, err := c.ListNodeWorkloads(ctx, nodename, nil)
+		workloads, err := c.store.ListNodeWorkloads(ctx, node.Name, nil)
 		if err != nil {
-			log.Errorf(ctx, "[doGetNodeResource] failed to list node workloads, node %v, err: %v", nodename, err)
+			log.Errorf(ctx, "[doGetNodeResource] failed to list node workloads, node %v, err: %v", node.Name, err)
 			return err
 		}
 
-		if fix {
-			go c.SendNodeMetrics(ctx, node.Name)
+		// get node resources
+		resourceCapacity, resourceUsage, resourceDiffs, err := c.rmgr.GetNodeResourceInfo(ctx, node.Name, workloads, fix)
+		if err != nil {
+			log.Errorf(ctx, "[doGetNodeResource] failed to get node resources, node %v, err: %v", node.Name, err)
+			return err
 		}
-
 		nr = &types.NodeResource{
-			Name:             nodename,
-			ResourceCapacity: node.ResourceCapacity,
-			ResourceUsage:    node.ResourceUsage,
-			Diffs:            node.Diffs,
+			Name:             node.Name,
+			ResourceCapacity: resourceCapacity,
+			ResourceUsage:    resourceUsage,
+			Diffs:            resourceDiffs,
 			Workloads:        workloads,
 		}
+
+		if inspect {
+			for _, workload := range nr.Workloads {
+				if _, err := workload.Inspect(ctx); err != nil { // 用于探测节点上容器是否存在
+					nr.Diffs = append(nr.Diffs, fmt.Sprintf("workload %s inspect failed %v \n", workload.ID, err))
+					continue
+				}
+			}
+		}
+
 		return nil
 	})
 }

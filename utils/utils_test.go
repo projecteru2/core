@@ -150,12 +150,12 @@ func TestShortID(t *testing.T) {
 	assert.Equal(t, r2, "2345678")
 }
 
-func TestFilterWorkload(t *testing.T) {
+func TestLabelsFilter(t *testing.T) {
 	e := map[string]string{"a": "b"}
 	l := map[string]string{"a": "b"}
-	assert.True(t, FilterWorkload(e, l))
+	assert.True(t, LabelsFilter(e, l))
 	l["c"] = "d"
-	assert.False(t, FilterWorkload(e, l))
+	assert.False(t, LabelsFilter(e, l))
 }
 
 func TestCleanStatsdMetrics(t *testing.T) {

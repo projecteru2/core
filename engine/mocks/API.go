@@ -476,20 +476,6 @@ func (_m *API) Ping(ctx context.Context) error {
 	return r0
 }
 
-// ResourceValidate provides a mock function with given fields: ctx, cpu, cpumap, memory, storage
-func (_m *API) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory int64, storage int64) error {
-	ret := _m.Called(ctx, cpu, cpumap, memory, storage)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, float64, map[string]int64, int64, int64) error); ok {
-		r0 = rf(ctx, cpu, cpumap, memory, storage)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
 // VirtualizationAttach provides a mock function with given fields: ctx, ID, stream, openStdin
 func (_m *API) VirtualizationAttach(ctx context.Context, ID string, stream bool, openStdin bool) (io.ReadCloser, io.ReadCloser, io.WriteCloser, error) {
 	ret := _m.Called(ctx, ID, stream, openStdin)

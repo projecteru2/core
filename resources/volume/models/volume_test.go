@@ -63,9 +63,9 @@ func generateNodes(t *testing.T, volume *Volume, num int) []string {
 	infos := generateNodeResourceInfos(num)
 
 	for i, info := range infos {
-		nodeName := fmt.Sprintf("node%d", i)
-		assert.Nil(t, volume.doSetNodeResourceInfo(context.Background(), nodeName, info))
-		nodes = append(nodes, nodeName)
+		nodename := fmt.Sprintf("node%d", i)
+		assert.Nil(t, volume.doSetNodeResourceInfo(context.Background(), nodename, info))
+		nodes = append(nodes, nodename)
 	}
 
 	return nodes

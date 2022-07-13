@@ -20,7 +20,7 @@ func TestRemoveImage(t *testing.T) {
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	// fail by validating
 	_, err := c.RemoveImage(ctx, &types.ImageOptions{Podname: ""})
 	assert.Error(t, err)
@@ -67,7 +67,7 @@ func TestCacheImage(t *testing.T) {
 	ctx := context.Background()
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	store := c.store.(*storemocks.Store)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	// fail by validating
 	_, err := c.CacheImage(ctx, &types.ImageOptions{Podname: ""})
 	assert.Error(t, err)

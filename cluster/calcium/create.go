@@ -101,8 +101,8 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 				return c.withNodesPodLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) (err error) {
 					nodeNames := []string{}
 					nodes := []*types.Node{}
-					for nodeName, node := range nodeMap {
-						nodeNames = append(nodeNames, nodeName)
+					for nodename, node := range nodeMap {
+						nodeNames = append(nodeNames, nodename)
 						nodes = append(nodes, node)
 					}
 
@@ -117,14 +117,14 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 
 					// commit changes
 					processingCommits = make(map[string]wal.Commit)
-					for nodeName, deploy := range deployMap {
-						nodes = append(nodes, nodeMap[nodeName])
-						if engineArgsMap[nodeName], resourceArgsMap[nodeName], err = c.rmgr.Alloc(ctx, nodeName, deploy, opts.ResourceOpts); err != nil {
+					for nodename, deploy := range deployMap {
+						nodes = append(nodes, nodeMap[nodename])
+						if engineArgsMap[nodename], resourceArgsMap[nodename], err = c.rmgr.Alloc(ctx, nodename, deploy, opts.ResourceOpts); err != nil {
 							return errors.WithStack(err)
 						}
 
-						processing := opts.GetProcessing(nodeName)
-						if processingCommits[nodeName], err = c.wal.Log(eventProcessingCreated, processing); err != nil {
+						processing := opts.GetProcessing(nodename)
+						if processingCommits[nodename], err = c.wal.Log(eventProcessingCreated, processing); err != nil {
 							return errors.WithStack(err)
 						}
 						if err = c.store.CreateProcessing(ctx, processing, deploy); err != nil {
@@ -275,7 +275,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 }
 
 func (c *Calcium) doGetAndPrepareNode(ctx context.Context, nodename, image string) (*types.Node, error) {
-	node, err := c.GetNode(ctx, nodename, nil)
+	node, err := c.GetNode(ctx, nodename)
 	if err != nil {
 		return nil, err
 	}

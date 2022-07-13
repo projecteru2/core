@@ -31,19 +31,17 @@ type CoreRPCClient interface {
 	RemovePod(ctx context.Context, in *RemovePodOptions, opts ...grpc.CallOption) (*Empty, error)
 	GetPod(ctx context.Context, in *GetPodOptions, opts ...grpc.CallOption) (*Pod, error)
 	ListPods(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Pods, error)
-	GetPodResource(ctx context.Context, in *GetPodOptions, opts ...grpc.CallOption) (*PodResource, error)
-	PodResourceStream(ctx context.Context, in *GetPodOptions, opts ...grpc.CallOption) (CoreRPC_PodResourceStreamClient, error)
+	GetPodResource(ctx context.Context, in *GetPodOptions, opts ...grpc.CallOption) (CoreRPC_GetPodResourceClient, error)
+	GetNodeResource(ctx context.Context, in *GetNodeResourceOptions, opts ...grpc.CallOption) (*NodeResource, error)
 	AddNode(ctx context.Context, in *AddNodeOptions, opts ...grpc.CallOption) (*Node, error)
 	RemoveNode(ctx context.Context, in *RemoveNodeOptions, opts ...grpc.CallOption) (*Empty, error)
-	ListPodNodes(ctx context.Context, in *ListNodesOptions, opts ...grpc.CallOption) (*Nodes, error)
-	PodNodesStream(ctx context.Context, in *ListNodesOptions, opts ...grpc.CallOption) (CoreRPC_PodNodesStreamClient, error)
+	ListPodNodes(ctx context.Context, in *ListNodesOptions, opts ...grpc.CallOption) (CoreRPC_ListPodNodesClient, error)
 	GetNode(ctx context.Context, in *GetNodeOptions, opts ...grpc.CallOption) (*Node, error)
-	GetNodeEngine(ctx context.Context, in *GetNodeOptions, opts ...grpc.CallOption) (*Engine, error)
+	GetNodeEngineInfo(ctx context.Context, in *GetNodeOptions, opts ...grpc.CallOption) (*Engine, error)
 	SetNode(ctx context.Context, in *SetNodeOptions, opts ...grpc.CallOption) (*Node, error)
 	SetNodeStatus(ctx context.Context, in *SetNodeStatusOptions, opts ...grpc.CallOption) (*Empty, error)
 	GetNodeStatus(ctx context.Context, in *GetNodeStatusOptions, opts ...grpc.CallOption) (*NodeStatusStreamMessage, error)
 	NodeStatusStream(ctx context.Context, in *Empty, opts ...grpc.CallOption) (CoreRPC_NodeStatusStreamClient, error)
-	GetNodeResource(ctx context.Context, in *GetNodeResourceOptions, opts ...grpc.CallOption) (*NodeResource, error)
 	CalculateCapacity(ctx context.Context, in *DeployOptions, opts ...grpc.CallOption) (*CapacityMessage, error)
 	GetWorkload(ctx context.Context, in *WorkloadID, opts ...grpc.CallOption) (*Workload, error)
 	GetWorkloads(ctx context.Context, in *WorkloadIDs, opts ...grpc.CallOption) (*Workloads, error)
@@ -181,21 +179,12 @@ func (c *coreRPCClient) ListPods(ctx context.Context, in *Empty, opts ...grpc.Ca
 	return out, nil
 }
 
-func (c *coreRPCClient) GetPodResource(ctx context.Context, in *GetPodOptions, opts ...grpc.CallOption) (*PodResource, error) {
-	out := new(PodResource)
-	err := c.cc.Invoke(ctx, "/pb.CoreRPC/GetPodResource", in, out, opts...)
+func (c *coreRPCClient) GetPodResource(ctx context.Context, in *GetPodOptions, opts ...grpc.CallOption) (CoreRPC_GetPodResourceClient, error) {
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[1], "/pb.CoreRPC/GetPodResource", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
-}
-
-func (c *coreRPCClient) PodResourceStream(ctx context.Context, in *GetPodOptions, opts ...grpc.CallOption) (CoreRPC_PodResourceStreamClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[1], "/pb.CoreRPC/PodResourceStream", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &coreRPCPodResourceStreamClient{stream}
+	x := &coreRPCGetPodResourceClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -205,21 +194,30 @@ func (c *coreRPCClient) PodResourceStream(ctx context.Context, in *GetPodOptions
 	return x, nil
 }
 
-type CoreRPC_PodResourceStreamClient interface {
+type CoreRPC_GetPodResourceClient interface {
 	Recv() (*NodeResource, error)
 	grpc.ClientStream
 }
 
-type coreRPCPodResourceStreamClient struct {
+type coreRPCGetPodResourceClient struct {
 	grpc.ClientStream
 }
 
-func (x *coreRPCPodResourceStreamClient) Recv() (*NodeResource, error) {
+func (x *coreRPCGetPodResourceClient) Recv() (*NodeResource, error) {
 	m := new(NodeResource)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
+}
+
+func (c *coreRPCClient) GetNodeResource(ctx context.Context, in *GetNodeResourceOptions, opts ...grpc.CallOption) (*NodeResource, error) {
+	out := new(NodeResource)
+	err := c.cc.Invoke(ctx, "/pb.CoreRPC/GetNodeResource", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *coreRPCClient) AddNode(ctx context.Context, in *AddNodeOptions, opts ...grpc.CallOption) (*Node, error) {
@@ -240,21 +238,12 @@ func (c *coreRPCClient) RemoveNode(ctx context.Context, in *RemoveNodeOptions, o
 	return out, nil
 }
 
-func (c *coreRPCClient) ListPodNodes(ctx context.Context, in *ListNodesOptions, opts ...grpc.CallOption) (*Nodes, error) {
-	out := new(Nodes)
-	err := c.cc.Invoke(ctx, "/pb.CoreRPC/ListPodNodes", in, out, opts...)
+func (c *coreRPCClient) ListPodNodes(ctx context.Context, in *ListNodesOptions, opts ...grpc.CallOption) (CoreRPC_ListPodNodesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[2], "/pb.CoreRPC/ListPodNodes", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
-}
-
-func (c *coreRPCClient) PodNodesStream(ctx context.Context, in *ListNodesOptions, opts ...grpc.CallOption) (CoreRPC_PodNodesStreamClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CoreRPC_ServiceDesc.Streams[2], "/pb.CoreRPC/PodNodesStream", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &coreRPCPodNodesStreamClient{stream}
+	x := &coreRPCListPodNodesClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -264,16 +253,16 @@ func (c *coreRPCClient) PodNodesStream(ctx context.Context, in *ListNodesOptions
 	return x, nil
 }
 
-type CoreRPC_PodNodesStreamClient interface {
+type CoreRPC_ListPodNodesClient interface {
 	Recv() (*Node, error)
 	grpc.ClientStream
 }
 
-type coreRPCPodNodesStreamClient struct {
+type coreRPCListPodNodesClient struct {
 	grpc.ClientStream
 }
 
-func (x *coreRPCPodNodesStreamClient) Recv() (*Node, error) {
+func (x *coreRPCListPodNodesClient) Recv() (*Node, error) {
 	m := new(Node)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -290,9 +279,9 @@ func (c *coreRPCClient) GetNode(ctx context.Context, in *GetNodeOptions, opts ..
 	return out, nil
 }
 
-func (c *coreRPCClient) GetNodeEngine(ctx context.Context, in *GetNodeOptions, opts ...grpc.CallOption) (*Engine, error) {
+func (c *coreRPCClient) GetNodeEngineInfo(ctx context.Context, in *GetNodeOptions, opts ...grpc.CallOption) (*Engine, error) {
 	out := new(Engine)
-	err := c.cc.Invoke(ctx, "/pb.CoreRPC/GetNodeEngine", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pb.CoreRPC/GetNodeEngineInfo", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -356,15 +345,6 @@ func (x *coreRPCNodeStatusStreamClient) Recv() (*NodeStatusStreamMessage, error)
 		return nil, err
 	}
 	return m, nil
-}
-
-func (c *coreRPCClient) GetNodeResource(ctx context.Context, in *GetNodeResourceOptions, opts ...grpc.CallOption) (*NodeResource, error) {
-	out := new(NodeResource)
-	err := c.cc.Invoke(ctx, "/pb.CoreRPC/GetNodeResource", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *coreRPCClient) CalculateCapacity(ctx context.Context, in *DeployOptions, opts ...grpc.CallOption) (*CapacityMessage, error) {
@@ -953,19 +933,17 @@ type CoreRPCServer interface {
 	RemovePod(context.Context, *RemovePodOptions) (*Empty, error)
 	GetPod(context.Context, *GetPodOptions) (*Pod, error)
 	ListPods(context.Context, *Empty) (*Pods, error)
-	GetPodResource(context.Context, *GetPodOptions) (*PodResource, error)
-	PodResourceStream(*GetPodOptions, CoreRPC_PodResourceStreamServer) error
+	GetPodResource(*GetPodOptions, CoreRPC_GetPodResourceServer) error
+	GetNodeResource(context.Context, *GetNodeResourceOptions) (*NodeResource, error)
 	AddNode(context.Context, *AddNodeOptions) (*Node, error)
 	RemoveNode(context.Context, *RemoveNodeOptions) (*Empty, error)
-	ListPodNodes(context.Context, *ListNodesOptions) (*Nodes, error)
-	PodNodesStream(*ListNodesOptions, CoreRPC_PodNodesStreamServer) error
+	ListPodNodes(*ListNodesOptions, CoreRPC_ListPodNodesServer) error
 	GetNode(context.Context, *GetNodeOptions) (*Node, error)
-	GetNodeEngine(context.Context, *GetNodeOptions) (*Engine, error)
+	GetNodeEngineInfo(context.Context, *GetNodeOptions) (*Engine, error)
 	SetNode(context.Context, *SetNodeOptions) (*Node, error)
 	SetNodeStatus(context.Context, *SetNodeStatusOptions) (*Empty, error)
 	GetNodeStatus(context.Context, *GetNodeStatusOptions) (*NodeStatusStreamMessage, error)
 	NodeStatusStream(*Empty, CoreRPC_NodeStatusStreamServer) error
-	GetNodeResource(context.Context, *GetNodeResourceOptions) (*NodeResource, error)
 	CalculateCapacity(context.Context, *DeployOptions) (*CapacityMessage, error)
 	GetWorkload(context.Context, *WorkloadID) (*Workload, error)
 	GetWorkloads(context.Context, *WorkloadIDs) (*Workloads, error)
@@ -1022,11 +1000,11 @@ func (UnimplementedCoreRPCServer) GetPod(context.Context, *GetPodOptions) (*Pod,
 func (UnimplementedCoreRPCServer) ListPods(context.Context, *Empty) (*Pods, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListPods not implemented")
 }
-func (UnimplementedCoreRPCServer) GetPodResource(context.Context, *GetPodOptions) (*PodResource, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetPodResource not implemented")
+func (UnimplementedCoreRPCServer) GetPodResource(*GetPodOptions, CoreRPC_GetPodResourceServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetPodResource not implemented")
 }
-func (UnimplementedCoreRPCServer) PodResourceStream(*GetPodOptions, CoreRPC_PodResourceStreamServer) error {
-	return status.Errorf(codes.Unimplemented, "method PodResourceStream not implemented")
+func (UnimplementedCoreRPCServer) GetNodeResource(context.Context, *GetNodeResourceOptions) (*NodeResource, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetNodeResource not implemented")
 }
 func (UnimplementedCoreRPCServer) AddNode(context.Context, *AddNodeOptions) (*Node, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddNode not implemented")
@@ -1034,17 +1012,14 @@ func (UnimplementedCoreRPCServer) AddNode(context.Context, *AddNodeOptions) (*No
 func (UnimplementedCoreRPCServer) RemoveNode(context.Context, *RemoveNodeOptions) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveNode not implemented")
 }
-func (UnimplementedCoreRPCServer) ListPodNodes(context.Context, *ListNodesOptions) (*Nodes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListPodNodes not implemented")
-}
-func (UnimplementedCoreRPCServer) PodNodesStream(*ListNodesOptions, CoreRPC_PodNodesStreamServer) error {
-	return status.Errorf(codes.Unimplemented, "method PodNodesStream not implemented")
+func (UnimplementedCoreRPCServer) ListPodNodes(*ListNodesOptions, CoreRPC_ListPodNodesServer) error {
+	return status.Errorf(codes.Unimplemented, "method ListPodNodes not implemented")
 }
 func (UnimplementedCoreRPCServer) GetNode(context.Context, *GetNodeOptions) (*Node, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetNode not implemented")
 }
-func (UnimplementedCoreRPCServer) GetNodeEngine(context.Context, *GetNodeOptions) (*Engine, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetNodeEngine not implemented")
+func (UnimplementedCoreRPCServer) GetNodeEngineInfo(context.Context, *GetNodeOptions) (*Engine, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetNodeEngineInfo not implemented")
 }
 func (UnimplementedCoreRPCServer) SetNode(context.Context, *SetNodeOptions) (*Node, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetNode not implemented")
@@ -1057,9 +1032,6 @@ func (UnimplementedCoreRPCServer) GetNodeStatus(context.Context, *GetNodeStatusO
 }
 func (UnimplementedCoreRPCServer) NodeStatusStream(*Empty, CoreRPC_NodeStatusStreamServer) error {
 	return status.Errorf(codes.Unimplemented, "method NodeStatusStream not implemented")
-}
-func (UnimplementedCoreRPCServer) GetNodeResource(context.Context, *GetNodeResourceOptions) (*NodeResource, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetNodeResource not implemented")
 }
 func (UnimplementedCoreRPCServer) CalculateCapacity(context.Context, *DeployOptions) (*CapacityMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CalculateCapacity not implemented")
@@ -1307,43 +1279,43 @@ func _CoreRPC_ListPods_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CoreRPC_GetPodResource_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetPodOptions)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CoreRPCServer).GetPodResource(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/pb.CoreRPC/GetPodResource",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CoreRPCServer).GetPodResource(ctx, req.(*GetPodOptions))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _CoreRPC_PodResourceStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _CoreRPC_GetPodResource_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(GetPodOptions)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(CoreRPCServer).PodResourceStream(m, &coreRPCPodResourceStreamServer{stream})
+	return srv.(CoreRPCServer).GetPodResource(m, &coreRPCGetPodResourceServer{stream})
 }
 
-type CoreRPC_PodResourceStreamServer interface {
+type CoreRPC_GetPodResourceServer interface {
 	Send(*NodeResource) error
 	grpc.ServerStream
 }
 
-type coreRPCPodResourceStreamServer struct {
+type coreRPCGetPodResourceServer struct {
 	grpc.ServerStream
 }
 
-func (x *coreRPCPodResourceStreamServer) Send(m *NodeResource) error {
+func (x *coreRPCGetPodResourceServer) Send(m *NodeResource) error {
 	return x.ServerStream.SendMsg(m)
+}
+
+func _CoreRPC_GetNodeResource_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetNodeResourceOptions)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoreRPCServer).GetNodeResource(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.CoreRPC/GetNodeResource",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoreRPCServer).GetNodeResource(ctx, req.(*GetNodeResourceOptions))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _CoreRPC_AddNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -1382,42 +1354,24 @@ func _CoreRPC_RemoveNode_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CoreRPC_ListPodNodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListNodesOptions)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CoreRPCServer).ListPodNodes(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/pb.CoreRPC/ListPodNodes",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CoreRPCServer).ListPodNodes(ctx, req.(*ListNodesOptions))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _CoreRPC_PodNodesStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _CoreRPC_ListPodNodes_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(ListNodesOptions)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(CoreRPCServer).PodNodesStream(m, &coreRPCPodNodesStreamServer{stream})
+	return srv.(CoreRPCServer).ListPodNodes(m, &coreRPCListPodNodesServer{stream})
 }
 
-type CoreRPC_PodNodesStreamServer interface {
+type CoreRPC_ListPodNodesServer interface {
 	Send(*Node) error
 	grpc.ServerStream
 }
 
-type coreRPCPodNodesStreamServer struct {
+type coreRPCListPodNodesServer struct {
 	grpc.ServerStream
 }
 
-func (x *coreRPCPodNodesStreamServer) Send(m *Node) error {
+func (x *coreRPCListPodNodesServer) Send(m *Node) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -1439,20 +1393,20 @@ func _CoreRPC_GetNode_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CoreRPC_GetNodeEngine_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _CoreRPC_GetNodeEngineInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetNodeOptions)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CoreRPCServer).GetNodeEngine(ctx, in)
+		return srv.(CoreRPCServer).GetNodeEngineInfo(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/pb.CoreRPC/GetNodeEngine",
+		FullMethod: "/pb.CoreRPC/GetNodeEngineInfo",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CoreRPCServer).GetNodeEngine(ctx, req.(*GetNodeOptions))
+		return srv.(CoreRPCServer).GetNodeEngineInfo(ctx, req.(*GetNodeOptions))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1530,24 +1484,6 @@ type coreRPCNodeStatusStreamServer struct {
 
 func (x *coreRPCNodeStatusStreamServer) Send(m *NodeStatusStreamMessage) error {
 	return x.ServerStream.SendMsg(m)
-}
-
-func _CoreRPC_GetNodeResource_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetNodeResourceOptions)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CoreRPCServer).GetNodeResource(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/pb.CoreRPC/GetNodeResource",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CoreRPCServer).GetNodeResource(ctx, req.(*GetNodeResourceOptions))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _CoreRPC_CalculateCapacity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -2062,8 +1998,8 @@ var CoreRPC_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CoreRPC_ListPods_Handler,
 		},
 		{
-			MethodName: "GetPodResource",
-			Handler:    _CoreRPC_GetPodResource_Handler,
+			MethodName: "GetNodeResource",
+			Handler:    _CoreRPC_GetNodeResource_Handler,
 		},
 		{
 			MethodName: "AddNode",
@@ -2074,16 +2010,12 @@ var CoreRPC_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CoreRPC_RemoveNode_Handler,
 		},
 		{
-			MethodName: "ListPodNodes",
-			Handler:    _CoreRPC_ListPodNodes_Handler,
-		},
-		{
 			MethodName: "GetNode",
 			Handler:    _CoreRPC_GetNode_Handler,
 		},
 		{
-			MethodName: "GetNodeEngine",
-			Handler:    _CoreRPC_GetNodeEngine_Handler,
+			MethodName: "GetNodeEngineInfo",
+			Handler:    _CoreRPC_GetNodeEngineInfo_Handler,
 		},
 		{
 			MethodName: "SetNode",
@@ -2096,10 +2028,6 @@ var CoreRPC_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetNodeStatus",
 			Handler:    _CoreRPC_GetNodeStatus_Handler,
-		},
-		{
-			MethodName: "GetNodeResource",
-			Handler:    _CoreRPC_GetNodeResource_Handler,
 		},
 		{
 			MethodName: "CalculateCapacity",
@@ -2137,13 +2065,13 @@ var CoreRPC_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 		{
-			StreamName:    "PodResourceStream",
-			Handler:       _CoreRPC_PodResourceStream_Handler,
+			StreamName:    "GetPodResource",
+			Handler:       _CoreRPC_GetPodResource_Handler,
 			ServerStreams: true,
 		},
 		{
-			StreamName:    "PodNodesStream",
-			Handler:       _CoreRPC_PodNodesStream_Handler,
+			StreamName:    "ListPodNodes",
+			Handler:       _CoreRPC_ListPodNodes_Handler,
 			ServerStreams: true,
 		},
 		{

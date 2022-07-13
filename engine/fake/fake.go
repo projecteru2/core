@@ -183,8 +183,3 @@ func (f *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 func (f *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (content []byte, uid, gid int, mode int64, _ error) {
 	return nil, 0, 0, 0, f.DefaultErr
 }
-
-// ResourceValidate .
-func (f *Engine) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory, storage int64) error {
-	return f.DefaultErr
-}

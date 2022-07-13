@@ -98,7 +98,7 @@ func (r *Rediaron) ListWorkloads(ctx context.Context, appname, entrypoint, noden
 		if err := json.Unmarshal([]byte(v), workload); err != nil {
 			return nil, err
 		}
-		if utils.FilterWorkload(workload.Labels, labels) {
+		if utils.LabelsFilter(workload.Labels, labels) {
 			workloads = append(workloads, workload)
 		}
 	}
@@ -120,7 +120,7 @@ func (r *Rediaron) ListNodeWorkloads(ctx context.Context, nodename string, label
 		if err := json.Unmarshal([]byte(v), workload); err != nil {
 			return nil, err
 		}
-		if utils.FilterWorkload(workload.Labels, labels) {
+		if utils.LabelsFilter(workload.Labels, labels) {
 			workloads = append(workloads, workload)
 		}
 	}
@@ -156,7 +156,7 @@ func (r *Rediaron) WorkloadStatusStream(ctx context.Context, appname, entrypoint
 			switch {
 			case err != nil:
 				msg.Error = err
-			case utils.FilterWorkload(workload.Labels, labels):
+			case utils.LabelsFilter(workload.Labels, labels):
 				log.Debugf(ctx, "[WorkloadStatusStream] workload %s status changed", workload.ID)
 				msg.Workload = workload
 			default:
