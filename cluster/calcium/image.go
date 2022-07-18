@@ -20,7 +20,7 @@ func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (cha
 		return nil, logger.ErrWithTracing(ctx, err)
 	}
 
-	nodes, err := c.filterNodes(ctx, types.NodeFilter{Podname: opts.Podname, Includes: opts.Nodenames})
+	nodes, err := c.filterNodes(ctx, &types.NodeFilter{Podname: opts.Podname, Includes: opts.Nodenames})
 	if err != nil {
 		return nil, logger.ErrWithTracing(ctx, err)
 	}
@@ -67,7 +67,7 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 		return nil, logger.ErrWithTracing(ctx, err)
 	}
 
-	nodes, err := c.filterNodes(ctx, types.NodeFilter{Podname: opts.Podname, Includes: opts.Nodenames})
+	nodes, err := c.filterNodes(ctx, &types.NodeFilter{Podname: opts.Podname, Includes: opts.Nodenames})
 	if err != nil {
 		return nil, logger.ErrWithTracing(ctx, err)
 	}
@@ -121,7 +121,7 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 func (c *Calcium) ListImage(ctx context.Context, opts *types.ImageOptions) (chan *types.ListImageMessage, error) {
 	logger := log.WithField("Calcium", "ListImage").WithField("opts", opts)
 
-	nodes, err := c.filterNodes(ctx, types.NodeFilter{Podname: opts.Podname, Includes: opts.Nodenames})
+	nodes, err := c.filterNodes(ctx, &types.NodeFilter{Podname: opts.Podname, Includes: opts.Nodenames})
 	if err != nil {
 		return nil, logger.ErrWithTracing(ctx, err)
 	}

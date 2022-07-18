@@ -95,11 +95,11 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(
 }
 
 func (c *Calcium) withNodePodLocked(ctx context.Context, nodename string, f func(context.Context, *types.Node) error) error {
-	nf := types.NodeFilter{
+	nodeFilter := &types.NodeFilter{
 		Includes: []string{nodename},
 		All:      true,
 	}
-	return c.withNodesPodLocked(ctx, nf, func(ctx context.Context, nodes map[string]*types.Node) error {
+	return c.withNodesPodLocked(ctx, nodeFilter, func(ctx context.Context, nodes map[string]*types.Node) error {
 		if n, ok := nodes[nodename]; ok {
 			return f(ctx, n)
 		}
@@ -108,11 +108,11 @@ func (c *Calcium) withNodePodLocked(ctx context.Context, nodename string, f func
 }
 
 func (c *Calcium) withNodeOperationLocked(ctx context.Context, nodename string, f func(context.Context, *types.Node) error) error {
-	nf := types.NodeFilter{
+	nodeFilter := &types.NodeFilter{
 		Includes: []string{nodename},
 		All:      true,
 	}
-	return c.withNodesOperationLocked(ctx, nf, func(ctx context.Context, nodes map[string]*types.Node) error {
+	return c.withNodesOperationLocked(ctx, nodeFilter, func(ctx context.Context, nodes map[string]*types.Node) error {
 		if n, ok := nodes[nodename]; ok {
 			return f(ctx, n)
 		}
@@ -120,21 +120,21 @@ func (c *Calcium) withNodeOperationLocked(ctx context.Context, nodename string, 
 	})
 }
 
-func (c *Calcium) withNodesOperationLocked(ctx context.Context, nf types.NodeFilter, f func(context.Context, map[string]*types.Node) error) error { // nolint
+func (c *Calcium) withNodesOperationLocked(ctx context.Context, nodeFilter *types.NodeFilter, f func(context.Context, map[string]*types.Node) error) error { // nolint
 	genKey := func(node *types.Node) string {
 		return fmt.Sprintf(cluster.NodeOperationLock, node.Podname, node.Name)
 	}
-	return c.withNodesLocked(ctx, nf, genKey, f)
+	return c.withNodesLocked(ctx, nodeFilter, genKey, f)
 }
 
-func (c *Calcium) withNodesPodLocked(ctx context.Context, nf types.NodeFilter, f func(context.Context, map[string]*types.Node) error) error {
+func (c *Calcium) withNodesPodLocked(ctx context.Context, nodeFilter *types.NodeFilter, f func(context.Context, map[string]*types.Node) error) error {
 	genKey := func(node *types.Node) string {
 		return fmt.Sprintf(cluster.PodLock, node.Podname)
 	}
-	return c.withNodesLocked(ctx, nf, genKey, f)
+	return c.withNodesLocked(ctx, nodeFilter, genKey, f)
 }
 
-func (c *Calcium) withNodesLocked(ctx context.Context, nf types.NodeFilter, genKey func(*types.Node) string, f func(context.Context, map[string]*types.Node) error) error {
+func (c *Calcium) withNodesLocked(ctx context.Context, nodeFilter *types.NodeFilter, genKey func(*types.Node) string, f func(context.Context, map[string]*types.Node) error) error {
 	nodes := map[string]*types.Node{}
 	locks := map[string]lock.DistributedLock{}
 	lockKeys := []string{}
@@ -144,7 +144,7 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nf types.NodeFilter, genK
 		log.Debugf(ctx, "[withNodesLocked] keys %v unlocked", lockKeys)
 	}()
 
-	ns, err := c.filterNodes(ctx, nf)
+	ns, err := c.filterNodes(ctx, nodeFilter)
 	if err != nil {
 		return err
 	}

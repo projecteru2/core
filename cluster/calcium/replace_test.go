@@ -41,6 +41,7 @@ func TestReplaceWorkload(t *testing.T) {
 			Entrypoint: &types.Entrypoint{
 				Name: "nice-entry-name",
 			},
+			NodeFilter: &types.NodeFilter{},
 		},
 	}
 

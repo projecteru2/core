@@ -25,7 +25,7 @@ func (r *Rediaron) AddPod(ctx context.Context, name, desc string) (*types.Pod, e
 func (r *Rediaron) RemovePod(ctx context.Context, podname string) error {
 	key := fmt.Sprintf(podInfoKey, podname)
 
-	ns, err := r.GetNodesByPod(ctx, podname, nil, true)
+	ns, err := r.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname, All: true})
 	if err != nil {
 		return err
 	}

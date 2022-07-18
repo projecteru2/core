@@ -13,6 +13,7 @@ func (s *RediaronTestSuite) TestDeploy() {
 		Name:         "app",
 		Entrypoint:   &types.Entrypoint{Name: "entry"},
 		ProcessIdent: "abc",
+		NodeFilter:   &types.NodeFilter{},
 	}
 
 	// no workload deployed

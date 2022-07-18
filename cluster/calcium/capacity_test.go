@@ -42,7 +42,7 @@ func TestCalculateCapacity(t *testing.T) {
 		},
 		ResourceOpts:   types.WorkloadResourceOpts{},
 		DeployStrategy: strategy.Auto,
-		NodeFilter: types.NodeFilter{
+		NodeFilter: &types.NodeFilter{
 			Includes: []string{name},
 		},
 		Count: 3,

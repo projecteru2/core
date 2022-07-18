@@ -64,11 +64,11 @@ func TestBuild(t *testing.T) {
 	c.config.Docker.BuildPod = "test"
 	// failed by ListPodNodes failed
 	store := c.store.(*storemocks.Store)
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrBadMeta).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrBadMeta).Once()
 	ch, err := c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	// failed by no nodes
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	engine := &enginemocks.API{}
@@ -80,7 +80,7 @@ func TestBuild(t *testing.T) {
 		Available: true,
 		Engine:    engine,
 	}
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	// failed by plugin error
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)

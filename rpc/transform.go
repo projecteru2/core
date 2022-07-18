@@ -291,15 +291,15 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		files = append(files, file)
 	}
 
-	nf := types.NodeFilter{
+	nodeFilter := &types.NodeFilter{
 		Podname:  d.Podname,
 		Includes: d.Nodenames,
 		Labels:   d.Nodelabels,
 	}
 	if d.NodeFilter != nil {
-		nf.Includes = d.NodeFilter.Includes
-		nf.Excludes = d.NodeFilter.Excludes
-		nf.Labels = d.NodeFilter.Labels
+		nodeFilter.Includes = d.NodeFilter.Includes
+		nodeFilter.Excludes = d.NodeFilter.Excludes
+		nodeFilter.Labels = d.NodeFilter.Labels
 	}
 
 	return &types.DeployOptions{
@@ -307,7 +307,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		Name:           d.Name,
 		Entrypoint:     entry,
 		Podname:        d.Podname,
-		NodeFilter:     nf,
+		NodeFilter:     nodeFilter,
 		Image:          d.Image,
 		ExtraArgs:      d.ExtraArgs,
 		Count:          int(d.Count),

@@ -62,7 +62,7 @@ func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
 	}
 
 	// get nodes
-	nodes, err := c.store.GetNodesByPod(ctx, c.config.Docker.BuildPod, nil, false)
+	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: c.config.Docker.BuildPod})
 	if err != nil {
 		return nil, err
 	}

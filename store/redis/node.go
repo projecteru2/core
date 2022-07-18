@@ -68,17 +68,17 @@ func (r *Rediaron) GetNodes(ctx context.Context, nodenames []string) ([]*types.N
 
 // GetNodesByPod get all nodes bound to pod
 // here we use podname instead of pod instance
-func (r *Rediaron) GetNodesByPod(ctx context.Context, podname string, labels map[string]string, all bool) ([]*types.Node, error) {
+func (r *Rediaron) GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter) ([]*types.Node, error) {
 	do := func(podname string) ([]*types.Node, error) {
 		key := fmt.Sprintf(nodePodKey, podname, "*")
 		kvs, err := r.getByKeyPattern(ctx, key, 0)
 		if err != nil {
 			return nil, err
 		}
-		return r.doGetNodes(ctx, kvs, labels, all)
+		return r.doGetNodes(ctx, kvs, nodeFilter.Labels, nodeFilter.All)
 	}
-	if podname != "" {
-		return do(podname)
+	if nodeFilter.Podname != "" {
+		return do(nodeFilter.Podname)
 	}
 	pods, err := r.GetAllPods(ctx)
 	if err != nil {

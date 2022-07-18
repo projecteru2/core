@@ -244,13 +244,13 @@ func (_m *Store) GetNodes(ctx context.Context, nodenames []string) ([]*types.Nod
 	return r0, r1
 }
 
-// GetNodesByPod provides a mock function with given fields: ctx, podname, labels, all
-func (_m *Store) GetNodesByPod(ctx context.Context, podname string, labels map[string]string, all bool) ([]*types.Node, error) {
-	ret := _m.Called(ctx, podname, labels, all)
+// GetNodesByPod provides a mock function with given fields: ctx, nodeFilter
+func (_m *Store) GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter) ([]*types.Node, error) {
+	ret := _m.Called(ctx, nodeFilter)
 
 	var r0 []*types.Node
-	if rf, ok := ret.Get(0).(func(context.Context, string, map[string]string, bool) []*types.Node); ok {
-		r0 = rf(ctx, podname, labels, all)
+	if rf, ok := ret.Get(0).(func(context.Context, *types.NodeFilter) []*types.Node); ok {
+		r0 = rf(ctx, nodeFilter)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*types.Node)
@@ -258,8 +258,8 @@ func (_m *Store) GetNodesByPod(ctx context.Context, podname string, labels map[s
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, map[string]string, bool) error); ok {
-		r1 = rf(ctx, podname, labels, all)
+	if rf, ok := ret.Get(1).(func(context.Context, *types.NodeFilter) error); ok {
+		r1 = rf(ctx, nodeFilter)
 	} else {
 		r1 = ret.Error(1)
 	}

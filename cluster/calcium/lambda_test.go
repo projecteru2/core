@@ -47,6 +47,7 @@ func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
 		Entrypoint: &types.Entrypoint{
 			Name: "good-entrypoint",
 		},
+		NodeFilter: &types.NodeFilter{},
 	}
 
 	_, ch, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
@@ -82,6 +83,7 @@ func TestLambdaWithWorkloadIDReturned(t *testing.T) {
 		Entrypoint: &types.Entrypoint{
 			Name: "good-entrypoint",
 		},
+		NodeFilter: &types.NodeFilter{},
 	}
 
 	r1, w1 := io.Pipe()
@@ -133,6 +135,7 @@ func TestLambdaWithError(t *testing.T) {
 		Entrypoint: &types.Entrypoint{
 			Name: "good-entrypoint",
 		},
+		NodeFilter: &types.NodeFilter{},
 	}
 
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, fmt.Errorf("error")).Twice()
@@ -234,7 +237,7 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
 	store.On("GetNode",
 		mock.AnythingOfType("*context.emptyCtx"),
 		mock.AnythingOfType("string"),

@@ -31,6 +31,7 @@ func TestCreateWorkloadValidating(t *testing.T) {
 		Entrypoint: &types.Entrypoint{
 			Name: "some-nice-entrypoint",
 		},
+		NodeFilter: &types.NodeFilter{},
 	}
 	// failed by validating
 	opts.Name = ""
@@ -72,6 +73,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 		Entrypoint: &types.Entrypoint{
 			Name: "good-entrypoint",
 		},
+		NodeFilter: &types.NodeFilter{},
 	}
 
 	store := c.store.(*storemocks.Store)
@@ -274,7 +276,7 @@ func newCreateWorkloadCluster(t *testing.T) (*Calcium, []*types.Node) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
 	// for get node
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(
 		func(_ context.Context, name string) (node *types.Node) {
 			node = node1

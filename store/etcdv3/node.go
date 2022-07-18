@@ -69,17 +69,17 @@ func (m *Mercury) GetNodes(ctx context.Context, nodenames []string) ([]*types.No
 
 // GetNodesByPod get all nodes bound to pod
 // here we use podname instead of pod instance
-func (m *Mercury) GetNodesByPod(ctx context.Context, podname string, labels map[string]string, all bool) ([]*types.Node, error) {
+func (m *Mercury) GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter) ([]*types.Node, error) {
 	do := func(podname string) ([]*types.Node, error) {
 		key := fmt.Sprintf(nodePodKey, podname, "")
 		resp, err := m.Get(ctx, key, clientv3.WithPrefix())
 		if err != nil {
 			return nil, err
 		}
-		return m.doGetNodes(ctx, resp.Kvs, labels, all)
+		return m.doGetNodes(ctx, resp.Kvs, nodeFilter.Labels, nodeFilter.All)
 	}
-	if podname != "" {
-		return do(podname)
+	if nodeFilter.Podname != "" {
+		return do(nodeFilter.Podname)
 	}
 	pods, err := m.GetAllPods(ctx)
 	if err != nil {

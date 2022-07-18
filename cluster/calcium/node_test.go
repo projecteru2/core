@@ -108,7 +108,7 @@ func TestListPodNodes(t *testing.T) {
 	opts := &types.ListNodesOptions{}
 	store := c.store.(*storemocks.Store)
 	// failed by GetNodesByPod
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err := c.ListPodNodes(ctx, opts)
 	assert.Error(t, err)
 	store.AssertExpectations(t)
@@ -122,7 +122,7 @@ func TestListPodNodes(t *testing.T) {
 		{NodeMeta: types.NodeMeta{Name: name1}, Engine: engine, Available: true},
 		{NodeMeta: types.NodeMeta{Name: name2}, Engine: engine, Available: false},
 	}
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrNoETCD)
 	opts.CallInfo = true
@@ -281,7 +281,7 @@ func TestFilterNodes(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 
 	// failed by GetNode
-	nf := types.NodeFilter{Includes: []string{"test"}}
+	nf := &types.NodeFilter{Includes: []string{"test"}}
 	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err := c.filterNodes(ctx, nf)
 	assert.Error(t, err)
@@ -295,7 +295,7 @@ func TestFilterNodes(t *testing.T) {
 
 	// failed by GetNodesByPod
 	nf.Includes = []string{}
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
 	_, err = c.filterNodes(ctx, nf)
 	assert.Error(t, err)
 
@@ -313,7 +313,7 @@ func TestFilterNodes(t *testing.T) {
 			NodeMeta: types.NodeMeta{Name: "D"},
 		},
 	}
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
 
 	// no excludes
 	ns, err = c.filterNodes(ctx, nf)

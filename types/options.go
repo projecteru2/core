@@ -15,7 +15,7 @@ type DeployOptions struct {
 	Name           string            // Name of application
 	Entrypoint     *Entrypoint       // entrypoint
 	Podname        string            // Name of pod to deploy
-	NodeFilter     NodeFilter        // filter of nodenames, using includes or not using excludes
+	NodeFilter     *NodeFilter       // filter of nodenames, using includes or not using excludes
 	Image          string            // Name of image to deploy
 	ExtraArgs      string            // Extra arguments to append to command
 	Count          int               // How many workloads needed, e.g. 4

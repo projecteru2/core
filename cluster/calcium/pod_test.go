@@ -45,7 +45,7 @@ func TestRemovePod(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("RemovePod", mock.Anything, mock.Anything).Return(nil)
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(
 		[]*types.Node{{NodeMeta: types.NodeMeta{Name: "test"}}}, nil)
 
 	assert.NoError(t, c.RemovePod(ctx, "podname"))

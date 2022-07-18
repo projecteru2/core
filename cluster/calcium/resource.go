@@ -15,7 +15,7 @@ import (
 // PodResource show pod resource usage
 func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.NodeResource, error) {
 	logger := log.WithField("Calcium", "PodResource").WithField("podname", podname)
-	nodes, err := c.store.GetNodesByPod(ctx, podname, nil, true)
+	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname})
 	if err != nil {
 		return nil, logger.ErrWithTracing(ctx, err)
 	}

@@ -104,7 +104,7 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 // node with resource info
 func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions) (<-chan *types.Node, error) {
 	logger := log.WithField("Calcium", "ListPodNodes").WithField("podname", opts.Podname).WithField("labels", opts.Labels).WithField("all", opts.All).WithField("info", opts.CallInfo)
-	nodes, err := c.store.GetNodesByPod(ctx, opts.Podname, opts.Labels, opts.All)
+	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: opts.Podname, Labels: opts.Labels, All: opts.All})
 	if err != nil {
 		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
@@ -252,7 +252,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 // NOTE: when nf.Includes is set, they don't need to belong to podname
 // update on 2021-06-21: sort and unique locks to avoid deadlock
 // node without resource info if batch get
-func (c *Calcium) filterNodes(ctx context.Context, nf types.NodeFilter) (ns []*types.Node, err error) {
+func (c *Calcium) filterNodes(ctx context.Context, nodeFilter *types.NodeFilter) (ns []*types.Node, err error) {
 	defer func() {
 		if len(ns) == 0 {
 			return
@@ -264,8 +264,8 @@ func (c *Calcium) filterNodes(ctx context.Context, nf types.NodeFilter) (ns []*t
 		ns = ns[:p]
 	}()
 
-	if len(nf.Includes) != 0 {
-		for _, nodename := range nf.Includes {
+	if len(nodeFilter.Includes) != 0 {
+		for _, nodename := range nodeFilter.Includes {
 			node, err := c.store.GetNode(ctx, nodename)
 			if err != nil {
 				return nil, err
@@ -275,16 +275,16 @@ func (c *Calcium) filterNodes(ctx context.Context, nf types.NodeFilter) (ns []*t
 		return ns, nil
 	}
 
-	listedNodes, err := c.store.GetNodesByPod(ctx, nf.Podname, nf.Labels, nf.All)
+	listedNodes, err := c.store.GetNodesByPod(ctx, nodeFilter)
 	if err != nil {
 		return nil, err
 	}
-	if len(nf.Excludes) == 0 {
+	if len(nodeFilter.Excludes) == 0 {
 		return listedNodes, nil
 	}
 
 	excludes := map[string]struct{}{}
-	for _, n := range nf.Excludes {
+	for _, n := range nodeFilter.Excludes {
 		excludes[n] = struct{}{}
 	}
 
