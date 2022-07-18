@@ -38,14 +38,14 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 		}
 	}
 	ch := make(chan *types.ReplaceWorkloadMessage)
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		defer close(ch)
 		// 并发控制
 		wg := sync.WaitGroup{}
 		wg.Add(len(opts.IDs))
 		defer wg.Wait()
 		for index, id := range opts.IDs {
-			utils.SentryGo(func(replaceOpts types.ReplaceOptions, index int, id string) func() {
+			_ = c.pool.Invoke(func(replaceOpts types.ReplaceOptions, index int, id string) func() {
 				return func() {
 					_ = c.pool.Invoke(func() {
 						defer wg.Done()
@@ -188,7 +188,7 @@ func (c *Calcium) doReplaceWorkload(
 		return createMessage, removeMessage, err
 	}
 
-	go c.doRemapResourceAndLog(ctx, log.WithField("Calcium", "doReplaceWorkload"), node)
+	_ = c.pool.Invoke(func() { c.doRemapResourceAndLog(ctx, log.WithField("Calcium", "doReplaceWorkload"), node) })
 
 	return createMessage, removeMessage, err
 }

@@ -106,7 +106,7 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 		return nil, logger.ErrWithTracing(nil, errors.WithStack(err)) //nolint
 	}
 
-	go cal.InitMetrics(ctx)
+	_ = pool.Invoke(func() { cal.InitMetrics(ctx) })
 
 	return cal, logger.ErrWithTracing(nil, errors.WithStack(err)) //nolint
 }

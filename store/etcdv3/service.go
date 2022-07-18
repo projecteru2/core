@@ -40,7 +40,7 @@ func (e endpoints) ToSlice() (eps []string) {
 // ServiceStatusStream watches /services/ --prefix
 func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error) {
 	ch := make(chan []string)
-	go func() {
+	_ = m.pool.Invoke(func() {
 		defer close(ch)
 
 		// must watch prior to get
@@ -83,7 +83,7 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 				ch <- eps.ToSlice()
 			}
 		}
-	}()
+	})
 	return ch, nil
 }
 

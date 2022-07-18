@@ -8,7 +8,6 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
 // ExecuteWorkload executes commands in running workloads
@@ -16,7 +15,7 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 	logger := log.WithField("Calcium", "ExecuteWorkload").WithField("opts", opts)
 	ch := make(chan *types.AttachWorkloadMessage)
 
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		var err error
 
 		defer func() {

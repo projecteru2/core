@@ -15,7 +15,7 @@ import (
 // WatchServiceStatus returns chan of available service address
 func (c *Calcium) WatchServiceStatus(ctx context.Context) (<-chan types.ServiceStatus, error) {
 	id, ch := c.watcher.Subscribe(ctx)
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		<-ctx.Done()
 		c.watcher.Unsubscribe(id)
 	})
@@ -50,7 +50,7 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	ctx, cancel := context.WithCancel(ctx)
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		defer func() {
 			unregisterService()
 			wg.Done()

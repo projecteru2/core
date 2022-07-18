@@ -178,7 +178,7 @@ func (m *Mercury) GetNodeStatus(ctx context.Context, nodename string) (*types.No
 // DELETE -> Alive: false
 func (m *Mercury) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 	ch := make(chan *types.NodeStatus)
-	go func() {
+	_ = m.pool.Invoke(func() {
 		defer func() {
 			log.Info("[NodeStatusStream] close NodeStatusStream channel")
 			close(ch)
@@ -207,7 +207,7 @@ func (m *Mercury) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 				ch <- status
 			}
 		}
-	}()
+	})
 	return ch
 }
 

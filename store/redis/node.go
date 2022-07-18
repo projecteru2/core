@@ -169,7 +169,7 @@ func (r *Rediaron) GetNodeStatus(ctx context.Context, nodename string) (*types.N
 // DELETE -> Alive: false
 func (r *Rediaron) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 	ch := make(chan *types.NodeStatus)
-	go func() {
+	_ = r.pool.Invoke(func() {
 		defer func() {
 			log.Info("[NodeStatusStream] close NodeStatusStream channel")
 			close(ch)
@@ -191,7 +191,7 @@ func (r *Rediaron) NodeStatusStream(ctx context.Context) chan *types.NodeStatus 
 			}
 			ch <- status
 		}
-	}()
+	})
 	return ch
 }
 
@@ -258,7 +258,6 @@ func (r *Rediaron) doAddNode(ctx context.Context, name, endpoint, podname, ca, c
 		return nil, err
 	}
 
-	// TODO: go metrics.Client.SendNodeInfo(node.Metrics())
 	return node, nil
 }
 

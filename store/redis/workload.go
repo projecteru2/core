@@ -139,7 +139,7 @@ func (r *Rediaron) WorkloadStatusStream(ctx context.Context, appname, entrypoint
 	// 显式加个 / 保证 prefix 唯一
 	statusKey := filepath.Join(workloadStatusPrefix, appname, entrypoint, nodename) + "/*"
 	ch := make(chan *types.WorkloadStatus)
-	go func() {
+	_ = r.pool.Invoke(func() {
 		defer func() {
 			log.Info("[WorkloadStatusStream] close WorkloadStatus channel")
 			close(ch)
@@ -164,7 +164,7 @@ func (r *Rediaron) WorkloadStatusStream(ctx context.Context, appname, entrypoint
 			}
 			ch <- msg
 		}
-	}()
+	})
 	return ch
 }
 

@@ -7,7 +7,6 @@ import (
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 
 	"github.com/pkg/errors"
 )
@@ -19,14 +18,14 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
 	ch := make(chan *types.SendMessage)
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		defer close(ch)
 		wg := &sync.WaitGroup{}
 		wg.Add(len(opts.IDs))
 
 		for _, id := range opts.IDs {
 			log.Infof(ctx, "[Send] Send files to %s", id)
-			utils.SentryGo(func(id string) func() {
+			_ = c.pool.Invoke(func(id string) func() {
 				return func() {
 					defer wg.Done()
 					if err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {

@@ -8,7 +8,6 @@ import (
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 
 	"github.com/pkg/errors"
 )
@@ -22,7 +21,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.
 	}
 	ch := make(chan *types.NodeResource)
 
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		defer close(ch)
 		wg := &sync.WaitGroup{}
 		wg.Add(len(nodes))

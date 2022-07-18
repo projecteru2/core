@@ -17,15 +17,11 @@ import (
 func (c *Calcium) ListNetworks(ctx context.Context, podname string, driver string) ([]*enginetypes.Network, error) {
 	logger := log.WithField("Calcium", "ListNetworks").WithField("podname", podname).WithField("driver", driver)
 	networks := []*enginetypes.Network{}
-	ch, err := c.ListPodNodes(ctx, &types.ListNodesOptions{Podname: podname})
+	nodes, err := c.store.GetNodesByPod(ctx, podname, nil, false)
 	if err != nil {
 		return networks, logger.ErrWithTracing(ctx, errors.WithStack(err))
 	}
 
-	nodes := []*types.Node{}
-	for n := range ch {
-		nodes = append(nodes, n)
-	}
 	if len(nodes) == 0 {
 		return networks, logger.ErrWithTracing(ctx, errors.WithStack(types.NewDetailedErr(types.ErrPodNoNodes, podname)))
 	}

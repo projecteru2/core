@@ -102,7 +102,7 @@ type KNotifyMessage struct {
 // knotify comes from inotify, when a key is changed, notification will be published
 func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMessage {
 	ch := make(chan *KNotifyMessage)
-	go func() {
+	_ = r.pool.Invoke(func() {
 		defer close(ch)
 
 		prefix := fmt.Sprintf(keyNotifyPrefix, r.db, "")
@@ -126,7 +126,7 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 				}
 			}
 		}
-	}()
+	})
 	return ch
 }
 

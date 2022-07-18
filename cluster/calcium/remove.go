@@ -25,13 +25,13 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool) 
 	}
 
 	ch := make(chan *types.RemoveWorkloadMessage)
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
 		defer wg.Wait()
 		for nodename, workloadIDs := range nodeWorkloadGroup {
 			wg.Add(1)
-			utils.SentryGo(func(nodename string, workloadIDs []string) func() {
+			_ = c.pool.Invoke(func(nodename string, workloadIDs []string) func() {
 				return func() {
 					defer wg.Done()
 					if err := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
@@ -77,7 +77,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool) 
 							}
 							ch <- ret
 						}
-						go c.doRemapResourceAndLog(ctx, logger, node)
+						_ = c.pool.Invoke(func() { c.doRemapResourceAndLog(ctx, logger, node) })
 						return nil
 					}); err != nil {
 						logger.WithField("nodename", nodename).Errorf(ctx, "failed to lock node: %+v", err)

@@ -22,7 +22,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *t
 	}
 
 	ch := make(chan *types.DissociateWorkloadMessage)
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		defer close(ch)
 
 		for nodename, workloadIDs := range nodeWorkloadGroup {
@@ -65,7 +65,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *t
 					}
 					ch <- msg
 				}
-				go c.doRemapResourceAndLog(ctx, logger, node)
+				_ = c.pool.Invoke(func() { c.doRemapResourceAndLog(ctx, logger, node) })
 				return nil
 			}); err != nil {
 				logger.WithField("nodename", nodename).Errorf(ctx, "failed to lock node: %+v", err)

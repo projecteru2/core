@@ -38,7 +38,7 @@ func (e endpoints) ToSlice() (eps []string) {
 func (r *Rediaron) ServiceStatusStream(ctx context.Context) (chan []string, error) {
 	key := fmt.Sprintf(serviceStatusKey, "*")
 	ch := make(chan []string)
-	go func() {
+	_ = r.pool.Invoke(func() {
 		defer close(ch)
 
 		watchC := r.KNotify(ctx, key)
@@ -67,7 +67,7 @@ func (r *Rediaron) ServiceStatusStream(ctx context.Context) (chan []string, erro
 				ch <- eps.ToSlice()
 			}
 		}
-	}()
+	})
 	return ch, nil
 }
 

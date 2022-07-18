@@ -7,7 +7,6 @@ import (
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 
 	"github.com/pkg/errors"
 )
@@ -32,7 +31,7 @@ func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (cha
 
 	ch := make(chan *types.CacheImageMessage)
 
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
 		wg.Add(len(nodes))
@@ -79,7 +78,7 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 
 	ch := make(chan *types.RemoveImageMessage)
 
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
 		wg.Add(len(nodes))
@@ -133,7 +132,7 @@ func (c *Calcium) ListImage(ctx context.Context, opts *types.ImageOptions) (chan
 
 	ch := make(chan *types.ListImageMessage)
 
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
 		wg.Add(len(nodes))

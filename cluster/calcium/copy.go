@@ -6,7 +6,6 @@ import (
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
 // Copy uses VirtualizationCopyFrom cp to copy specified things and send to remote
@@ -17,7 +16,7 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 	}
 
 	ch := make(chan *types.CopyMessage)
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		defer close(ch)
 
 		wg := sync.WaitGroup{}
@@ -27,7 +26,7 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 
 		// workload one by one
 		for id, paths := range opts.Targets {
-			utils.SentryGo(func(id string, paths []string) func() {
+			_ = c.pool.Invoke(func(id string, paths []string) func() {
 				return func() {
 					defer wg.Done()
 

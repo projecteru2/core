@@ -133,7 +133,7 @@ func (c *Calcium) buildFromExist(ctx context.Context, opts *types.BuildOptions) 
 func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) { // nolint:unparam
 	logger := log.WithField("Calcium", "pushImage").WithField("node", node).WithField("tags", tags)
 	log.Infof(ctx, "[BuildImage] Pushing image at pod %s node %s", node.Podname, node.Name)
-	return withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
+	return c.withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
 		defer resp.Close()
 		decoder := json.NewDecoder(resp)
 		lastMessage := &types.BuildImageMessage{}
@@ -183,7 +183,8 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 		// 无论如何都删掉build机器的
 		// 事实上他不会跟cached pod一样
 		// 一样就砍死
-		utils.SentryGo(func() {
+		// TODO Maybe blocked !!!
+		_ = c.pool.Invoke(func() {
 			cleanupNodeImages(ctx, node, tags, c.config.GlobalTimeout)
 		})
 	}), nil
@@ -199,9 +200,9 @@ func (c *Calcium) getWorkloadNode(ctx context.Context, id string) (*types.Node, 
 	return node, err
 }
 
-func withImageBuiltChannel(f func(chan *types.BuildImageMessage)) chan *types.BuildImageMessage {
+func (c *Calcium) withImageBuiltChannel(f func(chan *types.BuildImageMessage)) chan *types.BuildImageMessage {
 	ch := make(chan *types.BuildImageMessage)
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		defer close(ch)
 		f(ch)
 	})

@@ -54,7 +54,7 @@ func (c *Calcium) remapResource(ctx context.Context, node *types.Node) (ch chan 
 	}
 
 	ch = make(chan *remapMsg, len(engineArgsMap))
-	go func() {
+	_ = c.pool.Invoke(func() {
 		defer close(ch)
 		for workloadID, engineArgs := range engineArgsMap {
 			ch <- &remapMsg{
@@ -62,7 +62,7 @@ func (c *Calcium) remapResource(ctx context.Context, node *types.Node) (ch chan 
 				err: node.Engine.VirtualizationUpdateResource(ctx, workloadID, &enginetypes.VirtualizationResource{EngineArgs: engineArgs}),
 			}
 		}
-	}()
+	})
 
 	return ch, nil
 }

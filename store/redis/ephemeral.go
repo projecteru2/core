@@ -28,7 +28,7 @@ func (r *Rediaron) StartEphemeral(ctx context.Context, path string, heartbeat ti
 
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go func() {
+	_ = r.pool.Invoke(func() {
 		defer wg.Done()
 		defer close(expiry)
 
@@ -47,7 +47,7 @@ func (r *Rediaron) StartEphemeral(ctx context.Context, path string, heartbeat ti
 				return
 			}
 		}
-	}()
+	})
 
 	return expiry, func() {
 		cancel()

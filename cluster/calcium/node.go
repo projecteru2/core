@@ -52,7 +52,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 			}
 			node.Resource.Capacity = resourceCapacity
 			node.Resource.Usage = resourceUsage
-			go c.doSendNodeMetrics(ctx, node)
+			_ = c.pool.Invoke(func() { c.doSendNodeMetrics(ctx, node) })
 			return nil
 		},
 		// rollback: remove node with resource plugins
@@ -110,7 +110,7 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 	}
 	ch := make(chan *types.Node)
 
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		defer close(ch)
 		wg := &sync.WaitGroup{}
 		wg.Add(len(nodes))
@@ -228,7 +228,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 					n.Resource.Capacity, n.Resource.Usage, n.Resource.Diffs, _ = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
 				}
 				// use send to update the usage
-				go c.doSendNodeMetrics(ctx, n)
+				_ = c.pool.Invoke(func() { c.doSendNodeMetrics(ctx, n) })
 				return nil
 			},
 			// rollback: update node resource capacity in reverse

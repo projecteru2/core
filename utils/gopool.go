@@ -10,5 +10,5 @@ func NewPool(max int) (*ants.PoolWithFunc, error) {
 		defer SentryDefer()
 		f, _ := i.(func())
 		f()
-	})
+	}, ants.WithNonblocking(true))
 }

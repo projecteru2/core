@@ -54,7 +54,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		resourceArgsMap = map[string][]map[string]types.WorkloadResourceArgs{}
 	)
 
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		defer func() {
 			cctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.TODO()), c.config.GlobalTimeout)
 			for nodename := range deployMap {
@@ -180,12 +180,12 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 	seq := 0
 	rollbackMap := make(map[string][]int)
 	for nodename, deploy := range deployMap {
-		utils.SentryGo(func(deploy int) func() {
+		_ = c.pool.Invoke(func(deploy int) func() {
 			return func() {
 				metrics.Client.SendDeployCount(deploy)
 			}
 		}(deploy))
-		utils.SentryGo(func(nodename string, deploy, seq int) func() {
+		_ = c.pool.Invoke(func(nodename string, deploy, seq int) func() {
 			return func() {
 				defer wg.Done()
 				if indices, err := c.doDeployWorkloadsOnNode(ctx, ch, nodename, opts, deploy, engineArgsMap[nodename], resourceArgsMap[nodename], seq); err != nil {
@@ -269,7 +269,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	// remap 就不搞进事务了吧, 回滚代价太大了
 	// 放任 remap 失败的后果是, share pool 没有更新, 这个后果姑且认为是可以承受的
 	// 而且 remap 是一个幂等操作, 就算这次 remap 失败, 下次 remap 也能收敛到正确到状态
-	go c.doRemapResourceAndLog(ctx, logger, node)
+	_ = c.pool.Invoke(func() { c.doRemapResourceAndLog(ctx, logger, node) })
 
 	return indices, err
 }

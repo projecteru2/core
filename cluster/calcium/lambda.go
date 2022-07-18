@@ -180,14 +180,14 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		// iterate over messages to store workload ids
 		workloadIDs = append(workloadIDs, message.WorkloadID)
 		wg.Add(1)
-		utils.SentryGo(func(msg *types.CreateWorkloadMessage) func() {
+		_ = c.pool.Invoke(func(msg *types.CreateWorkloadMessage) func() {
 			return func() {
 				lambda(msg)
 			}
 		}(message))
 	}
 
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		defer close(runMsgCh)
 		wg.Wait()
 
