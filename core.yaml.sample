@@ -7,7 +7,7 @@ ha_keepalive_interval: 16s                                              # requir
 statsd: "127.0.0.1:8125"                                                # optional
 profile: ":12346"                                                       # optional
 cert_path: "/etc/eru/tls"                                               # optional, if you need connect to daemon without https
-max_concurrency: 1000                                                   # optional, default 1000 for pool size
+max_concurrency: 100000                                                 # optional, default 100000 for pool size
 store: etcd                                                             # optional, default etcd can choose redis
 sentry_dsn: "https://examplePublicKey@o0.ingest.sentry.io/0"            # optional
 
