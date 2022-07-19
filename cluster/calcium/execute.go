@@ -50,13 +50,13 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 
 		splitFunc, split := bufio.ScanLines, byte('\n')
 		if opts.OpenStdin {
-			processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
+			c.processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
 				return workload.Engine.ExecResize(ctx, execID, height, width)
 			})
 			splitFunc, split = bufio.ScanBytes, byte(0)
 		}
 
-		for m := range processStdStream(ctx, stdout, stderr, splitFunc, split) {
+		for m := range c.processStdStream(ctx, stdout, stderr, splitFunc, split) {
 			ch <- &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: m.Data, StdStreamType: m.StdStreamType}
 		}
 

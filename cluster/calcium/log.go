@@ -35,7 +35,7 @@ func (c *Calcium) LogStream(ctx context.Context, opts *types.LogStreamOptions) (
 			return
 		}
 
-		for m := range processStdStream(ctx, stdout, stderr, bufio.ScanLines, byte('\n')) {
+		for m := range c.processStdStream(ctx, stdout, stderr, bufio.ScanLines, byte('\n')) {
 			ch <- &types.LogStreamMessage{ID: opts.ID, Data: m.Data, StdStreamType: m.StdStreamType}
 		}
 	})

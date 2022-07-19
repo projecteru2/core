@@ -138,14 +138,14 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 				}
 			}
 
-			processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
+			c.processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
 				return workload.Engine.VirtualizationResize(ctx, message.WorkloadID, height, width)
 			})
 
 			splitFunc, split = bufio.ScanBytes, byte(0)
 		}
 
-		for m := range processStdStream(ctx, stdout, stderr, splitFunc, split) {
+		for m := range c.processStdStream(ctx, stdout, stderr, splitFunc, split) {
 			runMsgCh <- &types.AttachWorkloadMessage{
 				WorkloadID:    message.WorkloadID,
 				Data:          m.Data,

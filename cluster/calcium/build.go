@@ -174,7 +174,7 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 				continue
 			}
 
-			for message := range processBuildImageStream(ctx, rc) {
+			for message := range c.processBuildImageStream(ctx, rc) {
 				ch <- message
 			}
 
