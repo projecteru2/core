@@ -26,7 +26,7 @@ func (c *Calcium) WatchServiceStatus(ctx context.Context) (<-chan types.ServiceS
 
 // RegisterService writes self service address in store
 func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err error) {
-	serviceAddress, err := utils.GetOutboundAddress(c.config.Bind)
+	serviceAddress, err := utils.GetOutboundAddress(c.config.Bind, c.config.DialTarget)
 	if err != nil {
 		log.Errorf(ctx, "[RegisterService] failed to get outbound address: %v", err)
 		return
