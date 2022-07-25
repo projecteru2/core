@@ -8,7 +8,7 @@ import (
 
 func TestGetOutboundAddress(t *testing.T) {
 	bind := "1.1.1.1:1234"
-	addr, err := GetOutboundAddress(bind)
+	addr, err := GetOutboundAddress(bind, "8.8.8.8:80")
 	assert.NoError(t, err)
 	assert.Contains(t, addr, "1234")
 }
