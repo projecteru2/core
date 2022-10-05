@@ -8,7 +8,7 @@ import (
 )
 
 func TestMockedKV(t *testing.T) {
-	m := &MockedKV{}
+	m := NewMockedKV()
 	require.NoError(t, m.Open("/tmp/wal", 0777, time.Second))
 
 	a := []byte("/a")

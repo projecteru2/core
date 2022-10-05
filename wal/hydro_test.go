@@ -198,8 +198,10 @@ func TestHydroRecover(t *testing.T) {
 
 	// The handled events should be removed.
 	ch, _ := hydro.store.Scan([]byte(eventPrefix))
-	for range ch {
+	select {
+	case <-ch:
 		assert.Fail(t, "the events should be deleted")
+	default:
 	}
 }
 
@@ -235,8 +237,10 @@ func TestHydroRecoverWithRealLithium(t *testing.T) {
 	hydro.Recover(context.TODO())
 
 	ch, _ := hydro.store.Scan([]byte(eventPrefix))
-	for range ch {
+	select {
+	case <-ch:
 		assert.FailNow(t, "expects no data")
+	default:
 	}
 }
 

@@ -1,12 +1,12 @@
 module github.com/projecteru2/core
 
-go 1.18
+go 1.19
 
 require (
 	github.com/CMGS/statsd v0.0.0-20160223095033-48c421b3c1ab
 	github.com/alicebob/miniredis/v2 v2.14.3
 	github.com/cenkalti/backoff/v4 v4.1.1
-	github.com/cornelk/hashmap v1.0.1
+	github.com/cornelk/hashmap v1.0.8
 	github.com/docker/distribution v2.8.0+incompatible
 	github.com/docker/docker v20.10.0+incompatible
 	github.com/docker/go-connections v0.4.0

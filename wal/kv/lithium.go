@@ -106,7 +106,7 @@ func (l *Lithium) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 
 		scan := func(bkt *bbolt.Bucket) error {
 			c := bkt.Cursor()
-			for key, value := c.First(); key != nil && bytes.HasPrefix(key, prefix); key, value = c.Next() {
+			for key, value := c.Seek(prefix); key != nil && bytes.HasPrefix(key, prefix); key, value = c.Next() {
 				select {
 				case <-exit:
 					return nil
