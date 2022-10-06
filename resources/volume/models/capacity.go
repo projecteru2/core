@@ -40,7 +40,7 @@ func (v *Volume) GetNodesDeployCapacity(ctx context.Context, nodes []string, opt
 	return capacityInfoMap, total, nil
 }
 
-func (v *Volume) doGetNodeCapacityInfo(ctx context.Context, node string, resourceInfo *types.NodeResourceInfo, opts *types.WorkloadResourceOpts) *types.NodeCapacityInfo {
+func (v *Volume) doGetNodeCapacityInfo(_ context.Context, node string, resourceInfo *types.NodeResourceInfo, opts *types.WorkloadResourceOpts) *types.NodeCapacityInfo {
 	capacityInfo := &types.NodeCapacityInfo{
 		Node:   node,
 		Weight: 1,

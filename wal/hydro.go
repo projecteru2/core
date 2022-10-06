@@ -17,7 +17,7 @@ const (
 
 // Hydro is the simplest wal implementation.
 type Hydro struct {
-	hashmap.HashMap
+	*hashmap.Map[string, EventHandler]
 	store kv.KV
 }
 
@@ -27,7 +27,10 @@ func NewHydro(path string, timeout time.Duration) (*Hydro, error) {
 	if err := store.Open(path, fileMode, timeout); err != nil {
 		return nil, err
 	}
-	return &Hydro{HashMap: hashmap.HashMap{}, store: store}, nil
+	return &Hydro{
+		Map:   hashmap.New[string, EventHandler](),
+		store: store,
+	}, nil
 }
 
 // Close disconnects the kvdb.
@@ -43,9 +46,15 @@ func (h *Hydro) Register(handler EventHandler) {
 // Recover starts a disaster recovery, which will replay all the events.
 func (h *Hydro) Recover(ctx context.Context) {
 	ch, _ := h.store.Scan([]byte(eventPrefix))
-
 	events := []HydroEvent{}
-	for scanEntry := range ch {
+
+	for {
+		scanEntry, ok := <-ch
+		if !ok {
+			log.Errorf(nil, "[Recover] closed ch") // nolint
+			break
+		}
+
 		event, err := h.decodeEvent(scanEntry)
 		if err != nil {
 			log.Errorf(nil, "[Recover] decode event error: %v", err) // nolint
@@ -123,11 +132,10 @@ func (h *Hydro) recover(ctx context.Context, handler EventHandler, event HydroEv
 }
 
 func (h *Hydro) getEventHandler(eventyp string) (EventHandler, bool) {
-	v, ok := h.GetStringKey(eventyp)
+	handler, ok := h.Map.Get(eventyp)
 	if !ok {
 		return nil, ok
 	}
-	handler, ok := v.(EventHandler)
 	return handler, ok
 }
 

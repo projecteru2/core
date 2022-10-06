@@ -175,7 +175,7 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(deployMap))
-	syncRollbackMap := hashmap.HashMap{}
+	syncRollbackMap := hashmap.New[string, []int]()
 
 	seq := 0
 	rollbackMap := make(map[string][]int)
@@ -198,11 +198,10 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 	}
 
 	wg.Wait()
-	for kv := range syncRollbackMap.Iter() {
-		nodename := kv.Key.(string)
-		indices := kv.Value.([]int)
+	syncRollbackMap.Range(func(nodename string, indices []int) bool {
 		rollbackMap[nodename] = indices
-	}
+		return true
+	})
 	log.Debugf(ctx, "[Calcium.doDeployWorkloads] rollbackMap: %+v", rollbackMap)
 	if len(rollbackMap) != 0 {
 		err = types.ErrRollbackMapIsNotEmpty

@@ -54,7 +54,7 @@ func (ep engineParams) getCacheKey() string {
 // EngineCache .
 type EngineCache struct {
 	cache       *utils.EngineCache
-	keysToCheck hashmap.HashMap
+	keysToCheck *hashmap.Map[uintptr, engineParams]
 	pool        *ants.PoolWithFunc
 	config      types.Config
 }
@@ -64,7 +64,7 @@ func NewEngineCache(config types.Config) *EngineCache {
 	pool, _ := utils.NewPool(config.MaxConcurrency)
 	return &EngineCache{
 		cache:       utils.NewEngineCache(12*time.Hour, 10*time.Minute),
-		keysToCheck: hashmap.HashMap{},
+		keysToCheck: hashmap.New[uintptr, engineParams](),
 		pool:        pool,
 		config:      config,
 	}
@@ -106,9 +106,10 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 
 		paramsChan := make(chan engineParams)
 		go func() {
-			for kv := range e.keysToCheck.Iter() {
-				paramsChan <- kv.Value.(engineParams)
-			}
+			e.keysToCheck.Range(func(k uintptr, v engineParams) bool {
+				paramsChan <- v
+				return true
+			})
 			close(paramsChan)
 		}()
 

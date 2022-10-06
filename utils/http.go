@@ -27,7 +27,7 @@ var defaultUnixSockClient = &http.Client{
 	Transport: getDefaultUnixSockTransport(),
 }
 
-var httpsClientCache = hashmap.New(32)
+var httpsClientCache = hashmap.New[string, *http.Client]()
 
 // GetHTTPClient returns a HTTP client
 func GetHTTPClient() *http.Client {
@@ -48,7 +48,7 @@ func GetHTTPSClient(ctx context.Context, certPath, name, ca, cert, key string) (
 
 	cacheKey := name + SHA256(fmt.Sprintf("%s-%s-%s-%s-%s", certPath, name, ca, cert, key))[:8]
 	if httpsClient, ok := httpsClientCache.Get(cacheKey); ok {
-		return httpsClient.(*http.Client), nil
+		return httpsClient, nil
 	}
 
 	caFile, err := ioutil.TempFile(certPath, fmt.Sprintf("ca-%s", name))

@@ -18,9 +18,10 @@ const interval = 15 * time.Second
 // Helium .
 type Helium struct {
 	sync.Once
-	store    store.Store
-	subs     hashmap.HashMap
-	interval time.Duration
+	store     store.Store
+	subs      *hashmap.Map[uint32, entry]
+	interval  time.Duration
+	unsubChan chan uint32
 }
 
 type entry struct {
@@ -31,7 +32,12 @@ type entry struct {
 
 // New .
 func New(config types.GRPCConfig, store store.Store) *Helium {
-	h := &Helium{interval: config.ServiceDiscoveryPushInterval, store: store, subs: hashmap.HashMap{}}
+	h := &Helium{
+		interval:  config.ServiceDiscoveryPushInterval,
+		store:     store,
+		subs:      hashmap.New[uint32, entry](),
+		unsubChan: make(chan uint32),
+	}
 	if h.interval < time.Second {
 		h.interval = interval
 	}
@@ -57,18 +63,7 @@ func (h *Helium) Subscribe(ctx context.Context) (uuid.UUID, <-chan types.Service
 
 // Unsubscribe .
 func (h *Helium) Unsubscribe(id uuid.UUID) {
-	v, ok := h.subs.GetUintKey(uintptr(id.ID()))
-	if !ok {
-		return
-	}
-
-	entry, ok := v.(entry)
-	if !ok {
-		return
-	}
-	entry.cancel()
-	h.subs.Del(id.ID())
-	close(entry.ch)
+	h.unsubChan <- id.ID()
 }
 
 func (h *Helium) start(ctx context.Context) {
@@ -96,33 +91,38 @@ func (h *Helium) start(ctx context.Context) {
 					Addresses: addresses,
 					Interval:  h.interval * 2,
 				}
+
+			case id := <-h.unsubChan:
+				if entry, ok := h.subs.Get(id); ok {
+					entry.cancel()
+					h.subs.Del(id)
+					close(entry.ch)
+				}
+
 			case <-ticker.C:
 			}
+
 			h.dispatch(latestStatus)
 		}
 	}()
 }
 
 func (h *Helium) dispatch(status types.ServiceStatus) {
-	f := func(kv hashmap.KeyValue) {
+	f := func(key uint32, val entry) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Errorf(context.TODO(), "[dispatch] dispatch %v failed, err: %v", kv.Key, err)
+				log.Errorf(context.TODO(), "[dispatch] dispatch %v failed, err: %v", key, err)
 			}
 		}()
-		e, ok := kv.Value.(entry)
-		if !ok {
-			log.Error("[WatchServiceStatus] failed to cast entry from map")
-			return
-		}
 		select {
-		case e.ch <- status:
+		case val.ch <- status:
 			return
-		case <-e.ctx.Done():
+		case <-val.ctx.Done():
 			return
 		}
 	}
-	for kv := range h.subs.Iter() {
-		f(kv)
-	}
+	h.subs.Range(func(k uint32, v entry) bool {
+		f(k, v)
+		return true
+	})
 }

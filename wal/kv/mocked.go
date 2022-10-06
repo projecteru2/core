@@ -13,7 +13,7 @@ import (
 // MockedKV .
 type MockedKV struct {
 	sync.Mutex
-	pool    hashmap.HashMap
+	pool    *hashmap.Map[string, []byte]
 	nextSeq uint64
 }
 
@@ -21,6 +21,7 @@ type MockedKV struct {
 func NewMockedKV() *MockedKV {
 	return &MockedKV{
 		nextSeq: 1,
+		pool:    hashmap.New[string, []byte](),
 	}
 }
 
@@ -31,9 +32,10 @@ func (m *MockedKV) Open(path string, mode os.FileMode, timeout time.Duration) er
 
 // Close .
 func (m *MockedKV) Close() error {
-	for kv := range m.pool.Iter() {
-		m.pool.Del(kv.Key)
-	}
+	m.pool.Range(func(k string, _ []byte) bool {
+		m.pool.Del(k)
+		return true
+	})
 	return nil
 }
 
@@ -54,16 +56,11 @@ func (m *MockedKV) Put(key, value []byte) (err error) {
 
 // Get .
 func (m *MockedKV) Get(key []byte) (value []byte, err error) {
-	raw, ok := m.pool.GetStringKey(string(key))
+	value, ok := m.pool.Get(string(key))
 	if !ok {
 		err = fmt.Errorf("no such key: %s", key)
 		return
 	}
-
-	if value, ok = raw.([]byte); !ok {
-		err = fmt.Errorf("value must be a []byte, but %v", raw)
-	}
-
 	return
 }
 
@@ -84,34 +81,27 @@ func (m *MockedKV) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 
 	go func() {
 		defer close(ch)
-		dataCh := m.pool.Iter()
+
+		dataCh := make(chan MockedScanEntry)
+		go func() {
+			defer close(dataCh)
+			m.pool.Range(func(k string, v []byte) bool {
+				dataCh <- MockedScanEntry{Key: k, Value: v}
+				return true
+			})
+		}()
 
 		for {
 			select {
 			case <-exit:
 				return
-			case kv := <-dataCh:
-				var entry MockedScanEntry
-				var ok bool
-
-				if kv.Key == nil {
+			case entry, ok := <-dataCh:
+				switch {
+				case !ok:
 					return
+				case strings.HasPrefix(entry.Key, string(prefix)):
+					ch <- entry
 				}
-
-				if entry.Key, ok = kv.Key.(string); !ok {
-					entry.Err = fmt.Errorf("key must be a string, but %v", kv.Key)
-					continue
-				}
-
-				if !strings.HasPrefix(entry.Key, string(prefix)) {
-					continue
-				}
-
-				if entry.Value, ok = kv.Value.([]byte); !ok {
-					entry.Err = fmt.Errorf("value must be a []byte, but %v", kv.Value)
-					continue
-				}
-				ch <- entry
 			}
 		}
 	}()
