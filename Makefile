@@ -56,6 +56,7 @@ unit-test:
 	./source/common/... \
 	./strategy/... \
 	./rpc/. \
+	./engine/. \
 	./lock/etcdlock/... \
 	./auth/simple/... \
 	./discovery/helium... \

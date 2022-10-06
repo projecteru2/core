@@ -82,7 +82,7 @@ func (c *Plugin) GetRemapArgs(ctx context.Context, nodename string, workloadMap 
 
 	resp := &resources.GetRemapArgsResponse{}
 	return resp, mapstructure.Decode(map[string]interface{}{
-		"engine_args": engineArgs,
+		"engine_args_map": engineArgs,
 	}, resp)
 }
 
@@ -114,7 +114,7 @@ func (c *Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*reso
 
 	resp := &resources.GetMostIdleNodeResponse{}
 	return resp, mapstructure.Decode(map[string]interface{}{
-		"node":     nodename,
+		"nodename": nodename,
 		"priority": priority,
 	}, resp)
 }

@@ -12,14 +12,14 @@ import (
 
 // NodeMeta .
 type NodeMeta struct {
-	Name     string            `json:"name"`
-	Endpoint string            `json:"endpoint"`
-	Podname  string            `json:"podname"`
-	Labels   map[string]string `json:"labels"`
+	Name     string            `json:"name" mapstructure:"name"`
+	Endpoint string            `json:"endpoint" mapstructure:"endpoint"`
+	Podname  string            `json:"podname" mapstructure:"podname"`
+	Labels   map[string]string `json:"labels" mapstructure:"labels"`
 
-	Ca   string `json:"-"`
-	Cert string `json:"-"`
-	Key  string `json:"-"`
+	Ca   string `json:"-" mapstructure:"-"`
+	Cert string `json:"-" mapstructure:"-"`
+	Key  string `json:"-" mapstructure:"-"`
 }
 
 // DeepCopy returns a deepcopy of nodemeta

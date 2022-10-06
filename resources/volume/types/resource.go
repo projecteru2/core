@@ -140,17 +140,17 @@ func (w *WorkloadResourceOpts) ParseFromRawParams(rawParams coretypes.RawParams)
 
 // WorkloadResourceArgs .
 type WorkloadResourceArgs struct {
-	VolumesRequest VolumeBindings `json:"volumes_request"`
-	VolumesLimit   VolumeBindings `json:"volumes_limit"`
+	VolumesRequest VolumeBindings `json:"volumes_request" mapstructure:"volumes_request"`
+	VolumesLimit   VolumeBindings `json:"volumes_limit" mapstructure:"volumes_limit"`
 
-	VolumePlanRequest VolumePlan `json:"volume_plan_request"`
-	VolumePlanLimit   VolumePlan `json:"volume_plan_limit"`
+	VolumePlanRequest VolumePlan `json:"volume_plan_request" mapstructure:"volume_plan_request"`
+	VolumePlanLimit   VolumePlan `json:"volume_plan_limit" mapstructure:"volume_plan_limit"`
 
-	StorageRequest int64 `json:"storage_request"`
-	StorageLimit   int64 `json:"storage_limit"`
+	StorageRequest int64 `json:"storage_request" mapstructure:"storage_request"`
+	StorageLimit   int64 `json:"storage_limit" mapstructure:"storage_limit"`
 
-	DisksRequest Disks `json:"disks_request"`
-	DisksLimit   Disks `json:"disks_limit"`
+	DisksRequest Disks `json:"disks_request" mapstructure:"disks_request"`
+	DisksLimit   Disks `json:"disks_limit" mapstructure:"disks_limit"`
 }
 
 // ParseFromRawParams .
@@ -231,9 +231,9 @@ func (n *NodeResourceOpts) SkipEmpty(resourceCapacity *NodeResourceArgs) {
 
 // NodeResourceArgs .
 type NodeResourceArgs struct {
-	Volumes VolumeMap `json:"volumes"`
-	Storage int64     `json:"storage"`
-	Disks   Disks     `json:"disks"`
+	Volumes VolumeMap `json:"volumes" mapstructure:"volumes"`
+	Storage int64     `json:"storage" mapstructure:"storage"`
+	Disks   Disks     `json:"disks" mapstructure:"disks"`
 }
 
 // ParseFromRawParams .

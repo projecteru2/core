@@ -113,7 +113,7 @@ func (v *Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*reso
 
 	resp := &resources.GetMostIdleNodeResponse{}
 	return resp, mapstructure.Decode(map[string]interface{}{
-		"node":     nodename,
+		"nodename": nodename,
 		"priority": priority,
 	}, resp)
 }
