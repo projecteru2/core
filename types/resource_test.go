@@ -52,9 +52,3 @@ func TestRawParams(t *testing.T) {
 	assert.Equal(t, r.RawParams("raw-params")["int64"], 1)
 	assert.Equal(t, r.IsSet("?"), false)
 }
-
-func TestCovertRawToMap(t *testing.T) {
-	r := RawParams{}
-	res := ConvertRawParamsToMap[int64](r)
-	assert.NotNil(t, res)
-}

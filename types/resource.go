@@ -1,7 +1,6 @@
 package types
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 )
@@ -95,14 +94,6 @@ func (r RawParams) RawParams(key string) map[string]interface{} {
 		}
 	}
 	return map[string]interface{}{}
-}
-
-// ConvertRawParamsToMap .
-func ConvertRawParamsToMap[V any](r RawParams) map[string]V {
-	res := map[string]V{}
-	body, _ := json.Marshal(r)
-	_ = json.Unmarshal(body, &res)
-	return res
 }
 
 // NodeResourceOpts .

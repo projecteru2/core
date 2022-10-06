@@ -1,7 +1,6 @@
 package types
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -72,11 +71,7 @@ type WorkloadResourceArgs struct {
 
 // ParseFromRawParams .
 func (r *WorkloadResourceArgs) ParseFromRawParams(rawParams coretypes.RawParams) error {
-	body, err := json.Marshal(rawParams)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(body, r)
+	return mapstructure.Decode(rawParams, r)
 }
 
 // DeepCopy .
@@ -466,9 +461,5 @@ type WorkloadResourceArgsMap map[string]*WorkloadResourceArgs
 
 // ParseFromRawParamsMap .
 func (w *WorkloadResourceArgsMap) ParseFromRawParamsMap(rawParamsMap map[string]coretypes.RawParams) error {
-	body, err := json.Marshal(rawParamsMap)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(body, w)
+	return mapstructure.Decode(rawParamsMap, w)
 }

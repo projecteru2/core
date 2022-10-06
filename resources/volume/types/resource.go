@@ -1,11 +1,11 @@
 package types
 
 import (
-	"encoding/json"
 	"sort"
 	"strings"
 	"sync"
 
+	"github.com/mitchellh/mapstructure"
 	coretypes "github.com/projecteru2/core/types"
 	coreutils "github.com/projecteru2/core/utils"
 
@@ -155,11 +155,7 @@ type WorkloadResourceArgs struct {
 
 // ParseFromRawParams .
 func (w *WorkloadResourceArgs) ParseFromRawParams(rawParams coretypes.RawParams) (err error) {
-	body, err := json.Marshal(rawParams)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(body, w)
+	return mapstructure.Decode(rawParams, w)
 }
 
 // NodeResourceOpts .
@@ -242,11 +238,7 @@ type NodeResourceArgs struct {
 
 // ParseFromRawParams .
 func (n *NodeResourceArgs) ParseFromRawParams(rawParams coretypes.RawParams) error {
-	body, err := json.Marshal(rawParams)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(body, n)
+	return mapstructure.Decode(rawParams, n)
 }
 
 // DeepCopy .
@@ -421,12 +413,3 @@ type EngineArgs struct {
 
 // WorkloadResourceArgsMap .
 type WorkloadResourceArgsMap map[string]*WorkloadResourceArgs
-
-// ParseFromRawParamsMap .
-func (w *WorkloadResourceArgsMap) ParseFromRawParamsMap(rawParamsMap map[string]coretypes.RawParams) error {
-	body, err := json.Marshal(rawParamsMap)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(body, w)
-}

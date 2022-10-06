@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 
 	engine "github.com/projecteru2/core/engine"
@@ -23,11 +24,7 @@ type NodeMeta struct {
 
 // DeepCopy returns a deepcopy of nodemeta
 func (n NodeMeta) DeepCopy() (nn NodeMeta, err error) {
-	b, err := json.Marshal(n)
-	if err != nil {
-		return nn, errors.WithStack(err)
-	}
-	return nn, errors.WithStack(json.Unmarshal(b, &nn))
+	return nn, errors.WithStack(mapstructure.Decode(n, &nn))
 }
 
 // NodeResource for resource
