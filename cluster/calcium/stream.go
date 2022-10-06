@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -151,7 +150,7 @@ func (c *Calcium) processBuildImageStream(ctx context.Context, reader io.ReadClo
 			err := decoder.Decode(message)
 			if err != nil {
 				if err != io.EOF {
-					malformed, _ := ioutil.ReadAll(decoder.Buffered()) // TODO err check
+					malformed, _ := io.ReadAll(decoder.Buffered()) // TODO err check
 					log.Errorf(ctx, "[processBuildImageStream] Decode image message failed %v, buffered: %s", err, string(malformed))
 					message.Error = err.Error()
 					ch <- message

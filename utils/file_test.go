@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -9,14 +8,14 @@ import (
 )
 
 func TestListAllExecutableFiles(t *testing.T) {
-	dir, err := ioutil.TempDir(os.TempDir(), "test*")
+	dir, err := os.MkdirTemp(os.TempDir(), "test*")
 	assert.NoError(t, err)
 	defer os.RemoveAll(dir)
 
-	file, err := ioutil.TempFile(dir, "abc")
+	file, err := os.CreateTemp(dir, "abc")
 	assert.NoError(t, err)
 
-	subdir, err := ioutil.TempDir(dir, "def")
+	subdir, err := os.MkdirTemp(dir, "def")
 	assert.NoError(t, err)
 
 	assert.NotNil(t, file)

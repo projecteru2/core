@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 
 	"github.com/docker/go-units"
 	mock "github.com/stretchr/testify/mock"
@@ -45,10 +44,10 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 			return utils.RandomString(64)
 		},
 		func(context.Context, string, *enginetypes.ExecConfig) io.ReadCloser {
-			return ioutil.NopCloser(bytes.NewBufferString(utils.RandomString(128)))
+			return io.NopCloser(bytes.NewBufferString(utils.RandomString(128)))
 		},
 		func(context.Context, string, *enginetypes.ExecConfig) io.ReadCloser {
-			return ioutil.NopCloser(bytes.NewBufferString(utils.RandomString(128)))
+			return io.NopCloser(bytes.NewBufferString(utils.RandomString(128)))
 		},
 		func(context.Context, string, *enginetypes.ExecConfig) io.WriteCloser {
 			return &writeCloser{bufio.NewWriter(bytes.NewBuffer([]byte{}))}
@@ -69,11 +68,11 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	e.On("ImageRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		[]string{"mock-image1", "mock-image2"}, nil)
 	e.On("ImagesPrune", mock.Anything).Return(nil)
-	pullImageData := ioutil.NopCloser(bytes.NewBufferString("pull image layer1 ...\npull image layer2...\n"))
+	pullImageData := io.NopCloser(bytes.NewBufferString("pull image layer1 ...\npull image layer2...\n"))
 	e.On("ImagePull", mock.Anything, mock.Anything, mock.Anything).Return(pullImageData, nil)
-	pushImageData := ioutil.NopCloser(bytes.NewBufferString("{\"stream\":\"push something...\"}\n"))
+	pushImageData := io.NopCloser(bytes.NewBufferString("{\"stream\":\"push something...\"}\n"))
 	e.On("ImagePush", mock.Anything, mock.Anything).Return(pushImageData, nil)
-	buildImageData := ioutil.NopCloser(bytes.NewBufferString("{\"stream\":\"build something...\"}\n"))
+	buildImageData := io.NopCloser(bytes.NewBufferString("{\"stream\":\"build something...\"}\n"))
 	e.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything).Return(buildImageData, nil)
 	e.On("ImageBuildCachePrune", mock.Anything, mock.Anything).Return(uint64(0), nil)
 	imageDigest := utils.RandomString(64)
@@ -82,7 +81,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	e.On("ImageBuildFromExist", mock.Anything, mock.Anything, mock.Anything).Return("ImageBuildFromExist", nil)
 	// build
 	e.On("BuildRefs", mock.Anything, mock.Anything, mock.Anything).Return([]string{"ref1", "ref2"})
-	buildContent := ioutil.NopCloser(bytes.NewBufferString("this is content"))
+	buildContent := io.NopCloser(bytes.NewBufferString("this is content"))
 	e.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("BuildContent", buildContent, nil)
 	// virtualization
 	var ID string
@@ -100,9 +99,9 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	e.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	vcJSON := &enginetypes.VirtualizationInfo{ID: ID, Image: "mock-image", Running: true, Networks: map[string]string{"mock-network": "1.1.1.1"}}
 	e.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(vcJSON, nil)
-	logs := ioutil.NopCloser(bytes.NewBufferString("logs1...\nlogs2...\n"))
+	logs := io.NopCloser(bytes.NewBufferString("logs1...\nlogs2...\n"))
 	e.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(logs, logs, nil)
-	attachData := ioutil.NopCloser(bytes.NewBufferString("logs1...\nlogs2...\n"))
+	attachData := io.NopCloser(bytes.NewBufferString("logs1...\nlogs2...\n"))
 	writeBuffer := &writeCloser{bufio.NewWriter(bytes.NewBuffer([]byte{}))}
 	e.On("VirtualizationAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(attachData, attachData, writeBuffer, nil)
 	e.On("VirtualizationResize", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)

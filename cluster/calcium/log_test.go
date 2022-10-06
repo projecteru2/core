@@ -3,7 +3,7 @@ package calcium
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
@@ -43,7 +43,7 @@ func TestLogStream(t *testing.T) {
 		assert.Empty(t, c.Data)
 	}
 	reader := bytes.NewBufferString("aaaa\nbbbb\n")
-	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(ioutil.NopCloser(reader), nil, nil)
+	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(io.NopCloser(reader), nil, nil)
 	// success
 	ch, err = c.LogStream(ctx, opts)
 	assert.NoError(t, err)

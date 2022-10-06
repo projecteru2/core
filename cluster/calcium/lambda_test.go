@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -98,7 +97,7 @@ func TestLambdaWithWorkloadIDReturned(t *testing.T) {
 		w2.Write([]byte("stderr line2\n"))
 		w2.Close()
 	}()
-	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(ioutil.NopCloser(r1), ioutil.NopCloser(r2), nil)
+	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(io.NopCloser(r1), io.NopCloser(r2), nil)
 	engine.On("VirtualizationWait", mock.Anything, mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationWaitResult{Code: 0}, nil)
 
 	ids, ch, err := c.RunAndWait(context.Background(), opts, make(chan []byte))
@@ -170,7 +169,7 @@ func TestLambdaWithError(t *testing.T) {
 		w2.Write([]byte("stderr line2\n"))
 		w2.Close()
 	}()
-	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(ioutil.NopCloser(r1), ioutil.NopCloser(r2), nil)
+	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(io.NopCloser(r1), io.NopCloser(r2), nil)
 
 	engine.On("VirtualizationWait", mock.Anything, mock.Anything, mock.Anything).Return(nil, fmt.Errorf("error"))
 	ids, ch2, err := c.RunAndWait(context.Background(), opts, make(chan []byte))

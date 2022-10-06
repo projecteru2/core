@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -74,7 +73,7 @@ wBtN56wGIEOHeQAAAAN0aHkBAgMEBQY=
 )
 
 func TestSourceCode(t *testing.T) {
-	privFile, err := ioutil.TempFile("", "priv")
+	privFile, err := os.CreateTemp("", "priv")
 	assert.NoError(t, err)
 	_, err = privFile.WriteString(privkey)
 	assert.NoError(t, err)
@@ -87,7 +86,7 @@ func TestSourceCode(t *testing.T) {
 	assert.NoError(t, err)
 	ctx := context.Background()
 
-	dname, err := ioutil.TempDir("", "source")
+	dname, err := os.MkdirTemp("", "source")
 	assert.NoError(t, err)
 	err = g.SourceCode(ctx, "file:///xxxx", dname, "MASTER", false)
 	assert.Error(t, err)
@@ -124,17 +123,17 @@ func TestSourceCode(t *testing.T) {
 func TestArtifact(t *testing.T) {
 	rawString := "test"
 	authValue := "test"
-	origFile, err := ioutil.TempFile("", "orig")
+	origFile, err := os.CreateTemp("", "orig")
 	assert.NoError(t, err)
 	origFile.WriteString(rawString)
 	origFile.Close()
-	zipFile, err := ioutil.TempFile("", "zip")
+	zipFile, err := os.CreateTemp("", "zip")
 	assert.NoError(t, err)
 	assert.NoError(t, zipFiles(zipFile, []string{origFile.Name()}))
 
-	data, err := ioutil.ReadFile(zipFile.Name())
+	data, err := os.ReadFile(zipFile.Name())
 	assert.NoError(t, err)
-	savedDir, err := ioutil.TempDir("", "saved")
+	savedDir, err := os.MkdirTemp("", "saved")
 	assert.NoError(t, err)
 
 	g := &GitScm{}
@@ -160,7 +159,7 @@ func TestArtifact(t *testing.T) {
 	fname := filepath.Join(savedDir, path.Base(origFile.Name()))
 	_, err = os.Stat(fname)
 	assert.NoError(t, err)
-	saved, err := ioutil.ReadFile(fname)
+	saved, err := os.ReadFile(fname)
 	assert.NoError(t, err)
 	assert.Equal(t, string(saved), rawString)
 

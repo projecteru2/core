@@ -3,7 +3,7 @@ package common
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -30,7 +30,7 @@ type GitScm struct {
 
 // NewGitScm .
 func NewGitScm(config types.GitConfig, authHeaders map[string]string) (*GitScm, error) {
-	b, err := ioutil.ReadFile(config.PrivateKey)
+	b, err := os.ReadFile(config.PrivateKey)
 	return &GitScm{
 		Config:      config,
 		AuthHeaders: authHeaders,
@@ -46,7 +46,7 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 	defer cancel()
 	opts := &gogit.CloneOptions{
 		URL:      repository,
-		Progress: ioutil.Discard,
+		Progress: io.Discard,
 	}
 	switch {
 	case strings.Contains(repository, "https://"):

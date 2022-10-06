@@ -3,7 +3,6 @@ package docker
 import (
 	"context"
 	"io"
-	"io/ioutil"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -44,7 +43,7 @@ func (e *Engine) execAttach(ctx context.Context, execID string, tty bool) (io.Re
 	if err != nil {
 		return nil, nil, err
 	}
-	return ioutil.NopCloser(resp.Reader), resp.Conn, nil
+	return io.NopCloser(resp.Reader), resp.Conn, nil
 }
 
 // Execute executes a workload

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"testing"
 	"time"
@@ -165,12 +165,12 @@ func TestCleanStatsdMetrics(t *testing.T) {
 
 func TestTempFile(t *testing.T) {
 	buff := bytes.NewBufferString("test")
-	rc := ioutil.NopCloser(buff)
+	rc := io.NopCloser(buff)
 	fname, err := TempFile(rc)
 	assert.NoError(t, err)
 	f, err := os.Open(fname)
 	assert.NoError(t, err)
-	b, err := ioutil.ReadAll(f)
+	b, err := io.ReadAll(f)
 	assert.NoError(t, err)
 	assert.Equal(t, string(b), "test")
 	os.Remove(fname)
@@ -196,7 +196,7 @@ func TestMergeHookOutputs(t *testing.T) {
 
 func TestEnsureReaderClosed(t *testing.T) {
 	EnsureReaderClosed(context.TODO(), nil)
-	s := ioutil.NopCloser(bytes.NewBuffer([]byte{10, 10, 10}))
+	s := io.NopCloser(bytes.NewBuffer([]byte{10, 10, 10}))
 	EnsureReaderClosed(context.TODO(), s)
 }
 

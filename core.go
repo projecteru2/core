@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -97,7 +98,11 @@ func serve(c *cli.Context) error {
 	if config.Profile != "" {
 		http.Handle("/metrics", metrics.Client.ResourceMiddleware(cluster)(promhttp.Handler()))
 		utils.SentryGo(func() {
-			if err := http.ListenAndServe(config.Profile, nil); err != nil {
+			server := &http.Server{
+				Addr:              config.Profile,
+				ReadHeaderTimeout: 3 * time.Second,
+			}
+			if err := server.ListenAndServe(); err != nil {
 				log.Errorf(c.Context, "[main] start http failed %v", err) //nolint
 			}
 		})

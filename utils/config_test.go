@@ -2,7 +2,7 @@ package utils
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"os"
 	"testing"
 	"time"
@@ -13,7 +13,7 @@ import (
 func TestLoadConfig(t *testing.T) {
 	f1 := "test"
 	buffer := bytes.NewBufferString(f1)
-	fname, err := TempFile(ioutil.NopCloser(buffer))
+	fname, err := TempFile(io.NopCloser(buffer))
 	assert.NoError(t, err)
 	_, err = LoadConfig(fname)
 	assert.Error(t, err)
@@ -47,7 +47,7 @@ docker:
 `
 
 	buffer = bytes.NewBufferString(f1)
-	fname, err = TempFile(ioutil.NopCloser(buffer))
+	fname, err = TempFile(io.NopCloser(buffer))
 	assert.NoError(t, err)
 	config, err := LoadConfig(fname)
 	assert.NoError(t, err)

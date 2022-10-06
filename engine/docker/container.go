@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
@@ -345,7 +344,7 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtu
 		return nil, nil, err
 	}
 	if !opts.Stderr {
-		return ioutil.NopCloser(mergeStream(resp)), nil, nil
+		return io.NopCloser(mergeStream(resp)), nil, nil
 	}
 	stdout, stderr = e.demultiplexStdStream(ctx, resp)
 	return stdout, stderr, nil
@@ -365,7 +364,7 @@ func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, stream, st
 		return nil, nil, nil, err
 	}
 	if stdin {
-		return ioutil.NopCloser(resp.Reader), nil, resp.Conn, nil
+		return io.NopCloser(resp.Reader), nil, resp.Conn, nil
 	}
 	stdout, stderr = e.demultiplexStdStream(ctx, resp.Reader)
 	return stdout, stderr, resp.Conn, nil
@@ -457,6 +456,6 @@ func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (c
 	if err != nil {
 		return
 	}
-	content, err = ioutil.ReadAll(tarReader)
+	content, err = io.ReadAll(tarReader)
 	return content, header.Uid, header.Gid, header.Mode, err
 }

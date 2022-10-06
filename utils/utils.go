@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"math/big"
 	"os"
@@ -183,7 +182,7 @@ func CleanStatsdMetrics(k string) string {
 
 // TempFile store a temp file
 func TempFile(stream io.ReadCloser) (string, error) {
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	if err != nil {
 		return "", errors.WithStack(err)
 	}
@@ -214,7 +213,7 @@ func EnsureReaderClosed(ctx context.Context, stream io.ReadCloser) {
 	if stream == nil {
 		return
 	}
-	if _, err := io.Copy(ioutil.Discard, stream); err != nil {
+	if _, err := io.Copy(io.Discard, stream); err != nil {
 		log.Errorf(ctx, "[EnsureReaderClosed] empty stream failed %v", err)
 	}
 	_ = stream.Close()

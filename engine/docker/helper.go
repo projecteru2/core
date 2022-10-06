@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net"
 	"net/http"
@@ -63,14 +62,14 @@ func mergeStream(stream io.ReadCloser) io.Reader {
 
 // FuckDockerStream will copy docker stream to stdout and err
 func FuckDockerStream(stream dockertypes.HijackedResponse) io.ReadCloser {
-	outr := mergeStream(ioutil.NopCloser(stream.Reader))
+	outr := mergeStream(io.NopCloser(stream.Reader))
 	return fuckDockerStream{stream.Conn, outr}
 }
 
 // make mount paths
 // 使用volumes, 参数格式跟docker一样
 // volumes:
-//     - "/foo-data:$SOMEENV/foodata:rw"
+//   - "/foo-data:$SOMEENV/foodata:rw"
 func makeMountPaths(opts *enginetypes.VirtualizationCreateOptions) ([]string, map[string]struct{}) {
 	binds := []string{}
 	volumes := make(map[string]struct{})

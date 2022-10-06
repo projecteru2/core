@@ -2,7 +2,7 @@ package calcium
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"os"
 	"testing"
 
@@ -25,7 +25,7 @@ func TestSend(t *testing.T) {
 	_, err = c.Send(ctx, &types.SendOptions{IDs: []string{"id"}})
 	assert.Error(t, err)
 
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := os.CreateTemp("", "example")
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmpfile.Name())
 	defer tmpfile.Close()
@@ -55,7 +55,7 @@ func TestSend(t *testing.T) {
 		[]*types.Workload{{ID: "cid", Engine: engine}}, nil,
 	)
 	// failed by engine
-	content, _ := ioutil.ReadAll(tmpfile)
+	content, _ := io.ReadAll(tmpfile)
 	opts.Files[0].Content = content
 	engine.On("VirtualizationCopyTo",
 		mock.Anything, mock.Anything, mock.Anything,

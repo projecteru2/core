@@ -3,7 +3,7 @@ package calcium
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/projecteru2/core/cluster"
@@ -72,7 +72,7 @@ func TestControlStart(t *testing.T) {
 		assert.Error(t, r.Error)
 		assert.Equal(t, r.WorkloadID, "id1")
 	}
-	data := ioutil.NopCloser(bytes.NewBufferString("output"))
+	data := io.NopCloser(bytes.NewBufferString("output"))
 	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return("eid", data, nil, nil, nil).Times(4)
 	// failed by ExecExitCode
 	engine.On("ExecExitCode", mock.Anything, mock.Anything, mock.Anything).Return(-1, types.ErrNilEngine).Once()

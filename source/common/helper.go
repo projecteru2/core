@@ -4,14 +4,13 @@ import (
 	"archive/zip"
 	"bytes"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
 
 // unzipFile unzip a file(from resp.Body) to the spec path
 func unzipFile(body io.Reader, path string) error {
-	content, err := ioutil.ReadAll(body)
+	content, err := io.ReadAll(body)
 	if err != nil {
 		return err
 	}

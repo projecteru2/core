@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
@@ -103,14 +103,14 @@ func TestBuild(t *testing.T) {
 	assert.NoError(t, err)
 	buildImageResp2, err := json.Marshal(buildImageMessage)
 	assert.NoError(t, err)
-	buildImageRespReader := ioutil.NopCloser(bytes.NewReader(buildImageResp))
-	buildImageRespReader2 := ioutil.NopCloser(bytes.NewReader(buildImageResp2))
+	buildImageRespReader := io.NopCloser(bytes.NewReader(buildImageResp))
+	buildImageRespReader2 := io.NopCloser(bytes.NewReader(buildImageResp2))
 	engine.On("BuildRefs", mock.Anything, mock.Anything, mock.Anything).Return([]string{"t1", "t2"})
 	// failed by build context
 	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", nil, types.ErrBadCount).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
-	b := ioutil.NopCloser(bytes.NewReader([]byte{}))
+	b := io.NopCloser(bytes.NewReader([]byte{}))
 	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", b, nil)
 	// failed by ImageBuild
 	opts.BuildMethod = types.BuildFromRaw

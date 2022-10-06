@@ -3,7 +3,7 @@ package docker
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -15,7 +15,7 @@ import (
 
 func TestCreateTarStream(t *testing.T) {
 	buff := bytes.NewBufferString("test")
-	rc := ioutil.NopCloser(buff)
+	rc := io.NopCloser(buff)
 	fname, err := coreutils.TempFile(rc)
 	assert.NoError(t, err)
 	_, err = CreateTarStream(fname)

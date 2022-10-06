@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
@@ -50,7 +50,7 @@ func TestExecuteWorkload(t *testing.T) {
 	for ac := range ch {
 		assert.Equal(t, ac.WorkloadID, ID)
 	}
-	buf := ioutil.NopCloser(bytes.NewBufferString(`echo 1\n`))
+	buf := io.NopCloser(bytes.NewBufferString(`echo 1\n`))
 	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(result, buf, nil, nil, nil).Twice()
 
 	// failed by ExecExitCode

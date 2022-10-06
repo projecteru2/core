@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strconv"
 	"strings"
 	"time"
@@ -96,10 +95,10 @@ func (v *Virt) Execute(ctx context.Context, ID string, config *enginetypes.ExecC
 		if err != nil {
 			return "", nil, nil, nil, err
 		}
-		return execID, ioutil.NopCloser(stream), nil, stream, nil
+		return execID, io.NopCloser(stream), nil, stream, nil
 	}
 	msg, err := v.client.ExecuteGuest(ctx, ID, config.Cmd)
-	return strconv.Itoa(msg.Pid), ioutil.NopCloser(bytes.NewReader(msg.Data)), nil, nil, err
+	return strconv.Itoa(msg.Pid), io.NopCloser(bytes.NewReader(msg.Data)), nil, nil, err
 }
 
 // ExecExitCode get return code of a specific execution.
@@ -297,7 +296,7 @@ func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, open
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	return ioutil.NopCloser(attachGuest), nil, attachGuest, nil
+	return io.NopCloser(attachGuest), nil, attachGuest, nil
 }
 
 // VirtualizationResize resized window size
@@ -352,6 +351,6 @@ func (v *Virt) VirtualizationCopyFrom(ctx context.Context, ID, path string) (con
 	if err != nil {
 		return
 	}
-	content, err = ioutil.ReadAll(rd)
+	content, err = io.ReadAll(rd)
 	return
 }

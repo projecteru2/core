@@ -2,7 +2,6 @@ package calcium
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -21,7 +20,7 @@ import (
 )
 
 func NewTestCluster() *Calcium {
-	walDir, err := ioutil.TempDir(os.TempDir(), "core.wal.*")
+	walDir, err := os.MkdirTemp(os.TempDir(), "core.wal.*")
 	if err != nil {
 		panic(err)
 	}
@@ -65,7 +64,7 @@ func TestNewCluster(t *testing.T) {
 	assert.NoError(t, err)
 
 	c.Finalizer()
-	privFile, err := ioutil.TempFile("", "priv")
+	privFile, err := os.CreateTemp("", "priv")
 	assert.NoError(t, err)
 	_, err = privFile.WriteString("privkey")
 	assert.NoError(t, err)

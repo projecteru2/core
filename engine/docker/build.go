@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -64,14 +63,14 @@ func (e *Engine) BuildRefs(ctx context.Context, opts *enginetypes.BuildRefOption
 //
 // build directory is like:
 //
-//    buildDir ├─ :appname ├─ code
-//             ├─ Dockerfile
+//	buildDir ├─ :appname ├─ code
+//	         ├─ Dockerfile
 func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildContentOptions) (string, io.Reader, error) {
 	if opts.Builds == nil {
 		return "", nil, coretypes.ErrNoBuildsInSpec
 	}
 	// make build dir
-	buildDir, err := ioutil.TempDir(os.TempDir(), "corebuild-")
+	buildDir, err := os.MkdirTemp(os.TempDir(), "corebuild-")
 	if err != nil {
 		return "", nil, err
 	}

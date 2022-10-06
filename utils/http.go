@@ -3,7 +3,6 @@ package utils
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -51,15 +50,15 @@ func GetHTTPSClient(ctx context.Context, certPath, name, ca, cert, key string) (
 		return httpsClient, nil
 	}
 
-	caFile, err := ioutil.TempFile(certPath, fmt.Sprintf("ca-%s", name))
+	caFile, err := os.CreateTemp(certPath, fmt.Sprintf("ca-%s", name))
 	if err != nil {
 		return nil, err
 	}
-	certFile, err := ioutil.TempFile(certPath, fmt.Sprintf("cert-%s", name))
+	certFile, err := os.CreateTemp(certPath, fmt.Sprintf("cert-%s", name))
 	if err != nil {
 		return nil, err
 	}
-	keyFile, err := ioutil.TempFile(certPath, fmt.Sprintf("key-%s", name))
+	keyFile, err := os.CreateTemp(certPath, fmt.Sprintf("key-%s", name))
 	if err != nil {
 		return nil, err
 	}

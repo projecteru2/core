@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -151,7 +150,7 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 					lastMessage.Error = err.Error()
 					break
 				}
-				malformed, _ := ioutil.ReadAll(decoder.Buffered()) // TODO err check
+				malformed, _ := io.ReadAll(decoder.Buffered()) // TODO err check
 				logger.Errorf(ctx, "[BuildImage] Decode build image message failed %+v, buffered: %v", err, malformed)
 				return
 			}
