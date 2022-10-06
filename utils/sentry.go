@@ -18,6 +18,9 @@ func SentryGo(f func()) {
 
 // SentryDefer .
 func SentryDefer() {
+	if sentry.CurrentHub().Client() != nil {
+		return
+	}
 	defer sentry.Flush(2 * time.Second)
 	if err := recover(); err != nil {
 		sentry.CaptureMessage(fmt.Sprintf("%+v: %s", err, debug.Stack()))

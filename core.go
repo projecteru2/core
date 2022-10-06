@@ -45,8 +45,8 @@ func serve(c *cli.Context) error {
 		log.Fatalf("[main] %v", err)
 	}
 
+	defer utils.SentryDefer()
 	if config.SentryDSN != "" {
-		defer utils.SentryDefer()
 		log.Infof(c.Context, "[main] sentry %v", config.SentryDSN)
 		_ = sentry.Init(sentry.ClientOptions{Dsn: config.SentryDSN})
 	}
