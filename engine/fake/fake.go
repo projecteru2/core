@@ -85,7 +85,7 @@ func (f *Engine) ImagePush(ctx context.Context, ref string) (io.ReadCloser, erro
 }
 
 // ImageBuild .
-func (f *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string) (io.ReadCloser, error) {
+func (f *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string, _ string) (io.ReadCloser, error) {
 	return nil, f.DefaultErr
 }
 

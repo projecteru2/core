@@ -91,7 +91,7 @@ func (v *Virt) ImagePush(ctx context.Context, ref string) (rc io.ReadCloser, err
 }
 
 // ImageBuild captures from a guest.
-func (v *Virt) ImageBuild(ctx context.Context, input io.Reader, refs []string) (rc io.ReadCloser, err error) {
+func (v *Virt) ImageBuild(ctx context.Context, input io.Reader, refs []string, _ string) (rc io.ReadCloser, err error) {
 	log.Warnf(ctx, "imageBuild does not implement")
 	return
 }

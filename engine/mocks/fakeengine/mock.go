@@ -73,7 +73,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	pushImageData := io.NopCloser(bytes.NewBufferString("{\"stream\":\"push something...\"}\n"))
 	e.On("ImagePush", mock.Anything, mock.Anything).Return(pushImageData, nil)
 	buildImageData := io.NopCloser(bytes.NewBufferString("{\"stream\":\"build something...\"}\n"))
-	e.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything).Return(buildImageData, nil)
+	e.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(buildImageData, nil)
 	e.On("ImageBuildCachePrune", mock.Anything, mock.Anything).Return(uint64(0), nil)
 	imageDigest := utils.RandomString(64)
 	e.On("ImageLocalDigests", mock.Anything, mock.Anything).Return([]string{imageDigest}, nil)

@@ -85,7 +85,7 @@ func (e *Engine) ImagePush(ctx context.Context, ref string) (io.ReadCloser, erro
 }
 
 // ImageBuild build image
-func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string) (io.ReadCloser, error) {
+func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string, platform string) (io.ReadCloser, error) {
 	authConfigs := map[string]dockertypes.AuthConfig{}
 	for domain, conf := range e.config.Docker.AuthConfigs {
 		b64auth, err := encodeAuthToBase64(conf)
@@ -107,6 +107,7 @@ func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string)
 		Remove:         true,
 		ForceRemove:    true,
 		PullParent:     true,
+		Platform:       platform,
 		AuthConfigs:    authConfigs,
 	}
 	resp, err := e.client.ImageBuild(ctx, input, buildOptions)

@@ -114,7 +114,7 @@ func TestBuild(t *testing.T) {
 	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", b, nil)
 	// failed by ImageBuild
 	opts.BuildMethod = types.BuildFromRaw
-	engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNilEngine).Once()
+	engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNilEngine).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	// build from exist not implemented
@@ -130,7 +130,7 @@ func TestBuild(t *testing.T) {
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	// correct
-	engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything).Return(buildImageRespReader, nil)
+	engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(buildImageRespReader, nil)
 	engine.On("ImagePush", mock.Anything, mock.Anything).Return(buildImageRespReader2, nil)
 	engine.On("ImageRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]string{}, nil)
 	engine.On("ImageBuildCachePrune", mock.Anything, mock.Anything).Return(uint64(1024), nil)

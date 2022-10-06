@@ -28,7 +28,7 @@ type API interface {
 	ImagesPrune(ctx context.Context) error
 	ImagePull(ctx context.Context, ref string, all bool) (io.ReadCloser, error)
 	ImagePush(ctx context.Context, ref string) (io.ReadCloser, error)
-	ImageBuild(ctx context.Context, input io.Reader, refs []string) (io.ReadCloser, error)
+	ImageBuild(ctx context.Context, input io.Reader, refs []string, platform string) (io.ReadCloser, error)
 	ImageBuildCachePrune(ctx context.Context, all bool) (uint64, error)
 	ImageLocalDigests(ctx context.Context, image string) ([]string, error)
 	ImageRemoteDigest(ctx context.Context, image string) (string, error)

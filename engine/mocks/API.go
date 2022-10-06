@@ -164,13 +164,13 @@ func (_m *API) Execute(ctx context.Context, ID string, config *types.ExecConfig)
 	return r0, r1, r2, r3, r4
 }
 
-// ImageBuild provides a mock function with given fields: ctx, input, refs
-func (_m *API) ImageBuild(ctx context.Context, input io.Reader, refs []string) (io.ReadCloser, error) {
-	ret := _m.Called(ctx, input, refs)
+// ImageBuild provides a mock function with given fields: ctx, input, refs, platform
+func (_m *API) ImageBuild(ctx context.Context, input io.Reader, refs []string, platform string) (io.ReadCloser, error) {
+	ret := _m.Called(ctx, input, refs, platform)
 
 	var r0 io.ReadCloser
-	if rf, ok := ret.Get(0).(func(context.Context, io.Reader, []string) io.ReadCloser); ok {
-		r0 = rf(ctx, input, refs)
+	if rf, ok := ret.Get(0).(func(context.Context, io.Reader, []string, string) io.ReadCloser); ok {
+		r0 = rf(ctx, input, refs, platform)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(io.ReadCloser)
@@ -178,8 +178,8 @@ func (_m *API) ImageBuild(ctx context.Context, input io.Reader, refs []string) (
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, io.Reader, []string) error); ok {
-		r1 = rf(ctx, input, refs)
+	if rf, ok := ret.Get(1).(func(context.Context, io.Reader, []string, string) error); ok {
+		r1 = rf(ctx, input, refs, platform)
 	} else {
 		r1 = ret.Error(1)
 	}

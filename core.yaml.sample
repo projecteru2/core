@@ -76,5 +76,5 @@ scheduler:
 
 resource_plugin:
     dir: /etc/eru/plugins                                               # optional, default /etc/eru/plugins
-call_timeout: 30s                                                       # optional, if need to use plugin, set it
-whitelist:                                                              # optional, if need plugins whitelist
+    call_timeout: 30s                                                   # optional, if need to use plugin, set it
+    whitelist:                                                          # optional, if need plugins whitelist

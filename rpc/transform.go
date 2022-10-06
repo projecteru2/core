@@ -215,6 +215,7 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
 		Builds:      builds,
 		Tar:         bytes.NewReader(b.Tar),
 		ExistID:     b.GetExistId(),
+		Platform:    b.Platform,
 	}, nil
 }
 

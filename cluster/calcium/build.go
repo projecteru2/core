@@ -105,7 +105,7 @@ func (c *Calcium) buildFromSCM(ctx context.Context, node *types.Node, opts *type
 
 func (c *Calcium) buildFromContent(ctx context.Context, node *types.Node, opts *types.BuildOptions) ([]string, io.ReadCloser, error) {
 	refs := node.Engine.BuildRefs(ctx, toBuildRefOptions(opts))
-	resp, err := node.Engine.ImageBuild(ctx, opts.Tar, refs)
+	resp, err := node.Engine.ImageBuild(ctx, opts.Tar, refs, opts.Platform)
 	return refs, resp, errors.WithStack(err)
 }
 
@@ -115,7 +115,6 @@ func (c *Calcium) buildFromExist(ctx context.Context, opts *types.BuildOptions) 
 	}
 
 	refs = node.Engine.BuildRefs(ctx, toBuildRefOptions(opts))
-
 	imgID, err := node.Engine.ImageBuildFromExist(ctx, opts.ExistID, refs, opts.User)
 	if err != nil {
 		return nil, nil, nil, errors.WithStack(err)
@@ -182,7 +181,6 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 		// 无论如何都删掉build机器的
 		// 事实上他不会跟cached pod一样
 		// 一样就砍死
-		// TODO Maybe blocked !!!
 		_ = c.pool.Invoke(func() {
 			cleanupNodeImages(ctx, node, tags, c.config.GlobalTimeout)
 		})

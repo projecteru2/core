@@ -355,6 +355,7 @@ message BuildImageOptions {
   }
   BuildMethod build_method = 1007;
   string exist_id = 1008;
+  string platform = 1009;
 }
 
 message HookOptions {
