@@ -42,8 +42,8 @@ type GetNodeResourceInfoRequest struct {
 
 // GetNodeResourceInfoResponse ,
 type GetNodeResourceInfoResponse struct {
-	ResourceInfo *NodeResourceInfo `json:"resource_info"`
-	Diffs        []string          `json:"diffs"`
+	ResourceInfo *NodeResourceInfo `mapstructure:"resource_info"`
+	Diffs        []string          `mapstructure:"diffs"`
 }
 
 // SetNodeResourceInfoRequest .
