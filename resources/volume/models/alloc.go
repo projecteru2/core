@@ -101,9 +101,14 @@ func (v *Volume) doAlloc(resourceInfo *types.NodeResourceInfo, deployCount int, 
 
 	// if volume scheduling is not required
 	if !utils.Any(opts.VolumesRequest, func(b *types.VolumeBinding) bool { return b.RequireSchedule() || b.RequireIOPS() }) {
+		var volumes []string
+		for _, binding := range opts.VolumesRequest {
+			volumes = append(volumes, binding.ToString(true))
+		}
 		for i := 0; i < deployCount; i++ {
 			resEngineArgs = append(resEngineArgs, &types.EngineArgs{
 				Storage: opts.StorageLimit,
+				Volumes: volumes,
 			})
 			resResourceArgs = append(resResourceArgs, &types.WorkloadResourceArgs{
 				StorageRequest: opts.StorageRequest,

@@ -205,7 +205,7 @@ func (v *Volume) doGetNodeResourceInfo(ctx context.Context, node string) (*types
 	resourceInfo := &types.NodeResourceInfo{}
 	resp, err := v.store.GetOne(ctx, fmt.Sprintf(NodeResourceInfoKey, node))
 	if err != nil {
-		logrus.Errorf("[doGetNodeResourceInfo] failed to get node resource info of node %v, err: %v", node, err)
+		logrus.Warnf("[doGetNodeResourceInfo] failed to get node resource info of node %v, err: %v", node, err)
 		return nil, err
 	}
 	if err = json.Unmarshal(resp.Value, resourceInfo); err != nil {

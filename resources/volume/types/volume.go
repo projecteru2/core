@@ -54,7 +54,7 @@ func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 	}
 
 	flagParts := strings.Split(flags, "")
-	sort.Strings(flagParts)
+	sort.Strings(flagParts) // TODO why sort?
 
 	vb := &VolumeBinding{
 		Source:      src,

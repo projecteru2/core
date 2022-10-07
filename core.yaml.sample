@@ -75,6 +75,6 @@ scheduler:
     max_deploy_count: 10000
 
 resource_plugin:
-    dir: /etc/eru/plugins                                               # optional, default /etc/eru/plugins
+    dir: /etc/eru/plugins                                               # optional, default empty, if not set, plugin will not enable
     call_timeout: 30s                                                   # optional, if need to use plugin, set it
     whitelist:                                                          # optional, if need plugins whitelist

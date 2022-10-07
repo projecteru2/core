@@ -133,9 +133,9 @@ type SchedulerConfig struct {
 
 // ResourcePluginConfig define Plugin config
 type ResourcePluginConfig struct {
-	Dir         string        `yaml:"dir" default:"/etc/eru/plugins"` // resource plugins path
-	CallTimeout time.Duration `yaml:"call_timeout" default:"30s"`     // timeout for calling resource plugins
-	Whitelist   []string      `yaml:"whitelist"`                      // plugin whitelist
+	Dir         string        `yaml:"dir" default:""`             // resource plugins path
+	CallTimeout time.Duration `yaml:"call_timeout" default:"30s"` // timeout for calling resource plugins
+	Whitelist   []string      `yaml:"whitelist"`                  // plugin whitelist
 }
 
 // LogConfig define log type
