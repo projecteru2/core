@@ -24,7 +24,10 @@ type EndpointPusher struct {
 
 // NewEndpointPusher .
 func NewEndpointPusher() *EndpointPusher {
-	return &EndpointPusher{}
+	return &EndpointPusher{
+		pendingEndpoints:   hashmap.New[string, context.CancelFunc](),
+		availableEndpoints: hashmap.New[string, struct{}](),
+	}
 }
 
 // Register registers a channel that will receive the endpoints later
