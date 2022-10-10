@@ -16,14 +16,6 @@ import (
 	"strings"
 	"text/template"
 
-	corecluster "github.com/projecteru2/core/cluster"
-	"github.com/projecteru2/core/engine"
-	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/types"
-	coretypes "github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
-
 	"github.com/docker/distribution/reference"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/blkiodev"
@@ -33,6 +25,14 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/registry"
 	"github.com/docker/go-units"
+
+	corecluster "github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/engine"
+	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/types"
+	coretypes "github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 type fuckDockerStream struct {

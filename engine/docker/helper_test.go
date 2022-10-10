@@ -3,19 +3,19 @@ package docker
 import (
 	"bytes"
 	"context"
-	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 
-	coreutils "github.com/projecteru2/core/utils"
-
 	"github.com/stretchr/testify/assert"
+
+	coreutils "github.com/projecteru2/core/utils"
 )
 
 func TestCreateTarStream(t *testing.T) {
 	buff := bytes.NewBufferString("test")
-	rc := io.NopCloser(buff)
+	rc := ioutil.NopCloser(buff)
 	fname, err := coreutils.TempFile(rc)
 	assert.NoError(t, err)
 	_, err = CreateTarStream(fname)

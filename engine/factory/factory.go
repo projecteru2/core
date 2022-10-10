@@ -36,21 +36,6 @@ var (
 	engineCache *EngineCache
 )
 
-func getEngineCacheKey(endpoint, ca, cert, key string) string {
-	return fmt.Sprintf("%v-%v", endpoint, utils.SHA256(fmt.Sprintf(":%v:%v:%v", ca, cert, key))[:8])
-}
-
-type engineParams struct {
-	endpoint string
-	ca       string
-	cert     string
-	key      string
-}
-
-func (ep engineParams) getCacheKey() string {
-	return getEngineCacheKey(ep.endpoint, ep.ca, ep.cert, ep.key)
-}
-
 // EngineCache .
 type EngineCache struct {
 	cache       *utils.EngineCache
@@ -145,13 +130,6 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 	}
 }
 
-func validateEngine(ctx context.Context, engine engine.API, timeout time.Duration) (err error) {
-	utils.WithTimeout(ctx, timeout, func(ctx context.Context) {
-		err = engine.Ping(ctx)
-	})
-	return err
-}
-
 // GetEngineFromCache .
 func GetEngineFromCache(endpoint, ca, cert, key string) engine.API {
 	return engineCache.Get(getEngineCacheKey(endpoint, ca, cert, key))
@@ -190,6 +168,37 @@ func GetEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 	return newEngine(ctx, config, nodename, endpoint, ca, cert, key)
 }
 
+type engineParams struct {
+	endpoint string
+	ca       string
+	cert     string
+	key      string
+}
+
+func (ep engineParams) getCacheKey() string {
+	return getEngineCacheKey(ep.endpoint, ep.ca, ep.cert, ep.key)
+}
+
+func validateEngine(ctx context.Context, engine engine.API, timeout time.Duration) (err error) {
+	utils.WithTimeout(ctx, timeout, func(ctx context.Context) {
+		err = engine.Ping(ctx)
+	})
+	return err
+}
+
+func getEnginePrefix(endpoint string) (string, error) {
+	for prefix := range engines {
+		if strings.HasPrefix(endpoint, prefix) {
+			return prefix, nil
+		}
+	}
+	return "", types.NewDetailedErr(types.ErrNodeFormat, fmt.Sprintf("endpoint invalid %v", endpoint))
+}
+
+func getEngineCacheKey(endpoint, ca, cert, key string) string {
+	return fmt.Sprintf("%v-%v", endpoint, utils.SHA256(fmt.Sprintf(":%v:%v:%v", ca, cert, key))[:8])
+}
+
 // newEngine get engine
 func newEngine(ctx context.Context, config types.Config, nodename, endpoint, ca, cert, key string) (client engine.API, err error) {
 	prefix, err := getEnginePrefix(endpoint)
@@ -211,13 +220,4 @@ func newEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 		return nil, err
 	}
 	return client, nil
-}
-
-func getEnginePrefix(endpoint string) (string, error) {
-	for prefix := range engines {
-		if strings.HasPrefix(endpoint, prefix) {
-			return prefix, nil
-		}
-	}
-	return "", types.NewDetailedErr(types.ErrNodeFormat, fmt.Sprintf("endpoint invalid %v", endpoint))
 }

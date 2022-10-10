@@ -4,12 +4,12 @@ import (
 	"context"
 	"net"
 
-	enginetypes "github.com/projecteru2/core/engine/types"
-	coretypes "github.com/projecteru2/core/types"
-
 	dockertypes "github.com/docker/docker/api/types"
 	dockerfilters "github.com/docker/docker/api/types/filters"
 	dockernetwork "github.com/docker/docker/api/types/network"
+
+	enginetypes "github.com/projecteru2/core/engine/types"
+	coretypes "github.com/projecteru2/core/types"
 )
 
 // NetworkConnect connect to a network
