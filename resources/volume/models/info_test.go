@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/projecteru2/core/resources/volume/types"
-	coretypes "github.com/projecteru2/core/types"
-
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/resources/volume/types"
+	coretypes "github.com/projecteru2/core/types"
 )
 
 func TestGetNodeResourceInfo(t *testing.T) {

@@ -13,8 +13,8 @@ import (
 type Disk struct {
 	Device    string   `json:"device"`
 	Mounts    []string `json:"mounts"`
-	ReadIOPS  int64    `json:"read_iops"`
-	WriteIOPS int64    `json:"write_iops"`
+	ReadIOPS  int64    `json:"read_IOPS"`
+	WriteIOPS int64    `json:"write_IOPS"`
 	ReadBPS   int64    `json:"read_bps"`
 	WriteBPS  int64    `json:"write_bps"`
 }

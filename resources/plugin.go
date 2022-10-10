@@ -30,7 +30,6 @@ const (
 	resolveNodeResourceInfoToMetricsCommand = "resolve-metrics"
 )
 
-// Plugin indicate plugin methods
 type Plugin interface {
 	// GetDeployArgs tries to allocate resource, returns engine args for each workload, format: [{"cpus": 1.2}, {"cpus": 1.2}]
 	// also returns resource args for each workload, format: [{"cpus": 1.2}, {"cpus": 1.2}]
@@ -47,15 +46,17 @@ type Plugin interface {
 	GetRemapArgs(ctx context.Context, nodename string, workloadMap map[string]*coretypes.Workload) (*GetRemapArgsResponse, error)
 
 	// GetNodesDeployCapacity returns available nodes and total capacity
-	GetNodesDeployCapacity(ctx context.Context, nodenames []string, resourceOpts coretypes.WorkloadResourceOpts) (*GetNodesDeployCapacityResponse, error)
+	GetNodesDeployCapacity(ctx context.Context, nodeNames []string, resourceOpts coretypes.WorkloadResourceOpts) (*GetNodesDeployCapacityResponse, error)
 
 	// GetMostIdleNode returns the most idle node for building
-	GetMostIdleNode(ctx context.Context, nodenames []string) (*GetMostIdleNodeResponse, error)
+	GetMostIdleNode(ctx context.Context, nodeNames []string) (*GetMostIdleNodeResponse, error)
 
 	// GetNodeResourceInfo returns total resource info and available resource info of the node, format: {"cpu": 2}
 	// also returns diffs, format: ["node.VolumeUsed != sum(workload.VolumeRequest"]
-	// can fix the node resource usage by its workloads
-	GetNodeResourceInfo(ctx context.Context, nodename string, workloads []*coretypes.Workload, fix bool) (*GetNodeResourceInfoResponse, error)
+	GetNodeResourceInfo(ctx context.Context, nodename string, workloads []*coretypes.Workload) (*GetNodeResourceInfoResponse, error)
+
+	// FixNodeResource fixes the node resource usage by its workloads
+	FixNodeResource(ctx context.Context, nodename string, workloads []*coretypes.Workload) (*GetNodeResourceInfoResponse, error)
 
 	// SetNodeResourceUsage sets the amount of allocated resource info
 	SetNodeResourceUsage(ctx context.Context, nodename string, nodeResourceOpts coretypes.NodeResourceOpts, nodeResourceArgs coretypes.NodeResourceArgs, workloadResourceArgs []coretypes.WorkloadResourceArgs, delta bool, incr bool) (*SetNodeResourceUsageResponse, error)

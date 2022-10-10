@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/projecteru2/core/resources/cpumem/types"
-	"github.com/projecteru2/core/utils"
 )
 
 type cpuCore struct {
@@ -66,6 +65,13 @@ type host struct {
 type CPUPlan struct {
 	NUMANode string
 	CPUMap   types.CPUMap
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // GetCPUPlans .
@@ -214,7 +220,7 @@ func (h *host) getCPUPlans(cpuRequest float64) []types.CPUMap {
 	fragmentCapacityMap := map[string]int{}
 	totalFragmentCapacity := 0 // for lazy loading
 	bestCPUPlans := [2][]types.CPUMap{h.getFullCPUPlans(h.fullCores, full), h.getFragmentCPUPlans(h.fragmentCores, fragment)}
-	bestCapacity := utils.Min(len(bestCPUPlans[0]), len(bestCPUPlans[1]))
+	bestCapacity := min(len(bestCPUPlans[0]), len(bestCPUPlans[1]))
 
 	for _, core := range h.fullCores {
 		fragmentCapacityMap[core.id] = core.pieces / fragment
@@ -233,7 +239,7 @@ func (h *host) getCPUPlans(cpuRequest float64) []types.CPUMap {
 		totalFragmentCapacity += fragmentCapacityMap[newFragmentCore.id]
 
 		fullCPUPlans := h.getFullCPUPlans(h.fullCores, full)
-		capacity := utils.Min(len(fullCPUPlans), totalFragmentCapacity)
+		capacity := min(len(fullCPUPlans), totalFragmentCapacity)
 		if capacity > bestCapacity {
 			bestCPUPlans[0] = fullCPUPlans
 			bestCPUPlans[1] = h.getFragmentCPUPlans(h.fragmentCores, fragment)

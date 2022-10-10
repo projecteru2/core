@@ -4,10 +4,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/projecteru2/core/resources/cpumem/types"
-
 	"github.com/docker/go-units"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/resources/cpumem/types"
 )
 
 func TestGetFullCPUPlans(t *testing.T) {

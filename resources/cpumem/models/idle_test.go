@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/projecteru2/core/resources/cpumem/types"
-
 	"github.com/docker/go-units"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/resources/cpumem/types"
 )
 
 func TestGetMostIdleNode(t *testing.T) {

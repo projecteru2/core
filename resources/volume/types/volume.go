@@ -6,14 +6,14 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/projecteru2/core/utils"
-
 	"github.com/pkg/errors"
+
+	"github.com/projecteru2/core/utils"
 )
 
 const auto = "AUTO"
 
-// VolumeBinding src:dst[:flags][:size][:read_iops:write_iops:read_bytes:write_bytes]
+// VolumeBinding src:dst[:flags][:size][:read_IOPS:write_IOPS:read_bytes:write_bytes]
 type VolumeBinding struct {
 	Source      string
 	Destination string
@@ -54,7 +54,7 @@ func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 	}
 
 	flagParts := strings.Split(flags, "")
-	sort.Strings(flagParts) // TODO why sort?
+	sort.Strings(flagParts)
 
 	vb := &VolumeBinding{
 		Source:      src,

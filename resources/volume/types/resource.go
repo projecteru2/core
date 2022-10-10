@@ -1,15 +1,15 @@
 package types
 
 import (
+	"encoding/json"
 	"sort"
 	"strings"
 	"sync"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/pkg/errors"
+
 	coretypes "github.com/projecteru2/core/types"
 	coreutils "github.com/projecteru2/core/utils"
-
-	"github.com/pkg/errors"
 )
 
 // WorkloadResourceOpts .
@@ -140,22 +140,26 @@ func (w *WorkloadResourceOpts) ParseFromRawParams(rawParams coretypes.RawParams)
 
 // WorkloadResourceArgs .
 type WorkloadResourceArgs struct {
-	VolumesRequest VolumeBindings `json:"volumes_request" mapstructure:"volumes_request"`
-	VolumesLimit   VolumeBindings `json:"volumes_limit" mapstructure:"volumes_limit"`
+	VolumesRequest VolumeBindings `json:"volumes_request"`
+	VolumesLimit   VolumeBindings `json:"volumes_limit"`
 
-	VolumePlanRequest VolumePlan `json:"volume_plan_request" mapstructure:"volume_plan_request"`
-	VolumePlanLimit   VolumePlan `json:"volume_plan_limit" mapstructure:"volume_plan_limit"`
+	VolumePlanRequest VolumePlan `json:"volume_plan_request"`
+	VolumePlanLimit   VolumePlan `json:"volume_plan_limit"`
 
-	StorageRequest int64 `json:"storage_request" mapstructure:"storage_request"`
-	StorageLimit   int64 `json:"storage_limit" mapstructure:"storage_limit"`
+	StorageRequest int64 `json:"storage_request"`
+	StorageLimit   int64 `json:"storage_limit"`
 
-	DisksRequest Disks `json:"disks_request" mapstructure:"disks_request"`
-	DisksLimit   Disks `json:"disks_limit" mapstructure:"disks_limit"`
+	DisksRequest Disks `json:"disks_request"`
+	DisksLimit   Disks `json:"disks_limit"`
 }
 
 // ParseFromRawParams .
 func (w *WorkloadResourceArgs) ParseFromRawParams(rawParams coretypes.RawParams) (err error) {
-	return mapstructure.Decode(rawParams, w)
+	body, err := json.Marshal(rawParams)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(body, w)
 }
 
 // NodeResourceOpts .
@@ -231,14 +235,18 @@ func (n *NodeResourceOpts) SkipEmpty(resourceCapacity *NodeResourceArgs) {
 
 // NodeResourceArgs .
 type NodeResourceArgs struct {
-	Volumes VolumeMap `json:"volumes" mapstructure:"volumes"`
-	Storage int64     `json:"storage" mapstructure:"storage"`
-	Disks   Disks     `json:"disks" mapstructure:"disks"`
+	Volumes VolumeMap `json:"volumes"`
+	Storage int64     `json:"storage"`
+	Disks   Disks     `json:"disks"`
 }
 
 // ParseFromRawParams .
 func (n *NodeResourceArgs) ParseFromRawParams(rawParams coretypes.RawParams) error {
-	return mapstructure.Decode(rawParams, n)
+	body, err := json.Marshal(rawParams)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(body, n)
 }
 
 // DeepCopy .
@@ -413,3 +421,12 @@ type EngineArgs struct {
 
 // WorkloadResourceArgsMap .
 type WorkloadResourceArgsMap map[string]*WorkloadResourceArgs
+
+// ParseFromRawParamsMap .
+func (w *WorkloadResourceArgsMap) ParseFromRawParamsMap(rawParamsMap map[string]coretypes.RawParams) error {
+	body, err := json.Marshal(rawParamsMap)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(body, w)
+}

@@ -7,11 +7,11 @@ import (
 	"math"
 	"testing"
 
-	"github.com/projecteru2/core/resources/cpumem/types"
-	coretypes "github.com/projecteru2/core/types"
-
 	"github.com/docker/go-units"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/resources/cpumem/types"
+	coretypes "github.com/projecteru2/core/types"
 )
 
 func generateComplexNodes(t *testing.T, cpuMem *CPUMem) []string {

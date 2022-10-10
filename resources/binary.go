@@ -33,22 +33,13 @@ func (bp *BinaryPlugin) GetNodesDeployCapacity(ctx context.Context, nodes []stri
 }
 
 // GetNodeResourceInfo .
-func (bp *BinaryPlugin) GetNodeResourceInfo(ctx context.Context, nodename string, workloads []*coretypes.Workload, fix bool) (resp *GetNodeResourceInfoResponse, err error) {
-	workloadMap := map[string]coretypes.WorkloadResourceArgs{}
-	for _, workload := range workloads {
-		workloadMap[workload.ID] = workload.ResourceArgs[bp.Name()]
-	}
+func (bp *BinaryPlugin) GetNodeResourceInfo(ctx context.Context, nodename string, workloads []*coretypes.Workload) (resp *GetNodeResourceInfoResponse, err error) {
+	return bp.getNodeResourceInfo(ctx, nodename, workloads, false)
+}
 
-	req := GetNodeResourceInfoRequest{
-		NodeName:    nodename,
-		WorkloadMap: workloadMap,
-		Fix:         fix,
-	}
-	resp = &GetNodeResourceInfoResponse{}
-	if err = bp.call(ctx, getNodeResourceInfoCommand, req, resp); err != nil {
-		return nil, err
-	}
-	return resp, nil
+// FixNodeResource .
+func (bp *BinaryPlugin) FixNodeResource(ctx context.Context, nodename string, workloads []*coretypes.Workload) (resp *GetNodeResourceInfoResponse, err error) {
+	return bp.getNodeResourceInfo(ctx, nodename, workloads, true)
 }
 
 // SetNodeResourceInfo .
@@ -281,4 +272,22 @@ func (bp *BinaryPlugin) call(ctx context.Context, cmd string, req interface{}, r
 		return err
 	}
 	return nil
+}
+
+func (bp *BinaryPlugin) getNodeResourceInfo(ctx context.Context, nodename string, workloads []*coretypes.Workload, fix bool) (resp *GetNodeResourceInfoResponse, err error) {
+	workloadMap := map[string]coretypes.WorkloadResourceArgs{}
+	for _, workload := range workloads {
+		workloadMap[workload.ID] = workload.ResourceArgs[bp.Name()]
+	}
+
+	req := GetNodeResourceInfoRequest{
+		NodeName:    nodename,
+		WorkloadMap: workloadMap,
+		Fix:         fix,
+	}
+	resp = &GetNodeResourceInfoResponse{}
+	if err = bp.call(ctx, getNodeResourceInfoCommand, req, resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
 }

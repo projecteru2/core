@@ -86,13 +86,13 @@ func (v *Plugin) GetRemapArgs(ctx context.Context, nodename string, workloadMap 
 }
 
 // GetNodesDeployCapacity .
-func (v *Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, resourceOpts coretypes.WorkloadResourceOpts) (*resources.GetNodesDeployCapacityResponse, error) {
+func (v *Plugin) GetNodesDeployCapacity(ctx context.Context, nodeNames []string, resourceOpts coretypes.WorkloadResourceOpts) (*resources.GetNodesDeployCapacityResponse, error) {
 	workloadResourceOpts := &types.WorkloadResourceOpts{}
 	if err := workloadResourceOpts.ParseFromRawParams(coretypes.RawParams(resourceOpts)); err != nil {
 		return nil, err
 	}
 
-	nodesDeployCapacity, total, err := v.v.GetNodesDeployCapacity(ctx, nodenames, workloadResourceOpts)
+	nodesDeployCapacity, total, err := v.v.GetNodesDeployCapacity(ctx, nodeNames, workloadResourceOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -105,8 +105,8 @@ func (v *Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string,
 }
 
 // GetMostIdleNode .
-func (v *Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*resources.GetMostIdleNodeResponse, error) {
-	nodename, priority, err := v.v.GetMostIdleNode(ctx, nodenames)
+func (v *Plugin) GetMostIdleNode(ctx context.Context, nodeNames []string) (*resources.GetMostIdleNodeResponse, error) {
+	nodename, priority, err := v.v.GetMostIdleNode(ctx, nodeNames)
 	if err != nil {
 		return nil, err
 	}
@@ -119,22 +119,13 @@ func (v *Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*reso
 }
 
 // GetNodeResourceInfo .
-func (v *Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, workloads []*coretypes.Workload, fix bool) (*resources.GetNodeResourceInfoResponse, error) {
-	workloadResourceArgsMap, err := v.workloadListToWorkloadResourceArgsMap(workloads)
-	if err != nil {
-		return nil, err
-	}
+func (v *Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, workloads []*coretypes.Workload) (*resources.GetNodeResourceInfoResponse, error) {
+	return v.getNodeResourceInfo(ctx, nodename, workloads, false)
+}
 
-	nodeResourceInfo, diffs, err := v.v.GetNodeResourceInfo(ctx, nodename, workloadResourceArgsMap, fix)
-	if err != nil {
-		return nil, err
-	}
-
-	resp := &resources.GetNodeResourceInfoResponse{}
-	return resp, mapstructure.Decode(map[string]interface{}{
-		"resource_info": nodeResourceInfo,
-		"diffs":         diffs,
-	}, resp)
+// FixNodeResource .
+func (v *Plugin) FixNodeResource(ctx context.Context, nodename string, workloads []*coretypes.Workload) (*resources.GetNodeResourceInfoResponse, error) {
+	return v.getNodeResourceInfo(ctx, nodename, workloads, true)
 }
 
 // SetNodeResourceUsage .
@@ -234,7 +225,7 @@ func (v *Plugin) AddNode(ctx context.Context, nodename string, resourceOpts core
 		return nil, err
 	}
 
-	// reset by default value
+	// set default value
 	if nodeInfo != nil && nodeResourceOpts.Storage == 0 {
 		nodeResourceOpts.Storage = nodeInfo.StorageTotal * 8 / 10
 	}
@@ -284,6 +275,24 @@ func (v *Plugin) workloadListToWorkloadResourceArgsMap(workloads []*coretypes.Wo
 	}
 
 	return v.workloadMapToWorkloadResourceArgsMap(workloadMap)
+}
+
+func (v *Plugin) getNodeResourceInfo(ctx context.Context, nodename string, workloads []*coretypes.Workload, fix bool) (*resources.GetNodeResourceInfoResponse, error) {
+	workloadResourceArgsMap, err := v.workloadListToWorkloadResourceArgsMap(workloads)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeResourceInfo, diffs, err := v.v.GetNodeResourceInfo(ctx, nodename, workloadResourceArgsMap, fix)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &resources.GetNodeResourceInfoResponse{}
+	return resp, mapstructure.Decode(map[string]interface{}{
+		"resource_info": nodeResourceInfo,
+		"diffs":         diffs,
+	}, resp)
 }
 
 // GetMetricsDescription .

@@ -1,10 +1,10 @@
 package models
 
 import (
+	"github.com/sirupsen/logrus"
+
 	"github.com/projecteru2/core/store/etcdv3/meta"
 	coretypes "github.com/projecteru2/core/types"
-
-	"github.com/sirupsen/logrus"
 )
 
 // Volume .

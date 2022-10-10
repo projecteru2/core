@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/projecteru2/core/resources/cpumem/types"
 	"github.com/projecteru2/core/store/etcdv3/meta"
 	coretypes "github.com/projecteru2/core/types"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func newTestCPUMem(t *testing.T) *CPUMem {

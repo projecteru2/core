@@ -3,9 +3,9 @@ package models
 import (
 	"context"
 
-	"github.com/projecteru2/core/resources/cpumem/types"
-
 	"github.com/sirupsen/logrus"
+
+	"github.com/projecteru2/core/resources/cpumem/types"
 )
 
 // GetRemapArgs .

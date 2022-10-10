@@ -5,11 +5,11 @@ import (
 	"math"
 	"sort"
 
-	"github.com/projecteru2/core/resources/volume/types"
-	"github.com/projecteru2/core/utils"
-
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	"github.com/projecteru2/core/resources/volume/types"
+	"github.com/projecteru2/core/utils"
 )
 
 type volume struct {
@@ -553,13 +553,13 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 			volume.size -= req.SizeInBytes
 			volumePlan.Merge(types.VolumePlan{req: types.VolumeMap{volume.device: req.SizeInBytes}})
 
-			// check if the disk has enough iops quota
+			// check if the disk has enough IOPS quota
 			if !req.RequireIOPS() {
 				continue
 			}
 			disk := h.getDiskByPath(device)
 			if !h.isDiskIOPSQuotaQualified(disk, req) {
-				logrus.Errorf("[getAffinityPlan] no iops quota to expand, %v remains %+v, requires %+v", device, disk, req)
+				logrus.Errorf("[getAffinityPlan] no IOPS quota to expand, %v remains %+v, requires %+v", device, disk, req)
 				return types.ErrInsufficientResource
 			}
 			h.decreaseIOPSQuota(disk, req)

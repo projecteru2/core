@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/projecteru2/core/resources/volume/types"
-	"github.com/projecteru2/core/utils"
-
 	"github.com/sanity-io/litter"
 	"github.com/sirupsen/logrus"
+
+	"github.com/projecteru2/core/resources/volume/types"
+	"github.com/projecteru2/core/utils"
 )
 
 const NodeResourceInfoKey = "/resource/volume/%s"
@@ -79,7 +79,7 @@ func (v *Volume) GetNodeResourceInfo(ctx context.Context, node string, workloadR
 		}
 		if err = v.doSetNodeResourceInfo(ctx, node, resourceInfo); err != nil {
 			logrus.Warnf("[GetNodeResourceInfo] failed to fix node resource, err: %v", err)
-			diffs = append(diffs, err.Error())
+			diffs = append(diffs, "fix failed")
 		}
 	}
 
@@ -165,7 +165,7 @@ func (v *Volume) SetNodeResourceCapacity(ctx context.Context, node string, nodeR
 	if nodeResourceOpts != nil {
 		if len(nodeResourceOpts.RMDisks) > 0 {
 			if delta {
-				return nil, nil, types.ErrRMDiskNotSupport
+				return nil, nil, fmt.Errorf("rm disk is not supported when delta is true")
 			}
 			rmDisksMap := map[string]struct{}{}
 			for _, rmDisk := range nodeResourceOpts.RMDisks {
@@ -205,7 +205,7 @@ func (v *Volume) doGetNodeResourceInfo(ctx context.Context, node string) (*types
 	resourceInfo := &types.NodeResourceInfo{}
 	resp, err := v.store.GetOne(ctx, fmt.Sprintf(NodeResourceInfoKey, node))
 	if err != nil {
-		logrus.Warnf("[doGetNodeResourceInfo] failed to get node resource info of node %v, err: %v", node, err)
+		logrus.Errorf("[doGetNodeResourceInfo] failed to get node resource info of node %v, err: %v", node, err)
 		return nil, err
 	}
 	if err = json.Unmarshal(resp.Value, resourceInfo); err != nil {
