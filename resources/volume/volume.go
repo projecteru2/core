@@ -86,13 +86,13 @@ func (v *Plugin) GetRemapArgs(ctx context.Context, nodename string, workloadMap 
 }
 
 // GetNodesDeployCapacity .
-func (v *Plugin) GetNodesDeployCapacity(ctx context.Context, nodeNames []string, resourceOpts coretypes.WorkloadResourceOpts) (*resources.GetNodesDeployCapacityResponse, error) {
+func (v *Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, resourceOpts coretypes.WorkloadResourceOpts) (*resources.GetNodesDeployCapacityResponse, error) {
 	workloadResourceOpts := &types.WorkloadResourceOpts{}
 	if err := workloadResourceOpts.ParseFromRawParams(coretypes.RawParams(resourceOpts)); err != nil {
 		return nil, err
 	}
 
-	nodesDeployCapacity, total, err := v.v.GetNodesDeployCapacity(ctx, nodeNames, workloadResourceOpts)
+	nodesDeployCapacity, total, err := v.v.GetNodesDeployCapacity(ctx, nodenames, workloadResourceOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -105,8 +105,8 @@ func (v *Plugin) GetNodesDeployCapacity(ctx context.Context, nodeNames []string,
 }
 
 // GetMostIdleNode .
-func (v *Plugin) GetMostIdleNode(ctx context.Context, nodeNames []string) (*resources.GetMostIdleNodeResponse, error) {
-	nodename, priority, err := v.v.GetMostIdleNode(ctx, nodeNames)
+func (v *Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*resources.GetMostIdleNodeResponse, error) {
+	nodename, priority, err := v.v.GetMostIdleNode(ctx, nodenames)
 	if err != nil {
 		return nil, err
 	}

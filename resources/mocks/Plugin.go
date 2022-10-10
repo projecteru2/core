@@ -110,13 +110,13 @@ func (_m *Plugin) GetMetricsDescription(ctx context.Context) (*resources.GetMetr
 	return r0, r1
 }
 
-// GetMostIdleNode provides a mock function with given fields: ctx, nodeNames
-func (_m *Plugin) GetMostIdleNode(ctx context.Context, nodeNames []string) (*resources.GetMostIdleNodeResponse, error) {
-	ret := _m.Called(ctx, nodeNames)
+// GetMostIdleNode provides a mock function with given fields: ctx, nodenames
+func (_m *Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*resources.GetMostIdleNodeResponse, error) {
+	ret := _m.Called(ctx, nodenames)
 
 	var r0 *resources.GetMostIdleNodeResponse
 	if rf, ok := ret.Get(0).(func(context.Context, []string) *resources.GetMostIdleNodeResponse); ok {
-		r0 = rf(ctx, nodeNames)
+		r0 = rf(ctx, nodenames)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*resources.GetMostIdleNodeResponse)
@@ -125,7 +125,7 @@ func (_m *Plugin) GetMostIdleNode(ctx context.Context, nodeNames []string) (*res
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, []string) error); ok {
-		r1 = rf(ctx, nodeNames)
+		r1 = rf(ctx, nodenames)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -179,13 +179,13 @@ func (_m *Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, work
 	return r0, r1
 }
 
-// GetNodesDeployCapacity provides a mock function with given fields: ctx, nodeNames, resourceOpts
-func (_m *Plugin) GetNodesDeployCapacity(ctx context.Context, nodeNames []string, resourceOpts types.WorkloadResourceOpts) (*resources.GetNodesDeployCapacityResponse, error) {
-	ret := _m.Called(ctx, nodeNames, resourceOpts)
+// GetNodesDeployCapacity provides a mock function with given fields: ctx, nodenames, resourceOpts
+func (_m *Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, resourceOpts types.WorkloadResourceOpts) (*resources.GetNodesDeployCapacityResponse, error) {
+	ret := _m.Called(ctx, nodenames, resourceOpts)
 
 	var r0 *resources.GetNodesDeployCapacityResponse
 	if rf, ok := ret.Get(0).(func(context.Context, []string, types.WorkloadResourceOpts) *resources.GetNodesDeployCapacityResponse); ok {
-		r0 = rf(ctx, nodeNames, resourceOpts)
+		r0 = rf(ctx, nodenames, resourceOpts)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*resources.GetNodesDeployCapacityResponse)
@@ -194,7 +194,7 @@ func (_m *Plugin) GetNodesDeployCapacity(ctx context.Context, nodeNames []string
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, []string, types.WorkloadResourceOpts) error); ok {
-		r1 = rf(ctx, nodeNames, resourceOpts)
+		r1 = rf(ctx, nodenames, resourceOpts)
 	} else {
 		r1 = ret.Error(1)
 	}

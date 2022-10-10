@@ -10,6 +10,7 @@ cert_path: "/etc/eru/tls"                                               # option
 max_concurrency: 100000                                                 # optional, default 100000 for pool size
 store: etcd                                                             # optional, default etcd can choose redis
 sentry_dsn: "https://examplePublicKey@o0.ingest.sentry.io/0"            # optional
+probe_target: "8.8.8.8:80"                                              # optional
 
 wal_file: core.wal                                                      # required, default core.wal
 wal_open_timeout: 8s                                                    # required, default 8s

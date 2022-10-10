@@ -46,10 +46,10 @@ type Plugin interface {
 	GetRemapArgs(ctx context.Context, nodename string, workloadMap map[string]*coretypes.Workload) (*GetRemapArgsResponse, error)
 
 	// GetNodesDeployCapacity returns available nodes and total capacity
-	GetNodesDeployCapacity(ctx context.Context, nodeNames []string, resourceOpts coretypes.WorkloadResourceOpts) (*GetNodesDeployCapacityResponse, error)
+	GetNodesDeployCapacity(ctx context.Context, nodenames []string, resourceOpts coretypes.WorkloadResourceOpts) (*GetNodesDeployCapacityResponse, error)
 
 	// GetMostIdleNode returns the most idle node for building
-	GetMostIdleNode(ctx context.Context, nodeNames []string) (*GetMostIdleNodeResponse, error)
+	GetMostIdleNode(ctx context.Context, nodenames []string) (*GetMostIdleNodeResponse, error)
 
 	// GetNodeResourceInfo returns total resource info and available resource info of the node, format: {"cpu": 2}
 	// also returns diffs, format: ["node.VolumeUsed != sum(workload.VolumeRequest"]

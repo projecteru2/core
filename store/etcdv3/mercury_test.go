@@ -20,6 +20,7 @@ func NewMercury(t *testing.T) *Mercury {
 		Prefix:     "/eru-test",
 		LockPrefix: "/eru-test-lock",
 	}
+	config.ProbeTarget = "8.8.8.8:80"
 	config.MaxConcurrency = 100000
 	//	config.Docker.CertPath = "/tmp"
 
