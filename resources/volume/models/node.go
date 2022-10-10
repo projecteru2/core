@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/projecteru2/core/resources/volume/types"
-	coretypes "github.com/projecteru2/core/types"
-
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	"github.com/projecteru2/core/resources/volume/types"
+	coretypes "github.com/projecteru2/core/types"
 )
 
 // AddNode .

@@ -13,17 +13,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/projecteru2/core/engine"
-	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/log"
-	coretypes "github.com/projecteru2/core/types"
-
 	dockertypes "github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	dockernetwork "github.com/docker/docker/api/types/network"
 	dockerslice "github.com/docker/docker/api/types/strslice"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
+
+	"github.com/projecteru2/core/engine"
+	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
+	coretypes "github.com/projecteru2/core/types"
 )
 
 const (

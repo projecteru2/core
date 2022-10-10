@@ -4,11 +4,11 @@ import (
 	"context"
 	"math"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/projecteru2/core/resources/cpumem/schedule"
 	"github.com/projecteru2/core/resources/cpumem/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/sirupsen/logrus"
 )
 
 // GetNodesDeployCapacity .

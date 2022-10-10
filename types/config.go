@@ -28,7 +28,8 @@ type Config struct {
 	CertPath            string        `yaml:"cert_path"`                                           // docker cert files path
 	MaxConcurrency      int           `yaml:"max_concurrency" default:"100000"`                    // concurrently call single runtime in the same time
 	Store               string        `yaml:"store" default:"etcd"`                                // store type
-	SentryDSN           string        `yaml:"sentry_dsn"`
+	SentryDSN           string        `yaml:"sentry_dsn"`                                          // sentry dsn
+	ProbeTarget         string        `yaml:"probe_target" required:"false" default:"8.8.8.8:80"`  // for getting outbound address
 
 	WALFile        string        `yaml:"wal_file" required:"true" default:"core.wal"`   // WAL file path
 	WALOpenTimeout time.Duration `yaml:"wal_open_timeout" required:"true" default:"8s"` // timeout for opening a WAL file

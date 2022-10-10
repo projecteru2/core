@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/projecteru2/core/resources/cpumem/types"
 	coretypes "github.com/projecteru2/core/types"
-
-	"github.com/sirupsen/logrus"
 )
 
 // AddNode .

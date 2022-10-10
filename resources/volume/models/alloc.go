@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+
 	"github.com/projecteru2/core/resources/volume/schedule"
 	"github.com/projecteru2/core/resources/volume/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 // GetDeployArgs .
@@ -80,11 +80,11 @@ func getDisksLimit(volumeLimit types.VolumeBindings, volumePlanLimit types.Volum
 }
 
 func (v *Volume) toIOPSOptions(disks types.Disks) map[string]string {
-	iopsOptions := map[string]string{}
+	IOPSOptions := map[string]string{}
 	for _, disk := range disks {
-		iopsOptions[disk.Device] = fmt.Sprintf("%d:%d:%d:%d", disk.ReadIOPS, disk.WriteIOPS, disk.ReadBPS, disk.WriteBPS)
+		IOPSOptions[disk.Device] = fmt.Sprintf("%d:%d:%d:%d", disk.ReadIOPS, disk.WriteIOPS, disk.ReadBPS, disk.WriteBPS)
 	}
-	return iopsOptions
+	return IOPSOptions
 }
 
 func (v *Volume) doAlloc(resourceInfo *types.NodeResourceInfo, deployCount int, opts *types.WorkloadResourceOpts) ([]*types.EngineArgs, []*types.WorkloadResourceArgs, error) {
@@ -99,32 +99,24 @@ func (v *Volume) doAlloc(resourceInfo *types.NodeResourceInfo, deployCount int, 
 	resEngineArgs := []*types.EngineArgs{}
 	resResourceArgs := []*types.WorkloadResourceArgs{}
 
+	var volumePlans []types.VolumePlan
+	var diskPlans []types.Disks
+
 	// if volume scheduling is not required
 	if !utils.Any(opts.VolumesRequest, func(b *types.VolumeBinding) bool { return b.RequireSchedule() || b.RequireIOPS() }) {
-		var volumes []string
-		for _, binding := range opts.VolumesRequest {
-			volumes = append(volumes, binding.ToString(true))
-		}
 		for i := 0; i < deployCount; i++ {
-			resEngineArgs = append(resEngineArgs, &types.EngineArgs{
-				Storage: opts.StorageLimit,
-				Volumes: volumes,
-			})
-			resResourceArgs = append(resResourceArgs, &types.WorkloadResourceArgs{
-				StorageRequest: opts.StorageRequest,
-				StorageLimit:   opts.StorageLimit,
-			})
+			volumePlans = append(volumePlans, types.VolumePlan{})
+			diskPlans = append(diskPlans, types.Disks{})
 		}
-		return resEngineArgs, resResourceArgs, nil
+	} else {
+		volumePlans, diskPlans = schedule.GetVolumePlans(resourceInfo, opts.VolumesRequest, v.Config.Scheduler.MaxDeployCount)
+		if len(volumePlans) < deployCount {
+			return nil, nil, errors.Wrapf(types.ErrInsufficientResource, "not enough volume plan, need %v, available %v", deployCount, len(volumePlans))
+		}
+		volumePlans = volumePlans[:deployCount]
+		diskPlans = diskPlans[:deployCount]
 	}
 
-	volumePlans, diskPlans := schedule.GetVolumePlans(resourceInfo, opts.VolumesRequest, v.Config.Scheduler.MaxDeployCount)
-	if len(volumePlans) < deployCount {
-		return nil, nil, errors.Wrapf(types.ErrInsufficientResource, "not enough volume plan, need %v, available %v", deployCount, len(volumePlans))
-	}
-
-	volumePlans = volumePlans[:deployCount]
-	diskPlans = diskPlans[:deployCount]
 	volumeSizeLimitMap := map[*types.VolumeBinding]int64{}
 	for _, binding := range opts.VolumesLimit {
 		volumeSizeLimitMap[binding] = binding.SizeInBytes

@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/docker/go-units"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/projecteru2/core/resources/volume/types"
 	"github.com/projecteru2/core/store/etcdv3/meta"
 	coretypes "github.com/projecteru2/core/types"
-
-	"github.com/docker/go-units"
-	"github.com/stretchr/testify/assert"
 )
 
 func newTestVolume(t *testing.T) *Volume {

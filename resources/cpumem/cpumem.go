@@ -120,22 +120,13 @@ func (c *Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*reso
 }
 
 // GetNodeResourceInfo .
-func (c *Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, workloads []*coretypes.Workload, fix bool) (*resources.GetNodeResourceInfoResponse, error) {
-	workloadResourceArgsMap, err := c.workloadListToWorkloadResourceArgsMap(workloads)
-	if err != nil {
-		return nil, err
-	}
+func (c *Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, workloads []*coretypes.Workload) (*resources.GetNodeResourceInfoResponse, error) {
+	return c.getNodeResourceInfo(ctx, nodename, workloads, false)
+}
 
-	nodeResourceInfo, diffs, err := c.c.GetNodeResourceInfo(ctx, nodename, workloadResourceArgsMap, fix)
-	if err != nil {
-		return nil, err
-	}
-
-	resp := &resources.GetNodeResourceInfoResponse{}
-	return resp, mapstructure.Decode(map[string]interface{}{
-		"resource_info": nodeResourceInfo,
-		"diffs":         diffs,
-	}, resp)
+// FixNodeResource .
+func (c *Plugin) FixNodeResource(ctx context.Context, nodename string, workloads []*coretypes.Workload) (*resources.GetNodeResourceInfoResponse, error) {
+	return c.getNodeResourceInfo(ctx, nodename, workloads, true)
 }
 
 // SetNodeResourceUsage .
@@ -235,7 +226,7 @@ func (c *Plugin) AddNode(ctx context.Context, nodename string, resourceOpts core
 		return nil, err
 	}
 
-	// reset by node info default value
+	// set default value
 	if nodeInfo != nil {
 		if len(nodeResourceOpts.CPUMap) == 0 {
 			nodeResourceOpts.CPUMap = types.CPUMap{}
@@ -294,6 +285,24 @@ func (c *Plugin) workloadListToWorkloadResourceArgsMap(workloads []*coretypes.Wo
 	}
 
 	return c.workloadMapToWorkloadResourceArgsMap(workloadMap)
+}
+
+func (c *Plugin) getNodeResourceInfo(ctx context.Context, nodename string, workloads []*coretypes.Workload, fix bool) (*resources.GetNodeResourceInfoResponse, error) {
+	workloadResourceArgsMap, err := c.workloadListToWorkloadResourceArgsMap(workloads)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeResourceInfo, diffs, err := c.c.GetNodeResourceInfo(ctx, nodename, workloadResourceArgsMap, fix)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &resources.GetNodeResourceInfoResponse{}
+	return resp, mapstructure.Decode(map[string]interface{}{
+		"resource_info": nodeResourceInfo,
+		"diffs":         diffs,
+	}, resp)
 }
 
 // GetMetricsDescription .

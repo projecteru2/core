@@ -1,15 +1,15 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/pkg/errors"
+
 	coretypes "github.com/projecteru2/core/types"
 	coreutils "github.com/projecteru2/core/utils"
-
-	"github.com/pkg/errors"
 )
 
 // CPUMap .
@@ -60,18 +60,22 @@ func (n NUMAMemory) Sub(n1 NUMAMemory) {
 
 // WorkloadResourceArgs .
 type WorkloadResourceArgs struct {
-	CPURequest    float64    `json:"cpu_request" mapstructure:"cpu_request"`
-	CPULimit      float64    `json:"cpu_limit" mapstructure:"cpu_limit"`
-	MemoryRequest int64      `json:"memory_request" mapstructure:"memory_request"`
-	MemoryLimit   int64      `json:"memory_limit" mapstructure:"memory_limit"`
-	CPUMap        CPUMap     `json:"cpu_map" mapstructure:"cpu_map"`
-	NUMAMemory    NUMAMemory `json:"numa_memory" mapstructure:"numa_memory"`
-	NUMANode      string     `json:"numa_node" mapstructure:"numa_node"`
+	CPURequest    float64    `json:"cpu_request"`
+	CPULimit      float64    `json:"cpu_limit"`
+	MemoryRequest int64      `json:"memory_request"`
+	MemoryLimit   int64      `json:"memory_limit"`
+	CPUMap        CPUMap     `json:"cpu_map"`
+	NUMAMemory    NUMAMemory `json:"numa_memory"`
+	NUMANode      string     `json:"numa_node"`
 }
 
 // ParseFromRawParams .
 func (r *WorkloadResourceArgs) ParseFromRawParams(rawParams coretypes.RawParams) error {
-	return mapstructure.Decode(rawParams, r)
+	body, err := json.Marshal(rawParams)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(body, r)
 }
 
 // DeepCopy .
@@ -122,16 +126,20 @@ func (r *WorkloadResourceArgs) Sub(r1 *WorkloadResourceArgs) {
 
 // NodeResourceArgs .
 type NodeResourceArgs struct {
-	CPU        float64    `json:"cpu" mapstructure:"cpu"`
-	CPUMap     CPUMap     `json:"cpu_map" mapstructure:"cpu_map"`
-	Memory     int64      `json:"memory" mapstructure:"memory"`
-	NUMAMemory NUMAMemory `json:"numa_memory" mapstructure:"numa_memory"`
-	NUMA       NUMA       `json:"numa" mapstructure:"numa"`
+	CPU        float64    `json:"cpu"`
+	CPUMap     CPUMap     `json:"cpu_map"`
+	Memory     int64      `json:"memory"`
+	NUMAMemory NUMAMemory `json:"numa_memory"`
+	NUMA       NUMA       `json:"numa"`
 }
 
 // ParseFromRawParams .
 func (r *NodeResourceArgs) ParseFromRawParams(rawParams coretypes.RawParams) error {
-	return mapstructure.Decode(rawParams, r)
+	body, err := json.Marshal(rawParams)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(body, r)
 }
 
 // DeepCopy .
@@ -449,11 +457,11 @@ type NodeCapacityInfo struct {
 
 // EngineArgs .
 type EngineArgs struct {
-	CPU      float64 `json:"cpu" mapstructure:"cpu"`
-	CPUMap   CPUMap  `json:"cpu_map" mapstructure:"cpu_map"`
-	NUMANode string  `json:"numa_node" mapstructure:"numa_node"`
-	Memory   int64   `json:"memory" mapstructure:"memory"`
-	Remap    bool    `json:"remap" mapstructure:"remap"`
+	CPU      float64 `json:"cpu"`
+	CPUMap   CPUMap  `json:"cpu_map"`
+	NUMANode string  `json:"numa_node"`
+	Memory   int64   `json:"memory"`
+	Remap    bool    `json:"remap"`
 }
 
 // WorkloadResourceArgsMap .
@@ -461,5 +469,9 @@ type WorkloadResourceArgsMap map[string]*WorkloadResourceArgs
 
 // ParseFromRawParamsMap .
 func (w *WorkloadResourceArgsMap) ParseFromRawParamsMap(rawParamsMap map[string]coretypes.RawParams) error {
-	return mapstructure.Decode(rawParamsMap, w)
+	body, err := json.Marshal(rawParamsMap)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(body, w)
 }

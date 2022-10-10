@@ -3,11 +3,11 @@ package schedule
 import (
 	"testing"
 
-	"github.com/projecteru2/core/resources/volume/types"
-	"github.com/projecteru2/core/utils"
-
 	"github.com/docker/go-units"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/core/resources/volume/types"
+	"github.com/projecteru2/core/utils"
 )
 
 var maxDeployCount = 1000

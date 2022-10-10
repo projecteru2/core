@@ -42,6 +42,7 @@ func NewTestCluster() *Calcium {
 		WALFile:             filepath.Join(walDir, "core.wal.log"),
 		MaxConcurrency:      100000,
 		HAKeepaliveInterval: 16 * time.Second,
+		ProbeTarget:         "8.8.8.8:80",
 	}
 	c.store = &storemocks.Store{}
 	c.source = &sourcemocks.Source{}

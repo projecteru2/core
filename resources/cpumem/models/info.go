@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/projecteru2/core/resources/cpumem/types"
-	"github.com/projecteru2/core/utils"
-
 	"github.com/sanity-io/litter"
 	"github.com/sirupsen/logrus"
+
+	"github.com/projecteru2/core/resources/cpumem/types"
+	"github.com/projecteru2/core/utils"
 )
 
 const NodeResourceInfoKey = "/resource/cpumem/%s"
@@ -185,7 +185,7 @@ func (c *CPUMem) doGetNodeResourceInfo(ctx context.Context, node string) (*types
 	resourceInfo := &types.NodeResourceInfo{}
 	resp, err := c.store.GetOne(ctx, fmt.Sprintf(NodeResourceInfoKey, node))
 	if err != nil {
-		logrus.Warnf("[doGetNodeResourceInfo] failed to get node resource info of node %v, err: %v", node, err)
+		logrus.Errorf("[doGetNodeResourceInfo] failed to get node resource info of node %v, err: %v", node, err)
 		return nil, err
 	}
 	if err = json.Unmarshal(resp.Value, resourceInfo); err != nil {

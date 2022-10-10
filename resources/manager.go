@@ -114,7 +114,6 @@ func (pm *PluginsManager) SetNodeResourceCapacity(ctx context.Context, nodename 
 					beforeMap[plugin.Name()] = resp.Before
 					afterMap[plugin.Name()] = resp.After
 				}
-
 				log.Errorf(ctx, "[SetNodeResourceCapacity] failed to set node resource for node %v", nodename)
 				return err
 			}
@@ -129,11 +128,7 @@ func (pm *PluginsManager) SetNodeResourceCapacity(ctx context.Context, nodename 
 				}
 				return resp, err
 			})
-
-			if err != nil {
-				return err
-			}
-			return nil
+			return err
 		},
 		pm.config.GlobalTimeout,
 	)
@@ -153,7 +148,13 @@ func (pm *PluginsManager) GetNodeResourceInfo(ctx context.Context, nodename stri
 	}
 
 	respMap, err := callPlugins(ctx, plugins, func(plugin Plugin) (*GetNodeResourceInfoResponse, error) {
-		resp, err := plugin.GetNodeResourceInfo(ctx, nodename, workloads, fix)
+		var resp *GetNodeResourceInfoResponse
+		var err error
+		if fix {
+			resp, err = plugin.FixNodeResource(ctx, nodename, workloads)
+		} else {
+			resp, err = plugin.GetNodeResourceInfo(ctx, nodename, workloads)
+		}
 		if err != nil {
 			log.Errorf(ctx, "[GetNodeResourceInfo] plugin %v failed to get node resource of node %v, err: %v", plugin.Name(), nodename, err)
 		}
@@ -213,7 +214,6 @@ func (pm *PluginsManager) SetNodeResourceUsage(ctx context.Context, nodename str
 					beforeMap[plugin.Name()] = resp.Before
 					afterMap[plugin.Name()] = resp.After
 				}
-
 				log.Errorf(ctx, "[UpdateNodeResourceUsage] failed to set node resource for node %v", nodename)
 				return err
 			}
@@ -228,11 +228,7 @@ func (pm *PluginsManager) SetNodeResourceUsage(ctx context.Context, nodename str
 				}
 				return resp, err
 			})
-
-			if err != nil {
-				return err
-			}
-			return nil
+			return err
 		},
 		pm.config.GlobalTimeout,
 	)

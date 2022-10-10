@@ -16,14 +16,6 @@ import (
 	"strings"
 	"text/template"
 
-	corecluster "github.com/projecteru2/core/cluster"
-	"github.com/projecteru2/core/engine"
-	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/types"
-	coretypes "github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
-
 	"github.com/docker/distribution/reference"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/blkiodev"
@@ -33,6 +25,14 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/registry"
 	"github.com/docker/go-units"
+
+	corecluster "github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/engine"
+	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/types"
+	coretypes "github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 type fuckDockerStream struct {
@@ -101,7 +101,7 @@ func makeMountPaths(opts *enginetypes.VirtualizationCreateOptions) ([]string, ma
 	return binds, volumes
 }
 
-func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, numaNode string, iopsOptions map[string]string, remap bool) dockercontainer.Resources {
+func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, numaNode string, IOPSOptions map[string]string, remap bool) dockercontainer.Resources {
 	resource := dockercontainer.Resources{}
 
 	resource.CPUQuota = 0
@@ -140,9 +140,9 @@ func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, num
 		resource.MemoryReservation = int64(units.MiB * 4)
 	}
 
-	if len(iopsOptions) > 0 {
+	if len(IOPSOptions) > 0 {
 		var readIOPSDevices, writeIOPSDevices, readBPSDevices, writeBPSDevices []*blkiodev.ThrottleDevice
-		for device, options := range iopsOptions {
+		for device, options := range IOPSOptions {
 			parts := strings.Split(options, ":")
 			for len(parts) < 4 {
 				parts = append(parts, "0")
