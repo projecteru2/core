@@ -200,6 +200,10 @@ func (n *NodeStatusWatcher) dealNodeStatusMessage(ctx context.Context, message *
 		log.Errorf(ctx, "[NodeStatusWatcher] deal with node status stream message failed %+v", message)
 		return
 	}
+	// here we ignore node back to alive status because it will updated by agent
+	if message.Alive {
+		return
+	}
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -207,7 +211,7 @@ func (n *NodeStatusWatcher) dealNodeStatusMessage(ctx context.Context, message *
 	// TODO maybe we need a distributed lock to control concurrency
 	opts := &types.SetNodeOptions{
 		Nodename:      message.Nodename,
-		WorkloadsDown: !message.Alive,
+		WorkloadsDown: true,
 	}
 	if _, err := n.cluster.SetNode(ctx, opts); err != nil {
 		log.Errorf(ctx, "[NodeStatusWatcher] set node %s failed %v", message.Nodename, err)
