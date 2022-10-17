@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources/volume/types"
 	coretypes "github.com/projecteru2/core/types"
 )
@@ -15,7 +15,7 @@ import (
 func (v *Volume) AddNode(ctx context.Context, node string, resourceOpts *types.NodeResourceOpts) (*types.NodeResourceInfo, error) {
 	if _, err := v.doGetNodeResourceInfo(ctx, node); err != nil {
 		if !errors.Is(err, coretypes.ErrBadCount) {
-			logrus.Errorf("[AddNode] failed to get resource info of node %v, err: %v", node, err)
+			log.Errorf(ctx, err, "[AddNode] failed to get resource info of node %v, err: %v", node, err)
 			return nil, err
 		}
 	} else {
@@ -37,7 +37,7 @@ func (v *Volume) AddNode(ctx context.Context, node string, resourceOpts *types.N
 // RemoveNode .
 func (v *Volume) RemoveNode(ctx context.Context, node string) error {
 	if _, err := v.store.Delete(ctx, fmt.Sprintf(NodeResourceInfoKey, node)); err != nil {
-		logrus.Errorf("[RemoveNode] faield to delete node %v, err: %v", node, err)
+		log.Errorf(ctx, err, "[RemoveNode] faield to delete node %v, err: %v", node, err)
 		return err
 	}
 	return nil

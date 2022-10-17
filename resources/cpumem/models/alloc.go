@@ -3,7 +3,7 @@ package models
 import (
 	"context"
 
-	"github.com/sirupsen/logrus"
+	"github.com/projecteru2/core/log"
 
 	"github.com/projecteru2/core/resources/cpumem/schedule"
 	"github.com/projecteru2/core/resources/cpumem/types"
@@ -12,13 +12,13 @@ import (
 // GetDeployArgs .
 func (c *CPUMem) GetDeployArgs(ctx context.Context, node string, deployCount int, opts *types.WorkloadResourceOpts) ([]*types.EngineArgs, []*types.WorkloadResourceArgs, error) {
 	if err := opts.Validate(); err != nil {
-		logrus.Errorf("[GetDeployArgs] invalid resource opts %+v, err: %v", opts, err)
+		log.Errorf(ctx, err, "[GetDeployArgs] invalid resource opts %+v, err: %v", opts, err)
 		return nil, nil, err
 	}
 
 	resourceInfo, err := c.doGetNodeResourceInfo(ctx, node)
 	if err != nil {
-		logrus.Errorf("[GetDeployArgs] failed to get resource info of node %v, err: %v", node, err)
+		log.Errorf(ctx, err, "[GetDeployArgs] failed to get resource info of node %v, err: %v", node, err)
 		return nil, nil, err
 	}
 

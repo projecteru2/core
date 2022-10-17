@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	zerolog "github.com/rs/zerolog/log"
 
 	"github.com/projecteru2/core/auth"
 	"github.com/projecteru2/core/cluster/calcium"
@@ -38,11 +39,11 @@ var (
 func serve(c *cli.Context) error {
 	config, err := utils.LoadConfig(configPath)
 	if err != nil {
-		return err
+		zerolog.Fatal().Err(err).Send()
 	}
 
 	if err := log.SetupLog(config.LogLevel); err != nil {
-		return err
+		zerolog.Fatal().Err(err).Send()
 	}
 
 	defer utils.SentryDefer()

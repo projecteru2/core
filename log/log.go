@@ -12,7 +12,6 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/pkgerrors"
 	"google.golang.org/grpc/peer"
 )
 
@@ -20,17 +19,16 @@ var globalLogger zerolog.Logger
 
 // SetupLog init logger
 func SetupLog(l string) error {
-	level, err := zerolog.ParseLevel(l)
+	level, err := zerolog.ParseLevel(strings.ToLower(l))
 	if err != nil {
 		return err
 	}
-	zerolog.TimestampFieldName = "ts"
-	zerolog.LevelFieldName = "lv"
-	zerolog.MessageFieldName = "msg"
-	zerolog.TimeFieldFormat = time.StampNano
-	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 	// TODO can use file
-	rslog := zerolog.New(os.Stdout)
+	rslog := zerolog.New(
+		zerolog.ConsoleWriter{
+			Out:        os.Stdout,
+			TimeFormat: time.RFC822,
+		}).With().Timestamp().Logger()
 	rslog.Level(level)
 	globalLogger = rslog
 

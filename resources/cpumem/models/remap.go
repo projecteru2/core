@@ -3,8 +3,7 @@ package models
 import (
 	"context"
 
-	"github.com/sirupsen/logrus"
-
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources/cpumem/types"
 )
 
@@ -12,7 +11,7 @@ import (
 func (c *CPUMem) GetRemapArgs(ctx context.Context, node string, workloadResourceMap *types.WorkloadResourceArgsMap) (map[string]*types.EngineArgs, error) {
 	resourceInfo, err := c.doGetNodeResourceInfo(ctx, node)
 	if err != nil {
-		logrus.Errorf("[GetRemapArgs] failed to get resource info of node %v, err: %v", node, err)
+		log.Errorf(ctx, err, "[GetRemapArgs] failed to get resource info of node %v, err: %v", node, err)
 		return nil, err
 	}
 	availableNodeResource := resourceInfo.GetAvailableResource()

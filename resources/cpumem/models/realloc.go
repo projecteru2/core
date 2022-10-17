@@ -3,8 +3,7 @@ package models
 import (
 	"context"
 
-	"github.com/sirupsen/logrus"
-
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources/cpumem/schedule"
 	"github.com/projecteru2/core/resources/cpumem/types"
 )
@@ -17,7 +16,7 @@ func (c *CPUMem) GetReallocArgs(ctx context.Context, node string, originResource
 
 	resourceInfo, err := c.doGetNodeResourceInfo(ctx, node)
 	if err != nil {
-		logrus.Errorf("[GetReallocArgs] failed to get resource info of node %v, err: %v", node, err)
+		log.Errorf(ctx, err, "[GetReallocArgs] failed to get resource info of node %v, err: %v", node, err)
 		return nil, nil, nil, err
 	}
 
