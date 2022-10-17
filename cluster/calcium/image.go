@@ -135,7 +135,7 @@ func (c *Calcium) ListImage(ctx context.Context, opts *types.ImageOptions) (chan
 
 	if len(nodes) == 0 {
 		logger.Errorf(ctx, types.ErrPodNoNodes, "")
-		return nil, err
+		return nil, types.ErrPodNoNodes
 	}
 
 	ch := make(chan *types.ListImageMessage)

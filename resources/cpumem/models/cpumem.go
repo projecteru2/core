@@ -1,8 +1,7 @@
 package models
 
 import (
-	"github.com/sirupsen/logrus"
-
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store/etcdv3/meta"
 	coretypes "github.com/projecteru2/core/types"
 )
@@ -19,7 +18,7 @@ func NewCPUMem(config coretypes.Config) (*CPUMem, error) {
 	if len(config.Etcd.Machines) > 0 {
 		c.store, err = meta.NewETCD(config.Etcd, nil)
 		if err != nil {
-			logrus.Errorf("[NewCPUMem] failed to create etcd client, err: %v", err)
+			log.Errorf(nil, err, "[NewCPUMem] failed to create etcd client, err: %v", err) //nolint
 			return nil, err
 		}
 	}

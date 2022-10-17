@@ -13,8 +13,6 @@ import (
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/pkg/errors"
 )
 
 const (
@@ -63,7 +61,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			logger.Errorf(ctx, message.Error, "[RunAndWait] Create workload failed %+v", message.Error)
 			return &types.AttachWorkloadMessage{
 				WorkloadID:    "",
-				Data:          []byte(fmt.Sprintf("Create workload failed %+v", errors.Unwrap(message.Error))),
+				Data:          []byte(fmt.Sprintf("Create workload failed %+v", message.Error)),
 				StdStreamType: types.EruError,
 			}
 		}
@@ -135,7 +133,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 				logger.Errorf(ctx, err, "[RunAndWait] Can't attach workload %s error %+v", message.WorkloadID, err)
 				return &types.AttachWorkloadMessage{
 					WorkloadID:    message.WorkloadID,
-					Data:          []byte(fmt.Sprintf("Attach to workload %s failed %+v", message.WorkloadID, errors.Unwrap(err))),
+					Data:          []byte(fmt.Sprintf("Attach to workload %s failed %+v", message.WorkloadID, err)),
 					StdStreamType: types.EruError,
 				}
 			}
@@ -161,7 +159,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 			logger.Errorf(ctx, err, "[RunAndWait] %s wait failed %+v", utils.ShortID(message.WorkloadID), err)
 			return &types.AttachWorkloadMessage{
 				WorkloadID:    message.WorkloadID,
-				Data:          []byte(fmt.Sprintf("Wait workload %s failed %+v", message.WorkloadID, errors.Unwrap(err))),
+				Data:          []byte(fmt.Sprintf("Wait workload %s failed %+v", message.WorkloadID, err)),
 				StdStreamType: types.EruError,
 			}
 		}

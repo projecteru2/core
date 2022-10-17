@@ -51,7 +51,7 @@ func (h *Hydro) Recover(ctx context.Context) {
 	for {
 		scanEntry, ok := <-ch
 		if !ok {
-			log.Errorf(nil, nil, "[Recover] closed ch") // nolint
+			log.Warn(nil, "[Recover] closed ch") // nolint
 			break
 		}
 
@@ -66,7 +66,7 @@ func (h *Hydro) Recover(ctx context.Context) {
 	for _, event := range events {
 		handler, ok := h.getEventHandler(event.Type)
 		if !ok {
-			log.Errorf(nil, nil, "[Recover] no such event handler for %s", event.Type) // nolint
+			log.Warn(nil, "[Recover] no such event handler for %s", event.Type) // nolint
 			continue
 		}
 

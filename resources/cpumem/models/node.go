@@ -5,8 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/sirupsen/logrus"
-
+	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources/cpumem/types"
 	coretypes "github.com/projecteru2/core/types"
 )
@@ -15,7 +14,7 @@ import (
 func (c *CPUMem) AddNode(ctx context.Context, node string, resourceOpts *types.NodeResourceOpts) (*types.NodeResourceInfo, error) {
 	if _, err := c.doGetNodeResourceInfo(ctx, node); err != nil {
 		if !errors.Is(err, coretypes.ErrBadCount) {
-			logrus.Errorf("[AddNode] failed to get resource info of node %v, err: %v", node, err)
+			log.Errorf(ctx, err, "[AddNode] failed to get resource info of node %v, err: %v", node, err)
 			return nil, err
 		}
 	} else {
@@ -62,7 +61,7 @@ func (c *CPUMem) AddNode(ctx context.Context, node string, resourceOpts *types.N
 // RemoveNode .
 func (c *CPUMem) RemoveNode(ctx context.Context, node string) error {
 	if _, err := c.store.Delete(ctx, fmt.Sprintf(NodeResourceInfoKey, node)); err != nil {
-		logrus.Errorf("[doSetNodeResourceInfo] faield to delete node %v, err: %v", node, err)
+		log.Errorf(ctx, err, "[doSetNodeResourceInfo] faield to delete node %v, err: %v", node, err)
 		return err
 	}
 	return nil
