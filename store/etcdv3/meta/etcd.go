@@ -63,7 +63,7 @@ func NewETCD(config types.EtcdConfig, t *testing.T) (*ETCD, error) {
 	case t != nil:
 		embededETCD := embedded.NewCluster(t, config.Prefix)
 		cliv3 = embededETCD.RandClient()
-		log.Info("[Mercury] use embedded cluster")
+		log.Info(nil, "[Mercury] use embedded cluster") //nolint
 	default:
 		if config.Ca != "" && config.Key != "" && config.Cert != "" {
 			tlsInfo := transport.TLSInfo{
@@ -415,7 +415,7 @@ func (e *ETCD) revokeLease(ctx context.Context, leaseID clientv3.LeaseID) {
 		return
 	}
 	if _, err := e.cliv3.Revoke(ctx, leaseID); err != nil {
-		log.Errorf(ctx, "[etcd revoke lease error] %v", err)
+		log.Errorf(ctx, err, "[etcd revoke lease error] %v", err)
 	}
 }
 

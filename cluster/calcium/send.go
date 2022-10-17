@@ -7,15 +7,14 @@ import (
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-
-	"github.com/pkg/errors"
 )
 
 // Send files to workload
 func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error) {
 	logger := log.WithField("Calcium", "Send").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
+		logger.Errorf(ctx, err, "")
+		return nil, err
 	}
 	ch := make(chan *types.SendMessage)
 	_ = c.pool.Invoke(func() {
@@ -24,18 +23,20 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 		wg.Add(len(opts.IDs))
 
 		for _, id := range opts.IDs {
-			log.Infof(ctx, "[Send] Send files to %s", id)
+			logger.Infof(ctx, "[Send] Send files to %s", id)
 			_ = c.pool.Invoke(func(id string) func() {
 				return func() {
 					defer wg.Done()
 					if err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
 						for _, file := range opts.Files {
 							err := c.doSendFileToWorkload(ctx, workload.Engine, workload.ID, file)
-							ch <- &types.SendMessage{ID: id, Path: file.Filename, Error: logger.ErrWithTracing(ctx, err)}
+							logger.Errorf(ctx, err, "")
+							ch <- &types.SendMessage{ID: id, Path: file.Filename, Error: err}
 						}
 						return nil
 					}); err != nil {
-						ch <- &types.SendMessage{ID: id, Error: logger.ErrWithTracing(ctx, err)}
+						logger.Errorf(ctx, err, "")
+						ch <- &types.SendMessage{ID: id, Error: err}
 					}
 				}
 			}(id))
@@ -47,5 +48,5 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 
 func (c *Calcium) doSendFileToWorkload(ctx context.Context, engine engine.API, ID string, file types.LinuxFile) error {
 	log.Infof(ctx, "[doSendFileToWorkload] Send file to %s:%s", ID, file.Filename)
-	return errors.WithStack(engine.VirtualizationCopyTo(ctx, ID, file.Filename, file.Clone().Content, file.UID, file.GID, file.Mode))
+	return engine.VirtualizationCopyTo(ctx, ID, file.Filename, file.Clone().Content, file.UID, file.GID, file.Mode)
 }

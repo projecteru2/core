@@ -144,7 +144,7 @@ func (m *Mercury) WorkloadStatusStream(ctx context.Context, appname, entrypoint,
 	ch := make(chan *types.WorkloadStatus)
 	_ = m.pool.Invoke(func() {
 		defer func() {
-			log.Info("[WorkloadStatusStream] close WorkloadStatus channel")
+			log.Info(ctx, "[WorkloadStatusStream] close WorkloadStatus channel")
 			close(ch)
 		}()
 
@@ -152,7 +152,7 @@ func (m *Mercury) WorkloadStatusStream(ctx context.Context, appname, entrypoint,
 		for resp := range m.Watch(ctx, statusKey, clientv3.WithPrefix()) {
 			if resp.Err() != nil {
 				if !resp.Canceled {
-					log.Errorf(ctx, "[WorkloadStatusStream] watch failed %v", resp.Err())
+					log.Errorf(ctx, resp.Err(), "[WorkloadStatusStream] watch failed %v", resp.Err())
 				}
 				return
 			}
@@ -201,7 +201,7 @@ func (m *Mercury) doGetWorkloads(ctx context.Context, keys []string) (workloads 
 	for _, kv := range kvs {
 		workload := &types.Workload{}
 		if err = json.Unmarshal(kv.Value, workload); err != nil {
-			log.Errorf(ctx, "[doGetWorkloads] failed to unmarshal %v, err: %v", string(kv.Key), err)
+			log.Errorf(ctx, err, "[doGetWorkloads] failed to unmarshal %v, err: %v", string(kv.Key), err)
 			return
 		}
 		workloads = append(workloads, workload)
@@ -249,7 +249,7 @@ func (m *Mercury) bindWorkloadsAdditions(ctx context.Context, workloads []*types
 		status := &types.StatusMeta{}
 		if err := json.Unmarshal(kv.Value, &status); err != nil {
 			log.Warnf(ctx, "[bindWorkloadsAdditions] unmarshal %s status data failed %v", workload.ID, err)
-			log.Errorf(ctx, "[bindWorkloadsAdditions] status raw: %s", kv.Value)
+			log.Errorf(ctx, err, "[bindWorkloadsAdditions] status raw: %s", kv.Value)
 			continue
 		}
 		workloads[index].StatusMeta = status

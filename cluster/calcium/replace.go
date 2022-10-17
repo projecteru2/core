@@ -18,7 +18,8 @@ import (
 func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOptions) (chan *types.ReplaceWorkloadMessage, error) {
 	logger := log.WithField("Calcium", "ReplaceWorkload").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.ErrWithTracing(ctx, err)
+		logger.Errorf(ctx, err, "")
+		return nil, err
 	}
 	opts.Normalize()
 	if len(opts.IDs) == 0 {
@@ -30,7 +31,8 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 				Appname: opts.Name, Entrypoint: opts.Entrypoint.Name, Nodename: nodename,
 			})
 			if err != nil {
-				return nil, logger.ErrWithTracing(ctx, err)
+				logger.Errorf(ctx, err, "")
+				return nil, err
 			}
 			for _, workload := range workloads {
 				opts.IDs = append(opts.IDs, workload.ID)
@@ -55,9 +57,9 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 						if err = c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
 							if opts.Podname != "" && workload.Podname != opts.Podname {
 								log.Warnf(ctx, "[ReplaceWorkload] Skip not in pod workload %s", workload.ID)
-								return errors.WithStack(types.NewDetailedErr(types.ErrIgnoreWorkload,
+								return types.NewDetailedErr(types.ErrIgnoreWorkload,
 									fmt.Sprintf("workload %s not in pod %s", workload.ID, opts.Podname),
-								))
+								)
 							}
 							// 使用复制之后的配置
 							// 停老的，起新的
@@ -71,9 +73,9 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 								if err != nil {
 									return err
 								} else if !info.Running {
-									return errors.WithStack(types.NewDetailedErr(types.ErrNotSupport,
+									return types.NewDetailedErr(types.ErrNotSupport,
 										fmt.Sprintf("workload %s is not running, can not inherit", workload.ID),
-									))
+									)
 								}
 								replaceOpts.Networks = info.Networks
 								log.Infof(ctx, "[ReplaceWorkload] Inherit old workload network configuration mode %v", replaceOpts.Networks)
@@ -85,7 +87,7 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 								log.Warnf(ctx, "[ReplaceWorkload] ignore workload: %v", err)
 								return
 							}
-							logger.Errorf(ctx, "[ReplaceWorkload] Replace and remove failed %+v, old workload restarted", err)
+							logger.Errorf(ctx, err, "[ReplaceWorkload] Replace and remove failed %+v, old workload restarted", err)
 						} else {
 							log.Infof(ctx, "[ReplaceWorkload] Replace and remove success %s", id)
 							log.Infof(ctx, "[ReplaceWorkload] New workload %s", createMessage.WorkloadID)
@@ -112,7 +114,7 @@ func (c *Calcium) doReplaceWorkload(
 	}
 	// label filter
 	if !utils.LabelsFilter(workload.Labels, opts.FilterLabels) {
-		return nil, removeMessage, errors.WithStack(types.ErrNotFitLabels)
+		return nil, removeMessage, types.ErrNotFitLabels
 	}
 	// prepare node
 	node, err := c.doGetAndPrepareNode(ctx, workload.Nodename, opts.Image)
@@ -123,7 +125,7 @@ func (c *Calcium) doReplaceWorkload(
 	for src, dst := range opts.Copy {
 		content, uid, gid, mode, err := workload.Engine.VirtualizationCopyFrom(ctx, workload.ID, src)
 		if err != nil {
-			return nil, removeMessage, errors.WithStack(err)
+			return nil, removeMessage, err
 		}
 		opts.DeployOptions.Files = append(opts.DeployOptions.Files, types.LinuxFile{
 			Filename: dst,
@@ -162,7 +164,7 @@ func (c *Calcium) doReplaceWorkload(
 				// then
 				func(ctx context.Context) (err error) {
 					if err = c.doRemoveWorkload(ctx, workload, true); err != nil {
-						log.Errorf(ctx, "[doReplaceWorkload] the new started but the old failed to stop")
+						log.Errorf(ctx, err, "[doReplaceWorkload] the new started but the old failed to stop")
 						return err
 					}
 					removeMessage.Success = true
@@ -176,7 +178,7 @@ func (c *Calcium) doReplaceWorkload(
 		func(ctx context.Context, _ bool) (err error) {
 			messages, err := c.doStartWorkload(ctx, workload, opts.IgnoreHook)
 			if err != nil {
-				log.Errorf(ctx, "[replaceAndRemove] Old workload %s restart failed %v", workload.ID, err)
+				log.Errorf(ctx, err, "[replaceAndRemove] Old workload %s restart failed %v", workload.ID, err)
 				removeMessage.Hook = append(removeMessage.Hook, bytes.NewBufferString(err.Error()))
 			} else {
 				removeMessage.Hook = append(removeMessage.Hook, messages...)

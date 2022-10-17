@@ -16,7 +16,7 @@ import (
 func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.Duration) (<-chan struct{}, func(), error) {
 	lease, err := e.cliv3.Grant(ctx, int64(heartbeat/time.Second))
 	if err != nil {
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, err
 	}
 
 	switch tx, err := e.cliv3.Txn(ctx).
@@ -24,7 +24,7 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 		Then(clientv3.OpPut(path, "", clientv3.WithLease(lease.ID))).
 		Commit(); {
 	case err != nil:
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, err
 	case !tx.Succeeded:
 		return nil, nil, errors.Wrap(types.ErrKeyExists, path)
 	}
@@ -47,7 +47,7 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 			ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
 			defer cancel()
 			if _, err := e.cliv3.Revoke(ctx, lease.ID); err != nil {
-				log.Errorf(ctx, "[StartEphemeral] revoke %d with %s failed: %v", lease.ID, path, err)
+				log.Errorf(ctx, err, "[StartEphemeral] revoke %d with %s failed: %v", lease.ID, path, err)
 			}
 		}()
 
@@ -55,7 +55,7 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 			select {
 			case <-tick.C:
 				if _, err := e.cliv3.KeepAliveOnce(ctx, lease.ID); err != nil {
-					log.Errorf(ctx, "[StartEphemeral] keepalive %d with %s failed: %v", lease.ID, path, err)
+					log.Errorf(ctx, err, "[StartEphemeral] keepalive %d with %s failed: %v", lease.ID, path, err)
 					return
 				}
 			case <-ctx.Done():

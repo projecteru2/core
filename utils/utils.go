@@ -18,8 +18,6 @@ import (
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-
-	"github.com/pkg/errors"
 )
 
 const (
@@ -51,7 +49,7 @@ func Tail(path string) string {
 // GetGitRepoName return git repo name
 func GetGitRepoName(url string) (string, error) {
 	if !(strings.Contains(url, "git@") || strings.Contains(url, "gitlab@") || strings.Contains(url, "https://")) || !strings.HasSuffix(url, ".git") {
-		return "", errors.WithStack(types.NewDetailedErr(types.ErrInvalidGitURL, url))
+		return "", types.NewDetailedErr(types.ErrInvalidGitURL, url)
 	}
 
 	return strings.TrimSuffix(Tail(url), ".git"), nil
@@ -98,7 +96,7 @@ func ParseWorkloadName(workloadName string) (string, string, string, error) {
 	if length >= 3 {
 		return strings.Join(splits[0:length-2], "_"), splits[length-2], splits[length-1], nil
 	}
-	return "", "", "", errors.WithStack(types.NewDetailedErr(types.ErrInvalidWorkloadName, workloadName))
+	return "", "", "", types.NewDetailedErr(types.ErrInvalidWorkloadName, workloadName)
 }
 
 // MakePublishInfo generate publish info
@@ -142,7 +140,7 @@ func DecodePublishInfo(info map[string]string) map[string][]string {
 func EncodeMetaInLabel(ctx context.Context, meta *types.LabelMeta) string {
 	data, err := json.Marshal(meta)
 	if err != nil {
-		log.Errorf(ctx, "[EncodeMetaInLabel] Encode meta failed %v", err)
+		log.Errorf(ctx, err, "[EncodeMetaInLabel] Encode meta failed %v", err)
 		return ""
 	}
 	return string(data)
@@ -154,7 +152,7 @@ func DecodeMetaInLabel(ctx context.Context, labels map[string]string) *types.Lab
 	metastr, ok := labels[cluster.LabelMeta]
 	if ok {
 		if err := json.Unmarshal([]byte(metastr), meta); err != nil {
-			log.Errorf(ctx, "[DecodeMetaInLabel] Decode failed %v", err)
+			log.Errorf(ctx, err, "[DecodeMetaInLabel] Decode failed %v", err)
 		}
 	}
 	return meta
@@ -184,13 +182,13 @@ func CleanStatsdMetrics(k string) string {
 func TempFile(stream io.ReadCloser) (string, error) {
 	f, err := os.CreateTemp(os.TempDir(), "")
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", err
 	}
 	defer f.Close()
 	defer stream.Close()
 
 	_, err = io.Copy(f, stream)
-	return f.Name(), errors.WithStack(err)
+	return f.Name(), err
 }
 
 // Round for float64 to int
@@ -214,7 +212,7 @@ func EnsureReaderClosed(ctx context.Context, stream io.ReadCloser) {
 		return
 	}
 	if _, err := io.Copy(io.Discard, stream); err != nil {
-		log.Errorf(ctx, "[EnsureReaderClosed] empty stream failed %v", err)
+		log.Errorf(ctx, err, "[EnsureReaderClosed] empty stream failed %v", err)
 	}
 	_ = stream.Close()
 }

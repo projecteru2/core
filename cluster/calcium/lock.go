@@ -11,13 +11,11 @@ import (
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/pkg/errors"
 )
 
 func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration) (lock lock.DistributedLock, rCtx context.Context, err error) {
 	if lock, err = c.store.CreateLock(name, timeout); err != nil {
-		return lock, rCtx, errors.WithStack(err)
+		return lock, rCtx, err
 	}
 	defer func() {
 		if err != nil {
@@ -25,17 +23,17 @@ func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration
 			defer cancel()
 			rollbackCtx = utils.InheritTracingInfo(rollbackCtx, ctx)
 			if e := lock.Unlock(rollbackCtx); e != nil {
-				log.Errorf(rollbackCtx, "failed to unlock %s: %+v", name, err)
+				log.Errorf(rollbackCtx, err, "failed to unlock %s: %+v", name, err)
 			}
 		}
 	}()
 	rCtx, err = lock.Lock(ctx)
-	return lock, rCtx, errors.WithStack(err)
+	return lock, rCtx, err
 }
 
 func (c *Calcium) doUnlock(ctx context.Context, lock lock.DistributedLock, msg string) error {
 	log.Debugf(ctx, "[doUnlock] Unlock %s", msg)
-	return errors.WithStack(lock.Unlock(ctx))
+	return lock.Unlock(ctx)
 }
 
 func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.DistributedLock, order ...string) {
@@ -49,7 +47,7 @@ func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.Distrib
 	}
 	for _, key := range order {
 		if err := c.doUnlock(ctx, locks[key], key); err != nil {
-			log.Errorf(ctx, "[doUnlockAll] Unlock %s failed %v", key, err)
+			log.Errorf(ctx, err, "[doUnlockAll] Unlock %s failed %v", key, err)
 			continue
 		}
 	}
@@ -60,7 +58,7 @@ func (c *Calcium) withWorkloadLocked(ctx context.Context, id string, f func(cont
 		if c, ok := workloads[id]; ok {
 			return f(ctx, c)
 		}
-		return errors.WithStack(types.ErrWorkloadNotExists)
+		return types.ErrWorkloadNotExists
 	})
 }
 
@@ -85,7 +83,7 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(
 	for _, workload := range cs {
 		lock, ctx, err = c.doLock(ctx, fmt.Sprintf(cluster.WorkloadLock, workload.ID), c.config.LockTimeout)
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 		log.Debugf(ctx, "[withWorkloadsLocked] Workload %s locked", workload.ID)
 		locks[workload.ID] = lock
@@ -103,7 +101,7 @@ func (c *Calcium) withNodePodLocked(ctx context.Context, nodename string, f func
 		if n, ok := nodes[nodename]; ok {
 			return f(ctx, n)
 		}
-		return errors.WithStack(types.ErrNodeNotExists)
+		return types.ErrNodeNotExists
 	})
 }
 
@@ -116,7 +114,7 @@ func (c *Calcium) withNodeOperationLocked(ctx context.Context, nodename string, 
 		if n, ok := nodes[nodename]; ok {
 			return f(ctx, n)
 		}
-		return errors.WithStack(types.ErrNodeNotExists)
+		return types.ErrNodeNotExists
 	})
 }
 

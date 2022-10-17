@@ -2,8 +2,6 @@ package types
 
 import (
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // Hook define hooks
@@ -38,10 +36,10 @@ type Entrypoint struct {
 // Validate checks entrypoint's name
 func (e *Entrypoint) Validate() error {
 	if e.Name == "" {
-		return errors.WithStack(ErrEmptyEntrypointName)
+		return ErrEmptyEntrypointName
 	}
 	if strings.Contains(e.Name, "_") {
-		return errors.WithStack(ErrUnderlineInEntrypointName)
+		return ErrUnderlineInEntrypointName
 	}
 	return nil
 }

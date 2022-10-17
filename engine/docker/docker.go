@@ -38,7 +38,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	} else {
 		client, err = utils.GetHTTPSClient(ctx, config.CertPath, nodename, ca, cert, key)
 		if err != nil {
-			log.Errorf(ctx, "[MakeClient] GetHTTPSClient for %s %s error: %v", nodename, endpoint, err)
+			log.Errorf(ctx, err, "[MakeClient] GetHTTPSClient for %s %s error: %v", nodename, endpoint, err)
 			return nil, err
 		}
 	}

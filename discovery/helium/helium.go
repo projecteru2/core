@@ -69,13 +69,13 @@ func (h *Helium) Unsubscribe(id uuid.UUID) {
 func (h *Helium) start(ctx context.Context) {
 	ch, err := h.store.ServiceStatusStream(ctx)
 	if err != nil {
-		log.Errorf(nil, "[WatchServiceStatus] failed to start watch: %v", err) //nolint
+		log.Errorf(ctx, err, "[WatchServiceStatus] failed to start watch: %v", err) //nolint
 		return
 	}
 
 	go func() {
-		log.Info("[WatchServiceStatus] service discovery start")
-		defer log.Error("[WatchServiceStatus] service discovery exited")
+		log.Info(ctx, "[WatchServiceStatus] service discovery start")
+		defer log.Error(ctx, nil, "[WatchServiceStatus] service discovery exited") //nolint
 		var latestStatus types.ServiceStatus
 		ticker := time.NewTicker(h.interval)
 		defer ticker.Stop()
@@ -83,7 +83,7 @@ func (h *Helium) start(ctx context.Context) {
 			select {
 			case addresses, ok := <-ch:
 				if !ok {
-					log.Error("[WatchServiceStatus] watch channel closed")
+					log.Error(ctx, nil, "[WatchServiceStatus] watch channel closed") //nolint
 					return
 				}
 
@@ -111,7 +111,7 @@ func (h *Helium) dispatch(status types.ServiceStatus) {
 	f := func(key uint32, val entry) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Errorf(context.TODO(), "[dispatch] dispatch %v failed, err: %v", key, err)
+				log.Errorf(context.TODO(), nil, "[dispatch] dispatch %v failed, err: %v", key, err)
 			}
 		}()
 		select {

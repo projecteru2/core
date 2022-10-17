@@ -3,8 +3,6 @@ package strategy
 import (
 	"context"
 
-	"github.com/pkg/errors"
-
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
@@ -36,10 +34,10 @@ type strategyFunc = func(_ context.Context, _ []Info, need, total, limit int) (m
 func Deploy(ctx context.Context, strategy string, count, nodesLimit int, strategyInfos []Info, total int) (map[string]int, error) {
 	deployMethod, ok := Plans[strategy]
 	if !ok {
-		return nil, errors.WithStack(types.ErrBadDeployStrategy)
+		return nil, types.ErrBadDeployStrategy
 	}
 	if count <= 0 {
-		return nil, errors.WithStack(types.ErrBadCount)
+		return nil, types.ErrBadCount
 	}
 
 	log.Debugf(ctx, "[strategy.Deploy] infos %+v, need %d, total %d, limit %d", strategyInfos, count, total, nodesLimit)

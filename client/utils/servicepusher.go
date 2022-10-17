@@ -82,7 +82,7 @@ func (p *EndpointPusher) addCheck(endpoints []string) {
 func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) {
 	parts := strings.Split(endpoint, ":")
 	if len(parts) != 2 {
-		log.Errorf(ctx, "[EruResolver] wrong format of endpoint: %s", endpoint)
+		log.Errorf(ctx, nil, "[EruResolver] wrong format of endpoint: %s", endpoint)
 		return
 	}
 
@@ -111,7 +111,7 @@ func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) 
 func (p *EndpointPusher) checkReachability(host string) (err error) {
 	pinger, err := ping.NewPinger(host)
 	if err != nil {
-		log.Errorf(nil, "[EruResolver] failed to create pinger: %+v", err) //nolint
+		log.Errorf(nil, err, "[EruResolver] failed to create pinger: %+v", err) //nolint
 		return
 	}
 	pinger.SetPrivileged(os.Getuid() == 0)

@@ -55,41 +55,41 @@ type Workload struct {
 // Inspect a workload
 func (c *Workload) Inspect(ctx context.Context) (*enginetypes.VirtualizationInfo, error) {
 	if c.Engine == nil {
-		return nil, errors.WithStack(ErrNilEngine)
+		return nil, ErrNilEngine
 	}
 	info, err := c.Engine.VirtualizationInspect(ctx, c.ID)
-	return info, errors.WithStack(err)
+	return info, err
 }
 
 // Start a workload
 func (c *Workload) Start(ctx context.Context) error {
 	if c.Engine == nil {
-		return errors.WithStack(ErrNilEngine)
+		return ErrNilEngine
 	}
-	return errors.WithStack(c.Engine.VirtualizationStart(ctx, c.ID))
+	return c.Engine.VirtualizationStart(ctx, c.ID)
 }
 
 // Stop a workload
 func (c *Workload) Stop(ctx context.Context, force bool) error {
 	if c.Engine == nil {
-		return errors.WithStack(ErrNilEngine)
+		return ErrNilEngine
 	}
 	gracefulTimeout := time.Duration(-1) // -1 indicates use engine default timeout
 	if force {
 		gracefulTimeout = 0 // don't wait, kill -15 && kill -9
 	}
-	return errors.WithStack(c.Engine.VirtualizationStop(ctx, c.ID, gracefulTimeout))
+	return c.Engine.VirtualizationStop(ctx, c.ID, gracefulTimeout)
 }
 
 // Remove a workload
 func (c *Workload) Remove(ctx context.Context, force bool) (err error) {
 	if c.Engine == nil {
-		return errors.WithStack(ErrNilEngine)
+		return ErrNilEngine
 	}
 	if err = c.Engine.VirtualizationRemove(ctx, c.ID, true, force); errors.Is(err, ErrWorkloadNotExists) {
 		err = nil
 	}
-	return errors.WithStack(err)
+	return err
 }
 
 // WorkloadStatus store deploy status

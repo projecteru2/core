@@ -10,8 +10,6 @@ import (
 	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/pkg/errors"
 )
 
 // AddNode adds a node
@@ -19,7 +17,8 @@ import (
 func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*types.Node, error) {
 	logger := log.WithField("Calcium", "AddNode").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.ErrWithTracing(ctx, err)
+		logger.Errorf(ctx, err, "")
+		return nil, err
 	}
 	var resourceCapacity map[string]types.NodeResourceArgs
 	var resourceUsage map[string]types.NodeResourceArgs
@@ -29,26 +28,26 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 	// check if the node is alive
 	client, err := enginefactory.GetEngine(ctx, c.config, opts.Nodename, opts.Endpoint, opts.Ca, opts.Cert, opts.Key)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	// get node info
 	nodeInfo, err := client.Info(ctx)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
-	return node, logger.ErrWithTracing(ctx, utils.Txn(
+	return node, utils.Txn(
 		ctx,
 		// if: add node resource with resource plugins
 		func(ctx context.Context) error {
 			resourceCapacity, resourceUsage, err = c.rmgr.AddNode(ctx, opts.Nodename, opts.ResourceOpts, nodeInfo)
-			return errors.WithStack(err)
+			return err
 		},
 		// then: add node meta in store
 		func(ctx context.Context) error {
 			node, err = c.store.AddNode(ctx, opts)
 			if err != nil {
-				return errors.WithStack(err)
+				return err
 			}
 			node.Resource.Capacity = resourceCapacity
 			node.Resource.Usage = resourceUsage
@@ -60,43 +59,44 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 			if failureByCond {
 				return nil
 			}
-			return errors.WithStack(c.rmgr.RemoveNode(ctx, opts.Nodename))
+			return c.rmgr.RemoveNode(ctx, opts.Nodename)
 		},
-		c.config.GlobalTimeout),
-	)
+		c.config.GlobalTimeout)
 }
 
 // RemoveNode remove a node
 func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 	logger := log.WithField("Calcium", "RemoveNode").WithField("nodename", nodename)
 	if nodename == "" {
-		return logger.ErrWithTracing(ctx, errors.WithStack(types.ErrEmptyNodeName))
+		logger.Errorf(ctx, types.ErrEmptyNodeName, "")
+		return types.ErrEmptyNodeName
 	}
 	return c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 		workloads, err := c.ListNodeWorkloads(ctx, node.Name, nil)
 		if err != nil {
-			return logger.ErrWithTracing(ctx, err)
+			logger.Errorf(ctx, err, "")
+			return err
 		}
 		// need drain first
 		if len(workloads) > 0 {
-			return logger.ErrWithTracing(ctx, errors.WithStack(types.ErrNodeNotEmpty))
+			logger.Errorf(ctx, types.ErrNodeNotEmpty, "")
+			return types.ErrNodeNotEmpty
 		}
 
-		return logger.ErrWithTracing(ctx, utils.Txn(ctx,
+		return utils.Txn(ctx,
 			// if: remove node metadata
 			func(ctx context.Context) error {
-				return errors.WithStack(c.store.RemoveNode(ctx, node))
+				return c.store.RemoveNode(ctx, node)
 			},
 			// then: remove node resource metadata
 			func(ctx context.Context) error {
-				return errors.WithStack(c.rmgr.RemoveNode(ctx, nodename))
+				return c.rmgr.RemoveNode(ctx, nodename)
 			},
 			// rollback: do nothing
 			func(ctx context.Context, failureByCond bool) error {
 				return nil
 			},
-			c.config.GlobalTimeout,
-		))
+			c.config.GlobalTimeout)
 	})
 }
 
@@ -106,7 +106,8 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 	logger := log.WithField("Calcium", "ListPodNodes").WithField("podname", opts.Podname).WithField("labels", opts.Labels).WithField("all", opts.All).WithField("info", opts.CallInfo)
 	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: opts.Podname, Labels: opts.Labels, All: opts.All})
 	if err != nil {
-		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
+		logger.Errorf(ctx, err, "")
+		return nil, err
 	}
 	ch := make(chan *types.Node)
 
@@ -121,11 +122,11 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 				defer wg.Done()
 				var err error
 				if node.Resource.Capacity, node.Resource.Usage, node.Resource.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
-					logger.Errorf(ctx, "failed to get node %v resource info: %+v", node.Name, err)
+					logger.Errorf(ctx, err, "failed to get node %v resource info: %+v", node.Name, err)
 				}
 				if opts.CallInfo {
 					if err := node.Info(ctx); err != nil {
-						logger.Errorf(ctx, "failed to get node %v info: %+v", node.Name, err)
+						logger.Errorf(ctx, err, "failed to get node %v info: %+v", node.Name, err)
 					}
 				}
 				ch <- node
@@ -141,13 +142,16 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 func (c *Calcium) GetNode(ctx context.Context, nodename string) (node *types.Node, err error) {
 	logger := log.WithField("Calcium", "GetNode").WithField("nodename", nodename)
 	if nodename == "" {
-		return nil, logger.ErrWithTracing(ctx, errors.WithStack(types.ErrEmptyNodeName))
+		logger.Errorf(ctx, types.ErrEmptyNodeName, "")
+		return nil, types.ErrEmptyNodeName
 	}
 	if node, err = c.store.GetNode(ctx, nodename); err != nil {
-		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
+		logger.Errorf(ctx, err, "")
+		return nil, err
 	}
 	if node.Resource.Capacity, node.Resource.Usage, node.Resource.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
-		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
+		logger.Errorf(ctx, err, "")
+		return nil, err
 	}
 	return node, nil
 }
@@ -156,14 +160,17 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string) (node *types.Nod
 func (c *Calcium) GetNodeEngineInfo(ctx context.Context, nodename string) (*enginetypes.Info, error) {
 	logger := log.WithField("Calcium", "GetNodeEngine").WithField("nodename", nodename)
 	if nodename == "" {
-		return nil, logger.ErrWithTracing(ctx, errors.WithStack(types.ErrEmptyNodeName))
+		logger.Errorf(ctx, types.ErrEmptyNodeName, "")
+		return nil, types.ErrEmptyNodeName
 	}
 	node, err := c.store.GetNode(ctx, nodename)
 	if err != nil {
-		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
+		logger.Errorf(ctx, err, "")
+		return nil, err
 	}
 	engineInfo, err := node.Engine.Info(ctx)
-	return engineInfo, logger.ErrWithTracing(ctx, errors.WithStack(err))
+	logger.Errorf(ctx, err, "")
+	return engineInfo, err
 }
 
 // SetNode set node available or not
@@ -171,7 +178,8 @@ func (c *Calcium) GetNodeEngineInfo(ctx context.Context, nodename string) (*engi
 func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) {
 	logger := log.WithField("Calcium", "SetNode").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.ErrWithTracing(ctx, err)
+		logger.Errorf(ctx, err, "")
+		return nil, err
 	}
 	var n *types.Node
 	return n, c.withNodePodLocked(ctx, opts.Nodename, func(ctx context.Context, node *types.Node) error {
@@ -186,7 +194,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 
 		n.Bypass = (opts.Bypass == types.TriTrue) || (opts.Bypass == types.TriKeep && n.Bypass)
 		if n.IsDown() {
-			logger.Errorf(ctx, "[SetNode] node marked down: %s", opts.Nodename)
+			logger.Errorf(ctx, err, "[SetNode] node marked down: %s", opts.Nodename)
 		}
 
 		if opts.WorkloadsDown {
@@ -207,7 +215,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		}
 
 		var originNodeResourceCapacity map[string]types.NodeResourceArgs
-		return logger.ErrWithTracing(ctx, utils.Txn(ctx,
+		return utils.Txn(ctx,
 			// if: update node resource capacity success
 			func(ctx context.Context) error {
 				if len(opts.ResourceOpts) == 0 {
@@ -215,11 +223,11 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				}
 
 				originNodeResourceCapacity, _, err = c.rmgr.SetNodeResourceCapacity(ctx, n.Name, opts.ResourceOpts, nil, opts.Delta, resources.Incr)
-				return errors.WithStack(err)
+				return err
 			},
 			// then: update node metadata
 			func(ctx context.Context) error {
-				if err := errors.WithStack(c.store.UpdateNodes(ctx, n)); err != nil {
+				if err := c.store.UpdateNodes(ctx, n); err != nil {
 					return err
 				}
 				// update resource
@@ -240,10 +248,9 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 					return nil
 				}
 				_, _, err = c.rmgr.SetNodeResourceCapacity(ctx, n.Name, nil, originNodeResourceCapacity, false, resources.Decr)
-				return errors.WithStack(err)
+				return err
 			},
-			c.config.GlobalTimeout,
-		))
+			c.config.GlobalTimeout)
 	})
 }
 
@@ -300,14 +307,14 @@ func (c *Calcium) filterNodes(ctx context.Context, nodeFilter *types.NodeFilter)
 func (c *Calcium) setAllWorkloadsOnNodeDown(ctx context.Context, nodename string) {
 	workloads, err := c.store.ListNodeWorkloads(ctx, nodename, nil)
 	if err != nil {
-		log.Errorf(ctx, "[setAllWorkloadsOnNodeDown] failed to list node workloads, node %v, err: %v", nodename, errors.WithStack(err))
+		log.Errorf(ctx, err, "[setAllWorkloadsOnNodeDown] failed to list node workloads, node %v, err: %v", nodename, err)
 		return
 	}
 
 	for _, workload := range workloads {
 		appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
 		if err != nil {
-			log.Errorf(ctx, "[setAllWorkloadsOnNodeDown] Set workload %s on node %s as inactive failed %v", workload.ID, nodename, err)
+			log.Errorf(ctx, err, "[setAllWorkloadsOnNodeDown] Set workload %s on node %s as inactive failed %v", workload.ID, nodename, err)
 			continue
 		}
 
@@ -324,7 +331,7 @@ func (c *Calcium) setAllWorkloadsOnNodeDown(ctx context.Context, nodename string
 
 		// mark workload which belongs to this node as unhealthy
 		if err = c.store.SetWorkloadStatus(ctx, workload.StatusMeta, 0); err != nil {
-			log.Errorf(ctx, "[SetNodeAvailable] Set workload %s on node %s as inactive failed %v", workload.ID, nodename, errors.WithStack(err))
+			log.Errorf(ctx, err, "[SetNodeAvailable] Set workload %s on node %s as inactive failed %v", workload.ID, nodename, err)
 		} else {
 			log.Infof(ctx, "[SetNodeAvailable] Set workload %s on node %s as inactive", workload.ID, nodename)
 		}

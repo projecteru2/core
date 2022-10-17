@@ -529,11 +529,11 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 					Size: int64(len(m.Content)),
 				}
 				if err = tw.WriteHeader(header); err != nil {
-					log.Errorf(task.context, "[Copy] Error during writing tarball header: %v", err)
+					log.Errorf(task.context, err, "[Copy] Error during writing tarball header: %v", err)
 					return
 				}
 				if _, err = tw.Write(m.Content); err != nil {
-					log.Errorf(task.context, "[Copy] Error during writing tarball content: %v", err)
+					log.Errorf(task.context, err, "[Copy] Error during writing tarball content: %v", err)
 					return
 				}
 			}
@@ -543,7 +543,7 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 			n, err := r.Read(p)
 			if err != nil {
 				if err != io.EOF {
-					log.Errorf(task.context, "[Copy] Error during buffer resp: %v", err)
+					log.Errorf(task.context, err, "[Copy] Error during buffer resp: %v", err)
 					msg.Error = err.Error()
 					if err = stream.Send(msg); err != nil {
 						v.logUnsentMessages(task.context, "Copy", err, m)
@@ -814,7 +814,7 @@ func (v *Vibranium) ExecuteWorkload(stream pb.CoreRPC_ExecuteWorkloadServer) err
 			for {
 				execWorkloadOpt, err := stream.Recv()
 				if execWorkloadOpt == nil || err != nil {
-					log.Errorf(task.context, "[ExecuteWorkload] Recv command error: %v", err)
+					log.Errorf(task.context, err, "[ExecuteWorkload] Recv command error: %v", err)
 					return
 				}
 				inCh <- execWorkloadOpt.ReplCmd
@@ -934,7 +934,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		for {
 			RunAndWaitOptions, err := stream.Recv()
 			if RunAndWaitOptions == nil || err != nil {
-				log.Errorf(ctx, "[RunAndWait] Recv command error: %v", err)
+				log.Errorf(ctx, err, "[RunAndWait] Recv command error: %v", err)
 				break
 			}
 			inCh <- RunAndWaitOptions.Cmd
@@ -984,7 +984,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 				defer w.Close()
 				for m := range ch {
 					if _, err := w.Write(m.Data); err != nil {
-						log.Errorf(ctx, "[Async RunAndWait] iterate and forward AttachWorkloadMessage error: %v", err)
+						log.Errorf(ctx, err, "[Async RunAndWait] iterate and forward AttachWorkloadMessage error: %v", err)
 					}
 				}
 			})
@@ -998,7 +998,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 				for {
 					if part, isPrefix, err = bufReader.ReadLine(); err != nil {
 						if err != io.EOF {
-							log.Errorf(ctx, "[Aysnc RunAndWait] read error: %+v", err)
+							log.Errorf(ctx, err, "[Aysnc RunAndWait] read error: %+v", err)
 						}
 						return
 					}

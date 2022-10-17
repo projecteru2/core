@@ -106,7 +106,7 @@ func (r *Rediaron) UpdateNodes(ctx context.Context, nodes ...*types.Node) error 
 	for _, node := range nodes {
 		bytes, err := json.Marshal(node)
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 		d := string(bytes)
 		data[fmt.Sprintf(nodeInfoKey, node.Name)] = d
@@ -116,7 +116,7 @@ func (r *Rediaron) UpdateNodes(ctx context.Context, nodes ...*types.Node) error 
 		addIfNotEmpty(fmt.Sprintf(nodeKeyKey, node.Name), node.Key)
 		enginefactory.RemoveEngineFromCache(node.Endpoint, node.Ca, node.Cert, node.Key)
 	}
-	return errors.WithStack(r.BatchPut(ctx, data))
+	return r.BatchPut(ctx, data)
 }
 
 // SetNodeStatus sets status for a node, value will expire after ttl seconds
@@ -171,7 +171,7 @@ func (r *Rediaron) NodeStatusStream(ctx context.Context) chan *types.NodeStatus 
 	ch := make(chan *types.NodeStatus)
 	_ = r.pool.Invoke(func() {
 		defer func() {
-			log.Info("[NodeStatusStream] close NodeStatusStream channel")
+			log.Info(ctx, "[NodeStatusStream] close NodeStatusStream channel") //nolint
 			close(ch)
 		}()
 
@@ -301,7 +301,7 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 		_ = r.pool.Invoke(func() {
 			defer wg.Done()
 			if _, err := r.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrBadCount) {
-				log.Errorf(ctx, "[doGetNodes] failed to get node status of %v, err: %v", node.Name, err)
+				log.Errorf(ctx, err, "[doGetNodes] failed to get node status of %v, err: %v", node.Name, err)
 			} else {
 				node.Available = err == nil
 			}
@@ -312,7 +312,7 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 
 			nodeChan <- node
 			if client, err := r.makeClient(ctx, node); err != nil {
-				log.Errorf(ctx, "[doGetNodes] failed to make client for %v, err: %v", node.Name, err)
+				log.Errorf(ctx, err, "[doGetNodes] failed to make client for %v, err: %v", node.Name, err)
 			} else {
 				node.Engine = client
 			}

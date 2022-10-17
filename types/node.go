@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 
 	"github.com/mitchellh/mapstructure"
-	"github.com/pkg/errors"
-
 	engine "github.com/projecteru2/core/engine"
 )
 
@@ -24,7 +22,7 @@ type NodeMeta struct {
 
 // DeepCopy returns a deepcopy of nodemeta
 func (n NodeMeta) DeepCopy() (nn NodeMeta, err error) {
-	return nn, errors.WithStack(mapstructure.Decode(n, &nn))
+	return nn, mapstructure.Decode(n, &nn)
 }
 
 // NodeResource for resource
@@ -54,12 +52,12 @@ func (n *Node) Info(ctx context.Context) (err error) {
 	if err != nil {
 		n.Available = false
 		n.NodeInfo = err.Error()
-		return errors.WithStack(err)
+		return err
 	}
 	bs, err := json.Marshal(info)
 	if err != nil {
 		n.NodeInfo = err.Error()
-		return errors.WithStack(err)
+		return err
 	}
 	n.NodeInfo = string(bs)
 	return nil

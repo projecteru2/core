@@ -8,7 +8,6 @@ import (
 	"io"
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -37,7 +36,7 @@ func (c *Calcium) execuateInside(ctx context.Context, client engine.API, ID, cmd
 	b := []byte{}
 	execID, stdout, stderr, _, err := client.Execute(ctx, ID, execConfig)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	for m := range c.processStdStream(ctx, stdout, stderr, bufio.ScanLines, byte('\n')) {
@@ -46,10 +45,10 @@ func (c *Calcium) execuateInside(ctx context.Context, client engine.API, ID, cmd
 
 	exitCode, err := client.ExecExitCode(ctx, ID, execID)
 	if err != nil {
-		return b, errors.WithStack(err)
+		return b, err
 	}
 	if exitCode != 0 {
-		return b, errors.WithStack(fmt.Errorf("%s", b))
+		return b, fmt.Errorf("%s", b)
 	}
 	return b, nil
 }
@@ -64,11 +63,11 @@ func (c *Calcium) processVirtualizationInStream(
 		string(winchCommand): func(body []byte) {
 			w := &window{}
 			if err := json.Unmarshal(body, w); err != nil {
-				log.Errorf(ctx, "[processVirtualizationInStream] invalid winch command: %q", body)
+				log.Errorf(ctx, err, "[processVirtualizationInStream] invalid winch command: %q", body)
 				return
 			}
 			if err := resizeFunc(w.Height, w.Width); err != nil {
-				log.Errorf(ctx, "[processVirtualizationInStream] resize window error: %v", err)
+				log.Errorf(ctx, err, "[processVirtualizationInStream] resize window error: %v", err)
 				return
 			}
 		},
@@ -100,7 +99,7 @@ func (c *Calcium) rawProcessVirtualizationInStream(
 				continue
 			}
 			if _, err := inStream.Write(cmd); err != nil {
-				log.Errorf(ctx, "[rawProcessVirtualizationInStream] failed to write virtual input stream: %v", err)
+				log.Errorf(ctx, err, "[rawProcessVirtualizationInStream] failed to write virtual input stream: %v", err)
 				continue
 			}
 		}
@@ -151,7 +150,7 @@ func (c *Calcium) processBuildImageStream(ctx context.Context, reader io.ReadClo
 			if err != nil {
 				if err != io.EOF {
 					malformed, _ := io.ReadAll(decoder.Buffered()) // TODO err check
-					log.Errorf(ctx, "[processBuildImageStream] Decode image message failed %v, buffered: %s", err, string(malformed))
+					log.Errorf(ctx, err, "[processBuildImageStream] Decode image message failed %v, buffered: %s", err, string(malformed))
 					message.Error = err.Error()
 					ch <- message
 				}

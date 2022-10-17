@@ -467,7 +467,7 @@ func toRPCWorkloads(ctx context.Context, workloads []*types.Workload, labels map
 	for _, c := range workloads {
 		pWorkload, err := toRPCWorkload(ctx, c)
 		if err != nil {
-			log.Errorf(ctx, "[toRPCWorkloads] trans to pb workload failed %v", err)
+			log.Errorf(ctx, err, "[toRPCWorkloads] trans to pb workload failed %v", err)
 			continue
 		}
 		if !utils.LabelsFilter(pWorkload.Labels, labels) {

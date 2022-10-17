@@ -7,8 +7,6 @@ import (
 	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/pkg/errors"
 )
 
 // DissociateWorkload dissociate workload from eru, return it resource but not modity it
@@ -17,7 +15,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *t
 
 	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, ids)
 	if err != nil {
-		logger.Errorf(ctx, "failed to group workloads by node: %+v", err)
+		logger.Errorf(ctx, err, "failed to group workloads by node: %+v", err)
 		return nil, err
 	}
 
@@ -39,11 +37,11 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *t
 									resourceArgs[plugin] = args
 								}
 								_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []map[string]types.WorkloadResourceArgs{resourceArgs}, true, resources.Decr)
-								return errors.WithStack(err)
+								return err
 							},
 							// then
 							func(ctx context.Context) error {
-								return errors.WithStack(c.store.RemoveWorkload(ctx, workload))
+								return c.store.RemoveWorkload(ctx, workload)
 							},
 							// rollback
 							func(ctx context.Context, failedByCond bool) error {
@@ -55,12 +53,12 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *t
 									resourceArgs[plugin] = args
 								}
 								_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []map[string]types.WorkloadResourceArgs{resourceArgs}, true, resources.Incr)
-								return errors.WithStack(err)
+								return err
 							},
 							c.config.GlobalTimeout,
 						)
 					}); err != nil {
-						logger.WithField("id", workloadID).Errorf(ctx, "failed to lock workload: %+v", err)
+						logger.WithField("id", workloadID).Errorf(ctx, err, "failed to lock workload: %+v", err)
 						msg.Error = err
 					}
 					ch <- msg
@@ -68,7 +66,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *t
 				_ = c.pool.Invoke(func() { c.doRemapResourceAndLog(ctx, logger, node) })
 				return nil
 			}); err != nil {
-				logger.WithField("nodename", nodename).Errorf(ctx, "failed to lock node: %+v", err)
+				logger.WithField("nodename", nodename).Errorf(ctx, err, "failed to lock node: %+v", err)
 			}
 		}
 	})

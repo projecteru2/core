@@ -45,23 +45,23 @@ func (r *Resolver) Close() {
 
 func (r *Resolver) sync() {
 	ctx := context.TODO()
-	log.Debug(ctx, "[EruResolver] start sync service discovery")
 	ctx, r.cancel = context.WithCancel(ctx)
 	defer r.cancel()
+	log.Debug(ctx, "[EruResolver] start sync service discovery")
 
 	ch, err := r.discovery.Watch(ctx)
 	if err != nil {
-		log.Errorf(ctx, "[EruResolver] failed to watch service status: %v", err)
+		log.Errorf(ctx, err, "[EruResolver] failed to watch service status: %v", err)
 		return
 	}
 	for {
 		select {
 		case <-ctx.Done():
-			log.Errorf(ctx, "[EruResolver] watch interrupted: %v", ctx.Err())
+			log.Errorf(ctx, ctx.Err(), "[EruResolver] watch interrupted: %v", ctx.Err())
 			return
 		case endpoints, ok := <-ch:
 			if !ok {
-				log.Error("[EruResolver] watch closed")
+				log.Info(ctx, nil, "[EruResolver] watch closed")
 				return
 			}
 

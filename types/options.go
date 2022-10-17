@@ -3,8 +3,6 @@ package types
 import (
 	"fmt"
 	"io"
-
-	"github.com/pkg/errors"
 )
 
 // TODO should validate options
@@ -58,16 +56,16 @@ func (o DeployOptions) GetProcessing(nodename string) *Processing {
 // Validate checks options
 func (o *DeployOptions) Validate() error {
 	if o.Name == "" {
-		return errors.WithStack(ErrEmptyAppName)
+		return ErrEmptyAppName
 	}
 	if o.Podname == "" {
-		return errors.WithStack(ErrEmptyPodName)
+		return ErrEmptyPodName
 	}
 	if o.Image == "" {
-		return errors.WithStack(ErrEmptyImage)
+		return ErrEmptyImage
 	}
 	if o.Count == 0 {
-		return errors.WithStack(ErrEmptyCount)
+		return ErrEmptyCount
 	}
 	return o.Entrypoint.Validate()
 }
@@ -80,7 +78,7 @@ type CopyOptions struct {
 // Validate checks options
 func (o *CopyOptions) Validate() error {
 	if len(o.Targets) == 0 {
-		return errors.WithStack(ErrNoFilesToCopy)
+		return ErrNoFilesToCopy
 	}
 	return nil
 }
@@ -126,10 +124,10 @@ type SendOptions struct {
 // Validate checks options
 func (o *SendOptions) Validate() error {
 	if len(o.IDs) == 0 {
-		return errors.WithStack(ErrNoWorkloadIDs)
+		return ErrNoWorkloadIDs
 	}
 	if len(o.Files) == 0 {
-		return errors.WithStack(ErrNoFilesToSend)
+		return ErrNoFilesToSend
 	}
 	for i, file := range o.Files {
 		if file.UID == 0 && file.GID == 0 && file.Mode == 0 {
@@ -163,7 +161,7 @@ type ReplaceOptions struct {
 // to keep the original behavior, no check here.
 func (o *ReplaceOptions) Validate() error {
 	if o.DeployOptions.Name == "" {
-		return errors.WithStack(ErrEmptyAppName)
+		return ErrEmptyAppName
 	}
 	return o.DeployOptions.Entrypoint.Validate()
 }
@@ -198,13 +196,13 @@ type AddNodeOptions struct {
 // Validate checks options
 func (o *AddNodeOptions) Validate() error {
 	if o.Nodename == "" {
-		return errors.WithStack(ErrEmptyNodeName)
+		return ErrEmptyNodeName
 	}
 	if o.Podname == "" {
-		return errors.WithStack(ErrEmptyPodName)
+		return ErrEmptyPodName
 	}
 	if o.Endpoint == "" {
-		return errors.WithStack(ErrEmptyNodeEndpoint)
+		return ErrEmptyNodeEndpoint
 	}
 	return nil
 }
@@ -226,7 +224,7 @@ type SetNodeOptions struct {
 // Validate checks options
 func (o *SetNodeOptions) Validate() error {
 	if o.Nodename == "" {
-		return errors.WithStack(ErrEmptyNodeName)
+		return ErrEmptyNodeName
 	}
 	return nil
 }
@@ -244,7 +242,7 @@ type ImageOptions struct {
 // Validate checks the options
 func (o *ImageOptions) Validate() error {
 	if o.Podname == "" {
-		return errors.WithStack(ErrEmptyPodName)
+		return ErrEmptyPodName
 	}
 	return nil
 }

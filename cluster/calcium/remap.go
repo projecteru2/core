@@ -14,24 +14,24 @@ type remapMsg struct {
 	err error
 }
 
-func (c *Calcium) doRemapResourceAndLog(ctx context.Context, logger log.Fields, node *types.Node) {
-	log.Debugf(ctx, "[doRemapResourceAndLog] remap node %s", node.Name)
+func (c *Calcium) doRemapResourceAndLog(ctx context.Context, logger *log.Fields, node *types.Node) {
+	logger.Infof(ctx, "[doRemapResourceAndLog] remap node %s", node.Name)
 	ctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.TODO()), c.config.GlobalTimeout)
 	defer cancel()
 
 	err := c.withNodeOperationLocked(ctx, node.Name, func(ctx context.Context, node *types.Node) error {
 		logger = logger.WithField("Calcium", "doRemapResourceAndLog").WithField("nodename", node.Name)
-		if ch, err := c.remapResource(ctx, node); logger.ErrWithTracing(ctx, err) == nil {
+		if ch, err := c.remapResource(ctx, node); err == nil {
 			for msg := range ch {
-				log.Infof(ctx, "[doRemapResourceAndLog] id %v", msg.id)
-				logger.WithField("id", msg.id).ErrWithTracing(ctx, msg.err) // nolint:errcheck
+				logger.Infof(ctx, "[doRemapResourceAndLog] id %v", msg.id)
+				logger.WithField("id", msg.id).Errorf(ctx, msg.err, "") // nolint:errcheck
 			}
 		}
 		return nil
 	})
 
 	if err != nil {
-		log.Errorf(ctx, "[doRemapResourceAndLog] remap node %s failed, err: %v", node.Name, err)
+		logger.Errorf(ctx, err, "[doRemapResourceAndLog] remap node %s failed, err: %v", node.Name, err)
 	}
 }
 

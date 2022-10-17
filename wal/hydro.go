@@ -51,13 +51,13 @@ func (h *Hydro) Recover(ctx context.Context) {
 	for {
 		scanEntry, ok := <-ch
 		if !ok {
-			log.Errorf(nil, "[Recover] closed ch") // nolint
+			log.Errorf(nil, nil, "[Recover] closed ch") // nolint
 			break
 		}
 
 		event, err := h.decodeEvent(scanEntry)
 		if err != nil {
-			log.Errorf(nil, "[Recover] decode event error: %v", err) // nolint
+			log.Errorf(nil, err, "[Recover] decode event error: %v", err) // nolint
 			continue
 		}
 		events = append(events, event)
@@ -66,12 +66,12 @@ func (h *Hydro) Recover(ctx context.Context) {
 	for _, event := range events {
 		handler, ok := h.getEventHandler(event.Type)
 		if !ok {
-			log.Errorf(nil, "[Recover] no such event handler for %s", event.Type) // nolint
+			log.Errorf(nil, nil, "[Recover] no such event handler for %s", event.Type) // nolint
 			continue
 		}
 
 		if err := h.recover(ctx, handler, event); err != nil {
-			log.Errorf(nil, "[Recover] handle event %d (%s) failed: %v", event.ID, event.Type, err) // nolint
+			log.Errorf(nil, err, "[Recover] handle event %d (%s) failed: %v", event.ID, event.Type, err) // nolint
 			continue
 		}
 	}

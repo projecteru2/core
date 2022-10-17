@@ -83,7 +83,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	// parse engine args to resource options
 	opts.VirtualizationResource, err = engine.MakeVirtualizationResource(opts.EngineArgs)
 	if err != nil {
-		log.Errorf(ctx, "[VirtualizationCreate] failed to parse engine args %+v, err %v", opts.EngineArgs, err)
+		log.Errorf(ctx, err, "[VirtualizationCreate] failed to parse engine args %+v, err %v", opts.EngineArgs, err)
 		return r, coretypes.ErrInvalidEngineArgs
 	}
 
@@ -403,7 +403,7 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 	// parse engine args to resource options
 	resourceOpts, err := engine.MakeVirtualizationResource(opts.EngineArgs)
 	if err != nil {
-		log.Errorf(ctx, "[VirtualizationUpdateResource] failed to parse engine args %+v, workload id %v, err %v", opts.EngineArgs, ID, err)
+		log.Errorf(ctx, err, "[VirtualizationUpdateResource] failed to parse engine args %+v, workload id %v, err %v", opts.EngineArgs, ID, err)
 		return coretypes.ErrInvalidEngineArgs
 	}
 
@@ -411,7 +411,7 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 		return coretypes.ErrBadMemory
 	}
 	if len(opts.Volumes) > 0 || resourceOpts.VolumeChanged {
-		log.Errorf(ctx, "[VirtualizationUpdateResource] docker engine not support rebinding volume resource: %v", resourceOpts.Volumes)
+		log.Errorf(ctx, err, "[VirtualizationUpdateResource] docker engine not support rebinding volume resource: %v", resourceOpts.Volumes)
 		return coretypes.ErrNotSupport
 	}
 

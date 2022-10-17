@@ -9,8 +9,6 @@ import (
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/pkg/errors"
 )
 
 // ControlWorkload control workloads status
@@ -46,16 +44,17 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 						message = append(message, startHook...)
 						return err
 					}
-					return errors.WithStack(types.ErrUnknownControlType)
+					return types.ErrUnknownControlType
 				})
 				if err == nil {
-					log.Infof(ctx, "[ControlWorkload] Workload %s %s", id, t)
-					log.Info("[ControlWorkload] Hook Output:")
-					log.Info(string(utils.MergeHookOutputs(message)))
+					logger.Infof(ctx, "[ControlWorkload] Workload %s %s", id, t)
+					logger.Infof(ctx, "%v", "[ControlWorkload] Hook Output:")
+					logger.Infof(ctx, "%v", string(utils.MergeHookOutputs(message)))
 				}
+				logger.Errorf(ctx, err, "")
 				ch <- &types.ControlWorkloadMessage{
 					WorkloadID: id,
-					Error:      logger.ErrWithTracing(ctx, err),
+					Error:      err,
 					Hook:       message,
 				}
 			})

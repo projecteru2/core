@@ -28,7 +28,7 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 
 		if opts.DeployStrategy != strategy.Dummy {
 			if msg.NodeCapacities, err = c.doGetDeployStrategy(ctx, nodenames, opts); err != nil {
-				logger.Errorf(ctx, "[Calcium.CalculateCapacity] doGetDeployMap failed: %+v", err)
+				logger.Errorf(ctx, err, "[Calcium.CalculateCapacity] doGetDeployMap failed: %+v", err)
 				return err
 			}
 
@@ -41,7 +41,7 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 		var infos map[string]*resources.NodeCapacityInfo
 		infos, msg.Total, err = c.rmgr.GetNodesDeployCapacity(ctx, nodenames, opts.ResourceOpts)
 		if err != nil {
-			logger.Errorf(ctx, "[Calcium.CalculateCapacity] failed to get nodes capacity: %+v", err)
+			logger.Errorf(ctx, err, "[Calcium.CalculateCapacity] failed to get nodes capacity: %+v", err)
 			return err
 		}
 		if msg.Total <= 0 {

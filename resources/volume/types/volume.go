@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-
 	"github.com/projecteru2/core/utils"
 )
 
@@ -32,7 +31,7 @@ func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 
 	parts := strings.Split(volume, ":")
 	if len(parts) > 8 || len(parts) < 2 {
-		return nil, errors.WithStack(errors.Errorf("invalid volume: %s", volume))
+		return nil, errors.Errorf("invalid volume: %s", volume)
 	}
 	if len(parts) == 2 {
 		parts = append(parts, "rw")
@@ -48,7 +47,7 @@ func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 	for i, ptr := range ptrs {
 		value, err := utils.ParseRAMInHuman(parts[i+3])
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, err
 		}
 		*ptr = value
 	}
@@ -77,7 +76,7 @@ func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 // Validate return error if invalid
 func (vb VolumeBinding) Validate() error {
 	if vb.Destination == "" {
-		return errors.WithStack(errors.Errorf("invalid volume, dest must be provided: %v", vb))
+		return errors.Errorf("invalid volume, dest must be provided: %v", vb)
 	}
 	return nil
 }
@@ -173,10 +172,10 @@ func NewVolumeBindings(volumes []string) (volumeBindings VolumeBindings, err err
 func (vbs VolumeBindings) Validate() error {
 	for _, vb := range vbs {
 		if vb.RequireScheduleMonopoly() && vb.RequireScheduleUnlimitedQuota() {
-			return errors.WithStack(errors.Errorf("invalid volume, monopoly volume can't be unlimited: %v", vb))
+			return errors.Errorf("invalid volume, monopoly volume can't be unlimited: %v", vb)
 		}
 		if !vb.ValidIOParameters() {
-			return errors.WithStack(errors.Errorf("invalid io parameters: %v", vb))
+			return errors.Errorf("invalid io parameters: %v", vb)
 		}
 	}
 	return nil
@@ -186,7 +185,7 @@ func (vbs VolumeBindings) Validate() error {
 func (vbs *VolumeBindings) UnmarshalJSON(b []byte) (err error) {
 	volumes := []string{}
 	if err = json.Unmarshal(b, &volumes); err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 	*vbs, err = NewVolumeBindings(volumes)
 	return
@@ -199,7 +198,7 @@ func (vbs VolumeBindings) MarshalJSON() ([]byte, error) {
 		volumes = append(volumes, vb.ToString(false))
 	}
 	bs, err := json.Marshal(volumes)
-	return bs, errors.WithStack(err)
+	return bs, err
 }
 
 func (vbs VolumeBindings) String() string {
@@ -328,12 +327,12 @@ func (p *VolumePlan) UnmarshalJSON(b []byte) (err error) {
 	}
 	plan := map[string]VolumeMap{}
 	if err = json.Unmarshal(b, &plan); err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 	for volume, vmap := range plan {
 		vb, err := NewVolumeBinding(volume)
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 		(*p)[vb] = vmap
 	}
@@ -347,7 +346,7 @@ func (p VolumePlan) MarshalJSON() ([]byte, error) {
 		plan[vb.ToString(false)] = vmap
 	}
 	bs, err := json.Marshal(plan)
-	return bs, errors.WithStack(err)
+	return bs, err
 }
 
 // String .

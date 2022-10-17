@@ -16,7 +16,6 @@ import (
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
 
-	"github.com/pkg/errors"
 	"github.com/sanity-io/litter"
 )
 
@@ -24,14 +23,17 @@ import (
 func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
 	logger := log.WithField("Calcium", "CreateWorkload").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.ErrWithTracing(ctx, err)
+		logger.Errorf(ctx, err, "")
+		return nil, err
 	}
 
 	opts.ProcessIdent = utils.RandomString(16)
-	log.Infof(ctx, "[CreateWorkload %s] Creating workload with options:\n%s", opts.ProcessIdent, litter.Options{Compact: true}.Sdump(opts))
+	logger.Infof(ctx, "[CreateWorkload %s] Creating workload with options:\n%s", opts.ProcessIdent, litter.Options{Compact: true}.Sdump(opts))
 	// Count 要大于0
 	if opts.Count <= 0 {
-		return nil, logger.ErrWithTracing(ctx, errors.WithStack(types.NewDetailedErr(types.ErrBadCount, opts.Count)))
+		err := types.NewDetailedErr(types.ErrBadCount, opts.Count)
+		logger.Errorf(ctx, err, "")
+		return nil, err
 	}
 
 	return c.doCreateWorkloads(ctx, opts), nil
@@ -60,7 +62,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			for nodename := range deployMap {
 				processing := opts.GetProcessing(nodename)
 				if err := c.store.DeleteProcessing(cctx, processing); err != nil {
-					logger.Errorf(ctx, "[Calcium.doCreateWorkloads] delete processing failed for %s: %+v", nodename, err)
+					logger.Errorf(ctx, err, "[Calcium.doCreateWorkloads] delete processing failed for %s: %+v", nodename, err)
 				}
 			}
 			close(ch)
@@ -71,7 +73,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		defer func() {
 			if resourceCommit != nil {
 				if err := resourceCommit(); err != nil {
-					logger.Errorf(ctx, "commit wal failed: %s, %+v", eventWorkloadResourceAllocated, err)
+					logger.Errorf(ctx, err, "commit wal failed: %s, %+v", eventWorkloadResourceAllocated, err)
 				}
 			}
 		}()
@@ -83,7 +85,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					continue
 				}
 				if err := processingCommits[nodename](); err != nil {
-					logger.Errorf(ctx, "commit wal failed: %s, %s, %+v", eventProcessingCreated, nodename, err)
+					logger.Errorf(ctx, err, "commit wal failed: %s, %s, %+v", eventProcessingCreated, nodename, err)
 				}
 			}
 		}()
@@ -95,7 +97,8 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			func(ctx context.Context) (err error) {
 				defer func() {
 					if err != nil {
-						ch <- &types.CreateWorkloadMessage{Error: logger.ErrWithTracing(ctx, err)}
+						logger.Errorf(ctx, err, "")
+						ch <- &types.CreateWorkloadMessage{Error: err}
 					}
 				}()
 				return c.withNodesPodLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) (err error) {
@@ -107,7 +110,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					}
 
 					if resourceCommit, err = c.wal.Log(eventWorkloadResourceAllocated, nodes); err != nil {
-						return errors.WithStack(err)
+						return err
 					}
 
 					deployMap, err = c.doGetDeployStrategy(ctx, nodenames, opts)
@@ -120,15 +123,15 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					for nodename, deploy := range deployMap {
 						nodes = append(nodes, nodeMap[nodename])
 						if engineArgsMap[nodename], resourceArgsMap[nodename], err = c.rmgr.Alloc(ctx, nodename, deploy, opts.ResourceOpts); err != nil {
-							return errors.WithStack(err)
+							return err
 						}
 
 						processing := opts.GetProcessing(nodename)
 						if processingCommits[nodename], err = c.wal.Log(eventProcessingCreated, processing); err != nil {
-							return errors.WithStack(err)
+							return err
 						}
 						if err = c.store.CreateProcessing(ctx, processing, deploy); err != nil {
-							return errors.WithStack(err)
+							return err
 						}
 					}
 					return nil
@@ -153,7 +156,8 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 						})
 						return c.rmgr.RollbackAlloc(ctx, nodename, resourceArgsToRollback)
 					}); e != nil {
-						err = logger.ErrWithTracing(ctx, e)
+						logger.Errorf(ctx, e, "")
+						err = e
 					}
 				}
 				return err
@@ -223,7 +227,8 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	node, err := c.doGetAndPrepareNode(ctx, nodename, opts.Image)
 	if err != nil {
 		for i := 0; i < deploy; i++ {
-			ch <- &types.CreateWorkloadMessage{Error: logger.ErrWithTracing(ctx, err)}
+			logger.Errorf(ctx, err, "")
+			ch <- &types.CreateWorkloadMessage{Error: err}
 		}
 		return utils.Range(deploy), err
 	}
@@ -245,7 +250,8 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 			defer func() {
 				if e != nil {
 					err = e
-					createMsg.Error = logger.ErrWithTracing(ctx, e)
+					logger.Errorf(ctx, err, "")
+					createMsg.Error = err
 					appendLock.Lock()
 					indices = append(indices, idx)
 					appendLock.Unlock()
@@ -316,7 +322,7 @@ func (c *Calcium) doDeployOneWorkload(
 	defer func() {
 		if commit != nil {
 			if err := commit(); err != nil {
-				logger.Errorf(ctx, "Commit WAL %s failed: %+v", eventWorkloadCreated, err)
+				logger.Errorf(ctx, err, "Commit WAL %s failed: %+v", eventWorkloadCreated, err)
 			}
 		}
 	}()
@@ -326,7 +332,7 @@ func (c *Calcium) doDeployOneWorkload(
 		func(ctx context.Context) error {
 			created, err := node.Engine.VirtualizationCreate(ctx, config)
 			if err != nil {
-				return errors.WithStack(err)
+				return err
 			}
 			workload.ID = created.ID
 
@@ -341,7 +347,7 @@ func (c *Calcium) doDeployOneWorkload(
 				ID:       workload.ID,
 				Nodename: workload.Nodename,
 			})
-			return errors.WithStack(err)
+			return err
 		},
 
 		func(ctx context.Context) (err error) {
@@ -352,9 +358,9 @@ func (c *Calcium) doDeployOneWorkload(
 			}
 			// add workload metadata first
 			if err := c.store.AddWorkload(ctx, workload, processing); err != nil {
-				return errors.WithStack(err)
+				return err
 			}
-			log.Infof(ctx, "[doDeployOneWorkload] workload %s metadata created", workload.ID)
+			logger.Infof(ctx, "[doDeployOneWorkload] workload %s metadata created", workload.ID)
 
 			// Copy data to workload
 			if len(opts.Files) > 0 {
@@ -407,9 +413,9 @@ func (c *Calcium) doDeployOneWorkload(
 				workload.User = workloadInfo.User
 
 				if err := c.store.UpdateWorkload(ctx, workload); err != nil {
-					return errors.WithStack(err)
+					return err
 				}
-				log.Infof(ctx, "[doDeployOneWorkload] workload %s metadata updated", workload.ID)
+				logger.Infof(ctx, "[doDeployOneWorkload] workload %s metadata updated", workload.ID)
 			}
 
 			msg.WorkloadID = workload.ID
@@ -421,13 +427,13 @@ func (c *Calcium) doDeployOneWorkload(
 
 		// remove workload
 		func(ctx context.Context, _ bool) error {
-			logger.Errorf(ctx, "[doDeployOneWorkload] failed to deploy workload %s, rollback", workload.ID)
+			logger.Errorf(ctx, nil, "[doDeployOneWorkload] failed to deploy workload %s, rollback", workload.ID)
 			if workload.ID == "" {
 				return nil
 			}
 
 			if err := c.store.RemoveWorkload(ctx, workload); err != nil {
-				logger.Errorf(ctx, "[doDeployOneWorkload] failed to remove workload %s", workload.ID)
+				logger.Errorf(ctx, err, "[doDeployOneWorkload] failed to remove workload %s", workload.ID)
 			}
 
 			return workload.Remove(ctx, true)
