@@ -260,7 +260,7 @@ func (bp *BinaryPlugin) call(ctx context.Context, cmd string, req interface{}, r
 	defer log.Infof(ctx, "[callBinaryPlugin] output from plugin %s: %s", bp.path, pluginOutput)
 
 	if err != nil {
-		log.Errorf(ctx, "[callBinaryPlugin] failed to run plugin %s, command %v, err %s", bp.path, args, err)
+		log.Errorf(ctx, err, "[callBinaryPlugin] failed to run plugin %s, command %v, err %s", bp.path, args, err)
 		return err
 	}
 
@@ -268,7 +268,7 @@ func (bp *BinaryPlugin) call(ctx context.Context, cmd string, req interface{}, r
 		pluginOutput = "{}"
 	}
 	if err := json.Unmarshal([]byte(pluginOutput), resp); err != nil {
-		log.Errorf(ctx, "[callBinaryPlugin] failed to unmarshal output of plugin %s, command %v, output %s, err %s", bp.path, args, pluginOutput, err)
+		log.Errorf(ctx, err, "[callBinaryPlugin] failed to unmarshal output of plugin %s, command %v, output %s, err %s", bp.path, args, pluginOutput, err)
 		return err
 	}
 	return nil

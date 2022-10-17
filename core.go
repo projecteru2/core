@@ -38,11 +38,11 @@ var (
 func serve(c *cli.Context) error {
 	config, err := utils.LoadConfig(configPath)
 	if err != nil {
-		log.Fatalf("[main] %v", err)
+		return err
 	}
 
 	if err := log.SetupLog(config.LogLevel); err != nil {
-		log.Fatalf("[main] %v", err)
+		return err
 	}
 
 	defer utils.SentryDefer()
@@ -60,7 +60,7 @@ func serve(c *cli.Context) error {
 	}
 	cluster, err := calcium.New(c.Context, config, t)
 	if err != nil {
-		log.Errorf(c.Context, "[main] %v", err) //nolint
+		log.Errorf(c.Context, err, "")
 		return err
 	}
 	defer cluster.Finalizer()
@@ -70,7 +70,7 @@ func serve(c *cli.Context) error {
 	vibranium := rpc.New(cluster, config, stop)
 	s, err := net.Listen("tcp", config.Bind)
 	if err != nil {
-		log.Errorf(c.Context, "[main] %v", err) //nolint
+		log.Errorf(c.Context, err, "")
 		return err
 	}
 
@@ -80,7 +80,7 @@ func serve(c *cli.Context) error {
 	}
 
 	if config.Auth.Username != "" {
-		log.Info("[main] Cluster auth enable.")
+		log.Info(c.Context, "[main] Cluster auth enable.")
 		auth := auth.NewAuth(config.Auth)
 		opts = append(opts, grpc.StreamInterceptor(auth.StreamInterceptor))
 		opts = append(opts, grpc.UnaryInterceptor(auth.UnaryInterceptor))
@@ -91,7 +91,7 @@ func serve(c *cli.Context) error {
 	pb.RegisterCoreRPCServer(grpcServer, vibranium)
 	utils.SentryGo(func() {
 		if err := grpcServer.Serve(s); err != nil {
-			log.Errorf(c.Context, "[main] start grpc failed %v", err) //nolint
+			log.Errorf(c.Context, err, "%v", "start grpc failed")
 		}
 	})
 
@@ -103,17 +103,17 @@ func serve(c *cli.Context) error {
 				ReadHeaderTimeout: 3 * time.Second,
 			}
 			if err := server.ListenAndServe(); err != nil {
-				log.Errorf(c.Context, "[main] start http failed %v", err) //nolint
+				log.Errorf(c.Context, err, "%v", "start http failed")
 			}
 		})
 	}
 
 	unregisterService, err := cluster.RegisterService(c.Context)
 	if err != nil {
-		log.Errorf(c.Context, "[main] failed to register service: %v", err) //nolint
+		log.Errorf(c.Context, err, "%v", "failed to register service")
 		return err
 	}
-	log.Info("[main] Cluster started successfully.")
+	log.Info(c.Context, "[main] Cluster started successfully.")
 
 	// wait for unix signals and try to GracefulStop
 	ctx, cancel := signal.NotifyContext(c.Context, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
@@ -124,15 +124,15 @@ func serve(c *cli.Context) error {
 
 	<-ctx.Done()
 
-	log.Info("[main] Interrupt by signal")
+	log.Info(c.Context, "[main] Interrupt by signal")
 	close(stop)
 	unregisterService()
 	grpcServer.GracefulStop()
-	log.Info("[main] gRPC server gracefully stopped.")
+	log.Info(c.Context, "[main] gRPC server gracefully stopped.")
 
-	log.Info("[main] Check if cluster still have running tasks.")
+	log.Info(c.Context, "[main] Check if cluster still have running tasks.")
 	vibranium.Wait()
-	log.Info("[main] cluster gracefully stopped.")
+	log.Info(c.Context, "[main] cluster gracefully stopped.")
 	return nil
 }
 

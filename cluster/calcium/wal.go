@@ -88,21 +88,21 @@ func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error
 	go func() {
 		workload, err := h.calcium.GetWorkload(ctx, workloadID)
 		if err != nil {
-			logger.Errorf(ctx, "Get workload failed: %v", err)
+			logger.Errorf(ctx, err, "Get workload failed: %v", err)
 			return
 		}
 
 		r, err := workload.Engine.VirtualizationWait(ctx, workloadID, "")
 		if err != nil {
-			logger.Errorf(ctx, "Wait failed: %+v", err)
+			logger.Errorf(ctx, err, "Wait failed: %+v", err)
 			return
 		}
 		if r.Code != 0 {
-			logger.Errorf(ctx, "Run failed: %s", r.Message)
+			logger.Errorf(ctx, nil, "Run failed: %s", r.Message)
 		}
 
 		if err := h.calcium.RemoveWorkloadSync(ctx, []string{workloadID}); err != nil {
-			logger.Errorf(ctx, "Remove failed: %+v", err)
+			logger.Errorf(ctx, err, "Remove failed: %+v", err)
 		}
 		logger.Infof(ctx, "waited and removed")
 	}()
@@ -172,10 +172,12 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (er
 	// workload meta doesn't exist
 	node, err := h.calcium.GetNode(ctx, wrk.Nodename)
 	if err != nil {
-		return logger.ErrWithTracing(ctx, err)
+		logger.Errorf(ctx, err, "")
+		return err
 	}
 	if err = node.Engine.VirtualizationRemove(ctx, wrk.ID, true, true); err != nil && !errors.Is(err, types.ErrWorkloadNotExists) {
-		return logger.ErrWithTracing(ctx, err)
+		logger.Errorf(ctx, err, "")
+		return err
 	}
 
 	logger.Infof(ctx, "workload removed")
@@ -246,7 +248,7 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw inter
 		_ = h.pool.Invoke(func() {
 			defer wg.Done()
 			if _, err = h.calcium.NodeResource(ctx, node.Name, true); err != nil {
-				logger.Errorf(ctx, "failed to fix node resource: %s, %+v", node.Name, err)
+				logger.Errorf(ctx, err, "failed to fix node resource: %s, %+v", node.Name, err)
 				return
 			}
 			logger.Infof(ctx, "fixed node resource: %s", node.Name)
@@ -310,7 +312,8 @@ func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw interface{}) 
 	defer cancel()
 
 	if err = h.store.DeleteProcessing(ctx, processing); err != nil {
-		return logger.ErrWithTracing(ctx, err)
+		logger.Errorf(ctx, err, "")
+		return err
 	}
 	logger.Infof(ctx, "obsolete processing deleted")
 	return

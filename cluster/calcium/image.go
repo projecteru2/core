@@ -7,8 +7,6 @@ import (
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-
-	"github.com/pkg/errors"
 )
 
 // CacheImage cache Image
@@ -17,16 +15,19 @@ import (
 func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (chan *types.CacheImageMessage, error) {
 	logger := log.WithField("Calcium", "CacheImage").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.ErrWithTracing(ctx, err)
+		logger.Errorf(ctx, err, "")
+		return nil, err
 	}
 
 	nodes, err := c.filterNodes(ctx, &types.NodeFilter{Podname: opts.Podname, Includes: opts.Nodenames})
 	if err != nil {
-		return nil, logger.ErrWithTracing(ctx, err)
+		logger.Errorf(ctx, err, "")
+		return nil, err
 	}
 
 	if len(nodes) == 0 {
-		return nil, logger.ErrWithTracing(ctx, errors.WithStack(types.ErrPodNoNodes))
+		logger.Errorf(ctx, types.ErrPodNoNodes, "")
+		return nil, types.ErrPodNoNodes
 	}
 
 	ch := make(chan *types.CacheImageMessage)
@@ -48,8 +49,9 @@ func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (cha
 						Message:  "",
 					}
 					if err := pullImage(ctx, node, image); err != nil {
+						logger.Errorf(ctx, err, "")
 						m.Success = false
-						m.Message = logger.ErrWithTracing(ctx, err).Error()
+						m.Message = err.Error()
 					}
 					ch <- m
 				}
@@ -64,16 +66,19 @@ func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (cha
 func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (chan *types.RemoveImageMessage, error) {
 	logger := log.WithField("Calcium", "RemoveImage").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.ErrWithTracing(ctx, err)
+		logger.Errorf(ctx, err, "")
+		return nil, err
 	}
 
 	nodes, err := c.filterNodes(ctx, &types.NodeFilter{Podname: opts.Podname, Includes: opts.Nodenames})
 	if err != nil {
-		return nil, logger.ErrWithTracing(ctx, err)
+		logger.Errorf(ctx, err, "")
+		return nil, err
 	}
 
 	if len(nodes) == 0 {
-		return nil, logger.ErrWithTracing(ctx, errors.WithStack(types.ErrPodNoNodes))
+		logger.Errorf(ctx, types.ErrPodNoNodes, "")
+		return nil, types.ErrPodNoNodes
 	}
 
 	ch := make(chan *types.RemoveImageMessage)
@@ -94,7 +99,8 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 						Messages: []string{},
 					}
 					if removeItems, err := node.Engine.ImageRemove(ctx, image, false, true); err != nil {
-						m.Messages = append(m.Messages, logger.ErrWithTracing(ctx, err).Error())
+						logger.Errorf(ctx, err, "")
+						m.Messages = append(m.Messages, err.Error())
 					} else {
 						m.Success = true
 						for _, item := range removeItems {
@@ -105,9 +111,9 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 				}
 				if opts.Prune {
 					if err := node.Engine.ImagesPrune(ctx); err != nil {
-						logger.Errorf(ctx, "[RemoveImage] Prune %s pod %s node failed: %+v", opts.Podname, node.Name, err)
+						logger.Errorf(ctx, err, "[RemoveImage] Prune %s pod %s node failed: %+v", opts.Podname, node.Name, err)
 					} else {
-						log.Infof(ctx, "[RemoveImage] Prune %s pod %s node", opts.Podname, node.Name)
+						logger.Infof(ctx, "[RemoveImage] Prune %s pod %s node", opts.Podname, node.Name)
 					}
 				}
 			})
@@ -123,11 +129,13 @@ func (c *Calcium) ListImage(ctx context.Context, opts *types.ImageOptions) (chan
 
 	nodes, err := c.filterNodes(ctx, &types.NodeFilter{Podname: opts.Podname, Includes: opts.Nodenames})
 	if err != nil {
-		return nil, logger.ErrWithTracing(ctx, err)
+		logger.Errorf(ctx, err, "")
+		return nil, err
 	}
 
 	if len(nodes) == 0 {
-		return nil, logger.ErrWithTracing(ctx, errors.WithStack(types.ErrPodNoNodes))
+		logger.Errorf(ctx, types.ErrPodNoNodes, "")
+		return nil, err
 	}
 
 	ch := make(chan *types.ListImageMessage)
@@ -147,7 +155,8 @@ func (c *Calcium) ListImage(ctx context.Context, opts *types.ImageOptions) (chan
 					Error:    nil,
 				}
 				if images, err := node.Engine.ImageList(ctx, opts.Filter); err != nil {
-					msg.Error = logger.ErrWithTracing(ctx, err)
+					logger.Errorf(ctx, err, "")
+					msg.Error = err
 				} else {
 					for _, image := range images {
 						msg.Images = append(msg.Images, &types.Image{

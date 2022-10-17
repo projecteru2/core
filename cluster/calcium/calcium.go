@@ -20,8 +20,6 @@ import (
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
-
-	"github.com/pkg/errors"
 )
 
 // Calcium implement the cluster
@@ -38,12 +36,11 @@ type Calcium struct {
 
 // New returns a new cluster config
 func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, error) {
-	logger := log.WithField("Calcium", "New").WithField("config", config)
-
 	// set store
 	store, err := store.NewStore(config, t)
 	if err != nil {
-		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
+		log.Errorf(ctx, err, "")
+		return nil, err
 	}
 
 	// set scm
@@ -55,11 +52,11 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 	case cluster.Github:
 		scm, err = github.New(config)
 	default:
-		log.Warn("[Calcium] SCM not set, build API disabled")
+		log.Warn(ctx, "[Calcium] SCM not set, build API disabled")
 	}
 	if err != nil {
-		logger.Errorf(nil, "[Calcium] SCM failed: %+v", err) //nolint
-		return nil, errors.WithStack(err)
+		log.Errorf(ctx, err, "[Calcium] SCM failed: %+v", err)
+		return nil, err
 	}
 
 	// set watcher
@@ -68,18 +65,19 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 	// set resource plugin manager
 	rmgr, err := resources.NewPluginsManager(config)
 	if err != nil {
-		return nil, logger.ErrWithTracing(ctx, errors.WithStack(err))
+		log.Errorf(ctx, err, "")
+		return nil, err
 	}
 
 	// load internal plugins
 	cpumem, err := cpumem.NewPlugin(config)
 	if err != nil {
-		log.Errorf(ctx, "[NewPluginManager] new cpumem plugin error: %v", err)
+		log.Errorf(ctx, err, "[NewPluginManager] new cpumem plugin error: %v", err)
 		return nil, err
 	}
 	volume, err := volume.NewPlugin(config)
 	if err != nil {
-		log.Errorf(ctx, "[NewPluginManager] new volume plugin error: %v", err)
+		log.Errorf(ctx, err, "[NewPluginManager] new volume plugin error: %v", err)
 		return nil, err
 	}
 	rmgr.AddPlugins(cpumem, volume)
@@ -98,17 +96,19 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 
 	cal.wal, err = enableWAL(config, cal, store)
 	if err != nil {
-		return nil, logger.ErrWithTracing(nil, errors.WithStack(err)) //nolint
+		log.Errorf(ctx, err, "")
+		return nil, err
 	}
 
 	cal.identifier, err = config.Identifier()
 	if err != nil {
-		return nil, logger.ErrWithTracing(nil, errors.WithStack(err)) //nolint
+		log.Errorf(ctx, err, "")
+		return nil, err
 	}
 
 	_ = pool.Invoke(func() { cal.InitMetrics(ctx) })
-
-	return cal, logger.ErrWithTracing(nil, errors.WithStack(err)) //nolint
+	log.Errorf(ctx, err, "")
+	return cal, err
 }
 
 // DisasterRecover .

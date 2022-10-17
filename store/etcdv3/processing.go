@@ -47,7 +47,7 @@ func (m *Mercury) doLoadProcessing(ctx context.Context, appname, entryname strin
 		nodename := parts[len(parts)-2]
 		count, err := strconv.Atoi(string(ev.Value))
 		if err != nil {
-			log.Errorf(ctx, "[doLoadProcessing] Load processing status failed %v", err)
+			log.Errorf(ctx, err, "[doLoadProcessing] Load processing status failed %v", err)
 			continue
 		}
 		if _, ok := nodesCount[nodename]; !ok {

@@ -8,7 +8,6 @@ import (
 
 	"github.com/projecteru2/core/types"
 
-	"github.com/pkg/errors"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 	"golang.org/x/net/context"
@@ -41,13 +40,13 @@ func (c *lockContext) Err() error {
 	if c.err != nil {
 		return c.err
 	}
-	return errors.WithStack(c.Context.Err())
+	return c.Context.Err()
 }
 
 // New new a lock
 func New(cli *clientv3.Client, key string, ttl time.Duration) (*Mutex, error) {
 	if key == "" {
-		return nil, errors.WithStack(types.ErrKeyIsEmpty)
+		return nil, types.ErrKeyIsEmpty
 	}
 
 	if !strings.HasPrefix(key, "/") {

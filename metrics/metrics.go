@@ -37,7 +37,7 @@ type Metrics struct {
 
 // SendDeployCount update deploy counter
 func (m *Metrics) SendDeployCount(n int) {
-	log.Info("[Metrics] Update deploy counter")
+	log.Info(nil, "[Metrics] Update deploy counter") //nolint
 	metrics := &resources.Metrics{
 		Name:   deployCountName,
 		Labels: []string{m.Hostname},
@@ -53,30 +53,30 @@ func (m *Metrics) SendMetrics(metrics ...*resources.Metrics) {
 	for _, metric := range metrics {
 		collector, ok := m.Collectors[metric.Name]
 		if !ok {
-			log.Errorf(nil, "[SendMetrics] Collector not found: %s", metric.Name) //nolint
+			log.Errorf(nil, nil, "[SendMetrics] Collector not found: %s", metric.Name) //nolint
 			continue
 		}
 		switch collector.(type) { // nolint
 		case *prometheus.GaugeVec:
 			value, err := strconv.ParseFloat(metric.Value, 64)
 			if err != nil {
-				log.Errorf(nil, "[SendMetrics] Error occurred while parsing %v value %v: %v", metric.Name, metric.Value, err) //nolint
+				log.Errorf(nil, err, "[SendMetrics] Error occurred while parsing %v value %v: %v", metric.Name, metric.Value, err) //nolint
 			}
 			collector.(*prometheus.GaugeVec).WithLabelValues(metric.Labels...).Set(value) // nolint
 			if err := m.gauge(metric.Key, value); err != nil {
-				log.Errorf(nil, "[SendMetrics] Error occurred while sending %v data to statsd: %v", metric.Name, err) //nolint
+				log.Errorf(nil, err, "[SendMetrics] Error occurred while sending %v data to statsd: %v", metric.Name, err) //nolint
 			}
 		case *prometheus.CounterVec:
 			value, err := strconv.ParseInt(metric.Value, 10, 32) // nolint
 			if err != nil {
-				log.Errorf(nil, "[SendMetrics] Error occurred while parsing %v value %v: %v", metric.Name, metric.Value, err) //nolint
+				log.Errorf(nil, err, "[SendMetrics] Error occurred while parsing %v value %v: %v", metric.Name, metric.Value, err) //nolint
 			}
 			collector.(*prometheus.CounterVec).WithLabelValues(metric.Labels...).Add(float64(value)) // nolint
 			if err := m.count(metric.Key, int(value), 1.0); err != nil {
-				log.Errorf(nil, "[SendMetrics] Error occurred while sending %v data to statsd: %v", metric.Name, err) //nolint
+				log.Errorf(nil, err, "[SendMetrics] Error occurred while sending %v data to statsd: %v", metric.Name, err) //nolint
 			}
 		default:
-			log.Errorf(nil, "[SendMetrics] Unknown collector type: %T", collector) // nolint
+			log.Errorf(nil, nil, "[SendMetrics] Unknown collector type: %T", collector) //nolint
 		}
 	}
 }
@@ -90,9 +90,9 @@ func (m *Metrics) checkConn() error {
 	// We needn't try to renew/reconnect because of only supporting UDP protocol now
 	// We should add an `errorCount` to reconnect when implementing TCP protocol
 	if m.statsdClient, err = statsdlib.New(m.StatsdAddr, statsdlib.WithErrorHandler(func(err error) {
-		log.Errorf(nil, "[statsd] Sending statsd failed: %v", err) //nolint
+		log.Errorf(nil, err, "[statsd] Sending statsd failed: %v", err) //nolint
 	})); err != nil {
-		log.Errorf(nil, "[statsd] Connect statsd failed: %v", err) //nolint
+		log.Errorf(nil, err, "[statsd] Connect statsd failed: %v", err) //nolint
 		return err
 	}
 	return nil

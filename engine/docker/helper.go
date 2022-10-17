@@ -93,7 +93,7 @@ func makeMountPaths(opts *enginetypes.VirtualizationCreateOptions) ([]string, ma
 			binds = append(binds, fmt.Sprintf("%s:%s:%s", parts[0], parts[1], parts[2]))
 			volumes[parts[1]] = struct{}{}
 			if len(parts) == 4 {
-				log.Warn("[makeMountPaths] docker engine not support volume with size limit")
+				log.Warn(nil, "[makeMountPaths] docker engine not support volume with size limit") //nolint
 			}
 		}
 	}
@@ -293,7 +293,7 @@ func CreateTarStream(path string) (io.ReadCloser, error) {
 func GetIP(ctx context.Context, daemonHost string) string {
 	u, err := url.Parse(daemonHost)
 	if err != nil {
-		log.Errorf(ctx, "[GetIP] GetIP %s failed %v", daemonHost, err)
+		log.Errorf(ctx, err, "[GetIP] GetIP %s failed %v", daemonHost, err)
 		return ""
 	}
 	return u.Hostname()

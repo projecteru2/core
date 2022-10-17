@@ -43,7 +43,7 @@ func (r *Rediaron) doLoadProcessing(ctx context.Context, appname, entryname stri
 		nodename := parts[len(parts)-2]
 		count, err := strconv.Atoi(v)
 		if err != nil {
-			log.Errorf(ctx, "[doLoadProcessing] Load processing status failed %v", err)
+			log.Errorf(ctx, err, "[doLoadProcessing] Load processing status failed %v", err)
 			continue
 		}
 		if _, ok := nodesCount[nodename]; !ok {
@@ -53,6 +53,6 @@ func (r *Rediaron) doLoadProcessing(ctx context.Context, appname, entryname stri
 		nodesCount[nodename] += count
 	}
 
-	log.Debug(ctx, "[doLoadProcessing] Processing result: %+v", nodesCount)
+	log.Debug(ctx, "[doLoadProcessing] Processing result: %+v", nodesCount) //nolint
 	return nodesCount, nil
 }

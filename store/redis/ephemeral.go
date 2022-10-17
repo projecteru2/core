@@ -17,7 +17,7 @@ var ephemeralValue = "__aaron__"
 func (r *Rediaron) StartEphemeral(ctx context.Context, path string, heartbeat time.Duration) (<-chan struct{}, func(), error) {
 	set, err := r.cli.SetNX(ctx, path, ephemeralValue, heartbeat).Result()
 	if err != nil {
-		return nil, nil, errors.WithStack(err)
+		return nil, nil, err
 	}
 	if !set {
 		return nil, nil, errors.Wrap(types.ErrKeyExists, path)
@@ -59,7 +59,7 @@ func (r *Rediaron) revokeEphemeral(path string) {
 	ctx, cancel := context.WithTimeout(context.TODO(), time.Second)
 	defer cancel()
 	if _, err := r.cli.Del(ctx, path).Result(); err != nil {
-		log.Errorf(nil, "[refreshEphemeral] revoke with %s failed: %v", path, err) //nolint
+		log.Errorf(nil, err, "[refreshEphemeral] revoke with %s failed: %v", path, err) //nolint
 	}
 }
 

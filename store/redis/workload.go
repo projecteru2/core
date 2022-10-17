@@ -141,7 +141,7 @@ func (r *Rediaron) WorkloadStatusStream(ctx context.Context, appname, entrypoint
 	ch := make(chan *types.WorkloadStatus)
 	_ = r.pool.Invoke(func() {
 		defer func() {
-			log.Info("[WorkloadStatusStream] close WorkloadStatus channel")
+			log.Info(ctx, "[WorkloadStatusStream] close WorkloadStatus channel")
 			close(ch)
 		}()
 
@@ -193,7 +193,7 @@ func (r *Rediaron) doGetWorkloads(ctx context.Context, keys []string) ([]*types.
 	for k, v := range data {
 		workload := &types.Workload{}
 		if err = json.Unmarshal([]byte(v), workload); err != nil {
-			log.Errorf(ctx, "[doGetWorkloads] failed to unmarshal %v, err: %v", k, err)
+			log.Errorf(ctx, err, "[doGetWorkloads] failed to unmarshal %v, err: %v", k, err)
 			return nil, err
 		}
 		workloads = append(workloads, workload)
@@ -241,7 +241,7 @@ func (r *Rediaron) bindWorkloadsAdditions(ctx context.Context, workloads []*type
 		status := &types.StatusMeta{}
 		if err := json.Unmarshal([]byte(v), &status); err != nil {
 			log.Warnf(ctx, "[bindWorkloadsAdditions] unmarshal %s status data failed %v", workload.ID, err)
-			log.Errorf(ctx, "[bindWorkloadsAdditions] status raw: %s", v)
+			log.Errorf(ctx, err, "[bindWorkloadsAdditions] status raw: %s", v)
 			continue
 		}
 		workloads[index].StatusMeta = status

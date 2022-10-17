@@ -5,11 +5,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/projecteru2/core/log"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type clientWithStatus struct {
@@ -43,7 +42,7 @@ func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error
 			rpc, err = NewClient(ctx, addr, config.Auth)
 		})
 		if err != nil {
-			log.Errorf("[NewCoreRPCClientPool] connect to %s failed, err: %s", addr, err)
+			log.Errorf(ctx, err, "[NewCoreRPCClientPool] connect to %s failed, err: %s", addr, err)
 			continue
 		}
 		rpcClient := rpc.GetRPCClient()
@@ -61,7 +60,7 @@ func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error
 	}
 
 	if allFailed {
-		log.Error("[NewCoreRPCClientPool] all connections failed")
+		log.Error(ctx, types.ErrAllConnectionsFailed, "[NewCoreRPCClientPool] all connections failed")
 		return nil, types.ErrAllConnectionsFailed
 	}
 
@@ -97,10 +96,10 @@ func checkAlive(ctx context.Context, rpc *clientWithStatus, timeout time.Duratio
 		_, err = rpc.client.Info(ctx, &pb.Empty{})
 	})
 	if err != nil {
-		log.Errorf("[ClientPool] connect to %s failed, err: %s", rpc.addr, err)
+		log.Errorf(ctx, err, "[ClientPool] connect to %s failed, err: %s", rpc.addr, err)
 		return false
 	}
-	log.Debugf("[ClientPool] connect to %s success", rpc.addr)
+	log.Debugf(ctx, "[ClientPool] connect to %s success", rpc.addr)
 	return true
 }
 

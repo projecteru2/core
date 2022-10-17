@@ -9,8 +9,6 @@ import (
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/pkg/errors"
 )
 
 // ReallocResource updates workload resource dynamically
@@ -25,7 +23,9 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 	originWorkload := *workload
 	return c.withNodePodLocked(ctx, workload.Nodename, func(ctx context.Context, node *types.Node) error {
 		return c.withWorkloadLocked(ctx, opts.ID, func(ctx context.Context, workload *types.Workload) error {
-			return logger.ErrWithTracing(ctx, c.doReallocOnNode(ctx, node, workload, originWorkload, opts))
+			err := c.doReallocOnNode(ctx, node, workload, originWorkload, opts)
+			logger.Errorf(ctx, err, "")
+			return err
 		})
 	})
 }
@@ -61,15 +61,15 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 				return nil
 			}
 			if err := c.rmgr.RollbackRealloc(ctx, workload.Nodename, deltaResourceArgs); err != nil {
-				log.Errorf(ctx, "[doReallocOnNode] failed to rollback workload %v, resource args %v, engine args %v, err %v", workload.ID, litter.Sdump(resourceArgs), litter.Sdump(engineArgs), err)
+				log.Errorf(ctx, err, "[doReallocOnNode] failed to rollback workload %v, resource args %v, engine args %v, err %v", workload.ID, litter.Sdump(resourceArgs), litter.Sdump(engineArgs), err)
 				// don't return here, so the node resource can still be fixed
 			}
-			return errors.WithStack(c.store.UpdateWorkload(ctx, &originWorkload))
+			return c.store.UpdateWorkload(ctx, &originWorkload)
 		},
 		c.config.GlobalTimeout,
 	)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 	_ = c.pool.Invoke(func() { c.doRemapResourceAndLog(ctx, log.WithField("Calcium", "doReallocOnNode"), node) })
 	return nil

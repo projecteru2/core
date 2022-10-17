@@ -32,7 +32,7 @@ func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster clus
 	id := rand.Int63n(10000) // nolint
 	store, err := store.NewStore(config, t)
 	if err != nil {
-		log.Errorf(ctx, "[RunNodeStatusWatcher] %v failed to create store, err: %v", id, err)
+		log.Errorf(ctx, err, "[RunNodeStatusWatcher] %v failed to create store, err: %v", id, err)
 		return
 	}
 
@@ -53,7 +53,7 @@ func (n *NodeStatusWatcher) run(ctx context.Context) {
 		default:
 			n.withActiveLock(ctx, func(ctx context.Context) {
 				if err := n.monitor(ctx); err != nil {
-					log.Errorf(ctx, "[NodeStatusWatcher] %v stops watching, err: %v", n.id, err)
+					log.Errorf(ctx, err, "[NodeStatusWatcher] %v stops watching, err: %v", n.id, err)
 				}
 			})
 			time.Sleep(n.config.ConnectionTimeout)
@@ -80,7 +80,7 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 	for {
 		select {
 		case <-ctx.Done():
-			log.Info("[Register] context canceled")
+			log.Info(ctx, "[Register] context canceled")
 			return
 		default:
 		}
@@ -88,10 +88,10 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 		// try to get the lock
 		if ne, un, err := n.register(ctx); err != nil {
 			if errors.Is(err, context.Canceled) {
-				log.Info("[Register] context canceled")
+				log.Info(ctx, "[Register] context canceled")
 				return
 			} else if !errors.Is(err, types.ErrKeyExists) {
-				log.Errorf(ctx, "[Register] failed to re-register: %v", err)
+				log.Errorf(ctx, err, "[Register] failed to re-register: %v", err)
 				time.Sleep(time.Second)
 				continue
 			}
@@ -114,10 +114,10 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 
 		select {
 		case <-ctx.Done():
-			log.Info("[Register] context canceled")
+			log.Info(ctx, "[Register] context canceled")
 			return
 		case <-expiry:
-			log.Info("[Register] lock expired")
+			log.Info(ctx, "[Register] lock expired")
 			return
 		}
 	}()
@@ -146,7 +146,7 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 				CallInfo: false,
 			})
 			if err != nil {
-				log.Errorf(ctx, "[NodeStatusWatcher] get pod nodes failed %v", err)
+				log.Errorf(ctx, err, "[NodeStatusWatcher] get pod nodes failed %v", err)
 				return
 			}
 			for node := range ch {
@@ -155,7 +155,7 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 			}
 		})
 		if err != nil {
-			log.Errorf(ctx, "[NodeStatusWatcher] get pod nodes failed %v", err)
+			log.Errorf(ctx, err, "[NodeStatusWatcher] get pod nodes failed %v", err)
 			return
 		}
 	}()
@@ -197,7 +197,7 @@ func (n *NodeStatusWatcher) monitor(ctx context.Context) error {
 
 func (n *NodeStatusWatcher) dealNodeStatusMessage(ctx context.Context, message *types.NodeStatus) {
 	if message.Error != nil {
-		log.Errorf(ctx, "[NodeStatusWatcher] deal with node status stream message failed %+v", message)
+		log.Errorf(ctx, message.Error, "[NodeStatusWatcher] deal with node status stream message failed %+v", message)
 		return
 	}
 	// here we ignore node back to alive status because it will updated by agent
@@ -214,7 +214,7 @@ func (n *NodeStatusWatcher) dealNodeStatusMessage(ctx context.Context, message *
 		WorkloadsDown: true,
 	}
 	if _, err := n.cluster.SetNode(ctx, opts); err != nil {
-		log.Errorf(ctx, "[NodeStatusWatcher] set node %s failed %v", message.Nodename, err)
+		log.Errorf(ctx, err, "[NodeStatusWatcher] set node %s failed %v", message.Nodename, err)
 		return
 	}
 	log.Infof(ctx, "[NodeStatusWatcher] set node %s as alive: %v", message.Nodename, message.Alive)

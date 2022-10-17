@@ -12,7 +12,8 @@ import (
 func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error) {
 	logger := log.WithField("Calcium", "Copy").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.ErrWithTracing(ctx, err)
+		logger.Errorf(ctx, err, "")
+		return nil, err
 	}
 
 	ch := make(chan *types.CopyMessage)
@@ -22,7 +23,7 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 		wg := sync.WaitGroup{}
 		wg.Add(len(opts.Targets))
 		defer wg.Wait()
-		log.Infof(ctx, "[Copy] Copy %d workloads files", len(opts.Targets))
+		logger.Infof(ctx, "[Copy] Copy %d workloads files", len(opts.Targets))
 
 		// workload one by one
 		for id, paths := range opts.Targets {
@@ -33,10 +34,11 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 					workload, err := c.GetWorkload(ctx, id)
 					if err != nil {
 						for _, path := range paths {
+							logger.Errorf(ctx, err, "")
 							ch <- &types.CopyMessage{
 								ID:    id,
 								Path:  path,
-								Error: logger.ErrWithTracing(ctx, err),
+								Error: err,
 							}
 						}
 						return

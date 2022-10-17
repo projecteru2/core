@@ -34,7 +34,7 @@ func (pm *PluginsManager) LoadPlugins(ctx context.Context) error {
 
 	pluginFiles, err := utils.ListAllExecutableFiles(pm.config.ResourcePlugin.Dir)
 	if err != nil {
-		log.Errorf(ctx, "[LoadPlugins] failed to list all executable files dir: %v, err: %v", pm.config.ResourcePlugin.Dir, err)
+		log.Errorf(ctx, err, "[LoadPlugins] failed to list all executable files dir: %v, err: %v", pm.config.ResourcePlugin.Dir, err)
 		return err
 	}
 
@@ -72,7 +72,7 @@ func callPlugins[T any](ctx context.Context, plugins []Plugin, f func(Plugin) (T
 	for _, plugin := range plugins {
 		result, err := f(plugin)
 		if err != nil {
-			log.Errorf(ctx, "[callPlugins] failed to call plugin %v, err: %v", plugin.Name(), err)
+			log.Errorf(ctx, err, "[callPlugins] failed to call plugin %v, err: %v", plugin.Name(), err)
 			combinedErr = multierror.Append(combinedErr, types.NewDetailedErr(err, plugin.Name()))
 			continue
 		}

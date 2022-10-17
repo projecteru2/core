@@ -5,10 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/projecteru2/core/types"
-
 	"github.com/muroq/redislock"
-	"github.com/pkg/errors"
+	"github.com/projecteru2/core/types"
 )
 
 var opts = &redislock.Options{
@@ -30,7 +28,7 @@ type RedisLock struct {
 // lockTTL: ttl of lock, after this time, lock will be released automatically
 func New(cli redislock.RedisClient, key string, waitTimeout, lockTTL time.Duration) (*RedisLock, error) {
 	if key == "" {
-		return nil, errors.WithStack(types.ErrKeyIsEmpty)
+		return nil, types.ErrKeyIsEmpty
 	}
 
 	if !strings.HasPrefix(key, "/") {

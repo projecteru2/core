@@ -8,8 +8,6 @@ import (
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/pkg/errors"
 )
 
 // FillPlan deploy workload each node
@@ -23,8 +21,8 @@ func FillPlan(ctx context.Context, infos []Info, need, _, limit int) (_ map[stri
 		limit = scheduleInfosLength
 	}
 	if scheduleInfosLength < limit {
-		return nil, errors.WithStack(types.NewDetailedErr(types.ErrInsufficientRes,
-			fmt.Sprintf("node len %d cannot alloc a fill node plan", scheduleInfosLength)))
+		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
+			fmt.Sprintf("node len %d cannot alloc a fill node plan", scheduleInfosLength))
 	}
 	sort.Slice(infos, func(i, j int) bool {
 		if infos[i].Count == infos[j].Count {
@@ -40,12 +38,12 @@ func FillPlan(ctx context.Context, infos []Info, need, _, limit int) (_ map[stri
 			limit--
 			if limit == 0 {
 				if toDeploy == 0 {
-					err = errors.WithStack(types.ErrAlreadyFilled)
+					err = types.ErrAlreadyFilled
 				}
 				return deployMap, err
 			}
 		}
 	}
-	return nil, errors.WithStack(types.NewDetailedErr(types.ErrInsufficientRes,
-		fmt.Sprintf("not enough nodes that can fill up to %d instances, require %d nodes", need, limit)))
+	return nil, types.NewDetailedErr(types.ErrInsufficientRes,
+		fmt.Sprintf("not enough nodes that can fill up to %d instances, require %d nodes", need, limit))
 }
