@@ -24,7 +24,7 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 	return c.withNodePodLocked(ctx, workload.Nodename, func(ctx context.Context, node *types.Node) error {
 		return c.withWorkloadLocked(ctx, opts.ID, func(ctx context.Context, workload *types.Workload) error {
 			err := c.doReallocOnNode(ctx, node, workload, originWorkload, opts)
-			logger.Errorf(ctx, err, "")
+			logger.Error(ctx, err)
 			return err
 		})
 	})

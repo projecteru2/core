@@ -13,7 +13,7 @@ import (
 func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error) {
 	logger := log.WithField("Calcium", "Send").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 	ch := make(chan *types.SendMessage)
@@ -30,12 +30,12 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 					if err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
 						for _, file := range opts.Files {
 							err := c.doSendFileToWorkload(ctx, workload.Engine, workload.ID, file)
-							logger.Errorf(ctx, err, "")
+							logger.Error(ctx, err)
 							ch <- &types.SendMessage{ID: id, Path: file.Filename, Error: err}
 						}
 						return nil
 					}); err != nil {
-						logger.Errorf(ctx, err, "")
+						logger.Error(ctx, err)
 						ch <- &types.SendMessage{ID: id, Error: err}
 					}
 				}

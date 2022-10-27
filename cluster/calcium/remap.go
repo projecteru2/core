@@ -24,7 +24,7 @@ func (c *Calcium) doRemapResourceAndLog(ctx context.Context, logger *log.Fields,
 		if ch, err := c.remapResource(ctx, node); err == nil {
 			for msg := range ch {
 				logger.Infof(ctx, "[doRemapResourceAndLog] id %v", msg.id)
-				logger.WithField("id", msg.id).Errorf(ctx, msg.err, "") // nolint:errcheck
+				logger.WithField("id", msg.id).Error(ctx, msg.err) // nolint:errcheck
 			}
 		}
 		return nil

@@ -118,6 +118,11 @@ func (f Fields) Errorf(ctx context.Context, err error, format string, args ...in
 	errorEvent(err).Fields(f.kv).Msgf(format, args...)
 }
 
+// Error forwards to sentry
+func (f Fields) Error(ctx context.Context, err error, args ...interface{}) {
+	f.Errorf(ctx, err, "%v", args...)
+}
+
 // for sentry
 func genSentryTracingInfo(ctx context.Context) (tracingInfo string) {
 	if ctx == nil {

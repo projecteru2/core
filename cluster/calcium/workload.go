@@ -18,14 +18,14 @@ func (c *Calcium) GetWorkload(ctx context.Context, id string) (workload *types.W
 		return workload, types.ErrEmptyWorkloadID
 	}
 	workload, err = c.store.GetWorkload(ctx, id)
-	logger.Errorf(ctx, err, "")
+	logger.Error(ctx, err)
 	return workload, err
 }
 
 // GetWorkloads get workloads
 func (c *Calcium) GetWorkloads(ctx context.Context, ids []string) (workloads []*types.Workload, err error) {
 	workloads, err = c.store.GetWorkloads(ctx, ids)
-	log.WithField("Calcium", "GetWorkloads").WithField("ids", ids).Errorf(ctx, err, "")
+	log.WithField("Calcium", "GetWorkloads").WithField("ids", ids).Error(ctx, err)
 	return workloads, err
 }
 
@@ -45,6 +45,6 @@ func (c *Calcium) ListNodeWorkloads(ctx context.Context, nodename string, labels
 		return workloads, types.ErrEmptyNodeName
 	}
 	workloads, err = c.store.ListNodeWorkloads(ctx, nodename, labels)
-	logger.Errorf(ctx, err, "")
+	logger.Error(ctx, err)
 	return workloads, err
 }

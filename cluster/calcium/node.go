@@ -17,7 +17,7 @@ import (
 func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*types.Node, error) {
 	logger := log.WithField("Calcium", "AddNode").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 	var resourceCapacity map[string]types.NodeResourceArgs
@@ -68,18 +68,18 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 	logger := log.WithField("Calcium", "RemoveNode").WithField("nodename", nodename)
 	if nodename == "" {
-		logger.Errorf(ctx, types.ErrEmptyNodeName, "")
+		logger.Error(ctx, types.ErrEmptyNodeName)
 		return types.ErrEmptyNodeName
 	}
 	return c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 		workloads, err := c.ListNodeWorkloads(ctx, node.Name, nil)
 		if err != nil {
-			logger.Errorf(ctx, err, "")
+			logger.Error(ctx, err)
 			return err
 		}
 		// need drain first
 		if len(workloads) > 0 {
-			logger.Errorf(ctx, types.ErrNodeNotEmpty, "")
+			logger.Error(ctx, types.ErrNodeNotEmpty)
 			return types.ErrNodeNotEmpty
 		}
 
@@ -106,7 +106,7 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 	logger := log.WithField("Calcium", "ListPodNodes").WithField("podname", opts.Podname).WithField("labels", opts.Labels).WithField("all", opts.All).WithField("info", opts.CallInfo)
 	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: opts.Podname, Labels: opts.Labels, All: opts.All})
 	if err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 	ch := make(chan *types.Node)
@@ -142,15 +142,15 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 func (c *Calcium) GetNode(ctx context.Context, nodename string) (node *types.Node, err error) {
 	logger := log.WithField("Calcium", "GetNode").WithField("nodename", nodename)
 	if nodename == "" {
-		logger.Errorf(ctx, types.ErrEmptyNodeName, "")
+		logger.Error(ctx, types.ErrEmptyNodeName)
 		return nil, types.ErrEmptyNodeName
 	}
 	if node, err = c.store.GetNode(ctx, nodename); err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 	if node.Resource.Capacity, node.Resource.Usage, node.Resource.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 	return node, nil
@@ -160,16 +160,16 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string) (node *types.Nod
 func (c *Calcium) GetNodeEngineInfo(ctx context.Context, nodename string) (*enginetypes.Info, error) {
 	logger := log.WithField("Calcium", "GetNodeEngine").WithField("nodename", nodename)
 	if nodename == "" {
-		logger.Errorf(ctx, types.ErrEmptyNodeName, "")
+		logger.Error(ctx, types.ErrEmptyNodeName)
 		return nil, types.ErrEmptyNodeName
 	}
 	node, err := c.store.GetNode(ctx, nodename)
 	if err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 	engineInfo, err := node.Engine.Info(ctx)
-	logger.Errorf(ctx, err, "")
+	logger.Error(ctx, err)
 	return engineInfo, err
 }
 
@@ -178,7 +178,7 @@ func (c *Calcium) GetNodeEngineInfo(ctx context.Context, nodename string) (*engi
 func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*types.Node, error) {
 	logger := log.WithField("Calcium", "SetNode").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 	var n *types.Node

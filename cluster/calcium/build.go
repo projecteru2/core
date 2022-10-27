@@ -20,13 +20,13 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 	logger := log.WithField("Calcium", "BuildImage").WithField("opts", opts)
 	// Disable build API if scm not set
 	if c.source == nil {
-		logger.Errorf(ctx, types.ErrSCMNotSet, "")
+		logger.Error(ctx, types.ErrSCMNotSet)
 		return nil, types.ErrSCMNotSet
 	}
 	// select nodes
 	node, err := c.selectBuildNode(ctx)
 	if err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 
@@ -44,15 +44,15 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 	case types.BuildFromExist:
 		refs, node, resp, err = c.buildFromExist(ctx, opts)
 	default:
-		logger.Errorf(ctx, types.ErrUnknownBuildType, "")
+		logger.Error(ctx, types.ErrUnknownBuildType)
 		return nil, types.ErrUnknownBuildType
 	}
 	if err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 	ch, err = c.pushImageAndClean(ctx, resp, node, refs)
-	logger.Errorf(ctx, err, "")
+	logger.Error(ctx, err)
 	return ch, err
 }
 
@@ -171,7 +171,7 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 			log.Infof(ctx, "[BuildImage] Push image %s", tag)
 			rc, err := node.Engine.ImagePush(ctx, tag)
 			if err != nil {
-				logger.Errorf(ctx, err, "")
+				logger.Error(ctx, err)
 				ch <- &types.BuildImageMessage{Error: err.Error()}
 				continue
 			}

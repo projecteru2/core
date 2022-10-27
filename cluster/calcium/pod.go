@@ -11,11 +11,11 @@ import (
 func (c *Calcium) AddPod(ctx context.Context, podname, desc string) (*types.Pod, error) {
 	logger := log.WithField("Calcium", "AddPod").WithField("podname", podname).WithField("desc", desc)
 	if podname == "" {
-		logger.Errorf(ctx, types.ErrEmptyPodName, "")
+		logger.Error(ctx, types.ErrEmptyPodName)
 		return nil, types.ErrEmptyPodName
 	}
 	pod, err := c.store.AddPod(ctx, podname, desc)
-	logger.Errorf(ctx, err, "")
+	logger.Error(ctx, err)
 	return pod, err
 }
 
@@ -23,7 +23,7 @@ func (c *Calcium) AddPod(ctx context.Context, podname, desc string) (*types.Pod,
 func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
 	logger := log.WithField("Calcium", "RemovePod").WithField("podname", podname)
 	if podname == "" {
-		logger.Errorf(ctx, types.ErrEmptyPodName, "")
+		logger.Error(ctx, types.ErrEmptyPodName)
 		return types.ErrEmptyPodName
 	}
 
@@ -35,7 +35,7 @@ func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
 		// TODO dissociate workload to node
 		// TODO should remove node first
 		err := c.store.RemovePod(ctx, podname)
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return err
 	})
 }
@@ -44,17 +44,17 @@ func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
 func (c *Calcium) GetPod(ctx context.Context, podname string) (*types.Pod, error) {
 	logger := log.WithField("Calcium", "GetPod").WithField("podname", podname)
 	if podname == "" {
-		logger.Errorf(ctx, types.ErrEmptyPodName, "")
+		logger.Error(ctx, types.ErrEmptyPodName)
 		return nil, types.ErrEmptyPodName
 	}
 	pod, err := c.store.GetPod(ctx, podname)
-	logger.Errorf(ctx, err, "")
+	logger.Error(ctx, err)
 	return pod, err
 }
 
 // ListPods show pods
 func (c *Calcium) ListPods(ctx context.Context) ([]*types.Pod, error) {
 	pods, err := c.store.GetAllPods(ctx)
-	log.WithField("Calcium", "ListPods").Errorf(ctx, err, "")
+	log.WithField("Calcium", "ListPods").Error(ctx, err)
 	return pods, err
 }
