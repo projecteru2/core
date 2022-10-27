@@ -20,11 +20,11 @@ func (c *Calcium) SetNodeStatus(ctx context.Context, nodename string, ttl int64)
 	logger := log.WithField("Calcium", "SetNodeStatus").WithField("nodename", nodename).WithField("ttl", ttl)
 	node, err := c.store.GetNode(ctx, nodename)
 	if err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return err
 	}
 	err = c.store.SetNodeStatus(ctx, node, ttl)
-	logger.Errorf(ctx, err, "")
+	logger.Error(ctx, err)
 	return err
 }
 
@@ -39,7 +39,7 @@ func (c *Calcium) GetWorkloadsStatus(ctx context.Context, ids []string) ([]*type
 	for _, id := range ids {
 		s, err := c.store.GetWorkloadStatus(ctx, id)
 		if err != nil {
-			log.WithField("Calcium", "GetWorkloadStatus").WithField("ids", ids).Errorf(ctx, err, "")
+			log.WithField("Calcium", "GetWorkloadStatus").WithField("ids", ids).Error(ctx, err)
 			return r, err
 		}
 		r = append(r, s)
@@ -56,13 +56,13 @@ func (c *Calcium) SetWorkloadsStatus(ctx context.Context, statusMetas []*types.S
 		if statusMeta.Appname == "" || statusMeta.Nodename == "" || statusMeta.Entrypoint == "" {
 			workload, err := c.store.GetWorkload(ctx, statusMeta.ID)
 			if err != nil {
-				logger.Errorf(ctx, err, "")
+				logger.Error(ctx, err)
 				return nil, err
 			}
 
 			appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
 			if err != nil {
-				logger.Errorf(ctx, err, "")
+				logger.Error(ctx, err)
 				return nil, err
 			}
 
@@ -77,7 +77,7 @@ func (c *Calcium) SetWorkloadsStatus(ctx context.Context, statusMetas []*types.S
 		}
 
 		if err := c.store.SetWorkloadStatus(ctx, statusMeta, ttl); err != nil {
-			logger.Errorf(ctx, err, "")
+			logger.Error(ctx, err)
 			return nil, err
 		}
 		r = append(r, statusMeta)

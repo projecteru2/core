@@ -15,18 +15,18 @@ import (
 func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (chan *types.CacheImageMessage, error) {
 	logger := log.WithField("Calcium", "CacheImage").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 
 	nodes, err := c.filterNodes(ctx, &types.NodeFilter{Podname: opts.Podname, Includes: opts.Nodenames})
 	if err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 
 	if len(nodes) == 0 {
-		logger.Errorf(ctx, types.ErrPodNoNodes, "")
+		logger.Error(ctx, types.ErrPodNoNodes)
 		return nil, types.ErrPodNoNodes
 	}
 
@@ -49,7 +49,7 @@ func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (cha
 						Message:  "",
 					}
 					if err := pullImage(ctx, node, image); err != nil {
-						logger.Errorf(ctx, err, "")
+						logger.Error(ctx, err)
 						m.Success = false
 						m.Message = err.Error()
 					}
@@ -66,18 +66,18 @@ func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (cha
 func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (chan *types.RemoveImageMessage, error) {
 	logger := log.WithField("Calcium", "RemoveImage").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 
 	nodes, err := c.filterNodes(ctx, &types.NodeFilter{Podname: opts.Podname, Includes: opts.Nodenames})
 	if err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 
 	if len(nodes) == 0 {
-		logger.Errorf(ctx, types.ErrPodNoNodes, "")
+		logger.Error(ctx, types.ErrPodNoNodes)
 		return nil, types.ErrPodNoNodes
 	}
 
@@ -99,7 +99,7 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 						Messages: []string{},
 					}
 					if removeItems, err := node.Engine.ImageRemove(ctx, image, false, true); err != nil {
-						logger.Errorf(ctx, err, "")
+						logger.Error(ctx, err)
 						m.Messages = append(m.Messages, err.Error())
 					} else {
 						m.Success = true
@@ -129,12 +129,12 @@ func (c *Calcium) ListImage(ctx context.Context, opts *types.ImageOptions) (chan
 
 	nodes, err := c.filterNodes(ctx, &types.NodeFilter{Podname: opts.Podname, Includes: opts.Nodenames})
 	if err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 
 	if len(nodes) == 0 {
-		logger.Errorf(ctx, types.ErrPodNoNodes, "")
+		logger.Error(ctx, types.ErrPodNoNodes)
 		return nil, types.ErrPodNoNodes
 	}
 
@@ -155,7 +155,7 @@ func (c *Calcium) ListImage(ctx context.Context, opts *types.ImageOptions) (chan
 					Error:    nil,
 				}
 				if images, err := node.Engine.ImageList(ctx, opts.Filter); err != nil {
-					logger.Errorf(ctx, err, "")
+					logger.Error(ctx, err)
 					msg.Error = err
 				} else {
 					for _, image := range images {

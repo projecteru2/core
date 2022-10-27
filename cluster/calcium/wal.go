@@ -172,11 +172,11 @@ func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (er
 	// workload meta doesn't exist
 	node, err := h.calcium.GetNode(ctx, wrk.Nodename)
 	if err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return err
 	}
 	if err = node.Engine.VirtualizationRemove(ctx, wrk.ID, true, true); err != nil && !errors.Is(err, types.ErrWorkloadNotExists) {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return err
 	}
 
@@ -312,7 +312,7 @@ func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw interface{}) 
 	defer cancel()
 
 	if err = h.store.DeleteProcessing(ctx, processing); err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return err
 	}
 	logger.Infof(ctx, "obsolete processing deleted")

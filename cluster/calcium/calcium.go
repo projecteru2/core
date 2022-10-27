@@ -39,7 +39,7 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 	// set store
 	store, err := store.NewStore(config, t)
 	if err != nil {
-		log.Errorf(ctx, err, "")
+		log.Error(ctx, err)
 		return nil, err
 	}
 
@@ -65,7 +65,7 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 	// set resource plugin manager
 	rmgr, err := resources.NewPluginsManager(config)
 	if err != nil {
-		log.Errorf(ctx, err, "")
+		log.Error(ctx, err)
 		return nil, err
 	}
 
@@ -96,18 +96,18 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 
 	cal.wal, err = enableWAL(config, cal, store)
 	if err != nil {
-		log.Errorf(ctx, err, "")
+		log.Error(ctx, err)
 		return nil, err
 	}
 
 	cal.identifier, err = config.Identifier()
 	if err != nil {
-		log.Errorf(ctx, err, "")
+		log.Error(ctx, err)
 		return nil, err
 	}
 
 	_ = pool.Invoke(func() { cal.InitMetrics(ctx) })
-	log.Errorf(ctx, err, "")
+	log.Error(ctx, err)
 	return cal, err
 }
 

@@ -61,7 +61,7 @@ func serve(c *cli.Context) error {
 	}
 	cluster, err := calcium.New(c.Context, config, t)
 	if err != nil {
-		log.Errorf(c.Context, err, "")
+		log.Error(c.Context, err)
 		return err
 	}
 	defer cluster.Finalizer()
@@ -71,7 +71,7 @@ func serve(c *cli.Context) error {
 	vibranium := rpc.New(cluster, config, stop)
 	s, err := net.Listen("tcp", config.Bind)
 	if err != nil {
-		log.Errorf(c.Context, err, "")
+		log.Error(c.Context, err)
 		return err
 	}
 

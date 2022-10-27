@@ -12,7 +12,7 @@ import (
 func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error) {
 	logger := log.WithField("Calcium", "Copy").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 
@@ -34,7 +34,7 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 					workload, err := c.GetWorkload(ctx, id)
 					if err != nil {
 						for _, path := range paths {
-							logger.Errorf(ctx, err, "")
+							logger.Error(ctx, err)
 							ch <- &types.CopyMessage{
 								ID:    id,
 								Path:  path,

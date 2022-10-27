@@ -15,7 +15,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.
 	logger := log.WithField("Calcium", "PodResource").WithField("podname", podname)
 	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname})
 	if err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 	ch := make(chan *types.NodeResource)
@@ -31,7 +31,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.
 				defer wg.Done()
 				nr, err := c.doGetNodeResource(ctx, node.Name, false, false)
 				if err != nil {
-					logger.Errorf(ctx, err, "")
+					logger.Error(ctx, err)
 					nr = &types.NodeResource{
 						Name: node.Name, Diffs: []string{err.Error()},
 					}
@@ -48,7 +48,7 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.
 func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
 	logger := log.WithField("Calcium", "NodeResource").WithField("nodename", nodename).WithField("fix", fix)
 	nr, err := c.doGetNodeResource(ctx, nodename, true, fix)
-	logger.Errorf(ctx, err, "")
+	logger.Error(ctx, err)
 	return nr, err
 }
 

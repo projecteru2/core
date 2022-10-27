@@ -23,7 +23,7 @@ import (
 func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
 	logger := log.WithField("Calcium", "CreateWorkload").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 
@@ -32,7 +32,7 @@ func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions)
 	// Count 要大于0
 	if opts.Count <= 0 {
 		err := types.NewDetailedErr(types.ErrBadCount, opts.Count)
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 
@@ -97,7 +97,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			func(ctx context.Context) (err error) {
 				defer func() {
 					if err != nil {
-						logger.Errorf(ctx, err, "")
+						logger.Error(ctx, err)
 						ch <- &types.CreateWorkloadMessage{Error: err}
 					}
 				}()
@@ -156,7 +156,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 						})
 						return c.rmgr.RollbackAlloc(ctx, nodename, resourceArgsToRollback)
 					}); e != nil {
-						logger.Errorf(ctx, e, "")
+						logger.Error(ctx, e)
 						err = e
 					}
 				}
@@ -227,7 +227,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	node, err := c.doGetAndPrepareNode(ctx, nodename, opts.Image)
 	if err != nil {
 		for i := 0; i < deploy; i++ {
-			logger.Errorf(ctx, err, "")
+			logger.Error(ctx, err)
 			ch <- &types.CreateWorkloadMessage{Error: err}
 		}
 		return utils.Range(deploy), err
@@ -250,7 +250,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 			defer func() {
 				if e != nil {
 					err = e
-					logger.Errorf(ctx, err, "")
+					logger.Error(ctx, err)
 					createMsg.Error = err
 					appendLock.Lock()
 					indices = append(indices, idx)

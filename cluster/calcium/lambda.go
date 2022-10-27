@@ -25,7 +25,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 
 	logger := log.WithField("Calcium", "RunAndWait").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return workloadIDs, nil, err
 	}
 	opts.Lambda = true
@@ -68,7 +68,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 
 		commit, err := c.wal.Log(eventCreateLambda, message.WorkloadID)
 		if err != nil {
-			logger.Errorf(ctx, err, "")
+			logger.Error(ctx, err)
 			return &types.AttachWorkloadMessage{
 				WorkloadID:    message.WorkloadID,
 				Data:          []byte(fmt.Sprintf("Create wal failed: %s, %+v", message.WorkloadID, err)),

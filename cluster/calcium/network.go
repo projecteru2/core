@@ -17,13 +17,13 @@ func (c *Calcium) ListNetworks(ctx context.Context, podname string, driver strin
 	networks := []*enginetypes.Network{}
 	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname})
 	if err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return networks, err
 	}
 
 	if len(nodes) == 0 {
 		err := types.NewDetailedErr(types.ErrPodNoNodes, podname)
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return networks, err
 	}
 
@@ -35,7 +35,7 @@ func (c *Calcium) ListNetworks(ctx context.Context, podname string, driver strin
 	node := nodes[0]
 
 	networks, err = node.Engine.NetworkList(ctx, drivers)
-	logger.Errorf(ctx, err, "")
+	logger.Error(ctx, err)
 	return networks, err
 }
 
@@ -44,12 +44,12 @@ func (c *Calcium) ConnectNetwork(ctx context.Context, network, target, ipv4, ipv
 	logger := log.WithField("Calcium", "ConnectNetwork").WithField("network", network).WithField("target", target).WithField("ipv4", ipv4).WithField("ipv6", ipv6)
 	workload, err := c.GetWorkload(ctx, target)
 	if err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return nil, err
 	}
 
 	networks, err := workload.Engine.NetworkConnect(ctx, network, target, ipv4, ipv6)
-	logger.Errorf(ctx, err, "")
+	logger.Error(ctx, err)
 	return networks, err
 }
 
@@ -58,11 +58,11 @@ func (c *Calcium) DisconnectNetwork(ctx context.Context, network, target string,
 	logger := log.WithField("Calcium", "DisconnectNetwork").WithField("network", network).WithField("target", target).WithField("force", force)
 	workload, err := c.GetWorkload(ctx, target)
 	if err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 		return err
 	}
 	if err = workload.Engine.NetworkDisconnect(ctx, network, target, force); err != nil {
-		logger.Errorf(ctx, err, "")
+		logger.Error(ctx, err)
 	}
 	return err
 }
