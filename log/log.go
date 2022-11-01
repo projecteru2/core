@@ -48,7 +48,7 @@ func Warnf(ctx context.Context, format string, args ...interface{}) {
 
 // Warn is Warn
 func Warn(ctx context.Context, args ...interface{}) {
-	Warnf(ctx, "%v", args...)
+	Warnf(ctx, "%+v", args...)
 }
 
 // Infof is Infof
@@ -58,7 +58,7 @@ func Infof(ctx context.Context, format string, args ...interface{}) {
 
 // Info is Info
 func Info(ctx context.Context, args ...interface{}) {
-	Infof(ctx, "%v", args...)
+	Infof(ctx, "%+v", args...)
 }
 
 // Debugf is Debugf
@@ -68,7 +68,7 @@ func Debugf(ctx context.Context, format string, args ...interface{}) {
 
 // Debug is Debug
 func Debug(ctx context.Context, args ...interface{}) {
-	Debugf(ctx, "%v", args...)
+	Debugf(ctx, "%+v", args...)
 }
 
 // Errorf forwards to sentry
@@ -82,7 +82,7 @@ func Errorf(ctx context.Context, err error, format string, args ...interface{}) 
 
 // Error forwards to sentry
 func Error(ctx context.Context, err error, args ...interface{}) {
-	Errorf(ctx, err, "%v", args...)
+	Errorf(ctx, err, "%+v", args...)
 }
 
 // Fields is a wrapper for zerolog.Entry

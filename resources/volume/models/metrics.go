@@ -31,13 +31,13 @@ func (v *Volume) GetNodeMetrics(podname string, nodename string, nodeResourceCap
 		{
 			"name":   "storage_used",
 			"labels": []string{podname, nodename},
-			"value":  fmt.Sprintf("%v", nodeResourceUsage.Storage),
+			"value":  fmt.Sprintf("%+v", nodeResourceUsage.Storage),
 			"key":    fmt.Sprintf("core.node.%s.storage.used", cleanedNodeName),
 		},
 		{
 			"name":   "storage_capacity",
 			"labels": []string{podname, nodename},
-			"value":  fmt.Sprintf("%v", nodeResourceCapacity.Storage),
+			"value":  fmt.Sprintf("%+v", nodeResourceCapacity.Storage),
 			"key":    fmt.Sprintf("core.node.%s.storage.used", cleanedNodeName),
 		},
 	}

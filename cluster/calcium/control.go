@@ -48,8 +48,8 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 				})
 				if err == nil {
 					logger.Infof(ctx, "[ControlWorkload] Workload %s %s", id, t)
-					logger.Infof(ctx, "%v", "[ControlWorkload] Hook Output:")
-					logger.Infof(ctx, "%v", string(utils.MergeHookOutputs(message)))
+					logger.Infof(ctx, "%+v", "[ControlWorkload] Hook Output:")
+					logger.Infof(ctx, "%+v", string(utils.MergeHookOutputs(message)))
 				}
 				logger.Error(ctx, err)
 				ch <- &types.ControlWorkloadMessage{

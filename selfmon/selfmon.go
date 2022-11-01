@@ -32,7 +32,7 @@ func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster clus
 	id := rand.Int63n(10000) //nolint
 	store, err := store.NewStore(config, t)
 	if err != nil {
-		log.Errorf(ctx, err, "[RunNodeStatusWatcher] %v failed to create store", id)
+		log.Errorf(ctx, err, "[RunNodeStatusWatcher] %+v failed to create store", id)
 		return
 	}
 
@@ -53,7 +53,7 @@ func (n *NodeStatusWatcher) run(ctx context.Context) {
 		default:
 			n.withActiveLock(ctx, func(ctx context.Context) {
 				if err := n.monitor(ctx); err != nil {
-					log.Errorf(ctx, err, "[NodeStatusWatcher] %v stops watching", n.id)
+					log.Errorf(ctx, err, "[NodeStatusWatcher] %+v stops watching", n.id)
 				}
 			})
 			time.Sleep(n.config.ConnectionTimeout)
@@ -70,7 +70,7 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 	var unregister func()
 	defer func() {
 		if unregister != nil {
-			log.Infof(ctx, "[Register] %v unregisters", n.id)
+			log.Infof(ctx, "[Register] %+v unregisters", n.id)
 			unregister()
 		}
 	}()
@@ -96,12 +96,12 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 				continue
 			}
 			if retryCounter == 0 {
-				log.Infof(ctx, "[Register] %v failed to register, there has been another active node status watcher", n.id)
+				log.Infof(ctx, "[Register] %+v failed to register, there has been another active node status watcher", n.id)
 			}
 			retryCounter = (retryCounter + 1) % 60
 			time.Sleep(time.Second)
 		} else {
-			log.Infof(ctx, "[Register] node status watcher %v has been active", n.id)
+			log.Infof(ctx, "[Register] node status watcher %+v has been active", n.id)
 			expiry = ne
 			unregister = un
 			break
@@ -179,8 +179,8 @@ func (n *NodeStatusWatcher) monitor(ctx context.Context) error {
 
 	// monitor node status
 	messageChan := n.cluster.NodeStatusStream(ctx)
-	log.Infof(ctx, "[NodeStatusWatcher] %v watch node status started", n.id)
-	defer log.Infof(ctx, "[NodeStatusWatcher] %v stop watching node status", n.id)
+	log.Infof(ctx, "[NodeStatusWatcher] %+v watch node status started", n.id)
+	defer log.Infof(ctx, "[NodeStatusWatcher] %+v stop watching node status", n.id)
 
 	for {
 		select {
@@ -217,5 +217,5 @@ func (n *NodeStatusWatcher) dealNodeStatusMessage(ctx context.Context, message *
 		log.Errorf(ctx, err, "[NodeStatusWatcher] set node %s failed", message.Nodename)
 		return
 	}
-	log.Infof(ctx, "[NodeStatusWatcher] set node %s as alive: %v", message.Nodename, message.Alive)
+	log.Infof(ctx, "[NodeStatusWatcher] set node %s as alive: %+v", message.Nodename, message.Alive)
 }

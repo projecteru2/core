@@ -132,7 +132,7 @@ func (c *Calcium) processVirtualizationOutStream(
 			outCh <- bs
 		}
 		if err := scanner.Err(); err != nil {
-			log.Warnf(ctx, "[processVirtualizationOutStream] failed to read output from output stream: %v", err)
+			log.Warnf(ctx, "[processVirtualizationOutStream] failed to read output from output stream: %+v", err)
 		}
 	})
 	return outCh

@@ -843,7 +843,7 @@ func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions
 	}()
 
 	if opts.Id == "" {
-		return msg, grpcstatus.Errorf(ReallocResource, "%v", types.ErrNoWorkloadIDs)
+		return msg, grpcstatus.Errorf(ReallocResource, "%+v", types.ErrNoWorkloadIDs)
 	}
 
 	if err := v.cluster.ReallocResource(
@@ -1015,7 +1015,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 }
 
 func (v *Vibranium) logUnsentMessages(ctx context.Context, msgType string, err error, msg interface{}) {
-	log.Infof(ctx, "[logUnsentMessages] Unsent (%s) streamed message due to (%+v): (%v)", msgType, err, msg)
+	log.Infof(ctx, "[logUnsentMessages] Unsent (%s) streamed message due to (%+v): (%+v)", msgType, err, msg)
 }
 
 // New will new a new cluster instance

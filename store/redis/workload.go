@@ -193,7 +193,7 @@ func (r *Rediaron) doGetWorkloads(ctx context.Context, keys []string) ([]*types.
 	for k, v := range data {
 		workload := &types.Workload{}
 		if err = json.Unmarshal([]byte(v), workload); err != nil {
-			log.Errorf(ctx, err, "[doGetWorkloads] failed to unmarshal %v", k)
+			log.Errorf(ctx, err, "[doGetWorkloads] failed to unmarshal %+v", k)
 			return nil, err
 		}
 		workloads = append(workloads, workload)

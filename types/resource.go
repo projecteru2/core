@@ -22,7 +22,7 @@ func (r RawParams) Float64(key string) float64 {
 	if !r.IsSet(key) {
 		return float64(0.0)
 	}
-	res, _ := strconv.ParseFloat(fmt.Sprintf("%v", r[key]), 64)
+	res, _ := strconv.ParseFloat(fmt.Sprintf("%+v", r[key]), 64)
 	return res
 }
 
@@ -35,7 +35,7 @@ func (r RawParams) Int64(key string) int64 {
 	if f, ok := r[key].(float64); ok {
 		str = fmt.Sprintf("%.0f", f)
 	} else {
-		str = fmt.Sprintf("%v", r[key])
+		str = fmt.Sprintf("%+v", r[key])
 	}
 	res, _ := strconv.ParseInt(str, 10, 64)
 	return res

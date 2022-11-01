@@ -14,7 +14,7 @@ import (
 // need 是每台机器所需总量，limit 是限制节点数, 保证本轮增量部署 need*limit 个实例
 // limit = 0 即对所有节点部署
 func AveragePlan(ctx context.Context, infos []Info, need, total, limit int) (map[string]int, error) {
-	log.Debugf(ctx, "[AveragePlan] need %d limit %d infos %v", need, limit, infos)
+	log.Debugf(ctx, "[AveragePlan] need %d limit %d infos %+v", need, limit, infos)
 	scheduleInfosLength := len(infos)
 	if limit == 0 {
 		limit = scheduleInfosLength

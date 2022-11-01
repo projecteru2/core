@@ -191,7 +191,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 		defer close(runMsgCh)
 		wg.Wait()
 
-		logger.Infof(context.TODO(), "%v", "[RunAndWait] Finish run and wait for workloads")
+		logger.Infof(context.TODO(), "%+v", "[RunAndWait] Finish run and wait for workloads")
 	})
 
 	return workloadIDs, runMsgCh, nil

@@ -39,17 +39,17 @@ func (v *Volume) GetNodeResourceInfo(ctx context.Context, node string, workloadR
 	}
 
 	if resourceInfo.Usage.Storage != totalStorageUsage {
-		diffs = append(diffs, fmt.Sprintf("node.Storage != sum(workload.Storage): %v != %v", resourceInfo.Usage.Storage, totalStorageUsage))
+		diffs = append(diffs, fmt.Sprintf("node.Storage != sum(workload.Storage): %+v != %+v", resourceInfo.Usage.Storage, totalStorageUsage))
 	}
 
 	for volume, size := range resourceInfo.Usage.Volumes {
 		if totalVolumeMap[volume] != size {
-			diffs = append(diffs, fmt.Sprintf("node.Volumes[%s] != sum(workload.Volumes[%s]): %v != %v", volume, volume, size, totalVolumeMap[volume]))
+			diffs = append(diffs, fmt.Sprintf("node.Volumes[%s] != sum(workload.Volumes[%s]): %+v != %+v", volume, volume, size, totalVolumeMap[volume]))
 		}
 	}
 	for volume, size := range totalVolumeMap {
 		if vol, ok := resourceInfo.Usage.Volumes[volume]; !ok && vol != size {
-			diffs = append(diffs, fmt.Sprintf("node.Volumes[%s] != sum(workload.Volumes[%s]): %v != %v", volume, volume, resourceInfo.Usage.Volumes[volume], size))
+			diffs = append(diffs, fmt.Sprintf("node.Volumes[%s] != sum(workload.Volumes[%s]): %+v != %+v", volume, volume, resourceInfo.Usage.Volumes[volume], size))
 		}
 	}
 	for _, disk := range resourceInfo.Usage.Disks {
@@ -68,7 +68,7 @@ func (v *Volume) GetNodeResourceInfo(ctx context.Context, node string, workloadR
 		computedDisk := d.String()
 		storedDisk := disk.String()
 		if computedDisk != storedDisk {
-			diffs = append(diffs, fmt.Sprintf("node.Disks[%s] != sum(workload.Disks[%s]): %v != %v", disk.Device, disk.Device, storedDisk, computedDisk))
+			diffs = append(diffs, fmt.Sprintf("node.Disks[%s] != sum(workload.Disks[%s]): %+v != %+v", disk.Device, disk.Device, storedDisk, computedDisk))
 		}
 	}
 
@@ -79,7 +79,7 @@ func (v *Volume) GetNodeResourceInfo(ctx context.Context, node string, workloadR
 			Disks:   totalDiskUsage,
 		}
 		if err = v.doSetNodeResourceInfo(ctx, node, resourceInfo); err != nil {
-			log.Warnf(ctx, "[GetNodeResourceInfo] failed to fix node resource, err: %v", err)
+			log.Warnf(ctx, "[GetNodeResourceInfo] failed to fix node resource, err: %+v", err)
 			diffs = append(diffs, "fix failed")
 		}
 	}
@@ -141,7 +141,7 @@ func (v *Volume) calculateNodeResourceArgs(origin *types.NodeResourceArgs, nodeR
 func (v *Volume) SetNodeResourceUsage(ctx context.Context, node string, nodeResourceOpts *types.NodeResourceOpts, nodeResourceArgs *types.NodeResourceArgs, workloadResourceArgs []*types.WorkloadResourceArgs, delta bool, incr bool) (before *types.NodeResourceArgs, after *types.NodeResourceArgs, err error) {
 	resourceInfo, err := v.doGetNodeResourceInfo(ctx, node)
 	if err != nil {
-		log.Errorf(ctx, err, "[SetNodeResourceInfo] failed to get resource info of node %v", node)
+		log.Errorf(ctx, err, "[SetNodeResourceInfo] failed to get resource info of node %+v", node)
 		return nil, nil, err
 	}
 
@@ -158,7 +158,7 @@ func (v *Volume) SetNodeResourceUsage(ctx context.Context, node string, nodeReso
 func (v *Volume) SetNodeResourceCapacity(ctx context.Context, node string, nodeResourceOpts *types.NodeResourceOpts, nodeResourceArgs *types.NodeResourceArgs, delta bool, incr bool) (before *types.NodeResourceArgs, after *types.NodeResourceArgs, err error) {
 	resourceInfo, err := v.doGetNodeResourceInfo(ctx, node)
 	if err != nil {
-		log.Errorf(ctx, err, "[SetNodeResourceInfo] failed to get resource info of node %v", node)
+		log.Errorf(ctx, err, "[SetNodeResourceInfo] failed to get resource info of node %+v", node)
 		return nil, nil, err
 	}
 
@@ -206,11 +206,11 @@ func (v *Volume) doGetNodeResourceInfo(ctx context.Context, node string) (*types
 	resourceInfo := &types.NodeResourceInfo{}
 	resp, err := v.store.GetOne(ctx, fmt.Sprintf(NodeResourceInfoKey, node))
 	if err != nil {
-		log.Errorf(ctx, err, "[doGetNodeResourceInfo] failed to get node resource info of node %v", node)
+		log.Errorf(ctx, err, "[doGetNodeResourceInfo] failed to get node resource info of node %+v", node)
 		return nil, err
 	}
 	if err = json.Unmarshal(resp.Value, resourceInfo); err != nil {
-		log.Errorf(ctx, err, "[doGetNodeResourceInfo] failed to unmarshal node resource info of node %v", node)
+		log.Errorf(ctx, err, "[doGetNodeResourceInfo] failed to unmarshal node resource info of node %+v", node)
 		return nil, err
 	}
 	return resourceInfo, nil
@@ -218,7 +218,7 @@ func (v *Volume) doGetNodeResourceInfo(ctx context.Context, node string) (*types
 
 func (v *Volume) doSetNodeResourceInfo(ctx context.Context, node string, resourceInfo *types.NodeResourceInfo) error {
 	if err := resourceInfo.Validate(); err != nil {
-		log.Errorf(ctx, err, "[doSetNodeResourceInfo] invalid resource info %v", litter.Sdump(resourceInfo))
+		log.Errorf(ctx, err, "[doSetNodeResourceInfo] invalid resource info %+v", litter.Sdump(resourceInfo))
 		return err
 	}
 

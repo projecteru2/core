@@ -147,7 +147,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	}
 	// mount paths
 	binds, volumes := makeMountPaths(opts)
-	log.Debugf(ctx, "[VirtualizationCreate] App %s will bind %v", opts.Name, binds)
+	log.Debugf(ctx, "[VirtualizationCreate] App %s will bind %+v", opts.Name, binds)
 
 	config := &dockercontainer.Config{
 		Env:             opts.Env,
@@ -194,7 +194,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 			volumeTotal += size
 		}
 		if opts.Storage-volumeTotal > 0 {
-			rArgs.StorageOpt["size"] = fmt.Sprintf("%v", opts.Storage-volumeTotal)
+			rArgs.StorageOpt["size"] = fmt.Sprintf("%+v", opts.Storage-volumeTotal)
 		}
 	}
 	// 如果有指定用户，用指定用户
@@ -261,7 +261,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 			ipForShow = "[AutoAlloc]"
 		}
 		networkConfig.EndpointsConfig[networkID] = endpointSetting
-		log.Infof(ctx, "[ConnectToNetwork] Connect to %v with IP %v", networkID, ipForShow)
+		log.Infof(ctx, "[ConnectToNetwork] Connect to %+v with IP %+v", networkID, ipForShow)
 	}
 
 	workloadCreated, err := e.client.ContainerCreate(ctx, config, hostConfig, networkConfig, nil, opts.Name)
@@ -403,7 +403,7 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 	// parse engine args to resource options
 	resourceOpts, err := engine.MakeVirtualizationResource(opts.EngineArgs)
 	if err != nil {
-		log.Errorf(ctx, err, "[VirtualizationUpdateResource] failed to parse engine args %+v, workload id %v", opts.EngineArgs, ID)
+		log.Errorf(ctx, err, "[VirtualizationUpdateResource] failed to parse engine args %+v, workload id %+v", opts.EngineArgs, ID)
 		return coretypes.ErrInvalidEngineArgs
 	}
 
@@ -411,7 +411,7 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 		return coretypes.ErrBadMemory
 	}
 	if len(opts.Volumes) > 0 || resourceOpts.VolumeChanged {
-		log.Errorf(ctx, err, "[VirtualizationUpdateResource] docker engine not support rebinding volume resource: %v", resourceOpts.Volumes)
+		log.Errorf(ctx, err, "[VirtualizationUpdateResource] docker engine not support rebinding volume resource: %+v", resourceOpts.Volumes)
 		return coretypes.ErrNotSupport
 	}
 

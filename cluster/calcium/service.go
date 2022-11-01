@@ -39,7 +39,7 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 			break
 		}
 		if errors.Is(err, types.ErrKeyExists) {
-			log.Debugf(ctx, "[RegisterService] service key exists: %v", err)
+			log.Debugf(ctx, "[RegisterService] service key exists: %+v", err)
 			time.Sleep(time.Second)
 			continue
 		}
@@ -69,7 +69,7 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 				}
 
 			case <-ctx.Done():
-				log.Infof(ctx, "[RegisterService] heartbeat done: %v", ctx.Err())
+				log.Infof(ctx, "[RegisterService] heartbeat done: %+v", ctx.Err())
 				return
 			}
 		}

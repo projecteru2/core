@@ -21,7 +21,7 @@ type Disk struct {
 
 // String .
 func (d *Disk) String() string {
-	return fmt.Sprintf("%v:%v:%v:%v:%v:%v", d.Device, strings.Join(d.Mounts, ","), d.ReadIOPS, d.WriteIOPS, d.ReadBPS, d.WriteBPS)
+	return fmt.Sprintf("%+v:%+v:%+v:%+v:%+v:%+v", d.Device, strings.Join(d.Mounts, ","), d.ReadIOPS, d.WriteIOPS, d.ReadBPS, d.WriteBPS)
 }
 
 // ParseFromString .

@@ -16,7 +16,7 @@ func (c *CPUMem) GetReallocArgs(ctx context.Context, node string, originResource
 
 	resourceInfo, err := c.doGetNodeResourceInfo(ctx, node)
 	if err != nil {
-		log.Errorf(ctx, err, "[GetReallocArgs] failed to get resource info of node %v", node)
+		log.Errorf(ctx, err, "[GetReallocArgs] failed to get resource info of node %+v", node)
 		return nil, nil, nil, err
 	}
 

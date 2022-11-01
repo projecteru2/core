@@ -113,14 +113,14 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 				}
 				if _, ok := client.(*fake.Engine); ok {
 					if newClient, err := newEngine(ctx, e.config, utils.RandomString(8), params.endpoint, params.ca, params.key, params.cert); err != nil {
-						log.Errorf(ctx, err, "[EngineCache] engine %v is still unavailable", cacheKey)
+						log.Errorf(ctx, err, "[EngineCache] engine %+v is still unavailable", cacheKey)
 					} else {
 						e.cache.Set(cacheKey, newClient)
 					}
 					return
 				}
 				if err := validateEngine(ctx, client, e.config.ConnectionTimeout); err != nil {
-					log.Errorf(ctx, err, "[EngineCache] engine %v is unavailable, will be replaced with a fake engine", cacheKey)
+					log.Errorf(ctx, err, "[EngineCache] engine %+v is unavailable, will be replaced with a fake engine", cacheKey)
 					e.cache.Set(cacheKey, &fake.Engine{DefaultErr: err})
 				}
 			})
@@ -138,7 +138,7 @@ func GetEngineFromCache(endpoint, ca, cert, key string) engine.API {
 // RemoveEngineFromCache .
 func RemoveEngineFromCache(endpoint, ca, cert, key string) {
 	cacheKey := getEngineCacheKey(endpoint, ca, cert, key)
-	log.Infof(nil, "[RemoveEngineFromCache] remove engine %v from cache", cacheKey) //nolint
+	log.Infof(nil, "[RemoveEngineFromCache] remove engine %+v from cache", cacheKey) //nolint
 	engineCache.Delete(cacheKey)
 }
 
@@ -158,10 +158,10 @@ func GetEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 		cacheKey := params.getCacheKey()
 		if err == nil {
 			engineCache.Set(params, client)
-			log.Infof(ctx, "[GetEngine] store engine %v in cache", cacheKey)
+			log.Infof(ctx, "[GetEngine] store engine %+v in cache", cacheKey)
 		} else {
 			engineCache.Set(params, &fake.Engine{DefaultErr: err})
-			log.Infof(ctx, "[GetEngine] store fake engine %v in cache", cacheKey)
+			log.Infof(ctx, "[GetEngine] store fake engine %+v in cache", cacheKey)
 		}
 	}()
 
@@ -192,11 +192,11 @@ func getEnginePrefix(endpoint string) (string, error) {
 			return prefix, nil
 		}
 	}
-	return "", types.NewDetailedErr(types.ErrNodeFormat, fmt.Sprintf("endpoint invalid %v", endpoint))
+	return "", types.NewDetailedErr(types.ErrNodeFormat, fmt.Sprintf("endpoint invalid %+v", endpoint))
 }
 
 func getEngineCacheKey(endpoint, ca, cert, key string) string {
-	return fmt.Sprintf("%v-%v", endpoint, utils.SHA256(fmt.Sprintf(":%v:%v:%v", ca, cert, key))[:8])
+	return fmt.Sprintf("%+v-%+v", endpoint, utils.SHA256(fmt.Sprintf(":%+v:%+v:%+v", ca, cert, key))[:8])
 }
 
 // newEngine get engine
@@ -216,7 +216,7 @@ func newEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 		return nil, err
 	}
 	if err = validateEngine(ctx, client, config.ConnectionTimeout); err != nil {
-		log.Errorf(ctx, err, "[GetEngine] engine of %v is unavailable", endpoint)
+		log.Errorf(ctx, err, "[GetEngine] engine of %+v is unavailable", endpoint)
 		return nil, err
 	}
 	return client, nil

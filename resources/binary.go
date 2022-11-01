@@ -220,7 +220,7 @@ func (bp *BinaryPlugin) getArgs(req interface{}) []string {
 					}
 					args = append(args, "--"+jsonTag, string(body))
 				} else {
-					args = append(args, "--"+jsonTag, fmt.Sprintf("%v", v.Field(i).Index(j).Interface()))
+					args = append(args, "--"+jsonTag, fmt.Sprintf("%+v", v.Field(i).Index(j).Interface()))
 				}
 			}
 		case fieldType.Kind() == reflect.Bool:
@@ -228,7 +228,7 @@ func (bp *BinaryPlugin) getArgs(req interface{}) []string {
 				args = append(args, "--"+jsonTag)
 			}
 		default:
-			args = append(args, "--"+jsonTag, fmt.Sprintf("%v", fieldValue))
+			args = append(args, "--"+jsonTag, fmt.Sprintf("%+v", fieldValue))
 		}
 	}
 	return args
@@ -240,7 +240,7 @@ func (bp *BinaryPlugin) execCommand(cmd *exec.Cmd) (output, log string, err erro
 	cmd.Stderr = &stderr
 
 	if err = cmd.Run(); err != nil {
-		err = errors.Errorf("err: %v, output: %v, log: %v", err, output, log)
+		err = errors.Errorf("err: %+v, output: %+v, log: %+v", err, output, log)
 	}
 	return stdout.String(), stderr.String(), err
 }
@@ -261,7 +261,7 @@ func (bp *BinaryPlugin) call(ctx context.Context, cmd string, req interface{}, r
 	defer log.Infof(ctx, "[callBinaryPlugin] output from plugin %s: %s", bp.path, pluginOutput)
 
 	if err != nil {
-		log.Errorf(ctx, err, "[callBinaryPlugin] failed to run plugin %s, command %v", bp.path, args)
+		log.Errorf(ctx, err, "[callBinaryPlugin] failed to run plugin %s, command %+v", bp.path, args)
 		return err
 	}
 
@@ -269,7 +269,7 @@ func (bp *BinaryPlugin) call(ctx context.Context, cmd string, req interface{}, r
 		pluginOutput = "{}"
 	}
 	if err := json.Unmarshal([]byte(pluginOutput), resp); err != nil {
-		log.Errorf(ctx, err, "[callBinaryPlugin] failed to unmarshal output of plugin %s, command %v, output %s", bp.path, args, pluginOutput)
+		log.Errorf(ctx, err, "[callBinaryPlugin] failed to unmarshal output of plugin %s, command %+v, output %s", bp.path, args, pluginOutput)
 		return err
 	}
 	return nil

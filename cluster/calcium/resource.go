@@ -62,14 +62,14 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, inspec
 	return nr, c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 		workloads, err := c.store.ListNodeWorkloads(ctx, node.Name, nil)
 		if err != nil {
-			log.Errorf(ctx, err, "[doGetNodeResource] failed to list node workloads, node %v", node.Name)
+			log.Errorf(ctx, err, "[doGetNodeResource] failed to list node workloads, node %+v", node.Name)
 			return err
 		}
 
 		// get node resources
 		resourceCapacity, resourceUsage, resourceDiffs, err := c.rmgr.GetNodeResourceInfo(ctx, node.Name, workloads, fix)
 		if err != nil {
-			log.Errorf(ctx, err, "[doGetNodeResource] failed to get node resources, node %v", node.Name)
+			log.Errorf(ctx, err, "[doGetNodeResource] failed to get node resources, node %+v", node.Name)
 			return err
 		}
 		nr = &types.NodeResource{
@@ -83,7 +83,7 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, inspec
 		if inspect {
 			for _, workload := range nr.Workloads {
 				if _, err := workload.Inspect(ctx); err != nil { // 用于探测节点上容器是否存在
-					nr.Diffs = append(nr.Diffs, fmt.Sprintf("workload %s inspect failed %v \n", workload.ID, err))
+					nr.Diffs = append(nr.Diffs, fmt.Sprintf("workload %s inspect failed %+v \n", workload.ID, err))
 					continue
 				}
 			}
@@ -97,14 +97,14 @@ func (c *Calcium) doGetDeployStrategy(ctx context.Context, nodenames []string, o
 	// get nodes with capacity > 0
 	nodeResourceInfoMap, total, err := c.rmgr.GetNodesDeployCapacity(ctx, nodenames, opts.ResourceOpts)
 	if err != nil {
-		log.Errorf(ctx, err, "[doGetDeployMap] failed to select available nodes, nodes %v", nodenames)
+		log.Errorf(ctx, err, "[doGetDeployMap] failed to select available nodes, nodes %+v", nodenames)
 		return nil, err
 	}
 
 	// get deployed & processing workload count on each node
 	deployStatusMap, err := c.store.GetDeployStatus(ctx, opts.Name, opts.Entrypoint.Name)
 	if err != nil {
-		log.Errorf(ctx, err, "failed to get deploy status for %v_%v", opts.Name, opts.Entrypoint.Name)
+		log.Errorf(ctx, err, "failed to get deploy status for %+v_%+v", opts.Name, opts.Entrypoint.Name)
 		return nil, err
 	}
 

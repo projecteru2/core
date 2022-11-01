@@ -153,7 +153,7 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 					break
 				}
 				malformed, _ := io.ReadAll(decoder.Buffered()) // TODO err check
-				logger.Errorf(ctx, err, "[BuildImage] Decode build image message failed, buffered: %v", malformed)
+				logger.Errorf(ctx, err, "[BuildImage] Decode build image message failed, buffered: %+v", malformed)
 				return
 			}
 			ch <- message
@@ -161,7 +161,7 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 		}
 
 		if lastMessage.Error != "" {
-			logger.Errorf(ctx, errors.New(lastMessage.Error), "[BuildImage] Build image failed %v", lastMessage.ErrorDetail.Message)
+			logger.Errorf(ctx, errors.New(lastMessage.Error), "[BuildImage] Build image failed %+v", lastMessage.ErrorDetail.Message)
 			return
 		}
 

@@ -132,7 +132,7 @@ func (e *ETCD) GetMulti(ctx context.Context, keys []string, opts ...clientv3.OpO
 		kvs = append(kvs, resp.Kvs[0])
 	}
 	if len(kvs) != len(keys) {
-		err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("keys: %v", keys))
+		err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("keys: %+v", keys))
 	}
 	return
 }
@@ -267,7 +267,7 @@ func (e *ETCD) isTTLChanged(ctx context.Context, key string, ttl int64) (bool, e
 
 	changed := getTTLResp.GrantedTTL != ttl
 	if changed {
-		log.Infof(ctx, "[isTTLChanged] key %v ttl changed from %v to %v", key, getTTLResp.GrantedTTL, ttl)
+		log.Infof(ctx, "[isTTLChanged] key %+v ttl changed from %+v to %+v", key, getTTLResp.GrantedTTL, ttl)
 	}
 
 	return changed, nil

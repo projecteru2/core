@@ -78,13 +78,13 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 									)
 								}
 								replaceOpts.Networks = info.Networks
-								log.Infof(ctx, "[ReplaceWorkload] Inherit old workload network configuration mode %v", replaceOpts.Networks)
+								log.Infof(ctx, "[ReplaceWorkload] Inherit old workload network configuration mode %+v", replaceOpts.Networks)
 							}
 							createMessage, removeMessage, err = c.doReplaceWorkload(ctx, workload, &replaceOpts, index)
 							return err
 						}); err != nil {
 							if errors.Is(err, types.ErrIgnoreWorkload) {
-								log.Warnf(ctx, "[ReplaceWorkload] ignore workload: %v", err)
+								log.Warnf(ctx, "[ReplaceWorkload] ignore workload: %+v", err)
 								return
 							}
 							logger.Error(ctx, err, "[ReplaceWorkload] Replace and remove failed, old workload restarted")

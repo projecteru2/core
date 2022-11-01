@@ -548,7 +548,7 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 			// check if the device has enough space
 			volume := h.getVolumeByDevice(device)
 			if req.SizeInBytes > volume.size {
-				log.Errorf(nil, types.ErrInsufficientResource, "[getAffinityPlan] no space to expand, %v remains %v, requires %v", device, volume.size, req.SizeInBytes) //nolint
+				log.Errorf(nil, types.ErrInsufficientResource, "[getAffinityPlan] no space to expand, %+v remains %+v, requires %+v", device, volume.size, req.SizeInBytes) //nolint
 				return types.ErrInsufficientResource
 			}
 			volume.size -= req.SizeInBytes
@@ -560,7 +560,7 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 			}
 			disk := h.getDiskByPath(device)
 			if !h.isDiskIOPSQuotaQualified(disk, req) {
-				log.Errorf(nil, types.ErrInsufficientResource, "[getAffinityPlan] no IOPS quota to expand, %v remains %+v, requires %+v", device, disk, req) //nolint
+				log.Errorf(nil, types.ErrInsufficientResource, "[getAffinityPlan] no IOPS quota to expand, %+v remains %+v, requires %+v", device, disk, req) //nolint
 				return types.ErrInsufficientResource
 			}
 			h.decreaseIOPSQuota(disk, req)
@@ -612,7 +612,7 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 		// if there is any affinity plan: don't reschedule
 		// use the first volume map to get the whole mono volume plan
 		if totalVolumeSize < totalRequestSize { // check if the volume size is enough
-			log.Errorf(nil, types.ErrInsufficientResource, "[getAffinityPlan] no space to expand, the size of %v is %v, requires %v", affinity[monoRequests[0]].GetDevice(), totalVolumeSize, totalRequestSize) //nolint
+			log.Errorf(nil, types.ErrInsufficientResource, "[getAffinityPlan] no space to expand, the size of %+v is %+v, requires %+v", affinity[monoRequests[0]].GetDevice(), totalVolumeSize, totalRequestSize) //nolint
 			return nil, nil, types.ErrInsufficientResource
 		}
 

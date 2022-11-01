@@ -122,11 +122,11 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 				defer wg.Done()
 				var err error
 				if node.Resource.Capacity, node.Resource.Usage, node.Resource.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
-					logger.Errorf(ctx, err, "failed to get node %v resource info", node.Name)
+					logger.Errorf(ctx, err, "failed to get node %+v resource info", node.Name)
 				}
 				if opts.CallInfo {
 					if err := node.Info(ctx); err != nil {
-						logger.Errorf(ctx, err, "failed to get node %v info", node.Name)
+						logger.Errorf(ctx, err, "failed to get node %+v info", node.Name)
 					}
 				}
 				ch <- node
@@ -307,7 +307,7 @@ func (c *Calcium) filterNodes(ctx context.Context, nodeFilter *types.NodeFilter)
 func (c *Calcium) setAllWorkloadsOnNodeDown(ctx context.Context, nodename string) {
 	workloads, err := c.store.ListNodeWorkloads(ctx, nodename, nil)
 	if err != nil {
-		log.Errorf(ctx, err, "[setAllWorkloadsOnNodeDown] failed to list node workloads, node %v", nodename)
+		log.Errorf(ctx, err, "[setAllWorkloadsOnNodeDown] failed to list node workloads, node %+v", nodename)
 		return
 	}
 

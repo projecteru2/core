@@ -382,7 +382,7 @@ func (n *NodeResourceOpts) ParseFromRawParams(rawParams coretypes.RawParams) (er
 		}
 
 		for i := int64(0); i < cpu; i++ {
-			n.CPUMap[fmt.Sprintf("%v", i)] = int(share)
+			n.CPUMap[fmt.Sprintf("%+v", i)] = int(share)
 		}
 	} else if cpuList := n.RawParams.String("cpu"); cpuList != "" {
 		cpuMapList := strings.Split(cpuList, ",")

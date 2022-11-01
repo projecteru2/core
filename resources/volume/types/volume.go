@@ -76,7 +76,7 @@ func NewVolumeBinding(volume string) (_ *VolumeBinding, err error) {
 // Validate return error if invalid
 func (vb VolumeBinding) Validate() error {
 	if vb.Destination == "" {
-		return errors.Errorf("invalid volume, dest must be provided: %v", vb)
+		return errors.Errorf("invalid volume, dest must be provided: %+v", vb)
 	}
 	return nil
 }
@@ -172,10 +172,10 @@ func NewVolumeBindings(volumes []string) (volumeBindings VolumeBindings, err err
 func (vbs VolumeBindings) Validate() error {
 	for _, vb := range vbs {
 		if vb.RequireScheduleMonopoly() && vb.RequireScheduleUnlimitedQuota() {
-			return errors.Errorf("invalid volume, monopoly volume can't be unlimited: %v", vb)
+			return errors.Errorf("invalid volume, monopoly volume can't be unlimited: %+v", vb)
 		}
 		if !vb.ValidIOParameters() {
-			return errors.Errorf("invalid io parameters: %v", vb)
+			return errors.Errorf("invalid io parameters: %+v", vb)
 		}
 	}
 	return nil

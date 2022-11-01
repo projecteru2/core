@@ -21,7 +21,7 @@ func (c *Calcium) InitMetrics(ctx context.Context) {
 		log.Error(ctx, err, "[InitMetrics] failed to init metrics")
 		return
 	}
-	log.Infof(ctx, "[InitMetrics] init metrics %v success", litter.Sdump(metricsDescriptions))
+	log.Infof(ctx, "[InitMetrics] init metrics %+v success", litter.Sdump(metricsDescriptions))
 }
 
 func (c *Calcium) doSendNodeMetrics(ctx context.Context, node *types.Node) {

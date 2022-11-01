@@ -107,7 +107,7 @@ func (f LinuxFile) Clone() LinuxFile {
 
 // String for %+v
 func (f LinuxFile) String() string {
-	return fmt.Sprintf("file %v:%v:%v:%#o, len: %v", f.Filename, f.UID, f.GID, f.Mode, len(f.Content))
+	return fmt.Sprintf("file %+v:%+v:%+v:%#o, len: %+v", f.Filename, f.UID, f.GID, f.Mode, len(f.Content))
 }
 
 // LitterDump for litter.Sdump

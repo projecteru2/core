@@ -21,7 +21,7 @@ func (v *Volume) GetDeployArgs(ctx context.Context, node string, deployCount int
 
 	resourceInfo, err := v.doGetNodeResourceInfo(ctx, node)
 	if err != nil {
-		log.Errorf(ctx, err, "[Alloc] failed to get resource info of node %v", node)
+		log.Errorf(ctx, err, "[Alloc] failed to get resource info of node %+v", node)
 		return nil, nil, err
 	}
 
@@ -92,7 +92,7 @@ func (v *Volume) doAlloc(resourceInfo *types.NodeResourceInfo, deployCount int, 
 	if opts.StorageRequest > 0 {
 		storageCapacity := int((resourceInfo.Capacity.Storage - resourceInfo.Usage.Storage) / opts.StorageRequest)
 		if storageCapacity < deployCount {
-			return nil, nil, errors.Wrapf(types.ErrInsufficientResource, "not enough storage, request: %v, available: %v", opts.StorageRequest, storageCapacity)
+			return nil, nil, errors.Wrapf(types.ErrInsufficientResource, "not enough storage, request: %+v, available: %+v", opts.StorageRequest, storageCapacity)
 		}
 	}
 
@@ -111,7 +111,7 @@ func (v *Volume) doAlloc(resourceInfo *types.NodeResourceInfo, deployCount int, 
 	} else {
 		volumePlans, diskPlans = schedule.GetVolumePlans(resourceInfo, opts.VolumesRequest, v.Config.Scheduler.MaxDeployCount)
 		if len(volumePlans) < deployCount {
-			return nil, nil, errors.Wrapf(types.ErrInsufficientResource, "not enough volume plan, need %v, available %v", deployCount, len(volumePlans))
+			return nil, nil, errors.Wrapf(types.ErrInsufficientResource, "not enough volume plan, need %+v, available %+v", deployCount, len(volumePlans))
 		}
 		volumePlans = volumePlans[:deployCount]
 		diskPlans = diskPlans[:deployCount]

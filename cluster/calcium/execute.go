@@ -69,7 +69,7 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 		exitData := []byte(exitDataPrefix + strconv.Itoa(execCode))
 		ch <- &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: exitData}
 		logger.Infof(ctx, "[ExecuteWorkload] Execuate in workload %s complete", opts.WorkloadID)
-		logger.Infof(ctx, "[ExecuteWorkload] %v", opts.Commands)
+		logger.Infof(ctx, "[ExecuteWorkload] %+v", opts.Commands)
 	})
 
 	return ch

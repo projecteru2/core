@@ -201,7 +201,7 @@ func (m *Mercury) doGetWorkloads(ctx context.Context, keys []string) (workloads 
 	for _, kv := range kvs {
 		workload := &types.Workload{}
 		if err = json.Unmarshal(kv.Value, workload); err != nil {
-			log.Errorf(ctx, err, "[doGetWorkloads] failed to unmarshal %v", string(kv.Key))
+			log.Errorf(ctx, err, "[doGetWorkloads] failed to unmarshal %+v", string(kv.Key))
 			return
 		}
 		workloads = append(workloads, workload)
@@ -248,7 +248,7 @@ func (m *Mercury) bindWorkloadsAdditions(ctx context.Context, workloads []*types
 		}
 		status := &types.StatusMeta{}
 		if err := json.Unmarshal(kv.Value, &status); err != nil {
-			log.Warnf(ctx, "[bindWorkloadsAdditions] unmarshal %s status data failed %v", workload.ID, err)
+			log.Warnf(ctx, "[bindWorkloadsAdditions] unmarshal %s status data failed %+v", workload.ID, err)
 			log.Errorf(ctx, err, "[bindWorkloadsAdditions] status raw: %s", kv.Value)
 			continue
 		}

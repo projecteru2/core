@@ -201,7 +201,7 @@ func (n *NodeResourceOpts) ParseFromRawParams(rawParams coretypes.RawParams) (er
 		for _, rawDiskStr := range n.RawParams.StringSlice("disks") {
 			disk := &Disk{}
 			if err = disk.ParseFromString(rawDiskStr); err != nil {
-				return errors.Wrapf(ErrInvalidDisk, "wrong disk format: %v, %v", rawDiskStr, err)
+				return errors.Wrapf(ErrInvalidDisk, "wrong disk format: %+v, %+v", rawDiskStr, err)
 			}
 			n.Disks = append(n.Disks, disk)
 		}
@@ -314,7 +314,7 @@ func (n *NodeResourceInfo) validateDisks() error {
 			if disk.ReadIOPS == 0 && disk.WriteIOPS == 0 && disk.ReadBPS == 0 && disk.WriteBPS == 0 {
 				toRemoveMap[disk.Device] = struct{}{}
 			} else {
-				return errors.Wrapf(ErrInvalidDisk, "disk %v not found in capacity", disk.Device)
+				return errors.Wrapf(ErrInvalidDisk, "disk %+v not found in capacity", disk.Device)
 			}
 		}
 

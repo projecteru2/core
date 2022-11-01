@@ -139,7 +139,7 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nodeFilter *types.NodeFil
 	defer func() {
 		utils.Reverse(lockKeys)
 		c.doUnlockAll(utils.InheritTracingInfo(ctx, context.TODO()), locks, lockKeys...)
-		log.Debugf(ctx, "[withNodesLocked] keys %v unlocked", lockKeys)
+		log.Debugf(ctx, "[withNodesLocked] keys %+v unlocked", lockKeys)
 	}()
 
 	ns, err := c.filterNodes(ctx, nodeFilter)

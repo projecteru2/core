@@ -206,7 +206,7 @@ func (r *Rediaron) makeClient(ctx context.Context, node *types.Node) (client eng
 		v, err := r.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
 		if err != nil {
 			if !isRedisNoKeyError(err) {
-				log.Warnf(ctx, "[makeClient] Get key failed %v", err)
+				log.Warnf(ctx, "[makeClient] Get key failed %+v", err)
 				return nil, err
 			}
 			continue
@@ -301,7 +301,7 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 		_ = r.pool.Invoke(func() {
 			defer wg.Done()
 			if _, err := r.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrBadCount) {
-				log.Errorf(ctx, err, "[doGetNodes] failed to get node status of %v", node.Name)
+				log.Errorf(ctx, err, "[doGetNodes] failed to get node status of %+v", node.Name)
 			} else {
 				node.Available = err == nil
 			}
@@ -312,7 +312,7 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 
 			nodeChan <- node
 			if client, err := r.makeClient(ctx, node); err != nil {
-				log.Errorf(ctx, err, "[doGetNodes] failed to make client for %v", node.Name)
+				log.Errorf(ctx, err, "[doGetNodes] failed to make client for %+v", node.Name)
 			} else {
 				node.Engine = client
 			}

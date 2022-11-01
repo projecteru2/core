@@ -22,7 +22,7 @@ func (v *Volume) GetNodesDeployCapacity(ctx context.Context, nodes []string, opt
 	for _, node := range nodes {
 		resourceInfo, err := v.doGetNodeResourceInfo(ctx, node)
 		if err != nil {
-			log.Errorf(ctx, err, "[GetNodesDeployCapacity] failed to get resource info of node %v", node)
+			log.Errorf(ctx, err, "[GetNodesDeployCapacity] failed to get resource info of node %+v", node)
 			return nil, 0, err
 		}
 		capacityInfo := v.doGetNodeCapacityInfo(ctx, node, resourceInfo, opts)

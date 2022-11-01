@@ -42,13 +42,13 @@ func (c *CPUMem) GetNodeResourceInfo(ctx context.Context, node string, workloadR
 
 	for cpu := range resourceInfo.Capacity.CPUMap {
 		if totalResourceArgs.CPUMap[cpu] != resourceInfo.Usage.CPUMap[cpu] {
-			diffs = append(diffs, fmt.Sprintf("node.CPUMap[%v] != sum(workload.CPUMap[%v]): %v != %v", cpu, cpu, resourceInfo.Usage.CPUMap[cpu], totalResourceArgs.CPUMap[cpu]))
+			diffs = append(diffs, fmt.Sprintf("node.CPUMap[%+v] != sum(workload.CPUMap[%+v]): %+v != %+v", cpu, cpu, resourceInfo.Usage.CPUMap[cpu], totalResourceArgs.CPUMap[cpu]))
 		}
 	}
 
 	for numaNodeID := range resourceInfo.Capacity.NUMAMemory {
 		if totalResourceArgs.NUMAMemory[numaNodeID] != resourceInfo.Usage.NUMAMemory[numaNodeID] {
-			diffs = append(diffs, fmt.Sprintf("node.NUMAMemory[%v] != sum(workload.NUMAMemory[%v]: %v != %v)", numaNodeID, numaNodeID, resourceInfo.Usage.NUMAMemory[numaNodeID], totalResourceArgs.NUMAMemory[numaNodeID]))
+			diffs = append(diffs, fmt.Sprintf("node.NUMAMemory[%+v] != sum(workload.NUMAMemory[%+v]: %+v != %+v)", numaNodeID, numaNodeID, resourceInfo.Usage.NUMAMemory[numaNodeID], totalResourceArgs.NUMAMemory[numaNodeID]))
 		}
 	}
 
@@ -126,7 +126,7 @@ func (c *CPUMem) calculateNodeResourceArgs(origin *types.NodeResourceArgs, nodeR
 func (c *CPUMem) SetNodeResourceUsage(ctx context.Context, node string, nodeResourceOpts *types.NodeResourceOpts, nodeResourceArgs *types.NodeResourceArgs, workloadResourceArgs []*types.WorkloadResourceArgs, delta bool, incr bool) (before *types.NodeResourceArgs, after *types.NodeResourceArgs, err error) {
 	resourceInfo, err := c.doGetNodeResourceInfo(ctx, node)
 	if err != nil {
-		log.Errorf(ctx, err, "[SetNodeResourceInfo] failed to get resource info of node %v", node)
+		log.Errorf(ctx, err, "[SetNodeResourceInfo] failed to get resource info of node %+v", node)
 		return nil, nil, err
 	}
 
@@ -143,7 +143,7 @@ func (c *CPUMem) SetNodeResourceUsage(ctx context.Context, node string, nodeReso
 func (c *CPUMem) SetNodeResourceCapacity(ctx context.Context, node string, nodeResourceOpts *types.NodeResourceOpts, nodeResourceArgs *types.NodeResourceArgs, delta bool, incr bool) (before *types.NodeResourceArgs, after *types.NodeResourceArgs, err error) {
 	resourceInfo, err := c.doGetNodeResourceInfo(ctx, node)
 	if err != nil {
-		log.Errorf(ctx, err, "[SetNodeResourceInfo] failed to get resource info of node %v", node)
+		log.Errorf(ctx, err, "[SetNodeResourceInfo] failed to get resource info of node %+v", node)
 		return nil, nil, err
 	}
 
@@ -185,11 +185,11 @@ func (c *CPUMem) doGetNodeResourceInfo(ctx context.Context, node string) (*types
 	resourceInfo := &types.NodeResourceInfo{}
 	resp, err := c.store.GetOne(ctx, fmt.Sprintf(NodeResourceInfoKey, node))
 	if err != nil {
-		log.Errorf(ctx, err, "[doGetNodeResourceInfo] failed to get node resource info of node %v", node)
+		log.Errorf(ctx, err, "[doGetNodeResourceInfo] failed to get node resource info of node %+v", node)
 		return nil, err
 	}
 	if err = json.Unmarshal(resp.Value, resourceInfo); err != nil {
-		log.Errorf(ctx, err, "[doGetNodeResourceInfo] failed to unmarshal node resource info of node %v", node)
+		log.Errorf(ctx, err, "[doGetNodeResourceInfo] failed to unmarshal node resource info of node %+v", node)
 		return nil, err
 	}
 	return resourceInfo, nil
@@ -197,7 +197,7 @@ func (c *CPUMem) doGetNodeResourceInfo(ctx context.Context, node string) (*types
 
 func (c *CPUMem) doSetNodeResourceInfo(ctx context.Context, node string, resourceInfo *types.NodeResourceInfo) error {
 	if err := resourceInfo.Validate(); err != nil {
-		log.Errorf(ctx, err, "[doSetNodeResourceInfo] invalid resource info %v", litter.Sdump(resourceInfo))
+		log.Errorf(ctx, err, "[doSetNodeResourceInfo] invalid resource info %+v", litter.Sdump(resourceInfo))
 		return err
 	}
 

@@ -134,7 +134,7 @@ type detailedErr struct {
 
 // Error .
 func (d detailedErr) Error() string {
-	return fmt.Sprintf("%s: %v", d.err, d.details)
+	return fmt.Sprintf("%s: %+v", d.err, d.details)
 }
 
 // Unwrap .

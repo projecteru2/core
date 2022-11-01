@@ -223,7 +223,7 @@ func (m *Mercury) makeClient(ctx context.Context, node *types.Node) (client engi
 		ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
 		if err != nil {
 			if !errors.Is(err, types.ErrBadCount) {
-				log.Warnf(ctx, "[makeClient] Get key failed %v", err)
+				log.Warnf(ctx, "[makeClient] Get key failed %+v", err)
 				return nil, err
 			}
 			continue
@@ -318,7 +318,7 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 		_ = m.pool.Invoke(func() {
 			defer wg.Done()
 			if _, err := m.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrBadCount) {
-				log.Errorf(ctx, err, "[doGetNodes] failed to get node status of %v", node.Name)
+				log.Errorf(ctx, err, "[doGetNodes] failed to get node status of %+v", node.Name)
 			} else {
 				node.Available = err == nil
 			}
@@ -329,7 +329,7 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 
 			// update engine
 			if client, err := m.makeClient(ctx, node); err != nil {
-				log.Errorf(ctx, err, "[doGetNodes] failed to make client for %v", node.Name)
+				log.Errorf(ctx, err, "[doGetNodes] failed to make client for %+v", node.Name)
 			} else {
 				node.Engine = client
 			}

@@ -36,7 +36,7 @@ func pullImage(ctx context.Context, node *types.Node, image string) error {
 	exists := false
 	digests, err := node.Engine.ImageLocalDigests(ctx, image)
 	if err != nil {
-		log.Errorf(ctx, err, "[pullImage] Check image failed %v", err)
+		log.Errorf(ctx, err, "[pullImage] Check image failed %+v", err)
 	} else {
 		log.Debug(ctx, "[pullImage] Local Image exists")
 		exists = true
