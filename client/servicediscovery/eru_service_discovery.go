@@ -74,7 +74,7 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 				}
 				expectedInterval = time.Duration(status.GetIntervalInSecond())
 
-				epPusher.Push(status.GetAddresses())
+				epPusher.Push(ctx, status.GetAddresses())
 			}
 		}
 	}()

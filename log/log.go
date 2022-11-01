@@ -82,7 +82,10 @@ func Errorf(ctx context.Context, err error, format string, args ...interface{}) 
 
 // Error forwards to sentry
 func Error(ctx context.Context, err error, args ...interface{}) {
-	Errorf(ctx, err, "%+v", args...)
+	if len(args) > 1 {
+		Errorf(ctx, err, "%+v", args...)
+	}
+	Errorf(ctx, err, "")
 }
 
 // Fields is a wrapper for zerolog.Entry

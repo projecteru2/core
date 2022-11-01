@@ -171,7 +171,7 @@ func (r *Rediaron) NodeStatusStream(ctx context.Context) chan *types.NodeStatus 
 	ch := make(chan *types.NodeStatus)
 	_ = r.pool.Invoke(func() {
 		defer func() {
-			log.Info(ctx, "[NodeStatusStream] close NodeStatusStream channel") //nolint
+			log.Info(ctx, "[NodeStatusStream] close NodeStatusStream channel")
 			close(ch)
 		}()
 

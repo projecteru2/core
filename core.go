@@ -85,7 +85,7 @@ func serve(c *cli.Context) error {
 		auth := auth.NewAuth(config.Auth)
 		opts = append(opts, grpc.StreamInterceptor(auth.StreamInterceptor))
 		opts = append(opts, grpc.UnaryInterceptor(auth.UnaryInterceptor))
-		log.Infof(c.Context, "[main] Username %s Password %s", config.Auth.Username, config.Auth.Password) //nolint
+		log.Infof(c.Context, "[main] Username %s Password %s", config.Auth.Username, config.Auth.Password)
 	}
 
 	grpcServer := grpc.NewServer(opts...)

@@ -112,7 +112,7 @@ func (h *Helium) dispatch(status types.ServiceStatus) {
 	f := func(key uint32, val entry) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Errorf(context.TODO(), errors.Errorf("%+v", err), "[dispatch] dispatch %+v failed", key)
+				log.Errorf(nil, errors.Errorf("%+v", err), "[dispatch] dispatch %+v failed", key) //nolint
 			}
 		}()
 		select {

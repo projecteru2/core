@@ -60,7 +60,7 @@ func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error
 	}
 
 	if allFailed {
-		log.Error(ctx, types.ErrAllConnectionsFailed, "[NewCoreRPCClientPool] all connections failed")
+		log.Error(ctx, types.ErrAllConnectionsFailed)
 		return nil, types.ErrAllConnectionsFailed
 	}
 

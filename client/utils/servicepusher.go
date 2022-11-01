@@ -36,12 +36,12 @@ func (p *EndpointPusher) Register(ch chan []string) {
 }
 
 // Push pushes endpoint candicates
-func (p *EndpointPusher) Push(endpoints []string) {
-	p.delOutdated(endpoints)
-	p.addCheck(endpoints)
+func (p *EndpointPusher) Push(ctx context.Context, endpoints []string) {
+	p.delOutdated(ctx, endpoints)
+	p.addCheck(ctx, endpoints)
 }
 
-func (p *EndpointPusher) delOutdated(endpoints []string) {
+func (p *EndpointPusher) delOutdated(ctx context.Context, endpoints []string) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -49,7 +49,7 @@ func (p *EndpointPusher) delOutdated(endpoints []string) {
 		if !slices.Contains(endpoints, endpoint) {
 			cancel()
 			p.pendingEndpoints.Del(endpoint)
-			log.Debugf(nil, "[EruResolver] pending endpoint deleted: %s", endpoint) //nolint
+			log.Debugf(ctx, "[EruResolver] pending endpoint deleted: %s", endpoint)
 		}
 		return true
 	})
@@ -57,13 +57,13 @@ func (p *EndpointPusher) delOutdated(endpoints []string) {
 	p.availableEndpoints.Range(func(endpoint string, _ struct{}) bool {
 		if !slices.Contains(endpoints, endpoint) {
 			p.availableEndpoints.Del(endpoint)
-			log.Debugf(nil, "[EruResolver] available endpoint deleted: %s", endpoint) //nolint
+			log.Debugf(ctx, "[EruResolver] available endpoint deleted: %s", endpoint)
 		}
 		return true
 	})
 }
 
-func (p *EndpointPusher) addCheck(endpoints []string) {
+func (p *EndpointPusher) addCheck(ctx context.Context, endpoints []string) {
 	for _, endpoint := range endpoints {
 		if _, ok := p.pendingEndpoints.Get(endpoint); ok {
 			continue
@@ -72,7 +72,7 @@ func (p *EndpointPusher) addCheck(endpoints []string) {
 			continue
 		}
 
-		ctx, cancel := context.WithCancel(context.TODO())
+		ctx, cancel := context.WithCancel(ctx)
 		p.pendingEndpoints.Set(endpoint, cancel)
 		go p.pollReachability(ctx, endpoint)
 		log.Debugf(ctx, "[EruResolver] pending endpoint added: %s", endpoint)
@@ -96,7 +96,7 @@ func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) 
 		case <-ticker.C:
 			p.Lock()
 			defer p.Unlock()
-			if err := p.checkReachability(parts[0]); err != nil {
+			if err := p.checkReachability(ctx, parts[0]); err != nil {
 				continue
 			}
 			p.pendingEndpoints.Del(endpoint)
@@ -108,10 +108,10 @@ func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) 
 	}
 }
 
-func (p *EndpointPusher) checkReachability(host string) (err error) {
+func (p *EndpointPusher) checkReachability(ctx context.Context, host string) (err error) {
 	pinger, err := ping.NewPinger(host)
 	if err != nil {
-		log.Error(nil, err, "[EruResolver] failed to create pinger") //nolint
+		log.Error(ctx, err, "[EruResolver] failed to create pinger")
 		return
 	}
 	pinger.SetPrivileged(os.Getuid() == 0)

@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -50,7 +49,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	case strings.HasPrefix(endpoint, GRPCPrefixKey):
 		uri = "grpc://" + strings.TrimPrefix(endpoint, GRPCPrefixKey)
 	default:
-		return nil, errors.Errorf("invalid endpoint: %s", endpoint)
+		return nil, coretypes.ErrNotSupport
 	}
 
 	cli, err := virtapi.New(uri)

@@ -38,7 +38,7 @@ type Metrics struct {
 
 // SendDeployCount update deploy counter
 func (m *Metrics) SendDeployCount(ctx context.Context, n int) {
-	log.Info(nil, "[Metrics] Update deploy counter") //nolint
+	log.Info(ctx, "[Metrics] Update deploy counter")
 	metrics := &resources.Metrics{
 		Name:   deployCountName,
 		Labels: []string{m.Hostname},

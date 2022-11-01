@@ -53,6 +53,6 @@ func (r *Rediaron) doLoadProcessing(ctx context.Context, appname, entryname stri
 		nodesCount[nodename] += count
 	}
 
-	log.Debug(ctx, "[doLoadProcessing] Processing result: %+v", nodesCount) //nolint
+	log.Debug(ctx, "[doLoadProcessing] Processing result: %+v", nodesCount)
 	return nodesCount, nil
 }
