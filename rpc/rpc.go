@@ -516,7 +516,7 @@ func (v *Vibranium) Copy(opts *pb.CopyOptions, stream pb.CoreRPC_CopyServer) err
 			return func() {
 				var err error
 				defer func() {
-					w.CloseWithError(err) // nolint
+					w.CloseWithError(err) //nolint
 				}()
 
 				tw := tar.NewWriter(w)

@@ -29,7 +29,7 @@ type NodeStatusWatcher struct {
 // RunNodeStatusWatcher .
 func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster cluster.Cluster, t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
-	id := rand.Int63n(10000) // nolint
+	id := rand.Int63n(10000) //nolint
 	store, err := store.NewStore(config, t)
 	if err != nil {
 		log.Errorf(ctx, err, "[RunNodeStatusWatcher] %v failed to create store", id)

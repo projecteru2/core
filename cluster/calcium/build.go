@@ -132,7 +132,7 @@ func (c *Calcium) buildFromExist(ctx context.Context, opts *types.BuildOptions) 
 	return refs, node, io.NopCloser(bytes.NewReader(buildMsg)), nil
 }
 
-func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) { // nolint:unparam
+func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) { //nolint:unparam
 	logger := log.WithField("Calcium", "pushImage").WithField("node", node).WithField("tags", tags)
 	log.Infof(ctx, "[BuildImage] Pushing image at pod %s node %s", node.Podname, node.Name)
 	return c.withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {

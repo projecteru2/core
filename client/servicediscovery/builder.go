@@ -9,7 +9,7 @@ type LBResolverBuilder struct {
 
 var lbResolverBuilder *LBResolverBuilder
 
-func init() { // nolint
+func init() { //nolint
 	lbResolverBuilder = &LBResolverBuilder{
 		updateCh: make(chan []string),
 	}

@@ -375,7 +375,7 @@ func (n *NodeResourceOpts) ParseFromRawParams(rawParams coretypes.RawParams) (er
 		n.CPUMap = CPUMap{}
 	}
 
-	if cpu := n.RawParams.Int64("cpu"); cpu > 0 { // nolint
+	if cpu := n.RawParams.Int64("cpu"); cpu > 0 { //nolint
 		share := n.RawParams.Int64("share")
 		if share == 0 {
 			share = 100

@@ -58,7 +58,7 @@ func (c *Calcium) processVirtualizationInStream(
 	inStream io.WriteCloser,
 	inCh <-chan []byte,
 	resizeFunc func(height, width uint) error,
-) <-chan struct{} { // nolint
+) <-chan struct{} { //nolint
 	specialPrefixCallback := map[string]func([]byte){
 		string(winchCommand): func(body []byte) {
 			w := &window{}

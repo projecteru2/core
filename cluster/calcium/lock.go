@@ -118,7 +118,7 @@ func (c *Calcium) withNodeOperationLocked(ctx context.Context, nodename string, 
 	})
 }
 
-func (c *Calcium) withNodesOperationLocked(ctx context.Context, nodeFilter *types.NodeFilter, f func(context.Context, map[string]*types.Node) error) error { // nolint
+func (c *Calcium) withNodesOperationLocked(ctx context.Context, nodeFilter *types.NodeFilter, f func(context.Context, map[string]*types.Node) error) error { //nolint
 	genKey := func(node *types.Node) string {
 		return fmt.Sprintf(cluster.NodeOperationLock, node.Podname, node.Name)
 	}

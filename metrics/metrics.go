@@ -57,18 +57,18 @@ func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*resources.Metrics
 			log.Warnf(ctx, "[SendMetrics] Collector not found: %s", metric.Name)
 			continue
 		}
-		switch collector.(type) { // nolint
+		switch collector.(type) { //nolint
 		case *prometheus.GaugeVec:
 			value, err := strconv.ParseFloat(metric.Value, 64)
 			if err != nil {
 				log.Errorf(ctx, err, "[SendMetrics] Error occurred while parsing %v value %v", metric.Name, metric.Value)
 			}
-			collector.(*prometheus.GaugeVec).WithLabelValues(metric.Labels...).Set(value) // nolint
+			collector.(*prometheus.GaugeVec).WithLabelValues(metric.Labels...).Set(value) //nolint
 			if err := m.gauge(ctx, metric.Key, value); err != nil {
 				log.Errorf(ctx, err, "[SendMetrics] Error occurred while sending %v data to statsd", metric.Name)
 			}
 		case *prometheus.CounterVec:
-			value, err := strconv.ParseInt(metric.Value, 10, 32) // nolint
+			value, err := strconv.ParseInt(metric.Value, 10, 32) //nolint
 			if err != nil {
 				log.Errorf(ctx, err, "[SendMetrics] Error occurred while parsing %v value %v", metric.Name, metric.Value)
 			}

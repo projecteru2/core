@@ -504,7 +504,7 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 	}
 
 	// return all the resource (requested by the mount requests)
-	_, _, _, oldMountRequests := h.classifyVolumeBindings(originRequests) // nolint
+	_, _, _, oldMountRequests := h.classifyVolumeBindings(originRequests) //nolint
 	for _, req := range oldMountRequests {
 		if req.RequireIOPS() {
 			disk := h.getDiskByPath(req.Source)

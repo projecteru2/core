@@ -252,7 +252,7 @@ func (bp *BinaryPlugin) call(ctx context.Context, cmd string, req interface{}, r
 
 	args := bp.getArgs(req)
 	args = append([]string{cmd}, args...)
-	command := exec.CommandContext(ctx, bp.path, args...) // nolint: gosec
+	command := exec.CommandContext(ctx, bp.path, args...) //nolint: gosec
 	command.Dir = bp.config.ResourcePlugin.Dir
 	log.Infof(ctx, "[callBinaryPlugin] command: %s %s", bp.path, strings.Join(args, " "))
 	pluginOutput, pluginLog, err := bp.execCommand(command)

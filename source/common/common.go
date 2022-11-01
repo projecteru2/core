@@ -65,7 +65,7 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 			User:   user.Host + user.Path,
 			Signer: signer,
 			HostKeyCallbackHelper: gitssh.HostKeyCallbackHelper{
-				HostKeyCallback: ssh.InsecureIgnoreHostKey(), // nolint
+				HostKeyCallback: ssh.InsecureIgnoreHostKey(), //nolint
 			},
 		}
 		opts.Auth = auth

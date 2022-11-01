@@ -117,7 +117,7 @@ func toCoreCopyOptions(b *pb.CopyOptions) *types.CopyOptions {
 	return r
 }
 
-func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) { // nolint
+func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) { //nolint
 	files := []types.LinuxFile{}
 	for filename, content := range b.Data {
 		files = append(files, types.LinuxFile{
@@ -148,7 +148,7 @@ func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
 	return r
 }
 
-func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) { // nolint
+func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) { //nolint
 	r := &types.SetNodeOptions{
 		Nodename:      b.Nodename,
 		Endpoint:      b.Endpoint,
@@ -520,7 +520,7 @@ func toRPCLogStreamMessage(msg *types.LogStreamMessage) *pb.LogStreamMessage {
 	return r
 }
 
-func toCoreExecuteWorkloadOptions(b *pb.ExecuteWorkloadOptions) (opts *types.ExecuteWorkloadOptions, err error) { // nolint
+func toCoreExecuteWorkloadOptions(b *pb.ExecuteWorkloadOptions) (opts *types.ExecuteWorkloadOptions, err error) { //nolint
 	return &types.ExecuteWorkloadOptions{
 		WorkloadID: b.WorkloadId,
 		Commands:   b.Commands,

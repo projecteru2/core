@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	_ "net/http/pprof" // nolint
+	_ "net/http/pprof" //nolint
 	"os"
 	"os/signal"
 	"syscall"

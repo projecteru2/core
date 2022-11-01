@@ -76,7 +76,7 @@ func loadRawArgs(b []byte) (*RawArgs, error) {
 }
 
 // VirtualizationCreate create a workload
-func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) { // nolint
+func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) { //nolint
 	r := &enginetypes.VirtualizationCreated{}
 	var err error
 
