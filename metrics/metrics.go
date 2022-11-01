@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"os"
 	"strconv"
 	"sync"
@@ -36,7 +37,7 @@ type Metrics struct {
 }
 
 // SendDeployCount update deploy counter
-func (m *Metrics) SendDeployCount(n int) {
+func (m *Metrics) SendDeployCount(ctx context.Context, n int) {
 	log.Info(nil, "[Metrics] Update deploy counter") //nolint
 	metrics := &resources.Metrics{
 		Name:   deployCountName,
@@ -45,44 +46,44 @@ func (m *Metrics) SendDeployCount(n int) {
 		Value:  strconv.Itoa(n),
 	}
 
-	m.SendMetrics(metrics)
+	m.SendMetrics(ctx, metrics)
 }
 
 // SendMetrics update metrics
-func (m *Metrics) SendMetrics(metrics ...*resources.Metrics) {
+func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*resources.Metrics) {
 	for _, metric := range metrics {
 		collector, ok := m.Collectors[metric.Name]
 		if !ok {
-			log.Errorf(nil, nil, "[SendMetrics] Collector not found: %s", metric.Name) //nolint
+			log.Warnf(ctx, "[SendMetrics] Collector not found: %s", metric.Name)
 			continue
 		}
 		switch collector.(type) { // nolint
 		case *prometheus.GaugeVec:
 			value, err := strconv.ParseFloat(metric.Value, 64)
 			if err != nil {
-				log.Errorf(nil, err, "[SendMetrics] Error occurred while parsing %v value %v: %v", metric.Name, metric.Value, err) //nolint
+				log.Errorf(ctx, err, "[SendMetrics] Error occurred while parsing %v value %v", metric.Name, metric.Value)
 			}
 			collector.(*prometheus.GaugeVec).WithLabelValues(metric.Labels...).Set(value) // nolint
-			if err := m.gauge(metric.Key, value); err != nil {
-				log.Errorf(nil, err, "[SendMetrics] Error occurred while sending %v data to statsd: %v", metric.Name, err) //nolint
+			if err := m.gauge(ctx, metric.Key, value); err != nil {
+				log.Errorf(ctx, err, "[SendMetrics] Error occurred while sending %v data to statsd", metric.Name)
 			}
 		case *prometheus.CounterVec:
 			value, err := strconv.ParseInt(metric.Value, 10, 32) // nolint
 			if err != nil {
-				log.Errorf(nil, err, "[SendMetrics] Error occurred while parsing %v value %v: %v", metric.Name, metric.Value, err) //nolint
+				log.Errorf(ctx, err, "[SendMetrics] Error occurred while parsing %v value %v", metric.Name, metric.Value)
 			}
-			collector.(*prometheus.CounterVec).WithLabelValues(metric.Labels...).Add(float64(value)) // nolint
-			if err := m.count(metric.Key, int(value), 1.0); err != nil {
-				log.Errorf(nil, err, "[SendMetrics] Error occurred while sending %v data to statsd: %v", metric.Name, err) //nolint
+			collector.(*prometheus.CounterVec).WithLabelValues(metric.Labels...).Add(float64(value)) //nolint
+			if err := m.count(ctx, metric.Key, int(value), 1.0); err != nil {
+				log.Errorf(ctx, err, "[SendMetrics] Error occurred while sending %v data to statsd", metric.Name)
 			}
 		default:
-			log.Errorf(nil, nil, "[SendMetrics] Unknown collector type: %T", collector) //nolint
+			log.Errorf(ctx, types.ErrInvalidType, "[SendMetrics] Unknown collector type: %T", collector)
 		}
 	}
 }
 
 // Lazy connect
-func (m *Metrics) checkConn() error {
+func (m *Metrics) checkConn(ctx context.Context) error {
 	if m.statsdClient != nil {
 		return nil
 	}
@@ -90,30 +91,30 @@ func (m *Metrics) checkConn() error {
 	// We needn't try to renew/reconnect because of only supporting UDP protocol now
 	// We should add an `errorCount` to reconnect when implementing TCP protocol
 	if m.statsdClient, err = statsdlib.New(m.StatsdAddr, statsdlib.WithErrorHandler(func(err error) {
-		log.Errorf(nil, err, "[statsd] Sending statsd failed: %v", err) //nolint
+		log.Error(ctx, err, "[statsd] Sending statsd failed")
 	})); err != nil {
-		log.Errorf(nil, err, "[statsd] Connect statsd failed: %v", err) //nolint
+		log.Error(ctx, err, "[statsd] Connect statsd failed")
 		return err
 	}
 	return nil
 }
 
-func (m *Metrics) gauge(key string, value float64) error {
+func (m *Metrics) gauge(ctx context.Context, key string, value float64) error {
 	if m.StatsdAddr == "" {
 		return nil
 	}
-	if err := m.checkConn(); err != nil {
+	if err := m.checkConn(ctx); err != nil {
 		return err
 	}
 	m.statsdClient.Gauge(key, value)
 	return nil
 }
 
-func (m *Metrics) count(key string, n int, rate float32) error {
+func (m *Metrics) count(ctx context.Context, key string, n int, rate float32) error {
 	if m.StatsdAddr == "" {
 		return nil
 	}
-	if err := m.checkConn(); err != nil {
+	if err := m.checkConn(ctx); err != nil {
 		return err
 	}
 	m.statsdClient.Count(key, n, rate)

@@ -14,7 +14,7 @@ import (
 func (c *CPUMem) AddNode(ctx context.Context, node string, resourceOpts *types.NodeResourceOpts) (*types.NodeResourceInfo, error) {
 	if _, err := c.doGetNodeResourceInfo(ctx, node); err != nil {
 		if !errors.Is(err, coretypes.ErrBadCount) {
-			log.Errorf(ctx, err, "[AddNode] failed to get resource info of node %v, err: %v", node, err)
+			log.Errorf(ctx, err, "[AddNode] failed to get resource info of node %v", node)
 			return nil, err
 		}
 	} else {
@@ -61,7 +61,7 @@ func (c *CPUMem) AddNode(ctx context.Context, node string, resourceOpts *types.N
 // RemoveNode .
 func (c *CPUMem) RemoveNode(ctx context.Context, node string) error {
 	if _, err := c.store.Delete(ctx, fmt.Sprintf(NodeResourceInfoKey, node)); err != nil {
-		log.Errorf(ctx, err, "[doSetNodeResourceInfo] faield to delete node %v, err: %v", node, err)
+		log.Errorf(ctx, err, "[doSetNodeResourceInfo] faield to delete node %v", node)
 		return err
 	}
 	return nil

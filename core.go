@@ -92,7 +92,7 @@ func serve(c *cli.Context) error {
 	pb.RegisterCoreRPCServer(grpcServer, vibranium)
 	utils.SentryGo(func() {
 		if err := grpcServer.Serve(s); err != nil {
-			log.Errorf(c.Context, err, "%v", "start grpc failed")
+			log.Error(c.Context, err, "start grpc failed")
 		}
 	})
 
@@ -104,14 +104,14 @@ func serve(c *cli.Context) error {
 				ReadHeaderTimeout: 3 * time.Second,
 			}
 			if err := server.ListenAndServe(); err != nil {
-				log.Errorf(c.Context, err, "%v", "start http failed")
+				log.Error(c.Context, err, "start http failed")
 			}
 		})
 	}
 
 	unregisterService, err := cluster.RegisterService(c.Context)
 	if err != nil {
-		log.Errorf(c.Context, err, "%v", "failed to register service")
+		log.Error(c.Context, err, "failed to register service")
 		return err
 	}
 	log.Info(c.Context, "[main] Cluster started successfully.")

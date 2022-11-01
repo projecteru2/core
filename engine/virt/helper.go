@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
 	coretypes "github.com/projecteru2/core/types"
 )
 
@@ -47,7 +48,7 @@ func (v *Virt) parseVolumes(volumes []string) ([]string, error) {
 }
 
 func splitUserImage(combined string) (user, imageName string, err error) {
-	inputErr := fmt.Errorf("input: \"%s\" not valid", combined)
+	inputErr := errors.Errorf("input: \"%s\" not valid", combined)
 	if len(combined) < 1 {
 		return "", "", inputErr
 	}

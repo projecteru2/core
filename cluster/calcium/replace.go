@@ -87,7 +87,7 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 								log.Warnf(ctx, "[ReplaceWorkload] ignore workload: %v", err)
 								return
 							}
-							logger.Errorf(ctx, err, "[ReplaceWorkload] Replace and remove failed %+v, old workload restarted", err)
+							logger.Error(ctx, err, "[ReplaceWorkload] Replace and remove failed, old workload restarted")
 						} else {
 							log.Infof(ctx, "[ReplaceWorkload] Replace and remove success %s", id)
 							log.Infof(ctx, "[ReplaceWorkload] New workload %s", createMessage.WorkloadID)
@@ -164,7 +164,7 @@ func (c *Calcium) doReplaceWorkload(
 				// then
 				func(ctx context.Context) (err error) {
 					if err = c.doRemoveWorkload(ctx, workload, true); err != nil {
-						log.Errorf(ctx, err, "[doReplaceWorkload] the new started but the old failed to stop")
+						log.Error(ctx, err, "[doReplaceWorkload] the new started but the old failed to stop")
 						return err
 					}
 					removeMessage.Success = true
@@ -178,7 +178,7 @@ func (c *Calcium) doReplaceWorkload(
 		func(ctx context.Context, _ bool) (err error) {
 			messages, err := c.doStartWorkload(ctx, workload, opts.IgnoreHook)
 			if err != nil {
-				log.Errorf(ctx, err, "[replaceAndRemove] Old workload %s restart failed %v", workload.ID, err)
+				log.Error(ctx, err, "[replaceAndRemove] Old workload %s restart failed", workload.ID)
 				removeMessage.Hook = append(removeMessage.Hook, bytes.NewBufferString(err.Error()))
 			} else {
 				removeMessage.Hook = append(removeMessage.Hook, messages...)

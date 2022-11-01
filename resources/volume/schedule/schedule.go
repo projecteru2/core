@@ -449,7 +449,7 @@ func (h *host) getVolumePlans(requests types.VolumeBindings) ([]types.VolumePlan
 	normalDiskPlans, monoDiskPlans := bestDiskPlans[0], bestDiskPlans[1]
 	unlimitedVolumePlans, err := h.getUnlimitedPlans(normalVolumePlans, monoVolumePlans, unlimitedRequests, bestCapacity)
 	if err != nil {
-		log.Errorf(nil, err, "[getVolumePlans] failed to get unlimited volume plans") //nolint
+		log.Error(nil, err, "[getVolumePlans] failed to get unlimited volume plans") //nolint
 		return nil, nil
 	}
 
@@ -582,14 +582,14 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 	// process mount requests
 	mountDiskPlan, err := h.getMountDiskPlan(mountRequests)
 	if err != nil {
-		log.Errorf(nil, err, "[getAffinityPlan] alloc mount requests failed") //nolint
+		log.Error(nil, err, "[getAffinityPlan] alloc mount requests failed") //nolint
 		return nil, nil, err
 	}
 	diskPlan.Add(mountDiskPlan)
 
 	// process normal requests
 	if err = commonProcess(normalRequests); err != nil {
-		log.Errorf(nil, err, "[getAffinityPlan] alloc normal requests failed") //nolint
+		log.Error(nil, err, "[getAffinityPlan] alloc normal requests failed") //nolint
 		return nil, nil, err
 	}
 
@@ -628,7 +628,7 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 
 		monoVolumePlan, monoDiskPlan, err := h.getMonoPlan(monoRequests, volume)
 		if err != nil {
-			log.Errorf(nil, err, "[getAffinityPlan] failed to get new mono plan, err: %v", err) //nolint
+			log.Error(nil, err, "[getAffinityPlan] failed to get new mono plan") //nolint
 			return nil, nil, err
 		}
 
@@ -638,7 +638,7 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 
 	// process unlimited requests
 	if err := commonProcess(unlimitedRequests); err != nil {
-		log.Errorf(nil, err, "[getAffinityPlan] alloc mount requests failed") //nolint
+		log.Error(nil, err, "[getAffinityPlan] alloc mount requests failed") //nolint
 		return nil, nil, err
 	}
 

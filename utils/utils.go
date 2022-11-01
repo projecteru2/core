@@ -140,7 +140,7 @@ func DecodePublishInfo(info map[string]string) map[string][]string {
 func EncodeMetaInLabel(ctx context.Context, meta *types.LabelMeta) string {
 	data, err := json.Marshal(meta)
 	if err != nil {
-		log.Errorf(ctx, err, "[EncodeMetaInLabel] Encode meta failed %v", err)
+		log.Error(ctx, err, "[EncodeMetaInLabel] Encode meta failed")
 		return ""
 	}
 	return string(data)
@@ -152,7 +152,7 @@ func DecodeMetaInLabel(ctx context.Context, labels map[string]string) *types.Lab
 	metastr, ok := labels[cluster.LabelMeta]
 	if ok {
 		if err := json.Unmarshal([]byte(metastr), meta); err != nil {
-			log.Errorf(ctx, err, "[DecodeMetaInLabel] Decode failed %v", err)
+			log.Error(ctx, err, "[DecodeMetaInLabel] Decode failed")
 		}
 	}
 	return meta
@@ -212,7 +212,7 @@ func EnsureReaderClosed(ctx context.Context, stream io.ReadCloser) {
 		return
 	}
 	if _, err := io.Copy(io.Discard, stream); err != nil {
-		log.Errorf(ctx, err, "[EnsureReaderClosed] empty stream failed %v", err)
+		log.Error(ctx, err, "[EnsureReaderClosed] Empty stream failed")
 	}
 	_ = stream.Close()
 }

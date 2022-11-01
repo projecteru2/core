@@ -55,7 +55,7 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 		log.Warn(ctx, "[Calcium] SCM not set, build API disabled")
 	}
 	if err != nil {
-		log.Errorf(ctx, err, "[Calcium] SCM failed: %+v", err)
+		log.Error(ctx, err, "[Calcium] SCM failed")
 		return nil, err
 	}
 
@@ -72,12 +72,12 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 	// load internal plugins
 	cpumem, err := cpumem.NewPlugin(config)
 	if err != nil {
-		log.Errorf(ctx, err, "[NewPluginManager] new cpumem plugin error: %v", err)
+		log.Error(ctx, err, "[NewPluginManager] new cpumem plugin error")
 		return nil, err
 	}
 	volume, err := volume.NewPlugin(config)
 	if err != nil {
-		log.Errorf(ctx, err, "[NewPluginManager] new volume plugin error: %v", err)
+		log.Error(ctx, err, "[NewPluginManager] new volume plugin error")
 		return nil, err
 	}
 	rmgr.AddPlugins(cpumem, volume)

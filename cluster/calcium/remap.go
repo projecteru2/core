@@ -31,7 +31,7 @@ func (c *Calcium) doRemapResourceAndLog(ctx context.Context, logger *log.Fields,
 	})
 
 	if err != nil {
-		logger.Errorf(ctx, err, "[doRemapResourceAndLog] remap node %s failed, err: %v", node.Name, err)
+		logger.Errorf(ctx, err, "[doRemapResourceAndLog] remap node %s failed", node.Name)
 	}
 }
 

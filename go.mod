@@ -6,7 +6,7 @@ require (
 	github.com/CMGS/statsd v0.0.0-20160223095033-48c421b3c1ab
 	github.com/alicebob/miniredis/v2 v2.14.3
 	github.com/cenkalti/backoff/v4 v4.1.1
-	github.com/cornelk/hashmap v1.0.8
+	github.com/cornelk/hashmap v1.0.9-0.20221031160728-c3a0e7bb43df
 	github.com/docker/distribution v2.8.0+incompatible
 	github.com/docker/docker v20.10.0+incompatible
 	github.com/docker/go-connections v0.4.0

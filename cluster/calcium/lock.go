@@ -23,7 +23,7 @@ func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration
 			defer cancel()
 			rollbackCtx = utils.InheritTracingInfo(rollbackCtx, ctx)
 			if e := lock.Unlock(rollbackCtx); e != nil {
-				log.Errorf(rollbackCtx, err, "failed to unlock %s: %+v", name, err)
+				log.Errorf(rollbackCtx, err, "failed to unlock %s", name)
 			}
 		}
 	}()
@@ -47,7 +47,7 @@ func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.Distrib
 	}
 	for _, key := range order {
 		if err := c.doUnlock(ctx, locks[key], key); err != nil {
-			log.Errorf(ctx, err, "[doUnlockAll] Unlock %s failed %v", key, err)
+			log.Errorf(ctx, err, "[doUnlockAll] Unlock %s failed", key)
 			continue
 		}
 	}

@@ -152,7 +152,7 @@ func (m *Mercury) WorkloadStatusStream(ctx context.Context, appname, entrypoint,
 		for resp := range m.Watch(ctx, statusKey, clientv3.WithPrefix()) {
 			if resp.Err() != nil {
 				if !resp.Canceled {
-					log.Errorf(ctx, resp.Err(), "[WorkloadStatusStream] watch failed %v", resp.Err())
+					log.Error(ctx, resp.Err(), "[WorkloadStatusStream] watch failed")
 				}
 				return
 			}
@@ -201,7 +201,7 @@ func (m *Mercury) doGetWorkloads(ctx context.Context, keys []string) (workloads 
 	for _, kv := range kvs {
 		workload := &types.Workload{}
 		if err = json.Unmarshal(kv.Value, workload); err != nil {
-			log.Errorf(ctx, err, "[doGetWorkloads] failed to unmarshal %v, err: %v", string(kv.Key), err)
+			log.Errorf(ctx, err, "[doGetWorkloads] failed to unmarshal %v", string(kv.Key))
 			return
 		}
 		workloads = append(workloads, workload)

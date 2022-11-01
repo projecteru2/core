@@ -111,7 +111,7 @@ func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) 
 func (p *EndpointPusher) checkReachability(host string) (err error) {
 	pinger, err := ping.NewPinger(host)
 	if err != nil {
-		log.Errorf(nil, err, "[EruResolver] failed to create pinger: %+v", err) //nolint
+		log.Error(nil, err, "[EruResolver] failed to create pinger") //nolint
 		return
 	}
 	pinger.SetPrivileged(os.Getuid() == 0)

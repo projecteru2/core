@@ -193,7 +193,7 @@ func (r *Rediaron) doGetWorkloads(ctx context.Context, keys []string) ([]*types.
 	for k, v := range data {
 		workload := &types.Workload{}
 		if err = json.Unmarshal([]byte(v), workload); err != nil {
-			log.Errorf(ctx, err, "[doGetWorkloads] failed to unmarshal %v, err: %v", k, err)
+			log.Errorf(ctx, err, "[doGetWorkloads] failed to unmarshal %v", k)
 			return nil, err
 		}
 		workloads = append(workloads, workload)
@@ -240,8 +240,8 @@ func (r *Rediaron) bindWorkloadsAdditions(ctx context.Context, workloads []*type
 		}
 		status := &types.StatusMeta{}
 		if err := json.Unmarshal([]byte(v), &status); err != nil {
-			log.Warnf(ctx, "[bindWorkloadsAdditions] unmarshal %s status data failed %v", workload.ID, err)
-			log.Errorf(ctx, err, "[bindWorkloadsAdditions] status raw: %s", v)
+			log.Warnf(ctx, "[bindWorkloadsAdditions] unmarshal %s status data, raw %s", workload.ID, v)
+			log.Error(ctx, err, "[bindWorkloadsAdditions] unmarshal status failed")
 			continue
 		}
 		workloads[index].StatusMeta = status

@@ -61,7 +61,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 				return nil
 			}
 			if err := c.rmgr.RollbackRealloc(ctx, workload.Nodename, deltaResourceArgs); err != nil {
-				log.Errorf(ctx, err, "[doReallocOnNode] failed to rollback workload %v, resource args %v, engine args %v, err %v", workload.ID, litter.Sdump(resourceArgs), litter.Sdump(engineArgs), err)
+				log.Errorf(ctx, err, "[doReallocOnNode] failed to rollback workload %v, resource args %v, engine args %v", workload.ID, litter.Sdump(resourceArgs), litter.Sdump(engineArgs))
 				// don't return here, so the node resource can still be fixed
 			}
 			return c.store.UpdateWorkload(ctx, &originWorkload)

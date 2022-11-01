@@ -62,7 +62,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			for nodename := range deployMap {
 				processing := opts.GetProcessing(nodename)
 				if err := c.store.DeleteProcessing(cctx, processing); err != nil {
-					logger.Errorf(ctx, err, "[Calcium.doCreateWorkloads] delete processing failed for %s: %+v", nodename, err)
+					logger.Errorf(ctx, err, "[Calcium.doCreateWorkloads] delete processing failed for %s", nodename)
 				}
 			}
 			close(ch)
@@ -73,7 +73,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		defer func() {
 			if resourceCommit != nil {
 				if err := resourceCommit(); err != nil {
-					logger.Errorf(ctx, err, "commit wal failed: %s, %+v", eventWorkloadResourceAllocated, err)
+					logger.Errorf(ctx, err, "commit wal failed: %s", eventWorkloadResourceAllocated)
 				}
 			}
 		}()
@@ -85,7 +85,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					continue
 				}
 				if err := processingCommits[nodename](); err != nil {
-					logger.Errorf(ctx, err, "commit wal failed: %s, %s, %+v", eventProcessingCreated, nodename, err)
+					logger.Errorf(ctx, err, "commit wal failed: %s, %s", eventProcessingCreated, nodename)
 				}
 			}
 		}()
@@ -186,7 +186,7 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 	for nodename, deploy := range deployMap {
 		_ = c.pool.Invoke(func(deploy int) func() {
 			return func() {
-				metrics.Client.SendDeployCount(deploy)
+				metrics.Client.SendDeployCount(ctx, deploy)
 			}
 		}(deploy))
 		_ = c.pool.Invoke(func(nodename string, deploy, seq int) func() {
@@ -322,7 +322,7 @@ func (c *Calcium) doDeployOneWorkload(
 	defer func() {
 		if commit != nil {
 			if err := commit(); err != nil {
-				logger.Errorf(ctx, err, "Commit WAL %s failed: %+v", eventWorkloadCreated, err)
+				logger.Errorf(ctx, err, "Commit WAL %s failed", eventWorkloadCreated)
 			}
 		}
 	}()
@@ -427,7 +427,7 @@ func (c *Calcium) doDeployOneWorkload(
 
 		// remove workload
 		func(ctx context.Context, _ bool) error {
-			logger.Errorf(ctx, nil, "[doDeployOneWorkload] failed to deploy workload %s, rollback", workload.ID)
+			logger.Infof(ctx, "[doDeployOneWorkload] failed to deploy workload %s, rollback", workload.ID)
 			if workload.ID == "" {
 				return nil
 			}

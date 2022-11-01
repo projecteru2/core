@@ -4,10 +4,10 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
@@ -48,7 +48,7 @@ func (c *Calcium) execuateInside(ctx context.Context, client engine.API, ID, cmd
 		return b, err
 	}
 	if exitCode != 0 {
-		return b, fmt.Errorf("%s", b)
+		return b, errors.New(string(b))
 	}
 	return b, nil
 }
@@ -67,7 +67,7 @@ func (c *Calcium) processVirtualizationInStream(
 				return
 			}
 			if err := resizeFunc(w.Height, w.Width); err != nil {
-				log.Errorf(ctx, err, "[processVirtualizationInStream] resize window error: %v", err)
+				log.Error(ctx, err, "[processVirtualizationInStream] resize window error")
 				return
 			}
 		},
@@ -99,7 +99,7 @@ func (c *Calcium) rawProcessVirtualizationInStream(
 				continue
 			}
 			if _, err := inStream.Write(cmd); err != nil {
-				log.Errorf(ctx, err, "[rawProcessVirtualizationInStream] failed to write virtual input stream: %v", err)
+				log.Error(ctx, err, "[rawProcessVirtualizationInStream] failed to write virtual input stream")
 				continue
 			}
 		}
@@ -150,7 +150,7 @@ func (c *Calcium) processBuildImageStream(ctx context.Context, reader io.ReadClo
 			if err != nil {
 				if err != io.EOF {
 					malformed, _ := io.ReadAll(decoder.Buffered()) // TODO err check
-					log.Errorf(ctx, err, "[processBuildImageStream] Decode image message failed %v, buffered: %s", err, string(malformed))
+					log.Errorf(ctx, err, "[processBuildImageStream] Decode image message failed, buffered: %s", string(malformed))
 					message.Error = err.Error()
 					ch <- message
 				}

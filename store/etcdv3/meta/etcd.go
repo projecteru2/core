@@ -415,7 +415,7 @@ func (e *ETCD) revokeLease(ctx context.Context, leaseID clientv3.LeaseID) {
 		return
 	}
 	if _, err := e.cliv3.Revoke(ctx, leaseID); err != nil {
-		log.Errorf(ctx, err, "[etcd revoke lease error] %v", err)
+		log.Error(ctx, err, "[etcd] revoke lease failed")
 	}
 }
 

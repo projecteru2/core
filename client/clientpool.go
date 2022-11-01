@@ -42,7 +42,7 @@ func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error
 			rpc, err = NewClient(ctx, addr, config.Auth)
 		})
 		if err != nil {
-			log.Errorf(ctx, err, "[NewCoreRPCClientPool] connect to %s failed, err: %s", addr, err)
+			log.Errorf(ctx, err, "[NewCoreRPCClientPool] connect to %s failed", addr)
 			continue
 		}
 		rpcClient := rpc.GetRPCClient()
@@ -96,7 +96,7 @@ func checkAlive(ctx context.Context, rpc *clientWithStatus, timeout time.Duratio
 		_, err = rpc.client.Info(ctx, &pb.Empty{})
 	})
 	if err != nil {
-		log.Errorf(ctx, err, "[ClientPool] connect to %s failed, err: %s", rpc.addr, err)
+		log.Errorf(ctx, err, "[ClientPool] connect to %s failed", rpc.addr)
 		return false
 	}
 	log.Debugf(ctx, "[ClientPool] connect to %s success", rpc.addr)

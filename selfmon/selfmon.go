@@ -32,7 +32,7 @@ func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster clus
 	id := rand.Int63n(10000) // nolint
 	store, err := store.NewStore(config, t)
 	if err != nil {
-		log.Errorf(ctx, err, "[RunNodeStatusWatcher] %v failed to create store, err: %v", id, err)
+		log.Errorf(ctx, err, "[RunNodeStatusWatcher] %v failed to create store", id)
 		return
 	}
 
@@ -53,7 +53,7 @@ func (n *NodeStatusWatcher) run(ctx context.Context) {
 		default:
 			n.withActiveLock(ctx, func(ctx context.Context) {
 				if err := n.monitor(ctx); err != nil {
-					log.Errorf(ctx, err, "[NodeStatusWatcher] %v stops watching, err: %v", n.id, err)
+					log.Errorf(ctx, err, "[NodeStatusWatcher] %v stops watching", n.id)
 				}
 			})
 			time.Sleep(n.config.ConnectionTimeout)
@@ -91,7 +91,7 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 				log.Info(ctx, "[Register] context canceled")
 				return
 			} else if !errors.Is(err, types.ErrKeyExists) {
-				log.Errorf(ctx, err, "[Register] failed to re-register: %v", err)
+				log.Error(ctx, err, "[Register] failed to re-register")
 				time.Sleep(time.Second)
 				continue
 			}
@@ -146,7 +146,7 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 				CallInfo: false,
 			})
 			if err != nil {
-				log.Errorf(ctx, err, "[NodeStatusWatcher] get pod nodes failed %v", err)
+				log.Error(ctx, err, "[NodeStatusWatcher] get pod nodes failed")
 				return
 			}
 			for node := range ch {
@@ -155,7 +155,7 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 			}
 		})
 		if err != nil {
-			log.Errorf(ctx, err, "[NodeStatusWatcher] get pod nodes failed %v", err)
+			log.Error(ctx, err, "[NodeStatusWatcher] get pod nodes failed")
 			return
 		}
 	}()
@@ -214,7 +214,7 @@ func (n *NodeStatusWatcher) dealNodeStatusMessage(ctx context.Context, message *
 		WorkloadsDown: true,
 	}
 	if _, err := n.cluster.SetNode(ctx, opts); err != nil {
-		log.Errorf(ctx, err, "[NodeStatusWatcher] set node %s failed %v", message.Nodename, err)
+		log.Errorf(ctx, err, "[NodeStatusWatcher] set node %s failed", message.Nodename)
 		return
 	}
 	log.Infof(ctx, "[NodeStatusWatcher] set node %s as alive: %v", message.Nodename, message.Alive)

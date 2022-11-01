@@ -11,7 +11,7 @@ import (
 func distributionInspect(ctx context.Context, node *types.Node, image string, digests []string) bool {
 	remoteDigest, err := node.Engine.ImageRemoteDigest(ctx, image)
 	if err != nil {
-		log.Errorf(ctx, err, "[distributionInspect] get manifest failed %v", err)
+		log.Error(ctx, err, "[distributionInspect] get manifest failed")
 		return false
 	}
 
@@ -51,7 +51,7 @@ func pullImage(ctx context.Context, node *types.Node, image string) error {
 	rc, err := node.Engine.ImagePull(ctx, image, false)
 	defer utils.EnsureReaderClosed(ctx, rc)
 	if err != nil {
-		log.Errorf(ctx, err, "[pullImage] Error during pulling image %s: %v", image, err)
+		log.Errorf(ctx, err, "[pullImage] Error during pulling image %s", image)
 		return err
 	}
 	log.Infof(ctx, "[pullImage] Done pulling image %s", image)

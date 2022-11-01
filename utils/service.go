@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"net"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // GetOutboundAddress finds out self-service address
 func GetOutboundAddress(bind string, probeTarget string) (string, error) {
 	parts := strings.Split(bind, ":")
 	if len(parts) != 2 {
-		return "", fmt.Errorf("invalid bind address %s", bind)
+		return "", errors.Errorf("invalid bind address %s", bind)
 	}
 	ip := parts[0]
 	port := parts[1]

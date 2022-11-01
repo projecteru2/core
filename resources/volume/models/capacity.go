@@ -13,7 +13,7 @@ import (
 // GetNodesDeployCapacity .
 func (v *Volume) GetNodesDeployCapacity(ctx context.Context, nodes []string, opts *types.WorkloadResourceOpts) (map[string]*types.NodeCapacityInfo, int, error) {
 	if err := opts.Validate(); err != nil {
-		log.Errorf(ctx, err, "[GetNodesDeployCapacity] invalid resource opts %+v, err: %v", opts, err)
+		log.Errorf(ctx, err, "[GetNodesDeployCapacity] invalid resource opts %+v", opts)
 		return nil, 0, err
 	}
 
@@ -22,7 +22,7 @@ func (v *Volume) GetNodesDeployCapacity(ctx context.Context, nodes []string, opt
 	for _, node := range nodes {
 		resourceInfo, err := v.doGetNodeResourceInfo(ctx, node)
 		if err != nil {
-			log.Errorf(ctx, err, "[GetNodesDeployCapacity] failed to get resource info of node %v, err: %v", node, err)
+			log.Errorf(ctx, err, "[GetNodesDeployCapacity] failed to get resource info of node %v", node)
 			return nil, 0, err
 		}
 		capacityInfo := v.doGetNodeCapacityInfo(ctx, node, resourceInfo, opts)

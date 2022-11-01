@@ -120,7 +120,7 @@ func (f Fields) Errorf(ctx context.Context, err error, format string, args ...in
 
 // Error forwards to sentry
 func (f Fields) Error(ctx context.Context, err error, args ...interface{}) {
-	f.Errorf(ctx, err, "%v", args...)
+	f.Errorf(ctx, err, "%+v", args...)
 }
 
 // for sentry

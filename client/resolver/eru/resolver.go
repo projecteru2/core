@@ -51,13 +51,13 @@ func (r *Resolver) sync() {
 
 	ch, err := r.discovery.Watch(ctx)
 	if err != nil {
-		log.Errorf(ctx, err, "[EruResolver] failed to watch service status: %v", err)
+		log.Error(ctx, err, "[EruResolver] failed to watch service status")
 		return
 	}
 	for {
 		select {
 		case <-ctx.Done():
-			log.Errorf(ctx, ctx.Err(), "[EruResolver] watch interrupted: %v", ctx.Err())
+			log.Error(ctx, ctx.Err(), "[EruResolver] watch interrupted")
 			return
 		case endpoints, ok := <-ch:
 			if !ok {

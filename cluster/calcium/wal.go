@@ -88,13 +88,13 @@ func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error
 	go func() {
 		workload, err := h.calcium.GetWorkload(ctx, workloadID)
 		if err != nil {
-			logger.Errorf(ctx, err, "Get workload failed: %v", err)
+			logger.Error(ctx, err, "Get workload failed")
 			return
 		}
 
 		r, err := workload.Engine.VirtualizationWait(ctx, workloadID, "")
 		if err != nil {
-			logger.Errorf(ctx, err, "Wait failed: %+v", err)
+			logger.Error(ctx, err, "Wait failed")
 			return
 		}
 		if r.Code != 0 {
@@ -102,7 +102,7 @@ func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error
 		}
 
 		if err := h.calcium.RemoveWorkloadSync(ctx, []string{workloadID}); err != nil {
-			logger.Errorf(ctx, err, "Remove failed: %+v", err)
+			logger.Error(ctx, err, "Remove failed")
 		}
 		logger.Infof(ctx, "waited and removed")
 	}()
@@ -248,7 +248,7 @@ func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw inter
 		_ = h.pool.Invoke(func() {
 			defer wg.Done()
 			if _, err = h.calcium.NodeResource(ctx, node.Name, true); err != nil {
-				logger.Errorf(ctx, err, "failed to fix node resource: %s, %+v", node.Name, err)
+				logger.Errorf(ctx, err, "failed to fix node resource: %s", node.Name)
 				return
 			}
 			logger.Infof(ctx, "fixed node resource: %s", node.Name)

@@ -122,11 +122,11 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 				defer wg.Done()
 				var err error
 				if node.Resource.Capacity, node.Resource.Usage, node.Resource.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
-					logger.Errorf(ctx, err, "failed to get node %v resource info: %+v", node.Name, err)
+					logger.Errorf(ctx, err, "failed to get node %v resource info", node.Name)
 				}
 				if opts.CallInfo {
 					if err := node.Info(ctx); err != nil {
-						logger.Errorf(ctx, err, "failed to get node %v info: %+v", node.Name, err)
+						logger.Errorf(ctx, err, "failed to get node %v info", node.Name)
 					}
 				}
 				ch <- node
@@ -307,14 +307,14 @@ func (c *Calcium) filterNodes(ctx context.Context, nodeFilter *types.NodeFilter)
 func (c *Calcium) setAllWorkloadsOnNodeDown(ctx context.Context, nodename string) {
 	workloads, err := c.store.ListNodeWorkloads(ctx, nodename, nil)
 	if err != nil {
-		log.Errorf(ctx, err, "[setAllWorkloadsOnNodeDown] failed to list node workloads, node %v, err: %v", nodename, err)
+		log.Errorf(ctx, err, "[setAllWorkloadsOnNodeDown] failed to list node workloads, node %v", nodename)
 		return
 	}
 
 	for _, workload := range workloads {
 		appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
 		if err != nil {
-			log.Errorf(ctx, err, "[setAllWorkloadsOnNodeDown] Set workload %s on node %s as inactive failed %v", workload.ID, nodename, err)
+			log.Errorf(ctx, err, "[setAllWorkloadsOnNodeDown] Set workload %s on node %s as inactive failed", workload.ID, nodename)
 			continue
 		}
 
@@ -331,7 +331,7 @@ func (c *Calcium) setAllWorkloadsOnNodeDown(ctx context.Context, nodename string
 
 		// mark workload which belongs to this node as unhealthy
 		if err = c.store.SetWorkloadStatus(ctx, workload.StatusMeta, 0); err != nil {
-			log.Errorf(ctx, err, "[SetNodeAvailable] Set workload %s on node %s as inactive failed %v", workload.ID, nodename, err)
+			log.Errorf(ctx, err, "[SetNodeAvailable] Set workload %s on node %s as inactive failed", workload.ID, nodename)
 		} else {
 			log.Infof(ctx, "[SetNodeAvailable] Set workload %s on node %s as inactive", workload.ID, nodename)
 		}

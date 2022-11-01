@@ -2,7 +2,6 @@ package common
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -10,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 
@@ -123,7 +123,7 @@ func (g *GitScm) Artifact(ctx context.Context, artifact, path string) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("Download artifact error %q, code %d", artifact, resp.StatusCode)
+		return errors.Errorf("Download artifact error %q, code %d", artifact, resp.StatusCode)
 	}
 
 	// extract files from zipfile

@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/pkg/errors"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
@@ -140,20 +141,19 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 		lastMessage := &types.BuildImageMessage{}
 		for {
 			message := &types.BuildImageMessage{}
-			err := decoder.Decode(message)
-			if err != nil {
+			if err := decoder.Decode(message); err != nil {
 				if err == io.EOF {
 					break
 				}
 				if err == context.Canceled || err == context.DeadlineExceeded {
-					log.Errorf(ctx, err, "[BuildImage] context timeout")
+					log.Error(ctx, err, "[BuildImage] context timeout")
 					lastMessage.ErrorDetail.Code = -1
 					lastMessage.ErrorDetail.Message = err.Error()
 					lastMessage.Error = err.Error()
 					break
 				}
 				malformed, _ := io.ReadAll(decoder.Buffered()) // TODO err check
-				logger.Errorf(ctx, nil, "[BuildImage] Decode build image message failed %+v, buffered: %v", err, malformed)
+				logger.Errorf(ctx, err, "[BuildImage] Decode build image message failed, buffered: %v", malformed)
 				return
 			}
 			ch <- message
@@ -161,7 +161,7 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 		}
 
 		if lastMessage.Error != "" {
-			log.Errorf(ctx, nil, "[BuildImage] Build image failed %v", lastMessage.ErrorDetail.Message)
+			logger.Errorf(ctx, errors.New(lastMessage.Error), "[BuildImage] Build image failed %v", lastMessage.ErrorDetail.Message)
 			return
 		}
 
@@ -216,11 +216,11 @@ func cleanupNodeImages(ctx context.Context, node *types.Node, ids []string, ttl 
 	defer cancel()
 	for _, id := range ids {
 		if _, err := node.Engine.ImageRemove(ctx, id, false, true); err != nil {
-			logger.Errorf(ctx, err, "[BuildImage] Remove image error: %+v", err)
+			logger.Error(ctx, err, "[BuildImage] Remove image error")
 		}
 	}
 	if spaceReclaimed, err := node.Engine.ImageBuildCachePrune(ctx, true); err != nil {
-		logger.Errorf(ctx, err, "[BuildImage] Remove build image cache error: %+v", err)
+		logger.Error(ctx, err, "[BuildImage] Remove build image cache error")
 	} else {
 		logger.Infof(ctx, "[BuildImage] Clean cached image and release space %d", spaceReclaimed)
 	}

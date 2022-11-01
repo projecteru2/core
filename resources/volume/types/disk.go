@@ -28,7 +28,7 @@ func (d *Disk) String() string {
 func (d *Disk) ParseFromString(s string) (err error) {
 	parts := strings.Split(s, ":")
 	if len(parts) != 6 {
-		return fmt.Errorf("invalid disk string: %v", s)
+		return ErrInvalidStorage
 	}
 	d.Device = parts[0]
 	d.Mounts = strings.Split(parts[1], ",")

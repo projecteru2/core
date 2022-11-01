@@ -1,6 +1,6 @@
 package types
 
-import "errors"
+import "github.com/pkg/errors"
 
 var (
 	ErrInvalidCapacity      = errors.New("invalid capacity")

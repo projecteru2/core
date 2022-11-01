@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/pkg/errors"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
@@ -239,7 +240,7 @@ func (bp *BinaryPlugin) execCommand(cmd *exec.Cmd) (output, log string, err erro
 	cmd.Stderr = &stderr
 
 	if err = cmd.Run(); err != nil {
-		err = fmt.Errorf("err: %v, output: %v, log: %v", err, output, log)
+		err = errors.Errorf("err: %v, output: %v, log: %v", err, output, log)
 	}
 	return stdout.String(), stderr.String(), err
 }
@@ -260,7 +261,7 @@ func (bp *BinaryPlugin) call(ctx context.Context, cmd string, req interface{}, r
 	defer log.Infof(ctx, "[callBinaryPlugin] output from plugin %s: %s", bp.path, pluginOutput)
 
 	if err != nil {
-		log.Errorf(ctx, err, "[callBinaryPlugin] failed to run plugin %s, command %v, err %s", bp.path, args, err)
+		log.Errorf(ctx, err, "[callBinaryPlugin] failed to run plugin %s, command %v", bp.path, args)
 		return err
 	}
 
@@ -268,7 +269,7 @@ func (bp *BinaryPlugin) call(ctx context.Context, cmd string, req interface{}, r
 		pluginOutput = "{}"
 	}
 	if err := json.Unmarshal([]byte(pluginOutput), resp); err != nil {
-		log.Errorf(ctx, err, "[callBinaryPlugin] failed to unmarshal output of plugin %s, command %v, output %s, err %s", bp.path, args, pluginOutput, err)
+		log.Errorf(ctx, err, "[callBinaryPlugin] failed to unmarshal output of plugin %s, command %v, output %s", bp.path, args, pluginOutput)
 		return err
 	}
 	return nil

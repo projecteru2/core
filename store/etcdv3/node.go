@@ -188,7 +188,7 @@ func (m *Mercury) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 		for resp := range m.Watch(ctx, nodeStatusPrefix, clientv3.WithPrefix()) {
 			if resp.Err() != nil {
 				if !resp.Canceled {
-					log.Errorf(ctx, resp.Err(), "[NodeStatusStream] watch failed %v", resp.Err())
+					log.Error(ctx, resp.Err(), "[NodeStatusStream] watch failed")
 				}
 				return
 			}
@@ -318,7 +318,7 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 		_ = m.pool.Invoke(func() {
 			defer wg.Done()
 			if _, err := m.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrBadCount) {
-				log.Errorf(ctx, err, "[doGetNodes] failed to get node status of %v, err: %v", node.Name, err)
+				log.Errorf(ctx, err, "[doGetNodes] failed to get node status of %v", node.Name)
 			} else {
 				node.Available = err == nil
 			}
@@ -329,7 +329,7 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 
 			// update engine
 			if client, err := m.makeClient(ctx, node); err != nil {
-				log.Errorf(ctx, err, "[doGetNodes] failed to make client for %v, err: %v", node.Name, err)
+				log.Errorf(ctx, err, "[doGetNodes] failed to make client for %v", node.Name)
 			} else {
 				node.Engine = client
 			}

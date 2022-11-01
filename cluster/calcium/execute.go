@@ -27,7 +27,7 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 
 		workload, err := c.GetWorkload(ctx, opts.WorkloadID)
 		if err != nil {
-			logger.Errorf(ctx, err, "[ExecuteWorkload] Failed to get workload: %+v", err)
+			logger.Error(ctx, err, "[ExecuteWorkload] Failed to get workload")
 			return
 		}
 
@@ -44,7 +44,7 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 
 		execID, stdout, stderr, inStream, err := workload.Engine.Execute(ctx, opts.WorkloadID, execConfig)
 		if err != nil {
-			logger.Errorf(ctx, err, "[ExecuteWorkload] Failed to attach execID: %+v", err)
+			logger.Errorf(ctx, err, "[ExecuteWorkload] Failed to attach execID %s", execID)
 			return
 		}
 
@@ -62,7 +62,7 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 
 		execCode, err := workload.Engine.ExecExitCode(ctx, opts.WorkloadID, execID)
 		if err != nil {
-			logger.Errorf(ctx, err, "[ExecuteWorkload] Failed to get exitcode: %+v", err)
+			logger.Error(ctx, err, "[ExecuteWorkload] Failed to get exitcode")
 			return
 		}
 

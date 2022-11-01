@@ -17,7 +17,7 @@ func (c *CPUMem) GetMostIdleNode(ctx context.Context, nodes []string) (string, i
 	for _, node := range nodes {
 		resourceInfo, err := c.doGetNodeResourceInfo(ctx, node)
 		if err != nil {
-			log.Errorf(ctx, err, "[GetMostIdleNode] failed to get node resource info")
+			log.Error(ctx, err, "[GetMostIdleNode] failed to get node resource info")
 			return "", 0, err
 		}
 		idle := float64(resourceInfo.Usage.CPUMap.TotalPieces()) / float64(resourceInfo.Capacity.CPUMap.TotalPieces())

@@ -293,7 +293,7 @@ func CreateTarStream(path string) (io.ReadCloser, error) {
 func GetIP(ctx context.Context, daemonHost string) string {
 	u, err := url.Parse(daemonHost)
 	if err != nil {
-		log.Errorf(ctx, err, "[GetIP] GetIP %s failed %v", daemonHost, err)
+		log.Errorf(ctx, err, "[GetIP] GetIP %s failed", daemonHost)
 		return ""
 	}
 	return u.Hostname()

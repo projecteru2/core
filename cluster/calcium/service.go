@@ -26,7 +26,7 @@ func (c *Calcium) WatchServiceStatus(ctx context.Context) (<-chan types.ServiceS
 func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err error) {
 	serviceAddress, err := utils.GetOutboundAddress(c.config.Bind, c.config.ProbeTarget)
 	if err != nil {
-		log.Errorf(ctx, err, "[RegisterService] failed to get outbound address: %v", err)
+		log.Error(ctx, err, "[RegisterService] failed to get outbound address")
 		return
 	}
 
@@ -43,7 +43,7 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 			time.Sleep(time.Second)
 			continue
 		}
-		log.Errorf(ctx, err, "[RegisterService] failed to first register service: %+v", err)
+		log.Error(ctx, err, "[RegisterService] failed to first register service")
 		return nil, err
 	}
 
@@ -61,7 +61,7 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 			case <-expiry:
 				// The original one had been expired, we're going to register again.
 				if ne, us, err := c.registerService(ctx, serviceAddress); err != nil {
-					log.Errorf(ctx, err, "[RegisterService] failed to re-register service: %v", err)
+					log.Error(ctx, err, "[RegisterService] failed to re-register service")
 					time.Sleep(c.config.GRPCConfig.ServiceHeartbeatInterval)
 				} else {
 					expiry = ne

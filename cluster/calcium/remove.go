@@ -18,7 +18,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool) 
 
 	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, ids)
 	if err != nil {
-		logger.Errorf(ctx, err, "failed to group workloads by node: %+v", err)
+		logger.Error(ctx, err, "failed to group workloads by node")
 		return nil, err
 	}
 
@@ -69,7 +69,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool) 
 									c.config.GlobalTimeout,
 								)
 							}); err != nil {
-								logger.WithField("id", workloadID).Errorf(ctx, err, "failed to lock workload: %+v", err)
+								logger.WithField("id", workloadID).Error(ctx, err, "failed to lock workload")
 								ret.Hook = append(ret.Hook, bytes.NewBufferString(err.Error()))
 								ret.Success = false
 							}
@@ -78,7 +78,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool) 
 						_ = c.pool.Invoke(func() { c.doRemapResourceAndLog(ctx, logger, node) })
 						return nil
 					}); err != nil {
-						logger.WithField("nodename", nodename).Errorf(ctx, err, "failed to lock node: %+v", err)
+						logger.WithField("nodename", nodename).Error(ctx, err, "failed to lock node")
 						ch <- &types.RemoveWorkloadMessage{Success: false}
 					}
 				}

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -49,7 +50,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	case strings.HasPrefix(endpoint, GRPCPrefixKey):
 		uri = "grpc://" + strings.TrimPrefix(endpoint, GRPCPrefixKey)
 	default:
-		return nil, fmt.Errorf("invalid endpoint: %s", endpoint)
+		return nil, errors.Errorf("invalid endpoint: %s", endpoint)
 	}
 
 	cli, err := virtapi.New(uri)
@@ -175,7 +176,7 @@ func (v *Virt) BuildRefs(ctx context.Context, opts *enginetypes.BuildRefOptions)
 
 // BuildContent builds content, the use of it is similar to BuildRefs.
 func (v *Virt) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildContentOptions) (string, io.Reader, error) {
-	return "", nil, fmt.Errorf("BuildContent does not implement")
+	return "", nil, coretypes.ErrEngineNotImplemented
 }
 
 // VirtualizationCreate creates a guest.
@@ -183,7 +184,7 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 	// parse engine args to resource options
 	opts.VirtualizationResource, err = engine.MakeVirtualizationResource(opts.EngineArgs)
 	if err != nil {
-		log.Errorf(ctx, err, "[VirtualizationCreate] failed to parse engine args %+v, err %v", opts.EngineArgs, err)
+		log.Errorf(ctx, err, "[VirtualizationCreate] failed to parse engine args %+v", opts.EngineArgs)
 		return nil, coretypes.ErrInvalidEngineArgs
 	}
 
@@ -324,7 +325,7 @@ func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, reso
 	// parse engine args to resource options
 	opts, err := engine.MakeVirtualizationResource(resourceOpts.EngineArgs)
 	if err != nil {
-		log.Errorf(ctx, err, "[VirtualizationCreate] failed to parse engine args %+v, err %v", opts.EngineArgs, err)
+		log.Errorf(ctx, err, "[VirtualizationCreate] failed to parse engine args %+v", opts.EngineArgs)
 		return err
 	}
 

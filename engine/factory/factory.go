@@ -113,14 +113,14 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 				}
 				if _, ok := client.(*fake.Engine); ok {
 					if newClient, err := newEngine(ctx, e.config, utils.RandomString(8), params.endpoint, params.ca, params.key, params.cert); err != nil {
-						log.Errorf(ctx, err, "[EngineCache] engine %v is still unavailable, err: %v", cacheKey, err)
+						log.Errorf(ctx, err, "[EngineCache] engine %v is still unavailable", cacheKey)
 					} else {
 						e.cache.Set(cacheKey, newClient)
 					}
 					return
 				}
 				if err := validateEngine(ctx, client, e.config.ConnectionTimeout); err != nil {
-					log.Errorf(ctx, err, "[EngineCache] engine %v is unavailable, will be replaced with a fake engine, err: %v", cacheKey, err)
+					log.Errorf(ctx, err, "[EngineCache] engine %v is unavailable, will be replaced with a fake engine", cacheKey)
 					e.cache.Set(cacheKey, &fake.Engine{DefaultErr: err})
 				}
 			})
@@ -216,7 +216,7 @@ func newEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 		return nil, err
 	}
 	if err = validateEngine(ctx, client, config.ConnectionTimeout); err != nil {
-		log.Errorf(ctx, err, "[GetEngine] engine of %v is unavailable, err: %v", endpoint, err)
+		log.Errorf(ctx, err, "[GetEngine] engine of %v is unavailable", endpoint)
 		return nil, err
 	}
 	return client, nil

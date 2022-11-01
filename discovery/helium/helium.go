@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
@@ -69,13 +70,13 @@ func (h *Helium) Unsubscribe(id uuid.UUID) {
 func (h *Helium) start(ctx context.Context) {
 	ch, err := h.store.ServiceStatusStream(ctx)
 	if err != nil {
-		log.Errorf(ctx, err, "[WatchServiceStatus] failed to start watch: %v", err) //nolint
+		log.Error(ctx, err, "[WatchServiceStatus] failed to start watch")
 		return
 	}
 
 	go func() {
 		log.Info(ctx, "[WatchServiceStatus] service discovery start")
-		defer log.Error(ctx, nil, "[WatchServiceStatus] service discovery exited") //nolint
+		defer log.Warn(ctx, "[WatchServiceStatus] service discovery exited")
 		var latestStatus types.ServiceStatus
 		ticker := time.NewTicker(h.interval)
 		defer ticker.Stop()
@@ -83,7 +84,7 @@ func (h *Helium) start(ctx context.Context) {
 			select {
 			case addresses, ok := <-ch:
 				if !ok {
-					log.Error(ctx, nil, "[WatchServiceStatus] watch channel closed") //nolint
+					log.Warn(ctx, "[WatchServiceStatus] watch channel closed")
 					return
 				}
 
@@ -111,7 +112,7 @@ func (h *Helium) dispatch(status types.ServiceStatus) {
 	f := func(key uint32, val entry) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Errorf(context.TODO(), nil, "[dispatch] dispatch %v failed, err: %v", key, err)
+				log.Errorf(context.TODO(), errors.Errorf("%v", err), "[dispatch] dispatch %v failed", key)
 			}
 		}()
 		select {

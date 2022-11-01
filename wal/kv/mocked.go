@@ -1,13 +1,13 @@
 package kv
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/cornelk/hashmap"
+	"github.com/pkg/errors"
 )
 
 // MockedKV .
@@ -58,8 +58,7 @@ func (m *MockedKV) Put(key, value []byte) (err error) {
 func (m *MockedKV) Get(key []byte) (value []byte, err error) {
 	value, ok := m.pool.Get(string(key))
 	if !ok {
-		err = fmt.Errorf("no such key: %s", key)
-		return
+		return value, errors.Errorf("no such key: %s", key)
 	}
 	return
 }

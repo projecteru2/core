@@ -9,6 +9,7 @@ import (
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources/volume/types"
+	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
 
@@ -140,7 +141,7 @@ func (v *Volume) calculateNodeResourceArgs(origin *types.NodeResourceArgs, nodeR
 func (v *Volume) SetNodeResourceUsage(ctx context.Context, node string, nodeResourceOpts *types.NodeResourceOpts, nodeResourceArgs *types.NodeResourceArgs, workloadResourceArgs []*types.WorkloadResourceArgs, delta bool, incr bool) (before *types.NodeResourceArgs, after *types.NodeResourceArgs, err error) {
 	resourceInfo, err := v.doGetNodeResourceInfo(ctx, node)
 	if err != nil {
-		log.Errorf(ctx, err, "[SetNodeResourceInfo] failed to get resource info of node %v, err: %v", node, err)
+		log.Errorf(ctx, err, "[SetNodeResourceInfo] failed to get resource info of node %v", node)
 		return nil, nil, err
 	}
 
@@ -157,7 +158,7 @@ func (v *Volume) SetNodeResourceUsage(ctx context.Context, node string, nodeReso
 func (v *Volume) SetNodeResourceCapacity(ctx context.Context, node string, nodeResourceOpts *types.NodeResourceOpts, nodeResourceArgs *types.NodeResourceArgs, delta bool, incr bool) (before *types.NodeResourceArgs, after *types.NodeResourceArgs, err error) {
 	resourceInfo, err := v.doGetNodeResourceInfo(ctx, node)
 	if err != nil {
-		log.Errorf(ctx, err, "[SetNodeResourceInfo] failed to get resource info of node %v, err: %v", node, err)
+		log.Errorf(ctx, err, "[SetNodeResourceInfo] failed to get resource info of node %v", node)
 		return nil, nil, err
 	}
 
@@ -165,7 +166,7 @@ func (v *Volume) SetNodeResourceCapacity(ctx context.Context, node string, nodeR
 	if nodeResourceOpts != nil {
 		if len(nodeResourceOpts.RMDisks) > 0 {
 			if delta {
-				return nil, nil, fmt.Errorf("rm disk is not supported when delta is true")
+				return nil, nil, coretypes.ErrInvalidEngineArgs
 			}
 			rmDisksMap := map[string]struct{}{}
 			for _, rmDisk := range nodeResourceOpts.RMDisks {
@@ -205,11 +206,11 @@ func (v *Volume) doGetNodeResourceInfo(ctx context.Context, node string) (*types
 	resourceInfo := &types.NodeResourceInfo{}
 	resp, err := v.store.GetOne(ctx, fmt.Sprintf(NodeResourceInfoKey, node))
 	if err != nil {
-		log.Errorf(ctx, err, "[doGetNodeResourceInfo] failed to get node resource info of node %v, err: %v", node, err)
+		log.Errorf(ctx, err, "[doGetNodeResourceInfo] failed to get node resource info of node %v", node)
 		return nil, err
 	}
 	if err = json.Unmarshal(resp.Value, resourceInfo); err != nil {
-		log.Errorf(ctx, err, "[doGetNodeResourceInfo] failed to unmarshal node resource info of node %v, err: %v", node, err)
+		log.Errorf(ctx, err, "[doGetNodeResourceInfo] failed to unmarshal node resource info of node %v", node)
 		return nil, err
 	}
 	return resourceInfo, nil
@@ -217,18 +218,18 @@ func (v *Volume) doGetNodeResourceInfo(ctx context.Context, node string) (*types
 
 func (v *Volume) doSetNodeResourceInfo(ctx context.Context, node string, resourceInfo *types.NodeResourceInfo) error {
 	if err := resourceInfo.Validate(); err != nil {
-		log.Errorf(ctx, err, "[doSetNodeResourceInfo] invalid resource info %v, err: %v", litter.Sdump(resourceInfo), err)
+		log.Errorf(ctx, err, "[doSetNodeResourceInfo] invalid resource info %v", litter.Sdump(resourceInfo))
 		return err
 	}
 
 	data, err := json.Marshal(resourceInfo)
 	if err != nil {
-		log.Errorf(ctx, err, "[doSetNodeResourceInfo] faield to marshal resource info %+v, err: %v", resourceInfo, err)
+		log.Errorf(ctx, err, "[doSetNodeResourceInfo] faield to marshal resource info %+v", resourceInfo)
 		return err
 	}
 
 	if _, err = v.store.Put(ctx, fmt.Sprintf(NodeResourceInfoKey, node), string(data)); err != nil {
-		log.Errorf(ctx, err, "[doSetNodeResourceInfo] faield to put resource info %+v, err: %v", resourceInfo, err)
+		log.Errorf(ctx, err, "[doSetNodeResourceInfo] faield to put resource info %+v", resourceInfo)
 		return err
 	}
 	return nil

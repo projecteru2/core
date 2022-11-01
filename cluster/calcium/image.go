@@ -111,7 +111,7 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 				}
 				if opts.Prune {
 					if err := node.Engine.ImagesPrune(ctx); err != nil {
-						logger.Errorf(ctx, err, "[RemoveImage] Prune %s pod %s node failed: %+v", opts.Podname, node.Name, err)
+						logger.Errorf(ctx, err, "[RemoveImage] Prune %s pod %s node failed", opts.Podname, node.Name)
 					} else {
 						logger.Infof(ctx, "[RemoveImage] Prune %s pod %s node", opts.Podname, node.Name)
 					}
