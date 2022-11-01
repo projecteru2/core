@@ -106,9 +106,7 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 		return nil, err
 	}
 
-	_ = pool.Invoke(func() { cal.InitMetrics(ctx) })
-	log.Error(ctx, err)
-	return cal, err
+	return cal, pool.Invoke(func() { cal.InitMetrics(ctx) })
 }
 
 // DisasterRecover .

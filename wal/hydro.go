@@ -51,7 +51,7 @@ func (h *Hydro) Recover(ctx context.Context) {
 	for {
 		scanEntry, ok := <-ch
 		if !ok {
-			log.Warn(ctx, "[Recover] closed ch")
+			log.Warn(ctx, "[Recover] noting have to restore, wal recover closed")
 			break
 		}
 

@@ -37,12 +37,14 @@ func SetupLog(l string) error {
 
 // Fatalf forwards to sentry
 func Fatalf(ctx context.Context, err error, format string, args ...interface{}) {
+	args = argsValidate(args)
 	sentry.CaptureMessage(fmt.Sprintf(genSentryTracingInfo(ctx)+format, args...))
 	globalLogger.Fatal().Err(err).Msgf(format, args...)
 }
 
 // Warnf is Warnf
 func Warnf(ctx context.Context, format string, args ...interface{}) {
+	args = argsValidate(args)
 	globalLogger.Warn().Msgf(format, args...)
 }
 
@@ -53,6 +55,7 @@ func Warn(ctx context.Context, args ...interface{}) {
 
 // Infof is Infof
 func Infof(ctx context.Context, format string, args ...interface{}) {
+	args = argsValidate(args)
 	infoEvent().Msgf(format, args...)
 }
 
@@ -63,6 +66,7 @@ func Info(ctx context.Context, args ...interface{}) {
 
 // Debugf is Debugf
 func Debugf(ctx context.Context, format string, args ...interface{}) {
+	args = argsValidate(args)
 	globalLogger.Debug().Msgf(format, args...)
 }
 
@@ -73,6 +77,7 @@ func Debug(ctx context.Context, args ...interface{}) {
 
 // Errorf forwards to sentry
 func Errorf(ctx context.Context, err error, format string, args ...interface{}) {
+	args = argsValidate(args)
 	if err == nil {
 		return
 	}
@@ -82,10 +87,7 @@ func Errorf(ctx context.Context, err error, format string, args ...interface{}) 
 
 // Error forwards to sentry
 func Error(ctx context.Context, err error, args ...interface{}) {
-	if len(args) > 1 {
-		Errorf(ctx, err, "%+v", args...)
-	}
-	Errorf(ctx, err, "")
+	Errorf(ctx, err, "%+v", args...)
 }
 
 // Fields is a wrapper for zerolog.Entry
@@ -109,11 +111,13 @@ func (f *Fields) WithField(key string, value interface{}) *Fields {
 
 // Infof .
 func (f Fields) Infof(ctx context.Context, format string, args ...interface{}) {
+	args = argsValidate(args)
 	infoEvent().Fields(f.kv).Msgf(format, args...)
 }
 
 // Errorf sends sentry message
 func (f Fields) Errorf(ctx context.Context, err error, format string, args ...interface{}) {
+	args = argsValidate(args)
 	if err == nil {
 		return
 	}
@@ -158,4 +162,11 @@ func errorEvent(err error) *zerolog.Event {
 		err = errors.WithStack(err)
 	}
 	return globalLogger.Error().Err(err)
+}
+
+func argsValidate(args []interface{}) []interface{} {
+	if len(args) > 0 {
+		return args
+	}
+	return []interface{}{""}
 }

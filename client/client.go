@@ -10,7 +10,6 @@ import (
 	_ "github.com/projecteru2/core/client/resolver/static" // register grpc resolver: static://
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -53,6 +52,5 @@ func dial(ctx context.Context, addr string, authConfig types.AuthConfig) (*grpc.
 		opts = append(opts, grpc.WithPerRPCCredentials(auth.NewCredential(authConfig)))
 	}
 
-	target := utils.MakeTarget(addr, authConfig)
-	return grpc.DialContext(ctx, target, opts...)
+	return grpc.DialContext(ctx, addr, opts...)
 }

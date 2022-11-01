@@ -79,8 +79,8 @@ func (e *EngineCache) Delete(key string) {
 
 // CheckAlive checks if the engine in cache is available
 func (e *EngineCache) CheckAlive(ctx context.Context) {
-	log.Info(ctx, "[EngineCache] starts")
-	defer log.Info(ctx, "[EngineCache] ends")
+	log.Info(ctx, "[EngineCache] check alive starts")
+	defer log.Info(ctx, "[EngineCache] check alive ends")
 	defer e.pool.Release()
 	for {
 		select {
