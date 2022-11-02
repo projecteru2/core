@@ -160,9 +160,6 @@ func infoEvent() *zerolog.Event {
 }
 
 func errorEvent(err error) *zerolog.Event {
-	if err != nil {
-		err = errors.WithStack(err)
-	}
 	return globalLogger.Error().Stack().Err(err)
 }
 

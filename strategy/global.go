@@ -3,8 +3,8 @@ package strategy
 import (
 	"container/heap"
 	"context"
-	"fmt"
 
+	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 )
@@ -44,8 +44,7 @@ func (r *infoHeapForGlobalStrategy) Pop() interface{} {
 // 尽量使得资源消耗平均
 func GlobalPlan(ctx context.Context, infos []Info, need, total, _ int) (map[string]int, error) {
 	if total < need {
-		return nil, types.NewDetailedErr(types.ErrInsufficientResource,
-			fmt.Sprintf("need: %d, available: %d", need, total))
+		return nil, errors.Wrapf(types.ErrInsufficientResource, "need: %d, available: %d", need, total)
 	}
 	strategyInfos := make([]Info, len(infos))
 	copy(strategyInfos, infos)
@@ -61,8 +60,7 @@ func GlobalPlan(ctx context.Context, infos []Info, need, total, _ int) (map[stri
 
 	for i := 0; i < need; i++ {
 		if infoHeap.Len() == 0 {
-			return nil, types.NewDetailedErr(types.ErrInsufficientResource,
-				fmt.Sprintf("need: %d, available: %d", need, i))
+			return nil, errors.Wrapf(types.ErrInsufficientResource, "need: %d, available: %d", need, i)
 		}
 		infoWithMinUsage := heap.Pop(infoHeap).(Info)
 		deployMap[infoWithMinUsage.Nodename]++

@@ -2,9 +2,9 @@ package strategy
 
 import (
 	"context"
-	"fmt"
 	"sort"
 
+	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -21,8 +21,7 @@ func FillPlan(ctx context.Context, infos []Info, need, _, limit int) (_ map[stri
 		limit = scheduleInfosLength
 	}
 	if scheduleInfosLength < limit {
-		return nil, types.NewDetailedErr(types.ErrInsufficientResource,
-			fmt.Sprintf("node len %d cannot alloc a fill node plan", scheduleInfosLength))
+		return nil, errors.Wrapf(types.ErrInsufficientResource, "node len %d cannot alloc a fill node plan", scheduleInfosLength)
 	}
 	sort.Slice(infos, func(i, j int) bool {
 		if infos[i].Count == infos[j].Count {
@@ -44,6 +43,5 @@ func FillPlan(ctx context.Context, infos []Info, need, _, limit int) (_ map[stri
 			}
 		}
 	}
-	return nil, types.NewDetailedErr(types.ErrInsufficientResource,
-		fmt.Sprintf("not enough nodes that can fill up to %d instances, require %d nodes", need, limit))
+	return nil, errors.Wrapf(types.ErrInsufficientResource, "not enough nodes that can fill up to %d instances, require %d nodes", need, limit)
 }

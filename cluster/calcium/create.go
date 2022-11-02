@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/cornelk/hashmap"
 
 	"github.com/projecteru2/core/cluster"
@@ -30,7 +31,7 @@ func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions)
 	logger.Infof(ctx, "[CreateWorkload %s] Creating workload with options:\n%s", opts.ProcessIdent, litter.Options{Compact: true}.Sdump(opts))
 	// Count 要大于0
 	if opts.Count <= 0 {
-		err := types.NewDetailedErr(types.ErrInvaildCount, opts.Count)
+		err := errors.Wrapf(types.ErrInvaildDeployCount, "count: %d", opts.Count)
 		logger.Error(ctx, err)
 		return nil, err
 	}
@@ -80,11 +81,10 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		var processingCommits map[string]wal.Commit
 		defer func() {
 			for nodename := range processingCommits {
-				if processingCommits[nodename] == nil {
-					continue
-				}
-				if err := processingCommits[nodename](); err != nil {
-					logger.Errorf(ctx, err, "commit wal failed: %s, %s", eventProcessingCreated, nodename)
+				if commit, ok := processingCommits[nodename]; ok {
+					if err := commit(); err != nil {
+						logger.Errorf(ctx, err, "commit wal failed: %s, %s", eventProcessingCreated, nodename)
+					}
 				}
 			}
 		}()

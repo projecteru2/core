@@ -82,7 +82,7 @@ func (p *EndpointPusher) addCheck(ctx context.Context, endpoints []string) {
 func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) {
 	parts := strings.Split(endpoint, ":")
 	if len(parts) != 2 {
-		log.Errorf(ctx, types.ErrInvalidType, "[EruResolver] wrong format of endpoint: %s", endpoint)
+		log.Errorf(ctx, types.ErrInvaildCoreEndpointType, "[EruResolver] wrong format of endpoint: %s", endpoint)
 		return
 	}
 

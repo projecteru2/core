@@ -3,7 +3,6 @@ package calcium
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"sync"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -57,9 +56,7 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 						if err = c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
 							if opts.Podname != "" && workload.Podname != opts.Podname {
 								log.Warnf(ctx, "[ReplaceWorkload] Skip not in pod workload %s", workload.ID)
-								return types.NewDetailedErr(types.ErrIgnoreWorkload,
-									fmt.Sprintf("workload %s not in pod %s", workload.ID, opts.Podname),
-								)
+								return errors.Wrapf(types.ErrWorkloadIgnored, "workload %s not in pod %s", workload.ID, opts.Podname)
 							}
 							// 使用复制之后的配置
 							// 停老的，起新的
@@ -73,9 +70,7 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 								if err != nil {
 									return err
 								} else if !info.Running {
-									return types.NewDetailedErr(types.ErrInvaildWorkloadOps,
-										fmt.Sprintf("workload %s is not running, can not inherit", workload.ID),
-									)
+									return errors.Wrapf(types.ErrInvaildWorkloadOps, "workload %s is not running, can not inherit", workload.ID)
 								}
 								replaceOpts.Networks = info.Networks
 								log.Infof(ctx, "[ReplaceWorkload] Inherit old workload network configuration mode %+v", replaceOpts.Networks)
@@ -83,7 +78,7 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 							createMessage, removeMessage, err = c.doReplaceWorkload(ctx, workload, &replaceOpts, index)
 							return err
 						}); err != nil {
-							if errors.Is(err, types.ErrIgnoreWorkload) {
+							if errors.Is(err, types.ErrWorkloadIgnored) {
 								log.Warnf(ctx, "[ReplaceWorkload] ignore workload: %+v", err)
 								return
 							}

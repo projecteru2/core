@@ -67,7 +67,7 @@ func (h *CreateLambdaHandler) Check(context.Context, interface{}) (bool, error) 
 func (h *CreateLambdaHandler) Encode(raw interface{}) ([]byte, error) {
 	workloadID, ok := raw.(string)
 	if !ok {
-		return nil, types.NewDetailedErr(types.ErrInvalidType, raw)
+		return nil, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
 	}
 	return []byte(workloadID), nil
 }
@@ -81,7 +81,7 @@ func (h *CreateLambdaHandler) Decode(bs []byte) (interface{}, error) {
 func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error {
 	workloadID, ok := raw.(string)
 	if !ok {
-		return types.NewDetailedErr(types.ErrInvalidType, raw)
+		return errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
 	}
 
 	logger := log.WithField("WAL.Handle", "RunAndWait").WithField("ID", workloadID)
@@ -136,7 +136,7 @@ func (h *CreateWorkloadHandler) Typ() string {
 func (h *CreateWorkloadHandler) Check(ctx context.Context, raw interface{}) (handle bool, err error) {
 	_, ok := raw.(*types.Workload)
 	if !ok {
-		return false, types.NewDetailedErr(types.ErrInvalidType, raw)
+		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
 	}
 	return true, nil
 }
@@ -145,7 +145,7 @@ func (h *CreateWorkloadHandler) Check(ctx context.Context, raw interface{}) (han
 func (h *CreateWorkloadHandler) Encode(raw interface{}) ([]byte, error) {
 	wrk, ok := raw.(*types.Workload)
 	if !ok {
-		return nil, types.NewDetailedErr(types.ErrInvalidType, raw)
+		return nil, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
 	}
 	return json.Marshal(wrk)
 }
@@ -212,7 +212,7 @@ func (h *WorkloadResourceAllocatedHandler) Typ() string {
 // Check .
 func (h *WorkloadResourceAllocatedHandler) Check(ctx context.Context, raw interface{}) (bool, error) {
 	if _, ok := raw.([]*types.Node); !ok {
-		return false, types.NewDetailedErr(types.ErrInvalidType, raw)
+		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
 	}
 	return true, nil
 }
@@ -221,7 +221,7 @@ func (h *WorkloadResourceAllocatedHandler) Check(ctx context.Context, raw interf
 func (h *WorkloadResourceAllocatedHandler) Encode(raw interface{}) ([]byte, error) {
 	nodes, ok := raw.([]*types.Node)
 	if !ok {
-		return nil, types.NewDetailedErr(types.ErrInvalidType, raw)
+		return nil, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
 	}
 	return json.Marshal(nodes)
 }
@@ -283,7 +283,7 @@ func (h *ProcessingCreatedHandler) Typ() string {
 // Check .
 func (h ProcessingCreatedHandler) Check(ctx context.Context, raw interface{}) (bool, error) {
 	if _, ok := raw.(*types.Processing); !ok {
-		return false, types.NewDetailedErr(types.ErrInvalidType, raw)
+		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
 	}
 	return true, nil
 }
@@ -292,7 +292,7 @@ func (h ProcessingCreatedHandler) Check(ctx context.Context, raw interface{}) (b
 func (h *ProcessingCreatedHandler) Encode(raw interface{}) ([]byte, error) {
 	processing, ok := raw.(*types.Processing)
 	if !ok {
-		return nil, types.NewDetailedErr(types.ErrInvalidType, raw)
+		return nil, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
 	}
 	return json.Marshal(processing)
 }

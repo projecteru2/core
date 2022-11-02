@@ -23,6 +23,7 @@ import (
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
 )
 
@@ -298,7 +299,13 @@ func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTime
 
 // VirtualizationRemove remove virtualization
 func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, removeVolumes, force bool) error {
-	return e.client.ContainerRemove(ctx, ID, dockertypes.ContainerRemoveOptions{RemoveVolumes: removeVolumes, Force: force})
+	if err := e.client.ContainerRemove(ctx, ID, dockertypes.ContainerRemoveOptions{RemoveVolumes: removeVolumes, Force: force}); err != nil {
+		if strings.Contains(err.Error(), "no such") {
+			err = types.ErrWorkloadNotExists
+		}
+		return err
+	}
+	return nil
 }
 
 // VirtualizationInspect get virtualization info

@@ -21,7 +21,7 @@ func TestListNetworks(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 
 	// failed by GetNodesByPod
-	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := c.ListNetworks(ctx, "", "")
 	assert.Error(t, err)
 
@@ -58,7 +58,7 @@ func TestConnectNetwork(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 
 	// failed by GetWorkload
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := c.ConnectNetwork(ctx, "network", "123", "", "")
 	assert.Error(t, err)
 
@@ -79,7 +79,7 @@ func TestDisConnectNetwork(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 
 	// failed by GetWorkload
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	assert.Error(t, c.DisconnectNetwork(ctx, "network", "123", true))
 
 	// success

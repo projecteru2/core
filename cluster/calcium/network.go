@@ -3,6 +3,7 @@ package calcium
 import (
 	"context"
 
+	"github.com/cockroachdb/errors"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
@@ -22,7 +23,7 @@ func (c *Calcium) ListNetworks(ctx context.Context, podname string, driver strin
 	}
 
 	if len(nodes) == 0 {
-		err := types.NewDetailedErr(types.ErrPodNoNodes, podname)
+		err := errors.Wrapf(types.ErrPodNoNodes, "pod: %s", podname)
 		logger.Error(ctx, err)
 		return networks, err
 	}

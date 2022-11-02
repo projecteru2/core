@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
@@ -79,7 +80,7 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 
 	store := c.store.(*storemocks.Store)
 
-	err = types.NewDetailedErr(types.ErrInvaildCount, fmt.Sprintf("keys: [%s]", wrkid))
+	err = errors.Wrapf(types.ErrInvaildCount, "keys: [%s]", wrkid)
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(wrk, err).Once()
 	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, err).Once()
 	c.wal.Recover(context.TODO())
@@ -133,7 +134,8 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	}
 
 	store := c.store.(*storemocks.Store)
-	err = types.NewDetailedErr(types.ErrInvaildCount, fmt.Sprintf("keys: [%s]", wrkid))
+
+	err = errors.Wrapf(types.ErrInvaildCount, "keys: [%s]", wrkid)
 	store.On("GetWorkload", mock.Anything, wrkid).Return(nil, err).Once()
 	store.On("GetNode", mock.Anything, wrk.Nodename).Return(node, nil)
 
@@ -188,7 +190,7 @@ func TestHandleCreateLambda(t *testing.T) {
 	}
 
 	store := c.store.(*storemocks.Store)
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	c.wal.Recover(context.TODO())
 	time.Sleep(500 * time.Millisecond)
 	store.AssertExpectations(t)

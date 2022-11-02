@@ -34,9 +34,9 @@ func TestRemoveWorkload(t *testing.T) {
 	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*resourcetypes.Metrics{}, nil)
 
 	// failed by GetWorkload
-	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.RemoveWorkload(ctx, []string{"xx"}, false)
-	assert.True(t, errors.Is(err, types.ErrNoETCD))
+	assert.True(t, errors.Is(err, types.ErrMockError))
 	store.AssertExpectations(t)
 
 	// failed by GetNode
@@ -46,7 +46,7 @@ func TestRemoveWorkload(t *testing.T) {
 		Nodename: "test",
 	}
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
-	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err = c.RemoveWorkload(ctx, []string{"xx"}, false)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -63,8 +63,8 @@ func TestRemoveWorkload(t *testing.T) {
 		},
 	}
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
-	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Twice()
-	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(types.ErrMockError).Twice()
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
 	ch, err = c.RemoveWorkload(ctx, []string{"xx"}, false)
 	assert.NoError(t, err)
 	for r := range ch {

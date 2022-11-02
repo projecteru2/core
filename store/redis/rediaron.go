@@ -57,12 +57,6 @@ const (
 	actionDel     = "del"
 )
 
-// go-redis doesn't export its proto.Error type,
-// we have to check the content in this error
-func isRedisNoKeyError(e error) bool {
-	return e != nil && strings.Contains(e.Error(), "redis: nil")
-}
-
 // Rediaron is a store implemented by redis
 type Rediaron struct {
 	cli    *redis.Client
@@ -133,7 +127,7 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 func (r *Rediaron) GetOne(ctx context.Context, key string) (string, error) {
 	value, err := r.cli.Get(ctx, key).Result()
 	if isRedisNoKeyError(err) {
-		return "", errors.WithMessage(err, fmt.Sprintf("Key not found: %s", key))
+		return "", errors.Wrapf(err, "Key not found: %s", key)
 	}
 	return value, err
 }
@@ -168,7 +162,7 @@ func (r *Rediaron) GetMulti(ctx context.Context, keys []string) (map[string]stri
 		}
 
 		if isRedisNoKeyError(c.Err()) {
-			return nil, errors.WithMessage(err, fmt.Sprintf("Key not found: %s", key))
+			return nil, errors.Wrapf(err, "Key not found: %s", key)
 		}
 
 		data[key] = c.Val()
@@ -300,7 +294,7 @@ func (r *Rediaron) BindStatus(ctx context.Context, entityKey, statusKey, statusV
 	// doesn't exist, returns error
 	// to behave just like etcd
 	if count != 1 {
-		return types.ErrEntityNotExists
+		return types.ErrInvaildCount
 	}
 
 	_, err = r.cli.Set(ctx, statusKey, statusValue, time.Duration(ttl)*time.Second).Result()
@@ -313,4 +307,10 @@ func (r *Rediaron) BindStatus(ctx context.Context, entityKey, statusKey, statusV
 // never call this except running unittests
 func (r *Rediaron) TerminateEmbededStorage() {
 	_ = r.cli.Close()
+}
+
+// go-redis doesn't export its proto.Error type,
+// we have to check the content in this error
+func isRedisNoKeyError(e error) bool {
+	return e != nil && strings.Contains(e.Error(), "redis: nil")
 }

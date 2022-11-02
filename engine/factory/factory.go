@@ -8,6 +8,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/cockroachdb/errors"
 	"github.com/cornelk/hashmap"
 	"github.com/panjf2000/ants/v2"
 
@@ -192,7 +193,7 @@ func getEnginePrefix(endpoint string) (string, error) {
 			return prefix, nil
 		}
 	}
-	return "", types.NewDetailedErr(types.ErrInvaildNodeEndpoint, fmt.Sprintf("endpoint invalid %+v", endpoint))
+	return "", errors.Wrapf(types.ErrInvaildNodeEndpoint, "endpoint invalid %+v", endpoint)
 }
 
 func getEngineCacheKey(endpoint, ca, cert, key string) string {
@@ -207,7 +208,7 @@ func newEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 	}
 	e, ok := engines[prefix]
 	if !ok {
-		return nil, types.ErrNotSupportEndpoint
+		return nil, types.ErrInvaildEngineEndpoint
 	}
 	utils.WithTimeout(ctx, config.ConnectionTimeout, func(ctx context.Context) {
 		client, err = e(ctx, config, nodename, endpoint, ca, cert, key)

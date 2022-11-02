@@ -6,6 +6,7 @@ import (
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources/cpumem/schedule"
 	"github.com/projecteru2/core/resources/cpumem/types"
+	coretypes "github.com/projecteru2/core/types"
 )
 
 // GetReallocArgs .
@@ -48,7 +49,7 @@ func (c *CPUMem) GetReallocArgs(ctx context.Context, node string, originResource
 	if resourceOpts.CPUBind {
 		cpuPlans := schedule.GetCPUPlans(resourceInfo, originResourceArgs.CPUMap, c.Config.Scheduler.ShareBase, c.Config.Scheduler.MaxShare, finalResourceOpts)
 		if len(cpuPlans) == 0 {
-			return nil, nil, nil, types.ErrInsufficientResource
+			return nil, nil, nil, coretypes.ErrInsufficientResource
 		}
 
 		cpuPlan := cpuPlans[0]

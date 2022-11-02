@@ -3,7 +3,9 @@ package models
 import (
 	"context"
 
+	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/log"
+	coretypes "github.com/projecteru2/core/types"
 
 	"github.com/projecteru2/core/resources/cpumem/schedule"
 	"github.com/projecteru2/core/resources/cpumem/types"
@@ -31,12 +33,12 @@ func (c *CPUMem) GetDeployArgs(ctx context.Context, node string, deployCount int
 
 func (c *CPUMem) doAllocByMemory(resourceInfo *types.NodeResourceInfo, deployCount int, opts *types.WorkloadResourceOpts) ([]*types.EngineArgs, []*types.WorkloadResourceArgs, error) {
 	if opts.CPURequest > float64(len(resourceInfo.Capacity.CPUMap)) {
-		return nil, nil, types.ErrInsufficientCPU
+		return nil, nil, errors.Wrap(coretypes.ErrInsufficientResource, "cpu")
 	}
 
 	availableResourceArgs := resourceInfo.GetAvailableResource()
 	if opts.MemRequest > 0 && availableResourceArgs.Memory/opts.MemRequest < int64(deployCount) {
-		return nil, nil, types.ErrInsufficientMem
+		return nil, nil, errors.Wrap(coretypes.ErrInsufficientResource, "memory")
 	}
 
 	resEngineArgs := []*types.EngineArgs{}
@@ -63,7 +65,7 @@ func (c *CPUMem) doAllocByMemory(resourceInfo *types.NodeResourceInfo, deployCou
 func (c *CPUMem) doAllocByCPU(resourceInfo *types.NodeResourceInfo, deployCount int, opts *types.WorkloadResourceOpts) ([]*types.EngineArgs, []*types.WorkloadResourceArgs, error) {
 	cpuPlans := schedule.GetCPUPlans(resourceInfo, nil, c.Config.Scheduler.ShareBase, c.Config.Scheduler.MaxShare, opts)
 	if len(cpuPlans) < deployCount {
-		return nil, nil, types.ErrInsufficientResource
+		return nil, nil, coretypes.ErrInsufficientResource
 	}
 
 	cpuPlans = cpuPlans[:deployCount]

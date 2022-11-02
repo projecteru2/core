@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/types"
 
 	"go.etcd.io/bbolt"
@@ -178,7 +179,7 @@ func (l *Lithium) update(fn func(*bbolt.Bucket) error) error {
 func (l *Lithium) getBucket(tx *bbolt.Tx, key []byte) (bkt *bbolt.Bucket, err error) {
 	bkt = tx.Bucket(l.RootBucketKey)
 	if bkt == nil {
-		err = types.NewDetailedErr(types.ErrInvalidWALBucket, key)
+		err = errors.Wrapf(types.ErrInvalidWALBucket, "%+v", key)
 	}
 	return
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"github.com/cornelk/hashmap"
+	"github.com/projecteru2/core/types"
 )
 
 // MockedKV .
@@ -58,7 +59,7 @@ func (m *MockedKV) Put(key, value []byte) (err error) {
 func (m *MockedKV) Get(key []byte) (value []byte, err error) {
 	value, ok := m.pool.Get(string(key))
 	if !ok {
-		return value, errors.Errorf("no such key: %s", key)
+		return value, errors.Wrapf(types.ErrInvaildCount, "no such key: %s", key)
 	}
 	return
 }

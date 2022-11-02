@@ -22,7 +22,7 @@ func TestRemapResource(t *testing.T) {
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		map[string]types.NodeResourceArgs{"test": map[string]interface{}{"abc": 123}},
 		map[string]types.NodeResourceArgs{"test": map[string]interface{}{"abc": 123}},
-		[]string{types.ErrNoETCD.Error()},
+		[]string{types.ErrMockError.Error()},
 		nil)
 	rmgr.On("GetRemapArgs", mock.Anything, mock.Anything, mock.Anything).Return(
 		map[string]types.EngineArgs{},

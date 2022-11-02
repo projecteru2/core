@@ -45,7 +45,7 @@ func TestExecuteWorkload(t *testing.T) {
 
 	// failed by Execute
 	result := "def"
-	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(result, nil, nil, nil, types.ErrCannotGetEngine).Once()
+	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(result, nil, nil, nil, types.ErrMockError).Once()
 	ch = c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: ID}, nil)
 	for ac := range ch {
 		assert.Equal(t, ac.WorkloadID, ID)
@@ -54,7 +54,7 @@ func TestExecuteWorkload(t *testing.T) {
 	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(result, buf, nil, nil, nil).Twice()
 
 	// failed by ExecExitCode
-	engine.On("ExecExitCode", mock.Anything, mock.Anything, mock.Anything).Return(-1, types.ErrCannotGetEngine).Once()
+	engine.On("ExecExitCode", mock.Anything, mock.Anything, mock.Anything).Return(-1, types.ErrMockError).Once()
 	ch = c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: ID}, nil)
 	data := []byte{}
 	for ac := range ch {

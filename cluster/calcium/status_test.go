@@ -22,7 +22,7 @@ func TestGetNodeStatus(t *testing.T) {
 		Alive:    true,
 	}
 	// failed
-	store.On("GetNodeStatus", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNodeStatus", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := c.GetNodeStatus(ctx, "test")
 	assert.Error(t, err)
 
@@ -46,7 +46,7 @@ func TestSetNodeStatus(t *testing.T) {
 		},
 	}
 	// failed by GetNode
-	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	assert.Error(t, c.SetNodeStatus(ctx, node.Name, 10))
 	// failed by SetWorkloadStatus
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
@@ -54,7 +54,7 @@ func TestSetNodeStatus(t *testing.T) {
 		mock.Anything,
 		mock.Anything,
 		mock.Anything,
-	).Return(types.ErrNoETCD).Once()
+	).Return(types.ErrMockError).Once()
 	assert.Error(t, c.SetNodeStatus(ctx, node.Name, 10))
 	// success
 	store.On("SetNodeStatus",
@@ -94,7 +94,7 @@ func TestGetWorkloadsStatus(t *testing.T) {
 	cs := &types.StatusMeta{}
 
 	// failed GetWorkloadStatus
-	store.On("GetWorkloadStatus", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetWorkloadStatus", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := c.GetWorkloadsStatus(ctx, []string{"a"})
 	assert.Error(t, err)
 	// success
@@ -111,7 +111,7 @@ func TestSetWorkloadsStatus(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 
 	// no meta, generate by id
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := c.SetWorkloadsStatus(ctx, []*types.StatusMeta{{ID: "123"}}, nil)
 	assert.Error(t, err)
 
@@ -131,7 +131,7 @@ func TestSetWorkloadsStatus(t *testing.T) {
 		mock.Anything,
 		mock.Anything,
 		mock.Anything,
-	).Return(types.ErrNoETCD).Once()
+	).Return(types.ErrMockError).Once()
 	_, err = c.SetWorkloadsStatus(ctx, []*types.StatusMeta{{ID: "123"}}, nil)
 	assert.Error(t, err)
 

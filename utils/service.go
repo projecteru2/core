@@ -6,13 +6,14 @@ import (
 	"strings"
 
 	"github.com/cockroachdb/errors"
+	"github.com/projecteru2/core/types"
 )
 
 // GetOutboundAddress finds out self-service address
 func GetOutboundAddress(bind string, probeTarget string) (string, error) {
 	parts := strings.Split(bind, ":")
 	if len(parts) != 2 {
-		return "", errors.Errorf("invalid bind address %s", bind)
+		return "", errors.Wrap(types.ErrInvaildIPWithPort, bind)
 	}
 	ip := parts[0]
 	port := parts[1]

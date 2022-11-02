@@ -45,12 +45,12 @@ func TestAlloc(t *testing.T) {
 		CPUBind:    true,
 		CPURequest: 2.2,
 	})
-	assert.True(t, errors.Is(err, types.ErrInsufficientResource))
+	assert.True(t, errors.Is(err, coretypes.ErrInsufficientResource))
 	_, _, err = cpuMem.GetDeployArgs(ctx, node, 3, &types.WorkloadResourceOpts{
 		CPUBind:    true,
 		CPURequest: 1,
 	})
-	assert.True(t, errors.Is(err, types.ErrInsufficientResource))
+	assert.True(t, errors.Is(err, coretypes.ErrInsufficientResource))
 
 	// alloc by memory
 	_, _, err = cpuMem.GetDeployArgs(ctx, node, 1, &types.WorkloadResourceOpts{
@@ -63,14 +63,14 @@ func TestAlloc(t *testing.T) {
 		MemRequest: units.GiB,
 		CPURequest: 65535,
 	})
-	assert.True(t, errors.Is(err, types.ErrInsufficientCPU))
+	assert.True(t, errors.Is(err, coretypes.ErrInsufficientResource))
 
 	// alloc by memory & insufficient mem
 	_, _, err = cpuMem.GetDeployArgs(ctx, node, 1, &types.WorkloadResourceOpts{
 		MemRequest: 5 * units.GiB,
 		CPURequest: 1,
 	})
-	assert.True(t, errors.Is(err, types.ErrInsufficientMem))
+	assert.True(t, errors.Is(err, coretypes.ErrInsufficientResource))
 
 	// mem_request == 0
 	_, _, err = cpuMem.GetDeployArgs(ctx, node, 1, &types.WorkloadResourceOpts{

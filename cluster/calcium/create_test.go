@@ -89,7 +89,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	node1, node2 := nodes[0], nodes[1]
 
 	// doAllocResource fails: GetNodesDeployCapacity
-	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, types.ErrNoETCD).Once()
+	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, types.ErrMockError).Once()
 	ch, err := c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
 	cnt := 0
@@ -136,7 +136,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 
 	// doAllocResource fails: Alloc
 	rmgr.On("Alloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		nil, nil, types.ErrInvalidType,
+		nil, nil, types.ErrMockError,
 	).Once()
 	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
@@ -187,7 +187,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	engine.On("ImageRemoteDigest", mock.Anything, mock.Anything).Return("", nil)
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "VirtualizationCreate")).Twice()
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
 	walCommitted = false
 	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)
