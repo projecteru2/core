@@ -42,7 +42,7 @@ func TestAlloc(t *testing.T) {
 		}),
 	}
 	_, _, err = volume.GetDeployArgs(ctx, node, 2, resourceOpts)
-	assert.ErrorIs(t, err, types.ErrInsufficientResource)
+	assert.ErrorIs(t, err, coretypes.ErrInsufficientResource)
 
 	// normal case
 	resourceOpts = &types.WorkloadResourceOpts{
@@ -61,7 +61,7 @@ func TestAlloc(t *testing.T) {
 		}),
 	}
 	_, _, err = volume.GetDeployArgs(ctx, node, 3, resourceOpts)
-	assert.ErrorIs(t, err, types.ErrInsufficientResource)
+	assert.ErrorIs(t, err, coretypes.ErrInsufficientResource)
 
 	// normal case
 	resourceOpts = &types.WorkloadResourceOpts{

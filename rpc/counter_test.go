@@ -9,7 +9,7 @@ import (
 
 func TestCounter(t *testing.T) {
 	v := Vibranium{}
-	task := v.newTask(context.TODO(), "test", true)
+	task := v.newTask(context.Background(), "test", true)
 	assert.Equal(t, v.TaskNum, 1)
 
 	task.done()

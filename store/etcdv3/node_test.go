@@ -205,23 +205,23 @@ func TestSetNodeStatus(t *testing.T) {
 			Podname:  "testpod",
 		},
 	}
-	_, err := m.AddPod(context.TODO(), node.Podname, "")
+	_, err := m.AddPod(context.Background(), node.Podname, "")
 	assert.NoError(err)
-	_, err = m.AddNode(context.TODO(), &types.AddNodeOptions{
+	_, err = m.AddNode(context.Background(), &types.AddNodeOptions{
 		Nodename: node.Name,
 		Endpoint: node.Endpoint,
 		Podname:  node.Podname,
 	})
 	assert.NoError(err)
-	assert.NoError(m.SetNodeStatus(context.TODO(), node, 1))
+	assert.NoError(m.SetNodeStatus(context.Background(), node, 1))
 	key := filepath.Join(nodeStatusPrefix, node.Name)
 
 	// not expired yet
-	_, err = m.GetOne(context.TODO(), key)
+	_, err = m.GetOne(context.Background(), key)
 	assert.NoError(err)
 	// expired
 	time.Sleep(2000 * time.Millisecond)
-	_, err = m.GetOne(context.TODO(), key)
+	_, err = m.GetOne(context.Background(), key)
 	assert.Error(err)
 }
 
@@ -236,24 +236,24 @@ func TestGetNodeStatus(t *testing.T) {
 			Podname:  "testpod",
 		},
 	}
-	_, err := m.AddPod(context.TODO(), node.Podname, "")
+	_, err := m.AddPod(context.Background(), node.Podname, "")
 	assert.NoError(err)
-	_, err = m.AddNode(context.TODO(), &types.AddNodeOptions{
+	_, err = m.AddNode(context.Background(), &types.AddNodeOptions{
 		Nodename: node.Name,
 		Endpoint: node.Endpoint,
 		Podname:  node.Podname,
 	})
 	assert.NoError(err)
-	assert.NoError(m.SetNodeStatus(context.TODO(), node, 1))
+	assert.NoError(m.SetNodeStatus(context.Background(), node, 1))
 
 	// not expired yet
-	ns, err := m.GetNodeStatus(context.TODO(), node.Name)
+	ns, err := m.GetNodeStatus(context.Background(), node.Name)
 	assert.NoError(err)
 	assert.Equal(ns.Nodename, node.Name)
 	assert.True(ns.Alive)
 	// expired
 	time.Sleep(2 * time.Second)
-	ns1, err := m.GetNodeStatus(context.TODO(), node.Name)
+	ns1, err := m.GetNodeStatus(context.Background(), node.Name)
 	assert.Error(err)
 	assert.Nil(ns1)
 }
@@ -270,9 +270,9 @@ func TestNodeStatusStream(t *testing.T) {
 		},
 	}
 
-	_, err := m.AddPod(context.TODO(), node.Podname, "")
+	_, err := m.AddPod(context.Background(), node.Podname, "")
 	assert.NoError(err)
-	_, err = m.AddNode(context.TODO(), &types.AddNodeOptions{
+	_, err = m.AddNode(context.Background(), &types.AddNodeOptions{
 		Nodename: node.Name,
 		Endpoint: node.Endpoint,
 		Podname:  node.Podname,
@@ -289,7 +289,7 @@ func TestNodeStatusStream(t *testing.T) {
 			default:
 			}
 			time.Sleep(500 * time.Millisecond)
-			assert.NoError(m.SetNodeStatus(context.TODO(), node, 1))
+			assert.NoError(m.SetNodeStatus(context.Background(), node, 1))
 		}
 	}()
 

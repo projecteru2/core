@@ -47,5 +47,5 @@ func TestRemapResource(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	c.doRemapResourceAndLog(context.TODO(), log.WithField("test", "zc"), node)
+	c.doRemapResourceAndLog(context.Background(), log.WithField("test", "zc"), node)
 }

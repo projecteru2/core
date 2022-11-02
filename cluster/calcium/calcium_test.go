@@ -56,7 +56,7 @@ func NewTestCluster() *Calcium {
 }
 
 func TestNewCluster(t *testing.T) {
-	ctx := context.TODO()
+	ctx := context.Background()
 	config := types.Config{WALFile: "/tmp/a", HAKeepaliveInterval: 16 * time.Second}
 	_, err := New(ctx, config, nil)
 	assert.Error(t, err)

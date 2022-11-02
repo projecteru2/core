@@ -62,7 +62,7 @@ func TestRecover(t *testing.T) {
 
 	wal.Log(eventype, struct{}{})
 
-	wal.Recover(context.TODO())
+	wal.Recover(context.Background())
 	assert.True(t, checked)
 	assert.True(t, handled)
 	assert.True(t, encoded)

@@ -5,13 +5,15 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/cockroachdb/errors"
+	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAveragePlan(t *testing.T) {
 	// 正常的
 	nodes := deployedNodes()
-	r, err := AveragePlan(context.TODO(), nodes, 1, 0, 0)
+	r, err := AveragePlan(context.Background(), nodes, 1, 0, 0)
 	assert.NoError(t, err)
 	finalCounts := []int{}
 	for _, node := range nodes {
@@ -22,23 +24,23 @@ func TestAveragePlan(t *testing.T) {
 
 	// nodes len < limit
 	nodes = deployedNodes()
-	_, err = AveragePlan(context.TODO(), nodes, 100, 0, 5)
+	_, err = AveragePlan(context.Background(), nodes, 100, 0, 5)
 	assert.Error(t, err)
 	// 超过 cap
 	nodes = deployedNodes()
-	_, err = AveragePlan(context.TODO(), nodes, 100, 0, 0)
+	_, err = AveragePlan(context.Background(), nodes, 100, 0, 0)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not enough capacity")
+	assert.True(t, errors.Is(err, types.ErrInsufficientCapacity))
 	// 正常 limit
 	nodes = deployedNodes()
-	_, err = AveragePlan(context.TODO(), nodes, 1, 1, 1)
+	_, err = AveragePlan(context.Background(), nodes, 1, 1, 1)
 	assert.NoError(t, err)
 
 	nodes = genNodesByCapCount([]int{1, 2, 3, 4, 5}, []int{3, 3, 3, 3, 3})
-	_, err = AveragePlan(context.TODO(), nodes, 4, 100, 4)
-	assert.EqualError(t, err, "not enough resource: not enough nodes with capacity of 4, require 4 nodes")
+	_, err = AveragePlan(context.Background(), nodes, 4, 100, 4)
+	assert.Contains(t, err.Error(), "not enough nodes with capacity of 4, require 4 nodes")
 
 	nodes = genNodesByCapCount([]int{1, 2, 3, 4, 5}, []int{3, 3, 3, 3, 3})
-	_, err = AveragePlan(context.TODO(), nodes, 2, 100, 0)
-	assert.EqualError(t, err, "not enough resource: not enough nodes with capacity of 2, require 5 nodes")
+	_, err = AveragePlan(context.Background(), nodes, 2, 100, 0)
+	assert.Contains(t, err.Error(), "not enough nodes with capacity of 2, require 5 nodes")
 }

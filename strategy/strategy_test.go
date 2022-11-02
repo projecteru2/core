@@ -33,7 +33,7 @@ func deployedNodes() []Info {
 }
 
 func TestDeploy(t *testing.T) {
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	// invaild strategy
 	_, err := Deploy(ctx, "invalid", -1, 3, nil, 2)

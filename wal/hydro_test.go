@@ -73,7 +73,7 @@ func TestRecoverFailedAsNoSuchHandler(t *testing.T) {
 
 	hydro.Del(eventype)
 
-	hydro.Recover(context.TODO())
+	hydro.Recover(context.Background())
 	assert.True(t, encoded)
 	assert.False(t, decoded)
 	assert.False(t, checked)
@@ -97,7 +97,7 @@ func TestRecoverFailedAsCheckError(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, commit)
 
-	hydro.Recover(context.TODO())
+	hydro.Recover(context.Background())
 	assert.True(t, encoded)
 	assert.True(t, decoded)
 	assert.True(t, checked)
@@ -144,7 +144,7 @@ func TestRecoverFailedAsDecodeLogError(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, commit)
 
-	hydro.Recover(context.TODO())
+	hydro.Recover(context.Background())
 	assert.True(t, encoded)
 	assert.True(t, decoded)
 	assert.False(t, checked)
@@ -170,7 +170,7 @@ func TestHydroRecoverDiscardNoNeedEvent(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, commit)
 
-	hydro.Recover(context.TODO())
+	hydro.Recover(context.Background())
 	assert.True(t, encoded)
 	assert.True(t, decoded)
 	assert.True(t, checked)
@@ -190,7 +190,7 @@ func TestHydroRecover(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, commit)
 
-	hydro.Recover(context.TODO())
+	hydro.Recover(context.Background())
 	assert.True(t, encoded)
 	assert.True(t, decoded)
 	assert.True(t, checked)
@@ -234,7 +234,7 @@ func TestHydroRecoverWithRealLithium(t *testing.T) {
 	hydro.Log(handler.event, struct{}{})
 	hydro.Log(handler.event, struct{}{})
 
-	hydro.Recover(context.TODO())
+	hydro.Recover(context.Background())
 
 	ch, _ := hydro.store.Scan([]byte(eventPrefix))
 	select {
