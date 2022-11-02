@@ -10,7 +10,6 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/types"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc/peer"
 )
@@ -30,6 +29,9 @@ func SetupLog(l string) error {
 			TimeFormat: time.RFC822,
 		}).With().Timestamp().Logger()
 	rslog.Level(level)
+	zerolog.ErrorStackMarshaler = func(err error) interface{} {
+		return errors.GetSafeDetails(err).SafeDetails
+	}
 	globalLogger = rslog
 
 	return nil
@@ -38,7 +40,7 @@ func SetupLog(l string) error {
 // Fatalf forwards to sentry
 func Fatalf(ctx context.Context, err error, format string, args ...interface{}) {
 	args = argsValidate(args)
-	sentry.CaptureMessage(fmt.Sprintf(genSentryTracingInfo(ctx)+format, args...))
+	reportToSentry(ctx, err, format, args)
 	globalLogger.Fatal().Err(err).Msgf(format, args...)
 }
 
@@ -81,7 +83,7 @@ func Errorf(ctx context.Context, err error, format string, args ...interface{}) 
 	if err == nil {
 		return
 	}
-	sentry.CaptureMessage(fmt.Sprintf(genSentryTracingInfo(ctx)+format, args...))
+	reportToSentry(ctx, err, format, args)
 	errorEvent(err).Msgf(format, args...)
 }
 
@@ -121,7 +123,7 @@ func (f Fields) Errorf(ctx context.Context, err error, format string, args ...in
 	if err == nil {
 		return
 	}
-	sentry.CaptureMessage(fmt.Sprintf(genSentryTracingInfo(ctx)+format, args...))
+	reportToSentry(ctx, err, format, args)
 	errorEvent(err).Fields(f.kv).Msgf(format, args...)
 }
 
@@ -161,7 +163,7 @@ func errorEvent(err error) *zerolog.Event {
 	if err != nil {
 		err = errors.WithStack(err)
 	}
-	return globalLogger.Error().Err(err)
+	return globalLogger.Error().Stack().Err(err)
 }
 
 func argsValidate(args []interface{}) []interface{} {
@@ -169,4 +171,11 @@ func argsValidate(args []interface{}) []interface{} {
 		return args
 	}
 	return []interface{}{""}
+}
+
+func reportToSentry(ctx context.Context, err error, format string, args ...interface{}) { //nolint
+	err = errors.Wrap(err, fmt.Sprintf(genSentryTracingInfo(ctx)+format, args...))
+	if eventID := errors.ReportError(err); eventID != "" {
+		Infof(ctx, "Report to Sentry ID: %s", eventID)
+	}
 }
