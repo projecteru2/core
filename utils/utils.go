@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
@@ -49,7 +50,7 @@ func Tail(path string) string {
 // GetGitRepoName return git repo name
 func GetGitRepoName(url string) (string, error) {
 	if !(strings.Contains(url, "git@") || strings.Contains(url, "gitlab@") || strings.Contains(url, "https://")) || !strings.HasSuffix(url, ".git") {
-		return "", types.NewDetailedErr(types.ErrInvalidGitURL, url)
+		return "", errors.Wrap(types.ErrInvalidGitURL, url)
 	}
 
 	return strings.TrimSuffix(Tail(url), ".git"), nil
@@ -96,7 +97,7 @@ func ParseWorkloadName(workloadName string) (string, string, string, error) {
 	if length >= 3 {
 		return strings.Join(splits[0:length-2], "_"), splits[length-2], splits[length-1], nil
 	}
-	return "", "", "", types.NewDetailedErr(types.ErrInvalidWorkloadName, workloadName)
+	return "", "", "", errors.Wrap(types.ErrInvalidWorkloadName, workloadName)
 }
 
 // MakePublishInfo generate publish info

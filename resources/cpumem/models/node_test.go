@@ -27,7 +27,7 @@ func TestAddNode(t *testing.T) {
 
 	// existent node
 	_, err := cpuMem.AddNode(ctx, nodes[0], resourceOpts)
-	assert.Equal(t, err, types.ErrNodeExists)
+	assert.Equal(t, err, coretypes.ErrNodeExists)
 
 	// normal case
 	resourceInfo, err := cpuMem.AddNode(ctx, node, resourceOpts)

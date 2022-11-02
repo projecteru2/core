@@ -44,7 +44,7 @@ func TestSend(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	// failed by GetWorkload
-	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.Send(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -61,7 +61,7 @@ func TestSend(t *testing.T) {
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything,
-	).Return(types.ErrNoETCD).Once()
+	).Return(types.ErrMockError).Once()
 	ch, err = c.Send(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {

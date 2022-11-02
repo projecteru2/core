@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/cornelk/hashmap"
 	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
@@ -81,7 +82,7 @@ func (h *Hydro) Recover(ctx context.Context) {
 func (h *Hydro) Log(eventyp string, item interface{}) (Commit, error) {
 	handler, ok := h.getEventHandler(eventyp)
 	if !ok {
-		return nil, coretypes.NewDetailedErr(coretypes.ErrInvaildWALEventType, eventyp)
+		return nil, errors.Wrap(coretypes.ErrInvaildWALEventType, eventyp)
 	}
 
 	bs, err := handler.Encode(item) // TODO 2 times encode is necessary?

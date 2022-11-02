@@ -18,7 +18,7 @@ func (c *CPUMem) AddNode(ctx context.Context, node string, resourceOpts *types.N
 			return nil, err
 		}
 	} else {
-		return nil, types.ErrNodeExists
+		return nil, coretypes.ErrNodeExists
 	}
 
 	resourceInfo := &types.NodeResourceInfo{

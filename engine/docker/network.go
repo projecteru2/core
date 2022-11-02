@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 
+	"github.com/cockroachdb/errors"
 	dockertypes "github.com/docker/docker/api/types"
 	dockerfilters "github.com/docker/docker/api/types/filters"
 	dockernetwork "github.com/docker/docker/api/types/network"
@@ -69,7 +70,7 @@ func (e *Engine) makeIPV4EndpointSetting(ipv4 string) (*dockernetwork.EndpointSe
 	if ipv4 != "" {
 		ip := net.ParseIP(ipv4)
 		if ip == nil {
-			return nil, coretypes.NewDetailedErr(coretypes.ErrInvaildIPAddress, ipv4)
+			return nil, errors.Wrapf(coretypes.ErrInvaildIPAddress, "ip: %s", ipv4)
 		}
 		config.IPAMConfig.IPv4Address = ip.String()
 	}

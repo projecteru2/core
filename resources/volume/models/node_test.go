@@ -24,7 +24,7 @@ func TestAddNode(t *testing.T) {
 
 	// existent node
 	_, err := volume.AddNode(ctx, nodes[0], resourceOpts)
-	assert.ErrorIs(t, err, types.ErrNodeExists)
+	assert.ErrorIs(t, err, coretypes.ErrNodeExists)
 
 	// normal case
 	resourceInfo, err := volume.AddNode(ctx, "new-node", resourceOpts)

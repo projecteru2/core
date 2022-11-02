@@ -26,7 +26,7 @@ func TestPodResource(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 
 	// failed by GetNodesByPod
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.PodResource(ctx, podname)
 	assert.Error(t, err)
 	store.AssertExpectations(t)
@@ -40,7 +40,7 @@ func TestPodResource(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
 	// failed by ListNodeWorkloads
-	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err = c.PodResource(ctx, podname)
 	assert.NoError(t, err)
 	msg := <-ch
@@ -55,7 +55,7 @@ func TestPodResource(t *testing.T) {
 
 	// failed by GetNodeResourceInfo
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		nil, nil, nil, types.ErrNoETCD).Once()
+		nil, nil, nil, types.ErrMockError).Once()
 	ch, err = c.PodResource(ctx, podname)
 	msg = <-ch
 	assert.NoError(t, err)
@@ -108,7 +108,7 @@ func TestNodeResource(t *testing.T) {
 		{ResourceArgs: map[string]types.WorkloadResourceArgs{}, Engine: engine},
 	}
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
-	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
+	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
 
 	nr, err := c.NodeResource(ctx, nodename, true)
 	assert.NoError(t, err)

@@ -3,11 +3,10 @@ package resources
 import (
 	"context"
 
+	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/hashicorp/go-multierror"
 )
 
 // PluginsManager manages plugins
@@ -73,7 +72,7 @@ func callPlugins[T any](ctx context.Context, plugins []Plugin, f func(Plugin) (T
 		result, err := f(plugin)
 		if err != nil {
 			log.Errorf(ctx, err, "[callPlugins] failed to call plugin %+v", plugin.Name())
-			combinedErr = multierror.Append(combinedErr, types.NewDetailedErr(err, plugin.Name()))
+			combinedErr = errors.CombineErrors(combinedErr, errors.Wrap(err, plugin.Name()))
 			continue
 		}
 		results[plugin] = result

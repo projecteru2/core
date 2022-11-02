@@ -37,7 +37,7 @@ func TestAddNode(t *testing.T) {
 
 	// failed by rmgr.AddNode
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, types.ErrNoETCD).Once()
+	rmgr.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, types.ErrMockError).Once()
 	_, err = c.AddNode(ctx, opts)
 	assert.Error(t, err)
 	rmgr.AssertExpectations(t)
@@ -47,7 +47,7 @@ func TestAddNode(t *testing.T) {
 
 	// failed by store.AddNode
 	store := c.store.(*storemocks.Store)
-	store.On("AddNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("AddNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err = c.AddNode(ctx, opts)
 	assert.Error(t, err)
 	store.AssertExpectations(t)
@@ -79,7 +79,7 @@ func TestRemoveNode(t *testing.T) {
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 
 	// fail, ListNodeWorkloads fail
-	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{}, types.ErrNoETCD).Once()
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{}, types.ErrMockError).Once()
 	assert.Error(t, c.RemoveNode(ctx, name))
 
 	// fail, node still has associated workloads
@@ -89,7 +89,7 @@ func TestRemoveNode(t *testing.T) {
 
 	// fail by store.RemoveNode
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{}, nil)
-	store.On("RemoveNode", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
+	store.On("RemoveNode", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
 	assert.Error(t, c.RemoveNode(ctx, name))
 
 	// success
@@ -108,14 +108,14 @@ func TestListPodNodes(t *testing.T) {
 	opts := &types.ListNodesOptions{}
 	store := c.store.(*storemocks.Store)
 	// failed by GetNodesByPod
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := c.ListPodNodes(ctx, opts)
 	assert.Error(t, err)
 	store.AssertExpectations(t)
 
 	// success
 	engine := &enginemocks.API{}
-	engine.On("Info", mock.Anything).Return(nil, types.ErrNoETCD)
+	engine.On("Info", mock.Anything).Return(nil, types.ErrMockError)
 	name1 := "test1"
 	name2 := "test2"
 	nodes := []*types.Node{
@@ -124,7 +124,7 @@ func TestListPodNodes(t *testing.T) {
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrNoETCD)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrMockError)
 	opts.CallInfo = true
 
 	ns, err := c.ListPodNodes(ctx, &types.ListNodesOptions{})
@@ -148,7 +148,7 @@ func TestGetNode(t *testing.T) {
 
 	// failed by store.GetNode
 	store := c.store.(*storemocks.Store)
-	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err = c.GetNode(ctx, nodename)
 	assert.Error(t, err)
 
@@ -159,7 +159,7 @@ func TestGetNode(t *testing.T) {
 
 	// failed by GetNodeResourceInfo
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrNoETCD).Once()
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrMockError).Once()
 	_, err = c.GetNode(ctx, nodename)
 	assert.Error(t, err)
 
@@ -185,7 +185,7 @@ func TestGetNodeEngine(t *testing.T) {
 
 	// fail by store.GetNode
 	store := c.store.(*storemocks.Store)
-	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err = c.GetNode(ctx, nodename)
 	assert.Error(t, err)
 
@@ -226,7 +226,7 @@ func TestSetNode(t *testing.T) {
 
 	// failed by GetNodeResourceInfo
 	rmgr := c.rmgr.(*resourcemocks.Manager)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrNoETCD).Once()
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrMockError).Once()
 	_, err = c.SetNode(ctx, opts)
 	assert.Error(t, err)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
@@ -250,7 +250,7 @@ func TestSetNode(t *testing.T) {
 	// failed by SetNodeResourceCapacity
 	opts.ResourceOpts = types.NodeResourceOpts{"a": 1}
 	rmgr.On("SetNodeResourceCapacity", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		nil, nil, types.ErrNoETCD,
+		nil, nil, types.ErrMockError,
 	).Once()
 	_, err = c.SetNode(ctx, opts)
 	assert.Error(t, err)
@@ -259,7 +259,7 @@ func TestSetNode(t *testing.T) {
 	)
 
 	// rollback
-	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
+	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
 	_, err = c.SetNode(ctx, opts)
 	assert.Error(t, err)
 	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
@@ -282,7 +282,7 @@ func TestFilterNodes(t *testing.T) {
 
 	// failed by GetNode
 	nf := &types.NodeFilter{Includes: []string{"test"}}
-	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := c.filterNodes(ctx, nf)
 	assert.Error(t, err)
 
@@ -295,7 +295,7 @@ func TestFilterNodes(t *testing.T) {
 
 	// failed by GetNodesByPod
 	nf.Includes = []string{}
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err = c.filterNodes(ctx, nf)
 	assert.Error(t, err)
 

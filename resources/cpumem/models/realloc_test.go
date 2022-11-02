@@ -62,7 +62,7 @@ func TestRealloc(t *testing.T) {
 		MemLimit:    0,
 	}
 	_, _, _, err = cpuMem.GetReallocArgs(ctx, node, originResourceArgs, opts)
-	assert.True(t, errors.Is(err, types.ErrInsufficientResource))
+	assert.True(t, errors.Is(err, coretypes.ErrInsufficientResource))
 
 	// normal case (with cpu-bind)
 	opts = &types.WorkloadResourceOpts{
@@ -98,5 +98,5 @@ func TestRealloc(t *testing.T) {
 		MemLimit:    units.PiB,
 	}
 	_, _, _, err = cpuMem.GetReallocArgs(ctx, node, originResourceArgs, opts)
-	assert.True(t, errors.Is(err, types.ErrInsufficientMem))
+	assert.True(t, errors.Is(err, coretypes.ErrInsufficientResource))
 }

@@ -23,7 +23,7 @@ func TestCacheImage(t *testing.T) {
 	_, err := c.CacheImage(ctx, &types.ImageOptions{Podname: ""})
 	assert.Error(t, err)
 	// fail by get nodes
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err = c.CacheImage(ctx, &types.ImageOptions{Podname: "podname"})
 	assert.Error(t, err)
 	// fail 0 nodes
@@ -41,9 +41,9 @@ func TestCacheImage(t *testing.T) {
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
 	// fail by ImageRemoteDigest
-	engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	engine.On("ImageRemoteDigest", mock.Anything, mock.Anything).Return("", types.ErrNoETCD).Once()
-	engine.On("ImagePull", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	engine.On("ImageRemoteDigest", mock.Anything, mock.Anything).Return("", types.ErrMockError).Once()
+	engine.On("ImagePull", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.CacheImage(ctx, &types.ImageOptions{Podname: "podname", Images: []string{"xx"}})
 	for c := range ch {
 		assert.False(t, c.Success)
@@ -68,7 +68,7 @@ func TestRemoveImage(t *testing.T) {
 	_, err := c.RemoveImage(ctx, &types.ImageOptions{Podname: ""})
 	assert.Error(t, err)
 	// fail by get nodes
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err = c.RemoveImage(ctx, &types.ImageOptions{Podname: "podname"})
 	assert.Error(t, err)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
@@ -86,14 +86,14 @@ func TestRemoveImage(t *testing.T) {
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
 	// fail remove
-	engine.On("ImageRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	engine.On("ImageRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.RemoveImage(ctx, &types.ImageOptions{Podname: "podname", Images: []string{"xx"}})
 	for c := range ch {
 		assert.False(t, c.Success)
 	}
 	engine.On("ImageRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]string{"xx"}, nil)
 	// success remove but prune fail
-	engine.On("ImagesPrune", mock.Anything).Return(types.ErrNoETCD).Once()
+	engine.On("ImagesPrune", mock.Anything).Return(types.ErrMockError).Once()
 	ch, err = c.RemoveImage(ctx, &types.ImageOptions{Podname: "podname", Images: []string{"xx"}, Prune: true})
 	for c := range ch {
 		assert.True(t, c.Success)
@@ -112,7 +112,7 @@ func TestListImage(t *testing.T) {
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
 	// fail by get nodes
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := c.ListImage(ctx, &types.ImageOptions{Podname: "podname"})
 	assert.Error(t, err)
 	// fail 0 nodes
@@ -130,7 +130,7 @@ func TestListImage(t *testing.T) {
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
 	// fail by ImageList
-	engine.On("ImageList", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	engine.On("ImageList", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.ListImage(ctx, &types.ImageOptions{Podname: "podname"})
 	msg := <-ch
 	assert.Error(t, msg.Error)

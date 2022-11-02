@@ -42,7 +42,7 @@ func TestDissociateWorkload(t *testing.T) {
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	// failed by lock
 	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.DissociateWorkload(ctx, []string{"c1"})
 	assert.NoError(t, err)
 	for r := range ch {
@@ -57,8 +57,8 @@ func TestDissociateWorkload(t *testing.T) {
 		map[string]types.NodeResourceArgs{},
 		nil,
 	)
-	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
-	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
 	ch, err = c.DissociateWorkload(ctx, []string{"c1"})
 	assert.NoError(t, err)
 	for r := range ch {

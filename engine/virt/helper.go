@@ -19,7 +19,7 @@ func (v *Virt) parseVolumes(volumes []string) ([]string, error) {
 	for _, bind := range volumes {
 		parts := strings.Split(bind, ":")
 		if len(parts) != 4 && len(parts) != 8 {
-			return nil, coretypes.NewDetailedErr(coretypes.ErrInvalidVolumeBind, bind)
+			return nil, errors.Wrapf(coretypes.ErrInvalidVolumeBind, "bind: %s", bind)
 		}
 
 		src := parts[0]
@@ -48,7 +48,7 @@ func (v *Virt) parseVolumes(volumes []string) ([]string, error) {
 }
 
 func splitUserImage(combined string) (user, imageName string, err error) {
-	inputErr := errors.Errorf("input: \"%s\" not valid", combined)
+	inputErr := errors.Newf("input: \"%s\" not valid", combined)
 	if len(combined) < 1 {
 		return "", "", inputErr
 	}

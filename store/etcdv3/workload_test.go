@@ -153,7 +153,7 @@ func TestSetWorkloadStatus(t *testing.T) {
 	workload.StatusMeta.Nodename = "n1"
 	// no workload, err nil
 	err = m.SetWorkloadStatus(ctx, workload.StatusMeta, 10)
-	assert.Equal(t, err, types.ErrEntityNotExists)
+	assert.Equal(t, err, types.ErrInvaildCount)
 	assert.NoError(t, m.AddWorkload(ctx, workload, nil))
 	// no status key, put succ, err nil
 	err = m.SetWorkloadStatus(ctx, workload.StatusMeta, 10)

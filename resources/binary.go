@@ -10,7 +10,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/cockroachdb/errors"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
@@ -239,9 +238,7 @@ func (bp *BinaryPlugin) execCommand(cmd *exec.Cmd) (output, log string, err erro
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	if err = cmd.Run(); err != nil {
-		err = errors.Errorf("err: %+v, output: %+v, log: %+v", err, output, log)
-	}
+	err = cmd.Run()
 	return stdout.String(), stderr.String(), err
 }
 

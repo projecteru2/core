@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/types"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -41,8 +42,7 @@ func (m *Mercury) RemovePod(ctx context.Context, podname string) error {
 	}
 
 	if l := len(ns); l != 0 {
-		return types.NewDetailedErr(types.ErrPodHasNodes,
-			fmt.Sprintf("pod %s still has %d nodes, delete them first", podname, l))
+		return errors.Wrapf(types.ErrPodHasNodes, "pod %s still has %d nodes, delete them first", podname, l)
 	}
 
 	resp, err := m.Delete(ctx, key)
@@ -50,7 +50,7 @@ func (m *Mercury) RemovePod(ctx context.Context, podname string) error {
 		return err
 	}
 	if resp.Deleted != 1 {
-		return types.NewDetailedErr(types.ErrPodNotFound, podname)
+		return errors.Wrapf(types.ErrPodNotFound, "podname: %s", podname)
 	}
 	return nil
 }

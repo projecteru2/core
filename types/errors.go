@@ -5,8 +5,6 @@ import (
 )
 
 var (
-	//
-
 	// Scheduler
 	ErrInsufficientCapacity  = errors.New("cannot alloc a plan, not enough nodes capacity")
 	ErrInsufficientResource  = errors.New("cannot alloc a plan, not enough resource")
@@ -17,6 +15,7 @@ var (
 	ErrInvaildNodeEndpoint  = errors.New("invaild node endpoint")
 	ErrNodeNotEmpty         = errors.New("node not empty, still has workloads associated")
 	ErrNodeNotExists        = errors.New("node not exists")
+	ErrNodeExists           = errors.New("node already exists")
 	ErrInvaildNodeStatusTTL = errors.New("invaild TTL for node status, should be > 0")
 
 	// Lock
@@ -27,24 +26,26 @@ var (
 	ErrInvaildEruIPAddress = errors.New("invalid eru address")
 
 	// SCM
-	ErrInvaildSCMType = errors.New("SCM type not support yet")
+	ErrInvaildSCMType          = errors.New("SCM type not support yet")
+	ErrDownloadArtifactsFailed = errors.New("download artifacts failed")
 
 	// General
 	ErrInvaildIPAddress     = errors.New("invalid IP address")
+	ErrInvaildIPWithPort    = errors.New("invaild IP with port")
 	ErrICMPLost             = errors.New("icmp packets lost")
 	ErrAllConnectionsFailed = errors.New("all connections failed")
 	ErrUnexpectedRedirect   = errors.New("unexpected redirect")
 
 	// Engine
-	ErrInvaildMemory        = errors.New("invaild `Memory` value setting")
-	ErrNilEngine            = errors.New("engine is nil")
-	ErrInvaildRefs          = errors.New("invalid image refs")
-	ErrNoImage              = errors.New("no image")
-	ErrNoImageUser          = errors.New("no image user")
-	ErrInvaildRemoteDigest  = errors.New("got invaild digest")
-	ErrNotSupportEndpoint   = errors.New("not Support endpoint")
-	ErrEngineNotImplemented = errors.New("not implemented")
-	ErrInvalidEngineArgs    = errors.New("invalid engine args")
+	ErrInvaildMemory         = errors.New("invaild `Memory` value setting")
+	ErrNilEngine             = errors.New("engine is nil")
+	ErrInvaildRefs           = errors.New("invalid image refs")
+	ErrNoImage               = errors.New("no image")
+	ErrNoImageUser           = errors.New("no image user")
+	ErrInvaildRemoteDigest   = errors.New("got invaild digest")
+	ErrInvaildEngineEndpoint = errors.New("not Support endpoint")
+	ErrEngineNotImplemented  = errors.New("not implemented")
+	ErrInvalidEngineArgs     = errors.New("invalid engine args")
 
 	// Workload
 	ErrInvaildWorkloadStatus = errors.New("status has no appname / entrypoint / nodename")
@@ -106,13 +107,23 @@ var (
 	ErrInvalidWALDataType  = errors.New("invalid WAL data type")
 
 	// Create
+	ErrInvaildDeployCount    = errors.New("invaild deploy count")
 	ErrRollbackMapIsNotEmpty = errors.New("rollback map is not empty")
 	ErrGetMostIdleNodeFailed = errors.New("get most idle node failed")
 
 	// Selfmon
 	ErrMessageChanClosed = errors.New("message chan closed")
 
-	// file
+	// File
 	ErrNoFilesToSend = errors.New("no files to send")
 	ErrNoFilesToCopy = errors.New("no files to copy")
+
+	// Core
+	ErrInvaildCoreEndpointType = errors.New("invaild Core endpoint type")
+
+	// Test
+	ErrMockError = errors.New("mock error")
+
+	// Metrics
+	ErrMetricsTypeNotSupport = errors.New("metrics type not support")
 )

@@ -59,14 +59,14 @@ func TestRealloc(t *testing.T) {
 	}
 
 	// failed by GetNode
-	store.On("GetNode", mock.Anything, "node1").Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, "node1").Return(nil, types.ErrMockError).Once()
 	err := c.ReallocResource(ctx, opts)
 	assert.EqualError(t, err, "ETCD must be set")
 	store.AssertExpectations(t)
 	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
 
 	// failed by lock
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	err = c.ReallocResource(ctx, opts)
 	assert.EqualError(t, err, "ETCD must be set")
 	store.AssertExpectations(t)
@@ -75,7 +75,7 @@ func TestRealloc(t *testing.T) {
 
 	// failed by plugin
 	rmgr.On("Realloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		types.EngineArgs{}, nil, nil, types.ErrNoETCD,
+		types.EngineArgs{}, nil, nil, types.ErrMockError,
 	).Once()
 	err = c.ReallocResource(ctx, opts)
 	assert.Error(t, err)
@@ -88,7 +88,7 @@ func TestRealloc(t *testing.T) {
 	rmgr.On("RollbackRealloc", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	// failed by UpdateWorkload
-	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
+	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
 	err = c.ReallocResource(ctx, opts)
 	assert.EqualError(t, err, "ETCD must be set")
 	store.AssertExpectations(t)
@@ -101,7 +101,7 @@ func TestRealloc(t *testing.T) {
 	engine.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	// success
-	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
 	err = c.ReallocResource(ctx, opts)
 	assert.Nil(t, err)
 }

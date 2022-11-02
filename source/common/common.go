@@ -123,7 +123,7 @@ func (g *GitScm) Artifact(ctx context.Context, artifact, path string) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return errors.Errorf("Download artifact error %q, code %d", artifact, resp.StatusCode)
+		return errors.Wrapf(types.ErrDownloadArtifactsFailed, "code: %d", resp.StatusCode)
 	}
 
 	// extract files from zipfile

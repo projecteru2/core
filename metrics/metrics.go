@@ -77,7 +77,7 @@ func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*resources.Metrics
 				log.Errorf(ctx, err, "[SendMetrics] Error occurred while sending %+v data to statsd", metric.Name)
 			}
 		default:
-			log.Errorf(ctx, types.ErrInvalidType, "[SendMetrics] Unknown collector type: %T", collector)
+			log.Errorf(ctx, types.ErrMetricsTypeNotSupport, "[SendMetrics] Unknown collector type: %T", collector)
 		}
 	}
 }

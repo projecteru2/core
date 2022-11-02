@@ -3,7 +3,6 @@ package strategy
 import (
 	"container/heap"
 	"context"
-	"fmt"
 
 	"github.com/projecteru2/core/types"
 
@@ -60,8 +59,7 @@ func newInfoHeap(infos []Info, limit int) heap.Interface {
 // 部署完 N 个后全局尽可能平均
 func CommunismPlan(ctx context.Context, infos []Info, need, total, limit int) (map[string]int, error) {
 	if total < need {
-		return nil, types.NewDetailedErr(types.ErrInsufficientResource,
-			fmt.Sprintf("need: %d, available: %d", need, total))
+		return nil, errors.Wrapf(types.ErrInsufficientResource, "need: %d, available: %d", need, total)
 	}
 
 	deploy := map[string]int{}

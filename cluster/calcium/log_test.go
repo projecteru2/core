@@ -26,7 +26,7 @@ func TestLogStream(t *testing.T) {
 	ctx := context.Background()
 	opts := &types.LogStreamOptions{ID: ID}
 	// failed by GetWorkload
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.LogStream(ctx, opts)
 	assert.NoError(t, err)
 	for c := range ch {
@@ -35,7 +35,7 @@ func TestLogStream(t *testing.T) {
 	}
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	// failed by VirtualizationLogs
-	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(nil, nil, types.ErrInvalidType).Once()
+	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(nil, nil, types.ErrMockError).Once()
 	ch, err = c.LogStream(ctx, opts)
 	assert.NoError(t, err)
 	for c := range ch {

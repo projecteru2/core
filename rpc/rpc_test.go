@@ -26,7 +26,7 @@ func TestAddPod(t *testing.T) {
 	v := newVibranium()
 	opts := &pb.AddPodOptions{}
 	cluster := v.cluster.(*clustermock.Cluster)
-	cluster.On("AddPod", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	cluster.On("AddPod", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := v.AddPod(context.Background(), opts)
 	assert.Error(t, err)
 	cluster.On("AddPod", mock.Anything, mock.Anything, mock.Anything).Return(&types.Pod{Name: "test", Desc: "test"}, nil)
@@ -42,7 +42,7 @@ func TestAddNode(t *testing.T) {
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
-	).Return(nil, types.ErrNoETCD).Once()
+	).Return(nil, types.ErrMockError).Once()
 	_, err := v.AddNode(context.Background(), opts)
 	assert.Error(t, err)
 	engine := &enginemock.API{}

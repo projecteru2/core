@@ -20,14 +20,14 @@ func TestDoLock(t *testing.T) {
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
 	// create lock failed
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, _, err := c.doLock(ctx, "somename", 1)
 	assert.Error(t, err)
 
 	lock := &lockmocks.DistributedLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	// lock failed
-	lock.On("Lock", mock.Anything).Return(context.TODO(), types.ErrNoETCD).Once()
+	lock.On("Lock", mock.Anything).Return(context.TODO(), types.ErrMockError).Once()
 	lock.On("Unlock", mock.Anything).Return(nil).Once()
 	_, _, err = c.doLock(ctx, "somename", 1)
 	assert.Error(t, err)
@@ -44,7 +44,7 @@ func TestDoUnlockAll(t *testing.T) {
 	locks["somename"] = lock
 
 	// failed
-	lock.On("Unlock", mock.Anything).Return(types.ErrNoETCD)
+	lock.On("Unlock", mock.Anything).Return(types.ErrMockError)
 	c.doUnlockAll(context.Background(), locks)
 }
 
@@ -57,14 +57,14 @@ func TestWithWorkloadsLocked(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	// failed to get lock
-	lock.On("Lock", mock.Anything).Return(context.TODO(), types.ErrNoETCD).Once()
+	lock.On("Lock", mock.Anything).Return(context.TODO(), types.ErrMockError).Once()
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{{}}, nil).Once()
 	err := c.withWorkloadsLocked(ctx, []string{"c1", "c2"}, func(ctx context.Context, workloads map[string]*types.Workload) error { return nil })
 	assert.Error(t, err)
 	// success
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	// failed by getworkload
-	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	err = c.withWorkloadsLocked(ctx, []string{"c1", "c2"}, func(ctx context.Context, workloads map[string]*types.Workload) error { return nil })
 	assert.Error(t, err)
 	engine := &enginemocks.API{}
@@ -90,14 +90,14 @@ func TestWithWorkloadLocked(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	// failed to get lock
-	lock.On("Lock", mock.Anything).Return(context.TODO(), types.ErrNoETCD).Once()
+	lock.On("Lock", mock.Anything).Return(context.TODO(), types.ErrMockError).Once()
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{{}}, nil).Once()
 	err := c.withWorkloadLocked(ctx, "c1", func(ctx context.Context, workload *types.Workload) error { return nil })
 	assert.Error(t, err)
 	// success
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	// failed by getworkload
-	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	err = c.withWorkloadLocked(ctx, "c1", func(ctx context.Context, workload *types.Workload) error { return nil })
 	assert.Error(t, err)
 	engine := &enginemocks.API{}
@@ -132,7 +132,7 @@ func TestWithNodesPodLocked(t *testing.T) {
 		Available: true,
 	}
 	// failed by list nodes
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, types.ErrNoETCD).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, types.ErrMockError).Once()
 	err := c.withNodesPodLocked(ctx, &types.NodeFilter{Podname: "test", All: false}, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
@@ -146,7 +146,7 @@ func TestWithNodesPodLocked(t *testing.T) {
 	assert.Empty(t, ns)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, nil)
 	// failed by getnode
-	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	err = c.withNodesPodLocked(ctx, &types.NodeFilter{Podname: "test", Includes: []string{"test"}, All: false}, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node1, nil).Once()
@@ -155,12 +155,12 @@ func TestWithNodesPodLocked(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	// failed to get lock
-	lock.On("Lock", mock.Anything).Return(context.TODO(), types.ErrNoETCD).Once()
+	lock.On("Lock", mock.Anything).Return(context.TODO(), types.ErrMockError).Once()
 	err = c.withNodesPodLocked(ctx, &types.NodeFilter{Podname: "test", Includes: []string{"test"}, All: false}, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	// failed by get locked node
-	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	err = c.withNodesPodLocked(ctx, &types.NodeFilter{Podname: "test", Includes: []string{"test"}, All: false}, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node1, nil)
@@ -195,7 +195,7 @@ func TestWithNodePodLocked(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	// failed by get locked node
-	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	err := c.withNodePodLocked(ctx, "test", func(ctx context.Context, node *types.Node) error { return nil })
 	assert.Error(t, err)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node1, nil)
@@ -224,7 +224,7 @@ func TestWithNodesOperationLocked(t *testing.T) {
 		Available: true,
 	}
 	// failed by list nodes
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, types.ErrNoETCD).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, types.ErrMockError).Once()
 	err := c.withNodesOperationLocked(ctx, &types.NodeFilter{Podname: "test", All: false}, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
@@ -238,7 +238,7 @@ func TestWithNodesOperationLocked(t *testing.T) {
 	assert.Empty(t, ns)
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, nil)
 	// failed by getnode
-	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	err = c.withNodesOperationLocked(ctx, &types.NodeFilter{Podname: "test", Includes: []string{"test"}, All: false}, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node1, nil).Once()
@@ -247,12 +247,12 @@ func TestWithNodesOperationLocked(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	// failed to get lock
-	lock.On("Lock", mock.Anything).Return(context.TODO(), types.ErrNoETCD).Once()
+	lock.On("Lock", mock.Anything).Return(context.TODO(), types.ErrMockError).Once()
 	err = c.withNodesOperationLocked(ctx, &types.NodeFilter{Podname: "test", Includes: []string{"test"}, All: false}, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	// failed by get locked node
-	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	err = c.withNodesOperationLocked(ctx, &types.NodeFilter{Podname: "test", Includes: []string{"test"}, All: false}, func(ctx context.Context, nodes map[string]*types.Node) error { return nil })
 	assert.Error(t, err)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node1, nil)
@@ -286,7 +286,7 @@ func TestWithNodeOperationLocked(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	// failed by get locked node
-	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	err := c.withNodeOperationLocked(ctx, "test", func(ctx context.Context, node *types.Node) error { return nil })
 	assert.Error(t, err)
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node1, nil)

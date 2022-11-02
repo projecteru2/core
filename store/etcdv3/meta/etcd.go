@@ -111,7 +111,7 @@ func (e *ETCD) GetOne(ctx context.Context, key string, opts ...clientv3.OpOption
 		return nil, err
 	}
 	if resp.Count != 1 {
-		return nil, types.NewDetailedErr(types.ErrInvaildCount, fmt.Sprintf("key: %s", key))
+		return nil, errors.Wrapf(types.ErrInvaildCount, "key: %s", key)
 	}
 	return resp.Kvs[0], nil
 }
@@ -128,12 +128,12 @@ func (e *ETCD) GetMulti(ctx context.Context, keys []string, opts ...clientv3.OpO
 	for idx, responseOp := range txnResponse.Responses {
 		resp := responseOp.GetResponseRange()
 		if resp.Count != 1 {
-			return nil, types.NewDetailedErr(types.ErrInvaildCount, fmt.Sprintf("key: %s", keys[idx]))
+			return nil, errors.Wrapf(types.ErrInvaildCount, "key: %s", keys[idx])
 		}
 		kvs = append(kvs, resp.Kvs[0])
 	}
 	if len(kvs) != len(keys) {
-		err = types.NewDetailedErr(types.ErrInvaildCount, fmt.Sprintf("keys: %+v", keys))
+		err = errors.Wrapf(types.ErrInvaildCount, "keys: %+v", keys)
 	}
 	return
 }
@@ -331,7 +331,7 @@ func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, stat
 	// There isn't the entity kv pair.
 	if !entityTxn.Succeeded {
 		e.revokeLease(ctx, leaseID)
-		return types.ErrEntityNotExists
+		return types.ErrInvaildCount
 	}
 
 	// if ttl is changed, replace with the new lease
@@ -543,7 +543,7 @@ func (e *ETCD) BatchCreateAndDecr(ctx context.Context, data map[string]string, d
 		return
 	}
 	if len(resp.Kvs) == 0 {
-		return types.NewDetailedErr(types.ErrKeyNotExists, decrKey)
+		return errors.Wrap(types.ErrKeyNotExists, decrKey)
 	}
 
 	decrKv := resp.Kvs[0]
