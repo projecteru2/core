@@ -28,7 +28,7 @@ type RedisLock struct {
 // lockTTL: ttl of lock, after this time, lock will be released automatically
 func New(cli redislock.RedisClient, key string, waitTimeout, lockTTL time.Duration) (*RedisLock, error) {
 	if key == "" {
-		return nil, types.ErrKeyIsEmpty
+		return nil, types.ErrLockKeyInvaild
 	}
 
 	if !strings.HasPrefix(key, "/") {

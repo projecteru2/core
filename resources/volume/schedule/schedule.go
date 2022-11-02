@@ -5,7 +5,7 @@ import (
 	"math"
 	"sort"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources/volume/types"

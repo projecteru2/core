@@ -7,7 +7,7 @@ import (
 
 	"github.com/projecteru2/core/types"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 )
 
 type infoHeap struct {
@@ -60,7 +60,7 @@ func newInfoHeap(infos []Info, limit int) heap.Interface {
 // 部署完 N 个后全局尽可能平均
 func CommunismPlan(ctx context.Context, infos []Info, need, total, limit int) (map[string]int, error) {
 	if total < need {
-		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
+		return nil, types.NewDetailedErr(types.ErrInsufficientResource,
 			fmt.Sprintf("need: %d, available: %d", need, total))
 	}
 
@@ -69,7 +69,7 @@ func CommunismPlan(ctx context.Context, infos []Info, need, total, limit int) (m
 	heap.Init(iHeap)
 	for {
 		if iHeap.Len() == 0 {
-			return nil, errors.Wrapf(types.ErrInsufficientRes, "reached nodelimit, a node can host at most %d instances", limit)
+			return nil, errors.Wrapf(types.ErrInsufficientResource, "reached nodelimit, a node can host at most %d instances", limit)
 		}
 		info := heap.Pop(iHeap).(Info)
 		deploy[info.Nodename]++

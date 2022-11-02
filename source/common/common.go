@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 
@@ -71,7 +71,7 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 		opts.Auth = auth
 		repo, err = gogit.PlainCloneContext(ctx, path, false, opts)
 	default:
-		return types.ErrNotSupport
+		return types.ErrInvaildSCMType
 	}
 	if err != nil {
 		return err

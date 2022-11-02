@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
@@ -21,8 +21,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 	logger := log.WithField("Calcium", "BuildImage").WithField("opts", opts)
 	// Disable build API if scm not set
 	if c.source == nil {
-		logger.Error(ctx, types.ErrSCMNotSet)
-		return nil, types.ErrSCMNotSet
+		return nil, types.ErrNoSCMSetting
 	}
 	// select nodes
 	node, err := c.selectBuildNode(ctx)
@@ -45,8 +44,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 	case types.BuildFromExist:
 		refs, node, resp, err = c.buildFromExist(ctx, opts)
 	default:
-		logger.Error(ctx, types.ErrUnknownBuildType)
-		return nil, types.ErrUnknownBuildType
+		return nil, types.ErrInvaildBuildType
 	}
 	if err != nil {
 		logger.Error(ctx, err)
@@ -71,7 +69,7 @@ func (c *Calcium) selectBuildNode(ctx context.Context) (*types.Node, error) {
 	}
 
 	if len(nodes) == 0 {
-		return nil, types.ErrInsufficientNodes
+		return nil, types.ErrInsufficientCapacity
 	}
 	// get idle max node
 	return c.getMostIdleNode(ctx, nodes)

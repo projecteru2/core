@@ -5,7 +5,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 )
 
 // GetOutboundAddress finds out self-service address

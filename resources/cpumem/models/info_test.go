@@ -21,7 +21,7 @@ func TestGetNodeResourceInfo(t *testing.T) {
 
 	// invalid node
 	_, _, err := cpuMem.GetNodeResourceInfo(ctx, "xxx", nil, false)
-	assert.True(t, errors.Is(err, coretypes.ErrBadCount))
+	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
 
 	resourceInfo, diffs, err := cpuMem.GetNodeResourceInfo(ctx, node, nil, false)
 	assert.Nil(t, err)

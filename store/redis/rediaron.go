@@ -12,8 +12,8 @@ import (
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 
+	"github.com/cockroachdb/errors"
 	"github.com/go-redis/redis/v8"
-	"github.com/pkg/errors"
 )
 
 var (

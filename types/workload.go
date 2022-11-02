@@ -7,7 +7,7 @@ import (
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 )
 
 // StatusMeta indicate contaienr runtime

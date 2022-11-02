@@ -78,7 +78,7 @@ func TestGlobalPlan1(t *testing.T) {
 	}
 	arg = []Info{n1, n2, n3}
 	r, err = GlobalPlan(context.TODO(), arg, 100, 6, 0)
-	assert.ErrorIs(t, err, types.ErrInsufficientRes)
+	assert.ErrorIs(t, err, types.ErrInsufficientResource)
 
 	// fake total
 	n1 = Info{
@@ -101,7 +101,7 @@ func TestGlobalPlan1(t *testing.T) {
 	}
 	arg = []Info{n1, n2, n3}
 	r, err = GlobalPlan(context.TODO(), arg, 10, 100, 0)
-	assert.ErrorIs(t, err, types.ErrInsufficientRes)
+	assert.ErrorIs(t, err, types.ErrInsufficientResource)
 
 	// small rate
 	n1 = Info{

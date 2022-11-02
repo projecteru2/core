@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources/cpumem/types"
 	coretypes "github.com/projecteru2/core/types"
@@ -13,7 +13,7 @@ import (
 // AddNode .
 func (c *CPUMem) AddNode(ctx context.Context, node string, resourceOpts *types.NodeResourceOpts) (*types.NodeResourceInfo, error) {
 	if _, err := c.doGetNodeResourceInfo(ctx, node); err != nil {
-		if !errors.Is(err, coretypes.ErrBadCount) {
+		if !errors.Is(err, coretypes.ErrInvaildCount) {
 			log.Errorf(ctx, err, "[AddNode] failed to get resource info of node %+v", node)
 			return nil, err
 		}

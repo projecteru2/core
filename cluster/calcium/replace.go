@@ -11,7 +11,7 @@ import (
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 )
 
 // ReplaceWorkload replace workloads with same resource
@@ -73,7 +73,7 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 								if err != nil {
 									return err
 								} else if !info.Running {
-									return types.NewDetailedErr(types.ErrNotSupport,
+									return types.NewDetailedErr(types.ErrInvaildWorkloadOps,
 										fmt.Sprintf("workload %s is not running, can not inherit", workload.ID),
 									)
 								}
@@ -114,7 +114,7 @@ func (c *Calcium) doReplaceWorkload(
 	}
 	// label filter
 	if !utils.LabelsFilter(workload.Labels, opts.FilterLabels) {
-		return nil, removeMessage, types.ErrNotFitLabels
+		return nil, removeMessage, types.ErrWorkloadIgnored
 	}
 	// prepare node
 	node, err := c.doGetAndPrepareNode(ctx, workload.Nodename, opts.Image)

@@ -46,7 +46,7 @@ func (c *lockContext) Err() error {
 // New new a lock
 func New(cli *clientv3.Client, key string, ttl time.Duration) (*Mutex, error) {
 	if key == "" {
-		return nil, types.ErrKeyIsEmpty
+		return nil, types.ErrLockKeyInvaild
 	}
 
 	if !strings.HasPrefix(key, "/") {

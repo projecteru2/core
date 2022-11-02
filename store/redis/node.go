@@ -16,7 +16,7 @@ import (
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 )
 
 // AddNode save it to etcd
@@ -124,7 +124,7 @@ func (r *Rediaron) UpdateNodes(ctx context.Context, nodes ...*types.Node) error 
 // this is heartbeat of node
 func (r *Rediaron) SetNodeStatus(ctx context.Context, node *types.Node, ttl int64) error {
 	if ttl == 0 {
-		return types.ErrNodeStatusTTL
+		return types.ErrInvaildNodeStatusTTL
 	}
 
 	// nodenames are unique
@@ -300,7 +300,7 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 		node := node
 		_ = r.pool.Invoke(func() {
 			defer wg.Done()
-			if _, err := r.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrBadCount) {
+			if _, err := r.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrInvaildCount) {
 				log.Errorf(ctx, err, "[doGetNodes] failed to get node status of %+v", node.Name)
 			} else {
 				node.Available = err == nil

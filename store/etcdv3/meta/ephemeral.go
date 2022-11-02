@@ -8,7 +8,7 @@ import (
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 

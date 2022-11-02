@@ -49,7 +49,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	case strings.HasPrefix(endpoint, GRPCPrefixKey):
 		uri = "grpc://" + strings.TrimPrefix(endpoint, GRPCPrefixKey)
 	default:
-		return nil, coretypes.ErrNotSupport
+		return nil, coretypes.ErrNotSupportEndpoint
 	}
 
 	cli, err := virtapi.New(uri)

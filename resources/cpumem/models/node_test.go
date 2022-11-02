@@ -58,7 +58,7 @@ func TestRemoveNode(t *testing.T) {
 
 	assert.Nil(t, cpuMem.RemoveNode(ctx, nodes[0]))
 	_, _, err := cpuMem.GetNodeResourceInfo(ctx, nodes[0], nil, false)
-	assert.True(t, errors.Is(err, coretypes.ErrBadCount))
+	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
 
 	assert.Nil(t, cpuMem.RemoveNode(ctx, "xxx"))
 }

@@ -32,7 +32,7 @@ type Pool struct {
 // NewCoreRPCClientPool .
 func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error) {
 	if len(config.EruAddrs) == 0 {
-		return nil, types.ErrBadIPAddress
+		return nil, types.ErrInvaildEruIPAddress
 	}
 	c := &Pool{rpcClients: []*clientWithStatus{}}
 	for _, addr := range config.EruAddrs {

@@ -102,7 +102,7 @@ func (v *Virt) ImageBuildFromExist(ctx context.Context, ID string, refs []string
 		return "", types.ErrNoImageUser
 	}
 	if len(refs) != 1 {
-		return "", types.ErrBadRefs
+		return "", types.ErrInvaildRefs
 	}
 
 	_, imgName, err := splitUserImage(refs[0])
@@ -154,7 +154,7 @@ func (v *Virt) ImageRemoteDigest(ctx context.Context, image string) (string, err
 	case err != nil:
 		return "", err
 	case len(digests) < 1:
-		return "", types.ErrNoRemoteDigest
+		return "", types.ErrInvaildRemoteDigest
 	default:
 		return digests[0], nil
 	}

@@ -34,10 +34,10 @@ type strategyFunc = func(_ context.Context, _ []Info, need, total, limit int) (m
 func Deploy(ctx context.Context, strategy string, count, nodesLimit int, strategyInfos []Info, total int) (map[string]int, error) {
 	deployMethod, ok := Plans[strategy]
 	if !ok {
-		return nil, types.ErrBadDeployStrategy
+		return nil, types.ErrInvaildDeployStrategy
 	}
 	if count <= 0 {
-		return nil, types.ErrBadCount
+		return nil, types.ErrInvaildCount
 	}
 
 	log.Debugf(ctx, "[strategy.Deploy] infos %+v, need %d, total %d, limit %d", strategyInfos, count, total, nodesLimit)

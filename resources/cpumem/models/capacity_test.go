@@ -134,7 +134,7 @@ func TestGetNodesCapacityWithCPUBinding(t *testing.T) {
 		CPURequest: 0.5,
 		MemRequest: 1,
 	})
-	assert.True(t, errors.Is(err, coretypes.ErrBadCount))
+	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
 
 	_, total, err = cpuMem.GetNodesDeployCapacity(ctx, nodes, &types.WorkloadResourceOpts{
 		CPUBind:    true,

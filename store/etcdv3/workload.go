@@ -67,7 +67,7 @@ func (m *Mercury) GetWorkloadStatus(ctx context.Context, id string) (*types.Stat
 // SetWorkloadStatus set workload status
 func (m *Mercury) SetWorkloadStatus(ctx context.Context, status *types.StatusMeta, ttl int64) error {
 	if status.Appname == "" || status.Entrypoint == "" || status.Nodename == "" {
-		return types.ErrBadWorkloadStatus
+		return types.ErrInvaildWorkloadStatus
 	}
 
 	data, err := json.Marshal(status)
@@ -236,7 +236,7 @@ func (m *Mercury) bindWorkloadsAdditions(ctx context.Context, workloads []*types
 
 	for index, workload := range workloads {
 		if _, ok := nodes[workload.Nodename]; !ok {
-			return nil, types.ErrBadMeta
+			return nil, types.ErrInvaildWorkloadMeta
 		}
 		workloads[index].Engine = nodes[workload.Nodename].Engine
 		if _, ok := statusKeys[workload.ID]; !ok {

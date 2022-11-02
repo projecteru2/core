@@ -69,7 +69,7 @@ func (e *Engine) makeIPV4EndpointSetting(ipv4 string) (*dockernetwork.EndpointSe
 	if ipv4 != "" {
 		ip := net.ParseIP(ipv4)
 		if ip == nil {
-			return nil, coretypes.NewDetailedErr(coretypes.ErrBadIPAddress, ipv4)
+			return nil, coretypes.NewDetailedErr(coretypes.ErrInvaildIPAddress, ipv4)
 		}
 		config.IPAMConfig.IPv4Address = ip.String()
 	}

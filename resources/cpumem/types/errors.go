@@ -1,6 +1,6 @@
 package types
 
-import "github.com/pkg/errors"
+import "github.com/cockroachdb/errors"
 
 var (
 	ErrInvalidCapacity   = errors.New("invalid resource capacity")

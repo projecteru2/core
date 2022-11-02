@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 	coretypes "github.com/projecteru2/core/types"
 )
 
@@ -19,7 +19,7 @@ func (v *Virt) parseVolumes(volumes []string) ([]string, error) {
 	for _, bind := range volumes {
 		parts := strings.Split(bind, ":")
 		if len(parts) != 4 && len(parts) != 8 {
-			return nil, coretypes.NewDetailedErr(coretypes.ErrInvalidBind, bind)
+			return nil, coretypes.NewDetailedErr(coretypes.ErrInvalidVolumeBind, bind)
 		}
 
 		src := parts[0]

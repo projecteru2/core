@@ -143,7 +143,7 @@ func TestReplaceWorkload(t *testing.T) {
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	// failed by VirtualizationCopyFrom
 	opts.Copy = map[string]string{"src": "dst"}
-	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, 0, int64(0), types.ErrBadWorkloadID).Once()
+	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, 0, int64(0), types.ErrInvalidType).Once()
 	ch, err = c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {

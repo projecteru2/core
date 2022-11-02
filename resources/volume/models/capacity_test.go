@@ -30,7 +30,7 @@ func TestGetNodesDeployCapacity(t *testing.T) {
 		StorageRequest: 1,
 	}
 	_, _, err = volume.GetNodesDeployCapacity(ctx, []string{"invalid"}, resourceOpts)
-	assert.ErrorIs(t, err, coretypes.ErrBadCount)
+	assert.ErrorIs(t, err, coretypes.ErrInvaildCount)
 
 	// no volume request
 	resourceOpts = &types.WorkloadResourceOpts{

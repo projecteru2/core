@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/cornelk/hashmap"
-	"github.com/pkg/errors"
 )
 
 // MockedKV .

@@ -6,12 +6,13 @@ require (
 	github.com/CMGS/statsd v0.0.0-20160223095033-48c421b3c1ab
 	github.com/alicebob/miniredis/v2 v2.14.3
 	github.com/cenkalti/backoff/v4 v4.1.1
+	github.com/cockroachdb/errors v1.9.0
 	github.com/cornelk/hashmap v1.0.9-0.20221102000129-36b3b9c2b7ec
 	github.com/docker/distribution v2.8.0+incompatible
 	github.com/docker/docker v20.10.0+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.4.0
-	github.com/getsentry/sentry-go v0.9.0
+	github.com/getsentry/sentry-go v0.12.0
 	github.com/go-git/go-git/v5 v5.2.0
 	github.com/go-ping/ping v0.0.0-20210407214646-e4e642a95741
 	github.com/go-redis/redis/v8 v8.8.2
@@ -53,6 +54,8 @@ require (
 	github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
+	github.com/cockroachdb/logtags v0.0.0-20211118104740-dabe8e521a4f // indirect
+	github.com/cockroachdb/redact v1.1.3 // indirect
 	github.com/containerd/cgroups v1.0.3 // indirect
 	github.com/containerd/containerd v1.5.13 // indirect
 	github.com/containerd/continuity v0.1.0 // indirect
@@ -84,6 +87,8 @@ require (
 	github.com/json-iterator/go v1.1.11 // indirect
 	github.com/juju/errors v0.0.0-20220331221717-b38fca44723b // indirect
 	github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd // indirect
+	github.com/kr/pretty v0.3.0 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
@@ -100,6 +105,7 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.26.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
+	github.com/rogpeppe/go-internal v1.8.1 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
@@ -136,7 +142,7 @@ require (
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
 	golang.org/x/tools v0.1.8-0.20211029000441-d6a9af8af023 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c // indirect
+	google.golang.org/genproto v0.0.0-20210624195500-8bfb893ecb84 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

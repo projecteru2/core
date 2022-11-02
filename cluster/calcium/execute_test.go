@@ -29,7 +29,7 @@ func TestExecuteWorkload(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 
 	// failed by GetWorkload
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrInvaildCount).Once()
 	ID := "abc"
 	ch := c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: ID}, nil)
 	for ac := range ch {

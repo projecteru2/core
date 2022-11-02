@@ -4,7 +4,7 @@ import (
 	"context"
 	"math"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"

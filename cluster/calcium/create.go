@@ -26,12 +26,11 @@ func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions)
 		logger.Error(ctx, err)
 		return nil, err
 	}
-
 	opts.ProcessIdent = utils.RandomString(16)
 	logger.Infof(ctx, "[CreateWorkload %s] Creating workload with options:\n%s", opts.ProcessIdent, litter.Options{Compact: true}.Sdump(opts))
 	// Count 要大于0
 	if opts.Count <= 0 {
-		err := types.NewDetailedErr(types.ErrBadCount, opts.Count)
+		err := types.NewDetailedErr(types.ErrInvaildCount, opts.Count)
 		logger.Error(ctx, err)
 		return nil, err
 	}

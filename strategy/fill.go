@@ -21,7 +21,7 @@ func FillPlan(ctx context.Context, infos []Info, need, _, limit int) (_ map[stri
 		limit = scheduleInfosLength
 	}
 	if scheduleInfosLength < limit {
-		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
+		return nil, types.NewDetailedErr(types.ErrInsufficientResource,
 			fmt.Sprintf("node len %d cannot alloc a fill node plan", scheduleInfosLength))
 	}
 	sort.Slice(infos, func(i, j int) bool {
@@ -44,6 +44,6 @@ func FillPlan(ctx context.Context, infos []Info, need, _, limit int) (_ map[stri
 			}
 		}
 	}
-	return nil, types.NewDetailedErr(types.ErrInsufficientRes,
+	return nil, types.NewDetailedErr(types.ErrInsufficientResource,
 		fmt.Sprintf("not enough nodes that can fill up to %d instances, require %d nodes", need, limit))
 }

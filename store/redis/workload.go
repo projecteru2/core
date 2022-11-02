@@ -64,7 +64,7 @@ func (r *Rediaron) GetWorkloadStatus(ctx context.Context, id string) (*types.Sta
 // SetWorkloadStatus set workload status
 func (r *Rediaron) SetWorkloadStatus(ctx context.Context, status *types.StatusMeta, ttl int64) error {
 	if status.Appname == "" || status.Entrypoint == "" || status.Nodename == "" {
-		return types.ErrBadWorkloadStatus
+		return types.ErrInvaildWorkloadStatus
 	}
 
 	data, err := json.Marshal(status)
@@ -228,7 +228,7 @@ func (r *Rediaron) bindWorkloadsAdditions(ctx context.Context, workloads []*type
 
 	for index, workload := range workloads {
 		if _, ok := nodes[workload.Nodename]; !ok {
-			return nil, types.ErrBadMeta
+			return nil, types.ErrInvaildWorkloadMeta
 		}
 		workloads[index].Engine = nodes[workload.Nodename].Engine
 		if _, ok := statusKeys[workload.ID]; !ok {

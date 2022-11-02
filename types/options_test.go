@@ -132,7 +132,7 @@ func TestValidatingAddNodeOptions(t *testing.T) {
 	assert.Equal(ErrEmptyPodName, o.Validate())
 
 	o.Podname = "podname"
-	assert.Equal(ErrEmptyNodeEndpoint, o.Validate())
+	assert.Equal(ErrInvaildNodeEndpoint, o.Validate())
 
 	o.Endpoint = "tcp://endpoint:2376"
 	assert.NoError(o.Validate())

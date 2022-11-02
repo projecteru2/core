@@ -79,7 +79,7 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 
 	store := c.store.(*storemocks.Store)
 
-	err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("keys: [%s]", wrkid))
+	err = types.NewDetailedErr(types.ErrInvaildCount, fmt.Sprintf("keys: [%s]", wrkid))
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(wrk, err).Once()
 	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, err).Once()
 	c.wal.Recover(context.TODO())
@@ -133,7 +133,7 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	}
 
 	store := c.store.(*storemocks.Store)
-	err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("keys: [%s]", wrkid))
+	err = types.NewDetailedErr(types.ErrInvaildCount, fmt.Sprintf("keys: [%s]", wrkid))
 	store.On("GetWorkload", mock.Anything, wrkid).Return(nil, err).Once()
 	store.On("GetNode", mock.Anything, wrk.Nodename).Return(node, nil)
 
