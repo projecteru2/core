@@ -6,7 +6,7 @@ require (
 	github.com/CMGS/statsd v0.0.0-20160223095033-48c421b3c1ab
 	github.com/alicebob/miniredis/v2 v2.14.3
 	github.com/cenkalti/backoff/v4 v4.1.1
-	github.com/cornelk/hashmap v1.0.9-0.20221031160728-c3a0e7bb43df
+	github.com/cornelk/hashmap v1.0.9-0.20221102000129-36b3b9c2b7ec
 	github.com/docker/distribution v2.8.0+incompatible
 	github.com/docker/docker v20.10.0+incompatible
 	github.com/docker/go-connections v0.4.0
@@ -21,7 +21,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/muroq/redislock v0.0.0-20210327061935-5425e33e6f9f
 	github.com/opencontainers/image-spec v1.0.2
-	github.com/panjf2000/ants/v2 v2.5.0
+	github.com/panjf2000/ants/v2 v2.6.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/projecteru2/libyavirt v0.0.0-20220621042712-95cdc6363b1c

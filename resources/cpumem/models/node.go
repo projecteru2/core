@@ -2,9 +2,9 @@ package models
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources/cpumem/types"
 	coretypes "github.com/projecteru2/core/types"

@@ -3,12 +3,13 @@ package meta
 import (
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/lock/etcdlock"

@@ -2,7 +2,6 @@ package redis
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -14,7 +13,7 @@ import (
 	"github.com/projecteru2/core/utils"
 
 	"github.com/go-redis/redis/v8"
-	perrors "github.com/pkg/errors"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -134,7 +133,7 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 func (r *Rediaron) GetOne(ctx context.Context, key string) (string, error) {
 	value, err := r.cli.Get(ctx, key).Result()
 	if isRedisNoKeyError(err) {
-		return "", perrors.WithMessage(err, fmt.Sprintf("Key not found: %s", key))
+		return "", errors.WithMessage(err, fmt.Sprintf("Key not found: %s", key))
 	}
 	return value, err
 }
@@ -169,7 +168,7 @@ func (r *Rediaron) GetMulti(ctx context.Context, keys []string) (map[string]stri
 		}
 
 		if isRedisNoKeyError(c.Err()) {
-			return nil, perrors.WithMessage(err, fmt.Sprintf("Key not found: %s", key))
+			return nil, errors.WithMessage(err, fmt.Sprintf("Key not found: %s", key))
 		}
 
 		data[key] = c.Val()
