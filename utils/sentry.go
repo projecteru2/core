@@ -22,8 +22,8 @@ func SentryDefer() {
 		return
 	}
 	defer sentry.Flush(2 * time.Second)
-	if err := recover(); err != nil {
-		sentry.CaptureMessage(fmt.Sprintf("%+v: %s", err, debug.Stack()))
-		panic(err)
+	if r := recover(); r != nil {
+		sentry.CaptureMessage(fmt.Sprintf("%+v: %s", r, debug.Stack()))
+		panic(r)
 	}
 }
