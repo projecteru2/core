@@ -11,11 +11,13 @@ var (
 	ErrAlreadyFilled         = errors.New("cannot alloc a fill node plan, each node has enough workloads")
 	ErrInvaildDeployStrategy = errors.New("deploy method not support yet")
 
+	// Resources
+	ErrNodeExists = errors.New("node already exists")
+
 	// Node
 	ErrInvaildNodeEndpoint  = errors.New("invaild node endpoint")
 	ErrNodeNotEmpty         = errors.New("node not empty, still has workloads associated")
 	ErrNodeNotExists        = errors.New("node not exists")
-	ErrNodeExists           = errors.New("node already exists")
 	ErrInvaildNodeStatusTTL = errors.New("invaild TTL for node status, should be > 0")
 
 	// Lock
@@ -84,12 +86,6 @@ var (
 	ErrEmptyImage                  = errors.New("image is empty")
 	ErrEmptyCount                  = errors.New("count is 0")
 	ErrEmptyWorkloadID             = errors.New("workload id is empty")
-	ErrNegativeCPU                 = errors.New("cpu is negative")
-	ErrNegativeShare               = errors.New("share is negative")
-	ErrNegativeMemory              = errors.New("memory is negative")
-	ErrNegativeNUMAMemory          = errors.New("numa memory is negative")
-	ErrNegativeStorage             = errors.New("storage is negative")
-	ErrNegativeVolumeSize          = errors.New("volume size is negative")
 	ErrEmptyEntrypointName         = errors.New("entrypoint name is empty")
 	ErrUnderlineInEntrypointName   = errors.New("entrypoint name has '_' character")
 
