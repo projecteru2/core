@@ -37,7 +37,7 @@ func Deploy(ctx context.Context, strategy string, count, nodesLimit int, strateg
 		return nil, types.ErrInvaildDeployStrategy
 	}
 	if count <= 0 {
-		return nil, types.ErrInvaildCount
+		return nil, types.ErrInvaildDeployCount
 	}
 
 	log.Debugf(ctx, "[strategy.Deploy] infos %+v, need %d, total %d, limit %d", strategyInfos, count, total, nodesLimit)
