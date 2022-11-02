@@ -3,9 +3,8 @@ package types
 import "github.com/cockroachdb/errors"
 
 var (
-	ErrInvalidCapacity      = errors.New("invalid capacity")
-	ErrInvalidVolume        = errors.New("invalid volume")
-	ErrInsufficientResource = errors.New("cannot alloc a plan, not enough resource")
-	ErrInvalidStorage       = errors.New("invalid storage")
-	ErrInvalidDisk          = errors.New("invalid disk")
+	ErrInvalidCapacity = errors.New("invalid capacity")
+	ErrInvalidVolume   = errors.New("invalid volume")
+	ErrInvalidStorage  = errors.New("invalid storage")
+	ErrInvalidDisk     = errors.New("invalid disk")
 )

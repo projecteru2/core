@@ -8,6 +8,7 @@ import (
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources/volume/schedule"
 	"github.com/projecteru2/core/resources/volume/types"
+	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
 
@@ -45,7 +46,7 @@ func (v *Volume) GetReallocArgs(ctx context.Context, node string, originResource
 	}
 
 	if finalWorkloadResourceArgs.StorageRequest-originResourceArgs.StorageRequest > resourceInfo.Capacity.Storage-resourceInfo.Usage.Storage {
-		return nil, nil, nil, types.ErrInsufficientResource
+		return nil, nil, nil, coretypes.ErrInsufficientResource
 	}
 
 	var volumePlan types.VolumePlan
@@ -53,7 +54,7 @@ func (v *Volume) GetReallocArgs(ctx context.Context, node string, originResource
 	if needVolumeReschedule {
 		volumePlan, diskPlan, err = schedule.GetAffinityPlan(resourceInfo, resourceOpts.VolumesRequest, originResourceArgs.VolumePlanRequest, originResourceArgs.VolumesRequest)
 		if err != nil {
-			return nil, nil, nil, types.ErrInsufficientResource
+			return nil, nil, nil, coretypes.ErrInsufficientResource
 		}
 	} else {
 		volumePlan = originResourceArgs.VolumePlanRequest

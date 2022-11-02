@@ -9,6 +9,7 @@ import (
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources/volume/schedule"
 	"github.com/projecteru2/core/resources/volume/types"
+	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
 
@@ -92,7 +93,7 @@ func (v *Volume) doAlloc(resourceInfo *types.NodeResourceInfo, deployCount int, 
 	if opts.StorageRequest > 0 {
 		storageCapacity := int((resourceInfo.Capacity.Storage - resourceInfo.Usage.Storage) / opts.StorageRequest)
 		if storageCapacity < deployCount {
-			return nil, nil, errors.Wrapf(types.ErrInsufficientResource, "not enough storage, request: %+v, available: %+v", opts.StorageRequest, storageCapacity)
+			return nil, nil, errors.Wrapf(coretypes.ErrInsufficientResource, "not enough storage, request: %+v, available: %+v", opts.StorageRequest, storageCapacity)
 		}
 	}
 
@@ -111,7 +112,7 @@ func (v *Volume) doAlloc(resourceInfo *types.NodeResourceInfo, deployCount int, 
 	} else {
 		volumePlans, diskPlans = schedule.GetVolumePlans(resourceInfo, opts.VolumesRequest, v.Config.Scheduler.MaxDeployCount)
 		if len(volumePlans) < deployCount {
-			return nil, nil, errors.Wrapf(types.ErrInsufficientResource, "not enough volume plan, need %+v, available %+v", deployCount, len(volumePlans))
+			return nil, nil, errors.Wrapf(coretypes.ErrInsufficientResource, "not enough volume plan, need %+v, available %+v", deployCount, len(volumePlans))
 		}
 		volumePlans = volumePlans[:deployCount]
 		diskPlans = diskPlans[:deployCount]

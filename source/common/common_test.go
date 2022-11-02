@@ -146,14 +146,14 @@ func TestArtifact(t *testing.T) {
 		res.Write(data)
 	}))
 	defer func() { testServer.Close() }()
-	err = g.Artifact(context.TODO(), "invaildurl", savedDir)
+	err = g.Artifact(context.Background(), "invaildurl", savedDir)
 	assert.Error(t, err)
 	// no header
-	err = g.Artifact(context.TODO(), testServer.URL, savedDir)
+	err = g.Artifact(context.Background(), testServer.URL, savedDir)
 	assert.Error(t, err)
 	// vaild
 	g.AuthHeaders = map[string]string{"TEST": authValue}
-	err = g.Artifact(context.TODO(), testServer.URL, savedDir)
+	err = g.Artifact(context.Background(), testServer.URL, savedDir)
 	assert.NoError(t, err)
 
 	fname := filepath.Join(savedDir, path.Base(origFile.Name()))

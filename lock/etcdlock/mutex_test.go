@@ -31,13 +31,13 @@ func TestMutex(t *testing.T) {
 
 	m2, err := New(cli, "test", time.Second)
 	assert.NoError(t, err)
-	_, err = m2.Lock(context.TODO())
+	_, err = m2.Lock(context.Background())
 	m3, err := New(cli, "test", 100*time.Millisecond)
 	assert.NoError(t, err)
-	_, err = m3.Lock(context.TODO())
+	_, err = m3.Lock(context.Background())
 	assert.EqualError(t, err, "context deadline exceeded")
-	m2.Unlock(context.TODO())
-	m3.Unlock(context.TODO())
+	m2.Unlock(context.Background())
+	m3.Unlock(context.Background())
 
 	// round 3: ctx canceled after lock secured
 	m4, err := New(cli, "test", time.Second)
@@ -47,7 +47,7 @@ func TestMutex(t *testing.T) {
 	rCtx, err := m4.Lock(ctx)
 	<-rCtx.Done()
 	assert.EqualError(t, rCtx.Err(), "context deadline exceeded")
-	m4.Unlock(context.TODO())
+	m4.Unlock(context.Background())
 
 	// round 4: passive release
 
@@ -75,8 +75,8 @@ func TestTryLock(t *testing.T) {
 	assert.Nil(t, ctx2)
 	assert.Error(t, err)
 
-	assert.NoError(t, m1.Unlock(context.TODO()))
-	assert.NoError(t, m2.Unlock(context.TODO()))
+	assert.NoError(t, m1.Unlock(context.Background()))
+	assert.NoError(t, m2.Unlock(context.Background()))
 
 	// round 2: lock conflict
 
@@ -85,12 +85,12 @@ func TestTryLock(t *testing.T) {
 	m4, err := New(cli, "test", time.Second)
 	assert.NoError(t, err)
 
-	rCtx, err := m3.TryLock(context.TODO())
+	rCtx, err := m3.TryLock(context.Background())
 	assert.NoError(t, err)
-	_, err = m4.TryLock(context.TODO())
+	_, err = m4.TryLock(context.Background())
 	assert.EqualError(t, err, "mutex: Locked by another session")
-	m4.Unlock(context.TODO())
-	m3.Unlock(context.TODO())
+	m4.Unlock(context.Background())
+	m3.Unlock(context.Background())
 	assert.NoError(t, rCtx.Err())
 
 	// round 3: ctx canceled after lock secured
@@ -101,7 +101,7 @@ func TestTryLock(t *testing.T) {
 	rCtx, err = m5.TryLock(ctx)
 	<-rCtx.Done()
 	assert.EqualError(t, rCtx.Err(), "context deadline exceeded")
-	m5.Unlock(context.TODO())
+	m5.Unlock(context.Background())
 
 	// round 4: passive release
 

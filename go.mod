@@ -23,7 +23,6 @@ require (
 	github.com/opencontainers/image-spec v1.0.2
 	github.com/panjf2000/ants/v2 v2.6.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/pkg/errors v0.9.1
 	github.com/projecteru2/libyavirt v0.0.0-20220621042712-95cdc6363b1c
 	github.com/prometheus/client_golang v1.11.0
 	github.com/rs/zerolog v1.28.0
@@ -99,6 +98,7 @@ require (
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/runc v1.1.2 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.26.0 // indirect

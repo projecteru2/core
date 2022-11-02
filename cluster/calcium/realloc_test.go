@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/cockroachdb/errors"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
@@ -52,7 +53,7 @@ func TestRealloc(t *testing.T) {
 		}
 	}
 
-	store.On("GetWorkload", mock.Anything, "c1").Return(newC1(context.TODO(), nil)[0], nil)
+	store.On("GetWorkload", mock.Anything, "c1").Return(newC1(context.Background(), nil)[0], nil)
 	opts := &types.ReallocOptions{
 		ID:           "c1",
 		ResourceOpts: types.WorkloadResourceOpts{},
@@ -61,14 +62,14 @@ func TestRealloc(t *testing.T) {
 	// failed by GetNode
 	store.On("GetNode", mock.Anything, "node1").Return(nil, types.ErrMockError).Once()
 	err := c.ReallocResource(ctx, opts)
-	assert.EqualError(t, err, "ETCD must be set")
+	assert.True(t, errors.Is(err, types.ErrMockError))
 	store.AssertExpectations(t)
 	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
 
 	// failed by lock
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	err = c.ReallocResource(ctx, opts)
-	assert.EqualError(t, err, "ETCD must be set")
+	assert.True(t, errors.Is(err, types.ErrMockError))
 	store.AssertExpectations(t)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	store.On("GetWorkloads", mock.Anything, []string{"c1"}).Return(newC1, nil)
@@ -90,7 +91,7 @@ func TestRealloc(t *testing.T) {
 	// failed by UpdateWorkload
 	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
 	err = c.ReallocResource(ctx, opts)
-	assert.EqualError(t, err, "ETCD must be set")
+	assert.True(t, errors.Is(err, types.ErrMockError))
 	store.AssertExpectations(t)
 	store.On("UpdateWorkload", mock.Anything, mock.Anything).Return(nil)
 

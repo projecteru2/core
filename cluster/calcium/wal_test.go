@@ -44,11 +44,11 @@ func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, nil).Once()
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, nil)
 
-	c.wal.Recover(context.TODO())
+	c.wal.Recover(context.Background())
 	store.AssertExpectations(t)
 
 	// Recovers nothing.
-	c.wal.Recover(context.TODO())
+	c.wal.Recover(context.Background())
 }
 
 func TestHandleCreateWorkloadError(t *testing.T) {
@@ -83,26 +83,26 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	err = errors.Wrapf(types.ErrInvaildCount, "keys: [%s]", wrkid)
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(wrk, err).Once()
 	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, err).Once()
-	c.wal.Recover(context.TODO())
+	c.wal.Recover(context.Background())
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
 
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(wrk, err).Once()
 	store.On("GetNode", mock.Anything, wrk.Nodename).Return(node, nil).Once()
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(err).Once()
-	c.wal.Recover(context.TODO())
+	c.wal.Recover(context.Background())
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
 
 	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, fmt.Errorf("err")).Once()
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil).Once()
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(types.ErrWorkloadNotExists).Once()
-	c.wal.Recover(context.TODO())
+	c.wal.Recover(context.Background())
 	store.AssertExpectations(t)
 	engine.AssertExpectations(t)
 
 	// Nothing recovered.
-	c.wal.Recover(context.TODO())
+	c.wal.Recover(context.Background())
 }
 
 func TestHandleCreateWorkloadHandled(t *testing.T) {
@@ -145,12 +145,12 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 		Return(nil).
 		Once()
 
-	c.wal.Recover(context.TODO())
+	c.wal.Recover(context.Background())
 	store.AssertExpectations(t)
 	eng.AssertExpectations(t)
 
 	// Recovers nothing.
-	c.wal.Recover(context.TODO())
+	c.wal.Recover(context.Background())
 }
 
 func TestHandleCreateLambda(t *testing.T) {
@@ -191,7 +191,7 @@ func TestHandleCreateLambda(t *testing.T) {
 
 	store := c.store.(*storemocks.Store)
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
-	c.wal.Recover(context.TODO())
+	c.wal.Recover(context.Background())
 	time.Sleep(500 * time.Millisecond)
 	store.AssertExpectations(t)
 
@@ -219,9 +219,9 @@ func TestHandleCreateLambda(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
-	c.wal.Recover(context.TODO())
+	c.wal.Recover(context.Background())
 	// Recovered nothing.
-	c.wal.Recover(context.TODO())
+	c.wal.Recover(context.Background())
 	time.Sleep(500 * time.Millisecond)
 	store.AssertExpectations(t)
 	eng.AssertExpectations(t)

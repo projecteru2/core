@@ -84,7 +84,7 @@ func TestRealloc(t *testing.T) {
 		StorageLimit:   4 * units.TiB,
 	}
 	_, _, _, err = volume.GetReallocArgs(ctx, node, originResourceArgs, opts)
-	assert.ErrorIs(t, err, types.ErrInsufficientResource)
+	assert.ErrorIs(t, err, coretypes.ErrInsufficientResource)
 
 	// insufficient volume
 	bindings = generateVolumeBindings(t, []string{
@@ -97,7 +97,7 @@ func TestRealloc(t *testing.T) {
 		StorageLimit:   0,
 	}
 	_, _, _, err = volume.GetReallocArgs(ctx, node, originResourceArgs, opts)
-	assert.ErrorIs(t, err, types.ErrInsufficientResource)
+	assert.ErrorIs(t, err, coretypes.ErrInsufficientResource)
 
 	// normal case
 	bindings = generateVolumeBindings(t, []string{

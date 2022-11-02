@@ -9,6 +9,7 @@ import (
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources/volume/types"
+	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
 
@@ -136,13 +137,13 @@ func (h *host) getMonoPlan(monoRequests types.VolumeBindings, volume *volume) (t
 
 	// check if volume size is enough
 	if volume.size < totalSize {
-		return nil, nil, types.ErrInsufficientResource
+		return nil, nil, coretypes.ErrInsufficientResource
 	}
 
 	// check if disk IOPS quota is enough
 	disk := h.getDiskByPath(volume.device)
 	if !h.isDiskIOPSQuotaQualified(disk, &types.VolumeBinding{SizeInBytes: totalSize, ReadIOPS: totalReadIOPS, WriteIOPS: totalWriteIOPS, ReadBPS: totalReadBPS, WriteBPS: totalWriteBPS}) {
-		return nil, nil, types.ErrInsufficientResource
+		return nil, nil, coretypes.ErrInsufficientResource
 	}
 
 	volumePlan := types.VolumePlan{}
@@ -252,7 +253,7 @@ func (h *host) getNormalPlan(normalRequests types.VolumeBindings) (types.VolumeP
 			heap.Push(&volumeHeap, volume)
 		}
 		if !allocated {
-			return nil, nil, types.ErrInsufficientResource
+			return nil, nil, coretypes.ErrInsufficientResource
 		}
 	}
 
@@ -296,7 +297,7 @@ func (h *host) getUnlimitedPlans(normalPlans, monoPlans []types.VolumePlan, unli
 	}
 	volumes := append(h.usedVolumes.DeepCopy(), h.unusedVolumes.DeepCopy()...)
 	if len(volumes) == 0 {
-		return nil, types.ErrInsufficientResource
+		return nil, coretypes.ErrInsufficientResource
 	}
 	volumeMap := map[string]*volume{}
 	for _, volume := range volumes {
@@ -353,7 +354,7 @@ func (h *host) getMountDiskPlan(reqs types.VolumeBindings) (types.Disks, error) 
 	for _, req := range reqs {
 		disk := h.getDiskByPath(req.Source)
 		if !h.isDiskIOPSQuotaQualified(disk, req) {
-			return nil, types.ErrInsufficientResource
+			return nil, coretypes.ErrInsufficientResource
 		}
 		h.decreaseIOPSQuota(disk, req)
 		diskPlan.Add(types.Disks{&types.Disk{
@@ -548,8 +549,8 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 			// check if the device has enough space
 			volume := h.getVolumeByDevice(device)
 			if req.SizeInBytes > volume.size {
-				log.Errorf(nil, types.ErrInsufficientResource, "[getAffinityPlan] no space to expand, %+v remains %+v, requires %+v", device, volume.size, req.SizeInBytes) //nolint
-				return types.ErrInsufficientResource
+				log.Errorf(nil, coretypes.ErrInsufficientResource, "[getAffinityPlan] no space to expand, %+v remains %+v, requires %+v", device, volume.size, req.SizeInBytes) //nolint
+				return coretypes.ErrInsufficientResource
 			}
 			volume.size -= req.SizeInBytes
 			volumePlan.Merge(types.VolumePlan{req: types.VolumeMap{volume.device: req.SizeInBytes}})
@@ -560,8 +561,8 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 			}
 			disk := h.getDiskByPath(device)
 			if !h.isDiskIOPSQuotaQualified(disk, req) {
-				log.Errorf(nil, types.ErrInsufficientResource, "[getAffinityPlan] no IOPS quota to expand, %+v remains %+v, requires %+v", device, disk, req) //nolint
-				return types.ErrInsufficientResource
+				log.Errorf(nil, coretypes.ErrInsufficientResource, "[getAffinityPlan] no IOPS quota to expand, %+v remains %+v, requires %+v", device, disk, req) //nolint
+				return coretypes.ErrInsufficientResource
 			}
 			h.decreaseIOPSQuota(disk, req)
 			diskPlan.Add(types.Disks{&types.Disk{
@@ -612,8 +613,8 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 		// if there is any affinity plan: don't reschedule
 		// use the first volume map to get the whole mono volume plan
 		if totalVolumeSize < totalRequestSize { // check if the volume size is enough
-			log.Errorf(nil, types.ErrInsufficientResource, "[getAffinityPlan] no space to expand, the size of %+v is %+v, requires %+v", affinity[monoRequests[0]].GetDevice(), totalVolumeSize, totalRequestSize) //nolint
-			return nil, nil, types.ErrInsufficientResource
+			log.Errorf(nil, coretypes.ErrInsufficientResource, "[getAffinityPlan] no space to expand, the size of %+v is %+v, requires %+v", affinity[monoRequests[0]].GetDevice(), totalVolumeSize, totalRequestSize) //nolint
+			return nil, nil, coretypes.ErrInsufficientResource
 		}
 
 		var volume *volume
@@ -648,7 +649,7 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 
 	volumePlans, diskPlans := h.getVolumePlans(needRescheduleRequests)
 	if len(volumePlans) == 0 {
-		return nil, nil, types.ErrInsufficientResource
+		return nil, nil, coretypes.ErrInsufficientResource
 	}
 	volumePlan.Merge(volumePlans[0])
 	diskPlan.Add(diskPlans[0])
