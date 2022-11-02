@@ -64,7 +64,7 @@ func TestBuild(t *testing.T) {
 	c.config.Docker.BuildPod = "test"
 	// failed by ListPodNodes failed
 	store := c.store.(*storemocks.Store)
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrBadMeta).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrInvaildWorkloadMeta).Once()
 	ch, err := c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	// failed by no nodes
@@ -84,7 +84,7 @@ func TestBuild(t *testing.T) {
 	// failed by plugin error
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
-	rmgr.On("GetMostIdleNode", mock.Anything, mock.Anything).Return("", types.ErrBadCount).Once()
+	rmgr.On("GetMostIdleNode", mock.Anything, mock.Anything).Return("", types.ErrInvaildCount).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	rmgr.On("GetMostIdleNode", mock.Anything, mock.Anything).Return("test", nil)
@@ -107,7 +107,7 @@ func TestBuild(t *testing.T) {
 	buildImageRespReader2 := io.NopCloser(bytes.NewReader(buildImageResp2))
 	engine.On("BuildRefs", mock.Anything, mock.Anything, mock.Anything).Return([]string{"t1", "t2"})
 	// failed by build context
-	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", nil, types.ErrBadCount).Once()
+	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", nil, types.ErrInvaildCount).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	b := io.NopCloser(bytes.NewReader([]byte{}))

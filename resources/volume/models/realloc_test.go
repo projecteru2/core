@@ -57,7 +57,7 @@ func TestRealloc(t *testing.T) {
 
 	// non-existent node
 	_, _, _, err = volume.GetReallocArgs(ctx, "invalid-node", originResourceArgs, &types.WorkloadResourceOpts{})
-	assert.ErrorIs(t, err, coretypes.ErrBadCount)
+	assert.ErrorIs(t, err, coretypes.ErrInvaildCount)
 
 	// invalid resource opts
 	opts := &types.WorkloadResourceOpts{

@@ -10,7 +10,7 @@ import (
 	"github.com/sanity-io/litter"
 	"golang.org/x/exp/maps"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 )
 
 // CalculateCapacity calculates capacity
@@ -45,7 +45,7 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 			return err
 		}
 		if msg.Total <= 0 {
-			return errors.Wrap(types.ErrInsufficientRes, "no node meets all the resource requirements at the same time")
+			return errors.Wrap(types.ErrInsufficientResource, "no node meets all the resource requirements at the same time")
 		}
 		for node, info := range infos {
 			msg.NodeCapacities[node] = info.Capacity

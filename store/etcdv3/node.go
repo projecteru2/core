@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 
@@ -133,7 +133,7 @@ func (m *Mercury) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
 // this is heartbeat of node
 func (m *Mercury) SetNodeStatus(ctx context.Context, node *types.Node, ttl int64) error {
 	if ttl == 0 {
-		return types.ErrNodeStatusTTL
+		return types.ErrInvaildNodeStatusTTL
 	}
 
 	// nodenames are unique
@@ -222,7 +222,7 @@ func (m *Mercury) makeClient(ctx context.Context, node *types.Node) (client engi
 	for i := 0; i < 3; i++ {
 		ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
 		if err != nil {
-			if !errors.Is(err, types.ErrBadCount) {
+			if !errors.Is(err, types.ErrInvaildCount) {
 				log.Warnf(ctx, "[makeClient] Get key failed %+v", err)
 				return nil, err
 			}
@@ -317,7 +317,7 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 		node := node
 		_ = m.pool.Invoke(func() {
 			defer wg.Done()
-			if _, err := m.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrBadCount) {
+			if _, err := m.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrInvaildCount) {
 				log.Errorf(ctx, err, "[doGetNodes] failed to get node status of %+v", node.Name)
 			} else {
 				node.Available = err == nil

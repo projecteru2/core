@@ -7,7 +7,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"

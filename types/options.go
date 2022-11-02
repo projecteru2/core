@@ -202,7 +202,7 @@ func (o *AddNodeOptions) Validate() error {
 		return ErrEmptyPodName
 	}
 	if o.Endpoint == "" {
-		return ErrEmptyNodeEndpoint
+		return ErrInvaildNodeEndpoint
 	}
 	return nil
 }

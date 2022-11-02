@@ -81,7 +81,7 @@ func (h *Hydro) Recover(ctx context.Context) {
 func (h *Hydro) Log(eventyp string, item interface{}) (Commit, error) {
 	handler, ok := h.getEventHandler(eventyp)
 	if !ok {
-		return nil, coretypes.NewDetailedErr(coretypes.ErrUnregisteredWALEventType, eventyp)
+		return nil, coretypes.NewDetailedErr(coretypes.ErrInvaildWALEventType, eventyp)
 	}
 
 	bs, err := handler.Encode(item) // TODO 2 times encode is necessary?
@@ -96,7 +96,7 @@ func (h *Hydro) Log(eventyp string, item interface{}) (Commit, error) {
 
 	event := NewHydroEvent(id, eventyp, bs)
 	if bs, err = event.Encode(); err != nil {
-		return nil, coretypes.ErrBadWALEvent
+		return nil, coretypes.ErrInvaildWALEvent
 	}
 
 	if err = h.store.Put(event.Key(), bs); err != nil {

@@ -89,7 +89,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 
 	// memory should more than 4MiB
 	if opts.Memory > 0 && opts.Memory < minMemory || opts.Memory < 0 {
-		return r, coretypes.ErrBadMemory
+		return r, coretypes.ErrInvaildMemory
 	}
 	// set default log driver if lambda
 	if opts.Lambda {
@@ -408,11 +408,11 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 	}
 
 	if resourceOpts.Memory > 0 && resourceOpts.Memory < minMemory || resourceOpts.Memory < 0 {
-		return coretypes.ErrBadMemory
+		return coretypes.ErrInvaildMemory
 	}
 	if len(opts.Volumes) > 0 || resourceOpts.VolumeChanged {
 		log.Errorf(ctx, err, "[VirtualizationUpdateResource] docker engine not support rebinding volume resource: %+v", resourceOpts.Volumes)
-		return coretypes.ErrNotSupport
+		return coretypes.ErrInvaildWorkloadOps
 	}
 
 	memory := resourceOpts.Memory

@@ -35,7 +35,7 @@ func TestLogStream(t *testing.T) {
 	}
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	// failed by VirtualizationLogs
-	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(nil, nil, types.ErrNodeExist).Once()
+	engine.On("VirtualizationLogs", mock.Anything, mock.Anything).Return(nil, nil, types.ErrInvalidType).Once()
 	ch, err = c.LogStream(ctx, opts)
 	assert.NoError(t, err)
 	for c := range ch {

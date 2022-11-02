@@ -17,5 +17,5 @@ func TestDetailedErr(t *testing.T) {
 	assert.True(t, errors.Is(dt, err))
 	assert.True(t, strings.Contains(dt.Error(), detail))
 
-	assert.True(t, errors.Is(NewDetailedErr(ErrBadCount, detail), ErrBadCount))
+	assert.True(t, errors.Is(NewDetailedErr(ErrInvaildCount, detail), ErrInvaildCount))
 }

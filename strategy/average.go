@@ -20,16 +20,16 @@ func AveragePlan(ctx context.Context, infos []Info, need, total, limit int) (map
 		limit = scheduleInfosLength
 	}
 	if scheduleInfosLength < limit {
-		return nil, types.NewDetailedErr(types.ErrInsufficientRes,
+		return nil, types.NewDetailedErr(types.ErrInsufficientResource,
 			fmt.Sprintf("node len %d < limit, cannot alloc an average node plan", scheduleInfosLength))
 	}
 	sort.Slice(infos, func(i, j int) bool { return infos[i].Capacity > infos[j].Capacity })
 	p := sort.Search(scheduleInfosLength, func(i int) bool { return infos[i].Capacity < need })
 	if p == 0 {
-		return nil, types.NewDetailedErr(types.ErrInsufficientCap, "insufficient nodes, at least 1 needed")
+		return nil, types.NewDetailedErr(types.ErrInsufficientCapacity, "insufficient nodes, at least 1 needed")
 	}
 	if p < limit {
-		return nil, types.NewDetailedErr(types.ErrInsufficientRes, fmt.Sprintf("not enough nodes with capacity of %d, require %d nodes", need, limit))
+		return nil, types.NewDetailedErr(types.ErrInsufficientResource, fmt.Sprintf("not enough nodes with capacity of %d, require %d nodes", need, limit))
 	}
 	deployMap := map[string]int{}
 	for _, strategyInfo := range infos[:limit] {

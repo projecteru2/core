@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/lock"
 	"github.com/projecteru2/core/lock/etcdlock"
@@ -111,7 +111,7 @@ func (e *ETCD) GetOne(ctx context.Context, key string, opts ...clientv3.OpOption
 		return nil, err
 	}
 	if resp.Count != 1 {
-		return nil, types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("key: %s", key))
+		return nil, types.NewDetailedErr(types.ErrInvaildCount, fmt.Sprintf("key: %s", key))
 	}
 	return resp.Kvs[0], nil
 }
@@ -128,12 +128,12 @@ func (e *ETCD) GetMulti(ctx context.Context, keys []string, opts ...clientv3.OpO
 	for idx, responseOp := range txnResponse.Responses {
 		resp := responseOp.GetResponseRange()
 		if resp.Count != 1 {
-			return nil, types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("key: %s", keys[idx]))
+			return nil, types.NewDetailedErr(types.ErrInvaildCount, fmt.Sprintf("key: %s", keys[idx]))
 		}
 		kvs = append(kvs, resp.Kvs[0])
 	}
 	if len(kvs) != len(keys) {
-		err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("keys: %+v", keys))
+		err = types.NewDetailedErr(types.ErrInvaildCount, fmt.Sprintf("keys: %+v", keys))
 	}
 	return
 }
@@ -250,7 +250,7 @@ func (e *ETCD) BatchPut(ctx context.Context, data map[string]string, opts ...cli
 func (e *ETCD) isTTLChanged(ctx context.Context, key string, ttl int64) (bool, error) {
 	resp, err := e.GetOne(ctx, key)
 	if err != nil {
-		if errors.Is(err, types.ErrBadCount) {
+		if errors.Is(err, types.ErrInvaildCount) {
 			return ttl != 0, nil
 		}
 		return false, err

@@ -40,14 +40,14 @@ func (b *BasicAuth) UnaryInterceptor(ctx context.Context, req interface{}, info 
 func (b *BasicAuth) doAuth(ctx context.Context) error {
 	meta, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return types.ErrBadMeta
+		return types.ErrInvaildGRPCRequestMeta
 	}
 	passwords, ok := meta[b.username]
 	if !ok {
-		return types.ErrInvaildUsername
+		return types.ErrInvaildGRPCUsername
 	}
 	if len(passwords) < 1 || passwords[0] != b.password {
-		return types.ErrInvaildPassword
+		return types.ErrInvaildGRPCPassword
 	}
 	return nil
 }

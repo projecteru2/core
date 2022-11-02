@@ -32,7 +32,7 @@ func TestAlloc(t *testing.T) {
 		}),
 	}
 	_, _, err = volume.GetDeployArgs(ctx, "fake-node", 1, resourceOpts)
-	assert.ErrorIs(t, err, coretypes.ErrBadCount)
+	assert.ErrorIs(t, err, coretypes.ErrInvaildCount)
 
 	// storage is not enough
 	resourceOpts = &types.WorkloadResourceOpts{

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resources/volume/types"
@@ -14,7 +14,7 @@ import (
 // AddNode .
 func (v *Volume) AddNode(ctx context.Context, node string, resourceOpts *types.NodeResourceOpts) (*types.NodeResourceInfo, error) {
 	if _, err := v.doGetNodeResourceInfo(ctx, node); err != nil {
-		if !errors.Is(err, coretypes.ErrBadCount) {
+		if !errors.Is(err, coretypes.ErrInvaildCount) {
 			log.Errorf(ctx, err, "[AddNode] failed to get resource info of node %+v", node)
 			return nil, err
 		}

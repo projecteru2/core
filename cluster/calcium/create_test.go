@@ -136,7 +136,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 
 	// doAllocResource fails: Alloc
 	rmgr.On("Alloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		nil, nil, types.ErrBadCPU,
+		nil, nil, types.ErrInvalidType,
 	).Once()
 	ch, err = c.CreateWorkload(ctx, opts)
 	assert.Nil(t, err)

@@ -28,7 +28,7 @@ func TestRemap(t *testing.T) {
 
 	// non-existent node
 	_, err := cpuMem.GetRemapArgs(ctx, "xxx", nil)
-	assert.True(t, errors.Is(err, coretypes.ErrBadCount))
+	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
 
 	// normal case
 	workloadResourceMap := &types.WorkloadResourceArgsMap{

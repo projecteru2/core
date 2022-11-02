@@ -8,7 +8,7 @@ import (
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 )
 
 var ephemeralValue = "__aaron__"

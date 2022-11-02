@@ -9,7 +9,7 @@ import (
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 )
 
 // WatchServiceStatus returns chan of available service address

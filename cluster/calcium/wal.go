@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/panjf2000/ants/v2"
-	"github.com/pkg/errors"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"

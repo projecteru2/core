@@ -42,7 +42,7 @@ func TestRemoveNode(t *testing.T) {
 
 	assert.Nil(t, volume.RemoveNode(ctx, nodes[0]))
 	_, _, err := volume.GetNodeResourceInfo(ctx, nodes[0], nil, false)
-	assert.ErrorIs(t, err, coretypes.ErrBadCount)
+	assert.ErrorIs(t, err, coretypes.ErrInvaildCount)
 
 	assert.Nil(t, volume.RemoveNode(ctx, "invalid-node"))
 }

@@ -40,7 +40,7 @@ func TestFillPlan(t *testing.T) {
 	n = 15
 	nodes = deployedNodes()
 	_, err = FillPlan(context.TODO(), nodes, n, 0, 0)
-	assert.True(t, errors.Is(err, types.ErrInsufficientRes))
+	assert.True(t, errors.Is(err, types.ErrInsufficientResource))
 
 	// 全局补充不能
 	n = 1

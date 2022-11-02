@@ -44,7 +44,7 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 						message = append(message, startHook...)
 						return err
 					}
-					return types.ErrUnknownControlType
+					return types.ErrInvaildControlType
 				})
 				if err == nil {
 					logger.Infof(ctx, "[ControlWorkload] Workload %s %s", id, t)

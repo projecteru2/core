@@ -21,7 +21,7 @@ func TestGetNodeResourceInfo(t *testing.T) {
 
 	// invalid node
 	_, _, err := volume.GetNodeResourceInfo(ctx, "xxx", nil, false)
-	assert.True(t, errors.Is(err, coretypes.ErrBadCount))
+	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
 
 	// normal case
 	resourceInfo, diffs, err := volume.GetNodeResourceInfo(ctx, node, nil, false)

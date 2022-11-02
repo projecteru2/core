@@ -31,7 +31,7 @@ func TestAlloc(t *testing.T) {
 		CPUBind:    true,
 		CPURequest: 1,
 	})
-	assert.True(t, errors.Is(err, coretypes.ErrBadCount))
+	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
 
 	// cpu bind
 	_, _, err = cpuMem.GetDeployArgs(ctx, node, 1, &types.WorkloadResourceOpts{

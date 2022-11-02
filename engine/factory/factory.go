@@ -192,7 +192,7 @@ func getEnginePrefix(endpoint string) (string, error) {
 			return prefix, nil
 		}
 	}
-	return "", types.NewDetailedErr(types.ErrNodeFormat, fmt.Sprintf("endpoint invalid %+v", endpoint))
+	return "", types.NewDetailedErr(types.ErrInvaildNodeEndpoint, fmt.Sprintf("endpoint invalid %+v", endpoint))
 }
 
 func getEngineCacheKey(endpoint, ca, cert, key string) string {
@@ -207,7 +207,7 @@ func newEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 	}
 	e, ok := engines[prefix]
 	if !ok {
-		return nil, types.ErrNotSupport
+		return nil, types.ErrNotSupportEndpoint
 	}
 	utils.WithTimeout(ctx, config.ConnectionTimeout, func(ctx context.Context) {
 		client, err = e(ctx, config, nodename, endpoint, ca, cert, key)

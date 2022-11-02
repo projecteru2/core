@@ -38,7 +38,7 @@ func TestRealloc(t *testing.T) {
 
 	// non-existent node
 	_, _, _, err = cpuMem.GetReallocArgs(ctx, "xxx", originResourceArgs, &types.WorkloadResourceOpts{})
-	assert.True(t, errors.Is(err, coretypes.ErrBadCount))
+	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
 
 	// invalid resource opts
 	opts := &types.WorkloadResourceOpts{
