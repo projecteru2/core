@@ -7,14 +7,18 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
+	"github.com/getsentry/sentry-go"
 
 	"github.com/rs/zerolog"
 )
 
-var globalLogger zerolog.Logger
+var (
+	globalLogger zerolog.Logger
+	sentryDSN    string
+)
 
 // SetupLog init logger
-func SetupLog(l string) error {
+func SetupLog(ctx context.Context, l, dsn string) error {
 	level, err := zerolog.ParseLevel(strings.ToLower(l))
 	if err != nil {
 		return err
@@ -30,6 +34,12 @@ func SetupLog(l string) error {
 		return errors.GetSafeDetails(err).SafeDetails
 	}
 	globalLogger = rslog
+	// Sentry
+	if dsn != "" {
+		sentryDSN = dsn
+		Infof(ctx, "[log] sentry %+v", sentryDSN)
+		_ = sentry.Init(sentry.ClientOptions{Dsn: sentryDSN})
+	}
 	return nil
 }
 

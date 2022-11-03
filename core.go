@@ -25,7 +25,6 @@ import (
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/version"
 
-	"github.com/getsentry/sentry-go"
 	cli "github.com/urfave/cli/v2"
 	_ "go.uber.org/automaxprocs"
 	"google.golang.org/grpc"
@@ -42,15 +41,10 @@ func serve(c *cli.Context) error {
 		zerolog.Fatal().Err(err).Send()
 	}
 
-	if err := log.SetupLog(config.LogLevel); err != nil {
+	if err := log.SetupLog(c.Context, config.LogLevel, config.SentryDSN); err != nil {
 		zerolog.Fatal().Err(err).Send()
 	}
-
-	defer utils.SentryDefer()
-	if config.SentryDSN != "" {
-		log.Infof(c.Context, "[main] sentry %+v", config.SentryDSN)
-		_ = sentry.Init(sentry.ClientOptions{Dsn: config.SentryDSN})
-	}
+	defer log.SentryDefer()
 
 	// init engine cache and start engine cache checker
 	factory.InitEngineCache(c.Context, config)
