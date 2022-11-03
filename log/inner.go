@@ -14,7 +14,7 @@ import (
 
 func fatalf(ctx context.Context, err error, format string, fields map[string]interface{}, args ...interface{}) {
 	args = argsValidate(args)
-	reportToSentry(ctx, err, format, args...)
+	reportToSentry(ctx, sentry.LevelFatal, err, format, args...)
 	globalLogger.Fatal().Fields(fields).Err(err).Msgf(format, args...)
 }
 
@@ -38,7 +38,7 @@ func errorf(ctx context.Context, err error, format string, fields map[string]int
 		return
 	}
 	args = argsValidate(args)
-	reportToSentry(ctx, err, format, args...)
+	reportToSentry(ctx, sentry.LevelError, err, format, args...)
 	globalLogger.Error().Fields(fields).Stack().Err(err).Msgf(format, args...)
 }
 
@@ -71,13 +71,13 @@ func genGRPCTracingInfo(ctx context.Context) (tracingInfo string) {
 	return
 }
 
-func reportToSentry(ctx context.Context, err error, format string, args ...interface{}) { //nolint
+func reportToSentry(ctx context.Context, level sentry.Level, err error, format string, args ...interface{}) { //nolint
 	defer sentry.Flush(2 * time.Second)
 	event, extraDetails := errors.BuildSentryReport(err)
-	for extraKey, extraValue := range extraDetails {
-		event.Extra[extraKey] = extraValue
+	for k, v := range extraDetails {
+		event.Extra[k] = v
 	}
-	event.Tags["report_type"] = "error"
+	event.Level = level
 
 	if msg := fmt.Sprintf(format, args...); msg != "" {
 		event.Tags["message"] = msg
