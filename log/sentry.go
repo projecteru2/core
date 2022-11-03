@@ -41,9 +41,6 @@ func genGRPCTracingInfo(ctx context.Context) (tracingInfo string) {
 		}
 	}
 	tracingInfo = strings.Join(tracing, "-")
-	if tracingInfo != "" {
-		tracingInfo = fmt.Sprintf("[%s] ", tracingInfo)
-	}
 	return
 }
 

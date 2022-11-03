@@ -33,7 +33,7 @@ func (f Fields) Warnf(ctx context.Context, format string, args ...interface{}) {
 
 // Warn is Warn
 func (f Fields) Warn(ctx context.Context, args ...interface{}) {
-	Warnf(ctx, "%+v", args...)
+	f.Warnf(ctx, "%+v", args...)
 }
 
 // Infof is Infof
@@ -43,7 +43,7 @@ func (f Fields) Infof(ctx context.Context, format string, args ...interface{}) {
 
 // Info is Info
 func (f Fields) Info(ctx context.Context, args ...interface{}) {
-	Infof(ctx, "%+v", args...)
+	f.Infof(ctx, "%+v", args...)
 }
 
 // Debugf is Debugf
@@ -53,7 +53,7 @@ func (f Fields) Debugf(ctx context.Context, format string, args ...interface{}) 
 
 // Debug is Debug
 func (f Fields) Debug(ctx context.Context, args ...interface{}) {
-	Debugf(ctx, "%+v", args...)
+	f.Debugf(ctx, "%+v", args...)
 }
 
 // Errorf forwards to sentry
@@ -63,5 +63,5 @@ func (f Fields) Errorf(ctx context.Context, err error, format string, args ...in
 
 // Error forwards to sentry
 func (f Fields) Error(ctx context.Context, err error, args ...interface{}) {
-	Errorf(ctx, err, "%+v", args...)
+	f.Errorf(ctx, err, "%+v", args...)
 }
