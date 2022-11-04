@@ -103,7 +103,7 @@ func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) 
 			p.pendingEndpoints.Del(endpoint)
 			p.availableEndpoints.Set(endpoint, struct{}{})
 			p.pushEndpoints()
-			logger.Debugf(ctx, "[EruResolver] available endpoint added: %s", endpoint)
+			logger.Debugf(ctx, "available endpoint added: %s", endpoint)
 			return
 		}
 	}

@@ -183,7 +183,7 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 	// parse engine args to resource options
 	opts.VirtualizationResource, err = engine.MakeVirtualizationResource(opts.EngineArgs)
 	if err != nil {
-		log.WithFunc("engine.virt.VirtualizationCreate").Errorf(ctx, err, "[VirtualizationCreate] failed to parse engine args %+v", opts.EngineArgs)
+		log.WithFunc("engine.virt.VirtualizationCreate").Errorf(ctx, err, "failed to parse engine args %+v", opts.EngineArgs)
 		return nil, coretypes.ErrInvalidEngineArgs
 	}
 
@@ -324,7 +324,7 @@ func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, reso
 	// parse engine args to resource options
 	opts, err := engine.MakeVirtualizationResource(resourceOpts.EngineArgs)
 	if err != nil {
-		log.WithFunc("engine.virt.VirtualizationUpdateResource").Errorf(ctx, err, "[VirtualizationCreate] failed to parse engine args %+v", opts.EngineArgs)
+		log.WithFunc("engine.virt.VirtualizationUpdateResource").Errorf(ctx, err, "failed to parse engine args %+v", opts.EngineArgs)
 		return err
 	}
 

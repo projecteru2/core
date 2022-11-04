@@ -12,21 +12,21 @@ import (
 )
 
 // ControlWorkload control workloads status
-func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, typ string, force bool) (chan *types.ControlWorkloadMessage, error) {
-	logger := log.WithFunc("calcium.ControlWorkload").WithField("ids", ids).WithField("typ", typ).WithField("force", force)
+func (c *Calcium) ControlWorkload(ctx context.Context, IDs []string, typ string, force bool) (chan *types.ControlWorkloadMessage, error) {
+	logger := log.WithFunc("calcium.ControlWorkload").WithField("IDs", IDs).WithField("typ", typ).WithField("force", force)
 	ch := make(chan *types.ControlWorkloadMessage)
 
 	_ = c.pool.Invoke(func() {
 		defer close(ch)
 		wg := &sync.WaitGroup{}
-		wg.Add(len(ids))
+		wg.Add(len(IDs))
 		defer wg.Wait()
-		for _, id := range ids {
-			id := id
+		for _, ID := range IDs {
+			ID := ID
 			_ = c.pool.Invoke(func() {
 				defer wg.Done()
 				var message []*bytes.Buffer
-				err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
+				err := c.withWorkloadLocked(ctx, ID, func(ctx context.Context, workload *types.Workload) error {
 					var err error
 					switch typ {
 					case cluster.WorkloadStop:
@@ -47,13 +47,13 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, typ string,
 					return types.ErrInvaildControlType
 				})
 				if err == nil {
-					logger.Infof(ctx, "Workload %s %s", id, typ)
+					logger.Infof(ctx, "Workload %s %s", ID, typ)
 					logger.Infof(ctx, "%+v", "Hook Output:")
 					logger.Infof(ctx, "%+v", string(utils.MergeHookOutputs(message)))
 				}
 				logger.Error(ctx, err)
 				ch <- &types.ControlWorkloadMessage{
-					WorkloadID: id,
+					WorkloadID: ID,
 					Error:      err,
 					Hook:       message,
 				}

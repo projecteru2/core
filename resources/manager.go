@@ -361,13 +361,13 @@ func (pm *PluginsManager) GetMetricsDescription(ctx context.Context) ([]*Metrics
 	respMap, err := callPlugins(ctx, pm.plugins, func(plugin Plugin) (*GetMetricsDescriptionResponse, error) {
 		resp, err := plugin.GetMetricsDescription(ctx)
 		if err != nil {
-			log.Errorf(ctx, err, "[GetMetricsDescription] plugin %+v failed to get metrics description", plugin.Name())
+			log.Errorf(ctx, err, "plugin %+v failed to get metrics description", plugin.Name())
 		}
 		return resp, err
 	})
 
 	if err != nil {
-		log.Error(ctx, err, "[GetMetricsDescription] failed to get metrics description")
+		log.Error(ctx, err, "failed to get metrics description")
 		return nil, err
 	}
 

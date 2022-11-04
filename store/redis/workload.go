@@ -26,7 +26,7 @@ func (r *Rediaron) UpdateWorkload(ctx context.Context, workload *types.Workload)
 }
 
 // RemoveWorkload remove a workload
-// workload id must be in full length
+// workload ID must be in full length
 func (r *Rediaron) RemoveWorkload(ctx context.Context, workload *types.Workload) error {
 	return r.cleanWorkloadData(ctx, workload)
 }
@@ -34,8 +34,8 @@ func (r *Rediaron) RemoveWorkload(ctx context.Context, workload *types.Workload)
 // GetWorkload get a workload
 // workload if must be in full length, or we can't find it in etcd
 // storage path in etcd is `/workload/:workloadid`
-func (r *Rediaron) GetWorkload(ctx context.Context, id string) (*types.Workload, error) {
-	workloads, err := r.GetWorkloads(ctx, []string{id})
+func (r *Rediaron) GetWorkload(ctx context.Context, ID string) (*types.Workload, error) {
+	workloads, err := r.GetWorkloads(ctx, []string{ID})
 	if err != nil {
 		return nil, err
 	}
@@ -43,18 +43,18 @@ func (r *Rediaron) GetWorkload(ctx context.Context, id string) (*types.Workload,
 }
 
 // GetWorkloads get many workloads
-func (r *Rediaron) GetWorkloads(ctx context.Context, ids []string) (workloads []*types.Workload, err error) {
+func (r *Rediaron) GetWorkloads(ctx context.Context, IDs []string) (workloads []*types.Workload, err error) {
 	keys := []string{}
-	for _, id := range ids {
-		keys = append(keys, fmt.Sprintf(workloadInfoKey, id))
+	for _, ID := range IDs {
+		keys = append(keys, fmt.Sprintf(workloadInfoKey, ID))
 	}
 
 	return r.doGetWorkloads(ctx, keys)
 }
 
 // GetWorkloadStatus get workload status
-func (r *Rediaron) GetWorkloadStatus(ctx context.Context, id string) (*types.StatusMeta, error) {
-	workload, err := r.GetWorkload(ctx, id)
+func (r *Rediaron) GetWorkloadStatus(ctx context.Context, ID string) (*types.StatusMeta, error) {
+	workload, err := r.GetWorkload(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
@@ -148,12 +148,12 @@ func (r *Rediaron) WorkloadStatusStream(ctx context.Context, appname, entrypoint
 
 		logger.Infof(ctx, "watch on %s", statusKey)
 		for message := range r.KNotify(ctx, statusKey) {
-			_, _, _, id := parseStatusKey(message.Key)
+			_, _, _, ID := parseStatusKey(message.Key)
 			msg := &types.WorkloadStatus{
-				ID:     id,
+				ID:     ID,
 				Delete: message.Action == actionDel || message.Action == actionExpired,
 			}
-			workload, err := r.GetWorkload(ctx, id)
+			workload, err := r.GetWorkload(ctx, ID)
 			switch {
 			case err != nil:
 				msg.Error = err
@@ -259,7 +259,7 @@ func (r *Rediaron) doOpsWorkload(ctx context.Context, workload *types.Workload, 
 	}
 
 	// now everything is ok
-	// we use full length id instead
+	// we use full length ID instead
 	bytes, err := json.Marshal(workload)
 	if err != nil {
 		return err

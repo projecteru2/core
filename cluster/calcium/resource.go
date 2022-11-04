@@ -46,14 +46,14 @@ func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.
 
 // NodeResource check node's workload and resource
 func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
-	logger := log.WithFunc("calcium.NodeResource").WithField("nodename", nodename).WithField("fix", fix)
+	logger := log.WithFunc("calcium.NodeResource").WithField("node", nodename).WithField("fix", fix)
 	nr, err := c.doGetNodeResource(ctx, nodename, true, fix)
 	logger.Error(ctx, err)
 	return nr, err
 }
 
 func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, inspect, fix bool) (*types.NodeResource, error) {
-	logger := log.WithFunc("calcium.doGetNodeResource").WithField("nodename", nodename).WithField("inspect", inspect).WithField("fix", fix)
+	logger := log.WithFunc("calcium.doGetNodeResource").WithField("node", nodename).WithField("inspect", inspect).WithField("fix", fix)
 	if nodename == "" {
 		logger.Error(ctx, types.ErrEmptyNodeName)
 		return nil, types.ErrEmptyNodeName

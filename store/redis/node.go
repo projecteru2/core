@@ -172,12 +172,12 @@ func (r *Rediaron) NodeStatusStream(ctx context.Context) chan *types.NodeStatus 
 	logger := log.WithFunc("store.redis.NodeStatusStream")
 	_ = r.pool.Invoke(func() {
 		defer func() {
-			logger.Info(ctx, "[NodeStatusStream] close NodeStatusStream channel")
+			logger.Info(ctx, "close NodeStatusStream channel")
 			close(ch)
 		}()
 
 		key := filepath.Join(nodeStatusPrefix, "*")
-		logger.Infof(ctx, "[NodeStatusStream] watch on %s", key)
+		logger.Infof(ctx, "watch on %s", key)
 		for message := range r.KNotify(ctx, key) {
 			nodename := extractNodename(message.Key)
 			status := &types.NodeStatus{

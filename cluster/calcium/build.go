@@ -151,7 +151,7 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 					break
 				}
 				malformed, _ := io.ReadAll(decoder.Buffered()) // TODO err check
-				logger.Errorf(ctx, err, "[BuildImage] Decode build image message failed, buffered: %+v", malformed)
+				logger.Errorf(ctx, err, "Decode build image message failed, buffered: %+v", malformed)
 				return
 			}
 			ch <- message
@@ -159,7 +159,7 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 		}
 
 		if lastMessage.Error != "" {
-			logger.Errorf(ctx, errors.New(lastMessage.Error), "[BuildImage] Build image failed %+v", lastMessage.ErrorDetail.Message)
+			logger.Errorf(ctx, errors.New(lastMessage.Error), "Build image failed %+v", lastMessage.ErrorDetail.Message)
 			return
 		}
 
@@ -190,8 +190,8 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 
 }
 
-func (c *Calcium) getWorkloadNode(ctx context.Context, id string) (*types.Node, error) {
-	w, err := c.store.GetWorkload(ctx, id)
+func (c *Calcium) getWorkloadNode(ctx context.Context, ID string) (*types.Node, error) {
+	w, err := c.store.GetWorkload(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
@@ -208,12 +208,12 @@ func (c *Calcium) withImageBuiltChannel(f func(chan *types.BuildImageMessage)) c
 	return ch
 }
 
-func cleanupNodeImages(ctx context.Context, node *types.Node, ids []string, ttl time.Duration) {
-	logger := log.WithFunc("calcium.cleanupNodeImages").WithField("node", node).WithField("ids", ids).WithField("ttl", ttl)
+func cleanupNodeImages(ctx context.Context, node *types.Node, IDs []string, ttl time.Duration) {
+	logger := log.WithFunc("calcium.cleanupNodeImages").WithField("node", node).WithField("IDs", IDs).WithField("ttl", ttl)
 	ctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.TODO()), ttl)
 	defer cancel()
-	for _, id := range ids {
-		if _, err := node.Engine.ImageRemove(ctx, id, false, true); err != nil {
+	for _, ID := range IDs {
+		if _, err := node.Engine.ImageRemove(ctx, ID, false, true); err != nil {
 			logger.Error(ctx, err, "Remove image error")
 		}
 	}

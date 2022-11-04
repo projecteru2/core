@@ -10,28 +10,30 @@ import (
 )
 
 type remapMsg struct {
-	id  string
+	ID  string
 	err error
 }
 
 func (c *Calcium) doRemapResourceAndLog(ctx context.Context, logger *log.Fields, node *types.Node) {
-	logger.Infof(ctx, "[doRemapResourceAndLog] remap node %s", node.Name)
+	remapLogger := logger.WithField("calcium.doRemapResourceAndLog", node.Name)
+	remapLogger.Info(ctx, "remap node")
 	ctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.TODO()), c.config.GlobalTimeout)
 	defer cancel()
 
 	err := c.withNodeOperationLocked(ctx, node.Name, func(ctx context.Context, node *types.Node) error {
-		logger = logger.WithField("Calcium", "doRemapResourceAndLog").WithField("nodename", node.Name)
 		if ch, err := c.remapResource(ctx, node); err == nil {
 			for msg := range ch {
-				logger.Infof(ctx, "[doRemapResourceAndLog] id %+v", msg.id)
-				logger.WithField("id", msg.id).Error(ctx, msg.err) //nolint:errcheck
+				remapLogger.Infof(ctx, "ID %+v", msg.ID)
+				if msg.err != nil {
+					remapLogger.Error(ctx, msg.err)
+				}
 			}
 		}
 		return nil
 	})
 
 	if err != nil {
-		logger.Errorf(ctx, err, "[doRemapResourceAndLog] remap node %s failed", node.Name)
+		remapLogger.Error(ctx, err, "remap node failed")
 	}
 }
 
@@ -58,7 +60,7 @@ func (c *Calcium) remapResource(ctx context.Context, node *types.Node) (ch chan 
 		defer close(ch)
 		for workloadID, engineArgs := range engineArgsMap {
 			ch <- &remapMsg{
-				id:  workloadID,
+				ID:  workloadID,
 				err: node.Engine.VirtualizationUpdateResource(ctx, workloadID, &enginetypes.VirtualizationResource{EngineArgs: engineArgs}),
 			}
 		}

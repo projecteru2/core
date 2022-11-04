@@ -177,7 +177,7 @@ func (c *Calcium) RunAndWait(ctx context.Context, opts *types.DeployOptions, inC
 	}
 
 	for message := range createChan {
-		// iterate over messages to store workload ids
+		// iterate over messages to store workload IDs
 		workloadIDs = append(workloadIDs, message.WorkloadID)
 		wg.Add(1)
 		_ = c.pool.Invoke(func(msg *types.CreateWorkloadMessage) func() {

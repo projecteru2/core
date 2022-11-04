@@ -97,7 +97,7 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 				continue
 			}
 			if retryCounter == 0 {
-				logger.Infof(ctx, "failed to register, there has been another active node status watcher")
+				logger.Warn(ctx, "failed to register, there has been another active node status watcher")
 			}
 			retryCounter = (retryCounter + 1) % 60
 			time.Sleep(time.Second)

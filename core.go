@@ -116,7 +116,9 @@ func serve(c *cli.Context) error {
 	defer cancel()
 
 	// start node status checker
-	go selfmon.RunNodeStatusWatcher(ctx, config, cluster, t)
+	utils.SentryGo(func() {
+		selfmon.RunNodeStatusWatcher(ctx, config, cluster, t)
+	})
 
 	<-ctx.Done()
 
@@ -130,6 +132,7 @@ func serve(c *cli.Context) error {
 	vibranium.Wait()
 	logger.Info(c.Context, "cluster gracefully stopped.")
 	return nil
+
 }
 
 func main() {

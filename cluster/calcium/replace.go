@@ -45,15 +45,15 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 		wg := sync.WaitGroup{}
 		wg.Add(len(opts.IDs))
 		defer wg.Wait()
-		for index, id := range opts.IDs {
-			_ = c.pool.Invoke(func(replaceOpts types.ReplaceOptions, index int, id string) func() {
+		for index, ID := range opts.IDs {
+			_ = c.pool.Invoke(func(replaceOpts types.ReplaceOptions, index int, ID string) func() {
 				return func() {
 					_ = c.pool.Invoke(func() {
 						defer wg.Done()
 						var createMessage *types.CreateWorkloadMessage
-						removeMessage := &types.RemoveWorkloadMessage{WorkloadID: id}
+						removeMessage := &types.RemoveWorkloadMessage{WorkloadID: ID}
 						var err error
-						if err = c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
+						if err = c.withWorkloadLocked(ctx, ID, func(ctx context.Context, workload *types.Workload) error {
 							if opts.Podname != "" && workload.Podname != opts.Podname {
 								logger.Warnf(ctx, "Skip not in pod workload %s", workload.ID)
 								return errors.Wrapf(types.ErrWorkloadIgnored, "workload %s not in pod %s", workload.ID, opts.Podname)
@@ -84,13 +84,13 @@ func (c *Calcium) ReplaceWorkload(ctx context.Context, opts *types.ReplaceOption
 							}
 							logger.Error(ctx, err, "Replace and remove failed, old workload restarted")
 						} else {
-							logger.Infof(ctx, "Replace and remove success %s", id)
+							logger.Infof(ctx, "Replace and remove success %s", ID)
 							logger.Infof(ctx, "New workload %s", createMessage.WorkloadID)
 						}
 						ch <- &types.ReplaceWorkloadMessage{Create: createMessage, Remove: removeMessage, Error: err}
 					})
 				}
-			}(*opts, index, id))
+			}(*opts, index, ID))
 		}
 	})
 	return ch, nil

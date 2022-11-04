@@ -27,7 +27,7 @@ type Scanner interface {
 
 // Sequencer is the interface that wraps the basic NextSequence method.
 type Sequencer interface {
-	NextSequence() (id uint64, err error)
+	NextSequence() (ID uint64, err error)
 }
 
 // OpenCloser is the interface that groups the basic Open and Close methods.

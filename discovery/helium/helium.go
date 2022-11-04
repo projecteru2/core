@@ -50,8 +50,8 @@ func New(config types.GRPCConfig, store store.Store) *Helium {
 
 // Subscribe .
 func (h *Helium) Subscribe(ctx context.Context) (uuid.UUID, <-chan types.ServiceStatus) {
-	id := uuid.New()
-	key := id.ID()
+	ID := uuid.New()
+	key := ID.ID()
 	subCtx, cancel := context.WithCancel(ctx)
 	ch := make(chan types.ServiceStatus)
 	h.subs.Set(key, entry{
@@ -59,12 +59,12 @@ func (h *Helium) Subscribe(ctx context.Context) (uuid.UUID, <-chan types.Service
 		ctx:    subCtx,
 		cancel: cancel,
 	})
-	return id, ch
+	return ID, ch
 }
 
 // Unsubscribe .
-func (h *Helium) Unsubscribe(id uuid.UUID) {
-	h.unsubChan <- id.ID()
+func (h *Helium) Unsubscribe(ID uuid.UUID) {
+	h.unsubChan <- ID.ID()
 }
 
 func (h *Helium) start(ctx context.Context) {
@@ -94,10 +94,10 @@ func (h *Helium) start(ctx context.Context) {
 					Interval:  h.interval * 2,
 				}
 
-			case id := <-h.unsubChan:
-				if entry, ok := h.subs.Get(id); ok {
+			case ID := <-h.unsubChan:
+				if entry, ok := h.subs.Get(ID); ok {
 					entry.cancel()
-					h.subs.Del(id)
+					h.subs.Del(ID)
 					close(entry.ch)
 				}
 

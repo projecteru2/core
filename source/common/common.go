@@ -118,7 +118,7 @@ func (g *GitScm) Artifact(ctx context.Context, artifact, path string) error {
 		req.Header.Add(k, v)
 	}
 
-	log.WithFunc("source.common.Artifact").Infof(ctx, "[Artifact] Downloading artifacts from %q", artifact)
+	log.WithFunc("source.common.Artifact").Infof(ctx, "Downloading artifacts from %q", artifact)
 	resp, err := g.Do(req)
 	if err != nil {
 		return err

@@ -13,10 +13,10 @@ import (
 
 // RemoveWorkload remove workloads
 // returns a channel that contains removing responses
-func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool) (chan *types.RemoveWorkloadMessage, error) {
-	logger := log.WithFunc("calcium.RemoveWorkload").WithField("ids", ids).WithField("force", force)
+func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) (chan *types.RemoveWorkloadMessage, error) {
+	logger := log.WithFunc("calcium.RemoveWorkload").WithField("IDs", IDs).WithField("force", force)
 
-	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, ids)
+	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, IDs)
 	if err != nil {
 		logger.Error(ctx, err, "failed to group workloads by node")
 		return nil, err
@@ -78,7 +78,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool) 
 						_ = c.pool.Invoke(func() { c.doRemapResourceAndLog(ctx, logger, node) })
 						return nil
 					}); err != nil {
-						logger.WithField("nodename", nodename).Error(ctx, err, "failed to lock node")
+						logger.WithField("node", nodename).Error(ctx, err, "failed to lock node")
 						ch <- &types.RemoveWorkloadMessage{Success: false}
 					}
 				}
@@ -89,8 +89,8 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool) 
 }
 
 // RemoveWorkloadSync .
-func (c *Calcium) RemoveWorkloadSync(ctx context.Context, ids []string) error {
-	return c.doRemoveWorkloadSync(ctx, ids)
+func (c *Calcium) RemoveWorkloadSync(ctx context.Context, IDs []string) error {
+	return c.doRemoveWorkloadSync(ctx, IDs)
 }
 
 // semantic: instance removed on err == nil, instance remained on err != nil
@@ -117,8 +117,8 @@ func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload
 }
 
 // 同步地删除容器, 在某些需要等待的场合异常有用!
-func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, ids []string) error {
-	ch, err := c.RemoveWorkload(ctx, ids, true)
+func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, IDs []string) error {
+	ch, err := c.RemoveWorkload(ctx, IDs, true)
 	if err != nil {
 		return err
 	}
@@ -130,8 +130,8 @@ func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, ids []string) error 
 	return nil
 }
 
-func (c *Calcium) groupWorkloadsByNode(ctx context.Context, ids []string) (map[string][]string, error) {
-	workloads, err := c.store.GetWorkloads(ctx, ids)
+func (c *Calcium) groupWorkloadsByNode(ctx context.Context, IDs []string) (map[string][]string, error) {
+	workloads, err := c.store.GetWorkloads(ctx, IDs)
 	if err != nil {
 		return nil, err
 	}

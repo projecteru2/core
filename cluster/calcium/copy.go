@@ -26,17 +26,17 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 		logger.Infof(ctx, "Copy %d workloads files", len(opts.Targets))
 
 		// workload one by one
-		for id, paths := range opts.Targets {
-			_ = c.pool.Invoke(func(id string, paths []string) func() {
+		for ID, paths := range opts.Targets {
+			_ = c.pool.Invoke(func(ID string, paths []string) func() {
 				return func() {
 					defer wg.Done()
 
-					workload, err := c.GetWorkload(ctx, id)
+					workload, err := c.GetWorkload(ctx, ID)
 					if err != nil {
 						for _, path := range paths {
 							logger.Error(ctx, err)
 							ch <- &types.CopyMessage{
-								ID:    id,
+								ID:    ID,
 								Path:  path,
 								Error: err,
 							}
@@ -47,7 +47,7 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 					for _, path := range paths {
 						content, uid, gid, mode, err := workload.Engine.VirtualizationCopyFrom(ctx, workload.ID, path)
 						ch <- &types.CopyMessage{
-							ID:    id,
+							ID:    ID,
 							Path:  path,
 							Error: err,
 							LinuxFile: types.LinuxFile{
@@ -60,7 +60,7 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 						}
 					}
 				}
-			}(id, paths))
+			}(ID, paths))
 		}
 	})
 	return ch, nil

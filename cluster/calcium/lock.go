@@ -54,30 +54,30 @@ func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.Distrib
 	}
 }
 
-func (c *Calcium) withWorkloadLocked(ctx context.Context, id string, f func(context.Context, *types.Workload) error) error {
-	return c.withWorkloadsLocked(ctx, []string{id}, func(ctx context.Context, workloads map[string]*types.Workload) error {
-		if c, ok := workloads[id]; ok {
+func (c *Calcium) withWorkloadLocked(ctx context.Context, ID string, f func(context.Context, *types.Workload) error) error {
+	return c.withWorkloadsLocked(ctx, []string{ID}, func(ctx context.Context, workloads map[string]*types.Workload) error {
+		if c, ok := workloads[ID]; ok {
 			return f(ctx, c)
 		}
 		return types.ErrWorkloadNotExists
 	})
 }
 
-func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(context.Context, map[string]*types.Workload) error) error {
+func (c *Calcium) withWorkloadsLocked(ctx context.Context, IDs []string, f func(context.Context, map[string]*types.Workload) error) error {
 	workloads := map[string]*types.Workload{}
 	locks := map[string]lock.DistributedLock{}
 	logger := log.WithFunc("calcium.withWorkloadsLocked")
 
 	// sort + unique
-	sort.Strings(ids)
-	ids = ids[:utils.Unique(ids, func(i int) string { return ids[i] })]
+	sort.Strings(IDs)
+	IDs = IDs[:utils.Unique(IDs, func(i int) string { return IDs[i] })]
 
-	defer logger.Debugf(ctx, "Workloads %+v unlocked", ids)
+	defer logger.Debugf(ctx, "Workloads %+v unlocked", IDs)
 	defer func() {
-		utils.Reverse(ids)
-		c.doUnlockAll(utils.InheritTracingInfo(ctx, context.TODO()), locks, ids...)
+		utils.Reverse(IDs)
+		c.doUnlockAll(utils.InheritTracingInfo(ctx, context.TODO()), locks, IDs...)
 	}()
-	cs, err := c.store.GetWorkloads(ctx, ids)
+	cs, err := c.store.GetWorkloads(ctx, IDs)
 	if err != nil {
 		return err
 	}

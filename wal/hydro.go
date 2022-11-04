@@ -91,12 +91,12 @@ func (h *Hydro) Log(eventyp string, item interface{}) (Commit, error) {
 		return nil, err
 	}
 
-	var id uint64
-	if id, err = h.store.NextSequence(); err != nil {
+	var ID uint64
+	if ID, err = h.store.NextSequence(); err != nil {
 		return nil, err
 	}
 
-	event := NewHydroEvent(id, eventyp, bs)
+	event := NewHydroEvent(ID, eventyp, bs)
 	if bs, err = event.Encode(); err != nil {
 		return nil, coretypes.ErrInvaildWALEvent
 	}

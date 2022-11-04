@@ -333,7 +333,7 @@ func (v *Vibranium) GetWorkloadsStatus(ctx context.Context, opts *pb.WorkloadIDs
 	task := v.newTask(ctx, "GetWorkloadsStatus", false)
 	defer task.done()
 
-	workloadsStatus, err := v.cluster.GetWorkloadsStatus(task.context, opts.Ids)
+	workloadsStatus, err := v.cluster.GetWorkloadsStatus(task.context, opts.IDs)
 	if err != nil {
 		return nil, grpcstatus.Error(GetWorkloadsStatus, err.Error())
 	}
@@ -427,10 +427,10 @@ func (v *Vibranium) CalculateCapacity(ctx context.Context, opts *pb.DeployOption
 
 // GetWorkload get a workload
 // More information will be shown
-func (v *Vibranium) GetWorkload(ctx context.Context, id *pb.WorkloadID) (*pb.Workload, error) {
+func (v *Vibranium) GetWorkload(ctx context.Context, ID *pb.WorkloadID) (*pb.Workload, error) {
 	task := v.newTask(ctx, "GetWorkload", false)
 	defer task.done()
-	workload, err := v.cluster.GetWorkload(task.context, id.Id)
+	workload, err := v.cluster.GetWorkload(task.context, ID.Id)
 	if err != nil {
 		return nil, grpcstatus.Error(GetWorkload, err.Error())
 	}
@@ -443,7 +443,7 @@ func (v *Vibranium) GetWorkload(ctx context.Context, id *pb.WorkloadID) (*pb.Wor
 func (v *Vibranium) GetWorkloads(ctx context.Context, cids *pb.WorkloadIDs) (*pb.Workloads, error) {
 	task := v.newTask(ctx, "GetWorkloads", false)
 	defer task.done()
-	workloads, err := v.cluster.GetWorkloads(task.context, cids.GetIds())
+	workloads, err := v.cluster.GetWorkloads(task.context, cids.GetIDs())
 	if err != nil {
 		return nil, grpcstatus.Error(GetWorkloads, err.Error())
 	}
@@ -724,13 +724,13 @@ func (v *Vibranium) RemoveWorkload(opts *pb.RemoveWorkloadOptions, stream pb.Cor
 	task := v.newTask(stream.Context(), "RemoveWorkload", true)
 	defer task.done()
 
-	ids := opts.GetIds()
+	IDs := opts.GetIDs()
 	force := opts.GetForce()
 
-	if len(ids) == 0 {
+	if len(IDs) == 0 {
 		return types.ErrNoWorkloadIDs
 	}
-	ch, err := v.cluster.RemoveWorkload(task.context, ids, force)
+	ch, err := v.cluster.RemoveWorkload(task.context, IDs, force)
 	if err != nil {
 		return grpcstatus.Error(ReplaceWorkload, err.Error())
 	}
@@ -749,12 +749,12 @@ func (v *Vibranium) DissociateWorkload(opts *pb.DissociateWorkloadOptions, strea
 	task := v.newTask(stream.Context(), "DissociateWorkload", true)
 	defer task.done()
 
-	ids := opts.GetIds()
-	if len(ids) == 0 {
+	IDs := opts.GetIDs()
+	if len(IDs) == 0 {
 		return types.ErrNoWorkloadIDs
 	}
 
-	ch, err := v.cluster.DissociateWorkload(task.context, ids)
+	ch, err := v.cluster.DissociateWorkload(task.context, IDs)
 	if err != nil {
 		return grpcstatus.Error(DissociateWorkload, err.Error())
 	}
@@ -773,15 +773,15 @@ func (v *Vibranium) ControlWorkload(opts *pb.ControlWorkloadOptions, stream pb.C
 	task := v.newTask(stream.Context(), "ControlWorkload", true)
 	defer task.done()
 
-	ids := opts.GetIds()
+	IDs := opts.GetIDs()
 	t := opts.GetType()
 	force := opts.GetForce()
 
-	if len(ids) == 0 {
+	if len(IDs) == 0 {
 		return types.ErrNoWorkloadIDs
 	}
 
-	ch, err := v.cluster.ControlWorkload(task.context, ids, t, force)
+	ch, err := v.cluster.ControlWorkload(task.context, IDs, t, force)
 	if err != nil {
 		return grpcstatus.Error(ControlWorkload, err.Error())
 	}
@@ -946,21 +946,21 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		}
 	})
 
-	ids, ch, err := v.cluster.RunAndWait(ctx, deployOpts, inCh)
+	IDs, ch, err := v.cluster.RunAndWait(ctx, deployOpts, inCh)
 	if err != nil {
 		task.done()
 		cancel()
 		return grpcstatus.Error(RunAndWait, err.Error())
 	}
 
-	// send workload ids to client first
-	for _, id := range ids {
+	// send workload IDs to client first
+	for _, ID := range IDs {
 		if err = stream.Send(&pb.AttachWorkloadMessage{
-			WorkloadId:    id,
+			WorkloadId:    ID,
 			Data:          []byte(""),
 			StdStreamType: pb.StdStreamType_TYPEWORKLOADID,
 		}); err != nil {
-			v.logUnsentMessages(ctx, "RunAndWait: first message send failed", err, id)
+			v.logUnsentMessages(ctx, "RunAndWait: first message send failed", err, ID)
 		}
 	}
 

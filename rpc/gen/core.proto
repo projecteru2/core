@@ -297,16 +297,16 @@ message WorkloadID {
 }
 
 message WorkloadIDs {
-  repeated string ids = 1001;
+  repeated string IDs = 1001;
 }
 
 message RemoveWorkloadOptions {
-  repeated string ids = 1001;
+  repeated string IDs = 1001;
   bool force = 1002;
 }
 
 message DissociateWorkloadOptions {
-  repeated string ids = 1001;
+  repeated string IDs = 1001;
 }
 
 enum TriOpt {
@@ -439,7 +439,7 @@ message ReplaceOptions {
   bool networkinherit = 1002;
   map<string, string> filter_labels = 1003;
   map<string, string> copy = 1004;
-  repeated string ids = 5100;
+  repeated string IDs = 5100;
 }
 
 message CacheImageOptions {
@@ -479,7 +479,7 @@ message FileMode {
 }
 
 message SendOptions {
-  repeated string ids = 1001;
+  repeated string IDs = 1001;
   map<string, bytes> data = 1002;
   map<string, FileMode> modes = 1003;
   map<string, FileOwner> owners = 1004;
@@ -591,7 +591,7 @@ message RunAndWaitOptions{
 }
 
 message ControlWorkloadOptions {
-  repeated string ids = 1001;
+  repeated string IDs = 1001;
   string type = 1002;
   bool force = 1003;
 }

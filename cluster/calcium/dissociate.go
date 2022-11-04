@@ -10,10 +10,10 @@ import (
 )
 
 // DissociateWorkload dissociate workload from eru, return it resource but not modity it
-func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *types.DissociateWorkloadMessage, error) {
-	logger := log.WithFunc("caliucm.DissociateWorkload").WithField("ids", ids)
+func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *types.DissociateWorkloadMessage, error) {
+	logger := log.WithFunc("caliucm.DissociateWorkload").WithField("IDs", IDs)
 
-	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, ids)
+	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, IDs)
 	if err != nil {
 		logger.Error(ctx, err, "failed to group workloads by node")
 		return nil, err
@@ -66,7 +66,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *t
 				_ = c.pool.Invoke(func() { c.doRemapResourceAndLog(ctx, logger, node) })
 				return nil
 			}); err != nil {
-				logger.WithField("nodename", nodename).Error(ctx, err, "failed to lock node")
+				logger.WithField("node", nodename).Error(ctx, err, "failed to lock node")
 			}
 		}
 	})

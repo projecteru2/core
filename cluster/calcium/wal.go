@@ -160,7 +160,7 @@ func (h *CreateWorkloadHandler) Decode(bs []byte) (interface{}, error) {
 // Handle will remove instance, remove meta, restore resource
 func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (err error) {
 	wrk, _ := raw.(*types.Workload)
-	logger := log.WithFunc("wal.CreateWorkloadHandler.Handle").WithField("ID", wrk.ID).WithField("nodename", wrk.Nodename)
+	logger := log.WithFunc("wal.CreateWorkloadHandler.Handle").WithField("ID", wrk.ID).WithField("node", wrk.Nodename)
 
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()

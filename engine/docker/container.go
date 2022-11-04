@@ -412,7 +412,7 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 	// parse engine args to resource options
 	resourceOpts, err := engine.MakeVirtualizationResource(opts.EngineArgs)
 	if err != nil {
-		logger.Errorf(ctx, err, "failed to parse engine args %+v, workload id %+v", opts.EngineArgs, ID)
+		logger.Errorf(ctx, err, "failed to parse engine args %+v, workload ID %+v", opts.EngineArgs, ID)
 		return coretypes.ErrInvalidEngineArgs
 	}
 

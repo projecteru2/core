@@ -66,7 +66,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 
 // RemoveNode remove a node
 func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
-	logger := log.WithFunc("calcium.RemoveNode").WithField("nodename", nodename)
+	logger := log.WithFunc("calcium.RemoveNode").WithField("node", nodename)
 	if nodename == "" {
 		logger.Error(ctx, types.ErrEmptyNodeName)
 		return types.ErrEmptyNodeName
@@ -140,7 +140,7 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 // GetNode get node
 // node with resource info
 func (c *Calcium) GetNode(ctx context.Context, nodename string) (node *types.Node, err error) {
-	logger := log.WithFunc("calcium.GetNode").WithField("nodename", nodename)
+	logger := log.WithFunc("calcium.GetNode").WithField("node", nodename)
 	if nodename == "" {
 		logger.Error(ctx, types.ErrEmptyNodeName)
 		return nil, types.ErrEmptyNodeName
@@ -158,7 +158,7 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string) (node *types.Nod
 
 // GetNodeEngineInfo get node engine
 func (c *Calcium) GetNodeEngineInfo(ctx context.Context, nodename string) (*enginetypes.Info, error) {
-	logger := log.WithFunc("calcium.GetNodeEngineInfo").WithField("nodename", nodename)
+	logger := log.WithFunc("calcium.GetNodeEngineInfo").WithField("node", nodename)
 	if nodename == "" {
 		logger.Error(ctx, types.ErrEmptyNodeName)
 		return nil, types.ErrEmptyNodeName
@@ -194,7 +194,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 
 		n.Bypass = (opts.Bypass == types.TriTrue) || (opts.Bypass == types.TriKeep && n.Bypass)
 		if n.IsDown() {
-			logger.Errorf(ctx, err, "[SetNode] node marked down: %s", opts.Nodename)
+			logger.Errorf(ctx, err, "node marked down: %s", opts.Nodename)
 		}
 
 		if opts.WorkloadsDown {

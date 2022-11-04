@@ -224,7 +224,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	resourceArgs []map[string]types.WorkloadResourceArgs,
 	seq int) (indices []int, err error) {
 
-	logger := log.WithFunc("calcium.doDeployWorkloadsOnNode").WithField("nodename", nodename).WithField("ident", opts.ProcessIdent).WithField("deploy", deploy).WithField("seq", seq)
+	logger := log.WithFunc("calcium.doDeployWorkloadsOnNode").WithField("node", nodename).WithField("ident", opts.ProcessIdent).WithField("deploy", deploy).WithField("seq", seq)
 	node, err := c.doGetAndPrepareNode(ctx, nodename, opts.Image)
 	if err != nil {
 		for i := 0; i < deploy; i++ {
@@ -298,7 +298,7 @@ func (c *Calcium) doDeployOneWorkload(
 	config *enginetypes.VirtualizationCreateOptions,
 	decrProcessing bool,
 ) (err error) {
-	logger := log.WithFunc("calcium.doDeployWorkload").WithField("nodename", node.Name).WithField("ident", opts.ProcessIdent).WithField("msg", msg)
+	logger := log.WithFunc("calcium.doDeployWorkload").WithField("node", node.Name).WithField("ident", opts.ProcessIdent).WithField("msg", msg)
 	workload := &types.Workload{
 		ResourceArgs: types.ResourceMeta{},
 		EngineArgs:   msg.EngineArgs,

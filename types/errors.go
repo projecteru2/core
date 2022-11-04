@@ -73,7 +73,7 @@ var (
 	ErrNoBuildSpec                 = errors.New("no build spec")
 	ErrNoEntryInSpec               = errors.New("no entry in spec")
 	ErrNoDeployOpts                = errors.New("no deploy options")
-	ErrNoWorkloadIDs               = errors.New("no workload ids given")
+	ErrNoWorkloadIDs               = errors.New("no workload IDs given")
 	ErrNoSCMSetting                = errors.New("SCM not set")
 	ErrRunAndWaitCountOneWithStdin = errors.New("count must be 1 if OpenStdin is true")
 	ErrInvaildControlType          = errors.New("unknown control type")
@@ -85,7 +85,7 @@ var (
 	ErrEmptyPodName                = errors.New("pod name is empty")
 	ErrEmptyImage                  = errors.New("image is empty")
 	ErrEmptyCount                  = errors.New("count is 0")
-	ErrEmptyWorkloadID             = errors.New("workload id is empty")
+	ErrEmptyWorkloadID             = errors.New("workload ID is empty")
 	ErrEmptyEntrypointName         = errors.New("entrypoint name is empty")
 	ErrUnderlineInEntrypointName   = errors.New("entrypoint name has '_' character")
 

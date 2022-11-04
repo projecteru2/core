@@ -29,7 +29,7 @@ func (m *Mercury) UpdateWorkload(ctx context.Context, workload *types.Workload) 
 }
 
 // RemoveWorkload remove a workload
-// workload id must be in full length
+// workload ID must be in full length
 func (m *Mercury) RemoveWorkload(ctx context.Context, workload *types.Workload) error {
 	return m.cleanWorkloadData(ctx, workload)
 }
@@ -46,18 +46,18 @@ func (m *Mercury) GetWorkload(ctx context.Context, ID string) (*types.Workload, 
 }
 
 // GetWorkloads get many workloads
-func (m *Mercury) GetWorkloads(ctx context.Context, ids []string) (workloads []*types.Workload, err error) {
+func (m *Mercury) GetWorkloads(ctx context.Context, IDs []string) (workloads []*types.Workload, err error) {
 	keys := []string{}
-	for _, id := range ids {
-		keys = append(keys, fmt.Sprintf(workloadInfoKey, id))
+	for _, ID := range IDs {
+		keys = append(keys, fmt.Sprintf(workloadInfoKey, ID))
 	}
 
 	return m.doGetWorkloads(ctx, keys)
 }
 
 // GetWorkloadStatus get workload status
-func (m *Mercury) GetWorkloadStatus(ctx context.Context, id string) (*types.StatusMeta, error) {
-	workload, err := m.GetWorkload(ctx, id)
+func (m *Mercury) GetWorkloadStatus(ctx context.Context, ID string) (*types.StatusMeta, error) {
+	workload, err := m.GetWorkload(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
@@ -250,8 +250,8 @@ func (m *Mercury) bindWorkloadsAdditions(ctx context.Context, workloads []*types
 		}
 		status := &types.StatusMeta{}
 		if err := json.Unmarshal(kv.Value, &status); err != nil {
-			logger.Warnf(ctx, "[bindWorkloadsAdditions] unmarshal %s status data failed %+v", workload.ID, err)
-			logger.Errorf(ctx, err, "[bindWorkloadsAdditions] status raw: %s", kv.Value)
+			logger.Warnf(ctx, "unmarshal %s status data failed %+v", workload.ID, err)
+			logger.Errorf(ctx, err, "status raw: %s", kv.Value)
 			continue
 		}
 		workloads[index].StatusMeta = status
@@ -267,7 +267,7 @@ func (m *Mercury) doOpsWorkload(ctx context.Context, workload *types.Workload, p
 	}
 
 	// now everything is ok
-	// we use full length id instead
+	// we use full length ID instead
 	bytes, err := json.Marshal(workload)
 	if err != nil {
 		return err

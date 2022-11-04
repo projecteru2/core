@@ -129,7 +129,7 @@ func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) { //nolint
 		})
 	}
 	return &types.SendOptions{
-		IDs:   b.Ids,
+		IDs:   b.IDs,
 		Files: files,
 	}, nil
 }
@@ -230,7 +230,7 @@ func toCoreReplaceOptions(r *pb.ReplaceOptions) (*types.ReplaceOptions, error) {
 		NetworkInherit: r.Networkinherit,
 		FilterLabels:   r.FilterLabels,
 		Copy:           r.Copy,
-		IDs:            r.Ids,
+		IDs:            r.IDs,
 	}
 
 	return replaceOpts, err
