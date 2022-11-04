@@ -11,18 +11,19 @@ import (
 
 // ResourceMiddleware to make sure update resource correct
 func (m *Metrics) ResourceMiddleware(cluster cluster.Cluster) func(http.Handler) http.Handler {
+	logger := log.WithFunc("metrics.ResourceMiddleware")
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx, cancel := context.WithTimeout(r.Context(), m.Config.GlobalTimeout)
 			defer cancel()
 			nodes, err := cluster.ListPodNodes(ctx, &types.ListNodesOptions{All: true})
 			if err != nil {
-				log.Error(ctx, err, "[ResourceMiddleware] Get all nodes err")
+				logger.Error(ctx, err, "Get all nodes err")
 			}
 			for node := range nodes {
 				metrics, err := m.rmgr.GetNodeMetrics(ctx, node)
 				if err != nil {
-					log.Error(ctx, err, "[ResourceMiddleware] Get metrics failed")
+					logger.Error(ctx, err, "Get metrics failed")
 					continue
 				}
 				m.SendMetrics(ctx, metrics...)

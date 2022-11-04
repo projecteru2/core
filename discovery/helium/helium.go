@@ -68,15 +68,16 @@ func (h *Helium) Unsubscribe(id uuid.UUID) {
 }
 
 func (h *Helium) start(ctx context.Context) {
+	logger := log.WithFunc("helium.start")
 	ch, err := h.store.ServiceStatusStream(ctx)
 	if err != nil {
-		log.Error(ctx, err, "[WatchServiceStatus] failed to start watch")
+		logger.Error(ctx, err, "failed to start watch")
 		return
 	}
 
 	go func() {
-		log.Info(ctx, "[WatchServiceStatus] service discovery start")
-		defer log.Warn(ctx, "[WatchServiceStatus] service discovery exited")
+		logger.Info(ctx, "service discovery start")
+		defer logger.Warn(ctx, "service discovery exited")
 		var latestStatus types.ServiceStatus
 		ticker := time.NewTicker(h.interval)
 		defer ticker.Stop()
@@ -84,7 +85,7 @@ func (h *Helium) start(ctx context.Context) {
 			select {
 			case addresses, ok := <-ch:
 				if !ok {
-					log.Warn(ctx, "[WatchServiceStatus] watch channel closed")
+					logger.Warn(ctx, "watch channel closed")
 					return
 				}
 
@@ -103,16 +104,16 @@ func (h *Helium) start(ctx context.Context) {
 			case <-ticker.C:
 			}
 
-			h.dispatch(latestStatus)
+			h.dispatch(ctx, latestStatus)
 		}
 	}()
 }
 
-func (h *Helium) dispatch(status types.ServiceStatus) {
+func (h *Helium) dispatch(ctx context.Context, status types.ServiceStatus) {
 	f := func(key uint32, val entry) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Errorf(nil, errors.Errorf("%+v", err), "[dispatch] dispatch %+v failed", key) //nolint
+				log.WithFunc("helium.dispatch").Errorf(ctx, errors.Errorf("%+v", err), "dispatch %+v failed", key)
 			}
 		}()
 		select {

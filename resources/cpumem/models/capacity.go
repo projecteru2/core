@@ -12,8 +12,9 @@ import (
 
 // GetNodesDeployCapacity .
 func (c *CPUMem) GetNodesDeployCapacity(ctx context.Context, nodes []string, opts *types.WorkloadResourceOpts) (map[string]*types.NodeCapacityInfo, int, error) {
+	logger := log.WithFunc("resources.cpumem.GetNodesDeployCapacity")
 	if err := opts.Validate(); err != nil {
-		log.Errorf(ctx, err, "[GetNodesDeployCapacity] invalid resource opts %+v", opts)
+		logger.Errorf(ctx, err, "invalid resource opts %+v", opts)
 		return nil, 0, err
 	}
 
@@ -22,7 +23,7 @@ func (c *CPUMem) GetNodesDeployCapacity(ctx context.Context, nodes []string, opt
 	for _, node := range nodes {
 		resourceInfo, err := c.doGetNodeResourceInfo(ctx, node)
 		if err != nil {
-			log.Errorf(ctx, err, "[GetNodesDeployCapacity] failed to get resource info of node %+v", node)
+			logger.Errorf(ctx, err, "failed to get resource info of node %+v", node)
 			return nil, 0, err
 		}
 		capacityInfo := c.doGetNodeCapacityInfo(node, resourceInfo, opts)

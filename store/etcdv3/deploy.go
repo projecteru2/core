@@ -19,11 +19,10 @@ func (m *Mercury) GetDeployStatus(ctx context.Context, appname, entryname string
 		return nil, err
 	}
 	if resp.Count == 0 {
-		log.Warnf(ctx, "[MakeDeployStatus] Deploy status not found %s.%s", appname, entryname)
+		log.WithFunc("store.etcdv3.GetDeployStatus").Warnf(ctx, "Deploy status not found %s.%s", appname, entryname)
 	}
 
 	deployCount := m.doGetDeployStatus(ctx, resp)
-
 	processingCount, err := m.doLoadProcessing(ctx, appname, entryname)
 	if err != nil {
 		return nil, err

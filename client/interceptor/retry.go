@@ -2,8 +2,8 @@ package interceptor
 
 import (
 	"context"
-	"strings"
 
+	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/log"
 
 	"github.com/cenkalti/backoff/v4"
@@ -32,7 +32,8 @@ func NewStreamRetry(retryOpts RetryOptions) grpc.StreamClientInterceptor {
 		if _, ok := RPCNeedRetry[method]; !ok {
 			return stream, err
 		}
-		log.Debugf(ctx, "[NewStreamRetry] return retryStream for method %s", method)
+		logger := log.WithFunc("client.NewStreamRetry")
+		logger.Debugf(ctx, "return retryStream for method %s", method)
 		return &retryStream{
 			ctx:          ctx,
 			ClientStream: stream,
@@ -52,12 +53,13 @@ func (s *retryStream) SendMsg(m interface{}) error {
 }
 
 func (s *retryStream) RecvMsg(m interface{}) (err error) {
-	if err = s.ClientStream.RecvMsg(m); err == nil || strings.Contains(err.Error(), "context canceled") {
+	if err = s.ClientStream.RecvMsg(m); err == nil || errors.Is(err, context.Canceled) {
 		return
 	}
+	logger := log.WithFunc("client.RecvMsg")
 
 	return backoff.Retry(func() error {
-		log.Debug(s.ctx, "[retryStream] retry on new stream")
+		logger.Debug(s.ctx, "retry on new stream")
 		stream, err := s.newStream()
 		if err != nil {
 			// even io.EOF triggers retry, and it's what we want!

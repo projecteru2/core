@@ -15,7 +15,7 @@ import (
 // need 是每台上限, limit 是限制节点数, 保证最终状态至少有 limit*need 个实例
 // limit = 0 代表对所有节点进行填充
 func FillPlan(ctx context.Context, infos []Info, need, _, limit int) (_ map[string]int, err error) {
-	log.Debugf(ctx, "[FillPlan] need %d limit %d infos %+v", need, limit, infos)
+	log.WithFunc("strategy.FillPlan").Debugf(ctx, "need %d limit %d infos %+v", need, limit, infos)
 	scheduleInfosLength := len(infos)
 	if limit == 0 {
 		limit = scheduleInfosLength

@@ -14,7 +14,7 @@ import (
 // RemoveWorkload remove workloads
 // returns a channel that contains removing responses
 func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool) (chan *types.RemoveWorkloadMessage, error) {
-	logger := log.WithField("Calcium", "RemoveWorkload").WithField("ids", ids).WithField("force", force)
+	logger := log.WithFunc("calcium.RemoveWorkload").WithField("ids", ids).WithField("force", force)
 
 	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, ids)
 	if err != nil {
@@ -50,7 +50,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool) 
 									// then
 									func(ctx context.Context) (err error) {
 										if err = c.doRemoveWorkload(ctx, workload, force); err == nil {
-											logger.Infof(ctx, "[RemoveWorkload] Workload %s removed", workload.ID)
+											logger.Infof(ctx, "Workload %s removed", workload.ID)
 										}
 										return err
 									},
@@ -125,7 +125,7 @@ func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, ids []string) error 
 
 	for m := range ch {
 		// TODO deal with failed
-		log.Debugf(ctx, "[doRemoveWorkloadSync] Removed %s", m.WorkloadID)
+		log.WithFunc("calcium.doRemoveWorkloadSync").Debugf(ctx, "Removed %s", m.WorkloadID)
 	}
 	return nil
 }

@@ -450,7 +450,7 @@ func (h *host) getVolumePlans(requests types.VolumeBindings) ([]types.VolumePlan
 	normalDiskPlans, monoDiskPlans := bestDiskPlans[0], bestDiskPlans[1]
 	unlimitedVolumePlans, err := h.getUnlimitedPlans(normalVolumePlans, monoVolumePlans, unlimitedRequests, bestCapacity)
 	if err != nil {
-		log.Error(nil, err, "[getVolumePlans] failed to get unlimited volume plans") //nolint
+		log.WithFunc("resources.volume.getVolumePlans").Error(nil, err, "failed to get unlimited volume plans") //nolint
 		return nil, nil
 	}
 
@@ -499,6 +499,7 @@ func (h *host) classifyAffinityRequests(requests types.VolumeBindings, existing 
 }
 
 func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan types.VolumePlan, originRequests types.VolumeBindings) (types.VolumePlan, types.Disks, error) {
+	logger := log.WithFunc("resources.volume.getAffinityPlan")
 	// if scheduling is not needed, return empty plans
 	if !utils.Any(requests, func(req *types.VolumeBinding) bool { return req.RequireSchedule() || req.RequireIOPS() }) {
 		return types.VolumePlan{}, types.Disks{}, nil
@@ -511,7 +512,7 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 			disk := h.getDiskByPath(req.Source)
 			if disk.Device == "" {
 				err := errors.Wrapf(types.ErrInvalidVolume, "invalid path in the old mount requests: %s", req.Source)
-				log.Errorf(nil, err, "[getAffinityPlan] invalid path in the old mount requests: %s", req.Source) //nolint
+				logger.Errorf(nil, err, "invalid path in the old mount requests: %s", req.Source) //nolint
 				return nil, nil, err
 			}
 			h.increaseIOPSQuota(disk, req)
@@ -527,14 +528,14 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 	for req, volumeMap := range originVolumePlan {
 		volume := h.getVolumeByDevice(volumeMap.GetDevice())
 		if volume == nil {
-			log.Errorf(nil, types.ErrInvalidVolume, "[getAffinityPlan] volume %s not found", volumeMap.GetDevice()) //nolint
+			logger.Errorf(nil, types.ErrInvalidVolume, "volume %s not found", volumeMap.GetDevice()) //nolint
 			return nil, nil, types.ErrInvalidVolume
 		}
 		volume.size += volumeMap.GetSize()
 		if req.RequireIOPS() {
 			disk := h.getDiskByPath(volume.device)
 			if disk.Device == "" {
-				log.Errorf(nil, types.ErrInvalidVolume, "[getAffinityPlan] invalid path: %s", volume.device) //nolint
+				logger.Errorf(nil, types.ErrInvalidVolume, "invalid path: %s", volume.device) //nolint
 				return nil, nil, types.ErrInvalidVolume
 			}
 			h.increaseIOPSQuota(disk, req)
@@ -549,7 +550,7 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 			// check if the device has enough space
 			volume := h.getVolumeByDevice(device)
 			if req.SizeInBytes > volume.size {
-				log.Errorf(nil, coretypes.ErrInsufficientResource, "[getAffinityPlan] no space to expand, %+v remains %+v, requires %+v", device, volume.size, req.SizeInBytes) //nolint
+				logger.Errorf(nil, coretypes.ErrInsufficientResource, "no space to expand, %+v remains %+v, requires %+v", device, volume.size, req.SizeInBytes) //nolint
 				return coretypes.ErrInsufficientResource
 			}
 			volume.size -= req.SizeInBytes
@@ -561,7 +562,7 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 			}
 			disk := h.getDiskByPath(device)
 			if !h.isDiskIOPSQuotaQualified(disk, req) {
-				log.Errorf(nil, coretypes.ErrInsufficientResource, "[getAffinityPlan] no IOPS quota to expand, %+v remains %+v, requires %+v", device, disk, req) //nolint
+				logger.Errorf(nil, coretypes.ErrInsufficientResource, "no IOPS quota to expand, %+v remains %+v, requires %+v", device, disk, req) //nolint
 				return coretypes.ErrInsufficientResource
 			}
 			h.decreaseIOPSQuota(disk, req)
@@ -583,14 +584,14 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 	// process mount requests
 	mountDiskPlan, err := h.getMountDiskPlan(mountRequests)
 	if err != nil {
-		log.Error(nil, err, "[getAffinityPlan] alloc mount requests failed") //nolint
+		logger.Error(nil, err, "alloc mount requests failed") //nolint
 		return nil, nil, err
 	}
 	diskPlan.Add(mountDiskPlan)
 
 	// process normal requests
 	if err = commonProcess(normalRequests); err != nil {
-		log.Error(nil, err, "[getAffinityPlan] alloc normal requests failed") //nolint
+		logger.Error(nil, err, "alloc normal requests failed") //nolint
 		return nil, nil, err
 	}
 
@@ -613,7 +614,7 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 		// if there is any affinity plan: don't reschedule
 		// use the first volume map to get the whole mono volume plan
 		if totalVolumeSize < totalRequestSize { // check if the volume size is enough
-			log.Errorf(nil, coretypes.ErrInsufficientResource, "[getAffinityPlan] no space to expand, the size of %+v is %+v, requires %+v", affinity[monoRequests[0]].GetDevice(), totalVolumeSize, totalRequestSize) //nolint
+			logger.Errorf(nil, coretypes.ErrInsufficientResource, "no space to expand, the size of %+v is %+v, requires %+v", affinity[monoRequests[0]].GetDevice(), totalVolumeSize, totalRequestSize) //nolint
 			return nil, nil, coretypes.ErrInsufficientResource
 		}
 
@@ -621,7 +622,7 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 		for _, volumeMap := range affinity {
 			volume = h.getVolumeByDevice(volumeMap.GetDevice())
 			if volume == nil {
-				log.Errorf(nil, types.ErrInvalidVolume, "[getAffinityPlan] volume %s not found", volumeMap.GetDevice()) //nolint
+				logger.Errorf(nil, types.ErrInvalidVolume, "volume %s not found", volumeMap.GetDevice()) //nolint
 				return nil, nil, types.ErrInvalidVolume
 			}
 			break
@@ -629,7 +630,7 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 
 		monoVolumePlan, monoDiskPlan, err := h.getMonoPlan(monoRequests, volume)
 		if err != nil {
-			log.Error(nil, err, "[getAffinityPlan] failed to get new mono plan") //nolint
+			logger.Error(nil, err, "failed to get new mono plan") //nolint
 			return nil, nil, err
 		}
 
@@ -639,7 +640,7 @@ func (h *host) getAffinityPlan(requests types.VolumeBindings, originVolumePlan t
 
 	// process unlimited requests
 	if err := commonProcess(unlimitedRequests); err != nil {
-		log.Error(nil, err, "[getAffinityPlan] alloc mount requests failed") //nolint
+		logger.Error(nil, err, "alloc mount requests failed") //nolint
 		return nil, nil, err
 	}
 

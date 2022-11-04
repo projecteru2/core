@@ -64,6 +64,6 @@ func reportToSentry(ctx context.Context, level sentry.Level, err error, format s
 	}
 
 	if res := string(*sentry.CaptureEvent(event)); res != "" {
-		Infof(ctx, "Report to Sentry ID: %s", res)
+		WithFunc("log.reportToSentry").WithField("ID", res).Info(ctx, "Report to Sentry")
 	}
 }

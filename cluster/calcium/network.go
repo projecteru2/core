@@ -14,7 +14,7 @@ import (
 // and list networks
 // only get those driven by network driver
 func (c *Calcium) ListNetworks(ctx context.Context, podname string, driver string) ([]*enginetypes.Network, error) {
-	logger := log.WithField("Calcium", "ListNetworks").WithField("podname", podname).WithField("driver", driver)
+	logger := log.WithFunc("calcium.ListNetworks").WithField("podname", podname).WithField("driver", driver)
 	networks := []*enginetypes.Network{}
 	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname})
 	if err != nil {
@@ -42,7 +42,7 @@ func (c *Calcium) ListNetworks(ctx context.Context, podname string, driver strin
 
 // ConnectNetwork connect to a network
 func (c *Calcium) ConnectNetwork(ctx context.Context, network, target, ipv4, ipv6 string) ([]string, error) {
-	logger := log.WithField("Calcium", "ConnectNetwork").WithField("network", network).WithField("target", target).WithField("ipv4", ipv4).WithField("ipv6", ipv6)
+	logger := log.WithFunc("calcium.ConnectNetwork").WithField("network", network).WithField("target", target).WithField("ipv4", ipv4).WithField("ipv6", ipv6)
 	workload, err := c.GetWorkload(ctx, target)
 	if err != nil {
 		logger.Error(ctx, err)
@@ -56,7 +56,7 @@ func (c *Calcium) ConnectNetwork(ctx context.Context, network, target, ipv4, ipv
 
 // DisconnectNetwork connect to a network
 func (c *Calcium) DisconnectNetwork(ctx context.Context, network, target string, force bool) error {
-	logger := log.WithField("Calcium", "DisconnectNetwork").WithField("network", network).WithField("target", target).WithField("force", force)
+	logger := log.WithFunc("calcium.DisconnectNetwork").WithField("network", network).WithField("target", target).WithField("force", force)
 	workload, err := c.GetWorkload(ctx, target)
 	if err != nil {
 		logger.Error(ctx, err)

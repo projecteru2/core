@@ -115,7 +115,7 @@ func (m *Mercury) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
 		addIfNotEmpty(fmt.Sprintf(nodeCaKey, node.Name), node.Ca)
 		addIfNotEmpty(fmt.Sprintf(nodeCertKey, node.Name), node.Cert)
 		addIfNotEmpty(fmt.Sprintf(nodeKeyKey, node.Name), node.Key)
-		enginefactory.RemoveEngineFromCache(node.Endpoint, node.Ca, node.Cert, node.Key)
+		enginefactory.RemoveEngineFromCache(ctx, node.Endpoint, node.Ca, node.Cert, node.Key)
 	}
 
 	resp, err := m.BatchPut(ctx, data)
@@ -178,17 +178,18 @@ func (m *Mercury) GetNodeStatus(ctx context.Context, nodename string) (*types.No
 // DELETE -> Alive: false
 func (m *Mercury) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 	ch := make(chan *types.NodeStatus)
+	logger := log.WithFunc("store.etcdv3.NodeStatusStream")
 	_ = m.pool.Invoke(func() {
 		defer func() {
-			log.Info(ctx, "[NodeStatusStream] close NodeStatusStream channel")
+			logger.Info(ctx, "close NodeStatusStream channel")
 			close(ch)
 		}()
 
-		log.Infof(ctx, "[NodeStatusStream] watch on %s", nodeStatusPrefix)
+		logger.Infof(ctx, "watch on %s", nodeStatusPrefix)
 		for resp := range m.Watch(ctx, nodeStatusPrefix, clientv3.WithPrefix()) {
 			if resp.Err() != nil {
 				if !resp.Canceled {
-					log.Error(ctx, resp.Err(), "[NodeStatusStream] watch failed")
+					logger.Error(ctx, resp.Err(), "watch failed")
 				}
 				return
 			}
@@ -213,7 +214,7 @@ func (m *Mercury) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 
 func (m *Mercury) makeClient(ctx context.Context, node *types.Node) (client engine.API, err error) {
 	// try to get from cache without ca/cert/key
-	if client = enginefactory.GetEngineFromCache(node.Endpoint, "", "", ""); client != nil {
+	if client = enginefactory.GetEngineFromCache(ctx, node.Endpoint, "", "", ""); client != nil {
 		return client, nil
 	}
 
@@ -223,7 +224,7 @@ func (m *Mercury) makeClient(ctx context.Context, node *types.Node) (client engi
 		ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
 		if err != nil {
 			if !errors.Is(err, types.ErrInvaildCount) {
-				log.Warnf(ctx, "[makeClient] Get key failed %+v", err)
+				log.WithFunc("store.etcdv3.makeClient").Warn(ctx, err, "Get key failed")
 				return nil, err
 			}
 			continue
@@ -292,7 +293,7 @@ func (m *Mercury) doRemoveNode(ctx context.Context, podname, nodename, endpoint 
 	}
 
 	_, err := m.BatchDelete(ctx, keys)
-	log.Infof(ctx, "[doRemoveNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
+	log.WithFunc("store.etcdv3.doRemoveNode").Infof(ctx, "Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 	return err
 }
 
@@ -308,6 +309,7 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 			allNodes = append(allNodes, node)
 		}
 	}
+	logger := log.WithFunc("store.etcdv3.doGetNodes")
 
 	wg := &sync.WaitGroup{}
 	wg.Add(len(allNodes))
@@ -318,7 +320,7 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 		_ = m.pool.Invoke(func() {
 			defer wg.Done()
 			if _, err := m.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrInvaildCount) {
-				log.Errorf(ctx, err, "[doGetNodes] failed to get node status of %+v", node.Name)
+				logger.Errorf(ctx, err, "failed to get node status of %+v", node.Name)
 			} else {
 				node.Available = err == nil
 			}
@@ -329,7 +331,7 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 
 			// update engine
 			if client, err := m.makeClient(ctx, node); err != nil {
-				log.Errorf(ctx, err, "[doGetNodes] failed to make client for %+v", node.Name)
+				logger.Errorf(ctx, err, "failed to make client for %+v", node.Name)
 			} else {
 				node.Engine = client
 			}

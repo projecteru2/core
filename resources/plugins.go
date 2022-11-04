@@ -27,13 +27,14 @@ func NewPluginsManager(config types.Config) (*PluginsManager, error) {
 
 // LoadPlugins .
 func (pm *PluginsManager) LoadPlugins(ctx context.Context) error {
+	logger := log.WithFunc("resources.manager.LoadPlugins")
 	if pm.config.ResourcePlugin.Dir == "" {
 		return nil
 	}
 
 	pluginFiles, err := utils.ListAllExecutableFiles(pm.config.ResourcePlugin.Dir)
 	if err != nil {
-		log.Errorf(ctx, err, "[LoadPlugins] failed to list all executable files dir: %+v", pm.config.ResourcePlugin.Dir)
+		logger.Errorf(ctx, err, "failed to list all executable files dir: %+v", pm.config.ResourcePlugin.Dir)
 		return err
 	}
 
@@ -43,7 +44,7 @@ func (pm *PluginsManager) LoadPlugins(ctx context.Context) error {
 	}
 
 	for _, file := range pluginFiles {
-		log.Infof(ctx, "[LoadPlugins] load binary plugin: %+v", file)
+		logger.Infof(ctx, "load binary plugin: %+v", file)
 		plugin := &BinaryPlugin{path: file, config: pm.config}
 		if _, ok := cache[plugin.Name()]; ok {
 			continue
@@ -71,7 +72,7 @@ func callPlugins[T any](ctx context.Context, plugins []Plugin, f func(Plugin) (T
 	for _, plugin := range plugins {
 		result, err := f(plugin)
 		if err != nil {
-			log.Errorf(ctx, err, "[callPlugins] failed to call plugin %+v", plugin.Name())
+			log.WithFunc("resources.manager.callPlugins").Errorf(ctx, err, "failed to call plugin %+v", plugin.Name())
 			combinedErr = errors.CombineErrors(combinedErr, errors.Wrap(err, plugin.Name()))
 			continue
 		}

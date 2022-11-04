@@ -17,7 +17,7 @@ func (c *Calcium) GetNodeStatus(ctx context.Context, nodename string) (*types.No
 // SetNodeStatus set status of a node
 // it's used to report whether a node is still alive
 func (c *Calcium) SetNodeStatus(ctx context.Context, nodename string, ttl int64) error {
-	logger := log.WithField("Calcium", "SetNodeStatus").WithField("nodename", nodename).WithField("ttl", ttl)
+	logger := log.WithFunc("calcium.SetNodeStatus").WithField("nodename", nodename).WithField("ttl", ttl)
 	node, err := c.store.GetNode(ctx, nodename)
 	if err != nil {
 		logger.Error(ctx, err)
@@ -39,7 +39,7 @@ func (c *Calcium) GetWorkloadsStatus(ctx context.Context, ids []string) ([]*type
 	for _, id := range ids {
 		s, err := c.store.GetWorkloadStatus(ctx, id)
 		if err != nil {
-			log.WithField("Calcium", "GetWorkloadStatus").WithField("ids", ids).Error(ctx, err)
+			log.WithFunc("calcium.GetWorkloadStatus").WithField("ids", ids).Error(ctx, err)
 			return r, err
 		}
 		r = append(r, s)
@@ -49,7 +49,7 @@ func (c *Calcium) GetWorkloadsStatus(ctx context.Context, ids []string) ([]*type
 
 // SetWorkloadsStatus set workloads status
 func (c *Calcium) SetWorkloadsStatus(ctx context.Context, statusMetas []*types.StatusMeta, ttls map[string]int64) ([]*types.StatusMeta, error) {
-	logger := log.WithField("Calcium", "SetWorkloadsStatus").WithField("status", statusMetas[0]).WithField("ttls", ttls)
+	logger := log.WithFunc("calcium.SetWorkloadsStatus").WithField("status", statusMetas[0]).WithField("ttls", ttls)
 	r := []*types.StatusMeta{}
 	for _, statusMeta := range statusMetas {
 		// In order to compat

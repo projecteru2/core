@@ -14,7 +14,7 @@ func withTarfileDump(ctx context.Context, target string, content []byte, uid, gi
 
 	defer func(tarfile string) {
 		if err := os.RemoveAll(tarfile); err != nil {
-			log.Warnf(ctx, "[cleanDumpFiles] clean dump files failed: %+v", err)
+			log.WithFunc("engine.docker.withTarfileDump").Warnf(ctx, "clean dump files failed: %+v", err)
 		}
 	}(tarfile)
 

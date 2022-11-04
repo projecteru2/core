@@ -11,7 +11,7 @@ import (
 
 // DissociateWorkload dissociate workload from eru, return it resource but not modity it
 func (c *Calcium) DissociateWorkload(ctx context.Context, ids []string) (chan *types.DissociateWorkloadMessage, error) {
-	logger := log.WithField("Caliucm", "Dissociate").WithField("ids", ids)
+	logger := log.WithFunc("caliucm.DissociateWorkload").WithField("ids", ids)
 
 	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, ids)
 	if err != nil {

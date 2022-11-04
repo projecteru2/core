@@ -84,7 +84,7 @@ func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error
 		return errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
 	}
 
-	logger := log.WithField("WAL.Handle", "RunAndWait").WithField("ID", workloadID)
+	logger := log.WithFunc("wal.CreateLambdaHandler.Handle").WithField("ID", workloadID)
 	go func() {
 		workload, err := h.calcium.GetWorkload(ctx, workloadID)
 		if err != nil {
@@ -160,7 +160,7 @@ func (h *CreateWorkloadHandler) Decode(bs []byte) (interface{}, error) {
 // Handle will remove instance, remove meta, restore resource
 func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (err error) {
 	wrk, _ := raw.(*types.Workload)
-	logger := log.WithField("WAL.Handle", "CreateWorkload").WithField("ID", wrk.ID).WithField("nodename", wrk.Nodename)
+	logger := log.WithFunc("wal.CreateWorkloadHandler.Handle").WithField("ID", wrk.ID).WithField("nodename", wrk.Nodename)
 
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
@@ -235,7 +235,7 @@ func (h *WorkloadResourceAllocatedHandler) Decode(bytes []byte) (interface{}, er
 // Handle .
 func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw interface{}) (err error) {
 	nodes, _ := raw.([]*types.Node)
-	logger := log.WithField("WAL", "Handle").WithField("event", eventWorkloadResourceAllocated)
+	logger := log.WithFunc("wal.WorkloadResourceAllocatedHandler.Handle").WithField("event", eventWorkloadResourceAllocated)
 
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
@@ -306,7 +306,7 @@ func (h *ProcessingCreatedHandler) Decode(bs []byte) (interface{}, error) {
 // Handle .
 func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw interface{}) (err error) {
 	processing, _ := raw.(*types.Processing)
-	logger := log.WithField("WAL", "Handle").WithField("event", eventProcessingCreated).WithField("ident", processing.Ident)
+	logger := log.WithFunc("wal.ProcessingCreatedHandler.Handle").WithField("event", eventProcessingCreated).WithField("ident", processing.Ident)
 
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()

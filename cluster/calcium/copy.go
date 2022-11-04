@@ -10,7 +10,7 @@ import (
 
 // Copy uses VirtualizationCopyFrom cp to copy specified things and send to remote
 func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error) {
-	logger := log.WithField("Calcium", "Copy").WithField("opts", opts)
+	logger := log.WithFunc("calcium.Copy").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
 		logger.Error(ctx, err)
 		return nil, err
@@ -23,7 +23,7 @@ func (c *Calcium) Copy(ctx context.Context, opts *types.CopyOptions) (chan *type
 		wg := sync.WaitGroup{}
 		wg.Add(len(opts.Targets))
 		defer wg.Wait()
-		logger.Infof(ctx, "[Copy] Copy %d workloads files", len(opts.Targets))
+		logger.Infof(ctx, "Copy %d workloads files", len(opts.Targets))
 
 		// workload one by one
 		for id, paths := range opts.Targets {

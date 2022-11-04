@@ -47,21 +47,22 @@ func (r *Resolver) sync() {
 	ctx := context.TODO()
 	ctx, r.cancel = context.WithCancel(ctx)
 	defer r.cancel()
-	log.Debug(ctx, "[EruResolver] start sync service discovery")
+	logger := log.WithFunc("resolver.sync")
+	logger.Debug(ctx, "start sync service discovery")
 
 	ch, err := r.discovery.Watch(ctx)
 	if err != nil {
-		log.Error(ctx, err, "[EruResolver] failed to watch service status")
+		logger.Error(ctx, err, "failed to watch service status")
 		return
 	}
 	for {
 		select {
 		case <-ctx.Done():
-			log.Error(ctx, ctx.Err(), "[EruResolver] watch interrupted")
+			logger.Error(ctx, ctx.Err(), "watch interrupted")
 			return
 		case endpoints, ok := <-ch:
 			if !ok {
-				log.Info(ctx, nil, "[EruResolver] watch closed")
+				logger.Info(ctx, nil, "watch closed")
 				return
 			}
 

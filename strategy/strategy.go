@@ -40,7 +40,7 @@ func Deploy(ctx context.Context, strategy string, count, nodesLimit int, strateg
 		return nil, types.ErrInvaildDeployCount
 	}
 
-	log.Debugf(ctx, "[strategy.Deploy] infos %+v, need %d, total %d, limit %d", strategyInfos, count, total, nodesLimit)
+	log.WithFunc("strategy.Deploy").Debugf(ctx, "infos %+v, need %d, total %d, limit %d", strategyInfos, count, total, nodesLimit)
 	return deployMethod(ctx, strategyInfos, count, total, nodesLimit)
 }
 

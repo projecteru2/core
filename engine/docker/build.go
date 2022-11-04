@@ -74,7 +74,7 @@ func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *
 	if err != nil {
 		return "", nil, err
 	}
-	log.Debugf(ctx, "[BuildContent] Build dir %s", buildDir)
+	log.WithFunc("engine.docker.BuildContent").Debugf(ctx, "Build dir %s", buildDir)
 	// create dockerfile
 	if err := e.makeDockerFile(ctx, opts, scm, buildDir); err != nil {
 		return buildDir, nil, err
@@ -92,7 +92,7 @@ func (e *Engine) makeDockerFile(ctx context.Context, opts *types.BuildContentOpt
 	for _, stage := range opts.Builds.Stages {
 		build, ok := opts.Builds.Builds[stage]
 		if !ok {
-			log.Warnf(ctx, "[makeDockerFile] Builds stage %s not defined", stage)
+			log.WithFunc("engine.docker.makeDockerFile").Warnf(ctx, "Builds stage %s not defined", stage)
 			continue
 		}
 

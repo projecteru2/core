@@ -34,16 +34,18 @@ func (r *Rediaron) doLoadProcessing(ctx context.Context, appname, entryname stri
 	if err != nil {
 		return nil, err
 	}
+
 	if len(data) == 0 {
 		return nodesCount, nil
 	}
+	logger := log.WithFunc("store.redis.doLoadProcessing")
 
 	for k, v := range data {
 		parts := strings.Split(k, "/")
 		nodename := parts[len(parts)-2]
 		count, err := strconv.Atoi(v)
 		if err != nil {
-			log.Error(ctx, err, "[doLoadProcessing] Load processing status failed")
+			logger.Error(ctx, err, "Load processing status failed")
 			continue
 		}
 		if _, ok := nodesCount[nodename]; !ok {
@@ -53,6 +55,6 @@ func (r *Rediaron) doLoadProcessing(ctx context.Context, appname, entryname stri
 		nodesCount[nodename] += count
 	}
 
-	log.Debug(ctx, "[doLoadProcessing] Processing result: %+v", nodesCount)
+	logger.Debug(ctx, "Processing result: %+v", nodesCount)
 	return nodesCount, nil
 }

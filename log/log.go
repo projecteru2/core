@@ -37,7 +37,7 @@ func SetupLog(ctx context.Context, l, dsn string) error {
 	// Sentry
 	if dsn != "" {
 		sentryDSN = dsn
-		Infof(ctx, "[log] sentry %+v", sentryDSN)
+		WithFunc("log.SetupLog").Infof(ctx, "sentry %v", sentryDSN)
 		_ = sentry.Init(sentry.ClientOptions{Dsn: sentryDSN})
 	}
 	return nil

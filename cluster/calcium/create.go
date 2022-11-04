@@ -22,13 +22,14 @@ import (
 
 // CreateWorkload use options to create workloads
 func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions) (chan *types.CreateWorkloadMessage, error) {
-	logger := log.WithField("Calcium", "CreateWorkload").WithField("opts", opts)
+	logger := log.WithFunc("calcium.CreateWorkload").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
 		logger.Error(ctx, err)
 		return nil, err
 	}
 	opts.ProcessIdent = utils.RandomString(16)
-	logger.Infof(ctx, "[CreateWorkload %s] Creating workload with options:\n%s", opts.ProcessIdent, litter.Options{Compact: true}.Sdump(opts))
+	logger = logger.WithField("ident", opts.ProcessIdent)
+	logger.Infof(ctx, "Creating workload with options:\n%s", opts.ProcessIdent, litter.Options{Compact: true}.Sdump(opts))
 	// Count 要大于0
 	if opts.Count <= 0 {
 		err := errors.Wrapf(types.ErrInvaildDeployCount, "count: %d", opts.Count)
@@ -41,7 +42,7 @@ func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions)
 
 // transaction: resource metadata consistency
 func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptions) chan *types.CreateWorkloadMessage {
-	logger := log.WithField("Calcium", "doCreateWorkloads").WithField("opts", opts)
+	logger := log.WithFunc("calcium.doCreateWorkloads").WithField("ident", opts.ProcessIdent)
 	ch := make(chan *types.CreateWorkloadMessage)
 	// RFC 计算当前 app 部署情况的时候需要保证同一时间只有这个 app 的这个 entrypoint 在跑
 	// 因此需要在这里加个全局锁，直到部署完毕才释放
@@ -62,7 +63,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 			for nodename := range deployMap {
 				processing := opts.GetProcessing(nodename)
 				if err := c.store.DeleteProcessing(cctx, processing); err != nil {
-					logger.Errorf(ctx, err, "[Calcium.doCreateWorkloads] delete processing failed for %s", nodename)
+					logger.Errorf(ctx, err, "delete processing failed for %s", nodename)
 				}
 			}
 			close(ch)
@@ -179,6 +180,7 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 	wg := sync.WaitGroup{}
 	wg.Add(len(deployMap))
 	syncRollbackMap := hashmap.New[string, []int]()
+	logger := log.WithFunc("calcium.doDeployWorkloads").WithField("ident", opts.ProcessIdent)
 
 	seq := 0
 	rollbackMap := make(map[string][]int)
@@ -205,7 +207,7 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 		rollbackMap[nodename] = indices
 		return true
 	})
-	log.Debugf(ctx, "[Calcium.doDeployWorkloads] rollbackMap: %+v", rollbackMap)
+	logger.Debugf(ctx, "rollbackMap: %+v", rollbackMap)
 	if len(rollbackMap) != 0 {
 		err = types.ErrRollbackMapIsNotEmpty
 	}
@@ -222,7 +224,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	resourceArgs []map[string]types.WorkloadResourceArgs,
 	seq int) (indices []int, err error) {
 
-	logger := log.WithField("Calcium", "doDeployWorkloadsOnNode").WithField("nodename", nodename).WithField("opts", opts).WithField("deploy", deploy).WithField("seq", seq)
+	logger := log.WithFunc("calcium.doDeployWorkloadsOnNode").WithField("nodename", nodename).WithField("ident", opts.ProcessIdent).WithField("deploy", deploy).WithField("seq", seq)
 	node, err := c.doGetAndPrepareNode(ctx, nodename, opts.Image)
 	if err != nil {
 		for i := 0; i < deploy; i++ {
@@ -296,7 +298,7 @@ func (c *Calcium) doDeployOneWorkload(
 	config *enginetypes.VirtualizationCreateOptions,
 	decrProcessing bool,
 ) (err error) {
-	logger := log.WithField("Calcium", "doDeployWorkload").WithField("nodename", node.Name).WithField("opts", opts).WithField("msg", msg)
+	logger := log.WithFunc("calcium.doDeployWorkload").WithField("nodename", node.Name).WithField("ident", opts.ProcessIdent).WithField("msg", msg)
 	workload := &types.Workload{
 		ResourceArgs: types.ResourceMeta{},
 		EngineArgs:   msg.EngineArgs,
@@ -359,7 +361,7 @@ func (c *Calcium) doDeployOneWorkload(
 			if err := c.store.AddWorkload(ctx, workload, processing); err != nil {
 				return err
 			}
-			logger.Infof(ctx, "[doDeployOneWorkload] workload %s metadata created", workload.ID)
+			logger.Infof(ctx, "workload %s metadata created", workload.ID)
 
 			// Copy data to workload
 			if len(opts.Files) > 0 {
@@ -414,7 +416,7 @@ func (c *Calcium) doDeployOneWorkload(
 				if err := c.store.UpdateWorkload(ctx, workload); err != nil {
 					return err
 				}
-				logger.Infof(ctx, "[doDeployOneWorkload] workload %s metadata updated", workload.ID)
+				logger.Infof(ctx, "workload %s metadata updated", workload.ID)
 			}
 
 			msg.WorkloadID = workload.ID
@@ -426,13 +428,13 @@ func (c *Calcium) doDeployOneWorkload(
 
 		// remove workload
 		func(ctx context.Context, _ bool) error {
-			logger.Infof(ctx, "[doDeployOneWorkload] failed to deploy workload %s, rollback", workload.ID)
+			logger.Infof(ctx, "failed to deploy workload %s, rollback", workload.ID)
 			if workload.ID == "" {
 				return nil
 			}
 
 			if err := c.store.RemoveWorkload(ctx, workload); err != nil {
-				logger.Errorf(ctx, err, "[doDeployOneWorkload] failed to remove workload %s", workload.ID)
+				logger.Errorf(ctx, err, "failed to remove workload %s", workload.ID)
 			}
 
 			return workload.Remove(ctx, true)

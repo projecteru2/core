@@ -13,8 +13,8 @@ import (
 
 // ReallocResource updates workload resource dynamically
 func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOptions) (err error) {
-	logger := log.WithField("Calcium", "ReallocResource").WithField("opts", opts)
-	log.Infof(ctx, "[ReallocResource] realloc workload %+v with options %+v", opts.ID, opts.ResourceOpts)
+	logger := log.WithFunc("calcium.ReallocResource").WithField("opts", opts)
+	logger.Infof(ctx, "realloc workload %+v with options %+v", opts.ID, opts.ResourceOpts)
 	workload, err := c.GetWorkload(ctx, opts.ID)
 	if err != nil {
 		return
@@ -36,6 +36,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 	var engineArgs types.EngineArgs
 	var err error
 
+	logger := log.WithFunc("calcium.doReallocOnNode").WithField("opts", opts)
 	err = utils.Txn(
 		ctx,
 		// if: update workload resource
@@ -46,7 +47,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 			if err != nil {
 				return err
 			}
-			log.Debugf(ctx, "[doReallocOnNode] realloc workload %+v, resource args %+v, engine args %+v", workload.ID, litter.Sdump(resourceArgs), litter.Sdump(engineArgs))
+			logger.Debugf(ctx, "realloc workload %+v, resource args %+v, engine args %+v", workload.ID, litter.Sdump(resourceArgs), litter.Sdump(engineArgs))
 			workload.EngineArgs = engineArgs
 			workload.ResourceArgs = resourceArgs
 			return c.store.UpdateWorkload(ctx, workload)
@@ -61,7 +62,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 				return nil
 			}
 			if err := c.rmgr.RollbackRealloc(ctx, workload.Nodename, deltaResourceArgs); err != nil {
-				log.Errorf(ctx, err, "[doReallocOnNode] failed to rollback workload %+v, resource args %+v, engine args %+v", workload.ID, litter.Sdump(resourceArgs), litter.Sdump(engineArgs))
+				logger.Errorf(ctx, err, "failed to rollback workload %+v, resource args %+v, engine args %+v", workload.ID, litter.Sdump(resourceArgs), litter.Sdump(engineArgs))
 				// don't return here, so the node resource can still be fixed
 			}
 			return c.store.UpdateWorkload(ctx, &originWorkload)
@@ -71,6 +72,6 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 	if err != nil {
 		return err
 	}
-	_ = c.pool.Invoke(func() { c.doRemapResourceAndLog(ctx, log.WithField("Calcium", "doReallocOnNode"), node) })
+	_ = c.pool.Invoke(func() { c.doRemapResourceAndLog(ctx, logger, node) })
 	return nil
 }

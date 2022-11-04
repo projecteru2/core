@@ -23,7 +23,7 @@ func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration
 			defer cancel()
 			rollbackCtx = utils.InheritTracingInfo(rollbackCtx, ctx)
 			if e := lock.Unlock(rollbackCtx); e != nil {
-				log.Errorf(rollbackCtx, err, "failed to unlock %s", name)
+				log.WithFunc("calcium.doLock").Errorf(rollbackCtx, err, "failed to unlock %s", name)
 			}
 		}
 	}()
@@ -32,14 +32,15 @@ func (c *Calcium) doLock(ctx context.Context, name string, timeout time.Duration
 }
 
 func (c *Calcium) doUnlock(ctx context.Context, lock lock.DistributedLock, msg string) error {
-	log.Debugf(ctx, "[doUnlock] Unlock %s", msg)
+	log.WithFunc("calcium.doUnlock").Debugf(ctx, "Unlock %s", msg)
 	return lock.Unlock(ctx)
 }
 
 func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.DistributedLock, order ...string) {
+	logger := log.WithFunc("calcium.doUnlockAll")
 	// unlock in the reverse order
 	if len(order) != len(locks) {
-		log.Warn(ctx, "[doUnlockAll] order length not match lock map")
+		logger.Warn(ctx, "order length not match lock map")
 		order = []string{}
 		for key := range locks {
 			order = append(order, key)
@@ -47,7 +48,7 @@ func (c *Calcium) doUnlockAll(ctx context.Context, locks map[string]lock.Distrib
 	}
 	for _, key := range order {
 		if err := c.doUnlock(ctx, locks[key], key); err != nil {
-			log.Errorf(ctx, err, "[doUnlockAll] Unlock %s failed", key)
+			logger.Errorf(ctx, err, "Unlock %s failed", key)
 			continue
 		}
 	}
@@ -65,12 +66,13 @@ func (c *Calcium) withWorkloadLocked(ctx context.Context, id string, f func(cont
 func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(context.Context, map[string]*types.Workload) error) error {
 	workloads := map[string]*types.Workload{}
 	locks := map[string]lock.DistributedLock{}
+	logger := log.WithFunc("calcium.withWorkloadsLocked")
 
 	// sort + unique
 	sort.Strings(ids)
 	ids = ids[:utils.Unique(ids, func(i int) string { return ids[i] })]
 
-	defer log.Debugf(ctx, "[withWorkloadsLocked] Workloads %+v unlocked", ids)
+	defer logger.Debugf(ctx, "Workloads %+v unlocked", ids)
 	defer func() {
 		utils.Reverse(ids)
 		c.doUnlockAll(utils.InheritTracingInfo(ctx, context.TODO()), locks, ids...)
@@ -85,7 +87,7 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, ids []string, f func(
 		if err != nil {
 			return err
 		}
-		log.Debugf(ctx, "[withWorkloadsLocked] Workload %s locked", workload.ID)
+		logger.Debugf(ctx, "Workload %s locked", workload.ID)
 		locks[workload.ID] = lock
 		workloads[workload.ID] = workload
 	}
@@ -136,10 +138,12 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nodeFilter *types.NodeFil
 	nodes := map[string]*types.Node{}
 	locks := map[string]lock.DistributedLock{}
 	lockKeys := []string{}
+	logger := log.WithFunc("calcium.withNodesLocked")
+
 	defer func() {
 		utils.Reverse(lockKeys)
 		c.doUnlockAll(utils.InheritTracingInfo(ctx, context.TODO()), locks, lockKeys...)
-		log.Debugf(ctx, "[withNodesLocked] keys %+v unlocked", lockKeys)
+		logger.Debugf(ctx, "keys %+v unlocked", lockKeys)
 	}()
 
 	ns, err := c.filterNodes(ctx, nodeFilter)
@@ -155,7 +159,7 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nodeFilter *types.NodeFil
 			if err != nil {
 				return err
 			}
-			log.Debugf(ctx, "[withNodesLocked] key %s locked", key)
+			logger.Debugf(ctx, "key %s locked", key)
 			locks[key] = lock
 			lockKeys = append(lockKeys, key)
 		}

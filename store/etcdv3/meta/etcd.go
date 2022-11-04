@@ -64,7 +64,7 @@ func NewETCD(config types.EtcdConfig, t *testing.T) (*ETCD, error) {
 	case t != nil:
 		embededETCD := embedded.NewCluster(t, config.Prefix)
 		cliv3 = embededETCD.RandClient()
-		log.Info(nil, "[Mercury] use embedded cluster") //nolint
+		log.WithFunc("store.etcdv3.meta.NewETCD").Info(nil, "use embedded cluster") //nolint
 	default:
 		if config.Ca != "" && config.Key != "" && config.Cert != "" {
 			tlsInfo := transport.TLSInfo{
@@ -268,7 +268,7 @@ func (e *ETCD) isTTLChanged(ctx context.Context, key string, ttl int64) (bool, e
 
 	changed := getTTLResp.GrantedTTL != ttl
 	if changed {
-		log.Infof(ctx, "[isTTLChanged] key %+v ttl changed from %+v to %+v", key, getTTLResp.GrantedTTL, ttl)
+		log.WithFunc("store.etcdv3.meta.isTTLChanged").Infof(ctx, "key %+v ttl changed from %+v to %+v", key, getTTLResp.GrantedTTL, ttl)
 	}
 
 	return changed, nil
@@ -290,6 +290,7 @@ func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, stat
 
 	leaseID := lease.ID
 	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, statusValue, clientv3.WithLease(lease.ID))}
+	logger := log.WithFunc("store.etcdv3.meta.bindStatusWithTTL")
 
 	ttlChanged, err := e.isTTLChanged(ctx, statusKey, ttl)
 	if err != nil {
@@ -336,28 +337,28 @@ func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, stat
 
 	// if ttl is changed, replace with the new lease
 	if ttlChanged {
-		log.Infof(ctx, "[bindStatusWithTTL] put: key %s value %s", statusKey, statusValue)
+		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
 		return nil
 	}
 
 	// There isn't a status bound to the entity.
 	statusTxn := entityTxn.Responses[0].GetResponseTxn()
 	if !statusTxn.Succeeded {
-		log.Infof(ctx, "[bindStatusWithTTL] put: key %s value %s", statusKey, statusValue)
+		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
 		return nil
 	}
 
 	// There is no lease bound to the status yet
 	leaseTxn := statusTxn.Responses[0].GetResponseTxn()
 	if !leaseTxn.Succeeded {
-		log.Infof(ctx, "[bindStatusWithTTL] put: key %s value %s", statusKey, statusValue)
+		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
 		return nil
 	}
 
 	// There is a status bound to the entity yet but its value isn't same as the expected one.
 	valueTxn := leaseTxn.Responses[0].GetResponseTxn()
 	if !valueTxn.Succeeded {
-		log.Infof(ctx, "[bindStatusWithTTL] put: key %s value %s", statusKey, statusValue)
+		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
 		return nil
 	}
 
@@ -378,6 +379,7 @@ func (e *ETCD) bindStatusWithTTL(ctx context.Context, entityKey, statusKey, stat
 // agent may report status earlier when core has not recorded the entity.
 func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, statusKey, statusValue string) error {
 	updateStatus := []clientv3.Op{clientv3.OpPut(statusKey, statusValue)}
+	logger := log.WithFunc("store.etcdv3.etcd.bindStatusWithoutTTL")
 
 	ttlChanged, err := e.isTTLChanged(ctx, statusKey, 0)
 	if err != nil {
@@ -389,7 +391,7 @@ func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, statusKey, statusValue 
 			return err
 		}
 
-		log.Infof(ctx, "[bindStatusWithoutTTL] put: key %s value %s", statusKey, statusValue)
+		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
 		return nil
 	}
 
@@ -406,7 +408,7 @@ func (e *ETCD) bindStatusWithoutTTL(ctx context.Context, statusKey, statusValue 
 		return err
 	}
 	if !resp.Succeeded || resp.Responses[0].GetResponseTxn().Succeeded {
-		log.Infof(ctx, "[bindStatusWithoutTTL] put: key %s value %s", statusKey, statusValue)
+		logger.Infof(ctx, "put: key %s value %s", statusKey, statusValue)
 	}
 	return nil
 }
@@ -416,7 +418,7 @@ func (e *ETCD) revokeLease(ctx context.Context, leaseID clientv3.LeaseID) {
 		return
 	}
 	if _, err := e.cliv3.Revoke(ctx, leaseID); err != nil {
-		log.Error(ctx, err, "[etcd] revoke lease failed")
+		log.WithFunc("store.etcdv3.etcd.revokeLease").Error(ctx, err, "revoke lease failed")
 	}
 }
 

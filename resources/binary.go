@@ -246,19 +246,20 @@ func (bp *BinaryPlugin) execCommand(cmd *exec.Cmd) (output, log string, err erro
 func (bp *BinaryPlugin) call(ctx context.Context, cmd string, req interface{}, resp interface{}) error {
 	ctx, cancel := context.WithTimeout(ctx, bp.config.ResourcePlugin.CallTimeout)
 	defer cancel()
+	logger := log.WithFunc("resources.binary.call")
 
 	args := bp.getArgs(req)
 	args = append([]string{cmd}, args...)
 	command := exec.CommandContext(ctx, bp.path, args...) //nolint: gosec
 	command.Dir = bp.config.ResourcePlugin.Dir
-	log.Infof(ctx, "[callBinaryPlugin] command: %s %s", bp.path, strings.Join(args, " "))
+	logger.Infof(ctx, "command: %s %s", bp.path, strings.Join(args, " "))
 	pluginOutput, pluginLog, err := bp.execCommand(command)
 
-	defer log.Infof(ctx, "[callBinaryPlugin] log from plugin %s: %s", bp.path, pluginLog)
-	defer log.Infof(ctx, "[callBinaryPlugin] output from plugin %s: %s", bp.path, pluginOutput)
+	defer logger.Infof(ctx, "log from plugin %s: %s", bp.path, pluginLog)
+	defer logger.Infof(ctx, "output from plugin %s: %s", bp.path, pluginOutput)
 
 	if err != nil {
-		log.Errorf(ctx, err, "[callBinaryPlugin] failed to run plugin %s, command %+v", bp.path, args)
+		logger.Errorf(ctx, err, "failed to run plugin %s, command %+v", bp.path, args)
 		return err
 	}
 
@@ -266,7 +267,7 @@ func (bp *BinaryPlugin) call(ctx context.Context, cmd string, req interface{}, r
 		pluginOutput = "{}"
 	}
 	if err := json.Unmarshal([]byte(pluginOutput), resp); err != nil {
-		log.Errorf(ctx, err, "[callBinaryPlugin] failed to unmarshal output of plugin %s, command %+v, output %s", bp.path, args, pluginOutput)
+		logger.Errorf(ctx, err, "failed to unmarshal output of plugin %s, command %+v, output %s", bp.path, args, pluginOutput)
 		return err
 	}
 	return nil

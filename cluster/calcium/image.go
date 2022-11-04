@@ -13,7 +13,7 @@ import (
 // 在podname上cache这个image
 // 实际上就是在所有的node上去pull一次
 func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (chan *types.CacheImageMessage, error) {
-	logger := log.WithField("Calcium", "CacheImage").WithField("opts", opts)
+	logger := log.WithFunc("calcium.CacheImage").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
 		logger.Error(ctx, err)
 		return nil, err
@@ -64,7 +64,7 @@ func (c *Calcium) CacheImage(ctx context.Context, opts *types.ImageOptions) (cha
 
 // RemoveImage remove images
 func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (chan *types.RemoveImageMessage, error) {
-	logger := log.WithField("Calcium", "RemoveImage").WithField("opts", opts)
+	logger := log.WithFunc("calcium.RemoveImage").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
 		logger.Error(ctx, err)
 		return nil, err
@@ -111,9 +111,9 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 				}
 				if opts.Prune {
 					if err := node.Engine.ImagesPrune(ctx); err != nil {
-						logger.Errorf(ctx, err, "[RemoveImage] Prune %s pod %s node failed", opts.Podname, node.Name)
+						logger.Errorf(ctx, err, "Prune %s pod %s node failed", opts.Podname, node.Name)
 					} else {
-						logger.Infof(ctx, "[RemoveImage] Prune %s pod %s node", opts.Podname, node.Name)
+						logger.Infof(ctx, "Prune %s pod %s node", opts.Podname, node.Name)
 					}
 				}
 			})
@@ -125,7 +125,7 @@ func (c *Calcium) RemoveImage(ctx context.Context, opts *types.ImageOptions) (ch
 
 // ListImage list Image on a pod or some nodes.
 func (c *Calcium) ListImage(ctx context.Context, opts *types.ImageOptions) (chan *types.ListImageMessage, error) {
-	logger := log.WithField("Calcium", "ListImage").WithField("opts", opts)
+	logger := log.WithFunc("calcium.ListImage").WithField("opts", opts)
 
 	nodes, err := c.filterNodes(ctx, &types.NodeFilter{Podname: opts.Podname, Includes: opts.Nodenames})
 	if err != nil {

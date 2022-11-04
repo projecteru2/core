@@ -45,5 +45,5 @@ type EventHandler interface {
 	Handle(context.Context, interface{}) error
 }
 
-// Commit is a function for committing an event log.
+// Commit is a function for committing an event log
 type Commit func() error

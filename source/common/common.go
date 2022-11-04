@@ -48,6 +48,8 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 		URL:      repository,
 		Progress: io.Discard,
 	}
+	logger := log.WithFunc("source.common.SourceCode")
+
 	switch {
 	case strings.Contains(repository, "https://"):
 		repo, err = gogit.PlainCloneContext(ctx, path, false, opts)
@@ -91,8 +93,8 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 		return err
 	}
 
-	log.Infof(ctx, "[SourceCode] Fetch repo %s", repository)
-	log.Infof(ctx, "[SourceCode] Checkout to commit %s", hash)
+	logger.Infof(ctx, "Fetch repo %s", repository)
+	logger.Infof(ctx, "Checkout to commit %s", hash)
 
 	// Prepare submodules
 	if submodule {
@@ -116,7 +118,7 @@ func (g *GitScm) Artifact(ctx context.Context, artifact, path string) error {
 		req.Header.Add(k, v)
 	}
 
-	log.Infof(ctx, "[Artifact] Downloading artifacts from %q", artifact)
+	log.WithFunc("source.common.Artifact").Infof(ctx, "[Artifact] Downloading artifacts from %q", artifact)
 	resp, err := g.Do(req)
 	if err != nil {
 		return err

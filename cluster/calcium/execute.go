@@ -12,7 +12,7 @@ import (
 
 // ExecuteWorkload executes commands in running workloads
 func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorkloadOptions, inCh <-chan []byte) chan *types.AttachWorkloadMessage {
-	logger := log.WithField("Calcium", "ExecuteWorkload").WithField("opts", opts)
+	logger := log.WithFunc("calcium.ExecuteWorkload").WithField("opts", opts)
 	ch := make(chan *types.AttachWorkloadMessage)
 
 	_ = c.pool.Invoke(func() {
@@ -27,7 +27,7 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 
 		workload, err := c.GetWorkload(ctx, opts.WorkloadID)
 		if err != nil {
-			logger.Error(ctx, err, "[ExecuteWorkload] Failed to get workload")
+			logger.Error(ctx, err, "Failed to get workload")
 			return
 		}
 
@@ -44,7 +44,7 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 
 		execID, stdout, stderr, inStream, err := workload.Engine.Execute(ctx, opts.WorkloadID, execConfig)
 		if err != nil {
-			logger.Errorf(ctx, err, "[ExecuteWorkload] Failed to attach execID %s", execID)
+			logger.Errorf(ctx, err, "Failed to attach execID %s", execID)
 			return
 		}
 
@@ -62,14 +62,13 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 
 		execCode, err := workload.Engine.ExecExitCode(ctx, opts.WorkloadID, execID)
 		if err != nil {
-			logger.Error(ctx, err, "[ExecuteWorkload] Failed to get exitcode")
+			logger.Error(ctx, err, "Failed to get exitcode")
 			return
 		}
 
 		exitData := []byte(exitDataPrefix + strconv.Itoa(execCode))
 		ch <- &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: exitData}
-		logger.Infof(ctx, "[ExecuteWorkload] Execuate in workload %s complete", opts.WorkloadID)
-		logger.Infof(ctx, "[ExecuteWorkload] %+v", opts.Commands)
+		logger.Infof(ctx, "Execuate %+v in workload %s complete", opts.Commands, opts.WorkloadID)
 	})
 
 	return ch

@@ -12,8 +12,8 @@ import (
 )
 
 // ControlWorkload control workloads status
-func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, force bool) (chan *types.ControlWorkloadMessage, error) {
-	logger := log.WithField("Calcium", "ControlWorkload").WithField("ids", ids).WithField("t", t).WithField("force", force)
+func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, typ string, force bool) (chan *types.ControlWorkloadMessage, error) {
+	logger := log.WithFunc("calcium.ControlWorkload").WithField("ids", ids).WithField("typ", typ).WithField("force", force)
 	ch := make(chan *types.ControlWorkloadMessage)
 
 	_ = c.pool.Invoke(func() {
@@ -28,7 +28,7 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 				var message []*bytes.Buffer
 				err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
 					var err error
-					switch t {
+					switch typ {
 					case cluster.WorkloadStop:
 						message, err = c.doStopWorkload(ctx, workload, force)
 						return err
@@ -47,8 +47,8 @@ func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, f
 					return types.ErrInvaildControlType
 				})
 				if err == nil {
-					logger.Infof(ctx, "[ControlWorkload] Workload %s %s", id, t)
-					logger.Infof(ctx, "%+v", "[ControlWorkload] Hook Output:")
+					logger.Infof(ctx, "Workload %s %s", id, typ)
+					logger.Infof(ctx, "%+v", "Hook Output:")
 					logger.Infof(ctx, "%+v", string(utils.MergeHookOutputs(message)))
 				}
 				logger.Error(ctx, err)

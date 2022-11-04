@@ -8,6 +8,11 @@ type Fields struct {
 	kv map[string]interface{}
 }
 
+// WithFunc is short for WithField
+func WithFunc(fname string) *Fields {
+	return WithField("func", fname)
+}
+
 // WithField add kv into log entry
 func WithField(key string, value interface{}) *Fields {
 	return &Fields{

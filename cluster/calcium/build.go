@@ -18,7 +18,7 @@ import (
 
 // BuildImage will build image
 func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch chan *types.BuildImageMessage, err error) {
-	logger := log.WithField("Calcium", "BuildImage").WithField("opts", opts)
+	logger := log.WithFunc("calcium.BuildImage").WithField("opts", opts)
 	// Disable build API if scm not set
 	if c.source == nil {
 		return nil, types.ErrNoSCMSetting
@@ -30,7 +30,7 @@ func (c *Calcium) BuildImage(ctx context.Context, opts *types.BuildOptions) (ch 
 		return nil, err
 	}
 
-	log.Infof(ctx, "[BuildImage] Building image at pod %s node %s", node.Podname, node.Name)
+	logger.Infof(ctx, "Building image at pod %s node %s", node.Podname, node.Name)
 
 	var (
 		refs []string
@@ -131,8 +131,8 @@ func (c *Calcium) buildFromExist(ctx context.Context, opts *types.BuildOptions) 
 }
 
 func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, node *types.Node, tags []string) (chan *types.BuildImageMessage, error) { //nolint:unparam
-	logger := log.WithField("Calcium", "pushImage").WithField("node", node).WithField("tags", tags)
-	log.Infof(ctx, "[BuildImage] Pushing image at pod %s node %s", node.Podname, node.Name)
+	logger := log.WithFunc("calcium.pushImageAndClean").WithField("node", node).WithField("tags", tags)
+	logger.Infof(ctx, "Pushing image at pod %s node %s", node.Podname, node.Name)
 	return c.withImageBuiltChannel(func(ch chan *types.BuildImageMessage) {
 		defer resp.Close()
 		decoder := json.NewDecoder(resp)
@@ -144,7 +144,7 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 					break
 				}
 				if err == context.Canceled || err == context.DeadlineExceeded {
-					log.Error(ctx, err, "[BuildImage] context timeout")
+					logger.Error(ctx, err, "context timeout")
 					lastMessage.ErrorDetail.Code = -1
 					lastMessage.ErrorDetail.Message = err.Error()
 					lastMessage.Error = err.Error()
@@ -166,7 +166,7 @@ func (c *Calcium) pushImageAndClean(ctx context.Context, resp io.ReadCloser, nod
 		// push and clean
 		for i := range tags {
 			tag := tags[i]
-			log.Infof(ctx, "[BuildImage] Push image %s", tag)
+			logger.Infof(ctx, "Push image %s", tag)
 			rc, err := node.Engine.ImagePush(ctx, tag)
 			if err != nil {
 				logger.Error(ctx, err)
@@ -209,18 +209,18 @@ func (c *Calcium) withImageBuiltChannel(f func(chan *types.BuildImageMessage)) c
 }
 
 func cleanupNodeImages(ctx context.Context, node *types.Node, ids []string, ttl time.Duration) {
-	logger := log.WithField("Calcium", "cleanupNodeImages").WithField("node", node).WithField("ids", ids).WithField("ttl", ttl)
+	logger := log.WithFunc("calcium.cleanupNodeImages").WithField("node", node).WithField("ids", ids).WithField("ttl", ttl)
 	ctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.TODO()), ttl)
 	defer cancel()
 	for _, id := range ids {
 		if _, err := node.Engine.ImageRemove(ctx, id, false, true); err != nil {
-			logger.Error(ctx, err, "[BuildImage] Remove image error")
+			logger.Error(ctx, err, "Remove image error")
 		}
 	}
 	if spaceReclaimed, err := node.Engine.ImageBuildCachePrune(ctx, true); err != nil {
-		logger.Error(ctx, err, "[BuildImage] Remove build image cache error")
+		logger.Error(ctx, err, "Remove build image cache error")
 	} else {
-		logger.Infof(ctx, "[BuildImage] Clean cached image and release space %d", spaceReclaimed)
+		logger.Infof(ctx, "Clean cached image and release space %d", spaceReclaimed)
 	}
 }
 

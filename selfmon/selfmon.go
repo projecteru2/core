@@ -20,7 +20,7 @@ const ActiveKey = "/selfmon/active"
 
 // NodeStatusWatcher monitors the changes of node status
 type NodeStatusWatcher struct {
-	id      int64
+	ID      int64
 	config  types.Config
 	cluster cluster.Cluster
 	store   store.Store
@@ -29,15 +29,15 @@ type NodeStatusWatcher struct {
 // RunNodeStatusWatcher .
 func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster cluster.Cluster, t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
-	id := rand.Int63n(10000) //nolint
+	ID := rand.Int63n(10000) //nolint
 	store, err := store.NewStore(config, t)
 	if err != nil {
-		log.Errorf(ctx, err, "[RunNodeStatusWatcher] %+v failed to create store", id)
+		log.WithFunc("selfmon.RunNodeStatusWatcher").WithField("ID", ID).Error(ctx, err, "failed to create store")
 		return
 	}
 
 	watcher := &NodeStatusWatcher{
-		id:      id,
+		ID:      ID,
 		config:  config,
 		store:   store,
 		cluster: cluster,
@@ -53,7 +53,7 @@ func (n *NodeStatusWatcher) run(ctx context.Context) {
 		default:
 			n.withActiveLock(ctx, func(ctx context.Context) {
 				if err := n.monitor(ctx); err != nil {
-					log.Errorf(ctx, err, "[NodeStatusWatcher] %+v stops watching", n.id)
+					log.WithFunc("selfmon.run").Errorf(ctx, err, "%+v stops watching", n.ID)
 				}
 			})
 			time.Sleep(n.config.ConnectionTimeout)
@@ -65,12 +65,13 @@ func (n *NodeStatusWatcher) run(ctx context.Context) {
 func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx context.Context)) {
 	ctx, cancel := context.WithCancel(parentCtx)
 	defer cancel()
+	logger := log.WithFunc("selfmon.withActiveLock").WithField("ID", n.ID)
 
 	var expiry <-chan struct{}
 	var unregister func()
 	defer func() {
 		if unregister != nil {
-			log.Infof(ctx, "[Register] %+v unregisters", n.id)
+			logger.Info(ctx, "unregisters")
 			unregister()
 		}
 	}()
@@ -80,7 +81,7 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 	for {
 		select {
 		case <-ctx.Done():
-			log.Info(ctx, "[Register] context canceled")
+			logger.Info(ctx, "context canceled")
 			return
 		default:
 		}
@@ -88,20 +89,20 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 		// try to get the lock
 		if ne, un, err := n.register(ctx); err != nil {
 			if errors.Is(err, context.Canceled) {
-				log.Info(ctx, "[Register] context canceled")
+				logger.Info(ctx, "context canceled")
 				return
 			} else if !errors.Is(err, types.ErrKeyExists) {
-				log.Error(ctx, err, "[Register] failed to re-register")
+				logger.Error(ctx, err, "failed to re-register")
 				time.Sleep(time.Second)
 				continue
 			}
 			if retryCounter == 0 {
-				log.Infof(ctx, "[Register] %+v failed to register, there has been another active node status watcher", n.id)
+				logger.Infof(ctx, "failed to register, there has been another active node status watcher")
 			}
 			retryCounter = (retryCounter + 1) % 60
 			time.Sleep(time.Second)
 		} else {
-			log.Infof(ctx, "[Register] node status watcher %+v has been active", n.id)
+			logger.Infof(ctx, "node status watcher has been active")
 			expiry = ne
 			unregister = un
 			break
@@ -114,10 +115,10 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 
 		select {
 		case <-ctx.Done():
-			log.Info(ctx, "[Register] context canceled")
+			logger.Info(ctx, "context canceled")
 			return
 		case <-expiry:
-			log.Info(ctx, "[Register] lock expired")
+			logger.Info(ctx, "lock expired")
 			return
 		}
 	}()
@@ -130,7 +131,8 @@ func (n *NodeStatusWatcher) register(ctx context.Context) (<-chan struct{}, func
 }
 
 func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
-	log.Debug(ctx, "[NodeStatusWatcher] init node status started")
+	logger := log.WithFunc("selfmon.initNodeStatus")
+	logger.Debug(ctx, "init node status started")
 	nodes := make(chan *types.Node)
 
 	go func() {
@@ -146,16 +148,16 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 				CallInfo: false,
 			})
 			if err != nil {
-				log.Error(ctx, err, "[NodeStatusWatcher] get pod nodes failed")
+				logger.Error(ctx, err, "get pod nodes failed")
 				return
 			}
 			for node := range ch {
-				log.Debugf(ctx, "[NodeStatusWatcher] watched %s/%s", node.Name, node.Endpoint)
+				logger.Debugf(ctx, "watched %s/%s", node.Name, node.Endpoint)
 				nodes <- node
 			}
 		})
 		if err != nil {
-			log.Error(ctx, err, "[NodeStatusWatcher] get pod nodes failed")
+			logger.Error(ctx, err, "get pod nodes failed")
 			return
 		}
 	}()
@@ -176,11 +178,12 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 func (n *NodeStatusWatcher) monitor(ctx context.Context) error {
 	// init node status first
 	go n.initNodeStatus(ctx)
+	logger := log.WithFunc("selfmon.monitor").WithField("ID", n.ID)
 
 	// monitor node status
 	messageChan := n.cluster.NodeStatusStream(ctx)
-	log.Infof(ctx, "[NodeStatusWatcher] %+v watch node status started", n.id)
-	defer log.Infof(ctx, "[NodeStatusWatcher] %+v stop watching node status", n.id)
+	logger.Info(ctx, "watch node status started", n.ID)
+	defer logger.Info(ctx, "stop watching node status", n.ID)
 
 	for {
 		select {
@@ -196,8 +199,9 @@ func (n *NodeStatusWatcher) monitor(ctx context.Context) error {
 }
 
 func (n *NodeStatusWatcher) dealNodeStatusMessage(ctx context.Context, message *types.NodeStatus) {
+	logger := log.WithFunc("selfmon.dealNodeStatusMessage")
 	if message.Error != nil {
-		log.Errorf(ctx, message.Error, "[NodeStatusWatcher] deal with node status stream message failed %+v", message)
+		logger.Errorf(ctx, message.Error, "deal with node status stream message failed %+v", message)
 		return
 	}
 	// here we ignore node back to alive status because it will updated by agent
@@ -214,8 +218,8 @@ func (n *NodeStatusWatcher) dealNodeStatusMessage(ctx context.Context, message *
 		WorkloadsDown: true,
 	}
 	if _, err := n.cluster.SetNode(ctx, opts); err != nil {
-		log.Errorf(ctx, err, "[NodeStatusWatcher] set node %s failed", message.Nodename)
+		logger.Errorf(ctx, err, "set node %s failed", message.Nodename)
 		return
 	}
-	log.Infof(ctx, "[NodeStatusWatcher] set node %s as alive: %+v", message.Nodename, message.Alive)
+	logger.Infof(ctx, "set node %s as alive: %+v", message.Nodename, message.Alive)
 }
