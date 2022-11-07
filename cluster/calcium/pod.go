@@ -9,7 +9,7 @@ import (
 
 // AddPod add pod
 func (c *Calcium) AddPod(ctx context.Context, podname, desc string) (*types.Pod, error) {
-	logger := log.WithField("Calcium", "AddPod").WithField("podname", podname).WithField("desc", desc)
+	logger := log.WithFunc("calcium.AddPod").WithField("podname", podname).WithField("desc", desc)
 	if podname == "" {
 		logger.Error(ctx, types.ErrEmptyPodName)
 		return nil, types.ErrEmptyPodName
@@ -21,7 +21,7 @@ func (c *Calcium) AddPod(ctx context.Context, podname, desc string) (*types.Pod,
 
 // RemovePod remove pod
 func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
-	logger := log.WithField("Calcium", "RemovePod").WithField("podname", podname)
+	logger := log.WithFunc("calcium.RemovePod").WithField("podname", podname)
 	if podname == "" {
 		logger.Error(ctx, types.ErrEmptyPodName)
 		return types.ErrEmptyPodName
@@ -42,7 +42,7 @@ func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
 
 // GetPod get one pod
 func (c *Calcium) GetPod(ctx context.Context, podname string) (*types.Pod, error) {
-	logger := log.WithField("Calcium", "GetPod").WithField("podname", podname)
+	logger := log.WithFunc("calcium.GetPod").WithField("podname", podname)
 	if podname == "" {
 		logger.Error(ctx, types.ErrEmptyPodName)
 		return nil, types.ErrEmptyPodName
@@ -55,6 +55,6 @@ func (c *Calcium) GetPod(ctx context.Context, podname string) (*types.Pod, error
 // ListPods show pods
 func (c *Calcium) ListPods(ctx context.Context) ([]*types.Pod, error) {
 	pods, err := c.store.GetAllPods(ctx)
-	log.WithField("Calcium", "ListPods").Error(ctx, err)
+	log.WithFunc("calcium.ListPods").Error(ctx, err)
 	return pods, err
 }

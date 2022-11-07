@@ -110,7 +110,7 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 				return
 			case v := <-subC:
 				if v == nil {
-					log.Warnf(ctx, "[KNotify] channel already closed, knotify returns")
+					log.WithFunc("store.redis.KNotify").Warnf(ctx, "channel already closed, knotify returns")
 					return
 				}
 				ch <- &KNotifyMessage{

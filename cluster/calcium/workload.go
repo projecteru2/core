@@ -11,35 +11,35 @@ import (
 )
 
 // GetWorkload get a workload
-func (c *Calcium) GetWorkload(ctx context.Context, id string) (workload *types.Workload, err error) {
-	logger := log.WithField("Calcium", "GetWorkload").WithField("id", id)
-	if id == "" {
+func (c *Calcium) GetWorkload(ctx context.Context, ID string) (workload *types.Workload, err error) {
+	logger := log.WithFunc("calcium.GetWorkload").WithField("ID", ID)
+	if ID == "" {
 		logger.Error(ctx, types.ErrEmptyWorkloadID)
 		return workload, types.ErrEmptyWorkloadID
 	}
-	workload, err = c.store.GetWorkload(ctx, id)
+	workload, err = c.store.GetWorkload(ctx, ID)
 	logger.Error(ctx, err)
 	return workload, err
 }
 
 // GetWorkloads get workloads
-func (c *Calcium) GetWorkloads(ctx context.Context, ids []string) (workloads []*types.Workload, err error) {
-	workloads, err = c.store.GetWorkloads(ctx, ids)
-	log.WithField("Calcium", "GetWorkloads").WithField("ids", ids).Error(ctx, err)
+func (c *Calcium) GetWorkloads(ctx context.Context, IDs []string) (workloads []*types.Workload, err error) {
+	workloads, err = c.store.GetWorkloads(ctx, IDs)
+	log.WithFunc("calcium.GetWorkloads").WithField("IDs", IDs).Error(ctx, err)
 	return workloads, err
 }
 
 // ListWorkloads list workloads
 func (c *Calcium) ListWorkloads(ctx context.Context, opts *types.ListWorkloadsOptions) (workloads []*types.Workload, err error) {
 	if workloads, err = c.store.ListWorkloads(ctx, opts.Appname, opts.Entrypoint, opts.Nodename, opts.Limit, opts.Labels); err != nil {
-		log.WithField("opts", opts).Errorf(ctx, err, "Calcium.ListWorkloads] store list failed: %+v", err)
+		log.WithFunc("calcium.ListWorkloads").WithField("opts", opts).Errorf(ctx, err, "Calcium.ListWorkloads] store list failed: %+v", err)
 	}
 	return workloads, err
 }
 
 // ListNodeWorkloads list workloads belong to one node
 func (c *Calcium) ListNodeWorkloads(ctx context.Context, nodename string, labels map[string]string) (workloads []*types.Workload, err error) {
-	logger := log.WithField("Calcium", "ListNodeWorkloads").WithField("nodename", nodename).WithField("labels", labels)
+	logger := log.WithFunc("calcium.ListNodeWorkloads").WithField("node", nodename).WithField("labels", labels)
 	if nodename == "" {
 		logger.Error(ctx, types.ErrEmptyNodeName)
 		return workloads, types.ErrEmptyNodeName

@@ -31,6 +31,7 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 
 	ctx, cancel := context.WithCancel(ctx)
 	expiry := make(chan struct{})
+	logger := log.WithFunc("store.etcdv3.meta.StartEphemeral")
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -47,7 +48,7 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 			ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
 			defer cancel()
 			if _, err := e.cliv3.Revoke(ctx, lease.ID); err != nil {
-				log.Errorf(ctx, err, "[StartEphemeral] revoke %d with %s failed", lease.ID, path)
+				logger.Errorf(ctx, err, "revoke %d with %s failed", lease.ID, path)
 			}
 		}()
 
@@ -55,7 +56,7 @@ func (e *ETCD) StartEphemeral(ctx context.Context, path string, heartbeat time.D
 			select {
 			case <-tick.C:
 				if _, err := e.cliv3.KeepAliveOnce(ctx, lease.ID); err != nil {
-					log.Errorf(ctx, err, "[StartEphemeral] keepalive %d with %s failed", lease.ID, path)
+					logger.Errorf(ctx, err, "keepalive %d with %s failed", lease.ID, path)
 					return
 				}
 			case <-ctx.Done():

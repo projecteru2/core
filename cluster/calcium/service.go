@@ -25,8 +25,9 @@ func (c *Calcium) WatchServiceStatus(ctx context.Context) (<-chan types.ServiceS
 // RegisterService writes self service address in store
 func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err error) {
 	serviceAddress, err := utils.GetOutboundAddress(c.config.Bind, c.config.ProbeTarget)
+	logger := log.WithFunc("calcium.RegisterService")
 	if err != nil {
-		log.Error(ctx, err, "[RegisterService] failed to get outbound address")
+		logger.Error(ctx, err, "failed to get outbound address")
 		return
 	}
 
@@ -39,11 +40,11 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 			break
 		}
 		if errors.Is(err, types.ErrKeyExists) {
-			log.Debugf(ctx, "[RegisterService] service key exists: %+v", err)
+			logger.Debugf(ctx, "service key exists: %+v", err)
 			time.Sleep(time.Second)
 			continue
 		}
-		log.Error(ctx, err, "[RegisterService] failed to first register service")
+		logger.Error(ctx, err, "failed to first register service")
 		return nil, err
 	}
 
@@ -61,7 +62,7 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 			case <-expiry:
 				// The original one had been expired, we're going to register again.
 				if ne, us, err := c.registerService(ctx, serviceAddress); err != nil {
-					log.Error(ctx, err, "[RegisterService] failed to re-register service")
+					logger.Error(ctx, err, "failed to re-register service")
 					time.Sleep(c.config.GRPCConfig.ServiceHeartbeatInterval)
 				} else {
 					expiry = ne
@@ -69,7 +70,7 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 				}
 
 			case <-ctx.Done():
-				log.Infof(ctx, "[RegisterService] heartbeat done: %+v", ctx.Err())
+				logger.Infof(ctx, "heartbeat done: %+v", ctx.Err())
 				return
 			}
 		}

@@ -1,6 +1,8 @@
 package eru
 
-import "google.golang.org/grpc/resolver"
+import (
+	"google.golang.org/grpc/resolver"
+)
 
 type eruResolverBuilder struct{}
 

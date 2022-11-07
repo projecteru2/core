@@ -128,7 +128,7 @@ func dumpFromString(ctx context.Context, ca, cert, key *os.File, caStr, certStr,
 			return err
 		}
 	}
-	log.Debug(ctx, "[dumpFromString] Dump ca.pem, cert.pem, key.pem from string")
+	log.WithFunc("utils.dumpFromString").Debug(ctx, "Dump ca.pem, cert.pem, key.pem from string")
 	return nil
 }
 

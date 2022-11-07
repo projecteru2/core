@@ -114,7 +114,7 @@ func (r *Rediaron) UpdateNodes(ctx context.Context, nodes ...*types.Node) error 
 		addIfNotEmpty(fmt.Sprintf(nodeCaKey, node.Name), node.Ca)
 		addIfNotEmpty(fmt.Sprintf(nodeCertKey, node.Name), node.Cert)
 		addIfNotEmpty(fmt.Sprintf(nodeKeyKey, node.Name), node.Key)
-		enginefactory.RemoveEngineFromCache(node.Endpoint, node.Ca, node.Cert, node.Key)
+		enginefactory.RemoveEngineFromCache(ctx, node.Endpoint, node.Ca, node.Cert, node.Key)
 	}
 	return r.BatchPut(ctx, data)
 }
@@ -169,14 +169,15 @@ func (r *Rediaron) GetNodeStatus(ctx context.Context, nodename string) (*types.N
 // DELETE -> Alive: false
 func (r *Rediaron) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 	ch := make(chan *types.NodeStatus)
+	logger := log.WithFunc("store.redis.NodeStatusStream")
 	_ = r.pool.Invoke(func() {
 		defer func() {
-			log.Info(ctx, "[NodeStatusStream] close NodeStatusStream channel")
+			logger.Info(ctx, "close NodeStatusStream channel")
 			close(ch)
 		}()
 
 		key := filepath.Join(nodeStatusPrefix, "*")
-		log.Infof(ctx, "[NodeStatusStream] watch on %s", key)
+		logger.Infof(ctx, "watch on %s", key)
 		for message := range r.KNotify(ctx, key) {
 			nodename := extractNodename(message.Key)
 			status := &types.NodeStatus{
@@ -197,7 +198,7 @@ func (r *Rediaron) NodeStatusStream(ctx context.Context) chan *types.NodeStatus 
 
 func (r *Rediaron) makeClient(ctx context.Context, node *types.Node) (client engine.API, err error) {
 	// try to get from cache without ca/cert/key
-	if client = enginefactory.GetEngineFromCache(node.Endpoint, "", "", ""); client != nil {
+	if client = enginefactory.GetEngineFromCache(ctx, node.Endpoint, "", "", ""); client != nil {
 		return client, nil
 	}
 	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
@@ -206,7 +207,7 @@ func (r *Rediaron) makeClient(ctx context.Context, node *types.Node) (client eng
 		v, err := r.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
 		if err != nil {
 			if !isRedisNoKeyError(err) {
-				log.Warnf(ctx, "[makeClient] Get key failed %+v", err)
+				log.WithFunc("store.redis.makeClient").Warnf(ctx, "Get key failed %+v", err)
 				return nil, err
 			}
 			continue
@@ -275,7 +276,7 @@ func (r *Rediaron) doRemoveNode(ctx context.Context, podname, nodename, endpoint
 	}
 
 	err := r.BatchDelete(ctx, keys)
-	log.Infof(ctx, "[doRemoveNode] Node (%s, %s, %s) deleted", podname, nodename, endpoint)
+	log.WithFunc("store.redis.doRemoveNode").Infof(ctx, "Node (%s, %s, %s) deleted", podname, nodename, endpoint)
 	return err
 }
 
@@ -291,6 +292,7 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 			allNodes = append(allNodes, node)
 		}
 	}
+	logger := log.WithFunc("store.redis.doGetNodes")
 
 	wg := &sync.WaitGroup{}
 	wg.Add(len(allNodes))
@@ -301,7 +303,7 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 		_ = r.pool.Invoke(func() {
 			defer wg.Done()
 			if _, err := r.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrInvaildCount) {
-				log.Errorf(ctx, err, "[doGetNodes] failed to get node status of %+v", node.Name)
+				logger.Errorf(ctx, err, "failed to get node status of %+v", node.Name)
 			} else {
 				node.Available = err == nil
 			}
@@ -312,7 +314,7 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 
 			nodeChan <- node
 			if client, err := r.makeClient(ctx, node); err != nil {
-				log.Errorf(ctx, err, "[doGetNodes] failed to make client for %+v", node.Name)
+				logger.Errorf(ctx, err, "failed to make client for %+v", node.Name)
 			} else {
 				node.Engine = client
 			}

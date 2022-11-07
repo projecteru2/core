@@ -32,7 +32,7 @@ type entry struct {
 }
 
 // New .
-func New(config types.GRPCConfig, store store.Store) *Helium {
+func New(ctx context.Context, config types.GRPCConfig, store store.Store) *Helium {
 	h := &Helium{
 		interval:  config.ServiceDiscoveryPushInterval,
 		store:     store,
@@ -43,15 +43,15 @@ func New(config types.GRPCConfig, store store.Store) *Helium {
 		h.interval = interval
 	}
 	h.Do(func() {
-		h.start(context.TODO()) // TODO rewrite ctx here, because this will run only once!
+		h.start(ctx)
 	})
 	return h
 }
 
 // Subscribe .
 func (h *Helium) Subscribe(ctx context.Context) (uuid.UUID, <-chan types.ServiceStatus) {
-	id := uuid.New()
-	key := id.ID()
+	ID := uuid.New()
+	key := ID.ID()
 	subCtx, cancel := context.WithCancel(ctx)
 	ch := make(chan types.ServiceStatus)
 	h.subs.Set(key, entry{
@@ -59,24 +59,25 @@ func (h *Helium) Subscribe(ctx context.Context) (uuid.UUID, <-chan types.Service
 		ctx:    subCtx,
 		cancel: cancel,
 	})
-	return id, ch
+	return ID, ch
 }
 
 // Unsubscribe .
-func (h *Helium) Unsubscribe(id uuid.UUID) {
-	h.unsubChan <- id.ID()
+func (h *Helium) Unsubscribe(ID uuid.UUID) {
+	h.unsubChan <- ID.ID()
 }
 
 func (h *Helium) start(ctx context.Context) {
+	logger := log.WithFunc("helium.start")
 	ch, err := h.store.ServiceStatusStream(ctx)
 	if err != nil {
-		log.Error(ctx, err, "[WatchServiceStatus] failed to start watch")
+		logger.Error(ctx, err, "failed to start watch")
 		return
 	}
 
 	go func() {
-		log.Info(ctx, "[WatchServiceStatus] service discovery start")
-		defer log.Warn(ctx, "[WatchServiceStatus] service discovery exited")
+		logger.Info(ctx, "service discovery start")
+		defer logger.Warn(ctx, "service discovery exited")
 		var latestStatus types.ServiceStatus
 		ticker := time.NewTicker(h.interval)
 		defer ticker.Stop()
@@ -84,7 +85,7 @@ func (h *Helium) start(ctx context.Context) {
 			select {
 			case addresses, ok := <-ch:
 				if !ok {
-					log.Warn(ctx, "[WatchServiceStatus] watch channel closed")
+					logger.Warn(ctx, "watch channel closed")
 					return
 				}
 
@@ -93,26 +94,26 @@ func (h *Helium) start(ctx context.Context) {
 					Interval:  h.interval * 2,
 				}
 
-			case id := <-h.unsubChan:
-				if entry, ok := h.subs.Get(id); ok {
+			case ID := <-h.unsubChan:
+				if entry, ok := h.subs.Get(ID); ok {
 					entry.cancel()
-					h.subs.Del(id)
+					h.subs.Del(ID)
 					close(entry.ch)
 				}
 
 			case <-ticker.C:
 			}
 
-			h.dispatch(latestStatus)
+			h.dispatch(ctx, latestStatus)
 		}
 	}()
 }
 
-func (h *Helium) dispatch(status types.ServiceStatus) {
+func (h *Helium) dispatch(ctx context.Context, status types.ServiceStatus) {
 	f := func(key uint32, val entry) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Errorf(nil, errors.Errorf("%+v", err), "[dispatch] dispatch %+v failed", key) //nolint
+				log.WithFunc("helium.dispatch").Errorf(ctx, errors.Errorf("%+v", err), "dispatch %+v failed", key)
 			}
 		}()
 		select {

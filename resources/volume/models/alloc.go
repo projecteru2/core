@@ -15,14 +15,15 @@ import (
 
 // GetDeployArgs .
 func (v *Volume) GetDeployArgs(ctx context.Context, node string, deployCount int, opts *types.WorkloadResourceOpts) ([]*types.EngineArgs, []*types.WorkloadResourceArgs, error) {
+	logger := log.WithFunc("resources.volume.GetDeployArgs").WithField("node", node)
 	if err := opts.Validate(); err != nil {
-		log.Errorf(ctx, err, "[Alloc] invalid resource opts %+v", opts)
+		logger.Errorf(ctx, err, "invalid resource opts %+v", opts)
 		return nil, nil, err
 	}
 
 	resourceInfo, err := v.doGetNodeResourceInfo(ctx, node)
 	if err != nil {
-		log.Errorf(ctx, err, "[Alloc] failed to get resource info of node %+v", node)
+		logger.Error(ctx, err, "failed to get resource info of node")
 		return nil, nil, err
 	}
 

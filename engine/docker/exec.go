@@ -71,7 +71,7 @@ func (e *Engine) demultiplexStdStream(ctx context.Context, stdStream io.Reader) 
 		defer stdoutW.Close()
 		defer stderrW.Close()
 		if _, err := stdcopy.StdCopy(stdoutW, stderrW, stdStream); err != nil {
-			log.Error(ctx, err, "[docker.demultiplex] StdCopy failed")
+			log.WithFunc("engine.docker.demultiplexStdStream").Error(ctx, err, "StdCopy failed")
 		}
 	}()
 	return stdout, stderr

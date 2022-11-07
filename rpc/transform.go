@@ -129,7 +129,7 @@ func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) { //nolint
 		})
 	}
 	return &types.SendOptions{
-		IDs:   b.Ids,
+		IDs:   b.IDs,
 		Files: files,
 	}, nil
 }
@@ -230,7 +230,7 @@ func toCoreReplaceOptions(r *pb.ReplaceOptions) (*types.ReplaceOptions, error) {
 		NetworkInherit: r.Networkinherit,
 		FilterLabels:   r.FilterLabels,
 		Copy:           r.Copy,
-		IDs:            r.Ids,
+		IDs:            r.IDs,
 	}
 
 	return replaceOpts, err
@@ -467,7 +467,7 @@ func toRPCWorkloads(ctx context.Context, workloads []*types.Workload, labels map
 	for _, c := range workloads {
 		pWorkload, err := toRPCWorkload(ctx, c)
 		if err != nil {
-			log.Error(ctx, err, "[toRPCWorkloads] trans to pb workload failed")
+			log.WithFunc("transform.toRPCWorkloads").Error(ctx, err, "trans to pb workload failed")
 			continue
 		}
 		if !utils.LabelsFilter(pWorkload.Labels, labels) {

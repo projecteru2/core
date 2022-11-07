@@ -45,7 +45,7 @@ func (r *Rediaron) ServiceStatusStream(ctx context.Context) (chan []string, erro
 
 		data, err := r.getByKeyPattern(ctx, key, 0)
 		if err != nil {
-			log.Error(ctx, err, "[ServiceStatusStream] failed to get current services")
+			log.WithFunc("store.redis.ServiceStatusStream").Error(ctx, err, "failed to get current services")
 			return
 		}
 		eps := endpoints{}

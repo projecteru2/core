@@ -37,17 +37,18 @@ func (m *Mercury) doLoadProcessing(ctx context.Context, appname, entryname strin
 	if err != nil {
 		return nil, err
 	}
-
 	if resp.Count == 0 {
 		return nodesCount, nil
 	}
+	logger := log.WithFunc("store.etcdv3.doLoadProcessing")
+
 	for _, ev := range resp.Kvs {
 		key := string(ev.Key)
 		parts := strings.Split(key, "/")
 		nodename := parts[len(parts)-2]
 		count, err := strconv.Atoi(string(ev.Value))
 		if err != nil {
-			log.Error(ctx, err, "[doLoadProcessing] Load processing status failed")
+			logger.Error(ctx, err, "Load processing status failed")
 			continue
 		}
 		if _, ok := nodesCount[nodename]; !ok {
@@ -56,6 +57,6 @@ func (m *Mercury) doLoadProcessing(ctx context.Context, appname, entryname strin
 		}
 		nodesCount[nodename] += count
 	}
-	log.Debugf(ctx, "[doLoadProcessing] Processing result: %+v", nodesCount)
+	logger.Debugf(ctx, "Processing result: %+v", nodesCount)
 	return nodesCount, nil
 }

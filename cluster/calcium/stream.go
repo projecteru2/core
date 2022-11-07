@@ -59,15 +59,16 @@ func (c *Calcium) processVirtualizationInStream(
 	inCh <-chan []byte,
 	resizeFunc func(height, width uint) error,
 ) <-chan struct{} { //nolint
+	logger := log.WithFunc("calcium.processVirtualizationInStream")
 	specialPrefixCallback := map[string]func([]byte){
 		string(winchCommand): func(body []byte) {
 			w := &window{}
 			if err := json.Unmarshal(body, w); err != nil {
-				log.Errorf(ctx, err, "[processVirtualizationInStream] invalid winch command: %q", body)
+				logger.Errorf(ctx, err, "invalid winch command: %q", body)
 				return
 			}
 			if err := resizeFunc(w.Height, w.Width); err != nil {
-				log.Error(ctx, err, "[processVirtualizationInStream] resize window error")
+				logger.Error(ctx, err, "resize window error")
 				return
 			}
 		},
@@ -99,7 +100,7 @@ func (c *Calcium) rawProcessVirtualizationInStream(
 				continue
 			}
 			if _, err := inStream.Write(cmd); err != nil {
-				log.Error(ctx, err, "[rawProcessVirtualizationInStream] failed to write virtual input stream")
+				log.WithFunc("calcium.rawProcessVirtualizationInStream").Error(ctx, err, "failed to write virtual input stream")
 				continue
 			}
 		}
@@ -132,7 +133,7 @@ func (c *Calcium) processVirtualizationOutStream(
 			outCh <- bs
 		}
 		if err := scanner.Err(); err != nil {
-			log.Warnf(ctx, "[processVirtualizationOutStream] failed to read output from output stream: %+v", err)
+			log.WithFunc("calcium.processVirtualizationOutStream").Warnf(ctx, "failed to read output from output stream: %+v", err)
 		}
 	})
 	return outCh
@@ -150,7 +151,7 @@ func (c *Calcium) processBuildImageStream(ctx context.Context, reader io.ReadClo
 			if err != nil {
 				if err != io.EOF {
 					malformed, _ := io.ReadAll(decoder.Buffered()) // TODO err check
-					log.Errorf(ctx, err, "[processBuildImageStream] Decode image message failed, buffered: %s", string(malformed))
+					log.WithFunc("calcium.processBuildImageStream").Errorf(ctx, err, "decode image message failed, buffered: %s", string(malformed))
 					message.Error = err.Error()
 					ch <- message
 				}

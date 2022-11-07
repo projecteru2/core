@@ -18,7 +18,7 @@ func NewCPUMem(config coretypes.Config) (*CPUMem, error) {
 	if len(config.Etcd.Machines) > 0 {
 		c.store, err = meta.NewETCD(config.Etcd, nil)
 		if err != nil {
-			log.Error(nil, err, "[NewCPUMem] failed to create etcd client") //nolint
+			log.WithFunc("resources.cpumem.NewCPUMem").Error(nil, err, "failed to create etcd client") //nolint
 			return nil, err
 		}
 	}

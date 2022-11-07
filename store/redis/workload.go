@@ -26,7 +26,7 @@ func (r *Rediaron) UpdateWorkload(ctx context.Context, workload *types.Workload)
 }
 
 // RemoveWorkload remove a workload
-// workload id must be in full length
+// workload ID must be in full length
 func (r *Rediaron) RemoveWorkload(ctx context.Context, workload *types.Workload) error {
 	return r.cleanWorkloadData(ctx, workload)
 }
@@ -34,8 +34,8 @@ func (r *Rediaron) RemoveWorkload(ctx context.Context, workload *types.Workload)
 // GetWorkload get a workload
 // workload if must be in full length, or we can't find it in etcd
 // storage path in etcd is `/workload/:workloadid`
-func (r *Rediaron) GetWorkload(ctx context.Context, id string) (*types.Workload, error) {
-	workloads, err := r.GetWorkloads(ctx, []string{id})
+func (r *Rediaron) GetWorkload(ctx context.Context, ID string) (*types.Workload, error) {
+	workloads, err := r.GetWorkloads(ctx, []string{ID})
 	if err != nil {
 		return nil, err
 	}
@@ -43,18 +43,18 @@ func (r *Rediaron) GetWorkload(ctx context.Context, id string) (*types.Workload,
 }
 
 // GetWorkloads get many workloads
-func (r *Rediaron) GetWorkloads(ctx context.Context, ids []string) (workloads []*types.Workload, err error) {
+func (r *Rediaron) GetWorkloads(ctx context.Context, IDs []string) (workloads []*types.Workload, err error) {
 	keys := []string{}
-	for _, id := range ids {
-		keys = append(keys, fmt.Sprintf(workloadInfoKey, id))
+	for _, ID := range IDs {
+		keys = append(keys, fmt.Sprintf(workloadInfoKey, ID))
 	}
 
 	return r.doGetWorkloads(ctx, keys)
 }
 
 // GetWorkloadStatus get workload status
-func (r *Rediaron) GetWorkloadStatus(ctx context.Context, id string) (*types.StatusMeta, error) {
-	workload, err := r.GetWorkload(ctx, id)
+func (r *Rediaron) GetWorkloadStatus(ctx context.Context, ID string) (*types.StatusMeta, error) {
+	workload, err := r.GetWorkload(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
@@ -139,25 +139,26 @@ func (r *Rediaron) WorkloadStatusStream(ctx context.Context, appname, entrypoint
 	// 显式加个 / 保证 prefix 唯一
 	statusKey := filepath.Join(workloadStatusPrefix, appname, entrypoint, nodename) + "/*"
 	ch := make(chan *types.WorkloadStatus)
+	logger := log.WithFunc("store.redis.WorkloadStatusStream")
 	_ = r.pool.Invoke(func() {
 		defer func() {
-			log.Info(ctx, "[WorkloadStatusStream] close WorkloadStatus channel")
+			logger.Info(ctx, "close WorkloadStatus channel")
 			close(ch)
 		}()
 
-		log.Infof(ctx, "[WorkloadStatusStream] watch on %s", statusKey)
+		logger.Infof(ctx, "watch on %s", statusKey)
 		for message := range r.KNotify(ctx, statusKey) {
-			_, _, _, id := parseStatusKey(message.Key)
+			_, _, _, ID := parseStatusKey(message.Key)
 			msg := &types.WorkloadStatus{
-				ID:     id,
+				ID:     ID,
 				Delete: message.Action == actionDel || message.Action == actionExpired,
 			}
-			workload, err := r.GetWorkload(ctx, id)
+			workload, err := r.GetWorkload(ctx, ID)
 			switch {
 			case err != nil:
 				msg.Error = err
 			case utils.LabelsFilter(workload.Labels, labels):
-				log.Debugf(ctx, "[WorkloadStatusStream] workload %s status changed", workload.ID)
+				logger.Debugf(ctx, "workload %s status changed", workload.ID)
 				msg.Workload = workload
 			default:
 				continue
@@ -193,7 +194,7 @@ func (r *Rediaron) doGetWorkloads(ctx context.Context, keys []string) ([]*types.
 	for k, v := range data {
 		workload := &types.Workload{}
 		if err = json.Unmarshal([]byte(v), workload); err != nil {
-			log.Errorf(ctx, err, "[doGetWorkloads] failed to unmarshal %+v", k)
+			log.WithFunc("store.redis.doGetWorkloads").Errorf(ctx, err, "failed to unmarshal %+v", k)
 			return nil, err
 		}
 		workloads = append(workloads, workload)
@@ -207,6 +208,7 @@ func (r *Rediaron) bindWorkloadsAdditions(ctx context.Context, workloads []*type
 	nodenames := []string{}
 	nodenameCache := map[string]struct{}{}
 	statusKeys := map[string]string{}
+	logger := log.WithFunc("store.redis.bindWorkloadsAdditions")
 	for _, workload := range workloads {
 		appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
 		if err != nil {
@@ -240,8 +242,8 @@ func (r *Rediaron) bindWorkloadsAdditions(ctx context.Context, workloads []*type
 		}
 		status := &types.StatusMeta{}
 		if err := json.Unmarshal([]byte(v), &status); err != nil {
-			log.Warnf(ctx, "[bindWorkloadsAdditions] unmarshal %s status data, raw %s", workload.ID, v)
-			log.Error(ctx, err, "[bindWorkloadsAdditions] unmarshal status failed")
+			logger.Warnf(ctx, "unmarshal %s status data, raw %s", workload.ID, v)
+			logger.Error(ctx, err, "unmarshal status failed")
 			continue
 		}
 		workloads[index].StatusMeta = status
@@ -257,7 +259,7 @@ func (r *Rediaron) doOpsWorkload(ctx context.Context, workload *types.Workload, 
 	}
 
 	// now everything is ok
-	// we use full length id instead
+	// we use full length ID instead
 	bytes, err := json.Marshal(workload)
 	if err != nil {
 		return err

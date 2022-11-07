@@ -44,7 +44,7 @@ func (v *Virt) ImageRemove(ctx context.Context, tag string, force, prune bool) (
 
 // ImagesPrune prunes one.
 func (v *Virt) ImagesPrune(ctx context.Context) (err error) {
-	log.Warnf(ctx, "ImagesPrune does not implement")
+	log.WithFunc("engine.virt.ImagesPrune").Warnf(ctx, "ImagesPrune does not implement")
 	return
 }
 
@@ -92,7 +92,7 @@ func (v *Virt) ImagePush(ctx context.Context, ref string) (rc io.ReadCloser, err
 
 // ImageBuild captures from a guest.
 func (v *Virt) ImageBuild(ctx context.Context, input io.Reader, refs []string, _ string) (rc io.ReadCloser, err error) {
-	log.Warnf(ctx, "imageBuild does not implement")
+	log.WithFunc("engine.virt.ImageBuild").Warnf(ctx, "imageBuild does not implement")
 	return
 }
 
@@ -123,7 +123,7 @@ func (v *Virt) ImageBuildFromExist(ctx context.Context, ID string, refs []string
 
 // ImageBuildCachePrune prunes cached one.
 func (v *Virt) ImageBuildCachePrune(ctx context.Context, all bool) (reclaimed uint64, err error) {
-	log.Warnf(ctx, "ImageBuildCachePrune does not implement and not required by vm")
+	log.WithFunc("engine.virt.ImageBuildCachePrune").Warnf(ctx, "ImageBuildCachePrune does not implement and not required by vm")
 	return
 }
 

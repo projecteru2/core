@@ -98,7 +98,7 @@ func TestWatchServiceStatus(t *testing.T) {
 			return ch
 		}, nil,
 	)
-	c.watcher = helium.New(c.config.GRPCConfig, c.store)
+	c.watcher = helium.New(context.TODO(), c.config.GRPCConfig, c.store)
 
 	ch, err := c.WatchServiceStatus(context.Background())
 	assert.NoError(t, err)

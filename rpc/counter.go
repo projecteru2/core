@@ -29,7 +29,7 @@ func (v *Vibranium) newTask(ctx context.Context, name string, verbose bool) *tas
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	if verbose {
-		log.Debugf(ctx, "[task] %s added", name)
+		log.WithFunc("vibranium.newTask").WithField("name", name).Debug(ctx, "task added")
 	}
 	v.counter.Add(1)
 	v.TaskNum++
@@ -46,7 +46,7 @@ func (v *Vibranium) newTask(ctx context.Context, name string, verbose bool) *tas
 // 否则计数器用完不会为0, 你也别想退出这个进程了.
 func (t *task) done() {
 	if t.verbose {
-		log.Debugf(t.context, "[task] %s done", t.name)
+		log.WithFunc("vibranium.done").WithField("name", t.name).Debug(t.context, "task done")
 	}
 	t.v.counter.Done()
 	t.v.TaskNum--

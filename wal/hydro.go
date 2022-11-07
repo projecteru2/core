@@ -48,17 +48,18 @@ func (h *Hydro) Register(handler EventHandler) {
 func (h *Hydro) Recover(ctx context.Context) {
 	ch, _ := h.store.Scan([]byte(eventPrefix))
 	events := []HydroEvent{}
+	logger := log.WithFunc("wal.hydro.Recover")
 
 	for {
 		scanEntry, ok := <-ch
 		if !ok {
-			log.Warn(ctx, "[Recover] noting have to restore, wal recover closed")
+			logger.Warn(ctx, "noting have to restore, wal recover closed")
 			break
 		}
 
 		event, err := h.decodeEvent(scanEntry)
 		if err != nil {
-			log.Error(ctx, err, "[Recover] decode event error")
+			logger.Error(ctx, err, "decode event error")
 			continue
 		}
 		events = append(events, event)
@@ -67,12 +68,12 @@ func (h *Hydro) Recover(ctx context.Context) {
 	for _, event := range events {
 		handler, ok := h.getEventHandler(event.Type)
 		if !ok {
-			log.Warn(ctx, "[Recover] no such event handler for %s", event.Type)
+			logger.Warn(ctx, "no such event handler for %s", event.Type)
 			continue
 		}
 
 		if err := h.recover(ctx, handler, event); err != nil {
-			log.Errorf(ctx, err, "[Recover] handle event %d (%s) failed", event.ID, event.Type)
+			logger.Errorf(ctx, err, "handle event %d (%s) failed", event.ID, event.Type)
 			continue
 		}
 	}
@@ -90,12 +91,12 @@ func (h *Hydro) Log(eventyp string, item interface{}) (Commit, error) {
 		return nil, err
 	}
 
-	var id uint64
-	if id, err = h.store.NextSequence(); err != nil {
+	var ID uint64
+	if ID, err = h.store.NextSequence(); err != nil {
 		return nil, err
 	}
 
-	event := NewHydroEvent(id, eventyp, bs)
+	event := NewHydroEvent(ID, eventyp, bs)
 	if bs, err = event.Encode(); err != nil {
 		return nil, coretypes.ErrInvaildWALEvent
 	}

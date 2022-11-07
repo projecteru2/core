@@ -13,14 +13,15 @@ import (
 
 // GetDeployArgs .
 func (c *CPUMem) GetDeployArgs(ctx context.Context, node string, deployCount int, opts *types.WorkloadResourceOpts) ([]*types.EngineArgs, []*types.WorkloadResourceArgs, error) {
+	logger := log.WithFunc("resources.cpumem.GetDeployArgs").WithField("node", node)
 	if err := opts.Validate(); err != nil {
-		log.Errorf(ctx, err, "[GetDeployArgs] invalid resource opts %+v", opts)
+		logger.Errorf(ctx, err, "invalid resource opts %+v", opts)
 		return nil, nil, err
 	}
 
 	resourceInfo, err := c.doGetNodeResourceInfo(ctx, node)
 	if err != nil {
-		log.Errorf(ctx, err, "[GetDeployArgs] failed to get resource info of node %+v", node)
+		logger.Error(ctx, err, "failed to get resource info of node")
 		return nil, nil, err
 	}
 

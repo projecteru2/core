@@ -78,13 +78,14 @@ func loadRawArgs(b []byte) (*RawArgs, error) {
 
 // VirtualizationCreate create a workload
 func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) { //nolint
+	logger := log.WithFunc("engine.docker.VirtualizationCreate")
 	r := &enginetypes.VirtualizationCreated{}
 	var err error
 
 	// parse engine args to resource options
 	opts.VirtualizationResource, err = engine.MakeVirtualizationResource(opts.EngineArgs)
 	if err != nil {
-		log.Errorf(ctx, err, "[VirtualizationCreate] failed to parse engine args %+v", opts.EngineArgs)
+		logger.Errorf(ctx, err, "failed to parse engine args %+v", opts.EngineArgs)
 		return r, coretypes.ErrInvalidEngineArgs
 	}
 
@@ -147,8 +148,8 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		opts.DNS = []string{hostIP}
 	}
 	// mount paths
-	binds, volumes := makeMountPaths(opts)
-	log.Debugf(ctx, "[VirtualizationCreate] App %s will bind %+v", opts.Name, binds)
+	binds, volumes := makeMountPaths(ctx, opts)
+	logger.Debugf(ctx, "App %s will bind %+v", opts.Name, binds)
 
 	config := &dockercontainer.Config{
 		Env:             opts.Env,
@@ -262,7 +263,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 			ipForShow = "[AutoAlloc]"
 		}
 		networkConfig.EndpointsConfig[networkID] = endpointSetting
-		log.Infof(ctx, "[ConnectToNetwork] Connect to %+v with IP %+v", networkID, ipForShow)
+		logger.Infof(ctx, "Connect to %+v with IP %+v", networkID, ipForShow)
 	}
 
 	workloadCreated, err := e.client.ContainerCreate(ctx, config, hostConfig, networkConfig, nil, opts.Name)
@@ -407,10 +408,11 @@ func (e *Engine) VirtualizationWait(ctx context.Context, ID, state string) (*eng
 
 // VirtualizationUpdateResource update virtualization resource
 func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error {
+	logger := log.WithFunc("engine.docker.VirtualizationUpdateResource")
 	// parse engine args to resource options
 	resourceOpts, err := engine.MakeVirtualizationResource(opts.EngineArgs)
 	if err != nil {
-		log.Errorf(ctx, err, "[VirtualizationUpdateResource] failed to parse engine args %+v, workload id %+v", opts.EngineArgs, ID)
+		logger.Errorf(ctx, err, "failed to parse engine args %+v, workload ID %+v", opts.EngineArgs, ID)
 		return coretypes.ErrInvalidEngineArgs
 	}
 
@@ -418,7 +420,7 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 		return coretypes.ErrInvaildMemory
 	}
 	if len(opts.Volumes) > 0 || resourceOpts.VolumeChanged {
-		log.Errorf(ctx, err, "[VirtualizationUpdateResource] docker engine not support rebinding volume resource: %+v", resourceOpts.Volumes)
+		logger.Errorf(ctx, err, "docker engine not support rebinding volume resource: %+v", resourceOpts.Volumes)
 		return coretypes.ErrInvaildWorkloadOps
 	}
 

@@ -19,7 +19,7 @@ func NewVolume(config coretypes.Config) (*Volume, error) {
 	if len(config.Etcd.Machines) > 0 {
 		v.store, err = meta.NewETCD(config.Etcd, nil)
 		if err != nil {
-			log.Error(nil, err, "[NewVolume] failed to create etcd client") //nolint
+			log.WithFunc("resources.volume.NewVolume").Error(nil, err, "failed to create etcd client") //nolint
 			return nil, err
 		}
 	}

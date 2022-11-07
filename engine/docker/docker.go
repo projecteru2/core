@@ -33,17 +33,18 @@ type Engine struct {
 func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	var client *http.Client
 	var err error
+	logger := log.WithFunc("engine.docker.MakeClient")
 	if strings.HasPrefix(endpoint, "unix://") {
 		client = utils.GetUnixSockClient()
 	} else {
 		client, err = utils.GetHTTPSClient(ctx, config.CertPath, nodename, ca, cert, key)
 		if err != nil {
-			log.Errorf(ctx, err, "[MakeClient] GetHTTPSClient for %s %s", nodename, endpoint)
+			logger.Errorf(ctx, err, "GetHTTPSClient for %s %s", nodename, endpoint)
 			return nil, err
 		}
 	}
 
-	log.Debugf(ctx, "[MakeDockerEngine] Create new http.Client for %s, %s", endpoint, config.Docker.APIVersion)
+	logger.Debugf(ctx, "Create new http.Client for %s, %s", endpoint, config.Docker.APIVersion)
 	return makeDockerClient(ctx, config, client, endpoint)
 }
 

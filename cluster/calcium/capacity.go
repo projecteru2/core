@@ -15,8 +15,8 @@ import (
 
 // CalculateCapacity calculates capacity
 func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptions) (*types.CapacityMessage, error) {
-	logger := log.WithField("Calcium", "CalculateCapacity").WithField("opts", opts)
-	logger.Infof(ctx, "[CalculateCapacity] Calculate capacity with options:\n%s", litter.Options{Compact: true}.Sdump(opts))
+	logger := log.WithFunc("calcium.CalculateCapacity").WithField("opts", opts)
+	logger.Infof(ctx, "Calculate capacity with options:\n%s", litter.Options{Compact: true}.Sdump(opts))
 	var err error
 	msg := &types.CapacityMessage{
 		Total:          0,
@@ -28,7 +28,7 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 
 		if opts.DeployStrategy != strategy.Dummy {
 			if msg.NodeCapacities, err = c.doGetDeployStrategy(ctx, nodenames, opts); err != nil {
-				logger.Error(ctx, err, "[Calcium.CalculateCapacity] doGetDeployMap failed")
+				logger.Error(ctx, err, "doGetDeployMap failed")
 				return err
 			}
 
@@ -41,7 +41,7 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 		var infos map[string]*resources.NodeCapacityInfo
 		infos, msg.Total, err = c.rmgr.GetNodesDeployCapacity(ctx, nodenames, opts.ResourceOpts)
 		if err != nil {
-			logger.Error(ctx, err, "[Calcium.CalculateCapacity] failed to get nodes capacity")
+			logger.Error(ctx, err, "failed to get nodes capacity")
 			return err
 		}
 		if msg.Total <= 0 {

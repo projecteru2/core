@@ -15,8 +15,9 @@ import (
 // GetReallocArgs .
 func (v *Volume) GetReallocArgs(ctx context.Context, node string, originResourceArgs *types.WorkloadResourceArgs, resourceOpts *types.WorkloadResourceOpts) (*types.EngineArgs, *types.WorkloadResourceArgs, *types.WorkloadResourceArgs, error) {
 	resourceInfo, err := v.doGetNodeResourceInfo(ctx, node)
+	logger := log.WithFunc("resources.volume.GetReallocArgs").WithField("node", node)
 	if err != nil {
-		log.Errorf(ctx, err, "[Realloc] failed to get resource info of node %+v", node)
+		logger.Error(ctx, err, "failed to get resource info of node")
 		return nil, nil, nil, err
 	}
 
@@ -32,7 +33,7 @@ func (v *Volume) GetReallocArgs(ctx context.Context, node string, originResource
 	resourceOpts.SkipAddStorage()
 
 	if err := resourceOpts.Validate(); err != nil {
-		log.Errorf(ctx, err, "[Realloc] invalid resource opts %+v", litter.Sdump(resourceOpts))
+		logger.Errorf(ctx, err, "invalid resource opts %+v", litter.Sdump(resourceOpts))
 		return nil, nil, nil, err
 	}
 

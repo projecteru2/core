@@ -11,7 +11,7 @@ import (
 
 // LogStream log stream for one workload
 func (c *Calcium) LogStream(ctx context.Context, opts *types.LogStreamOptions) (chan *types.LogStreamMessage, error) {
-	logger := log.WithField("Calcium", "LogStream").WithField("opts", opts)
+	logger := log.WithFunc("calcium.LogStream").WithField("opts", opts)
 	ch := make(chan *types.LogStreamMessage)
 	_ = c.pool.Invoke(func() {
 		defer close(ch)

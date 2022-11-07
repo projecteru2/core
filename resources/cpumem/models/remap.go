@@ -11,7 +11,7 @@ import (
 func (c *CPUMem) GetRemapArgs(ctx context.Context, node string, workloadResourceMap *types.WorkloadResourceArgsMap) (map[string]*types.EngineArgs, error) {
 	resourceInfo, err := c.doGetNodeResourceInfo(ctx, node)
 	if err != nil {
-		log.Errorf(ctx, err, "[GetRemapArgs] failed to get resource info of node %+v", node)
+		log.WithFunc("resources.cpumem.GetRemapArgs").WithField("node", node).Error(ctx, err, "failed to get resource info of node")
 		return nil, err
 	}
 	availableNodeResource := resourceInfo.GetAvailableResource()

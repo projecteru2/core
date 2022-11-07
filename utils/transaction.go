@@ -13,9 +13,9 @@ type contextFunc = func(context.Context) error
 // Txn provides unified API to perform txn
 func Txn(ctx context.Context, cond contextFunc, then contextFunc, rollback func(context.Context, bool) error, ttl time.Duration) (txnErr error) {
 	var condErr, thenErr error
-
 	txnCtx, txnCancel := context.WithTimeout(ctx, ttl)
 	defer txnCancel()
+	logger := log.WithFunc("utils.Txn")
 	defer func() { // rollback
 		txnErr = condErr
 		if txnErr == nil {
@@ -25,18 +25,18 @@ func Txn(ctx context.Context, cond contextFunc, then contextFunc, rollback func(
 			return
 		}
 		if rollback == nil {
-			log.Error(ctx, nil, "[txn] txn failed but no rollback function")
+			logger.Error(ctx, nil, "txn failed but no rollback function")
 			return
 		}
 
-		log.Warnf(ctx, "[txn] txn failed, rolling back: %+v", txnErr)
+		logger.Warnf(ctx, "txn failed, rolling back: %+v", txnErr)
 
 		// forbid interrupting rollback
-		rollbackCtx, rollBackCancel := context.WithTimeout(InheritTracingInfo(ctx, context.TODO()), ttl)
+		rollbackCtx, rollBackCancel := context.WithTimeout(NewInheritCtx(ctx), ttl)
 		defer rollBackCancel()
 		failureByCond := condErr != nil
 		if err := rollback(rollbackCtx, failureByCond); err != nil {
-			log.Warnf(ctx, "[txn] txn failed but rollback also failed: %+v", err)
+			logger.Warnf(ctx, "txn failed but rollback also failed: %+v", err)
 		}
 	}()
 
@@ -46,7 +46,7 @@ func Txn(ctx context.Context, cond contextFunc, then contextFunc, rollback func(
 		thenCtx := txnCtx
 		var thenCancel context.CancelFunc
 		if rollback == nil {
-			thenCtx, thenCancel = context.WithTimeout(InheritTracingInfo(ctx, context.TODO()), ttl)
+			thenCtx, thenCancel = context.WithTimeout(NewInheritCtx(ctx), ttl)
 			defer thenCancel()
 		}
 		thenErr = then(thenCtx)

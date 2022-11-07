@@ -17,7 +17,7 @@ func (r *Rediaron) GetDeployStatus(ctx context.Context, appname, entryname strin
 		return nil, err
 	}
 	if len(data) == 0 {
-		log.Warnf(ctx, "[MakeDeployStatus] Deploy status not found %s.%s", appname, entryname)
+		log.WithFunc("store.redis.GetDeployStatus").Warnf(ctx, "Deploy status not found %s.%s", appname, entryname)
 	}
 
 	deployCount := r.doGetDeployStatus(ctx, data)

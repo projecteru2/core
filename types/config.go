@@ -46,7 +46,7 @@ type Config struct {
 	ResourcePlugin ResourcePluginConfig `yaml:"resource_plugin"`
 }
 
-// Identifier returns the id of this config
+// Identifier returns the ID of this config
 // we consider the same storage as the same config
 func (c Config) Identifier() (string, error) {
 	b, err := json.Marshal(c)

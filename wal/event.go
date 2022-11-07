@@ -11,7 +11,7 @@ import (
 // HydroEvent indicates a log event.
 type HydroEvent struct {
 	// A global unique identifier.
-	ID uint64 `json:"id"`
+	ID uint64 `json:"ID"`
 
 	// Registered event type name.
 	Type string `json:"type"`
@@ -37,6 +37,6 @@ func (e HydroEvent) Key() []byte {
 
 func parseHydroEventID(key []byte) (uint64, error) {
 	// Trims the EventPrefix, then trims the padding 0.
-	id := strings.TrimLeft(strings.TrimPrefix(string(key), eventPrefix), "0")
-	return strconv.ParseUint(id, 16, 64)
+	ID := strings.TrimLeft(strings.TrimPrefix(string(key), eventPrefix), "0")
+	return strconv.ParseUint(ID, 16, 64)
 }

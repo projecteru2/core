@@ -36,10 +36,11 @@ type Calcium struct {
 
 // New returns a new cluster config
 func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, error) {
+	logger := log.WithFunc("calcium.New")
 	// set store
 	store, err := store.NewStore(config, t)
 	if err != nil {
-		log.Error(ctx, err)
+		logger.Error(ctx, err)
 		return nil, err
 	}
 
@@ -52,32 +53,32 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 	case cluster.Github:
 		scm, err = github.New(config)
 	default:
-		log.Warn(ctx, "[Calcium] SCM not set, build API disabled")
+		logger.Warn(ctx, "SCM not set, build API disabled")
 	}
 	if err != nil {
-		log.Error(ctx, err, "[Calcium] SCM failed")
+		logger.Error(ctx, err, "SCM failed")
 		return nil, err
 	}
 
 	// set watcher
-	watcher := helium.New(config.GRPCConfig, store)
+	watcher := helium.New(ctx, config.GRPCConfig, store)
 
 	// set resource plugin manager
 	rmgr, err := resources.NewPluginsManager(config)
 	if err != nil {
-		log.Error(ctx, err)
+		logger.Error(ctx, err)
 		return nil, err
 	}
 
 	// load internal plugins
 	cpumem, err := cpumem.NewPlugin(config)
 	if err != nil {
-		log.Error(ctx, err, "[NewPluginManager] new cpumem plugin error")
+		logger.Error(ctx, err, "new cpumem plugin error")
 		return nil, err
 	}
 	volume, err := volume.NewPlugin(config)
 	if err != nil {
-		log.Error(ctx, err, "[NewPluginManager] new volume plugin error")
+		logger.Error(ctx, err, "new volume plugin error")
 		return nil, err
 	}
 	rmgr.AddPlugins(cpumem, volume)
@@ -96,13 +97,13 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 
 	cal.wal, err = enableWAL(config, cal, store)
 	if err != nil {
-		log.Error(ctx, err)
+		logger.Error(ctx, err)
 		return nil, err
 	}
 
 	cal.identifier, err = config.Identifier()
 	if err != nil {
-		log.Error(ctx, err)
+		logger.Error(ctx, err)
 		return nil, err
 	}
 

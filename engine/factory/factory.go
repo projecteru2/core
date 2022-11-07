@@ -80,8 +80,9 @@ func (e *EngineCache) Delete(key string) {
 
 // CheckAlive checks if the engine in cache is available
 func (e *EngineCache) CheckAlive(ctx context.Context) {
-	log.Info(ctx, "[EngineCache] check alive starts")
-	defer log.Info(ctx, "[EngineCache] check alive ends")
+	logger := log.WithFunc("engine.factory.CheckAlive")
+	logger.Info(ctx, "check alive starts")
+	defer logger.Info(ctx, "check alive ends")
 	defer e.pool.Release()
 	for {
 		select {
@@ -114,14 +115,14 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 				}
 				if _, ok := client.(*fake.Engine); ok {
 					if newClient, err := newEngine(ctx, e.config, utils.RandomString(8), params.endpoint, params.ca, params.key, params.cert); err != nil {
-						log.Errorf(ctx, err, "[EngineCache] engine %+v is still unavailable", cacheKey)
+						logger.Errorf(ctx, err, "engine %+v is still unavailable", cacheKey)
 					} else {
 						e.cache.Set(cacheKey, newClient)
 					}
 					return
 				}
 				if err := validateEngine(ctx, client, e.config.ConnectionTimeout); err != nil {
-					log.Errorf(ctx, err, "[EngineCache] engine %+v is unavailable, will be replaced with a fake engine", cacheKey)
+					logger.Errorf(ctx, err, "engine %+v is unavailable, will be replaced with a fake engine", cacheKey)
 					e.cache.Set(cacheKey, &fake.Engine{DefaultErr: err})
 				}
 			})
@@ -132,20 +133,21 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 }
 
 // GetEngineFromCache .
-func GetEngineFromCache(endpoint, ca, cert, key string) engine.API {
+func GetEngineFromCache(_ context.Context, endpoint, ca, cert, key string) engine.API {
 	return engineCache.Get(getEngineCacheKey(endpoint, ca, cert, key))
 }
 
 // RemoveEngineFromCache .
-func RemoveEngineFromCache(endpoint, ca, cert, key string) {
+func RemoveEngineFromCache(ctx context.Context, endpoint, ca, cert, key string) {
 	cacheKey := getEngineCacheKey(endpoint, ca, cert, key)
-	log.Infof(nil, "[RemoveEngineFromCache] remove engine %+v from cache", cacheKey) //nolint
+	log.WithFunc("engine.factory.RemoveEngineFromCache").Infof(ctx, "remove engine %+v from cache", cacheKey)
 	engineCache.Delete(cacheKey)
 }
 
 // GetEngine get engine with cache
 func GetEngine(ctx context.Context, config types.Config, nodename, endpoint, ca, cert, key string) (client engine.API, err error) {
-	if client = GetEngineFromCache(endpoint, ca, cert, key); client != nil {
+	logger := log.WithFunc("engine.factory.GetEngine")
+	if client = GetEngineFromCache(ctx, endpoint, ca, cert, key); client != nil {
 		return client, nil
 	}
 
@@ -159,10 +161,10 @@ func GetEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 		cacheKey := params.getCacheKey()
 		if err == nil {
 			engineCache.Set(params, client)
-			log.Infof(ctx, "[GetEngine] store engine %+v in cache", cacheKey)
+			logger.Infof(ctx, "store engine %+v in cache", cacheKey)
 		} else {
 			engineCache.Set(params, &fake.Engine{DefaultErr: err})
-			log.Infof(ctx, "[GetEngine] store fake engine %+v in cache", cacheKey)
+			logger.Infof(ctx, "store fake engine %+v in cache", cacheKey)
 		}
 	}()
 
@@ -217,7 +219,7 @@ func newEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 		return nil, err
 	}
 	if err = validateEngine(ctx, client, config.ConnectionTimeout); err != nil {
-		log.Errorf(ctx, err, "[GetEngine] engine of %+v is unavailable", endpoint)
+		log.WithFunc("engine.factory.newEngine").Errorf(ctx, err, "engine of %+v is unavailable", endpoint)
 		return nil, err
 	}
 	return client, nil
