@@ -21,7 +21,7 @@ func TestHelium(t *testing.T) {
 	grpcConfig := types.GRPCConfig{
 		ServiceDiscoveryPushInterval: time.Duration(1) * time.Second,
 	}
-	service := New(grpcConfig, store)
+	service := New(context.TODO(), grpcConfig, store)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	uuid, chStatus := service.Subscribe(ctx)
@@ -58,7 +58,7 @@ func TestPanic(t *testing.T) {
 	grpcConfig := types.GRPCConfig{
 		ServiceDiscoveryPushInterval: time.Duration(1) * time.Second,
 	}
-	service := New(grpcConfig, store)
+	service := New(context.TODO(), grpcConfig, store)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

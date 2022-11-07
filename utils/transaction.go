@@ -32,7 +32,7 @@ func Txn(ctx context.Context, cond contextFunc, then contextFunc, rollback func(
 		logger.Warnf(ctx, "txn failed, rolling back: %+v", txnErr)
 
 		// forbid interrupting rollback
-		rollbackCtx, rollBackCancel := context.WithTimeout(InheritTracingInfo(ctx, context.TODO()), ttl)
+		rollbackCtx, rollBackCancel := context.WithTimeout(NewInheritCtx(ctx), ttl)
 		defer rollBackCancel()
 		failureByCond := condErr != nil
 		if err := rollback(rollbackCtx, failureByCond); err != nil {
@@ -46,7 +46,7 @@ func Txn(ctx context.Context, cond contextFunc, then contextFunc, rollback func(
 		thenCtx := txnCtx
 		var thenCancel context.CancelFunc
 		if rollback == nil {
-			thenCtx, thenCancel = context.WithTimeout(InheritTracingInfo(ctx, context.TODO()), ttl)
+			thenCtx, thenCancel = context.WithTimeout(NewInheritCtx(ctx), ttl)
 			defer thenCancel()
 		}
 		thenErr = then(thenCtx)

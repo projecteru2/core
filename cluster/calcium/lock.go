@@ -75,7 +75,7 @@ func (c *Calcium) withWorkloadsLocked(ctx context.Context, IDs []string, f func(
 	defer logger.Debugf(ctx, "Workloads %+v unlocked", IDs)
 	defer func() {
 		utils.Reverse(IDs)
-		c.doUnlockAll(utils.InheritTracingInfo(ctx, context.TODO()), locks, IDs...)
+		c.doUnlockAll(utils.NewInheritCtx(ctx), locks, IDs...)
 	}()
 	cs, err := c.store.GetWorkloads(ctx, IDs)
 	if err != nil {
@@ -142,7 +142,7 @@ func (c *Calcium) withNodesLocked(ctx context.Context, nodeFilter *types.NodeFil
 
 	defer func() {
 		utils.Reverse(lockKeys)
-		c.doUnlockAll(utils.InheritTracingInfo(ctx, context.TODO()), locks, lockKeys...)
+		c.doUnlockAll(utils.NewInheritCtx(ctx), locks, lockKeys...)
 		logger.Debugf(ctx, "keys %+v unlocked", lockKeys)
 	}()
 

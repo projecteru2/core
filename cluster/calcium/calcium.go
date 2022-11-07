@@ -61,7 +61,7 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 	}
 
 	// set watcher
-	watcher := helium.New(config.GRPCConfig, store)
+	watcher := helium.New(ctx, config.GRPCConfig, store)
 
 	// set resource plugin manager
 	rmgr, err := resources.NewPluginsManager(config)

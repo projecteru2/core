@@ -17,7 +17,7 @@ type remapMsg struct {
 func (c *Calcium) doRemapResourceAndLog(ctx context.Context, logger *log.Fields, node *types.Node) {
 	remapLogger := logger.WithField("calcium.doRemapResourceAndLog", node.Name)
 	remapLogger.Info(ctx, "remap node")
-	ctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.TODO()), c.config.GlobalTimeout)
+	ctx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), c.config.GlobalTimeout)
 	defer cancel()
 
 	err := c.withNodeOperationLocked(ctx, node.Name, func(ctx context.Context, node *types.Node) error {

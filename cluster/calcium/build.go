@@ -210,7 +210,7 @@ func (c *Calcium) withImageBuiltChannel(f func(chan *types.BuildImageMessage)) c
 
 func cleanupNodeImages(ctx context.Context, node *types.Node, IDs []string, ttl time.Duration) {
 	logger := log.WithFunc("calcium.cleanupNodeImages").WithField("node", node).WithField("IDs", IDs).WithField("ttl", ttl)
-	ctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.TODO()), ttl)
+	ctx, cancel := context.WithTimeout(utils.NewInheritCtx(ctx), ttl)
 	defer cancel()
 	for _, ID := range IDs {
 		if _, err := node.Engine.ImageRemove(ctx, ID, false, true); err != nil {

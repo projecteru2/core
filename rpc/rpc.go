@@ -925,7 +925,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 		if RunAndWaitOptions.AsyncTimeout != 0 {
 			timeout = time.Second * time.Duration(RunAndWaitOptions.AsyncTimeout)
 		}
-		ctx, cancel = context.WithTimeout(context.TODO(), timeout)
+		ctx, cancel = context.WithTimeout(context.TODO(), timeout) // not use the stream ctx
 		// force mark stdin to false
 		opts.OpenStdin = false
 	}

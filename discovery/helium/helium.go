@@ -32,7 +32,7 @@ type entry struct {
 }
 
 // New .
-func New(config types.GRPCConfig, store store.Store) *Helium {
+func New(ctx context.Context, config types.GRPCConfig, store store.Store) *Helium {
 	h := &Helium{
 		interval:  config.ServiceDiscoveryPushInterval,
 		store:     store,
@@ -43,7 +43,7 @@ func New(config types.GRPCConfig, store store.Store) *Helium {
 		h.interval = interval
 	}
 	h.Do(func() {
-		h.start(context.TODO()) // TODO rewrite ctx here, because this will run only once!
+		h.start(ctx)
 	})
 	return h
 }

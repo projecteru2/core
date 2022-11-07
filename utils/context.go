@@ -8,6 +8,11 @@ import (
 	"google.golang.org/grpc/peer"
 )
 
+// NewInheritCtx new a todo context and get the previous values
+func NewInheritCtx(ctx context.Context) context.Context {
+	return InheritTracingInfo(ctx, context.TODO())
+}
+
 // InheritTracingInfo pass through the tracing info: peer, tracing id
 func InheritTracingInfo(ctx, newCtx context.Context) context.Context {
 	rCtx := newCtx

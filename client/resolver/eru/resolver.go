@@ -31,7 +31,7 @@ func New(cc resolver.ClientConn, endpoint string, authority string) *Resolver {
 		discovery: servicediscovery.New(endpoint, authConfig),
 	}
 	cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: endpoint}}}) //nolint
-	go r.sync()
+	go r.sync(context.TODO())
 	return r
 }
 
@@ -43,8 +43,7 @@ func (r *Resolver) Close() {
 	r.cancel()
 }
 
-func (r *Resolver) sync() {
-	ctx := context.TODO()
+func (r *Resolver) sync(ctx context.Context) {
 	ctx, r.cancel = context.WithCancel(ctx)
 	defer r.cancel()
 	logger := log.WithFunc("resolver.sync")
