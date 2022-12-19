@@ -17,8 +17,10 @@ const NodeResourceInfoKey = "/resource/volume/%s"
 
 // GetNodeResourceInfo .
 func (v *Volume) GetNodeResourceInfo(ctx context.Context, node string, workloadResourceMap *types.WorkloadResourceArgsMap, fix bool) (*types.NodeResourceInfo, []string, error) {
+	logger := log.WithFunc("resources.volume.GetNodeResourceInfo").WithField("node", node)
 	resourceInfo, err := v.doGetNodeResourceInfo(ctx, node)
 	if err != nil {
+		logger.Error(ctx, err)
 		return nil, nil, err
 	}
 
@@ -87,6 +89,104 @@ func (v *Volume) GetNodeResourceInfo(ctx context.Context, node string, workloadR
 	return resourceInfo, diffs, nil
 }
 
+// SetNodeResourceUsage .
+func (v *Volume) SetNodeResourceUsage(ctx context.Context, node string, nodeResourceOpts *types.NodeResourceOpts, nodeResourceArgs *types.NodeResourceArgs, workloadResourceArgs []*types.WorkloadResourceArgs, delta bool, incr bool) (before *types.NodeResourceArgs, after *types.NodeResourceArgs, err error) {
+	resourceInfo, err := v.doGetNodeResourceInfo(ctx, node)
+	if err != nil {
+		log.WithFunc("resources.volume.SetNodeResourceUsage").WithField("node", node).Error(ctx, err)
+		return nil, nil, err
+	}
+
+	before = resourceInfo.Usage.DeepCopy()
+	resourceInfo.Usage = v.calculateNodeResourceArgs(resourceInfo.Usage, nodeResourceOpts, nodeResourceArgs, workloadResourceArgs, delta, incr)
+
+	if err := v.doSetNodeResourceInfo(ctx, node, resourceInfo); err != nil {
+		return nil, nil, err
+	}
+	return before, resourceInfo.Usage, nil
+}
+
+// SetNodeResourceCapacity .
+func (v *Volume) SetNodeResourceCapacity(ctx context.Context, node string, nodeResourceOpts *types.NodeResourceOpts, nodeResourceArgs *types.NodeResourceArgs, delta bool, incr bool) (before *types.NodeResourceArgs, after *types.NodeResourceArgs, err error) {
+	resourceInfo, err := v.doGetNodeResourceInfo(ctx, node)
+	if err != nil {
+		log.WithFunc("resources.volume.SetNodeResourceCapacity").WithField("node", node).Error(ctx, err)
+		return nil, nil, err
+	}
+
+	before = resourceInfo.Capacity.DeepCopy()
+	if nodeResourceOpts != nil {
+		if len(nodeResourceOpts.RMDisks) > 0 {
+			if delta {
+				return nil, nil, coretypes.ErrInvalidEngineArgs
+			}
+			rmDisksMap := map[string]struct{}{}
+			for _, rmDisk := range nodeResourceOpts.RMDisks {
+				rmDisksMap[rmDisk] = struct{}{}
+			}
+			resourceInfo.Capacity.Disks = utils.Filter(resourceInfo.Capacity.Disks, func(d *types.Disk) bool {
+				_, ok := rmDisksMap[d.Device]
+				return !ok
+			})
+		}
+		if !delta {
+			nodeResourceOpts.SkipEmpty(resourceInfo.Capacity)
+		}
+	}
+	resourceInfo.Capacity = v.calculateNodeResourceArgs(resourceInfo.Capacity, nodeResourceOpts, nodeResourceArgs, nil, delta, incr)
+	if delta {
+		resourceInfo.Capacity.RemoveEmpty()
+	}
+
+	if err := v.doSetNodeResourceInfo(ctx, node, resourceInfo); err != nil {
+		log.WithFunc("resources.volume.SetNodeResourceCapacity").WithField("node", node).Errorf(ctx, err, "resource info %+v", litter.Sdump(resourceInfo))
+		return nil, nil, err
+	}
+	return before, resourceInfo.Capacity, nil
+}
+
+// SetNodeResourceInfo .
+func (v *Volume) SetNodeResourceInfo(ctx context.Context, node string, resourceCapacity *types.NodeResourceArgs, resourceUsage *types.NodeResourceArgs) error {
+	resourceInfo := &types.NodeResourceInfo{
+		Capacity: resourceCapacity,
+		Usage:    resourceUsage,
+	}
+
+	err := v.doSetNodeResourceInfo(ctx, node, resourceInfo)
+	if err != nil {
+		log.WithFunc("resources.volume.SetNodeResourceInfo").WithField("node", node).Errorf(ctx, err, "resource info %+v", litter.Sdump(resourceInfo))
+	}
+	return err
+}
+
+func (v *Volume) doGetNodeResourceInfo(ctx context.Context, node string) (*types.NodeResourceInfo, error) {
+	resourceInfo := &types.NodeResourceInfo{}
+	resp, err := v.store.GetOne(ctx, fmt.Sprintf(NodeResourceInfoKey, node))
+	if err != nil {
+		return nil, err
+	}
+	if err = json.Unmarshal(resp.Value, resourceInfo); err != nil {
+		return nil, err
+	}
+	return resourceInfo, nil
+}
+
+func (v *Volume) doSetNodeResourceInfo(ctx context.Context, node string, resourceInfo *types.NodeResourceInfo) error {
+	if err := resourceInfo.Validate(); err != nil {
+		return err
+	}
+
+	data, err := json.Marshal(resourceInfo)
+	if err != nil {
+		return err
+	}
+
+	if _, err = v.store.Put(ctx, fmt.Sprintf(NodeResourceInfoKey, node), string(data)); err != nil {
+		return err
+	}
+	return nil
+}
+
 // priority: node resource opts > node resource args > workload resource args list
 func (v *Volume) calculateNodeResourceArgs(origin *types.NodeResourceArgs, nodeResourceOpts *types.NodeResourceOpts, nodeResourceArgs *types.NodeResourceArgs, workloadResourceArgs []*types.WorkloadResourceArgs, delta bool, incr bool) (res *types.NodeResourceArgs) {
 	if origin == nil || !delta {
@@ -135,104 +235,4 @@ func (v *Volume) calculateNodeResourceArgs(origin *types.NodeResourceArgs, nodeR
 		}
 	}
 	return res
-}
-
-// SetNodeResourceUsage .
-func (v *Volume) SetNodeResourceUsage(ctx context.Context, node string, nodeResourceOpts *types.NodeResourceOpts, nodeResourceArgs *types.NodeResourceArgs, workloadResourceArgs []*types.WorkloadResourceArgs, delta bool, incr bool) (before *types.NodeResourceArgs, after *types.NodeResourceArgs, err error) {
-	resourceInfo, err := v.doGetNodeResourceInfo(ctx, node)
-	if err != nil {
-		log.WithFunc("resources.volume.SetNodeResourceUsage").WithField("node", node).Error(ctx, err, "failed to get resource info of node")
-		return nil, nil, err
-	}
-
-	before = resourceInfo.Usage.DeepCopy()
-	resourceInfo.Usage = v.calculateNodeResourceArgs(resourceInfo.Usage, nodeResourceOpts, nodeResourceArgs, workloadResourceArgs, delta, incr)
-
-	if err := v.doSetNodeResourceInfo(ctx, node, resourceInfo); err != nil {
-		return nil, nil, err
-	}
-	return before, resourceInfo.Usage, nil
-}
-
-// SetNodeResourceCapacity .
-func (v *Volume) SetNodeResourceCapacity(ctx context.Context, node string, nodeResourceOpts *types.NodeResourceOpts, nodeResourceArgs *types.NodeResourceArgs, delta bool, incr bool) (before *types.NodeResourceArgs, after *types.NodeResourceArgs, err error) {
-	resourceInfo, err := v.doGetNodeResourceInfo(ctx, node)
-	if err != nil {
-		log.WithFunc("resources.volume.SetNodeResourceCapacity").WithField("node", node).Error(ctx, err, "failed to get resource info of node")
-		return nil, nil, err
-	}
-
-	before = resourceInfo.Capacity.DeepCopy()
-	if nodeResourceOpts != nil {
-		if len(nodeResourceOpts.RMDisks) > 0 {
-			if delta {
-				return nil, nil, coretypes.ErrInvalidEngineArgs
-			}
-			rmDisksMap := map[string]struct{}{}
-			for _, rmDisk := range nodeResourceOpts.RMDisks {
-				rmDisksMap[rmDisk] = struct{}{}
-			}
-			resourceInfo.Capacity.Disks = utils.Filter(resourceInfo.Capacity.Disks, func(d *types.Disk) bool {
-				_, ok := rmDisksMap[d.Device]
-				return !ok
-			})
-		}
-		if !delta {
-			nodeResourceOpts.SkipEmpty(resourceInfo.Capacity)
-		}
-	}
-	resourceInfo.Capacity = v.calculateNodeResourceArgs(resourceInfo.Capacity, nodeResourceOpts, nodeResourceArgs, nil, delta, incr)
-	if delta {
-		resourceInfo.Capacity.RemoveEmpty()
-	}
-
-	if err := v.doSetNodeResourceInfo(ctx, node, resourceInfo); err != nil {
-		return nil, nil, err
-	}
-	return before, resourceInfo.Capacity, nil
-}
-
-// SetNodeResourceInfo .
-func (v *Volume) SetNodeResourceInfo(ctx context.Context, node string, resourceCapacity *types.NodeResourceArgs, resourceUsage *types.NodeResourceArgs) error {
-	resourceInfo := &types.NodeResourceInfo{
-		Capacity: resourceCapacity,
-		Usage:    resourceUsage,
-	}
-
-	return v.doSetNodeResourceInfo(ctx, node, resourceInfo)
-}
-
-func (v *Volume) doGetNodeResourceInfo(ctx context.Context, node string) (*types.NodeResourceInfo, error) {
-	resourceInfo := &types.NodeResourceInfo{}
-	logger := log.WithFunc("resources.volume.doGetNodeResourceInfo").WithField("node", node)
-	resp, err := v.store.GetOne(ctx, fmt.Sprintf(NodeResourceInfoKey, node))
-	if err != nil {
-		logger.Error(ctx, err, "failed to get node resource info of node")
-		return nil, err
-	}
-	if err = json.Unmarshal(resp.Value, resourceInfo); err != nil {
-		logger.Error(ctx, err, "failed to unmarshal node resource info of node")
-		return nil, err
-	}
-	return resourceInfo, nil
-}
-
-func (v *Volume) doSetNodeResourceInfo(ctx context.Context, node string, resourceInfo *types.NodeResourceInfo) error {
-	logger := log.WithFunc("resources.volume.doSetNodeResourceInfo").WithField("node", node)
-	if err := resourceInfo.Validate(); err != nil {
-		logger.Errorf(ctx, err, "invalid resource info %+v", litter.Sdump(resourceInfo))
-		return err
-	}
-
-	data, err := json.Marshal(resourceInfo)
-	if err != nil {
-		logger.Errorf(ctx, err, "faield to marshal resource info %+v", resourceInfo)
-		return err
-	}
-
-	if _, err = v.store.Put(ctx, fmt.Sprintf(NodeResourceInfoKey, node), string(data)); err != nil {
-		logger.Errorf(ctx, err, "faield to put resource info %+v", resourceInfo)
-		return err
-	}
-	return nil
 }
