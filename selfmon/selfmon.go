@@ -53,7 +53,7 @@ func (n *NodeStatusWatcher) run(ctx context.Context) {
 		default:
 			n.withActiveLock(ctx, func(ctx context.Context) {
 				if err := n.monitor(ctx); err != nil {
-					log.WithFunc("selfmon.run").Errorf(ctx, err, "%+v stops watching", n.ID)
+					log.WithFunc("selfmon.run").Errorf(ctx, err, "stops watching node id %+v", n.ID)
 				}
 			})
 			time.Sleep(n.config.ConnectionTimeout)
@@ -102,7 +102,7 @@ func (n *NodeStatusWatcher) withActiveLock(parentCtx context.Context, f func(ctx
 			retryCounter = (retryCounter + 1) % 60
 			time.Sleep(time.Second)
 		} else {
-			logger.Infof(ctx, "node status watcher has been active")
+			logger.Info(ctx, "node status watcher has been active")
 			expiry = ne
 			unregister = un
 			break
@@ -182,8 +182,8 @@ func (n *NodeStatusWatcher) monitor(ctx context.Context) error {
 
 	// monitor node status
 	messageChan := n.cluster.NodeStatusStream(ctx)
-	logger.Info(ctx, "watch node status started", n.ID)
-	defer logger.Info(ctx, "stop watching node status", n.ID)
+	logger.Info(ctx, "watch node status started")
+	defer logger.Info(ctx, "stop watching node status")
 
 	for {
 		select {

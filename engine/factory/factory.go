@@ -113,8 +113,8 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 					e.keysToCheck.Del(uintptr(unsafe.Pointer(&params)))
 					return
 				}
-				if _, ok := client.(*fake.Engine); ok {
-					if newClient, err := newEngine(ctx, e.config, utils.RandomString(8), params.endpoint, params.ca, params.key, params.cert); err != nil {
+				if _, ok := client.(*fake.EngineWithErr); ok {
+					if newClient, err := newEngine(ctx, e.config, params.nodename, params.endpoint, params.ca, params.key, params.cert); err != nil {
 						logger.Errorf(ctx, err, "engine %+v is still unavailable", cacheKey)
 					} else {
 						e.cache.Set(cacheKey, newClient)
@@ -122,8 +122,8 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 					return
 				}
 				if err := validateEngine(ctx, client, e.config.ConnectionTimeout); err != nil {
-					logger.Errorf(ctx, err, "engine %+v is unavailable, will be replaced with a fake engine", cacheKey)
-					e.cache.Set(cacheKey, &fake.Engine{DefaultErr: err})
+					logger.Errorf(ctx, err, "engine %+v is unavailable, will be replaced and removed", cacheKey)
+					e.cache.Set(cacheKey, &fake.EngineWithErr{DefaultErr: err})
 				}
 			})
 		}
@@ -153,6 +153,7 @@ func GetEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 
 	defer func() {
 		params := engineParams{
+			nodename: nodename,
 			endpoint: endpoint,
 			ca:       ca,
 			cert:     cert,
@@ -163,7 +164,7 @@ func GetEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 			engineCache.Set(params, client)
 			logger.Infof(ctx, "store engine %+v in cache", cacheKey)
 		} else {
-			engineCache.Set(params, &fake.Engine{DefaultErr: err})
+			engineCache.Set(params, &fake.EngineWithErr{DefaultErr: err})
 			logger.Infof(ctx, "store fake engine %+v in cache", cacheKey)
 		}
 	}()
@@ -172,6 +173,7 @@ func GetEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 }
 
 type engineParams struct {
+	nodename string
 	endpoint string
 	ca       string
 	cert     string

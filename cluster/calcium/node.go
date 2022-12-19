@@ -183,7 +183,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 	}
 	var n *types.Node
 	return n, c.withNodePodLocked(ctx, opts.Nodename, func(ctx context.Context, node *types.Node) error {
-		logger.Infof(ctx, "set node")
+		logger.Info(ctx, "set node")
 		// update resource map
 		var err error
 		node.Resource.Capacity, node.Resource.Usage, node.Resource.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
