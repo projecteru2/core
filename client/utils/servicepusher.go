@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cornelk/hashmap"
+	"github.com/alphadose/haxmap"
 	"github.com/go-ping/ping"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
@@ -18,15 +18,15 @@ import (
 type EndpointPusher struct {
 	sync.Mutex
 	chans              []chan []string
-	pendingEndpoints   *hashmap.Map[string, context.CancelFunc]
-	availableEndpoints *hashmap.Map[string, struct{}]
+	pendingEndpoints   *haxmap.Map[string, context.CancelFunc]
+	availableEndpoints *haxmap.Map[string, struct{}]
 }
 
 // NewEndpointPusher .
 func NewEndpointPusher() *EndpointPusher {
 	return &EndpointPusher{
-		pendingEndpoints:   hashmap.New[string, context.CancelFunc](),
-		availableEndpoints: hashmap.New[string, struct{}](),
+		pendingEndpoints:   haxmap.New[string, context.CancelFunc](),
+		availableEndpoints: haxmap.New[string, struct{}](),
 	}
 }
 
@@ -45,7 +45,7 @@ func (p *EndpointPusher) delOutdated(ctx context.Context, endpoints []string) {
 	p.Lock()
 	defer p.Unlock()
 	logger := log.WithFunc("utils.EndpointPusher.delOutdated")
-	p.pendingEndpoints.Range(func(endpoint string, cancel context.CancelFunc) bool {
+	p.pendingEndpoints.ForEach(func(endpoint string, cancel context.CancelFunc) bool {
 		if !slices.Contains(endpoints, endpoint) {
 			cancel()
 			p.pendingEndpoints.Del(endpoint)
@@ -54,7 +54,7 @@ func (p *EndpointPusher) delOutdated(ctx context.Context, endpoints []string) {
 		return true
 	})
 
-	p.availableEndpoints.Range(func(endpoint string, _ struct{}) bool {
+	p.availableEndpoints.ForEach(func(endpoint string, _ struct{}) bool {
 		if !slices.Contains(endpoints, endpoint) {
 			p.availableEndpoints.Del(endpoint)
 			logger.Debugf(ctx, "available endpoint deleted: %s", endpoint)
@@ -131,7 +131,7 @@ func (p *EndpointPusher) checkReachability(ctx context.Context, host string) (er
 
 func (p *EndpointPusher) pushEndpoints() {
 	endpoints := []string{}
-	p.availableEndpoints.Range(func(endpoint string, _ struct{}) bool {
+	p.availableEndpoints.ForEach(func(endpoint string, _ struct{}) bool {
 		endpoints = append(endpoints, endpoint)
 		return true
 	})

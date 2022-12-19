@@ -23,5 +23,5 @@ func (b *LBResolverBuilder) Scheme() string {
 
 // Build for interface
 func (b *LBResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
-	return newLBResolver(cc, target.Endpoint, b.updateCh), nil
+	return newLBResolver(cc, target.URL.Path, b.updateCh), nil
 }

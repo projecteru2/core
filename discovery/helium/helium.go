@@ -10,7 +10,7 @@ import (
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 
-	"github.com/cornelk/hashmap"
+	"github.com/alphadose/haxmap"
 	"github.com/google/uuid"
 )
 
@@ -20,7 +20,7 @@ const interval = 15 * time.Second
 type Helium struct {
 	sync.Once
 	store     store.Store
-	subs      *hashmap.Map[uint32, entry]
+	subs      *haxmap.Map[uint32, entry]
 	interval  time.Duration
 	unsubChan chan uint32
 }
@@ -36,7 +36,7 @@ func New(ctx context.Context, config types.GRPCConfig, store store.Store) *Heliu
 	h := &Helium{
 		interval:  config.ServiceDiscoveryPushInterval,
 		store:     store,
-		subs:      hashmap.New[uint32, entry](),
+		subs:      haxmap.New[uint32, entry](),
 		unsubChan: make(chan uint32),
 	}
 	if h.interval < time.Second {
@@ -123,7 +123,7 @@ func (h *Helium) dispatch(ctx context.Context, status types.ServiceStatus) {
 			return
 		}
 	}
-	h.subs.Range(func(k uint32, v entry) bool {
+	h.subs.ForEach(func(k uint32, v entry) bool {
 		f(k, v)
 		return true
 	})

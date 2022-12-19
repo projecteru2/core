@@ -12,6 +12,7 @@ import (
 	"github.com/projecteru2/core/types"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 )
 
@@ -42,7 +43,7 @@ func (c *Client) GetRPCClient() pb.CoreRPCClient {
 
 func dial(ctx context.Context, addr string, authConfig types.AuthConfig) (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{Time: 6 * 60 * time.Second, Timeout: time.Second}),
 		grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy":"round_robin"}`), // This sets the initial balancing policy, see https://github.com/grpc/grpc-go/blob/v1.40.x/examples/features/load_balancing/client/main.go
 		grpc.WithUnaryInterceptor(interceptor.NewUnaryRetry(interceptor.RetryOptions{Max: 1})),

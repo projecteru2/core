@@ -19,7 +19,6 @@ linters:
   disable-all: true
   enable:
     - bodyclose
-    - deadcode
     - depguard
     - dogsled
     - gochecknoinits
@@ -27,37 +26,25 @@ linters:
     - gocyclo
     - gofmt
     - goimports
-    # golint is replaced by revive
-    # - golint
     - revive
     - goprintffuncname
     - gosec
     - gosimple
     - govet
     - ineffassign
-    # interfacer is deprecated
-    # - interfacer
     - misspell
     - nakedret
-    # - nolintlint
     - rowserrcheck
-    # scopelint is replaced by exportloopref
-    # - scopelint
     - exportloopref
     - staticcheck
-    - structcheck
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - asciicheck
     - nestif
     - errcheck
     - gocritic
-    #- gocognit
-    #- gomnd
-    #- dupl
       #Consider this
       # - godox
       # - funlen
@@ -71,4 +58,4 @@ linters:
       # - prealloc
       # - testpackage
       # - wsl
-      # - stylecheck
+      # - sylecheck

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cornelk/hashmap"
+	"github.com/alphadose/haxmap"
 	"github.com/docker/go-connections/tlsconfig"
 
 	"github.com/projecteru2/core/log"
@@ -26,7 +26,7 @@ var defaultUnixSockClient = &http.Client{
 	Transport: getDefaultUnixSockTransport(),
 }
 
-var httpsClientCache = hashmap.New[string, *http.Client]()
+var httpsClientCache = haxmap.New[string, *http.Client]()
 
 // GetHTTPClient returns a HTTP client
 func GetHTTPClient() *http.Client {

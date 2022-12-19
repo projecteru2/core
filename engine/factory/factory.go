@@ -8,8 +8,8 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/alphadose/haxmap"
 	"github.com/cockroachdb/errors"
-	"github.com/cornelk/hashmap"
 	"github.com/panjf2000/ants/v2"
 
 	"github.com/projecteru2/core/engine"
@@ -40,7 +40,7 @@ var (
 // EngineCache .
 type EngineCache struct {
 	cache       *utils.EngineCache
-	keysToCheck *hashmap.Map[uintptr, engineParams]
+	keysToCheck *haxmap.Map[uintptr, engineParams]
 	pool        *ants.PoolWithFunc
 	config      types.Config
 }
@@ -50,7 +50,7 @@ func NewEngineCache(config types.Config) *EngineCache {
 	pool, _ := utils.NewPool(config.MaxConcurrency)
 	return &EngineCache{
 		cache:       utils.NewEngineCache(12*time.Hour, 10*time.Minute),
-		keysToCheck: hashmap.New[uintptr, engineParams](),
+		keysToCheck: haxmap.New[uintptr, engineParams](),
 		pool:        pool,
 		config:      config,
 	}
@@ -93,7 +93,7 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 
 		paramsChan := make(chan engineParams)
 		go func() {
-			e.keysToCheck.Range(func(k uintptr, v engineParams) bool {
+			e.keysToCheck.ForEach(func(k uintptr, v engineParams) bool {
 				paramsChan <- v
 				return true
 			})

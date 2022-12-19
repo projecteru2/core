@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alphadose/haxmap"
 	"github.com/cockroachdb/errors"
-	"github.com/cornelk/hashmap"
 
 	"github.com/projecteru2/core/cluster"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -179,7 +179,7 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(deployMap))
-	syncRollbackMap := hashmap.New[string, []int]()
+	syncRollbackMap := haxmap.New[string, []int]()
 	logger := log.WithFunc("calcium.doDeployWorkloads").WithField("ident", opts.ProcessIdent)
 
 	seq := 0
@@ -203,7 +203,7 @@ func (c *Calcium) doDeployWorkloads(ctx context.Context,
 	}
 
 	wg.Wait()
-	syncRollbackMap.Range(func(nodename string, indices []int) bool {
+	syncRollbackMap.ForEach(func(nodename string, indices []int) bool {
 		rollbackMap[nodename] = indices
 		return true
 	})

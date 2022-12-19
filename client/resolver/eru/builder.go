@@ -17,5 +17,5 @@ func (b *eruResolverBuilder) Scheme() string {
 
 // Build for interface
 func (b *eruResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
-	return New(cc, target.Endpoint, target.Authority), nil
+	return New(cc, target.URL.Path, target.URL.Host), nil
 }

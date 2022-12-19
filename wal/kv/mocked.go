@@ -6,15 +6,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alphadose/haxmap"
 	"github.com/cockroachdb/errors"
-	"github.com/cornelk/hashmap"
 	"github.com/projecteru2/core/types"
 )
 
 // MockedKV .
 type MockedKV struct {
 	sync.Mutex
-	pool    *hashmap.Map[string, []byte]
+	pool    *haxmap.Map[string, []byte]
 	nextSeq uint64
 }
 
@@ -22,7 +22,7 @@ type MockedKV struct {
 func NewMockedKV() *MockedKV {
 	return &MockedKV{
 		nextSeq: 1,
-		pool:    hashmap.New[string, []byte](),
+		pool:    haxmap.New[string, []byte](),
 	}
 }
 
@@ -33,7 +33,7 @@ func (m *MockedKV) Open(path string, mode os.FileMode, timeout time.Duration) er
 
 // Close .
 func (m *MockedKV) Close() error {
-	m.pool.Range(func(k string, _ []byte) bool {
+	m.pool.ForEach(func(k string, _ []byte) bool {
 		m.pool.Del(k)
 		return true
 	})
@@ -85,7 +85,7 @@ func (m *MockedKV) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 		dataCh := make(chan MockedScanEntry)
 		go func() {
 			defer close(dataCh)
-			m.pool.Range(func(k string, v []byte) bool {
+			m.pool.ForEach(func(k string, v []byte) bool {
 				dataCh <- MockedScanEntry{Key: k, Value: v}
 				return true
 			})

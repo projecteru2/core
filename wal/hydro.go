@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/alphadose/haxmap"
 	"github.com/cockroachdb/errors"
-	"github.com/cornelk/hashmap"
 	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/wal/kv"
@@ -18,7 +18,7 @@ const (
 
 // Hydro is the simplest wal implementation.
 type Hydro struct {
-	*hashmap.Map[string, EventHandler]
+	*haxmap.Map[string, EventHandler]
 	store kv.KV
 }
 
@@ -29,7 +29,7 @@ func NewHydro(path string, timeout time.Duration) (*Hydro, error) {
 		return nil, err
 	}
 	return &Hydro{
-		Map:   hashmap.New[string, EventHandler](),
+		Map:   haxmap.New[string, EventHandler](),
 		store: store,
 	}, nil
 }
@@ -41,7 +41,7 @@ func (h *Hydro) Close() error {
 
 // Register registers a new event handler.
 func (h *Hydro) Register(handler EventHandler) {
-	h.Set(handler.Typ(), handler)
+	h.Map.Set(handler.Typ(), handler)
 }
 
 // Recover starts a disaster recovery, which will replay all the events.

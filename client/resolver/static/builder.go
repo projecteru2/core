@@ -15,5 +15,5 @@ func (b *staticResolverBuilder) Scheme() string {
 
 // Build for interface
 func (b *staticResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
-	return New(cc, target.Endpoint), nil
+	return New(cc, target.URL.Path), nil
 }
