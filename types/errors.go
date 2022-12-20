@@ -122,4 +122,7 @@ var (
 
 	// Metrics
 	ErrMetricsTypeNotSupport = errors.New("metrics type not support")
+
+	// Plugin
+	ErrConfigInvaild = errors.New("config invalid")
 )
