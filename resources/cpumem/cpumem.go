@@ -274,7 +274,6 @@ func (c *Plugin) workloadMapToWorkloadResourceArgsMap(workloadMap map[string]*co
 		}
 		workloadResourceArgsMap[workloadID] = workloadResourceArgs
 	}
-
 	return &workloadResourceArgsMap, nil
 }
 

@@ -186,7 +186,7 @@ func (c *Calcium) doReplaceWorkload(
 		return createMessage, removeMessage, err
 	}
 
-	_ = c.pool.Invoke(func() { c.doRemapResourceAndLog(ctx, logger, node) })
+	_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
 
 	return createMessage, removeMessage, err
 }

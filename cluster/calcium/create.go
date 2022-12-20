@@ -29,7 +29,7 @@ func (c *Calcium) CreateWorkload(ctx context.Context, opts *types.DeployOptions)
 	}
 	opts.ProcessIdent = utils.RandomString(16)
 	logger = logger.WithField("ident", opts.ProcessIdent)
-	logger.Infof(ctx, "Creating workload with options:\n%s", opts.ProcessIdent, litter.Options{Compact: true}.Sdump(opts))
+	logger.Infof(ctx, "Creating workload ident %s with options:\n%s", opts.ProcessIdent, litter.Options{Compact: true}.Sdump(opts))
 	// Count 要大于0
 	if opts.Count <= 0 {
 		err := errors.Wrapf(types.ErrInvaildDeployCount, "count: %d", opts.Count)
@@ -275,7 +275,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	// remap 就不搞进事务了吧, 回滚代价太大了
 	// 放任 remap 失败的后果是, share pool 没有更新, 这个后果姑且认为是可以承受的
 	// 而且 remap 是一个幂等操作, 就算这次 remap 失败, 下次 remap 也能收敛到正确到状态
-	_ = c.pool.Invoke(func() { c.doRemapResourceAndLog(ctx, logger, node) })
+	_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
 
 	return indices, err
 }

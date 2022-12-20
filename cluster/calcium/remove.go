@@ -75,7 +75,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 							}
 							ch <- ret
 						}
-						_ = c.pool.Invoke(func() { c.doRemapResourceAndLog(ctx, logger, node) })
+						_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
 						return nil
 					}); err != nil {
 						logger.WithField("node", nodename).Error(ctx, err, "failed to lock node")

@@ -39,7 +39,7 @@ func TestRemapResource(t *testing.T) {
 	ch <- enginetypes.VirtualizationRemapMessage{}
 	close(ch)
 	engine.On("VirtualizationResourceRemap", mock.Anything, mock.Anything).Return((<-chan enginetypes.VirtualizationRemapMessage)(ch), nil)
-	_, err := c.remapResource(context.Background(), node)
+	_, err := c.doRemapResource(context.Background(), node)
 	assert.Nil(t, err)
 
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
@@ -47,5 +47,5 @@ func TestRemapResource(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	c.doRemapResourceAndLog(context.Background(), log.WithField("test", "zc"), node)
+	c.RemapResourceAndLog(context.Background(), log.WithField("test", "zc"), node)
 }

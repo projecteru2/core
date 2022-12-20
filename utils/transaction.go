@@ -29,7 +29,7 @@ func Txn(ctx context.Context, cond contextFunc, then contextFunc, rollback func(
 			return
 		}
 
-		logger.Warnf(ctx, "txn failed, rolling back: %+v", txnErr)
+		logger.Error(ctx, txnErr, "txn failed, rolling back")
 
 		// forbid interrupting rollback
 		rollbackCtx, rollBackCancel := context.WithTimeout(NewInheritCtx(ctx), ttl)
