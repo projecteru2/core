@@ -6,7 +6,7 @@ import (
 )
 
 // ResourceMeta for messages and workload to store
-type ResourceMeta map[string]WorkloadResourceArgs
+type ResourceMeta map[string]WorkloadResource
 
 // RawParams .
 type RawParams map[string]interface{}

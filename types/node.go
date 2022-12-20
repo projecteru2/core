@@ -25,20 +25,20 @@ func (n NodeMeta) DeepCopy() (nn NodeMeta, err error) {
 	return nn, mapstructure.Decode(n, &nn)
 }
 
-// NodeResource for resource
-type NodeResource struct {
-	Name      string                      `json:"-"`
-	Capacity  map[string]NodeResourceArgs `json:"capacity,omitempty"`
-	Usage     map[string]NodeResourceArgs `json:"usage,omitempty"`
-	Diffs     []string                    `json:"diffs,omitempty"`
-	Workloads []*Workload                 `json:"-"`
+// NodeResourceInfo for node resource info
+type NodeResourceInfo struct {
+	Name      string                  `json:"-"`
+	Capacity  map[string]NodeResource `json:"capacity,omitempty"`
+	Usage     map[string]NodeResource `json:"usage,omitempty"`
+	Diffs     []string                `json:"diffs,omitempty"`
+	Workloads []*Workload             `json:"-"`
 }
 
 // Node store node info
 type Node struct {
 	NodeMeta
-	Resource NodeResource `jason:"resource,omitempty"`
-	NodeInfo string       `json:"-"`
+	Resource NodeResourceInfo `jason:"resource,omitempty"`
+	NodeInfo string           `json:"-"`
 
 	// Bypass if bypass is true, it will not participate in future scheduling
 	Bypass    bool       `json:"bypass,omitempty"`
