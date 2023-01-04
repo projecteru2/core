@@ -7,6 +7,9 @@ import (
 	"sync"
 
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/resource3"
+	"github.com/projecteru2/core/resource3/cobalt"
+	plugintypes "github.com/projecteru2/core/resource3/plugins/types"
 	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -33,13 +36,13 @@ type Metrics struct {
 
 	Collectors map[string]prometheus.Collector
 
-	rmgr resources.Manager
+	rmgr2 resource3.Manager
 }
 
 // SendDeployCount update deploy counter
 func (m *Metrics) SendDeployCount(ctx context.Context, n int) {
 	log.WithFunc("metrics.SendDeployCount").Info(ctx, "Update deploy counter")
-	metrics := &resources.Metrics{
+	metrics := &plugintypes.Metrics{
 		Name:   deployCountName,
 		Labels: []string{m.Hostname},
 		Key:    deployCountKey,
@@ -50,7 +53,7 @@ func (m *Metrics) SendDeployCount(ctx context.Context, n int) {
 }
 
 // SendMetrics update metrics
-func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*resources.Metrics) {
+func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*plugintypes.Metrics) {
 	logger := log.WithFunc("metrics.SendMetrics")
 	for _, metric := range metrics {
 		collector, ok := m.Collectors[metric.Name]
@@ -133,7 +136,7 @@ func InitMetrics(config types.Config, metricsDescriptions []*resources.MetricsDe
 	if err != nil {
 		return err
 	}
-	rmgr, err := resources.NewPluginsManager(config)
+	rmgr2, err := cobalt.New(config)
 	if err != nil {
 		return err
 	}
@@ -142,7 +145,7 @@ func InitMetrics(config types.Config, metricsDescriptions []*resources.MetricsDe
 		StatsdAddr: config.Statsd,
 		Hostname:   utils.CleanStatsdMetrics(hostname),
 		Collectors: map[string]prometheus.Collector{},
-		rmgr:       rmgr,
+		rmgr2:      rmgr2,
 	}
 
 	for _, desc := range metricsDescriptions {

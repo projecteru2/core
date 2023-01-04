@@ -57,7 +57,7 @@ func (p Plugin) GetMetrics(ctx context.Context, podname, nodename string) (*plug
 		{
 			"name":   "memory_used",
 			"labels": []string{podname, nodename},
-			"value":  fmt.Sprintf("%+v", nodeResourceInfo.Capacity.Memory),
+			"value":  fmt.Sprintf("%+v", nodeResourceInfo.Usage.Memory),
 			"key":    fmt.Sprintf("core.node.%s.memory.used", safeNodename),
 		},
 		{

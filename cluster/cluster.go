@@ -50,7 +50,7 @@ type Cluster interface {
 	GetPod(ctx context.Context, podname string) (*types.Pod, error)
 	ListPods(ctx context.Context) ([]*types.Pod, error)
 	// pod resource
-	PodResource(ctx context.Context, podname string) (chan *types.NodeResource, error)
+	PodResource(ctx context.Context, podname string) (chan *types.NodeResourceInfo, error)
 	// meta node
 	AddNode(context.Context, *types.AddNodeOptions) (*types.Node, error)
 	RemoveNode(ctx context.Context, nodename string) error
@@ -62,7 +62,7 @@ type Cluster interface {
 	GetNodeStatus(ctx context.Context, nodename string) (*types.NodeStatus, error)
 	NodeStatusStream(ctx context.Context) chan *types.NodeStatus
 	// node resource
-	NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error)
+	NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResourceInfo, error)
 	// calculate capacity
 	CalculateCapacity(context.Context, *types.DeployOptions) (*types.CapacityMessage, error)
 	// meta workloads

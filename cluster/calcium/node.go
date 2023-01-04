@@ -20,8 +20,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 		logger.Error(ctx, err)
 		return nil, err
 	}
-	var resourceCapacity map[string]types.NodeResourceArgs
-	var resourceUsage map[string]types.NodeResourceArgs
+	var resourceCapacity map[string]*types.RawNodeResource
 	var node *types.Node
 	var err error
 
@@ -40,7 +39,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 		ctx,
 		// if: add node resource with resource plugins
 		func(ctx context.Context) error {
-			resourceCapacity, resourceUsage, err = c.rmgr.AddNode(ctx, opts.Nodename, opts.ResourceOpts, nodeInfo)
+			resourceCapacity, err = c.rmgr2.AddNode(ctx, opts.Nodename, opts.ResourceOptions, nodeInfo)
 			return err
 		},
 		// then: add node meta in store
@@ -50,7 +49,6 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 				return err
 			}
 			node.Resource.Capacity = resourceCapacity
-			node.Resource.Usage = resourceUsage
 			_ = c.pool.Invoke(func() { c.doSendNodeMetrics(ctx, node) })
 			return nil
 		},
@@ -214,7 +212,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 			n.Labels = opts.Labels
 		}
 
-		var originNodeResourceCapacity map[string]types.NodeResourceArgs
+		var originNodeResourceCapacity map[string]*types.NodeResourceSettings
 		return utils.Txn(ctx,
 			// if: update node resource capacity success
 			func(ctx context.Context) error {

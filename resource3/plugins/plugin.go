@@ -4,10 +4,7 @@ import (
 	"context"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/resource3/plugins/binary"
-	"github.com/projecteru2/core/resource3/plugins/cpumem"
 	plugintypes "github.com/projecteru2/core/resource3/plugins/types"
-	"github.com/projecteru2/core/types"
 )
 
 const (
@@ -73,11 +70,4 @@ type Plugin interface {
 
 	// Name returns the name of plugin
 	Name() string
-}
-
-func _() {
-	b, _ := binary.NewPlugin(context.TODO(), "", types.Config{})
-	c, _ := cpumem.NewPlugin(context.TODO(), types.Config{})
-	_ = Plugin(b)
-	_ = Plugin(c)
 }

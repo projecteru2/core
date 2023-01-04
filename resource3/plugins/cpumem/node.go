@@ -58,12 +58,6 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource *pluginty
 			NUMAMemory: req.NUMAMemory,
 			NUMA:       req.NUMA,
 		},
-		Usage: &cpumemtypes.NodeResource{
-			CPU:        0,
-			CPUMap:     cpumemtypes.CPUMap{},
-			Memory:     0,
-			NUMAMemory: cpumemtypes.NUMAMemory{},
-		},
 	}
 
 	// if NUMA is set but NUMAMemory is not set
@@ -74,14 +68,6 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource *pluginty
 		for _, ID := range req.NUMA {
 			nodeResourceInfo.Capacity.NUMAMemory[ID] = averageMemory
 		}
-	}
-
-	for cpu := range req.CPUMap {
-		nodeResourceInfo.Usage.CPUMap[cpu] = 0
-	}
-
-	for ID := range req.NUMA {
-		nodeResourceInfo.Usage.NUMAMemory[ID] = 0
 	}
 
 	if err = p.doSetNodeResourceInfo(ctx, nodename, nodeResourceInfo); err != nil {
@@ -116,7 +102,7 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 		logger.Errorf(ctx, err, "invalid resource opts %+v", req)
 	}
 
-	nodesDeployCapacityMap := map[string]*cpumemtypes.NodeDeployCapacity{}
+	nodesDeployCapacityMap := map[string]*plugintypes.NodeDeployCapacity{}
 	total := 0
 	for _, nodename := range nodenames {
 		nodeResourceInfo, err := p.doGetNodeResourceInfo(ctx, nodename)
@@ -168,11 +154,11 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 		return nil, err
 	}
 
-	origin := nodeResourceInfo.Capacity.DeepCopy()
 	if !delta && req != nil {
 		req.LoadFromNodeResource(nodeResourceInfo.Capacity, resourceRequest)
 	}
 
+	before := nodeResourceInfo.Capacity.DeepCopy()
 	nodeResourceInfo.Capacity = p.calculateNodeResource(req, nodeResource, nodeResourceInfo.Capacity, nil, delta, incr)
 
 	// add new cpu
@@ -192,8 +178,8 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 
 	resp := &plugintypes.SetNodeResourceCapacityResponse{}
 	return resp, mapstructure.Decode(map[string]interface{}{
-		"Origin": origin,
-		"Target": nodeResourceInfo.Capacity,
+		"before": before,
+		"after":  nodeResourceInfo.Capacity,
 	}, resp)
 }
 
@@ -264,7 +250,7 @@ func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resou
 	}
 
 	before := nodeResourceInfo.Usage.DeepCopy()
-	nodeResourceInfo.Usage = p.calculateNodeResource(req, nodeResource, nodeResourceInfo.Capacity, wrksResource, delta, incr)
+	nodeResourceInfo.Usage = p.calculateNodeResource(req, nodeResource, nodeResourceInfo.Usage, wrksResource, delta, incr)
 
 	if err := p.doSetNodeResourceInfo(ctx, nodename, nodeResourceInfo); err != nil {
 		return nil, err
@@ -334,7 +320,7 @@ func (p Plugin) FixNodeResource(ctx context.Context, nodename string, workloadsR
 }
 
 func (p Plugin) getNodeResourceInfo(ctx context.Context, nodename string, workloadsResource []*plugintypes.WorkloadResource) (*cpumemtypes.NodeResourceInfo, *cpumemtypes.WorkloadResource, []string, error) {
-	logger := log.WithFunc("resource.cpumem.GetNodeResourceInfo").WithField("node", nodename)
+	logger := log.WithFunc("resource.cpumem.getNodeResourceInfo").WithField("node", nodename)
 	nodeResourceInfo, err := p.doGetNodeResourceInfo(ctx, nodename)
 	if err != nil {
 		logger.Error(ctx, err)
@@ -401,13 +387,12 @@ func (p Plugin) doSetNodeResourceInfo(ctx context.Context, nodename string, reso
 	return err
 }
 
-func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *cpumemtypes.NodeResourceInfo, req *cpumemtypes.WorkloadResourceRequest) *cpumemtypes.NodeDeployCapacity {
+func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *cpumemtypes.NodeResourceInfo, req *cpumemtypes.WorkloadResourceRequest) *plugintypes.NodeDeployCapacity {
 	availableResource := nodeResourceInfo.GetAvailableResource()
 
-	capacityInfo := &cpumemtypes.NodeDeployCapacity{
+	capacityInfo := &plugintypes.NodeDeployCapacity{
 		Weight: 1, // TODO why 1?
 	}
-
 	// if cpu-bind is not required, then returns capacity by memory
 	if !req.CPUBind {
 		// check if cpu is enough
@@ -432,17 +417,17 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *cpumemtypes.NodeResour
 	capacityInfo.Capacity = len(cpuPlans)
 	capacityInfo.Usage = utils.AdvancedDivide(nodeResourceInfo.Usage.CPU, nodeResourceInfo.Capacity.CPU)
 	capacityInfo.Rate = utils.AdvancedDivide(req.CPURequest, nodeResourceInfo.Capacity.CPU)
-	capacityInfo.Weight = 100 // TODO why 100?
+	capacityInfo.Weight = 100 // cpu-bind above all
 	return capacityInfo
 }
 
 // calculateNodeResource priority: node resource request > node resource > workload resource args list
-func (p Plugin) calculateNodeResource(req *cpumemtypes.NodeResourceRequest, nodeResource *cpumemtypes.NodeResource, nodeCapacity *cpumemtypes.NodeResource, workloadsResource []*cpumemtypes.WorkloadResource, delta bool, incr bool) *cpumemtypes.NodeResource {
+func (p Plugin) calculateNodeResource(req *cpumemtypes.NodeResourceRequest, nodeResource *cpumemtypes.NodeResource, origin *cpumemtypes.NodeResource, workloadsResource []*cpumemtypes.WorkloadResource, delta bool, incr bool) *cpumemtypes.NodeResource {
 	var resp *cpumemtypes.NodeResource
-	if nodeCapacity == nil || !delta { // no delta means node resource rewrite with whole new data
+	if origin == nil || !delta { // no delta means node resource rewrite with whole new data
 		resp = &cpumemtypes.NodeResource{}
 	} else {
-		resp = nodeCapacity.DeepCopy()
+		resp = origin.DeepCopy()
 	}
 
 	if req != nil {

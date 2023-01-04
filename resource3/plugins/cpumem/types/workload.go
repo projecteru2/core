@@ -115,6 +115,7 @@ func (w *WorkloadResourceRequest) Validate() error {
 func (w *WorkloadResourceRequest) Parse(rawParams *coretypes.RawParams) (err error) {
 	w.KeepCPUBind = rawParams.Bool("keep-cpu-bind")
 	w.CPUBind = rawParams.Bool("cpu-bind")
+
 	w.CPURequest = rawParams.Float64("cpu-request")
 	w.CPULimit = rawParams.Float64("cpu-limit")
 	// check if cpu shortcut is set
@@ -122,6 +123,7 @@ func (w *WorkloadResourceRequest) Parse(rawParams *coretypes.RawParams) (err err
 		w.CPURequest = cpu
 		w.CPULimit = cpu
 	}
+
 	if w.MemRequest, err = coreutils.ParseRAMInHuman(rawParams.String("memory-request")); err != nil {
 		return err
 	}
@@ -140,15 +142,3 @@ func (w *WorkloadResourceRequest) Parse(rawParams *coretypes.RawParams) (err err
 
 	return nil
 }
-
-//// WorkloadResourceArgsMap .
-// type WorkloadResourceArgsMap map[string]*WorkloadResourceArgs
-//
-//// ParseFromRawParamsMap .
-// func (w *WorkloadResourceArgsMap) ParseFromRawParamsMap(rawParamsMap map[string]coretypes.RawParams) error {
-//	body, err := json.Marshal(rawParamsMap)
-//	if err != nil {
-//		return err
-//	}
-//	return json.Unmarshal(body, w)
-//}
