@@ -27,17 +27,17 @@ func (n NodeMeta) DeepCopy() (nn NodeMeta, err error) {
 
 // NodeResourceInfo for node resource info
 type NodeResourceInfo struct {
-	Name      string                  `json:"-"`
-	Capacity  map[string]NodeResource `json:"capacity,omitempty"`
-	Usage     map[string]NodeResource `json:"usage,omitempty"`
-	Diffs     []string                `json:"diffs,omitempty"`
-	Workloads []*Workload             `json:"-"`
+	Name      string      `json:"-"`
+	Capacity  Resources   `json:"capacity,omitempty"`
+	Usage     Resources   `json:"usage,omitempty"`
+	Diffs     []string    `json:"diffs,omitempty"`
+	Workloads []*Workload `json:"-"`
 }
 
 // Node store node info
 type Node struct {
 	NodeMeta
-	Resource NodeResourceInfo `jason:"resource,omitempty"`
+	Resource NodeResourceInfo `json:"resource,omitempty"`
 	NodeInfo string           `json:"-"`
 
 	// Bypass if bypass is true, it will not participate in future scheduling

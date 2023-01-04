@@ -1,7 +1,6 @@
 package types
 
 import (
-	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
 )
 
@@ -55,8 +54,8 @@ type SetNodeResourceInfoResponse struct{}
 
 // SetNodeResourceUsageResponse .
 type SetNodeResourceUsageResponse struct {
-	Before *types.NodeResource `json:"before" mapstructure:"before"`
-	After  *types.NodeResource `json:"after" mapstructure:"after"`
+	Before *NodeResource `json:"before" mapstructure:"before"`
+	After  *NodeResource `json:"after" mapstructure:"after"`
 }
 
 // GetMostIdleNodeResponse .

@@ -5,9 +5,6 @@ import (
 	"strconv"
 )
 
-// ResourceMeta for messages and workload to store
-type ResourceMeta map[string]WorkloadResource
-
 // RawParams .
 type RawParams map[string]interface{}
 
@@ -83,7 +80,9 @@ func (r RawParams) OneOfStringSlice(keys ...string) []string {
 
 // Bool .
 func (r RawParams) Bool(key string) bool {
-	return r.IsSet(key)
+	s := r.IsSet(key)
+	b, ok := r[key].(bool)
+	return (!ok && s) || (ok && s && b)
 }
 
 // RawParams .
@@ -96,17 +95,5 @@ func (r RawParams) RawParams(key string) map[string]interface{} {
 	return map[string]interface{}{}
 }
 
-// NodeResourceOpts .
-type NodeResourceOpts RawParams
-
-// NodeResourceArgs .
-type NodeResourceArgs RawParams
-
-// WorkloadResourceOpts .
-type WorkloadResourceOpts RawParams
-
-// WorkloadResourceArgs .
-type WorkloadResourceArgs RawParams
-
-// EngineArgs .
-type EngineArgs RawParams
+// Resources all cosmos use this
+type Resources map[string]*RawParams

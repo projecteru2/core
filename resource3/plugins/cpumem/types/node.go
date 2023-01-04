@@ -118,12 +118,16 @@ func (n *NodeResourceInfo) Validate() error {
 			CPUMap:     CPUMap{},
 			Memory:     0,
 			NUMAMemory: NUMAMemory{},
+			NUMA:       NUMA{},
 		}
 		for cpuID := range n.Capacity.CPUMap {
 			n.Usage.CPUMap[cpuID] = 0
 		}
 		for numaNodeID := range n.Capacity.NUMAMemory {
 			n.Usage.NUMAMemory[numaNodeID] = 0
+		}
+		for cpuID, numaNodeID := range n.Capacity.NUMA {
+			n.Usage.NUMA[cpuID] = numaNodeID
 		}
 	}
 	if len(n.Capacity.CPUMap) == 0 {
@@ -139,17 +143,17 @@ func (n *NodeResourceInfo) Validate() error {
 	if len(n.Capacity.NUMA) > 0 {
 		for cpu := range n.Capacity.CPUMap {
 			if numaNodeID, ok := n.Capacity.NUMA[cpu]; !ok {
-				return ErrInvalidNUMA
+				return ErrInvalidNUMACPU
 			} else if _, ok = n.Capacity.NUMAMemory[numaNodeID]; !ok {
 				return ErrInvalidNUMAMemory
 			}
 		}
 
-		for numaNodeID, totalMemory := range n.Capacity.NUMAMemory {
-			if totalMemory < 0 {
+		for numaNodeID, nodeMemory := range n.Capacity.NUMAMemory {
+			if nodeMemory < 0 {
 				return ErrInvalidNUMAMemory
 			}
-			if memoryUsed := n.Usage.NUMAMemory[numaNodeID]; memoryUsed < 0 || memoryUsed > totalMemory {
+			if memoryUsed := n.Usage.NUMAMemory[numaNodeID]; memoryUsed < 0 || memoryUsed > nodeMemory {
 				return ErrInvalidNUMAMemory
 			}
 		}
@@ -250,12 +254,4 @@ func (n *NodeResourceRequest) LoadFromNodeResource(nodeResource *NodeResource, r
 	if !rawParams.IsSet("numa-memory") {
 		n.NUMAMemory = nodeResource.NUMAMemory
 	}
-}
-
-// NodeDeployCapacity .
-type NodeDeployCapacity struct {
-	Capacity int     `json:"capacity"`
-	Usage    float64 `json:"usage"`
-	Rate     float64 `json:"rate"`
-	Weight   int     `json:"weight"`
 }
