@@ -198,7 +198,7 @@ func (p Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, worklo
 }
 
 // SetNodeResourceInfo .
-func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capacity *plugintypes.NodeResourceRequest, usage *plugintypes.NodeResourceRequest) (*plugintypes.SetNodeResourceInfoResponse, error) {
+func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capacity *plugintypes.NodeResource, usage *plugintypes.NodeResource) (*plugintypes.SetNodeResourceInfoResponse, error) {
 	capacityResource := &cpumemtypes.NodeResource{}
 	usageResource := &cpumemtypes.NodeResource{}
 	if err := capacityResource.Parse(capacity); err != nil {
