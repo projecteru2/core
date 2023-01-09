@@ -61,6 +61,7 @@ func (w *WorkloadResource) Add(w1 *WorkloadResource) {
 // Sub .
 func (w *WorkloadResource) Sub(w1 *WorkloadResource) {
 	w.CPURequest = coreutils.Round(w.CPURequest - w1.CPURequest)
+	w.CPULimit = coreutils.Round(w.CPULimit - w1.CPULimit)
 	w.MemoryRequest -= w1.MemoryRequest
 	w.CPUMap.Sub(w1.CPUMap)
 	if w.NUMAMemory == nil {
