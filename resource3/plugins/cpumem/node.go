@@ -19,6 +19,8 @@ import (
 	"github.com/sanity-io/litter"
 )
 
+const priority = 100
+
 // AddNode .
 func (p Plugin) AddNode(ctx context.Context, nodename string, resource *plugintypes.NodeResourceRequest, info *enginetypes.Info) (*plugintypes.AddNodeResponse, error) {
 	// try to get the node resource
@@ -223,14 +225,13 @@ func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resou
 
 // GetMostIdleNode .
 func (p Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plugintypes.GetMostIdleNodeResponse, error) {
-	const priority = 100
 	var mostIdleNode string
 	var minIdle = math.MaxFloat64
 
 	for _, nodename := range nodenames {
 		resourceInfo, err := p.doGetNodeResourceInfo(ctx, nodename)
 		if err != nil {
-			log.WithFunc("resource.cpumem.GetMostIdleNode").Error(ctx, err, "failed to get node resource info")
+			log.WithFunc("resource.cpumem.GetMostIdleNode").WithField("node", nodename).Error(ctx, err)
 			return nil, err
 		}
 		idle := float64(resourceInfo.Usage.CPUMap.TotalPieces()) / float64(resourceInfo.Capacity.CPUMap.TotalPieces())
