@@ -385,6 +385,10 @@ func (p Plugin) calculateNodeResource(req *cpumemtypes.NodeResourceRequest, node
 	var resp *cpumemtypes.NodeResource
 	if origin == nil || !delta { // no delta means node resource rewrite with whole new data
 		resp = (&cpumemtypes.NodeResource{}).DeepCopy() // init nil pointer!
+		// 这个接口最诡异的在于，如果 delta 为 false，意味着是全量写入
+		// 但这时候 incr 为 false 的话
+		// 实际上是 set 进了负值，所以这里 incr 应该强制为 true
+		incr = true
 	} else {
 		resp = origin.DeepCopy()
 	}
