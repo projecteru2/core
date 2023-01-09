@@ -51,7 +51,7 @@ type Plugin interface {
 	// SetNodeResourceInfo sets both total node resource info and allocated resource info
 	// used for rollback of RemoveNode
 	// notice: here uses absolute values, not delta values
-	SetNodeResourceInfo(ctx context.Context, nodename string, capacity *plugintypes.NodeResourceRequest, usage *plugintypes.NodeResourceRequest) (*plugintypes.SetNodeResourceInfoResponse, error)
+	SetNodeResourceInfo(ctx context.Context, nodename string, capacity *plugintypes.NodeResource, usage *plugintypes.NodeResource) (*plugintypes.SetNodeResourceInfoResponse, error)
 
 	// SetNodeResourceUsage sets the amount of allocated resource info
 	SetNodeResourceUsage(ctx context.Context, nodename string, resource *plugintypes.NodeResource, resourceRequest *plugintypes.NodeResourceRequest, workloadsResource []*plugintypes.WorkloadResource, delta bool, incr bool) (*plugintypes.SetNodeResourceUsageResponse, error)
