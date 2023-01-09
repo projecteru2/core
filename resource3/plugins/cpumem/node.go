@@ -163,8 +163,7 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 
 	// add new cpu
 	for cpu := range nodeResourceInfo.Capacity.CPUMap {
-		_, ok := nodeResourceInfo.Usage.CPUMap[cpu]
-		if !ok {
+		if _, ok := nodeResourceInfo.Usage.CPUMap[cpu]; !ok {
 			nodeResourceInfo.Usage.CPUMap[cpu] = 0
 		}
 	}
@@ -345,13 +344,13 @@ func (p Plugin) getNodeResourceInfo(ctx context.Context, nodename string, worklo
 		diffs = append(diffs, fmt.Sprintf("node.CPUUsed != sum(workload.CPURequest): %.2f != %.2f", totalCPUUsage, actuallyWorkloadsUsage.CPURequest))
 	}
 
-	for cpu := range nodeResourceInfo.Capacity.CPUMap {
+	for cpu := range nodeResourceInfo.Usage.CPUMap {
 		if actuallyWorkloadsUsage.CPUMap[cpu] != nodeResourceInfo.Usage.CPUMap[cpu] {
 			diffs = append(diffs, fmt.Sprintf("node.CPUMap[%+v] != sum(workload.CPUMap[%+v]): %+v != %+v", cpu, cpu, nodeResourceInfo.Usage.CPUMap[cpu], actuallyWorkloadsUsage.CPUMap[cpu]))
 		}
 	}
 
-	for numaNodeID := range nodeResourceInfo.Capacity.NUMAMemory {
+	for numaNodeID := range nodeResourceInfo.Usage.NUMAMemory {
 		if actuallyWorkloadsUsage.NUMAMemory[numaNodeID] != nodeResourceInfo.Usage.NUMAMemory[numaNodeID] {
 			diffs = append(diffs, fmt.Sprintf("node.NUMAMemory[%+v] != sum(workload.NUMAMemory[%+v]: %+v != %+v)", numaNodeID, numaNodeID, nodeResourceInfo.Usage.NUMAMemory[numaNodeID], actuallyWorkloadsUsage.NUMAMemory[numaNodeID]))
 		}
@@ -425,7 +424,7 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *cpumemtypes.NodeResour
 func (p Plugin) calculateNodeResource(req *cpumemtypes.NodeResourceRequest, nodeResource *cpumemtypes.NodeResource, origin *cpumemtypes.NodeResource, workloadsResource []*cpumemtypes.WorkloadResource, delta bool, incr bool) *cpumemtypes.NodeResource {
 	var resp *cpumemtypes.NodeResource
 	if origin == nil || !delta { // no delta means node resource rewrite with whole new data
-		resp = &cpumemtypes.NodeResource{}
+		resp = (&cpumemtypes.NodeResource{}).DeepCopy() // init nil pointer!
 	} else {
 		resp = origin.DeepCopy()
 	}

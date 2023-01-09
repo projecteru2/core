@@ -4,11 +4,7 @@ import (
 	"context"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/resource3/plugins/binary"
-	"github.com/projecteru2/core/resource3/plugins/cpumem"
-	"github.com/projecteru2/core/resource3/plugins/storage"
 	plugintypes "github.com/projecteru2/core/resource3/plugins/types"
-	"github.com/projecteru2/core/types"
 )
 
 const (
@@ -74,14 +70,4 @@ type Plugin interface {
 
 	// Name returns the name of plugin
 	Name() string
-}
-
-func _() {
-	ctx := context.TODO()
-	b, _ := binary.NewPlugin(ctx, "", types.Config{})
-	c, _ := cpumem.NewPlugin(ctx, types.Config{})
-	s, _ := storage.NewPlugin(ctx, types.Config{})
-	_ = Plugin(b)
-	_ = Plugin(c)
-	_ = Plugin(s)
 }

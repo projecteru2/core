@@ -12,11 +12,11 @@ import (
 
 // NodeResource indicate node cpumem resource
 type NodeResource struct {
-	CPU        float64    `json:"cpu"`
-	CPUMap     CPUMap     `json:"cpu_map"`
-	Memory     int64      `json:"memory"`
-	NUMAMemory NUMAMemory `json:"numa_memory"`
-	NUMA       NUMA       `json:"numa"`
+	CPU        float64    `json:"cpu" mapstructure:"cpu"`
+	CPUMap     CPUMap     `json:"cpu_map" mapstructure:"cpu_map"`
+	Memory     int64      `json:"memory" mapstructure:"memory"`
+	NUMAMemory NUMAMemory `json:"numa_memory" mapstructure:"numa_memory"`
+	NUMA       NUMA       `json:"numa" mapstructure:"numa"`
 }
 
 // Parse .
@@ -88,21 +88,15 @@ func (n *NodeResourceInfo) DeepCopy() *NodeResourceInfo {
 
 // RemoveEmptyCores .
 func (n *NodeResourceInfo) RemoveEmptyCores() {
-	keysToDelete := []string{}
 	for cpu := range n.Capacity.CPUMap {
 		if n.Capacity.CPUMap[cpu] == 0 && n.Usage.CPUMap[cpu] == 0 {
-			keysToDelete = append(keysToDelete, cpu)
+			delete(n.Capacity.CPUMap, cpu)
 		}
 	}
 	for cpu := range n.Usage.CPUMap {
 		if n.Capacity.CPUMap[cpu] == 0 && n.Usage.CPUMap[cpu] == 0 {
-			keysToDelete = append(keysToDelete, cpu)
+			delete(n.Usage.CPUMap, cpu)
 		}
-	}
-
-	for _, cpu := range keysToDelete {
-		delete(n.Capacity.CPUMap, cpu)
-		delete(n.Usage.CPUMap, cpu)
 	}
 
 	n.Capacity.CPU = float64(len(n.Capacity.CPUMap))
