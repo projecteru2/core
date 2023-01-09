@@ -232,7 +232,7 @@ func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams *coretype
 	return nil
 }
 
-func (n *NodeResourceRequest) LoadFromNodeResource(nodeResource *NodeResource, rawParams *coretypes.RawParams) {
+func (n *NodeResourceRequest) LoadFromOrigin(nodeResource *NodeResource, rawParams *coretypes.RawParams) {
 	if n == nil {
 		return
 	}

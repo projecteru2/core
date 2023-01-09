@@ -130,36 +130,18 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 
 // SetNodeResourceCapacity sets the amount of total resource info
 func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, resource *plugintypes.NodeResource, resourceRequest *plugintypes.NodeResourceRequest, delta bool, incr bool) (*plugintypes.SetNodeResourceCapacityResponse, error) {
-	var req *cpumemtypes.NodeResourceRequest
-	var nodeResource *cpumemtypes.NodeResource
 	logger := log.WithFunc("resource.cpumem.SetNodeResourceCapacity").WithField("node", "nodename")
-
-	if resourceRequest != nil {
-		req = &cpumemtypes.NodeResourceRequest{}
-		if err := req.Parse(p.config, resourceRequest); err != nil {
-			return nil, err
-		}
-	}
-
-	if resource != nil {
-		nodeResource = &cpumemtypes.NodeResource{}
-		if err := nodeResource.Parse(resource); err != nil {
-			return nil, err
-		}
-	}
-
-	nodeResourceInfo, err := p.doGetNodeResourceInfo(ctx, nodename)
+	req, nodeResource, _, nodeResourceInfo, err := p.parseNodeResourceInfos(ctx, nodename, resource, resourceRequest, nil)
 	if err != nil {
-		logger.Error(ctx, err)
 		return nil, err
 	}
+	origin := nodeResourceInfo.Capacity
+	before := origin.DeepCopy()
 
 	if !delta && req != nil {
-		req.LoadFromNodeResource(nodeResourceInfo.Capacity, resourceRequest)
+		req.LoadFromOrigin(origin, resourceRequest)
 	}
-
-	before := nodeResourceInfo.Capacity.DeepCopy()
-	nodeResourceInfo.Capacity = p.calculateNodeResource(req, nodeResource, nodeResourceInfo.Capacity, nil, delta, incr)
+	nodeResourceInfo.Capacity = p.calculateNodeResource(req, nodeResource, origin, nil, delta, incr)
 
 	// add new cpu
 	for cpu := range nodeResourceInfo.Capacity.CPUMap {
@@ -217,41 +199,18 @@ func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capaci
 
 // SetNodeResourceUsage .
 func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resource *plugintypes.NodeResource, resourceRequest *plugintypes.NodeResourceRequest, workloadsResource []*plugintypes.WorkloadResource, delta bool, incr bool) (*plugintypes.SetNodeResourceUsageResponse, error) {
-	var req *cpumemtypes.NodeResourceRequest
-	var nodeResource *cpumemtypes.NodeResource
-
-	if resourceRequest != nil {
-		req = &cpumemtypes.NodeResourceRequest{}
-		if err := req.Parse(p.config, resourceRequest); err != nil {
-			return nil, err
-		}
-	}
-
-	if resource != nil {
-		nodeResource = &cpumemtypes.NodeResource{}
-		if err := nodeResource.Parse(resource); err != nil {
-			return nil, err
-		}
-	}
-
-	wrksResource := []*cpumemtypes.WorkloadResource{}
-	for _, workloadResource := range workloadsResource {
-		wrkResource := &cpumemtypes.WorkloadResource{}
-		if err := wrkResource.Parse(workloadResource); err != nil {
-			return nil, err
-		}
-	}
-
-	nodeResourceInfo, err := p.doGetNodeResourceInfo(ctx, nodename)
+	logger := log.WithFunc("resource.cpumem.SetNodeResourceUsage").WithField("node", "nodename")
+	req, nodeResource, wrksResource, nodeResourceInfo, err := p.parseNodeResourceInfos(ctx, nodename, resource, resourceRequest, workloadsResource)
 	if err != nil {
-		log.WithFunc("resource.cpumem.SetNodeResourceUsage").WithField("node", nodename).Error(ctx, err)
 		return nil, err
 	}
+	origin := nodeResourceInfo.Usage
+	before := origin.DeepCopy()
 
-	before := nodeResourceInfo.Usage.DeepCopy()
-	nodeResourceInfo.Usage = p.calculateNodeResource(req, nodeResource, nodeResourceInfo.Usage, wrksResource, delta, incr)
+	nodeResourceInfo.Usage = p.calculateNodeResource(req, nodeResource, origin, wrksResource, delta, incr)
 
 	if err := p.doSetNodeResourceInfo(ctx, nodename, nodeResourceInfo); err != nil {
+		logger.Errorf(ctx, err, "node resource info %+v", litter.Sdump(nodeResourceInfo))
 		return nil, err
 	}
 
@@ -462,4 +421,49 @@ func (p Plugin) calculateNodeResource(req *cpumemtypes.NodeResourceRequest, node
 		}
 	}
 	return resp
+}
+
+func (p Plugin) parseNodeResourceInfos(
+	ctx context.Context, nodename string,
+	resource *plugintypes.NodeResource,
+	resourceRequest *plugintypes.NodeResourceRequest,
+	workloadsResource []*plugintypes.WorkloadResource,
+) (
+	*cpumemtypes.NodeResourceRequest,
+	*cpumemtypes.NodeResource,
+	[]*cpumemtypes.WorkloadResource,
+	*cpumemtypes.NodeResourceInfo,
+	error,
+) {
+	var req *cpumemtypes.NodeResourceRequest
+	var nodeResource *cpumemtypes.NodeResource
+	wrksResource := []*cpumemtypes.WorkloadResource{}
+
+	if resourceRequest != nil {
+		req = &cpumemtypes.NodeResourceRequest{}
+		if err := req.Parse(p.config, resourceRequest); err != nil {
+			return nil, nil, nil, nil, err
+		}
+	}
+
+	if resource != nil {
+		nodeResource = &cpumemtypes.NodeResource{}
+		if err := nodeResource.Parse(resource); err != nil {
+			return nil, nil, nil, nil, err
+		}
+	}
+
+	for _, workloadResource := range workloadsResource {
+		wrkResource := &cpumemtypes.WorkloadResource{}
+		if err := wrkResource.Parse(workloadResource); err != nil {
+			return nil, nil, nil, nil, err
+		}
+		wrksResource = append(wrksResource, wrkResource)
+	}
+
+	nodeResourceInfo, err := p.doGetNodeResourceInfo(ctx, nodename)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	return req, nodeResource, wrksResource, nodeResourceInfo, nil
 }
