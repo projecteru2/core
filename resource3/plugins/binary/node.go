@@ -29,7 +29,7 @@ func (p Plugin) RemoveNode(ctx context.Context, nodename string) (*plugintypes.R
 }
 
 // GetNodesDeployCapacity .
-func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, resource *plugintypes.WorkloadResource) (*plugintypes.GetNodesDeployCapacityResponse, error) {
+func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, resource *plugintypes.WorkloadResourceRequest) (*plugintypes.GetNodesDeployCapacityResponse, error) {
 	req := &binarytypes.GetNodesDeployCapacityRequest{
 		Nodenames:        nodenames,
 		WorkloadResource: resource,

@@ -10,7 +10,6 @@ import (
 	"github.com/projecteru2/core/resource3"
 	"github.com/projecteru2/core/resource3/cobalt"
 	plugintypes "github.com/projecteru2/core/resource3/plugins/types"
-	"github.com/projecteru2/core/resources"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 
@@ -131,7 +130,7 @@ var Client = Metrics{}
 var once sync.Once
 
 // InitMetrics new a metrics obj
-func InitMetrics(config types.Config, metricsDescriptions []*resources.MetricsDescription) error {
+func InitMetrics(config types.Config, metricsDescriptions []*plugintypes.MetricsDescription) error {
 	hostname, err := os.Hostname()
 	if err != nil {
 		return err
