@@ -31,7 +31,7 @@ func New(config types.Config) (*Manager, error) {
 func (m *Manager) LoadPlugins(ctx context.Context) error {
 	logger := log.WithFunc("resource.cobalt.LoadPlugins")
 	// Load internal
-	cm, err := cpumem.NewPlugin(ctx, m.config)
+	cm, err := cpumem.NewPlugin(ctx, m.config, nil)
 	if err != nil {
 		return err
 	}
