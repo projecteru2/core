@@ -157,7 +157,7 @@ func (p Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsRe
 
 	nodeResourceInfo, err := p.doGetNodeResourceInfo(ctx, nodename)
 	if err != nil {
-		log.WithFunc("resource.cpumem.CalculateRemap").WithField("node", nodename).Error(ctx, err, "failed to get resource info of node")
+		log.WithFunc("resource.cpumem.CalculateRemap").WithField("node", nodename).Error(ctx, err)
 		return nil, err
 	}
 
