@@ -25,7 +25,7 @@ func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCoun
 
 	nodeResourceInfo, err := p.doGetNodeResourceInfo(ctx, nodename)
 	if err != nil {
-		logger.Error(ctx, err, "failed to get resource info of node")
+		logger.WithField("node", nodename).Error(ctx, err)
 		return nil, err
 	}
 
