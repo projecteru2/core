@@ -9,13 +9,13 @@ import (
 
 // WorkloadResource indicate cpumem workload resource
 type WorkloadResource struct {
-	CPURequest    float64    `json:"cpu_request"`
-	CPULimit      float64    `json:"cpu_limit"`
-	MemoryRequest int64      `json:"memory_request"`
-	MemoryLimit   int64      `json:"memory_limit"`
-	CPUMap        CPUMap     `json:"cpu_map"`
-	NUMAMemory    NUMAMemory `json:"numa_memory"`
-	NUMANode      string     `json:"numa_node"`
+	CPURequest    float64    `json:"cpu_request" mapstructure:"cpu_request"`
+	CPULimit      float64    `json:"cpu_limit" mapstructure:"cpu_limit"`
+	MemoryRequest int64      `json:"memory_request" mapstructure:"memory_request"`
+	MemoryLimit   int64      `json:"memory_limit" mapstructure:"memory_limit"`
+	CPUMap        CPUMap     `json:"cpu_map" mapstructure:"cpu_map"`
+	NUMAMemory    NUMAMemory `json:"numa_memory" mapstructure:"numa_memory"`
+	NUMANode      string     `json:"numa_node" mapstructure:"numa_node"`
 }
 
 // ParseFromRawParams .

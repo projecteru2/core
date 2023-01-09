@@ -65,7 +65,7 @@ func (p Plugin) RemoveNode(ctx context.Context, nodename string) (*plugintypes.R
 	return &plugintypes.RemoveNodeResponse{}, nil
 }
 
-func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, resource *plugintypes.WorkloadResource) (*plugintypes.GetNodesDeployCapacityResponse, error) {
+func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, resource *plugintypes.WorkloadResourceRequest) (*plugintypes.GetNodesDeployCapacityResponse, error) {
 	logger := log.WithFunc("resource.storage.GetNodesDeployCapacity")
 	req := &storagetypes.WorkloadResourceRequest{}
 	if err := req.Parse(resource); err != nil {

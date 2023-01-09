@@ -91,7 +91,7 @@ func (p Plugin) RemoveNode(ctx context.Context, nodename string) (*plugintypes.R
 }
 
 // GetNodesDeployCapacity returns available nodes and total capacity
-func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, resource *plugintypes.WorkloadResource) (*plugintypes.GetNodesDeployCapacityResponse, error) {
+func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, resource *plugintypes.WorkloadResourceRequest) (*plugintypes.GetNodesDeployCapacityResponse, error) {
 	logger := log.WithFunc("resource.cpumem.GetNodesDeployCapacity")
 	req := &cpumemtypes.WorkloadResourceRequest{}
 	if err := req.Parse(resource); err != nil {

@@ -4,7 +4,11 @@ import (
 	"context"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/resource3/plugins/binary"
+	"github.com/projecteru2/core/resource3/plugins/cpumem"
+	"github.com/projecteru2/core/resource3/plugins/storage"
 	plugintypes "github.com/projecteru2/core/resource3/plugins/types"
+	"github.com/projecteru2/core/types"
 )
 
 const (
@@ -39,7 +43,7 @@ type Plugin interface {
 	RemoveNode(ctx context.Context, nodename string) (*plugintypes.RemoveNodeResponse, error)
 
 	// GetNodesDeployCapacity returns available nodes and total capacity
-	GetNodesDeployCapacity(ctx context.Context, nodenames []string, resource *plugintypes.WorkloadResource) (*plugintypes.GetNodesDeployCapacityResponse, error)
+	GetNodesDeployCapacity(ctx context.Context, nodenames []string, resource *plugintypes.WorkloadResourceRequest) (*plugintypes.GetNodesDeployCapacityResponse, error)
 
 	// SetNodeResourceCapacity sets the amount of total resource info
 	SetNodeResourceCapacity(ctx context.Context, nodename string, resource *plugintypes.NodeResource, resourceRequest *plugintypes.NodeResourceRequest, delta bool, incr bool) (*plugintypes.SetNodeResourceCapacityResponse, error)
@@ -70,4 +74,14 @@ type Plugin interface {
 
 	// Name returns the name of plugin
 	Name() string
+}
+
+func _() {
+	ctx := context.TODO()
+	b, _ := binary.NewPlugin(ctx, "", types.Config{})
+	c, _ := cpumem.NewPlugin(ctx, types.Config{})
+	s, _ := storage.NewPlugin(ctx, types.Config{})
+	_ = Plugin(b)
+	_ = Plugin(c)
+	_ = Plugin(s)
 }
