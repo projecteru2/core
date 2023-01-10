@@ -34,9 +34,9 @@ func initCPUMEM(ctx context.Context, t *testing.T) *Plugin {
 
 func generateNodes(
 	ctx context.Context, t *testing.T, cm *Plugin,
-	nums int, cores int, memory int64, shares int,
+	nums int, cores int, memory int64, shares, index int,
 ) []string {
-	reqs := generateNodeResourceRequests(t, nums, cores, memory, shares)
+	reqs := generateNodeResourceRequests(t, nums, cores, memory, shares, index)
 	info := &enginetypes.Info{NCPU: 8, MemTotal: 2048}
 	names := []string{}
 	for name, req := range reqs {
@@ -52,9 +52,9 @@ func generateNodes(
 	return names
 }
 
-func generateNodeResourceRequests(t *testing.T, nums int, cores int, memory int64, shares int) map[string]*plugintypes.NodeResourceRequest {
+func generateNodeResourceRequests(t *testing.T, nums int, cores int, memory int64, shares, index int) map[string]*plugintypes.NodeResourceRequest {
 	infos := map[string]*plugintypes.NodeResourceRequest{}
-	for i := 0; i < nums; i++ {
+	for i := index; i < index+nums; i++ {
 		info := &plugintypes.NodeResourceRequest{
 			"cpu":    cores,
 			"share":  shares,

@@ -16,7 +16,7 @@ import (
 func TestCalculateDeploy(t *testing.T) {
 	ctx := context.Background()
 	cm := initCPUMEM(ctx, t)
-	nodes := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100)
+	nodes := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100, 0)
 	node := nodes[0]
 
 	// invalid opts
@@ -127,7 +127,7 @@ func TestCalculateDeploy(t *testing.T) {
 func TestCalculateRealloc(t *testing.T) {
 	ctx := context.Background()
 	cm := initCPUMEM(ctx, t)
-	nodes := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100)
+	nodes := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100, 0)
 	node := nodes[0]
 
 	// numa node
@@ -209,7 +209,7 @@ func TestCalculateRealloc(t *testing.T) {
 func TestCalculateRemap(t *testing.T) {
 	ctx := context.Background()
 	cm := initCPUMEM(ctx, t)
-	nodes := generateNodes(ctx, t, cm, 1, 4, 4*units.GB, 100)
+	nodes := generateNodes(ctx, t, cm, 1, 4, 4*units.GB, 100, 0)
 	node := nodes[0]
 
 	resource := &plugintypes.NodeResource{

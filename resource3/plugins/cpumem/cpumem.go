@@ -13,6 +13,7 @@ const (
 	name                = "cpumem"
 	rate                = 8
 	nodeResourceInfoKey = "/resource/cpumem/%s"
+	priority            = 100
 )
 
 // Plugin
