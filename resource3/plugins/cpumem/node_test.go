@@ -2,11 +2,14 @@ package cpumem
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"testing"
 
 	"github.com/cockroachdb/errors"
 	"github.com/docker/go-units"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/resource3/plugins/cpumem/types"
 	plugintypes "github.com/projecteru2/core/resource3/plugins/types"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
@@ -115,7 +118,7 @@ func TestGetNodesDeployCapacityWithCPUBind(t *testing.T) {
 	assert.Equal(t, r.Total, 28)
 }
 
-func TestGetNodesDeployCapacityWithMemory(t *testing.T) {
+func TestGetNodesDeployCapacityWithMemoryAndCPUBind(t *testing.T) {
 	ctx := context.Background()
 	cm := initCPUMEM(ctx, t)
 	nodes := generateNodes(ctx, t, cm, 2, 2, 1024, 100, 0)
@@ -172,6 +175,56 @@ func TestGetNodesDeployCapacityWithMaxShareLimit(t *testing.T) {
 	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
 	assert.Nil(t, err)
 	assert.Equal(t, r.Total, 1)
+}
+
+func TestGetNodesDeployCapacityWithMemory(t *testing.T) {
+	ctx := context.Background()
+	cm := initCPUMEM(ctx, t)
+	cm.config.Scheduler.MaxShare = 2
+	nodes := generateNodes(ctx, t, cm, 2, 2, 4*units.GiB, 100, 0)
+
+	req := &plugintypes.WorkloadResourceRequest{
+		"memory-request": "-1",
+	}
+
+	// negative memory
+	_, err := cm.GetNodesDeployCapacity(ctx, nodes, req)
+	assert.True(t, errors.Is(err, types.ErrInvalidMemory))
+
+	// cpu + mem
+	req = &plugintypes.WorkloadResourceRequest{
+		"cpu-request":    1,
+		"memory-request": fmt.Sprintf("%v", 512*units.MB),
+	}
+
+	r, err := cm.GetNodesDeployCapacity(ctx, nodes, req)
+	assert.Nil(t, err)
+	assert.Equal(t, r.Total, 16)
+
+	// unlimited cpu
+	req = &plugintypes.WorkloadResourceRequest{
+		"memory-request": fmt.Sprintf("%v", 512*units.MB),
+	}
+	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
+	assert.Nil(t, err)
+	assert.Equal(t, r.Total, 16)
+
+	// insufficient cpu
+	req = &plugintypes.WorkloadResourceRequest{
+		"cpu-request":    3,
+		"memory-request": fmt.Sprintf("%v", 512*units.MB),
+	}
+	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
+	assert.Nil(t, err)
+	assert.Equal(t, r.Total, 0)
+
+	// mem_request == 0
+	req = &plugintypes.WorkloadResourceRequest{
+		"cpu-request": 1,
+	}
+	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
+	assert.Nil(t, err)
+	assert.Equal(t, r.Total, math.MaxInt)
 }
 
 func BenchmarkGetNodesCapacity(b *testing.B) {
