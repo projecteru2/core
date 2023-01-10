@@ -100,6 +100,7 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 
 	if err := req.Validate(); err != nil {
 		logger.Errorf(ctx, err, "invalid resource opts %+v", req)
+		return nil, err
 	}
 
 	nodesDeployCapacityMap := map[string]*plugintypes.NodeDeployCapacity{}
