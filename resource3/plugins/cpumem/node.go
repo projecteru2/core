@@ -7,7 +7,6 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/alphadose/haxmap"
 	"github.com/cockroachdb/errors"
 	"github.com/mitchellh/mapstructure"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -341,25 +340,15 @@ func (p Plugin) doGetNodesResourceInfo(ctx context.Context, nodenames []string) 
 		return nil, err
 	}
 
-	tmp := haxmap.New[string, *cpumemtypes.NodeResourceInfo]()
 	result := map[string]*cpumemtypes.NodeResourceInfo{}
 
 	for _, resp := range resps {
-		resp := resp
-		go func() {
-			r := &cpumemtypes.NodeResourceInfo{}
-			if err := json.Unmarshal(resp.Value, r); err != nil {
-				log.WithFunc("resource.cpumem.doGetNodesResourceInfo").Error(ctx, err)
-				return
-			}
-			nodename := utils.Tail(string(resp.Key))
-			tmp.Set(nodename, r)
-		}()
+		r := &cpumemtypes.NodeResourceInfo{}
+		if err := json.Unmarshal(resp.Value, r); err != nil {
+			return nil, err
+		}
+		result[utils.Tail(string(resp.Key))] = r
 	}
-	tmp.ForEach(func(k string, v *cpumemtypes.NodeResourceInfo) bool {
-		result[k] = v
-		return true
-	})
 	return result, nil
 }
 
