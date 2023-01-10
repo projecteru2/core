@@ -182,7 +182,7 @@ func (p Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsRe
 			engineParamsMap[ID] = &cpumemtypes.EngineParams{
 				CPU:      workloadResource.CPULimit,
 				CPUMap:   shareCPUMap,
-				NUMANode: "",
+				NUMANode: workloadResource.NUMANode,
 				Memory:   workloadResource.MemoryLimit,
 				Remap:    true,
 			}
