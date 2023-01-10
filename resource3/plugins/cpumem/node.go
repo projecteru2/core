@@ -219,7 +219,7 @@ func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resou
 	resp := &plugintypes.SetNodeResourceUsageResponse{}
 	return resp, mapstructure.Decode(map[string]interface{}{
 		"before": before,
-		"after":  nodeResourceInfo,
+		"after":  nodeResourceInfo.Usage,
 	}, resp)
 }
 
@@ -304,13 +304,13 @@ func (p Plugin) getNodeResourceInfo(ctx context.Context, nodename string, worklo
 		diffs = append(diffs, fmt.Sprintf("node.CPUUsed != sum(workload.CPURequest): %.2f != %.2f", totalCPUUsage, actuallyWorkloadsUsage.CPURequest))
 	}
 
-	for cpu := range nodeResourceInfo.Usage.CPUMap {
+	for cpu := range nodeResourceInfo.Capacity.CPUMap {
 		if actuallyWorkloadsUsage.CPUMap[cpu] != nodeResourceInfo.Usage.CPUMap[cpu] {
 			diffs = append(diffs, fmt.Sprintf("node.CPUMap[%+v] != sum(workload.CPUMap[%+v]): %+v != %+v", cpu, cpu, nodeResourceInfo.Usage.CPUMap[cpu], actuallyWorkloadsUsage.CPUMap[cpu]))
 		}
 	}
 
-	for numaNodeID := range nodeResourceInfo.Usage.NUMAMemory {
+	for numaNodeID := range nodeResourceInfo.Capacity.NUMAMemory {
 		if actuallyWorkloadsUsage.NUMAMemory[numaNodeID] != nodeResourceInfo.Usage.NUMAMemory[numaNodeID] {
 			diffs = append(diffs, fmt.Sprintf("node.NUMAMemory[%+v] != sum(workload.NUMAMemory[%+v]: %+v != %+v)", numaNodeID, numaNodeID, nodeResourceInfo.Usage.NUMAMemory[numaNodeID], actuallyWorkloadsUsage.NUMAMemory[numaNodeID]))
 		}
