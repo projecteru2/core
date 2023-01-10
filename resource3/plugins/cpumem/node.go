@@ -7,6 +7,7 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/alphadose/haxmap"
 	"github.com/cockroachdb/errors"
 	"github.com/mitchellh/mapstructure"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -18,8 +19,6 @@ import (
 	"github.com/projecteru2/core/utils"
 	"github.com/sanity-io/litter"
 )
-
-const priority = 100
 
 // AddNode .
 func (p Plugin) AddNode(ctx context.Context, nodename string, resource *plugintypes.NodeResourceRequest, info *enginetypes.Info) (*plugintypes.AddNodeResponse, error) {
@@ -64,7 +63,7 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource *pluginty
 
 	// if NUMA is set but NUMAMemory is not set
 	// then divide memory equally according to the number of numa nodes
-	if len(req.NUMA) > 0 && req.NUMAMemory == nil {
+	if len(req.NUMA) > 0 && (req.NUMAMemory == nil || len(req.NUMAMemory) == 0) {
 		averageMemory := req.Memory / int64(len(req.NUMA))
 		nodeResourceInfo.Capacity.NUMAMemory = cpumemtypes.NUMAMemory{}
 		for _, ID := range req.NUMA {
@@ -106,12 +105,13 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 
 	nodesDeployCapacityMap := map[string]*plugintypes.NodeDeployCapacity{}
 	total := 0
-	for _, nodename := range nodenames {
-		nodeResourceInfo, err := p.doGetNodeResourceInfo(ctx, nodename)
-		if err != nil {
-			logger.WithField("node", nodename).Error(ctx, err)
-			return nil, err
-		}
+
+	nodesResourceInfos, err := p.doGetNodesResourceInfo(ctx, nodenames)
+	if err != nil {
+		return nil, err
+	}
+
+	for nodename, nodeResourceInfo := range nodesResourceInfos {
 		nodeDeployCapacity := p.doGetNodeDeployCapacity(nodeResourceInfo, req)
 		if nodeDeployCapacity.Capacity > 0 {
 			nodesDeployCapacityMap[nodename] = nodeDeployCapacity
@@ -324,12 +324,43 @@ func (p Plugin) getNodeResourceInfo(ctx context.Context, nodename string, worklo
 }
 
 func (p Plugin) doGetNodeResourceInfo(ctx context.Context, nodename string) (*cpumemtypes.NodeResourceInfo, error) {
-	resourceInfo := &cpumemtypes.NodeResourceInfo{}
-	resp, err := p.store.GetOne(ctx, fmt.Sprintf(nodeResourceInfoKey, nodename))
+	resp, err := p.doGetNodesResourceInfo(ctx, []string{nodename})
 	if err != nil {
 		return nil, err
 	}
-	return resourceInfo, json.Unmarshal(resp.Value, resourceInfo)
+	return resp[nodename], err
+}
+
+func (p Plugin) doGetNodesResourceInfo(ctx context.Context, nodenames []string) (map[string]*cpumemtypes.NodeResourceInfo, error) {
+	keys := []string{}
+	for _, nodename := range nodenames {
+		keys = append(keys, fmt.Sprintf(nodeResourceInfoKey, nodename))
+	}
+	resps, err := p.store.GetMulti(ctx, keys)
+	if err != nil {
+		return nil, err
+	}
+
+	tmp := haxmap.New[string, *cpumemtypes.NodeResourceInfo]()
+	result := map[string]*cpumemtypes.NodeResourceInfo{}
+
+	for _, resp := range resps {
+		resp := resp
+		go func() {
+			r := &cpumemtypes.NodeResourceInfo{}
+			if err := json.Unmarshal(resp.Value, r); err != nil {
+				log.WithFunc("resource.cpumem.doGetNodesResourceInfo").Error(ctx, err)
+				return
+			}
+			nodename := utils.Tail(string(resp.Key))
+			tmp.Set(nodename, r)
+		}()
+	}
+	tmp.ForEach(func(k string, v *cpumemtypes.NodeResourceInfo) bool {
+		result[k] = v
+		return true
+	})
+	return result, nil
 }
 
 func (p Plugin) doSetNodeResourceInfo(ctx context.Context, nodename string, resourceInfo *cpumemtypes.NodeResourceInfo) error {
