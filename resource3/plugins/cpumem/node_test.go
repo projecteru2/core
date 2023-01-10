@@ -180,7 +180,6 @@ func TestGetNodesDeployCapacityWithMaxShareLimit(t *testing.T) {
 func TestGetNodesDeployCapacityWithMemory(t *testing.T) {
 	ctx := context.Background()
 	cm := initCPUMEM(ctx, t)
-	cm.config.Scheduler.MaxShare = 2
 	nodes := generateNodes(ctx, t, cm, 2, 2, 4*units.GiB, 100, 0)
 
 	req := &plugintypes.WorkloadResourceRequest{
@@ -225,6 +224,85 @@ func TestGetNodesDeployCapacityWithMemory(t *testing.T) {
 	r, err = cm.GetNodesDeployCapacity(ctx, nodes, req)
 	assert.Nil(t, err)
 	assert.Equal(t, r.Total, math.MaxInt)
+}
+
+func TestSetNodeResourceCapacity(t *testing.T) {
+	ctx := context.Background()
+	cm := initCPUMEM(ctx, t)
+	nodes := generateNodes(ctx, t, cm, 1, 2, 2*units.GB, 100, 0)
+	node := nodes[0]
+
+	_, err := cm.GetNodeResourceInfo(ctx, node, nil)
+	assert.Nil(t, err)
+
+	nodeResource := &plugintypes.NodeResource{
+		"cpu_map": map[string]int{
+			"2": 100,
+			"3": 100,
+		},
+		"numa_memory": types.NUMAMemory{
+			"0": units.GiB,
+			"1": units.GiB,
+		},
+		"numa": types.NUMA{
+			"0": "0",
+			"1": "0",
+			"2": "1",
+			"3": "1",
+		},
+	}
+
+	newNodeResource := &plugintypes.NodeResource{
+		"cpu_map": map[string]int{
+			"0": 100,
+			"1": 100,
+		},
+		"memory": 2 * units.GB,
+		"xxxx":   map[string]interface{}{"cpu": ""},
+	}
+
+	gb := fmt.Sprintf("%v", units.GB)
+	nodeResourceRequest := &plugintypes.NodeResourceRequest{
+		"cpu":         "2:100,3:100",
+		"numa-memory": []string{gb, gb},
+		"numa-cpu":    []string{"0,1", "2,3"},
+	}
+
+	noChangeRequest := &plugintypes.NodeResourceRequest{
+		"cpu":    "0:100,1:100,2:100,3:100",
+		"memory": fmt.Sprintf("%v", 2*units.GB),
+	}
+
+	r, err := cm.SetNodeResourceCapacity(ctx, node, nodeResource, nil, true, true)
+	assert.Nil(t, err)
+	assert.Len(t, (*r.After)["cpu_map"], 4)
+
+	r, err = cm.SetNodeResourceCapacity(ctx, node, nodeResource, nil, true, false)
+	assert.Nil(t, err)
+	assert.Len(t, (*r.After)["cpu_map"], 2)
+	assert.Len(t, (*r.After)["numa_memory"], 2)
+	assert.Len(t, (*r.After)["numa"], 4)
+
+	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nodeResourceRequest, true, true)
+	assert.Nil(t, err)
+	assert.Len(t, (*r.After)["cpu_map"], 4)
+	assert.Len(t, (*r.After)["numa_memory"], 2)
+	assert.Len(t, (*r.After)["numa"], 4)
+
+	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, nodeResourceRequest, true, false)
+	assert.Nil(t, err)
+	assert.Len(t, (*r.After)["cpu_map"], 2)
+	assert.Len(t, (*r.After)["numa_memory"], 2)
+	assert.Len(t, (*r.After)["numa"], 4)
+
+	r, err = cm.SetNodeResourceCapacity(ctx, node, nil, noChangeRequest, false, true)
+	assert.Nil(t, err)
+	assert.Len(t, (*r.After)["cpu_map"], 4)
+
+	r, err = cm.SetNodeResourceCapacity(ctx, node, newNodeResource, nil, false, false)
+	assert.Nil(t, err)
+	assert.Len(t, (*r.After)["cpu_map"], 2)
+	assert.Len(t, (*r.After)["numa"], 0)
 }
 
 func BenchmarkGetNodesCapacity(b *testing.B) {
