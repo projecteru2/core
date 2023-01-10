@@ -305,6 +305,151 @@ func TestSetNodeResourceCapacity(t *testing.T) {
 	assert.Len(t, (*r.After)["numa"], 0)
 }
 
+func TestGetAndFixNodeResourceInfo(t *testing.T) {
+	ctx := context.Background()
+	cm := initCPUMEM(ctx, t)
+	nodes := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100, 0)
+	node := nodes[0]
+
+	// invalid node
+	_, err := cm.GetNodeResourceInfo(ctx, "xxx", nil)
+	assert.True(t, errors.Is(err, coretypes.ErrInvaildCount))
+
+	r, err := cm.GetNodeResourceInfo(ctx, node, nil)
+	assert.Nil(t, err)
+	assert.Len(t, r.Diffs, 0)
+
+	(*r.Capacity)["numa"] = types.NUMA{"0": "0", "1": "1"}
+	(*r.Capacity)["numa_memory"] = types.NUMAMemory{"0": units.GB, "1": units.GB}
+
+	_, err = cm.SetNodeResourceInfo(ctx, node, r.Capacity, r.Usage)
+	assert.Nil(t, err)
+
+	workloadsResource := []*plugintypes.WorkloadResource{
+		{
+			"cpu_request":    2.0,
+			"cpu_map":        types.CPUMap{"0": 100, "1": 100},
+			"memory_request": 2 * units.GB,
+			"numa_memory":    types.NUMAMemory{"0": units.GB, "1": units.GB},
+		},
+	}
+	r, err = cm.GetNodeResourceInfo(ctx, node, workloadsResource)
+	assert.Nil(t, err)
+	assert.Len(t, r.Diffs, 6)
+
+	r, err = cm.FixNodeResource(ctx, node, workloadsResource)
+	assert.Nil(t, err)
+	assert.Len(t, r.Diffs, 6)
+	assert.Len(t, (*r.Usage)["numa_memory"], 2)
+}
+
+func TestSetNodeResourceInfo(t *testing.T) {
+	ctx := context.Background()
+	cm := initCPUMEM(ctx, t)
+	nodes := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100, 0)
+	node := nodes[0]
+
+	r, err := cm.GetNodeResourceInfo(ctx, node, nil)
+	assert.Nil(t, err)
+
+	_, err = cm.SetNodeResourceInfo(ctx, "node-2", r.Capacity, r.Usage)
+	assert.Nil(t, err)
+}
+
+func TestSetNodeResourceUsage(t *testing.T) {
+	ctx := context.Background()
+	cm := initCPUMEM(ctx, t)
+	nodes := generateNodes(ctx, t, cm, 1, 2, 4*units.GB, 100, 0)
+	node := nodes[0]
+
+	_, err := cm.GetNodeResourceInfo(ctx, node, nil)
+	assert.Nil(t, err)
+
+	nodeResource := &plugintypes.NodeResource{
+		"cpu_map": map[string]int{
+			"0": 100,
+			"1": 100,
+		},
+		"memory": 2 * units.GB,
+	}
+
+	nodeResourceRequest := &plugintypes.NodeResourceRequest{
+		"cpu":    "0:100,1:100",
+		"memory": fmt.Sprintf("%v", 2*units.GB),
+	}
+
+	workloadsResource := []*plugintypes.WorkloadResource{
+		{
+			"cpu_request": 2.0,
+			"cpu_map": types.CPUMap{
+				"0": 100,
+				"1": 100,
+			},
+			"memory_request": 2 * units.GB,
+		},
+	}
+
+	r, err := cm.SetNodeResourceUsage(ctx, node, nodeResource, nil, nil, true, true)
+	assert.Nil(t, err)
+	assert.Len(t, (*r.After)["cpu_map"], 2)
+
+	r, err = cm.SetNodeResourceUsage(ctx, node, nodeResource, nil, nil, true, false)
+	assert.Nil(t, err)
+	assert.Len(t, (*r.After)["cpu_map"], 2)
+	assert.Equal(t, (*r.After)["cpu"], 0.0)
+	assert.Equal(t, (*r.After)["memory"], int64(0))
+
+	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest, nil, true, true)
+	assert.Nil(t, err)
+	assert.Len(t, (*r.After)["cpu_map"], 2)
+
+	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest, nil, true, false)
+	assert.Nil(t, err)
+	assert.Len(t, (*r.After)["cpu_map"], 2)
+	assert.Equal(t, (*r.After)["cpu"], 0.0)
+	assert.Equal(t, (*r.After)["memory"], int64(0))
+
+	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, workloadsResource, true, true)
+	assert.Nil(t, err)
+	assert.Len(t, (*r.After)["cpu_map"], 2)
+
+	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, workloadsResource, true, false)
+	assert.Nil(t, err)
+	assert.Len(t, (*r.After)["cpu_map"], 2)
+	assert.Equal(t, (*r.After)["cpu"], 0.0)
+	assert.Equal(t, (*r.After)["memory"], int64(0))
+
+	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nil, nil, true, false)
+	assert.Nil(t, err)
+	assert.Len(t, (*r.After)["cpu_map"], 2)
+	assert.Equal(t, (*r.After)["cpu"], 0.0)
+	assert.Equal(t, (*r.After)["memory"], int64(0))
+
+	r, err = cm.SetNodeResourceUsage(ctx, node, nil, nodeResourceRequest, nil, false, false)
+	assert.Nil(t, err)
+	assert.Len(t, (*r.After)["cpu_map"], 2)
+	assert.Equal(t, (*r.After)["cpu"], 2.0)
+	assert.Equal(t, (*r.After)["memory"], int64(2*units.GB))
+}
+
+func TestGetMostIdleNode(t *testing.T) {
+	ctx := context.Background()
+	cm := initCPUMEM(ctx, t)
+	nodes := generateNodes(ctx, t, cm, 2, 2, 2*units.GB, 100, 0)
+	usage := &plugintypes.NodeResourceRequest{"memory": "100"}
+
+	_, err := cm.SetNodeResourceUsage(ctx, nodes[1], nil, usage, nil, false, false)
+	assert.Nil(t, err)
+
+	r, err := cm.GetMostIdleNode(ctx, nodes)
+	assert.Nil(t, err)
+	assert.Equal(t, r.Nodename, nodes[0])
+
+	nodes = append(nodes, "node-x")
+	_, err = cm.GetMostIdleNode(ctx, nodes)
+	assert.Error(t, err)
+}
+
 func BenchmarkGetNodesCapacity(b *testing.B) {
 	b.StopTimer()
 	t := &testing.T{}
