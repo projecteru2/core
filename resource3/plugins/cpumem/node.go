@@ -227,14 +227,14 @@ func (p Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plugi
 	var mostIdleNode string
 	var minIdle = math.MaxFloat64
 
-	for _, nodename := range nodenames {
-		resourceInfo, err := p.doGetNodeResourceInfo(ctx, nodename)
-		if err != nil {
-			log.WithFunc("resource.cpumem.GetMostIdleNode").WithField("node", nodename).Error(ctx, err)
-			return nil, err
-		}
-		idle := float64(resourceInfo.Usage.CPUMap.TotalPieces()) / float64(resourceInfo.Capacity.CPUMap.TotalPieces())
-		idle += float64(resourceInfo.Usage.Memory) / float64(resourceInfo.Capacity.Memory)
+	nodesResourceInfo, err := p.doGetNodesResourceInfo(ctx, nodenames)
+	if err != nil {
+		return nil, err
+	}
+
+	for nodename, nodeResourceInfo := range nodesResourceInfo {
+		idle := float64(nodeResourceInfo.Usage.CPUMap.TotalPieces()) / float64(nodeResourceInfo.Capacity.CPUMap.TotalPieces())
+		idle += float64(nodeResourceInfo.Usage.Memory) / float64(nodeResourceInfo.Capacity.Memory)
 
 		if idle < minIdle {
 			mostIdleNode = nodename

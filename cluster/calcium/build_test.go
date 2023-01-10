@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
-	resourcemocks "github.com/projecteru2/core/resources/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 

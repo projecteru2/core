@@ -12,7 +12,7 @@ import (
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource3"
 	"github.com/projecteru2/core/resource3/cobalt"
-	"github.com/projecteru2/core/resources"
+	""
 	"github.com/projecteru2/core/source"
 	"github.com/projecteru2/core/source/github"
 	"github.com/projecteru2/core/source/gitlab"
