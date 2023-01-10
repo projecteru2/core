@@ -179,7 +179,7 @@ func BenchmarkGetNodesCapacity(b *testing.B) {
 	t := &testing.T{}
 	ctx := context.Background()
 	cm := initCPUMEM(ctx, t)
-	nodes := generateNodes(ctx, t, cm, 10000, 24, 128*units.GB, 100, 0)
+	nodes := generateNodes(ctx, t, cm, 1000, 24, 128*units.GB, 100, 0)
 	req := &plugintypes.WorkloadResourceRequest{
 		"cpu-bind":       true,
 		"cpu-request":    1.3,
