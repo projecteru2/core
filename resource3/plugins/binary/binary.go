@@ -2,6 +2,7 @@ package binary
 
 import (
 	"context"
+	"path/filepath"
 
 	ppath "path"
 
@@ -16,7 +17,11 @@ type Plugin struct {
 }
 
 func NewPlugin(ctx context.Context, path string, config coretypes.Config) (*Plugin, error) {
-	plugin := &Plugin{name: ppath.Base(path), path: path, config: config}
+	p, err := filepath.Abs(ppath.Join(config.ResourcePlugin.Dir, path))
+	if err != nil {
+		return nil, err
+	}
+	plugin := &Plugin{name: ppath.Base(path), path: p, config: config}
 	return plugin, nil
 }
 

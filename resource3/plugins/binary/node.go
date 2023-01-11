@@ -16,7 +16,7 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource *pluginty
 		Info:     info,
 	}
 	resp := &plugintypes.AddNodeResponse{}
-	return resp, p.call(ctx, addNodeCommand, req, resp)
+	return resp, p.call(ctx, AddNodeCommand, req, resp)
 }
 
 // RemoveNode .
@@ -25,7 +25,7 @@ func (p Plugin) RemoveNode(ctx context.Context, nodename string) (*plugintypes.R
 		Nodename: nodename,
 	}
 	resp := &plugintypes.RemoveNodeResponse{}
-	return resp, p.call(ctx, removeNodeCommand, req, resp)
+	return resp, p.call(ctx, RemoveNodeCommand, req, resp)
 }
 
 // GetNodesDeployCapacity .
@@ -35,7 +35,7 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 		WorkloadResource: resource,
 	}
 	resp := &plugintypes.GetNodesDeployCapacityResponse{}
-	return resp, p.call(ctx, getNodesDeployCapacityCommand, req, resp)
+	return resp, p.call(ctx, GetNodesDeployCapacityCommand, req, resp)
 }
 
 // SetNodeResourceCapacity .
@@ -49,7 +49,7 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 	}
 
 	resp := &plugintypes.SetNodeResourceCapacityResponse{}
-	return resp, p.call(ctx, setNodeResourceCapacityCommand, req, resp)
+	return resp, p.call(ctx, SetNodeResourceCapacityCommand, req, resp)
 }
 
 // GetNodeResourceInfo .
@@ -65,7 +65,7 @@ func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capaci
 		Usage:    usage,
 	}
 	resp := &plugintypes.SetNodeResourceInfoResponse{}
-	return resp, p.call(ctx, setNodeResourceInfoCommand, req, resp)
+	return resp, p.call(ctx, SetNodeResourceInfoCommand, req, resp)
 
 }
 
@@ -81,7 +81,7 @@ func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resou
 	}
 
 	resp := &plugintypes.SetNodeResourceUsageResponse{}
-	return resp, p.call(ctx, setNodeResourceUsageCommand, req, resp)
+	return resp, p.call(ctx, SetNodeResourceUsageCommand, req, resp)
 }
 
 // GetMostIdleNode .
@@ -90,7 +90,7 @@ func (p Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plugi
 		Nodenames: nodenames,
 	}
 	resp := &plugintypes.GetMostIdleNodeResponse{}
-	return resp, p.call(ctx, getMostIdleNodeCommand, req, resp)
+	return resp, p.call(ctx, GetMostIdleNodeCommand, req, resp)
 }
 
 // FixNodeResource .
@@ -105,5 +105,5 @@ func (p Plugin) doGetNodeResourceInfo(ctx context.Context, nodename string, work
 		Fix:               fix,
 	}
 	resp := &plugintypes.GetNodeResourceInfoResponse{}
-	return resp, p.call(ctx, getNodeResourceInfoCommand, req, resp)
+	return resp, p.call(ctx, GetNodeResourceInfoCommand, req, resp)
 }
