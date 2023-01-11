@@ -25,6 +25,9 @@ func (p Plugin) call(ctx context.Context, cmd string, req interface{}, resp inte
 		return err
 	}
 
+	if len(out) == 0 {
+		return nil
+	}
 	return json.Unmarshal(out, resp)
 }
 

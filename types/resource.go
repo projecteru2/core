@@ -3,6 +3,8 @@ package types
 import (
 	"fmt"
 	"strconv"
+
+	"github.com/mitchellh/mapstructure"
 )
 
 // RawParams .
@@ -86,13 +88,15 @@ func (r RawParams) Bool(key string) bool {
 }
 
 // RawParams .
-func (r RawParams) RawParams(key string) map[string]interface{} {
+func (r RawParams) RawParams(key string) *RawParams {
 	if r.IsSet(key) {
 		if m, ok := r[key].(map[string]interface{}); ok {
-			return m
+			n := &RawParams{}
+			_ = mapstructure.Decode(m, n)
+			return n
 		}
 	}
-	return map[string]interface{}{}
+	return &RawParams{}
 }
 
 // Resources all cosmos use this

@@ -97,10 +97,7 @@ func (n *NodeResourceInfo) Validate() error {
 	if err := n.validateStorage(); err != nil {
 		return err
 	}
-	if err := n.validateDisks(); err != nil {
-		return err
-	}
-	return nil
+	return n.validateDisks()
 }
 
 // GetAvailableResource .
