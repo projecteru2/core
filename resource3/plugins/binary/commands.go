@@ -1,24 +1,24 @@
 package binary
 
 const (
-	calculateDeployCommand  = "calculate-deploy"
-	calculateReallocCommand = "calculate-realloc"
-	calculateRemapCommand   = "calculate-remap"
+	CalculateDeployCommand  = "calculate-deploy"
+	CalculateReallocCommand = "calculate-realloc"
+	CalculateRemapCommand   = "calculate-remap"
 
-	addNodeCommand    = "add-node"
-	removeNodeCommand = "remove-node"
+	AddNodeCommand    = "add-node"
+	RemoveNodeCommand = "remove-node"
 
-	getNodesDeployCapacityCommand = "get-nodes-deploy-capacity"
+	GetNodesDeployCapacityCommand = "get-nodes-deploy-capacity"
 
-	setNodeResourceCapacityCommand = "set-node-capacity"
+	SetNodeResourceCapacityCommand = "set-node-capacity"
 
-	getNodeResourceInfoCommand = "get-node-resource"
-	setNodeResourceInfoCommand = "set-node-resource"
+	GetNodeResourceInfoCommand = "get-node-resource"
+	SetNodeResourceInfoCommand = "set-node-resource"
 
-	setNodeResourceUsageCommand = "set-node-usage"
+	SetNodeResourceUsageCommand = "set-node-usage"
 
-	getMostIdleNodeCommand = "get-idle-node"
+	GetMostIdleNodeCommand = "get-idle-node"
 
-	getMetricsDescriptionCommand = "get-metrics-description"
-	getMetricsCommand            = "get-metrics"
+	GetMetricsDescriptionCommand = "get-metrics-description"
+	GetMetricsCommand            = "get-metrics"
 )

@@ -14,7 +14,7 @@ func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCoun
 		WorkloadResourceRequest: resourceRequest,
 	}
 	resp := &plugintypes.CalculateDeployResponse{}
-	return resp, p.call(ctx, calculateDeployCommand, req, resp)
+	return resp, p.call(ctx, CalculateDeployCommand, req, resp)
 }
 
 func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource *plugintypes.WorkloadResource, resourceRequest *plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateReallocResponse, error) {
@@ -24,7 +24,7 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 		WorkloadResourceRequest: resourceRequest,
 	}
 	resp := &plugintypes.CalculateReallocResponse{}
-	return resp, p.call(ctx, calculateReallocCommand, req, resp)
+	return resp, p.call(ctx, CalculateReallocCommand, req, resp)
 }
 
 func (p Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsResource map[string]*plugintypes.WorkloadResource) (*plugintypes.CalculateRemapResponse, error) {
@@ -33,5 +33,5 @@ func (p Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsRe
 		WorkloadsResource: workloadsResource,
 	}
 	resp := &plugintypes.CalculateRemapResponse{}
-	return resp, p.call(ctx, calculateRemapCommand, req, resp)
+	return resp, p.call(ctx, CalculateRemapCommand, req, resp)
 }
