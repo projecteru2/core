@@ -41,7 +41,7 @@ type GetNodeResourceInfoRequest struct {
 
 // SetNodeResourceInfoRequest .
 type SetNodeResourceInfoRequest struct {
-	Nodename string                    `json:"node" mapstructure:"node"`
+	Nodename string                    `json:"nodename" mapstructure:"nodename"`
 	Capacity *plugintypes.NodeResource `json:"capacity" mapstructure:"capacity"`
 	Usage    *plugintypes.NodeResource `json:"usage" mapstructure:"usage"`
 }

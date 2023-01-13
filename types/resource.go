@@ -75,11 +75,11 @@ func (r RawParams) Bool(key string) bool {
 
 // RawParams .
 func (r RawParams) RawParams(key string) *RawParams {
-	n := &RawParams{}
+	var n *RawParams
 	if r.IsSet(key) {
 		if m, ok := r[key].(map[string]interface{}); ok {
+			n = &RawParams{}
 			_ = mapstructure.Decode(m, n)
-			return n
 		}
 	}
 	return n
@@ -105,11 +105,14 @@ func sliceHelper[T any](r RawParams, key string) []T {
 	if s, ok := r[key].([]T); ok {
 		return s
 	}
-	res := []T{}
+	var res []T
 	if s, ok := r[key].([]interface{}); ok {
-		for _, v := range s {
+		res = make([]T, len(s))
+		for i, v := range s {
 			if r, ok := v.(T); ok {
-				res = append(res, r)
+				res[i] = r
+			} else {
+				return nil
 			}
 		}
 	}
