@@ -27,17 +27,12 @@ func (r RawParams) Float64(key string) float64 {
 
 // Int64 .
 func (r RawParams) Int64(key string) int64 {
-	if !r.IsSet(key) {
-		return int64(0)
-	}
-	var str string
-	if f, ok := r[key].(float64); ok {
-		str = fmt.Sprintf("%.0f", f)
-	} else {
-		str = fmt.Sprintf("%+v", r[key])
-	}
-	res, _ := strconv.ParseInt(str, 10, 64)
-	return res
+	return intHelper[int64](r, key)
+}
+
+// Int .
+func (r RawParams) Int(key string) int {
+	return intHelper[int](r, key)
 }
 
 // String .
@@ -107,16 +102,30 @@ func sliceHelper[T any](r RawParams, key string) []T {
 	}
 	var res []T
 	if s, ok := r[key].([]interface{}); ok {
-		res = make([]T, len(s))
-		for i, v := range s {
+		res = []T{}
+		for _, v := range s {
 			if r, ok := v.(T); ok {
-				res[i] = r
-			} else {
-				return nil
+				res = append(res, r)
+				// } else {
+				//	return nil // TODO why continue?
 			}
 		}
 	}
 	return res
+}
+
+func intHelper[T int | int64](r RawParams, key string) T {
+	if !r.IsSet(key) {
+		return T(0)
+	}
+	var str string
+	if f, ok := r[key].(float64); ok {
+		str = fmt.Sprintf("%.0f", f)
+	} else {
+		str = fmt.Sprintf("%+v", r[key])
+	}
+	res, _ := strconv.ParseInt(str, 10, 64)
+	return T(res)
 }
 
 // Resources all cosmos use this
