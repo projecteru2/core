@@ -20,7 +20,7 @@ func TestRawParams(t *testing.T) {
 	assert.Equal(t, r.String("cde"), "")
 	assert.Len(t, r.StringSlice("bef"), 1)
 	assert.Nil(t, r.OneOfStringSlice("efg"))
-	assert.Len(t, r.RawParams("fgd"), 0)
+	assert.Len(t, *r.RawParams("fgd"), 0)
 
 	r = RawParams{
 		"int64":        1,
@@ -39,6 +39,10 @@ func TestRawParams(t *testing.T) {
 			"string-slice": []string{"string", "string"},
 			"bool":         nil,
 		},
+		"slice-raw-params": []map[string]interface{}{
+			{"int": 1},
+			{"float": 1},
+		},
 	}
 
 	assert.Equal(t, r.Int64("int64"), int64(1))
@@ -49,6 +53,7 @@ func TestRawParams(t *testing.T) {
 	assert.Equal(t, r.StringSlice("string-slice"), []string{"string", "string"})
 	assert.Equal(t, r.OneOfStringSlice("?", "string-slice"), []string{"string", "string"})
 	assert.Equal(t, r.Bool("bool"), true)
-	assert.Equal(t, r.RawParams("raw-params")["int64"], 1)
+	assert.Equal(t, (*r.RawParams("raw-params"))["int64"], 1)
+	assert.Equal(t, (*r.SliceRawParams("slice-raw-params")[0])["int"], 1)
 	assert.Equal(t, r.IsSet("?"), false)
 }

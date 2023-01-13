@@ -12,8 +12,8 @@ const (
 
 	SetNodeResourceCapacityCommand = "set-node-capacity"
 
-	GetNodeResourceInfoCommand = "get-node-resource"
-	SetNodeResourceInfoCommand = "set-node-resource"
+	GetNodeResourceInfoCommand = "get-node-resource-info"
+	SetNodeResourceInfoCommand = "set-node-resource-info"
 
 	SetNodeResourceUsageCommand = "set-node-usage"
 

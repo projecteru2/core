@@ -53,21 +53,7 @@ func (r RawParams) String(key string) string {
 
 // StringSlice .
 func (r RawParams) StringSlice(key string) []string {
-	if !r.IsSet(key) {
-		return nil
-	}
-	if s, ok := r[key].([]string); ok {
-		return s
-	}
-	res := []string{}
-	if s, ok := r[key].([]interface{}); ok {
-		for _, v := range s {
-			if str, ok := v.(string); ok {
-				res = append(res, str)
-			}
-		}
-	}
-	return res
+	return sliceHelper[string](r, key)
 }
 
 // OneOfStringSlice .
@@ -89,14 +75,45 @@ func (r RawParams) Bool(key string) bool {
 
 // RawParams .
 func (r RawParams) RawParams(key string) *RawParams {
+	n := &RawParams{}
 	if r.IsSet(key) {
 		if m, ok := r[key].(map[string]interface{}); ok {
-			n := &RawParams{}
 			_ = mapstructure.Decode(m, n)
 			return n
 		}
 	}
-	return &RawParams{}
+	return n
+}
+
+// SliceRawParams .
+func (r RawParams) SliceRawParams(key string) []*RawParams {
+	res := sliceHelper[map[string]interface{}](r, key)
+	if res == nil {
+		return nil
+	}
+	n := make([]*RawParams, len(res))
+	for i, v := range res {
+		_ = mapstructure.Decode(v, &n[i])
+	}
+	return n
+}
+
+func sliceHelper[T any](r RawParams, key string) []T {
+	if !r.IsSet(key) {
+		return nil
+	}
+	if s, ok := r[key].([]T); ok {
+		return s
+	}
+	res := []T{}
+	if s, ok := r[key].([]interface{}); ok {
+		for _, v := range s {
+			if r, ok := v.(T); ok {
+				res = append(res, r)
+			}
+		}
+	}
+	return res
 }
 
 // Resources all cosmos use this
