@@ -102,8 +102,10 @@ func (p Plugin) doGetNodeResourceInfo(ctx context.Context, nodename string, work
 	req := &binarytypes.GetNodeResourceInfoRequest{
 		Nodename:          nodename,
 		WorkloadsResource: workloadsResource,
-		Fix:               fix,
 	}
 	resp := &plugintypes.GetNodeResourceInfoResponse{}
-	return resp, p.call(ctx, GetNodeResourceInfoCommand, req, resp)
+	if !fix {
+		return resp, p.call(ctx, GetNodeResourceInfoCommand, req, resp)
+	}
+	return resp, p.call(ctx, FixNodeResourceCommand, req, resp)
 }

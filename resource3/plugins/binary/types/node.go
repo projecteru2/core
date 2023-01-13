@@ -36,7 +36,6 @@ type SetNodeResourceCapacityRequest struct {
 type GetNodeResourceInfoRequest struct {
 	Nodename          string                          `json:"nodename" mapstructure:"nodename"`
 	WorkloadsResource []*plugintypes.WorkloadResource `json:"workloads_resource" mapstructure:"workloads_resource"`
-	Fix               bool                            `json:"fix" mapstructure:"fix"`
 }
 
 // SetNodeResourceInfoRequest .
