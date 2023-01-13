@@ -29,7 +29,7 @@ type SetNodeResourceCapacityRequest struct {
 	Resource        *plugintypes.NodeResource `json:"resource" mapstructure:"resource"`
 	ResourceRequest *plugintypes.NodeResource `json:"resource_request" mapstructure:"resource_request"`
 	Delta           bool                      `json:"delta" mapstructure:"delta"`
-	Decr            bool                      `json:"decr" mapstructure:"decr"`
+	Incr            bool                      `json:"incr" mapstructure:"incr"`
 }
 
 // GetNodeResourceInfoRequest .
@@ -53,7 +53,7 @@ type SetNodeResourceUsageRequest struct {
 	Resource          *plugintypes.NodeResource       `json:"resource" mapstructure:"resource"`
 	ResourceRequest   *plugintypes.NodeResource       `json:"resource_request" mapstructure:"resource_request"`
 	Delta             bool                            `json:"delta" mapstructure:"delta"`
-	Decr              bool                            `json:"decr" mapstructure:"decr"`
+	Incr              bool                            `json:"incr" mapstructure:"incr"`
 }
 
 // GetMostIdleNodeRequest .
