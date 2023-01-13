@@ -20,7 +20,7 @@ func TestRawParams(t *testing.T) {
 	assert.Equal(t, r.String("cde"), "")
 	assert.Len(t, r.StringSlice("bef"), 1)
 	assert.Nil(t, r.OneOfStringSlice("efg"))
-	assert.Len(t, *r.RawParams("fgd"), 0)
+	assert.Nil(t, r.RawParams("fgd"))
 
 	r = RawParams{
 		"int64":        1,
