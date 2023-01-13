@@ -19,7 +19,7 @@ func (p Plugin) call(ctx context.Context, cmd string, req interface{}, resp inte
 	command.Dir = p.config.ResourcePlugin.Dir
 	logger.Infof(ctx, "call %s", command.String())
 
-	out, err := p.execCommand(command, req)
+	out, err := p.execCommand(ctx, command, req)
 	if err != nil {
 		logger.Error(ctx, err, string(out))
 		return err
@@ -31,11 +31,13 @@ func (p Plugin) call(ctx context.Context, cmd string, req interface{}, resp inte
 	return json.Unmarshal(out, resp)
 }
 
-func (p Plugin) execCommand(cmd *exec.Cmd, req interface{}) ([]byte, error) {
+func (p Plugin) execCommand(ctx context.Context, cmd *exec.Cmd, req interface{}) ([]byte, error) {
+	logger := log.WithFunc("resource.binary.execCommand")
 	b, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
+	logger.WithField("in", string(b)).Debug(ctx, "call params")
 	cmd.Stdin = bytes.NewBuffer(b)
 	return cmd.CombinedOutput()
 }
