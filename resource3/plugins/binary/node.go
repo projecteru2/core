@@ -45,7 +45,7 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 		Resource:        resource,
 		ResourceRequest: resourceRequest,
 		Delta:           delta,
-		Decr:            !incr,
+		Incr:            incr,
 	}
 
 	resp := &plugintypes.SetNodeResourceCapacityResponse{}
@@ -77,7 +77,7 @@ func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resou
 		Resource:          resource,
 		ResourceRequest:   resourceRequest,
 		Delta:             delta,
-		Decr:              !incr,
+		Incr:              incr,
 	}
 
 	resp := &plugintypes.SetNodeResourceUsageResponse{}
