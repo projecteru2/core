@@ -4,8 +4,7 @@ import (
 	"context"
 	"testing"
 
-	enginetypes "github.com/projecteru2/core/engine/types"
-	plugintypes "github.com/projecteru2/core/resource3/plugins/types"
+	"github.com/docker/go-units"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,17 +23,7 @@ func TestGetMetrics(t *testing.T) {
 	_, err := cm.GetMetrics(ctx, "", "")
 	assert.Error(t, err)
 
-	req := &plugintypes.NodeResourceRequest{
-		"cpu":         2,
-		"share":       0,
-		"memory":      "1gb",
-		"numa-cpu":    []string{"0", "1"},
-		"numa-memory": []string{"512mb", "512mb"},
-		"xxxx":        "uuuu",
-	}
-
-	info := &enginetypes.Info{NCPU: 8, MemTotal: 2048}
-	r, err := cm.AddNode(ctx, "test", req, info)
+	nodes := generateNodes(ctx, t, cm, 1, 2, units.GB, 100, -1)
+	_, err = cm.GetMetrics(ctx, "testpod", nodes[0])
 	assert.NoError(t, err)
-	assert.NotNil(t, r)
 }
