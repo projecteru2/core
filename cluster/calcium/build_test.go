@@ -81,7 +81,7 @@ func TestBuild(t *testing.T) {
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
 	// failed by plugin error
-	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr := c.rmgr2.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	rmgr.On("GetMostIdleNode", mock.Anything, mock.Anything).Return("", types.ErrInvaildCount).Once()
 	ch, err = c.BuildImage(ctx, opts)

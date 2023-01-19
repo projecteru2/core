@@ -136,14 +136,14 @@ func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) { //nolint
 
 func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
 	r := &types.AddNodeOptions{
-		Nodename:     b.Nodename,
-		Endpoint:     b.Endpoint,
-		Podname:      b.Podname,
-		Ca:           b.Ca,
-		Cert:         b.Cert,
-		Key:          b.Key,
-		Labels:       b.Labels,
-		ResourceOpts: toCoreRawParams(b.ResourceOpts),
+		Nodename:  b.Nodename,
+		Endpoint:  b.Endpoint,
+		Podname:   b.Podname,
+		Ca:        b.Ca,
+		Cert:      b.Cert,
+		Key:       b.Key,
+		Labels:    b.Labels,
+		Resources: toCoreResources(b.Resources),
 	}
 	return r
 }
@@ -156,7 +156,7 @@ func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) {
 		Cert:          b.Cert,
 		Key:           b.Key,
 		WorkloadsDown: b.WorkloadsDown,
-		ResourceOpts:  toCoreRawParams(b.ResourceOpts),
+		Resources:     toCoreResources(b.Resources),
 		Delta:         b.Delta,
 		Labels:        b.Labels,
 		Bypass:        types.TriOptions(b.Bypass),
@@ -562,24 +562,17 @@ func toCoreRemoveImageOptions(opts *pb.RemoveImageOptions) *types.ImageOptions {
 	}
 }
 
-func toCoreRawParams(params map[string]*pb.RawParam) map[string]interface{} {
-	if params == nil {
-		return nil
-	}
-	res := map[string]interface{}{}
-	for key, param := range params {
-		if param.Value == nil {
-			res[key] = nil
+func toCoreResources(resources map[string][]byte) *types.Resources {
+	r := &types.Resources{}
+	for k, v := range resources {
+		rp := &types.RawParams{}
+		if err := json.Unmarshal(v, rp); err != nil {
+			log.WithFunc("toCoreResources").Errorf(nil, err, "%v", string(v))
 			continue
 		}
-		switch param.Value.(type) {
-		case *pb.RawParam_Str:
-			res[key] = param.GetStr()
-		case *pb.RawParam_StringSlice:
-			res[key] = param.GetStringSlice().Slice
-		}
+		(*r)[k] = rp
 	}
-	return res
+	return r
 }
 
 func toRPCListImageMessage(msg *types.ListImageMessage) *pb.ListImageMessage {

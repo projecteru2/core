@@ -6,11 +6,12 @@ import (
 )
 
 // MakeVirtualizationResource .
-func MakeVirtualizationResource(engineArgs map[string]interface{}) (types.VirtualizationResource, error) {
+// TODO Werid, should revise
+func MakeVirtualizationResource(engineParams interface{}) (types.VirtualizationResource, error) {
 	var res types.VirtualizationResource
-	if err := mapstructure.Decode(engineArgs, &res); err != nil {
+	if err := mapstructure.Decode(engineParams, &res); err != nil {
 		return res, err
 	}
-	res.EngineArgs = engineArgs
+	res.EngineParams = engineParams
 	return res, nil
 }

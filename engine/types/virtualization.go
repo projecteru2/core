@@ -2,7 +2,7 @@ package types
 
 // VirtualizationResource define resources
 type VirtualizationResource struct {
-	EngineArgs    map[string]interface{}      `json:"-" mapstructure:"-"`
+	EngineParams  interface{}                 `json:"-" mapstructure:"-"`
 	CPU           map[string]int64            `json:"cpu_map" mapstructure:"cpu_map"` // for cpu binding
 	Quota         float64                     `json:"cpu" mapstructure:"cpu"`         // for cpu quota
 	Memory        int64                       `json:"memory" mapstructure:"memory"`   // for memory binding

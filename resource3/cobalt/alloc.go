@@ -23,24 +23,24 @@ opts struct
 		},
 	}
 */
-func (m Manager) Alloc(ctx context.Context, nodename string, deployCount int, opts types.Resources) ([]types.Resources, []types.Resources, error) {
+func (m Manager) Alloc(ctx context.Context, nodename string, deployCount int, opts *types.Resources) ([]*types.Resources, []*types.Resources, error) {
 	logger := log.WithFunc("resource.coblat.Alloc")
 
 	// index -> no, map by plugin name
-	workloadsParams := []types.Resources{}
-	engineParams := []types.Resources{}
+	workloadsParams := []*types.Resources{}
+	engineParams := []*types.Resources{}
 
 	// init engine args
 	for i := 0; i < deployCount; i++ {
-		workloadsParams[i] = types.Resources{}
-		engineParams[i] = types.Resources{}
+		workloadsParams[i] = &types.Resources{}
+		engineParams[i] = &types.Resources{}
 	}
 
 	return workloadsParams, engineParams, utils.PCR(ctx,
 		// prepare: calculate engine args and resource args
 		func(ctx context.Context) error {
 			resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.CalculateDeployResponse, error) {
-				resp, err := plugin.CalculateDeploy(ctx, nodename, deployCount, opts[plugin.Name()])
+				resp, err := plugin.CalculateDeploy(ctx, nodename, deployCount, (*opts)[plugin.Name()])
 				if err != nil {
 					logger.Errorf(ctx, err, "plugin %+v failed to compute alloc args, request %+v, node %+v, deploy count %+v", plugin.Name(), opts, nodename, deployCount)
 				}
@@ -54,16 +54,16 @@ func (m Manager) Alloc(ctx context.Context, nodename string, deployCount int, op
 			for plugin, resp := range resps {
 				logger.Debug(ctx, plugin.Name())
 				for index, params := range resp.WorkloadsResource {
-					workloadsParams[index][plugin.Name()] = params
+					(*workloadsParams[index])[plugin.Name()] = params
 				}
 				for index, params := range resp.EnginesParams {
-					v := engineParams[index][plugin.Name()]
+					v := (*engineParams[index])[plugin.Name()]
 					vMerged, err := m.mergeEngineParams(ctx, v, params)
 					if err != nil {
 						logger.Error(ctx, err, "invalid engine args")
 						return err
 					}
-					engineParams[index][plugin.Name()] = vMerged
+					(*engineParams[index])[plugin.Name()] = vMerged
 				}
 			}
 			return nil
@@ -86,7 +86,7 @@ func (m Manager) Alloc(ctx context.Context, nodename string, deployCount int, op
 }
 
 // RollbackAlloc rollbacks the allocated resource
-func (m Manager) RollbackAlloc(ctx context.Context, nodename string, workloadsParams []types.Resources) error {
+func (m Manager) RollbackAlloc(ctx context.Context, nodename string, workloadsParams []*types.Resources) error {
 	_, _, err := m.SetNodeResourceUsage(ctx, nodename, nil, nil, workloadsParams, true, plugins.Decr)
 	return err
 }

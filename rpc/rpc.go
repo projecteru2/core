@@ -851,8 +851,8 @@ func (v *Vibranium) ReallocResource(ctx context.Context, opts *pb.ReallocOptions
 	if err := v.cluster.ReallocResource(
 		ctx,
 		&types.ReallocOptions{
-			ID:           opts.Id,
-			ResourceOpts: toCoreRawParams(opts.ResourceOpts),
+			ID:        opts.Id,
+			Resources: toCoreResources(opts.Resources),
 		},
 	); err != nil {
 		return msg, grpcstatus.Error(ReallocResource, err.Error())
