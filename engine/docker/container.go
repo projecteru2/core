@@ -83,9 +83,9 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	var err error
 
 	// parse engine args to resource options
-	opts.VirtualizationResource, err = engine.MakeVirtualizationResource(opts.EngineArgs)
+	opts.VirtualizationResource, err = engine.MakeVirtualizationResource(opts.EngineParams)
 	if err != nil {
-		logger.Errorf(ctx, err, "failed to parse engine args %+v", opts.EngineArgs)
+		logger.Errorf(ctx, err, "failed to parse engine args %+v", opts.EngineParams)
 		return r, coretypes.ErrInvalidEngineArgs
 	}
 
@@ -410,9 +410,9 @@ func (e *Engine) VirtualizationWait(ctx context.Context, ID, state string) (*eng
 func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error {
 	logger := log.WithFunc("engine.docker.VirtualizationUpdateResource")
 	// parse engine args to resource options
-	resourceOpts, err := engine.MakeVirtualizationResource(opts.EngineArgs)
+	resourceOpts, err := engine.MakeVirtualizationResource(opts.EngineParams)
 	if err != nil {
-		logger.Errorf(ctx, err, "failed to parse engine args %+v, workload ID %+v", opts.EngineArgs, ID)
+		logger.Errorf(ctx, err, "failed to parse engine args %+v, workload ID %+v", opts.EngineParams, ID)
 		return coretypes.ErrInvalidEngineArgs
 	}
 

@@ -4,13 +4,13 @@ import (
 	"context"
 
 	"github.com/projecteru2/core/log"
-	""
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 	"github.com/sanity-io/litter"
 	"golang.org/x/exp/maps"
 
 	"github.com/cockroachdb/errors"
+	plugintypes "github.com/projecteru2/core/resource3/plugins/types"
 )
 
 // CalculateCapacity calculates capacity
@@ -38,8 +38,8 @@ func (c *Calcium) CalculateCapacity(ctx context.Context, opts *types.DeployOptio
 			return nil
 		}
 
-		var infos map[string]*resources.NodeCapacityInfo
-		infos, msg.Total, err = c.rmgr.GetNodesDeployCapacity(ctx, nodenames, opts.ResourceOpts)
+		var infos map[string]*plugintypes.NodeDeployCapacity
+		infos, msg.Total, err = c.rmgr2.GetNodesDeployCapacity(ctx, nodenames, opts.Resources)
 		if err != nil {
 			logger.Error(ctx, err, "failed to get nodes capacity")
 			return err

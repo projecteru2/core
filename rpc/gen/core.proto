@@ -98,17 +98,6 @@ message Pods {
   repeated Pod pods = 1001;
 }
 
-message StringSlice {
-  repeated string slice = 1001;
-}
-
-message RawParam {
-  oneof value {
-    string str = 1001;
-    StringSlice string_slice = 1002;
-  }
-}
-
 message NodeResource {
   string name = 1001;
   repeated string diffs = 1002;
@@ -176,7 +165,7 @@ message AddNodeOptions {
   string cert = 1005;
   string key = 1006;
   map<string, string> labels = 1007;
-  map<string, RawParam> resource_opts = 1008;
+  map<string, bytes> resources = 1008;
 }
 
 message RemoveNodeOptions {
@@ -208,7 +197,7 @@ message SetNodeOptions {
   string cert = 1004;
   string key = 1005;
   map<string, string> labels = 1006;
-  map<string, RawParam> resource_opts = 1007;
+  map<string, bytes> resources = 1007;
   bool delta = 1008;
   bool workloads_down = 1009;
   TriOpt bypass = 1010;
@@ -249,7 +238,7 @@ message Workload {
   WorkloadStatus status = 1009;
   int64 create_time = 1010;
   repeated string env = 1011;
-  string resource_args = 1012;
+  map<string, bytes> resources = 1012;
 }
 
 message WorkloadStatus {
@@ -317,7 +306,7 @@ enum TriOpt {
 
 message ReallocOptions {
   string id = 1001;
-  map<string, RawParam> resource_opts = 1002;
+  map<string, bytes> resources = 1002;
 }
 
 message Build {
@@ -431,7 +420,7 @@ message DeployOptions {
   NodeFilter node_filter = 1024;
   map<string, FileMode> modes = 1025;
   map<string, FileOwner> owners = 1026;
-  map<string, RawParam> resource_opts = 1027;
+  map<string, bytes> resources = 1027;
 }
 
 message ReplaceOptions {
@@ -508,7 +497,7 @@ message CreateWorkloadMessage {
   bool success = 1006;
   map<string, string> publish = 1007;
   bytes hook = 1008;
-  string resource_args = 1009;
+  map<string, bytes> resources = 1009;
 }
 
 message ReplaceWorkloadMessage {

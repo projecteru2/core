@@ -181,9 +181,9 @@ func (v *Virt) BuildContent(ctx context.Context, scm coresource.Source, opts *en
 // VirtualizationCreate creates a guest.
 func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (guest *enginetypes.VirtualizationCreated, err error) {
 	// parse engine args to resource options
-	opts.VirtualizationResource, err = engine.MakeVirtualizationResource(opts.EngineArgs)
+	opts.VirtualizationResource, err = engine.MakeVirtualizationResource(opts.EngineParams)
 	if err != nil {
-		log.WithFunc("engine.virt.VirtualizationCreate").Errorf(ctx, err, "failed to parse engine args %+v", opts.EngineArgs)
+		log.WithFunc("engine.virt.VirtualizationCreate").Errorf(ctx, err, "failed to parse engine args %+v", opts.EngineParams)
 		return nil, coretypes.ErrInvalidEngineArgs
 	}
 
@@ -322,9 +322,9 @@ func (v *Virt) VirtualizationWait(ctx context.Context, ID, state string) (*engin
 // VirtualizationUpdateResource updates resource.
 func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, resourceOpts *enginetypes.VirtualizationResource) error {
 	// parse engine args to resource options
-	opts, err := engine.MakeVirtualizationResource(resourceOpts.EngineArgs)
+	opts, err := engine.MakeVirtualizationResource(resourceOpts.EngineParams)
 	if err != nil {
-		log.WithFunc("engine.virt.VirtualizationUpdateResource").Errorf(ctx, err, "failed to parse engine args %+v", opts.EngineArgs)
+		log.WithFunc("engine.virt.VirtualizationUpdateResource").Errorf(ctx, err, "failed to parse engine args %+v", opts.EngineParams)
 		return err
 	}
 

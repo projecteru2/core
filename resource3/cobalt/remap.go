@@ -11,13 +11,13 @@ import (
 
 // Remap remaps resource and returns engine args for workloads. format: {"workload-1": {"cpus": ["1-3"]}}
 // remap doesn't change resource args
-func (m Manager) Remap(ctx context.Context, nodename string, workloads []*types.Workload) (types.Resources, error) {
+func (m Manager) Remap(ctx context.Context, nodename string, workloads []*types.Workload) (map[string]*types.RawParams, error) {
 	logger := log.WithFunc("resource.cobalt.GetRemapArgs").WithField("node", nodename)
 	// call plugins to remap
 	resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.CalculateRemapResponse, error) {
 		workloadsResourceMap := map[string]*plugintypes.WorkloadResource{}
 		for _, workload := range workloads {
-			workloadsResourceMap[workload.ID] = workload.Resources[plugin.Name()]
+			workloadsResourceMap[workload.ID] = (*workload.Resources)[plugin.Name()]
 		}
 		resp, err := plugin.CalculateRemap(ctx, nodename, workloadsResourceMap)
 		if err != nil {
@@ -29,11 +29,11 @@ func (m Manager) Remap(ctx context.Context, nodename string, workloads []*types.
 		return nil, err
 	}
 
-	enginesParams := types.Resources{}
+	enginesParams := map[string]*types.RawParams{}
 	// merge engine args
 	for _, resp := range resps {
 		for workloadID, engineParams := range resp.EngineParamsMap {
-			if _, ok := (*engineParams)[workloadID]; !ok {
+			if _, ok := enginesParams[workloadID]; !ok {
 				enginesParams[workloadID] = &types.RawParams{}
 			}
 			v := enginesParams[workloadID]

@@ -28,8 +28,8 @@ func (n NodeMeta) DeepCopy() (nn NodeMeta, err error) {
 // NodeResourceInfo for node resource info
 type NodeResourceInfo struct {
 	Name      string      `json:"-"`
-	Capacity  Resources   `json:"capacity,omitempty"`
-	Usage     Resources   `json:"usage,omitempty"`
+	Capacity  *Resources  `json:"capacity,omitempty"`
+	Usage     *Resources  `json:"usage,omitempty"`
 	Diffs     []string    `json:"diffs,omitempty"`
 	Workloads []*Workload `json:"-"`
 }

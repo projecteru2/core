@@ -12,7 +12,6 @@ import (
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource3"
 	"github.com/projecteru2/core/resource3/cobalt"
-	""
 	"github.com/projecteru2/core/source"
 	"github.com/projecteru2/core/source/github"
 	"github.com/projecteru2/core/source/gitlab"
@@ -26,7 +25,6 @@ import (
 type Calcium struct {
 	config     types.Config
 	store      store.Store
-	rmgr       resources.Manager
 	rmgr2      resource3.Manager
 	source     source.Source
 	watcher    discovery.Service

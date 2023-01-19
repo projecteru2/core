@@ -7,7 +7,7 @@ import (
 	enginefactory "github.com/projecteru2/core/engine/factory"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
-	""
+	"github.com/projecteru2/core/resource3/plugins"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -20,7 +20,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 		logger.Error(ctx, err)
 		return nil, err
 	}
-	var resourceCapacity map[string]*types.RawNodeResource
+	var res *types.Resources
 	var node *types.Node
 	var err error
 
@@ -39,7 +39,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 		ctx,
 		// if: add node resource with resource plugins
 		func(ctx context.Context) error {
-			resourceCapacity, err = c.rmgr2.AddNode(ctx, opts.Nodename, opts.ResourceOptions, nodeInfo)
+			res, err = c.rmgr2.AddNode(ctx, opts.Nodename, opts.Resources, nodeInfo)
 			return err
 		},
 		// then: add node meta in store
@@ -48,7 +48,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 			if err != nil {
 				return err
 			}
-			node.Resource.Capacity = resourceCapacity
+			node.Resource.Capacity = res
 			_ = c.pool.Invoke(func() { c.doSendNodeMetrics(ctx, node) })
 			return nil
 		},
@@ -57,7 +57,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 			if failureByCond {
 				return nil
 			}
-			return c.rmgr.RemoveNode(ctx, opts.Nodename)
+			return c.rmgr2.RemoveNode(ctx, opts.Nodename)
 		},
 		c.config.GlobalTimeout)
 }
@@ -88,7 +88,7 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 			},
 			// then: remove node resource metadata
 			func(ctx context.Context) error {
-				return c.rmgr.RemoveNode(ctx, nodename)
+				return c.rmgr2.RemoveNode(ctx, nodename)
 			},
 			// rollback: do nothing
 			func(ctx context.Context, failureByCond bool) error {
@@ -119,7 +119,7 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 			_ = c.pool.Invoke(func() {
 				defer wg.Done()
 				var err error
-				if node.Resource.Capacity, node.Resource.Usage, node.Resource.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
+				if node.Resource.Capacity, node.Resource.Usage, node.Resource.Diffs, err = c.rmgr2.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
 					logger.Errorf(ctx, err, "failed to get node %+v resource info", node.Name)
 				}
 				if opts.CallInfo {
@@ -147,7 +147,7 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string) (node *types.Nod
 		logger.Error(ctx, err)
 		return nil, err
 	}
-	if node.Resource.Capacity, node.Resource.Usage, node.Resource.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
+	if node.Resource.Capacity, node.Resource.Usage, node.Resource.Diffs, err = c.rmgr2.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
 		logger.Error(ctx, err)
 		return nil, err
 	}
@@ -184,7 +184,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		logger.Info(ctx, "set node")
 		// update resource map
 		var err error
-		node.Resource.Capacity, node.Resource.Usage, node.Resource.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
+		node.Resource.Capacity, node.Resource.Usage, node.Resource.Diffs, err = c.rmgr2.GetNodeResourceInfo(ctx, node.Name, nil, false)
 		if err != nil {
 			return err
 		}
@@ -212,15 +212,15 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 			n.Labels = opts.Labels
 		}
 
-		var originNodeResourceCapacity map[string]*types.NodeResourceSettings
+		var origin *types.Resources
+		if len((*opts.Resources)) == 0 {
+			return nil
+		}
+
 		return utils.Txn(ctx,
 			// if: update node resource capacity success
 			func(ctx context.Context) error {
-				if len(opts.ResourceOpts) == 0 {
-					return nil
-				}
-
-				originNodeResourceCapacity, _, err = c.rmgr.SetNodeResourceCapacity(ctx, n.Name, opts.ResourceOpts, nil, opts.Delta, resources.Incr)
+				origin, _, err = c.rmgr2.SetNodeResourceCapacity(ctx, n.Name, opts.Resources, nil, opts.Delta, plugins.Incr)
 				return err
 			},
 			// then: update node metadata
@@ -230,9 +230,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				}
 				// update resource
 				// actually we can ignore err here, if update success
-				if len(opts.ResourceOpts) != 0 {
-					n.Resource.Capacity, n.Resource.Usage, n.Resource.Diffs, _ = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
-				}
+				n.Resource.Capacity, n.Resource.Usage, n.Resource.Diffs, _ = c.rmgr2.GetNodeResourceInfo(ctx, node.Name, nil, false)
 				// use send to update the usage
 				_ = c.pool.Invoke(func() { c.doSendNodeMetrics(ctx, n) })
 				return nil
@@ -242,10 +240,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				if failureByCond {
 					return nil
 				}
-				if len(opts.ResourceOpts) == 0 {
-					return nil
-				}
-				_, _, err = c.rmgr.SetNodeResourceCapacity(ctx, n.Name, nil, originNodeResourceCapacity, false, resources.Decr)
+				_, _, err = c.rmgr2.SetNodeResourceCapacity(ctx, n.Name, nil, origin, false, plugins.Decr)
 				return err
 			},
 			c.config.GlobalTimeout)
