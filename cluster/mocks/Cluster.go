@@ -154,13 +154,13 @@ func (_m *Cluster) ConnectNetwork(ctx context.Context, network string, target st
 	return r0, r1
 }
 
-// ControlWorkload provides a mock function with given fields: ctx, ids, t, force
-func (_m *Cluster) ControlWorkload(ctx context.Context, ids []string, t string, force bool) (chan *types.ControlWorkloadMessage, error) {
-	ret := _m.Called(ctx, ids, t, force)
+// ControlWorkload provides a mock function with given fields: ctx, IDs, t, force
+func (_m *Cluster) ControlWorkload(ctx context.Context, IDs []string, t string, force bool) (chan *types.ControlWorkloadMessage, error) {
+	ret := _m.Called(ctx, IDs, t, force)
 
 	var r0 chan *types.ControlWorkloadMessage
 	if rf, ok := ret.Get(0).(func(context.Context, []string, string, bool) chan *types.ControlWorkloadMessage); ok {
-		r0 = rf(ctx, ids, t, force)
+		r0 = rf(ctx, IDs, t, force)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(chan *types.ControlWorkloadMessage)
@@ -169,7 +169,7 @@ func (_m *Cluster) ControlWorkload(ctx context.Context, ids []string, t string, 
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, []string, string, bool) error); ok {
-		r1 = rf(ctx, ids, t, force)
+		r1 = rf(ctx, IDs, t, force)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -237,13 +237,13 @@ func (_m *Cluster) DisconnectNetwork(ctx context.Context, network string, target
 	return r0
 }
 
-// DissociateWorkload provides a mock function with given fields: ctx, ids
-func (_m *Cluster) DissociateWorkload(ctx context.Context, ids []string) (chan *types.DissociateWorkloadMessage, error) {
-	ret := _m.Called(ctx, ids)
+// DissociateWorkload provides a mock function with given fields: ctx, IDs
+func (_m *Cluster) DissociateWorkload(ctx context.Context, IDs []string) (chan *types.DissociateWorkloadMessage, error) {
+	ret := _m.Called(ctx, IDs)
 
 	var r0 chan *types.DissociateWorkloadMessage
 	if rf, ok := ret.Get(0).(func(context.Context, []string) chan *types.DissociateWorkloadMessage); ok {
-		r0 = rf(ctx, ids)
+		r0 = rf(ctx, IDs)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(chan *types.DissociateWorkloadMessage)
@@ -252,7 +252,7 @@ func (_m *Cluster) DissociateWorkload(ctx context.Context, ids []string) (chan *
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, []string) error); ok {
-		r1 = rf(ctx, ids)
+		r1 = rf(ctx, IDs)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -410,13 +410,13 @@ func (_m *Cluster) GetWorkload(ctx context.Context, id string) (*types.Workload,
 	return r0, r1
 }
 
-// GetWorkloads provides a mock function with given fields: ctx, ids
-func (_m *Cluster) GetWorkloads(ctx context.Context, ids []string) ([]*types.Workload, error) {
-	ret := _m.Called(ctx, ids)
+// GetWorkloads provides a mock function with given fields: ctx, IDs
+func (_m *Cluster) GetWorkloads(ctx context.Context, IDs []string) ([]*types.Workload, error) {
+	ret := _m.Called(ctx, IDs)
 
 	var r0 []*types.Workload
 	if rf, ok := ret.Get(0).(func(context.Context, []string) []*types.Workload); ok {
-		r0 = rf(ctx, ids)
+		r0 = rf(ctx, IDs)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*types.Workload)
@@ -425,7 +425,7 @@ func (_m *Cluster) GetWorkloads(ctx context.Context, ids []string) ([]*types.Wor
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, []string) error); ok {
-		r1 = rf(ctx, ids)
+		r1 = rf(ctx, IDs)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -433,13 +433,13 @@ func (_m *Cluster) GetWorkloads(ctx context.Context, ids []string) ([]*types.Wor
 	return r0, r1
 }
 
-// GetWorkloadsStatus provides a mock function with given fields: ctx, ids
-func (_m *Cluster) GetWorkloadsStatus(ctx context.Context, ids []string) ([]*types.StatusMeta, error) {
-	ret := _m.Called(ctx, ids)
+// GetWorkloadsStatus provides a mock function with given fields: ctx, IDs
+func (_m *Cluster) GetWorkloadsStatus(ctx context.Context, IDs []string) ([]*types.StatusMeta, error) {
+	ret := _m.Called(ctx, IDs)
 
 	var r0 []*types.StatusMeta
 	if rf, ok := ret.Get(0).(func(context.Context, []string) []*types.StatusMeta); ok {
-		r0 = rf(ctx, ids)
+		r0 = rf(ctx, IDs)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*types.StatusMeta)
@@ -448,7 +448,7 @@ func (_m *Cluster) GetWorkloadsStatus(ctx context.Context, ids []string) ([]*typ
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, []string) error); ok {
-		r1 = rf(ctx, ids)
+		r1 = rf(ctx, IDs)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -618,15 +618,15 @@ func (_m *Cluster) LogStream(ctx context.Context, opts *types.LogStreamOptions) 
 }
 
 // NodeResource provides a mock function with given fields: ctx, nodename, fix
-func (_m *Cluster) NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
+func (_m *Cluster) NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResourceInfo, error) {
 	ret := _m.Called(ctx, nodename, fix)
 
-	var r0 *types.NodeResource
-	if rf, ok := ret.Get(0).(func(context.Context, string, bool) *types.NodeResource); ok {
+	var r0 *types.NodeResourceInfo
+	if rf, ok := ret.Get(0).(func(context.Context, string, bool) *types.NodeResourceInfo); ok {
 		r0 = rf(ctx, nodename, fix)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.NodeResource)
+			r0 = ret.Get(0).(*types.NodeResourceInfo)
 		}
 	}
 
@@ -657,15 +657,15 @@ func (_m *Cluster) NodeStatusStream(ctx context.Context) chan *types.NodeStatus 
 }
 
 // PodResource provides a mock function with given fields: ctx, podname
-func (_m *Cluster) PodResource(ctx context.Context, podname string) (chan *types.NodeResource, error) {
+func (_m *Cluster) PodResource(ctx context.Context, podname string) (chan *types.NodeResourceInfo, error) {
 	ret := _m.Called(ctx, podname)
 
-	var r0 chan *types.NodeResource
-	if rf, ok := ret.Get(0).(func(context.Context, string) chan *types.NodeResource); ok {
+	var r0 chan *types.NodeResourceInfo
+	if rf, ok := ret.Get(0).(func(context.Context, string) chan *types.NodeResourceInfo); ok {
 		r0 = rf(ctx, podname)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(chan *types.NodeResource)
+			r0 = ret.Get(0).(chan *types.NodeResourceInfo)
 		}
 	}
 
@@ -744,13 +744,13 @@ func (_m *Cluster) RemovePod(ctx context.Context, podname string) error {
 	return r0
 }
 
-// RemoveWorkload provides a mock function with given fields: ctx, ids, force
-func (_m *Cluster) RemoveWorkload(ctx context.Context, ids []string, force bool) (chan *types.RemoveWorkloadMessage, error) {
-	ret := _m.Called(ctx, ids, force)
+// RemoveWorkload provides a mock function with given fields: ctx, IDs, force
+func (_m *Cluster) RemoveWorkload(ctx context.Context, IDs []string, force bool) (chan *types.RemoveWorkloadMessage, error) {
+	ret := _m.Called(ctx, IDs, force)
 
 	var r0 chan *types.RemoveWorkloadMessage
 	if rf, ok := ret.Get(0).(func(context.Context, []string, bool) chan *types.RemoveWorkloadMessage); ok {
-		r0 = rf(ctx, ids, force)
+		r0 = rf(ctx, IDs, force)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(chan *types.RemoveWorkloadMessage)
@@ -759,7 +759,7 @@ func (_m *Cluster) RemoveWorkload(ctx context.Context, ids []string, force bool)
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, []string, bool) error); ok {
-		r1 = rf(ctx, ids, force)
+		r1 = rf(ctx, IDs, force)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -767,13 +767,13 @@ func (_m *Cluster) RemoveWorkload(ctx context.Context, ids []string, force bool)
 	return r0, r1
 }
 
-// RemoveWorkloadSync provides a mock function with given fields: ctx, ids
-func (_m *Cluster) RemoveWorkloadSync(ctx context.Context, ids []string) error {
-	ret := _m.Called(ctx, ids)
+// RemoveWorkloadSync provides a mock function with given fields: ctx, IDs
+func (_m *Cluster) RemoveWorkloadSync(ctx context.Context, IDs []string) error {
+	ret := _m.Called(ctx, IDs)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, []string) error); ok {
-		r0 = rf(ctx, ids)
+		r0 = rf(ctx, IDs)
 	} else {
 		r0 = ret.Error(0)
 	}

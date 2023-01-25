@@ -39,7 +39,8 @@ mock: deps
 	mockery --dir store/etcdv3/meta --output store/etcdv3/meta/mocks --all
 	mockery --dir vendor/go.etcd.io/etcd/client/v3 --output store/etcdv3/meta/mocks --name Txn
 	mockery --dir rpc/gen/ --output rpc/mocks --name CoreRPC_RunAndWaitServer
-	mockery --dir resources --output resources/mocks --all
+	mockery --dir resource3 --output resource3/mocks --name Manager
+	mockery --dir resource3/plugins --output resource3/plugins/mocks --name Plugin
 
 .ONESHELL:
 
@@ -60,10 +61,8 @@ unit-test:
 	./lock/etcdlock/... \
 	./auth/simple/... \
 	./discovery/helium... \
-	./resources/cpumem/models/... \
-	./resources/cpumem/schedule/... \
-	./resources/volume/models/... \
-	./resources/volume/schedule/... \
+	./resource3/plugins/cpumem/. \
+	./resource3/plugins/cpumem/schedule/. \
 	./wal/. \
 	./wal/kv/. \
 	./store/redis/... \
