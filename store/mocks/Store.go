@@ -290,13 +290,13 @@ func (_m *Store) GetPod(ctx context.Context, podname string) (*types.Pod, error)
 	return r0, r1
 }
 
-// GetWorkload provides a mock function with given fields: ctx, id
-func (_m *Store) GetWorkload(ctx context.Context, id string) (*types.Workload, error) {
-	ret := _m.Called(ctx, id)
+// GetWorkload provides a mock function with given fields: ctx, ID
+func (_m *Store) GetWorkload(ctx context.Context, ID string) (*types.Workload, error) {
+	ret := _m.Called(ctx, ID)
 
 	var r0 *types.Workload
 	if rf, ok := ret.Get(0).(func(context.Context, string) *types.Workload); ok {
-		r0 = rf(ctx, id)
+		r0 = rf(ctx, ID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.Workload)
@@ -305,7 +305,7 @@ func (_m *Store) GetWorkload(ctx context.Context, id string) (*types.Workload, e
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, id)
+		r1 = rf(ctx, ID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -313,13 +313,13 @@ func (_m *Store) GetWorkload(ctx context.Context, id string) (*types.Workload, e
 	return r0, r1
 }
 
-// GetWorkloadStatus provides a mock function with given fields: ctx, id
-func (_m *Store) GetWorkloadStatus(ctx context.Context, id string) (*types.StatusMeta, error) {
-	ret := _m.Called(ctx, id)
+// GetWorkloadStatus provides a mock function with given fields: ctx, ID
+func (_m *Store) GetWorkloadStatus(ctx context.Context, ID string) (*types.StatusMeta, error) {
+	ret := _m.Called(ctx, ID)
 
 	var r0 *types.StatusMeta
 	if rf, ok := ret.Get(0).(func(context.Context, string) *types.StatusMeta); ok {
-		r0 = rf(ctx, id)
+		r0 = rf(ctx, ID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.StatusMeta)
@@ -328,7 +328,7 @@ func (_m *Store) GetWorkloadStatus(ctx context.Context, id string) (*types.Statu
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, id)
+		r1 = rf(ctx, ID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -336,13 +336,13 @@ func (_m *Store) GetWorkloadStatus(ctx context.Context, id string) (*types.Statu
 	return r0, r1
 }
 
-// GetWorkloads provides a mock function with given fields: ctx, ids
-func (_m *Store) GetWorkloads(ctx context.Context, ids []string) ([]*types.Workload, error) {
-	ret := _m.Called(ctx, ids)
+// GetWorkloads provides a mock function with given fields: ctx, IDs
+func (_m *Store) GetWorkloads(ctx context.Context, IDs []string) ([]*types.Workload, error) {
+	ret := _m.Called(ctx, IDs)
 
 	var r0 []*types.Workload
 	if rf, ok := ret.Get(0).(func(context.Context, []string) []*types.Workload); ok {
-		r0 = rf(ctx, ids)
+		r0 = rf(ctx, IDs)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*types.Workload)
@@ -351,7 +351,7 @@ func (_m *Store) GetWorkloads(ctx context.Context, ids []string) ([]*types.Workl
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, []string) error); ok {
-		r1 = rf(ctx, ids)
+		r1 = rf(ctx, IDs)
 	} else {
 		r1 = ret.Error(1)
 	}
