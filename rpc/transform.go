@@ -31,16 +31,6 @@ func toRPCNetwork(n *enginetypes.Network) *pb.Network {
 }
 
 func toRPCNode(n *types.Node) *pb.Node {
-	resourceCapacity := map[string]types.RawParams{}
-	resourceUsage := map[string]types.RawParams{}
-
-	for plugin, args := range n.Resource.Capacity {
-		resourceCapacity[plugin] = types.RawParams(args)
-	}
-	for plugin, args := range n.Resource.Usage {
-		resourceUsage[plugin] = types.RawParams(args)
-	}
-
 	node := &pb.Node{
 		Name:             n.Name,
 		Endpoint:         n.Endpoint,
@@ -49,13 +39,13 @@ func toRPCNode(n *types.Node) *pb.Node {
 		Labels:           n.Labels,
 		Info:             n.NodeInfo,
 		Bypass:           n.Bypass,
-		ResourceCapacity: toRPCResourceArgs(resourceCapacity),
-		ResourceUsage:    toRPCResourceArgs(resourceUsage),
+		ResourceCapacity: toRPCResources(n.Resource.Capacity),
+		ResourceUsage:    toRPCResources(n.Resource.Usage),
 	}
 	return node
 }
 
-func toRPCResourceArgs(v interface{}) string {
+func toRPCResources(v interface{}) string {
 	body, _ := json.Marshal(v)
 	return string(body)
 }
@@ -66,22 +56,12 @@ func toRPCEngine(e *enginetypes.Info) *pb.Engine {
 	}
 }
 
-func toRPCNodeResource(nr *types.NodeResource) *pb.NodeResource {
-	resourceCapacity := map[string]types.RawParams{}
-	resourceUsage := map[string]types.RawParams{}
-
-	for plugin, args := range nr.Capacity {
-		resourceCapacity[plugin] = types.RawParams(args)
-	}
-	for plugin, args := range nr.Usage {
-		resourceUsage[plugin] = types.RawParams(args)
-	}
-
+func toRPCNodeResource(nr *types.NodeResourceInfo) *pb.NodeResource {
 	return &pb.NodeResource{
 		Name:             nr.Name,
 		Diffs:            nr.Diffs,
-		ResourceCapacity: toRPCResourceArgs(resourceCapacity),
-		ResourceUsage:    toRPCResourceArgs(resourceUsage),
+		ResourceCapacity: toRPCResources(nr.Capacity),
+		ResourceUsage:    toRPCResources(nr.Usage),
 	}
 }
 
@@ -304,7 +284,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 	}
 
 	return &types.DeployOptions{
-		ResourceOpts:   toCoreRawParams(d.ResourceOpts),
+		Resources:      toCoreResources(d.Resources),
 		Name:           d.Name,
 		Entrypoint:     entry,
 		Podname:        d.Podname,
@@ -334,20 +314,15 @@ func toRPCCreateWorkloadMessage(c *types.CreateWorkloadMessage) *pb.CreateWorklo
 		return nil
 	}
 
-	resourceArgs := map[string]types.RawParams{}
-	for plugin, args := range c.ResourceArgs {
-		resourceArgs[plugin] = types.RawParams(args)
-	}
-
 	msg := &pb.CreateWorkloadMessage{
-		Podname:      c.Podname,
-		Nodename:     c.Nodename,
-		Id:           c.WorkloadID,
-		Name:         c.WorkloadName,
-		Success:      c.Error == nil,
-		Publish:      utils.EncodePublishInfo(c.Publish),
-		Hook:         utils.MergeHookOutputs(c.Hook),
-		ResourceArgs: toRPCResourceArgs(resourceArgs),
+		Podname:   c.Podname,
+		Nodename:  c.Nodename,
+		Id:        c.WorkloadID,
+		Name:      c.WorkloadName,
+		Success:   c.Error == nil,
+		Publish:   utils.EncodePublishInfo(c.Publish),
+		Hook:      utils.MergeHookOutputs(c.Hook),
+		Resources: toRPCResources(c.Resources),
 	}
 	if c.Error != nil {
 		msg.Error = c.Error.Error()
@@ -487,24 +462,20 @@ func toRPCWorkload(ctx context.Context, c *types.Workload) (*pb.Workload, error)
 			utils.MakePublishInfo(c.StatusMeta.Networks, meta.Publish),
 		)
 	}
-	resourceArgs := map[string]types.RawParams{}
-	for plugin, args := range c.ResourceArgs {
-		resourceArgs[plugin] = types.RawParams(args)
-	}
 
 	return &pb.Workload{
-		Id:           c.ID,
-		Podname:      c.Podname,
-		Nodename:     c.Nodename,
-		Name:         c.Name,
-		Privileged:   c.Privileged,
-		Publish:      publish,
-		Image:        c.Image,
-		Labels:       c.Labels,
-		Status:       toRPCWorkloadStatus(c.StatusMeta),
-		CreateTime:   c.CreateTime,
-		ResourceArgs: toRPCResourceArgs(resourceArgs),
-		Env:          c.Env,
+		Id:         c.ID,
+		Podname:    c.Podname,
+		Nodename:   c.Nodename,
+		Name:       c.Name,
+		Privileged: c.Privileged,
+		Publish:    publish,
+		Image:      c.Image,
+		Labels:     c.Labels,
+		Status:     toRPCWorkloadStatus(c.StatusMeta),
+		CreateTime: c.CreateTime,
+		Resources:  toRPCResources(c.Resources),
+		Env:        c.Env,
 	}, nil
 }
 
@@ -567,7 +538,7 @@ func toCoreResources(resources map[string][]byte) *types.Resources {
 	for k, v := range resources {
 		rp := &types.RawParams{}
 		if err := json.Unmarshal(v, rp); err != nil {
-			log.WithFunc("toCoreResources").Errorf(nil, err, "%v", string(v))
+			log.WithFunc("toCoreResources").Errorf(context.TODO(), err, "%v", string(v))
 			continue
 		}
 		(*r)[k] = rp

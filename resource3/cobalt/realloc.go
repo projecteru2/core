@@ -10,9 +10,9 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
-func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource *types.Resources, opts *types.Resources) (*plugintypes.EngineParams, *types.Resources, *types.Resources, error) {
+func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource *types.Resources, opts *types.Resources) (*types.Resources, *types.Resources, *types.Resources, error) {
 	logger := log.WithFunc("resource.cobalt.Realloc").WithField("node", nodename)
-	engineParams := &plugintypes.EngineParams{}
+	engineParams := &types.Resources{}
 	deltaResources := &types.Resources{}
 	workloadResource := &types.Resources{}
 
@@ -32,10 +32,11 @@ func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource *typ
 			}
 
 			for plugin, resp := range resps {
-				if engineParams, err = m.mergeEngineParams(ctx, engineParams, resp.EngineParams); err != nil {
-					logger.Error(ctx, err, "invalid engine args")
-					return err
-				}
+				(*engineParams)[plugin.Name()] = resp.EngineParams
+				// if engineParams, err = m.mergeEngineParams(ctx, engineParams, resp.EngineParams); err != nil {
+				//	logger.Error(ctx, err, "invalid engine args")
+				//	return err
+				// }
 				(*deltaResources)[plugin.Name()] = resp.DeltaResource
 				(*workloadResource)[plugin.Name()] = resp.WorkloadResource
 			}

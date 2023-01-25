@@ -238,7 +238,7 @@ message Workload {
   WorkloadStatus status = 1009;
   int64 create_time = 1010;
   repeated string env = 1011;
-  map<string, bytes> resources = 1012;
+  string resources = 1012;
 }
 
 message WorkloadStatus {
@@ -497,7 +497,7 @@ message CreateWorkloadMessage {
   bool success = 1006;
   map<string, string> publish = 1007;
   bytes hook = 1008;
-  map<string, bytes> resources = 1009;
+  string resources = 1009;
 }
 
 message ReplaceWorkloadMessage {

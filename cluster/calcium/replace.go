@@ -134,11 +134,8 @@ func (c *Calcium) doReplaceWorkload(
 
 	// copy resource args
 	createMessage := &types.CreateWorkloadMessage{
-		ResourceArgs: map[string]types.WorkloadResourceArgs{},
-		EngineArgs:   workload.EngineArgs,
-	}
-	for plugin, rawParams := range workload.ResourceArgs {
-		createMessage.ResourceArgs[plugin] = rawParams
+		Resources:    workload.Resources,
+		EngineParams: workload.EngineParams,
 	}
 
 	if err = utils.Txn(
