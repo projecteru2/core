@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/resource3/plugins"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -39,11 +40,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 									ctx,
 									// if
 									func(ctx context.Context) error {
-										resourceArgs := map[string]types.WorkloadResourceArgs{}
-										for plugin, args := range workload.ResourceArgs {
-											resourceArgs[plugin] = args
-										}
-										_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []map[string]types.WorkloadResourceArgs{resourceArgs}, true, resources.Decr)
+										_, _, err = c.rmgr2.SetNodeResourceUsage(ctx, node.Name, nil, nil, []*types.Resources{workload.Resources}, true, plugins.Decr)
 										return err
 									},
 									// then
@@ -58,11 +55,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 										if failedByCond {
 											return nil
 										}
-										resourceArgs := map[string]types.WorkloadResourceArgs{}
-										for plugin, args := range workload.ResourceArgs {
-											resourceArgs[plugin] = args
-										}
-										_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []map[string]types.WorkloadResourceArgs{resourceArgs}, true, resources.Incr)
+										_, _, err = c.rmgr2.SetNodeResourceUsage(ctx, node.Name, nil, nil, []*types.Resources{workload.Resources}, true, plugins.Incr)
 										return err
 									},
 									c.config.GlobalTimeout,

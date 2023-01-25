@@ -21,7 +21,7 @@ type Manager interface {
 
 	Alloc(context.Context, string, int, *types.Resources) ([]*types.Resources, []*types.Resources, error)
 	RollbackAlloc(context.Context, string, []*types.Resources) error
-	Realloc(context.Context, string, *types.Resources, *types.Resources) (*plugintypes.EngineParams, *types.Resources, *types.Resources, error)
+	Realloc(context.Context, string, *types.Resources, *types.Resources) (*types.Resources, *types.Resources, *types.Resources, error)
 	RollbackRealloc(context.Context, string, *types.Resources) error
 	Remap(context.Context, string, []*types.Workload) (map[string]*types.RawParams, error)
 
