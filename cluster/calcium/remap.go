@@ -43,7 +43,7 @@ func (c *Calcium) doRemapResource(ctx context.Context, node *types.Node) (ch cha
 		return
 	}
 
-	engineParamsMap, err := c.rmgr2.Remap(ctx, node.Name, workloads)
+	engineParamsMap, err := c.rmgr.Remap(ctx, node.Name, workloads)
 	if err != nil {
 		return nil, err
 	}

@@ -10,8 +10,8 @@ import (
 	"github.com/projecteru2/core/discovery"
 	"github.com/projecteru2/core/discovery/helium"
 	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/resource3"
-	"github.com/projecteru2/core/resource3/cobalt"
+	"github.com/projecteru2/core/resource"
+	"github.com/projecteru2/core/resource/cobalt"
 	"github.com/projecteru2/core/source"
 	"github.com/projecteru2/core/source/github"
 	"github.com/projecteru2/core/source/gitlab"
@@ -25,7 +25,7 @@ import (
 type Calcium struct {
 	config     types.Config
 	store      store.Store
-	rmgr2      resource3.Manager
+	rmgr       resource.Manager
 	source     source.Source
 	watcher    discovery.Service
 	wal        wal.WAL
@@ -63,12 +63,12 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 	watcher := helium.New(ctx, config.GRPCConfig, store)
 
 	// set resource plugin manager
-	rmgr2, err := cobalt.New(config)
+	rmgr, err := cobalt.New(config)
 	if err != nil {
 		logger.Error(ctx, err)
 		return nil, err
 	}
-	if err := rmgr2.LoadPlugins(ctx); err != nil {
+	if err := rmgr.LoadPlugins(ctx, t); err != nil {
 		logger.Error(ctx, err)
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, erro
 		return nil, err
 	}
 
-	cal := &Calcium{store: store, config: config, source: scm, watcher: watcher, rmgr2: rmgr2, pool: pool}
+	cal := &Calcium{store: store, config: config, source: scm, watcher: watcher, rmgr: rmgr, pool: pool}
 
 	cal.wal, err = enableWAL(config, cal, store)
 	if err != nil {

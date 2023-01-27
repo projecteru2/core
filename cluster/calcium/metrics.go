@@ -13,7 +13,7 @@ import (
 // InitMetrics .
 func (c *Calcium) InitMetrics(ctx context.Context) {
 	logger := log.WithFunc("calcium.InitMetrics")
-	metricsDescriptions, err := c.rmgr2.GetMetricsDescription(ctx)
+	metricsDescriptions, err := c.rmgr.GetMetricsDescription(ctx)
 	if err != nil {
 		logger.Error(ctx, err, "failed to get metrics description")
 		return
@@ -26,7 +26,7 @@ func (c *Calcium) InitMetrics(ctx context.Context) {
 }
 
 func (c *Calcium) doSendNodeMetrics(ctx context.Context, node *types.Node) {
-	nodeMetrics, err := c.rmgr2.GetNodeMetrics(ctx, node)
+	nodeMetrics, err := c.rmgr.GetNodeMetrics(ctx, node)
 	if err != nil {
 		log.WithFunc("calcium.doSendNodeMetrics").Errorf(ctx, err, "convert node %s resource info to metrics failed", node.Name)
 		return
