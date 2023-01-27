@@ -1,6 +1,8 @@
 package embedded
 
 import (
+	"flag"
+	"os"
 	"testing"
 
 	"go.etcd.io/etcd/client/v3/namespace"
@@ -13,6 +15,9 @@ var clusters map[string]*integration.ClusterV3 = map[string]*integration.Cluster
 func NewCluster(t *testing.T, prefix string) *integration.ClusterV3 {
 	cluster := clusters[t.Name()]
 	if cluster == nil {
+		os.Args = []string{"test.short=false"}
+		testing.Init()
+		flag.Parse()
 		integration.BeforeTestExternal(t)
 		cluster = integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
 		t.Cleanup(func() {
