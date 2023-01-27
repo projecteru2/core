@@ -23,6 +23,7 @@ type Plugin struct {
 	store  meta.KV
 }
 
+// NewPlugin .
 func NewPlugin(ctx context.Context, config coretypes.Config, t *testing.T) (*Plugin, error) {
 	if t == nil && len(config.Etcd.Machines) < 1 {
 		return nil, coretypes.ErrConfigInvaild
@@ -36,6 +37,7 @@ func NewPlugin(ctx context.Context, config coretypes.Config, t *testing.T) (*Plu
 	return plugin, nil
 }
 
+// Name .
 func (p Plugin) Name() string {
 	return p.name
 }

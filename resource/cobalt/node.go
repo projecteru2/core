@@ -130,6 +130,7 @@ func (m Manager) RemoveNode(ctx context.Context, nodename string) error {
 	)
 }
 
+// GetMostIdleNode .
 func (m Manager) GetMostIdleNode(ctx context.Context, nodenames []string) (string, error) {
 	logger := log.WithFunc("resource.cobalt.GetMostIdleNode")
 	if len(nodenames) == 0 {
