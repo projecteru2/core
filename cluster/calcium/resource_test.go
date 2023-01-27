@@ -6,6 +6,7 @@ import (
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	resourcemocks "github.com/projecteru2/core/resource3/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -19,7 +20,7 @@ func TestPodResource(t *testing.T) {
 	podname := "testpod"
 	nodename := "testnode"
 	store := c.store.(*storemocks.Store)
-	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr := c.rmgr2.(*resourcemocks.Manager)
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
@@ -47,8 +48,8 @@ func TestPodResource(t *testing.T) {
 	assert.NotEmpty(t, msg.Diffs)
 	store.AssertExpectations(t)
 	workloads := []*types.Workload{
-		{ResourceArgs: map[string]types.WorkloadResourceArgs{}},
-		{ResourceArgs: map[string]types.WorkloadResourceArgs{}},
+		{Resources: &types.Resources{}},
+		{Resources: &types.Resources{}},
 	}
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
 
@@ -62,8 +63,8 @@ func TestPodResource(t *testing.T) {
 	assert.NotEmpty(t, msg.Diffs)
 	store.AssertExpectations(t)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		map[string]types.NodeResourceArgs{"test": map[string]interface{}{"abc": 123}},
-		map[string]types.NodeResourceArgs{"test": map[string]interface{}{"abc": 123}},
+		&types.Resources{"test": {"abc": 123}},
+		&types.Resources{"test": {"abc": 123}},
 		[]string{},
 		nil)
 
@@ -81,7 +82,7 @@ func TestNodeResource(t *testing.T) {
 	ctx := context.Background()
 	nodename := "testnode"
 	store := c.store.(*storemocks.Store)
-	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr := c.rmgr2.(*resourcemocks.Manager)
 	lock := &lockmocks.DistributedLock{}
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
@@ -97,14 +98,14 @@ func TestNodeResource(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		map[string]types.NodeResourceArgs{"test": map[string]interface{}{"abc": 123}},
-		map[string]types.NodeResourceArgs{"test": map[string]interface{}{"abc": 123}},
+		&types.Resources{"test": {"abc": 123}},
+		&types.Resources{"test": {"abc": 123}},
 		[]string{},
 		nil)
 
 	workloads := []*types.Workload{
-		{ResourceArgs: map[string]types.WorkloadResourceArgs{}, Engine: engine},
-		{ResourceArgs: map[string]types.WorkloadResourceArgs{}, Engine: engine},
+		{Resources: &types.Resources{}, Engine: engine},
+		{Resources: &types.Resources{}, Engine: engine},
 	}
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(nil, types.ErrMockError)

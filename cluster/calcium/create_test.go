@@ -11,6 +11,8 @@ import (
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	resourcemocks "github.com/projecteru2/core/resource3/mocks"
+	plugintypes "github.com/projecteru2/core/resource3/plugins/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
@@ -66,7 +68,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 		Count:          2,
 		DeployStrategy: strategy.Auto,
 		Podname:        "p1",
-		ResourceOpts:   types.WorkloadResourceOpts{},
+		Resources:      &types.Resources{},
 		Image:          "zc:test",
 		Entrypoint: &types.Entrypoint{
 			Name: "good-entrypoint",
@@ -75,7 +77,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	}
 
 	store := c.store.(*storemocks.Store)
-	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr := c.rmgr2.(*resourcemocks.Manager)
 	mwal := &walmocks.WAL{}
 	c.wal = mwal
 	var walCommitted bool
@@ -99,16 +101,14 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.True(t, walCommitted)
 	walCommitted = false
 	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
-		map[string]*resources.NodeCapacityInfo{
+		map[string]*plugintypes.NodeDeployCapacity{
 			node1.Name: {
-				NodeName: node1.Name,
 				Capacity: 10,
 				Usage:    0.5,
 				Rate:     0.05,
 				Weight:   100,
 			},
 			node2.Name: {
-				NodeName: node2.Name,
 				Capacity: 10,
 				Usage:    0.5,
 				Rate:     0.05,
@@ -147,8 +147,8 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.True(t, walCommitted)
 	walCommitted = false
 	rmgr.On("Alloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		[]types.EngineArgs{{}, {}},
-		[]map[string]types.WorkloadResourceArgs{
+		[]*types.Resources{{}, {}},
+		[]*types.Resources{
 			{node1.Name: {}},
 			{node2.Name: {}},
 		},

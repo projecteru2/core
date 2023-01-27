@@ -11,7 +11,7 @@ import (
 
 // Remap remaps resource and returns engine args for workloads. format: {"workload-1": {"cpus": ["1-3"]}}
 // remap doesn't change resource args
-func (m Manager) Remap(ctx context.Context, nodename string, workloads []*types.Workload) (map[string]*types.RawParams, error) {
+func (m Manager) Remap(ctx context.Context, nodename string, workloads []*types.Workload) (*types.Resources, error) {
 	logger := log.WithFunc("resource.cobalt.GetRemapArgs").WithField("node", nodename)
 	// call plugins to remap
 	resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.CalculateRemapResponse, error) {
@@ -29,20 +29,20 @@ func (m Manager) Remap(ctx context.Context, nodename string, workloads []*types.
 		return nil, err
 	}
 
-	enginesParams := map[string]*types.RawParams{}
+	enginesParams := &types.Resources{}
 	// merge engine args
 	for _, resp := range resps {
 		for workloadID, engineParams := range resp.EngineParamsMap {
-			if _, ok := enginesParams[workloadID]; !ok {
-				enginesParams[workloadID] = &types.RawParams{}
+			if _, ok := (*enginesParams)[workloadID]; !ok {
+				(*enginesParams)[workloadID] = &types.RawParams{}
 			}
-			v := enginesParams[workloadID]
+			v := (*enginesParams)[workloadID]
 			vMerged, err := m.mergeEngineParams(ctx, v, engineParams)
 			if err != nil {
 				logger.Error(ctx, err, "invalid engine args")
 				return nil, err
 			}
-			enginesParams[workloadID] = vMerged
+			(*enginesParams)[workloadID] = vMerged
 		}
 	}
 

@@ -38,8 +38,8 @@ func (w *WorkloadResource) DeepCopy() *WorkloadResource {
 	for cpu, pieces := range w.CPUMap {
 		res.CPUMap[cpu] = pieces
 	}
-	for cpuID, numaNodeID := range res.NUMAMemory {
-		res.NUMAMemory[cpuID] = numaNodeID
+	for nodeID, nodeMemory := range res.NUMAMemory {
+		res.NUMAMemory[nodeID] = nodeMemory
 	}
 
 	return res
