@@ -8,7 +8,7 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	"github.com/projecteru2/core/log"
-	resourcemocks "github.com/projecteru2/core/resource3/mocks"
+	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
@@ -18,13 +18,13 @@ import (
 func TestRemapResource(t *testing.T) {
 	c := NewTestCluster()
 	store := c.store.(*storemocks.Store)
-	rmgr := c.rmgr2.(*resourcemocks.Manager)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		&types.Resources{"test": {"abc": 123}},
 		&types.Resources{"test": {"abc": 123}},
 		[]string{types.ErrMockError.Error()},
 		nil)
-	rmgr.On("GetRemapArgs", mock.Anything, mock.Anything, mock.Anything).Return(
+	rmgr.On("Remap", mock.Anything, mock.Anything, mock.Anything).Return(
 		&types.Resources{},
 		nil,
 	)

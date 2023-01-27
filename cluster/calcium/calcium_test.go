@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	resourcemocks "github.com/projecteru2/core/resource3/mocks"
+	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	sourcemocks "github.com/projecteru2/core/source/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -44,14 +44,15 @@ func NewTestCluster() *Calcium {
 		HAKeepaliveInterval: 16 * time.Second,
 		ProbeTarget:         "8.8.8.8:80",
 	}
-	c.store = &storemocks.Store{}
-	c.source = &sourcemocks.Source{}
-	c.wal = &walmocks.WAL{}
-	c.rmgr2 = &resourcemocks.Manager{}
-
-	mwal := c.wal.(*walmocks.WAL)
+	mwal := &walmocks.WAL{}
 	commit := wal.Commit(func() error { return nil })
 	mwal.On("Log", mock.Anything, mock.Anything).Return(commit, nil)
+
+	c.store = &storemocks.Store{}
+	c.source = &sourcemocks.Source{}
+	c.rmgr = &resourcemocks.Manager{}
+	c.wal = mwal
+
 	return c
 }
 

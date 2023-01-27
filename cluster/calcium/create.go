@@ -122,7 +122,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					processingCommits = make(map[string]wal.Commit)
 					for nodename, deploy := range deployMap {
 						nodes = append(nodes, nodeMap[nodename])
-						if engineParamsMap[nodename], workloadResourcesMap[nodename], err = c.rmgr2.Alloc(ctx, nodename, deploy, opts.Resources); err != nil {
+						if engineParamsMap[nodename], workloadResourcesMap[nodename], err = c.rmgr.Alloc(ctx, nodename, deploy, opts.Resources); err != nil {
 							return err
 						}
 
@@ -154,7 +154,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 						rollbackResources := utils.Map(rollbackIndices, func(idx int) *types.Resources {
 							return workloadResourcesMap[nodename][idx]
 						})
-						return c.rmgr2.RollbackAlloc(ctx, nodename, rollbackResources)
+						return c.rmgr.RollbackAlloc(ctx, nodename, rollbackResources)
 					}); e != nil {
 						logger.Error(ctx, e)
 						err = e

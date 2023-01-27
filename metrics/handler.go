@@ -21,7 +21,7 @@ func (m *Metrics) ResourceMiddleware(cluster cluster.Cluster) func(http.Handler)
 				logger.Error(ctx, err, "Get all nodes err")
 			}
 			for node := range nodes {
-				metrics, err := m.rmgr2.GetNodeMetrics(ctx, node)
+				metrics, err := m.rmgr.GetNodeMetrics(ctx, node)
 				if err != nil {
 					logger.Error(ctx, err, "Get metrics failed")
 					continue

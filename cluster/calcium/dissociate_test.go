@@ -6,7 +6,7 @@ import (
 	"time"
 
 	lockmocks "github.com/projecteru2/core/lock/mocks"
-	resourcemocks "github.com/projecteru2/core/resource3/mocks"
+	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -18,7 +18,7 @@ func TestDissociateWorkload(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
-	rmgr := c.rmgr2.(*resourcemocks.Manager)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
 
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
@@ -39,7 +39,9 @@ func TestDissociateWorkload(t *testing.T) {
 	}
 
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return([]*types.Workload{c1}, nil)
-	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		nil, nil, nil, nil,
+	)
 	// failed by lock
 	store.On("GetNode", mock.Anything, "node1").Return(node1, nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()

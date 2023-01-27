@@ -7,7 +7,7 @@ import (
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	"github.com/projecteru2/core/lock"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
-	resourcemocks "github.com/projecteru2/core/resource3/mocks"
+	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -118,7 +118,7 @@ func TestWithNodesPodLocked(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
-	rmgr := c.rmgr2.(*resourcemocks.Manager)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 
 	node1 := &types.Node{
@@ -176,7 +176,7 @@ func TestWithNodePodLocked(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
-	rmgr := c.rmgr2.(*resourcemocks.Manager)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 
 	node1 := &types.Node{
@@ -211,7 +211,7 @@ func TestWithNodesOperationLocked(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
-	rmgr := c.rmgr2.(*resourcemocks.Manager)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 
 	node1 := &types.Node{
@@ -268,7 +268,7 @@ func TestWithNodeOperationLocked(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
-	rmgr := c.rmgr2.(*resourcemocks.Manager)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 
 	node1 := &types.Node{

@@ -67,7 +67,7 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, inspec
 		}
 
 		// get node resources
-		resourceCapacity, resourceUsage, resourceDiffs, err := c.rmgr2.GetNodeResourceInfo(ctx, node.Name, workloads, fix)
+		resourceCapacity, resourceUsage, resourceDiffs, err := c.rmgr.GetNodeResourceInfo(ctx, node.Name, workloads, fix)
 		if err != nil {
 			logger.Errorf(ctx, err, "failed to get node resources, node %+v", node.Name)
 			return err
@@ -96,7 +96,7 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, inspec
 func (c *Calcium) doGetDeployStrategy(ctx context.Context, nodenames []string, opts *types.DeployOptions) (map[string]int, error) {
 	logger := log.WithFunc("calcium.doGetDeployStrategy").WithField("nodes", nodenames)
 	// get nodes with capacity > 0
-	nodeResourceInfoMap, total, err := c.rmgr2.GetNodesDeployCapacity(ctx, nodenames, opts.Resources)
+	nodeResourceInfoMap, total, err := c.rmgr.GetNodesDeployCapacity(ctx, nodenames, opts.Resources)
 	if err != nil {
 		logger.Errorf(ctx, err, "failed to select available nodes, nodes %+v", nodenames)
 		return nil, err

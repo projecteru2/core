@@ -6,8 +6,8 @@ import (
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
-	resourcemocks "github.com/projecteru2/core/resource3/mocks"
-	plugintypes "github.com/projecteru2/core/resource3/plugins/types"
+	resourcemocks "github.com/projecteru2/core/resource/mocks"
+	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
@@ -49,8 +49,10 @@ func TestCalculateCapacity(t *testing.T) {
 	}
 
 	// failed by call plugin
-	rmgr := c.rmgr2.(*resourcemocks.Manager)
-	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, types.ErrMockError).Once()
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
+		nil, 0, types.ErrMockError,
+	).Once()
 	_, err := c.CalculateCapacity(ctx, opts)
 	assert.Error(t, err)
 

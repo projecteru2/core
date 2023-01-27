@@ -7,9 +7,9 @@ import (
 	"sync"
 
 	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/resource3"
-	"github.com/projecteru2/core/resource3/cobalt"
-	plugintypes "github.com/projecteru2/core/resource3/plugins/types"
+	"github.com/projecteru2/core/resource"
+	"github.com/projecteru2/core/resource/cobalt"
+	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 
@@ -35,7 +35,7 @@ type Metrics struct {
 
 	Collectors map[string]prometheus.Collector
 
-	rmgr2 resource3.Manager
+	rmgr resource.Manager
 }
 
 // SendDeployCount update deploy counter
@@ -135,7 +135,7 @@ func InitMetrics(config types.Config, metricsDescriptions []*plugintypes.Metrics
 	if err != nil {
 		return err
 	}
-	rmgr2, err := cobalt.New(config)
+	rmgr, err := cobalt.New(config)
 	if err != nil {
 		return err
 	}
@@ -144,7 +144,7 @@ func InitMetrics(config types.Config, metricsDescriptions []*plugintypes.Metrics
 		StatsdAddr: config.Statsd,
 		Hostname:   utils.CleanStatsdMetrics(hostname),
 		Collectors: map[string]prometheus.Collector{},
-		rmgr2:      rmgr2,
+		rmgr:       rmgr,
 	}
 
 	for _, desc := range metricsDescriptions {

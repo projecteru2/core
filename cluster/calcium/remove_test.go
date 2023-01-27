@@ -7,8 +7,8 @@ import (
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
-	resourcemocks "github.com/projecteru2/core/resource3/mocks"
-	plugintypes "github.com/projecteru2/core/resource3/plugins/types"
+	resourcemocks "github.com/projecteru2/core/resource/mocks"
+	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -24,7 +24,7 @@ func TestRemoveWorkload(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store := c.store.(*storemocks.Store)
-	rmgr := c.rmgr2.(*resourcemocks.Manager)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		&types.Resources{},
