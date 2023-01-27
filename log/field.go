@@ -1,11 +1,15 @@
 package log
 
-import "context"
+import (
+	"context"
+
+	"github.com/alphadose/haxmap"
+)
 
 // Fields is a wrapper for zerolog.Entry
 // we need to insert some sentry captures here
 type Fields struct {
-	kv map[string]interface{}
+	kv *haxmap.Map[string, interface{}]
 }
 
 // WithFunc is short for WithField
@@ -15,14 +19,16 @@ func WithFunc(fname string) *Fields {
 
 // WithField add kv into log entry
 func WithField(key string, value interface{}) *Fields {
+	r := haxmap.New[string, interface{}]()
+	r.Set(key, value)
 	return &Fields{
-		kv: map[string]interface{}{key: value},
+		kv: r,
 	}
 }
 
 // WithField .
 func (f *Fields) WithField(key string, value interface{}) *Fields {
-	f.kv[key] = value
+	f.kv.Set(key, value)
 	return f
 }
 
