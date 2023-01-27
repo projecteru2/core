@@ -10,6 +10,7 @@ import (
 	"github.com/projecteru2/core/utils"
 )
 
+// Realloc .
 func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource *types.Resources, opts *types.Resources) (*types.Resources, *types.Resources, *types.Resources, error) {
 	logger := log.WithFunc("resource.cobalt.Realloc").WithField("node", nodename)
 	engineParams := &types.Resources{}
@@ -59,6 +60,7 @@ func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource *typ
 	)
 }
 
+// RollbackRealloc .
 func (m Manager) RollbackRealloc(ctx context.Context, nodename string, workloadParams *types.Resources) error {
 	_, _, err := m.SetNodeResourceUsage(ctx, nodename, nil, nil, []*types.Resources{workloadParams}, true, plugins.Decr)
 	return err

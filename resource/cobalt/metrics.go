@@ -9,6 +9,7 @@ import (
 	"github.com/projecteru2/core/types"
 )
 
+// GetMetricsDescription .
 func (m Manager) GetMetricsDescription(ctx context.Context) ([]*plugintypes.MetricsDescription, error) {
 	var metricsDescriptions []*plugintypes.MetricsDescription
 	resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.GetMetricsDescriptionResponse, error) {
@@ -31,6 +32,7 @@ func (m Manager) GetMetricsDescription(ctx context.Context) ([]*plugintypes.Metr
 	return metricsDescriptions, nil
 }
 
+// GetNodeMetrics .
 func (m Manager) GetNodeMetrics(ctx context.Context, node *types.Node) ([]*plugintypes.Metrics, error) {
 	logger := log.WithFunc("resource.cobalt.GetNodeMetrics").WithField("node", node.Name)
 

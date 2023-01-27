@@ -16,6 +16,7 @@ type Plugin struct {
 	config coretypes.Config
 }
 
+// NewPlugin .
 func NewPlugin(ctx context.Context, path string, config coretypes.Config) (*Plugin, error) {
 	p, err := filepath.Abs(ppath.Join(config.ResourcePlugin.Dir, path))
 	if err != nil {
@@ -25,6 +26,7 @@ func NewPlugin(ctx context.Context, path string, config coretypes.Config) (*Plug
 	return plugin, nil
 }
 
+// Name .
 func (p Plugin) Name() string {
 	return p.name
 }

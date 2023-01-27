@@ -538,7 +538,7 @@ func toCoreResources(resources map[string][]byte) *types.Resources {
 	for k, v := range resources {
 		rp := &types.RawParams{}
 		if err := json.Unmarshal(v, rp); err != nil {
-			log.WithFunc("toCoreResources").Errorf(context.TODO(), err, "%v", string(v))
+			log.WithFunc("toCoreResources").Errorf(nil, err, "%v", string(v)) // nolint
 			continue
 		}
 		(*r)[k] = rp

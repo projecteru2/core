@@ -12,6 +12,7 @@ import (
 	coretypes "github.com/projecteru2/core/types"
 )
 
+// CalculateDeploy .
 func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCount int, resourceRequest *plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateDeployResponse, error) {
 	logger := log.WithFunc("resource.cpumem.CalculateDeploy").WithField("node", nodename)
 	req := &cpumemtypes.WorkloadResourceRequest{}
@@ -48,6 +49,7 @@ func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCoun
 	}, resp)
 }
 
+// CalculateRealloc .
 func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource *plugintypes.WorkloadResource, resourceRequest *plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateReallocResponse, error) {
 	req := &cpumemtypes.WorkloadResourceRequest{}
 	if err := req.Parse(resourceRequest); err != nil {
@@ -137,6 +139,7 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 	}, resp)
 }
 
+// CalculateRemap .
 func (p Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsResource map[string]*plugintypes.WorkloadResource) (*plugintypes.CalculateRemapResponse, error) {
 	resp := &plugintypes.CalculateRemapResponse{}
 	engineParamsMap := map[string]*cpumemtypes.EngineParams{}

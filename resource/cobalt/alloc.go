@@ -11,7 +11,7 @@ import (
 )
 
 /*
-Alloc
+Alloc alloc resource
 opts struct
 
 	{

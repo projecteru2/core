@@ -7,6 +7,7 @@ import (
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 )
 
+// CalculateDeploy .
 func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCount int, resourceRequest *plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateDeployResponse, error) {
 	req := &binarytypes.CalculateDeployRequest{
 		Nodename:                nodename,
@@ -17,6 +18,7 @@ func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCoun
 	return resp, p.call(ctx, CalculateDeployCommand, req, resp)
 }
 
+// CalculateRealloc .
 func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource *plugintypes.WorkloadResource, resourceRequest *plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateReallocResponse, error) {
 	req := &binarytypes.CalculateReallocRequest{
 		Nodename:                nodename,
@@ -27,6 +29,7 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 	return resp, p.call(ctx, CalculateReallocCommand, req, resp)
 }
 
+// CalculateRemap .
 func (p Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsResource map[string]*plugintypes.WorkloadResource) (*plugintypes.CalculateRemapResponse, error) {
 	req := &binarytypes.CalculateRemapRequest{
 		Nodename:          nodename,
