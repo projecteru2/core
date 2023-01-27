@@ -6,6 +6,7 @@ import (
 	"time"
 
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	resourcemocks "github.com/projecteru2/core/resource3/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -17,17 +18,17 @@ func TestDissociateWorkload(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
-	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr := c.rmgr2.(*resourcemocks.Manager)
 
 	lock := &lockmocks.DistributedLock{}
 	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 
 	c1 := &types.Workload{
-		ResourceArgs: types.ResourceMeta{},
-		ID:           "c1",
-		Podname:      "p1",
-		Nodename:     "node1",
+		Resources: &types.Resources{},
+		ID:        "c1",
+		Podname:   "p1",
+		Nodename:  "node1",
 	}
 
 	node1 := &types.Node{
@@ -52,8 +53,8 @@ func TestDissociateWorkload(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	// failed by RemoveWorkload
 	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		map[string]types.NodeResourceArgs{},
-		map[string]types.NodeResourceArgs{},
+		&types.Resources{},
+		&types.Resources{},
 		nil,
 	)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()

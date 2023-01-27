@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	resourcemocks "github.com/projecteru2/core/resource3/mocks"
 	sourcemocks "github.com/projecteru2/core/source/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
@@ -46,7 +47,7 @@ func NewTestCluster() *Calcium {
 	c.store = &storemocks.Store{}
 	c.source = &sourcemocks.Source{}
 	c.wal = &walmocks.WAL{}
-	c.rmgr = &resourcemocks.Manager{}
+	c.rmgr2 = &resourcemocks.Manager{}
 
 	mwal := c.wal.(*walmocks.WAL)
 	commit := wal.Commit(func() error { return nil })

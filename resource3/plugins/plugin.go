@@ -28,7 +28,7 @@ type Plugin interface {
 	CalculateRealloc(ctx context.Context, nodename string, resource *plugintypes.WorkloadResource, resourceRequest *plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateReallocResponse, error)
 
 	// CalculateRemap tries to remap resource based on workload metadata and node resource usage, then returns engine params for workloads.
-	// pure calculation
+	// pure calculation, for clarification, here use map's key to store the workload ID
 	CalculateRemap(ctx context.Context, nodename string, workloadsResource map[string]*plugintypes.WorkloadResource) (*plugintypes.CalculateRemapResponse, error)
 
 	// AddNode adds a node with requested resource, returns resource capacity and (empty) resource usage

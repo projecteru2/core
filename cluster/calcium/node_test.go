@@ -10,6 +10,8 @@ import (
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	resourcemocks "github.com/projecteru2/core/resource3/mocks"
+	plugintypes "github.com/projecteru2/core/resource3/plugins/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -34,13 +36,13 @@ func TestAddNode(t *testing.T) {
 	opts.Endpoint = fmt.Sprintf("mock://%s", nodename)
 
 	// failed by rmgr.AddNode
-	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr := c.rmgr2.(*resourcemocks.Manager)
 	rmgr.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, types.ErrMockError).Once()
 	_, err = c.AddNode(ctx, opts)
 	assert.Error(t, err)
 	rmgr.AssertExpectations(t)
 	rmgr.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		map[string]types.NodeResourceArgs{}, map[string]types.NodeResourceArgs{}, nil)
+		&types.Resources{}, &types.Resources{}, nil)
 	rmgr.On("RemoveNode", mock.Anything, mock.Anything).Return(nil)
 
 	// failed by store.AddNode
@@ -57,7 +59,7 @@ func TestAddNode(t *testing.T) {
 		},
 	}
 	store.On("AddNode", mock.Anything, mock.Anything).Return(node, nil)
-	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*resourcetypes.Metrics{}, nil)
+	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*plugintypes.Metrics{}, nil)
 	n, err := c.AddNode(ctx, opts)
 	assert.NoError(t, err)
 	assert.Equal(t, n.Name, name)
@@ -92,7 +94,7 @@ func TestRemoveNode(t *testing.T) {
 
 	// success
 	store.On("RemoveNode", mock.Anything, mock.Anything).Return(nil)
-	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr := c.rmgr2.(*resourcemocks.Manager)
 	rmgr.On("RemoveNode", mock.Anything, mock.Anything).Return(nil)
 	assert.NoError(t, c.RemoveNode(ctx, name))
 	store.AssertExpectations(t)
@@ -121,7 +123,7 @@ func TestListPodNodes(t *testing.T) {
 		{NodeMeta: types.NodeMeta{Name: name2}, Engine: engine, Available: false},
 	}
 	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
-	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr := c.rmgr2.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrMockError)
 	opts.CallInfo = true
 
@@ -156,7 +158,7 @@ func TestGetNode(t *testing.T) {
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 
 	// failed by GetNodeResourceInfo
-	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr := c.rmgr2.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrMockError).Once()
 	_, err = c.GetNode(ctx, nodename)
 	assert.Error(t, err)
@@ -223,7 +225,7 @@ func TestSetNode(t *testing.T) {
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 
 	// failed by GetNodeResourceInfo
-	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr := c.rmgr2.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrMockError).Once()
 	_, err = c.SetNode(ctx, opts)
 	assert.Error(t, err)
@@ -246,7 +248,7 @@ func TestSetNode(t *testing.T) {
 	opts.Labels = labels
 
 	// failed by SetNodeResourceCapacity
-	opts.ResourceOpts = types.NodeResourceOpts{"a": 1}
+	opts.Resources = &types.Resources{"a": {"a": 1}}
 	rmgr.On("SetNodeResourceCapacity", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		nil, nil, types.ErrMockError,
 	).Once()
@@ -261,7 +263,7 @@ func TestSetNode(t *testing.T) {
 	_, err = c.SetNode(ctx, opts)
 	assert.Error(t, err)
 	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
-	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*resourcetypes.Metrics{}, nil)
+	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*plugintypes.Metrics{}, nil)
 
 	// done
 	node, err = c.SetNode(ctx, opts)

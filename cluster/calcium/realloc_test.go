@@ -8,6 +8,8 @@ import (
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	resourcemocks "github.com/projecteru2/core/resource3/mocks"
+	plugintypes "github.com/projecteru2/core/resource3/plugins/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -19,9 +21,9 @@ func TestRealloc(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
-	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr := c.rmgr2.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
-	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*resourcetypes.Metrics{}, nil)
+	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*plugintypes.Metrics{}, nil)
 	c.config.Scheduler.ShareBase = 100
 
 	lock := &lockmocks.DistributedLock{}
@@ -42,19 +44,19 @@ func TestRealloc(t *testing.T) {
 	newC1 := func(context.Context, []string) []*types.Workload {
 		return []*types.Workload{
 			{
-				ID:           "c1",
-				Podname:      "p1",
-				Engine:       engine,
-				ResourceArgs: types.ResourceMeta{},
-				Nodename:     "node1",
+				ID:        "c1",
+				Podname:   "p1",
+				Engine:    engine,
+				Resources: &types.Resources{},
+				Nodename:  "node1",
 			},
 		}
 	}
 
 	store.On("GetWorkload", mock.Anything, "c1").Return(newC1(context.Background(), nil)[0], nil)
 	opts := &types.ReallocOptions{
-		ID:           "c1",
-		ResourceOpts: types.WorkloadResourceOpts{},
+		ID:        "c1",
+		Resources: &types.Resources{},
 	}
 
 	// failed by GetNode
@@ -74,14 +76,14 @@ func TestRealloc(t *testing.T) {
 
 	// failed by plugin
 	rmgr.On("Realloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		types.EngineArgs{}, nil, nil, types.ErrMockError,
+		&types.Resources{}, nil, nil, types.ErrMockError,
 	).Once()
 	err = c.ReallocResource(ctx, opts)
 	assert.Error(t, err)
 	rmgr.On("Realloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		types.EngineArgs{},
-		map[string]types.WorkloadResourceArgs{},
-		map[string]types.WorkloadResourceArgs{},
+		&types.Resources{},
+		&types.Resources{},
+		&types.Resources{},
 		nil,
 	)
 	rmgr.On("RollbackRealloc", mock.Anything, mock.Anything, mock.Anything).Return(nil)
