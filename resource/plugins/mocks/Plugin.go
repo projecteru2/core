@@ -19,11 +19,11 @@ type Plugin struct {
 }
 
 // AddNode provides a mock function with given fields: ctx, nodename, resource, info
-func (_m *Plugin) AddNode(ctx context.Context, nodename string, resource *types.RawParams, info *enginetypes.Info) (*pluginstypes.AddNodeResponse, error) {
+func (_m *Plugin) AddNode(ctx context.Context, nodename string, resource types.RawParams, info *enginetypes.Info) (*pluginstypes.AddNodeResponse, error) {
 	ret := _m.Called(ctx, nodename, resource, info)
 
 	var r0 *pluginstypes.AddNodeResponse
-	if rf, ok := ret.Get(0).(func(context.Context, string, *types.RawParams, *enginetypes.Info) *pluginstypes.AddNodeResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, types.RawParams, *enginetypes.Info) *pluginstypes.AddNodeResponse); ok {
 		r0 = rf(ctx, nodename, resource, info)
 	} else {
 		if ret.Get(0) != nil {
@@ -32,7 +32,7 @@ func (_m *Plugin) AddNode(ctx context.Context, nodename string, resource *types.
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, *types.RawParams, *enginetypes.Info) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, types.RawParams, *enginetypes.Info) error); ok {
 		r1 = rf(ctx, nodename, resource, info)
 	} else {
 		r1 = ret.Error(1)
@@ -42,11 +42,11 @@ func (_m *Plugin) AddNode(ctx context.Context, nodename string, resource *types.
 }
 
 // CalculateDeploy provides a mock function with given fields: ctx, nodename, deployCount, resourceRequest
-func (_m *Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCount int, resourceRequest *types.RawParams) (*pluginstypes.CalculateDeployResponse, error) {
+func (_m *Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCount int, resourceRequest types.RawParams) (*pluginstypes.CalculateDeployResponse, error) {
 	ret := _m.Called(ctx, nodename, deployCount, resourceRequest)
 
 	var r0 *pluginstypes.CalculateDeployResponse
-	if rf, ok := ret.Get(0).(func(context.Context, string, int, *types.RawParams) *pluginstypes.CalculateDeployResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, types.RawParams) *pluginstypes.CalculateDeployResponse); ok {
 		r0 = rf(ctx, nodename, deployCount, resourceRequest)
 	} else {
 		if ret.Get(0) != nil {
@@ -55,7 +55,7 @@ func (_m *Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCo
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, int, *types.RawParams) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, int, types.RawParams) error); ok {
 		r1 = rf(ctx, nodename, deployCount, resourceRequest)
 	} else {
 		r1 = ret.Error(1)
@@ -65,11 +65,11 @@ func (_m *Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCo
 }
 
 // CalculateRealloc provides a mock function with given fields: ctx, nodename, resource, resourceRequest
-func (_m *Plugin) CalculateRealloc(ctx context.Context, nodename string, resource *types.RawParams, resourceRequest *types.RawParams) (*pluginstypes.CalculateReallocResponse, error) {
+func (_m *Plugin) CalculateRealloc(ctx context.Context, nodename string, resource types.RawParams, resourceRequest types.RawParams) (*pluginstypes.CalculateReallocResponse, error) {
 	ret := _m.Called(ctx, nodename, resource, resourceRequest)
 
 	var r0 *pluginstypes.CalculateReallocResponse
-	if rf, ok := ret.Get(0).(func(context.Context, string, *types.RawParams, *types.RawParams) *pluginstypes.CalculateReallocResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, types.RawParams, types.RawParams) *pluginstypes.CalculateReallocResponse); ok {
 		r0 = rf(ctx, nodename, resource, resourceRequest)
 	} else {
 		if ret.Get(0) != nil {
@@ -78,7 +78,7 @@ func (_m *Plugin) CalculateRealloc(ctx context.Context, nodename string, resourc
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, *types.RawParams, *types.RawParams) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, types.RawParams, types.RawParams) error); ok {
 		r1 = rf(ctx, nodename, resource, resourceRequest)
 	} else {
 		r1 = ret.Error(1)
@@ -88,11 +88,11 @@ func (_m *Plugin) CalculateRealloc(ctx context.Context, nodename string, resourc
 }
 
 // CalculateRemap provides a mock function with given fields: ctx, nodename, workloadsResource
-func (_m *Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsResource map[string]*types.RawParams) (*pluginstypes.CalculateRemapResponse, error) {
+func (_m *Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsResource map[string]types.RawParams) (*pluginstypes.CalculateRemapResponse, error) {
 	ret := _m.Called(ctx, nodename, workloadsResource)
 
 	var r0 *pluginstypes.CalculateRemapResponse
-	if rf, ok := ret.Get(0).(func(context.Context, string, map[string]*types.RawParams) *pluginstypes.CalculateRemapResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, map[string]types.RawParams) *pluginstypes.CalculateRemapResponse); ok {
 		r0 = rf(ctx, nodename, workloadsResource)
 	} else {
 		if ret.Get(0) != nil {
@@ -101,7 +101,7 @@ func (_m *Plugin) CalculateRemap(ctx context.Context, nodename string, workloads
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, map[string]*types.RawParams) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, map[string]types.RawParams) error); ok {
 		r1 = rf(ctx, nodename, workloadsResource)
 	} else {
 		r1 = ret.Error(1)
@@ -111,11 +111,11 @@ func (_m *Plugin) CalculateRemap(ctx context.Context, nodename string, workloads
 }
 
 // FixNodeResource provides a mock function with given fields: ctx, nodename, workloadsResource
-func (_m *Plugin) FixNodeResource(ctx context.Context, nodename string, workloadsResource []*types.RawParams) (*pluginstypes.GetNodeResourceInfoResponse, error) {
+func (_m *Plugin) FixNodeResource(ctx context.Context, nodename string, workloadsResource []types.RawParams) (*pluginstypes.GetNodeResourceInfoResponse, error) {
 	ret := _m.Called(ctx, nodename, workloadsResource)
 
 	var r0 *pluginstypes.GetNodeResourceInfoResponse
-	if rf, ok := ret.Get(0).(func(context.Context, string, []*types.RawParams) *pluginstypes.GetNodeResourceInfoResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, []types.RawParams) *pluginstypes.GetNodeResourceInfoResponse); ok {
 		r0 = rf(ctx, nodename, workloadsResource)
 	} else {
 		if ret.Get(0) != nil {
@@ -124,7 +124,7 @@ func (_m *Plugin) FixNodeResource(ctx context.Context, nodename string, workload
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, []*types.RawParams) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, []types.RawParams) error); ok {
 		r1 = rf(ctx, nodename, workloadsResource)
 	} else {
 		r1 = ret.Error(1)
@@ -203,11 +203,11 @@ func (_m *Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plu
 }
 
 // GetNodeResourceInfo provides a mock function with given fields: ctx, nodename, workloadsResource
-func (_m *Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, workloadsResource []*types.RawParams) (*pluginstypes.GetNodeResourceInfoResponse, error) {
+func (_m *Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, workloadsResource []types.RawParams) (*pluginstypes.GetNodeResourceInfoResponse, error) {
 	ret := _m.Called(ctx, nodename, workloadsResource)
 
 	var r0 *pluginstypes.GetNodeResourceInfoResponse
-	if rf, ok := ret.Get(0).(func(context.Context, string, []*types.RawParams) *pluginstypes.GetNodeResourceInfoResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, []types.RawParams) *pluginstypes.GetNodeResourceInfoResponse); ok {
 		r0 = rf(ctx, nodename, workloadsResource)
 	} else {
 		if ret.Get(0) != nil {
@@ -216,7 +216,7 @@ func (_m *Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, work
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, []*types.RawParams) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, []types.RawParams) error); ok {
 		r1 = rf(ctx, nodename, workloadsResource)
 	} else {
 		r1 = ret.Error(1)
@@ -226,11 +226,11 @@ func (_m *Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, work
 }
 
 // GetNodesDeployCapacity provides a mock function with given fields: ctx, nodenames, resource
-func (_m *Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, resource *types.RawParams) (*pluginstypes.GetNodesDeployCapacityResponse, error) {
+func (_m *Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, resource types.RawParams) (*pluginstypes.GetNodesDeployCapacityResponse, error) {
 	ret := _m.Called(ctx, nodenames, resource)
 
 	var r0 *pluginstypes.GetNodesDeployCapacityResponse
-	if rf, ok := ret.Get(0).(func(context.Context, []string, *types.RawParams) *pluginstypes.GetNodesDeployCapacityResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, []string, types.RawParams) *pluginstypes.GetNodesDeployCapacityResponse); ok {
 		r0 = rf(ctx, nodenames, resource)
 	} else {
 		if ret.Get(0) != nil {
@@ -239,7 +239,7 @@ func (_m *Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, []string, *types.RawParams) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, []string, types.RawParams) error); ok {
 		r1 = rf(ctx, nodenames, resource)
 	} else {
 		r1 = ret.Error(1)
@@ -286,11 +286,11 @@ func (_m *Plugin) RemoveNode(ctx context.Context, nodename string) (*pluginstype
 }
 
 // SetNodeResourceCapacity provides a mock function with given fields: ctx, nodename, resource, resourceRequest, delta, incr
-func (_m *Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, resource *types.RawParams, resourceRequest *types.RawParams, delta bool, incr bool) (*pluginstypes.SetNodeResourceCapacityResponse, error) {
+func (_m *Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, resource types.RawParams, resourceRequest types.RawParams, delta bool, incr bool) (*pluginstypes.SetNodeResourceCapacityResponse, error) {
 	ret := _m.Called(ctx, nodename, resource, resourceRequest, delta, incr)
 
 	var r0 *pluginstypes.SetNodeResourceCapacityResponse
-	if rf, ok := ret.Get(0).(func(context.Context, string, *types.RawParams, *types.RawParams, bool, bool) *pluginstypes.SetNodeResourceCapacityResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, types.RawParams, types.RawParams, bool, bool) *pluginstypes.SetNodeResourceCapacityResponse); ok {
 		r0 = rf(ctx, nodename, resource, resourceRequest, delta, incr)
 	} else {
 		if ret.Get(0) != nil {
@@ -299,7 +299,7 @@ func (_m *Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, *types.RawParams, *types.RawParams, bool, bool) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, types.RawParams, types.RawParams, bool, bool) error); ok {
 		r1 = rf(ctx, nodename, resource, resourceRequest, delta, incr)
 	} else {
 		r1 = ret.Error(1)
@@ -309,11 +309,11 @@ func (_m *Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, 
 }
 
 // SetNodeResourceInfo provides a mock function with given fields: ctx, nodename, capacity, usage
-func (_m *Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capacity *types.RawParams, usage *types.RawParams) (*pluginstypes.SetNodeResourceInfoResponse, error) {
+func (_m *Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capacity types.RawParams, usage types.RawParams) (*pluginstypes.SetNodeResourceInfoResponse, error) {
 	ret := _m.Called(ctx, nodename, capacity, usage)
 
 	var r0 *pluginstypes.SetNodeResourceInfoResponse
-	if rf, ok := ret.Get(0).(func(context.Context, string, *types.RawParams, *types.RawParams) *pluginstypes.SetNodeResourceInfoResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, types.RawParams, types.RawParams) *pluginstypes.SetNodeResourceInfoResponse); ok {
 		r0 = rf(ctx, nodename, capacity, usage)
 	} else {
 		if ret.Get(0) != nil {
@@ -322,7 +322,7 @@ func (_m *Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capa
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, *types.RawParams, *types.RawParams) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, types.RawParams, types.RawParams) error); ok {
 		r1 = rf(ctx, nodename, capacity, usage)
 	} else {
 		r1 = ret.Error(1)
@@ -332,11 +332,11 @@ func (_m *Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capa
 }
 
 // SetNodeResourceUsage provides a mock function with given fields: ctx, nodename, resource, resourceRequest, workloadsResource, delta, incr
-func (_m *Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resource *types.RawParams, resourceRequest *types.RawParams, workloadsResource []*types.RawParams, delta bool, incr bool) (*pluginstypes.SetNodeResourceUsageResponse, error) {
+func (_m *Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resource types.RawParams, resourceRequest types.RawParams, workloadsResource []types.RawParams, delta bool, incr bool) (*pluginstypes.SetNodeResourceUsageResponse, error) {
 	ret := _m.Called(ctx, nodename, resource, resourceRequest, workloadsResource, delta, incr)
 
 	var r0 *pluginstypes.SetNodeResourceUsageResponse
-	if rf, ok := ret.Get(0).(func(context.Context, string, *types.RawParams, *types.RawParams, []*types.RawParams, bool, bool) *pluginstypes.SetNodeResourceUsageResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, types.RawParams, types.RawParams, []types.RawParams, bool, bool) *pluginstypes.SetNodeResourceUsageResponse); ok {
 		r0 = rf(ctx, nodename, resource, resourceRequest, workloadsResource, delta, incr)
 	} else {
 		if ret.Get(0) != nil {
@@ -345,7 +345,7 @@ func (_m *Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, res
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, *types.RawParams, *types.RawParams, []*types.RawParams, bool, bool) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, types.RawParams, types.RawParams, []types.RawParams, bool, bool) error); ok {
 		r1 = rf(ctx, nodename, resource, resourceRequest, workloadsResource, delta, incr)
 	} else {
 		r1 = ret.Error(1)

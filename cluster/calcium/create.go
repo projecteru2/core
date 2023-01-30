@@ -52,9 +52,9 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		deployMap   map[string]int
 		rollbackMap map[string][]int
 		// map[nodename][]Resources
-		engineParamsMap = map[string][]*types.Resources{}
+		engineParamsMap = map[string][]types.Resources{}
 		// map[nodename][]Resources
-		workloadResourcesMap = map[string][]*types.Resources{}
+		workloadResourcesMap = map[string][]types.Resources{}
 	)
 
 	_ = c.pool.Invoke(func() {
@@ -151,7 +151,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 				}
 				for nodename, rollbackIndices := range rollbackMap {
 					if e := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
-						rollbackResources := utils.Map(rollbackIndices, func(idx int) *types.Resources {
+						rollbackResources := utils.Map(rollbackIndices, func(idx int) types.Resources {
 							return workloadResourcesMap[nodename][idx]
 						})
 						return c.rmgr.RollbackAlloc(ctx, nodename, rollbackResources)
@@ -173,8 +173,8 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 func (c *Calcium) doDeployWorkloads(ctx context.Context,
 	ch chan *types.CreateWorkloadMessage,
 	opts *types.DeployOptions,
-	engineParamsMap map[string][]*types.Resources,
-	workloadResourcesMap map[string][]*types.Resources,
+	engineParamsMap map[string][]types.Resources,
+	workloadResourcesMap map[string][]types.Resources,
 	deployMap map[string]int) (_ map[string][]int, err error) {
 
 	wg := sync.WaitGroup{}
@@ -220,8 +220,8 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	nodename string,
 	opts *types.DeployOptions,
 	deploy int,
-	engineParams []*types.Resources,
-	workloadResources []*types.Resources,
+	engineParams []types.Resources,
+	workloadResources []types.Resources,
 	seq int) (indices []int, err error) {
 
 	logger := log.WithFunc("calcium.doDeployWorkloadsOnNode").WithField("node", nodename).WithField("ident", opts.ProcessIdent).WithField("deploy", deploy).WithField("seq", seq)

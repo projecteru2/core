@@ -31,9 +31,9 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 }
 
 func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workload *types.Workload, originWorkload types.Workload, opts *types.ReallocOptions) error {
-	var resources *types.Resources
-	var deltaResources *types.Resources
-	var engineParams *types.Resources
+	var resources types.Resources
+	var deltaResources types.Resources
+	var engineParams types.Resources
 	var err error
 
 	logger := log.WithFunc("calcium.doReallocOnNode").WithField("opts", opts)

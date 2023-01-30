@@ -47,7 +47,7 @@ func TestRealloc(t *testing.T) {
 				ID:        "c1",
 				Podname:   "p1",
 				Engine:    engine,
-				Resources: &types.Resources{},
+				Resources: types.Resources{},
 				Nodename:  "node1",
 			},
 		}
@@ -56,7 +56,7 @@ func TestRealloc(t *testing.T) {
 	store.On("GetWorkload", mock.Anything, "c1").Return(newC1(context.Background(), nil)[0], nil)
 	opts := &types.ReallocOptions{
 		ID:        "c1",
-		Resources: &types.Resources{},
+		Resources: types.Resources{},
 	}
 
 	// failed by GetNode
@@ -76,14 +76,14 @@ func TestRealloc(t *testing.T) {
 
 	// failed by plugin
 	rmgr.On("Realloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		&types.Resources{}, nil, nil, types.ErrMockError,
+		types.Resources{}, nil, nil, types.ErrMockError,
 	).Once()
 	err = c.ReallocResource(ctx, opts)
 	assert.Error(t, err)
 	rmgr.On("Realloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		&types.Resources{},
-		&types.Resources{},
-		&types.Resources{},
+		types.Resources{},
+		types.Resources{},
+		types.Resources{},
 		nil,
 	)
 	rmgr.On("RollbackRealloc", mock.Anything, mock.Anything, mock.Anything).Return(nil)

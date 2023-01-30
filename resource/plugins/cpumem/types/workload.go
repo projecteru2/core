@@ -19,7 +19,7 @@ type WorkloadResource struct {
 }
 
 // ParseFromRawParams .
-func (w *WorkloadResource) Parse(rawParams *coretypes.RawParams) error {
+func (w *WorkloadResource) Parse(rawParams coretypes.RawParams) error {
 	return mapstructure.Decode(rawParams, w)
 }
 
@@ -113,7 +113,7 @@ func (w *WorkloadResourceRequest) Validate() error {
 }
 
 // Parse .
-func (w *WorkloadResourceRequest) Parse(rawParams *coretypes.RawParams) (err error) {
+func (w *WorkloadResourceRequest) Parse(rawParams coretypes.RawParams) (err error) {
 	w.KeepCPUBind = rawParams.Bool("keep-cpu-bind")
 	w.CPUBind = rawParams.Bool("cpu-bind")
 

@@ -40,7 +40,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 									ctx,
 									// if
 									func(ctx context.Context) error {
-										_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []*types.Resources{workload.Resources}, true, plugins.Decr)
+										_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []types.Resources{workload.Resources}, true, plugins.Decr)
 										return err
 									},
 									// then
@@ -55,7 +55,7 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) 
 										if failedByCond {
 											return nil
 										}
-										_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []*types.Resources{workload.Resources}, true, plugins.Incr)
+										_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []types.Resources{workload.Resources}, true, plugins.Incr)
 										return err
 									},
 									c.config.GlobalTimeout,

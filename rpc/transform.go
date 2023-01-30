@@ -533,15 +533,15 @@ func toCoreRemoveImageOptions(opts *pb.RemoveImageOptions) *types.ImageOptions {
 	}
 }
 
-func toCoreResources(resources map[string][]byte) *types.Resources {
-	r := &types.Resources{}
+func toCoreResources(resources map[string][]byte) types.Resources {
+	r := types.Resources{}
 	for k, v := range resources {
-		rp := &types.RawParams{}
-		if err := json.Unmarshal(v, rp); err != nil {
+		rp := types.RawParams{}
+		if err := json.Unmarshal(v, &rp); err != nil {
 			log.WithFunc("toCoreResources").Errorf(nil, err, "%v", string(v)) // nolint
 			continue
 		}
-		(*r)[k] = rp
+		r[k] = rp
 	}
 	return r
 }

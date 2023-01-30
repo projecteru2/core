@@ -52,10 +52,10 @@ func generateNodes(
 	return names
 }
 
-func generateNodeResourceRequests(t *testing.T, nums int, cores int, memory int64, shares, index int) map[string]*plugintypes.NodeResourceRequest {
-	infos := map[string]*plugintypes.NodeResourceRequest{}
+func generateNodeResourceRequests(t *testing.T, nums int, cores int, memory int64, shares, index int) map[string]plugintypes.NodeResourceRequest {
+	infos := map[string]plugintypes.NodeResourceRequest{}
 	for i := index; i < index+nums; i++ {
-		info := &plugintypes.NodeResourceRequest{
+		info := plugintypes.NodeResourceRequest{
 			"cpu":    cores,
 			"share":  shares,
 			"memory": fmt.Sprintf("%v", memory),
