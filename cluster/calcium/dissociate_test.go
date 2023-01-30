@@ -25,7 +25,7 @@ func TestDissociateWorkload(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 
 	c1 := &types.Workload{
-		Resources: &types.Resources{},
+		Resources: types.Resources{},
 		ID:        "c1",
 		Podname:   "p1",
 		Nodename:  "node1",
@@ -55,8 +55,8 @@ func TestDissociateWorkload(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	// failed by RemoveWorkload
 	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		&types.Resources{},
-		&types.Resources{},
+		types.Resources{},
+		types.Resources{},
 		nil,
 	)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()

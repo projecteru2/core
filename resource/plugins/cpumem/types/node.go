@@ -20,7 +20,7 @@ type NodeResource struct {
 }
 
 // Parse .
-func (r *NodeResource) Parse(rawParams *coretypes.RawParams) error {
+func (r *NodeResource) Parse(rawParams coretypes.RawParams) error {
 	return mapstructure.Decode(rawParams, r)
 }
 
@@ -175,7 +175,7 @@ type NodeResourceRequest struct {
 	NUMAMemory NUMAMemory `json:"numa_memory"`
 }
 
-func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams *coretypes.RawParams) error {
+func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams coretypes.RawParams) error {
 	var err error
 
 	if n.CPUMap == nil {
@@ -232,7 +232,7 @@ func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams *coretype
 	return nil
 }
 
-func (n *NodeResourceRequest) LoadFromOrigin(nodeResource *NodeResource, rawParams *coretypes.RawParams) {
+func (n *NodeResourceRequest) LoadFromOrigin(nodeResource *NodeResource, rawParams coretypes.RawParams) {
 	if n == nil {
 		return
 	}

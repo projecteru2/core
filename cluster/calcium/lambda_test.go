@@ -41,7 +41,7 @@ func TestRunAndWaitFailedThenWALCommitted(t *testing.T) {
 		Count:          2,
 		DeployStrategy: strategy.Auto,
 		Podname:        "p1",
-		Resources:      &types.Resources{},
+		Resources:      types.Resources{},
 		Image:          "zc:test",
 		Entrypoint: &types.Entrypoint{
 			Name: "good-entrypoint",
@@ -77,7 +77,7 @@ func TestLambdaWithWorkloadIDReturned(t *testing.T) {
 		Count:          2,
 		DeployStrategy: strategy.Auto,
 		Podname:        "p1",
-		Resources:      &types.Resources{},
+		Resources:      types.Resources{},
 		Image:          "zc:test",
 		Entrypoint: &types.Entrypoint{
 			Name: "good-entrypoint",
@@ -129,7 +129,7 @@ func TestLambdaWithError(t *testing.T) {
 		Count:          2,
 		DeployStrategy: strategy.Auto,
 		Podname:        "p1",
-		Resources:      &types.Resources{},
+		Resources:      types.Resources{},
 		Image:          "zc:test",
 		Entrypoint: &types.Entrypoint{
 			Name: "good-entrypoint",
@@ -195,8 +195,8 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		&types.Resources{},
-		&types.Resources{},
+		types.Resources{},
+		types.Resources{},
 		[]string{},
 		nil,
 	)
@@ -218,8 +218,8 @@ func newLambdaCluster(t *testing.T) (*Calcium, []*types.Node) {
 		20, nil,
 	)
 	rmgr.On("Alloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		[]*types.Resources{{}, {}},
-		[]*types.Resources{
+		[]types.Resources{{}, {}},
+		[]types.Resources{
 			{node1.Name: {}},
 			{node2.Name: {}},
 		},

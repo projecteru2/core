@@ -20,7 +20,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 		logger.Error(ctx, err)
 		return nil, err
 	}
-	var res *types.Resources
+	var res types.Resources
 	var node *types.Node
 	var err error
 
@@ -212,8 +212,8 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 			n.Labels = opts.Labels
 		}
 
-		var origin *types.Resources
-		if len((*opts.Resources)) == 0 {
+		var origin types.Resources
+		if len(opts.Resources) == 0 {
 			return nil
 		}
 

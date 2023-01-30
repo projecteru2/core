@@ -40,7 +40,7 @@ func TestCalculateCapacity(t *testing.T) {
 		Entrypoint: &types.Entrypoint{
 			Name: "entry",
 		},
-		Resources:      &types.Resources{},
+		Resources:      types.Resources{},
 		DeployStrategy: strategy.Auto,
 		NodeFilter: &types.NodeFilter{
 			Includes: []string{name},

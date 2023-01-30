@@ -13,7 +13,7 @@ import (
 )
 
 // CalculateDeploy .
-func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCount int, resourceRequest *plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateDeployResponse, error) {
+func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCount int, resourceRequest plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateDeployResponse, error) {
 	logger := log.WithFunc("resource.cpumem.CalculateDeploy").WithField("node", nodename)
 	req := &cpumemtypes.WorkloadResourceRequest{}
 	if err := req.Parse(resourceRequest); err != nil {
@@ -50,7 +50,7 @@ func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCoun
 }
 
 // CalculateRealloc .
-func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource *plugintypes.WorkloadResource, resourceRequest *plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateReallocResponse, error) {
+func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource plugintypes.WorkloadResource, resourceRequest plugintypes.WorkloadResourceRequest) (*plugintypes.CalculateReallocResponse, error) {
 	req := &cpumemtypes.WorkloadResourceRequest{}
 	if err := req.Parse(resourceRequest); err != nil {
 		return nil, err
@@ -140,7 +140,7 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 }
 
 // CalculateRemap .
-func (p Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsResource map[string]*plugintypes.WorkloadResource) (*plugintypes.CalculateRemapResponse, error) {
+func (p Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsResource map[string]plugintypes.WorkloadResource) (*plugintypes.CalculateRemapResponse, error) {
 	resp := &plugintypes.CalculateRemapResponse{}
 	engineParamsMap := map[string]*cpumemtypes.EngineParams{}
 	if len(workloadsResource) == 0 {

@@ -26,8 +26,8 @@ func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	c.wal = wal
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		&types.Resources{},
-		&types.Resources{},
+		types.Resources{},
+		types.Resources{},
 		[]string{},
 		nil,
 	)
@@ -58,8 +58,8 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	c.wal = wal
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		&types.Resources{},
-		&types.Resources{},
+		types.Resources{},
+		types.Resources{},
 		[]string{},
 		nil,
 	)
@@ -112,8 +112,8 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	c.wal = wal
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		&types.Resources{},
-		&types.Resources{},
+		types.Resources{},
+		types.Resources{},
 		[]string{},
 		nil,
 	)
@@ -160,19 +160,19 @@ func TestHandleCreateLambda(t *testing.T) {
 	c.wal = wal
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		&types.Resources{},
-		&types.Resources{},
+		types.Resources{},
+		types.Resources{},
 		[]string{},
 		nil,
 	)
 	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		&types.Resources{},
-		&types.Resources{},
+		types.Resources{},
+		types.Resources{},
 		nil,
 	)
 	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*plugintypes.Metrics{}, nil)
 	rmgr.On("Remap", mock.Anything, mock.Anything, mock.Anything).Return(
-		&types.Resources{},
+		types.Resources{},
 		nil,
 	)
 

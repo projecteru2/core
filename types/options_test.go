@@ -17,7 +17,7 @@ func TestParseTriOption(t *testing.T) {
 
 func TestSetNodeOptions(t *testing.T) {
 	o := &SetNodeOptions{
-		Resources: &Resources{},
+		Resources: Resources{},
 	}
 	assert.Equal(t, ErrEmptyNodeName, o.Validate())
 

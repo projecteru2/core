@@ -42,7 +42,7 @@ func TestAddNode(t *testing.T) {
 	assert.Error(t, err)
 	rmgr.AssertExpectations(t)
 	rmgr.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		&types.Resources{}, nil)
+		types.Resources{}, nil)
 	rmgr.On("RemoveNode", mock.Anything, mock.Anything).Return(nil)
 
 	// failed by store.AddNode
@@ -248,7 +248,7 @@ func TestSetNode(t *testing.T) {
 	opts.Labels = labels
 
 	// failed by SetNodeResourceCapacity
-	opts.Resources = &types.Resources{"a": {"a": 1}}
+	opts.Resources = types.Resources{"a": {"a": 1}}
 	rmgr.On("SetNodeResourceCapacity", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		nil, nil, types.ErrMockError,
 	).Once()

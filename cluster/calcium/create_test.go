@@ -68,7 +68,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 		Count:          2,
 		DeployStrategy: strategy.Auto,
 		Podname:        "p1",
-		Resources:      &types.Resources{},
+		Resources:      types.Resources{},
 		Image:          "zc:test",
 		Entrypoint: &types.Entrypoint{
 			Name: "good-entrypoint",
@@ -149,8 +149,8 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.True(t, walCommitted)
 	walCommitted = false
 	rmgr.On("Alloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		[]*types.Resources{{}, {}},
-		[]*types.Resources{
+		[]types.Resources{{}, {}},
+		[]types.Resources{
 			{node1.Name: {}},
 			{node2.Name: {}},
 		},

@@ -32,7 +32,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *t
 							ctx,
 							// if
 							func(ctx context.Context) (err error) {
-								_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []*types.Resources{workload.Resources}, true, plugins.Decr)
+								_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []types.Resources{workload.Resources}, true, plugins.Decr)
 								return err
 							},
 							// then
@@ -44,7 +44,7 @@ func (c *Calcium) DissociateWorkload(ctx context.Context, IDs []string) (chan *t
 								if failedByCond {
 									return nil
 								}
-								_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []*types.Resources{workload.Resources}, true, plugins.Incr)
+								_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []types.Resources{workload.Resources}, true, plugins.Incr)
 								return err
 							},
 							c.config.GlobalTimeout,

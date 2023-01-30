@@ -69,24 +69,24 @@ func (r RawParams) Bool(key string) bool {
 }
 
 // RawParams .
-func (r RawParams) RawParams(key string) *RawParams {
-	var n *RawParams
+func (r RawParams) RawParams(key string) RawParams {
+	var n RawParams
 	if r.IsSet(key) {
 		if m, ok := r[key].(map[string]interface{}); ok {
-			n = &RawParams{}
-			_ = mapstructure.Decode(m, n)
+			n = RawParams{}
+			_ = mapstructure.Decode(m, &n)
 		}
 	}
 	return n
 }
 
 // SliceRawParams .
-func (r RawParams) SliceRawParams(key string) []*RawParams {
+func (r RawParams) SliceRawParams(key string) []RawParams {
 	res := sliceHelper[map[string]interface{}](r, key)
 	if res == nil {
 		return nil
 	}
-	n := make([]*RawParams, len(res))
+	n := make([]RawParams, len(res))
 	for i, v := range res {
 		_ = mapstructure.Decode(v, &n[i])
 	}
@@ -129,4 +129,4 @@ func intHelper[T int | int64](r RawParams, key string) T {
 }
 
 // Resources all cosmos use this
-type Resources map[string]*RawParams
+type Resources map[string]RawParams

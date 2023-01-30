@@ -20,19 +20,19 @@ func TestRemapResource(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		&types.Resources{"test": {"abc": 123}},
-		&types.Resources{"test": {"abc": 123}},
+		types.Resources{"test": {"abc": 123}},
+		types.Resources{"test": {"abc": 123}},
 		[]string{types.ErrMockError.Error()},
 		nil)
 	rmgr.On("Remap", mock.Anything, mock.Anything, mock.Anything).Return(
-		&types.Resources{},
+		types.Resources{},
 		nil,
 	)
 	engine := &enginemocks.API{}
 	node := &types.Node{Engine: engine}
 
 	workload := &types.Workload{
-		Resources: &types.Resources{},
+		Resources: types.Resources{},
 	}
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
 	ch := make(chan enginetypes.VirtualizationRemapMessage, 1)

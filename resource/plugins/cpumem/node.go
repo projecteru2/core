@@ -20,7 +20,7 @@ import (
 )
 
 // AddNode .
-func (p Plugin) AddNode(ctx context.Context, nodename string, resource *plugintypes.NodeResourceRequest, info *enginetypes.Info) (*plugintypes.AddNodeResponse, error) {
+func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintypes.NodeResourceRequest, info *enginetypes.Info) (*plugintypes.AddNodeResponse, error) {
 	// try to get the node resource
 	var err error
 	if _, err = p.doGetNodeResourceInfo(ctx, nodename); err == nil {
@@ -91,7 +91,7 @@ func (p Plugin) RemoveNode(ctx context.Context, nodename string) (*plugintypes.R
 }
 
 // GetNodesDeployCapacity returns available nodes and total capacity
-func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, resource *plugintypes.WorkloadResourceRequest) (*plugintypes.GetNodesDeployCapacityResponse, error) {
+func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, resource plugintypes.WorkloadResourceRequest) (*plugintypes.GetNodesDeployCapacityResponse, error) {
 	logger := log.WithFunc("resource.cpumem.GetNodesDeployCapacity")
 	req := &cpumemtypes.WorkloadResourceRequest{}
 	if err := req.Parse(resource); err != nil {
@@ -131,7 +131,7 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 }
 
 // SetNodeResourceCapacity sets the amount of total resource info
-func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, resource *plugintypes.NodeResource, resourceRequest *plugintypes.NodeResourceRequest, delta bool, incr bool) (*plugintypes.SetNodeResourceCapacityResponse, error) {
+func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, delta bool, incr bool) (*plugintypes.SetNodeResourceCapacityResponse, error) {
 	logger := log.WithFunc("resource.cpumem.SetNodeResourceCapacity").WithField("node", "nodename")
 	req, nodeResource, _, nodeResourceInfo, err := p.parseNodeResourceInfos(ctx, nodename, resource, resourceRequest, nil)
 	if err != nil {
@@ -167,7 +167,7 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 }
 
 // GetNodeResourceInfo .
-func (p Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, workloadsResource []*plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error) {
+func (p Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error) {
 	nodeResourceInfo, _, diffs, err := p.getNodeResourceInfo(ctx, nodename, workloadsResource)
 	if err != nil {
 		return nil, err
@@ -182,7 +182,7 @@ func (p Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, worklo
 }
 
 // SetNodeResourceInfo .
-func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capacity *plugintypes.NodeResource, usage *plugintypes.NodeResource) (*plugintypes.SetNodeResourceInfoResponse, error) {
+func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capacity plugintypes.NodeResource, usage plugintypes.NodeResource) (*plugintypes.SetNodeResourceInfoResponse, error) {
 	capacityResource := &cpumemtypes.NodeResource{}
 	usageResource := &cpumemtypes.NodeResource{}
 	if err := capacityResource.Parse(capacity); err != nil {
@@ -200,7 +200,7 @@ func (p Plugin) SetNodeResourceInfo(ctx context.Context, nodename string, capaci
 }
 
 // SetNodeResourceUsage .
-func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resource *plugintypes.NodeResource, resourceRequest *plugintypes.NodeResourceRequest, workloadsResource []*plugintypes.WorkloadResource, delta bool, incr bool) (*plugintypes.SetNodeResourceUsageResponse, error) {
+func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resource plugintypes.NodeResource, resourceRequest plugintypes.NodeResourceRequest, workloadsResource []plugintypes.WorkloadResource, delta bool, incr bool) (*plugintypes.SetNodeResourceUsageResponse, error) {
 	logger := log.WithFunc("resource.cpumem.SetNodeResourceUsage").WithField("node", "nodename")
 	req, nodeResource, wrksResource, nodeResourceInfo, err := p.parseNodeResourceInfos(ctx, nodename, resource, resourceRequest, workloadsResource)
 	if err != nil {
@@ -251,7 +251,7 @@ func (p Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plugi
 }
 
 // FixNodeResource .
-func (p Plugin) FixNodeResource(ctx context.Context, nodename string, workloadsResource []*plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error) {
+func (p Plugin) FixNodeResource(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource) (*plugintypes.GetNodeResourceInfoResponse, error) {
 	nodeResourceInfo, actuallyWorkloadsUsage, diffs, err := p.getNodeResourceInfo(ctx, nodename, workloadsResource)
 	if err != nil {
 		return nil, err
@@ -278,7 +278,7 @@ func (p Plugin) FixNodeResource(ctx context.Context, nodename string, workloadsR
 	}, resp)
 }
 
-func (p Plugin) getNodeResourceInfo(ctx context.Context, nodename string, workloadsResource []*plugintypes.WorkloadResource) (*cpumemtypes.NodeResourceInfo, *cpumemtypes.WorkloadResource, []string, error) {
+func (p Plugin) getNodeResourceInfo(ctx context.Context, nodename string, workloadsResource []plugintypes.WorkloadResource) (*cpumemtypes.NodeResourceInfo, *cpumemtypes.WorkloadResource, []string, error) {
 	logger := log.WithFunc("resource.cpumem.getNodeResourceInfo").WithField("node", nodename)
 	nodeResourceInfo, err := p.doGetNodeResourceInfo(ctx, nodename)
 	if err != nil {
@@ -451,9 +451,9 @@ func (p Plugin) calculateNodeResource(req *cpumemtypes.NodeResourceRequest, node
 
 func (p Plugin) parseNodeResourceInfos(
 	ctx context.Context, nodename string,
-	resource *plugintypes.NodeResource,
-	resourceRequest *plugintypes.NodeResourceRequest,
-	workloadsResource []*plugintypes.WorkloadResource,
+	resource plugintypes.NodeResource,
+	resourceRequest plugintypes.NodeResourceRequest,
+	workloadsResource []plugintypes.WorkloadResource,
 ) (
 	*cpumemtypes.NodeResourceRequest,
 	*cpumemtypes.NodeResource,
