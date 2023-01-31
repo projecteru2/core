@@ -161,7 +161,7 @@ func TestGetNodesByPod(t *testing.T) {
 	assert.NoError(t, err)
 	ns, err = m.GetNodesByPod(ctx, &types.NodeFilter{All: false})
 	assert.NoError(t, err)
-	assert.Empty(t, ns)
+	assert.Len(t, ns, 1) // because mock forced to up, so here is 1
 	ns, err = m.GetNodesByPod(ctx, &types.NodeFilter{All: true})
 	assert.NoError(t, err)
 	assert.NotEmpty(t, ns)

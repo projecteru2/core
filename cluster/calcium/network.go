@@ -45,7 +45,6 @@ func (c *Calcium) ConnectNetwork(ctx context.Context, network, target, ipv4, ipv
 	logger := log.WithFunc("calcium.ConnectNetwork").WithField("network", network).WithField("target", target).WithField("ipv4", ipv4).WithField("ipv6", ipv6)
 	workload, err := c.GetWorkload(ctx, target)
 	if err != nil {
-		logger.Error(ctx, err)
 		return nil, err
 	}
 

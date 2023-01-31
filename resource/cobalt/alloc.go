@@ -27,8 +27,8 @@ func (m Manager) Alloc(ctx context.Context, nodename string, deployCount int, op
 	logger := log.WithFunc("resource.coblat.Alloc")
 
 	// index -> no, map by plugin name
-	workloadsParams := []types.Resources{}
-	engineParams := []types.Resources{}
+	workloadsParams := make([]types.Resources, deployCount)
+	engineParams := make([]types.Resources, deployCount)
 
 	// init engine args
 	for i := 0; i < deployCount; i++ {
