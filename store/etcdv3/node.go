@@ -321,7 +321,7 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 		_ = m.pool.Invoke(func() {
 			defer wg.Done()
 			if strings.HasPrefix(node.Endpoint, fakeengine.PrefixKey) {
-				node.Available = true
+				node.Available = true && !node.Bypass
 			} else if _, err := m.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrInvaildCount) {
 				logger.Errorf(ctx, err, "failed to get node status of %+v", node.Name)
 			} else {
