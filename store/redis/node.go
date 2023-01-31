@@ -12,6 +12,7 @@ import (
 	"github.com/projecteru2/core/engine"
 	enginefactory "github.com/projecteru2/core/engine/factory"
 	"github.com/projecteru2/core/engine/fake"
+	"github.com/projecteru2/core/engine/mocks/fakeengine"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -302,7 +303,9 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 		node := node
 		_ = r.pool.Invoke(func() {
 			defer wg.Done()
-			if _, err := r.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrInvaildCount) {
+			if strings.HasPrefix(node.Endpoint, fakeengine.PrefixKey) {
+				node.Available = true
+			} else if _, err := r.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrInvaildCount) {
 				logger.Errorf(ctx, err, "failed to get node status of %+v", node.Name)
 			} else {
 				node.Available = err == nil

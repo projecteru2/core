@@ -15,6 +15,7 @@ import (
 	"github.com/projecteru2/core/engine"
 	enginefactory "github.com/projecteru2/core/engine/factory"
 	"github.com/projecteru2/core/engine/fake"
+	"github.com/projecteru2/core/engine/mocks/fakeengine"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -319,7 +320,9 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 		node := node
 		_ = m.pool.Invoke(func() {
 			defer wg.Done()
-			if _, err := m.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrInvaildCount) {
+			if strings.HasPrefix(node.Endpoint, fakeengine.PrefixKey) {
+				node.Available = true
+			} else if _, err := m.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrInvaildCount) {
 				logger.Errorf(ctx, err, "failed to get node status of %+v", node.Name)
 			} else {
 				node.Available = err == nil
