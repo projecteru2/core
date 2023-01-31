@@ -130,7 +130,7 @@ func (s *RediaronTestSuite) TestGetNodesByPod() {
 	s.NoError(err)
 	ns, err = s.rediaron.GetNodesByPod(ctx, &types.NodeFilter{All: false})
 	s.NoError(err)
-	s.Empty(ns)
+	s.Len(ns, 1) // because mock forced to up, so here is 1
 	ns, err = s.rediaron.GetNodesByPod(ctx, &types.NodeFilter{All: true})
 	s.NoError(err)
 	s.NotEmpty(ns)

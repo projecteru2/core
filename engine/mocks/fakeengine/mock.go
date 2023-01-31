@@ -107,7 +107,6 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	e.On("VirtualizationResize", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationWait", mock.Anything, mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationWaitResult{Message: "", Code: 0}, nil)
 	e.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-
 	e.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return([]byte("d1...\nd2...\n"), 0, 0, int64(0), nil)
 	//	e.On("ResourceValidate", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	return e, nil
