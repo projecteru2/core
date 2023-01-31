@@ -31,9 +31,10 @@ func (m Manager) AddNode(ctx context.Context, nodename string, opts types.Resour
 		func(ctx context.Context) error {
 			resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.AddNodeResponse, error) {
 				r := opts[plugin.Name()]
+				logger.WithField("plugin", plugin.Name()).WithField("node", nodename).Infof(ctx, "%v", litter.Sdump(r))
 				resp, err := plugin.AddNode(ctx, nodename, r, nodeInfo)
 				if err != nil {
-					logger.Errorf(ctx, err, "node %+v plugin %+v failed to add node, req: %+v", nodename, plugin.Name(), litter.Sdump(opts))
+					logger.Errorf(ctx, err, "node %+v plugin %+v failed to add node, req: %+v", nodename, plugin.Name(), litter.Sdump(r))
 				}
 				return resp, err
 			})
@@ -48,7 +49,6 @@ func (m Manager) AddNode(ctx context.Context, nodename string, opts types.Resour
 			for plugin, resp := range resps {
 				res[plugin.Name()] = resp.Capacity
 			}
-
 			return nil
 		},
 		// rollback: remove node

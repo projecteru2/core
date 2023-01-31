@@ -9,7 +9,7 @@ import (
 
 // AddPod add pod
 func (c *Calcium) AddPod(ctx context.Context, podname, desc string) (*types.Pod, error) {
-	logger := log.WithFunc("calcium.AddPod").WithField("podname", podname).WithField("desc", desc)
+	logger := log.WithFunc("calcium.AddPod").WithField("podname", podname)
 	if podname == "" {
 		logger.Error(ctx, types.ErrEmptyPodName)
 		return nil, types.ErrEmptyPodName
