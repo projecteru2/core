@@ -304,7 +304,7 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 		_ = r.pool.Invoke(func() {
 			defer wg.Done()
 			if strings.HasPrefix(node.Endpoint, fakeengine.PrefixKey) {
-				node.Available = true
+				node.Available = true && !node.Bypass
 			} else if _, err := r.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrInvaildCount) {
 				logger.Errorf(ctx, err, "failed to get node status of %+v", node.Name)
 			} else {

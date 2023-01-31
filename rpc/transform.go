@@ -39,8 +39,8 @@ func toRPCNode(n *types.Node) *pb.Node {
 		Labels:           n.Labels,
 		Info:             n.NodeInfo,
 		Bypass:           n.Bypass,
-		ResourceCapacity: toRPCResources(n.Resource.Capacity),
-		ResourceUsage:    toRPCResources(n.Resource.Usage),
+		ResourceCapacity: toRPCResources(n.ResourceInfo.Capacity),
+		ResourceUsage:    toRPCResources(n.ResourceInfo.Usage),
 	}
 	return node
 }

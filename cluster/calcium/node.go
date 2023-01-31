@@ -48,7 +48,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 			if err != nil {
 				return err
 			}
-			node.Resource.Capacity = res
+			node.ResourceInfo.Capacity = res
 			_ = c.pool.Invoke(func() { c.doSendNodeMetrics(context.TODO(), node) })
 			return nil
 		},
@@ -119,7 +119,7 @@ func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions
 			_ = c.pool.Invoke(func() {
 				defer wg.Done()
 				var err error
-				if node.Resource.Capacity, node.Resource.Usage, node.Resource.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
+				if node.ResourceInfo.Capacity, node.ResourceInfo.Usage, node.ResourceInfo.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
 					logger.Errorf(ctx, err, "failed to get node %+v resource info", node.Name)
 				}
 				if opts.CallInfo {
@@ -147,7 +147,7 @@ func (c *Calcium) GetNode(ctx context.Context, nodename string) (node *types.Nod
 		logger.Error(ctx, err)
 		return nil, err
 	}
-	if node.Resource.Capacity, node.Resource.Usage, node.Resource.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
+	if node.ResourceInfo.Capacity, node.ResourceInfo.Usage, node.ResourceInfo.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false); err != nil {
 		logger.Error(ctx, err)
 		return nil, err
 	}
@@ -184,7 +184,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		logger.Info(ctx, "set node")
 		// update resource map
 		var err error
-		node.Resource.Capacity, node.Resource.Usage, node.Resource.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
+		node.ResourceInfo.Capacity, node.ResourceInfo.Usage, node.ResourceInfo.Diffs, err = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
 		if err != nil {
 			return err
 		}
@@ -192,7 +192,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 
 		n.Bypass = (opts.Bypass == types.TriTrue) || (opts.Bypass == types.TriKeep && n.Bypass)
 		if n.IsDown() {
-			logger.Errorf(ctx, err, "node marked down: %s", opts.Nodename)
+			logger.Warnf(ctx, "node marked down: %s", opts.Nodename)
 		}
 
 		if opts.WorkloadsDown {
@@ -213,13 +213,12 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 		}
 
 		var origin types.Resources
-		if len(opts.Resources) == 0 {
-			return nil
-		}
-
 		return utils.Txn(ctx,
 			// if: update node resource capacity success
 			func(ctx context.Context) error {
+				if len(opts.Resources) == 0 {
+					return nil
+				}
 				origin, _, err = c.rmgr.SetNodeResourceCapacity(ctx, n.Name, opts.Resources, nil, opts.Delta, plugins.Incr)
 				return err
 			},
@@ -230,7 +229,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				}
 				// update resource
 				// actually we can ignore err here, if update success
-				n.Resource.Capacity, n.Resource.Usage, n.Resource.Diffs, _ = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
+				n.ResourceInfo.Capacity, n.ResourceInfo.Usage, n.ResourceInfo.Diffs, _ = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
 				// use send to update the usage
 				_ = c.pool.Invoke(func() { c.doSendNodeMetrics(context.TODO(), n) })
 				return nil
@@ -238,6 +237,9 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 			// rollback: update node resource capacity in reverse
 			func(ctx context.Context, failureByCond bool) error {
 				if failureByCond {
+					return nil
+				}
+				if len(opts.Resources) == 0 {
 					return nil
 				}
 				_, _, err = c.rmgr.SetNodeResourceCapacity(ctx, n.Name, nil, origin, false, plugins.Decr)

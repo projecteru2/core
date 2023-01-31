@@ -37,13 +37,13 @@ type NodeResourceInfo struct {
 // Node store node info
 type Node struct {
 	NodeMeta
-	Resource NodeResourceInfo `json:"resource,omitempty"`
-	NodeInfo string           `json:"-"`
-
 	// Bypass if bypass is true, it will not participate in future scheduling
-	Bypass    bool       `json:"bypass,omitempty"`
-	Available bool       `json:"-"`
-	Engine    engine.API `json:"-"`
+	Bypass bool `json:"bypass,omitempty"`
+
+	ResourceInfo NodeResourceInfo `json:"-"`
+	NodeInfo     string           `json:"-"`
+	Available    bool             `json:"-"`
+	Engine       engine.API       `json:"-"`
 }
 
 // Info show node info
