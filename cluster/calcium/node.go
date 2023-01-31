@@ -49,7 +49,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 				return err
 			}
 			node.Resource.Capacity = res
-			_ = c.pool.Invoke(func() { c.doSendNodeMetrics(ctx, node) })
+			_ = c.pool.Invoke(func() { c.doSendNodeMetrics(context.TODO(), node) })
 			return nil
 		},
 		// rollback: remove node with resource plugins
@@ -232,7 +232,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				// actually we can ignore err here, if update success
 				n.Resource.Capacity, n.Resource.Usage, n.Resource.Diffs, _ = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
 				// use send to update the usage
-				_ = c.pool.Invoke(func() { c.doSendNodeMetrics(ctx, n) })
+				_ = c.pool.Invoke(func() { c.doSendNodeMetrics(context.TODO(), n) })
 				return nil
 			},
 			// rollback: update node resource capacity in reverse

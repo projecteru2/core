@@ -25,7 +25,7 @@ func Txn(ctx context.Context, cond contextFunc, then contextFunc, rollback func(
 			return
 		}
 		if rollback == nil {
-			logger.Error(ctx, nil, "txn failed but no rollback function")
+			logger.Warn(ctx, "txn failed but no rollback function")
 			return
 		}
 

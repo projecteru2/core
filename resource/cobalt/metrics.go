@@ -14,14 +14,10 @@ func (m Manager) GetMetricsDescription(ctx context.Context) ([]*plugintypes.Metr
 	var metricsDescriptions []*plugintypes.MetricsDescription
 	resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.GetMetricsDescriptionResponse, error) {
 		resp, err := plugin.GetMetricsDescription(ctx)
-		if err != nil {
-			log.Errorf(ctx, err, "plugin %+v failed to get metrics description", plugin.Name())
-		}
 		return resp, err
 	})
 
 	if err != nil {
-		log.Error(ctx, err, "failed to get metrics description")
 		return nil, err
 	}
 
