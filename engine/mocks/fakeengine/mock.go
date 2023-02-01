@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 
 	"github.com/docker/go-units"
@@ -106,14 +105,11 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 		// parse engine args to resource options
 		resourceOpts := &virtualizationResource{}
 		_ = engine.MakeVirtualizationResource(opts.EngineParams, resourceOpts, func(p resourcetypes.Resources, d *virtualizationResource) error {
-			for n, v := range p {
-				fmt.Println("**********", n)
-				litter.Dump(v)
+			for _, v := range p {
 				if err := mapstructure.Decode(v, d); err != nil {
 					return err
 				}
 			}
-			litter.Dump(d)
 			return nil
 		})
 		litter.Dump(resourceOpts)
