@@ -123,10 +123,9 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					processingCommits = make(map[string]wal.Commit)
 					for nodename, deploy := range deployMap {
 						nodes = append(nodes, nodeMap[nodename])
-						if engineParamsMap[nodename], workloadResourcesMap[nodename], err = c.rmgr.Alloc(ctx, nodename, deploy, opts.Resources); err != nil {
+						if workloadResourcesMap[nodename], engineParamsMap[nodename], err = c.rmgr.Alloc(ctx, nodename, deploy, opts.Resources); err != nil {
 							return err
 						}
-
 						processing := opts.GetProcessing(nodename)
 						if processingCommits[nodename], err = c.wal.Log(eventProcessingCreated, processing); err != nil {
 							return err
