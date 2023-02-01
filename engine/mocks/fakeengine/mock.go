@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/docker/go-units"
@@ -116,10 +117,6 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 		ID = utils.RandomString(64)
 		return &enginetypes.VirtualizationCreated{ID: ID, Name: "mock-test-cvm" + utils.RandomString(6)}
 	}, nil)
-	ch := make(chan enginetypes.VirtualizationRemapMessage, 1)
-	ch <- enginetypes.VirtualizationRemapMessage{ID: ID}
-	close(ch)
-	e.On("VirtualizationResourceRemap", mock.Anything, mock.Anything).Return((<-chan enginetypes.VirtualizationRemapMessage)(ch), nil)
 	e.On("VirtualizationCopyTo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -133,7 +130,13 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	e.On("VirtualizationAttach", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(attachData, attachData, writeBuffer, nil)
 	e.On("VirtualizationResize", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationWait", mock.Anything, mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationWaitResult{Message: "", Code: 0}, nil)
-	e.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	e.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(
+		func(_ context.Context, ID string, params resourcetypes.Resources) error {
+			fmt.Println(ID)
+			litter.Dump(params)
+			return nil
+		},
+	)
 	e.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return([]byte("d1...\nd2...\n"), 0, 0, int64(0), nil)
 	return e, nil
 }
