@@ -13,6 +13,7 @@ import (
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
@@ -68,7 +69,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 		Count:          2,
 		DeployStrategy: strategy.Auto,
 		Podname:        "p1",
-		Resources:      types.Resources{},
+		Resources:      resourcetypes.Resources{},
 		Image:          "zc:test",
 		Entrypoint: &types.Entrypoint{
 			Name: "good-entrypoint",
@@ -149,8 +150,8 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	assert.True(t, walCommitted)
 	walCommitted = false
 	rmgr.On("Alloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		[]types.Resources{{}, {}},
-		[]types.Resources{
+		[]resourcetypes.Resources{{}, {}},
+		[]resourcetypes.Resources{
 			{node1.Name: {}},
 			{node2.Name: {}},
 		},

@@ -1,11 +1,9 @@
 package types
 
-import (
-	coretypes "github.com/projecteru2/core/types"
-)
+import resourcetypes "github.com/projecteru2/core/resource/types"
 
 // 带 keepbind
-type WorkloadResourceRequest = coretypes.RawParams
+type WorkloadResourceRequest = resourcetypes.RawParams
 
 // 不带 keepbind
-type WorkloadResource = coretypes.RawParams
+type WorkloadResource = resourcetypes.RawParams

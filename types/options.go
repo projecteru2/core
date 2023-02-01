@@ -3,13 +3,15 @@ package types
 import (
 	"fmt"
 	"io"
+
+	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
 // TODO should validate options
 
 // DeployOptions is options for deploying
 type DeployOptions struct {
-	Resources      Resources
+	Resources      resourcetypes.Resources
 	Name           string            // Name of application
 	Entrypoint     *Entrypoint       // entrypoint
 	Podname        string            // Name of pod to deploy
@@ -190,7 +192,7 @@ type AddNodeOptions struct {
 	Cert      string
 	Key       string
 	Labels    map[string]string
-	Resources Resources
+	Resources resourcetypes.Resources
 }
 
 // Validate checks options
@@ -212,7 +214,7 @@ type SetNodeOptions struct {
 	Nodename      string
 	Endpoint      string
 	WorkloadsDown bool
-	Resources     Resources
+	Resources     resourcetypes.Resources
 	Delta         bool
 	Labels        map[string]string
 	Bypass        TriOptions
@@ -260,7 +262,7 @@ type ExecuteWorkloadOptions struct {
 // ReallocOptions .
 type ReallocOptions struct {
 	ID        string
-	Resources Resources
+	Resources resourcetypes.Resources
 }
 
 // TriOptions .

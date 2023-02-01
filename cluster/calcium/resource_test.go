@@ -7,6 +7,7 @@ import (
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -48,8 +49,8 @@ func TestPodResource(t *testing.T) {
 	assert.NotEmpty(t, msg.Diffs)
 	store.AssertExpectations(t)
 	workloads := []*types.Workload{
-		{Resources: types.Resources{}},
-		{Resources: types.Resources{}},
+		{Resources: resourcetypes.Resources{}},
+		{Resources: resourcetypes.Resources{}},
 	}
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
 
@@ -63,8 +64,8 @@ func TestPodResource(t *testing.T) {
 	assert.NotEmpty(t, msg.Diffs)
 	store.AssertExpectations(t)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		types.Resources{"test": {"abc": 123}},
-		types.Resources{"test": {"abc": 123}},
+		resourcetypes.Resources{"test": {"abc": 123}},
+		resourcetypes.Resources{"test": {"abc": 123}},
 		[]string{},
 		nil)
 
@@ -98,14 +99,14 @@ func TestNodeResource(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		types.Resources{"test": {"abc": 123}},
-		types.Resources{"test": {"abc": 123}},
+		resourcetypes.Resources{"test": {"abc": 123}},
+		resourcetypes.Resources{"test": {"abc": 123}},
 		[]string{},
 		nil)
 
 	workloads := []*types.Workload{
-		{Resources: types.Resources{}, Engine: engine},
-		{Resources: types.Resources{}, Engine: engine},
+		{Resources: resourcetypes.Resources{}, Engine: engine},
+		{Resources: resourcetypes.Resources{}, Engine: engine},
 	}
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(nil, types.ErrMockError)

@@ -61,6 +61,7 @@ unit-test:
 	./lock/etcdlock/... \
 	./auth/simple/... \
 	./discovery/helium... \
+	./resource/types/. \
 	./resource/plugins/cpumem/. \
 	./resource/plugins/cpumem/schedule/. \
 	./wal/. \

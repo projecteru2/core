@@ -1,6 +1,6 @@
 package types
 
-// VirtualizationResource define resources
+// VirtualizationResource1 define resources
 type VirtualizationResource struct {
 	EngineParams  interface{}                 `json:"-" mapstructure:"-"`
 	CPU           map[string]int64            `json:"cpu_map" mapstructure:"cpu_map"` // for cpu binding

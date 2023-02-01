@@ -10,6 +10,7 @@ import (
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -47,7 +48,7 @@ func TestRealloc(t *testing.T) {
 				ID:        "c1",
 				Podname:   "p1",
 				Engine:    engine,
-				Resources: types.Resources{},
+				Resources: resourcetypes.Resources{},
 				Nodename:  "node1",
 			},
 		}
@@ -56,7 +57,7 @@ func TestRealloc(t *testing.T) {
 	store.On("GetWorkload", mock.Anything, "c1").Return(newC1(context.Background(), nil)[0], nil)
 	opts := &types.ReallocOptions{
 		ID:        "c1",
-		Resources: types.Resources{},
+		Resources: resourcetypes.Resources{},
 	}
 
 	// failed by GetNode
@@ -76,14 +77,14 @@ func TestRealloc(t *testing.T) {
 
 	// failed by plugin
 	rmgr.On("Realloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		types.Resources{}, nil, nil, types.ErrMockError,
+		resourcetypes.Resources{}, nil, nil, types.ErrMockError,
 	).Once()
 	err = c.ReallocResource(ctx, opts)
 	assert.Error(t, err)
 	rmgr.On("Realloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		types.Resources{},
-		types.Resources{},
-		types.Resources{},
+		resourcetypes.Resources{},
+		resourcetypes.Resources{},
+		resourcetypes.Resources{},
 		nil,
 	)
 	rmgr.On("RollbackRealloc", mock.Anything, mock.Anything, mock.Anything).Return(nil)

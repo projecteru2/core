@@ -6,6 +6,7 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 	engine "github.com/projecteru2/core/engine"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
 // NodeMeta .
@@ -27,11 +28,11 @@ func (n NodeMeta) DeepCopy() (nn NodeMeta, err error) {
 
 // NodeResourceInfo for node resource info
 type NodeResourceInfo struct {
-	Name      string      `json:"-"`
-	Capacity  Resources   `json:"capacity,omitempty"`
-	Usage     Resources   `json:"usage,omitempty"`
-	Diffs     []string    `json:"diffs,omitempty"`
-	Workloads []*Workload `json:"-"`
+	Name      string                  `json:"-"`
+	Capacity  resourcetypes.Resources `json:"capacity,omitempty"`
+	Usage     resourcetypes.Resources `json:"usage,omitempty"`
+	Diffs     []string                `json:"diffs,omitempty"`
+	Workloads []*Workload             `json:"-"`
 }
 
 // Node store node info

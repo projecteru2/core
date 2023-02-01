@@ -12,6 +12,7 @@ import (
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -42,7 +43,7 @@ func TestAddNode(t *testing.T) {
 	assert.Error(t, err)
 	rmgr.AssertExpectations(t)
 	rmgr.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		types.Resources{}, nil)
+		resourcetypes.Resources{}, nil)
 	rmgr.On("RemoveNode", mock.Anything, mock.Anything).Return(nil)
 
 	// failed by store.AddNode
@@ -248,7 +249,7 @@ func TestSetNode(t *testing.T) {
 	opts.Labels = labels
 
 	// failed by SetNodeResourceCapacity
-	opts.Resources = types.Resources{"a": {"a": 1}}
+	opts.Resources = resourcetypes.Resources{"a": {"a": 1}}
 	rmgr.On("SetNodeResourceCapacity", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		nil, nil, types.ErrMockError,
 	).Once()

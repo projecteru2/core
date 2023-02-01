@@ -7,6 +7,7 @@ import (
 	"github.com/cockroachdb/errors"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/sanity-io/litter"
 	"golang.org/x/exp/slices"
 
@@ -17,9 +18,9 @@ import (
 )
 
 // AddNode .
-func (m Manager) AddNode(ctx context.Context, nodename string, opts types.Resources, nodeInfo *enginetypes.Info) (types.Resources, error) {
+func (m Manager) AddNode(ctx context.Context, nodename string, opts resourcetypes.Resources, nodeInfo *enginetypes.Info) (resourcetypes.Resources, error) {
 	logger := log.WithFunc("resource.cobalt.AddNode").WithField("node", nodename)
-	res := types.Resources{}
+	res := resourcetypes.Resources{}
 	rollbackPlugins := []plugins.Plugin{}
 
 	return res, utils.PCR(ctx,
@@ -73,8 +74,8 @@ func (m Manager) AddNode(ctx context.Context, nodename string, opts types.Resour
 // RemoveNode .
 func (m Manager) RemoveNode(ctx context.Context, nodename string) error {
 	logger := log.WithFunc("resource.cobalt.RemoveNode").WithField("node", nodename)
-	var nodeCapacity types.Resources
-	var nodeUsage types.Resources
+	var nodeCapacity resourcetypes.Resources
+	var nodeUsage resourcetypes.Resources
 	rollbackPlugins := []plugins.Plugin{}
 
 	return utils.PCR(ctx,
@@ -163,9 +164,9 @@ func (m Manager) GetMostIdleNode(ctx context.Context, nodenames []string) (strin
 }
 
 // GetNodeResourceInfo .
-func (m Manager) GetNodeResourceInfo(ctx context.Context, nodename string, workloads []*types.Workload, fix bool) (types.Resources, types.Resources, []string, error) {
-	nodeCapacity := types.Resources{}
-	nodeUsage := types.Resources{}
+func (m Manager) GetNodeResourceInfo(ctx context.Context, nodename string, workloads []*types.Workload, fix bool) (resourcetypes.Resources, resourcetypes.Resources, []string, error) {
+	nodeCapacity := resourcetypes.Resources{}
+	nodeUsage := resourcetypes.Resources{}
 	resourceDiffs := []string{}
 
 	ps := m.plugins
@@ -211,27 +212,27 @@ func (m Manager) GetNodeResourceInfo(ctx context.Context, nodename string, workl
 }
 
 // SetNodeResourceUsage .
-func (m Manager) SetNodeResourceUsage(ctx context.Context, nodename string, nodeResource types.Resources, nodeResourceRequest types.Resources, workloadsResource []types.Resources, delta bool, incr bool) (types.Resources, types.Resources, error) {
+func (m Manager) SetNodeResourceUsage(ctx context.Context, nodename string, nodeResource resourcetypes.Resources, nodeResourceRequest resourcetypes.Resources, workloadsResource []resourcetypes.Resources, delta bool, incr bool) (resourcetypes.Resources, resourcetypes.Resources, error) {
 	logger := log.WithFunc("resource.cobalt.SetNodeResourceUsage")
-	wrksResource := map[string][]types.RawParams{}
+	wrksResource := map[string][]resourcetypes.RawParams{}
 	rollbackPlugins := []plugins.Plugin{}
-	before := types.Resources{}
-	after := types.Resources{}
+	before := resourcetypes.Resources{}
+	after := resourcetypes.Resources{}
 
 	return before, after, utils.PCR(ctx,
 		func(ctx context.Context) error {
-			// prepare: covert []types.Resources to map[plugin]types.Resources
+			// prepare: covert []resourcetypes.Resources to map[plugin]resourcetypes.Resources
 			// [{"cpu-plugin": {"cpu": 1}}, {"cpu-plugin": {"cpu": 1}}] -> {"cpu-plugin": [{"cpu": 1}, {"cpu": 1}]}
 			for _, workloadResource := range workloadsResource {
 				for plugin, params := range workloadResource {
 					if _, ok := wrksResource[plugin]; !ok {
-						wrksResource[plugin] = []types.RawParams{}
+						wrksResource[plugin] = []resourcetypes.RawParams{}
 					}
 					wrksResource[plugin] = append(wrksResource[plugin], params)
 				}
 			}
 			if nodeResourceRequest == nil {
-				nodeResourceRequest = types.Resources{}
+				nodeResourceRequest = resourcetypes.Resources{}
 			}
 			return nil
 		},
@@ -273,7 +274,7 @@ func (m Manager) SetNodeResourceUsage(ctx context.Context, nodename string, node
 // GetNodesDeployCapacity returns available nodes which meet all the requirements
 // the caller should require locks
 // pure calculation
-func (m Manager) GetNodesDeployCapacity(ctx context.Context, nodenames []string, opts types.Resources) (map[string]*plugintypes.NodeDeployCapacity, int, error) {
+func (m Manager) GetNodesDeployCapacity(ctx context.Context, nodenames []string, opts resourcetypes.Resources) (map[string]*plugintypes.NodeDeployCapacity, int, error) {
 	logger := log.WithFunc("resource.cobalt.GetNodesDeployCapacity")
 	var resp map[string]*plugintypes.NodeDeployCapacity
 
@@ -310,17 +311,17 @@ func (m Manager) GetNodesDeployCapacity(ctx context.Context, nodenames []string,
 
 // SetNodeResourceCapacity updates node resource capacity
 // receives resource options instead of resource args
-func (m Manager) SetNodeResourceCapacity(ctx context.Context, nodename string, nodeResource types.Resources, nodeResourceRequest types.Resources, delta bool, incr bool) (types.Resources, types.Resources, error) {
+func (m Manager) SetNodeResourceCapacity(ctx context.Context, nodename string, nodeResource resourcetypes.Resources, nodeResourceRequest resourcetypes.Resources, delta bool, incr bool) (resourcetypes.Resources, resourcetypes.Resources, error) {
 	logger := log.WithFunc("resource.cobalt.SetNodeResourceCapacity").WithField("node", nodename)
 
 	rollbackPlugins := []plugins.Plugin{}
-	before := types.Resources{}
-	after := types.Resources{}
+	before := resourcetypes.Resources{}
+	after := resourcetypes.Resources{}
 
 	return before, after, utils.PCR(ctx,
 		func(ctx context.Context) error {
 			if nodeResourceRequest == nil {
-				nodeResourceRequest = types.Resources{}
+				nodeResourceRequest = resourcetypes.Resources{}
 			}
 			return nil
 		},

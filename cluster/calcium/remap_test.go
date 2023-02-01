@@ -9,6 +9,7 @@ import (
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	"github.com/projecteru2/core/log"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 	"github.com/stretchr/testify/assert"
@@ -20,19 +21,19 @@ func TestRemapResource(t *testing.T) {
 	store := c.store.(*storemocks.Store)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		types.Resources{"test": {"abc": 123}},
-		types.Resources{"test": {"abc": 123}},
+		resourcetypes.Resources{"test": {"abc": 123}},
+		resourcetypes.Resources{"test": {"abc": 123}},
 		[]string{types.ErrMockError.Error()},
 		nil)
 	rmgr.On("Remap", mock.Anything, mock.Anything, mock.Anything).Return(
-		types.Resources{},
+		resourcetypes.Resources{},
 		nil,
 	)
 	engine := &enginemocks.API{}
 	node := &types.Node{Engine: engine}
 
 	workload := &types.Workload{
-		Resources: types.Resources{},
+		Resources: resourcetypes.Resources{},
 	}
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
 	ch := make(chan enginetypes.VirtualizationRemapMessage, 1)

@@ -8,6 +8,7 @@ import (
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
@@ -40,7 +41,7 @@ func TestCalculateCapacity(t *testing.T) {
 		Entrypoint: &types.Entrypoint{
 			Name: "entry",
 		},
-		Resources:      types.Resources{},
+		Resources:      resourcetypes.Resources{},
 		DeployStrategy: strategy.Auto,
 		NodeFilter: &types.NodeFilter{
 			Includes: []string{name},

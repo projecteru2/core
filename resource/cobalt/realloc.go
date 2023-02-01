@@ -6,16 +6,16 @@ import (
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
-	"github.com/projecteru2/core/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/utils"
 )
 
 // Realloc .
-func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource types.Resources, opts types.Resources) (types.Resources, types.Resources, types.Resources, error) {
+func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource resourcetypes.Resources, opts resourcetypes.Resources) (resourcetypes.Resources, resourcetypes.Resources, resourcetypes.Resources, error) {
 	logger := log.WithFunc("resource.cobalt.Realloc").WithField("node", nodename)
-	engineParams := types.Resources{}
-	deltaResources := types.Resources{}
-	workloadResource := types.Resources{}
+	engineParams := resourcetypes.Resources{}
+	deltaResources := resourcetypes.Resources{}
+	workloadResource := resourcetypes.Resources{}
 
 	return engineParams, deltaResources, workloadResource, utils.PCR(ctx,
 		// prepare: calculate engine args, delta node resource args and final workload resource args
@@ -46,7 +46,7 @@ func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource type
 		// commit: update node resource
 		func(ctx context.Context) error {
 			// TODO 存在问题？？3个参数是完整的变化，差值变化，按照 workloads 的变化
-			if _, _, err := m.SetNodeResourceUsage(ctx, nodename, nil, nil, []types.Resources{workloadResource}, true, plugins.Incr); err != nil {
+			if _, _, err := m.SetNodeResourceUsage(ctx, nodename, nil, nil, []resourcetypes.Resources{workloadResource}, true, plugins.Incr); err != nil {
 				logger.Error(ctx, err, "failed to update nodename resource")
 				return err
 			}
@@ -61,7 +61,7 @@ func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource type
 }
 
 // RollbackRealloc .
-func (m Manager) RollbackRealloc(ctx context.Context, nodename string, workloadParams types.Resources) error {
-	_, _, err := m.SetNodeResourceUsage(ctx, nodename, nil, nil, []types.Resources{workloadParams}, true, plugins.Decr)
+func (m Manager) RollbackRealloc(ctx context.Context, nodename string, workloadParams resourcetypes.Resources) error {
+	_, _, err := m.SetNodeResourceUsage(ctx, nodename, nil, nil, []resourcetypes.Resources{workloadParams}, true, plugins.Decr)
 	return err
 }
