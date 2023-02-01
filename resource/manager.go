@@ -24,7 +24,7 @@ type Manager interface {
 	RollbackAlloc(context.Context, string, []resourcetypes.Resources) error
 	Realloc(context.Context, string, resourcetypes.Resources, resourcetypes.Resources) (resourcetypes.Resources, resourcetypes.Resources, resourcetypes.Resources, error)
 	RollbackRealloc(context.Context, string, resourcetypes.Resources) error
-	Remap(context.Context, string, []*types.Workload) (resourcetypes.Resources, error)
+	Remap(context.Context, string, []*types.Workload) (map[string]resourcetypes.Resources, error)
 
 	GetNodeMetrics(context.Context, *types.Node) ([]*plugintypes.Metrics, error)
 	GetMetricsDescription(context.Context) ([]*plugintypes.MetricsDescription, error)

@@ -255,15 +255,15 @@ func (_m *Manager) Realloc(_a0 context.Context, _a1 string, _a2 types.Resources,
 }
 
 // Remap provides a mock function with given fields: _a0, _a1, _a2
-func (_m *Manager) Remap(_a0 context.Context, _a1 string, _a2 []*coretypes.Workload) (types.Resources, error) {
+func (_m *Manager) Remap(_a0 context.Context, _a1 string, _a2 []*coretypes.Workload) (map[string]types.Resources, error) {
 	ret := _m.Called(_a0, _a1, _a2)
 
-	var r0 types.Resources
-	if rf, ok := ret.Get(0).(func(context.Context, string, []*coretypes.Workload) types.Resources); ok {
+	var r0 map[string]types.Resources
+	if rf, ok := ret.Get(0).(func(context.Context, string, []*coretypes.Workload) map[string]types.Resources); ok {
 		r0 = rf(_a0, _a1, _a2)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(types.Resources)
+			r0 = ret.Get(0).(map[string]types.Resources)
 		}
 	}
 

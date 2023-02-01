@@ -3,12 +3,14 @@ package selfmon
 import (
 	"context"
 	"math/rand"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/engine/mocks/fakeengine"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
@@ -170,6 +172,10 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 				Podname:  node.Podname,
 				Alive:    false,
 			}
+		}
+		// deal with fakeengine
+		if strings.HasPrefix(node.Endpoint, fakeengine.PrefixKey) {
+			status.Alive = true
 		}
 		n.dealNodeStatusMessage(ctx, status)
 	}

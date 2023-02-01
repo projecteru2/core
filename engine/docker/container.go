@@ -19,10 +19,12 @@ import (
 	dockerslice "github.com/docker/docker/api/types/strslice"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
 )
@@ -83,14 +85,21 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	var err error
 
 	// parse engine args to resource options
-	opts.VirtualizationResource, err = engine.MakeVirtualizationResource(opts.EngineParams)
-	if err != nil {
+	resourceOpts := &VirtualizationResource{}
+	if err = engine.MakeVirtualizationResource(opts.EngineParams, resourceOpts, func(p resourcetypes.Resources, d *VirtualizationResource) error {
+		for _, v := range p {
+			if err := mapstructure.Decode(v, d); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
 		logger.Errorf(ctx, err, "failed to parse engine args %+v", opts.EngineParams)
 		return r, coretypes.ErrInvalidEngineArgs
 	}
 
 	// memory should more than 4MiB
-	if opts.Memory > 0 && opts.Memory < minMemory || opts.Memory < 0 {
+	if resourceOpts.Memory > 0 && resourceOpts.Memory < minMemory || resourceOpts.Memory < 0 {
 		return r, coretypes.ErrInvaildMemory
 	}
 	// set default log driver if lambda
@@ -148,7 +157,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		opts.DNS = []string{hostIP}
 	}
 	// mount paths
-	binds, volumes := makeMountPaths(ctx, opts)
+	binds, volumes := makeMountPaths(ctx, opts, resourceOpts)
 	logger.Debugf(ctx, "App %s will bind %+v", opts.Name, binds)
 
 	config := &dockercontainer.Config{
@@ -169,7 +178,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		return r, err
 	}
 
-	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode, opts.IOPSOptions, false)
+	resource := makeResourceSetting(resourceOpts.Quota, resourceOpts.Memory, resourceOpts.CPU, resourceOpts.NUMANode, resourceOpts.IOPSOptions, false)
 	// set ulimits
 	if len(rArgs.Ulimits) == 0 {
 		resource.Ulimits = []*units.Ulimit{
@@ -182,9 +191,9 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		opts.DNS = []string{}
 		opts.Sysctl = map[string]string{}
 	}
-	if opts.Storage > 0 {
+	if resourceOpts.Storage > 0 {
 		volumeTotal := int64(0)
-		for _, v := range opts.Volumes {
+		for _, v := range resourceOpts.Volumes {
 			parts := strings.Split(v, ":")
 			if len(parts) < 4 {
 				continue
@@ -195,8 +204,8 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 			}
 			volumeTotal += size
 		}
-		if opts.Storage-volumeTotal > 0 {
-			rArgs.StorageOpt["size"] = fmt.Sprintf("%+v", opts.Storage-volumeTotal)
+		if resourceOpts.Storage-volumeTotal > 0 {
+			rArgs.StorageOpt["size"] = fmt.Sprintf("%+v", resourceOpts.Storage-volumeTotal)
 		}
 	}
 	// 如果有指定用户，用指定用户
@@ -407,21 +416,29 @@ func (e *Engine) VirtualizationWait(ctx context.Context, ID, state string) (*eng
 }
 
 // VirtualizationUpdateResource update virtualization resource
-func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error {
+func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, engineParams resourcetypes.Resources) error {
 	logger := log.WithFunc("engine.docker.VirtualizationUpdateResource")
+
 	// parse engine args to resource options
-	resourceOpts, err := engine.MakeVirtualizationResource(opts.EngineParams)
-	if err != nil {
-		logger.Errorf(ctx, err, "failed to parse engine args %+v, workload ID %+v", opts.EngineParams, ID)
-		return coretypes.ErrInvalidEngineArgs
+	resourceOpts := &VirtualizationResource{}
+	if err := engine.MakeVirtualizationResource(engineParams, resourceOpts, func(p resourcetypes.Resources, d *VirtualizationResource) error {
+		for _, v := range p {
+			if err := mapstructure.Decode(v, d); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		logger.WithField("ID", ID).Errorf(ctx, err, "failed to parse engine args %+v", engineParams)
+		return err
 	}
 
 	if resourceOpts.Memory > 0 && resourceOpts.Memory < minMemory || resourceOpts.Memory < 0 {
 		return coretypes.ErrInvaildMemory
 	}
-	if len(opts.Volumes) > 0 || resourceOpts.VolumeChanged {
-		logger.Errorf(ctx, err, "docker engine not support rebinding volume resource: %+v", resourceOpts.Volumes)
-		return coretypes.ErrInvaildWorkloadOps
+	if len(resourceOpts.Volumes) > 0 || resourceOpts.VolumeChanged {
+		logger.Warnf(ctx, "docker engine not support rebinding volume resource: %+v", resourceOpts.Volumes)
+		return coretypes.ErrInvalidVolumeBind
 	}
 
 	memory := resourceOpts.Memory
@@ -450,7 +467,7 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 
 	newResource := makeResourceSetting(quota, memory, cpuMap, numaNode, resourceOpts.IOPSOptions, resourceOpts.Remap)
 	updateConfig := dockercontainer.UpdateConfig{Resources: newResource}
-	_, err = e.client.ContainerUpdate(ctx, ID, updateConfig)
+	_, err := e.client.ContainerUpdate(ctx, ID, updateConfig)
 	return err
 }
 

@@ -10,10 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	coresource "github.com/projecteru2/core/source"
 	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
@@ -181,20 +183,27 @@ func (v *Virt) BuildContent(ctx context.Context, scm coresource.Source, opts *en
 // VirtualizationCreate creates a guest.
 func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (guest *enginetypes.VirtualizationCreated, err error) {
 	// parse engine args to resource options
-	opts.VirtualizationResource, err = engine.MakeVirtualizationResource(opts.EngineParams)
-	if err != nil {
+	resourceOpts := &VirtualizationResource{}
+	if err = engine.MakeVirtualizationResource(opts.EngineParams, resourceOpts, func(p resourcetypes.Resources, d *VirtualizationResource) error {
+		for _, v := range p {
+			if err := mapstructure.Decode(v, d); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
 		log.WithFunc("engine.virt.VirtualizationCreate").Errorf(ctx, err, "failed to parse engine args %+v", opts.EngineParams)
 		return nil, coretypes.ErrInvalidEngineArgs
 	}
 
-	vols, err := v.parseVolumes(opts.Volumes)
+	vols, err := v.parseVolumes(resourceOpts.Volumes)
 	if err != nil {
 		return nil, err
 	}
 
 	req := virttypes.CreateGuestReq{
-		CPU:        int(opts.Quota),
-		Mem:        opts.Memory,
+		CPU:        int(resourceOpts.Quota),
+		Mem:        resourceOpts.Memory,
 		ImageName:  opts.Image,
 		ImageUser:  opts.Labels[ImageUserKey],
 		Volumes:    vols,
@@ -320,22 +329,29 @@ func (v *Virt) VirtualizationWait(ctx context.Context, ID, state string) (*engin
 }
 
 // VirtualizationUpdateResource updates resource.
-func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, resourceOpts *enginetypes.VirtualizationResource) error {
+func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, engineParams resourcetypes.Resources) error {
 	// parse engine args to resource options
-	opts, err := engine.MakeVirtualizationResource(resourceOpts.EngineParams)
-	if err != nil {
-		log.WithFunc("engine.virt.VirtualizationUpdateResource").Errorf(ctx, err, "failed to parse engine args %+v", opts.EngineParams)
+	resourceOpts := &VirtualizationResource{}
+	if err := engine.MakeVirtualizationResource(engineParams, resourceOpts, func(p resourcetypes.Resources, d *VirtualizationResource) error {
+		for _, v := range p {
+			if err := mapstructure.Decode(v, d); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		log.WithFunc("engine.virt.VirtualizationUpdateResource").Errorf(ctx, err, "failed to parse engine args %+v", engineParams)
 		return err
 	}
 
-	vols, err := v.parseVolumes(opts.Volumes)
+	vols, err := v.parseVolumes(resourceOpts.Volumes)
 	if err != nil {
 		return err
 	}
 
 	args := virttypes.ResizeGuestReq{
-		CPU:     int(opts.Quota),
-		Mem:     opts.Memory,
+		CPU:     int(resourceOpts.Quota),
+		Mem:     resourceOpts.Memory,
 		Volumes: vols,
 	}
 	args.ID = ID

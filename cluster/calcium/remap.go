@@ -3,7 +3,6 @@ package calcium
 import (
 	"context"
 
-	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -54,7 +53,7 @@ func (c *Calcium) doRemapResource(ctx context.Context, node *types.Node) (ch cha
 		for workloadID, engineParams := range engineParamsMap {
 			ch <- &remapMsg{
 				ID:  workloadID,
-				err: node.Engine.VirtualizationUpdateResource(ctx, workloadID, &enginetypes.VirtualizationResource{EngineParams: engineParams}),
+				err: node.Engine.VirtualizationUpdateResource(ctx, workloadID, engineParams),
 			}
 		}
 	})

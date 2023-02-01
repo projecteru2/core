@@ -5,14 +5,9 @@ import (
 	"io"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
 )
-
-// VirtualizationResourceRemap .
-func (e *Engine) VirtualizationResourceRemap(ctx context.Context, opts *enginetypes.VirtualizationRemapOptions) (ch <-chan enginetypes.VirtualizationRemapMessage, err error) {
-	err = types.ErrEngineNotImplemented
-	return
-}
 
 // VirtualizationLogs fetches service logs
 func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout io.ReadCloser, stderr io.ReadCloser, err error) {
@@ -39,7 +34,7 @@ func (e *Engine) VirtualizationWait(ctx context.Context, ID, state string) (res 
 }
 
 // VirtualizationUpdateResource updates service resource limits
-func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) (err error) {
+func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, params resourcetypes.Resources) (err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }

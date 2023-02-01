@@ -4,15 +4,18 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/docker/go-units"
+	"github.com/mitchellh/mapstructure"
 	"github.com/sanity-io/litter"
 	mock "github.com/stretchr/testify/mock"
 
 	"github.com/projecteru2/core/engine"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -87,8 +90,33 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	// virtualization
 	var ID string
 	e.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(func(_ context.Context, opts *enginetypes.VirtualizationCreateOptions) *enginetypes.VirtualizationCreated {
-		tmp, _ := engine.MakeVirtualizationResource(opts.EngineParams)
-		litter.Dump(tmp)
+		type virtualizationResource struct {
+			CPU           map[string]int64            `json:"cpu_map" mapstructure:"cpu_map"` // for cpu binding
+			Quota         float64                     `json:"cpu" mapstructure:"cpu"`         // for cpu quota
+			Memory        int64                       `json:"memory" mapstructure:"memory"`   // for memory binding
+			Storage       int64                       `json:"storage" mapstructure:"storage"`
+			NUMANode      string                      `json:"numa_node" mapstructure:"numa_node"` // numa node
+			Volumes       []string                    `json:"volumes" mapstructure:"volumes"`
+			VolumePlan    map[string]map[string]int64 `json:"volume_plan" mapstructure:"volume_plan"`       // literal VolumePlan
+			VolumeChanged bool                        `json:"volume_changed" mapstructure:"volume_changed"` // indicate whether new volumes contained in realloc request
+			IOPSOptions   map[string]string           `json:"iops_options" mapstructure:"IOPS_options"`     // format: {device_name: "read-IOPS:write-IOPS:read-bps:write-bps"}
+			Remap         bool                        `json:"remap" mapstructure:"remap"`
+		}
+
+		// parse engine args to resource options
+		resourceOpts := &virtualizationResource{}
+		_ = engine.MakeVirtualizationResource(opts.EngineParams, resourceOpts, func(p resourcetypes.Resources, d *virtualizationResource) error {
+			for n, v := range p {
+				fmt.Println("**********", n)
+				litter.Dump(v)
+				if err := mapstructure.Decode(v, d); err != nil {
+					return err
+				}
+			}
+			litter.Dump(d)
+			return nil
+		})
+		litter.Dump(resourceOpts)
 		ID = utils.RandomString(64)
 		return &enginetypes.VirtualizationCreated{ID: ID, Name: "mock-test-cvm" + utils.RandomString(6)}
 	}, nil)

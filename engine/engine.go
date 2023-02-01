@@ -6,6 +6,7 @@ import (
 	"time"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	coresource "github.com/projecteru2/core/source"
 )
 
@@ -47,6 +48,6 @@ type API interface {
 	VirtualizationAttach(ctx context.Context, ID string, stream, openStdin bool) (stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error)
 	VirtualizationResize(ctx context.Context, ID string, height, width uint) error
 	VirtualizationWait(ctx context.Context, ID, state string) (*enginetypes.VirtualizationWaitResult, error)
-	VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error
+	VirtualizationUpdateResource(ctx context.Context, ID string, params resourcetypes.Resources) error
 	VirtualizationCopyFrom(ctx context.Context, ID, path string) (content []byte, uid, gid int, mode int64, _ error)
 }
