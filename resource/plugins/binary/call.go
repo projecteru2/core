@@ -17,7 +17,6 @@ func (p Plugin) call(ctx context.Context, cmd string, req interface{}, resp inte
 
 	command := exec.CommandContext(ctx, p.path, cmd) // nolint
 	command.Dir = p.config.ResourcePlugin.Dir
-	logger.Infof(ctx, "call %s", command.String())
 
 	out, err := p.execCommand(ctx, command, req)
 	if err != nil {
@@ -37,7 +36,7 @@ func (p Plugin) execCommand(ctx context.Context, cmd *exec.Cmd, req interface{})
 	if err != nil {
 		return nil, err
 	}
-	logger.WithField("in", string(b)).Debug(ctx, "call params")
+	logger.WithField("in", string(b)).WithField("cmd", cmd.String()).Info(ctx, "call params")
 	cmd.Stdin = bytes.NewBuffer(b)
 	return cmd.CombinedOutput()
 }
