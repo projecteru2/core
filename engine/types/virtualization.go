@@ -59,9 +59,3 @@ type VirtualizationWaitResult struct {
 	Message string
 	Code    int64
 }
-
-// VirtualizationRemapMessage returns from engine
-type VirtualizationRemapMessage struct {
-	ID    string
-	Error error
-}

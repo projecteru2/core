@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
-	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	"github.com/projecteru2/core/log"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
@@ -36,9 +35,6 @@ func TestRemapResource(t *testing.T) {
 		Resources: resourcetypes.Resources{},
 	}
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
-	ch := make(chan enginetypes.VirtualizationRemapMessage, 1)
-	ch <- enginetypes.VirtualizationRemapMessage{}
-	close(ch)
 	_, err := c.doRemapResource(context.Background(), node)
 	assert.Nil(t, err)
 
