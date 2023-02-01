@@ -9,6 +9,8 @@ import (
 
 	mock "github.com/stretchr/testify/mock"
 
+	resourcetypes "github.com/projecteru2/core/resource/types"
+
 	source "github.com/projecteru2/core/source"
 
 	time "time"
@@ -709,13 +711,13 @@ func (_m *API) VirtualizationStop(ctx context.Context, ID string, gracefulTimeou
 	return r0
 }
 
-// VirtualizationUpdateResource provides a mock function with given fields: ctx, ID, opts
-func (_m *API) VirtualizationUpdateResource(ctx context.Context, ID string, opts *types.VirtualizationResource) error {
-	ret := _m.Called(ctx, ID, opts)
+// VirtualizationUpdateResource provides a mock function with given fields: ctx, ID, params
+func (_m *API) VirtualizationUpdateResource(ctx context.Context, ID string, params resourcetypes.Resources) error {
+	ret := _m.Called(ctx, ID, params)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, *types.VirtualizationResource) error); ok {
-		r0 = rf(ctx, ID, opts)
+	if rf, ok := ret.Get(0).(func(context.Context, string, resourcetypes.Resources) error); ok {
+		r0 = rf(ctx, ID, params)
 	} else {
 		r0 = ret.Error(0)
 	}

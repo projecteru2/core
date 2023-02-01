@@ -5,7 +5,6 @@ import (
 
 	"github.com/sanity-io/litter"
 
-	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
@@ -55,7 +54,7 @@ func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workloa
 		},
 		// then: update virtualization
 		func(ctx context.Context) error {
-			return node.Engine.VirtualizationUpdateResource(ctx, opts.ID, &enginetypes.VirtualizationResource{EngineParams: engineParams})
+			return node.Engine.VirtualizationUpdateResource(ctx, opts.ID, engineParams)
 		},
 		// rollback: revert the resource changes and rollback workload meta
 		func(ctx context.Context, failureByCond bool) error {

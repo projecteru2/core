@@ -57,13 +57,12 @@ func (m Manager) Alloc(ctx context.Context, nodename string, deployCount int, op
 					workloadsParams[index][plugin.Name()] = params
 				}
 				for index, params := range resp.EnginesParams {
-					v := engineParams[index][plugin.Name()]
-					vMerged, err := m.mergeEngineParams(ctx, v, params)
+					v, err := m.mergeEngineParams(ctx, engineParams[index][plugin.Name()], params)
 					if err != nil {
 						logger.Error(ctx, err, "invalid engine args")
 						return err
 					}
-					engineParams[index][plugin.Name()] = vMerged
+					engineParams[index][plugin.Name()] = v
 				}
 			}
 			return nil

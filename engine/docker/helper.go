@@ -70,7 +70,7 @@ func FuckDockerStream(stream dockertypes.HijackedResponse) io.ReadCloser {
 // 使用volumes, 参数格式跟docker一样
 // volumes:
 //   - "/foo-data:$SOMEENV/foodata:rw"
-func makeMountPaths(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) ([]string, map[string]struct{}) {
+func makeMountPaths(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions, resourceOpts *VirtualizationResource) ([]string, map[string]struct{}) {
 	binds := []string{}
 	volumes := make(map[string]struct{})
 
@@ -83,7 +83,7 @@ func makeMountPaths(ctx context.Context, opts *enginetypes.VirtualizationCreateO
 		return envMap[env]
 	}
 
-	for _, path := range opts.Volumes {
+	for _, path := range resourceOpts.Volumes {
 		expanded := os.Expand(path, expandENV)
 		parts := strings.Split(expanded, ":")
 		if len(parts) == 2 {

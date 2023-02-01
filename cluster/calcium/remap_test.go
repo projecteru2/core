@@ -26,7 +26,7 @@ func TestRemapResource(t *testing.T) {
 		[]string{types.ErrMockError.Error()},
 		nil)
 	rmgr.On("Remap", mock.Anything, mock.Anything, mock.Anything).Return(
-		resourcetypes.Resources{},
+		map[string]resourcetypes.Resources{},
 		nil,
 	)
 	engine := &enginemocks.API{}
@@ -39,7 +39,6 @@ func TestRemapResource(t *testing.T) {
 	ch := make(chan enginetypes.VirtualizationRemapMessage, 1)
 	ch <- enginetypes.VirtualizationRemapMessage{}
 	close(ch)
-	engine.On("VirtualizationResourceRemap", mock.Anything, mock.Anything).Return((<-chan enginetypes.VirtualizationRemapMessage)(ch), nil)
 	_, err := c.doRemapResource(context.Background(), node)
 	assert.Nil(t, err)
 

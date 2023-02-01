@@ -33,11 +33,12 @@ func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource reso
 			}
 
 			for plugin, resp := range resps {
-				engineParams[plugin.Name()] = resp.EngineParams
-				// if engineParams, err = m.mergeEngineParams(ctx, engineParams, resp.EngineParams); err != nil {
-				//	logger.Error(ctx, err, "invalid engine args")
-				//	return err
-				// }
+				v, err := m.mergeEngineParams(ctx, engineParams[plugin.Name()], resp.EngineParams)
+				if err != nil {
+					logger.Error(ctx, err, "invalid engine args")
+					return err
+				}
+				engineParams[plugin.Name()] = v
 				deltaResources[plugin.Name()] = resp.DeltaResource
 				workloadResource[plugin.Name()] = resp.WorkloadResource
 			}

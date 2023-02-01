@@ -6,6 +6,7 @@ import (
 	"time"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	coresource "github.com/projecteru2/core/source"
 )
 
@@ -124,11 +125,6 @@ func (f *EngineWithErr) VirtualizationCreate(ctx context.Context, opts *enginety
 	return nil, f.DefaultErr
 }
 
-// VirtualizationResourceRemap .
-func (f *EngineWithErr) VirtualizationResourceRemap(ctx context.Context, options *enginetypes.VirtualizationRemapOptions) (<-chan enginetypes.VirtualizationRemapMessage, error) {
-	return nil, f.DefaultErr
-}
-
 // VirtualizationCopyTo .
 func (f *EngineWithErr) VirtualizationCopyTo(ctx context.Context, ID, target string, content []byte, uid, gid int, mode int64) error {
 	return f.DefaultErr
@@ -175,7 +171,7 @@ func (f *EngineWithErr) VirtualizationWait(ctx context.Context, ID, state string
 }
 
 // VirtualizationUpdateResource .
-func (f *EngineWithErr) VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error {
+func (f *EngineWithErr) VirtualizationUpdateResource(ctx context.Context, ID string, engineParams resourcetypes.Resources) error {
 	return f.DefaultErr
 }
 

@@ -74,6 +74,6 @@ func (m *Manager) AddPlugins(plugins ...plugins.Plugin) {
 }
 
 // GetPlugins is used for mock
-func (m *Manager) GetPlugins() []plugins.Plugin {
+func (m Manager) GetPlugins() []plugins.Plugin {
 	return m.plugins
 }
