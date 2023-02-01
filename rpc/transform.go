@@ -8,6 +8,7 @@ import (
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -533,10 +534,10 @@ func toCoreRemoveImageOptions(opts *pb.RemoveImageOptions) *types.ImageOptions {
 	}
 }
 
-func toCoreResources(resources map[string][]byte) types.Resources {
-	r := types.Resources{}
+func toCoreResources(resources map[string][]byte) resourcetypes.Resources {
+	r := resourcetypes.Resources{}
 	for k, v := range resources {
-		rp := types.RawParams{}
+		rp := resourcetypes.RawParams{}
 		if err := json.Unmarshal(v, &rp); err != nil {
 			log.WithFunc("toCoreResources").Errorf(nil, err, "%v", string(v)) // nolint
 			continue

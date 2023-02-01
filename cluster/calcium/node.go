@@ -8,6 +8,7 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -20,7 +21,7 @@ func (c *Calcium) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 		logger.Error(ctx, err)
 		return nil, err
 	}
-	var res types.Resources
+	var res resourcetypes.Resources
 	var node *types.Node
 	var err error
 
@@ -212,7 +213,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 			n.Labels = opts.Labels
 		}
 
-		var origin types.Resources
+		var origin resourcetypes.Resources
 		return utils.Txn(ctx,
 			// if: update node resource capacity success
 			func(ctx context.Context) error {

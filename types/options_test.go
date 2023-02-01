@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"testing"
 
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap/buffer"
 )
@@ -17,7 +18,7 @@ func TestParseTriOption(t *testing.T) {
 
 func TestSetNodeOptions(t *testing.T) {
 	o := &SetNodeOptions{
-		Resources: Resources{},
+		Resources: resourcetypes.Resources{},
 	}
 	assert.Equal(t, ErrEmptyNodeName, o.Validate())
 

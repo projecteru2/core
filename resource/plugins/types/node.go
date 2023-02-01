@@ -1,14 +1,14 @@
 package types
 
 import (
-	coretypes "github.com/projecteru2/core/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
 // NodeResourceRequest use for raw data to create node
-type NodeResourceRequest = coretypes.RawParams
+type NodeResourceRequest = resourcetypes.RawParams
 
 // NodeResource use for indicate node's resource
-type NodeResource = coretypes.RawParams
+type NodeResource = resourcetypes.RawParams
 
 // AddNodeResponse .
 type AddNodeResponse struct {

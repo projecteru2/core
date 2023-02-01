@@ -6,7 +6,7 @@ import (
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource/plugins"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
-	"github.com/projecteru2/core/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/utils"
 )
 
@@ -23,17 +23,17 @@ opts struct
 		},
 	}
 */
-func (m Manager) Alloc(ctx context.Context, nodename string, deployCount int, opts types.Resources) ([]types.Resources, []types.Resources, error) {
+func (m Manager) Alloc(ctx context.Context, nodename string, deployCount int, opts resourcetypes.Resources) ([]resourcetypes.Resources, []resourcetypes.Resources, error) {
 	logger := log.WithFunc("resource.coblat.Alloc")
 
 	// index -> no, map by plugin name
-	workloadsParams := make([]types.Resources, deployCount)
-	engineParams := make([]types.Resources, deployCount)
+	workloadsParams := make([]resourcetypes.Resources, deployCount)
+	engineParams := make([]resourcetypes.Resources, deployCount)
 
 	// init engine args
 	for i := 0; i < deployCount; i++ {
-		workloadsParams[i] = types.Resources{}
-		engineParams[i] = types.Resources{}
+		workloadsParams[i] = resourcetypes.Resources{}
+		engineParams[i] = resourcetypes.Resources{}
 	}
 
 	return workloadsParams, engineParams, utils.PCR(ctx,
@@ -86,7 +86,7 @@ func (m Manager) Alloc(ctx context.Context, nodename string, deployCount int, op
 }
 
 // RollbackAlloc rollbacks the allocated resource
-func (m Manager) RollbackAlloc(ctx context.Context, nodename string, workloadsParams []types.Resources) error {
+func (m Manager) RollbackAlloc(ctx context.Context, nodename string, workloadsParams []resourcetypes.Resources) error {
 	_, _, err := m.SetNodeResourceUsage(ctx, nodename, nil, nil, workloadsParams, true, plugins.Decr)
 	return err
 }

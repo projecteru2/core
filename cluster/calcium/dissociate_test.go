@@ -7,6 +7,7 @@ import (
 
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	resourcemocks "github.com/projecteru2/core/resource/mocks"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -25,7 +26,7 @@ func TestDissociateWorkload(t *testing.T) {
 	lock.On("Unlock", mock.Anything).Return(nil)
 
 	c1 := &types.Workload{
-		Resources: types.Resources{},
+		Resources: resourcetypes.Resources{},
 		ID:        "c1",
 		Podname:   "p1",
 		Nodename:  "node1",
@@ -55,8 +56,8 @@ func TestDissociateWorkload(t *testing.T) {
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	// failed by RemoveWorkload
 	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		types.Resources{},
-		types.Resources{},
+		resourcetypes.Resources{},
+		resourcetypes.Resources{},
 		nil,
 	)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()

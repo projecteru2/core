@@ -7,6 +7,7 @@ import (
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -31,9 +32,9 @@ func (c *Calcium) ReallocResource(ctx context.Context, opts *types.ReallocOption
 }
 
 func (c *Calcium) doReallocOnNode(ctx context.Context, node *types.Node, workload *types.Workload, originWorkload types.Workload, opts *types.ReallocOptions) error {
-	var resources types.Resources
-	var deltaResources types.Resources
-	var engineParams types.Resources
+	var resources resourcetypes.Resources
+	var deltaResources resourcetypes.Resources
+	var engineParams resourcetypes.Resources
 	var err error
 
 	logger := log.WithFunc("calcium.doReallocOnNode").WithField("opts", opts)

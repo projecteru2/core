@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/docker/go-units"
+	"github.com/sanity-io/litter"
 	mock "github.com/stretchr/testify/mock"
 
 	"github.com/projecteru2/core/engine"
@@ -85,7 +86,9 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	e.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("BuildContent", buildContent, nil)
 	// virtualization
 	var ID string
-	e.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(func(context.Context, *enginetypes.VirtualizationCreateOptions) *enginetypes.VirtualizationCreated {
+	e.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(func(_ context.Context, opts *enginetypes.VirtualizationCreateOptions) *enginetypes.VirtualizationCreated {
+		tmp, _ := engine.MakeVirtualizationResource(opts.EngineParams)
+		litter.Dump(tmp)
 		ID = utils.RandomString(64)
 		return &enginetypes.VirtualizationCreated{ID: ID, Name: "mock-test-cvm" + utils.RandomString(6)}
 	}, nil)
@@ -108,6 +111,5 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	e.On("VirtualizationWait", mock.Anything, mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationWaitResult{Message: "", Code: 0}, nil)
 	e.On("VirtualizationUpdateResource", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return([]byte("d1...\nd2...\n"), 0, 0, int64(0), nil)
-	//	e.On("ResourceValidate", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	return e, nil
 }

@@ -13,6 +13,7 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/metrics"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
@@ -52,9 +53,9 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 		deployMap   map[string]int
 		rollbackMap map[string][]int
 		// map[nodename][]Resources
-		engineParamsMap = map[string][]types.Resources{}
+		engineParamsMap = map[string][]resourcetypes.Resources{}
 		// map[nodename][]Resources
-		workloadResourcesMap = map[string][]types.Resources{}
+		workloadResourcesMap = map[string][]resourcetypes.Resources{}
 	)
 
 	_ = c.pool.Invoke(func() {
@@ -151,7 +152,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 				}
 				for nodename, rollbackIndices := range rollbackMap {
 					if e := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
-						rollbackResources := utils.Map(rollbackIndices, func(idx int) types.Resources {
+						rollbackResources := utils.Map(rollbackIndices, func(idx int) resourcetypes.Resources {
 							return workloadResourcesMap[nodename][idx]
 						})
 						return c.rmgr.RollbackAlloc(ctx, nodename, rollbackResources)
@@ -173,8 +174,8 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 func (c *Calcium) doDeployWorkloads(ctx context.Context,
 	ch chan *types.CreateWorkloadMessage,
 	opts *types.DeployOptions,
-	engineParamsMap map[string][]types.Resources,
-	workloadResourcesMap map[string][]types.Resources,
+	engineParamsMap map[string][]resourcetypes.Resources,
+	workloadResourcesMap map[string][]resourcetypes.Resources,
 	deployMap map[string]int) (_ map[string][]int, err error) {
 
 	wg := sync.WaitGroup{}
@@ -220,8 +221,8 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	nodename string,
 	opts *types.DeployOptions,
 	deploy int,
-	engineParams []types.Resources,
-	workloadResources []types.Resources,
+	engineParams []resourcetypes.Resources,
+	workloadResources []resourcetypes.Resources,
 	seq int) (indices []int, err error) {
 
 	logger := log.WithFunc("calcium.doDeployWorkloadsOnNode").WithField("node", nodename).WithField("ident", opts.ProcessIdent).WithField("deploy", deploy).WithField("seq", seq)
@@ -292,15 +293,15 @@ func (c *Calcium) doDeployOneWorkload(
 	node *types.Node,
 	opts *types.DeployOptions,
 	msg *types.CreateWorkloadMessage,
-	config *enginetypes.VirtualizationCreateOptions,
+	createOpts *enginetypes.VirtualizationCreateOptions,
 	decrProcessing bool,
 ) (err error) {
 	logger := log.WithFunc("calcium.doDeployWorkload").WithField("node", node.Name).WithField("ident", opts.ProcessIdent).WithField("msg", msg)
 	workload := &types.Workload{
 		Resources:    msg.Resources,
 		EngineParams: msg.EngineParams,
-		Name:         config.Name,
-		Labels:       config.Labels,
+		Name:         createOpts.Name,
+		Labels:       createOpts.Labels,
 		Podname:      opts.Podname,
 		Nodename:     node.Name,
 		Hook:         opts.Entrypoint.Hook,
@@ -324,7 +325,7 @@ func (c *Calcium) doDeployOneWorkload(
 		ctx,
 		// create workload
 		func(ctx context.Context) error {
-			created, err := node.Engine.VirtualizationCreate(ctx, config)
+			created, err := node.Engine.VirtualizationCreate(ctx, createOpts)
 			if err != nil {
 				return err
 			}
@@ -437,48 +438,48 @@ func (c *Calcium) doDeployOneWorkload(
 }
 
 func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.CreateWorkloadMessage, opts *types.DeployOptions, node *types.Node) *enginetypes.VirtualizationCreateOptions {
-	config := &enginetypes.VirtualizationCreateOptions{}
+	createOpts := &enginetypes.VirtualizationCreateOptions{}
 	// general
-	config.EngineParams = msg.EngineParams
-	config.RawArgs = opts.RawArgs
-	config.Lambda = opts.Lambda
-	config.User = opts.User
-	config.DNS = opts.DNS
-	config.Image = opts.Image
-	config.Stdin = opts.OpenStdin
-	config.Hosts = opts.ExtraHosts
-	config.Debug = opts.Debug
-	config.Networks = opts.Networks
+	createOpts.EngineParams = msg.EngineParams
+	createOpts.RawArgs = opts.RawArgs
+	createOpts.Lambda = opts.Lambda
+	createOpts.User = opts.User
+	createOpts.DNS = opts.DNS
+	createOpts.Image = opts.Image
+	createOpts.Stdin = opts.OpenStdin
+	createOpts.Hosts = opts.ExtraHosts
+	createOpts.Debug = opts.Debug
+	createOpts.Networks = opts.Networks
 
 	// entry
 	entry := opts.Entrypoint
-	config.WorkingDir = entry.Dir
-	config.Privileged = entry.Privileged
-	config.Sysctl = entry.Sysctls
-	config.Publish = entry.Publish
-	config.Restart = entry.Restart
+	createOpts.WorkingDir = entry.Dir
+	createOpts.Privileged = entry.Privileged
+	createOpts.Sysctl = entry.Sysctls
+	createOpts.Publish = entry.Publish
+	createOpts.Restart = entry.Restart
 	if entry.Log != nil {
-		config.LogType = entry.Log.Type
-		config.LogConfig = map[string]string{}
+		createOpts.LogType = entry.Log.Type
+		createOpts.LogConfig = map[string]string{}
 		for k, v := range entry.Log.Config {
-			config.LogConfig[k] = v
+			createOpts.LogConfig[k] = v
 		}
 	}
 	// name
 	suffix := utils.RandomString(6)
-	config.Name = utils.MakeWorkloadName(opts.Name, opts.Entrypoint.Name, suffix)
-	msg.WorkloadName = config.Name
+	createOpts.Name = utils.MakeWorkloadName(opts.Name, opts.Entrypoint.Name, suffix)
+	msg.WorkloadName = createOpts.Name
 	// command and user
 	// extra args is dynamically
-	config.Cmd = opts.Entrypoint.Commands
+	createOpts.Cmd = opts.Entrypoint.Commands
 	// env
 	env := append(opts.Env, fmt.Sprintf("APP_NAME=%s", opts.Name)) //nolint
 	env = append(env, fmt.Sprintf("ERU_POD=%s", opts.Podname))
 	env = append(env, fmt.Sprintf("ERU_NODE_NAME=%s", node.Name))
 	env = append(env, fmt.Sprintf("ERU_WORKLOAD_SEQ=%d", no))
-	config.Env = env
+	createOpts.Env = env
 	// basic labels, bind to LabelMeta
-	config.Labels = map[string]string{
+	createOpts.Labels = map[string]string{
 		cluster.ERUMark: "1",
 		cluster.LabelMeta: utils.EncodeMetaInLabel(ctx, &types.LabelMeta{
 			Publish:     opts.Entrypoint.Publish,
@@ -488,8 +489,8 @@ func (c *Calcium) doMakeWorkloadOptions(ctx context.Context, no int, msg *types.
 		cluster.LabelCoreID:   c.identifier,
 	}
 	for key, value := range opts.Labels {
-		config.Labels[key] = value
+		createOpts.Labels[key] = value
 	}
 
-	return config
+	return createOpts
 }

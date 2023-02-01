@@ -13,6 +13,7 @@ import (
 	"github.com/projecteru2/core/types"
 
 	"github.com/cockroachdb/errors"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -27,8 +28,8 @@ func TestRemoveWorkload(t *testing.T) {
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
-		types.Resources{},
-		types.Resources{},
+		resourcetypes.Resources{},
+		resourcetypes.Resources{},
 		nil,
 	)
 	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*plugintypes.Metrics{}, nil)
