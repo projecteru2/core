@@ -37,6 +37,7 @@ func TestMakeVirtualizationResource(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, dst.Quota, 100.0)
+	assert.Len(t, dst.CPU, 1)
 	err = MakeVirtualizationResource(engineParams, dst, func(p resourcetypes.Resources, d *virtualizationResource) error {
 		return mapstructure.Decode(p["storage"], d)
 	})
