@@ -14,7 +14,7 @@ type CalculateDeployRequest struct {
 // CalculateReallocRequest .
 type CalculateReallocRequest struct {
 	Nodename                string                              `json:"nodename" mapstructure:"nodename"`
-	WorkloadResource        plugintypes.WorkloadResource        `json:"workload_request" mapstructure:"workload_request"`
+	WorkloadResource        plugintypes.WorkloadResource        `json:"workload_resource" mapstructure:"workload_resource"`
 	WorkloadResourceRequest plugintypes.WorkloadResourceRequest `json:"workload_resource_request" mapstructure:"workload_resource_request"`
 }
 

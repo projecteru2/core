@@ -253,8 +253,8 @@ func TestCalculateRemap(t *testing.T) {
 	assert.Len(t, r.EngineParamsMap, 2)
 	w1 := r.EngineParamsMap["id1"]
 	w2 := r.EngineParamsMap["id2"]
-	assert.Len(t, w1["CPUMap"], 2)
-	assert.Len(t, w2["CPUMap"], 2)
+	assert.Len(t, w1["cpu_map"], 2)
+	assert.Len(t, w2["cpu_map"], 2)
 
 	// empty share cpu map
 	workloadsResource["id4"] = plugintypes.WorkloadResource{
@@ -281,6 +281,6 @@ func TestCalculateRemap(t *testing.T) {
 	assert.Len(t, r.EngineParamsMap, 2)
 	w1 = r.EngineParamsMap["id1"]
 	w2 = r.EngineParamsMap["id2"]
-	assert.Len(t, w1["CPUMap"], 4)
-	assert.Len(t, w2["CPUMap"], 4)
+	assert.Len(t, w1["cpu_map"], 4)
+	assert.Len(t, w2["cpu_map"], 4)
 }
