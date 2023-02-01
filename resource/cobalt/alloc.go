@@ -69,7 +69,7 @@ func (m Manager) Alloc(ctx context.Context, nodename string, deployCount int, op
 		},
 		// commit: update node resources
 		func(ctx context.Context) error {
-			// TODO why incr?
+			// 因为用了资源所以 usage 增加
 			if _, _, err := m.SetNodeResourceUsage(ctx, nodename, nil, nil, workloadsParams, true, plugins.Incr); err != nil {
 				logger.Error(ctx, err, "failed to update node resource")
 				return err

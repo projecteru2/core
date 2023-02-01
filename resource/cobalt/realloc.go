@@ -47,7 +47,7 @@ func (m Manager) Realloc(ctx context.Context, nodename string, nodeResource reso
 		// commit: update node resource
 		func(ctx context.Context) error {
 			// TODO 存在问题？？3个参数是完整的变化，差值变化，按照 workloads 的变化
-			if _, _, err := m.SetNodeResourceUsage(ctx, nodename, nil, nil, []resourcetypes.Resources{workloadResource}, true, plugins.Incr); err != nil {
+			if _, _, err := m.SetNodeResourceUsage(ctx, nodename, nil, nil, []resourcetypes.Resources{deltaResources}, true, plugins.Incr); err != nil {
 				logger.Error(ctx, err, "failed to update nodename resource")
 				return err
 			}

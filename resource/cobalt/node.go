@@ -213,7 +213,7 @@ func (m Manager) GetNodeResourceInfo(ctx context.Context, nodename string, workl
 
 // SetNodeResourceUsage .
 func (m Manager) SetNodeResourceUsage(ctx context.Context, nodename string, nodeResource resourcetypes.Resources, nodeResourceRequest resourcetypes.Resources, workloadsResource []resourcetypes.Resources, delta bool, incr bool) (resourcetypes.Resources, resourcetypes.Resources, error) {
-	logger := log.WithFunc("resource.cobalt.SetNodeResourceUsage")
+	logger := log.WithFunc("resource.cobalt.SetNodeResourceUsage").WithField("node", nodename)
 	wrksResource := map[string][]resourcetypes.RawParams{}
 	rollbackPlugins := []plugins.Plugin{}
 	before := resourcetypes.Resources{}
@@ -239,11 +239,7 @@ func (m Manager) SetNodeResourceUsage(ctx context.Context, nodename string, node
 		// commit: call plugins to set node resource
 		func(ctx context.Context) error {
 			resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.SetNodeResourceUsageResponse, error) {
-				resp, err := plugin.SetNodeResourceUsage(ctx, nodename, nodeResource[plugin.Name()], nodeResourceRequest[plugin.Name()], wrksResource[plugin.Name()], delta, incr)
-				if err != nil {
-					logger.Errorf(ctx, err, "node %+v plugin %+v failed to update node resource", nodename, plugin.Name())
-				}
-				return resp, err
+				return plugin.SetNodeResourceUsage(ctx, nodename, nodeResource[plugin.Name()], nodeResourceRequest[plugin.Name()], wrksResource[plugin.Name()], delta, incr)
 			})
 
 			if err != nil {
@@ -252,7 +248,7 @@ func (m Manager) SetNodeResourceUsage(ctx context.Context, nodename string, node
 					before[plugin.Name()] = resp.Before
 					after[plugin.Name()] = resp.After
 				}
-				logger.Errorf(ctx, err, "failed to set node resource for node %+v", nodename)
+				logger.Error(ctx, err, "failed to set node resource")
 			}
 			return err
 		},
