@@ -220,7 +220,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				if len(opts.Resources) == 0 {
 					return nil
 				}
-				origin, _, err = c.rmgr.SetNodeResourceCapacity(ctx, n.Name, opts.Resources, nil, opts.Delta, plugins.Incr)
+				origin, _, err = c.rmgr.SetNodeResourceCapacity(ctx, n.Name, nil, opts.Resources, opts.Delta, plugins.Incr)
 				return err
 			},
 			// then: update node metadata
@@ -233,6 +233,8 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 				n.ResourceInfo.Capacity, n.ResourceInfo.Usage, n.ResourceInfo.Diffs, _ = c.rmgr.GetNodeResourceInfo(ctx, node.Name, nil, false)
 				// use send to update the usage
 				_ = c.pool.Invoke(func() { c.doSendNodeMetrics(context.TODO(), n) })
+				// remap all container
+				_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
 				return nil
 			},
 			// rollback: update node resource capacity in reverse

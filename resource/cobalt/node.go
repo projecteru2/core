@@ -324,6 +324,9 @@ func (m Manager) SetNodeResourceCapacity(ctx context.Context, nodename string, n
 		// commit: call plugins to set node resource
 		func(ctx context.Context) error {
 			resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.SetNodeResourceCapacityResponse, error) {
+				if nodeResource[plugin.Name()] == nil && nodeResourceRequest[plugin.Name()] == nil {
+					return nil, nil
+				}
 				resp, err := plugin.SetNodeResourceCapacity(ctx, nodename, nodeResource[plugin.Name()], nodeResourceRequest[plugin.Name()], delta, incr)
 				if err != nil {
 					logger.Errorf(ctx, err, "plugin %+v failed to set node resource capacity", plugin.Name())
@@ -333,6 +336,9 @@ func (m Manager) SetNodeResourceCapacity(ctx context.Context, nodename string, n
 
 			if err != nil {
 				for plugin, resp := range resps {
+					if resp == nil {
+						continue
+					}
 					rollbackPlugins = append(rollbackPlugins, plugin)
 					before[plugin.Name()] = resp.Before
 					after[plugin.Name()] = resp.After
