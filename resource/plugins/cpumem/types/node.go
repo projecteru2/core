@@ -104,9 +104,14 @@ func (n *NodeResourceInfo) RemoveEmptyCores() {
 }
 
 func (n *NodeResourceInfo) Validate() error {
-	if n.Capacity == nil || len(n.Capacity.CPUMap) == 0 {
+	if n.Capacity == nil {
 		return ErrInvalidCapacity
 	}
+
+	if len(n.Capacity.CPUMap) == 0 {
+		return ErrInvalidCPUMap
+	}
+
 	if n.Usage == nil {
 		n.Usage = &NodeResource{
 			CPU:        0,
@@ -125,12 +130,9 @@ func (n *NodeResourceInfo) Validate() error {
 			n.Usage.NUMA[cpuID] = numaNodeID
 		}
 	}
-	if len(n.Capacity.CPUMap) == 0 {
-		return ErrInvalidCPUMap
-	}
 
 	for cpu, piecesUsed := range n.Usage.CPUMap {
-		if totalPieces, ok := n.Capacity.CPUMap[cpu]; !ok || piecesUsed < 0 || totalPieces < 0 || piecesUsed > totalPieces {
+		if totalPieces, ok := n.Capacity.CPUMap[cpu]; !ok || totalPieces < 0 || piecesUsed > totalPieces {
 			return ErrInvalidCPUMap
 		}
 	}
@@ -221,9 +223,9 @@ func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams resourcet
 		}
 	}
 
-	for index, numaMemoryNode := range rawParams.StringSlice("numa-memory") {
+	for index, nodeMemory := range rawParams.StringSlice("numa-memory") {
 		nodeID := fmt.Sprintf("%d", index)
-		mem, err := coreutils.ParseRAMInHuman(numaMemoryNode)
+		mem, err := coreutils.ParseRAMInHuman(nodeMemory)
 		if err != nil {
 			return err
 		}
@@ -233,20 +235,20 @@ func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams resourcet
 	return nil
 }
 
-func (n *NodeResourceRequest) LoadFromOrigin(nodeResource *NodeResource, rawParams resourcetypes.RawParams) {
+func (n *NodeResourceRequest) LoadFromOrigin(nodeResource *NodeResource, resourceRequest resourcetypes.RawParams) {
 	if n == nil {
 		return
 	}
-	if !rawParams.IsSet("cpu") {
+	if !resourceRequest.IsSet("cpu") {
 		n.CPUMap = nodeResource.CPUMap
 	}
-	if !rawParams.IsSet("memory") {
+	if !resourceRequest.IsSet("memory") {
 		n.Memory = nodeResource.Memory
 	}
-	if !rawParams.IsSet("numa-cpu") {
+	if !resourceRequest.IsSet("numa-cpu") {
 		n.NUMA = nodeResource.NUMA
 	}
-	if !rawParams.IsSet("numa-memory") {
+	if !resourceRequest.IsSet("numa-memory") {
 		n.NUMAMemory = nodeResource.NUMAMemory
 	}
 }
