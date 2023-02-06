@@ -300,11 +300,11 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
 
 // VirtualizationStop stop virtualization
 func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) error {
-	timeout := &gracefulTimeout
-	if gracefulTimeout <= 0 {
-		timeout = nil
+	var timeout *int
+	if t := int(gracefulTimeout.Seconds()); t > 0 {
+		timeout = &t
 	}
-	return e.client.ContainerStop(ctx, ID, timeout)
+	return e.client.ContainerStop(ctx, ID, dockercontainer.StopOptions{Timeout: timeout})
 }
 
 // VirtualizationRemove remove virtualization
