@@ -64,10 +64,11 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 			return parseErr
 		}
 		// TODO check if it ok?
-		gitssh.SetConfigHostKeyFields( // nolint
-			&ssh.ClientConfig{
-				HostKeyCallback: ssh.InsecureIgnoreHostKey()}, // nolint
-			user.Host)
+		// gitssh.SetConfigHostKeyFields( // nolint
+		//	&ssh.ClientConfig{
+		//		HostKeyCallback: ssh.InsecureIgnoreHostKey()}, // nolint
+		//	user.Host)
+
 		auth := &gitssh.PublicKeys{
 			User:   user.Host + user.Path,
 			Signer: signer,
