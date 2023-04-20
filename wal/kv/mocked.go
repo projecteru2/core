@@ -27,7 +27,7 @@ func NewMockedKV() *MockedKV {
 }
 
 // Open .
-func (m *MockedKV) Open(path string, mode os.FileMode, timeout time.Duration) error {
+func (m *MockedKV) Open(string, os.FileMode, time.Duration) error {
 	return nil
 }
 

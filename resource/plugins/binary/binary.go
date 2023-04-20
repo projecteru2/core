@@ -17,7 +17,7 @@ type Plugin struct {
 }
 
 // NewPlugin .
-func NewPlugin(ctx context.Context, path string, config coretypes.Config) (*Plugin, error) {
+func NewPlugin(_ context.Context, path string, config coretypes.Config) (*Plugin, error) {
 	p, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err

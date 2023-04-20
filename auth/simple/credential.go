@@ -14,7 +14,7 @@ func NewBasicCredential(username, password string) *BasicCredential {
 }
 
 // GetRequestMetadata for basic auth
-func (c BasicCredential) GetRequestMetadata(ctx context.Context, uri ...string) (map[string]string, error) {
+func (c BasicCredential) GetRequestMetadata(_ context.Context, _ ...string) (map[string]string, error) {
 	return map[string]string{
 		c.username: c.password,
 	}, nil

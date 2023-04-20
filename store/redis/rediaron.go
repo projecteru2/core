@@ -68,7 +68,8 @@ type Rediaron struct {
 // New creates a new Rediaron instance from config
 // Only redis address and db is used
 // db is used to separate data, by default db 0 will be used
-func New(config types.Config, t *testing.T) (*Rediaron, error) {
+// TODO mock redis for testing
+func New(config types.Config, _ *testing.T) (*Rediaron, error) {
 	cli := redis.NewClient(&redis.Options{
 		Addr: config.Redis.Addr,
 		DB:   config.Redis.DB,

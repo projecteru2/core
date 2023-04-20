@@ -10,7 +10,7 @@ import (
 )
 
 // GetMetricsDescription .
-func (p Plugin) GetMetricsDescription(ctx context.Context) (*plugintypes.GetMetricsDescriptionResponse, error) {
+func (p Plugin) GetMetricsDescription(context.Context) (*plugintypes.GetMetricsDescriptionResponse, error) {
 	resp := &plugintypes.GetMetricsDescriptionResponse{}
 	return resp, mapstructure.Decode([]map[string]interface{}{
 		{

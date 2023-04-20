@@ -116,7 +116,7 @@ func (h *Hydro) recover(ctx context.Context, handler EventHandler, event HydroEv
 		return err
 	}
 
-	delete := func() error {
+	del := func() error {
 		return h.store.Delete(event.Key())
 	}
 
@@ -124,13 +124,13 @@ func (h *Hydro) recover(ctx context.Context, handler EventHandler, event HydroEv
 	case err != nil:
 		return err
 	case !handle:
-		return delete()
+		return del()
 	default:
 		if err := handler.Handle(ctx, item); err != nil {
 			return err
 		}
 	}
-	return delete()
+	return del()
 }
 
 func (h *Hydro) getEventHandler(eventyp string) (EventHandler, bool) {

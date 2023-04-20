@@ -78,7 +78,7 @@ func (e *Engine) demultiplexStdStream(ctx context.Context, stdStream io.Reader) 
 }
 
 // ExecExitCode get exec return code
-func (e *Engine) ExecExitCode(ctx context.Context, ID, execID string) (int, error) {
+func (e *Engine) ExecExitCode(ctx context.Context, _, execID string) (int, error) {
 	r, err := e.client.ContainerExecInspect(ctx, execID)
 	if err != nil {
 		return -1, err

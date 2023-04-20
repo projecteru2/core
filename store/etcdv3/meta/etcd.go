@@ -117,7 +117,7 @@ func (e *ETCD) GetOne(ctx context.Context, key string, opts ...clientv3.OpOption
 }
 
 // GetMulti gets several results
-func (e *ETCD) GetMulti(ctx context.Context, keys []string, opts ...clientv3.OpOption) (kvs []*mvccpb.KeyValue, err error) {
+func (e *ETCD) GetMulti(ctx context.Context, keys []string, _ ...clientv3.OpOption) (kvs []*mvccpb.KeyValue, err error) {
 	var txnResponse *clientv3.TxnResponse
 	if len(keys) == 0 {
 		return

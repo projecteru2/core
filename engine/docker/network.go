@@ -14,7 +14,7 @@ import (
 )
 
 // NetworkConnect connect to a network
-func (e *Engine) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) ([]string, error) {
+func (e *Engine) NetworkConnect(ctx context.Context, network, target, ipv4, _ string) ([]string, error) {
 	config, err := e.makeIPV4EndpointSetting(ipv4)
 	if err != nil {
 		return nil, err

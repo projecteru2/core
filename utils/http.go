@@ -132,7 +132,7 @@ func dumpFromString(ctx context.Context, ca, cert, key *os.File, caStr, certStr,
 	return nil
 }
 
-func checkRedirect(req *http.Request, via []*http.Request) error {
+func checkRedirect(_ *http.Request, via []*http.Request) error {
 	if via[0].Method == http.MethodGet {
 		return http.ErrUseLastResponse
 	}

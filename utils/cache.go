@@ -36,6 +36,6 @@ func (c *EngineCache) Get(endpoint string) engine.API {
 }
 
 // Delete connection by host
-func (c *EngineCache) Delete(host string, endpoint ...string) {
+func (c *EngineCache) Delete(host string, _ ...string) {
 	c.cache.Delete(host)
 }

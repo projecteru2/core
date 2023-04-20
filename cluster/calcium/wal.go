@@ -133,7 +133,7 @@ func (h *CreateWorkloadHandler) Typ() string {
 }
 
 // Check .
-func (h *CreateWorkloadHandler) Check(ctx context.Context, raw interface{}) (handle bool, err error) {
+func (h *CreateWorkloadHandler) Check(_ context.Context, raw interface{}) (handle bool, err error) {
 	_, ok := raw.(*types.Workload)
 	if !ok {
 		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
@@ -210,7 +210,7 @@ func (h *WorkloadResourceAllocatedHandler) Typ() string {
 }
 
 // Check .
-func (h *WorkloadResourceAllocatedHandler) Check(ctx context.Context, raw interface{}) (bool, error) {
+func (h *WorkloadResourceAllocatedHandler) Check(_ context.Context, raw interface{}) (bool, error) {
 	if _, ok := raw.([]*types.Node); !ok {
 		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
 	}
@@ -281,7 +281,7 @@ func (h *ProcessingCreatedHandler) Typ() string {
 }
 
 // Check .
-func (h ProcessingCreatedHandler) Check(ctx context.Context, raw interface{}) (bool, error) {
+func (h ProcessingCreatedHandler) Check(_ context.Context, raw interface{}) (bool, error) {
 	if _, ok := raw.(*types.Processing); !ok {
 		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
 	}

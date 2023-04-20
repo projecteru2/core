@@ -32,7 +32,7 @@ type Vibranium struct {
 }
 
 // Info show core info
-func (v *Vibranium) Info(ctx context.Context, opts *pb.Empty) (*pb.CoreInfo, error) {
+func (v *Vibranium) Info(context.Context, *pb.Empty) (*pb.CoreInfo, error) {
 	return &pb.CoreInfo{
 		Version:       version.VERSION,
 		Revison:       version.REVISION,

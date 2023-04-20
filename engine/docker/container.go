@@ -398,7 +398,7 @@ func (e *Engine) VirtualizationResize(ctx context.Context, workloadID string, he
 }
 
 // VirtualizationWait wait virtualization exit
-func (e *Engine) VirtualizationWait(ctx context.Context, ID, state string) (*enginetypes.VirtualizationWaitResult, error) {
+func (e *Engine) VirtualizationWait(ctx context.Context, ID, _ string) (*enginetypes.VirtualizationWaitResult, error) {
 	waitBody, errorCh := e.client.ContainerWait(ctx, ID, dockercontainer.WaitConditionNotRunning)
 	r := &enginetypes.VirtualizationWaitResult{}
 	select {

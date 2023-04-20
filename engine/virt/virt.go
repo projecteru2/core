@@ -43,7 +43,7 @@ type Virt struct {
 }
 
 // MakeClient makes a virt. client which wraps yavirt API client.
-func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
+func MakeClient(_ context.Context, config coretypes.Config, _, endpoint, _, _, _ string) (engine.API, error) {
 	var uri string
 	switch {
 	case strings.HasPrefix(endpoint, HTTPPrefixKey):
@@ -126,7 +126,7 @@ func (v *Virt) ExecResize(ctx context.Context, execID string, height, width uint
 }
 
 // NetworkConnect connects to a network.
-func (v *Virt) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) (cidrs []string, err error) {
+func (v *Virt) NetworkConnect(ctx context.Context, network, target, ipv4, _ string) (cidrs []string, err error) {
 	req := virttypes.ConnectNetworkReq{
 		Network: network,
 		IPv4:    ipv4,
@@ -144,7 +144,7 @@ func (v *Virt) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 s
 }
 
 // NetworkDisconnect disconnects from one network.
-func (v *Virt) NetworkDisconnect(ctx context.Context, network, target string, force bool) (err error) {
+func (v *Virt) NetworkDisconnect(ctx context.Context, network, target string, _ bool) (err error) {
 	var req virttypes.DisconnectNetworkReq
 	req.Network = network
 	req.ID = target
@@ -171,12 +171,12 @@ func (v *Virt) NetworkList(ctx context.Context, drivers []string) (nets []*engin
 }
 
 // BuildRefs builds references.
-func (v *Virt) BuildRefs(ctx context.Context, opts *enginetypes.BuildRefOptions) (refs []string) {
+func (v *Virt) BuildRefs(_ context.Context, opts *enginetypes.BuildRefOptions) (refs []string) {
 	return []string{combineUserImage(opts.User, opts.Name)}
 }
 
 // BuildContent builds content, the use of it is similar to BuildRefs.
-func (v *Virt) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildContentOptions) (string, io.Reader, error) {
+func (v *Virt) BuildContent(_ context.Context, _ coresource.Source, _ *enginetypes.BuildContentOptions) (string, io.Reader, error) {
 	return "", nil, coretypes.ErrEngineNotImplemented
 }
 
@@ -228,7 +228,7 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 }
 
 // VirtualizationCopyTo copies one.
-func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, dest string, content []byte, uid, gid int, mode int64) error {
+func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, dest string, content []byte, _, _ int, _ int64) error {
 	return v.client.CopyToGuest(ctx, ID, dest, bytes.NewReader(content), true, true)
 }
 
@@ -245,7 +245,7 @@ func (v *Virt) VirtualizationStop(ctx context.Context, ID string, gracefulTimeou
 }
 
 // VirtualizationRemove removes a guest.
-func (v *Virt) VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) (err error) {
+func (v *Virt) VirtualizationRemove(ctx context.Context, ID string, _, force bool) (err error) {
 	if _, err = v.client.DestroyGuest(ctx, ID, force); err == nil {
 		return nil
 	}
@@ -299,7 +299,7 @@ func (v *Virt) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtual
 }
 
 // VirtualizationAttach attaches something to a guest.
-func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, openStdin bool) (stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
+func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, _, _ bool) (stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	flags := virttypes.AttachGuestFlags{Safe: true, Force: true}
 	_, attachGuest, err := v.client.AttachGuest(ctx, ID, []string{}, flags)
 	if err != nil {
@@ -314,7 +314,7 @@ func (v *Virt) VirtualizationResize(ctx context.Context, ID string, height, widt
 }
 
 // VirtualizationWait is waiting for a shut-off
-func (v *Virt) VirtualizationWait(ctx context.Context, ID, state string) (*enginetypes.VirtualizationWaitResult, error) {
+func (v *Virt) VirtualizationWait(ctx context.Context, ID, _ string) (*enginetypes.VirtualizationWaitResult, error) {
 	r := &enginetypes.VirtualizationWaitResult{}
 	msg, err := v.client.WaitGuest(ctx, ID, true)
 	if err != nil {

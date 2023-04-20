@@ -36,7 +36,7 @@ func (wc *writeCloser) Close() error {
 }
 
 // MakeClient make a mock client
-func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
+func MakeClient(_ context.Context, _ coretypes.Config, _, _, _, _, _ string) (engine.API, error) {
 	e := &enginemocks.API{}
 	// info
 	e.On("Info", mock.Anything).Return(&enginetypes.Info{NCPU: 100, MemTotal: units.GiB * 100, StorageTotal: units.GiB * 100}, nil)

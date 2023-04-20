@@ -43,7 +43,7 @@ USER {{.User}}
 )
 
 // BuildRefs output refs
-func (e *Engine) BuildRefs(ctx context.Context, opts *enginetypes.BuildRefOptions) []string {
+func (e *Engine) BuildRefs(_ context.Context, opts *enginetypes.BuildRefOptions) []string {
 	name := opts.Name
 	tags := opts.Tags
 	refs := []string{}
