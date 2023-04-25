@@ -40,6 +40,8 @@ type Node struct {
 	NodeMeta
 	// Bypass if bypass is true, it will not participate in future scheduling
 	Bypass bool `json:"bypass,omitempty"`
+	// Test mean can ignore node health check
+	Test bool `json:"omitempty"`
 
 	ResourceInfo NodeResourceInfo `json:"-"`
 	NodeInfo     string           `json:"-"`

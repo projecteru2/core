@@ -2,15 +2,14 @@ package selfmon
 
 import (
 	"context"
+	"hash/maphash"
 	"math/rand"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/cockroachdb/errors"
 
 	"github.com/projecteru2/core/cluster"
-	"github.com/projecteru2/core/engine/mocks/fakeengine"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
@@ -30,8 +29,8 @@ type NodeStatusWatcher struct {
 
 // RunNodeStatusWatcher .
 func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster cluster.Cluster, t *testing.T) {
-	rand.Seed(time.Now().UnixNano())
-	ID := rand.Int63n(10000) //nolint
+	r := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64()))) //nolint
+	ID := r.Int63n(10000)                                           //nolint
 	store, err := store.NewStore(config, t)
 	if err != nil {
 		log.WithFunc("selfmon.RunNodeStatusWatcher").WithField("ID", ID).Error(ctx, err, "failed to create store")
@@ -173,8 +172,8 @@ func (n *NodeStatusWatcher) initNodeStatus(ctx context.Context) {
 				Alive:    false,
 			}
 		}
-		// deal with fakeengine
-		if strings.HasPrefix(node.Endpoint, fakeengine.PrefixKey) {
+		// deal with test node
+		if node.Test {
 			status.Alive = true
 		}
 		n.dealNodeStatusMessage(ctx, status)

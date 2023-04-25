@@ -112,7 +112,7 @@ RdCPRPt513WozkJZZAjUSP2U
 	nodename3 := "nodename3"
 	endpoint3 := "tcp://path"
 	m.config.CertPath = "/tmp"
-	node3, err := m.doAddNode(ctx, nodename3, endpoint3, podname, ca, cert, certkey, labels)
+	node3, err := m.doAddNode(ctx, nodename3, endpoint3, podname, ca, cert, certkey, labels, false)
 	assert.NoError(t, err)
 	_, err = m.makeClient(ctx, node3)
 	assert.Error(t, err)
@@ -125,7 +125,7 @@ RdCPRPt513WozkJZZAjUSP2U
 func TestRemoveNode(t *testing.T) {
 	m := NewMercury(t)
 	ctx := context.Background()
-	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil)
+	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil, false)
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	assert.NoError(t, m.RemoveNode(ctx, nil))
@@ -135,7 +135,7 @@ func TestRemoveNode(t *testing.T) {
 func TestGetNode(t *testing.T) {
 	m := NewMercury(t)
 	ctx := context.Background()
-	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil)
+	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil, false)
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	_, err = m.GetNode(ctx, "wtf")
@@ -148,7 +148,7 @@ func TestGetNode(t *testing.T) {
 func TestGetNodesByPod(t *testing.T) {
 	m := NewMercury(t)
 	ctx := context.Background()
-	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil)
+	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil, false)
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	ns, err := m.GetNodesByPod(ctx, &types.NodeFilter{Podname: "wtf", All: false})
@@ -170,7 +170,7 @@ func TestGetNodesByPod(t *testing.T) {
 func TestUpdateNode(t *testing.T) {
 	m := NewMercury(t)
 	ctx := context.Background()
-	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil)
+	node, err := m.doAddNode(ctx, "test", "mock://", "testpod", "", "", "", nil, false)
 	assert.NoError(t, err)
 	assert.Equal(t, node.Name, "test")
 	fakeNode := &types.Node{

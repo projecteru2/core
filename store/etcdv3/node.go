@@ -33,7 +33,7 @@ func (m *Mercury) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*typ
 		return nil, err
 	}
 
-	return m.doAddNode(ctx, opts.Nodename, opts.Endpoint, opts.Podname, opts.Ca, opts.Cert, opts.Key, opts.Labels)
+	return m.doAddNode(ctx, opts.Nodename, opts.Endpoint, opts.Podname, opts.Ca, opts.Cert, opts.Key, opts.Labels, opts.Test)
 }
 
 // RemoveNode delete a node
@@ -236,7 +236,7 @@ func (m *Mercury) makeClient(ctx context.Context, node *types.Node) (client engi
 	return enginefactory.GetEngine(ctx, m.config, node.Name, node.Endpoint, data[0], data[1], data[2])
 }
 
-func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, labels map[string]string) (*types.Node, error) {
+func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, labels map[string]string, test bool) (*types.Node, error) {
 	data := map[string]string{}
 	// 如果有tls的证书需要保存就保存一下
 	if ca != "" {
@@ -258,6 +258,7 @@ func (m *Mercury) doAddNode(ctx context.Context, name, endpoint, podname, ca, ce
 		},
 		Available: true,
 		Bypass:    false,
+		Test:      test || strings.HasPrefix(endpoint, fakeengine.PrefixKey),
 	}
 
 	bytes, err := json.Marshal(node)
@@ -320,7 +321,7 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 		node := node
 		_ = m.pool.Invoke(func() {
 			defer wg.Done()
-			if strings.HasPrefix(node.Endpoint, fakeengine.PrefixKey) {
+			if node.Test {
 				node.Available = true && !node.Bypass
 			} else if _, err := m.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrInvaildCount) {
 				logger.Errorf(ctx, err, "failed to get node status of %+v", node.Name)

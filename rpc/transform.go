@@ -125,6 +125,7 @@ func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
 		Key:       b.Key,
 		Labels:    b.Labels,
 		Resources: toCoreResources(b.Resources),
+		Test:      b.Test,
 	}
 	return r
 }

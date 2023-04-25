@@ -193,6 +193,7 @@ type AddNodeOptions struct {
 	Key       string
 	Labels    map[string]string
 	Resources resourcetypes.Resources
+	Test      bool
 }
 
 // Validate checks options

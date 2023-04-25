@@ -32,7 +32,7 @@ func (r *Rediaron) AddNode(ctx context.Context, opts *types.AddNodeOptions) (*ty
 		return nil, err
 	}
 
-	return r.doAddNode(ctx, opts.Nodename, opts.Endpoint, opts.Podname, opts.Ca, opts.Cert, opts.Key, opts.Labels)
+	return r.doAddNode(ctx, opts.Nodename, opts.Endpoint, opts.Podname, opts.Ca, opts.Cert, opts.Key, opts.Labels, opts.Test)
 }
 
 // RemoveNode delete a node
@@ -223,7 +223,7 @@ func (r *Rediaron) makeClient(ctx context.Context, node *types.Node) (client eng
 	return client, nil
 }
 
-func (r *Rediaron) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, labels map[string]string) (*types.Node, error) {
+func (r *Rediaron) doAddNode(ctx context.Context, name, endpoint, podname, ca, cert, key string, labels map[string]string, test bool) (*types.Node, error) {
 	data := map[string]string{}
 	// 如果有tls的证书需要保存就保存一下
 	if ca != "" {
@@ -244,6 +244,8 @@ func (r *Rediaron) doAddNode(ctx context.Context, name, endpoint, podname, ca, c
 			Labels:   labels,
 		},
 		Available: true,
+		Bypass:    false,
+		Test:      test || strings.HasPrefix(endpoint, fakeengine.PrefixKey),
 	}
 
 	bytes, err := json.Marshal(node)
@@ -303,7 +305,7 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 		node := node
 		_ = r.pool.Invoke(func() {
 			defer wg.Done()
-			if strings.HasPrefix(node.Endpoint, fakeengine.PrefixKey) {
+			if node.Test {
 				node.Available = true && !node.Bypass
 			} else if _, err := r.GetNodeStatus(ctx, node.Name); err != nil && !errors.Is(err, types.ErrInvaildCount) {
 				logger.Errorf(ctx, err, "failed to get node status of %+v", node.Name)
