@@ -142,6 +142,7 @@ message Node {
   string info = 1007;
   string resource_capacity = 1008;
   string resource_usage = 1009;
+  bool test = 1010;
 }
 
 message AddPodOptions {
