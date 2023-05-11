@@ -8,7 +8,7 @@ require (
 	github.com/alphadose/haxmap v1.2.0
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/cockroachdb/errors v1.9.1
-	github.com/docker/distribution v2.8.1+incompatible
+	github.com/docker/distribution v2.8.2+incompatible
 	github.com/docker/docker v23.0.4+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.5.0
