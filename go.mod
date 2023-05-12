@@ -8,7 +8,7 @@ require (
 	github.com/alphadose/haxmap v1.2.0
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/cockroachdb/errors v1.9.1
-	github.com/docker/distribution v2.8.1+incompatible
+	github.com/docker/distribution v2.8.2+incompatible
 	github.com/docker/docker v23.0.4+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.5.0
@@ -23,7 +23,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.0-rc2.0.20221005185240-3a7f492d3f1b
 	github.com/panjf2000/ants/v2 v2.7.3
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/projecteru2/libyavirt v0.0.0-20230511035158-650f74b8b68c
+	github.com/projecteru2/libyavirt v0.0.0-20230512040131-dd14c75027c3
 	github.com/prometheus/client_golang v1.15.0
 	github.com/rs/zerolog v1.29.1
 	github.com/sanity-io/litter v1.5.5
@@ -39,7 +39,7 @@ require (
 	golang.org/x/crypto v0.8.0
 	golang.org/x/exp v0.0.0-20230425010034-47ecfdc1ba53
 	golang.org/x/net v0.10.0
-	google.golang.org/grpc v1.54.0
+	google.golang.org/grpc v1.54.1
 	google.golang.org/protobuf v1.30.0
 )
 
@@ -54,7 +54,7 @@ require (
 	github.com/benbjohnson/clock v1.3.3 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/cloudflare/circl v1.3.2 // indirect
+	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
 	github.com/cockroachdb/redact v1.1.3 // indirect
 	github.com/containerd/containerd v1.7.0 // indirect

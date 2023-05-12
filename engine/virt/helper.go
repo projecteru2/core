@@ -8,22 +8,25 @@ import (
 
 	"github.com/cockroachdb/errors"
 	coretypes "github.com/projecteru2/core/types"
+	virttypes "github.com/projecteru2/libyavirt/types"
 )
 
 const sep = "@"
 
-func (v *Virt) parseVolumes(volumes []string) ([]string, error) {
-	vols := []string{}
-
-	// format `/source:/dir0:rw:1G:1000:1000:10M:10M`
-	for _, bind := range volumes {
+func (v *Virt) parseVolumes(volumes []string) ([]virttypes.Volume, error) {
+	vols := make([]virttypes.Volume, len(volumes))
+	// format `/source:/dir0:rw:1024:1000:1000:10M:10M`
+	for i, bind := range volumes {
 		parts := strings.Split(bind, ":")
 		if len(parts) != 4 && len(parts) != 8 {
 			return nil, errors.Wrapf(coretypes.ErrInvalidVolumeBind, "bind: %s", bind)
 		}
 
 		src := parts[0]
-		dest := filepath.Join("/", parts[1])
+		dest := parts[1]
+		if !strings.HasPrefix(dest, "/") {
+			dest = filepath.Join("/", parts[1])
+		}
 
 		mnt := dest
 		// the src part has been translated to real host directory by eru-sched or kept it to empty.
@@ -38,10 +41,15 @@ func (v *Virt) parseVolumes(volumes []string) ([]string, error) {
 
 		ioConstraints := ""
 		if len(parts) > 4 {
-			ioConstraints = fmt.Sprintf(":%s", strings.Join(parts[4:], ":"))
+			ioConstraints = strings.Join(parts[4:], ":")
 		}
 
-		vols = append(vols, fmt.Sprintf("%s:%d%s", mnt, capacity, ioConstraints))
+		volume := virttypes.Volume{
+			Mount:    mnt,
+			Capacity: capacity,
+			IO:       ioConstraints,
+		}
+		vols[i] = volume
 	}
 
 	return vols, nil
