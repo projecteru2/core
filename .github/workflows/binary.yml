@@ -1,0 +1,27 @@
+name: dev binary
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Setup go"
+        uses: actions/setup-go@v4
+
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: "Build binary"
+        run: |
+          go build
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: core-ubuntu
+          path: core
