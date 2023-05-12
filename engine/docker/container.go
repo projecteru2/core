@@ -85,8 +85,8 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 	var err error
 
 	// parse engine args to resource options
-	resourceOpts := &VirtualizationResource{}
-	if err = engine.MakeVirtualizationResource(opts.EngineParams, resourceOpts, func(p resourcetypes.Resources, d *VirtualizationResource) error {
+	resourceOpts := &engine.VirtualizationResource{}
+	if err = engine.MakeVirtualizationResource(opts.EngineParams, resourceOpts, func(p resourcetypes.Resources, d *engine.VirtualizationResource) error {
 		for _, v := range p {
 			if err := mapstructure.Decode(v, d); err != nil {
 				return err
@@ -420,8 +420,8 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, en
 	logger := log.WithFunc("engine.docker.VirtualizationUpdateResource")
 
 	// parse engine args to resource options
-	resourceOpts := &VirtualizationResource{}
-	if err := engine.MakeVirtualizationResource(engineParams, resourceOpts, func(p resourcetypes.Resources, d *VirtualizationResource) error {
+	resourceOpts := &engine.VirtualizationResource{}
+	if err := engine.MakeVirtualizationResource(engineParams, resourceOpts, func(p resourcetypes.Resources, d *engine.VirtualizationResource) error {
 		for _, v := range p {
 			if err := mapstructure.Decode(v, d); err != nil {
 				return err

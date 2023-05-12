@@ -183,8 +183,8 @@ func (v *Virt) BuildContent(_ context.Context, _ coresource.Source, _ *enginetyp
 // VirtualizationCreate creates a guest.
 func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (guest *enginetypes.VirtualizationCreated, err error) {
 	// parse engine args to resource options
-	resourceOpts := &VirtualizationResource{}
-	if err = engine.MakeVirtualizationResource(opts.EngineParams, resourceOpts, func(p resourcetypes.Resources, d *VirtualizationResource) error {
+	resourceOpts := &engine.VirtualizationResource{}
+	if err = engine.MakeVirtualizationResource(opts.EngineParams, resourceOpts, func(p resourcetypes.Resources, d *engine.VirtualizationResource) error {
 		for _, v := range p {
 			if err := mapstructure.Decode(v, d); err != nil {
 				return err
@@ -331,8 +331,8 @@ func (v *Virt) VirtualizationWait(ctx context.Context, ID, _ string) (*enginetyp
 // VirtualizationUpdateResource updates resource.
 func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, engineParams resourcetypes.Resources) error {
 	// parse engine args to resource options
-	resourceOpts := &VirtualizationResource{}
-	if err := engine.MakeVirtualizationResource(engineParams, resourceOpts, func(p resourcetypes.Resources, d *VirtualizationResource) error {
+	resourceOpts := &engine.VirtualizationResource{}
+	if err := engine.MakeVirtualizationResource(engineParams, resourceOpts, func(p resourcetypes.Resources, d *engine.VirtualizationResource) error {
 		for _, v := range p {
 			if err := mapstructure.Decode(v, d); err != nil {
 				return err
