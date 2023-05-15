@@ -23,7 +23,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.0-rc2.0.20221005185240-3a7f492d3f1b
 	github.com/panjf2000/ants/v2 v2.7.3
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/projecteru2/libyavirt v0.0.0-20230512040131-dd14c75027c3
+	github.com/projecteru2/libyavirt v0.0.0-20230514051104-0d756894b738
 	github.com/prometheus/client_golang v1.15.0
 	github.com/rs/zerolog v1.29.1
 	github.com/sanity-io/litter v1.5.5
