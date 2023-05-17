@@ -213,6 +213,7 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 		Cmd:        opts.Cmd,
 		Lambda:     opts.Lambda,
 		Stdin:      opts.Stdin,
+		Resources:  convertEngineParamsToResources(opts.EngineParams),
 	}
 
 	var resp virttypes.Guest
@@ -350,9 +351,10 @@ func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, engi
 	}
 
 	args := virttypes.ResizeGuestReq{
-		CPU:     int(resourceOpts.Quota),
-		Mem:     resourceOpts.Memory,
-		Volumes: vols,
+		CPU:       int(resourceOpts.Quota),
+		Mem:       resourceOpts.Memory,
+		Volumes:   vols,
+		Resources: convertEngineParamsToResources(engineParams),
 	}
 	args.ID = ID
 

@@ -1,12 +1,14 @@
 package virt
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/cockroachdb/errors"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
 	virttypes "github.com/projecteru2/libyavirt/types"
 )
@@ -83,4 +85,13 @@ func combineUserImage(user, imageName string) string {
 		return imageName
 	}
 	return fmt.Sprintf("%s%s%s", user, sep, imageName)
+}
+
+func convertEngineParamsToResources(engineParams resourcetypes.Resources) map[string][]byte {
+	r := map[string][]byte{}
+	for p, res := range engineParams {
+		b, _ := json.Marshal(res) // nolint
+		r[p] = b
+	}
+	return r
 }
