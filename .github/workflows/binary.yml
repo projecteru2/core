@@ -19,9 +19,9 @@ jobs:
       
       - name: "Build binary"
         run: |
-          go build
+          make binary
 
       - uses: actions/upload-artifact@v3
         with:
-          name: core-ubuntu
-          path: core
+          name: eru-core-ubuntu
+          path: eru-core
