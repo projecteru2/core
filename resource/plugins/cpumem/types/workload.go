@@ -125,12 +125,8 @@ func (w *WorkloadResourceRequest) Parse(rawParams resourcetypes.RawParams) (err 
 		w.CPULimit = cpu
 	}
 
-	if w.MemRequest, err = coreutils.ParseRAMInHuman(rawParams.String("memory-request")); err != nil {
-		return err
-	}
-	if w.MemLimit, err = coreutils.ParseRAMInHuman(rawParams.String("memory-limit")); err != nil {
-		return err
-	}
+	w.MemRequest = rawParams.Int64("memory-request")
+	w.MemLimit = rawParams.Int64("memory-limit")
 	// check if mem shortcut is set
 	if rawParams.IsSet("memory") {
 		var mem int64
