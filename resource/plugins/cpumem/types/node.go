@@ -215,6 +215,7 @@ func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams resourcet
 	}
 
 	for nodeID, nodeMemory := range rawParams.RawParams("numa-memory") {
+		// stupid golang covert int64 to float64 when using json.unmarshal
 		n.NUMAMemory[nodeID] = int64(nodeMemory.(float64))
 	}
 	return nil

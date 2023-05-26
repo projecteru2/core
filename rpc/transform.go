@@ -12,7 +12,6 @@ import (
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	"github.com/sanity-io/litter"
 
 	"golang.org/x/net/context"
 )
@@ -540,17 +539,12 @@ func toCoreRemoveImageOptions(opts *pb.RemoveImageOptions) *types.ImageOptions {
 func toCoreResources(resources map[string][]byte) resourcetypes.Resources {
 	r := resourcetypes.Resources{}
 	for k, v := range resources {
-		fmt.Println("==============")
-		fmt.Println(k, string(v))
-		fmt.Println("==============")
 		rp := resourcetypes.RawParams{}
 		if err := json.Unmarshal(v, &rp); err != nil {
 			log.WithFunc("toCoreResources").Errorf(nil, err, "%v", string(v)) // nolint
 			continue
 		}
 		r[k] = rp
-		litter.Dump(rp)
-		fmt.Println("==============")
 	}
 	return r
 }
