@@ -44,7 +44,7 @@ func genGRPCTracingInfo(ctx context.Context) (tracingInfo string) {
 	return
 }
 
-func reportToSentry(ctx context.Context, level sentry.Level, err error, format string, args ...interface{}) { //nolint
+func reportToSentry(ctx context.Context, level sentry.Level, err error, format string, args ...any) { //nolint
 	if sentryDSN == "" {
 		return
 	}

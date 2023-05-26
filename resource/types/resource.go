@@ -8,7 +8,7 @@ import (
 )
 
 // RawParams .
-type RawParams map[string]interface{}
+type RawParams map[string]any
 
 // IsSet .
 func (r RawParams) IsSet(key string) bool {
@@ -72,7 +72,7 @@ func (r RawParams) Bool(key string) bool {
 func (r RawParams) RawParams(key string) RawParams {
 	var n RawParams
 	if r.IsSet(key) {
-		if m, ok := r[key].(map[string]interface{}); ok {
+		if m, ok := r[key].(map[string]any); ok {
 			n = RawParams{}
 			_ = mapstructure.Decode(m, &n)
 		}
@@ -82,7 +82,7 @@ func (r RawParams) RawParams(key string) RawParams {
 
 // SliceRawParams .
 func (r RawParams) SliceRawParams(key string) []RawParams {
-	res := sliceHelper[map[string]interface{}](r, key)
+	res := sliceHelper[map[string]any](r, key)
 	if res == nil {
 		return nil
 	}
@@ -101,7 +101,7 @@ func sliceHelper[T any](r RawParams, key string) []T {
 		return s
 	}
 	var res []T
-	if s, ok := r[key].([]interface{}); ok {
+	if s, ok := r[key].([]any); ok {
 		res = []T{}
 		for _, v := range s {
 			if r, ok := v.(T); ok {

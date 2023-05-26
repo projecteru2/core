@@ -10,7 +10,7 @@ import (
 )
 
 // calls the plugin and gets json response
-func (p Plugin) call(ctx context.Context, cmd string, req interface{}, resp interface{}) error {
+func (p Plugin) call(ctx context.Context, cmd string, req any, resp any) error {
 	ctx, cancel := context.WithTimeout(ctx, p.config.ResourcePlugin.CallTimeout)
 	defer cancel()
 	logger := log.WithFunc("resource.binary.call")
@@ -30,7 +30,7 @@ func (p Plugin) call(ctx context.Context, cmd string, req interface{}, resp inte
 	return json.Unmarshal(out, resp)
 }
 
-func (p Plugin) execCommand(ctx context.Context, cmd *exec.Cmd, req interface{}) ([]byte, error) {
+func (p Plugin) execCommand(ctx context.Context, cmd *exec.Cmd, req any) ([]byte, error) {
 	logger := log.WithFunc("resource.binary.execCommand")
 	b, err := json.Marshal(req)
 	if err != nil {

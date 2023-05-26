@@ -1019,7 +1019,7 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	return nil
 }
 
-func (v *Vibranium) logUnsentMessages(ctx context.Context, msgType string, err error, msg interface{}) {
+func (v *Vibranium) logUnsentMessages(ctx context.Context, msgType string, err error, msg any) {
 	log.WithFunc("vibranium.logUnsentMessages").Infof(ctx, "Unsent (%s) streamed message due to (%+v): (%+v)", msgType, err, msg)
 }
 

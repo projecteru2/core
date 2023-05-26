@@ -7,7 +7,7 @@ import (
 
 // NewPool new a pool
 func NewPool(max int) (*ants.PoolWithFunc, error) {
-	return ants.NewPoolWithFunc(max, func(i interface{}) {
+	return ants.NewPoolWithFunc(max, func(i any) {
 		defer log.SentryDefer()
 		f, _ := i.(func())
 		f()

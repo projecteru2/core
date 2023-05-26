@@ -80,7 +80,7 @@ func (h *Hydro) Recover(ctx context.Context) {
 }
 
 // Log records a log item.
-func (h *Hydro) Log(eventyp string, item interface{}) (Commit, error) {
+func (h *Hydro) Log(eventyp string, item any) (Commit, error) {
 	handler, ok := h.getEventHandler(eventyp)
 	if !ok {
 		return nil, errors.Wrap(coretypes.ErrInvaildWALEventType, eventyp)

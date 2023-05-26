@@ -8,32 +8,32 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func fatalf(ctx context.Context, err error, format string, fields *haxmap.Map[string, interface{}], args ...interface{}) {
+func fatalf(ctx context.Context, err error, format string, fields *haxmap.Map[string, any], args ...any) {
 	args = argsValidate(args)
 	reportToSentry(ctx, sentry.LevelFatal, err, format, args...)
 	f := globalLogger.Fatal()
 	wrap(f, fields).Err(err).Msgf(format, args...)
 }
 
-func warnf(_ context.Context, format string, fields *haxmap.Map[string, interface{}], args ...interface{}) {
+func warnf(_ context.Context, format string, fields *haxmap.Map[string, any], args ...any) {
 	args = argsValidate(args)
 	f := globalLogger.Warn()
 	wrap(f, fields).Msgf(format, args...)
 }
 
-func infof(_ context.Context, format string, fields *haxmap.Map[string, interface{}], args ...interface{}) {
+func infof(_ context.Context, format string, fields *haxmap.Map[string, any], args ...any) {
 	args = argsValidate(args)
 	f := globalLogger.Info()
 	wrap(f, fields).Msgf(format, args...)
 }
 
-func debugf(_ context.Context, format string, fields *haxmap.Map[string, interface{}], args ...interface{}) {
+func debugf(_ context.Context, format string, fields *haxmap.Map[string, any], args ...any) {
 	args = argsValidate(args)
 	f := globalLogger.Debug()
 	wrap(f, fields).Msgf(format, args...)
 }
 
-func errorf(ctx context.Context, err error, format string, fields *haxmap.Map[string, interface{}], args ...interface{}) {
+func errorf(ctx context.Context, err error, format string, fields *haxmap.Map[string, any], args ...any) {
 	if err == nil {
 		return
 	}
@@ -43,18 +43,18 @@ func errorf(ctx context.Context, err error, format string, fields *haxmap.Map[st
 	wrap(f, fields).Stack().Err(err).Msgf(format, args...)
 }
 
-func argsValidate(args []interface{}) []interface{} {
+func argsValidate(args []any) []any {
 	if len(args) > 0 {
 		return args
 	}
-	return []interface{}{""}
+	return []any{""}
 }
 
-func wrap(f *zerolog.Event, kv *haxmap.Map[string, interface{}]) *zerolog.Event {
+func wrap(f *zerolog.Event, kv *haxmap.Map[string, any]) *zerolog.Event {
 	if kv == nil {
 		return f
 	}
-	kv.ForEach(func(k string, v interface{}) bool {
+	kv.ForEach(func(k string, v any) bool {
 		f = f.Interface(k, v)
 		return true
 	})

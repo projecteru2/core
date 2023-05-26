@@ -28,7 +28,7 @@ type Registry interface {
 
 // Logger is the interface that wraps the basic Log method.
 type Logger interface {
-	Log(string, interface{}) (Commit, error)
+	Log(string, any) (Commit, error)
 }
 
 // Closer is the interface that groups the Close methods.
@@ -39,10 +39,10 @@ type Closer interface {
 // EventHandler is the interface that groups a few methods.
 type EventHandler interface {
 	Typ() string
-	Check(context.Context, interface{}) (need bool, err error)
-	Encode(interface{}) ([]byte, error)
-	Decode([]byte) (interface{}, error)
-	Handle(context.Context, interface{}) error
+	Check(context.Context, any) (need bool, err error)
+	Encode(any) ([]byte, error)
+	Decode([]byte) (any, error)
+	Handle(context.Context, any) error
 }
 
 // Commit is a function for committing an event log

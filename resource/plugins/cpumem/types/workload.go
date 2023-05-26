@@ -70,15 +70,15 @@ func (w *WorkloadResource) Sub(w1 *WorkloadResource) {
 	w.NUMAMemory.Sub(w1.NUMAMemory)
 }
 
-// WorkloadResourceRaw includes all possible fields passed by eru-core for editing workload
+// WorkloadResourceRequest includes all possible fields passed by eru-core for editing workload
 // for request calculation
 type WorkloadResourceRequest struct {
-	CPUBind     bool    `json:"cpu_bind"`
-	KeepCPUBind bool    `json:"keep_cpu_bind"`
-	CPURequest  float64 `json:"cpu_request"`
-	CPULimit    float64 `json:"cpu_limit"`
-	MemRequest  int64   `json:"mem_request"`
-	MemLimit    int64   `json:"mem_limit"`
+	CPUBind     bool
+	KeepCPUBind bool
+	CPURequest  float64
+	CPULimit    float64
+	MemRequest  int64
+	MemLimit    int64
 }
 
 // Validate .

@@ -33,6 +33,7 @@ func (m Manager) AddNode(ctx context.Context, nodename string, opts resourcetype
 			resps, err := call(ctx, m.plugins, func(plugin plugins.Plugin) (*plugintypes.AddNodeResponse, error) {
 				r := opts[plugin.Name()]
 				if r == nil {
+					logger.WithField("plugin", plugin.Name()).Warn(ctx, "empty plugin config")
 					return &plugintypes.AddNodeResponse{}, nil
 				}
 				logger.WithField("plugin", plugin.Name()).WithField("node", nodename).Infof(ctx, "%v", litter.Sdump(r))

@@ -30,7 +30,7 @@ func SetupLog(ctx context.Context, l, dsn string) error {
 			TimeFormat: time.RFC822,
 		}).With().Timestamp().Logger()
 	rslog.Level(level)
-	zerolog.ErrorStackMarshaler = func(err error) interface{} {
+	zerolog.ErrorStackMarshaler = func(err error) any {
 		return errors.GetSafeDetails(err).SafeDetails
 	}
 	globalLogger = rslog
@@ -44,46 +44,46 @@ func SetupLog(ctx context.Context, l, dsn string) error {
 }
 
 // Fatalf forwards to sentry
-func Fatalf(ctx context.Context, err error, format string, args ...interface{}) {
+func Fatalf(ctx context.Context, err error, format string, args ...any) {
 	fatalf(ctx, err, format, nil, args...)
 }
 
 // Warnf is Warnf
-func Warnf(ctx context.Context, format string, args ...interface{}) {
+func Warnf(ctx context.Context, format string, args ...any) {
 	warnf(ctx, format, nil, args...)
 }
 
 // Warn is Warn
-func Warn(ctx context.Context, args ...interface{}) {
+func Warn(ctx context.Context, args ...any) {
 	Warnf(ctx, "%+v", args...)
 }
 
 // Infof is Infof
-func Infof(ctx context.Context, format string, args ...interface{}) {
+func Infof(ctx context.Context, format string, args ...any) {
 	infof(ctx, format, nil, args...)
 }
 
 // Info is Info
-func Info(ctx context.Context, args ...interface{}) {
+func Info(ctx context.Context, args ...any) {
 	Infof(ctx, "%+v", args...)
 }
 
 // Debugf is Debugf
-func Debugf(ctx context.Context, format string, args ...interface{}) {
+func Debugf(ctx context.Context, format string, args ...any) {
 	debugf(ctx, format, nil, args...)
 }
 
 // Debug is Debug
-func Debug(ctx context.Context, args ...interface{}) {
+func Debug(ctx context.Context, args ...any) {
 	Debugf(ctx, "%+v", args...)
 }
 
 // Errorf forwards to sentry
-func Errorf(ctx context.Context, err error, format string, args ...interface{}) {
+func Errorf(ctx context.Context, err error, format string, args ...any) {
 	errorf(ctx, err, format, nil, args...)
 }
 
 // Error forwards to sentry
-func Error(ctx context.Context, err error, args ...interface{}) {
+func Error(ctx context.Context, err error, args ...any) {
 	Errorf(ctx, err, "%+v", args...)
 }

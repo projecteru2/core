@@ -75,7 +75,7 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 	}
 
 	resp := &plugintypes.AddNodeResponse{}
-	return resp, mapstructure.Decode(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]any{
 		"capacity": nodeResourceInfo.Capacity,
 		"usage":    nodeResourceInfo.Usage,
 	}, resp)
@@ -124,7 +124,7 @@ func (p Plugin) GetNodesDeployCapacity(ctx context.Context, nodenames []string, 
 	}
 
 	resp := &plugintypes.GetNodesDeployCapacityResponse{}
-	return resp, mapstructure.Decode(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]any{
 		"nodes_deploy_capacity_map": nodesDeployCapacityMap,
 		"total":                     total,
 	}, resp)
@@ -160,7 +160,7 @@ func (p Plugin) SetNodeResourceCapacity(ctx context.Context, nodename string, re
 	}
 
 	resp := &plugintypes.SetNodeResourceCapacityResponse{}
-	return resp, mapstructure.Decode(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]any{
 		"before": before,
 		"after":  nodeResourceInfo.Capacity,
 	}, resp)
@@ -174,7 +174,7 @@ func (p Plugin) GetNodeResourceInfo(ctx context.Context, nodename string, worklo
 	}
 
 	resp := &plugintypes.GetNodeResourceInfoResponse{}
-	return resp, mapstructure.Decode(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]any{
 		"capacity": nodeResourceInfo.Capacity,
 		"usage":    nodeResourceInfo.Usage,
 		"diffs":    diffs,
@@ -217,7 +217,7 @@ func (p Plugin) SetNodeResourceUsage(ctx context.Context, nodename string, resou
 	}
 
 	resp := &plugintypes.SetNodeResourceUsageResponse{}
-	return resp, mapstructure.Decode(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]any{
 		"before": before,
 		"after":  nodeResourceInfo.Usage,
 	}, resp)
@@ -244,7 +244,7 @@ func (p Plugin) GetMostIdleNode(ctx context.Context, nodenames []string) (*plugi
 	}
 
 	resp := &plugintypes.GetMostIdleNodeResponse{}
-	return resp, mapstructure.Decode(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]any{
 		"nodename": mostIdleNode,
 		"priority": priority,
 	}, resp)
@@ -271,7 +271,7 @@ func (p Plugin) FixNodeResource(ctx context.Context, nodename string, workloadsR
 	}
 
 	resp := &plugintypes.GetNodeResourceInfoResponse{}
-	return resp, mapstructure.Decode(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]any{
 		"capacity": nodeResourceInfo.Capacity,
 		"usage":    nodeResourceInfo.Usage,
 		"diffs":    diffs,

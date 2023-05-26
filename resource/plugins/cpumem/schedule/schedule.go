@@ -38,12 +38,12 @@ func (c cpuCoreHeap) Swap(i, j int) {
 }
 
 // Push .
-func (c *cpuCoreHeap) Push(x interface{}) {
+func (c *cpuCoreHeap) Push(x any) {
 	*c = append(*c, x.(*cpuCore))
 }
 
 // Pop .
-func (c *cpuCoreHeap) Pop() interface{} {
+func (c *cpuCoreHeap) Pop() any {
 	old := *c
 	n := len(old)
 	x := old[n-1]

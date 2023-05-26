@@ -26,7 +26,7 @@ func (h infoHeap) Swap(i, j int) {
 	h.infos[i], h.infos[j] = h.infos[j], h.infos[i]
 }
 
-func (h *infoHeap) Push(x interface{}) {
+func (h *infoHeap) Push(x any) {
 	info := x.(Info)
 	if info.Capacity == 0 || (h.limit > 0 && info.Count >= h.limit) {
 		return
@@ -34,7 +34,7 @@ func (h *infoHeap) Push(x interface{}) {
 	h.infos = append(h.infos, info)
 }
 
-func (h *infoHeap) Pop() interface{} {
+func (h *infoHeap) Pop() any {
 	length := len(h.infos)
 	x := h.infos[length-1]
 	h.infos = h.infos[0 : length-1]

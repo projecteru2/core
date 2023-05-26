@@ -43,7 +43,7 @@ func (p Plugin) CalculateDeploy(ctx context.Context, nodename string, deployCoun
 	}
 
 	resp := &plugintypes.CalculateDeployResponse{}
-	return resp, mapstructure.Decode(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]any{
 		"engines_params":     enginesParams,
 		"workloads_resource": workloadsResource,
 	}, resp)
@@ -132,7 +132,7 @@ func (p Plugin) CalculateRealloc(ctx context.Context, nodename string, resource 
 	deltaWorkloadResource.Sub(originResource)
 
 	resp := &plugintypes.CalculateReallocResponse{}
-	return resp, mapstructure.Decode(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]any{
 		"engine_params":     engineParams,
 		"delta_resource":    deltaWorkloadResource,
 		"workload_resource": newResource,
@@ -144,7 +144,7 @@ func (p Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsRe
 	resp := &plugintypes.CalculateRemapResponse{}
 	engineParamsMap := map[string]*cpumemtypes.EngineParams{}
 	if len(workloadsResource) == 0 {
-		return resp, mapstructure.Decode(map[string]interface{}{
+		return resp, mapstructure.Decode(map[string]any{
 			"engine_params_map": engineParamsMap,
 		}, resp)
 	}
@@ -192,7 +192,7 @@ func (p Plugin) CalculateRemap(ctx context.Context, nodename string, workloadsRe
 		}
 	}
 
-	return resp, mapstructure.Decode(map[string]interface{}{
+	return resp, mapstructure.Decode(map[string]any{
 		"engine_params_map": engineParamsMap,
 	}, resp)
 }

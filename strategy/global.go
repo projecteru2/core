@@ -27,12 +27,12 @@ func (r infoHeapForGlobalStrategy) Swap(i, j int) {
 }
 
 // Push .
-func (r *infoHeapForGlobalStrategy) Push(x interface{}) {
+func (r *infoHeapForGlobalStrategy) Push(x any) {
 	*r = append(*r, x.(Info))
 }
 
 // Pop .
-func (r *infoHeapForGlobalStrategy) Pop() interface{} {
+func (r *infoHeapForGlobalStrategy) Pop() any {
 	old := *r
 	n := len(old)
 	x := old[n-1]

@@ -21,7 +21,7 @@ func NewBasicAuth(username, password string) *BasicAuth {
 }
 
 // StreamInterceptor define stream interceptor
-func (b *BasicAuth) StreamInterceptor(srv interface{}, stream grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+func (b *BasicAuth) StreamInterceptor(srv any, stream grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 	ctx := stream.Context()
 	if err := b.doAuth(ctx); err != nil {
 		return err
@@ -30,7 +30,7 @@ func (b *BasicAuth) StreamInterceptor(srv interface{}, stream grpc.ServerStream,
 }
 
 // UnaryInterceptor define unary interceptor
-func (b *BasicAuth) UnaryInterceptor(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+func (b *BasicAuth) UnaryInterceptor(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 	if err := b.doAuth(ctx); err != nil {
 		return nil, err
 	}

@@ -47,7 +47,7 @@ func toRPCNode(n *types.Node) *pb.Node {
 	return node
 }
 
-func toRPCResources(v interface{}) string {
+func toRPCResources(v any) string {
 	body, _ := json.Marshal(v)
 	return string(body)
 }

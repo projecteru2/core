@@ -172,10 +172,10 @@ func (n *NodeResourceInfo) GetAvailableResource() *NodeResource {
 
 // NodeResourceRequest includes all possible fields passed by eru-core for editing node, it not parsed!
 type NodeResourceRequest struct {
-	CPUMap     CPUMap     `json:"cpu_map"`
-	Memory     int64      `json:"memory"`
-	NUMA       NUMA       `json:"numa"`
-	NUMAMemory NUMAMemory `json:"numa_memory"`
+	CPUMap     CPUMap
+	Memory     int64
+	NUMA       NUMA
+	NUMAMemory NUMAMemory
 }
 
 func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams resourcetypes.RawParams) error {

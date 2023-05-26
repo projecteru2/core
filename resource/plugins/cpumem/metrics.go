@@ -12,7 +12,7 @@ import (
 // GetMetricsDescription .
 func (p Plugin) GetMetricsDescription(context.Context) (*plugintypes.GetMetricsDescriptionResponse, error) {
 	resp := &plugintypes.GetMetricsDescriptionResponse{}
-	return resp, mapstructure.Decode([]map[string]interface{}{
+	return resp, mapstructure.Decode([]map[string]any{
 		{
 			"name":   "cpu_map",
 			"help":   "node available cpu.",
@@ -47,7 +47,7 @@ func (p Plugin) GetMetrics(ctx context.Context, podname, nodename string) (*plug
 		return nil, err
 	}
 	safeNodename := strings.ReplaceAll(nodename, ".", "_")
-	metrics := []map[string]interface{}{
+	metrics := []map[string]any{
 		{
 			"name":   "memory_capacity",
 			"labels": []string{podname, nodename},
@@ -69,7 +69,7 @@ func (p Plugin) GetMetrics(ctx context.Context, podname, nodename string) (*plug
 	}
 
 	for cpuID, pieces := range nodeResourceInfo.Usage.CPUMap {
-		metrics = append(metrics, map[string]interface{}{
+		metrics = append(metrics, map[string]any{
 			"name":   "cpu_map",
 			"labels": []string{podname, nodename, cpuID},
 			"value":  fmt.Sprintf("%+v", pieces),

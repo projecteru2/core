@@ -6681,7 +6681,7 @@ func file_rpc_gen_core_proto_rawDescGZIP() []byte {
 
 var file_rpc_gen_core_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
 var file_rpc_gen_core_proto_msgTypes = make([]protoimpl.MessageInfo, 116)
-var file_rpc_gen_core_proto_goTypes = []interface{}{
+var file_rpc_gen_core_proto_goTypes = []any{
 	(TriOpt)(0),                         // 0: pb.TriOpt
 	(StdStreamType)(0),                  // 1: pb.StdStreamType
 	(BuildImageOptions_BuildMethod)(0),  // 2: pb.BuildImageOptions.BuildMethod
@@ -6973,7 +6973,7 @@ func file_rpc_gen_core_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_rpc_gen_core_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*Empty); i {
 			case 0:
 				return &v.state
@@ -6985,7 +6985,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*CoreInfo); i {
 			case 0:
 				return &v.state
@@ -6997,7 +6997,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*ServiceStatus); i {
 			case 0:
 				return &v.state
@@ -7009,7 +7009,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[3].Exporter = func(v any, i int) any {
 			switch v := v.(*Engine); i {
 			case 0:
 				return &v.state
@@ -7021,7 +7021,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[4].Exporter = func(v any, i int) any {
 			switch v := v.(*ListWorkloadsOptions); i {
 			case 0:
 				return &v.state
@@ -7033,7 +7033,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[5].Exporter = func(v any, i int) any {
 			switch v := v.(*Pod); i {
 			case 0:
 				return &v.state
@@ -7045,7 +7045,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[6].Exporter = func(v any, i int) any {
 			switch v := v.(*Pods); i {
 			case 0:
 				return &v.state
@@ -7057,7 +7057,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[7].Exporter = func(v any, i int) any {
 			switch v := v.(*NodeResource); i {
 			case 0:
 				return &v.state
@@ -7069,7 +7069,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[8].Exporter = func(v any, i int) any {
 			switch v := v.(*ListNetworkOptions); i {
 			case 0:
 				return &v.state
@@ -7081,7 +7081,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[9].Exporter = func(v any, i int) any {
 			switch v := v.(*ConnectNetworkOptions); i {
 			case 0:
 				return &v.state
@@ -7093,7 +7093,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[10].Exporter = func(v any, i int) any {
 			switch v := v.(*DisconnectNetworkOptions); i {
 			case 0:
 				return &v.state
@@ -7105,7 +7105,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[11].Exporter = func(v any, i int) any {
 			switch v := v.(*Network); i {
 			case 0:
 				return &v.state
@@ -7117,7 +7117,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[12].Exporter = func(v any, i int) any {
 			switch v := v.(*Networks); i {
 			case 0:
 				return &v.state
@@ -7129,7 +7129,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[13].Exporter = func(v any, i int) any {
 			switch v := v.(*Node); i {
 			case 0:
 				return &v.state
@@ -7141,7 +7141,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[14].Exporter = func(v any, i int) any {
 			switch v := v.(*AddPodOptions); i {
 			case 0:
 				return &v.state
@@ -7153,7 +7153,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[15].Exporter = func(v any, i int) any {
 			switch v := v.(*RemovePodOptions); i {
 			case 0:
 				return &v.state
@@ -7165,7 +7165,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[16].Exporter = func(v any, i int) any {
 			switch v := v.(*GetPodOptions); i {
 			case 0:
 				return &v.state
@@ -7177,7 +7177,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[17].Exporter = func(v any, i int) any {
 			switch v := v.(*AddNodeOptions); i {
 			case 0:
 				return &v.state
@@ -7189,7 +7189,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[18].Exporter = func(v any, i int) any {
 			switch v := v.(*RemoveNodeOptions); i {
 			case 0:
 				return &v.state
@@ -7201,7 +7201,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[19].Exporter = func(v any, i int) any {
 			switch v := v.(*GetNodeOptions); i {
 			case 0:
 				return &v.state
@@ -7213,7 +7213,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[20].Exporter = func(v any, i int) any {
 			switch v := v.(*GetNodeResourceOptions); i {
 			case 0:
 				return &v.state
@@ -7225,7 +7225,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[21].Exporter = func(v any, i int) any {
 			switch v := v.(*ListNodesOptions); i {
 			case 0:
 				return &v.state
@@ -7237,7 +7237,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[22].Exporter = func(v any, i int) any {
 			switch v := v.(*SetNodeOptions); i {
 			case 0:
 				return &v.state
@@ -7249,7 +7249,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[23].Exporter = func(v any, i int) any {
 			switch v := v.(*SetNodeStatusOptions); i {
 			case 0:
 				return &v.state
@@ -7261,7 +7261,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[24].Exporter = func(v any, i int) any {
 			switch v := v.(*GetNodeStatusOptions); i {
 			case 0:
 				return &v.state
@@ -7273,7 +7273,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[25].Exporter = func(v any, i int) any {
 			switch v := v.(*NodeStatusStreamMessage); i {
 			case 0:
 				return &v.state
@@ -7285,7 +7285,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[26].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[26].Exporter = func(v any, i int) any {
 			switch v := v.(*NodeFilter); i {
 			case 0:
 				return &v.state
@@ -7297,7 +7297,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[27].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[27].Exporter = func(v any, i int) any {
 			switch v := v.(*Workload); i {
 			case 0:
 				return &v.state
@@ -7309,7 +7309,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[28].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[28].Exporter = func(v any, i int) any {
 			switch v := v.(*WorkloadStatus); i {
 			case 0:
 				return &v.state
@@ -7321,7 +7321,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[29].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[29].Exporter = func(v any, i int) any {
 			switch v := v.(*WorkloadsStatus); i {
 			case 0:
 				return &v.state
@@ -7333,7 +7333,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[30].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[30].Exporter = func(v any, i int) any {
 			switch v := v.(*SetWorkloadsStatusOptions); i {
 			case 0:
 				return &v.state
@@ -7345,7 +7345,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[31].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[31].Exporter = func(v any, i int) any {
 			switch v := v.(*WorkloadStatusStreamOptions); i {
 			case 0:
 				return &v.state
@@ -7357,7 +7357,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[32].Exporter = func(v any, i int) any {
 			switch v := v.(*WorkloadStatusStreamMessage); i {
 			case 0:
 				return &v.state
@@ -7369,7 +7369,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[33].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[33].Exporter = func(v any, i int) any {
 			switch v := v.(*Workloads); i {
 			case 0:
 				return &v.state
@@ -7381,7 +7381,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[34].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[34].Exporter = func(v any, i int) any {
 			switch v := v.(*WorkloadID); i {
 			case 0:
 				return &v.state
@@ -7393,7 +7393,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[35].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[35].Exporter = func(v any, i int) any {
 			switch v := v.(*WorkloadIDs); i {
 			case 0:
 				return &v.state
@@ -7405,7 +7405,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[36].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[36].Exporter = func(v any, i int) any {
 			switch v := v.(*RemoveWorkloadOptions); i {
 			case 0:
 				return &v.state
@@ -7417,7 +7417,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[37].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[37].Exporter = func(v any, i int) any {
 			switch v := v.(*DissociateWorkloadOptions); i {
 			case 0:
 				return &v.state
@@ -7429,7 +7429,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[38].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[38].Exporter = func(v any, i int) any {
 			switch v := v.(*ReallocOptions); i {
 			case 0:
 				return &v.state
@@ -7441,7 +7441,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[39].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[39].Exporter = func(v any, i int) any {
 			switch v := v.(*Build); i {
 			case 0:
 				return &v.state
@@ -7453,7 +7453,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[40].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[40].Exporter = func(v any, i int) any {
 			switch v := v.(*Builds); i {
 			case 0:
 				return &v.state
@@ -7465,7 +7465,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[41].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[41].Exporter = func(v any, i int) any {
 			switch v := v.(*BuildImageOptions); i {
 			case 0:
 				return &v.state
@@ -7477,7 +7477,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[42].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[42].Exporter = func(v any, i int) any {
 			switch v := v.(*HookOptions); i {
 			case 0:
 				return &v.state
@@ -7489,7 +7489,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[43].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[43].Exporter = func(v any, i int) any {
 			switch v := v.(*HealthCheckOptions); i {
 			case 0:
 				return &v.state
@@ -7501,7 +7501,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[44].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[44].Exporter = func(v any, i int) any {
 			switch v := v.(*LogOptions); i {
 			case 0:
 				return &v.state
@@ -7513,7 +7513,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[45].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[45].Exporter = func(v any, i int) any {
 			switch v := v.(*EntrypointOptions); i {
 			case 0:
 				return &v.state
@@ -7525,7 +7525,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[46].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[46].Exporter = func(v any, i int) any {
 			switch v := v.(*Volume); i {
 			case 0:
 				return &v.state
@@ -7537,7 +7537,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[47].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[47].Exporter = func(v any, i int) any {
 			switch v := v.(*DeployOptions); i {
 			case 0:
 				return &v.state
@@ -7549,7 +7549,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[48].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[48].Exporter = func(v any, i int) any {
 			switch v := v.(*ReplaceOptions); i {
 			case 0:
 				return &v.state
@@ -7561,7 +7561,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[49].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[49].Exporter = func(v any, i int) any {
 			switch v := v.(*CacheImageOptions); i {
 			case 0:
 				return &v.state
@@ -7573,7 +7573,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[50].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[50].Exporter = func(v any, i int) any {
 			switch v := v.(*RemoveImageOptions); i {
 			case 0:
 				return &v.state
@@ -7585,7 +7585,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[51].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[51].Exporter = func(v any, i int) any {
 			switch v := v.(*ListImageOptions); i {
 			case 0:
 				return &v.state
@@ -7597,7 +7597,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[52].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[52].Exporter = func(v any, i int) any {
 			switch v := v.(*CopyPaths); i {
 			case 0:
 				return &v.state
@@ -7609,7 +7609,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[53].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[53].Exporter = func(v any, i int) any {
 			switch v := v.(*CopyOptions); i {
 			case 0:
 				return &v.state
@@ -7621,7 +7621,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[54].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[54].Exporter = func(v any, i int) any {
 			switch v := v.(*FileOwner); i {
 			case 0:
 				return &v.state
@@ -7633,7 +7633,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[55].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[55].Exporter = func(v any, i int) any {
 			switch v := v.(*FileMode); i {
 			case 0:
 				return &v.state
@@ -7645,7 +7645,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[56].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[56].Exporter = func(v any, i int) any {
 			switch v := v.(*SendOptions); i {
 			case 0:
 				return &v.state
@@ -7657,7 +7657,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[57].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[57].Exporter = func(v any, i int) any {
 			switch v := v.(*ErrorDetail); i {
 			case 0:
 				return &v.state
@@ -7669,7 +7669,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[58].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[58].Exporter = func(v any, i int) any {
 			switch v := v.(*BuildImageMessage); i {
 			case 0:
 				return &v.state
@@ -7681,7 +7681,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[59].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[59].Exporter = func(v any, i int) any {
 			switch v := v.(*CreateWorkloadMessage); i {
 			case 0:
 				return &v.state
@@ -7693,7 +7693,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[60].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[60].Exporter = func(v any, i int) any {
 			switch v := v.(*ReplaceWorkloadMessage); i {
 			case 0:
 				return &v.state
@@ -7705,7 +7705,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[61].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[61].Exporter = func(v any, i int) any {
 			switch v := v.(*CacheImageMessage); i {
 			case 0:
 				return &v.state
@@ -7717,7 +7717,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[62].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[62].Exporter = func(v any, i int) any {
 			switch v := v.(*RemoveImageMessage); i {
 			case 0:
 				return &v.state
@@ -7729,7 +7729,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[63].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[63].Exporter = func(v any, i int) any {
 			switch v := v.(*ImageItem); i {
 			case 0:
 				return &v.state
@@ -7741,7 +7741,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[64].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[64].Exporter = func(v any, i int) any {
 			switch v := v.(*ListImageMessage); i {
 			case 0:
 				return &v.state
@@ -7753,7 +7753,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[65].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[65].Exporter = func(v any, i int) any {
 			switch v := v.(*RemoveWorkloadMessage); i {
 			case 0:
 				return &v.state
@@ -7765,7 +7765,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[66].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[66].Exporter = func(v any, i int) any {
 			switch v := v.(*DissociateWorkloadMessage); i {
 			case 0:
 				return &v.state
@@ -7777,7 +7777,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[67].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[67].Exporter = func(v any, i int) any {
 			switch v := v.(*ReallocResourceMessage); i {
 			case 0:
 				return &v.state
@@ -7789,7 +7789,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[68].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[68].Exporter = func(v any, i int) any {
 			switch v := v.(*CopyMessage); i {
 			case 0:
 				return &v.state
@@ -7801,7 +7801,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[69].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[69].Exporter = func(v any, i int) any {
 			switch v := v.(*SendMessage); i {
 			case 0:
 				return &v.state
@@ -7813,7 +7813,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[70].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[70].Exporter = func(v any, i int) any {
 			switch v := v.(*AttachWorkloadMessage); i {
 			case 0:
 				return &v.state
@@ -7825,7 +7825,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[71].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[71].Exporter = func(v any, i int) any {
 			switch v := v.(*RunAndWaitOptions); i {
 			case 0:
 				return &v.state
@@ -7837,7 +7837,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[72].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[72].Exporter = func(v any, i int) any {
 			switch v := v.(*ControlWorkloadOptions); i {
 			case 0:
 				return &v.state
@@ -7849,7 +7849,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[73].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[73].Exporter = func(v any, i int) any {
 			switch v := v.(*ControlWorkloadMessage); i {
 			case 0:
 				return &v.state
@@ -7861,7 +7861,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[74].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[74].Exporter = func(v any, i int) any {
 			switch v := v.(*LogStreamOptions); i {
 			case 0:
 				return &v.state
@@ -7873,7 +7873,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[75].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[75].Exporter = func(v any, i int) any {
 			switch v := v.(*LogStreamMessage); i {
 			case 0:
 				return &v.state
@@ -7885,7 +7885,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[76].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[76].Exporter = func(v any, i int) any {
 			switch v := v.(*ExecuteWorkloadOptions); i {
 			case 0:
 				return &v.state
@@ -7897,7 +7897,7 @@ func file_rpc_gen_core_proto_init() {
 				return nil
 			}
 		}
-		file_rpc_gen_core_proto_msgTypes[77].Exporter = func(v interface{}, i int) interface{} {
+		file_rpc_gen_core_proto_msgTypes[77].Exporter = func(v any, i int) any {
 			switch v := v.(*CapacityMessage); i {
 			case 0:
 				return &v.state

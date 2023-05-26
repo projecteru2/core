@@ -35,7 +35,7 @@ func (c CPUMap) Add(c1 CPUMap) {
 // NUMA map[cpuID]nodeID
 type NUMA map[string]string
 
-// NUMAMemory .
+// NUMAMemory map[nodeID]memory
 type NUMAMemory map[string]int64
 
 // Add .

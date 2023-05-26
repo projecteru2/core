@@ -59,12 +59,12 @@ func (h *CreateLambdaHandler) Typ() string {
 }
 
 // Check .
-func (h *CreateLambdaHandler) Check(context.Context, interface{}) (bool, error) {
+func (h *CreateLambdaHandler) Check(context.Context, any) (bool, error) {
 	return true, nil
 }
 
 // Encode .
-func (h *CreateLambdaHandler) Encode(raw interface{}) ([]byte, error) {
+func (h *CreateLambdaHandler) Encode(raw any) ([]byte, error) {
 	workloadID, ok := raw.(string)
 	if !ok {
 		return nil, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
@@ -73,12 +73,12 @@ func (h *CreateLambdaHandler) Encode(raw interface{}) ([]byte, error) {
 }
 
 // Decode .
-func (h *CreateLambdaHandler) Decode(bs []byte) (interface{}, error) {
+func (h *CreateLambdaHandler) Decode(bs []byte) (any, error) {
 	return string(bs), nil
 }
 
 // Handle .
-func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error {
+func (h *CreateLambdaHandler) Handle(ctx context.Context, raw any) error {
 	workloadID, ok := raw.(string)
 	if !ok {
 		return errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
@@ -133,7 +133,7 @@ func (h *CreateWorkloadHandler) Typ() string {
 }
 
 // Check .
-func (h *CreateWorkloadHandler) Check(_ context.Context, raw interface{}) (handle bool, err error) {
+func (h *CreateWorkloadHandler) Check(_ context.Context, raw any) (handle bool, err error) {
 	_, ok := raw.(*types.Workload)
 	if !ok {
 		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
@@ -142,7 +142,7 @@ func (h *CreateWorkloadHandler) Check(_ context.Context, raw interface{}) (handl
 }
 
 // Encode .
-func (h *CreateWorkloadHandler) Encode(raw interface{}) ([]byte, error) {
+func (h *CreateWorkloadHandler) Encode(raw any) ([]byte, error) {
 	wrk, ok := raw.(*types.Workload)
 	if !ok {
 		return nil, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
@@ -151,14 +151,14 @@ func (h *CreateWorkloadHandler) Encode(raw interface{}) ([]byte, error) {
 }
 
 // Decode .
-func (h *CreateWorkloadHandler) Decode(bs []byte) (interface{}, error) {
+func (h *CreateWorkloadHandler) Decode(bs []byte) (any, error) {
 	wrk := &types.Workload{}
 	err := json.Unmarshal(bs, wrk)
 	return wrk, err
 }
 
 // Handle will remove instance, remove meta, restore resource
-func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) (err error) {
+func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) (err error) {
 	wrk, _ := raw.(*types.Workload)
 	logger := log.WithFunc("wal.CreateWorkloadHandler.Handle").WithField("ID", wrk.ID).WithField("node", wrk.Nodename)
 
@@ -210,7 +210,7 @@ func (h *WorkloadResourceAllocatedHandler) Typ() string {
 }
 
 // Check .
-func (h *WorkloadResourceAllocatedHandler) Check(_ context.Context, raw interface{}) (bool, error) {
+func (h *WorkloadResourceAllocatedHandler) Check(_ context.Context, raw any) (bool, error) {
 	if _, ok := raw.([]*types.Node); !ok {
 		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
 	}
@@ -218,7 +218,7 @@ func (h *WorkloadResourceAllocatedHandler) Check(_ context.Context, raw interfac
 }
 
 // Encode .
-func (h *WorkloadResourceAllocatedHandler) Encode(raw interface{}) ([]byte, error) {
+func (h *WorkloadResourceAllocatedHandler) Encode(raw any) ([]byte, error) {
 	nodes, ok := raw.([]*types.Node)
 	if !ok {
 		return nil, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
@@ -227,13 +227,13 @@ func (h *WorkloadResourceAllocatedHandler) Encode(raw interface{}) ([]byte, erro
 }
 
 // Decode .
-func (h *WorkloadResourceAllocatedHandler) Decode(bytes []byte) (interface{}, error) {
+func (h *WorkloadResourceAllocatedHandler) Decode(bytes []byte) (any, error) {
 	nodes := []*types.Node{}
 	return nodes, json.Unmarshal(bytes, &nodes)
 }
 
 // Handle .
-func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw interface{}) (err error) {
+func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw any) (err error) {
 	nodes, _ := raw.([]*types.Node)
 	logger := log.WithFunc("wal.WorkloadResourceAllocatedHandler.Handle").WithField("event", eventWorkloadResourceAllocated)
 
@@ -281,7 +281,7 @@ func (h *ProcessingCreatedHandler) Typ() string {
 }
 
 // Check .
-func (h ProcessingCreatedHandler) Check(_ context.Context, raw interface{}) (bool, error) {
+func (h ProcessingCreatedHandler) Check(_ context.Context, raw any) (bool, error) {
 	if _, ok := raw.(*types.Processing); !ok {
 		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
 	}
@@ -289,7 +289,7 @@ func (h ProcessingCreatedHandler) Check(_ context.Context, raw interface{}) (boo
 }
 
 // Encode .
-func (h *ProcessingCreatedHandler) Encode(raw interface{}) ([]byte, error) {
+func (h *ProcessingCreatedHandler) Encode(raw any) ([]byte, error) {
 	processing, ok := raw.(*types.Processing)
 	if !ok {
 		return nil, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
@@ -298,13 +298,13 @@ func (h *ProcessingCreatedHandler) Encode(raw interface{}) ([]byte, error) {
 }
 
 // Decode .
-func (h *ProcessingCreatedHandler) Decode(bs []byte) (interface{}, error) {
+func (h *ProcessingCreatedHandler) Decode(bs []byte) (any, error) {
 	processing := &types.Processing{}
 	return processing, json.Unmarshal(bs, processing)
 }
 
 // Handle .
-func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw interface{}) (err error) {
+func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw any) (err error) {
 	processing, _ := raw.(*types.Processing)
 	logger := log.WithFunc("wal.ProcessingCreatedHandler.Handle").WithField("event", eventProcessingCreated).WithField("ident", processing.Ident)
 

@@ -16,7 +16,7 @@ type retryStream struct {
 	ctx context.Context
 	grpc.ClientStream
 	mux       sync.RWMutex
-	sent      interface{}
+	sent      any
 	newStream func() (grpc.ClientStream, error)
 	retryOpts RetryOptions
 }
