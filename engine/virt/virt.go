@@ -74,6 +74,7 @@ func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {
 		NCPU:         resp.CPU,
 		MemTotal:     resp.Mem,
 		StorageTotal: resp.Storage,
+		Resources:    resp.Resources,
 	}, nil
 }
 
