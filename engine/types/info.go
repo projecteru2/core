@@ -7,4 +7,5 @@ type Info struct {
 	NCPU         int
 	MemTotal     int64
 	StorageTotal int64
+	Resources    map[string][]byte
 }
