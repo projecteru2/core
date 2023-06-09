@@ -38,7 +38,7 @@ func (p Plugin) AddNode(ctx context.Context, nodename string, resource plugintyp
 	}
 
 	if info != nil { //nolint
-		// extrace NodeResource from Resources
+		// extract NodeResource from Resources
 		var nodeRes cpumemtypes.NodeResource
 		if b, ok := info.Resources[p.Name()]; ok {
 			if err := json.Unmarshal(b, &nodeRes); err != nil {
