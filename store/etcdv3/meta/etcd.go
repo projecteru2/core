@@ -522,7 +522,7 @@ func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (resp *cli
 		}
 	}
 	if err != nil {
-		return
+		return resp, err
 	}
 
 	if len(resps) == 0 {
@@ -542,7 +542,7 @@ func (e *ETCD) doBatchOp(ctx context.Context, transactions []ETCDTxn) (resp *cli
 func (e *ETCD) BatchCreateAndDecr(ctx context.Context, data map[string]string, decrKey string) (err error) {
 	resp, err := e.Get(ctx, decrKey)
 	if err != nil {
-		return
+		return err
 	}
 	if len(resp.Kvs) == 0 {
 		return errors.Wrap(types.ErrKeyNotExists, decrKey)

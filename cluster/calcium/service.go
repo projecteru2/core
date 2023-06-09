@@ -28,7 +28,7 @@ func (c *Calcium) RegisterService(ctx context.Context) (unregister func(), err e
 	logger := log.WithFunc("calcium.RegisterService")
 	if err != nil {
 		logger.Error(ctx, err, "failed to get outbound address")
-		return
+		return nil, err
 	}
 
 	var (
