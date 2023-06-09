@@ -37,7 +37,7 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 	logger := log.WithFunc("servicediscovery.Watch").WithField("endpoint", w.endpoint)
 	if err != nil {
 		logger.Error(ctx, err, "dial failed")
-		return
+		return nil, err
 	}
 	client := pb.NewCoreRPCClient(cc)
 	ch := make(chan []string)
