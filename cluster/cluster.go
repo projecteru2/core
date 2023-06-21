@@ -28,6 +28,10 @@ const (
 	WorkloadStart = "start"
 	// WorkloadRestart for restart workload
 	WorkloadRestart = "restart"
+	// WorkloadSuspend for suspending workload
+	WorkloadSuspend = "suspend"
+	// WorkloadResume for resuming workload
+	WorkloadResume = "resume"
 	// WorkloadLock for lock workload
 	WorkloadLock = "clock_%s"
 	// PodLock for lock pod

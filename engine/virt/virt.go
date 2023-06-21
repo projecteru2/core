@@ -257,6 +257,18 @@ func (v *Virt) VirtualizationRemove(ctx context.Context, ID string, _, force boo
 	return
 }
 
+// VirtualizationSuspend suspends a guest.
+func (v *Virt) VirtualizationSuspend(ctx context.Context, ID string) (err error) {
+	_, err = v.client.SuspendGuest(ctx, ID)
+	return
+}
+
+// VirtualizationResume resumes a guest.
+func (v *Virt) VirtualizationResume(ctx context.Context, ID string) (err error) {
+	_, err = v.client.ResumeGuest(ctx, ID)
+	return
+}
+
 // VirtualizationInspect gets a guest.
 func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetypes.VirtualizationInfo, error) {
 	guest, err := v.client.GetGuest(ctx, ID)

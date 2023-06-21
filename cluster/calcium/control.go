@@ -43,6 +43,12 @@ func (c *Calcium) ControlWorkload(ctx context.Context, IDs []string, typ string,
 						startHook, err := c.doStartWorkload(ctx, workload, force)
 						message = append(message, startHook...)
 						return err
+					case cluster.WorkloadSuspend:
+						message, err = c.doSuspendWorkload(ctx, workload, force)
+						return err
+					case cluster.WorkloadResume:
+						message, err = c.doResumeWorkload(ctx, workload, force)
+						return err
 					}
 					return types.ErrInvaildControlType
 				})
@@ -100,6 +106,42 @@ func (c *Calcium) doStopWorkload(ctx context.Context, workload *types.Workload, 
 	// 另外我怀疑 engine 自己的 timeout 实现是完全的等 timeout 而非结束了就退出
 	if err = workload.Stop(ctx, force); err != nil {
 		message = append(message, bytes.NewBufferString(err.Error()))
+	}
+	return message, err
+}
+
+func (c *Calcium) doSuspendWorkload(ctx context.Context, workload *types.Workload, force bool) (message []*bytes.Buffer, err error) {
+	if workload.Hook != nil && len(workload.Hook.BeforeSuspend) > 0 {
+		message, err = c.doHook(
+			ctx,
+			workload.ID, workload.User,
+			workload.Hook.BeforeSuspend, workload.Env,
+			workload.Hook.Force, workload.Privileged,
+			force, workload.Engine,
+		)
+		if err != nil {
+			return message, err
+		}
+	}
+
+	if err = workload.Suspend(ctx); err != nil {
+		message = append(message, bytes.NewBufferString(err.Error()))
+	}
+	return message, err
+}
+
+func (c *Calcium) doResumeWorkload(ctx context.Context, workload *types.Workload, force bool) (message []*bytes.Buffer, err error) {
+	if err = workload.Resume(ctx); err != nil {
+		return message, err
+	}
+	if workload.Hook != nil && len(workload.Hook.AfterResume) > 0 {
+		message, err = c.doHook(
+			ctx,
+			workload.ID, workload.User,
+			workload.Hook.AfterResume, workload.Env,
+			workload.Hook.Force, workload.Privileged,
+			force, workload.Engine,
+		)
 	}
 	return message, err
 }
