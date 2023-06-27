@@ -307,6 +307,16 @@ func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTime
 	return e.client.ContainerStop(ctx, ID, dockercontainer.StopOptions{Timeout: timeout})
 }
 
+// VirtualizationSuspend suspends virtualization
+func (e *Engine) VirtualizationSuspend(context.Context, string) error {
+	return nil
+}
+
+// VirtualizationResume resumes virtualization
+func (e *Engine) VirtualizationResume(context.Context, string) error {
+	return nil
+}
+
 // VirtualizationRemove remove virtualization
 func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, removeVolumes, force bool) error {
 	if err := e.client.ContainerRemove(ctx, ID, dockertypes.ContainerRemoveOptions{RemoveVolumes: removeVolumes, Force: force}); err != nil {

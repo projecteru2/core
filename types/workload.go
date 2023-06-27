@@ -82,6 +82,22 @@ func (c *Workload) Stop(ctx context.Context, force bool) error {
 	return c.Engine.VirtualizationStop(ctx, c.ID, gracefulTimeout)
 }
 
+// Suspend a workload
+func (c *Workload) Suspend(ctx context.Context) error {
+	if c.Engine == nil {
+		return ErrNilEngine
+	}
+	return c.Engine.VirtualizationSuspend(ctx, c.ID)
+}
+
+// Resume a workload
+func (c *Workload) Resume(ctx context.Context) error {
+	if c.Engine == nil {
+		return ErrNilEngine
+	}
+	return c.Engine.VirtualizationResume(ctx, c.ID)
+}
+
 // Remove a workload
 func (c *Workload) Remove(ctx context.Context, force bool) (err error) {
 	if c.Engine == nil {

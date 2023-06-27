@@ -121,6 +121,8 @@ func MakeClient(_ context.Context, _ coretypes.Config, _, _, _, _, _ string) (en
 	e.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	e.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	e.On("VirtualizationSuspend", mock.Anything, mock.Anything).Return(nil)
+	e.On("VirtualizationResume", mock.Anything, mock.Anything).Return(nil)
 	vcJSON := &enginetypes.VirtualizationInfo{ID: ID, Image: "mock-image", Running: true, Networks: map[string]string{"mock-network": "1.1.1.1"}}
 	e.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(vcJSON, nil)
 	logs := io.NopCloser(bytes.NewBufferString("logs1...\nlogs2...\n"))

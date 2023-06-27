@@ -140,6 +140,16 @@ func (f *EngineWithErr) VirtualizationStop(context.Context, string, time.Duratio
 	return f.DefaultErr
 }
 
+// VirtualizationSuspend .
+func (f *EngineWithErr) VirtualizationSuspend(context.Context, string) error {
+	return f.DefaultErr
+}
+
+// VirtualizationResume .
+func (f *EngineWithErr) VirtualizationResume(context.Context, string) error {
+	return f.DefaultErr
+}
+
 // VirtualizationRemove .
 func (f *EngineWithErr) VirtualizationRemove(context.Context, string, bool, bool) error {
 	return f.DefaultErr
