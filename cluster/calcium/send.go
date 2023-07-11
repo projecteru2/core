@@ -1,6 +1,7 @@
 package calcium
 
 import (
+	"bytes"
 	"context"
 	"sync"
 
@@ -50,5 +51,5 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 
 func (c *Calcium) doSendFileToWorkload(ctx context.Context, engine engine.API, ID string, file types.LinuxFile) error {
 	log.Infof(ctx, "[doSendFileToWorkload] Send file to %s:%s", ID, file.Filename)
-	return errors.WithStack(engine.VirtualizationCopyTo(ctx, ID, file.Filename, file.Clone().Content, file.UID, file.GID, file.Mode))
+	return errors.WithStack(engine.VirtualizationCopyChunkTo(ctx, ID, file.Filename, int64(len(file.Content)), bytes.NewReader(file.Clone().Content), file.UID, file.GID, file.Mode))
 }

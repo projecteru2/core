@@ -58,10 +58,10 @@ func TestSend(t *testing.T) {
 	// failed by engine
 	content, _ := ioutil.ReadAll(tmpfile)
 	opts.Files[0].Content = content
-	engine.On("VirtualizationCopyTo",
+	engine.On("VirtualizationCopyChunkTo",
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything,
+		mock.Anything, mock.Anything,
 	).Return(types.ErrCannotGetEngine).Once()
 	ch, err = c.Send(ctx, opts)
 	assert.NoError(t, err)
@@ -69,10 +69,10 @@ func TestSend(t *testing.T) {
 		assert.Error(t, r.Error)
 	}
 	// success
-	engine.On("VirtualizationCopyTo",
+	engine.On("VirtualizationCopyChunkTo",
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything,
+		mock.Anything, mock.Anything,
 	).Return(nil)
 	ch, err = c.Send(ctx, opts)
 	assert.NoError(t, err)
