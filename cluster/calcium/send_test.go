@@ -16,10 +16,10 @@ import (
 )
 
 func TestSend(t *testing.T) {
-	panic("oh")
 	c := NewTestCluster()
 	ctx := context.Background()
 
+	// 这部分是在测试参数合法性
 	_, err := c.Send(ctx, &types.SendOptions{IDs: []string{}, Files: []types.LinuxFile{{Content: []byte("xxx")}}})
 	assert.Error(t, err)
 	_, err = c.Send(ctx, &types.SendOptions{IDs: []string{"id"}})
