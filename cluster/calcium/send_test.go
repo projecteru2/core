@@ -16,6 +16,7 @@ import (
 )
 
 func TestSend(t *testing.T) {
+	panic("oh")
 	c := NewTestCluster()
 	ctx := context.Background()
 
@@ -80,4 +81,5 @@ func TestSend(t *testing.T) {
 		assert.Equal(t, r.ID, "cid")
 		assert.Equal(t, r.Path, "/tmp/1")
 	}
+	t.Log("ceshi yixia")
 }
