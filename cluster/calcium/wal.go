@@ -3,240 +3,322 @@ package calcium
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"strings"
+	"sync"
 	"time"
 
+	"github.com/cockroachdb/errors"
+	"github.com/panjf2000/ants/v2"
+	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
 )
 
 const (
-	eventCreateLambda   = "create-lambda"
-	eventCreateWorkload = "create-workload"
+	eventCreateLambda              = "create-lambda"
+	eventWorkloadCreated           = "create-workload"   // created but yet to start
+	eventWorkloadResourceAllocated = "allocate-workload" // resource updated in node meta but yet to create all workloads
+	eventProcessingCreated         = "create-processing" // processing created but yet to delete
 )
 
-// WAL for calcium.
-type WAL struct {
-	wal.WAL
-	config  types.Config
-	calcium *Calcium
-}
-
-func newCalciumWAL(cal *Calcium) (*WAL, error) {
-	w := &WAL{
-		WAL:     wal.NewHydro(),
-		config:  cal.config,
-		calcium: cal,
-	}
-
-	if err := w.WAL.Open(w.config.WALFile, w.config.WALOpenTimeout); err != nil {
+func enableWAL(config types.Config, calcium cluster.Cluster, store store.Store) (wal.WAL, error) {
+	hydro, err := wal.NewHydro(config.WALFile, config.WALOpenTimeout)
+	if err != nil {
 		return nil, err
 	}
 
-	w.registerHandlers()
-
-	return w, nil
+	hydro.Register(newCreateLambdaHandler(config, calcium, store))
+	hydro.Register(newCreateWorkloadHandler(config, calcium, store))
+	hydro.Register(newWorkloadResourceAllocatedHandler(config, calcium, store))
+	hydro.Register(newProcessingCreatedHandler(config, calcium, store))
+	return hydro, nil
 }
 
-func (w *WAL) registerHandlers() {
-	w.Register(newCreateLambdaHandler(w.calcium))
-	w.Register(newCreateWorkloadHandler(w.calcium))
+// CreateLambdaHandler indicates event handler for creating lambda.
+type CreateLambdaHandler struct {
+	typ     string
+	config  types.Config
+	calcium cluster.Cluster
+	store   store.Store
 }
 
-func (w *WAL) logCreateWorkload(workloadID, nodename string) (wal.Commit, error) {
-	return w.Log(eventCreateWorkload, &types.Workload{
-		ID:       workloadID,
-		Nodename: nodename,
-	})
-}
-
-func (w *WAL) logCreateLambda(opts *types.DeployOptions) (wal.Commit, error) {
-	return w.Log(eventCreateLambda, &types.ListWorkloadsOptions{
-		Appname:    opts.Name,
-		Entrypoint: opts.Entrypoint.Name,
-		Labels:     map[string]string{labelLambdaID: opts.Labels[labelLambdaID]},
-	})
-}
-
-// CreateWorkloadHandler indicates event handler for creating workload.
-type CreateWorkloadHandler struct {
-	event   string
-	calcium *Calcium
-}
-
-func newCreateWorkloadHandler(cal *Calcium) *CreateWorkloadHandler {
-	return &CreateWorkloadHandler{
-		event:   eventCreateWorkload,
-		calcium: cal,
+func newCreateLambdaHandler(config types.Config, calcium cluster.Cluster, store store.Store) *CreateLambdaHandler {
+	return &CreateLambdaHandler{
+		typ:     eventCreateLambda,
+		config:  config,
+		calcium: calcium,
+		store:   store,
 	}
 }
 
 // Event .
-func (h *CreateWorkloadHandler) Event() string {
-	return h.event
+func (h *CreateLambdaHandler) Typ() string {
+	return h.typ
 }
 
 // Check .
-func (h *CreateWorkloadHandler) Check(ctx context.Context, raw interface{}) (bool, error) {
-	wrk, ok := raw.(*types.Workload)
-	if !ok {
-		return false, types.NewDetailedErr(types.ErrInvalidType, raw)
-	}
-
-	ctx, cancel := getReplayContext(ctx)
-	defer cancel()
-
-	_, err := h.calcium.GetWorkload(ctx, wrk.ID)
-	switch {
-	// there has been an exact workload metadata.
-	case err == nil:
-		log.Infof(ctx, "[CreateWorkloadHandler.Check] Workload %s is availalbe", wrk.ID)
-		return false, nil
-
-	case strings.HasPrefix(err.Error(), types.ErrBadCount.Error()):
-		log.Errorf(ctx, "[CreateWorkloadHandler.Check] No such workload: %v", wrk.ID)
-		return true, nil
-
-	default:
-		log.Errorf(ctx, "[CreateWorkloadHandler.Check] Unexpected error: %v", err)
-		return false, err
-	}
+func (h *CreateLambdaHandler) Check(context.Context, any) (bool, error) {
+	return true, nil
 }
 
 // Encode .
-func (h *CreateWorkloadHandler) Encode(raw interface{}) ([]byte, error) {
+func (h *CreateLambdaHandler) Encode(raw any) ([]byte, error) {
+	workloadID, ok := raw.(string)
+	if !ok {
+		return nil, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
+	}
+	return []byte(workloadID), nil
+}
+
+// Decode .
+func (h *CreateLambdaHandler) Decode(bs []byte) (any, error) {
+	return string(bs), nil
+}
+
+// Handle .
+func (h *CreateLambdaHandler) Handle(ctx context.Context, raw any) error {
+	workloadID, ok := raw.(string)
+	if !ok {
+		return errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
+	}
+
+	logger := log.WithFunc("wal.CreateLambdaHandler.Handle").WithField("ID", workloadID)
+	go func() {
+		workload, err := h.calcium.GetWorkload(ctx, workloadID)
+		if err != nil {
+			logger.Error(ctx, err, "Get workload failed")
+			return
+		}
+
+		r, err := workload.Engine.VirtualizationWait(ctx, workloadID, "")
+		if err != nil {
+			logger.Error(ctx, err, "Wait failed")
+			return
+		}
+		if r.Code != 0 {
+			logger.Errorf(ctx, nil, "Run failed: %s", r.Message)
+		}
+
+		if err := h.calcium.RemoveWorkloadSync(ctx, []string{workloadID}); err != nil {
+			logger.Error(ctx, err, "Remove failed")
+		}
+		logger.Infof(ctx, "waited and removed")
+	}()
+
+	return nil
+}
+
+// CreateWorkloadHandler indicates event handler for creating workload.
+type CreateWorkloadHandler struct {
+	typ     string
+	config  types.Config
+	calcium cluster.Cluster
+	store   store.Store
+}
+
+func newCreateWorkloadHandler(config types.Config, calcium cluster.Cluster, store store.Store) *CreateWorkloadHandler {
+	return &CreateWorkloadHandler{
+		typ:     eventWorkloadCreated,
+		config:  config,
+		calcium: calcium,
+		store:   store,
+	}
+}
+
+// Event .
+func (h *CreateWorkloadHandler) Typ() string {
+	return h.typ
+}
+
+// Check .
+func (h *CreateWorkloadHandler) Check(_ context.Context, raw any) (handle bool, err error) {
+	_, ok := raw.(*types.Workload)
+	if !ok {
+		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
+	}
+	return true, nil
+}
+
+// Encode .
+func (h *CreateWorkloadHandler) Encode(raw any) ([]byte, error) {
 	wrk, ok := raw.(*types.Workload)
 	if !ok {
-		return nil, types.NewDetailedErr(types.ErrInvalidType, raw)
+		return nil, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
 	}
 	return json.Marshal(wrk)
 }
 
 // Decode .
-func (h *CreateWorkloadHandler) Decode(bs []byte) (interface{}, error) {
+func (h *CreateWorkloadHandler) Decode(bs []byte) (any, error) {
 	wrk := &types.Workload{}
 	err := json.Unmarshal(bs, wrk)
 	return wrk, err
 }
 
-// Handle .
-func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw interface{}) error {
-	wrk, ok := raw.(*types.Workload)
-	if !ok {
-		return types.NewDetailedErr(types.ErrInvalidType, raw)
-	}
+// Handle will remove instance, remove meta, restore resource
+func (h *CreateWorkloadHandler) Handle(ctx context.Context, raw any) (err error) {
+	wrk, _ := raw.(*types.Workload)
+	logger := log.WithFunc("wal.CreateWorkloadHandler.Handle").WithField("ID", wrk.ID).WithField("node", wrk.Nodename)
 
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
 
-	// There hasn't been the exact workload metadata, so we must remove it.
+	if _, err = h.calcium.GetWorkload(ctx, wrk.ID); err == nil {
+		return h.calcium.RemoveWorkloadSync(ctx, []string{wrk.ID})
+	}
+
+	// workload meta doesn't exist
 	node, err := h.calcium.GetNode(ctx, wrk.Nodename)
 	if err != nil {
-		log.Errorf(ctx, "[CreateWorkloadHandler.Handle] Get node %s failed: %v", wrk.Nodename, err)
+		logger.Error(ctx, err)
 		return err
 	}
-	wrk.Engine = node.Engine
-
-	if err := wrk.Remove(ctx, true); err != nil {
-		if strings.HasPrefix(err.Error(), fmt.Sprintf("Error: No such container: %s", wrk.ID)) {
-			log.Errorf(ctx, "[CreateWorkloadHandler.Handle] %s has been removed yet", wrk.ID)
-			return nil
-		}
-
-		log.Errorf(ctx, "[CreateWorkloadHandler.Handle] Remove %s failed: %v", wrk.ID, err)
+	if err = node.Engine.VirtualizationRemove(ctx, wrk.ID, true, true); err != nil && !errors.Is(err, types.ErrWorkloadNotExists) {
+		logger.Error(ctx, err)
 		return err
 	}
 
-	log.Warnf(ctx, "[CreateWorkloadHandler.Handle] %s has been removed", wrk.ID)
-
+	logger.Infof(ctx, "workload removed")
 	return nil
 }
 
-// CreateLambdaHandler indicates event handler for creating lambda.
-type CreateLambdaHandler struct {
-	event   string
-	calcium *Calcium
+// WorkloadResourceAllocatedHandler .
+type WorkloadResourceAllocatedHandler struct {
+	typ     string
+	config  types.Config
+	calcium cluster.Cluster
+	store   store.Store
+	pool    *ants.PoolWithFunc
 }
 
-func newCreateLambdaHandler(cal *Calcium) *CreateLambdaHandler {
-	return &CreateLambdaHandler{
-		event:   eventCreateLambda,
-		calcium: cal,
+func newWorkloadResourceAllocatedHandler(config types.Config, calcium cluster.Cluster, store store.Store) *WorkloadResourceAllocatedHandler {
+	pool, _ := utils.NewPool(config.MaxConcurrency)
+	return &WorkloadResourceAllocatedHandler{
+		typ:     eventWorkloadResourceAllocated,
+		config:  config,
+		calcium: calcium,
+		store:   store,
+		pool:    pool,
 	}
 }
 
 // Event .
-func (h *CreateLambdaHandler) Event() string {
-	return h.event
+func (h *WorkloadResourceAllocatedHandler) Typ() string {
+	return h.typ
 }
 
 // Check .
-func (h *CreateLambdaHandler) Check(context.Context, interface{}) (bool, error) {
+func (h *WorkloadResourceAllocatedHandler) Check(_ context.Context, raw any) (bool, error) {
+	if _, ok := raw.([]*types.Node); !ok {
+		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
+	}
 	return true, nil
 }
 
 // Encode .
-func (h *CreateLambdaHandler) Encode(raw interface{}) ([]byte, error) {
-	opts, ok := raw.(*types.ListWorkloadsOptions)
+func (h *WorkloadResourceAllocatedHandler) Encode(raw any) ([]byte, error) {
+	nodes, ok := raw.([]*types.Node)
 	if !ok {
-		return nil, types.NewDetailedErr(types.ErrInvalidType, raw)
+		return nil, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
 	}
-	return json.Marshal(opts)
+	return json.Marshal(nodes)
 }
 
 // Decode .
-func (h *CreateLambdaHandler) Decode(bs []byte) (interface{}, error) {
-	opts := &types.ListWorkloadsOptions{}
-	err := json.Unmarshal(bs, opts)
-	return opts, err
+func (h *WorkloadResourceAllocatedHandler) Decode(bytes []byte) (any, error) {
+	nodes := []*types.Node{}
+	return nodes, json.Unmarshal(bytes, &nodes)
 }
 
 // Handle .
-func (h *CreateLambdaHandler) Handle(ctx context.Context, raw interface{}) error {
-	opts, ok := raw.(*types.ListWorkloadsOptions)
-	if !ok {
-		return types.NewDetailedErr(types.ErrInvalidType, raw)
-	}
-
-	workloadIDs, err := h.getWorkloadIDs(ctx, opts)
-	if err != nil {
-		log.Errorf(nil, "[CreateLambdaHandler.Handle] Get workloads %s/%s/%v failed: %v", //nolint
-			opts.Appname, opts.Entrypoint, opts.Labels, err)
-		return err
-	}
+func (h *WorkloadResourceAllocatedHandler) Handle(ctx context.Context, raw any) (err error) {
+	nodes, _ := raw.([]*types.Node)
+	logger := log.WithFunc("wal.WorkloadResourceAllocatedHandler.Handle").WithField("event", eventWorkloadResourceAllocated)
 
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
 
-	if err := h.calcium.doRemoveWorkloadSync(ctx, workloadIDs); err != nil {
-		log.Errorf(ctx, "[CreateLambdaHandler.Handle] Remove lambda %v failed: %v", opts, err)
-		return err
+	wg := &sync.WaitGroup{}
+	wg.Add(len(nodes))
+	defer wg.Wait()
+	for _, node := range nodes {
+		node := node
+		_ = h.pool.Invoke(func() {
+			defer wg.Done()
+			if _, err = h.calcium.NodeResource(ctx, node.Name, true); err != nil {
+				logger.Errorf(ctx, err, "failed to fix node resource: %s", node.Name)
+				return
+			}
+			logger.Infof(ctx, "fixed node resource: %s", node.Name)
+		})
 	}
-
-	log.Infof(ctx, "[CreateLambdaHandler.Handle] Lambda %v removed", opts)
 
 	return nil
 }
 
-func (h *CreateLambdaHandler) getWorkloadIDs(ctx context.Context, opts *types.ListWorkloadsOptions) ([]string, error) {
+// ProcessingCreatedHandler .
+type ProcessingCreatedHandler struct {
+	typ     string
+	config  types.Config
+	calcium cluster.Cluster
+	store   store.Store
+}
+
+func newProcessingCreatedHandler(config types.Config, calcium cluster.Cluster, store store.Store) *ProcessingCreatedHandler {
+	return &ProcessingCreatedHandler{
+		typ:     eventProcessingCreated,
+		config:  config,
+		calcium: calcium,
+		store:   store,
+	}
+}
+
+// Event .
+func (h *ProcessingCreatedHandler) Typ() string {
+	return h.typ
+}
+
+// Check .
+func (h ProcessingCreatedHandler) Check(_ context.Context, raw any) (bool, error) {
+	if _, ok := raw.(*types.Processing); !ok {
+		return false, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
+	}
+	return true, nil
+}
+
+// Encode .
+func (h *ProcessingCreatedHandler) Encode(raw any) ([]byte, error) {
+	processing, ok := raw.(*types.Processing)
+	if !ok {
+		return nil, errors.Wrapf(types.ErrInvalidWALDataType, "%+v", raw)
+	}
+	return json.Marshal(processing)
+}
+
+// Decode .
+func (h *ProcessingCreatedHandler) Decode(bs []byte) (any, error) {
+	processing := &types.Processing{}
+	return processing, json.Unmarshal(bs, processing)
+}
+
+// Handle .
+func (h *ProcessingCreatedHandler) Handle(ctx context.Context, raw any) (err error) {
+	processing, _ := raw.(*types.Processing)
+	logger := log.WithFunc("wal.ProcessingCreatedHandler.Handle").WithField("event", eventProcessingCreated).WithField("ident", processing.Ident)
+
 	ctx, cancel := getReplayContext(ctx)
 	defer cancel()
 
-	workloads, err := h.calcium.ListWorkloads(ctx, opts)
-	if err != nil {
-		return nil, err
+	if err = h.store.DeleteProcessing(ctx, processing); err != nil {
+		logger.Error(ctx, err)
+		return err
 	}
-
-	workloadIDs := make([]string, len(workloads))
-	for i, wrk := range workloads {
-		workloadIDs[i] = wrk.ID
-	}
-
-	return workloadIDs, nil
+	logger.Infof(ctx, "obsolete processing deleted")
+	return
 }
 
 func getReplayContext(ctx context.Context) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(ctx, time.Second*32)
+	return context.WithTimeout(ctx, time.Second*32) // TODO why 32?
 }

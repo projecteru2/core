@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
 
 	"github.com/stretchr/testify/assert"
@@ -18,15 +17,13 @@ func TestDeploy(t *testing.T) {
 		Name:         "app",
 		Entrypoint:   &types.Entrypoint{Name: "entry"},
 		ProcessIdent: "abc",
-	}
-	sis := []strategy.Info{
-		{Nodename: "node"},
+		NodeFilter:   &types.NodeFilter{},
 	}
 
 	// no workload deployed
-	err := m.MakeDeployStatus(ctx, opts.Name, opts.Entrypoint.Name, sis)
+	nodeCount, err := m.GetDeployStatus(ctx, opts.Name, opts.Entrypoint.Name)
 	assert.NoError(t, err)
-	assert.Equal(t, len(sis), 1)
+	assert.Equal(t, len(nodeCount), 0)
 	// have workloads
 	key := filepath.Join(workloadDeployPrefix, opts.Name, opts.Entrypoint.Name, "node", "id1")
 	_, err = m.Put(ctx, key, "")
@@ -34,9 +31,7 @@ func TestDeploy(t *testing.T) {
 	key = filepath.Join(workloadDeployPrefix, opts.Name, opts.Entrypoint.Name, "node", "id2")
 	_, err = m.Put(ctx, key, "")
 	assert.NoError(t, err)
-	err = m.MakeDeployStatus(ctx, opts.Name, opts.Entrypoint.Name, sis)
+	nodeCount, err = m.GetDeployStatus(ctx, opts.Name, opts.Entrypoint.Name)
 	assert.NoError(t, err)
-	assert.Equal(t, len(sis), 1)
-	assert.Equal(t, sis[0].Nodename, "node")
-	assert.Equal(t, sis[0].Count, 2)
+	assert.Equal(t, nodeCount["node"], 2)
 }

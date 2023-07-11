@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,7 +43,7 @@ USER {{.User}}
 )
 
 // BuildRefs output refs
-func (e *Engine) BuildRefs(ctx context.Context, opts *enginetypes.BuildRefOptions) []string {
+func (e *Engine) BuildRefs(_ context.Context, opts *enginetypes.BuildRefOptions) []string {
 	name := opts.Name
 	tags := opts.Tags
 	refs := []string{}
@@ -64,18 +63,18 @@ func (e *Engine) BuildRefs(ctx context.Context, opts *enginetypes.BuildRefOption
 //
 // build directory is like:
 //
-//    buildDir ├─ :appname ├─ code
-//             ├─ Dockerfile
+//	buildDir ├─ :appname ├─ code
+//	         ├─ Dockerfile
 func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildContentOptions) (string, io.Reader, error) {
 	if opts.Builds == nil {
 		return "", nil, coretypes.ErrNoBuildsInSpec
 	}
 	// make build dir
-	buildDir, err := ioutil.TempDir(os.TempDir(), "corebuild-")
+	buildDir, err := os.MkdirTemp(os.TempDir(), "corebuild-")
 	if err != nil {
 		return "", nil, err
 	}
-	log.Debugf(ctx, "[BuildContent] Build dir %s", buildDir)
+	log.WithFunc("engine.docker.BuildContent").Debugf(ctx, "Build dir %s", buildDir)
 	// create dockerfile
 	if err := e.makeDockerFile(ctx, opts, scm, buildDir); err != nil {
 		return buildDir, nil, err
@@ -93,7 +92,7 @@ func (e *Engine) makeDockerFile(ctx context.Context, opts *types.BuildContentOpt
 	for _, stage := range opts.Builds.Stages {
 		build, ok := opts.Builds.Builds[stage]
 		if !ok {
-			log.Warnf(ctx, "[makeDockerFile] Builds stage %s not defined", stage)
+			log.WithFunc("engine.docker.makeDockerFile").Warnf(ctx, "Builds stage %s not defined", stage)
 			continue
 		}
 
@@ -146,7 +145,7 @@ func (e *Engine) preparedSource(ctx context.Context, build *types.Build, scm cor
 	var cloneDir string
 	var err error
 	reponame := ""
-	if build.Repo != "" { // nolint
+	if build.Repo != "" { //nolint
 		version := build.Version
 		if version == "" {
 			version = "HEAD"

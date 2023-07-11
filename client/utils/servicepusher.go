@@ -2,27 +2,32 @@ package utils
 
 import (
 	"context"
-	"errors"
 	"os"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/projecteru2/core/log"
-
+	"github.com/alphadose/haxmap"
 	"github.com/go-ping/ping"
+	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/types"
+	"golang.org/x/exp/slices"
 )
 
 // EndpointPusher pushes endpoints to registered channels if the ep is L3 reachable
 type EndpointPusher struct {
+	sync.Mutex
 	chans              []chan []string
-	pendingEndpoints   sync.Map
-	availableEndpoints sync.Map
+	pendingEndpoints   *haxmap.Map[string, context.CancelFunc]
+	availableEndpoints *haxmap.Map[string, struct{}]
 }
 
 // NewEndpointPusher .
 func NewEndpointPusher() *EndpointPusher {
-	return &EndpointPusher{}
+	return &EndpointPusher{
+		pendingEndpoints:   haxmap.New[string, context.CancelFunc](),
+		availableEndpoints: haxmap.New[string, struct{}](),
+	}
 }
 
 // Register registers a channel that will receive the endpoints later
@@ -31,97 +36,83 @@ func (p *EndpointPusher) Register(ch chan []string) {
 }
 
 // Push pushes endpoint candicates
-func (p *EndpointPusher) Push(endpoints []string) {
-	p.delOutdated(endpoints)
-	p.addCheck(endpoints)
+func (p *EndpointPusher) Push(ctx context.Context, endpoints []string) {
+	p.delOutdated(ctx, endpoints)
+	p.addCheck(ctx, endpoints)
 }
 
-func (p *EndpointPusher) delOutdated(endpoints []string) {
-	newEps := make(map[string]struct{})
-	for _, e := range endpoints {
-		newEps[e] = struct{}{}
-	}
-
-	p.pendingEndpoints.Range(func(key, value interface{}) bool {
-		ep, ok := key.(string)
-		if !ok {
-			log.Error("[EruResolver] failed to cast key while ranging pendingEndpoints")
-			return true
-		}
-		cancel, ok := value.(context.CancelFunc)
-		if !ok {
-			log.Error("[EruResolver] failed to cast value while ranging pendingEndpoints")
-		}
-		if _, ok := newEps[ep]; !ok {
+func (p *EndpointPusher) delOutdated(ctx context.Context, endpoints []string) {
+	p.Lock()
+	defer p.Unlock()
+	logger := log.WithFunc("utils.EndpointPusher.delOutdated")
+	p.pendingEndpoints.ForEach(func(endpoint string, cancel context.CancelFunc) bool {
+		if !slices.Contains(endpoints, endpoint) {
 			cancel()
-			p.pendingEndpoints.Delete(ep)
-			log.Debugf(nil, "[EruResolver] pending endpoint deleted: %s", ep) //nolint
+			p.pendingEndpoints.Del(endpoint)
+			logger.Debugf(ctx, "pending endpoint deleted: %s", endpoint)
 		}
 		return true
 	})
 
-	p.availableEndpoints.Range(func(key, _ interface{}) bool {
-		ep, ok := key.(string)
-		if !ok {
-			log.Error("[EruResolver] failed to cast key while ranging availableEndpoints")
-			return true
-		}
-		if _, ok := newEps[ep]; !ok {
-			p.availableEndpoints.Delete(ep)
-			log.Debugf(nil, "[EruResolver] available endpoint deleted: %s", ep) //nolint
+	p.availableEndpoints.ForEach(func(endpoint string, _ struct{}) bool {
+		if !slices.Contains(endpoints, endpoint) {
+			p.availableEndpoints.Del(endpoint)
+			logger.Debugf(ctx, "available endpoint deleted: %s", endpoint)
 		}
 		return true
 	})
 }
 
-func (p *EndpointPusher) addCheck(endpoints []string) {
+func (p *EndpointPusher) addCheck(ctx context.Context, endpoints []string) {
 	for _, endpoint := range endpoints {
-		if _, ok := p.pendingEndpoints.Load(endpoint); ok {
+		if _, ok := p.pendingEndpoints.Get(endpoint); ok {
 			continue
 		}
-		if _, ok := p.availableEndpoints.Load(endpoint); ok {
+		if _, ok := p.availableEndpoints.Get(endpoint); ok {
 			continue
 		}
 
-		ctx, cancel := context.WithCancel(context.TODO())
-		p.pendingEndpoints.Store(endpoint, cancel)
+		ctx, cancel := context.WithCancel(ctx)
+		p.pendingEndpoints.Set(endpoint, cancel)
 		go p.pollReachability(ctx, endpoint)
-		log.Debugf(ctx, "[EruResolver] pending endpoint added: %s", endpoint)
+		log.WithFunc("utils.EndpointPusher.addCheck").Debugf(ctx, "pending endpoint added: %s", endpoint)
 	}
 }
 
 func (p *EndpointPusher) pollReachability(ctx context.Context, endpoint string) {
+	logger := log.WithFunc("utils.EndpointPusher.pollReachability")
 	parts := strings.Split(endpoint, ":")
 	if len(parts) != 2 {
-		log.Errorf(ctx, "[EruResolver] wrong format of endpoint: %s", endpoint)
+		logger.Errorf(ctx, types.ErrInvaildCoreEndpointType, "wrong format of endpoint: %s", endpoint)
 		return
 	}
 
+	ticker := time.NewTicker(time.Second) // TODO config from outside?
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
-			log.Debugf(ctx, "[EruResolver] reachability goroutine ends: %s", endpoint)
+			logger.Debugf(ctx, "reachability goroutine ends: %s", endpoint)
 			return
-		default:
+		case <-ticker.C:
+			p.Lock()
+			defer p.Unlock()
+			if err := p.checkReachability(ctx, parts[0]); err != nil {
+				continue
+			}
+			p.pendingEndpoints.Del(endpoint)
+			p.availableEndpoints.Set(endpoint, struct{}{})
+			p.pushEndpoints()
+			logger.Debugf(ctx, "available endpoint added: %s", endpoint)
+			return
 		}
-
-		time.Sleep(time.Second)
-		if err := p.checkReachability(parts[0]); err != nil {
-			continue
-		}
-
-		p.pendingEndpoints.Delete(endpoint)
-		p.availableEndpoints.Store(endpoint, struct{}{})
-		p.pushEndpoints()
-		log.Debugf(ctx, "[EruResolver] available endpoint added: %s", endpoint)
-		return
 	}
 }
 
-func (p *EndpointPusher) checkReachability(host string) (err error) {
+func (p *EndpointPusher) checkReachability(ctx context.Context, host string) (err error) {
 	pinger, err := ping.NewPinger(host)
 	if err != nil {
-		log.Errorf(nil, "[EruResolver] failed to create pinger: %+v", err) //nolint
+		log.WithFunc("utils.EndpointPusher.checkReachability").Error(ctx, err, "failed to create pinger")
 		return
 	}
 	pinger.SetPrivileged(os.Getuid() == 0)
@@ -133,19 +124,14 @@ func (p *EndpointPusher) checkReachability(host string) (err error) {
 		return
 	}
 	if pinger.Statistics().PacketsRecv != 1 {
-		return errors.New("icmp packet lost")
+		return types.ErrICMPLost
 	}
 	return
 }
 
 func (p *EndpointPusher) pushEndpoints() {
 	endpoints := []string{}
-	p.availableEndpoints.Range(func(key, value interface{}) bool {
-		endpoint, ok := key.(string)
-		if !ok {
-			log.Error("[EruResolver] failed to cast key while ranging availableEndpoints")
-			return true
-		}
+	p.availableEndpoints.ForEach(func(endpoint string, _ struct{}) bool {
 		endpoints = append(endpoints, endpoint)
 		return true
 	})

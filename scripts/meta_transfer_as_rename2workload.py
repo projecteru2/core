@@ -4,13 +4,14 @@ import argparse
 import functools
 import json
 import os
-import sys
 
 import etcd3
+import sys
 
 check_conflict = False
 dry_run = False
 override = False
+
 
 def remove_prefix(s, prefix):
     return s[len(prefix):].lstrip('/') if s.startswith(prefix) else s
@@ -267,6 +268,7 @@ class Workload(object):
                     pass
 
         del_keys = set()
+
         def get(new_field, orig_field, transit_field, default=None):
             value = None
 
@@ -337,6 +339,7 @@ class Transfer(object):
 
         Workload(self, node_transfer, podname, nodes).trans()
 
+
 def getargs():
     ap = argparse.ArgumentParser()
     ap.add_argument('-o', '--orig', dest='orig_root_prefix', help='original prefix', default='/eru')
@@ -345,12 +348,16 @@ def getargs():
     ap.add_argument('--etcd-host', default='127.0.0.1')
     ap.add_argument('--etcd-port', type=int, default=2379)
     ap.add_argument('--dry-run', dest='dry_run', action='store_true', help='dry run, will not actually migrate')
-    ap.add_argument('--check-conflict', dest='check_conflict', action='store_true', help='check conflict, checks if destination already has the key')
-    ap.add_argument('--override', dest='override', action='store_true', help='if set, the value will be migrated anyway no matter if it already exists')
+    ap.add_argument('--check-conflict', dest='check_conflict', action='store_true',
+                    help='check conflict, checks if destination already has the key')
+    ap.add_argument('--override', dest='override', action='store_true',
+                    help='if set, the value will be migrated anyway no matter if it already exists')
     return ap.parse_args()
+
 
 def connect_etcd(host, port):
     return etcd3.client(host=host, port=port)
+
 
 def main():
     args = getargs()
@@ -366,6 +373,7 @@ def main():
     trans = Transfer(etcd, args.orig_root_prefix, args.new_root_prefix)
     trans.trans(args.podname)
     return 0
+
 
 if __name__ == '__main__':
     sys.exit(main())

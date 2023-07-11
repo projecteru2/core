@@ -18,8 +18,7 @@ grpc:
 	./rpc/gen/core.proto
 
 deps:
-	env GO111MODULE=on go mod download
-	env GO111MODULE=on go mod vendor
+	go mod vendor
 
 binary:
 	CGO_ENABLED=0 go build -ldflags "$(GO_LDFLAGS)" -o eru-core
@@ -31,15 +30,17 @@ test: deps unit-test
 mock: deps
 	mockery --dir vendor/google.golang.org/grpc --output 3rdmocks --name ServerStream
 	mockery --dir vendor/github.com/docker/docker/client --output engine/docker/mocks --name APIClient
-	mockery --dir scheduler --output scheduler/mocks --name Scheduler
 	mockery --dir source --output source/mocks --name Source
 	mockery --dir store --output store/mocks --name Store
 	mockery --dir engine --output engine/mocks --name API
 	mockery --dir cluster --output cluster/mocks --name Cluster
+	mockery --dir wal --output wal/mocks --name WAL
 	mockery --dir lock --output lock/mocks --name DistributedLock
 	mockery --dir store/etcdv3/meta --output store/etcdv3/meta/mocks --all
 	mockery --dir vendor/go.etcd.io/etcd/client/v3 --output store/etcdv3/meta/mocks --name Txn
 	mockery --dir rpc/gen/ --output rpc/mocks --name CoreRPC_RunAndWaitServer
+	mockery --dir resource --output resource/mocks --name Manager
+	mockery --dir resource/plugins --output resource/plugins/mocks --name Plugin
 
 .ONESHELL:
 
@@ -48,27 +49,26 @@ cloc:
 
 unit-test:
 	go vet `go list ./... | grep -v '/vendor/' | grep -v '/tools'` && \
-	go test -race -timeout 240s -count=1 -cover ./utils/... \
+	go test -race -timeout 600s -count=1 -vet=off -cover ./utils/... \
 	./types/... \
 	./store/etcdv3/. \
 	./store/etcdv3/embedded/. \
 	./store/etcdv3/meta/. \
 	./source/common/... \
 	./strategy/... \
-	./scheduler/complex/... \
 	./rpc/. \
+	./engine/. \
 	./lock/etcdlock/... \
 	./auth/simple/... \
 	./discovery/helium... \
-	./resources/types/. \
-	./resources/storage/... \
-	./resources/volume/... \
-	./resources/cpumem/... \
+	./resource/types/. \
+	./resource/plugins/cpumem/. \
+	./resource/plugins/cpumem/schedule/. \
 	./wal/. \
 	./wal/kv/. \
 	./store/redis/... \
 	./lock/redis/... && \
-	go test -timeout 240s -count=1 -cover ./cluster/calcium/...
+	go test -timeout 600s -count=1 -cover ./cluster/calcium/...
 
 lint:
 	golangci-lint run

@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
-	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
+	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -63,13 +62,12 @@ func TestBuild(t *testing.T) {
 	assert.Error(t, err)
 	c.config.Docker.BuildPod = "test"
 	// failed by ListPodNodes failed
-	store := &storemocks.Store{}
-	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrBadMeta).Once()
-	c.store = store
+	store := c.store.(*storemocks.Store)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrInvaildWorkloadMeta).Once()
 	ch, err := c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	// failed by no nodes
-	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{}, nil).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	engine := &enginemocks.API{}
@@ -81,14 +79,14 @@ func TestBuild(t *testing.T) {
 		Available: true,
 		Engine:    engine,
 	}
-	store.On("GetNodesByPod", mock.AnythingOfType("*context.emptyCtx"), mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
-	scheduler := &schedulermocks.Scheduler{}
-	c.scheduler = scheduler
-	// failed by MaxIdleNode
-	scheduler.On("MaxIdleNode", mock.AnythingOfType("[]*types.Node")).Return(nil, types.ErrBadMeta).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
+	// failed by plugin error
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+	rmgr.On("GetMostIdleNode", mock.Anything, mock.Anything).Return("", types.ErrInvaildCount).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
-	scheduler.On("MaxIdleNode", mock.AnythingOfType("[]*types.Node")).Return(node, nil)
+	rmgr.On("GetMostIdleNode", mock.Anything, mock.Anything).Return("test", nil)
 	// create image
 	c.config.Docker.Hub = "test.com"
 	c.config.Docker.Namespace = "test"
@@ -104,18 +102,18 @@ func TestBuild(t *testing.T) {
 	assert.NoError(t, err)
 	buildImageResp2, err := json.Marshal(buildImageMessage)
 	assert.NoError(t, err)
-	buildImageRespReader := ioutil.NopCloser(bytes.NewReader(buildImageResp))
-	buildImageRespReader2 := ioutil.NopCloser(bytes.NewReader(buildImageResp2))
+	buildImageRespReader := io.NopCloser(bytes.NewReader(buildImageResp))
+	buildImageRespReader2 := io.NopCloser(bytes.NewReader(buildImageResp2))
 	engine.On("BuildRefs", mock.Anything, mock.Anything, mock.Anything).Return([]string{"t1", "t2"})
 	// failed by build context
-	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", nil, types.ErrBadCount).Once()
+	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", nil, types.ErrInvaildCount).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
-	b := ioutil.NopCloser(bytes.NewReader([]byte{}))
+	b := io.NopCloser(bytes.NewReader([]byte{}))
 	engine.On("BuildContent", mock.Anything, mock.Anything, mock.Anything).Return("", b, nil)
 	// failed by ImageBuild
 	opts.BuildMethod = types.BuildFromRaw
-	engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNilEngine).Once()
+	engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNilEngine).Once()
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	// build from exist not implemented
@@ -131,7 +129,7 @@ func TestBuild(t *testing.T) {
 	ch, err = c.BuildImage(ctx, opts)
 	assert.Error(t, err)
 	// correct
-	engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything).Return(buildImageRespReader, nil)
+	engine.On("ImageBuild", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(buildImageRespReader, nil)
 	engine.On("ImagePush", mock.Anything, mock.Anything).Return(buildImageRespReader2, nil)
 	engine.On("ImageRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]string{}, nil)
 	engine.On("ImageBuildCachePrune", mock.Anything, mock.Anything).Return(uint64(1024), nil)

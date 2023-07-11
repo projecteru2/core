@@ -6,9 +6,9 @@ import (
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
-	resourcetypes "github.com/projecteru2/core/resources/types"
-	"github.com/projecteru2/core/scheduler"
-	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
+	resourcemocks "github.com/projecteru2/core/resource/mocks"
+	plugintypes "github.com/projecteru2/core/resource/plugins/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
@@ -19,102 +19,90 @@ import (
 
 func TestCalculateCapacity(t *testing.T) {
 	c := NewTestCluster()
-	scheduler.InitSchedulerV1(c.scheduler)
 	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
-	engine := &enginemocks.API{}
 
-	// pod1 := &types.Pod{Name: "p1"}
+	lock := &lockmocks.DistributedLock{}
+	lock.On("Lock", mock.Anything).Return(ctx, nil)
+	lock.On("Unlock", mock.Anything).Return(nil)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+
+	engine := &enginemocks.API{}
+	name := "n1"
 	node1 := &types.Node{
 		NodeMeta: types.NodeMeta{
-			Name: "n1",
-			CPU:  types.CPUMap{"0": 100, "1": 100},
+			Name: name,
 		},
 		Engine: engine,
 	}
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node1, nil)
-	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
-	lock.On("Unlock", mock.Anything).Return(nil)
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	// failed by wrong resource
+
 	opts := &types.DeployOptions{
 		Entrypoint: &types.Entrypoint{
 			Name: "entry",
 		},
-		ResourceOpts: types.ResourceOptions{
-			CPUBind:         true,
-			CPUQuotaRequest: 0,
-		},
+		Resources:      resourcetypes.Resources{},
 		DeployStrategy: strategy.Auto,
-		NodeFilter: types.NodeFilter{
-			Includes: []string{"n1"},
+		NodeFilter: &types.NodeFilter{
+			Includes: []string{name},
 		},
+		Count: 3,
 	}
+
+	// failed by call plugin
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
+		nil, 0, types.ErrMockError,
+	).Once()
 	_, err := c.CalculateCapacity(ctx, opts)
 	assert.Error(t, err)
-	opts.ResourceOpts.CPUBind = false
-	opts.ResourceOpts.CPUQuotaRequest = 0.5
-	opts.Count = 5
-	sched := c.scheduler.(*schedulermocks.Scheduler)
-	// define scheduleInfos
-	scheduleInfos := []resourcetypes.ScheduleInfo{
-		{
-			NodeMeta: types.NodeMeta{
-				Name:   "n1",
-				MemCap: 100,
-			},
+
+	// failed by get deploy status
+	nrim := map[string]*plugintypes.NodeDeployCapacity{
+		name: {
 			Capacity: 10,
+			Usage:    0.5,
+			Rate:     0.5,
+			Weight:   100,
 		},
 	}
-	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, 5, nil).Twice()
-	sched.On("SelectStorageNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, 5, nil).Twice()
-	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything, mock.Anything).Return(scheduleInfos, nil, 5, nil).Twice()
-	store.On("MakeDeployStatus", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
-	r, err := c.CalculateCapacity(ctx, opts)
+	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
+		nrim, 100, nil).Times(3)
+	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	_, err = c.CalculateCapacity(ctx, opts)
+	assert.Error(t, err)
+
+	// failed by get deploy strategy
+	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{name: 0}, nil)
+	opts.Count = -1
+	_, err = c.CalculateCapacity(ctx, opts)
+	assert.Error(t, err)
+
+	// success
+	opts.Count = 1
+	_, err = c.CalculateCapacity(ctx, opts)
 	assert.NoError(t, err)
-	assert.Equal(t, r.Total, 5)
+
+	// strategy: dummy
 	opts.DeployStrategy = strategy.Dummy
-	r, err = c.CalculateCapacity(ctx, opts)
+
+	// failed by GetNodesDeployCapacity
+	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, types.ErrMockError).Once()
+	_, err = c.CalculateCapacity(ctx, opts)
+	assert.Error(t, err)
+
+	// failed by total <= 0
+	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(nil, -1, nil).Once()
+	_, err = c.CalculateCapacity(ctx, opts)
+	assert.Error(t, err)
+
+	// success
+	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
+		nrim, 10, nil)
+	msg, err := c.CalculateCapacity(ctx, opts)
 	assert.NoError(t, err)
-	assert.Equal(t, r.Total, 10)
-	sched.AssertExpectations(t)
-	store.AssertExpectations(t)
+	assert.Equal(t, msg.NodeCapacities[name], 10)
+	assert.Equal(t, msg.Total, 10)
 
-	// test for total calculation
-	// fixed on pull/322
-	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]resourcetypes.ScheduleInfo{{
-		NodeMeta: types.NodeMeta{Name: "n1"},
-		Capacity: 1,
-	}}, 1, nil).Once()
-	sched.On("SelectStorageNodes", mock.Anything, mock.Anything, mock.Anything).Return([]resourcetypes.ScheduleInfo{{
-		NodeMeta: types.NodeMeta{Name: "n2"},
-		Capacity: 1,
-	}}, 1, nil).Once()
-	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything, mock.Anything).Return([]resourcetypes.ScheduleInfo{{
-		NodeMeta: types.NodeMeta{Name: "n3"},
-		Capacity: 1,
-	}}, nil, 1, nil).Once()
-	r, err = c.CalculateCapacity(ctx, opts)
-	assert.Error(t, err, "no node meets all the resource requirements at the same time")
-	sched.AssertExpectations(t)
-	store.AssertExpectations(t)
-
-	// continue
-	sched.On("SelectMemoryNodes", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]resourcetypes.ScheduleInfo{{
-		NodeMeta: types.NodeMeta{Name: "n1"},
-		Capacity: 1,
-	}}, 1, nil).Once()
-	sched.On("SelectStorageNodes", mock.Anything, mock.Anything, mock.Anything).Return([]resourcetypes.ScheduleInfo{{
-		NodeMeta: types.NodeMeta{Name: "n1"},
-		Capacity: 1,
-	}}, 1, nil).Once()
-	sched.On("SelectVolumeNodes", mock.Anything, mock.Anything, mock.Anything).Return([]resourcetypes.ScheduleInfo{{
-		NodeMeta: types.NodeMeta{Name: "n2"},
-		Capacity: 1,
-	}}, nil, 1, nil).Once()
-	r, err = c.CalculateCapacity(ctx, opts)
-	assert.Error(t, err, "no node meets all the resource requirements at the same time")
-	sched.AssertExpectations(t)
-	store.AssertExpectations(t)
+	rmgr.AssertExpectations(t)
 }

@@ -7,18 +7,18 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
 // LogStream log stream for one workload
 func (c *Calcium) LogStream(ctx context.Context, opts *types.LogStreamOptions) (chan *types.LogStreamMessage, error) {
-	logger := log.WithField("Calcium", "LogStream").WithField("opts", opts)
+	logger := log.WithFunc("calcium.LogStream").WithField("opts", opts)
 	ch := make(chan *types.LogStreamMessage)
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		defer close(ch)
 		workload, err := c.GetWorkload(ctx, opts.ID)
 		if err != nil {
-			ch <- &types.LogStreamMessage{ID: opts.ID, Error: logger.Err(ctx, err)}
+			logger.Error(ctx, err)
+			ch <- &types.LogStreamMessage{ID: opts.ID, Error: err}
 			return
 		}
 
@@ -31,12 +31,13 @@ func (c *Calcium) LogStream(ctx context.Context, opts *types.LogStreamOptions) (
 			Stdout: true,
 			Stderr: true,
 		})
+		logger.Error(ctx, err)
 		if err != nil {
-			ch <- &types.LogStreamMessage{ID: opts.ID, Error: logger.Err(ctx, err)}
+			ch <- &types.LogStreamMessage{ID: opts.ID, Error: err}
 			return
 		}
 
-		for m := range processStdStream(ctx, stdout, stderr, bufio.ScanLines, byte('\n')) {
+		for m := range c.processStdStream(ctx, stdout, stderr, bufio.ScanLines, byte('\n')) {
 			ch <- &types.LogStreamMessage{ID: opts.ID, Data: m.Data, StdStreamType: m.StdStreamType}
 		}
 	})

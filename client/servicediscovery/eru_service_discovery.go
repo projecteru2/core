@@ -14,6 +14,7 @@ import (
 	"github.com/projecteru2/core/types"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // EruServiceDiscovery watches eru service status
@@ -33,9 +34,10 @@ func New(endpoint string, authConfig types.AuthConfig) *EruServiceDiscovery {
 // Watch .
 func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err error) {
 	cc, err := w.dial(ctx, w.endpoint, w.authConfig)
+	logger := log.WithFunc("servicediscovery.Watch").WithField("endpoint", w.endpoint)
 	if err != nil {
-		log.Errorf(ctx, "[EruServiceWatch] dial failed: %v", err)
-		return
+		logger.Error(ctx, err, "dial failed")
+		return nil, err
 	}
 	client := pb.NewCoreRPCClient(cc)
 	ch := make(chan []string)
@@ -48,8 +50,8 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 			watchCtx, cancelWatch := context.WithCancel(ctx)
 			stream, err := client.WatchServiceStatus(watchCtx, &pb.Empty{})
 			if err != nil {
-				log.Errorf(ctx, "[EruServiceWatch] watch failed, try later: %v", err)
-				time.Sleep(10 * time.Second)
+				logger.Error(ctx, err, "watch failed, try later")
+				time.Sleep(10 * time.Second) // TODO can config
 				continue
 			}
 			expectedInterval := time.Duration(math.MaxInt64) / time.Second
@@ -69,12 +71,12 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 				status, err := stream.Recv()
 				close(cancelTimer)
 				if err != nil {
-					log.Errorf(ctx, "[EruServiceWatch] recv failed: %v", err)
+					logger.Error(ctx, err, "recv failed")
 					break
 				}
 				expectedInterval = time.Duration(status.GetIntervalInSecond())
 
-				epPusher.Push(status.GetAddresses())
+				epPusher.Push(ctx, status.GetAddresses())
 			}
 		}
 	}()
@@ -84,7 +86,7 @@ func (w *EruServiceDiscovery) Watch(ctx context.Context) (_ <-chan []string, err
 
 func (w *EruServiceDiscovery) dial(ctx context.Context, addr string, authConfig types.AuthConfig) (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithStreamInterceptor(interceptor.NewStreamRetry(interceptor.RetryOptions{Max: 1})),
 	}
 

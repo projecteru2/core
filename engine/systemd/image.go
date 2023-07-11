@@ -10,12 +10,12 @@ import (
 )
 
 // BuildRefs builds images refs
-func (e *Engine) BuildRefs(ctx context.Context, opts *enginetypes.BuildRefOptions) (refs []string) {
+func (e *Engine) BuildRefs(context.Context, *enginetypes.BuildRefOptions) (refs []string) {
 	return
 }
 
 // BuildContent builds image content
-func (e *Engine) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildContentOptions) (dir string, reader io.Reader, err error) {
+func (e *Engine) BuildContent(context.Context, coresource.Source, *enginetypes.BuildContentOptions) (dir string, reader io.Reader, err error) {
 	err = types.ErrEngineNotImplemented
 	return
 }

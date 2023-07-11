@@ -6,6 +6,7 @@ run:
     - tools
     - 3rdmocks
   modules-download-mode: readonly
+  go: 1.18
 
 linters-settings:
   maligned:
@@ -18,45 +19,32 @@ linters:
   disable-all: true
   enable:
     - bodyclose
-    - deadcode
-    - depguard
+    # - depguard
     - dogsled
     - gochecknoinits
     - goconst
     - gocyclo
     - gofmt
     - goimports
-    # golint is replaced by revive
-    # - golint
     - revive
     - goprintffuncname
     - gosec
     - gosimple
     - govet
     - ineffassign
-    # interfacer is deprecated
-    # - interfacer
     - misspell
     - nakedret
-    - nolintlint
     - rowserrcheck
-    # scopelint is replaced by exportloopref
-    # - scopelint
     - exportloopref
     - staticcheck
-    - structcheck
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - asciicheck
     - nestif
     - errcheck
     - gocritic
-    #- gocognit
-    #- gomnd
-    #- dupl
       #Consider this
       # - godox
       # - funlen
@@ -70,4 +58,4 @@ linters:
       # - prealloc
       # - testpackage
       # - wsl
-      # - stylecheck
+      # - sylecheck

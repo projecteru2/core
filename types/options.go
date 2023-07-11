@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/pkg/errors"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
 // TODO should validate options
 
 // DeployOptions is options for deploying
 type DeployOptions struct {
-	ResourceOpts   ResourceOptions
+	Resources      resourcetypes.Resources
 	Name           string            // Name of application
 	Entrypoint     *Entrypoint       // entrypoint
 	Podname        string            // Name of pod to deploy
-	NodeFilter     NodeFilter        // filter of nodenames, using includes or not using excludes
+	NodeFilter     *NodeFilter       // filter of nodenames, using includes or not using excludes
 	Image          string            // Name of image to deploy
 	ExtraArgs      string            // Extra arguments to append to command
 	Count          int               // How many workloads needed, e.g. 4
@@ -58,16 +58,16 @@ func (o DeployOptions) GetProcessing(nodename string) *Processing {
 // Validate checks options
 func (o *DeployOptions) Validate() error {
 	if o.Name == "" {
-		return errors.WithStack(ErrEmptyAppName)
+		return ErrEmptyAppName
 	}
 	if o.Podname == "" {
-		return errors.WithStack(ErrEmptyPodName)
+		return ErrEmptyPodName
 	}
 	if o.Image == "" {
-		return errors.WithStack(ErrEmptyImage)
+		return ErrEmptyImage
 	}
 	if o.Count == 0 {
-		return errors.WithStack(ErrEmptyCount)
+		return ErrEmptyCount
 	}
 	return o.Entrypoint.Validate()
 }
@@ -80,7 +80,7 @@ type CopyOptions struct {
 // Validate checks options
 func (o *CopyOptions) Validate() error {
 	if len(o.Targets) == 0 {
-		return errors.WithStack(ErrNoFilesToCopy)
+		return ErrNoFilesToCopy
 	}
 	return nil
 }
@@ -109,12 +109,12 @@ func (f LinuxFile) Clone() LinuxFile {
 
 // String for %+v
 func (f LinuxFile) String() string {
-	return fmt.Sprintf("file %v:%v:%v:%#o, len: %v", f.Filename, f.UID, f.GID, f.Mode, len(f.Content))
+	return fmt.Sprintf("file %+v:%+v:%+v:%#o, len: %+v", f.Filename, f.UID, f.GID, f.Mode, len(f.Content))
 }
 
 // LitterDump for litter.Sdump
 func (f LinuxFile) LitterDump(w io.Writer) {
-	w.Write([]byte(fmt.Sprintf(`{Content:{%d bytes},Filename:%s,UID:%d,GID:%d,Mode:%#o"}`, len(f.Content), f.Filename, f.UID, f.GID, f.Mode))) // nolint:errcheck // here can't import core/log due to cycle dependence
+	fmt.Fprintf(w, `{Content:{%d bytes},Filename:%s,UID:%d,GID:%d,Mode:%#o"}`, len(f.Content), f.Filename, f.UID, f.GID, f.Mode)
 }
 
 // SendOptions for send files to multiple workload
@@ -126,10 +126,10 @@ type SendOptions struct {
 // Validate checks options
 func (o *SendOptions) Validate() error {
 	if len(o.IDs) == 0 {
-		return errors.WithStack(ErrNoWorkloadIDs)
+		return ErrNoWorkloadIDs
 	}
 	if len(o.Files) == 0 {
-		return errors.WithStack(ErrNoFilesToSend)
+		return ErrNoFilesToSend
 	}
 	for i, file := range o.Files {
 		if file.UID == 0 && file.GID == 0 && file.Mode == 0 {
@@ -163,7 +163,7 @@ type ReplaceOptions struct {
 // to keep the original behavior, no check here.
 func (o *ReplaceOptions) Validate() error {
 	if o.DeployOptions.Name == "" {
-		return errors.WithStack(ErrEmptyAppName)
+		return ErrEmptyAppName
 	}
 	return o.DeployOptions.Entrypoint.Validate()
 }
@@ -177,105 +177,59 @@ func (o *ReplaceOptions) Normalize() {
 
 // ListNodesOptions for list nodes
 type ListNodesOptions struct {
-	Podname string
-	Labels  map[string]string
-	All     bool
-	Info    bool
+	Podname  string
+	Labels   map[string]string
+	All      bool
+	CallInfo bool
 }
 
 // AddNodeOptions for adding node
 type AddNodeOptions struct {
-	Nodename   string
-	Endpoint   string
-	Podname    string
-	Ca         string
-	Cert       string
-	Key        string
-	CPU        int
-	Share      int
-	Memory     int64
-	Storage    int64
-	Labels     map[string]string
-	Numa       NUMA
-	NumaMemory NUMAMemory
-	Volume     VolumeMap
+	Nodename  string
+	Endpoint  string
+	Podname   string
+	Ca        string
+	Cert      string
+	Key       string
+	Labels    map[string]string
+	Resources resourcetypes.Resources
+	Test      bool
 }
 
 // Validate checks options
 func (o *AddNodeOptions) Validate() error {
 	if o.Nodename == "" {
-		return errors.WithStack(ErrEmptyNodeName)
+		return ErrEmptyNodeName
 	}
 	if o.Podname == "" {
-		return errors.WithStack(ErrEmptyPodName)
+		return ErrEmptyPodName
 	}
 	if o.Endpoint == "" {
-		return errors.WithStack(ErrEmptyNodeEndpoint)
-	}
-	if o.CPU < 0 {
-		return errors.WithStack(ErrNegativeCPU)
-	}
-	if o.Share < 0 {
-		return errors.WithStack(ErrNegativeShare)
-	}
-	if o.Memory < 0 {
-		return errors.WithStack(ErrNegativeMemory)
-	}
-	for _, m := range o.NumaMemory {
-		if m < 0 {
-			return errors.WithStack(ErrNegativeNUMAMemory)
-		}
-	}
-	for _, size := range o.Volume {
-		if size < 0 {
-			return errors.WithStack(ErrNegativeVolumeSize)
-		}
-	}
-	if o.Storage < 0 {
-		return errors.WithStack(ErrNegativeStorage)
+		return ErrInvaildNodeEndpoint
 	}
 	return nil
 }
 
-// Normalize keeps options consistent
-func (o *AddNodeOptions) Normalize() {
-	o.Storage += o.Volume.Total()
-}
-
 // SetNodeOptions for node set
 type SetNodeOptions struct {
-	Nodename        string
-	Endpoint        string
-	WorkloadsDown   bool
-	DeltaCPU        CPUMap
-	DeltaMemory     int64
-	DeltaStorage    int64
-	DeltaNUMAMemory map[string]int64
-	DeltaVolume     VolumeMap
-	NUMA            map[string]string
-	Labels          map[string]string
-	BypassOpt       TriOptions
-	Ca              string
-	Cert            string
-	Key             string
+	Nodename      string
+	Endpoint      string
+	WorkloadsDown bool
+	Resources     resourcetypes.Resources
+	Delta         bool
+	Labels        map[string]string
+	Bypass        TriOptions
+	Ca            string
+	Cert          string
+	Key           string
 }
 
 // Validate checks options
 func (o *SetNodeOptions) Validate() error {
 	if o.Nodename == "" {
-		return errors.WithStack(ErrEmptyNodeName)
+		return ErrEmptyNodeName
 	}
 	return nil
-}
-
-// Normalize keeps options consistent
-func (o *SetNodeOptions) Normalize(node *Node) {
-	o.DeltaStorage += o.DeltaVolume.Total()
-	for volID, size := range o.DeltaVolume {
-		if size == 0 {
-			o.DeltaStorage -= node.InitVolume[volID]
-		}
-	}
 }
 
 // ImageOptions wraps options for images
@@ -284,7 +238,6 @@ type ImageOptions struct {
 	Podname   string
 	Nodenames []string
 	Images    []string
-	Step      int
 	Prune     bool
 	Filter    string
 }
@@ -292,16 +245,9 @@ type ImageOptions struct {
 // Validate checks the options
 func (o *ImageOptions) Validate() error {
 	if o.Podname == "" {
-		return errors.WithStack(ErrEmptyPodName)
+		return ErrEmptyPodName
 	}
 	return nil
-}
-
-// Normalize checks steps and set it properly
-func (o *ImageOptions) Normalize() {
-	if o.Step < 1 {
-		o.Step = 1
-	}
 }
 
 // ExecuteWorkloadOptions for executing commands in running workload
@@ -316,9 +262,8 @@ type ExecuteWorkloadOptions struct {
 
 // ReallocOptions .
 type ReallocOptions struct {
-	ID           string
-	CPUBindOpts  TriOptions
-	ResourceOpts ResourceOptions
+	ID        string
+	Resources resourcetypes.Resources
 }
 
 // TriOptions .
@@ -354,9 +299,9 @@ func (r RawArgs) String() string {
 	return string(r)
 }
 
-// LitterDump fro litter.Dumper
+// LitterDump from litter.Dumper
 func (r RawArgs) LitterDump(w io.Writer) {
-	w.Write(r) // nolint:errcheck // here can't import core/log due to cycle dependence
+	w.Write(r) //nolint:errcheck
 }
 
 // SendLargeFileOptions for LargeFileTransfer
@@ -373,10 +318,10 @@ type SendLargeFileOptions struct {
 // Validate checks options
 func (o *SendLargeFileOptions) Validate() error {
 	if len(o.Ids) == 0 {
-		return errors.WithStack(ErrNoWorkloadIDs)
+		return ErrNoWorkloadIDs
 	}
 	if len(o.Chunk) == 0 {
-		return errors.WithStack(ErrNoFilesToSend)
+		return ErrNoFilesToSend
 	}
 	if o.Uid == 0 && o.Gid == 0 && o.Mode == 0 {
 		// we see it as requiring "default perm"

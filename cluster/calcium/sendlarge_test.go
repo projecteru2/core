@@ -35,7 +35,7 @@ func TestSendLarge(t *testing.T) {
 	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch := c.SendLargeFile(ctx, optsChan)
 	go func() {
 		optsChan <- opts
@@ -55,7 +55,7 @@ func TestSendLarge(t *testing.T) {
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything,
-	).Return(types.ErrCannotGetEngine).Once()
+	).Return(types.ErrMockError).Once()
 	optsChan = make(chan *types.SendLargeFileOptions)
 	ch = c.SendLargeFile(ctx, optsChan)
 	go func() {

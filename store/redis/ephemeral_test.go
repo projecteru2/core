@@ -7,6 +7,7 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/go-redis/redis/v8"
+	"github.com/projecteru2/core/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -99,8 +100,11 @@ func TestEphemeralMustRevokeAfterKeepaliveFailed(t *testing.T) {
 	})
 	defer cli.Close()
 
+	pool, _ := utils.NewPool(10000)
+
 	rediaron := &Rediaron{
-		cli: cli,
+		cli:  cli,
+		pool: pool,
 	}
 
 	ctx := context.Background()

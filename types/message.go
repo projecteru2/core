@@ -2,6 +2,8 @@ package types
 
 import (
 	"bytes"
+
+	resourcetypes "github.com/projecteru2/core/resource/types"
 )
 
 // RemoveWorkloadMessage for remove message
@@ -79,7 +81,8 @@ type ControlWorkloadMessage struct {
 
 // CreateWorkloadMessage for create message
 type CreateWorkloadMessage struct {
-	ResourceMeta
+	EngineParams resourcetypes.Resources
+	Resources    resourcetypes.Resources
 	Podname      string
 	Nodename     string
 	WorkloadID   string

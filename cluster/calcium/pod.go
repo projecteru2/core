@@ -5,50 +5,56 @@ import (
 
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-
-	"github.com/pkg/errors"
 )
 
 // AddPod add pod
 func (c *Calcium) AddPod(ctx context.Context, podname, desc string) (*types.Pod, error) {
-	logger := log.WithField("Calcium", "AddPod").WithField("podname", podname).WithField("desc", desc)
+	logger := log.WithFunc("calcium.AddPod").WithField("podname", podname)
 	if podname == "" {
-		return nil, logger.Err(ctx, errors.WithStack(types.ErrEmptyPodName))
+		logger.Error(ctx, types.ErrEmptyPodName)
+		return nil, types.ErrEmptyPodName
 	}
 	pod, err := c.store.AddPod(ctx, podname, desc)
-	return pod, logger.Err(ctx, errors.WithStack(err))
+	logger.Error(ctx, err)
+	return pod, err
 }
 
 // RemovePod remove pod
 func (c *Calcium) RemovePod(ctx context.Context, podname string) error {
-	logger := log.WithField("Calcium", "RemovePod").WithField("podname", podname)
+	logger := log.WithFunc("calcium.RemovePod").WithField("podname", podname)
 	if podname == "" {
-		return logger.Err(ctx, errors.WithStack(types.ErrEmptyPodName))
+		logger.Error(ctx, types.ErrEmptyPodName)
+		return types.ErrEmptyPodName
 	}
 
-	nf := types.NodeFilter{
+	nodeFilter := &types.NodeFilter{
 		Podname: podname,
 		All:     true,
 	}
-	return c.withNodesLocked(ctx, nf, func(ctx context.Context, nodes map[string]*types.Node) error {
+	return c.withNodesPodLocked(ctx, nodeFilter, func(ctx context.Context, nodes map[string]*types.Node) error {
 		// TODO dissociate workload to node
 		// TODO should remove node first
-		return logger.Err(ctx, errors.WithStack(c.store.RemovePod(ctx, podname)))
+		err := c.store.RemovePod(ctx, podname)
+		logger.Error(ctx, err)
+		return err
 	})
 }
 
 // GetPod get one pod
 func (c *Calcium) GetPod(ctx context.Context, podname string) (*types.Pod, error) {
-	logger := log.WithField("Calcium", "GetPod").WithField("podname", podname)
+	logger := log.WithFunc("calcium.GetPod").WithField("podname", podname)
 	if podname == "" {
-		return nil, logger.Err(ctx, errors.WithStack(types.ErrEmptyPodName))
+		logger.Error(ctx, types.ErrEmptyPodName)
+		return nil, types.ErrEmptyPodName
 	}
 	pod, err := c.store.GetPod(ctx, podname)
-	return pod, logger.Err(ctx, errors.WithStack(err))
+	logger.Error(ctx, err)
+	return pod, err
 }
 
 // ListPods show pods
 func (c *Calcium) ListPods(ctx context.Context) ([]*types.Pod, error) {
 	pods, err := c.store.GetAllPods(ctx)
-	return pods, log.WithField("Calcium", "ListPods").Err(ctx, errors.WithStack(err))
+	log.WithFunc("calcium.ListPods").Error(ctx, err)
+	return pods, err
 }

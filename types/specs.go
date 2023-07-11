@@ -2,15 +2,15 @@ package types
 
 import (
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // Hook define hooks
 type Hook struct {
-	AfterStart []string `yaml:"after_start,omitempty"`
-	BeforeStop []string `yaml:"before_stop,omitempty"`
-	Force      bool     `yaml:"force,omitempty"`
+	AfterStart    []string `yaml:"after_start,omitempty"`
+	BeforeStop    []string `yaml:"before_stop,omitempty"`
+	AfterResume   []string `yaml:"after_resume,omitempty"`
+	BeforeSuspend []string `yaml:"before_suspend,omitempty"`
+	Force         bool     `yaml:"force,omitempty"`
 }
 
 // HealthCheck define healthcheck
@@ -38,10 +38,10 @@ type Entrypoint struct {
 // Validate checks entrypoint's name
 func (e *Entrypoint) Validate() error {
 	if e.Name == "" {
-		return errors.WithStack(ErrEmptyEntrypointName)
+		return ErrEmptyEntrypointName
 	}
 	if strings.Contains(e.Name, "_") {
-		return errors.WithStack(ErrUnderlineInEntrypointName)
+		return ErrUnderlineInEntrypointName
 	}
 	return nil
 }

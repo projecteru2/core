@@ -3,13 +3,12 @@ package docker
 import (
 	"context"
 	"io"
-	"io/ioutil"
-
-	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/log"
 
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/stdcopy"
+
+	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
 )
 
 // ExecCreate create a exec
@@ -44,7 +43,7 @@ func (e *Engine) execAttach(ctx context.Context, execID string, tty bool) (io.Re
 	if err != nil {
 		return nil, nil, err
 	}
-	return ioutil.NopCloser(resp.Reader), resp.Conn, nil
+	return io.NopCloser(resp.Reader), resp.Conn, nil
 }
 
 // Execute executes a workload
@@ -72,14 +71,14 @@ func (e *Engine) demultiplexStdStream(ctx context.Context, stdStream io.Reader) 
 		defer stdoutW.Close()
 		defer stderrW.Close()
 		if _, err := stdcopy.StdCopy(stdoutW, stderrW, stdStream); err != nil {
-			log.Errorf(ctx, "[docker.demultiplex] StdCopy failed: %v", err)
+			log.WithFunc("engine.docker.demultiplexStdStream").Error(ctx, err, "StdCopy failed")
 		}
 	}()
 	return stdout, stderr
 }
 
 // ExecExitCode get exec return code
-func (e *Engine) ExecExitCode(ctx context.Context, ID, execID string) (int, error) {
+func (e *Engine) ExecExitCode(ctx context.Context, _, execID string) (int, error) {
 	r, err := e.client.ContainerExecInspect(ctx, execID)
 	if err != nil {
 		return -1, err
@@ -88,7 +87,7 @@ func (e *Engine) ExecExitCode(ctx context.Context, ID, execID string) (int, erro
 }
 
 // ExecResize resize exec tty
-func (e *Engine) ExecResize(ctx context.Context, ID, execID string, height, width uint) error {
+func (e *Engine) ExecResize(ctx context.Context, execID string, height, width uint) error {
 	opts := dockertypes.ResizeOptions{
 		Height: height,
 		Width:  width,

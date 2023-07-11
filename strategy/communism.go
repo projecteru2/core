@@ -3,11 +3,10 @@ package strategy
 import (
 	"container/heap"
 	"context"
-	"fmt"
 
 	"github.com/projecteru2/core/types"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 )
 
 type infoHeap struct {
@@ -27,7 +26,7 @@ func (h infoHeap) Swap(i, j int) {
 	h.infos[i], h.infos[j] = h.infos[j], h.infos[i]
 }
 
-func (h *infoHeap) Push(x interface{}) {
+func (h *infoHeap) Push(x any) {
 	info := x.(Info)
 	if info.Capacity == 0 || (h.limit > 0 && info.Count >= h.limit) {
 		return
@@ -35,7 +34,7 @@ func (h *infoHeap) Push(x interface{}) {
 	h.infos = append(h.infos, info)
 }
 
-func (h *infoHeap) Pop() interface{} {
+func (h *infoHeap) Pop() any {
 	length := len(h.infos)
 	x := h.infos[length-1]
 	h.infos = h.infos[0 : length-1]
@@ -58,10 +57,9 @@ func newInfoHeap(infos []Info, limit int) heap.Interface {
 
 // CommunismPlan 吃我一记共产主义大锅饭
 // 部署完 N 个后全局尽可能平均
-func CommunismPlan(ctx context.Context, infos []Info, need, total, limit int) (map[string]int, error) {
+func CommunismPlan(_ context.Context, infos []Info, need, total, limit int) (map[string]int, error) {
 	if total < need {
-		return nil, errors.WithStack(types.NewDetailedErr(types.ErrInsufficientRes,
-			fmt.Sprintf("need: %d, available: %d", need, total)))
+		return nil, errors.Wrapf(types.ErrInsufficientResource, "need: %d, available: %d", need, total)
 	}
 
 	deploy := map[string]int{}
@@ -69,7 +67,7 @@ func CommunismPlan(ctx context.Context, infos []Info, need, total, limit int) (m
 	heap.Init(iHeap)
 	for {
 		if iHeap.Len() == 0 {
-			return nil, errors.Wrapf(types.ErrInsufficientRes, "reached nodelimit, a node can host at most %d instances", limit)
+			return nil, errors.Wrapf(types.ErrInsufficientResource, "reached nodelimit, a node can host at most %d instances", limit)
 		}
 		info := heap.Pop(iHeap).(Info)
 		deploy[info.Nodename]++

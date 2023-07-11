@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/types"
 
 	"go.etcd.io/bbolt"
@@ -55,28 +56,11 @@ func (l *Lithium) Open(path string, mode os.FileMode, timeout time.Duration) (er
 	return l.open()
 }
 
-func (l *Lithium) open() (err error) {
-	if l.bolt, err = bbolt.Open(l.path, l.mode, &bbolt.Options{Timeout: l.timeout}); err != nil {
-		return
-	}
-
-	err = l.bolt.Update(func(tx *bbolt.Tx) error {
-		_, ce := tx.CreateBucketIfNotExists(l.RootBucketKey)
-		return ce
-	})
-
-	return
-}
-
 // Close closes the kvdb file.
 func (l *Lithium) Close() error {
 	l.Lock()
 	defer l.Unlock()
 	return l.close()
-}
-
-func (l *Lithium) close() error {
-	return l.bolt.Close()
 }
 
 // Put creates/updates a key/value pair.
@@ -112,7 +96,6 @@ func (l *Lithium) Delete(key []byte) error {
 // Scan scans all the key/value pairs.
 func (l *Lithium) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 	ch := make(chan ScanEntry)
-	locked := make(chan struct{})
 
 	exit := make(chan struct{})
 	abort := func() {
@@ -122,11 +105,9 @@ func (l *Lithium) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 	go func() {
 		defer close(ch)
 
-		close(locked)
-
 		scan := func(bkt *bbolt.Bucket) error {
 			c := bkt.Cursor()
-			for key, value := c.First(); key != nil && bytes.HasPrefix(key, prefix); key, value = c.Next() {
+			for key, value := c.Seek(prefix); key != nil && bytes.HasPrefix(key, prefix); key, value = c.Next() {
 				select {
 				case <-exit:
 					return nil
@@ -144,9 +125,6 @@ func (l *Lithium) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 		}
 	}()
 
-	// Makes sure that the scan goroutine has been locked.
-	<-locked
-
 	return ch, abort
 }
 
@@ -159,6 +137,23 @@ func (l *Lithium) NextSequence() (uint64, error) {
 	})
 
 	return seq, err
+}
+
+func (l *Lithium) open() (err error) {
+	if l.bolt, err = bbolt.Open(l.path, l.mode, &bbolt.Options{Timeout: l.timeout}); err != nil {
+		return
+	}
+
+	err = l.bolt.Update(func(tx *bbolt.Tx) error {
+		_, ce := tx.CreateBucketIfNotExists(l.RootBucketKey)
+		return ce
+	})
+
+	return
+}
+
+func (l *Lithium) close() error {
+	return l.bolt.Close()
 }
 
 func (l *Lithium) view(fn func(*bbolt.Bucket) error) error {
@@ -184,7 +179,7 @@ func (l *Lithium) update(fn func(*bbolt.Bucket) error) error {
 func (l *Lithium) getBucket(tx *bbolt.Tx, key []byte) (bkt *bbolt.Bucket, err error) {
 	bkt = tx.Bucket(l.RootBucketKey)
 	if bkt == nil {
-		err = types.NewDetailedErr(types.ErrInvalidWALBucket, key)
+		err = errors.Wrapf(types.ErrInvalidWALBucket, "%+v", key)
 	}
 	return
 }

@@ -4,10 +4,11 @@ import (
 	"context"
 	"time"
 
-	engine "github.com/projecteru2/core/engine"
+	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 )
 
 // StatusMeta indicate contaienr runtime
@@ -35,57 +36,77 @@ type LabelMeta struct {
 // only relationship with pod and node is stored
 // if you wanna get realtime information, use Inspect method
 type Workload struct {
-	ResourceMeta
-	ID         string            `json:"id"`
-	Name       string            `json:"name"`
-	Podname    string            `json:"podname"`
-	Nodename   string            `json:"nodename"`
-	Hook       *Hook             `json:"hook"`
-	Privileged bool              `json:"privileged"`
-	User       string            `json:"user"`
-	Env        []string          `json:"env"`
-	Image      string            `json:"image"`
-	Labels     map[string]string `json:"labels"`
-	CreateTime int64             `json:"create_time"`
-	StatusMeta *StatusMeta       `json:"-"`
-	Engine     engine.API        `json:"-"`
+	Resources    resourcetypes.Resources `json:"resources"`
+	EngineParams resourcetypes.Resources `json:"engine_params"`
+	ID           string                  `json:"id"`
+	Name         string                  `json:"name"`
+	Podname      string                  `json:"podname"`
+	Nodename     string                  `json:"nodename"`
+	Hook         *Hook                   `json:"hook"`
+	Privileged   bool                    `json:"privileged"`
+	User         string                  `json:"user"`
+	Env          []string                `json:"env"`
+	Image        string                  `json:"image"`
+	Labels       map[string]string       `json:"labels"`
+	CreateTime   int64                   `json:"create_time"`
+	StatusMeta   *StatusMeta             `json:"-"`
+	Engine       engine.API              `json:"-"`
 }
 
 // Inspect a workload
 func (c *Workload) Inspect(ctx context.Context) (*enginetypes.VirtualizationInfo, error) {
 	if c.Engine == nil {
-		return nil, errors.WithStack(ErrNilEngine)
+		return nil, ErrNilEngine
 	}
 	info, err := c.Engine.VirtualizationInspect(ctx, c.ID)
-	return info, errors.WithStack(err)
+	return info, err
 }
 
 // Start a workload
 func (c *Workload) Start(ctx context.Context) error {
 	if c.Engine == nil {
-		return errors.WithStack(ErrNilEngine)
+		return ErrNilEngine
 	}
-	return errors.WithStack(c.Engine.VirtualizationStart(ctx, c.ID))
+	return c.Engine.VirtualizationStart(ctx, c.ID)
 }
 
 // Stop a workload
 func (c *Workload) Stop(ctx context.Context, force bool) error {
 	if c.Engine == nil {
-		return errors.WithStack(ErrNilEngine)
+		return ErrNilEngine
 	}
 	gracefulTimeout := time.Duration(-1) // -1 indicates use engine default timeout
 	if force {
 		gracefulTimeout = 0 // don't wait, kill -15 && kill -9
 	}
-	return errors.WithStack(c.Engine.VirtualizationStop(ctx, c.ID, gracefulTimeout))
+	return c.Engine.VirtualizationStop(ctx, c.ID, gracefulTimeout)
+}
+
+// Suspend a workload
+func (c *Workload) Suspend(ctx context.Context) error {
+	if c.Engine == nil {
+		return ErrNilEngine
+	}
+	return c.Engine.VirtualizationSuspend(ctx, c.ID)
+}
+
+// Resume a workload
+func (c *Workload) Resume(ctx context.Context) error {
+	if c.Engine == nil {
+		return ErrNilEngine
+	}
+	return c.Engine.VirtualizationResume(ctx, c.ID)
 }
 
 // Remove a workload
-func (c *Workload) Remove(ctx context.Context, force bool) error {
+func (c *Workload) Remove(ctx context.Context, force bool) (err error) {
 	if c.Engine == nil {
-		return errors.WithStack(ErrNilEngine)
+		return ErrNilEngine
 	}
-	return errors.WithStack(c.Engine.VirtualizationRemove(ctx, c.ID, true, force))
+	if err = c.Engine.VirtualizationRemove(ctx, c.ID, true, force); errors.Is(err, ErrWorkloadNotExists) {
+		err = nil
+	}
+	return err
 }
 
 // WorkloadStatus store deploy status

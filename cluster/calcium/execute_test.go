@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	enginemocks "github.com/projecteru2/core/engine/mocks"
@@ -26,11 +26,10 @@ func (i *inStream) Close() error {
 func TestExecuteWorkload(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 
 	// failed by GetWorkload
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrBadCount).Once()
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrInvaildCount).Once()
 	ID := "abc"
 	ch := c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: ID}, nil)
 	for ac := range ch {
@@ -46,16 +45,16 @@ func TestExecuteWorkload(t *testing.T) {
 
 	// failed by Execute
 	result := "def"
-	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(result, nil, nil, nil, types.ErrCannotGetEngine).Once()
+	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(result, nil, nil, nil, types.ErrMockError).Once()
 	ch = c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: ID}, nil)
 	for ac := range ch {
 		assert.Equal(t, ac.WorkloadID, ID)
 	}
-	buf := ioutil.NopCloser(bytes.NewBufferString(`echo 1\n`))
+	buf := io.NopCloser(bytes.NewBufferString(`echo 1\n`))
 	engine.On("Execute", mock.Anything, mock.Anything, mock.Anything).Return(result, buf, nil, nil, nil).Twice()
 
 	// failed by ExecExitCode
-	engine.On("ExecExitCode", mock.Anything, mock.Anything, mock.Anything).Return(-1, types.ErrCannotGetEngine).Once()
+	engine.On("ExecExitCode", mock.Anything, mock.Anything, mock.Anything).Return(-1, types.ErrMockError).Once()
 	ch = c.ExecuteWorkload(ctx, &types.ExecuteWorkloadOptions{WorkloadID: ID}, nil)
 	data := []byte{}
 	for ac := range ch {

@@ -9,7 +9,7 @@ type LBResolverBuilder struct {
 
 var lbResolverBuilder *LBResolverBuilder
 
-func init() { // nolint
+func init() { //nolint
 	lbResolverBuilder = &LBResolverBuilder{
 		updateCh: make(chan []string),
 	}
@@ -22,6 +22,6 @@ func (b *LBResolverBuilder) Scheme() string {
 }
 
 // Build for interface
-func (b *LBResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
-	return newLBResolver(cc, target.Endpoint, b.updateCh), nil
+func (b *LBResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, _ resolver.BuildOptions) (resolver.Resolver, error) {
+	return newLBResolver(cc, target.URL.Path, b.updateCh), nil
 }

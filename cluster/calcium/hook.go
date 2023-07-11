@@ -5,8 +5,6 @@ import (
 	"context"
 
 	"github.com/projecteru2/core/engine"
-
-	"github.com/pkg/errors"
 )
 
 func (c *Calcium) doHook(
@@ -18,12 +16,12 @@ func (c *Calcium) doHook(
 ) ([]*bytes.Buffer, error) {
 	outputs := []*bytes.Buffer{}
 	for _, cmd := range cmds {
-		output, err := execuateInside(ctx, engine, ID, cmd, user, env, privileged)
+		output, err := c.execuateInside(ctx, engine, ID, cmd, user, env, privileged)
 		if err != nil {
 			// 执行 hook 的过程中,如果 cmdForce 为真并且不忽略 hook 就输出错误
 			outputs = append(outputs, bytes.NewBufferString(err.Error()))
 			if cmdForce && !force {
-				return outputs, errors.WithStack(err)
+				return outputs, err
 			}
 			continue
 		}

@@ -8,15 +8,14 @@ import (
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
 // ExecuteWorkload executes commands in running workloads
 func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorkloadOptions, inCh <-chan []byte) chan *types.AttachWorkloadMessage {
-	logger := log.WithField("Calcium", "ExecuteWorkload").WithField("opts", opts)
+	logger := log.WithFunc("calcium.ExecuteWorkload").WithField("opts", opts)
 	ch := make(chan *types.AttachWorkloadMessage)
 
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		var err error
 
 		defer func() {
@@ -28,7 +27,7 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 
 		workload, err := c.GetWorkload(ctx, opts.WorkloadID)
 		if err != nil {
-			logger.Errorf(ctx, "[ExecuteWorkload] Failed to get workload: %+v", err)
+			logger.Error(ctx, err, "Failed to get workload")
 			return
 		}
 
@@ -43,34 +42,33 @@ func (c *Calcium) ExecuteWorkload(ctx context.Context, opts *types.ExecuteWorklo
 			Detach:       false,
 		}
 
-		result, stdout, stderr, inStream, err := workload.Engine.Execute(ctx, opts.WorkloadID, execConfig)
+		execID, stdout, stderr, inStream, err := workload.Engine.Execute(ctx, opts.WorkloadID, execConfig)
 		if err != nil {
-			logger.Errorf(ctx, "[ExecuteWorkload] Failed to attach execID: %+v", err)
+			logger.Errorf(ctx, err, "Failed to attach execID %s", execID)
 			return
 		}
 
 		splitFunc, split := bufio.ScanLines, byte('\n')
 		if opts.OpenStdin {
-			processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
-				return workload.Engine.ExecResize(ctx, opts.WorkloadID, result, height, width)
+			c.processVirtualizationInStream(ctx, inStream, inCh, func(height, width uint) error {
+				return workload.Engine.ExecResize(ctx, execID, height, width)
 			})
 			splitFunc, split = bufio.ScanBytes, byte(0)
 		}
 
-		for m := range processStdStream(ctx, stdout, stderr, splitFunc, split) {
+		for m := range c.processStdStream(ctx, stdout, stderr, splitFunc, split) {
 			ch <- &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: m.Data, StdStreamType: m.StdStreamType}
 		}
 
-		execCode, err := workload.Engine.ExecExitCode(ctx, opts.WorkloadID, result)
+		execCode, err := workload.Engine.ExecExitCode(ctx, opts.WorkloadID, execID)
 		if err != nil {
-			logger.Errorf(ctx, "[ExecuteWorkload] Failed to get exitcode: %+v", err)
+			logger.Error(ctx, err, "Failed to get exitcode")
 			return
 		}
 
 		exitData := []byte(exitDataPrefix + strconv.Itoa(execCode))
 		ch <- &types.AttachWorkloadMessage{WorkloadID: opts.WorkloadID, Data: exitData}
-		log.Infof(ctx, "[ExecuteWorkload] Execuate in workload %s complete", opts.WorkloadID)
-		log.Infof(ctx, "[ExecuteWorkload] %v", opts.Commands)
+		logger.Infof(ctx, "Execuate %+v in workload %s complete", opts.Commands, opts.WorkloadID)
 	})
 
 	return ch

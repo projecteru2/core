@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
@@ -14,19 +13,21 @@ import (
 	"strings"
 	"time"
 
-	corecluster "github.com/projecteru2/core/cluster"
-	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/log"
-	coretypes "github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
-
 	dockertypes "github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	dockernetwork "github.com/docker/docker/api/types/network"
 	dockerslice "github.com/docker/docker/api/types/strslice"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
-	"github.com/pkg/errors"
+	"github.com/mitchellh/mapstructure"
+
+	"github.com/projecteru2/core/engine"
+	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
+	resourcetypes "github.com/projecteru2/core/resource/types"
+	"github.com/projecteru2/core/types"
+	coretypes "github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 const (
@@ -79,11 +80,28 @@ func loadRawArgs(b []byte) (*RawArgs, error) {
 }
 
 // VirtualizationCreate create a workload
-func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) { // nolint
+func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error) { //nolint
+	logger := log.WithFunc("engine.docker.VirtualizationCreate")
 	r := &enginetypes.VirtualizationCreated{}
+	var err error
+
+	// parse engine args to resource options
+	resourceOpts := &engine.VirtualizationResource{}
+	if err = engine.MakeVirtualizationResource(opts.EngineParams, resourceOpts, func(p resourcetypes.Resources, d *engine.VirtualizationResource) error {
+		for _, v := range p {
+			if err := mapstructure.Decode(v, d); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		logger.Errorf(ctx, err, "failed to parse engine args %+v", opts.EngineParams)
+		return r, coretypes.ErrInvalidEngineArgs
+	}
+
 	// memory should more than 4MiB
-	if opts.Memory > 0 && opts.Memory < minMemory || opts.Memory < 0 {
-		return r, coretypes.ErrBadMemory
+	if resourceOpts.Memory > 0 && resourceOpts.Memory < minMemory || resourceOpts.Memory < 0 {
+		return r, coretypes.ErrInvaildMemory
 	}
 	// set default log driver if lambda
 	if opts.Lambda {
@@ -140,8 +158,8 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		opts.DNS = []string{hostIP}
 	}
 	// mount paths
-	binds, volumes := makeMountPaths(opts)
-	log.Debugf(ctx, "[VirtualizationCreate] App %s will bind %v", opts.Name, binds)
+	binds, volumes := makeMountPaths(ctx, opts, resourceOpts)
+	logger.Debugf(ctx, "App %s will bind %+v", opts.Name, binds)
 
 	config := &dockercontainer.Config{
 		Env:             opts.Env,
@@ -161,7 +179,7 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		return r, err
 	}
 
-	resource := makeResourceSetting(opts.Quota, opts.Memory, opts.CPU, opts.NUMANode)
+	resource := makeResourceSetting(resourceOpts.Quota, resourceOpts.Memory, resourceOpts.CPU, resourceOpts.NUMANode, resourceOpts.IOPSOptions, false)
 	// set ulimits
 	if len(rArgs.Ulimits) == 0 {
 		resource.Ulimits = []*units.Ulimit{
@@ -174,9 +192,9 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 		opts.DNS = []string{}
 		opts.Sysctl = map[string]string{}
 	}
-	if opts.Storage > 0 {
+	if resourceOpts.Storage > 0 {
 		volumeTotal := int64(0)
-		for _, v := range opts.Volumes {
+		for _, v := range resourceOpts.Volumes {
 			parts := strings.Split(v, ":")
 			if len(parts) < 4 {
 				continue
@@ -187,8 +205,8 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 			}
 			volumeTotal += size
 		}
-		if opts.Storage-volumeTotal > 0 {
-			rArgs.StorageOpt["size"] = fmt.Sprintf("%v", opts.Storage-volumeTotal)
+		if resourceOpts.Storage-volumeTotal > 0 {
+			rArgs.StorageOpt["size"] = fmt.Sprintf("%+v", resourceOpts.Storage-volumeTotal)
 		}
 	}
 	// 如果有指定用户，用指定用户
@@ -255,68 +273,13 @@ func (e *Engine) VirtualizationCreate(ctx context.Context, opts *enginetypes.Vir
 			ipForShow = "[AutoAlloc]"
 		}
 		networkConfig.EndpointsConfig[networkID] = endpointSetting
-		log.Infof(ctx, "[ConnectToNetwork] Connect to %v with IP %v", networkID, ipForShow)
+		logger.Infof(ctx, "Connect to %+v with IP %+v", networkID, ipForShow)
 	}
 
 	workloadCreated, err := e.client.ContainerCreate(ctx, config, hostConfig, networkConfig, nil, opts.Name)
 	r.Name = opts.Name
 	r.ID = workloadCreated.ID
 	return r, err
-}
-
-// VirtualizationResourceRemap to re-distribute resource according to the whole picture
-// supposedly it's exclusively executed, so free feel to operate IO from remote dockerd
-func (e *Engine) VirtualizationResourceRemap(ctx context.Context, opts *enginetypes.VirtualizationRemapOptions) (<-chan enginetypes.VirtualizationRemapMessage, error) {
-	// calculate share pool
-	sharePool := []string{}
-	for cpuID, available := range opts.CPUAvailable {
-		if available >= opts.CPUShareBase {
-			sharePool = append(sharePool, cpuID)
-		}
-	}
-	shareCPUSet := strings.Join(sharePool, ",")
-	if shareCPUSet == "" {
-		info, err := e.Info(ctx)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		shareCPUSet = fmt.Sprintf("0-%d", info.NCPU-1)
-	}
-
-	// filter out workloads non-binding
-	freeWorkloadResources := map[string]enginetypes.VirtualizationResource{}
-	for workloadID, resource := range opts.WorkloadResources {
-		if resource.CPU == nil {
-			freeWorkloadResources[workloadID] = resource
-		}
-	}
-
-	// update!
-	ch := make(chan enginetypes.VirtualizationRemapMessage)
-	pool := utils.NewGoroutinePool(10)
-	go func() {
-		defer close(ch)
-		for id, resource := range freeWorkloadResources {
-			pool.Go(ctx, func(id string, resource enginetypes.VirtualizationResource) func() {
-				return func() {
-					updateConfig := dockercontainer.UpdateConfig{Resources: dockercontainer.Resources{
-						CPUQuota:   int64(resource.Quota * float64(corecluster.CPUPeriodBase)),
-						CPUPeriod:  corecluster.CPUPeriodBase,
-						CpusetCpus: shareCPUSet,
-						CPUShares:  defaultCPUShare,
-					}}
-					_, err := e.client.ContainerUpdate(ctx, id, updateConfig)
-					ch <- enginetypes.VirtualizationRemapMessage{
-						ID:    id,
-						Error: err,
-					}
-				}
-			}(id, resource))
-		}
-		pool.Wait(ctx)
-	}()
-
-	return ch, nil
 }
 
 // VirtualizationCopyTo copy things to virtualization
@@ -339,47 +302,47 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 	const maxChunkSize = 2 << 10
 	// todo 这里有点奇怪，之前带参数的匿名函数会随机报错，现在改成无参的函数后就不报错了，还没找到原因, 且之前的参数writer用的是interface
 	utils.SentryGo(func() {
-			hdr := &tar.Header{
-				Name: filepath.Base(target),
-				Size: size,
-				Mode: mode,
-				Uid:  uid,
-				Gid:  gid,
-			}
-			if err := tw.WriteHeader(hdr); err != nil {
-				log.Errorf(ctx, "[VirtualizationCopyChunkTo] write header to %s err, err: %v", ID, err)
+		hdr := &tar.Header{
+			Name: filepath.Base(target),
+			Size: size,
+			Mode: mode,
+			Uid:  uid,
+			Gid:  gid,
+		}
+		if err := tw.WriteHeader(hdr); err != nil {
+			log.Errorf(ctx, err, "[VirtualizationCopyChunkTo] write header to %s err, err: %v", ID, err)
+			return
+		}
+		for {
+			data := make([]byte, maxChunkSize)
+			n, err := content.Read(data)
+			if err != nil {
+				if err != io.EOF {
+					log.Errorf(ctx, err, "[VirtualizationCopyChunkTo] read data from pipe err, err: %v", err)
+				}
+				err := pw.Close()
+				if err != nil {
+					log.Errorf(ctx, err, "[VirtualizationCopyChunkTo] close pipe writer, err: %v", err)
+				}
 				return
 			}
-			for {
-				data := make([]byte, maxChunkSize)
-				n, err := content.Read(data)
-				if err != nil  {
-					if err != io.EOF {
-						log.Errorf(ctx, "[VirtualizationCopyChunkTo] read data from pipe err, err: %v", err)
-					}
-					err := pw.Close()
-					if err != nil {
-						log.Errorf(ctx, "[VirtualizationCopyChunkTo] close pipe writer, err: %v", err)
-					}
-					return
-				}
-				if n < len(data) {
-					data = data[:n]
-				}
-				_, err = tw.Write(data)
-				if err != nil {
-					log.Debugf(ctx, "[VirtualizationCopyChunkTo] write data into %s err, err: %v", ID, err)
-					err := pw.Close()
-					if err != nil {
-						log.Errorf(ctx, "[VirtualizationCopyChunkTo] close pipe writer, err: %v", err)
-					}
-					return
-				}
+			if n < len(data) {
+				data = data[:n]
 			}
+			_, err = tw.Write(data)
+			if err != nil {
+				log.Debugf(ctx, "[VirtualizationCopyChunkTo] write data into %s err, err: %v", ID, err)
+				err := pw.Close()
+				if err != nil {
+					log.Errorf(ctx, err, "[VirtualizationCopyChunkTo] close pipe writer, err: %v", err)
+				}
+				return
+			}
+		}
 	})
 	err := e.client.CopyToContainer(ctx, ID, filepath.Dir(target), pr, dockertypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
 	if err != nil {
-		log.Errorf(ctx, "[VirtualizationCopyChunkTo] copy %s to container %s err, err:%v", target, ID, err)
+		log.Errorf(ctx, err, "[VirtualizationCopyChunkTo] copy %s to container %s err, err:%v", target, ID, err)
 	}
 	return err
 }
@@ -391,16 +354,32 @@ func (e *Engine) VirtualizationStart(ctx context.Context, ID string) error {
 
 // VirtualizationStop stop virtualization
 func (e *Engine) VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) error {
-	timeout := &gracefulTimeout
-	if gracefulTimeout <= 0 {
-		timeout = nil
+	var timeout *int
+	if t := int(gracefulTimeout.Seconds()); t > 0 {
+		timeout = &t
 	}
-	return e.client.ContainerStop(ctx, ID, timeout)
+	return e.client.ContainerStop(ctx, ID, dockercontainer.StopOptions{Timeout: timeout})
+}
+
+// VirtualizationSuspend suspends virtualization
+func (e *Engine) VirtualizationSuspend(context.Context, string) error {
+	return nil
+}
+
+// VirtualizationResume resumes virtualization
+func (e *Engine) VirtualizationResume(context.Context, string) error {
+	return nil
 }
 
 // VirtualizationRemove remove virtualization
 func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, removeVolumes, force bool) error {
-	return e.client.ContainerRemove(ctx, ID, dockertypes.ContainerRemoveOptions{RemoveVolumes: removeVolumes, Force: force})
+	if err := e.client.ContainerRemove(ctx, ID, dockertypes.ContainerRemoveOptions{RemoveVolumes: removeVolumes, Force: force}); err != nil {
+		if strings.Contains(err.Error(), "no such") {
+			err = types.ErrWorkloadNotExists
+		}
+		return err
+	}
+	return nil
 }
 
 // VirtualizationInspect get virtualization info
@@ -446,7 +425,7 @@ func (e *Engine) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtu
 		return nil, nil, err
 	}
 	if !opts.Stderr {
-		return ioutil.NopCloser(mergeStream(resp)), nil, nil
+		return io.NopCloser(mergeStream(resp)), nil, nil
 	}
 	stdout, stderr = e.demultiplexStdStream(ctx, resp)
 	return stdout, stderr, nil
@@ -466,7 +445,7 @@ func (e *Engine) VirtualizationAttach(ctx context.Context, ID string, stream, st
 		return nil, nil, nil, err
 	}
 	if stdin {
-		return ioutil.NopCloser(resp.Reader), nil, resp.Conn, nil
+		return io.NopCloser(resp.Reader), nil, resp.Conn, nil
 	}
 	stdout, stderr = e.demultiplexStdStream(ctx, resp.Reader)
 	return stdout, stderr, resp.Conn, nil
@@ -483,7 +462,7 @@ func (e *Engine) VirtualizationResize(ctx context.Context, workloadID string, he
 }
 
 // VirtualizationWait wait virtualization exit
-func (e *Engine) VirtualizationWait(ctx context.Context, ID, state string) (*enginetypes.VirtualizationWaitResult, error) {
+func (e *Engine) VirtualizationWait(ctx context.Context, ID, _ string) (*enginetypes.VirtualizationWaitResult, error) {
 	waitBody, errorCh := e.client.ContainerWait(ctx, ID, dockercontainer.WaitConditionNotRunning)
 	r := &enginetypes.VirtualizationWaitResult{}
 	select {
@@ -501,23 +480,39 @@ func (e *Engine) VirtualizationWait(ctx context.Context, ID, state string) (*eng
 }
 
 // VirtualizationUpdateResource update virtualization resource
-func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error {
-	if opts.Memory > 0 && opts.Memory < minMemory || opts.Memory < 0 {
-		return coretypes.ErrBadMemory
-	}
-	if opts.VolumeChanged {
-		log.Errorf(ctx, "[VirtualizationUpdateResource] docker engine not support rebinding volume resource: %v", opts.Volumes)
-		return coretypes.ErrNotSupport
+func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, engineParams resourcetypes.Resources) error {
+	logger := log.WithFunc("engine.docker.VirtualizationUpdateResource")
+
+	// parse engine args to resource options
+	resourceOpts := &engine.VirtualizationResource{}
+	if err := engine.MakeVirtualizationResource(engineParams, resourceOpts, func(p resourcetypes.Resources, d *engine.VirtualizationResource) error {
+		for _, v := range p {
+			if err := mapstructure.Decode(v, d); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		logger.WithField("ID", ID).Errorf(ctx, err, "failed to parse engine args %+v", engineParams)
+		return err
 	}
 
-	memory := opts.Memory
+	if resourceOpts.Memory > 0 && resourceOpts.Memory < minMemory || resourceOpts.Memory < 0 {
+		return coretypes.ErrInvaildMemory
+	}
+	if len(resourceOpts.Volumes) > 0 || resourceOpts.VolumeChanged {
+		logger.Warnf(ctx, "docker engine not support rebinding volume resource: %+v", resourceOpts.Volumes)
+		return coretypes.ErrInvalidVolumeBind
+	}
+
+	memory := resourceOpts.Memory
 	if memory == 0 {
 		memory = maxMemory
 	}
 
-	quota := opts.Quota
-	cpuMap := opts.CPU
-	numaNode := opts.NUMANode
+	quota := resourceOpts.Quota
+	cpuMap := resourceOpts.CPU
+	numaNode := resourceOpts.NUMANode
 	// unlimited cpu
 	if quota == 0 || len(cpuMap) == 0 {
 		info, err := e.Info(ctx) // TODO can fixed in docker engine, support empty Cpusetcpus, or use cache to speed up
@@ -534,7 +529,7 @@ func (e *Engine) VirtualizationUpdateResource(ctx context.Context, ID string, op
 		}
 	}
 
-	newResource := makeResourceSetting(quota, memory, cpuMap, numaNode)
+	newResource := makeResourceSetting(quota, memory, cpuMap, numaNode, resourceOpts.IOPSOptions, resourceOpts.Remap)
 	updateConfig := dockercontainer.UpdateConfig{Resources: newResource}
 	_, err := e.client.ContainerUpdate(ctx, ID, updateConfig)
 	return err
@@ -551,6 +546,6 @@ func (e *Engine) VirtualizationCopyFrom(ctx context.Context, ID, path string) (c
 	if err != nil {
 		return
 	}
-	content, err = ioutil.ReadAll(tarReader)
+	content, err = io.ReadAll(tarReader)
 	return content, header.Uid, header.Gid, header.Mode, err
 }

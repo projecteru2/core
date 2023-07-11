@@ -4,9 +4,15 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
+	"github.com/cockroachdb/errors"
 	enginemocks "github.com/projecteru2/core/engine/mocks"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	resourcemocks "github.com/projecteru2/core/resource/mocks"
+	plugintypes "github.com/projecteru2/core/resource/plugins/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -16,12 +22,19 @@ import (
 
 func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := newCalciumWAL(c)
+	wal, err := enableWAL(c.config, c, c.store)
 	require.NoError(t, err)
 	c.wal = wal
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		resourcetypes.Resources{},
+		resourcetypes.Resources{},
+		[]string{},
+		nil,
+	)
 
 	wrkid := "workload-id"
-	_, err = c.wal.logCreateWorkload(wrkid, "nodename")
+	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{ID: wrkid, Nodename: "nodename"})
 	require.NoError(t, err)
 
 	wrk := &types.Workload{
@@ -29,27 +42,36 @@ func TestHandleCreateWorkloadNoHandle(t *testing.T) {
 	}
 
 	store := c.store.(*storemocks.Store)
-	defer store.AssertExpectations(t)
 	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, nil).Once()
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, nil)
 
-	c.wal.Recover(context.TODO())
+	c.wal.Recover(context.Background())
+	store.AssertExpectations(t)
 
 	// Recovers nothing.
-	c.wal.Recover(context.TODO())
+	c.wal.Recover(context.Background())
 }
 
 func TestHandleCreateWorkloadError(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := newCalciumWAL(c)
+	wal, err := enableWAL(c.config, c, c.store)
 	require.NoError(t, err)
 	c.wal = wal
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		resourcetypes.Resources{},
+		resourcetypes.Resources{},
+		[]string{},
+		nil,
+	)
 
+	engine := &enginemocks.API{}
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{Name: "nodename"},
-		Engine:   &enginemocks.API{},
+		Engine:   engine,
 	}
 	wrkid := "workload-id"
-	_, err = c.wal.logCreateWorkload(wrkid, node.Name)
+	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{ID: wrkid, Nodename: node.Name})
 	require.NoError(t, err)
 
 	wrk := &types.Workload{
@@ -58,38 +80,44 @@ func TestHandleCreateWorkloadError(t *testing.T) {
 	}
 
 	store := c.store.(*storemocks.Store)
-	defer store.AssertExpectations(t)
+
+	err = errors.Wrapf(types.ErrInvaildCount, "keys: [%s]", wrkid)
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(wrk, err).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, err).Once()
+	c.wal.Recover(context.Background())
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
+
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(wrk, err).Once()
+	store.On("GetNode", mock.Anything, wrk.Nodename).Return(node, nil).Once()
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(err).Once()
+	c.wal.Recover(context.Background())
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
+
 	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, fmt.Errorf("err")).Once()
-	c.wal.Recover(context.TODO())
-
-	err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("keys: [%s]", wrkid))
-	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, err)
-	store.On("GetNode", mock.Anything, wrk.Nodename).Return(nil, fmt.Errorf("err")).Once()
-	c.wal.Recover(context.TODO())
-
-	store.On("GetNode", mock.Anything, wrk.Nodename).Return(node, nil)
-	eng, ok := node.Engine.(*enginemocks.API)
-	require.True(t, ok)
-	defer eng.AssertExpectations(t)
-	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
-		Return(fmt.Errorf("err")).
-		Once()
-	c.wal.Recover(context.TODO())
-
-	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
-		Return(fmt.Errorf("Error: No such container: %s", wrk.ID)).
-		Once()
-	c.wal.Recover(context.TODO())
+	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil).Once()
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(types.ErrWorkloadNotExists).Once()
+	c.wal.Recover(context.Background())
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
 
 	// Nothing recovered.
-	c.wal.Recover(context.TODO())
+	c.wal.Recover(context.Background())
 }
 
 func TestHandleCreateWorkloadHandled(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := newCalciumWAL(c)
+	wal, err := enableWAL(c.config, c, c.store)
 	require.NoError(t, err)
 	c.wal = wal
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		resourcetypes.Resources{},
+		resourcetypes.Resources{},
+		[]string{},
+		nil,
+	)
 
 	node := &types.Node{
 		NodeMeta: types.NodeMeta{Name: "nodename"},
@@ -97,7 +125,7 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	}
 
 	wrkid := "workload-id"
-	_, err = c.wal.logCreateWorkload(wrkid, node.Name)
+	_, err = c.wal.Log(eventWorkloadCreated, &types.Workload{ID: wrkid, Nodename: node.Name})
 	require.NoError(t, err)
 
 	wrk := &types.Workload{
@@ -107,36 +135,49 @@ func TestHandleCreateWorkloadHandled(t *testing.T) {
 	}
 
 	store := c.store.(*storemocks.Store)
-	defer store.AssertExpectations(t)
-	err = types.NewDetailedErr(types.ErrBadCount, fmt.Sprintf("keys: [%s]", wrkid))
-	store.On("GetWorkload", mock.Anything, wrkid).Return(wrk, err).Once()
+
+	err = errors.Wrapf(types.ErrInvaildCount, "keys: [%s]", wrkid)
+	store.On("GetWorkload", mock.Anything, wrkid).Return(nil, err).Once()
 	store.On("GetNode", mock.Anything, wrk.Nodename).Return(node, nil)
 
 	eng, ok := node.Engine.(*enginemocks.API)
 	require.True(t, ok)
-	defer eng.AssertExpectations(t)
 	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
 		Return(nil).
 		Once()
 
-	c.wal.Recover(context.TODO())
+	c.wal.Recover(context.Background())
+	store.AssertExpectations(t)
+	eng.AssertExpectations(t)
 
 	// Recovers nothing.
-	c.wal.Recover(context.TODO())
+	c.wal.Recover(context.Background())
 }
 
 func TestHandleCreateLambda(t *testing.T) {
 	c := NewTestCluster()
-	wal, err := newCalciumWAL(c)
+	wal, err := enableWAL(c.config, c, c.store)
 	require.NoError(t, err)
 	c.wal = wal
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		resourcetypes.Resources{},
+		resourcetypes.Resources{},
+		[]string{},
+		nil,
+	)
+	rmgr.On("SetNodeResourceUsage", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		resourcetypes.Resources{},
+		resourcetypes.Resources{},
+		nil,
+	)
+	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*plugintypes.Metrics{}, nil)
+	rmgr.On("Remap", mock.Anything, mock.Anything, mock.Anything).Return(
+		resourcetypes.Resources{},
+		nil,
+	)
 
-	deployOpts := &types.DeployOptions{
-		Name:       "appname",
-		Entrypoint: &types.Entrypoint{Name: "entry"},
-		Labels:     map[string]string{labelLambdaID: "lambda"},
-	}
-	_, err = c.wal.logCreateLambda(deployOpts)
+	_, err = c.wal.Log(eventCreateLambda, "workloadid")
 	require.NoError(t, err)
 
 	node := &types.Node{
@@ -150,41 +191,39 @@ func TestHandleCreateLambda(t *testing.T) {
 	}
 
 	store := c.store.(*storemocks.Store)
-	defer store.AssertExpectations(t)
-	store.On("ListWorkloads", mock.Anything, deployOpts.Name, deployOpts.Entrypoint.Name, "", int64(0), deployOpts.Labels).
-		Return(nil, fmt.Errorf("err")).
-		Once()
-	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
-	c.wal.Recover(context.TODO())
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	c.wal.Recover(context.Background())
+	time.Sleep(500 * time.Millisecond)
+	store.AssertExpectations(t)
 
-	store.On("ListWorkloads", mock.Anything, deployOpts.Name, deployOpts.Entrypoint.Name, "", int64(0), deployOpts.Labels).
-		Return([]*types.Workload{wrk}, nil).
+	_, err = c.wal.Log(eventCreateLambda, "workloadid")
+	require.NoError(t, err)
+	store.On("GetWorkload", mock.Anything, mock.Anything).
+		Return(wrk, nil).
+		Once()
+	store.On("GetNode", mock.Anything, wrk.Nodename).
+		Return(node, nil)
+	eng := wrk.Engine.(*enginemocks.API)
+	eng.On("VirtualizationWait", mock.Anything, wrk.ID, "").Return(&enginetypes.VirtualizationWaitResult{Code: 0}, nil).Once()
+	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
+		Return(nil).
 		Once()
 	store.On("GetWorkloads", mock.Anything, []string{wrk.ID}).
 		Return([]*types.Workload{wrk}, nil).
 		Twice()
-	store.On("GetNode", mock.Anything, wrk.Nodename).
-		Return(node, nil)
-
-	eng := wrk.Engine.(*enginemocks.API)
-	defer eng.AssertExpectations(t)
-	eng.On("VirtualizationRemove", mock.Anything, wrk.ID, true, true).
-		Return(nil).
-		Once()
-
 	store.On("RemoveWorkload", mock.Anything, wrk).
 		Return(nil).
 		Once()
-	store.On("UpdateNodeResource", mock.Anything, node, mock.Anything, mock.Anything).
-		Return(nil).
-		Once()
-
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil).Once()
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
+	lock.On("Lock", mock.Anything).Return(context.Background(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 
-	c.wal.Recover(context.TODO())
+	c.wal.Recover(context.Background())
 	// Recovered nothing.
-	c.wal.Recover(context.TODO())
+	c.wal.Recover(context.Background())
+	time.Sleep(500 * time.Millisecond)
+	store.AssertExpectations(t)
+	eng.AssertExpectations(t)
 }

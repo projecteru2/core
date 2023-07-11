@@ -2,8 +2,8 @@ package interceptor
 
 import (
 	"context"
-	"strings"
 
+	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/log"
 
 	"github.com/cenkalti/backoff/v4"
@@ -12,7 +12,7 @@ import (
 
 // NewUnaryRetry makes unary RPC retry on error
 func NewUnaryRetry(retryOpts RetryOptions) grpc.UnaryClientInterceptor {
-	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		return backoff.Retry(func() error {
 			return invoker(ctx, method, req, reply, cc, opts...)
 		}, backoff.WithMaxRetries(backoff.WithContext(backoff.NewExponentialBackOff(), ctx), uint64(retryOpts.Max)))
@@ -32,7 +32,8 @@ func NewStreamRetry(retryOpts RetryOptions) grpc.StreamClientInterceptor {
 		if _, ok := RPCNeedRetry[method]; !ok {
 			return stream, err
 		}
-		log.Debugf(ctx, "[NewStreamRetry] return retryStreawm for method %s", method)
+		logger := log.WithFunc("client.NewStreamRetry")
+		logger.Debugf(ctx, "return retryStream for method %s", method)
 		return &retryStream{
 			ctx:          ctx,
 			ClientStream: stream,
@@ -44,20 +45,21 @@ func NewStreamRetry(retryOpts RetryOptions) grpc.StreamClientInterceptor {
 	}
 }
 
-func (s *retryStream) SendMsg(m interface{}) error {
+func (s *retryStream) SendMsg(m any) error {
 	s.mux.Lock()
 	s.sent = m
 	s.mux.Unlock()
 	return s.getStream().SendMsg(m)
 }
 
-func (s *retryStream) RecvMsg(m interface{}) (err error) {
-	if err = s.ClientStream.RecvMsg(m); err == nil || strings.Contains(err.Error(), "context canceled") {
+func (s *retryStream) RecvMsg(m any) (err error) {
+	if err = s.ClientStream.RecvMsg(m); err == nil || errors.Is(err, context.Canceled) {
 		return
 	}
+	logger := log.WithFunc("client.RecvMsg")
 
 	return backoff.Retry(func() error {
-		log.Debug(nil, "[retryStream] retry on new stream") //nolint
+		logger.Debug(s.ctx, "retry on new stream")
 		stream, err := s.newStream()
 		if err != nil {
 			// even io.EOF triggers retry, and it's what we want!

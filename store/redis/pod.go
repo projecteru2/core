@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/types"
 )
 
@@ -25,14 +26,13 @@ func (r *Rediaron) AddPod(ctx context.Context, name, desc string) (*types.Pod, e
 func (r *Rediaron) RemovePod(ctx context.Context, podname string) error {
 	key := fmt.Sprintf(podInfoKey, podname)
 
-	ns, err := r.GetNodesByPod(ctx, podname, nil, true)
+	ns, err := r.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname, All: true})
 	if err != nil {
 		return err
 	}
 
 	if l := len(ns); l != 0 {
-		return types.NewDetailedErr(types.ErrPodHasNodes,
-			fmt.Sprintf("pod %s still has %d nodes, delete them first", podname, l))
+		return errors.Wrapf(types.ErrPodHasNodes, "pod %s still has %d nodes, delete them first", podname, l)
 	}
 
 	_, err = r.cli.Del(ctx, key).Result()

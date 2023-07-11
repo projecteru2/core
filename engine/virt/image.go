@@ -7,11 +7,10 @@ import (
 	"io"
 	"strings"
 
-	virttypes "github.com/projecteru2/libyavirt/types"
-
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	virttypes "github.com/projecteru2/libyavirt/types"
 )
 
 // ImageList lists images.
@@ -25,7 +24,7 @@ func (v *Virt) ImageList(ctx context.Context, imageName string) (imgs []*enginet
 
 	for _, image := range images {
 		imgs = append(imgs, &enginetypes.Image{
-			ID:   image.Id,
+			ID:   image.ID,
 			Tags: []string{image.Name},
 		})
 	}
@@ -45,7 +44,7 @@ func (v *Virt) ImageRemove(ctx context.Context, tag string, force, prune bool) (
 
 // ImagesPrune prunes one.
 func (v *Virt) ImagesPrune(ctx context.Context) (err error) {
-	log.Warnf(ctx, "ImagesPrune does not implement")
+	log.WithFunc("engine.virt.ImagesPrune").Warnf(ctx, "ImagesPrune does not implement")
 	return
 }
 
@@ -92,8 +91,8 @@ func (v *Virt) ImagePush(ctx context.Context, ref string) (rc io.ReadCloser, err
 }
 
 // ImageBuild captures from a guest.
-func (v *Virt) ImageBuild(ctx context.Context, input io.Reader, refs []string) (rc io.ReadCloser, err error) {
-	log.Warnf(ctx, "imageBuild does not implement")
+func (v *Virt) ImageBuild(ctx context.Context, _ io.Reader, _ []string, _ string) (rc io.ReadCloser, err error) {
+	log.WithFunc("engine.virt.ImageBuild").Warnf(ctx, "imageBuild does not implement")
 	return
 }
 
@@ -103,7 +102,7 @@ func (v *Virt) ImageBuildFromExist(ctx context.Context, ID string, refs []string
 		return "", types.ErrNoImageUser
 	}
 	if len(refs) != 1 {
-		return "", types.ErrBadRefs
+		return "", types.ErrInvaildRefs
 	}
 
 	_, imgName, err := splitUserImage(refs[0])
@@ -123,8 +122,8 @@ func (v *Virt) ImageBuildFromExist(ctx context.Context, ID string, refs []string
 }
 
 // ImageBuildCachePrune prunes cached one.
-func (v *Virt) ImageBuildCachePrune(ctx context.Context, all bool) (reclaimed uint64, err error) {
-	log.Warnf(ctx, "ImageBuildCachePrune does not implement and not required by vm")
+func (v *Virt) ImageBuildCachePrune(ctx context.Context, _ bool) (reclaimed uint64, err error) {
+	log.WithFunc("engine.virt.ImageBuildCachePrune").Warnf(ctx, "ImageBuildCachePrune does not implement and not required by vm")
 	return
 }
 
@@ -150,12 +149,12 @@ func (v *Virt) ImageRemoteDigest(ctx context.Context, image string) (string, err
 		return "", err
 	}
 
-	digests, err := v.client.DigestImage(ctx, imgName, true)
+	digests, err := v.client.DigestImage(ctx, imgName, false)
 	switch {
 	case err != nil:
 		return "", err
 	case len(digests) < 1:
-		return "", types.ErrNoRemoteDigest
+		return "", types.ErrInvaildRemoteDigest
 	default:
 		return digests[0], nil
 	}

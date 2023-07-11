@@ -26,7 +26,7 @@ func TestAddPod(t *testing.T) {
 	v := newVibranium()
 	opts := &pb.AddPodOptions{}
 	cluster := v.cluster.(*clustermock.Cluster)
-	cluster.On("AddPod", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	cluster.On("AddPod", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := v.AddPod(context.Background(), opts)
 	assert.Error(t, err)
 	cluster.On("AddPod", mock.Anything, mock.Anything, mock.Anything).Return(&types.Pod{Name: "test", Desc: "test"}, nil)
@@ -42,7 +42,7 @@ func TestAddNode(t *testing.T) {
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
-	).Return(nil, types.ErrNoETCD).Once()
+	).Return(nil, types.ErrMockError).Once()
 	_, err := v.AddNode(context.Background(), opts)
 	assert.Error(t, err)
 	engine := &enginemock.API{}
@@ -65,11 +65,9 @@ func TestAddNode(t *testing.T) {
 func TestSetNodeTranform(t *testing.T) {
 	b := &pb.SetNodeOptions{
 		Nodename: "a",
-		DeltaCpu: map[string]int32{"0": 1, "1": -1},
 	}
-	o, err := toCoreSetNodeOptions(b)
+	_, err := toCoreSetNodeOptions(b)
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(o.DeltaCPU))
 }
 
 func TestRunAndWaitSync(t *testing.T) {
@@ -84,10 +82,10 @@ func TestRunAndWaitSync(t *testing.T) {
 				Name:    "entry",
 				Command: "ping",
 			},
-			Podname:      "pod",
-			Image:        "image",
-			OpenStdin:    false,
-			ResourceOpts: &pb.ResourceOptions{},
+			Podname:   "pod",
+			Image:     "image",
+			OpenStdin: false,
+			Resources: map[string][]byte{},
 		},
 		Cmd:   []byte("ping"),
 		Async: false,
@@ -143,10 +141,10 @@ func TestRunAndWaitAsync(t *testing.T) {
 				Name:    "entry",
 				Command: "ping",
 			},
-			Podname:      "pod",
-			Image:        "image",
-			OpenStdin:    false,
-			ResourceOpts: &pb.ResourceOptions{},
+			Podname:   "pod",
+			Image:     "image",
+			OpenStdin: false,
+			Resources: map[string][]byte{},
 		},
 		Cmd:   []byte("ping"),
 		Async: true,

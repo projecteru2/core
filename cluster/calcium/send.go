@@ -8,41 +8,39 @@ import (
 	"github.com/projecteru2/core/engine"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
-
-	"github.com/pkg/errors"
 )
 
 // Send files to workload
 func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error) {
-	logger := log.WithField("Calcium", "Send").WithField("opts", opts)
+	logger := log.WithFunc("calcium.Send").WithField("opts", opts)
 	if err := opts.Validate(); err != nil {
-		return nil, logger.Err(ctx, errors.WithStack(err))
+		logger.Error(ctx, err)
+		return nil, err
 	}
 	ch := make(chan *types.SendMessage)
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		defer close(ch)
 		wg := &sync.WaitGroup{}
+		wg.Add(len(opts.IDs))
 
-		for _, id := range opts.IDs {
-			log.Infof(ctx, "[Send] Send files to %s", id)
-			wg.Add(1)
-			utils.SentryGo(func(id string) func() {
+		for _, ID := range opts.IDs {
+			logger.Infof(ctx, "Send files to %s", ID)
+			_ = c.pool.Invoke(func(ID string) func() {
 				return func() {
-
 					defer wg.Done()
-					if err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
+					if err := c.withWorkloadLocked(ctx, ID, func(ctx context.Context, workload *types.Workload) error {
 						for _, file := range opts.Files {
 							err := c.doSendFileToWorkload(ctx, workload.Engine, workload.ID, file)
-							ch <- &types.SendMessage{ID: id, Path: file.Filename, Error: logger.Err(ctx, err)}
+							logger.Error(ctx, err)
+							ch <- &types.SendMessage{ID: ID, Path: file.Filename, Error: err}
 						}
 						return nil
 					}); err != nil {
-						ch <- &types.SendMessage{ID: id, Error: logger.Err(ctx, err)}
+						logger.Error(ctx, err)
+						ch <- &types.SendMessage{ID: ID, Error: err}
 					}
 				}
-			}(id))
-
+			}(ID))
 		}
 		wg.Wait()
 	})
@@ -50,6 +48,6 @@ func (c *Calcium) Send(ctx context.Context, opts *types.SendOptions) (chan *type
 }
 
 func (c *Calcium) doSendFileToWorkload(ctx context.Context, engine engine.API, ID string, file types.LinuxFile) error {
-	log.Infof(ctx, "[doSendFileToWorkload] Send file to %s:%s", ID, file.Filename)
-	return errors.WithStack(engine.VirtualizationCopyChunkTo(ctx, ID, file.Filename, int64(len(file.Content)), bytes.NewReader(file.Clone().Content), file.UID, file.GID, file.Mode))
+	log.WithFunc("calcium.doSendFileToWorkload").Infof(ctx, "Send file to %s:%s", ID, file.Filename)
+	return engine.VirtualizationCopyChunkTo(ctx, ID, file.Filename, int64(len(file.Content)), bytes.NewReader(file.Clone().Content), file.UID, file.GID, file.Mode)
 }

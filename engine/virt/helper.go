@@ -1,25 +1,34 @@
 package virt
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
 
+	"github.com/cockroachdb/errors"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	coretypes "github.com/projecteru2/core/types"
+	virttypes "github.com/projecteru2/libyavirt/types"
 )
 
-func (v *Virt) parseVolumes(volumes []string) (map[string]int64, error) {
-	vols := map[string]int64{}
+const sep = "@"
 
-	for _, bind := range volumes {
+func (v *Virt) parseVolumes(volumes []string) ([]virttypes.Volume, error) {
+	vols := make([]virttypes.Volume, len(volumes))
+	// format `/source:/dir0:rw:1024:1000:1000:10M:10M`
+	for i, bind := range volumes {
 		parts := strings.Split(bind, ":")
-		if len(parts) != 4 {
-			return nil, coretypes.NewDetailedErr(coretypes.ErrInvalidBind, bind)
+		if len(parts) != 4 && len(parts) != 8 {
+			return nil, errors.Wrapf(coretypes.ErrInvalidVolumeBind, "bind: %s", bind)
 		}
 
 		src := parts[0]
-		dest := filepath.Join("/", parts[1])
+		dest := parts[1]
+		if !strings.HasPrefix(dest, "/") {
+			dest = filepath.Join("/", parts[1])
+		}
 
 		mnt := dest
 		// the src part has been translated to real host directory by eru-sched or kept it to empty.
@@ -27,21 +36,29 @@ func (v *Virt) parseVolumes(volumes []string) (map[string]int64, error) {
 			mnt = fmt.Sprintf("%s:%s", src, dest)
 		}
 
-		cap, err := strconv.ParseInt(parts[3], 10, 64)
+		capacity, err := strconv.ParseInt(parts[3], 10, 64)
 		if err != nil {
 			return nil, err
 		}
 
-		vols[mnt] = cap
+		ioConstraints := ""
+		if len(parts) > 4 {
+			ioConstraints = strings.Join(parts[4:], ":")
+		}
+
+		volume := virttypes.Volume{
+			Mount:    mnt,
+			Capacity: capacity,
+			IO:       ioConstraints,
+		}
+		vols[i] = volume
 	}
 
 	return vols, nil
 }
 
-const sep = "@"
-
 func splitUserImage(combined string) (user, imageName string, err error) {
-	inputErr := fmt.Errorf("input: \"%s\" not valid", combined)
+	inputErr := errors.Newf("input: \"%s\" not valid", combined)
 	if len(combined) < 1 {
 		return "", "", inputErr
 	}
@@ -68,4 +85,13 @@ func combineUserImage(user, imageName string) string {
 		return imageName
 	}
 	return fmt.Sprintf("%s%s%s", user, sep, imageName)
+}
+
+func convertEngineParamsToResources(engineParams resourcetypes.Resources) map[string][]byte {
+	r := map[string][]byte{}
+	for p, res := range engineParams {
+		b, _ := json.Marshal(res) // nolint
+		r[p] = b
+	}
+	return r
 }

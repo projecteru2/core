@@ -2,18 +2,16 @@ package docker
 
 import (
 	"context"
-	"fmt"
-	"io/ioutil"
 	"net/http"
-	"os"
+	"strings"
+
+	dockerapi "github.com/docker/docker/client"
 
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
 	coretypes "github.com/projecteru2/core/types"
-
-	dockerapi "github.com/docker/docker/client"
-	"github.com/docker/go-connections/tlsconfig"
+	"github.com/projecteru2/core/utils"
 )
 
 const (
@@ -21,6 +19,8 @@ const (
 	TCPPrefixKey = "tcp://"
 	// SockPrefixKey indicate sock prefix
 	SockPrefixKey = "unix://"
+	// Type indicate docker
+	Type = "docker"
 )
 
 // Engine is engine for docker
@@ -32,44 +32,20 @@ type Engine struct {
 // MakeClient make docker cli
 func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
 	var client *http.Client
-	if config.CertPath != "" && ca != "" && cert != "" && key != "" { // nolint
-		caFile, err := ioutil.TempFile(config.CertPath, fmt.Sprintf("ca-%s", nodename))
+	var err error
+	logger := log.WithFunc("engine.docker.MakeClient")
+	if strings.HasPrefix(endpoint, "unix://") {
+		client = utils.GetUnixSockClient()
+	} else {
+		client, err = utils.GetHTTPSClient(ctx, config.CertPath, nodename, ca, cert, key)
 		if err != nil {
+			logger.Errorf(ctx, err, "GetHTTPSClient for %s %s", nodename, endpoint)
 			return nil, err
-		}
-		certFile, err := ioutil.TempFile(config.CertPath, fmt.Sprintf("cert-%s", nodename))
-		if err != nil {
-			return nil, err
-		}
-		keyFile, err := ioutil.TempFile(config.CertPath, fmt.Sprintf("key-%s", nodename))
-		if err != nil {
-			return nil, err
-		}
-		if err = dumpFromString(ctx, caFile, certFile, keyFile, ca, cert, key); err != nil {
-			return nil, err
-		}
-		options := tlsconfig.Options{
-			CAFile:             caFile.Name(),
-			CertFile:           certFile.Name(),
-			KeyFile:            keyFile.Name(),
-			InsecureSkipVerify: true,
-		}
-		defer os.Remove(caFile.Name())
-		defer os.Remove(certFile.Name())
-		defer os.Remove(keyFile.Name())
-		tlsc, err := tlsconfig.Client(options)
-		if err != nil {
-			return nil, err
-		}
-		client = &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: tlsc,
-			},
 		}
 	}
 
-	log.Debugf(ctx, "[MakeDockerEngine] Create new http.Client for %s, %s", endpoint, config.Docker.APIVersion)
-	return makeRawClient(ctx, config, client, endpoint)
+	logger.Debugf(ctx, "Create new http.Client for %s, %s", endpoint, config.Docker.APIVersion)
+	return makeDockerClient(ctx, config, client, endpoint)
 }
 
 // Info show node info
@@ -80,17 +56,16 @@ func (e *Engine) Info(ctx context.Context) (*enginetypes.Info, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &enginetypes.Info{ID: r.ID, NCPU: r.NCPU, MemTotal: r.MemTotal}, nil
-}
-
-// ResourceValidate validate resource usage
-func (e *Engine) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory, storage int64) error {
-	// TODO list all workloads, calcuate resource
-	return nil
+	return &enginetypes.Info{Type: Type, ID: r.ID, NCPU: r.NCPU, MemTotal: r.MemTotal}, nil
 }
 
 // Ping test connection
 func (e *Engine) Ping(ctx context.Context) error {
 	_, err := e.client.Ping(ctx)
 	return err
+}
+
+// CloseConn close connection
+func (e *Engine) CloseConn() error {
+	return e.client.Close()
 }

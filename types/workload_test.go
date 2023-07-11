@@ -18,6 +18,8 @@ func TestWorkloadInspect(t *testing.T) {
 
 	ctx := context.Background()
 	c := Workload{}
+	_, err := c.Inspect(ctx)
+	assert.Error(t, err)
 	c.Engine = mockEngine
 	r2, _ := c.Inspect(ctx)
 	assert.Equal(t, r.ID, r2.ID)
@@ -28,14 +30,26 @@ func TestWorkloadControl(t *testing.T) {
 	mockEngine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
 	mockEngine.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	mockEngine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	mockEngine.On("VirtualizationSuspend", mock.Anything, mock.Anything).Return(nil)
+	mockEngine.On("VirtualizationResume", mock.Anything, mock.Anything).Return(nil)
 
 	ctx := context.Background()
 	c := Workload{}
+	assert.Error(t, c.Start(ctx))
+	assert.Error(t, c.Stop(ctx, true))
+	assert.Error(t, c.Remove(ctx, true))
+	assert.Error(t, c.Suspend(ctx))
+	assert.Error(t, c.Resume(ctx))
+
 	c.Engine = mockEngine
 	err := c.Start(ctx)
 	assert.NoError(t, err)
 	err = c.Stop(ctx, true)
 	assert.NoError(t, err)
 	err = c.Remove(ctx, true)
+	assert.NoError(t, err)
+	err = c.Suspend(ctx)
+	assert.NoError(t, err)
+	err = c.Resume(ctx)
 	assert.NoError(t, err)
 }

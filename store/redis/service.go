@@ -38,14 +38,14 @@ func (e endpoints) ToSlice() (eps []string) {
 func (r *Rediaron) ServiceStatusStream(ctx context.Context) (chan []string, error) {
 	key := fmt.Sprintf(serviceStatusKey, "*")
 	ch := make(chan []string)
-	go func() {
+	_ = r.pool.Invoke(func() {
 		defer close(ch)
 
 		watchC := r.KNotify(ctx, key)
 
 		data, err := r.getByKeyPattern(ctx, key, 0)
 		if err != nil {
-			log.Errorf(ctx, "[ServiceStatusStream] failed to get current services: %v", err)
+			log.WithFunc("store.redis.ServiceStatusStream").Error(ctx, err, "failed to get current services")
 			return
 		}
 		eps := endpoints{}
@@ -67,7 +67,7 @@ func (r *Rediaron) ServiceStatusStream(ctx context.Context) (chan []string, erro
 				ch <- eps.ToSlice()
 			}
 		}
-	}()
+	})
 	return ch, nil
 }
 

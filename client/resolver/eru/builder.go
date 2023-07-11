@@ -1,10 +1,12 @@
 package eru
 
-import "google.golang.org/grpc/resolver"
+import (
+	"google.golang.org/grpc/resolver"
+)
 
 type eruResolverBuilder struct{}
 
-func init() { // nolint
+func init() { //nolint
 	resolver.Register(&eruResolverBuilder{})
 }
 
@@ -14,6 +16,6 @@ func (b *eruResolverBuilder) Scheme() string {
 }
 
 // Build for interface
-func (b *eruResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
-	return New(cc, target.Endpoint, target.Authority), nil
+func (b *eruResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, _ resolver.BuildOptions) (resolver.Resolver, error) {
+	return New(cc, target.URL.Path, target.URL.Host), nil
 }

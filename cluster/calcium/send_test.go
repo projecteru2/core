@@ -2,7 +2,7 @@ package calcium
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"os"
 	"testing"
 
@@ -20,12 +20,13 @@ func TestSend(t *testing.T) {
 	ctx := context.Background()
 
 	// 这部分是在测试参数合法性
+	// failed by validating
 	_, err := c.Send(ctx, &types.SendOptions{IDs: []string{}, Files: []types.LinuxFile{{Content: []byte("xxx")}}})
 	assert.Error(t, err)
 	_, err = c.Send(ctx, &types.SendOptions{IDs: []string{"id"}})
 	assert.Error(t, err)
 
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := os.CreateTemp("", "example")
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmpfile.Name())
 	defer tmpfile.Close()
@@ -38,14 +39,13 @@ func TestSend(t *testing.T) {
 			},
 		},
 	}
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
+	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
 	// failed by GetWorkload
-	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.Send(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -56,13 +56,13 @@ func TestSend(t *testing.T) {
 		[]*types.Workload{{ID: "cid", Engine: engine}}, nil,
 	)
 	// failed by engine
-	content, _ := ioutil.ReadAll(tmpfile)
+	content, _ := io.ReadAll(tmpfile)
 	opts.Files[0].Content = content
 	engine.On("VirtualizationCopyChunkTo",
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything,
-	).Return(types.ErrCannotGetEngine).Once()
+	).Return(types.ErrMockError).Once()
 	ch, err = c.Send(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {

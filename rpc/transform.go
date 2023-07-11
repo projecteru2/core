@@ -2,11 +2,13 @@ package rpc
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	pb "github.com/projecteru2/core/rpc/gen"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
@@ -21,14 +23,6 @@ func toRPCServiceStatus(status types.ServiceStatus) *pb.ServiceStatus {
 	}
 }
 
-func toRPCCPUMap(m types.CPUMap) map[string]int32 {
-	cpu := make(map[string]int32)
-	for label, value := range m {
-		cpu[label] = int32(value)
-	}
-	return cpu
-}
-
 func toRPCPod(p *types.Pod) *pb.Pod {
 	return &pb.Pod{Name: p.Name, Desc: p.Desc}
 }
@@ -38,40 +32,38 @@ func toRPCNetwork(n *enginetypes.Network) *pb.Network {
 }
 
 func toRPCNode(n *types.Node) *pb.Node {
-	return &pb.Node{
-		Name:           n.Name,
-		Endpoint:       n.Endpoint,
-		Podname:        n.Podname,
-		Cpu:            toRPCCPUMap(n.CPU),
-		CpuUsed:        n.CPUUsed,
-		Memory:         n.MemCap,
-		MemoryUsed:     n.InitMemCap - n.MemCap,
-		Storage:        n.StorageCap,
-		StorageUsed:    n.StorageUsed(),
-		Volume:         n.Volume,
-		VolumeUsed:     n.VolumeUsed,
-		Available:      n.Available,
-		Labels:         n.Labels,
-		InitCpu:        toRPCCPUMap(n.InitCPU),
-		InitMemory:     n.InitMemCap,
-		InitStorage:    n.InitStorageCap,
-		InitVolume:     n.InitVolume,
-		Info:           n.NodeInfo,
-		Numa:           n.NUMA,
-		NumaMemory:     n.NUMAMemory,
-		InitNumaMemory: n.InitNUMAMemory,
-		Bypass:         n.Bypass,
+	node := &pb.Node{
+		Name:             n.Name,
+		Endpoint:         n.Endpoint,
+		Podname:          n.Podname,
+		Available:        n.Available,
+		Labels:           n.Labels,
+		Info:             n.NodeInfo,
+		Bypass:           n.Bypass,
+		Test:             n.Test,
+		ResourceCapacity: toRPCResources(n.ResourceInfo.Capacity),
+		ResourceUsage:    toRPCResources(n.ResourceInfo.Usage),
+	}
+	return node
+}
+
+func toRPCResources(v any) string {
+	body, _ := json.Marshal(v)
+	return string(body)
+}
+
+func toRPCEngine(e *enginetypes.Info) *pb.Engine {
+	return &pb.Engine{
+		Type: e.Type,
 	}
 }
 
-func toRPCNodeResource(nr *types.NodeResource) *pb.NodeResource {
+func toRPCNodeResource(nr *types.NodeResourceInfo) *pb.NodeResource {
 	return &pb.NodeResource{
-		Name:           nr.Name,
-		CpuPercent:     nr.CPUPercent,
-		MemoryPercent:  nr.MemoryPercent,
-		StoragePercent: nr.StoragePercent,
-		VolumePercent:  nr.VolumePercent,
-		Diffs:          nr.Diffs,
+		Name:             nr.Name,
+		Diffs:            nr.Diffs,
+		ResourceCapacity: toRPCResources(nr.Capacity),
+		ResourceUsage:    toRPCResources(nr.Usage),
 	}
 }
 
@@ -91,10 +83,10 @@ func toRPCBuildImageMessage(b *types.BuildImageMessage) *pb.BuildImageMessage {
 
 func toCoreListNodesOptions(b *pb.ListNodesOptions) *types.ListNodesOptions {
 	return &types.ListNodesOptions{
-		Podname: b.Podname,
-		Labels:  b.Labels,
-		All:     b.All,
-		Info:    !b.SkipInfo,
+		Podname:  b.Podname,
+		Labels:   b.Labels,
+		All:      b.All,
+		CallInfo: !b.SkipInfo,
 	}
 }
 
@@ -107,7 +99,7 @@ func toCoreCopyOptions(b *pb.CopyOptions) *types.CopyOptions {
 	return r
 }
 
-func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) { // nolint
+func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) { //nolint
 	files := []types.LinuxFile{}
 	for filename, content := range b.Data {
 		files = append(files, types.LinuxFile{
@@ -119,50 +111,38 @@ func toCoreSendOptions(b *pb.SendOptions) (*types.SendOptions, error) { // nolin
 		})
 	}
 	return &types.SendOptions{
-		IDs:   b.Ids,
+		IDs:   b.IDs,
 		Files: files,
 	}, nil
 }
 
 func toCoreAddNodeOptions(b *pb.AddNodeOptions) *types.AddNodeOptions {
 	r := &types.AddNodeOptions{
-		Nodename:   b.Nodename,
-		Endpoint:   b.Endpoint,
-		Podname:    b.Podname,
-		Ca:         b.Ca,
-		Cert:       b.Cert,
-		Key:        b.Key,
-		CPU:        int(b.Cpu),
-		Share:      int(b.Share),
-		Memory:     b.Memory,
-		Storage:    b.Storage,
-		Labels:     b.Labels,
-		Numa:       b.Numa,
-		NumaMemory: b.NumaMemory,
-		Volume:     b.VolumeMap,
+		Nodename:  b.Nodename,
+		Endpoint:  b.Endpoint,
+		Podname:   b.Podname,
+		Ca:        b.Ca,
+		Cert:      b.Cert,
+		Key:       b.Key,
+		Labels:    b.Labels,
+		Resources: toCoreResources(b.Resources),
+		Test:      b.Test,
 	}
 	return r
 }
 
-func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) { // nolint
+func toCoreSetNodeOptions(b *pb.SetNodeOptions) (*types.SetNodeOptions, error) { //nolint
 	r := &types.SetNodeOptions{
-		Nodename:        b.Nodename,
-		Endpoint:        b.Endpoint,
-		WorkloadsDown:   b.WorkloadsDown,
-		DeltaCPU:        types.CPUMap{},
-		DeltaMemory:     b.DeltaMemory,
-		DeltaStorage:    b.DeltaStorage,
-		DeltaNUMAMemory: b.DeltaNumaMemory,
-		DeltaVolume:     b.DeltaVolume,
-		NUMA:            b.Numa,
-		Labels:          b.Labels,
-		BypassOpt:       types.TriOptions(b.BypassOpt),
-		Ca:              b.Ca,
-		Cert:            b.Cert,
-		Key:             b.Key,
-	}
-	for cpuID, cpuShare := range b.DeltaCpu {
-		r.DeltaCPU[cpuID] = int64(cpuShare)
+		Nodename:      b.Nodename,
+		Endpoint:      b.Endpoint,
+		Ca:            b.Ca,
+		Cert:          b.Cert,
+		Key:           b.Key,
+		WorkloadsDown: b.WorkloadsDown,
+		Resources:     toCoreResources(b.Resources),
+		Delta:         b.Delta,
+		Labels:        b.Labels,
+		Bypass:        types.TriOptions(b.Bypass),
 	}
 	return r, nil
 }
@@ -218,6 +198,7 @@ func toCoreBuildOptions(b *pb.BuildImageOptions) (*types.BuildOptions, error) {
 		Builds:      builds,
 		Tar:         bytes.NewReader(b.Tar),
 		ExistID:     b.GetExistId(),
+		Platform:    b.Platform,
 	}, nil
 }
 
@@ -232,7 +213,7 @@ func toCoreReplaceOptions(r *pb.ReplaceOptions) (*types.ReplaceOptions, error) {
 		NetworkInherit: r.Networkinherit,
 		FilterLabels:   r.FilterLabels,
 		Copy:           r.Copy,
-		IDs:            r.Ids,
+		IDs:            r.IDs,
 	}
 
 	return replaceOpts, err
@@ -279,7 +260,6 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		entry.Hook.Force = entrypoint.Hook.Force
 	}
 
-	var err error
 	files := []types.LinuxFile{}
 	for filename, bs := range d.Data {
 		file := types.LinuxFile{
@@ -295,43 +275,23 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		files = append(files, file)
 	}
 
-	vbsLimit, err := types.NewVolumeBindings(d.ResourceOpts.VolumesLimit)
-	if err != nil {
-		return nil, err
-	}
-
-	vbsRequest, err := types.NewVolumeBindings(d.ResourceOpts.VolumesRequest)
-	if err != nil {
-		return nil, err
-	}
-
-	nf := types.NodeFilter{
+	nodeFilter := &types.NodeFilter{
 		Podname:  d.Podname,
 		Includes: d.Nodenames,
 		Labels:   d.Nodelabels,
 	}
 	if d.NodeFilter != nil {
-		nf.Includes = d.NodeFilter.Includes
-		nf.Excludes = d.NodeFilter.Excludes
-		nf.Labels = d.NodeFilter.Labels
+		nodeFilter.Includes = d.NodeFilter.Includes
+		nodeFilter.Excludes = d.NodeFilter.Excludes
+		nodeFilter.Labels = d.NodeFilter.Labels
 	}
 
 	return &types.DeployOptions{
-		ResourceOpts: types.ResourceOptions{
-			CPUQuotaRequest: d.ResourceOpts.CpuQuotaRequest,
-			CPUQuotaLimit:   d.ResourceOpts.CpuQuotaLimit,
-			CPUBind:         d.ResourceOpts.CpuBind,
-			MemoryRequest:   d.ResourceOpts.MemoryRequest,
-			MemoryLimit:     d.ResourceOpts.MemoryLimit,
-			VolumeRequest:   vbsRequest,
-			VolumeLimit:     vbsLimit,
-			StorageRequest:  d.ResourceOpts.StorageRequest + vbsRequest.TotalSize(),
-			StorageLimit:    d.ResourceOpts.StorageLimit + vbsLimit.TotalSize(),
-		},
+		Resources:      toCoreResources(d.Resources),
 		Name:           d.Name,
 		Entrypoint:     entry,
 		Podname:        d.Podname,
-		NodeFilter:     nf,
+		NodeFilter:     nodeFilter,
 		Image:          d.Image,
 		ExtraArgs:      d.ExtraArgs,
 		Count:          int(d.Count),
@@ -356,25 +316,16 @@ func toRPCCreateWorkloadMessage(c *types.CreateWorkloadMessage) *pb.CreateWorklo
 	if c == nil {
 		return nil
 	}
+
 	msg := &pb.CreateWorkloadMessage{
-		Podname:  c.Podname,
-		Nodename: c.Nodename,
-		Id:       c.WorkloadID,
-		Name:     c.WorkloadName,
-		Success:  c.Error == nil,
-		Publish:  utils.EncodePublishInfo(c.Publish),
-		Hook:     utils.MergeHookOutputs(c.Hook),
-		Resource: &pb.Resource{
-			CpuQuotaLimit:   c.CPUQuotaLimit,
-			CpuQuotaRequest: c.CPUQuotaRequest,
-			Cpu:             toRPCCPUMap(c.CPU),
-			MemoryLimit:     c.MemoryLimit,
-			MemoryRequest:   c.MemoryRequest,
-			StorageLimit:    c.StorageLimit,
-			StorageRequest:  c.StorageRequest,
-			VolumesLimit:    c.VolumeLimit.ToStringSlice(false, false),
-			VolumesRequest:  c.VolumeRequest.ToStringSlice(false, false),
-		},
+		Podname:   c.Podname,
+		Nodename:  c.Nodename,
+		Id:        c.WorkloadID,
+		Name:      c.WorkloadName,
+		Success:   c.Error == nil,
+		Publish:   utils.EncodePublishInfo(c.Publish),
+		Hook:      utils.MergeHookOutputs(c.Hook),
+		Resources: toRPCResources(c.Resources),
 	}
 	if c.Error != nil {
 		msg.Error = c.Error.Error()
@@ -494,10 +445,10 @@ func toRPCWorkloads(ctx context.Context, workloads []*types.Workload, labels map
 	for _, c := range workloads {
 		pWorkload, err := toRPCWorkload(ctx, c)
 		if err != nil {
-			log.Errorf(ctx, "[toRPCWorkloads] trans to pb workload failed %v", err)
+			log.WithFunc("transform.toRPCWorkloads").Error(ctx, err, "trans to pb workload failed")
 			continue
 		}
-		if !utils.FilterWorkload(pWorkload.Labels, labels) {
+		if !utils.LabelsFilter(pWorkload.Labels, labels) {
 			continue
 		}
 		cs = append(cs, pWorkload)
@@ -514,6 +465,7 @@ func toRPCWorkload(ctx context.Context, c *types.Workload) (*pb.Workload, error)
 			utils.MakePublishInfo(c.StatusMeta.Networks, meta.Publish),
 		)
 	}
+
 	return &pb.Workload{
 		Id:         c.ID,
 		Podname:    c.Podname,
@@ -525,33 +477,9 @@ func toRPCWorkload(ctx context.Context, c *types.Workload) (*pb.Workload, error)
 		Labels:     c.Labels,
 		Status:     toRPCWorkloadStatus(c.StatusMeta),
 		CreateTime: c.CreateTime,
-		Resource: &pb.Resource{
-			CpuQuotaLimit:     c.CPUQuotaLimit,
-			CpuQuotaRequest:   c.CPUQuotaRequest,
-			Cpu:               toRPCCPUMap(c.CPU),
-			MemoryLimit:       c.MemoryLimit,
-			MemoryRequest:     c.MemoryRequest,
-			StorageLimit:      c.StorageLimit,
-			StorageRequest:    c.StorageRequest,
-			VolumesLimit:      c.VolumeLimit.ToStringSlice(false, false),
-			VolumesRequest:    c.VolumeRequest.ToStringSlice(false, false),
-			VolumePlanLimit:   toRPCVolumePlan(c.VolumePlanLimit),
-			VolumePlanRequest: toRPCVolumePlan(c.VolumePlanRequest),
-		},
-		Env: c.Env,
+		Resources:  toRPCResources(c.Resources),
+		Env:        c.Env,
 	}, nil
-}
-
-func toRPCVolumePlan(v types.VolumePlan) map[string]*pb.Volume {
-	if v == nil {
-		return nil
-	}
-
-	msg := map[string]*pb.Volume{}
-	for vb, volume := range v {
-		msg[vb.ToString(false)] = &pb.Volume{Volume: volume}
-	}
-	return msg
 }
 
 func toRPCLogStreamMessage(msg *types.LogStreamMessage) *pb.LogStreamMessage {
@@ -566,7 +494,7 @@ func toRPCLogStreamMessage(msg *types.LogStreamMessage) *pb.LogStreamMessage {
 	return r
 }
 
-func toCoreExecuteWorkloadOptions(b *pb.ExecuteWorkloadOptions) (opts *types.ExecuteWorkloadOptions, err error) { // nolint
+func toCoreExecuteWorkloadOptions(b *pb.ExecuteWorkloadOptions) (opts *types.ExecuteWorkloadOptions, err error) { //nolint
 	return &types.ExecuteWorkloadOptions{
 		WorkloadID: b.WorkloadId,
 		Commands:   b.Commands,
@@ -596,7 +524,6 @@ func toCoreCacheImageOptions(opts *pb.CacheImageOptions) *types.ImageOptions {
 		Podname:   opts.Podname,
 		Nodenames: opts.Nodenames,
 		Images:    opts.Images,
-		Step:      int(opts.Step),
 	}
 }
 
@@ -605,9 +532,21 @@ func toCoreRemoveImageOptions(opts *pb.RemoveImageOptions) *types.ImageOptions {
 		Podname:   opts.Podname,
 		Nodenames: opts.Nodenames,
 		Images:    opts.Images,
-		Step:      int(opts.Step),
 		Prune:     opts.Prune,
 	}
+}
+
+func toCoreResources(resources map[string][]byte) resourcetypes.Resources {
+	r := resourcetypes.Resources{}
+	for k, v := range resources {
+		rp := resourcetypes.RawParams{}
+		if err := json.Unmarshal(v, &rp); err != nil {
+			log.WithFunc("toCoreResources").Errorf(nil, err, "%v", string(v)) // nolint
+			continue
+		}
+		r[k] = rp
+	}
+	return r
 }
 
 func toRPCListImageMessage(msg *types.ListImageMessage) *pb.ListImageMessage {
@@ -645,12 +584,12 @@ func toCoreListImageOptions(opts *pb.ListImageOptions) *types.ImageOptions {
 
 func toSendLargeFileOptions(opts *pb.FileOptions) (*types.SendLargeFileOptions, error) {
 	ret := &types.SendLargeFileOptions{
-		Ids: opts.Ids,
-		Dst: opts.Dst,
-		Size: opts.Size,
-		Mode: opts.Mode.Mode,
-		Uid: int(opts.Owner.Uid),
-		Gid: int(opts.Owner.Gid),
+		Ids:   opts.Ids,
+		Dst:   opts.Dst,
+		Size:  opts.Size,
+		Mode:  opts.Mode.Mode,
+		Uid:   int(opts.Owner.Uid),
+		Gid:   int(opts.Owner.Gid),
 		Chunk: opts.Chunk,
 	}
 	err := ret.Validate()
@@ -662,17 +601,17 @@ func toSendLargeFileChunks(file types.LinuxFile, ids []string) []*types.SendLarg
 	ret := make([]*types.SendLargeFileOptions, 0)
 	for idx := 0; idx < len(file.Content); idx += maxChunkSize {
 		sendLargeFileOptions := &types.SendLargeFileOptions{
-			Ids: ids,
-			Dst: file.Filename,
+			Ids:  ids,
+			Dst:  file.Filename,
 			Size: int64(len(file.Content)),
 			Mode: file.Mode,
-			Uid: file.UID,
-			Gid: file.GID,
+			Uid:  file.UID,
+			Gid:  file.GID,
 		}
-		if idx + maxChunkSize > len(file.Content) {
+		if idx+maxChunkSize > len(file.Content) {
 			sendLargeFileOptions.Chunk = file.Content[idx:]
 		} else {
-			sendLargeFileOptions.Chunk = file.Content[idx: idx+maxChunkSize]
+			sendLargeFileOptions.Chunk = file.Content[idx : idx+maxChunkSize]
 		}
 		ret = append(ret, sendLargeFileOptions)
 	}

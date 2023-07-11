@@ -7,10 +7,7 @@ import (
 	"strings"
 
 	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
-
-	"github.com/sanity-io/litter"
 )
 
 func (r *Rediaron) getProcessingKey(processing *types.Processing) string {
@@ -28,24 +25,27 @@ func (r *Rediaron) DeleteProcessing(ctx context.Context, processing *types.Proce
 	return r.BatchDelete(ctx, []string{r.getProcessingKey(processing)})
 }
 
-func (r *Rediaron) doLoadProcessing(ctx context.Context, appname, entryname string, strategyInfos []strategy.Info) error {
-	// 显式的加 / 保证 prefix 一致性
+// doLoadProcessing returns how many workloads are `processing` on each node
+func (r *Rediaron) doLoadProcessing(ctx context.Context, appname, entryname string) (map[string]int, error) {
+	nodesCount := map[string]int{}
+	// 显式地加 / 保证 prefix 一致性
 	processingKey := filepath.Join(workloadProcessingPrefix, appname, entryname) + "/*"
 	data, err := r.getByKeyPattern(ctx, processingKey, 0)
 	if err != nil {
-		return err
-	}
-	if len(data) == 0 {
-		return nil
+		return nil, err
 	}
 
-	nodesCount := map[string]int{}
+	if len(data) == 0 {
+		return nodesCount, nil
+	}
+	logger := log.WithFunc("store.redis.doLoadProcessing")
+
 	for k, v := range data {
 		parts := strings.Split(k, "/")
 		nodename := parts[len(parts)-2]
 		count, err := strconv.Atoi(v)
 		if err != nil {
-			log.Errorf(ctx, "[doLoadProcessing] Load processing status failed %v", err)
+			logger.Error(ctx, err, "Load processing status failed")
 			continue
 		}
 		if _, ok := nodesCount[nodename]; !ok {
@@ -55,8 +55,6 @@ func (r *Rediaron) doLoadProcessing(ctx context.Context, appname, entryname stri
 		nodesCount[nodename] += count
 	}
 
-	log.Debug(ctx, "[doLoadProcessing] Processing result:")
-	litter.Dump(nodesCount)
-	setCount(nodesCount, strategyInfos)
-	return nil
+	logger.Debug(ctx, "Processing result: %+v", nodesCount)
+	return nodesCount, nil
 }

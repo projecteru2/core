@@ -17,20 +17,22 @@ service CoreRPC {
   rpc GetPod(GetPodOptions) returns (Pod) {};
   rpc ListPods(Empty) returns (Pods) {};
 
-  rpc GetPodResource(GetPodOptions) returns (PodResource) {};
-  rpc PodResourceStream(GetPodOptions) returns (stream NodeResource) {};
+  rpc GetPodResource(GetPodOptions) returns (stream NodeResource) {};
+  rpc GetNodeResource(GetNodeResourceOptions) returns (NodeResource) {};
 
   rpc AddNode(AddNodeOptions) returns (Node) {};
   rpc RemoveNode(RemoveNodeOptions) returns (Empty) {};
-  rpc ListPodNodes(ListNodesOptions) returns (Nodes) {};
-  rpc PodNodesStream(ListNodesOptions) returns (stream Node) {};
+  rpc ListPodNodes(ListNodesOptions) returns (stream Node) {};
   rpc GetNode(GetNodeOptions) returns (Node) {};
+  rpc GetNodeEngineInfo(GetNodeOptions) returns (Engine) {};
   rpc SetNode(SetNodeOptions) returns (Node) {};
-  rpc SetNodeStatus(SetNodeStatusOptions) returns (Empty) {};
-  rpc GetNodeStatus(GetNodeStatusOptions) returns (NodeStatusStreamMessage) {};
-  rpc NodeStatusStream(Empty) returns (stream NodeStatusStreamMessage) {};
 
-  rpc GetNodeResource(GetNodeResourceOptions) returns (NodeResource) {};
+  rpc GetNodeStatus(GetNodeStatusOptions) returns (NodeStatusStreamMessage) {};
+  rpc SetNodeStatus(SetNodeStatusOptions) returns (Empty) {};
+  rpc NodeStatusStream(Empty) returns (stream NodeStatusStreamMessage) {};
+  rpc GetWorkloadsStatus(WorkloadIDs) returns (WorkloadsStatus) {};
+  rpc SetWorkloadsStatus(SetWorkloadsStatusOptions) returns (WorkloadsStatus) {};
+  rpc WorkloadStatusStream(WorkloadStatusStreamOptions) returns (stream WorkloadStatusStreamMessage) {};
 
   rpc CalculateCapacity(DeployOptions) returns (CapacityMessage);
 
@@ -38,9 +40,6 @@ service CoreRPC {
   rpc GetWorkloads(WorkloadIDs) returns (Workloads) {};
   rpc ListWorkloads(ListWorkloadsOptions) returns (stream Workload) {};
   rpc ListNodeWorkloads(GetNodeOptions) returns (Workloads) {};
-  rpc GetWorkloadsStatus(WorkloadIDs) returns (WorkloadsStatus) {};
-  rpc SetWorkloadsStatus(SetWorkloadsStatusOptions) returns (WorkloadsStatus) {};
-  rpc WorkloadStatusStream(WorkloadStatusStreamOptions) returns (stream WorkloadStatusStreamMessage) {};
 
   rpc Copy(CopyOptions) returns (stream CopyMessage) {};
   rpc Send(SendOptions) returns (stream SendMessage) {};
@@ -65,223 +64,241 @@ service CoreRPC {
 message Empty {}
 
 message CoreInfo {
-  string version = 1;
-  string revison = 2;
-  string build_at = 3;
-  string golang_version = 4;
-  string os_arch = 5;
-  string identifier = 6;
+  string version = 1001;
+  string revison = 1002;
+  string build_at = 1003;
+  string golang_version = 1004;
+  string os_arch = 1005;
+  string identifier = 1006;
 }
 
 message ServiceStatus {
-  repeated string addresses = 1;
-  int64 interval_in_second = 2;
+  repeated string addresses = 1001;
+  int64 interval_in_second = 1002;
+}
+
+message Engine{
+  string type = 1001;
 }
 
 message ListWorkloadsOptions {
-  string appname = 1;
-  string entrypoint = 2;
-  string nodename = 3;
-  map<string, string> labels = 4;
-  int64 limit = 5;
+  string appname = 1001;
+  string entrypoint = 1002;
+  string nodename = 1003;
+  map<string, string> labels = 1004;
+  int64 limit = 1005;
 }
 
 // 对的, protobuf 就是这样...
 message Pod {
-  string name = 1;
-  string desc = 2;
+  string name = 1001;
+  string desc = 1002;
 }
 
 message Pods {
-  repeated Pod pods = 1;
-}
-
-message PodResource {
-  string name = 1;
-  repeated NodeResource nodes_resource = 2;
+  repeated Pod pods = 1001;
 }
 
 message NodeResource {
-  string name = 1;
-  double cpu_percent = 2;
-  double memory_percent = 3;
-  double storage_percent = 4;
-  double volume_percent = 5;
-  repeated string diffs = 6;
+  string name = 1001;
+  repeated string diffs = 1002;
+  string resource_capacity = 1003;
+  string resource_usage = 1004;
 }
 
 message ListNetworkOptions {
-  string podname = 1;
-  string driver = 2;
+  string podname = 1001;
+  string driver = 1002;
 }
 
 message ConnectNetworkOptions{
-  string network = 1;
-  string target = 2;
-  string ipv4 = 3;
-  string ipv6 = 4;
+  string network = 1001;
+  string target = 1002;
+  string ipv4 = 1003;
+  string ipv6 = 1004;
 }
 
 message DisconnectNetworkOptions{
-  string network = 1;
-  string target = 2;
-  bool force = 3;
+  string network = 1001;
+  string target = 1002;
+  bool force = 1003;
 }
 
 message Network {
-  string name = 1;
-  repeated string subnets = 2;
+  string name = 1001;
+  repeated string subnets = 1002;
 }
 
 message Networks {
-  repeated Network networks = 1;
+  repeated Network networks = 1001;
 }
 
 message Node {
-  string name = 1;
-  string endpoint = 2;
-  string podname = 3;
-  map<string, int32> cpu = 4;
-  double cpu_used = 5;
-  int64 memory = 6;
-  int64 memory_used = 7;
-  bool available = 8;
-  map<string, string> labels = 9;
-  int64 init_memory = 10;
-  map<string, int32> init_cpu = 11;
-  string info = 12;
-  map<string, string> numa = 13;
-  map<string, int64> numa_memory = 14;
-  int64 storage = 15;
-  int64 storage_used = 16;
-  int64 init_storage = 17;
-  map<string, int64> init_volume = 18;
-  map<string, int64> volume = 19;
-  int64 volume_used = 20;
-  map<string, int64> init_numa_memory = 21;
-  bool bypass = 22;
+  string name = 1001;
+  string endpoint = 1002;
+  string podname = 1003;
+  bool available = 1004;
+  bool bypass = 1005;
+  map<string, string> labels = 1006;
+  string info = 1007;
+  string resource_capacity = 1008;
+  string resource_usage = 1009;
+  bool test = 1010;
 }
 
-message Nodes {
-  repeated Node nodes = 1;
+message AddPodOptions {
+  string name = 1001;
+  string desc = 1002;
 }
 
-message NodeAvailable {
-  string nodename = 1;
-  string podname = 2;
+message RemovePodOptions {
+  string name = 1001;
+}
+
+message GetPodOptions {
+  string name = 1001;
+}
+
+message AddNodeOptions {
+  string nodename = 1001;
+  string endpoint = 1002;
+  string podname = 1003;
+  string ca = 1004;
+  string cert = 1005;
+  string key = 1006;
+  map<string, string> labels = 1007;
+  map<string, bytes> resources = 1008;
+  bool test = 1009;
+}
+
+message RemoveNodeOptions {
+  string nodename = 1001;
+}
+
+message GetNodeOptions {
+  string nodename = 1001;
+  map<string, string> labels = 1002;
+}
+
+message GetNodeResourceOptions {
+  GetNodeOptions opts = 1001;
+  bool fix = 1002;
+}
+
+message ListNodesOptions {
+  string podname = 1001;
+  bool all = 1002;
+  map<string, string> labels = 1003;
+  int32 timeout_in_second = 1004;
+  bool skip_info = 1005;
 }
 
 message SetNodeOptions {
-  string nodename = 1;
-  map<string, int32> delta_cpu = 3;
-  int64 delta_memory = 4;
-  int64 delta_storage = 5;
-  map<string, int64> delta_numa_memory = 6;
-  map<string, string> numa = 7;
-  map<string, string> labels = 8;
-  map<string, int64> delta_volume = 9;
-  bool workloads_down = 10;
-  string endpoint = 11;
-  TriOpt bypass_opt = 12;
-  string ca = 13;
-  string cert = 14;
-  string key = 15;
+  string nodename = 1001;
+  string endpoint = 1002;
+  string ca = 1003;
+  string cert = 1004;
+  string key = 1005;
+  map<string, string> labels = 1006;
+  map<string, bytes> resources = 1007;
+  bool delta = 1008;
+  bool workloads_down = 1009;
+  TriOpt bypass = 1010;
 }
 
 message SetNodeStatusOptions {
-  string nodename = 1;
-  int64 ttl = 2;
+  string nodename = 1001;
+  int64 ttl = 1002;
 }
 
 message GetNodeStatusOptions {
-  string nodename = 1;
+  string nodename = 1001;
 }
 
 message NodeStatusStreamMessage {
-  string nodename = 1;
-  string podname = 2;
-  bool alive = 3;
-  string error = 4;
+  string nodename = 1001;
+  string podname = 1002;
+  bool alive = 1003;
+  string error = 1004;
 }
 
 message NodeFilter {
-  repeated string includes = 1;
-  repeated string excludes = 2;
-  map<string, string> labels = 3;
-  bool all = 4;
+  repeated string includes = 1001;
+  repeated string excludes = 1002;
+  map<string, string> labels = 1003;
+  bool all = 1004;
 }
 
 message Workload {
-  string id = 1;
-  string podname = 2;
-  string nodename = 3;
-  string name = 4;
-  bool privileged = 5;
-  map<string, string> labels = 6;
-  map<string, string> publish = 7;
-  string image = 8;
-  WorkloadStatus status = 9;
-  Resource resource = 10;
-  int64 create_time = 11;
-  repeated string env = 12;
+  string id = 1001;
+  string podname = 1002;
+  string nodename = 1003;
+  string name = 1004;
+  bool privileged = 1005;
+  map<string, string> labels = 1006;
+  map<string, string> publish = 1007;
+  string image = 1008;
+  WorkloadStatus status = 1009;
+  int64 create_time = 1010;
+  repeated string env = 1011;
+  string resources = 1012;
 }
 
 message WorkloadStatus {
-  string id = 1;
-  bool running = 2;
-  bool healthy = 3;
-  map<string, string> networks = 4;
-  bytes extension = 5;
-  int64 ttl = 6;
+  string id = 1001;
+  bool running = 1002;
+  bool healthy = 1003;
+  map<string, string> networks = 1004;
+  bytes extension = 1005;
+  int64 ttl = 1006;
   // extra fields used to set workload status
-  string appname = 7;
-  string nodename = 8;
-  string entrypoint = 9;
+  string appname = 1007;
+  string nodename = 1008;
+  string entrypoint = 1009;
 }
 
 message WorkloadsStatus {
-  repeated WorkloadStatus status = 1;
+  repeated WorkloadStatus status = 1001;
 }
 
 message SetWorkloadsStatusOptions {
-  repeated WorkloadStatus status = 1;
+  repeated WorkloadStatus status = 1001;
 }
 
 message WorkloadStatusStreamOptions {
-  string appname = 1;
-  string entrypoint = 2;
-  string nodename = 3;
-  map<string, string> labels = 4;
+  string appname = 1001;
+  string entrypoint = 1002;
+  string nodename = 1003;
+  map<string, string> labels = 1004;
 }
 
 message WorkloadStatusStreamMessage {
-  string id = 1;
-  Workload workload = 2;
-  WorkloadStatus status = 3;
-  string error = 4;
-  bool delete = 5;
+  string id = 1001;
+  Workload workload = 1002;
+  WorkloadStatus status = 1003;
+  string error = 1004;
+  bool delete = 1005;
 }
 
 message Workloads {
-  repeated Workload workloads = 1;
+  repeated Workload workloads = 1001;
 }
 
 message WorkloadID {
-  string id = 1;
+  string id = 1001;
 }
 
 message WorkloadIDs {
-  repeated string ids = 1;
+  repeated string IDs = 1001;
 }
 
 message RemoveWorkloadOptions {
-  repeated string ids = 1;
-  bool force = 2;
-  int32 step = 3;
+  repeated string IDs = 1001;
+  bool force = 1002;
 }
 
 message DissociateWorkloadOptions {
-  repeated string ids = 1;
+  repeated string IDs = 1001;
 }
 
 enum TriOpt {
@@ -291,164 +308,86 @@ enum TriOpt {
 }
 
 message ReallocOptions {
-  string id = 1;
-  TriOpt bind_cpu_opt = 2;
-  ResourceOptions resource_opts = 3;
-}
-
-message AddPodOptions {
-  string name = 1;
-  string desc = 2;
-}
-
-message RemovePodOptions {
-  string name = 1;
-}
-
-message GetPodOptions {
-  string name = 1;
-}
-
-message AddNodeOptions {
-  string nodename = 1;
-  string endpoint = 2;
-  string podname = 3;
-  string ca = 4;
-  string cert = 5;
-  string key = 6;
-  int32 cpu = 7;
-  int32 share = 8;
-  int64 memory = 9;
-  map<string, string> labels = 10;
-  map<string, string> numa = 11;
-  map<string, int64> numa_memory = 12;
-  int64 storage = 13;
-  map<string, int64> volume_map = 14;
-}
-
-message RemoveNodeOptions {
-  string nodename = 1;
-}
-
-message GetNodeOptions {
-  string nodename = 1;
-  map<string, string> labels = 2;
-}
-
-message GetNodeResourceOptions {
-  GetNodeOptions opts = 1;
-  bool fix = 2;
-}
-
-message ListNodesOptions {
-  string podname = 1;
-  bool all = 2;
-  map<string, string> labels = 3;
-  int32 timeout_in_second = 4;
-  bool skip_info = 5;
+  string id = 1001;
+  map<string, bytes> resources = 1002;
 }
 
 message Build {
-  string base = 1;
-  string repo = 2;
-  string version = 3;
-  string dir = 4;
-  bool submodule = 5;
-  repeated string commands = 6;
-  map<string, string> envs = 7;
-  map<string, string> args = 8;
-  map<string, string> labels = 9;
-  map<string, string> artifacts = 10;
-  map<string, string> cache = 11;
-  string stop_signal = 12;
-  bool security = 13;
+  string base = 1001;
+  string repo = 1002;
+  string version = 1003;
+  string dir = 1004;
+  bool submodule = 1005;
+  repeated string commands = 1006;
+  map<string, string> envs = 1007;
+  map<string, string> args = 1008;
+  map<string, string> labels = 1009;
+  map<string, string> artifacts = 1010;
+  map<string, string> cache = 1011;
+  string stop_signal = 1012;
+  bool security = 1013;
 }
 
 message Builds {
-  repeated string stages = 1;
-  map<string, Build> builds = 2;
+  repeated string stages = 1001;
+  map<string, Build> builds = 1002;
 }
 
 message BuildImageOptions {
-  string name = 1;
-  string user = 2;
-  int32 uid = 3;
-  repeated string tags = 4;
-  Builds builds = 5;
-  bytes tar = 6;
+  string name = 1001;
+  string user = 1002;
+  int32 uid = 1003;
+  repeated string tags = 1004;
+  Builds builds = 1005;
+  bytes tar = 1006;
   enum BuildMethod {
     SCM = 0;
     RAW = 1;
     EXIST = 2;
   }
-  BuildMethod build_method = 7;
-  string exist_id = 8;
+  BuildMethod build_method = 1007;
+  string exist_id = 1008;
+  string platform = 1009;
 }
 
 message HookOptions {
-  repeated string after_start = 1;
-  repeated string before_stop = 2;
-  bool force = 3;
+  repeated string after_start = 1001;
+  repeated string before_stop = 1002;
+  bool force = 1003;
 }
 
 message HealthCheckOptions {
-  repeated string tcp_ports = 1;
-  string http_port = 2;
-  string url = 3;
-  int32 code = 4;
+  repeated string tcp_ports = 1001;
+  string http_port = 1002;
+  string url = 1003;
+  int32 code = 1004;
 }
 
 message LogOptions {
-  string type = 1;
-  map<string, string> config = 2;
+  string type = 1001;
+  map<string, string> config = 1002;
 }
 
 message EntrypointOptions {
-  string name = 1;
+  string name = 1001;
   // `command` field is to be deprecated in favor of `commands` field
-  string command = 2;
-  bool privileged = 3;
-  string dir = 4;
-  LogOptions log = 5;
-  repeated string publish = 6;
-  HealthCheckOptions healthcheck = 7;
-  HookOptions hook = 8;
-  string restart = 9;
-  map<string, string> sysctls = 10;
+  string command = 1002;
+  bool privileged = 1003;
+  string dir = 1004;
+  LogOptions log = 1005;
+  repeated string publish = 1006;
+  HealthCheckOptions healthcheck = 1007;
+  HookOptions hook = 1008;
+  string restart = 1009;
+  map<string, string> sysctls = 1010;
   // `commands` is the new-style and preferable fields to specify process to run
   // to specify shell-like command such as `true && echo a > /dev/null`
   // please state the shell explicitly: ["sh", "-c", "true && echo a > /dev/null"]
-  repeated string commands = 11;
-}
-
-message ResourceOptions {
-  double cpu_quota_limit = 1;
-  double cpu_quota_request = 2;
-  bool cpu_bind = 3;
-  int64 memory_limit = 4;
-  int64 memory_request = 5;
-  int64 storage_limit = 6;
-  int64 storage_request = 7;
-  repeated string volumes_limit = 8;
-  repeated string volumes_request = 9;
-}
-
-message Resource {
-  double cpu_quota_limit = 1;
-  double cpu_quota_request = 2;
-  map<string, int32> cpu = 3;
-  int64 memory_limit = 4;
-  int64 memory_request = 5;
-  int64 storage_limit = 6;
-  int64 storage_request = 7;
-  repeated string volumes_limit = 8;
-  repeated string volumes_request = 9;
-  map<string, Volume> volume_plan_limit = 10;
-  map<string, Volume> volume_plan_request = 11;
+  repeated string commands = 1011;
 }
 
 message Volume {
-  map<string, int64> volume = 1;
+  map<string, int64> volume = 1001;
 }
 
 message DeployOptions {
@@ -459,86 +398,83 @@ message DeployOptions {
     GLOBAL = 3;
     DUMMY = 99;
   }
-  string name = 1;
-  EntrypointOptions entrypoint = 2;
-  string podname = 3;
-  repeated string nodenames = 4;
-  string image = 5;
-  string extra_args = 6;
-  int32 count = 7;
-  repeated string env = 8;
-  repeated string dns = 9;
-  repeated string extra_hosts = 10;
-  map<string, string> networks = 11;
-  string user = 13;
-  bool debug = 14;
-  bool open_stdin = 15;
-  map<string, string> labels = 16;
-  map<string, string> nodelabels = 17;
-  Strategy deploy_strategy = 18;
-  map<string, bytes> data = 19;
-  int32 nodes_limit = 20;
-  bool ignore_hook = 21;
-  repeated string after_create = 22;
-  bytes raw_args = 23;
-  ResourceOptions resource_opts = 24;
-  NodeFilter node_filter = 25;
-  // should be part of field no.19
-  map<string, FileMode> modes = 26;
-  map<string, FileOwner> owners = 27;
+  string name = 1001;
+  EntrypointOptions entrypoint = 1002;
+  string podname = 1003;
+  repeated string nodenames = 1004;
+  string image = 1005;
+  string extra_args = 1006;
+  int32 count = 1007;
+  repeated string env = 1008;
+  repeated string dns = 1009;
+  repeated string extra_hosts = 1010;
+  map<string, string> networks = 1011;
+  string user = 1013;
+  bool debug = 1014;
+  bool open_stdin = 1015;
+  map<string, string> labels = 1016;
+  map<string, string> nodelabels = 1017;
+  Strategy deploy_strategy = 1018;
+  map<string, bytes> data = 1019;
+  int32 nodes_limit = 1020;
+  bool ignore_hook = 1021;
+  repeated string after_create = 1022;
+  bytes raw_args = 1023;
+  NodeFilter node_filter = 1024;
+  map<string, FileMode> modes = 1025;
+  map<string, FileOwner> owners = 1026;
+  map<string, bytes> resources = 1027;
 }
 
 message ReplaceOptions {
-  DeployOptions deployOpt = 1;
-  bool networkinherit = 2;
-  map<string, string> filter_labels = 3;
-  map<string, string> copy = 4;
-  repeated string ids = 5;
+  DeployOptions deployOpt = 1001;
+  bool networkinherit = 1002;
+  map<string, string> filter_labels = 1003;
+  map<string, string> copy = 1004;
+  repeated string IDs = 5100;
 }
 
 message CacheImageOptions {
-  string podname = 1;
-  repeated string nodenames = 2;
-  repeated string images = 3;
-  int32 step = 4;
+  string podname = 1001;
+  repeated string nodenames = 1002;
+  repeated string images = 1003;
 }
 
 message RemoveImageOptions {
-  string podname = 1;
-  repeated string nodenames = 2;
-  repeated string images = 3;
-  int32 step = 4;
-  bool prune = 5;
+  string podname = 1001;
+  repeated string nodenames = 1002;
+  repeated string images = 1003;
+  bool prune = 1005;
 }
 
 message ListImageOptions {
-  string podname = 1;
-  repeated string nodenames = 2;
-  string filter = 3;
+  string podname = 1001;
+  repeated string nodenames = 1002;
+  string filter = 1003;
 }
 
 message CopyPaths {
-  repeated string paths = 1;
+  repeated string paths = 1001;
 }
 
 message CopyOptions {
-  map<string, CopyPaths> targets = 1;
+  map<string, CopyPaths> targets = 1001;
 }
 
 message FileOwner {
-  int32 uid = 1;
-  int32 gid = 2;
+  int32 uid = 1001;
+  int32 gid = 1002;
 }
 
 message FileMode {
-  int64 mode = 1;
+  int64 mode = 1001;
 }
 
 message SendOptions {
-  repeated string ids = 1;
-  map<string, bytes> data = 2;
-  map<string, FileMode> modes = 3;
-  map<string, FileOwner> owners = 4;
+  repeated string IDs = 1001;
+  map<string, bytes> data = 1002;
+  map<string, FileMode> modes = 1003;
+  map<string, FileOwner> owners = 1004;
 }
 
 message FileOptions {
@@ -551,88 +487,88 @@ message FileOptions {
 }
 
 message ErrorDetail {
-  int64 code = 1;
-  string message = 2;
+  int64 code = 1001;
+  string message = 1002;
 }
 
 message BuildImageMessage {
-  string id = 1;
-  string status = 2;
-  string progress = 3;
-  string error = 4;
-  string stream = 5;
-  ErrorDetail error_detail = 6;
+  string id = 1001;
+  string status = 1002;
+  string progress = 1003;
+  string error = 1004;
+  string stream = 1005;
+  ErrorDetail error_detail = 1006;
 }
 
 message CreateWorkloadMessage {
-  string podname = 1;
-  string nodename = 2;
-  string id = 3;
-  string name = 4;
-  string error = 5;
-  bool success = 6;
-  map<string, string> publish = 7;
-  bytes hook = 8;
-  Resource resource = 9;
+  string podname = 1001;
+  string nodename = 1002;
+  string id = 1003;
+  string name = 1004;
+  string error = 1005;
+  bool success = 1006;
+  map<string, string> publish = 1007;
+  bytes hook = 1008;
+  string resources = 1009;
 }
 
 message ReplaceWorkloadMessage {
-  CreateWorkloadMessage create = 1;
-  RemoveWorkloadMessage remove = 2;
-  string error = 3;
+  CreateWorkloadMessage create = 1001;
+  RemoveWorkloadMessage remove = 1002;
+  string error = 1003;
 }
 
 message CacheImageMessage {
-  string image = 1;
-  bool success = 2;
-  string nodename = 3;
-  string message = 4;
+  string image = 1001;
+  bool success = 1002;
+  string nodename = 1003;
+  string message = 1004;
 }
 
 message RemoveImageMessage {
-  string image = 1;
-  bool success = 2;
-  repeated string messages = 3;
+  string image = 1001;
+  bool success = 1002;
+  repeated string messages = 1003;
 }
 
 message ImageItem{
-  string id = 1;
-  repeated string tags = 2;
+  string id = 1001;
+  repeated string tags = 1002;
 }
 
 message ListImageMessage{
-  repeated ImageItem images = 1;
-  string nodename = 2;
-  string err = 3;
+  repeated ImageItem images = 1001;
+  string nodename = 1002;
+  string err = 1003;
 }
 
 message RemoveWorkloadMessage {
-  string id = 1;
-  bool success = 2;
-  string hook = 3;
+  string id = 1001;
+  bool success = 1002;
+  string hook = 1003;
 }
 
 message DissociateWorkloadMessage {
-  string id = 1;
-  string error = 2;
+  string id = 1001;
+  string error = 1002;
 }
 
 message ReallocResourceMessage {
-  string error = 1;
+  string error = 1001;
 }
 
 message CopyMessage {
-  string id = 1;
-  string name = 2;
-  string path = 3;
-  string error = 4;
-  bytes data = 5;
+  string id = 1001;
+  string name = 1002;
+  string path = 1003;
+  string error = 1004;
+  bytes data = 1005;
 }
 
 message SendMessage {
-  string id = 1;
-  string path = 2;
-  string error = 3;
+  string id = 1001;
+  string path = 1002;
+  string error = 1003;
 }
 
 enum StdStreamType {
@@ -643,55 +579,55 @@ enum StdStreamType {
 }
 
 message AttachWorkloadMessage {
-  string workload_id = 1;
-  bytes data = 2;
-  StdStreamType std_stream_type = 3;
+  string workload_id = 1001;
+  bytes data = 1002;
+  StdStreamType std_stream_type = 1003;
 }
 
 message RunAndWaitOptions{
-  DeployOptions deploy_options = 1;
-  bytes cmd = 2;
-  bool async = 3;
-  int32 async_timeout = 4;
+  DeployOptions deploy_options = 1001;
+  bytes cmd = 1002;
+  bool async = 1003;
+  int32 async_timeout = 1004;
 }
 
 message ControlWorkloadOptions {
-  repeated string ids = 1;
-  string type = 2;
-  bool force = 3;
+  repeated string IDs = 1001;
+  string type = 1002;
+  bool force = 1003;
 }
 
 message ControlWorkloadMessage {
-  string id = 1;
-  string error = 2;
-  bytes hook = 3;
+  string id = 1001;
+  string error = 1002;
+  bytes hook = 1003;
 }
 
 message LogStreamOptions {
-  string id = 1;
-  string tail = 2;
-  string since = 3;
-  string until = 4;
-  bool follow = 5;
+  string id = 1001;
+  string tail = 1002;
+  string since = 1003;
+  string until = 1004;
+  bool follow = 1005;
 }
 
 message LogStreamMessage {
-  string id = 1;
-  string error = 2;
-  bytes data = 3;
-  StdStreamType std_stream_type = 4;
+  string id = 1001;
+  string error = 1002;
+  bytes data = 1003;
+  StdStreamType std_stream_type = 1004;
 }
 
 message ExecuteWorkloadOptions {
-  string workload_id = 1;
-  repeated string commands = 2;
-  repeated string envs = 3;
-  string workdir = 4;
-  bool open_stdin = 5;
-  bytes repl_cmd = 6;
+  string workload_id = 1001;
+  repeated string commands = 1002;
+  repeated string envs = 1003;
+  string workdir = 1004;
+  bool open_stdin = 1005;
+  bytes repl_cmd = 1006;
 }
 
 message CapacityMessage {
-  int64 total = 1;
-  map<string, int64> node_capacities = 2;
+  int64 total = 1001;
+  map<string, int64> node_capacities = 1002;
 }

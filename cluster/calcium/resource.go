@@ -3,167 +3,89 @@ package calcium
 import (
 	"context"
 	"fmt"
+	"sync"
 
-	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
-	resourcetypes "github.com/projecteru2/core/resources/types"
 	"github.com/projecteru2/core/strategy"
 	"github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
-
-	"github.com/pkg/errors"
 )
 
 // PodResource show pod resource usage
-func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.NodeResource, error) {
-	logger := log.WithField("Calcium", "PodResource").WithField("podname", podname)
-	nodeCh, err := c.ListPodNodes(ctx, &types.ListNodesOptions{Podname: podname, All: true})
+func (c *Calcium) PodResource(ctx context.Context, podname string) (chan *types.NodeResourceInfo, error) {
+	logger := log.WithFunc("calcium.PodResource").WithField("podname", podname)
+	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: podname})
 	if err != nil {
-		return nil, logger.Err(ctx, err)
+		logger.Error(ctx, err)
+		return nil, err
 	}
-	ch := make(chan *types.NodeResource)
-	pool := utils.NewGoroutinePool(int(c.config.MaxConcurrency))
-	go func() {
+	ch := make(chan *types.NodeResourceInfo)
+
+	_ = c.pool.Invoke(func() {
 		defer close(ch)
-		for node := range nodeCh {
-			pool.Go(ctx, func() {
-				nodeResource, err := c.doGetNodeResource(ctx, node.Name, false)
+		wg := &sync.WaitGroup{}
+		wg.Add(len(nodes))
+		defer wg.Wait()
+		for _, node := range nodes {
+			node := node
+			_ = c.pool.Invoke(func() {
+				defer wg.Done()
+				nr, err := c.doGetNodeResource(ctx, node.Name, false, false)
 				if err != nil {
-					nodeResource = &types.NodeResource{
-						Name: node.Name, Diffs: []string{logger.Err(ctx, err).Error()},
+					logger.Error(ctx, err)
+					nr = &types.NodeResourceInfo{
+						Name: node.Name, Diffs: []string{err.Error()},
 					}
 				}
-				ch <- nodeResource
+				ch <- nr
 			})
 		}
-		pool.Wait(ctx)
-	}()
+	})
+
 	return ch, nil
 }
 
 // NodeResource check node's workload and resource
-func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
-	logger := log.WithField("Calcium", "NodeResource").WithField("nodename", nodename).WithField("fix", fix)
-	if nodename == "" {
-		return nil, logger.Err(ctx, types.ErrEmptyNodeName)
-	}
-
-	nr, err := c.doGetNodeResource(ctx, nodename, fix)
-	if err != nil {
-		return nil, logger.Err(ctx, err)
-	}
-	for _, workload := range nr.Workloads {
-		if _, err := workload.Inspect(ctx); err != nil { // 用于探测节点上容器是否存在
-			nr.Diffs = append(nr.Diffs, fmt.Sprintf("workload %s inspect failed %v \n", workload.ID, err))
-			continue
-		}
-	}
-	return nr, logger.Err(ctx, err)
+func (c *Calcium) NodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResourceInfo, error) {
+	logger := log.WithFunc("calcium.NodeResource").WithField("node", nodename).WithField("fix", fix)
+	nr, err := c.doGetNodeResource(ctx, nodename, true, fix)
+	logger.Error(ctx, err)
+	return nr, err
 }
 
-func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bool) (*types.NodeResource, error) {
-	var nr *types.NodeResource
-	return nr, c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
-		workloads, err := c.ListNodeWorkloads(ctx, node.Name, nil)
+func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, inspect, fix bool) (*types.NodeResourceInfo, error) {
+	logger := log.WithFunc("calcium.doGetNodeResource").WithField("node", nodename).WithField("inspect", inspect).WithField("fix", fix)
+	if nodename == "" {
+		logger.Error(ctx, types.ErrEmptyNodeName)
+		return nil, types.ErrEmptyNodeName
+	}
+	var nr *types.NodeResourceInfo
+	return nr, c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+		workloads, err := c.store.ListNodeWorkloads(ctx, node.Name, nil)
 		if err != nil {
+			logger.Errorf(ctx, err, "failed to list node workloads, node %+v", node.Name)
 			return err
 		}
-		nr = &types.NodeResource{
-			Name: node.Name, CPU: node.CPU, MemCap: node.MemCap, StorageCap: node.StorageCap,
-			Workloads: workloads, Diffs: []string{},
+
+		// get node resources
+		resourceCapacity, resourceUsage, resourceDiffs, err := c.rmgr.GetNodeResourceInfo(ctx, node.Name, workloads, fix)
+		if err != nil {
+			logger.Errorf(ctx, err, "failed to get node resources, node %+v", node.Name)
+			return err
+		}
+		nr = &types.NodeResourceInfo{
+			Name:      node.Name,
+			Capacity:  resourceCapacity,
+			Usage:     resourceUsage,
+			Diffs:     resourceDiffs,
+			Workloads: workloads,
 		}
 
-		cpuByWorkloads := 0.0
-		memoryByWorkloads := int64(0)
-		storageByWorkloads := int64(0) // volume inclusive
-		cpumapByWorkloads := types.CPUMap{}
-		volumeByWorkloads := int64(0)
-		volumeMapByWorkloads := types.VolumeMap{}
-		monopolyVolumeByWorkloads := map[string][]string{} // volume -> array of workload id
-		for _, workload := range workloads {
-			cpuByWorkloads = utils.Round(cpuByWorkloads + workload.CPUQuotaRequest)
-			memoryByWorkloads += workload.MemoryRequest
-			storageByWorkloads += workload.StorageRequest
-			cpumapByWorkloads.Add(workload.CPU)
-			for vb, vmap := range workload.VolumePlanRequest {
-				volumeByWorkloads += vmap.Total()
-				volumeMapByWorkloads.Add(vmap)
-				if vb.RequireScheduleMonopoly() {
-					monopolyVolumeByWorkloads[vmap.GetResourceID()] = append(monopolyVolumeByWorkloads[vmap.GetResourceID()], workload.ID)
+		if inspect {
+			for _, workload := range nr.Workloads {
+				if _, err := workload.Inspect(ctx); err != nil { // 用于探测节点上容器是否存在
+					nr.Diffs = append(nr.Diffs, fmt.Sprintf("workload %s inspect failed %+v \n", workload.ID, err))
+					continue
 				}
-			}
-		}
-		nr.CPUPercent = cpuByWorkloads / float64(len(node.InitCPU))
-		nr.MemoryPercent = float64(memoryByWorkloads) / float64(node.InitMemCap)
-		nr.NUMAMemoryPercent = map[string]float64{}
-		nr.VolumePercent = float64(node.VolumeUsed) / float64(node.InitVolume.Total())
-		for nodeID, nmemory := range node.NUMAMemory {
-			if initMemory, ok := node.InitNUMAMemory[nodeID]; ok {
-				nr.NUMAMemoryPercent[nodeID] = float64(nmemory) / float64(initMemory)
-			}
-		}
-
-		// cpu
-		if cpuByWorkloads != node.CPUUsed {
-			nr.Diffs = append(nr.Diffs,
-				fmt.Sprintf("node.CPUUsed != sum(workload.CPURequest): %.2f != %.2f", node.CPUUsed, cpuByWorkloads))
-		}
-		node.CPU.Add(cpumapByWorkloads)
-		for i, v := range node.CPU {
-			if node.InitCPU[i] != v {
-				nr.Diffs = append(nr.Diffs,
-					fmt.Sprintf("\tsum(workload.CPU[%s]) + node.CPU[%s] != node.InitCPU[%s]: %d + %d != %d", i, i, i,
-						cpumapByWorkloads[i], node.CPU[i]-cpumapByWorkloads[i], node.InitCPU[i]))
-			}
-		}
-
-		// memory
-		if memoryByWorkloads+node.MemCap != node.InitMemCap {
-			nr.Diffs = append(nr.Diffs,
-				fmt.Sprintf("node.MemCap + sum(workload.memoryRequest) != node.InitMemCap: %d + %d != %d",
-					node.MemCap, memoryByWorkloads, node.InitMemCap))
-		}
-
-		// storage
-		nr.StoragePercent = 0
-		if node.InitStorageCap != 0 {
-			nr.StoragePercent = float64(storageByWorkloads) / float64(node.InitStorageCap)
-		}
-		if storageByWorkloads+node.StorageCap != node.InitStorageCap {
-			nr.Diffs = append(nr.Diffs, fmt.Sprintf("sum(workload.storageRequest) + node.StorageCap != node.InitStorageCap: %d + %d != %d", storageByWorkloads, node.StorageCap, node.InitStorageCap))
-		}
-
-		// volume
-		if node.VolumeUsed != volumeByWorkloads {
-			nr.Diffs = append(nr.Diffs, fmt.Sprintf("node.VolumeUsed != sum(workload.VolumeRequest): %d != %d", node.VolumeUsed, volumeByWorkloads))
-		}
-		node.Volume.Add(volumeMapByWorkloads)
-		for i, v := range node.Volume {
-			if node.InitVolume[i] != v {
-				nr.Diffs = append(nr.Diffs, fmt.Sprintf("\tsum(workload.Volume[%s]) + node.Volume[%s] != node.InitVolume[%s]: %d + %d != %d",
-					i, i, i,
-					volumeMapByWorkloads[i], node.Volume[i]-volumeMapByWorkloads[i], node.InitVolume[i]))
-			}
-		}
-		for vol, ids := range monopolyVolumeByWorkloads {
-			idx := utils.Unique(ids, func(i int) string { return ids[i] })
-			if len(ids[:idx]) > 1 {
-				nr.Diffs = append(nr.Diffs, fmt.Sprintf("\tmonopoly volume used by multiple workloads: %s, %+v", vol, ids))
-			}
-		}
-
-		// volume and storage
-		if node.InitStorageCap < node.InitVolume.Total() {
-			nr.Diffs = append(nr.Diffs, fmt.Sprintf("init storage < init volumes: %d < %d", node.InitStorageCap, node.InitVolume.Total()))
-		}
-
-		if err := node.Engine.ResourceValidate(ctx, cpuByWorkloads, cpumapByWorkloads, memoryByWorkloads, storageByWorkloads); err != nil {
-			nr.Diffs = append(nr.Diffs, err.Error())
-		}
-
-		if fix {
-			if err := c.doFixDiffResource(ctx, node, cpuByWorkloads, memoryByWorkloads, storageByWorkloads, volumeByWorkloads); err != nil {
-				log.Warnf(ctx, "[doGetNodeResource] fix node resource failed %v", err)
 			}
 		}
 
@@ -171,75 +93,39 @@ func (c *Calcium) doGetNodeResource(ctx context.Context, nodename string, fix bo
 	})
 }
 
-func (c *Calcium) doFixDiffResource(ctx context.Context, node *types.Node, cpuByWorkloads float64, memoryByWorkloads, storageByWorkloads, volumeByWorkloads int64) (err error) {
-	var n *types.Node
-	if n, err = c.GetNode(ctx, node.Name); err != nil {
-		return err
-	}
-	n.CPUUsed = cpuByWorkloads
-	for i, v := range node.CPU {
-		n.CPU[i] += node.InitCPU[i] - v
-	}
-	n.MemCap = node.InitMemCap - memoryByWorkloads
-	if n.InitStorageCap < n.InitVolume.Total() {
-		n.InitStorageCap = n.InitVolume.Total()
-	}
-	n.StorageCap = n.InitStorageCap - storageByWorkloads
-	n.VolumeUsed = volumeByWorkloads
-	for i, v := range node.Volume {
-		n.Volume[i] += node.InitVolume[i] - v
-	}
-	return errors.WithStack(c.store.UpdateNodes(ctx, n))
-}
-
-func (c *Calcium) doAllocResource(ctx context.Context, nodeMap map[string]*types.Node, opts *types.DeployOptions) ([]resourcetypes.ResourcePlans, map[string]int, error) {
-	total, plans, strategyInfos, err := c.doCalculateCapacity(ctx, nodeMap, opts)
+func (c *Calcium) doGetDeployStrategy(ctx context.Context, nodenames []string, opts *types.DeployOptions) (map[string]int, error) {
+	logger := log.WithFunc("calcium.doGetDeployStrategy").WithField("nodes", nodenames)
+	// get nodes with capacity > 0
+	nodeResourceInfoMap, total, err := c.rmgr.GetNodesDeployCapacity(ctx, nodenames, opts.Resources)
 	if err != nil {
-		return nil, nil, err
+		logger.Errorf(ctx, err, "failed to select available nodes, nodes %+v", nodenames)
+		return nil, err
 	}
-	if err = c.store.MakeDeployStatus(ctx, opts.Name, opts.Entrypoint.Name, strategyInfos); err != nil {
-		return nil, nil, errors.WithStack(err)
-	}
-	deployMap, err := strategy.Deploy(ctx, opts, strategyInfos, total)
-	if err != nil {
-		return nil, nil, err
-	}
-	log.Infof(ctx, "[Calium.doAllocResource] deployMap: %+v", deployMap)
-	return plans, deployMap, nil
-}
 
-// called on changes of resource binding, such as cpu binding
-// as an internal api, remap doesn't lock node, the responsibility of that should be taken on by caller
-func (c *Calcium) remapResource(ctx context.Context, node *types.Node) (ch <-chan enginetypes.VirtualizationRemapMessage, err error) {
-	workloads, err := c.store.ListNodeWorkloads(ctx, node.Name, nil)
+	// get deployed & processing workload count on each node
+	deployStatusMap, err := c.store.GetDeployStatus(ctx, opts.Name, opts.Entrypoint.Name)
 	if err != nil {
-		return
+		logger.Errorf(ctx, err, "failed to get deploy status for %+v_%+v", opts.Name, opts.Entrypoint.Name)
+		return nil, err
 	}
-	remapOpts := &enginetypes.VirtualizationRemapOptions{
-		CPUAvailable:      node.CPU,
-		CPUInit:           node.InitCPU,
-		CPUShareBase:      int64(c.config.Scheduler.ShareBase),
-		WorkloadResources: make(map[string]enginetypes.VirtualizationResource),
-	}
-	for _, workload := range workloads {
-		remapOpts.WorkloadResources[workload.ID] = enginetypes.VirtualizationResource{
-			CPU:      workload.CPU,
-			Quota:    workload.CPUQuotaLimit,
-			NUMANode: workload.NUMANode,
-		}
-	}
-	ch, err = node.Engine.VirtualizationResourceRemap(ctx, remapOpts)
-	return ch, errors.WithStack(err)
-}
 
-func (c *Calcium) doRemapResourceAndLog(ctx context.Context, logger log.Fields, node *types.Node) {
-	log.Debugf(ctx, "[doRemapResourceAndLog] remap node %s", node.Name)
-	ctx, cancel := context.WithTimeout(utils.InheritTracingInfo(ctx, context.TODO()), c.config.GlobalTimeout)
-	defer cancel()
-	logger = logger.WithField("Calcium", "doRemapResourceAndLog").WithField("nodename", node.Name)
-	if ch, err := c.remapResource(ctx, node); logger.Err(ctx, err) == nil {
-		for msg := range ch {
-			logger.WithField("id", msg.ID).Err(ctx, msg.Error) // nolint:errcheck
-		}
+	// generate strategy info
+	strategyInfos := []strategy.Info{}
+	for node, resourceInfo := range nodeResourceInfoMap {
+		strategyInfos = append(strategyInfos, strategy.Info{
+			Nodename: node,
+			Usage:    resourceInfo.Usage,
+			Rate:     resourceInfo.Rate,
+			Capacity: resourceInfo.Capacity,
+			Count:    deployStatusMap[node],
+		})
 	}
+
+	// generate deploy plan
+	deployMap, err := strategy.Deploy(ctx, opts.DeployStrategy, opts.Count, opts.NodesLimit, strategyInfos, total)
+	if err != nil {
+		return nil, err
+	}
+
+	return deployMap, nil
 }

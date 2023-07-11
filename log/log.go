@@ -2,140 +2,88 @@ package log
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
+	"time"
 
-	"github.com/projecteru2/core/types"
-
+	"github.com/cockroachdb/errors"
 	"github.com/getsentry/sentry-go"
-	log "github.com/sirupsen/logrus"
-	"google.golang.org/grpc/peer"
+
+	"github.com/rs/zerolog"
+)
+
+var (
+	globalLogger zerolog.Logger
+	sentryDSN    string
 )
 
 // SetupLog init logger
-func SetupLog(l string) error {
-	level, err := log.ParseLevel(l)
+func SetupLog(ctx context.Context, l, dsn string) error {
+	level, err := zerolog.ParseLevel(strings.ToLower(l))
 	if err != nil {
 		return err
 	}
-	log.SetLevel(level)
-
-	formatter := &log.TextFormatter{
-		ForceColors:     true,
-		TimestampFormat: "2006-01-02 15:04:05",
-		FullTimestamp:   true,
+	// TODO can use file
+	rslog := zerolog.New(
+		zerolog.ConsoleWriter{
+			Out:        os.Stdout,
+			TimeFormat: time.RFC822,
+		}).With().Timestamp().Logger()
+	rslog.Level(level)
+	zerolog.ErrorStackMarshaler = func(err error) any {
+		return errors.GetSafeDetails(err).SafeDetails
 	}
-	log.SetFormatter(formatter)
-	log.SetOutput(os.Stdout)
+	globalLogger = rslog
+	// Sentry
+	if dsn != "" {
+		sentryDSN = dsn
+		WithFunc("log.SetupLog").Infof(ctx, "sentry %v", sentryDSN)
+		_ = sentry.Init(sentry.ClientOptions{Dsn: sentryDSN})
+	}
 	return nil
 }
 
-// Fields is a wrapper for logrus.Entry
-// we need to insert some sentry captures here
-type Fields struct {
-	e *log.Entry
-}
-
-// WithField .
-func (f Fields) WithField(key string, value interface{}) Fields {
-	e := f.e.WithField(key, value)
-	return Fields{e: e}
-}
-
-// Errorf sends sentry message
-func (f Fields) Errorf(ctx context.Context, format string, args ...interface{}) {
-	format = getTracingInfo(ctx) + format
-	sentry.CaptureMessage(fmt.Sprintf(format, args...))
-	f.e.Errorf(format, args...)
-}
-
-// Err is a decorator returning the argument
-func (f Fields) Err(ctx context.Context, err error) error {
-	format := getTracingInfo(ctx) + "%+v"
-	if err != nil {
-		sentry.CaptureMessage(fmt.Sprintf(format, err))
-		f.e.Errorf(format, err)
-	}
-	return err
-}
-
-// WithField add kv into log entry
-func WithField(key string, value interface{}) Fields {
-	return Fields{
-		e: log.WithField(key, value),
-	}
-}
-
-// Error forwards to sentry
-func Error(args ...interface{}) {
-	sentry.CaptureMessage(fmt.Sprint(args...))
-	log.Error(args...)
-}
-
-// Errorf forwards to sentry
-func Errorf(ctx context.Context, format string, args ...interface{}) {
-	format = getTracingInfo(ctx) + format
-	sentry.CaptureMessage(fmt.Sprintf(format, args...))
-	log.Errorf(format, args...)
-}
-
 // Fatalf forwards to sentry
-func Fatalf(format string, args ...interface{}) {
-	sentry.CaptureMessage(fmt.Sprintf(format, args...))
-	log.Fatalf(format, args...)
-}
-
-// Warn is Warn
-func Warn(args ...interface{}) {
-	log.Warn(args...)
+func Fatalf(ctx context.Context, err error, format string, args ...any) {
+	fatalf(ctx, err, format, nil, args...)
 }
 
 // Warnf is Warnf
-func Warnf(ctx context.Context, format string, args ...interface{}) {
-	log.Warnf(getTracingInfo(ctx)+format, args...)
+func Warnf(ctx context.Context, format string, args ...any) {
+	warnf(ctx, format, nil, args...)
 }
 
-// Info is Info
-func Info(args ...interface{}) {
-	log.Info(args...)
+// Warn is Warn
+func Warn(ctx context.Context, args ...any) {
+	Warnf(ctx, "%+v", args...)
 }
 
 // Infof is Infof
-func Infof(ctx context.Context, format string, args ...interface{}) {
-	log.Infof(getTracingInfo(ctx)+format, args...)
+func Infof(ctx context.Context, format string, args ...any) {
+	infof(ctx, format, nil, args...)
 }
 
-// Debug is Debug
-func Debug(ctx context.Context, args ...interface{}) {
-	a := []interface{}{getTracingInfo(ctx)}
-	a = append(a, args...)
-	log.Debug(a)
+// Info is Info
+func Info(ctx context.Context, args ...any) {
+	Infof(ctx, "%+v", args...)
 }
 
 // Debugf is Debugf
-func Debugf(ctx context.Context, format string, args ...interface{}) {
-	log.Debugf(getTracingInfo(ctx)+format, args...)
+func Debugf(ctx context.Context, format string, args ...any) {
+	debugf(ctx, format, nil, args...)
 }
 
-func getTracingInfo(ctx context.Context) (tracingInfo string) {
-	if ctx == nil {
-		return ""
-	}
+// Debug is Debug
+func Debug(ctx context.Context, args ...any) {
+	Debugf(ctx, "%+v", args...)
+}
 
-	tracing := []string{}
-	if p, ok := peer.FromContext(ctx); ok {
-		tracing = append(tracing, p.Addr.String())
-	}
+// Errorf forwards to sentry
+func Errorf(ctx context.Context, err error, format string, args ...any) {
+	errorf(ctx, err, format, nil, args...)
+}
 
-	if traceID := ctx.Value(types.TracingID); traceID != nil {
-		if tid, ok := traceID.(string); ok {
-			tracing = append(tracing, tid)
-		}
-	}
-	tracingInfo = strings.Join(tracing, "-")
-	if tracingInfo != "" {
-		tracingInfo = fmt.Sprintf("[%s] ", tracingInfo)
-	}
-	return
+// Error forwards to sentry
+func Error(ctx context.Context, err error, args ...any) {
+	Errorf(ctx, err, "%+v", args...)
 }

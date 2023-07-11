@@ -8,6 +8,7 @@ entrypoints:
     healthcheck:
       tcp_ports:
         - "5001"
+
 stages:
   - build
   - pack

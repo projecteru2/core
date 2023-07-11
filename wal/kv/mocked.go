@@ -1,17 +1,20 @@
 package kv
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/alphadose/haxmap"
+	"github.com/cockroachdb/errors"
+	"github.com/projecteru2/core/types"
 )
 
 // MockedKV .
 type MockedKV struct {
 	sync.Mutex
-	pool    sync.Map
+	pool    *haxmap.Map[string, []byte]
 	nextSeq uint64
 }
 
@@ -19,26 +22,21 @@ type MockedKV struct {
 func NewMockedKV() *MockedKV {
 	return &MockedKV{
 		nextSeq: 1,
+		pool:    haxmap.New[string, []byte](),
 	}
 }
 
 // Open .
-func (m *MockedKV) Open(path string, mode os.FileMode, timeout time.Duration) error {
+func (m *MockedKV) Open(string, os.FileMode, time.Duration) error {
 	return nil
 }
 
 // Close .
 func (m *MockedKV) Close() error {
-	keys := []interface{}{}
-	m.pool.Range(func(key, _ interface{}) bool {
-		keys = append(keys, key)
+	m.pool.ForEach(func(k string, _ []byte) bool {
+		m.pool.Del(k)
 		return true
 	})
-
-	for _, key := range keys {
-		m.pool.Delete(key)
-	}
-
 	return nil
 }
 
@@ -53,28 +51,22 @@ func (m *MockedKV) NextSequence() (nextSeq uint64, err error) {
 
 // Put .
 func (m *MockedKV) Put(key, value []byte) (err error) {
-	m.pool.Store(string(key), value)
+	m.pool.Set(string(key), value)
 	return
 }
 
 // Get .
 func (m *MockedKV) Get(key []byte) (value []byte, err error) {
-	raw, ok := m.pool.Load(string(key))
+	value, ok := m.pool.Get(string(key))
 	if !ok {
-		err = fmt.Errorf("no such key: %s", key)
-		return
+		return value, errors.Wrapf(types.ErrInvaildCount, "no such key: %s", key)
 	}
-
-	if value, ok = raw.([]byte); !ok {
-		err = fmt.Errorf("value must be a []byte, but %v", raw)
-	}
-
 	return
 }
 
 // Delete .
 func (m *MockedKV) Delete(key []byte) (err error) {
-	m.pool.Delete(string(key))
+	m.pool.Del(string(key))
 	return
 }
 
@@ -90,34 +82,28 @@ func (m *MockedKV) Scan(prefix []byte) (<-chan ScanEntry, func()) {
 	go func() {
 		defer close(ch)
 
-		m.pool.Range(func(rkey, rvalue interface{}) (next bool) {
-			var entry MockedScanEntry
-			defer func() {
-				select {
-				case <-exit:
-					next = false
-				case ch <- entry:
-					next = true
+		dataCh := make(chan MockedScanEntry)
+		go func() {
+			defer close(dataCh)
+			m.pool.ForEach(func(k string, v []byte) bool {
+				dataCh <- MockedScanEntry{Key: k, Value: v}
+				return true
+			})
+		}()
+
+		for {
+			select {
+			case <-exit:
+				return
+			case entry, ok := <-dataCh:
+				switch {
+				case !ok:
+					return
+				case strings.HasPrefix(entry.Key, string(prefix)):
+					ch <- entry
 				}
-			}()
-
-			var ok bool
-			if entry.Key, ok = rkey.(string); !ok {
-				entry.Err = fmt.Errorf("key must be a string, but %v", rkey)
-				return
 			}
-
-			if !strings.HasPrefix(entry.Key, string(prefix)) {
-				return
-			}
-
-			if entry.Value, ok = rvalue.([]byte); !ok {
-				entry.Err = fmt.Errorf("value must be a []byte, but %v", rvalue)
-				return
-			}
-
-			return
-		})
+		}
 	}()
 
 	return ch, abort

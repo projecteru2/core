@@ -40,7 +40,8 @@ func (e endpoints) ToSlice() (eps []string) {
 // ServiceStatusStream watches /services/ --prefix
 func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error) {
 	ch := make(chan []string)
-	go func() {
+	logger := log.WithFunc("store.etcdv3.ServiceStatusStream")
+	_ = m.pool.Invoke(func() {
 		defer close(ch)
 
 		// must watch prior to get
@@ -48,7 +49,7 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 
 		resp, err := m.Get(ctx, fmt.Sprintf(serviceStatusKey, ""), clientv3.WithPrefix())
 		if err != nil {
-			log.Errorf(ctx, "[ServiceStatusStream] failed to get current services: %v", err)
+			logger.Error(ctx, err, "failed to get current services")
 			return
 		}
 		eps := endpoints{}
@@ -60,7 +61,7 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 		for resp := range watchChan {
 			if resp.Err() != nil {
 				if !resp.Canceled {
-					log.Errorf(ctx, "[ServiceStatusStream] watch failed %v", resp.Err())
+					logger.Error(ctx, err, "watch failed")
 				}
 				return
 			}
@@ -83,7 +84,7 @@ func (m *Mercury) ServiceStatusStream(ctx context.Context) (chan []string, error
 				ch <- eps.ToSlice()
 			}
 		}
-	}()
+	})
 	return ch, nil
 }
 

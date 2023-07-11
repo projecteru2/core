@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	coreutils "github.com/projecteru2/core/utils"
-
 	"github.com/stretchr/testify/assert"
+
+	coreutils "github.com/projecteru2/core/utils"
 )
 
 func TestCreateTarStream(t *testing.T) {
@@ -29,7 +29,7 @@ func TestWithDumpFiles(t *testing.T) {
 	}
 	fp := []string{}
 	for target, content := range data {
-		withTarfileDump(context.TODO(), target, content, 0, 0, int64(0), func(target, tarfile string) error {
+		withTarfileDump(context.Background(), target, content, 0, 0, int64(0), func(target, tarfile string) error {
 			assert.True(t, strings.HasPrefix(target, "/tmp/test"))
 			fp = append(fp, tarfile)
 			_, err := os.Stat(tarfile)

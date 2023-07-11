@@ -17,6 +17,7 @@ func TestCopy(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 
+	// failed by target
 	_, err := c.Copy(ctx, &types.CopyOptions{
 		Targets: map[string][]string{},
 	})
@@ -30,14 +31,13 @@ func TestCopy(t *testing.T) {
 			},
 		},
 	}
-	store := &storemocks.Store{}
+	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
+	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	c.store = store
 	// failed by GetWorkload
-	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.Copy(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -48,7 +48,7 @@ func TestCopy(t *testing.T) {
 	workload.Engine = engine
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
 	// failed by VirtualizationCopyFrom
-	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, 0, int64(0), types.ErrNilEngine).Twice()
+	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, 0, int64(0), types.ErrMockError).Twice()
 	ch, err = c.Copy(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {

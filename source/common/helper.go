@@ -4,14 +4,13 @@ import (
 	"archive/zip"
 	"bytes"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
 
 // unzipFile unzip a file(from resp.Body) to the spec path
 func unzipFile(body io.Reader, path string) error {
-	content, err := ioutil.ReadAll(body)
+	content, err := io.ReadAll(body)
 	if err != nil {
 		return err
 	}
@@ -31,7 +30,7 @@ func unzipFile(body io.Reader, path string) error {
 		defer zipped.Close()
 
 		//  G305: File traversal when extracting zip archive
-		p := filepath.Join(path, f.Name) // nolint
+		p := filepath.Join(path, f.Name) //nolint
 
 		if f.FileInfo().IsDir() {
 			_ = os.MkdirAll(p, f.Mode())
@@ -44,7 +43,7 @@ func unzipFile(body io.Reader, path string) error {
 		}
 
 		defer writer.Close()
-		if _, err = io.Copy(writer, zipped); err != nil { // nolint
+		if _, err = io.Copy(writer, zipped); err != nil { //nolint
 			// G110: Potential DoS vulnerability via decompression bomb
 			return err
 		}

@@ -30,8 +30,8 @@ func New(cc resolver.ClientConn, endpoint string, authority string) *Resolver {
 		cc:        cc,
 		discovery: servicediscovery.New(endpoint, authConfig),
 	}
-	cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: endpoint}}}) // nolint
-	go r.sync()
+	cc.UpdateState(resolver.State{Addresses: []resolver.Address{{Addr: endpoint}}}) //nolint
+	go r.sync(context.TODO())
 	return r
 }
 
@@ -43,25 +43,25 @@ func (r *Resolver) Close() {
 	r.cancel()
 }
 
-func (r *Resolver) sync() {
-	ctx := context.TODO()
-	log.Debug(ctx, "[EruResolver] start sync service discovery")
+func (r *Resolver) sync(ctx context.Context) {
 	ctx, r.cancel = context.WithCancel(ctx)
 	defer r.cancel()
+	logger := log.WithFunc("resolver.sync")
+	logger.Debug(ctx, "start sync service discovery")
 
 	ch, err := r.discovery.Watch(ctx)
 	if err != nil {
-		log.Errorf(ctx, "[EruResolver] failed to watch service status: %v", err)
+		logger.Error(ctx, err, "failed to watch service status")
 		return
 	}
 	for {
 		select {
 		case <-ctx.Done():
-			log.Errorf(ctx, "[EruResolver] watch interrupted: %v", ctx.Err())
+			logger.Error(ctx, ctx.Err(), "watch interrupted")
 			return
 		case endpoints, ok := <-ch:
 			if !ok {
-				log.Error("[EruResolver] watch closed")
+				logger.Info(ctx, nil, "watch closed")
 				return
 			}
 
@@ -69,7 +69,7 @@ func (r *Resolver) sync() {
 			for _, ep := range endpoints {
 				addresses = append(addresses, resolver.Address{Addr: ep})
 			}
-			r.cc.UpdateState(resolver.State{Addresses: addresses}) // nolint
+			r.cc.UpdateState(resolver.State{Addresses: addresses}) //nolint
 		}
 	}
 

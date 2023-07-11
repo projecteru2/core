@@ -3,7 +3,6 @@ package docker
 import (
 	"archive/tar"
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -15,7 +14,7 @@ func withTarfileDump(ctx context.Context, target string, content []byte, uid, gi
 
 	defer func(tarfile string) {
 		if err := os.RemoveAll(tarfile); err != nil {
-			log.Warnf(ctx, "[cleanDumpFiles] clean dump files failed: %v", err)
+			log.WithFunc("engine.docker.withTarfileDump").Warnf(ctx, "clean dump files failed: %+v", err)
 		}
 	}(tarfile)
 
@@ -27,7 +26,7 @@ func withTarfileDump(ctx context.Context, target string, content []byte, uid, gi
 
 func tempTarFile(path string, data []byte, uid, gid int, mode int64) (string, error) {
 	filename := filepath.Base(path)
-	f, err := ioutil.TempFile(os.TempDir(), filename)
+	f, err := os.CreateTemp(os.TempDir(), filename)
 	if err != nil {
 		return "", err
 	}

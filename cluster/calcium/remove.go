@@ -6,35 +6,34 @@ import (
 	"sync"
 
 	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/store"
+	"github.com/projecteru2/core/resource/plugins"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/pkg/errors"
 )
 
 // RemoveWorkload remove workloads
 // returns a channel that contains removing responses
-func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, step int) (chan *types.RemoveWorkloadMessage, error) {
-	logger := log.WithField("Calcium", "RemoveWorkload").WithField("ids", ids).WithField("force", force).WithField("step", step)
+func (c *Calcium) RemoveWorkload(ctx context.Context, IDs []string, force bool) (chan *types.RemoveWorkloadMessage, error) {
+	logger := log.WithFunc("calcium.RemoveWorkload").WithField("IDs", IDs).WithField("force", force)
 
-	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, ids)
+	nodeWorkloadGroup, err := c.groupWorkloadsByNode(ctx, IDs)
 	if err != nil {
-		logger.Errorf(ctx, "failed to group workloads by node: %+v", err)
+		logger.Error(ctx, err, "failed to group workloads by node")
 		return nil, err
 	}
 
 	ch := make(chan *types.RemoveWorkloadMessage)
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		defer close(ch)
 		wg := sync.WaitGroup{}
 		defer wg.Wait()
 		for nodename, workloadIDs := range nodeWorkloadGroup {
 			wg.Add(1)
-			utils.SentryGo(func(nodename string, workloadIDs []string) func() {
+			_ = c.pool.Invoke(func(nodename string, workloadIDs []string) func() {
 				return func() {
 					defer wg.Done()
-					if err := c.withNodeLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+					if err := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
 						for _, workloadID := range workloadIDs {
 							ret := &types.RemoveWorkloadMessage{WorkloadID: workloadID, Success: true, Hook: []*bytes.Buffer{}}
 							if err := c.withWorkloadLocked(ctx, workloadID, func(ctx context.Context, workload *types.Workload) error {
@@ -42,12 +41,13 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, 
 									ctx,
 									// if
 									func(ctx context.Context) error {
-										return errors.WithStack(c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionIncr))
+										_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Decr)
+										return err
 									},
 									// then
 									func(ctx context.Context) (err error) {
-										if err = c.doRemoveWorkload(ctx, workload, force); err != nil {
-											log.Infof(ctx, "[RemoveWorkload] Workload %s removed", workload.ID)
+										if err = c.doRemoveWorkload(ctx, workload, force); err == nil {
+											logger.Infof(ctx, "Workload %s removed", workload.ID)
 										}
 										return err
 									},
@@ -56,21 +56,22 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, 
 										if failedByCond {
 											return nil
 										}
-										return errors.WithStack(c.store.UpdateNodeResource(ctx, node, &workload.ResourceMeta, store.ActionDecr))
+										_, _, err = c.rmgr.SetNodeResourceUsage(ctx, node.Name, nil, nil, []resourcetypes.Resources{workload.Resources}, true, plugins.Incr)
+										return err
 									},
 									c.config.GlobalTimeout,
 								)
 							}); err != nil {
-								logger.WithField("id", workloadID).Errorf(ctx, "failed to lock workload: %+v", err)
+								logger.WithField("id", workloadID).Error(ctx, err, "failed to lock workload")
 								ret.Hook = append(ret.Hook, bytes.NewBufferString(err.Error()))
 								ret.Success = false
 							}
 							ch <- ret
 						}
-						c.doRemapResourceAndLog(ctx, logger, node)
+						_ = c.pool.Invoke(func() { c.RemapResourceAndLog(ctx, logger, node) })
 						return nil
 					}); err != nil {
-						logger.WithField("nodename", nodename).Errorf(ctx, "failed to lock node: %+v", err)
+						logger.WithField("node", nodename).Error(ctx, err, "failed to lock node")
 						ch <- &types.RemoveWorkloadMessage{Success: false}
 					}
 				}
@@ -80,13 +81,18 @@ func (c *Calcium) RemoveWorkload(ctx context.Context, ids []string, force bool, 
 	return ch, nil
 }
 
+// RemoveWorkloadSync .
+func (c *Calcium) RemoveWorkloadSync(ctx context.Context, IDs []string) error {
+	return c.doRemoveWorkloadSync(ctx, IDs)
+}
+
 // semantic: instance removed on err == nil, instance remained on err != nil
 func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload, force bool) error {
 	return utils.Txn(
 		ctx,
 		// if
 		func(ctx context.Context) error {
-			return errors.WithStack(c.store.RemoveWorkload(ctx, workload))
+			return c.store.RemoveWorkload(ctx, workload)
 		},
 		// then
 		func(ctx context.Context) error {
@@ -97,29 +103,30 @@ func (c *Calcium) doRemoveWorkload(ctx context.Context, workload *types.Workload
 			if failedByCond {
 				return nil
 			}
-			return errors.WithStack(c.store.AddWorkload(ctx, workload, nil))
+			return c.store.AddWorkload(ctx, workload, nil)
 		},
 		c.config.GlobalTimeout,
 	)
 }
 
 // 同步地删除容器, 在某些需要等待的场合异常有用!
-func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, ids []string) error {
-	ch, err := c.RemoveWorkload(ctx, ids, true, 1)
+func (c *Calcium) doRemoveWorkloadSync(ctx context.Context, IDs []string) error {
+	ch, err := c.RemoveWorkload(ctx, IDs, true)
 	if err != nil {
 		return err
 	}
 
 	for m := range ch {
-		log.Debugf(ctx, "[doRemoveWorkloadSync] Removed %s", m.WorkloadID)
+		// TODO deal with failed
+		log.WithFunc("calcium.doRemoveWorkloadSync").Debugf(ctx, "Removed %s", m.WorkloadID)
 	}
 	return nil
 }
 
-func (c *Calcium) groupWorkloadsByNode(ctx context.Context, ids []string) (map[string][]string, error) {
-	workloads, err := c.store.GetWorkloads(ctx, ids)
+func (c *Calcium) groupWorkloadsByNode(ctx context.Context, IDs []string) (map[string][]string, error) {
+	workloads, err := c.store.GetWorkloads(ctx, IDs)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 	nodeWorkloadGroup := map[string][]string{}
 	for _, workload := range workloads {

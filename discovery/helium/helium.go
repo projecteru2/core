@@ -5,85 +5,126 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 
+	"github.com/alphadose/haxmap"
 	"github.com/google/uuid"
 )
+
+const interval = 15 * time.Second
 
 // Helium .
 type Helium struct {
 	sync.Once
-	config types.GRPCConfig
-	stor   store.Store
-	subs   sync.Map
+	store     store.Store
+	subs      *haxmap.Map[uint32, entry]
+	interval  time.Duration
+	unsubChan chan uint32
+}
+
+type entry struct {
+	ch     chan types.ServiceStatus
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // New .
-func New(config types.GRPCConfig, stor store.Store) *Helium {
-	h := &Helium{}
-	h.config = config
-	h.stor = stor
+func New(ctx context.Context, config types.GRPCConfig, store store.Store) *Helium {
+	h := &Helium{
+		interval:  config.ServiceDiscoveryPushInterval,
+		store:     store,
+		subs:      haxmap.New[uint32, entry](),
+		unsubChan: make(chan uint32),
+	}
+	if h.interval < time.Second {
+		h.interval = interval
+	}
 	h.Do(func() {
-		h.start(context.TODO()) // TODO rewrite ctx here, because this will run only once!
+		h.start(ctx)
 	})
 	return h
 }
 
 // Subscribe .
-func (h *Helium) Subscribe(ch chan<- types.ServiceStatus) uuid.UUID {
-	id := uuid.New()
-	_, _ = h.subs.LoadOrStore(id, ch)
-	return id
+func (h *Helium) Subscribe(ctx context.Context) (uuid.UUID, <-chan types.ServiceStatus) {
+	ID := uuid.New()
+	key := ID.ID()
+	subCtx, cancel := context.WithCancel(ctx)
+	ch := make(chan types.ServiceStatus)
+	h.subs.Set(key, entry{
+		ch:     ch,
+		ctx:    subCtx,
+		cancel: cancel,
+	})
+	return ID, ch
 }
 
 // Unsubscribe .
-func (h *Helium) Unsubscribe(id uuid.UUID) {
-	h.subs.Delete(id)
+func (h *Helium) Unsubscribe(ID uuid.UUID) {
+	h.unsubChan <- ID.ID()
 }
 
 func (h *Helium) start(ctx context.Context) {
-	ch, err := h.stor.ServiceStatusStream(ctx)
+	logger := log.WithFunc("helium.start")
+	ch, err := h.store.ServiceStatusStream(ctx)
 	if err != nil {
-		log.Errorf(nil, "[WatchServiceStatus] failed to start watch: %v", err) //nolint
+		logger.Error(ctx, err, "failed to start watch")
 		return
 	}
 
 	go func() {
-		log.Info("[WatchServiceStatus] service discovery start")
-		defer log.Error("[WatchServiceStatus] service discovery exited")
+		logger.Info(ctx, "service discovery start")
+		defer logger.Warn(ctx, "service discovery exited")
 		var latestStatus types.ServiceStatus
-		timer := time.NewTimer(h.config.ServiceDiscoveryPushInterval)
+		ticker := time.NewTicker(h.interval)
+		defer ticker.Stop()
 		for {
 			select {
 			case addresses, ok := <-ch:
 				if !ok {
-					log.Error("[WatchServiceStatus] watch channel closed")
+					logger.Warn(ctx, "watch channel closed")
 					return
 				}
 
 				latestStatus = types.ServiceStatus{
 					Addresses: addresses,
-					Interval:  h.config.ServiceDiscoveryPushInterval * 2,
+					Interval:  h.interval * 2,
 				}
-			case <-timer.C:
+
+			case ID := <-h.unsubChan:
+				if entry, ok := h.subs.Get(ID); ok {
+					entry.cancel()
+					h.subs.Del(ID)
+					close(entry.ch)
+				}
+
+			case <-ticker.C:
 			}
-			h.dispatch(latestStatus)
-			timer.Stop()
-			timer.Reset(h.config.ServiceDiscoveryPushInterval)
+
+			h.dispatch(ctx, latestStatus)
 		}
 	}()
 }
 
-func (h *Helium) dispatch(status types.ServiceStatus) {
-	h.subs.Range(func(k, v interface{}) bool {
-		c, ok := v.(chan<- types.ServiceStatus)
-		if !ok {
-			log.Error("[WatchServiceStatus] failed to cast channel from map")
-			return true
+func (h *Helium) dispatch(ctx context.Context, status types.ServiceStatus) {
+	f := func(key uint32, val entry) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.WithFunc("helium.dispatch").Errorf(ctx, errors.Errorf("%+v", err), "dispatch %+v failed", key)
+			}
+		}()
+		select {
+		case val.ch <- status:
+			return
+		case <-val.ctx.Done():
+			return
 		}
-		c <- status
+	}
+	h.subs.ForEach(func(k uint32, v entry) bool {
+		f(k, v)
 		return true
 	})
 }

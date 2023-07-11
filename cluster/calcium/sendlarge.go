@@ -60,7 +60,7 @@ func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *t
 		for data := range sender.buffer {
 			if curFile != "" && curFile != data.Dst {
 				// todo 报错之后返回一下?
-				log.Errorf(ctx, "[newWorkloadExecutor] receive different files %s, %s", curFile, data.Dst)
+				log.Warnf(ctx, "[newWorkloadExecutor] receive different files %s, %s", curFile, data.Dst)
 				break
 			}
 			// ready to send

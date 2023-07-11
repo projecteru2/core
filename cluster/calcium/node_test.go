@@ -2,13 +2,20 @@ package calcium
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
+	"github.com/projecteru2/core/engine/factory"
+	enginemocks "github.com/projecteru2/core/engine/mocks"
+	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	resourcemocks "github.com/projecteru2/core/resource/mocks"
+	plugintypes "github.com/projecteru2/core/resource/plugins/types"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -16,29 +23,45 @@ import (
 func TestAddNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	name := "test"
-	node := &types.Node{
-		NodeMeta: types.NodeMeta{Name: name},
-	}
+	factory.InitEngineCache(ctx, c.config)
 
-	store := &storemocks.Store{}
-	store.On("AddNode",
-		mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
-		mock.Anything, mock.Anything, mock.Anything).Return(node, nil)
-	c.store = store
-
-	// fail by validating
-	_, err := c.AddNode(ctx, &types.AddNodeOptions{})
+	opts := &types.AddNodeOptions{}
+	// failed by validating
+	_, err := c.AddNode(ctx, opts)
 	assert.Error(t, err)
 
-	n, err := c.AddNode(ctx, &types.AddNodeOptions{
-		Nodename: "nodename",
-		Podname:  "podname",
-		Endpoint: "endpoint",
-	})
+	nodename := "nodename"
+	podname := "podname"
+	opts.Nodename = nodename
+	opts.Podname = podname
+	opts.Endpoint = fmt.Sprintf("mock://%s", nodename)
+
+	// failed by rmgr.AddNode
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	_, err = c.AddNode(ctx, opts)
+	assert.Error(t, err)
+	rmgr.AssertExpectations(t)
+	rmgr.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		resourcetypes.Resources{}, nil)
+	rmgr.On("RemoveNode", mock.Anything, mock.Anything).Return(nil)
+
+	// failed by store.AddNode
+	store := c.store.(*storemocks.Store)
+	store.On("AddNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	_, err = c.AddNode(ctx, opts)
+	assert.Error(t, err)
+	store.AssertExpectations(t)
+	name := "test"
+	node := &types.Node{
+		NodeMeta: types.NodeMeta{
+			Name:     name,
+			Endpoint: "endpoint",
+		},
+	}
+	store.On("AddNode", mock.Anything, mock.Anything).Return(node, nil)
+	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything).Return([]*plugintypes.Metrics{}, nil)
+	n, err := c.AddNode(ctx, opts)
 	assert.NoError(t, err)
 	assert.Equal(t, n.Name, name)
 }
@@ -46,252 +69,237 @@ func TestAddNode(t *testing.T) {
 func TestRemoveNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-
-	// fail by validating
-	assert.Error(t, c.RemoveNode(ctx, ""))
-
-	name := "test"
-	node := &types.Node{NodeMeta: types.NodeMeta{Name: name}}
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
+	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	name := "test"
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: name}}
+	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 
-	store.On("GetNode",
-		mock.Anything,
-		mock.Anything).Return(node, nil)
 	// fail, ListNodeWorkloads fail
-	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{}, types.ErrNoETCD).Once()
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{}, types.ErrMockError).Once()
 	assert.Error(t, c.RemoveNode(ctx, name))
+
 	// fail, node still has associated workloads
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{{}}, nil).Once()
 	assert.Error(t, c.RemoveNode(ctx, name))
+	store.AssertExpectations(t)
 
-	// succeed
+	// fail by store.RemoveNode
 	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{}, nil)
-	store.On("RemoveNode", mock.Anything, mock.Anything).Return(nil)
-	pod := &types.Pod{Name: name}
-	store.On("GetPod", mock.Anything, mock.Anything).Return(pod, nil)
+	store.On("RemoveNode", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
+	assert.Error(t, c.RemoveNode(ctx, name))
 
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
+	// success
+	store.On("RemoveNode", mock.Anything, mock.Anything).Return(nil)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("RemoveNode", mock.Anything, mock.Anything).Return(nil)
 	assert.NoError(t, c.RemoveNode(ctx, name))
+	store.AssertExpectations(t)
+	rmgr.AssertExpectations(t)
 }
 
 func TestListPodNodes(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
+
+	opts := &types.ListNodesOptions{}
+	store := c.store.(*storemocks.Store)
+	// failed by GetNodesByPod
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	_, err := c.ListPodNodes(ctx, opts)
+	assert.Error(t, err)
+	store.AssertExpectations(t)
+
+	// success
+	engine := &enginemocks.API{}
+	engine.On("Info", mock.Anything).Return(nil, types.ErrMockError)
 	name1 := "test1"
 	name2 := "test2"
 	nodes := []*types.Node{
-		{NodeMeta: types.NodeMeta{Name: name1}, Available: true},
-		{NodeMeta: types.NodeMeta{Name: name2}, Available: false},
+		{NodeMeta: types.NodeMeta{Name: name1}, Engine: engine, Available: true},
+		{NodeMeta: types.NodeMeta{Name: name2}, Engine: engine, Available: false},
 	}
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrMockError)
+	opts.CallInfo = true
 
-	store := &storemocks.Store{}
-	c.store = store
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err := c.ListPodNodes(ctx, &types.ListNodesOptions{})
-	assert.Error(t, err)
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 	ns, err := c.ListPodNodes(ctx, &types.ListNodesOptions{})
-	nss := []*types.Node{}
-	for n := range ns {
-		nss = append(nss, n)
-	}
-	assert.NoError(t, err)
-	assert.Equal(t, len(nss), 2)
-	assert.Equal(t, nss[0].Name, name1)
-	ns, err = c.ListPodNodes(ctx, &types.ListNodesOptions{})
 	assert.NoError(t, err)
 	cnt := 0
 	for range ns {
 		cnt++
 	}
 	assert.Equal(t, cnt, 2)
+	rmgr.AssertExpectations(t)
+	store.AssertExpectations(t)
 }
 
 func TestGetNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-
 	// fail by validating
 	_, err := c.GetNode(ctx, "")
 	assert.Error(t, err)
+	nodename := "test"
 
-	name := "test"
+	// failed by store.GetNode
+	store := c.store.(*storemocks.Store)
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	_, err = c.GetNode(ctx, nodename)
+	assert.Error(t, err)
+
 	node := &types.Node{
-		NodeMeta: types.NodeMeta{Name: name},
+		NodeMeta: types.NodeMeta{Name: nodename},
 	}
-
-	store := &storemocks.Store{}
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
-	c.store = store
 
-	n, err := c.GetNode(ctx, name)
+	// failed by GetNodeResourceInfo
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrMockError).Once()
+	_, err = c.GetNode(ctx, nodename)
+	assert.Error(t, err)
+
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+
+	// success
+	node, err = c.GetNode(ctx, nodename)
 	assert.NoError(t, err)
-	assert.Equal(t, n.Name, name)
+	assert.Equal(t, node.Name, nodename)
+
+	rmgr.AssertExpectations(t)
+	store.AssertExpectations(t)
+}
+
+func TestGetNodeEngine(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+
+	// fail by validating
+	_, err := c.GetNodeEngineInfo(ctx, "")
+	assert.Error(t, err)
+	nodename := "test"
+
+	// fail by store.GetNode
+	store := c.store.(*storemocks.Store)
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	_, err = c.GetNode(ctx, nodename)
+	assert.Error(t, err)
+
+	// success
+	engine := &enginemocks.API{}
+	engine.On("Info", mock.Anything).Return(&enginetypes.Info{Type: "fake"}, nil)
+	node := &types.Node{
+		NodeMeta: types.NodeMeta{Name: nodename},
+		Engine:   engine,
+	}
+	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
+
+	e, err := c.GetNodeEngineInfo(ctx, nodename)
+	assert.NoError(t, err)
+	assert.Equal(t, e.Type, "fake")
+	store.AssertExpectations(t)
 }
 
 func TestSetNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	name := "test"
-	node := &types.Node{NodeMeta: types.NodeMeta{Name: name}}
-	node.Init()
 
-	store := &storemocks.Store{}
-	c.store = store
+	opts := &types.SetNodeOptions{}
+
+	// failed by validating
+	_, err := c.SetNode(ctx, opts)
+	assert.Error(t, err)
+
+	store := c.store.(*storemocks.Store)
 	lock := &lockmocks.DistributedLock{}
-	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
+	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
-	store.On("SetNodeStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-
-	// fail by validating
-	_, err := c.SetNode(ctx, &types.SetNodeOptions{Nodename: ""})
-	assert.Error(t, err)
-	// failed by get node
-	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrCannotGetEngine).Once()
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Node{node}, nil)
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "xxxx"})
-	assert.Error(t, err)
+	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
+	name := "test"
+	opts.Nodename = name
+	node := &types.Node{NodeMeta: types.NodeMeta{Name: name}}
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
-	// failed by no node name
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test1"})
+
+	// failed by GetNodeResourceInfo
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrMockError).Once()
+	_, err = c.SetNode(ctx, opts)
 	assert.Error(t, err)
-	// failed by updatenode
-	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test"})
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
+
+	// for bypass
+	opts.Bypass = types.TriTrue
+	opts.WorkloadsDown = true
+	// for setAllWorkloadsOnNodeDown
+	workloads := []*types.Workload{{ID: "1", Name: "wrong_name"}, {ID: "2", Name: "a_b_c"}}
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
+	store.On("SetWorkloadStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	// for set endpoint
+	endpoint := "mock://test2"
+	opts.Endpoint = endpoint
+
+	// for labels update
+	labels := map[string]string{"a": "1", "b": "2"}
+	opts.Labels = labels
+
+	// failed by SetNodeResourceCapacity
+	opts.Resources = resourcetypes.Resources{"a": {"a": 1}}
+	rmgr.On("SetNodeResourceCapacity", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		nil, nil, types.ErrMockError,
+	).Once()
+	_, err = c.SetNode(ctx, opts)
+	assert.Error(t, err)
+	rmgr.On("SetNodeResourceCapacity", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		nil, nil, nil,
+	)
+
+	// rollback
+	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
+	_, err = c.SetNode(ctx, opts)
 	assert.Error(t, err)
 	store.On("UpdateNodes", mock.Anything, mock.Anything).Return(nil)
-	// succ when node available
-	n, err := c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", Endpoint: "tcp://127.0.0.1:2379"})
+	rmgr.On("GetNodeMetrics", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*plugintypes.Metrics{}, nil)
+
+	// done
+	node, err = c.SetNode(ctx, opts)
 	assert.NoError(t, err)
-	assert.Equal(t, n.Name, name)
-	assert.Equal(t, n.Endpoint, "tcp://127.0.0.1:2379")
-	// not available
-	// can still set node even if ListNodeWorkloads fails
-	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", WorkloadsDown: true})
-	assert.NoError(t, err)
-	workloads := []*types.Workload{{Name: "wrong_name"}, {Name: "a_b_c"}}
-	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(workloads, nil)
-	store.On("SetWorkloadStatus",
-		mock.Anything, mock.Anything, mock.Anything,
-	).Return(types.ErrNoETCD)
-	_, err = c.SetNode(ctx, &types.SetNodeOptions{Nodename: "test", WorkloadsDown: true})
-	assert.NoError(t, err)
-	// test modify
-	setOpts := &types.SetNodeOptions{
-		Nodename: "test",
-		Labels:   map[string]string{"some": "1"},
-	}
-	// set label
-	n, err = c.SetNode(ctx, setOpts)
-	assert.NoError(t, err)
-	assert.Equal(t, n.Labels["some"], "1")
-	// set endpoint
-	setOpts.Endpoint = "tcp://10.10.10.10:2379"
-	n, err = c.SetNode(ctx, setOpts)
-	assert.NoError(t, err)
-	assert.Equal(t, n.Endpoint, "tcp://10.10.10.10:2379")
-	// no impact on endpoint
-	setOpts.Endpoint = ""
-	n, err = c.SetNode(ctx, setOpts)
-	assert.NoError(t, err)
-	assert.Equal(t, n.Endpoint, "tcp://10.10.10.10:2379")
-	// set ca / cert / key
-	setOpts.Ca = "hh"
-	setOpts.Cert = "hh"
-	setOpts.Key = "hh"
-	n, err = c.SetNode(ctx, setOpts)
-	assert.NoError(t, err)
-	// set numa
-	setOpts.NUMA = types.NUMA{"100": "node1"}
-	n, err = c.SetNode(ctx, setOpts)
-	assert.NoError(t, err)
-	assert.Equal(t, n.NUMA["100"], "node1")
-	// failed by numa node memory < 0
-	n.NUMAMemory = types.NUMAMemory{"node1": 1}
-	n.InitNUMAMemory = types.NUMAMemory{"node1": 2}
-	setOpts.DeltaNUMAMemory = types.NUMAMemory{"node1": -10}
-	n, err = c.SetNode(ctx, setOpts)
-	assert.Error(t, err)
-	// succ set numa node memory
-	n.NUMAMemory = types.NUMAMemory{"node1": 1}
-	n.InitNUMAMemory = types.NUMAMemory{"node1": 2}
-	setOpts.DeltaNUMAMemory = types.NUMAMemory{"node1": -1}
-	n, err = c.SetNode(ctx, setOpts)
-	assert.NoError(t, err)
-	assert.Equal(t, n.NUMAMemory["node1"], int64(0))
-	setOpts.DeltaNUMAMemory = types.NUMAMemory{}
-	// failed set storage
-	n.StorageCap = 1
-	n.InitStorageCap = 2
-	setOpts.DeltaStorage = -10
-	n, err = c.SetNode(ctx, setOpts)
-	assert.Error(t, err)
-	// succ set storage
-	n.StorageCap = 1
-	n.InitStorageCap = 2
-	setOpts.DeltaStorage = -1
-	n, err = c.SetNode(ctx, setOpts)
-	assert.NoError(t, err)
-	assert.Equal(t, n.StorageCap, int64(0))
-	setOpts.DeltaStorage = 0
-	// failed set memory
-	n.MemCap = 1
-	n.InitMemCap = 2
-	setOpts.DeltaMemory = -10
-	n, err = c.SetNode(ctx, setOpts)
-	assert.Error(t, err)
-	// succ set storage
-	n.MemCap = 1
-	n.InitMemCap = 2
-	setOpts.DeltaMemory = -1
-	n, err = c.SetNode(ctx, setOpts)
-	assert.NoError(t, err)
-	assert.Equal(t, n.MemCap, int64(0))
-	setOpts.DeltaMemory = 0
-	// failed by set cpu
-	n.CPU = types.CPUMap{"1": 1}
-	n.InitCPU = types.CPUMap{"1": 2}
-	setOpts.DeltaCPU = types.CPUMap{"1": -10}
-	n, err = c.SetNode(ctx, setOpts)
-	assert.Error(t, err)
-	// succ set cpu, add and del
-	n.CPU = types.CPUMap{"1": 10, "2": 2}
-	n.InitCPU = types.CPUMap{"1": 10, "2": 10}
-	setOpts.DeltaCPU = types.CPUMap{"1": -10, "2": -1, "3": 10}
-	n, err = c.SetNode(ctx, setOpts)
-	assert.NoError(t, err)
-	_, ok := n.CPU["1"]
-	assert.False(t, ok)
-	assert.Equal(t, n.CPU["2"], int64(1))
-	assert.Equal(t, n.InitCPU["2"], int64(9))
-	assert.Equal(t, n.CPU["3"], int64(10))
-	assert.Equal(t, n.InitCPU["3"], int64(10))
-	assert.Equal(t, len(n.CPU), 2)
-	assert.Equal(t, len(n.InitCPU), 2)
-	// succ set volume
-	n.Volume = types.VolumeMap{"/sda1": 10, "/sda2": 20}
-	setOpts.DeltaCPU = nil
-	setOpts.DeltaVolume = types.VolumeMap{"/sda0": 5, "/sda1": 0, "/sda2": -1}
-	n, err = c.SetNode(ctx, setOpts)
-	assert.NoError(t, err)
-	_, ok = n.Volume["/sda1"]
-	assert.False(t, ok)
-	assert.Equal(t, n.Volume["/sda0"], int64(5))
-	assert.Equal(t, n.Volume["/sda2"], int64(19))
+	assert.Equal(t, node.Endpoint, endpoint)
+	assert.Equal(t, labels["a"], node.Labels["a"])
+	store.AssertExpectations(t)
+	time.Sleep(100 * time.Millisecond) // for send metrics testing
+	rmgr.AssertExpectations(t)
 }
 
 func TestFilterNodes(t *testing.T) {
-	assert := assert.New(t)
 	c := NewTestCluster()
+	ctx := context.Background()
 	store := c.store.(*storemocks.Store)
+
+	// failed by GetNode
+	nf := &types.NodeFilter{Includes: []string{"test"}}
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	_, err := c.filterNodes(ctx, nf)
+	assert.Error(t, err)
+
+	// succ by GetNode
+	node1 := &types.Node{NodeMeta: types.NodeMeta{Name: "0"}}
+	store.On("GetNode", mock.Anything, mock.Anything).Return(node1, nil)
+	ns, err := c.filterNodes(ctx, nf)
+	assert.NoError(t, err)
+	assert.Len(t, ns, 1)
+
+	// failed by GetNodesByPod
+	nf.Includes = []string{}
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	_, err = c.filterNodes(ctx, nf)
+	assert.Error(t, err)
+
 	nodes := []*types.Node{
 		{
 			NodeMeta: types.NodeMeta{Name: "A"},
@@ -306,38 +314,16 @@ func TestFilterNodes(t *testing.T) {
 			NodeMeta: types.NodeMeta{Name: "D"},
 		},
 	}
+	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
 
-	// error
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("fail to list pod nodes")).Once()
-	_, err := c.filterNodes(context.Background(), types.NodeFilter{Includes: []string{}, Excludes: []string{"A", "X"}})
-	assert.Error(err)
+	// no excludes
+	ns, err = c.filterNodes(ctx, nf)
+	assert.NoError(t, err)
+	assert.Len(t, ns, 4)
 
-	// empty nodenames, non-empty excludeNodenames
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil).Once()
-	nodes1, err := c.filterNodes(context.Background(), types.NodeFilter{Includes: []string{}, Excludes: []string{"A", "B"}})
-	assert.NoError(err)
-	assert.Equal("C", nodes1[0].Name)
-	assert.Equal("D", nodes1[1].Name)
-
-	// empty nodenames, empty excludeNodenames
-	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil).Once()
-	nodes2, err := c.filterNodes(context.Background(), types.NodeFilter{Includes: []string{}, Excludes: []string{}})
-	assert.NoError(err)
-	assert.Equal(4, len(nodes2))
-
-	// non-empty nodenames, empty excludeNodenames
-	store.On("GetNode", mock.Anything, "O").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "O"}}, nil).Once()
-	store.On("GetNode", mock.Anything, "P").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "P"}}, nil).Once()
-	nodes3, err := c.filterNodes(context.Background(), types.NodeFilter{Includes: []string{"O", "P"}, Excludes: []string{}})
-	assert.NoError(err)
-	assert.Equal("O", nodes3[0].Name)
-	assert.Equal("P", nodes3[1].Name)
-
-	// non-empty nodenames
-	store.On("GetNode", mock.Anything, "X").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "X"}}, nil).Once()
-	store.On("GetNode", mock.Anything, "Y").Return(&types.Node{NodeMeta: types.NodeMeta{Name: "Y"}}, nil).Once()
-	nodes4, err := c.filterNodes(context.Background(), types.NodeFilter{Includes: []string{"X", "Y"}, Excludes: []string{"A", "B"}})
-	assert.NoError(err)
-	assert.Equal("X", nodes4[0].Name)
-	assert.Equal("Y", nodes4[1].Name)
+	// excludes
+	nf.Excludes = []string{"A", "C"}
+	ns, err = c.filterNodes(ctx, nf)
+	assert.NoError(t, err)
+	assert.Len(t, ns, 2)
 }

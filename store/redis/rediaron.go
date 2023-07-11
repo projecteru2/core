@@ -2,17 +2,18 @@ package redis
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/panjf2000/ants/v2"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 
+	"github.com/cockroachdb/errors"
 	"github.com/go-redis/redis/v8"
-	perrors "github.com/pkg/errors"
 )
 
 var (
@@ -56,31 +57,31 @@ const (
 	actionDel     = "del"
 )
 
-// go-redis doesn't export its proto.Error type,
-// we have to check the content in this error
-func isRedisNoKeyError(e error) bool {
-	return e != nil && strings.Contains(e.Error(), "redis: nil")
-}
-
 // Rediaron is a store implemented by redis
 type Rediaron struct {
 	cli    *redis.Client
 	config types.Config
+	pool   *ants.PoolWithFunc
 	db     int
 }
 
 // New creates a new Rediaron instance from config
 // Only redis address and db is used
 // db is used to separate data, by default db 0 will be used
-func New(config types.Config, t *testing.T) (*Rediaron, error) {
+// TODO mock redis for testing
+func New(config types.Config, _ *testing.T) (*Rediaron, error) {
 	cli := redis.NewClient(&redis.Options{
 		Addr: config.Redis.Addr,
 		DB:   config.Redis.DB,
 	})
-
+	pool, err := utils.NewPool(config.MaxConcurrency)
+	if err != nil {
+		return nil, err
+	}
 	return &Rediaron{
 		cli:    cli,
 		config: config,
+		pool:   pool,
 		db:     config.Redis.DB,
 	}, nil
 }
@@ -95,7 +96,7 @@ type KNotifyMessage struct {
 // knotify comes from inotify, when a key is changed, notification will be published
 func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMessage {
 	ch := make(chan *KNotifyMessage)
-	go func() {
+	_ = r.pool.Invoke(func() {
 		defer close(ch)
 
 		prefix := fmt.Sprintf(keyNotifyPrefix, r.db, "")
@@ -110,7 +111,7 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 				return
 			case v := <-subC:
 				if v == nil {
-					log.Warnf(ctx, "[KNotify] channel already closed, knotify returns")
+					log.WithFunc("store.redis.KNotify").Warnf(ctx, "channel already closed, knotify returns")
 					return
 				}
 				ch <- &KNotifyMessage{
@@ -119,7 +120,7 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 				}
 			}
 		}
-	}()
+	})
 	return ch
 }
 
@@ -127,7 +128,7 @@ func (r *Rediaron) KNotify(ctx context.Context, pattern string) chan *KNotifyMes
 func (r *Rediaron) GetOne(ctx context.Context, key string) (string, error) {
 	value, err := r.cli.Get(ctx, key).Result()
 	if isRedisNoKeyError(err) {
-		return "", perrors.WithMessage(err, fmt.Sprintf("Key not found: %s", key))
+		return "", errors.Wrapf(err, "Key not found: %s", key)
 	}
 	return value, err
 }
@@ -162,7 +163,7 @@ func (r *Rediaron) GetMulti(ctx context.Context, keys []string) (map[string]stri
 		}
 
 		if isRedisNoKeyError(c.Err()) {
-			return nil, perrors.WithMessage(err, fmt.Sprintf("Key not found: %s", key))
+			return nil, errors.Wrapf(err, "Key not found: %s", key)
 		}
 
 		data[key] = c.Val()
@@ -294,7 +295,7 @@ func (r *Rediaron) BindStatus(ctx context.Context, entityKey, statusKey, statusV
 	// doesn't exist, returns error
 	// to behave just like etcd
 	if count != 1 {
-		return types.ErrEntityNotExists
+		return types.ErrInvaildCount
 	}
 
 	_, err = r.cli.Set(ctx, statusKey, statusValue, time.Duration(ttl)*time.Second).Result()
@@ -307,4 +308,10 @@ func (r *Rediaron) BindStatus(ctx context.Context, entityKey, statusKey, statusV
 // never call this except running unittests
 func (r *Rediaron) TerminateEmbededStorage() {
 	_ = r.cli.Close()
+}
+
+// go-redis doesn't export its proto.Error type,
+// we have to check the content in this error
+func isRedisNoKeyError(e error) bool {
+	return e != nil && strings.Contains(e.Error(), "redis: nil")
 }

@@ -4,16 +4,17 @@ import (
 	"context"
 	"net"
 
-	enginetypes "github.com/projecteru2/core/engine/types"
-	coretypes "github.com/projecteru2/core/types"
-
+	"github.com/cockroachdb/errors"
 	dockertypes "github.com/docker/docker/api/types"
 	dockerfilters "github.com/docker/docker/api/types/filters"
 	dockernetwork "github.com/docker/docker/api/types/network"
+
+	enginetypes "github.com/projecteru2/core/engine/types"
+	coretypes "github.com/projecteru2/core/types"
 )
 
 // NetworkConnect connect to a network
-func (e *Engine) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) ([]string, error) {
+func (e *Engine) NetworkConnect(ctx context.Context, network, target, ipv4, _ string) ([]string, error) {
 	config, err := e.makeIPV4EndpointSetting(ipv4)
 	if err != nil {
 		return nil, err
@@ -69,7 +70,7 @@ func (e *Engine) makeIPV4EndpointSetting(ipv4 string) (*dockernetwork.EndpointSe
 	if ipv4 != "" {
 		ip := net.ParseIP(ipv4)
 		if ip == nil {
-			return nil, coretypes.NewDetailedErr(coretypes.ErrBadIPAddress, ipv4)
+			return nil, errors.Wrapf(coretypes.ErrInvaildIPAddress, "ip: %s", ipv4)
 		}
 		config.IPAMConfig.IPv4Address = ip.String()
 	}

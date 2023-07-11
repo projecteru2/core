@@ -34,6 +34,7 @@ type BuildOptions struct {
 	Tags []string
 	BuildMethod
 	*Builds
-	Tar     io.Reader
-	ExistID string
+	Tar      io.Reader
+	ExistID  string
+	Platform string
 }

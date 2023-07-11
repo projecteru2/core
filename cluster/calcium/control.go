@@ -9,59 +9,62 @@ import (
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-
-	"github.com/pkg/errors"
 )
 
 // ControlWorkload control workloads status
-func (c *Calcium) ControlWorkload(ctx context.Context, ids []string, t string, force bool) (chan *types.ControlWorkloadMessage, error) {
-	logger := log.WithField("Calcium", "ControlWorkload").WithField("ids", ids).WithField("t", t).WithField("force", force)
+func (c *Calcium) ControlWorkload(ctx context.Context, IDs []string, typ string, force bool) (chan *types.ControlWorkloadMessage, error) {
+	logger := log.WithFunc("calcium.ControlWorkload").WithField("IDs", IDs).WithField("typ", typ).WithField("force", force)
 	ch := make(chan *types.ControlWorkloadMessage)
 
-	utils.SentryGo(func() {
+	_ = c.pool.Invoke(func() {
 		defer close(ch)
-		wg := sync.WaitGroup{}
-		for _, id := range ids {
-			wg.Add(1)
-			utils.SentryGo(func(id string) func() {
-				return func() {
-					defer wg.Done()
-					var message []*bytes.Buffer
-					err := c.withWorkloadLocked(ctx, id, func(ctx context.Context, workload *types.Workload) error {
-
-						var err error
-						switch t {
-						case cluster.WorkloadStop:
-							message, err = c.doStopWorkload(ctx, workload, force)
-							return err
-						case cluster.WorkloadStart:
-							message, err = c.doStartWorkload(ctx, workload, force)
-							return err
-						case cluster.WorkloadRestart:
-							message, err = c.doStopWorkload(ctx, workload, force)
-							if err != nil {
-								return err
-							}
-							startHook, err := c.doStartWorkload(ctx, workload, force)
-							message = append(message, startHook...)
+		wg := &sync.WaitGroup{}
+		wg.Add(len(IDs))
+		defer wg.Wait()
+		for _, ID := range IDs {
+			ID := ID
+			_ = c.pool.Invoke(func() {
+				defer wg.Done()
+				var message []*bytes.Buffer
+				err := c.withWorkloadLocked(ctx, ID, func(ctx context.Context, workload *types.Workload) error {
+					var err error
+					switch typ {
+					case cluster.WorkloadStop:
+						message, err = c.doStopWorkload(ctx, workload, force)
+						return err
+					case cluster.WorkloadStart:
+						message, err = c.doStartWorkload(ctx, workload, force)
+						return err
+					case cluster.WorkloadRestart:
+						message, err = c.doStopWorkload(ctx, workload, force)
+						if err != nil {
 							return err
 						}
-						return errors.WithStack(types.ErrUnknownControlType)
-					})
-					if err == nil {
-						log.Infof(ctx, "[ControlWorkload] Workload %s %s", id, t)
-						log.Info("[ControlWorkload] Hook Output:")
-						log.Info(string(utils.MergeHookOutputs(message)))
+						startHook, err := c.doStartWorkload(ctx, workload, force)
+						message = append(message, startHook...)
+						return err
+					case cluster.WorkloadSuspend:
+						message, err = c.doSuspendWorkload(ctx, workload, force)
+						return err
+					case cluster.WorkloadResume:
+						message, err = c.doResumeWorkload(ctx, workload, force)
+						return err
 					}
-					ch <- &types.ControlWorkloadMessage{
-						WorkloadID: id,
-						Error:      logger.Err(ctx, err),
-						Hook:       message,
-					}
+					return types.ErrInvaildControlType
+				})
+				if err == nil {
+					logger.Infof(ctx, "Workload %s %s", ID, typ)
+					logger.Infof(ctx, "%+v", "Hook Output:")
+					logger.Infof(ctx, "%+v", string(utils.MergeHookOutputs(message)))
 				}
-			}(id))
+				logger.Error(ctx, err)
+				ch <- &types.ControlWorkloadMessage{
+					WorkloadID: ID,
+					Error:      err,
+					Hook:       message,
+				}
+			})
 		}
-		wg.Wait()
 	})
 
 	return ch, nil
@@ -103,6 +106,42 @@ func (c *Calcium) doStopWorkload(ctx context.Context, workload *types.Workload, 
 	// 另外我怀疑 engine 自己的 timeout 实现是完全的等 timeout 而非结束了就退出
 	if err = workload.Stop(ctx, force); err != nil {
 		message = append(message, bytes.NewBufferString(err.Error()))
+	}
+	return message, err
+}
+
+func (c *Calcium) doSuspendWorkload(ctx context.Context, workload *types.Workload, force bool) (message []*bytes.Buffer, err error) {
+	if workload.Hook != nil && len(workload.Hook.BeforeSuspend) > 0 {
+		message, err = c.doHook(
+			ctx,
+			workload.ID, workload.User,
+			workload.Hook.BeforeSuspend, workload.Env,
+			workload.Hook.Force, workload.Privileged,
+			force, workload.Engine,
+		)
+		if err != nil {
+			return message, err
+		}
+	}
+
+	if err = workload.Suspend(ctx); err != nil {
+		message = append(message, bytes.NewBufferString(err.Error()))
+	}
+	return message, err
+}
+
+func (c *Calcium) doResumeWorkload(ctx context.Context, workload *types.Workload, force bool) (message []*bytes.Buffer, err error) {
+	if err = workload.Resume(ctx); err != nil {
+		return message, err
+	}
+	if workload.Hook != nil && len(workload.Hook.AfterResume) > 0 {
+		message, err = c.doHook(
+			ctx,
+			workload.ID, workload.User,
+			workload.Hook.AfterResume, workload.Env,
+			workload.Hook.Force, workload.Privileged,
+			force, workload.Engine,
+		)
 	}
 	return message, err
 }

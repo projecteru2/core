@@ -4,7 +4,7 @@ import "google.golang.org/grpc/resolver"
 
 type staticResolverBuilder struct{}
 
-func init() { // nolint
+func init() { //nolint
 	resolver.Register(&staticResolverBuilder{})
 }
 
@@ -14,6 +14,6 @@ func (b *staticResolverBuilder) Scheme() string {
 }
 
 // Build for interface
-func (b *staticResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
-	return New(cc, target.Endpoint), nil
+func (b *staticResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, _ resolver.BuildOptions) (resolver.Resolver, error) {
+	return New(cc, target.URL.Path), nil
 }

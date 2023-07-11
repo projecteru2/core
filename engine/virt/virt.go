@@ -6,20 +6,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strconv"
 	"strings"
 	"time"
 
-	virtapi "github.com/projecteru2/libyavirt/client"
-	virttypes "github.com/projecteru2/libyavirt/types"
-
+	"github.com/mitchellh/mapstructure"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
+	resourcetypes "github.com/projecteru2/core/resource/types"
 	coresource "github.com/projecteru2/core/source"
+	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
+	virtapi "github.com/projecteru2/libyavirt/client"
+	virttypes "github.com/projecteru2/libyavirt/types"
 )
 
 const (
@@ -27,12 +28,12 @@ const (
 	HTTPPrefixKey = "virt://"
 	// GRPCPrefixKey indicates grpc yavirtd
 	GRPCPrefixKey = "virt-grpc://"
-	// DmiUUIDKey indicates the key within deploy info.
-	DmiUUIDKey = "DMIUUID"
 	// ImageUserKey indicates the image's owner
 	ImageUserKey = "ImageUser"
-
-	ttyFlag = "tty"
+	// DmiUUIDKey indicates the key within deploy info.
+	DmiUUIDKey = "DMIUUID"
+	// Type indicate type
+	Type = "virt"
 )
 
 // Virt implements the core engine.API interface.
@@ -42,7 +43,7 @@ type Virt struct {
 }
 
 // MakeClient makes a virt. client which wraps yavirt API client.
-func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint, ca, cert, key string) (engine.API, error) {
+func MakeClient(_ context.Context, config coretypes.Config, _, endpoint, _, _, _ string) (engine.API, error) {
 	var uri string
 	switch {
 	case strings.HasPrefix(endpoint, HTTPPrefixKey):
@@ -50,7 +51,7 @@ func MakeClient(ctx context.Context, config coretypes.Config, nodename, endpoint
 	case strings.HasPrefix(endpoint, GRPCPrefixKey):
 		uri = "grpc://" + strings.TrimPrefix(endpoint, GRPCPrefixKey)
 	default:
-		return nil, fmt.Errorf("invalid endpoint: %s", endpoint)
+		return nil, coretypes.ErrInvaildEngineEndpoint
 	}
 
 	cli, err := virtapi.New(uri)
@@ -68,10 +69,12 @@ func (v *Virt) Info(ctx context.Context) (*enginetypes.Info, error) {
 	}
 
 	return &enginetypes.Info{
+		Type:         Type,
 		ID:           resp.ID,
 		NCPU:         resp.CPU,
 		MemTotal:     resp.Mem,
 		StorageTotal: resp.Storage,
+		Resources:    resp.Resources,
 	}, nil
 }
 
@@ -81,27 +84,33 @@ func (v *Virt) Ping(ctx context.Context) error {
 	return err
 }
 
+// CloseConn closes the connection.
+func (v *Virt) CloseConn() error {
+	return v.client.Close()
+}
+
 // Execute executes a command in vm
-func (v *Virt) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (pid string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
+// in tty mode, 'execID' return value indicates the execID which has the pattern '%s_%s', at other times it indicates the pid
+func (v *Virt) Execute(ctx context.Context, ID string, config *enginetypes.ExecConfig) (execID string, stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	if config.Tty {
 		flags := virttypes.AttachGuestFlags{Safe: true, Force: true}
-		stream, err := v.client.AttachGuest(ctx, ID, config.Cmd, flags)
+		execID, stream, err := v.client.AttachGuest(ctx, ID, config.Cmd, flags)
 		if err != nil {
 			return "", nil, nil, nil, err
 		}
-		return ttyFlag, ioutil.NopCloser(stream), nil, stream, nil
+		return execID, io.NopCloser(stream), nil, stream, nil
 	}
 	msg, err := v.client.ExecuteGuest(ctx, ID, config.Cmd)
-	return strconv.Itoa(msg.Pid), ioutil.NopCloser(bytes.NewReader(msg.Data)), nil, nil, err
+	return strconv.Itoa(msg.Pid), io.NopCloser(bytes.NewReader(msg.Data)), nil, nil, err
 }
 
 // ExecExitCode get return code of a specific execution.
-func (v *Virt) ExecExitCode(ctx context.Context, ID, pid string) (code int, err error) {
-	if pid == ttyFlag {
+func (v *Virt) ExecExitCode(ctx context.Context, ID, execID string) (code int, err error) {
+	if strings.Contains(execID, "_") {
 		return 0, nil
 	}
 
-	intPid, err := strconv.Atoi(pid)
+	intPid, err := strconv.Atoi(execID)
 	if err != nil {
 		return -1, err
 	}
@@ -113,12 +122,12 @@ func (v *Virt) ExecExitCode(ctx context.Context, ID, pid string) (code int, err 
 }
 
 // ExecResize resize exec tty
-func (v *Virt) ExecResize(ctx context.Context, ID, pid string, height, width uint) (err error) {
-	return v.client.ResizeConsoleWindow(ctx, ID, height, width)
+func (v *Virt) ExecResize(ctx context.Context, execID string, height, width uint) (err error) {
+	return v.client.ResizeConsoleWindow(ctx, execID, height, width)
 }
 
 // NetworkConnect connects to a network.
-func (v *Virt) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 string) (cidrs []string, err error) {
+func (v *Virt) NetworkConnect(ctx context.Context, network, target, ipv4, _ string) (cidrs []string, err error) {
 	req := virttypes.ConnectNetworkReq{
 		Network: network,
 		IPv4:    ipv4,
@@ -136,7 +145,7 @@ func (v *Virt) NetworkConnect(ctx context.Context, network, target, ipv4, ipv6 s
 }
 
 // NetworkDisconnect disconnects from one network.
-func (v *Virt) NetworkDisconnect(ctx context.Context, network, target string, force bool) (err error) {
+func (v *Virt) NetworkDisconnect(ctx context.Context, network, target string, _ bool) (err error) {
 	var req virttypes.DisconnectNetworkReq
 	req.Network = network
 	req.ID = target
@@ -163,33 +172,49 @@ func (v *Virt) NetworkList(ctx context.Context, drivers []string) (nets []*engin
 }
 
 // BuildRefs builds references.
-func (v *Virt) BuildRefs(ctx context.Context, opts *enginetypes.BuildRefOptions) (refs []string) {
+func (v *Virt) BuildRefs(_ context.Context, opts *enginetypes.BuildRefOptions) (refs []string) {
 	return []string{combineUserImage(opts.User, opts.Name)}
 }
 
 // BuildContent builds content, the use of it is similar to BuildRefs.
-func (v *Virt) BuildContent(ctx context.Context, scm coresource.Source, opts *enginetypes.BuildContentOptions) (string, io.Reader, error) {
-	return "", nil, fmt.Errorf("BuildContent does not implement")
+func (v *Virt) BuildContent(_ context.Context, _ coresource.Source, _ *enginetypes.BuildContentOptions) (string, io.Reader, error) {
+	return "", nil, coretypes.ErrEngineNotImplemented
 }
 
 // VirtualizationCreate creates a guest.
 func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (guest *enginetypes.VirtualizationCreated, err error) {
-	vols, err := v.parseVolumes(opts.Volumes)
+	// parse engine args to resource options
+	resourceOpts := &engine.VirtualizationResource{}
+	if err = engine.MakeVirtualizationResource(opts.EngineParams, resourceOpts, func(p resourcetypes.Resources, d *engine.VirtualizationResource) error {
+		for _, v := range p {
+			if err := mapstructure.Decode(v, d); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		log.WithFunc("engine.virt.VirtualizationCreate").Errorf(ctx, err, "failed to parse engine args %+v", opts.EngineParams)
+		return nil, coretypes.ErrInvalidEngineArgs
+	}
+
+	vols, err := v.parseVolumes(resourceOpts.Volumes)
 	if err != nil {
 		return nil, err
 	}
 
 	req := virttypes.CreateGuestReq{
-		CPU:        int(opts.Quota),
-		Mem:        opts.Memory,
+		CPU:        int(resourceOpts.Quota),
+		Mem:        resourceOpts.Memory,
 		ImageName:  opts.Image,
 		ImageUser:  opts.Labels[ImageUserKey],
 		Volumes:    vols,
 		Labels:     opts.Labels,
-		AncestorID: opts.AncestorWorkloadID,
 		DmiUUID:    opts.Labels[DmiUUIDKey],
+		AncestorID: opts.AncestorWorkloadID,
 		Cmd:        opts.Cmd,
 		Lambda:     opts.Lambda,
+		Stdin:      opts.Stdin,
+		Resources:  convertEngineParamsToResources(opts.EngineParams),
 	}
 
 	var resp virttypes.Guest
@@ -197,20 +222,15 @@ func (v *Virt) VirtualizationCreate(ctx context.Context, opts *enginetypes.Virtu
 		return nil, err
 	}
 
-	return &enginetypes.VirtualizationCreated{ID: resp.ID, Name: opts.Name}, nil
-}
-
-// VirtualizationResourceRemap .
-func (v *Virt) VirtualizationResourceRemap(ctx context.Context, opts *enginetypes.VirtualizationRemapOptions) (<-chan enginetypes.VirtualizationRemapMessage, error) {
-	// VM does not support binding cores.
-	log.Warn(ctx, "virtualizationResourceRemap is not supported by vm")
-	ch := make(chan enginetypes.VirtualizationRemapMessage)
-	defer close(ch)
-	return ch, nil
+	return &enginetypes.VirtualizationCreated{
+		ID:     resp.ID,
+		Name:   opts.Name,
+		Labels: resp.Labels,
+	}, nil
 }
 
 // VirtualizationCopyTo copies one.
-func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, dest string, content []byte, uid, gid int, mode int64) error {
+func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, dest string, content []byte, _, _ int, _ int64) error {
 	return v.client.CopyToGuest(ctx, ID, dest, bytes.NewReader(content), true, true)
 }
 
@@ -232,8 +252,25 @@ func (v *Virt) VirtualizationStop(ctx context.Context, ID string, gracefulTimeou
 }
 
 // VirtualizationRemove removes a guest.
-func (v *Virt) VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) (err error) {
-	_, err = v.client.DestroyGuest(ctx, ID, force)
+func (v *Virt) VirtualizationRemove(ctx context.Context, ID string, _, force bool) (err error) {
+	if _, err = v.client.DestroyGuest(ctx, ID, force); err == nil {
+		return nil
+	}
+	if strings.Contains(err.Error(), "key not exists") {
+		return types.ErrWorkloadNotExists
+	}
+	return
+}
+
+// VirtualizationSuspend suspends a guest.
+func (v *Virt) VirtualizationSuspend(ctx context.Context, ID string) (err error) {
+	_, err = v.client.SuspendGuest(ctx, ID)
+	return
+}
+
+// VirtualizationResume resumes a guest.
+func (v *Virt) VirtualizationResume(ctx context.Context, ID string) (err error) {
+	_, err = v.client.ResumeGuest(ctx, ID)
 	return
 }
 
@@ -244,21 +281,30 @@ func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetyp
 		return nil, err
 	}
 
+	info := &enginetypes.VirtualizationInfo{
+		ID:       guest.ID,
+		Image:    guest.ImageName,
+		Running:  guest.Status == "running",
+		Networks: guest.Networks,
+		Labels:   guest.Labels,
+	}
+
+	if info.Labels == nil {
+		info.Labels = make(map[string]string)
+	}
+
 	content, err := json.Marshal(coretypes.LabelMeta{Publish: []string{"PORT"}})
 	if err != nil {
 		return nil, err
 	}
 
-	return &enginetypes.VirtualizationInfo{
-		ID:       guest.ID,
-		Image:    guest.ImageName,
-		Running:  guest.Status == "running",
-		Networks: guest.Networks,
-		Labels:   map[string]string{cluster.LabelMeta: string(content), cluster.ERUMark: "1"},
-	}, nil
+	info.Labels[cluster.LabelMeta] = string(content)
+	info.Labels[cluster.ERUMark] = "1"
+
+	return info, nil
 }
 
-// VirtualizationLogs streams a specific guest's log.
+// VirtualizationLogs streams a specific guest's log
 func (v *Virt) VirtualizationLogs(ctx context.Context, opts *enginetypes.VirtualizationLogStreamOptions) (stdout io.ReadCloser, stderr io.ReadCloser, err error) {
 	n := -1
 	if opts.Tail != "all" && opts.Tail != "" {
@@ -272,13 +318,13 @@ func (v *Virt) VirtualizationLogs(ctx context.Context, opts *enginetypes.Virtual
 }
 
 // VirtualizationAttach attaches something to a guest.
-func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, stream, openStdin bool) (stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
+func (v *Virt) VirtualizationAttach(ctx context.Context, ID string, _, _ bool) (stdout, stderr io.ReadCloser, stdin io.WriteCloser, err error) {
 	flags := virttypes.AttachGuestFlags{Safe: true, Force: true}
-	attachGuest, err := v.client.AttachGuest(ctx, ID, []string{}, flags)
+	_, attachGuest, err := v.client.AttachGuest(ctx, ID, []string{}, flags)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	return ioutil.NopCloser(attachGuest), nil, attachGuest, nil
+	return io.NopCloser(attachGuest), nil, attachGuest, nil
 }
 
 // VirtualizationResize resized window size
@@ -287,7 +333,7 @@ func (v *Virt) VirtualizationResize(ctx context.Context, ID string, height, widt
 }
 
 // VirtualizationWait is waiting for a shut-off
-func (v *Virt) VirtualizationWait(ctx context.Context, ID, state string) (*enginetypes.VirtualizationWaitResult, error) {
+func (v *Virt) VirtualizationWait(ctx context.Context, ID, _ string) (*enginetypes.VirtualizationWaitResult, error) {
 	r := &enginetypes.VirtualizationWaitResult{}
 	msg, err := v.client.WaitGuest(ctx, ID, true)
 	if err != nil {
@@ -302,16 +348,31 @@ func (v *Virt) VirtualizationWait(ctx context.Context, ID, state string) (*engin
 }
 
 // VirtualizationUpdateResource updates resource.
-func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, opts *enginetypes.VirtualizationResource) error {
-	vols, err := v.parseVolumes(opts.Volumes)
+func (v *Virt) VirtualizationUpdateResource(ctx context.Context, ID string, engineParams resourcetypes.Resources) error {
+	// parse engine args to resource options
+	resourceOpts := &engine.VirtualizationResource{}
+	if err := engine.MakeVirtualizationResource(engineParams, resourceOpts, func(p resourcetypes.Resources, d *engine.VirtualizationResource) error {
+		for _, v := range p {
+			if err := mapstructure.Decode(v, d); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		log.WithFunc("engine.virt.VirtualizationUpdateResource").Errorf(ctx, err, "failed to parse engine args %+v", engineParams)
+		return err
+	}
+
+	vols, err := v.parseVolumes(resourceOpts.Volumes)
 	if err != nil {
 		return err
 	}
 
 	args := virttypes.ResizeGuestReq{
-		CPU:     int(opts.Quota),
-		Mem:     opts.Memory,
-		Volumes: vols,
+		CPU:       int(resourceOpts.Quota),
+		Mem:       resourceOpts.Memory,
+		Volumes:   vols,
+		Resources: convertEngineParamsToResources(engineParams),
 	}
 	args.ID = ID
 
@@ -326,12 +387,6 @@ func (v *Virt) VirtualizationCopyFrom(ctx context.Context, ID, path string) (con
 	if err != nil {
 		return
 	}
-	content, err = ioutil.ReadAll(rd)
+	content, err = io.ReadAll(rd)
 	return
-}
-
-// ResourceValidate validate resource usage
-func (v *Virt) ResourceValidate(ctx context.Context, cpu float64, cpumap map[string]int64, memory, storage int64) error {
-	// TODO list all workloads, calculate resource
-	return nil
 }

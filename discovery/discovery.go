@@ -1,6 +1,8 @@
 package discovery
 
 import (
+	"context"
+
 	"github.com/projecteru2/core/types"
 
 	"github.com/google/uuid"
@@ -8,6 +10,6 @@ import (
 
 // Service .
 type Service interface {
-	Subscribe(ch chan<- types.ServiceStatus) uuid.UUID
-	Unsubscribe(id uuid.UUID)
+	Subscribe(ctx context.Context) (uuid.UUID, <-chan types.ServiceStatus)
+	Unsubscribe(ID uuid.UUID)
 }

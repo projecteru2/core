@@ -6,7 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/projecteru2/core/engine/factory"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/go-redis/redis/v8"
@@ -82,18 +84,26 @@ func TestRediaron(t *testing.T) {
 	config := types.Config{}
 	config.LockTimeout = 10 * time.Second
 	config.GlobalTimeout = 30 * time.Second
-	config.MaxConcurrency = 20
+	config.MaxConcurrency = 100000
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	factory.InitEngineCache(ctx, config)
 
 	cli := redis.NewClient(&redis.Options{
 		Addr: s.Addr(),
 		DB:   0,
 	})
+
+	pool, _ := utils.NewPool(20)
+
 	defer cli.Close()
 	suite.Run(t, &RediaronTestSuite{
 		rediserver: s,
 		rediaron: &Rediaron{
 			cli:    cli,
 			config: config,
+			pool:   pool,
 		},
 	})
 }

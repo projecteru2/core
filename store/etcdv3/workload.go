@@ -29,7 +29,7 @@ func (m *Mercury) UpdateWorkload(ctx context.Context, workload *types.Workload) 
 }
 
 // RemoveWorkload remove a workload
-// workload id must be in full length
+// workload ID must be in full length
 func (m *Mercury) RemoveWorkload(ctx context.Context, workload *types.Workload) error {
 	return m.cleanWorkloadData(ctx, workload)
 }
@@ -46,18 +46,18 @@ func (m *Mercury) GetWorkload(ctx context.Context, ID string) (*types.Workload, 
 }
 
 // GetWorkloads get many workloads
-func (m *Mercury) GetWorkloads(ctx context.Context, ids []string) (workloads []*types.Workload, err error) {
+func (m *Mercury) GetWorkloads(ctx context.Context, IDs []string) (workloads []*types.Workload, err error) {
 	keys := []string{}
-	for _, id := range ids {
-		keys = append(keys, fmt.Sprintf(workloadInfoKey, id))
+	for _, ID := range IDs {
+		keys = append(keys, fmt.Sprintf(workloadInfoKey, ID))
 	}
 
 	return m.doGetWorkloads(ctx, keys)
 }
 
 // GetWorkloadStatus get workload status
-func (m *Mercury) GetWorkloadStatus(ctx context.Context, id string) (*types.StatusMeta, error) {
-	workload, err := m.GetWorkload(ctx, id)
+func (m *Mercury) GetWorkloadStatus(ctx context.Context, ID string) (*types.StatusMeta, error) {
+	workload, err := m.GetWorkload(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (m *Mercury) GetWorkloadStatus(ctx context.Context, id string) (*types.Stat
 // SetWorkloadStatus set workload status
 func (m *Mercury) SetWorkloadStatus(ctx context.Context, status *types.StatusMeta, ttl int64) error {
 	if status.Appname == "" || status.Entrypoint == "" || status.Nodename == "" {
-		return types.ErrBadWorkloadStatus
+		return types.ErrInvaildWorkloadStatus
 	}
 
 	data, err := json.Marshal(status)
@@ -101,7 +101,7 @@ func (m *Mercury) ListWorkloads(ctx context.Context, appname, entrypoint, nodena
 		if err := json.Unmarshal(ev.Value, workload); err != nil {
 			return nil, err
 		}
-		if utils.FilterWorkload(workload.Labels, labels) {
+		if utils.LabelsFilter(workload.Labels, labels) {
 			workloads = append(workloads, workload)
 		}
 	}
@@ -123,7 +123,7 @@ func (m *Mercury) ListNodeWorkloads(ctx context.Context, nodename string, labels
 		if err := json.Unmarshal(ev.Value, workload); err != nil {
 			return nil, err
 		}
-		if utils.FilterWorkload(workload.Labels, labels) {
+		if utils.LabelsFilter(workload.Labels, labels) {
 			workloads = append(workloads, workload)
 		}
 	}
@@ -142,17 +142,18 @@ func (m *Mercury) WorkloadStatusStream(ctx context.Context, appname, entrypoint,
 	// 显式加个 / 保证 prefix 唯一
 	statusKey := filepath.Join(workloadStatusPrefix, appname, entrypoint, nodename) + "/"
 	ch := make(chan *types.WorkloadStatus)
-	go func() {
+	logger := log.WithFunc("store.etcdv3.WorkloadStatusStream")
+	_ = m.pool.Invoke(func() {
 		defer func() {
-			log.Info("[WorkloadStatusStream] close WorkloadStatus channel")
+			logger.Info(ctx, "close WorkloadStatus channel")
 			close(ch)
 		}()
 
-		log.Infof(ctx, "[WorkloadStatusStream] watch on %s", statusKey)
+		logger.Infof(ctx, "watch on %s", statusKey)
 		for resp := range m.Watch(ctx, statusKey, clientv3.WithPrefix()) {
 			if resp.Err() != nil {
 				if !resp.Canceled {
-					log.Errorf(ctx, "[WorkloadStatusStream] watch failed %v", resp.Err())
+					logger.Error(ctx, resp.Err(), "watch failed")
 				}
 				return
 			}
@@ -163,8 +164,8 @@ func (m *Mercury) WorkloadStatusStream(ctx context.Context, appname, entrypoint,
 				switch {
 				case err != nil:
 					msg.Error = err
-				case utils.FilterWorkload(workload.Labels, labels):
-					log.Debugf(ctx, "[WorkloadStatusStream] workload %s status changed", workload.ID)
+				case utils.LabelsFilter(workload.Labels, labels):
+					logger.Debugf(ctx, "workload %s status changed", workload.ID)
 					msg.Workload = workload
 				default:
 					continue
@@ -172,7 +173,7 @@ func (m *Mercury) WorkloadStatusStream(ctx context.Context, appname, entrypoint,
 				ch <- msg
 			}
 		}
-	}()
+	})
 	return ch
 }
 
@@ -201,7 +202,7 @@ func (m *Mercury) doGetWorkloads(ctx context.Context, keys []string) (workloads 
 	for _, kv := range kvs {
 		workload := &types.Workload{}
 		if err = json.Unmarshal(kv.Value, workload); err != nil {
-			log.Errorf(ctx, "[doGetWorkloads] failed to unmarshal %v, err: %v", string(kv.Key), err)
+			log.WithFunc("store.etcdv3.doGetWorkloads").Errorf(ctx, err, "failed to unmarshal %+v", string(kv.Key))
 			return
 		}
 		workloads = append(workloads, workload)
@@ -215,6 +216,7 @@ func (m *Mercury) bindWorkloadsAdditions(ctx context.Context, workloads []*types
 	nodenames := []string{}
 	nodenameCache := map[string]struct{}{}
 	statusKeys := map[string]string{}
+	logger := log.WithFunc("store.etcdv3.bindWorkloadsAdditions")
 	for _, workload := range workloads {
 		appname, entrypoint, _, err := utils.ParseWorkloadName(workload.Name)
 		if err != nil {
@@ -236,7 +238,7 @@ func (m *Mercury) bindWorkloadsAdditions(ctx context.Context, workloads []*types
 
 	for index, workload := range workloads {
 		if _, ok := nodes[workload.Nodename]; !ok {
-			return nil, types.ErrBadMeta
+			return nil, types.ErrInvaildWorkloadMeta
 		}
 		workloads[index].Engine = nodes[workload.Nodename].Engine
 		if _, ok := statusKeys[workload.ID]; !ok {
@@ -248,8 +250,8 @@ func (m *Mercury) bindWorkloadsAdditions(ctx context.Context, workloads []*types
 		}
 		status := &types.StatusMeta{}
 		if err := json.Unmarshal(kv.Value, &status); err != nil {
-			log.Warnf(ctx, "[bindWorkloadsAdditions] unmarshal %s status data failed %v", workload.ID, err)
-			log.Errorf(ctx, "[bindWorkloadsAdditions] status raw: %s", kv.Value)
+			logger.Warnf(ctx, "unmarshal %s status data failed %+v", workload.ID, err)
+			logger.Errorf(ctx, err, "status raw: %s", kv.Value)
 			continue
 		}
 		workloads[index].StatusMeta = status
@@ -265,7 +267,7 @@ func (m *Mercury) doOpsWorkload(ctx context.Context, workload *types.Workload, p
 	}
 
 	// now everything is ok
-	// we use full length id instead
+	// we use full length ID instead
 	bytes, err := json.Marshal(workload)
 	if err != nil {
 		return err

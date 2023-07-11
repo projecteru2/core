@@ -3,8 +3,10 @@ package etcdv3
 import (
 	"testing"
 
+	"github.com/panjf2000/ants/v2"
 	"github.com/projecteru2/core/store/etcdv3/meta"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 const (
@@ -29,11 +31,16 @@ const (
 type Mercury struct {
 	meta.KV
 	config types.Config
+	pool   *ants.PoolWithFunc
 }
 
 // New for create a Mercury instance
 func New(config types.Config, t *testing.T) (m *Mercury, err error) {
-	m = &Mercury{config: config}
+	pool, err := utils.NewPool(config.MaxConcurrency)
+	if err != nil {
+		return nil, err
+	}
+	m = &Mercury{config: config, pool: pool}
 	m.KV, err = meta.NewETCD(config.Etcd, t)
 	return
 }

@@ -7,6 +7,7 @@ import (
 	enginemocks "github.com/projecteru2/core/engine/mocks"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	lockmocks "github.com/projecteru2/core/lock/mocks"
+	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
 
@@ -18,9 +19,11 @@ func TestReplaceWorkload(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
+	lock.On("Lock", mock.Anything).Return(ctx, nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store := c.store.(*storemocks.Store)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, nil)
 
 	_, err := c.ReplaceWorkload(ctx, &types.ReplaceOptions{
 		DeployOptions: types.DeployOptions{
@@ -38,6 +41,7 @@ func TestReplaceWorkload(t *testing.T) {
 			Entrypoint: &types.Entrypoint{
 				Name: "nice-entry-name",
 			},
+			NodeFilter: &types.NodeFilter{},
 		},
 	}
 
@@ -47,14 +51,14 @@ func TestReplaceWorkload(t *testing.T) {
 		Nodename: "testnode",
 	}
 	// failed by ListWorkload
-	store.On("ListWorkloads", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("ListWorkloads", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err = c.ReplaceWorkload(ctx, opts)
 	assert.Error(t, err)
 	store.AssertExpectations(t)
 
 	store.On("ListWorkloads", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return([]*types.Workload{workload}, nil)
 	// failed by withWorkloadLocked
-	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err := c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -109,7 +113,7 @@ func TestReplaceWorkload(t *testing.T) {
 
 	// failed by get node
 	opts.FilterLabels = map[string]string{}
-	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD).Once()
+	store.On("GetNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	ch, err = c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -139,7 +143,7 @@ func TestReplaceWorkload(t *testing.T) {
 	store.On("GetNode", mock.Anything, mock.Anything).Return(node, nil)
 	// failed by VirtualizationCopyFrom
 	opts.Copy = map[string]string{"src": "dst"}
-	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, 0, int64(0), types.ErrBadWorkloadID).Once()
+	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, 0, int64(0), types.ErrMockError).Once()
 	ch, err = c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -152,8 +156,8 @@ func TestReplaceWorkload(t *testing.T) {
 
 	engine.On("VirtualizationCopyFrom", mock.Anything, mock.Anything, mock.Anything).Return([]byte{}, 0, 0, int64(0), nil)
 	// failed by Stop
-	engine.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
-	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
+	engine.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
+	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
 	ch, err = c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -166,11 +170,8 @@ func TestReplaceWorkload(t *testing.T) {
 
 	engine.On("VirtualizationStop", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	// failed by VirtualizationCreate
-	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, types.ErrCannotGetEngine).Once()
-	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(types.ErrCannotGetEngine).Once()
-	//store.On("UpdateNodeResource", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
-	//engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
-	//store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil).Once()
+	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
 	ch, err = c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -183,11 +184,11 @@ func TestReplaceWorkload(t *testing.T) {
 
 	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "new"}, nil)
 	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
-	engine.On("VirtualizationCopyTo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	engine.On("VirtualizationCopyChunkTo", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{User: "test"}, nil)
 	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	// failed by remove workload
-	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(types.ErrNoETCD).Once()
+	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(types.ErrMockError).Once()
 	ch, err = c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)
 	for r := range ch {
@@ -202,7 +203,7 @@ func TestReplaceWorkload(t *testing.T) {
 
 	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	store.On("RemoveWorkload", mock.Anything, mock.Anything).Return(nil)
-	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrNoETCD)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
 	// succ
 	ch, err = c.ReplaceWorkload(ctx, opts)
 	assert.NoError(t, err)

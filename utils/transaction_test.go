@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 	"time"
 
@@ -45,4 +46,16 @@ func TestTxn(t *testing.T) {
 		10*time.Second,
 	)
 	assert.NoError(t, err)
+}
+
+func TestPCR(t *testing.T) {
+	prepare := func(context.Context) error {
+		return os.ErrClosed
+	}
+	commit := func(context.Context) error {
+		return os.ErrClosed
+	}
+
+	ctx := context.Background()
+	assert.Error(t, PCR(ctx, prepare, commit, commit, time.Second))
 }

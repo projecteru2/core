@@ -9,19 +9,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"math/big"
 	"os"
-	"reflect"
 	"strings"
 	"time"
 
+	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
-
-	"github.com/pkg/errors"
 )
 
 const (
@@ -53,7 +50,7 @@ func Tail(path string) string {
 // GetGitRepoName return git repo name
 func GetGitRepoName(url string) (string, error) {
 	if !(strings.Contains(url, "git@") || strings.Contains(url, "gitlab@") || strings.Contains(url, "https://")) || !strings.HasSuffix(url, ".git") {
-		return "", errors.WithStack(types.NewDetailedErr(types.ErrInvalidGitURL, url))
+		return "", errors.Wrap(types.ErrInvalidGitURL, url)
 	}
 
 	return strings.TrimSuffix(Tail(url), ".git"), nil
@@ -100,7 +97,7 @@ func ParseWorkloadName(workloadName string) (string, string, string, error) {
 	if length >= 3 {
 		return strings.Join(splits[0:length-2], "_"), splits[length-2], splits[length-1], nil
 	}
-	return "", "", "", errors.WithStack(types.NewDetailedErr(types.ErrInvalidWorkloadName, workloadName))
+	return "", "", "", errors.Wrap(types.ErrInvalidWorkloadName, workloadName)
 }
 
 // MakePublishInfo generate publish info
@@ -144,7 +141,7 @@ func DecodePublishInfo(info map[string]string) map[string][]string {
 func EncodeMetaInLabel(ctx context.Context, meta *types.LabelMeta) string {
 	data, err := json.Marshal(meta)
 	if err != nil {
-		log.Errorf(ctx, "[EncodeMetaInLabel] Encode meta failed %v", err)
+		log.WithFunc("utils.EncodeMetaInLabel").Error(ctx, err, "Encode meta failed")
 		return ""
 	}
 	return string(data)
@@ -156,7 +153,7 @@ func DecodeMetaInLabel(ctx context.Context, labels map[string]string) *types.Lab
 	metastr, ok := labels[cluster.LabelMeta]
 	if ok {
 		if err := json.Unmarshal([]byte(metastr), meta); err != nil {
-			log.Errorf(ctx, "[DecodeMetaInLabel] Decode failed %v", err)
+			log.WithFunc("utils.DecodeMetaInLabel").Error(ctx, err, "Decode failed")
 		}
 	}
 	return meta
@@ -167,8 +164,8 @@ func ShortID(workloadID string) string {
 	return workloadID[Max(0, len(workloadID)-shortenLength):]
 }
 
-// FilterWorkload filter workload by labels
-func FilterWorkload(extend map[string]string, labels map[string]string) bool {
+// LabelsFilter filter workload by labels
+func LabelsFilter(extend map[string]string, labels map[string]string) bool {
 	for k, v := range labels {
 		if n, ok := extend[k]; !ok || n != v {
 			return false
@@ -184,15 +181,15 @@ func CleanStatsdMetrics(k string) string {
 
 // TempFile store a temp file
 func TempFile(stream io.ReadCloser) (string, error) {
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", err
 	}
 	defer f.Close()
 	defer stream.Close()
 
 	_, err = io.Copy(f, stream)
-	return f.Name(), errors.WithStack(err)
+	return f.Name(), err
 }
 
 // Round for float64 to int
@@ -209,47 +206,14 @@ func MergeHookOutputs(outputs []*bytes.Buffer) []byte {
 	return r
 }
 
-// Min returns the lesser one.
-func Min(x int, xs ...int) int {
-	if len(xs) == 0 {
-		return x
-	}
-	if m := Min(xs[0], xs[1:]...); m < x {
-		return m
-	}
-	return x
-}
-
-// Min64 return lesser one
-func Min64(x int64, xs ...int64) int64 {
-	if len(xs) == 0 {
-		return x
-	}
-	if m := Min64(xs[0], xs[1:]...); m < x {
-		return m
-	}
-	return x
-}
-
-// Max returns the biggest int
-func Max(x int, xs ...int) int {
-	if len(xs) == 0 {
-		return x
-	}
-	if m := Max(xs[0], xs[1:]...); m > x {
-		return m
-	}
-	return x
-}
-
 // EnsureReaderClosed As the name says,
 // blocks until the stream is empty, until we meet EOF
 func EnsureReaderClosed(ctx context.Context, stream io.ReadCloser) {
 	if stream == nil {
 		return
 	}
-	if _, err := io.Copy(ioutil.Discard, stream); err != nil {
-		log.Errorf(ctx, "[EnsureReaderClosed] empty stream failed %v", err)
+	if _, err := io.Copy(io.Discard, stream); err != nil {
+		log.WithFunc("utils.EnsureReaderClosed").Error(ctx, err, "Empty stream failed")
 	}
 	_ = stream.Close()
 }
@@ -260,6 +224,21 @@ func Range(n int) (res []int) {
 		res = append(res, i)
 	}
 	return
+}
+
+// WithTimeout runs a function with given timeout
+func WithTimeout(ctx context.Context, timeout time.Duration, f func(context.Context)) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	f(ctx)
+}
+
+// SHA256 .
+func SHA256(input string) string {
+	c := sha256.New()
+	c.Write([]byte(input))
+	bytes := c.Sum(nil)
+	return hex.EncodeToString(bytes)
 }
 
 // copied from https://gist.github.com/jmervine/d88c75329f98e09f5c87
@@ -290,45 +269,4 @@ func safeSplit(s string) []string {
 	}
 
 	return result
-}
-
-// Reverse any slice
-func Reverse(s interface{}) {
-	n := reflect.ValueOf(s).Len()
-	swap := reflect.Swapper(s)
-	for i, j := 0, n-1; i < j; i, j = i+1, j-1 {
-		swap(i, j)
-	}
-}
-
-// Unique return a index, where s[:index] is a unique slice
-// Unique requires sorted slice
-func Unique(s interface{}, getVal func(int) string) (j int) {
-	n := reflect.ValueOf(s).Len()
-	swap := reflect.Swapper(s)
-	lastVal := ""
-	for i := 0; i < n; i++ {
-		if getVal(i) == lastVal && i != 0 {
-			continue
-		}
-		lastVal = getVal(i)
-		swap(i, j)
-		j++
-	}
-	return j
-}
-
-// WithTimeout runs a function with given timeout
-func WithTimeout(ctx context.Context, timeout time.Duration, f func(context.Context)) {
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-	f(ctx)
-}
-
-// SHA256 .
-func SHA256(input string) string {
-	c := sha256.New()
-	c.Write([]byte(input))
-	bytes := c.Sum(nil)
-	return hex.EncodeToString(bytes)
 }

@@ -40,6 +40,8 @@ const (
 	GetNodeStatus codes.Code = 1038
 	// GetNodeResource .
 	GetNodeResource codes.Code = 1037
+	// GetNodeEngine .
+	GetNodeEngine codes.Code = 1038
 
 	// CalculateCapacity .
 	CalculateCapacity codes.Code = 1041

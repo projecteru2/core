@@ -89,10 +89,6 @@ func (s *RediaronTestSuite) TestGetWorkload() {
 		Nodename: nodename,
 		Endpoint: "mock://",
 		Podname:  podname,
-		CPU:      10,
-		Share:    100,
-		Memory:   1000,
-		Storage:  1000,
 	})
 	s.NoError(err)
 	// success
@@ -125,10 +121,6 @@ func (s *RediaronTestSuite) TestGetWorkloadStatus() {
 		Nodename: nodename,
 		Endpoint: "mock://",
 		Podname:  podname,
-		CPU:      10,
-		Share:    100,
-		Memory:   1000,
-		Storage:  1000,
 	})
 	s.NoError(err)
 	c, err := s.rediaron.GetWorkloadStatus(ctx, id)
@@ -157,7 +149,7 @@ func (s *RediaronTestSuite) TestSetWorkloadStatus() {
 	workload.StatusMeta.Nodename = "n1"
 	// no workload, err nil
 	err = m.SetWorkloadStatus(ctx, workload.StatusMeta, 10)
-	s.ErrorIs(err, types.ErrEntityNotExists)
+	s.ErrorIs(err, types.ErrInvaildCount)
 	s.NoError(m.AddWorkload(ctx, workload, nil))
 	// no status key, put succ, err nil
 	err = m.SetWorkloadStatus(ctx, workload.StatusMeta, 10)
@@ -202,10 +194,6 @@ func (s *RediaronTestSuite) TestListWorkloads() {
 		Nodename: nodename,
 		Endpoint: "mock://",
 		Podname:  podname,
-		CPU:      10,
-		Share:    100,
-		Memory:   1000,
-		Storage:  1000,
 	})
 	s.NoError(err)
 	// no labels
@@ -242,7 +230,7 @@ func (s *RediaronTestSuite) TestListNodeWorkloads() {
 	s.NoError(err)
 	_, err = m.AddPod(ctx, podname, "")
 	s.NoError(err)
-	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname, CPU: 10, Share: 100, Memory: 1000, Storage: 1000})
+	_, err = m.AddNode(ctx, &types.AddNodeOptions{Nodename: nodename, Endpoint: "mock://", Podname: podname})
 	s.NoError(err)
 	// no labels
 	cs, err = m.ListNodeWorkloads(ctx, nodename, nil)

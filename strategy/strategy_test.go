@@ -4,11 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/projecteru2/core/resources"
-	resourcetypes "github.com/projecteru2/core/resources/types"
-	resourcetypesmocks "github.com/projecteru2/core/resources/types/mocks"
-	"github.com/projecteru2/core/types"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,29 +33,19 @@ func deployedNodes() []Info {
 }
 
 func TestDeploy(t *testing.T) {
-	opts := &types.DeployOptions{
-		DeployStrategy: "invalid",
-		Count:          1,
-		NodesLimit:     3,
-	}
-	_, err := Deploy(context.TODO(), opts, nil, 2)
-	opts.DeployStrategy = "AUTO"
+	ctx := context.Background()
+
+	// invaild strategy
+	_, err := Deploy(ctx, "invalid", -1, 3, nil, 2)
+	assert.Error(t, err)
+
+	// count < 0
+	_, err = Deploy(ctx, "AUTO", -1, 3, nil, 2)
+	assert.Error(t, err)
+
 	Plans["test"] = func(_ context.Context, _ []Info, _, _, _ int) (map[string]int, error) {
 		return nil, nil
 	}
-	_, err = Deploy(context.TODO(), opts, nil, 2)
-	assert.Error(t, err)
-}
-
-func TestNewInfos(t *testing.T) {
-	rrs, err := resources.MakeRequests(types.ResourceOptions{})
-	assert.Nil(t, err)
-	nodeMap := map[string]*types.Node{
-		"node1": {},
-		"node2": {},
-	}
-	mockPlan := &resourcetypesmocks.ResourcePlans{}
-	mockPlan.On("Capacity").Return(map[string]int{"node1": 1})
-	plans := []resourcetypes.ResourcePlans{mockPlan}
-	NewInfos(rrs, nodeMap, plans)
+	_, err = Deploy(ctx, "test", 1, 3, nil, 2)
+	assert.NoError(t, err)
 }

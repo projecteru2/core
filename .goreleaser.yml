@@ -27,6 +27,12 @@ builds:
   # however it's a Pro feature
   - id: eru-core-linux
     binary: eru-core
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -X github.com/projecteru2/core/version.REVISION={{.Commit}}
+      - -X github.com/projecteru2/core/version.VERSION={{.Env.VERSION}}
+      - -X github.com/projecteru2/core/version.BUILTAT={{.Date}}
     hooks:
       post:
         - cp ./eru-core-{{.Os}}.dbg {{.Path}}

@@ -26,7 +26,7 @@ func (s *RediaronTestSuite) TestPod() {
 	s.Equal(len(pods), 1)
 	s.Equal(pods[0].Name, podname)
 
-	_, err = s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: podname, CPU: 10, Share: 100, Memory: 1000, Storage: 1000})
+	_, err = s.rediaron.AddNode(ctx, &types.AddNodeOptions{Nodename: "test", Endpoint: "mock://", Podname: podname})
 	s.NoError(err)
 	err = s.rediaron.RemovePod(ctx, podname)
 	s.Error(err)

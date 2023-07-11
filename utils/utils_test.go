@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
-	"reflect"
-	"strconv"
 	"testing"
+	"time"
 
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/types"
@@ -132,15 +131,15 @@ func TestMetaInLabel(t *testing.T) {
 	meta := &types.LabelMeta{
 		Publish: []string{"1", "2"},
 	}
-	r := EncodeMetaInLabel(context.TODO(), meta)
+	r := EncodeMetaInLabel(context.Background(), meta)
 	assert.NotEmpty(t, r)
 
 	labels := map[string]string{
 		cluster.LabelMeta: "{\"Publish\":[\"5001\"],\"HealthCheck\":{\"TCPPorts\":[\"5001\"],\"HTTPPort\":\"\",\"HTTPURL\":\"\",\"HTTPCode\":0}}",
 	}
-	meta2 := DecodeMetaInLabel(context.TODO(), labels)
+	meta2 := DecodeMetaInLabel(context.Background(), labels)
 	assert.Equal(t, meta2.Publish[0], "5001")
-	meta3 := DecodeMetaInLabel(context.TODO(), map[string]string{cluster.LabelMeta: ""})
+	meta3 := DecodeMetaInLabel(context.Background(), map[string]string{cluster.LabelMeta: ""})
 	assert.Nil(t, meta3.HealthCheck)
 }
 
@@ -151,12 +150,12 @@ func TestShortID(t *testing.T) {
 	assert.Equal(t, r2, "2345678")
 }
 
-func TestFilterWorkload(t *testing.T) {
+func TestLabelsFilter(t *testing.T) {
 	e := map[string]string{"a": "b"}
 	l := map[string]string{"a": "b"}
-	assert.True(t, FilterWorkload(e, l))
+	assert.True(t, LabelsFilter(e, l))
 	l["c"] = "d"
-	assert.False(t, FilterWorkload(e, l))
+	assert.False(t, LabelsFilter(e, l))
 }
 
 func TestCleanStatsdMetrics(t *testing.T) {
@@ -166,12 +165,12 @@ func TestCleanStatsdMetrics(t *testing.T) {
 
 func TestTempFile(t *testing.T) {
 	buff := bytes.NewBufferString("test")
-	rc := ioutil.NopCloser(buff)
+	rc := io.NopCloser(buff)
 	fname, err := TempFile(rc)
 	assert.NoError(t, err)
 	f, err := os.Open(fname)
 	assert.NoError(t, err)
-	b, err := ioutil.ReadAll(f)
+	b, err := io.ReadAll(f)
 	assert.NoError(t, err)
 	assert.Equal(t, string(b), "test")
 	os.Remove(fname)
@@ -195,33 +194,10 @@ func TestMergeHookOutputs(t *testing.T) {
 	assert.Equal(t, string(r), "ab")
 }
 
-func TestMin(t *testing.T) {
-	var a int
-	var b int
-	a = 1
-	b = 2
-	assert.Equal(t, 1, Min(a, b))
-	assert.Equal(t, 1, Min(b, a))
-}
-
-func TestMin64(t *testing.T) {
-	var a int64
-	var b int64
-	a = 1
-	b = 2
-	assert.Equal(t, int64(1), Min64(a, b))
-	assert.Equal(t, int64(1), Min64(b, a))
-}
-
-func TestMax(t *testing.T) {
-	assert.Equal(t, 3, Max(1, 2, 3))
-	assert.Equal(t, 4, Max(1, 4, 3))
-}
-
 func TestEnsureReaderClosed(t *testing.T) {
-	EnsureReaderClosed(context.TODO(), nil)
-	s := ioutil.NopCloser(bytes.NewBuffer([]byte{10, 10, 10}))
-	EnsureReaderClosed(context.TODO(), s)
+	EnsureReaderClosed(context.Background(), nil)
+	s := io.NopCloser(bytes.NewBuffer([]byte{10, 10, 10}))
+	EnsureReaderClosed(context.Background(), s)
 }
 
 func TestRange(t *testing.T) {
@@ -232,31 +208,13 @@ func TestRange(t *testing.T) {
 	}
 }
 
-func TestReverse(t *testing.T) {
-	s1 := []string{"a", "b", "c"}
-	Reverse(s1)
-	assert.True(t, reflect.DeepEqual(s1, []string{"c", "b", "a"}))
-
-	s2 := []string{}
-	Reverse(s2)
-
-	s3 := []int{1, 2, 3, 4}
-	Reverse(s3)
-	assert.True(t, reflect.DeepEqual(s3, []int{4, 3, 2, 1}))
-}
-
-func TestUnique(t *testing.T) {
-	s1 := []int64{1, 2, 3}
-	s1 = s1[:Unique(s1, func(i int) string { return strconv.Itoa(int(s1[i])) })]
-	assert.True(t, reflect.DeepEqual(s1, []int64{1, 2, 3}))
-
-	s2 := []string{"a", "a", "a", "b", "b", "c"}
-	s2 = s2[:Unique(s2, func(i int) string { return s2[i] })]
-	assert.True(t, reflect.DeepEqual(s2, []string{"a", "b", "c"}))
-
-	s3 := []string{"", "1", "1", "1", "1"}
-	s3 = s3[:Unique(s3, func(i int) string { return s3[i] })]
-	assert.True(t, reflect.DeepEqual(s3, []string{"", "1"}))
+func TestWithTimeout(t *testing.T) {
+	r := true
+	f := func(context.Context) {
+		r = false
+	}
+	WithTimeout(context.Background(), time.Second, f)
+	assert.False(t, r)
 }
 
 func TestSHA256(t *testing.T) {

@@ -2,83 +2,71 @@ package calcium
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
 	"time"
 
-	schedulermocks "github.com/projecteru2/core/scheduler/mocks"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
+	resourcemocks "github.com/projecteru2/core/resource/mocks"
 	sourcemocks "github.com/projecteru2/core/source/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
 	walmocks "github.com/projecteru2/core/wal/mocks"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
-// DummyLock replace lock for testing
-type dummyLock struct {
-	m sync.Mutex
-}
-
-// Lock for lock
-func (d *dummyLock) Lock(ctx context.Context) (context.Context, error) {
-	d.m.Lock()
-	return context.Background(), nil
-}
-
-// Unlock for unlock
-func (d *dummyLock) Unlock(ctx context.Context) error {
-	d.m.Unlock()
-	return nil
-}
-
 func NewTestCluster() *Calcium {
-	walDir, err := ioutil.TempDir(os.TempDir(), "core.wal.*")
+	walDir, err := os.MkdirTemp(os.TempDir(), "core.wal.*")
 	if err != nil {
 		panic(err)
 	}
 
-	c := &Calcium{}
+	pool, _ := utils.NewPool(20)
+	c := &Calcium{pool: pool}
 	c.config = types.Config{
 		GlobalTimeout: 30 * time.Second,
 		Git: types.GitConfig{
 			CloneTimeout: 300 * time.Second,
 		},
-		Scheduler: types.SchedConfig{
+		Scheduler: types.SchedulerConfig{
 			MaxShare:  -1,
 			ShareBase: 100,
 		},
+		GRPCConfig: types.GRPCConfig{
+			ServiceDiscoveryPushInterval: 15 * time.Second,
+		},
 		WALFile:             filepath.Join(walDir, "core.wal.log"),
-		MaxConcurrency:      10,
+		MaxConcurrency:      100000,
 		HAKeepaliveInterval: 16 * time.Second,
+		ProbeTarget:         "8.8.8.8:80",
 	}
-	c.store = &storemocks.Store{}
-	c.scheduler = &schedulermocks.Scheduler{}
-	c.source = &sourcemocks.Source{}
-	c.wal = &WAL{WAL: &walmocks.WAL{}}
-
-	mwal := c.wal.WAL.(*walmocks.WAL)
+	mwal := &walmocks.WAL{}
 	commit := wal.Commit(func() error { return nil })
 	mwal.On("Log", mock.Anything, mock.Anything).Return(commit, nil)
+
+	c.store = &storemocks.Store{}
+	c.source = &sourcemocks.Source{}
+	c.rmgr = &resourcemocks.Manager{}
+	c.wal = mwal
 
 	return c
 }
 
 func TestNewCluster(t *testing.T) {
+	ctx := context.Background()
 	config := types.Config{WALFile: "/tmp/a", HAKeepaliveInterval: 16 * time.Second}
-	_, err := New(config, nil)
+	_, err := New(ctx, config, nil)
 	assert.Error(t, err)
 
-	c, err := New(config, t)
+	c, err := New(ctx, config, t)
 	assert.NoError(t, err)
 
 	c.Finalizer()
-	privFile, err := ioutil.TempFile("", "priv")
+	privFile, err := os.CreateTemp("", "priv")
 	assert.NoError(t, err)
 	_, err = privFile.WriteString("privkey")
 	assert.NoError(t, err)
@@ -94,7 +82,7 @@ func TestNewCluster(t *testing.T) {
 		},
 		HAKeepaliveInterval: 16 * time.Second,
 	}
-	c1, err := New(config1, t)
+	c1, err := New(ctx, config1, t)
 	assert.NoError(t, err)
 	c1.Finalizer()
 
@@ -106,15 +94,14 @@ func TestNewCluster(t *testing.T) {
 		},
 		HAKeepaliveInterval: 16 * time.Second,
 	}
-	c2, err := New(config2, t)
+	c2, err := New(ctx, config2, t)
 	assert.NoError(t, err)
 	c2.Finalizer()
 }
 
 func TestFinalizer(t *testing.T) {
 	c := NewTestCluster()
-	store := &storemocks.Store{}
-	c.store = store
+	store := c.store.(*storemocks.Store)
 	store.On("TerminateEmbededStorage").Return(nil)
 	c.Finalizer()
 }

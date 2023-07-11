@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net"
 	"net/http"
@@ -17,21 +16,23 @@ import (
 	"strings"
 	"text/template"
 
-	corecluster "github.com/projecteru2/core/cluster"
-	"github.com/projecteru2/core/engine"
-	enginetypes "github.com/projecteru2/core/engine/types"
-	"github.com/projecteru2/core/log"
-	"github.com/projecteru2/core/types"
-	coretypes "github.com/projecteru2/core/types"
-
 	"github.com/docker/distribution/reference"
 	dockertypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/blkiodev"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	dockerapi "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/registry"
 	"github.com/docker/go-units"
+
+	corecluster "github.com/projecteru2/core/cluster"
+	"github.com/projecteru2/core/engine"
+	enginetypes "github.com/projecteru2/core/engine/types"
+	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/types"
+	coretypes "github.com/projecteru2/core/types"
+	"github.com/projecteru2/core/utils"
 )
 
 type fuckDockerStream struct {
@@ -61,15 +62,15 @@ func mergeStream(stream io.ReadCloser) io.Reader {
 
 // FuckDockerStream will copy docker stream to stdout and err
 func FuckDockerStream(stream dockertypes.HijackedResponse) io.ReadCloser {
-	outr := mergeStream(ioutil.NopCloser(stream.Reader))
+	outr := mergeStream(io.NopCloser(stream.Reader))
 	return fuckDockerStream{stream.Conn, outr}
 }
 
 // make mount paths
 // 使用volumes, 参数格式跟docker一样
 // volumes:
-//     - "/foo-data:$SOMEENV/foodata:rw"
-func makeMountPaths(opts *enginetypes.VirtualizationCreateOptions) ([]string, map[string]struct{}) {
+//   - "/foo-data:$SOMEENV/foodata:rw"
+func makeMountPaths(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions, resourceOpts *engine.VirtualizationResource) ([]string, map[string]struct{}) {
 	binds := []string{}
 	volumes := make(map[string]struct{})
 
@@ -82,7 +83,7 @@ func makeMountPaths(opts *enginetypes.VirtualizationCreateOptions) ([]string, ma
 		return envMap[env]
 	}
 
-	for _, path := range opts.Volumes {
+	for _, path := range resourceOpts.Volumes {
 		expanded := os.Expand(path, expandENV)
 		parts := strings.Split(expanded, ":")
 		if len(parts) == 2 {
@@ -92,7 +93,7 @@ func makeMountPaths(opts *enginetypes.VirtualizationCreateOptions) ([]string, ma
 			binds = append(binds, fmt.Sprintf("%s:%s:%s", parts[0], parts[1], parts[2]))
 			volumes[parts[1]] = struct{}{}
 			if len(parts) == 4 {
-				log.Warn("[makeMountPaths] docker engine not support volume with size limit")
+				log.WithFunc("engine.docker.makeMountPaths").Warn(ctx, "docker engine not support volume with size limit")
 			}
 		}
 	}
@@ -100,7 +101,7 @@ func makeMountPaths(opts *enginetypes.VirtualizationCreateOptions) ([]string, ma
 	return binds, volumes
 }
 
-func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, numaNode string) dockercontainer.Resources {
+func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, numaNode string, IOPSOptions map[string]string, remap bool) dockercontainer.Resources {
 	resource := dockercontainer.Resources{}
 
 	resource.CPUQuota = 0
@@ -120,11 +121,16 @@ func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, num
 		resource.CpusetCpus = strings.Join(cpuIDs, ",")
 		// numaNode will empty or numaNode
 		resource.CpusetMems = numaNode
-		// unrestrain cpu quota for binding
-		resource.CPUQuota = -1
-		// cpu share for fragile pieces
-		if _, divpart := math.Modf(cpu); divpart > 0 {
-			resource.CPUShares = int64(math.Round(float64(1024) * divpart))
+
+		if remap {
+			resource.CPUShares = int64(1024)
+		} else {
+			// unrestrained cpu quota for binding
+			resource.CPUQuota = -1
+			// cpu share for fragile pieces
+			if _, divpart := math.Modf(cpu); divpart > 0 {
+				resource.CPUShares = int64(math.Round(float64(1024) * divpart))
+			}
 		}
 	}
 	resource.Memory = memory
@@ -133,7 +139,43 @@ func makeResourceSetting(cpu float64, memory int64, cpuMap map[string]int64, num
 	if memory != 0 && memory/2 < int64(units.MiB*4) {
 		resource.MemoryReservation = int64(units.MiB * 4)
 	}
-	//}
+
+	if len(IOPSOptions) > 0 {
+		var readIOPSDevices, writeIOPSDevices, readBPSDevices, writeBPSDevices []*blkiodev.ThrottleDevice
+		for device, options := range IOPSOptions {
+			parts := strings.Split(options, ":")
+			for len(parts) < 4 {
+				parts = append(parts, "0")
+			}
+			var readIOPS, writeIOPS, readBPS, writeBPS int64
+			readIOPS, _ = utils.ParseRAMInHuman(parts[0])
+			writeIOPS, _ = utils.ParseRAMInHuman(parts[1])
+			readBPS, _ = utils.ParseRAMInHuman(parts[2])
+			writeBPS, _ = utils.ParseRAMInHuman(parts[3])
+
+			readIOPSDevices = append(readIOPSDevices, &blkiodev.ThrottleDevice{
+				Path: device,
+				Rate: uint64(readIOPS),
+			})
+			writeIOPSDevices = append(writeIOPSDevices, &blkiodev.ThrottleDevice{
+				Path: device,
+				Rate: uint64(writeIOPS),
+			})
+			readBPSDevices = append(readBPSDevices, &blkiodev.ThrottleDevice{
+				Path: device,
+				Rate: uint64(readBPS),
+			})
+			writeBPSDevices = append(writeBPSDevices, &blkiodev.ThrottleDevice{
+				Path: device,
+				Rate: uint64(writeBPS),
+			})
+		}
+		resource.BlkioDeviceReadIOps = readIOPSDevices
+		resource.BlkioDeviceWriteIOps = writeIOPSDevices
+		resource.BlkioDeviceReadBps = readBPSDevices
+		resource.BlkioDeviceWriteBps = writeBPSDevices
+	}
+
 	return resource
 }
 
@@ -251,13 +293,13 @@ func CreateTarStream(path string) (io.ReadCloser, error) {
 func GetIP(ctx context.Context, daemonHost string) string {
 	u, err := url.Parse(daemonHost)
 	if err != nil {
-		log.Errorf(ctx, "[GetIP] GetIP %s failed %v", daemonHost, err)
+		log.WithFunc("engine.docker.GetIP").Errorf(ctx, err, "GetIP %s failed", daemonHost)
 		return ""
 	}
 	return u.Hostname()
 }
 
-func makeRawClient(_ context.Context, config coretypes.Config, client *http.Client, endpoint string) (engine.API, error) {
+func makeDockerClient(_ context.Context, config coretypes.Config, client *http.Client, endpoint string) (engine.API, error) {
 	cli, err := dockerapi.NewClientWithOpts(
 		dockerapi.WithHost(endpoint),
 		dockerapi.WithVersion(config.Docker.APIVersion),
@@ -266,24 +308,6 @@ func makeRawClient(_ context.Context, config coretypes.Config, client *http.Clie
 		return nil, err
 	}
 	return &Engine{cli, config}, nil
-}
-
-func dumpFromString(ctx context.Context, ca, cert, key *os.File, caStr, certStr, keyStr string) error {
-	files := []*os.File{ca, cert, key}
-	data := []string{caStr, certStr, keyStr}
-	for i := 0; i < 3; i++ {
-		if _, err := files[i].WriteString(data[i]); err != nil {
-			return err
-		}
-		if err := files[i].Chmod(0444); err != nil {
-			return err
-		}
-		if err := files[i].Close(); err != nil {
-			return err
-		}
-	}
-	log.Debug(ctx, "[dumpFromString] Dump ca.pem, cert.pem, key.pem from string")
-	return nil
 }
 
 func useCNI(labels map[string]string) bool {

@@ -2,14 +2,14 @@ package common
 
 import (
 	"context"
-	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 
@@ -30,7 +30,7 @@ type GitScm struct {
 
 // NewGitScm .
 func NewGitScm(config types.GitConfig, authHeaders map[string]string) (*GitScm, error) {
-	b, err := ioutil.ReadFile(config.PrivateKey)
+	b, err := os.ReadFile(config.PrivateKey)
 	return &GitScm{
 		Config:      config,
 		AuthHeaders: authHeaders,
@@ -46,8 +46,10 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 	defer cancel()
 	opts := &gogit.CloneOptions{
 		URL:      repository,
-		Progress: ioutil.Discard,
+		Progress: io.Discard,
 	}
+	logger := log.WithFunc("source.common.SourceCode")
+
 	switch {
 	case strings.Contains(repository, "https://"):
 		repo, err = gogit.PlainCloneContext(ctx, path, false, opts)
@@ -61,17 +63,20 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 		if parseErr != nil {
 			return parseErr
 		}
+		// TODO check if it ok?
+		// gitssh.SetConfigHostKeyFields( // nolint
+		//	&ssh.ClientConfig{
+		//		HostKeyCallback: ssh.InsecureIgnoreHostKey()}, // nolint
+		//	user.Host)
+
 		auth := &gitssh.PublicKeys{
 			User:   user.Host + user.Path,
 			Signer: signer,
-			HostKeyCallbackHelper: gitssh.HostKeyCallbackHelper{
-				HostKeyCallback: ssh.InsecureIgnoreHostKey(), // nolint
-			},
 		}
 		opts.Auth = auth
 		repo, err = gogit.PlainCloneContext(ctx, path, false, opts)
 	default:
-		return types.ErrNotSupport
+		return types.ErrInvaildSCMType
 	}
 	if err != nil {
 		return err
@@ -91,8 +96,8 @@ func (g *GitScm) SourceCode(ctx context.Context, repository, path, revision stri
 		return err
 	}
 
-	log.Infof(ctx, "[SourceCode] Fetch repo %s", repository)
-	log.Infof(ctx, "[SourceCode] Checkout to commit %s", hash)
+	logger.Infof(ctx, "Fetch repo %s", repository)
+	logger.Infof(ctx, "Checkout to commit %s", hash)
 
 	// Prepare submodules
 	if submodule {
@@ -116,14 +121,14 @@ func (g *GitScm) Artifact(ctx context.Context, artifact, path string) error {
 		req.Header.Add(k, v)
 	}
 
-	log.Infof(ctx, "[Artifact] Downloading artifacts from %q", artifact)
+	log.WithFunc("source.common.Artifact").Infof(ctx, "Downloading artifacts from %q", artifact)
 	resp, err := g.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("Download artifact error %q, code %d", artifact, resp.StatusCode)
+		return errors.Wrapf(types.ErrDownloadArtifactsFailed, "code: %d", resp.StatusCode)
 	}
 
 	// extract files from zipfile
