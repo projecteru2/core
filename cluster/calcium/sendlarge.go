@@ -2,12 +2,13 @@ package calcium
 
 import (
 	"context"
+	"io"
+	"sync"
+
 	"github.com/pkg/errors"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	"io"
-	"sync"
 )
 
 // SendLargeFile send large files by stream to workload
@@ -17,17 +18,19 @@ func (c *Calcium) SendLargeFile(ctx context.Context, opts chan *types.SendLargeF
 	utils.SentryGo(func() {
 		defer close(resp)
 		senders := make(map[string]*workloadSender)
+		// for each file
 		for data := range opts {
 			for _, id := range data.Ids {
 				if _, ok := senders[id]; !ok {
 					log.Debugf(ctx, "[SendLargeFile] create sender for %s", id)
+					// for each container, let's create a new sender to send identical file chunk, each chunk will include the metadata of this file
 					sender := c.newWorkloadSender(ctx, id, resp, wg)
 					senders[id] = sender
 				}
 				senders[id].send(data)
 			}
 		}
-		for _, sender := range senders{
+		for _, sender := range senders {
 			sender.close()
 		}
 		wg.Wait()
@@ -37,19 +40,19 @@ func (c *Calcium) SendLargeFile(ctx context.Context, opts chan *types.SendLargeF
 
 type workloadSender struct {
 	calcium *Calcium
-	id string
-	wg *sync.WaitGroup
-	buffer chan *types.SendLargeFileOptions
-	resp chan *types.SendMessage
+	id      string
+	wg      *sync.WaitGroup
+	buffer  chan *types.SendLargeFileOptions
+	resp    chan *types.SendMessage
 }
 
 func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *types.SendMessage, wg *sync.WaitGroup) *workloadSender {
 	sender := &workloadSender{
 		calcium: c,
-		id: ID,
-		wg: wg,
-		buffer: make(chan *types.SendLargeFileOptions, 10),
-		resp: resp,
+		id:      ID,
+		wg:      wg,
+		buffer:  make(chan *types.SendLargeFileOptions, 10),
+		resp:    resp,
 	}
 	utils.SentryGo(func() {
 		var writer *io.PipeWriter
@@ -60,6 +63,7 @@ func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *t
 				log.Errorf(ctx, "[newWorkloadExecutor] receive different files %s, %s", curFile, data.Dst)
 				break
 			}
+			// ready to send
 			if curFile == "" {
 				wg.Add(1)
 				log.Debugf(ctx, "[newWorkloadExecutor]Receive new file %s to %s", curFile, sender.id)
