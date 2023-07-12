@@ -299,8 +299,6 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 	pr, pw := io.Pipe()
 	tw := tar.NewWriter(pw)
 	defer tw.Close()
-	const maxChunkSize = 2 << 10
-	// todo 这里有点奇怪，之前带参数的匿名函数会随机报错，现在改成无参的函数后就不报错了，还没找到原因, 且之前的参数writer用的是interface
 	utils.SentryGo(func() {
 		hdr := &tar.Header{
 			Name: filepath.Base(target),
@@ -314,7 +312,7 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 			return
 		}
 		for {
-			data := make([]byte, maxChunkSize)
+			data := make([]byte, types.SendLargeFileChunkSize)
 			n, err := content.Read(data)
 			if err != nil {
 				if err != io.EOF {

@@ -604,7 +604,7 @@ func (v *Vibranium) Send(opts *pb.SendOptions, stream pb.CoreRPC_SendServer) err
 }
 
 func (v *Vibranium) SendLargeFile(server pb.CoreRPC_SendLargeFileServer) error {
-	task := v.newTask(server.Context(), "Send", true)
+	task := v.newTask(server.Context(), "SendLargeFile", true)
 	defer task.done()
 
 	dc := make(chan *types.SendLargeFileOptions)

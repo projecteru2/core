@@ -597,7 +597,7 @@ func toSendLargeFileOptions(opts *pb.FileOptions) (*types.SendLargeFileOptions, 
 }
 
 func toSendLargeFileChunks(file types.LinuxFile, ids []string) []*types.SendLargeFileOptions {
-	const maxChunkSize = 2 << 10
+	maxChunkSize := types.SendLargeFileChunkSize
 	ret := make([]*types.SendLargeFileOptions, 0)
 	for idx := 0; idx < len(file.Content); idx += maxChunkSize {
 		sendLargeFileOptions := &types.SendLargeFileOptions{

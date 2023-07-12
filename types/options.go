@@ -304,6 +304,8 @@ func (r RawArgs) LitterDump(w io.Writer) {
 	w.Write(r) //nolint:errcheck
 }
 
+const SendLargeFileChunkSize = 2 << 10
+
 // SendLargeFileOptions for LargeFileTransfer
 type SendLargeFileOptions struct {
 	Ids   []string
