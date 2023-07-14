@@ -106,7 +106,7 @@ func (v *Virt) Execute(ctx context.Context, ID string, config *enginetypes.ExecC
 
 // ExecExitCode get return code of a specific execution.
 func (v *Virt) ExecExitCode(ctx context.Context, ID, execID string) (code int, err error) {
-	if strings.Contains(execID, "_") {
+	if strings.HasPrefix(execID, virttypes.MagicPrefix) {
 		return 0, nil
 	}
 
