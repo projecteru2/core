@@ -235,7 +235,7 @@ func (v *Virt) VirtualizationCopyTo(ctx context.Context, ID, dest string, conten
 }
 
 // VirtualizationCopyChunkTo copies one.
-func (v *Virt) VirtualizationCopyChunkTo(ctx context.Context, ID, dest string, size int64, content io.Reader, uid, gid int, mode int64) error {
+func (v *Virt) VirtualizationCopyChunkTo(ctx context.Context, ID, dest string, _ int64, content io.Reader, _, _ int, _ int64) error {
 	return v.client.CopyToGuest(ctx, ID, dest, content, true, true)
 }
 

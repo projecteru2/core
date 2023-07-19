@@ -588,8 +588,8 @@ func toSendLargeFileOptions(opts *pb.FileOptions) (*types.SendLargeFileOptions, 
 		Dst:   opts.Dst,
 		Size:  opts.Size,
 		Mode:  opts.Mode.Mode,
-		Uid:   int(opts.Owner.Uid),
-		Gid:   int(opts.Owner.Gid),
+		UID:   int(opts.Owner.Uid),
+		GID:   int(opts.Owner.Gid),
 		Chunk: opts.Chunk,
 	}
 	err := ret.Validate()
@@ -605,8 +605,8 @@ func toSendLargeFileChunks(file types.LinuxFile, ids []string) []*types.SendLarg
 			Dst:  file.Filename,
 			Size: int64(len(file.Content)),
 			Mode: file.Mode,
-			Uid:  file.UID,
-			Gid:  file.GID,
+			UID:  file.UID,
+			GID:  file.GID,
 		}
 		if idx+maxChunkSize > len(file.Content) {
 			sendLargeFileOptions.Chunk = file.Content[idx:]

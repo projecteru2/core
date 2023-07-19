@@ -312,8 +312,8 @@ type SendLargeFileOptions struct {
 	Dst   string
 	Size  int64
 	Mode  int64
-	Uid   int
-	Gid   int
+	UID   int
+	GID   int
 	Chunk []byte
 }
 
@@ -325,7 +325,7 @@ func (o *SendLargeFileOptions) Validate() error {
 	if len(o.Chunk) == 0 {
 		return ErrNoFilesToSend
 	}
-	if o.Uid == 0 && o.Gid == 0 && o.Mode == 0 {
+	if o.UID == 0 && o.GID == 0 && o.Mode == 0 {
 		// we see it as requiring "default perm"
 		o.Mode = 0755
 	}

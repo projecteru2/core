@@ -131,7 +131,7 @@ func (f *EngineWithErr) VirtualizationCopyTo(context.Context, string, string, []
 }
 
 // VirtualizationCopyChunkTo .
-func (f *EngineWithErr) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, size int64, content io.Reader, uid, gid int, mode int64) error {
+func (f *EngineWithErr) VirtualizationCopyChunkTo(context.Context, string, string, int64, io.Reader, int, int, int64) error {
 	return f.DefaultErr
 }
 

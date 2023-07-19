@@ -60,7 +60,6 @@ func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *t
 		curFile := ""
 		for data := range sender.buffer {
 			if curFile != "" && curFile != data.Dst {
-				// todo 报错之后返回一下?
 				log.Warnf(ctx, "[newWorkloadExecutor] receive different files %s, %s", curFile, data.Dst)
 				break
 			}
@@ -81,9 +80,13 @@ func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *t
 							resp <- &types.SendMessage{ID: ID, Error: err}
 						}
 					}
-				}(ID, curFile, data.Size, pr, data.Uid, data.Gid, data.Mode))
+				}(ID, curFile, data.Size, pr, data.UID, data.GID, data.Mode))
 			}
-			writer.Write(data.Chunk)
+			n, err := writer.Write(data.Chunk)
+			if err != nil || n != len(data.Chunk) {
+				log.Errorf(ctx, err, "[newWorkloadExecutor] send file to engine err, file = %s", curFile)
+				break
+			}
 		}
 		writer.Close()
 	})
