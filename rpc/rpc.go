@@ -607,8 +607,8 @@ func (v *Vibranium) SendLargeFile(server pb.CoreRPC_SendLargeFileServer) error {
 	task := v.newTask(server.Context(), "SendLargeFile", true)
 	defer task.done()
 
-	dc := make(chan *types.SendLargeFileOptions)
-	ch := v.cluster.SendLargeFile(task.context, dc)
+	inputChan := make(chan *types.SendLargeFileOptions)
+	resp := v.cluster.SendLargeFile(task.context, inputChan)
 	utils.SentryGo(func() {
 		for {
 			req, err := server.Recv()
@@ -624,12 +624,13 @@ func (v *Vibranium) SendLargeFile(server pb.CoreRPC_SendLargeFileServer) error {
 				log.Errorf(task.context, err, "[SendLargeFile]transform data err: %v", err)
 				return
 			}
-			dc <- data
+			inputChan <- data
 		}
-		close(dc)
+
+		close(inputChan)
 	})
 
-	for m := range ch {
+	for m := range resp {
 		msg := &pb.SendMessage{
 			Id:   m.ID,
 			Path: m.Path,

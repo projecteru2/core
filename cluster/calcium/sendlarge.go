@@ -12,18 +12,19 @@ import (
 )
 
 // SendLargeFile send large files by stream to workload
-func (c *Calcium) SendLargeFile(ctx context.Context, opts chan *types.SendLargeFileOptions) chan *types.SendMessage {
+func (c *Calcium) SendLargeFile(ctx context.Context, inputChan chan *types.SendLargeFileOptions) chan *types.SendMessage {
 	resp := make(chan *types.SendMessage)
 	wg := &sync.WaitGroup{}
 	utils.SentryGo(func() {
 		defer close(resp)
 		senders := make(map[string]*workloadSender)
 		// for each file
-		for data := range opts {
+		for data := range inputChan {
 			for _, id := range data.Ids {
 				if _, ok := senders[id]; !ok {
 					log.Debugf(ctx, "[SendLargeFile] create sender for %s", id)
 					// for each container, let's create a new sender to send identical file chunk, each chunk will include the metadata of this file
+					wg.Add(1)
 					sender := c.newWorkloadSender(ctx, id, resp, wg)
 					senders[id] = sender
 				}
@@ -65,7 +66,6 @@ func (c *Calcium) newWorkloadSender(ctx context.Context, ID string, resp chan *t
 			}
 			// ready to send
 			if curFile == "" {
-				wg.Add(1)
 				log.Debugf(ctx, "[newWorkloadExecutor]Receive new file %s to %s", curFile, sender.id)
 				curFile = data.Dst
 				pr, pw := io.Pipe()
