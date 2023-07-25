@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -43,7 +44,7 @@ type Virt struct {
 }
 
 // MakeClient makes a virt. client which wraps yavirt API client.
-func MakeClient(_ context.Context, config coretypes.Config, _, endpoint, _, _, _ string) (engine.API, error) {
+func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint, ca, _, _ string) (engine.API, error) {
 	var uri string
 	switch {
 	case strings.HasPrefix(endpoint, HTTPPrefixKey):
@@ -54,7 +55,21 @@ func MakeClient(_ context.Context, config coretypes.Config, _, endpoint, _, _, _
 		return nil, coretypes.ErrInvaildEngineEndpoint
 	}
 
-	cli, err := virtapi.New(uri)
+	yCfg := &virttypes.Config{
+		URI: uri,
+	}
+	if ca != "" {
+		caFile, err := os.CreateTemp(config.CertPath, fmt.Sprintf("ca-%s", nodename))
+		if err != nil {
+			return nil, err
+		}
+		if _, err := caFile.WriteString(ca); err != nil {
+			return nil, err
+		}
+		defer os.Remove(caFile.Name())
+		yCfg.CA = caFile.Name()
+	}
+	cli, err := virtapi.New(yCfg)
 	if err != nil {
 		return nil, err
 	}
