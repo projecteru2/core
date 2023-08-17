@@ -20,6 +20,7 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
 	"github.com/mitchellh/mapstructure"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -27,7 +28,6 @@ import (
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
 	coretypes "github.com/projecteru2/core/types"
-	"github.com/projecteru2/core/utils"
 )
 
 const (
@@ -299,7 +299,8 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 	pr, pw := io.Pipe()
 	tw := tar.NewWriter(pw)
 	defer tw.Close()
-	utils.SentryGo(func() {
+	g, _ := errgroup.WithContext(ctx)
+	g.Go(func() error {
 		hdr := &tar.Header{
 			Name: filepath.Base(target),
 			Size: size,
@@ -307,42 +308,44 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 			Uid:  uid,
 			Gid:  gid,
 		}
-		if err := tw.WriteHeader(hdr); err != nil {
-			log.Errorf(ctx, err, "[VirtualizationCopyChunkTo] write header to %s err, err: %v", ID, err)
-			return
+		if taskErr := tw.WriteHeader(hdr); taskErr != nil {
+			log.Errorf(ctx, taskErr, "[VirtualizationCopyChunkTo] write header to %s err, err: %v", ID, taskErr)
+			return taskErr
 		}
 		for {
 			data := make([]byte, types.SendLargeFileChunkSize)
-			n, err := content.Read(data)
-			if err != nil {
-				if err != io.EOF {
-					log.Errorf(ctx, err, "[VirtualizationCopyChunkTo] read data from pipe err, err: %v", err)
+			n, taskErr := content.Read(data)
+			if taskErr != nil {
+				if taskErr != io.EOF {
+					log.Errorf(ctx, taskErr, "[VirtualizationCopyChunkTo] read data from pipe err, err: %v", taskErr)
+					return taskErr
 				}
-				err := pw.Close()
-				if err != nil {
-					log.Errorf(ctx, err, "[VirtualizationCopyChunkTo] close pipe writer, err: %v", err)
+				taskErr := pw.Close()
+				if taskErr != nil {
+					log.Errorf(ctx, taskErr, "[VirtualizationCopyChunkTo] close pipe writer, err: %v", taskErr)
 				}
-				return
+				return nil
 			}
 			if n < len(data) {
 				data = data[:n]
 			}
-			_, err = tw.Write(data)
-			if err != nil {
-				log.Debugf(ctx, "[VirtualizationCopyChunkTo] write data into %s err, err: %v", ID, err)
-				err := pw.Close()
-				if err != nil {
-					log.Errorf(ctx, err, "[VirtualizationCopyChunkTo] close pipe writer, err: %v", err)
+			_, taskErr = tw.Write(data)
+			if taskErr != nil {
+				log.Debugf(ctx, "[VirtualizationCopyChunkTo] write data into %s err, err: %v", ID, taskErr)
+				taskErr := pw.Close()
+				if taskErr != nil {
+					log.Errorf(ctx, taskErr, "[VirtualizationCopyChunkTo] close pipe writer, err: %v", taskErr)
 				}
-				return
+				return taskErr
 			}
 		}
 	})
 	err := e.client.CopyToContainer(ctx, ID, filepath.Dir(target), pr, dockertypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
 	if err != nil {
 		log.Errorf(ctx, err, "[VirtualizationCopyChunkTo] copy %s to container %s err, err:%v", target, ID, err)
+		return err
 	}
-	return err
+	return g.Wait()
 }
 
 // VirtualizationStart start virtualization
