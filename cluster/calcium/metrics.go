@@ -18,7 +18,7 @@ func (c *Calcium) InitMetrics(ctx context.Context) {
 		logger.Error(ctx, err, "failed to get metrics description")
 		return
 	}
-	if err = metrics.InitMetrics(c.config, metricsDescriptions); err != nil {
+	if err = metrics.InitMetrics(ctx, c.config, metricsDescriptions); err != nil {
 		logger.Error(ctx, err, "failed to init metrics")
 		return
 	}
