@@ -320,8 +320,7 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 					log.Errorf(ctx, taskErr, "[VirtualizationCopyChunkTo] read data from pipe err, err: %v", taskErr)
 					return taskErr
 				}
-				closeErr := pw.Close()
-				if closeErr != nil {
+				if closeErr := pw.Close(); closeErr != nil {
 					log.Errorf(ctx, closeErr, "[VirtualizationCopyChunkTo] close pipe writer, err: %v", closeErr)
 					return closeErr
 				}
@@ -333,8 +332,7 @@ func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target strin
 			_, taskErr = tw.Write(data)
 			if taskErr != nil {
 				log.Debugf(ctx, "[VirtualizationCopyChunkTo] write data into %s err, err: %v", ID, taskErr)
-				closeErr := pw.Close()
-				if closeErr != nil {
+				if closeErr := pw.Close(); closeErr != nil {
 					log.Errorf(ctx, closeErr, "[VirtualizationCopyChunkTo] close pipe writer, err: %v", closeErr)
 					return closeErr
 				}

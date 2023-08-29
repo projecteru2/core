@@ -18,7 +18,7 @@ func TestSendLarge(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
 
-	tmpfile, err := ioutil.TempFile("", "example")
+	tmpfile, err := os.CreateTemp("", "example")
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmpfile.Name())
 	defer tmpfile.Close()

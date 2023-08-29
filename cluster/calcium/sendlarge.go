@@ -24,6 +24,8 @@ func (c *Calcium) SendLargeFile(ctx context.Context, inputChan chan *types.SendL
 				if _, ok := senders[id]; !ok {
 					log.Debugf(ctx, "[SendLargeFile] create sender for %s", id)
 					// for each container, let's create a new sender to send identical file chunk, each chunk will include the metadata of this file
+					// we need to add `waitGroup out of the `newWorkloadSender` because we need to avoid `wg.Wait()` be executing before `wg.Add()`,
+					// which will cause the goroutine in `c.newWorkloadSender` to be killed.
 					wg.Add(1)
 					sender := c.newWorkloadSender(ctx, id, resp, wg)
 					senders[id] = sender
