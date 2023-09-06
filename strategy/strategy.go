@@ -16,16 +16,19 @@ const (
 	Each = "EACH"
 	// Global .
 	Global = "GLOBAL"
+	// Drained .
+	Drained = "DRAINED"
 	// Dummy for calculate capacity
 	Dummy = "DUMMY"
 )
 
 // Plans .
 var Plans = map[string]strategyFunc{
-	Auto:   CommunismPlan,
-	Fill:   FillPlan,
-	Each:   AveragePlan,
-	Global: GlobalPlan,
+	Auto:    CommunismPlan,
+	Fill:    FillPlan,
+	Each:    AveragePlan,
+	Global:  GlobalPlan,
+	Drained: DrainedPlan,
 }
 
 type strategyFunc = func(_ context.Context, _ []Info, need, total, limit int) (map[string]int, error)
@@ -40,7 +43,7 @@ func Deploy(ctx context.Context, strategy string, count, nodesLimit int, strateg
 		return nil, types.ErrInvaildDeployCount
 	}
 
-	log.WithFunc("strategy.Deploy").Debugf(ctx, "infos %+v, need %d, total %d, limit %d", strategyInfos, count, total, nodesLimit)
+	log.WithFunc("strategy.Deploy").Debugf(ctx, "strategy %s, infos %+v, need %d, total %d, limit %d", strategy, strategyInfos, count, total, nodesLimit)
 	return deployMethod(ctx, strategyInfos, count, total, nodesLimit)
 }
 
