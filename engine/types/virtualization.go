@@ -59,3 +59,10 @@ type VirtualizationWaitResult struct {
 	Message string
 	Code    int64
 }
+
+// SendMessage returns from engine
+type SendMessage struct {
+	ID    string
+	Path  string
+	Error error
+}

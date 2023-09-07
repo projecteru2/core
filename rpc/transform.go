@@ -581,3 +581,39 @@ func toCoreListImageOptions(opts *pb.ListImageOptions) *types.ImageOptions {
 		Filter:    opts.Filter,
 	}
 }
+
+func toSendLargeFileOptions(opts *pb.FileOptions) (*types.SendLargeFileOptions, error) {
+	ret := &types.SendLargeFileOptions{
+		Ids:   opts.Ids,
+		Dst:   opts.Dst,
+		Size:  opts.Size,
+		Mode:  opts.Mode.Mode,
+		UID:   int(opts.Owner.Uid),
+		GID:   int(opts.Owner.Gid),
+		Chunk: opts.Chunk,
+	}
+	err := ret.Validate()
+	return ret, err
+}
+
+func toSendLargeFileChunks(file types.LinuxFile, ids []string) []*types.SendLargeFileOptions {
+	maxChunkSize := types.SendLargeFileChunkSize
+	ret := make([]*types.SendLargeFileOptions, 0)
+	for idx := 0; idx < len(file.Content); idx += maxChunkSize {
+		sendLargeFileOptions := &types.SendLargeFileOptions{
+			Ids:  ids,
+			Dst:  file.Filename,
+			Size: int64(len(file.Content)),
+			Mode: file.Mode,
+			UID:  file.UID,
+			GID:  file.GID,
+		}
+		if idx+maxChunkSize > len(file.Content) {
+			sendLargeFileOptions.Chunk = file.Content[idx:]
+		} else {
+			sendLargeFileOptions.Chunk = file.Content[idx : idx+maxChunkSize]
+		}
+		ret = append(ret, sendLargeFileOptions)
+	}
+	return ret
+}

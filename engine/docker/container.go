@@ -20,6 +20,7 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
 	"github.com/mitchellh/mapstructure"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/projecteru2/core/engine"
 	enginetypes "github.com/projecteru2/core/engine/types"
@@ -291,6 +292,60 @@ func (e *Engine) VirtualizationCopyTo(ctx context.Context, ID, target string, co
 		defer content.Close()
 		return e.client.CopyToContainer(ctx, ID, filepath.Dir(target), content, dockertypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
 	})
+}
+
+// VirtualizationCopyChunkTo copy chunk to virtualization
+func (e *Engine) VirtualizationCopyChunkTo(ctx context.Context, ID, target string, size int64, content io.Reader, uid, gid int, mode int64) error {
+	pr, pw := io.Pipe()
+	tw := tar.NewWriter(pw)
+	defer tw.Close()
+	g, _ := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		hdr := &tar.Header{
+			Name: filepath.Base(target),
+			Size: size,
+			Mode: mode,
+			Uid:  uid,
+			Gid:  gid,
+		}
+		if taskErr := tw.WriteHeader(hdr); taskErr != nil {
+			log.Errorf(ctx, taskErr, "[VirtualizationCopyChunkTo] write header to %s err, err: %v", ID, taskErr)
+			return taskErr
+		}
+		for {
+			data := make([]byte, types.SendLargeFileChunkSize)
+			n, taskErr := content.Read(data)
+			if taskErr != nil {
+				if taskErr != io.EOF {
+					log.Errorf(ctx, taskErr, "[VirtualizationCopyChunkTo] read data from pipe err, err: %v", taskErr)
+					return taskErr
+				}
+				if closeErr := pw.Close(); closeErr != nil {
+					log.Errorf(ctx, closeErr, "[VirtualizationCopyChunkTo] close pipe writer, err: %v", closeErr)
+					return closeErr
+				}
+				return nil
+			}
+			if n < len(data) {
+				data = data[:n]
+			}
+			_, taskErr = tw.Write(data)
+			if taskErr != nil {
+				log.Debugf(ctx, "[VirtualizationCopyChunkTo] write data into %s err, err: %v", ID, taskErr)
+				if closeErr := pw.Close(); closeErr != nil {
+					log.Errorf(ctx, closeErr, "[VirtualizationCopyChunkTo] close pipe writer, err: %v", closeErr)
+					return closeErr
+				}
+				return taskErr
+			}
+		}
+	})
+	err := e.client.CopyToContainer(ctx, ID, filepath.Dir(target), pr, dockertypes.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: false})
+	if err != nil {
+		log.Errorf(ctx, err, "[VirtualizationCopyChunkTo] copy %s to container %s err, err:%v", target, ID, err)
+		return err
+	}
+	return g.Wait()
 }
 
 // VirtualizationStart start virtualization

@@ -303,3 +303,31 @@ func (r RawArgs) String() string {
 func (r RawArgs) LitterDump(w io.Writer) {
 	w.Write(r) //nolint:errcheck
 }
+
+const SendLargeFileChunkSize = 2 << 10
+
+// SendLargeFileOptions for LargeFileTransfer
+type SendLargeFileOptions struct {
+	Ids   []string
+	Dst   string
+	Size  int64
+	Mode  int64
+	UID   int
+	GID   int
+	Chunk []byte
+}
+
+// Validate checks options
+func (o *SendLargeFileOptions) Validate() error {
+	if len(o.Ids) == 0 {
+		return ErrNoWorkloadIDs
+	}
+	if len(o.Chunk) == 0 {
+		return ErrNoFilesToSend
+	}
+	if o.UID == 0 && o.GID == 0 && o.Mode == 0 {
+		// we see it as requiring "default perm"
+		o.Mode = 0755
+	}
+	return nil
+}

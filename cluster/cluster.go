@@ -80,6 +80,7 @@ type Cluster interface {
 	// file methods
 	Copy(ctx context.Context, opts *types.CopyOptions) (chan *types.CopyMessage, error)
 	Send(ctx context.Context, opts *types.SendOptions) (chan *types.SendMessage, error)
+	SendLargeFile(ctx context.Context, opts chan *types.SendLargeFileOptions) chan *types.SendMessage
 	// image methods
 	BuildImage(ctx context.Context, opts *types.BuildOptions) (chan *types.BuildImageMessage, error)
 	CacheImage(ctx context.Context, opts *types.ImageOptions) (chan *types.CacheImageMessage, error)

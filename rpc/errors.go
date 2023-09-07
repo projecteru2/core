@@ -63,6 +63,8 @@ const (
 	Copy codes.Code = 1061
 	// Send .
 	Send codes.Code = 1062
+	// SendLargeFile .
+	SendLargeFile codes.Code = 1063
 
 	// BuildImage .
 	BuildImage codes.Code = 1071

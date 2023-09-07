@@ -2,7 +2,7 @@ package calcium
 
 import (
 	"context"
-	"io"
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -10,44 +10,37 @@ import (
 	lockmocks "github.com/projecteru2/core/lock/mocks"
 	storemocks "github.com/projecteru2/core/store/mocks"
 	"github.com/projecteru2/core/types"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-func TestSend(t *testing.T) {
+func TestSendLarge(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-
-	// 这部分是在测试参数合法性
-	// failed by validating
-	_, err := c.Send(ctx, &types.SendOptions{IDs: []string{}, Files: []types.LinuxFile{{Content: []byte("xxx")}}})
-	assert.Error(t, err)
-	_, err = c.Send(ctx, &types.SendOptions{IDs: []string{"id"}})
-	assert.Error(t, err)
 
 	tmpfile, err := os.CreateTemp("", "example")
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmpfile.Name())
 	defer tmpfile.Close()
-	opts := &types.SendOptions{
-		IDs: []string{"cid"},
-		Files: []types.LinuxFile{
-			{
-				Filename: "/tmp/1",
-				Content:  []byte{},
-			},
-		},
+	opts := &types.SendLargeFileOptions{
+		Ids:   []string{"cid"},
+		Size:  1,
+		Dst:   "/tmp/1",
+		Chunk: []byte{},
 	}
-	store := c.store.(*storemocks.Store)
+	optsChan := make(chan *types.SendLargeFileOptions)
+	store := &storemocks.Store{}
+	c.store = store
 	lock := &lockmocks.DistributedLock{}
-	lock.On("Lock", mock.Anything).Return(ctx, nil)
+	lock.On("Lock", mock.Anything).Return(context.TODO(), nil)
 	lock.On("Unlock", mock.Anything).Return(nil)
 	store.On("CreateLock", mock.Anything, mock.Anything).Return(lock, nil)
-	// failed by GetWorkload
 	store.On("GetWorkloads", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
-	ch, err := c.Send(ctx, opts)
-	assert.NoError(t, err)
+	ch := c.SendLargeFile(ctx, optsChan)
+	go func() {
+		optsChan <- opts
+		close(optsChan)
+	}()
 	for r := range ch {
 		assert.Error(t, r.Error)
 	}
@@ -56,16 +49,21 @@ func TestSend(t *testing.T) {
 		[]*types.Workload{{ID: "cid", Engine: engine}}, nil,
 	)
 	// failed by engine
-	content, _ := io.ReadAll(tmpfile)
-	opts.Files[0].Content = content
+	content, _ := ioutil.ReadAll(tmpfile)
+	opts.Chunk = content
 	engine.On("VirtualizationCopyChunkTo",
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything,
 	).Return(types.ErrMockError).Once()
-	ch, err = c.Send(ctx, opts)
-	assert.NoError(t, err)
+	optsChan = make(chan *types.SendLargeFileOptions)
+	ch = c.SendLargeFile(ctx, optsChan)
+	go func() {
+		optsChan <- opts
+		close(optsChan)
+	}()
 	for r := range ch {
+		t.Log(r.Error)
 		assert.Error(t, r.Error)
 	}
 	// success
@@ -74,11 +72,15 @@ func TestSend(t *testing.T) {
 		mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything,
 	).Return(nil)
-	ch, err = c.Send(ctx, opts)
-	assert.NoError(t, err)
+	optsChan = make(chan *types.SendLargeFileOptions)
+	ch = c.SendLargeFile(ctx, optsChan)
+	go func() {
+		optsChan <- opts
+		close(optsChan)
+	}()
 	for r := range ch {
-		assert.NoError(t, r.Error)
 		assert.Equal(t, r.ID, "cid")
 		assert.Equal(t, r.Path, "/tmp/1")
+		assert.NoError(t, r.Error)
 	}
 }

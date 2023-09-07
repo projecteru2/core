@@ -40,6 +40,7 @@ type API interface {
 
 	VirtualizationCreate(ctx context.Context, opts *enginetypes.VirtualizationCreateOptions) (*enginetypes.VirtualizationCreated, error)
 	VirtualizationCopyTo(ctx context.Context, ID, target string, content []byte, uid, gid int, mode int64) error
+	VirtualizationCopyChunkTo(ctx context.Context, ID, target string, size int64, content io.Reader, uid, gid int, mode int64) error
 	VirtualizationStart(ctx context.Context, ID string) error
 	VirtualizationStop(ctx context.Context, ID string, gracefulTimeout time.Duration) error
 	VirtualizationRemove(ctx context.Context, ID string, volumes, force bool) error

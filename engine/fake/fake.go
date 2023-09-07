@@ -130,6 +130,11 @@ func (f *EngineWithErr) VirtualizationCopyTo(context.Context, string, string, []
 	return f.DefaultErr
 }
 
+// VirtualizationCopyChunkTo .
+func (f *EngineWithErr) VirtualizationCopyChunkTo(context.Context, string, string, int64, io.Reader, int, int, int64) error {
+	return f.DefaultErr
+}
+
 // VirtualizationStart .
 func (f *EngineWithErr) VirtualizationStart(context.Context, string) error {
 	return f.DefaultErr
