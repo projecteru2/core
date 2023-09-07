@@ -396,6 +396,7 @@ message DeployOptions {
     FILL = 1;
     EACH = 2;
     GLOBAL = 3;
+    DRAINED = 4;
     DUMMY = 99;
   }
   string name = 1001;

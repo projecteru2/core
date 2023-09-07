@@ -130,7 +130,7 @@ var Client = Metrics{}
 var once sync.Once
 
 // InitMetrics new a metrics obj
-func InitMetrics(config types.Config, metricsDescriptions []*plugintypes.MetricsDescription) error {
+func InitMetrics(ctx context.Context, config types.Config, metricsDescriptions []*plugintypes.MetricsDescription) error {
 	hostname, err := os.Hostname()
 	if err != nil {
 		return err
@@ -139,6 +139,10 @@ func InitMetrics(config types.Config, metricsDescriptions []*plugintypes.Metrics
 	if err != nil {
 		return err
 	}
+	if err := rmgr.LoadPlugins(ctx, nil); err != nil {
+		return err
+	}
+
 	Client = Metrics{
 		Config:     config,
 		StatsdAddr: config.Statsd,
