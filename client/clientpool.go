@@ -26,6 +26,7 @@ type PoolConfig struct {
 
 // Pool implement of RPCClientPool
 type Pool struct {
+	mu         sync.Mutex
 	rpcClients []*clientWithStatus
 }
 
@@ -81,6 +82,9 @@ func NewCoreRPCClientPool(ctx context.Context, config *PoolConfig) (*Pool, error
 
 // GetClient finds the first *client.Client instance with an active connection. If all connections are dead, returns the first one.
 func (c *Pool) GetClient() pb.CoreRPCClient {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	for _, rpc := range c.rpcClients {
 		if rpc.alive {
 			return rpc.client
@@ -104,6 +108,9 @@ func checkAlive(ctx context.Context, rpc *clientWithStatus, timeout time.Duratio
 }
 
 func (c *Pool) updateClientsStatus(ctx context.Context, timeout time.Duration) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	wg := &sync.WaitGroup{}
 	defer wg.Wait()
 	for _, rpc := range c.rpcClients {
