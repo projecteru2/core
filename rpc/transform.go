@@ -220,6 +220,9 @@ func toCoreReplaceOptions(r *pb.ReplaceOptions) (*types.ReplaceOptions, error) {
 }
 
 func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
+	if d == nil {
+		return nil, types.ErrNoDeployOpts
+	}
 	if d.Entrypoint == nil || d.Entrypoint.Name == "" {
 		return nil, types.ErrNoEntryInSpec
 	}
