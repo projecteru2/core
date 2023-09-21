@@ -58,6 +58,8 @@ const (
 	GetWorkloadsStatus codes.Code = 1055
 	// SetWorkloadsStatus .
 	SetWorkloadsStatus codes.Code = 1056
+	// RawEngine
+	RawEngineStatus codes.Code = 1057
 
 	// Copy .
 	Copy codes.Code = 1061

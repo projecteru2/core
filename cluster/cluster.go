@@ -97,6 +97,7 @@ type Cluster interface {
 	ReallocResource(ctx context.Context, opts *types.ReallocOptions) error
 	LogStream(ctx context.Context, opts *types.LogStreamOptions) (chan *types.LogStreamMessage, error)
 	RunAndWait(ctx context.Context, opts *types.DeployOptions, inCh <-chan []byte) ([]string, <-chan *types.AttachWorkloadMessage, error)
+	RawEngine(ctx context.Context, opts *types.RawEngineOptions) (*types.RawEngineMessage, error)
 	// finalizer
 	Finalizer()
 

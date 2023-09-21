@@ -160,6 +160,10 @@ func (f *EngineWithErr) VirtualizationRemove(context.Context, string, bool, bool
 	return f.DefaultErr
 }
 
+func (f *EngineWithErr) RawEngine(context.Context, *enginetypes.RawEngineOptions) (*enginetypes.RawEngineResult, error) {
+	return nil, f.DefaultErr
+}
+
 // VirtualizationInspect .
 func (f *EngineWithErr) VirtualizationInspect(context.Context, string) (*enginetypes.VirtualizationInfo, error) {
 	return nil, f.DefaultErr

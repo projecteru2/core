@@ -24,7 +24,7 @@ require (
 	github.com/panjf2000/ants/v2 v2.7.3
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
-	github.com/projecteru2/libyavirt v0.0.0-20230725071905-9785e974d625
+	github.com/projecteru2/libyavirt v0.0.0-20230921032447-a617cf0c746c
 	github.com/prometheus/client_golang v1.15.0
 	github.com/rs/zerolog v1.29.1
 	github.com/sanity-io/litter v1.5.5
@@ -88,7 +88,6 @@ require (
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jonboulle/clockwork v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/juju/errors v1.0.0 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/klauspost/compress v1.16.5 // indirect
 	github.com/kr/pretty v0.3.1 // indirect

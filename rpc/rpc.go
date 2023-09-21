@@ -1065,6 +1065,23 @@ func (v *Vibranium) RunAndWait(stream pb.CoreRPC_RunAndWaitServer) error {
 	return nil
 }
 
+func (v *Vibranium) RawEngine(ctx context.Context, opts *pb.RawEngineOptions) (*pb.RawEngineMessage, error) {
+	task := v.newTask(ctx, "RawEngine", true)
+	defer task.done()
+
+	rawEngineOpts, err := toCoreRawEngineOptions(opts)
+	if err != nil {
+		return nil, grpcstatus.Error(RawEngineStatus, err.Error())
+	}
+
+	msg, err := v.cluster.RawEngine(task.context, rawEngineOpts)
+
+	if err != nil {
+		return nil, grpcstatus.Error(RawEngineStatus, err.Error())
+	}
+	return toRPCRawEngineMessage(msg), nil
+}
+
 func (v *Vibranium) logUnsentMessages(ctx context.Context, msgType string, err error, msg any) {
 	log.WithFunc("vibranium.logUnsentMessages").Infof(ctx, "Unsent (%s) streamed message due to (%+v): (%+v)", msgType, err, msg)
 }

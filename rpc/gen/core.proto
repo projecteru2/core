@@ -59,6 +59,8 @@ service CoreRPC {
   rpc ReallocResource(ReallocOptions) returns (ReallocResourceMessage) {};
   rpc LogStream(LogStreamOptions) returns (stream LogStreamMessage) {};
   rpc RunAndWait(stream RunAndWaitOptions) returns (stream AttachWorkloadMessage) {};
+
+  rpc RawEngine(RawEngineOptions) returns (RawEngineMessage) {};
 }
 
 message Empty {}
@@ -602,6 +604,17 @@ message ControlWorkloadMessage {
   string id = 1001;
   string error = 1002;
   bytes hook = 1003;
+}
+
+message RawEngineOptions {
+  string id = 1001;
+  string op = 1002;
+  bytes params = 1003;
+}
+
+message RawEngineMessage {
+  string id = 1001;
+  bytes data = 1002;
 }
 
 message LogStreamOptions {

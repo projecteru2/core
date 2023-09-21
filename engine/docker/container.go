@@ -372,6 +372,10 @@ func (e *Engine) VirtualizationResume(context.Context, string) error {
 	return nil
 }
 
+func (e *Engine) RawEngine(context.Context, *enginetypes.RawEngineOptions) (res *enginetypes.RawEngineResult, err error) {
+	return nil, nil
+}
+
 // VirtualizationRemove remove virtualization
 func (e *Engine) VirtualizationRemove(ctx context.Context, ID string, removeVolumes, force bool) error {
 	if err := e.client.ContainerRemove(ctx, ID, dockertypes.ContainerRemoveOptions{RemoveVolumes: removeVolumes, Force: force}); err != nil {

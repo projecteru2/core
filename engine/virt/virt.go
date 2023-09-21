@@ -25,8 +25,6 @@ import (
 )
 
 const (
-	// HTTPPrefixKey indicate http yavirtd
-	HTTPPrefixKey = "virt://"
 	// GRPCPrefixKey indicates grpc yavirtd
 	GRPCPrefixKey = "virt-grpc://"
 	// ImageUserKey indicates the image's owner
@@ -47,8 +45,6 @@ type Virt struct {
 func MakeClient(_ context.Context, config coretypes.Config, nodename, endpoint, ca, _, _ string) (engine.API, error) {
 	var uri string
 	switch {
-	case strings.HasPrefix(endpoint, HTTPPrefixKey):
-		uri = fmt.Sprintf("http://%s/%s", strings.TrimPrefix(endpoint, HTTPPrefixKey), config.Virt.APIVersion)
 	case strings.HasPrefix(endpoint, GRPCPrefixKey):
 		uri = "grpc://" + strings.TrimPrefix(endpoint, GRPCPrefixKey)
 	default:
@@ -286,6 +282,23 @@ func (v *Virt) VirtualizationSuspend(ctx context.Context, ID string) (err error)
 // VirtualizationResume resumes a guest.
 func (v *Virt) VirtualizationResume(ctx context.Context, ID string) (err error) {
 	_, err = v.client.ResumeGuest(ctx, ID)
+	return
+}
+
+func (v *Virt) RawEngine(ctx context.Context, opts *enginetypes.RawEngineOptions) (res *enginetypes.RawEngineResult, err error) {
+	req := virttypes.RawEngineReq{
+		ID:     opts.ID,
+		Op:     opts.Op,
+		Params: opts.Params,
+	}
+	resp, err := v.client.RawEngine(ctx, req)
+	if err != nil {
+		return
+	}
+	res = &enginetypes.RawEngineResult{
+		ID:   resp.ID,
+		Data: resp.Data,
+	}
 	return
 }
 

@@ -155,3 +155,8 @@ type errorDetail struct {
 	Code    int    `json:"code,omitempty"`
 	Message string `json:"message,omitempty"`
 }
+
+type RawEngineMessage struct {
+	ID   string `json:"id,omitempty"`
+	Data []byte `json:"data,omitempty"`
+}
