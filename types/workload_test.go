@@ -53,3 +53,17 @@ func TestWorkloadControl(t *testing.T) {
 	err = c.Resume(ctx)
 	assert.NoError(t, err)
 }
+
+func TestRawEngine(t *testing.T) {
+	mockEngine := &mocks.API{}
+	mockEngine.On("RawEngine", mock.Anything, mock.Anything).Return(&enginetypes.RawEngineResult{}, nil)
+
+	ctx := context.Background()
+	c := Workload{}
+	_, err := c.RawEngine(ctx, &RawEngineOptions{})
+	assert.Error(t, err)
+
+	c.Engine = mockEngine
+	_, err = c.RawEngine(ctx, &RawEngineOptions{})
+	assert.NoError(t, err)
+}
