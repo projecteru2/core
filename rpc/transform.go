@@ -620,3 +620,21 @@ func toSendLargeFileChunks(file types.LinuxFile, ids []string) []*types.SendLarg
 	}
 	return ret
 }
+
+func toCoreRawEngineOptions(d *pb.RawEngineOptions) (*types.RawEngineOptions, error) {
+	ret := &types.RawEngineOptions{
+		ID:     d.Id,
+		Op:     d.Op,
+		Params: d.Params,
+	}
+	err := ret.Validate()
+	return ret, err
+}
+
+func toRPCRawEngineMessage(c *types.RawEngineMessage) *pb.RawEngineMessage {
+	r := &pb.RawEngineMessage{
+		Id:   c.ID,
+		Data: c.Data,
+	}
+	return r
+}

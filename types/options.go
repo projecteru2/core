@@ -331,3 +331,19 @@ func (o *SendLargeFileOptions) Validate() error {
 	}
 	return nil
 }
+
+type RawEngineOptions struct {
+	ID     string
+	Op     string
+	Params []byte
+}
+
+func (o *RawEngineOptions) Validate() error {
+	if o.ID == "" {
+		return ErrEmptyWorkloadID
+	}
+	if o.Op == "" {
+		return ErrEmptyRawEngineOp
+	}
+	return nil
+}

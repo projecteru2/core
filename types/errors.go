@@ -88,6 +88,7 @@ var (
 	ErrEmptyWorkloadID             = errors.New("workload ID is empty")
 	ErrEmptyEntrypointName         = errors.New("entrypoint name is empty")
 	ErrUnderlineInEntrypointName   = errors.New("entrypoint name has '_' character")
+	ErrEmptyRawEngineOp            = errors.New("raw engine op is empty")
 
 	// Store
 	ErrKeyNotExists       = errors.New("key not exists")

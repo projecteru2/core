@@ -285,6 +285,23 @@ func (v *Virt) VirtualizationResume(ctx context.Context, ID string) (err error) 
 	return
 }
 
+func (v *Virt) RawEngine(ctx context.Context, opts *enginetypes.RawEngineOptions) (res *enginetypes.RawEngineResult, err error) {
+	req := virttypes.RawEngineReq{
+		ID:     opts.ID,
+		Op:     opts.Op,
+		Params: opts.Params,
+	}
+	resp, err := v.client.RawEngine(ctx, req)
+	if err != nil {
+		return
+	}
+	res = &enginetypes.RawEngineResult{
+		ID:   resp.ID,
+		Data: resp.Data,
+	}
+	return
+}
+
 // VirtualizationInspect gets a guest.
 func (v *Virt) VirtualizationInspect(ctx context.Context, ID string) (*enginetypes.VirtualizationInfo, error) {
 	guest, err := v.client.GetGuest(ctx, ID)

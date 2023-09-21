@@ -109,6 +109,26 @@ func (c *Workload) Remove(ctx context.Context, force bool) (err error) {
 	return err
 }
 
+func (c *Workload) RawEngine(ctx context.Context, opts *RawEngineOptions) (ans *RawEngineMessage, err error) {
+	if c.Engine == nil {
+		return nil, ErrNilEngine
+	}
+	eOpts := &enginetypes.RawEngineOptions{
+		ID:     opts.ID,
+		Op:     opts.Op,
+		Params: opts.Params,
+	}
+	eResp, err := c.Engine.RawEngine(ctx, eOpts)
+	if err != nil {
+		return
+	}
+	ans = &RawEngineMessage{
+		ID:   eResp.ID,
+		Data: eResp.Data,
+	}
+	return
+}
+
 // WorkloadStatus store deploy status
 type WorkloadStatus struct {
 	ID       string
