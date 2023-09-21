@@ -10,28 +10,33 @@ import (
 )
 
 func call[T any](ctx context.Context, ps []plugins.Plugin, f func(plugins.Plugin) (T, error)) (map[plugins.Plugin]T, error) {
-	var mu sync.Mutex
 	var wg sync.WaitGroup
 	var combinedErr error
-	results := map[plugins.Plugin]T{}
-
+	var results sync.Map
 	for _, p := range ps {
 		wg.Add(1)
 		go func(p plugins.Plugin) {
 			defer wg.Done()
 
 			result, err := f(p)
-			mu.Lock()
-			defer mu.Unlock()
-
 			if err != nil {
 				log.WithFunc("resource.cobalt.call").Errorf(ctx, err, "failed to call plugin %+v", p.Name())
-				combinedErr = errors.CombineErrors(combinedErr, errors.Wrap(err, p.Name()))
+				results.Store(p, err)
 				return
 			}
-			results[p] = result
+			results.Store(p, result)
 		}(p)
 	}
 	wg.Wait()
-	return results, combinedErr
+	ans := make(map[plugins.Plugin]T)
+	results.Range(func(key, value any) bool {
+		switch vt := value.(type) {
+		case error:
+			combinedErr = errors.CombineErrors(combinedErr, vt)
+		case T:
+			ans[key.(plugins.Plugin)] = vt
+		}
+		return true
+	})
+	return ans, combinedErr
 }
