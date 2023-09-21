@@ -29,7 +29,6 @@ var (
 	engines = map[string]factory{
 		docker.TCPPrefixKey:  docker.MakeClient,
 		docker.SockPrefixKey: docker.MakeClient,
-		virt.HTTPPrefixKey:   virt.MakeClient,
 		virt.GRPCPrefixKey:   virt.MakeClient,
 		systemd.TCPPrefix:    systemd.MakeClient,
 		fakeengine.PrefixKey: fakeengine.MakeClient,
