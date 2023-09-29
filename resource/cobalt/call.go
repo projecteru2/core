@@ -29,14 +29,14 @@ func call[T any](ctx context.Context, ps []plugins.Plugin, f func(plugins.Plugin
 	}
 	wg.Wait()
 	ans := make(map[plugins.Plugin]T)
-	results.Range(func(key, value any) bool {
+	for _, p := range ps {
+		value, _ := results.Load(p)
 		switch vt := value.(type) {
 		case error:
 			combinedErr = errors.CombineErrors(combinedErr, vt)
 		case T:
-			ans[key.(plugins.Plugin)] = vt
+			ans[p] = vt
 		}
-		return true
-	})
+	}
 	return ans, combinedErr
 }
