@@ -90,13 +90,13 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 			},
 			// then: remove node resource metadata
 			func(ctx context.Context) error {
-				err := c.rmgr.RemoveNode(ctx, nodename)
+				err = c.rmgr.RemoveNode(ctx, nodename)
 				if err != nil {
 					return err
 				}
 				enginefactory.RemoveEngineFromCache(ctx, node.Endpoint, node.Ca, node.Cert, node.Key)
 				metricsDescriptions, err := c.rmgr.GetMetricsDescription(ctx)
-				if err == nil {
+				if err != nil {
 					logger.Error(ctx, err, "failed to get metrics description")
 					return err
 				}
