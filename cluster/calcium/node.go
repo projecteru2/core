@@ -7,6 +7,7 @@ import (
 	enginefactory "github.com/projecteru2/core/engine/factory"
 	enginetypes "github.com/projecteru2/core/engine/types"
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/resource/plugins"
 	resourcetypes "github.com/projecteru2/core/resource/types"
 	"github.com/projecteru2/core/types"
@@ -89,7 +90,18 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 			},
 			// then: remove node resource metadata
 			func(ctx context.Context) error {
-				return c.rmgr.RemoveNode(ctx, nodename)
+				err := c.rmgr.RemoveNode(ctx, nodename)
+				if err != nil {
+					return err
+				}
+				enginefactory.RemoveEngineFromCache(ctx, node.Endpoint, node.Ca, node.Cert, node.Key)
+				metricsDescriptions, err := c.rmgr.GetMetricsDescription(ctx)
+				if err == nil {
+					logger.Error(ctx, err, "failed to get metrics description")
+					return err
+				}
+				metrics.Client.ResetCollectors(metricsDescriptions)
+				return nil
 			},
 			// rollback: do nothing
 			func(ctx context.Context, failureByCond bool) error {
