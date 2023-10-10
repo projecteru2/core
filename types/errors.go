@@ -15,13 +15,13 @@ var (
 	ErrNodeExists = errors.New("node already exists")
 
 	// Node
-	ErrInvaildNodeEndpoint  = errors.New("invaild node endpoint")
+	ErrInvaildNodeEndpoint  = errors.New("invalid node endpoint")
 	ErrNodeNotEmpty         = errors.New("node not empty, still has workloads associated")
 	ErrNodeNotExists        = errors.New("node not exists")
-	ErrInvaildNodeStatusTTL = errors.New("invaild TTL for node status, should be > 0")
+	ErrInvaildNodeStatusTTL = errors.New("invalid TTL for node status, should be > 0")
 
 	// Lock
-	ErrLockKeyInvaild  = errors.New("lock key is invaild")
+	ErrLockKeyInvaild  = errors.New("lock key is invalid")
 	ErrLockSessionDone = errors.New("lock session done")
 
 	// Client
@@ -33,26 +33,26 @@ var (
 
 	// General
 	ErrInvaildIPAddress     = errors.New("invalid IP address")
-	ErrInvaildIPWithPort    = errors.New("invaild IP with port")
+	ErrInvaildIPWithPort    = errors.New("invalid IP with port")
 	ErrICMPLost             = errors.New("icmp packets lost")
 	ErrAllConnectionsFailed = errors.New("all connections failed")
 	ErrUnexpectedRedirect   = errors.New("unexpected redirect")
 
 	// Engine
-	ErrInvaildMemory         = errors.New("invaild `Memory` value setting")
+	ErrInvaildMemory         = errors.New("invalid `Memory` value setting")
 	ErrNilEngine             = errors.New("engine is nil")
 	ErrInvaildRefs           = errors.New("invalid image refs")
 	ErrNoImage               = errors.New("no image")
 	ErrNoImageUser           = errors.New("no image user")
-	ErrInvaildRemoteDigest   = errors.New("got invaild digest")
+	ErrInvaildRemoteDigest   = errors.New("got invalid digest")
 	ErrInvaildEngineEndpoint = errors.New("not Support endpoint")
 	ErrEngineNotImplemented  = errors.New("not implemented")
 	ErrInvalidEngineArgs     = errors.New("invalid engine args")
 
 	// Workload
 	ErrInvaildWorkloadStatus = errors.New("status has no appname / entrypoint / nodename")
-	ErrInvaildWorkloadMeta   = errors.New("invaild workload meta")
-	ErrInvaildWorkloadOps    = errors.New("invaild workload ops")
+	ErrInvaildWorkloadMeta   = errors.New("invalid workload meta")
+	ErrInvaildWorkloadOps    = errors.New("invalid workload ops")
 	ErrInvalidWorkloadName   = errors.New("invalid workload name")
 	ErrWorkloadIgnored       = errors.New("ignore this workload")
 	ErrWorkloadNotExists     = errors.New("workload not exists")
@@ -63,9 +63,9 @@ var (
 	ErrPodNotFound = errors.New("pod not found")
 
 	// GRPC
-	ErrInvaildGRPCRequestMeta = errors.New("invaild grpc request meta")
-	ErrInvaildGRPCPassword    = errors.New("invaild grpc password")
-	ErrInvaildGRPCUsername    = errors.New("invaild grpc username")
+	ErrInvaildGRPCRequestMeta = errors.New("invalid grpc request meta")
+	ErrInvaildGRPCPassword    = errors.New("invalid grpc password")
+	ErrInvaildGRPCUsername    = errors.New("invalid grpc username")
 
 	// Opts Validation
 	ErrNoBuildPod                  = errors.New("no build pod set in config")
@@ -95,16 +95,16 @@ var (
 	ErrKeyExists          = errors.New("key exists")
 	ErrNoOps              = errors.New("no txn ops")
 	ErrTxnConditionFailed = errors.New("ETCD Txn condition failed")
-	ErrInvaildCount       = errors.New("bad `Count` value, entity count invaild") // store key-value count not same
+	ErrInvaildCount       = errors.New("bad `Count` value, entity count invalid") // store key-value count not same
 
 	// WAL
-	ErrInvaildWALEventType = errors.New("invaild WAL event type")
-	ErrInvaildWALEvent     = errors.New("invaild WAL event type")
+	ErrInvaildWALEventType = errors.New("invalid WAL event type")
+	ErrInvaildWALEvent     = errors.New("invalid WAL event type")
 	ErrInvalidWALBucket    = errors.New("invalid WAL bucket")
 	ErrInvalidWALDataType  = errors.New("invalid WAL data type")
 
 	// Create
-	ErrInvaildDeployCount    = errors.New("invaild deploy count")
+	ErrInvaildDeployCount    = errors.New("invalid deploy count")
 	ErrRollbackMapIsNotEmpty = errors.New("rollback map is not empty")
 	ErrGetMostIdleNodeFailed = errors.New("get most idle node failed")
 
@@ -116,7 +116,7 @@ var (
 	ErrNoFilesToCopy = errors.New("no files to copy")
 
 	// Core
-	ErrInvaildCoreEndpointType = errors.New("invaild Core endpoint type")
+	ErrInvaildCoreEndpointType = errors.New("invalid Core endpoint type")
 
 	// Test
 	ErrMockError = errors.New("mock error")

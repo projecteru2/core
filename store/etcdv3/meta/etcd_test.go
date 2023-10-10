@@ -448,7 +448,7 @@ func TestETCD(t *testing.T) {
 
 	// GetMulti error
 	_, err = m.GetMulti(context.Background(), []string{"a", "b"})
-	require.EqualError(t, err, "key: a: bad `Count` value, entity count invaild")
+	require.EqualError(t, err, "key: a: bad `Count` value, entity count invalid")
 
 	// GetMulti success
 	m.Put(context.Background(), "a", "b")

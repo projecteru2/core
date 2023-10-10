@@ -118,7 +118,7 @@ func TestSetWorkloadsStatus(t *testing.T) {
 	// failed by workload name
 	workload := &types.Workload{
 		ID:   "123",
-		Name: "invaild",
+		Name: "invalid",
 	}
 	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil).Once()
 	_, err = c.SetWorkloadsStatus(ctx, []*types.StatusMeta{{ID: "123"}}, nil)

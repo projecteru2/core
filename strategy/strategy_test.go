@@ -35,7 +35,7 @@ func deployedNodes() []Info {
 func TestDeploy(t *testing.T) {
 	ctx := context.Background()
 
-	// invaild strategy
+	// invalid strategy
 	_, err := Deploy(ctx, "invalid", -1, 3, nil, 2)
 	assert.Error(t, err)
 
