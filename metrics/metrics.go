@@ -85,18 +85,33 @@ func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*plugintypes.Metri
 	}
 }
 
-// DeleteUnusedLabelValues 清除多余的metric标签值
-func (m *Metrics) DeleteUnusedLabelValues(nodeName string) {
+// DeleteUnusedLabelValues 清除多余的 metric 标签值
+func (m *Metrics) DeleteUnusedLabelValues(nodeNameToRemove string) {
 	for _, collector := range m.Collectors {
-		if c, ok := collector.(prometheus.Collector); ok {
-			if gauge, ok := c.(*prometheus.GaugeVec); ok {
-				// 清除不需要的标签值
-				gauge.DeleteLabelValues(nodeName)
-			} else if counter, ok := c.(*prometheus.CounterVec); ok {
-				// 清除不需要的标签值
-				counter.DeleteLabelValues(nodeName)
+		switch c := collector.(type) {
+		case *prometheus.GaugeVec, *prometheus.CounterVec:
+			// 获取所有的标签值
+			metrics, _ := prometheus.DefaultGatherer.Gather()
+			for _, metric := range metrics {
+				for _, mf := range metric.GetMetric() {
+					if len(mf.Label) == 0 {
+						continue
+					}
+					for _, label := range mf.Label {
+						if label.GetName() != "nodename" || label.GetValue() != nodeNameToRemove {
+							continue
+						}
+						// 删除符合条件的度量标签
+						switch c := c.(type) {
+						case *prometheus.GaugeVec:
+							c.DeleteLabelValues(label.GetValue())
+						case *prometheus.CounterVec:
+							c.DeleteLabelValues(label.GetValue())
+						}
+					}
+				}
 			}
-			// 添加更多的条件来处理其他类型的Collector
+		default:
 		}
 	}
 }
