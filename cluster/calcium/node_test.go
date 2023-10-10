@@ -97,6 +97,7 @@ func TestRemoveNode(t *testing.T) {
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("RemoveNode", mock.Anything, mock.Anything).Return(nil)
 	assert.NoError(t, c.RemoveNode(ctx, name))
+
 	store.AssertExpectations(t)
 	rmgr.AssertExpectations(t)
 }
