@@ -45,7 +45,7 @@ func TestAddNode(t *testing.T) {
 	rmgr.On("AddNode", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 		resourcetypes.Resources{}, nil)
 	rmgr.On("RemoveNode", mock.Anything, mock.Anything).Return(nil)
-
+	rmgr.On("GetMetricsDescription", mock.Anything).Return(nil, nil)
 	// failed by store.AddNode
 	store := c.store.(*storemocks.Store)
 	store.On("AddNode", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
