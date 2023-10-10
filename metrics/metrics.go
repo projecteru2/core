@@ -13,6 +13,8 @@ import (
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
+	io_prometheus_client "github.com/prometheus/client_model/go"
+	"golang.org/x/exp/slices"
 
 	statsdlib "github.com/CMGS/statsd"
 	"github.com/prometheus/client_golang/prometheus"
@@ -86,22 +88,20 @@ func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*plugintypes.Metri
 	}
 }
 
-func (m *Metrics) DeleteInactiveNodeCacheAndMetrics(activeNodeMap map[string]*types.Node) {
-	metricNodeNameMap := m.GetNodeNameMapFromMetrics()
+func (m *Metrics) DeleteInactiveNodeCacheAndMetrics(ctx context.Context, activeNodesMap map[string]*types.Node) {
+	metricNodeNameMap := m.getNodeNameMapFromMetrics()
 	// 计算差集
-	inactiveNodeNameList := make([]string, 0)
+	invalidNodes := make([]string, 0)
 	for nodeName := range metricNodeNameMap {
-		if node, exists := activeNodeMap[nodeName]; !exists {
-			inactiveNodeNameList = append(inactiveNodeNameList, nodeName)
-			enginefactory.RemoveEngineFromCache(context.Background(), node.Endpoint, node.Ca, node.Cert, node.Key)
+		if node, exists := activeNodesMap[nodeName]; !exists {
+			invalidNodes = append(invalidNodes, nodeName)
+			enginefactory.RemoveEngineFromCache(ctx, node.Endpoint, node.Ca, node.Cert, node.Key)
 		}
 	}
-	if len(inactiveNodeNameList) > 0 {
-		m.DeleteInvalidNodeLabelValues(inactiveNodeNameList)
-	}
+	m.RemoveInvalidNodes(invalidNodes)
 }
 
-func (m *Metrics) GetNodeNameMapFromMetrics() map[string]bool {
+func (m *Metrics) getNodeNameMapFromMetrics() map[string]bool {
 	metrics, _ := prometheus.DefaultGatherer.Gather()
 	nodeNameMap := make(map[string]bool, 0)
 	for _, metric := range metrics {
@@ -120,8 +120,11 @@ func (m *Metrics) GetNodeNameMapFromMetrics() map[string]bool {
 	return nodeNameMap
 }
 
-// DeleteInvalidNodeLabelValues 清除多余的metric标签值
-func (m *Metrics) DeleteInvalidNodeLabelValues(nodeNameToRemoveList []string) {
+// RemoveInvalidNodes 清除多余的metric标签值
+func (m *Metrics) RemoveInvalidNodes(invalidNodes []string) {
+	if len(invalidNodes) == 0 {
+		return
+	}
 	for _, collector := range m.Collectors {
 		if collector == nil {
 			return
@@ -132,16 +135,12 @@ func (m *Metrics) DeleteInvalidNodeLabelValues(nodeNameToRemoveList []string) {
 				if len(mf.Label) == 0 {
 					continue
 				}
-				bFind := false
-				for _, label := range mf.Label {
-					for _, nodeNameToRemove := range nodeNameToRemoveList {
-						if label.GetName() == "nodename" && label.GetValue() == nodeNameToRemove {
-							bFind = true
-							break
-						}
-					}
-				}
-				if !bFind {
+
+				if !slices.ContainsFunc(mf.Label, func(label *io_prometheus_client.LabelPair) bool {
+					return label.GetName() == "nodename" && slices.ContainsFunc(invalidNodes, func(nodename string) bool {
+						return label.GetValue() == nodename
+					})
+				}) {
 					continue
 				}
 				labels := prometheus.Labels{}

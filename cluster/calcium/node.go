@@ -90,12 +90,11 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 			},
 			// then: remove node resource metadata
 			func(ctx context.Context) error {
-				err = c.rmgr.RemoveNode(ctx, nodename)
-				if err != nil {
+				if err = c.rmgr.RemoveNode(ctx, nodename); err != nil {
 					return err
 				}
 				enginefactory.RemoveEngineFromCache(ctx, node.Endpoint, node.Ca, node.Cert, node.Key)
-				metrics.Client.DeleteInvalidNodeLabelValues([]string{nodename})
+				metrics.Client.RemoveInvalidNodes([]string{nodename})
 				return nil
 			},
 			// rollback: do nothing

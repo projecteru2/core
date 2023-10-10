@@ -20,17 +20,17 @@ func (m *Metrics) ResourceMiddleware(cluster cluster.Cluster) func(http.Handler)
 			if err != nil {
 				logger.Error(ctx, err, "Get all nodes err")
 			}
-			activeNodeMap := make(map[string]*types.Node, 0)
+			activeNodes := make(map[string]*types.Node, 0)
 			for node := range nodes {
 				metrics, err := m.rmgr.GetNodeMetrics(ctx, node)
 				if err != nil {
 					logger.Error(ctx, err, "Get metrics failed")
 					continue
 				}
-				activeNodeMap[node.Name] = node
+				activeNodes[node.Name] = node
 				m.SendMetrics(ctx, metrics...)
 			}
-			m.DeleteInactiveNodeCacheAndMetrics(activeNodeMap)
+			m.DeleteInactiveNodeCacheAndMetrics(ctx, activeNodes)
 			h.ServeHTTP(w, r)
 		})
 	}
