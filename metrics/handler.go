@@ -30,7 +30,7 @@ func (m *Metrics) ResourceMiddleware(cluster cluster.Cluster) func(http.Handler)
 				activeNodes[node.Name] = node
 				m.SendMetrics(ctx, metrics...)
 			}
-			m.DeleteInactiveNodeCacheAndMetrics(ctx, activeNodes)
+			m.DeleteInactiveNodesWithCache(ctx, activeNodes)
 			h.ServeHTTP(w, r)
 		})
 	}

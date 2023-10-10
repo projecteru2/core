@@ -88,7 +88,7 @@ func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*plugintypes.Metri
 	}
 }
 
-func (m *Metrics) DeleteInactiveNodeCacheAndMetrics(ctx context.Context, activeNodesMap map[string]*types.Node) {
+func (m *Metrics) DeleteInactiveNodesWithCache(ctx context.Context, activeNodesMap map[string]*types.Node) {
 	metricNodeNameMap := m.getNodeNameMapFromMetrics()
 	// 计算差集
 	invalidNodes := make([]string, 0)
