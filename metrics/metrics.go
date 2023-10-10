@@ -86,18 +86,18 @@ func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*plugintypes.Metri
 	}
 }
 
-func (m *Metrics) DeleteInvalidNodeCacheAndMetrics(validNodeMap map[string]*types.Node) {
+func (m *Metrics) DeleteInactiveNodeCacheAndMetrics(activeNodeMap map[string]*types.Node) {
 	metricNodeNameMap := m.GetNodeNameMapFromMetrics()
 	// 计算差集
-	invalidNodeNameList := make([]string, 0)
+	inactiveNodeNameList := make([]string, 0)
 	for nodeName := range metricNodeNameMap {
-		if node, exists := validNodeMap[nodeName]; !exists {
-			invalidNodeNameList = append(invalidNodeNameList, nodeName)
+		if node, exists := activeNodeMap[nodeName]; !exists {
+			inactiveNodeNameList = append(inactiveNodeNameList, nodeName)
 			enginefactory.RemoveEngineFromCache(context.Background(), node.Endpoint, node.Ca, node.Cert, node.Key)
 		}
 	}
-	if len(invalidNodeNameList) > 0 {
-		m.DeleteInvalidNodeLabelValues(invalidNodeNameList)
+	if len(inactiveNodeNameList) > 0 {
+		m.DeleteInvalidNodeLabelValues(inactiveNodeNameList)
 	}
 }
 
