@@ -87,9 +87,15 @@ func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*plugintypes.Metri
 
 // ResetCollectors 清除旧的 Collectors 并创建新的 Collectors
 func (m *Metrics) ResetCollectors(metricsDescriptions []*plugintypes.MetricsDescription) {
-	for _, oldCollector := range m.Collectors {
-		prometheus.Unregister(oldCollector)
+	if len(metricsDescriptions) == 0 {
+		return
 	}
+	if len(m.Collectors) > 0 {
+		for _, oldCollector := range m.Collectors {
+			prometheus.Unregister(oldCollector)
+		}
+	}
+
 	// 创建新的 Collectors map
 	newCollectors := map[string]prometheus.Collector{}
 	// 重新创建新的 Collectors
