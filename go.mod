@@ -26,6 +26,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/projecteru2/libyavirt v0.0.0-20230921032447-a617cf0c746c
 	github.com/prometheus/client_golang v1.15.0
+	github.com/prometheus/client_model v0.3.0
 	github.com/rs/zerolog v1.29.1
 	github.com/sanity-io/litter v1.5.5
 	github.com/stretchr/testify v1.8.2
@@ -105,7 +106,6 @@ require (
 	github.com/opencontainers/runc v1.1.6 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect

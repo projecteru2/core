@@ -6,14 +6,13 @@ import (
 	"strconv"
 	"sync"
 
-	enginefactory "github.com/projecteru2/core/engine/factory"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource"
 	"github.com/projecteru2/core/resource/cobalt"
 	plugintypes "github.com/projecteru2/core/resource/plugins/types"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
-	io_prometheus_client "github.com/prometheus/client_model/go"
+	promClient "github.com/prometheus/client_model/go"
 	"golang.org/x/exp/slices"
 
 	statsdlib "github.com/CMGS/statsd"
@@ -88,55 +87,16 @@ func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*plugintypes.Metri
 	}
 }
 
-func (m *Metrics) DeleteInactiveNodesWithCache(ctx context.Context, activeNodesMap map[string]*types.Node) {
-	metricNodeNameMap := m.getNodeNameMapFromMetrics()
-	// 计算差集
-	invalidNodes := make([]string, 0)
-	for nodeName := range metricNodeNameMap {
-		if node, exists := activeNodesMap[nodeName]; !exists {
-			invalidNodes = append(invalidNodes, nodeName)
-			enginefactory.RemoveEngineFromCache(ctx, node.Endpoint, node.Ca, node.Cert, node.Key)
-		}
-	}
-	m.RemoveInvalidNodes(invalidNodes)
-}
-
-func (m *Metrics) getNodeNameMapFromMetrics() map[string]bool {
-	metrics, _ := prometheus.DefaultGatherer.Gather()
-	nodeNameMap := make(map[string]bool, 0)
-	for _, metric := range metrics {
-		for _, mf := range metric.GetMetric() {
-			if len(mf.Label) == 0 {
-				continue
-			}
-			for _, label := range mf.Label {
-				if label.GetName() == "nodename" {
-					nodeNameMap[label.GetValue()] = true
-					break
-				}
-			}
-		}
-	}
-	return nodeNameMap
-}
-
 // RemoveInvalidNodes 清除多余的metric标签值
-func (m *Metrics) RemoveInvalidNodes(invalidNodes []string) {
+func (m *Metrics) RemoveInvalidNodes(invalidNodes ...string) {
 	if len(invalidNodes) == 0 {
 		return
 	}
 	for _, collector := range m.Collectors {
-		if collector == nil {
-			return
-		}
 		metrics, _ := prometheus.DefaultGatherer.Gather()
 		for _, metric := range metrics {
 			for _, mf := range metric.GetMetric() {
-				if len(mf.Label) == 0 {
-					continue
-				}
-
-				if !slices.ContainsFunc(mf.Label, func(label *io_prometheus_client.LabelPair) bool {
+				if !slices.ContainsFunc(mf.Label, func(label *promClient.LabelPair) bool {
 					return label.GetName() == "nodename" && slices.ContainsFunc(invalidNodes, func(nodename string) bool {
 						return label.GetValue() == nodename
 					})
