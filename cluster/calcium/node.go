@@ -95,12 +95,7 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 					return err
 				}
 				enginefactory.RemoveEngineFromCache(ctx, node.Endpoint, node.Ca, node.Cert, node.Key)
-				metricsDescriptions, err := c.rmgr.GetMetricsDescription(ctx)
-				if err != nil {
-					logger.Error(ctx, err, "failed to get metrics description")
-					return err
-				}
-				metrics.Client.ResetCollectors(metricsDescriptions)
+				metrics.Client.DeleteUnusedLabelValues(nodename)
 				return nil
 			},
 			// rollback: do nothing

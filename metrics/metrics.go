@@ -85,41 +85,20 @@ func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*plugintypes.Metri
 	}
 }
 
-// ResetCollectors 清除旧的 Collectors 并创建新的 Collectors
-func (m *Metrics) ResetCollectors(metricsDescriptions []*plugintypes.MetricsDescription) {
-	if len(metricsDescriptions) == 0 {
-		return
-	}
-	if len(m.Collectors) > 0 {
-		for _, oldCollector := range m.Collectors {
-			prometheus.Unregister(oldCollector)
+// DeleteUnusedLabelValues 清除多余的metric标签值
+func (m *Metrics) DeleteUnusedLabelValues(nodeName string) {
+	for _, collector := range m.Collectors {
+		if c, ok := collector.(prometheus.Collector); ok {
+			if gauge, ok := c.(*prometheus.GaugeVec); ok {
+				// 清除不需要的标签值
+				gauge.DeleteLabelValues(nodeName)
+			} else if counter, ok := c.(*prometheus.CounterVec); ok {
+				// 清除不需要的标签值
+				counter.DeleteLabelValues(nodeName)
+			}
+			// 添加更多的条件来处理其他类型的Collector
 		}
 	}
-
-	// 创建新的 Collectors map
-	newCollectors := map[string]prometheus.Collector{}
-	// 重新创建新的 Collectors
-	for _, desc := range metricsDescriptions {
-		switch desc.Type {
-		case gaugeType:
-			collector := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-				Name: desc.Name,
-				Help: desc.Help,
-			}, desc.Labels)
-			newCollectors[desc.Name] = collector
-		case counterType:
-			collector := prometheus.NewCounterVec(prometheus.CounterOpts{
-				Name: desc.Name,
-				Help: desc.Help,
-			}, desc.Labels)
-			newCollectors[desc.Name] = collector
-		}
-	}
-
-	// 将新的 Collectors 添加到 Metrics 结构中
-	m.Collectors = newCollectors
-	// 重新注册新的 Collectors
-	prometheus.MustRegister(maps.Values(m.Collectors)...)
 }
 
 // Lazy connect
