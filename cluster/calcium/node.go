@@ -95,7 +95,7 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 					return err
 				}
 				enginefactory.RemoveEngineFromCache(ctx, node.Endpoint, node.Ca, node.Cert, node.Key)
-				metrics.Client.DeleteUnusedLabelValues(nodename)
+				metrics.Client.DeleteInvalidNodeLabelValues([]string{nodename})
 				return nil
 			},
 			// rollback: do nothing

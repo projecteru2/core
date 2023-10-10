@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"sync"
 
+	enginefactory "github.com/projecteru2/core/engine/factory"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/resource"
 	"github.com/projecteru2/core/resource/cobalt"
@@ -85,34 +86,78 @@ func (m *Metrics) SendMetrics(ctx context.Context, metrics ...*plugintypes.Metri
 	}
 }
 
-// DeleteUnusedLabelValues 清除多余的 metric 标签值
-func (m *Metrics) DeleteUnusedLabelValues(nodeNameToRemove string) {
+func (m *Metrics) DeleteInvalidNodeCacheAndMetrics(validNodeMap map[string]*types.Node) {
+	metricNodeNameMap := m.GetNodeNameMapFromMetrics()
+	// 计算差集
+	invalidNodeNameList := make([]string, 0)
+	for nodeName := range metricNodeNameMap {
+		if node, exists := validNodeMap[nodeName]; !exists {
+			invalidNodeNameList = append(invalidNodeNameList, nodeName)
+			enginefactory.RemoveEngineFromCache(context.Background(), node.Endpoint, node.Ca, node.Cert, node.Key)
+		}
+	}
+	if len(invalidNodeNameList) > 0 {
+		m.DeleteInvalidNodeLabelValues(invalidNodeNameList)
+	}
+}
+
+func (m *Metrics) GetNodeNameMapFromMetrics() map[string]bool {
+	metrics, _ := prometheus.DefaultGatherer.Gather()
+	nodeNameMap := make(map[string]bool, 0)
+	for _, metric := range metrics {
+		for _, mf := range metric.GetMetric() {
+			if len(mf.Label) == 0 {
+				continue
+			}
+			for _, label := range mf.Label {
+				if label.GetName() == "nodename" {
+					nodeNameMap[label.GetValue()] = true
+					break
+				}
+			}
+		}
+	}
+	return nodeNameMap
+}
+
+// DeleteInvalidNodeLabelValues 清除多余的metric标签值
+func (m *Metrics) DeleteInvalidNodeLabelValues(nodeNameToRemoveList []string) {
 	for _, collector := range m.Collectors {
-		switch c := collector.(type) {
-		case *prometheus.GaugeVec, *prometheus.CounterVec:
-			// 获取所有的标签值
-			metrics, _ := prometheus.DefaultGatherer.Gather()
-			for _, metric := range metrics {
-				for _, mf := range metric.GetMetric() {
-					if len(mf.Label) == 0 {
-						continue
-					}
-					for _, label := range mf.Label {
-						if label.GetName() != "nodename" || label.GetValue() != nodeNameToRemove {
-							continue
-						}
-						// 删除符合条件的度量标签
-						switch c := c.(type) {
-						case *prometheus.GaugeVec:
-							c.DeleteLabelValues(label.GetValue())
-						case *prometheus.CounterVec:
-							c.DeleteLabelValues(label.GetValue())
+		if collector == nil {
+			return
+		}
+		metrics, _ := prometheus.DefaultGatherer.Gather()
+		for _, metric := range metrics {
+			for _, mf := range metric.GetMetric() {
+				if len(mf.Label) == 0 {
+					continue
+				}
+				bFind := false
+				for _, label := range mf.Label {
+					for _, nodeNameToRemove := range nodeNameToRemoveList {
+						if label.GetName() == "nodename" && label.GetValue() == nodeNameToRemove {
+							bFind = true
+							break
 						}
 					}
 				}
+				if !bFind {
+					continue
+				}
+				labels := prometheus.Labels{}
+				for _, label := range mf.Label {
+					labels[label.GetName()] = label.GetValue()
+				}
+				// 删除符合条件的度量标签
+				switch c := collector.(type) {
+				case *prometheus.GaugeVec:
+					c.Delete(labels)
+				case *prometheus.CounterVec:
+					c.Delete(labels)
+				}
 			}
-		default:
 		}
+		// 添加更多的条件来处理其他类型的Collector
 	}
 }
 
