@@ -10,7 +10,7 @@ Eru can use multiple engines to run anything for the long or short term.
 
 This project is Eru Core. The Core use for resource allocation and manage resource's lifetime.
 
-Suggest use go 1.18 and above.
+Suggest use go 1.20 and above.
 
 ### Testing
 
