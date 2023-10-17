@@ -81,6 +81,7 @@ var (
 	ErrInvalidGitURL               = errors.New("invalid git url format")
 	ErrInvalidVolumeBind           = errors.New("invalid volume bind value")
 	ErrEmptyNodeName               = errors.New("node name is empty")
+	ErrEmptyNodeMap                = errors.New("node map is empty")
 	ErrEmptyAppName                = errors.New("app name is empty")
 	ErrEmptyPodName                = errors.New("pod name is empty")
 	ErrEmptyImage                  = errors.New("image is empty")

@@ -103,6 +103,9 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					}
 				}()
 				return c.withNodesPodLocked(ctx, opts.NodeFilter, func(ctx context.Context, nodeMap map[string]*types.Node) (err error) {
+					if len(nodeMap) == 0 {
+						return types.ErrEmptyNodeMap
+					}
 					nodenames := []string{}
 					nodes := []*types.Node{}
 					for nodename, node := range nodeMap {
