@@ -23,8 +23,13 @@ import (
 const (
 	deployCountKey  = "core.%s.deploy.count"
 	deployCountName = "core_deploy"
-	gaugeType       = "gauge"
-	counterType     = "counter"
+	upNodesKey      = "core.up.nodes"
+	upNodesName     = "core_up_nodes"
+	downNodesKey    = "core.down.nodes"
+	downNodesName   = "core_down_nodes"
+
+	gaugeType   = "gauge"
+	counterType = "counter"
 )
 
 // Metrics define metrics
@@ -51,6 +56,24 @@ func (m *Metrics) SendDeployCount(ctx context.Context, n int) {
 	}
 
 	m.SendMetrics(ctx, metrics)
+}
+
+func (m *Metrics) SendPodUpDownNodes(ctx context.Context, podname string, up, down int) {
+	log.WithFunc("metrics.SendUpDownNodes").Info(ctx, "Update deploy counter")
+	m1 := &plugintypes.Metrics{
+		Name:   upNodesName,
+		Labels: []string{m.Hostname, podname},
+		Key:    upNodesKey,
+		Value:  strconv.Itoa(up),
+	}
+
+	m2 := &plugintypes.Metrics{
+		Name:   downNodesName,
+		Labels: []string{m.Hostname, podname},
+		Key:    downNodesKey,
+		Value:  strconv.Itoa(down),
+	}
+	m.SendMetrics(ctx, m1, m2)
 }
 
 // SendMetrics update metrics
@@ -207,6 +230,16 @@ func InitMetrics(ctx context.Context, config types.Config, metricsDescriptions [
 		Name: deployCountName,
 		Help: "core deploy counter",
 	}, []string{"hostname"})
+
+	Client.Collectors[upNodesName] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: upNodesName,
+		Help: "number of up nodes",
+	}, []string{"hostname", "podname"})
+
+	Client.Collectors[downNodesName] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: downNodesName,
+		Help: "number of down nodes",
+	}, []string{"hostname", "podname"})
 
 	once.Do(func() {
 		prometheus.MustRegister(maps.Values(Client.Collectors)...)
