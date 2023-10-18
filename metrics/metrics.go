@@ -46,7 +46,6 @@ type Metrics struct {
 
 // SendDeployCount update deploy counter
 func (m *Metrics) SendDeployCount(ctx context.Context, n int) {
-	log.WithFunc("metrics.SendDeployCount").Info(ctx, "Update deploy counter")
 	metrics := &plugintypes.Metrics{
 		Name:   deployCountName,
 		Labels: []string{m.Hostname},
@@ -58,7 +57,6 @@ func (m *Metrics) SendDeployCount(ctx context.Context, n int) {
 }
 
 func (m *Metrics) SendPodNodeStatus(ctx context.Context, node *types.Node) {
-	log.WithFunc("metrics.SendPodNodeStatus").Info(ctx, "update pod node status")
 	up := !node.IsDown()
 	metrics := &plugintypes.Metrics{
 		Name:   podNodeStatusName,
