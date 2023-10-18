@@ -28,7 +28,7 @@ func distributionInspect(ctx context.Context, node *types.Node, image string, di
 
 // Pull an image
 func pullImage(ctx context.Context, node *types.Node, image string) error {
-	logger := log.WithFunc("calcium.pullImage").WithField("image", image)
+	logger := log.WithFunc("calcium.pullImage").WithField("node", node.Name).WithField("image", image)
 	logger.Info(ctx, "Pulling image")
 	if image == "" {
 		return types.ErrNoImage
