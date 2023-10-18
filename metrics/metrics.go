@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strconv"
 	"sync"
@@ -21,12 +22,10 @@ import (
 )
 
 const (
-	deployCountKey  = "core.%s.deploy.count"
-	deployCountName = "core_deploy"
-	upNodesKey      = "core.up.nodes"
-	upNodesName     = "core_up_nodes"
-	downNodesKey    = "core.down.nodes"
-	downNodesName   = "core_down_nodes"
+	deployCountKey    = "core.%s.deploy.count"
+	deployCountName   = "core_deploy"
+	podNodeStatusKey  = "pod.node.%s.up"
+	podNodeStatusName = "pod_node_up"
 
 	gaugeType   = "gauge"
 	counterType = "counter"
@@ -58,22 +57,17 @@ func (m *Metrics) SendDeployCount(ctx context.Context, n int) {
 	m.SendMetrics(ctx, metrics)
 }
 
-func (m *Metrics) SendPodUpDownNodes(ctx context.Context, podname string, up, down int) {
-	log.WithFunc("metrics.SendUpDownNodes").Info(ctx, "Update deploy counter")
-	m1 := &plugintypes.Metrics{
-		Name:   upNodesName,
-		Labels: []string{m.Hostname, podname},
-		Key:    upNodesKey,
-		Value:  strconv.Itoa(up),
+func (m *Metrics) SendPodNodeStatus(ctx context.Context, node *types.Node) {
+	log.WithFunc("metrics.SendPodNodeStatus").Info(ctx, "update pod node status")
+	up := !node.IsDown()
+	metrics := &plugintypes.Metrics{
+		Name:   podNodeStatusName,
+		Labels: []string{m.Hostname, node.Podname, node.Name},
+		Key:    fmt.Sprintf(podNodeStatusKey, node.Name),
+		Value:  strconv.Itoa(utils.Bool2Int(up)),
 	}
 
-	m2 := &plugintypes.Metrics{
-		Name:   downNodesName,
-		Labels: []string{m.Hostname, podname},
-		Key:    downNodesKey,
-		Value:  strconv.Itoa(down),
-	}
-	m.SendMetrics(ctx, m1, m2)
+	m.SendMetrics(ctx, metrics)
 }
 
 // SendMetrics update metrics
@@ -231,15 +225,10 @@ func InitMetrics(ctx context.Context, config types.Config, metricsDescriptions [
 		Help: "core deploy counter",
 	}, []string{"hostname"})
 
-	Client.Collectors[upNodesName] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: upNodesName,
+	Client.Collectors[podNodeStatusName] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: podNodeStatusName,
 		Help: "number of up nodes",
-	}, []string{"hostname", "podname"})
-
-	Client.Collectors[downNodesName] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: downNodesName,
-		Help: "number of down nodes",
-	}, []string{"hostname", "podname"})
+	}, []string{"hostname", "podname", "nodename"})
 
 	once.Do(func() {
 		prometheus.MustRegister(maps.Values(Client.Collectors)...)

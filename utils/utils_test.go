@@ -221,3 +221,8 @@ func TestSHA256(t *testing.T) {
 	str := "hhh"
 	assert.Equal(t, "24d166cd6c8b826c779040b49d5b6708d649b236558e8744339dfee6afe11999", SHA256(str))
 }
+
+func TestBool2Int(t *testing.T) {
+	assert.Equal(t, 1, Bool2Int(true))
+	assert.Equal(t, 0, Bool2Int(false))
+}

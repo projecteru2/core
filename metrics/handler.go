@@ -20,25 +20,14 @@ func (m *Metrics) ResourceMiddleware(cluster cluster.Cluster) func(http.Handler)
 			if err != nil {
 				logger.Error(ctx, err, "Get all nodes err")
 			}
-			podUpDownNodes := map[string][]int{}
 			for node := range nodes {
-				if podUpDownNodes[node.Podname] == nil {
-					podUpDownNodes[node.Podname] = []int{0, 0}
-				}
-				if node.IsDown() {
-					podUpDownNodes[node.Podname][1]++
-				} else {
-					podUpDownNodes[node.Podname][0]++
-				}
+				m.SendPodNodeStatus(ctx, node)
 				metrics, err := m.rmgr.GetNodeMetrics(ctx, node)
 				if err != nil {
 					logger.Error(ctx, err, "Get metrics failed")
 					continue
 				}
 				m.SendMetrics(ctx, metrics...)
-			}
-			for podname, ud := range podUpDownNodes {
-				m.SendPodUpDownNodes(ctx, podname, ud[0], ud[1])
 			}
 
 			h.ServeHTTP(w, r)
