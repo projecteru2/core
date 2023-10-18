@@ -14,6 +14,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"unsafe"
 
 	"github.com/cockroachdb/errors"
 	"github.com/projecteru2/core/cluster"
@@ -269,4 +270,8 @@ func safeSplit(s string) []string {
 	}
 
 	return result
+}
+
+func Bool2Int(a bool) int {
+	return *(*int)(unsafe.Pointer(&a)) & 1
 }
