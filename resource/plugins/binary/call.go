@@ -36,7 +36,9 @@ func (p Plugin) execCommand(ctx context.Context, cmd *exec.Cmd, req any) ([]byte
 	if err != nil {
 		return nil, err
 	}
-	logger.WithField("in", string(b)).WithField("cmd", cmd.String()).Info(ctx, "call params")
+	if len(cmd.Args) < 2 || cmd.Args[1] != GetMetricsCommand {
+		logger.WithField("in", string(b)).WithField("cmd", cmd.String()).Info(ctx, "call params")
+	}
 	cmd.Stdin = bytes.NewBuffer(b)
 	return cmd.CombinedOutput()
 }
