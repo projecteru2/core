@@ -391,19 +391,21 @@ func (p Plugin) doGetNodeDeployCapacity(nodeResourceInfo *cpumemtypes.NodeResour
 	// if cpu-bind is not required, then returns capacity by memory
 	if !req.CPUBind {
 		// check if cpu is enough
-		if req.CPURequest > float64(len(nodeResourceInfo.Capacity.CPUMap)) {
+		if req.CPURequest > float64(len(nodeResourceInfo.Capacity.CPUMap)) || availableResource.CPU <= 0 {
 			return capacityInfo
 		}
-
-		// calculate by memory request
-		if req.MemRequest == 0 {
-			capacityInfo.Capacity = math.MaxInt
-			capacityInfo.Rate = 0
-		} else {
-			capacityInfo.Capacity = int(availableResource.Memory / req.MemRequest)
-			capacityInfo.Rate = utils.AdvancedDivide(float64(req.MemRequest), float64(nodeResourceInfo.Capacity.Memory))
+		cpuCap := math.MaxInt
+		if req.CPURequest > 0 {
+			cpuCap = int(availableResource.CPU / req.CPURequest)
 		}
+		// calculate by memory request
+		memCap := math.MaxInt
+		if req.MemRequest > 0 {
+			memCap = int(availableResource.Memory / req.MemRequest)
+		}
+		capacityInfo.Rate = utils.AdvancedDivide(float64(req.MemRequest), float64(nodeResourceInfo.Capacity.Memory))
 		capacityInfo.Usage = utils.AdvancedDivide(float64(nodeResourceInfo.Usage.Memory), float64(nodeResourceInfo.Capacity.Memory))
+		capacityInfo.Capacity = utils.Min(cpuCap, memCap)
 		return capacityInfo
 	}
 
