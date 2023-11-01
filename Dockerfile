@@ -1,7 +1,7 @@
 FROM golang:alpine AS BUILD
 
 # make binary
-RUN apk add --no-cache build-base musl-dev git curl make cmake
+RUN apk add --no-cache build-base musl-dev git curl make cmake binutils-gold
 COPY . /go/src/github.com/projecteru2/core
 WORKDIR /go/src/github.com/projecteru2/core
 ARG KEEP_SYMBOL
