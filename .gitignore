@@ -9,6 +9,7 @@ build.yaml
 *.rpm
 *.deb
 *.itr
+*.so
 default.etcd/*
 vendor/*
 clean.sh
