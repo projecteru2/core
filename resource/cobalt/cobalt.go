@@ -8,6 +8,7 @@ import (
 	"github.com/projecteru2/core/resource/plugins"
 	"github.com/projecteru2/core/resource/plugins/binary"
 	"github.com/projecteru2/core/resource/plugins/cpumem"
+	"github.com/projecteru2/core/resource/plugins/goplugin"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -64,7 +65,23 @@ func (m *Manager) LoadPlugins(ctx context.Context, t *testing.T) error {
 		}
 		m.AddPlugins(b)
 	}
+	shareLibFiles, err := utils.ListAllShareLibFiles(m.config.ResourcePlugin.Dir)
+	if err != nil {
+		logger.Errorf(ctx, err, "failed to list all share lib files dir: %+v", m.config.ResourcePlugin.Dir)
+		return err
+	}
 
+	for _, file := range shareLibFiles {
+		logger.Infof(ctx, "load go plugin: %+v", file)
+		b, err := goplugin.NewPlugin(ctx, file, m.config)
+		if err != nil {
+			return err
+		}
+		if _, ok := cache[b.Name()]; ok {
+			continue
+		}
+		m.AddPlugins(b)
+	}
 	return nil
 }
 
