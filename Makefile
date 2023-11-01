@@ -21,7 +21,7 @@ deps:
 	go mod vendor
 
 binary:
-	CGO_ENABLED=0 go build -ldflags "$(GO_LDFLAGS)" -o eru-core
+	CGO_ENABLED=1 go build -mod=readonly -ldflags "$(GO_LDFLAGS)" -o eru-core
 
 build: deps binary
 
