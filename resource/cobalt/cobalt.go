@@ -63,6 +63,7 @@ func (m *Manager) LoadPlugins(ctx context.Context, t *testing.T) error {
 		if _, ok := cache[b.Name()]; ok {
 			continue
 		}
+		cache[b.Name()] = struct{}{}
 		m.AddPlugins(b)
 	}
 
@@ -80,6 +81,7 @@ func (m *Manager) LoadPlugins(ctx context.Context, t *testing.T) error {
 		if _, ok := cache[b.Name()]; ok {
 			continue
 		}
+		cache[b.Name()] = struct{}{}
 		m.AddPlugins(b)
 	}
 	return nil
