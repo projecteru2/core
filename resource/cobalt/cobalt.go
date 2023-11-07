@@ -43,20 +43,20 @@ func (m *Manager) LoadPlugins(ctx context.Context, t *testing.T) error {
 		return nil
 	}
 
-	pluginFiles, err := utils.ListAllExecutableFiles(m.config.ResourcePlugin.Dir)
-	if err != nil {
-		logger.Errorf(ctx, err, "failed to list all executable files dir: %+v", m.config.ResourcePlugin.Dir)
-		return err
-	}
-
 	cache := map[string]struct{}{}
 	for _, plugin := range m.plugins {
 		cache[plugin.Name()] = struct{}{}
 	}
 
-	for _, file := range pluginFiles {
-		logger.Infof(ctx, "load binary plugin: %+v", file)
-		b, err := binary.NewPlugin(ctx, file, m.config)
+	sharedLibFiles, err := utils.ListAllSharedLibFiles(m.config.ResourcePlugin.Dir)
+	if err != nil {
+		logger.Errorf(ctx, err, "failed to list all share lib files dir: %+v", m.config.ResourcePlugin.Dir)
+		return err
+	}
+
+	for _, file := range sharedLibFiles {
+		logger.Infof(ctx, "load go plugin: %+v", file)
+		b, err := goplugin.NewPlugin(ctx, file, m.config)
 		if err != nil {
 			return err
 		}
@@ -65,15 +65,15 @@ func (m *Manager) LoadPlugins(ctx context.Context, t *testing.T) error {
 		}
 		m.AddPlugins(b)
 	}
-	shareLibFiles, err := utils.ListAllShareLibFiles(m.config.ResourcePlugin.Dir)
+
+	pluginFiles, err := utils.ListAllExecutableFiles(m.config.ResourcePlugin.Dir)
 	if err != nil {
-		logger.Errorf(ctx, err, "failed to list all share lib files dir: %+v", m.config.ResourcePlugin.Dir)
+		logger.Errorf(ctx, err, "failed to list all executable files dir: %+v", m.config.ResourcePlugin.Dir)
 		return err
 	}
-
-	for _, file := range shareLibFiles {
-		logger.Infof(ctx, "load go plugin: %+v", file)
-		b, err := goplugin.NewPlugin(ctx, file, m.config)
+	for _, file := range pluginFiles {
+		logger.Infof(ctx, "load binary plugin: %+v", file)
+		b, err := binary.NewPlugin(ctx, file, m.config)
 		if err != nil {
 			return err
 		}

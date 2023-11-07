@@ -9,7 +9,7 @@ if [ -z "$pkg" ]; then
     exit 1
 fi 
 
-if [ -z "$codeDir" ]; then
+if [ -z "$codeDIR" ]; then
     echo "error: plugin code dir is null"
     echo "usage: "
     echo "     bash build-goplugin.sh pkg codeDir"
