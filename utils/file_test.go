@@ -57,7 +57,7 @@ func TestListAllShareLibFiles(t *testing.T) {
 	_, err = os.Create(filepath.Join(subdir, "bcd1.so"))
 	assert.NoError(t, err)
 
-	fs, err := ListAllShareLibFiles(dir)
+	fs, err := ListAllSharedLibFiles(dir)
 	assert.NoError(t, err)
 	assert.Len(t, fs, 1)
 	assert.Equal(t, filepath.Join(dir, "bcd.so"), fs[0])

@@ -26,7 +26,7 @@ func ListAllExecutableFiles(basedir string) ([]string, error) {
 	return files, err
 }
 
-func ListAllShareLibFiles(basedir string) ([]string, error) {
+func ListAllSharedLibFiles(basedir string) ([]string, error) {
 	files := []string{}
 	err := filepath.Walk(basedir, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
