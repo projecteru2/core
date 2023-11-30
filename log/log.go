@@ -2,12 +2,15 @@ package log
 
 import (
 	"context"
+	"io"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/getsentry/sentry-go"
+	"github.com/projecteru2/core/types"
+	"gopkg.in/natefinch/lumberjack.v2"
 
 	"github.com/rs/zerolog"
 )
@@ -18,17 +21,31 @@ var (
 )
 
 // SetupLog init logger
-func SetupLog(ctx context.Context, l, dsn string) error {
-	level, err := zerolog.ParseLevel(strings.ToLower(l))
+func SetupLog(ctx context.Context, cfg *types.ServerLogConfig, dsn string) error {
+	level, err := zerolog.ParseLevel(strings.ToLower(cfg.Level))
 	if err != nil {
 		return err
 	}
-	// TODO can use file
-	rslog := zerolog.New(
-		zerolog.ConsoleWriter{
+
+	var writer io.Writer
+	switch {
+	case cfg.Filename != "":
+		// file log always uses json format
+		writer = &lumberjack.Logger{
+			Filename:   cfg.Filename,
+			MaxBackups: cfg.MaxBackups, // files
+			MaxSize:    cfg.MaxSize,    // megabytes
+			MaxAge:     cfg.MaxAge,     // days
+		}
+	case !cfg.UseJSON:
+		writer = zerolog.ConsoleWriter{
 			Out:        os.Stdout,
 			TimeFormat: time.RFC822,
-		}).With().Timestamp().Logger()
+		}
+	default:
+		writer = os.Stdout
+	}
+	rslog := zerolog.New(writer).With().Timestamp().Logger()
 	rslog.Level(level)
 	zerolog.ErrorStackMarshaler = func(err error) any {
 		return errors.GetSafeDetails(err).SafeDetails

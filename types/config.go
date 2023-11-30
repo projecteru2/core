@@ -17,7 +17,6 @@ const (
 
 // Config holds eru-core config
 type Config struct {
-	LogLevel            string        `yaml:"log_level" required:"true" default:"INFO"`
 	Bind                string        `yaml:"bind" required:"true" default:"5001"`                 // HTTP API address
 	LockTimeout         time.Duration `yaml:"lock_timeout" required:"true" default:"30s"`          // timeout for lock (ttl)
 	GlobalTimeout       time.Duration `yaml:"global_timeout" required:"true" default:"300s"`       // timeout for remove, run_and_wait and build, in second
@@ -44,6 +43,7 @@ type Config struct {
 	Systemd        SystemdConfig        `yaml:"systemd"`
 	Scheduler      SchedulerConfig      `yaml:"scheduler"`
 	ResourcePlugin ResourcePluginConfig `yaml:"resource_plugin"`
+	Log            ServerLogConfig      `yaml:"log"`
 }
 
 // Identifier returns the ID of this config
@@ -143,4 +143,14 @@ type ResourcePluginConfig struct {
 type LogConfig struct {
 	Type   string            `yaml:"type" required:"true" default:"journald"` // Log type, can be "journald", "json-file", "none"
 	Config map[string]string `yaml:"config"`                                  // Log configs
+}
+
+type ServerLogConfig struct {
+	Level   string `yaml:"level" default:"info"`
+	UseJSON bool   `yaml:"use_json"`
+	// for file log
+	Filename   string `yaml:"filename"`
+	MaxSize    int    `yaml:"maxsize" default:"500"`
+	MaxAge     int    `yaml:"max_age" default:"28"`
+	MaxBackups int    `yaml:"max_backups" default:"3"`
 }
