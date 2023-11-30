@@ -41,7 +41,7 @@ func serve(c *cli.Context) error {
 		zerolog.Fatal().Err(err).Send()
 	}
 
-	if err := log.SetupLog(c.Context, config.LogLevel, config.SentryDSN); err != nil {
+	if err := log.SetupLog(c.Context, &config.Log, config.SentryDSN); err != nil {
 		zerolog.Fatal().Err(err).Send()
 	}
 	defer log.SentryDefer()
