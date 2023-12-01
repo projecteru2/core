@@ -45,8 +45,7 @@ func SetupLog(ctx context.Context, cfg *types.ServerLogConfig, dsn string) error
 	default:
 		writer = os.Stdout
 	}
-	rslog := zerolog.New(writer).With().Timestamp().Logger()
-	rslog.Level(level)
+	rslog := zerolog.New(writer).With().Timestamp().Logger().Level(level)
 	zerolog.ErrorStackMarshaler = func(err error) any {
 		return errors.GetSafeDetails(err).SafeDetails
 	}
