@@ -151,6 +151,7 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 					logger.Errorf(ctx, err, "engine %+v is unavailable, will be replaced and removed", cacheKey)
 					e.cache.Set(cacheKey, &fake.EngineWithErr{DefaultErr: err})
 				}
+				logger.Debugf(ctx, "engine %+v is available", cacheKey)
 			})
 		}
 		wg.Wait()
