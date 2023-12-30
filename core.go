@@ -47,9 +47,6 @@ func serve(c *cli.Context) error {
 	defer log.SentryDefer()
 	logger := log.WithFunc("main")
 
-	// init engine cache and start engine cache checker
-	factory.InitEngineCache(c.Context, config)
-
 	var t *testing.T
 	if embeddedStorage {
 		t = &testing.T{}
@@ -60,6 +57,10 @@ func serve(c *cli.Context) error {
 		return err
 	}
 	defer cluster.Finalizer()
+
+	// init engine cache and start engine cache checker
+	factory.InitEngineCache(c.Context, config, cluster.GetStore())
+
 	cluster.DisasterRecover(c.Context)
 
 	stop := make(chan struct{}, 1)

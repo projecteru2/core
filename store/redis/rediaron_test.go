@@ -88,7 +88,7 @@ func TestRediaron(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	factory.InitEngineCache(ctx, config)
+	factory.InitEngineCache(ctx, config, nil)
 
 	cli := redis.NewClient(&redis.Options{
 		Addr: s.Addr(),

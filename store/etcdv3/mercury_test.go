@@ -26,7 +26,7 @@ func NewMercury(t *testing.T) *Mercury {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	factory.InitEngineCache(ctx, config)
+	factory.InitEngineCache(ctx, config, nil)
 
 	m, err := New(config, t)
 	assert.NoError(t, err)

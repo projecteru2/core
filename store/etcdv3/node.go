@@ -17,6 +17,7 @@ import (
 	"github.com/projecteru2/core/engine/fake"
 	"github.com/projecteru2/core/engine/mocks/fakeengine"
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -65,19 +66,23 @@ func (m *Mercury) GetNodes(ctx context.Context, nodenames []string) ([]*types.No
 	if err != nil {
 		return nil, err
 	}
-	return m.doGetNodes(ctx, kvs, nil, true)
+	return m.doGetNodes(ctx, kvs, nil, true, nil)
 }
 
 // GetNodesByPod get all nodes bound to pod
 // here we use podname instead of pod instance
-func (m *Mercury) GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter) ([]*types.Node, error) {
+func (m *Mercury) GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter, opts ...store.Option) ([]*types.Node, error) {
+	var op store.Op
+	for _, opt := range opts {
+		opt(&op)
+	}
 	do := func(podname string) ([]*types.Node, error) {
 		key := fmt.Sprintf(nodePodKey, podname, "")
 		resp, err := m.Get(ctx, key, clientv3.WithPrefix())
 		if err != nil {
 			return nil, err
 		}
-		return m.doGetNodes(ctx, resp.Kvs, nodeFilter.Labels, nodeFilter.All)
+		return m.doGetNodes(ctx, resp.Kvs, nodeFilter.Labels, nodeFilter.All, &op)
 	}
 	if nodeFilter.Podname != "" {
 		return do(nodeFilter.Podname)
@@ -212,6 +217,24 @@ func (m *Mercury) NodeStatusStream(ctx context.Context) chan *types.NodeStatus {
 	return ch
 }
 
+func (m *Mercury) LoadNodeCert(ctx context.Context, node *types.Node) (err error) {
+	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
+	data := []string{"", "", ""}
+	for i := 0; i < 3; i++ {
+		ev, err := m.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
+		if err != nil {
+			if !errors.Is(err, types.ErrInvaildCount) {
+				log.WithFunc("store.etcdv3.LoadNodeCert").Warn(ctx, err, "Get key failed")
+				return err
+			}
+			continue
+		}
+		data[i] = string(ev.Value)
+	}
+	node.Ca, node.Cert, node.Key = data[0], data[1], data[2]
+	return nil
+}
+
 func (m *Mercury) makeClient(ctx context.Context, node *types.Node) (client engine.API, err error) {
 	// try to get from cache without ca/cert/key
 	if client = enginefactory.GetEngineFromCache(ctx, node.Endpoint, "", "", ""); client != nil {
@@ -298,7 +321,10 @@ func (m *Mercury) doRemoveNode(ctx context.Context, podname, nodename, endpoint 
 	return err
 }
 
-func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels map[string]string, all bool) (nodes []*types.Node, err error) {
+func (m *Mercury) doGetNodes(
+	ctx context.Context, kvs []*mvccpb.KeyValue,
+	labels map[string]string, all bool, op *store.Op,
+) (nodes []*types.Node, err error) {
 	allNodes := []*types.Node{}
 	for _, ev := range kvs {
 		node := &types.Node{}
@@ -332,11 +358,13 @@ func (m *Mercury) doGetNodes(ctx context.Context, kvs []*mvccpb.KeyValue, labels
 				return
 			}
 
-			// update engine
-			if client, err := m.makeClient(ctx, node); err != nil {
-				logger.Errorf(ctx, err, "failed to make client for %+v", node.Name)
-			} else {
-				node.Engine = client
+			if op == nil || (!op.WithoutEngine) {
+				// update engine
+				if client, err := m.makeClient(ctx, node); err != nil {
+					logger.Errorf(ctx, err, "failed to make client for %+v", node.Name)
+				} else {
+					node.Engine = client
+				}
 			}
 			nodesCh <- node
 		})

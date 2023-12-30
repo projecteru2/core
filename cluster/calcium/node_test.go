@@ -23,7 +23,7 @@ import (
 func TestAddNode(t *testing.T) {
 	c := NewTestCluster()
 	ctx := context.Background()
-	factory.InitEngineCache(ctx, c.config)
+	factory.InitEngineCache(ctx, c.config, nil)
 
 	opts := &types.AddNodeOptions{}
 	// failed by validating
