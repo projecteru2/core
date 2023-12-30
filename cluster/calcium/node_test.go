@@ -109,7 +109,7 @@ func TestListPodNodes(t *testing.T) {
 	opts := &types.ListNodesOptions{}
 	store := c.store.(*storemocks.Store)
 	// failed by GetNodesByPod
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError).Once()
 	_, err := c.ListPodNodes(ctx, opts)
 	assert.Error(t, err)
 	store.AssertExpectations(t)
@@ -123,7 +123,7 @@ func TestListPodNodes(t *testing.T) {
 		{NodeMeta: types.NodeMeta{Name: name1}, Engine: engine, Available: true},
 		{NodeMeta: types.NodeMeta{Name: name2}, Engine: engine, Available: false},
 	}
-	store.On("GetNodesByPod", mock.Anything, mock.Anything).Return(nodes, nil)
+	store.On("GetNodesByPod", mock.Anything, mock.Anything, mock.Anything).Return(nodes, nil)
 	rmgr := c.rmgr.(*resourcemocks.Manager)
 	rmgr.On("GetNodeResourceInfo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, nil, nil, types.ErrMockError)
 	opts.CallInfo = true

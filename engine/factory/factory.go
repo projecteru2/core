@@ -61,9 +61,11 @@ func NewEngineCache(config types.Config, sto store.Store) *EngineCache {
 func InitEngineCache(ctx context.Context, config types.Config, sto store.Store) {
 	engineCache = NewEngineCache(config, sto)
 	// init the cache, we don't care the return values
-	_, _ = engineCache.sto.GetNodesByPod(ctx, &types.NodeFilter{
-		All: true,
-	})
+	if sto != nil {
+		_, _ = engineCache.sto.GetNodesByPod(ctx, &types.NodeFilter{
+			All: true,
+		})
+	}
 	go engineCache.CheckAlive(ctx)
 	go engineCache.CheckNodeStatus(ctx)
 }
@@ -82,6 +84,22 @@ func (e *EngineCache) Set(params engineParams, client engine.API) {
 // Delete .
 func (e *EngineCache) Delete(key string) {
 	e.cache.Delete(key)
+}
+
+func (e *EngineCache) checkOneNodeStatus(ctx context.Context, params *engineParams) {
+	if e.sto == nil {
+		return
+	}
+	logger := log.WithFunc("engine.factory.checkOneNodeStatus")
+	nodename := params.nodename
+	cacheKey := params.getCacheKey()
+	if _, err := e.sto.GetNodeStatus(ctx, nodename); err != nil && errors.Is(err, types.ErrInvaildCount) {
+		logger.Warnf(ctx, "node %s is offline, the cache will be removed", nodename)
+		RemoveEngineFromCache(ctx, params.endpoint, params.ca, params.cert, params.key)
+	} else {
+		logger.Errorf(ctx, err, "engine %+v is unavailable, will be replaced and removed", cacheKey)
+		e.cache.Set(cacheKey, &fake.EngineWithErr{DefaultErr: err})
+	}
 }
 
 // CheckAlive checks if the engine in cache is available
@@ -112,7 +130,6 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 			params := params
 			_ = e.pool.Invoke(func() {
 				defer wg.Done()
-				nodename := params.nodename
 				cacheKey := params.getCacheKey()
 				client := e.cache.Get(cacheKey)
 				if client == nil {
@@ -120,17 +137,11 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 					e.keysToCheck.Del(cacheKey)
 					return
 				}
-				if _, ok := client.(*fake.EngineWithErr); ok { //nolint:nestif
+				if _, ok := client.(*fake.EngineWithErr); ok {
 					if newClient, err := newEngine(ctx, e.config, params.nodename, params.endpoint, params.ca, params.key, params.cert); err != nil {
 						logger.Errorf(ctx, err, "engine %+v is still unavailable", cacheKey)
 						// check node status
-						if _, err := e.sto.GetNodeStatus(ctx, nodename); err != nil && errors.Is(err, types.ErrInvaildCount) {
-							logger.Warnf(ctx, "node %s is offline, the cache will be removed", nodename)
-							RemoveEngineFromCache(ctx, params.endpoint, params.ca, params.cert, params.key)
-						} else {
-							logger.Errorf(ctx, err, "engine %+v is unavailable, will be replaced and removed", cacheKey)
-							e.cache.Set(cacheKey, &fake.EngineWithErr{DefaultErr: err})
-						}
+						e.checkOneNodeStatus(ctx, &params)
 					} else {
 						e.cache.Set(cacheKey, newClient)
 					}
