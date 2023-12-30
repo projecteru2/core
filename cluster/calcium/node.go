@@ -231,6 +231,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 			},
 			// then: update node metadata
 			func(ctx context.Context) error {
+				defer enginefactory.RemoveEngineFromCache(ctx, node.Endpoint, node.Ca, node.Cert, node.Key)
 				if err := c.store.UpdateNodes(ctx, n); err != nil {
 					return err
 				}

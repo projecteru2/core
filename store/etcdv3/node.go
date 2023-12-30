@@ -116,7 +116,6 @@ func (m *Mercury) UpdateNodes(ctx context.Context, nodes ...*types.Node) error {
 		addIfNotEmpty(fmt.Sprintf(nodeCaKey, node.Name), node.Ca)
 		addIfNotEmpty(fmt.Sprintf(nodeCertKey, node.Name), node.Cert)
 		addIfNotEmpty(fmt.Sprintf(nodeKeyKey, node.Name), node.Key)
-		enginefactory.RemoveEngineFromCache(ctx, node.Endpoint, node.Ca, node.Cert, node.Key)
 	}
 
 	resp, err := m.BatchPut(ctx, data)
