@@ -16,6 +16,7 @@ import (
 	"github.com/projecteru2/core/source/github"
 	"github.com/projecteru2/core/source/gitlab"
 	"github.com/projecteru2/core/store"
+	storefactory "github.com/projecteru2/core/store/factory"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 	"github.com/projecteru2/core/wal"
@@ -37,7 +38,7 @@ type Calcium struct {
 func New(ctx context.Context, config types.Config, t *testing.T) (*Calcium, error) {
 	logger := log.WithFunc("calcium.New")
 	// set store
-	store, err := store.NewStore(config, t)
+	store, err := storefactory.NewStore(config, t)
 	if err != nil {
 		logger.Error(ctx, err)
 		return nil, err
@@ -110,4 +111,8 @@ func (c *Calcium) Finalizer() {
 // GetIdentifier returns the identifier of calcium
 func (c *Calcium) GetIdentifier() string {
 	return c.identifier
+}
+
+func (c *Calcium) GetStore() store.Store {
+	return c.store
 }

@@ -6,7 +6,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unsafe"
 
 	"github.com/alphadose/haxmap"
 	"github.com/cockroachdb/errors"
@@ -19,6 +18,7 @@ import (
 	"github.com/projecteru2/core/engine/systemd"
 	"github.com/projecteru2/core/engine/virt"
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -39,26 +39,35 @@ var (
 // EngineCache .
 type EngineCache struct {
 	cache       *utils.EngineCache
-	keysToCheck *haxmap.Map[uintptr, engineParams]
+	keysToCheck *haxmap.Map[string, engineParams]
 	pool        *ants.PoolWithFunc
 	config      types.Config
+	stor        store.Store
 }
 
 // NewEngineCache .
-func NewEngineCache(config types.Config) *EngineCache {
+func NewEngineCache(config types.Config, stor store.Store) *EngineCache {
 	pool, _ := utils.NewPool(config.MaxConcurrency)
 	return &EngineCache{
 		cache:       utils.NewEngineCache(12*time.Hour, 10*time.Minute),
-		keysToCheck: haxmap.New[uintptr, engineParams](),
+		keysToCheck: haxmap.New[string, engineParams](),
 		pool:        pool,
 		config:      config,
+		stor:        stor,
 	}
 }
 
 // InitEngineCache init engine cache and start engine cache checker
-func InitEngineCache(ctx context.Context, config types.Config) {
-	engineCache = NewEngineCache(config)
+func InitEngineCache(ctx context.Context, config types.Config, sto store.Store) {
+	engineCache = NewEngineCache(config, sto)
+	// init the cache, we don't care the return values
+	if sto != nil {
+		_, _ = engineCache.stor.GetNodesByPod(ctx, &types.NodeFilter{
+			All: true,
+		})
+	}
 	go engineCache.CheckAlive(ctx)
+	go engineCache.CheckNodeStatus(ctx)
 }
 
 // Get .
@@ -69,7 +78,7 @@ func (e *EngineCache) Get(key string) engine.API {
 // Set .
 func (e *EngineCache) Set(params engineParams, client engine.API) {
 	e.cache.Set(params.getCacheKey(), client)
-	e.keysToCheck.Set(uintptr(unsafe.Pointer(&params)), params)
+	e.keysToCheck.Set(params.getCacheKey(), params)
 }
 
 // Delete .
@@ -92,7 +101,7 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 
 		paramsChan := make(chan engineParams)
 		go func() {
-			e.keysToCheck.ForEach(func(k uintptr, v engineParams) bool {
+			e.keysToCheck.ForEach(func(k string, v engineParams) bool {
 				paramsChan <- v
 				return true
 			})
@@ -109,12 +118,15 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 				client := e.cache.Get(cacheKey)
 				if client == nil {
 					e.cache.Delete(params.getCacheKey())
-					e.keysToCheck.Del(uintptr(unsafe.Pointer(&params)))
+					e.keysToCheck.Del(cacheKey)
 					return
 				}
 				if _, ok := client.(*fake.EngineWithErr); ok {
 					if newClient, err := newEngine(ctx, e.config, params.nodename, params.endpoint, params.ca, params.key, params.cert); err != nil {
 						logger.Errorf(ctx, err, "engine %+v is still unavailable", cacheKey)
+						e.cache.Set(cacheKey, &fake.EngineWithErr{DefaultErr: err})
+						// check node status
+						e.checkOneNodeStatus(ctx, &params)
 					} else {
 						e.cache.Set(cacheKey, newClient)
 					}
@@ -124,10 +136,47 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 					logger.Errorf(ctx, err, "engine %+v is unavailable, will be replaced and removed", cacheKey)
 					e.cache.Set(cacheKey, &fake.EngineWithErr{DefaultErr: err})
 				}
+				logger.Debugf(ctx, "engine %+v is available", cacheKey)
 			})
 		}
 		wg.Wait()
 		time.Sleep(e.config.ConnectionTimeout)
+	}
+}
+
+func (e *EngineCache) CheckNodeStatus(ctx context.Context) {
+	logger := log.WithFunc("engine.factory.CheckNodeStatus")
+	logger.Info(ctx, "check NodeStatus starts")
+	defer logger.Info(ctx, "check NodeStatus ends")
+	if e.stor == nil {
+		logger.Warnf(ctx, "nodeStore is nil")
+		return
+	}
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+		ch := e.stor.NodeStatusStream(ctx)
+
+		for ns := range ch {
+			if ns.Alive {
+				// GetNode will call GetEngine, so GetNode updates the engine cache automatically
+				if _, err := e.stor.GetNode(ctx, ns.Nodename); err != nil {
+					logger.Warnf(ctx, "failed to get node %s: %s", ns.Nodename, err)
+				}
+			} else {
+				// a node may have multiple engines, so we need check all key here
+				e.keysToCheck.ForEach(func(k string, ep engineParams) bool {
+					if ep.nodename == ns.Nodename {
+						logger.Infof(ctx, "remove engine %+v from cache", ep.getCacheKey())
+						RemoveEngineFromCache(ctx, ep.endpoint, ep.ca, ep.cert, ep.key)
+					}
+					return true
+				})
+			}
+		}
 	}
 }
 
@@ -224,4 +273,18 @@ func newEngine(ctx context.Context, config types.Config, nodename, endpoint, ca,
 		return nil, err
 	}
 	return client, nil
+}
+
+func (e *EngineCache) checkOneNodeStatus(ctx context.Context, params *engineParams) {
+	if e.stor == nil {
+		return
+	}
+	logger := log.WithFunc("engine.factory.checkOneNodeStatus")
+	nodename := params.nodename
+	cacheKey := params.getCacheKey()
+	ns, err := e.stor.GetNodeStatus(ctx, nodename)
+	if (err != nil && errors.Is(err, types.ErrInvaildCount)) || (!ns.Alive) {
+		logger.Warnf(ctx, "node %s is offline, the cache will be removed", nodename)
+		e.Delete(cacheKey)
+	}
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/projecteru2/core/engine/fake"
 	"github.com/projecteru2/core/engine/mocks/fakeengine"
 	"github.com/projecteru2/core/log"
+	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 
@@ -64,19 +65,20 @@ func (r *Rediaron) GetNodes(ctx context.Context, nodenames []string) ([]*types.N
 	if err != nil {
 		return nil, err
 	}
-	return r.doGetNodes(ctx, kvs, nil, true)
+	return r.doGetNodes(ctx, kvs, nil, true, nil)
 }
 
 // GetNodesByPod get all nodes bound to pod
 // here we use podname instead of pod instance
-func (r *Rediaron) GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter) ([]*types.Node, error) {
+func (r *Rediaron) GetNodesByPod(ctx context.Context, nodeFilter *types.NodeFilter, opts ...store.Option) ([]*types.Node, error) {
+	op := store.NewOp(opts...)
 	do := func(podname string) ([]*types.Node, error) {
 		key := fmt.Sprintf(nodePodKey, podname, "*")
 		kvs, err := r.getByKeyPattern(ctx, key, 0)
 		if err != nil {
 			return nil, err
 		}
-		return r.doGetNodes(ctx, kvs, nodeFilter.Labels, nodeFilter.All)
+		return r.doGetNodes(ctx, kvs, nodeFilter.Labels, nodeFilter.All, op)
 	}
 	if nodeFilter.Podname != "" {
 		return do(nodeFilter.Podname)
@@ -115,7 +117,6 @@ func (r *Rediaron) UpdateNodes(ctx context.Context, nodes ...*types.Node) error 
 		addIfNotEmpty(fmt.Sprintf(nodeCaKey, node.Name), node.Ca)
 		addIfNotEmpty(fmt.Sprintf(nodeCertKey, node.Name), node.Cert)
 		addIfNotEmpty(fmt.Sprintf(nodeKeyKey, node.Name), node.Key)
-		enginefactory.RemoveEngineFromCache(ctx, node.Endpoint, node.Ca, node.Cert, node.Key)
 	}
 	return r.BatchPut(ctx, data)
 }
@@ -195,6 +196,24 @@ func (r *Rediaron) NodeStatusStream(ctx context.Context) chan *types.NodeStatus 
 		}
 	})
 	return ch
+}
+
+func (r *Rediaron) LoadNodeCert(ctx context.Context, node *types.Node) (err error) {
+	keyFormats := []string{nodeCaKey, nodeCertKey, nodeKeyKey}
+	data := []string{"", "", ""}
+	for i := 0; i < 3; i++ {
+		v, err := r.GetOne(ctx, fmt.Sprintf(keyFormats[i], node.Name))
+		if err != nil {
+			if !isRedisNoKeyError(err) {
+				log.WithFunc("store.redis.LoadNodeCert").Warnf(ctx, "Get key failed %+v", err)
+				return err
+			}
+			continue
+		}
+		data[i] = v
+	}
+	node.Ca, node.Cert, node.Key = data[0], data[1], data[2]
+	return nil
 }
 
 func (r *Rediaron) makeClient(ctx context.Context, node *types.Node) (client engine.API, err error) {
@@ -283,7 +302,10 @@ func (r *Rediaron) doRemoveNode(ctx context.Context, podname, nodename, endpoint
 	return err
 }
 
-func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels map[string]string, all bool) (nodes []*types.Node, err error) {
+func (r *Rediaron) doGetNodes(
+	ctx context.Context, kvs map[string]string,
+	labels map[string]string, all bool, op *store.Op,
+) (nodes []*types.Node, err error) {
 	allNodes := []*types.Node{}
 	for _, value := range kvs {
 		node := &types.Node{}
@@ -318,10 +340,12 @@ func (r *Rediaron) doGetNodes(ctx context.Context, kvs map[string]string, labels
 			}
 
 			nodeChan <- node
-			if client, err := r.makeClient(ctx, node); err != nil {
-				logger.Errorf(ctx, err, "failed to make client for %+v", node.Name)
-			} else {
-				node.Engine = client
+			if op == nil || (!op.WithoutEngine) {
+				if client, err := r.makeClient(ctx, node); err != nil {
+					logger.Errorf(ctx, err, "failed to make client for %+v", node.Name)
+				} else {
+					node.Engine = client
+				}
 			}
 		})
 	}

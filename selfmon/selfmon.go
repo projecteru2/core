@@ -12,6 +12,7 @@ import (
 	"github.com/projecteru2/core/cluster"
 	"github.com/projecteru2/core/log"
 	"github.com/projecteru2/core/store"
+	storefactory "github.com/projecteru2/core/store/factory"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -31,7 +32,7 @@ type NodeStatusWatcher struct {
 func RunNodeStatusWatcher(ctx context.Context, config types.Config, cluster cluster.Cluster, t *testing.T) {
 	r := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64()))) //nolint
 	ID := r.Int63n(10000)                                           //nolint
-	store, err := store.NewStore(config, t)
+	store, err := storefactory.NewStore(config, t)
 	if err != nil {
 		log.WithFunc("selfmon.RunNodeStatusWatcher").WithField("ID", ID).Error(ctx, err, "failed to create store")
 		return

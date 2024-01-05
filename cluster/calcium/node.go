@@ -10,6 +10,7 @@ import (
 	"github.com/projecteru2/core/metrics"
 	"github.com/projecteru2/core/resource/plugins"
 	resourcetypes "github.com/projecteru2/core/resource/types"
+	"github.com/projecteru2/core/store"
 	"github.com/projecteru2/core/types"
 	"github.com/projecteru2/core/utils"
 )
@@ -109,7 +110,8 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 // node with resource info
 func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions) (<-chan *types.Node, error) {
 	logger := log.WithFunc("calcium.ListPodNodes").WithField("podname", opts.Podname).WithField("labels", opts.Labels).WithField("all", opts.All).WithField("info", opts.CallInfo)
-	nodes, err := c.store.GetNodesByPod(ctx, &types.NodeFilter{Podname: opts.Podname, Labels: opts.Labels, All: opts.All})
+	nf := &types.NodeFilter{Podname: opts.Podname, Labels: opts.Labels, All: opts.All}
+	nodes, err := c.store.GetNodesByPod(ctx, nf, store.WithoutEngineOption())
 	if err != nil {
 		logger.Error(ctx, err)
 		return nil, err
@@ -231,6 +233,7 @@ func (c *Calcium) SetNode(ctx context.Context, opts *types.SetNodeOptions) (*typ
 			},
 			// then: update node metadata
 			func(ctx context.Context) error {
+				defer enginefactory.RemoveEngineFromCache(ctx, node.Endpoint, node.Ca, node.Cert, node.Key)
 				if err := c.store.UpdateNodes(ctx, n); err != nil {
 					return err
 				}
