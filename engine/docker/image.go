@@ -7,7 +7,7 @@ import (
 
 	dockertypes "github.com/docker/docker/api/types"
 	dockerfilters "github.com/docker/docker/api/types/filters"
-
+	registrytypes "github.com/docker/docker/api/types/registry"
 	enginetypes "github.com/projecteru2/core/engine/types"
 )
 
@@ -86,14 +86,14 @@ func (e *Engine) ImagePush(ctx context.Context, ref string) (io.ReadCloser, erro
 
 // ImageBuild build image
 func (e *Engine) ImageBuild(ctx context.Context, input io.Reader, refs []string, platform string) (io.ReadCloser, error) {
-	authConfigs := map[string]dockertypes.AuthConfig{}
+	authConfigs := map[string]registrytypes.AuthConfig{}
 	for domain, conf := range e.config.Docker.AuthConfigs {
 		b64auth, err := encodeAuthToBase64(conf)
 		if err != nil {
 			return nil, err
 		}
 		if _, ok := authConfigs[domain]; !ok {
-			authConfigs[domain] = dockertypes.AuthConfig{
+			authConfigs[domain] = registrytypes.AuthConfig{
 				Username: conf.Username,
 				Password: conf.Password,
 				Auth:     b64auth,

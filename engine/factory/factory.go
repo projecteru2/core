@@ -58,10 +58,10 @@ func NewEngineCache(config types.Config, stor store.Store) *EngineCache {
 }
 
 // InitEngineCache init engine cache and start engine cache checker
-func InitEngineCache(ctx context.Context, config types.Config, sto store.Store) {
-	engineCache = NewEngineCache(config, sto)
+func InitEngineCache(ctx context.Context, config types.Config, stor store.Store) {
+	engineCache = NewEngineCache(config, stor)
 	// init the cache, we don't care the return values
-	if sto != nil {
+	if stor != nil {
 		_, _ = engineCache.stor.GetNodesByPod(ctx, &types.NodeFilter{
 			All: true,
 		})
@@ -166,16 +166,16 @@ func (e *EngineCache) CheckNodeStatus(ctx context.Context) {
 				if _, err := e.stor.GetNode(ctx, ns.Nodename); err != nil {
 					logger.Warnf(ctx, "failed to get node %s: %s", ns.Nodename, err)
 				}
-			} else {
-				// a node may have multiple engines, so we need check all key here
-				e.keysToCheck.ForEach(func(k string, ep engineParams) bool {
-					if ep.nodename == ns.Nodename {
-						logger.Infof(ctx, "remove engine %+v from cache", ep.getCacheKey())
-						RemoveEngineFromCache(ctx, ep.endpoint, ep.ca, ep.cert, ep.key)
-					}
-					return true
-				})
+				continue
 			}
+			// a node may have multiple engines, so we need check all key here
+			e.keysToCheck.ForEach(func(k string, ep engineParams) bool {
+				if ep.nodename == ns.Nodename {
+					logger.Infof(ctx, "remove engine %+v from cache", ep.getCacheKey())
+					RemoveEngineFromCache(ctx, ep.endpoint, ep.ca, ep.cert, ep.key)
+				}
+				return true
+			})
 		}
 	}
 }
@@ -282,8 +282,7 @@ func (e *EngineCache) checkOneNodeStatus(ctx context.Context, params *enginePara
 	logger := log.WithFunc("engine.factory.checkOneNodeStatus")
 	nodename := params.nodename
 	cacheKey := params.getCacheKey()
-	ns, err := e.stor.GetNodeStatus(ctx, nodename)
-	if (err != nil && errors.Is(err, types.ErrInvaildCount)) || (!ns.Alive) {
+	if ns, err := e.stor.GetNodeStatus(ctx, nodename); (err != nil && errors.Is(err, types.ErrInvaildCount)) || (!ns.Alive) {
 		logger.Warnf(ctx, "node %s is offline, the cache will be removed", nodename)
 		e.Delete(cacheKey)
 	}

@@ -10,12 +10,12 @@ import (
 )
 
 // NewStore creates a store
-func NewStore(config types.Config, t *testing.T) (sto store.Store, err error) {
+func NewStore(config types.Config, t *testing.T) (stor store.Store, err error) {
 	switch config.Store {
 	case types.Redis:
-		sto, err = redis.New(config, t)
+		stor, err = redis.New(config, t)
 	default:
-		sto, err = etcdv3.New(config, t)
+		stor, err = etcdv3.New(config, t)
 	}
-	return sto, err
+	return stor, err
 }

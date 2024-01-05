@@ -92,11 +92,12 @@ var (
 	ErrEmptyRawEngineOp            = errors.New("raw engine op is empty")
 
 	// Store
-	ErrKeyNotExists       = errors.New("key not exists")
-	ErrKeyExists          = errors.New("key exists")
-	ErrNoOps              = errors.New("no txn ops")
-	ErrTxnConditionFailed = errors.New("ETCD Txn condition failed")
-	ErrInvaildCount       = errors.New("bad `Count` value, entity count invalid") // store key-value count not same
+	ErrKeyNotExists        = errors.New("key not exists")
+	ErrKeyExists           = errors.New("key exists")
+	ErrNoOps               = errors.New("no txn ops")
+	ErrTxnConditionFailed  = errors.New("ETCD Txn condition failed")
+	ErrInvaildCount        = errors.New("bad `Count` value, entity count invalid") // store key-value count not same
+	ErrStoreNotImplemented = errors.New("not implemented")
 
 	// WAL
 	ErrInvaildWALEventType = errors.New("invalid WAL event type")
