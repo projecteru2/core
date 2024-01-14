@@ -179,8 +179,6 @@ type NodeResourceRequest struct {
 }
 
 func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams resourcetypes.RawParams) error {
-	var err error
-
 	if n.CPUMap == nil {
 		n.CPUMap = CPUMap{}
 	}
@@ -208,30 +206,18 @@ func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams resourcet
 			n.CPUMap[cpuID] = int(pieces)
 		}
 	}
-
-	if n.Memory, err = coreutils.ParseRAMInHuman(rawParams.String("memory")); err != nil {
-		return err
-	}
+	n.Memory = rawParams.Int64("memory")
 
 	n.NUMA = NUMA{}
 	n.NUMAMemory = NUMAMemory{}
-
-	for index, numaCPUList := range rawParams.StringSlice("numa-cpu") {
-		nodeID := fmt.Sprintf("%d", index)
-		for _, cpuID := range strings.Split(numaCPUList, ",") {
-			n.NUMA[cpuID] = nodeID
-		}
+	for cpuID, nodeID := range rawParams.RawParams("numa-cpu") {
+		n.NUMA[cpuID] = nodeID.(string)
 	}
 
-	for index, nodeMemory := range rawParams.StringSlice("numa-memory") {
-		nodeID := fmt.Sprintf("%d", index)
-		mem, err := coreutils.ParseRAMInHuman(nodeMemory)
-		if err != nil {
-			return err
-		}
-		n.NUMAMemory[nodeID] = mem
+	for nodeID, nodeMemory := range rawParams.RawParams("numa-memory") {
+		// stupid golang covert int64 to float64 when using json.unmarshal
+		n.NUMAMemory[nodeID] = int64(nodeMemory.(float64))
 	}
-
 	return nil
 }
 
