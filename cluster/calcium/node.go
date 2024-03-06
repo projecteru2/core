@@ -111,7 +111,15 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 func (c *Calcium) ListPodNodes(ctx context.Context, opts *types.ListNodesOptions) (<-chan *types.Node, error) {
 	logger := log.WithFunc("calcium.ListPodNodes").WithField("podname", opts.Podname).WithField("labels", opts.Labels).WithField("all", opts.All).WithField("info", opts.CallInfo)
 	nf := &types.NodeFilter{Podname: opts.Podname, Labels: opts.Labels, All: opts.All}
-	nodes, err := c.store.GetNodesByPod(ctx, nf, store.WithoutEngineOption())
+	var (
+		nodes []*types.Node
+		err   error
+	)
+	if opts.CallInfo {
+		nodes, err = c.store.GetNodesByPod(ctx, nf)
+	} else {
+		nodes, err = c.store.GetNodesByPod(ctx, nf, store.WithoutEngineOption())
+	}
 	if err != nil {
 		logger.Error(ctx, err)
 		return nil, err
