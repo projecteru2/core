@@ -427,6 +427,7 @@ message DeployOptions {
   map<string, FileMode> modes = 1025;
   map<string, FileOwner> owners = 1026;
   map<string, bytes> resources = 1027;
+  bool ignore_pull = 1028;
 }
 
 message ReplaceOptions {

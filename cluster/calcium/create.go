@@ -228,7 +228,7 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	seq int) (indices []int, err error) {
 
 	logger := log.WithFunc("calcium.doDeployWorkloadsOnNode").WithField("node", nodename).WithField("ident", opts.ProcessIdent).WithField("deploy", deploy).WithField("seq", seq)
-	node, err := c.doGetAndPrepareNode(ctx, nodename, opts.Image)
+	node, err := c.doGetAndPrepareNode(ctx, nodename, opts.Image, opts.IgnorePull)
 	if err != nil {
 		for i := 0; i < deploy; i++ {
 			logger.Error(ctx, err)
@@ -280,13 +280,16 @@ func (c *Calcium) doDeployWorkloadsOnNode(ctx context.Context,
 	return indices, err
 }
 
-func (c *Calcium) doGetAndPrepareNode(ctx context.Context, nodename, image string) (*types.Node, error) {
+func (c *Calcium) doGetAndPrepareNode(ctx context.Context, nodename, image string, ignorePull bool) (*types.Node, error) {
 	node, err := c.store.GetNode(ctx, nodename)
 	if err != nil {
 		return nil, err
 	}
+	if !ignorePull {
+		err = pullImage(ctx, node, image)
+	}
 
-	return node, pullImage(ctx, node, image)
+	return node, err
 }
 
 // transaction: workload metadata consistency
