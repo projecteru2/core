@@ -113,7 +113,7 @@ func (c *Calcium) doReplaceWorkload(
 		return nil, removeMessage, types.ErrWorkloadIgnored
 	}
 	// prepare node
-	node, err := c.doGetAndPrepareNode(ctx, workload.Nodename, opts.Image)
+	node, err := c.doGetAndPrepareNode(ctx, workload.Nodename, opts.Image, opts.IgnorePull)
 	if err != nil {
 		return nil, removeMessage, err
 	}

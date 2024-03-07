@@ -312,6 +312,7 @@ func toCoreDeployOptions(d *pb.DeployOptions) (*types.DeployOptions, error) {
 		AfterCreate:    d.AfterCreate,
 		RawArgs:        d.RawArgs,
 		Files:          files,
+		IgnorePull:     d.IgnorePull,
 	}, nil
 }
 

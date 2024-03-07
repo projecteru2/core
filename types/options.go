@@ -35,6 +35,7 @@ type DeployOptions struct {
 	AfterCreate    []string          // AfterCreate support run cmds after create
 	RawArgs        RawArgs           // RawArgs for raw args processing
 	Lambda         bool              // indicate is lambda workload or not
+	IgnorePull     bool              // ignore pull image
 }
 
 // Processing tracks workloads count yet finished
