@@ -282,7 +282,7 @@ func (h *host) getFullCPUPlans(cores []*cpuCore, full int) []types.CPUMap {
 	}
 
 	// Try to ensure the effectiveness of the previous priority
-	sumOfIds := func(c types.CPUMap) int {
+	sumOfIDs := func(c types.CPUMap) int {
 		sum := 0
 		for ID := range c {
 			sum += indexMap[ID]
@@ -290,7 +290,7 @@ func (h *host) getFullCPUPlans(cores []*cpuCore, full int) []types.CPUMap {
 		return sum
 	}
 
-	sort.Slice(result, func(i, j int) bool { return sumOfIds(result[i]) < sumOfIds(result[j]) })
+	sort.Slice(result, func(i, j int) bool { return sumOfIDs(result[i]) < sumOfIDs(result[j]) })
 
 	return result
 }

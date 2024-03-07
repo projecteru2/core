@@ -247,7 +247,7 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	engine.AssertExpectations(t)
 }
 
-func newCreateWorkloadCluster(t *testing.T) (*Calcium, []*types.Node) {
+func newCreateWorkloadCluster(_ *testing.T) (*Calcium, []*types.Node) {
 	c := NewTestCluster()
 
 	engine := &enginemocks.API{}

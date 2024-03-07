@@ -25,7 +25,7 @@ func (m Manager) AddNode(ctx context.Context, nodename string, opts resourcetype
 
 	return res, utils.PCR(ctx,
 		// prepare: do nothing
-		func(ctx context.Context) error {
+		func(_ context.Context) error {
 			return nil
 		},
 		// commit: call plugins to add the node
@@ -224,7 +224,7 @@ func (m Manager) SetNodeResourceUsage(ctx context.Context, nodename string, node
 	after := resourcetypes.Resources{}
 
 	return before, after, utils.PCR(ctx,
-		func(ctx context.Context) error {
+		func(_ context.Context) error {
 			// prepare: covert []resourcetypes.Resources to map[plugin]resourcetypes.Resources
 			// [{"cpu-plugin": {"cpu": 1}}, {"cpu-plugin": {"cpu": 1}}] -> {"cpu-plugin": [{"cpu": 1}, {"cpu": 1}]}
 			for _, workloadResource := range workloadsResource {
@@ -319,7 +319,7 @@ func (m Manager) SetNodeResourceCapacity(ctx context.Context, nodename string, n
 	after := resourcetypes.Resources{}
 
 	return before, after, utils.PCR(ctx,
-		func(ctx context.Context) error {
+		func(_ context.Context) error {
 			if nodeResourceRequest == nil {
 				nodeResourceRequest = resourcetypes.Resources{}
 			}

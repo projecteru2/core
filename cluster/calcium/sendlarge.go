@@ -20,7 +20,7 @@ func (c *Calcium) SendLargeFile(ctx context.Context, inputChan chan *types.SendL
 		senders := make(map[string]*workloadSender)
 		// for each file
 		for data := range inputChan {
-			for _, id := range data.Ids {
+			for _, id := range data.IDs {
 				if _, ok := senders[id]; !ok {
 					log.Debugf(ctx, "[SendLargeFile] create sender for %s", id)
 					// for each container, let's create a new sender to send identical file chunk, each chunk will include the metadata of this file

@@ -137,7 +137,7 @@ func serve(c *cli.Context) error {
 }
 
 func main() {
-	cli.VersionPrinter = func(c *cli.Context) {
+	cli.VersionPrinter = func(_ *cli.Context) {
 		fmt.Print(version.String())
 	}
 

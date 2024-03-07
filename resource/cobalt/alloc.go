@@ -77,7 +77,7 @@ func (m Manager) Alloc(ctx context.Context, nodename string, deployCount int, op
 			return nil
 		},
 		// rollback: do nothing
-		func(ctx context.Context) error {
+		func(_ context.Context) error {
 			return nil
 		},
 		m.config.GlobalTimeout,

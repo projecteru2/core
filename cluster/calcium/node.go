@@ -99,7 +99,7 @@ func (c *Calcium) RemoveNode(ctx context.Context, nodename string) error {
 				return nil
 			},
 			// rollback: do nothing
-			func(ctx context.Context, failureByCond bool) error {
+			func(_ context.Context, _ bool) error {
 				return nil
 			},
 			c.config.GlobalTimeout)

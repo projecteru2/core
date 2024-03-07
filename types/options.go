@@ -308,7 +308,7 @@ const SendLargeFileChunkSize = 2 << 10
 
 // SendLargeFileOptions for LargeFileTransfer
 type SendLargeFileOptions struct {
-	Ids   []string
+	IDs   []string
 	Dst   string
 	Size  int64
 	Mode  int64
@@ -319,7 +319,7 @@ type SendLargeFileOptions struct {
 
 // Validate checks options
 func (o *SendLargeFileOptions) Validate() error {
-	if len(o.Ids) == 0 {
+	if len(o.IDs) == 0 {
 		return ErrNoWorkloadIDs
 	}
 	if len(o.Chunk) == 0 {

@@ -587,7 +587,7 @@ func toCoreListImageOptions(opts *pb.ListImageOptions) *types.ImageOptions {
 
 func toSendLargeFileOptions(opts *pb.FileOptions) (*types.SendLargeFileOptions, error) {
 	ret := &types.SendLargeFileOptions{
-		Ids:   opts.Ids,
+		IDs:   opts.Ids,
 		Dst:   opts.Dst,
 		Size:  opts.Size,
 		Mode:  opts.Mode.Mode,
@@ -604,7 +604,7 @@ func toSendLargeFileChunks(file types.LinuxFile, ids []string) []*types.SendLarg
 	ret := make([]*types.SendLargeFileOptions, 0)
 	for idx := 0; idx < len(file.Content); idx += maxChunkSize {
 		sendLargeFileOptions := &types.SendLargeFileOptions{
-			Ids:  ids,
+			IDs:  ids,
 			Dst:  file.Filename,
 			Size: int64(len(file.Content)),
 			Mode: file.Mode,

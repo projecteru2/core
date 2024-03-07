@@ -153,7 +153,7 @@ func (c *Calcium) doCreateWorkloads(ctx context.Context, opts *types.DeployOptio
 					return
 				}
 				for nodename, rollbackIndices := range rollbackMap {
-					if e := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, node *types.Node) error {
+					if e := c.withNodePodLocked(ctx, nodename, func(ctx context.Context, _ *types.Node) error {
 						rollbackResources := utils.Map(rollbackIndices, func(idx int) resourcetypes.Resources {
 							return workloadResourcesMap[nodename][idx]
 						})

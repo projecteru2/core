@@ -101,7 +101,7 @@ func (e *EngineCache) CheckAlive(ctx context.Context) {
 
 		paramsChan := make(chan engineParams)
 		go func() {
-			e.keysToCheck.ForEach(func(k string, v engineParams) bool {
+			e.keysToCheck.ForEach(func(_ string, v engineParams) bool {
 				paramsChan <- v
 				return true
 			})
@@ -169,7 +169,7 @@ func (e *EngineCache) CheckNodeStatus(ctx context.Context) {
 				continue
 			}
 			// a node may have multiple engines, so we need check all key here
-			e.keysToCheck.ForEach(func(k string, ep engineParams) bool {
+			e.keysToCheck.ForEach(func(_ string, ep engineParams) bool {
 				if ep.nodename == ns.Nodename {
 					logger.Infof(ctx, "remove engine %+v from cache", ep.getCacheKey())
 					RemoveEngineFromCache(ctx, ep.endpoint, ep.ca, ep.cert, ep.key)

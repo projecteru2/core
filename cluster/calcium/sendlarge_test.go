@@ -23,7 +23,7 @@ func TestSendLarge(t *testing.T) {
 	defer os.RemoveAll(tmpfile.Name())
 	defer tmpfile.Close()
 	opts := &types.SendLargeFileOptions{
-		Ids:   []string{"cid"},
+		IDs:   []string{"cid"},
 		Size:  1,
 		Dst:   "/tmp/1",
 		Chunk: []byte{},
