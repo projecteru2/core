@@ -247,7 +247,194 @@ func TestCreateWorkloadTxn(t *testing.T) {
 	engine.AssertExpectations(t)
 }
 
-func newCreateWorkloadCluster(_ *testing.T) (*Calcium, []*types.Node) {
+func TestCreateWorkloadIngorePullTxn(t *testing.T) {
+	c, nodes := newCreateWorkloadCluster(t)
+	ctx := context.Background()
+	opts := &types.DeployOptions{
+		Name:           "zc:name",
+		Count:          2,
+		DeployStrategy: strategy.Auto,
+		Podname:        "p1",
+		Resources:      resourcetypes.Resources{},
+		Image:          "zc:test",
+		Entrypoint: &types.Entrypoint{
+			Name: "good-entrypoint",
+		},
+		NodeFilter: &types.NodeFilter{},
+		IgnorePull: true,
+	}
+
+	store := c.store.(*storemocks.Store)
+	rmgr := c.rmgr.(*resourcemocks.Manager)
+	mwal := &walmocks.WAL{}
+	c.wal = mwal
+	var walCommitted bool
+	commit := wal.Commit(func() error {
+		walCommitted = true
+		return nil
+	})
+	mwal.On("Log", mock.Anything, mock.Anything).Return(commit, nil)
+	node1, node2 := nodes[0], nodes[1]
+
+	// doAllocResource fails: GetNodesDeployCapacity
+	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
+		nil, 0, types.ErrMockError,
+	).Once()
+	ch, err := c.CreateWorkload(ctx, opts)
+	assert.Nil(t, err)
+	cnt := 0
+	for m := range ch {
+		cnt++
+		assert.Error(t, m.Error, "key is empty")
+	}
+	assert.EqualValues(t, 1, cnt)
+	assert.True(t, walCommitted)
+	walCommitted = false
+	rmgr.On("GetNodesDeployCapacity", mock.Anything, mock.Anything, mock.Anything).Return(
+		map[string]*plugintypes.NodeDeployCapacity{
+			node1.Name: {
+				Capacity: 10,
+				Usage:    0.5,
+				Rate:     0.05,
+				Weight:   100,
+			},
+			node2.Name: {
+				Capacity: 10,
+				Usage:    0.5,
+				Rate:     0.05,
+				Weight:   100,
+			},
+		}, 20, nil,
+	)
+
+	// doAllocResource fails: GetDeployStatus
+	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "GetDeployStatus")).Once()
+	ch, err = c.CreateWorkload(ctx, opts)
+	assert.Nil(t, err)
+	cnt = 0
+	for m := range ch {
+		cnt++
+		assert.ErrorIs(t, m.Error, context.DeadlineExceeded)
+		assert.Error(t, m.Error, "GetDeployStatus")
+	}
+	assert.EqualValues(t, 1, cnt)
+	assert.True(t, walCommitted)
+	walCommitted = false
+	store.On("GetDeployStatus", mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{}, nil)
+
+	// doAllocResource fails: Alloc
+	rmgr.On("Alloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		nil, nil, types.ErrMockError,
+	).Once()
+	ch, err = c.CreateWorkload(ctx, opts)
+	assert.Nil(t, err)
+	cnt = 0
+	for m := range ch {
+		cnt++
+		assert.Error(t, m.Error, "DeadlineExceeded")
+	}
+	assert.EqualValues(t, 1, cnt)
+	assert.True(t, walCommitted)
+	walCommitted = false
+	rmgr.On("Alloc", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		[]resourcetypes.Resources{{}, {}},
+		[]resourcetypes.Resources{
+			{node1.Name: {}},
+			{node2.Name: {}},
+		},
+		nil,
+	)
+	rmgr.On("RollbackAlloc", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("GetNode",
+		mock.AnythingOfType("*context.timerCtx"),
+		mock.AnythingOfType("string"),
+	).Return(
+		func(_ context.Context, name string) (node *types.Node) {
+			node = node1
+			if name == "n2" {
+				node = node2
+			}
+			return
+		}, nil)
+	engine := node1.Engine.(*enginemocks.API)
+	// engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "ImageLocalDigest")).Twice()
+	// engine.On("ImagePull", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "ImagePull")).Twice()
+	store.On("DeleteProcessing", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	// ch, err = c.CreateWorkload(ctx, opts)
+	// assert.Nil(t, err)
+	// cnt = 0
+	// for m := range ch {
+	// 	cnt++
+	// 	assert.Error(t, m.Error, "ImagePull")
+	// }
+	// assert.EqualValues(t, 2, cnt)
+	// assert.True(t, walCommitted)
+
+	// doDeployOneWorkload fails: VirtualizationCreate
+	// engine.On("ImageLocalDigests", mock.Anything, mock.Anything).Return([]string{""}, nil)
+	// engine.On("ImageRemoteDigest", mock.Anything, mock.Anything).Return("", nil)
+	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(nil, errors.Wrap(context.DeadlineExceeded, "VirtualizationCreate")).Twice()
+	engine.On("VirtualizationRemove", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	store.On("ListNodeWorkloads", mock.Anything, mock.Anything, mock.Anything).Return(nil, types.ErrMockError)
+	walCommitted = false
+	ch, err = c.CreateWorkload(ctx, opts)
+	assert.Nil(t, err)
+	cnt = 0
+	for m := range ch {
+		cnt++
+		assert.Error(t, m.Error)
+		assert.True(t, errors.Is(m.Error, context.DeadlineExceeded))
+		assert.Error(t, m.Error, "VirtualizationCreate")
+	}
+	assert.EqualValues(t, 2, cnt)
+	assert.True(t, walCommitted)
+
+	// doCreateAndStartWorkload fails: AddWorkload
+	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "c1"}, nil)
+	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
+	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
+	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "AddWorkload")).Twice()
+	walCommitted = false
+	ch, err = c.CreateWorkload(ctx, opts)
+	assert.Nil(t, err)
+	cnt = 0
+	for m := range ch {
+		cnt++
+		assert.Error(t, m.Error)
+		assert.True(t, errors.Is(m.Error, context.DeadlineExceeded))
+		assert.Error(t, m.Error, "AddWorkload")
+	}
+	assert.EqualValues(t, 2, cnt)
+	assert.True(t, walCommitted)
+
+	// doCreateAndStartWorkload fails: first time AddWorkload failed
+	engine.On("VirtualizationCreate", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationCreated{ID: "c1"}, nil)
+	engine.On("VirtualizationStart", mock.Anything, mock.Anything).Return(nil)
+	engine.On("VirtualizationInspect", mock.Anything, mock.Anything).Return(&enginetypes.VirtualizationInfo{}, nil)
+	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(errors.Wrap(context.DeadlineExceeded, "AddWorkload2")).Once()
+	store.On("AddWorkload", mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
+	walCommitted = false
+	ch, err = c.CreateWorkload(ctx, opts)
+	assert.Nil(t, err)
+	cnt = 0
+	errCnt := 0
+	for m := range ch {
+		cnt++
+		if m.Error != nil {
+			assert.Error(t, m.Error)
+			assert.True(t, errors.Is(m.Error, context.DeadlineExceeded))
+			assert.Error(t, m.Error, "AddWorkload2")
+			errCnt++
+		}
+	}
+	assert.EqualValues(t, 2, cnt)
+	assert.EqualValues(t, 1, errCnt)
+	assert.True(t, walCommitted)
+	store.AssertExpectations(t)
+	engine.AssertExpectations(t)
+}
+
+func newCreateWorkloadCluster(t *testing.T) (*Calcium, []*types.Node) {
 	c := NewTestCluster()
 
 	engine := &enginemocks.API{}
