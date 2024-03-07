@@ -208,8 +208,9 @@ func (n *NodeResourceRequest) Parse(config coretypes.Config, rawParams resourcet
 			n.CPUMap[cpuID] = int(pieces)
 		}
 	}
-
-	if n.Memory, err = coreutils.ParseRAMInHuman(rawParams.String("memory")); err != nil {
+	if mem := rawParams.Int64("memory"); mem > 0 {
+		n.Memory = mem
+	} else if n.Memory, err = coreutils.ParseRAMInHuman(rawParams.String("memory")); err != nil {
 		return err
 	}
 
