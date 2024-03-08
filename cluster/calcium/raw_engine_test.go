@@ -32,3 +32,19 @@ func TestRawEngine(t *testing.T) {
 	_, err := c.RawEngine(ctx, &types.RawEngineOptions{ID: "id1", Op: "xxxx"})
 	assert.NoError(t, err)
 }
+
+func TestRawEngineIgnoreLock(t *testing.T) {
+	c := NewTestCluster()
+	ctx := context.Background()
+	store := c.store.(*storemocks.Store)
+	workload := &types.Workload{
+		ID:         "id1",
+		Privileged: true,
+	}
+	engine := &enginemocks.API{}
+	workload.Engine = engine
+	store.On("GetWorkload", mock.Anything, mock.Anything).Return(workload, nil)
+	engine.On("RawEngine", mock.Anything, mock.Anything).Return(&enginetypes.RawEngineResult{}, nil).Once()
+	_, err := c.RawEngine(ctx, &types.RawEngineOptions{ID: "id1", Op: "xxxx", IgnoreLock: true})
+	assert.NoError(t, err)
+}

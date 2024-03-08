@@ -624,9 +624,10 @@ func toSendLargeFileChunks(file types.LinuxFile, ids []string) []*types.SendLarg
 
 func toCoreRawEngineOptions(d *pb.RawEngineOptions) (*types.RawEngineOptions, error) {
 	ret := &types.RawEngineOptions{
-		ID:     d.Id,
-		Op:     d.Op,
-		Params: d.Params,
+		ID:         d.Id,
+		Op:         d.Op,
+		Params:     d.Params,
+		IgnoreLock: d.IgnoreLock,
 	}
 	err := ret.Validate()
 	return ret, err

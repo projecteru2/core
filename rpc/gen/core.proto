@@ -611,6 +611,7 @@ message RawEngineOptions {
   string id = 1001;
   string op = 1002;
   bytes params = 1003;
+  bool ignore_lock = 1004;
 }
 
 message RawEngineMessage {
