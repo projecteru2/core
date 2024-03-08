@@ -334,9 +334,10 @@ func (o *SendLargeFileOptions) Validate() error {
 }
 
 type RawEngineOptions struct {
-	ID     string
-	Op     string
-	Params []byte
+	ID         string
+	Op         string
+	Params     []byte
+	IgnoreLock bool // whether lock the workload
 }
 
 func (o *RawEngineOptions) Validate() error {
